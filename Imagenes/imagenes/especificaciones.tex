@@ -1,0 +1,39 @@
+\documentclass[a4paper,10pt]{article}
+\usepackage[utf8]{inputenc}
+
+
+%opening
+\title{Especificaciones soportadas en el QFTbx}
+\author{Isaac Martínez Forte}
+
+\begin{document}
+
+\maketitle
+
+Estabilidad robusta:
+
+ 
+ $$\left| F\frac{PGH}{1+PGH} \right| \leq W_s$$
+ 
+
+ Ruido del sensor:
+ 
+ $$\left| F\frac{1}{1+PGH} \right| \leq W_s$$
+
+ Rechazo de perturbaciones a la entrada de la planta (PPE):
+ 
+ $$\left| F\frac{P}{1+PGH} \right| \leq W_s$$
+ 
+ Rechazo de perturbaciones a la salida de la planta (RPS):
+ 
+ $$\left| F\frac{H}{1+PGH} \right| \leq W_s$$
+ 
+ Esfuerzo de contro:
+ 
+ $$\left| F\frac{G}{1+PGH} \right| \leq W_s$$
+ 
+ Seguimiento:
+ 
+ $$W_{s_{a}}\leq \left| F\frac{PG}{1+PGH} \right| \leq W_{s_{b}}$$
+
+\end{document}
