@@ -2,7 +2,7 @@
 
 ## Dependencies
 
-	- Obligatory
+	- Minimal
 		- cmake >= 3.5
 		- Qt >= 5.15
 		- cxx compiler >= c++11
