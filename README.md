@@ -29,8 +29,11 @@ OPTION (USE_Doxygen "Use Doxygen" OFF)
 
 Instructions:
 	- mkdir build
+	
 	- cd build
+	
 	- cmake ..
+	
 	- make
 	
 If you previously fulfill the dependencies, you can compile it in linux (using gcc) or in windows (using MinGW).
