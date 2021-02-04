@@ -1,6 +1,6 @@
 # How to use
 
-## Dependencias
+## Dependencies
 
 	- Obligatory
 		- cmake >= 3.5
