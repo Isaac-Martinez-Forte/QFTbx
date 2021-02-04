@@ -16,9 +16,13 @@ Full documentation isn't available but you can use Doxygen if you need to genera
 You can configure dependencies in CMake file;  automatical configuration is: 
 
 OPTION (USE_CLANG "Use CLANG" OFF)
+
 OPTION (USE_OpenMP "Use OpenMP" ON)
+
 OPTION (USE_CUDA "Use CUDA" OFF)
+
 OPTION (USE_Doxygen "Use Doxygen" OFF)
+
 
 
 ## Compile
