@@ -1,0 +1,15 @@
+<RCC>
+    <qresource prefix="/">
+        <file>qml/desktop/Main.qml</file>
+        <file>qml/desktop/Keyboard.qml</file>
+        <file>qml/desktop/Key.qml</file>
+        <file>qml/desktop/Button.qml</file>
+        <file>qml/desktop/MenuLiterm.qml</file>
+        <file>qml/desktop/NotifyWin.qml</file>
+        <file>qml/desktop/UrlWindow.qml</file>
+        <file>qml/desktop/LayoutWindow.qml</file>
+        <file>qml/desktop/PopupWindow.qml</file>
+        <file>qml/desktop/TabView.qml</file>
+        <file>qml/desktop/TabBar.qml</file>
+    </qresource>
+</RCC>

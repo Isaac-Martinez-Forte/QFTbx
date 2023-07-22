@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>GUI/QML/windowsgeneral.qml</file>
+        <file>GUI/QML/WindowsgeneralForm.ui.qml</file>
+    </qresource>
+</RCC>
