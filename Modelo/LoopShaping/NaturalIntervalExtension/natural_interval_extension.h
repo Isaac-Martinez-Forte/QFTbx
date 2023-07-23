@@ -22,7 +22,7 @@ public:
     Natura_Interval_extension();
     ~Natura_Interval_extension();
 
-    cinterval get_box(Sistema * sistema, qreal w, complex p0, bool nyquist = false);
+    cinterval get_box(std::shared_ptr<Sistema> sistema, qreal w, complex p0, bool nyquist = false);
     
     cinterval get_box_nume (QVector <Var * > * nume, qreal w, Sistema::tipo_planta tipo, bool nyquist = false);
     cinterval get_box_deno (QVector <Var * > * deno, qreal w, Sistema::tipo_planta tipo, bool nyquist = false);
@@ -36,10 +36,10 @@ public:
 
 private:
 
-    inline cinterval get_box_kganancia (Sistema * sistema, qreal w);
-    inline cinterval get_box_knoganacia (Sistema * sistema, qreal w);
-    inline cinterval get_box_cpolinomios (Sistema * sistema, qreal w);
-    inline cinterval get_box_flibre (Sistema * sistema, qreal w);
+    inline cinterval get_box_kganancia (std::shared_ptr<Sistema> sistema, qreal w);
+    inline cinterval get_box_knoganacia (std::shared_ptr<Sistema> sistema, qreal w);
+    inline cinterval get_box_cpolinomios (std::shared_ptr<Sistema> sistema, qreal w);
+    inline cinterval get_box_flibre (std::shared_ptr<Sistema> sistema, qreal w);
 
     inline cinterval get_box_kganancia_nume (QVector <Var * > * nume, qreal w);
     inline cinterval get_box_kganancia_deno (QVector <Var * > * deno, qreal w);

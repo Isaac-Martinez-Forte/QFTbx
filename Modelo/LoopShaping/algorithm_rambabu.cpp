@@ -15,7 +15,7 @@ Algorithm_rambabu::~Algorithm_rambabu()
 
 }
 
-void Algorithm_rambabu::set_datos(Sistema *planta, Sistema *controlador, QVector<qreal> * omega, std::shared_ptr<DatosBound> boundaries,
+void Algorithm_rambabu::set_datos(std::shared_ptr<Sistema> planta, std::shared_ptr<Sistema> controlador, QVector<qreal> * omega, std::shared_ptr<DatosBound> boundaries,
                                   qreal epsilon, QVector<QVector<QVector<QPointF> *> *> *reunBounHash, bool depuracion,
                                   QVector <QVector <std::complex <qreal> > * > * temp, QVector <tools::dBND *> * espe){
     this->planta = planta;
@@ -145,12 +145,12 @@ bool Algorithm_rambabu::init_algorithm(){
 }
 
 
-Sistema * Algorithm_rambabu::getControlador(){
+std::shared_ptr<Sistema> Algorithm_rambabu::getControlador(){
     return controlador_retorno;
 }
 
 //Función que comprueba si la caja actual es feasible, infeasible o ambiguous.
-flags_box Algorithm_rambabu::check_box_feasibility(Sistema * v){
+flags_box Algorithm_rambabu::check_box_feasibility(std::shared_ptr<Sistema> v){
 
     using namespace std;
 
@@ -223,7 +223,7 @@ flags_box Algorithm_rambabu::check_box_feasibility(Sistema * v){
     return flag_final;
 }
 
-Sistema * Algorithm_rambabu::acelerated(Sistema * controlador){
+std::shared_ptr<Sistema> Algorithm_rambabu::acelerated(std::shared_ptr<Sistema> controlador){
 
     //creamos los datos del controlador.
 
@@ -441,16 +441,15 @@ Sistema * Algorithm_rambabu::acelerated(Sistema * controlador){
     }
 
 
-    Sistema * ns = controlador->invoke(controlador->getNombre(), nume, deno, k, new Var((qreal)0));
+    std::shared_ptr<Sistema> ns = controlador->invoke(controlador->getNombre(), nume, deno, k, new Var((qreal)0));
 
-    delete controlador;
     vec->clear();
     delete mapa;
 
     return ns;
 }
 
-QVector <QVector <QString> * > * Algorithm_rambabu::kganacia(Sistema * controlador){
+QVector <QVector <QString> * > * Algorithm_rambabu::kganacia(std::shared_ptr<Sistema> controlador){
 
     QVector <Var *> * nume = controlador->getNumerador();
     QVector <Var *> * deno = controlador->getDenominador();
@@ -515,7 +514,7 @@ QVector <QVector <QString> * > * Algorithm_rambabu::kganacia(Sistema * controlad
 }
 
 
-QVector<QVector<QString> *> *Algorithm_rambabu::knganancia(Sistema *controlador){
+QVector<QVector<QString> *> *Algorithm_rambabu::knganancia(std::shared_ptr<Sistema> controlador){
 
     QVector <Var *> * nume = controlador->getNumerador();
     QVector <Var *> * deno = controlador->getDenominador();

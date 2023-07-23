@@ -25,7 +25,7 @@ Algorithm_primer_articulo::~Algorithm_primer_articulo() {
 
 }
 
-void Algorithm_primer_articulo::set_datos(Sistema *planta, Sistema *controlador, QVector<qreal> * omega, std::shared_ptr<DatosBound> boundaries,
+void Algorithm_primer_articulo::set_datos(std::shared_ptr<Sistema> planta, std::shared_ptr<Sistema> controlador, QVector<qreal> * omega, std::shared_ptr<DatosBound> boundaries,
                                 qreal epsilon, QVector<QVector<QVector<QPointF> *> *> *reunBounHash,
                                 bool depuracion __attribute__((unused)), bool hilos, QVector<qreal>*radiosBoundariesMayor,
                                 QVector<qreal> *radiosBoundariesMenor, QVector<QPointF> *centros, bool biseccion_avanzada, bool deteccion_avanzada, bool a) {
@@ -223,7 +223,7 @@ bool Algorithm_primer_articulo::init_algorithm() {
     conversion = new Natura_Interval_extension();
 
     Tripleta * tripleta;
-    Sistema * actual;
+    std::shared_ptr<Sistema> actual;
 
     struct FC::return_bisection retur;
     deteccion = new DeteccionViolacionBoundaries();
@@ -318,14 +318,14 @@ bool Algorithm_primer_articulo::init_algorithm() {
 
 //Función que retorna el controlador.
 
-Sistema * Algorithm_primer_articulo::getControlador() {
+std::shared_ptr<Sistema> Algorithm_primer_articulo::getControlador() {
     return controlador_retorno;
 }
 
 
 //Función que comprueba si la caja actual es feasible, infeasible o ambiguous.
 
-inline Tripleta * Algorithm_primer_articulo::check_box_feasibility(Sistema *controlador) {
+inline Tripleta * Algorithm_primer_articulo::check_box_feasibility(std::shared_ptr<Sistema> controlador) {
 
     using namespace std;
 
@@ -410,7 +410,6 @@ inline Tripleta * Algorithm_primer_articulo::check_box_feasibility(Sistema *cont
 #endif
 
         if (datos->getFlag() == infeasible) {
-            delete controlador;
             datosCortesBoundaries->clear();
             return nullptr;
         }
@@ -525,7 +524,7 @@ inline Tripleta * Algorithm_primer_articulo::check_box_feasibility(Sistema *cont
 
 
 //Función que recorta la caja.
-inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector <data_box *> * datosCortesBoundaries) {
+inline std::shared_ptr<Sistema> Algorithm_primer_articulo::aceleratedNuevo(std::shared_ptr<Sistema> v, QVector <data_box *> * datosCortesBoundaries) {
     QVector <Var *> * denominador = v->getDenominador();
     QVector <Var *> * numerador = v->getNumerador();
     QPointF k = v->getK()->getRango();
@@ -996,9 +995,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector
     }
 #endif
 
-    Sistema * nuevo_sistema = v->invoke(v->getNombre(), numerador_nuevo, denominador_nuevo, new Var("kv", kNuevo, 0), new Var (0.0));
-    delete v;
-
+    std::shared_ptr<Sistema> nuevo_sistema = v->invoke(v->getNombre(), numerador_nuevo, denominador_nuevo, new Var("kv", kNuevo, 0), new Var (0.0));
 
     numeradorSup->clear();
     numeradorInf->clear();
@@ -1032,7 +1029,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector
 
 
 
-inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVector <data_box *> * datosCortesBoundaries) {
+inline std::shared_ptr<Sistema> Algorithm_primer_articulo::aceleratedAntiguo(std::shared_ptr<Sistema> v, QVector <data_box *> * datosCortesBoundaries) {
 
     QVector <Var *> * denominador = v->getDenominador();
     QVector <Var *> * numerador = v->getNumerador();
@@ -1545,9 +1542,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
     }
 #endif
 
-    Sistema * nuevo_sistema = v->invoke(v->getNombre(), numerador_nuevo, denominador_nuevo, new Var("kv", kNuevo, 0), new Var (0.0));
-    delete v;
-
+    std::shared_ptr<Sistema> nuevo_sistema = v->invoke(v->getNombre(), numerador_nuevo, denominador_nuevo, new Var("kv", kNuevo, 0), new Var (0.0));
 
     numeradorSup->clear();
     numeradorInf->clear();
@@ -1580,7 +1575,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
 }
 
 
-inline void Algorithm_primer_articulo::comprobarVariables(Sistema *controlador) {
+inline void Algorithm_primer_articulo::comprobarVariables(std::shared_ptr<Sistema> controlador) {
     bool b = true;
 
     foreach(Var * var, *controlador->getNumerador()) {
@@ -1605,7 +1600,7 @@ inline void Algorithm_primer_articulo::comprobarVariables(Sistema *controlador) 
 
 //Función que divide la caja en dos clásica.
 
-inline FC::return_bisection Algorithm_primer_articulo::split_box_bisection(Sistema *current_controlador) {
+inline FC::return_bisection Algorithm_primer_articulo::split_box_bisection(std::shared_ptr<Sistema> current_controlador) {
 
     QVector <Var *> * numerador = current_controlador->getNumerador();
     QVector <Var *> * denominador = current_controlador->getDenominador();
@@ -1628,7 +1623,7 @@ inline FC::return_bisection Algorithm_primer_articulo::split_box_bisection(Siste
 
     //Sistemas hijos creados
 
-    Sistema * v1, * v2;
+    std::shared_ptr<Sistema> v1, v2;
     struct FC::return_bisection retur;
 
 
@@ -1732,7 +1727,7 @@ inline FC::return_bisection Algorithm_primer_articulo::split_box_bisection(Siste
 
 
 //Funcion que divida la caja en dos avanzada.
-inline FC::return_bisection Algorithm_primer_articulo::split_box_bisection_avanced(Sistema *current_controlador) {
+inline FC::return_bisection Algorithm_primer_articulo::split_box_bisection_avanced(std::shared_ptr<Sistema> current_controlador) {
 
     QVector <Var *> * numerador = current_controlador->getNumerador();
     QVector <Var *> * denominador = current_controlador->getDenominador();
@@ -1749,7 +1744,7 @@ inline FC::return_bisection Algorithm_primer_articulo::split_box_bisection_avanc
     qint32 seleccionado = 0;
 
 
-    Sistema * v1, * v2;
+    std::shared_ptr<Sistema> v1, v2;
     struct FC::return_bisection retur;
 
     qreal punto_medio_k = k.x() + (k.y() - k.x()) / 2;

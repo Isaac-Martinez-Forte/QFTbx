@@ -48,7 +48,7 @@ public:
     * @param frecuencias necesarias para resolver la Planta.
    */
 
-    void dibujarBode(Sistema * planta, Omega * omega);
+    void dibujarBode(std::shared_ptr<Sistema> planta, Omega * omega);
 
 private slots:
     void on_actionExportar_triggered();

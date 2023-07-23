@@ -119,7 +119,7 @@ QString FuncionTransferencia::getDenominadorString() {
     return QString();
 }
 
-Sistema * FuncionTransferencia::clone() {
+std::shared_ptr<Sistema> FuncionTransferencia::clone() {
 
     QVector <Var *> * n = new QVector <Var *> ();
     QVector <Var *> * d = new QVector <Var *> ();

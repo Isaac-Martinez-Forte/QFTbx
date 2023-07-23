@@ -6,18 +6,12 @@ AdaptadorControladorDAO::AdaptadorControladorDAO()
 
 
 AdaptadorControladorDAO::~AdaptadorControladorDAO(){
-    if (controlador != NULL)
-        delete controlador;
 }
 
-Sistema * AdaptadorControladorDAO::getControlador(){
+std::shared_ptr<Sistema> AdaptadorControladorDAO::getControlador(){
     return controlador;
 }
 
-void AdaptadorControladorDAO::setControlador(Sistema *controlador){
-
-    if (this->controlador != NULL)
-        delete this->controlador;
-
+void AdaptadorControladorDAO::setControlador(std::shared_ptr<Sistema> controlador){
     this->controlador = controlador;
 }

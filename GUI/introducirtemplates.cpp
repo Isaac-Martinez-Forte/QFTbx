@@ -43,7 +43,7 @@ QVector<qreal> * IntroducirTemplates::getEpsilon(){
     return epsilon;
 }
 
-void IntroducirTemplates::lanzarViewTemp(Sistema *planta, qint32 numOmegas){
+void IntroducirTemplates::lanzarViewTemp(std::shared_ptr<Sistema> planta, qint32 numOmegas){
 
     this->planta = planta;
     this->numOmegas = numOmegas;

@@ -11,9 +11,9 @@ CPolinomios::CPolinomios(QString nombre, QVector <Var*> * numerador, QVector <Va
 CPolinomios::~CPolinomios(){
 }
 
-Sistema * CPolinomios::invoke (QString nombre, QVector <Var*> * numerador, QVector <Var*> * denominador,
+std::shared_ptr<Sistema> CPolinomios::invoke(QString nombre, QVector <Var*> * numerador, QVector <Var*> * denominador,
                                Var * k, Var* ret, QString exp_nume __attribute__((unused)), QString exp_deno __attribute__((unused))){
-    return new CPolinomios(nombre, numerador, denominador, k, ret);
+    return std::make_shared<CPolinomios>(nombre, numerador, denominador, k, ret);
 }
 
 Sistema::tipo_planta CPolinomios::getClass(){

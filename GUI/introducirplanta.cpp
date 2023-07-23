@@ -332,27 +332,27 @@ void IntroducirPlanta::on_ok_clicked()
 
     if (incertidumbreIntroducida){
         if (ui->kGa->isChecked()){
-            planta = new KGanancia(ui->nombre->text(),viewIncer->getNumerador(), viewIncer->getDenominador(),kv,retv);
+            planta = std::make_shared<KGanancia>(ui->nombre->text(),viewIncer->getNumerador(), viewIncer->getDenominador(),kv,retv);
         }else if(ui->kNoGa->isChecked()){
-            planta = new KNGanancia(ui->nombre->text(),viewIncer->getNumerador(), viewIncer->getDenominador(),kv,retv);
+            planta = std::make_shared<KNGanancia>(ui->nombre->text(),viewIncer->getNumerador(), viewIncer->getDenominador(),kv,retv);
         }else if (ui->cDPol->isChecked()){
-            planta = new CPolinomios(ui->nombre->text(), viewIncer->getNumerador(), viewIncer->getDenominador(),kv,retv);
+            planta = std::make_shared<CPolinomios>(ui->nombre->text(), viewIncer->getNumerador(), viewIncer->getDenominador(),kv,retv);
         }else{
-            planta = new FormatoLibre(ui->nombre->text(), viewIncer->getNumerador(), viewIncer->getDenominador(),kv,retv,
+            planta = std::make_shared<FormatoLibre>(ui->nombre->text(), viewIncer->getNumerador(), viewIncer->getDenominador(),kv,retv,
                                       ui->numeFL->text(), ui->denoFL->text());
         }
     }else{
         if (ui->kGa->isChecked()){
-            planta = new KGanancia(ui->nombre->text(),crearNumeradorDenominador(datosTabla->at(0)),
+            planta = std::make_shared<KGanancia>(ui->nombre->text(),crearNumeradorDenominador(datosTabla->at(0)),
                                    crearNumeradorDenominador(datosTabla->at(1)),kv,retv );
         }else if(ui->kNoGa->isChecked()){
-            planta = new KNGanancia(ui->nombre->text(),crearNumeradorDenominador(datosTabla->at(0)),
+            planta = std::make_shared<KNGanancia>(ui->nombre->text(),crearNumeradorDenominador(datosTabla->at(0)),
                                     crearNumeradorDenominador(datosTabla->at(1)),kv,retv);
         }else if (ui->cDPol->isChecked()){
-            planta = new CPolinomios(ui->nombre->text(), crearNumeradorDenominador(datosTabla->at(0)),
+            planta = std::make_shared<CPolinomios>(ui->nombre->text(), crearNumeradorDenominador(datosTabla->at(0)),
                                      crearNumeradorDenominador(datosTabla->at(1)),kv,retv);
         }else {
-            planta = new FormatoLibre(ui->nombre->text(), crearNumeradorDenominador(datosTabla->at(0)),
+            planta = std::make_shared<FormatoLibre>(ui->nombre->text(), crearNumeradorDenominador(datosTabla->at(0)),
                                       crearNumeradorDenominador(datosTabla->at(1)),kv,retv,
                                       ui->numeFL->text(), ui->denoFL->text());
         }

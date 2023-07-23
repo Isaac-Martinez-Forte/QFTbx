@@ -15,7 +15,7 @@ Algorithm_sachin::~Algorithm_sachin() {
 
 }
 
-void Algorithm_sachin::set_datos(Sistema * planta, Sistema * controlador, QVector<qreal> *omega, std::shared_ptr<DatosBound> boundaries,
+void Algorithm_sachin::set_datos(std::shared_ptr<Sistema> planta, std::shared_ptr<Sistema> controlador, QVector<qreal> *omega, std::shared_ptr<DatosBound> boundaries,
                                  qreal epsilon, QVector<QVector<QVector<QPointF> *> *> * reunBounHash) {
 
 
@@ -104,14 +104,14 @@ bool Algorithm_sachin::init_algorithm() {
 
 //Función que retorna el controlador.
 
-Sistema * Algorithm_sachin::getControlador() {
+std::shared_ptr<Sistema> Algorithm_sachin::getControlador() {
     return controlador_retorno;
 }
 
 
 //Función que comprueba si la caja actual es feasible, infeasible o ambiguous.
 
-inline void Algorithm_sachin::check_box_feasibility(Sistema * controlador) {
+inline void Algorithm_sachin::check_box_feasibility(std::shared_ptr<Sistema> controlador) {
 
     using namespace std;
 
@@ -131,7 +131,6 @@ inline void Algorithm_sachin::check_box_feasibility(Sistema * controlador) {
         datos = deteccion->deteccionViolacionCajaNi(caja, boundaries, contador);
 
         if (datos->getFlag() == infeasible) {
-            delete controlador;
             delete datos;
 
             return;
@@ -159,14 +158,14 @@ inline void Algorithm_sachin::check_box_feasibility(Sistema * controlador) {
 
 //Función que recorta la caja.
 
-inline Sistema * Algorithm_sachin::acelerated(Sistema *v, qreal minimo_boundarie, qreal maximo_boundarie, qreal o, qint32 contador, bool arriba) {
+inline std::shared_ptr<Sistema> Algorithm_sachin::acelerated(std::shared_ptr<Sistema> v, qreal minimo_boundarie, qreal maximo_boundarie, qreal o, qint32 contador, bool arriba) {
 
     if (!arriba){
 
         Var * min_k_lineal = new Var(v->getK()->getRango().x());
         qreal min_k_db = 20 * log10(min_k_lineal->getRango().x());
 
-        Sistema * G_k_min = v->invoke(v->getNombre(), v->getNumerador(), v->getDenominador(),
+        std::shared_ptr<Sistema> G_k_min = v->invoke(v->getNombre(), v->getNumerador(), v->getDenominador(),
                                       min_k_lineal, v->getRet());
 
 
@@ -174,7 +173,6 @@ inline Sistema * Algorithm_sachin::acelerated(Sistema *v, qreal minimo_boundarie
 
         delete min_k_lineal;
         G_k_min->noBorrar();
-        delete G_k_min;
 
 
         if (mag_min_db < minimo_boundarie) {
@@ -183,12 +181,11 @@ inline Sistema * Algorithm_sachin::acelerated(Sistema *v, qreal minimo_boundarie
 
             qreal Kb_lineal = pow(10, Kb_db / 20);
 
-            Sistema * nuevo_sistema = v->invoke(v->getNombre(), v->getNumerador(), v->getDenominador(),
+            std::shared_ptr<Sistema> nuevo_sistema = v->invoke(v->getNombre(), v->getNumerador(), v->getDenominador(),
                                                 new Var("kv", QPointF(Kb_lineal, v->getK()->getRango().y()), Kb_lineal, "kv"), v->getRet());
 
             delete v->getK();
             v->noBorrar();
-            delete v;
 
             v = nuevo_sistema;
         }
@@ -197,7 +194,7 @@ inline Sistema * Algorithm_sachin::acelerated(Sistema *v, qreal minimo_boundarie
         Var * max_k_lineal = new Var(v->getK()->getRango().y());
         qreal max_k_db = 20 * log10(max_k_lineal->getRango().y());
 
-        Sistema * G_k_max = v->invoke(v->getNombre(), v->getNumerador(), v->getDenominador(),
+        std::shared_ptr<Sistema> G_k_max = v->invoke(v->getNombre(), v->getNumerador(), v->getDenominador(),
                                       max_k_lineal, v->getRet());
 
 
@@ -214,7 +211,7 @@ inline Sistema * Algorithm_sachin::acelerated(Sistema *v, qreal minimo_boundarie
 
             qreal Kb_lineal = pow(10, Kb_db / 20);
 
-            Sistema * nuevo_sistema = v->invoke(v->getNombre(), v->getNumerador(), v->getDenominador(),
+            std::shared_ptr<Sistema> nuevo_sistema = v->invoke(v->getNombre(), v->getNumerador(), v->getDenominador(),
                                                 new Var("kv", QPointF(v->getK()->getRango().x(), Kb_lineal), Kb_lineal, "kv"), v->getRet());
 
             delete v->getK();

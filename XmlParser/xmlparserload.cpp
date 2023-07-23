@@ -104,7 +104,7 @@ inline bool XmlParserLoad::asignarLectura(QString cont){
     return false;
 }
 
-Sistema *XmlParserLoad::getPlanta(){
+std::shared_ptr<Sistema> XmlParserLoad::getPlanta(){
     return planta;
 }
 
@@ -132,7 +132,7 @@ QVector <QVector <QVector <qreal> * > *> * XmlParserLoad::getSabana(){
     return sabanas;
 }
 
-Sistema * XmlParserLoad::getControlador(){
+std::shared_ptr<Sistema> XmlParserLoad::getControlador(){
     return controlador;
 }
 
@@ -641,7 +641,7 @@ inline bool XmlParserLoad::leerEspecificaciones(){
         bool utilizado = false;
         QString altura;
         bool constante = false;
-        Sistema * sis = NULL;
+        std::shared_ptr<Sistema> sis = NULL;
         qreal iniciofrec = 0;
         qreal finalfrec = 0;
 
@@ -849,13 +849,13 @@ inline bool XmlParserLoad::leerEspecificaciones(){
                 }
 
                 if (tipoPlanta == Sistema::cof_polinomios){
-                    sis = new CPolinomios (nombrePlanta, numerador,denominador,k,ret);
+                    sis = std::make_shared<CPolinomios> (nombrePlanta, numerador,denominador,k,ret);
                 }else if (tipoPlanta == Sistema::k_ganancia){
-                    sis = new KGanancia(nombrePlanta,numerador,denominador,k,ret);
+                    sis = std::make_shared<KGanancia>(nombrePlanta,numerador,denominador,k,ret);
                 }else if (tipoPlanta == Sistema::k_no_ganancia){
-                    sis = new KNGanancia(nombrePlanta,numerador,denominador,k,ret);
+                    sis = std::make_shared<KNGanancia>(nombrePlanta,numerador,denominador,k,ret);
                 }else if (tipoPlanta == Sistema::formato_libre) {
-                    sis = new FormatoLibre(nombrePlanta,numerador,denominador,k,ret, exp_nume, exp_deno);
+                    sis = std::make_shared<FormatoLibre>(nombrePlanta,numerador,denominador,k,ret, exp_nume, exp_deno);
                 }else{
                     return salidaError();
                 }
@@ -1021,25 +1021,25 @@ inline bool XmlParserLoad::leerPlanta(qint32 tipoLectura){
 
     if (tipoLectura == 0){
         if (tipoPlanta == Sistema::cof_polinomios){
-            planta = new CPolinomios (nombrePlanta, numerador,denominador,k,ret);
+            planta = std::make_shared<CPolinomios> (nombrePlanta, numerador,denominador,k,ret);
         }else if (tipoPlanta == Sistema::k_ganancia){
-            planta = new KGanancia(nombrePlanta,numerador,denominador,k,ret);
+            planta = std::make_shared<KGanancia>(nombrePlanta,numerador,denominador,k,ret);
         }else if (tipoPlanta == Sistema::k_no_ganancia){
-            planta = new KNGanancia(nombrePlanta,numerador,denominador,k,ret);
+            planta = std::make_shared<KNGanancia>(nombrePlanta,numerador,denominador,k,ret);
         }else if (tipoPlanta == Sistema::formato_libre) {
-            planta = new FormatoLibre(nombrePlanta,numerador,denominador,k,ret, exp_nume, exp_deno);
+            planta = std::make_shared<FormatoLibre>(nombrePlanta,numerador,denominador,k,ret, exp_nume, exp_deno);
         }else{
             return salidaError();
         }
     }else {
         if (tipoPlanta == Sistema::cof_polinomios){
-            controlador = new CPolinomios (nombrePlanta, numerador,denominador,k,ret);
+            controlador = std::make_shared<CPolinomios> (nombrePlanta, numerador,denominador,k,ret);
         }else if (tipoPlanta == Sistema::k_ganancia){
-            controlador = new KGanancia(nombrePlanta,numerador,denominador,k,ret);
+            controlador = std::make_shared<KGanancia>(nombrePlanta,numerador,denominador,k,ret);
         }else if (tipoPlanta == Sistema::k_no_ganancia){
-            controlador = new KNGanancia(nombrePlanta,numerador,denominador,k,ret);
+            controlador = std::make_shared<KNGanancia>(nombrePlanta,numerador,denominador,k,ret);
         }else if (tipoPlanta == Sistema::formato_libre) {
-            planta = new FormatoLibre(nombrePlanta,numerador,denominador,k,ret, exp_nume, exp_deno);
+            planta = std::make_shared<FormatoLibre>(nombrePlanta,numerador,denominador,k,ret, exp_nume, exp_deno);
         }else{
             return salidaError();
         }
@@ -1419,16 +1419,16 @@ inline bool XmlParserLoad::leerLoopShaping(){
         return false;
     }
 
-    Sistema * sistema;
+    std::shared_ptr<Sistema> sistema;
 
     if (tipoPlanta == Sistema::cof_polinomios){
-        sistema = new CPolinomios (nombrePlanta, numerador,denominador,k,ret);
+        sistema = make_shared<CPolinomios> (nombrePlanta, numerador,denominador,k,ret);
     }else if (tipoPlanta == Sistema::k_ganancia){
-        sistema = new KGanancia(nombrePlanta,numerador,denominador,k,ret);
+        sistema = make_shared<KGanancia>(nombrePlanta,numerador,denominador,k,ret);
     }else if (tipoPlanta == Sistema::k_no_ganancia){
-        sistema = new KNGanancia(nombrePlanta,numerador,denominador,k,ret);
+        sistema = make_shared<KNGanancia>(nombrePlanta,numerador,denominador,k,ret);
     }else if (tipoPlanta == Sistema::formato_libre) {
-        sistema = new FormatoLibre(nombrePlanta,numerador,denominador,k,ret, exp_nume, exp_deno);
+        sistema = make_shared<FormatoLibre>(nombrePlanta,numerador,denominador,k,ret, exp_nume, exp_deno);
     }else{
         return salidaError();
     }

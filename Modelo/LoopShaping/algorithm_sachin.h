@@ -28,28 +28,28 @@ public:
     Algorithm_sachin();
     ~Algorithm_sachin();
 
-    void set_datos(Sistema * planta, Sistema * controlador, QVector<qreal> *omega, std::shared_ptr<DatosBound> boundaries,
+    void set_datos(std::shared_ptr<Sistema> planta, std::shared_ptr<Sistema> controlador, QVector<qreal> *omega, std::shared_ptr<DatosBound> boundaries,
                     qreal epsilon, QVector<QVector<QVector<QPointF> *> *> * reunBounHash);
 
     bool init_algorithm();
 
-    Sistema * getControlador();
+    std::shared_ptr<Sistema> getControlador();
 
 
 private:
 
-    inline void check_box_feasibility(Sistema *controlador);
-    inline Sistema *acelerated(Sistema * v, qreal minimo_boundarie, qreal maximo_boundarie, qreal o, qint32 contador, bool arriba);
+    inline void check_box_feasibility(std::shared_ptr<Sistema> controlador);
+    inline std::shared_ptr<Sistema> acelerated(std::shared_ptr<Sistema> v, qreal minimo_boundarie, qreal maximo_boundarie, qreal o, qint32 contador, bool arriba);
 
-    Sistema * planta;
-    Sistema * controlador;
+    std::shared_ptr<Sistema> planta;
+    std::shared_ptr<Sistema> controlador;
     QVector <qreal> * omega;
     std::shared_ptr<DatosBound> boundaries;
     Natura_Interval_extension * conversion;
     ListaOrdenada * lista;
     qreal epsilon;
 
-    Sistema * controlador_retorno;
+    std::shared_ptr<Sistema> controlador_retorno;
     qreal minimo_boundaries;
 
     QVector<QVector<QVector<QPointF> *> *> * reunBounHash;

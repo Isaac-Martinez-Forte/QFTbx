@@ -30,7 +30,7 @@ public:
   
     Sistema(QString nombre);
 
-    virtual Sistema * invoke (QString nombre, QVector <Var*> * numerador, QVector <Var*> * denominador,
+    virtual std::shared_ptr<Sistema> invoke (QString nombre, QVector <Var*> * numerador, QVector <Var*> * denominador,
                               Var * k, Var* ret = NULL, QString exp_nume = 0, QString exp_deno = 0) = 0;
     
     
@@ -153,7 +153,7 @@ public:
 
     virtual void noBorrar () = 0;
 
-    virtual Sistema * clone () = 0;
+    virtual std::shared_ptr<Sistema> clone () = 0;
     
     
 private:

@@ -61,7 +61,7 @@ public:
     * @brief Función que lanza la creación gráfica de la clase.
     */
     
-    void lanzarViewTemp(Sistema * planta, qint32 numOmegas);
+    void lanzarViewTemp(std::shared_ptr<Sistema> planta, qint32 numOmegas);
     
     
    /**
@@ -146,7 +146,7 @@ private:
     QVector <tresRadioButton> * radioButtonsDeno;
     QVector<Var *> *numerador;
     QVector<Var *> *denominador;
-    Sistema * planta;
+    std::shared_ptr<Sistema> planta;
 
     bool variablesCreadas = false;
     bool cuda = false;

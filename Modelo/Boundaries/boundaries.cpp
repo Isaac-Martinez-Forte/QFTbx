@@ -20,7 +20,7 @@ Boundaries::Boundaries()
     boolcreados = false;
 }
 
-void Boundaries::lanzarCalculo(QVector<qreal> *omega, Sistema *planta, QVector<QVector<complex<qreal> > *> *templates,
+void Boundaries::lanzarCalculo(QVector<qreal> *omega, std::shared_ptr<Sistema> planta, QVector<QVector<complex<qreal> > *> *templates,
                                QVector<dBND *> *altura, QPointF datosFas, qint32 puntosFas, QPointF datosMag,
                                qint32 puntosMag, qreal infinito, bool cuda){
 
@@ -530,7 +530,7 @@ qint32 Boundaries::getZona(QVector<QPointF> * vec, complex <qreal> p0, QVector <
     return 1;
 }
 
-void Boundaries::bnd(QVector<qreal> *omega, Sistema *planta, QVector <QVector <complex <qreal> > *>
+void Boundaries::bnd(QVector<qreal> *omega, std::shared_ptr<Sistema> planta, QVector <QVector <complex <qreal> > *>
                      * templates, QPointF datosFas, qint32 puntosFas,
                      QPointF datosMag, qint32 puntosMag, qreal infinito)
 {
@@ -586,7 +586,7 @@ QVector <qreal> * Boundaries::getOmega(){
 }
 
 
-void Boundaries::calcularBndOmega (qreal omega, Sistema * planta,
+void Boundaries::calcularBndOmega (qreal omega, std::shared_ptr<Sistema> planta,
                                    QVector<std::complex <qreal> > * temp, QVector <qreal> * fases,
                                    QVector <qreal> * mag, qreal inf __attribute__((unused)), qint32 contador, qint32 num_hilo,
                                    QVector <qreal> * nueva_omega){

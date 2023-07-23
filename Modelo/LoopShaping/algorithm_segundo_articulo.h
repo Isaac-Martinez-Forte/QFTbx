@@ -37,19 +37,19 @@ public:
     Algorithm_segundo_articulo();
     ~Algorithm_segundo_articulo();
 
-    void set_datos(Sistema * planta, Sistema * controlador, QVector<qreal> *omega, std::shared_ptr<DatosBound> boundaries,
+    void set_datos(std::shared_ptr<Sistema> planta, std::shared_ptr<Sistema> controlador, QVector<qreal> *omega, std::shared_ptr<DatosBound> boundaries,
                     qreal epsilon);
 
     bool init_algorithm();
 
-    Sistema * getControlador();
+    std::shared_ptr<Sistema> getControlador();
 
 private:
 
-    inline void comprobarVariables ( Sistema * controlador);
+    inline void comprobarVariables (std::shared_ptr<Sistema> controlador);
     inline bool analizar(Tripleta2 *tripleta);
     inline bool aplicarMejoras(Tripleta2 *tripleta);
-    inline Sistema * busquedaMejorGanancia (Tripleta2 * tripleta);
+    inline std::shared_ptr<Sistema> busquedaMejorGanancia (Tripleta2 * tripleta);
     inline Tripleta2 * recortesInfeasible(Tripleta2 * tripleta);
     inline Tripleta2 * recortesFeasible(Tripleta2 * tripleta);
     inline Tripleta2 * analisisFeasible(Tripleta2 * tripleta);
@@ -64,10 +64,10 @@ private:
 
     inline Tripleta2 * calculoTerminosControlador (Tripleta2* controlador);
 
-    Sistema * planta;
-    Sistema * controlador;
-    Sistema * mejorSolucion;
-    Sistema * controlador_retorno;
+    std::shared_ptr<Sistema> planta;
+    std::shared_ptr<Sistema> controlador;
+    std::shared_ptr<Sistema> mejorSolucion;
+    std::shared_ptr<Sistema> controlador_retorno;
 
     QVector <qreal> * omega;
     std::shared_ptr<DatosBound> boundaries;

@@ -100,7 +100,7 @@ public:
     Var * getRet();
 
 
-    Sistema * invoke (QString nombre, QVector <Var*> * numerador, QVector <Var*> * denominador,
+    std::shared_ptr<Sistema> invoke (QString nombre, QVector <Var*> * numerador, QVector <Var*> * denominador,
                               Var * k, Var* ret, QString exp_nume = 0, QString exp_deno = 0);
 
     QString getNumeradorString();
@@ -108,7 +108,7 @@ public:
 
     void noBorrar ();
 
-    Sistema * clone();
+    std::shared_ptr<Sistema> clone();
 
 private:
     Var * k;

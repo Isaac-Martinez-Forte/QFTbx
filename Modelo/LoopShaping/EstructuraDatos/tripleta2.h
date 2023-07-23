@@ -19,9 +19,9 @@ public:
 
     Tripleta2() {}
 
-    Tripleta2(qreal index, Sistema * sistema, flags_box flags = ambiguous);
+    Tripleta2(qreal index, std::shared_ptr<Sistema> sistema, flags_box flags = ambiguous);
     
-    Tripleta2(qreal index, Sistema * sistema,  QVector<data_box *> *datos);
+    Tripleta2(qreal index, std::shared_ptr<Sistema> sistema,  QVector<data_box *> *datos);
     ~Tripleta2();
 
     void setRecorteActivado (bool recorteActivado);

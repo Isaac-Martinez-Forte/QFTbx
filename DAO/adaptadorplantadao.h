@@ -30,7 +30,7 @@ public:
     * @return Planta guardada en el objeto.
    */
 
-    Sistema * getPlanta ();
+    std::shared_ptr<Sistema> getPlanta ();
 
 
    /**
@@ -42,10 +42,10 @@ public:
     * @param planta a guardar.
    */
 
-    void setPlanta (Sistema * planta);
+    void setPlanta (std::shared_ptr<Sistema> planta);
 
 private:
-    Sistema * planta = NULL;
+    std::shared_ptr<Sistema> planta = NULL;
 
 };
 

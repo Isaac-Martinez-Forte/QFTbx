@@ -17,7 +17,7 @@ LoopShaping::~LoopShaping()
 }
 
 
-bool LoopShaping::iniciar(Sistema *planta, Sistema *controlador, QVector<qreal> *omega, std::shared_ptr<DatosBound> boundaries,
+bool LoopShaping::iniciar(std::shared_ptr<Sistema> planta, std::shared_ptr<Sistema> controlador, QVector<qreal> *omega, std::shared_ptr<DatosBound> boundaries,
                           qreal epsilon, tools::alg_loop_shaping seleccionado, bool depuracion, qreal delta,
                           QVector <QVector <std::complex <qreal> > * > * temp, QVector <tools::dBND *> * espe,
                           qint32 inicializacion, bool hilos, bool bisection_avanced, bool deteccion_avanced, bool a){
@@ -246,6 +246,6 @@ bool LoopShaping::iniciar(Sistema *planta, Sistema *controlador, QVector<qreal> 
 }
 
 
-Sistema * LoopShaping::getControlador(){
+std::shared_ptr<Sistema> LoopShaping::getControlador(){
     return controlador;
 }

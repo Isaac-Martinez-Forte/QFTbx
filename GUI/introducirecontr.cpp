@@ -261,27 +261,27 @@ void introducirEContr::on_aceptar_clicked()
 
     if (incertidumbreIntroducida){
         if (ui->hf->isChecked()){
-            planta = new KGanancia("",viewIncer->getNumerador(), viewIncer->getDenominador(),kv,retv);
+            planta = std::make_shared<KGanancia>("",viewIncer->getNumerador(), viewIncer->getDenominador(),kv,retv);
         }else if(ui->lf->isChecked()){
-            planta = new KNGanancia("",viewIncer->getNumerador(), viewIncer->getDenominador(),kv,retv);
+            planta = std::make_shared<KNGanancia>("",viewIncer->getNumerador(), viewIncer->getDenominador(),kv,retv);
         }else if (ui->c_poli->isChecked()){
-            planta = new CPolinomios("", viewIncer->getNumerador(), viewIncer->getDenominador(),kv,retv);
+            planta = std::make_shared<CPolinomios>("", viewIncer->getNumerador(), viewIncer->getDenominador(),kv,retv);
         }else{
-            planta = new FormatoLibre("", viewIncer->getNumerador(), viewIncer->getDenominador(),kv,retv,
+            planta = std::make_shared<FormatoLibre>("", viewIncer->getNumerador(), viewIncer->getDenominador(),kv,retv,
                                       ui->nume->text(), ui->deno->text());
         }
     }else{
         if (ui->hf->isChecked()){
-            planta = new KGanancia("",crearNumeradorDenominador(datosTabla->at(0)),
+            planta = std::make_shared<KGanancia>("",crearNumeradorDenominador(datosTabla->at(0)),
                                    crearNumeradorDenominador(datosTabla->at(1)),kv,retv );
         }else if(ui->lf->isChecked()){
-            planta = new KNGanancia("",crearNumeradorDenominador(datosTabla->at(0)),
+            planta = std::make_shared<KNGanancia>("",crearNumeradorDenominador(datosTabla->at(0)),
                                     crearNumeradorDenominador(datosTabla->at(1)),kv,retv);
         }else if (ui->c_poli->isChecked()){
-            planta = new CPolinomios("", crearNumeradorDenominador(datosTabla->at(0)),
+            planta = std::make_shared<CPolinomios>("", crearNumeradorDenominador(datosTabla->at(0)),
                                      crearNumeradorDenominador(datosTabla->at(1)),kv,retv);
         }else {
-            planta = new FormatoLibre("", crearNumeradorDenominador(datosTabla->at(0)),
+            planta = std::make_shared<FormatoLibre>("", crearNumeradorDenominador(datosTabla->at(0)),
                                       crearNumeradorDenominador(datosTabla->at(1)),kv,retv,
                                       ui->nume->text(), ui->deno->text());
         }

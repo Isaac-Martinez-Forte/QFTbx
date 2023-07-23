@@ -35,30 +35,30 @@ public:
     Algorithm_primer_articulo();
     ~Algorithm_primer_articulo();
 
-    void set_datos(Sistema * planta, Sistema * controlador, QVector<qreal> *omega, std::shared_ptr<DatosBound> boundaries,
+    void set_datos(std::shared_ptr<Sistema> planta, std::shared_ptr<Sistema> controlador, QVector<qreal> *omega, std::shared_ptr<DatosBound> boundaries,
                     qreal epsilon, QVector<QVector<QVector<QPointF> *> *> * reunBounHash, bool depuracion,
                    bool hilos, QVector <qreal> * radiosBoundariesMayor, QVector <qreal> * radiosBoundariesMenor,
                    QVector <QPointF> * centros, bool biseccion_avanzada, bool deteccion_avanzada, bool a);
 
     bool init_algorithm();
 
-    Sistema * getControlador();
+    std::shared_ptr<Sistema> getControlador();
 
 private:
 
-    inline Tripleta *check_box_feasibility(Sistema *controlador);
-    inline Sistema *aceleratedNuevo(Sistema *t, QVector<data_box *> *datosCortesBoundaries);
-    inline Sistema *aceleratedAntiguo(Sistema *t, QVector<data_box *> *datosCortesBoundaries);
+    inline Tripleta *check_box_feasibility(std::shared_ptr<Sistema> controlador);
+    inline std::shared_ptr<Sistema> aceleratedNuevo(std::shared_ptr<Sistema> t, QVector<data_box *> *datosCortesBoundaries);
+    inline std::shared_ptr<Sistema> aceleratedAntiguo(std::shared_ptr<Sistema> t, QVector<data_box *> *datosCortesBoundaries);
 
 
 
-    inline void comprobarVariables ( Sistema * controlador);
-    inline FC::return_bisection split_box_bisection_avanced(Sistema * current_controlador);
-    inline FC::return_bisection split_box_bisection(Sistema * current_controlador);
+    inline void comprobarVariables (std::shared_ptr<Sistema> controlador);
+    inline FC::return_bisection split_box_bisection_avanced(std::shared_ptr<Sistema> current_controlador);
+    inline FC::return_bisection split_box_bisection(std::shared_ptr<Sistema> current_controlador);
 
 
-    Sistema * planta;
-    Sistema * controlador;
+    std::shared_ptr<Sistema> planta;
+    std::shared_ptr<Sistema> controlador;
     QVector <qreal> * omega;
     std::shared_ptr<DatosBound> boundaries;
     std::shared_ptr<DatosBound> boundariesAux;
@@ -66,7 +66,7 @@ private:
     ListaOrdenada * lista;
     qreal epsilon;
 
-    Sistema * controlador_retorno;
+    std::shared_ptr<Sistema> controlador_retorno;
     qreal minimo_boundaries;
 
     QPointF interseccion (QPointF uno, QPointF dos);
@@ -92,10 +92,10 @@ private:
     bool isVariableNume;
     bool isVariableDeno;
     
-    FC::return_bisection (Algorithm_primer_articulo::*split_box)(Sistema *);
+    FC::return_bisection (Algorithm_primer_articulo::*split_box)(std::shared_ptr<Sistema>);
     data_box * (DeteccionViolacionBoundaries::*deteccionViolacion) (cinterval, std::shared_ptr<DatosBound>, qint32);
 
-    Sistema * (Algorithm_primer_articulo::*analisis)(Sistema *v, QVector<data_box *> *datosCortesBoundaries);
+    std::shared_ptr<Sistema> (Algorithm_primer_articulo::*analisis)(std::shared_ptr<Sistema> v, QVector<data_box *> *datosCortesBoundaries);
 
     bool Nyquist;
 

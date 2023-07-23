@@ -41,7 +41,7 @@ public:
     FuncionTransferencia (FuncionTransferencia *datos);
 
 
-    virtual Sistema * invoke (QString nombre, QVector <Var*> * numerador, QVector <Var*> * denominador,
+    virtual std::shared_ptr<Sistema> invoke (QString nombre, QVector <Var*> * numerador, QVector <Var*> * denominador,
                               Var * k, Var* ret = NULL, QString exp_nume = 0, QString exp_deno = 0) = 0;
     
     
@@ -123,7 +123,7 @@ public:
 
     virtual tipo_planta getClass() = 0;
 
-    Sistema * clone ();
+    std::shared_ptr<Sistema> clone();
 
 protected:
     Var * k;

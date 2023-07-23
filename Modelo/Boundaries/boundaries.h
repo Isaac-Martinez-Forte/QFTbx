@@ -56,7 +56,7 @@ public:
     * @param infinito número real que representa el infinito, si es 0 se toma como vacío.
    */
 
-    void lanzarCalculo(QVector <qreal> * omega, Sistema * planta, QVector<QVector<std::complex <qreal> > *> *templates,
+    void lanzarCalculo(QVector <qreal> * omega, std::shared_ptr<Sistema> planta, QVector<QVector<std::complex <qreal> > *> *templates,
                        QVector <tools::dBND *> * altura, QPointF datosFas,
                        qint32 puntosFas, QPointF datosMag, qint32 puntosMag, qreal infinito, bool cuda);
 
@@ -77,7 +77,7 @@ public:
     * @return sábana con el cálculo intermedio del boundarie de estabilidad.
    */
 
-    void bnd (QVector <qreal> * omega, Sistema * planta, QVector<QVector<std::complex <qreal> > *> *templates, QPointF datosFas,
+    void bnd (QVector <qreal> * omega, std::shared_ptr<Sistema> planta, QVector<QVector<std::complex <qreal> > *> *templates, QPointF datosFas,
               qint32 puntosFas, QPointF datosMag, qint32 puntosMag, qreal infinito);
 
 
@@ -143,7 +143,7 @@ private:
                                                       qint32 i, qreal nPuntosFas, qreal nPuntosMag,
                                                        qreal moverMag, tools::dBND *altura2 = NULL);
 
-    void calcularBndOmega(qreal omega, Sistema * planta,
+    void calcularBndOmega(qreal omega, std::shared_ptr<Sistema> planta,
                                        QVector<std::complex <qreal> > * temp, QVector <qreal> * fases,
                                        QVector <qreal> * mag, qreal inf, qint32 contador, qint32 num_hilo,
                           QVector<qreal> *nueva_omega);

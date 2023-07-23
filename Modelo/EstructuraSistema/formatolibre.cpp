@@ -152,10 +152,10 @@ Var * FormatoLibre::getRet(){
     return ret;
 }
 
-Sistema * FormatoLibre::invoke(QString nombre, QVector<Var *> *numerador, QVector<Var *> *denominador,
+std::shared_ptr<Sistema> FormatoLibre::invoke(QString nombre, QVector<Var *> *numerador, QVector<Var *> *denominador,
                                Var *k, Var *ret, QString exp_nume, QString exp_deno){
 
-    return new FormatoLibre (nombre, numerador, denominador, k, ret, exp_nume, exp_deno);
+    return std::make_shared<FormatoLibre> (nombre, numerador, denominador, k, ret, exp_nume, exp_deno);
 }
 
 
@@ -167,7 +167,7 @@ QString FormatoLibre::getDenominadorString(){
     return exp_deno;
 }
 
-Sistema * FormatoLibre::clone(){
+std::shared_ptr<Sistema> FormatoLibre::clone(){
 
     QVector <Var *> * n = new QVector <Var *> ();
     QVector <Var *> * d = new QVector <Var *> ();

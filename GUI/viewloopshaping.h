@@ -22,7 +22,7 @@ public:
     ~ViewLoopShaping();
 
 
-    void setDatos (QVector<QVector<QPointF> *> *boun, QVector<qreal> *omega, DatosLoopShaping * datos, Sistema *planta, bool linSpace);
+    void setDatos (QVector<QVector<QPointF> *> *boun, QVector<qreal> *omega, DatosLoopShaping * datos, std::shared_ptr<Sistema> planta, bool linSpace);
 
     void mostrar_diagrama();
 
@@ -36,7 +36,7 @@ private:
 
     QVector <QVector <QPointF> * > * boun;
     QVector <qreal> * omega;
-    Sistema * planta;
+    std::shared_ptr<Sistema> planta;
     DatosLoopShaping * datos;
 
     bool ejecutado;

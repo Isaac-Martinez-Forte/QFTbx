@@ -42,7 +42,7 @@ ViewLoopShaping::~ViewLoopShaping()
 
 
 void ViewLoopShaping::setDatos(QVector<QVector<QPointF> *> *boun, QVector<qreal> *omega, DatosLoopShaping *datos,
-                               Sistema* planta, bool linSpace){
+                               std::shared_ptr<Sistema> planta, bool linSpace){
     this->boun = boun;
     this->omega = omega;
     this->datos = datos;

@@ -2,40 +2,28 @@
 
 DatosLoopShaping::DatosLoopShaping()
 {
-    introducido = false;
 }
 
-DatosLoopShaping::DatosLoopShaping(Sistema *controlador, QPointF rango, qreal nPuntos){
+DatosLoopShaping::DatosLoopShaping(std::shared_ptr<Sistema> controlador, QPointF rango, qreal nPuntos){
     this->controlador = controlador;
     this->rango = rango;
     this->nPuntos = nPuntos;
 
-    introducido = false;
 }
 
-void DatosLoopShaping::setDatos(Sistema *controlador, QPointF rango, qreal nPuntos){
-    if (introducido){
-        delete controlador;
-    }
-
-    introducido = true;
+void DatosLoopShaping::setDatos(std::shared_ptr<Sistema> controlador, QPointF rango, qreal nPuntos){
 
     this->controlador = controlador;
     this->rango = rango;
     this->nPuntos = nPuntos;
 }
 
-void DatosLoopShaping::setDatos(Sistema *controlador){
-    if (introducido){
-        delete controlador;
-    }
-
-    introducido = true;
+void DatosLoopShaping::setDatos(std::shared_ptr<Sistema> controlador){
 
     this->controlador = controlador;
 }
 
-Sistema * DatosLoopShaping::getControlador(){
+std::shared_ptr<Sistema> DatosLoopShaping::getControlador(){
     return controlador;
 }
 

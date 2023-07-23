@@ -31,7 +31,7 @@ void Templates::setEpsilon(QVector<qreal> *epsilon){
     this->epsilon = epsilon;
 }
 
-bool Templates::lanzarCalculo(Sistema *planta, QVector<qreal> *omega, bool cuda){
+bool Templates::lanzarCalculo(std::shared_ptr<Sistema> planta, QVector<qreal> *omega, bool cuda){
     this->cuda = cuda;
 
     QElapsedTimer timer;
@@ -89,7 +89,7 @@ QVector<qreal> * Templates::getVariables(Var * a){
 }
 
 #ifndef OpenMP_AVAILABLE
-QVector<QVector<complex<qreal> > * > * Templates::calcularTemplate_secuencial (Sistema *planta, QVector<qreal> *omega){
+QVector<QVector<complex<qreal> > * > * Templates::calcularTemplate_secuencial (std::shared_ptr<Sistema> planta, QVector<qreal> *omega){
 
     ParserX parser (pckALL_COMPLEX);
 
@@ -236,7 +236,7 @@ QVector<QVector<complex<qreal> > * > * Templates::calcularTemplate_secuencial (S
 }
 
 #else
-QVector<QVector<std::complex<qreal> > *> * Templates::calcularTemplate_paralelo(Sistema *planta, QVector<qreal> *omega){
+QVector<QVector<std::complex<qreal> > *> * Templates::calcularTemplate_paralelo(std::shared_ptr<Sistema> planta, QVector<qreal> *omega){
 
     QMap <QString, QVector <qreal> *> * variables = new QMap <QString, QVector <qreal> *> ();
     QVector <QString> * nombres = new QVector <QString> ();

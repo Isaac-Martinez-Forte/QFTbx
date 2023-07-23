@@ -15,7 +15,7 @@ Algorithm_nandkishor::~Algorithm_nandkishor()
 }
 
 
-void Algorithm_nandkishor::set_datos(Sistema *planta, Sistema *controlador, QVector<qreal> * omega, std::shared_ptr<DatosBound> boundaries,
+void Algorithm_nandkishor::set_datos(std::shared_ptr<Sistema> planta, std::shared_ptr<Sistema> controlador, QVector<qreal> * omega, std::shared_ptr<DatosBound> boundaries,
                                      qreal epsilon, QVector<QVector<QVector<QPointF> *> *> *reunBounHash,
                                      qreal delta, qint32 inicializacion){
 
@@ -120,7 +120,6 @@ bool Algorithm_nandkishor::init_algorithm(){
             delete conversion;
             delete lista;
             delete anterior_sis_min;
-            delete controlador_inicial;
             delete deteccion;
 
             return false;
@@ -144,7 +143,6 @@ bool Algorithm_nandkishor::init_algorithm(){
             delete lista;
             delete tripleta;
             delete anterior_sis_min;
-            delete controlador_inicial;
             delete deteccion;
 
             return true;
@@ -169,13 +167,13 @@ bool Algorithm_nandkishor::init_algorithm(){
 
 
 //Función que retorna el controlador.
-Sistema * Algorithm_nandkishor::getControlador(){
+std::shared_ptr<Sistema> Algorithm_nandkishor::getControlador(){
     return controlador_retorno;
 }
 
 
 //Función que comprueba si la caja actual es feasible, infeasible o ambiguous.
-inline flags_box Algorithm_nandkishor::check_box_feasibility(Sistema * controlador){
+inline flags_box Algorithm_nandkishor::check_box_feasibility(std::shared_ptr<Sistema> controlador){
 
     using namespace std;
 
@@ -206,7 +204,6 @@ inline flags_box Algorithm_nandkishor::check_box_feasibility(Sistema * controlad
         if (datos->getFlag() == ambiguous){
             flag_final = ambiguous;
         } else if (datos->getFlag() == infeasible){
-            delete controlador;
             datosCortesBoundaries->clear();
             return infeasible;
         }
@@ -242,7 +239,7 @@ inline flags_box Algorithm_nandkishor::check_box_feasibility(Sistema * controlad
 }
 
 //Función que recorta la caja.
-inline Sistema * Algorithm_nandkishor::acelerated(Sistema * v, QVector<data_box *> *datosCortesBoundaries) {
+inline std::shared_ptr<Sistema> Algorithm_nandkishor::acelerated(std::shared_ptr<Sistema> v, QVector<data_box *> *datosCortesBoundaries) {
 
     QVector <Var *> * denominador = v->getDenominador();
     QVector <Var *> * numerador = v->getNumerador();
@@ -417,8 +414,7 @@ inline Sistema * Algorithm_nandkishor::acelerated(Sistema * v, QVector<data_box 
     kNuevo.setX(pow(10, kNuevo.x() / 20));
     kNuevo.setY(pow(10, kNuevo.y() / 20));
 
-    Sistema * nuevo_sistema = v->invoke(v->getNombre(), numerador_nuevo, denominador_nuevo, new Var("kv", kNuevo, 0), new Var (0.0));
-    delete v;
+    std::shared_ptr<Sistema> nuevo_sistema = v->invoke(v->getNombre(), numerador_nuevo, denominador_nuevo, new Var("kv", kNuevo, 0), new Var (0.0));
 
 
     numeradorSup->clear();
@@ -436,7 +432,7 @@ inline Sistema * Algorithm_nandkishor::acelerated(Sistema * v, QVector<data_box 
 
 
 //Función que hace la búsqueda local.
-inline void Algorithm_nandkishor::local_optimization(Sistema *controlador){
+inline void Algorithm_nandkishor::local_optimization(std::shared_ptr<Sistema> controlador){
 
     qreal nuevo_min = 0;
 
@@ -509,7 +505,7 @@ inline flags_box Algorithm_nandkishor::check_box_feasibility(QVector<qreal> *num
     return flag_final;
 }
 
-inline void Algorithm_nandkishor::comprobarVariables(Sistema *controlador){
+inline void Algorithm_nandkishor::comprobarVariables(std::shared_ptr<Sistema> controlador){
     bool b = true;
 
     foreach (Var * var, *controlador->getNumerador()) {
@@ -531,7 +527,7 @@ inline void Algorithm_nandkishor::comprobarVariables(Sistema *controlador){
     isVariableDeno = !b;
 }
 
-inline qint32 Algorithm_nandkishor::crearVectores(Sistema *controlador, QVector<qreal> *numerador, QVector<qreal> *denominador,
+inline qint32 Algorithm_nandkishor::crearVectores(std::shared_ptr<Sistema> controlador, QVector<qreal> *numerador, QVector<qreal> *denominador,
                                                   QVector<qreal> * k,
                                                   QVector<QVector<qreal> *> *variables, qreal delta,
                                                   QVector <qreal> * numeNominales,
@@ -633,7 +629,7 @@ inline qint32 Algorithm_nandkishor::crearVectores(Sistema *controlador, QVector<
     return combinaciones;
 }
 
-inline qreal Algorithm_nandkishor::inicializacion(Sistema * controlador, QVector<qreal> *numerador, QVector<qreal> *denominador,
+inline qreal Algorithm_nandkishor::inicializacion(std::shared_ptr<Sistema> controlador, QVector<qreal> *numerador, QVector<qreal> *denominador,
                                                   tipoInicializacion tipo){
 
     if (tipo == centro){
@@ -681,7 +677,7 @@ inline qreal Algorithm_nandkishor::inicializacion(Sistema * controlador, QVector
 }
 
 //Algorítmo de búsqueda local.
-inline qreal Algorithm_nandkishor::busqueda_local(qreal delta, Sistema * controlador){
+inline qreal Algorithm_nandkishor::busqueda_local(qreal delta, std::shared_ptr<Sistema> controlador){
 
     QVector <Var *> * nume = controlador->getNumerador();
     QVector <Var *> * deno = controlador->getDenominador();

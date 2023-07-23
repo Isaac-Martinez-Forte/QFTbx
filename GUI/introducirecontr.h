@@ -51,7 +51,7 @@ private:
 
     IntIncertidumbre * viewIncer= NULL;
 
-    Sistema * planta= NULL;
+    std::shared_ptr<Sistema> planta= NULL;
 
     bool incertidumbreIntroducida;
 

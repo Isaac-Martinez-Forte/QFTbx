@@ -15,9 +15,9 @@ public:
 
     Tripleta() {}
 
-    Tripleta(qreal index, Sistema * sistema, flags_box flags = ambiguous);
+    Tripleta(qreal index, std::shared_ptr<Sistema> sistema, flags_box flags = ambiguous);
     
-    Tripleta(qreal index, Sistema * sistema,  QVector<data_box *> *datos);
+    Tripleta(qreal index, std::shared_ptr<Sistema> sistema,  QVector<data_box *> *datos);
 
     ~Tripleta();
 
@@ -38,9 +38,9 @@ public:
 
     void setDatos(QVector<data_box *> *value);
 
-    Sistema *getSistema() const;
+    std::shared_ptr<Sistema> getSistema() const;
 
-    void setSistema(Sistema *value);
+    void setSistema(std::shared_ptr<Sistema> value);
 
     void setFeasible(QVector<bool> *value);
 
@@ -52,7 +52,7 @@ public:
     void noBorrar2();
 protected:
 
-    Sistema * sistema;
+    std::shared_ptr<Sistema> sistema;
     flags_box flags;
 
     QVector <qreal> * puntosCorte = nullptr;

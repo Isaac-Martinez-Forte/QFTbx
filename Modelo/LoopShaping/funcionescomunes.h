@@ -23,8 +23,8 @@ using namespace cxsc;
 namespace FC {
 
 struct return_bisection {
-    Sistema * v1;
-    Sistema * v2;
+    std::shared_ptr<Sistema> v1;
+    std::shared_ptr<Sistema> v2;
     bool descartado;
 };
 
@@ -36,7 +36,7 @@ struct return_bisection2 {
 
 enum diagrama {Nichol = false, Nyquist = true};
 
-inline Sistema * guardarControlador(Sistema *controlador, bool x) {
+inline std::shared_ptr<Sistema> guardarControlador(std::shared_ptr<Sistema> controlador, bool x) {
 
 
     QVector <Var *> * nume = controlador->getNumerador();
@@ -79,13 +79,13 @@ inline Sistema * guardarControlador(Sistema *controlador, bool x) {
 
 
 
-    Sistema * s = controlador->invoke(controlador->getNombre(), numerador, denominador,
+    std::shared_ptr<Sistema> s = controlador->invoke(controlador->getNombre(), numerador, denominador,
                                       k, new Var ((qreal) 0));
 
     return s;
 }
 
-inline bool if_less_epsilon(Sistema * controlador, qreal epsilon, QVector <qreal> * omega,
+inline bool if_less_epsilon(std::shared_ptr<Sistema> controlador, qreal epsilon, QVector <qreal> * omega,
                             Natura_Interval_extension *conversion, QVector <complex> * plantas_nominales) {
 
     cinterval box;
@@ -157,7 +157,7 @@ inline void mostrar_diagramaBox(QVector<QPointF> * caja, QVector <qreal> * omega
 
 //Función que divide la caja en dos.
 
-inline return_bisection split_box_bisection(Sistema *current_controlador) {
+inline return_bisection split_box_bisection(std::shared_ptr<Sistema> current_controlador) {
 
     QVector <Var *> * numerador = current_controlador->getNumerador();
     QVector <Var *> * denominador = current_controlador->getDenominador();
@@ -180,7 +180,7 @@ inline return_bisection split_box_bisection(Sistema *current_controlador) {
 
     //Sistemas hijos creados
 
-    Sistema * v1, * v2;
+    std::shared_ptr<Sistema> v1, v2;
     struct FC::return_bisection retur;
 
 

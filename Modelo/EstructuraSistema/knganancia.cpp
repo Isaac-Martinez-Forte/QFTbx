@@ -10,9 +10,9 @@ KNGanancia::KNGanancia(QString nombre, QVector<Var *> *numerador, QVector<Var *>
 KNGanancia::~KNGanancia(){
 }
 
-Sistema * KNGanancia::invoke (QString nombre, QVector <Var*> * numerador, QVector <Var*> * denominador,
+std::shared_ptr<Sistema> KNGanancia::invoke(QString nombre, QVector <Var*> * numerador, QVector <Var*> * denominador,
                               Var * k, Var* ret, QString exp_nume __attribute__((unused)), QString exp_deno __attribute__((unused))){
-    return new KNGanancia(nombre, numerador, denominador, k, ret);
+    return std::make_shared<KNGanancia>(nombre, numerador, denominador, k, ret);
 }
 
 QString KNGanancia::getExpr (QVector <qreal> * numerador, QVector <qreal> * denominador,

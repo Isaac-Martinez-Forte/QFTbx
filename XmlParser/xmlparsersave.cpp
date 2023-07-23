@@ -64,7 +64,7 @@ bool XmlParserSave::guardarXMLDatos(QString fichero, DatosPlanta *datosPlanta){/
     return true;
 }
 
-inline bool XmlParserSave::guardarPlanta(Sistema *planta, QString nombre){/////////////////////////////////////////////////////
+inline bool XmlParserSave::guardarPlanta(std::shared_ptr<Sistema> planta, QString nombre){/////////////////////////////////////////////////////
 
     stream->writeStartElement(nombre);
     stream->writeAttribute("nombre", planta->getNombre());

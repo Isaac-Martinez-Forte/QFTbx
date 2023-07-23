@@ -30,7 +30,7 @@ Algorithm_segundo_articulo::~Algorithm_segundo_articulo() {
 
 }
 
-void Algorithm_segundo_articulo::set_datos(Sistema * planta, Sistema * controlador, QVector<qreal> *omega, std::shared_ptr<DatosBound> boundaries,
+void Algorithm_segundo_articulo::set_datos(std::shared_ptr<Sistema> planta, std::shared_ptr<Sistema> controlador, QVector<qreal> *omega, std::shared_ptr<DatosBound> boundaries,
                                            qreal epsilon) {
 
     this->planta = planta;
@@ -173,7 +173,6 @@ bool Algorithm_segundo_articulo::init_algorithm(){
             delete conversion;
             delete lista;
             delete deteccion;
-            delete mejorSolucion;
 
             return false;
         }
@@ -181,7 +180,7 @@ bool Algorithm_segundo_articulo::init_algorithm(){
         tripleta = static_cast<Tripleta2 *>(lista->recuperarPrimero());
         lista->borrarPrimero();
 
-        Sistema * controladorActual = tripleta->getSistema();
+        auto controladorActual = tripleta->getSistema();
 
         // Si la mejor solucion es mejor que el nodo extraido este se descarta y pasa al siguiente.
         if (mejorSolucion->getK()->getRango().y() < controladorActual->getK()->getRango().x() ){
@@ -213,7 +212,6 @@ bool Algorithm_segundo_articulo::init_algorithm(){
             delete lista;
             delete deteccion;
             delete tripleta;
-            delete mejorSolucion;
 
             return true;
         }
@@ -263,9 +261,9 @@ inline bool Algorithm_segundo_articulo::aplicarMejoras (Tripleta2 *tripleta) {
 
 #ifdef MEJOR_K
         // Ejecutamos la búsqueda de mejor ganancia
-        Sistema * mS = busquedaMejorGanancia(tripleta);
+        auto mS = busquedaMejorGanancia(tripleta);
 #else
-        Sistema * mS = nullptr;
+        auto mS = nullptr;
 #endif
 
         // Si búsqueda mejor ganancia ha encontrado un resultado
@@ -276,10 +274,7 @@ inline bool Algorithm_segundo_articulo::aplicarMejoras (Tripleta2 *tripleta) {
             if (mS->getK()->getRango().y() < mejorSolucion->getK()->getRango().y()) {
 
                 // Si es así borramos la anterior solución y ponemos la nueva.
-                delete mejorSolucion;
                 mejorSolucion = mS;
-            } else {
-                delete mS;
             }
 
         }
@@ -442,9 +437,9 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccion(Tripleta2 * t
     return biseccionArea(tripleta);
 }
 
-inline Sistema * Algorithm_segundo_articulo::busquedaMejorGanancia (Tripleta2 * tripleta) {
+inline std::shared_ptr<Sistema> Algorithm_segundo_articulo::busquedaMejorGanancia (Tripleta2 * tripleta) {
 
-    Sistema * v = tripleta->getSistema();
+    auto v = tripleta->getSistema();
 
     QVector<data_box *> * datosCortesBoundaries = tripleta->getDatosCortesBoundaries();
 
@@ -529,7 +524,7 @@ inline Sistema * Algorithm_segundo_articulo::busquedaMejorGanancia (Tripleta2 * 
     }
 }
 
-inline void Algorithm_segundo_articulo::comprobarVariables(Sistema *controlador) {
+inline void Algorithm_segundo_articulo::comprobarVariables(std::shared_ptr<Sistema> controlador) {
     bool b = true;
 
 
@@ -558,7 +553,7 @@ inline void Algorithm_segundo_articulo::comprobarVariables(Sistema *controlador)
 //Función que recorta la caja.
 inline Tripleta2 * Algorithm_segundo_articulo::recortesInfeasible(Tripleta2 * tripleta) {
 
-    Sistema * v = tripleta->getSistema();
+    std::shared_ptr<Sistema> v = tripleta->getSistema();
 
     QVector<data_box *> * datosCortesBoundaries = tripleta->getDatosCortesBoundaries();
 
@@ -805,9 +800,7 @@ inline Tripleta2 * Algorithm_segundo_articulo::recortesInfeasible(Tripleta2 * tr
             denominador_nuevo->append(var_deno_nuevo);
         }
 
-        Sistema * nuevo_sistema = v->invoke(v->getNombre(), numerador_nuevo, denominador_nuevo, new Var("kv", kNuevo, 0), new Var (0.0));
-        delete v;
-
+        std::shared_ptr<Sistema> nuevo_sistema = v->invoke(v->getNombre(), numerador_nuevo, denominador_nuevo, new Var("kv", kNuevo, 0), new Var (0.0));
 
 
         numeradorSup->clear();
@@ -833,7 +826,7 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
 
 #if defined REC_INTER && (defined REC_FASE || defined REC_MAG)
 
-    Sistema * v = tripleta->getSistema();
+    std::shared_ptr<Sistema> v = tripleta->getSistema();
 
     QVector<data_box *> * datosCortesBoundaries = tripleta->getDatosCortesBoundaries();
 
@@ -1129,8 +1122,7 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
             denominador_nuevo->append(var_deno_nuevo);
         }
 
-        Sistema * nuevo_sistema = v->invoke(v->getNombre(), numerador_nuevo, denominador_nuevo, k_nuevo, new Var (0.0));
-        delete v;
+        std::shared_ptr<Sistema> nuevo_sistema = v->invoke(v->getNombre(), numerador_nuevo, denominador_nuevo, k_nuevo, new Var (0.0));
 
         cambioEtapaFinal = false;
 
@@ -1164,7 +1156,7 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
 //Función que calcula los términos del controlador en decibelios
 inline Tripleta2 * Algorithm_segundo_articulo::calculoTerminosControlador (Tripleta2* controlador) {
 
-    Sistema * s = controlador->getSistema();
+    std::shared_ptr<Sistema> s = controlador->getSistema();
     QVector <cinterval> * terminosNume = new QVector<cinterval>();
     QVector <cinterval> * terminosDeno = new QVector<cinterval>();
     cinterval terminosK;
@@ -1203,7 +1195,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArea(Tripleta2
     cinterval terminosCopiaK;
 
 
-    Sistema * current_controlador = tripleta->getSistema();
+    std::shared_ptr<Sistema> current_controlador = tripleta->getSistema();
 
     QVector <Var *> * numerador = current_controlador->getNumerador();
     QVector <Var *> * denominador = current_controlador->getDenominador();
@@ -1339,7 +1331,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArea(Tripleta2
     }
 
     Tripleta2 * t1, * t2;
-    Sistema * v1, * v2;
+    std::shared_ptr<Sistema> v1, v2;
 
     v1 = current_controlador->invoke(nombre, numerador, denominador, k, ret);
     v2 = current_controlador->invoke(nombre, numeradorCopia, denominadorCopia, kCopia, ret->clone());
@@ -1397,7 +1389,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionMag(Tripleta2 
     QVector <cinterval> * terminosCopiaDeno = new QVector <cinterval> ();
     cinterval terminosCopiaK;
 
-    Sistema * current_controlador = tripleta->getSistema();
+    std::shared_ptr<Sistema> current_controlador = tripleta->getSistema();
 
     QVector <Var *> * numerador = current_controlador->getNumerador();
     QVector <Var *> * denominador = current_controlador->getDenominador();
@@ -1521,7 +1513,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionMag(Tripleta2 
     }
 
     Tripleta2 * t1, * t2;
-    Sistema * v1, * v2;
+    std::shared_ptr<Sistema> v1, v2;
 
     v1 = current_controlador->invoke(nombre, numerador, denominador, k1, ret);
     v2 = current_controlador->invoke(nombre, numeradorCopia, denominadorCopia, k2, ret->clone());
@@ -1578,7 +1570,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionFas(Tripleta2 
     QVector <cinterval> * terminosCopiaDeno = new QVector <cinterval> ();
     cinterval terminosCopiaK;
 
-    Sistema * current_controlador = tripleta->getSistema();
+    std::shared_ptr<Sistema> current_controlador = tripleta->getSistema();
 
     QVector <Var *> * numerador = current_controlador->getNumerador();
     QVector <Var *> * denominador = current_controlador->getDenominador();
@@ -1688,7 +1680,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionFas(Tripleta2 
     }
 
     Tripleta2 * t1, * t2;
-    Sistema * v1, * v2;
+    std::shared_ptr<Sistema> v1, v2;
 
     v1 = current_controlador->invoke(nombre, numerador, denominador, k, ret);
     v2 = current_controlador->invoke(nombre, numeradorCopia, denominadorCopia, k->clone(), ret->clone());
@@ -1736,7 +1728,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionFas(Tripleta2 
 
 inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta2 * tripleta) {
 
-    Sistema * current_controlador = tripleta->getSistema();
+    std::shared_ptr<Sistema> current_controlador = tripleta->getSistema();
 
     QVector <cinterval> * terminosNume = tripleta->getTerNume();
     QVector <cinterval> * terminosDeno = tripleta->getTerDeno();
@@ -2139,7 +2131,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
     }
 
     Tripleta2 * t1, * t2;
-    Sistema * v1, * v2;
+    std::shared_ptr<Sistema> v1, v2;
 
     Var * ret = current_controlador->getRet();
     QString nombre = current_controlador->getNombre();
@@ -2220,6 +2212,6 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
 
 }
 
-Sistema * Algorithm_segundo_articulo::getControlador()  {
+std::shared_ptr<Sistema> Algorithm_segundo_articulo::getControlador()  {
     return controlador_retorno;
 }

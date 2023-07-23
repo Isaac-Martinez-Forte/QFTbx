@@ -64,7 +64,7 @@ public:
     * Esta función accede directamente al adaptador Dao usado por el sistema para recuperar la Planta que se solicita.
     * @return planta guardada en el sistema.
     */
-    Sistema * getPlanta();
+    std::shared_ptr<Sistema> getPlanta();
 
 
     Omega * getOmega();
@@ -92,7 +92,7 @@ public:
      * @param planta Sistema a guardar en el sistema.
      */
     
-    void setPlanta (Sistema * planta);
+    void setPlanta (std::shared_ptr<Sistema> planta);
     
     
     /**
@@ -203,9 +203,9 @@ public:
     QVector<QVector<QVector<QPointF> *> *> *getBoundariesReunHash();
 
 
-    bool setControlador (Sistema * controlador);
+    bool setControlador (std::shared_ptr<Sistema> controlador);
 
-    Sistema * getControlador();
+    std::shared_ptr<Sistema> getControlador();
     
 
     bool calcularLoopShaping(qreal epsilon, alg_loop_shaping seleccionado, QPointF rango, qreal nPuntos, bool depuracion,

@@ -16,12 +16,12 @@ public:
       ~AdaptadorControladorDAO();
 
 
-      Sistema * getControlador ();
+      std::shared_ptr<Sistema> getControlador();
 
-      void setControlador (Sistema * controlador);
+      void setControlador (std::shared_ptr<Sistema> controlador);
 
   private:
-      Sistema * controlador = NULL;
+      std::shared_ptr<Sistema> controlador = NULL;
 };
 
 #endif // ADAPTADORCONTROLADORDAO_H

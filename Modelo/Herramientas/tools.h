@@ -109,7 +109,7 @@ QColor ramdonColor (qint32 i);
 struct dBND{
     QString nombre;
     bool utilizado;
-    Sistema * sistema;
+    std::shared_ptr<Sistema> sistema;
     qreal altura;
     bool constante;
     qreal frecinicio;

@@ -64,7 +64,7 @@ public:
       * @return booleano indicando el cálculo se ha realizado correctamente.
       */
 
-    bool lanzarCalculo(Sistema *planta, QVector<qreal>* omega, bool cuda);
+    bool lanzarCalculo(std::shared_ptr<Sistema> planta, QVector<qreal>* omega, bool cuda);
 
     bool lanzarCalculoContorno (QVector <qreal> * epsilon);
 
@@ -79,9 +79,9 @@ public:
     */
     
 #ifndef OpenMP_AVAILABLE
-    QVector<QVector<std::complex<qreal> > *> * calcularTemplate_secuencial(Sistema *planta, QVector<qreal>* omega);
+    QVector<QVector<std::complex<qreal> > *> * calcularTemplate_secuencial(std::shared_ptr<Sistema> planta, QVector<qreal>* omega);
 #else
-    QVector<QVector<std::complex<qreal> > *> * calcularTemplate_paralelo(Sistema *planta, QVector<qreal>* omega);
+    QVector<QVector<std::complex<qreal> > *> * calcularTemplate_paralelo(std::shared_ptr<Sistema> planta, QVector<qreal>* omega);
 #endif
 
     /**

@@ -62,7 +62,7 @@ cinterval Natura_Interval_extension::get_box_termino_k(Var * var, complex p0) {
     return cinterval (20.0 * log10(g), theta * 180.0 / PI);
 }
 
-cinterval Natura_Interval_extension::get_box(Sistema *sistema, qreal w, complex p0, bool nyquist){
+cinterval Natura_Interval_extension::get_box(std::shared_ptr<Sistema> sistema, qreal w, complex p0, bool nyquist){
 
     cinterval a;
 
@@ -264,7 +264,7 @@ cinterval Natura_Interval_extension::get_box_deno(QVector <Var * > * deno, qreal
     return cinterval (20.0 * log10(b), _arg(a) * 180.0 / PI);
 }
 
-inline cinterval Natura_Interval_extension::get_box_kganancia(Sistema *sistema, qreal w){
+inline cinterval Natura_Interval_extension::get_box_kganancia(std::shared_ptr<Sistema> sistema, qreal w){
 
     QVector <Var*> * nume = sistema->getNumerador();
     QVector <Var * > * deno = sistema->getDenominador();
@@ -415,7 +415,7 @@ inline cinterval Natura_Interval_extension::get_box_kganancia_deno (QVector <Var
     return denominador;
 }
 
-inline cinterval Natura_Interval_extension::get_box_knoganacia(Sistema *sistema, qreal w){
+inline cinterval Natura_Interval_extension::get_box_knoganacia(std::shared_ptr<Sistema> sistema, qreal w){
 
     QVector <Var*> * nume = sistema->getNumerador();
     QVector <Var*> * deno = sistema->getDenominador();
@@ -480,7 +480,7 @@ inline cinterval Natura_Interval_extension::get_box_knoganacia(Sistema *sistema,
     }
 }
 
-inline cinterval Natura_Interval_extension::get_box_cpolinomios(Sistema * sistema, qreal w){
+inline cinterval Natura_Interval_extension::get_box_cpolinomios(std::shared_ptr<Sistema> sistema, qreal w){
 
     QVector <Var*> * nume = sistema->getNumerador();
     QVector <Var * > * deno = sistema->getDenominador();

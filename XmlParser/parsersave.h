@@ -58,7 +58,7 @@ public:
 
 private:
 
-    inline bool guardarPlanta(Sistema * planta, QString nombre);
+    inline bool guardarPlanta(std::shared_ptr<Sistema> planta, QString nombre);
 
     inline void guardarVariable (Var * var, QString idem);
 

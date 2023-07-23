@@ -32,7 +32,7 @@ public:
     * @return Función de transferencia con el controlador guardado en el sistema.
     */
 
-    virtual Sistema * getControlador () = 0;
+    virtual std::shared_ptr<Sistema> getControlador () = 0;
 
   /**
     * @fn setControlador
@@ -41,7 +41,7 @@ public:
     * @param Función de transferencia a guardar en el sistema.
     */
 
-    virtual void setControlador (Sistema * controlador) = 0;
+    virtual void setControlador (std::shared_ptr<Sistema> controlador) = 0;
 };
 
 #endif // CONTROLADORDAO_H

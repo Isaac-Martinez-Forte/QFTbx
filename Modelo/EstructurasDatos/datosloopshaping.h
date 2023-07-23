@@ -9,13 +9,13 @@ class DatosLoopShaping
 {
 public:
     DatosLoopShaping();
-    DatosLoopShaping (Sistema * controlador, QPointF rango, qreal nPuntos);
+    DatosLoopShaping (std::shared_ptr<Sistema> controlador, QPointF rango, qreal nPuntos);
 
-    void setDatos (Sistema * controlador, QPointF rango, qreal nPuntos);
+    void setDatos (std::shared_ptr<Sistema> controlador, QPointF rango, qreal nPuntos);
 
-    void setDatos (Sistema * controlador);
+    void setDatos (std::shared_ptr<Sistema> controlador);
 
-    Sistema * getControlador ();
+    std::shared_ptr<Sistema> getControlador ();
 
     QPointF getRango ();
 
@@ -23,11 +23,10 @@ public:
 
 private:
 
-    Sistema * controlador;
+    std::shared_ptr<Sistema> controlador;
     QPointF rango;
     qreal nPuntos;
 
-    bool introducido;
 };
 
 #endif // DATOSLOOPSHAPING_H

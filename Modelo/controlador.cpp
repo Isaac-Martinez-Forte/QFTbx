@@ -52,7 +52,7 @@ Controlador::~Controlador(){
     }
 }
 
-Sistema *Controlador::getPlanta(){
+std::shared_ptr<Sistema> Controlador::getPlanta(){
     if(!paso1)
         return NULL;
 
@@ -81,7 +81,7 @@ QVector<tools::dBND *> *Controlador::getEspecificaciones(){
     return especdao->getEspecificaciones();
 }
 
-void Controlador::setPlanta(Sistema *planta){
+void Controlador::setPlanta(std::shared_ptr<Sistema> planta){
     if (!paso1)
         plantadao = dao->getPlantaDAO();
     paso1 = true;
@@ -233,7 +233,7 @@ QVector< QVector <QVector<QPointF> * > * > * Controlador::getBoundariesReunHash(
     return bounddao->getBound()->getBoundariesReunHash();
 }
 
-bool Controlador::setControlador(Sistema *controlador){
+bool Controlador::setControlador(std::shared_ptr<Sistema> controlador){
 
     if (!paso6){
         controladordao = dao->getControladorDAO();
@@ -246,7 +246,7 @@ bool Controlador::setControlador(Sistema *controlador){
     return true;
 }
 
-Sistema * Controlador::getControlador(){
+std::shared_ptr<Sistema> Controlador::getControlador(){
     if (!paso6){
         return NULL;
     }

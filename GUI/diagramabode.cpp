@@ -18,7 +18,7 @@ DiagramaBode::~DiagramaBode()
     delete ui;
 }
 
-void DiagramaBode::dibujarBode(Sistema *planta, Omega *omega){
+void DiagramaBode::dibujarBode(std::shared_ptr<Sistema> planta, Omega *omega){
 
     QVector <qreal> * frecuencias;
 

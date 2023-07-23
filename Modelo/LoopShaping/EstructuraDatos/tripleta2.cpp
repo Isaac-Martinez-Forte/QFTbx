@@ -4,11 +4,11 @@
 using namespace cxsc;
 using namespace tools;
 
-Tripleta2::Tripleta2(qreal index, Sistema * sistema, flags_box flags) : Tripleta (index, sistema, flags) {
+Tripleta2::Tripleta2(qreal index, std::shared_ptr<Sistema> sistema, flags_box flags) : Tripleta (index, sistema, flags) {
     recorteActivado = true;
 }
 
-Tripleta2::Tripleta2(qreal index, Sistema * sistema,  QVector <data_box *> * datos) : Tripleta(index, sistema, datos) {
+Tripleta2::Tripleta2(qreal index, std::shared_ptr<Sistema> sistema,  QVector <data_box *> * datos) : Tripleta(index, sistema, datos) {
     recorteActivado = true;
 }
 

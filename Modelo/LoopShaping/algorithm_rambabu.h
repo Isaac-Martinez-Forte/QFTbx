@@ -29,29 +29,29 @@ public:
     ~Algorithm_rambabu();
 
 
-    void set_datos(Sistema *planta, Sistema *controlador, QVector<qreal> * omega, std::shared_ptr<DatosBound> boundaries,
+    void set_datos(std::shared_ptr<Sistema> planta, std::shared_ptr<Sistema> controlador, QVector<qreal> * omega, std::shared_ptr<DatosBound> boundaries,
                                      qreal epsilon, QVector<QVector<QVector<QPointF> *> *> *reunBoun, bool depuracion,
                                       QVector <QVector <std::complex <qreal> > * > * temp, QVector <tools::dBND *> * espe);
 
     bool init_algorithm();
 
-    Sistema * getControlador();
+    std::shared_ptr<Sistema> getControlador();
 
 
 private:
 
     tools::flags_box feasibility_test (cinterval box, qreal omega);
-    tools::flags_box check_box_feasibility(Sistema *v);
-    Sistema *acelerated(Sistema * controlador);
+    tools::flags_box check_box_feasibility(std::shared_ptr<Sistema> v);
+    std::shared_ptr<Sistema> acelerated(std::shared_ptr<Sistema> controlador);
 
-    bool crear_ecuaciones(Sistema *controlador);
+    bool crear_ecuaciones(std::shared_ptr<Sistema> controlador);
 
     //Funciones para crear las ecuaciones
-    QVector<QVector<QString> *> *kganacia(Sistema * controlador);
-    QVector<QVector<QString> *> * knganancia (Sistema * controlador);
+    QVector<QVector<QString> *> *kganacia(std::shared_ptr<Sistema> controlador);
+    QVector<QVector<QString> *> * knganancia (std::shared_ptr<Sistema> controlador);
 
-    Sistema * planta;
-    Sistema * controlador;
+    std::shared_ptr<Sistema> planta;
+    std::shared_ptr<Sistema> controlador;
     QVector <qreal> * omega;
     std::shared_ptr<DatosBound> boundaries;
     Natura_Interval_extension * conversion;
@@ -61,7 +61,7 @@ private:
     QVector <QVector <std::complex <qreal> > * > * temp;
     QVector <tools::dBND *> * espe;
 
-    Sistema * controlador_retorno;
+    std::shared_ptr<Sistema> controlador_retorno;
 
     qreal minimo_boundaries;
 

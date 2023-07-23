@@ -57,7 +57,7 @@ public:
       * @return Planta recuperada.
       */
 
-    Sistema * getPlanta();
+    std::shared_ptr<Sistema> getPlanta();
 
 
     QVector <tools::dBND *> * getEspecificaciones();
@@ -113,7 +113,7 @@ public:
 
     QVector <QVector <QVector <qreal> * > *> * getSabana();
 
-    Sistema * getControlador();
+    std::shared_ptr<Sistema> getControlador();
 
     DatosLoopShaping * getLoopShaping();
 
@@ -153,7 +153,7 @@ private:
      bool isLoopShaping;
 
 
-     Sistema * planta;
+     std::shared_ptr<Sistema> planta;
 
      QVector <tools::dBND *> * especificaciones;
 
@@ -166,7 +166,7 @@ private:
      std::shared_ptr<DatosBound> bound;
      QVector<QVector<QVector<qreal> *> *> * sabanas;
 
-     Sistema * controlador;
+     std::shared_ptr<Sistema> controlador;
 
      DatosLoopShaping * loopShaping;
 

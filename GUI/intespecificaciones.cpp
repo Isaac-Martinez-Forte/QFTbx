@@ -135,7 +135,6 @@ bool IntEspecificaciones::getDatos(dBND * datos, QString nombre)
 {
 
     if (datos->utilizado && !datos->constante){
-        delete datos->sistema;
         datos->constante = false;
         datos->utilizado = false;
     }
@@ -268,13 +267,13 @@ bool IntEspecificaciones::getDatos(dBND * datos, QString nombre)
 
         datos->constante = false;
         if(ui->lfgain->isChecked()){
-            datos->sistema = new KGanancia (nombre, nume, deno, k, ret);
+            datos->sistema = std::make_shared<KGanancia> (nombre, nume, deno, k, ret);
         }else if (ui->hfgain->isChecked()){
-            datos->sistema = new KNGanancia (nombre, nume, deno, k, ret);
+            datos->sistema = std::make_shared<KNGanancia> (nombre, nume, deno, k, ret);
         }else if (ui->poli->isChecked()) {
-            datos->sistema = new CPolinomios (nombre, nume, deno, k, ret);
+            datos->sistema = std::make_shared<CPolinomios> (nombre, nume, deno, k, ret);
         }else {
-            datos->sistema = new FormatoLibre (nombre, new QVector <Var *> (), new QVector <Var *> (), crearKRet(ui->k->text(), true),
+            datos->sistema = std::make_shared<FormatoLibre> (nombre, new QVector <Var *> (), new QVector <Var *> (), crearKRet(ui->k->text(), true),
                                                crearKRet(ui->ret->text(), false), ui->nume->text(), ui->deno->text());
         }
         datos->utilizado = true;
@@ -288,13 +287,11 @@ bool IntEspecificaciones::getDatos(dBND * datos, QString nombre)
 bool IntEspecificaciones::getDatos(dBND *datos, dBND *datos1, QString nombre){
 
     if (datos->utilizado && !datos->constante){
-        delete datos->sistema;
         datos->constante = false;
         datos->utilizado = false;
     }
 
     if (datos1->utilizado && !datos1->constante){
-        delete datos1->sistema;
         datos1->constante = false;
         datos1->utilizado = false;
     }
@@ -434,13 +431,13 @@ bool IntEspecificaciones::getDatos(dBND *datos, dBND *datos1, QString nombre){
 
         datos->constante = false;
         if(ui->KGSe1->isChecked()){
-            datos->sistema = new KGanancia (nombre, nume, deno, k, ret);
+            datos->sistema = std::make_shared<KGanancia> (nombre, nume, deno, k, ret);
         }else if (ui->KNGSe1->isChecked()){
-            datos->sistema = new KNGanancia (nombre, nume, deno, k, ret);
+            datos->sistema = std::make_shared<KNGanancia> (nombre, nume, deno, k, ret);
         }else if (ui->CPoliSe1->isChecked()) {
-            datos->sistema = new CPolinomios (nombre, nume, deno, k, ret);
+            datos->sistema = std::make_shared<CPolinomios> (nombre, nume, deno, k, ret);
         }else {
-            datos->sistema = new FormatoLibre (nombre, new QVector <Var *> (), new QVector <Var *> (), crearKRet(ui->KSe1->text(), true),
+            datos->sistema = std::make_shared<FormatoLibre> (nombre, new QVector <Var *> (), new QVector <Var *> (), crearKRet(ui->KSe1->text(), true),
                                                crearKRet(ui->RetSe1->text(), false), ui->NumeSe1->text(), ui->DenoSe1->text());
         }
         datos->utilizado = true;
@@ -540,13 +537,13 @@ bool IntEspecificaciones::getDatos(dBND *datos, dBND *datos1, QString nombre){
 
         datos1->constante = false;
         if(ui->KGSe1_2->isChecked()){
-            datos1->sistema = new KGanancia (nombre, nume, deno, k, ret);
+            datos1->sistema = std::make_shared<KGanancia> (nombre, nume, deno, k, ret);
         }else if (ui->KNGSe1_2->isChecked()){
-            datos1->sistema = new KNGanancia (nombre, nume, deno, k, ret);
+            datos1->sistema = std::make_shared<KNGanancia> (nombre, nume, deno, k, ret);
         }else if (ui->CPoliSe1_2->isChecked()) {
-            datos1->sistema = new CPolinomios (nombre, nume, deno, k, ret);
+            datos1->sistema = std::make_shared<CPolinomios> (nombre, nume, deno, k, ret);
         }else {
-            datos1->sistema = new FormatoLibre (nombre, new QVector <Var *> (), new QVector <Var *> (), crearKRet(ui->KSe1_2->text(), true),
+            datos1->sistema = std::make_shared<FormatoLibre> (nombre, new QVector <Var *> (), new QVector <Var *> (), crearKRet(ui->KSe1_2->text(), true),
                                                 crearKRet(ui->RetSe1_2->text(), false), ui->NumeSe1_2->text(), ui->DenoSe1_2->text());
         }
         datos1->utilizado = true;
