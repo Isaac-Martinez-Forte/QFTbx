@@ -40,7 +40,7 @@ verBoundaries::~verBoundaries()
 }
 
 
-void verBoundaries::setDatos(DatosBound *boundariesNichols, DatosBound *boundariesNyquist, QVector<qreal> *omega,
+void verBoundaries::setDatos(std::shared_ptr<DatosBound> boundariesNichols, std::shared_ptr<DatosBound> boundariesNyquist, QVector<qreal> *omega,
                              Sistema *planta, Sistema *controlador, bool nichols, bool nyquist){
     this->boundariesNichols = boundariesNichols;
     this->boundariesNyquist = boundariesNyquist;

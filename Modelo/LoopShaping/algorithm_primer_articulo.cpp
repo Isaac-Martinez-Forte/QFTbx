@@ -25,7 +25,7 @@ Algorithm_primer_articulo::~Algorithm_primer_articulo() {
 
 }
 
-void Algorithm_primer_articulo::set_datos(Sistema *planta, Sistema *controlador, QVector<qreal> * omega, DatosBound *boundaries,
+void Algorithm_primer_articulo::set_datos(Sistema *planta, Sistema *controlador, QVector<qreal> * omega, std::shared_ptr<DatosBound> boundaries,
                                 qreal epsilon, QVector<QVector<QVector<QPointF> *> *> *reunBounHash,
                                 bool depuracion __attribute__((unused)), bool hilos, QVector<qreal>*radiosBoundariesMayor,
                                 QVector<qreal> *radiosBoundariesMenor, QVector<QPointF> *centros, bool biseccion_avanzada, bool deteccion_avanzada, bool a) {
@@ -148,7 +148,7 @@ void Algorithm_primer_articulo::set_datos(Sistema *planta, Sistema *controlador,
             nuevosBoundariesReun->append(nuevoVector);
         }
 
-        DatosBound * nuevoBoundaries = new DatosBound (boundaries->getBoundaries(), boundaries->getMetaDatosAbierta(),
+        auto nuevoBoundaries = std::make_shared<DatosBound> (boundaries->getBoundaries(), boundaries->getMetaDatosAbierta(),
                                                        boundaries->getMetaDatosArriba(), boundaries->getTamFas(),
                                                        boundaries->getDatosFas(), nuevosBoundariesReun,
                                                        nuevoHash_inter, boundaries->getTamMag(), boundaries->getDatosMag());

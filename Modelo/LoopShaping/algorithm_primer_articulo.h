@@ -35,7 +35,7 @@ public:
     Algorithm_primer_articulo();
     ~Algorithm_primer_articulo();
 
-    void set_datos(Sistema * planta, Sistema * controlador, QVector<qreal> *omega, DatosBound * boundaries,
+    void set_datos(Sistema * planta, Sistema * controlador, QVector<qreal> *omega, std::shared_ptr<DatosBound> boundaries,
                     qreal epsilon, QVector<QVector<QVector<QPointF> *> *> * reunBounHash, bool depuracion,
                    bool hilos, QVector <qreal> * radiosBoundariesMayor, QVector <qreal> * radiosBoundariesMenor,
                    QVector <QPointF> * centros, bool biseccion_avanzada, bool deteccion_avanzada, bool a);
@@ -60,8 +60,8 @@ private:
     Sistema * planta;
     Sistema * controlador;
     QVector <qreal> * omega;
-    DatosBound * boundaries;
-    DatosBound * boundariesAux;
+    std::shared_ptr<DatosBound> boundaries;
+    std::shared_ptr<DatosBound> boundariesAux;
     Natura_Interval_extension * conversion;
     ListaOrdenada * lista;
     qreal epsilon;
@@ -93,7 +93,7 @@ private:
     bool isVariableDeno;
     
     FC::return_bisection (Algorithm_primer_articulo::*split_box)(Sistema *);
-    data_box * (DeteccionViolacionBoundaries::*deteccionViolacion) (cinterval, DatosBound *, qint32);
+    data_box * (DeteccionViolacionBoundaries::*deteccionViolacion) (cinterval, std::shared_ptr<DatosBound>, qint32);
 
     Sistema * (Algorithm_primer_articulo::*analisis)(Sistema *v, QVector<data_box *> *datosCortesBoundaries);
 

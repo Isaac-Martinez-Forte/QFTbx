@@ -153,8 +153,8 @@ void Boundaries::lanzarCalculo(QVector<qreal> *omega, Sistema *planta, QVector<Q
 
 }
 
-DatosBound *Boundaries::getBoundaries(){
-    return new DatosBound(boundaries, metaDatosAbierta, metaDatosArriba ,tamFas, datosFas, boun_reunidos, boundariesHash
+std::shared_ptr<DatosBound> Boundaries::getBoundaries(){
+    return make_shared<DatosBound>(boundaries, metaDatosAbierta, metaDatosArriba ,tamFas, datosFas, boun_reunidos, boundariesHash
                           ,tamMag, datosMag);
 }
 

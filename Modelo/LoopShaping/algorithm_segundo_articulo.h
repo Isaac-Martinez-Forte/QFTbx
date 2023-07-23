@@ -37,7 +37,7 @@ public:
     Algorithm_segundo_articulo();
     ~Algorithm_segundo_articulo();
 
-    void set_datos(Sistema * planta, Sistema * controlador, QVector<qreal> *omega, DatosBound * boundaries,
+    void set_datos(Sistema * planta, Sistema * controlador, QVector<qreal> *omega, std::shared_ptr<DatosBound> boundaries,
                     qreal epsilon);
 
     bool init_algorithm();
@@ -70,7 +70,7 @@ private:
     Sistema * controlador_retorno;
 
     QVector <qreal> * omega;
-    DatosBound * boundaries;
+    std::shared_ptr<DatosBound> boundaries;
     Natura_Interval_extension * conversion;
     ListaOrdenada * lista;
     qreal epsilon;
@@ -79,7 +79,7 @@ private:
     QVector <cxsc::complex> * plantas_nominales;
     QVector <std::complex <qreal>> * plantas_nominales2;
 
-    data_box * (DeteccionViolacionBoundaries::*deteccionViolacion) (cinterval, DatosBound *, qint32, Etapas);
+    data_box * (DeteccionViolacionBoundaries::*deteccionViolacion) (cinterval, std::shared_ptr<DatosBound>, qint32, Etapas);
 
     bool isVariableNume;
     bool isVariableDeno;

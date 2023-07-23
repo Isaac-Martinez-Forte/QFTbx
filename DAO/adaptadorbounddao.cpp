@@ -2,25 +2,15 @@
 
 AdaptadorBoundDAO::AdaptadorBoundDAO()
 {
-    introducido = false;
 }
 
 AdaptadorBoundDAO::~AdaptadorBoundDAO(){
-    if (introducido){
-        delete bound;
-    }
 }
 
-void AdaptadorBoundDAO::setBound(DatosBound *boundaries){
-    if (introducido){
-        delete bound;
-    }
-
-    introducido = true;
-
+void AdaptadorBoundDAO::setBound(std::shared_ptr<DatosBound> boundaries){
     bound = boundaries;
 }
 
-DatosBound *AdaptadorBoundDAO::getBound(){
+std::shared_ptr<DatosBound> AdaptadorBoundDAO::getBound(){
     return bound;
 }

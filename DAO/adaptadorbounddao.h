@@ -2,6 +2,7 @@
 #define ADAPTADORBOUNDDAO_H
 
 #include "DAO/bounddao.h"
+#include <memory>
 
 /**
  * @class AdaptadorBoundDAO
@@ -31,7 +32,7 @@ public:
      *
      */
 
-    void setBound(DatosBound * boundaries);
+    void setBound(std::shared_ptr<DatosBound> boundaries);
 
     /**
     * @fn getBound
@@ -41,12 +42,11 @@ public:
     *
     */
 
-    DatosBound * getBound();
+    std::shared_ptr<DatosBound> getBound();
 
 
 private:
-    bool introducido;
-    DatosBound * bound;
+    std::shared_ptr<DatosBound> bound;
 
 };
 

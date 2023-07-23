@@ -124,7 +124,7 @@ QVector <QVector <std::complex <qreal>> * > * XmlParserLoad::getContorno(){
     return contorno;
 }
 
-DatosBound *XmlParserLoad::getBoundaries(){
+std::shared_ptr<DatosBound> XmlParserLoad::getBoundaries(){
     return bound;
 }
 
@@ -398,7 +398,7 @@ inline bool XmlParserLoad::leerBoundaries(){
 
     stream->skipCurrentElement(); //cerramos los boundaries reunidos hash
 
-    bound = new DatosBound(boundaries, metaDatosAbierta, metaDatosArriba, tamFas, datosFas, boundariesreunidos,
+    bound = make_shared<DatosBound>(boundaries, metaDatosAbierta, metaDatosArriba, tamFas, datosFas, boundariesreunidos,
                            boundariesreunidoshash, tamMag, datosMag);
 
     stream->skipCurrentElement(); //cerramos datos

@@ -15,7 +15,7 @@ Algorithm_nandkishor::~Algorithm_nandkishor()
 }
 
 
-void Algorithm_nandkishor::set_datos(Sistema *planta, Sistema *controlador, QVector<qreal> * omega, DatosBound *boundaries,
+void Algorithm_nandkishor::set_datos(Sistema *planta, Sistema *controlador, QVector<qreal> * omega, std::shared_ptr<DatosBound> boundaries,
                                      qreal epsilon, QVector<QVector<QVector<QPointF> *> *> *reunBounHash,
                                      qreal delta, qint32 inicializacion){
 

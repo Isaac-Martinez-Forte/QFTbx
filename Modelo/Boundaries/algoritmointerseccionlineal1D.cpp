@@ -1,4 +1,5 @@
 #include "algoritmointerseccionlineal1D.h"
+#include <memory>
 #define GRADOS_FASE 360
 
 using namespace std;
@@ -250,7 +251,7 @@ QVector<QPointF> * AlgoritmoInterseccionLineal1D::unirCapas(QVector<QPointF> * &
     return unionCapas;
 }
 
-void AlgoritmoInterseccionLineal1D::ejecutarAlgoritmo(DatosBound * boundaries,
+void AlgoritmoInterseccionLineal1D::ejecutarAlgoritmo(std::shared_ptr<DatosBound> boundaries,
                                                       QVector <QMap <QString, QVector <QPoint> * > * > * vectorMetadatos)
 {
     interseccionesBoundaries = new QVector< QVector < QVector<QPointF> * > * > ();

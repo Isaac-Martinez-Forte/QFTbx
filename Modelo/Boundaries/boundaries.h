@@ -110,7 +110,7 @@ public:
     * @return Boundaries calculados.
    */
 
-    DatosBound* getBoundaries();
+    std::shared_ptr<DatosBound> getBoundaries();
 
     QVector <QMap <QString, QVector <QPoint> * > *> * getMetaDatosBoundaries();
 

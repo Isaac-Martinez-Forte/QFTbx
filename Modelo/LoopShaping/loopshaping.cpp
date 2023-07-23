@@ -17,7 +17,7 @@ LoopShaping::~LoopShaping()
 }
 
 
-bool LoopShaping::iniciar(Sistema *planta, Sistema *controlador, QVector<qreal> *omega, DatosBound *boundaries,
+bool LoopShaping::iniciar(Sistema *planta, Sistema *controlador, QVector<qreal> *omega, std::shared_ptr<DatosBound> boundaries,
                           qreal epsilon, tools::alg_loop_shaping seleccionado, bool depuracion, qreal delta,
                           QVector <QVector <std::complex <qreal> > * > * temp, QVector <tools::dBND *> * espe,
                           qint32 inicializacion, bool hilos, bool bisection_avanced, bool deteccion_avanced, bool a){

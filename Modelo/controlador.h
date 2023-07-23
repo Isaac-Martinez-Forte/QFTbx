@@ -129,7 +129,7 @@ public:
      * @Param boundaries fronteras calculadas.
      */
     
-    void setBoundaries (DatosBound *bound);
+    void setBoundaries (std::shared_ptr<DatosBound> dbound);
 
 
     /**
@@ -197,7 +197,7 @@ public:
     * @return Boundaries calculados en el sistema.
     */
     
-    DatosBound *getBound();
+    std::shared_ptr<DatosBound> getBound();
 
     QVector<QVector<QPointF> *> *getBoundariesReun();
     QVector<QVector<QVector<QPointF> *> *> *getBoundariesReunHash();

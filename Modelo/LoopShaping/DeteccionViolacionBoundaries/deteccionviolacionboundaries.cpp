@@ -162,7 +162,7 @@ inline qint32 DeteccionViolacionBoundaries::side_p_to_seg(std::complex<qreal> v1
     return lado;
 }
 
-data_box * DeteccionViolacionBoundaries::deteccionViolacionCajaNyNi(cinterval box, DatosBound * boundaries, qint32 contador)
+data_box * DeteccionViolacionBoundaries::deteccionViolacionCajaNyNi(cinterval box, std::shared_ptr<DatosBound> boundaries, qint32 contador)
 {
 
     QVector< QVector<QPointF> * > * interseccionHash = boundaries->getBoundariesReunHash()->at(contador);
@@ -355,7 +355,7 @@ data_box * DeteccionViolacionBoundaries::deteccionViolacionCajaNyNi(cinterval bo
     return datos;
 }
 
-data_box * DeteccionViolacionBoundaries::deteccionViolacionCajaNiNi(cinterval box, DatosBound *boundaries, qint32 contador, Etapas e) {
+data_box * DeteccionViolacionBoundaries::deteccionViolacionCajaNiNi(cinterval box, std::shared_ptr<DatosBound> boundaries, qint32 contador, Etapas e) {
 
 
     if (e == Etapas::INICIAL &&  (InfIm(box) > boundaries->getDatosFas().x() || SupIm(box) < boundaries->getDatosFas().y())) {
@@ -367,7 +367,7 @@ data_box * DeteccionViolacionBoundaries::deteccionViolacionCajaNiNi(cinterval bo
 
 
 
-data_box * DeteccionViolacionBoundaries::deteccionViolacionCajaNiNi(cinterval box, DatosBound *boundaries, qint32 contador) {
+data_box * DeteccionViolacionBoundaries::deteccionViolacionCajaNiNi(cinterval box, std::shared_ptr<DatosBound> boundaries, qint32 contador) {
 
     c++;
 
@@ -478,7 +478,7 @@ data_box * DeteccionViolacionBoundaries::deteccionViolacionCajaNiNi(cinterval bo
     return datos;
 }
 
-data_box *DeteccionViolacionBoundaries::deteccionViolacionCajaNi(cinterval box, DatosBound *boundaries, qint32 contador) {
+data_box *DeteccionViolacionBoundaries::deteccionViolacionCajaNi(cinterval box, std::shared_ptr<DatosBound> boundaries, qint32 contador) {
 
     QVector< QVector<QPointF> * > * interseccionHash = boundaries->getBoundariesReunHash()->at(contador);
     qint32 totalFase = boundaries->getTamFas() - 1;

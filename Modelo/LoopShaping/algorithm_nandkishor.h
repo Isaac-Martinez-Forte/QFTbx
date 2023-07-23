@@ -29,7 +29,7 @@ public:
     ~Algorithm_nandkishor();
 
 
-    void set_datos (Sistema * planta, Sistema * controlador, QVector<qreal> *omega, DatosBound * boundaries,
+    void set_datos (Sistema * planta, Sistema * controlador, QVector<qreal> *omega, std::shared_ptr<DatosBound> boundaries,
                      qreal epsilon, QVector<QVector<QVector<QPointF> *> *> * reunBoun, qreal delta, qint32 inicializacion );
 
     bool init_algorithm();
@@ -97,7 +97,7 @@ private:
     Sistema * controlador;
     Sistema * controlador_inicial;
     QVector <qreal> * omega;
-    DatosBound * boundaries;
+    std::shared_ptr<DatosBound> boundaries;
     Natura_Interval_extension * conversion;
     ListaOrdenada * lista;
 

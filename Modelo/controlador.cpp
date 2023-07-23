@@ -127,7 +127,7 @@ void Controlador::setContorno(QVector<QVector<std::complex<qreal> > *> *contorno
     templatedao->setContorno(contorno);
 }
 
-void Controlador::setBoundaries(DatosBound *bound){
+void Controlador::setBoundaries(std::shared_ptr<DatosBound> dbound){
 
     if (!paso5){
         this->bound = new Boundaries();
@@ -135,7 +135,7 @@ void Controlador::setBoundaries(DatosBound *bound){
     }
     paso5 = true;
 
-    bounddao->setBound(bound);
+    bounddao->setBound(dbound);
 
 }
 
@@ -221,7 +221,7 @@ bool Controlador::calcularBoundaries(QPointF datosFas, qint32 puntosFas, QPointF
     return true;
 }
 
-DatosBound *Controlador::getBound(){
+std::shared_ptr<DatosBound> Controlador::getBound(){
     return bounddao->getBound();
 }
 

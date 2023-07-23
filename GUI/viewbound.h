@@ -49,7 +49,7 @@ public:
     * @param sabana sábana completa del cálculo intermedio a los boundaries.
     */
     
-    void setDatos (DatosBound *datos, QVector<qreal> *omega);
+    void setDatos (std::shared_ptr<DatosBound> datos, QVector<qreal> *omega);
     
     
    /**
@@ -70,7 +70,7 @@ private:
 
     void crearCuadro(QColor color, qint32 pos);
 
-    DatosBound * boundaries;
+    std::shared_ptr<DatosBound> boundaries;
     QVector <qreal> * omega;
 
     bool ejecutado;

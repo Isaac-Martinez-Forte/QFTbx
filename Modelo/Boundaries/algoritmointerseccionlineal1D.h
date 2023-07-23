@@ -5,6 +5,7 @@
 #include <QPoint>
 #include <QPointF>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <cmath>
 #include <algorithm>
@@ -26,7 +27,7 @@ public:
     AlgoritmoInterseccionLineal1D();
     ~AlgoritmoInterseccionLineal1D();
 
-    void ejecutarAlgoritmo(DatosBound * boundaries, QVector<QMap<QString, QVector<QPoint> *> *> * vectorMetadatos);
+    void ejecutarAlgoritmo(std::shared_ptr<DatosBound> boundaries, QVector<QMap<QString, QVector<QPoint> *> *> * vectorMetadatos);
 
     QVector< QVector< QVector<QPointF> * > * > * getInterseccionesBoundaries();
 

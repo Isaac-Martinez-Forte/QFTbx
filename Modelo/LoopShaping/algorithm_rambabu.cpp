@@ -15,7 +15,7 @@ Algorithm_rambabu::~Algorithm_rambabu()
 
 }
 
-void Algorithm_rambabu::set_datos(Sistema *planta, Sistema *controlador, QVector<qreal> * omega, DatosBound *boundaries,
+void Algorithm_rambabu::set_datos(Sistema *planta, Sistema *controlador, QVector<qreal> * omega, std::shared_ptr<DatosBound> boundaries,
                                   qreal epsilon, QVector<QVector<QVector<QPointF> *> *> *reunBounHash, bool depuracion,
                                   QVector <QVector <std::complex <qreal> > * > * temp, QVector <tools::dBND *> * espe){
     this->planta = planta;

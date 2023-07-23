@@ -6,7 +6,6 @@
 #include <QLineEdit>
 #include <QStringBuilder>
 #include <QVector>
-#include <QLinkedList>
 #include <QVBoxLayout>
 
 #include "Modelo/EstructurasDatos/var.h"
@@ -134,8 +133,8 @@ private:
     QVector <QString> * denominadorNombre = NULL;
     QVector <Var*> * numerador;
     QVector <Var*> * denominador;
-    QLinkedList <ParLineEdit*>* parNume;
-    QLinkedList <ParLineEdit*>* parDeno;
+    std::list <ParLineEdit*>* parNume;
+    std::list <ParLineEdit*>* parDeno;
     QVBoxLayout *layoutdeno;
     QVBoxLayout *layoutnume;
 
@@ -145,7 +144,7 @@ private:
     void formarango();
 
     bool guardarrango();
-    void formarLinea(QWidget *widget, QString numero, QLinkedList <ParLineEdit*> * vector, bool rango);
+    void formarLinea(QWidget *widget, QString numero, std::list <ParLineEdit*> * vector, bool rango);
    // void formarango (QVector<QString> *numerador, QVector<QString> *denominador);
     qreal parse(QString cadena);
 

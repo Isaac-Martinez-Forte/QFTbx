@@ -4,6 +4,7 @@
 #include <QVector>
 #include <QMap>
 #include <QString>
+#include <memory>
 
 #include "Modelo/EstructurasDatos/datosbound.h"
 
@@ -32,7 +33,7 @@ public:
       * @param boundaries a guardar en el sistema.
      */
 
-    virtual void setBound(DatosBound * boundaries) = 0;
+    virtual void setBound(std::shared_ptr<DatosBound> boundaries) = 0;
 
 
     /**
@@ -42,7 +43,7 @@ public:
       * @return boundaries guardados en la clase.
      */
 
-    virtual DatosBound * getBound() = 0;
+    virtual std::shared_ptr<DatosBound> getBound() = 0;
 };
 
 #endif // BOUNDDAO_H

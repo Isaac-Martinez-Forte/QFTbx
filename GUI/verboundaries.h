@@ -27,7 +27,7 @@ public:
     ~verBoundaries();
 
 
-    void setDatos (DatosBound * boundariesNichols, DatosBound * boundariesNyquist, QVector<qreal> *omega,
+    void setDatos (std::shared_ptr<DatosBound> boundariesNichols, std::shared_ptr<DatosBound> boundariesNyquist, QVector<qreal> *omega,
                    Sistema * planta, Sistema * controlador, bool nichols, bool nyquist);
 
     void mostrar_diagrama();
@@ -41,8 +41,8 @@ private slots:
 
 private:
 
-    DatosBound * boundariesNichols;
-    DatosBound * boundariesNyquist;
+    std::shared_ptr<DatosBound> boundariesNichols;
+    std::shared_ptr<DatosBound> boundariesNyquist;
     Sistema * planta;
     Sistema * controlador;
     QVector <qreal> * omega;

@@ -36,7 +36,7 @@ ViewBound::~ViewBound()
     delete ui;
 }
 
-void ViewBound::setDatos(DatosBound *datos, QVector <qreal> * omega){
+void ViewBound::setDatos(std::shared_ptr<DatosBound> datos, QVector <qreal> * omega){
 
     boundaries = datos;
     this->omega = omega;

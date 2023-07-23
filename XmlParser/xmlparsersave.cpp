@@ -344,7 +344,7 @@ inline void XmlParserSave::guardarVectorBool(QVector<bool> *vec, QString nombre)
 
 inline void XmlParserSave::guardarBoundaries(BoundDAO *boundaries){
 
-    DatosBound * datos = boundaries->getBound();
+    std::shared_ptr<DatosBound> datos = boundaries->getBound();
 
     QVector <QMap <QString, QVector <QVector <QPointF> * > * > * > * bound = datos->getBoundaries();
     QVector <QVector  <QPointF> * > * bound_reunidos = datos->getBoundariesReun();

@@ -15,7 +15,7 @@ Algorithm_sachin::~Algorithm_sachin() {
 
 }
 
-void Algorithm_sachin::set_datos(Sistema * planta, Sistema * controlador, QVector<qreal> *omega, DatosBound * boundaries,
+void Algorithm_sachin::set_datos(Sistema * planta, Sistema * controlador, QVector<qreal> *omega, std::shared_ptr<DatosBound> boundaries,
                                  qreal epsilon, QVector<QVector<QVector<QPointF> *> *> * reunBounHash) {
 
 

@@ -29,7 +29,7 @@ public:
     ~Algorithm_rambabu();
 
 
-    void set_datos(Sistema *planta, Sistema *controlador, QVector<qreal> * omega, DatosBound *boundaries,
+    void set_datos(Sistema *planta, Sistema *controlador, QVector<qreal> * omega, std::shared_ptr<DatosBound> boundaries,
                                      qreal epsilon, QVector<QVector<QVector<QPointF> *> *> *reunBoun, bool depuracion,
                                       QVector <QVector <std::complex <qreal> > * > * temp, QVector <tools::dBND *> * espe);
 
@@ -53,7 +53,7 @@ private:
     Sistema * planta;
     Sistema * controlador;
     QVector <qreal> * omega;
-    DatosBound * boundaries;
+    std::shared_ptr<DatosBound> boundaries;
     Natura_Interval_extension * conversion;
     ListaOrdenada * lista;
     qreal epsilon;

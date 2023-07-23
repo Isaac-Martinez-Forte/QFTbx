@@ -30,7 +30,7 @@ Algorithm_segundo_articulo::~Algorithm_segundo_articulo() {
 
 }
 
-void Algorithm_segundo_articulo::set_datos(Sistema * planta, Sistema * controlador, QVector<qreal> *omega, DatosBound * boundaries,
+void Algorithm_segundo_articulo::set_datos(Sistema * planta, Sistema * controlador, QVector<qreal> *omega, std::shared_ptr<DatosBound> boundaries,
                                            qreal epsilon) {
 
     this->planta = planta;

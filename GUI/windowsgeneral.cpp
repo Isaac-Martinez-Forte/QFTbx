@@ -523,7 +523,7 @@ void WindowsGeneral::mostrarLazo(bool nichols, bool nyquist){
 
     qreal maglineal = 0;
 
-    DatosBound * boundaries = controlador->getBound();
+    std::shared_ptr<DatosBound> boundaries = controlador->getBound();
 
     QVector< QVector<QPointF> * > * boun = boundaries->getBoundariesReun();
 
@@ -564,7 +564,7 @@ void WindowsGeneral::mostrarLazo(bool nichols, bool nyquist){
 
     QPointF nuevosDatosMag (pow(10,datosMag.x()/20), pow(10,datosMag.y()/20));
 
-    DatosBound * nuevoBoundaries = new DatosBound (boundaries->getBoundaries(), boundaries->getMetaDatosAbierta(),
+    auto nuevoBoundaries = std::make_shared<DatosBound> (boundaries->getBoundaries(), boundaries->getMetaDatosAbierta(),
                                                    boundaries->getMetaDatosArriba(), boundaries->getTamFas(),
                                                    nuevoDatosFas, nuevosBoundariesReun,
                                                    nuevoHash_inter,
@@ -580,7 +580,6 @@ void WindowsGeneral::mostrarLazo(bool nichols, bool nyquist){
 
     ver->exec();
 
-    delete nuevoBoundaries;
     delete ver;
 }
 

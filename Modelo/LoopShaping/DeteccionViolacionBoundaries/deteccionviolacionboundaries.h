@@ -32,12 +32,12 @@ public:
     DeteccionViolacionBoundaries();
     ~DeteccionViolacionBoundaries();
 
-    data_box * deteccionViolacionCajaNiNi(cinterval box, DatosBound * boundaries, qint32 contador);
-    data_box * deteccionViolacionCajaNiNi(cinterval box, DatosBound * boundaries, qint32 contador, Etapas e);
+    data_box * deteccionViolacionCajaNiNi(cinterval box, std::shared_ptr<DatosBound> boundaries, qint32 contador);
+    data_box * deteccionViolacionCajaNiNi(cinterval box, std::shared_ptr<DatosBound> boundaries, qint32 contador, Etapas e);
 
-    data_box * deteccionViolacionCajaNi(cinterval box, DatosBound * boundaries, qint32 contador);
+    data_box * deteccionViolacionCajaNi(cinterval box, std::shared_ptr<DatosBound> boundaries, qint32 contador);
 
-    data_box * deteccionViolacionCajaNyNi(cinterval box, DatosBound * boundaries, qint32 contador);
+    data_box * deteccionViolacionCajaNyNi(cinterval box, std::shared_ptr<DatosBound> boundaries, qint32 contador);
 
     //tools::recortes deteccionViolacionCajaNyNy(cinterval box, DatosBound * boundaries, qint32 contador);
 

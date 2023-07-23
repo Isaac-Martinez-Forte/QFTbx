@@ -28,7 +28,7 @@ public:
     Algorithm_sachin();
     ~Algorithm_sachin();
 
-    void set_datos(Sistema * planta, Sistema * controlador, QVector<qreal> *omega, DatosBound * boundaries,
+    void set_datos(Sistema * planta, Sistema * controlador, QVector<qreal> *omega, std::shared_ptr<DatosBound> boundaries,
                     qreal epsilon, QVector<QVector<QVector<QPointF> *> *> * reunBounHash);
 
     bool init_algorithm();
@@ -44,7 +44,7 @@ private:
     Sistema * planta;
     Sistema * controlador;
     QVector <qreal> * omega;
-    DatosBound * boundaries;
+    std::shared_ptr<DatosBound> boundaries;
     Natura_Interval_extension * conversion;
     ListaOrdenada * lista;
     qreal epsilon;
