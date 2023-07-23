@@ -5,7 +5,7 @@
   |  Y Y  \  |  /    |     / __ \|  | \/\___ \\  ___/|  | \/     \ 
   |__|_|  /____/|____|    (____  /__|  /____  >\___  >__| /___/\  \
         \/                     \/           \/     \/           \_/
-                                       Copyright (C) 2016, Ingo Berg
+                                       Copyright (C) 2023, Ingo Berg
                                        All rights reserved.
 
   Redistribution and use in source and binary forms, with or without 
@@ -85,7 +85,7 @@ MUP_NAMESPACE_START
     private:
         std::vector<testfun_type> m_vTestFun;
 
-#if defined(_UNICODE)
+#if defined(MUP_USE_WIDE_STRING)
         std::wostream *m_stream;
 #else
         std::ostream *m_stream;

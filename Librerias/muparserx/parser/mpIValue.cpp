@@ -8,11 +8,11 @@
     |  Y Y  \  |  /    |     / __ \|  | \/\___ \\  ___/|  | \/     \
     |__|_|  /____/|____|    (____  /__|  /____  >\___  >__| /___/\  \
           \/                     \/           \/     \/           \_/
-    Copyright (C) 2016 Ingo Berg
+    Copyright (C) 2023 Ingo Berg
     All rights reserved.
 
     muParserX - A C++ math parser library with array and string support
-    Copyright (c) 2016, Ingo Berg
+    Copyright (C) 2023, Ingo Berg
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -52,7 +52,7 @@
 
 MUP_NAMESPACE_START
 
-#ifndef _UNICODE
+#ifndef MUP_USE_WIDE_STRING
 
 //---------------------------------------------------------------------------
 /** \brief Overloaded streaming operator for outputting the value type 
@@ -60,7 +60,7 @@ MUP_NAMESPACE_START
            \param a_Stream The stream object
            \param a_Val The value object to be streamed
 
-           This function is only present if _UNICODE is not defined.
+           This function is only present if MUP_USE_WIDE_STRING is not defined.
            */
            std::ostream& operator<<(std::ostream &a_Stream, const IValue &a_Val)
 {
@@ -75,7 +75,7 @@ MUP_NAMESPACE_START
            \param a_Stream The stream object
            \param a_Val The value object to be streamed
 
-           This function is only present if _UNICODE is defined.
+           This function is only present if MUP_USE_WIDE_STRING is defined.
            */
            std::wostream& operator<<(std::wostream &a_Stream, const IValue &a_Val)
 {
@@ -195,7 +195,7 @@ bool IValue::operator==(const IValue &a_Val) const
     char_type type1 = GetType(),
         type2 = a_Val.GetType();
 
-    if (type1 == type2 || (IsScalar() && a_Val.IsScalar()))
+    if (type1 == type2 || (IsScalarOrBool() && a_Val.IsScalarOrBool()))
     {
         switch (GetType())
         {

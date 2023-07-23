@@ -5,7 +5,7 @@
   |  Y Y  \  |  /    |     / __ \|  | \/\___ \\  ___/|  | \/     \ 
   |__|_|  /____/|____|    (____  /__|  /____  >\___  >__| /___/\  \
         \/                     \/           \/     \/           \_/
-                                       Copyright (C) 2016, Ingo Berg
+                                       Copyright (C) 2023, Ingo Berg
                                        All rights reserved.
 
   Redistribution and use in source and binary forms, with or without 
@@ -39,6 +39,13 @@
 #include "mpValue.h"
 #include "mpError.h"
 
+#ifdef _MSC_VER
+#  define SSCANF sscanf_s
+#  define SWSCANF swscanf_s
+#else
+#  define SSCANF sscanf
+#  define SWSCANF swscanf
+#endif
 
 MUP_NAMESPACE_START
 
@@ -157,10 +164,10 @@ MUP_NAMESPACE_START
 
     in = a_pArg[0]->GetString();
     
-#ifndef _UNICODE    
-    sscanf(in.c_str(), "%lf", &out);
+#ifndef MUP_USE_WIDE_STRING    
+    SSCANF(in.c_str(), "%lf", &out);
 #else
-    swscanf(in.c_str(), _T("%lf"), &out);
+    SWSCANF(in.c_str(), _T("%lf"), &out);
 #endif
 
     *ret = (float_type)out;

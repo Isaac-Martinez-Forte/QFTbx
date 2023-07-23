@@ -25,7 +25,6 @@
 #include "LoopShaping/loopshaping.h"
 
 #include <iostream>
-#include <QLogger.h>
 
 
 /**
@@ -272,8 +271,6 @@ private:
     EspecificacionesDAO * especdao;
     ControladorDAO * controladordao;
     LoopShapingDAO * loopshapingdao;
-
-    QLogger::LogLevel logLevel;
 
 };
 

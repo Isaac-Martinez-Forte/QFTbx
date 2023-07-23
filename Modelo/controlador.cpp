@@ -1,6 +1,5 @@
 #include "controlador.h"
 
-using namespace QLogger;
 using namespace std;
 
 
@@ -15,23 +14,6 @@ Controlador::Controlador()
     paso5 = false;
     paso6 = false;
     paso7 = false;
-
-#ifdef DEBUG
-   logLevel = LogLevel::Trace;
-#else
-   //logLevel = static_cast<LogLevel>(settings.globalValue("logsLevel", static_cast<int>(LogLevel::Warning)).toInt());
-
-   logLevel = LogLevel::Warning;
-#endif
-
-    QLoggerManager::getInstance()->overwriteLogLevel(logLevel);
-
-    const auto manager = QLoggerManager::getInstance();
-    manager->addDestination("QFTbx.log", { "MODEL", "VIEW","CONTROLLER", "DAO" }, logLevel);
-
-    QLog_Info("CONTROLLER", "QLogger configured.");
-
-    cout << "QLogger configured." << endl;
 }
 
 Controlador::~Controlador(){

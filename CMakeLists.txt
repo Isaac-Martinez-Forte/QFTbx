@@ -379,12 +379,7 @@ set_property(TARGET ${EXE_NAME} APPEND PROPERTY
 include(ExternalProject)
 
 ############################################################################
-if( NOT WIN32 )
-    ExternalProject_Add(literm
-      SOURCE_DIR ${CMAKE_SOURCE_DIR}/Librerias/literm
-      CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/literm
-    )
-endif()
+
 
 ############################################################################
 ExternalProject_Add(muParserX
@@ -432,17 +427,20 @@ else ()
 endif()
 
 ############################################################################
+ADD_DEFINITIONS(-DBOOST_LOG_DYN_LINK)
+find_package(Boost REQUIRED COMPONENTS log system)
 
-ExternalProject_Add(QLogger
-    SOURCE_DIR ${CMAKE_SOURCE_DIR}/Librerias/QLogger
-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/QLogger
-)
+if (Boost_FOUND)
+    include_directories(${Boost_INCLUDE_DIRS})
 
-include_directories("${CMAKE_BINARY_DIR}/QLogger/include/")
+    message("Boost VERSION: ${Boost_VERSION}")
+    message("Boost INCLUDE_DIRS: ${Boost_INCLUDE_DIRS}")
+    message("Boost Boost_LIBRARY_DIRS: ${Boost_LIBRARY_DIRS}")
+    message("Boost LIBRARIES: ${Boost_LIBRARIES}")
 
-add_dependencies(${EXE_NAME} QLogger)
-
-target_link_libraries(${EXE_NAME} "${CMAKE_BINARY_DIR}/QLogger/lib/libQLogger.a")
+    TARGET_LINK_LIBRARIES(${EXE_NAME} ${Boost_LIBRARIES})
+endif ()
 
 ############################################################################
+
 

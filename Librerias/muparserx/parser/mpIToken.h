@@ -6,11 +6,11 @@
   |  Y Y  \  |  /    |     / __ \|  | \/\___ \\  ___/|  | \/     \ 
   |__|_|  /____/|____|    (____  /__|  /____  >\___  >__| /___/\  \
         \/                     \/           \/     \/           \_/
-                                       Copyright (C) 2016 Ingo Berg
+                                       Copyright (C) 2023 Ingo Berg
                                        All rights reserved.
 
   muParserX - A C++ math parser library with array and string support
-  Copyright (c) 2016, Ingo Berg
+  Copyright (C) 2023, Ingo Berg
   All rights reserved.
 
   Redistribution and use in source and binary forms, with or without 
@@ -141,9 +141,9 @@ MUP_NAMESPACE_START
       GenericToken(ECmdCode a_iCode, string_type a_sIdent);
       explicit GenericToken(ECmdCode a_iCode);
       GenericToken(const GenericToken &a_Tok);      
-      virtual ~GenericToken();
-      virtual IToken* Clone() const;
-      virtual string_type AsciiDump() const;
+      virtual ~GenericToken() override;
+      virtual IToken* Clone() const override;
+      virtual string_type AsciiDump() const override;
   };
 
   //------------------------------------------------------------------------------

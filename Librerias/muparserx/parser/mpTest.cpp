@@ -8,11 +8,7 @@
 	|  Y Y  \  |  /    |     / __ \|  | \/\___ \\  ___/|  | \/     \
 	|__|_|  /____/|____|    (____  /__|  /____  >\___  >__| /___/\  \
 		  \/                     \/           \/     \/           \_/
-	Copyright (C) 2016 Ingo Berg
-	All rights reserved.
-
-	muParserX - A C++ math parser library with array and string support
-	Copyright (c) 2016, Ingo Berg
+	Copyright (C) 2023 Ingo Berg
 	All rights reserved.
 
 	Redistribution and use in source and binary forms, with or without
@@ -67,7 +63,7 @@ public:
 		:IOprtBin(_T("++"), (int)prADD_SUB, oaLEFT)
 	{}
 
-	//-----------------------------------------------------------------------------------------------
+
 	void Eval(ptr_val_type& ret, const ptr_val_type *arg, int argc)
 	{
 		assert(argc == 2);
@@ -76,20 +72,20 @@ public:
 		*ret = a + b;
 	}
 
-	//-----------------------------------------------------------------------------------------------
+
 	const char_type* GetDesc() const
 	{
 		return _T("internally used operator without special meaning for unit testing");
 	}
 
-	//-----------------------------------------------------------------------------------------------
+
 	IToken* Clone() const
 	{
 		return new DbgSillyAdd(*this);
 	}
 };
 
-//------------------------------------------------------------------------------
+
 class FunTest0 : public ICallback
 {
 public:
@@ -112,10 +108,35 @@ public:
 	}
 }; // class FunTest0
 
-//---------------------------------------------------------------------------
+
+class FunReturnFalse : public ICallback
+{
+public:
+	FunReturnFalse() : ICallback(cmFUNC, _T("returnFalse"), 0)
+	{}
+
+	virtual void Eval(ptr_val_type& ret, const ptr_val_type* /*a_pArg*/, int /*a_iArgc*/)
+	{
+		*ret = false;
+	}
+
+	virtual const char_type* GetDesc() const
+	{
+		return _T("");
+	}
+
+	virtual IToken* Clone() const
+	{
+		return new FunReturnFalse(*this);
+	}
+}; // class FunTest0
+
+
+
 int ParserTester::c_iCount = 0;
 
-//---------------------------------------------------------------------------
+
+
 ParserTester::ParserTester()
 	:m_vTestFun()
 	, m_stream(&console())
@@ -178,6 +199,9 @@ int ParserTester::TestIssueReports()
 
 	// Github Issue 63
 	iNumErr += ThrowTest(_T("0<0-0--eye()"), ecINVALID_NUMBER_OF_PARAMETERS);
+
+	// Github Issue 115
+	iNumErr += EqnTest(_T("organisation==\"ACME\""), true, true);
 
 	Assessment(iNumErr);
 	return iNumErr;
@@ -776,6 +800,9 @@ int ParserTester::TestErrorCodes()
 	iNumErr += ThrowTest(_T("]1"), ecUNEXPECTED_SQR_BRACKET);
 	iNumErr += ThrowTest(_T("va[[3]]"), ecUNEXPECTED_SQR_BRACKET);
 
+	// test for #117
+	iNumErr += ThrowTest(_T("returnFalse()==0"), ecEVAL);
+
 	Assessment(iNumErr);
 	return iNumErr;
 }
@@ -1111,8 +1138,11 @@ int ParserTester::TestBinOp()
 	iNumErr += EqnTest(_T("3--a"), 4.0, true);
 
 	// Problems with small bogus real/imag values introduced due to limited floating point accuracy
-	iNumErr += EqnTest(_T("(-2)^3"), -8.0, true);                   // may introduce incorrect imaginary value (When computed with the log/exp formula: -8 + 2.93e-15i)
+	iNumErr += EqnTest(_T("(-2)^3"), -8.0, true);                 // may introduce incorrect imaginary value (When computed with the log/exp formula: -8 + 2.93e-15i)
 	iNumErr += EqnTest(_T("imag((-2)^3)==0"), true, true);        // may introduce incorrect imaginary value (When computed with the log/exp formula: -8 + 2.93e-15i)
+
+	// issue #112 (https://github.com/beltoforion/muparserx/issues/122)
+	iNumErr += EqnTest(_T("123==\"abc\""), false, true);         // may introduce incorrect imaginary value (When computed with the log/exp formula: -8 + 2.93e-15i)
 
 	Assessment(iNumErr);
 	return iNumErr;
@@ -1136,8 +1166,8 @@ int ParserTester::TestIfElse()
 	// with variations
 	iNumErr += ThrowTest(_T(R"(false ? 4 : "", ? 4 : "", ? 4 : "")"), ecUNEXPECTED_COMMA);
 	iNumErr += EqnTest(_T(R"(false ? "four" : 4)"), (int_type)4, true);
-	iNumErr += EqnTest(_T(R"(true ? "four" : 4)"), "four", true);
-	iNumErr += EqnTest(_T(R"(true ? "foo" : "bar")"), "foo", true);
+	iNumErr += EqnTest(_T(R"(true ? "four" : 4)"), _T("four"), true);
+	iNumErr += EqnTest(_T(R"(true ? "foo" : "bar")"), _T("foo"), true);
 
 	// test case and variations copied from muparser https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=22938
 	iNumErr += ThrowTest(_T("sum(false?1,0,0:3)"), ecUNEXPECTED_COMMA);
@@ -1280,8 +1310,11 @@ int ParserTester::TestEqn()
 	// test case copied from muparser: https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=23330#c1
 	iNumErr += ThrowTest(_T("6, +, +, +, +, +, +, +, +, +, +, +, +, +, +, 1, +, +, +, +, +, +, +, +, +, +, +, +, +, +, +, +, +, +, +, +, +, +, +, +, +, +, +, +, +, +, +, +"), ecUNEXPECTED_COMMA);
 
-	iNumErr += ThrowTest(_T("1e1234"), ecUNASSIGNABLE_TOKEN);
-	iNumErr += ThrowTest(_T("-1e1234"), ecUNASSIGNABLE_TOKEN);
+//	iNumErr += ThrowTest(_T("1e1234"), ecUNASSIGNABLE_TOKEN);
+//	iNumErr += ThrowTest(_T("-1e1234"), ecUNASSIGNABLE_TOKEN);
+;
+	iNumErr += EqnTest(_T("1e1234"), std::numeric_limits<float_type>::infinity(), true);
+	iNumErr += EqnTest(_T("-1e1234"), -std::numeric_limits<float_type>::infinity(), true);
 
 	iNumErr += EqnTest(_T("-2--8"), (float_type)6.0, true);
 	iNumErr += EqnTest(_T("2*(a=9)*3"), 54., true);
@@ -1486,6 +1519,9 @@ int ParserTester::ThrowTest(const string_type &a_sExpr, int a_nErrc, int a_nPos,
 		p.DefineVar(_T("c"), Variable(&vVarVal[2]));
 		p.DefineVar(_T("d"), Variable(&vVarVal[3]));
 
+		// Add functions
+		p.DefineFun(new FunReturnFalse);
+
 		// array variables
 		Value aVal1(3, 0);
 		aVal1.At(0) = (float_type)1.0;
@@ -1599,6 +1635,7 @@ int ParserTester::EqnTest(const string_type &a_str, Value a_val, bool a_fPass, i
 
 		p1->DefineOprt(new DbgSillyAdd);
 		p1->DefineFun(new FunTest0);
+		p1->DefineFun(new FunReturnFalse);
 
 		p1->DefineVar(_T("a"), Variable(&vVarVal[0]));
 		p1->DefineVar(_T("b"), Variable(&vVarVal[1]));
@@ -1612,6 +1649,7 @@ int ParserTester::EqnTest(const string_type &a_str, Value a_val, bool a_fPass, i
 		p1->DefineConst(_T("const"), 1.);
 		p1->DefineConst(_T("const1"), 2.);
 		p1->DefineConst(_T("const2"), 3.);
+		p1->DefineConst(_T("organisation"), _T("ACME")); // #115
 
 		// some vector variables
 		Value aVal1(3, 0);

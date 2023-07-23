@@ -67,7 +67,7 @@ MUP_NAMESPACE_START
     m_vErrMsg[ecUNEXPECTED_VAR]           = _T("Unexpected variable \"$IDENT$\" found at position $POS$.");
     m_vErrMsg[ecUNEXPECTED_STR]           = _T("Unexpected string token found at position $POS$.");
     m_vErrMsg[ecUNEXPECTED_CONDITIONAL]   = _T("The \"$IDENT$\" operator must be preceded by a closing bracket.");
-    m_vErrMsg[ecUNEXPECTED_NEWLINE]       = _T("Unexprected newline.");
+    m_vErrMsg[ecUNEXPECTED_NEWLINE]       = _T("Unexpected newline.");
     m_vErrMsg[ecMISSING_PARENS]           = _T("Missing parenthesis.");
     m_vErrMsg[ecMISSING_ELSE_CLAUSE]      = _T("If-then-else operator is missing an else clause.");
     m_vErrMsg[ecMISPLACED_COLON]          = _T("Misplaced colon at position $POS$.");
@@ -106,7 +106,7 @@ MUP_NAMESPACE_START
     m_vErrMsg[ecFUNOPRT_DEFINED]              = _T("Function/operator \"$IDENT$\" is already defined.");
   }
 
-#if defined(_UNICODE)
+#if defined(MUP_USE_WIDE_STRING)
 
   //-------------------------------------------------------------------------------------------------
   //
@@ -176,6 +176,6 @@ MUP_NAMESPACE_START
     m_vErrMsg[ecCONSTANT_DEFINED]             = _T("Die Konstante \"$IDENT$\" is bereits definiert.");
     m_vErrMsg[ecFUNOPRT_DEFINED]              = _T("Ein Element mit der Bezeichnung \"$IDENT$\" ist bereits definiert.");
   }
-#endif // _UNICODE
+#endif // MUP_USE_WIDE_STRING
 
 MUP_NAMESPACE_END

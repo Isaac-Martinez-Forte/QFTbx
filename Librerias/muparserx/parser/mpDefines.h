@@ -11,7 +11,7 @@
   |  Y Y  \  |  /    |     / __ \|  | \/\___ \\  ___/|  | \/     \ 
   |__|_|  /____/|____|    (____  /__|  /____  >\___  >__| /___/\  \
         \/                     \/           \/     \/           \_/
-  Copyright (C) 2021 Ingo Berg, et. al.
+  Copyright (C) 2023 Ingo Berg, et. al.
   All rights reserved.
 
   Redistribution and use in source and binary forms, with or without 
@@ -37,7 +37,7 @@
 */
 #include <cassert>
 
-#if defined(_UNICODE)
+#if defined(MUP_USE_WIDE_STRING)
   #if !defined(_T)
     #define _T(x) L##x
   #endif // not defined _T
@@ -56,7 +56,7 @@
 #endif
 
 /** \brief A macro containing the version of muParserX. */
-#define MUP_PARSER_VERSION _T("4.0.11 (2021-11-23)")
+#define MUP_PARSER_VERSION _T("4.0.12 (2023-03-04)")
 
 /** \brief A macro for setting the parser namespace. */
 #define MUP_NAMESPACE_START namespace mup {

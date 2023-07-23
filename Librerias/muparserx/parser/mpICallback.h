@@ -8,11 +8,11 @@
   |  Y Y  \  |  /    |     / __ \|  | \/\___ \\  ___/|  | \/     \ 
   |__|_|  /____/|____|    (____  /__|  /____  >\___  >__| /___/\  \
         \/                     \/           \/     \/           \_/
-                                       Copyright (C) 2016 Ingo Berg
+                                       Copyright (C) 2023 Ingo Berg
                                        All rights reserved.
 
   muParserX - A C++ math parser library with array and string support
-  Copyright (c) 2016, Ingo Berg
+  Copyright (C) 2023, Ingo Berg
   All rights reserved.
 
   Redistribution and use in source and binary forms, with or without 
@@ -58,14 +58,14 @@ MUP_NAMESPACE_START
       ICallback(ECmdCode a_iCode, 
                 const char_type *a_szName, 
                 int a_nArgNum = 1);
-      virtual ~ICallback();
+      virtual ~ICallback() override;
 
-      virtual ICallback* AsICallback();
-      virtual IValue* AsIValue();
+      virtual ICallback* AsICallback() override;
+      virtual IValue* AsIValue() override;
 
       virtual void Eval(ptr_val_type& ret, const ptr_val_type *arg, int argc) = 0;
       virtual const char_type* GetDesc() const = 0;
-      virtual string_type AsciiDump() const;
+      virtual string_type AsciiDump() const override;
         
       int GetArgc() const;
       int GetArgsPresent() const;

@@ -29,8 +29,6 @@
 #include "interval.hpp"
 #include "EstructuraDatos/n.h"
 
-#include "QLogger.h"
-
 class Algorithm_segundo_articulo: public QObject
 {
     Q_OBJECT
