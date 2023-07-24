@@ -2,25 +2,15 @@
 
 AdaptadorLoopShapingDAO::AdaptadorLoopShapingDAO()
 {
-    introducido = false;
 }
 
 AdaptadorLoopShapingDAO::~AdaptadorLoopShapingDAO(){
-    if (introducido){
-        delete datos;
-    }
 }
 
-void AdaptadorLoopShapingDAO::setDatos(DatosLoopShaping *datos){
-    if (introducido){
-        delete this->datos;
-    }
-
-    introducido = true;
-
+void AdaptadorLoopShapingDAO::setDatos(std::shared_ptr<DatosLoopShaping> datos){
     this->datos = datos;
 }
 
-DatosLoopShaping * AdaptadorLoopShapingDAO::getLoopShaping(){
+std::shared_ptr<DatosLoopShaping> AdaptadorLoopShapingDAO::getLoopShaping(){
     return datos;
 }

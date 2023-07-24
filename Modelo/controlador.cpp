@@ -270,14 +270,14 @@ bool Controlador::calcularLoopShaping(qreal epsilon, tools::alg_loop_shaping sel
                                    inicializacion, hilos, bisection_avanced, deteccion_avanced, a);
 
     if (re){
-        loopshapingdao->setDatos(new DatosLoopShaping(loopShaping->getControlador(), rango, nPuntos));
+        loopshapingdao->setDatos(std::make_shared<DatosLoopShaping>(loopShaping->getControlador(), rango, nPuntos));
         return true;
     }
 
     return false;
 }
 
-void Controlador::setLoopShaping(DatosLoopShaping *datos){
+void Controlador::setLoopShaping(std::shared_ptr<DatosLoopShaping>datos){
     if (!paso7){
         loopShaping = new LoopShaping();
         loopshapingdao = dao->getLoopShapingDAO();
@@ -288,7 +288,7 @@ void Controlador::setLoopShaping(DatosLoopShaping *datos){
     loopshapingdao->setDatos(datos);
 }
 
-DatosLoopShaping * Controlador::getLoopShaping(){
+std::shared_ptr<DatosLoopShaping> Controlador::getLoopShaping(){
     return loopshapingdao->getLoopShaping();
 }
 

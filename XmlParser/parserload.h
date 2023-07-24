@@ -115,7 +115,7 @@ public:
 
     std::shared_ptr<Sistema> getControlador();
 
-    DatosLoopShaping * getLoopShaping();
+    std::shared_ptr<DatosLoopShaping> getLoopShaping();
 
 private:
      QXmlStreamReader * stream;
@@ -168,7 +168,7 @@ private:
 
      std::shared_ptr<Sistema> controlador;
 
-     DatosLoopShaping * loopShaping;
+     std::shared_ptr<DatosLoopShaping> loopShaping;
 
 };
 

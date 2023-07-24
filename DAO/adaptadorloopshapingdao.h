@@ -11,15 +11,13 @@ public:
     AdaptadorLoopShapingDAO();
     ~AdaptadorLoopShapingDAO();
 
-    DatosLoopShaping * getLoopShaping ();
+    std::shared_ptr<DatosLoopShaping> getLoopShaping ();
 
-    void setDatos (DatosLoopShaping * datos);
+    void setDatos (std::shared_ptr<DatosLoopShaping> datos);
 
 private:
+    std::shared_ptr<DatosLoopShaping> datos;
 
-    DatosLoopShaping * datos;
-
-    bool introducido;
 };
 
 #endif // ADAPTADORLOOPSHAPINGDAO_H

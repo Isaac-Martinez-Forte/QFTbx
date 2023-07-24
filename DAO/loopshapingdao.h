@@ -9,9 +9,9 @@ public:
 
     virtual ~LoopShapingDAO() {}
 
-    virtual DatosLoopShaping * getLoopShaping () = 0;
+    virtual std::shared_ptr<DatosLoopShaping> getLoopShaping () = 0;
 
-    virtual void setDatos (DatosLoopShaping * datos) = 0;
+    virtual void setDatos (std::shared_ptr<DatosLoopShaping> datos) = 0;
 
 };
 

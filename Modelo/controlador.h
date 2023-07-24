@@ -212,7 +212,7 @@ public:
                              qreal delta, qint32 inicializacion, bool hilos, bool bisection_avanced, bool deteccion_avanced,
                              bool a);
 
-    DatosLoopShaping * getLoopShaping ();
+    std::shared_ptr<DatosLoopShaping> getLoopShaping ();
     
     /**
     * @fn guardarSistema
@@ -247,7 +247,7 @@ public:
 
     QVector<qreal> *getEpsilon();
 
-    void setLoopShaping (DatosLoopShaping * datos);
+    void setLoopShaping (std::shared_ptr<DatosLoopShaping> datos);
 
     
 private:

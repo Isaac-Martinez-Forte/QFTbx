@@ -416,7 +416,7 @@ inline void XmlParserSave::guardarBoundaries(BoundDAO *boundaries){
 
 inline void XmlParserSave::guardarLoopShaping(LoopShapingDAO *loopShaping){
 
-    DatosLoopShaping * datos = loopShaping->getLoopShaping();
+    std::shared_ptr<DatosLoopShaping> datos = loopShaping->getLoopShaping();
 
     stream->writeStartElement("LoopShaping"); //Abrimos LoopShaping
 

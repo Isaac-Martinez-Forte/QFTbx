@@ -136,7 +136,7 @@ std::shared_ptr<Sistema> XmlParserLoad::getControlador(){
     return controlador;
 }
 
-DatosLoopShaping * XmlParserLoad::getLoopShaping(){
+std::shared_ptr<DatosLoopShaping> XmlParserLoad::getLoopShaping(){
     return loopShaping;
 }
 
@@ -1438,7 +1438,7 @@ inline bool XmlParserLoad::leerLoopShaping(){
 
     stream->skipCurrentElement();
 
-    loopShaping = new DatosLoopShaping (sistema, QPointF(x, y), nPuntos);
+    loopShaping = std::make_shared<DatosLoopShaping> (sistema, QPointF(x, y), nPuntos);
 
     return true;
 }
