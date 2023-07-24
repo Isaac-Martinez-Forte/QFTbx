@@ -89,14 +89,14 @@ bool Algorithm_segundo_articulo::init_algorithm(){
 #endif
 
 
-    lista = new ListaOrdenada();
+    lista = std::make_unique<ListaOrdenada>();
 
-    conversion = new Natura_Interval_extension();
+    conversion = std::make_shared<Natura_Interval_extension>();
 
-    Tripleta2 * tripleta;
+    std::shared_ptr<Tripleta2>tripleta;
 
     struct FC::return_bisection2 retur;
-    deteccion = new DeteccionViolacionBoundaries();
+    deteccion = std::make_unique<DeteccionViolacionBoundaries>();
     deteccionViolacion = &DeteccionViolacionBoundaries::deteccionViolacionCajaNiNi;
 
     frecuenciaPrincipal = 0;
@@ -146,7 +146,7 @@ bool Algorithm_segundo_articulo::init_algorithm(){
 
     // Insertamos el controlador en la LNV
 
-    Tripleta2 * t = new Tripleta2();
+    std::shared_ptr<Tripleta2> t = std::make_shared<Tripleta2>();
     t->setSistema(controlador);
     t->setRecorteActivado(true);
 
@@ -170,21 +170,16 @@ bool Algorithm_segundo_articulo::init_algorithm(){
         if (lista->esVacia()) {
             menerror("El espacio de parámetros inicial del controlador no es válido.", "Loop Shaping");
 
-            delete conversion;
-            delete lista;
-            delete deteccion;
-
             return false;
         }
 
-        tripleta = static_cast<Tripleta2 *>(lista->recuperarPrimero());
+        tripleta = std::static_pointer_cast<Tripleta2>(lista->recuperarPrimero());
         lista->borrarPrimero();
 
         auto controladorActual = tripleta->getSistema();
 
         // Si la mejor solucion es mejor que el nodo extraido este se descarta y pasa al siguiente.
         if (mejorSolucion->getK()->getRango().y() < controladorActual->getK()->getRango().x() ){
-            delete tripleta;
             continue;
         }
 
@@ -208,11 +203,6 @@ bool Algorithm_segundo_articulo::init_algorithm(){
                 controlador_retorno = FC::guardarControlador(tripleta->getSistema(), true);
             }
 
-            delete conversion;
-            delete lista;
-            delete deteccion;
-            delete tripleta;
-
             return true;
         }
 
@@ -230,7 +220,7 @@ bool Algorithm_segundo_articulo::init_algorithm(){
 }
 
 // Se implementa un beneficio estimado básico que luego se mejorará
-inline Tripleta2 * Algorithm_segundo_articulo::beneficioEstimado (Tripleta2 * tripleta) {
+inline std::shared_ptr<Tripleta2>Algorithm_segundo_articulo::beneficioEstimado (std::shared_ptr<Tripleta2>tripleta) {
 
     // TODO falta implementar beneficio estimado avanzado.
 
@@ -239,7 +229,7 @@ inline Tripleta2 * Algorithm_segundo_articulo::beneficioEstimado (Tripleta2 * tr
     return tripleta;
 }
 
-inline bool Algorithm_segundo_articulo::aplicarMejoras (Tripleta2 *tripleta) {
+inline bool Algorithm_segundo_articulo::aplicarMejoras (std::shared_ptr<Tripleta2>tripleta) {
 
 
     bool noError = analizar(tripleta);
@@ -304,7 +294,7 @@ inline bool Algorithm_segundo_articulo::aplicarMejoras (Tripleta2 *tripleta) {
 
 //Función que comprueba si la caja actual es feasible, infeasible o ambiguous.
 
-inline bool Algorithm_segundo_articulo::analizar(Tripleta2 * tripleta) {
+inline bool Algorithm_segundo_articulo::analizar(std::shared_ptr<Tripleta2>tripleta) {
 
     data_box * datos;
 
@@ -332,7 +322,7 @@ inline bool Algorithm_segundo_articulo::analizar(Tripleta2 * tripleta) {
 
             boundaries->setBox(conversion->getBoxDB());
 
-            datos = (deteccion->*deteccionViolacion)(caja, boundaries, k, tripleta->getEtapas());
+            datos = (deteccion.get()->*deteccionViolacion)(caja, boundaries, k, tripleta->getEtapas());
 
 
 #ifdef VER_DIAGRAMAS
@@ -355,7 +345,6 @@ inline bool Algorithm_segundo_articulo::analizar(Tripleta2 * tripleta) {
 
                 datosCortesBoundaries->clear();
 
-                delete tripleta;
                 return false;
             }
 
@@ -407,7 +396,7 @@ inline bool Algorithm_segundo_articulo::analizar(Tripleta2 * tripleta) {
     return true;
 }
 
-inline FC::return_bisection2 Algorithm_segundo_articulo::biseccion(Tripleta2 * tripleta) {
+inline FC::return_bisection2 Algorithm_segundo_articulo::biseccion(std::shared_ptr<Tripleta2>tripleta) {
 
 
     switch (tripleta->getEtapas()) {
@@ -437,7 +426,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccion(Tripleta2 * t
     return biseccionArea(tripleta);
 }
 
-inline std::shared_ptr<Sistema> Algorithm_segundo_articulo::busquedaMejorGanancia (Tripleta2 * tripleta) {
+inline std::shared_ptr<Sistema> Algorithm_segundo_articulo::busquedaMejorGanancia (std::shared_ptr<Tripleta2>tripleta) {
 
     auto v = tripleta->getSistema();
 
@@ -551,7 +540,7 @@ inline void Algorithm_segundo_articulo::comprobarVariables(std::shared_ptr<Siste
 }
 
 //Función que recorta la caja.
-inline Tripleta2 * Algorithm_segundo_articulo::recortesInfeasible(Tripleta2 * tripleta) {
+inline std::shared_ptr<Tripleta2>Algorithm_segundo_articulo::recortesInfeasible(std::shared_ptr<Tripleta2>tripleta) {
 
     std::shared_ptr<Sistema> v = tripleta->getSistema();
 
@@ -822,7 +811,7 @@ inline Tripleta2 * Algorithm_segundo_articulo::recortesInfeasible(Tripleta2 * tr
 }
 
 //Función que recorta la caja.
-inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *tripleta) {
+inline std::shared_ptr<Tripleta2>Algorithm_segundo_articulo::recortesFeasible(std::shared_ptr<Tripleta2>tripleta) {
 
 #if defined REC_INTER && (defined REC_FASE || defined REC_MAG)
 
@@ -902,7 +891,7 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
 
                 if (nuevoMaxKReal > k.x() && nuevoMaxKReal < k.y()) {
 
-                    kNuevoMax->insertar(new DatosFeasible(nuevoMaxKReal, i, "kv",
+                    kNuevoMax->insertar( std::make_shared<DatosFeasible>(nuevoMaxKReal, i, "kv",
                                                           100 - ((((k.y() - k.x()) - (k.y()  - nuevoMaxKReal))
                                                                   / (k.y()  - k.x())) * 100 )));
 
@@ -913,7 +902,7 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
 
                 if (nuevoMinKReal > k.x() && nuevoMinKReal < k.y()) {
 
-                    kNuevoMin->insertar(new DatosFeasible(nuevoMinKReal, i, "kv", ( ((nuevoMinKReal - k.x()) * 100) / (k.y() - k.x()) )));
+                    kNuevoMin->insertar(std::make_shared<DatosFeasible>(nuevoMinKReal, i, "kv", ( ((nuevoMinKReal - k.x()) * 100) / (k.y() - k.x()) )));
 
                     entraK = true;
 
@@ -935,7 +924,7 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
                                                      (k.x() *  abs (v->getPuntoNume(numeradorInf, o) * plantaNominal)), 2) - pow(o, 2));
 
                             if (nuevoMaxNume > n && nuevoMaxNume < numeradorSup->at(j)) {
-                                numeradorSupNuevoMag->at(j)->insertar(new DatosFeasible(nuevoMaxNume, i, numerador->at(j)->getNombre(),
+                                numeradorSupNuevoMag->at(j)->insertar(std::make_shared<DatosFeasible>(nuevoMaxNume, i, numerador->at(j)->getNombre(),
                                                                                         ( ((numeradorSup->at(j) - nuevoMaxNume) * 100) / (numeradorSup->at(j) - n))));
 
                                 entraNume = true;
@@ -949,7 +938,7 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
                             nuevoMinNume = o / tan(cortesMinImag - std::arg (v->getPuntoNume(numeradorInf, o)) + std::arg (v->getPuntoDeno(denominadorSup, o)) - std::arg (plantaNominal));
 
                             if (nuevoMinNume > n && nuevoMinNume < numeradorSup->at(j)) {
-                                numeradorInfNuevoFas->at(j)->insertar(new DatosFeasible(nuevoMinNume, i, numerador->at(j)->getNombre(),
+                                numeradorInfNuevoFas->at(j)->insertar(std::make_shared<DatosFeasible>(nuevoMinNume, i, numerador->at(j)->getNombre(),
                                                                                         ( ((nuevoMinNume - n) * 100) / (numeradorSup->at(j) - n) )));
 
                                 entraNume = true;
@@ -967,7 +956,7 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
                                                      (k.y() *  abs (v->getPuntoNume(numeradorSup, o) * plantaNominal)), 2) - pow(o, 2));
 
                             if (nuevoMinNume > numeradorInf->at(j) && nuevoMinNume < n) {
-                                numeradorInfNuevoMag->at(j)->insertar(new DatosFeasible(nuevoMinNume, i, numerador->at(j)->getNombre(),
+                                numeradorInfNuevoMag->at(j)->insertar(std::make_shared<DatosFeasible>(nuevoMinNume, i, numerador->at(j)->getNombre(),
                                                                                         ( ((nuevoMinNume - numeradorInf->at(j)) * 100) / (n - numeradorInf->at(j)) )));
 
                                 entraNume = true;
@@ -981,7 +970,7 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
                                                    std::arg (v->getPuntoDeno(denominadorInf, o)) - std::arg (plantaNominal));
 
                             if (nuevoMaxNume > numeradorInf->at(j) && nuevoMaxNume < n) {
-                                numeradorSupNuevoFas->at(j)->insertar(new DatosFeasible(nuevoMaxNume, i, numerador->at(j)->getNombre(),
+                                numeradorSupNuevoFas->at(j)->insertar(std::make_shared<DatosFeasible>(nuevoMaxNume, i, numerador->at(j)->getNombre(),
                                                                                         ( ((n - nuevoMaxNume) * 100) / (n - numeradorInf->at(j)) )));
                                 entraNume = true;
                             }
@@ -1007,7 +996,7 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
                                                     (cortesMaxMag * abs(v->getPuntoDeno(denominadorSup, o))), 2) - pow(o, 2));
 
                             if (nuevoMinDeno < n && nuevoMinDeno > denominadorInf->at(j)) {
-                                denominadorInfNuevoMag->at(j)->insertar(new DatosFeasible(nuevoMinDeno, i, denominador->at(j)->getNombre(),
+                                denominadorInfNuevoMag->at(j)->insertar(std::make_shared<DatosFeasible>(nuevoMinDeno, i, denominador->at(j)->getNombre(),
                                                                                           ( ((nuevoMinDeno - denominadorInf->at(j)) * 100) / (n - denominadorInf->at(j)) ) ));
                                 entraDeno = true;
                             }
@@ -1019,7 +1008,7 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
                                                    std::arg (v->getPuntoDeno(denominadorSup, o)) + std::arg (plantaNominal));
 
                             if (nuevoMaxDeno < n && nuevoMaxDeno > denominadorInf->at(j)) {
-                                denominadorSupNuevoFas->at(j)->insertar(new DatosFeasible(nuevoMaxDeno, i, denominador->at(j)->getNombre(),
+                                denominadorSupNuevoFas->at(j)->insertar(std::make_shared<DatosFeasible>(nuevoMaxDeno, i, denominador->at(j)->getNombre(),
                                                                                           ( ((n - nuevoMaxDeno) * 100) / (n - denominadorInf->at(j)) )));
                                 entraDeno = true;
                             }
@@ -1037,7 +1026,7 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
                                                     (cortesMinMag * abs(v->getPuntoDeno(denominadorInf, o))), 2) - pow(o, 2));
 
                             if (nuevoMaxDeno < denominadorSup->at(j) && nuevoMaxDeno > n) {
-                                denominadorSupNuevoMag->at(j)->insertar(new DatosFeasible(nuevoMaxDeno, i, denominador->at(j)->getNombre(),
+                                denominadorSupNuevoMag->at(j)->insertar(std::make_shared<DatosFeasible>(nuevoMaxDeno, i, denominador->at(j)->getNombre(),
                                                                                           ( ((denominadorSup->at(j) - nuevoMaxDeno) * 100) / (denominadorSup->at(j) - n) )));
                                 entraDeno = true;
                             }
@@ -1049,7 +1038,7 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
                                                std::arg (v->getPuntoDeno(denominadorSup, o)) + std::arg (plantaNominal)) * o;
 
                             if (nuevoMinDeno < denominadorSup->at(j) && nuevoMinDeno > n) {
-                                denominadorInfNuevoFas->at(j)->insertar(new DatosFeasible(nuevoMinDeno, i, denominador->at(j)->getNombre(),
+                                denominadorInfNuevoFas->at(j)->insertar(std::make_shared<DatosFeasible>(nuevoMinDeno, i, denominador->at(j)->getNombre(),
                                                                                           ( ((nuevoMinDeno - n) * 100) / (denominadorSup->at(j) - n) )));
                                 entraDeno = true;
                             }
@@ -1154,7 +1143,7 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
 }
 
 //Función que calcula los términos del controlador en decibelios
-inline Tripleta2 * Algorithm_segundo_articulo::calculoTerminosControlador (Tripleta2* controlador) {
+inline std::shared_ptr<Tripleta2>Algorithm_segundo_articulo::calculoTerminosControlador (std::shared_ptr<Tripleta2>controlador) {
 
     std::shared_ptr<Sistema> s = controlador->getSistema();
     QVector <cinterval> * terminosNume = new QVector<cinterval>();
@@ -1184,7 +1173,7 @@ inline Tripleta2 * Algorithm_segundo_articulo::calculoTerminosControlador (Tripl
     return controlador;
 }
 
-inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArea(Tripleta2 * tripleta) {
+inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArea(std::shared_ptr<Tripleta2>tripleta) {
 
     QVector <cinterval> * terminosNume = tripleta->getTerNume();
     QVector <cinterval> * terminosDeno = tripleta->getTerDeno();
@@ -1330,13 +1319,13 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArea(Tripleta2
         }
     }
 
-    Tripleta2 * t1, * t2;
+    std::shared_ptr<Tripleta2>t1, t2;
     std::shared_ptr<Sistema> v1, v2;
 
     v1 = current_controlador->invoke(nombre, numerador, denominador, k, ret);
     v2 = current_controlador->invoke(nombre, numeradorCopia, denominadorCopia, kCopia, ret->clone());
 
-    t1 = new Tripleta2();
+    t1 = std::make_shared<Tripleta2>();
 
     t1->setSistema(v1);
     t1->setTerNume(terminosNume);
@@ -1346,7 +1335,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArea(Tripleta2
     t1->setRecorteActivado(tripleta->isRecorteActivado());
     t1->setEtapas(tripleta->getEtapas());
 
-    t2 = new Tripleta2();
+    t2 = std::make_shared<Tripleta2>();
 
     t2->setSistema(v2);
     t2->setTerNume(terminosCopiaNume);
@@ -1374,12 +1363,11 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArea(Tripleta2
 
 
     tripleta->noBorrar2();
-    delete tripleta;
 
     return retur;
 }
 
-inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionMag(Tripleta2 * tripleta) {
+inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionMag(std::shared_ptr<Tripleta2>tripleta) {
 
     QVector <cinterval> * terminosNume = tripleta->getTerNume();
     QVector <cinterval> * terminosDeno = tripleta->getTerDeno();
@@ -1512,13 +1500,13 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionMag(Tripleta2 
         }
     }
 
-    Tripleta2 * t1, * t2;
+    std::shared_ptr<Tripleta2>t1, t2;
     std::shared_ptr<Sistema> v1, v2;
 
     v1 = current_controlador->invoke(nombre, numerador, denominador, k1, ret);
     v2 = current_controlador->invoke(nombre, numeradorCopia, denominadorCopia, k2, ret->clone());
 
-    t1 = new Tripleta2();
+    t1 = std::make_shared<Tripleta2>();
 
     t1->setSistema(v1);
     t1->setTerNume(terminosNume);
@@ -1529,7 +1517,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionMag(Tripleta2 
     t1->setEtapas(tripleta->getEtapas());
 
 
-    t2 = new Tripleta2();
+    t2 = std::make_shared<Tripleta2>();
 
     t2->setSistema(v2);
     t2->setTerNume(terminosCopiaNume);
@@ -1554,13 +1542,12 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionMag(Tripleta2 
     retur.descartado = false;
 
     tripleta->noBorrar2();
-    delete tripleta;
 
     return retur;
 }
 
 
-inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionFas(Tripleta2 * tripleta) {
+inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionFas(std::shared_ptr<Tripleta2>tripleta) {
 
     QVector <cinterval> * terminosNume = tripleta->getTerNume();
     QVector <cinterval> * terminosDeno = tripleta->getTerDeno();
@@ -1679,13 +1666,13 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionFas(Tripleta2 
 
     }
 
-    Tripleta2 * t1, * t2;
+    std::shared_ptr<Tripleta2> t1, t2;
     std::shared_ptr<Sistema> v1, v2;
 
     v1 = current_controlador->invoke(nombre, numerador, denominador, k, ret);
     v2 = current_controlador->invoke(nombre, numeradorCopia, denominadorCopia, k->clone(), ret->clone());
 
-    t1 = new Tripleta2();
+    t1 = std::make_shared<Tripleta2>();
 
     t1->setSistema(v1);
     t1->setTerNume(terminosNume);
@@ -1696,7 +1683,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionFas(Tripleta2 
     t1->setEtapas(tripleta->getEtapas());
 
 
-    t2 = new Tripleta2();
+    t2 = std::make_shared<Tripleta2>();
 
     t2->setSistema(v2);
     t2->setTerNume(terminosCopiaNume);
@@ -1721,12 +1708,11 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionFas(Tripleta2 
     retur.descartado = false;
 
     tripleta->noBorrar2();
-    delete tripleta;
 
     return retur;
 }
 
-inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta2 * tripleta) {
+inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(std::shared_ptr<Tripleta2>tripleta) {
 
     std::shared_ptr<Sistema> current_controlador = tripleta->getSistema();
 
@@ -1763,7 +1749,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
 
     qint32 contador = -1;
 
-    DatosFeasible * dato;
+    std::shared_ptr<DatosFeasible> dato;
 
     Var * k = current_controlador->getK();
     Var * kCopia = k->clone();
@@ -1776,7 +1762,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
 
     if (!kSup->esVacia()){
 
-        dato = static_cast<DatosFeasible *>( kSup->recuperarUltimo());
+        dato = std::static_pointer_cast<DatosFeasible>( kSup->recuperarUltimo());
         mejorPorcentaje = dato->getPorcentaje();
         mejorPosicion = contador;
 
@@ -1786,7 +1772,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
         entra = true;
     } else if (!kInf->esVacia()) {
 
-        dato = static_cast<DatosFeasible *>( kInf->recuperarUltimo());
+        dato = std::static_pointer_cast<DatosFeasible>( kInf->recuperarUltimo());
         mejorPorcentaje = dato->getPorcentaje();
         mejorPosicion = contador;
 
@@ -1811,7 +1797,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
 
             if (!numeradorSupMag->at(i)->esVacia()) {
 
-                dato = static_cast<DatosFeasible *>( numeradorSupMag->at(i)->recuperarUltimo());
+                dato = std::static_pointer_cast<DatosFeasible>( numeradorSupMag->at(i)->recuperarUltimo());
 
                 qreal por = dato->getPorcentaje();
 
@@ -1825,7 +1811,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
                     entra = true;
                 }
             } else if (!numeradorInfMag->at(i)->esVacia()) {
-                dato = static_cast<DatosFeasible *>( numeradorInfMag->at(i)->recuperarUltimo());
+                dato = std::static_pointer_cast<DatosFeasible>( numeradorInfMag->at(i)->recuperarUltimo());
 
                 qreal por = dato->getPorcentaje();
 
@@ -1841,7 +1827,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
             }
 
             if (!numeradorSupFas->at(i)->esVacia()) {
-                dato = static_cast<DatosFeasible *>( numeradorSupFas->at(i)->recuperarUltimo());
+                dato = std::static_pointer_cast<DatosFeasible>( numeradorSupFas->at(i)->recuperarUltimo());
 
                 qreal por = dato->getPorcentaje();
 
@@ -1855,7 +1841,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
                     entra = true;
                 }
             } else  if (!numeradorInfFas->at(i)->esVacia()) {
-                dato = static_cast<DatosFeasible *>( numeradorInfFas->at(i)->recuperarUltimo());
+                dato = std::static_pointer_cast<DatosFeasible>( numeradorInfFas->at(i)->recuperarUltimo());
 
                 qreal por = dato->getPorcentaje();
 
@@ -1887,7 +1873,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
 
             if (!denominadorSupMag->at(i)->esVacia()) {
 
-                dato = static_cast<DatosFeasible *>( denominadorSupMag->at(i)->recuperarUltimo());
+                dato = std::static_pointer_cast<DatosFeasible>( denominadorSupMag->at(i)->recuperarUltimo());
 
                 qreal por = dato->getPorcentaje();
 
@@ -1901,7 +1887,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
                     entra = true;
                 }
             } else if (!denominadorInfMag->at(i)->esVacia()) {
-                dato = static_cast<DatosFeasible *>( denominadorInfMag->at(i)->recuperarUltimo());
+                dato = std::static_pointer_cast<DatosFeasible>( denominadorInfMag->at(i)->recuperarUltimo());
 
                 qreal por = dato->getPorcentaje();
 
@@ -1917,7 +1903,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
             }
 
             if (!denominadorSupFas->at(i)->esVacia()) {
-                dato = static_cast<DatosFeasible *>( denominadorSupFas->at(i)->recuperarUltimo());
+                dato = std::static_pointer_cast<DatosFeasible>( denominadorSupFas->at(i)->recuperarUltimo());
 
                 qreal por = dato->getPorcentaje();
 
@@ -1931,7 +1917,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
                     entra = true;
                 }
             } else  if (!denominadorInfFas->at(i)->esVacia()) {
-                dato = static_cast<DatosFeasible *>( denominadorInfFas->at(i)->recuperarUltimo());
+                dato = std::static_pointer_cast<DatosFeasible>( denominadorInfFas->at(i)->recuperarUltimo());
 
                 qreal por = dato->getPorcentaje();
 
@@ -1965,7 +1951,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
 
         if (izSup) {
 
-            dato = static_cast<DatosFeasible *>( kSup->recuperarUltimo() );
+            dato = std::static_pointer_cast<DatosFeasible>( kSup->recuperarUltimo() );
 
             punto_corte =  dato->getIndex();
 
@@ -2008,7 +1994,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
         if (mag) {
             if (izSup) {
 
-                dato = static_cast<DatosFeasible *>( numeradorSupMag->at(mejorPosicion)->recuperarUltimo() );
+                dato = std::static_pointer_cast<DatosFeasible>( numeradorSupMag->at(mejorPosicion)->recuperarUltimo() );
 
                 punto_corte =  dato->getIndex();
 
@@ -2016,7 +2002,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
                 guardarHash.setY(omega->at(dato->getPosFrecuencia()));
             } else {
 
-                dato = static_cast<DatosFeasible *>( numeradorInfMag->at(mejorPosicion)->recuperarUltimo() );
+                dato = std::static_pointer_cast<DatosFeasible>( numeradorInfMag->at(mejorPosicion)->recuperarUltimo() );
 
                 punto_corte =  dato->getIndex();
 
@@ -2026,7 +2012,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
         } else {
             if (izSup) {
 
-                dato = static_cast<DatosFeasible *>( numeradorSupFas->at(mejorPosicion)->recuperarUltimo() );
+                dato = std::static_pointer_cast<DatosFeasible>( numeradorSupFas->at(mejorPosicion)->recuperarUltimo() );
 
                 punto_corte =  dato->getIndex();
 
@@ -2034,7 +2020,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
                 guardarHash.setY(omega->at(dato->getPosFrecuencia()));
             } else {
 
-                dato = static_cast<DatosFeasible *>( numeradorInfFas->at(mejorPosicion)->recuperarUltimo() );
+                dato = std::static_pointer_cast<DatosFeasible>( numeradorInfFas->at(mejorPosicion)->recuperarUltimo() );
 
                 punto_corte =  dato->getIndex();
 
@@ -2075,7 +2061,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
         if (mag) {
             if (izSup) {
 
-                dato = static_cast<DatosFeasible *>( denominadorSupMag->at(pos)->recuperarUltimo() );
+                dato = std::static_pointer_cast<DatosFeasible>( denominadorSupMag->at(pos)->recuperarUltimo() );
 
                 punto_corte =  dato->getIndex();
 
@@ -2083,7 +2069,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
                 guardarHash.setY(omega->at(dato->getPosFrecuencia()));
             } else {
 
-                dato = static_cast<DatosFeasible *>( denominadorInfMag->at(pos)->recuperarUltimo() );
+                dato = std::static_pointer_cast<DatosFeasible>( denominadorInfMag->at(pos)->recuperarUltimo() );
 
                 punto_corte =  dato->getIndex();
 
@@ -2093,7 +2079,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
         } else {
             if (izSup) {
 
-                dato = static_cast<DatosFeasible *>( denominadorSupFas->at(pos)->recuperarUltimo() );
+                dato = std::static_pointer_cast<DatosFeasible>( denominadorSupFas->at(pos)->recuperarUltimo() );
 
                 punto_corte =  dato->getIndex();
 
@@ -2101,7 +2087,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
                 guardarHash.setY(omega->at(dato->getPosFrecuencia()));
             } else {
 
-                dato = static_cast<DatosFeasible *>( denominadorInfFas->at(pos)->recuperarUltimo() );
+                dato = std::static_pointer_cast<DatosFeasible>( denominadorInfFas->at(pos)->recuperarUltimo() );
 
                 punto_corte =  dato->getIndex();
 
@@ -2130,7 +2116,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
         delete variable2;
     }
 
-    Tripleta2 * t1, * t2;
+    std::shared_ptr<Tripleta2>t1, t2;
     std::shared_ptr<Sistema> v1, v2;
 
     Var * ret = current_controlador->getRet();
@@ -2139,7 +2125,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
     v1 = current_controlador->invoke(nombre, numerador, denominador, k, ret);
     v2 = current_controlador->invoke(nombre, numeradorCopia, denominadorCopia, kCopia, ret->clone());
 
-    t1 = new Tripleta2();
+    t1 = std::make_shared<Tripleta2>();
 
     t1->setSistema(v1);
     t1->setTerNume(terminosNume);
@@ -2150,7 +2136,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
     t1->setEtapas(tripleta->getEtapas());
 
 
-    t2 = new Tripleta2();
+    t2 = std::make_shared<Tripleta2>();
 
     t2->setSistema(v2);
     t2->setTerNume(terminosCopiaNume);
@@ -2206,7 +2192,6 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
     retur.descartado = false;
 
     tripleta->noBorrar2();
-    delete tripleta;
 
     return retur;
 

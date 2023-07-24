@@ -11,15 +11,15 @@ public:
     ListaOrdenada(bool mayor = false);
     ~ListaOrdenada();
 
-    void insertar (N *elemento);
+    void insertar (std::shared_ptr<N> elemento);
 
-    N * recuperarPrimero();
-    N * recuperarPrimeroBorrar();
+    std::shared_ptr<N> recuperarPrimero();
+    std::shared_ptr<N> recuperarPrimeroBorrar();
 
 
     void borrarPrimero();
 
-    N * recuperarUltimo();
+    std::shared_ptr<N> recuperarUltimo();
 
     void borrarUltimo();
 
@@ -34,7 +34,7 @@ private:
 
     bool (ListaOrdenada::*comparar)(qreal uno, qreal dos);
 
-    QList <N *> * lista;
+    std::shared_ptr<std::list <std::shared_ptr<N>>> lista;
 
 };
 

@@ -54,8 +54,8 @@ private:
     std::shared_ptr<Sistema> controlador;
     QVector <qreal> * omega;
     std::shared_ptr<DatosBound> boundaries;
-    Natura_Interval_extension * conversion;
-    ListaOrdenada * lista;
+    std::shared_ptr<Natura_Interval_extension> conversion;
+    std::unique_ptr<ListaOrdenada> lista;
     qreal epsilon;
     //QVector<QMap<QString, QVector<QVector <interval> *> *> * ecuaciones;
     QVector <QVector <std::complex <qreal> > * > * temp;

@@ -218,15 +218,15 @@ void Algorithm_primer_articulo::set_datos(std::shared_ptr<Sistema> planta, std::
 //Función principal del algoritmo
 bool Algorithm_primer_articulo::init_algorithm() {
 
-    lista = new ListaOrdenada();
+    lista = std::make_unique<ListaOrdenada>();
 
-    conversion = new Natura_Interval_extension();
+    conversion = std::make_shared<Natura_Interval_extension>();
 
-    Tripleta * tripleta;
+    std::shared_ptr<Tripleta> tripleta;
     std::shared_ptr<Sistema> actual;
 
     struct FC::return_bisection retur;
-    deteccion = new DeteccionViolacionBoundaries();
+    deteccion = std::make_unique<DeteccionViolacionBoundaries>();
 
 
     plantas_nominales = new QVector <cxsc::complex> ();
@@ -251,10 +251,6 @@ bool Algorithm_primer_articulo::init_algorithm() {
     if (tripleta == nullptr) {
         menerror("El espacio de parámetros inicial del controlador no es válido.", "Loop Shaping");
 
-        delete conversion;
-        delete lista;
-        delete deteccion;
-
         return false;
     }
 
@@ -265,15 +261,11 @@ bool Algorithm_primer_articulo::init_algorithm() {
         if (lista->esVacia()) {
             menerror("El espacio de parámetros inicial del controlador no es válido.", "Loop Shaping");
 
-            delete conversion;
-            delete lista;
-            delete deteccion;
-
             return false;
         }
 
 
-        tripleta = static_cast<Tripleta *>(lista->recuperarPrimero());
+        tripleta = std::static_pointer_cast<Tripleta>(lista->recuperarPrimero());
         lista->borrarPrimero();
 
         actual = tripleta->getSistema();
@@ -285,11 +277,6 @@ bool Algorithm_primer_articulo::init_algorithm() {
                 controlador_retorno = FC::guardarControlador(tripleta->getSistema(), true);
             }
 
-            delete conversion;
-            delete lista;
-            delete deteccion;
-            delete tripleta;
-
             return true;
         }
 
@@ -297,22 +284,20 @@ bool Algorithm_primer_articulo::init_algorithm() {
         retur = (this->*split_box)(actual);
 
         if (retur.v1 != nullptr){
-            Tripleta * t1 = check_box_feasibility(retur.v1);
+            std::shared_ptr<Tripleta> t1 = check_box_feasibility(retur.v1);
             if (t1 != nullptr) {
                 lista->insertar(t1);
             }
         }
 
         if (retur.v2 != nullptr){
-            Tripleta * t2 = check_box_feasibility(retur.v2);
+            std::shared_ptr<Tripleta> t2 = check_box_feasibility(retur.v2);
             if (t2 != nullptr) {
                 lista->insertar(t2);
             }
         }
 
         tripleta->noBorrar2();
-        delete tripleta;
-
     }
 }
 
@@ -325,7 +310,7 @@ std::shared_ptr<Sistema> Algorithm_primer_articulo::getControlador() {
 
 //Función que comprueba si la caja actual es feasible, infeasible o ambiguous.
 
-inline Tripleta * Algorithm_primer_articulo::check_box_feasibility(std::shared_ptr<Sistema> controlador) {
+inline std::shared_ptr<Tripleta> Algorithm_primer_articulo::check_box_feasibility(std::shared_ptr<Sistema> controlador) {
 
     using namespace std;
 
@@ -335,7 +320,7 @@ inline Tripleta * Algorithm_primer_articulo::check_box_feasibility(std::shared_p
 
     QVector <data_box *> * datosCortesBoundaries = new QVector <data_box *> ();
 
-    Tripleta * t = new Tripleta();
+    auto t = std::make_shared<Tripleta>();
 
     cinterval caja;
     bool penalizacion = false;
@@ -391,7 +376,7 @@ inline Tripleta * Algorithm_primer_articulo::check_box_feasibility(std::shared_p
 
         boundaries->setBox(conversion->getBoxDB());
 
-        datos = (deteccion->*deteccionViolacion)(caja, boundaries, k);
+        datos = (deteccion.get()->*deteccionViolacion)(caja, boundaries, k);
 
 #ifdef VER_DIAGRAMAS
 

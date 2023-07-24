@@ -46,7 +46,7 @@ public:
 
 private:
 
-    inline Tripleta *check_box_feasibility(std::shared_ptr<Sistema> controlador);
+    inline std::shared_ptr<Tripleta> check_box_feasibility(std::shared_ptr<Sistema> controlador);
     inline std::shared_ptr<Sistema> aceleratedNuevo(std::shared_ptr<Sistema> t, QVector<data_box *> *datosCortesBoundaries);
     inline std::shared_ptr<Sistema> aceleratedAntiguo(std::shared_ptr<Sistema> t, QVector<data_box *> *datosCortesBoundaries);
 
@@ -62,8 +62,8 @@ private:
     QVector <qreal> * omega;
     std::shared_ptr<DatosBound> boundaries;
     std::shared_ptr<DatosBound> boundariesAux;
-    Natura_Interval_extension * conversion;
-    ListaOrdenada * lista;
+    std::shared_ptr<Natura_Interval_extension> conversion;
+    std::unique_ptr<ListaOrdenada> lista;
     qreal epsilon;
 
     std::shared_ptr<Sistema> controlador_retorno;
@@ -100,7 +100,7 @@ private:
     bool Nyquist;
 
 
-    DeteccionViolacionBoundaries * deteccion;
+    std::unique_ptr<DeteccionViolacionBoundaries> deteccion;
     QVector <cxsc::complex> * plantas_nominales;
     QVector <std::complex <qreal>> * plantas_nominales2;
 

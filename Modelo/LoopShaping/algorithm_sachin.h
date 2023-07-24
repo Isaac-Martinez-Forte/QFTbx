@@ -45,8 +45,8 @@ private:
     std::shared_ptr<Sistema> controlador;
     QVector <qreal> * omega;
     std::shared_ptr<DatosBound> boundaries;
-    Natura_Interval_extension * conversion;
-    ListaOrdenada * lista;
+    std::shared_ptr<Natura_Interval_extension> conversion;
+    std::unique_ptr<ListaOrdenada> lista;
     qreal epsilon;
 
     std::shared_ptr<Sistema> controlador_retorno;
@@ -63,7 +63,7 @@ private:
 
     bool depuracion;
 
-    DeteccionViolacionBoundaries * deteccion;
+    std::unique_ptr<DeteccionViolacionBoundaries> deteccion;
     QVector <complex> * plantas_nominales;
 
 };

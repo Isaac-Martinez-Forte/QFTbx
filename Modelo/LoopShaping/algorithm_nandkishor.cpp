@@ -87,11 +87,10 @@ bool Algorithm_nandkishor::init_algorithm(){
 
     using namespace std;
 
-    lista = new ListaOrdenada ();
+    lista = make_unique<ListaOrdenada>();
 
-    conversion = new Natura_Interval_extension ();
-    lista = new ListaOrdenada ();
-    deteccion = new DeteccionViolacionBoundaries();
+    conversion = make_shared<Natura_Interval_extension>();
+    deteccion = make_unique<DeteccionViolacionBoundaries>();
 
     anterior_sis_min = new QVector <qreal> ();
 
@@ -117,15 +116,11 @@ bool Algorithm_nandkishor::init_algorithm(){
         if (lista->esVacia()){
             menerror("El espacio de parámetros inicial del controlador no es válido.", "Loop Shaping");
 
-            delete conversion;
-            delete lista;
             delete anterior_sis_min;
-            delete deteccion;
-
             return false;
         }
 
-        Tripleta * tripleta = static_cast<Tripleta2 *>(lista->recuperarPrimero());
+        std::shared_ptr<Tripleta> tripleta = std::static_pointer_cast<Tripleta2>(lista->recuperarPrimero());
         lista->borrarPrimero();
 
         //local_optimization(tripleta->sistema);
@@ -139,11 +134,7 @@ bool Algorithm_nandkishor::init_algorithm(){
                 controlador_retorno = guardarControlador(tripleta->getSistema(), true);
             }
 
-            delete conversion;
-            delete lista;
-            delete tripleta;
             delete anterior_sis_min;
-            delete deteccion;
 
             return true;
         }
@@ -152,7 +143,6 @@ bool Algorithm_nandkishor::init_algorithm(){
         struct return_bisection retur = split_box_bisection(tripleta->getSistema());
 
         tripleta->noBorrar2();
-        delete tripleta;
 
         if (!retur.descartado){
             check_box_feasibility(retur.v1);
@@ -233,7 +223,7 @@ inline flags_box Algorithm_nandkishor::check_box_feasibility(std::shared_ptr<Sis
     //mostrar_diagrama(puntos);
 #endif
 
-    lista->insertar(new Tripleta(penalizacion ? controlador->getK()->getRango().x() + 100 : controlador->getK()->getRango().x(), controlador, flag_final));
+    lista->insertar(std::make_shared<Tripleta>(penalizacion ? controlador->getK()->getRango().x() + 100 : controlador->getK()->getRango().x(), controlador, flag_final));
 
     return flag_final;
 }

@@ -40,10 +40,10 @@ bool Algorithm_sachin::init_algorithm() {
 
     using namespace std;
 
-    lista = new ListaOrdenada();
+    lista = make_unique<ListaOrdenada>();
 
-    conversion = new Natura_Interval_extension();
-    deteccion = new DeteccionViolacionBoundaries();
+    conversion = make_shared<Natura_Interval_extension>();
+    deteccion = make_unique<DeteccionViolacionBoundaries>();
 
     plantas_nominales = new QVector <cxsc::complex> ();
 
@@ -62,14 +62,10 @@ bool Algorithm_sachin::init_algorithm() {
         if (lista->esVacia()) {
             menerror("El espacio de parámetros inicial del controlador no es válido.", "Loop Shaping");
 
-            delete conversion;
-            delete lista;
-            delete deteccion;
-
             return false;
         }
 
-        Tripleta * tripleta = static_cast<Tripleta *>(lista->recuperarPrimero());
+        std::shared_ptr<Tripleta> tripleta = std::static_pointer_cast<Tripleta>(lista->recuperarPrimero());
         lista->borrarPrimero();
         
         if (tripleta->getFlags() == feasible || if_less_epsilon(tripleta->getSistema(), this->epsilon, omega, conversion, plantas_nominales)) {
@@ -79,11 +75,6 @@ bool Algorithm_sachin::init_algorithm() {
                 controlador_retorno = guardarControlador(tripleta->getSistema(), true);
             }
 
-            delete conversion;
-            delete lista;
-            delete tripleta;
-            delete deteccion;
-
             return true;
         }
 
@@ -91,7 +82,6 @@ bool Algorithm_sachin::init_algorithm() {
         struct return_bisection retur = split_box_bisection(tripleta->getSistema());
 
         tripleta->noBorrar2();
-        delete tripleta;
 
         check_box_feasibility(retur.v1);
         check_box_feasibility(retur.v2);
@@ -151,7 +141,7 @@ inline void Algorithm_sachin::check_box_feasibility(std::shared_ptr<Sistema> con
         contador++;
     }
 
-    lista->insertar(new Tripleta(penalizacion ? controlador->getK()->getRango().x() + 100 : controlador->getK()->getRango().x(), controlador, flag_final));
+    lista->insertar(std::make_shared<Tripleta>(penalizacion ? controlador->getK()->getRango().x() + 100 : controlador->getK()->getRango().x(), controlador, flag_final));
 
 }
 

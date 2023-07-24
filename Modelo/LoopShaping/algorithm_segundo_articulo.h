@@ -47,22 +47,22 @@ public:
 private:
 
     inline void comprobarVariables (std::shared_ptr<Sistema> controlador);
-    inline bool analizar(Tripleta2 *tripleta);
-    inline bool aplicarMejoras(Tripleta2 *tripleta);
-    inline std::shared_ptr<Sistema> busquedaMejorGanancia (Tripleta2 * tripleta);
-    inline Tripleta2 * recortesInfeasible(Tripleta2 * tripleta);
-    inline Tripleta2 * recortesFeasible(Tripleta2 * tripleta);
-    inline Tripleta2 * analisisFeasible(Tripleta2 * tripleta);
+    inline bool analizar(std::shared_ptr<Tripleta2>tripleta);
+    inline bool aplicarMejoras(std::shared_ptr<Tripleta2>tripleta);
+    inline std::shared_ptr<Sistema> busquedaMejorGanancia (std::shared_ptr<Tripleta2>tripleta);
+    inline std::shared_ptr<Tripleta2>recortesInfeasible(std::shared_ptr<Tripleta2>tripleta);
+    inline std::shared_ptr<Tripleta2>recortesFeasible(std::shared_ptr<Tripleta2>tripleta);
+    inline std::shared_ptr<Tripleta2>analisisFeasible(std::shared_ptr<Tripleta2>tripleta);
 
-    inline Tripleta2 * beneficioEstimado (Tripleta2 * tripleta);
+    inline std::shared_ptr<Tripleta2>beneficioEstimado (std::shared_ptr<Tripleta2>tripleta);
 
-    inline FC::return_bisection2 biseccion (Tripleta2 * tripleta);
-    inline FC::return_bisection2 biseccionArea(Tripleta2 *tripleta);
-    inline FC::return_bisection2 biseccionMag(Tripleta2 *tripleta);
-    inline FC::return_bisection2 biseccionFas(Tripleta2 *tripleta);
-    inline FC::return_bisection2 biseccionArbol(Tripleta2 *tripleta);
+    inline FC::return_bisection2 biseccion (std::shared_ptr<Tripleta2>tripleta);
+    inline FC::return_bisection2 biseccionArea(std::shared_ptr<Tripleta2>tripleta);
+    inline FC::return_bisection2 biseccionMag(std::shared_ptr<Tripleta2>tripleta);
+    inline FC::return_bisection2 biseccionFas(std::shared_ptr<Tripleta2>tripleta);
+    inline FC::return_bisection2 biseccionArbol(std::shared_ptr<Tripleta2>tripleta);
 
-    inline Tripleta2 * calculoTerminosControlador (Tripleta2* controlador);
+    inline std::shared_ptr<Tripleta2>calculoTerminosControlador (std::shared_ptr<Tripleta2>controlador);
 
     std::shared_ptr<Sistema> planta;
     std::shared_ptr<Sistema> controlador;
@@ -71,11 +71,11 @@ private:
 
     QVector <qreal> * omega;
     std::shared_ptr<DatosBound> boundaries;
-    Natura_Interval_extension * conversion;
-    ListaOrdenada * lista;
+    std::shared_ptr<Natura_Interval_extension> conversion;
+    std::unique_ptr<ListaOrdenada> lista;
     qreal epsilon;
 
-    DeteccionViolacionBoundaries * deteccion;
+    std::unique_ptr<DeteccionViolacionBoundaries> deteccion;
     QVector <cxsc::complex> * plantas_nominales;
     QVector <std::complex <qreal>> * plantas_nominales2;
 

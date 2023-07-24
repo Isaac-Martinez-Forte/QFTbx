@@ -29,8 +29,8 @@ struct return_bisection {
 };
 
 struct return_bisection2 {
-    Tripleta2 * t1;
-    Tripleta2 * t2;
+    std::shared_ptr<Tripleta2>t1;
+    std::shared_ptr<Tripleta2>t2;
     bool descartado;
 };
 
@@ -86,7 +86,7 @@ inline std::shared_ptr<Sistema> guardarControlador(std::shared_ptr<Sistema> cont
 }
 
 inline bool if_less_epsilon(std::shared_ptr<Sistema> controlador, qreal epsilon, QVector <qreal> * omega,
-                            Natura_Interval_extension *conversion, QVector <complex> * plantas_nominales) {
+                            std::shared_ptr<Natura_Interval_extension> conversion, QVector <complex> * plantas_nominales) {
 
     cinterval box;
     for (qint32 i = 0; i < omega->size(); i++){

@@ -436,7 +436,7 @@ void AVL<DATO>::InOrden(Nodo<DATO> *nodo, bool r)
     if(nodo->izquierdo){
         InOrden(nodo->izquierdo, false);
     }
-    Tripleta * tri = (Tripleta *) nodo->dato;
+    std::shared_ptr<Tripleta> tri = (std::shared_ptr<Tripleta>) nodo->dato;
     std::cout << std::to_string(tri->index) << std::endl;
     if(nodo->derecho){
         InOrden(nodo->derecho, false);
@@ -453,7 +453,7 @@ void AVL<DATO>::PreOrden(Nodo<DATO> *nodo, bool r)
         nodo = raiz;
     }
 
-    Tripleta * tri = (Tripleta *) nodo->dato;
+    std::shared_ptr<Tripleta> tri = (std::shared_ptr<Tripleta>) nodo->dato;
     std::cout << "Preorden: " << std::to_string(tri->index) << std::endl;
 
     //func(nodo->dato, nodo->FE);
@@ -480,7 +480,7 @@ void AVL<DATO>::PostOrden(Nodo<DATO> *nodo, bool r)
     if(nodo->derecho){
         PostOrden(nodo->derecho, false);
     }
-    Tripleta * tri = (Tripleta *) nodo->dato;
+    std::shared_ptr<Tripleta> tri = (std::shared_ptr<Tripleta>) nodo->dato;
     std::cout << std::to_string(tri->index) << std::endl;
 }
 

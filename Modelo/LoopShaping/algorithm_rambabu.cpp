@@ -81,10 +81,9 @@ bool Algorithm_rambabu::init_algorithm(){
 
     using namespace std;
 
-    lista = new ListaOrdenada ();
+    lista = std::make_unique<ListaOrdenada> ();
 
-    conversion = new Natura_Interval_extension ();
-    lista = new ListaOrdenada ();
+    conversion = std::make_shared<Natura_Interval_extension> ();
 
     deteccion = new DeteccionViolacionBoundaries ();
 
@@ -105,13 +104,10 @@ bool Algorithm_rambabu::init_algorithm(){
         if (lista->esVacia()){
             menerror("El espacio de parámetros inicial del controlador no es válido.", "Loop Shaping");
 
-            delete conversion;
-            delete lista;
-
             return false;
         }
 
-        Tripleta * tripleta = static_cast<Tripleta *>(lista->recuperarPrimero());
+        std::shared_ptr<Tripleta> tripleta = std::static_pointer_cast<Tripleta>(lista->recuperarPrimero());
         lista->borrarPrimero();
 
         if (tripleta->getFlags() == feasible || FC::if_less_epsilon(tripleta->getSistema(), epsilon, omega, conversion, plantas_nominales)) {
@@ -121,9 +117,6 @@ bool Algorithm_rambabu::init_algorithm(){
                 controlador_retorno = guardarControlador(tripleta->getSistema(), true);
             }
 
-            delete conversion;
-            delete lista;
-            delete tripleta;
             delete deteccion;
 
             return true;
@@ -132,7 +125,6 @@ bool Algorithm_rambabu::init_algorithm(){
         //Split blox
         struct return_bisection retur = split_box_bisection(tripleta->getSistema());
 
-        delete tripleta;
 
         if (!retur.descartado){
             check_box_feasibility(retur.v1);
@@ -218,7 +210,7 @@ flags_box Algorithm_rambabu::check_box_feasibility(std::shared_ptr<Sistema> v){
         }
     }
 
-    lista->insertar(new Tripleta(controlador->getK()->getRango().x(), controlador, flag_final));
+    lista->insertar(std::make_shared<Tripleta>(controlador->getK()->getRango().x(), controlador, flag_final));
 
     return flag_final;
 }

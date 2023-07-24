@@ -2,7 +2,7 @@
 
 ListaOrdenada::ListaOrdenada(bool mayor)
 {
-    lista = new QList <N *> ();
+    lista = std::make_shared<std::list<std::shared_ptr<N>>> ();
 
     if (mayor) {
         comparar = &ListaOrdenada::mayor;
@@ -17,58 +17,63 @@ ListaOrdenada::~ListaOrdenada(){
    lista->clear();
 }
 
-void ListaOrdenada::insertar(N * elemento){
-    if (lista->isEmpty()) {
-        lista->append(elemento);
+void ListaOrdenada::insertar(std::shared_ptr<N> elemento){
+    if (lista->empty()) {
+        lista->push_back(elemento);
 
         return;
     }
 
-    if (elemento->getIndex() < lista->first()->getIndex()){
-        lista->insert(0, elemento);
+    if (elemento->getIndex() < lista->front()->getIndex()){
+        lista->push_front(elemento);
         return;
     }
 
+    bool entra = false;
+    auto it = lista->begin();
 
-
-    for (qint32 i = 0; i < lista->size(); i++) {
-
-        if ((this->*comparar)(elemento->getIndex(), lista->at(i)->getIndex())){
-            lista->insert(i-1, elemento);
-            return;
+    for (; it != lista->end(); ++it){
+        if ((this->*comparar)(elemento->getIndex(), (*it)->getIndex())){
+            entra = true;
+            break;
         }
-
     }
 
-    lista->append(elemento);
+    if (entra) {
+        it--;
+        lista->insert(it, elemento);
+        return;
+    }
+
+    lista->push_back(elemento);
 }
 
-N * ListaOrdenada::recuperarPrimero(){
-    return lista->first();
+std::shared_ptr<N> ListaOrdenada::recuperarPrimero(){
+    return lista->front();
 }
 
-N * ListaOrdenada::recuperarPrimeroBorrar() {
-    N * n = lista->first();
+std::shared_ptr<N> ListaOrdenada::recuperarPrimeroBorrar() {
+    auto n = lista->front();
 
-    lista->removeFirst();
+    lista->erase(lista->begin());
 
     return n;
 }
 
 void ListaOrdenada::borrarPrimero(){
-    lista->removeFirst();
+    lista->erase(lista->begin());
 }
 
-N * ListaOrdenada::recuperarUltimo(){
-    return lista->last();
+std::shared_ptr<N> ListaOrdenada::recuperarUltimo(){
+    return lista->back();
 }
 
 void ListaOrdenada::borrarUltimo(){
-    lista->removeLast();
+    lista->erase(lista->end());
 }
 
 bool ListaOrdenada::esVacia(){
-    return lista->isEmpty();
+    return lista->empty();
 }
 
 bool ListaOrdenada::mayor(qreal uno, qreal dos) {
