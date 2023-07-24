@@ -52,7 +52,7 @@ public:
     * @return booleano indicando si todo a funcionado correctamente.
     */
 
-    bool guardarXMLDatos(QString fichero, DatosPlanta * datosPlanta);
+    bool guardarXMLDatos(QString fichero, std::shared_ptr<DatosPlanta> datosPlanta);
 
 
 
@@ -62,15 +62,15 @@ private:
 
     inline void guardarVariable (Var * var, QString idem);
 
-    inline void guardarOmega(OmegaDAO * omega);
+    inline void guardarOmega(std::shared_ptr<OmegaDAO> omega);
 
-    inline void guardarEspecificaciones (EspecificacionesDAO * especificaciones);
+    inline void guardarEspecificaciones (std::shared_ptr<EspecificacionesDAO> especificaciones);
 
-    inline void guardarTemplates (TemplateDAO * templates, bool isContorno);
+    inline void guardarTemplates (std::shared_ptr<TemplateDAO> templates, bool isContorno);
 
-    inline void guardarBoundaries (BoundDAO * boundaries);
+    inline void guardarBoundaries (std::shared_ptr<BoundDAO> boundaries);
 
-    inline void guardarLoopShaping (LoopShapingDAO * loopShaping);
+    inline void guardarLoopShaping (std::shared_ptr<LoopShapingDAO> loopShaping);
 
     inline QString vectorTString (QVector<qreal> *vector);
 

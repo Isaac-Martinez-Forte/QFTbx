@@ -259,18 +259,18 @@ private:
     bool paso6; //Introducir controlador
     bool paso7; //Loop Shaping
 
-    Boundaries * bound;
-    Templates * templates;
-    LoopShaping * loopShaping;
+    std::shared_ptr<Boundaries> bound;
+    std::shared_ptr<Templates> templates;
+    std::shared_ptr<LoopShaping> loopShaping;
 
-    DAO * dao;
-    PlantaDAO *  plantadao;
-    OmegaDAO * omegadao;
-    TemplateDAO * templatedao;
-    BoundDAO * bounddao;
-    EspecificacionesDAO * especdao;
-    ControladorDAO * controladordao;
-    LoopShapingDAO * loopshapingdao;
+    std::shared_ptr<DAO> dao;
+    std::shared_ptr<PlantaDAO>  plantadao;
+    std::shared_ptr<OmegaDAO> omegadao;
+    std::shared_ptr<TemplateDAO> templatedao;
+    std::shared_ptr<BoundDAO> bounddao;
+    std::shared_ptr<EspecificacionesDAO> especdao;
+    std::shared_ptr<ControladorDAO> controladordao;
+    std::shared_ptr<LoopShapingDAO> loopshapingdao;
 
 };
 

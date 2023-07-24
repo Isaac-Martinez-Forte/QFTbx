@@ -15,7 +15,7 @@ XmlParserSave::~XmlParserSave(){
 }
 
 
-bool XmlParserSave::guardarXMLDatos(QString fichero, DatosPlanta *datosPlanta){///////////////////////////////////////
+bool XmlParserSave::guardarXMLDatos(QString fichero, std::shared_ptr<DatosPlanta> datosPlanta){///////////////////////////////////////
 
 
     QFile file(fichero);
@@ -139,7 +139,7 @@ inline void XmlParserSave::guardarVariable(Var *var, QString idem){
     stream->writeEndElement();
 }
 
-inline void XmlParserSave::guardarOmega(OmegaDAO *omega){
+inline void XmlParserSave::guardarOmega(std::shared_ptr<OmegaDAO> omega){
     stream->writeStartElement("omega");
     stream->writeTextElement("inicio",  QString::number(omega->getOmega()->getInicio()));
     stream->writeTextElement("final",  QString::number(omega->getOmega()->getFinal()));
@@ -164,7 +164,7 @@ inline QString XmlParserSave::vectorTString(QVector <qreal> *vector){
 }
 
 
-inline void XmlParserSave::guardarEspecificaciones(EspecificacionesDAO *especificaciones){ ///////////////////////////////////////////////
+inline void XmlParserSave::guardarEspecificaciones(std::shared_ptr<EspecificacionesDAO> especificaciones){ ///////////////////////////////////////////////
 
     stream->writeStartElement("especificaciones");
     stream->writeAttribute("longitud", QString::number(especificaciones->getEspecificaciones()->size()));
@@ -178,7 +178,7 @@ inline void XmlParserSave::guardarEspecificaciones(EspecificacionesDAO *especifi
     stream->writeEndElement();
 }
 
-inline void XmlParserSave::guardarEstructuraEspec(dBND *estructura){
+inline void XmlParserSave::guardarEstructuraEspec(dBND * estructura){
 
     stream->writeStartElement("especificacion");
     stream->writeAttribute("nombre", estructura->nombre);
@@ -208,7 +208,7 @@ inline void XmlParserSave::guardarEstructuraEspec(dBND *estructura){
     stream->writeEndElement();
 }
 
-inline void XmlParserSave::guardarTemplates(TemplateDAO *templates, bool isContorno){/////////////////////////////////////////////////////
+inline void XmlParserSave::guardarTemplates(std::shared_ptr<TemplateDAO> templates, bool isContorno){/////////////////////////////////////////////////////
     stream->writeStartElement("templates");
 
     stream->writeStartElement("meta-datos");
@@ -342,7 +342,7 @@ inline void XmlParserSave::guardarVectorBool(QVector<bool> *vec, QString nombre)
     stream->writeTextElement(nombre, s);
 }
 
-inline void XmlParserSave::guardarBoundaries(BoundDAO *boundaries){
+inline void XmlParserSave::guardarBoundaries(std::shared_ptr<BoundDAO> boundaries){
 
     std::shared_ptr<DatosBound> datos = boundaries->getBound();
 
@@ -414,7 +414,7 @@ inline void XmlParserSave::guardarBoundaries(BoundDAO *boundaries){
     stream->writeEndElement();
 }
 
-inline void XmlParserSave::guardarLoopShaping(LoopShapingDAO *loopShaping){
+inline void XmlParserSave::guardarLoopShaping(std::shared_ptr<LoopShapingDAO> loopShaping){
 
     std::shared_ptr<DatosLoopShaping> datos = loopShaping->getLoopShaping();
 

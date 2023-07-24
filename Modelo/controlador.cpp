@@ -5,7 +5,7 @@ using namespace std;
 
 Controlador::Controlador()
 {
-    dao = new FDAO ();
+    dao = std::make_shared<FDAO> ();
 
     paso1 = false;
     paso2 = false;
@@ -17,39 +17,6 @@ Controlador::Controlador()
 }
 
 Controlador::~Controlador(){
-
-    delete dao;
-
-    if(paso1){
-        delete plantadao;
-    }
-
-    if (paso2){
-        delete especdao;
-    }
-
-    if(paso3){
-        delete omegadao;
-    }
-
-    if(paso4){
-        delete templatedao;
-        delete templates;
-    }
-
-    if(paso5){
-        delete bounddao;
-        delete bound;
-    }
-
-    if (paso6){
-        delete controladordao;
-    }
-
-    if(paso7){
-        delete loopShaping;
-        delete loopshapingdao;
-    }
 }
 
 std::shared_ptr<Sistema> Controlador::getPlanta(){
@@ -111,7 +78,7 @@ void Controlador::setTemplate(QVector<QVector<std::complex<qreal> > *> *temp,
 
     if(!paso4){
         templatedao = dao->getTemplateDAO();
-        templates = new Templates();
+        templates = std::make_shared<Templates>();
     }
     paso4 = true;
 
@@ -130,7 +97,7 @@ void Controlador::setContorno(QVector<QVector<std::complex<qreal> > *> *contorno
 void Controlador::setBoundaries(std::shared_ptr<DatosBound> dbound){
 
     if (!paso5){
-        this->bound = new Boundaries();
+        this->bound = std::make_shared<Boundaries>();
         bounddao = dao->getBoundDAO();
     }
     paso5 = true;
@@ -155,7 +122,7 @@ bool Controlador::calcularTemplates(QVector <qreal> * epsilon, QHash <Var *, QVe
 
     if(!paso4){
         templatedao = dao->getTemplateDAO();
-        templates = new Templates();
+        templates = std::make_shared<Templates>();
     }
     paso4 = true;
 
@@ -201,7 +168,7 @@ bool Controlador::calcularBoundaries(QPointF datosFas, qint32 puntosFas, QPointF
                                      qint32 puntosMag, qreal infinito, bool contorno, bool cuda){
 
     if (!paso5){
-        bound = new Boundaries();
+         bound = std::make_shared<Boundaries>();
         bounddao = dao->getBoundDAO();
     }
     paso5 = true;
@@ -259,7 +226,7 @@ bool Controlador::calcularLoopShaping(qreal epsilon, tools::alg_loop_shaping sel
                                       bool a){
 
     if (!paso7){
-        loopShaping = new LoopShaping();
+        loopShaping = std::make_shared<LoopShaping>();
         loopshapingdao = dao->getLoopShapingDAO();
     }
 
@@ -279,7 +246,7 @@ bool Controlador::calcularLoopShaping(qreal epsilon, tools::alg_loop_shaping sel
 
 void Controlador::setLoopShaping(std::shared_ptr<DatosLoopShaping>datos){
     if (!paso7){
-        loopShaping = new LoopShaping();
+        loopShaping = std::make_shared<LoopShaping>();
         loopshapingdao = dao->getLoopShapingDAO();
     }
 
@@ -296,7 +263,7 @@ bool Controlador::guardarSistema(QString fichero){
 
     bool retorno = true;
 
-    DatosPlanta * datosPlanta = new DatosPlanta();
+    auto datosPlanta = std::make_shared<DatosPlanta>();
 
     if (paso1)
         datosPlanta->setPlanta(plantadao);
@@ -320,18 +287,15 @@ bool Controlador::guardarSistema(QString fichero){
         datosPlanta->setLoopShaping(loopshapingdao);
 
 
-    XmlParserSave * parser = new XmlParserSave();
+    auto parser = std::make_unique<XmlParserSave>();
     parser->guardarXMLDatos(fichero, datosPlanta);
-
-    delete parser;
-    delete datosPlanta;
 
     return retorno;
 }
 
 QVector <bool> * Controlador::cargarSistema(QString fichero){
 
-    XmlParserLoad * leer = new XmlParserLoad();
+    auto leer = std::make_unique<XmlParserLoad>();
 
     QVector <bool> * retorno =  leer->recuperarXmlDatos(fichero);
 

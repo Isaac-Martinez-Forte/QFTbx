@@ -35,7 +35,7 @@ public:
       * @return PlantaDAO con una instancia de AdaptadorPlantaDAO.
      */
 
-    virtual PlantaDAO * getPlantaDAO() = 0;
+    virtual std::shared_ptr<PlantaDAO> getPlantaDAO() = 0;
 
 
     /**
@@ -45,7 +45,7 @@ public:
       * @return OmegaDAO con una instancia de AdaptadorOmegaDAO.
      */
 
-    virtual OmegaDAO * getOmegaDAO() = 0;
+    virtual std::shared_ptr<OmegaDAO> getOmegaDAO() = 0;
 
 
     /**
@@ -55,7 +55,7 @@ public:
       * @return TemplateDAO con una instancia de AdaptadorTemplateDAO
      */
 
-    virtual TemplateDAO * getTemplateDAO() = 0;
+    virtual std::shared_ptr<TemplateDAO> getTemplateDAO() = 0;
 
 
     /**
@@ -65,14 +65,14 @@ public:
       * @return BoundDAO con una instancia de AdaptadorBoundDAO
      */
 
-    virtual BoundDAO * getBoundDAO() = 0;
+    virtual std::shared_ptr<BoundDAO> getBoundDAO() = 0;
 
 
-    virtual EspecificacionesDAO * getEspecificacionesDAO() = 0;
+    virtual std::shared_ptr<EspecificacionesDAO> getEspecificacionesDAO() = 0;
 
-    virtual ControladorDAO * getControladorDAO() = 0;
+    virtual std::shared_ptr<ControladorDAO> getControladorDAO() = 0;
 
-    virtual LoopShapingDAO * getLoopShapingDAO() = 0;
+    virtual std::shared_ptr<LoopShapingDAO> getLoopShapingDAO() = 0;
 
 };
 

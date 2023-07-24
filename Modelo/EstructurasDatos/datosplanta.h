@@ -42,7 +42,8 @@ public:
      * @param templates Plantillas calculadas para la planta con las frecuencias de diseño introducidas.
      */
 
-    DatosPlanta(PlantaDAO * planta, EspecificacionesDAO * espec, OmegaDAO * omegas, BoundDAO * boundaries, TemplateDAO * templates);
+    DatosPlanta(std::shared_ptr<PlantaDAO> planta, std::shared_ptr<EspecificacionesDAO> espec, std::shared_ptr<OmegaDAO> omegas,
+                std::shared_ptr<BoundDAO> boundaries, std::shared_ptr<TemplateDAO> templates);
 
 
     /**
@@ -60,10 +61,10 @@ public:
      * @param planta adaptadorDAO que corresponde a la planta.
      */
 
-    void setPlanta (PlantaDAO * planta);
+    void setPlanta (std::shared_ptr<PlantaDAO> planta);
 
 
-    void setEspecificaciones (EspecificacionesDAO * espec);
+    void setEspecificaciones (std::shared_ptr<EspecificacionesDAO> espec);
 
     /**
      * @fn setPlanta
@@ -72,7 +73,7 @@ public:
      * @param omegas adaptadorDAO que corresponde a las frecuencias de diseño.
      */
 
-    void setOmega (OmegaDAO * omegas);
+    void setOmega (std::shared_ptr<OmegaDAO> omegas);
     
     
     /**
@@ -82,7 +83,7 @@ public:
      * @param omegas adaptadorDAO que corresponde a los boundaries.
      */
     
-    void setBoundaries (BoundDAO * boundaries);
+    void setBoundaries (std::shared_ptr<BoundDAO> boundaries);
     
     
     /**
@@ -92,7 +93,7 @@ public:
      * @param omegas adaptadorDAO que corresponde a los templates.
      */
     
-    void setTemplates (TemplateDAO * templates);
+    void setTemplates (std::shared_ptr<TemplateDAO> templates);
     
     
     /**
@@ -102,10 +103,10 @@ public:
      * @return adaptadorDAO que corresponde a la planta.
      */
 
-    PlantaDAO *  getPlanta();
+    std::shared_ptr<PlantaDAO>  getPlanta();
     
 
-    EspecificacionesDAO * getEspecificaciones ();
+    std::shared_ptr<EspecificacionesDAO> getEspecificaciones ();
     
     /**
      * @fn getOmega
@@ -114,7 +115,7 @@ public:
      * @return adaptadorDAO que corresponde a las frecuencias de diseño.
      */
     
-    OmegaDAO * getOmega();
+    std::shared_ptr<OmegaDAO> getOmega();
     
     
     /**
@@ -124,7 +125,7 @@ public:
      * @return adaptadorDAO que corresponde a los boundaries.
      */
     
-    BoundDAO * getBoundaries();
+    std::shared_ptr<BoundDAO> getBoundaries();
     
     
     /**
@@ -134,7 +135,7 @@ public:
      * @return adaptadorDAO que corresponde a los templates.
      */
     
-    TemplateDAO * getTemplates();
+    std::shared_ptr<TemplateDAO> getTemplates();
 
     
      /**
@@ -146,22 +147,22 @@ public:
     
     QVector <bool> * getExisten();
 
-    void setControlador (ControladorDAO * contro);
-    ControladorDAO * getControlador();
+    void setControlador (std::shared_ptr<ControladorDAO> contro);
+    std::shared_ptr<ControladorDAO> getControlador();
 
-    void setLoopShaping(LoopShapingDAO * loopShaping);
-    LoopShapingDAO * getLoopShaping();
+    void setLoopShaping(std::shared_ptr<LoopShapingDAO> loopShaping);
+    std::shared_ptr<LoopShapingDAO> getLoopShaping();
 
 
 private:
 
-    BoundDAO * boundaries;
-    OmegaDAO * omegas;
-    PlantaDAO * planta;
-    TemplateDAO * templates;
-    EspecificacionesDAO * espec;
-    ControladorDAO * contro;
-    LoopShapingDAO * loopShaping;
+    std::shared_ptr<BoundDAO> boundaries;
+    std::shared_ptr<OmegaDAO> omegas;
+    std::shared_ptr<PlantaDAO> planta;
+    std::shared_ptr<TemplateDAO> templates;
+    std::shared_ptr<EspecificacionesDAO> espec;
+    std::shared_ptr<ControladorDAO> contro;
+    std::shared_ptr<LoopShapingDAO> loopShaping;
 
 
     QVector <bool> * existen;

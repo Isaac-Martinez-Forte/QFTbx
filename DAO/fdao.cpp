@@ -8,31 +8,31 @@ FDAO::~FDAO(){
 
 }
 
-PlantaDAO * FDAO::getPlantaDAO(){
-    return new AdaptadorPlantaDAO();
+std::shared_ptr<PlantaDAO> FDAO::getPlantaDAO(){
+    return std::make_shared<AdaptadorPlantaDAO>();
 }
 
-OmegaDAO * FDAO::getOmegaDAO(){
-    return new AdaptadorOmegaDAO();
+std::shared_ptr<OmegaDAO> FDAO::getOmegaDAO(){
+    return std::make_shared<AdaptadorOmegaDAO>();
 }
 
-TemplateDAO * FDAO::getTemplateDAO(){
-    return new AdaptadorTemplateDAO();
+std::shared_ptr<TemplateDAO> FDAO::getTemplateDAO(){
+    return std::make_shared<AdaptadorTemplateDAO>();
 }
 
-BoundDAO * FDAO::getBoundDAO(){
-    return new AdaptadorBoundDAO();
+std::shared_ptr<BoundDAO> FDAO::getBoundDAO(){
+    return std::make_shared<AdaptadorBoundDAO>();
 }
 
-EspecificacionesDAO * FDAO::getEspecificacionesDAO(){
-    return new AdaptadorEspecificacionesDAO;
+std::shared_ptr<EspecificacionesDAO> FDAO::getEspecificacionesDAO(){
+    return std::make_shared<AdaptadorEspecificacionesDAO>();
 }
 
-ControladorDAO* FDAO::getControladorDAO(){
-    return new AdaptadorControladorDAO;
+std::shared_ptr<ControladorDAO> FDAO::getControladorDAO(){
+    return std::make_shared<AdaptadorControladorDAO>();
 }
 
 
-LoopShapingDAO * FDAO::getLoopShapingDAO(){
-    return new AdaptadorLoopShapingDAO;
+std::shared_ptr<LoopShapingDAO> FDAO::getLoopShapingDAO(){
+    return std::make_shared<AdaptadorLoopShapingDAO>();
 }

@@ -38,7 +38,7 @@ public:
 
     ~FDAO();
 
-    PlantaDAO * getPlantaDAO();
+    std::shared_ptr<PlantaDAO> getPlantaDAO();
 
 
     /**
@@ -48,7 +48,7 @@ public:
       * @return OmegaDAO con una instancia de AdaptadorOmegaDAO.
      */
 
-    OmegaDAO * getOmegaDAO();
+    std::shared_ptr<OmegaDAO> getOmegaDAO();
 
 
     /**
@@ -58,7 +58,7 @@ public:
       * @return TemplateDAO con una instancia de AdaptadorTemplateDAO
      */
 
-    TemplateDAO * getTemplateDAO();
+    std::shared_ptr<TemplateDAO> getTemplateDAO();
 
 
     /**
@@ -68,14 +68,14 @@ public:
       * @return BoundDAO con una instancia de AdaptadorBoundDAO
      */
 
-    BoundDAO * getBoundDAO();
+    std::shared_ptr<BoundDAO> getBoundDAO();
 
 
-    EspecificacionesDAO * getEspecificacionesDAO();
+    std::shared_ptr<EspecificacionesDAO> getEspecificacionesDAO();
 
-    ControladorDAO * getControladorDAO();
+    std::shared_ptr<ControladorDAO> getControladorDAO();
 
-    LoopShapingDAO * getLoopShapingDAO();
+    std::shared_ptr<LoopShapingDAO> getLoopShapingDAO();
 
 };
 
