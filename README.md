@@ -46,7 +46,7 @@ GNU GENERAL PUBLIC LICENSE Version 3
 
 # Authors 
 
-Isaac Martínez Forte - <isaac.martinez@ua.es>
+Isaac Martínez Forte - <isaac.martinez@upct.es>
 
 Joaquín Cervera López - <jcervera@um.es>
 
@@ -59,3 +59,4 @@ Joaquín Cervera López - <jcervera@um.es>
 
 [I. Martı́nez-Forte y J. Cervera [2021]]. Accelerated quantitative feedback theory interval automatic loop shaping algorithm. International Journal of Robust and Nonlinear Control 31, no 9: 4378–4396. https://doi.org/10.1002/rnc.5499
 
+[I. Martı́nez-Forte y J. Cervera [2022]]. Aceleración de algoritmos intervalares de ajuste automático del lazo en QFT. Doctoral Thesis, Universidad de Murcia. http://hdl.handle.net/10201/122610
