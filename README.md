@@ -53,9 +53,12 @@ Joaquín Cervera López - <jcervera@um.es>
 
 # Bibliography
 
+[I. Martı́nez-Forte y J. Cervera [2021]]. Accelerated quantitative feedback theory interval automatic loop shaping algorithm. International Journal of Robust and Nonlinear Control 31, no 9: 4378–4396. https://doi.org/10.1002/rnc.5499 	http://hdl.handle.net/10201/123363
+
+[I. Martı́nez-Forte y J. Cervera [2022]]. Aceleración de algoritmos intervalares de ajuste automático del lazo en QFT. Tesis Doctoral Universidad de Murcia [2022]. http://hdl.handle.net/10201/122610
+
 [Martínez-Forte[2013]]I. Martínez-Forte. *QFTbx,  herramienta  de  diseño  QFT:  especificación de requisitos y prototipado*. Proyecto Fin de Carrera Universidad de Murcia [2013] http://hdl.handle.net/10201/61459.
 
 [Martínez-Forte[2014]]I. Martínez-Forte. *Paralelización de algoritmos QFT mediante OpenMP y CUDA*. Proyecto Fin de Máster Universidad de Murcia [2014] http://hdl.handle.net/10201/61460.
 
-[I. Martı́nez-Forte y J. Cervera [2021]]. Accelerated quantitative feedback theory interval automatic loop shaping algorithm. International Journal of Robust and Nonlinear Control 31, no 9: 4378–4396. https://doi.org/10.1002/rnc.5499
 
