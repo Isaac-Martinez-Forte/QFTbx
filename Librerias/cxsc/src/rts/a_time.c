@@ -62,7 +62,7 @@ struct timeval{
 };
 #else
 #include <sys/time.h>
-//#include <sys/resource.h>
+#include <sys/resource.h>
 #endif
 
 #if IBM_EMX_C+WINDOWS_X86_32
@@ -91,14 +91,14 @@ local void   a_itim()
 #endif
         {
 
-        //struct rusage buf;
+        struct rusage buf;
 	   int ret;
 
         E_TPUSH("a_itim")
 
-        /*ret=getrusage(0,&buf);
+        ret=getrusage(0,&buf); 
 	   a_tvar = (a_intg)(buf.ru_utime.tv_sec*1000 + 
-                                         buf.ru_utime.tv_usec / 1000 ); */
+					 buf.ru_utime.tv_usec / 1000 ); 
 
         E_TPOPP("a_itim")
         return;
@@ -111,13 +111,13 @@ local a_intg a_gtim()
 #endif
         {
         register a_intg res;
-        /*struct rusage buf;
+        struct rusage buf;
 
         E_TPUSH("a_gtim")
 
         res=getrusage(0,&buf); 
 	   res = (a_intg)(buf.ru_utime.tv_sec*1000 - a_tvar + 
-                          buf.ru_utime.tv_usec / 1000 ); */
+	                  buf.ru_utime.tv_usec / 1000 ); 
 
         E_TPOPP("a_gtim")
         return(res);

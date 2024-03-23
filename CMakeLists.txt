@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.17)
 
 project(QFTbx LANGUAGES CXX)
 
@@ -15,7 +15,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #Opciones de configuracion
 
 OPTION (USE_CLANG "Use CLANG" OFF)
-OPTION (USE_OpenMP "Use OpenMP" OFF)
+OPTION (USE_OpenMP "Use OpenMP" ON)
 OPTION (USE_CUDA "Use CUDA" OFF)
 OPTION (USE_OpenCL "Use OpenCL" OFF)
 OPTION (USE_Doxygen "Use Doxygen" OFF)
@@ -28,11 +28,11 @@ if( WIN32 )
 endif()
 
 message("Looking for Qt...")
-#Buscamos los paquetes de Qt5
-find_package(Qt5 COMPONENTS Core Widgets PrintSupport LinguistTools Quick REQUIRED)
+#Buscamos los paquetes de Qt6
+find_package(Qt6 COMPONENTS Core Widgets PrintSupport LinguistTools REQUIRED)
 
-if (${Qt5_FOUND})
-    message("Found Qt " ${Qt5_VERSION})
+if (${Qt6_FOUND})
+    message("Found Qt " ${Qt6_VERSION})
 else()
     message(FATAL_ERROR "Couldn't find Qt")
 endif()
@@ -58,9 +58,9 @@ ENDIF()
 
 if (MSVC_VERSION GREATER_EQUAL "1900")
     include(CheckCXXCompilerFlag)
-    CHECK_CXX_COMPILER_FLAG("/std:c++latest" _cpp_latest_flag_supported)
+    CHECK_CXX_COMPILER_FLAG("/std:c++20" _cpp_latest_flag_supported)
     if (_cpp_latest_flag_supported)
-        add_compile_options("/std:c++latest")
+        add_compile_options("/std:c++20")
     endif()
 endif()
 
@@ -86,7 +86,7 @@ IF (USE_CUDA)
     FIND_PACKAGE(CUDA)
     if(CUDA_FOUND)
         message("CUDA found")
-        list(APPEND CUDA_NVCC_FLAGS "-std=c++11;-O3;-DVERBOSE")
+        list(APPEND CUDA_NVCC_FLAGS "-std=c++20;-O3;-DVERBOSE")
         SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
         set(CUDA_SEPARABLE_COMPILATION ON)
         FILE(GLOB QFTbx_CUDA GPU/CUDA/bnd_cuda.cu GPU/CUDA/e_hull_cuda.cu)
@@ -142,14 +142,8 @@ endif()
 
 set(TS_FILES QFTbx_es_ES.ts)
 
-#find_package(Qt5Quick 5.3.0 REQUIRED)
-#find_package(Qt5Qml 5.3.0 REQUIRED)
-find_package(Qt5Test REQUIRED)
-#find_package(Qt5QuickTest 5.3.0 REQUIRED)
-find_package(Qt5Core REQUIRED)
-find_package(Qt5Gui REQUIRED)
-find_package(Qt5Widgets REQUIRED)
-find_package(Qt5PrintSupport REQUIRED)
+# Añadir la carpeta de includes de Qt6
+include_directories(${Qt6Widgets_INCLUDE_DIRS})
 
 #Buscamos los ficheros fuente
 set(QFTbx_SRC main.cpp
@@ -298,7 +292,7 @@ set (QFTbx_HED Modelo/EstructuraSistema/funciontransferencia.h
 
 
 #Buscamos los ficheros de recursos
-qt5_add_resources(QFTbx_RES_SRC ${CMAKE_SOURCE_DIR}/Imagenes/imagenesPlanta.qrc )
+qt6_add_resources(QFTbx_RES_SRC ${CMAKE_SOURCE_DIR}/Imagenes/imagenesPlanta.qrc )
 
                                 
 #Buscamos los ficheros QML
@@ -320,46 +314,18 @@ add_executable(${EXE_NAME} ${QFTbx_SRC} ${QFTbx_HED} ${QFTbx_QML} ${QFTbx_RES_SR
 
 #Opciones del compilador
 message("Check C++ version")
-include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-std=c++17" COMPILER_SUPPORTS_CXX17)
-if(COMPILER_SUPPORTS_CXX17)
-        message("Use c++17")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+# Establecer la versión mínima de C++
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-        set_target_properties(${EXE_NAME} PROPERTIES
-            CXX_STANDARD 17
-            CXX_STANDARD_REQUIRED ON
-            CXX_EXTENSIONS OFF
-        )
-else ()
-    CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
-    if(COMPILER_SUPPORTS_CXX14)
-            message("Use c++14")
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-
-            set_target_properties(${EXE_NAME} PROPERTIES
-                CXX_STANDARD 14
-                CXX_STANDARD_REQUIRED ON
-                CXX_EXTENSIONS OFF
-            )
-    else ()
-        CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
-        if(COMPILER_SUPPORTS_CXX11)
-                message("Use c++11")
-                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-
-                set_target_properties(${EXE_NAME} PROPERTIES
-                    CXX_STANDARD 11
-                    CXX_STANDARD_REQUIRED ON
-                    CXX_EXTENSIONS OFF
-                )
-        endif()
-    endif()
+# Verificar si la versión de C++ cumplida es la requerida
+if (CMAKE_CXX_STANDARD LESS 20)
+    message(FATAL_ERROR "Se requiere C++ versión 20 o superior.")
 endif()
 
-target_link_libraries(${EXE_NAME} Qt5::Core Qt5::Gui Qt5::Widgets Qt5::PrintSupport Qt5::Quick)
+target_link_libraries(${EXE_NAME} Qt6::Core Qt6::Gui Qt6::Widgets Qt6::PrintSupport)
 
-qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
+qt6_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 
 if(CUDA_FOUND)
     ADD_DEPENDENCIES(${EXE_NAME} CUDA)
@@ -425,22 +391,5 @@ else ()
     target_link_libraries(${EXE_NAME} "${CMAKE_BINARY_DIR}/cxsc/lib/libcxsc.a")
 
 endif()
-
-############################################################################
-ADD_DEFINITIONS(-DBOOST_LOG_DYN_LINK)
-find_package(Boost REQUIRED COMPONENTS log system)
-
-if (Boost_FOUND)
-    include_directories(${Boost_INCLUDE_DIRS})
-
-    message("Boost VERSION: ${Boost_VERSION}")
-    message("Boost INCLUDE_DIRS: ${Boost_INCLUDE_DIRS}")
-    message("Boost Boost_LIBRARY_DIRS: ${Boost_LIBRARY_DIRS}")
-    message("Boost LIBRARIES: ${Boost_LIBRARIES}")
-
-    TARGET_LINK_LIBRARIES(${EXE_NAME} ${Boost_LIBRARIES})
-endif ()
-
-############################################################################
 
 

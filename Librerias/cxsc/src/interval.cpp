@@ -38,17 +38,17 @@
 
 namespace cxsc {
 
-interval::interval(const idotprecision & a) noexcept(false)
+interval::interval(const idotprecision & a) noexcept
 {
    *this=rnd(a);
 }
 
-interval & interval::operator =(const idotprecision & a) noexcept(false)
+interval & interval::operator =(const idotprecision & a) noexcept
 {
    return *this=rnd(a);
 }
 
-interval::interval(const dotprecision & a) noexcept(false)
+interval::interval(const dotprecision & a) noexcept
 {
    rnd(a,inf,sup);
 }
@@ -72,7 +72,7 @@ interval::interval(const l_real &a,const l_real &b) noexcept(false)
 }
 
 
-interval & interval::operator =(const dotprecision & a) noexcept(false)
+interval & interval::operator =(const dotprecision & a) noexcept
 {
    rnd(a,inf,sup);
    return *this;
@@ -81,51 +81,51 @@ interval & interval::operator =(const dotprecision & a) noexcept(false)
               
 // ---- Standardfunkt ---- (arithmetische Operatoren)
 /*
-interval operator+(const interval &a, const interval &b) noexcept(false) { return interval(adddown(a.inf,b.inf),addup(a.sup,b.sup));  }
-interval operator+(const interval &a, const real &b) noexcept(false) { return interval(adddown(a.inf,b),addup(a.sup,b));  }
-interval operator+(const real &a, const interval &b) noexcept(false) { return interval(adddown(a,b.inf),addup(a,b.sup));  }
+interval operator+(const interval &a, const interval &b) throw() { return interval(adddown(a.inf,b.inf),addup(a.sup,b.sup));  }
+interval operator+(const interval &a, const real &b) throw() { return interval(adddown(a.inf,b),addup(a.sup,b));  }
+interval operator+(const real &a, const interval &b) throw() { return interval(adddown(a,b.inf),addup(a,b.sup));  }
 
-interval operator-(const interval &a, const interval &b) noexcept(false) { return interval(subdown(a.inf,b.inf),subup(a.sup,b.sup));  }
-interval operator-(const interval &a, const real &b) noexcept(false) { return interval(subdown(a.inf,b),subup(a.sup,b));  }
-interval operator-(const real &a, const interval &b) noexcept(false) { return interval(subdown(a,b.sup),subup(a,b.inf));  }
+interval operator-(const interval &a, const interval &b) throw() { return interval(subdown(a.inf,b.inf),subup(a.sup,b.sup));  }
+interval operator-(const interval &a, const real &b) throw() { return interval(subdown(a.inf,b),subup(a.sup,b));  }
+interval operator-(const real &a, const interval &b) throw() { return interval(subdown(a,b.sup),subup(a,b.inf));  }
 
-interval operator*(const interval &a, const interval &b) noexcept(false) { return mul_ii (a, b); }
-interval operator*(const interval &a, const real &b) noexcept(false) { return mul_id (a, *(double*)&b); }
-interval operator*(const real &a, const interval &b) noexcept(false) { return mul_di (*(double*)&a, b); }
+interval operator*(const interval &a, const interval &b) throw() { return mul_ii (a, b); }
+interval operator*(const interval &a, const real &b) throw() { return mul_id (a, *(double*)&b); }
+interval operator*(const real &a, const interval &b) throw() { return mul_di (*(double*)&a, b); }
 
-interval operator/(const interval &a, const interval &b) noexcept(false) {  return div_ii (a, b); }
-interval operator/(const interval &a, const real &b) noexcept(false) {  return div_id (a, *(double*)&b); }
-interval operator/(const real &a, const interval &b) noexcept(false) {  return div_di (*(double*)&a, b); }
+interval operator/(const interval &a, const interval &b) throw() {  return div_ii (a, b); }
+interval operator/(const interval &a, const real &b) throw() {  return div_id (a, *(double*)&b); }
+interval operator/(const real &a, const interval &b) throw() {  return div_di (*(double*)&a, b); }
 */
 
 
-bool operator ==(const interval &a,const dotprecision &r)     noexcept(false) {   return(r==a.inf && r==a.sup); }
-bool operator !=(const interval &a,const dotprecision &r)     noexcept(false) {   return(r!=a.inf || r!=a.sup); }
-bool operator ==(const dotprecision &r,const interval &a)     noexcept(false) {   return(r==a.inf && r==a.sup); }
-bool operator !=(const dotprecision &r,const interval &a)     noexcept(false) {   return(r!=a.inf || r!=a.sup); }
+bool operator ==(const interval &a,const dotprecision &r)     noexcept {   return(r==a.inf && r==a.sup); }
+bool operator !=(const interval &a,const dotprecision &r)     noexcept {   return(r!=a.inf || r!=a.sup); }
+bool operator ==(const dotprecision &r,const interval &a)     noexcept {   return(r==a.inf && r==a.sup); }
+bool operator !=(const dotprecision &r,const interval &a)     noexcept {   return(r!=a.inf || r!=a.sup); }
 
-bool operator <=(const dotprecision &a,const interval &b) noexcept(false)
+bool operator <=(const dotprecision &a,const interval &b) noexcept
 {
    return(a>=b.inf && a<=b.sup);   
 }
-bool operator >=(const dotprecision &a,const interval &b) noexcept(false)
+bool operator >=(const dotprecision &a,const interval &b) noexcept
 {
    return(a<=b.inf && a>=b.sup);   
 }
-bool operator <(const dotprecision &a,const interval &b) noexcept(false)
+bool operator <(const dotprecision &a,const interval &b) noexcept
 {
    return(a>b.inf && a<b.sup);   
 }
 
-bool operator <=(const interval &a,const dotprecision &b) noexcept(false)
+bool operator <=(const interval &a,const dotprecision &b) noexcept
 {
    return(a.inf>=b && a.sup<=b);   
 }
-bool operator >=(const interval &a,const dotprecision &b) noexcept(false)
+bool operator >=(const interval &a,const dotprecision &b) noexcept
 {
    return(a.inf<=b && a.sup>=b);   
 }
-bool operator >(const interval &a,const dotprecision &b) noexcept(false)
+bool operator >(const interval &a,const dotprecision &b) noexcept
 {
    return(a.inf<b && a.sup>b);   
 }
@@ -134,7 +134,7 @@ bool operator >(const interval &a,const dotprecision &b) noexcept(false)
 
 // ---- Ausgabefunkt. ---------------------------------------
 
-std::ostream & operator << (std::ostream &s, const interval& a) noexcept(false)
+std::ostream & operator << (std::ostream &s, const interval& a) noexcept
 {
    s << '['          << SaveOpt << RndDown
      << a.inf << ',' << RndUp 
@@ -142,7 +142,7 @@ std::ostream & operator << (std::ostream &s, const interval& a) noexcept(false)
      << ']';
    return s;
 }
-std::string & operator << (std::string &s, const interval &a) noexcept(false)
+std::string & operator << (std::string &s, const interval &a) noexcept
 {
    s+='[';
    s << SaveOpt << RndDown
@@ -154,7 +154,7 @@ std::string & operator << (std::string &s, const interval &a) noexcept(false)
    return s;
 }
 
-std::istream & operator >> (std::istream &s, interval &a) noexcept(false)
+std::istream & operator >> (std::istream &s, interval &a) noexcept
 {
    char c;
 
@@ -185,7 +185,7 @@ std::istream & operator >> (std::istream &s, interval &a) noexcept(false)
    return s;
 }
 
-std::string & operator >> (std::string &s, interval &a) noexcept(false)
+std::string & operator >> (std::string &s, interval &a) noexcept
 {
    s = skipwhitespacessinglechar (s, '[');
    s >> SaveOpt >> RndDown >> a.inf;
@@ -202,18 +202,18 @@ std::string & operator >> (std::string &s, interval &a) noexcept(false)
    return s;
 }
 
-void operator >>(const std::string &s,interval &a) noexcept(false)
+void operator >>(const std::string &s,interval &a) noexcept
 {
    std::string r(s);
    r>>a;
 }
-void operator >>(const char *s,interval &a) noexcept(false)
+void operator >>(const char *s,interval &a) noexcept
 {
    std::string r(s);
    r>>a;
 }
 
-real mid(const interval & a) noexcept(false)
+real mid(const interval & a) noexcept
 {
    dotprecision dot(a.inf);
    dot += a.sup;

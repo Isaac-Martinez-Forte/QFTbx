@@ -1,5 +1,5 @@
 #CMakeLists.txt Configuration File, 2012-12-11
-cmake_minimum_required(VERSION 2.4)
+cmake_minimum_required(VERSION 3.17)
 
 project(cxsc C CXX)
 
@@ -19,6 +19,17 @@ set(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/README")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/docu/COPYING")
 include(CPack)
 
+
+#Opciones del compilador
+message("Check C++ version")
+# Establecer la versión mínima de C++
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Verificar si la versión de C++ cumplida es la requerida
+if (CMAKE_CXX_STANDARD LESS 17)
+    message(FATAL_ERROR "Se requiere C++ versión 17 o superior.")
+endif()
 
 # use, i.e. don't skip the full RPATH for the build tree
 SET(CMAKE_SKIP_BUILD_RPATH  FALSE)
@@ -200,8 +211,8 @@ if(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86" AND CMAKE_COMPILER_IS_GNUCXX)
   #Compiler is GCC, System is 32 Bit x86
   if(ROUNDING_ASM)
     #Full optimizations, FP computations using SSE
-    set(CMAKE_CXX_FLAGS "-O0 -mfpmath=sse -msse2")
-    set(CMAKE_CC_FLAGS "-O0 -mfpmath=sse -msse2")
+    set(CMAKE_CXX_FLAGS "-O3 -mfpmath=sse -msse2")
+    set(CMAKE_CC_FLAGS "-O3 -mfpmath=sse -msse2")
   else(ROUNDING_ASM)
     #Without assembler: Reduced optimizations, FP computations using SSE
     set(CMAKE_CXX_FLAGS "-O1 -finline-functions -mfpmath=sse -msse2")
@@ -211,8 +222,8 @@ elseif(CMAKE_COMPILER_IS_GNUCXX)
   #Compiler is GCC, 64 Bit x86 System
   if(ROUNDING_ASM)
     #Full optimizations, SSE registers used by default
-    set(CMAKE_CXX_FLAGS "-O0")
-    set(CMAKE_CC_FLAGS "-O0")
+    set(CMAKE_CXX_FLAGS "-O3")
+    set(CMAKE_CC_FLAGS "-O3")
   else(ROUNDING_ASM)
     #Reduced optimizations, SSE registers used by default
     set(CMAKE_CXX_FLAGS "-O1 -finline-functions")
@@ -220,8 +231,8 @@ elseif(CMAKE_COMPILER_IS_GNUCXX)
   endif(ROUNDING_ASM)
 elseif(USING_INTEL_COMPILER)
   #Intel Compiler: Full optimizations, reduced FP optimzations for correct rounding and error free transformations
-  set(CMAKE_CXX_FLAGS "-O0 -fp-model source")
-  set(CMAKE_CC_FLAGS "-O0 -fp-model source")
+  set(CMAKE_CXX_FLAGS "-O3 -fp-model source")
+  set(CMAKE_CC_FLAGS "-O3 -fp-model source")
 else(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86" AND CMAKE_COMPILER_IS_GNUCXX)
   #Default compiler options
   if(ROUNDING_ASM)
@@ -270,45 +281,6 @@ if(BUILD_SHARED)
     SOVERSION ${VER_MAJOR}
   )
 endif(BUILD_SHARED)
-
-#Opciones del compilador
-message("Check C++ version")
-include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-std=c++17" COMPILER_SUPPORTS_CXX17)
-if(COMPILER_SUPPORTS_CXX17)
-        message("Use c++17")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
-
-        set_target_properties(${EXE_NAME} PROPERTIES
-            CXX_STANDARD 17
-            CXX_STANDARD_REQUIRED ON
-            CXX_EXTENSIONS OFF
-        )
-else ()
-    CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
-    if(COMPILER_SUPPORTS_CXX14)
-            message("Use c++14")
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-
-            set_target_properties(${EXE_NAME} PROPERTIES
-                CXX_STANDARD 14
-                CXX_STANDARD_REQUIRED ON
-                CXX_EXTENSIONS OFF
-            )
-    else ()
-        CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
-        if(COMPILER_SUPPORTS_CXX11)
-                message("Use c++11")
-                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-
-                set_target_properties(${EXE_NAME} PROPERTIES
-                    CXX_STANDARD 11
-                    CXX_STANDARD_REQUIRED ON
-                    CXX_EXTENSIONS OFF
-                )
-        endif()
-    endif()
-endif()
 
 # build the examples
 add_subdirectory(examples)

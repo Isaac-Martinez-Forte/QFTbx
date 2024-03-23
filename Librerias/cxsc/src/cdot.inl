@@ -162,133 +162,133 @@ inline cdotprecision _cdotprecision(const l_complex& lc)
 
 // ---- Standardfunkt ---- (arithmetische Operatoren)
 
-inline cdotprecision operator-(const cdotprecision &a) noexcept(false) 
+inline cdotprecision operator-(const cdotprecision &a) noexcept 
 { 
   return cdotprecision (-a.re, -a.im); 
 }
-inline cdotprecision operator+(const cdotprecision &a) noexcept(false) 
+inline cdotprecision operator+(const cdotprecision &a) noexcept 
 { 
   return a; 
 }
 
-inline cdotprecision operator+(const cdotprecision &a,const cdotprecision &b) noexcept(false) 
+inline cdotprecision operator+(const cdotprecision &a,const cdotprecision &b) noexcept 
 { 
   return cdotprecision(a.re+b.re,a.im+b.im); 
 }
-inline cdotprecision operator-(const cdotprecision &a,const cdotprecision &b) noexcept(false) 
+inline cdotprecision operator-(const cdotprecision &a,const cdotprecision &b) noexcept 
 { 
   return cdotprecision(a.re-b.re,a.im-b.im); 
 }
 
-inline cdotprecision operator +(const cdotprecision &a,const complex &b) noexcept(false) { return cdotprecision(a.re+Re(b),a.im+Im(b)); }
-inline cdotprecision operator +(const complex &b,const cdotprecision &a) noexcept(false) { return cdotprecision(a.re+Re(b),a.im+Im(b)); } 
-inline cdotprecision operator -(const cdotprecision &a,const complex &b) noexcept(false) { return cdotprecision(a.re-Re(b),a.im-Im(b)); } 
-inline cdotprecision operator -(const complex &a,const cdotprecision &b) noexcept(false) { return cdotprecision(Re(a)-b.re,Im(a)-b.im); }
+inline cdotprecision operator +(const cdotprecision &a,const complex &b) noexcept { return cdotprecision(a.re+Re(b),a.im+Im(b)); }
+inline cdotprecision operator +(const complex &b,const cdotprecision &a) noexcept { return cdotprecision(a.re+Re(b),a.im+Im(b)); } 
+inline cdotprecision operator -(const cdotprecision &a,const complex &b) noexcept { return cdotprecision(a.re-Re(b),a.im-Im(b)); } 
+inline cdotprecision operator -(const complex &a,const cdotprecision &b) noexcept { return cdotprecision(Re(a)-b.re,Im(a)-b.im); }
 
-inline cdotprecision operator +(const cdotprecision &a,const dotprecision &b) noexcept(false) { return cdotprecision(a.re+b,a.im); }
-inline cdotprecision operator +(const dotprecision &b,const cdotprecision &a) noexcept(false) { return cdotprecision(a.re+b,a.im); } 
-inline cdotprecision operator -(const cdotprecision &a,const dotprecision &b) noexcept(false) { return cdotprecision(a.re-b,a.im); } 
-inline cdotprecision operator -(const dotprecision &a,const cdotprecision &b) noexcept(false) { return cdotprecision(a-b.re,-b.im); }
+inline cdotprecision operator +(const cdotprecision &a,const dotprecision &b) noexcept { return cdotprecision(a.re+b,a.im); }
+inline cdotprecision operator +(const dotprecision &b,const cdotprecision &a) noexcept { return cdotprecision(a.re+b,a.im); } 
+inline cdotprecision operator -(const cdotprecision &a,const dotprecision &b) noexcept { return cdotprecision(a.re-b,a.im); } 
+inline cdotprecision operator -(const dotprecision &a,const cdotprecision &b) noexcept { return cdotprecision(a-b.re,-b.im); }
 
-inline cdotprecision operator +(const cdotprecision &a,const real &b) noexcept(false) { return cdotprecision(a.re+b,a.im); }
-inline cdotprecision operator +(const real &b,const cdotprecision &a) noexcept(false) { return cdotprecision(a.re+b,a.im); } 
-inline cdotprecision operator -(const cdotprecision &a,const real &b) noexcept(false) { return cdotprecision(a.re-b,a.im); } 
-inline cdotprecision operator -(const real &a,const cdotprecision &b) noexcept(false) { return cdotprecision(a-b.re,b.im); }
+inline cdotprecision operator +(const cdotprecision &a,const real &b) noexcept { return cdotprecision(a.re+b,a.im); }
+inline cdotprecision operator +(const real &b,const cdotprecision &a) noexcept { return cdotprecision(a.re+b,a.im); } 
+inline cdotprecision operator -(const cdotprecision &a,const real &b) noexcept { return cdotprecision(a.re-b,a.im); } 
+inline cdotprecision operator -(const real &a,const cdotprecision &b) noexcept { return cdotprecision(a-b.re,b.im); }
 
-inline cdotprecision operator +(const cdotprecision &a, const l_real &b) noexcept(false) 
+inline cdotprecision operator +(const cdotprecision &a, const l_real &b) noexcept 
 { 
   return cdotprecision(a.re+b,a.im);
 }
-inline cdotprecision operator +(const l_real &b, const cdotprecision &a) noexcept(false) 
+inline cdotprecision operator +(const l_real &b, const cdotprecision &a) noexcept 
 { 
   return cdotprecision(a.re+b,a.im);
 }
-inline cdotprecision operator -(const cdotprecision &a, const l_real &b) noexcept(false) 
+inline cdotprecision operator -(const cdotprecision &a, const l_real &b) noexcept 
 { 
   return cdotprecision(a.re-b,a.im);
 }
-inline cdotprecision operator -(const l_real &b, const cdotprecision &a) noexcept(false) 
+inline cdotprecision operator -(const l_real &b, const cdotprecision &a) noexcept 
 { 
   return cdotprecision(b-a.re,-a.im); 
 }
 
-inline cdotprecision & operator +=(cdotprecision &a,const cdotprecision &b) noexcept(false) { a.re+=b.re;a.im+=b.im; return a;}
-inline cdotprecision & operator +=(cdotprecision &a,const dotprecision &b) noexcept(false) { a.re+=b; return a;}
-inline cdotprecision & operator -=(cdotprecision &a,const cdotprecision &b) noexcept(false) { a.re-=b.re;a.im-=b.im; return a;}
-inline cdotprecision & operator -=(cdotprecision &a,const dotprecision &b) noexcept(false) { a.re-=b; return a;}
-inline cdotprecision & operator +=(cdotprecision &a,const complex &b) noexcept(false) 
+inline cdotprecision & operator +=(cdotprecision &a,const cdotprecision &b) noexcept { a.re+=b.re;a.im+=b.im; return a;}
+inline cdotprecision & operator +=(cdotprecision &a,const dotprecision &b) noexcept { a.re+=b; return a;}
+inline cdotprecision & operator -=(cdotprecision &a,const cdotprecision &b) noexcept { a.re-=b.re;a.im-=b.im; return a;}
+inline cdotprecision & operator -=(cdotprecision &a,const dotprecision &b) noexcept { a.re-=b; return a;}
+inline cdotprecision & operator +=(cdotprecision &a,const complex &b) noexcept 
 {
    a.re+=Re(b);
    a.im+=Im(b);
    return a;
 }
-inline cdotprecision & operator -=(cdotprecision &a,const complex &b) noexcept(false)
+inline cdotprecision & operator -=(cdotprecision &a,const complex &b) noexcept
 {
    a.re-=Re(b);
    a.im-=Im(b);
    return a;
 }
-inline cdotprecision & operator +=(cdotprecision &a,const real &b) noexcept(false)
+inline cdotprecision & operator +=(cdotprecision &a,const real &b) noexcept
 {
    a.re+=b;
    return a;
 }
-inline cdotprecision & operator -=(cdotprecision &a,const real &b) noexcept(false)
+inline cdotprecision & operator -=(cdotprecision &a,const real &b) noexcept
 {
    a.re-=b;
    return a;
 }
-inline cdotprecision & operator +=(cdotprecision &a,const l_real &b) noexcept(false)
+inline cdotprecision & operator +=(cdotprecision &a,const l_real &b) noexcept
 { // Blomquist 17.09.02.
    a.re+=b;
    return a;
 }
-inline cdotprecision & operator -=(cdotprecision &a,const l_real &b) noexcept(false)
+inline cdotprecision & operator -=(cdotprecision &a,const l_real &b) noexcept
 { // Blomquist 17.09.02.
    a.re-=b;
    return a;
 }
-inline cdotprecision & operator += (cdotprecision &cd, const l_complex &lc) noexcept(false) 
+inline cdotprecision & operator += (cdotprecision &cd, const l_complex &lc) noexcept 
 {
    cd = cd + cdotprecision(lc); return cd;
 }
-inline cdotprecision & operator -= (cdotprecision &cd, const l_complex &lc) noexcept(false) 
+inline cdotprecision & operator -= (cdotprecision &cd, const l_complex &lc) noexcept 
 {
    cd = cd - cdotprecision(lc); return cd;
 }
       
 // --- Vergleichsoperationen ----
-inline bool operator ==(const cdotprecision &a,const cdotprecision &b) noexcept(false) {   return(a.re==b.re && a.im==b.im); }
-inline bool operator !=(const cdotprecision &a,const cdotprecision &b) noexcept(false) {   return(a.re!=b.re || a.im!=b.im); }
-inline bool operator ==(const dotprecision &r,const cdotprecision &a)     noexcept(false) {   return(r==a.re && !a.im); }
-inline bool operator !=(const dotprecision &r,const cdotprecision &a)     noexcept(false) {   return(r!=a.re || !!a.im); }
-inline bool operator ==(const cdotprecision &a,const dotprecision &r)     noexcept(false) {   return(r==a.re && !a.im); }
-inline bool operator !=(const cdotprecision &a,const dotprecision &r)     noexcept(false) {   return(r!=a.re || !!a.im); }
-inline bool operator ==(const complex &c,const cdotprecision &a)     noexcept(false) {   return(Re(c)==a.re && Im(c)==a.im); }
-inline bool operator !=(const complex &c,const cdotprecision &a)     noexcept(false) {   return(Re(c)!=a.re || Im(c)!=a.im); }
-inline bool operator ==(const cdotprecision &a,const complex &c)     noexcept(false) {   return(Re(c)==a.re && Im(c)==a.im); }
-inline bool operator !=(const cdotprecision &a,const complex &c)     noexcept(false) {   return(Re(c)!=a.re || Im(c)!=a.im); }
-inline bool operator ==(const real &c,const cdotprecision &a)     noexcept(false) {   return(c==a.re && !a.im); }
-inline bool operator !=(const real &c,const cdotprecision &a)     noexcept(false) {   return(c!=a.re || !!a.im); }
-inline bool operator ==(const cdotprecision &a,const real &c)     noexcept(false) {   return(c==a.re && !a.im); }
-inline bool operator !=(const cdotprecision &a,const real &c)     noexcept(false) {   return(c!=a.re || !!a.im); }
+inline bool operator ==(const cdotprecision &a,const cdotprecision &b) noexcept {   return(a.re==b.re && a.im==b.im); }
+inline bool operator !=(const cdotprecision &a,const cdotprecision &b) noexcept {   return(a.re!=b.re || a.im!=b.im); }
+inline bool operator ==(const dotprecision &r,const cdotprecision &a)     noexcept {   return(r==a.re && !a.im); }
+inline bool operator !=(const dotprecision &r,const cdotprecision &a)     noexcept {   return(r!=a.re || !!a.im); }
+inline bool operator ==(const cdotprecision &a,const dotprecision &r)     noexcept {   return(r==a.re && !a.im); }
+inline bool operator !=(const cdotprecision &a,const dotprecision &r)     noexcept {   return(r!=a.re || !!a.im); }
+inline bool operator ==(const complex &c,const cdotprecision &a)     noexcept {   return(Re(c)==a.re && Im(c)==a.im); }
+inline bool operator !=(const complex &c,const cdotprecision &a)     noexcept {   return(Re(c)!=a.re || Im(c)!=a.im); }
+inline bool operator ==(const cdotprecision &a,const complex &c)     noexcept {   return(Re(c)==a.re && Im(c)==a.im); }
+inline bool operator !=(const cdotprecision &a,const complex &c)     noexcept {   return(Re(c)!=a.re || Im(c)!=a.im); }
+inline bool operator ==(const real &c,const cdotprecision &a)     noexcept {   return(c==a.re && !a.im); }
+inline bool operator !=(const real &c,const cdotprecision &a)     noexcept {   return(c!=a.re || !!a.im); }
+inline bool operator ==(const cdotprecision &a,const real &c)     noexcept {   return(c==a.re && !a.im); }
+inline bool operator !=(const cdotprecision &a,const real &c)     noexcept {   return(c!=a.re || !!a.im); }
 
-inline bool operator ==(const l_real &c,const cdotprecision &a) noexcept(false) 
+inline bool operator ==(const l_real &c,const cdotprecision &a) noexcept 
 { 
   return(c==a.re && !a.im);
 }
 
-inline bool operator !=(const l_real &c,const cdotprecision &a) noexcept(false)
+inline bool operator !=(const l_real &c,const cdotprecision &a) noexcept
 { 
   return(c!=a.re || !!a.im);
 }
 
-inline bool operator ==(const cdotprecision &a,const l_real &c) noexcept(false)
+inline bool operator ==(const cdotprecision &a,const l_real &c) noexcept
 { 
   return(c==a.re && !a.im);
 }
 
-inline bool operator !=(const cdotprecision &a,const l_real &c) noexcept(false)
+inline bool operator !=(const cdotprecision &a,const l_real &c) noexcept
 { 
   return(c!=a.re || !!a.im);
 }
@@ -299,7 +299,7 @@ inline dotprecision & Re(cdotprecision& a)
   return a.re; 
 }
 
-inline dotprecision & Im(cdotprecision& a) noexcept(false) 
+inline dotprecision & Im(cdotprecision& a) noexcept 
 { 
   return a.im;
 }
@@ -309,44 +309,44 @@ inline const dotprecision & Re(const cdotprecision& a)
   return a.re; 
 }
 
-inline const dotprecision & Im(const cdotprecision& a) noexcept(false)
+inline const dotprecision & Im(const cdotprecision& a) noexcept
 { 
   return a.im; 
 }
 
-inline cdotprecision& SetRe (cdotprecision& a, const dotprecision& b)  noexcept(false)
+inline cdotprecision& SetRe (cdotprecision& a, const dotprecision& b)  noexcept
 {                         // ggf. exception
    a.re=b; 
    return a;
 }
 
-inline cdotprecision& SetIm (cdotprecision& a, const dotprecision& b) noexcept(false)
+inline cdotprecision& SetIm (cdotprecision& a, const dotprecision& b) noexcept
 {
    a.im=b;
    return a;
 }
 
-inline cdotprecision conj(const cdotprecision& a) noexcept(false)
+inline cdotprecision conj(const cdotprecision& a) noexcept
 {
    return cdotprecision(a.re,-a.im);
 }
 
-inline bool operator !(const cdotprecision &a) noexcept(false) 
+inline bool operator !(const cdotprecision &a) noexcept 
 { 
    return !a.re && !a.im;
 }  
 
-inline void accumulate  (cdotprecision & a, const complex & b, const real & c) noexcept(false)
+inline void accumulate  (cdotprecision & a, const complex & b, const real & c) noexcept
 { 
   accumulate(a,b,complex(c));
 }
 
-inline void accumulate  (cdotprecision & a, const real & b, const complex & c) noexcept(false)
+inline void accumulate  (cdotprecision & a, const real & b, const complex & c) noexcept
 { 
   accumulate(a,complex(b),c);
 }
 
-inline void accumulate  (cdotprecision & a, const real & b, const real & c) noexcept(false)
+inline void accumulate  (cdotprecision & a, const real & b, const real & c) noexcept
 { 
   accumulate(a,complex(b),complex(c)); 
 }

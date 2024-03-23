@@ -32,7 +32,7 @@ namespace cxsc {
 
 // ---- Ausgabefunkt. ---------------------------------------
 
-std::ostream & operator << (std::ostream &s, const cdotprecision& a) noexcept(false)
+std::ostream & operator << (std::ostream &s, const cdotprecision& a) noexcept
 {
    s << '('
      << a.re << ',' 
@@ -40,7 +40,7 @@ std::ostream & operator << (std::ostream &s, const cdotprecision& a) noexcept(fa
      << ')';
    return s;
 }
-std::string & operator << (std::string &s, const cdotprecision& a) noexcept(false)
+std::string & operator << (std::string &s, const cdotprecision& a) noexcept
 {
    s += '(';
    s << a.re;
@@ -50,7 +50,7 @@ std::string & operator << (std::string &s, const cdotprecision& a) noexcept(fals
    return s;
 }
 
-std::istream & operator >> (std::istream &s, cdotprecision &a) noexcept(false)
+std::istream & operator >> (std::istream &s, cdotprecision &a) noexcept
 {
    char c;
 
@@ -81,7 +81,7 @@ std::istream & operator >> (std::istream &s, cdotprecision &a) noexcept(false)
         
 
 
-std::string & operator >> (std::string &s, cdotprecision &a) noexcept(false)
+std::string & operator >> (std::string &s, cdotprecision &a) noexcept
 {
    s = skipwhitespacessinglechar (s, '(');
    s >> a.re;
@@ -95,45 +95,45 @@ std::string & operator >> (std::string &s, cdotprecision &a) noexcept(false)
    return s;
 }
 
-void operator >>(const std::string &s,cdotprecision &a) noexcept(false)
+void operator >>(const std::string &s,cdotprecision &a) noexcept
 {
    std::string r(s);
    r>>a;
 }
 
-void operator >>(const char *s,cdotprecision &a) noexcept(false)
+void operator >>(const char *s,cdotprecision &a) noexcept
 {
    std::string r(s);
    r>>a;
 }                          
 
-void rnd(const cdotprecision &a,complex &b,rndtype r) noexcept(false)
+void rnd(const cdotprecision &a,complex &b,rndtype r) noexcept
 {
    Re(b)=rnd(a.re,r);
    Im(b)=rnd(a.im,r);
 }
 
-void rnd(const cdotprecision &a,complex &b,complex &c) noexcept(false)
+void rnd(const cdotprecision &a,complex &b,complex &c) noexcept
 {
    rnd(a,b,RND_DOWN);
    rnd(a,c,RND_UP);
 }
 
-void rnd (const cdotprecision& d, cinterval& x) noexcept(false) 
+void rnd (const cdotprecision& d, cinterval& x) noexcept 
 {
     complex a,b;
     rnd(d,a,b);
     x = cinterval(a,b);
 }
 
-complex rnd(const cdotprecision &a,rndtype r) noexcept(false)
+complex rnd(const cdotprecision &a,rndtype r) noexcept
 {
    complex b;
    rnd(a,b,r);
    return b;
 }
 
-void accumulate(cdotprecision & a, const complex & b, const complex & c) noexcept(false)
+void accumulate(cdotprecision & a, const complex & b, const complex & c) noexcept
 {
    c_padd(a.re.ptr(),a.im.ptr(), *(a_cmpx*)&b,*(a_cmpx*)&c);
 }

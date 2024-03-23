@@ -35,14 +35,14 @@ class cxscmatrix_column
 	private:
 	int c;
 	public:
-	inline cxscmatrix_column(const int &i) noexcept(false):c(i) { }
-	inline int col() const noexcept(false) { return c; }
+	inline cxscmatrix_column(const int &i) noexcept:c(i) { }
+	inline int col() const noexcept { return c; }
 };
 
 #define ROW 1
 #define COL 2
-inline int Row(const int &i) noexcept(false) { return i; }
-inline cxscmatrix_column Col(const int &i) noexcept(false) { return cxscmatrix_column(i); }
+inline int Row(const int &i) noexcept { return i; }
+inline cxscmatrix_column Col(const int &i) noexcept { return cxscmatrix_column(i); }
 
 } // namespace cxsc
 
@@ -59,7 +59,7 @@ template <class S,class M>
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__TYPE_CAST_OF_THICK_OBJ<M>,ERROR__USE_OF_UNINITIALIZED_OBJ<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 template <class V,class M,class S>
@@ -67,7 +67,7 @@ template <class V,class M,class S>
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__TYPE_CAST_OF_THICK_OBJ<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 template <class V,class MS,class S>
@@ -75,35 +75,35 @@ template <class V,class MS,class S>
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__TYPE_CAST_OF_THICK_OBJ<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 
 	
 	template <class M>
-	std::ostream &_mout(std::ostream &s,const M &r) noexcept(false);
+	std::ostream &_mout(std::ostream &s,const M &r) noexcept;
 
 	template <class M>
-	std::istream &_min(std::istream &s,M &r) noexcept(false);
+	std::istream &_min(std::istream &s,M &r) noexcept;
 
 	template <class MS>
-	std::ostream &_msout(std::ostream &s,const MS &r) noexcept(false);
+	std::ostream &_msout(std::ostream &s,const MS &r) noexcept;
 
 	template <class MS>
-	std::istream &_msin(std::istream &s,MS &r) noexcept(false);
+	std::istream &_msin(std::istream &s,MS &r) noexcept;
 
 	template <class M1,class M2,class S>
-	 M1 &_mmassign(M1 &m1,const M2 &m,S m2) noexcept(false);
+	 M1 &_mmassign(M1 &m1,const M2 &m,S m2) noexcept;
 
 	template <class M,class MS2,class S>
-	 M &_mmsassign(M &m,const MS2 &ms) noexcept(false);
+	 M &_mmsassign(M &m,const MS2 &ms) noexcept;
 
 	template <class MS,class M>
 	 MS &_msmassign(MS &ms,const M &m)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MS1,class MS2>
@@ -111,33 +111,33 @@ template <class V,class MS,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M,class S>
-	 M &_msassign(M &m,const S &r) noexcept(false);
+	 M &_msassign(M &m,const S &r) noexcept;
 
 	template <class MS,class S>
-	 MS &_mssassign(MS &ms,const S &r) noexcept(false);
+	 MS &_mssassign(MS &ms,const S &r) noexcept;
 
 template <class V,class M,class S>
  V &_vmassign(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__TYPE_CAST_OF_THICK_OBJ<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 // result depends on the matrix (left arg), as defined in the reference to C-XSC
 template <class M,class V,class S>
- M &_mvassign(M &m,const V &v) noexcept(false);
+ M &_mvassign(M &m,const V &v) noexcept;
 
 	template <class M>
 	 int _mlb(const M &m, const int &i)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__WRONG_ROW_OR_COL<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class M>
@@ -145,7 +145,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__WRONG_ROW_OR_COL<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class MS>
@@ -153,7 +153,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__WRONG_ROW_OR_COL<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class MS>
@@ -161,7 +161,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__WRONG_ROW_OR_COL<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class M>
@@ -169,7 +169,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__WRONG_ROW_OR_COL<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class M>
@@ -177,18 +177,18 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__WRONG_ROW_OR_COL<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class M>
-	 void _mresize(M &A) noexcept(false);
+	 void _mresize(M &A) noexcept;
 
 	template <class M,class S>
 	 void _mresize(M &A,const int &m, const int &n)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__WRONG_BOUNDARIES<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M,class S>
@@ -196,45 +196,45 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__WRONG_BOUNDARIES<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class M,class E>
-	 E _mabs(const M &m) noexcept(false);
+	 E _mabs(const M &m) noexcept;
 
 	template <class MS,class E>
-	 E _msabs(const MS &ms) noexcept(false);
+	 E _msabs(const MS &ms) noexcept;
 	
 	template <class M,class E>
-	 E _mdiam(const M &m) noexcept(false);
+	 E _mdiam(const M &m) noexcept;
 
 	template <class MS,class E>
-	 E _msdiam(const MS &ms) noexcept(false);
+	 E _msdiam(const MS &ms) noexcept;
 	
 	template <class M,class E>
-	 E _mmid(const M &m) noexcept(false);
+	 E _mmid(const M &m) noexcept;
 
 	template <class MS,class E>
-	 E _msmid(const MS &ms) noexcept(false);
+	 E _msmid(const MS &ms) noexcept;
 	
 	template <class M,class E>
-	 E _minf(const M &m) noexcept(false);
+	 E _minf(const M &m) noexcept;
 
 	template <class MS,class E>
-	 E _msinf(const MS &ms) noexcept(false);
+	 E _msinf(const MS &ms) noexcept;
 	
 	template <class M,class E>
-	 E _msup(const M &m) noexcept(false);
+	 E _msup(const M &m) noexcept;
 
 	template <class MS,class E>
-	 E _mssup(const MS &ms) noexcept(false);
+	 E _mssup(const MS &ms) noexcept;
 	
 	template <class M1,class M2>
 	 M1 &_mmsetinf(M1 &m1,const M2 &m2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MS1,class M2>
@@ -242,7 +242,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class M1,class MS2>
@@ -250,7 +250,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class MS1,class MS2>
@@ -258,7 +258,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class M1,class M2>
@@ -266,7 +266,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MS1,class M2>
@@ -274,7 +274,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class M1,class MS2>
@@ -282,7 +282,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class MS1,class MS2>
@@ -290,7 +290,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class M1,class M2>
@@ -298,7 +298,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MS1,class M2>
@@ -306,7 +306,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class M1,class MS2>
@@ -314,7 +314,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class MS1,class MS2>
@@ -322,7 +322,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class M1,class M2>
@@ -330,7 +330,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MS1,class M2>
@@ -338,7 +338,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class M1,class MS2>
@@ -346,7 +346,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class MS1,class MS2>
@@ -354,7 +354,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class M1,class M2>
@@ -362,7 +362,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MS1,class M2>
@@ -370,7 +370,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class M1,class MS2>
@@ -378,7 +378,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class MS1,class MS2>
@@ -386,7 +386,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class M1,class M2>
@@ -394,7 +394,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MS1,class M2>
@@ -402,7 +402,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class M1,class MS2>
@@ -410,7 +410,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class MS1,class MS2>
@@ -418,27 +418,27 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class M,class E>
-	 E _mim(const M &m) noexcept(false);
+	 E _mim(const M &m) noexcept;
 
 	template <class MS,class E>
-	 E _msim(const MS &ms) noexcept(false);
+	 E _msim(const MS &ms) noexcept;
 	
 	template <class M,class E>
-	 E _mre(const M &m) noexcept(false);
+	 E _mre(const M &m) noexcept;
 
 	template <class MS,class E>
-	 E _msre(const MS &ms) noexcept(false);
+	 E _msre(const MS &ms) noexcept;
 	
 	template <class M1,class M2,class E>
 	 E _mmsect(const M1 &m1,const M2 &m2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class M,class MS,class E>
@@ -446,7 +446,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M1,class M2,class E>
@@ -454,7 +454,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class M,class MS,class E>
@@ -462,7 +462,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M1,class M2,class E>
@@ -470,7 +470,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class M,class MS,class E>
@@ -478,21 +478,21 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M>
-	 M _mminus(const M &m) noexcept(false);
+	 M _mminus(const M &m) noexcept;
 	
 	template <class MS,class E>
-	 E _msminus(const MS &ms) noexcept(false);
+	 E _msminus(const MS &ms) noexcept;
 	
 	template <class M1,class M2,class E>
 	 E _mmminus(const M1 &m1,const M2 &m2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 
@@ -501,7 +501,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 		
 	template <class M,class MS>
@@ -509,7 +509,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 		
 	template <class MS,class M>
@@ -517,7 +517,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 		
 	template <class MS1,class MS2>
@@ -525,7 +525,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 		
 	template <class M1,class M2>
@@ -533,7 +533,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 		
 	template <class M,class MS>
@@ -541,7 +541,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 		
 	template <class MS,class M>
@@ -549,7 +549,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 		
 	template <class MS1,class MS2>
@@ -557,7 +557,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 		
 	template <class M1,class M2>
@@ -565,7 +565,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 		
 	template <class M,class MS>
@@ -573,7 +573,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 		
 	template <class MS,class M>
@@ -581,7 +581,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 		
 	template <class MS1,class MS2>
@@ -589,7 +589,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 		
 	template <class M,class MS,class E>
@@ -597,7 +597,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class MS,class M,class E>
@@ -605,7 +605,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class MS1,class MS2,class E>
@@ -613,7 +613,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class M1,class M2>
@@ -621,7 +621,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 		
 	template <class M,class MS>
@@ -629,7 +629,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 		
 	template <class MS,class M>
@@ -637,7 +637,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 		
 	template <class MS1,class MS2>
@@ -645,7 +645,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 		
 	template <class M1,class M2,class E>
@@ -653,7 +653,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M1,class M2,class E>
@@ -661,7 +661,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M1,class M2,class E>
@@ -669,7 +669,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M1,class M2,class E>
@@ -677,7 +677,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M1,class M2,class E>
@@ -685,7 +685,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M1,class M2,class E>
@@ -693,7 +693,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M1,class M2,class S>
@@ -701,7 +701,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M1,class M2,class S>
@@ -709,7 +709,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M1,class M2,class S>
@@ -717,7 +717,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M1,class M2,class S>
@@ -725,7 +725,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M1,class M2,class S>
@@ -733,7 +733,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M1,class M2,class S>
@@ -741,7 +741,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M,class MS,class E>
@@ -749,7 +749,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M,class MS,class E>
@@ -757,7 +757,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M,class MS,class E>
@@ -765,7 +765,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M,class MS,class E>
@@ -773,7 +773,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M,class MS,class E>
@@ -781,7 +781,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M,class MS,class E>
@@ -789,7 +789,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MS,class M,class E>
@@ -797,7 +797,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MS,class M,class E>
@@ -805,7 +805,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MS,class M,class E>
@@ -813,7 +813,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MS,class M,class E>
@@ -821,7 +821,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MS,class M,class E>
@@ -829,7 +829,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MS,class M,class E>
@@ -837,7 +837,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M,class MS,class S>
@@ -845,7 +845,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M,class MS,class S>
@@ -853,7 +853,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M,class MS,class S>
@@ -861,7 +861,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M,class MS,class S>
@@ -869,7 +869,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M,class MS,class S>
@@ -877,7 +877,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M,class MS,class S>
@@ -885,7 +885,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MS1,class MS2,class E>
@@ -893,7 +893,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class MS1,class MS2,class E>
@@ -901,7 +901,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class MS1,class MS2,class E>
@@ -909,7 +909,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class MS1,class MS2,class E>
@@ -917,7 +917,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class MS1,class MS2,class E>
@@ -925,7 +925,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class MS1,class MS2,class E>
@@ -933,27 +933,27 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	template <class S,class M,class E>
-	 E _smmult(const S &c, const M &m) noexcept(false);
+	 E _smmult(const S &c, const M &m) noexcept;
 
 	template <class M,class S>
-	 M &_msmultassign(M &m,const S &c) noexcept(false);
+	 M &_msmultassign(M &m,const S &c) noexcept;
 	
 	template <class S,class MS,class E>
-	 E _smsmult(const S &c, const MS &ms) noexcept(false);
+	 E _smsmult(const S &c, const MS &ms) noexcept;
 
 	template <class MS,class S>
-	 MS &_mssmultassign(MS &ms,const S &c) noexcept(false);
+	 MS &_mssmultassign(MS &ms,const S &c) noexcept;
 
 	template <class M,class V,class E>
 	 E _mvmult(const M &m,const V &v)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M,class V,class E>
@@ -961,7 +961,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M,class V,class E>
@@ -969,7 +969,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M,class V,class E>
@@ -977,7 +977,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M,class V,class E>
@@ -985,7 +985,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M,class V,class E>
@@ -993,7 +993,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class M,class E>
@@ -1001,7 +1001,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class M,class E>
@@ -1009,7 +1009,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class M,class E>
@@ -1017,7 +1017,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class M,class E>
@@ -1025,7 +1025,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class M,class E>
@@ -1033,7 +1033,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class M,class E>
@@ -1041,7 +1041,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class M,class S>
@@ -1049,7 +1049,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class M,class S>
@@ -1057,7 +1057,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class M,class S>
@@ -1065,7 +1065,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class M,class S>
@@ -1073,7 +1073,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class M,class S>
@@ -1081,7 +1081,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class M,class S>
@@ -1089,7 +1089,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class VS,class M,class S>
@@ -1097,7 +1097,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class VS,class M,class S>
@@ -1105,7 +1105,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class VS,class M,class S>
@@ -1113,7 +1113,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class VS,class M,class S>
@@ -1121,7 +1121,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class VS,class M,class S>
@@ -1129,7 +1129,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class VS,class M,class S>
@@ -1137,7 +1137,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MS,class V,class E>
@@ -1145,7 +1145,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MS,class V,class E>
@@ -1153,7 +1153,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MS,class V,class E>
@@ -1161,7 +1161,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MS,class V,class E>
@@ -1169,7 +1169,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MS,class V,class E>
@@ -1177,7 +1177,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MS,class V,class E>
@@ -1185,7 +1185,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class MS,class E>
@@ -1193,7 +1193,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class MS,class E>
@@ -1201,7 +1201,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class MS,class E>
@@ -1209,7 +1209,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class MS,class E>
@@ -1217,7 +1217,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class MS,class E>
@@ -1225,7 +1225,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class MS,class E>
@@ -1233,7 +1233,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class MS,class S>
@@ -1241,7 +1241,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class MS,class S>
@@ -1249,7 +1249,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class MS,class S>
@@ -1257,7 +1257,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class MS,class S>
@@ -1265,7 +1265,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class MS,class S>
@@ -1273,7 +1273,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class MS,class S>
@@ -1281,27 +1281,27 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M,class S,class E>
-	 E _msdiv(const M &m,const S &c) noexcept(false);
+	 E _msdiv(const M &m,const S &c) noexcept;
 
 	template <class M,class S>
-	 M &_msdivassign(M &m,const S &c) noexcept(false);
+	 M &_msdivassign(M &m,const S &c) noexcept;
 
 	template <class MS,class S,class E>
-	 E _mssdiv(const MS &ms, const S &c) noexcept(false);
+	 E _mssdiv(const MS &ms, const S &c) noexcept;
 
 	template <class MS,class S>
-	 MS &_mssdivassign(MS &ms,const S &c) noexcept(false);
+	 MS &_mssdivassign(MS &ms,const S &c) noexcept;
 	
 	template <class MS1,class MS2,class E>
 	 E _msmsconv(const MS1 &m1,const MS2 &m2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MS1,class MS2,class E>
@@ -1309,7 +1309,7 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MS1,class MS2,class E>
@@ -1317,124 +1317,124 @@ template <class M,class V,class S>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class M>
-	 void *_mvoid(const M &m) noexcept(false);
+	 void *_mvoid(const M &m) noexcept;
 
 	template <class M>
-	 bool _mnot(const M &m) noexcept(false);
+	 bool _mnot(const M &m) noexcept;
 
 	template <class MS>
-	 void *_msvoid(const MS &ms) noexcept(false);
+	 void *_msvoid(const MS &ms) noexcept;
 
 	template <class MS>
-	 bool _msnot(const MS &ms) noexcept(false);
+	 bool _msnot(const MS &ms) noexcept;
 
 	template <class M1,class M2>
-	 bool _mmeq(const M1 &m1,const M2 &m2) noexcept(false);
+	 bool _mmeq(const M1 &m1,const M2 &m2) noexcept;
 
 	template <class M1,class M2>
-	 bool _mmneq(const M1 &m1,const M2 &m2) noexcept(false);
+	 bool _mmneq(const M1 &m1,const M2 &m2) noexcept;
 
 	template <class M1,class M2>
-	 bool _mmless(const M1 &m1,const M2 &m2) noexcept(false);
+	 bool _mmless(const M1 &m1,const M2 &m2) noexcept;
 
 	template <class M1,class M2>
-	 bool _mmleq(const M1 &m1,const M2 &m2) noexcept(false);
+	 bool _mmleq(const M1 &m1,const M2 &m2) noexcept;
 
 	template <class M,class MS>
-	 bool _mmseq(const M &m1,const MS &ms) noexcept(false);
+	 bool _mmseq(const M &m1,const MS &ms) noexcept;
 
 	template <class M,class MS>
-	 bool _mmsneq(const M &m1,const MS &ms) noexcept(false);
+	 bool _mmsneq(const M &m1,const MS &ms) noexcept;
 
 	template <class M,class MS>
-	 bool _mmsless(const M &m1,const MS &ms) noexcept(false);
+	 bool _mmsless(const M &m1,const MS &ms) noexcept;
 
 	template <class M,class MS>
-	 bool _mmsleq(const M &m1,const MS &ms) noexcept(false);
+	 bool _mmsleq(const M &m1,const MS &ms) noexcept;
 
 	template <class MS,class M>
-	 bool _msmless(const MS &ms,const M &m1) noexcept(false);
+	 bool _msmless(const MS &ms,const M &m1) noexcept;
 
 	template <class MS,class M>
-	 bool _msmleq(const MS &ms,const M &m1) noexcept(false);
+	 bool _msmleq(const MS &ms,const M &m1) noexcept;
 
 	template <class MS1,class MS2>
-	 bool _msmseq(const MS1 &ms1,const MS2 &ms2) noexcept(false);
+	 bool _msmseq(const MS1 &ms1,const MS2 &ms2) noexcept;
 
 	template <class MS1,class MS2>
-	 bool _msmsneq(const MS1 &ms1,const MS2 &ms2) noexcept(false);
+	 bool _msmsneq(const MS1 &ms1,const MS2 &ms2) noexcept;
 
 	template <class MS1,class MS2>
-	 bool _msmsless(const MS1 &ms1,const MS2 &ms2) noexcept(false);
+	 bool _msmsless(const MS1 &ms1,const MS2 &ms2) noexcept;
 
 	template <class MS1,class MS2>
-	 bool _msmsleq(const MS1 &ms1,const MS2 &ms2) noexcept(false);
+	 bool _msmsleq(const MS1 &ms1,const MS2 &ms2) noexcept;
 
 
 //------------------- matrix_subv -----------------------------
 
 
 template <class V,class MV2,class S>
- V &_vmvassign(V &v,const MV2 &rv) noexcept(false);
+ V &_vmvassign(V &v,const MV2 &rv) noexcept;
 
 template <class MV1,class MV2>
  MV1 &_mvmvassign(MV1 &v,const MV2 &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<MV1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 template <class MV,class S>
- MV &_mvsassign(MV &v,const  S &r) noexcept(false);
+ MV &_mvsassign(MV &v,const  S &r) noexcept;
 
 template <class MV,class V>
  MV &_mvvassign(MV &v,const V &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<MV>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 template <class MV,class V>
- V _mvabs(const MV &mv) noexcept(false);
+ V _mvabs(const MV &mv) noexcept;
 
 template <class MV,class V>
- V _mvdiam(const MV &mv) noexcept(false);
+ V _mvdiam(const MV &mv) noexcept;
 
 template <class MV,class V>
- V _mvmid(const MV &mv) noexcept(false);
+ V _mvmid(const MV &mv) noexcept;
 
 template <class MV,class V>
- V _mvinf(const MV &mv) noexcept(false);
+ V _mvinf(const MV &mv) noexcept;
 
 template <class MV,class V>
- V _mvsup(const MV &mv) noexcept(false);
+ V _mvsup(const MV &mv) noexcept;
 
 template <class MV,class V>
- V _mvim(const MV &mv) noexcept(false);
+ V _mvim(const MV &mv) noexcept;
 
 template <class MV,class V>
- V _mvre(const MV &mv) noexcept(false);
+ V _mvre(const MV &mv) noexcept;
 
 template <class DP,class V,class SV>
 	 void _vmvaccu(DP &dp, const V & rv1, const SV &rv2)
 #if(CXSC_INDEX_CHECK)
-		noexcept(false);
+		throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 template <class DP,class MV1,class MV2>
 	 void _mvmvaccu(DP &dp, const MV1 & rv1, const MV2 &rv2)
 #if(CXSC_INDEX_CHECK)
-		noexcept(false);
+		throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MV1,class MV2,class S>
@@ -1442,7 +1442,7 @@ template <class DP,class MV1,class MV2>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MV1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MV1,class MV2,class S>
@@ -1450,7 +1450,7 @@ template <class DP,class MV1,class MV2>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MV1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MV1,class MV2,class S>
@@ -1458,7 +1458,7 @@ template <class DP,class MV1,class MV2>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MV1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MV1,class MV2,class S>
@@ -1466,7 +1466,7 @@ template <class DP,class MV1,class MV2>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MV1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MV1,class MV2,class S>
@@ -1474,7 +1474,7 @@ template <class DP,class MV1,class MV2>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MV1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MV1,class MV2,class S>
@@ -1482,7 +1482,7 @@ template <class DP,class MV1,class MV2>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MV1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class MV,class S>
@@ -1490,7 +1490,7 @@ template <class DP,class MV1,class MV2>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MV>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class MV,class S>
@@ -1498,7 +1498,7 @@ template <class DP,class MV1,class MV2>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MV>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class MV,class S>
@@ -1506,7 +1506,7 @@ template <class DP,class MV1,class MV2>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MV>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class MV,class S>
@@ -1514,7 +1514,7 @@ template <class DP,class MV1,class MV2>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MV>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class MV,class S>
@@ -1522,7 +1522,7 @@ template <class DP,class MV1,class MV2>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MV>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class MV,class S>
@@ -1530,11 +1530,11 @@ template <class DP,class MV1,class MV2>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MV>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MV,class S,class E>
-	 E _mvsmult(const MV &rv, const S &s) noexcept(false);
+	 E _mvsmult(const MV &rv, const S &s) noexcept;
 
 
 	template <class MV1,class MV2,class E>
@@ -1542,7 +1542,7 @@ template <class DP,class MV1,class MV2>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MV,class V,class E>
@@ -1550,7 +1550,7 @@ template <class DP,class MV1,class MV2>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MV1,class MV2,class E>
@@ -1558,7 +1558,7 @@ template <class DP,class MV1,class MV2>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MV,class V,class E>
@@ -1566,7 +1566,7 @@ template <class DP,class MV1,class MV2>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MV1,class MV2,class E>
@@ -1574,7 +1574,7 @@ template <class DP,class MV1,class MV2>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MV1,class MV2,class E>
@@ -1582,7 +1582,7 @@ template <class DP,class MV1,class MV2>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MV,class V,class E>
@@ -1590,7 +1590,7 @@ template <class DP,class MV1,class MV2>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MV,class V,class E>
@@ -1598,7 +1598,7 @@ template <class DP,class MV1,class MV2>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class V,class MV,class E>
@@ -1606,30 +1606,30 @@ template <class DP,class MV1,class MV2>
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MV,class S,class E>
-	 E _mvsdiv(const MV &rv, const S &s) noexcept(false);
+	 E _mvsdiv(const MV &rv, const S &s) noexcept;
 
 template <class MV,class S>
- MV &_mvsmultassign(MV &v,const S &r) noexcept(false);
+ MV &_mvsmultassign(MV &v,const S &r) noexcept;
 
 template <class MV, class S>
- MV &_mvsplusassign(MV &v,const S &r) noexcept(false);
+ MV &_mvsplusassign(MV &v,const S &r) noexcept;
 	
 template <class MV,class S>
- MV &_mvsminusassign(MV &v,const S &r) noexcept(false);
+ MV &_mvsminusassign(MV &v,const S &r) noexcept;
 	
 template <class MV,class S>
- MV &_mvsdivassign(MV &v,const S &r) noexcept(false);
+ MV &_mvsdivassign(MV &v,const S &r) noexcept;
 	
 template <class MV,class V>
  MV &_mvvconvassign(MV &v,const V &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<MV>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 template <class V,class MV>
@@ -1637,7 +1637,7 @@ template <class V,class MV>
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 template <class MV,class V>
@@ -1645,7 +1645,7 @@ template <class MV,class V>
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<MV>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 template <class V,class MV>
@@ -1653,7 +1653,7 @@ template <class V,class MV>
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 template <class MV,class V>
@@ -1661,7 +1661,7 @@ template <class MV,class V>
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<MV>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 template <class V,class MV>
@@ -1669,7 +1669,7 @@ template <class V,class MV>
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 template <class MV,class V>
@@ -1677,7 +1677,7 @@ template <class MV,class V>
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<MV>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 template <class V,class MV>
@@ -1685,33 +1685,33 @@ template <class V,class MV>
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	template <class MV,class S>
-	 MV &_mvsusetsup(MV &mv, const S &s) noexcept(false);
+	 MV &_mvsusetsup(MV &mv, const S &s) noexcept;
 
 	template <class MV,class S>
-	 MV &_mvsusetinf(MV &mv, const S &s) noexcept(false);
+	 MV &_mvsusetinf(MV &mv, const S &s) noexcept;
 
 	template <class MV,class S>
-	 MV &_mvssetinf(MV &mv, const S &s) noexcept(false);
+	 MV &_mvssetinf(MV &mv, const S &s) noexcept;
 
 	template <class MV,class S>
-	 MV &_mvssetsup(MV &mv, const S &s) noexcept(false);
+	 MV &_mvssetsup(MV &mv, const S &s) noexcept;
 
 	template <class MV,class S>
-	 MV &_mvssetre(MV &mv, const S &s) noexcept(false);
+	 MV &_mvssetre(MV &mv, const S &s) noexcept;
 
 	template <class MV,class S>
-	 MV &_mvssetim(MV &mv, const S &s) noexcept(false);
+	 MV &_mvssetim(MV &mv, const S &s) noexcept;
 
 template <class MV,class V>
  MV &_mvvsetinf(MV &v,const V &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<MV>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 template <class V,class MV>
@@ -1719,7 +1719,7 @@ template <class V,class MV>
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 template <class MV,class V>
@@ -1727,7 +1727,7 @@ template <class MV,class V>
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<MV>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 template <class V,class MV>
@@ -1735,7 +1735,7 @@ template <class V,class MV>
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 template <class MV,class V>
@@ -1743,7 +1743,7 @@ template <class MV,class V>
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<MV>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 template <class V,class MV>
@@ -1751,7 +1751,7 @@ template <class V,class MV>
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 template <class MV,class V>
@@ -1759,7 +1759,7 @@ template <class MV,class V>
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<MV>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 template <class V,class MV>
@@ -1767,7 +1767,7 @@ template <class V,class MV>
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 template <class MV,class V>
@@ -1775,7 +1775,7 @@ template <class MV,class V>
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<MV>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 template <class V,class MV>
@@ -1783,7 +1783,7 @@ template <class V,class MV>
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 template <class MV,class V>
@@ -1791,7 +1791,7 @@ template <class MV,class V>
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<MV>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 template <class V,class MV>
@@ -1799,7 +1799,7 @@ template <class V,class MV>
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 
@@ -1808,13 +1808,13 @@ template <class V,class MV>
 
 /*
 template <class S,class S,class U>
-rmatrix<U> _ms_mult(const rmatrix<S> &m,const S &s,const U &u=0) noexcept(false);
+rmatrix<U> _ms_mult(const rmatrix<S> &m,const S &s,const U &u=0) throw();
 
 template <class S,class S,class R>
-cxscvector<R> _mv_mult(const rmatrix<S> &m,const rvector &v,R) noexcept(false);
+cxscvector<R> _mv_mult(const rmatrix<S> &m,const rvector &v,R) throw();
 
 template <class S,class S, class R>
-rvector _vm_mult(const rvector &v,const rmatrix<S> &m,R) noexcept(false);
+rvector _vm_mult(const rvector &v,const rmatrix<S> &m,R) throw();
 */
 
 } // namespace cxsc 

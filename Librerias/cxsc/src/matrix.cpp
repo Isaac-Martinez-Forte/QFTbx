@@ -28,7 +28,7 @@
 namespace cxsc {
 
 	template <class M>
-	std::ostream &_mout(std::ostream &s,const M &r) noexcept(false)
+	std::ostream &_mout(std::ostream &s,const M &r) noexcept
 	{
 		int i,j;
 		for (i=0;i<r.ysize;i++)
@@ -43,7 +43,7 @@ namespace cxsc {
 	}
 
 	template <class M>
-	std::istream &_min(std::istream &s,M &r) noexcept(false)
+	std::istream &_min(std::istream &s,M &r) noexcept
 	{
 		int i,j;
 		for (i=0;i<r.ysize;i++)
@@ -57,7 +57,7 @@ namespace cxsc {
 	}
 
 	template <class MS>
-	std::ostream &_msout(std::ostream &s,const MS &r) noexcept(false)
+	std::ostream &_msout(std::ostream &s,const MS &r) noexcept
 	{
 		int i,j;
 		for (i=0;i<r.sysize;i++)
@@ -72,7 +72,7 @@ namespace cxsc {
 	}
 
 	template <class MS>
-	std::istream &_msin(std::istream &s,MS &r) noexcept(false)
+	std::istream &_msin(std::istream &s,MS &r) noexcept
 	{
 		int i,j;
 		for (i=0;i<r.sysize;i++)

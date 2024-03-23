@@ -130,171 +130,171 @@ class cdotprecision
 
       // ---- Ausgabefunkt. ---------------------------------------
       //! Implementation of standard input method
-      friend std::istream& operator >> (std::istream& s, cdotprecision& a)       noexcept(false);
+      friend std::istream& operator >> (std::istream& s, cdotprecision& a)       noexcept;
       //! Implementation of standard output method
-      friend std::ostream& operator << (std::ostream& s, const cdotprecision& a) noexcept(false);
+      friend std::ostream& operator << (std::ostream& s, const cdotprecision& a) noexcept;
       //! Implementation of standard input method
-      friend std::string&  operator >> (std::string&  s, cdotprecision& a)       noexcept(false);
+      friend std::string&  operator >> (std::string&  s, cdotprecision& a)       noexcept;
       //! Implementation of standard output method
-      friend std::string&  operator << (std::string&  s, const cdotprecision& a) noexcept(false);
+      friend std::string&  operator << (std::string&  s, const cdotprecision& a) noexcept;
       //! Implementation of standard input method
-      friend void          operator >> (const std::string &s,cdotprecision& a)   noexcept(false);
+      friend void          operator >> (const std::string &s,cdotprecision& a)   noexcept;
       //! Implementation of standard input method
-      friend void          operator >> (const char *s       ,cdotprecision& a)   noexcept(false);
+      friend void          operator >> (const char *s       ,cdotprecision& a)   noexcept;
 
       // ---- Standardfunkt ---- (arithmetische Operatoren)
       //! Implementation of standard algebraic negative sign operation
-      friend inline cdotprecision operator -(const cdotprecision &) noexcept(false);
+      friend inline cdotprecision operator -(const cdotprecision &) noexcept;
       //! Implementation of standard algebraic positive sign operation
-      friend inline cdotprecision operator +(const cdotprecision &) noexcept(false);
+      friend inline cdotprecision operator +(const cdotprecision &) noexcept;
 
       //! Implementation of standard algebraic addition operation
-      friend inline cdotprecision operator +(const cdotprecision &,const cdotprecision &) noexcept(false);
+      friend inline cdotprecision operator +(const cdotprecision &,const cdotprecision &) noexcept;
       //! Implementation of standard algebraic subtraction operation
-      friend inline cdotprecision operator -(const cdotprecision &,const cdotprecision &) noexcept(false);
+      friend inline cdotprecision operator -(const cdotprecision &,const cdotprecision &) noexcept;
 
       //! Implementation of standard algebraic addition operation
-      friend inline cdotprecision operator +(const cdotprecision &,const complex &) noexcept(false);
+      friend inline cdotprecision operator +(const cdotprecision &,const complex &) noexcept;
       //! Implementation of standard algebraic addition operation
-      friend inline cdotprecision operator +(const complex &,const cdotprecision &) noexcept(false);
+      friend inline cdotprecision operator +(const complex &,const cdotprecision &) noexcept;
       //! Implementation of standard algebraic subtraction operation
-      friend inline cdotprecision operator -(const cdotprecision &,const complex &) noexcept(false);
+      friend inline cdotprecision operator -(const cdotprecision &,const complex &) noexcept;
       //! Implementation of standard algebraic subtraction operation
-      friend inline cdotprecision operator -(const complex &,const cdotprecision &) noexcept(false);
+      friend inline cdotprecision operator -(const complex &,const cdotprecision &) noexcept;
       
       //! Implementation of standard algebraic addition operation
-      friend inline cdotprecision operator +(const cdotprecision &,const dotprecision &) noexcept(false);
+      friend inline cdotprecision operator +(const cdotprecision &,const dotprecision &) noexcept;
       //! Implementation of standard algebraic addition operation
-      friend inline cdotprecision operator +(const dotprecision &,const cdotprecision &) noexcept(false);
+      friend inline cdotprecision operator +(const dotprecision &,const cdotprecision &) noexcept;
       //! Implementation of standard algebraic subtraction operation
-      friend inline cdotprecision operator -(const cdotprecision &,const dotprecision &) noexcept(false);
+      friend inline cdotprecision operator -(const cdotprecision &,const dotprecision &) noexcept;
       //! Implementation of standard algebraic subtraction operation
-      friend inline cdotprecision operator -(const dotprecision &,const cdotprecision &) noexcept(false);
+      friend inline cdotprecision operator -(const dotprecision &,const cdotprecision &) noexcept;
       
       //! Implementation of standard algebraic addition operation
-      friend inline cdotprecision operator +(const cdotprecision &,const real &) noexcept(false);
+      friend inline cdotprecision operator +(const cdotprecision &,const real &) noexcept;
       //! Implementation of standard algebraic addition operation
-      friend inline cdotprecision operator +(const real &,const cdotprecision &) noexcept(false);
+      friend inline cdotprecision operator +(const real &,const cdotprecision &) noexcept;
       //! Implementation of standard algebraic subtraction operation
-      friend inline cdotprecision operator -(const cdotprecision &,const real &) noexcept(false);
+      friend inline cdotprecision operator -(const cdotprecision &,const real &) noexcept;
       //! Implementation of standard algebraic subtraction operation
-      friend inline cdotprecision operator -(const real &,const cdotprecision &) noexcept(false);
+      friend inline cdotprecision operator -(const real &,const cdotprecision &) noexcept;
 
       //! Implementation of standard algebraic addition operation
-      friend inline cdotprecision operator +(const cdotprecision &, const l_real &) noexcept(false);
+      friend inline cdotprecision operator +(const cdotprecision &, const l_real &) noexcept;
       //! Implementation of standard algebraic addition operation
-      friend inline cdotprecision operator +(const l_real &, const cdotprecision &) noexcept(false);
+      friend inline cdotprecision operator +(const l_real &, const cdotprecision &) noexcept;
       //! Implementation of standard algebraic subtraction operation
-      friend inline cdotprecision operator -(const cdotprecision &, const l_real &) noexcept(false);
+      friend inline cdotprecision operator -(const cdotprecision &, const l_real &) noexcept;
       //! Implementation of standard algebraic subtraction operation
-      friend inline cdotprecision operator -(const l_real &, const cdotprecision &) noexcept(false);
+      friend inline cdotprecision operator -(const l_real &, const cdotprecision &) noexcept;
 
       //! Implementation of standard algebraic addition and allocation operation
-      friend inline cdotprecision & operator +=(cdotprecision &,const cdotprecision &) noexcept(false);
+      friend inline cdotprecision & operator +=(cdotprecision &,const cdotprecision &) noexcept;
       //! Implementation of standard algebraic subtraction and allocation operation
-      friend inline cdotprecision & operator -=(cdotprecision &,const cdotprecision &) noexcept(false);
+      friend inline cdotprecision & operator -=(cdotprecision &,const cdotprecision &) noexcept;
       //! Implementation of standard algebraic addition and allocation operation
-      friend inline cdotprecision & operator +=(cdotprecision &,const complex &) noexcept(false);
+      friend inline cdotprecision & operator +=(cdotprecision &,const complex &) noexcept;
       //! Implementation of standard algebraic subtraction and allocation operation
-      friend inline cdotprecision & operator -=(cdotprecision &,const complex &) noexcept(false);
+      friend inline cdotprecision & operator -=(cdotprecision &,const complex &) noexcept;
       //! Implementation of standard algebraic addition and allocation operation
-      friend inline cdotprecision & operator +=(cdotprecision &,const real &) noexcept(false);
+      friend inline cdotprecision & operator +=(cdotprecision &,const real &) noexcept;
       //! Implementation of standard algebraic subtraction and allocation operation
-      friend inline cdotprecision & operator -=(cdotprecision &,const real &) noexcept(false);
+      friend inline cdotprecision & operator -=(cdotprecision &,const real &) noexcept;
       //! Implementation of standard algebraic addition and allocation operation
-      friend inline cdotprecision & operator +=(cdotprecision &,const l_real &) noexcept(false);
+      friend inline cdotprecision & operator +=(cdotprecision &,const l_real &) noexcept;
       //! Implementation of standard algebraic subtraction and allocation operation
-      friend inline cdotprecision & operator -=(cdotprecision &,const l_real &) noexcept(false);
+      friend inline cdotprecision & operator -=(cdotprecision &,const l_real &) noexcept;
       
       //! Implementation of standard algebraic addition and allocation operation
-      friend inline cdotprecision & operator +=(cdotprecision &,const dotprecision &) noexcept(false);
+      friend inline cdotprecision & operator +=(cdotprecision &,const dotprecision &) noexcept;
       //! Implementation of standard algebraic subtraction and allocation operation
-      friend inline cdotprecision & operator -=(cdotprecision &,const dotprecision &) noexcept(false);
+      friend inline cdotprecision & operator -=(cdotprecision &,const dotprecision &) noexcept;
 
       // ---- Vergleichsop. ----
 
       //! Implementation of standard equality operation
-      friend inline bool operator ==(const cdotprecision &,const cdotprecision &) noexcept(false);
+      friend inline bool operator ==(const cdotprecision &,const cdotprecision &) noexcept;
       //! Implementation of standard negated equality operation
-      friend inline bool operator !=(const cdotprecision &,const cdotprecision &) noexcept(false);
+      friend inline bool operator !=(const cdotprecision &,const cdotprecision &) noexcept;
 
       //! Implementation of standard equality operation
-      friend inline bool operator ==(const dotprecision &,const cdotprecision &) noexcept(false);
+      friend inline bool operator ==(const dotprecision &,const cdotprecision &) noexcept;
       //! Implementation of standard negated equality operation
-      friend inline bool operator !=(const dotprecision &,const cdotprecision &) noexcept(false);
+      friend inline bool operator !=(const dotprecision &,const cdotprecision &) noexcept;
 
       //! Implementation of standard equality operation
-      friend inline bool operator ==(const cdotprecision &,const dotprecision &) noexcept(false);
+      friend inline bool operator ==(const cdotprecision &,const dotprecision &) noexcept;
       //! Implementation of standard negated equality operation
-      friend inline bool operator !=(const cdotprecision &,const dotprecision &) noexcept(false);
+      friend inline bool operator !=(const cdotprecision &,const dotprecision &) noexcept;
 
       //! Implementation of standard equality operation
-      friend inline bool operator ==(const complex &,const cdotprecision &) noexcept(false);
+      friend inline bool operator ==(const complex &,const cdotprecision &) noexcept;
       //! Implementation of standard negated equality operation
-      friend inline bool operator !=(const complex &,const cdotprecision &) noexcept(false);
+      friend inline bool operator !=(const complex &,const cdotprecision &) noexcept;
 
       //! Implementation of standard equality operation
-      friend inline bool operator ==(const cdotprecision &,const complex &) noexcept(false);
+      friend inline bool operator ==(const cdotprecision &,const complex &) noexcept;
       //! Implementation of standard negated equality operation
-      friend inline bool operator !=(const cdotprecision &,const complex &) noexcept(false);
+      friend inline bool operator !=(const cdotprecision &,const complex &) noexcept;
 
       //! Implementation of standard equality operation
-      friend inline bool operator ==(const real &,const cdotprecision &) noexcept(false);
+      friend inline bool operator ==(const real &,const cdotprecision &) noexcept;
       //! Implementation of standard negated equality operation
-      friend inline bool operator !=(const real &,const cdotprecision &) noexcept(false);
+      friend inline bool operator !=(const real &,const cdotprecision &) noexcept;
 
       //! Implementation of standard equality operation
-      friend inline bool operator ==(const cdotprecision &,const real &) noexcept(false);
+      friend inline bool operator ==(const cdotprecision &,const real &) noexcept;
       //! Implementation of standard negated equality operation
-      friend inline bool operator !=(const cdotprecision &,const real &) noexcept(false);
+      friend inline bool operator !=(const cdotprecision &,const real &) noexcept;
 
       //! Implementation of standard equality operation
-      friend inline bool operator ==(const cdotprecision &, const l_real &) noexcept(false);
+      friend inline bool operator ==(const cdotprecision &, const l_real &) noexcept;
       //! Implementation of standard equality operation
-      friend inline bool operator ==(const l_real &, const cdotprecision &) noexcept(false);
+      friend inline bool operator ==(const l_real &, const cdotprecision &) noexcept;
       //! Implementation of standard negated equality operation
-      friend inline bool operator !=(const cdotprecision &, const l_real &) noexcept(false);
+      friend inline bool operator !=(const cdotprecision &, const l_real &) noexcept;
       //! Implementation of standard negated equality operation
-      friend inline bool operator !=(const l_real &, const cdotprecision &) noexcept(false);
+      friend inline bool operator !=(const l_real &, const cdotprecision &) noexcept;
 
       //! Implementation of standard negation operation
-      friend inline bool operator !(const cdotprecision&) noexcept(false);
+      friend inline bool operator !(const cdotprecision&) noexcept;
       
       // ---- Funktionen    ----
       
       //! Returns the real part of the complex dotprecision value
       friend inline dotprecision & Re(cdotprecision& a);
       //! Returns the imaginary part of the complex dotprecision value
-      friend inline dotprecision & Im(cdotprecision& a)  noexcept(false);
+      friend inline dotprecision & Im(cdotprecision& a)  noexcept;
       //! Returns the real part of the complex dotprecision value
       friend inline const dotprecision & Re(const cdotprecision& a);
       //! Returns the imaginary part of the complex dotprecision value
-      friend inline const dotprecision & Im(const cdotprecision& a)  noexcept(false);
+      friend inline const dotprecision & Im(const cdotprecision& a)  noexcept;
       //! Sets the real part of a complex dotprecision value
-      friend inline cdotprecision& SetRe (cdotprecision& a, const dotprecision& b)  noexcept(false);
+      friend inline cdotprecision& SetRe (cdotprecision& a, const dotprecision& b)  noexcept;
       //! Sets the imaginary part of a complex dotprecision value
-      friend inline cdotprecision& SetIm (cdotprecision& a, const dotprecision& b) noexcept(false);
+      friend inline cdotprecision& SetIm (cdotprecision& a, const dotprecision& b) noexcept;
       
       //! Returns the conjugated complex dotprecision value
-      friend inline cdotprecision conj(const cdotprecision &a) noexcept(false);
+      friend inline cdotprecision conj(const cdotprecision &a) noexcept;
 
       //! Converting the exact complex dotprecision value with one rounding into a complex value
-      friend void rnd(const cdotprecision &,complex &,rndtype ) noexcept(false);
+      friend void rnd(const cdotprecision &,complex &,rndtype ) noexcept;
       //! Converting the exact complex dotprecision value with one rounding into the nearest lower and upper complex value
-      friend void rnd(const cdotprecision &,complex &,complex &) noexcept(false);
+      friend void rnd(const cdotprecision &,complex &,complex &) noexcept;
       //! Converting the exact complex dotprecision value into an interval with the nearest lower and upper bound
-      friend void rnd (const cdotprecision&, cinterval&) noexcept(false);
+      friend void rnd (const cdotprecision&, cinterval&) noexcept;
       //! Converting the exact complex dotprecision value with one rounding into a complex value
-      friend complex rnd(const cdotprecision &,rndtype) noexcept(false);
+      friend complex rnd(const cdotprecision &,rndtype) noexcept;
       
       //! The accurate scalar product of the last two arguments added to the value of the first argument
-      friend        void accumulate  (cdotprecision&, const complex&, const complex&) noexcept(false);
+      friend        void accumulate  (cdotprecision&, const complex&, const complex&) noexcept;
       //! The accurate scalar product of the last two arguments added to the value of the first argument
-      friend inline void accumulate  (cdotprecision&, const complex&, const real&) noexcept(false);
+      friend inline void accumulate  (cdotprecision&, const complex&, const real&) noexcept;
       //! The accurate scalar product of the last two arguments added to the value of the first argument
-      friend inline void accumulate  (cdotprecision&, const real&, const complex&) noexcept(false);
+      friend inline void accumulate  (cdotprecision&, const real&, const complex&) noexcept;
       //! The accurate scalar product of the last two arguments added to the value of the first argument
-      friend inline void accumulate  (cdotprecision&, const real&, const real&) noexcept(false);
+      friend inline void accumulate  (cdotprecision&, const real&, const real&) noexcept;
 };
 
 // ---------------------------------------------------------------------------
@@ -305,19 +305,19 @@ class cdotprecision
 
 inline cdotprecision _cdotprecision(const l_complex&);
 
-std::istream& operator >> (std::istream& s, cdotprecision& a)       noexcept(false);
-std::ostream& operator << (std::ostream& s, const cdotprecision& a) noexcept(false);
-std::string&  operator >> (std::string&  s, cdotprecision& a)       noexcept(false);
-std::string&  operator << (std::string&  s, const cdotprecision& a) noexcept(false);
-void          operator >> (const std::string &s,cdotprecision& a)   noexcept(false);
-void          operator >> (const char *s       ,cdotprecision& a)   noexcept(false);
+std::istream& operator >> (std::istream& s, cdotprecision& a)       noexcept;
+std::ostream& operator << (std::ostream& s, const cdotprecision& a) noexcept;
+std::string&  operator >> (std::string&  s, cdotprecision& a)       noexcept;
+std::string&  operator << (std::string&  s, const cdotprecision& a) noexcept;
+void          operator >> (const std::string &s,cdotprecision& a)   noexcept;
+void          operator >> (const char *s       ,cdotprecision& a)   noexcept;
 
-void rnd(const cdotprecision &,complex &,rndtype = RND_NEXT) noexcept(false);
-void rnd(const cdotprecision &,complex &,complex &) noexcept(false);
-void rnd(const cdotprecision&, cinterval&) noexcept(false);
-complex rnd(const cdotprecision &,rndtype = RND_NEXT) noexcept(false);
+void rnd(const cdotprecision &,complex &,rndtype = RND_NEXT) noexcept;
+void rnd(const cdotprecision &,complex &,complex &) noexcept;
+void rnd(const cdotprecision&, cinterval&) noexcept;
+complex rnd(const cdotprecision &,rndtype = RND_NEXT) noexcept;
 
-void accumulate  (cdotprecision&, const complex&, const complex&) noexcept(false);
+void accumulate  (cdotprecision&, const complex&, const complex&) noexcept;
 
 
 // ---------------------------------------------------------------------------
@@ -327,8 +327,8 @@ void accumulate  (cdotprecision&, const complex&, const complex&) noexcept(false
 // ---------------------------------------------------------------------------
 
 //! Implementation of standard algebraic addition and allocation operation
-inline cdotprecision & operator += (cdotprecision &cd, const l_complex &lc) noexcept(false); 
-inline cdotprecision & operator -= (cdotprecision &cd, const l_complex &lc) noexcept(false); 
+inline cdotprecision & operator += (cdotprecision &cd, const l_complex &lc) noexcept; 
+inline cdotprecision & operator -= (cdotprecision &cd, const l_complex &lc) noexcept; 
 
 // ---------------------------------------------------------------------------
 // ----                                                                   ----

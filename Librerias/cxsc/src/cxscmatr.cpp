@@ -30,14 +30,14 @@
 
 namespace cxsc {
 
-cxscmatrix<T>::cxscmatrix<T>() noexcept(false)
+cxscmatrix<T>::cxscmatrix<T>() throw()
 {
 	dat=NULL;
 	lb1=lb2=1;
 	ub1=ub2=xsize=ysize=0;
 }
 
-cxscmatrix<T>::cxscmatrix<T>(const int &m, const int &n) noexcept(false)
+cxscmatrix<T>::cxscmatrix<T>(const int &m, const int &n) throw()
 {
 	lb1=lb2=1;
 	ub1=ysize=m;

@@ -38,39 +38,39 @@ namespace cxsc {
 // --------------------------------------------------------------------------
 
 inline lx_cinterval::lx_cinterval(const lx_interval & a, 
-                                const lx_interval & b) noexcept(false)
+                                const lx_interval & b) noexcept
       : re(a), im(b) { }
 
 inline lx_cinterval::lx_cinterval(const l_interval & a, 
-                                const l_interval & b) noexcept(false)
+                                const l_interval & b) noexcept
       : re(a), im(b) { }
 
 inline lx_cinterval::lx_cinterval(const interval & a, 
-                                const interval & b) noexcept(false)
+                                const interval & b) noexcept
       : re(a), im(b) { }
 
 inline lx_cinterval::lx_cinterval(const l_real & a, 
-                                const l_real & b) noexcept(false)
+                                const l_real & b) noexcept
       : re(a), im(b) { }
 
 inline lx_cinterval::lx_cinterval(const lx_real & a, 
-                                const lx_real & b) noexcept(false)
+                                const lx_real & b) noexcept
       : re(a), im(b) { } 
 
 inline lx_cinterval::lx_cinterval(const real & a, 
-                                const real & b) noexcept(false)
+                                const real & b) noexcept
       : re(a), im(b) { }
 
-inline lx_cinterval::lx_cinterval(const l_cinterval & a) noexcept(false)
+inline lx_cinterval::lx_cinterval(const l_cinterval & a) noexcept
       : re(Re(a)), im(Im(a)) { }
 
-inline lx_cinterval::lx_cinterval(const complex & a) noexcept(false)
+inline lx_cinterval::lx_cinterval(const complex & a) noexcept
       : re(Re(a)), im(Im(a)) { }
 
-inline lx_cinterval::lx_cinterval(const l_complex & a) noexcept(false)
+inline lx_cinterval::lx_cinterval(const l_complex & a) noexcept
       : re(Re(a)), im(Im(a)) { }
 
-inline lx_cinterval::lx_cinterval(const lx_complex & a) noexcept(false)
+inline lx_cinterval::lx_cinterval(const lx_complex & a) noexcept
       : re(Re(a)), im(Im(a)) { }
 
 inline lx_cinterval::lx_cinterval(const lx_complex & a, const lx_complex & b)
@@ -100,44 +100,44 @@ inline lx_cinterval::lx_cinterval(const complex & a, const complex & b)
       cxscthrow(ERROR_CINTERVAL_EMPTY_INTERVAL("lx_cinterval::lx_cinterval(const complex & a,const complex & b)"));
 }
 
-inline lx_cinterval::lx_cinterval(const cinterval & a) noexcept(false)
+inline lx_cinterval::lx_cinterval(const cinterval & a) noexcept
       : re(Re(a)), im(Im(a)) { }
 
 inline lx_cinterval::lx_cinterval(const real& na, const l_interval &la, 
                                   const real& nb, const l_interval &lb) 
-                                  noexcept(false) : re(na,la), im(nb,lb) { }
+                                  noexcept : re(na,la), im(nb,lb) { }
 
 inline lx_cinterval::lx_cinterval(const real &n, const l_interval &a, 
                                          const lx_interval &b) 
-                                         noexcept(false) : re(n,a), im(b) { }
+                                         noexcept : re(n,a), im(b) { }
 
 inline lx_cinterval::lx_cinterval(const lx_interval &a,
                                   const real &n, const l_interval &b) 
-                                        noexcept(false) : re(a), im(n,b) { }
+                                        noexcept : re(a), im(n,b) { }
 
 inline lx_cinterval::lx_cinterval(const real &nr, const string &sr, 
                                   const real &ni, const string &si) 
-          noexcept(false) : re(lx_interval(nr,sr)), im(lx_interval(ni,si)) { }
+          noexcept : re(lx_interval(nr,sr)), im(lx_interval(ni,si)) { }
 
-inline lx_cinterval::lx_cinterval(const lx_interval & a) noexcept(false)
+inline lx_cinterval::lx_cinterval(const lx_interval & a) noexcept
                                                   : re(a), im(0) { }
 
-inline lx_cinterval::lx_cinterval(const l_interval & a) noexcept(false)
+inline lx_cinterval::lx_cinterval(const l_interval & a) noexcept
                                                   : re(a), im(0) { }
 
-inline lx_cinterval::lx_cinterval(const interval & a) noexcept(false)
+inline lx_cinterval::lx_cinterval(const interval & a) noexcept
                                                   : re(a), im(0) { }
 
-inline lx_cinterval::lx_cinterval(const lx_real & a) noexcept(false)
+inline lx_cinterval::lx_cinterval(const lx_real & a) noexcept
                                                   : re(a), im(0) { }
 
-inline lx_cinterval::lx_cinterval(const l_real & a) noexcept(false)
+inline lx_cinterval::lx_cinterval(const l_real & a) noexcept
                                                   : re(a), im(0) { }
 
-inline lx_cinterval::lx_cinterval(const real & a) noexcept(false)
+inline lx_cinterval::lx_cinterval(const real & a) noexcept
                                                   : re(a), im(0) { }
 
-inline lx_cinterval::lx_cinterval(const real& n, const l_interval &a) noexcept(false)
+inline lx_cinterval::lx_cinterval(const real& n, const l_interval &a) noexcept
                                                   : re(n,a), im(0) { }
 
 
@@ -146,84 +146,84 @@ inline lx_cinterval::lx_cinterval(const real& n, const l_interval &a) noexcept(f
 // ------------------------------ Assignments ----------------------------
 // -----------------------------------------------------------------------
 
-inline lx_cinterval & lx_cinterval::operator = (const lx_cinterval & a) noexcept(false)
+inline lx_cinterval & lx_cinterval::operator = (const lx_cinterval & a) noexcept
 {
     re = a.re;
     im = a.im;
     return *this;
 } 
 
-inline lx_cinterval & lx_cinterval::operator = (const l_cinterval & a) noexcept(false)
+inline lx_cinterval & lx_cinterval::operator = (const l_cinterval & a) noexcept
 {
     re = Re(a);
     im = Im(a);
     return *this;
 } 
 
-inline lx_cinterval & lx_cinterval::operator = (const cinterval & a) noexcept(false)
+inline lx_cinterval & lx_cinterval::operator = (const cinterval & a) noexcept
 {
     re = Re(a);
     im = Im(a);
     return *this;
 } 
 
-inline lx_cinterval & lx_cinterval::operator = (const lx_interval & a) noexcept(false)
+inline lx_cinterval & lx_cinterval::operator = (const lx_interval & a) noexcept
 {
     re = a;
     im = 0.0;
     return *this;
 } 
 
-inline lx_cinterval & lx_cinterval::operator = (const l_interval & a) noexcept(false)
+inline lx_cinterval & lx_cinterval::operator = (const l_interval & a) noexcept
 {
     re = a;
     im = 0.0;
     return *this;
 } 
 
-inline lx_cinterval & lx_cinterval::operator = (const interval & a) noexcept(false)
+inline lx_cinterval & lx_cinterval::operator = (const interval & a) noexcept
 {
     re = a;
     im = 0.0;
     return *this;
 } 
 
-inline lx_cinterval & lx_cinterval::operator = (const lx_real & a) noexcept(false)
+inline lx_cinterval & lx_cinterval::operator = (const lx_real & a) noexcept
 {
     re = a;
     im = 0.0;
     return *this;
 } 
 
-inline lx_cinterval & lx_cinterval::operator = (const l_real & a) noexcept(false)
+inline lx_cinterval & lx_cinterval::operator = (const l_real & a) noexcept
 {
     re = a;
     im = 0.0;
     return *this;
 } 
 
-inline lx_cinterval & lx_cinterval::operator = (const real & a) noexcept(false)
+inline lx_cinterval & lx_cinterval::operator = (const real & a) noexcept
 {
     re = a;
     im = 0.0;
     return *this;
 } 
 
-inline lx_cinterval & lx_cinterval::operator = (const lx_complex & a ) noexcept(false)
-{
-    re = Re(a);
-    im = Im(a);
-    return *this;
-}
-
-inline lx_cinterval & lx_cinterval::operator = (const l_complex & a ) noexcept(false)
+inline lx_cinterval & lx_cinterval::operator = (const lx_complex & a ) noexcept
 {
     re = Re(a);
     im = Im(a);
     return *this;
 }
 
-inline lx_cinterval & lx_cinterval::operator = (const complex & a ) noexcept(false)
+inline lx_cinterval & lx_cinterval::operator = (const l_complex & a ) noexcept
+{
+    re = Re(a);
+    im = Im(a);
+    return *this;
+}
+
+inline lx_cinterval & lx_cinterval::operator = (const complex & a ) noexcept
 {
     re = Re(a);
     im = Im(a);
@@ -236,16 +236,16 @@ inline lx_cinterval & lx_cinterval::operator = (const complex & a ) noexcept(fal
 // ---------------------------- Functions --------------------------------
 // -----------------------------------------------------------------------
 
-inline lx_complex Inf(const lx_cinterval &a) noexcept(false)
+inline lx_complex Inf(const lx_cinterval &a) noexcept
 { return lx_complex(Inf(a.re),Inf(a.im)); }
 
-inline lx_complex Sup(const lx_cinterval &a) noexcept(false)
+inline lx_complex Sup(const lx_cinterval &a) noexcept
 { return lx_complex(Sup(a.re),Sup(a.im)); }
 
-inline lx_interval Re(const lx_cinterval &a) noexcept(false) 
+inline lx_interval Re(const lx_cinterval &a) noexcept 
 { return a.re; }
 
-inline lx_interval Im(const lx_cinterval &a) noexcept(false) 
+inline lx_interval Im(const lx_cinterval &a) noexcept 
 { return a.im; }
 
 
@@ -276,40 +276,40 @@ inline lx_cinterval & SetIm(lx_cinterval &a, const real &b)
 { a.im=b; return a; }
 
 
-inline lx_real InfRe(const lx_cinterval &a) noexcept(false) 
+inline lx_real InfRe(const lx_cinterval &a) noexcept 
 { return Inf(a.re); }
-inline lx_real InfIm(const lx_cinterval &a) noexcept(false)
+inline lx_real InfIm(const lx_cinterval &a) noexcept
 { return Inf(a.im); }
-inline lx_real SupRe(const lx_cinterval &a) noexcept(false)
+inline lx_real SupRe(const lx_cinterval &a) noexcept
 { return Sup(a.re); }
-inline lx_real SupIm(const lx_cinterval &a) noexcept(false)
+inline lx_real SupIm(const lx_cinterval &a) noexcept
 { return Sup(a.im); }
 
-inline lx_complex mid(const lx_cinterval &a) noexcept(false)
+inline lx_complex mid(const lx_cinterval &a) noexcept
 { return lx_complex(mid(a.re),mid(a.im)); }
 
-inline lx_complex diam(const lx_cinterval &a) noexcept(false)
+inline lx_complex diam(const lx_cinterval &a) noexcept
 { return lx_complex(diam(a.re),diam(a.im)); }
 
-inline real expo_Re(const lx_cinterval &a) noexcept(false)
+inline real expo_Re(const lx_cinterval &a) noexcept
 { return expo(a.re); }
 
-inline real expo_Im(const lx_cinterval &a) noexcept(false) 
+inline real expo_Im(const lx_cinterval &a) noexcept 
 { return expo(a.im); }
 
-inline l_interval li_part_Re(const lx_cinterval &a) noexcept(false)
+inline l_interval li_part_Re(const lx_cinterval &a) noexcept
 { return li_part(a.re); }
 
-inline l_interval li_part_Im(const lx_cinterval &a) noexcept(false)
+inline l_interval li_part_Im(const lx_cinterval &a) noexcept
 { return li_part(a.im); }
 
-inline lx_cinterval adjust(const lx_cinterval &a) noexcept(false)
+inline lx_cinterval adjust(const lx_cinterval &a) noexcept
 { return lx_cinterval(adjust(a.re),adjust(a.im)); }
 
-inline lx_cinterval conj(const lx_cinterval &a) noexcept(false)
+inline lx_cinterval conj(const lx_cinterval &a) noexcept
 { return lx_cinterval(a.re,-a.im); }
 
-inline void times2pown(lx_cinterval& x, const real &n) noexcept(false)
+inline void times2pown(lx_cinterval& x, const real &n) noexcept
 { 
     lx_interval a(x.re),b(x.im);
     times2pown(a,n);
@@ -317,7 +317,7 @@ inline void times2pown(lx_cinterval& x, const real &n) noexcept(false)
     x = lx_cinterval(a,b);	
 }
 
-inline lx_interval abs(const lx_cinterval &a) noexcept(false)
+inline lx_interval abs(const lx_cinterval &a) noexcept
 { 
 	return sqrtx2y2(a.re,a.im); 
 }
@@ -326,10 +326,10 @@ inline lx_interval abs(const lx_cinterval &a) noexcept(false)
 // ------------------------ Monadic Operators ----------------------------
 // -----------------------------------------------------------------------
 
-inline lx_cinterval operator-(const lx_cinterval & a) noexcept(false)
+inline lx_cinterval operator-(const lx_cinterval & a) noexcept
 {  return lx_cinterval(-a.re,-a.im); }
 
-inline lx_cinterval operator+(const lx_cinterval & a) noexcept(false)
+inline lx_cinterval operator+(const lx_cinterval & a) noexcept
 {  return a; }
 
 
@@ -338,313 +338,313 @@ inline lx_cinterval operator+(const lx_cinterval & a) noexcept(false)
 // -----------------------------------------------------------------------
 
 inline lx_cinterval operator + (const lx_cinterval &a, const lx_cinterval &b) 
-       noexcept(false)
+       noexcept
        { return lx_cinterval(a.re + b.re, a.im + b.im); }
 
 inline lx_cinterval operator + (const lx_cinterval &a, const l_cinterval &b) 
-       noexcept(false)
+       noexcept
        { return lx_cinterval(a.re + Re(b), a.im + Im(b)); }
 
 inline lx_cinterval operator + (const l_cinterval &a, const lx_cinterval &b) 
-       noexcept(false)
+       noexcept
        { return lx_cinterval(Re(a) + b.re, Im(a) + b.im); }
 
 inline lx_cinterval operator + (const lx_cinterval &a, const cinterval &b) 
-       noexcept(false)
+       noexcept
        { return lx_cinterval(a.re + Re(b), a.im + Im(b)); }
  
 inline lx_cinterval operator + (const cinterval &a, const lx_cinterval &b) 
-       noexcept(false)
+       noexcept
        { return lx_cinterval(Re(a) + b.re, Im(a) + b.im); }
 
 inline lx_cinterval operator + (const lx_cinterval &a, const lx_interval &b) 
-       noexcept(false)
+       noexcept
        { return lx_cinterval(a.re + b, a.im); }
 
 inline lx_cinterval operator + (const lx_interval &a, const lx_cinterval &b) 
-       noexcept(false)
+       noexcept
        { return lx_cinterval(a + b.re, b.im); }
 
 inline lx_cinterval operator + (const lx_cinterval &a, const l_interval &b) 
-       noexcept(false)
+       noexcept
        { return lx_cinterval(a.re + b, a.im); }
 
 inline lx_cinterval operator + (const l_interval &a, const lx_cinterval &b) 
-       noexcept(false)
+       noexcept
        { return lx_cinterval(a + b.re, b.im); }
 
-inline lx_cinterval operator + (const lx_cinterval &a, const lx_real &b) noexcept(false)
+inline lx_cinterval operator + (const lx_cinterval &a, const lx_real &b) noexcept
        { return lx_cinterval(a.re + b, a.im); }
 
-inline lx_cinterval operator + (const lx_real &a, const lx_cinterval &b) noexcept(false)
+inline lx_cinterval operator + (const lx_real &a, const lx_cinterval &b) noexcept
        { return lx_cinterval(a + b.re, b.im); }
 
-inline lx_cinterval operator + (const lx_cinterval &a, const l_real &b) noexcept(false)
+inline lx_cinterval operator + (const lx_cinterval &a, const l_real &b) noexcept
        { return lx_cinterval(a.re + b, a.im); }
 
-inline lx_cinterval operator + (const l_real &a, const lx_cinterval &b) noexcept(false)
+inline lx_cinterval operator + (const l_real &a, const lx_cinterval &b) noexcept
        { return lx_cinterval(a + b.re, b.im); } 
 
-inline lx_cinterval operator + (const lx_cinterval &a, const real &b) noexcept(false)
+inline lx_cinterval operator + (const lx_cinterval &a, const real &b) noexcept
        { return lx_cinterval(a.re + b, a.im); }
 
-inline lx_cinterval operator + (const real &a, const lx_cinterval &b) noexcept(false)
+inline lx_cinterval operator + (const real &a, const lx_cinterval &b) noexcept
        { return lx_cinterval(a + b.re, b.im); }
 
-inline lx_cinterval operator + (const lx_cinterval &a, const complex &b) noexcept(false)
+inline lx_cinterval operator + (const lx_cinterval &a, const complex &b) noexcept
        { return lx_cinterval(a.re + Re(b), a.im + Im(b)); }
-inline lx_cinterval operator + (const complex &a, const lx_cinterval &b) noexcept(false)
+inline lx_cinterval operator + (const complex &a, const lx_cinterval &b) noexcept
        { return lx_cinterval(Re(a) + b.re, Im(a) + b.im); } 
 
 inline lx_cinterval operator + (const lx_cinterval &a, const l_complex &b) 
-    noexcept(false) { return lx_cinterval(a.re + Re(b), a.im + Im(b)); }
+    noexcept { return lx_cinterval(a.re + Re(b), a.im + Im(b)); }
 inline lx_cinterval operator + (const l_complex &a, const lx_cinterval &b) 
-    noexcept(false) { return lx_cinterval(Re(a) + b.re, Im(a) + b.im); }
+    noexcept { return lx_cinterval(Re(a) + b.re, Im(a) + b.im); }
 
 inline lx_cinterval operator + (const lx_cinterval &a, const lx_complex &b) 
-    noexcept(false) { return lx_cinterval(a.re + Re(b), a.im + Im(b)); }
+    noexcept { return lx_cinterval(a.re + Re(b), a.im + Im(b)); }
 inline lx_cinterval operator + (const lx_complex &a, const lx_cinterval &b) 
-    noexcept(false) { return lx_cinterval(Re(a) + b.re, Im(a) + b.im); }
+    noexcept { return lx_cinterval(Re(a) + b.re, Im(a) + b.im); }
 
 
-inline lx_cinterval & operator +=(lx_cinterval &a, const lx_cinterval &b) noexcept(false)
+inline lx_cinterval & operator +=(lx_cinterval &a, const lx_cinterval &b) noexcept
 {  return a = a+b; }
 
-inline lx_cinterval & operator +=(lx_cinterval &a, const lx_interval &b) noexcept(false)
+inline lx_cinterval & operator +=(lx_cinterval &a, const lx_interval &b) noexcept
 {  return a = a+b; }
 
-inline lx_cinterval & operator +=(lx_cinterval &a, const l_interval &b) noexcept(false)
+inline lx_cinterval & operator +=(lx_cinterval &a, const l_interval &b) noexcept
 {  return a = a+b; }
 
-inline lx_cinterval & operator +=(lx_cinterval &a, const l_cinterval &b) noexcept(false)
+inline lx_cinterval & operator +=(lx_cinterval &a, const l_cinterval &b) noexcept
 {  return a = a+b; }
 
-inline lx_cinterval & operator +=(lx_cinterval &a, const l_real &b) noexcept(false)
+inline lx_cinterval & operator +=(lx_cinterval &a, const l_real &b) noexcept
 {  return a = a+b; }
 
-inline lx_cinterval & operator +=(lx_cinterval &a, const lx_real &b) noexcept(false)
+inline lx_cinterval & operator +=(lx_cinterval &a, const lx_real &b) noexcept
 {  return a = a+b; }
 
-inline lx_cinterval & operator +=(lx_cinterval &a, const real &b) noexcept(false)
+inline lx_cinterval & operator +=(lx_cinterval &a, const real &b) noexcept
 {  return a = a+b; }
 
-inline lx_cinterval & operator +=(lx_cinterval &a, const interval &b) noexcept(false)
+inline lx_cinterval & operator +=(lx_cinterval &a, const interval &b) noexcept
 {  return a = a+b; }
 
-inline lx_cinterval & operator +=(lx_cinterval &a, const cinterval &b) noexcept(false)
+inline lx_cinterval & operator +=(lx_cinterval &a, const cinterval &b) noexcept
 {  return a = a+b; }
 
-inline lx_cinterval & operator +=(lx_cinterval &a, const complex &b) noexcept(false)
+inline lx_cinterval & operator +=(lx_cinterval &a, const complex &b) noexcept
 {  return a = a+b; }
 
-inline lx_cinterval & operator +=(lx_cinterval &a, const l_complex &b) noexcept(false)
+inline lx_cinterval & operator +=(lx_cinterval &a, const l_complex &b) noexcept
 {  return a = a+b; }
 
-inline lx_cinterval & operator +=(lx_cinterval &a, const lx_complex &b) noexcept(false)
+inline lx_cinterval & operator +=(lx_cinterval &a, const lx_complex &b) noexcept
 {  return a = a+b; }
 
 
 inline lx_cinterval operator - (const lx_cinterval &a, const lx_cinterval &b) 
-       noexcept(false) { return lx_cinterval(a.re - b.re, a.im - b.im); }
+       noexcept { return lx_cinterval(a.re - b.re, a.im - b.im); }
 
 inline lx_cinterval operator - (const lx_cinterval &a, const l_cinterval &b) 
-       noexcept(false) { return lx_cinterval(a.re - Re(b), a.im - Im(b)); }
+       noexcept { return lx_cinterval(a.re - Re(b), a.im - Im(b)); }
 
 inline lx_cinterval operator - (const l_cinterval &a, const lx_cinterval &b) 
-       noexcept(false) { return lx_cinterval(Re(a) - b.re, Im(a) - b.im); }
+       noexcept { return lx_cinterval(Re(a) - b.re, Im(a) - b.im); }
 
 inline lx_cinterval operator - (const lx_cinterval &a, const cinterval &b) 
-       noexcept(false) { return lx_cinterval(a.re - Re(b), a.im - Im(b)); }
+       noexcept { return lx_cinterval(a.re - Re(b), a.im - Im(b)); }
  
 inline lx_cinterval operator - (const cinterval &a, const lx_cinterval &b) 
-       noexcept(false) { return lx_cinterval(Re(a) - b.re, Im(a) - b.im); }
+       noexcept { return lx_cinterval(Re(a) - b.re, Im(a) - b.im); }
 
 inline lx_cinterval operator - (const lx_cinterval &a, const lx_interval &b) 
-       noexcept(false) { return lx_cinterval(a.re - b, a.im); }
+       noexcept { return lx_cinterval(a.re - b, a.im); }
 
 inline lx_cinterval operator - (const lx_interval &a, const lx_cinterval &b) 
-       noexcept(false) { return lx_cinterval(a - b.re, -b.im); }
+       noexcept { return lx_cinterval(a - b.re, -b.im); }
 
 inline lx_cinterval operator - (const lx_cinterval &a, const l_interval &b) 
-       noexcept(false) { return lx_cinterval(a.re - b, a.im); }
+       noexcept { return lx_cinterval(a.re - b, a.im); }
 
 inline lx_cinterval operator - (const l_interval &a, const lx_cinterval &b) 
-       noexcept(false) { return lx_cinterval(a - b.re, -b.im); }
+       noexcept { return lx_cinterval(a - b.re, -b.im); }
 
-inline lx_cinterval operator - (const lx_cinterval &a, const lx_real &b) noexcept(false)
+inline lx_cinterval operator - (const lx_cinterval &a, const lx_real &b) noexcept
 { return lx_cinterval(a.re - b, a.im); }
 
-inline lx_cinterval operator - (const lx_real &a, const lx_cinterval &b) noexcept(false)
+inline lx_cinterval operator - (const lx_real &a, const lx_cinterval &b) noexcept
 { return lx_cinterval(a - b.re, -b.im); }
 
-inline lx_cinterval operator - (const lx_cinterval &a, const l_real &b) noexcept(false)
+inline lx_cinterval operator - (const lx_cinterval &a, const l_real &b) noexcept
 { return lx_cinterval(a.re - b, a.im); }
 
-inline lx_cinterval operator - (const l_real &a, const lx_cinterval &b) noexcept(false)
+inline lx_cinterval operator - (const l_real &a, const lx_cinterval &b) noexcept
 { return lx_cinterval(a - b.re, -b.im); } 
 
-inline lx_cinterval operator - (const lx_cinterval &a, const real &b) noexcept(false)
+inline lx_cinterval operator - (const lx_cinterval &a, const real &b) noexcept
 { return lx_cinterval(a.re - b, a.im); }
 
-inline lx_cinterval operator - (const real &a, const lx_cinterval &b) noexcept(false)
+inline lx_cinterval operator - (const real &a, const lx_cinterval &b) noexcept
 { return lx_cinterval(a - b.re, -b.im); } 
 
-inline lx_cinterval operator - (const lx_cinterval &a, const complex &b) noexcept(false)
+inline lx_cinterval operator - (const lx_cinterval &a, const complex &b) noexcept
        { return lx_cinterval(a.re - Re(b), a.im - Im(b)); }
-inline lx_cinterval operator - (const complex &a, const lx_cinterval &b) noexcept(false)
+inline lx_cinterval operator - (const complex &a, const lx_cinterval &b) noexcept
        { return lx_cinterval(Re(a) - b.re, Im(a) - b.im); }
 inline lx_cinterval operator - (const lx_cinterval &a, const l_complex &b) 
-    noexcept(false) { return lx_cinterval(a.re - Re(b), a.im - Im(b)); }
+    noexcept { return lx_cinterval(a.re - Re(b), a.im - Im(b)); }
 inline lx_cinterval operator - (const l_complex &a, const lx_cinterval &b) 
-    noexcept(false) { return lx_cinterval(Re(a) - b.re, Im(a) - b.im); }
+    noexcept { return lx_cinterval(Re(a) - b.re, Im(a) - b.im); }
 inline lx_cinterval operator - (const lx_cinterval &a, const lx_complex &b) 
-    noexcept(false) { return lx_cinterval(a.re - Re(b), a.im - Im(b)); }
+    noexcept { return lx_cinterval(a.re - Re(b), a.im - Im(b)); }
 inline lx_cinterval operator - (const lx_complex &a, const lx_cinterval &b) 
-    noexcept(false) { return lx_cinterval(Re(a) - b.re, Im(a) - b.im); }
+    noexcept { return lx_cinterval(Re(a) - b.re, Im(a) - b.im); }
 
 
-inline lx_cinterval & operator -=(lx_cinterval &a, const lx_cinterval &b) noexcept(false)
+inline lx_cinterval & operator -=(lx_cinterval &a, const lx_cinterval &b) noexcept
 {  return a = a-b; }
 
-inline lx_cinterval & operator -=(lx_cinterval &a, const lx_interval &b) noexcept(false)
+inline lx_cinterval & operator -=(lx_cinterval &a, const lx_interval &b) noexcept
 {  return a = a-b; }
 
-inline lx_cinterval & operator -=(lx_cinterval &a, const l_interval &b) noexcept(false)
+inline lx_cinterval & operator -=(lx_cinterval &a, const l_interval &b) noexcept
 {  return a = a-b; }
 
-inline lx_cinterval & operator -=(lx_cinterval &a, const l_cinterval &b) noexcept(false)
+inline lx_cinterval & operator -=(lx_cinterval &a, const l_cinterval &b) noexcept
 {  return a = a-b; }
 
-inline lx_cinterval & operator -=(lx_cinterval &a, const l_real &b) noexcept(false)
+inline lx_cinterval & operator -=(lx_cinterval &a, const l_real &b) noexcept
 {  return a = a-b; }
 
-inline lx_cinterval & operator -=(lx_cinterval &a, const lx_real &b) noexcept(false)
+inline lx_cinterval & operator -=(lx_cinterval &a, const lx_real &b) noexcept
 {  return a = a-b; }
 
-inline lx_cinterval & operator -=(lx_cinterval &a, const real &b) noexcept(false)
+inline lx_cinterval & operator -=(lx_cinterval &a, const real &b) noexcept
 {  return a = a-b; }
 
-inline lx_cinterval & operator -=(lx_cinterval &a, const interval &b) noexcept(false)
+inline lx_cinterval & operator -=(lx_cinterval &a, const interval &b) noexcept
 {  return a = a-b; }
 
-inline lx_cinterval & operator -=(lx_cinterval &a, const cinterval &b) noexcept(false)
+inline lx_cinterval & operator -=(lx_cinterval &a, const cinterval &b) noexcept
 {  return a = a-b; }
-inline lx_cinterval & operator -=(lx_cinterval &a, const complex &b) noexcept(false)
+inline lx_cinterval & operator -=(lx_cinterval &a, const complex &b) noexcept
 {  return a = a-b; }
-inline lx_cinterval & operator -=(lx_cinterval &a, const l_complex &b) noexcept(false)
+inline lx_cinterval & operator -=(lx_cinterval &a, const l_complex &b) noexcept
 {  return a = a-b; }
-inline lx_cinterval & operator -=(lx_cinterval &a, const lx_complex &b) noexcept(false)
+inline lx_cinterval & operator -=(lx_cinterval &a, const lx_complex &b) noexcept
 {  return a = a-b; }
 
 
 inline lx_cinterval operator * (const lx_cinterval &a,const lx_cinterval &b) 
-noexcept(false)
+noexcept
 { return lx_cinterval(a.re*b.re - a.im*b.im, a.im*b.re + a.re*b.im); }
 
 inline lx_cinterval operator * (const lx_cinterval &a, const l_cinterval &b) 
-noexcept(false)
+noexcept
 { return a * lx_cinterval(b); }
 
 inline lx_cinterval operator * (const l_cinterval &a, const lx_cinterval &b) 
-noexcept(false)
+noexcept
 { return lx_cinterval(a) * b; }
 
 inline lx_cinterval operator * (const lx_cinterval &a, const cinterval &b) 
-noexcept(false)
+noexcept
 { return a * lx_cinterval(b); }
  
 inline lx_cinterval operator * (const cinterval &a, const lx_cinterval &b) 
-noexcept(false)
+noexcept
 { return lx_cinterval(a) * b; }
 
 
 inline lx_cinterval operator * (const lx_cinterval &a, const lx_interval &b) 
-noexcept(false)
+noexcept
 { return lx_cinterval(a.re*b, a.im*b); }
 
 inline lx_cinterval operator * (const lx_interval &a, const lx_cinterval &b) 
-noexcept(false)
+noexcept
 { return lx_cinterval(a*b.re, a*b.im); }
 
 inline lx_cinterval operator * (const lx_cinterval &a, const l_interval &b) 
-noexcept(false)
+noexcept
 { return lx_cinterval(a.re*b, a.im*b); }
 
 inline lx_cinterval operator * (const l_interval &a, const lx_cinterval &b) 
-noexcept(false) 
+noexcept 
 { return lx_cinterval(a*b.re, a*b.im); }
 
-inline lx_cinterval operator * (const lx_cinterval &a, const lx_real &b) noexcept(false)
+inline lx_cinterval operator * (const lx_cinterval &a, const lx_real &b) noexcept
 { return lx_cinterval(a.re*b, a.im*b); }
 
-inline lx_cinterval operator * (const lx_real &a, const lx_cinterval &b) noexcept(false)
+inline lx_cinterval operator * (const lx_real &a, const lx_cinterval &b) noexcept
 { return lx_cinterval(a*b.re, a*b.im); }
 
-inline lx_cinterval operator * (const lx_cinterval &a, const l_real &b) noexcept(false)
+inline lx_cinterval operator * (const lx_cinterval &a, const l_real &b) noexcept
 { return lx_cinterval(a.re*b, a.im*b); }
 
-inline lx_cinterval operator * (const l_real &a, const lx_cinterval &b) noexcept(false)
+inline lx_cinterval operator * (const l_real &a, const lx_cinterval &b) noexcept
 { return lx_cinterval(a*b.re, a*b.im); } 
 
-inline lx_cinterval operator * (const lx_cinterval &a, const real &b) noexcept(false)
+inline lx_cinterval operator * (const lx_cinterval &a, const real &b) noexcept
 { return lx_cinterval(a.re*b, a.im*b); }
 
-inline lx_cinterval operator * (const real &a, const lx_cinterval &b) noexcept(false)
+inline lx_cinterval operator * (const real &a, const lx_cinterval &b) noexcept
 { return lx_cinterval(a*b.re, a*b.im); } 
 
-inline lx_cinterval operator * (const lx_cinterval &a, const complex &b) noexcept(false)
+inline lx_cinterval operator * (const lx_cinterval &a, const complex &b) noexcept
 { return a * lx_cinterval(b); }
-inline lx_cinterval operator * (const complex &a, const lx_cinterval &b) noexcept(false)
+inline lx_cinterval operator * (const complex &a, const lx_cinterval &b) noexcept
 { return lx_cinterval(a) * b; }
 inline lx_cinterval operator * (const lx_cinterval &a, const l_complex &b) 
-    noexcept(false) { return a * lx_cinterval(b); }
+    noexcept { return a * lx_cinterval(b); }
 inline lx_cinterval operator * (const l_complex &a, const lx_cinterval &b) 
-    noexcept(false) { return lx_cinterval(a) * b; } 
+    noexcept { return lx_cinterval(a) * b; } 
 inline lx_cinterval operator * (const lx_cinterval &a, const lx_complex &b) 
-    noexcept(false) { return a * lx_cinterval(b); }
+    noexcept { return a * lx_cinterval(b); }
 inline lx_cinterval operator * (const lx_complex &a, const lx_cinterval &b) 
-    noexcept(false) { return lx_cinterval(a) * b; } 
+    noexcept { return lx_cinterval(a) * b; } 
 
 
-inline lx_cinterval & operator *=(lx_cinterval &a, const lx_cinterval &b) noexcept(false)
+inline lx_cinterval & operator *=(lx_cinterval &a, const lx_cinterval &b) noexcept
 {  return a = a*b; }
 
-inline lx_cinterval & operator *=(lx_cinterval &a, const lx_interval &b) noexcept(false)
+inline lx_cinterval & operator *=(lx_cinterval &a, const lx_interval &b) noexcept
 {  return a = a*b; }
 
-inline lx_cinterval & operator *=(lx_cinterval &a, const l_interval &b) noexcept(false)
+inline lx_cinterval & operator *=(lx_cinterval &a, const l_interval &b) noexcept
 {  return a = a*b; }
 
-inline lx_cinterval & operator *=(lx_cinterval &a, const l_cinterval &b) noexcept(false)
+inline lx_cinterval & operator *=(lx_cinterval &a, const l_cinterval &b) noexcept
 {  return a = a*b; }
 
-inline lx_cinterval & operator *=(lx_cinterval &a, const l_real &b) noexcept(false)
+inline lx_cinterval & operator *=(lx_cinterval &a, const l_real &b) noexcept
 {  return a = a*b; }
 
-inline lx_cinterval & operator *=(lx_cinterval &a, const lx_real &b) noexcept(false)
+inline lx_cinterval & operator *=(lx_cinterval &a, const lx_real &b) noexcept
 {  return a = a*b; }
 
-inline lx_cinterval & operator *=(lx_cinterval &a, const real &b) noexcept(false)
+inline lx_cinterval & operator *=(lx_cinterval &a, const real &b) noexcept
 {  return a = a*b; }
 
-inline lx_cinterval & operator *=(lx_cinterval &a, const interval &b) noexcept(false)
+inline lx_cinterval & operator *=(lx_cinterval &a, const interval &b) noexcept
 {  return a = a*b; }
 
-inline lx_cinterval & operator *=(lx_cinterval &a, const cinterval &b) noexcept(false)
+inline lx_cinterval & operator *=(lx_cinterval &a, const cinterval &b) noexcept
 {  return a = a*b; }
 
-inline lx_cinterval & operator *=(lx_cinterval &a, const complex &b) noexcept(false)
+inline lx_cinterval & operator *=(lx_cinterval &a, const complex &b) noexcept
 {  return a = a*b; }
 
-inline lx_cinterval & operator *=(lx_cinterval &a, const l_complex &b) noexcept(false)
+inline lx_cinterval & operator *=(lx_cinterval &a, const l_complex &b) noexcept
 {  return a = a*b; }
 
-inline lx_cinterval & operator *=(lx_cinterval &a, const lx_complex &b) noexcept(false)
+inline lx_cinterval & operator *=(lx_cinterval &a, const lx_complex &b) noexcept
 {  return a = a*b; }
 
 
 inline lx_cinterval operator / (const lx_cinterval &a, const lx_cinterval &b) 
-noexcept(false)
+noexcept
 {
     lx_interval Ne(sqr(b.re) + sqr(b.im));
 
@@ -653,235 +653,235 @@ noexcept(false)
 }
 
 inline lx_cinterval operator / (const lx_cinterval &a, const l_cinterval &b) 
-noexcept(false)
+noexcept
 { return a / lx_cinterval(b); }
 
 inline lx_cinterval operator / (const l_cinterval &a, const lx_cinterval &b) 
-noexcept(false)
+noexcept
 { return lx_cinterval(a) / b; }
 
 inline lx_cinterval operator / (const lx_cinterval &a, const cinterval &b) 
-noexcept(false)
+noexcept
 { return a / lx_cinterval(b); }
  
 inline lx_cinterval operator / (const cinterval &a, const lx_cinterval &b) 
-noexcept(false)
+noexcept
 { return lx_cinterval(a) / b; }
 
 inline lx_cinterval operator / (const lx_cinterval &a, const lx_interval &b) 
-noexcept(false)
+noexcept
 { return lx_cinterval(a.re/b, a.im/b); }
 
 inline lx_cinterval operator / (const lx_interval &a, const lx_cinterval &b) 
-noexcept(false)
+noexcept
 { return lx_cinterval(a) / b; }
 
 inline lx_cinterval operator / (const lx_cinterval &a, const l_interval &b) 
-noexcept(false)
+noexcept
 { return lx_cinterval(a.re/b, a.im/b); }
 
 inline lx_cinterval operator / (const l_interval &a, const lx_cinterval &b) 
-noexcept(false)
+noexcept
 { return lx_cinterval(a) / b; }
 
-inline lx_cinterval operator / (const lx_cinterval &a, const l_real &b) noexcept(false)
+inline lx_cinterval operator / (const lx_cinterval &a, const l_real &b) noexcept
 { return lx_cinterval(a.re/b, a.im/b); }
 
-inline lx_cinterval operator / (const l_real &a, const lx_cinterval &b) noexcept(false)
+inline lx_cinterval operator / (const l_real &a, const lx_cinterval &b) noexcept
 { return lx_cinterval(a) / b; }
 
-inline lx_cinterval operator / (const lx_cinterval &a, const lx_real &b) noexcept(false)
+inline lx_cinterval operator / (const lx_cinterval &a, const lx_real &b) noexcept
 { return lx_cinterval(a.re/b, a.im/b); }
 
-inline lx_cinterval operator / (const lx_real &a, const lx_cinterval &b) noexcept(false)
+inline lx_cinterval operator / (const lx_real &a, const lx_cinterval &b) noexcept
 { return lx_cinterval(a) / b; } 
 
-inline lx_cinterval operator / (const lx_cinterval &a, const real &b) noexcept(false)
+inline lx_cinterval operator / (const lx_cinterval &a, const real &b) noexcept
 { return lx_cinterval(a.re/b, a.im/b); }
 
-inline lx_cinterval operator / (const real &a, const lx_cinterval &b) noexcept(false)
+inline lx_cinterval operator / (const real &a, const lx_cinterval &b) noexcept
 { return lx_cinterval(a) / b; } 
 
-inline lx_cinterval operator / (const lx_cinterval &a, const complex &b) noexcept(false)
+inline lx_cinterval operator / (const lx_cinterval &a, const complex &b) noexcept
 { return a / lx_cinterval(b); }
-inline lx_cinterval operator / (const complex &a, const lx_cinterval &b) noexcept(false)
+inline lx_cinterval operator / (const complex &a, const lx_cinterval &b) noexcept
 { return lx_cinterval(a) / b; }
 
 inline lx_cinterval operator / (const lx_cinterval &a, const l_complex &b) 
-    noexcept(false) { return a / lx_cinterval(b); }
+    noexcept { return a / lx_cinterval(b); }
 inline lx_cinterval operator / (const l_complex &a, const lx_cinterval &b) 
-    noexcept(false) { return lx_cinterval(a) / b; }
+    noexcept { return lx_cinterval(a) / b; }
 
 inline lx_cinterval operator / (const lx_cinterval &a, const lx_complex &b) 
-    noexcept(false) { return a / lx_cinterval(b); }
+    noexcept { return a / lx_cinterval(b); }
 inline lx_cinterval operator / (const lx_complex &a, const lx_cinterval &b) 
-    noexcept(false) { return lx_cinterval(a) / b; } 
+    noexcept { return lx_cinterval(a) / b; } 
 
 
-inline lx_cinterval & operator /=(lx_cinterval &a, const lx_cinterval &b) noexcept(false)
+inline lx_cinterval & operator /=(lx_cinterval &a, const lx_cinterval &b) noexcept
 {  return a = a/b; }
 
-inline lx_cinterval & operator /=(lx_cinterval &a, const lx_interval &b) noexcept(false)
+inline lx_cinterval & operator /=(lx_cinterval &a, const lx_interval &b) noexcept
 {  return a = a/b; }
 
-inline lx_cinterval & operator /=(lx_cinterval &a, const l_interval &b) noexcept(false)
+inline lx_cinterval & operator /=(lx_cinterval &a, const l_interval &b) noexcept
 {  return a = a/b; }
 
-inline lx_cinterval & operator /=(lx_cinterval &a, const l_cinterval &b) noexcept(false)
+inline lx_cinterval & operator /=(lx_cinterval &a, const l_cinterval &b) noexcept
 {  return a = a/b; }
 
-inline lx_cinterval & operator /=(lx_cinterval &a, const l_real &b) noexcept(false)
+inline lx_cinterval & operator /=(lx_cinterval &a, const l_real &b) noexcept
 {  return a = a/b; }
 
-inline lx_cinterval & operator /=(lx_cinterval &a, const lx_real &b) noexcept(false)
+inline lx_cinterval & operator /=(lx_cinterval &a, const lx_real &b) noexcept
 {  return a = a/b; }
 
-inline lx_cinterval & operator /=(lx_cinterval &a, const real &b) noexcept(false)
+inline lx_cinterval & operator /=(lx_cinterval &a, const real &b) noexcept
 {  return a = a/b; }
 
-inline lx_cinterval & operator /=(lx_cinterval &a, const interval &b) noexcept(false)
+inline lx_cinterval & operator /=(lx_cinterval &a, const interval &b) noexcept
 {  return a = a/b; }
 
-inline lx_cinterval & operator /=(lx_cinterval &a, const cinterval &b) noexcept(false)
+inline lx_cinterval & operator /=(lx_cinterval &a, const cinterval &b) noexcept
 {  return a = a/b; }
 
-inline lx_cinterval & operator /=(lx_cinterval &a, const complex &b) noexcept(false)
+inline lx_cinterval & operator /=(lx_cinterval &a, const complex &b) noexcept
 {  return a = a/b; }
 
-inline lx_cinterval & operator /=(lx_cinterval &a, const l_complex &b) noexcept(false)
+inline lx_cinterval & operator /=(lx_cinterval &a, const l_complex &b) noexcept
 {  return a = a/b; }
 
-inline lx_cinterval & operator /=(lx_cinterval &a, const lx_complex &b) noexcept(false)
+inline lx_cinterval & operator /=(lx_cinterval &a, const lx_complex &b) noexcept
 {  return a = a/b; }
 
 
 
-inline bool operator ! (const lx_cinterval & a) noexcept(false)
+inline bool operator ! (const lx_cinterval & a) noexcept
 { return !a.re && !a.im; }
 
 
-inline bool operator == (const lx_cinterval &a, const lx_cinterval &b) noexcept(false)
+inline bool operator == (const lx_cinterval &a, const lx_cinterval &b) noexcept
 { return a.re == b.re && a.im == b.im; }
 
-inline bool operator == (const lx_cinterval &a, const l_cinterval &b) noexcept(false)
+inline bool operator == (const lx_cinterval &a, const l_cinterval &b) noexcept
 { return a == lx_cinterval(b); }
-inline bool operator == (const l_cinterval &a, const lx_cinterval &b) noexcept(false)
+inline bool operator == (const l_cinterval &a, const lx_cinterval &b) noexcept
 { return lx_cinterval(a) == b; }
 
-inline bool operator == (const lx_cinterval &a, const lx_interval &b) noexcept(false)
+inline bool operator == (const lx_cinterval &a, const lx_interval &b) noexcept
 { return a == lx_cinterval(b); }
-inline bool operator == (const lx_interval &a, const lx_cinterval &b) noexcept(false)
+inline bool operator == (const lx_interval &a, const lx_cinterval &b) noexcept
 { return lx_cinterval(a) == b; }
 
-inline bool operator == (const lx_cinterval &a, const l_interval &b) noexcept(false)
+inline bool operator == (const lx_cinterval &a, const l_interval &b) noexcept
 { return a == lx_cinterval(b); }
-inline bool operator == (const l_interval &a, const lx_cinterval &b) noexcept(false)
+inline bool operator == (const l_interval &a, const lx_cinterval &b) noexcept
 { return lx_cinterval(a) == b; }
 
-inline bool operator == (const lx_cinterval &a, const l_real &b) noexcept(false)
+inline bool operator == (const lx_cinterval &a, const l_real &b) noexcept
 { return a == lx_cinterval(b); }
-inline bool operator == (const l_real &a, const lx_cinterval &b) noexcept(false)
+inline bool operator == (const l_real &a, const lx_cinterval &b) noexcept
 { return lx_cinterval(a) == b; }
 
-inline bool operator == (const lx_cinterval &a, const lx_real &b) noexcept(false)
+inline bool operator == (const lx_cinterval &a, const lx_real &b) noexcept
 { return a == lx_cinterval(b); }
-inline bool operator == (const lx_real &a, const lx_cinterval &b) noexcept(false)
+inline bool operator == (const lx_real &a, const lx_cinterval &b) noexcept
 { return lx_cinterval(a) == b; }
 
-inline bool operator == (const lx_cinterval &a, const real &b) noexcept(false)
+inline bool operator == (const lx_cinterval &a, const real &b) noexcept
 { return a == lx_cinterval(b); }
-inline bool operator == (const real &a, const lx_cinterval &b) noexcept(false)
+inline bool operator == (const real &a, const lx_cinterval &b) noexcept
 { return lx_cinterval(a) == b; }
 
-inline bool operator == (const lx_cinterval &a, const interval &b) noexcept(false)
+inline bool operator == (const lx_cinterval &a, const interval &b) noexcept
 { return a == lx_cinterval(b); }
-inline bool operator == (const interval &a, const lx_cinterval &b) noexcept(false)
+inline bool operator == (const interval &a, const lx_cinterval &b) noexcept
 { return lx_cinterval(a) == b; }
 
-inline bool operator == (const lx_cinterval &a, const cinterval &b) noexcept(false)
+inline bool operator == (const lx_cinterval &a, const cinterval &b) noexcept
 { return a == lx_cinterval(b); }
-inline bool operator == (const cinterval &a, const lx_cinterval &b) noexcept(false)
+inline bool operator == (const cinterval &a, const lx_cinterval &b) noexcept
 { return lx_cinterval(a) == b; }
 
-inline bool operator == (const lx_cinterval &a, const complex &b) noexcept(false)
+inline bool operator == (const lx_cinterval &a, const complex &b) noexcept
 { return a == lx_cinterval(b); }
-inline bool operator == (const complex &a, const lx_cinterval &b) noexcept(false)
+inline bool operator == (const complex &a, const lx_cinterval &b) noexcept
 { return lx_cinterval(a) == b; }
 
-inline bool operator == (const lx_cinterval &a, const l_complex &b) noexcept(false)
+inline bool operator == (const lx_cinterval &a, const l_complex &b) noexcept
 { return a == lx_cinterval(b); }
-inline bool operator == (const l_complex &a, const lx_cinterval &b) noexcept(false)
+inline bool operator == (const l_complex &a, const lx_cinterval &b) noexcept
 { return lx_cinterval(a) == b; }
 
-inline bool operator == (const lx_cinterval &a, const lx_complex &b) noexcept(false)
+inline bool operator == (const lx_cinterval &a, const lx_complex &b) noexcept
 { return a == lx_cinterval(b); }
-inline bool operator == (const lx_complex &a, const lx_cinterval &b) noexcept(false)
+inline bool operator == (const lx_complex &a, const lx_cinterval &b) noexcept
 { return lx_cinterval(a) == b; }
 
 
-inline bool operator != (const lx_cinterval &a, const lx_cinterval &b) noexcept(false)
+inline bool operator != (const lx_cinterval &a, const lx_cinterval &b) noexcept
 { return a.re != b.re || a.im != b.im; }
 
-inline bool operator != (const lx_cinterval &a, const l_cinterval &b) noexcept(false)
+inline bool operator != (const lx_cinterval &a, const l_cinterval &b) noexcept
 { return !(a == b); }
-inline bool operator != (const l_cinterval &a, const lx_cinterval &b) noexcept(false)
-{ return !(a == b); }
-
-inline bool operator != (const lx_cinterval &a, const lx_interval &b) noexcept(false)
-{ return !(a == b); }
-inline bool operator != (const lx_interval &a, const lx_cinterval &b) noexcept(false)
+inline bool operator != (const l_cinterval &a, const lx_cinterval &b) noexcept
 { return !(a == b); }
 
-inline bool operator != (const lx_cinterval &a, const l_interval &b) noexcept(false)
+inline bool operator != (const lx_cinterval &a, const lx_interval &b) noexcept
 { return !(a == b); }
-inline bool operator != (const l_interval &a, const lx_cinterval &b) noexcept(false)
-{ return !(a == b); }
-
-inline bool operator != (const lx_cinterval &a, const l_real &b) noexcept(false)
-{ return !(a == b); }
-inline bool operator != (const l_real &a, const lx_cinterval &b) noexcept(false)
+inline bool operator != (const lx_interval &a, const lx_cinterval &b) noexcept
 { return !(a == b); }
 
-inline bool operator != (const lx_cinterval &a, const lx_real &b) noexcept(false)
+inline bool operator != (const lx_cinterval &a, const l_interval &b) noexcept
 { return !(a == b); }
-inline bool operator != (const lx_real &a, const lx_cinterval &b) noexcept(false)
-{ return !(a == b); }
-
-inline bool operator != (const lx_cinterval &a, const real &b) noexcept(false)
-{ return !(a == b); }
-inline bool operator != (const real &a, const lx_cinterval &b) noexcept(false)
+inline bool operator != (const l_interval &a, const lx_cinterval &b) noexcept
 { return !(a == b); }
 
-inline bool operator != (const lx_cinterval &a, const interval &b) noexcept(false)
+inline bool operator != (const lx_cinterval &a, const l_real &b) noexcept
 { return !(a == b); }
-inline bool operator != (const interval &a, const lx_cinterval &b) noexcept(false)
-{ return !(a == b); }
-
-inline bool operator != (const lx_cinterval &a, const cinterval &b) noexcept(false)
-{ return !(a == b); }
-inline bool operator != (const cinterval &a, const lx_cinterval &b) noexcept(false)
+inline bool operator != (const l_real &a, const lx_cinterval &b) noexcept
 { return !(a == b); }
 
-inline bool operator != (const lx_cinterval &a, const complex &b) noexcept(false)
+inline bool operator != (const lx_cinterval &a, const lx_real &b) noexcept
 { return !(a == b); }
-inline bool operator != (const complex &a, const lx_cinterval &b) noexcept(false)
-{ return !(a == b); }
-
-inline bool operator != (const lx_cinterval &a, const l_complex &b) noexcept(false)
-{ return !(a == b); }
-inline bool operator != (const l_complex &a, const lx_cinterval &b) noexcept(false)
+inline bool operator != (const lx_real &a, const lx_cinterval &b) noexcept
 { return !(a == b); }
 
-inline bool operator != (const lx_cinterval &a, const lx_complex &b) noexcept(false)
+inline bool operator != (const lx_cinterval &a, const real &b) noexcept
 { return !(a == b); }
-inline bool operator != (const lx_complex &a, const lx_cinterval &b) noexcept(false)
+inline bool operator != (const real &a, const lx_cinterval &b) noexcept
+{ return !(a == b); }
+
+inline bool operator != (const lx_cinterval &a, const interval &b) noexcept
+{ return !(a == b); }
+inline bool operator != (const interval &a, const lx_cinterval &b) noexcept
+{ return !(a == b); }
+
+inline bool operator != (const lx_cinterval &a, const cinterval &b) noexcept
+{ return !(a == b); }
+inline bool operator != (const cinterval &a, const lx_cinterval &b) noexcept
+{ return !(a == b); }
+
+inline bool operator != (const lx_cinterval &a, const complex &b) noexcept
+{ return !(a == b); }
+inline bool operator != (const complex &a, const lx_cinterval &b) noexcept
+{ return !(a == b); }
+
+inline bool operator != (const lx_cinterval &a, const l_complex &b) noexcept
+{ return !(a == b); }
+inline bool operator != (const l_complex &a, const lx_cinterval &b) noexcept
+{ return !(a == b); }
+
+inline bool operator != (const lx_cinterval &a, const lx_complex &b) noexcept
+{ return !(a == b); }
+inline bool operator != (const lx_complex &a, const lx_cinterval &b) noexcept
 { return !(a == b); }
 
 
 
 // ------------------------- Set Operators -----------------------------------
 
-inline bool operator < (const lx_cinterval & a, const lx_cinterval & b) noexcept(false)
+inline bool operator < (const lx_cinterval & a, const lx_cinterval & b) noexcept
 {
    if (Inf(a.re) <= Inf(b.re) || Sup(a.re) >= Sup(b.re)) 
       return false;
@@ -891,10 +891,10 @@ inline bool operator < (const lx_cinterval & a, const lx_cinterval & b) noexcept
    return true; 
 }
 
-inline bool operator > (const lx_cinterval & a, const lx_cinterval & b) noexcept(false) 
+inline bool operator > (const lx_cinterval & a, const lx_cinterval & b) noexcept 
 { return b < a; }
 
-inline bool operator <= (const lx_cinterval & a, const lx_cinterval & b) noexcept(false)
+inline bool operator <= (const lx_cinterval & a, const lx_cinterval & b) noexcept
 {
    if (Inf(a.re) < Inf(b.re) || Sup(a.re) > Sup(b.re)) 
       return false;
@@ -904,158 +904,158 @@ inline bool operator <= (const lx_cinterval & a, const lx_cinterval & b) noexcep
    return true; 
 }
 
-inline bool operator >= (const lx_cinterval & a, const lx_cinterval & b) noexcept(false)
+inline bool operator >= (const lx_cinterval & a, const lx_cinterval & b) noexcept
 { return b <= a; }
 
 
-inline bool operator  <(const l_cinterval & a, const lx_cinterval & b) noexcept(false) 
+inline bool operator  <(const l_cinterval & a, const lx_cinterval & b) noexcept 
                                              { return lx_cinterval(a) < b; }
-inline bool operator  >(const l_cinterval & a, const lx_cinterval & b) noexcept(false)
+inline bool operator  >(const l_cinterval & a, const lx_cinterval & b) noexcept
                                              { return lx_cinterval(a) > b; }
-inline bool operator <=(const l_cinterval & a, const lx_cinterval & b) noexcept(false)
+inline bool operator <=(const l_cinterval & a, const lx_cinterval & b) noexcept
                                             { return lx_cinterval(a) <= b; }
-inline bool operator >=(const l_cinterval & a, const lx_cinterval & b) noexcept(false)
+inline bool operator >=(const l_cinterval & a, const lx_cinterval & b) noexcept
                                             { return lx_cinterval(a) >= b; }
 
-inline bool operator  <(const lx_cinterval & a, const l_cinterval & b) noexcept(false)
+inline bool operator  <(const lx_cinterval & a, const l_cinterval & b) noexcept
                                              { return a < lx_cinterval(b); }
-inline bool operator  >(const lx_cinterval & a, const l_cinterval & b) noexcept(false) 
+inline bool operator  >(const lx_cinterval & a, const l_cinterval & b) noexcept 
                                              { return a > lx_cinterval(b); }
-inline bool operator <=(const lx_cinterval & a, const l_cinterval & b) noexcept(false) 
+inline bool operator <=(const lx_cinterval & a, const l_cinterval & b) noexcept 
                                             { return a <= lx_cinterval(b); }
-inline bool operator >=(const lx_cinterval & a, const l_cinterval & b) noexcept(false)
+inline bool operator >=(const lx_cinterval & a, const l_cinterval & b) noexcept
                                             { return a >= lx_cinterval(b); }
 
-inline bool operator  <(const cinterval & a, const lx_cinterval & b) noexcept(false) 
+inline bool operator  <(const cinterval & a, const lx_cinterval & b) noexcept 
                                              { return lx_cinterval(a) < b; }
-inline bool operator  >(const cinterval & a, const lx_cinterval & b) noexcept(false)
+inline bool operator  >(const cinterval & a, const lx_cinterval & b) noexcept
                                              { return lx_cinterval(a) > b; }
-inline bool operator <=(const cinterval & a, const lx_cinterval & b) noexcept(false)
+inline bool operator <=(const cinterval & a, const lx_cinterval & b) noexcept
                                             { return lx_cinterval(a) <= b; }
-inline bool operator >=(const cinterval & a, const lx_cinterval & b) noexcept(false)
+inline bool operator >=(const cinterval & a, const lx_cinterval & b) noexcept
                                             { return lx_cinterval(a) >= b; }
 
-inline bool operator  <(const lx_cinterval & a, const cinterval & b) noexcept(false)
+inline bool operator  <(const lx_cinterval & a, const cinterval & b) noexcept
                                              { return a < lx_cinterval(b); }
-inline bool operator  >(const lx_cinterval & a, const cinterval & b) noexcept(false) 
+inline bool operator  >(const lx_cinterval & a, const cinterval & b) noexcept 
                                              { return a > lx_cinterval(b); }
-inline bool operator <=(const lx_cinterval & a, const cinterval & b) noexcept(false) 
+inline bool operator <=(const lx_cinterval & a, const cinterval & b) noexcept 
                                             { return a <= lx_cinterval(b); }
-inline bool operator >=(const lx_cinterval & a, const cinterval & b) noexcept(false)
+inline bool operator >=(const lx_cinterval & a, const cinterval & b) noexcept
                                             { return a >= lx_cinterval(b); }
 
-inline bool operator  <(const lx_interval & a, const lx_cinterval & b) noexcept(false) 
+inline bool operator  <(const lx_interval & a, const lx_cinterval & b) noexcept 
                                               { return lx_cinterval(a) < b; }
-inline bool operator  >(const lx_interval & a, const lx_cinterval & b) noexcept(false)
+inline bool operator  >(const lx_interval & a, const lx_cinterval & b) noexcept
                                               { return lx_cinterval(a) > b; }
-inline bool operator <=(const lx_interval & a, const lx_cinterval & b) noexcept(false)
+inline bool operator <=(const lx_interval & a, const lx_cinterval & b) noexcept
                                              { return lx_cinterval(a) <= b; }
-inline bool operator >=(const lx_interval & a, const lx_cinterval & b) noexcept(false)
+inline bool operator >=(const lx_interval & a, const lx_cinterval & b) noexcept
                                              { return lx_cinterval(a) >= b; }
 
-inline bool operator  <(const lx_cinterval & a, const lx_interval & b) noexcept(false)
+inline bool operator  <(const lx_cinterval & a, const lx_interval & b) noexcept
                                              { return a < lx_cinterval(b); }
-inline bool operator  >(const lx_cinterval & a, const lx_interval & b) noexcept(false) 
+inline bool operator  >(const lx_cinterval & a, const lx_interval & b) noexcept 
                                              { return a > lx_cinterval(b); }
-inline bool operator <=(const lx_cinterval & a, const lx_interval & b) noexcept(false) 
+inline bool operator <=(const lx_cinterval & a, const lx_interval & b) noexcept 
                                             { return a <= lx_cinterval(b); }
-inline bool operator >=(const lx_cinterval & a, const lx_interval & b) noexcept(false)
+inline bool operator >=(const lx_cinterval & a, const lx_interval & b) noexcept
                                             { return a >= lx_cinterval(b); }
 
-inline bool operator  <(const l_interval & a, const lx_cinterval & b) noexcept(false) 
+inline bool operator  <(const l_interval & a, const lx_cinterval & b) noexcept 
                                               { return lx_cinterval(a) < b; }
-inline bool operator  >(const l_interval & a, const lx_cinterval & b) noexcept(false)
+inline bool operator  >(const l_interval & a, const lx_cinterval & b) noexcept
                                               { return lx_cinterval(a) > b; }
-inline bool operator <=(const l_interval & a, const lx_cinterval & b) noexcept(false)
+inline bool operator <=(const l_interval & a, const lx_cinterval & b) noexcept
                                              { return lx_cinterval(a) <= b; }
-inline bool operator >=(const l_interval & a, const lx_cinterval & b) noexcept(false)
+inline bool operator >=(const l_interval & a, const lx_cinterval & b) noexcept
                                              { return lx_cinterval(a) >= b; }
 
-inline bool operator  <(const lx_cinterval & a, const l_interval & b) noexcept(false)
+inline bool operator  <(const lx_cinterval & a, const l_interval & b) noexcept
                                              { return a < lx_cinterval(b); }
-inline bool operator  >(const lx_cinterval & a, const l_interval & b) noexcept(false) 
+inline bool operator  >(const lx_cinterval & a, const l_interval & b) noexcept 
                                              { return a > lx_cinterval(b); }
-inline bool operator <=(const lx_cinterval & a, const l_interval & b) noexcept(false) 
+inline bool operator <=(const lx_cinterval & a, const l_interval & b) noexcept 
                                             { return a <= lx_cinterval(b); }
-inline bool operator >=(const lx_cinterval & a, const l_interval & b) noexcept(false)
+inline bool operator >=(const lx_cinterval & a, const l_interval & b) noexcept
                                             { return a >= lx_cinterval(b); }
 
-inline bool operator  <(const interval & a, const lx_cinterval & b) noexcept(false) 
+inline bool operator  <(const interval & a, const lx_cinterval & b) noexcept 
                                             { return lx_cinterval(a) < b; }
-inline bool operator  >(const interval & a, const lx_cinterval & b) noexcept(false)
+inline bool operator  >(const interval & a, const lx_cinterval & b) noexcept
                                             { return lx_cinterval(a) > b; }
-inline bool operator <=(const interval & a, const lx_cinterval & b) noexcept(false)
+inline bool operator <=(const interval & a, const lx_cinterval & b) noexcept
                                            { return lx_cinterval(a) <= b; }
-inline bool operator >=(const interval & a, const lx_cinterval & b) noexcept(false)
+inline bool operator >=(const interval & a, const lx_cinterval & b) noexcept
                                            { return lx_cinterval(a) >= b; }
 
-inline bool operator  <(const lx_cinterval & a, const interval & b) noexcept(false)
+inline bool operator  <(const lx_cinterval & a, const interval & b) noexcept
                                             { return a < lx_cinterval(b); }
-inline bool operator  >(const lx_cinterval & a, const interval & b) noexcept(false) 
+inline bool operator  >(const lx_cinterval & a, const interval & b) noexcept 
                                             { return a > lx_cinterval(b); }
-inline bool operator <=(const lx_cinterval & a, const interval & b) noexcept(false) 
+inline bool operator <=(const lx_cinterval & a, const interval & b) noexcept 
                                            { return a <= lx_cinterval(b); }
-inline bool operator >=(const lx_cinterval & a, const interval & b) noexcept(false)
+inline bool operator >=(const lx_cinterval & a, const interval & b) noexcept
                                            { return a >= lx_cinterval(b); }
 
-inline bool operator  <(const lx_real & a, const lx_cinterval & b) noexcept(false) 
+inline bool operator  <(const lx_real & a, const lx_cinterval & b) noexcept 
                                             { return lx_cinterval(a) < b; }
-inline bool operator <=(const lx_real & a, const lx_cinterval & b) noexcept(false)
+inline bool operator <=(const lx_real & a, const lx_cinterval & b) noexcept
                                            { return lx_cinterval(a) <= b; }
-inline bool operator  >(const lx_cinterval & a, const lx_real & b) noexcept(false) 
+inline bool operator  >(const lx_cinterval & a, const lx_real & b) noexcept 
                                             { return a > lx_cinterval(b); }
-inline bool operator >=(const lx_cinterval & a, const lx_real & b) noexcept(false)
+inline bool operator >=(const lx_cinterval & a, const lx_real & b) noexcept
                                            { return a >= lx_cinterval(b); }
 
-inline bool operator  <(const l_real & a, const lx_cinterval & b) noexcept(false) 
+inline bool operator  <(const l_real & a, const lx_cinterval & b) noexcept 
                                             { return lx_cinterval(a) < b; }
-inline bool operator <=(const l_real & a, const lx_cinterval & b) noexcept(false)
+inline bool operator <=(const l_real & a, const lx_cinterval & b) noexcept
                                            { return lx_cinterval(a) <= b; }
-inline bool operator  >(const lx_cinterval & a, const l_real & b) noexcept(false) 
+inline bool operator  >(const lx_cinterval & a, const l_real & b) noexcept 
                                             { return a > lx_cinterval(b); }
-inline bool operator >=(const lx_cinterval & a, const l_real & b) noexcept(false)
+inline bool operator >=(const lx_cinterval & a, const l_real & b) noexcept
                                            { return a >= lx_cinterval(b); }
 
-inline bool operator  <(const real & a, const lx_cinterval & b) noexcept(false) 
+inline bool operator  <(const real & a, const lx_cinterval & b) noexcept 
                                             { return lx_cinterval(a) < b; }
-inline bool operator <=(const real & a, const lx_cinterval & b) noexcept(false)
+inline bool operator <=(const real & a, const lx_cinterval & b) noexcept
                                            { return lx_cinterval(a) <= b; }
-inline bool operator  >(const lx_cinterval & a, const real & b) noexcept(false) 
+inline bool operator  >(const lx_cinterval & a, const real & b) noexcept 
                                             { return a > lx_cinterval(b); }
-inline bool operator >=(const lx_cinterval & a, const real & b) noexcept(false)
+inline bool operator >=(const lx_cinterval & a, const real & b) noexcept
                                            { return a >= lx_cinterval(b); }
 
-inline bool operator  <(const complex & a, const lx_cinterval & b) noexcept(false) 
+inline bool operator  <(const complex & a, const lx_cinterval & b) noexcept 
                                             { return lx_cinterval(a) < b; }
-inline bool operator <=(const complex & a, const lx_cinterval & b) noexcept(false)
+inline bool operator <=(const complex & a, const lx_cinterval & b) noexcept
                                            { return lx_cinterval(a) <= b; }
-inline bool operator  >(const lx_cinterval & a, const complex & b) noexcept(false) 
+inline bool operator  >(const lx_cinterval & a, const complex & b) noexcept 
                                             { return a > lx_cinterval(b); }
-inline bool operator >=(const lx_cinterval & a, const complex & b) noexcept(false)
+inline bool operator >=(const lx_cinterval & a, const complex & b) noexcept
                                            { return a >= lx_cinterval(b); }
 
-inline bool operator  <(const l_complex & a, const lx_cinterval & b) noexcept(false) 
+inline bool operator  <(const l_complex & a, const lx_cinterval & b) noexcept 
                                             { return lx_cinterval(a) < b; }
-inline bool operator <=(const l_complex & a, const lx_cinterval & b) noexcept(false)
+inline bool operator <=(const l_complex & a, const lx_cinterval & b) noexcept
                                            { return lx_cinterval(a) <= b; }
-inline bool operator  >(const lx_cinterval & a, const l_complex & b) noexcept(false) 
+inline bool operator  >(const lx_cinterval & a, const l_complex & b) noexcept 
                                             { return a > lx_cinterval(b); }
-inline bool operator >=(const lx_cinterval & a, const l_complex & b) noexcept(false)
+inline bool operator >=(const lx_cinterval & a, const l_complex & b) noexcept
                                            { return a >= lx_cinterval(b); }
 
-inline bool operator  <(const lx_complex & a, const lx_cinterval & b) noexcept(false) 
+inline bool operator  <(const lx_complex & a, const lx_cinterval & b) noexcept 
                                             { return lx_cinterval(a) < b; }
-inline bool operator <=(const lx_complex & a, const lx_cinterval & b) noexcept(false)
+inline bool operator <=(const lx_complex & a, const lx_cinterval & b) noexcept
                                            { return lx_cinterval(a) <= b; }
-inline bool operator  >(const lx_cinterval & a, const lx_complex & b) noexcept(false) 
+inline bool operator  >(const lx_cinterval & a, const lx_complex & b) noexcept 
                                             { return a > lx_cinterval(b); }
-inline bool operator >=(const lx_cinterval & a, const lx_complex & b) noexcept(false)
+inline bool operator >=(const lx_cinterval & a, const lx_complex & b) noexcept
                                            { return a >= lx_cinterval(b); }
 
 // ------------------------- Intersection ------------------------------------
 
 inline lx_cinterval operator & (const lx_cinterval& a, 
-			       const lx_cinterval& b) noexcept(false)
+			       const lx_cinterval& b) noexcept
 {
     lx_cinterval tmp = a;
     SetInf(tmp.re, max(Inf(a.re),Inf(b.re)));
@@ -1072,124 +1072,124 @@ inline lx_cinterval & operator &= (lx_cinterval& a, const lx_cinterval& b)
     noexcept(false) { return a = a&b; }
 
 inline lx_cinterval operator & (const lx_cinterval& a, const lx_real& b) 
-    noexcept(false) { return a & lx_cinterval(b,lx_real(0.0)); }
+    noexcept { return a & lx_cinterval(b,lx_real(0.0)); }
 inline lx_cinterval operator & (const lx_real& a, const lx_cinterval& b ) 
-    noexcept(false) { return lx_cinterval(a,lx_real(0.0)) & b; }
+    noexcept { return lx_cinterval(a,lx_real(0.0)) & b; }
 inline lx_cinterval & operator &= (lx_cinterval& a, const lx_real& b) 
-    noexcept(false) { return a = a & lx_cinterval(b); }
+    noexcept { return a = a & lx_cinterval(b); }
 inline lx_cinterval operator & (const lx_cinterval& a, const l_real& b) 
-    noexcept(false) { return a & lx_cinterval(b); }
+    noexcept { return a & lx_cinterval(b); }
 inline lx_cinterval operator & (const l_real& a, const lx_cinterval& b ) 
-    noexcept(false) { return lx_cinterval(a) & b; }
+    noexcept { return lx_cinterval(a) & b; }
 inline lx_cinterval & operator &= (lx_cinterval& a, const l_real& b) 
-    noexcept(false) { return a = a & lx_cinterval(b); }
+    noexcept { return a = a & lx_cinterval(b); }
 inline lx_cinterval operator & (const lx_cinterval& a, const real& b) 
-    noexcept(false) { return a & lx_cinterval(b); }
+    noexcept { return a & lx_cinterval(b); }
 inline lx_cinterval operator & (const real& a, const lx_cinterval& b ) 
-    noexcept(false) { return lx_cinterval(a) & b; }
+    noexcept { return lx_cinterval(a) & b; }
 inline lx_cinterval & operator &= (lx_cinterval& a, const real& b) 
-    noexcept(false) { return a = a & lx_cinterval(b); }
+    noexcept { return a = a & lx_cinterval(b); }
 inline lx_cinterval operator & (const lx_cinterval& a, const l_cinterval& b) 
-    noexcept(false) { return a & lx_cinterval(b); }
+    noexcept { return a & lx_cinterval(b); }
 inline lx_cinterval operator & (const l_cinterval& a, const lx_cinterval& b) 
-    noexcept(false) { return lx_cinterval(a) & b; }
+    noexcept { return lx_cinterval(a) & b; }
 inline lx_cinterval & operator &= (lx_cinterval& a, const l_cinterval& b) 
-    noexcept(false) { return a = a & lx_cinterval(b); }
+    noexcept { return a = a & lx_cinterval(b); }
 inline lx_cinterval operator & (const lx_cinterval& a, const cinterval& b) 
-    noexcept(false) { return a & lx_cinterval(b); }
+    noexcept { return a & lx_cinterval(b); }
 inline lx_cinterval operator & (const cinterval& a, const lx_cinterval& b) 
-    noexcept(false) { return lx_cinterval(a) & b; }
+    noexcept { return lx_cinterval(a) & b; }
 inline lx_cinterval & operator &= (lx_cinterval& a, const cinterval& b) 
-    noexcept(false) { return a = a & lx_cinterval(b); }
+    noexcept { return a = a & lx_cinterval(b); }
 inline lx_cinterval operator & (const lx_cinterval& a, const lx_interval& b) 
-    noexcept(false) { return a & lx_cinterval(b); }
+    noexcept { return a & lx_cinterval(b); }
 inline lx_cinterval operator & (const lx_interval& a, const lx_cinterval& b) 
-    noexcept(false) { return lx_cinterval(a) & b; }
+    noexcept { return lx_cinterval(a) & b; }
 inline lx_cinterval & operator &= (lx_cinterval& a, const lx_interval& b) 
-    noexcept(false) { return a = a & lx_cinterval(b); }
+    noexcept { return a = a & lx_cinterval(b); }
 inline lx_cinterval operator & (const lx_cinterval& a, const l_interval& b) 
-    noexcept(false) { return a & lx_cinterval(b); }
+    noexcept { return a & lx_cinterval(b); }
 inline lx_cinterval operator & (const l_interval& a, const lx_cinterval& b) 
-    noexcept(false) { return lx_cinterval(a) & b; }
+    noexcept { return lx_cinterval(a) & b; }
 inline lx_cinterval & operator &= (lx_cinterval& a, const l_interval& b) 
-    noexcept(false) { return a = a & lx_cinterval(b); }
+    noexcept { return a = a & lx_cinterval(b); }
 inline lx_cinterval operator & (const lx_cinterval& a, const interval& b) 
-    noexcept(false) { return a & lx_cinterval(b); }
+    noexcept { return a & lx_cinterval(b); }
 inline lx_cinterval operator & (const interval& a, const lx_cinterval& b) 
-    noexcept(false) { return lx_cinterval(a) & b; }
+    noexcept { return lx_cinterval(a) & b; }
 inline lx_cinterval & operator &= (lx_cinterval& a, const interval& b) 
-    noexcept(false) { return a = a & lx_cinterval(b); }
+    noexcept { return a = a & lx_cinterval(b); }
 inline lx_cinterval operator & (const lx_cinterval& a, const lx_complex& b) 
-    noexcept(false) { return a & lx_cinterval(b); }
+    noexcept { return a & lx_cinterval(b); }
 inline lx_cinterval operator & (const lx_complex& a, const lx_cinterval& b) 
-    noexcept(false) { return lx_cinterval(a) & b; }
+    noexcept { return lx_cinterval(a) & b; }
 inline lx_cinterval & operator &= (lx_cinterval& a, const lx_complex& b) 
-    noexcept(false) { return a = a & lx_cinterval(b); }
+    noexcept { return a = a & lx_cinterval(b); }
 inline lx_cinterval operator & (const lx_cinterval& a, const l_complex& b) 
-    noexcept(false) { return a & lx_cinterval(b); }
+    noexcept { return a & lx_cinterval(b); }
 inline lx_cinterval operator & (const l_complex& a, const lx_cinterval& b) 
-    noexcept(false) { return lx_cinterval(a) & b; }
+    noexcept { return lx_cinterval(a) & b; }
 inline lx_cinterval & operator &= (lx_cinterval& a, const l_complex& b) 
-    noexcept(false) { return a = a & lx_cinterval(b); }
+    noexcept { return a = a & lx_cinterval(b); }
 inline lx_cinterval operator & (const lx_cinterval& a, const complex& b) 
-    noexcept(false) { return a & lx_cinterval(b); }
+    noexcept { return a & lx_cinterval(b); }
 inline lx_cinterval operator & (const complex& a, const lx_cinterval& b) 
-    noexcept(false) { return lx_cinterval(a) & b; }
+    noexcept { return lx_cinterval(a) & b; }
 inline lx_cinterval & operator &= (lx_cinterval& a, const complex& b) 
-    noexcept(false) { return a = a & lx_cinterval(b); }
+    noexcept { return a = a & lx_cinterval(b); }
 
 inline lx_cinterval operator & (const lx_interval& a, const complex& b) 
-    noexcept(false) { return lx_cinterval(a) & lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) & lx_cinterval(b); }
 inline lx_cinterval operator & ( const complex& a, const lx_interval& b) 
-    noexcept(false) { return lx_cinterval(a) & lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) & lx_cinterval(b); }
 inline lx_cinterval operator & (const lx_interval& a, const l_complex& b) 
-    noexcept(false) { return lx_cinterval(a) & lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) & lx_cinterval(b); }
 inline lx_cinterval operator & ( const l_complex& a, const lx_interval& b) 
-    noexcept(false) { return lx_cinterval(a) & lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) & lx_cinterval(b); }
 inline lx_cinterval operator & (const lx_interval& a, const lx_complex& b) 
-    noexcept(false) { return lx_cinterval(a) & lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) & lx_cinterval(b); }
 inline lx_cinterval operator & ( const lx_complex& a, const lx_interval& b) 
-    noexcept(false) { return lx_cinterval(a) & lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) & lx_cinterval(b); }
 inline lx_cinterval operator & (const lx_real& a, const cinterval& b) 
-    noexcept(false) { return lx_cinterval(a) & lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) & lx_cinterval(b); }
 inline lx_cinterval operator & (const cinterval& a, const lx_real& b) 
-    noexcept(false) { return lx_cinterval(a) & lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) & lx_cinterval(b); }
 inline lx_cinterval operator & (const lx_real& a, const l_cinterval& b) 
-    noexcept(false) { return lx_cinterval(a) & lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) & lx_cinterval(b); }
 inline lx_cinterval operator & (const l_cinterval& a, const lx_real& b) 
-    noexcept(false) { return lx_cinterval(a) & lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) & lx_cinterval(b); }
 inline lx_cinterval operator & (const lx_interval& a, const cinterval& b) 
-    noexcept(false) { return lx_cinterval(a) & lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) & lx_cinterval(b); }
 inline lx_cinterval operator & (const cinterval& a, const lx_interval& b) 
-    noexcept(false) { return lx_cinterval(a) & lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) & lx_cinterval(b); }
 inline lx_cinterval operator & (const lx_interval& a, const l_cinterval& b) 
-    noexcept(false) { return lx_cinterval(a) & lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) & lx_cinterval(b); }
 inline lx_cinterval operator & (const l_cinterval& a, const lx_interval& b) 
-    noexcept(false) { return lx_cinterval(a) & lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) & lx_cinterval(b); }
 
 inline lx_cinterval operator & (const l_interval& a, const lx_complex& b) 
-    noexcept(false) { return lx_cinterval(a) & lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) & lx_cinterval(b); }
 inline lx_cinterval operator & ( const lx_complex& a, const l_interval& b) 
-    noexcept(false) { return lx_cinterval(a) & lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) & lx_cinterval(b); }
 inline lx_cinterval operator & (const l_cinterval& a, const lx_complex& b) 
-    noexcept(false) { return lx_cinterval(a) & lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) & lx_cinterval(b); }
 inline lx_cinterval operator & ( const lx_complex& a, const l_cinterval& b) 
-    noexcept(false) { return lx_cinterval(a) & lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) & lx_cinterval(b); }
 
 inline lx_cinterval operator & (const interval& a, const lx_complex& b) 
-    noexcept(false) { return lx_cinterval(a) & lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) & lx_cinterval(b); }
 inline lx_cinterval operator & ( const lx_complex& a, const interval& b) 
-    noexcept(false) { return lx_cinterval(a) & lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) & lx_cinterval(b); }
 inline lx_cinterval operator & (const cinterval& a, const lx_complex& b) 
-    noexcept(false) { return lx_cinterval(a) & lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) & lx_cinterval(b); }
 inline lx_cinterval operator & ( const lx_complex& a, const cinterval& b) 
-    noexcept(false) { return lx_cinterval(a) & lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) & lx_cinterval(b); }
 
 
 // -------------------------- Convex Hull ------------------------------------
 
 inline lx_cinterval operator | (const lx_cinterval& a,
-			        const lx_cinterval& b) noexcept(false)
+			        const lx_cinterval& b) noexcept
 {
    lx_cinterval tmp = a;
    SetInf(tmp.re, min(Inf(a.re), Inf(b.re)));
@@ -1200,116 +1200,116 @@ inline lx_cinterval operator | (const lx_cinterval& a,
 }
 
 inline lx_cinterval & operator |= (lx_cinterval& a, const lx_cinterval& b) 
-    noexcept(false) { return a = a|b; }
+    noexcept { return a = a|b; }
 inline lx_cinterval operator | (const lx_cinterval& a, const lx_real& b) 
-    noexcept(false) { return a | lx_cinterval(b); }
+    noexcept { return a | lx_cinterval(b); }
 inline lx_cinterval operator | (const lx_real& a, const lx_cinterval& b) 
-    noexcept(false) { return lx_cinterval(a) | b; }
+    noexcept { return lx_cinterval(a) | b; }
 inline lx_cinterval & operator |= (lx_cinterval& a, const lx_real& b) 
-    noexcept(false) { return a = a|lx_cinterval(b); }
+    noexcept { return a = a|lx_cinterval(b); }
 inline lx_cinterval operator | (const lx_cinterval& a, const l_real& b) 
-    noexcept(false) { return a | lx_cinterval(b); }
+    noexcept { return a | lx_cinterval(b); }
 inline lx_cinterval operator | (const l_real& a, const lx_cinterval& b) 
-    noexcept(false) { return lx_cinterval(a) | b; }
+    noexcept { return lx_cinterval(a) | b; }
 inline lx_cinterval & operator |= (lx_cinterval& a, const l_real& b) 
-    noexcept(false) { return a = a|lx_cinterval(b); }
+    noexcept { return a = a|lx_cinterval(b); }
 inline lx_cinterval operator | (const lx_cinterval& a, const real& b) 
-    noexcept(false) { return a | lx_cinterval(b); }
+    noexcept { return a | lx_cinterval(b); }
 inline lx_cinterval operator | (const real& a, const lx_cinterval& b) 
-    noexcept(false) { return lx_cinterval(a) | b; }
+    noexcept { return lx_cinterval(a) | b; }
 inline lx_cinterval & operator |= (lx_cinterval& a, const real& b) 
-    noexcept(false) { return a = a|lx_cinterval(b); }
+    noexcept { return a = a|lx_cinterval(b); }
 inline lx_cinterval operator | (const lx_cinterval& a, const l_cinterval& b) 
-    noexcept(false) { return a | lx_cinterval(b); }
+    noexcept { return a | lx_cinterval(b); }
 inline lx_cinterval operator | (const l_cinterval& a, const lx_cinterval& b) 
-    noexcept(false) { return lx_cinterval(a) | b; }
+    noexcept { return lx_cinterval(a) | b; }
 inline lx_cinterval & operator |= (lx_cinterval& a, const l_cinterval& b) 
-    noexcept(false) { return a = a|lx_cinterval(b); }
+    noexcept { return a = a|lx_cinterval(b); }
 inline lx_cinterval operator | (const lx_cinterval& a, const cinterval& b) 
-    noexcept(false) { return a | lx_cinterval(b); }
+    noexcept { return a | lx_cinterval(b); }
 inline lx_cinterval operator | (const cinterval& a, const lx_cinterval& b) 
-    noexcept(false) { return lx_cinterval(a) | b; }
+    noexcept { return lx_cinterval(a) | b; }
 inline lx_cinterval & operator |= (lx_cinterval& a, const cinterval& b) 
-    noexcept(false) { return a = a | lx_cinterval(b); }
+    noexcept { return a = a | lx_cinterval(b); }
 inline lx_cinterval operator | (const lx_cinterval& a, const lx_interval& b) 
-    noexcept(false) { return a | lx_cinterval(b); }
+    noexcept { return a | lx_cinterval(b); }
 inline lx_cinterval operator | (const lx_interval& a, const lx_cinterval& b) 
-    noexcept(false) { return lx_cinterval(a) | b; }
+    noexcept { return lx_cinterval(a) | b; }
 inline lx_cinterval & operator |= (lx_cinterval& a, const lx_interval& b) 
-    noexcept(false) { return a = a | lx_cinterval(b); }
+    noexcept { return a = a | lx_cinterval(b); }
 inline lx_cinterval operator | (const lx_cinterval& a, const l_interval& b) 
-    noexcept(false) { return a | lx_cinterval(b); }
+    noexcept { return a | lx_cinterval(b); }
 inline lx_cinterval operator | (const l_interval& a, const lx_cinterval& b) 
-    noexcept(false) { return lx_cinterval(a) | b; }
+    noexcept { return lx_cinterval(a) | b; }
 inline lx_cinterval & operator |= (lx_cinterval& a, const l_interval& b) 
-    noexcept(false) { return a = a | lx_cinterval(b); }
+    noexcept { return a = a | lx_cinterval(b); }
 inline lx_cinterval operator | (const lx_cinterval& a, const interval& b) 
-    noexcept(false) { return a | lx_cinterval(b); }
+    noexcept { return a | lx_cinterval(b); }
 inline lx_cinterval operator | (const interval& a, const lx_cinterval& b) 
-    noexcept(false) { return lx_cinterval(a) | b; }
+    noexcept { return lx_cinterval(a) | b; }
 inline lx_cinterval & operator |= (lx_cinterval& a, const interval& b) 
-    noexcept(false) { return a = a | lx_cinterval(b); }
+    noexcept { return a = a | lx_cinterval(b); }
 inline lx_cinterval operator | (const lx_cinterval& a, const lx_complex& b) 
-    noexcept(false) { return a | lx_cinterval(b); }
+    noexcept { return a | lx_cinterval(b); }
 inline lx_cinterval operator | (const lx_complex& a, const lx_cinterval& b) 
-    noexcept(false) { return lx_cinterval(a) | b; }
+    noexcept { return lx_cinterval(a) | b; }
 inline lx_cinterval & operator |= (lx_cinterval& a, const lx_complex& b) 
-    noexcept(false) { return a = a | lx_cinterval(b); }
+    noexcept { return a = a | lx_cinterval(b); }
 inline lx_cinterval operator | (const lx_cinterval& a, const l_complex& b) 
-    noexcept(false) { return a | lx_cinterval(b); }
+    noexcept { return a | lx_cinterval(b); }
 inline lx_cinterval operator | (const l_complex& a, const lx_cinterval& b) 
-    noexcept(false) { return lx_cinterval(a) | b; }
+    noexcept { return lx_cinterval(a) | b; }
 inline lx_cinterval & operator |= (lx_cinterval& a, const l_complex& b) 
-    noexcept(false) { return a = a | lx_cinterval(b); }
+    noexcept { return a = a | lx_cinterval(b); }
 inline lx_cinterval operator | (const lx_cinterval& a, const complex& b) 
-    noexcept(false) { return a | lx_cinterval(b); }
+    noexcept { return a | lx_cinterval(b); }
 inline lx_cinterval operator | (const complex& a, const lx_cinterval& b) 
-    noexcept(false) { return lx_cinterval(a) | b; }
+    noexcept { return lx_cinterval(a) | b; }
 inline lx_cinterval & operator |= (lx_cinterval& a, const complex& b) 
-    noexcept(false) { return a = a | lx_cinterval(b); }
+    noexcept { return a = a | lx_cinterval(b); }
 
 inline lx_cinterval operator | (const lx_interval& a, const complex& b) 
-    noexcept(false) { return lx_cinterval(a) | lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) | lx_cinterval(b); }
 inline lx_cinterval operator | ( const complex& a, const lx_interval& b) 
-    noexcept(false) { return lx_cinterval(a) | lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) | lx_cinterval(b); }
 inline lx_cinterval operator | (const lx_interval& a, const l_complex& b) 
-    noexcept(false) { return lx_cinterval(a) | lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) | lx_cinterval(b); }
 inline lx_cinterval operator | ( const l_complex& a, const lx_interval& b) 
-    noexcept(false) { return lx_cinterval(a) | lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) | lx_cinterval(b); }
 inline lx_cinterval operator | (const lx_interval& a, const lx_complex& b) 
-    noexcept(false) { return lx_cinterval(a) | lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) | lx_cinterval(b); }
 inline lx_cinterval operator | ( const lx_complex& a, const lx_interval& b) 
-    noexcept(false) { return lx_cinterval(a) | lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) | lx_cinterval(b); }
 inline lx_cinterval operator | (const lx_real& a, const cinterval& b) 
-    noexcept(false) { return lx_cinterval(a) | lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) | lx_cinterval(b); }
 inline lx_cinterval operator | (const cinterval& a, const lx_real& b) 
-    noexcept(false) { return lx_cinterval(a) | lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) | lx_cinterval(b); }
 inline lx_cinterval operator | (const lx_real& a, const l_cinterval& b) 
-    noexcept(false) { return lx_cinterval(a) | lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) | lx_cinterval(b); }
 inline lx_cinterval operator | (const l_cinterval& a, const lx_real& b) 
-    noexcept(false) { return lx_cinterval(a) | lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) | lx_cinterval(b); }
 inline lx_cinterval operator | (const lx_interval& a, const cinterval& b) 
-    noexcept(false) { return lx_cinterval(a) | lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) | lx_cinterval(b); }
 inline lx_cinterval operator | (const cinterval& a, const lx_interval& b) 
-    noexcept(false) { return lx_cinterval(a) | lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) | lx_cinterval(b); }
 inline lx_cinterval operator | (const lx_interval& a, const l_cinterval& b) 
-    noexcept(false) { return lx_cinterval(a) | lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) | lx_cinterval(b); }
 inline lx_cinterval operator | (const l_cinterval& a, const lx_interval& b) 
-    noexcept(false) { return lx_cinterval(a) | lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) | lx_cinterval(b); }
 
 
 inline lx_cinterval operator | (const lx_real& a, const complex& b) 
-    noexcept(false) { return lx_cinterval(a) | lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) | lx_cinterval(b); }
 inline lx_cinterval operator | (const complex& a, const lx_real& b) 
-    noexcept(false) { return lx_cinterval(a) | lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) | lx_cinterval(b); }
 inline lx_cinterval operator | (const lx_real& a, const l_complex& b) 
-    noexcept(false) { return lx_cinterval(a) | lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) | lx_cinterval(b); }
 inline lx_cinterval operator | (const l_complex& a, const lx_real& b) 
-    noexcept(false) { return lx_cinterval(a) | lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) | lx_cinterval(b); }
 inline lx_cinterval operator | (const lx_real& a, const lx_complex& b) 
-    noexcept(false) { return lx_cinterval(a) | lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) | lx_cinterval(b); }
 inline lx_cinterval operator | (const lx_complex& a, const lx_real& b) 
-    noexcept(false) { return lx_cinterval(a) | lx_cinterval(b); }
+    noexcept { return lx_cinterval(a) | lx_cinterval(b); }
 
 
 // ------------------------- Others --------------------------------------
@@ -1467,7 +1467,7 @@ inline lx_cinterval & SetSup(lx_cinterval& a, const real & b)
     return a;
 }
 
-inline bool IsEmpty(const lx_cinterval& a) noexcept(false)
+inline bool IsEmpty(const lx_cinterval& a) noexcept
 { return (IsEmpty(a.re) || IsEmpty(a.im)); }
 
 
@@ -1476,7 +1476,7 @@ inline bool IsEmpty(const lx_cinterval& a) noexcept(false)
 // -----------------------------------------------------------------------
 
 inline std::ostream& operator << (std::ostream& s,const lx_cinterval& a) 
-    noexcept(false)
+    noexcept
 // A value a of type lx_cinterval is written to the output channel.
 {     
     s << '('          
@@ -1487,7 +1487,7 @@ inline std::ostream& operator << (std::ostream& s,const lx_cinterval& a)
 }
 
 inline std::string & operator << (std::string &s,const lx_cinterval& a) 
-    noexcept(false)
+    noexcept
 // The value of a variable a of type lx_cinterval is copied to a string s.
 // s has the form:  {ex,li}
 {  

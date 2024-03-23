@@ -34,58 +34,58 @@ namespace cxsc {
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const l_rvector & rv1, const ivector &rv2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	throw();
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const ivector & rv1, const l_rvector &rv2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	throw();
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const l_rvector_slice & sl, const ivector &rv)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	throw();
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp,const ivector_slice &sl,const l_rvector &rv)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	throw();
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const l_rvector &rv, const ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	throw();
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp,const ivector &rv,const l_rvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	throw();
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const ivector_slice & sl1, const l_rvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	throw();
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const l_rvector_slice & sl1, const ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	throw();
 #endif
 
 	//! Implementation of multiplication operation
@@ -93,28 +93,28 @@ namespace cxsc {
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	throw();
 #endif
 	//! Implementation of multiplication operation
 	INLINE l_interval operator *(const l_rvector_slice &sl, const ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	throw();
 #endif
 	//! Implementation of multiplication operation
 	INLINE l_interval operator *(const l_rvector &rv, const ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	throw();
 #endif
 	//! Implementation of multiplication operation
 	INLINE l_interval operator *(const l_rvector_slice & sl1, const ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	throw();
 #endif
 	
 	//! Implementation of multiplication operation
@@ -122,28 +122,28 @@ namespace cxsc {
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	throw();
 #endif
 	//! Implementation of multiplication operation
 	INLINE l_interval operator *(const ivector_slice &sl, const l_rvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	throw();
 #endif
 	//! Implementation of multiplication operation
 	INLINE l_interval operator *(const ivector &rv, const l_rvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	throw();
 #endif
 	//! Implementation of multiplication operation
 	INLINE l_interval operator *(const ivector_slice & sl1, const l_rvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	throw();
 #endif
 
 } // namespace cxsc 

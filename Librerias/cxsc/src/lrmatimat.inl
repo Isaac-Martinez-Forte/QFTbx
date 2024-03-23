@@ -30,16 +30,16 @@ namespace cxsc {
 
 	INLINE void accumulate(idotprecision &dp, const l_rmatrix_subv & rv1, const imatrix_subv &rv2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false)
+	throw(OP_WITH_WRONG_DIM)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ _mvmvaccu<idotprecision,l_rmatrix_subv,imatrix_subv>(dp,rv1,rv2); }
 	INLINE void accumulate(idotprecision &dp, const imatrix_subv & rv1, const l_rmatrix_subv &rv2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false)
+	throw(OP_WITH_WRONG_DIM)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ _mvmvaccu<idotprecision,l_rmatrix_subv,imatrix_subv>(dp,rv2,rv1); }
 

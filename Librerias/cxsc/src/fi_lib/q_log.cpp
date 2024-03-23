@@ -88,6 +88,7 @@ namespace fi_lib {
   int m;
   real fg,fk,y,res;
 
+
   if(NANTEST(x))                                           /* Test: x=NaN */
       res=q_abortnan(INV_ARG,&x,6);
   else {
@@ -113,7 +114,7 @@ namespace fi_lib {
 
         res=q_p1lg(m,fg,fk,y);
       }
-   else res=-6;
+   else res=q_abortr1(INV_ARG,&x,6);
   }
 
   return(res);

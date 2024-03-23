@@ -34,7 +34,7 @@ namespace cxsc {
 
 #define CXSC_Zero 0.0
 
-cinterval::cinterval(const l_cinterval & a) noexcept(false)
+cinterval::cinterval(const l_cinterval & a) noexcept
 {
     interval u,v;
     u = a.re;
@@ -42,7 +42,7 @@ cinterval::cinterval(const l_cinterval & a) noexcept(false)
     *this = cinterval(u,v);
 }
 
-cinterval & cinterval::operator = (const l_cinterval & a) noexcept(false)
+cinterval & cinterval::operator = (const l_cinterval & a) noexcept
 {
     interval u,v;
     u = a.re;
@@ -50,14 +50,14 @@ cinterval & cinterval::operator = (const l_cinterval & a) noexcept(false)
 return *this = cinterval(u,v);
 }
 
-l_cinterval::l_cinterval(const dotprecision  &a) noexcept(false) : re(a),im(0) {}
-l_cinterval::l_cinterval(const idotprecision &a) noexcept(false) : re(a),im(0) {}
+l_cinterval::l_cinterval(const dotprecision  &a) noexcept : re(a),im(0) {}
+l_cinterval::l_cinterval(const idotprecision &a) noexcept : re(a),im(0) {}
 l_cinterval::l_cinterval(const cdotprecision &a) 
-                                         noexcept(false) : re(Re(a)),im(Im(a)) {}
-l_cinterval::l_cinterval(const cidotprecision &a) noexcept(false) : 
+                                         noexcept : re(Re(a)),im(Im(a)) {}
+l_cinterval::l_cinterval(const cidotprecision &a) noexcept : 
                          re( l_interval(Re(a))),im(l_interval(Im(a)) ) {}
 
-l_cinterval operator * (const l_cinterval & a, const l_cinterval & b) noexcept(false)
+l_cinterval operator * (const l_cinterval & a, const l_cinterval & b) noexcept
 {
     idotprecision akku;
     l_cinterval res;
@@ -90,7 +90,7 @@ void product(const l_real& a, const l_real& b, const l_real& c,
 void product(const l_real& c, const l_real& d, int& ex, l_interval& res);
 l_real quotient(const l_interval& z, const l_interval& n, int round, 
 		int ex_z, int ex_n);
-//void Times2pown(l_interval& a, int n) noexcept(false);
+//void Times2pown(l_interval& a, int n) throw();
 
 // *********************************************************************
 
@@ -542,7 +542,7 @@ l_cinterval operator / (const l_cinterval & a, const l_cinterval & b)
     else return cidiv(a,b);
 }
 
-l_interval abs(const l_cinterval &a) noexcept(false)
+l_interval abs(const l_cinterval &a) noexcept
 {
     return sqrtx2y2(a.re,a.im);
 }
@@ -550,7 +550,7 @@ l_interval abs(const l_cinterval &a) noexcept(false)
 
 // ---- Ausgabefunkt. ---------------------------------------
 
-std::ostream & operator << (std::ostream &s, const l_cinterval& a) noexcept(false)
+std::ostream & operator << (std::ostream &s, const l_cinterval& a) noexcept
 {
     s << '('          
       << a.re << ','  
@@ -559,7 +559,7 @@ std::ostream & operator << (std::ostream &s, const l_cinterval& a) noexcept(fals
     return s;
 }
 
-std::string & operator << (std::string &s, const l_cinterval& a) noexcept(false)
+std::string & operator << (std::string &s, const l_cinterval& a) noexcept
 {
 // string s; l_cinterval a;
 // s << a; s delivers the string of the value a in the form:

@@ -25,66 +25,66 @@
 
 #if(CXSC_INDEX_CHECK)
 template<class TA, class Tx, class Tres, class TDot, class TElement>
-friend inline Tres spsl_mv_mult(const TA&, const Tx&) noexcept(false);
+friend inline Tres spsl_mv_mult(const TA&, const Tx&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class TA, class Tx, class Tres, class TDot, class TElement>
-friend inline Tres spsl_mv_mult(const TA&, const Tx&) noexcept(false);
+friend inline Tres spsl_mv_mult(const TA&, const Tx&) noexcept;
 #endif
 
 #if(CXSC_INDEX_CHECK)
 template<class TA, class Tx, class Tres, class TDot, class TElement>
-friend inline Tres spsp_mv_mult(const TA&, const Tx&) noexcept(false);
+friend inline Tres spsp_mv_mult(const TA&, const Tx&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class TA, class Tx, class Tres, class TDot, class TElement>
-friend inline Tres spsp_mv_mult(const TA&, const Tx&) noexcept(false);
+friend inline Tres spsp_mv_mult(const TA&, const Tx&) noexcept;
 #endif
 
 #if(CXSC_INDEX_CHECK)
 template<class TA, class Tx, class Tres, class TDot>
-friend inline Tres spf_mv_mult(const TA&, const Tx&) noexcept(false);
+friend inline Tres spf_mv_mult(const TA&, const Tx&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class TA, class Tx, class Tres, class TDot>
-friend inline Tres spf_mv_mult(const TA&, const Tx&) noexcept(false);
+friend inline Tres spf_mv_mult(const TA&, const Tx&) noexcept;
 #endif
 
 #if(CXSC_INDEX_CHECK)
 template<class TA, class Tx, class Tres, class TDot>
-friend inline Tres fsp_mv_mult(const TA&, const Tx&) noexcept(false);
+friend inline Tres fsp_mv_mult(const TA&, const Tx&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class TA, class Tx, class Tres, class TDot>
-friend inline Tres fsp_mv_mult(const TA&, const Tx&) noexcept(false);
+friend inline Tres fsp_mv_mult(const TA&, const Tx&) noexcept;
 #endif
 
 #if(CXSC_INDEX_CHECK)
 template<class TA, class Tx, class Tres, class TDot>
-friend inline Tres fsl_mv_mult(const TA&, const Tx&) noexcept(false);
+friend inline Tres fsl_mv_mult(const TA&, const Tx&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class TA, class Tx, class Tres, class TDot>
-friend inline Tres fsl_mv_mult(const TA&, const Tx&) noexcept(false);
+friend inline Tres fsl_mv_mult(const TA&, const Tx&) noexcept;
 #endif
 
 #if(CXSC_INDEX_CHECK)
 template<class TA, class TB, class Tres, class TDot, class TElement>
-friend inline Tres spsp_mm_mult(const TA&, const TB&) noexcept(false);
+friend inline Tres spsp_mm_mult(const TA&, const TB&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class TA, class TB, class Tres, class TDot, class TElement>
-friend inline Tres spsp_mm_mult(const TA&, const TB&) noexcept(false);
+friend inline Tres spsp_mm_mult(const TA&, const TB&) noexcept;
 #endif
 
 #if(CXSC_INDEX_CHECK)
 template<class TA, class TB, class Tres, class TDot>
-friend inline Tres fsp_mm_mult(const TA&, const TB&) noexcept(false);
+friend inline Tres fsp_mm_mult(const TA&, const TB&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class TA, class TB, class Tres, class TDot>
-friend inline Tres fsp_mm_mult(const TA&, const TB&) noexcept(false);
+friend inline Tres fsp_mm_mult(const TA&, const TB&) noexcept;
 #endif
 
 #if(CXSC_INDEX_CHECK)
 template<class TA, class TB, class Tres, class TDot>
-friend inline Tres spf_mm_mult(const TA&, const TB&) noexcept(false);
+friend inline Tres spf_mm_mult(const TA&, const TB&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class TA, class TB, class Tres, class TDot>
-friend inline Tres spf_mm_mult(const TA&, const TB&) noexcept(false);
+friend inline Tres spf_mm_mult(const TA&, const TB&) noexcept;
 #endif
 
 template<class TA, class Ts, class Tres>
@@ -98,98 +98,98 @@ friend inline Tres sp_sm_mult(const Ts&, const TA&);
 
 #if(CXSC_INDEX_CHECK)
 template<class TA, class TB, class Tres, class TElement>
-friend inline Tres spsp_mm_add(const TA&, const TB&) noexcept(false);
+friend inline Tres spsp_mm_add(const TA&, const TB&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class TA, class TB, class Tres, class TElement>
-friend inline Tres spsp_mm_add(const TA&, const TB&) noexcept(false);
+friend inline Tres spsp_mm_add(const TA&, const TB&) noexcept;
 #endif
 
 #if(CXSC_INDEX_CHECK)
 template<class TA, class TB, class Tres>
-friend inline Tres spf_mm_add(const TA&, const TB&) noexcept(false);
+friend inline Tres spf_mm_add(const TA&, const TB&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class TA, class TB, class Tres>
-friend inline Tres spf_mm_add(const TA&, const TB&) noexcept(false);
+friend inline Tres spf_mm_add(const TA&, const TB&) noexcept;
 #endif
 
 #if(CXSC_INDEX_CHECK)
 template<class TA, class TB, class Tres>
-friend inline Tres fsp_mm_add(const TA&, const TB&) noexcept(false);
+friend inline Tres fsp_mm_add(const TA&, const TB&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class TA, class TB, class Tres>
-friend inline Tres fsp_mm_add(const TA&, const TB&) noexcept(false);
-#endif
-
-#if(CXSC_INDEX_CHECK)
-template<class TA, class TB, class Tres, class TElement>
-friend inline Tres spsp_mm_sub(const TA&, const TB&) noexcept(false);
-#else
-template<class TA, class TB, class Tres, class TElement>
-friend inline Tres spsp_mm_sub(const TA&, const TB&) noexcept(false);
-#endif
-
-#if(CXSC_INDEX_CHECK)
-template<class TA, class TB, class Tres>
-friend inline Tres spf_mm_sub(const TA&, const TB&) noexcept(false);
-#else
-template<class TA, class TB, class Tres>
-friend inline Tres spf_mm_sub(const TA&, const TB&) noexcept(false);
-#endif
-
-#if(CXSC_INDEX_CHECK)
-template<class TA, class TB, class Tres>
-friend inline Tres fsp_mm_sub(const TA&, const TB&) noexcept(false);
-#else
-template<class TA, class TB, class Tres>
-friend inline Tres fsp_mm_sub(const TA&, const TB&) noexcept(false);
+friend inline Tres fsp_mm_add(const TA&, const TB&) noexcept;
 #endif
 
 #if(CXSC_INDEX_CHECK)
 template<class TA, class TB, class Tres, class TElement>
-friend inline Tres spsp_mm_hull(const TA&, const TB&) noexcept(false);
+friend inline Tres spsp_mm_sub(const TA&, const TB&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class TA, class TB, class Tres, class TElement>
-friend inline Tres spsp_mm_hull(const TA&, const TB&) noexcept(false);
+friend inline Tres spsp_mm_sub(const TA&, const TB&) noexcept;
 #endif
 
 #if(CXSC_INDEX_CHECK)
 template<class TA, class TB, class Tres>
-friend inline Tres spf_mm_hull(const TA&, const TB&) noexcept(false);
+friend inline Tres spf_mm_sub(const TA&, const TB&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class TA, class TB, class Tres>
-friend inline Tres spf_mm_hull(const TA&, const TB&) noexcept(false);
+friend inline Tres spf_mm_sub(const TA&, const TB&) noexcept;
 #endif
 
 #if(CXSC_INDEX_CHECK)
 template<class TA, class TB, class Tres>
-friend inline Tres fsp_mm_hull(const TA&, const TB&) noexcept(false);
+friend inline Tres fsp_mm_sub(const TA&, const TB&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class TA, class TB, class Tres>
-friend inline Tres fsp_mm_hull(const TA&, const TB&) noexcept(false);
+friend inline Tres fsp_mm_sub(const TA&, const TB&) noexcept;
 #endif
 
 #if(CXSC_INDEX_CHECK)
 template<class TA, class TB, class Tres, class TElement>
-friend inline Tres spsp_mm_intersect(const TA&, const TB&) noexcept(false);
+friend inline Tres spsp_mm_hull(const TA&, const TB&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class TA, class TB, class Tres, class TElement>
-friend inline Tres spsp_mm_intersect(const TA&, const TB&) noexcept(false);
+friend inline Tres spsp_mm_hull(const TA&, const TB&) noexcept;
 #endif
 
 #if(CXSC_INDEX_CHECK)
 template<class TA, class TB, class Tres>
-friend inline Tres spf_mm_intersect(const TA&, const TB&) noexcept(false);
+friend inline Tres spf_mm_hull(const TA&, const TB&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class TA, class TB, class Tres>
-friend inline Tres spf_mm_intersect(const TA&, const TB&) noexcept(false);
+friend inline Tres spf_mm_hull(const TA&, const TB&) noexcept;
 #endif
 
 #if(CXSC_INDEX_CHECK)
 template<class TA, class TB, class Tres>
-friend inline Tres fsp_mm_intersect(const TA&, const TB&) noexcept(false);
+friend inline Tres fsp_mm_hull(const TA&, const TB&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class TA, class TB, class Tres>
-friend inline Tres fsp_mm_intersect(const TA&, const TB&) noexcept(false);
+friend inline Tres fsp_mm_hull(const TA&, const TB&) noexcept;
+#endif
+
+#if(CXSC_INDEX_CHECK)
+template<class TA, class TB, class Tres, class TElement>
+friend inline Tres spsp_mm_intersect(const TA&, const TB&) throw(OP_WITH_WRONG_DIM);
+#else
+template<class TA, class TB, class Tres, class TElement>
+friend inline Tres spsp_mm_intersect(const TA&, const TB&) noexcept;
+#endif
+
+#if(CXSC_INDEX_CHECK)
+template<class TA, class TB, class Tres>
+friend inline Tres spf_mm_intersect(const TA&, const TB&) throw(OP_WITH_WRONG_DIM);
+#else
+template<class TA, class TB, class Tres>
+friend inline Tres spf_mm_intersect(const TA&, const TB&) noexcept;
+#endif
+
+#if(CXSC_INDEX_CHECK)
+template<class TA, class TB, class Tres>
+friend inline Tres fsp_mm_intersect(const TA&, const TB&) throw(OP_WITH_WRONG_DIM);
+#else
+template<class TA, class TB, class Tres>
+friend inline Tres fsp_mm_intersect(const TA&, const TB&) noexcept;
 #endif
 
 template<class TA, class TB>
@@ -248,18 +248,18 @@ friend inline std::istream& sp_m_input(std::istream&, TA&);
 
 #if(CXSC_INDEX_CHECK)
 template<class TA, class TB, class TElement>
-friend inline TA& slsp_mm_assign(TA&, const TB&) noexcept(false);
+friend inline TA& slsp_mm_assign(TA&, const TB&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class TA, class TB, class TElement>
-friend inline TA& slsp_mm_assign(TA&, const TB&) noexcept(false);
+friend inline TA& slsp_mm_assign(TA&, const TB&) noexcept;
 #endif
 
 #if(CXSC_INDEX_CHECK)
 template<class TA, class TB, class TElement, class TType>
-friend inline TA& slf_mm_assign(TA&, const TB&) noexcept(false);
+friend inline TA& slf_mm_assign(TA&, const TB&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class TA, class TB, class TElement, class TType>
-friend inline TA& slf_mm_assign(TA&, const TB&) noexcept(false);
+friend inline TA& slf_mm_assign(TA&, const TB&) noexcept;
 #endif
 
 template<class TA, class TB, class TType>
@@ -273,178 +273,178 @@ friend inline TA& sp_ms_multassign(TA&, const Ts&);
 
 #if(CXSC_INDEX_CHECK)
 template<class TA, class TB, class TDot, class TElement>
-friend inline TA& spsp_mm_multassign(TA&, const TB&) noexcept(false);
+friend inline TA& spsp_mm_multassign(TA&, const TB&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class TA, class TB, class TDot, class TElement>
-friend inline TA& spsp_mm_multassign(TA&, const TB&) noexcept(false);
+friend inline TA& spsp_mm_multassign(TA&, const TB&) noexcept;
 #endif
 
 #if(CXSC_INDEX_CHECK)
 template<class TA, class TB, class TDot, class TFull>
-friend inline TA& spf_mm_multassign(TA&, const TB&) noexcept(false);
+friend inline TA& spf_mm_multassign(TA&, const TB&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class TA, class TB, class TDot, class TFull>
-friend inline TA& spf_mm_multassign(TA&, const TB&) noexcept(false);
+friend inline TA& spf_mm_multassign(TA&, const TB&) noexcept;
 #endif
 
 #if(CXSC_INDEX_CHECK)
 template<class TA, class TB, class TDot, class TFull>
-friend inline TA& fsp_mm_multassign(TA&, const TB&) noexcept(false);
+friend inline TA& fsp_mm_multassign(TA&, const TB&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class TA, class TB, class TDot, class TFull>
-friend inline TA& fsp_mm_multassign(TA&, const TB&) noexcept(false);
+friend inline TA& fsp_mm_multassign(TA&, const TB&) noexcept;
 #endif
 
 #if(CXSC_INDEX_CHECK)
 template<class TA, class TB>
-friend inline TA& fsp_mm_addassign(TA& A, const TB& B) noexcept(false);
+friend inline TA& fsp_mm_addassign(TA& A, const TB& B) throw(OP_WITH_WRONG_DIM);
 #else
 template<class TA, class TB>
-friend inline TA& fsp_mm_addassign(TA& A, const TB& B) noexcept(false);
-#endif
-
-#if(CXSC_INDEX_CHECK)
-template<class TA, class TB, class TFull>
-friend inline TA& spf_mm_addassign(TA&, const TB&) noexcept(false);
-#else
-template<class TA, class TB, class TFull>
-friend inline TA& spf_mm_addassign(TA&, const TB&) noexcept(false);
-#endif
-
-#if(CXSC_INDEX_CHECK)
-template<class TA, class TB, class TElement>
-friend inline TA& spsp_mm_addassign(TA&, const TB&) noexcept(false);
-#else
-template<class TA, class TB, class TElement>
-friend inline TA& spsp_mm_addassign(TA&, const TB&) noexcept(false);
-#endif
-
-#if(CXSC_INDEX_CHECK)
-template<class TA, class TB>
-friend inline TA& spsp_mm_addassign(TA&, const TB&) noexcept(false);
-#else
-template<class TA, class TB>
-friend inline TA& spsp_mm_addassign(TA&, const TB&) noexcept(false);
-#endif
-
-#if(CXSC_INDEX_CHECK)
-template<class TA, class TB>
-friend inline TA& fsp_mm_subassign(TA& A, const TB& B) noexcept(false);
-#else
-template<class TA, class TB>
-friend inline TA& fsp_mm_subassign(TA& A, const TB& B) noexcept(false);
+friend inline TA& fsp_mm_addassign(TA& A, const TB& B) noexcept;
 #endif
 
 #if(CXSC_INDEX_CHECK)
 template<class TA, class TB, class TFull>
-friend inline TA& spf_mm_subassign(TA&, const TB&) noexcept(false);
+friend inline TA& spf_mm_addassign(TA&, const TB&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class TA, class TB, class TFull>
-friend inline TA& spf_mm_subassign(TA&, const TB&) noexcept(false);
+friend inline TA& spf_mm_addassign(TA&, const TB&) noexcept;
 #endif
 
 #if(CXSC_INDEX_CHECK)
 template<class TA, class TB, class TElement>
-friend inline TA& spsp_mm_subassign(TA&, const TB&) noexcept(false);
+friend inline TA& spsp_mm_addassign(TA&, const TB&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class TA, class TB, class TElement>
-friend inline TA& spsp_mm_subassign(TA&, const TB&) noexcept(false);
+friend inline TA& spsp_mm_addassign(TA&, const TB&) noexcept;
 #endif
 
 #if(CXSC_INDEX_CHECK)
 template<class TA, class TB>
-friend inline TA& spsp_mm_subassign(TA&, const TB&) noexcept(false);
+friend inline TA& spsp_mm_addassign(TA&, const TB&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class TA, class TB>
-friend inline TA& spsp_mm_subassign(TA&, const TB&) noexcept(false);
-#endif
-
-#if(CXSC_INDEX_CHECK)
-template<class TA, class TB, class TFull>
-friend inline TA& spf_mm_hullassign(TA&, const TB&) noexcept(false);
-#else
-template<class TA, class TB, class TFull>
-friend inline TA& spf_mm_hullassign(TA&, const TB&) noexcept(false);
+friend inline TA& spsp_mm_addassign(TA&, const TB&) noexcept;
 #endif
 
 #if(CXSC_INDEX_CHECK)
 template<class TA, class TB>
-friend inline TA& fsp_mm_hullassign(TA& A, const TB& B)  noexcept(false);
+friend inline TA& fsp_mm_subassign(TA& A, const TB& B) throw(OP_WITH_WRONG_DIM);
 #else
 template<class TA, class TB>
-friend inline TA& fsp_mm_hullassign(TA& A, const TB& B)  noexcept(false);
-#endif
-
-#if(CXSC_INDEX_CHECK)
-template<class TA, class TB, class TElement>
-friend inline TA& spsp_mm_hullassign(TA&, const TB&) noexcept(false);
-#else
-template<class TA, class TB, class TElement>
-friend inline TA& spsp_mm_hullassign(TA&, const TB&) noexcept(false);
-#endif
-
-#if(CXSC_INDEX_CHECK)
-template<class TA, class TB>
-friend inline TA& spsp_mm_hullassign(TA&, const TB&) noexcept(false);
-#else
-template<class TA, class TB>
-friend inline TA& spsp_mm_hullassign(TA&, const TB&) noexcept(false);
-#endif
-
-#if(CXSC_INDEX_CHECK)
-template<class TA, class TB>
-friend inline TA& fsp_mm_intersectassign(TA& A, const TB& B)  noexcept(false);
-#else
-template<class TA, class TB>
-friend inline TA& fsp_mm_intersectassign(TA& A, const TB& B)  noexcept(false);
+friend inline TA& fsp_mm_subassign(TA& A, const TB& B) noexcept;
 #endif
 
 #if(CXSC_INDEX_CHECK)
 template<class TA, class TB, class TFull>
-friend inline TA& spf_mm_intersectassign(TA&, const TB&) noexcept(false);
+friend inline TA& spf_mm_subassign(TA&, const TB&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class TA, class TB, class TFull>
-friend inline TA& spf_mm_intersectassign(TA&, const TB&) noexcept(false);
+friend inline TA& spf_mm_subassign(TA&, const TB&) noexcept;
 #endif
 
 #if(CXSC_INDEX_CHECK)
 template<class TA, class TB, class TElement>
-friend inline TA& spsp_mm_intersectassign(TA&, const TB&) noexcept(false);
+friend inline TA& spsp_mm_subassign(TA&, const TB&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class TA, class TB, class TElement>
-friend inline TA& spsp_mm_intersectassign(TA&, const TB&) noexcept(false);
+friend inline TA& spsp_mm_subassign(TA&, const TB&) noexcept;
 #endif
 
 #if(CXSC_INDEX_CHECK)
 template<class TA, class TB>
-friend inline TA& spsp_mm_intersectassign(TA&, const TB&) noexcept(false);
+friend inline TA& spsp_mm_subassign(TA&, const TB&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class TA, class TB>
-friend inline TA& spsp_mm_intersectassign(TA&, const TB&) noexcept(false);
+friend inline TA& spsp_mm_subassign(TA&, const TB&) noexcept;
+#endif
+
+#if(CXSC_INDEX_CHECK)
+template<class TA, class TB, class TFull>
+friend inline TA& spf_mm_hullassign(TA&, const TB&) throw(OP_WITH_WRONG_DIM);
+#else
+template<class TA, class TB, class TFull>
+friend inline TA& spf_mm_hullassign(TA&, const TB&) noexcept;
+#endif
+
+#if(CXSC_INDEX_CHECK)
+template<class TA, class TB>
+friend inline TA& fsp_mm_hullassign(TA& A, const TB& B)  throw(OP_WITH_WRONG_DIM);
+#else
+template<class TA, class TB>
+friend inline TA& fsp_mm_hullassign(TA& A, const TB& B)  noexcept;
+#endif
+
+#if(CXSC_INDEX_CHECK)
+template<class TA, class TB, class TElement>
+friend inline TA& spsp_mm_hullassign(TA&, const TB&) throw(OP_WITH_WRONG_DIM);
+#else
+template<class TA, class TB, class TElement>
+friend inline TA& spsp_mm_hullassign(TA&, const TB&) noexcept;
+#endif
+
+#if(CXSC_INDEX_CHECK)
+template<class TA, class TB>
+friend inline TA& spsp_mm_hullassign(TA&, const TB&) throw(OP_WITH_WRONG_DIM);
+#else
+template<class TA, class TB>
+friend inline TA& spsp_mm_hullassign(TA&, const TB&) noexcept;
+#endif
+
+#if(CXSC_INDEX_CHECK)
+template<class TA, class TB>
+friend inline TA& fsp_mm_intersectassign(TA& A, const TB& B)  throw(OP_WITH_WRONG_DIM);
+#else
+template<class TA, class TB>
+friend inline TA& fsp_mm_intersectassign(TA& A, const TB& B)  noexcept;
+#endif
+
+#if(CXSC_INDEX_CHECK)
+template<class TA, class TB, class TFull>
+friend inline TA& spf_mm_intersectassign(TA&, const TB&) throw(OP_WITH_WRONG_DIM);
+#else
+template<class TA, class TB, class TFull>
+friend inline TA& spf_mm_intersectassign(TA&, const TB&) noexcept;
+#endif
+
+#if(CXSC_INDEX_CHECK)
+template<class TA, class TB, class TElement>
+friend inline TA& spsp_mm_intersectassign(TA&, const TB&) throw(OP_WITH_WRONG_DIM);
+#else
+template<class TA, class TB, class TElement>
+friend inline TA& spsp_mm_intersectassign(TA&, const TB&) noexcept;
+#endif
+
+#if(CXSC_INDEX_CHECK)
+template<class TA, class TB>
+friend inline TA& spsp_mm_intersectassign(TA&, const TB&) throw(OP_WITH_WRONG_DIM);
+#else
+template<class TA, class TB>
+friend inline TA& spsp_mm_intersectassign(TA&, const TB&) noexcept;
 #endif
 
 #if(CXSC_INDEX_CHECK)
 template<class Tx, class Ty>
-friend inline Tx& svsp_vv_assign(Tx&, const Ty&) noexcept(false);
+friend inline Tx& svsp_vv_assign(Tx&, const Ty&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class Tx, class Ty>
-friend inline Tx& svsp_vv_assign(Tx&, const Ty&) noexcept(false);
+friend inline Tx& svsp_vv_assign(Tx&, const Ty&) noexcept;
 #endif
 
 #if(CXSC_INDEX_CHECK)
 template<class Tx, class Ty>
-friend inline Tx& svsl_vv_assign(Tx&, const Ty&) noexcept(false);
+friend inline Tx& svsl_vv_assign(Tx&, const Ty&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class Tx, class Ty>
-friend inline Tx& svsl_vv_assign(Tx&, const Ty&) noexcept(false);
+friend inline Tx& svsl_vv_assign(Tx&, const Ty&) noexcept;
 #endif
 
 #if(CXSC_INDEX_CHECK)
 template<class Tx, class Ty>
-friend inline Tx& svf_vv_assign(Tx&, const Ty&) noexcept(false);
+friend inline Tx& svf_vv_assign(Tx&, const Ty&) throw(OP_WITH_WRONG_DIM);
 #else
 template<class Tx, class Ty>
-friend inline Tx& svf_vv_assign(Tx&, const Ty&) noexcept(false);
+friend inline Tx& svf_vv_assign(Tx&, const Ty&) noexcept;
 #endif
 
 template<class TA, class Ts, class TType>
@@ -463,20 +463,20 @@ template<class Tx>
 friend inline bool sv_v_not(const Tx&);
 
 template <class TA>
-friend inline void sp_m_resize(TA& A) noexcept(false);
+friend inline void sp_m_resize(TA& A) noexcept;
 
 #if(CXSC_INDEX_CHECK)
 template <class TA>
-friend inline void sp_m_resize(TA &A,const int &m, const int &n) noexcept(false);
+friend inline void sp_m_resize(TA &A,const int &m, const int &n) throw(WRONG_BOUNDARIES);
 #else
 template <class TA>
-friend inline void sp_m_resize(TA &A,const int &m, const int &n) noexcept(false);
+friend inline void sp_m_resize(TA &A,const int &m, const int &n) noexcept;
 #endif
 
 #if(CXSC_INDEX_CHECK)
 template<class TA>
-friend inline void sp_m_resize(TA &A,const int &m1, const int &m2,const int &n1,const int &n2) noexcept(false);
+friend inline void sp_m_resize(TA &A,const int &m1, const int &m2,const int &n1,const int &n2) throw(WRONG_BOUNDARIES);
 #else
 template<class TA>
-friend inline void sp_m_resize(TA &A,const int &m1, const int &m2,const int &n1,const int &n2) noexcept(false);
+friend inline void sp_m_resize(TA &A,const int &m1, const int &m2,const int &n1,const int &n2) noexcept;
 #endif

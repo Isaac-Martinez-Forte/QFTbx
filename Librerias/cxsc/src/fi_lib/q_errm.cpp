@@ -67,7 +67,6 @@ namespace fi_lib {
 	    case 28: cerr << "q_erfc" ; break; 
 	}
 	cerr << endl << "*** Error in fi_lib (V1.3): Argument == NaN ! ***" << endl;
-        throw "ERROR";
 	exit(n);
 	return(*x); 
 }
@@ -112,7 +111,6 @@ namespace fi_lib {
 	    cerr << endl << "*** Error in fi_lib (V1.3): Overflow (result) ! ***" << endl;
 	//cerr << "*** Error in fi_lib (V1.3): Argument x = %24.15e \n",*x);
 	cerr << "*** Error in fi_lib (V1.3): Argument x =  " << *x << endl;
-        throw "ERROR";
 	exit(n);
 	return(*x);
 }
@@ -158,7 +156,6 @@ namespace fi_lib {
 	    cerr << endl << "*** Error in fi_lib (V1.3): Overflow (result) ! ***" << endl;
 	cerr << "*** Error in fi_lib (V1.3): Argument x.INF = %24.15e " << *x1 << endl;
 	cerr << "*** Error in fi_lib (V1.3): Argument x.SUP = %24.15e " << *x2 << endl;
-        throw "ERROR";
 	exit(n);
 
 	Inf(res)=*x1; Sup(res)=*x2;
@@ -171,7 +168,6 @@ namespace fi_lib {
 	cerr << endl << "*** Error in fi_lib (V1.3): Division by zero ! ***" << endl;
 	cerr << "*** Error in fi_lib (V1.3): x = %24.15e \n" << *x << endl;;
 	exit(n);
-        throw "ERROR";
 	return(*x);
  }
 
@@ -183,7 +179,6 @@ namespace fi_lib {
 	cerr << "*** Error in fi_lib (V1.3): x.INF = %24.15e" << *x1 << endl;
 	cerr << "*** Error in fi_lib (V1.3): x.SUP = %24.15e" << *x2 << endl;
 	exit(n);
-        throw "ERROR";
 	Inf(res)=*x1; Sup(res)=*x2;
 	return(res);
  } 

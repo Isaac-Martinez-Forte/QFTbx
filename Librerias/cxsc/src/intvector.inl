@@ -30,17 +30,17 @@
 
 namespace cxsc {
 
-	INLINE intvector::intvector () noexcept(false):dat(NULL),l(1),u(0),size(0)
+	INLINE intvector::intvector () noexcept:dat(NULL),l(1),u(0),size(0)
 	{
 	}
 
-	INLINE intvector::intvector(const int &i) noexcept(false):l(1),u(i),size(i)
+	INLINE intvector::intvector(const int &i) noexcept:l(1),u(i),size(i)
 	{
 		dat=new int[i];
 	}
 
 #ifdef OLD_CXSC  
-	INLINE intvector::intvector(const class index &i) noexcept(false):l(1),u(i._int()),size(i._int())
+	INLINE intvector::intvector(const class index &i) throw():l(1),u(i._int()),size(i._int())
 	{
 		dat=new int[i._int()];
 	}
@@ -50,7 +50,7 @@ namespace cxsc {
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR_INTVECTOR_WRONG_BOUNDARIES,ERROR_INTVECTOR_NO_MORE_MEMORY):l(i1),u(i2),size(i2-i1+1)
 #else
-	noexcept(false):l(i1),u(i2),size(i2-i1+1)
+	noexcept:l(i1),u(i2),size(i2-i1+1)
 #endif
 	{
 #if(CXSC_INDEX_CHECK)
@@ -59,14 +59,14 @@ namespace cxsc {
 		dat=new int[size];
 	}
 
-	INLINE intvector::intvector(const intvector_slice &rs) noexcept(false):l(rs.start),u(rs.end),size(rs.end-rs.start+1)
+	INLINE intvector::intvector(const intvector_slice &rs) noexcept:l(rs.start),u(rs.end),size(rs.end-rs.start+1)
 	{
 		dat=new int[size];
 		for(int i=0, j=l-rs.l;i<size;i++,j++)
 			dat[i]=rs.dat[j];
 	}
 
-	INLINE intvector::intvector(const intvector &v) noexcept(false):l(v.l),u(v.u),size(v.size)
+	INLINE intvector::intvector(const intvector &v) noexcept:l(v.l),u(v.u),size(v.size)
 	{
 		dat=new int[size];
 		for (int i=0;i<size;i++)
@@ -75,9 +75,9 @@ namespace cxsc {
 
 	INLINE int & intvector_slice::operator [](const int &i)
 #if(CXSC_INDEX_CHECK)
-		noexcept(false)
+		throw(ERROR_INTVECTOR_ELEMENT_NOT_IN_VEC)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{
 #if(CXSC_INDEX_CHECK)
@@ -88,9 +88,9 @@ namespace cxsc {
 	
 	INLINE const int & intvector_slice::operator [](const int &i) const
 #if(CXSC_INDEX_CHECK)
-		noexcept(false)
+		throw(ERROR_INTVECTOR_ELEMENT_NOT_IN_VEC)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{
 #if(CXSC_INDEX_CHECK)
@@ -101,9 +101,9 @@ namespace cxsc {
 	
 	INLINE const int & intvector::operator [](const int &i) const
 #if(CXSC_INDEX_CHECK)
-		noexcept(false)
+		throw(ERROR_INTVECTOR_ELEMENT_NOT_IN_VEC)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{
 #if(CXSC_INDEX_CHECK)
@@ -114,9 +114,9 @@ namespace cxsc {
 	
 	INLINE int & intvector::operator [](const int &i)
 #if(CXSC_INDEX_CHECK)
-		noexcept(false)
+		throw(ERROR_INTVECTOR_ELEMENT_NOT_IN_VEC)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{
 #if(CXSC_INDEX_CHECK)
@@ -133,9 +133,9 @@ namespace cxsc {
 	*/
 	INLINE intvector_slice intvector::operator ()(const int &i)
 #if(CXSC_INDEX_CHECK)
-		noexcept(false)
+		throw(ERROR_INTVECTOR_SUB_ARRAY_TOO_BIG)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{
 #if(CXSC_INDEX_CHECK)
@@ -153,9 +153,9 @@ namespace cxsc {
 	*/
 	INLINE intvector_slice intvector::operator ()(const int &i1,const int &i2)
 #if(CXSC_INDEX_CHECK)
-		noexcept(false)
+		throw(ERROR_INTVECTOR_SUB_ARRAY_TOO_BIG)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{
 #if(CXSC_INDEX_CHECK)
@@ -166,9 +166,9 @@ namespace cxsc {
 	
 	INLINE intvector_slice intvector_slice::operator ()(const int &i)
 #if(CXSC_INDEX_CHECK)
-		noexcept(false)
+		throw(ERROR_INTVECTOR_SUB_ARRAY_TOO_BIG)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{
 #if(CXSC_INDEX_CHECK)
@@ -179,9 +179,9 @@ namespace cxsc {
 	
    INLINE intvector_slice intvector_slice::operator ()(const int &i1,const int &i2)
 #if(CXSC_INDEX_CHECK)
-		noexcept(false)
+		throw(ERROR_INTVECTOR_SUB_ARRAY_TOO_BIG)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{
 #if(CXSC_INDEX_CHECK)
@@ -190,26 +190,26 @@ namespace cxsc {
 		return intvector_slice(*this,i1,i2);
 	}
 
-	INLINE intvector &intvector::operator =(const intvector &rv) noexcept(false) { return _vvassign<intvector,intvector,int>(*this,rv); }
-	INLINE intvector &intvector::operator =(const int &r) noexcept(false) { return _vsassign<intvector,int>(*this,r); }
-	INLINE intvector::operator void*() noexcept(false) { return _vvoid(*this); }
+	INLINE intvector &intvector::operator =(const intvector &rv) noexcept { return _vvassign<intvector,intvector,int>(*this,rv); }
+	INLINE intvector &intvector::operator =(const int &r) noexcept { return _vsassign<intvector,int>(*this,r); }
+	INLINE intvector::operator void*() noexcept { return _vvoid(*this); }
 
 	INLINE intvector_slice & intvector_slice::operator =(const intvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<intvector>)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return _vsvsassign<intvector_slice,intvector_slice>(*this,sl); }
 	INLINE intvector_slice & intvector_slice::operator =(const intvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<intvector>)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return _vsvassign<intvector_slice,intvector>(*this,rv); }
-	INLINE intvector_slice & intvector_slice::operator =(const int &r) noexcept(false) { return _vssassign<intvector_slice,int>(*this,r); }
-	INLINE intvector_slice::operator void*() noexcept(false) { return _vsvoid(*this); }
+	INLINE intvector_slice & intvector_slice::operator =(const int &r) noexcept { return _vssassign<intvector_slice,int>(*this,r); }
+	INLINE intvector_slice::operator void*() noexcept { return _vsvoid(*this); }
 
 //======================== Vector Functions =============================
 	/*!
@@ -217,226 +217,226 @@ namespace cxsc {
 
 	\sa cxsc::intvector::intvector(const int &)
 	*/
-	INLINE intvector _intvector(const int &r) noexcept(false) { return intvector(r); }
+	INLINE intvector _intvector(const int &r) noexcept { return intvector(r); }
 
-	INLINE void Resize(intvector &rv) noexcept(false) { _vresize(rv); } 
+	INLINE void Resize(intvector &rv) noexcept { _vresize(rv); } 
 	INLINE void Resize(intvector &rv, const int &len)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__WRONG_BOUNDARIES<intvector>)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ _vresize<intvector,int>(rv,len); }
 	INLINE void Resize(intvector &rv, const int &lb, const int &ub)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__WRONG_BOUNDARIES<intvector>)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ _vresize<intvector,int>(rv,lb,ub); }
 	
-	INLINE intvector abs(const intvector &rv) noexcept(false) { return _vabs<intvector,intvector>(rv); }
-	INLINE intvector abs(const intvector_slice &sl) noexcept(false) { return _vsabs<intvector_slice,intvector>(sl); }
-	INLINE bool operator !(const intvector &rv) noexcept(false) { return _vnot(rv); }
-	INLINE bool operator !(const intvector_slice &sl) noexcept(false) { return _vsnot(sl); }
+	INLINE intvector abs(const intvector &rv) noexcept { return _vabs<intvector,intvector>(rv); }
+	INLINE intvector abs(const intvector_slice &sl) noexcept { return _vsabs<intvector_slice,intvector>(sl); }
+	INLINE bool operator !(const intvector &rv) noexcept { return _vnot(rv); }
+	INLINE bool operator !(const intvector_slice &sl) noexcept { return _vsnot(sl); }
 
 //======================= Vector / Scalar ===============================
 
-	INLINE intvector operator *(const intvector &rv, const int &s) noexcept(false) { return _vsmult<intvector,int,intvector>(rv,s); }
-	INLINE intvector operator *(const intvector_slice &sl, const int &s) noexcept(false) { return _vssmult<intvector_slice,int,intvector>(sl,s); }
-	INLINE intvector operator *(const int &s, const intvector &rv) noexcept(false) { return _vsmult<intvector,int,intvector>(rv,s); }
-	INLINE intvector operator *(const int &s, const intvector_slice &sl) noexcept(false) { return _vssmult<intvector_slice,int,intvector>(sl,s); }
-	INLINE intvector &operator *=(intvector &rv,const int &r) noexcept(false) { return _vsmultassign(rv,r); }
-	INLINE intvector_slice &intvector_slice::operator *=(const int &r) noexcept(false) { return _vssmultassign(*this,r); }
+	INLINE intvector operator *(const intvector &rv, const int &s) noexcept { return _vsmult<intvector,int,intvector>(rv,s); }
+	INLINE intvector operator *(const intvector_slice &sl, const int &s) noexcept { return _vssmult<intvector_slice,int,intvector>(sl,s); }
+	INLINE intvector operator *(const int &s, const intvector &rv) noexcept { return _vsmult<intvector,int,intvector>(rv,s); }
+	INLINE intvector operator *(const int &s, const intvector_slice &sl) noexcept { return _vssmult<intvector_slice,int,intvector>(sl,s); }
+	INLINE intvector &operator *=(intvector &rv,const int &r) noexcept { return _vsmultassign(rv,r); }
+	INLINE intvector_slice &intvector_slice::operator *=(const int &r) noexcept { return _vssmultassign(*this,r); }
 
-	INLINE intvector operator /(const intvector &rv, const int &s) noexcept(false) { return _vsdiv<intvector,int,intvector>(rv,s); }
-	INLINE intvector operator /(const intvector_slice &sl, const int &s) noexcept(false) { return _vssdiv<intvector_slice,int,intvector>(sl,s); }
-	INLINE intvector &operator /=(intvector &rv,const int &r) noexcept(false) { return _vsdivassign(rv,r); }
-	INLINE intvector_slice &intvector_slice::operator /=(const int &r) noexcept(false) { return _vssdivassign(*this,r); }
+	INLINE intvector operator /(const intvector &rv, const int &s) noexcept { return _vsdiv<intvector,int,intvector>(rv,s); }
+	INLINE intvector operator /(const intvector_slice &sl, const int &s) noexcept { return _vssdiv<intvector_slice,int,intvector>(sl,s); }
+	INLINE intvector &operator /=(intvector &rv,const int &r) noexcept { return _vsdivassign(rv,r); }
+	INLINE intvector_slice &intvector_slice::operator /=(const int &r) noexcept { return _vssdivassign(*this,r); }
 
 //======================= Vector / Vector ===============================
 
-	INLINE intvector &intvector::operator =(const intvector_slice &sl) noexcept(false) { return _vvsassign<intvector,intvector_slice,int>(*this,sl); }
+	INLINE intvector &intvector::operator =(const intvector_slice &sl) noexcept { return _vvsassign<intvector,intvector_slice,int>(*this,sl); }
 
 
 	INLINE void accumulate(dotprecision &dp, const intvector & rv1, const intvector &rv2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false)
+	throw(OP_WITH_WRONG_DIM)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ _vvaccu(dp,rv1,rv2); }
-//	INLINE void accumulate(dotprecision &dp, const intvector & rv1, const intmatrix_subv &rv2) noexcept(false);
-//	INLINE void accumulate(dotprecision &dp, const intmatrix_subv & rv1, const intvector &rv2) noexcept(false);
+//	INLINE void accumulate(dotprecision &dp, const intvector & rv1, const intmatrix_subv &rv2) throw(OP_WITH_WRONG_DIM);
+//	INLINE void accumulate(dotprecision &dp, const intmatrix_subv & rv1, const intvector &rv2) throw(OP_WITH_WRONG_DIM);
 	INLINE void accumulate(dotprecision &dp,const intvector_slice &sl,const intvector &rv)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false)
+	throw(OP_WITH_WRONG_DIM)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ _vsvaccu(dp,sl,rv); }
 	INLINE void accumulate(dotprecision &dp,const intvector &rv,const intvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false)
+	throw(OP_WITH_WRONG_DIM)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ _vsvaccu(dp,sl,rv); }
 	INLINE void accumulate(dotprecision &dp, const intvector_slice & sl1, const intvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false)
+	throw(OP_WITH_WRONG_DIM)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ _vsvsaccu(dp,sl1,sl2); }
 
-	INLINE const intvector &operator +(const intvector &rv) noexcept(false) { return rv; }
-	INLINE intvector operator +(const intvector_slice &sl) noexcept(false) { return sl; }
+	INLINE const intvector &operator +(const intvector &rv) noexcept { return rv; }
+	INLINE intvector operator +(const intvector_slice &sl) noexcept { return sl; }
 	INLINE intvector operator +(const intvector &rv1, const intvector &rv2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<intvector>)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return _vvplus<intvector,intvector,intvector>(rv1,rv2); }
 	INLINE intvector operator +(const intvector &rv, const intvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<intvector>)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return _vvsplus<intvector,intvector_slice,intvector>(rv,sl); }
 	INLINE intvector operator +(const intvector_slice &sl, const intvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<intvector>)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return _vvsplus<intvector,intvector_slice,intvector>(rv,sl); }
 	INLINE intvector operator +(const intvector_slice &sl1, const intvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<intvector>)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return _vsvsplus<intvector_slice,intvector_slice,intvector>(sl1,sl2); }
 	INLINE intvector & operator +=(intvector &rv1, const intvector &rv2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<intvector>)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return _vvplusassign(rv1,rv2); }
 	INLINE intvector &operator +=(intvector &rv, const intvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<intvector>)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return _vvsplusassign(rv,sl); }
 	INLINE intvector_slice &intvector_slice::operator +=(const intvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<intvector>)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return _vsvplusassign(*this,rv); }
 	INLINE intvector_slice &intvector_slice::operator +=(const intvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<intvector>)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return _vsvsplusassign(*this,sl2); }
 
-	INLINE intvector operator -(const intvector &rv) noexcept(false) { return _vminus(rv); }
-	INLINE intvector operator -(const intvector_slice &sl) noexcept(false) { return _vsminus<intvector_slice,intvector>(sl); }
+	INLINE intvector operator -(const intvector &rv) noexcept { return _vminus(rv); }
+	INLINE intvector operator -(const intvector_slice &sl) noexcept { return _vsminus<intvector_slice,intvector>(sl); }
 	INLINE intvector operator -(const intvector &rv1, const intvector &rv2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<intvector>)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return _vvminus<intvector,intvector,intvector>(rv1,rv2); }
 	INLINE intvector operator -(const intvector &rv, const intvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<intvector>)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return _vvsminus<intvector,intvector_slice,intvector>(rv,sl); }
 	INLINE intvector operator -(const intvector_slice &sl, const intvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<intvector>)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return _vsvminus<intvector_slice,intvector,intvector>(sl,rv); }
 	INLINE intvector operator -(const intvector_slice &sl1, const intvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<intvector>)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return _vsvsminus<intvector_slice,intvector_slice,intvector>(sl1,sl2); }
 	INLINE intvector & operator -=(intvector &rv1, const intvector &rv2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<intvector>)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return _vvminusassign(rv1,rv2); }
 	INLINE intvector &operator -=(intvector &rv, const intvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<intvector>)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return _vvsminusassign(rv,sl); }
 	INLINE intvector_slice &intvector_slice::operator -=(const intvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<intvector>)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return _vsvminusassign(*this,rv); }
 	INLINE intvector_slice &intvector_slice::operator -=(const intvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<intvector>)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return _vsvsminusassign(*this,sl2); }
 
-	INLINE bool operator ==(const intvector &rv1, const intvector &rv2) noexcept(false) { return _vveq(rv1,rv2); }
-	INLINE bool operator ==(const intvector_slice &sl1, const intvector_slice &sl2) noexcept(false) { return _vsvseq(sl1,sl2); }
-	INLINE bool operator ==(const intvector_slice &sl, const intvector &rv) noexcept(false) { return _vsveq(sl,rv); }
-	INLINE bool operator ==(const intvector &rv, const intvector_slice &sl) noexcept(false) { return _vsveq(sl,rv); }
-	INLINE bool operator !=(const intvector &rv1, const intvector &rv2) noexcept(false) { return _vvneq(rv1,rv2); }
-	INLINE bool operator !=(const intvector_slice &sl1, const intvector_slice &sl2) noexcept(false) { return _vsvsneq(sl1,sl2); }
-	INLINE bool operator !=(const intvector_slice &sl, const intvector &rv) noexcept(false) { return _vsvneq(sl,rv); }
-	INLINE bool operator !=(const intvector &rv, const intvector_slice &sl) noexcept(false) { return _vsvneq(sl,rv); }
-	INLINE bool operator <(const intvector &rv1, const intvector &rv2) noexcept(false) { return _vvless(rv1,rv2); }
-	INLINE bool operator <(const intvector_slice &sl1, const intvector_slice &sl2) noexcept(false) { return _vsvsless(sl1,sl2); }
-	INLINE bool operator < (const intvector_slice &sl, const intvector &rv) noexcept(false) { return _vsvless(sl,rv); }
-	INLINE bool operator < (const intvector &rv, const intvector_slice &sl) noexcept(false) { return _vvsless(rv,sl); }
-	INLINE bool operator <=(const intvector &rv1, const intvector &rv2) noexcept(false) { return _vvleq(rv1,rv2); }
-	INLINE bool operator <=(const intvector_slice &sl1, const intvector_slice &sl2) noexcept(false) { return _vsvsleq(sl1,sl2); }
-	INLINE bool operator <=(const intvector_slice &sl, const intvector &rv) noexcept(false) { return _vsvleq(sl,rv); }
-	INLINE bool operator <=(const intvector &rv, const intvector_slice &sl) noexcept(false) { return _vvsleq(rv,sl); }
-	INLINE bool operator >(const intvector &rv1, const intvector &rv2) noexcept(false) { return _vvless(rv2,rv1); }
-	INLINE bool operator >(const intvector_slice &sl1, const intvector_slice &sl2) noexcept(false) { return _vsvsless(sl2,sl1); }
-	INLINE bool operator >(const intvector_slice &sl, const intvector &rv) noexcept(false) { return _vvsless(rv,sl); }
-	INLINE bool operator >(const intvector &rv, const intvector_slice &sl) noexcept(false) { return _vsvless(sl,rv); }
-	INLINE bool operator >=(const intvector &rv1, const intvector &rv2) noexcept(false) { return _vvleq(rv2,rv1); }
-	INLINE bool operator >=(const intvector_slice &sl1, const intvector_slice &sl2) noexcept(false) { return _vsvsleq(sl2,sl1); }
-	INLINE bool operator >=(const intvector_slice &sl, const intvector &rv) noexcept(false) { return _vvsleq(rv,sl); }
-	INLINE bool operator >=(const intvector &rv, const intvector_slice &sl) noexcept(false) { return _vsvleq(sl,rv); }
+	INLINE bool operator ==(const intvector &rv1, const intvector &rv2) noexcept { return _vveq(rv1,rv2); }
+	INLINE bool operator ==(const intvector_slice &sl1, const intvector_slice &sl2) noexcept { return _vsvseq(sl1,sl2); }
+	INLINE bool operator ==(const intvector_slice &sl, const intvector &rv) noexcept { return _vsveq(sl,rv); }
+	INLINE bool operator ==(const intvector &rv, const intvector_slice &sl) noexcept { return _vsveq(sl,rv); }
+	INLINE bool operator !=(const intvector &rv1, const intvector &rv2) noexcept { return _vvneq(rv1,rv2); }
+	INLINE bool operator !=(const intvector_slice &sl1, const intvector_slice &sl2) noexcept { return _vsvsneq(sl1,sl2); }
+	INLINE bool operator !=(const intvector_slice &sl, const intvector &rv) noexcept { return _vsvneq(sl,rv); }
+	INLINE bool operator !=(const intvector &rv, const intvector_slice &sl) noexcept { return _vsvneq(sl,rv); }
+	INLINE bool operator <(const intvector &rv1, const intvector &rv2) noexcept { return _vvless(rv1,rv2); }
+	INLINE bool operator <(const intvector_slice &sl1, const intvector_slice &sl2) noexcept { return _vsvsless(sl1,sl2); }
+	INLINE bool operator < (const intvector_slice &sl, const intvector &rv) noexcept { return _vsvless(sl,rv); }
+	INLINE bool operator < (const intvector &rv, const intvector_slice &sl) noexcept { return _vvsless(rv,sl); }
+	INLINE bool operator <=(const intvector &rv1, const intvector &rv2) noexcept { return _vvleq(rv1,rv2); }
+	INLINE bool operator <=(const intvector_slice &sl1, const intvector_slice &sl2) noexcept { return _vsvsleq(sl1,sl2); }
+	INLINE bool operator <=(const intvector_slice &sl, const intvector &rv) noexcept { return _vsvleq(sl,rv); }
+	INLINE bool operator <=(const intvector &rv, const intvector_slice &sl) noexcept { return _vvsleq(rv,sl); }
+	INLINE bool operator >(const intvector &rv1, const intvector &rv2) noexcept { return _vvless(rv2,rv1); }
+	INLINE bool operator >(const intvector_slice &sl1, const intvector_slice &sl2) noexcept { return _vsvsless(sl2,sl1); }
+	INLINE bool operator >(const intvector_slice &sl, const intvector &rv) noexcept { return _vvsless(rv,sl); }
+	INLINE bool operator >(const intvector &rv, const intvector_slice &sl) noexcept { return _vsvless(sl,rv); }
+	INLINE bool operator >=(const intvector &rv1, const intvector &rv2) noexcept { return _vvleq(rv2,rv1); }
+	INLINE bool operator >=(const intvector_slice &sl1, const intvector_slice &sl2) noexcept { return _vsvsleq(sl2,sl1); }
+	INLINE bool operator >=(const intvector_slice &sl, const intvector &rv) noexcept { return _vvsleq(rv,sl); }
+	INLINE bool operator >=(const intvector &rv, const intvector_slice &sl) noexcept { return _vsvleq(sl,rv); }
 
-	INLINE std::ostream &operator <<(std::ostream &s, const intvector &rv) noexcept(false) { return _vout(s,rv); }
-	INLINE std::ostream &operator <<(std::ostream &o, const intvector_slice &sl) noexcept(false) { return _vsout(o,sl); }
-	INLINE std::istream &operator >>(std::istream &s, intvector &rv) noexcept(false) { return _vin(s,rv); }
-	INLINE std::istream &operator >>(std::istream &s, intvector_slice &rv) noexcept(false) { return _vsin(s,rv); }
+	INLINE std::ostream &operator <<(std::ostream &s, const intvector &rv) noexcept { return _vout(s,rv); }
+	INLINE std::ostream &operator <<(std::ostream &o, const intvector_slice &sl) noexcept { return _vsout(o,sl); }
+	INLINE std::istream &operator >>(std::istream &s, intvector &rv) noexcept { return _vin(s,rv); }
+	INLINE std::istream &operator >>(std::istream &s, intvector_slice &rv) noexcept { return _vsin(s,rv); }
 
         INLINE intvector perminv(const intvector& x) {
           intvector p(0,VecLen(x));

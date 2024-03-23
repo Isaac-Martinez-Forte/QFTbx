@@ -31,19 +31,19 @@ namespace cxsc {
 
 	INLINE civector::civector(const rmatrix &sl)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false)
+	throw(ERROR_RMATRIX_TYPE_CAST_OF_THICK_OBJ)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ _vmconstr<civector,rmatrix,cinterval>(*this,sl); }
 	INLINE civector::civector(const rmatrix_slice &sl)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false)
+	throw(ERROR_RMATRIX_TYPE_CAST_OF_THICK_OBJ)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ _vmsconstr<civector,rmatrix_slice,cinterval>(*this,sl); }
-	INLINE civector::civector(const rmatrix_subv &v) noexcept(false):l(v.lb),u(v.ub),size(v.size)
+	INLINE civector::civector(const rmatrix_subv &v) noexcept:l(v.lb),u(v.ub),size(v.size)
 	{
 		dat=new cinterval[size];
 		for (int i=0, j=v.start;i<v.size;i++,j+=v.offset)
@@ -51,105 +51,105 @@ namespace cxsc {
 	}
 	INLINE civector _civector(const rmatrix &sl)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false)
+	throw(ERROR_RMATRIX_TYPE_CAST_OF_THICK_OBJ)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return civector(sl); }
 	INLINE civector _civector(const rmatrix_slice &sl)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false)
+	throw(ERROR_RMATRIX_TYPE_CAST_OF_THICK_OBJ)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return civector(sl); }
 
-	INLINE civector &civector::operator =(const rmatrix_subv &mv) noexcept(false) { return _vmvassign<civector,rmatrix_subv,cinterval>(*this,mv); }
-	INLINE civector_slice &civector_slice::operator =(const rmatrix_subv &mv) noexcept(false) { return _vsvassign(*this,rvector(mv)); }
+	INLINE civector &civector::operator =(const rmatrix_subv &mv) noexcept { return _vmvassign<civector,rmatrix_subv,cinterval>(*this,mv); }
+	INLINE civector_slice &civector_slice::operator =(const rmatrix_subv &mv) noexcept { return _vsvassign(*this,rvector(mv)); }
 	INLINE civector &civector::operator =(const rmatrix &m)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false)
+	throw(ERROR_RMATRIX_TYPE_CAST_OF_THICK_OBJ)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return _vmassign<civector,rmatrix,cinterval>(*this,m); }
 	INLINE civector &civector::operator =(const rmatrix_slice &m)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false)
+	throw(ERROR_RMATRIX_TYPE_CAST_OF_THICK_OBJ)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return _vmassign<civector,rmatrix,cinterval>(*this,rmatrix(m)); }
 	INLINE civector_slice &civector_slice::operator =(const rmatrix &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<rvector>,ERROR_RMATRIX_TYPE_CAST_OF_THICK_OBJ)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return _vsvassign(*this,rvector(m)); }
 	INLINE civector_slice & civector_slice::operator =(const rmatrix_slice &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<rvector>,ERROR_RMATRIX_TYPE_CAST_OF_THICK_OBJ)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return _vsvassign(*this,civector(rmatrix(m))); }
 
 	INLINE civector operator *(const rmatrix &m,const civector &v)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false)
+	throw(ERROR_RMATRIX_OP_WITH_WRONG_DIM)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return _mvcimult<rmatrix,civector,civector>(m,v); }
 	INLINE civector operator *(const rmatrix_slice &ms,const civector &v)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false)
+	throw(ERROR_RMATRIX_OP_WITH_WRONG_DIM)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return _msvcimult<rmatrix_slice,civector,civector>(ms,v); }
 	INLINE civector operator *(const civector &v,const rmatrix &m)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false)
+	throw(ERROR_RMATRIX_OP_WITH_WRONG_DIM)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return _vmcimult<civector,rmatrix,civector>(v,m); }
 	INLINE civector operator *(const civector &v,const rmatrix_slice &ms)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false)
+	throw(ERROR_RMATRIX_OP_WITH_WRONG_DIM)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return _vmscimult<civector,rmatrix_slice,civector>(v,ms); }
 	INLINE civector &operator *=(civector &v,const rmatrix &m)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false)
+	throw(ERROR_RMATRIX_OP_WITH_WRONG_DIM)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return _vmcimultassign<civector,rmatrix,cinterval>(v,m); }
 	INLINE civector &operator *=(civector &v,const rmatrix_slice &ms)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false)
+	throw(ERROR_RMATRIX_OP_WITH_WRONG_DIM)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return _vmscimultassign<civector,rmatrix_slice,cinterval>(v,ms); }
 
 	INLINE civector operator *(const civector_slice &v,const rmatrix &m)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false)
+	throw(ERROR_RMATRIX_OP_WITH_WRONG_DIM)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return _vmcimult<civector,rmatrix,civector>(civector(v),m); }
 	INLINE civector_slice &civector_slice::operator *=(const rmatrix &m)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false)
+	throw(ERROR_RMATRIX_OP_WITH_WRONG_DIM)
 #else
-	noexcept(false)
+	noexcept
 #endif
 	{ return _vsmcimultassign<civector_slice,rmatrix,cinterval>(*this,m); }
 

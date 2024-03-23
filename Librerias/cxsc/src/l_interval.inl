@@ -27,9 +27,9 @@ namespace cxsc {
 
 inline void l_interval::_allo(int nprec)
 #if (CXSC_INDEX_CHECK)
-   noexcept(false)
+   throw(ERROR_LINTERVAL_WRONG_STAGPREC)
 #else
-   noexcept(false)
+   noexcept
 #endif
 {
    prec=nprec;
@@ -44,9 +44,9 @@ inline void l_interval::_allo(int nprec)
 
 inline l_interval::l_interval() 
 #if (CXSC_INDEX_CHECK)
-   noexcept(false)
+   throw(ERROR_LINTERVAL_WRONG_STAGPREC)
 #else
-   noexcept(false)
+   noexcept
 #endif
 {
    _allo(stagprec);
@@ -54,9 +54,9 @@ inline l_interval::l_interval()
 
 inline l_interval::l_interval(const l_interval & a) 
 #if (CXSC_INDEX_CHECK)
-   noexcept(false)
+   throw(ERROR_LINTERVAL_WRONG_STAGPREC)
 #else
-   noexcept(false)
+   noexcept
 #endif
 {
    int i;
@@ -79,42 +79,42 @@ inline l_interval::l_interval(const real &a, const real &b)
    
 }
 
-l_interval::l_interval(const real &a) noexcept(false)
+l_interval::l_interval(const real &a) noexcept
 {
    try { _allo(1); }
    catch(const ERROR_LINTERVAL_WRONG_STAGPREC &) {} // won't occur!
    elem(1)=a,elem(2)=a;
 }
 
-inline l_interval & l_interval::operator= (const real & a)        noexcept(false)
+inline l_interval & l_interval::operator= (const real & a)        noexcept
 {
    return (*this)=_l_interval(a);
 }
 
-inline l_interval & l_interval::operator= (const l_real & a)      noexcept(false)
+inline l_interval & l_interval::operator= (const l_real & a)      noexcept
 {
    return (*this)=_l_interval(a);
 }
 
-inline l_interval & l_interval::operator= (const interval & a)    noexcept(false)
+inline l_interval & l_interval::operator= (const interval & a)    noexcept
 {
    return (*this)=_l_interval(a);
 }
 
-inline l_interval::~l_interval() noexcept(false)
+inline l_interval::~l_interval() noexcept
 {
    delete [] data;
 }
 // ---- Typwandlungen ----
 
-l_interval::l_interval(const interval & a) noexcept(false)
+l_interval::l_interval(const interval & a) noexcept
 {
    try { _allo(1); }
    catch(const ERROR_LINTERVAL_WRONG_STAGPREC &) {} // won't occur!
    elem(1)=Inf(a),elem(2)=Sup(a);
 }
 
-l_interval::l_interval(const l_real & a) noexcept(false)
+l_interval::l_interval(const l_real & a) noexcept
 {
    try { _allo(StagPrec(a)); }
    catch(const ERROR_LINTERVAL_WRONG_STAGPREC &) {} // shouldn't occur!
@@ -124,29 +124,29 @@ l_interval::l_interval(const l_real & a) noexcept(false)
    elem(prec+1)=a[prec];
 }
 
-inline interval _interval(const real & a, const l_real & b) noexcept(false) // Sollte in l_real!!!
+inline interval _interval(const real & a, const l_real & b) noexcept // Sollte in l_real!!!
 {
    return _interval(_l_interval(_l_real(a),b));
 }
 
-inline interval _interval(const l_real & a, const real & b) noexcept(false) // Sollte in l_real!!!
+inline interval _interval(const l_real & a, const real & b) noexcept // Sollte in l_real!!!
 {
    return _interval(_l_interval(a,_l_real(b)));
 }
 
-inline interval _interval(const l_real & a) noexcept(false) // l_real!
+inline interval _interval(const l_real & a) noexcept // l_real!
 {
    return _interval(_l_interval(a,a));
 }
 
-inline interval _unchecked_interval(const l_real & a, const l_real & b) noexcept(false) // l_real!
+inline interval _unchecked_interval(const l_real & a, const l_real & b) noexcept // l_real!
 {
    return _unchecked_interval(_real(a),_real(b));
 }
 
 // ---- Standardfunkt ---- (arithmetische Operatoren)
 
-inline l_interval operator+(const l_interval &a) noexcept(false) { return a; }
+inline l_interval operator+(const l_interval &a) noexcept { return a; }
 
 // LI-LI
 inline l_interval operator|(const l_interval & li1, const l_interval & li2) noexcept(false)
@@ -184,196 +184,196 @@ inline l_interval operator&(const l_interval & li1, const l_interval & li2) noex
    return li4;
 }   
 
-inline l_interval & operator +=(l_interval &a,const l_interval &b) noexcept(false) { return a=a+b; }
-inline l_interval & operator -=(l_interval &a,const l_interval &b) noexcept(false) { return a=a-b; }
-inline l_interval & operator *=(l_interval &a,const l_interval &b) noexcept(false) { return a=a*b; }
-inline l_interval & operator /=(l_interval &a,const l_interval &b) noexcept(false) { return a=a/b; }
-inline l_interval & operator |=(l_interval &a,const l_interval &b) noexcept(false) { return a=a|b; }
+inline l_interval & operator +=(l_interval &a,const l_interval &b) noexcept { return a=a+b; }
+inline l_interval & operator -=(l_interval &a,const l_interval &b) noexcept { return a=a-b; }
+inline l_interval & operator *=(l_interval &a,const l_interval &b) noexcept { return a=a*b; }
+inline l_interval & operator /=(l_interval &a,const l_interval &b) noexcept { return a=a/b; }
+inline l_interval & operator |=(l_interval &a,const l_interval &b) noexcept { return a=a|b; }
 inline l_interval & operator &=(l_interval &a,const l_interval &b) noexcept(false) { return a=a&b; }
 
 // LI-LR
-inline l_interval operator +(const l_interval &a,const l_real &b) noexcept(false) { return a+_l_interval(b); }
-inline l_interval operator +(const l_real &a,const l_interval &b) noexcept(false) { return _l_interval(a)+b; }
-inline l_interval operator -(const l_interval &a,const l_real &b) noexcept(false) { return a-_l_interval(b); }
-inline l_interval operator -(const l_real &a,const l_interval &b) noexcept(false) { return _l_interval(a)-b; }
-inline l_interval operator *(const l_interval &a,const l_real &b) noexcept(false) { return a*_l_interval(b); }
-inline l_interval operator *(const l_real &a,const l_interval &b) noexcept(false) { return _l_interval(a)*b; }
-inline l_interval operator /(const l_interval &a,const l_real &b) noexcept(false) { return a/_l_interval(b); }
-inline l_interval operator /(const l_real &a,const l_interval &b) noexcept(false) { return _l_interval(a)/b; } 
-inline l_interval operator |(const l_real &a,const l_interval &b) noexcept(false) { return _l_interval(a)|b; }
-inline l_interval operator |(const l_interval &a,const l_real &b) noexcept(false) { return a|_l_interval(b); }
-inline l_interval operator |(const l_real &a,const l_real &b)     noexcept(false) { return _l_interval(a)|_l_interval(b); }  // WARNING! For exact upper and lower bounds use the constructor!
+inline l_interval operator +(const l_interval &a,const l_real &b) noexcept { return a+_l_interval(b); }
+inline l_interval operator +(const l_real &a,const l_interval &b) noexcept { return _l_interval(a)+b; }
+inline l_interval operator -(const l_interval &a,const l_real &b) noexcept { return a-_l_interval(b); }
+inline l_interval operator -(const l_real &a,const l_interval &b) noexcept { return _l_interval(a)-b; }
+inline l_interval operator *(const l_interval &a,const l_real &b) noexcept { return a*_l_interval(b); }
+inline l_interval operator *(const l_real &a,const l_interval &b) noexcept { return _l_interval(a)*b; }
+inline l_interval operator /(const l_interval &a,const l_real &b) noexcept { return a/_l_interval(b); }
+inline l_interval operator /(const l_real &a,const l_interval &b) noexcept { return _l_interval(a)/b; } 
+inline l_interval operator |(const l_real &a,const l_interval &b) noexcept { return _l_interval(a)|b; }
+inline l_interval operator |(const l_interval &a,const l_real &b) noexcept { return a|_l_interval(b); }
+inline l_interval operator |(const l_real &a,const l_real &b)     noexcept { return _l_interval(a)|_l_interval(b); }  // WARNING! For exact upper and lower bounds use the constructor!
 inline l_interval operator &(const l_real &a,const l_interval &b) noexcept(false) { return _l_interval(a)&b; }
 inline l_interval operator &(const l_interval &a,const l_real &b) noexcept(false) { return a&_l_interval(b); }
 
-inline l_interval & operator +=(l_interval &a,const l_real &b) noexcept(false) { return a=a+_l_interval(b); }      
-inline l_interval & operator -=(l_interval &a,const l_real &b) noexcept(false) { return a=a-_l_interval(b); }
-inline l_interval & operator *=(l_interval &a,const l_real &b) noexcept(false) { return a=a*_l_interval(b); }              
-inline l_interval & operator /=(l_interval &a,const l_real &b) noexcept(false) { return a=a/_l_interval(b); } 
-inline l_interval & operator |=(l_interval &a,const l_real &b) noexcept(false) { return a=a|_l_interval(b); }
+inline l_interval & operator +=(l_interval &a,const l_real &b) noexcept { return a=a+_l_interval(b); }      
+inline l_interval & operator -=(l_interval &a,const l_real &b) noexcept { return a=a-_l_interval(b); }
+inline l_interval & operator *=(l_interval &a,const l_real &b) noexcept { return a=a*_l_interval(b); }              
+inline l_interval & operator /=(l_interval &a,const l_real &b) noexcept { return a=a/_l_interval(b); } 
+inline l_interval & operator |=(l_interval &a,const l_real &b) noexcept { return a=a|_l_interval(b); }
 inline l_interval & operator &=(l_interval &a,const l_real &b) noexcept(false) { return a=a&_l_interval(b); }
  
 // LI-I
-inline l_interval operator +(const l_interval &a,const interval &b) noexcept(false) { return a+_l_interval(b); }
-inline l_interval operator +(const interval &a,const l_interval &b) noexcept(false) { return _l_interval(a)+b; }
-inline l_interval operator -(const l_interval &a,const interval &b) noexcept(false) { return a-_l_interval(b); }
-inline l_interval operator -(const interval &a,const l_interval &b) noexcept(false) { return _l_interval(a)-b; }
-inline l_interval operator *(const l_interval &a,const interval &b) noexcept(false) { return a*_l_interval(b); }
-inline l_interval operator *(const interval &a,const l_interval &b) noexcept(false) { return _l_interval(a)*b; }
-inline l_interval operator /(const l_interval &a,const interval &b) noexcept(false) { return a/_l_interval(b); }
-inline l_interval operator /(const interval &a,const l_interval &b) noexcept(false) { return _l_interval(a)/b; } 
-inline l_interval operator |(const interval &a,const l_interval &b) noexcept(false) { return _l_interval(a)|b; }
-inline l_interval operator |(const l_interval &a,const interval &b) noexcept(false) { return a|_l_interval(b); }
+inline l_interval operator +(const l_interval &a,const interval &b) noexcept { return a+_l_interval(b); }
+inline l_interval operator +(const interval &a,const l_interval &b) noexcept { return _l_interval(a)+b; }
+inline l_interval operator -(const l_interval &a,const interval &b) noexcept { return a-_l_interval(b); }
+inline l_interval operator -(const interval &a,const l_interval &b) noexcept { return _l_interval(a)-b; }
+inline l_interval operator *(const l_interval &a,const interval &b) noexcept { return a*_l_interval(b); }
+inline l_interval operator *(const interval &a,const l_interval &b) noexcept { return _l_interval(a)*b; }
+inline l_interval operator /(const l_interval &a,const interval &b) noexcept { return a/_l_interval(b); }
+inline l_interval operator /(const interval &a,const l_interval &b) noexcept { return _l_interval(a)/b; } 
+inline l_interval operator |(const interval &a,const l_interval &b) noexcept { return _l_interval(a)|b; }
+inline l_interval operator |(const l_interval &a,const interval &b) noexcept { return a|_l_interval(b); }
 inline l_interval operator &(const interval &a,const l_interval &b) noexcept(false) { return _l_interval(a)&b; }
 inline l_interval operator &(const l_interval &a,const interval &b) noexcept(false) { return a&_l_interval(b); }
 
-inline l_interval & operator +=(l_interval &a,const interval &b) noexcept(false) { return a=a+_l_interval(b); }      
-inline l_interval & operator -=(l_interval &a,const interval &b) noexcept(false) { return a=a-_l_interval(b); }
-inline l_interval & operator *=(l_interval &a,const interval &b) noexcept(false) { return a=a*_l_interval(b); }              
-inline l_interval & operator /=(l_interval &a,const interval &b) noexcept(false) { return a=a/_l_interval(b); } 
-inline l_interval & operator |=(l_interval &a,const interval &b) noexcept(false) { return a=a|_l_interval(b); }
+inline l_interval & operator +=(l_interval &a,const interval &b) noexcept { return a=a+_l_interval(b); }      
+inline l_interval & operator -=(l_interval &a,const interval &b) noexcept { return a=a-_l_interval(b); }
+inline l_interval & operator *=(l_interval &a,const interval &b) noexcept { return a=a*_l_interval(b); }              
+inline l_interval & operator /=(l_interval &a,const interval &b) noexcept { return a=a/_l_interval(b); } 
+inline l_interval & operator |=(l_interval &a,const interval &b) noexcept { return a=a|_l_interval(b); }
 inline l_interval & operator &=(l_interval &a,const interval &b) noexcept(false) { return a=a&_l_interval(b); }
  
 // LI-R
-inline l_interval operator +(const l_interval &a,const real &b) noexcept(false) { return a+_l_interval(b); }
-inline l_interval operator +(const real &a,const l_interval &b) noexcept(false) { return _l_interval(a)+b; }
-inline l_interval operator -(const l_interval &a,const real &b) noexcept(false) { return a-_l_interval(b); }
-inline l_interval operator -(const real &a,const l_interval &b) noexcept(false) { return _l_interval(a)-b; }
-inline l_interval operator *(const l_interval &a,const real &b) noexcept(false) { return a*_l_interval(b); }
-inline l_interval operator *(const real &a,const l_interval &b) noexcept(false) { return _l_interval(a)*b; }
-inline l_interval operator /(const l_interval &a,const real &b) noexcept(false) { return a/_l_interval(b); }
-inline l_interval operator /(const real &a,const l_interval &b) noexcept(false) { return _l_interval(a)/b; } 
-inline l_interval operator |(const real &a,const l_interval &b) noexcept(false) { return _l_interval(a)|b; }
-inline l_interval operator |(const l_interval &a,const real &b) noexcept(false) { return a|_l_interval(b); }
+inline l_interval operator +(const l_interval &a,const real &b) noexcept { return a+_l_interval(b); }
+inline l_interval operator +(const real &a,const l_interval &b) noexcept { return _l_interval(a)+b; }
+inline l_interval operator -(const l_interval &a,const real &b) noexcept { return a-_l_interval(b); }
+inline l_interval operator -(const real &a,const l_interval &b) noexcept { return _l_interval(a)-b; }
+inline l_interval operator *(const l_interval &a,const real &b) noexcept { return a*_l_interval(b); }
+inline l_interval operator *(const real &a,const l_interval &b) noexcept { return _l_interval(a)*b; }
+inline l_interval operator /(const l_interval &a,const real &b) noexcept { return a/_l_interval(b); }
+inline l_interval operator /(const real &a,const l_interval &b) noexcept { return _l_interval(a)/b; } 
+inline l_interval operator |(const real &a,const l_interval &b) noexcept { return _l_interval(a)|b; }
+inline l_interval operator |(const l_interval &a,const real &b) noexcept { return a|_l_interval(b); }
 inline l_interval operator &(const real &a,const l_interval &b) noexcept(false) { return _l_interval(a)&b; }
 inline l_interval operator &(const l_interval &a,const real &b) noexcept(false) { return a&_l_interval(b); }
 
-inline l_interval & operator +=(l_interval &a,const real &b) noexcept(false) { return a=a+_l_interval(b); }      
-inline l_interval & operator -=(l_interval &a,const real &b) noexcept(false) { return a=a-_l_interval(b); }
-inline l_interval & operator *=(l_interval &a,const real &b) noexcept(false) { return a=a*_l_interval(b); }              
-inline l_interval & operator /=(l_interval &a,const real &b) noexcept(false) { return a=a/_l_interval(b); } 
-inline l_interval & operator |=(l_interval &a,const real &b) noexcept(false) { return a=a|_l_interval(b); }
+inline l_interval & operator +=(l_interval &a,const real &b) noexcept { return a=a+_l_interval(b); }      
+inline l_interval & operator -=(l_interval &a,const real &b) noexcept { return a=a-_l_interval(b); }
+inline l_interval & operator *=(l_interval &a,const real &b) noexcept { return a=a*_l_interval(b); }              
+inline l_interval & operator /=(l_interval &a,const real &b) noexcept { return a=a/_l_interval(b); } 
+inline l_interval & operator |=(l_interval &a,const real &b) noexcept { return a=a|_l_interval(b); }
 inline l_interval & operator &=(l_interval &a,const real &b) noexcept(false) { return a=a&_l_interval(b); }
 
 // LI-ID
-inline idotprecision operator +(const l_interval &a,const idotprecision &b) noexcept(false) { return _idotprecision(a)+b; }
-inline idotprecision operator +(const idotprecision &a,const l_interval &b) noexcept(false) { return a+_idotprecision(b); }
-inline idotprecision operator -(const l_interval &a,const idotprecision &b) noexcept(false) { return _idotprecision(a)-b; }
-inline idotprecision operator -(const idotprecision &a,const l_interval &b) noexcept(false) { return a-_idotprecision(b); }
-inline idotprecision operator |(const idotprecision &a,const l_interval &b) noexcept(false) { return a|_idotprecision(b); }
-inline idotprecision operator |(const l_interval &a,const idotprecision &b) noexcept(false) { return _idotprecision(a)|b; }
+inline idotprecision operator +(const l_interval &a,const idotprecision &b) noexcept { return _idotprecision(a)+b; }
+inline idotprecision operator +(const idotprecision &a,const l_interval &b) noexcept { return a+_idotprecision(b); }
+inline idotprecision operator -(const l_interval &a,const idotprecision &b) noexcept { return _idotprecision(a)-b; }
+inline idotprecision operator -(const idotprecision &a,const l_interval &b) noexcept { return a-_idotprecision(b); }
+inline idotprecision operator |(const idotprecision &a,const l_interval &b) noexcept { return a|_idotprecision(b); }
+inline idotprecision operator |(const l_interval &a,const idotprecision &b) noexcept { return _idotprecision(a)|b; }
 inline idotprecision operator &(const idotprecision &a,const l_interval &b) noexcept(false) { return a&_idotprecision(b); }
 inline idotprecision operator &(const l_interval &a,const idotprecision &b) noexcept(false) { return _idotprecision(a)&b; }
 
-inline idotprecision & operator +=(idotprecision &a,const l_interval &b) noexcept(false) { return a+=_idotprecision(b); }      
-inline idotprecision & operator -=(idotprecision &a,const l_interval &b) noexcept(false) { return a-=_idotprecision(b); }
-inline idotprecision & operator |=(idotprecision &a,const l_interval &b) noexcept(false) { return a|=_idotprecision(b); }
+inline idotprecision & operator +=(idotprecision &a,const l_interval &b) noexcept { return a+=_idotprecision(b); }      
+inline idotprecision & operator -=(idotprecision &a,const l_interval &b) noexcept { return a-=_idotprecision(b); }
+inline idotprecision & operator |=(idotprecision &a,const l_interval &b) noexcept { return a|=_idotprecision(b); }
 inline idotprecision & operator &=(idotprecision &a,const l_interval &b) noexcept(false) { return a&=idotprecision(b); }
 
 // LR-R
-inline l_interval operator |(const real &a,const l_real &b) noexcept(false) { return l_real(a)|b; }
-inline l_interval operator |(const l_real &a,const real &b) noexcept(false) { return a|l_real(b); }
+inline l_interval operator |(const real &a,const l_real &b) noexcept { return l_real(a)|b; }
+inline l_interval operator |(const l_real &a,const real &b) noexcept { return a|l_real(b); }
 
 // LR-D
-inline idotprecision operator |(const dotprecision &a,const l_real &b) noexcept(false) { return a|dotprecision(b); }
-inline idotprecision operator |(const l_real &a,const dotprecision &b) noexcept(false) { return dotprecision(a)|b; }
+inline idotprecision operator |(const dotprecision &a,const l_real &b) noexcept { return a|dotprecision(b); }
+inline idotprecision operator |(const l_real &a,const dotprecision &b) noexcept { return dotprecision(a)|b; }
 
 // LR-I
-inline l_interval operator +(const l_real &a,const interval &b) noexcept(false) { return a+_l_interval(b); }
-inline l_interval operator +(const interval &a,const l_real &b) noexcept(false) { return _l_interval(a)+b; }
-inline l_interval operator -(const l_real &a,const interval &b) noexcept(false) { return a-_l_interval(b); }
-inline l_interval operator -(const interval &a,const l_real &b) noexcept(false) { return _l_interval(a)-b; }
-inline l_interval operator *(const l_real &a,const interval &b) noexcept(false) { return a*_l_interval(b); }
-inline l_interval operator *(const interval &a,const l_real &b) noexcept(false) { return _l_interval(a)*b; }
-inline l_interval operator /(const l_real &a,const interval &b) noexcept(false) { return a/_l_interval(b); }
-inline l_interval operator /(const interval &a,const l_real &b) noexcept(false) { return _l_interval(a)/b; } 
-inline l_interval operator |(const interval &a,const l_real &b) noexcept(false) { return _l_interval(a)|b; }
-inline l_interval operator |(const l_real &a,const interval &b) noexcept(false) { return a|_l_interval(b); }
+inline l_interval operator +(const l_real &a,const interval &b) noexcept { return a+_l_interval(b); }
+inline l_interval operator +(const interval &a,const l_real &b) noexcept { return _l_interval(a)+b; }
+inline l_interval operator -(const l_real &a,const interval &b) noexcept { return a-_l_interval(b); }
+inline l_interval operator -(const interval &a,const l_real &b) noexcept { return _l_interval(a)-b; }
+inline l_interval operator *(const l_real &a,const interval &b) noexcept { return a*_l_interval(b); }
+inline l_interval operator *(const interval &a,const l_real &b) noexcept { return _l_interval(a)*b; }
+inline l_interval operator /(const l_real &a,const interval &b) noexcept { return a/_l_interval(b); }
+inline l_interval operator /(const interval &a,const l_real &b) noexcept { return _l_interval(a)/b; } 
+inline l_interval operator |(const interval &a,const l_real &b) noexcept { return _l_interval(a)|b; }
+inline l_interval operator |(const l_real &a,const interval &b) noexcept { return a|_l_interval(b); }
 inline l_interval operator &(const interval &a,const l_real &b) noexcept(false) { return _l_interval(a)&b; }
 inline l_interval operator &(const l_real &a,const interval &b) noexcept(false) { return a&_l_interval(b); }
 
 // ---- Vergleichsop. ----
-inline bool operator !=(const l_interval &a,const l_interval &b) noexcept(false) { return !(a==b); }
+inline bool operator !=(const l_interval &a,const l_interval &b) noexcept { return !(a==b); }
 
-inline bool operator ==(const l_real &a,const l_interval &b) noexcept(false) { return _l_interval(a)==b; }
-inline bool operator !=(const l_real &a,const l_interval &b) noexcept(false) { return _l_interval(a)!=b; }
-inline bool operator ==(const l_interval &a,const l_real &b) noexcept(false) { return a==_l_interval(b); }
-inline bool operator !=(const l_interval &a,const l_real &b) noexcept(false) { return a!=_l_interval(b); }
+inline bool operator ==(const l_real &a,const l_interval &b) noexcept { return _l_interval(a)==b; }
+inline bool operator !=(const l_real &a,const l_interval &b) noexcept { return _l_interval(a)!=b; }
+inline bool operator ==(const l_interval &a,const l_real &b) noexcept { return a==_l_interval(b); }
+inline bool operator !=(const l_interval &a,const l_real &b) noexcept { return a!=_l_interval(b); }
 
-inline bool operator ==(const interval &a,const l_interval &b) noexcept(false) { return _l_interval(a)==b; }
-inline bool operator !=(const interval &a,const l_interval &b) noexcept(false) { return _l_interval(a)!=b; }
-inline bool operator ==(const l_interval &a,const interval &b) noexcept(false) { return a==_l_interval(b); }
-inline bool operator !=(const l_interval &a,const interval &b) noexcept(false) { return a!=_l_interval(b); }
+inline bool operator ==(const interval &a,const l_interval &b) noexcept { return _l_interval(a)==b; }
+inline bool operator !=(const interval &a,const l_interval &b) noexcept { return _l_interval(a)!=b; }
+inline bool operator ==(const l_interval &a,const interval &b) noexcept { return a==_l_interval(b); }
+inline bool operator !=(const l_interval &a,const interval &b) noexcept { return a!=_l_interval(b); }
 
-inline bool operator ==(const real &a,const l_interval &b) noexcept(false) { return _l_interval(a)==b; }
-inline bool operator !=(const real &a,const l_interval &b) noexcept(false) { return _l_interval(a)!=b; }
-inline bool operator ==(const l_interval &a,const real &b) noexcept(false) { return a==_l_interval(b); }
-inline bool operator !=(const l_interval &a,const real &b) noexcept(false) { return a!=_l_interval(b); }
+inline bool operator ==(const real &a,const l_interval &b) noexcept { return _l_interval(a)==b; }
+inline bool operator !=(const real &a,const l_interval &b) noexcept { return _l_interval(a)!=b; }
+inline bool operator ==(const l_interval &a,const real &b) noexcept { return a==_l_interval(b); }
+inline bool operator !=(const l_interval &a,const real &b) noexcept { return a!=_l_interval(b); }
 
-inline bool operator ==(const idotprecision &a,const l_interval &b) noexcept(false) { return a==_idotprecision(b); }
-inline bool operator !=(const idotprecision &a,const l_interval &b) noexcept(false) { return a!=_idotprecision(b); }
-inline bool operator ==(const l_interval &a,const idotprecision &b) noexcept(false) { return _idotprecision(a)==b; }
-inline bool operator !=(const l_interval &a,const idotprecision &b) noexcept(false) { return _idotprecision(a)!=b; }
+inline bool operator ==(const idotprecision &a,const l_interval &b) noexcept { return a==_idotprecision(b); }
+inline bool operator !=(const idotprecision &a,const l_interval &b) noexcept { return a!=_idotprecision(b); }
+inline bool operator ==(const l_interval &a,const idotprecision &b) noexcept { return _idotprecision(a)==b; }
+inline bool operator !=(const l_interval &a,const idotprecision &b) noexcept { return _idotprecision(a)!=b; }
 
-inline bool operator ==(const dotprecision &a,const l_interval &b) noexcept(false) { return a==_idotprecision(b); }
-inline bool operator !=(const dotprecision &a,const l_interval &b) noexcept(false) { return a!=_idotprecision(b); }
-inline bool operator ==(const l_interval &a,const dotprecision &b) noexcept(false) { return _idotprecision(a)==b; }
-inline bool operator !=(const l_interval &a,const dotprecision &b) noexcept(false) { return _idotprecision(a)!=b; }
+inline bool operator ==(const dotprecision &a,const l_interval &b) noexcept { return a==_idotprecision(b); }
+inline bool operator !=(const dotprecision &a,const l_interval &b) noexcept { return a!=_idotprecision(b); }
+inline bool operator ==(const l_interval &a,const dotprecision &b) noexcept { return _idotprecision(a)==b; }
+inline bool operator !=(const l_interval &a,const dotprecision &b) noexcept { return _idotprecision(a)!=b; }
 
 // ---- Mengenvergle. ----
-inline bool operator  <(const l_real &a,const l_interval &b) noexcept(false) { return _l_interval(a)<b; }
-inline bool operator  >(const l_real &a,const l_interval &b) noexcept(false) { return _l_interval(a)>b; }
-inline bool operator <=(const l_real &a,const l_interval &b) noexcept(false) { return _l_interval(a)<=b; }
-inline bool operator >=(const l_real &a,const l_interval &b) noexcept(false) { return _l_interval(a)>=b; }
-inline bool operator  <(const l_interval &a,const l_real &b) noexcept(false) { return a<_l_interval(b); }
-inline bool operator  >(const l_interval &a,const l_real &b) noexcept(false) { return a>_l_interval(b); }
-inline bool operator <=(const l_interval &a,const l_real &b) noexcept(false) { return a<=_l_interval(b); }
-inline bool operator >=(const l_interval &a,const l_real &b) noexcept(false) { return a>=_l_interval(b); }
+inline bool operator  <(const l_real &a,const l_interval &b) noexcept { return _l_interval(a)<b; }
+inline bool operator  >(const l_real &a,const l_interval &b) noexcept { return _l_interval(a)>b; }
+inline bool operator <=(const l_real &a,const l_interval &b) noexcept { return _l_interval(a)<=b; }
+inline bool operator >=(const l_real &a,const l_interval &b) noexcept { return _l_interval(a)>=b; }
+inline bool operator  <(const l_interval &a,const l_real &b) noexcept { return a<_l_interval(b); }
+inline bool operator  >(const l_interval &a,const l_real &b) noexcept { return a>_l_interval(b); }
+inline bool operator <=(const l_interval &a,const l_real &b) noexcept { return a<=_l_interval(b); }
+inline bool operator >=(const l_interval &a,const l_real &b) noexcept { return a>=_l_interval(b); }
 
-inline bool operator  <(const interval &a,const l_interval &b) noexcept(false) { return _l_interval(a)<b; }
-inline bool operator  >(const interval &a,const l_interval &b) noexcept(false) { return _l_interval(a)>b; }
-inline bool operator <=(const interval &a,const l_interval &b) noexcept(false) { return _l_interval(a)<=b; }
-inline bool operator >=(const interval &a,const l_interval &b) noexcept(false) { return _l_interval(a)>=b; }
-inline bool operator  <(const l_interval &a,const interval &b) noexcept(false) { return a<_l_interval(b); }
-inline bool operator  >(const l_interval &a,const interval &b) noexcept(false) { return a>_l_interval(b); }
-inline bool operator <=(const l_interval &a,const interval &b) noexcept(false) { return a<=_l_interval(b); }
-inline bool operator >=(const l_interval &a,const interval &b) noexcept(false) { return a>=_l_interval(b); }
+inline bool operator  <(const interval &a,const l_interval &b) noexcept { return _l_interval(a)<b; }
+inline bool operator  >(const interval &a,const l_interval &b) noexcept { return _l_interval(a)>b; }
+inline bool operator <=(const interval &a,const l_interval &b) noexcept { return _l_interval(a)<=b; }
+inline bool operator >=(const interval &a,const l_interval &b) noexcept { return _l_interval(a)>=b; }
+inline bool operator  <(const l_interval &a,const interval &b) noexcept { return a<_l_interval(b); }
+inline bool operator  >(const l_interval &a,const interval &b) noexcept { return a>_l_interval(b); }
+inline bool operator <=(const l_interval &a,const interval &b) noexcept { return a<=_l_interval(b); }
+inline bool operator >=(const l_interval &a,const interval &b) noexcept { return a>=_l_interval(b); }
 
-inline bool operator  <(const real &a,const l_interval &b) noexcept(false) { return _l_interval(a)<b; }
-inline bool operator  >(const real &a,const l_interval &b) noexcept(false) { return _l_interval(a)>b; }
-inline bool operator <=(const real &a,const l_interval &b) noexcept(false) { return _l_interval(a)<=b; }
-inline bool operator >=(const real &a,const l_interval &b) noexcept(false) { return _l_interval(a)>=b; }
-inline bool operator  <(const l_interval &a,const real &b) noexcept(false) { return a<_l_interval(b); }
-inline bool operator  >(const l_interval &a,const real &b) noexcept(false) { return a>_l_interval(b); }
-inline bool operator <=(const l_interval &a,const real &b) noexcept(false) { return a<=_l_interval(b); }
-inline bool operator >=(const l_interval &a,const real &b) noexcept(false) { return a>=_l_interval(b); }
+inline bool operator  <(const real &a,const l_interval &b) noexcept { return _l_interval(a)<b; }
+inline bool operator  >(const real &a,const l_interval &b) noexcept { return _l_interval(a)>b; }
+inline bool operator <=(const real &a,const l_interval &b) noexcept { return _l_interval(a)<=b; }
+inline bool operator >=(const real &a,const l_interval &b) noexcept { return _l_interval(a)>=b; }
+inline bool operator  <(const l_interval &a,const real &b) noexcept { return a<_l_interval(b); }
+inline bool operator  >(const l_interval &a,const real &b) noexcept { return a>_l_interval(b); }
+inline bool operator <=(const l_interval &a,const real &b) noexcept { return a<=_l_interval(b); }
+inline bool operator >=(const l_interval &a,const real &b) noexcept { return a>=_l_interval(b); }
 
-inline bool operator  <(const idotprecision &a,const l_interval &b) noexcept(false) { return a<_idotprecision(b); }
-inline bool operator  >(const idotprecision &a,const l_interval &b) noexcept(false) { return a>_idotprecision(b); }
-inline bool operator <=(const idotprecision &a,const l_interval &b) noexcept(false) { return a<=_idotprecision(b); }
-inline bool operator >=(const idotprecision &a,const l_interval &b) noexcept(false) { return a>=_idotprecision(b); }
-inline bool operator  <(const l_interval &a,const idotprecision &b) noexcept(false) { return _idotprecision(a)<b; }
-inline bool operator  >(const l_interval &a,const idotprecision &b) noexcept(false) { return _idotprecision(a)>b; }
-inline bool operator <=(const l_interval &a,const idotprecision &b) noexcept(false) { return _idotprecision(a)<=b; }
-inline bool operator >=(const l_interval &a,const idotprecision &b) noexcept(false) { return _idotprecision(a)>=b; }
+inline bool operator  <(const idotprecision &a,const l_interval &b) noexcept { return a<_idotprecision(b); }
+inline bool operator  >(const idotprecision &a,const l_interval &b) noexcept { return a>_idotprecision(b); }
+inline bool operator <=(const idotprecision &a,const l_interval &b) noexcept { return a<=_idotprecision(b); }
+inline bool operator >=(const idotprecision &a,const l_interval &b) noexcept { return a>=_idotprecision(b); }
+inline bool operator  <(const l_interval &a,const idotprecision &b) noexcept { return _idotprecision(a)<b; }
+inline bool operator  >(const l_interval &a,const idotprecision &b) noexcept { return _idotprecision(a)>b; }
+inline bool operator <=(const l_interval &a,const idotprecision &b) noexcept { return _idotprecision(a)<=b; }
+inline bool operator >=(const l_interval &a,const idotprecision &b) noexcept { return _idotprecision(a)>=b; }
 
-inline bool operator  <(const dotprecision &a,const l_interval &b) noexcept(false) { return a<_idotprecision(b); }
-inline bool operator  >(const dotprecision &a,const l_interval &b) noexcept(false) { return a>_idotprecision(b); }
-inline bool operator <=(const dotprecision &a,const l_interval &b) noexcept(false) { return a<=_idotprecision(b); }
-inline bool operator >=(const dotprecision &a,const l_interval &b) noexcept(false) { return a>=_idotprecision(b); }
-inline bool operator  <(const l_interval &a,const dotprecision &b) noexcept(false) { return _idotprecision(a)<b; }
-inline bool operator  >(const l_interval &a,const dotprecision &b) noexcept(false) { return _idotprecision(a)>b; }
-inline bool operator <=(const l_interval &a,const dotprecision &b) noexcept(false) { return _idotprecision(a)<=b; }
-inline bool operator >=(const l_interval &a,const dotprecision &b) noexcept(false) { return _idotprecision(a)>=b; }
+inline bool operator  <(const dotprecision &a,const l_interval &b) noexcept { return a<_idotprecision(b); }
+inline bool operator  >(const dotprecision &a,const l_interval &b) noexcept { return a>_idotprecision(b); }
+inline bool operator <=(const dotprecision &a,const l_interval &b) noexcept { return a<=_idotprecision(b); }
+inline bool operator >=(const dotprecision &a,const l_interval &b) noexcept { return a>=_idotprecision(b); }
+inline bool operator  <(const l_interval &a,const dotprecision &b) noexcept { return _idotprecision(a)<b; }
+inline bool operator  >(const l_interval &a,const dotprecision &b) noexcept { return _idotprecision(a)>b; }
+inline bool operator <=(const l_interval &a,const dotprecision &b) noexcept { return _idotprecision(a)<=b; }
+inline bool operator >=(const l_interval &a,const dotprecision &b) noexcept { return _idotprecision(a)>=b; }
 
 // ---- Funktionen    ----
 
 static const int LI_Min_Exp_ = -1074,
                  LI_maxexpo1 = 1023;
       
-//inline l_interval_Inf Inf (l_interval & a)  noexcept(false) { return l_interval_Inf(a); }
-//inline l_interval_Sup Sup (l_interval & a)  noexcept(false) { return l_interval_Sup(a); }
-inline l_real Inf (const l_interval &li) noexcept(false)
+//inline l_interval_Inf Inf (l_interval & a)  throw() { return l_interval_Inf(a); }
+//inline l_interval_Sup Sup (l_interval & a)  throw() { return l_interval_Sup(a); }
+inline l_real Inf (const l_interval &li) noexcept
 {
    // l_real in der Praezision des Intervals
    int save_stagprec=stagprec;
@@ -387,7 +387,7 @@ inline l_real Inf (const l_interval &li) noexcept(false)
         
    return lr;     
 }
-inline l_real Sup (const l_interval &li) noexcept(false)
+inline l_real Sup (const l_interval &li) noexcept
 {
    // l_real in der Praezision des Intervals
    int save_stagprec=stagprec;
@@ -404,14 +404,14 @@ inline l_real Sup (const l_interval &li) noexcept(false)
    return lr;     
 }
 
-inline int StagPrec(const l_interval &a) noexcept(false) { return a.prec; }
+inline int StagPrec(const l_interval &a) noexcept { return a.prec; }
       
 inline l_interval & SetInf (l_interval & a, const l_real & b) noexcept(false) { return a=_l_interval(b,Sup((const l_interval)a)); }
 inline l_interval & SetSup (l_interval & a, const l_real & b) noexcept(false) { return a=_l_interval(Inf((const l_interval)a),b); }
 inline l_interval & SetInf (l_interval & a, const real & b) noexcept(false) { return SetInf(a,_l_real(b)); }
 inline l_interval & SetSup (l_interval & a, const real & b) noexcept(false) { return SetSup(a,_l_real(b)); }
 
-inline l_interval adjust(const l_interval & x) noexcept(false)
+inline l_interval adjust(const l_interval & x) noexcept
 {  
    l_interval  y;
 
@@ -432,12 +432,12 @@ inline l_interval adjust(const l_interval & x) noexcept(false)
    return y;
 }
 
-inline l_interval & UncheckedSetInf (l_interval & a, const l_real & b) noexcept(false) { return a=_unchecked_l_interval(b,Sup(a)); }
-inline l_interval & UncheckedSetSup (l_interval & a, const l_real & b) noexcept(false) { return a=_unchecked_l_interval(Inf(a),b); }
-inline l_interval & UncheckedSetInf (l_interval & a, const real & b) noexcept(false) { return UncheckedSetInf(a,_l_real(b)); }
-inline l_interval & UncheckedSetSup (l_interval & a, const real & b) noexcept(false) { return UncheckedSetSup(a,_l_real(b)); }
+inline l_interval & UncheckedSetInf (l_interval & a, const l_real & b) noexcept { return a=_unchecked_l_interval(b,Sup(a)); }
+inline l_interval & UncheckedSetSup (l_interval & a, const l_real & b) noexcept { return a=_unchecked_l_interval(Inf(a),b); }
+inline l_interval & UncheckedSetInf (l_interval & a, const real & b) noexcept { return UncheckedSetInf(a,_l_real(b)); }
+inline l_interval & UncheckedSetSup (l_interval & a, const real & b) noexcept { return UncheckedSetSup(a,_l_real(b)); }
 
-inline l_interval abs  (const l_interval & li1) noexcept(false)
+inline l_interval abs  (const l_interval & li1) noexcept
 {
    l_interval li2;   
    l_real i   = Inf(li1), s   = Sup(li1);
@@ -455,26 +455,26 @@ inline l_interval abs  (const l_interval & li1) noexcept(false)
    return li2;     
 }
 
-inline l_real     diam (const l_interval & li) noexcept(false)
+inline l_real     diam (const l_interval & li) noexcept
 {
    return _l_real(diam(_interval(li.elem(li.prec),li.elem(li.prec+1))));
 }
 
-inline void accumulate(idotprecision & a, const real & b, const l_interval & c) noexcept(false) { accumulate(a,_l_interval(b),c); }
-inline void accumulate(idotprecision & a, const l_interval & b, const real & c) noexcept(false) { accumulate(a,b,_l_interval(c)); }
-inline void accumulate(idotprecision & a, const interval & b, const l_real & c) noexcept(false) { accumulate(a,_l_interval(b),_l_interval(c)); }
-inline void accumulate(idotprecision & a, const l_real & b, const interval & c) noexcept(false) { accumulate(a,_l_interval(b),_l_interval(c)); }    
-inline void accumulate(idotprecision & a, const l_interval & b, const l_real & c) noexcept(false) { accumulate(a,b,_l_interval(c)); }
-inline void accumulate(idotprecision & a, const l_real & b, const l_interval & c) noexcept(false) { accumulate(a,_l_interval(b),c); }
-inline void accumulate(idotprecision & a, const l_interval & b, const interval & c) noexcept(false) { accumulate(a,b,_l_interval(c)); }
-inline void accumulate(idotprecision & a, const interval & b, const l_interval & c) noexcept(false) { accumulate(a,_l_interval(b),c); }
+inline void accumulate(idotprecision & a, const real & b, const l_interval & c) noexcept { accumulate(a,_l_interval(b),c); }
+inline void accumulate(idotprecision & a, const l_interval & b, const real & c) noexcept { accumulate(a,b,_l_interval(c)); }
+inline void accumulate(idotprecision & a, const interval & b, const l_real & c) noexcept { accumulate(a,_l_interval(b),_l_interval(c)); }
+inline void accumulate(idotprecision & a, const l_real & b, const interval & c) noexcept { accumulate(a,_l_interval(b),_l_interval(c)); }    
+inline void accumulate(idotprecision & a, const l_interval & b, const l_real & c) noexcept { accumulate(a,b,_l_interval(c)); }
+inline void accumulate(idotprecision & a, const l_real & b, const l_interval & c) noexcept { accumulate(a,_l_interval(b),c); }
+inline void accumulate(idotprecision & a, const l_interval & b, const interval & c) noexcept { accumulate(a,b,_l_interval(c)); }
+inline void accumulate(idotprecision & a, const interval & b, const l_interval & c) noexcept { accumulate(a,_l_interval(b),c); }
 
 
 inline real & l_interval::operator[](int a)
 #if (CXSC_INDEX_CHECK)
-   noexcept(false)
+   throw(ERROR_LINTERVAL_ELEMENT_NOT_IN_LONG)
 #else
-   noexcept(false)
+   noexcept
 #endif
 {
 #if (CXSC_INDEX_CHECK)
@@ -484,7 +484,7 @@ inline real & l_interval::operator[](int a)
    return data[a-1];
 }
 
-inline void l_interval::_clear(int p) noexcept(false)
+inline void l_interval::_clear(int p) noexcept
 { 
    int i;
    // fuellt l_interval ab Stelle p bis zum Ende mit Null.
@@ -499,7 +499,7 @@ inline bool point_intv(const l_interval &a ) // bool delivers: a is a point inte
    return a.elem(k+1) == a.elem(k);
 }
 
-inline bool zero_(const l_interval& li) noexcept(false)
+inline bool zero_(const l_interval& li) noexcept
 {  // returns only true if all li.elem(i) == 0; Blomquist, 27.11.02; 
     int i=1, p=StagPrec(li)+1;
     bool tmp = true;

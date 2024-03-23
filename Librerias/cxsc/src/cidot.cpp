@@ -32,7 +32,7 @@ namespace cxsc {
 
 // ---- Ausgabefunkt. ---------------------------------------
 
-std::ostream & operator << (std::ostream &s, const cidotprecision& a) noexcept(false)
+std::ostream & operator << (std::ostream &s, const cidotprecision& a) noexcept
 {
    s << '(' << SaveOpt         
      << '[' << RndDown << a.reinf << ',' << RndUp << a.resup << ']' << ','  
@@ -41,7 +41,7 @@ std::ostream & operator << (std::ostream &s, const cidotprecision& a) noexcept(f
      
    return s;
 }
-std::string & operator << (std::string &s, const cidotprecision &a) noexcept(false)
+std::string & operator << (std::string &s, const cidotprecision &a) noexcept
 {
    s+="([";
    s << SaveOpt << RndDown << a.reinf;
@@ -130,7 +130,7 @@ void operator >>(const char *s,cidotprecision &a) noexcept(false)
 }
 
 
-void accumulate(cidotprecision & a,const cinterval & b,const cinterval & c) noexcept(false)
+void accumulate(cidotprecision & a,const cinterval & b,const cinterval & c) noexcept
 {
    z_padd(
       a.reinf.ptr(),a.iminf.ptr(),

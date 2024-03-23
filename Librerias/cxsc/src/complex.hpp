@@ -56,201 +56,201 @@ class complex
    public:
       // ---- Constructors  ---------------------------------------
       //! Constructor of class complex
-      complex(void)  noexcept(false)           {}
+      complex(void)  noexcept           {}
       //! Constructor of class complex
-      complex(const real & a,const real & b) noexcept(false) : re(a), im(b) { }
+      complex(const real & a,const real & b) noexcept : re(a), im(b) { }
       
       //! Implementation of standard assigning operator
-      inline complex & operator= (const real & r) noexcept(false);
+      inline complex & operator= (const real & r) noexcept;
 
       // ---- Type-Casts    ---------------------------------------
 
       //! Constructor of class complex
-      explicit inline complex(const real &r) noexcept(false) : re(r),im(0.0)     { }
+      explicit inline complex(const real &r) noexcept : re(r),im(0.0)     { }
 
 
-//     friend inline complex _complex(const real &a) noexcept(false)             { return complex(a,0.0); }
-//     friend inline complex _complex(const real &a,const real &b) noexcept(false){ return complex(a,b); }
+//     friend inline complex _complex(const real &a) throw ()             { return complex(a,0.0); }
+//     friend inline complex _complex(const real &a,const real &b) throw(){ return complex(a,b); }
 
 
       // The following are defined in the specific vector, matrix-files
 #if(CXSC_INDEX_CHECK) 
       //! Constructor of class complex
-      explicit INLINE complex(const cvector &)       noexcept(false);
+      explicit INLINE complex(const cvector &)       throw (ERROR_CVECTOR_TYPE_CAST_OF_THICK_OBJ,ERROR_CVECTOR_USE_OF_UNINITIALIZED_OBJ);
       //! Constructor of class complex
-      explicit INLINE complex(const cvector_slice &) noexcept(false);
+      explicit INLINE complex(const cvector_slice &) throw (ERROR_CVECTOR_TYPE_CAST_OF_THICK_OBJ,ERROR_CVECTOR_USE_OF_UNINITIALIZED_OBJ);
       //! Constructor of class complex
-      explicit INLINE complex(const cmatrix &)       noexcept(false);
+      explicit INLINE complex(const cmatrix &)       throw (ERROR_CMATRIX_TYPE_CAST_OF_THICK_OBJ,ERROR_CMATRIX_USE_OF_UNINITIALIZED_OBJ);
       //! Constructor of class complex
-      explicit INLINE complex(const cmatrix_slice &) noexcept(false);
+      explicit INLINE complex(const cmatrix_slice &) throw (ERROR_CMATRIX_TYPE_CAST_OF_THICK_OBJ,ERROR_CMATRIX_USE_OF_UNINITIALIZED_OBJ);
       //! Deprecated typecast, which only exist for the reason of compatibility with older versions of C-XSC
       /*!
       \deprecated use standard contructors for typecasting
 
       \sa cxsc::complex::complex(const cvector &)
       */
-      friend INLINE complex _complex(const cvector &)       noexcept(false);
+      friend INLINE complex _complex(const cvector &)       throw (ERROR_CVECTOR_TYPE_CAST_OF_THICK_OBJ,ERROR_CVECTOR_USE_OF_UNINITIALIZED_OBJ);
       //! Deprecated typecast, which only exist for the reason of compatibility with older versions of C-XSC
       /*!
       \deprecated use standard contructors for typecasting
 
       \sa cxsc::complex::complex(const cvector_slice &)
       */
-      friend INLINE complex _complex(const cvector_slice &) noexcept(false);
+      friend INLINE complex _complex(const cvector_slice &) throw (ERROR_CVECTOR_TYPE_CAST_OF_THICK_OBJ,ERROR_CVECTOR_USE_OF_UNINITIALIZED_OBJ);
       //! Deprecated typecast, which only exist for the reason of compatibility with older versions of C-XSC
       /*!
       \deprecated use standard contructors for typecasting
 
       \sa cxsc::complex::complex(const cmatrix &)
       */
-      friend INLINE complex _complex(const cmatrix &)       noexcept(false);
+      friend INLINE complex _complex(const cmatrix &)       throw (ERROR_CMATRIX_TYPE_CAST_OF_THICK_OBJ,ERROR_CMATRIX_USE_OF_UNINITIALIZED_OBJ);
       //! Deprecated typecast, which only exist for the reason of compatibility with older versions of C-XSC
       /*!
       \deprecated use standard contructors for typecasting
 
       \sa cxsc::complex::complex(const cmatrix_slice &)
       */
-      friend INLINE complex _complex(const cmatrix_slice &) noexcept(false);
+      friend INLINE complex _complex(const cmatrix_slice &) throw (ERROR_CMATRIX_TYPE_CAST_OF_THICK_OBJ,ERROR_CMATRIX_USE_OF_UNINITIALIZED_OBJ);
 #else
       //! Constructor of class complex
-      explicit INLINE complex(const cvector &)       noexcept(false);
+      explicit INLINE complex(const cvector &)       noexcept;
       //! Constructor of class complex
-      explicit INLINE complex(const cvector_slice &) noexcept(false);
+      explicit INLINE complex(const cvector_slice &) noexcept;
       //! Constructor of class complex
-      explicit INLINE complex(const cmatrix &)       noexcept(false);
+      explicit INLINE complex(const cmatrix &)       noexcept;
       //! Constructor of class complex
-      explicit INLINE complex(const cmatrix_slice &) noexcept(false);
+      explicit INLINE complex(const cmatrix_slice &) noexcept;
       //! Deprecated typecast, which only exist for the reason of compatibility with older versions of C-XSC
       /*!
       \deprecated use standard contructors for typecasting
 
       \sa cxsc::complex::complex(const cvector &)
       */
-      friend INLINE complex _complex(const cvector &)       noexcept(false);
+      friend INLINE complex _complex(const cvector &)       noexcept;
       //! Deprecated typecast, which only exist for the reason of compatibility with older versions of C-XSC
       /*!
       \deprecated use standard contructors for typecasting
 
       \sa cxsc::complex::complex(const cvector_slice &)
       */
-      friend INLINE complex _complex(const cvector_slice &) noexcept(false);
+      friend INLINE complex _complex(const cvector_slice &) noexcept;
       //! Deprecated typecast, which only exist for the reason of compatibility with older versions of C-XSC
       /*!
       \deprecated use standard contructors for typecasting
 
       \sa cxsc::complex::complex(const cmatrix &)
       */
-      friend INLINE complex _complex(const cmatrix &)       noexcept(false);
+      friend INLINE complex _complex(const cmatrix &)       noexcept;
       //! Deprecated typecast, which only exist for the reason of compatibility with older versions of C-XSC
       /*!
       \deprecated use standard contructors for typecasting
 
       \sa cxsc::complex::complex(const cmatrix_slice &)
       */
-      friend INLINE complex _complex(const cmatrix_slice &) noexcept(false);
+      friend INLINE complex _complex(const cmatrix_slice &) noexcept;
 #endif
       //! Constructor of class complex
-      explicit        complex(const cdotprecision &) noexcept(false);
+      explicit        complex(const cdotprecision &) noexcept;
       //! Deprecated typecast, which only exist for the reason of compatibility with older versions of C-XSC
       /*!
       \deprecated use standard contructors for typecasting
 
       \sa cxsc::complex::complex(const cdotprecision &)
       */
-      friend inline complex _complex(const cdotprecision &a) noexcept(false) { return complex(a); }
+      friend inline complex _complex(const cdotprecision &a) noexcept { return complex(a); }
       
       //! Implementation of standard assigning operator
-      complex & operator =(const cdotprecision &) noexcept(false);
+      complex & operator =(const cdotprecision &) noexcept;
 
       // ---- Input/Output  ---------------------------------------
       //! Implementation of standard output method
-      friend std::ostream & operator <<(std::ostream &,const complex &) noexcept(false);
+      friend std::ostream & operator <<(std::ostream &,const complex &) noexcept;
       //! Implementation of standard input method
-      friend std::istream & operator >>(std::istream &,complex &)       noexcept(false);
+      friend std::istream & operator >>(std::istream &,complex &)       noexcept;
       //! Implementation of standard output method
-      friend std::string &  operator <<(std::string &,const complex &)  noexcept(false);
+      friend std::string &  operator <<(std::string &,const complex &)  noexcept;
       //! Implementation of standard input method
-      friend std::string &  operator >>(std::string &,complex &)        noexcept(false);
+      friend std::string &  operator >>(std::string &,complex &)        noexcept;
       //! Implementation of standard input method
-      friend void           operator >>(const char *,complex &)         noexcept(false);
+      friend void           operator >>(const char *,complex &)         noexcept;
       //! Implementation of standard input method
-      friend void           operator >>(const std::string &,complex &)  noexcept(false);
+      friend void           operator >>(const std::string &,complex &)  noexcept;
 
       // ---- Std.Operators ---------------------------------------
       //! Implementation of standard algebraic negative sign operation
-      friend inline complex operator -(const complex &) noexcept(false);
+      friend inline complex operator -(const complex &) noexcept;
       //! Implementation of standard algebraic positive sign operation
-      friend inline complex operator +(const complex &) noexcept(false);
+      friend inline complex operator +(const complex &) noexcept;
 
       //! Implementation of standard algebraic addition operation
-      friend inline complex operator +(const complex &,const complex &) noexcept(false);
+      friend inline complex operator +(const complex &,const complex &) noexcept;
       //! Implementation of standard algebraic subtraction operation
-      friend inline complex operator -(const complex &,const complex &) noexcept(false);
+      friend inline complex operator -(const complex &,const complex &) noexcept;
       //! Implementation of standard algebraic multiplication operation
-      friend complex operator *(const complex &,const complex &) noexcept(false);
+      friend complex operator *(const complex &,const complex &) noexcept;
       //! Implementation of standard algebraic division operation
-      friend complex operator /(const complex &,const complex &) noexcept(false);
+      friend complex operator /(const complex &,const complex &) noexcept;
 
       //! Implementation of standard algebraic addition and allocation operation
-      friend inline complex & operator +=(complex &, const complex &) noexcept(false);
+      friend inline complex & operator +=(complex &, const complex &) noexcept;
       //! Implementation of standard algebraic subtraction and allocation operation
-      friend inline complex & operator -=(complex &, const complex &) noexcept(false);
+      friend inline complex & operator -=(complex &, const complex &) noexcept;
       //! Implementation of standard algebraic multiplication and allocation operation
-      friend inline complex & operator *=(complex &, const complex &) noexcept(false);
+      friend inline complex & operator *=(complex &, const complex &) noexcept;
       //! Implementation of standard algebraic division and allocation operation
-      friend inline complex & operator /=(complex &, const complex &) noexcept(false);
+      friend inline complex & operator /=(complex &, const complex &) noexcept;
 
       //! Implementation of standard algebraic addition operation
-      friend inline complex operator +(const complex &,const real &) noexcept(false);
+      friend inline complex operator +(const complex &,const real &) noexcept;
       //! Implementation of standard algebraic addition operation
-      friend inline complex operator +(const real &,const complex &) noexcept(false);
+      friend inline complex operator +(const real &,const complex &) noexcept;
       //! Implementation of standard algebraic subtraction operation
-      friend inline complex operator -(const complex &,const real &) noexcept(false);
+      friend inline complex operator -(const complex &,const real &) noexcept;
       //! Implementation of standard algebraic subtraction operation
-      friend inline complex operator -(const real &,const complex &) noexcept(false);
+      friend inline complex operator -(const real &,const complex &) noexcept;
       //! Implementation of standard algebraic multiplication operation
-      friend inline complex operator *(const complex &,const real &) noexcept(false);
+      friend inline complex operator *(const complex &,const real &) noexcept;
       //! Implementation of standard algebraic multiplication operation
-      friend inline complex operator *(const real &,const complex &) noexcept(false);
+      friend inline complex operator *(const real &,const complex &) noexcept;
       //! Implementation of standard algebraic division operation
-      friend inline complex operator /(const complex &,const real &) noexcept(false);
+      friend inline complex operator /(const complex &,const real &) noexcept;
       //! Implementation of standard algebraic division operation
-      friend inline complex operator /(const real &,const complex &) noexcept(false);
+      friend inline complex operator /(const real &,const complex &) noexcept;
 
       //! Implementation of standard algebraic addition and allocation operation
-      friend inline complex & operator +=(complex &, const real &) noexcept(false);
+      friend inline complex & operator +=(complex &, const real &) noexcept;
       //! Implementation of standard algebraic subtraction and allocation operation
-      friend inline complex & operator -=(complex &, const real &) noexcept(false);
+      friend inline complex & operator -=(complex &, const real &) noexcept;
       //! Implementation of standard algebraic multiplication and allocation operation
-      friend inline complex & operator *=(complex &, const real &) noexcept(false);
+      friend inline complex & operator *=(complex &, const real &) noexcept;
       //! Implementation of standard algebraic division and allocation operation
-      friend inline complex & operator /=(complex &, const real &) noexcept(false);
+      friend inline complex & operator /=(complex &, const real &) noexcept;
 
       // ---- Comp.Operat.  ---------------------------------------
-//             inline       operator void *() const noexcept(false) { if(re) return (void *)1; if(im) return (void *)1; else return 0; }
+//             inline       operator void *() const throw() { if(re) return (void *)1; if(im) return (void *)1; else return 0; }
       //! Implementation of standard negation operation
-      friend inline bool operator!  (const complex & a)                    noexcept(false);
+      friend inline bool operator!  (const complex & a)                    noexcept;
       //! Implementation of standard equality operation
-      friend inline bool operator== (const complex & a, const complex & b) noexcept(false);
+      friend inline bool operator== (const complex & a, const complex & b) noexcept;
       //! Implementation of standard negated equality operation
-      friend inline bool operator!= (const complex & a, const complex & b) noexcept(false);
+      friend inline bool operator!= (const complex & a, const complex & b) noexcept;
       //! Implementation of standard equality operation
-      friend inline bool operator== (const complex & a, const real & b)    noexcept(false);
+      friend inline bool operator== (const complex & a, const real & b)    noexcept;
       //! Implementation of standard equality operation
-      friend inline bool operator== (const real & a, const complex & b)    noexcept(false);
+      friend inline bool operator== (const real & a, const complex & b)    noexcept;
       //! Implementation of standard negated equality operation
-      friend inline bool operator!= (const complex & a, const real & b)    noexcept(false);
+      friend inline bool operator!= (const complex & a, const real & b)    noexcept;
       //! Implementation of standard negated equality operation
-      friend inline bool operator!= (const real & a, const complex & b)    noexcept(false);
+      friend inline bool operator!= (const real & a, const complex & b)    noexcept;
       
       //! Implementation of standard equality operation
-      friend        bool operator== (const complex & a, const dotprecision & b)    noexcept(false);
+      friend        bool operator== (const complex & a, const dotprecision & b)    noexcept;
       //! Implementation of standard equality operation
-      friend        bool operator== (const dotprecision & a, const complex & b)    noexcept(false);
+      friend        bool operator== (const dotprecision & a, const complex & b)    noexcept;
       //! Implementation of standard negated equality operation
-      friend        bool operator!= (const complex & a, const dotprecision & b)    noexcept(false);
+      friend        bool operator!= (const complex & a, const dotprecision & b)    noexcept;
       //! Implementation of standard negated equality operation
-      friend        bool operator!= (const dotprecision & a, const complex & b)    noexcept(false);
+      friend        bool operator!= (const dotprecision & a, const complex & b)    noexcept;
 
       // ---- Others   -------------------------------------------
       //! Returns the real part of the complex value
@@ -268,11 +268,11 @@ class complex
       friend inline complex & SetIm(complex & a,const real & b); // { a.im=b; return a; } 
 
       //! Returns the absolute value of a complex value
-      friend        real abs(complex) noexcept(false);
+      friend        real abs(complex) noexcept;
       //! Returns the absolute value of a complex value
-      friend        real abs2(const complex &) noexcept(false);
+      friend        real abs2(const complex &) noexcept;
       //! Returns the conjugated complex value
-      friend inline complex conj(const complex &) noexcept(false);
+      friend inline complex conj(const complex &) noexcept;
 
 // -------------- Directed rounding, Blomquist 07.11.02 --------------------
 
@@ -283,59 +283,59 @@ class complex
     //! Returns the upward rounded result of the  operation
     friend complex divu (const complex &, const complex &);
     //! Returns the downward rounded result of the division operation
-    friend inline complex divd(const complex &, const real &) noexcept(false);
+    friend inline complex divd(const complex &, const real &) noexcept;
     //! Returns the upward rounded result of the division operation
-    friend inline complex divu(const complex &, const real &) noexcept(false);
+    friend inline complex divu(const complex &, const real &) noexcept;
     //! Returns the downward rounded result of the division operation
-    friend inline complex divd(const real &, const complex &) noexcept(false);
+    friend inline complex divd(const real &, const complex &) noexcept;
     //! Returns the upward rounded result of the division operation
-    friend inline complex divu(const real &, const complex &) noexcept(false);
+    friend inline complex divu(const real &, const complex &) noexcept;
 
     //! Returns the downward rounded result of the multiplication operation
-    friend complex muld (const complex &, const complex &) noexcept(false);
+    friend complex muld (const complex &, const complex &) noexcept;
     //! Returns the upward rounded result of the multiplication operation
-    friend complex mulu (const complex &, const complex &) noexcept(false);
+    friend complex mulu (const complex &, const complex &) noexcept;
     //! Returns the downward rounded result of the multiplication operation
-    friend inline complex muld(const complex &, const real &) noexcept(false);
+    friend inline complex muld(const complex &, const real &) noexcept;
     //! Returns the upward rounded result of the multiplication operation
-    friend inline complex mulu(const complex &, const real &) noexcept(false);
+    friend inline complex mulu(const complex &, const real &) noexcept;
     //! Returns the downward rounded result of the multiplication operation
-    friend inline complex muld(const real &, const complex &) noexcept(false);
+    friend inline complex muld(const real &, const complex &) noexcept;
     //! Returns the upward rounded result of the multiplication operation
-    friend inline complex mulu(const real &, const complex &) noexcept(false);
+    friend inline complex mulu(const real &, const complex &) noexcept;
 
 
     //! Returns the downward rounded result of the addition operation
-    friend inline complex addd(const complex &, const complex &) noexcept(false);
+    friend inline complex addd(const complex &, const complex &) noexcept;
     //! Returns the upward rounded result of the addition operation
-    friend inline complex addu(const complex &, const complex &) noexcept(false);
+    friend inline complex addu(const complex &, const complex &) noexcept;
     //! Returns the downward rounded result of the addition operation
-    friend inline complex addd(const complex &, const real &) noexcept(false);
+    friend inline complex addd(const complex &, const real &) noexcept;
     //! Returns the upward rounded result of the addition operation
-    friend inline complex addu(const complex &, const real &) noexcept(false);
+    friend inline complex addu(const complex &, const real &) noexcept;
     //! Returns the downward rounded result of the addition operation
-    friend inline complex addd(const real &, const complex &) noexcept(false);
+    friend inline complex addd(const real &, const complex &) noexcept;
     //! Returns the upward rounded result of the addition operation
-    friend inline complex addu(const real &, const complex &) noexcept(false);
+    friend inline complex addu(const real &, const complex &) noexcept;
 
 
     //! Returns the downward rounded result of the subtraction operation
-    friend inline complex subd(const complex &, const complex &) noexcept(false);
+    friend inline complex subd(const complex &, const complex &) noexcept;
     //! Returns the upward rounded result of the subtraction operation
-    friend inline complex subu(const complex &, const complex &) noexcept(false);
+    friend inline complex subu(const complex &, const complex &) noexcept;
     //! Returns the downward rounded result of the subtraction operation
-    friend inline complex subd(const complex &, const real &) noexcept(false);
+    friend inline complex subd(const complex &, const real &) noexcept;
     //! Returns the upward rounded result of the subtraction operation
-    friend inline complex subu(const complex &, const real &) noexcept(false);
+    friend inline complex subu(const complex &, const real &) noexcept;
     //! Returns the downward rounded result of the subtraction operation
-    friend inline complex subd(const real &, const complex &) noexcept(false);
+    friend inline complex subd(const real &, const complex &) noexcept;
     //! Returns the upward rounded result of the subtraction operation
-    friend inline complex subu(const real &, const complex &) noexcept(false);
+    friend inline complex subu(const real &, const complex &) noexcept;
 	 
     //! Assigning lx_complex to complex
-    complex & operator = (const lx_complex&) noexcept(false); // Blomquist, 12.11.2008;
+    complex & operator = (const lx_complex&) noexcept; // Blomquist, 12.11.2008;
     //! Assigning l_complex to complex
-    complex & operator = (const l_complex&)  noexcept(false); // Blomquist, 12.11.2008;
+    complex & operator = (const l_complex&)  noexcept; // Blomquist, 12.11.2008;
 }; // end class complex
 
 
@@ -348,8 +348,8 @@ class complex
 complex divn (const complex &, const complex &);
 complex divd (const complex &, const complex &);
 complex divu (const complex &, const complex &);
-complex muld (const complex &, const complex &) noexcept(false);
-complex mulu (const complex &, const complex &) noexcept(false);
+complex muld (const complex &, const complex &) noexcept;
+complex mulu (const complex &, const complex &) noexcept;
 
 // ---------------------------------------------------------------------------
 // ----                                                                   ----
@@ -363,14 +363,14 @@ complex mulu (const complex &, const complex &) noexcept(false);
 
 \sa cxsc::complex::complex(const real &r)
 */
-inline complex _complex(const real &a) noexcept(false)             { return complex(a,0.0); }
+inline complex _complex(const real &a) noexcept             { return complex(a,0.0); }
 //! Deprecated typecast, which only exist for the reason of compatibility with older versions of C-XSC
 /*!
 \deprecated use standard contructors for typecasting
 
 \sa cxsc::complex::complex(const real & a,const real & b)
 */
-inline complex _complex(const real &a,const real &b) noexcept(false){ return complex(a,b); }
+inline complex _complex(const real &a,const real &b) noexcept{ return complex(a,b); }
 
 //! Returns the real part of a variable z of type complex
 inline real & Re(complex & z) { return z.re; }
@@ -387,84 +387,84 @@ inline complex & SetRe(complex & z,const real & b) { z.re=b; return z; }
 inline complex & SetIm(complex & z,const real & b) { z.im=b; return z; } 
 
 //! Calculates an approximation of \f$ z^2 \f$
-inline complex sqr (const complex&) noexcept(false);
+inline complex sqr (const complex&) noexcept;
 //! Calculates an approximation of \f$ \sqrt(z) \f$
-complex sqrt(const complex&) noexcept(false);
+complex sqrt(const complex&) noexcept;
 //! Calculates an approximation of \f$ \sqrt(1+z)-1 \f$
-complex sqrtp1m1(const complex&) noexcept(false);
+complex sqrtp1m1(const complex&) noexcept;
 //! Calculates an approximation of \f$ \sqrt(1+z^2) \f$
-complex sqrt1px2(const complex&) noexcept(false);
+complex sqrt1px2(const complex&) noexcept;
 //! Calculates an approximation of \f$ \sqrt(z^2-1) \f$
-complex sqrtx2m1(const complex&) noexcept(false);
+complex sqrtx2m1(const complex&) noexcept;
 //! Calculates an approximation of \f$ \sqrt(1-z^2) \f$
-complex sqrt1mx2(const complex&) noexcept(false);
+complex sqrt1mx2(const complex&) noexcept;
 
 //! Calculates an approximation of \f$ \exp(z) \f$
-complex exp(const complex&) noexcept(false);
+complex exp(const complex&) noexcept;
 //! Calculates an approximation of \f$ \exp(z)-1 \f$
-complex expm1(const complex&) noexcept(false);
+complex expm1(const complex&) noexcept;
 //! Calculates an approximation of \f$ 2^z \f$
-complex exp2(const complex&) noexcept(false);
+complex exp2(const complex&) noexcept;
 //! Calculates an approximation of \f$ 10^z \f$
-complex exp10(const complex&) noexcept(false);
+complex exp10(const complex&) noexcept;
 //! Calculates an approximation of \f$ \sin(z) \f$
-complex sin(const complex&) noexcept(false);
+complex sin(const complex&) noexcept;
 //! Calculates an approximation of \f$ \cos(z) \f$
-complex cos(const complex&) noexcept(false);
+complex cos(const complex&) noexcept;
 //! Calculates an approximation of \f$ \tan(z) \f$
-complex tan(const complex&) noexcept(false);
+complex tan(const complex&) noexcept;
 //! Calculates an approximation of \f$ \cot(z) \f$
-complex cot(const complex&) noexcept(false);
+complex cot(const complex&) noexcept;
 //! Calculates an approximation of \f$ \arcsin(z) \f$
-complex asin(const complex&) noexcept(false);
+complex asin(const complex&) noexcept;
 //! Calculates an approximation of \f$ \arccos(z) \f$
-complex acos(const complex&) noexcept(false);
+complex acos(const complex&) noexcept;
 //! Calculates an approximation of \f$ \arctan(z) \f$
-complex atan(const complex&) noexcept(false);
+complex atan(const complex&) noexcept;
 //! Calculates an approximation of \f$ \mbox{arccot}(z) \f$
-complex acot(const complex&) noexcept(false);
+complex acot(const complex&) noexcept;
 //! Calculates an approximation of \f$ \sinh(z) \f$
-complex sinh(const complex&) noexcept(false);
+complex sinh(const complex&) noexcept;
 //! Calculates an approximation of \f$ \cosh(z) \f$
-complex cosh(const complex&) noexcept(false);
+complex cosh(const complex&) noexcept;
 //! Calculates an approximation of \f$ \tanh(z) \f$
-complex tanh(const complex&) noexcept(false);
+complex tanh(const complex&) noexcept;
 //! Calculates an approximation of \f$ \coth(z) \f$
-complex coth(const complex&) noexcept(false);
+complex coth(const complex&) noexcept;
 //! Calculates an approximation of \f$ \mbox{arcsinh}(z) \f$
-complex asinh(const complex&) noexcept(false);
+complex asinh(const complex&) noexcept;
 //! Calculates an approximation of \f$ \mbox{arccosh}(z) \f$
-complex acosh(const complex&) noexcept(false);
+complex acosh(const complex&) noexcept;
 //! Calculates an approximation of \f$ \mbox{arctanh}(z) \f$
-complex atanh(const complex&) noexcept(false);
+complex atanh(const complex&) noexcept;
 //! Calculates an approximation of \f$ \mbox{arccoth}(z) \f$
-complex acoth(const complex&) noexcept(false);
+complex acoth(const complex&) noexcept;
 //! Calculates an approximation of \f$ \sqrt{z}  \f$ and returns all possible solutions
 std::list<complex>sqrt_all(const complex&);
 //! Calculates an approximation of \f$ \sqrt[n]{z} \f$
-complex sqrt(const complex&, int) noexcept(false);
+complex sqrt(const complex&, int) noexcept;
 //! Calculates an approximation of \f$ \mbox{arg}(z) \f$
-real arg(const complex&) noexcept(false);
+real arg(const complex&) noexcept;
 //! Calculates an approximation of \f$ \mbox{arg}(z) \f$
-real Arg(const complex&) noexcept(false);
+real Arg(const complex&) noexcept;
 //! Calculates an approximation of \f$ \sqrt[n]{z} \f$ and returns all possible solutions
 std::list<complex>sqrt_all(const complex&, int);
 //! Calculates an approximation of \f$ \ln(z) \f$
-complex ln(const complex&) noexcept(false);
+complex ln(const complex&) noexcept;
 //! Calculates an approximation of \f$ \ln(1+z) \f$
-complex lnp1(const complex&) noexcept(false);
+complex lnp1(const complex&) noexcept;
 //! Calculates an approximation of \f$ \mbox{log2}(z) \f$
-complex log2(const complex&) noexcept(false);
+complex log2(const complex&) noexcept;
 //! Calculates an approximation of \f$ \mbox{log10}(z) \f$
-complex log10(const complex&) noexcept(false);
+complex log10(const complex&) noexcept;
 //! Calculates an approximation of \f$ z^n \f$
-complex power(const complex&,int) noexcept(false);
+complex power(const complex&,int) noexcept;
 //! Calculates an approximation of \f$ z^n \f$
-complex power_fast(const complex&, int) noexcept(false);
+complex power_fast(const complex&, int) noexcept;
 //! Calculates an approximation of \f$ z^y \f$
-complex pow(const complex&, const real&) noexcept(false);
+complex pow(const complex&, const real&) noexcept;
 //! Calculates an approximation of \f$ z_1^{z_2} \f$
-complex pow(const complex&, const complex&) noexcept(false);
+complex pow(const complex&, const complex&) noexcept;
 
 } // namespace cxsc 
 

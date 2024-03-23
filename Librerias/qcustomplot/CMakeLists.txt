@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.17)
 
 project(qcustomplot LANGUAGES CXX)
 
@@ -20,70 +20,40 @@ endif()
 
 message("Looking for Qt...")
 #Buscamos los paquetes de Qt5
-find_package(Qt5 COMPONENTS Core Widgets PrintSupport REQUIRED)
+find_package(Qt6 COMPONENTS Core Widgets PrintSupport REQUIRED)
 
-if (${Qt5_FOUND})
-    message("Found Qt " ${Qt5_VERSION})
+if (${Qt6_FOUND})
+    message("Found Qt " ${Qt6_VERSION})
 else()
     message(FATAL_ERROR "Couldn't find Qt")
 endif()
 
 if (MSVC_VERSION GREATER_EQUAL "1900")
     include(CheckCXXCompilerFlag)
-    CHECK_CXX_COMPILER_FLAG("/std:c++latest" _cpp_latest_flag_supported)
+    CHECK_CXX_COMPILER_FLAG("/std:c++20" _cpp_latest_flag_supported)
     if (_cpp_latest_flag_supported)
-        add_compile_options("/std:c++latest")
+        add_compile_options("/std:c++20")
     endif()
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -O2 -march=native")
 
-find_package(Qt5Core REQUIRED)
-find_package(Qt5Gui REQUIRED)
-find_package(Qt5Widgets REQUIRED)
-find_package(Qt5PrintSupport REQUIRED)
+# Añadir la carpeta de includes de Qt6
+include_directories(${Qt6Widgets_INCLUDE_DIRS})
 
 add_library (qcustomplot STATIC qcustomplot.cpp qcustomplot.h)
 
-target_link_libraries( qcustomplot Qt5::Core Qt5::Widgets Qt5::PrintSupport Qt5::Gui)
+target_link_libraries( qcustomplot Qt6::Core Qt6::Widgets Qt6::PrintSupport Qt6::Gui)
 
 #Opciones del compilador
 message("Check C++ version")
-include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-std=c++17" COMPILER_SUPPORTS_CXX17)
-if(COMPILER_SUPPORTS_CXX17)
-        message("Use c++17")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+# Establecer la versión mínima de C++
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-        set_target_properties(${EXE_NAME} PROPERTIES
-            CXX_STANDARD 17
-            CXX_STANDARD_REQUIRED ON
-            CXX_EXTENSIONS OFF
-        )
-else ()
-    CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
-    if(COMPILER_SUPPORTS_CXX14)
-            message("Use c++14")
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-
-            set_target_properties(${EXE_NAME} PROPERTIES
-                CXX_STANDARD 14
-                CXX_STANDARD_REQUIRED ON
-                CXX_EXTENSIONS OFF
-            )
-    else ()
-        CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
-        if(COMPILER_SUPPORTS_CXX11)
-                message("Use c++11")
-                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-
-                set_target_properties(${EXE_NAME} PROPERTIES
-                    CXX_STANDARD 11
-                    CXX_STANDARD_REQUIRED ON
-                    CXX_EXTENSIONS OFF
-                )
-        endif()
-    endif()
+# Verificar si la versión de C++ cumplida es la requerida
+if (CMAKE_CXX_STANDARD LESS 20)
+    message(FATAL_ERROR "Se requiere C++ versión 20 o superior.")
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall  -O2 -march=native")

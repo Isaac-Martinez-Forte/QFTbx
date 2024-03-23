@@ -31,45 +31,45 @@
 namespace cxsc {
 
 //! Calculates \f$ x^2  \f$
-inline l_real sqr     (const l_real&) noexcept(false); // Sqr(x)
+inline l_real sqr     (const l_real&) noexcept; // Sqr(x)
 //! Calculates \f$ \sqrt{x}  \f$
        l_real sqrt    (const l_real&) noexcept(false);
                                                // Sqrt(x)
 //! Calculates \f$ \sqrt{x^2+y^2} \f$
-       l_real sqrtx2y2(const l_real&, const l_real&) noexcept(false); 
+       l_real sqrtx2y2(const l_real&, const l_real&) noexcept; 
                                                // Sqrt(x^2+y^2)
 //! Calculates \f$ \sqrt{1+x^2} \f$
-       l_real sqrt1px2(const l_real&) noexcept(false); // Sqrt(1+x^2)
+       l_real sqrt1px2(const l_real&) noexcept; // Sqrt(1+x^2)
 //! Calculates \f$ \sqrt{(x+1)-1} \f$
-inline l_real sqrtp1m1(const l_real &) noexcept(false); 
+inline l_real sqrtp1m1(const l_real &) noexcept; 
 //! Calculates \f$ \sqrt{x^2-1} \f$
-inline l_real sqrtx2m1(const l_real &) noexcept(false);
+inline l_real sqrtx2m1(const l_real &) noexcept;
 //! Calculates \f$ \sqrt{1-x^2} \f$
-inline l_real sqrt1mx2(const l_real &) noexcept(false);
+inline l_real sqrt1mx2(const l_real &) noexcept;
 //! Calculates \f$ \exp(x)-1 \f$
-inline l_real expm1   (const l_real &x) noexcept(false);
+inline l_real expm1   (const l_real &x) noexcept;
 //! Calculates \f$ \exp(-x^2) \f$
-inline l_real expmx2  (const l_real&) noexcept(false);
+inline l_real expmx2  (const l_real&) noexcept;
 //! Calculates \f$ \ln{\sqrt{x^2+y^2}} \f$
-inline l_real ln_sqrtx2y2(const l_real& x, const l_real& y) noexcept(false);
+inline l_real ln_sqrtx2y2(const l_real& x, const l_real& y) noexcept;
 //! Calculates \f$ \arccos(1+x) \f$
 inline l_real acoshp1 (const l_real& x);
 
 // inline l_real sqrt   (const l_real &, int);  // Sqrt(x, n)
-// inline l_real sin    (const l_real&) noexcept(false);        // Sin(x)
-// inline l_real cos    (const l_real&) noexcept(false);        // Cos(x)
-// inline l_real tan    (const l_real&) noexcept(false);        // Tan(x)
-// inline l_real cot    (const l_real&) noexcept(false);        // Cot(x)
+// inline l_real sin    (const l_real&) throw();        // Sin(x)
+// inline l_real cos    (const l_real&) throw();        // Cos(x)
+// inline l_real tan    (const l_real&) throw();        // Tan(x)
+// inline l_real cot    (const l_real&) throw();        // Cot(x)
 // inline l_real asin   (const l_real&);        // ASin(x)
 // inline l_real acos   (const l_real&);        // ACos(x)
 // inline l_real atan   (const l_real&);        // ATan(x) 
 // inline l_real acot   (const l_real&);        // ACot(x)
-// inline l_real exp    (const l_real&) noexcept(false);        // Exp(x)
+// inline l_real exp    (const l_real&) throw();        // Exp(x)
 // inline l_real ln     (const l_real&);        // Ln(x)
-// inline l_real sinh   (const l_real&) noexcept(false);        // Sinh(x)
-// inline l_real cosh   (const l_real&) noexcept(false);        // Cosh(x)
-// inline l_real tanh   (const l_real&) noexcept(false);        // Tanh(x) 
-// inline l_real coth   (const l_real&) noexcept(false);        // Coth(x)
+// inline l_real sinh   (const l_real&) throw();        // Sinh(x)
+// inline l_real cosh   (const l_real&) throw();        // Cosh(x)
+// inline l_real tanh   (const l_real&) throw();        // Tanh(x) 
+// inline l_real coth   (const l_real&) throw();        // Coth(x)
 // inline l_real asinh  (const l_real&);        // ASinh(x)
 // inline l_real acosh  (const l_real&);        // ACosh(x)
 // inline l_real atanh  (const l_real&);        // ATanh(x)
@@ -81,41 +81,41 @@ inline l_real pow    (const l_real&, const l_real&); // Pow(x,y)
 l_real power         (const l_real&, const int);     // Power(x,n)
 
 // real staggered constants (the same as in l_interval.hpp):
-l_real Ln2_l_real()   noexcept(false);   // ln(2) 
-l_real Ln10_l_real()  noexcept(false);   // ln(10)
-l_real Ln10r_l_real() noexcept(false);   // 1/ln(10)
-l_real Pid4_l_real()  noexcept(false);   // Pi/4
-l_real Sqrt2_l_real() noexcept(false);   // sqrt(2)
-l_real Sqrt5_l_real() noexcept(false);   // sqrt(5)
-l_real Sqrt7_l_real() noexcept(false);   // sqrt(7)
-l_real Ln2r_l_real() noexcept(false);     // 1/ln(2)
-l_real Pi_l_real() noexcept(false);       // Pi
-l_real Pid2_l_real() noexcept(false);     // Pi/2
-l_real Pi2_l_real() noexcept(false);      // 2*Pi
-l_real Pid3_l_real() noexcept(false);     // Pi/3
-l_real Pir_l_real() noexcept(false);      // 1/Pi
-l_real Pi2r_l_real() noexcept(false);     // 1/(2*Pi)
-l_real SqrtPi_l_real() noexcept(false);   // sqrt(Pi)
-l_real Sqrt2Pi_l_real() noexcept(false);  // sqrt(2*Pi)
-l_real SqrtPir_l_real() noexcept(false);  // 1/sqrt(Pi)
-l_real Sqrt2Pir_l_real() noexcept(false); // 1/sqrt(2*Pi)
-l_real Pip2_l_real() noexcept(false);     // Pi^2
-l_real Sqrt2r_l_real() noexcept(false);   // 1/sqrt(2)
-l_real Sqrt3_l_real() noexcept(false);    // sqrt(3)
-l_real Sqrt3d2_l_real() noexcept(false);  // sqrt(3)/2
-l_real Sqrt3r_l_real() noexcept(false);   // 1/sqrt(3)
-l_real LnPi_l_real() noexcept(false);     // ln(Pi)
-l_real Ln2Pi_l_real() noexcept(false);    // ln(2*Pi)
-l_real E_l_real() noexcept(false);        // e = exp(1)
-l_real Er_l_real() noexcept(false);       // 1/e
-l_real Ep2_l_real() noexcept(false);      // e^2
-l_real Ep2r_l_real() noexcept(false);     // 1/e^2
-l_real EpPi_l_real() noexcept(false);     // e^Pi
-l_real Ep2Pi_l_real() noexcept(false);    // e^(2*Pi)
-l_real EpPid2_l_real() noexcept(false);   // e^(Pi/2)
-l_real EpPid4_l_real() noexcept(false);   // e^(Pi/4)
-l_real EulerGa_l_real() noexcept(false);  // EulerGamma
-l_real Catalan_l_real() noexcept(false);  // Catalan
+l_real Ln2_l_real()   noexcept;   // ln(2) 
+l_real Ln10_l_real()  noexcept;   // ln(10)
+l_real Ln10r_l_real() noexcept;   // 1/ln(10)
+l_real Pid4_l_real()  noexcept;   // Pi/4
+l_real Sqrt2_l_real() noexcept;   // sqrt(2)
+l_real Sqrt5_l_real() noexcept;   // sqrt(5)
+l_real Sqrt7_l_real() noexcept;   // sqrt(7)
+l_real Ln2r_l_real() noexcept;     // 1/ln(2)
+l_real Pi_l_real() noexcept;       // Pi
+l_real Pid2_l_real() noexcept;     // Pi/2
+l_real Pi2_l_real() noexcept;      // 2*Pi
+l_real Pid3_l_real() noexcept;     // Pi/3
+l_real Pir_l_real() noexcept;      // 1/Pi
+l_real Pi2r_l_real() noexcept;     // 1/(2*Pi)
+l_real SqrtPi_l_real() noexcept;   // sqrt(Pi)
+l_real Sqrt2Pi_l_real() noexcept;  // sqrt(2*Pi)
+l_real SqrtPir_l_real() noexcept;  // 1/sqrt(Pi)
+l_real Sqrt2Pir_l_real() noexcept; // 1/sqrt(2*Pi)
+l_real Pip2_l_real() noexcept;     // Pi^2
+l_real Sqrt2r_l_real() noexcept;   // 1/sqrt(2)
+l_real Sqrt3_l_real() noexcept;    // sqrt(3)
+l_real Sqrt3d2_l_real() noexcept;  // sqrt(3)/2
+l_real Sqrt3r_l_real() noexcept;   // 1/sqrt(3)
+l_real LnPi_l_real() noexcept;     // ln(Pi)
+l_real Ln2Pi_l_real() noexcept;    // ln(2*Pi)
+l_real E_l_real() noexcept;        // e = exp(1)
+l_real Er_l_real() noexcept;       // 1/e
+l_real Ep2_l_real() noexcept;      // e^2
+l_real Ep2r_l_real() noexcept;     // 1/e^2
+l_real EpPi_l_real() noexcept;     // e^Pi
+l_real Ep2Pi_l_real() noexcept;    // e^(2*Pi)
+l_real EpPid2_l_real() noexcept;   // e^(Pi/2)
+l_real EpPid4_l_real() noexcept;   // e^(Pi/4)
+l_real EulerGa_l_real() noexcept;  // EulerGamma
+l_real Catalan_l_real() noexcept;  // Catalan
 
 } // namespace cxsc 
 

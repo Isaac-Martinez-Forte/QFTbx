@@ -31,85 +31,85 @@ namespace cxsc {
 
 	INLINE civector _civector(const rmatrix &sl)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_RMATRIX_TYPE_CAST_OF_THICK_OBJ);
 #else
-	noexcept(false);
+	throw();
 #endif
 	INLINE civector _civector(const rmatrix_slice &sl)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_RMATRIX_TYPE_CAST_OF_THICK_OBJ);
 #else
-	noexcept(false);
+	throw();
 #endif
 
 	void accumulate(cidotprecision &dp, const rmatrix_subv & rv1, const civector &rv2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	throw();
 #endif
 	void accumulate(cidotprecision &dp, const civector & rv1, const rmatrix_subv &rv2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	throw();
 #endif
 	void accumulate(cidotprecision &dp, const rmatrix_subv & rv1, const civector_slice &rv2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	throw();
 #endif
 	void accumulate(cidotprecision &dp, const civector_slice & rv1, const rmatrix_subv &rv2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	throw();
 #endif
 
 
 	INLINE civector operator *(const rmatrix &m,const civector &v)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_RMATRIX_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	throw();
 #endif
 	INLINE civector operator *(const rmatrix_slice &ms,const civector &v)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_RMATRIX_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	throw();
 #endif
 	INLINE civector operator *(const civector &v,const rmatrix &m)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_RMATRIX_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	throw();
 #endif
 	INLINE civector operator *(const civector &v,const rmatrix_slice &ms)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_RMATRIX_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	throw();
 #endif
 	INLINE civector &operator *=(civector &v,const rmatrix &m)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_RMATRIX_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	throw();
 #endif
 	INLINE civector &operator *=(civector &v,const rmatrix_slice &ms)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_RMATRIX_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	throw();
 #endif
 
 	INLINE civector operator *(const civector_slice &v,const rmatrix &m)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_RMATRIX_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	throw();
 #endif
 
 } // namespace cxsc 

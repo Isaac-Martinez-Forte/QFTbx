@@ -34,14 +34,14 @@ inline interval::interval(const real &a,const real &b) noexcept(false)
       cxscthrow(ERROR_INTERVAL_EMPTY_INTERVAL("inline interval::interval(const real &a,const real &b)"));
 }
 
-/*inline interval::interval(int a,int b) noexcept(false)
+/*inline interval::interval(int a,int b) throw(ERROR_INTERVAL_EMPTY_INTERVAL)
                                       : inf(a), sup(b)
 {
    if (a > b) 
       cxscthrow(ERROR_INTERVAL_EMPTY_INTERVAL("inline interval::interval(int a,int b)"));
 }
 
-inline interval::interval(const double & a,const double & b) noexcept(false)
+inline interval::interval(const double & a,const double & b) throw(ERROR_INTERVAL_EMPTY_INTERVAL)
                                                              : inf(a), sup(b)
 {
    if (a > b) 
@@ -74,20 +74,20 @@ inline interval _unchecked_interval(const real& a, const real& b)
 
 // ---- Standardfunkt ---- (arithmetische Operatoren)
 
-inline interval operator-(const interval &a) noexcept(false) { return interval (-a.sup, -a.inf); }
-inline interval operator+(const interval &a) noexcept(false) { return a; }
+inline interval operator-(const interval &a) noexcept { return interval (-a.sup, -a.inf); }
+inline interval operator+(const interval &a) noexcept { return a; }
 
-inline interval & operator +=(interval &a,const interval &b) noexcept(false) { return a=a+b; }
-inline interval & operator +=(interval &a,const real &b)     noexcept(false) { return a=a+b; }
-inline interval & operator -=(interval &a,const interval &b) noexcept(false) { return a=a-b; }
-inline interval & operator -=(interval &a,const real &b)     noexcept(false) { return a=a-b; }
-inline interval & operator *=(interval &a,const interval &b) noexcept(false) { return a=a*b; }
-inline interval & operator *=(interval &a,const real &b)     noexcept(false) { return a=a*b; }
-inline interval & operator /=(interval &a,const interval &b) noexcept(false) { return a=a/b; }
-inline interval & operator /=(interval &a,const real &b)     noexcept(false) { return a=a/b; }
+inline interval & operator +=(interval &a,const interval &b) noexcept { return a=a+b; }
+inline interval & operator +=(interval &a,const real &b)     noexcept { return a=a+b; }
+inline interval & operator -=(interval &a,const interval &b) noexcept { return a=a-b; }
+inline interval & operator -=(interval &a,const real &b)     noexcept { return a=a-b; }
+inline interval & operator *=(interval &a,const interval &b) noexcept { return a=a*b; }
+inline interval & operator *=(interval &a,const real &b)     noexcept { return a=a*b; }
+inline interval & operator /=(interval &a,const interval &b) noexcept { return a=a/b; }
+inline interval & operator /=(interval &a,const real &b)     noexcept { return a=a/b; }
 
 
-inline interval operator |(const interval &a,const interval &b) noexcept(false) 
+inline interval operator |(const interval &a,const interval &b) noexcept 
 {
    return interval((a.inf<b.inf)?a.inf:b.inf,(a.sup>b.sup)?a.sup:b.sup);
 }
@@ -95,7 +95,7 @@ inline interval operator &(const interval &a,const interval &b) noexcept(false)
 {
    return interval((a.inf>b.inf)?a.inf:b.inf,(a.sup<b.sup)?a.sup:b.sup);
 }
-inline interval operator |(const real &a,const interval &b) noexcept(false) 
+inline interval operator |(const real &a,const interval &b) noexcept 
 {
    return interval((a<b.inf)?a:b.inf,(a>b.sup)?a:b.sup);
 }
@@ -103,11 +103,11 @@ inline interval operator &(const real &a,const interval &b) noexcept(false)
 {
    return interval((a>b.inf)?a:b.inf,(a<b.sup)?a:b.sup);
 }
-inline interval operator |(const interval &a,const real &b) noexcept(false) 
+inline interval operator |(const interval &a,const real &b) noexcept 
 {
    return interval((a.inf<b)?a.inf:b,(a.sup>b)?a.sup:b);
 }
-inline interval operator |(const real &a,const real &b) noexcept(false)
+inline interval operator |(const real &a,const real &b) noexcept
 {
    if(a>b) return interval(b,a);
    else    return interval(a,b);
@@ -116,7 +116,7 @@ inline interval operator &(const interval &a,const real &b) noexcept(false)
 {
    return interval((a.inf>b)?a.inf:b,(a.sup<b)?a.sup:b);
 }
-inline interval & operator |=(interval &a,const interval &b) noexcept(false) 
+inline interval & operator |=(interval &a,const interval &b) noexcept 
 {
    a.inf=(a.inf<b.inf)?a.inf:b.inf,a.sup=(a.sup>b.sup)?a.sup:b.sup;
    return a;
@@ -128,7 +128,7 @@ inline interval & operator &=(interval &a,const interval &b) noexcept(false)
       cxscthrow(ERROR_INTERVAL_EMPTY_INTERVAL("inline interval & operator &=(interval &a,const interval &b)"));
    return a;
 }
-inline interval & operator |=(interval &a,const real &b) noexcept(false) 
+inline interval & operator |=(interval &a,const real &b) noexcept 
 {
    a.inf=(a.inf<b)?a.inf:b,a.sup=(a.sup>b)?a.sup:b;
    return a;
@@ -142,88 +142,88 @@ inline interval & operator &=(interval &a,const real &b) noexcept(false)
 }
 
 // --- Vergleichsoperationen ----
-inline bool operator ==(const interval &a,const interval &b) noexcept(false) {   return(a.inf==b.inf && a.sup==b.sup); }
-inline bool operator !=(const interval &a,const interval &b) noexcept(false) {   return(a.inf!=b.inf || a.sup!=b.sup); }
-inline bool operator ==(const real &r,const interval &a)     noexcept(false) {   return(r==a.inf && r==a.sup); }
-inline bool operator !=(const real &r,const interval &a)     noexcept(false) {   return(r!=a.inf || r!=a.sup); }
-inline bool operator ==(const interval &a,const real &r)     noexcept(false) {   return(r==a.inf && r==a.sup); }
-inline bool operator !=(const interval &a,const real &r)     noexcept(false) {   return(r!=a.inf || r!=a.sup); }
+inline bool operator ==(const interval &a,const interval &b) noexcept {   return(a.inf==b.inf && a.sup==b.sup); }
+inline bool operator !=(const interval &a,const interval &b) noexcept {   return(a.inf!=b.inf || a.sup!=b.sup); }
+inline bool operator ==(const real &r,const interval &a)     noexcept {   return(r==a.inf && r==a.sup); }
+inline bool operator !=(const real &r,const interval &a)     noexcept {   return(r!=a.inf || r!=a.sup); }
+inline bool operator ==(const interval &a,const real &r)     noexcept {   return(r==a.inf && r==a.sup); }
+inline bool operator !=(const interval &a,const real &r)     noexcept {   return(r!=a.inf || r!=a.sup); }
 
-inline bool operator ==(const int &r,const interval &a)     noexcept(false) {   return(r==a.inf && r==a.sup); }
-inline bool operator !=(const int &r,const interval &a)     noexcept(false) {   return(r!=a.inf || r!=a.sup); }
-inline bool operator ==(const interval &a,const int &r)     noexcept(false) {   return(r==a.inf && r==a.sup); }
-inline bool operator !=(const interval &a,const int &r)     noexcept(false) {   return(r!=a.inf || r!=a.sup); }
+inline bool operator ==(const int &r,const interval &a)     noexcept {   return(r==a.inf && r==a.sup); }
+inline bool operator !=(const int &r,const interval &a)     noexcept {   return(r!=a.inf || r!=a.sup); }
+inline bool operator ==(const interval &a,const int &r)     noexcept {   return(r==a.inf && r==a.sup); }
+inline bool operator !=(const interval &a,const int &r)     noexcept {   return(r!=a.inf || r!=a.sup); }
 
-inline bool operator ==(const long &r,const interval &a)    noexcept(false) {   return(r==a.inf && r==a.sup); }
-inline bool operator !=(const long &r,const interval &a)    noexcept(false) {   return(r!=a.inf || r!=a.sup); }
-inline bool operator ==(const interval &a,const long &r)    noexcept(false) {   return(r==a.inf && r==a.sup); }
-inline bool operator !=(const interval &a,const long &r)    noexcept(false) {   return(r!=a.inf || r!=a.sup); }
+inline bool operator ==(const long &r,const interval &a)    noexcept {   return(r==a.inf && r==a.sup); }
+inline bool operator !=(const long &r,const interval &a)    noexcept {   return(r!=a.inf || r!=a.sup); }
+inline bool operator ==(const interval &a,const long &r)    noexcept {   return(r==a.inf && r==a.sup); }
+inline bool operator !=(const interval &a,const long &r)    noexcept {   return(r!=a.inf || r!=a.sup); }
 
-inline bool operator ==(const double &r,const interval &a)  noexcept(false) {   return(r==a.inf && r==a.sup); }
-inline bool operator !=(const double &r,const interval &a)  noexcept(false) {   return(r!=a.inf || r!=a.sup); }
-inline bool operator ==(const interval &a,const double &r)  noexcept(false) {   return(r==a.inf && r==a.sup); }
-inline bool operator !=(const interval &a,const double &r)  noexcept(false) {   return(r!=a.inf || r!=a.sup); }
+inline bool operator ==(const double &r,const interval &a)  noexcept {   return(r==a.inf && r==a.sup); }
+inline bool operator !=(const double &r,const interval &a)  noexcept {   return(r!=a.inf || r!=a.sup); }
+inline bool operator ==(const interval &a,const double &r)  noexcept {   return(r==a.inf && r==a.sup); }
+inline bool operator !=(const interval &a,const double &r)  noexcept {   return(r!=a.inf || r!=a.sup); }
 
 // --- Mengenvergleiche ---
 // <,>,...
-inline bool operator <=(const interval &a,const interval &b) noexcept(false)
+inline bool operator <=(const interval &a,const interval &b) noexcept
 {
    return(a.inf>=b.inf && a.sup<=b.sup);   
 }
-inline bool operator >=(const interval &a,const interval &b) noexcept(false)
+inline bool operator >=(const interval &a,const interval &b) noexcept
 {
    return(a.inf<=b.inf && a.sup>=b.sup);   
 }
-inline bool operator <(const interval &a,const interval &b) noexcept(false)
+inline bool operator <(const interval &a,const interval &b) noexcept
 {
    return(a.inf>b.inf && a.sup<b.sup);   
 }
-inline bool operator >(const interval &a,const interval &b) noexcept(false)
+inline bool operator >(const interval &a,const interval &b) noexcept
 {
    return(a.inf<b.inf && a.sup>b.sup);   
 }
 
-inline bool operator <=(const real &a,const interval &b) noexcept(false)
+inline bool operator <=(const real &a,const interval &b) noexcept
 {
    return(a>=b.inf && a<=b.sup);   
 }
-inline bool operator >=(const real &a,const interval &b) noexcept(false)
+inline bool operator >=(const real &a,const interval &b) noexcept
 {
    return(a<=b.inf && a>=b.sup);   
 }
-inline bool operator <(const real &a,const interval &b) noexcept(false)
+inline bool operator <(const real &a,const interval &b) noexcept
 {
    return(a>b.inf && a<b.sup);   
 }
 
-inline bool operator <=(const interval &a,const real &b) noexcept(false)
+inline bool operator <=(const interval &a,const real &b) noexcept
 {
    return(a.inf>=b && a.sup<=b);   
 }
-inline bool operator >=(const interval &a,const real &b) noexcept(false)
+inline bool operator >=(const interval &a,const real &b) noexcept
 {
    return(a.inf<=b && a.sup>=b);   
 }
-inline bool operator >(const interval &a,const real &b) noexcept(false)
+inline bool operator >(const interval &a,const real &b) noexcept
 {
    return(a.inf<b && a.sup>b);   
 }
 
-inline bool operator !(const interval &a) noexcept(false) { return (a.inf <= 0.0 && a.sup >= 0.0); }  
+inline bool operator !(const interval &a) noexcept { return (a.inf <= 0.0 && a.sup >= 0.0); }  
 
-inline       real & Inf (interval& a)       noexcept(false) { return a.inf; }
-inline const real & Inf (const interval &a) noexcept(false) { return a.inf; }
-inline       real & Sup (interval& a)       noexcept(false) { return a.sup; }
-inline const real & Sup (const interval &a) noexcept(false) { return a.sup; }
+inline       real & Inf (interval& a)       noexcept { return a.inf; }
+inline const real & Inf (const interval &a) noexcept { return a.inf; }
+inline       real & Sup (interval& a)       noexcept { return a.sup; }
+inline const real & Sup (const interval &a) noexcept { return a.sup; }
 
-inline interval& SetInf (interval& a, const real& b)  noexcept(false) {a.inf=b; return a;}
-inline interval& SetSup (interval& a, const real& b) noexcept(false)  {a.sup=b; return a;}
-inline interval& UncheckedSetInf (interval& a, const real& b) noexcept(false) { a.inf=b; return a;}
-inline interval& UncheckedSetSup (interval& a, const real& b) noexcept(false) { a.sup=b; return a;}
+inline interval& SetInf (interval& a, const real& b)  noexcept {a.inf=b; return a;}
+inline interval& SetSup (interval& a, const real& b) noexcept  {a.sup=b; return a;}
+inline interval& UncheckedSetInf (interval& a, const real& b) noexcept { a.inf=b; return a;}
+inline interval& UncheckedSetSup (interval& a, const real& b) noexcept { a.sup=b; return a;}
 
-inline bool IsEmpty(const interval &a) noexcept(false) { return (a.inf>a.sup); }
+inline bool IsEmpty(const interval &a) noexcept { return (a.inf>a.sup); }
 
-inline interval abs(const interval &a) noexcept(false)
+inline interval abs(const interval &a) noexcept
 {
    real h1  = abs(a.inf);
    real h2  = abs(a.sup);
@@ -237,17 +237,17 @@ inline interval abs(const interval &a) noexcept(false)
    return interval(h1, h2); 
 }
 
-inline real diam(const interval & a) noexcept(false)
+inline real diam(const interval & a) noexcept
 {
    return subup(a.sup,a.inf); 
 }
 
-inline real Mid(const interval & a) noexcept(false)
+inline real Mid(const interval & a) noexcept
 {
    return addd( a.inf, subd(0.5*a.sup,0.5*a.inf) );
 }
 
-inline void times2pown(interval& x, const int& n) noexcept(false)
+inline void times2pown(interval& x, const int& n) noexcept
 {
     real r1,r2;
     int j;
@@ -280,18 +280,18 @@ inline void times2pown(interval& x, const int& n) noexcept(false)
     x = _interval(r1,r2);
 } // times2pown(...)
 
-interval operator+ (const interval& a, const interval& b) noexcept(false)
+interval operator+ (const interval& a, const interval& b) noexcept
   { return interval (adddown(a.inf,b.inf),addup(a.sup,b.sup)); }
-interval operator+ (const interval& a, const real& b) noexcept(false) 
+interval operator+ (const interval& a, const real& b) noexcept 
   { return interval (adddown(a.inf,b),addup(a.sup,b)); }
-interval operator+ (const real& a, const interval& b) noexcept(false) 
+interval operator+ (const real& a, const interval& b) noexcept 
   { return interval (adddown(a,b.inf),addup(a,b.sup)); }
 
-interval operator-  (const interval& a, const interval& b) noexcept(false) 
+interval operator-  (const interval& a, const interval& b) noexcept 
   { return interval ( subdown(a.inf,b.sup), subup(a.sup,b.inf)); }
-interval operator-  (const interval& a, const real& b) noexcept(false) 
+interval operator-  (const interval& a, const real& b) noexcept 
   { return interval ( subdown(a.inf,b), subup(a.sup,b)); }
-interval operator-  (const real& a, const interval& b) noexcept(false) 
+interval operator-  (const real& a, const interval& b) noexcept 
   { return interval ( subdown(a,b.sup), subup(a,b.inf)); }
 
   //------------------------------------------------------------------------
@@ -308,7 +308,7 @@ interval operator-  (const real& a, const interval& b) noexcept(false)
   //
   //  .... :  min(ai*bs, as*bi), max(ai*ai, as*as)
   //
-interval operator *(const interval& a, const interval& b) noexcept(false)
+interval operator *(const interval& a, const interval& b) noexcept
 {
    interval tmp;
 
@@ -429,7 +429,7 @@ interval operator/  (const interval& a, const interval& b) noexcept(false)
    return tmp;
 }
 
-interval operator*  (const real& a, const interval& b) noexcept(false)
+interval operator*  (const real& a, const interval& b) noexcept
 {
    interval tmp;
    if (sign(a) == 0) 
@@ -448,7 +448,7 @@ interval operator*  (const real& a, const interval& b) noexcept(false)
    return tmp;
 }
 
-interval operator*  (const interval& a, const real& b) noexcept(false)
+interval operator*  (const interval& a, const real& b) noexcept
 {
    interval tmp;
    if (sign(b) == 0) 
@@ -467,8 +467,8 @@ interval operator*  (const interval& a, const real& b) noexcept(false)
    return tmp;
 }
 
-interval operator/  (const real& a, const interval& b)  noexcept(false) { return (interval(a) / b); }
-interval operator/  (const interval& a, const real& b)  noexcept(false) { return (a / interval(b)); }
+interval operator/  (const real& a, const interval& b)  noexcept { return (interval(a) / b); }
+interval operator/  (const interval& a, const real& b)  noexcept { return (a / interval(b)); }
 
 
 } // namespace cxsc

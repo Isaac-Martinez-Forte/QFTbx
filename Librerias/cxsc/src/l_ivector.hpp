@@ -69,536 +69,536 @@ template <class V,class MS,class S> friend  void _vmsconstr(V &v,const MS &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__TYPE_CAST_OF_THICK_OBJ<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__TYPE_CAST_OF_THICK_OBJ<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
- template <class V> friend 	 void _vresize(V &rv) noexcept(false);
+ template <class V> friend 	 void _vresize(V &rv) noexcept;
  template <class V,class S> friend 	 void _vresize(V &rv, const int &len)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__WRONG_BOUNDARIES<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V,class S> friend 	 void _vresize(V &rv, const int &lb, const int &ub)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__WRONG_BOUNDARIES<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
- template <class V1,class V2,class S> friend 	 V1 &_vvassign(V1 &rv1,const V2 &rv2) noexcept(false);
- template <class V,class S> friend 	 V & _vsassign(V &rv,const S &r) noexcept(false);
- template <class V,class VS,class S> friend 	 V & _vvsassign(V &rv,const VS &sl) noexcept(false);
+ template <class V1,class V2,class S> friend 	 V1 &_vvassign(V1 &rv1,const V2 &rv2) noexcept;
+ template <class V,class S> friend 	 V & _vsassign(V &rv,const S &r) noexcept;
+ template <class V,class VS,class S> friend 	 V & _vvsassign(V &rv,const VS &sl) noexcept;
  template <class VS,class V> friend 	 VS & _vsvassign(VS &sl,const V &rv)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 template <class V,class M,class S> friend  V &_vmassign(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__TYPE_CAST_OF_THICK_OBJ<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
-template <class M,class V,class S> friend  M &_mvassign(M &m,const V &v) noexcept(false);
+template <class M,class V,class S> friend  M &_mvassign(M &m,const V &v) noexcept;
  template <class V1,class V2> friend 	 V1 &_vvsetinf(V1 &rv1, const V2 &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V1,class V2> friend 	 V1 &_vvsetsup(V1 &rv1, const V2 &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V,class VS> friend 	 V &_vvssetinf(V &rv, const VS &sl)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V,class VS> friend 	 V &_vvssetsup(V &rv, const VS &sl)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 template <class V,class MV> friend  V &_vmvsetinf(V &rv,const MV &v)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 template <class V,class MV> friend  V &_vmvsetsup(V &rv,const MV &v)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V1,class V2> friend 	 V1 &_vvusetinf(V1 &rv1, const V2 &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V1,class V2> friend 	 V1 &_vvusetsup(V1 &rv1, const V2 &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V,class VS> friend 	 V &_vvsusetinf(V &rv, const VS &sl)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V,class VS> friend 	 V &_vvsusetsup(V &rv, const VS &sl)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 template <class V,class MV> friend  V &_vmvusetinf(V &rv,const MV &v)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 template <class V,class MV> friend  V &_vmvusetsup(V &rv,const MV &v)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
- template <class V,class S> friend 	 V &_vssetinf(V &v, const S &s) noexcept(false);
- template <class V,class S> friend 	 V &_vssetsup(V &v, const S &s) noexcept(false);
- template <class V,class S> friend 	 V &_vsusetinf(V &v, const S &s) noexcept(false);
- template <class V,class S> friend 	 V &_vsusetsup(V &v, const S &s) noexcept(false);
- template <class V,class E> friend 	 E _vabs(const V &rv) noexcept(false);
- template <class VS,class E> friend 	 E _vsabs(const VS &sl) noexcept(false);
-template <class MV,class V> friend  V _mvabs(const MV &mv) noexcept(false);
- template <class V,class E> friend 	 E _vdiam(const V &rv) noexcept(false);
- template <class V,class E> friend 	 E _vmid(const V &rv) noexcept(false);
- template <class V,class E> friend 	 E _vinf(const V &rv) noexcept(false);
- template <class V,class E> friend 	 E _vsup(const V &rv) noexcept(false);
+ template <class V,class S> friend 	 V &_vssetinf(V &v, const S &s) noexcept;
+ template <class V,class S> friend 	 V &_vssetsup(V &v, const S &s) noexcept;
+ template <class V,class S> friend 	 V &_vsusetinf(V &v, const S &s) noexcept;
+ template <class V,class S> friend 	 V &_vsusetsup(V &v, const S &s) noexcept;
+ template <class V,class E> friend 	 E _vabs(const V &rv) noexcept;
+ template <class VS,class E> friend 	 E _vsabs(const VS &sl) noexcept;
+template <class MV,class V> friend  V _mvabs(const MV &mv) noexcept;
+ template <class V,class E> friend 	 E _vdiam(const V &rv) noexcept;
+ template <class V,class E> friend 	 E _vmid(const V &rv) noexcept;
+ template <class V,class E> friend 	 E _vinf(const V &rv) noexcept;
+ template <class V,class E> friend 	 E _vsup(const V &rv) noexcept;
 
 //-------- vector-vector -----------------------
  template <class DP,class V1,class V2> friend 	 void _vvaccu(DP &dp, const V1 & rv1, const V2 &rv2)
 #if(CXSC_INDEX_CHECK)
-		noexcept(false);
+		throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class DP,class VS,class V> friend 	 void _vsvaccu(DP &dp, const VS & sl, const V &rv)
 #if(CXSC_INDEX_CHECK)
-		noexcept(false);
+		throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
  template <class V1,class V2,class E> friend 	 E _vvlimult(const V1 & rv1, const V2 &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS,class V,class E> friend 	 E _vsvlimult(const VS & sl, const V &rv)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
- template <class V,class S> friend 	 V &_vsmultassign(V &rv,const S &r) noexcept(false);
+ template <class V,class S> friend 	 V &_vsmultassign(V &rv,const S &r) noexcept;
  template <class V1,class V2,class E> friend 	 E _vvplus(const V1 &rv1, const V2 &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V,class VS,class E> friend 	 E _vvsplus(const V &rv,const VS &sl)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS1,class VS2,class E> friend 	 E _vsvsplus(const VS1 &s1,const VS2 &s2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS1,class VS2,class E> friend 	 E _vsvsminus(const VS1 &s1,const VS2 &s2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V1,class V2> friend 	 V1 &_vvplusassign(V1 &rv1, const V2 &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V,class VS> friend 	 V &_vvsplusassign(V &rv, const VS &sl)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS,class V> friend 	 VS &_vsvplusassign(VS &sl, const V &rv)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS1,class VS2> friend 	 VS1 &_vsvsplusassign(VS1 &sl1, const VS2 &sl2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS1,class VS2> friend 	 VS1 &_vsvsminusassign(VS1 &sl1, const VS2 &sl2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V1,class V2> friend 	 V1 &_vvminusassign(V1 &rv1, const V2 &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V,class VS> friend 	 V &_vvsminusassign(V &rv, const VS &sl)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS,class V> friend 	 VS &_vsvminusassign(VS &sl, const V &rv)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
- template <class V> friend 	 V _vminus(const V &rv) noexcept(false);
- template <class VS,class V> friend 	 V _vsminus(const VS &sl) noexcept(false);
+ template <class V> friend 	 V _vminus(const V &rv) noexcept;
+ template <class VS,class V> friend 	 V _vsminus(const VS &sl) noexcept;
  template <class V1,class V2,class E> friend 	 E _vvminus(const V1 &rv1, const V2 &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V,class VS,class E> friend 	 E _vvsminus(const V &rv, const VS &sl)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS,class V,class E> friend 	 E _vsvminus(const VS &sl,const V &rv)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V1,class V2,class E> friend 	 E _vvconv(const V1 &rv1, const V2 &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V,class VS,class E> friend 	 E _vvsconv(const V &rv,const VS &sl)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS1,class VS2,class E> friend 	 E _vsvsconv(const VS1 &s1,const VS2 &s2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V1,class V2> friend 	 V1 &_vvconvassign(V1 &rv1, const V2 &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V,class VS> friend 	 V &_vvsconvassign(V &rv, const VS &sl)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS,class V> friend 	 VS &_vsvconvassign(VS &sl, const V &rv)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS1,class VS2> friend 	 VS1 &_vsvsconvassign(VS1 &sl1, const VS2 &sl2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V1,class V2,class E> friend 	 E _vvsect(const V1 &rv1, const V2 &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V,class VS,class E> friend 	 E _vvssect(const V &rv,const VS &sl)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS1,class VS2,class E> friend 	 E _vsvssect(const VS1 &s1,const VS2 &s2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V1,class V2> friend 	 V1 &_vvsectassign(V1 &rv1, const V2 &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V,class VS> friend 	 V &_vvssectassign(V &rv, const VS &sl)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS,class V> friend 	 VS &_vsvsectassign(VS &sl, const V &rv)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS1,class VS2> friend 	 VS1 &_vsvssectassign(VS1 &sl1, const VS2 &sl2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class MV1,class MV2,class E> friend 	 E _mvmvsect(const MV1 &rv1, const MV2 &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class MV,class V,class E> friend 	 E _mvvsect(const MV &rv1, const V &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 template <class MV,class V> friend  MV &_mvvsectassign(MV &v,const V &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<MV>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 template <class V,class MV> friend  V &_vmvsectassign(V &rv,const MV &v)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class MV1,class MV2,class E> friend 	 E _mvmvconv(const MV1 &rv1, const MV2 &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class MV,class V,class E> friend 	 E _mvvconv(const MV &rv1, const V &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 template <class MV,class V> friend  MV &_mvvconvassign(MV &v,const V &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<MV>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 template <class V,class MV> friend  V &_vmvconvassign(V &rv,const MV &v)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V,class MV,class S> friend 	 S _vmvlimult(const V &rv1, const MV &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MV>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//--------- vector-scalar -----------------
- template <class V,class S,class E> friend 	 E _vsdiv(const V &rv, const S &s) noexcept(false);
- template <class V,class S> friend 	 V &_vsdivassign(V &rv,const S &r) noexcept(false);
- template <class VS,class S,class E> friend 	 E _vssdiv(const VS &sl, const S &s) noexcept(false);
- template <class V,class S,class E> friend 	 E _vsmult(const V &rv, const S &s) noexcept(false);
- template <class VS,class S,class E> friend 	 E _vssmult(const VS &sl, const S &s) noexcept(false);
- template <class MV,class S,class E> friend 	 E _mvsmult(const MV &rv, const S &s) noexcept(false);
+ template <class V,class S,class E> friend 	 E _vsdiv(const V &rv, const S &s) noexcept;
+ template <class V,class S> friend 	 V &_vsdivassign(V &rv,const S &r) noexcept;
+ template <class VS,class S,class E> friend 	 E _vssdiv(const VS &sl, const S &s) noexcept;
+ template <class V,class S,class E> friend 	 E _vsmult(const V &rv, const S &s) noexcept;
+ template <class VS,class S,class E> friend 	 E _vssmult(const VS &sl, const S &s) noexcept;
+ template <class MV,class S,class E> friend 	 E _mvsmult(const MV &rv, const S &s) noexcept;
  template <class MV1,class MV2,class E> friend 	 E _mvmvplus(const MV1 &rv1, const MV2 &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class MV,class V,class E> friend 	 E _mvvplus(const MV &rv1, const V &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class MV,class V,class E> friend 	 E _mvvminus(const MV &rv1, const V &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V,class MV,class E> friend 	 E _vmvminus(const V &rv1, const MV &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class MV1,class MV2,class E> friend 	 E _mvmvminus(const MV1 &rv1, const MV2 &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 template <class MV,class V> friend  MV &_mvvplusassign(MV &v,const V &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<MV>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 template <class MV,class V> friend  MV &_mvvminusassign(MV &v,const V &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<MV>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
- template <class MV,class S,class E> friend 	 E _mvsdiv(const MV &rv, const S &s) noexcept(false);
+ template <class MV,class S,class E> friend 	 E _mvsdiv(const MV &rv, const S &s) noexcept;
 template <class MV,class V> friend  MV &_mvvassign(MV &v,const V &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<MV>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
- template <class V1,class V2> friend 	 bool _vveq(const V1 &rv1, const V2 &rv2) noexcept(false);
- template <class VS,class V> friend 	 bool _vsveq(const VS &sl, const V &rv) noexcept(false);
- template <class V1,class V2> friend 	 bool _vvneq(const V1 &rv1, const V2 &rv2) noexcept(false);
- template <class VS,class V> friend 	 bool _vsvneq(const VS &sl, const V &rv) noexcept(false);
- template <class V1,class V2> friend 	 bool _vvless(const V1 &rv1, const V2 &rv2) noexcept(false);
- template <class VS,class V> friend 	 bool _vsvless(const VS &sl, const V &rv) noexcept(false);
- template <class V1,class V2> friend 	 bool _vvleq(const V1 &rv1, const V2 &rv2) noexcept(false);
- template <class VS,class V> friend 	 bool _vsvleq(const VS &sl, const V &rv) noexcept(false);
- template <class V,class VS> friend 	 bool _vvsless(const V &rv, const VS &sl) noexcept(false);
- template <class V,class VS> friend 	 bool _vvsleq(const V &rv, const VS &sl) noexcept(false);
- template <class V> friend 	 bool _vnot(const V &rv) noexcept(false);
- template <class V> friend 	 void *_vvoid(const V &rv) noexcept(false);
- template <class VS1,class VS2> friend 	 bool _vsvseq(const VS1 &sl1, const VS2 &sl2) noexcept(false);
- template <class VS1,class VS2> friend 	 bool _vsvsneq(const VS1 &sl1, const VS2 &sl2) noexcept(false);
- template <class VS1,class VS2> friend 	 bool _vsvsless(const VS1 &sl1, const VS2 &sl2) noexcept(false);
- template <class VS1,class VS2> friend 	 bool _vsvsleq(const VS1 &sl1, const VS2 &sl2) noexcept(false);
- template <class VS> friend 	 bool _vsnot(const VS &sl) noexcept(false);
- template <class VS> friend 	 void *_vsvoid(const VS &sl) noexcept(false);
- template <class V> friend 	std::ostream &_vout(std::ostream &s, const V &rv) noexcept(false);
- template <class V> friend 	std::istream &_vin(std::istream &s, V &rv) noexcept(false);
+ template <class V1,class V2> friend 	 bool _vveq(const V1 &rv1, const V2 &rv2) noexcept;
+ template <class VS,class V> friend 	 bool _vsveq(const VS &sl, const V &rv) noexcept;
+ template <class V1,class V2> friend 	 bool _vvneq(const V1 &rv1, const V2 &rv2) noexcept;
+ template <class VS,class V> friend 	 bool _vsvneq(const VS &sl, const V &rv) noexcept;
+ template <class V1,class V2> friend 	 bool _vvless(const V1 &rv1, const V2 &rv2) noexcept;
+ template <class VS,class V> friend 	 bool _vsvless(const VS &sl, const V &rv) noexcept;
+ template <class V1,class V2> friend 	 bool _vvleq(const V1 &rv1, const V2 &rv2) noexcept;
+ template <class VS,class V> friend 	 bool _vsvleq(const VS &sl, const V &rv) noexcept;
+ template <class V,class VS> friend 	 bool _vvsless(const V &rv, const VS &sl) noexcept;
+ template <class V,class VS> friend 	 bool _vvsleq(const V &rv, const VS &sl) noexcept;
+ template <class V> friend 	 bool _vnot(const V &rv) noexcept;
+ template <class V> friend 	 void *_vvoid(const V &rv) noexcept;
+ template <class VS1,class VS2> friend 	 bool _vsvseq(const VS1 &sl1, const VS2 &sl2) noexcept;
+ template <class VS1,class VS2> friend 	 bool _vsvsneq(const VS1 &sl1, const VS2 &sl2) noexcept;
+ template <class VS1,class VS2> friend 	 bool _vsvsless(const VS1 &sl1, const VS2 &sl2) noexcept;
+ template <class VS1,class VS2> friend 	 bool _vsvsleq(const VS1 &sl1, const VS2 &sl2) noexcept;
+ template <class VS> friend 	 bool _vsnot(const VS &sl) noexcept;
+ template <class VS> friend 	 void *_vsvoid(const VS &sl) noexcept;
+ template <class V> friend 	std::ostream &_vout(std::ostream &s, const V &rv) noexcept;
+ template <class V> friend 	std::istream &_vin(std::istream &s, V &rv) noexcept;
 
 	//------------- vector-matrix ---------------
 template <class DP,class V,class SV> friend 	 void _vmvaccu(DP &dp, const V & rv1, const SV &rv2)
 #if(CXSC_INDEX_CHECK)
-		noexcept(false);
+		throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
-template <class V,class MV2,class S> friend  V &_vmvassign(V &v,const MV2 &rv) noexcept(false);
+template <class V,class MV2,class S> friend  V &_vmvassign(V &v,const MV2 &rv) noexcept;
  template <class M,class V,class E> friend 	 E _mvlimult(const M &m,const V &v)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V,class M,class E> friend 	 E _vmlimult(const V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V,class M,class S> friend 	 V &_vmimultassign(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V,class M,class S> friend 	 V &_vmlimultassign(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class MS,class V,class E> friend 	 E _msvlimult(const MS &ms,const V &v)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V,class MS,class E> friend 	 E _vmslimult(const V &v,const MS &ms)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V,class MS,class S> friend 	 V &_vmslimultassign(V &v,const MS &ms)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	// Real
  template <class DP,class VS1,class VS2> friend 	 void _vsvsaccu(DP &dp, const VS1 & sl1, const VS2 &sl2)
 #if(CXSC_INDEX_CHECK)
-		noexcept(false);
+		throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	// l_rvector x ivector ----------------
 	// vector - matrix ------------
   /*   friend TINLINE l_ivector _mvslimult<imatrix,l_rvector_slice,l_ivector>(const imatrix &m,const l_rvector_slice &v)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_IMATRIX_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	throw();
 	#endif */
   /*   friend TINLINE l_ivector _vsmlimult<l_rvector_slice,imatrix,l_ivector>(const l_rvector_slice &v,const imatrix &m)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIMATRIX_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	throw();
 	#endif */
 
 
@@ -607,208 +607,208 @@ template <class V,class MV2,class S> friend  V &_vmvassign(V &v,const MV2 &rv) n
 
 	//------ Konstruktoren ----------------------------------------------------
 	//! Constructor of class l_ivector
-	INLINE l_ivector () noexcept(false);
+	INLINE l_ivector () noexcept;
 	//! Constructor of class l_ivector
-	explicit INLINE l_ivector(const int &i) noexcept(false);
+	explicit INLINE l_ivector(const int &i) noexcept;
 #ifdef OLD_CXSC
 	//! Constructor of class l_ivector
-	explicit INLINE l_ivector(const class index &i) noexcept(false); // for backwards compatibility
+	explicit INLINE l_ivector(const class index &i) throw(); // for backwards compatibility
 #endif
 	//! Constructor of class l_ivector
 	explicit INLINE l_ivector(const int &i1,const int &i2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR_LIVECTOR_WRONG_BOUNDARIES,ERROR_LIVECTOR_NO_MORE_MEMORY);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Constructor of class l_ivector
-	INLINE l_ivector(const l_imatrix_subv &) noexcept(false);
+	INLINE l_ivector(const l_imatrix_subv &) noexcept;
 	//! Constructor of class l_ivector
-	explicit INLINE l_ivector(const l_interval &) noexcept(false);
+	explicit INLINE l_ivector(const l_interval &) noexcept;
 	//! Constructor of class l_ivector
 	explicit INLINE l_ivector(const l_imatrix &)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIMATRIX_TYPE_CAST_OF_THICK_OBJ);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Constructor of class l_ivector
 	explicit INLINE l_ivector(const l_imatrix_slice &sl)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIMATRIX_TYPE_CAST_OF_THICK_OBJ);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Constructor of class l_ivector
-	INLINE l_ivector(const l_ivector_slice &rs) noexcept(false);
+	INLINE l_ivector(const l_ivector_slice &rs) noexcept;
 	//! Constructor of class l_ivector
-	INLINE l_ivector(const l_ivector &v) noexcept(false);
+	INLINE l_ivector(const l_ivector &v) noexcept;
 	// Real
 	//! Constructor of class l_ivector
-	explicit INLINE l_ivector(const real &) noexcept(false);
+	explicit INLINE l_ivector(const real &) noexcept;
 	//! Constructor of class l_ivector
-	explicit INLINE l_ivector(const rvector_slice &rs) noexcept(false);
+	explicit INLINE l_ivector(const rvector_slice &rs) noexcept;
 	//! Constructor of class l_ivector
-	explicit INLINE l_ivector(const rvector &v) noexcept(false);
+	explicit INLINE l_ivector(const rvector &v) noexcept;
 	//! Constructor of class l_ivector
 	explicit INLINE l_ivector(const rmatrix &)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_RMATRIX_TYPE_CAST_OF_THICK_OBJ);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Constructor of class l_ivector
 	explicit INLINE l_ivector(const rmatrix_slice &sl)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_RMATRIX_TYPE_CAST_OF_THICK_OBJ);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Constructor of class l_ivector
-	explicit INLINE l_ivector(const rmatrix_subv &) noexcept(false);
+	explicit INLINE l_ivector(const rmatrix_subv &) noexcept;
 	
 	// l_real
 	//! Constructor of class l_ivector
-	explicit INLINE l_ivector(const l_real &) noexcept(false);
+	explicit INLINE l_ivector(const l_real &) noexcept;
 	//! Constructor of class l_ivector
-	explicit INLINE l_ivector(const l_rvector_slice &rs) noexcept(false);
+	explicit INLINE l_ivector(const l_rvector_slice &rs) noexcept;
 	//! Constructor of class l_ivector
-	explicit INLINE l_ivector(const l_rvector &v) noexcept(false);
+	explicit INLINE l_ivector(const l_rvector &v) noexcept;
 	//! Constructor of class l_ivector
 	explicit INLINE l_ivector(const l_rmatrix &)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LRMATRIX_TYPE_CAST_OF_THICK_OBJ);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Constructor of class l_ivector
 	explicit INLINE l_ivector(const l_rmatrix_slice &sl)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LRMATRIX_TYPE_CAST_OF_THICK_OBJ);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Constructor of class l_ivector
-	explicit INLINE l_ivector(const l_rmatrix_subv &) noexcept(false);
+	explicit INLINE l_ivector(const l_rmatrix_subv &) noexcept;
 	
 	// interval
 	//! Constructor of class l_ivector
-	explicit INLINE l_ivector(const interval &) noexcept(false);
+	explicit INLINE l_ivector(const interval &) noexcept;
 	//! Constructor of class l_ivector
-	explicit INLINE l_ivector(const ivector_slice &rs) noexcept(false);
+	explicit INLINE l_ivector(const ivector_slice &rs) noexcept;
 	//! Constructor of class l_ivector
-	explicit INLINE l_ivector(const ivector &v) noexcept(false);
+	explicit INLINE l_ivector(const ivector &v) noexcept;
 	//! Constructor of class l_ivector
 	explicit INLINE l_ivector(const imatrix &)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_IMATRIX_TYPE_CAST_OF_THICK_OBJ);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Constructor of class l_ivector
 	explicit INLINE l_ivector(const imatrix_slice &sl)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_IMATRIX_TYPE_CAST_OF_THICK_OBJ);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Constructor of class l_ivector
-	explicit INLINE l_ivector(const imatrix_subv &) noexcept(false);
+	explicit INLINE l_ivector(const imatrix_subv &) noexcept;
 	
 	// l_interval
 	//! Implementation of standard assigning operator
-	INLINE l_ivector &operator =(const l_ivector &rv) noexcept(false);
+	INLINE l_ivector &operator =(const l_ivector &rv) noexcept;
 	//! Implementation of standard assigning operator
-	INLINE l_ivector &operator =(const l_ivector_slice &sl) noexcept(false);
+	INLINE l_ivector &operator =(const l_ivector_slice &sl) noexcept;
 	//! Implementation of standard assigning operator
-	INLINE l_ivector &operator =(const l_interval &r) noexcept(false);
+	INLINE l_ivector &operator =(const l_interval &r) noexcept;
 	//! Implementation of standard assigning operator
 	INLINE l_ivector &operator =(const l_imatrix &m)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIMATRIX_TYPE_CAST_OF_THICK_OBJ);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of standard assigning operator
 	INLINE l_ivector &operator =(const l_imatrix_slice &)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIMATRIX_TYPE_CAST_OF_THICK_OBJ);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of standard assigning operator
-	INLINE l_ivector &operator =(const l_imatrix_subv &) noexcept(false);
+	INLINE l_ivector &operator =(const l_imatrix_subv &) noexcept;
 	// Real
 	//! Implementation of standard assigning operator
-	INLINE l_ivector &operator =(const rvector &rv) noexcept(false);
+	INLINE l_ivector &operator =(const rvector &rv) noexcept;
 	//! Implementation of standard assigning operator
-	INLINE l_ivector &operator =(const rvector_slice &sl) noexcept(false);
+	INLINE l_ivector &operator =(const rvector_slice &sl) noexcept;
 	//! Implementation of standard assigning operator
-	INLINE l_ivector &operator =(const real &r) noexcept(false);
+	INLINE l_ivector &operator =(const real &r) noexcept;
 	//! Implementation of standard assigning operator
 	INLINE l_ivector &operator =(const rmatrix &m)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_RMATRIX_TYPE_CAST_OF_THICK_OBJ);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of standard assigning operator
 	INLINE l_ivector &operator =(const rmatrix_slice &)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_RMATRIX_TYPE_CAST_OF_THICK_OBJ);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of standard assigning operator
-	INLINE l_ivector &operator =(const rmatrix_subv &) noexcept(false);
+	INLINE l_ivector &operator =(const rmatrix_subv &) noexcept;
 
 	// l_real
 	//! Implementation of standard assigning operator
-	INLINE l_ivector &operator =(const l_rvector &rv) noexcept(false);
+	INLINE l_ivector &operator =(const l_rvector &rv) noexcept;
 	//! Implementation of standard assigning operator
-	INLINE l_ivector &operator =(const l_rvector_slice &sl) noexcept(false);
+	INLINE l_ivector &operator =(const l_rvector_slice &sl) noexcept;
 	//! Implementation of standard assigning operator
-	INLINE l_ivector &operator =(const l_real &r) noexcept(false);
+	INLINE l_ivector &operator =(const l_real &r) noexcept;
 	//! Implementation of standard assigning operator
 	INLINE l_ivector &operator =(const l_rmatrix &m)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LRMATRIX_TYPE_CAST_OF_THICK_OBJ);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of standard assigning operator
 	INLINE l_ivector &operator =(const l_rmatrix_slice &)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LRMATRIX_TYPE_CAST_OF_THICK_OBJ);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of standard assigning operator
-	INLINE l_ivector &operator =(const l_rmatrix_subv &) noexcept(false);
+	INLINE l_ivector &operator =(const l_rmatrix_subv &) noexcept;
 
 	// interval
 	//! Implementation of standard assigning operator
-	INLINE l_ivector &operator =(const ivector &rv) noexcept(false);
+	INLINE l_ivector &operator =(const ivector &rv) noexcept;
 	//! Implementation of standard assigning operator
-	INLINE l_ivector &operator =(const ivector_slice &sl) noexcept(false);
+	INLINE l_ivector &operator =(const ivector_slice &sl) noexcept;
 	//! Implementation of standard assigning operator
-	INLINE l_ivector &operator =(const interval &r) noexcept(false);
+	INLINE l_ivector &operator =(const interval &r) noexcept;
 	//! Implementation of standard assigning operator
 	INLINE l_ivector &operator =(const imatrix &m)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_IMATRIX_TYPE_CAST_OF_THICK_OBJ);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of standard assigning operator
 	INLINE l_ivector &operator =(const imatrix_slice &)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_IMATRIX_TYPE_CAST_OF_THICK_OBJ);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of standard assigning operator
-	INLINE l_ivector &operator =(const imatrix_subv &) noexcept(false);
+	INLINE l_ivector &operator =(const imatrix_subv &) noexcept;
 
 	//--------- Destruktor ----------------------------------------------------
 	INLINE ~l_ivector() { delete [] dat; }
@@ -819,43 +819,43 @@ template <class V,class MV2,class S> friend  V &_vmvassign(V &v,const MV2 &rv) n
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR_LIVECTOR_TYPE_CAST_OF_THICK_OBJ,ERROR_LIVECTOR_USE_OF_UNINITIALIZED_OBJ);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the lower bound of the vector
-	friend INLINE int Lb(const l_ivector &rv) noexcept(false) { return rv.l; }
+	friend INLINE int Lb(const l_ivector &rv) noexcept { return rv.l; }
 	//! Returns the upper bound of the vector
-	friend INLINE int Ub(const l_ivector &rv) noexcept(false) { return rv.u; }
+	friend INLINE int Ub(const l_ivector &rv) noexcept { return rv.u; }
 	//! Returns the dimension of the vector
-        friend INLINE int VecLen(const l_ivector &rv) noexcept(false) { return rv.size; }
+        friend INLINE int VecLen(const l_ivector &rv) noexcept { return rv.size; }
 	//! Sets the lower bound of the vector
-	friend INLINE l_ivector & SetLb(l_ivector &rv, const int &l) noexcept(false) { rv.l=l; rv.u=l+rv.size-1; return rv;}
+	friend INLINE l_ivector & SetLb(l_ivector &rv, const int &l) noexcept { rv.l=l; rv.u=l+rv.size-1; return rv;}
 	//! Sets the upper bound of the vector
-	friend INLINE l_ivector & SetUb(l_ivector &rv, const int &u) noexcept(false) { rv.u=u; rv.l=u-rv.size+1; return rv;}
+	friend INLINE l_ivector & SetUb(l_ivector &rv, const int &u) noexcept { rv.u=u; rv.l=u-rv.size+1; return rv;}
 	//! Operator for accessing the single elements of the vector
 	INLINE l_interval & operator [](const int &i) const
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIVECTOR_ELEMENT_NOT_IN_VEC);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Operator for accessing the whole vector
-	INLINE l_ivector & operator ()() noexcept(false) { return *this; }
+	INLINE l_ivector & operator ()() noexcept { return *this; }
 	//! Operator for accessing a part of the vector
 	INLINE l_ivector_slice operator ()(const int &i)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIVECTOR_SUB_ARRAY_TOO_BIG);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Operator for accessing a part of the vector
 	INLINE l_ivector_slice operator ()(const int &i1,const int &i2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIVECTOR_SUB_ARRAY_TOO_BIG);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
-	INLINE operator void*() noexcept(false);
+	INLINE operator void*() noexcept;
 //#else
 //#endif
 };
@@ -886,343 +886,343 @@ class l_ivector_slice
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
- template <class V,class VS,class S> friend 	 V & _vvsassign(V &rv,const VS &sl) noexcept(false);
+ template <class V,class VS,class S> friend 	 V & _vvsassign(V &rv,const VS &sl) noexcept;
  template <class VS,class V> friend 	 VS & _vsvassign(VS &sl,const V &rv)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
- template <class VS,class S> friend 	 VS & _vssassign(VS &sl,const S &r) noexcept(false);
+ template <class VS,class S> friend 	 VS & _vssassign(VS &sl,const S &r) noexcept;
  template <class VS,class V> friend 	 VS &_vsvsetinf(VS &sl, const V &rv)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS,class V> friend 	 VS &_vsvsetsup(VS &sl, const V &rv)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS1,class VS2> friend 	 VS1 &_vsvssetinf(VS1 &sl1, const VS2 &sl2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS1,class VS2> friend 	 VS1 &_vsvssetsup(VS1 &sl1, const VS2 &sl2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS,class V> friend 	 VS &_vsvusetinf(VS &sl, const V &rv)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS,class V> friend 	 VS &_vsvusetsup(VS &sl, const V &rv)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS1,class VS2> friend 	 VS1 &_vsvsusetinf(VS1 &sl1, const VS2 &sl2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS1,class VS2> friend 	 VS1 &_vsvsusetsup(VS1 &sl1, const VS2 &sl2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
- template <class VS,class E> friend 	 E _vsabs(const VS &sl) noexcept(false);
- template <class VS,class E> friend 	 E _vsdiam(const VS &sl) noexcept(false);
- template <class VS,class E> friend 	 E _vsmid(const VS &sl) noexcept(false);
- template <class VS,class E> friend 	 E _vsinf(const VS &sl) noexcept(false);
- template <class VS,class E> friend 	 E _vssup(const VS &sl) noexcept(false);
- template <class VS,class S> friend 	 VS &_vsssetinf(VS &vs, const S &s) noexcept(false);
- template <class VS,class S> friend 	 VS &_vsssetsup(VS &vs, const S &s) noexcept(false);
- template <class VS,class S> friend 	 VS &_vssusetinf(VS &vs, const S &s) noexcept(false);
- template <class VS,class S> friend 	 VS &_vssusetsup(VS &vs, const S &s) noexcept(false);
+ template <class VS,class E> friend 	 E _vsabs(const VS &sl) noexcept;
+ template <class VS,class E> friend 	 E _vsdiam(const VS &sl) noexcept;
+ template <class VS,class E> friend 	 E _vsmid(const VS &sl) noexcept;
+ template <class VS,class E> friend 	 E _vsinf(const VS &sl) noexcept;
+ template <class VS,class E> friend 	 E _vssup(const VS &sl) noexcept;
+ template <class VS,class S> friend 	 VS &_vsssetinf(VS &vs, const S &s) noexcept;
+ template <class VS,class S> friend 	 VS &_vsssetsup(VS &vs, const S &s) noexcept;
+ template <class VS,class S> friend 	 VS &_vssusetinf(VS &vs, const S &s) noexcept;
+ template <class VS,class S> friend 	 VS &_vssusetsup(VS &vs, const S &s) noexcept;
 
  template <class DP,class VS,class V> friend 	 void _vsvaccu(DP &dp, const VS & sl, const V &rv)
 #if(CXSC_INDEX_CHECK)
-		noexcept(false);
+		throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class DP,class VS1,class VS2> friend 	 void _vsvsaccu(DP &dp, const VS1 & sl1, const VS2 &sl2)
 #if(CXSC_INDEX_CHECK)
-		noexcept(false);
+		throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
- template <class VS,class S,class E> friend 	 E _vssdiv(const VS &sl, const S &s) noexcept(false);
- template <class VS,class S,class E> friend 	 E _vssmult(const VS &sl, const S &s) noexcept(false);
+ template <class VS,class S,class E> friend 	 E _vssdiv(const VS &sl, const S &s) noexcept;
+ template <class VS,class S,class E> friend 	 E _vssmult(const VS &sl, const S &s) noexcept;
  template <class VS,class V,class E> friend 	 E _vsvlimult(const VS & sl, const V &rv)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
- template <class VS,class S> friend 	 VS &_vssmultassign(VS &rv,const S &r) noexcept(false);
- template <class VS,class S> friend 	 VS &_vssdivassign(VS &rv,const S &r) noexcept(false);
+ template <class VS,class S> friend 	 VS &_vssmultassign(VS &rv,const S &r) noexcept;
+ template <class VS,class S> friend 	 VS &_vssdivassign(VS &rv,const S &r) noexcept;
  template <class V,class VS,class E> friend 	 E _vvsplus(const V &rv,const VS &sl)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS1,class VS2,class E> friend 	 E _vsvsplus(const VS1 &s1,const VS2 &s2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS1,class VS2,class E> friend 	 E _vsvsminus(const VS1 &s1,const VS2 &s2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V,class VS> friend 	 V &_vvsplusassign(V &rv, const VS &sl)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS,class V> friend 	 VS &_vsvplusassign(VS &sl, const V &rv)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS1,class VS2> friend 	 VS1 &_vsvsplusassign(VS1 &sl1, const VS2 &sl2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS1,class VS2> friend 	 VS1 &_vsvsminusassign(VS1 &sl1, const VS2 &sl2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V,class VS> friend 	 V &_vvsminusassign(V &rv, const VS &sl)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS,class V> friend 	 VS &_vsvminusassign(VS &sl, const V &rv)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
- template <class VS,class V> friend 	 V _vsminus(const VS &sl) noexcept(false);
+ template <class VS,class V> friend 	 V _vsminus(const VS &sl) noexcept;
  template <class V,class VS,class E> friend 	 E _vvsminus(const V &rv, const VS &sl)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS,class V,class E> friend 	 E _vsvminus(const VS &sl,const V &rv)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V,class VS,class E> friend 	 E _vvssect(const V &rv,const VS &sl)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS1,class VS2,class E> friend 	 E _vsvssect(const VS1 &s1,const VS2 &s2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V,class VS> friend 	 V &_vvssectassign(V &rv, const VS &sl)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS,class V> friend 	 VS &_vsvsectassign(VS &sl, const V &rv)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS1,class VS2> friend 	 VS1 &_vsvssectassign(VS1 &sl1, const VS2 &sl2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V,class VS,class E> friend 	 E _vvsconv(const V &rv,const VS &sl)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS1,class VS2,class E> friend 	 E _vsvsconv(const VS1 &s1,const VS2 &s2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V,class VS> friend 	 V &_vvsconvassign(V &rv, const VS &sl)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS,class V> friend 	 VS &_vsvconvassign(VS &sl, const V &rv)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS1,class VS2> friend 	 VS1 &_vsvsconvassign(VS1 &sl1, const VS2 &sl2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class VS,class M,class S> friend 	 VS &_vsmlimultassign(VS &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
- template <class VS,class V> friend 	 bool _vsveq(const VS &sl, const V &rv) noexcept(false);
- template <class VS,class V> friend 	 bool _vsvneq(const VS &sl, const V &rv) noexcept(false);
- template <class VS,class V> friend 	 bool _vsvless(const VS &sl, const V &rv) noexcept(false);
- template <class VS,class V> friend 	 bool _vsvleq(const VS &sl, const V &rv) noexcept(false);
- template <class V,class VS> friend 	 bool _vvsless(const V &rv, const VS &sl) noexcept(false);
- template <class V,class VS> friend 	 bool _vvsleq(const V &rv, const VS &sl) noexcept(false);
+ template <class VS,class V> friend 	 bool _vsveq(const VS &sl, const V &rv) noexcept;
+ template <class VS,class V> friend 	 bool _vsvneq(const VS &sl, const V &rv) noexcept;
+ template <class VS,class V> friend 	 bool _vsvless(const VS &sl, const V &rv) noexcept;
+ template <class VS,class V> friend 	 bool _vsvleq(const VS &sl, const V &rv) noexcept;
+ template <class V,class VS> friend 	 bool _vvsless(const V &rv, const VS &sl) noexcept;
+ template <class V,class VS> friend 	 bool _vvsleq(const V &rv, const VS &sl) noexcept;
  template <class VS1,class VS2,class E> friend 	 E _vsvslimult(const VS1 & sl1, const VS2 &sl2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<VS1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
- template <class VS1,class VS2> friend 	 bool _vsvseq(const VS1 &sl1, const VS2 &sl2) noexcept(false);
- template <class VS1,class VS2> friend 	 bool _vsvsneq(const VS1 &sl1, const VS2 &sl2) noexcept(false);
- template <class VS1,class VS2> friend 	 bool _vsvsless(const VS1 &sl1, const VS2 &sl2) noexcept(false);
- template <class VS1,class VS2> friend 	 bool _vsvsleq(const VS1 &sl1, const VS2 &sl2) noexcept(false);
- template <class VS> friend 	 bool _vsnot(const VS &sl) noexcept(false);
- template <class VS> friend 	 void *_vsvoid(const VS &sl) noexcept(false);
- template <class V> friend 	std::ostream &_vsout(std::ostream &s, const V &rv) noexcept(false);
- template <class V> friend 	std::istream &_vsin(std::istream &s, V &rv) noexcept(false);
+ template <class VS1,class VS2> friend 	 bool _vsvseq(const VS1 &sl1, const VS2 &sl2) noexcept;
+ template <class VS1,class VS2> friend 	 bool _vsvsneq(const VS1 &sl1, const VS2 &sl2) noexcept;
+ template <class VS1,class VS2> friend 	 bool _vsvsless(const VS1 &sl1, const VS2 &sl2) noexcept;
+ template <class VS1,class VS2> friend 	 bool _vsvsleq(const VS1 &sl1, const VS2 &sl2) noexcept;
+ template <class VS> friend 	 bool _vsnot(const VS &sl) noexcept;
+ template <class VS> friend 	 void *_vsvoid(const VS &sl) noexcept;
+ template <class V> friend 	std::ostream &_vsout(std::ostream &s, const V &rv) noexcept;
+ template <class V> friend 	std::istream &_vsin(std::istream &s, V &rv) noexcept;
 	
 	// l_interval / Real
  template <class V,class MS,class E> friend 	 E _vmslimult(const V &v,const MS &ms)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	// l_interval / l_real
 	 template <class DP,class V1,class V2> friend 	 void _vvaccu(DP &dp, const V1 & rv1, const V2 &rv2)
 #if(CXSC_INDEX_CHECK)
-		noexcept(false);
+		throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	// l_real
- template <class V1,class V2,class S> friend 	 V1 &_vvassign(V1 &rv1,const V2 &rv2) noexcept(false);
- template <class V,class S> friend 	 V & _vsassign(V &rv,const S &r) noexcept(false);
+ template <class V1,class V2,class S> friend 	 V1 &_vvassign(V1 &rv1,const V2 &rv2) noexcept;
+ template <class V,class S> friend 	 V & _vsassign(V &rv,const S &r) noexcept;
 
 template <class V,class M,class S> friend  V &_vmassign(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__TYPE_CAST_OF_THICK_OBJ<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
-template <class M,class V,class S> friend  M &_mvassign(M &m,const V &v) noexcept(false);
-template <class V,class MV2,class S> friend  V &_vmvassign(V &v,const MV2 &rv) noexcept(false);
+template <class M,class V,class S> friend  M &_mvassign(M &m,const V &v) noexcept;
+template <class V,class MV2,class S> friend  V &_vmvassign(V &v,const MV2 &rv) noexcept;
 
  template <class V1,class V2,class E> friend 	 E _vvconv(const V1 &rv1, const V2 &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//--l_real -------- vector-scalar ------------
- template <class MV,class S,class E> friend 	 E _mvsmult(const MV &rv, const S &s) noexcept(false);
- template <class V,class S,class E> friend 	 E _vsmult(const V &rv, const S &s) noexcept(false);
- template <class V,class S,class E> friend 	 E _vsdiv(const V &rv, const S &s) noexcept(false);
- template <class V,class S> friend 	 V &_vsdivassign(V &rv,const S &r) noexcept(false);
- template <class V,class S> friend 	 V &_vsmultassign(V &rv,const S &r) noexcept(false);
+ template <class MV,class S,class E> friend 	 E _mvsmult(const MV &rv, const S &s) noexcept;
+ template <class V,class S,class E> friend 	 E _vsmult(const V &rv, const S &s) noexcept;
+ template <class V,class S,class E> friend 	 E _vsdiv(const V &rv, const S &s) noexcept;
+ template <class V,class S> friend 	 V &_vsdivassign(V &rv,const S &r) noexcept;
+ template <class V,class S> friend 	 V &_vsmultassign(V &rv,const S &r) noexcept;
 
 	//--l_real--------- Vector-vector---------
  template <class V1,class V2,class E> friend 	 E _vvlimult(const V1 & rv1, const V2 &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V1,class V2,class E> friend 	 E _vvplus(const V1 &rv1, const V2 &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V1,class V2> friend 	 V1 &_vvplusassign(V1 &rv1, const V2 &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V1,class V2> friend 	 V1 &_vvminusassign(V1 &rv1, const V2 &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V1,class V2,class E> friend 	 E _vvminus(const V1 &rv1, const V2 &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<E>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V1,class V2> friend 	 V1 &_vvconvassign(V1 &rv1, const V2 &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V1,class V2,class E> friend 	 E _vvsect(const V1 &rv1, const V2 &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V1,class V2> friend 	 V1 &_vvsectassign(V1 &rv1, const V2 &rv2)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<V1>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	//-- l_real -------- Vector-matrix ----------
@@ -1230,94 +1230,94 @@ template <class V,class MS,class S> friend  void _vmsconstr(V &v,const MS &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__TYPE_CAST_OF_THICK_OBJ<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__TYPE_CAST_OF_THICK_OBJ<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class M,class V,class E> friend 	 E _mvlimult(const M &m,const V &v)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class MS,class V,class E> friend 	 E _msvlimult(const MS &ms,const V &v)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V,class M,class E> friend 	 E _vmlimult(const V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V,class MS,class S> friend 	 V &_vmslimultassign(V &v,const MS &ms)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<MS>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
  template <class V,class M,class S> friend 	 V &_vmlimultassign(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 		throw(ERROR__OP_WITH_WRONG_DIM<M>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
   /*	friend TINLINE l_ivector &_vsmassign<l_ivector_slice,imatrix,l_interval>(l_ivector_slice &v,const imatrix &m)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIMATRIX_TYPE_CAST_OF_THICK_OBJ);
 #else
-	noexcept(false);
+	throw();
 	#endif */
 
 	//-- interval -------- Vector-matrix ----------
   /*   friend TINLINE l_ivector _mvslimult<imatrix,l_ivector_slice,l_ivector>(const imatrix &m,const l_ivector_slice &v)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_IMATRIX_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	throw();
 	#endif */
   /*   friend TINLINE l_ivector _msvslimult<imatrix_slice,l_ivector_slice,l_ivector>(const imatrix_slice &ms,const l_ivector_slice &v)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIMATRIX_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	throw();
 	#endif */
   /*   friend TINLINE l_ivector _vsmlimult<l_ivector_slice,imatrix,l_ivector>(const l_ivector_slice &v,const imatrix &m)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIMATRIX_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	throw();
 	#endif */
   /*   friend TINLINE l_ivector _vsmslimult<l_ivector_slice,imatrix_slice,l_ivector>(const l_ivector_slice &v,const imatrix_slice &ms)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_IMATRIX_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	throw();
 	#endif */
   /*   friend TINLINE l_ivector &_vsmslimultassign<l_ivector_slice,imatrix_slice,l_interval>(l_ivector_slice &v,const imatrix_slice &m)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_IMATRIX_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	throw();
 	#endif */
 
 #endif
 	
 	//--------------------- Konstruktoren -----------------------------------
 	//! Constructor of class l_ivector_slice
-	explicit INLINE l_ivector_slice(l_ivector &a, const int &lb, const int &ub) noexcept(false):dat(a.dat),l(a.l),u(a.u),size(ub-lb+1),start(lb),end(ub) { }
+	explicit INLINE l_ivector_slice(l_ivector &a, const int &lb, const int &ub) noexcept:dat(a.dat),l(a.l),u(a.u),size(ub-lb+1),start(lb),end(ub) { }
 	//! Constructor of class l_ivector_slice
-	explicit INLINE l_ivector_slice(l_ivector_slice &a, const int &lb, const int &ub) noexcept(false):dat(a.dat),l(a.l),u(a.u),size(ub-lb+1),start(lb),end(ub) { }
+	explicit INLINE l_ivector_slice(l_ivector_slice &a, const int &lb, const int &ub) noexcept:dat(a.dat),l(a.l),u(a.u),size(ub-lb+1),start(lb),end(ub) { }
 	public: 
 	//! Constructor of class l_ivector_slice
-	INLINE l_ivector_slice(const l_ivector_slice &a) noexcept(false):dat(a.dat),l(a.l),u(a.u),size(a.size),start(a.start),end(a.end) { }
+	INLINE l_ivector_slice(const l_ivector_slice &a) noexcept:dat(a.dat),l(a.l),u(a.u),size(a.size),start(a.start),end(a.end) { }
 	public:
 	// l_interval
 	//! Implementation of standard assigning operator
@@ -1325,66 +1325,66 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of standard assigning operator
 	INLINE l_ivector_slice & operator =(const l_ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of standard assigning operator
-	INLINE l_ivector_slice & operator =(const l_interval &r) noexcept(false);
+	INLINE l_ivector_slice & operator =(const l_interval &r) noexcept;
 	//! Implementation of standard assigning operator
 	INLINE l_ivector_slice & operator =(const l_imatrix &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>,ERROR_LIMATRIX_TYPE_CAST_OF_THICK_OBJ);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of standard assigning operator
 	INLINE l_ivector_slice & operator =(const l_imatrix_slice &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>,ERROR_LIMATRIX_TYPE_CAST_OF_THICK_OBJ);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of standard assigning operator
-	INLINE l_ivector_slice &operator =(const l_imatrix_subv &) noexcept(false);
+	INLINE l_ivector_slice &operator =(const l_imatrix_subv &) noexcept;
 	// Real
 	//! Implementation of standard assigning operator
 	INLINE l_ivector_slice & operator =(const rvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of standard assigning operator
 	INLINE l_ivector_slice & operator =(const rvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of standard assigning operator
-	INLINE l_ivector_slice & operator =(const real &r) noexcept(false);
+	INLINE l_ivector_slice & operator =(const real &r) noexcept;
 	//! Implementation of standard assigning operator
 	INLINE l_ivector_slice & operator =(const rmatrix &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<rvector>,ERROR_RMATRIX_TYPE_CAST_OF_THICK_OBJ);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of standard assigning operator
 	INLINE l_ivector_slice & operator =(const rmatrix_slice &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<rvector>,ERROR_RMATRIX_TYPE_CAST_OF_THICK_OBJ);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of standard assigning operator
-	INLINE l_ivector_slice &operator =(const rmatrix_subv &mv) noexcept(false);
+	INLINE l_ivector_slice &operator =(const rmatrix_subv &mv) noexcept;
 
 	// l_real
 	//! Implementation of standard assigning operator
@@ -1392,33 +1392,33 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of standard assigning operator
 	INLINE l_ivector_slice & operator =(const l_rvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of standard assigning operator
-	INLINE l_ivector_slice & operator =(const l_real &r) noexcept(false);
+	INLINE l_ivector_slice & operator =(const l_real &r) noexcept;
 	//! Implementation of standard assigning operator
 	INLINE l_ivector_slice & operator =(const l_rmatrix &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_rvector>,ERROR_LRMATRIX_TYPE_CAST_OF_THICK_OBJ);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of standard assigning operator
 	INLINE l_ivector_slice & operator =(const l_rmatrix_slice &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_rvector>,ERROR_LRMATRIX_TYPE_CAST_OF_THICK_OBJ);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of standard assigning operator
-	INLINE l_ivector_slice &operator =(const l_rmatrix_subv &mv) noexcept(false);
+	INLINE l_ivector_slice &operator =(const l_rmatrix_subv &mv) noexcept;
 
 	// interval
 	//! Implementation of standard assigning operator
@@ -1426,33 +1426,33 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of standard assigning operator
 	INLINE l_ivector_slice & operator =(const ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of standard assigning operator
-	INLINE l_ivector_slice & operator =(const interval &r) noexcept(false);
+	INLINE l_ivector_slice & operator =(const interval &r) noexcept;
 	//! Implementation of standard assigning operator
 	INLINE l_ivector_slice & operator =(const imatrix &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<ivector>,ERROR_IMATRIX_TYPE_CAST_OF_THICK_OBJ);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of standard assigning operator
 	INLINE l_ivector_slice & operator =(const imatrix_slice &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<ivector>,ERROR_IMATRIX_TYPE_CAST_OF_THICK_OBJ);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of standard assigning operator
-	INLINE l_ivector_slice &operator =(const imatrix_subv &mv) noexcept(false);
+	INLINE l_ivector_slice &operator =(const imatrix_subv &mv) noexcept;
 
 	//--------------------- Standardfunktionen ------------------------------
 
@@ -1460,337 +1460,337 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR_LIVECTOR_TYPE_CAST_OF_THICK_OBJ,ERROR_LIVECTOR_USE_OF_UNINITIALIZED_OBJ);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the lower bound of the vector
-	friend INLINE int Lb(const l_ivector_slice &sl) noexcept(false) { return sl.start; }
+	friend INLINE int Lb(const l_ivector_slice &sl) noexcept { return sl.start; }
 	//! Returns the upper bound of the vector
-	friend INLINE int Ub(const l_ivector_slice &sl) noexcept(false) { return sl.end; }
+	friend INLINE int Ub(const l_ivector_slice &sl) noexcept { return sl.end; }
 	//! Returns the dimension of the vector
-        friend INLINE int VecLen(const l_ivector_slice &sl) noexcept(false) { return sl.end-sl.start+1; }
+        friend INLINE int VecLen(const l_ivector_slice &sl) noexcept { return sl.end-sl.start+1; }
 	//! Operator for accessing the single elements of the vector
 	INLINE l_interval & operator [](const int &i) const
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIVECTOR_ELEMENT_NOT_IN_VEC);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Operator for accessing the whole vector
-	INLINE l_ivector_slice & operator ()() noexcept(false) { return *this; }
+	INLINE l_ivector_slice & operator ()() noexcept { return *this; }
 	//! Operator for accessing a part of the vector
 	INLINE l_ivector_slice operator ()(const int &i)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIVECTOR_SUB_ARRAY_TOO_BIG);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Operator for accessing a part of the vector
 	INLINE l_ivector_slice operator ()(const int &i1,const int &i2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIVECTOR_SUB_ARRAY_TOO_BIG);
 #else
-	noexcept(false);
+	noexcept;
 #endif
-	INLINE operator void*() noexcept(false);
+	INLINE operator void*() noexcept;
 	
 	//! Implementation of multiplication and allocation operation
-	INLINE l_ivector_slice &operator *=(const l_interval &r) noexcept(false);
+	INLINE l_ivector_slice &operator *=(const l_interval &r) noexcept;
 	//! Implementation of division and allocation operation
-	INLINE l_ivector_slice &operator /=(const l_interval &r) noexcept(false);
+	INLINE l_ivector_slice &operator /=(const l_interval &r) noexcept;
 	//! Implementation of multiplication and allocation operation
 	INLINE l_ivector_slice &operator *=(const l_imatrix &m)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIMATRIX_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of multiplication and allocation operation
 	INLINE l_ivector_slice &operator *=(const l_imatrix_slice &m)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIMATRIX_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition and allocation operation
 	INLINE l_ivector_slice &operator +=(const l_ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition and allocation operation
 	INLINE l_ivector_slice &operator +=(const l_ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction and allocation operation
 	INLINE l_ivector_slice &operator -=(const l_ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction and allocation operation
 	INLINE l_ivector_slice &operator -=(const l_ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Allocates the convex hull of the arguments to the first argument
 	INLINE l_ivector_slice &operator |=(const l_ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Allocates the convex hull of the arguments to the first argument
 	INLINE l_ivector_slice &operator |=(const l_ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Allocates the intersection of the arguments to the first argument
 	INLINE l_ivector_slice &operator &=(const l_ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Allocates the intersection of the arguments to the first argument
 	INLINE l_ivector_slice &operator &=(const l_ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	//! Implementation of multiplication and allocation operation
-	INLINE l_ivector_slice &operator *=(const real &r) noexcept(false);
+	INLINE l_ivector_slice &operator *=(const real &r) noexcept;
 	//! Implementation of division and allocation operation
-	INLINE l_ivector_slice &operator /=(const real &r) noexcept(false);
+	INLINE l_ivector_slice &operator /=(const real &r) noexcept;
 	//! Implementation of addition and allocation operation
 	INLINE l_ivector_slice &operator +=(const rvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition and allocation operation
 	INLINE l_ivector_slice &operator +=(const rvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction and allocation operation
 	INLINE l_ivector_slice &operator -=(const rvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction and allocation operation
 	INLINE l_ivector_slice &operator -=(const rvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Allocates the convex hull of the arguments to the first argument
 	INLINE l_ivector_slice &operator |=(const rvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Allocates the convex hull of the arguments to the first argument
 	INLINE l_ivector_slice &operator |=(const rvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Allocates the intersection of the arguments to the first argument
 	INLINE l_ivector_slice &operator &=(const rvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Allocates the intersection of the arguments to the first argument
 	INLINE l_ivector_slice &operator &=(const rvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of multiplication and allocation operation
 	INLINE l_ivector_slice &operator *=(const rmatrix &m)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_RMATRIX_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of multiplication and allocation operation
 	INLINE l_ivector_slice &operator *=(const rmatrix_slice &m)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_RMATRIX_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Implementation of multiplication and allocation operation
-	INLINE l_ivector_slice &operator *=(const l_real &r) noexcept(false);
+	INLINE l_ivector_slice &operator *=(const l_real &r) noexcept;
 	//! Implementation of division and allocation operation
-	INLINE l_ivector_slice &operator /=(const l_real &r) noexcept(false);
+	INLINE l_ivector_slice &operator /=(const l_real &r) noexcept;
 	//! Implementation of addition and allocation operation
 	INLINE l_ivector_slice &operator +=(const l_rvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition and allocation operation
 	INLINE l_ivector_slice &operator +=(const l_rvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction and allocation operation
 	INLINE l_ivector_slice &operator -=(const l_rvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction and allocation operation
 	INLINE l_ivector_slice &operator -=(const l_rvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Allocates the convex hull of the arguments to the first argument
 	INLINE l_ivector_slice &operator |=(const l_rvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Allocates the convex hull of the arguments to the first argument
 	INLINE l_ivector_slice &operator |=(const l_rvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Allocates the intersection of the arguments to the first argument
 	INLINE l_ivector_slice &operator &=(const l_rvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Allocates the intersection of the arguments to the first argument
 	INLINE l_ivector_slice &operator &=(const l_rvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of multiplication and allocation operation
 	INLINE l_ivector_slice &operator *=(const l_rmatrix &m)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LRMATRIX_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of multiplication and allocation operation
 	INLINE l_ivector_slice &operator *=(const l_rmatrix_slice &m)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LRMATRIX_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Implementation of multiplication and allocation operation
-	INLINE l_ivector_slice &operator *=(const interval &r) noexcept(false);
+	INLINE l_ivector_slice &operator *=(const interval &r) noexcept;
 	//! Implementation of division and allocation operation
-	INLINE l_ivector_slice &operator /=(const interval &r) noexcept(false);
+	INLINE l_ivector_slice &operator /=(const interval &r) noexcept;
 	//! Implementation of addition and allocation operation
 	INLINE l_ivector_slice &operator +=(const ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition and allocation operation
 	INLINE l_ivector_slice &operator +=(const ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction and allocation operation
 	INLINE l_ivector_slice &operator -=(const ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction and allocation operation
 	INLINE l_ivector_slice &operator -=(const ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Allocates the convex hull of the arguments to the first argument
 	INLINE l_ivector_slice &operator |=(const ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Allocates the convex hull of the arguments to the first argument
 	INLINE l_ivector_slice &operator |=(const ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Allocates the intersection of the arguments to the first argument
 	INLINE l_ivector_slice &operator &=(const ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Allocates the intersection of the arguments to the first argument
 	INLINE l_ivector_slice &operator &=(const ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of multiplication and allocation operation
 	INLINE l_ivector_slice &operator *=(const imatrix &m)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_IMATRIX_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of multiplication and allocation operation
 	INLINE l_ivector_slice &operator *=(const imatrix_slice &m)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_IMATRIX_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 //#else
 //#endif
@@ -1800,373 +1800,373 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 //======================== Vector Functions =============================
 
 	//! Deprecated typecast, which only exist for the reason of compatibility with older versions of C-XSC
-	INLINE l_ivector _l_ivector(const l_interval &r) noexcept(false);
-//	INLINE l_ivector _l_ivector(const l_imatrix &m) noexcept(false);
-//	INLINE l_ivector _l_ivector(const l_imatrix_slice &sl) noexcept(false);
+	INLINE l_ivector _l_ivector(const l_interval &r) noexcept;
+//	INLINE l_ivector _l_ivector(const l_imatrix &m) throw(ERROR_LIMATRIX_TYPE_CAST_OF_THICK_OBJ);
+//	INLINE l_ivector _l_ivector(const l_imatrix_slice &sl) throw(ERROR_LIMATRIX_TYPE_CAST_OF_THICK_OBJ);
 	//! Deprecated typecast, which only exist for the reason of compatibility with older versions of C-XSC
-	INLINE l_ivector _l_ivector(const real &r) noexcept(false);
+	INLINE l_ivector _l_ivector(const real &r) noexcept;
 	//! Deprecated typecast, which only exist for the reason of compatibility with older versions of C-XSC
-	INLINE l_ivector _l_ivector(const rvector_slice &rs) noexcept(false);
+	INLINE l_ivector _l_ivector(const rvector_slice &rs) noexcept;
 	//! Deprecated typecast, which only exist for the reason of compatibility with older versions of C-XSC
-	INLINE l_ivector _l_ivector(const rvector &rs) noexcept(false);
-//	INLINE l_ivector _l_ivector(const rmatrix &m) noexcept(false);
-//	INLINE l_ivector _l_ivector(const rmatrix_slice &sl) noexcept(false);
+	INLINE l_ivector _l_ivector(const rvector &rs) noexcept;
+//	INLINE l_ivector _l_ivector(const rmatrix &m) throw(ERROR_RMATRIX_TYPE_CAST_OF_THICK_OBJ);
+//	INLINE l_ivector _l_ivector(const rmatrix_slice &sl) throw(ERROR_RMATRIX_TYPE_CAST_OF_THICK_OBJ);
 	//! Deprecated typecast, which only exist for the reason of compatibility with older versions of C-XSC
-	INLINE l_ivector _l_ivector(const rmatrix_subv &rs) noexcept(false);
+	INLINE l_ivector _l_ivector(const rmatrix_subv &rs) noexcept;
 
 	//! Returns the vector with the new given infimum vector
 	INLINE l_ivector &SetInf(l_ivector &iv,const l_rvector &rv)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIVECTOR_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the vector with the new given infimum vector
 	INLINE l_ivector_slice &SetInf(l_ivector_slice &iv,const l_rvector &rv)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIVECTOR_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the vector with the new given infimum vector
 	INLINE l_ivector &SetInf(l_ivector &iv,const l_rvector_slice &rv)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIVECTOR_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the vector with the new given infimum vector
 	INLINE l_ivector_slice &SetInf(l_ivector_slice &iv,const l_rvector_slice &rv)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIVECTOR_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the vector with the new unchecked given infimum vector
 	INLINE l_ivector &UncheckedSetInf(l_ivector &iv,const l_rvector &rv)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIVECTOR_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the vector with the new unchecked given infimum vector
 	INLINE l_ivector_slice &UncheckedSetInf(l_ivector_slice &iv,const l_rvector &rv)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIVECTOR_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the vector with the new unchecked given infimum vector
 	INLINE l_ivector &UncheckedSetInf(l_ivector &iv,const l_rvector_slice &rv)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIVECTOR_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the vector with the new unchecked given infimum vector
 	INLINE l_ivector_slice &UncheckedSetInf(l_ivector_slice &iv,const l_rvector_slice &rv)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIVECTOR_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Returns the vector with the new given supremum vector
 	INLINE l_ivector &SetSup(l_ivector &iv,const l_rvector &rv)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIVECTOR_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the vector with the new given supremum vector
 	INLINE l_ivector_slice &SetSup(l_ivector_slice &iv,const l_rvector &rv)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIVECTOR_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the vector with the new given supremum vector
 	INLINE l_ivector &SetSup(l_ivector &iv,const l_rvector_slice &rv)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIVECTOR_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the vector with the new given supremum vector
 	INLINE l_ivector_slice &SetSup(l_ivector_slice &iv,const l_rvector_slice &rv)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIVECTOR_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the vector with the new unchecked given supremum vector
 	INLINE l_ivector &UncheckedSetSup(l_ivector &iv,const l_rvector &rv)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIVECTOR_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the vector with the new unchecked given supremum vector
 	INLINE l_ivector_slice &UncheckedSetSup(l_ivector_slice &iv,const l_rvector &rv)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIVECTOR_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the vector with the new unchecked given supremum vector
 	INLINE l_ivector &UncheckedSetSup(l_ivector &iv,const l_rvector_slice &rv)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIVECTOR_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the vector with the new unchecked given supremum vector
 	INLINE l_ivector_slice &UncheckedSetSup(l_ivector_slice &iv,const l_rvector_slice &rv)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(ERROR_LIVECTOR_OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Returns the vector with the new given supremum value
-	INLINE l_ivector &SetSup(l_ivector &iv,const l_real &r) noexcept(false);
+	INLINE l_ivector &SetSup(l_ivector &iv,const l_real &r) noexcept;
 	//! Returns the vector with the new given infimum value
-	INLINE l_ivector &SetInf(l_ivector &iv,const l_real &r) noexcept(false);
+	INLINE l_ivector &SetInf(l_ivector &iv,const l_real &r) noexcept;
 	//! Returns the vector with the new unchecked given supremum value
-	INLINE l_ivector &UncheckedSetSup(l_ivector &iv,const l_real &r) noexcept(false);
+	INLINE l_ivector &UncheckedSetSup(l_ivector &iv,const l_real &r) noexcept;
 	//! Returns the vector with the new unchecked given infimum value
-	INLINE l_ivector &SetUncheckedInf(l_ivector &iv,const l_real &r) noexcept(false);
+	INLINE l_ivector &SetUncheckedInf(l_ivector &iv,const l_real &r) noexcept;
 
 	//! Returns the vector with the new given supremum value
-	INLINE l_ivector_slice &SetSup(l_ivector_slice &iv,const l_real &r) noexcept(false);
+	INLINE l_ivector_slice &SetSup(l_ivector_slice &iv,const l_real &r) noexcept;
 	//! Returns the vector with the new given infimum value
-	INLINE l_ivector_slice &SetInf(l_ivector_slice &iv,const l_real &r) noexcept(false);
+	INLINE l_ivector_slice &SetInf(l_ivector_slice &iv,const l_real &r) noexcept;
 	//! Returns the vector with the new unchecked given supremum value
-	INLINE l_ivector_slice &UncheckedSetSup(l_ivector_slice &iv,const l_real &r) noexcept(false);
+	INLINE l_ivector_slice &UncheckedSetSup(l_ivector_slice &iv,const l_real &r) noexcept;
 	//! Returns the vector with the new unchecked given infimum value
-	INLINE l_ivector_slice &SetUncheckedInf(l_ivector_slice &iv,const l_real &r) noexcept(false);
+	INLINE l_ivector_slice &SetUncheckedInf(l_ivector_slice &iv,const l_real &r) noexcept;
 
 	//! Resizes the vector
-	INLINE void Resize(l_ivector &rv) noexcept(false);
+	INLINE void Resize(l_ivector &rv) noexcept;
 	//! Resizes the vector
 	INLINE void Resize(l_ivector &rv, const int &len)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__WRONG_BOUNDARIES<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Resizes the vector
 	INLINE void Resize(l_ivector &rv, const int &lb, const int &ub)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__WRONG_BOUNDARIES<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Returns the absolute value of the vector
-	INLINE l_ivector abs(const l_ivector &rv) noexcept(false);
+	INLINE l_ivector abs(const l_ivector &rv) noexcept;
 	//! Returns the absolute value of the vector
-	INLINE l_ivector abs(const l_ivector_slice &sl) noexcept(false);
+	INLINE l_ivector abs(const l_ivector_slice &sl) noexcept;
         //! Returns the rounded diameter of the vector
-	INLINE l_rvector diam(const l_ivector &v) noexcept(false);
+	INLINE l_rvector diam(const l_ivector &v) noexcept;
         //! Returns the rounded diameter of the vector
-	INLINE l_rvector diam(const l_ivector_slice &v) noexcept(false);
+	INLINE l_rvector diam(const l_ivector_slice &v) noexcept;
 	//! Returns the rounded middle of the vector
-	INLINE l_rvector mid(const l_ivector &v) noexcept(false);
+	INLINE l_rvector mid(const l_ivector &v) noexcept;
 	//! Returns the rounded middle of the vector
-	INLINE l_rvector mid(const l_ivector_slice &v) noexcept(false);
+	INLINE l_rvector mid(const l_ivector_slice &v) noexcept;
 	//! Returns the infimum of the vector
-	INLINE l_rvector Inf(const l_ivector &v) noexcept(false);
+	INLINE l_rvector Inf(const l_ivector &v) noexcept;
 	//! Returns the infimum of the vector
-	INLINE l_rvector Inf(const l_ivector_slice &v) noexcept(false);
+	INLINE l_rvector Inf(const l_ivector_slice &v) noexcept;
 	//! Returns the supremum of the vector
-	INLINE l_rvector Sup(const l_ivector &v) noexcept(false);
+	INLINE l_rvector Sup(const l_ivector &v) noexcept;
 	//! Returns the supremum of the vector
-	INLINE l_rvector Sup(const l_ivector_slice &v) noexcept(false);
+	INLINE l_rvector Sup(const l_ivector_slice &v) noexcept;
 	//! Implementation of standard negation operation
-	INLINE bool operator !(const l_ivector &rv) noexcept(false);
+	INLINE bool operator !(const l_ivector &rv) noexcept;
 	//! Implementation of standard negation operation
-	INLINE bool operator !(const l_ivector_slice &sl) noexcept(false);
+	INLINE bool operator !(const l_ivector_slice &sl) noexcept;
 
 //======================= Vector / Scalar ===============================
 
 //----------------------------- l_interval ---------------------------
 
 	//! Implementation of multiplication operation
-	INLINE l_ivector operator *(const l_ivector &rv, const l_interval &s) noexcept(false);
+	INLINE l_ivector operator *(const l_ivector &rv, const l_interval &s) noexcept;
 	//! Implementation of multiplication operation
-	INLINE l_ivector operator *(const l_ivector_slice &sl, const l_interval &s) noexcept(false);
+	INLINE l_ivector operator *(const l_ivector_slice &sl, const l_interval &s) noexcept;
 	//! Implementation of multiplication operation
-	INLINE l_ivector operator *(const l_interval &s, const l_ivector &rv) noexcept(false);
+	INLINE l_ivector operator *(const l_interval &s, const l_ivector &rv) noexcept;
 	//! Implementation of multiplication operation
-	INLINE l_ivector operator *(const l_interval &s, const l_ivector_slice &sl) noexcept(false);
+	INLINE l_ivector operator *(const l_interval &s, const l_ivector_slice &sl) noexcept;
 	//! Implementation of multiplication and allocation operation
-	INLINE l_ivector &operator *=(l_ivector &rv,const l_interval &r) noexcept(false);
+	INLINE l_ivector &operator *=(l_ivector &rv,const l_interval &r) noexcept;
 
 	//! Implementation of division operation
-	INLINE l_ivector operator /(const l_ivector &rv, const l_interval &s) noexcept(false);
+	INLINE l_ivector operator /(const l_ivector &rv, const l_interval &s) noexcept;
 	//! Implementation of division operation
-	INLINE l_ivector operator /(const l_ivector_slice &sl, const l_interval &s) noexcept(false);
+	INLINE l_ivector operator /(const l_ivector_slice &sl, const l_interval &s) noexcept;
 	//! Implementation of division and allocation operation
-	INLINE l_ivector &operator /=(l_ivector &rv,const l_interval &r) noexcept(false);
+	INLINE l_ivector &operator /=(l_ivector &rv,const l_interval &r) noexcept;
 
 //---------------------------- Real --------------------------------------
 
 	//! Implementation of multiplication operation
-	INLINE l_ivector operator *(const l_ivector &rv, const real &s) noexcept(false);
+	INLINE l_ivector operator *(const l_ivector &rv, const real &s) noexcept;
 	//! Implementation of multiplication operation
-	INLINE l_ivector operator *(const l_ivector_slice &sl, const real &s) noexcept(false);
+	INLINE l_ivector operator *(const l_ivector_slice &sl, const real &s) noexcept;
 	//! Implementation of multiplication operation
-	INLINE l_ivector operator *(const real &s, const l_ivector &rv) noexcept(false);
+	INLINE l_ivector operator *(const real &s, const l_ivector &rv) noexcept;
 	//! Implementation of multiplication operation
-	INLINE l_ivector operator *(const real &s, const l_ivector_slice &sl) noexcept(false);
+	INLINE l_ivector operator *(const real &s, const l_ivector_slice &sl) noexcept;
 	//! Implementation of multiplication and allocation operation
-	INLINE l_ivector &operator *=(l_ivector &rv,const real &r) noexcept(false);
+	INLINE l_ivector &operator *=(l_ivector &rv,const real &r) noexcept;
 
 	//! Implementation of division operation
-	INLINE l_ivector operator /(const l_ivector &rv, const real &s) noexcept(false);
+	INLINE l_ivector operator /(const l_ivector &rv, const real &s) noexcept;
 	//! Implementation of division operation
-	INLINE l_ivector operator /(const l_ivector_slice &sl, const real &s) noexcept(false);
+	INLINE l_ivector operator /(const l_ivector_slice &sl, const real &s) noexcept;
 	//! Implementation of division and allocation operation
-	INLINE l_ivector &operator /=(l_ivector &rv,const real &r) noexcept(false);
+	INLINE l_ivector &operator /=(l_ivector &rv,const real &r) noexcept;
 
 	//! Implementation of multiplication operation
-	INLINE l_ivector operator *(const rvector &rv, const l_interval &s) noexcept(false);
+	INLINE l_ivector operator *(const rvector &rv, const l_interval &s) noexcept;
 	//! Implementation of multiplication operation
-	INLINE l_ivector operator *(const rvector_slice &sl, const l_interval &s) noexcept(false);
+	INLINE l_ivector operator *(const rvector_slice &sl, const l_interval &s) noexcept;
 	//! Implementation of multiplication operation
-	INLINE l_ivector operator *(const l_interval &s, const rvector &rv) noexcept(false);
+	INLINE l_ivector operator *(const l_interval &s, const rvector &rv) noexcept;
 	//! Implementation of multiplication operation
-	INLINE l_ivector operator *(const l_interval &s, const rvector_slice &sl) noexcept(false);
+	INLINE l_ivector operator *(const l_interval &s, const rvector_slice &sl) noexcept;
 
 	//! Implementation of division operation
-	INLINE l_ivector operator /(const rvector &rv, const l_interval &s) noexcept(false);
+	INLINE l_ivector operator /(const rvector &rv, const l_interval &s) noexcept;
 	//! Implementation of division operation
-	INLINE l_ivector operator /(const rvector_slice &sl, const l_interval &s) noexcept(false);
+	INLINE l_ivector operator /(const rvector_slice &sl, const l_interval &s) noexcept;
 
 //---------------------------- Complex --------------------------------------
 
 	//! Implementation of multiplication operation
-	INLINE l_ivector operator *(const l_ivector &rv, const l_real &s) noexcept(false);
+	INLINE l_ivector operator *(const l_ivector &rv, const l_real &s) noexcept;
 	//! Implementation of multiplication operation
-	INLINE l_ivector operator *(const l_ivector_slice &sl, const l_real &s) noexcept(false);
+	INLINE l_ivector operator *(const l_ivector_slice &sl, const l_real &s) noexcept;
 	//! Implementation of multiplication operation
-	INLINE l_ivector operator *(const l_real &s, const l_ivector &rv) noexcept(false);
+	INLINE l_ivector operator *(const l_real &s, const l_ivector &rv) noexcept;
 	//! Implementation of multiplication operation
-	INLINE l_ivector operator *(const l_real &s, const l_ivector_slice &sl) noexcept(false);
+	INLINE l_ivector operator *(const l_real &s, const l_ivector_slice &sl) noexcept;
 	//! Implementation of multiplication and allocation operation
-	INLINE l_ivector &operator *=(l_ivector &rv,const l_real &r) noexcept(false);
+	INLINE l_ivector &operator *=(l_ivector &rv,const l_real &r) noexcept;
 
 	//! Implementation of division operation
-	INLINE l_ivector operator /(const l_ivector &rv, const l_real &s) noexcept(false);
+	INLINE l_ivector operator /(const l_ivector &rv, const l_real &s) noexcept;
 	//! Implementation of division operation
-	INLINE l_ivector operator /(const l_ivector_slice &sl, const l_real &s) noexcept(false);
+	INLINE l_ivector operator /(const l_ivector_slice &sl, const l_real &s) noexcept;
 	//! Implementation of division and allocation operation
-	INLINE l_ivector &operator /=(l_ivector &rv,const l_real &r) noexcept(false);
+	INLINE l_ivector &operator /=(l_ivector &rv,const l_real &r) noexcept;
 
 	//! Implementation of multiplication operation
-	INLINE l_ivector operator *(const l_rvector &rv, const l_interval &s) noexcept(false);
+	INLINE l_ivector operator *(const l_rvector &rv, const l_interval &s) noexcept;
 	//! Implementation of multiplication operation
-	INLINE l_ivector operator *(const l_rvector_slice &sl, const l_interval &s) noexcept(false);
+	INLINE l_ivector operator *(const l_rvector_slice &sl, const l_interval &s) noexcept;
 	//! Implementation of multiplication operation
-	INLINE l_ivector operator *(const l_interval &s, const l_rvector &rv) noexcept(false);
+	INLINE l_ivector operator *(const l_interval &s, const l_rvector &rv) noexcept;
 	//! Implementation of multiplication operation
-	INLINE l_ivector operator *(const l_interval &s, const l_rvector_slice &sl) noexcept(false);
+	INLINE l_ivector operator *(const l_interval &s, const l_rvector_slice &sl) noexcept;
 
 	//! Implementation of division operation
-	INLINE l_ivector operator /(const l_rvector &rv, const l_interval &s) noexcept(false);
+	INLINE l_ivector operator /(const l_rvector &rv, const l_interval &s) noexcept;
 	//! Implementation of division operation
-	INLINE l_ivector operator /(const l_rvector_slice &sl, const l_interval &s) noexcept(false);
+	INLINE l_ivector operator /(const l_rvector_slice &sl, const l_interval &s) noexcept;
 
 //---------------------------- interval --------------------------------------
 
 	//! Implementation of multiplication operation
-	INLINE l_ivector operator *(const l_ivector &rv, const interval &s) noexcept(false);
+	INLINE l_ivector operator *(const l_ivector &rv, const interval &s) noexcept;
 	//! Implementation of multiplication operation
-	INLINE l_ivector operator *(const l_ivector_slice &sl, const interval &s) noexcept(false);
+	INLINE l_ivector operator *(const l_ivector_slice &sl, const interval &s) noexcept;
 	//! Implementation of multiplication operation
-	INLINE l_ivector operator *(const interval &s, const l_ivector &rv) noexcept(false);
+	INLINE l_ivector operator *(const interval &s, const l_ivector &rv) noexcept;
 	//! Implementation of multiplication operation
-	INLINE l_ivector operator *(const interval &s, const l_ivector_slice &sl) noexcept(false);
+	INLINE l_ivector operator *(const interval &s, const l_ivector_slice &sl) noexcept;
 	//! Implementation of multiplication and allocation operation
-	INLINE l_ivector &operator *=(l_ivector &rv,const interval &r) noexcept(false);
+	INLINE l_ivector &operator *=(l_ivector &rv,const interval &r) noexcept;
 
 	//! Implementation of division operation
-	INLINE l_ivector operator /(const l_ivector &rv, const interval &s) noexcept(false);
+	INLINE l_ivector operator /(const l_ivector &rv, const interval &s) noexcept;
 	//! Implementation of division operation
-	INLINE l_ivector operator /(const l_ivector_slice &sl, const interval &s) noexcept(false);
+	INLINE l_ivector operator /(const l_ivector_slice &sl, const interval &s) noexcept;
 	//! Implementation of division and allocation operation
-	INLINE l_ivector &operator /=(l_ivector &rv,const interval &r) noexcept(false);
+	INLINE l_ivector &operator /=(l_ivector &rv,const interval &r) noexcept;
 
 	//! Implementation of multiplication operation
-	INLINE l_ivector operator *(const ivector &rv, const l_interval &s) noexcept(false);
+	INLINE l_ivector operator *(const ivector &rv, const l_interval &s) noexcept;
 	//! Implementation of multiplication operation
-	INLINE l_ivector operator *(const ivector_slice &sl, const l_interval &s) noexcept(false);
+	INLINE l_ivector operator *(const ivector_slice &sl, const l_interval &s) noexcept;
 	//! Implementation of multiplication operation
-	INLINE l_ivector operator *(const l_interval &s, const ivector &rv) noexcept(false);
+	INLINE l_ivector operator *(const l_interval &s, const ivector &rv) noexcept;
 	//! Implementation of multiplication operation
-	INLINE l_ivector operator *(const l_interval &s, const ivector_slice &sl) noexcept(false);
+	INLINE l_ivector operator *(const l_interval &s, const ivector_slice &sl) noexcept;
 
 	//! Implementation of division operation
-	INLINE l_ivector operator /(const ivector &rv, const l_interval &s) noexcept(false);
+	INLINE l_ivector operator /(const ivector &rv, const l_interval &s) noexcept;
 	//! Implementation of division operation
-	INLINE l_ivector operator /(const ivector_slice &sl, const l_interval &s) noexcept(false);
+	INLINE l_ivector operator /(const ivector_slice &sl, const l_interval &s) noexcept;
 
 //======================= Vector / Vector ===============================
 
 
 	//! Implementation of standard output method
-	INLINE std::ostream &operator <<(std::ostream &s, const l_ivector &rv) noexcept(false);
+	INLINE std::ostream &operator <<(std::ostream &s, const l_ivector &rv) noexcept;
 	//! Implementation of standard output method
-	INLINE std::ostream &operator <<(std::ostream &o, const l_ivector_slice &sl) noexcept(false);
+	INLINE std::ostream &operator <<(std::ostream &o, const l_ivector_slice &sl) noexcept;
 	//! Implementation of standard input method
-	INLINE std::istream &operator >>(std::istream &s, l_ivector &rv) noexcept(false);
+	INLINE std::istream &operator >>(std::istream &s, l_ivector &rv) noexcept;
 	//! Implementation of standard input method
-	INLINE std::istream &operator >>(std::istream &s, l_ivector_slice &rv) noexcept(false);
+	INLINE std::istream &operator >>(std::istream &s, l_ivector_slice &rv) noexcept;
 	
 //----------------------- l_interval / l_interval ---------------------------
 
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const l_ivector & rv1, const l_ivector &rv2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const l_ivector_slice & sl, const l_ivector &rv)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const l_ivector &rv, const l_ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const l_ivector & rv1, const l_imatrix_subv &rv2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const l_imatrix_subv & rv1, const l_ivector &rv2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const l_ivector_slice & sl1, const l_ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Implementation of multiplication operation
@@ -2174,123 +2174,123 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of multiplication operation
 	INLINE l_interval operator *(const l_ivector_slice &sl, const l_ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of multiplication operation
 	INLINE l_interval operator *(const l_ivector &rv, const l_ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of multiplication operation
 	INLINE l_interval operator *(const l_ivector_slice & sl1, const l_ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	//! Implementation of positive sign operation
-	INLINE const l_ivector &operator +(const l_ivector &rv) noexcept(false);
+	INLINE const l_ivector &operator +(const l_ivector &rv) noexcept;
 	//! Implementation of positive sign operation
-	INLINE l_ivector operator +(const l_ivector_slice &sl) noexcept(false);
+	INLINE l_ivector operator +(const l_ivector_slice &sl) noexcept;
 
 	//! Implementation of addition operation
 	INLINE l_ivector operator +(const l_ivector &rv1, const l_ivector &rv2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition operation
 	INLINE l_ivector operator +(const l_ivector &rv, const l_ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition operation
 	INLINE l_ivector operator +(const l_ivector_slice &sl, const l_ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition operation
 	INLINE l_ivector operator +(const l_ivector_slice &sl1, const l_ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition and allocation operation
 	INLINE l_ivector & operator +=(l_ivector &rv1, const l_ivector &rv2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition and allocation operation
 	INLINE l_ivector &operator +=(l_ivector &rv, const l_ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Implementation of negative sign operation
-	INLINE l_ivector operator -(const l_ivector &rv) noexcept(false);
+	INLINE l_ivector operator -(const l_ivector &rv) noexcept;
 	//! Implementation of negative sign operation
-	INLINE l_ivector operator -(const l_ivector_slice &sl) noexcept(false);
+	INLINE l_ivector operator -(const l_ivector_slice &sl) noexcept;
 	//! Implementation of subtraction operation
 	INLINE l_ivector operator -(const l_ivector &rv1, const l_ivector &rv2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction operation
 	INLINE l_ivector operator -(const l_ivector &rv, const l_ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction operation
 	INLINE l_ivector operator -(const l_ivector_slice &sl, const l_ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction operation
 	INLINE l_ivector operator -(const l_ivector_slice &sl1, const l_ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction and allocation operation
 	INLINE l_ivector & operator -=(l_ivector &rv1, const l_ivector &rv2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction and allocation operation
 	INLINE l_ivector &operator -=(l_ivector &rv, const l_ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Returns the convex hull of the arguments
@@ -2298,42 +2298,42 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const l_ivector &rv, const l_ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const l_ivector_slice &sl, const l_ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const l_ivector_slice &sl1, const l_ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Allocates the convex hull of the arguments to the first argument
 	INLINE l_ivector & operator |=(l_ivector &rv1, const l_ivector &rv2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Allocates the convex hull of the arguments to the first argument
 	INLINE l_ivector &operator |=(l_ivector &rv, const l_ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Returns the intersection of the arguments
@@ -2341,178 +2341,178 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the intersection of the arguments
 	INLINE l_ivector operator &(const l_ivector &rv, const l_ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the intersection of the arguments
 	INLINE l_ivector operator &(const l_ivector_slice &sl, const l_ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the intersection of the arguments
 	INLINE l_ivector operator &(const l_ivector_slice &sl1, const l_ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Allocates the intersection of the arguments to the first argument
 	INLINE l_ivector & operator &=(l_ivector &rv1, const l_ivector &rv2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Allocates the intersection of the arguments to the first argument
 	INLINE l_ivector &operator &=(l_ivector &rv, const l_ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Implementation of standard equality operation
-	INLINE bool operator ==(const l_ivector &rv1, const l_ivector &rv2) noexcept(false);
+	INLINE bool operator ==(const l_ivector &rv1, const l_ivector &rv2) noexcept;
 	//! Implementation of standard equality operation
-	INLINE bool operator ==(const l_ivector_slice &sl1, const l_ivector_slice &sl2) noexcept(false);
+	INLINE bool operator ==(const l_ivector_slice &sl1, const l_ivector_slice &sl2) noexcept;
 	//! Implementation of standard equality operation
-	INLINE bool operator ==(const l_ivector_slice &sl, const l_ivector &rv) noexcept(false);
+	INLINE bool operator ==(const l_ivector_slice &sl, const l_ivector &rv) noexcept;
 	//! Implementation of standard equality operation
-	INLINE bool operator ==(const l_ivector &rv, const l_ivector_slice &sl) noexcept(false);
+	INLINE bool operator ==(const l_ivector &rv, const l_ivector_slice &sl) noexcept;
 	//! Implementation of standard negated equality operation
-	INLINE bool operator !=(const l_ivector &rv1, const l_ivector &rv2) noexcept(false);
+	INLINE bool operator !=(const l_ivector &rv1, const l_ivector &rv2) noexcept;
 	//! Implementation of standard negated equality operation
-	INLINE bool operator !=(const l_ivector_slice &sl1, const l_ivector_slice &sl2) noexcept(false);
+	INLINE bool operator !=(const l_ivector_slice &sl1, const l_ivector_slice &sl2) noexcept;
 	//! Implementation of standard negated equality operation
-	INLINE bool operator !=(const l_ivector_slice &sl, const l_ivector &rv) noexcept(false);
+	INLINE bool operator !=(const l_ivector_slice &sl, const l_ivector &rv) noexcept;
 	//! Implementation of standard negated equality operation
-	INLINE bool operator !=(const l_ivector &rv, const l_ivector_slice &sl) noexcept(false);
+	INLINE bool operator !=(const l_ivector &rv, const l_ivector_slice &sl) noexcept;
 	//! Implementation of standard less-than operation
-	INLINE bool operator <(const l_ivector &rv1, const l_ivector &rv2) noexcept(false);
+	INLINE bool operator <(const l_ivector &rv1, const l_ivector &rv2) noexcept;
 	//! Implementation of standard less-than operation
-	INLINE bool operator <(const l_ivector_slice &sl1, const l_ivector_slice &sl2) noexcept(false);
+	INLINE bool operator <(const l_ivector_slice &sl1, const l_ivector_slice &sl2) noexcept;
 	//! Implementation of standard less-than operation
-	INLINE bool operator < (const l_ivector_slice &sl, const l_ivector &rv) noexcept(false);
+	INLINE bool operator < (const l_ivector_slice &sl, const l_ivector &rv) noexcept;
 	//! Implementation of standard less-than operation
-	INLINE bool operator < (const l_ivector &rv, const l_ivector_slice &sl) noexcept(false);
+	INLINE bool operator < (const l_ivector &rv, const l_ivector_slice &sl) noexcept;
 	//! Implementation of standard less-or-equal-than operation
-	INLINE bool operator <=(const l_ivector &rv1, const l_ivector &rv2) noexcept(false);
+	INLINE bool operator <=(const l_ivector &rv1, const l_ivector &rv2) noexcept;
 	//! Implementation of standard less-or-equal-than operation
-	INLINE bool operator <=(const l_ivector_slice &sl1, const l_ivector_slice &sl2) noexcept(false);
+	INLINE bool operator <=(const l_ivector_slice &sl1, const l_ivector_slice &sl2) noexcept;
 	//! Implementation of standard less-or-equal-than operation
-	INLINE bool operator <=(const l_ivector_slice &sl, const l_ivector &rv) noexcept(false);
+	INLINE bool operator <=(const l_ivector_slice &sl, const l_ivector &rv) noexcept;
 	//! Implementation of standard less-or-equal-than operation
-	INLINE bool operator <=(const l_ivector &rv, const l_ivector_slice &sl) noexcept(false);
+	INLINE bool operator <=(const l_ivector &rv, const l_ivector_slice &sl) noexcept;
 	//! Implementation of standard greater-than operation
-	INLINE bool operator >(const l_ivector &rv1, const l_ivector &rv2) noexcept(false);
+	INLINE bool operator >(const l_ivector &rv1, const l_ivector &rv2) noexcept;
 	//! Implementation of standard greater-than operation
-	INLINE bool operator >(const l_ivector_slice &sl1, const l_ivector_slice &sl2) noexcept(false);
+	INLINE bool operator >(const l_ivector_slice &sl1, const l_ivector_slice &sl2) noexcept;
 	//! Implementation of standard greater-than operation
-	INLINE bool operator >(const l_ivector_slice &sl, const l_ivector &rv) noexcept(false);
+	INLINE bool operator >(const l_ivector_slice &sl, const l_ivector &rv) noexcept;
 	//! Implementation of standard greater-than operation
-	INLINE bool operator >(const l_ivector &rv, const l_ivector_slice &sl) noexcept(false);
+	INLINE bool operator >(const l_ivector &rv, const l_ivector_slice &sl) noexcept;
 	//! Implementation of standard greater-or-equal-than operation
-	INLINE bool operator >=(const l_ivector &rv1, const l_ivector &rv2) noexcept(false);
+	INLINE bool operator >=(const l_ivector &rv1, const l_ivector &rv2) noexcept;
 	//! Implementation of standard greater-or-equal-than operation
-	INLINE bool operator >=(const l_ivector_slice &sl1, const l_ivector_slice &sl2) noexcept(false);
+	INLINE bool operator >=(const l_ivector_slice &sl1, const l_ivector_slice &sl2) noexcept;
 	//! Implementation of standard greater-or-equal-than operation
-	INLINE bool operator >=(const l_ivector_slice &sl, const l_ivector &rv) noexcept(false);
+	INLINE bool operator >=(const l_ivector_slice &sl, const l_ivector &rv) noexcept;
 	//! Implementation of standard greater-or-equal-than operation
-	INLINE bool operator >=(const l_ivector &rv, const l_ivector_slice &sl) noexcept(false);
+	INLINE bool operator >=(const l_ivector &rv, const l_ivector_slice &sl) noexcept;
 
 //-------------------------------- l_interval / Real --------------------------------
 
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const rvector & rv1, const l_ivector &rv2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const l_ivector & rv1, const rvector &rv2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const rvector_slice & sl, const l_ivector &rv)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp,const l_ivector_slice &sl,const rvector &rv)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const rvector &rv, const l_ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const rvector & rv1, const l_imatrix_subv &rv2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const l_ivector & rv1, const rmatrix_subv &rv2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp,const l_ivector &rv,const rvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const rmatrix_subv & rv1, const l_ivector &rv2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const l_imatrix_subv & rv1, const rvector &rv2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const l_ivector_slice & sl1, const rvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const rvector_slice & sl1, const l_ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Implementation of multiplication operation
@@ -2520,28 +2520,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of multiplication operation
 	INLINE l_interval operator *(const rvector_slice &sl, const l_ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of multiplication operation
 	INLINE l_interval operator *(const rvector &rv, const l_ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of multiplication operation
 	INLINE l_interval operator *(const rvector_slice & sl1, const l_ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	//! Implementation of multiplication operation
@@ -2549,28 +2549,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of multiplication operation
 	INLINE l_interval operator *(const l_ivector_slice &sl, const rvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of multiplication operation
 	INLINE l_interval operator *(const l_ivector &rv, const rvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of multiplication operation
 	INLINE l_interval operator *(const l_ivector_slice & sl1, const rvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	//! Implementation of addition operation
@@ -2578,28 +2578,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition operation
 	INLINE l_ivector operator +(const rvector &rv, const l_ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition operation
 	INLINE l_ivector operator +(const rvector_slice &sl, const l_ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition operation
 	INLINE l_ivector operator +(const rvector_slice &sl1, const l_ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Implementation of addition operation
@@ -2607,28 +2607,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition operation
 	INLINE l_ivector operator +(const l_ivector &rv, const rvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition operation
 	INLINE l_ivector operator +(const l_ivector_slice &sl, const rvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition operation
 	INLINE l_ivector operator +(const l_ivector_slice &sl1, const rvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Implementation of addition and allocation operation
@@ -2636,14 +2636,14 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition and allocation operation
 	INLINE l_ivector &operator +=(l_ivector &rv, const rvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Implementation of subtraction operation
@@ -2651,28 +2651,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction operation
 	INLINE l_ivector operator -(const rvector &rv, const l_ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction operation
 	INLINE l_ivector operator -(const rvector_slice &sl, const l_ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction operation
 	INLINE l_ivector operator -(const rvector_slice &sl1, const l_ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Implementation of subtraction operation
@@ -2680,28 +2680,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction operation
 	INLINE l_ivector operator -(const l_ivector &rv, const rvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction operation
 	INLINE l_ivector operator -(const l_ivector_slice &sl, const rvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction operation
 	INLINE l_ivector operator -(const l_ivector_slice &sl1, const rvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Implementation of subtraction and allocation operation
@@ -2709,14 +2709,14 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction and allocation operation
 	INLINE l_ivector &operator -=(l_ivector &rv, const rvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Returns the convex hull of the arguments
@@ -2724,28 +2724,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const rvector &rv, const l_ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const rvector_slice &sl, const l_ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const rvector_slice &sl1, const l_ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Returns the convex hull of the arguments
@@ -2753,28 +2753,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const l_ivector &rv, const rvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const l_ivector_slice &sl, const rvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const l_ivector_slice &sl1, const rvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Allocates the convex hull of the arguments to the first argument
@@ -2782,14 +2782,14 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Allocates the convex hull of the arguments to the first argument
 	INLINE l_ivector &operator |=(l_ivector &rv, const rvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Returns the intersection of the arguments
@@ -2797,28 +2797,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the intersection of the arguments
 	INLINE l_ivector operator &(const rvector &rv, const l_ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the intersection of the arguments
 	INLINE l_ivector operator &(const rvector_slice &sl, const l_ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the intersection of the arguments
 	INLINE l_ivector operator &(const rvector_slice &sl1, const l_ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Returns the intersection of the arguments
@@ -2826,28 +2826,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the intersection of the arguments
 	INLINE l_ivector operator &(const l_ivector &rv, const rvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the intersection of the arguments
 	INLINE l_ivector operator &(const l_ivector_slice &sl, const rvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the intersection of the arguments
 	INLINE l_ivector operator &(const l_ivector_slice &sl1, const rvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Allocates the intersection of the arguments to the first argument
@@ -2855,100 +2855,100 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Allocates the intersection of the arguments to the first argument
 	INLINE l_ivector &operator &=(l_ivector &rv, const rvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 //-------------------------------- l_interval / l_real --------------------------------
 
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const l_rvector & rv1, const l_ivector &rv2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const l_ivector & rv1, const l_rvector &rv2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const l_rvector_slice & sl, const l_ivector &rv)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp,const l_ivector_slice &sl,const l_rvector &rv)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const l_rvector &rv, const l_ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const l_rvector & rv1, const l_imatrix_subv &rv2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const l_ivector & rv1, const l_rmatrix_subv &rv2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp,const l_ivector &rv,const l_rvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const l_rmatrix_subv & rv1, const l_ivector &rv2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const l_imatrix_subv & rv1, const l_rvector &rv2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const l_ivector_slice & sl1, const l_rvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const l_rvector_slice & sl1, const l_ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Implementation of multiplication operation
@@ -2956,28 +2956,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of multiplication operation
 	INLINE l_interval operator *(const l_rvector_slice &sl, const l_ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of multiplication operation
 	INLINE l_interval operator *(const l_rvector &rv, const l_ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of multiplication operation
 	INLINE l_interval operator *(const l_rvector_slice & sl1, const l_ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	//! Implementation of multiplication operation
@@ -2985,28 +2985,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of multiplication operation
 	INLINE l_interval operator *(const l_ivector_slice &sl, const l_rvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of multiplication operation
 	INLINE l_interval operator *(const l_ivector &rv, const l_rvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of multiplication operation
 	INLINE l_interval operator *(const l_ivector_slice & sl1, const l_rvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	//! Implementation of addition operation
@@ -3014,28 +3014,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition operation
 	INLINE l_ivector operator +(const l_rvector &rv, const l_ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition operation
 	INLINE l_ivector operator +(const l_rvector_slice &sl, const l_ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition operation
 	INLINE l_ivector operator +(const l_rvector_slice &sl1, const l_ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Implementation of addition operation
@@ -3043,28 +3043,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition operation
 	INLINE l_ivector operator +(const l_ivector &rv, const l_rvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition operation
 	INLINE l_ivector operator +(const l_ivector_slice &sl, const l_rvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition operation
 	INLINE l_ivector operator +(const l_ivector_slice &sl1, const l_rvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Implementation of addition and allocation operation
@@ -3072,14 +3072,14 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition and allocation operation
 	INLINE l_ivector &operator +=(l_ivector &rv, const l_rvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Implementation of subtraction operation
@@ -3087,28 +3087,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction operation
 	INLINE l_ivector operator -(const l_rvector &rv, const l_ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction operation
 	INLINE l_ivector operator -(const l_rvector_slice &sl, const l_ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction operation
 	INLINE l_ivector operator -(const l_rvector_slice &sl1, const l_ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Implementation of subtraction operation
@@ -3116,28 +3116,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction operation
 	INLINE l_ivector operator -(const l_ivector &rv, const l_rvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction operation
 	INLINE l_ivector operator -(const l_ivector_slice &sl, const l_rvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction operation
 	INLINE l_ivector operator -(const l_ivector_slice &sl1, const l_rvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Implementation of subtraction and allocation operation
@@ -3145,14 +3145,14 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction and allocation operation
 	INLINE l_ivector &operator -=(l_ivector &rv, const l_rvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Returns the convex hull of the arguments
@@ -3160,28 +3160,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const l_rvector &rv, const l_ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const l_rvector_slice &sl, const l_ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const l_rvector_slice &sl1, const l_ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Returns the convex hull of the arguments
@@ -3189,28 +3189,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const l_ivector &rv, const l_rvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const l_ivector_slice &sl, const l_rvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const l_ivector_slice &sl1, const l_rvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Allocates the convex hull of the arguments to the first argument
@@ -3218,14 +3218,14 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Allocates the convex hull of the arguments to the first argument
 	INLINE l_ivector &operator |=(l_ivector &rv, const l_rvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Returns the intersection of the arguments
@@ -3233,28 +3233,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the intersection of the arguments
 	INLINE l_ivector operator &(const l_rvector &rv, const l_ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the intersection of the arguments
 	INLINE l_ivector operator &(const l_rvector_slice &sl, const l_ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the intersection of the arguments
 	INLINE l_ivector operator &(const l_rvector_slice &sl1, const l_ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Returns the intersection of the arguments
@@ -3262,28 +3262,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the intersection of the arguments
 	INLINE l_ivector operator &(const l_ivector &rv, const l_rvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the intersection of the arguments
 	INLINE l_ivector operator &(const l_ivector_slice &sl, const l_rvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the intersection of the arguments
 	INLINE l_ivector operator &(const l_ivector_slice &sl1, const l_rvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Allocates the intersection of the arguments to the first argument
@@ -3291,14 +3291,14 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Allocates the intersection of the arguments to the first argument
 	INLINE l_ivector &operator &=(l_ivector &rv, const l_rvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 //-------------------------------- l_interval / interval --------------------------------
@@ -3306,86 +3306,86 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const ivector & rv1, const l_ivector &rv2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const l_ivector & rv1, const ivector &rv2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const ivector_slice & sl, const l_ivector &rv)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp,const l_ivector_slice &sl,const ivector &rv)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const ivector &rv, const l_ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const ivector & rv1, const l_imatrix_subv &rv2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const l_ivector & rv1, const imatrix_subv &rv2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp,const l_ivector &rv,const ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const imatrix_subv & rv1, const l_ivector &rv2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const l_imatrix_subv & rv1, const ivector &rv2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const l_ivector_slice & sl1, const ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! The accurate scalar product of the last two arguments added to the value of the first argument
 	INLINE void accumulate(idotprecision &dp, const ivector_slice & sl1, const l_ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
-	noexcept(false);
+	throw(OP_WITH_WRONG_DIM);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Implementation of multiplication operation
@@ -3393,28 +3393,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of multiplication operation
 	INLINE l_interval operator *(const ivector_slice &sl, const l_ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of multiplication operation
 	INLINE l_interval operator *(const ivector &rv, const l_ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of multiplication operation
 	INLINE l_interval operator *(const ivector_slice & sl1, const l_ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	//! Implementation of multiplication operation
@@ -3422,28 +3422,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of multiplication operation
 	INLINE l_interval operator *(const l_ivector_slice &sl, const ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of multiplication operation
 	INLINE l_interval operator *(const l_ivector &rv, const ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of multiplication operation
 	INLINE l_interval operator *(const l_ivector_slice & sl1, const ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	
 	//! Implementation of addition operation
@@ -3451,28 +3451,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition operation
 	INLINE l_ivector operator +(const ivector &rv, const l_ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition operation
 	INLINE l_ivector operator +(const ivector_slice &sl, const l_ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition operation
 	INLINE l_ivector operator +(const ivector_slice &sl1, const l_ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Implementation of addition operation
@@ -3480,28 +3480,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition operation
 	INLINE l_ivector operator +(const l_ivector &rv, const ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition operation
 	INLINE l_ivector operator +(const l_ivector_slice &sl, const ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition operation
 	INLINE l_ivector operator +(const l_ivector_slice &sl1, const ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Implementation of addition and allocation operation
@@ -3509,14 +3509,14 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition and allocation operation
 	INLINE l_ivector &operator +=(l_ivector &rv, const ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Implementation of subtraction operation
@@ -3524,28 +3524,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction operation
 	INLINE l_ivector operator -(const ivector &rv, const l_ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction operation
 	INLINE l_ivector operator -(const ivector_slice &sl, const l_ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction operation
 	INLINE l_ivector operator -(const ivector_slice &sl1, const l_ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Implementation of subtraction operation
@@ -3553,28 +3553,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction operation
 	INLINE l_ivector operator -(const l_ivector &rv, const ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction operation
 	INLINE l_ivector operator -(const l_ivector_slice &sl, const ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction operation
 	INLINE l_ivector operator -(const l_ivector_slice &sl1, const ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Implementation of subtraction and allocation operation
@@ -3582,14 +3582,14 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction and allocation operation
 	INLINE l_ivector &operator -=(l_ivector &rv, const ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Returns the convex hull of the arguments
@@ -3597,28 +3597,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const ivector &rv, const l_ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const ivector_slice &sl, const l_ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const ivector_slice &sl1, const l_ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Returns the convex hull of the arguments
@@ -3626,28 +3626,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const l_ivector &rv, const ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const l_ivector_slice &sl, const ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const l_ivector_slice &sl1, const ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Allocates the convex hull of the arguments to the first argument
@@ -3655,14 +3655,14 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Allocates the convex hull of the arguments to the first argument
 	INLINE l_ivector &operator |=(l_ivector &rv, const ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Returns the intersection of the arguments
@@ -3670,28 +3670,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the intersection of the arguments
 	INLINE l_ivector operator &(const ivector &rv, const l_ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the intersection of the arguments
 	INLINE l_ivector operator &(const ivector_slice &sl, const l_ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the intersection of the arguments
 	INLINE l_ivector operator &(const ivector_slice &sl1, const l_ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Returns the intersection of the arguments
@@ -3699,28 +3699,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the intersection of the arguments
 	INLINE l_ivector operator &(const l_ivector &rv, const ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the intersection of the arguments
 	INLINE l_ivector operator &(const l_ivector_slice &sl, const ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the intersection of the arguments
 	INLINE l_ivector operator &(const l_ivector_slice &sl1, const ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Allocates the intersection of the arguments to the first argument
@@ -3728,14 +3728,14 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Allocates the intersection of the arguments to the first argument
 	INLINE l_ivector &operator &=(l_ivector &rv, const ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 //------------- real x l_real ------------------------
@@ -3744,56 +3744,56 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const l_rvector &rv1, const rvector &rv2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const l_rvector &rv, const rvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const rvector_slice &sl,const l_rvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const l_rvector_slice &sl, const rvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const rvector &rv,const l_rvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const l_rvector_slice &sl1, const rvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const rvector_slice &sl1, const l_rvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 //------------- l_real x l_real ------------------------
@@ -3802,28 +3802,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const l_rvector_slice &sl, const l_rvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const l_rvector &rv,const l_rvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const l_rvector_slice &sl1, const l_rvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 //-------------------------------- interval / l_real --------------------------------
@@ -3835,28 +3835,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition operation
 	INLINE l_ivector operator +(const l_rvector &rv, const ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition operation
 	INLINE l_ivector operator +(const l_rvector_slice &sl, const ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition operation
 	INLINE l_ivector operator +(const l_rvector_slice &sl1, const ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Implementation of addition operation
@@ -3864,28 +3864,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition operation
 	INLINE l_ivector operator +(const ivector &rv, const l_rvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition operation
 	INLINE l_ivector operator +(const ivector_slice &sl, const l_rvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of addition operation
 	INLINE l_ivector operator +(const ivector_slice &sl1, const l_rvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 
@@ -3894,28 +3894,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction operation
 	INLINE l_ivector operator -(const l_rvector &rv, const ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction operation
 	INLINE l_ivector operator -(const l_rvector_slice &sl, const ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction operation
 	INLINE l_ivector operator -(const l_rvector_slice &sl1, const ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Implementation of subtraction operation
@@ -3923,28 +3923,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction operation
 	INLINE l_ivector operator -(const ivector &rv, const l_rvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction operation
 	INLINE l_ivector operator -(const ivector_slice &sl, const l_rvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Implementation of subtraction operation
 	INLINE l_ivector operator -(const ivector_slice &sl1, const l_rvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 
@@ -3953,28 +3953,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const l_rvector &rv, const ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const l_rvector_slice &sl, const ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const l_rvector_slice &sl1, const ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Returns the convex hull of the arguments
@@ -3982,28 +3982,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const ivector &rv, const l_rvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const ivector_slice &sl, const l_rvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the convex hull of the arguments
 	INLINE l_ivector operator |(const ivector_slice &sl1, const l_rvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Returns the intersection of the arguments
@@ -4011,28 +4011,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the intersection of the arguments
 	INLINE l_ivector operator &(const l_rvector &rv, const ivector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the intersection of the arguments
 	INLINE l_ivector operator &(const l_rvector_slice &sl, const ivector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the intersection of the arguments
 	INLINE l_ivector operator &(const l_rvector_slice &sl1, const ivector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 	//! Returns the intersection of the arguments
@@ -4040,28 +4040,28 @@ template <class V,class M,class S> friend  void _vmconstr(V &v,const M &m)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the intersection of the arguments
 	INLINE l_ivector operator &(const ivector &rv, const l_rvector_slice &sl)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the intersection of the arguments
 	INLINE l_ivector operator &(const ivector_slice &sl, const l_rvector &rv)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 	//! Returns the intersection of the arguments
 	INLINE l_ivector operator &(const ivector_slice &sl1, const l_rvector_slice &sl2)
 #if(CXSC_INDEX_CHECK)
 	throw(ERROR__OP_WITH_WRONG_DIM<l_ivector>);
 #else
-	noexcept(false);
+	noexcept;
 #endif
 
 } // namespace cxsc 

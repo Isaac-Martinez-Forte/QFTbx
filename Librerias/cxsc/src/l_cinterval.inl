@@ -30,13 +30,13 @@ namespace cxsc {
 
 // ---- implicit constructors  ------------------------------
       
-inline l_cinterval::l_cinterval(const interval & a,const interval & b) noexcept(false)
+inline l_cinterval::l_cinterval(const interval & a,const interval & b) noexcept
       : re(a), im(b)
 {
 }
 
 inline l_cinterval::l_cinterval(const l_interval & a, 
-                                const l_interval & b) noexcept(false)
+                                const l_interval & b) noexcept
       : re(a), im(b)
 {
 }
@@ -61,91 +61,91 @@ inline l_cinterval::l_cinterval(const l_complex & a, const l_complex & b)
 
 // ---- explicit constructors  ------------------------------
 
-inline l_cinterval::l_cinterval(const real & a) noexcept(false) : re(a,a), im(0,0) {}
-inline l_cinterval::l_cinterval(const l_real & a) noexcept(false) : re(a,a), im(0,0) {}
+inline l_cinterval::l_cinterval(const real & a) noexcept : re(a,a), im(0,0) {}
+inline l_cinterval::l_cinterval(const l_real & a) noexcept : re(a,a), im(0,0) {}
 
 
 inline l_cinterval::l_cinterval(const interval & a) 
-                               noexcept(false) : re(a), im(0,0) {}
+                               noexcept : re(a), im(0,0) {}
 inline l_cinterval::l_cinterval(const l_interval & a) 
-                               noexcept(false) : re(a), im(0,0) {}
+                               noexcept : re(a), im(0,0) {}
 inline l_cinterval::l_cinterval(const complex & a) 
-                           noexcept(false) : re(Re(a),Re(a)),im(Im(a),Im(a)) {}
+                           noexcept : re(Re(a),Re(a)),im(Im(a),Im(a)) {}
 inline l_cinterval::l_cinterval(const l_complex & a) 
-                           noexcept(false) : re(Re(a),Re(a)),im(Im(a),Im(a)) {} 
+                           noexcept : re(Re(a),Re(a)),im(Im(a),Im(a)) {} 
 inline l_cinterval::l_cinterval(const cinterval & a) 
-       noexcept(false) : re(Inf(Re(a)),Sup(Re(a))),im(Inf(Im(a)),Sup(Im(a))) {} 
+       noexcept : re(Inf(Re(a)),Sup(Re(a))),im(Inf(Im(a)),Sup(Im(a))) {} 
 
      
 // ---- assignments -----------------------------------------
 
-inline l_cinterval & l_cinterval::operator =(const real & a) noexcept(false)
+inline l_cinterval & l_cinterval::operator =(const real & a) noexcept
 {
    re=a,im=0.0;
    return *this;   
 }
 
-inline l_cinterval & l_cinterval::operator =(const l_real & a) noexcept(false)
+inline l_cinterval & l_cinterval::operator =(const l_real & a) noexcept
 {
    re=a,im=0.0;
    return *this;   
 }
 
 
-inline l_cinterval & l_cinterval::operator =(const interval & a) noexcept(false)
+inline l_cinterval & l_cinterval::operator =(const interval & a) noexcept
 {
    re=a,im=0.0;
    return *this;
 }
 
-inline l_cinterval & l_cinterval::operator =(const l_interval & a) noexcept(false)
+inline l_cinterval & l_cinterval::operator =(const l_interval & a) noexcept
 {
    re=a,im=0.0;
    return *this;
 }
 
-inline l_cinterval & l_cinterval::operator =(const complex & a) noexcept(false)
+inline l_cinterval & l_cinterval::operator =(const complex & a) noexcept
 {
    re=Re(a),im=Im(a);
    return *this;
 }
 
-inline l_cinterval & l_cinterval::operator =(const l_complex & a) noexcept(false)
+inline l_cinterval & l_cinterval::operator =(const l_complex & a) noexcept
 {
    re=Re(a),im=Im(a);
    return *this;
 }
 
-inline l_cinterval & l_cinterval::operator =(const cinterval & a) noexcept(false)
+inline l_cinterval & l_cinterval::operator =(const cinterval & a) noexcept
 {
      re = Re(a);	
      im = Im(a);	
      return *this;
 }
 
-inline l_cinterval & l_cinterval::operator =(const l_cinterval & a) noexcept(false)
+inline l_cinterval & l_cinterval::operator =(const l_cinterval & a) noexcept
 {
      re = a.re;	
      im = a.im;	
      return *this;
 }
  
-inline l_cinterval & l_cinterval::operator =(const dotprecision & a) noexcept(false)
+inline l_cinterval & l_cinterval::operator =(const dotprecision & a) noexcept
 {
    return *this = l_cinterval(a);
 }
 
-inline l_cinterval & l_cinterval::operator =(const idotprecision & a) noexcept(false)
+inline l_cinterval & l_cinterval::operator =(const idotprecision & a) noexcept
 {
    return *this = l_cinterval(a);
 }
 
-inline l_cinterval & l_cinterval::operator =(const cdotprecision & a) noexcept(false)
+inline l_cinterval & l_cinterval::operator =(const cdotprecision & a) noexcept
 {
    return *this = l_cinterval(a);
 }
 
-inline l_cinterval & l_cinterval::operator =(const cidotprecision & a) noexcept(false)
+inline l_cinterval & l_cinterval::operator =(const cidotprecision & a) noexcept
 {
    return *this = l_cinterval(a);
 }
@@ -153,29 +153,29 @@ inline l_cinterval & l_cinterval::operator =(const cidotprecision & a) noexcept(
 
 // ---- Std.Operators ---------------------------------------
 
-inline l_cinterval operator -(const l_cinterval & a) noexcept(false)
+inline l_cinterval operator -(const l_cinterval & a) noexcept
 {
    return l_cinterval(-a.re,-a.im);
 }
 
-inline l_cinterval operator +(const l_cinterval & a) noexcept(false)
+inline l_cinterval operator +(const l_cinterval & a) noexcept
 {
    return a;
 }
 
-inline bool operator! (const l_cinterval & a)  noexcept(false)
+inline bool operator! (const l_cinterval & a)  noexcept
 {
    return !a.re && !a.im;
 }
 
 inline l_cinterval operator +(const l_cinterval & a, 
-                              const l_cinterval & b) noexcept(false)
+                              const l_cinterval & b) noexcept
 {
    return l_cinterval(a.re + b.re, a.im + b.im);
 }
 
 inline l_cinterval operator -(const l_cinterval & a, 
-                              const l_cinterval & b) noexcept(false)
+                              const l_cinterval & b) noexcept
 {
    return l_cinterval(a.re - b.re, a.im - b.im);
 }
@@ -203,7 +203,7 @@ inline l_cinterval operator &(const l_cinterval & a, const l_cinterval & b)
 }
 
 inline l_cinterval operator |(const l_cinterval & a, const l_cinterval & b) 
-                                                                    noexcept(false)
+                                                                    noexcept
 {
    l_cinterval tmp = a;
    l_real x,y;
@@ -223,96 +223,96 @@ inline l_cinterval operator |(const l_cinterval & a, const l_cinterval & b)
 }
 
 inline l_cinterval & operator +=(l_cinterval & a, const l_cinterval & b) 
-                                             noexcept(false) { return a = a+b; }
+                                             noexcept { return a = a+b; }
 inline l_cinterval & operator -=(l_cinterval & a, const l_cinterval & b) 
-                                             noexcept(false) { return a = a-b; }
+                                             noexcept { return a = a-b; }
 inline l_cinterval & operator *=(l_cinterval & a, const l_cinterval & b) 
-                                             noexcept(false) { return a = a*b; }
+                                             noexcept { return a = a*b; }
 inline l_cinterval & operator /=(l_cinterval & a, const l_cinterval & b) 
-                                             noexcept(false) { return a = a/b; }
+                                             noexcept { return a = a/b; }
 inline l_cinterval & operator |=(l_cinterval & a, const l_cinterval & b) 
-                                             noexcept(false) { return a = a|b; }
+                                             noexcept { return a = a|b; }
 inline l_cinterval & operator &=(l_cinterval & a, const l_cinterval & b) 
                noexcept(false) { return a = a&b; }
 
 // LCI <--> R
 
-inline l_cinterval operator +(const l_cinterval & a, const real & b) noexcept(false) 
+inline l_cinterval operator +(const l_cinterval & a, const real & b) noexcept 
                                               { return a + l_cinterval(b); }
-inline l_cinterval operator +(const real & a, const l_cinterval & b) noexcept(false) 
+inline l_cinterval operator +(const real & a, const l_cinterval & b) noexcept 
                                               { return l_cinterval(a) + b; }
-inline l_cinterval operator -(const l_cinterval & a, const real & b) noexcept(false) 
+inline l_cinterval operator -(const l_cinterval & a, const real & b) noexcept 
                                               { return a - l_cinterval(b); }
-inline l_cinterval operator -(const real & a, const l_cinterval & b) noexcept(false) 
+inline l_cinterval operator -(const real & a, const l_cinterval & b) noexcept 
                                               { return l_cinterval(a) - b; }
-inline l_cinterval operator *(const l_cinterval & a, const real & b) noexcept(false) 
+inline l_cinterval operator *(const l_cinterval & a, const real & b) noexcept 
                                      { return l_cinterval(a.re*b, a.im*b); }
-inline l_cinterval operator *(const real & a, const l_cinterval & b) noexcept(false)
+inline l_cinterval operator *(const real & a, const l_cinterval & b) noexcept
                                      { return l_cinterval(b.re*a, b.im*a); }
-inline l_cinterval operator /(const l_cinterval & a, const real & b) noexcept(false)
+inline l_cinterval operator /(const l_cinterval & a, const real & b) noexcept
                                      { return l_cinterval(a.re/b, a.im/b); }
-inline l_cinterval operator /(const real & a, const l_cinterval & b) noexcept(false) 
+inline l_cinterval operator /(const real & a, const l_cinterval & b) noexcept 
                                               { return l_cinterval(a) / b; }
-inline l_cinterval operator |(const l_cinterval & a, const real & b) noexcept(false) 
+inline l_cinterval operator |(const l_cinterval & a, const real & b) noexcept 
                                                 { return a|l_cinterval(b); }
-inline l_cinterval operator |(const real & a, const l_cinterval & b) noexcept(false) 
+inline l_cinterval operator |(const real & a, const l_cinterval & b) noexcept 
                                                 { return l_cinterval(a)|b; }
-inline l_cinterval operator &(const l_cinterval & a, const real & b) noexcept(false) 
+inline l_cinterval operator &(const l_cinterval & a, const real & b) noexcept 
                                               { return a & l_cinterval(b); }
-inline l_cinterval operator &(const real & a, const l_cinterval & b) noexcept(false) 
+inline l_cinterval operator &(const real & a, const l_cinterval & b) noexcept 
                                               { return l_cinterval(a) & b; }
 
-inline l_cinterval & operator +=(l_cinterval & a, const real & b) noexcept(false) 
+inline l_cinterval & operator +=(l_cinterval & a, const real & b) noexcept 
                                             { return a = a+l_cinterval(b); }
-inline l_cinterval & operator -=(l_cinterval & a, const real & b) noexcept(false) 
+inline l_cinterval & operator -=(l_cinterval & a, const real & b) noexcept 
                                            { return a = a -l_cinterval(b); }
-inline l_cinterval & operator *=(l_cinterval & a, const real & b) noexcept(false)
+inline l_cinterval & operator *=(l_cinterval & a, const real & b) noexcept
                                                        { return a = a * b; }
-inline l_cinterval & operator /=(l_cinterval & a, const real & b) noexcept(false)
+inline l_cinterval & operator /=(l_cinterval & a, const real & b) noexcept
                                                        { return a = a / b; }
-inline l_cinterval & operator |=(l_cinterval & a, const real & b) noexcept(false) 
+inline l_cinterval & operator |=(l_cinterval & a, const real & b) noexcept 
                                             { return a = a|l_cinterval(b); }
-inline l_cinterval & operator &=(l_cinterval & a, const real & b) noexcept(false) 
+inline l_cinterval & operator &=(l_cinterval & a, const real & b) noexcept 
                                             { return a = a&l_cinterval(b); }
 
 // LCI <--> LR
 
-inline l_cinterval operator +(const l_cinterval & a, const l_real & b) noexcept(false) 
+inline l_cinterval operator +(const l_cinterval & a, const l_real & b) noexcept 
                                               { return a + l_cinterval(b); }
-inline l_cinterval operator +(const l_real & a, const l_cinterval & b) noexcept(false) 
+inline l_cinterval operator +(const l_real & a, const l_cinterval & b) noexcept 
                                               { return l_cinterval(a) + b; }
-inline l_cinterval operator -(const l_cinterval & a, const l_real & b) noexcept(false) 
+inline l_cinterval operator -(const l_cinterval & a, const l_real & b) noexcept 
                                               { return a - l_cinterval(b); }
-inline l_cinterval operator -(const l_real & a, const l_cinterval & b) noexcept(false) 
+inline l_cinterval operator -(const l_real & a, const l_cinterval & b) noexcept 
                                               { return l_cinterval(a) - b; }
-inline l_cinterval operator *(const l_cinterval & a, const l_real & b) noexcept(false) 
+inline l_cinterval operator *(const l_cinterval & a, const l_real & b) noexcept 
                                      { return l_cinterval(a.re*b, a.im*b); }
-inline l_cinterval operator *(const l_real & a, const l_cinterval & b) noexcept(false)
+inline l_cinterval operator *(const l_real & a, const l_cinterval & b) noexcept
                                      { return l_cinterval(b.re*a, b.im*a); }
-inline l_cinterval operator /(const l_cinterval & a, const l_real & b) noexcept(false)
+inline l_cinterval operator /(const l_cinterval & a, const l_real & b) noexcept
                                      { return l_cinterval(a.re/b, a.im/b); }
-inline l_cinterval operator /(const l_real & a, const l_cinterval & b) noexcept(false) 
+inline l_cinterval operator /(const l_real & a, const l_cinterval & b) noexcept 
                                               { return l_cinterval(a) / b; }
-inline l_cinterval operator |(const l_cinterval & a, const l_real & b) noexcept(false) 
+inline l_cinterval operator |(const l_cinterval & a, const l_real & b) noexcept 
                                                 { return a|l_cinterval(b); }
-inline l_cinterval operator |(const l_real & a, const l_cinterval & b) noexcept(false) 
+inline l_cinterval operator |(const l_real & a, const l_cinterval & b) noexcept 
                                                 { return l_cinterval(a)|b; }
-inline l_cinterval operator &(const l_cinterval & a, const l_real & b) noexcept(false) 
+inline l_cinterval operator &(const l_cinterval & a, const l_real & b) noexcept 
                                               { return a & l_cinterval(b); }
-inline l_cinterval operator &(const l_real & a, const l_cinterval & b) noexcept(false) 
+inline l_cinterval operator &(const l_real & a, const l_cinterval & b) noexcept 
                                               { return l_cinterval(a) & b; }
 
-inline l_cinterval & operator +=(l_cinterval & a, const l_real & b) noexcept(false) 
+inline l_cinterval & operator +=(l_cinterval & a, const l_real & b) noexcept 
                                             { return a = a+l_cinterval(b); }
-inline l_cinterval & operator -=(l_cinterval & a, const l_real & b) noexcept(false) 
+inline l_cinterval & operator -=(l_cinterval & a, const l_real & b) noexcept 
                                            { return a = a -l_cinterval(b); }
-inline l_cinterval & operator *=(l_cinterval & a, const l_real & b) noexcept(false)
+inline l_cinterval & operator *=(l_cinterval & a, const l_real & b) noexcept
                                                        { return a = a * b; }
-inline l_cinterval & operator /=(l_cinterval & a, const l_real & b) noexcept(false)
+inline l_cinterval & operator /=(l_cinterval & a, const l_real & b) noexcept
                                                        { return a = a / b; }
-inline l_cinterval & operator |=(l_cinterval & a, const l_real & b) noexcept(false) 
+inline l_cinterval & operator |=(l_cinterval & a, const l_real & b) noexcept 
                                             { return a = a|l_cinterval(b); }
-inline l_cinterval & operator &=(l_cinterval & a, const l_real & b) noexcept(false) 
+inline l_cinterval & operator &=(l_cinterval & a, const l_real & b) noexcept 
                                             { return a = a&l_cinterval(b); }
 
 
@@ -320,82 +320,82 @@ inline l_cinterval & operator &=(l_cinterval & a, const l_real & b) noexcept(fal
 // LCI <--> C
 
 inline l_cinterval operator +(const l_cinterval & a, const complex & b) 
-                                      noexcept(false) { return a + l_cinterval(b); }
+                                      noexcept { return a + l_cinterval(b); }
 inline l_cinterval operator +(const complex & a, const l_cinterval & b) 
-                                      noexcept(false) { return l_cinterval(a) + b; }
+                                      noexcept { return l_cinterval(a) + b; }
 inline l_cinterval operator -(const l_cinterval & a, const complex & b) 
-                                      noexcept(false) { return a - l_cinterval(b); }
+                                      noexcept { return a - l_cinterval(b); }
 inline l_cinterval operator -(const complex & a, const l_cinterval & b) 
-                                      noexcept(false) { return l_cinterval(a) - b; }
+                                      noexcept { return l_cinterval(a) - b; }
 inline l_cinterval operator *(const l_cinterval & a, const complex & b) 
-                                      noexcept(false) { return a * l_cinterval(b); }
+                                      noexcept { return a * l_cinterval(b); }
 inline l_cinterval operator *(const complex & a, const l_cinterval & b) 
-                                      noexcept(false) { return l_cinterval(a) * b; }
+                                      noexcept { return l_cinterval(a) * b; }
 inline l_cinterval operator /(const l_cinterval & a, const complex & b) 
-                                      noexcept(false) { return a / l_cinterval(b); }
+                                      noexcept { return a / l_cinterval(b); }
 inline l_cinterval operator /(const complex & a, const l_cinterval & b) 
-                                      noexcept(false) { return l_cinterval(a) / b; }
+                                      noexcept { return l_cinterval(a) / b; }
 inline l_cinterval operator |(const l_cinterval & a, const complex & b) 
-                                      noexcept(false) { return a | l_cinterval(b); }
+                                      noexcept { return a | l_cinterval(b); }
 inline l_cinterval operator |(const complex & a, const l_cinterval & b) 
-                                      noexcept(false) { return l_cinterval(a) | b; }
+                                      noexcept { return l_cinterval(a) | b; }
 inline l_cinterval operator &(const l_cinterval & a, const complex & b) 
-                                      noexcept(false) { return a & l_cinterval(b); }
+                                      noexcept { return a & l_cinterval(b); }
 inline l_cinterval operator &(const complex & a, const l_cinterval & b) 
-                                      noexcept(false) { return l_cinterval(a) & b; }
+                                      noexcept { return l_cinterval(a) & b; }
 
-inline l_cinterval & operator +=(l_cinterval & a, const complex & b) noexcept(false) 
+inline l_cinterval & operator +=(l_cinterval & a, const complex & b) noexcept 
                                           { return a = a + l_cinterval(b); }
-inline l_cinterval & operator -=(l_cinterval & a, const complex & b) noexcept(false) 
+inline l_cinterval & operator -=(l_cinterval & a, const complex & b) noexcept 
                                           { return a = a - l_cinterval(b); }
-inline l_cinterval & operator *=(l_cinterval & a, const complex & b) noexcept(false) 
+inline l_cinterval & operator *=(l_cinterval & a, const complex & b) noexcept 
                                           { return a = a * l_cinterval(b); }
-inline l_cinterval & operator /=(l_cinterval & a, const complex & b) noexcept(false) 
+inline l_cinterval & operator /=(l_cinterval & a, const complex & b) noexcept 
                                           { return a = a / l_cinterval(b); }
-inline l_cinterval & operator |=(l_cinterval & a, const complex & b) noexcept(false) 
+inline l_cinterval & operator |=(l_cinterval & a, const complex & b) noexcept 
                                           { return a = a | l_cinterval(b); }
-inline l_cinterval & operator &=(l_cinterval & a, const complex & b) noexcept(false) 
+inline l_cinterval & operator &=(l_cinterval & a, const complex & b) noexcept 
                                           { return a = a & l_cinterval(b); }
 
 
 // LCI <--> LC
 
 inline l_cinterval operator +(const l_cinterval & a, const l_complex & b) 
-                                      noexcept(false) { return a + l_cinterval(b); }
+                                      noexcept { return a + l_cinterval(b); }
 inline l_cinterval operator +(const l_complex & a, const l_cinterval & b) 
-                                      noexcept(false) { return l_cinterval(a) + b; }
+                                      noexcept { return l_cinterval(a) + b; }
 inline l_cinterval operator -(const l_cinterval & a, const l_complex & b) 
-                                      noexcept(false) { return a - l_cinterval(b); }
+                                      noexcept { return a - l_cinterval(b); }
 inline l_cinterval operator -(const l_complex & a, const l_cinterval & b) 
-                                      noexcept(false) { return l_cinterval(a) - b; }
+                                      noexcept { return l_cinterval(a) - b; }
 inline l_cinterval operator *(const l_cinterval & a, const l_complex & b) 
-                                      noexcept(false) { return a * l_cinterval(b); }
+                                      noexcept { return a * l_cinterval(b); }
 inline l_cinterval operator *(const l_complex & a, const l_cinterval & b) 
-                                      noexcept(false) { return l_cinterval(a) * b; }
+                                      noexcept { return l_cinterval(a) * b; }
 inline l_cinterval operator /(const l_cinterval & a, const l_complex & b) 
-                                      noexcept(false) { return a / l_cinterval(b); }
+                                      noexcept { return a / l_cinterval(b); }
 inline l_cinterval operator /(const l_complex & a, const l_cinterval & b) 
-                                      noexcept(false) { return l_cinterval(a) / b; }
+                                      noexcept { return l_cinterval(a) / b; }
 inline l_cinterval operator |(const l_cinterval & a, const l_complex & b) 
-                                      noexcept(false) { return a | l_cinterval(b); }
+                                      noexcept { return a | l_cinterval(b); }
 inline l_cinterval operator |(const l_complex & a, const l_cinterval & b) 
-                                      noexcept(false) { return l_cinterval(a) | b; }
+                                      noexcept { return l_cinterval(a) | b; }
 inline l_cinterval operator &(const l_cinterval & a, const l_complex & b) 
-                                      noexcept(false) { return a & l_cinterval(b); }
+                                      noexcept { return a & l_cinterval(b); }
 inline l_cinterval operator &(const l_complex & a, const l_cinterval & b) 
-                                      noexcept(false) { return l_cinterval(a) & b; }
+                                      noexcept { return l_cinterval(a) & b; }
 
-inline l_cinterval & operator +=(l_cinterval & a, const l_complex & b) noexcept(false) 
+inline l_cinterval & operator +=(l_cinterval & a, const l_complex & b) noexcept 
                                           { return a = a + l_cinterval(b); }
-inline l_cinterval & operator -=(l_cinterval & a, const l_complex & b) noexcept(false) 
+inline l_cinterval & operator -=(l_cinterval & a, const l_complex & b) noexcept 
                                           { return a = a - l_cinterval(b); }
-inline l_cinterval & operator *=(l_cinterval & a, const l_complex & b) noexcept(false) 
+inline l_cinterval & operator *=(l_cinterval & a, const l_complex & b) noexcept 
                                           { return a = a * l_cinterval(b); }
-inline l_cinterval & operator /=(l_cinterval & a, const l_complex & b) noexcept(false) 
+inline l_cinterval & operator /=(l_cinterval & a, const l_complex & b) noexcept 
                                           { return a = a / l_cinterval(b); }
-inline l_cinterval & operator |=(l_cinterval & a, const l_complex & b) noexcept(false) 
+inline l_cinterval & operator |=(l_cinterval & a, const l_complex & b) noexcept 
                                           { return a = a | l_cinterval(b); }
-inline l_cinterval & operator &=(l_cinterval & a, const l_complex & b) noexcept(false) 
+inline l_cinterval & operator &=(l_cinterval & a, const l_complex & b) noexcept 
                                           { return a = a & l_cinterval(b); }
 
 
@@ -403,281 +403,281 @@ inline l_cinterval & operator &=(l_cinterval & a, const l_complex & b) noexcept(
 // LCI <--> I
 
 inline l_cinterval operator +(const l_cinterval & a, 
-                              const interval & b) noexcept(false)
+                              const interval & b) noexcept
                                             { return a + l_cinterval(b); } 
 inline l_cinterval operator +(const interval & a,
-                              const l_cinterval & b) noexcept(false) 
+                              const l_cinterval & b) noexcept 
                                             { return l_cinterval(a) + b; }
 inline l_cinterval operator -(const l_cinterval & a,
-                              const interval & b) noexcept(false) 
+                              const interval & b) noexcept 
                                             { return a - l_cinterval(b); }
 inline l_cinterval operator -(const interval & a,
-                              const l_cinterval & b) noexcept(false) 
+                              const l_cinterval & b) noexcept 
                                             { return l_cinterval(a) - b; }
 inline l_cinterval operator *(const l_cinterval & a,
-                              const interval & b) noexcept(false)
+                              const interval & b) noexcept
                                    { return l_cinterval(a.re*b, a.im*b); }
 inline l_cinterval operator *(const interval & a,
-                              const l_cinterval & b) noexcept(false)
+                              const l_cinterval & b) noexcept
                                    { return l_cinterval(b.re*a, b.im*a); }
 inline l_cinterval operator /(const l_cinterval & a,
-                              const interval & b) noexcept(false)
+                              const interval & b) noexcept
                                    { return l_cinterval(a.re/b, a.im/b); }
 inline l_cinterval operator /(const interval & a,
-                              const l_cinterval & b) noexcept(false) 
+                              const l_cinterval & b) noexcept 
                                             { return l_cinterval(a) / b; }
 inline l_cinterval operator |(const l_cinterval & a,
-                              const interval & b) noexcept(false) 
+                              const interval & b) noexcept 
                                             { return a | l_cinterval(b); }
 inline l_cinterval operator |(const interval & a,
-                              const l_cinterval & b) noexcept(false) 
+                              const l_cinterval & b) noexcept 
                                             { return l_cinterval(a) | b; }
 inline l_cinterval operator &(const l_cinterval & a,
-                              const interval & b) noexcept(false) 
+                              const interval & b) noexcept 
                                             { return a & l_cinterval(b); }
 inline l_cinterval operator &(const interval & a,
-                              const l_cinterval & b) noexcept(false) 
+                              const l_cinterval & b) noexcept 
                                             { return l_cinterval(a) & b; }
 
 inline l_cinterval & operator +=(l_cinterval & a, const interval & b) 
-                                noexcept(false) { return a = a + l_cinterval(b); }
+                                noexcept { return a = a + l_cinterval(b); }
 inline l_cinterval & operator -=(l_cinterval & a, const interval & b) 
-                                noexcept(false) { return a = a - l_cinterval(b); }
+                                noexcept { return a = a - l_cinterval(b); }
 inline l_cinterval & operator *=(l_cinterval & a, const interval & b) 
-                                noexcept(false) { return a = a * l_cinterval(b); }
+                                noexcept { return a = a * l_cinterval(b); }
 inline l_cinterval & operator /=(l_cinterval & a, const interval & b) 
-                                noexcept(false) { return a = a / l_cinterval(b); }
+                                noexcept { return a = a / l_cinterval(b); }
 inline l_cinterval & operator |=(l_cinterval & a, const interval & b) 
-                                noexcept(false) { return a = a | l_cinterval(b); }
+                                noexcept { return a = a | l_cinterval(b); }
 inline l_cinterval & operator &=(l_cinterval & a, const interval & b) 
-                                noexcept(false) { return a = a & l_cinterval(b); }
+                                noexcept { return a = a & l_cinterval(b); }
 
 // LCI <--> LI
 
 inline l_cinterval operator +(const l_cinterval & a, 
-                              const l_interval & b) noexcept(false)
+                              const l_interval & b) noexcept
                                             { return a + l_cinterval(b); } 
 inline l_cinterval operator +(const l_interval & a,
-                              const l_cinterval & b) noexcept(false) 
+                              const l_cinterval & b) noexcept 
                                             { return l_cinterval(a) + b; }
 inline l_cinterval operator -(const l_cinterval & a,
-                              const l_interval & b) noexcept(false) 
+                              const l_interval & b) noexcept 
                                             { return a - l_cinterval(b); }
 inline l_cinterval operator -(const l_interval & a,
-                              const l_cinterval & b) noexcept(false) 
+                              const l_cinterval & b) noexcept 
                                             { return l_cinterval(a) - b; }
 inline l_cinterval operator *(const l_cinterval & a,
-                              const l_interval & b) noexcept(false)
+                              const l_interval & b) noexcept
                                    { return l_cinterval(a.re*b, a.im*b); }
 inline l_cinterval operator *(const l_interval & a,
-                              const l_cinterval & b) noexcept(false)
+                              const l_cinterval & b) noexcept
                                    { return l_cinterval(b.re*a, b.im*a); }
 inline l_cinterval operator /(const l_cinterval & a,
-                              const l_interval & b) noexcept(false)
+                              const l_interval & b) noexcept
                                    { return l_cinterval(a.re/b, a.im/b); }
 inline l_cinterval operator /(const l_interval & a,
-                              const l_cinterval & b) noexcept(false) 
+                              const l_cinterval & b) noexcept 
                                             { return l_cinterval(a) / b; }
 inline l_cinterval operator |(const l_cinterval & a,
-                              const l_interval & b) noexcept(false) 
+                              const l_interval & b) noexcept 
                                             { return a | l_cinterval(b); }
 inline l_cinterval operator |(const l_interval & a,
-                              const l_cinterval & b) noexcept(false) 
+                              const l_cinterval & b) noexcept 
                                             { return l_cinterval(a) | b; }
 inline l_cinterval operator &(const l_cinterval & a,
-                              const l_interval & b) noexcept(false) 
+                              const l_interval & b) noexcept 
                                             { return a & l_cinterval(b); }
 inline l_cinterval operator &(const l_interval & a,
-                              const l_cinterval & b) noexcept(false) 
+                              const l_cinterval & b) noexcept 
                                             { return l_cinterval(a) & b; }
 
 inline l_cinterval & operator +=(l_cinterval & a, const l_interval & b) 
-                                noexcept(false) { return a = a + l_cinterval(b); }
+                                noexcept { return a = a + l_cinterval(b); }
 inline l_cinterval & operator -=(l_cinterval & a, const l_interval & b) 
-                                noexcept(false) { return a = a - l_cinterval(b); }
+                                noexcept { return a = a - l_cinterval(b); }
 inline l_cinterval & operator *=(l_cinterval & a, const l_interval & b) 
-                                noexcept(false) { return a = a * l_cinterval(b); }
+                                noexcept { return a = a * l_cinterval(b); }
 inline l_cinterval & operator /=(l_cinterval & a, const l_interval & b) 
-                                noexcept(false) { return a = a / l_cinterval(b); }
+                                noexcept { return a = a / l_cinterval(b); }
 inline l_cinterval & operator |=(l_cinterval & a, const l_interval & b) 
-                                noexcept(false) { return a = a | l_cinterval(b); }
+                                noexcept { return a = a | l_cinterval(b); }
 inline l_cinterval & operator &=(l_cinterval & a, const l_interval & b) 
-                                noexcept(false) { return a = a & l_cinterval(b); }
+                                noexcept { return a = a & l_cinterval(b); }
 
 // LCI <--> CI
 
 inline l_cinterval operator +(const l_cinterval & a, 
-                              const cinterval & b) noexcept(false)
+                              const cinterval & b) noexcept
                                             { return a + l_cinterval(b); } 
 inline l_cinterval operator +(const cinterval & a,
-                              const l_cinterval & b) noexcept(false) 
+                              const l_cinterval & b) noexcept 
                                             { return l_cinterval(a) + b; }
 inline l_cinterval operator -(const l_cinterval & a,
-                              const cinterval & b) noexcept(false) 
+                              const cinterval & b) noexcept 
                                             { return a - l_cinterval(b); }
 inline l_cinterval operator -(const cinterval & a,
-                              const l_cinterval & b) noexcept(false) 
+                              const l_cinterval & b) noexcept 
                                             { return l_cinterval(a) - b; }
 inline l_cinterval operator *(const l_cinterval & a,
-                              const cinterval & b) noexcept(false)
+                              const cinterval & b) noexcept
                                             { return a * l_cinterval(b); }
 inline l_cinterval operator *(const cinterval & a,
-                              const l_cinterval & b) noexcept(false)
+                              const l_cinterval & b) noexcept
                                             { return l_cinterval(a) * b; }
 inline l_cinterval operator /(const l_cinterval & a,
-                              const cinterval & b) noexcept(false)
+                              const cinterval & b) noexcept
                                             { return a / l_cinterval(b); }
 inline l_cinterval operator /(const cinterval & a,
-                              const l_cinterval & b) noexcept(false) 
+                              const l_cinterval & b) noexcept 
                                             { return l_cinterval(a) / b; }
 inline l_cinterval operator |(const l_cinterval & a,
-                              const cinterval & b) noexcept(false) 
+                              const cinterval & b) noexcept 
                                             { return a | l_cinterval(b); }
 inline l_cinterval operator |(const cinterval & a,
-                              const l_cinterval & b) noexcept(false) 
+                              const l_cinterval & b) noexcept 
                                             { return l_cinterval(a) | b; }
 inline l_cinterval operator &(const l_cinterval & a,
-                              const cinterval & b) noexcept(false) 
+                              const cinterval & b) noexcept 
                                             { return a & l_cinterval(b); }
 inline l_cinterval operator &(const cinterval & a,
-                              const l_cinterval & b) noexcept(false) 
+                              const l_cinterval & b) noexcept 
                                             { return l_cinterval(a) & b; }
 
 inline l_cinterval & operator +=(l_cinterval & a, const cinterval & b) 
-                                noexcept(false) { return a = a + l_cinterval(b); }
+                                noexcept { return a = a + l_cinterval(b); }
 inline l_cinterval & operator -=(l_cinterval & a, const cinterval & b) 
-                                noexcept(false) { return a = a - l_cinterval(b); }
+                                noexcept { return a = a - l_cinterval(b); }
 inline l_cinterval & operator *=(l_cinterval & a, const cinterval & b) 
-                                noexcept(false) { return a = a * l_cinterval(b); }
+                                noexcept { return a = a * l_cinterval(b); }
 inline l_cinterval & operator /=(l_cinterval & a, const cinterval & b) 
-                                noexcept(false) { return a = a / l_cinterval(b); }
+                                noexcept { return a = a / l_cinterval(b); }
 inline l_cinterval & operator |=(l_cinterval & a, const cinterval & b) 
-                                noexcept(false) { return a = a | l_cinterval(b); }
+                                noexcept { return a = a | l_cinterval(b); }
 inline l_cinterval & operator &=(l_cinterval & a, const cinterval & b) 
-                                noexcept(false) { return a = a & l_cinterval(b); }
+                                noexcept { return a = a & l_cinterval(b); }
 
 // C-R
 
-inline l_cinterval operator |(const l_complex & a, const real & b) noexcept(false) 
+inline l_cinterval operator |(const l_complex & a, const real & b) noexcept 
                                { return l_cinterval(a) | l_cinterval(b); }
-inline l_cinterval operator |(const real & a, const l_complex & b) noexcept(false) 
+inline l_cinterval operator |(const real & a, const l_complex & b) noexcept 
                                { return l_cinterval(a) | l_cinterval(b); }
-inline l_cinterval operator |(const complex & a, const l_real & b) noexcept(false) 
+inline l_cinterval operator |(const complex & a, const l_real & b) noexcept 
                                { return l_cinterval(a) | l_cinterval(b); }
-inline l_cinterval operator |(const l_real & a, const complex & b) noexcept(false) 
+inline l_cinterval operator |(const l_real & a, const complex & b) noexcept 
                                { return l_cinterval(a) | l_cinterval(b); }
-inline l_cinterval operator |(const l_complex & a, const l_real & b) noexcept(false) 
+inline l_cinterval operator |(const l_complex & a, const l_real & b) noexcept 
                                  { return l_cinterval(a) | l_cinterval(b); }
-inline l_cinterval operator |(const l_real & a, const l_complex & b) noexcept(false) 
+inline l_cinterval operator |(const l_real & a, const l_complex & b) noexcept 
                                  { return l_cinterval(a) | l_cinterval(b); }
-inline l_cinterval operator |(const cinterval & a, const l_real & b) noexcept(false) 
+inline l_cinterval operator |(const cinterval & a, const l_real & b) noexcept 
                                  { return l_cinterval(a) | l_cinterval(b); }
-inline l_cinterval operator |(const l_real & a, const cinterval & b) noexcept(false) 
+inline l_cinterval operator |(const l_real & a, const cinterval & b) noexcept 
                                  { return l_cinterval(a) | l_cinterval(b); }
 inline l_cinterval operator |(const cinterval & a, const l_complex & b) 
-                    noexcept(false) { return l_cinterval(a) | l_cinterval(b); }
+                    noexcept { return l_cinterval(a) | l_cinterval(b); }
 inline l_cinterval operator |(const l_complex & a, const cinterval & b) 
-                    noexcept(false) { return l_cinterval(a) | l_cinterval(b); }
+                    noexcept { return l_cinterval(a) | l_cinterval(b); }
 
 // LC <--> I
 
-inline l_cinterval operator +(const l_complex & a, const interval & b) noexcept(false) 
+inline l_cinterval operator +(const l_complex & a, const interval & b) noexcept 
                                    { return l_cinterval(a) + l_cinterval(b); }
-inline l_cinterval operator +(const interval & a, const l_complex & b) noexcept(false) 
+inline l_cinterval operator +(const interval & a, const l_complex & b) noexcept 
                                    { return l_cinterval(a) + l_cinterval(b); }
-inline l_cinterval operator -(const l_complex & a, const interval & b) noexcept(false) 
+inline l_cinterval operator -(const l_complex & a, const interval & b) noexcept 
                                    { return l_cinterval(a) - l_cinterval(b); }
-inline l_cinterval operator -(const interval & a, const l_complex & b) noexcept(false) 
+inline l_cinterval operator -(const interval & a, const l_complex & b) noexcept 
                                    { return l_cinterval(a) - l_cinterval(b); }
-inline l_cinterval operator *(const l_complex & a, const interval & b) noexcept(false)
+inline l_cinterval operator *(const l_complex & a, const interval & b) noexcept
                                                 { return l_cinterval(a) * b; }
-inline l_cinterval operator *(const interval & a, const l_complex & b) noexcept(false)
+inline l_cinterval operator *(const interval & a, const l_complex & b) noexcept
                                                 { return l_cinterval(b) * a; }
-inline l_cinterval operator /(const l_complex & a, const interval & b) noexcept(false)
+inline l_cinterval operator /(const l_complex & a, const interval & b) noexcept
                                                 { return l_cinterval(a) / b; }
-inline l_cinterval operator /(const interval & a, const l_complex & b) noexcept(false)
+inline l_cinterval operator /(const interval & a, const l_complex & b) noexcept
                                    { return l_cinterval(a) / l_cinterval(b); }
-inline l_cinterval operator |(const l_complex & a, const interval & b) noexcept(false)
+inline l_cinterval operator |(const l_complex & a, const interval & b) noexcept
                                    { return l_cinterval(a) | l_cinterval(b); }
-inline l_cinterval operator |(const interval & a, const l_complex & b) noexcept(false)
+inline l_cinterval operator |(const interval & a, const l_complex & b) noexcept
                                    { return l_cinterval(a) | l_cinterval(b); }
-inline l_cinterval operator &(const l_complex & a, const interval & b) noexcept(false)
+inline l_cinterval operator &(const l_complex & a, const interval & b) noexcept
                                    { return l_cinterval(a) & l_cinterval(b); }
-inline l_cinterval operator &(const interval & a, const l_complex & b) noexcept(false)
+inline l_cinterval operator &(const interval & a, const l_complex & b) noexcept
                                    { return l_cinterval(a) & l_cinterval(b); }
 
 // C <--> LI
 
-inline l_cinterval operator +(const complex & a, const l_interval & b) noexcept(false) 
+inline l_cinterval operator +(const complex & a, const l_interval & b) noexcept 
                                    { return l_cinterval(a) + l_cinterval(b); }
-inline l_cinterval operator +(const l_interval & a, const complex & b) noexcept(false) 
+inline l_cinterval operator +(const l_interval & a, const complex & b) noexcept 
                                    { return l_cinterval(a) + l_cinterval(b); }
-inline l_cinterval operator -(const complex & a, const l_interval & b) noexcept(false) 
+inline l_cinterval operator -(const complex & a, const l_interval & b) noexcept 
                                    { return l_cinterval(a) - l_cinterval(b); }
-inline l_cinterval operator -(const l_interval & a, const complex & b) noexcept(false) 
+inline l_cinterval operator -(const l_interval & a, const complex & b) noexcept 
                                    { return l_cinterval(a) - l_cinterval(b); }
-inline l_cinterval operator *(const complex & a, const l_interval & b) noexcept(false)
+inline l_cinterval operator *(const complex & a, const l_interval & b) noexcept
                                                 { return l_cinterval(a) * b; }
-inline l_cinterval operator *(const l_interval & a, const complex & b) noexcept(false)
+inline l_cinterval operator *(const l_interval & a, const complex & b) noexcept
                                                 { return l_cinterval(b) * a; }
-inline l_cinterval operator /(const complex & a, const l_interval & b) noexcept(false)
+inline l_cinterval operator /(const complex & a, const l_interval & b) noexcept
                                                 { return l_cinterval(a) / b; }
-inline l_cinterval operator /(const l_interval & a, const complex & b) noexcept(false)
+inline l_cinterval operator /(const l_interval & a, const complex & b) noexcept
                                    { return l_cinterval(a) / l_cinterval(b); }
-inline l_cinterval operator |(const complex & a, const l_interval & b) noexcept(false)
+inline l_cinterval operator |(const complex & a, const l_interval & b) noexcept
                                    { return l_cinterval(a) | l_cinterval(b); }
-inline l_cinterval operator |(const l_interval & a, const complex & b) noexcept(false)
+inline l_cinterval operator |(const l_interval & a, const complex & b) noexcept
                                    { return l_cinterval(a) | l_cinterval(b); }
-inline l_cinterval operator &(const complex & a, const l_interval & b) noexcept(false)
+inline l_cinterval operator &(const complex & a, const l_interval & b) noexcept
                                    { return l_cinterval(a) & l_cinterval(b); }
-inline l_cinterval operator &(const l_interval & a, const complex & b) noexcept(false)
+inline l_cinterval operator &(const l_interval & a, const complex & b) noexcept
                                    { return l_cinterval(a) & l_cinterval(b); }
 
 // LC <--> LI
 
 inline l_cinterval operator +(const l_complex & a, const l_interval & b) 
-                           noexcept(false) { return l_cinterval(a) + l_cinterval(b); }
+                           noexcept { return l_cinterval(a) + l_cinterval(b); }
 inline l_cinterval operator +(const l_interval & a, const l_complex & b) 
-                           noexcept(false) { return l_cinterval(a) + l_cinterval(b); }
+                           noexcept { return l_cinterval(a) + l_cinterval(b); }
 inline l_cinterval operator -(const l_complex & a, const l_interval & b) 
-                           noexcept(false) { return l_cinterval(a) - l_cinterval(b); }
+                           noexcept { return l_cinterval(a) - l_cinterval(b); }
 inline l_cinterval operator -(const l_interval & a, const l_complex & b) 
-                           noexcept(false) { return l_cinterval(a) - l_cinterval(b); }
+                           noexcept { return l_cinterval(a) - l_cinterval(b); }
 inline l_cinterval operator *(const l_complex & a, const l_interval & b) 
-                                        noexcept(false) { return l_cinterval(a) * b; }
+                                        noexcept { return l_cinterval(a) * b; }
 inline l_cinterval operator *(const l_interval & a, const l_complex & b) 
-                                        noexcept(false) { return l_cinterval(b) * a; }
+                                        noexcept { return l_cinterval(b) * a; }
 inline l_cinterval operator /(const l_complex & a, const l_interval & b) 
-                                        noexcept(false) { return l_cinterval(a) / b; }
+                                        noexcept { return l_cinterval(a) / b; }
 inline l_cinterval operator /(const l_interval & a, const l_complex & b) 
-                           noexcept(false) { return l_cinterval(a) / l_cinterval(b); }
+                           noexcept { return l_cinterval(a) / l_cinterval(b); }
 inline l_cinterval operator |(const l_complex & a, const l_interval & b) 
-                           noexcept(false) { return l_cinterval(a) | l_cinterval(b); }
+                           noexcept { return l_cinterval(a) | l_cinterval(b); }
 inline l_cinterval operator |(const l_interval & a, const l_complex & b) 
-                           noexcept(false) { return l_cinterval(a) | l_cinterval(b); }
+                           noexcept { return l_cinterval(a) | l_cinterval(b); }
 inline l_cinterval operator &(const l_complex & a, const l_interval & b) 
-                           noexcept(false) { return l_cinterval(a) & l_cinterval(b); }
+                           noexcept { return l_cinterval(a) & l_cinterval(b); }
 inline l_cinterval operator &(const l_interval & a, const l_complex & b) 
-                           noexcept(false) { return l_cinterval(a) & l_cinterval(b); }
+                           noexcept { return l_cinterval(a) & l_cinterval(b); }
 
 
 // LC <--> C
 
 inline l_cinterval operator |(const l_complex & a, const complex & b) 
-                           noexcept(false) { return l_cinterval(a) | l_cinterval(b); }
+                           noexcept { return l_cinterval(a) | l_cinterval(b); }
 inline l_cinterval operator |(const complex & a, const l_complex & b) 
-                           noexcept(false) { return l_cinterval(a) | l_cinterval(b); }
+                           noexcept { return l_cinterval(a) | l_cinterval(b); }
 inline l_cinterval operator |(const l_complex & a, const l_complex & b) 
-                           noexcept(false) { return l_cinterval(a) | l_cinterval(b); }
+                           noexcept { return l_cinterval(a) | l_cinterval(b); }
 
 
 // ---- Comp.Operat.  ---------------------------------------
 
-inline bool operator== (const l_cinterval & a, const l_cinterval & b) noexcept(false)
+inline bool operator== (const l_cinterval & a, const l_cinterval & b) noexcept
 {
    return a.re==b.re && a.im==b.im;
 }
-inline bool operator!= (const l_cinterval & a, const l_cinterval & b) noexcept(false)
+inline bool operator!= (const l_cinterval & a, const l_cinterval & b) noexcept
 {
    return a.re!=b.re || a.im!=b.im;
 }
@@ -685,84 +685,84 @@ inline bool operator!= (const l_cinterval & a, const l_cinterval & b) noexcept(f
 
 // LCI-R
 
-inline bool operator== (const l_cinterval & a, const real & b) noexcept(false) 
+inline bool operator== (const l_cinterval & a, const real & b) noexcept 
                                               { return a == l_cinterval(b); }
-inline bool operator== (const real & a, const l_cinterval & b) noexcept(false) 
+inline bool operator== (const real & a, const l_cinterval & b) noexcept 
                                               { return l_cinterval(a) == b; }
-inline bool operator!= (const l_cinterval & a, const real & b) noexcept(false) 
+inline bool operator!= (const l_cinterval & a, const real & b) noexcept 
                                               { return a != l_cinterval(b); }
-inline bool operator!= (const real & a, const l_cinterval & b) noexcept(false) 
+inline bool operator!= (const real & a, const l_cinterval & b) noexcept 
                                               { return l_cinterval(a) != b; }
 
 // LCI-LR
 
-inline bool operator== (const l_cinterval & a, const l_real & b) noexcept(false) 
+inline bool operator== (const l_cinterval & a, const l_real & b) noexcept 
                                               { return a == l_cinterval(b); }
-inline bool operator== (const l_real & a, const l_cinterval & b) noexcept(false) 
+inline bool operator== (const l_real & a, const l_cinterval & b) noexcept 
                                               { return l_cinterval(a) == b; }
-inline bool operator!= (const l_cinterval & a, const l_real & b) noexcept(false) 
+inline bool operator!= (const l_cinterval & a, const l_real & b) noexcept 
                                               { return a != l_cinterval(b); }
-inline bool operator!= (const l_real & a, const l_cinterval & b) noexcept(false) 
+inline bool operator!= (const l_real & a, const l_cinterval & b) noexcept 
                                               { return l_cinterval(a) != b; }
 
 // LCI <--> I
 
-inline bool operator== (const l_cinterval & a, const interval & b) noexcept(false) 
+inline bool operator== (const l_cinterval & a, const interval & b) noexcept 
                                               { return a == l_cinterval(b); }
-inline bool operator== (const interval & a, const l_cinterval & b) noexcept(false) 
+inline bool operator== (const interval & a, const l_cinterval & b) noexcept 
                                               { return l_cinterval(a) == b; }
-inline bool operator!= (const l_cinterval & a, const interval & b) noexcept(false) 
+inline bool operator!= (const l_cinterval & a, const interval & b) noexcept 
                                               { return a != l_cinterval(b); }
-inline bool operator!= (const interval & a, const l_cinterval & b) noexcept(false) 
+inline bool operator!= (const interval & a, const l_cinterval & b) noexcept 
                                               { return l_cinterval(a) != b; }
 
 // LCI <--> LI
 
-inline bool operator== (const l_cinterval & a, const l_interval & b) noexcept(false) 
+inline bool operator== (const l_cinterval & a, const l_interval & b) noexcept 
                                              { return a == l_cinterval(b); }
-inline bool operator== (const l_interval & a, const l_cinterval & b) noexcept(false) 
+inline bool operator== (const l_interval & a, const l_cinterval & b) noexcept 
                                              { return l_cinterval(a) == b; }
-inline bool operator!= (const l_cinterval & a, const l_interval & b) noexcept(false) 
+inline bool operator!= (const l_cinterval & a, const l_interval & b) noexcept 
                                              { return a != l_cinterval(b); }
-inline bool operator!= (const l_interval & a, const l_cinterval & b) noexcept(false) 
+inline bool operator!= (const l_interval & a, const l_cinterval & b) noexcept 
                                              { return l_cinterval(a) != b; }
 
 // LCI <--> C
 
-inline bool operator== (const l_cinterval & a, const complex & b) noexcept(false) 
+inline bool operator== (const l_cinterval & a, const complex & b) noexcept 
                                             { return a == l_cinterval(b); }
-inline bool operator== (const complex & a, const l_cinterval & b) noexcept(false) 
+inline bool operator== (const complex & a, const l_cinterval & b) noexcept 
                                             { return l_cinterval(a) == b; }
-inline bool operator!= (const l_cinterval & a, const complex & b) noexcept(false) 
+inline bool operator!= (const l_cinterval & a, const complex & b) noexcept 
                                             { return a != l_cinterval(b); }
-inline bool operator!= (const complex & a, const l_cinterval & b) noexcept(false) 
+inline bool operator!= (const complex & a, const l_cinterval & b) noexcept 
                                             { return l_cinterval(a) != b; }
 
 // LCI <--> LC
 
-inline bool operator== (const l_cinterval & a, const l_complex & b) noexcept(false) 
+inline bool operator== (const l_cinterval & a, const l_complex & b) noexcept 
                                             { return a == l_cinterval(b); }
-inline bool operator== (const l_complex & a, const l_cinterval & b) noexcept(false) 
+inline bool operator== (const l_complex & a, const l_cinterval & b) noexcept 
                                             { return l_cinterval(a) == b; }
-inline bool operator!= (const l_cinterval & a, const l_complex & b) noexcept(false) 
+inline bool operator!= (const l_cinterval & a, const l_complex & b) noexcept 
                                             { return a != l_cinterval(b); }
-inline bool operator!= (const l_complex & a, const l_cinterval & b) noexcept(false) 
+inline bool operator!= (const l_complex & a, const l_cinterval & b) noexcept 
                                             { return l_cinterval(a) != b; }
 
 // LCI <--> CI
 
-inline bool operator== (const l_cinterval & a, const cinterval & b) noexcept(false) 
+inline bool operator== (const l_cinterval & a, const cinterval & b) noexcept 
                                             { return a == l_cinterval(b); }
-inline bool operator== (const cinterval & a, const l_cinterval & b) noexcept(false) 
+inline bool operator== (const cinterval & a, const l_cinterval & b) noexcept 
                                             { return l_cinterval(a) == b; }
-inline bool operator!= (const l_cinterval & a, const cinterval & b) noexcept(false) 
+inline bool operator!= (const l_cinterval & a, const cinterval & b) noexcept 
                                             { return a != l_cinterval(b); }
-inline bool operator!= (const cinterval & a, const l_cinterval & b) noexcept(false) 
+inline bool operator!= (const cinterval & a, const l_cinterval & b) noexcept 
                                             { return l_cinterval(a) != b; }
 
 
 // ---- Set Operators ----
-inline bool operator  <(const l_cinterval & a, const l_cinterval & b) noexcept(false)
+inline bool operator  <(const l_cinterval & a, const l_cinterval & b) noexcept
 {
    if (Inf(a.re) <= Inf(b.re) || Sup(a.re) >= Sup(b.re)) 
       return false;
@@ -772,10 +772,10 @@ inline bool operator  <(const l_cinterval & a, const l_cinterval & b) noexcept(f
    return true; 
 }
 
-inline bool operator  >(const l_cinterval & a, const l_cinterval & b) noexcept(false) 
+inline bool operator  >(const l_cinterval & a, const l_cinterval & b) noexcept 
                                                             { return b < a; }
 
-inline bool operator <=(const l_cinterval & a, const l_cinterval & b) noexcept(false)
+inline bool operator <=(const l_cinterval & a, const l_cinterval & b) noexcept
 {
    if (Inf(a.re) < Inf(b.re) || Sup(a.re) > Sup(b.re)) 
       return false;
@@ -785,155 +785,155 @@ inline bool operator <=(const l_cinterval & a, const l_cinterval & b) noexcept(f
    return true; 
 }
 
-inline bool operator >= (const l_cinterval & a, const l_cinterval & b) noexcept(false)
+inline bool operator >= (const l_cinterval & a, const l_cinterval & b) noexcept
                                                             { return b <= a; }
 
 // lCI <--> R
 
-inline bool operator  <(const real & a, const l_cinterval & b) noexcept(false) 
+inline bool operator  <(const real & a, const l_cinterval & b) noexcept 
                                         { return l_cinterval(a) < b; }
-inline bool operator  >(const real & a, const l_cinterval & b) noexcept(false) 
+inline bool operator  >(const real & a, const l_cinterval & b) noexcept 
                                         { return l_cinterval(a) > b; }
-inline bool operator <=(const real & a, const l_cinterval & b) noexcept(false) 
+inline bool operator <=(const real & a, const l_cinterval & b) noexcept 
                                        { return l_cinterval(a) <= b; }
-inline bool operator >=(const real & a, const l_cinterval & b) noexcept(false) 
+inline bool operator >=(const real & a, const l_cinterval & b) noexcept 
                                        { return l_cinterval(a) >= b; }
 
-inline bool operator  <(const l_cinterval & a, const real & b) noexcept(false) 
+inline bool operator  <(const l_cinterval & a, const real & b) noexcept 
                                         { return a < l_cinterval(b); }
-inline bool operator  >(const l_cinterval & a, const real & b) noexcept(false) 
+inline bool operator  >(const l_cinterval & a, const real & b) noexcept 
                                         { return a > l_cinterval(b); }
-inline bool operator <=(const l_cinterval & a, const real & b) noexcept(false) 
+inline bool operator <=(const l_cinterval & a, const real & b) noexcept 
                                        { return a <= l_cinterval(b); }
-inline bool operator >=(const l_cinterval & a, const real & b) noexcept(false) 
+inline bool operator >=(const l_cinterval & a, const real & b) noexcept 
                                        { return a >= l_cinterval(b); }
 
 // lCI <--> LR
 
-inline bool operator  <(const l_real & a, const l_cinterval & b) noexcept(false) 
+inline bool operator  <(const l_real & a, const l_cinterval & b) noexcept 
                                           { return l_cinterval(a) < b; }
-inline bool operator  >(const l_real & a, const l_cinterval & b) noexcept(false) 
+inline bool operator  >(const l_real & a, const l_cinterval & b) noexcept 
                                           { return l_cinterval(a) > b; }
-inline bool operator <=(const l_real & a, const l_cinterval & b) noexcept(false) 
+inline bool operator <=(const l_real & a, const l_cinterval & b) noexcept 
                                          { return l_cinterval(a) <= b; }
-inline bool operator >=(const l_real & a, const l_cinterval & b) noexcept(false) 
+inline bool operator >=(const l_real & a, const l_cinterval & b) noexcept 
                                          { return l_cinterval(a) >= b; }
 
-inline bool operator  <(const l_cinterval & a, const l_real & b) noexcept(false) 
+inline bool operator  <(const l_cinterval & a, const l_real & b) noexcept 
                                           { return a < l_cinterval(b); }
-inline bool operator  >(const l_cinterval & a, const l_real & b) noexcept(false) 
+inline bool operator  >(const l_cinterval & a, const l_real & b) noexcept 
                                           { return a > l_cinterval(b); }
-inline bool operator <=(const l_cinterval & a, const l_real & b) noexcept(false) 
+inline bool operator <=(const l_cinterval & a, const l_real & b) noexcept 
                                          { return a <= l_cinterval(b); }
-inline bool operator >=(const l_cinterval & a, const l_real & b) noexcept(false) 
+inline bool operator >=(const l_cinterval & a, const l_real & b) noexcept 
                                          { return a >= l_cinterval(b); }
 
 // LCI <--> I
 
-inline bool operator  <(const interval & a, const l_cinterval & b) noexcept(false) 
+inline bool operator  <(const interval & a, const l_cinterval & b) noexcept 
                                             { return l_cinterval(a) < b; }
-inline bool operator  >(const interval & a, const l_cinterval & b) noexcept(false)
+inline bool operator  >(const interval & a, const l_cinterval & b) noexcept
                                             { return l_cinterval(a) > b; }
-inline bool operator <=(const interval & a, const l_cinterval & b) noexcept(false)
+inline bool operator <=(const interval & a, const l_cinterval & b) noexcept
                                            { return l_cinterval(a) <= b; }
-inline bool operator >=(const interval & a, const l_cinterval & b) noexcept(false) 
+inline bool operator >=(const interval & a, const l_cinterval & b) noexcept 
                                            { return l_cinterval(a) >= b; }
 
-inline bool operator  <(const l_cinterval & a, const interval & b) noexcept(false) 
+inline bool operator  <(const l_cinterval & a, const interval & b) noexcept 
                                             { return a < l_cinterval(b); }
-inline bool operator  >(const l_cinterval & a, const interval & b) noexcept(false) 
+inline bool operator  >(const l_cinterval & a, const interval & b) noexcept 
                                             { return a > l_cinterval(b); }
-inline bool operator <=(const l_cinterval & a, const interval & b) noexcept(false) 
+inline bool operator <=(const l_cinterval & a, const interval & b) noexcept 
                                            { return a <= l_cinterval(b); }
-inline bool operator >=(const l_cinterval & a, const interval & b) noexcept(false) 
+inline bool operator >=(const l_cinterval & a, const interval & b) noexcept 
                                            { return a >= l_cinterval(b); }
 
 // LCI <--> LI
 
-inline bool operator  <(const l_interval & a, const l_cinterval & b) noexcept(false) 
+inline bool operator  <(const l_interval & a, const l_cinterval & b) noexcept 
                                               { return l_cinterval(a) < b; }
-inline bool operator  >(const l_interval & a, const l_cinterval & b) noexcept(false)
+inline bool operator  >(const l_interval & a, const l_cinterval & b) noexcept
                                               { return l_cinterval(a) > b; }
-inline bool operator <=(const l_interval & a, const l_cinterval & b) noexcept(false)
+inline bool operator <=(const l_interval & a, const l_cinterval & b) noexcept
                                              { return l_cinterval(a) <= b; }
-inline bool operator >=(const l_interval & a, const l_cinterval & b) noexcept(false) 
+inline bool operator >=(const l_interval & a, const l_cinterval & b) noexcept 
                                              { return l_cinterval(a) >= b; }
 
-inline bool operator  <(const l_cinterval & a, const l_interval & b) noexcept(false) 
+inline bool operator  <(const l_cinterval & a, const l_interval & b) noexcept 
                                               { return a < l_cinterval(b); }
-inline bool operator  >(const l_cinterval & a, const l_interval & b) noexcept(false) 
+inline bool operator  >(const l_cinterval & a, const l_interval & b) noexcept 
                                               { return a > l_cinterval(b); }
-inline bool operator <=(const l_cinterval & a, const l_interval & b) noexcept(false) 
+inline bool operator <=(const l_cinterval & a, const l_interval & b) noexcept 
                                              { return a <= l_cinterval(b); }
-inline bool operator >=(const l_cinterval & a, const l_interval & b) noexcept(false) 
+inline bool operator >=(const l_cinterval & a, const l_interval & b) noexcept 
                                              { return a >= l_cinterval(b); }
 
 // LCI <--> C
 
-inline bool operator  <(const complex & a, const l_cinterval & b) noexcept(false) 
+inline bool operator  <(const complex & a, const l_cinterval & b) noexcept 
                                            { return l_cinterval(a) < b; }
-inline bool operator  >(const complex & a, const l_cinterval & b) noexcept(false)
+inline bool operator  >(const complex & a, const l_cinterval & b) noexcept
                                            { return l_cinterval(a) > b; }
-inline bool operator <=(const complex & a, const l_cinterval & b) noexcept(false)
+inline bool operator <=(const complex & a, const l_cinterval & b) noexcept
                                           { return l_cinterval(a) <= b; }
-inline bool operator >=(const complex & a, const l_cinterval & b) noexcept(false)
+inline bool operator >=(const complex & a, const l_cinterval & b) noexcept
                                           { return l_cinterval(a) >= b; }
 
-inline bool operator  <(const l_cinterval & a, const complex & b) noexcept(false)
+inline bool operator  <(const l_cinterval & a, const complex & b) noexcept
                                            { return a < l_cinterval(b); }
-inline bool operator  >(const l_cinterval & a, const complex & b) noexcept(false) 
+inline bool operator  >(const l_cinterval & a, const complex & b) noexcept 
                                            { return a > l_cinterval(b); }
-inline bool operator <=(const l_cinterval & a, const complex & b) noexcept(false) 
+inline bool operator <=(const l_cinterval & a, const complex & b) noexcept 
                                           { return a <= l_cinterval(b); }
-inline bool operator >=(const l_cinterval & a, const complex & b) noexcept(false)
+inline bool operator >=(const l_cinterval & a, const complex & b) noexcept
                                           { return a >= l_cinterval(b); }
 
 // LCI <--> LC
 
-inline bool operator  <(const l_complex & a, const l_cinterval & b) noexcept(false) 
+inline bool operator  <(const l_complex & a, const l_cinterval & b) noexcept 
                                              { return l_cinterval(a) < b; }
-inline bool operator  >(const l_complex & a, const l_cinterval & b) noexcept(false)
+inline bool operator  >(const l_complex & a, const l_cinterval & b) noexcept
                                              { return l_cinterval(a) > b; }
-inline bool operator <=(const l_complex & a, const l_cinterval & b) noexcept(false)
+inline bool operator <=(const l_complex & a, const l_cinterval & b) noexcept
                                             { return l_cinterval(a) <= b; }
-inline bool operator >=(const l_complex & a, const l_cinterval & b) noexcept(false)
+inline bool operator >=(const l_complex & a, const l_cinterval & b) noexcept
                                             { return l_cinterval(a) >= b; }
 
-inline bool operator  <(const l_cinterval & a, const l_complex & b) noexcept(false)
+inline bool operator  <(const l_cinterval & a, const l_complex & b) noexcept
                                              { return a < l_cinterval(b); }
-inline bool operator  >(const l_cinterval & a, const l_complex & b) noexcept(false) 
+inline bool operator  >(const l_cinterval & a, const l_complex & b) noexcept 
                                              { return a > l_cinterval(b); }
-inline bool operator <=(const l_cinterval & a, const l_complex & b) noexcept(false) 
+inline bool operator <=(const l_cinterval & a, const l_complex & b) noexcept 
                                             { return a <= l_cinterval(b); }
-inline bool operator >=(const l_cinterval & a, const l_complex & b) noexcept(false)
+inline bool operator >=(const l_cinterval & a, const l_complex & b) noexcept
                                             { return a >= l_cinterval(b); }
 
 // LCI <--> CI
 
-inline bool operator  <(const cinterval & a, const l_cinterval & b) noexcept(false) 
+inline bool operator  <(const cinterval & a, const l_cinterval & b) noexcept 
                                              { return l_cinterval(a) < b; }
-inline bool operator  >(const cinterval & a, const l_cinterval & b) noexcept(false)
+inline bool operator  >(const cinterval & a, const l_cinterval & b) noexcept
                                              { return l_cinterval(a) > b; }
-inline bool operator <=(const cinterval & a, const l_cinterval & b) noexcept(false)
+inline bool operator <=(const cinterval & a, const l_cinterval & b) noexcept
                                             { return l_cinterval(a) <= b; }
-inline bool operator >=(const cinterval & a, const l_cinterval & b) noexcept(false)
+inline bool operator >=(const cinterval & a, const l_cinterval & b) noexcept
                                             { return l_cinterval(a) >= b; }
 
-inline bool operator  <(const l_cinterval & a, const cinterval & b) noexcept(false)
+inline bool operator  <(const l_cinterval & a, const cinterval & b) noexcept
                                              { return a < l_cinterval(b); }
-inline bool operator  >(const l_cinterval & a, const cinterval & b) noexcept(false) 
+inline bool operator  >(const l_cinterval & a, const cinterval & b) noexcept 
                                              { return a > l_cinterval(b); }
-inline bool operator <=(const l_cinterval & a, const cinterval & b) noexcept(false) 
+inline bool operator <=(const l_cinterval & a, const cinterval & b) noexcept 
                                             { return a <= l_cinterval(b); }
-inline bool operator >=(const l_cinterval & a, const cinterval & b) noexcept(false)
+inline bool operator >=(const l_cinterval & a, const cinterval & b) noexcept
                                             { return a >= l_cinterval(b); }
 
 
 // ---- Others   -------------------------------------------
 
-inline l_complex    Inf(const l_cinterval & a) noexcept(false) 
+inline l_complex    Inf(const l_cinterval & a) noexcept 
                                  { return l_complex(Inf(a.re),Inf(a.im)); }
-inline l_complex    Sup(const l_cinterval & a) noexcept(false) 
+inline l_complex    Sup(const l_cinterval & a) noexcept 
                                  { return l_complex(Sup(a.re),Sup(a.im)); }
 
 inline l_cinterval & SetInf(l_cinterval & a, const complex & b) 
@@ -1034,7 +1034,7 @@ inline l_cinterval & SetSup(l_cinterval & a, const l_real & b)
 
 
 inline l_cinterval & UncheckedSetInf(l_cinterval & a, const complex & b)
-                                                                   noexcept(false)
+                                                                   noexcept
 {
    Inf(a.re)=Re(b);
    Inf(a.im)=Im(b);
@@ -1042,7 +1042,7 @@ inline l_cinterval & UncheckedSetInf(l_cinterval & a, const complex & b)
 }
 
 inline l_cinterval & UncheckedSetInf(l_cinterval & a, const real & b) 
-                                                                noexcept(false)
+                                                                noexcept
 {
    Inf(a.re)=b;
    Inf(a.im)=0.0;
@@ -1050,7 +1050,7 @@ inline l_cinterval & UncheckedSetInf(l_cinterval & a, const real & b)
 }
 
 inline l_cinterval & UncheckedSetSup(l_cinterval & a, const complex & b) 
-                                                                   noexcept(false)
+                                                                   noexcept
 {
    Sup(a.re)=Re(b);
    Sup(a.im)=Im(b);
@@ -1058,7 +1058,7 @@ inline l_cinterval & UncheckedSetSup(l_cinterval & a, const complex & b)
 }
 
 inline l_cinterval & UncheckedSetSup(l_cinterval & a, const real & b) 
-                                                                noexcept(false)
+                                                                noexcept
 {
    Sup(a.re)=b;
    Sup(a.im)=0.0;
@@ -1066,7 +1066,7 @@ inline l_cinterval & UncheckedSetSup(l_cinterval & a, const real & b)
 }
 
 inline l_cinterval & UncheckedSetInf(l_cinterval & a, const l_complex & b)
-                                                                   noexcept(false)
+                                                                   noexcept
 {
    Inf(a.re)=Re(b);
    Inf(a.im)=Im(b);
@@ -1074,7 +1074,7 @@ inline l_cinterval & UncheckedSetInf(l_cinterval & a, const l_complex & b)
 }
 
 inline l_cinterval & UncheckedSetInf(l_cinterval & a, const l_real & b) 
-                                                                noexcept(false)
+                                                                noexcept
 {
    Inf(a.re)=b;
    Inf(a.im)=0.0;
@@ -1082,7 +1082,7 @@ inline l_cinterval & UncheckedSetInf(l_cinterval & a, const l_real & b)
 }
 
 inline l_cinterval & UncheckedSetSup(l_cinterval & a, const l_complex & b) 
-                                                                   noexcept(false)
+                                                                   noexcept
 {
    Sup(a.re)=Re(b);
    Sup(a.im)=Im(b);
@@ -1090,7 +1090,7 @@ inline l_cinterval & UncheckedSetSup(l_cinterval & a, const l_complex & b)
 }
 
 inline l_cinterval & UncheckedSetSup(l_cinterval & a, const l_real & b) 
-                                                                noexcept(false)
+                                                                noexcept
 {
    Sup(a.re)=b;
    Sup(a.im)=0.0;
@@ -1098,23 +1098,23 @@ inline l_cinterval & UncheckedSetSup(l_cinterval & a, const l_real & b)
 }
 
 
-inline l_cinterval conj(const l_cinterval & a) noexcept(false) 
+inline l_cinterval conj(const l_cinterval & a) noexcept 
 { return l_cinterval(a.re,-a.im); }
 
-inline l_complex mid(const l_cinterval &a) noexcept(false) 
+inline l_complex mid(const l_cinterval &a) noexcept 
 { return l_complex(mid(a.re), mid(a.im)); }
 
-inline l_complex diam(const l_cinterval &a) noexcept(false)
+inline l_complex diam(const l_cinterval &a) noexcept
 { return l_complex(diam(a.re),diam(a.im)); }
 
-inline l_cinterval adjust(const l_cinterval & a) noexcept(false) 
+inline l_cinterval adjust(const l_cinterval & a) noexcept 
 { 
   return l_cinterval(adjust(Re(a)),adjust(Im(a)));	
 	
 // return l_cinterval(a.re,-a.im); 
 }
 
-inline void times2pown(l_cinterval& x, const int& n) noexcept(false) 
+inline void times2pown(l_cinterval& x, const int& n) noexcept 
 // Blomquist, 08.03.07;
 {
     if ( n<-1074 || n>1023 ) 
@@ -1128,7 +1128,7 @@ inline void times2pown(l_cinterval& x, const int& n) noexcept(false)
     x = l_cinterval(u,v);
 }
 
-inline void Times2pown(l_cinterval& x, const int& n) noexcept(false) 
+inline void Times2pown(l_cinterval& x, const int& n) noexcept 
 // Blomquist, 28.03.07;
 {
 
