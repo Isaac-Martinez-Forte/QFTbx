@@ -1,18 +1,15 @@
 #include "GUI/windowsgeneral.h"
 #include <QApplication>
+#include <memory>
 
 qint32 main(qint32 argc, char *argv[])
 {
     QApplication a(argc, argv);
 
-    WindowsGeneral * w = new WindowsGeneral();
+    auto w = std::make_shared<WindowsGeneral>();
     w->show();
     
-    qint32 i = a.exec();
-
-    delete w;
-    return i;
-
+    return a.exec();
 }
 
 
