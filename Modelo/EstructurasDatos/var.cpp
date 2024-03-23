@@ -17,7 +17,7 @@ Var::Var(QString nombre, QPointF rango, qreal nominal, QString exp)
     this->nominal = nominal;
     variable = true;
 
-    if (exp == nullptr || exp == NULL || exp.isEmpty()) {
+    if (exp == nullptr || exp.isEmpty()) {
         e = false;
     } else {
         this->exp = exp;

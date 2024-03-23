@@ -233,6 +233,8 @@ Sistema * Algorithm_rambabu::acelerated(Sistema * controlador){
         vec = kganacia(controlador);
     } else if (controlador->getClass() == Sistema::k_no_ganancia){
         vec = knganancia(controlador);
+    } else {
+        return controlador;
     }
 
     QVector <QString> * g = vec->at(0);

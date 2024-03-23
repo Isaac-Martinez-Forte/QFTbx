@@ -2,7 +2,7 @@
 #define INTRODUCIRECONTR_H
 
 #include <QDialog>
-#include <QRegExp>
+#include <QRegularExpression>
 
 #include "Modelo/EstructuraSistema//kganancia.h"
 #include "Modelo/EstructuraSistema/knganancia.h"

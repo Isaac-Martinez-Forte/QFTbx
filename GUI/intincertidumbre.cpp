@@ -83,8 +83,8 @@ void IntIncertidumbre::formarango(){
         cajas->clear();
     }
 
-    parNume = new QLinkedList <ParLineEdit*> ();
-    parDeno = new QLinkedList <ParLineEdit*> ();
+    parNume = new std::list <ParLineEdit*> ();
+    parDeno = new std::list <ParLineEdit*> ();
 
     layoutnume=new QVBoxLayout(ui->boxNume);
     layoutdeno=new QVBoxLayout(ui->boxDeno);
@@ -137,7 +137,7 @@ void IntIncertidumbre::formarango(){
     ui->areaScrollnume->setLayout(layoutnume);
 }
 
-void IntIncertidumbre:: formarLinea(QWidget *widget, QString variable, QLinkedList <ParLineEdit*> * vector, bool rango){
+void IntIncertidumbre:: formarLinea(QWidget *widget, QString variable, std::list <ParLineEdit*> * vector, bool rango){
 
     QHBoxLayout *horizontalLayout;
     QLabel *label;
@@ -200,7 +200,7 @@ void IntIncertidumbre:: formarLinea(QWidget *widget, QString variable, QLinkedLi
     }
 
     ParLineEdit * par = new ParLineEdit(inicio, fin, nominal);
-    vector->append(par);
+    vector->push_back(par);
 
     //cajas->append(horizontalLayout);
 }
@@ -299,7 +299,7 @@ bool IntIncertidumbre::guardarrango(){
         if(isVar->at(0)->at(i)){
             if (!nombres->contains(numeradorNombre->at(i))){
 
-                ParLineEdit * aux = parNume->first();
+                ParLineEdit * aux = parNume->front();
 
                 rangoX = aux->getX();
                 rangoY = aux->getY();
@@ -326,7 +326,7 @@ bool IntIncertidumbre::guardarrango(){
                         rangoY->setStyleSheet("background : white");
                         nominal->setStyleSheet("background : white");
 
-                        parNume->removeFirst();
+                        parNume->pop_front();
                         delete aux;
                         valido = true;
                     } else {
@@ -369,7 +369,7 @@ bool IntIncertidumbre::guardarrango(){
         if(isVar->at(1)->at(i)){
             if (!nombres->contains(denominadorNombre->at(i))){
 
-                ParLineEdit * aux = parDeno->first();
+                ParLineEdit * aux = parDeno->front();
 
                 rangoX = aux->getX();
                 rangoY = aux->getY();
@@ -398,7 +398,7 @@ bool IntIncertidumbre::guardarrango(){
                             rangoY->setStyleSheet("background : white");
                             nominal->setStyleSheet("background : white");
 
-                            parDeno->removeFirst();
+                            parDeno->pop_front();
                             delete aux;
                         } else {
                             valido = false;

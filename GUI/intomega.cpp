@@ -58,7 +58,6 @@ void IntOmega::on_ok_clicked()
         if (frecuencias == NULL){
             ui->mavect->setStyleSheet("background : red");
             fallo = true;
-            frecuencias->clear();
         }else{
             ui->mavect->setStyleSheet("background : white");
         }

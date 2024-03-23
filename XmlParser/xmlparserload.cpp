@@ -38,7 +38,7 @@ QVector<bool> *XmlParserLoad::recuperarXmlDatos(QString fichero){
         return resultado;
     }
 
-    if (stream->name() != "QFT"){
+    if (stream->name() != QString("QFT")){
         resultado = new QVector <bool> (7, false);
         salidaError();
         return resultado;
@@ -259,7 +259,7 @@ inline bool XmlParserLoad::leerBoundaries(){
     }
 
 
-    if (stream->name() != "datos"){       //comprobamos el nombre
+    if (stream->name() != QString("datos")){       //comprobamos el nombre
         return salidaError();
     }
 
@@ -269,7 +269,7 @@ inline bool XmlParserLoad::leerBoundaries(){
     }
 
 
-    if (stream->name() != "fases"){       //comprobamos el nombre de la fase
+    if (stream->name() != QString("fases")){       //comprobamos el nombre de la fase
         return salidaError();
     }
 
@@ -297,7 +297,7 @@ inline bool XmlParserLoad::leerBoundaries(){
         return salidaError();
     }
 
-    if (stream->name() != "magnitudes"){       //comprobamos el nombre de la magnitud
+    if (stream->name() != QString("magnitudes")){       //comprobamos el nombre de la magnitud
         return salidaError();
     }
 
@@ -324,7 +324,7 @@ inline bool XmlParserLoad::leerBoundaries(){
         return salidaError();
     }
 
-    if (stream->name() != "meta-datos"){       //comprobamos el nombre de la metabound
+    if (stream->name() != QString("meta-datos")){       //comprobamos el nombre de la metabound
         return salidaError();
     }
 
@@ -340,7 +340,7 @@ inline bool XmlParserLoad::leerBoundaries(){
         return salidaError();
     }
 
-    if (stream->name() != "bound"){       //comprobamos el nombre del bound
+    if (stream->name() != QString("bound")){       //comprobamos el nombre del bound
         return salidaError();
     }
 
@@ -376,7 +376,7 @@ inline bool XmlParserLoad::leerBoundaries(){
         return salidaError();
     }
 
-    if (stream->name() != "bound-reunidos-hash"){       //comprobamos el nombre del bound-reunidos
+    if (stream->name() != QString("bound-reunidos-hash")){       //comprobamos el nombre del bound-reunidos
         return salidaError();
     }
 
@@ -437,7 +437,7 @@ inline bool XmlParserLoad::leerTemplates(){
     }
 
 
-    if (stream->name() != "meta-datos"){
+    if (stream->name() != QString("meta-datos")){
         isTemplates = false;
         return salidaError();
     }
@@ -456,7 +456,7 @@ inline bool XmlParserLoad::leerTemplates(){
         return salidaError();
     }
 
-    if (stream->name() != "completo"){
+    if (stream->name() != QString("completo")){
         isTemplates = false;
         return salidaError();
     }
@@ -487,7 +487,7 @@ inline bool XmlParserLoad::leerTemplates(){
         return salidaError();
     }
 
-    if (stream->name() != "contorno"){
+    if (stream->name() != QString("contorno")){
         isContorno = false;
         return salidaError();
     }
@@ -556,7 +556,7 @@ inline bool XmlParserLoad::leerOmega(){
         return salidaError();
     }
 
-    if (stream->name() != "inicio"){
+    if (stream->name() != QString("inicio")){
         return salidaError();
     }
 
@@ -570,7 +570,7 @@ inline bool XmlParserLoad::leerOmega(){
         return salidaError();
     }
 
-    if (stream->name() != "final"){
+    if (stream->name() != QString("final")){
         return salidaError();
     }
 
@@ -584,7 +584,7 @@ inline bool XmlParserLoad::leerOmega(){
         return salidaError();
     }
 
-    if (stream->name() != "nPuntos"){
+    if (stream->name() != QString("nPuntos")){
         return salidaError();
     }
 
@@ -598,7 +598,7 @@ inline bool XmlParserLoad::leerOmega(){
         return salidaError();
     }
 
-    if (stream->name() != "tipo"){
+    if (stream->name() != QString("tipo")){
         return salidaError();
     }
 
@@ -608,7 +608,7 @@ inline bool XmlParserLoad::leerOmega(){
         return salidaError();
     }
 
-    if (stream->name() != "valores"){
+    if (stream->name() != QString("valores")){
         return salidaError();
     }
 
@@ -727,7 +727,7 @@ inline bool XmlParserLoad::leerEspecificaciones(){
                     return salidaError();
                 }
 
-                if (stream->name() != "tipo"){
+                if (stream->name() != QString("tipo")){
                     return salidaError();
                 }
 
@@ -738,7 +738,7 @@ inline bool XmlParserLoad::leerEspecificaciones(){
                     return salidaError();
                 }
 
-                if (stream->name() != "expresion"){
+                if (stream->name() != QString("expresion")){
                     return salidaError();
                 }
 
@@ -775,7 +775,7 @@ inline bool XmlParserLoad::leerEspecificaciones(){
                     return salidaError();
                 }
 
-                if (stream->name() != "numerador"){
+                if (stream->name() != QString("numerador")){
                     return salidaError();
                 }
 
@@ -809,7 +809,7 @@ inline bool XmlParserLoad::leerEspecificaciones(){
                     return salidaError();
                 }
 
-                if (stream->name() != "denominador"){
+                if (stream->name() != QString("denominador")){
                     return salidaError();
                 }
 
@@ -898,7 +898,7 @@ inline bool XmlParserLoad::leerPlanta(qint32 tipoLectura){
         return salidaError();
     }
 
-    if (stream->name() != "tipo"){
+    if (stream->name() != QString("tipo")){
         return salidaError();
     }
 
@@ -909,7 +909,7 @@ inline bool XmlParserLoad::leerPlanta(qint32 tipoLectura){
         return salidaError();
     }
 
-    if (stream->name() != "expresion"){
+    if (stream->name() != QString("expresion")){
         return salidaError();
     }
 
@@ -946,7 +946,7 @@ inline bool XmlParserLoad::leerPlanta(qint32 tipoLectura){
         return salidaError();
     }
 
-    if (stream->name() != "numerador"){
+    if (stream->name() != QString("numerador")){
         return salidaError();
     }
 
@@ -980,7 +980,7 @@ inline bool XmlParserLoad::leerPlanta(qint32 tipoLectura){
         return salidaError();
     }
 
-    if (stream->name() != "denominador"){
+    if (stream->name() != QString("denominador")){
         return salidaError();
     }
 
@@ -1103,7 +1103,7 @@ inline Var *XmlParserLoad::leerVariable(qint32 tipoLectura){
                 return NULL;
             }
 
-            if (stream->name().toString() != "rango"){
+            if (stream->name().toString() != QString("rango")){
                 salidaError();
                 return NULL;
             }
@@ -1160,7 +1160,7 @@ inline Var *XmlParserLoad::leerVariable(qint32 tipoLectura){
                     return NULL;
                 }
 
-                if (stream->name().toString() != "rango"){
+                if (stream->name().toString() != QString("rango")){
                     salidaError();
                     return NULL;
                 }
@@ -1212,7 +1212,7 @@ inline Var *XmlParserLoad::leerVariable(qint32 tipoLectura){
                 return NULL;
             }
 
-            if (stream->name().toString() != "rango"){
+            if (stream->name().toString() != QString("rango")){
                 salidaError();
                 return NULL;
             }
@@ -1257,7 +1257,7 @@ inline bool XmlParserLoad::leerLoopShaping(){
         return salidaError();
     }
 
-    if (stream->name() != "datos"){
+    if (stream->name() != QString("datos")){
         return salidaError();
     }
 
@@ -1298,7 +1298,7 @@ inline bool XmlParserLoad::leerLoopShaping(){
         return salidaError();
     }
 
-    if (stream->name() != "tipo"){
+    if (stream->name() != QString("tipo")){
         return salidaError();
     }
 
@@ -1309,7 +1309,7 @@ inline bool XmlParserLoad::leerLoopShaping(){
         return salidaError();
     }
 
-    if (stream->name() != "expresion"){
+    if (stream->name() != QString("expresion")){
         return salidaError();
     }
 
@@ -1346,7 +1346,7 @@ inline bool XmlParserLoad::leerLoopShaping(){
         return salidaError();
     }
 
-    if (stream->name() != "numerador"){
+    if (stream->name() != QString("numerador")){
         return salidaError();
     }
 
@@ -1380,7 +1380,7 @@ inline bool XmlParserLoad::leerLoopShaping(){
         return salidaError();
     }
 
-    if (stream->name() != "denominador"){
+    if (stream->name() != QString("denominador")){
         return salidaError();
     }
 

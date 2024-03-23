@@ -15,7 +15,7 @@ Roberto C. Cruz Rodríguez
 #include <iostream>
 
 #include <QMap>
-#include <QRegExp>
+#include <QRegularExpression>
 
 #include "interval.hpp"
 

@@ -223,7 +223,6 @@ void introducirEContr::on_aceptar_clicked()
     QVector <QVector <QString> * > * datosTabla = seleTabla(exp, isVar);
 
     if (datosTabla == NULL){
-        datosTabla->clear();
         menerror("Hay un error en los datos de la planta","Introducir Planta");
         return;
     }

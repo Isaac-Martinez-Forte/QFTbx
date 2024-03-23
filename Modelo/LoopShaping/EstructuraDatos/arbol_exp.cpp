@@ -739,9 +739,9 @@ interval exp_tree::eval_tree_in(exp_node *nod)
     case LG :
         return  log10 ( eval_tree_complex_interval(nod->left) );
 
-        /* si se ha añadido otra función, entoces solo agregue otro 'case ' y defina la operación a realizar */
+         // si se ha añadido otra función, entoces solo agregue otro 'case ' y defina la operación a realizar
 
-   /* }
+    }
 }*/
 
 /********************************************************
@@ -1178,10 +1178,10 @@ y modificando el 'enun type_node' y la función 'eval_tree(..)' */
 }
 
 bool exp_tree::es_letra(char tex){
-    QRegExp rx("^[a-zA-Z]*$");
+    static QRegularExpression rx("^[a-zA-Z]*$");
     QString s (1, tex);
 
-    return rx.exactMatch(s);
+    return rx.match(s).hasMatch();
 }
 
 //////////////////////////////////////////
