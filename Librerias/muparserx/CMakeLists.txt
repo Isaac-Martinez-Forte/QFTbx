@@ -34,6 +34,10 @@ if(MSVC)
     add_compile_options(/std:c++20)
 endif(MSVC)
 
+if( WIN32 )
+     add_definitions(-D_MSC_VER=1)
+endif()
+
 ########################################################################
 # Build library
 # Defaults to static, set BUILD_SHARED_LIBS=ON for shared
@@ -103,7 +107,7 @@ install(
 # Options
 ########################################################################
 
-option(BUILD_EXAMPLES "enable building example applications" ON)
+option(BUILD_EXAMPLES "enable building example applications" OFF)
 if(BUILD_EXAMPLES)
     add_executable(example sample/example.cpp sample/timer.cpp)
     target_link_libraries(example muparserx)

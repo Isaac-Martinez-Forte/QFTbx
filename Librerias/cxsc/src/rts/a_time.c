@@ -56,10 +56,10 @@ a_intg a_tvar; /* this var holds initial timer value from a_itim */
 /* holds rusage structure */
 #if WINDOWS_X86_32
 #include <time.h>
-struct timeval{
+/*struct timeval{
 	long tv_sec;
 	long tv_usec;
-};
+};*/
 #else
 #include <sys/time.h>
 #include <sys/resource.h>

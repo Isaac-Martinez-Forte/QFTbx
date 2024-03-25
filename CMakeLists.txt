@@ -23,8 +23,8 @@ OPTION (USE_QML "Use QML" OFF)
 
 
 if( WIN32 )
-    #set (CMAKE_PREFIX_PATH "C:\\Qt\\5.11.0\\msvc2015\\")
-    set (CMAKE_PREFIX_PATH "D:\\Qt\\5.15.2\\mingw81_64\\")
+    #set (CMAKE_PREFIX_PATH "C:\\Qt\\6.6.2\\msvc2019_64")
+    set (CMAKE_PREFIX_PATH "C:\\Qt\\6.6.2\\mingw_64")
 endif()
 
 message("Looking for Qt...")
@@ -351,6 +351,7 @@ include(ExternalProject)
 ExternalProject_Add(muParserX
   SOURCE_DIR ${CMAKE_SOURCE_DIR}/Librerias/muparserx
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/muparserx
+  BUILD_BYPRODUCTS ${CMAKE_BINARY_DIR}/muparserx/lib/libmuparserx.a
 )
 
 include_directories("${CMAKE_BINARY_DIR}/muparserx/include/")
@@ -364,6 +365,7 @@ if( NOT WIN32 )
 	ExternalProject_Add(QCustomPlot
 	  SOURCE_DIR ${CMAKE_SOURCE_DIR}/Librerias/qcustomplot
 	  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/qcustomplot
+      BUILD_BYPRODUCTS ${CMAKE_BINARY_DIR}/qcustomplot/lib/libqcustomplot.a
 	)
 
 	include_directories("${CMAKE_BINARY_DIR}/qcustomplot/include/")
@@ -373,10 +375,20 @@ if( NOT WIN32 )
 endif()
 
 ############################################################################
-ExternalProject_Add(cxsc
-    SOURCE_DIR ${CMAKE_SOURCE_DIR}/Librerias/cxsc
-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/cxsc
-)
+if ( NOT WIN32 )
+    ExternalProject_Add(cxsc
+        SOURCE_DIR ${CMAKE_SOURCE_DIR}/Librerias/cxsc
+        CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/cxsc
+        BUILD_BYPRODUCTS ${CMAKE_BINARY_DIR}/cxsc/lib/libcxsc.so
+    )
+else ()
+    ExternalProject_Add(cxsc
+        SOURCE_DIR ${CMAKE_SOURCE_DIR}/Librerias/cxsc
+        CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/cxsc
+        BUILD_BYPRODUCTS ${CMAKE_BINARY_DIR}/cxsc/lib/libcxsc.a
+    )
+
+endif()
 
 include_directories("${CMAKE_BINARY_DIR}/cxsc/include/")
 

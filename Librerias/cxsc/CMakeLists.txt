@@ -166,6 +166,7 @@ elseif(MINGW)
 
   set(IBM_LINUX_C 1)
   set(WINDOWS_MINGW 1)
+  set(WINDOWS_X86_32 1)
 
 else(APPLE)
 
@@ -283,10 +284,10 @@ if(BUILD_SHARED)
 endif(BUILD_SHARED)
 
 # build the examples
-add_subdirectory(examples)
-add_subdirectory(CToolbox/Programs)
-add_subdirectory(CToolbox/test)
-add_subdirectory(CToolbox/test/test_programms)
+#add_subdirectory(examples)
+#add_subdirectory(CToolbox/Programs)
+#add_subdirectory(CToolbox/test)
+#add_subdirectory(CToolbox/test/test_programms)
 
 # installation of the header files
 install(FILES

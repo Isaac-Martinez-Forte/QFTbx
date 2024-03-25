@@ -44,7 +44,7 @@
 
 static a_btyp o_cm[2*A_LENGTH];
 
-local dotprecision b_cm__ = &o_cm[0];
+//local dotprecision b_cm__ = &o_cm[0];
 local dotprecision b_cp__ = &o_cm[A_LENGTH];
 
 #if VAX_VMS_C
