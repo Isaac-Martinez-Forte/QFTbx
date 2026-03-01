@@ -251,7 +251,7 @@
       <string>Opciones:</string>
      </property>
     </widget>
-    <widget class="QWidget" name="layoutWidget">
+    <widget class="QWidget" name="layoutWidget7">
      <property name="geometry">
       <rect>
        <x>30</x>

@@ -9,7 +9,7 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-# C++20 (una sola vez)
+# C++20
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -34,7 +34,7 @@ find_package(Qt6 REQUIRED COMPONENTS Core Widgets PrintSupport LinguistTools)
 message("Found Qt ${Qt6_VERSION}")
 
 # ------------------------------------------------------------------------------
-# OpenMP (moderno, por target)
+# OpenMP
 # ------------------------------------------------------------------------------
 if(USE_OpenMP)
   message("Use OpenMP")
@@ -42,7 +42,7 @@ if(USE_OpenMP)
 endif()
 
 # ------------------------------------------------------------------------------
-# CUDA (mantengo tu lógica original lo más intacta posible)
+# CUDA
 # ------------------------------------------------------------------------------
 if(USE_CUDA)
     message("Use CUDA")
@@ -61,14 +61,14 @@ if(USE_CUDA)
 endif()
 
 # ------------------------------------------------------------------------------
-# OpenCL (arreglo: no uses link_directories con una librería)
+# OpenCL 
 # ------------------------------------------------------------------------------
 if(USE_OpenCL)
     find_package(OpenCL)
 endif()
 
 # ------------------------------------------------------------------------------
-# Doxygen (tu bloque original, con mínimos cambios)
+# Doxygen 
 # ------------------------------------------------------------------------------
 if (USE_Doxygen)
     message("Use Doxygen")
@@ -101,7 +101,7 @@ endif()
 set(TS_FILES QFTbx_es_ES.ts)
 
 # ------------------------------------------------------------------------------
-# Fuentes del proyecto (tu lista tal cual)
+# Fuentes del proyecto
 # ------------------------------------------------------------------------------
 set(QFTbx_SRC main.cpp
     Modelo/LoopShaping/NaturalIntervalExtension/natural_interval_extension.cpp
@@ -251,11 +251,6 @@ set(QFTbx_HED
 # Recursos
 qt6_add_resources(QFTbx_RES_SRC ${CMAKE_SOURCE_DIR}/Imagenes/imagenesPlanta.qrc)
 
-# (QML) Mantengo tu estructura
-set(QFTbx_QML "")
-if(USE_QML)
-    # añade aquí qml.qrc si lo usas
-endif()
 
 # ------------------------------------------------------------------------------
 # Ejecutable
@@ -274,7 +269,7 @@ target_include_directories(${EXE_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
 
 target_link_libraries(${EXE_NAME} PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::PrintSupport)
 
-# Warnings/arch (por target, no global)
+# Warnings/arch 
 target_compile_options(${EXE_NAME} PRIVATE -Wall)
 if(USE_NATIVE_ARCH AND (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang"))
   target_compile_options(${EXE_NAME} PRIVATE -march=native)
@@ -290,7 +285,7 @@ else()
   endif()
 endif()
 
-# CUDA link (tu lógica original)
+# CUDA link
 if(CUDA_FOUND)
     add_dependencies(${EXE_NAME} CUDA)
     target_link_libraries(${EXE_NAME} PRIVATE CUDA)
