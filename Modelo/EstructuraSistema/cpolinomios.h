@@ -4,7 +4,7 @@
 #include "funciontransferencia.h"
 
 #include <QString>
-#include "muparserx/mpParser.h"
+#include "mpParser.h"
 
  /**
     * @class CPolinomios

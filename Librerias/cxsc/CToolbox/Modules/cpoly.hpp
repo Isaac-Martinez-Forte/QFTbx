@@ -64,7 +64,7 @@ class CPolynomial {
   public:
     CPolynomial ( int );
     CPolynomial ( const CPolynomial& );
-    complex& operator[] ( int i ) { return coeff[i]; }
+    cxsc::complex& operator[] ( int i ) { return coeff[i]; }
 
     friend int Deg ( const CPolynomial& );
     friend istream& operator>> ( istream&, CPolynomial& );

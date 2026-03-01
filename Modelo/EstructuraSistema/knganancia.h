@@ -4,7 +4,7 @@
 #include <QString>
 
 #include "polosceros.h"
-#include "muparserx/mpParser.h"
+#include "mpParser.h"
 
 
  /**

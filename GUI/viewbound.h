@@ -8,7 +8,7 @@
 
 #include "Modelo/Herramientas/tools.h"
 #include "Modelo/EstructurasDatos/datosbound.h"
-#include "Librerias/qcustomplot/qcustomplot.h"
+#include "qcustomplot.h"
 
 
 

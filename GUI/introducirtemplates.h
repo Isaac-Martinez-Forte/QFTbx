@@ -21,7 +21,7 @@
 #include "Modelo/Herramientas/tools.h"
 #include "intespecificaciones.h"
 
-#include "muparserx/mpParser.h"
+#include "mpParser.h"
 
 
   /**

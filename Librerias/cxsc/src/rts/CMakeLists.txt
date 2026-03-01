@@ -714,4 +714,5 @@ set(rts_src
   src/rts/z_zadd.c
   src/rts/z_zsta.c
   src/rts/z_zsub.c
+  src/rts/b_cm.cpp
 )

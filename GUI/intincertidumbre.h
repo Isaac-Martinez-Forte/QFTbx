@@ -11,7 +11,7 @@
 
 #include "Modelo/EstructurasDatos/var.h"
 #include "Modelo/EstructurasDatos/parlineedit.h"
-#include "muparserx/mpParser.h"
+#include "mpParser.h"
 #include "Modelo/Herramientas/tools.h"
 
 namespace Ui {

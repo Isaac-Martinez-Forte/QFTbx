@@ -742,8 +742,8 @@ class ERROR__WRONG_ROW_OR_COL: virtual public WRONG_ROW_OR_COL
 	public:
 		virtual int errnum() const noexcept;
 		virtual string errtext() const noexcept;
-		ERROR__WRONG_ROW_OR_COL<T>() noexcept;
-		ERROR__WRONG_ROW_OR_COL<T>(const string &f) noexcept;
+		ERROR__WRONG_ROW_OR_COL() noexcept;
+		ERROR__WRONG_ROW_OR_COL(const string &f) noexcept;
 //		virtual ~ERROR__WRONG_ROW_OR_COL() throw() { }
 //	private:
 //		string fkt;

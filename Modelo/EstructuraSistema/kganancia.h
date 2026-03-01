@@ -2,7 +2,7 @@
 #define KGANANCIA_H
 
 #include "polosceros.h"
-#include "muparserx/mpParser.h"
+#include "mpParser.h"
 
 #include <QString>
 #include <QDebug>

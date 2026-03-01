@@ -5,7 +5,7 @@
 #include <complex>
 
 #include "../EstructurasDatos/var.h"
-#include "muparserx/mpParser.h"
+#include "mpParser.h"
 
   /**
     * @class Sistema 

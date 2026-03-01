@@ -39,7 +39,7 @@ using namespace cxsc;
 using namespace std;
 
 extern char* CPolyZeroErrMsg ( int );
-extern void  CPolyZero ( CPolynomial, complex,
+extern void  CPolyZero ( CPolynomial, cxsc::complex,
                          CIPolynomial&, cinterval&, int& );
 #endif
 

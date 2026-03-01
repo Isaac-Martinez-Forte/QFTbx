@@ -6,7 +6,7 @@
 //#include "cinterval.hpp"
 
 #include "Modelo/Herramientas/tools.h"
-#include "Librerias/qcustomplot/qcustomplot.h"
+#include "qcustomplot.h"
 
 #include "Modelo/EstructurasDatos/datosbound.h"
 

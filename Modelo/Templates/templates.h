@@ -15,7 +15,7 @@
 #include "../EstructuraSistema/sistema.h"
 
 
-#include "muparserx/mpParser.h"
+#include "mpParser.h"
 
 #ifdef OpenMP_AVAILABLE
     #include <omp.h>

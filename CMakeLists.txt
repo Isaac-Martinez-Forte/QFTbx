@@ -4,148 +4,105 @@ project(QFTbx LANGUAGES CXX)
 
 set(EXE_NAME QFTbx)
 
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
-
+# Qt auto tools
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
+# C++20 (una sola vez)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-#Opciones de configuracion
+# Opciones de configuracion
+option(USE_CLANG       "Use CLANG"   OFF)
+option(USE_OpenMP      "Use OpenMP"  ON)
+option(USE_CUDA        "Use CUDA"    OFF)
+option(USE_OpenCL      "Use OpenCL"  OFF)
+option(USE_Doxygen     "Use Doxygen" OFF)
+option(USE_QML         "Use QML"     OFF)
+option(USE_NATIVE_ARCH "Enable -march=native" ON)
 
-OPTION (USE_CLANG "Use CLANG" OFF)
-OPTION (USE_OpenMP "Use OpenMP" ON)
-OPTION (USE_CUDA "Use CUDA" OFF)
-OPTION (USE_OpenCL "Use OpenCL" OFF)
-OPTION (USE_Doxygen "Use Doxygen" OFF)
-OPTION (USE_QML "Use QML" OFF)
-
-
-if( WIN32 )
+if(WIN32)
     #set (CMAKE_PREFIX_PATH "C:\\Qt\\6.6.2\\msvc2019_64")
     set (CMAKE_PREFIX_PATH "C:\\Qt\\6.6.2\\mingw_64")
 endif()
 
 message("Looking for Qt...")
-#Buscamos los paquetes de Qt6
-find_package(Qt6 COMPONENTS Core Widgets PrintSupport LinguistTools REQUIRED)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets PrintSupport LinguistTools)
 
-if (${Qt6_FOUND})
-    message("Found Qt " ${Qt6_VERSION})
-else()
-    message(FATAL_ERROR "Couldn't find Qt")
-endif()
+message("Found Qt ${Qt6_VERSION}")
 
-#CLang
-IF(USE_CLANG)
-
-    message("Use CLANG")
-
-    SET (CMAKE_C_FLAGS_INIT                "-Wall -std=c99")
-    SET (CMAKE_C_FLAGS_DEBUG_INIT          "-g")
-    SET (CMAKE_C_FLAGS_MINSIZEREL_INIT     "-Os -DNDEBUG")
-    SET (CMAKE_C_FLAGS_RELEASE_INIT        "-O3 -DNDEBUG")
-    SET (CMAKE_C_FLAGS_RELWITHDEBINFO_INIT "-O2 -g")
-
-    SET (CMAKE_CXX_FLAGS_INIT                "-Wall -std=c++0x -stdlib=libc++")
-    SET (CMAKE_CXX_FLAGS_DEBUG_INIT          "-g")
-    SET (CMAKE_CXX_FLAGS_MINSIZEREL_INIT     "-Os -DNDEBUG")
-    SET (CMAKE_CXX_FLAGS_RELEASE_INIT        "-O3 -DNDEBUG")
-    SET (CMAKE_CXX_FLAGS_RELWITHDEBINFO_INIT "-O2 -g")
-    SET (CMAKE_EXE_LINKER_FLAGS_INIT         "")
-ENDIF()
-
-if (MSVC_VERSION GREATER_EQUAL "1900")
-    include(CheckCXXCompilerFlag)
-    CHECK_CXX_COMPILER_FLAG("/std:c++20" _cpp_latest_flag_supported)
-    if (_cpp_latest_flag_supported)
-        add_compile_options("/std:c++20")
-    endif()
-endif()
-
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall  -O2 -march=native")
-
-IF(USE_OpenMP)
+# ------------------------------------------------------------------------------
+# OpenMP (moderno, por target)
+# ------------------------------------------------------------------------------
+if(USE_OpenMP)
   message("Use OpenMP")
-  FIND_PACKAGE(OpenMP)
-  IF(OPENMP_FOUND)
-    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-    ADD_DEFINITIONS(-DOpenMP_AVAILABLE=1)
-    else()
-        message("OpenMP NOT FOUND")
-  ENDIF()
-ENDIF()
+  find_package(OpenMP)
+endif()
 
-
-IF (USE_CUDA)
+# ------------------------------------------------------------------------------
+# CUDA (mantengo tu lógica original lo más intacta posible)
+# ------------------------------------------------------------------------------
+if(USE_CUDA)
     message("Use CUDA")
-    #set(CUDA_HOST_COMPILER /usr/bin/gcc53)
-    FIND_PACKAGE(CUDA)
+    find_package(CUDA)
     if(CUDA_FOUND)
         message("CUDA found")
         list(APPEND CUDA_NVCC_FLAGS "-std=c++20;-O3;-DVERBOSE")
-        SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
+        set(CUDA_PROPAGATE_HOST_FLAGS OFF)
         set(CUDA_SEPARABLE_COMPILATION ON)
-        FILE(GLOB QFTbx_CUDA GPU/CUDA/bnd_cuda.cu GPU/CUDA/e_hull_cuda.cu)
-        ADD_DEFINITIONS(-DCUDA_AVAILABLE=1)
-
+        file(GLOB QFTbx_CUDA GPU/CUDA/bnd_cuda.cu GPU/CUDA/e_hull_cuda.cu)
+        add_definitions(-DCUDA_AVAILABLE=1)
         CUDA_ADD_LIBRARY(CUDA STATIC ${QFTbx_CUDA})
     else()
         message("CUDA NOT found")
     endif()
-ENDIF()
+endif()
 
+# ------------------------------------------------------------------------------
+# OpenCL (arreglo: no uses link_directories con una librería)
+# ------------------------------------------------------------------------------
+if(USE_OpenCL)
+    find_package(OpenCL)
+endif()
 
-# Handle OpenCL
-IF (USE_OpenCL)
-	find_package(OpenCL)
-	if(OpenCL_FOUND)
-		include_directories(${OpenCL_INCLUDE_DIRS})
-		link_directories(${OpenCL_LIBRARY})
-		ADD_DEFINITIONS(-DOpenCL_AVAILABLE=1)
-	endif()
-ENDIF()
-
-#add_definitions(-DDEBUG=1)
-
-# add a target to generate API documentation with Doxygen
+# ------------------------------------------------------------------------------
+# Doxygen (tu bloque original, con mínimos cambios)
+# ------------------------------------------------------------------------------
 if (USE_Doxygen)
-
     message("Use Doxygen")
     find_package(Doxygen)
     option(BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" ${DOXYGEN_FOUND})
-    
+
     if(BUILD_DOCUMENTATION)
         if(NOT DOXYGEN_FOUND)
             message(FATAL_ERROR "Doxygen is needed to build the documentation.")
         endif()
         set(doxyfile_in ${CMAKE_CURRENT_SOURCE_DIR}/doc/Doxyfile.in)
         set(doxyfile ${CMAKE_CURRENT_BINARY_DIR}/doc/Doxyfile)
-        configure_file(${doxyfile_in} ${doxyfile})  
+        configure_file(${doxyfile_in} ${doxyfile})
         add_custom_target(doc1
-        COMMAND ${DOXYGEN_EXECUTABLE} ${doxyfile}
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        COMMENT "Generating API documentation with Doxygen"
-        VERBATIM)
+            COMMAND ${DOXYGEN_EXECUTABLE} ${doxyfile}
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            COMMENT "Generating API documentation with Doxygen"
+            VERBATIM
+        )
         add_custom_target(doc
-        COMMAND make -f ${CMAKE_CURRENT_BINARY_DIR}/doc/latex/Makefile
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc/latex
-        COMMENT "Generating Latex documentation with TexLive "
-        VERBATIM)
+            COMMAND make -f ${CMAKE_CURRENT_BINARY_DIR}/doc/latex/Makefile
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc/latex
+            COMMENT "Generating Latex documentation with TexLive "
+            VERBATIM
+        )
         add_dependencies(doc doc1)
-    
     endif()
 endif()
 
 set(TS_FILES QFTbx_es_ES.ts)
 
-# Añadir la carpeta de includes de Qt6
-include_directories(${Qt6Widgets_INCLUDE_DIRS})
-
-#Buscamos los ficheros fuente
+# ------------------------------------------------------------------------------
+# Fuentes del proyecto (tu lista tal cual)
+# ------------------------------------------------------------------------------
 set(QFTbx_SRC main.cpp
     Modelo/LoopShaping/NaturalIntervalExtension/natural_interval_extension.cpp
     Modelo/EstructuraSistema/funciontransferencia.cpp
@@ -198,7 +155,6 @@ set(QFTbx_SRC main.cpp
     Modelo/LoopShaping/EstructuraDatos/tripleta.cpp
     Modelo/LoopShaping/EstructuraDatos/tripleta2.cpp
     Modelo/LoopShaping/DeteccionViolacionBoundaries/deteccionviolacionboundaries.cpp
-    #Modelo/LoopShaping/TestDeteccion.cpp
     Modelo/LoopShaping/EstructuraDatos/listaordenada.cpp
     DAO/adaptadorloopshapingdao.cpp
     Modelo/EstructurasDatos/datosloopshaping.cpp
@@ -209,11 +165,13 @@ set(QFTbx_SRC main.cpp
     Modelo/Boundaries/algoritmointerseccionproyectivo2D.cpp
     Modelo/Boundaries/contour2.cpp
     Modelo/LoopShaping/EstructuraDatos/arbol_exp.cpp
-    Modelo/LoopShaping/EstructuraDatos/data_box.cpp )
+    Modelo/LoopShaping/EstructuraDatos/data_box.cpp
+)
 
-set (QFTbx_OpenCL GPU/OpenCL/e_hull_opencl.cl)
+set(QFTbx_OpenCL GPU/OpenCL/e_hull_opencl.cl)
 
-set (QFTbx_HED Modelo/EstructuraSistema/funciontransferencia.h
+set(QFTbx_HED
+    Modelo/EstructuraSistema/funciontransferencia.h
     Modelo/LoopShaping/NaturalIntervalExtension/natural_interval_extension.h
     DAO/adaptadorplantadao.h
     Modelo/EstructuraSistema/sistema.h
@@ -276,7 +234,6 @@ set (QFTbx_HED Modelo/EstructuraSistema/funciontransferencia.h
     Modelo/LoopShaping/EstructuraDatos/etapas.h
     Modelo/LoopShaping/EstructuraDatos/nodo.h
     Modelo/LoopShaping/DeteccionViolacionBoundaries/deteccionviolacionboundaries.h
-    #Modelo/LoopShaping/TestDeteccion.h
     Modelo/LoopShaping/EstructuraDatos/listaordenada.h
     DAO/loopshapingdao.h
     DAO/adaptadorloopshapingdao.h
@@ -286,122 +243,128 @@ set (QFTbx_HED Modelo/EstructuraSistema/funciontransferencia.h
     GUI/verboundaries.h
     Modelo/Boundaries/algoritmointerseccionlineal1D.h
     Modelo/Boundaries/algoritmointerseccionproyectivo2D.h
-    Modelo/Boundaries/contour2.h 
+    Modelo/Boundaries/contour2.h
     Modelo/LoopShaping/funcionescomunes.h
-    Modelo/LoopShaping/EstructuraDatos/data_box.h )
+    Modelo/LoopShaping/EstructuraDatos/data_box.h
+)
 
+# Recursos
+qt6_add_resources(QFTbx_RES_SRC ${CMAKE_SOURCE_DIR}/Imagenes/imagenesPlanta.qrc)
 
-#Buscamos los ficheros de recursos
-qt6_add_resources(QFTbx_RES_SRC ${CMAKE_SOURCE_DIR}/Imagenes/imagenesPlanta.qrc )
-
-                                
-#Buscamos los ficheros QML
-
-#set(QFTbx_QML qml.qrc  )
-
-if (USE_QML)
-    
+# (QML) Mantengo tu estructura
+set(QFTbx_QML "")
+if(USE_QML)
+    # añade aquí qml.qrc si lo usas
 endif()
 
-if( WIN32 )
-        set (QFTbx_HED ${QFTbx_HED} Librerias/qcustomplot/qcustomplot.h)
-        set (QFTbx_SRC ${QFTbx_SRC} Librerias/qcustomplot/qcustomplot.cpp)
+# ------------------------------------------------------------------------------
+# Ejecutable
+# ------------------------------------------------------------------------------
+add_executable(${EXE_NAME}
+    ${QFTbx_SRC}
+    ${QFTbx_HED}
+    ${QFTbx_QML}
+    ${QFTbx_RES_SRC}
+    ${CUDA_OBJECTS}
+    ${QFTbx_OpenCL}
+    ${TS_FILES}
+)
+
+target_include_directories(${EXE_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
+
+target_link_libraries(${EXE_NAME} PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::PrintSupport)
+
+# Warnings/arch (por target, no global)
+target_compile_options(${EXE_NAME} PRIVATE -Wall)
+if(USE_NATIVE_ARCH AND (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang"))
+  target_compile_options(${EXE_NAME} PRIVATE -march=native)
 endif()
 
-add_executable(${EXE_NAME} ${QFTbx_SRC} ${QFTbx_HED} ${QFTbx_QML} ${QFTbx_RES_SRC} ${CUDA_OBJECTS} ${QFTbx_OpenCL} ${TS_FILES})
-
-
-
-#Opciones del compilador
-message("Check C++ version")
-# Establecer la versión mínima de C++
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-# Verificar si la versión de C++ cumplida es la requerida
-if (CMAKE_CXX_STANDARD LESS 20)
-    message(FATAL_ERROR "Se requiere C++ versión 20 o superior.")
+# OpenMP link
+if(USE_OpenMP AND OpenMP_CXX_FOUND)
+  target_link_libraries(${EXE_NAME} PRIVATE OpenMP::OpenMP_CXX)
+  target_compile_definitions(${EXE_NAME} PRIVATE OpenMP_AVAILABLE=1)
+else()
+  if(USE_OpenMP)
+    message("OpenMP NOT FOUND")
+  endif()
 endif()
 
-target_link_libraries(${EXE_NAME} Qt6::Core Qt6::Gui Qt6::Widgets Qt6::PrintSupport)
-
-qt6_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
-
+# CUDA link (tu lógica original)
 if(CUDA_FOUND)
-    ADD_DEPENDENCIES(${EXE_NAME} CUDA)
-    TARGET_LINK_LIBRARIES(${EXE_NAME} CUDA)
+    add_dependencies(${EXE_NAME} CUDA)
+    target_link_libraries(${EXE_NAME} PRIVATE CUDA)
 endif()
 
-if(OpenCL_FOUND)
-	target_link_libraries (${EXE_NAME} ${OpenCL_LIBRARY})
+# OpenCL link
+if(USE_OpenCL AND OpenCL_FOUND)
+  if(TARGET OpenCL::OpenCL)
+    target_link_libraries(${EXE_NAME} PRIVATE OpenCL::OpenCL)
+  else()
+    target_link_libraries(${EXE_NAME} PRIVATE ${OpenCL_LIBRARY})
+    target_include_directories(${EXE_NAME} PRIVATE ${OpenCL_INCLUDE_DIRS})
+  endif()
+  target_compile_definitions(${EXE_NAME} PRIVATE OpenCL_AVAILABLE=1)
 endif()
 
 set_property(TARGET ${EXE_NAME} APPEND PROPERTY
     INTERFACE_AUTOUIC_OPTIONS
 )
 
-#Buscamos las librerías estáticas
+qt6_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 
+# ------------------------------------------------------------------------------
+# LIBS internas: muparserx y qcustomplot como subdirectorios
+# ------------------------------------------------------------------------------
+add_subdirectory(Librerias/muparserx EXCLUDE_FROM_ALL)
+target_link_libraries(${EXE_NAME} PRIVATE muparserx::muparserx)
+
+add_subdirectory(Librerias/qcustomplot EXCLUDE_FROM_ALL)
+target_link_libraries(${EXE_NAME} PRIVATE qcustomplot::qcustomplot)
+
+# ------------------------------------------------------------------------------
+# CXSC aislada (NO tocar cxsc). ExternalProject + imported target.
+# ------------------------------------------------------------------------------
 include(ExternalProject)
+include(GNUInstallDirs)
 
-############################################################################
+set(CXSC_PREFIX "${CMAKE_BINARY_DIR}/cxsc")
+set(CXSC_LIBDIR "${CXSC_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 
+if(NOT WIN32)
+  set(CXSC_LIB "${CXSC_LIBDIR}/libcxsc.so")
+else()
+  set(CXSC_LIB "${CXSC_LIBDIR}/libcxsc.a")
+endif()
 
-############################################################################
-ExternalProject_Add(muParserX
-  SOURCE_DIR ${CMAKE_SOURCE_DIR}/Librerias/muparserx
-  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/muparserx
-  BUILD_BYPRODUCTS ${CMAKE_BINARY_DIR}/muparserx/lib/libmuparserx.a
+ExternalProject_Add(cxsc_ep
+  SOURCE_DIR "${CMAKE_SOURCE_DIR}/Librerias/cxsc"
+  CMAKE_ARGS
+    -DCMAKE_INSTALL_PREFIX:PATH=${CXSC_PREFIX}
+    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+  BUILD_BYPRODUCTS "${CXSC_LIB}"
 )
 
-include_directories("${CMAKE_BINARY_DIR}/muparserx/include/")
-
-add_dependencies(${EXE_NAME} muParserX)
-
-target_link_libraries(${EXE_NAME} "${CMAKE_BINARY_DIR}/muparserx/lib/libmuparserx.a")
-
-############################################################################
-if( NOT WIN32 )
-	ExternalProject_Add(QCustomPlot
-	  SOURCE_DIR ${CMAKE_SOURCE_DIR}/Librerias/qcustomplot
-	  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/qcustomplot
-      BUILD_BYPRODUCTS ${CMAKE_BINARY_DIR}/qcustomplot/lib/libqcustomplot.a
-	)
-
-	include_directories("${CMAKE_BINARY_DIR}/qcustomplot/include/")
-
-	add_dependencies(${EXE_NAME} QCustomPlot)
-	target_link_libraries(${EXE_NAME} "${CMAKE_BINARY_DIR}/qcustomplot/lib/libqcustomplot.a")
+if(NOT WIN32)
+  add_library(cxsc::cxsc SHARED IMPORTED GLOBAL)
+else()
+  add_library(cxsc::cxsc STATIC IMPORTED GLOBAL)
 endif()
 
-############################################################################
-if ( NOT WIN32 )
-    ExternalProject_Add(cxsc
-        SOURCE_DIR ${CMAKE_SOURCE_DIR}/Librerias/cxsc
-        CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/cxsc
-        BUILD_BYPRODUCTS ${CMAKE_BINARY_DIR}/cxsc/lib/libcxsc.so
-    )
-else ()
-    ExternalProject_Add(cxsc
-        SOURCE_DIR ${CMAKE_SOURCE_DIR}/Librerias/cxsc
-        CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/cxsc
-        BUILD_BYPRODUCTS ${CMAKE_BINARY_DIR}/cxsc/lib/libcxsc.a
-    )
+file(MAKE_DIRECTORY "${CXSC_PREFIX}/include")
+file(MAKE_DIRECTORY "${CXSC_LIBDIR}")
 
+set_target_properties(cxsc::cxsc PROPERTIES
+  IMPORTED_LOCATION "${CXSC_LIB}"
+  INTERFACE_INCLUDE_DIRECTORIES "${CXSC_PREFIX}/include"
+)
+
+add_dependencies(cxsc::cxsc cxsc_ep)
+target_link_libraries(${EXE_NAME} PRIVATE cxsc::cxsc)
+
+# RPATH en Linux para encontrar libcxsc.so al ejecutar desde build
+if(UNIX AND NOT APPLE AND NOT WIN32)
+  set_target_properties(${EXE_NAME} PROPERTIES
+    BUILD_RPATH "${CXSC_LIBDIR}"
+  )
 endif()
-
-include_directories("${CMAKE_BINARY_DIR}/cxsc/include/")
-
-add_dependencies(${EXE_NAME} cxsc)
-
-if ( NOT WIN32 )
-
-    target_link_libraries(${EXE_NAME} "${CMAKE_BINARY_DIR}/cxsc/lib/libcxsc.so")
-
-else ()
-
-    target_link_libraries(${EXE_NAME} "${CMAKE_BINARY_DIR}/cxsc/lib/libcxsc.a")
-
-endif()
-
-

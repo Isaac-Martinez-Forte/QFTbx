@@ -5,7 +5,7 @@
 
 #include "sistema.h"
 #include "complex"
-#include "muparserx/mpParser.h"
+#include "mpParser.h"
 
  /**
     * @class FormatoLibre

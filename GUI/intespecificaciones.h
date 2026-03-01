@@ -6,7 +6,7 @@
 
 #include "Modelo/Herramientas/tools.h"
 #include "Modelo/controlador.h"
-#include "muparserx/mpParser.h"
+#include "mpParser.h"
 #include "Modelo/Objetos/omega.h"
 
 using namespace tools;

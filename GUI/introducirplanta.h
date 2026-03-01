@@ -16,7 +16,7 @@
 #include "GUI/intincertidumbre.h"
 #include "Modelo/controlador.h"
 #include "Modelo/Herramientas/tools.h"
-#include "muparserx/mpParser.h"
+#include "mpParser.h"
 
 namespace Ui {
 class IntroducirPlanta;

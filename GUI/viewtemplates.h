@@ -16,7 +16,7 @@
 
 #include "Modelo/Herramientas/tools.h"
 #include "Modelo/controlador.h"
-#include "Librerias/qcustomplot/qcustomplot.h"
+#include "qcustomplot.h"
 
 #include "cinterval.hpp"
 #include "Modelo/LoopShaping/NaturalIntervalExtension/natural_interval_extension.h"

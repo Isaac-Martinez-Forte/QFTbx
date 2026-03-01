@@ -95,7 +95,7 @@ SOURCES += main.cpp\
 
 
 HEADERS  += \
-    Librerias/qcustomplot/qcustomplot.h \
+    qcustomplot.h \
     Librerias/interval/interval.h \
     Librerias/interval/operadores.h \
     Librerias/interval/cinterval.h \

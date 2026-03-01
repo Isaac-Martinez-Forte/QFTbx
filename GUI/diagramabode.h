@@ -8,7 +8,7 @@
 #include <QFileDialog>
 #include <QMessageBox>
 
-#include "Librerias/qcustomplot/qcustomplot.h"
+#include "qcustomplot.h"
 #include "Modelo/EstructuraSistema/sistema.h"
 #include "Modelo/Herramientas/tools.h"
 #include "Modelo/Objetos/omega.h"

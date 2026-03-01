@@ -19,7 +19,7 @@
 
 #include "Modelo/LoopShaping/funcionescomunes.h"
 
-#include "muparserx/mpParser.h"
+#include "mpParser.h"
 
 
 class Algorithm_nandkishor

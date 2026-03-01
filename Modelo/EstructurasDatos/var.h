@@ -4,9 +4,9 @@
 #include <QString>
 #include <QPointF>
 
-#include "muparserx/mpParser.h"
-#include "muparserx/mpValue.h"
-#include "muparserx/mpVariable.h"
+#include "mpParser.h"
+#include "mpValue.h"
+#include "mpVariable.h"
 
 
   /**

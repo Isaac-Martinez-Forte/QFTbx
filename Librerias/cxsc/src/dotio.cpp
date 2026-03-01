@@ -497,7 +497,7 @@ void d_outp(char *buffer, Dotprecision c,
 #include "dot.hpp"
 Dotprecision b_cm__;
 #else
-extern Dotprecision b_cm__;
+extern "C" Dotprecision b_cm__;
 #endif
 
 namespace cxsc {

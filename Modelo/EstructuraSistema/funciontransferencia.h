@@ -4,7 +4,7 @@
 #include "sistema.h"
 #include <QVector>
 #include "../EstructurasDatos/var.h"
-#include "muparserx/mpParser.h"
+#include "mpParser.h"
 
  /**
     * @class FuncionTransferencia

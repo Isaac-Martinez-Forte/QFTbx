@@ -2,7 +2,7 @@
 #define POLOSCEROS_H
 
 #include "funciontransferencia.h"
-#include "muparserx/mpParser.h"
+#include "mpParser.h"
 
 
   /**

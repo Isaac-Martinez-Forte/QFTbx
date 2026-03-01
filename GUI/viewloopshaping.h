@@ -4,7 +4,7 @@
 #include <QDialog>
 
 #include "Modelo/Herramientas/tools.h"
-#include "Librerias/qcustomplot/qcustomplot.h"
+#include "qcustomplot.h"
 #include "Modelo/EstructuraSistema/sistema.h"
 #include "Modelo/EstructurasDatos/datosloopshaping.h"
 

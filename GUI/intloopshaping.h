@@ -3,7 +3,7 @@
 
 #include <QDialog>
 
-#include "muparserx/mpParser.h"
+#include "mpParser.h"
 #include "Modelo/Herramientas/tools.h"
 #include "Modelo/controlador.h"
 #include "Modelo/Herramientas/tools.h"

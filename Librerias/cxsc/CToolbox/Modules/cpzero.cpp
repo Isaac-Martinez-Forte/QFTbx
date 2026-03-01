@@ -115,14 +115,14 @@ static real MaxNorm ( CPolynomial p )
 //    'z' of polynomial 'p', as well as for the coefficients 'q' of the
 //    deflated polynomial.
 //----------------------------------------------------------------------------
-static void Approximation ( CPolynomial  p, complex& z,
+static void Approximation ( CPolynomial  p, cxsc::complex& z,
                             CPolynomial& q, int&     Err )
 {
   const int      kmax  = 50;              // Maximum number of iteration steps
   const real     eps   = 1E-9;            // Relative error of approximation
 
   int            stop, k, i, n = Deg(p);
-  complex        t;
+  cxsc::complex        t;
   cdotprecision  accu;
   CPolynomial    delta(n-1), d(n-1), w(n-1), qHlp(n-2);
 
@@ -208,7 +208,7 @@ static void Approximation ( CPolynomial  p, complex& z,
 //    well as for the coefficients of the deflated polynomial.
 //----------------------------------------------------------------------------
 static void IntervalIteration ( CPolynomial p,  CPolynomial   q,
-                                complex     z,  CIPolynomial& qq,
+                                cxsc::complex     z,  CIPolynomial& qq,
                                 cinterval&  zz, int&    Err       )
 {
   const int       kmax = 10;              // Maximum number of iteration steps
@@ -334,7 +334,7 @@ static void IntervalIteration ( CPolynomial p,  CPolynomial   q,
 //    computed, and then verified enclosures for a root and for a deflated
 //    polynomial are returned.
 //----------------------------------------------------------------------------
-void CPolyZero ( CPolynomial   p,  complex    z,
+void CPolyZero ( CPolynomial   p,  cxsc::complex    z,
                  CIPolynomial& qq, cinterval& zz, int& Err )
 {
   int  n = Deg(p);
