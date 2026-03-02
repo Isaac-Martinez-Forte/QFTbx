@@ -249,7 +249,8 @@ set(QFTbx_HED
 )
 
 # Recursos
-qt6_add_resources(QFTbx_RES_SRC ${CMAKE_SOURCE_DIR}/Imagenes/imagenesPlanta.qrc)
+qt6_add_resources(QFTbx_RES_SRC Resources/Images/imagenesPlanta.qrc)
+qt6_add_resources(QFTbx_ICON_RES Resources/Icon/icons.qrc)
 
 
 # ------------------------------------------------------------------------------
@@ -259,15 +260,63 @@ add_executable(${EXE_NAME}
     ${QFTbx_SRC}
     ${QFTbx_HED}
     ${QFTbx_QML}
-    ${QFTbx_RES_SRC}
     ${CUDA_OBJECTS}
     ${QFTbx_OpenCL}
     ${TS_FILES}
+    ${QFTbx_ICON_RES}
+    ${QFTbx_RES_SRC}
 )
 
 target_include_directories(${EXE_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
 
 target_link_libraries(${EXE_NAME} PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::PrintSupport)
+
+if(WIN32)
+  target_sources(${EXE_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/Resources/Icon/qftbx.rc)
+endif()
+
+if(UNIX AND NOT APPLE)
+  # Ruta absoluta del icono en el source tree
+  set(QFTBX_ICON "${CMAKE_SOURCE_DIR}/Resources/Icon/qftbx_256.png")
+
+  # Generar .desktop en el build dir (portable, sin install)
+  # Usamos generator expressions para capturar la ruta real del ejecutable
+  set(QFTBX_DESKTOP_IN  "${CMAKE_SOURCE_DIR}/Resources/Icon/QFTbx.desktop.in")
+  set(QFTBX_DESKTOP_OUT "${CMAKE_BINARY_DIR}/QFTbx.desktop")
+
+  # 1) Generamos un archivo intermedio con placeholders que incluyen generator expressions
+  file(GENERATE
+    OUTPUT "${CMAKE_BINARY_DIR}/QFTbx.desktop.gen.in"
+    CONTENT
+"[Desktop Entry]\n\
+Type=Application\n\
+Version=1.0\n\
+Name=QFTbx\n\
+Comment=Quantitative Feedback Theory toolbox (robust control)\n\
+Exec=$<TARGET_FILE:${EXE_NAME}>\n\
+Path=${CMAKE_BINARY_DIR}\n\
+Icon=${QFTBX_ICON}\n\
+Terminal=false\n\
+Categories=Science;Engineering;\n\
+StartupNotify=true\n"
+  )
+
+  # 2) Copiamos el intermedio al .desktop final (para tener un nombre estable)
+  add_custom_command(
+    TARGET ${EXE_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_BINARY_DIR}/QFTbx.desktop.gen.in"
+            "${QFTBX_DESKTOP_OUT}"
+    COMMENT "Generating portable desktop file: ${QFTBX_DESKTOP_OUT}"
+  )
+
+  # 3) (Opcional) hacerlo ejecutable automáticamente
+  add_custom_command(
+    TARGET ${EXE_NAME} POST_BUILD
+    COMMAND chmod +x "${QFTBX_DESKTOP_OUT}"
+    COMMENT "Marking QFTbx.desktop as executable"
+  )
+endif()
 
 # Warnings/arch 
 target_compile_options(${EXE_NAME} PRIVATE -Wall)
@@ -311,10 +360,10 @@ qt6_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 # ------------------------------------------------------------------------------
 # LIBS internas: muparserx y qcustomplot como subdirectorios
 # ------------------------------------------------------------------------------
-add_subdirectory(Librerias/muparserx EXCLUDE_FROM_ALL)
+add_subdirectory(3rd-party/muparserx EXCLUDE_FROM_ALL)
 target_link_libraries(${EXE_NAME} PRIVATE muparserx::muparserx)
 
-add_subdirectory(Librerias/qcustomplot EXCLUDE_FROM_ALL)
+add_subdirectory(3rd-party/qcustomplot EXCLUDE_FROM_ALL)
 target_link_libraries(${EXE_NAME} PRIVATE qcustomplot::qcustomplot)
 
 # ------------------------------------------------------------------------------
@@ -323,7 +372,7 @@ target_link_libraries(${EXE_NAME} PRIVATE qcustomplot::qcustomplot)
 include(ExternalProject)
 include(GNUInstallDirs)
 
-set(CXSC_PREFIX "${CMAKE_BINARY_DIR}/cxsc")
+set(CXSC_PREFIX "${CMAKE_BINARY_DIR}/3rd-party/cxsc")
 set(CXSC_LIBDIR "${CXSC_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 
 if(NOT WIN32)
@@ -333,12 +382,14 @@ else()
 endif()
 
 ExternalProject_Add(cxsc_ep
-  SOURCE_DIR "${CMAKE_SOURCE_DIR}/Librerias/cxsc"
+  PREFIX "${CMAKE_BINARY_DIR}/3rd-party/cxsc/ep"
+  SOURCE_DIR "${CMAKE_SOURCE_DIR}/3rd-party/cxsc"
   CMAKE_ARGS
     -DCMAKE_INSTALL_PREFIX:PATH=${CXSC_PREFIX}
     -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
   BUILD_BYPRODUCTS "${CXSC_LIB}"
 )
+
 
 if(NOT WIN32)
   add_library(cxsc::cxsc SHARED IMPORTED GLOBAL)

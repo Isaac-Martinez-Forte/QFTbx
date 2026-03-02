@@ -17,19 +17,19 @@ IntEspecificaciones::IntEspecificaciones(Controlador *controlador, QWidget *pare
 
     retorno = NULL;
 
-    //Establecemos las imagenes de las plantas:
+    //Establecemos las figures de las plantas:
 
-    QPixmap imagen1 (":/imagenes/kgan.png");
+    QPixmap imagen1 (":/figures/kgan.png");
     ui->imagHF->setPixmap(imagen1);
     ui->imgKGse1->setPixmap(imagen1);
     ui->imgKGse1_2->setPixmap(imagen1);
 
-    QPixmap imagen2 (":/imagenes/knogan.png");
+    QPixmap imagen2 (":/figures/knogan.png");
     ui->imagLF->setPixmap(imagen2);
     ui->imgKNGse1->setPixmap(imagen2);
     ui->imgKNGse1_2->setPixmap(imagen2);
 
-    QPixmap imagen3 (":/imagenes/copol.png");
+    QPixmap imagen3 (":/figures/copol.png");
     ui->imagCP->setPixmap(imagen3);
     ui->imgCPse1->setPixmap(imagen3);
     ui->imgCPse1_2->setPixmap(imagen3);
@@ -47,13 +47,13 @@ IntEspecificaciones::IntEspecificaciones(Controlador *controlador, QWidget *pare
     RPE = new dBND();
     EC = new dBND();
 
-    //imagenes
-    seguimiento_img = QPixmap (":/imagenes/seguimiento.png");
-    EC_img = QPixmap (":/imagenes/EC.png");
-    RPS_img= QPixmap (":/imagenes/RPS.png");
-    RPE_img= QPixmap (":/imagenes/RPE.png");
-    ruidosensor_img= QPixmap (":/imagenes/ruidosensor.png");
-    estabilidad_img= QPixmap (":/imagenes/estabilidad.png");
+    //figures
+    seguimiento_img = QPixmap (":/figures/seguimiento.png");
+    EC_img = QPixmap (":/figures/EC.png");
+    RPS_img= QPixmap (":/figures/RPS.png");
+    RPE_img= QPixmap (":/figures/RPE.png");
+    ruidosensor_img= QPixmap (":/figures/ruidosensor.png");
+    estabilidad_img= QPixmap (":/figures/estabilidad.png");
 
     ui->frecini->setText(QString::number(omega->first()));
     ui->frecfin->setText(QString::number(omega->last()));
@@ -803,21 +803,21 @@ void IntEspecificaciones::on_FLSe1_2_clicked()
 
 void IntEspecificaciones::on_poli_clicked()
 {
-    ui->imagenes->setCurrentIndex(1);
+    ui->figures->setCurrentIndex(1);
 }
 
 void IntEspecificaciones::on_hfgain_clicked()
 {
-    ui->imagenes->setCurrentIndex(3);
+    ui->figures->setCurrentIndex(3);
 }
 
 void IntEspecificaciones::on_libre_clicked()
 {
-    ui->imagenes->setCurrentIndex(0);
+    ui->figures->setCurrentIndex(0);
 }
 
 void IntEspecificaciones::on_lfgain_clicked()
 {
-    ui->imagenes->setCurrentIndex(2);
+    ui->figures->setCurrentIndex(2);
 }
 

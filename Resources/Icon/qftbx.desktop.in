@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=QFTbx
+Exec=QFTbx
+Icon=qftbx
+Categories=Science;Engineering;
+Terminal=false

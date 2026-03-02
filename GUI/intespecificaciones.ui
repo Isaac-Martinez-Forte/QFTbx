@@ -242,7 +242,7 @@
       </widget>
      </widget>
      <widget class="QWidget" name="FT">
-      <widget class="QStackedWidget" name="imagenes">
+      <widget class="QStackedWidget" name="figures">
        <property name="geometry">
         <rect>
          <x>180</x>

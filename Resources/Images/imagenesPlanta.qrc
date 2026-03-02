@@ -1,0 +1,13 @@
+<RCC>
+    <qresource prefix="/">
+        <file>figures/copol.png</file>
+        <file>figures/kgan.png</file>
+        <file>figures/knogan.png</file>
+        <file>figures/EC.png</file>
+        <file>figures/estabilidad.png</file>
+        <file>figures/RPE.png</file>
+        <file>figures/RPS.png</file>
+        <file>figures/ruidosensor.png</file>
+        <file>figures/seguimiento.png</file>
+    </qresource>
+</RCC>

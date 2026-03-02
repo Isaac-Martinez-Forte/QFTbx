@@ -14,13 +14,13 @@ introducirEContr::introducirEContr(Controlador * cont, QWidget *parent) :
 
     setWindowTitle("Introducir Datos Controlador");
 
-    QPixmap imagen1 (":/imagenes/kgan.png");
+    QPixmap imagen1 (":/figures/kgan.png");
     ui->label_hf->setPixmap(imagen1);
 
-    QPixmap imagen2 (":/imagenes/knogan.png");
+    QPixmap imagen2 (":/figures/knogan.png");
     ui->label_hl->setPixmap(imagen2);
 
-    QPixmap imagen3 (":/imagenes/copol.png");
+    QPixmap imagen3 (":/figures/copol.png");
     ui->label_poli->setPixmap(imagen3);
 
     ui->kInicio->setText("1");
@@ -41,17 +41,17 @@ introducirEContr::~introducirEContr()
 
 void introducirEContr::on_c_poli_clicked()
 {
-    ui->imagenes->setCurrentIndex(1);
+    ui->figures->setCurrentIndex(1);
 }
 
 void introducirEContr::on_hf_clicked()
 {
-    ui->imagenes->setCurrentIndex(2);
+    ui->figures->setCurrentIndex(2);
 }
 
 void introducirEContr::on_lf_clicked()
 {
-    ui->imagenes->setCurrentIndex(3);
+    ui->figures->setCurrentIndex(3);
 }
 
 void introducirEContr::on_libertad_clicked()

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=QFTbx
+Comment=Quantitative Feedback Theory toolbox (robust control)
+Exec=@QFTBX_EXEC@
+Path=@QFTBX_WORKDIR@
+Icon=@QFTBX_ICON@
+Terminal=false
+Categories=Science;Engineering;
+StartupNotify=true

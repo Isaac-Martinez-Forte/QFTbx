@@ -925,17 +925,17 @@
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="Librerias/qcustomplot/examples/axis-tags/mainwindow.ui" line="14"/>
+        <location filename="3rd-party/qcustomplot/examples/axis-tags/mainwindow.ui" line="14"/>
         <source>Axis Tags Example</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="Librerias/qcustomplot/examples/interactions/mainwindow.ui" line="14"/>
+        <location filename="3rd-party/qcustomplot/examples/interactions/mainwindow.ui" line="14"/>
         <source>QCustomPlot Interaction Example</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="Librerias/qcustomplot/examples/interactions/mainwindow.ui" line="64"/>
+        <location filename="3rd-party/qcustomplot/examples/interactions/mainwindow.ui" line="64"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -947,44 +947,44 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="Librerias/qcustomplot/examples/plots/mainwindow.ui" line="14"/>
+        <location filename="3rd-party/qcustomplot/examples/plots/mainwindow.ui" line="14"/>
         <source>QCustomPlot plot examples</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="Librerias/qcustomplot/examples/scrollbar-axis-range-control/mainwindow.ui" line="14"/>
+        <location filename="3rd-party/qcustomplot/examples/scrollbar-axis-range-control/mainwindow.ui" line="14"/>
         <source>QCustomPlot Scrollbar Axis Range Control Demo</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="Librerias/qcustomplot/examples/scrollbar-axis-range-control/mainwindow.ui" line="47"/>
-        <location filename="Librerias/qcustomplot/examples/text-document-integration/mainwindow.ui" line="120"/>
+        <location filename="3rd-party/qcustomplot/examples/scrollbar-axis-range-control/mainwindow.ui" line="47"/>
+        <location filename="3rd-party/qcustomplot/examples/text-document-integration/mainwindow.ui" line="120"/>
         <source>Insert Plot</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="Librerias/qcustomplot/examples/scrollbar-axis-range-control/mainwindow.ui" line="52"/>
-        <location filename="Librerias/qcustomplot/examples/text-document-integration/mainwindow.ui" line="125"/>
+        <location filename="3rd-party/qcustomplot/examples/scrollbar-axis-range-control/mainwindow.ui" line="52"/>
+        <location filename="3rd-party/qcustomplot/examples/text-document-integration/mainwindow.ui" line="125"/>
         <source>Save Document...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="Librerias/qcustomplot/examples/text-document-integration/mainwindow.ui" line="14"/>
+        <location filename="3rd-party/qcustomplot/examples/text-document-integration/mainwindow.ui" line="14"/>
         <source>QCustomPlot Document Insertion Demo</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="Librerias/qcustomplot/examples/text-document-integration/mainwindow.ui" line="45"/>
+        <location filename="3rd-party/qcustomplot/examples/text-document-integration/mainwindow.ui" line="45"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Size of plot&lt;br/&gt;in document:&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="Librerias/qcustomplot/examples/text-document-integration/mainwindow.ui" line="71"/>
+        <location filename="3rd-party/qcustomplot/examples/text-document-integration/mainwindow.ui" line="71"/>
         <source>x</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="Librerias/qcustomplot/examples/text-document-integration/mainwindow.ui" line="97"/>
+        <location filename="3rd-party/qcustomplot/examples/text-document-integration/mainwindow.ui" line="97"/>
         <source>Use current</source>
         <translation type="unfinished"></translation>
     </message>

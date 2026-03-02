@@ -69,13 +69,13 @@ void ViewLoopShaping::mostrar_diagrama(){
     Sistema::tipo_planta tipo = datos->getControlador()->getClass();
 
     if (tipo == Sistema::cof_polinomios){
-        QPixmap imagen (":/imagenes/copol.png");
+        QPixmap imagen (":/figures/copol.png");
         ui->tipoSistema->setPixmap(imagen);
     } else if (tipo == Sistema::k_ganancia){
-        QPixmap imagen (":/imagenes/kgan.png");
+        QPixmap imagen (":/figures/kgan.png");
         ui->tipoSistema->setPixmap(imagen);
     }else {
-        QPixmap imagen (":/imagenes/knogan.png");
+        QPixmap imagen (":/figures/knogan.png");
         ui->tipoSistema->setPixmap(imagen);
     }
 

@@ -39,15 +39,15 @@ IntroducirPlanta::IntroducirPlanta(Controlador * controlador, QWidget *parent) :
     //Creamos la pantalla para introducir la incertidumbre que usaremos despues.
     viewIncer = new IntIncertidumbre (this);
 
-    //Establecemos las imagenes de las plantas:
+    //Establecemos las figures de las plantas:
 
-    QPixmap imagen1 (":/imagenes/kgan.png");
+    QPixmap imagen1 (":/figures/kgan.png");
     ui->imaKG->setPixmap(imagen1);
 
-    QPixmap imagen2 (":/imagenes/knogan.png");
+    QPixmap imagen2 (":/figures/knogan.png");
     ui->imaKNG->setPixmap(imagen2);
 
-    QPixmap imagen3 (":/imagenes/copol.png");
+    QPixmap imagen3 (":/figures/copol.png");
     ui->imaCP->setPixmap(imagen3);
 
     //conectamos el boton cancelar

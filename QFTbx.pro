@@ -90,15 +90,15 @@ SOURCES += main.cpp\
     Modelo/Boundaries/algoritmointerseccionlineal1D.cpp\
     Modelo/Boundaries/algoritmointerseccionproyectivo2D.cpp\
     Modelo/Boundaries/contour2.cpp \
-    Librerias/qcustomplot/qcustomplot.cpp
+    3rd-party/qcustomplot/qcustomplot.cpp
 
 
 
 HEADERS  += \
     qcustomplot.h \
-    Librerias/interval/interval.h \
-    Librerias/interval/operadores.h \
-    Librerias/interval/cinterval.h \
+    3rd-party/interval/interval.h \
+    3rd-party/interval/operadores.h \
+    3rd-party/interval/cinterval.h \
     Modelo/EstructuraSistema/funciontransferencia.h\
     Modelo/LoopShaping/NaturalIntervalExtension/natural_interval_extension.h\
     DAO/adaptadorplantadao.h\
@@ -196,7 +196,7 @@ FORMS    += \
     GUI/windowsgeneral.ui
 
 RESOURCES += \
-    Imagenes/imagenesPlanta.qrc
+    Images/imagenesPlanta.qrc
 
 contains (DEFINES, CUDA_AVAILABLE) {
     message (Se compila con soporte CUDA.)
@@ -242,31 +242,31 @@ contains (DEFINES, CUDA_AVAILABLE) {
 
 
 
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/Librerias/muparserx/build/ -lmuparserx
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/Librerias/muparserx/build/ -lmuparserxd
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/3rd-party/muparserx/build/ -lmuparserx
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/3rd-party/muparserx/build/ -lmuparserxd
 
-INCLUDEPATH += $$PWD/Librerias/muparserx/parser
-DEPENDPATH += $$PWD/Librerias/muparserx/parser
+INCLUDEPATH += $$PWD/3rd-party/muparserx/parser
+DEPENDPATH += $$PWD/3rd-party/muparserx/parser
 
-win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/Librerias/muparserx/build/libmuparserx.a
-else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/Librerias/muparserx/build/libmuparserxd.a
-else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/Librerias/muparserx/build/muparserx.lib
-else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/Librerias/muparserx/build/muparserxd.lib
+win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/3rd-party/muparserx/build/libmuparserx.a
+else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/3rd-party/muparserx/build/libmuparserxd.a
+else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/3rd-party/muparserx/build/muparserx.lib
+else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/3rd-party/muparserx/build/muparserxd.lib
 
-unix:!macx: LIBS += -L$$PWD/Librerias/qcustomplot/build/ -linterval
+unix:!macx: LIBS += -L$$PWD/3rd-party/qcustomplot/build/ -linterval
 
-INCLUDEPATH += $$PWD/Librerias/qcustomplot
-DEPENDPATH += $$PWD/Librerias/qcustomplot
+INCLUDEPATH += $$PWD/3rd-party/qcustomplot
+DEPENDPATH += $$PWD/3rd-party/qcustomplot
 
-unix:!macx: PRE_TARGETDEPS += $$PWD/Librerias/qcustomplot/build/libinterval.a
+unix:!macx: PRE_TARGETDEPS += $$PWD/3rd-party/qcustomplot/build/libinterval.a
 
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/Librerias/interval/build/release/ -linterval
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/Librerias/interval/build/debug/ -linterval
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/3rd-party/interval/build/release/ -linterval
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/3rd-party/interval/build/debug/ -linterval
 
-INCLUDEPATH += $$PWD/Librerias/interval
-DEPENDPATH += $$PWD/Librerias/interval
+INCLUDEPATH += $$PWD/3rd-party/interval
+DEPENDPATH += $$PWD/3rd-party/interval
 
-win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/Librerias/interval/build/release/libinterval.a
-else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/Librerias/interval/build/debug/libinterval.a
-else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/Librerias/interval/build/release/interval.lib
-else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/Librerias/interval/build/debug/interval.lib
+win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/3rd-party/interval/build/release/libinterval.a
+else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/3rd-party/interval/build/debug/libinterval.a
+else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/3rd-party/interval/build/release/interval.lib
+else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/3rd-party/interval/build/debug/interval.lib

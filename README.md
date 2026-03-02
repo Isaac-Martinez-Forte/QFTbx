@@ -1,64 +1,124 @@
-# How to use
+<p align="center">
+  <img src="Resources/Icon/QFTbx_256.png" width="96"/>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/C%2B%2B-20-blue"/>
+  <img src="https://img.shields.io/badge/Qt-6-green"/>
+</p>
+
+<h1 align="center">QFTbx</h1>
+
+<p align="center">
+Quantitative Feedback Theory toolbox for robust control design<br/>
+Academic-oriented software for QFT-based analysis and automatic loop shaping
+</p>
+
+---
+
+## Overview
+
+QFTbx is a graphical and computational toolbox for the design and analysis of robust controllers using Quantitative Feedback Theory (QFT).
+
+The software is mainly oriented towards academic and research use, although it can also be useful for control engineers interested in QFT-based methodologies.
+It provides tools for automatic loop shaping, interval analysis, and visualization of QFT constraints.
+
+This software is currently under active development. Some features may be incomplete or experimental.
+
+---
 
 ## Dependencies
 
-	- Minimal
-		- cmake >= 3.17
-		- Qt >= 6.xx
-		- cxx compiler >= c++20
-	- Optional
-		- cuda >= 7
-		- OpenMp >= 11
+Required
+- CMake >= 3.17
+- Qt >= 6.x
+- C++ compiler with C++20 support
 
+Optional
+- OpenMP >= 11
+- CUDA >= 7
+- Doxygen (for documentation generation)
 
-Full documentation isn't available but you can use Doxygen if you need to generate some of this documentation. 
+---
 
-You can configure dependencies in CMake file;  automatical configuration is: 
+## Configuration options
 
-	- OPTION (USE_CLANG "Use CLANG" OFF)
-	- OPTION (USE_OpenMP "Use OpenMP" ON)
-	- OPTION (USE_CUDA "Use CUDA" OFF)
-	- OPTION (USE_Doxygen "Use Doxygen" OFF)
+Dependencies and features can be enabled or disabled directly from the main CMakeLists.txt file using the following options:
 
+OPTION (USE_CLANG    "Use CLANG"    OFF)
+OPTION (USE_OpenMP   "Use OpenMP"   ON)
+OPTION (USE_CUDA     "Use CUDA"     OFF)
+OPTION (USE_Doxygen  "Use Doxygen"  OFF)
 
+Automatic configuration is applied based on the selected options and the available system libraries.
 
-## Compile
+---
 
-Instructions:
+## Build instructions
 
-	- mkdir build
-	- cd build
-	- cmake ..
-	- make
-	
-If you previously fulfill the dependencies, you can compile it in linux (using gcc) or in windows (using MinGW).
+Linux / Windows (MinGW)
+
+mkdir build
+cd build
+cmake ..
+make
+
+If all dependencies are correctly installed, the project can be compiled on Linux (using GCC or Clang) or Windows (using MinGW).
+
+---
 
 ## Execution
 
-	- ./QFTbx
-	
-This program is under development. Something may be wrong. An installer isn't included.
+From the build directory:
 
-# License
+./QFTbx
 
-GNU GENERAL PUBLIC LICENSE Version 3
+No installer is currently provided. The application is intended to be run directly from the build directory.
 
+---
 
-# Authors 
+## Documentation
 
-Isaac Martínez Forte - <isaac.martinez@upct.es>
+Full documentation is not currently bundled.
+However, Doxygen can be used to generate partial documentation if enabled during configuration.
 
-Joaquín Cervera López - <jcervera@um.es>
+---
 
+## License
 
-# Bibliography
+This project is distributed under the GNU General Public License, Version 3 (GPLv3).
 
-[I. Martı́nez-Forte y J. Cervera [2021]]. Accelerated quantitative feedback theory interval automatic loop shaping algorithm. International Journal of Robust and Nonlinear Control 31, no 9: 4378–4396. https://doi.org/10.1002/rnc.5499 	http://hdl.handle.net/10201/123363
+---
 
-[I. Martı́nez-Forte y J. Cervera [2022]]. Aceleración de algoritmos intervalares de ajuste automático del lazo en QFT. Tesis Doctoral Universidad de Murcia [2022]. http://hdl.handle.net/10201/122610
+## Authors
 
-[Martínez-Forte[2013]]I. Martínez-Forte. *QFTbx,  herramienta  de  diseño  QFT:  especificación de requisitos y prototipado*. Proyecto Fin de Carrera Universidad de Murcia [2013] http://hdl.handle.net/10201/61459.
+Isaac Martínez Forte
+isaac.martinez@upct.es
 
-[Martínez-Forte[2014]]I. Martínez-Forte. *Paralelización de algoritmos QFT mediante OpenMP y CUDA*. Proyecto Fin de Máster Universidad de Murcia [2014] http://hdl.handle.net/10201/61460.
+Joaquín Cervera López
+jcervera@um.es
 
+---
 
+## Bibliography
+
+Martínez-Forte, I., & Cervera, J. (2021).
+Accelerated quantitative feedback theory interval automatic loop shaping algorithm.
+International Journal of Robust and Nonlinear Control, 31(9), 4378–4396.
+https://doi.org/10.1002/rnc.5499
+http://hdl.handle.net/10201/123363
+
+Martínez-Forte, I., & Cervera, J. (2022).
+Aceleración de algoritmos intervalares de ajuste automático del lazo en QFT.
+Doctoral Thesis, Universidad de Murcia.
+http://hdl.handle.net/10201/122610
+
+Martínez-Forte, I. (2013).
+QFTbx, herramienta de diseño QFT: especificación de requisitos y prototipado.
+Final Degree Project, Universidad de Murcia.
+http://hdl.handle.net/10201/61459
+
+Martínez-Forte, I. (2014).
+Paralelización de algoritmos QFT mediante OpenMP y CUDA.
+Master's Thesis, Universidad de Murcia.
+http://hdl.handle.net/10201/61460

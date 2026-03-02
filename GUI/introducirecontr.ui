@@ -13,7 +13,7 @@
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
-  <widget class="QStackedWidget" name="imagenes">
+  <widget class="QStackedWidget" name="figures">
    <property name="geometry">
     <rect>
      <x>240</x>
