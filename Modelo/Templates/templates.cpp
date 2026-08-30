@@ -20,7 +20,6 @@ vector <complex <double> > e_hull_cuda(vector <complex <double> > puntos, float 
 
 Templates::Templates()
 {
-    contornoCalculado = false;
 }
 
 Templates::~Templates(){
@@ -32,6 +31,10 @@ void Templates::setMapa(QHash<Parameter *, QVector<qreal> *> *mapa){
 
 void Templates::setEpsilon(QVector<qreal> *epsilon){
     this->epsilon = epsilon;
+}
+
+void Templates::setTemplates(QVector<QVector<std::complex<qreal> > *> *templates){
+    this->templates = templates;
 }
 
 bool Templates::lanzarCalculo(LtiSystem *planta, QVector<qreal> *omega, bool cuda){
@@ -66,6 +69,14 @@ bool Templates::lanzarCalculo(LtiSystem *planta, QVector<qreal> *omega, bool cud
 }
 
 bool Templates::lanzarCalculoContorno(QVector<qreal> *epsilon){
+
+    if (templates == NULL){
+        throw qftbx::InvalidInput("There are no templates to compute contours from.");
+    }
+    if (epsilon == NULL || epsilon->size() < templates->size()){
+        throw qftbx::InvalidInput("Missing epsilon values for the template contours.");
+    }
+
     this->epsilon = epsilon;
     QElapsedTimer timer;
     timer.start();
@@ -87,7 +98,14 @@ QVector<QVector<complex<qreal> > *> * Templates::getContorno(){
 
 QVector<qreal> * Templates::getVariables(Parameter * a){
 
-    return mapa->value(a);
+    QVector<qreal> * values = mapa->value(a);
+
+    if (values == NULL){
+        throw qftbx::InvalidInput("Missing sweep grid for the uncertain parameter '"
+                                  + a->name().toStdString() + "'.");
+    }
+
+    return values;
 }
 
 #ifndef OpenMP_AVAILABLE
@@ -401,7 +419,6 @@ bool Templates::calcularContorno(bool cuda __attribute__((unused))){
             throw qftbx::ComputationError("Could not compute the template contours.");
         }
 
-        contornoCalculado = true;
         return true;
     }
 #endif
@@ -436,8 +453,6 @@ bool Templates::calcularContorno(bool cuda __attribute__((unused))){
     if (!correcto){
         throw qftbx::ComputationError("Could not compute the template contours.");
     }
-
-    contornoCalculado = true;
 
     return true;
 }

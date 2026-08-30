@@ -323,7 +323,7 @@ void IntroducirTemplates::on_Aceptar_clicked()
         if (linsp){
             mapa->insert(planta->gain(), linspace(inicio, final, npuntos));
         } else {
-            mapa->insert(planta->gain(), linspace(inicio, final, npuntos));
+            mapa->insert(planta->gain(), logspace(inicio, final, npuntos));
         }
     }
 
@@ -336,14 +336,17 @@ void IntroducirTemplates::on_Aceptar_clicked()
         qint32 npuntos;
 
         inicio = planta->delay()->range().x();
-        final = planta->delay()->range().x();
+        final = planta->delay()->range().y();
         parser->SetExpr(ui->todasNPuntos->text().toStdString());
         npuntos = parser->Eval().GetFloat();
 
+        //Antes esta rama insertaba la rejilla del retardo bajo la CLAVE de
+        //la ganancia: machacaba la de la ganancia y dejaba al retardo sin
+        //entrada (crash en el barrido con retardo incierto).
         if (linsp){
-            mapa->insert(planta->gain(), linspace(inicio, final, npuntos));
+            mapa->insert(planta->delay(), linspace(inicio, final, npuntos));
         } else {
-            mapa->insert(planta->gain(), linspace(inicio, final, npuntos));
+            mapa->insert(planta->delay(), logspace(inicio, final, npuntos));
         }
     }
 
@@ -361,7 +364,7 @@ bool IntroducirTemplates::extraerVariable(ParLineEdit *parlines, tresRadioButton
     if (radioButtons.uno->isChecked() && !parlines->getX()->text().isEmpty()){
 
         inicio = var->range().x();
-        final = var->range().x();
+        final = var->range().y();
 
         parser->SetExpr(parlines->getX()->text().toStdString());
         npuntos = parser->Eval().GetFloat();

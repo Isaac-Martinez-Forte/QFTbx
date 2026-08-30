@@ -117,6 +117,10 @@ void Controlador::setTemplate(QVector<QVector<std::complex<qreal> > *> *temp,
 
     templatedao->setTemplates(temp);
 
+    //Alimentar tambien el motor: sin esto, recalcular el contorno tras
+    //CARGAR un proyecto desreferenciaba un puntero nulo.
+    templates->setTemplates(temp);
+
     if (isContorno)
         templatedao->setContorno(contorno);
 
@@ -164,8 +168,9 @@ bool Controlador::calcularTemplates(QVector <qreal> * epsilon, QHash <Parameter 
 
     templates->lanzarCalculo(getPlanta(),getOmega()->getValores(), cuda);
 
-    getOmega()->setOmega(templates->getOmega());
-    templatedao->setEpsilon(templates->getEpsilon());
+    //El calculo ya no reordena ni sustituye las frecuencias: basta guardar
+    //el epsilon usado para la persistencia.
+    templatedao->setEpsilon(epsilon);
 
     QVector <QVector <std::complex <qreal> > * > * temp = templates->getTemplates();
     QVector <QVector <std::complex <qreal> > * > * cont = templates->getContorno();
@@ -191,8 +196,7 @@ QVector <QVector <std::complex <qreal> > * > * Controlador::recalcularContorno(Q
     QVector <QVector <std::complex <qreal> > * > * aux = templates->getContorno();
 
     setContorno(aux);
-    getOmega()->setOmega(templates->getOmega());
-    templatedao->setEpsilon(templates->getEpsilon());
+    templatedao->setEpsilon(epsilon);
 
     return aux;
 }

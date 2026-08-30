@@ -126,6 +126,10 @@ public:
       */
 
     void setEpsilon (QVector <qreal> * epsilon);
+
+    /// Alimenta el motor con templates ya calculados (p.ej. cargados de
+    /// fichero) para poder recalcular contornos sobre ellos.
+    void setTemplates (QVector<QVector<std::complex<qreal> > *> * templates);
     
     
     /**
@@ -155,14 +159,13 @@ private:
     QVector<qreal> * getVariables(Parameter *a);
 
     QHash <Parameter *, QVector<qreal> * > * mapa = NULL;
-    qint32 combinaciones;
-    QVector <qreal> * epsilon;
-    bool cuda;
-    bool contornoCalculado;
+    qint32 combinaciones = 0;
+    QVector <qreal> * epsilon = NULL;
+    bool cuda = false;
 
     QVector<QVector<std::complex<qreal> > *> * templates = NULL;
     QVector<QVector<std::complex<qreal> > *> * contorno = NULL;
-    QVector <qreal> * omega;
+    QVector <qreal> * omega = NULL;
 
     qint32 buscarSegundo(qint32 b1, QVector<std::complex<qreal> > *cv, qreal epsilon);
 

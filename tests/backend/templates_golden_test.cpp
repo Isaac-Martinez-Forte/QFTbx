@@ -15,6 +15,8 @@
 #include <QString>
 #include <QVector>
 
+#include "Modelo/controlador.h"
+#include "Modelo/Herramientas/exception.h"
 #include "Modelo/Templates/templates.h"
 #include "src/core/system/lti_system.h"
 #include "src/core/system/parameter.h"
@@ -212,6 +214,56 @@ TEST_F(TemplatesGolden, InputVectorsSurviveTheComputation)
     EXPECT_DOUBLE_EQ(omegaCopy->at(5), 100.0);
     ASSERT_EQ(epsilon->size(), 6);
     EXPECT_DOUBLE_EQ(epsilon->at(0), 10.0);
+}
+
+TEST(TemplatesReload, RecalculateContourAfterLoadingAProject)
+{
+    // Fixed crash: loading a project fed only the DAO, so recalculating
+    // the contour dereferenced a null templates vector inside the engine.
+    Controlador controlador;
+    delete controlador.cargarSistema(
+        QStringLiteral(QFTBX_TEST_DATA_DIR "/planta2.qft"));
+
+    auto* epsilon = new QVector<qreal>(6, 10.0);
+    auto* contornos = controlador.recalcularContorno(epsilon);
+    ASSERT_NE(contornos, nullptr);
+    ASSERT_EQ(contornos->size(), 6);
+    for (const QVector<Complex>* c : *contornos) {
+        EXPECT_FALSE(c->isEmpty());
+    }
+}
+
+TEST(TemplatesValidation, MissingSweepGridThrowsInvalidInput)
+{
+    // Hardened: a map without an entry for some uncertain parameter used to
+    // dereference null; now it reports which grid is missing.
+    XmlParserLoad parser;
+    delete parser.recuperarXmlDatos(
+        QStringLiteral(QFTBX_TEST_DATA_DIR "/planta2.qft"));
+    LtiSystem* planta = parser.getPlanta();
+
+    auto* mapa = new QHash<Parameter*, QVector<qreal>*>();
+    mapa->insert(planta->numerator()->at(0), tools::linspace(1.0, 10.0, 10));
+    // no grid for the uncertain gain "kv"
+
+    auto* epsilon = new QVector<qreal>(6, 10.0);
+    QVector<qreal> omega{0.1, 0.5, 1.0, 2.0, 15.0, 100.0};
+
+    Templates t;
+    t.setEpsilon(epsilon);
+    t.setMapa(mapa);
+    EXPECT_THROW(t.lanzarCalculo(planta, &omega, false), qftbx::InvalidInput);
+
+    qDeleteAll(*mapa);
+    delete mapa;
+    delete epsilon;
+}
+
+TEST(TemplatesValidation, RecontourWithoutTemplatesThrowsInvalidInput)
+{
+    Templates t;
+    QVector<qreal> epsilon{10.0};
+    EXPECT_THROW(t.lanzarCalculoContorno(&epsilon), qftbx::InvalidInput);
 }
 
 } // namespace
