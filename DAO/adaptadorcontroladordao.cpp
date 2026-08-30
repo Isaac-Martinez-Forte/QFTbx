@@ -10,11 +10,11 @@ AdaptadorControladorDAO::~AdaptadorControladorDAO(){
         delete controlador;
 }
 
-Sistema * AdaptadorControladorDAO::getControlador(){
+LtiSystem * AdaptadorControladorDAO::getControlador(){
     return controlador;
 }
 
-void AdaptadorControladorDAO::setControlador(Sistema *controlador){
+void AdaptadorControladorDAO::setControlador(LtiSystem *controlador){
 
     if (this->controlador != NULL)
         delete this->controlador;

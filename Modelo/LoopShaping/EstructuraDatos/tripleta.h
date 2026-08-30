@@ -3,7 +3,7 @@
 
 #include "cinterval.hpp"
 #include "Modelo/Herramientas/tools.h"
-#include "Modelo/EstructuraSistema/sistema.h"
+#include "src/core/system/lti_system.h"
 #include  "n.h"
 #include "Modelo/LoopShaping/EstructuraDatos/data_box.h"
 
@@ -15,9 +15,9 @@ public:
 
     Tripleta() {}
 
-    Tripleta(qreal index, Sistema * sistema, flags_box flags = ambiguous);
+    Tripleta(qreal index, LtiSystem * sistema, flags_box flags = ambiguous);
     
-    Tripleta(qreal index, Sistema * sistema,  QVector<data_box *> *datos);
+    Tripleta(qreal index, LtiSystem * sistema,  QVector<data_box *> *datos);
 
     ~Tripleta();
 
@@ -38,9 +38,9 @@ public:
 
     void setDatos(QVector<data_box *> *value);
 
-    Sistema *getSistema() const;
+    LtiSystem *getSistema() const;
 
-    void setSistema(Sistema *value);
+    void setSistema(LtiSystem *value);
 
     void setFeasible(QVector<bool> *value);
 
@@ -48,11 +48,11 @@ public:
 
     void setPuntosCorte(QVector<qreal> *value);
 
-    void noBorrar();
+    void releaseOwnership();
     void noBorrar2();
 protected:
 
-    Sistema * sistema;
+    LtiSystem * sistema;
     flags_box flags;
 
     QVector <qreal> * puntosCorte = nullptr;

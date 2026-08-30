@@ -133,14 +133,14 @@ bool IntroducirPlanta::comprobarParse(QVector<QVector <QString> * > * tabla, QLi
             QString captura = match.captured(0);
             e.remove(captura);
 
-            bool isVariable = false;
+            bool isUncertain = false;
 
             while (!captura.isNull()){
 
                 if (!p.IsFunDefined(captura.toStdString())){
                     vec->append(captura);
                     captura = QString();
-                    isVariable = true;
+                    isUncertain = true;
                     break;
                 }
                 match = re.match(e);
@@ -148,9 +148,9 @@ bool IntroducirPlanta::comprobarParse(QVector<QVector <QString> * > * tabla, QLi
                 e.remove(captura);
             }
 
-            vec2->append(isVariable);
+            vec2->append(isUncertain);
 
-            if (!isVariable){
+            if (!isUncertain){
                 vec->append(e);
             }
         }
@@ -179,14 +179,14 @@ bool IntroducirPlanta::comprobarParseKREt(QVector<QVector <QString> * > * tabla,
     qint32 i = 0;
     QString captura = match.captured(i);
 
-    bool isVariable = false;
+    bool isUncertain = false;
 
     while (!captura.isNull()){
 
         if (!p.IsFunDefined(captura.toStdString())){
             vec->append(captura);
             captura = QString();
-            isVariable = true;
+            isUncertain = true;
             break;
         }
         match = re.match(aux);
@@ -194,9 +194,9 @@ bool IntroducirPlanta::comprobarParseKREt(QVector<QVector <QString> * > * tabla,
         aux.remove(captura);
     }
 
-    vec2->append(isVariable);
+    vec2->append(isUncertain);
 
-    if (!isVariable){
+    if (!isUncertain){
         vec->append(aux);
     }
 
@@ -297,67 +297,67 @@ void IntroducirPlanta::on_ok_clicked()
         return;
     }
 
-    Var * kv;
-    Var * retv;
+    Parameter * kv;
+    Parameter * retv;
 
     if (datosTabla->at(2)->size() == 0){
-        kv = new Var (1);
+        kv = new Parameter (1);
     }else{
 
-        QPointF punto = viewIncer->getK();
+        QPointF punto = viewIncer->gain();
         p.SetExpr(exp->at(2)->at(0).toStdString());
         qreal d = p.Eval().GetFloat();
 
         if (d == punto.x() && d == punto.y()){
-            kv = new Var (d);
+            kv = new Parameter (d);
         }else {
-            kv = new Var ("kv", punto, d, "kv");
+            kv = new Parameter ("kv", punto, d, "kv");
         }
     }
 
     if (datosTabla->at(3)->size() == 0){
-        retv = new Var (qreal(0));
+        retv = new Parameter (qreal(0));
     }else{
 
-        QPointF punto = viewIncer->getRet();
+        QPointF punto = viewIncer->delay();
         p.SetExpr(exp->at(3)->at(0).toStdString());
         qreal d = p.Eval().GetFloat();
 
         if (d == punto.x() && d == punto.y()){
-            retv = new Var (d);
+            retv = new Parameter (d);
         }else {
-            retv = new Var ("ret", punto, d, "ret");
+            retv = new Parameter ("ret", punto, d, "ret");
         }
     }
 
     if (incertidumbreIntroducida){
         //La planta toma propiedad de sus variables: se le entregan copias y
         //el dialogo de incertidumbre conserva sus originales para editar.
-        QVector <Var*> * nume = Var::clonarVector(viewIncer->getNumerador());
-        QVector <Var*> * deno = Var::clonarVector(viewIncer->getDenominador());
+        QVector <Parameter*> * nume = Parameter::cloneVector(viewIncer->numerator());
+        QVector <Parameter*> * deno = Parameter::cloneVector(viewIncer->denominator());
 
         if (ui->kGa->isChecked()){
-            planta = new KGanancia(ui->nombre->text(),nume, deno,kv,retv);
+            planta = new ZeroPoleGain(ui->nombre->text(),nume, deno,kv,retv);
         }else if(ui->kNoGa->isChecked()){
-            planta = new KNGanancia(ui->nombre->text(),nume, deno,kv,retv);
+            planta = new TimeConstantGain(ui->nombre->text(),nume, deno,kv,retv);
         }else if (ui->cDPol->isChecked()){
-            planta = new CPolinomios(ui->nombre->text(), nume, deno,kv,retv);
+            planta = new PolynomialForm(ui->nombre->text(), nume, deno,kv,retv);
         }else{
-            planta = new FormatoLibre(ui->nombre->text(), nume, deno,kv,retv,
+            planta = new FreeForm(ui->nombre->text(), nume, deno,kv,retv,
                                       ui->numeFL->text(), ui->denoFL->text());
         }
     }else{
         if (ui->kGa->isChecked()){
-            planta = new KGanancia(ui->nombre->text(),crearNumeradorDenominador(datosTabla->at(0)),
+            planta = new ZeroPoleGain(ui->nombre->text(),crearNumeradorDenominador(datosTabla->at(0)),
                                    crearNumeradorDenominador(datosTabla->at(1)),kv,retv );
         }else if(ui->kNoGa->isChecked()){
-            planta = new KNGanancia(ui->nombre->text(),crearNumeradorDenominador(datosTabla->at(0)),
+            planta = new TimeConstantGain(ui->nombre->text(),crearNumeradorDenominador(datosTabla->at(0)),
                                     crearNumeradorDenominador(datosTabla->at(1)),kv,retv);
         }else if (ui->cDPol->isChecked()){
-            planta = new CPolinomios(ui->nombre->text(), crearNumeradorDenominador(datosTabla->at(0)),
+            planta = new PolynomialForm(ui->nombre->text(), crearNumeradorDenominador(datosTabla->at(0)),
                                      crearNumeradorDenominador(datosTabla->at(1)),kv,retv);
         }else {
-            planta = new FormatoLibre(ui->nombre->text(), crearNumeradorDenominador(datosTabla->at(0)),
+            planta = new FreeForm(ui->nombre->text(), crearNumeradorDenominador(datosTabla->at(0)),
                                       crearNumeradorDenominador(datosTabla->at(1)),kv,retv,
                                       ui->numeFL->text(), ui->denoFL->text());
         }
@@ -375,8 +375,8 @@ void IntroducirPlanta::on_ok_clicked()
     this->close();
 }
 
-QVector <Var * > * IntroducirPlanta::crearNumeradorDenominador(QVector <QString> * numeros){
-    QVector <Var *> * var = new QVector <Var *> ();
+QVector <Parameter * > * IntroducirPlanta::crearNumeradorDenominador(QVector <QString> * numeros){
+    QVector <Parameter *> * var = new QVector <Parameter *> ();
     var->reserve(numeros->size());
 
     if (numeros->isEmpty()){
@@ -385,7 +385,7 @@ QVector <Var * > * IntroducirPlanta::crearNumeradorDenominador(QVector <QString>
 
     foreach (const QString &string, *numeros) {
         p.SetExpr(string.toStdString());
-        var->append(new Var(p.Eval().GetFloat()));
+        var->append(new Parameter(p.Eval().GetFloat()));
     }
 
     return var;

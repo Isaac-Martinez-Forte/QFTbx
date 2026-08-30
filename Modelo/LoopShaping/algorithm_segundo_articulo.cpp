@@ -30,7 +30,7 @@ Algorithm_segundo_articulo::~Algorithm_segundo_articulo() {
 
 }
 
-void Algorithm_segundo_articulo::set_datos(Sistema * planta, Sistema * controlador, QVector<qreal> *omega, DatosBound * boundaries,
+void Algorithm_segundo_articulo::set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, DatosBound * boundaries,
                                            qreal epsilon) {
 
     this->planta = planta;
@@ -107,7 +107,7 @@ bool Algorithm_segundo_articulo::init_algorithm(){
     plantas_nominales2 = new QVector <std::complex <qreal>> ();
 
     foreach (qreal o, *omega) {
-        std::complex <qreal> c = planta->getPunto(o);
+        std::complex <qreal> c = planta->evaluate(o);
         plantas_nominales2->append(c);
         plantas_nominales->append(cxsc::complex(c.real(), c.imag()));
     }
@@ -118,31 +118,31 @@ bool Algorithm_segundo_articulo::init_algorithm(){
 
     // Comprobamos si el controlador tiene variables en numerador, denominador o ganancia
     // Si no lo tiene se puede retornar ya, no se puede trabajar con el.
-    if (!isVariableNume && !isVariableDeno && !controlador->getK()->isVariable()) {
+    if (!isVariableNume && !isVariableDeno && !controlador->gain()->isUncertain()) {
         controlador_retorno = FC::guardarControlador(controlador, true);
         return false;
     }
 
     // Inicializamos la mejor solucion al controlador inicial.
 
-    QVector <Var *> * numerador = controlador->getNumerador();
-    QVector <Var *> * numerador_nuevo = new QVector <Var *> ();
+    QVector <Parameter *> * numerador = controlador->numerator();
+    QVector <Parameter *> * numerador_nuevo = new QVector <Parameter *> ();
 
-    foreach (Var * a, *numerador) {
+    foreach (Parameter * a, *numerador) {
         numerador_nuevo->append(a->clone());
     }
 
 
-    QVector <Var *> * denominador = controlador->getDenominador();
-    QVector <Var *> * denominador_nuevo = new QVector <Var *> ();
+    QVector <Parameter *> * denominador = controlador->denominator();
+    QVector <Parameter *> * denominador_nuevo = new QVector <Parameter *> ();
 
-    foreach (Var * a, *denominador) {
+    foreach (Parameter * a, *denominador) {
         denominador_nuevo->append(a->clone());
     }
 
-    Var * kNuevo = controlador->getK()->clone();
+    Parameter * kNuevo = controlador->gain()->clone();
 
-    mejorSolucion = controlador->invoke(controlador->getNombre(), numerador_nuevo, denominador_nuevo, kNuevo, new Var (0.0));
+    mejorSolucion = controlador->create(controlador->name(), numerador_nuevo, denominador_nuevo, kNuevo, new Parameter (0.0));
 
     // Insertamos el controlador en la LNV
 
@@ -181,17 +181,17 @@ bool Algorithm_segundo_articulo::init_algorithm(){
         tripleta = static_cast<Tripleta2 *>(lista->recuperarPrimero());
         lista->borrarPrimero();
 
-        Sistema * controladorActual = tripleta->getSistema();
+        LtiSystem * controladorActual = tripleta->getSistema();
 
         // Si la mejor solucion es mejor que el nodo extraido este se descarta y pasa al siguiente.
-        if (mejorSolucion->getK()->getRango().y() < controladorActual->getK()->getRango().x() ){
+        if (mejorSolucion->gain()->range().y() < controladorActual->gain()->range().x() ){
             delete tripleta;
             continue;
         }
 
         // Si la mejor solucion NO es menor que el nodo actual, pero la parte superior si es menor, esta se puede actualizar para quitar espacio de busqueda.
-        if (mejorSolucion->getK()->getRango().y() < controladorActual->getK()->getRango().y()) {
-            controladorActual->getK()->getRango().setY(mejorSolucion->getK()->getRango().y() );
+        if (mejorSolucion->gain()->range().y() < controladorActual->gain()->range().y()) {
+            controladorActual->gain()->range().setY(mejorSolucion->gain()->range().y() );
         }
 
         // Aplicar mejoras sobre el nodo
@@ -236,7 +236,7 @@ inline Tripleta2 * Algorithm_segundo_articulo::beneficioEstimado (Tripleta2 * tr
 
     // TODO falta implementar beneficio estimado avanzado.
 
-    tripleta->setIndex(tripleta->getSistema()->getK()->getRango().x());
+    tripleta->setIndex(tripleta->getSistema()->gain()->range().x());
 
     return tripleta;
 }
@@ -263,17 +263,17 @@ inline bool Algorithm_segundo_articulo::aplicarMejoras (Tripleta2 *tripleta) {
 
 #ifdef MEJOR_K
         // Ejecutamos la búsqueda de mejor ganancia
-        Sistema * mS = busquedaMejorGanancia(tripleta);
+        LtiSystem * mS = busquedaMejorGanancia(tripleta);
 #else
-        Sistema * mS = nullptr;
+        LtiSystem * mS = nullptr;
 #endif
 
         // Si búsqueda mejor ganancia ha encontrado un resultado
         if (mS != nullptr) {
 
             //Comprobamos si es mejor solución que la mejor solución actual.
-            // TODO redefinir operador para Sistema y tripleta.
-            if (mS->getK()->getRango().y() < mejorSolucion->getK()->getRango().y()) {
+            // TODO redefinir operador para LtiSystem y tripleta.
+            if (mS->gain()->range().y() < mejorSolucion->gain()->range().y()) {
 
                 // Si es así borramos la anterior solución y ponemos la nueva.
                 delete mejorSolucion;
@@ -442,33 +442,33 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccion(Tripleta2 * t
     return biseccionArea(tripleta);
 }
 
-inline Sistema * Algorithm_segundo_articulo::busquedaMejorGanancia (Tripleta2 * tripleta) {
+inline LtiSystem * Algorithm_segundo_articulo::busquedaMejorGanancia (Tripleta2 * tripleta) {
 
-    Sistema * v = tripleta->getSistema();
+    LtiSystem * v = tripleta->getSistema();
 
     QVector<data_box *> * datosCortesBoundaries = tripleta->getDatosCortesBoundaries();
 
-    QVector <Var *> * denominador = v->getDenominador();
-    QVector <Var *> * numerador = v->getNumerador();
-    QVector <Var *> * denominador_nuevo = new QVector <Var *>();
-    QVector <Var *> * numerador_nuevo = new QVector <Var *>();
+    QVector <Parameter *> * denominador = v->denominator();
+    QVector <Parameter *> * numerador = v->numerator();
+    QVector <Parameter *> * denominador_nuevo = new QVector <Parameter *>();
+    QVector <Parameter *> * numerador_nuevo = new QVector <Parameter *>();
 
-    QPointF k = v->getK()->getRango();
-    qreal kNuevo = v->getK()->getRango().y();
+    QPointF k = v->gain()->range();
+    qreal kNuevo = v->gain()->range().y();
 
     //QVector <qreal> * mejoresGanacias = new QVector<qreal>();
 
     QVector <qreal> * numeradorSup = new QVector <qreal> ();
     QVector <qreal> * denominadorInf = new QVector <qreal> ();
 
-    foreach (Var * var, *numerador) {
-        numeradorSup->append(var->getRango().y());
+    foreach (Parameter * var, *numerador) {
+        numeradorSup->append(var->range().y());
 
         numerador_nuevo->append(var->clone());
     }
 
-    foreach (Var * var, *denominador) {
-        denominadorInf->append(var->getRango().x());
+    foreach (Parameter * var, *denominador) {
+        denominadorInf->append(var->range().x());
 
         denominador_nuevo->append(var->clone());
     }
@@ -494,7 +494,7 @@ inline Sistema * Algorithm_segundo_articulo::busquedaMejorGanancia (Tripleta2 * 
 
             // Si se puede recortar por arriba y arriba es la parte feasible.
             if (datosCortesBoundaries->at(i)->isRecArriba() && !datosCortesBoundaries->at(i)->isUniArriba()){
-                gananciaFeasible = cortesMax / abs(v->getPunto(numeradorSup, denominadorInf, 1, 0, o) * plantaNominal);
+                gananciaFeasible = cortesMax / abs(v->evaluate(numeradorSup, denominadorInf, 1, 0, o) * plantaNominal);
 
                 if (gananciaFeasible > k.x() && gananciaFeasible < k.y()) {
 
@@ -515,7 +515,7 @@ inline Sistema * Algorithm_segundo_articulo::busquedaMejorGanancia (Tripleta2 * 
 
     if (entra) {
         k.setY(kNuevo);
-        v->getK()->setRango(k);
+        v->gain()->setRange(k);
 
         cambioEtapaFinal = false;
 
@@ -523,18 +523,18 @@ inline Sistema * Algorithm_segundo_articulo::busquedaMejorGanancia (Tripleta2 * 
         std::cout << "Entra mejor k" << std::endl;
 #endif
 
-        return v->invoke(v->getNombre(), numerador_nuevo, denominador_nuevo, new Var("kv", QPointF(k.x(), kNuevo), k.x()), new Var (0.0));
+        return v->create(v->name(), numerador_nuevo, denominador_nuevo, new Parameter("kv", QPointF(k.x(), kNuevo), k.x()), new Parameter (0.0));
     } else {
         return nullptr;
     }
 }
 
-inline void Algorithm_segundo_articulo::comprobarVariables(Sistema *controlador) {
+inline void Algorithm_segundo_articulo::comprobarVariables(LtiSystem *controlador) {
     bool b = true;
 
 
-    foreach(Var * var, *controlador->getNumerador()) {
-        if (var->isVariable()) {
+    foreach(Parameter * var, *controlador->numerator()) {
+        if (var->isUncertain()) {
             b = false;
             break;
         }
@@ -544,8 +544,8 @@ inline void Algorithm_segundo_articulo::comprobarVariables(Sistema *controlador)
 
     b = true;
 
-    foreach(Var * var, *controlador->getDenominador()) {
-        if (var->isVariable()) {
+    foreach(Parameter * var, *controlador->denominator()) {
+        if (var->isUncertain()) {
             b = false;
             break;
         }
@@ -558,14 +558,14 @@ inline void Algorithm_segundo_articulo::comprobarVariables(Sistema *controlador)
 //Función que recorta la caja.
 inline Tripleta2 * Algorithm_segundo_articulo::recortesInfeasible(Tripleta2 * tripleta) {
 
-    Sistema * v = tripleta->getSistema();
+    LtiSystem * v = tripleta->getSistema();
 
     QVector<data_box *> * datosCortesBoundaries = tripleta->getDatosCortesBoundaries();
 
-    QVector <Var *> * denominador = v->getDenominador();
-    QVector <Var *> * numerador = v->getNumerador();
-    QPointF k = v->getK()->getRango();
-    QPointF kNuevo = v->getK()->getRango();
+    QVector <Parameter *> * denominador = v->denominator();
+    QVector <Parameter *> * numerador = v->numerator();
+    QPointF k = v->gain()->range();
+    QPointF kNuevo = v->gain()->range();
 
     //Creamos los numeradores y denominadores necesarios
     QVector <qreal> * numeradorSup = new QVector <qreal> ();
@@ -577,12 +577,12 @@ inline Tripleta2 * Algorithm_segundo_articulo::recortesInfeasible(Tripleta2 * tr
     //QVector <qreal> * segundosTerminosNume = new QVector <qreal>();
     //QVector <qreal> * segundosTerminosDeno = new QVector <qreal>();
 
-    foreach (Var * var, *numerador) {
-        numeradorInf->append(var->getRango().x());
-        numeradorSup->append(var->getRango().y());
-        numeradorInfNuevo->append(var->getRango().x());
-        numeradorSupNuevo->append(var->getRango().y());
-        //segundosTerminosNume->append(var->getRango().x());
+    foreach (Parameter * var, *numerador) {
+        numeradorInf->append(var->range().x());
+        numeradorSup->append(var->range().y());
+        numeradorInfNuevo->append(var->range().x());
+        numeradorSupNuevo->append(var->range().y());
+        //segundosTerminosNume->append(var->range().x());
     }
 
     QVector <qreal> * denominadorInf = new QVector <qreal> ();
@@ -590,12 +590,12 @@ inline Tripleta2 * Algorithm_segundo_articulo::recortesInfeasible(Tripleta2 * tr
     QVector <qreal> * denominadorSupNuevo = new QVector <qreal> ();
     QVector <qreal> * denominadorInfNuevo = new QVector <qreal> ();
 
-    foreach (Var * var, *denominador) {
-        denominadorInf->append(var->getRango().x());
-        denominadorSup->append(var->getRango().y());
-        denominadorInfNuevo->append(var->getRango().x());
-        denominadorSupNuevo->append(var->getRango().y());
-        //segundosTerminosDeno->append(var->getRango().y());
+    foreach (Parameter * var, *denominador) {
+        denominadorInf->append(var->range().x());
+        denominadorSup->append(var->range().y());
+        denominadorInfNuevo->append(var->range().x());
+        denominadorSupNuevo->append(var->range().y());
+        //segundosTerminosDeno->append(var->range().y());
     }
 
     bool entraNume = false, entraDeno = false, entraK = false;
@@ -618,14 +618,14 @@ inline Tripleta2 * Algorithm_segundo_articulo::recortesInfeasible(Tripleta2 * tr
 #ifdef SACHIN
             // Unión K
             if (datosCortesBoundaries->at(i)->isRecAbajo() && datosCortesBoundaries->at(i)->isUniAbajo()){
-                nuevoMinKReal = cortesMinMag / abs(v->getPunto(numeradorSup, denominadorInf, 1, 0, o) * plantaNominal);
+                nuevoMinKReal = cortesMinMag / abs(v->evaluate(numeradorSup, denominadorInf, 1, 0, o) * plantaNominal);
 
                 if (nuevoMinKReal > kNuevo.x() && nuevoMinKReal < kNuevo.y()) {
                     kNuevo.setX(nuevoMinKReal);
                     entraK = true;
                 }
             } else if (datosCortesBoundaries->at(i)->isRecArriba() && datosCortesBoundaries->at(i)->isUniArriba()){
-                nuevoMaxKReal = cortesMaxMag / abs(v->getPunto(numeradorInf, denominadorSup, 1, 0, o) * plantaNominal);
+                nuevoMaxKReal = cortesMaxMag / abs(v->evaluate(numeradorInf, denominadorSup, 1, 0, o) * plantaNominal);
 
                 if (nuevoMaxKReal > kNuevo.x() && nuevoMaxKReal < kNuevo.y()) {
 
@@ -638,7 +638,7 @@ inline Tripleta2 * Algorithm_segundo_articulo::recortesInfeasible(Tripleta2 * tr
             //Numerador
             if (isVariableNume){
                 for (qint32 j = 0; j < numerador->size(); j++) {
-                    if (numerador->at(j)->isVariable()){
+                    if (numerador->at(j)->isUncertain()){
 
                         n = numeradorSup->at(j);
                         numeradorSup->remove(j);
@@ -646,8 +646,8 @@ inline Tripleta2 * Algorithm_segundo_articulo::recortesInfeasible(Tripleta2 * tr
 
                         if (datosCortesBoundaries->at(i)->isRecAbajo() && datosCortesBoundaries->at(i)->isUniAbajo()){
 
-                            nuevoMinNume = sqrt( pow((cortesMinMag * abs (v->getPuntoDeno(denominadorInf, o))) /
-                                                     (k.y() *  abs (v->getPuntoNume(numeradorSup, o) * plantaNominal)), 2) - pow(o, 2));
+                            nuevoMinNume = sqrt( pow((cortesMinMag * abs (v->evaluateDenominator(denominadorInf, o))) /
+                                                     (k.y() *  abs (v->evaluateNumerator(numeradorSup, o) * plantaNominal)), 2) - pow(o, 2));
 
                             if (nuevoMinNume > numeradorInfNuevo->at(j) && nuevoMinNume < numeradorSupNuevo->at(j)) {
                                 numeradorInfNuevo->replace(j, nuevoMinNume);
@@ -658,7 +658,7 @@ inline Tripleta2 * Algorithm_segundo_articulo::recortesInfeasible(Tripleta2 * tr
 
 #if defined REC_FASE && defined REC_UNION
                         if (datosCortesBoundaries->at(i)->isRecDerecha() && datosCortesBoundaries->at(i)->isUniDerecha()){
-                            nuevoMaxNume = o / tan(cortesMaxImag - std::arg (v->getPuntoNume(numeradorSup, o)) + std::arg (v->getPuntoDeno(denominadorInf, o)) - std::arg (plantaNominal));
+                            nuevoMaxNume = o / tan(cortesMaxImag - std::arg (v->evaluateNumerator(numeradorSup, o)) + std::arg (v->evaluateDenominator(denominadorInf, o)) - std::arg (plantaNominal));
 
                             if (nuevoMaxNume > numeradorInfNuevo->at(j) && nuevoMaxNume < numeradorSupNuevo->at(j)) {
                                 numeradorSupNuevo->replace(j, nuevoMaxNume);
@@ -673,8 +673,8 @@ inline Tripleta2 * Algorithm_segundo_articulo::recortesInfeasible(Tripleta2 * tr
 
 #ifdef NAND
                         if (datosCortesBoundaries->at(i)->isRecArriba() && datosCortesBoundaries->at(i)->isUniArriba()){
-                            nuevoMaxNume = sqrt( pow((cortesMaxMag * abs (v->getPuntoDeno(denominadorSup, o))) /
-                                                     (k.x() *  abs (v->getPuntoNume(numeradorInf, o) * plantaNominal)), 2) - pow(o, 2));
+                            nuevoMaxNume = sqrt( pow((cortesMaxMag * abs (v->evaluateDenominator(denominadorSup, o))) /
+                                                     (k.x() *  abs (v->evaluateNumerator(numeradorInf, o) * plantaNominal)), 2) - pow(o, 2));
 
                             if (nuevoMaxNume > numeradorInfNuevo->at(j) && nuevoMaxNume < numeradorSupNuevo->at(j)) {
                                 numeradorSupNuevo->replace(j, nuevoMaxNume);
@@ -687,7 +687,7 @@ inline Tripleta2 * Algorithm_segundo_articulo::recortesInfeasible(Tripleta2 * tr
 #if defined REC_FASE && defined REC_UNION
                         if (datosCortesBoundaries->at(i)->isRecIzquierda() && datosCortesBoundaries->at(i)->isUniIzquierda()){
 
-                            nuevoMinNume = o / tan(cortesMinImag - std::arg (v->getPuntoNume(numeradorInf, o)) + std::arg (v->getPuntoDeno(denominadorSup, o)) - std::arg (plantaNominal));
+                            nuevoMinNume = o / tan(cortesMinImag - std::arg (v->evaluateNumerator(numeradorInf, o)) + std::arg (v->evaluateDenominator(denominadorSup, o)) - std::arg (plantaNominal));
 
                             if (nuevoMinNume > numeradorInfNuevo->at(j) && nuevoMinNume < numeradorSupNuevo->at(j)) {
                                 numeradorInfNuevo->replace(j, nuevoMinNume);
@@ -705,7 +705,7 @@ inline Tripleta2 * Algorithm_segundo_articulo::recortesInfeasible(Tripleta2 * tr
 
             if (isVariableDeno){
                 for (qint32 j = 0; j < denominador->size(); j++) {
-                    if (denominador->at(j)->isVariable()){
+                    if (denominador->at(j)->isUncertain()){
 
                         n = denominadorInf->at(j);
                         denominadorInf->remove(j);
@@ -714,8 +714,8 @@ inline Tripleta2 * Algorithm_segundo_articulo::recortesInfeasible(Tripleta2 * tr
 
                         if (datosCortesBoundaries->at(i)->isRecAbajo() && datosCortesBoundaries->at(i)->isUniAbajo()){
 
-                            nuevoMaxDeno = sqrt(pow((k.y() * abs (v->getPuntoNume(numeradorSup, o) * plantaNominal)) /
-                                                    (cortesMinMag * abs(v->getPuntoDeno(denominadorInf, o))), 2) - pow(o, 2));
+                            nuevoMaxDeno = sqrt(pow((k.y() * abs (v->evaluateNumerator(numeradorSup, o) * plantaNominal)) /
+                                                    (cortesMinMag * abs(v->evaluateDenominator(denominadorInf, o))), 2) - pow(o, 2));
 
                             if (nuevoMaxDeno < denominadorSupNuevo->at(j) && nuevoMaxDeno > denominadorInfNuevo->at(j)) {
                                 denominadorSupNuevo->replace(j, nuevoMaxDeno);
@@ -726,7 +726,7 @@ inline Tripleta2 * Algorithm_segundo_articulo::recortesInfeasible(Tripleta2 * tr
 
 #if defined REC_FASE && defined REC_UNION
                         if (datosCortesBoundaries->at(i)->isRecDerecha() && datosCortesBoundaries->at(i)->isUniDerecha()){
-                            nuevoMaxDeno = o / tan(-cortesMinImag + std::arg (v->getPuntoNume(numeradorSup, o)) - std::arg (v->getPuntoDeno(denominadorInf, o)) + std::arg (plantaNominal));
+                            nuevoMaxDeno = o / tan(-cortesMinImag + std::arg (v->evaluateNumerator(numeradorSup, o)) - std::arg (v->evaluateDenominator(denominadorInf, o)) + std::arg (plantaNominal));
 
                             if (nuevoMaxDeno > denominadorInfNuevo->at(j) && nuevoMaxDeno < denominadorSupNuevo->at(j)) {
                                 denominadorSupNuevo->replace(j, nuevoMaxDeno);
@@ -741,8 +741,8 @@ inline Tripleta2 * Algorithm_segundo_articulo::recortesInfeasible(Tripleta2 * tr
 
 #ifdef NAND
                         if (datosCortesBoundaries->at(i)->isRecArriba() && datosCortesBoundaries->at(i)->isUniArriba()){
-                            nuevoMinDeno = sqrt(pow((k.x() * abs (v->getPuntoNume(numeradorInf, o) * plantaNominal)) /
-                                                    (cortesMaxMag * abs(v->getPuntoDeno(denominadorSup, o))), 2) - pow(o, 2));
+                            nuevoMinDeno = sqrt(pow((k.x() * abs (v->evaluateNumerator(numeradorInf, o) * plantaNominal)) /
+                                                    (cortesMaxMag * abs(v->evaluateDenominator(denominadorSup, o))), 2) - pow(o, 2));
                             if (nuevoMinDeno < denominadorSupNuevo->at(j) && nuevoMinDeno > denominadorInfNuevo->at(j)) {
                                 denominadorInfNuevo->replace(j, nuevoMinDeno);
                                 entraDeno = true;
@@ -752,7 +752,7 @@ inline Tripleta2 * Algorithm_segundo_articulo::recortesInfeasible(Tripleta2 * tr
 
 #if defined REC_FASE && defined REC_UNION
                         if (datosCortesBoundaries->at(i)->isRecIzquierda() && datosCortesBoundaries->at(i)->isUniIzquierda()){
-                            nuevoMinDeno = o / tan(-cortesMaxImag + std::arg (v->getPuntoNume(numeradorInf, o)) - std::arg (v->getPuntoDeno(denominadorSup, o)) + std::arg (plantaNominal));
+                            nuevoMinDeno = o / tan(-cortesMaxImag + std::arg (v->evaluateNumerator(numeradorInf, o)) - std::arg (v->evaluateDenominator(denominadorSup, o)) + std::arg (plantaNominal));
 
                             if (nuevoMinDeno > denominadorInfNuevo->at(j) && nuevoMinDeno < denominadorSupNuevo->at(j)) {
                                 denominadorInfNuevo->replace(j, nuevoMinDeno);
@@ -770,42 +770,42 @@ inline Tripleta2 * Algorithm_segundo_articulo::recortesInfeasible(Tripleta2 * tr
 
 
     if (entraNume || entraDeno || entraK) {
-        QVector <Var *> * numerador_nuevo;
+        QVector <Parameter *> * numerador_nuevo;
 
-        numerador_nuevo = new QVector <Var *> ();
+        numerador_nuevo = new QVector <Parameter *> ();
 
         for (qint32 i = 0; i < numerador->size(); i++){
 
-            Var * var_nume_antiguo = numerador->at(i);
-            Var * var_nume_nuevo;
+            Parameter * var_nume_antiguo = numerador->at(i);
+            Parameter * var_nume_nuevo;
 
-            if (var_nume_antiguo->isVariable()){
-                var_nume_nuevo = new Var("", QPointF(numeradorInfNuevo->at(i), numeradorSupNuevo->at(i)), 0);
+            if (var_nume_antiguo->isUncertain()){
+                var_nume_nuevo = new Parameter("", QPointF(numeradorInfNuevo->at(i), numeradorSupNuevo->at(i)), 0);
             } else {
-                var_nume_nuevo = new Var(var_nume_antiguo->getNominal());
+                var_nume_nuevo = new Parameter(var_nume_antiguo->nominal());
             }
 
             numerador_nuevo->append(var_nume_nuevo);
         }
 
-        QVector <Var *> * denominador_nuevo;
+        QVector <Parameter *> * denominador_nuevo;
 
-        denominador_nuevo = new QVector <Var *> ();
+        denominador_nuevo = new QVector <Parameter *> ();
         for (qint32 i = 0; i < denominador->size(); i++){
 
-            Var * var_deno_antiguo = denominador->at(i);
-            Var * var_deno_nuevo;
+            Parameter * var_deno_antiguo = denominador->at(i);
+            Parameter * var_deno_nuevo;
 
-            if (var_deno_antiguo->isVariable()){
-                var_deno_nuevo = new Var("", QPointF(denominadorInfNuevo->at(i), denominadorSupNuevo->at(i)), 0);
+            if (var_deno_antiguo->isUncertain()){
+                var_deno_nuevo = new Parameter("", QPointF(denominadorInfNuevo->at(i), denominadorSupNuevo->at(i)), 0);
             } else {
-                var_deno_nuevo = new Var(var_deno_antiguo->getNominal());
+                var_deno_nuevo = new Parameter(var_deno_antiguo->nominal());
             }
 
             denominador_nuevo->append(var_deno_nuevo);
         }
 
-        Sistema * nuevo_sistema = v->invoke(v->getNombre(), numerador_nuevo, denominador_nuevo, new Var("kv", kNuevo, 0), new Var (0.0));
+        LtiSystem * nuevo_sistema = v->create(v->name(), numerador_nuevo, denominador_nuevo, new Parameter("kv", kNuevo, 0), new Parameter (0.0));
         delete v;
 
 
@@ -833,13 +833,13 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
 
 #if defined REC_INTER && (defined REC_FASE || defined REC_MAG)
 
-    Sistema * v = tripleta->getSistema();
+    LtiSystem * v = tripleta->getSistema();
 
     QVector<data_box *> * datosCortesBoundaries = tripleta->getDatosCortesBoundaries();
 
-    QVector <Var *> * denominador = v->getDenominador();
-    QVector <Var *> * numerador = v->getNumerador();
-    QPointF k = v->getK()->getRango();
+    QVector <Parameter *> * denominador = v->denominator();
+    QVector <Parameter *> * numerador = v->numerator();
+    QPointF k = v->gain()->range();
 
     ListaOrdenada * kNuevoMax = new ListaOrdenada(true);
     ListaOrdenada * kNuevoMin = new ListaOrdenada();
@@ -857,9 +857,9 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
     bool entraNume = false;
     bool entraDeno = false;
 
-    foreach (Var * var, *numerador) {
-        numeradorInf->append(var->getRango().x());
-        numeradorSup->append(var->getRango().y());
+    foreach (Parameter * var, *numerador) {
+        numeradorInf->append(var->range().x());
+        numeradorSup->append(var->range().y());
 
         numeradorSupNuevoMag->append(new ListaOrdenada(true));
         numeradorInfNuevoMag->append(new ListaOrdenada());
@@ -876,9 +876,9 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
     QVector <ListaOrdenada *> * denominadorInfNuevoFas = new QVector <ListaOrdenada *> ();
     QVector <ListaOrdenada *> * denominadorSupNuevoFas = new QVector <ListaOrdenada *> ();
 
-    foreach (Var * var, *denominador) {
-        denominadorInf->append(var->getRango().x());
-        denominadorSup->append(var->getRango().y());
+    foreach (Parameter * var, *denominador) {
+        denominadorInf->append(var->range().x());
+        denominadorSup->append(var->range().y());
 
         denominadorInfNuevoMag->append(new ListaOrdenada(true));
         denominadorSupNuevoMag->append(new ListaOrdenada());
@@ -905,7 +905,7 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
 #ifdef REC_MAG
             // intersección k
             if (datosCortesBoundaries->at(i)->isRecArriba() && !datosCortesBoundaries->at(i)->isUniArriba()){
-                nuevoMaxKReal = cortesMaxMag / abs(v->getPunto(numeradorInf, denominadorSup, 1, 0, o) * plantaNominal);
+                nuevoMaxKReal = cortesMaxMag / abs(v->evaluate(numeradorInf, denominadorSup, 1, 0, o) * plantaNominal);
 
                 if (nuevoMaxKReal > k.x() && nuevoMaxKReal < k.y()) {
 
@@ -916,7 +916,7 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
                     entraK = true;
                 }
             } else if (datosCortesBoundaries->at(i)->isRecAbajo() && !datosCortesBoundaries->at(i)->isUniAbajo()) {
-                nuevoMinKReal = cortesMinMag / abs(v->getPunto(numeradorSup, denominadorInf, 1, 0, o) * plantaNominal);
+                nuevoMinKReal = cortesMinMag / abs(v->evaluate(numeradorSup, denominadorInf, 1, 0, o) * plantaNominal);
 
                 if (nuevoMinKReal > k.x() && nuevoMinKReal < k.y()) {
 
@@ -931,18 +931,18 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
             //Numerador
             if (isVariableNume){
                 for (qint32 j = 0; j < numerador->size(); j++) {
-                    if (numerador->at(j)->isVariable()){
+                    if (numerador->at(j)->isUncertain()){
 
                         n = numeradorInf->at(j);
                         numeradorInf->remove(j);
 
 #ifdef REC_MAG
                         if (datosCortesBoundaries->at(i)->isRecArriba() && !datosCortesBoundaries->at(i)->isUniArriba()){
-                            nuevoMaxNume = sqrt( pow((cortesMaxMag * abs (v->getPuntoDeno(denominadorSup, o))) /
-                                                     (k.x() *  abs (v->getPuntoNume(numeradorInf, o) * plantaNominal)), 2) - pow(o, 2));
+                            nuevoMaxNume = sqrt( pow((cortesMaxMag * abs (v->evaluateDenominator(denominadorSup, o))) /
+                                                     (k.x() *  abs (v->evaluateNumerator(numeradorInf, o) * plantaNominal)), 2) - pow(o, 2));
 
                             if (nuevoMaxNume > n && nuevoMaxNume < numeradorSup->at(j)) {
-                                numeradorSupNuevoMag->at(j)->insertar(new DatosFeasible(nuevoMaxNume, i, numerador->at(j)->getNombre(),
+                                numeradorSupNuevoMag->at(j)->insertar(new DatosFeasible(nuevoMaxNume, i, numerador->at(j)->name(),
                                                                                         ( ((numeradorSup->at(j) - nuevoMaxNume) * 100) / (numeradorSup->at(j) - n))));
 
                                 entraNume = true;
@@ -953,10 +953,10 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
 #ifdef REC_FASE
 
                         if (datosCortesBoundaries->at(i)->isRecIzquierda() && !datosCortesBoundaries->at(i)->isUniIzquierda()){
-                            nuevoMinNume = o / tan(cortesMinImag - std::arg (v->getPuntoNume(numeradorInf, o)) + std::arg (v->getPuntoDeno(denominadorSup, o)) - std::arg (plantaNominal));
+                            nuevoMinNume = o / tan(cortesMinImag - std::arg (v->evaluateNumerator(numeradorInf, o)) + std::arg (v->evaluateDenominator(denominadorSup, o)) - std::arg (plantaNominal));
 
                             if (nuevoMinNume > n && nuevoMinNume < numeradorSup->at(j)) {
-                                numeradorInfNuevoFas->at(j)->insertar(new DatosFeasible(nuevoMinNume, i, numerador->at(j)->getNombre(),
+                                numeradorInfNuevoFas->at(j)->insertar(new DatosFeasible(nuevoMinNume, i, numerador->at(j)->name(),
                                                                                         ( ((nuevoMinNume - n) * 100) / (numeradorSup->at(j) - n) )));
 
                                 entraNume = true;
@@ -970,11 +970,11 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
 
 #ifdef REC_MAG
                         if (datosCortesBoundaries->at(i)->isRecAbajo() && !datosCortesBoundaries->at(i)->isUniAbajo()) {
-                            nuevoMinNume = sqrt( pow((cortesMinMag * abs (v->getPuntoDeno(denominadorInf, o))) /
-                                                     (k.y() *  abs (v->getPuntoNume(numeradorSup, o) * plantaNominal)), 2) - pow(o, 2));
+                            nuevoMinNume = sqrt( pow((cortesMinMag * abs (v->evaluateDenominator(denominadorInf, o))) /
+                                                     (k.y() *  abs (v->evaluateNumerator(numeradorSup, o) * plantaNominal)), 2) - pow(o, 2));
 
                             if (nuevoMinNume > numeradorInf->at(j) && nuevoMinNume < n) {
-                                numeradorInfNuevoMag->at(j)->insertar(new DatosFeasible(nuevoMinNume, i, numerador->at(j)->getNombre(),
+                                numeradorInfNuevoMag->at(j)->insertar(new DatosFeasible(nuevoMinNume, i, numerador->at(j)->name(),
                                                                                         ( ((nuevoMinNume - numeradorInf->at(j)) * 100) / (n - numeradorInf->at(j)) )));
 
                                 entraNume = true;
@@ -984,11 +984,11 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
 #ifdef REC_FASE
 
                         if (datosCortesBoundaries->at(i)->isRecDerecha() && !datosCortesBoundaries->at(i)->isUniDerecha()){
-                            nuevoMaxNume = o / tan(cortesMaxImag - std::arg (v->getPuntoNume(numeradorSup, o)) +
-                                                   std::arg (v->getPuntoDeno(denominadorInf, o)) - std::arg (plantaNominal));
+                            nuevoMaxNume = o / tan(cortesMaxImag - std::arg (v->evaluateNumerator(numeradorSup, o)) +
+                                                   std::arg (v->evaluateDenominator(denominadorInf, o)) - std::arg (plantaNominal));
 
                             if (nuevoMaxNume > numeradorInf->at(j) && nuevoMaxNume < n) {
-                                numeradorSupNuevoFas->at(j)->insertar(new DatosFeasible(nuevoMaxNume, i, numerador->at(j)->getNombre(),
+                                numeradorSupNuevoFas->at(j)->insertar(new DatosFeasible(nuevoMaxNume, i, numerador->at(j)->name(),
                                                                                         ( ((n - nuevoMaxNume) * 100) / (n - numeradorInf->at(j)) )));
                                 entraNume = true;
                             }
@@ -1003,18 +1003,18 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
 
             if (isVariableDeno){
                 for (qint32 j = 0; j < denominador->size(); j++) {
-                    if (denominador->at(j)->isVariable()){
+                    if (denominador->at(j)->isUncertain()){
 
                         n = denominadorSup->at(j);
                         denominadorSup->remove(j);
 #ifdef REC_MAG
                         if (datosCortesBoundaries->at(i)->isRecArriba() && !datosCortesBoundaries->at(i)->isUniArriba()){
 
-                            nuevoMinDeno = sqrt(pow((k.x() * abs (v->getPuntoNume(numeradorInf, o) * plantaNominal)) /
-                                                    (cortesMaxMag * abs(v->getPuntoDeno(denominadorSup, o))), 2) - pow(o, 2));
+                            nuevoMinDeno = sqrt(pow((k.x() * abs (v->evaluateNumerator(numeradorInf, o) * plantaNominal)) /
+                                                    (cortesMaxMag * abs(v->evaluateDenominator(denominadorSup, o))), 2) - pow(o, 2));
 
                             if (nuevoMinDeno < n && nuevoMinDeno > denominadorInf->at(j)) {
-                                denominadorInfNuevoMag->at(j)->insertar(new DatosFeasible(nuevoMinDeno, i, denominador->at(j)->getNombre(),
+                                denominadorInfNuevoMag->at(j)->insertar(new DatosFeasible(nuevoMinDeno, i, denominador->at(j)->name(),
                                                                                           ( ((nuevoMinDeno - denominadorInf->at(j)) * 100) / (n - denominadorInf->at(j)) ) ));
                                 entraDeno = true;
                             }
@@ -1022,11 +1022,11 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
 #endif
 #ifdef REC_FASE
                         if (datosCortesBoundaries->at(i)->isRecDerecha() && !datosCortesBoundaries->at(i)->isUniDerecha()){
-                            nuevoMaxDeno = o / tan(-cortesMinImag + std::arg (v->getPuntoNume(numeradorInf, o)) -
-                                                   std::arg (v->getPuntoDeno(denominadorSup, o)) + std::arg (plantaNominal));
+                            nuevoMaxDeno = o / tan(-cortesMinImag + std::arg (v->evaluateNumerator(numeradorInf, o)) -
+                                                   std::arg (v->evaluateDenominator(denominadorSup, o)) + std::arg (plantaNominal));
 
                             if (nuevoMaxDeno < n && nuevoMaxDeno > denominadorInf->at(j)) {
-                                denominadorSupNuevoFas->at(j)->insertar(new DatosFeasible(nuevoMaxDeno, i, denominador->at(j)->getNombre(),
+                                denominadorSupNuevoFas->at(j)->insertar(new DatosFeasible(nuevoMaxDeno, i, denominador->at(j)->name(),
                                                                                           ( ((n - nuevoMaxDeno) * 100) / (n - denominadorInf->at(j)) )));
                                 entraDeno = true;
                             }
@@ -1040,11 +1040,11 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
 
                         if (datosCortesBoundaries->at(i)->isRecAbajo() && !datosCortesBoundaries->at(i)->isUniAbajo()){
 
-                            nuevoMaxDeno = sqrt(pow((k.y() * abs (v->getPuntoNume(numeradorSup, o) * plantaNominal)) /
-                                                    (cortesMinMag * abs(v->getPuntoDeno(denominadorInf, o))), 2) - pow(o, 2));
+                            nuevoMaxDeno = sqrt(pow((k.y() * abs (v->evaluateNumerator(numeradorSup, o) * plantaNominal)) /
+                                                    (cortesMinMag * abs(v->evaluateDenominator(denominadorInf, o))), 2) - pow(o, 2));
 
                             if (nuevoMaxDeno < denominadorSup->at(j) && nuevoMaxDeno > n) {
-                                denominadorSupNuevoMag->at(j)->insertar(new DatosFeasible(nuevoMaxDeno, i, denominador->at(j)->getNombre(),
+                                denominadorSupNuevoMag->at(j)->insertar(new DatosFeasible(nuevoMaxDeno, i, denominador->at(j)->name(),
                                                                                           ( ((denominadorSup->at(j) - nuevoMaxDeno) * 100) / (denominadorSup->at(j) - n) )));
                                 entraDeno = true;
                             }
@@ -1052,11 +1052,11 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
 #endif
 #ifdef REC_FASE
                         if (datosCortesBoundaries->at(i)->isRecIzquierda() && !datosCortesBoundaries->at(i)->isUniIzquierda()){
-                            nuevoMinDeno = tan(-cortesMaxImag + std::arg (v->getPuntoNume(numeradorInf, o)) -
-                                               std::arg (v->getPuntoDeno(denominadorSup, o)) + std::arg (plantaNominal)) * o;
+                            nuevoMinDeno = tan(-cortesMaxImag + std::arg (v->evaluateNumerator(numeradorInf, o)) -
+                                               std::arg (v->evaluateDenominator(denominadorSup, o)) + std::arg (plantaNominal)) * o;
 
                             if (nuevoMinDeno < denominadorSup->at(j) && nuevoMinDeno > n) {
-                                denominadorInfNuevoFas->at(j)->insertar(new DatosFeasible(nuevoMinDeno, i, denominador->at(j)->getNombre(),
+                                denominadorInfNuevoFas->at(j)->insertar(new DatosFeasible(nuevoMinDeno, i, denominador->at(j)->name(),
                                                                                           ( ((nuevoMinDeno - n) * 100) / (denominadorSup->at(j) - n) )));
                                 entraDeno = true;
                             }
@@ -1072,21 +1072,21 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
 
     if (entraK || entraNume || entraDeno) {
 
-        Var * k_nuevo;
+        Parameter * k_nuevo;
 
-        k_nuevo = new Var ("kv", QPointF( kNuevoMin->esVacia() ? k.x() : kNuevoMin->recuperarPrimeroBorrar()->getIndex(),
+        k_nuevo = new Parameter ("kv", QPointF( kNuevoMin->esVacia() ? k.x() : kNuevoMin->recuperarPrimeroBorrar()->getIndex(),
                                           kNuevoMax->esVacia() ? k.y() : kNuevoMax->recuperarPrimeroBorrar()->getIndex()), 0);
 
 
-        QVector <Var *> * numerador_nuevo = new QVector <Var *> ();
+        QVector <Parameter *> * numerador_nuevo = new QVector <Parameter *> ();
 
         //getMax
         for (qint32 i = 0; i < numerador->size(); i++){
 
-            Var * var_nume_antiguo = numerador->at(i);
-            Var * var_nume_nuevo;
+            Parameter * var_nume_antiguo = numerador->at(i);
+            Parameter * var_nume_nuevo;
 
-            if (var_nume_antiguo->isVariable()){
+            if (var_nume_antiguo->isUncertain()){
 
                 qreal unoMag = numeradorInfNuevoMag->at(i)->esVacia() ? numeradorInf->at(i) : numeradorInfNuevoMag->at(i)->recuperarPrimeroBorrar()->getIndex();
                 qreal unoFas = numeradorInfNuevoFas->at(i)->esVacia() ? numeradorInf->at(i) : numeradorInfNuevoFas->at(i)->recuperarPrimeroBorrar()->getIndex();
@@ -1094,25 +1094,25 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
                 qreal dosMag = numeradorSupNuevoMag->at(i)->esVacia() ? numeradorSup->at(i) : numeradorSupNuevoMag->at(i)->recuperarPrimeroBorrar()->getIndex();
                 qreal dosFas = numeradorSupNuevoFas->at(i)->esVacia() ? numeradorSup->at(i) : numeradorSupNuevoFas->at(i)->recuperarPrimeroBorrar()->getIndex();
 
-                var_nume_nuevo = new Var(var_nume_antiguo->getNombre(),
+                var_nume_nuevo = new Parameter(var_nume_antiguo->name(),
                                          QPointF(unoMag > unoFas ? unoMag : unoFas, dosMag < dosFas ? dosMag : dosFas), 0);
             } else {
-                var_nume_nuevo = new Var(var_nume_antiguo->getNominal());
+                var_nume_nuevo = new Parameter(var_nume_antiguo->nominal());
             }
 
             numerador_nuevo->append(var_nume_nuevo);
         }
 
-        QVector <Var *> * denominador_nuevo;
+        QVector <Parameter *> * denominador_nuevo;
 
         //getMin
-        denominador_nuevo = new QVector <Var *> ();
+        denominador_nuevo = new QVector <Parameter *> ();
         for (qint32 i = 0; i < denominador->size(); i++){
 
-            Var * var_deno_antiguo = denominador->at(i);
-            Var * var_deno_nuevo;
+            Parameter * var_deno_antiguo = denominador->at(i);
+            Parameter * var_deno_nuevo;
 
-            if (var_deno_antiguo->isVariable()){
+            if (var_deno_antiguo->isUncertain()){
 
                 qreal unoMag = denominadorInfNuevoMag->at(i)->esVacia() ? denominadorInf->at(i) : denominadorInfNuevoMag->at(i)->recuperarPrimeroBorrar()->getIndex();
                 qreal unoFas = denominadorInfNuevoFas->at(i)->esVacia() ? denominadorInf->at(i) : denominadorInfNuevoFas->at(i)->recuperarPrimeroBorrar()->getIndex();
@@ -1120,16 +1120,16 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
                 qreal dosMag = denominadorSupNuevoMag->at(i)->esVacia() ? denominadorSup->at(i) : denominadorSupNuevoMag->at(i)->recuperarPrimeroBorrar()->getIndex();
                 qreal dosFas = denominadorSupNuevoFas->at(i)->esVacia() ? denominadorSup->at(i) : denominadorSupNuevoFas->at(i)->recuperarPrimeroBorrar()->getIndex();
 
-                var_deno_nuevo = new Var(var_deno_antiguo->getNombre(),
+                var_deno_nuevo = new Parameter(var_deno_antiguo->name(),
                                          QPointF(unoMag > unoFas ? unoMag : unoFas, dosMag < dosFas ? dosMag : dosFas), 0);
             } else {
-                var_deno_nuevo = new Var(var_deno_antiguo->getNominal());
+                var_deno_nuevo = new Parameter(var_deno_antiguo->nominal());
             }
 
             denominador_nuevo->append(var_deno_nuevo);
         }
 
-        Sistema * nuevo_sistema = v->invoke(v->getNombre(), numerador_nuevo, denominador_nuevo, k_nuevo, new Var (0.0));
+        LtiSystem * nuevo_sistema = v->create(v->name(), numerador_nuevo, denominador_nuevo, k_nuevo, new Parameter (0.0));
         delete v;
 
         cambioEtapaFinal = false;
@@ -1164,13 +1164,13 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
 //Función que calcula los términos del controlador en decibelios
 inline Tripleta2 * Algorithm_segundo_articulo::calculoTerminosControlador (Tripleta2* controlador) {
 
-    Sistema * s = controlador->getSistema();
+    LtiSystem * s = controlador->getSistema();
     QVector <cinterval> * terminosNume = new QVector<cinterval>();
     QVector <cinterval> * terminosDeno = new QVector<cinterval>();
     cinterval terminosK;
 
     if (this->isVariableNume){
-        foreach (Var*  nume , *s->getNumerador()){
+        foreach (Parameter*  nume , *s->numerator()){
             terminosNume->append(conversion->get_box_termino_nume(nume, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
         }
     }
@@ -1178,14 +1178,14 @@ inline Tripleta2 * Algorithm_segundo_articulo::calculoTerminosControlador (Tripl
     controlador->setTerNume(terminosNume);
 
     if (this->isVariableDeno){
-        foreach (Var*  deno , *s->getDenominador()){
+        foreach (Parameter*  deno , *s->denominator()){
             terminosDeno->append(conversion->get_box_termino_deno(deno, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
         }
     }
 
     controlador->setTerDeno(terminosDeno);
 
-    terminosK = conversion->get_box_termino_k(controlador->getSistema()->getK(), plantas_nominales->at(frecuenciaPrincipal));
+    terminosK = conversion->get_box_termino_k(controlador->getSistema()->gain(), plantas_nominales->at(frecuenciaPrincipal));
 
     controlador->setTerK(terminosK);
 
@@ -1203,17 +1203,17 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArea(Tripleta2
     cinterval terminosCopiaK;
 
 
-    Sistema * current_controlador = tripleta->getSistema();
+    LtiSystem * current_controlador = tripleta->getSistema();
 
-    QVector <Var *> * numerador = current_controlador->getNumerador();
-    QVector <Var *> * denominador = current_controlador->getDenominador();
+    QVector <Parameter *> * numerador = current_controlador->numerator();
+    QVector <Parameter *> * denominador = current_controlador->denominator();
 
-    Var * ret = current_controlador->getRet();
+    Parameter * ret = current_controlador->delay();
 
-    QVector <Var *> * numeradorCopia = new QVector <Var *> ();
-    QVector <Var *> * denominadorCopia = new QVector <Var *> ();
+    QVector <Parameter *> * numeradorCopia = new QVector <Parameter *> ();
+    QVector <Parameter *> * denominadorCopia = new QVector <Parameter *> ();
 
-    QString nombre = current_controlador->getNombre();
+    QString nombre = current_controlador->name();
 
     qint32 posicion = -1;
     qreal mejorArea = -1;
@@ -1237,7 +1237,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArea(Tripleta2
 
         numeradorCopia->append(numerador->at(i)->clone());
 
-        if (numerador->at(i)->isVariable()) {
+        if (numerador->at(i)->isUncertain()) {
 
             cinterval t = terminosNume->at(i);
             terminosCopiaNume->append(t);
@@ -1258,7 +1258,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArea(Tripleta2
 
         denominadorCopia->append(denominador->at(i)->clone());
 
-        if (denominador->at(i)->isVariable()) {
+        if (denominador->at(i)->isUncertain()) {
             cinterval t = terminosDeno->at(i);
             terminosCopiaDeno->append(t);
 
@@ -1274,16 +1274,16 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArea(Tripleta2
     }
 
 
-    Var * k, * kCopia;
+    Parameter * k, * kCopia;
 
     if (posicion == -1) {
 
-        Var * variable = current_controlador->getK();
+        Parameter * variable = current_controlador->gain();
 
-        qreal punto_medio = variable->getRango().x() + (variable->getRango().y() - variable->getRango().x()) / 2;
+        qreal punto_medio = variable->range().x() + (variable->range().y() - variable->range().x()) / 2;
 
-        k = new Var("", QPointF(variable->getRango().x(), punto_medio), variable->getRango().x());
-        kCopia =  new Var("", QPointF(punto_medio, variable->getRango().y()), punto_medio);
+        k = new Parameter("", QPointF(variable->range().x(), punto_medio), variable->range().x());
+        kCopia =  new Parameter("", QPointF(punto_medio, variable->range().y()), punto_medio);
 
         terminosK = conversion->get_box_termino_k(k, plantas_nominales->at(frecuenciaPrincipal));
         terminosCopiaK = conversion->get_box_termino_k(kCopia, plantas_nominales->at(frecuenciaPrincipal));
@@ -1292,17 +1292,17 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArea(Tripleta2
 
     }else{
 
-        k = current_controlador->getK();
+        k = current_controlador->gain();
         kCopia = k->clone();
 
         if (posicion < numerador->size()) {
 
-            Var * variable = numerador->at(posicion);
+            Parameter * variable = numerador->at(posicion);
 
-            qreal punto_medio = variable->getRango().x() + (variable->getRango().y() - variable->getRango().x()) / 2;
+            qreal punto_medio = variable->range().x() + (variable->range().y() - variable->range().x()) / 2;
 
-            Var * var1 = new Var("", QPointF(variable->getRango().x(), punto_medio), variable->getRango().x());
-            Var * var2 =  new Var("", QPointF(punto_medio, variable->getRango().y()), punto_medio);
+            Parameter * var1 = new Parameter("", QPointF(variable->range().x(), punto_medio), variable->range().x());
+            Parameter * var2 =  new Parameter("", QPointF(punto_medio, variable->range().y()), punto_medio);
 
             terminosNume->replace(posicion, conversion->get_box_termino_nume(var1, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
             terminosCopiaNume->replace(posicion, conversion->get_box_termino_nume(var2, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
@@ -1318,12 +1318,12 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArea(Tripleta2
 
             qint32 pos = posicion - numerador->size();
 
-            Var * variable = denominador->at(pos);
+            Parameter * variable = denominador->at(pos);
 
-            qreal punto_medio = variable->getRango().x() + (variable->getRango().y() - variable->getRango().x()) / 2;
+            qreal punto_medio = variable->range().x() + (variable->range().y() - variable->range().x()) / 2;
 
-            Var * var1 = new Var("", QPointF(variable->getRango().x(), punto_medio), variable->getRango().x());
-            Var * var2 =  new Var("", QPointF(punto_medio, variable->getRango().y()), punto_medio);
+            Parameter * var1 = new Parameter("", QPointF(variable->range().x(), punto_medio), variable->range().x());
+            Parameter * var2 =  new Parameter("", QPointF(punto_medio, variable->range().y()), punto_medio);
 
             terminosDeno->replace(pos, conversion->get_box_termino_deno(var1, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
             terminosCopiaDeno->replace(pos, conversion->get_box_termino_deno(var2, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
@@ -1339,10 +1339,10 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArea(Tripleta2
     }
 
     Tripleta2 * t1, * t2;
-    Sistema * v1, * v2;
+    LtiSystem * v1, * v2;
 
-    v1 = current_controlador->invoke(nombre, numerador, denominador, k, ret);
-    v2 = current_controlador->invoke(nombre, numeradorCopia, denominadorCopia, kCopia, ret->clone());
+    v1 = current_controlador->create(nombre, numerador, denominador, k, ret);
+    v2 = current_controlador->create(nombre, numeradorCopia, denominadorCopia, kCopia, ret->clone());
 
     t1 = new Tripleta2();
 
@@ -1397,26 +1397,26 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionMag(Tripleta2 
     QVector <cinterval> * terminosCopiaDeno = new QVector <cinterval> ();
     cinterval terminosCopiaK;
 
-    Sistema * current_controlador = tripleta->getSistema();
+    LtiSystem * current_controlador = tripleta->getSistema();
 
-    QVector <Var *> * numerador = current_controlador->getNumerador();
-    QVector <Var *> * denominador = current_controlador->getDenominador();
+    QVector <Parameter *> * numerador = current_controlador->numerator();
+    QVector <Parameter *> * denominador = current_controlador->denominator();
 
-    Var * ret = current_controlador->getRet();
+    Parameter * ret = current_controlador->delay();
 
-    Var * k = current_controlador->getK();
+    Parameter * k = current_controlador->gain();
 
-    QVector <Var *> * numeradorCopia = new QVector <Var *> ();
-    QVector <Var *> * denominadorCopia = new QVector <Var *> ();
+    QVector <Parameter *> * numeradorCopia = new QVector <Parameter *> ();
+    QVector <Parameter *> * denominadorCopia = new QVector <Parameter *> ();
 
-    QString nombre = current_controlador->getNombre();
+    QString nombre = current_controlador->name();
 
     qint32 posicion = -1;
     qreal mejorMag = -1;
 
 
     // Calculamos la k
-    mejorMag = _double(diam(20 * cxsc::log10(cxsc::abs(interval(k->getRango().x(), k->getRango().y()) * plantas_nominales->at(frecuenciaPrincipal)))));
+    mejorMag = _double(diam(20 * cxsc::log10(cxsc::abs(interval(k->range().x(), k->range().y()) * plantas_nominales->at(frecuenciaPrincipal)))));
     qint32 contador = 0;
 
 
@@ -1424,7 +1424,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionMag(Tripleta2 
 
         numeradorCopia->append(numerador->at(i)->clone());
 
-        if (numerador->at(i)->isVariable()) {
+        if (numerador->at(i)->isUncertain()) {
             cinterval t = terminosNume->at(i);
             terminosCopiaNume->append(t);
             qreal mag = _double(diam(Re(t)));
@@ -1442,7 +1442,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionMag(Tripleta2 
 
         denominadorCopia->append(denominador->at(i)->clone());
 
-        if (denominador->at(i)->isVariable()) {
+        if (denominador->at(i)->isUncertain()) {
             cinterval t = terminosDeno->at(i);
             terminosCopiaDeno->append(t);
 
@@ -1457,15 +1457,15 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionMag(Tripleta2 
         contador++;
     }
 
-    Var * k1, * k2;
+    Parameter * k1, * k2;
 
     if (posicion == -1) {
 
 
-        qreal punto_medio = k->getRango().x() + (k->getRango().y() - k->getRango().x()) / 2;
+        qreal punto_medio = k->range().x() + (k->range().y() - k->range().x()) / 2;
 
-        k1 = new Var("", QPointF(k->getRango().x(), punto_medio), k->getRango().x());
-        k2 = new Var("", QPointF(punto_medio, k->getRango().y()), punto_medio);
+        k1 = new Parameter("", QPointF(k->range().x(), punto_medio), k->range().x());
+        k2 = new Parameter("", QPointF(punto_medio, k->range().y()), punto_medio);
 
         terminosK = conversion->get_box_termino_k(k1, plantas_nominales->at(frecuenciaPrincipal));
         terminosCopiaK = conversion->get_box_termino_k(k2, plantas_nominales->at(frecuenciaPrincipal));
@@ -1479,12 +1479,12 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionMag(Tripleta2 
 
         if (posicion < numerador->size()) {
 
-            Var * variable = numerador->at(posicion);
+            Parameter * variable = numerador->at(posicion);
 
-            qreal punto_medio = variable->getRango().x() + (variable->getRango().y() - variable->getRango().x()) / 2;
+            qreal punto_medio = variable->range().x() + (variable->range().y() - variable->range().x()) / 2;
 
-            Var * var1 = new Var("", QPointF(variable->getRango().x(), punto_medio), variable->getRango().x());
-            Var * var2 =  new Var("", QPointF(punto_medio, variable->getRango().y()), punto_medio);
+            Parameter * var1 = new Parameter("", QPointF(variable->range().x(), punto_medio), variable->range().x());
+            Parameter * var2 =  new Parameter("", QPointF(punto_medio, variable->range().y()), punto_medio);
 
             terminosNume->replace(posicion, conversion->get_box_termino_nume(var1, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
             terminosCopiaNume->replace(posicion, conversion->get_box_termino_nume(var2, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
@@ -1500,12 +1500,12 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionMag(Tripleta2 
 
             qint32 pos = posicion - numerador->size();
 
-            Var * variable = denominador->at(pos);
+            Parameter * variable = denominador->at(pos);
 
-            qreal punto_medio = variable->getRango().x() + (variable->getRango().y() - variable->getRango().x()) / 2;
+            qreal punto_medio = variable->range().x() + (variable->range().y() - variable->range().x()) / 2;
 
-            Var * var1 = new Var("", QPointF(variable->getRango().x(), punto_medio), variable->getRango().x());
-            Var * var2 =  new Var("", QPointF(punto_medio, variable->getRango().y()), punto_medio);
+            Parameter * var1 = new Parameter("", QPointF(variable->range().x(), punto_medio), variable->range().x());
+            Parameter * var2 =  new Parameter("", QPointF(punto_medio, variable->range().y()), punto_medio);
 
             terminosDeno->replace(pos, conversion->get_box_termino_deno(var1, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
             terminosCopiaDeno->replace(pos, conversion->get_box_termino_deno(var2, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
@@ -1521,10 +1521,10 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionMag(Tripleta2 
     }
 
     Tripleta2 * t1, * t2;
-    Sistema * v1, * v2;
+    LtiSystem * v1, * v2;
 
-    v1 = current_controlador->invoke(nombre, numerador, denominador, k1, ret);
-    v2 = current_controlador->invoke(nombre, numeradorCopia, denominadorCopia, k2, ret->clone());
+    v1 = current_controlador->create(nombre, numerador, denominador, k1, ret);
+    v2 = current_controlador->create(nombre, numeradorCopia, denominadorCopia, k2, ret->clone());
 
     t1 = new Tripleta2();
 
@@ -1578,19 +1578,19 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionFas(Tripleta2 
     QVector <cinterval> * terminosCopiaDeno = new QVector <cinterval> ();
     cinterval terminosCopiaK;
 
-    Sistema * current_controlador = tripleta->getSistema();
+    LtiSystem * current_controlador = tripleta->getSistema();
 
-    QVector <Var *> * numerador = current_controlador->getNumerador();
-    QVector <Var *> * denominador = current_controlador->getDenominador();
+    QVector <Parameter *> * numerador = current_controlador->numerator();
+    QVector <Parameter *> * denominador = current_controlador->denominator();
 
-    Var * ret = current_controlador->getRet();
+    Parameter * ret = current_controlador->delay();
 
-    Var * k = current_controlador->getK();
+    Parameter * k = current_controlador->gain();
 
-    QVector <Var *> * numeradorCopia = new QVector <Var *> ();
-    QVector <Var *> * denominadorCopia = new QVector <Var *> ();
+    QVector <Parameter *> * numeradorCopia = new QVector <Parameter *> ();
+    QVector <Parameter *> * denominadorCopia = new QVector <Parameter *> ();
 
-    QString nombre = current_controlador->getNombre();
+    QString nombre = current_controlador->name();
 
     qint32 posicion = -1;
     qreal mejorFas = -1;
@@ -1604,7 +1604,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionFas(Tripleta2 
 
         numeradorCopia->append(numerador->at(i)->clone());
 
-        if (numerador->at(i)->isVariable()) {
+        if (numerador->at(i)->isUncertain()) {
 
             cinterval t = terminosNume->at(i);
             terminosCopiaNume->append(t);
@@ -1625,7 +1625,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionFas(Tripleta2 
 
         denominadorCopia->append(denominador->at(i)->clone());
 
-        if (denominador->at(i)->isVariable()) {
+        if (denominador->at(i)->isUncertain()) {
             cinterval t = terminosDeno->at(i);
             terminosCopiaDeno->append(t);
 
@@ -1648,12 +1648,12 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionFas(Tripleta2 
 
     if (posicion < numerador->size()) {
 
-        Var * variable = numerador->at(posicion);
+        Parameter * variable = numerador->at(posicion);
 
-        qreal punto_medio = variable->getRango().x() + (variable->getRango().y() - variable->getRango().x()) / 2;
+        qreal punto_medio = variable->range().x() + (variable->range().y() - variable->range().x()) / 2;
 
-        Var * var1 = new Var("", QPointF(variable->getRango().x(), punto_medio), variable->getRango().x());
-        Var * var2 =  new Var("", QPointF(punto_medio, variable->getRango().y()), punto_medio);
+        Parameter * var1 = new Parameter("", QPointF(variable->range().x(), punto_medio), variable->range().x());
+        Parameter * var2 =  new Parameter("", QPointF(punto_medio, variable->range().y()), punto_medio);
 
         terminosNume->replace(posicion, conversion->get_box_termino_nume(var1, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
         terminosCopiaNume->replace(posicion, conversion->get_box_termino_nume(var2, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
@@ -1669,12 +1669,12 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionFas(Tripleta2 
 
         qint32 pos = posicion - numerador->size();
 
-        Var * variable = denominador->at(pos);
+        Parameter * variable = denominador->at(pos);
 
-        qreal punto_medio = variable->getRango().x() + (variable->getRango().y() - variable->getRango().x()) / 2;
+        qreal punto_medio = variable->range().x() + (variable->range().y() - variable->range().x()) / 2;
 
-        Var * var1 = new Var("", QPointF(variable->getRango().x(), punto_medio), variable->getRango().x());
-        Var * var2 =  new Var("", QPointF(punto_medio, variable->getRango().y()), punto_medio);
+        Parameter * var1 = new Parameter("", QPointF(variable->range().x(), punto_medio), variable->range().x());
+        Parameter * var2 =  new Parameter("", QPointF(punto_medio, variable->range().y()), punto_medio);
 
         terminosDeno->replace(pos, conversion->get_box_termino_deno(var1, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
         terminosCopiaDeno->replace(pos, conversion->get_box_termino_deno(var2, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
@@ -1688,10 +1688,10 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionFas(Tripleta2 
     }
 
     Tripleta2 * t1, * t2;
-    Sistema * v1, * v2;
+    LtiSystem * v1, * v2;
 
-    v1 = current_controlador->invoke(nombre, numerador, denominador, k, ret);
-    v2 = current_controlador->invoke(nombre, numeradorCopia, denominadorCopia, k->clone(), ret->clone());
+    v1 = current_controlador->create(nombre, numerador, denominador, k, ret);
+    v2 = current_controlador->create(nombre, numeradorCopia, denominadorCopia, k->clone(), ret->clone());
 
     t1 = new Tripleta2();
 
@@ -1736,7 +1736,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionFas(Tripleta2 
 
 inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta2 * tripleta) {
 
-    Sistema * current_controlador = tripleta->getSistema();
+    LtiSystem * current_controlador = tripleta->getSistema();
 
     QVector <cinterval> * terminosNume = tripleta->getTerNume();
     QVector <cinterval> * terminosDeno = tripleta->getTerDeno();
@@ -1750,8 +1750,8 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
     qreal mejorPorcentaje = -1;
     bool izSup = false, mag = false, entra = false;
 
-    QVector <Var *> * numerador = current_controlador->getNumerador();
-    QVector <Var *> * denominador = current_controlador->getDenominador();
+    QVector <Parameter *> * numerador = current_controlador->numerator();
+    QVector <Parameter *> * denominador = current_controlador->denominator();
 
     ListaOrdenada * kSup = tripleta->getKSup();
     ListaOrdenada * kInf = tripleta->getKInf();
@@ -1766,20 +1766,20 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
     QVector <ListaOrdenada *> * denominadorInfFas = tripleta->getDenominadorInfFas();
     QVector <ListaOrdenada *> * denominadorSupFas = tripleta->getDenominadorSupFas();
 
-    QVector <Var *> * numeradorCopia = new QVector <Var *> ();
-    QVector <Var *> * denominadorCopia = new QVector <Var *> ();
+    QVector <Parameter *> * numeradorCopia = new QVector <Parameter *> ();
+    QVector <Parameter *> * denominadorCopia = new QVector <Parameter *> ();
 
     qint32 contador = -1;
 
     DatosFeasible * dato;
 
-    Var * k = current_controlador->getK();
-    Var * kCopia = k->clone();
+    Parameter * k = current_controlador->gain();
+    Parameter * kCopia = k->clone();
 
 #ifdef mensajesBi
     QVector <QString> * numeS = new QVector<QString> ();
     QVector <QString> * denoS = new QVector<QString> ();
-    QString kS = QString::fromStdString("[" + std::to_string(k->getRango().x()) + ". " + std::to_string(k->getRango().y()) + "]");
+    QString kS = QString::fromStdString("[" + std::to_string(k->range().x()) + ". " + std::to_string(k->range().y()) + "]");
 #endif
 
     if (!kSup->esVacia()){
@@ -1811,10 +1811,10 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
         numeradorCopia->append(numerador->at(i)->clone());
 
 #ifdef mensajesBi
-        numeS->append(QString::fromStdString("[" + std::to_string(numerador->at(i)->getRango().x()) + ". " + std::to_string(numerador->at(i)->getRango().y()) + "]"));
+        numeS->append(QString::fromStdString("[" + std::to_string(numerador->at(i)->range().x()) + ". " + std::to_string(numerador->at(i)->range().y()) + "]"));
 #endif
 
-        if (numerador->at(i)->isVariable()) {
+        if (numerador->at(i)->isUncertain()) {
             terminosCopiaNume->append(terminosNume->at(i));
 
             if (!numeradorSupMag->at(i)->esVacia()) {
@@ -1887,10 +1887,10 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
         denominadorCopia->append(denominador->at(i)->clone());
 
 #ifdef mensajesBi
-        denoS->append(QString::fromStdString("[" + std::to_string(denominador->at(i)->getRango().x()) + ". " + std::to_string(denominador->at(i)->getRango().y()) + "]"));
+        denoS->append(QString::fromStdString("[" + std::to_string(denominador->at(i)->range().x()) + ". " + std::to_string(denominador->at(i)->range().y()) + "]"));
 #endif
 
-        if (denominador->at(i)->isVariable()) {
+        if (denominador->at(i)->isUncertain()) {
             terminosCopiaDeno->append(terminosDeno->at(i));
 
             if (!denominadorSupMag->at(i)->esVacia()) {
@@ -1966,8 +1966,8 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
 
     if (mejorPosicion == -1) {
 
-        Var * variable = k;
-        Var * variable2 = kCopia;
+        Parameter * variable = k;
+        Parameter * variable2 = kCopia;
 
         qreal punto_corte;
 
@@ -1984,19 +1984,19 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
             punto_corte =  kInf->recuperarUltimo()->getIndex();
         }
 
-        Var * var1 = new Var("", QPointF(variable->getRango().x(), punto_corte), variable->getRango().x());
-        Var * var2 =  new Var("", QPointF(punto_corte, variable->getRango().y()), punto_corte);
+        Parameter * var1 = new Parameter("", QPointF(variable->range().x(), punto_corte), variable->range().x());
+        Parameter * var2 =  new Parameter("", QPointF(punto_corte, variable->range().y()), punto_corte);
 
         k = var1;
         kCopia = var2;
 
 
 #ifdef mensajes
-        std::cout << "Recorte K: [" +  std::to_string(variable->getRango().x()) + "," + std::to_string(punto_corte) + "] - ["
-                     +  std::to_string(punto_corte) + "," + std::to_string(variable->getRango().y()) + "]";
+        std::cout << "Recorte K: [" +  std::to_string(variable->range().x()) + "," + std::to_string(punto_corte) + "] - ["
+                     +  std::to_string(punto_corte) + "," + std::to_string(variable->range().y()) + "]";
 
-        std::cout << "Nume: [" +  std::to_string(numerador->at(0)->getRango().x()) + "," + std::to_string(numerador->at(0)->getRango().y()) + "]";
-        std::cout << "Deno: [" +  std::to_string(denominador->at(0)->getRango().x()) + "," + std::to_string(denominador->at(0)->getRango().y()) + "]" << std::endl;
+        std::cout << "Nume: [" +  std::to_string(numerador->at(0)->range().x()) + "," + std::to_string(numerador->at(0)->range().y()) + "]";
+        std::cout << "Deno: [" +  std::to_string(denominador->at(0)->range().x()) + "," + std::to_string(denominador->at(0)->range().y()) + "]" << std::endl;
 #endif
 
 
@@ -2008,8 +2008,8 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
 
     } else if (mejorPosicion < numeradorSupMag->size()) {
 
-        Var * variable = numerador->at(mejorPosicion);
-        Var * variable2 = numeradorCopia->at(mejorPosicion);
+        Parameter * variable = numerador->at(mejorPosicion);
+        Parameter * variable2 = numeradorCopia->at(mejorPosicion);
 
         qreal punto_corte;
 
@@ -2051,15 +2051,15 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
             }
         }
 
-        Var * var1 = new Var("", QPointF(variable->getRango().x(), punto_corte), variable->getRango().x());
-        Var * var2 =  new Var("", QPointF(punto_corte, variable->getRango().y()), punto_corte);
+        Parameter * var1 = new Parameter("", QPointF(variable->range().x(), punto_corte), variable->range().x());
+        Parameter * var2 =  new Parameter("", QPointF(punto_corte, variable->range().y()), punto_corte);
 
 #ifdef mensajes
-        std::cout << "Recorte N: [" +  std::to_string(variable->getRango().x()) + ". " + std::to_string(punto_corte) + "] - ["
-                     +  std::to_string(punto_corte) + "," + std::to_string(variable->getRango().y()) + "]";
+        std::cout << "Recorte N: [" +  std::to_string(variable->range().x()) + ". " + std::to_string(punto_corte) + "] - ["
+                     +  std::to_string(punto_corte) + "," + std::to_string(variable->range().y()) + "]";
 
-        std::cout << "K: [" +  std::to_string(k->getRango().x()) + ". " + std::to_string(k->getRango().y()) + "]";
-        std::cout << "Deno: [" +  std::to_string(denominador->at(0)->getRango().x()) + ". " + std::to_string(denominador->at(0)->getRango().y()) + "]" << std::endl;
+        std::cout << "K: [" +  std::to_string(k->range().x()) + ". " + std::to_string(k->range().y()) + "]";
+        std::cout << "Deno: [" +  std::to_string(denominador->at(0)->range().x()) + ". " + std::to_string(denominador->at(0)->range().y()) + "]" << std::endl;
 #endif
         numerador->replace(mejorPosicion, var1);
         numeradorCopia->replace(mejorPosicion, var2);
@@ -2075,8 +2075,8 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
 
         qint32 pos = mejorPosicion - numerador->size();
 
-        Var * variable = denominador->at(pos);
-        Var * variable2 = denominadorCopia->at(pos);
+        Parameter * variable = denominador->at(pos);
+        Parameter * variable2 = denominadorCopia->at(pos);
 
         qreal punto_corte;
 
@@ -2118,14 +2118,14 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
             }
         }
 
-        Var * var1 = new Var("", QPointF(variable->getRango().x(), punto_corte), variable->getRango().x());
-        Var * var2 =  new Var("", QPointF(punto_corte, variable->getRango().y()), punto_corte);
+        Parameter * var1 = new Parameter("", QPointF(variable->range().x(), punto_corte), variable->range().x());
+        Parameter * var2 =  new Parameter("", QPointF(punto_corte, variable->range().y()), punto_corte);
 #ifdef mensajes
-        std::cout << "Recorte D: [" +  std::to_string(variable->getRango().x()) + ". " + std::to_string(punto_corte) + "] - ["
-                     +  std::to_string(punto_corte) + ". " + std::to_string(variable->getRango().y()) + "]";
+        std::cout << "Recorte D: [" +  std::to_string(variable->range().x()) + ". " + std::to_string(punto_corte) + "] - ["
+                     +  std::to_string(punto_corte) + ". " + std::to_string(variable->range().y()) + "]";
 
-        std::cout << "K: [" +  std::to_string(k->getRango().x()) + "," + std::to_string(k->getRango().y()) + "]";
-        std::cout << "Nume: [" +  std::to_string(numerador->at(0)->getRango().x()) + ". " + std::to_string(numerador->at(0)->getRango().y()) + "]" << std::endl;
+        std::cout << "K: [" +  std::to_string(k->range().x()) + "," + std::to_string(k->range().y()) + "]";
+        std::cout << "Nume: [" +  std::to_string(numerador->at(0)->range().x()) + ". " + std::to_string(numerador->at(0)->range().y()) + "]" << std::endl;
 #endif
         denominador->replace(pos, var1);
         denominadorCopia->replace(pos, var2);
@@ -2139,13 +2139,13 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
     }
 
     Tripleta2 * t1, * t2;
-    Sistema * v1, * v2;
+    LtiSystem * v1, * v2;
 
-    Var * ret = current_controlador->getRet();
-    QString nombre = current_controlador->getNombre();
+    Parameter * ret = current_controlador->delay();
+    QString nombre = current_controlador->name();
 
-    v1 = current_controlador->invoke(nombre, numerador, denominador, k, ret);
-    v2 = current_controlador->invoke(nombre, numeradorCopia, denominadorCopia, kCopia, ret->clone());
+    v1 = current_controlador->create(nombre, numerador, denominador, k, ret);
+    v2 = current_controlador->create(nombre, numeradorCopia, denominadorCopia, kCopia, ret->clone());
 
     t1 = new Tripleta2();
 
@@ -2220,6 +2220,6 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
 
 }
 
-Sistema * Algorithm_segundo_articulo::getControlador()  {
+LtiSystem * Algorithm_segundo_articulo::getControlador()  {
     return controlador_retorno;
 }

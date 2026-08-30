@@ -11,7 +11,7 @@
 #include <QVector>
 
 #include "XmlParser/parserload.h"
-#include "Modelo/EstructuraSistema/sistema.h"
+#include "src/core/system/lti_system.h"
 #include "Modelo/Herramientas/exception.h"
 #include "Modelo/Objetos/omega.h"
 

@@ -15,7 +15,7 @@ Algorithm_rambabu::~Algorithm_rambabu()
 
 }
 
-void Algorithm_rambabu::set_datos(Sistema *planta, Sistema *controlador, QVector<qreal> * omega, DatosBound *boundaries,
+void Algorithm_rambabu::set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> * omega, DatosBound *boundaries,
                                   qreal epsilon, QVector<QVector<QVector<QPointF> *> *> *reunBounHash, bool depuracion,
                                   QVector <QVector <std::complex <qreal> > * > * temp, QVector <tools::dBND *> * espe){
     this->planta = planta;
@@ -92,7 +92,7 @@ bool Algorithm_rambabu::init_algorithm(){
     plantas_nominales2 = new QVector <std::complex <qreal>> ();
 
     foreach (qreal o, *omega) {
-        std::complex <qreal> c = planta->getPunto(o);
+        std::complex <qreal> c = planta->evaluate(o);
         plantas_nominales2->append(c);
         plantas_nominales->append(cxsc::complex(c.real(), c.imag()));
     }
@@ -145,12 +145,12 @@ bool Algorithm_rambabu::init_algorithm(){
 }
 
 
-Sistema * Algorithm_rambabu::getControlador(){
+LtiSystem * Algorithm_rambabu::getControlador(){
     return controlador_retorno;
 }
 
 //Función que comprueba si la caja actual es feasible, infeasible o ambiguous.
-flags_box Algorithm_rambabu::check_box_feasibility(Sistema * v){
+flags_box Algorithm_rambabu::check_box_feasibility(LtiSystem * v){
 
     using namespace std;
 
@@ -218,20 +218,20 @@ flags_box Algorithm_rambabu::check_box_feasibility(Sistema * v){
         }
     }
 
-    lista->insertar(new Tripleta(controlador->getK()->getRango().x(), controlador, flag_final));
+    lista->insertar(new Tripleta(controlador->gain()->range().x(), controlador, flag_final));
 
     return flag_final;
 }
 
-Sistema * Algorithm_rambabu::acelerated(Sistema * controlador){
+LtiSystem * Algorithm_rambabu::acelerated(LtiSystem * controlador){
 
     //creamos los datos del controlador.
 
     QVector <QVector <QString> * > * vec;
 
-    if (controlador->getClass() == Sistema::k_ganancia){
+    if (controlador->type() == LtiSystem::SystemType::ZeroPoleGain){
         vec = kganacia(controlador);
-    } else if (controlador->getClass() == Sistema::k_no_ganancia){
+    } else if (controlador->type() == LtiSystem::SystemType::TimeConstantGain){
         vec = knganancia(controlador);
     } else {
         return controlador;
@@ -249,7 +249,7 @@ Sistema * Algorithm_rambabu::acelerated(Sistema * controlador){
     qint32 contador;
 
     QPointF rango;
-    Var * var;
+    Parameter * var;
 
     exp_tree ob("1");
     QMap <std::string, interval > * mapa = new QMap <std::string, interval > ();
@@ -275,22 +275,22 @@ Sistema * Algorithm_rambabu::acelerated(Sistema * controlador){
             //guardamos las variables en el árbol
             //ejecutamos el árbol
             //guardamos las variables intervalares.
-            foreach (var, *controlador->getNumerador()) {
-                if (var->isVariable()){
-                    rango = var->getRango();
-                    mapa->insert(var->getNombre().toStdString(), interval (rango.x(),rango.y()));
+            foreach (var, *controlador->numerator()) {
+                if (var->isUncertain()){
+                    rango = var->range();
+                    mapa->insert(var->name().toStdString(), interval (rango.x(),rango.y()));
                 }
             }
-            foreach (var, *controlador->getDenominador()) {
-                if (var->isVariable()){
-                    rango = var->getRango();
-                    mapa->insert(var->getNombre().toStdString(), interval (rango.x(),rango.y()));
+            foreach (var, *controlador->denominator()) {
+                if (var->isUncertain()){
+                    rango = var->range();
+                    mapa->insert(var->name().toStdString(), interval (rango.x(),rango.y()));
                 }
             }
 
-            var = controlador->getK();
-            if (var->isVariable()){
-                mapa->insert(var->getNombre().toStdString(), interval(var->getRango().x(),var->getRango().y()));
+            var = controlador->gain();
+            if (var->isUncertain()){
+                mapa->insert(var->name().toStdString(), interval(var->range().x(),var->range().y()));
             }
 
             //estabilidad
@@ -413,37 +413,37 @@ Sistema * Algorithm_rambabu::acelerated(Sistema * controlador){
 
     //Si todo ha ido bien generamos el nuevo controlador recortado.
     interval i;
-    QVector <Var *> * nume = new QVector <Var *> ();
-    foreach (var, *controlador->getNumerador()) {
-        if (var->isVariable()){
-            i = mapa->value(var->getNombre().toStdString());
-            nume->append(new Var(var->getNombre(), QPointF(_double(Inf(i)), _double(Sup(i))), _double(Inf(i))));
+    QVector <Parameter *> * nume = new QVector <Parameter *> ();
+    foreach (var, *controlador->numerator()) {
+        if (var->isUncertain()){
+            i = mapa->value(var->name().toStdString());
+            nume->append(new Parameter(var->name(), QPointF(_double(Inf(i)), _double(Sup(i))), _double(Inf(i))));
         }else{
-            nume->append(new Var(var->getNominal()));
+            nume->append(new Parameter(var->nominal()));
         }
     }
 
-    QVector <Var *> * deno = new QVector <Var *> ();
-    foreach (var, *controlador->getDenominador()) {
-        if (var->isVariable()){
-            i = mapa->value(var->getNombre().toStdString());
-            deno->append(new Var(var->getNombre(), QPointF(_double(Inf(i)), _double(Sup(i))), _double(Inf(i))));
+    QVector <Parameter *> * deno = new QVector <Parameter *> ();
+    foreach (var, *controlador->denominator()) {
+        if (var->isUncertain()){
+            i = mapa->value(var->name().toStdString());
+            deno->append(new Parameter(var->name(), QPointF(_double(Inf(i)), _double(Sup(i))), _double(Inf(i))));
         }else{
-            deno->append(new Var(var->getNominal()));
+            deno->append(new Parameter(var->nominal()));
         }
     }
 
-    Var * k;
-    var = controlador->getK();
-    if (var->isVariable()){
-        i = mapa->value(var->getNombre().toStdString());
-        k = new Var (var->getNombre(), QPointF(_double(Inf(i)), _double(Sup(i))), _double(Inf(i)));
+    Parameter * k;
+    var = controlador->gain();
+    if (var->isUncertain()){
+        i = mapa->value(var->name().toStdString());
+        k = new Parameter (var->name(), QPointF(_double(Inf(i)), _double(Sup(i))), _double(Inf(i)));
     }else {
-        k = new Var (var->getNominal());
+        k = new Parameter (var->nominal());
     }
 
 
-    Sistema * ns = controlador->invoke(controlador->getNombre(), nume, deno, k, new Var((qreal)0));
+    LtiSystem * ns = controlador->create(controlador->name(), nume, deno, k, new Parameter((qreal)0));
 
     delete controlador;
     vec->clear();
@@ -452,15 +452,15 @@ Sistema * Algorithm_rambabu::acelerated(Sistema * controlador){
     return ns;
 }
 
-QVector <QVector <QString> * > * Algorithm_rambabu::kganacia(Sistema * controlador){
+QVector <QVector <QString> * > * Algorithm_rambabu::kganacia(LtiSystem * controlador){
 
-    QVector <Var *> * nume = controlador->getNumerador();
-    QVector <Var *> * deno = controlador->getDenominador();
+    QVector <Parameter *> * nume = controlador->numerator();
+    QVector <Parameter *> * deno = controlador->denominator();
 
     QVector <QString> * mag = new QVector <QString> ();
     QVector <QString> * fas = new QVector <QString> ();
 
-    Var * v;
+    Parameter * v;
 
     foreach (qreal w, *omega) {
          QString re = "(kv*(";
@@ -468,12 +468,12 @@ QVector <QVector <QString> * > * Algorithm_rambabu::kganacia(Sistema * controlad
 
         for (qint32 i = 0; i < nume->size(); i++) {
             v = nume->at(i);
-            if (v->isVariable()){
-                re += "sqrt(" + v->getNombre() + "^2 +" + QString::number(w) + "^2)";
-                re1 += "atan(" + v->getNombre() + "/" + QString::number(w) + ")";
+            if (v->isUncertain()){
+                re += "sqrt(" + v->name() + "^2 +" + QString::number(w) + "^2)";
+                re1 += "atan(" + v->name() + "/" + QString::number(w) + ")";
             } else {
-                re += "sqrt(" + QString::number(v->getNominal()) + "^2 +" + QString::number(w) + "^2)";
-                re1 += "atan(" + QString::number(v->getNominal()) + "/" + QString::number(w) + ")";
+                re += "sqrt(" + QString::number(v->nominal()) + "^2 +" + QString::number(w) + "^2)";
+                re1 += "atan(" + QString::number(v->nominal()) + "/" + QString::number(w) + ")";
             }
 
             if (i < (nume->size()-1)){
@@ -487,12 +487,12 @@ QVector <QVector <QString> * > * Algorithm_rambabu::kganacia(Sistema * controlad
 
         for (qint32 i = 0; i < deno->size(); i++) {
             v = deno->at(i);
-            if (v->isVariable()){
-                re += "sqrt(" + v->getNombre() + "^2 +" + QString::number(w) + "^2)";
-                re1 += "atan(" + v->getNombre() + "/" + QString::number(w) + ")";
+            if (v->isUncertain()){
+                re += "sqrt(" + v->name() + "^2 +" + QString::number(w) + "^2)";
+                re1 += "atan(" + v->name() + "/" + QString::number(w) + ")";
             } else {
-                re += "sqrt(" + QString::number(v->getNominal()) + "^2+" + QString::number(w) + "^2)";
-                re1 += "atan(" + QString::number(v->getNominal()) + "/" + QString::number(w) + ")";
+                re += "sqrt(" + QString::number(v->nominal()) + "^2+" + QString::number(w) + "^2)";
+                re1 += "atan(" + QString::number(v->nominal()) + "/" + QString::number(w) + ")";
             }
 
             if (i < (deno->size()-1)){
@@ -517,15 +517,15 @@ QVector <QVector <QString> * > * Algorithm_rambabu::kganacia(Sistema * controlad
 }
 
 
-QVector<QVector<QString> *> *Algorithm_rambabu::knganancia(Sistema *controlador){
+QVector<QVector<QString> *> *Algorithm_rambabu::knganancia(LtiSystem *controlador){
 
-    QVector <Var *> * nume = controlador->getNumerador();
-    QVector <Var *> * deno = controlador->getDenominador();
+    QVector <Parameter *> * nume = controlador->numerator();
+    QVector <Parameter *> * deno = controlador->denominator();
 
     QVector <QString> * mag = new QVector <QString> ();
     QVector <QString> * fas = new QVector <QString> ();
 
-    Var * v;
+    Parameter * v;
 
     foreach (qreal w, *omega) {
         QString re = "(kv*(";
@@ -533,12 +533,12 @@ QVector<QVector<QString> *> *Algorithm_rambabu::knganancia(Sistema *controlador)
 
         for (qint32 i = 0; i < nume->size(); i++) {
             v = nume->at(i);
-            if (v->isVariable()){
-                re += "sqrt(((" + QString::number(w) + "^2) / (" + v->getNombre() + "^2)) + 1)";
-                re1 += "atan(" + v->getNombre() + "/" + QString::number(w) + ")";
+            if (v->isUncertain()){
+                re += "sqrt(((" + QString::number(w) + "^2) / (" + v->name() + "^2)) + 1)";
+                re1 += "atan(" + v->name() + "/" + QString::number(w) + ")";
             } else {
-                re += "sqrt(((" + QString::number(w) + "^2) / (" + QString::number(v->getNominal()) + "^2)) + 1)";
-                re1 += "atan(" + QString::number(w) + "/" + QString::number(v->getNominal()) + ")";
+                re += "sqrt(((" + QString::number(w) + "^2) / (" + QString::number(v->nominal()) + "^2)) + 1)";
+                re1 += "atan(" + QString::number(w) + "/" + QString::number(v->nominal()) + ")";
             }
 
             if (i < (nume->size()-1)){
@@ -552,12 +552,12 @@ QVector<QVector<QString> *> *Algorithm_rambabu::knganancia(Sistema *controlador)
 
         for (qint32 i = 0; i < deno->size(); i++) {
             v = deno->at(i);
-            if (v->isVariable()){
-                re += "sqrt(((" + QString::number(w) + "^2) / (" + v->getNombre() + "^2)) + 1)";
-                re1 += "atan(" + v->getNombre() + "/" + QString::number(w) + ")";
+            if (v->isUncertain()){
+                re += "sqrt(((" + QString::number(w) + "^2) / (" + v->name() + "^2)) + 1)";
+                re1 += "atan(" + v->name() + "/" + QString::number(w) + ")";
             } else {
-                re += "sqrt(((" + QString::number(w) + "^2) / (" + QString::number(v->getNominal()) + "^2)) + 1)";
-                re1 += "atan(" + QString::number(w) + "/" + QString::number(v->getNominal()) + ")";
+                re += "sqrt(((" + QString::number(w) + "^2) / (" + QString::number(v->nominal()) + "^2)) + 1)";
+                re1 += "atan(" + QString::number(w) + "/" + QString::number(v->nominal()) + ")";
             }
 
 

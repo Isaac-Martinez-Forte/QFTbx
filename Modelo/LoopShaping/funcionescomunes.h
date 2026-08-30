@@ -5,7 +5,7 @@
 #include <QVector>
 #include <QPointF>
 
-#include "Modelo/EstructuraSistema/sistema.h"
+#include "src/core/system/lti_system.h"
 #include "Modelo/Herramientas/tools.h"
 #include "GUI/viewboundreun.h"
 #include "Modelo/EstructurasDatos/datosbound.h"
@@ -23,8 +23,8 @@ using namespace cxsc;
 namespace FC {
 
 struct return_bisection {
-    Sistema * v1;
-    Sistema * v2;
+    LtiSystem * v1;
+    LtiSystem * v2;
     bool descartado;
 };
 
@@ -36,56 +36,56 @@ struct return_bisection2 {
 
 enum diagrama {Nichol = false, Nyquist = true};
 
-inline Sistema * guardarControlador(Sistema *controlador, bool x) {
+inline LtiSystem * guardarControlador(LtiSystem *controlador, bool x) {
 
 
-    QVector <Var *> * nume = controlador->getNumerador();
-    QVector <Var *> * numerador = new QVector <Var *> ();
+    QVector <Parameter *> * nume = controlador->numerator();
+    QVector <Parameter *> * numerador = new QVector <Parameter *> ();
 
-    foreach (Var * v, *nume) {
-        if (v->isVariable()){
+    foreach (Parameter * v, *nume) {
+        if (v->isUncertain()){
             if (x){
-                numerador->append(new Var (v->getRango().x()));
+                numerador->append(new Parameter (v->range().x()));
             }else {
-                numerador->append(new Var (v->getRango().y()));
+                numerador->append(new Parameter (v->range().y()));
             }
         } else {
-            numerador->append(new Var (v->getNominal()));
+            numerador->append(new Parameter (v->nominal()));
         }
     }
 
-    QVector <Var *> * deno = controlador->getDenominador();
-    QVector <Var *> * denominador = new QVector <Var *> ();
+    QVector <Parameter *> * deno = controlador->denominator();
+    QVector <Parameter *> * denominador = new QVector <Parameter *> ();
 
-    foreach (Var * v, *deno) {
-        if (v->isVariable()){
+    foreach (Parameter * v, *deno) {
+        if (v->isUncertain()){
             if (x){
-                denominador->append(new Var (v->getRango().x()));
+                denominador->append(new Parameter (v->range().x()));
             }else {
-                denominador->append(new Var (v->getRango().y()));
+                denominador->append(new Parameter (v->range().y()));
             }
         } else {
-            denominador->append(new Var (v->getNominal()));
+            denominador->append(new Parameter (v->nominal()));
         }
     }
 
-    Var * k;
+    Parameter * k;
 
     if (x){
-        k = new Var (controlador->getK()->getRango().x());
+        k = new Parameter (controlador->gain()->range().x());
     } else {
-        k = new Var (controlador->getK()->getRango().y());
+        k = new Parameter (controlador->gain()->range().y());
     }
 
 
 
-    Sistema * s = controlador->invoke(controlador->getNombre(), numerador, denominador,
-                                      k, new Var ((qreal) 0));
+    LtiSystem * s = controlador->create(controlador->name(), numerador, denominador,
+                                      k, new Parameter ((qreal) 0));
 
     return s;
 }
 
-inline bool if_less_epsilon(Sistema * controlador, qreal epsilon, QVector <qreal> * omega,
+inline bool if_less_epsilon(LtiSystem * controlador, qreal epsilon, QVector <qreal> * omega,
                             Natura_Interval_extension *conversion, QVector <complex> * plantas_nominales) {
 
     cinterval box;
@@ -157,18 +157,18 @@ inline void mostrar_diagramaBox(QVector<QPointF> * caja, QVector <qreal> * omega
 
 //Función que divide la caja en dos.
 
-inline return_bisection split_box_bisection(Sistema *current_controlador) {
+inline return_bisection split_box_bisection(LtiSystem *current_controlador) {
 
-    QVector <Var *> * numerador = current_controlador->getNumerador();
-    QVector <Var *> * denominador = current_controlador->getDenominador();
+    QVector <Parameter *> * numerador = current_controlador->numerator();
+    QVector <Parameter *> * denominador = current_controlador->denominator();
 
-    QVector <Var *> * numeradorCopia = new QVector <Var *> ();
-    QVector <Var *> * denominadorCopia = new QVector <Var *> ();
+    QVector <Parameter *> * numeradorCopia = new QVector <Parameter *> ();
+    QVector <Parameter *> * denominadorCopia = new QVector <Parameter *> ();
 
-    Var * k = current_controlador->getK();
-    Var * ret = current_controlador->getRet();
+    Parameter * k = current_controlador->gain();
+    Parameter * ret = current_controlador->delay();
 
-    QString nombre = current_controlador->getNombre();
+    QString nombre = current_controlador->name();
 
     //Variables contador;
     qint32 mayor_pos = -1;
@@ -180,18 +180,18 @@ inline return_bisection split_box_bisection(Sistema *current_controlador) {
 
     //Sistemas hijos creados
 
-    Sistema * v1, * v2;
+    LtiSystem * v1, * v2;
     struct FC::return_bisection retur;
 
 
     //Bucle del numerador
-    Var * v;
+    Parameter * v;
     for (qint32 i = 0; i < numerador->size(); i++) {
         v = numerador->at(i);
         numeradorCopia->append(v->clone());
-        if (v->isVariable()) {
+        if (v->isUncertain()) {
 
-            lon = v->getRango().y() - v->getRango().x();
+            lon = v->range().y() - v->range().x();
 
             if (lon > mayor_rango) {
                 mayor_pos = cont;
@@ -205,9 +205,9 @@ inline return_bisection split_box_bisection(Sistema *current_controlador) {
     for (qint32 i = 0; i < denominador->size(); i++) {
         v = denominador->at(i);
         denominadorCopia->append(v->clone());
-        if (v->isVariable()) {
+        if (v->isUncertain()) {
 
-            lon = v->getRango().y() - v->getRango().x();
+            lon = v->range().y() - v->range().x();
 
             if (lon > mayor_rango) {
                 mayor_pos = cont;
@@ -218,9 +218,9 @@ inline return_bisection split_box_bisection(Sistema *current_controlador) {
     }
 
     //Estudiamos la k
-    if (k->isVariable()) {
+    if (k->isUncertain()) {
 
-        lon = k->getRango().y() - k->getRango().x();
+        lon = k->range().y() - k->range().x();
 
         if (lon > mayor_rango) {
             mayor_pos = -1;
@@ -230,45 +230,45 @@ inline return_bisection split_box_bisection(Sistema *current_controlador) {
 
 
     if (mayor_pos == -1) {
-        qreal dis = k->getRango().x();
-        Var * k1 = new Var("kv", QPointF(dis, dis + (mayor_rango / 2)), dis);
+        qreal dis = k->range().x();
+        Parameter * k1 = new Parameter("kv", QPointF(dis, dis + (mayor_rango / 2)), dis);
         dis += mayor_rango / 2;
-        Var * k2 = new Var("kv", QPointF(dis, k->getRango().y()), dis);
+        Parameter * k2 = new Parameter("kv", QPointF(dis, k->range().y()), dis);
 
         delete k;
 
-        v1 = current_controlador->invoke(nombre, numerador, denominador, k1, ret);
-        v2 = current_controlador->invoke(nombre, numeradorCopia, denominadorCopia, k2, ret->clone());
+        v1 = current_controlador->create(nombre, numerador, denominador, k1, ret);
+        v2 = current_controlador->create(nombre, numeradorCopia, denominadorCopia, k2, ret->clone());
     } else if (mayor_pos < numerador->size()) {
 
-        Var * variable = numerador->at(mayor_pos);
+        Parameter * variable = numerador->at(mayor_pos);
 
-        qreal dis = variable->getRango().x();
+        qreal dis = variable->range().x();
 
-        numeradorCopia->replace(mayor_pos, new Var("", QPointF(dis, dis + mayor_rango / 2), dis));
+        numeradorCopia->replace(mayor_pos, new Parameter("", QPointF(dis, dis + mayor_rango / 2), dis));
 
         dis += mayor_rango / 2;
-        numerador->replace(mayor_pos, new Var("", QPointF(dis, variable->getRango().y()), dis));
+        numerador->replace(mayor_pos, new Parameter("", QPointF(dis, variable->range().y()), dis));
 
 
-        v1 = current_controlador->invoke(nombre, numeradorCopia, denominadorCopia, k->clone(), ret->clone());
-        v2 = current_controlador->invoke(nombre, numerador, denominador, k, ret);
+        v1 = current_controlador->create(nombre, numeradorCopia, denominadorCopia, k->clone(), ret->clone());
+        v2 = current_controlador->create(nombre, numerador, denominador, k, ret);
 
         delete variable;
 
     } else {
         mayor_pos -= numerador->size();
 
-        Var * variable = denominador->at(mayor_pos);
-        qreal dis = variable->getRango().x();
+        Parameter * variable = denominador->at(mayor_pos);
+        qreal dis = variable->range().x();
 
-        denominadorCopia->replace(mayor_pos, new Var("", QPointF(dis, dis + mayor_rango / 2), dis));
+        denominadorCopia->replace(mayor_pos, new Parameter("", QPointF(dis, dis + mayor_rango / 2), dis));
 
         dis += mayor_rango / 2;
-        denominador->replace(mayor_pos, new Var("", QPointF(dis, variable->getRango().y()), dis));
+        denominador->replace(mayor_pos, new Parameter("", QPointF(dis, variable->range().y()), dis));
 
-        v1 = current_controlador->invoke(nombre, numeradorCopia, denominadorCopia, k->clone(), ret->clone());
-        v2 = current_controlador->invoke(nombre, numerador, denominador, k, ret);
+        v1 = current_controlador->create(nombre, numeradorCopia, denominadorCopia, k->clone(), ret->clone());
+        v2 = current_controlador->create(nombre, numerador, denominador, k, ret);
 
         delete variable;
 

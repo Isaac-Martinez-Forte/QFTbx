@@ -1,13 +1,13 @@
-// Characterisation tests for the Sistema hierarchy: expression generation
-// (getExpr) and nominal evaluation through muParserX (getPunto). They pin the
+// Characterisation tests for the LtiSystem hierarchy: expression generation
+// (expression) and nominal evaluation through muParserX (evaluate). They pin the
 // CURRENT behaviour, including known defects marked "// BUG:"; fixing those
 // must flip the expectation in a dedicated commit.
 //
 // Reminder of the plant forms:
-//   k_ganancia     P(s) = k * prod(s + z) / prod(s + p)
-//   k_no_ganancia  P(s) = k * prod(s/z + 1) / prod(s/p + 1)
-//   cof_polinomios P(s) = k * (a0*s^(n-1)+...) / (b0*s^(m-1)+...)
-//   formato_libre  P(s) = k * N(s)/D(s), N and D free text
+//   SystemType::ZeroPoleGain     P(s) = k * prod(s + z) / prod(s + p)
+//   SystemType::TimeConstantGain  P(s) = k * prod(s/z + 1) / prod(s/p + 1)
+//   SystemType::PolynomialForm P(s) = k * (a0*s^(n-1)+...) / (b0*s^(m-1)+...)
+//   SystemType::FreeForm  P(s) = k * N(s)/D(s), N and D free text
 
 #include <gtest/gtest.h>
 
@@ -17,12 +17,12 @@
 #include <QString>
 #include <QVector>
 
-#include "Modelo/EstructuraSistema/cpolinomios.h"
-#include "Modelo/EstructuraSistema/formatolibre.h"
-#include "Modelo/EstructuraSistema/kganancia.h"
-#include "Modelo/EstructuraSistema/knganancia.h"
-#include "Modelo/EstructuraSistema/sistema.h"
-#include "Modelo/EstructurasDatos/var.h"
+#include "src/core/system/polynomial_form.h"
+#include "src/core/system/free_form.h"
+#include "src/core/system/zero_pole_gain.h"
+#include "src/core/system/time_constant_gain.h"
+#include "src/core/system/lti_system.h"
+#include "src/core/system/parameter.h"
 
 namespace {
 
@@ -30,42 +30,42 @@ using Complex = std::complex<qreal>;
 
 constexpr qreal kTolerance = 1e-9;
 
-QVector<Var*>* vars(std::initializer_list<Var*> list)
+QVector<Parameter*>* vars(std::initializer_list<Parameter*> list)
 {
-    auto* result = new QVector<Var*>();
-    for (Var* var : list) {
+    auto* result = new QVector<Parameter*>();
+    for (Parameter* var : list) {
         result->append(var);
     }
     return result;
 }
 
 // ---------------------------------------------------------------------------
-// KGanancia: zero/pole form, mirrors tests/data/planta1.qft
+// ZeroPoleGain: zero/pole form, mirrors tests/data/planta1.qft
 // ---------------------------------------------------------------------------
 
-KGanancia* makePlanta1()
+ZeroPoleGain* makePlanta1()
 {
     // planta1.qft: empty numerator, denominator {a in [1,5] nom 5,
     // b in [20,30] nom 30}, k = "kv" variable in [1,10] nom 1, ret = 0.
-    return new KGanancia(
+    return new ZeroPoleGain(
         QStringLiteral("aa"), vars({}),
-        vars({new Var(QStringLiteral("a"), QPointF(1.0, 5.0), 5.0, QStringLiteral("a")),
-              new Var(QStringLiteral("b"), QPointF(20.0, 30.0), 30.0, QStringLiteral("b"))}),
-        new Var(QStringLiteral("kv"), QPointF(1.0, 10.0), 1.0, QStringLiteral("kv")),
-        new Var(0.0));
+        vars({new Parameter(QStringLiteral("a"), QPointF(1.0, 5.0), 5.0, QStringLiteral("a")),
+              new Parameter(QStringLiteral("b"), QPointF(20.0, 30.0), 30.0, QStringLiteral("b"))}),
+        new Parameter(QStringLiteral("kv"), QPointF(1.0, 10.0), 1.0, QStringLiteral("kv")),
+        new Parameter(0.0));
 }
 
 TEST(KGananciaExpr, Class)
 {
-    KGanancia* planta = makePlanta1();
-    EXPECT_EQ(planta->getClass(), Sistema::k_ganancia);
+    ZeroPoleGain* planta = makePlanta1();
+    EXPECT_EQ(planta->type(), LtiSystem::SystemType::ZeroPoleGain);
     delete planta;
 }
 
 TEST(KGananciaExpr, NumericExpressionKeepsVariableNames)
 {
-    KGanancia* planta = makePlanta1();
-    EXPECT_EQ(planta->getExpr(0.1),
+    ZeroPoleGain* planta = makePlanta1();
+    EXPECT_EQ(planta->expression(0.1),
               QStringLiteral("kv*(1) / (((0.1*i) + a) *((0.1*i) + b))"));
     delete planta;
 }
@@ -74,49 +74,49 @@ TEST(KGananciaExpr, SymbolicExpressionOmitsZeroFixedDelay)
 {
     // Fixed in the delay rework: a zero fixed delay is not emitted (it used
     // to append "* e^(s*0)" unconditionally, and with the wrong sign).
-    KGanancia* planta = makePlanta1();
-    EXPECT_EQ(planta->getExpr(), QStringLiteral("kv*(1) / ((s + a) *(s + b))"));
+    ZeroPoleGain* planta = makePlanta1();
+    EXPECT_EQ(planta->expression(), QStringLiteral("kv*(1) / ((s + a) *(s + b))"));
     delete planta;
 }
 
 TEST(KGananciaExpr, FixedDelayEvaluatesAsNegativeExponential)
 {
     // P(s) = 1/(s+5) with a pure delay of 0.5s: P(jw)*e^(-j*w*0.5).
-    KGanancia planta(QStringLiteral("delayed"), vars({}), vars({new Var(5.0)}),
-                     new Var(1.0), new Var(0.5));
+    ZeroPoleGain planta(QStringLiteral("delayed"), vars({}), vars({new Parameter(5.0)}),
+                     new Parameter(1.0), new Parameter(0.5));
 
     const qreal w = 2.0;
     const Complex s(0.0, w);
     const Complex expected = std::exp(-s * 0.5) / (s + 5.0);
 
-    const Complex value = planta.getPunto(w);
+    const Complex value = planta.evaluate(w);
     EXPECT_NEAR(value.real(), expected.real(), kTolerance);
     EXPECT_NEAR(value.imag(), expected.imag(), kTolerance);
 
-    EXPECT_TRUE(planta.getExpr().endsWith(QStringLiteral(" * e^(-s*0.5)")));
+    EXPECT_TRUE(planta.expression().endsWith(QStringLiteral(" * e^(-s*0.5)")));
 }
 
 TEST(KGananciaExpr, VariableDelayWithZeroNominalStaysInExpression)
 {
     // An uncertain delay must stay in the expression by name even when its
     // nominal is 0, so the template sweep can drive it (it used to vanish).
-    KGanancia planta(
-        QStringLiteral("delayed"), vars({}), vars({new Var(5.0)}), new Var(1.0),
-        new Var(QStringLiteral("tau"), QPointF(0.0, 0.5), 0.0, QStringLiteral("tau")));
+    ZeroPoleGain planta(
+        QStringLiteral("delayed"), vars({}), vars({new Parameter(5.0)}), new Parameter(1.0),
+        new Parameter(QStringLiteral("tau"), QPointF(0.0, 0.5), 0.0, QStringLiteral("tau")));
 
-    EXPECT_TRUE(planta.getExpr(0.1).endsWith(QStringLiteral("* e^(-i*0.1*tau)")));
-    EXPECT_TRUE(planta.getExpr().endsWith(QStringLiteral(" * e^(-s*tau)")));
+    EXPECT_TRUE(planta.expression(0.1).endsWith(QStringLiteral("* e^(-i*0.1*tau)")));
+    EXPECT_TRUE(planta.expression().endsWith(QStringLiteral(" * e^(-s*tau)")));
 }
 
 TEST(KGananciaExpr, NominalEvaluation)
 {
-    KGanancia* planta = makePlanta1();
+    ZeroPoleGain* planta = makePlanta1();
 
     // Nominals kv=1, a=5, b=30 at s = 0.1j: 1/((s+5)(s+30)).
     const Complex s(0.0, 0.1);
     const Complex expected = 1.0 / ((s + 5.0) * (s + 30.0));
 
-    const Complex value = planta->getPunto(0.1);
+    const Complex value = planta->evaluate(0.1);
     EXPECT_NEAR(value.real(), expected.real(), kTolerance);
     EXPECT_NEAR(value.imag(), expected.imag(), kTolerance);
     delete planta;
@@ -124,49 +124,49 @@ TEST(KGananciaExpr, NominalEvaluation)
 
 TEST(KGananciaExpr, CloneIsDeep)
 {
-    KGanancia* planta = makePlanta1();
-    Sistema* copy = planta->clone();
+    ZeroPoleGain* planta = makePlanta1();
+    LtiSystem* copy = planta->clone();
     ASSERT_NE(copy, nullptr);
 
-    EXPECT_EQ(copy->getClass(), Sistema::k_ganancia);
-    EXPECT_EQ(copy->getExpr(), planta->getExpr());
-    EXPECT_NE(copy->getK(), planta->getK());
-    EXPECT_NE(copy->getNumerador(), planta->getNumerador());
-    ASSERT_EQ(copy->getDenominador()->size(), 2);
-    EXPECT_NE(copy->getDenominador()->at(0), planta->getDenominador()->at(0));
-    EXPECT_EQ(copy->getDenominador()->at(0)->getNombre(), QStringLiteral("a"));
+    EXPECT_EQ(copy->type(), LtiSystem::SystemType::ZeroPoleGain);
+    EXPECT_EQ(copy->expression(), planta->expression());
+    EXPECT_NE(copy->gain(), planta->gain());
+    EXPECT_NE(copy->numerator(), planta->numerator());
+    ASSERT_EQ(copy->denominator()->size(), 2);
+    EXPECT_NE(copy->denominator()->at(0), planta->denominator()->at(0));
+    EXPECT_EQ(copy->denominator()->at(0)->name(), QStringLiteral("a"));
 
     delete copy;
     delete planta;
 }
 
 // ---------------------------------------------------------------------------
-// KNGanancia: time-constant form
+// TimeConstantGain: time-constant form
 // ---------------------------------------------------------------------------
 
-KNGanancia* makeTimeConstantPlant()
+TimeConstantGain* makeTimeConstantPlant()
 {
     // P(s) = 5 / ((s/10 + 1)(s/20 + 1)), all values fixed.
-    return new KNGanancia(QStringLiteral("tc"), vars({}),
-                          vars({new Var(10.0), new Var(20.0)}), new Var(5.0),
-                          new Var(0.0));
+    return new TimeConstantGain(QStringLiteral("tc"), vars({}),
+                          vars({new Parameter(10.0), new Parameter(20.0)}), new Parameter(5.0),
+                          new Parameter(0.0));
 }
 
 TEST(KNGananciaExpr, Class)
 {
-    KNGanancia* planta = makeTimeConstantPlant();
-    EXPECT_EQ(planta->getClass(), Sistema::k_no_ganancia);
+    TimeConstantGain* planta = makeTimeConstantPlant();
+    EXPECT_EQ(planta->type(), LtiSystem::SystemType::TimeConstantGain);
     delete planta;
 }
 
 TEST(KNGananciaExpr, NominalEvaluationMatchesTimeConstantForm)
 {
-    KNGanancia* planta = makeTimeConstantPlant();
+    TimeConstantGain* planta = makeTimeConstantPlant();
 
     const Complex s(0.0, 1.0); // w = 1
     const Complex expected = 5.0 / ((s / 10.0 + 1.0) * (s / 20.0 + 1.0));
 
-    const Complex value = planta->getPunto(1.0);
+    const Complex value = planta->evaluate(1.0);
     EXPECT_NEAR(value.real(), expected.real(), kTolerance);
     EXPECT_NEAR(value.imag(), expected.imag(), kTolerance);
     delete planta;
@@ -174,16 +174,16 @@ TEST(KNGananciaExpr, NominalEvaluationMatchesTimeConstantForm)
 
 TEST(KNGananciaExpr, PuntoDenoUsesAllPoles)
 {
-    // Fixed: getPuntoDeno used to loop from i = 1 and repeat the last
+    // Fixed: evaluateDenominator used to loop from i = 1 and repeat the last
     // element, skipping the first pole (same off-by-one in the all-numeric
-    // getExpr route). With poles {10, 20} it must be (s/10+1)(s/20+1).
-    KNGanancia* planta = makeTimeConstantPlant();
+    // expression route). With poles {10, 20} it must be (s/10+1)(s/20+1).
+    TimeConstantGain* planta = makeTimeConstantPlant();
 
     QVector<qreal> poles{10.0, 20.0};
     const Complex s(0.0, 1.0);
     const Complex expected = (s / 10.0 + 1.0) * (s / 20.0 + 1.0);
 
-    const Complex value = planta->getPuntoDeno(&poles, 1.0);
+    const Complex value = planta->evaluateDenominator(&poles, 1.0);
     EXPECT_NEAR(value.real(), expected.real(), kTolerance);
     EXPECT_NEAR(value.imag(), expected.imag(), kTolerance);
     delete planta;
@@ -191,14 +191,14 @@ TEST(KNGananciaExpr, PuntoDenoUsesAllPoles)
 
 TEST(KNGananciaExpr, ExplicitValuesRouteMatchesNominalRoute)
 {
-    // The all-numeric getExpr route (used by loop shaping) must agree with
+    // The all-numeric expression route (used by loop shaping) must agree with
     // the nominal evaluation for the same values.
-    KNGanancia* planta = makeTimeConstantPlant();
+    TimeConstantGain* planta = makeTimeConstantPlant();
 
     QVector<qreal> nume;
     QVector<qreal> deno{10.0, 20.0};
-    const Complex viaValues = planta->getPunto(&nume, &deno, 5.0, 0.0, 1.0);
-    const Complex viaNominals = planta->getPunto(1.0);
+    const Complex viaValues = planta->evaluate(&nume, &deno, 5.0, 0.0, 1.0);
+    const Complex viaNominals = planta->evaluate(1.0);
 
     EXPECT_NEAR(viaValues.real(), viaNominals.real(), kTolerance);
     EXPECT_NEAR(viaValues.imag(), viaNominals.imag(), kTolerance);
@@ -210,48 +210,48 @@ TEST(KNGananciaExpr, VariableGainUsesItsRealName)
     // Fixed: the expression emitted the hardcoded identifier "kv" for a
     // variable gain; with any other name muParserX auto-created kv = 0 and
     // the whole plant silently evaluated to zero.
-    KNGanancia planta(QStringLiteral("named"), vars({}), vars({new Var(10.0)}),
-                      new Var(QStringLiteral("K1"), QPointF(1.0, 10.0), 5.0,
+    TimeConstantGain planta(QStringLiteral("named"), vars({}), vars({new Parameter(10.0)}),
+                      new Parameter(QStringLiteral("K1"), QPointF(1.0, 10.0), 5.0,
                               QStringLiteral("K1")),
-                      new Var(0.0));
+                      new Parameter(0.0));
 
-    EXPECT_TRUE(planta.getExpr(1.0).startsWith(QStringLiteral("K1*(")));
-    EXPECT_TRUE(planta.getExpr().startsWith(QStringLiteral("K1*(")));
+    EXPECT_TRUE(planta.expression(1.0).startsWith(QStringLiteral("K1*(")));
+    EXPECT_TRUE(planta.expression().startsWith(QStringLiteral("K1*(")));
 
     const Complex s(0.0, 1.0);
     const Complex expected = 5.0 / (s / 10.0 + 1.0);
-    const Complex value = planta.getPunto(1.0);
+    const Complex value = planta.evaluate(1.0);
     EXPECT_NEAR(value.real(), expected.real(), kTolerance);
     EXPECT_NEAR(value.imag(), expected.imag(), kTolerance);
 }
 
 // ---------------------------------------------------------------------------
-// CPolinomios: polynomial-coefficient form
+// PolynomialForm: polynomial-coefficient form
 // ---------------------------------------------------------------------------
 
-CPolinomios* makePolynomialPlant()
+PolynomialForm* makePolynomialPlant()
 {
     // P(s) = 1 / (s^2 + 2s + 3): numerator {1}, denominator {1, 2, 3}.
-    return new CPolinomios(QStringLiteral("poly"), vars({new Var(1.0)}),
-                           vars({new Var(1.0), new Var(2.0), new Var(3.0)}),
-                           new Var(1.0), new Var(0.0));
+    return new PolynomialForm(QStringLiteral("poly"), vars({new Parameter(1.0)}),
+                           vars({new Parameter(1.0), new Parameter(2.0), new Parameter(3.0)}),
+                           new Parameter(1.0), new Parameter(0.0));
 }
 
 TEST(CPolinomiosExpr, Class)
 {
-    CPolinomios* planta = makePolynomialPlant();
-    EXPECT_EQ(planta->getClass(), Sistema::cof_polinomios);
+    PolynomialForm* planta = makePolynomialPlant();
+    EXPECT_EQ(planta->type(), LtiSystem::SystemType::PolynomialForm);
     delete planta;
 }
 
 TEST(CPolinomiosExpr, NominalEvaluationMatchesPolynomialForm)
 {
-    CPolinomios* planta = makePolynomialPlant();
+    PolynomialForm* planta = makePolynomialPlant();
 
     const Complex s(0.0, 2.0); // w = 2
     const Complex expected = 1.0 / (s * s + 2.0 * s + 3.0);
 
-    const Complex value = planta->getPunto(2.0);
+    const Complex value = planta->evaluate(2.0);
     EXPECT_NEAR(value.real(), expected.real(), kTolerance);
     EXPECT_NEAR(value.imag(), expected.imag(), kTolerance);
     delete planta;
@@ -259,18 +259,18 @@ TEST(CPolinomiosExpr, NominalEvaluationMatchesPolynomialForm)
 
 TEST(CPolinomiosExpr, VariableGainUsesItsRealName)
 {
-    // Fixed: same hardcoded "kv" as KNGanancia.
-    CPolinomios planta(QStringLiteral("named"), vars({new Var(1.0)}),
-                       vars({new Var(1.0), new Var(2.0)}),
-                       new Var(QStringLiteral("K1"), QPointF(1.0, 10.0), 2.0,
+    // Fixed: same hardcoded "kv" as TimeConstantGain.
+    PolynomialForm planta(QStringLiteral("named"), vars({new Parameter(1.0)}),
+                       vars({new Parameter(1.0), new Parameter(2.0)}),
+                       new Parameter(QStringLiteral("K1"), QPointF(1.0, 10.0), 2.0,
                                QStringLiteral("K1")),
-                       new Var(0.0));
+                       new Parameter(0.0));
 
-    EXPECT_TRUE(planta.getExpr(1.0).startsWith(QStringLiteral("(K1*(")));
+    EXPECT_TRUE(planta.expression(1.0).startsWith(QStringLiteral("(K1*(")));
 
     const Complex s(0.0, 1.0);
     const Complex expected = 2.0 / (s + 2.0);
-    const Complex value = planta.getPunto(1.0);
+    const Complex value = planta.evaluate(1.0);
     EXPECT_NEAR(value.real(), expected.real(), kTolerance);
     EXPECT_NEAR(value.imag(), expected.imag(), kTolerance);
 }
@@ -279,92 +279,92 @@ TEST(CPolinomiosExpr, FixedDelayEvaluatesAsNegativeExponential)
 {
     // P(s) = 1/(s^2+2s+3) with a pure delay of 0.7s. The symbolic form used
     // to concatenate the delay without a '*' (a parse error) — now fixed.
-    CPolinomios planta(QStringLiteral("delayed"), vars({new Var(1.0)}),
-                       vars({new Var(1.0), new Var(2.0), new Var(3.0)}),
-                       new Var(1.0), new Var(0.7));
+    PolynomialForm planta(QStringLiteral("delayed"), vars({new Parameter(1.0)}),
+                       vars({new Parameter(1.0), new Parameter(2.0), new Parameter(3.0)}),
+                       new Parameter(1.0), new Parameter(0.7));
 
     const qreal w = 2.0;
     const Complex s(0.0, w);
     const Complex expected = std::exp(-s * 0.7) / (s * s + 2.0 * s + 3.0);
 
-    const Complex value = planta.getPunto(w);
+    const Complex value = planta.evaluate(w);
     EXPECT_NEAR(value.real(), expected.real(), kTolerance);
     EXPECT_NEAR(value.imag(), expected.imag(), kTolerance);
 
-    EXPECT_TRUE(planta.getExpr().endsWith(QStringLiteral(" * e^(-s*0.7)")));
+    EXPECT_TRUE(planta.expression().endsWith(QStringLiteral(" * e^(-s*0.7)")));
 }
 
 TEST(KNGananciaExpr, FixedDelayEvaluatesAsNegativeExponential)
 {
     // P(s) = 5/(s/10+1) with a pure delay of 0.3s.
-    KNGanancia planta(QStringLiteral("delayed"), vars({}), vars({new Var(10.0)}),
-                      new Var(5.0), new Var(0.3));
+    TimeConstantGain planta(QStringLiteral("delayed"), vars({}), vars({new Parameter(10.0)}),
+                      new Parameter(5.0), new Parameter(0.3));
 
     const qreal w = 1.0;
     const Complex s(0.0, w);
     const Complex expected = 5.0 * std::exp(-s * 0.3) / (s / 10.0 + 1.0);
 
-    const Complex value = planta.getPunto(w);
+    const Complex value = planta.evaluate(w);
     EXPECT_NEAR(value.real(), expected.real(), kTolerance);
     EXPECT_NEAR(value.imag(), expected.imag(), kTolerance);
 }
 
 // ---------------------------------------------------------------------------
-// FormatoLibre: free-format expression, mirrors tests/data/cervera.qft
+// FreeForm: free-format expression, mirrors tests/data/cervera.qft
 // ---------------------------------------------------------------------------
 
-FormatoLibre* makeCerveraPlant()
+FreeForm* makeCerveraPlant()
 {
     // cervera.qft: P(s) = a / (s^2 (s^2 + a)), a in [0.5,2] nominal 2,
     // k = 1 fixed, ret = 0. Numerator and denominator each hold their own
-    // Var "a" (two distinct objects with identical content).
-    return new FormatoLibre(
+    // Parameter "a" (two distinct objects with identical content).
+    return new FreeForm(
         QStringLiteral("cervera"),
-        vars({new Var(QStringLiteral("a"), QPointF(0.5, 2.0), 2.0, QStringLiteral("a"))}),
-        vars({new Var(QStringLiteral("a"), QPointF(0.5, 2.0), 2.0, QStringLiteral("a"))}),
-        new Var(1.0), new Var(0.0), QStringLiteral("a"),
+        vars({new Parameter(QStringLiteral("a"), QPointF(0.5, 2.0), 2.0, QStringLiteral("a"))}),
+        vars({new Parameter(QStringLiteral("a"), QPointF(0.5, 2.0), 2.0, QStringLiteral("a"))}),
+        new Parameter(1.0), new Parameter(0.0), QStringLiteral("a"),
         QStringLiteral("(s^2)*((s^2) + a)"));
 }
 
 TEST(FormatoLibreExpr, Class)
 {
-    FormatoLibre* planta = makeCerveraPlant();
-    EXPECT_EQ(planta->getClass(), Sistema::formato_libre);
+    FreeForm* planta = makeCerveraPlant();
+    EXPECT_EQ(planta->type(), LtiSystem::SystemType::FreeForm);
     delete planta;
 }
 
 TEST(FormatoLibreExpr, StoredExpressionsAreVisible)
 {
-    FormatoLibre* planta = makeCerveraPlant();
-    EXPECT_EQ(planta->getNumeradorString(), QStringLiteral("a"));
-    EXPECT_EQ(planta->getDenominadorString(), QStringLiteral("(s^2)*((s^2) + a)"));
+    FreeForm* planta = makeCerveraPlant();
+    EXPECT_EQ(planta->numeratorString(), QStringLiteral("a"));
+    EXPECT_EQ(planta->denominatorString(), QStringLiteral("(s^2)*((s^2) + a)"));
     delete planta;
 }
 
 TEST(FormatoLibreExpr, SymbolicExpression)
 {
-    FormatoLibre* planta = makeCerveraPlant();
-    EXPECT_EQ(planta->getExpr(), QStringLiteral("1*(a)/((s^2)*((s^2) + a))"));
+    FreeForm* planta = makeCerveraPlant();
+    EXPECT_EQ(planta->expression(), QStringLiteral("1*(a)/((s^2)*((s^2) + a))"));
     delete planta;
 }
 
 TEST(FormatoLibreExpr, NumericExpressionSubstitutesS)
 {
-    FormatoLibre* planta = makeCerveraPlant();
-    EXPECT_EQ(planta->getExpr(0.1),
+    FreeForm* planta = makeCerveraPlant();
+    EXPECT_EQ(planta->expression(0.1),
               QStringLiteral("1*(a)/(((0.1*i)^2)*(((0.1*i)^2) + a))"));
     delete planta;
 }
 
 TEST(FormatoLibreExpr, NominalEvaluation)
 {
-    FormatoLibre* planta = makeCerveraPlant();
+    FreeForm* planta = makeCerveraPlant();
 
     // a = 2 at s = 0.1j: 2 / (s^2 (s^2 + 2)) = 2 / (-0.01 * 1.99).
     const Complex s(0.0, 0.1);
     const Complex expected = 2.0 / ((s * s) * (s * s + 2.0));
 
-    const Complex value = planta->getPunto(0.1);
+    const Complex value = planta->evaluate(0.1);
     EXPECT_NEAR(value.real(), expected.real(), kTolerance);
     EXPECT_NEAR(value.imag(), expected.imag(), kTolerance);
     delete planta;
@@ -374,34 +374,34 @@ TEST(FormatoLibreExpr, FixedDelayEvaluatesAsNegativeExponential)
 {
     // P(s) = 1/(s+2) with a pure delay of 0.4s. The symbolic form used to
     // ignore the delay entirely — now both forms emit e^(-s*tau).
-    FormatoLibre planta(QStringLiteral("delayed"), vars({}), vars({}),
-                        new Var(1.0), new Var(0.4), QStringLiteral("1"),
+    FreeForm planta(QStringLiteral("delayed"), vars({}), vars({}),
+                        new Parameter(1.0), new Parameter(0.4), QStringLiteral("1"),
                         QStringLiteral("s+2"));
 
     const qreal w = 1.0;
     const Complex s(0.0, w);
     const Complex expected = std::exp(-s * 0.4) / (s + 2.0);
 
-    const Complex value = planta.getPunto(w);
+    const Complex value = planta.evaluate(w);
     EXPECT_NEAR(value.real(), expected.real(), kTolerance);
     EXPECT_NEAR(value.imag(), expected.imag(), kTolerance);
 
-    EXPECT_TRUE(planta.getExpr().endsWith(QStringLiteral(" * e^(-s*0.4)")));
+    EXPECT_TRUE(planta.expression().endsWith(QStringLiteral(" * e^(-s*0.4)")));
 }
 
 TEST(FormatoLibreExpr, CloneKeepsTheDenominator)
 {
     // clone() must produce an independent, complete deep copy (N/D, not
     // N/N); both objects own their data and can be destroyed independently.
-    FormatoLibre* planta = makeCerveraPlant();
-    Sistema* copia = planta->clone();
+    FreeForm* planta = makeCerveraPlant();
+    LtiSystem* copia = planta->clone();
     ASSERT_NE(copia, nullptr);
 
     delete planta;
 
-    EXPECT_EQ(copia->getNumeradorString(), QStringLiteral("a"));
-    EXPECT_EQ(copia->getDenominadorString(), QStringLiteral("(s^2)*((s^2) + a)"));
-    EXPECT_EQ(copia->getExpr(), QStringLiteral("1*(a)/((s^2)*((s^2) + a))"));
+    EXPECT_EQ(copia->numeratorString(), QStringLiteral("a"));
+    EXPECT_EQ(copia->denominatorString(), QStringLiteral("(s^2)*((s^2) + a)"));
+    EXPECT_EQ(copia->expression(), QStringLiteral("1*(a)/((s^2)*((s^2) + a))"));
     delete copia;
 }
 
@@ -410,14 +410,14 @@ TEST(SistemaOwnership, CloneAndDestroyBothOwners)
     // The plant owns its Vars and vectors; clone() deep-copies them, so
     // destroying original and clone in any order must be safe (checked for
     // leaks and double frees under ASan builds).
-    KGanancia* planta = makePlanta1();
-    Sistema* copia = planta->clone();
+    ZeroPoleGain* planta = makePlanta1();
+    LtiSystem* copia = planta->clone();
 
     delete planta;
 
     const Complex s(0.0, 0.1);
     const Complex expected = 1.0 / ((s + 5.0) * (s + 30.0));
-    const Complex value = copia->getPunto(0.1);
+    const Complex value = copia->evaluate(0.1);
     EXPECT_NEAR(value.real(), expected.real(), kTolerance);
     EXPECT_NEAR(value.imag(), expected.imag(), kTolerance);
     delete copia;
@@ -425,22 +425,22 @@ TEST(SistemaOwnership, CloneAndDestroyBothOwners)
 
 TEST(SistemaInvoke, NullDelayBecomesZeroConstant)
 {
-    // Fixed: invoke() declares ret = NULL as default, but KGanancia's guard
+    // Fixed: create() declares ret = NULL as default, but ZeroPoleGain's guard
     // was `ret = NULL ? ... : ret` (assignment, not comparison) and the
-    // other types had no guard at all: getExpr dereferenced a null pointer.
-    KGanancia proto(QStringLiteral("p"), new QVector<Var*>(), new QVector<Var*>(),
-                    new Var(1.0), new Var(0.0));
+    // other types had no guard at all: expression dereferenced a null pointer.
+    ZeroPoleGain proto(QStringLiteral("p"), new QVector<Parameter*>(), new QVector<Parameter*>(),
+                    new Parameter(1.0), new Parameter(0.0));
 
-    Sistema* built = proto.invoke(QStringLiteral("built"), vars({}),
-                                  vars({new Var(5.0)}), new Var(2.0));
+    LtiSystem* built = proto.create(QStringLiteral("built"), vars({}),
+                                  vars({new Parameter(5.0)}), new Parameter(2.0));
     ASSERT_NE(built, nullptr);
-    ASSERT_NE(built->getRet(), nullptr);
-    EXPECT_FALSE(built->getRet()->isVariable());
-    EXPECT_DOUBLE_EQ(built->getRet()->getNominal(), 0.0);
+    ASSERT_NE(built->delay(), nullptr);
+    EXPECT_FALSE(built->delay()->isUncertain());
+    EXPECT_DOUBLE_EQ(built->delay()->nominal(), 0.0);
 
     const Complex s(0.0, 1.0);
     const Complex expected = 2.0 / (s + 5.0);
-    const Complex value = built->getPunto(1.0);
+    const Complex value = built->evaluate(1.0);
     EXPECT_NEAR(value.real(), expected.real(), kTolerance);
     EXPECT_NEAR(value.imag(), expected.imag(), kTolerance);
     delete built;
@@ -448,13 +448,13 @@ TEST(SistemaInvoke, NullDelayBecomesZeroConstant)
 
 TEST(FormatoLibreExpr, GetPuntoWithExplicitValuesIsAnUnimplementedStub)
 {
-    // BUG: FormatoLibre::getPunto(nume, deno, k, ret, w) is a "//TODO" stub
+    // BUG: FreeForm::evaluate(nume, deno, k, ret, w) is a "//TODO" stub
     // returning 0 silently; the loop-shaping algorithms do call it.
-    FormatoLibre* planta = makeCerveraPlant();
+    FreeForm* planta = makeCerveraPlant();
 
     QVector<qreal> nume{2.0};
     QVector<qreal> deno{2.0};
-    const Complex value = planta->getPunto(&nume, &deno, 1.0, 0.0, 0.1);
+    const Complex value = planta->evaluate(&nume, &deno, 1.0, 0.0, 0.1);
     EXPECT_EQ(value, Complex(0.0, 0.0));
     delete planta;
 }

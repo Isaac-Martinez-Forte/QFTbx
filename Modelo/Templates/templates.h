@@ -10,9 +10,9 @@
 
 
 #include "../Herramientas/tools.h"
-#include "../EstructurasDatos/var.h"
-#include "../EstructuraSistema/funciontransferencia.h"
-#include "../EstructuraSistema/sistema.h"
+#include "src/core/system/parameter.h"
+#include "src/core/system/transfer_function.h"
+#include "src/core/system/lti_system.h"
 
 
 #include "mpParser.h"
@@ -64,7 +64,7 @@ public:
       * @return booleano indicando el cálculo se ha realizado correctamente.
       */
 
-    bool lanzarCalculo(Sistema *planta, QVector<qreal>* omega, bool cuda);
+    bool lanzarCalculo(LtiSystem *planta, QVector<qreal>* omega, bool cuda);
 
     bool lanzarCalculoContorno (QVector <qreal> * epsilon);
 
@@ -79,9 +79,9 @@ public:
     */
     
 #ifndef OpenMP_AVAILABLE
-    QVector<QVector<std::complex<qreal> > *> * calcularTemplate_secuencial(Sistema *planta, QVector<qreal>* omega);
+    QVector<QVector<std::complex<qreal> > *> * calcularTemplate_secuencial(LtiSystem *planta, QVector<qreal>* omega);
 #else
-    QVector<QVector<std::complex<qreal> > *> * calcularTemplate_paralelo(Sistema *planta, QVector<qreal>* omega);
+    QVector<QVector<std::complex<qreal> > *> * calcularTemplate_paralelo(LtiSystem *planta, QVector<qreal>* omega);
 #endif
 
     /**
@@ -115,7 +115,7 @@ public:
       * @param mapa Valores de las variables.
       */
 
-    void setMapa (QHash<Var *, QVector<qreal> *> * mapa);
+    void setMapa (QHash<Parameter *, QVector<qreal> *> * mapa);
     
     
     /**
@@ -152,9 +152,9 @@ public:
     QVector <qreal> * getEpsilon ();
 
 private:
-    QVector<qreal> * getVariables(Var *a);
+    QVector<qreal> * getVariables(Parameter *a);
 
-    QHash <Var *, QVector<qreal> * > * mapa = NULL;
+    QHash <Parameter *, QVector<qreal> * > * mapa = NULL;
     qint32 combinaciones;
     QVector <qreal> * epsilon;
     bool cuda;

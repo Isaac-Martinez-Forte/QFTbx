@@ -1,5 +1,5 @@
-#ifndef VAR_H
-#define VAR_H
+#ifndef QFTBX_PARAMETER_H
+#define QFTBX_PARAMETER_H
 
 #include <QString>
 #include <QPointF>
@@ -20,7 +20,7 @@
     */
 
 
-class Var
+class Parameter
 {
 public:
   
@@ -34,25 +34,25 @@ public:
     * @param nominal de la variable.
     */
 
-    Var(QString nombre, QPointF rango, qreal nominal, QString exp);
+    Parameter(QString nombre, QPointF rango, qreal nominal, QString exp);
 
-    Var(QString nombre, QPointF rango, qreal nominal);
+    Parameter(QString nombre, QPointF rango, qreal nominal);
 
-    Var(QPointF rango);
+    Parameter(QPointF rango);
 
-    Var (const Var &obj);
+    Parameter (const Parameter &obj);
 
-    Var();
+    Parameter();
 
-    Var * clone ();
+    Parameter * clone ();
 
    /**
-    * @fn clonarVector
-    * @brief Copia profunda de un vector de variables (clona cada Var).
+    * @fn cloneVector
+    * @brief Copia profunda de un vector de variables (clona cada Parameter).
     *
     * @param origen vector a copiar; el llamante recibe la propiedad de la copia.
     */
-    static QVector <Var*> * clonarVector(QVector <Var*> * origen);
+    static QVector <Parameter*> * cloneVector(QVector <Parameter*> * origen);
 
 
 
@@ -63,29 +63,29 @@ public:
     * @param valor de la variable que se guardará como nominal.
     */
     
-    Var (qreal valor);
-    Var (QString nombre, qreal valor);
+    Parameter (qreal valor);
+    Parameter (QString nombre, qreal valor);
     
   /**
-    * @fn setNombre
+    * @fn setName
     * @brief Función que guarda el nombre de la variable.
     * 
     * @param nombre cadena con el nombre de la variable.
     */
     
     
-    void setNombre(QString nombre);
+    void setName(QString nombre);
     
     
   /**
-    * @fn setRango
+    * @fn setRange
     * @brief Función que guarda el rango de la variable.
     * 
     * @param rango del tipo Rango para guardar en el a variable.
     */
     
     
-    void setRango (QPointF rango);
+    void setRange (QPointF rango);
     
     
   /**
@@ -100,58 +100,58 @@ public:
     
     
   /**
-    * @fn isVariable
+    * @fn isUncertain
     * @brief Función que retorna TRUE si la Variable es completa, FALSE en caso de que solo sea un nominal.
     * 
     * @return boolean que indica si la variables es completa o no.
     */
     
     
-    bool isVariable ();
+    bool isUncertain ();
 
-    void setVariable (bool a);
+    void setUncertain (bool a);
     
     
   /**
-    * @fn getNombre
+    * @fn name
     * @brief Función que retorna el nombre de la variable.
     * 
     * @return cadena con el nombre de la variable.
     */
 
-    QString getNombre();
+    QString name();
     
     
   /**
-    * @fn getRango
+    * @fn range
     * @brief Función que retorna el rango de la variable.
     * 
     * @return Rango con el rango de la variable.
     */
     
-    QPointF getRango();
-    QPointF getR();
+    QPointF range();
+    QPointF rawRange();
 
     
   /**
-    * @fn getNominal
+    * @fn nominal
     * @brief Función que retorna el el nominal de la variable.
     * 
     * @return real con el nominal de la variable.
     */
     
-    qreal getNominal();
-    qreal getN();   
-    QString getExp();
+    qreal nominal();
+    qreal rawNominal();   
+    QString expression();
 
 private:
     QString nombre;
     QPointF rango;
-    qreal nominal;
+    qreal m_nominal;
     bool variable;
     QString exp;
     bool e;
 
 };
 
-#endif // VAR_H
+#endif // QFTBX_PARAMETER_H

@@ -9,7 +9,7 @@
 #include <list>
 #include <QVBoxLayout>
 
-#include "Modelo/EstructurasDatos/var.h"
+#include "src/core/system/parameter.h"
 #include "Modelo/EstructurasDatos/parlineedit.h"
 #include "mpParser.h"
 #include "Modelo/Herramientas/tools.h"
@@ -46,43 +46,43 @@ public:
 
     
    /**
-    * @fn getNumerador
+    * @fn numerator
     * @brief Función que retorna la incertidumbre del numerador que ha sido introducida por el usuario.
     * 
     * @return un QVector de Variables que contiene la incertidumbre introducida para cada variable del numerador.
    */
     
-    QVector <Var*> *  getNumerador();
+    QVector <Parameter*> *  numerator();
     
     
    /**
-    * @fn getDenominador
+    * @fn denominator
     * @brief Función que retorna la incertidumbre del denominador que ha sido introducida por el usuario.
     * 
     * @return un QVector de Variables que contiene la incertidumbre introducida para cada variable del denominador.
    */
     
-    QVector <Var*> * getDenominador();
+    QVector <Parameter*> * denominator();
 
     
    /**
-    * @fn getK
+    * @fn gain
     * @brief Función que retorna la incertidumbre de la variable K que representa la ganancia.
     * 
     * @return un objeto tipo QPointF que el par de valores que representa la incertidumbre de K.
    */
     
-    QPointF getK();
+    QPointF gain();
     
     
    /**
-    * @fn getRet
+    * @fn delay
     * @brief Función que retorna la incertidumbre de la variable Ret que representa el retardo de la planta.
     * 
     * @return un objeto tipo QPointF que el par de valores que representa la incertidumbre de Ret.
    */
     
-    QPointF getRet();
+    QPointF delay();
     
     
    /**
@@ -132,8 +132,8 @@ private:
     bool rango;
     QVector <QString> * numeradorNombre = NULL;
     QVector <QString> * denominadorNombre = NULL;
-    QVector <Var*> * numerador;
-    QVector <Var*> * denominador;
+    QVector <Parameter*> * numerador;
+    QVector <Parameter*> * denominador;
     std::list <ParLineEdit*>* parNume;
     std::list <ParLineEdit*>* parDeno;
     QVBoxLayout *layoutdeno;

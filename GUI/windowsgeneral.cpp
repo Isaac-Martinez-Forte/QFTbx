@@ -335,7 +335,7 @@ void WindowsGeneral::on_BDiLaz_clicked()
     loopShaping->exec();
 
     if (loopShaping->getTodoCorrecto()){
-        bool re = controlador->calcularLoopShaping(loopShaping->getEpsilon(), loopShaping->getAlg(), loopShaping->getRango(),
+        bool re = controlador->calcularLoopShaping(loopShaping->getEpsilon(), loopShaping->getAlg(), loopShaping->range(),
                                                    loopShaping->getNPuntos(), loopShaping->getDepuracion(),
                                                    loopShaping->getDelta(), loopShaping->getInicializacion(),
                                                    loopShaping->getHilos(), loopShaping->getBisectionAvanced(),

@@ -7,12 +7,12 @@
 
 
 #include "Modelo/Herramientas/tools.h"
-#include "Modelo/EstructurasDatos/var.h"
-#include "Modelo/EstructuraSistema/sistema.h"
-#include "Modelo/EstructuraSistema/cpolinomios.h"
-#include "Modelo/EstructuraSistema/formatolibre.h"
-#include "Modelo/EstructuraSistema//kganancia.h"
-#include "Modelo/EstructuraSistema/knganancia.h"
+#include "src/core/system/parameter.h"
+#include "src/core/system/lti_system.h"
+#include "src/core/system/polynomial_form.h"
+#include "src/core/system/free_form.h"
+#include "src/core/system/zero_pole_gain.h"
+#include "src/core/system/time_constant_gain.h"
 #include "Modelo/Objetos/omega.h"
 #include "Modelo/controlador.h"
 #include "Modelo/Herramientas/tools.h"
@@ -57,7 +57,7 @@ public:
       * @return Planta recuperada.
       */
 
-    Sistema * getPlanta();
+    LtiSystem * getPlanta();
 
 
     QVector <tools::dBND *> * getEspecificaciones();
@@ -113,7 +113,7 @@ public:
 
     QVector <QVector <QVector <qreal> * > *> * getSabana();
 
-    Sistema * getControlador();
+    LtiSystem * getControlador();
 
     DatosLoopShaping * getLoopShaping();
 
@@ -122,7 +122,7 @@ private:
 
      inline bool salidaError();
 
-     inline Var * leerVariable(qint32 tipoLectura);
+     inline Parameter * leerVariable(qint32 tipoLectura);
 
      inline bool leerPlanta(qint32 tipoLectura);
      inline bool leerEspecificaciones();
@@ -153,7 +153,7 @@ private:
      bool isLoopShaping;
 
 
-     Sistema * planta;
+     LtiSystem * planta;
 
      QVector <tools::dBND *> * especificaciones;
 
@@ -166,7 +166,7 @@ private:
      DatosBound * bound;
      QVector<QVector<QVector<qreal> *> *> * sabanas;
 
-     Sistema * controlador;
+     LtiSystem * controlador;
 
      DatosLoopShaping * loopShaping;
 

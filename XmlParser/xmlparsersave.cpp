@@ -65,21 +65,21 @@ bool XmlParserSave::guardarXMLDatos(QString fichero, DatosPlanta *datosPlanta){/
     return true;
 }
 
-inline bool XmlParserSave::guardarPlanta(Sistema *planta, QString nombre){/////////////////////////////////////////////////////
+inline bool XmlParserSave::guardarPlanta(LtiSystem *planta, QString nombre){/////////////////////////////////////////////////////
 
     stream->writeStartElement(nombre);
-    stream->writeAttribute("nombre", planta->getNombre());
+    stream->writeAttribute("nombre", planta->name());
 
     stream->writeStartElement("tipo");
-    stream->writeAttribute("tipo", QString::number(planta->getClass()));
+    stream->writeAttribute("tipo", QString::number(static_cast<qint32>(planta->type())));
 
     stream->writeStartElement("expresion");
 
-    if (planta->getClass() == Sistema::formato_libre){
+    if (planta->type() == LtiSystem::SystemType::FreeForm){
         stream->writeAttribute("size", "2");
 
-        stream->writeTextElement("numerador", planta->getNumeradorString());
-        stream->writeTextElement("denominador", planta->getDenominadorString());
+        stream->writeTextElement("numerador", planta->numeratorString());
+        stream->writeTextElement("denominador", planta->denominatorString());
 
     } else {
         stream->writeAttribute("size", "0");
@@ -89,10 +89,10 @@ inline bool XmlParserSave::guardarPlanta(Sistema *planta, QString nombre){//////
 
 
     stream->writeStartElement("numerador");
-    stream->writeAttribute("size", QString::number(planta->getNumerador()->size()));
+    stream->writeAttribute("size", QString::number(planta->numerator()->size()));
 
     qint32 i = 0;
-    foreach (Var * var, *planta->getNumerador()) {
+    foreach (Parameter * var, *planta->numerator()) {
         guardarVariable(var,QString::number(i));
         i++;
     }
@@ -101,18 +101,18 @@ inline bool XmlParserSave::guardarPlanta(Sistema *planta, QString nombre){//////
 
 
     stream->writeStartElement("denominador");
-    stream->writeAttribute("size", QString::number(planta->getDenominador()->size()));
+    stream->writeAttribute("size", QString::number(planta->denominator()->size()));
 
     i = 0;
-    foreach (Var * var, *planta->getDenominador()) {
+    foreach (Parameter * var, *planta->denominator()) {
         guardarVariable(var,QString::number(i));
         i++;
     }
 
     stream->writeEndElement();
 
-    guardarVariable(planta->getK(),"k");
-    guardarVariable(planta->getRet(),"ret");
+    guardarVariable(planta->gain(),"k");
+    guardarVariable(planta->delay(),"ret");
 
     stream->writeEndElement();
     stream->writeEndElement();
@@ -120,17 +120,17 @@ inline bool XmlParserSave::guardarPlanta(Sistema *planta, QString nombre){//////
 
 }
 
-inline void XmlParserSave::guardarVariable(Var *var, QString idem){
+inline void XmlParserSave::guardarVariable(Parameter *var, QString idem){
     stream->writeStartElement("variable-" + idem);
-    stream->writeTextElement("nominal", QString::number(var->getNominal()));
+    stream->writeTextElement("nominal", QString::number(var->nominal()));
 
-    if (var->isVariable()) {
+    if (var->isUncertain()) {
         stream->writeTextElement("variable", "true");
-        stream->writeTextElement("nombre", var->getNombre());
-        stream->writeTextElement("exp", var->getExp());
+        stream->writeTextElement("nombre", var->name());
+        stream->writeTextElement("exp", var->expression());
         stream->writeStartElement("rango");
-        stream->writeTextElement("inicio", QString::number(var->getRango().x()));
-        stream->writeTextElement("final", QString::number(var->getRango().y()));
+        stream->writeTextElement("inicio", QString::number(var->range().x()));
+        stream->writeTextElement("final", QString::number(var->range().y()));
         stream->writeEndElement();
 
 
@@ -203,7 +203,7 @@ inline void XmlParserSave::guardarEstructuraEspec(dBND *estructura){
     stream->writeTextElement("altura", QString::number(estructura->altura));
 
     if (!estructura->constante && estructura->utilizado){
-        guardarPlanta(estructura->sistema, estructura->sistema->getNombre());
+        guardarPlanta(estructura->sistema, estructura->sistema->name());
     }
 
     stream->writeEndElement();
@@ -424,8 +424,8 @@ inline void XmlParserSave::guardarLoopShaping(LoopShapingDAO *loopShaping){
     stream->writeStartElement("datos"); //Datos de LoopShaping
 
     stream->writeAttribute("nPuntos", QString::number(datos->getNPuntos())); //tamFas
-    stream->writeTextElement("x", QString::number(datos->getRango().x()));
-    stream->writeTextElement("y", QString::number(datos->getRango().y()));
+    stream->writeTextElement("x", QString::number(datos->range().x()));
+    stream->writeTextElement("y", QString::number(datos->range().y()));
 
     stream->writeEndElement(); //Ceramos Datos
 

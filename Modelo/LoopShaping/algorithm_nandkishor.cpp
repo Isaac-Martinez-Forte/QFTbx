@@ -15,7 +15,7 @@ Algorithm_nandkishor::~Algorithm_nandkishor()
 }
 
 
-void Algorithm_nandkishor::set_datos(Sistema *planta, Sistema *controlador, QVector<qreal> * omega, DatosBound *boundaries,
+void Algorithm_nandkishor::set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> * omega, DatosBound *boundaries,
                                      qreal epsilon, QVector<QVector<QVector<QPointF> *> *> *reunBounHash,
                                      qreal delta, qint32 inicializacion){
 
@@ -102,7 +102,7 @@ bool Algorithm_nandkishor::init_algorithm(){
     plantas_nominales2 = new QVector <std::complex <qreal>> ();
 
     foreach (qreal o, *omega) {
-        std::complex <qreal> c = planta->getPunto(o);
+        std::complex <qreal> c = planta->evaluate(o);
         plantas_nominales2->append(c);
         plantas_nominales->append(cxsc::complex(c.real(), c.imag()));
     }
@@ -169,13 +169,13 @@ bool Algorithm_nandkishor::init_algorithm(){
 
 
 //Función que retorna el controlador.
-Sistema * Algorithm_nandkishor::getControlador(){
+LtiSystem * Algorithm_nandkishor::getControlador(){
     return controlador_retorno;
 }
 
 
 //Función que comprueba si la caja actual es feasible, infeasible o ambiguous.
-inline flags_box Algorithm_nandkishor::check_box_feasibility(Sistema * controlador){
+inline flags_box Algorithm_nandkishor::check_box_feasibility(LtiSystem * controlador){
 
     using namespace std;
 
@@ -236,22 +236,22 @@ inline flags_box Algorithm_nandkishor::check_box_feasibility(Sistema * controlad
     //mostrar_diagrama(puntos);
 #endif
 
-    lista->insertar(new Tripleta(penalizacion ? controlador->getK()->getRango().x() + 100 : controlador->getK()->getRango().x(), controlador, flag_final));
+    lista->insertar(new Tripleta(penalizacion ? controlador->gain()->range().x() + 100 : controlador->gain()->range().x(), controlador, flag_final));
 
     return flag_final;
 }
 
 //Función que recorta la caja.
-inline Sistema * Algorithm_nandkishor::acelerated(Sistema * v, QVector<data_box *> *datosCortesBoundaries) {
+inline LtiSystem * Algorithm_nandkishor::acelerated(LtiSystem * v, QVector<data_box *> *datosCortesBoundaries) {
 
-    QVector <Var *> * denominador = v->getDenominador();
-    QVector <Var *> * numerador = v->getNumerador();
-    QPointF k = v->getK()->getRango();
+    QVector <Parameter *> * denominador = v->denominator();
+    QVector <Parameter *> * numerador = v->numerator();
+    QPointF k = v->gain()->range();
     QPointF kNuevo;
 
 
-    kNuevo.setX(20 * log10(v->getK()->getRango().x()));
-    kNuevo.setY(20 * log10(v->getK()->getRango().y()));
+    kNuevo.setX(20 * log10(v->gain()->range().x()));
+    kNuevo.setY(20 * log10(v->gain()->range().y()));
 
     //Creamos los numeradores y denominadores necesarios
     QVector <qreal> * numeradorSup = new QVector <qreal> ();
@@ -259,11 +259,11 @@ inline Sistema * Algorithm_nandkishor::acelerated(Sistema * v, QVector<data_box 
     QVector <qreal> * numeradorSupNuevo = new QVector <qreal> ();
     QVector <qreal> * numeradorInfNuevo = new QVector <qreal> ();
 
-    foreach (Var * var, *numerador) {
-        numeradorInf->append(var->getRango().x());
-        numeradorSup->append(var->getRango().y());
-        numeradorInfNuevo->append(var->getRango().x());
-        numeradorSupNuevo->append(var->getRango().y());
+    foreach (Parameter * var, *numerador) {
+        numeradorInf->append(var->range().x());
+        numeradorSup->append(var->range().y());
+        numeradorInfNuevo->append(var->range().x());
+        numeradorSupNuevo->append(var->range().y());
     }
 
     QVector <qreal> * denominadorInf = new QVector <qreal> ();
@@ -271,11 +271,11 @@ inline Sistema * Algorithm_nandkishor::acelerated(Sistema * v, QVector<data_box 
     QVector <qreal> * denominadorInfNuevo = new QVector <qreal> ();
     QVector <qreal> * denominadorSupNuevo = new QVector <qreal> ();
 
-    foreach (Var * var, *denominador) {
-        denominadorInf->append(var->getRango().x());
-        denominadorSup->append(var->getRango().y());
-        denominadorInfNuevo->append(var->getRango().x());
-        denominadorSupNuevo->append(var->getRango().y());
+    foreach (Parameter * var, *denominador) {
+        denominadorInf->append(var->range().x());
+        denominadorSup->append(var->range().y());
+        denominadorInfNuevo->append(var->range().x());
+        denominadorSupNuevo->append(var->range().y());
     }
 
     qreal nuevoMinKReal, n, nuevoMinNume, nuevoMaxDeno, o, nuevoMaxKReal, nuevoMaxNume, nuevoMinDeno, cortesMin, cortesMax;
@@ -294,13 +294,13 @@ inline Sistema * Algorithm_nandkishor::acelerated(Sistema * v, QVector<data_box 
             //Análisis de la ganancia
 
             if (datosCortesBoundaries->at(i)->isRecAbajo() && datosCortesBoundaries->at(i)->isUniAbajo()){
-                nuevoMinKReal = cortesMin / 20 * log10(abs(v->getPunto(numeradorSup, denominadorInf, 1, 0, o) * plantaNominal));
+                nuevoMinKReal = cortesMin / 20 * log10(abs(v->evaluate(numeradorSup, denominadorInf, 1, 0, o) * plantaNominal));
 
                 if (nuevoMinKReal > kNuevo.x() && nuevoMinKReal < kNuevo.y()) {
                     kNuevo.setX(nuevoMinKReal);
                 }
             }else if (datosCortesBoundaries->at(i)->isRecArriba() && datosCortesBoundaries->at(i)->isUniArriba()) {
-                nuevoMaxKReal = cortesMax / 20 * log10(abs(v->getPunto(numeradorInf, denominadorSup, 1, 0, o) * plantaNominal));
+                nuevoMaxKReal = cortesMax / 20 * log10(abs(v->evaluate(numeradorInf, denominadorSup, 1, 0, o) * plantaNominal));
 
                 if (nuevoMaxKReal > kNuevo.x() && nuevoMaxKReal < kNuevo.y()) {
                     kNuevo.setY(nuevoMaxKReal);
@@ -310,14 +310,14 @@ inline Sistema * Algorithm_nandkishor::acelerated(Sistema * v, QVector<data_box 
             //Numerador
             if (isVariableNume){
                 for (qint32 j = 0; j < numerador->size(); j++) {
-                    if (numerador->at(j)->isVariable()){
+                    if (numerador->at(j)->isUncertain()){
                         if (datosCortesBoundaries->at(i)->isRecAbajo() && datosCortesBoundaries->at(i)->isUniAbajo()){
                             n = numeradorSup->at(j);
 
                             numeradorSup->remove(j);
 
-                            nuevoMinNume = sqrt( pow((cortesMin * 20 * log10(abs (v->getPuntoDeno(denominadorInf, o)))) /
-                                                     (20 * log10(k.y()) *  20 * log10(abs (v->getPuntoNume(numeradorSup, o) * plantaNominal))), 2) - 20 * log10(pow(o, 2)));
+                            nuevoMinNume = sqrt( pow((cortesMin * 20 * log10(abs (v->evaluateDenominator(denominadorInf, o)))) /
+                                                     (20 * log10(k.y()) *  20 * log10(abs (v->evaluateNumerator(numeradorSup, o) * plantaNominal))), 2) - 20 * log10(pow(o, 2)));
 
 
                             numeradorSup->insert(j, n);
@@ -330,8 +330,8 @@ inline Sistema * Algorithm_nandkishor::acelerated(Sistema * v, QVector<data_box 
 
                             numeradorInf->remove(j);
 
-                            nuevoMaxNume = sqrt( pow((cortesMax * 20 * log10(abs (v->getPuntoDeno(denominadorSup, o)))) /
-                                                     (20 * log10(k.x()) *  20 * log10(abs (v->getPuntoNume(numeradorInf, o) * plantaNominal))), 2) - 20 * log10(pow(o, 2)));
+                            nuevoMaxNume = sqrt( pow((cortesMax * 20 * log10(abs (v->evaluateDenominator(denominadorSup, o)))) /
+                                                     (20 * log10(k.x()) *  20 * log10(abs (v->evaluateNumerator(numeradorInf, o) * plantaNominal))), 2) - 20 * log10(pow(o, 2)));
 
 
                             numeradorInf->insert(j, n);
@@ -348,15 +348,15 @@ inline Sistema * Algorithm_nandkishor::acelerated(Sistema * v, QVector<data_box 
             //Denominador
             if (isVariableDeno){
                 for (qint32 j = 0; j < denominador->size(); j++) {
-                    if (denominador->at(j)->isVariable()){
+                    if (denominador->at(j)->isUncertain()){
 
                         if (datosCortesBoundaries->at(i)->isRecAbajo() && datosCortesBoundaries->at(i)->isUniAbajo()) {
                             n = denominadorInf->at(j);
 
                             denominadorInf->remove(j);
 
-                            nuevoMaxDeno = sqrt(pow((20 * log10(k.y()) * 20 * log10(abs (v->getPuntoNume(numeradorSup, o) * plantaNominal))) /
-                                                    (cortesMin * 20 * log10(abs(v->getPuntoDeno(denominadorInf, o)))), 2) - 20 * log10(pow(o, 2)));
+                            nuevoMaxDeno = sqrt(pow((20 * log10(k.y()) * 20 * log10(abs (v->evaluateNumerator(numeradorSup, o) * plantaNominal))) /
+                                                    (cortesMin * 20 * log10(abs(v->evaluateDenominator(denominadorInf, o)))), 2) - 20 * log10(pow(o, 2)));
 
                             denominadorInf->insert(j, n);
 
@@ -368,8 +368,8 @@ inline Sistema * Algorithm_nandkishor::acelerated(Sistema * v, QVector<data_box 
 
                             denominadorSup->remove(j);
 
-                            nuevoMinDeno = sqrt(pow((20 * log10(k.x()) * 20 * log10(abs (v->getPuntoNume(numeradorInf, o) * plantaNominal))) /
-                                                    (cortesMax * 20 * log10(abs(v->getPuntoDeno(denominadorSup, o)))), 2) - 20 * log10(pow(o, 2)));
+                            nuevoMinDeno = sqrt(pow((20 * log10(k.x()) * 20 * log10(abs (v->evaluateNumerator(numeradorInf, o) * plantaNominal))) /
+                                                    (cortesMax * 20 * log10(abs(v->evaluateDenominator(denominadorSup, o)))), 2) - 20 * log10(pow(o, 2)));
 
                             denominadorSup->insert(j, n);
                             if (nuevoMinDeno < denominadorSupNuevo->at(j) && nuevoMinDeno > denominadorInfNuevo->at(j)) {
@@ -382,33 +382,33 @@ inline Sistema * Algorithm_nandkishor::acelerated(Sistema * v, QVector<data_box 
         }
     }
 
-    QVector <Var *> * numerador_nuevo = new QVector <Var *> ();
+    QVector <Parameter *> * numerador_nuevo = new QVector <Parameter *> ();
 
     for (qint32 i = 0; i < numerador->size(); i++){
 
-        Var * var_nume_antiguo = numerador->at(i);
-        Var * var_nume_nuevo;
+        Parameter * var_nume_antiguo = numerador->at(i);
+        Parameter * var_nume_nuevo;
 
-        if (var_nume_antiguo->isVariable()){
-            var_nume_nuevo = new Var("", QPointF(pow(10, numeradorInfNuevo->at(i) / 20), pow(10, numeradorSupNuevo->at(i) / 20)), 0);
+        if (var_nume_antiguo->isUncertain()){
+            var_nume_nuevo = new Parameter("", QPointF(pow(10, numeradorInfNuevo->at(i) / 20), pow(10, numeradorSupNuevo->at(i) / 20)), 0);
         } else {
-            var_nume_nuevo = new Var(var_nume_antiguo->getNominal());
+            var_nume_nuevo = new Parameter(var_nume_antiguo->nominal());
         }
 
         numerador_nuevo->append(var_nume_nuevo);
     }
 
-    QVector <Var *> * denominador_nuevo = new QVector <Var *> ();
+    QVector <Parameter *> * denominador_nuevo = new QVector <Parameter *> ();
 
     for (qint32 i = 0; i < denominador->size(); i++){
 
-        Var * var_deno_antiguo = denominador->at(i);
-        Var * var_deno_nuevo;
+        Parameter * var_deno_antiguo = denominador->at(i);
+        Parameter * var_deno_nuevo;
 
-        if (var_deno_antiguo->isVariable()){
-            var_deno_nuevo = new Var("", QPointF(pow(10, denominadorInfNuevo->at(i) / 20), pow(10, denominadorSupNuevo->at(i) / 20)), 0);
+        if (var_deno_antiguo->isUncertain()){
+            var_deno_nuevo = new Parameter("", QPointF(pow(10, denominadorInfNuevo->at(i) / 20), pow(10, denominadorSupNuevo->at(i) / 20)), 0);
         } else {
-            var_deno_nuevo = new Var(var_deno_antiguo->getNominal());
+            var_deno_nuevo = new Parameter(var_deno_antiguo->nominal());
         }
 
         denominador_nuevo->append(var_deno_nuevo);
@@ -417,7 +417,7 @@ inline Sistema * Algorithm_nandkishor::acelerated(Sistema * v, QVector<data_box 
     kNuevo.setX(pow(10, kNuevo.x() / 20));
     kNuevo.setY(pow(10, kNuevo.y() / 20));
 
-    Sistema * nuevo_sistema = v->invoke(v->getNombre(), numerador_nuevo, denominador_nuevo, new Var("kv", kNuevo, 0), new Var (0.0));
+    LtiSystem * nuevo_sistema = v->create(v->name(), numerador_nuevo, denominador_nuevo, new Parameter("kv", kNuevo, 0), new Parameter (0.0));
     delete v;
 
 
@@ -436,19 +436,19 @@ inline Sistema * Algorithm_nandkishor::acelerated(Sistema * v, QVector<data_box 
 
 
 //Función que hace la búsqueda local.
-inline void Algorithm_nandkishor::local_optimization(Sistema *controlador){
+inline void Algorithm_nandkishor::local_optimization(LtiSystem *controlador){
 
     qreal nuevo_min = 0;
 
-    nuevo_min += pow(controlador->getK()->getNominal(), 2);
+    nuevo_min += pow(controlador->gain()->nominal(), 2);
 
-    foreach (Var * var, *controlador->getNumerador()) {
-        nuevo_min += var->getRango().x();
+    foreach (Parameter * var, *controlador->numerator()) {
+        nuevo_min += var->range().x();
     }
 
 
-    foreach (Var * var, *controlador->getDenominador()) {
-        nuevo_min += var->getRango().x();
+    foreach (Parameter * var, *controlador->denominator()) {
+        nuevo_min += var->range().x();
     }
 
     nuevo_min = abs(sqrt(nuevo_min));
@@ -490,7 +490,7 @@ inline flags_box Algorithm_nandkishor::check_box_feasibility(QVector<qreal> *num
 
     foreach (qreal o, *omega) {
 
-        std::complex <qreal> c = planta->getPunto(o) * controlador_inicial->getPunto(nume, deno, k, ret, o);
+        std::complex <qreal> c = planta->evaluate(o) * controlador_inicial->evaluate(nume, deno, k, ret, o);
         box = cinterval (interval(c.real()), interval(c.imag()));
 
         datos = deteccion->deteccionViolacionCajaNiNi(box, boundaries, k);
@@ -509,11 +509,11 @@ inline flags_box Algorithm_nandkishor::check_box_feasibility(QVector<qreal> *num
     return flag_final;
 }
 
-inline void Algorithm_nandkishor::comprobarVariables(Sistema *controlador){
+inline void Algorithm_nandkishor::comprobarVariables(LtiSystem *controlador){
     bool b = true;
 
-    foreach (Var * var, *controlador->getNumerador()) {
-        if (var->isVariable()){
+    foreach (Parameter * var, *controlador->numerator()) {
+        if (var->isUncertain()){
             b = false;
         }
     }
@@ -522,8 +522,8 @@ inline void Algorithm_nandkishor::comprobarVariables(Sistema *controlador){
 
     b = true;
 
-    foreach (Var * var, *controlador->getDenominador()) {
-        if (var->isVariable()){
+    foreach (Parameter * var, *controlador->denominator()) {
+        if (var->isUncertain()){
             b = false;
         }
     }
@@ -531,14 +531,14 @@ inline void Algorithm_nandkishor::comprobarVariables(Sistema *controlador){
     isVariableDeno = !b;
 }
 
-inline qint32 Algorithm_nandkishor::crearVectores(Sistema *controlador, QVector<qreal> *numerador, QVector<qreal> *denominador,
+inline qint32 Algorithm_nandkishor::crearVectores(LtiSystem *controlador, QVector<qreal> *numerador, QVector<qreal> *denominador,
                                                   QVector<qreal> * k,
                                                   QVector<QVector<qreal> *> *variables, qreal delta,
                                                   QVector <qreal> * numeNominales,
                                                   QVector <qreal> * denoNominales, qreal kNominal){
 
-    QVector <Var *> * nume = controlador->getNumerador();
-    QVector <Var *> * deno = controlador->getDenominador();
+    QVector <Parameter *> * nume = controlador->numerator();
+    QVector <Parameter *> * deno = controlador->denominator();
 
     qint32 lonNume = nume->size();
 
@@ -548,13 +548,13 @@ inline qint32 Algorithm_nandkishor::crearVectores(Sistema *controlador, QVector<
     qint32 i;
 
     for (i = 0; i < lonNume; i++){
-        Var * n = nume->at(i);
+        Parameter * n = nume->at(i);
         qreal nominal = numeNominales->at(i);
         QVector <qreal> * vector = new QVector <qreal> ();
         qint32 mult = 0;
-        if (n->isVariable()){
+        if (n->isUncertain()){
 
-            if ((nominal-delta) > n->getRango().x()){
+            if ((nominal-delta) > n->range().x()){
                 vector->append(nominal - delta);
                 mult++;
             }
@@ -562,7 +562,7 @@ inline qint32 Algorithm_nandkishor::crearVectores(Sistema *controlador, QVector<
             vector->append(nominal);
             mult++;
 
-            if ((nominal+delta) < n->getRango().y()){
+            if ((nominal+delta) < n->range().y()){
                 vector->append(nominal + delta);
                 mult++;
             }
@@ -581,13 +581,13 @@ inline qint32 Algorithm_nandkishor::crearVectores(Sistema *controlador, QVector<
     qint32 salto = i;
 
     for (i = 0; i < lonDeno; i++){
-        Var * n = deno->at(i);
+        Parameter * n = deno->at(i);
         qreal nominal = denoNominales->at(i);
         QVector <qreal> * vector = new QVector <qreal> ();
         qint32 mult = 0;
-        if (n->isVariable()){
+        if (n->isUncertain()){
 
-            if ((nominal-delta) > n->getRango().x()){
+            if ((nominal-delta) > n->range().x()){
                 vector->append(nominal - delta);
                 mult++;
             }
@@ -595,7 +595,7 @@ inline qint32 Algorithm_nandkishor::crearVectores(Sistema *controlador, QVector<
             vector->append(nominal);
             mult++;
 
-            if ((nominal+delta) < n->getRango().y()){
+            if ((nominal+delta) < n->range().y()){
                 vector->append(nominal + delta);
                 mult++;
             }
@@ -611,80 +611,80 @@ inline qint32 Algorithm_nandkishor::crearVectores(Sistema *controlador, QVector<
         denominador->insert(i,vector->at(0));
     }
 
-    Var * n = controlador->getK();
+    Parameter * n = controlador->gain();
     qreal nominal = kNominal;
-    if (n->isVariable()){
+    if (n->isUncertain()){
 
-        if ((nominal-delta) > n->getRango().x()){
+        if ((nominal-delta) > n->range().x()){
             k->append(nominal - delta);
         }
 
         k->append(nominal);
 
-        if ((nominal+delta) < n->getRango().y()){
+        if ((nominal+delta) < n->range().y()){
             k->append(nominal + delta);
         }
 
     }else{
-        k->append(controlador->getK()->getNominal());
+        k->append(controlador->gain()->nominal());
     }
 
 
     return combinaciones;
 }
 
-inline qreal Algorithm_nandkishor::inicializacion(Sistema * controlador, QVector<qreal> *numerador, QVector<qreal> *denominador,
+inline qreal Algorithm_nandkishor::inicializacion(LtiSystem * controlador, QVector<qreal> *numerador, QVector<qreal> *denominador,
                                                   tipoInicializacion tipo){
 
     if (tipo == centro){
-        foreach (Var * var, *controlador->getNumerador()) {
-            numerador->append(var->getNominal());
+        foreach (Parameter * var, *controlador->numerator()) {
+            numerador->append(var->nominal());
         }
 
-        foreach (Var * var, *controlador->getDenominador()) {
-            denominador->append(var->getNominal());
+        foreach (Parameter * var, *controlador->denominator()) {
+            denominador->append(var->nominal());
         }
 
-        return controlador->getK()->getNominal();
+        return controlador->gain()->nominal();
     } else if (tipo == aleatorio){
-        foreach (Var * var, *controlador->getNumerador()) {
-            QPointF r = var->getRango();
+        foreach (Parameter * var, *controlador->numerator()) {
+            QPointF r = var->range();
             numerador->append(r.x() + (QRandomGenerator::global()->generate() % (qint32) (r.y() - r.x() + 1)));
         }
 
-        foreach (Var * var, *controlador->getDenominador()) {
-            QPointF r = var->getRango();
+        foreach (Parameter * var, *controlador->denominator()) {
+            QPointF r = var->range();
             denominador->append(r.x() + (QRandomGenerator::global()->generate() % (qint32) (r.y() - r.x() + 1)));
         }
 
-        QPointF  k = controlador->getK()->getRango();
+        QPointF  k = controlador->gain()->range();
 
         qreal a = k.x() + (QRandomGenerator::global()->generate() % (qint32) (k.y() - k.x() + 1));
 
 
         return a;
     } else {
-        foreach (Var * var, *controlador->getNumerador()) {
-            QPointF r = var->getRango();
+        foreach (Parameter * var, *controlador->numerator()) {
+            QPointF r = var->range();
             numerador->append(r.x());
         }
 
-        foreach (Var * var, *controlador->getDenominador()) {
-            QPointF r = var->getRango();
+        foreach (Parameter * var, *controlador->denominator()) {
+            QPointF r = var->range();
             denominador->append(r.y());
         }
 
-        return controlador->getK()->getRango().y();
+        return controlador->gain()->range().y();
     }
 
     return 0;
 }
 
 //Algorítmo de búsqueda local.
-inline qreal Algorithm_nandkishor::busqueda_local(qreal delta, Sistema * controlador){
+inline qreal Algorithm_nandkishor::busqueda_local(qreal delta, LtiSystem * controlador){
 
-    QVector <Var *> * nume = controlador->getNumerador();
-    QVector <Var *> * deno = controlador->getDenominador();
+    QVector <Parameter *> * nume = controlador->numerator();
+    QVector <Parameter *> * deno = controlador->denominator();
 
     QVector <qreal> * numeNominales = new QVector <qreal> ();
     QVector <qreal> * denoNominales = new QVector <qreal> ();

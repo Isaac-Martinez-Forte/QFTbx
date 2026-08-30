@@ -6,14 +6,14 @@
 #include <cmath>
 
 #include "Modelo/EstructurasDatos/datosbound.h"
-#include "Modelo/EstructuraSistema/sistema.h"
+#include "src/core/system/lti_system.h"
 #include "NaturalIntervalExtension/natural_interval_extension.h"
 #include "EstructuraDatos/avl.h"
 #include "EstructuraDatos/tripleta.h"
 #include "Modelo/Herramientas/tools.h"
-#include "Modelo/EstructuraSistema/cpolinomios.h"
-#include "Modelo/EstructuraSistema/kganancia.h"
-#include "Modelo/EstructuraSistema/knganancia.h"
+#include "src/core/system/polynomial_form.h"
+#include "src/core/system/zero_pole_gain.h"
+#include "src/core/system/time_constant_gain.h"
 #include "DeteccionViolacionBoundaries/deteccionviolacionboundaries.h"
 #include "EstructuraDatos/listaordenada.h"
 
@@ -28,28 +28,28 @@ public:
     Algorithm_sachin();
     ~Algorithm_sachin();
 
-    void set_datos(Sistema * planta, Sistema * controlador, QVector<qreal> *omega, DatosBound * boundaries,
+    void set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, DatosBound * boundaries,
                     qreal epsilon, QVector<QVector<QVector<QPointF> *> *> * reunBounHash);
 
     bool init_algorithm();
 
-    Sistema * getControlador();
+    LtiSystem * getControlador();
 
 
 private:
 
-    inline void check_box_feasibility(Sistema *controlador);
-    inline Sistema *acelerated(Sistema * v, qreal minimo_boundarie, qreal maximo_boundarie, qreal o, qint32 contador, bool arriba);
+    inline void check_box_feasibility(LtiSystem *controlador);
+    inline LtiSystem *acelerated(LtiSystem * v, qreal minimo_boundarie, qreal maximo_boundarie, qreal o, qint32 contador, bool arriba);
 
-    Sistema * planta;
-    Sistema * controlador;
+    LtiSystem * planta;
+    LtiSystem * controlador;
     QVector <qreal> * omega;
     DatosBound * boundaries;
     Natura_Interval_extension * conversion;
     ListaOrdenada * lista;
     qreal epsilon;
 
-    Sistema * controlador_retorno;
+    LtiSystem * controlador_retorno;
     qreal minimo_boundaries;
 
     QVector<QVector<QVector<QPointF> *> *> * reunBounHash;

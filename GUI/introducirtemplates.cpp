@@ -43,16 +43,16 @@ QVector<qreal> * IntroducirTemplates::getEpsilon(){
     return epsilon;
 }
 
-void IntroducirTemplates::lanzarViewTemp(Sistema *planta, qint32 numOmegas){
+void IntroducirTemplates::lanzarViewTemp(LtiSystem *planta, qint32 numOmegas){
 
     this->planta = planta;
     this->numOmegas = numOmegas;
 
 
-    formartablas(planta->getNumerador(), planta->getDenominador());
+    formartablas(planta->numerator(), planta->denominator());
 }
 
-void IntroducirTemplates::formartablas(QVector<Var *> *numerador, QVector<Var *> *denominador){
+void IntroducirTemplates::formartablas(QVector<Parameter *> *numerador, QVector<Parameter *> *denominador){
 
     this->numerador = numerador;
     this->denominador = denominador;
@@ -72,9 +72,9 @@ void IntroducirTemplates::formartablas(QVector<Var *> *numerador, QVector<Var *>
 
 
     qint32 indice = 0;
-    foreach (Var * variable, *numerador){
-        QString valor = variable->getNombre();
-        if(variable->isVariable()){
+    foreach (Parameter * variable, *numerador){
+        QString valor = variable->name();
+        if(variable->isUncertain()){
             QWidget * widget = new QWidget(ui->agrNuDe);
             crearWidget(widget,parNume, radioButtonsNume);
             ui->tabNume->insertTab(indice,widget,valor);
@@ -84,9 +84,9 @@ void IntroducirTemplates::formartablas(QVector<Var *> *numerador, QVector<Var *>
         ui->tabNume->removeTab(indice+1);
     }
     indice = 0;
-    foreach (Var * variable, *denominador){
-        QString valor = variable->getNombre();
-        if(variable->isVariable()){
+    foreach (Parameter * variable, *denominador){
+        QString valor = variable->name();
+        if(variable->isUncertain()){
             QWidget * widget = new QWidget(ui->agrNuDe);
             crearWidget(widget, parDeno, radioButtonsDeno);
             ui->tabDeno->insertTab(indice,widget, valor);
@@ -247,7 +247,7 @@ void IntroducirTemplates::on_Aceptar_clicked()
         mapa->clear();
     }
 
-    mapa = new QHash <Var *, QVector<qreal> * > ();
+    mapa = new QHash <Parameter *, QVector<qreal> * > ();
 
     if (ui->seleLinSpace->isChecked() && !ui->todasNPuntos->text().isEmpty()){
         linsp = true;
@@ -261,22 +261,22 @@ void IntroducirTemplates::on_Aceptar_clicked()
 
     struct tresRadioButton radioButtons;
     ParLineEdit * parlines;
-    Var* var;
+    Parameter* var;
     qint32 contVar = 0;
     for (qint32 i = 0; i < numerador->size(); i++){
         var = numerador->at(i);
-        if (var->isVariable()){
+        if (var->isUncertain()){
             parlines = parNume->at(contVar);
             radioButtons = radioButtonsNume->at(contVar);
             contVar++;
             if (!extraerVariable(parlines, radioButtons,var,linsp,logsp)){
-                menerror("ERROR: Los valores introducidos para la variable \"" + var->getNombre()
+                menerror("ERROR: Los valores introducidos para la variable \"" + var->name()
                          + "\" son incorrectos", "Cálculo de Templates");
                 return;
             }
         }/*else {
             QVector <qreal> * vector = new QVector <qreal> ();
-            vector->append(var->getNominal());;
+            vector->append(var->nominal());;
             mapa->insert(var, vector);
         }*/
     }
@@ -286,25 +286,25 @@ void IntroducirTemplates::on_Aceptar_clicked()
     for (qint32 i = 0; i < denominador->size(); i++){
 
         var = denominador->at(i);
-        if (var->isVariable()){
+        if (var->isUncertain()){
 
             parlines = parDeno->at(contVar);
             radioButtons = radioButtonsDeno->at(contVar);
             contVar++;
             if (!extraerVariable(parlines, radioButtons,var,linsp,logsp)){
-                menerror("ERROR: Los valores introducidos para la variable \"" + var->getNombre()
+                menerror("ERROR: Los valores introducidos para la variable \"" + var->name()
                          + "\" son incorrectos", "Cálculo de Templates");
                 return;
             }
         }/*else {
             QVector <qreal> * vector = new QVector <qreal> ();
-            vector->append(var->getNominal());
+            vector->append(var->nominal());
             mapa->insert(var, vector);
         }*/
     }
 
-    if (!planta->getK()->isVariable()){
-        mapa->insert(planta->getK(), new QVector <qreal> (1, planta->getK()->getNominal()));
+    if (!planta->gain()->isUncertain()){
+        mapa->insert(planta->gain(), new QVector <qreal> (1, planta->gain()->nominal()));
     }
     else{
 
@@ -312,35 +312,35 @@ void IntroducirTemplates::on_Aceptar_clicked()
         qreal final;
         qint32 npuntos;
 
-        inicio = planta->getK()->getRango().x();
-        final = planta->getK()->getRango().y();
+        inicio = planta->gain()->range().x();
+        final = planta->gain()->range().y();
         parser->SetExpr(ui->todasNPuntos->text().toStdString());
         npuntos = parser->Eval().GetFloat();
 
         if (linsp){
-            mapa->insert(planta->getK(), linspace(inicio, final, npuntos));
+            mapa->insert(planta->gain(), linspace(inicio, final, npuntos));
         } else {
-            mapa->insert(planta->getK(), linspace(inicio, final, npuntos));
+            mapa->insert(planta->gain(), linspace(inicio, final, npuntos));
         }
     }
 
-    if (!planta->getRet()->isVariable()){
-        mapa->insert(planta->getRet(), new QVector <qreal> (1, planta->getRet()->getNominal()));
+    if (!planta->delay()->isUncertain()){
+        mapa->insert(planta->delay(), new QVector <qreal> (1, planta->delay()->nominal()));
     }else {
 
         qreal inicio;
         qreal final;
         qint32 npuntos;
 
-        inicio = planta->getRet()->getRango().x();
-        final = planta->getRet()->getRango().x();
+        inicio = planta->delay()->range().x();
+        final = planta->delay()->range().x();
         parser->SetExpr(ui->todasNPuntos->text().toStdString());
         npuntos = parser->Eval().GetFloat();
 
         if (linsp){
-            mapa->insert(planta->getK(), linspace(inicio, final, npuntos));
+            mapa->insert(planta->gain(), linspace(inicio, final, npuntos));
         } else {
-            mapa->insert(planta->getK(), linspace(inicio, final, npuntos));
+            mapa->insert(planta->gain(), linspace(inicio, final, npuntos));
         }
     }
 
@@ -349,7 +349,7 @@ void IntroducirTemplates::on_Aceptar_clicked()
 }
 
 bool IntroducirTemplates::extraerVariable(ParLineEdit *parlines, tresRadioButton radioButtons,
-                                    Var *var, bool linsp, bool logsp){
+                                    Parameter *var, bool linsp, bool logsp){
     qreal inicio;
     qreal final;
     qreal npuntos;
@@ -357,8 +357,8 @@ bool IntroducirTemplates::extraerVariable(ParLineEdit *parlines, tresRadioButton
 
     if (radioButtons.uno->isChecked() && !parlines->getX()->text().isEmpty()){
 
-        inicio = var->getRango().x();
-        final = var->getRango().x();
+        inicio = var->range().x();
+        final = var->range().x();
 
         parser->SetExpr(parlines->getX()->text().toStdString());
         npuntos = parser->Eval().GetFloat();
@@ -367,16 +367,16 @@ bool IntroducirTemplates::extraerVariable(ParLineEdit *parlines, tresRadioButton
 
     }else if (radioButtons.dos->isChecked() && !parlines->getY()->text().isEmpty()){
 
-        inicio = var->getRango().x();
-        final = var->getRango().y();
+        inicio = var->range().x();
+        final = var->range().y();
         parser->SetExpr(parlines->getY()->text().toStdString());
         npuntos = parser->Eval().GetFloat();
 
         mapa->insert(var, logspace(inicio, final, npuntos));
 
-    }else if(radioButtons.tres->isChecked() && !parlines->getNominal()->text().isEmpty()){
+    }else if(radioButtons.tres->isChecked() && !parlines->nominal()->text().isEmpty()){
 
-        QVector <QString> * vector = srtovectorString(parlines->getNominal()->text());
+        QVector <QString> * vector = srtovectorString(parlines->nominal()->text());
         QVector <qreal> * vector2 = new QVector <qreal> ();
 
         foreach (QString numeroS, *vector) {
@@ -386,8 +386,8 @@ bool IntroducirTemplates::extraerVariable(ParLineEdit *parlines, tresRadioButton
         mapa->insert(var, vector2);
     }else if (linsp || logsp){
 
-        inicio = var->getRango().x();
-        final = var->getRango().y();
+        inicio = var->range().x();
+        final = var->range().y();
 
         parser->SetExpr(ui->todasNPuntos->text().toStdString());
         npuntos = parser->Eval().GetFloat();
@@ -404,7 +404,7 @@ bool IntroducirTemplates::extraerVariable(ParLineEdit *parlines, tresRadioButton
     return true;
 }
 
-QHash <Var * , QVector<qreal> * > * IntroducirTemplates::getMapa(){
+QHash <Parameter * , QVector<qreal> * > * IntroducirTemplates::getMapa(){
     return mapa;
 }
 

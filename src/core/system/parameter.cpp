@@ -1,9 +1,9 @@
-﻿#include "var.h"
+﻿#include "parameter.h"
 
 using namespace mup;
 using namespace std;
 
-Var::Var(QString nombre, QPointF rango, qreal nominal, QString exp)
+Parameter::Parameter(QString nombre, QPointF rango, qreal nominal, QString exp)
 {
     this->nombre = nombre;
 
@@ -14,7 +14,7 @@ Var::Var(QString nombre, QPointF rango, qreal nominal, QString exp)
         this->rango = rango;
     }
 
-    this->nominal = nominal;
+    m_nominal = nominal;
     variable = true;
 
     if (exp == nullptr || exp.isEmpty()) {
@@ -28,7 +28,7 @@ Var::Var(QString nombre, QPointF rango, qreal nominal, QString exp)
     }
 }
 
-Var::Var(QString nombre, QPointF rango, qreal nominal){
+Parameter::Parameter(QString nombre, QPointF rango, qreal nominal){
     this->nombre = nombre;
 
     if (rango.x() > rango.y()){
@@ -38,7 +38,7 @@ Var::Var(QString nombre, QPointF rango, qreal nominal){
         this->rango = rango;
     }
 
-    this->nominal = nominal;
+    m_nominal = nominal;
     this->exp = nombre;
 
     variable = true;
@@ -47,7 +47,7 @@ Var::Var(QString nombre, QPointF rango, qreal nominal){
     e = false;
 }
 
-Var::Var (QPointF rango){
+Parameter::Parameter (QPointF rango){
     if (rango.x() > rango.y()){
         this->rango.setX(rango.y());
         this->rango.setY(rango.x());
@@ -55,56 +55,56 @@ Var::Var (QPointF rango){
         this->rango = rango;
     }
 
-    nominal = 0;
+    m_nominal = 0;
     variable = false;
     e = false;
 }
 
-Var::Var(const Var &obj){
+Parameter::Parameter(const Parameter &obj){
     this->nombre = obj.nombre;
     this->rango = obj.rango;
-    this->nominal = obj.nominal;
+    m_nominal = obj.m_nominal;
     this->variable = obj.variable;
     this->exp = obj.exp;
     this->e = obj.e;
 }
 
-Var::Var() {
-   nominal = 0;
+Parameter::Parameter() {
+   m_nominal = 0;
    variable = false;
    e = false;
 }
 
-Var::Var (qreal valor){
-    nominal = valor;
-    nombre = QString::number(nominal);
+Parameter::Parameter (qreal valor){
+    m_nominal = valor;
+    nombre = QString::number(m_nominal);
     variable = false;
-    this->rango= QPointF (nominal, nominal);
+    this->rango= QPointF (m_nominal, m_nominal);
     this->exp = nombre;
 }
 
-Var::Var (QString nombre, qreal valor){
-    nominal = valor;
+Parameter::Parameter (QString nombre, qreal valor){
+    m_nominal = valor;
     this->nombre = nombre;
     variable = false;
-    this->rango= QPointF (nominal, nominal);
+    this->rango= QPointF (m_nominal, m_nominal);
     this->exp = nombre;
 }
 
 
-bool Var::isVariable(){
+bool Parameter::isUncertain(){
     return variable;
 }
 
-void Var::setVariable(bool a) {
+void Parameter::setUncertain(bool a) {
     variable = a;
 }
 
-QString Var::getNombre(){
+QString Parameter::name(){
     return nombre;
 }
 
-QPointF Var::getRango(){
+QPointF Parameter::range(){
 
     if (!variable){
         return rango;
@@ -136,18 +136,18 @@ QPointF Var::getRango(){
     return punto;
 }
 
-qreal Var::getNominal(){
+qreal Parameter::nominal(){
 
     if (!variable){
-        return nominal;
+        return m_nominal;
     }
 
     if (!e){
-        return nominal;
+        return m_nominal;
     }
 
-    //Value antes que el parser: ver comentario en getRango().
-    Value v(nominal);
+    //Value antes que el parser: ver comentario en range().
+    Value v(m_nominal);
 
     mup::ParserX p;
 
@@ -157,51 +157,51 @@ qreal Var::getNominal(){
     return p.Eval().GetFloat();
 }
 
-void Var::setNombre(QString nombre){
+void Parameter::setName(QString nombre){
     this->nombre = nombre;
 }
 
-void Var::setRango(QPointF rango){
+void Parameter::setRange(QPointF rango){
     this->rango = rango;
 }
 
-void Var::setNominal(qreal nominal){
-    this->nominal = nominal;
+void Parameter::setNominal(qreal nominal){
+    m_nominal = nominal;
 }
 
-QString Var::getExp(){
+QString Parameter::expression(){
     return exp;
 }
 
-QPointF Var::getR(){
+QPointF Parameter::rawRange(){
     return rango;
 }
 
-qreal Var::getN(){
-    return nominal;
+qreal Parameter::rawNominal(){
+    return m_nominal;
 }
 
-Var * Var::clone(){
+Parameter * Parameter::clone(){
 
     if (!variable){
         //Se conserva el nombre: una constante con nombre ("kv") no debe
         //convertirse en una constante llamada por su valor.
-        return new Var (this->nombre, this->nominal);
+        return new Parameter (this->nombre, m_nominal);
     }
 
     if (!e){
-        return new Var (this->nombre, this->rango, this->nominal);
+        return new Parameter (this->nombre, this->rango, m_nominal);
     }
 
-    return new Var (this->nombre, this->rango, this->nominal, this->exp);
+    return new Parameter (this->nombre, this->rango, m_nominal, this->exp);
 }
 
-QVector <Var*> * Var::clonarVector(QVector <Var*> * origen){
+QVector <Parameter*> * Parameter::cloneVector(QVector <Parameter*> * origen){
 
-    QVector <Var*> * copia = new QVector <Var*> ();
+    QVector <Parameter*> * copia = new QVector <Parameter*> ();
     copia->reserve(origen->size());
 
-    foreach (Var * var, *origen) {
+    foreach (Parameter * var, *origen) {
         copia->append(var->clone());
     }
 

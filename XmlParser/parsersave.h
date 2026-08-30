@@ -4,8 +4,8 @@
 #include <QFile>
 #include <QXmlStreamWriter>
 #include "Modelo/Herramientas/tools.h"
-#include "Modelo/EstructuraSistema/sistema.h"
-#include "Modelo/EstructurasDatos/var.h"
+#include "src/core/system/lti_system.h"
+#include "src/core/system/parameter.h"
 #include "Modelo/EstructurasDatos/datosplanta.h"
 #include "DAO/omegadao.h"
 #include "DAO/templatedao.h"
@@ -58,9 +58,9 @@ public:
 
 private:
 
-    inline bool guardarPlanta(Sistema * planta, QString nombre);
+    inline bool guardarPlanta(LtiSystem * planta, QString nombre);
 
-    inline void guardarVariable (Var * var, QString idem);
+    inline void guardarVariable (Parameter * var, QString idem);
 
     inline void guardarOmega(OmegaDAO * omega);
 

@@ -79,10 +79,10 @@ void IntEspecificaciones::setDatos(dBND * datos)
         if (datos->constante){
             ui->altura->setText(QString::number(pow(10, datos->altura/20)));
         } else{
-            ui->nume->setText(datos->sistema->getNumeradorString());
-            ui->deno->setText(datos->sistema->getDenominadorString());
-            ui->k->setText(QString::number(datos->sistema->getK()->getNominal()));
-            ui->ret->setText(QString::number(datos->sistema->getRet()->getNominal()));
+            ui->nume->setText(datos->sistema->numeratorString());
+            ui->deno->setText(datos->sistema->denominatorString());
+            ui->k->setText(QString::number(datos->sistema->gain()->nominal()));
+            ui->ret->setText(QString::number(datos->sistema->delay()->nominal()));
         }
     } else {
         ui->altura->setText("");
@@ -106,15 +106,15 @@ void IntEspecificaciones::setDatos(dBND *datos, dBND *datos1){
 
             ui->altura_se1_2->setText(QString::number(pow(10, datos1->altura/20)));
         }else{
-            ui->NumeSe1->setText(datos->sistema->getNumeradorString());
-            ui->DenoSe1->setText(datos->sistema->getDenominadorString());
-            ui->KSe1->setText(QString::number(datos->sistema->getK()->getNominal()));
-            ui->RetSe1->setText(QString::number(datos->sistema->getRet()->getNominal()));
+            ui->NumeSe1->setText(datos->sistema->numeratorString());
+            ui->DenoSe1->setText(datos->sistema->denominatorString());
+            ui->KSe1->setText(QString::number(datos->sistema->gain()->nominal()));
+            ui->RetSe1->setText(QString::number(datos->sistema->delay()->nominal()));
 
-            ui->NumeSe1_2->setText(datos1->sistema->getNumeradorString());
-            ui->DenoSe1_2->setText(datos1->sistema->getDenominadorString());
-            ui->KSe1_2->setText(QString::number(datos1->sistema->getK()->getNominal()));
-            ui->RetSe1_2->setText(QString::number(datos1->sistema->getRet()->getNominal()));
+            ui->NumeSe1_2->setText(datos1->sistema->numeratorString());
+            ui->DenoSe1_2->setText(datos1->sistema->denominatorString());
+            ui->KSe1_2->setText(QString::number(datos1->sistema->gain()->nominal()));
+            ui->RetSe1_2->setText(QString::number(datos1->sistema->delay()->nominal()));
         }
     } else {
         ui->altura_se1->setText("");
@@ -213,10 +213,10 @@ bool IntEspecificaciones::getDatos(dBND * datos, QString nombre)
             return true;
         }
 
-        QVector <Var *> * nume = NULL;
-        QVector <Var *> * deno = NULL;
-        Var * k = NULL;
-        Var * ret = NULL;
+        QVector <Parameter *> * nume = NULL;
+        QVector <Parameter *> * deno = NULL;
+        Parameter * k = NULL;
+        Parameter * ret = NULL;
 
         if (!ui->libre->isChecked()){
 
@@ -268,13 +268,13 @@ bool IntEspecificaciones::getDatos(dBND * datos, QString nombre)
 
         datos->constante = false;
         if(ui->lfgain->isChecked()){
-            datos->sistema = new KGanancia (nombre, nume, deno, k, ret);
+            datos->sistema = new ZeroPoleGain (nombre, nume, deno, k, ret);
         }else if (ui->hfgain->isChecked()){
-            datos->sistema = new KNGanancia (nombre, nume, deno, k, ret);
+            datos->sistema = new TimeConstantGain (nombre, nume, deno, k, ret);
         }else if (ui->poli->isChecked()) {
-            datos->sistema = new CPolinomios (nombre, nume, deno, k, ret);
+            datos->sistema = new PolynomialForm (nombre, nume, deno, k, ret);
         }else {
-            datos->sistema = new FormatoLibre (nombre, new QVector <Var *> (), new QVector <Var *> (), crearKRet(ui->k->text(), true),
+            datos->sistema = new FreeForm (nombre, new QVector <Parameter *> (), new QVector <Parameter *> (), crearKRet(ui->k->text(), true),
                                                crearKRet(ui->ret->text(), false), ui->nume->text(), ui->deno->text());
         }
         datos->utilizado = true;
@@ -378,10 +378,10 @@ bool IntEspecificaciones::getDatos(dBND *datos, dBND *datos1, QString nombre){
             return true;
         }
 
-        QVector <Var *> * nume = NULL;
-        QVector <Var *> * deno = NULL;
-        Var * k = NULL;
-        Var * ret = NULL;
+        QVector <Parameter *> * nume = NULL;
+        QVector <Parameter *> * deno = NULL;
+        Parameter * k = NULL;
+        Parameter * ret = NULL;
 
         if(!ui->FLSe1->isChecked()){
 
@@ -434,13 +434,13 @@ bool IntEspecificaciones::getDatos(dBND *datos, dBND *datos1, QString nombre){
 
         datos->constante = false;
         if(ui->KGSe1->isChecked()){
-            datos->sistema = new KGanancia (nombre, nume, deno, k, ret);
+            datos->sistema = new ZeroPoleGain (nombre, nume, deno, k, ret);
         }else if (ui->KNGSe1->isChecked()){
-            datos->sistema = new KNGanancia (nombre, nume, deno, k, ret);
+            datos->sistema = new TimeConstantGain (nombre, nume, deno, k, ret);
         }else if (ui->CPoliSe1->isChecked()) {
-            datos->sistema = new CPolinomios (nombre, nume, deno, k, ret);
+            datos->sistema = new PolynomialForm (nombre, nume, deno, k, ret);
         }else {
-            datos->sistema = new FormatoLibre (nombre, new QVector <Var *> (), new QVector <Var *> (), crearKRet(ui->KSe1->text(), true),
+            datos->sistema = new FreeForm (nombre, new QVector <Parameter *> (), new QVector <Parameter *> (), crearKRet(ui->KSe1->text(), true),
                                                crearKRet(ui->RetSe1->text(), false), ui->NumeSe1->text(), ui->DenoSe1->text());
         }
         datos->utilizado = true;
@@ -486,10 +486,10 @@ bool IntEspecificaciones::getDatos(dBND *datos, dBND *datos1, QString nombre){
             return true;
         }
 
-        QVector <Var *> * nume = NULL;
-        QVector <Var *> * deno = NULL;
-        Var * k = NULL;
-        Var * ret = NULL;
+        QVector <Parameter *> * nume = NULL;
+        QVector <Parameter *> * deno = NULL;
+        Parameter * k = NULL;
+        Parameter * ret = NULL;
 
         if (!ui->FLSe1_2->isChecked()){
 
@@ -540,13 +540,13 @@ bool IntEspecificaciones::getDatos(dBND *datos, dBND *datos1, QString nombre){
 
         datos1->constante = false;
         if(ui->KGSe1_2->isChecked()){
-            datos1->sistema = new KGanancia (nombre, nume, deno, k, ret);
+            datos1->sistema = new ZeroPoleGain (nombre, nume, deno, k, ret);
         }else if (ui->KNGSe1_2->isChecked()){
-            datos1->sistema = new KNGanancia (nombre, nume, deno, k, ret);
+            datos1->sistema = new TimeConstantGain (nombre, nume, deno, k, ret);
         }else if (ui->CPoliSe1_2->isChecked()) {
-            datos1->sistema = new CPolinomios (nombre, nume, deno, k, ret);
+            datos1->sistema = new PolynomialForm (nombre, nume, deno, k, ret);
         }else {
-            datos1->sistema = new FormatoLibre (nombre, new QVector <Var *> (), new QVector <Var *> (), crearKRet(ui->KSe1_2->text(), true),
+            datos1->sistema = new FreeForm (nombre, new QVector <Parameter *> (), new QVector <Parameter *> (), crearKRet(ui->KSe1_2->text(), true),
                                                 crearKRet(ui->RetSe1_2->text(), false), ui->NumeSe1_2->text(), ui->DenoSe1_2->text());
         }
         datos1->utilizado = true;
@@ -558,14 +558,14 @@ bool IntEspecificaciones::getDatos(dBND *datos, dBND *datos1, QString nombre){
     return true;
 }
 
-Var * IntEspecificaciones::crearKRet(QString linea, bool isK){
+Parameter * IntEspecificaciones::crearKRet(QString linea, bool isK){
     ParserX p (pckALL_NON_COMPLEX);
 
     if (linea.isEmpty()){
         if (isK){
-            return new Var (1);
+            return new Parameter (1);
         }else{
-            return new Var (qreal(0));
+            return new Parameter (qreal(0));
         }
     }else{
         qreal res;
@@ -576,17 +576,17 @@ Var * IntEspecificaciones::crearKRet(QString linea, bool isK){
             return NULL;
         }
 
-        return new Var(res);
+        return new Parameter(res);
     }
 }
 
-QVector <Var * > * IntEspecificaciones::crearNumeradorDenominador(QString linea){
+QVector <Parameter * > * IntEspecificaciones::crearNumeradorDenominador(QString linea){
 
     ParserX p (pckALL_NON_COMPLEX);
 
     QVector <QString> * numeros = tools::srtovectorString(linea);
 
-    QVector <Var *> * var = new QVector <Var *> ();
+    QVector <Parameter *> * var = new QVector <Parameter *> ();
     var->reserve(numeros->size());
 
     if (numeros->isEmpty()){
@@ -604,7 +604,7 @@ QVector <Var * > * IntEspecificaciones::crearNumeradorDenominador(QString linea)
             return NULL;
         }
 
-        var->append(new Var(res));
+        var->append(new Parameter(res));
     }
 
     numeros->clear();

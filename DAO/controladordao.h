@@ -1,7 +1,7 @@
 #ifndef CONTROLADORDAO_H
 #define CONTROLADORDAO_H
 
-#include <Modelo/EstructuraSistema/sistema.h>
+#include "src/core/system/lti_system.h"
 
   /**
     * @class ControladorDAO
@@ -32,7 +32,7 @@ public:
     * @return Función de transferencia con el controlador guardado en el sistema.
     */
 
-    virtual Sistema * getControlador () = 0;
+    virtual LtiSystem * getControlador () = 0;
 
   /**
     * @fn setControlador
@@ -41,7 +41,7 @@ public:
     * @param Función de transferencia a guardar en el sistema.
     */
 
-    virtual void setControlador (Sistema * controlador) = 0;
+    virtual void setControlador (LtiSystem * controlador) = 0;
 };
 
 #endif // CONTROLADORDAO_H

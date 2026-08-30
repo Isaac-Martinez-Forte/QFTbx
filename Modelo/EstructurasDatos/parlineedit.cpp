@@ -4,19 +4,21 @@ ParLineEdit::ParLineEdit()
 {
     x = new QLineEdit();
     y = new QLineEdit();
-    nominal = new QLineEdit();
+    m_nominal = new QLineEdit();
 }
 
-ParLineEdit::ParLineEdit(QLineEdit * x, QLineEdit*  y, QLineEdit *nominal) : ParLineEdit(){
+ParLineEdit::ParLineEdit(QLineEdit * x, QLineEdit*  y, QLineEdit * nominal) : ParLineEdit(){
     this->x = x;
     this->y = y;
-    this->nominal = nominal;
+    //Nota: antes el parametro sombreaba al campo y esto era un self-assign
+    //(el campo nunca se actualizaba).
+    m_nominal = nominal;
 }
 
 ParLineEdit::~ParLineEdit(){
     delete x;
     delete y;
-    delete nominal;
+    delete m_nominal;
 }
 
 void ParLineEdit::setX(QLineEdit *label){
@@ -39,13 +41,14 @@ QLineEdit *ParLineEdit::getY(){
     return y;
 }
 
-void ParLineEdit::setNominal(QLineEdit *nominal){
-    delete this->nominal;
+void ParLineEdit::setNominal(QLineEdit * nominal){
+    //Nota: antes esto borraba el ARGUMENTO y se auto-asignaba (no-op).
+    delete m_nominal;
 
-    this->nominal = nominal;
+    m_nominal = nominal;
 }
 
-QLineEdit *ParLineEdit::getNominal(){
-    return nominal;
+QLineEdit *ParLineEdit::nominal(){
+    return m_nominal;
 }
 

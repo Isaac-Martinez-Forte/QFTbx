@@ -92,8 +92,8 @@ private:
     void setDatos (dBND * datos, dBND * datos1);
     void seleccionar();
 
-    QVector <Var * > * crearNumeradorDenominador(QString linea);
-    Var * crearKRet(QString linea, bool isK);
+    QVector <Parameter * > * crearNumeradorDenominador(QString linea);
+    Parameter * crearKRet(QString linea, bool isK);
 
     Controlador * controlador;
 

@@ -3,7 +3,7 @@
 
 #include "cinterval.hpp"
 #include "Modelo/Herramientas/tools.h"
-#include "Modelo/EstructuraSistema/sistema.h"
+#include "src/core/system/lti_system.h"
 #include "tripleta.h"
 #include "etapas.h"
 #include "listaordenada.h"
@@ -19,9 +19,9 @@ public:
 
     Tripleta2() {}
 
-    Tripleta2(qreal index, Sistema * sistema, flags_box flags = ambiguous);
+    Tripleta2(qreal index, LtiSystem * sistema, flags_box flags = ambiguous);
     
-    Tripleta2(qreal index, Sistema * sistema,  QVector<data_box *> *datos);
+    Tripleta2(qreal index, LtiSystem * sistema,  QVector<data_box *> *datos);
     ~Tripleta2();
 
     void setRecorteActivado (bool recorteActivado);
