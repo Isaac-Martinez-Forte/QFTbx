@@ -1,4 +1,6 @@
 #include "intespecificaciones.h"
+
+#include "src/core/specifications/specification.h"
 #include "ui_intespecificaciones.h"
 
 #include "GUI/menerror.h"
@@ -80,7 +82,10 @@ void IntEspecificaciones::setDatos(dBND * datos)
         ui->frecfin->setText(QString::number(datos->frecfinal));
 
         if (datos->constante){
-            ui->altura->setText(QString::number(pow(10, datos->altura/20)));
+            //altura es lineal: se pinta tal cual (antes se le aplicaba
+            //10^(x/20) y el valor derivaba en cada apertura del dialogo).
+            //Pendiente fase 7 (B4): marcar el radio "lineal" al restaurar.
+            ui->altura->setText(QString::number(datos->altura));
         } else{
             ui->nume->setText(datos->sistema->numeratorString());
             ui->deno->setText(datos->sistema->denominatorString());
@@ -105,9 +110,9 @@ void IntEspecificaciones::setDatos(dBND *datos, dBND *datos1){
         ui->frecfin->setText(QString::number(datos->frecfinal));
 
         if (datos->constante){
-            ui->altura_se1->setText(QString::number(pow(10, datos->altura/20)));
+            ui->altura_se1->setText(QString::number(datos->altura));
 
-            ui->altura_se1_2->setText(QString::number(pow(10, datos1->altura/20)));
+            ui->altura_se1_2->setText(QString::number(datos1->altura));
         }else{
             ui->NumeSe1->setText(datos->sistema->numeratorString());
             ui->DenoSe1->setText(datos->sistema->denominatorString());
@@ -190,8 +195,8 @@ bool IntEspecificaciones::getDatos(dBND * datos, QString nombre)
 
                 qreal alt = p.Eval().GetFloat();
 
-                if (ui->decibelios->isChecked()){                    
-                    datos->altura = pow(10,alt/20);
+                if (ui->decibelios->isChecked()){
+                    datos->altura = qftbx::dbToLinear(alt);
                 }else {
                     datos->altura = alt;
                 }
@@ -355,10 +360,12 @@ bool IntEspecificaciones::getDatos(dBND *datos, dBND *datos1, QString nombre){
 
                 qreal alt = p.Eval().GetFloat();
 
+                //dBND::altura es magnitud LINEAL: antes esta ruta tenia las
+                //dos ramas intercambiadas respecto a la ruta simple.
                 if (ui->decibelios_se1->isChecked()){
-                    datos->altura = alt;
+                    datos->altura = qftbx::dbToLinear(alt);
                 }else {
-                    datos->altura = 20 * log10(alt);
+                    datos->altura = alt;
                 }
 
                 ui->altura_se1->setStyleSheet("background : white");
@@ -464,9 +471,9 @@ bool IntEspecificaciones::getDatos(dBND *datos, dBND *datos1, QString nombre){
                 qreal alt = p.Eval().GetFloat();
 
                 if (ui->decibelios_se1_2->isChecked()){
-                    datos1->altura = alt;
+                    datos1->altura = qftbx::dbToLinear(alt);
                 }else {
-                    datos1->altura = 20 * log10(alt);
+                    datos1->altura = alt;
                 }
 
                 ui->altura_se1_2->setStyleSheet("background : white");

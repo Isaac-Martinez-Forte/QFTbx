@@ -12,6 +12,12 @@
 
 namespace qftbx {
 
+/// dB -> linear magnitude.
+inline qreal dbToLinear(qreal db) { return std::pow(10.0, db / 20.0); }
+
+/// Linear magnitude -> dB.
+inline qreal linearToDb(qreal linear) { return 20.0 * std::log10(linear); }
+
 /**
  * @brief The seven QFT specification slots, in the order they have always
  * been stored (positional in the .qft files: do not reorder).

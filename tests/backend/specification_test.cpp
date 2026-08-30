@@ -196,6 +196,24 @@ TEST(SpecificationPersistence, Planta1RecoversTheConstantStability)
     EXPECT_FALSE(specs->at(4)->constante);
 }
 
+TEST(SpecificationPersistence, WrongSpecificationCountThrowsParseError)
+{
+    // Hardened: the set is positional with exactly 7 slots and consumers
+    // index blindly; a shorter file used to crash out of range downstream.
+    XmlParserLoad parser;
+    EXPECT_THROW(parser.recuperarXmlDatos(
+                     QStringLiteral(QFTBX_TEST_DATA_DIR "/corrupt_specs.qft")),
+                 qftbx::ParseError);
+}
+
+TEST(QftbxUnits, DbLinearConversionsRoundTrip)
+{
+    EXPECT_NEAR(qftbx::linearToDb(2.0), 6.02059991, 1e-7);
+    EXPECT_NEAR(qftbx::dbToLinear(6.02059991), 2.0, 1e-9);
+    EXPECT_NEAR(qftbx::dbToLinear(qftbx::linearToDb(1.2)), 1.2, 1e-12);
+    EXPECT_DOUBLE_EQ(qftbx::linearToDb(1.0), 0.0);
+}
+
 // ---------------------------------------------------------------------------
 // qftbx::Specification - the validated replacement being introduced
 // ---------------------------------------------------------------------------

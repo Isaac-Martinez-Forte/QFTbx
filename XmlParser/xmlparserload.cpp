@@ -663,11 +663,17 @@ inline bool XmlParserLoad::leerEspecificaciones(){
 
     bool noError;
 
+    if (stream->attributes().isEmpty()){
+        return salidaError();
+    }
+
     QString lon (stream->attributes()[0].value().toString()); //leemos su atributo
 
     qint32 longitud = lon.toInt(&noError);
 
-    if (!noError){
+    //El conjunto es posicional de 7 fijo: los consumidores indexan a ciegas
+    //(at(6)); un fichero con otra longitud reventaba fuera de rango.
+    if (!noError || longitud != 7){
         return salidaError();
     }
 
