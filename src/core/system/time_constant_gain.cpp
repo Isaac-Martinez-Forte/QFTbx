@@ -4,187 +4,187 @@ using namespace std;
 
 namespace qftbx {
 
-TimeConstantGain::TimeConstantGain(QString nombre, QVector<Parameter *> *numerador, QVector<Parameter *> *denominador, Parameter *k, Parameter *ret):
-    TransferFunction(nombre, numerador, denominador,k,ret)
+TimeConstantGain::TimeConstantGain(QString name, QVector<Parameter *> *numerator, QVector<Parameter *> *denominator, Parameter *k, Parameter *delay):
+    TransferFunction(name, numerator, denominator,k,delay)
 {
 }
 
 TimeConstantGain::~TimeConstantGain(){
 }
 
-LtiSystem * TimeConstantGain::create (QString nombre, QVector <Parameter*> * numerador, QVector <Parameter*> * denominador,
-                              Parameter * k, Parameter* ret, QString exp_nume __attribute__((unused)), QString exp_deno __attribute__((unused))){
-    //Un retardo no especificado equivale a retardo cero.
-    return new TimeConstantGain(nombre, numerador, denominador, k, ret == NULL ? new Parameter(0.0) : ret);
+LtiSystem * TimeConstantGain::create (QString name, QVector <Parameter*> * numerator, QVector <Parameter*> * denominator,
+                              Parameter * k, Parameter* delay, QString numeratorExpr __attribute__((unused)), QString denominatorExpr __attribute__((unused))){
+    //An unspecified delay means a zero delay.
+    return new TimeConstantGain(name, numerator, denominator, k, delay == NULL ? new Parameter(0.0) : delay);
 }
 
-QString TimeConstantGain::expression (QVector <qreal> * numerador, QVector <qreal> * denominador,
-                             qreal k, qreal ret, qreal omega){
-    qint32 sizeDen = denominador->size();
-    qint32 sizeNum = numerador->size();
+QString TimeConstantGain::expression (QVector <qreal> * numerator, QVector <qreal> * denominator,
+                             qreal k, qreal delay, qreal omega){
+    qint32 sizeDen = denominator->size();
+    qint32 sizeNum = numerator->size();
 
-    QString es;
+    QString expr;
 
-    es += QString::number(k) + "*(";
+    expr += QString::number(k) + "*(";
 
 
     for (qint32 i = 0; i < sizeNum-1; i++){
 
-        es += "((("+ QString::number(omega) + "*i) /" + QString::number(numerador->at(i)) + ")+1) *";
+        expr += "((("+ QString::number(omega) + "*i) /" + QString::number(numerator->at(i)) + ")+1) *";
     }
 
     if (sizeNum == 0){
-        es += "(1)) / (";
+        expr += "(1)) / (";
     } else{
-        es += "(((" + QString::number(omega) + "*i) / " + QString::number(numerador->last()) + ")+1)) / (";
+        expr += "(((" + QString::number(omega) + "*i) / " + QString::number(numerator->last()) + ")+1)) / (";
     }
 
 
     for (qint32 i = 0; i < sizeDen-1; i++){
 
-        es += "((("+ QString::number(omega) + "*i) / " + QString::number(denominador->at(i)) + ")+1) *";
+        expr += "((("+ QString::number(omega) + "*i) / " + QString::number(denominator->at(i)) + ")+1) *";
     }
 
     if (sizeDen == 0){
-        es += "(1))";
+        expr += "(1))";
     }else {
-        es += "((("+ QString::number(omega) + "*i) /" + QString::number(denominador->last()) + ")+1))";
+        expr += "((("+ QString::number(omega) + "*i) /" + QString::number(denominator->last()) + ")+1))";
     }
 
 
-    if (ret != 0){
-        es += "* e^(-i*" + QString::number(omega) + "*" + QString::number(ret) +")";
+    if (delay != 0){
+        expr += "* e^(-i*" + QString::number(omega) + "*" + QString::number(delay) +")";
     }
 
 
-    return es;
+    return expr;
 }
 
 QString TimeConstantGain::expression(qreal w){
 
-    qint32 sizeDen = denominador->size();
-    qint32 sizeNum = numerador->size();
+    qint32 sizeDen = m_denominator->size();
+    qint32 sizeNum = m_numerator->size();
 
-    QString es;
+    QString expr;
 
-    if (k->isUncertain()){
-        es += k->name() + "*(";
+    if (m_gain->isUncertain()){
+        expr += m_gain->name() + "*(";
     }else {
-        es += QString::number(k->nominal()) + "*(";
+        expr += QString::number(m_gain->nominal()) + "*(";
     }
 
 
     for (qint32 i = 0; i < sizeNum-1; i++){
 
-        if (numerador->at(i)->isUncertain()){
-            es += "(((" + QString::number(w) + "*i) / " + numerador->at(i)->name() + ")+1) *";
+        if (m_numerator->at(i)->isUncertain()){
+            expr += "(((" + QString::number(w) + "*i) / " + m_numerator->at(i)->name() + ")+1) *";
         } else {
-            es += "((("+ QString::number(w) + "*i) /" + QString::number(numerador->at(i)->nominal()) + ")+1) *";
+            expr += "((("+ QString::number(w) + "*i) /" + QString::number(m_numerator->at(i)->nominal()) + ")+1) *";
         }
     }
 
     if (sizeNum == 0){
-        es += "(1)) / (";
+        expr += "(1)) / (";
     }else {
-        if(numerador->last()->isUncertain()){
-            es += "(((" + QString::number(w) + "*i) / " + numerador->last()->name() + ")+1)) / (";
+        if(m_numerator->last()->isUncertain()){
+            expr += "(((" + QString::number(w) + "*i) / " + m_numerator->last()->name() + ")+1)) / (";
         } else {
-            es += "(((" + QString::number(w) + "*i) / " + QString::number(numerador->last()->nominal()) + ")+1)) / (";
+            expr += "(((" + QString::number(w) + "*i) / " + QString::number(m_numerator->last()->nominal()) + ")+1)) / (";
         }
     }
 
     for (qint32 i = 0; i < sizeDen-1; i++){
 
-        if (denominador->at(i)->isUncertain()){
-            es += "(((" + QString::number(w) + "*i) / " + denominador->at(i)->name() + ")+1) *";
+        if (m_denominator->at(i)->isUncertain()){
+            expr += "(((" + QString::number(w) + "*i) / " + m_denominator->at(i)->name() + ")+1) *";
         } else {
-            es += "((("+ QString::number(w) + "*i) / " + QString::number(denominador->at(i)->nominal()) + ")+1) *";
+            expr += "((("+ QString::number(w) + "*i) / " + QString::number(m_denominator->at(i)->nominal()) + ")+1) *";
         }
     }
 
     if (sizeDen == 0){
-        es += "(1))";
+        expr += "(1))";
     } else {
 
-        if (denominador->last()->isUncertain()){
-            es += "(((" + QString::number(w) + "*i) / " + denominador->last()->name() + ")+1))";
+        if (m_denominator->last()->isUncertain()){
+            expr += "(((" + QString::number(w) + "*i) / " + m_denominator->last()->name() + ")+1))";
         }else{
-            es += "((("+ QString::number(w) + "*i) /" + QString::number(denominador->last()->nominal()) + ")+1))";
+            expr += "((("+ QString::number(w) + "*i) /" + QString::number(m_denominator->last()->nominal()) + ")+1))";
         }
     }
 
-    //El retardo puro es e^(-s*tau) => e^(-i*w*tau). Se emite si es variable
-    //(aunque su nominal sea 0) o si es una constante no nula. Se usa el
-    //nombre real de la variable, no el literal "ret".
-    if (ret->isUncertain()){
-        es += "* e^(-i*" + QString::number(w) + "*" + ret->name() + ")";
-    }else if (ret->nominal() != 0){
-        es += "* e^(-i*" + QString::number(w) + "*" + QString::number(ret->nominal()) +")";
+    //A pure delay is e^(-s*tau) => e^(-i*w*tau). Emitted when the delay is
+    //uncertain (even with a zero nominal) or a non-zero constant, using the
+    //parameter's real name.
+    if (m_delay->isUncertain()){
+        expr += "* e^(-i*" + QString::number(w) + "*" + m_delay->name() + ")";
+    }else if (m_delay->nominal() != 0){
+        expr += "* e^(-i*" + QString::number(w) + "*" + QString::number(m_delay->nominal()) +")";
     }
 
-    return es;
+    return expr;
 }
 
 QString TimeConstantGain::expression(){
-    qint32 sizeDen = denominador->size();
-    qint32 sizeNum = numerador->size();
+    qint32 sizeDen = m_denominator->size();
+    qint32 sizeNum = m_numerator->size();
 
-    QString es;
+    QString expr;
 
-    if (k->isUncertain()){
-        es += k->name() + "*(";
+    if (m_gain->isUncertain()){
+        expr += m_gain->name() + "*(";
     }else {
-        es += QString::number(k->nominal()) + "*(";
+        expr += QString::number(m_gain->nominal()) + "*(";
     }
 
 
     for (qint32 i = 0; i < sizeNum-1; i++){
 
-        if (numerador->at(i)->isUncertain()){
-            es += "(s / " + numerador->at(i)->name() + "+1) *";
+        if (m_numerator->at(i)->isUncertain()){
+            expr += "(s / " + m_numerator->at(i)->name() + "+1) *";
         } else {
-            es += "(s /" + QString::number(numerador->at(i)->nominal()) + "+1) *";
+            expr += "(s /" + QString::number(m_numerator->at(i)->nominal()) + "+1) *";
         }
     }
 
     if (sizeNum == 0){
-        es += "(1)) / (";
+        expr += "(1)) / (";
     }else {
 
-        if(numerador->last()->isUncertain()){
-            es += "(s / " + numerador->last()->name() + "+1)) / (";
+        if(m_numerator->last()->isUncertain()){
+            expr += "(s / " + m_numerator->last()->name() + "+1)) / (";
         } else {
-            es += "(s / " + QString::number(numerador->last()->nominal()) + "+1)) / (";
+            expr += "(s / " + QString::number(m_numerator->last()->nominal()) + "+1)) / (";
         }
     }
 
     for (qint32 i = 0; i < sizeDen-1; i++){
 
-        if (denominador->at(i)->isUncertain()){
-            es += "(s / " + denominador->at(i)->name() + "+1) *";
+        if (m_denominator->at(i)->isUncertain()){
+            expr += "(s / " + m_denominator->at(i)->name() + "+1) *";
         } else {
-            es += "(s / " + QString::number(denominador->at(i)->nominal()) + "+1) *";
+            expr += "(s / " + QString::number(m_denominator->at(i)->nominal()) + "+1) *";
         }
     }
 
     if (sizeDen == 0){
-        es += "(1))";
+        expr += "(1))";
     } else {
 
-        if (denominador->last()->isUncertain()){
-            es += "(s / " + denominador->last()->name() + "+1))";
+        if (m_denominator->last()->isUncertain()){
+            expr += "(s / " + m_denominator->last()->name() + "+1))";
         }else{
-            es += "(s /" + QString::number(denominador->last()->nominal()) + "+1))";
+            expr += "(s /" + QString::number(m_denominator->last()->nominal()) + "+1))";
         }
     }
 
-    if (ret->isUncertain()){
-        es += "* e^(-s*" + ret->name() + ")";
-    }else if (ret->nominal() != 0){
-        es += "* e^(-s*" + QString::number(ret->nominal()) +")";
+    if (m_delay->isUncertain()){
+        expr += "* e^(-s*" + m_delay->name() + ")";
+    }else if (m_delay->nominal() != 0){
+        expr += "* e^(-s*" + QString::number(m_delay->nominal()) +")";
     }
 
-    return es;
+    return expr;
 }
 
 LtiSystem::SystemType TimeConstantGain::type(){
@@ -201,19 +201,19 @@ std::complex <qreal> TimeConstantGain::evaluateNumerator(QVector <qreal> * nume,
     }
 
     qint32 sizeNum = nume->size();
-    QString es = "(";
+    QString expr = "(";
 
 
     for (qint32 i = 0; i < sizeNum-1; i++){
 
-        es += "((("+ QString::number(omega) + "*i) /" + QString::number(nume->at(i)) + ")+1) *";
+        expr += "((("+ QString::number(omega) + "*i) /" + QString::number(nume->at(i)) + ")+1) *";
     }
 
-    es += "(((" + QString::number(omega) + "*i) / " + QString::number(nume->last()) + ")+1))";
+    expr += "(((" + QString::number(omega) + "*i) / " + QString::number(nume->last()) + ")+1))";
 
     mup::ParserX p (mup::pckALL_COMPLEX);
 
-    p.SetExpr(es.toStdString());
+    p.SetExpr(expr.toStdString());
 
     return p.Eval().GetComplex();
 }
@@ -225,18 +225,18 @@ std::complex <qreal> TimeConstantGain::evaluateDenominator(QVector <qreal> * den
     }
 
     qint32 sizeDen = deno->size();
-    QString es = "(";
+    QString expr = "(";
 
     for (qint32 i = 0; i < sizeDen-1; i++){
 
-        es += "((("+ QString::number(omega) + "*i) / " + QString::number(deno->at(i)) + ")+1) *";
+        expr += "((("+ QString::number(omega) + "*i) / " + QString::number(deno->at(i)) + ")+1) *";
     }
 
-    es += "((("+ QString::number(omega) + "*i) /" + QString::number(deno->last()) + ")+1))";
+    expr += "((("+ QString::number(omega) + "*i) /" + QString::number(deno->last()) + ")+1))";
 
     mup::ParserX p (mup::pckALL_COMPLEX);
 
-    p.SetExpr(es.toStdString());
+    p.SetExpr(expr.toStdString());
 
     return p.Eval().GetComplex();
 }

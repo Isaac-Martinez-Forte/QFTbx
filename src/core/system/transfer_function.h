@@ -8,52 +8,33 @@
 
 namespace qftbx {
 
- /**
-    * @class TransferFunction
-    * @brief Clase que representa un LtiSystem como una función de transferencia.
-    * 
-    * Esta es solo una de las formas de definir un LtiSystem, forma parte de una jerarquía cuya raíz es una Planta.
-    * 
-    * @author Isaac Martínez Forte
-   */
-
+/**
+ * @brief Common implementation for transfer-function systems.
+ *
+ * Owns the numerator/denominator Parameter vectors, the gain and the delay
+ * (whoever constructs a system hands over ownership; releaseOwnership()
+ * disarms deletion for structures that share the pointers). Subclasses only
+ * provide the expression generators for their mathematical form.
+ */
 class TransferFunction : public LtiSystem
 {
 public:
-  
-  /**
-    * @fn TransferFunction
-    * @brief Constructor de la clase a partir del datos separados en variables.
-    *  
-    * @param nombre de la planta.
-    * @param numerador de la función de transferencia.
-    * @param denominador de la función de transferencia.
-    * @param k ganancia asociada a la función de transferencia.
-    * @param ret retardo asociado a la función de transferencia.
-    */
-    TransferFunction(QString nombre, QVector <Parameter*> * numerador, QVector <Parameter*> * denominador, Parameter * k, Parameter* ret);
-    
-    virtual LtiSystem * create (QString nombre, QVector <Parameter*> * numerador, QVector <Parameter*> * denominador,
-                              Parameter * k, Parameter* ret = NULL, QString exp_nume = 0, QString exp_deno = 0) = 0;
-    
-    
-    /**
-     * @fn ~TransferFunction
-     * @brief Destructor de la clase.
-     */
+    TransferFunction(QString name, QVector <Parameter*> * numerator, QVector <Parameter*> * denominator, Parameter * k, Parameter* delay);
+
+    virtual LtiSystem * create (QString name, QVector <Parameter*> * numerator, QVector <Parameter*> * denominator,
+                              Parameter * k, Parameter* delay = NULL, QString numeratorExpr = 0, QString denominatorExpr = 0) = 0;
 
     ~TransferFunction();
-
 
     std::complex <qreal> evaluate (qreal omega);
 
     QVector <std::complex <qreal> > * evaluate (QVector <qreal> * omega);
 
-    std::complex <qreal> evaluate (QVector <qreal> * numerador, QVector <qreal> * denominador,
-                                           qreal k, qreal ret, qreal omega);
+    std::complex <qreal> evaluate (QVector <qreal> * numerator, QVector <qreal> * denominator,
+                                           qreal k, qreal delay, qreal omega);
 
-    virtual QString expression (QVector <qreal> * numerador, QVector <qreal> * denominador,
-                             qreal k, qreal ret, qreal omega) = 0;
+    virtual QString expression (QVector <qreal> * numerator, QVector <qreal> * denominator,
+                             qreal k, qreal delay, qreal omega) = 0;
 
     virtual QString expression(qreal w) = 0;
 
@@ -62,69 +43,33 @@ public:
     virtual std::complex <qreal> evaluateNumerator(QVector <qreal> * nume, qreal omega) = 0;
 
     virtual std::complex <qreal> evaluateDenominator(QVector <qreal> * deno, qreal omega) = 0;
-    
-  /**
-    * @fn numerator
-    * @brief Función que devuelve el numerador de la función de transferencia.
-    * 
-    * @return vector con el numerador.
-    */
-  
+
     QVector <Parameter*> * numerator();
 
     void releaseOwnership ();
-    
-  /**
-    * @fn denominator
-    * @brief Función que devuelve el denominador de la función de transferencia.
-    * 
-    * @return vector con el denominador.
-    */
-  
+
     QVector <Parameter*> * denominator();
-    
+
     QString numeratorString();
+
     QString denominatorString();
 
-   /**
-    * @fn gain
-    * @brief Función que devuelve la ganancia de la función de transferencia.
-    * 
-    * @return real con la ganancia.
-    */
-
     Parameter * gain();
-    
-    
-   /**
-    * @fn delay
-    * @brief Función que devuelve el retardo de la función de transferencia.
-    * 
-    * @return real con el retardo.
-    */
-    
+
     Parameter * delay();
-    
-    
-   /**
-    * @fn type
-    * @brief Función que retorna la clase de la instancia.
-    * 
-    * @return cadena con la clase de la instancia.
-    */
 
     virtual SystemType type() = 0;
 
     LtiSystem * clone ();
 
 protected:
-    Parameter * k;
-    Parameter * ret;
+    Parameter * m_gain;
+    Parameter * m_delay;
 
-    QVector <Parameter*> * numerador;
-    QVector <Parameter*> * denominador;
+    QVector <Parameter*> * m_numerator;
+    QVector <Parameter*> * m_denominator;
 
-    bool b = true;
+    bool m_ownsData = true;
 
 };
 

@@ -4,17 +4,17 @@ using namespace std;
 
 namespace qftbx {
 
-LtiSystem::LtiSystem(QString nombre)
+LtiSystem::LtiSystem(QString name)
 {
-    this->nombre = nombre;
+    m_name = name;
 }
 
-void LtiSystem:: setName (QString nombre){
-    this->nombre = nombre;
+void LtiSystem:: setName (QString name){
+    m_name = name;
 }
 
 QString LtiSystem:: name(){
-    return nombre;
+    return m_name;
 }
 
 

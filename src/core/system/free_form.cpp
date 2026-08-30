@@ -5,21 +5,21 @@ using namespace mup;
 
 namespace qftbx {
 
-FreeForm::FreeForm(QString nombre, QVector <Parameter*> * numerador, QVector <Parameter*> * denominador, Parameter * k,
-                           Parameter* ret, QString exp_nume, QString exp_deno)
-    :TransferFunction (nombre, numerador, denominador, k, ret)
+FreeForm::FreeForm(QString name, QVector <Parameter*> * numerator, QVector <Parameter*> * denominator, Parameter * k,
+                           Parameter* delay, QString numeratorExpr, QString denominatorExpr)
+    :TransferFunction (name, numerator, denominator, k, delay)
 {
-    this->exp_nume = exp_nume;
-    this->exp_deno = exp_deno;
+    m_numeratorExpr = numeratorExpr;
+    m_denominatorExpr = denominatorExpr;
 }
 
-std::complex <qreal> FreeForm::evaluate (QVector <qreal> * numerador, QVector <qreal> * denominador,
-                                             qreal k, qreal ret, qreal omega){ //TODO ver que hacer con esto
+std::complex <qreal> FreeForm::evaluate (QVector <qreal> * numerator, QVector <qreal> * denominator,
+                                             qreal k, qreal delay, qreal omega){ //TODO ver que hacer con esto
     return complex <qreal> ();
 }
 
-QString FreeForm::expression (QVector <qreal> * numerador, QVector <qreal> * denominador,
-                               qreal k, qreal ret, qreal omega){//TODO ver que hacer con esto
+QString FreeForm::expression (QVector <qreal> * numerator, QVector <qreal> * denominator,
+                               qreal k, qreal delay, qreal omega){//TODO ver que hacer con esto
     return "";
 }
 
@@ -37,67 +37,67 @@ std::complex <qreal> FreeForm::evaluateDenominator(QVector <qreal> * deno, qreal
 
 QString FreeForm::expression(qreal w){
 
-    QString n = exp_nume;
-    QString d = exp_deno;
+    QString n = m_numeratorExpr;
+    QString d = m_denominatorExpr;
 
-    QString es = k->expression() + "*(" + n.replace("s", "(" + QString::number(w) + "*i)") + ")/(" +
+    QString expr = m_gain->expression() + "*(" + n.replace("s", "(" + QString::number(w) + "*i)") + ")/(" +
             d.replace("s", "(" + QString::number(w) + "*i)") + ")";
 
 
-    //El retardo puro es e^(-s*tau) => e^(-i*w*tau). Se emite si es variable
-    //(aunque su nominal sea 0, para que el barrido de templates lo recorra)
-    //o si es una constante no nula.
-    if (ret->isUncertain()){
-        es += "* e^(-i*" + QString::number(w) + "*" + ret->name() + ")";
-    }else if (ret->nominal() != 0){
-        es += "* e^(-i*" + QString::number(w) + "*" +
-                QString::number(ret->nominal()) +")";
+    //A pure delay is e^(-s*tau) => e^(-i*w*tau). Emitted when the delay is
+    //uncertain (even with a zero nominal, so the template sweep can drive
+    //it) or a non-zero constant.
+    if (m_delay->isUncertain()){
+        expr += "* e^(-i*" + QString::number(w) + "*" + m_delay->name() + ")";
+    }else if (m_delay->nominal() != 0){
+        expr += "* e^(-i*" + QString::number(w) + "*" +
+                QString::number(m_delay->nominal()) +")";
     }
 
-    return es;
+    return expr;
 }
 
 QString FreeForm::expression(){
-    QString es = k->expression() + "*(" + exp_nume + ")/(" + exp_deno + ")";
+    QString expr = m_gain->expression() + "*(" + m_numeratorExpr + ")/(" + m_denominatorExpr + ")";
 
-    if (ret->isUncertain()){
-        es += " * e^(-s*" + ret->name() + ")";
-    }else if (ret->nominal() != 0){
-        es += " * e^(-s*" + QString::number(ret->nominal()) +")";
+    if (m_delay->isUncertain()){
+        expr += " * e^(-s*" + m_delay->name() + ")";
+    }else if (m_delay->nominal() != 0){
+        expr += " * e^(-s*" + QString::number(m_delay->nominal()) +")";
     }
 
-    return es;
+    return expr;
 }
 
 LtiSystem::SystemType FreeForm::type(){
     return SystemType::FreeForm;
 }
 
-LtiSystem * FreeForm::create(QString nombre, QVector<Parameter *> *numerador, QVector<Parameter *> *denominador,
-                               Parameter *k, Parameter *ret, QString exp_nume, QString exp_deno){
+LtiSystem * FreeForm::create(QString name, QVector<Parameter *> *numerator, QVector<Parameter *> *denominator,
+                               Parameter *k, Parameter *delay, QString numeratorExpr, QString denominatorExpr){
 
-    //Un retardo no especificado equivale a retardo cero.
-    return new FreeForm (nombre, numerador, denominador, k,
-                             ret == NULL ? new Parameter(0.0) : ret, exp_nume, exp_deno);
+    //An unspecified delay means a zero delay.
+    return new FreeForm (name, numerator, denominator, k,
+                             delay == NULL ? new Parameter(0.0) : delay, numeratorExpr, denominatorExpr);
 }
 
 
 QString FreeForm::numeratorString(){
-    return exp_nume;
+    return m_numeratorExpr;
 }
 
 QString FreeForm::denominatorString(){
-    return exp_deno;
+    return m_denominatorExpr;
 }
 
 LtiSystem * FreeForm::clone(){
 
-    Parameter * k = this->k->clone();
-    Parameter * ret = this->ret->clone();
+    Parameter * k = m_gain->clone();
+    Parameter * delay = m_delay->clone();
 
-    return this->create(this->name(), Parameter::cloneVector(numerador),
-                        Parameter::cloneVector(denominador), k, ret,
-                        this->exp_nume, this->exp_deno);
+    return this->create(this->name(), Parameter::cloneVector(m_numerator),
+                        Parameter::cloneVector(m_denominator), k, delay,
+                        m_numeratorExpr, m_denominatorExpr);
 }
 
 } // namespace qftbx

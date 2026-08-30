@@ -5,128 +5,128 @@ using namespace mup;
 
 namespace qftbx {
 
-ZeroPoleGain::ZeroPoleGain(QString nombre, QVector<Parameter *> *numerador, QVector<Parameter *> *denominador, Parameter *k, Parameter *ret):
-    TransferFunction(nombre, numerador, denominador,k,ret)
+ZeroPoleGain::ZeroPoleGain(QString name, QVector<Parameter *> *numerator, QVector<Parameter *> *denominator, Parameter *k, Parameter *delay):
+    TransferFunction(name, numerator, denominator,k,delay)
 {
 }
 
 ZeroPoleGain::~ZeroPoleGain(){
 }
 
-LtiSystem * ZeroPoleGain::create (QString nombre, QVector <Parameter*> * numerador, QVector <Parameter*> * denominador,
-                             Parameter * k, Parameter* ret, QString exp_nume __attribute__((unused)), QString exp_deno __attribute__((unused))){
-    //Un retardo no especificado equivale a retardo cero.
-    return new ZeroPoleGain(nombre, numerador, denominador, k, ret == NULL ? new Parameter(0.0) : ret);
+LtiSystem * ZeroPoleGain::create (QString name, QVector <Parameter*> * numerator, QVector <Parameter*> * denominator,
+                             Parameter * k, Parameter* delay, QString numeratorExpr __attribute__((unused)), QString denominatorExpr __attribute__((unused))){
+    //An unspecified delay means a zero delay.
+    return new ZeroPoleGain(name, numerator, denominator, k, delay == NULL ? new Parameter(0.0) : delay);
 }
 
 
 
-QString ZeroPoleGain::expression (QVector <qreal> * numerador, QVector <qreal> * denominador,
-                            qreal k, qreal ret, qreal omega){
-    qint32 sizeDen = denominador->size();
-    qint32 sizeNum = numerador->size();
+QString ZeroPoleGain::expression (QVector <qreal> * numerator, QVector <qreal> * denominator,
+                            qreal k, qreal delay, qreal omega){
+    qint32 sizeDen = denominator->size();
+    qint32 sizeNum = numerator->size();
 
-    QString es;
-
-
-    es += QString::number(k) + "*(";
+    QString expr;
 
 
-    if (numerador->isEmpty()){
-        es += "1) / (";
+    expr += QString::number(k) + "*(";
+
+
+    if (numerator->isEmpty()){
+        expr += "1) / (";
     } else {
         for (qint32 i = 0; i < sizeNum-1; i++){
 
-            es += "(("+ QString::number(omega) + "*i) +" + QString::number(numerador->at(i)) + ") *";
+            expr += "(("+ QString::number(omega) + "*i) +" + QString::number(numerator->at(i)) + ") *";
         }
 
-        es += "((" + QString::number(omega) + "*i) + " + QString::number(numerador->last()) + ")) / (";
+        expr += "((" + QString::number(omega) + "*i) + " + QString::number(numerator->last()) + ")) / (";
     }
 
 
-    if (denominador->isEmpty()){
-        es += "1)";
+    if (denominator->isEmpty()){
+        expr += "1)";
     } else {
         for (qint32 i = 0; i < sizeDen-1; i++){
 
-            es += "(("+ QString::number(omega) + "*i) + " + QString::number(denominador->at(i)) + ") *";
+            expr += "(("+ QString::number(omega) + "*i) + " + QString::number(denominator->at(i)) + ") *";
         }
 
-        es += "(("+ QString::number(omega) + "*i) + " + QString::number(denominador->last()) + "))";
+        expr += "(("+ QString::number(omega) + "*i) + " + QString::number(denominator->last()) + "))";
     }
 
-    if (ret != 0){
-        es += "* e^(-i*" + QString::number(omega) + "*" + QString::number(ret) +")";
+    if (delay != 0){
+        expr += "* e^(-i*" + QString::number(omega) + "*" + QString::number(delay) +")";
     }
 
 
-    return es;
+    return expr;
 }
 
 QString ZeroPoleGain::expression(qreal w){
 
-    qint32 sizeDen = denominador->size();
-    qint32 sizeNum = numerador->size();
+    qint32 sizeDen = m_denominator->size();
+    qint32 sizeNum = m_numerator->size();
 
-    QString es;
+    QString expr;
 
-    if (k->isUncertain()){
-        es += k->name() + "*(";
+    if (m_gain->isUncertain()){
+        expr += m_gain->name() + "*(";
     }else {
-        es += QString::number(k->nominal()) + "*(";
+        expr += QString::number(m_gain->nominal()) + "*(";
     }
 
-    if (numerador->isEmpty()){
-        es += "1) / (";
+    if (m_numerator->isEmpty()){
+        expr += "1) / (";
     } else {
         for (qint32 i = 0; i < sizeNum-1; i++){
 
-            if (numerador->at(i)->isUncertain()){
-                es += "((" + QString::number(w) + "*i) + " + numerador->at(i)->name() + ") *";
+            if (m_numerator->at(i)->isUncertain()){
+                expr += "((" + QString::number(w) + "*i) + " + m_numerator->at(i)->name() + ") *";
             } else {
-                es += "(("+ QString::number(w) + "*i) +" + QString::number(numerador->at(i)->nominal()) + ") *";
+                expr += "(("+ QString::number(w) + "*i) +" + QString::number(m_numerator->at(i)->nominal()) + ") *";
             }
         }
 
-        if(numerador->last()->isUncertain()){
-            es += "((" + QString::number(w) + "*i) + " + numerador->last()->name() + ")) / (";
+        if(m_numerator->last()->isUncertain()){
+            expr += "((" + QString::number(w) + "*i) + " + m_numerator->last()->name() + ")) / (";
         } else {
-            es += "((" + QString::number(w) + "*i) + " + QString::number(numerador->last()->nominal()) + ")) / (";
+            expr += "((" + QString::number(w) + "*i) + " + QString::number(m_numerator->last()->nominal()) + ")) / (";
         }
     }
 
 
-    if (denominador->isEmpty()){
-        es += "1)";
+    if (m_denominator->isEmpty()){
+        expr += "1)";
     } else {
         for (qint32 i = 0; i < sizeDen-1; i++){
 
-            if (denominador->at(i)->isUncertain()){
-                es += "((" + QString::number(w) + "*i) + " + denominador->at(i)->name() + ") *";
+            if (m_denominator->at(i)->isUncertain()){
+                expr += "((" + QString::number(w) + "*i) + " + m_denominator->at(i)->name() + ") *";
             } else {
-                es += "(("+ QString::number(w) + "*i) + " + QString::number(denominador->at(i)->nominal()) + ") *";
+                expr += "(("+ QString::number(w) + "*i) + " + QString::number(m_denominator->at(i)->nominal()) + ") *";
             }
         }
 
 
-        if (denominador->last()->isUncertain()){
-            es += "((" + QString::number(w) + "*i) + " + denominador->last()->name() + "))";
+        if (m_denominator->last()->isUncertain()){
+            expr += "((" + QString::number(w) + "*i) + " + m_denominator->last()->name() + "))";
         }else{
-            es += "(("+ QString::number(w) + "*i) + " + QString::number(denominador->last()->nominal()) + "))";
+            expr += "(("+ QString::number(w) + "*i) + " + QString::number(m_denominator->last()->nominal()) + "))";
         }
     }
 
 
-    //El retardo puro es e^(-s*tau) => e^(-i*w*tau). Se emite si el retardo es
-    //variable (aunque su nominal sea 0, el barrido de templates lo recorre) o
-    //si es una constante no nula.
-    if (ret->isUncertain()){
-        es += "* e^(-i*" + QString::number(w) + "*" + ret->name() + ")";
-    }else if (ret->nominal() != 0){
-        es += "* e^(-i*" + QString::number(w) + "*" + QString::number(ret->nominal()) +")";
+    //A pure delay is e^(-s*tau) => e^(-i*w*tau). Emitted when the delay is
+    //uncertain (even with a zero nominal, so the template sweep can drive
+    //it) or a non-zero constant.
+    if (m_delay->isUncertain()){
+        expr += "* e^(-i*" + QString::number(w) + "*" + m_delay->name() + ")";
+    }else if (m_delay->nominal() != 0){
+        expr += "* e^(-i*" + QString::number(w) + "*" + QString::number(m_delay->nominal()) +")";
     }
 
-    return es;
+    return expr;
 }
 
 
@@ -136,63 +136,63 @@ LtiSystem::SystemType ZeroPoleGain::type(){
 
 
 QString ZeroPoleGain::expression(){
-    qint32 sizeDen = denominador->size();
-    qint32 sizeNum = numerador->size();
+    qint32 sizeDen = m_denominator->size();
+    qint32 sizeNum = m_numerator->size();
 
-    QString es;
+    QString expr;
 
-    if (k->isUncertain()){
-        es += k->name() + "*(";
+    if (m_gain->isUncertain()){
+        expr += m_gain->name() + "*(";
     }else {
-        es += QString::number(k->nominal()) + "*(";
+        expr += QString::number(m_gain->nominal()) + "*(";
     }
 
-    if (numerador->isEmpty()){
-        es += "1) / (";
+    if (m_numerator->isEmpty()){
+        expr += "1) / (";
     } else {
         for (qint32 i = 0; i < sizeNum-1; i++){
 
-            if (numerador->at(i)->isUncertain()){
-                es += "(s + " + numerador->at(i)->name() + ") *";
+            if (m_numerator->at(i)->isUncertain()){
+                expr += "(s + " + m_numerator->at(i)->name() + ") *";
             } else {
-                es += "(s +" + QString::number(numerador->at(i)->nominal()) + ") *";
+                expr += "(s +" + QString::number(m_numerator->at(i)->nominal()) + ") *";
             }
         }
 
-        if(numerador->last()->isUncertain()){
-            es += "(s + " + numerador->last()->name() + ")) / (";
+        if(m_numerator->last()->isUncertain()){
+            expr += "(s + " + m_numerator->last()->name() + ")) / (";
         } else {
-            es += "(s + " + QString::number(numerador->last()->nominal()) + ")) / (";
+            expr += "(s + " + QString::number(m_numerator->last()->nominal()) + ")) / (";
         }
     }
 
 
-    if (denominador->isEmpty()){
-        es += "1)";
+    if (m_denominator->isEmpty()){
+        expr += "1)";
     }else {
         for (qint32 i = 0; i < sizeDen-1; i++){
 
-            if (denominador->at(i)->isUncertain()){
-                es += "(s + " + denominador->at(i)->name() + ") *";
+            if (m_denominator->at(i)->isUncertain()){
+                expr += "(s + " + m_denominator->at(i)->name() + ") *";
             } else {
-                es += "(s + " + QString::number(denominador->at(i)->nominal()) + ") *";
+                expr += "(s + " + QString::number(m_denominator->at(i)->nominal()) + ") *";
             }
         }
 
-        if (denominador->last()->isUncertain()){
-            es += "(s + " + denominador->last()->name() + "))";
+        if (m_denominator->last()->isUncertain()){
+            expr += "(s + " + m_denominator->last()->name() + "))";
         }else{
-            es += "(s + " + QString::number(denominador->last()->nominal()) + "))";
+            expr += "(s + " + QString::number(m_denominator->last()->nominal()) + "))";
         }
     }
 
-    if (ret->isUncertain()){
-        es += " * e^(-s*" + ret->name() + ")";
-    }else if (ret->nominal() != 0){
-        es += " * e^(-s*" + QString::number(ret->nominal()) +")";
+    if (m_delay->isUncertain()){
+        expr += " * e^(-s*" + m_delay->name() + ")";
+    }else if (m_delay->nominal() != 0){
+        expr += " * e^(-s*" + QString::number(m_delay->nominal()) +")";
     }
 
-    return es;
+    return expr;
 }
 
 
@@ -203,19 +203,19 @@ std::complex <qreal> ZeroPoleGain::evaluateNumerator(QVector <qreal> * nume, qre
     }
 
     qint32 sizeNum = nume->size();
-    QString es = "(";
+    QString expr = "(";
 
     for (qint32 i = 0; i < sizeNum-1; i++){
 
-        es += "(("+ QString::number(omega) + "*i) +" + QString::number(nume->at(i)) + ") *";
+        expr += "(("+ QString::number(omega) + "*i) +" + QString::number(nume->at(i)) + ") *";
     }
 
-    es += "((" + QString::number(omega) + "*i) + " + QString::number(nume->last()) + "))";
+    expr += "((" + QString::number(omega) + "*i) + " + QString::number(nume->last()) + "))";
 
 
     mup::ParserX p (mup::pckALL_COMPLEX);
 
-    p.SetExpr(es.toStdString());
+    p.SetExpr(expr.toStdString());
 
     return p.Eval().GetComplex();
 }
@@ -227,18 +227,18 @@ std::complex <qreal> ZeroPoleGain::evaluateDenominator(QVector <qreal> * deno, q
     }
 
     qint32 sizeDen = deno->size();
-    QString es = "(";
+    QString expr = "(";
 
     for (qint32 i = 0; i < sizeDen-1; i++){
 
-        es += "(("+ QString::number(omega) + "*i) + " + QString::number(deno->at(i)) + ") *";
+        expr += "(("+ QString::number(omega) + "*i) + " + QString::number(deno->at(i)) + ") *";
     }
 
-    es += "(("+ QString::number(omega) + "*i) + " + QString::number(deno->last()) + "))";
+    expr += "(("+ QString::number(omega) + "*i) + " + QString::number(deno->last()) + "))";
 
     mup::ParserX p (mup::pckALL_COMPLEX);
 
-    p.SetExpr(es.toStdString());
+    p.SetExpr(expr.toStdString());
 
     return p.Eval().GetComplex();
 }

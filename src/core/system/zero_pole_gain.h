@@ -9,47 +9,26 @@
 
 namespace qftbx {
 
-
-
-  /**
-    * @class ZeroPoleGain
-    * @brief Clase que representa una planta del tipo ZeroPoleGain, hereda de TransferFunction
-    * 
-    * Esta clase está dentro de una jerarquía que representa los distintos tipos de plantas que hay.
-    * 
-    * @author Isaac Martínez Forte
-   */
-
+/**
+ * @brief Transfer function in zero-pole-gain form:
+ * \f$ P(s) = k \, e^{-s\tau} \prod_i (s + z_i) / \prod_j (s + p_j) \f$.
+ *
+ * Each numerator/denominator Parameter is a root (sign changed); an empty
+ * vector stands for the constant 1.
+ */
 class ZeroPoleGain : public TransferFunction
 {
 
 public:
-  
-  /**
-    * @fn ZeroPoleGain
-    * @brief Constructor de la clase.
-    * 
-    * @param nombre cadena que indica el nombre de la planta.
-    * @param numerador vector de Variable que contiene el numerador de la planta.
-    * @param denominador vector de Variable que contiene el denominador de la planta.
-    * @param K Variable que contiene la ganancia de la planta.
-    * @param ret Variable que contiene el retardo de la planta.
-   */
-  
-    ZeroPoleGain(QString nombre, QVector <Parameter*> * numerador, QVector <Parameter*> * denominador, Parameter * k, Parameter* ret);
-    
-    LtiSystem * create (QString nombre, QVector <Parameter*> * numerador, QVector <Parameter*> * denominador,
-                              Parameter * k, Parameter* ret = NULL, QString exp_nume = 0, QString exp_deno = 0);
-    
-    /**
-     * @fn ~ZeroPoleGain
-     * @brief Destructor de la clase.
-     */
-    
+    ZeroPoleGain(QString name, QVector <Parameter*> * numerator, QVector <Parameter*> * denominator, Parameter * k, Parameter* delay);
+
+    LtiSystem * create (QString name, QVector <Parameter*> * numerator, QVector <Parameter*> * denominator,
+                              Parameter * k, Parameter* delay = NULL, QString numeratorExpr = 0, QString denominatorExpr = 0);
+
     ~ZeroPoleGain();
 
-    QString expression (QVector <qreal> * numerador, QVector <qreal> * denominador,
-                             qreal k, qreal ret, qreal omega);
+    QString expression (QVector <qreal> * numerator, QVector <qreal> * denominator,
+                             qreal k, qreal delay, qreal omega);
 
     QString expression(qreal w);
 
@@ -58,13 +37,6 @@ public:
     std::complex <qreal> evaluateNumerator(QVector <qreal> * nume, qreal omega);
 
     std::complex <qreal> evaluateDenominator(QVector <qreal> * deno, qreal omega);
-    
-   /**
-    * @fn type
-    * @brief Función que retorna la clase de la instancia.
-    * 
-    * @return cadena con la clase de la instancia.
-    */
 
     SystemType type();
 

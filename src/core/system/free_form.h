@@ -9,38 +9,27 @@
 
 namespace qftbx {
 
- /**
-    * @class FreeForm
-    * @brief Función de transferencia definida por expresiones de texto libre en 's'.
-    *
-    * Los vectores de variables no describen la estructura (numerador y
-    * denominador son texto): solo enumeran las variables inciertas presentes
-    * en las expresiones, para el barrido de templates.
-    *
-    * @author Isaac Martínez Forte
-   */
+/**
+ * @brief Transfer function defined by free-text expressions in 's':
+ * \f$ P(s) = k \, e^{-s\tau} \, N(s) / D(s) \f$.
+ *
+ * The parameter vectors do not describe the structure (numerator and
+ * denominator are text): they only enumerate the uncertain parameters
+ * present in the expressions, for the template sweep. Evaluation replaces
+ * 's' textually and hands the expression to muParserX.
+ */
 
 class FreeForm : public TransferFunction
 {
 public:
 
-   /**
-    * @fn FreeForm
-    * @brief Constructor de la clase.
-    *
-    * @param nombre de la planta.
-    * @param numerador variables inciertas presentes en exp_nume.
-    * @param denominador variables inciertas presentes en exp_deno.
-    * @param k ganancia asociada.
-    * @param ret retardo asociado.
-    * @param exp_nume expresión de texto del numerador.
-    * @param exp_deno expresión de texto del denominador.
-    */
-    FreeForm(QString nombre, QVector <Parameter*> * numerador, QVector <Parameter*> * denominador, Parameter * k, Parameter* ret, QString exp_nume,
-                 QString exp_deno);
+    /// The parameter vectors list the uncertain parameters appearing in the
+    /// numerator/denominator expression texts.
+    FreeForm(QString name, QVector <Parameter*> * numerator, QVector <Parameter*> * denominator, Parameter * k, Parameter* delay, QString numeratorExpr,
+                 QString denominatorExpr);
 
-    QString expression (QVector <qreal> * numerador, QVector <qreal> * denominador,
-                             qreal k, qreal ret, qreal omega);
+    QString expression (QVector <qreal> * numerator, QVector <qreal> * denominator,
+                             qreal k, qreal delay, qreal omega);
 
     QString expression(qreal w);
 
@@ -50,16 +39,16 @@ public:
 
     std::complex <qreal> evaluateDenominator(QVector <qreal> * deno, qreal omega);
 
-    std::complex <qreal> evaluate (QVector <qreal> * numerador, QVector <qreal> * denominador,
-                                           qreal k, qreal ret, qreal omega);
+    std::complex <qreal> evaluate (QVector <qreal> * numerator, QVector <qreal> * denominator,
+                                           qreal k, qreal delay, qreal omega);
 
-    //Se reexpone la resolución nominal heredada, oculta por las sobrecargas anteriores.
+    //Re-expose the inherited nominal evaluation hidden by the overloads above.
     using TransferFunction::evaluate;
 
     SystemType type();
 
-    LtiSystem * create (QString nombre, QVector <Parameter*> * numerador, QVector <Parameter*> * denominador,
-                              Parameter * k, Parameter* ret, QString exp_nume = 0, QString exp_deno = 0);
+    LtiSystem * create (QString name, QVector <Parameter*> * numerator, QVector <Parameter*> * denominator,
+                              Parameter * k, Parameter* delay, QString numeratorExpr = 0, QString denominatorExpr = 0);
 
     QString numeratorString();
     QString denominatorString();
@@ -67,8 +56,8 @@ public:
     LtiSystem * clone();
 
 private:
-    QString exp_nume;
-    QString exp_deno;
+    QString m_numeratorExpr;
+    QString m_denominatorExpr;
 };
 
 } // namespace qftbx

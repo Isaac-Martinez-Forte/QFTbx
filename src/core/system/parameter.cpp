@@ -5,166 +5,166 @@ using namespace std;
 
 namespace qftbx {
 
-Parameter::Parameter(QString nombre, QPointF rango, qreal nominal, QString exp)
+Parameter::Parameter(QString name, QPointF range, qreal nominal, QString exp)
 {
-    this->nombre = nombre;
+    m_name = name;
 
-    if (rango.x() > rango.y()){
-        this->rango.setX(rango.y());
-        this->rango.setY(rango.x());
+    if (range.x() > range.y()){
+        m_range.setX(range.y());
+        m_range.setY(range.x());
     }else {
-        this->rango = rango;
+        m_range = range;
     }
 
     m_nominal = nominal;
-    variable = true;
+    m_uncertain = true;
 
     if (exp == nullptr || exp.isEmpty()) {
-        //Sin reparametrizacion la expresion es la propia variable, igual
-        //que en el constructor de tres argumentos.
-        this->exp = nombre;
-        e = false;
+        //Without a reparametrisation the expression is the parameter
+        //itself, as in the three-argument constructor.
+        m_expression = name;
+        m_hasExpression = false;
     } else {
-        this->exp = exp;
-        e = true;
+        m_expression = exp;
+        m_hasExpression = true;
     }
 }
 
-Parameter::Parameter(QString nombre, QPointF rango, qreal nominal){
-    this->nombre = nombre;
+Parameter::Parameter(QString name, QPointF range, qreal nominal){
+    m_name = name;
 
-    if (rango.x() > rango.y()){
-        this->rango.setX(rango.y());
-        this->rango.setY(rango.x());
+    if (range.x() > range.y()){
+        m_range.setX(range.y());
+        m_range.setY(range.x());
     }else {
-        this->rango = rango;
+        m_range = range;
     }
 
     m_nominal = nominal;
-    this->exp = nombre;
+    m_expression = name;
 
-    variable = true;
+    m_uncertain = true;
 
 
-    e = false;
+    m_hasExpression = false;
 }
 
-Parameter::Parameter (QPointF rango){
-    if (rango.x() > rango.y()){
-        this->rango.setX(rango.y());
-        this->rango.setY(rango.x());
+Parameter::Parameter (QPointF range){
+    if (range.x() > range.y()){
+        m_range.setX(range.y());
+        m_range.setY(range.x());
     }else {
-        this->rango = rango;
+        m_range = range;
     }
 
     m_nominal = 0;
-    variable = false;
-    e = false;
+    m_uncertain = false;
+    m_hasExpression = false;
 }
 
 Parameter::Parameter(const Parameter &obj){
-    this->nombre = obj.nombre;
-    this->rango = obj.rango;
+    m_name = obj.m_name;
+    m_range = obj.m_range;
     m_nominal = obj.m_nominal;
-    this->variable = obj.variable;
-    this->exp = obj.exp;
-    this->e = obj.e;
+    m_uncertain = obj.m_uncertain;
+    m_expression = obj.m_expression;
+    this->m_hasExpression = obj.m_hasExpression;
 }
 
 Parameter::Parameter() {
    m_nominal = 0;
-   variable = false;
-   e = false;
+   m_uncertain = false;
+   m_hasExpression = false;
 }
 
-Parameter::Parameter (qreal valor){
-    m_nominal = valor;
-    nombre = QString::number(m_nominal);
-    variable = false;
-    this->rango= QPointF (m_nominal, m_nominal);
-    this->exp = nombre;
+Parameter::Parameter (qreal value){
+    m_nominal = value;
+    m_name = QString::number(m_nominal);
+    m_uncertain = false;
+    m_range= QPointF (m_nominal, m_nominal);
+    m_expression = m_name;
 }
 
-Parameter::Parameter (QString nombre, qreal valor){
-    m_nominal = valor;
-    this->nombre = nombre;
-    variable = false;
-    this->rango= QPointF (m_nominal, m_nominal);
-    this->exp = nombre;
+Parameter::Parameter (QString name, qreal value){
+    m_nominal = value;
+    m_name = name;
+    m_uncertain = false;
+    m_range= QPointF (m_nominal, m_nominal);
+    m_expression = name;
 }
 
 
 bool Parameter::isUncertain(){
-    return variable;
+    return m_uncertain;
 }
 
 void Parameter::setUncertain(bool a) {
-    variable = a;
+    m_uncertain = a;
 }
 
 QString Parameter::name(){
-    return nombre;
+    return m_name;
 }
 
 QPointF Parameter::range(){
 
-    if (!variable){
-        return rango;
+    if (!m_uncertain){
+        return m_range;
     }
 
-    if (!e){
-        return rango;
+    if (!m_hasExpression){
+        return m_range;
     }
 
-    QPointF punto;
+    QPointF point;
 
-    //Los Value deben declararse antes que el parser: este guarda punteros a
-    //ellos (Variable(&v)) y se destruyen en orden inverso a su declaracion.
-    Value v(rango.x());
-    Value v2(rango.y());
+    //The Values must be declared before the parser: it stores pointers to
+    //them (Variable(&v)) and destruction runs in reverse declaration order.
+    Value v(m_range.x());
+    Value v2(m_range.y());
 
     mup::ParserX p;
 
-    p.SetExpr(exp.toStdString());
-    p.DefineVar(nombre.toStdString(), Variable(&v));
+    p.SetExpr(m_expression.toStdString());
+    p.DefineVar(m_name.toStdString(), Variable(&v));
 
-    punto.setX(p.Eval().GetFloat());
+    point.setX(p.Eval().GetFloat());
 
-    p.RemoveVar(nombre.toStdString());
-    p.DefineVar(nombre.toStdString(), Variable(&v2));
+    p.RemoveVar(m_name.toStdString());
+    p.DefineVar(m_name.toStdString(), Variable(&v2));
 
-    punto.setY(p.Eval().GetFloat());
+    point.setY(p.Eval().GetFloat());
 
-    return punto;
+    return point;
 }
 
 qreal Parameter::nominal(){
 
-    if (!variable){
+    if (!m_uncertain){
         return m_nominal;
     }
 
-    if (!e){
+    if (!m_hasExpression){
         return m_nominal;
     }
 
-    //Value antes que el parser: ver comentario en range().
+    //Value before the parser: see the comment in range().
     Value v(m_nominal);
 
     mup::ParserX p;
 
-    p.SetExpr(exp.toStdString());
-    p.DefineVar(nombre.toStdString(), Variable(&v));
+    p.SetExpr(m_expression.toStdString());
+    p.DefineVar(m_name.toStdString(), Variable(&v));
 
     return p.Eval().GetFloat();
 }
 
-void Parameter::setName(QString nombre){
-    this->nombre = nombre;
+void Parameter::setName(QString name){
+    m_name = name;
 }
 
-void Parameter::setRange(QPointF rango){
-    this->rango = rango;
+void Parameter::setRange(QPointF range){
+    m_range = range;
 }
 
 void Parameter::setNominal(qreal nominal){
@@ -172,11 +172,11 @@ void Parameter::setNominal(qreal nominal){
 }
 
 QString Parameter::expression(){
-    return exp;
+    return m_expression;
 }
 
 QPointF Parameter::rawRange(){
-    return rango;
+    return m_range;
 }
 
 qreal Parameter::rawNominal(){
@@ -185,29 +185,29 @@ qreal Parameter::rawNominal(){
 
 Parameter * Parameter::clone(){
 
-    if (!variable){
-        //Se conserva el nombre: una constante con nombre ("kv") no debe
-        //convertirse en una constante llamada por su valor.
-        return new Parameter (this->nombre, m_nominal);
+    if (!m_uncertain){
+        //Keep the name: a named constant ("kv") must not become a
+        //constant named after its value.
+        return new Parameter (m_name, m_nominal);
     }
 
-    if (!e){
-        return new Parameter (this->nombre, this->rango, m_nominal);
+    if (!m_hasExpression){
+        return new Parameter (m_name, m_range, m_nominal);
     }
 
-    return new Parameter (this->nombre, this->rango, m_nominal, this->exp);
+    return new Parameter (m_name, m_range, m_nominal, m_expression);
 }
 
-QVector <Parameter*> * Parameter::cloneVector(QVector <Parameter*> * origen){
+QVector <Parameter*> * Parameter::cloneVector(QVector <Parameter*> * source){
 
-    QVector <Parameter*> * copia = new QVector <Parameter*> ();
-    copia->reserve(origen->size());
+    QVector <Parameter*> * copy = new QVector <Parameter*> ();
+    copy->reserve(source->size());
 
-    foreach (Parameter * var, *origen) {
-        copia->append(var->clone());
+    foreach (Parameter * var, *source) {
+        copy->append(var->clone());
     }
 
-    return copia;
+    return copy;
 }
 
 } // namespace qftbx

@@ -5,56 +5,56 @@ using namespace mup;
 
 namespace qftbx {
 
-TransferFunction::TransferFunction(QString nombre, QVector <Parameter*> * numerador, QVector <Parameter*> * denominador,
-        Parameter * k, Parameter * ret) :
-LtiSystem(nombre) {
-    this->numerador = numerador;
-    this->denominador = denominador;
+TransferFunction::TransferFunction(QString name, QVector <Parameter*> * numerator, QVector <Parameter*> * denominator,
+        Parameter * k, Parameter * delay) :
+LtiSystem(name) {
+    m_numerator = numerator;
+    m_denominator = denominator;
 
-    this->k = k;
-    this->ret = ret;
+    m_gain = k;
+    m_delay = delay;
 }
 
 TransferFunction::~TransferFunction() {
 
-    //La planta es duena de sus Parameter y de los vectores (quien construye una
-    //planta le cede la propiedad; la GUI entrega copias). releaseOwnership() anula
-    //la propiedad para el caso de estructuras que comparten los punteros.
-    if (b) {
-        qDeleteAll(*numerador);
-        delete numerador;
-        qDeleteAll(*denominador);
-        delete denominador;
-        delete k;
-        delete ret;
+    //The system owns its Parameters and vectors (whoever builds one hands
+    //over ownership; the GUI passes copies). releaseOwnership() disarms
+    //deletion for structures that share the pointers.
+    if (m_ownsData) {
+        qDeleteAll(*m_numerator);
+        delete m_numerator;
+        qDeleteAll(*m_denominator);
+        delete m_denominator;
+        delete m_gain;
+        delete m_delay;
     }
 }
 
 void TransferFunction::releaseOwnership() {
-    b = false;
+    m_ownsData = false;
 }
 
 QVector <Parameter*> * TransferFunction::numerator() {
-    return numerador;
+    return m_numerator;
 }
 
 QVector <Parameter*> * TransferFunction::denominator() {
-    return denominador;
+    return m_denominator;
 }
 
 Parameter * TransferFunction::gain() {
-    return k;
+    return m_gain;
 }
 
 Parameter * TransferFunction::delay() {
-    return ret;
+    return m_delay;
 }
 
-std::complex <qreal> TransferFunction::evaluate(QVector <qreal> * numerador, QVector <qreal> * denominador,
-        qreal k, qreal ret, qreal omega) {
+std::complex <qreal> TransferFunction::evaluate(QVector <qreal> * numerator, QVector <qreal> * denominator,
+        qreal k, qreal delay, qreal omega) {
     ParserX p(pckALL_COMPLEX);
 
-    p.SetExpr(expression(numerador, denominador, k, ret, omega).toStdString());
+    p.SetExpr(expression(numerator, denominator, k, delay, omega).toStdString());
 
     return p.Eval().GetComplex();
 }
@@ -65,40 +65,40 @@ std::complex <qreal> TransferFunction::evaluate(qreal w) {
 
     p.EnableAutoCreateVar(true);
 
-    QString es;
+    QString expr;
 
-    foreach(Parameter * n, *numerador) {
+    foreach(Parameter * n, *m_numerator) {
 
         if (n->isUncertain()) {
-            es = n->name() + "=" + QString::number(n->nominal());
-            p.SetExpr(es.toStdString());
+            expr = n->name() + "=" + QString::number(n->nominal());
+            p.SetExpr(expr.toStdString());
             p.Eval();
         }
     }
 
-    foreach(Parameter * d, *denominador) {
+    foreach(Parameter * d, *m_denominator) {
         if (d->isUncertain()) {
-            es = d->name() + "=" + QString::number(d->nominal());
-            p.SetExpr(es.toStdString());
+            expr = d->name() + "=" + QString::number(d->nominal());
+            p.SetExpr(expr.toStdString());
             p.Eval();
         }
     }
 
-    if (k->isUncertain()) {
-        es = k->name() + "=" + QString::number(k->nominal());
-        p.SetExpr(es.toStdString());
+    if (m_gain->isUncertain()) {
+        expr = m_gain->name() + "=" + QString::number(m_gain->nominal());
+        p.SetExpr(expr.toStdString());
         p.Eval();
     }
 
-    if (ret->isUncertain()) {
-        es = ret->name() + "=" + QString::number(ret->nominal());
-        p.SetExpr(es.toStdString());
+    if (m_delay->isUncertain()) {
+        expr = m_delay->name() + "=" + QString::number(m_delay->nominal());
+        p.SetExpr(expr.toStdString());
         p.Eval();
     }
 
-    es = expression(w);
+    expr = expression(w);
 
-    p.SetExpr(es.toStdString());
+    p.SetExpr(expr.toStdString());
 
     return p.Eval().GetComplex();
 }
@@ -127,20 +127,20 @@ LtiSystem * TransferFunction::clone() {
     QVector <Parameter *> * n = new QVector <Parameter *> ();
     QVector <Parameter *> * d = new QVector <Parameter *> ();
 
-    Parameter * k = this->k->clone();
+    Parameter * k = m_gain->clone();
 
-    Parameter * ret = this->ret->clone();
+    Parameter * delay = m_delay->clone();
 
-    foreach(Parameter * v, *numerador) {
+    foreach(Parameter * v, *m_numerator) {
         n->append(v->clone());
     }
 
-    foreach(Parameter * v, *denominador) {
+    foreach(Parameter * v, *m_denominator) {
         d->append(v->clone());
     }
 
 
-    return this->create(this->name(), n, d, k, ret);
+    return this->create(this->name(), n, d, k, delay);
 }
 
 } // namespace qftbx
