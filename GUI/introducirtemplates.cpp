@@ -250,7 +250,7 @@ void IntroducirTemplates::on_Aceptar_clicked()
         mapa->clear();
     }
 
-    mapa = new QHash <Parameter *, QVector<qreal> * > ();
+    mapa = new QHash <QString, QVector<qreal> * > ();
 
     if (ui->seleLinSpace->isChecked() && !ui->todasNPuntos->text().isEmpty()){
         linsp = true;
@@ -280,7 +280,7 @@ void IntroducirTemplates::on_Aceptar_clicked()
         }/*else {
             QVector <qreal> * vector = new QVector <qreal> ();
             vector->append(var->nominal());;
-            mapa->insert(var, vector);
+            mapa->insert(var->name(), vector);
         }*/
     }
 
@@ -302,12 +302,12 @@ void IntroducirTemplates::on_Aceptar_clicked()
         }/*else {
             QVector <qreal> * vector = new QVector <qreal> ();
             vector->append(var->nominal());
-            mapa->insert(var, vector);
+            mapa->insert(var->name(), vector);
         }*/
     }
 
     if (!planta->gain()->isUncertain()){
-        mapa->insert(planta->gain(), new QVector <qreal> (1, planta->gain()->nominal()));
+        mapa->insert(planta->gain()->name(), new QVector <qreal> (1, planta->gain()->nominal()));
     }
     else{
 
@@ -321,14 +321,14 @@ void IntroducirTemplates::on_Aceptar_clicked()
         npuntos = parser->Eval().GetFloat();
 
         if (linsp){
-            mapa->insert(planta->gain(), linspace(inicio, final, npuntos));
+            mapa->insert(planta->gain()->name(), linspace(inicio, final, npuntos));
         } else {
-            mapa->insert(planta->gain(), linspace(inicio, final, npuntos));
+            mapa->insert(planta->gain()->name(), logspace(inicio, final, npuntos));
         }
     }
 
     if (!planta->delay()->isUncertain()){
-        mapa->insert(planta->delay(), new QVector <qreal> (1, planta->delay()->nominal()));
+        mapa->insert(planta->delay()->name(), new QVector <qreal> (1, planta->delay()->nominal()));
     }else {
 
         qreal inicio;
@@ -336,14 +336,17 @@ void IntroducirTemplates::on_Aceptar_clicked()
         qint32 npuntos;
 
         inicio = planta->delay()->range().x();
-        final = planta->delay()->range().x();
+        final = planta->delay()->range().y();
         parser->SetExpr(ui->todasNPuntos->text().toStdString());
         npuntos = parser->Eval().GetFloat();
 
+        //Antes esta rama insertaba la rejilla del retardo bajo la CLAVE de
+        //la ganancia: machacaba la de la ganancia y dejaba al retardo sin
+        //entrada (crash en el barrido con retardo incierto).
         if (linsp){
-            mapa->insert(planta->gain(), linspace(inicio, final, npuntos));
+            mapa->insert(planta->delay()->name(), linspace(inicio, final, npuntos));
         } else {
-            mapa->insert(planta->gain(), linspace(inicio, final, npuntos));
+            mapa->insert(planta->delay()->name(), logspace(inicio, final, npuntos));
         }
     }
 
@@ -353,6 +356,15 @@ void IntroducirTemplates::on_Aceptar_clicked()
 
 bool IntroducirTemplates::extraerVariable(ParLineEdit *parlines, tresRadioButton radioButtons,
                                     Parameter *var, bool linsp, bool logsp){
+
+    //Politica historica: para nombres repetidos (p.ej. la misma 'a' en
+    //numerador y denominador) gana la PRIMERA rejilla introducida. Con la
+    //clave por nombre, sin esta guarda ganaria la ultima. Pendiente: avisar
+    //al usuario del duplicado (ver REFACTOR_PLAN).
+    if (mapa->contains(var->name())){
+        return true;
+    }
+
     qreal inicio;
     qreal final;
     qreal npuntos;
@@ -361,12 +373,12 @@ bool IntroducirTemplates::extraerVariable(ParLineEdit *parlines, tresRadioButton
     if (radioButtons.uno->isChecked() && !parlines->getX()->text().isEmpty()){
 
         inicio = var->range().x();
-        final = var->range().x();
+        final = var->range().y();
 
         parser->SetExpr(parlines->getX()->text().toStdString());
         npuntos = parser->Eval().GetFloat();
 
-        mapa->insert(var, linspace(inicio,final, npuntos));
+        mapa->insert(var->name(), linspace(inicio,final, npuntos));
 
     }else if (radioButtons.dos->isChecked() && !parlines->getY()->text().isEmpty()){
 
@@ -375,7 +387,7 @@ bool IntroducirTemplates::extraerVariable(ParLineEdit *parlines, tresRadioButton
         parser->SetExpr(parlines->getY()->text().toStdString());
         npuntos = parser->Eval().GetFloat();
 
-        mapa->insert(var, logspace(inicio, final, npuntos));
+        mapa->insert(var->name(), logspace(inicio, final, npuntos));
 
     }else if(radioButtons.tres->isChecked() && !parlines->nominal()->text().isEmpty()){
 
@@ -386,7 +398,7 @@ bool IntroducirTemplates::extraerVariable(ParLineEdit *parlines, tresRadioButton
             parser->SetExpr(numeroS.toStdString());
             vector2->append(parser->Eval().GetFloat());
         }
-        mapa->insert(var, vector2);
+        mapa->insert(var->name(), vector2);
     }else if (linsp || logsp){
 
         inicio = var->range().x();
@@ -396,9 +408,9 @@ bool IntroducirTemplates::extraerVariable(ParLineEdit *parlines, tresRadioButton
         npuntos = parser->Eval().GetFloat();
 
         if(linsp){
-            mapa->insert(var,linspace(inicio, final, npuntos));
+            mapa->insert(var->name(), linspace(inicio, final, npuntos));
         }else {
-            mapa->insert(var,logspace(inicio, final, npuntos));
+            mapa->insert(var->name(), logspace(inicio, final, npuntos));
         }
     }else{
         return false;
@@ -407,7 +419,7 @@ bool IntroducirTemplates::extraerVariable(ParLineEdit *parlines, tresRadioButton
     return true;
 }
 
-QHash <Parameter * , QVector<qreal> * > * IntroducirTemplates::getMapa(){
+QHash <QString, QVector<qreal> * > * IntroducirTemplates::getMapa(){
     return mapa;
 }
 

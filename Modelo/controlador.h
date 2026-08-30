@@ -15,7 +15,7 @@
 #include <complex>
 
 #include "src/core/system/lti_system.h"
-#include "Templates/templates.h"
+#include "src/core/templates/template_engine.h"
 #include "Objetos/omega.h"
 #include "Boundaries/boundaries.h"
 #include "XmlParser/parsersave.h"
@@ -138,11 +138,11 @@ public:
     *
     * Esta función también calcula el contorno de dichos templates.
     *
-    * @param epsilon real necesitado por el algoritmo e_hull para calcular el contorno.
+    * @param epsilon real necesitado por el algoritmo epsilonHull para calcular el contorno.
     * @param mapa QHash donde se relacionan las variables de la planta con con los reales concretos de esa variabilidad.
    */
 
-    bool calcularTemplates(QVector<qreal> *epsilon, QHash<Parameter *, QVector<qreal> *> *mapa, bool cuda);
+    bool calcularTemplates(QVector<qreal> *epsilon, QHash<QString, QVector<qreal> *> *mapa, bool cuda);
     
     
     /**
@@ -260,7 +260,7 @@ private:
     bool paso7; //Loop Shaping
 
     Boundaries * bound;
-    Templates * templates;
+    TemplateEngine * templates;
     LoopShaping * loopShaping;
 
     DAO * dao;

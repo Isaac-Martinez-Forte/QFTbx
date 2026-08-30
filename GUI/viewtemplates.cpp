@@ -455,7 +455,8 @@ void ViewTemplates::on_recalcular_clicked()
         return;
     }
     omega = controlador->getOmega()->getValores();
-    this->epsilon->clear();
+    //El epsilon anterior lo borra el DAO al aceptar el nuevo; tocarlo aqui
+    //seria un use-after-free.
     this->epsilon = controlador->getEpsilon();
     pintarGrafico(diagrama);
 }

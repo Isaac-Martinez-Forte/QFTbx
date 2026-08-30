@@ -111,11 +111,15 @@ void Controlador::setTemplate(QVector<QVector<std::complex<qreal> > *> *temp,
 
     if(!paso4){
         templatedao = dao->getTemplateDAO();
-        templates = new Templates();
+        templates = new TemplateEngine();
     }
     paso4 = true;
 
     templatedao->setTemplates(temp);
+
+    //Alimentar tambien el motor: sin esto, recalcular el contorno tras
+    //CARGAR un proyecto desreferenciaba un puntero nulo.
+    templates->setClouds(temp);
 
     if (isContorno)
         templatedao->setContorno(contorno);
@@ -151,24 +155,25 @@ QVector <QVector <std::complex <qreal> > * > * Controlador::getContorno(){
     return templatedao->getContorno();
 }
 
-bool Controlador::calcularTemplates(QVector <qreal> * epsilon, QHash <Parameter *, QVector<qreal> *> *mapa, bool cuda){
+bool Controlador::calcularTemplates(QVector <qreal> * epsilon, QHash <QString, QVector<qreal> *> *mapa, bool cuda){
 
     if(!paso4){
         templatedao = dao->getTemplateDAO();
-        templates = new Templates();
+        templates = new TemplateEngine();
     }
     paso4 = true;
 
     templates->setEpsilon(epsilon);
-    templates->setMapa(mapa);
+    templates->setGrids(mapa);
 
-    templates->lanzarCalculo(getPlanta(),getOmega()->getValores(), cuda);
+    templates->compute(getPlanta(),getOmega()->getValores(), cuda);
 
-    getOmega()->setOmega(templates->getOmega());
-    templatedao->setEpsilon(templates->getEpsilon());
+    //El calculo ya no reordena ni sustituye las frecuencias: basta guardar
+    //el epsilon usado para la persistencia.
+    templatedao->setEpsilon(epsilon);
 
-    QVector <QVector <std::complex <qreal> > * > * temp = templates->getTemplates();
-    QVector <QVector <std::complex <qreal> > * > * cont = templates->getContorno();
+    QVector <QVector <std::complex <qreal> > * > * temp = templates->clouds();
+    QVector <QVector <std::complex <qreal> > * > * cont = templates->contours();
 
     if (cont != NULL)
         setTemplate(temp,cont,true);
@@ -187,12 +192,11 @@ QVector <qreal> * Controlador::getEpsilon(){
 
 
 QVector <QVector <std::complex <qreal> > * > * Controlador::recalcularContorno(QVector <qreal> * epsilon){
-    templates->lanzarCalculoContorno(epsilon);
-    QVector <QVector <std::complex <qreal> > * > * aux = templates->getContorno();
+    templates->computeContours(epsilon);
+    QVector <QVector <std::complex <qreal> > * > * aux = templates->contours();
 
     setContorno(aux);
-    getOmega()->setOmega(templates->getOmega());
-    templatedao->setEpsilon(templates->getEpsilon());
+    templatedao->setEpsilon(epsilon);
 
     return aux;
 }

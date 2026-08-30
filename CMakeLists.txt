@@ -117,7 +117,7 @@ set(QFTbx_BACKEND_SRC
     Modelo/controlador.cpp
     Modelo/EstructurasDatos/parlineedit.cpp
     DAO/adaptadoromegadao.cpp
-    Modelo/Templates/templates.cpp
+    src/core/templates/template_engine.cpp
     DAO/adaptadortemplatedao.cpp
     Modelo/Herramientas/tools.cpp
     Modelo/Objetos/omega.cpp
@@ -185,7 +185,7 @@ set(QFTbx_BACKEND_HED
     Modelo/EstructurasDatos/parlineedit.h
     DAO/adaptadoromegadao.h
     DAO/omegadao.h
-    Modelo/Templates/templates.h
+    src/core/templates/template_engine.h
     DAO/templatedao.h
     DAO/adaptadortemplatedao.h
     Modelo/Herramientas/tools.h

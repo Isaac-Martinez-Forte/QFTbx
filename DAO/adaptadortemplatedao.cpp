@@ -7,17 +7,30 @@ AdaptadorTemplateDAO::AdaptadorTemplateDAO()
     contornoExists = false;
 }
 
+//El DAO es el DUEÑO de templates, contorno y epsilon: sus setters borran en
+//profundidad lo anterior (el motor TemplateEngine y las vistas solo observan).
 AdaptadorTemplateDAO::~AdaptadorTemplateDAO(){
-    if (templates != NULL)
-        templates->clear();
+    if (templates != NULL){
+        qDeleteAll(*templates);
+        delete templates;
+    }
 
-    if (contorno != NULL)
-        contorno->clear();
+    if (contorno != NULL){
+        qDeleteAll(*contorno);
+        delete contorno;
+    }
+
+    delete epsilon;
 }
 
 void AdaptadorTemplateDAO::setTemplates(QVector<QVector<complex<qreal> > *> * templates){
-    if (this->templates != NULL)
-        this->templates->clear();
+    if (this->templates == templates)
+        return;
+
+    if (this->templates != NULL){
+        qDeleteAll(*this->templates);
+        delete this->templates;
+    }
 
     this->templates = templates;
 }
@@ -27,8 +40,15 @@ QVector <QVector <complex <qreal> > * > * AdaptadorTemplateDAO::getTemplates(){
 }
 
 void AdaptadorTemplateDAO::setContorno(QVector<QVector<std::complex<qreal> > *> *contorno){
-    if (this->contorno != NULL)
-        this->contorno->clear();
+    if (this->contorno == contorno){
+        contornoExists = true;
+        return;
+    }
+
+    if (this->contorno != NULL){
+        qDeleteAll(*this->contorno);
+        delete this->contorno;
+    }
 
     this->contorno = contorno;
     contornoExists = true;
@@ -46,9 +66,10 @@ bool AdaptadorTemplateDAO::isContorno(){
 
 void AdaptadorTemplateDAO::setEpsilon (QVector <qreal> * epsilon){
 
-    if (this->epsilon != NULL){
-        this->epsilon->clear();
-    }
+    if (this->epsilon == epsilon)
+        return;
+
+    delete this->epsilon;
 
     this->epsilon = epsilon;
 }
