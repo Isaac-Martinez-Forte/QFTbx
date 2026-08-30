@@ -1,5 +1,7 @@
 #include "tools.h"
 
+#include <QRegularExpression>
+
 using namespace std;
 
 void tools::menerror(QString mensaje, QString nombre){
@@ -74,7 +76,10 @@ QVector <QString> * tools::srtovectorString (QString cadena){
 
 QVector <qreal> * tools::srtovectorReal (QString cadena){
 
-    QList <QString> listacadenas = cadena.split(" ");
+    //Se separa por cualquier blanco (espacios, tabuladores, saltos de
+    //linea): los ficheros de frecuencias suelen traer un valor por linea.
+    QList <QString> listacadenas = cadena.split(QRegularExpression("\\s+"),
+                                                Qt::SkipEmptyParts);
     QList <qreal> listareales;
 
     bool ok = false;

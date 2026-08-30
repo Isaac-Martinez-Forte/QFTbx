@@ -24,12 +24,6 @@
 namespace tools{
 
 
-/**
-    * @enum tiposOmega
-    * @brief enumerado que representa los distintos tipos de frecuencias de diseño.
-    */
-
-enum tiposOmega {linSpace, logSpace, manual, fichero};
 
 enum alg_loop_shaping {sachin, nandkishor, rambabu,
                        nandkishor_primeraversion, primer_articulo, segundo_articulo};

@@ -64,10 +64,8 @@ signals:
 
 private:
     Controlador * controlador;
-    bool fallo;
     QString file;
 
-    QVector <qreal> * fichero(QString ruta);
     Ui::IntOmega *ui;
 
     bool todoCorrecto;

@@ -598,7 +598,7 @@ inline bool XmlParserLoad::leerOmega(){
         return salidaError();
     }
 
-    tiposOmega tipo = (tiposOmega) stream->readElementText().toInt();
+    Omega::tiposOmega tipo = (Omega::tiposOmega) stream->readElementText().toInt();
 
     if (!stream->readNextStartElement()){       //leemos la sección valores
         return salidaError();

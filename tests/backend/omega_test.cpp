@@ -20,12 +20,12 @@ namespace {
 TEST(Omega, ConstructorStoresFieldsVerbatim)
 {
     auto* values = new QVector<qreal>{0.1, 5.0, 10.0, 100.0};
-    Omega omega(0.1, 100.0, 4, values, tools::manual);
+    Omega omega(0.1, 100.0, 4, values, Omega::manual);
 
     EXPECT_DOUBLE_EQ(omega.getInicio(), 0.1);
     EXPECT_DOUBLE_EQ(omega.getFinal(), 100.0);
     EXPECT_EQ(omega.getNPuntos(), 4);
-    EXPECT_EQ(omega.getTipo(), tools::manual);
+    EXPECT_EQ(omega.getTipo(), Omega::manual);
     EXPECT_EQ(omega.getValores(), values); // internal pointer, no copy
 }
 
@@ -35,7 +35,7 @@ TEST(Omega, SetOmegaDoesNotUpdateNPuntos)
     // nPuntos stale, so a .qft saved after templates/boundaries reorder the
     // frequencies carries an inconsistent <nPuntos>.
     auto* values = new QVector<qreal>{1.0, 2.0, 3.0};
-    Omega omega(1.0, 3.0, 3, values, tools::manual);
+    Omega omega(1.0, 3.0, 3, values, Omega::manual);
 
     omega.setOmega(new QVector<qreal>{5.0, 6.0});
     EXPECT_EQ(omega.getValores()->size(), 2);
@@ -166,11 +166,15 @@ TEST(SrToVectorReal, InvalidTokenReturnsNull)
     EXPECT_EQ(tools::srtovectorReal(QStringLiteral("1 x 3")), nullptr);
 }
 
-TEST(SrToVectorReal, NewlineSeparatedValuesFail)
+TEST(SrToVectorReal, SplitsOnAnyWhitespace)
 {
-    // BUG: the split is on single spaces only, so a frequencies file with
-    // one value per line produces an unparseable token.
-    EXPECT_EQ(tools::srtovectorReal(QStringLiteral("1.0\n2.0")), nullptr);
+    // Fixed: the split used to be on single spaces only, so a frequencies
+    // file with one value per line produced an unparseable token.
+    QVector<qreal>* v = tools::srtovectorReal(QStringLiteral("1.0\n2.0\t3"));
+    ASSERT_NE(v, nullptr);
+    ASSERT_EQ(v->size(), 3);
+    EXPECT_DOUBLE_EQ(v->at(1), 2.0);
+    delete v;
 }
 
 } // namespace
