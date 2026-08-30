@@ -6,8 +6,5 @@ PolosCeros::PolosCeros(QString nombre, QVector <Var*> * numerador, QVector <Var*
 FuncionTransferencia(nombre, numerador, denominador, k, ret) {
 }
 
-PolosCeros::PolosCeros(PolosCeros *datos) : FuncionTransferencia(datos) {
-}
-
 PolosCeros::~PolosCeros() {
 }

@@ -31,16 +31,6 @@ public:
     */
     FuncionTransferencia(QString nombre, QVector <Var*> * numerador, QVector <Var*> * denominador, Var * k, Var* ret);
     
-  /**
-    * @fn FuncionTransferencia
-    * @brief Constructor de la clase a partir de una FuncionTransferencia ya definida.
-    *  
-    * @param datos función de transferencia a partir de la cual queremos construir el objeto.
-    */ 
- 
-    FuncionTransferencia (FuncionTransferencia *datos);
-
-
     virtual Sistema * invoke (QString nombre, QVector <Var*> * numerador, QVector <Var*> * denominador,
                               Var * k, Var* ret = NULL, QString exp_nume = 0, QString exp_deno = 0) = 0;
     

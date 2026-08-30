@@ -76,14 +76,30 @@ TEST(Var, IdentityExpBehavesAsNoReparametrisation)
     EXPECT_EQ(var.getRango(), QPointF(0.5, 2.0));
 }
 
-TEST(Var, EmptyExpLeavesExpEmpty)
+TEST(Var, EmptyExpFallsBackToName)
 {
-    // BUG: the 4-argument constructor with an empty exp does not fall back
-    // to the name (unlike the 3-argument one); getExp() returns "".
-    // FormatoLibre::getExpr() would then emit "*(...)": a parse error.
+    // Fixed: the 4-argument constructor with an empty exp now falls back to
+    // the name, like the 3-argument one (it used to leave exp empty, and
+    // FormatoLibre::getExpr() emitted "*(...)": a parse error).
     Var var(QStringLiteral("a"), QPointF(1.0, 5.0), 2.0, QString());
 
-    EXPECT_EQ(var.getExp(), QString());
+    EXPECT_EQ(var.getExp(), QStringLiteral("a"));
+    EXPECT_DOUBLE_EQ(var.getNominal(), 2.0);
+}
+
+TEST(Var, CopyConstructorCopiesEverything)
+{
+    // Fixed: the copy constructor used to copy only the range, leaving
+    // name, nominal and the `variable` flag uninitialised.
+    Var original(QStringLiteral("a"), QPointF(1.0, 5.0), 2.0, QStringLiteral("a*2"));
+    Var copia(original);
+
+    EXPECT_TRUE(copia.isVariable());
+    EXPECT_EQ(copia.getNombre(), QStringLiteral("a"));
+    EXPECT_DOUBLE_EQ(copia.getN(), 2.0);
+    EXPECT_EQ(copia.getR(), QPointF(1.0, 5.0));
+    EXPECT_EQ(copia.getExp(), QStringLiteral("a*2"));
+    EXPECT_DOUBLE_EQ(copia.getNominal(), 4.0);
 }
 
 TEST(Var, CloneUncertainVariablePreservesContent)
@@ -101,18 +117,37 @@ TEST(Var, CloneUncertainVariablePreservesContent)
     delete copy;
 }
 
-TEST(Var, CloneConstantLosesItsName)
+TEST(Var, CloneConstantKeepsItsName)
 {
-    // BUG: clone() routes constants through Var(qreal), which rewrites the
-    // name as the textual value: a named constant like "kv" becomes "1".
+    // Fixed: clone() used to route constants through Var(qreal), which
+    // rewrote the name as the textual value ("kv" became "1").
     Var var(QStringLiteral("kv"), 1.0);
 
     Var* copy = var.clone();
     ASSERT_NE(copy, nullptr);
     EXPECT_FALSE(copy->isVariable());
     EXPECT_DOUBLE_EQ(copy->getNominal(), 1.0);
-    EXPECT_EQ(copy->getNombre(), QStringLiteral("1"));
+    EXPECT_EQ(copy->getNombre(), QStringLiteral("kv"));
     delete copy;
+}
+
+TEST(Var, ClonarVectorMakesDeepCopies)
+{
+    QVector<Var*> origen;
+    origen.append(new Var(QStringLiteral("a"), QPointF(1.0, 5.0), 2.0));
+    origen.append(new Var(3.5));
+
+    QVector<Var*>* copia = Var::clonarVector(&origen);
+    ASSERT_NE(copia, nullptr);
+    ASSERT_EQ(copia->size(), 2);
+    EXPECT_NE(copia->at(0), origen.at(0));
+    EXPECT_NE(copia->at(1), origen.at(1));
+    EXPECT_EQ(copia->at(0)->getNombre(), QStringLiteral("a"));
+    EXPECT_DOUBLE_EQ(copia->at(1)->getNominal(), 3.5);
+
+    qDeleteAll(*copia);
+    delete copia;
+    qDeleteAll(origen);
 }
 
 } // namespace

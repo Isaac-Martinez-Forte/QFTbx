@@ -260,14 +260,19 @@ void introducirEContr::on_aceptar_clicked()
 
 
     if (incertidumbreIntroducida){
+        //La planta toma propiedad de sus variables: se le entregan copias y
+        //el dialogo de incertidumbre conserva sus originales para editar.
+        QVector <Var*> * nume = Var::clonarVector(viewIncer->getNumerador());
+        QVector <Var*> * deno = Var::clonarVector(viewIncer->getDenominador());
+
         if (ui->hf->isChecked()){
-            planta = new KGanancia("",viewIncer->getNumerador(), viewIncer->getDenominador(),kv,retv);
+            planta = new KGanancia("",nume, deno,kv,retv);
         }else if(ui->lf->isChecked()){
-            planta = new KNGanancia("",viewIncer->getNumerador(), viewIncer->getDenominador(),kv,retv);
+            planta = new KNGanancia("",nume, deno,kv,retv);
         }else if (ui->c_poli->isChecked()){
-            planta = new CPolinomios("", viewIncer->getNumerador(), viewIncer->getDenominador(),kv,retv);
+            planta = new CPolinomios("", nume, deno,kv,retv);
         }else{
-            planta = new FormatoLibre("", viewIncer->getNumerador(), viewIncer->getDenominador(),kv,retv,
+            planta = new FormatoLibre("", nume, deno,kv,retv,
                                       ui->nume->text(), ui->deno->text());
         }
     }else{

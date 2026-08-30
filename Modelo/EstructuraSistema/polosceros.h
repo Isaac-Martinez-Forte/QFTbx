@@ -33,15 +33,6 @@ public:
     PolosCeros(QString nombre, QVector <Var*> * numerador, QVector <Var*> * denominador, Var * k, Var* ret);
     
     
-  /**
-    * @fn PolosCeros
-    * @brief Constructor de la clase que tiene como parámetro un objeto ya creado del mismo tipo.
-    * 
-    * @param datos objeto del mismo tipo creado anteriormente.
-    */
-    
-    PolosCeros(PolosCeros * datos);
-
     virtual Sistema * invoke (QString nombre, QVector <Var*> * numerador, QVector <Var*> * denominador,
                               Var * k, Var* ret = NULL, QString exp_nume = 0, QString exp_deno = 0) = 0;
     

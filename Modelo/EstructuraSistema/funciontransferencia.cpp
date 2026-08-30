@@ -13,15 +13,16 @@ Sistema(nombre) {
     this->ret = ret;
 }
 
-FuncionTransferencia::FuncionTransferencia(FuncionTransferencia * datos) :
-FuncionTransferencia(datos->getNombre(), datos->numerador, datos->denominador, datos->k, datos->ret) {
-}
-
 FuncionTransferencia::~FuncionTransferencia() {
 
+    //La planta es duena de sus Var y de los vectores (quien construye una
+    //planta le cede la propiedad; la GUI entrega copias). noBorrar() anula
+    //la propiedad para el caso de estructuras que comparten los punteros.
     if (b) {
-        numerador->clear();
-        denominador->clear();
+        qDeleteAll(*numerador);
+        delete numerador;
+        qDeleteAll(*denominador);
+        delete denominador;
         delete k;
         delete ret;
     }

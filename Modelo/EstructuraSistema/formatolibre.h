@@ -36,16 +36,6 @@ public:
     
     
    /**
-    * @fn DatosExperimentales
-    * @brief Constructor que crea el objeto a partir de otro objeto de la misma clase.
-    * 
-    * @param datos objeto de la misma clase a copiar.
-    */
-    
-    FormatoLibre(FormatoLibre *datos);
-    
-    
-   /**
     * @fn ~DatosExperimentales
     * @brief Destructor que crea el objeto.
     */

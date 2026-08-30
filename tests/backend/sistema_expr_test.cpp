@@ -389,20 +389,38 @@ TEST(FormatoLibreExpr, FixedDelayEvaluatesAsNegativeExponential)
     EXPECT_TRUE(planta.getExpr().endsWith(QStringLiteral(" * e^(-s*0.4)")));
 }
 
-TEST(FormatoLibreExpr, CopyConstructorKeepsTheDenominator)
+TEST(FormatoLibreExpr, CloneKeepsTheDenominator)
 {
-    // Fixed: the copy constructor passed exp_nume twice, so the copy ended
-    // up as N/N instead of N/D.
+    // clone() must produce an independent, complete deep copy (N/D, not
+    // N/N); both objects own their data and can be destroyed independently.
     FormatoLibre* planta = makeCerveraPlant();
-    FormatoLibre copia(planta);
+    Sistema* copia = planta->clone();
+    ASSERT_NE(copia, nullptr);
 
-    EXPECT_EQ(copia.getNumeradorString(), QStringLiteral("a"));
-    EXPECT_EQ(copia.getDenominadorString(), QStringLiteral("(s^2)*((s^2) + a)"));
-
-    // The copy shares the Var pointers with the original: only one of the
-    // two may own them. Current contract: disarm the copy before destroying.
-    copia.noBorrar();
     delete planta;
+
+    EXPECT_EQ(copia->getNumeradorString(), QStringLiteral("a"));
+    EXPECT_EQ(copia->getDenominadorString(), QStringLiteral("(s^2)*((s^2) + a)"));
+    EXPECT_EQ(copia->getExpr(), QStringLiteral("1*(a)/((s^2)*((s^2) + a))"));
+    delete copia;
+}
+
+TEST(SistemaOwnership, CloneAndDestroyBothOwners)
+{
+    // The plant owns its Vars and vectors; clone() deep-copies them, so
+    // destroying original and clone in any order must be safe (checked for
+    // leaks and double frees under ASan builds).
+    KGanancia* planta = makePlanta1();
+    Sistema* copia = planta->clone();
+
+    delete planta;
+
+    const Complex s(0.0, 0.1);
+    const Complex expected = 1.0 / ((s + 5.0) * (s + 30.0));
+    const Complex value = copia->getPunto(0.1);
+    EXPECT_NEAR(value.real(), expected.real(), kTolerance);
+    EXPECT_NEAR(value.imag(), expected.imag(), kTolerance);
+    delete copia;
 }
 
 TEST(SistemaInvoke, NullDelayBecomesZeroConstant)

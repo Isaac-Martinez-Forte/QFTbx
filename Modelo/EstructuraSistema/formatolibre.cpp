@@ -17,16 +17,14 @@ FormatoLibre::FormatoLibre(QString nombre, QVector <Var*> * numerador, QVector <
     this->exp_deno = exp_deno;
 }
 
-FormatoLibre::FormatoLibre(FormatoLibre* datos) : FormatoLibre (datos->getNombre(), datos->getNumerador(), datos->getDenominador(),
-                                                                datos->getK(), datos->getRet(), datos->exp_nume, datos->exp_deno) {
-
-}
-
 FormatoLibre::~FormatoLibre(){
 
+    //Misma politica de propiedad que FuncionTransferencia.
     if (b){
-        numerador->clear();
-        denominador->clear();
+        qDeleteAll(*numerador);
+        delete numerador;
+        qDeleteAll(*denominador);
+        delete denominador;
         delete k;
         delete ret;
     }

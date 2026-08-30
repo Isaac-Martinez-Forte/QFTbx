@@ -3,6 +3,7 @@
 
 #include <QString>
 #include <QPointF>
+#include <QVector>
 
 #include "mpParser.h"
 #include "mpValue.h"
@@ -44,8 +45,17 @@ public:
     Var();
 
     Var * clone ();
-    
-    
+
+   /**
+    * @fn clonarVector
+    * @brief Copia profunda de un vector de variables (clona cada Var).
+    *
+    * @param origen vector a copiar; el llamante recibe la propiedad de la copia.
+    */
+    static QVector <Var*> * clonarVector(QVector <Var*> * origen);
+
+
+
   /**
     * @fn Variable
     * @brief Constructor de la clase para aquellas variables que solo tengan un valor nominal

@@ -18,6 +18,9 @@ Var::Var(QString nombre, QPointF rango, qreal nominal, QString exp)
     variable = true;
 
     if (exp == nullptr || exp.isEmpty()) {
+        //Sin reparametrizacion la expresion es la propia variable, igual
+        //que en el constructor de tres argumentos.
+        this->exp = nombre;
         e = false;
     } else {
         this->exp = exp;
@@ -52,15 +55,23 @@ Var::Var (QPointF rango){
         this->rango = rango;
     }
 
+    nominal = 0;
+    variable = false;
     e = false;
 }
 
 Var::Var(const Var &obj){
+    this->nombre = obj.nombre;
     this->rango = obj.rango;
-    e = false;
+    this->nominal = obj.nominal;
+    this->variable = obj.variable;
+    this->exp = obj.exp;
+    this->e = obj.e;
 }
 
 Var::Var() {
+   nominal = 0;
+   variable = false;
    e = false;
 }
 
@@ -105,15 +116,18 @@ QPointF Var::getRango(){
 
     QPointF punto;
 
+    //Los Value deben declararse antes que el parser: este guarda punteros a
+    //ellos (Variable(&v)) y se destruyen en orden inverso a su declaracion.
+    Value v(rango.x());
+    Value v2(rango.y());
+
     mup::ParserX p;
 
     p.SetExpr(exp.toStdString());
-    Value v(rango.x());
     p.DefineVar(nombre.toStdString(), Variable(&v));
 
     punto.setX(p.Eval().GetFloat());
 
-    Value v2(rango.y());
     p.RemoveVar(nombre.toStdString());
     p.DefineVar(nombre.toStdString(), Variable(&v2));
 
@@ -132,10 +146,12 @@ qreal Var::getNominal(){
         return nominal;
     }
 
+    //Value antes que el parser: ver comentario en getRango().
+    Value v(nominal);
+
     mup::ParserX p;
 
     p.SetExpr(exp.toStdString());
-    Value v(nominal);
     p.DefineVar(nombre.toStdString(), Variable(&v));
 
     return p.Eval().GetFloat();
@@ -166,14 +182,28 @@ qreal Var::getN(){
 }
 
 Var * Var::clone(){
-    
+
     if (!variable){
-        return new Var (this->nominal);
+        //Se conserva el nombre: una constante con nombre ("kv") no debe
+        //convertirse en una constante llamada por su valor.
+        return new Var (this->nombre, this->nominal);
     }
-    
+
     if (!e){
         return new Var (this->nombre, this->rango, this->nominal);
     }
 
     return new Var (this->nombre, this->rango, this->nominal, this->exp);
+}
+
+QVector <Var*> * Var::clonarVector(QVector <Var*> * origen){
+
+    QVector <Var*> * copia = new QVector <Var*> ();
+    copia->reserve(origen->size());
+
+    foreach (Var * var, *origen) {
+        copia->append(var->clone());
+    }
+
+    return copia;
 }
