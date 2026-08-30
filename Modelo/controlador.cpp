@@ -155,7 +155,7 @@ QVector <QVector <std::complex <qreal> > * > * Controlador::getContorno(){
     return templatedao->getContorno();
 }
 
-bool Controlador::calcularTemplates(QVector <qreal> * epsilon, QHash <Parameter *, QVector<qreal> *> *mapa, bool cuda){
+bool Controlador::calcularTemplates(QVector <qreal> * epsilon, QHash <QString, QVector<qreal> *> *mapa, bool cuda){
 
     if(!paso4){
         templatedao = dao->getTemplateDAO();

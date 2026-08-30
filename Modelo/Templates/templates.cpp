@@ -25,7 +25,7 @@ Templates::Templates()
 Templates::~Templates(){
 }
 
-void Templates::setMapa(QHash<Parameter *, QVector<qreal> *> *mapa){
+void Templates::setMapa(QHash<QString, QVector<qreal> *> *mapa){
     this->mapa = mapa;
 }
 
@@ -94,7 +94,9 @@ QVector<QVector<complex<qreal> > *> * Templates::getContorno(){
 
 QVector<qreal> * Templates::getVariables(Parameter * a){
 
-    QVector<qreal> * values = mapa->value(a);
+    //Clave por NOMBRE: la identidad por puntero se rompia con cada clone()
+    //o recarga del proyecto.
+    QVector<qreal> * values = mapa->value(a->name());
 
     if (values == NULL){
         throw qftbx::InvalidInput("Missing sweep grid for the uncertain parameter '"

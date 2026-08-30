@@ -47,9 +47,9 @@ protected:
         ASSERT_NE(planta, nullptr);
 
         // The fixture was computed on a 10x10 grid: a and kv in [1,10].
-        mapa = new QHash<Parameter*, QVector<qreal>*>();
-        mapa->insert(planta->numerator()->at(0), tools::linspace(1.0, 10.0, 10));
-        mapa->insert(planta->gain(), tools::linspace(1.0, 10.0, 10));
+        mapa = new QHash<QString, QVector<qreal>*>();
+        mapa->insert(planta->numerator()->at(0)->name(), tools::linspace(1.0, 10.0, 10));
+        mapa->insert(planta->gain()->name(), tools::linspace(1.0, 10.0, 10));
 
         omegaCopy = new QVector<qreal>(*parser.getOmega()->getValores());
         epsilon = new QVector<qreal>(6, 10.0);
@@ -72,7 +72,7 @@ protected:
 
     XmlParserLoad parser;
     LtiSystem* planta = nullptr;
-    QHash<Parameter*, QVector<qreal>*>* mapa = nullptr;
+    QHash<QString, QVector<qreal>*>* mapa = nullptr;
     QVector<qreal>* omegaCopy = nullptr;
     QVector<qreal>* epsilon = nullptr;
     Templates templates;
@@ -242,8 +242,8 @@ TEST(TemplatesValidation, MissingSweepGridThrowsInvalidInput)
         QStringLiteral(QFTBX_TEST_DATA_DIR "/planta2.qft"));
     LtiSystem* planta = parser.getPlanta();
 
-    auto* mapa = new QHash<Parameter*, QVector<qreal>*>();
-    mapa->insert(planta->numerator()->at(0), tools::linspace(1.0, 10.0, 10));
+    auto* mapa = new QHash<QString, QVector<qreal>*>();
+    mapa->insert(planta->numerator()->at(0)->name(), tools::linspace(1.0, 10.0, 10));
     // no grid for the uncertain gain "kv"
 
     auto* epsilon = new QVector<qreal>(6, 10.0);

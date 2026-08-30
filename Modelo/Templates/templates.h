@@ -111,7 +111,7 @@ public:
       * @param mapa Valores de las variables.
       */
 
-    void setMapa (QHash<Parameter *, QVector<qreal> *> * mapa);
+    void setMapa (QHash<QString, QVector<qreal> *> * mapa);
     
     
     /**
@@ -154,7 +154,7 @@ public:
 private:
     QVector<qreal> * getVariables(Parameter *a);
 
-    QHash <Parameter *, QVector<qreal> * > * mapa = NULL;
+    QHash <QString, QVector<qreal> * > * mapa = NULL;
     qint32 combinaciones = 0;
     QVector <qreal> * epsilon = NULL;
     bool cuda = false;

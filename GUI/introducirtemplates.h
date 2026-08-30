@@ -71,7 +71,7 @@ public:
     * @return mapa hash con los distintos valores que pueden tomar las variables.
     */
     
-    QHash<Parameter *, QVector<qreal> *> * getMapa();
+    QHash<QString, QVector<qreal> *> * getMapa();
     
     
    /**
@@ -141,7 +141,7 @@ private:
 
     QVector <ParLineEdit*>* parNume;
     QVector <ParLineEdit*>* parDeno ;
-    QHash <Parameter *, QVector<qreal> * > * mapa = NULL;
+    QHash <QString, QVector<qreal> * > * mapa = NULL;
     QVector <tresRadioButton> * radioButtonsNume;
     QVector <tresRadioButton> * radioButtonsDeno;
     QVector<Parameter *> *numerador;

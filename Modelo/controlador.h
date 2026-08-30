@@ -142,7 +142,7 @@ public:
     * @param mapa QHash donde se relacionan las variables de la planta con con los reales concretos de esa variabilidad.
    */
 
-    bool calcularTemplates(QVector<qreal> *epsilon, QHash<Parameter *, QVector<qreal> *> *mapa, bool cuda);
+    bool calcularTemplates(QVector<qreal> *epsilon, QHash<QString, QVector<qreal> *> *mapa, bool cuda);
     
     
     /**
