@@ -110,8 +110,13 @@ QString FormatoLibre::getExpr(qreal w){
             d.replace("s", "(" + QString::number(w) + "*i)") + ")";
 
 
-    if (ret->getNominal() != 0){
-        es += "* e^(i*" + QString::number(w) + "*" +
+    //El retardo puro es e^(-s*tau) => e^(-i*w*tau). Se emite si es variable
+    //(aunque su nominal sea 0, para que el barrido de templates lo recorra)
+    //o si es una constante no nula.
+    if (ret->isVariable()){
+        es += "* e^(-i*" + QString::number(w) + "*" + ret->getNombre() + ")";
+    }else if (ret->getNominal() != 0){
+        es += "* e^(-i*" + QString::number(w) + "*" +
                 QString::number(ret->getNominal()) +")";
     }
 
@@ -119,7 +124,15 @@ QString FormatoLibre::getExpr(qreal w){
 }
 
 QString FormatoLibre::getExpr(){
-    return k->getExp() + "*(" + exp_nume + ")/(" + exp_deno + ")";
+    QString es = k->getExp() + "*(" + exp_nume + ")/(" + exp_deno + ")";
+
+    if (ret->isVariable()){
+        es += " * e^(-s*" + ret->getNombre() + ")";
+    }else if (ret->getNominal() != 0){
+        es += " * e^(-s*" + QString::number(ret->getNominal()) +")";
+    }
+
+    return es;
 }
 
 Sistema::tipo_planta FormatoLibre::getClass(){

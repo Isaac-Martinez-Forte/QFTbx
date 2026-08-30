@@ -65,7 +65,7 @@ QString CPolinomios::getExpr (QVector <qreal> * numerador, QVector <qreal> * den
 
     if (ret != 0){
 
-        es += "* e^(i*" + QString::number(omega) + "*" + QString::number(ret) +")";
+        es += "* e^(-i*" + QString::number(omega) + "*" + QString::number(ret) +")";
     }
 
 
@@ -129,13 +129,13 @@ QString CPolinomios::getExpr(qreal w){
         es += "(1)))";
     }
 
-    if (ret->getNominal() != 0){
-
-        if (ret->isVariable()){
-            es += "* e^(i*" + QString::number(w) + "*ret)";
-        }else{
-            es += "* e^(i*" + QString::number(w) + "*" + QString::number(ret->getNominal()) +")";
-        }
+    //El retardo puro es e^(-s*tau) => e^(-i*w*tau). Se emite si es variable
+    //(aunque su nominal sea 0) o si es una constante no nula. Se usa el
+    //nombre real de la variable, no el literal "ret".
+    if (ret->isVariable()){
+        es += "* e^(-i*" + QString::number(w) + "*" + ret->getNombre() + ")";
+    }else if (ret->getNominal() != 0){
+        es += "* e^(-i*" + QString::number(w) + "*" + QString::number(ret->getNominal()) +")";
     }
 
     return es;
@@ -196,12 +196,10 @@ QString CPolinomios::getExpr(){
         es += "(1)))";
     }
 
-    if (ret->getNominal() != 0){
-        if (ret->isVariable()){
-            es += "e^(s*ret)";
-        }else{
-            es += " e^(s*" + QString::number(ret->getNominal()) +")";
-        }
+    if (ret->isVariable()){
+        es += " * e^(-s*" + ret->getNombre() + ")";
+    }else if (ret->getNominal() != 0){
+        es += " * e^(-s*" + QString::number(ret->getNominal()) +")";
     }
 
     return es;

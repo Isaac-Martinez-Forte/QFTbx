@@ -70,15 +70,42 @@ TEST(KGananciaExpr, NumericExpressionKeepsVariableNames)
     delete planta;
 }
 
-TEST(KGananciaExpr, SymbolicExpressionAppendsDelayUnconditionally)
+TEST(KGananciaExpr, SymbolicExpressionOmitsZeroFixedDelay)
 {
-    // BUG: the symbolic form always appends the delay factor, even when the
-    // delay is zero (the numeric form omits it). Note also the delay sign:
-    // a pure delay is e^(-s*tau), not e^(s*tau) — confirmed bug, pending fix.
+    // Fixed in the delay rework: a zero fixed delay is not emitted (it used
+    // to append "* e^(s*0)" unconditionally, and with the wrong sign).
     KGanancia* planta = makePlanta1();
-    EXPECT_EQ(planta->getExpr(),
-              QStringLiteral("kv*(1) / ((s + a) *(s + b)) * e^(s*0)"));
+    EXPECT_EQ(planta->getExpr(), QStringLiteral("kv*(1) / ((s + a) *(s + b))"));
     delete planta;
+}
+
+TEST(KGananciaExpr, FixedDelayEvaluatesAsNegativeExponential)
+{
+    // P(s) = 1/(s+5) with a pure delay of 0.5s: P(jw)*e^(-j*w*0.5).
+    KGanancia planta(QStringLiteral("delayed"), vars({}), vars({new Var(5.0)}),
+                     new Var(1.0), new Var(0.5));
+
+    const qreal w = 2.0;
+    const Complex s(0.0, w);
+    const Complex expected = std::exp(-s * 0.5) / (s + 5.0);
+
+    const Complex value = planta.getPunto(w);
+    EXPECT_NEAR(value.real(), expected.real(), kTolerance);
+    EXPECT_NEAR(value.imag(), expected.imag(), kTolerance);
+
+    EXPECT_TRUE(planta.getExpr().endsWith(QStringLiteral(" * e^(-s*0.5)")));
+}
+
+TEST(KGananciaExpr, VariableDelayWithZeroNominalStaysInExpression)
+{
+    // An uncertain delay must stay in the expression by name even when its
+    // nominal is 0, so the template sweep can drive it (it used to vanish).
+    KGanancia planta(
+        QStringLiteral("delayed"), vars({}), vars({new Var(5.0)}), new Var(1.0),
+        new Var(QStringLiteral("tau"), QPointF(0.0, 0.5), 0.0, QStringLiteral("tau")));
+
+    EXPECT_TRUE(planta.getExpr(0.1).endsWith(QStringLiteral("* e^(-i*0.1*tau)")));
+    EXPECT_TRUE(planta.getExpr().endsWith(QStringLiteral(" * e^(-s*tau)")));
 }
 
 TEST(KGananciaExpr, NominalEvaluation)
@@ -195,6 +222,40 @@ TEST(CPolinomiosExpr, NominalEvaluationMatchesPolynomialForm)
     delete planta;
 }
 
+TEST(CPolinomiosExpr, FixedDelayEvaluatesAsNegativeExponential)
+{
+    // P(s) = 1/(s^2+2s+3) with a pure delay of 0.7s. The symbolic form used
+    // to concatenate the delay without a '*' (a parse error) — now fixed.
+    CPolinomios planta(QStringLiteral("delayed"), vars({new Var(1.0)}),
+                       vars({new Var(1.0), new Var(2.0), new Var(3.0)}),
+                       new Var(1.0), new Var(0.7));
+
+    const qreal w = 2.0;
+    const Complex s(0.0, w);
+    const Complex expected = std::exp(-s * 0.7) / (s * s + 2.0 * s + 3.0);
+
+    const Complex value = planta.getPunto(w);
+    EXPECT_NEAR(value.real(), expected.real(), kTolerance);
+    EXPECT_NEAR(value.imag(), expected.imag(), kTolerance);
+
+    EXPECT_TRUE(planta.getExpr().endsWith(QStringLiteral(" * e^(-s*0.7)")));
+}
+
+TEST(KNGananciaExpr, FixedDelayEvaluatesAsNegativeExponential)
+{
+    // P(s) = 5/(s/10+1) with a pure delay of 0.3s.
+    KNGanancia planta(QStringLiteral("delayed"), vars({}), vars({new Var(10.0)}),
+                      new Var(5.0), new Var(0.3));
+
+    const qreal w = 1.0;
+    const Complex s(0.0, w);
+    const Complex expected = 5.0 * std::exp(-s * 0.3) / (s / 10.0 + 1.0);
+
+    const Complex value = planta.getPunto(w);
+    EXPECT_NEAR(value.real(), expected.real(), kTolerance);
+    EXPECT_NEAR(value.imag(), expected.imag(), kTolerance);
+}
+
 // ---------------------------------------------------------------------------
 // FormatoLibre: free-format expression, mirrors tests/data/cervera.qft
 // ---------------------------------------------------------------------------
@@ -254,6 +315,25 @@ TEST(FormatoLibreExpr, NominalEvaluation)
     EXPECT_NEAR(value.real(), expected.real(), kTolerance);
     EXPECT_NEAR(value.imag(), expected.imag(), kTolerance);
     delete planta;
+}
+
+TEST(FormatoLibreExpr, FixedDelayEvaluatesAsNegativeExponential)
+{
+    // P(s) = 1/(s+2) with a pure delay of 0.4s. The symbolic form used to
+    // ignore the delay entirely — now both forms emit e^(-s*tau).
+    FormatoLibre planta(QStringLiteral("delayed"), vars({}), vars({}),
+                        new Var(1.0), new Var(0.4), QStringLiteral("1"),
+                        QStringLiteral("s+2"));
+
+    const qreal w = 1.0;
+    const Complex s(0.0, w);
+    const Complex expected = std::exp(-s * 0.4) / (s + 2.0);
+
+    const Complex value = planta.getPunto(w);
+    EXPECT_NEAR(value.real(), expected.real(), kTolerance);
+    EXPECT_NEAR(value.imag(), expected.imag(), kTolerance);
+
+    EXPECT_TRUE(planta.getExpr().endsWith(QStringLiteral(" * e^(-s*0.4)")));
 }
 
 TEST(FormatoLibreExpr, GetPuntoWithExplicitValuesIsAnUnimplementedStub)

@@ -53,7 +53,7 @@ QString KGanancia::getExpr (QVector <qreal> * numerador, QVector <qreal> * denom
     }
 
     if (ret != 0){
-        es += "* e^(i*" + QString::number(omega) + "*" + QString::number(ret) +")";
+        es += "* e^(-i*" + QString::number(omega) + "*" + QString::number(ret) +")";
     }
 
 
@@ -114,13 +114,13 @@ QString KGanancia::getExpr(qreal w){
     }
 
 
-    if (ret->getNominal() != 0){
-
-        if (ret->isVariable()){
-            es += "* e^(i*" + QString::number(w) + "*" + ret->getNombre() + ")";
-        }else{
-            es += "* e^(i*" + QString::number(w) + "*" + QString::number(ret->getNominal()) +")";
-        }
+    //El retardo puro es e^(-s*tau) => e^(-i*w*tau). Se emite si el retardo es
+    //variable (aunque su nominal sea 0, el barrido de templates lo recorre) o
+    //si es una constante no nula.
+    if (ret->isVariable()){
+        es += "* e^(-i*" + QString::number(w) + "*" + ret->getNombre() + ")";
+    }else if (ret->getNominal() != 0){
+        es += "* e^(-i*" + QString::number(w) + "*" + QString::number(ret->getNominal()) +")";
     }
 
     return es;
@@ -177,16 +177,16 @@ QString KGanancia::getExpr(){
         }
 
         if (denominador->last()->isVariable()){
-            es += "(s + " + denominador->last()->getNombre() + ")) *";
+            es += "(s + " + denominador->last()->getNombre() + "))";
         }else{
-            es += "(s + " + QString::number(denominador->last()->getNominal()) + ")) *";
+            es += "(s + " + QString::number(denominador->last()->getNominal()) + "))";
         }
     }
 
     if (ret->isVariable()){
-        es += "e^(s*" + ret->getNombre() + ")";
-    }else{
-        es += " e^(s*" + QString::number(ret->getNominal()) +")";
+        es += " * e^(-s*" + ret->getNombre() + ")";
+    }else if (ret->getNominal() != 0){
+        es += " * e^(-s*" + QString::number(ret->getNominal()) +")";
     }
 
     return es;
