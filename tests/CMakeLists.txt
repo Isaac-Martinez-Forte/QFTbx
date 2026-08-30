@@ -20,6 +20,7 @@ add_executable(qftbx_tests
   backend/plant_fixture_test.cpp
   backend/lti_system_test.cpp
   backend/parameter_test.cpp
+  backend/specification_test.cpp
   backend/xmlparser_load_test.cpp
 )
 
