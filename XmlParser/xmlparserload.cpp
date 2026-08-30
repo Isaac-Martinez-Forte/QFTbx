@@ -1189,6 +1189,11 @@ inline Var *XmlParserLoad::leerVariable(qint32 tipoLectura){
 
                 stream->skipCurrentElement();
                 var->setRango(QPointF(inicio, final));
+            } else {
+                //El readNextStartElement fallido ya ha consumido el cierre de
+                //<variable-N>; el skipCurrentElement final saltaria el resto
+                //del elemento padre (numerador/denominador/tipo).
+                return var;
             }
 
         }else {
