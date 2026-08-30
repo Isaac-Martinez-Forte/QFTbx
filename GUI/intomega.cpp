@@ -1,6 +1,10 @@
 #include "intomega.h"
 #include "ui_intomega.h"
 
+#include <QMessageBox>
+
+#include "Modelo/Herramientas/exception.h"
+
 using namespace tools;
 
 
@@ -9,7 +13,6 @@ IntOmega::IntOmega(QWidget *parent) :
     ui(new Ui::IntOmega)
 {
 
-    fallo = false;
     ui->setupUi(this);
     setWindowTitle("Introducir Omega");
 
@@ -49,25 +52,26 @@ void IntOmega::on_ok_clicked()
 {
     qreal inicio = 0;
     qreal final = 0;
-    tiposOmega tipo;
+    Omega::tiposOmega tipo;
     QVector <qreal> * frecuencias;
 
     if (ui->selecforma->currentIndex() == 0){ //manual
         frecuencias = srtovectorReal(ui->mavect->text());
-        tipo = manual;
+        tipo = Omega::manual;
         if (frecuencias == NULL){
+            //Entrada invalida: antes se seguia adelante y se desreferenciaba
+            //el puntero nulo unas lineas mas abajo.
             ui->mavect->setStyleSheet("background : red");
-            fallo = true;
-        }else{
-            ui->mavect->setStyleSheet("background : white");
+            return;
         }
+        ui->mavect->setStyleSheet("background : white");
 
     } else if (ui->selecforma->currentIndex() == 1) { //logspace
         frecuencias = logspace(ui->loginicio->text().toDouble(),ui->logfin->text().toDouble(),
                                ui->logn->text().toDouble());
         inicio = ui->loginicio->text().toDouble();
         final = ui->logfin->text().toDouble();
-        tipo = logSpace;
+        tipo = Omega::logSpace;
 
     }else if (ui->selecforma->currentIndex() == 2) { //linspace
 
@@ -75,12 +79,19 @@ void IntOmega::on_ok_clicked()
                                ui->linn->text().toDouble());
 
         inicio = ui->lininicio->text().toDouble();
-        final = ui->lininicio->text().toDouble();
-        tipo = linSpace;
+        //Antes se releia lininicio: todo Omega lineal se guardaba con
+        //final == inicio (y asi viajaba al .qft y al diagrama de Bode).
+        final = ui->linfin->text().toDouble();
+        tipo = Omega::linSpace;
 
     } else {
-        frecuencias = fichero(file);
-        tipo = tiposOmega::fichero;
+        try {
+            frecuencias = Omega::valuesFromFile(file);
+        } catch (const qftbx::Exception & e) {
+            QMessageBox::critical(this, tr("Introducir Omega"), e.what());
+            return;
+        }
+        tipo = Omega::fichero;
     }
 
     Omega * omega = new Omega(inicio, final, frecuencias->size(),frecuencias,tipo);
@@ -91,16 +102,6 @@ void IntOmega::on_ok_clicked()
     emit (close_ok());
 }
 
-QVector <qreal> * IntOmega::fichero(QString ruta){
-    QFile fichero (ruta);
-    QTextStream in (&fichero);
-
-    if (fichero.open(QIODevice::ReadOnly))
-        menerror("No se puede leer el fichero, hay un error","Introducir Omega");
-
-    return srtovectorReal(in.readAll());
-
-}
 
 bool IntOmega::getTodoCorrecto(){
     return todoCorrecto;

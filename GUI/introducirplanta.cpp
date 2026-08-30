@@ -1,6 +1,9 @@
 #include "introducirplanta.h"
 #include "ui_introducirplanta.h"
 
+#include "GUI/menerror.h"
+#include "GUI/plot_palette.h"
+
 using namespace tools;
 
 IntroducirPlanta::IntroducirPlanta(Controlador * controlador, QWidget *parent) :

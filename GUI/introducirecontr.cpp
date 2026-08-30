@@ -1,6 +1,9 @@
 #include "introducirecontr.h"
 #include "ui_introducirecontr.h"
 
+#include "GUI/menerror.h"
+#include "GUI/plot_palette.h"
+
 using namespace tools;
 using namespace mup;
 

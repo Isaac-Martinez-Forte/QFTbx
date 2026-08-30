@@ -1,35 +1,48 @@
 #ifndef OMEGA_H
 #define OMEGA_H
 
+#include <QString>
 #include <QVector>
-
-#include "../Herramientas/tools.h"
 
 
    /**
     * @class Omega
     * @brief Clase que representa las frecuencias de diseño.
-    * 
+    *
     * @author Isaac Martínez Forte
     */
 
 class Omega
 {
 public:
-  
-  
+
+   /**
+    * @enum tiposOmega
+    * @brief Cómo se han generado las frecuencias de diseño. Los valores
+    * numéricos se serializan en los .qft: no reordenar.
+    */
+    enum tiposOmega {linSpace, logSpace, manual, fichero};
+
   /**
     * @fn Omega
     * @brief Constructor de la clase.
-    * 
+    *
     * @param inicio primer valor de las frecuencias de diseño
     * @param final último valor de las frecuencias de diseño.
     * @param nPuntos número de valores que tienen las frecuencias de diseño.
     * @param valores de las frecuencias de diseño.
     * @param tiposOmega tipo con el cual se han generado las frecuencias de diseño.
     */
-  
-    Omega(qreal inicio, qreal final, qint32 nPuntos, QVector <qreal> * valores, tools::tiposOmega tipo);
+
+    Omega(qreal inicio, qreal final, qint32 nPuntos, QVector <qreal> * valores, tiposOmega tipo);
+
+   /**
+    * @fn valuesFromFile
+    * @brief Lee un fichero de frecuencias (valores separados por espacios o
+    * saltos de línea). Lanza qftbx::FileError si no puede abrirse o no
+    * contiene frecuencias válidas.
+    */
+    static QVector <qreal> * valuesFromFile(QString path);
     
     
     /**
@@ -87,7 +100,7 @@ public:
     * @return tipo de las frecuencias de diseño.
     */
     
-    tools::tiposOmega getTipo();
+    tiposOmega getTipo();
 
     void setOmega (QVector <qreal> * nueva_omega);
 
@@ -97,7 +110,7 @@ private:
     qreal final;
     qint32 nPuntos;
     QVector <qreal> * valores;
-    tools::tiposOmega tipo;
+    tiposOmega tipo;
 };
 
 #endif // OMEGA_H

@@ -1,4 +1,6 @@
 #include "windowsgeneral.h"
+#include "GUI/menerror.h"
+#include "GUI/plot_palette.h"
 #include "ui_windowsgeneral.h"
 
 #include <QMessageBox>
@@ -194,8 +196,18 @@ void WindowsGeneral::on_BTemp_clicked()
 
         this->setCursor(Qt::WaitCursor);
 
-        if (controlador->calcularTemplates(vTemplates->getEpsilon(), vTemplates->getMapa(),
-                                           vTemplates->getElecCUDA())){
+        bool templatesOk = false;
+
+        try {
+            templatesOk = controlador->calcularTemplates(vTemplates->getEpsilon(), vTemplates->getMapa(),
+                                                         vTemplates->getElecCUDA());
+        } catch (const qftbx::Exception & e) {
+            this->setCursor(Qt::ArrowCursor);
+            QMessageBox::critical(this, tr("Calculo de Templates"), e.what());
+            return;
+        }
+
+        if (templatesOk){
 
             this->setCursor(Qt::ArrowCursor);
 
@@ -335,11 +347,18 @@ void WindowsGeneral::on_BDiLaz_clicked()
     loopShaping->exec();
 
     if (loopShaping->getTodoCorrecto()){
-        bool re = controlador->calcularLoopShaping(loopShaping->getEpsilon(), loopShaping->getAlg(), loopShaping->range(),
-                                                   loopShaping->getNPuntos(), loopShaping->getDepuracion(),
-                                                   loopShaping->getDelta(), loopShaping->getInicializacion(),
-                                                   loopShaping->getHilos(), loopShaping->getBisectionAvanced(),
-                                                   loopShaping->getDeteccionAvanced(), loopShaping->getAcelerated());
+        bool re = false;
+
+        try {
+            re = controlador->calcularLoopShaping(loopShaping->getEpsilon(), loopShaping->getAlg(), loopShaping->range(),
+                                                  loopShaping->getNPuntos(), loopShaping->getDepuracion(),
+                                                  loopShaping->getDelta(), loopShaping->getInicializacion(),
+                                                  loopShaping->getHilos(), loopShaping->getBisectionAvanced(),
+                                                  loopShaping->getDeteccionAvanced(), loopShaping->getAcelerated());
+        } catch (const qftbx::Exception & e) {
+            QMessageBox::critical(this, tr("Loop Shaping"), e.what());
+            return;
+        }
 
         if (re){
             viewLoopShaping->setDatos(controlador->getBoundariesReun(),controlador->getOmega()->getValores(),

@@ -159,6 +159,13 @@ inline bool XmlParserLoad::leerEspec(QMap <QString, QVector <QVector <QPointF> *
 
         QVector <qreal> * vec1 = srtovectorReal(stream->readElementText());
 
+
+        if (vec1 == NULL){
+
+            salidaError();
+
+        }
+
         QVector <QPointF> * vec2 = new QVector <QPointF> ();
 
         for  (qint32 j = 0; j < vec1->size() - 1; j = j+2){
@@ -197,6 +204,13 @@ inline bool XmlParserLoad::leerVectorVectorPunto(QVector <QVector <QPointF> * > 
         }
 
         QVector <qreal> * vec1 = srtovectorReal(stream->readElementText());
+
+
+        if (vec1 == NULL){
+
+            salidaError();
+
+        }
 
         QVector <QPointF> * vec2 = new QVector <QPointF> ();
 
@@ -445,6 +459,13 @@ inline bool XmlParserLoad::leerTemplates(){
 
     epsilon = srtovectorReal(stream->readElementText());
 
+
+    if (epsilon == NULL){
+
+        salidaError();
+
+    }
+
     stream->skipCurrentElement();
 
     if (!stream->readNextStartElement()){       //leemos la sección completo
@@ -523,6 +544,13 @@ inline bool XmlParserLoad::leerVectorComplejos(QVector<std::complex <qreal> > *v
 
     QVector<qreal> * vectorReales = srtovectorReal(stream->readElementText());
 
+
+    if (vectorReales == NULL){
+
+        salidaError();
+
+    }
+
     if (!stream->readNextStartElement()){       //leemos la sección del segundo vector
         return salidaError();
     }
@@ -530,6 +558,13 @@ inline bool XmlParserLoad::leerVectorComplejos(QVector<std::complex <qreal> > *v
     //std::cout << stream->readElementText().toStdString() << std::endl;
 
     QVector<qreal> * vectorImaginarios = srtovectorReal(stream->readElementText());
+
+
+    if (vectorImaginarios == NULL){
+
+        salidaError();
+
+    }
 
 
     vector->reserve(vectorImaginarios->size());
@@ -598,7 +633,7 @@ inline bool XmlParserLoad::leerOmega(){
         return salidaError();
     }
 
-    tiposOmega tipo = (tiposOmega) stream->readElementText().toInt();
+    Omega::tiposOmega tipo = (Omega::tiposOmega) stream->readElementText().toInt();
 
     if (!stream->readNextStartElement()){       //leemos la sección valores
         return salidaError();
@@ -609,6 +644,13 @@ inline bool XmlParserLoad::leerOmega(){
     }
 
     QVector<qreal> * valores = srtovectorReal(stream->readElementText());
+
+
+    if (valores == NULL){
+
+        salidaError();
+
+    }
 
     stream->skipCurrentElement();
 

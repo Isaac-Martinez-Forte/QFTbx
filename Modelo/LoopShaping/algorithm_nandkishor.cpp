@@ -1,3 +1,4 @@
+#include "Modelo/Herramientas/exception.h"
 #include "algorithm_nandkishor.h"
 
 using namespace tools;
@@ -115,15 +116,14 @@ bool Algorithm_nandkishor::init_algorithm(){
     while (true){
 
         if (lista->esVacia()){
-            menerror("El espacio de parámetros inicial del controlador no es válido.", "Loop Shaping");
-
-            delete conversion;
+                        delete conversion;
             delete lista;
             delete anterior_sis_min;
             delete controlador_inicial;
             delete deteccion;
 
-            return false;
+            throw qftbx::InvalidInput(
+                    "The initial controller parameter space is not valid.");
         }
 
         Tripleta * tripleta = static_cast<Tripleta2 *>(lista->recuperarPrimero());

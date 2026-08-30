@@ -31,6 +31,24 @@ public:
 };
 
 /**
+ * @brief A computation could not produce a result.
+ */
+class ComputationError : public Exception
+{
+public:
+    using Exception::Exception;
+};
+
+/**
+ * @brief User-provided data is not valid for the requested operation.
+ */
+class InvalidInput : public Exception
+{
+public:
+    using Exception::Exception;
+};
+
+/**
  * @brief Malformed content found while parsing a .qft project file.
  */
 class ParseError : public FileError

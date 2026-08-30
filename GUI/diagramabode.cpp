@@ -1,6 +1,9 @@
 #include "diagramabode.h"
 #include "ui_diagramabode.h"
 
+#include "GUI/menerror.h"
+#include "GUI/plot_palette.h"
+
 
 using namespace std;
 using namespace tools;
@@ -22,9 +25,9 @@ void DiagramaBode::dibujarBode(LtiSystem *planta, Omega *omega){
 
     QVector <qreal> * frecuencias;
 
-    if (omega->getTipo() == linSpace){
+    if (omega->getTipo() == Omega::linSpace){
         frecuencias = linspace(-1, omega->getFinal(),100);
-    }else if (omega->getTipo() == logSpace){
+    }else if (omega->getTipo() == Omega::logSpace){
         frecuencias = logspace(-1, omega->getFinal(),100);
     }else {
         frecuencias = omega->getValores();

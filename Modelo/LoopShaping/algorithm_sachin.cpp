@@ -1,3 +1,4 @@
+#include "Modelo/Herramientas/exception.h"
 #include "algorithm_sachin.h"
 #include<iostream>
 #include<stdlib.h>
@@ -60,13 +61,12 @@ bool Algorithm_sachin::init_algorithm() {
         
         
         if (lista->esVacia()) {
-            menerror("El espacio de parámetros inicial del controlador no es válido.", "Loop Shaping");
-
             delete conversion;
-            delete lista;
-            delete deteccion;
+delete lista;
+delete deteccion;
 
-            return false;
+throw qftbx::InvalidInput(
+        "The initial controller parameter space is not valid.");
         }
 
         Tripleta * tripleta = static_cast<Tripleta *>(lista->recuperarPrimero());

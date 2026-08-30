@@ -1,6 +1,9 @@
 #include "verboundaries.h"
 #include "ui_verboundaries.h"
 
+#include "GUI/menerror.h"
+#include "GUI/plot_palette.h"
+
 
 using namespace tools;
 using namespace cxsc;

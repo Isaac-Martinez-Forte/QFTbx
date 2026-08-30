@@ -1,6 +1,9 @@
 #include "viewbound.h"
 #include "ui_viewbound.h"
 
+#include "GUI/menerror.h"
+#include "GUI/plot_palette.h"
+
 using namespace tools;
 
 ViewBound::ViewBound(QWidget *parent) :

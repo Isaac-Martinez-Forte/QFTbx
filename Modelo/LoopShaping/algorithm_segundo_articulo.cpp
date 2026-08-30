@@ -1,3 +1,4 @@
+#include "Modelo/Herramientas/exception.h"
 #include "algorithm_segundo_articulo.h"
 
 
@@ -168,14 +169,13 @@ bool Algorithm_segundo_articulo::init_algorithm(){
     while (true) {
 
         if (lista->esVacia()) {
-            menerror("El espacio de parámetros inicial del controlador no es válido.", "Loop Shaping");
-
-            delete conversion;
+                        delete conversion;
             delete lista;
             delete deteccion;
             delete mejorSolucion;
 
-            return false;
+            throw qftbx::InvalidInput(
+                    "The initial controller parameter space is not valid.");
         }
 
         tripleta = static_cast<Tripleta2 *>(lista->recuperarPrimero());

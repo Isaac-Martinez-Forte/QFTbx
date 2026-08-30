@@ -1,6 +1,9 @@
 #include "intloopshaping.h"
 #include "ui_intloopshaping.h"
 
+#include "GUI/menerror.h"
+#include "GUI/plot_palette.h"
+
 using namespace mup;
 
 IntLoopShaping::IntLoopShaping(QWidget *parent) :

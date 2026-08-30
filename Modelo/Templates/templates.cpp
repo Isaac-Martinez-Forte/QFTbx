@@ -1,5 +1,7 @@
 #include "templates.h"
 
+#include "Modelo/Herramientas/exception.h"
+
 #include <QDebug>
 #include <QElapsedTimer>
 #include <iostream>
@@ -48,8 +50,7 @@ bool Templates::lanzarCalculo(LtiSystem *planta, QVector<qreal> *omega, bool cud
 
 
     if (templates == NULL){
-        menerror("No se han podido calcular los Templates", "Calculo de Templates");
-        return false;
+        throw qftbx::ComputationError("Could not compute the templates.");
     }
 
     QElapsedTimer timer2;
@@ -409,7 +410,6 @@ bool Templates::calcularContorno(bool cuda __attribute__((unused))){
             QVector <complex <qreal> > * cont = e_hull(templates->at(i), epsilon->at(i));
 
             if (cont == NULL){
-                //menerror("Error calculando el contorno de los templates.", "Templates");
                 cont = new QVector <complex <qreal> >();
 
 #ifdef OpenMP_AVAILABLE
@@ -476,7 +476,6 @@ bool Templates::calcularContorno(bool cuda __attribute__((unused))){
         QVector <complex <qreal> > * cont = e_hull(templates->at(i), epsilon->at(i));
 
         if (cont == NULL){
-            //menerror("Error calculando el contorno de los templates.", "Templates");
             cont = new QVector <complex <qreal> >();
 
             cout << "Error al calcular el contorno" << endl;
@@ -515,8 +514,7 @@ bool Templates::calcularContorno(bool cuda __attribute__((unused))){
 #endif
 
     if (!correcto){
-        menerror("No se ha podido calcular el contorno de los Templates", "Calculo de Templates");
-        return false;
+        throw qftbx::ComputationError("Could not compute the template contours.");
     }
 
     contornoCalculado = true;

@@ -1,6 +1,9 @@
 #include "viewloopshaping.h"
 #include "ui_viewloopshaping.h"
 
+#include "GUI/menerror.h"
+#include "GUI/plot_palette.h"
+
 using namespace tools;
 
 ViewLoopShaping::ViewLoopShaping(QWidget *parent) :

@@ -1,7 +1,12 @@
 
+#include "Modelo/Herramientas/exception.h"
+#include <QMessageBox>
 
 #include "viewtemplates.h"
 #include "ui_viewtemplates.h"
+
+#include "GUI/menerror.h"
+#include "GUI/plot_palette.h"
 
 using namespace std;
 //using namespace tools;
@@ -443,7 +448,12 @@ void ViewTemplates::on_recalcular_clicked()
         epsilon->append(pos);
     }
 
-    setContorno(controlador->recalcularContorno(epsilon));
+    try {
+        setContorno(controlador->recalcularContorno(epsilon));
+    } catch (const qftbx::Exception & e) {
+        QMessageBox::critical(this, tr("Calculo de Templates"), e.what());
+        return;
+    }
     omega = controlador->getOmega()->getValores();
     this->epsilon->clear();
     this->epsilon = controlador->getEpsilon();
