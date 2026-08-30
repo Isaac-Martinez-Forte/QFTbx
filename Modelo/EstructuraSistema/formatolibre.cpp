@@ -18,7 +18,7 @@ FormatoLibre::FormatoLibre(QString nombre, QVector <Var*> * numerador, QVector <
 }
 
 FormatoLibre::FormatoLibre(FormatoLibre* datos) : FormatoLibre (datos->getNombre(), datos->getNumerador(), datos->getDenominador(),
-                                                                datos->getK(), datos->getRet(), datos->exp_nume, datos->exp_nume) {
+                                                                datos->getK(), datos->getRet(), datos->exp_nume, datos->exp_deno) {
 
 }
 
@@ -168,7 +168,9 @@ Var * FormatoLibre::getRet(){
 Sistema * FormatoLibre::invoke(QString nombre, QVector<Var *> *numerador, QVector<Var *> *denominador,
                                Var *k, Var *ret, QString exp_nume, QString exp_deno){
 
-    return new FormatoLibre (nombre, numerador, denominador, k, ret, exp_nume, exp_deno);
+    //Un retardo no especificado equivale a retardo cero.
+    return new FormatoLibre (nombre, numerador, denominador, k,
+                             ret == NULL ? new Var(0.0) : ret, exp_nume, exp_deno);
 }
 
 

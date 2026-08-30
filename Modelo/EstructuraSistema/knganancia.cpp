@@ -12,7 +12,8 @@ KNGanancia::~KNGanancia(){
 
 Sistema * KNGanancia::invoke (QString nombre, QVector <Var*> * numerador, QVector <Var*> * denominador,
                               Var * k, Var* ret, QString exp_nume __attribute__((unused)), QString exp_deno __attribute__((unused))){
-    return new KNGanancia(nombre, numerador, denominador, k, ret);
+    //Un retardo no especificado equivale a retardo cero.
+    return new KNGanancia(nombre, numerador, denominador, k, ret == NULL ? new Var(0.0) : ret);
 }
 
 QString KNGanancia::getExpr (QVector <qreal> * numerador, QVector <qreal> * denominador,
@@ -37,7 +38,7 @@ QString KNGanancia::getExpr (QVector <qreal> * numerador, QVector <qreal> * deno
     }
 
 
-    for (qint32 i = 1; i < sizeDen; i++){
+    for (qint32 i = 0; i < sizeDen-1; i++){
 
         es += "((("+ QString::number(omega) + "*i) / " + QString::number(denominador->at(i)) + ")+1) *";
     }
@@ -65,7 +66,7 @@ QString KNGanancia::getExpr(qreal w){
     QString es;
 
     if (k->isVariable()){
-        es += "kv*(";
+        es += k->getNombre() + "*(";
     }else {
         es += QString::number(k->getNominal()) + "*(";
     }
@@ -129,7 +130,7 @@ QString KNGanancia::getExpr(){
     QString es;
 
     if (k->isVariable()){
-        es += "kv*(";
+        es += k->getNombre() + "*(";
     }else {
         es += QString::number(k->getNominal()) + "*(";
     }
@@ -224,7 +225,7 @@ std::complex <qreal> KNGanancia::getPuntoDeno(QVector <qreal> * deno, qreal omeg
     qint32 sizeDen = deno->size();
     QString es = "(";
 
-    for (qint32 i = 1; i < sizeDen; i++){
+    for (qint32 i = 0; i < sizeDen-1; i++){
 
         es += "((("+ QString::number(omega) + "*i) / " + QString::number(deno->at(i)) + ")+1) *";
     }

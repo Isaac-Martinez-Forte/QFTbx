@@ -13,7 +13,8 @@ KGanancia::~KGanancia(){
 
 Sistema * KGanancia::invoke (QString nombre, QVector <Var*> * numerador, QVector <Var*> * denominador,
                              Var * k, Var* ret, QString exp_nume __attribute__((unused)), QString exp_deno __attribute__((unused))){
-    return new KGanancia(nombre, numerador, denominador, k, ret = NULL ? new Var(0) : ret);
+    //Un retardo no especificado equivale a retardo cero.
+    return new KGanancia(nombre, numerador, denominador, k, ret == NULL ? new Var(0.0) : ret);
 }
 
 

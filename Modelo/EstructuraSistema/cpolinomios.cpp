@@ -13,7 +13,8 @@ CPolinomios::~CPolinomios(){
 
 Sistema * CPolinomios::invoke (QString nombre, QVector <Var*> * numerador, QVector <Var*> * denominador,
                                Var * k, Var* ret, QString exp_nume __attribute__((unused)), QString exp_deno __attribute__((unused))){
-    return new CPolinomios(nombre, numerador, denominador, k, ret);
+    //Un retardo no especificado equivale a retardo cero.
+    return new CPolinomios(nombre, numerador, denominador, k, ret == NULL ? new Var(0.0) : ret);
 }
 
 Sistema::tipo_planta CPolinomios::getClass(){
@@ -80,7 +81,7 @@ QString CPolinomios::getExpr(qreal w){
     QString es;
 
     if (k->isVariable()){
-        es += "(kv*(";
+        es += "(" + k->getNombre() + "*(";
     }else {
         es += "(" + QString::number(k->getNominal()) + "*(";
     }
@@ -148,7 +149,7 @@ QString CPolinomios::getExpr(){
     QString es;
 
     if (k->isVariable()){
-        es += "(kv*(";
+        es += "(" + k->getNombre() + "*(";
     }else {
         es +="(" + QString::number(k->getNominal()) + "*(";
     }
