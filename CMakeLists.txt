@@ -18,9 +18,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(USE_CLANG       "Use CLANG"   OFF)
 option(USE_OpenMP      "Use OpenMP"  ON)
 option(USE_CUDA        "Use CUDA"    OFF)
-option(USE_OpenCL      "Use OpenCL"  OFF)
 option(USE_Doxygen     "Use Doxygen" OFF)
-option(USE_QML         "Use QML"     OFF)
 option(USE_NATIVE_ARCH "Enable -march=native" ON)
 
 if(WIN32)
@@ -61,14 +59,7 @@ if(USE_CUDA)
 endif()
 
 # ------------------------------------------------------------------------------
-# OpenCL 
-# ------------------------------------------------------------------------------
-if(USE_OpenCL)
-    find_package(OpenCL)
-endif()
-
-# ------------------------------------------------------------------------------
-# Doxygen 
+# Doxygen
 # ------------------------------------------------------------------------------
 if (USE_Doxygen)
     message("Use Doxygen")
@@ -117,7 +108,6 @@ set(QFTbx_BACKEND_SRC
     Modelo/controlador.cpp
     Modelo/EstructurasDatos/parlineedit.cpp
     DAO/adaptadoromegadao.cpp
-    Modelo/Objetos/incertidumbre.cpp
     Modelo/Templates/templates.cpp
     DAO/adaptadortemplatedao.cpp
     Modelo/Herramientas/tools.cpp
@@ -137,7 +127,6 @@ set(QFTbx_BACKEND_SRC
     Modelo/LoopShaping/algorithm_nandkishor.cpp
     Modelo/LoopShaping/algorithm_rambabu.cpp
     Modelo/Boundaries/boundaries.cpp
-    Modelo/Boundaries/contour.cpp
     Consola/consola.cpp
     Modelo/EstructuraSistema/formatolibre.cpp
     Modelo/LoopShaping/loopshaping.cpp
@@ -174,8 +163,6 @@ set(QFTbx_GUI_SRC main.cpp
     GUI/verboundaries.cpp
 )
 
-set(QFTbx_OpenCL GPU/OpenCL/e_hull_opencl.cl)
-
 set(QFTbx_BACKEND_HED
     Modelo/EstructuraSistema/funciontransferencia.h
     Modelo/LoopShaping/NaturalIntervalExtension/natural_interval_extension.h
@@ -190,7 +177,6 @@ set(QFTbx_BACKEND_HED
     Modelo/EstructurasDatos/parlineedit.h
     DAO/adaptadoromegadao.h
     DAO/omegadao.h
-    Modelo/Objetos/incertidumbre.h
     Modelo/Templates/templates.h
     DAO/templatedao.h
     DAO/adaptadortemplatedao.h
@@ -217,7 +203,6 @@ set(QFTbx_BACKEND_HED
     Modelo/LoopShaping/algorithm_rambabu.h
     Modelo/LoopShaping/EstructuraDatos/arbol_exp.h
     Modelo/Boundaries/boundaries.h
-    Modelo/Boundaries/contour.h
     Consola/consola.h
     Modelo/EstructuraSistema/formatolibre.h
     Modelo/LoopShaping/loopshaping.h
@@ -283,9 +268,7 @@ target_link_libraries(qftbx_backend PUBLIC Qt6::Core Qt6::Gui Qt6::Widgets Qt6::
 add_executable(${EXE_NAME}
     ${QFTbx_GUI_SRC}
     ${QFTbx_GUI_HED}
-    ${QFTbx_QML}
     ${CUDA_OBJECTS}
-    ${QFTbx_OpenCL}
     ${TS_FILES}
     ${QFTbx_ICON_RES}
     ${QFTbx_RES_SRC}
@@ -364,17 +347,6 @@ endif()
 if(CUDA_FOUND)
     add_dependencies(qftbx_backend CUDA)
     target_link_libraries(qftbx_backend PUBLIC CUDA)
-endif()
-
-# OpenCL link
-if(USE_OpenCL AND OpenCL_FOUND)
-  if(TARGET OpenCL::OpenCL)
-    target_link_libraries(${EXE_NAME} PRIVATE OpenCL::OpenCL)
-  else()
-    target_link_libraries(${EXE_NAME} PRIVATE ${OpenCL_LIBRARY})
-    target_include_directories(${EXE_NAME} PRIVATE ${OpenCL_INCLUDE_DIRS})
-  endif()
-  target_compile_definitions(${EXE_NAME} PRIVATE OpenCL_AVAILABLE=1)
 endif()
 
 set_property(TARGET ${EXE_NAME} APPEND PROPERTY

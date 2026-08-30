@@ -145,9 +145,6 @@ void Boundaries::lanzarCalculo(QVector<qreal> *omega, Sistema *planta, QVector<Q
 
     //metaDatosBoundaries->clear();
 
-    //Ejecución de Tests ¡NO BORRAR!
-    //TestDeteccion * test = new TestDeteccion();
-    //test->ejecutarTests(getBoundaries(), metaDatosBoundaries);
 
     metaDatosBoundaries->clear();
 
