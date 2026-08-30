@@ -231,6 +231,13 @@ TEST(TemplatesReload, RecalculateContourAfterLoadingAProject)
     for (const QVector<Complex>* c : *contornos) {
         EXPECT_FALSE(c->isEmpty());
     }
+
+    // Second recalculation: the DAO must deep-delete the previous contour
+    // and epsilon without double frees or use-after-free (checked by the
+    // ASan runs of this suite).
+    auto* contornos2 = controlador.recalcularContorno(new QVector<qreal>(6, 8.0));
+    ASSERT_NE(contornos2, nullptr);
+    ASSERT_EQ(contornos2->size(), 6);
 }
 
 TEST(TemplatesValidation, MissingSweepGridThrowsInvalidInput)

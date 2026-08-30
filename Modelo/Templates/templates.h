@@ -154,6 +154,9 @@ public:
 private:
     QVector<qreal> * getVariables(Parameter *a);
 
+    //El motor NO posee nada de lo que sigue: mapa y epsilon pertenecen a la
+    //GUI/llamante, y templates/contorno pasan a ser propiedad del
+    //AdaptadorTemplateDAO en cuanto el Controlador se los entrega.
     QHash <QString, QVector<qreal> * > * mapa = NULL;
     qint32 combinaciones = 0;
     QVector <qreal> * epsilon = NULL;
