@@ -1,0 +1,13 @@
+# Advisory for now: run on refactored modules, not enforced in CI yet.
+Checks: >
+  -*,
+  bugprone-*,
+  performance-*,
+  modernize-*,
+  -modernize-use-trailing-return-type,
+  -modernize-avoid-c-arrays,
+  readability-braces-around-statements,
+  readability-implicit-bool-conversion
+WarningsAsErrors: ''
+HeaderFilterRegex: '(Modelo|DAO|XmlParser|Consola|GUI|tests)/.*'
+FormatStyle: file

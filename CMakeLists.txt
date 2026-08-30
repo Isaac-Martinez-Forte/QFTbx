@@ -21,6 +21,16 @@ option(USE_CUDA        "Use CUDA"    OFF)
 option(USE_Doxygen     "Use Doxygen" OFF)
 option(USE_NATIVE_ARCH "Enable -march=native" ON)
 
+# Build de desarrollo con sanitizers, p.ej. -DQFTBX_SANITIZERS=address,undefined
+# (requiere los runtimes libasan/libubsan instalados). Nota: mientras dure el
+# refactor el codigo tiene fugas conocidas; para ejecutar los tests usar
+# ASAN_OPTIONS=detect_leaks=0 hasta que cada modulo quede limpio.
+set(QFTBX_SANITIZERS "" CACHE STRING "Comma-separated sanitizers for dev builds (e.g. address,undefined)")
+if(QFTBX_SANITIZERS)
+  add_compile_options(-fsanitize=${QFTBX_SANITIZERS} -fno-omit-frame-pointer)
+  add_link_options(-fsanitize=${QFTBX_SANITIZERS})
+endif()
+
 if(WIN32)
     #set (CMAKE_PREFIX_PATH "C:\\Qt\\6.6.2\\msvc2019_64")
     set (CMAKE_PREFIX_PATH "C:\\Qt\\6.6.2\\mingw_64")
