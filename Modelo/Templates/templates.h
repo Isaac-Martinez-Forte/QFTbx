@@ -78,11 +78,7 @@ public:
     * @return templates calculados.
     */
     
-#ifndef OpenMP_AVAILABLE
-    QVector<QVector<std::complex<qreal> > *> * calcularTemplate_secuencial(LtiSystem *planta, QVector<qreal>* omega);
-#else
-    QVector<QVector<std::complex<qreal> > *> * calcularTemplate_paralelo(LtiSystem *planta, QVector<qreal>* omega);
-#endif
+    QVector<QVector<std::complex<qreal> > *> * calcularTemplate(LtiSystem *planta, QVector<qreal>* omega);
 
     /**
       * @fn calcularContorno

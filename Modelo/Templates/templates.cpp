@@ -44,11 +44,7 @@ bool Templates::lanzarCalculo(LtiSystem *planta, QVector<qreal> *omega, bool cud
     timer.start();
     this->omega = omega;
 
-#ifndef OpenMP_AVAILABLE
-    templates = calcularTemplate_secuencial(planta, omega);
-#else
-    templates = calcularTemplate_paralelo(planta, omega);
-#endif
+    templates = calcularTemplate(planta, omega);
 
     qDebug() << "Calcular plantilla: " << timer.elapsed() << "milliseconds";
 
@@ -108,280 +104,87 @@ QVector<qreal> * Templates::getVariables(Parameter * a){
     return values;
 }
 
-#ifndef OpenMP_AVAILABLE
-QVector<QVector<complex<qreal> > * > * Templates::calcularTemplate_secuencial (LtiSystem *planta, QVector<qreal> *omega){
+QVector<QVector<complex<qreal> > * > * Templates::calcularTemplate(LtiSystem *planta, QVector<qreal> *omega){
 
-    ParserX parser (pckALL_COMPLEX);
-
-    parser.EnableAutoCreateVar(true);
-
-    QMap <QString, QVector <qreal> *> * variables = new QMap <QString, QVector <qreal> *> ();
-    QVector <QString> * nombres = new QVector <QString> ();
-
-    qint32 lonNume = planta->numerator()->size();
-    qint32 lonDeno = planta->denominator()->size();
-    qint32 lon = 0;
-
-    qint32 lonOmega = omega->size();
+    //Recoleccion de parametros inciertos (el primero de cada nombre) y sus
+    //rejillas, en el orden numerador, denominador, ganancia, retardo. El
+    //indice en 'nombres' es el digito del cuentakilometros (el 0 es el
+    //rapido), igual que en la version historica.
+    QVector <QString> nombres;
+    QVector <const QVector <qreal> *> rejillas;
 
     combinaciones = 1;
 
-    Parameter * var;
-
-    for (qint32 i = 0; i < lonNume; i++){
-
-        var = planta->numerator()->at(i);
-
-        if (!nombres->contains(var->name()) && var->isUncertain()){
-            lon++;
-            nombres->append(var->name());
-            QVector <qreal> * vector = getVariables(var);
-            combinaciones *= vector->size();
-            variables->insert(var->name(),vector);
-
-            QString s = var->name() + "=" + QString::number(vector->at(0));
-            parser.SetExpr(s.toStdString());
-            parser.Eval();
+    auto recoger = [&](Parameter * var){
+        if (var->isUncertain() && !nombres.contains(var->name())){
+            const QVector <qreal> * rejilla = getVariables(var);
+            nombres.append(var->name());
+            rejillas.append(rejilla);
+            combinaciones *= rejilla->size();
         }
-    }
+    };
 
-    for (qint32 i = 0; i < lonDeno; i++){
+    foreach (Parameter * var, *planta->numerator())
+        recoger(var);
+    foreach (Parameter * var, *planta->denominator())
+        recoger(var);
+    recoger(planta->gain());
+    recoger(planta->delay());
 
-        var = planta->denominator()->at(i);
+    const qint32 lon = nombres.size();
+    const qint32 lonOmega = omega->size();
 
-        if (!nombres->contains(var->name()) && var->isUncertain()){
-            lon++;
-            nombres->append(var->name());
-            QVector <qreal> * vector = getVariables(var);
-            combinaciones *= vector->size();
-            variables->insert(var->name(),vector);
+    QVector<QVector<complex<qreal> > * > * temCompleto = new QVector <QVector<complex<qreal> > * > (lonOmega);
 
-            QString s = var->name() + "=" + QString::number(vector->at(0));
-            parser.SetExpr(s.toStdString());
-            parser.Eval();
-        }
-    }
-
-
-    if (planta->gain()->isUncertain()){
-        lon++;
-        nombres->append(planta->gain()->name());
-        QVector <qreal> * k = getVariables(planta->gain());
-        variables->insert(planta->gain()->name(), k);
-        combinaciones *= k->size();
-
-        QString s = planta->gain()->name() + "=" + QString::number(k->at(0));
-        parser.SetExpr(s.toStdString());
-        parser.Eval();
-    }
-
-
-    if(planta->delay()->isUncertain()){
-        lon++;
-        nombres->append(planta->delay()->name());
-        QVector <qreal> * ret = getVariables(planta->delay());
-        variables->insert(planta->delay()->name(), ret);
-        combinaciones *= ret->size();
-        QString s = planta->delay()->name() + "=" + QString::number(ret->at(0));
-        parser.SetExpr(s.toStdString());
-        parser.Eval();
-    }
-
-
-    QVector<QVector<complex<qreal> > * > * temCompleto = new QVector <QVector<complex<qreal> > * > ();
-    temCompleto->reserve(lonOmega);
-
-    for (qint32 u = 0; u < lonOmega; u++){
-
-
-
-        QVector <qint32> * contador = new QVector <qint32> (lon + 1, 0);
-
-        qreal w = omega->at(u);
-
-        QString es = planta->expression(w);
-
-
-        QVector <complex<qreal>> * templateParcial = new QVector <complex<qreal>> ();
-        templateParcial->reserve(combinaciones);
-
-        for (qint32 i = 0; i < combinaciones; i++){
-
-            parser.SetExpr(es.toStdString());//Guardar la expresión.
-
-            std::complex <qreal> a = parser.Eval().GetComplex();
-
-            /*qreal fase = arg(a)* 180 / M_PI;
-            qreal mag = 20*log10(abs(a));
-
-            if (fase >= -1){
-                fase -= 360;
-            }
-
-            qreal maglineal = pow(10,mag/20);
-            a = complex<qreal> (maglineal * cos (fase * M_PI / 180),
-                                maglineal * sin (fase * M_PI / 180));*/
-
-            templateParcial->append(a); //llamar parser
-
-            contador->replace(0, contador->first()+1);
-
-            bool salir = false;
-
-            for (qint32 j = 0; j < lon && salir == false;j++){
-
-                if (contador->at(j) >= (variables->value(nombres->at(j))->size())){
-                    contador->replace(j,0);
-                    contador->replace(j+1, contador->at(j+1) +1);
-                }else {
-                    salir = true;
-                }
-
-                QString s = nombres->at(j) + "=" + QString::number(variables->value(nombres->at(j))->at(contador->at(j)));
-                parser.SetExpr(s.toStdString());
-                parser.Eval();
-            }
-        }
-
-        temCompleto->append(templateParcial);
-
-        contador->clear();
-    }
-
-    variables->clear();
-    nombres->clear();
-
-    return temCompleto;
-
-}
-
-#else
-QVector<QVector<std::complex<qreal> > *> * Templates::calcularTemplate_paralelo(LtiSystem *planta, QVector<qreal> *omega){
-
-    QMap <QString, QVector <qreal> *> * variables = new QMap <QString, QVector <qreal> *> ();
-    QVector <QString> * nombres = new QVector <QString> ();
-
-    qint32 lonNume = planta->numerator()->size();
-    qint32 lonDeno = planta->denominator()->size();
-    qint32 lon = 0;
-
-    qint32 lonOmega = omega->size();
-
-    combinaciones = 1;
-
-    Parameter * var;
-
-    for (qint32 i = 0; i < lonNume; i++){
-
-        var = planta->numerator()->at(i);
-
-        if (!nombres->contains(var->name()) && var->isUncertain()){
-            lon++;
-            nombres->append(var->name());
-            QVector <qreal> * vector = getVariables(var);
-            combinaciones *= vector->size();
-            variables->insert(var->name(),vector);
-        }
-    }
-
-    for (qint32 i = 0; i < lonDeno; i++){
-
-        var = planta->denominator()->at(i);
-
-        if (!nombres->contains(var->name()) && var->isUncertain()){
-            lon++;
-            nombres->append(var->name());
-            QVector <qreal> * vector = getVariables(var);
-            combinaciones *= vector->size();
-            variables->insert(var->name(),vector);
-        }
-    }
-
-
-    if (planta->gain()->isUncertain()){
-        lon++;
-        nombres->append(planta->gain()->name());
-        QVector <qreal> * k = getVariables(planta->gain());
-        variables->insert(planta->gain()->name(), k);
-        combinaciones *= k->size();
-    }
-
-
-    if(planta->delay()->isUncertain()){
-        lon++;
-        nombres->append(planta->delay()->name());
-        QVector <qreal> * ret = getVariables(planta->delay());
-        variables->insert(planta->delay()->name(), ret);
-        combinaciones *= ret->size();
-    }
-
-    QVector<QVector<complex<qreal> > * > * temCompleto = new QVector <QVector<complex<qreal> > * > (omega->size());
-
+#ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
+#endif
     for (qint32 u = 0; u < lonOmega; u++){
-        QVector <complex<qreal>> * templateParcial = new QVector <complex<qreal>> ();
 
+        //Un parser por frecuencia: la expresion se parsea UNA sola vez y
+        //cada parametro queda ENLAZADO a un mup::Value que se muta en el
+        //bucle. Antes se re-parseaba la expresion completa en cada
+        //combinacion mas una asignacion parseada por digito del
+        //cuentakilometros (~2 parseos completos por combinacion).
         ParserX parser (pckALL_COMPLEX);
 
-        parser.EnableAutoCreateVar(true);
-
-
-        QVector <qint32> * contador = new QVector <qint32> (lon + 1, 0);
-
-        qreal w = omega->at(u);
-
-        for (qint32 i = 0; i < nombres->size(); i++){
-            QString s = nombres->at(i) + "=" + QString::number(variables->value(nombres->at(i))->at(0));
-            parser.SetExpr(s.toStdString());
-            parser.Eval();
+        std::vector <mup::Value> valores (lon);
+        for (qint32 j = 0; j < lon; j++){
+            valores[j] = mup::Value(rejillas.at(j)->at(0));
+            parser.DefineVar(nombres.at(j).toStdString(), mup::Variable(&valores[j]));
         }
 
-        QString es = planta->expression(w);
+        parser.SetExpr(planta->expression(omega->at(u)).toStdString());
 
+        QVector <complex<qreal>> * templateParcial = new QVector <complex<qreal>> ();
         templateParcial->reserve(combinaciones);
+
+        QVector <qint32> contador (lon + 1, 0);
 
         for (qint32 i = 0; i < combinaciones; i++){
 
-            parser.SetExpr(es.toStdString());//Guardar la expresión.
-            templateParcial->append(parser.Eval().GetComplex()); //llamar parser
+            templateParcial->append(parser.Eval().GetComplex());
 
-            contador->replace(0, contador->first()+1);
-
-            bool salir = false;
-
-            for (qint32 j = 0; j < lon && salir == false;j++){
-
-                if (contador->at(j) >= (variables->value(nombres->at(j))->size())){
-                    contador->replace(j,0);
-                    contador->replace(j+1, contador->at(j+1) +1);
+            contador[0]++;
+            for (qint32 j = 0; j < lon; j++){
+                if (contador.at(j) >= rejillas.at(j)->size()){
+                    contador[j] = 0;
+                    contador[j+1]++;
+                    valores[j] = rejillas.at(j)->at(0);
                 }else {
-                    salir = true;
+                    valores[j] = rejillas.at(j)->at(contador.at(j));
+                    break;
                 }
-
-                QString s = nombres->at(j) + "=" + QString::number(variables->value(nombres->at(j))->at(contador->at(j)));
-                parser.SetExpr(s.toStdString());
-                parser.Eval();
             }
         }
 
-        //Cada hilo escribe en el indice de SU frecuencia: antes se escribia
-        //con un contador compartido en orden de llegada de los hilos, lo que
-        //permutaba los templates respecto a omega/epsilon de forma no
-        //determinista, y luego se "reparaba" vaciando el vector vivo de
-        //Omega (aliasing) y reasignando. Sin permutacion no hay nada que
-        //reparar y los vectores del llamante quedan intactos.
+        //Cada frecuencia escribe en su propio indice: sin secciones criticas
+        //ni permutaciones.
         temCompleto->replace(u, templateParcial);
-
-        contador->clear();
     }
-
-    variables->clear();
-    nombres->clear();
 
     return temCompleto;
 }
-
-#endif
 
 QVector <qreal> * Templates::getOmega(){
     return omega;
