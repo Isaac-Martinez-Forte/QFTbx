@@ -1,5 +1,7 @@
 #include "parsersave.h"
 
+#include "Modelo/Herramientas/exception.h"
+
 using namespace tools;
 using namespace std;
 
@@ -21,8 +23,7 @@ bool XmlParserSave::guardarXMLDatos(QString fichero, DatosPlanta *datosPlanta){/
     QFile file(fichero);
 
     if (!file.open(QIODevice::WriteOnly)){
-        menerror("Guardar", "No se puede escribir en el fichero");
-        return false;
+        throw qftbx::FileError("Cannot write project file: " + fichero.toStdString());
     }
 
     stream = new QXmlStreamWriter(&file);

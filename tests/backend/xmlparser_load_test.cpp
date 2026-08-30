@@ -12,6 +12,7 @@
 
 #include "XmlParser/parserload.h"
 #include "Modelo/EstructuraSistema/sistema.h"
+#include "Modelo/Herramientas/exception.h"
 #include "Modelo/Objetos/omega.h"
 
 namespace {
@@ -129,6 +130,25 @@ TEST(XmlParserLoadSmoke, Planta1LoadsFullProject)
     ASSERT_NE(parser.getTemplates(), nullptr);
     EXPECT_EQ(parser.getTemplates()->size(), 4);
     EXPECT_NE(parser.getBoundaries(), nullptr);
+}
+
+TEST(XmlParserLoadErrors, MissingFileThrowsFileError)
+{
+    XmlParserLoad parser;
+    EXPECT_THROW(parser.recuperarXmlDatos(fixturePath("does-not-exist.qft")),
+                 qftbx::FileError);
+}
+
+TEST(XmlParserLoadErrors, MalformedFileThrowsParseErrorWithLine)
+{
+    XmlParserLoad parser;
+    try {
+        parser.recuperarXmlDatos(fixturePath("invalid.qft"));
+        FAIL() << "expected qftbx::ParseError";
+    } catch (const qftbx::ParseError &e) {
+        EXPECT_GT(e.line(), 0);
+        EXPECT_NE(std::string(e.what()).find("line"), std::string::npos);
+    }
 }
 
 } // namespace

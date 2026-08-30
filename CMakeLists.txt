@@ -195,6 +195,7 @@ set(QFTbx_BACKEND_HED
     DAO/templatedao.h
     DAO/adaptadortemplatedao.h
     Modelo/Herramientas/tools.h
+    Modelo/Herramientas/exception.h
     Modelo/Objetos/omega.h
     DAO/bounddao.h
     DAO/adaptadorbounddao.h
