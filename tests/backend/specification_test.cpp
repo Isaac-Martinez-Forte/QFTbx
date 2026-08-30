@@ -92,21 +92,32 @@ TEST(Specification, NegativeHeightYieldsNaN)
     EXPECT_TRUE(std::isnan(spec.getAltura(1.0)));
 }
 
-TEST(SpecificationDao, SetClearsTheCallersVectorInsteadOfOwning)
+TEST(SpecificationDao, OwnsReplacesAndToleratesIdentity)
 {
-    // BUG: the DAO's set/destructor clear() the pointer vector, emptying the
-    // caller's container while leaking every dBND (and its embedded plant).
+    // Fixed: the DAO now owns the records and their embedded plants (deep
+    // deletes on replacement and destruction, leak-checked under ASan);
+    // handing it the vector it already holds is a no-op.
     auto* first = new QVector<tools::dBND*>();
     for (int i = 0; i < 7; ++i) {
-        first->append(new tools::dBND{});
+        auto* spec = new tools::dBND{};
+        if (i == 0) {
+            spec->utilizado = true;
+            spec->constante = false;
+            spec->sistema = makeTrackingPlant(); // deep-owned
+        }
+        first->append(spec);
     }
 
     AdaptadorEspecificacionesDAO dao;
     dao.setEspecificaciones(first);
-    dao.setEspecificaciones(new QVector<tools::dBND*>());
+    dao.setEspecificaciones(first); // identity: must not double-delete
+    EXPECT_EQ(dao.getEspecificaciones(), first);
 
-    EXPECT_TRUE(first->isEmpty()); // emptied, not deleted; contents leaked
-    delete first;
+    auto* second = new QVector<tools::dBND*>();
+    second->append(new tools::dBND{});
+    dao.setEspecificaciones(second); // deep-deletes 'first' and its plant
+    EXPECT_EQ(dao.getEspecificaciones(), second);
+    // 'second' is deep-deleted by the DAO's destructor.
 }
 
 TEST(SpecificationPersistence, MultivaluadosSpecificationsRoundTrip)

@@ -717,9 +717,9 @@ void IntEspecificaciones::on_Cancel_clicked()
 
 void IntEspecificaciones::on_OK_clicked()
 {
-    if (retorno != NULL){
-        retorno->clear();
-    }
+    //El vector anterior es ya propiedad del DAO (se le entrego): aqui solo
+    //se suelta la referencia. Antes se fugaba un QVector por cada Aceptar.
+    retorno = NULL;
 
     bool correcto = true;
 
@@ -743,13 +743,15 @@ void IntEspecificaciones::on_OK_clicked()
 
     retorno = new QVector <dBND *> ();
 
-    retorno->append(seguimiento);
-    retorno->append(seguimiento_2);
-    retorno->append(estabilidad);
-    retorno->append(ruido);
-    retorno->append(RPS);
-    retorno->append(RPE);
-    retorno->append(EC);
+    //El DAO toma propiedad: se le entregan clones profundos y el dialogo
+    //conserva sus originales para seguir editando.
+    retorno->append(seguimiento->clone());
+    retorno->append(seguimiento_2->clone());
+    retorno->append(estabilidad->clone());
+    retorno->append(ruido->clone());
+    retorno->append(RPS->clone());
+    retorno->append(RPE->clone());
+    retorno->append(EC->clone());
 
     controlador->setEspecificaciones(retorno);
 
