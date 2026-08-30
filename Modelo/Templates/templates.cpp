@@ -298,12 +298,6 @@ QVector<QVector<std::complex<qreal> > *> * Templates::calcularTemplate_paralelo(
     }
 
     QVector<QVector<complex<qreal> > * > * temCompleto = new QVector <QVector<complex<qreal> > * > (omega->size());
-    temCompleto->reserve(lonOmega);
-
-    QVector <qreal> * nueva_omega = new QVector <qreal> (omega->size());
-
-    QVector <qreal> * nueva_epsilon = new QVector <qreal> (epsilon->size());
-    qint32 numeroHilo = 0;
 
 #pragma omp parallel for
     for (qint32 u = 0; u < lonOmega; u++){
@@ -352,26 +346,19 @@ QVector<QVector<std::complex<qreal> > *> * Templates::calcularTemplate_paralelo(
             }
         }
 
-#pragma omp critical
-        {
-            nueva_omega->replace(numeroHilo, w);
-
-            temCompleto->replace(numeroHilo, templateParcial);
-            nueva_epsilon->replace(numeroHilo, epsilon->at(u));
-            numeroHilo++;
-        }
+        //Cada hilo escribe en el indice de SU frecuencia: antes se escribia
+        //con un contador compartido en orden de llegada de los hilos, lo que
+        //permutaba los templates respecto a omega/epsilon de forma no
+        //determinista, y luego se "reparaba" vaciando el vector vivo de
+        //Omega (aliasing) y reasignando. Sin permutacion no hay nada que
+        //reparar y los vectores del llamante quedan intactos.
+        temCompleto->replace(u, templateParcial);
 
         contador->clear();
     }
 
     variables->clear();
     nombres->clear();
-
-    epsilon->clear();
-    epsilon = nueva_epsilon;
-
-    this->omega->clear();
-    this->omega = nueva_omega;
 
     return temCompleto;
 }
@@ -388,63 +375,14 @@ QVector <qreal> * Templates::getEpsilon(){
 
 bool Templates::calcularContorno(bool cuda __attribute__((unused))){
 
-
     bool correcto = true;
     qint32 lon = templates->size();
 
 #ifdef CUDA_AVAILABLE
-    if (!cuda){
-
-#ifndef OpenMP_AVAILABLE
-        contorno = new QVector <QVector <complex <qreal> > * > ();
-#else
-
-        qint32 numHilo = 0;
-        QVector <qreal> * nueva_omega = new QVector <qreal> (omega->size());
-        QVector <qreal> * nueva_epsilon = new QVector <qreal> (epsilon->size());
-
-        contorno = new QVector <QVector <complex <qreal> > * > (omega->size());
-#pragma omp parallel for
-#endif
-        for (qint32 i = 0; i < lon; i++){
-
-            QVector <complex <qreal> > * cont = e_hull(templates->at(i), epsilon->at(i));
-
-            if (cont == NULL){
-                cont = new QVector <complex <qreal> >();
-
-#ifdef OpenMP_AVAILABLE
-#pragma omp critical
-                correcto = false;
-#else
-                correcto = false;
-#endif
-            }
-
-#ifdef OpenMP_AVAILABLE
-#pragma omp critical
-            {
-                contorno->replace(numHilo, cont);
-                nueva_omega->replace(numHilo, omega->at(i));
-                nueva_epsilon->replace(numHilo, epsilon->at(i));
-                numHilo++;
-            }
-#else
-            contorno->append(cont);
-#endif
-
-        }
-
-#ifdef OpenMP_AVAILABLE
-        omega->clear();
-        epsilon->clear();
-
-        omega = nueva_omega;
-        epsilon = nueva_epsilon;
-#endif
-
-    } else {
-
+    if (cuda){
+        //Rama CUDA aparcada (decision 2026-08-30): sin validar desde Qt 5
+        //(toStdVector/fromStdVector ya no existen en Qt 6). Se conserva como
+        //referencia hasta la etapa GPU.
         contorno = new QVector <QVector <complex <qreal> > * > ();
 
         for (qint32 i = 0; i < lon; i++){
@@ -458,18 +396,24 @@ bool Templates::calcularContorno(bool cuda __attribute__((unused))){
             }
             contorno->append(cont);
         }
+
+        if (!correcto){
+            throw qftbx::ComputationError("Could not compute the template contours.");
+        }
+
+        contornoCalculado = true;
+        return true;
     }
-#else
+#endif
 
-#ifndef OpenMP_AVAILABLE
-    contorno = new QVector <QVector <complex <qreal> > * > ();
-#else
+    //Camino CPU, comun con y sin OpenMP. Cada iteracion escribe en el indice
+    //de SU frecuencia: antes un contador compartido permutaba los contornos
+    //en orden de llegada de los hilos (desalineandolos de templates) y luego
+    //se "reparaba" vaciando los vectores vivos de Omega y de la GUI
+    //(aliasing). Sin permutacion, omega y epsilon quedan intactos.
+    contorno = new QVector <QVector <complex <qreal> > * > (lon);
 
-    qint32 numHilo = 0;
-    QVector <qreal> * nueva_omega = new QVector <qreal> (omega->size());
-    QVector <qreal> * nueva_epsilon = new QVector <qreal> (epsilon->size());
-
-    contorno = new QVector <QVector <complex <qreal> > * > (omega->size());
+#ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
 #endif
     for (qint32 i = 0; i < lon; i++){
@@ -479,41 +423,16 @@ bool Templates::calcularContorno(bool cuda __attribute__((unused))){
         if (cont == NULL){
             cont = new QVector <complex <qreal> >();
 
-            cout << "Error al calcular el contorno" << endl;
-
 #ifdef OpenMP_AVAILABLE
 #pragma omp critical
-            correcto = false;
-#else
-            correcto = false;
 #endif
-            //epsilon->clear();
+            {
+                correcto = false;
+            }
         }
 
-#ifdef OpenMP_AVAILABLE
-#pragma omp critical
-        {
-            contorno->replace(numHilo, cont);
-            nueva_omega->replace(numHilo, omega->at(i));
-            nueva_epsilon->replace(numHilo, epsilon->at(i));
-            numHilo++;
-        }
-#else
-        contorno->append(cont);
-#endif
-
+        contorno->replace(i, cont);
     }
-
-#ifdef OpenMP_AVAILABLE
-    omega->clear();
-    epsilon->clear();
-
-    omega = nueva_omega;
-    epsilon = nueva_epsilon;
-#endif
-
-#endif
-
     if (!correcto){
         throw qftbx::ComputationError("Could not compute the template contours.");
     }

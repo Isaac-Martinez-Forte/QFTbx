@@ -36,7 +36,4 @@ if(UNIX AND NOT APPLE)
 endif()
 
 include(GoogleTest)
-#OMP_NUM_THREADS=1: calcularContorno todavia permuta por orden de hilo
-#(bug conocido); se retirara el pin al corregirlo.
-gtest_discover_tests(qftbx_tests DISCOVERY_TIMEOUT 60
-  PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=1")
+gtest_discover_tests(qftbx_tests DISCOVERY_TIMEOUT 60)

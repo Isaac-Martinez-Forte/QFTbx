@@ -3,10 +3,9 @@
 // original program (6 frequencies, 10x10 parameter grid, epsilon = 10).
 //
 // The fixture serialises with 6 significant digits, so comparisons use a
-// relative tolerance. NOTE: the whole test binary currently runs with
-// OMP_NUM_THREADS=1 (see tests/CMakeLists.txt): calcularContorno applies a
-// thread-order permutation that desynchronises templates from contours with
-// more threads; the pin will be removed when that bug is fixed.
+// relative tolerance. The tests run multithreaded: every computation writes
+// at the index of its own frequency (the old thread-order permutation and
+// its omega/epsilon aliasing repair are gone).
 
 #include <gtest/gtest.h>
 
@@ -60,9 +59,7 @@ protected:
 
     void TearDown() override
     {
-        // Templates owns nothing it was given; free what we created. The
-        // vectors handed to lanzarCalculo/setEpsilon get cleared and
-        // abandoned by calcularContorno (aliasing bug, pinned below).
+        // Templates owns nothing it was given; free what we created.
         for (QVector<qreal>* v : *mapa) {
             delete v;
         }
@@ -194,10 +191,9 @@ TEST_F(TemplatesGolden, ContourIsSubsetOfTemplate)
 
 TEST_F(TemplatesGolden, FrequencyAlignmentPreserved)
 {
-    // The i-th contour must correspond to the i-th frequency. With more
-    // than one OpenMP thread this fails intermittently today (the critical
-    // section renumbers with a thread counter); single-threaded it pins the
-    // correct correspondence that the fix must preserve.
+    // The i-th contour must correspond to the i-th frequency, with any
+    // number of OpenMP threads (the old thread-counter renumbering broke
+    // this intermittently).
     const QVector<qreal> original{0.1, 0.5, 1.0, 2.0, 15.0, 100.0};
     auto* omegaOut = templates.getOmega();
     ASSERT_NE(omegaOut, nullptr);
@@ -207,12 +203,15 @@ TEST_F(TemplatesGolden, FrequencyAlignmentPreserved)
     }
 }
 
-TEST_F(TemplatesGolden, InputVectorsAreClearedByTheComputation)
+TEST_F(TemplatesGolden, InputVectorsSurviveTheComputation)
 {
-    // BUG (aliasing): calcularContorno clears the omega and epsilon vectors
-    // it was handed (the caller's property) and abandons them.
-    EXPECT_TRUE(omegaCopy->isEmpty());
-    EXPECT_TRUE(epsilon->isEmpty());
+    // Fixed (aliasing): the computation no longer clears or replaces the
+    // omega and epsilon vectors it was handed; the caller's data survives.
+    ASSERT_EQ(omegaCopy->size(), 6);
+    EXPECT_DOUBLE_EQ(omegaCopy->at(0), 0.1);
+    EXPECT_DOUBLE_EQ(omegaCopy->at(5), 100.0);
+    ASSERT_EQ(epsilon->size(), 6);
+    EXPECT_DOUBLE_EQ(epsilon->at(0), 10.0);
 }
 
 } // namespace
