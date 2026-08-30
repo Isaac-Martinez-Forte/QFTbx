@@ -3,62 +3,43 @@
 
 #include <QVector>
 
-#include "sistema.h"
+#include "funciontransferencia.h"
 #include "complex"
 #include "mpParser.h"
 
  /**
     * @class FormatoLibre
-    * @brief Clase que reprepenta una Planta definida por datos experimentales.
-    * 
-    * Esta es solo una de las formas de definir una Planta, forma parte de una jerarquía cuya raíz es Planta.
+    * @brief Función de transferencia definida por expresiones de texto libre en 's'.
+    *
+    * Los vectores de variables no describen la estructura (numerador y
+    * denominador son texto): solo enumeran las variables inciertas presentes
+    * en las expresiones, para el barrido de templates.
+    *
     * @author Isaac Martínez Forte
    */
 
-class FormatoLibre : public Sistema
+class FormatoLibre : public FuncionTransferencia
 {
 public:
-  
-  
+
    /**
     * @fn FormatoLibre
-    * @brief Constructor que crea el objeto.
-    * 
-    * @param nombre de la planta a guardar en el sistema.
-    * @param fase QVector de qreal que define la fase de la planta.
-    * @param magnitud QVector de qreal que define la magnitud de la planta.
-    * @param frecuencias QVector de qreal que define las frecuencias de la planta. 
+    * @brief Constructor de la clase.
+    *
+    * @param nombre de la planta.
+    * @param numerador variables inciertas presentes en exp_nume.
+    * @param denominador variables inciertas presentes en exp_deno.
+    * @param k ganancia asociada.
+    * @param ret retardo asociado.
+    * @param exp_nume expresión de texto del numerador.
+    * @param exp_deno expresión de texto del denominador.
     */
- 
     FormatoLibre(QString nombre, QVector <Var*> * numerador, QVector <Var*> * denominador, Var * k, Var* ret, QString exp_nume,
                  QString exp_deno);
-
-    
-    
-   /**
-    * @fn ~DatosExperimentales
-    * @brief Destructor que crea el objeto.
-    */
-    
-    ~FormatoLibre();
-
-
-  /**
-    * @fn getPunto
-    * @brief Función que retorna un número complejo que resuelve la planta junto w que es la frecuencia de diseño..
-    * 
-    * @param w real que representa la frecuencia utilizada para resolver la Planta.
-    * 
-    * @see std/complex
-    * 
-   */
-  
-    std::complex<qreal> getPunto(qreal w);
 
     QString getExpr (QVector <qreal> * numerador, QVector <qreal> * denominador,
                              qreal k, qreal ret, qreal omega);
 
-    
     QString getExpr(qreal w);
 
     QString getExpr();
@@ -67,28 +48,13 @@ public:
 
     std::complex <qreal> getPuntoDeno(QVector <qreal> * deno, qreal omega);
 
-    /**
-    * @fn getClass
-    * @brief Función que retorna la clase de la instancia.
-    * 
-    * @return cadena con la clase de la instancia.
-    */
-    
-    tipo_planta getClass();
-
-    QVector <std::complex <qreal> > * getPunto (QVector <qreal> * omega);
-
     std::complex <qreal> getPunto (QVector <qreal> * numerador, QVector <qreal> * denominador,
                                            qreal k, qreal ret, qreal omega);
 
-    QVector <Var*> * getDenominador();
+    //Se reexpone la resolución nominal heredada, oculta por las sobrecargas anteriores.
+    using FuncionTransferencia::getPunto;
 
-    QVector <Var*> * getNumerador();
-
-    Var * getK ();
-
-    Var * getRet();
-
+    tipo_planta getClass();
 
     Sistema * invoke (QString nombre, QVector <Var*> * numerador, QVector <Var*> * denominador,
                               Var * k, Var* ret, QString exp_nume = 0, QString exp_deno = 0);
@@ -96,21 +62,11 @@ public:
     QString getNumeradorString();
     QString getDenominadorString();
 
-    void noBorrar ();
-
     Sistema * clone();
 
 private:
-    Var * k;
-    Var * ret;
-
-    QVector <Var*> * numerador;
-    QVector <Var*> * denominador;
-
     QString exp_nume;
     QString exp_deno;
-
-    bool b = true;
 };
 
-#endif // DATOSEXPERIMENTALES_H
+#endif // FORMATOLIBRE_H

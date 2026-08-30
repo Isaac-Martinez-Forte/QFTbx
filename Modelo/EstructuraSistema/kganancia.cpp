@@ -4,7 +4,7 @@ using namespace std;
 using namespace mup;
 
 KGanancia::KGanancia(QString nombre, QVector<Var *> *numerador, QVector<Var *> *denominador, Var *k, Var *ret):
-    PolosCeros(nombre, numerador, denominador,k,ret)
+    FuncionTransferencia(nombre, numerador, denominador,k,ret)
 {
 }
 

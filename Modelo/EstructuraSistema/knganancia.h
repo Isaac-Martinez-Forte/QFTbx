@@ -3,20 +3,20 @@
 
 #include <QString>
 
-#include "polosceros.h"
+#include "funciontransferencia.h"
 #include "mpParser.h"
 
 
  /**
     * @class KNGanancia
-    * @brief Clase que representa una planta del tipo KNGanancia, hereda de PolosCeros
+    * @brief Clase que representa una planta del tipo KNGanancia, hereda de FuncionTransferencia
     * 
     * Esta clase está dentro de una jerarquía que representa los distintos tipos de plantas que hay.
     * 
     * @author Isaac Martínez Forte
    */
 
-class KNGanancia : public PolosCeros
+class KNGanancia : public FuncionTransferencia
 {
 
 public:

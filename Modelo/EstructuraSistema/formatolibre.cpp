@@ -5,33 +5,10 @@ using namespace mup;
 
 FormatoLibre::FormatoLibre(QString nombre, QVector <Var*> * numerador, QVector <Var*> * denominador, Var * k,
                            Var* ret, QString exp_nume, QString exp_deno)
-    :Sistema (nombre)
+    :FuncionTransferencia (nombre, numerador, denominador, k, ret)
 {
-    b = true;
-
-    this->numerador = numerador;
-    this->denominador = denominador;
-    this->k = k;
-    this->ret = ret;
     this->exp_nume = exp_nume;
     this->exp_deno = exp_deno;
-}
-
-FormatoLibre::~FormatoLibre(){
-
-    //Misma politica de propiedad que FuncionTransferencia.
-    if (b){
-        qDeleteAll(*numerador);
-        delete numerador;
-        qDeleteAll(*denominador);
-        delete denominador;
-        delete k;
-        delete ret;
-    }
-}
-
-void FormatoLibre::noBorrar(){
-    b = false;
 }
 
 std::complex <qreal> FormatoLibre::getPunto (QVector <qreal> * numerador, QVector <qreal> * denominador,
@@ -54,49 +31,6 @@ std::complex <qreal> FormatoLibre::getPuntoDeno(QVector <qreal> * deno, qreal om
 
 
     return complex <qreal> ();
-}
-
-complex<qreal> FormatoLibre::getPunto(qreal w){
-    ParserX p (pckALL_COMPLEX);
-
-    p.EnableAutoCreateVar(true);
-
-    QString es;
-
-    foreach (Var * n, *numerador) {
-
-        if (n->isVariable()){
-            es = n->getNombre() + "=" + QString::number(n->getNominal());
-            p.SetExpr(es.toStdString());
-            p.Eval();
-        }
-    }
-
-    foreach (Var * d, *denominador) {
-        if (d->isVariable()){
-            es = d->getNombre() + "=" + QString::number(d->getNominal());
-            p.SetExpr(es.toStdString());
-            p.Eval();
-        }
-    }
-
-    if (k->isVariable()){
-        es = k->getNombre() + "=" + QString::number(k->getNominal());
-        p.SetExpr(es.toStdString());
-        p.Eval();
-    }
-
-    if (ret->isVariable()){
-        es = ret->getNombre() + "=" + QString::number(ret->getNominal());
-        p.SetExpr(es.toStdString());
-        p.Eval();
-    }
-
-    es = getExpr(w);
-
-    p.SetExpr(es.toStdString());
-
-    return p.Eval().GetComplex();
 }
 
 QString FormatoLibre::getExpr(qreal w){
@@ -137,32 +71,6 @@ Sistema::tipo_planta FormatoLibre::getClass(){
     return formato_libre;
 }
 
-QVector <std::complex <qreal> > * FormatoLibre::getPunto (QVector <qreal> * omega){
-    QVector <complex <qreal> > * r = new QVector <complex <qreal> > ();
-
-    foreach (qreal o, *omega) {
-        r->append(getPunto(o));
-    }
-
-    return r;
-}
-
-QVector <Var*> * FormatoLibre::getDenominador(){
-    return denominador;
-}
-
-QVector <Var*> * FormatoLibre::getNumerador(){
-    return numerador;
-}
-
-Var * FormatoLibre::getK (){
-    return k;
-}
-
-Var * FormatoLibre::getRet(){
-    return ret;
-}
-
 Sistema * FormatoLibre::invoke(QString nombre, QVector<Var *> *numerador, QVector<Var *> *denominador,
                                Var *k, Var *ret, QString exp_nume, QString exp_deno){
 
@@ -182,22 +90,10 @@ QString FormatoLibre::getDenominadorString(){
 
 Sistema * FormatoLibre::clone(){
 
-    QVector <Var *> * n = new QVector <Var *> ();
-    QVector <Var *> * d = new QVector <Var *> ();
-
     Var * k = this->k->clone();
-
     Var * ret = this->ret->clone();
 
-    foreach (Var * v, *numerador) {
-        n->append(v->clone());
-    }
-
-    foreach (Var * v, *denominador) {
-        d->append(v->clone());
-    }
-
-
-    return this->invoke(this->getNombre(), n, d, k, ret, this->exp_nume, this->exp_deno);
+    return this->invoke(this->getNombre(), Var::clonarVector(numerador),
+                        Var::clonarVector(denominador), k, ret,
+                        this->exp_nume, this->exp_deno);
 }
-

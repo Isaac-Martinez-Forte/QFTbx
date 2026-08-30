@@ -1,7 +1,7 @@
 #ifndef KGANANCIA_H
 #define KGANANCIA_H
 
-#include "polosceros.h"
+#include "funciontransferencia.h"
 #include "mpParser.h"
 
 #include <QString>
@@ -11,14 +11,14 @@
 
   /**
     * @class KGanancia
-    * @brief Clase que representa una planta del tipo KGanancia, hereda de PolosCeros
+    * @brief Clase que representa una planta del tipo KGanancia, hereda de FuncionTransferencia
     * 
     * Esta clase está dentro de una jerarquía que representa los distintos tipos de plantas que hay.
     * 
     * @author Isaac Martínez Forte
    */
 
-class KGanancia : public PolosCeros
+class KGanancia : public FuncionTransferencia
 {
 
 public:

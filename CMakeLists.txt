@@ -111,7 +111,6 @@ set(QFTbx_BACKEND_SRC
     Modelo/EstructuraSistema/funciontransferencia.cpp
     DAO/adaptadorplantadao.cpp
     Modelo/EstructuraSistema/sistema.cpp
-    Modelo/EstructuraSistema/polosceros.cpp
     Modelo/EstructuraSistema/cpolinomios.cpp
     Modelo/EstructuraSistema/kganancia.cpp
     Modelo/EstructuraSistema/knganancia.cpp
@@ -178,7 +177,6 @@ set(QFTbx_BACKEND_HED
     Modelo/LoopShaping/NaturalIntervalExtension/natural_interval_extension.h
     DAO/adaptadorplantadao.h
     Modelo/EstructuraSistema/sistema.h
-    Modelo/EstructuraSistema/polosceros.h
     Modelo/EstructuraSistema/cpolinomios.h
     Modelo/EstructuraSistema/kganancia.h
     Modelo/EstructuraSistema/knganancia.h
