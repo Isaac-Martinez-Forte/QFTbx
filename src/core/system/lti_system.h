@@ -7,6 +7,8 @@
 #include "src/core/system/parameter.h"
 #include "mpParser.h"
 
+namespace qftbx {
+
   /**
     * @class LtiSystem 
     * @brief Clase que representa una sistema en el sistema, es la cabeza de una jerarquía donde están representados todos los tipos de sistema.
@@ -160,5 +162,11 @@ private:
     QString nombre;
     bool penalizacion;
 };
+
+} // namespace qftbx
+
+//Transitional: unqualified name for consumers not yet migrated
+//to the qftbx namespace. Remove when the migration is complete.
+using qftbx::LtiSystem;
 
 #endif // QFTBX_LTI_SYSTEM_H

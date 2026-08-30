@@ -2,6 +2,8 @@
 
 using namespace std;
 
+namespace qftbx {
+
 TimeConstantGain::TimeConstantGain(QString nombre, QVector<Parameter *> *numerador, QVector<Parameter *> *denominador, Parameter *k, Parameter *ret):
     TransferFunction(nombre, numerador, denominador,k,ret)
 {
@@ -238,3 +240,5 @@ std::complex <qreal> TimeConstantGain::evaluateDenominator(QVector <qreal> * den
 
     return p.Eval().GetComplex();
 }
+
+} // namespace qftbx

@@ -7,6 +7,8 @@
 #include "complex"
 #include "mpParser.h"
 
+namespace qftbx {
+
  /**
     * @class FreeForm
     * @brief Función de transferencia definida por expresiones de texto libre en 's'.
@@ -68,5 +70,11 @@ private:
     QString exp_nume;
     QString exp_deno;
 };
+
+} // namespace qftbx
+
+//Transitional: unqualified name for consumers not yet migrated
+//to the qftbx namespace. Remove when the migration is complete.
+using qftbx::FreeForm;
 
 #endif // QFTBX_FREE_FORM_H

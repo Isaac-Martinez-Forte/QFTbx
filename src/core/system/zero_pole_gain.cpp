@@ -3,6 +3,8 @@
 using namespace std;
 using namespace mup;
 
+namespace qftbx {
+
 ZeroPoleGain::ZeroPoleGain(QString nombre, QVector<Parameter *> *numerador, QVector<Parameter *> *denominador, Parameter *k, Parameter *ret):
     TransferFunction(nombre, numerador, denominador,k,ret)
 {
@@ -240,3 +242,5 @@ std::complex <qreal> ZeroPoleGain::evaluateDenominator(QVector <qreal> * deno, q
 
     return p.Eval().GetComplex();
 }
+
+} // namespace qftbx

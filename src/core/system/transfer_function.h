@@ -6,6 +6,8 @@
 #include "src/core/system/parameter.h"
 #include "mpParser.h"
 
+namespace qftbx {
+
  /**
     * @class TransferFunction
     * @brief Clase que representa un LtiSystem como una función de transferencia.
@@ -126,5 +128,11 @@ protected:
 
 };
 
+
+} // namespace qftbx
+
+//Transitional: unqualified name for consumers not yet migrated
+//to the qftbx namespace. Remove when the migration is complete.
+using qftbx::TransferFunction;
 
 #endif // QFTBX_TRANSFER_FUNCTION_H

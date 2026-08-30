@@ -2,6 +2,8 @@
 
 using namespace std;
 
+namespace qftbx {
+
 PolynomialForm::PolynomialForm(QString nombre, QVector <Parameter*> * numerador, QVector <Parameter*> * denominador, Parameter * k, Parameter* ret):
     TransferFunction(nombre, numerador, denominador, k , ret)
 {
@@ -253,3 +255,5 @@ std::complex <qreal> PolynomialForm::evaluateDenominator(QVector <qreal> * deno,
 
     return p.Eval().GetComplex();
 }
+
+} // namespace qftbx

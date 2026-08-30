@@ -2,6 +2,8 @@
 
 using namespace std;
 
+namespace qftbx {
+
 LtiSystem::LtiSystem(QString nombre)
 {
     this->nombre = nombre;
@@ -16,3 +18,5 @@ QString LtiSystem:: name(){
 }
 
 
+
+} // namespace qftbx

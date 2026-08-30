@@ -3,6 +3,8 @@
 using namespace std;
 using namespace mup;
 
+namespace qftbx {
+
 TransferFunction::TransferFunction(QString nombre, QVector <Parameter*> * numerador, QVector <Parameter*> * denominador,
         Parameter * k, Parameter * ret) :
 LtiSystem(nombre) {
@@ -140,3 +142,5 @@ LtiSystem * TransferFunction::clone() {
 
     return this->create(this->name(), n, d, k, ret);
 }
+
+} // namespace qftbx

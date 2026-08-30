@@ -3,6 +3,8 @@
 using namespace std;
 using namespace mup;
 
+namespace qftbx {
+
 FreeForm::FreeForm(QString nombre, QVector <Parameter*> * numerador, QVector <Parameter*> * denominador, Parameter * k,
                            Parameter* ret, QString exp_nume, QString exp_deno)
     :TransferFunction (nombre, numerador, denominador, k, ret)
@@ -97,3 +99,5 @@ LtiSystem * FreeForm::clone(){
                         Parameter::cloneVector(denominador), k, ret,
                         this->exp_nume, this->exp_deno);
 }
+
+} // namespace qftbx

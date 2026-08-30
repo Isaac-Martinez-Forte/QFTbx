@@ -6,6 +6,8 @@
 #include "transfer_function.h"
 #include "mpParser.h"
 
+namespace qftbx {
+
 
  /**
     * @class TimeConstantGain
@@ -68,5 +70,11 @@ public:
     std::complex <qreal> evaluateDenominator(QVector <qreal> * deno, qreal omega);
 
 };
+
+} // namespace qftbx
+
+//Transitional: unqualified name for consumers not yet migrated
+//to the qftbx namespace. Remove when the migration is complete.
+using qftbx::TimeConstantGain;
 
 #endif // QFTBX_TIME_CONSTANT_GAIN_H

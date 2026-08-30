@@ -3,6 +3,8 @@
 using namespace mup;
 using namespace std;
 
+namespace qftbx {
+
 Parameter::Parameter(QString nombre, QPointF rango, qreal nominal, QString exp)
 {
     this->nombre = nombre;
@@ -207,3 +209,5 @@ QVector <Parameter*> * Parameter::cloneVector(QVector <Parameter*> * origen){
 
     return copia;
 }
+
+} // namespace qftbx
