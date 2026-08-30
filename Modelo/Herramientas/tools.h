@@ -52,7 +52,7 @@ std::vector <float> linspace1(qreal a, qreal b, qint32 N);
     * @param log número de valores del logspace.
     */
 
-QVector <qreal> * logspace (qreal a, qreal b, qint32 log);
+QVector <qreal> * logspace (qreal a, qreal b, qint32 N);
 
 
 /**

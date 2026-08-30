@@ -2,6 +2,8 @@
 
 #include <QRegularExpression>
 
+#include "src/core/math/sequences.h"
+
 using namespace std;
 
 void tools::menerror(QString mensaje, QString nombre){
@@ -11,19 +13,12 @@ void tools::menerror(QString mensaje, QString nombre){
 }
 
 
+//Wrapper transitorio sobre la implementacion canonica de src/core/math/
+//(sin deriva de acumulacion, extremo final exacto). Desaparece cuando cada
+//llamante migre a qftbx::math directamente.
 QVector <qreal> * tools::linspace(qreal a, qreal b, qint32 N) {
-    qreal h = (b - a) / (N-1);
-    QVector <qreal> * vec = new QVector<qreal> ();
-    vec->reserve(N);
-
-    qreal val = a;
-
-    for (qint32 i = 0; i < N; i++){ // https://gist.github.com/jmbr/2375233
-        vec->append(val);
-        val+=h;
-    }
-
-    return vec;
+    const std::vector<double> values = qftbx::math::linspace(a, b, N > 0 ? N : 0);
+    return new QVector<qreal>(values.begin(), values.end());
 }
 
 
@@ -43,19 +38,10 @@ std::vector<float> tools::linspace1(qreal a, qreal b, qint32 N){
 }
 
 
-QVector <qreal> * tools::logspace (qreal a, qreal b, qint32 log){
-    QVector <qreal> * potencias = linspace(a,b,log);
-    QVector <qreal> * vector = new QVector<qreal> ();
-    vector->reserve(log);
-
-    qint32 cont = 0;
-
-    foreach(const qreal &i, *potencias){
-        vector->insert(cont, qPow(10,i));
-        cont++;
-    }
-    delete potencias;
-    return vector;
+//Wrapper transitorio: ver tools::linspace.
+QVector <qreal> * tools::logspace (qreal a, qreal b, qint32 N){
+    const std::vector<double> values = qftbx::math::logspace(a, b, N > 0 ? N : 0);
+    return new QVector<qreal>(values.begin(), values.end());
 }
 
 

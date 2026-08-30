@@ -10,6 +10,7 @@
 
 #include "Modelo/Herramientas/tools.h"
 #include "Modelo/Objetos/omega.h"
+#include "src/core/math/sequences.h"
 
 namespace {
 
@@ -65,23 +66,19 @@ TEST(Linspace, InteriorPointsFollowStep)
     delete v;
 }
 
-TEST(Linspace, LastElementIsOnlyApproximatelyTheEndpoint)
+TEST(Linspace, LastElementIsExactlyTheEndpoint)
 {
-    // BUG: values accumulate (val += h) instead of a + i*h, so the last
-    // element is only guaranteed near the endpoint, not equal to it (MATLAB
-    // pins it exactly). Whether the drift shows depends on the input and
-    // the compiler, so this only asserts closeness; the fix will tighten it
-    // to exact equality.
+    // Fixed: values used to accumulate (val += h), so the endpoint could
+    // drift; the canonical implementation pins it exactly, like MATLAB.
     QVector<qreal>* v = tools::linspace(0.0, 0.3, 4);
     ASSERT_EQ(v->size(), 4);
-    EXPECT_NEAR(v->last(), 0.3, 1e-12);
+    EXPECT_DOUBLE_EQ(v->last(), 0.3);
     delete v;
 }
 
 TEST(Linspace, SinglePointReturnsStart)
 {
-    // N == 1 divides by zero when computing the step; the value is appended
-    // before the step is used, so the output happens to be right.
+    // Fixed: N == 1 used to divide by zero when computing the step.
     QVector<qreal>* v = tools::linspace(2.0, 7.0, 1);
     ASSERT_EQ(v->size(), 1);
     EXPECT_DOUBLE_EQ(v->at(0), 2.0);
@@ -90,12 +87,32 @@ TEST(Linspace, SinglePointReturnsStart)
 
 TEST(Linspace, NonPositiveCountReturnsEmpty)
 {
-    // BUG: an invalid count silently produces an empty vector; the GUI then
-    // builds an Omega with zero frequencies without noticing.
+    // Documented contract: an invalid count yields an empty vector. The
+    // GUI must validate the count before building an Omega (pending).
     QVector<qreal>* v = tools::linspace(0.0, 1.0, 0);
     ASSERT_NE(v, nullptr);
     EXPECT_TRUE(v->isEmpty());
     delete v;
+}
+
+TEST(MathSequences, LinspaceMatchesMatlabSemantics)
+{
+    const std::vector<double> v = qftbx::math::linspace(0.0, 0.3, 4);
+    ASSERT_EQ(v.size(), 4u);
+    EXPECT_DOUBLE_EQ(v.front(), 0.0);
+    EXPECT_NEAR(v[1], 0.1, 1e-15);
+    EXPECT_DOUBLE_EQ(v.back(), 0.3);
+
+    EXPECT_TRUE(qftbx::math::linspace(1.0, 2.0, 0).empty());
+    EXPECT_EQ(qftbx::math::linspace(3.0, 9.0, 1), std::vector<double>{3.0});
+}
+
+TEST(MathSequences, LogspaceIsTenToTheLinspace)
+{
+    const std::vector<double> v = qftbx::math::logspace(-1.0, 2.0, 4);
+    ASSERT_EQ(v.size(), 4u);
+    EXPECT_DOUBLE_EQ(v.front(), 0.1);
+    EXPECT_DOUBLE_EQ(v.back(), 100.0);
 }
 
 TEST(Linspace, InvertedRangeDescendsSilently)
