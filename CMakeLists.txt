@@ -192,6 +192,7 @@ set(QFTbx_BACKEND_HED
     Modelo/EstructurasDatos/dbnd.h
     Modelo/LoopShaping/loop_shaping_types.h
     src/core/math/sequences.h
+    src/core/specifications/specification.h
     Modelo/Herramientas/exception.h
     Modelo/Objetos/omega.h
     DAO/bounddao.h

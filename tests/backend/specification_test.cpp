@@ -12,6 +12,8 @@
 #include <QVector>
 
 #include "Modelo/EstructurasDatos/dbnd.h"
+#include "Modelo/Herramientas/exception.h"
+#include "src/core/specifications/specification.h"
 #include "DAO/adaptadorespecificacionesdao.h"
 #include "src/core/system/polynomial_form.h"
 #include "src/core/system/parameter.h"
@@ -192,6 +194,93 @@ TEST(SpecificationPersistence, Planta1RecoversTheConstantStability)
 
     EXPECT_TRUE(specs->at(4)->utilizado);   // RPS
     EXPECT_FALSE(specs->at(4)->constante);
+}
+
+// ---------------------------------------------------------------------------
+// qftbx::Specification - the validated replacement being introduced
+// ---------------------------------------------------------------------------
+
+TEST(QftbxSpecification, FactoriesValidateTheirInvariants)
+{
+    using qftbx::Specification;
+    using qftbx::SpecificationType;
+
+    EXPECT_THROW(Specification::constant(SpecificationType::Stability, 0.0, 0.1, 10.0),
+                 qftbx::InvalidInput); // the old silent -inf
+    EXPECT_THROW(Specification::constant(SpecificationType::Stability, -1.0, 0.1, 10.0),
+                 qftbx::InvalidInput); // the old silent NaN
+    EXPECT_THROW(Specification::constant(SpecificationType::Stability, 1.2, 10.0, 0.1),
+                 qftbx::InvalidInput); // inverted band, previously mute
+    EXPECT_THROW(Specification::fromSystem(SpecificationType::TrackingLower, nullptr, 0.1, 10.0),
+                 qftbx::InvalidInput);
+}
+
+TEST(QftbxSpecification, BoundDbMatchesTheHistoricalSemantics)
+{
+    using qftbx::Specification;
+    using qftbx::SpecificationType;
+
+    Specification stability =
+        Specification::constant(SpecificationType::Stability, 1.2, 0.1, 100.0);
+    EXPECT_NEAR(stability.boundDb(0.5), 20.0 * std::log10(1.2), 1e-12);
+    EXPECT_NEAR(stability.boundDb(50.0), 20.0 * std::log10(1.2), 1e-12);
+
+    Specification tracking = Specification::fromSystem(
+        SpecificationType::TrackingLower, makeTrackingPlant(), 0.1, 10.0);
+    EXPECT_NEAR(tracking.boundDb(1.0), analyticTrackingDb(1.0), 1e-9);
+}
+
+TEST(QftbxSpecification, AppliesAtIsAClosedIntervalAndUnusedNeverApplies)
+{
+    using qftbx::Specification;
+    using qftbx::SpecificationType;
+
+    Specification spec =
+        Specification::constant(SpecificationType::Stability, 1.2, 0.1, 10.0);
+    EXPECT_TRUE(spec.appliesAt(0.1));   // inclusive lower edge
+    EXPECT_TRUE(spec.appliesAt(10.0));  // inclusive upper edge
+    EXPECT_TRUE(spec.appliesAt(2.0));
+    EXPECT_FALSE(spec.appliesAt(0.0999));
+    EXPECT_FALSE(spec.appliesAt(10.001));
+
+    Specification idle = Specification::unused(SpecificationType::ControlEffort);
+    EXPECT_FALSE(idle.appliesAt(1.0));
+    EXPECT_FALSE(idle.used());
+}
+
+TEST(QftbxSpecification, MoveTransfersOwnership)
+{
+    using qftbx::Specification;
+    using qftbx::SpecificationType;
+
+    Specification original = Specification::fromSystem(
+        SpecificationType::TrackingLower, makeTrackingPlant(), 0.1, 10.0);
+    const LtiSystem* plant = original.system();
+
+    Specification moved = std::move(original);
+    EXPECT_EQ(moved.system(), plant);
+    EXPECT_EQ(original.system(), nullptr);
+    EXPECT_FALSE(original.used());
+    // both destructors run at scope end: leak/double-free checked by ASan
+}
+
+TEST(QftbxSpecificationSet, DefaultsUnusedAndCentralisesTheTrackingSpread)
+{
+    using qftbx::Specification;
+    using qftbx::SpecificationSet;
+    using qftbx::SpecificationType;
+
+    SpecificationSet set;
+    for (int i = 0; i < qftbx::kSpecificationCount; ++i) {
+        EXPECT_FALSE(set.at(static_cast<SpecificationType>(i)).used());
+    }
+
+    set.set(Specification::constant(SpecificationType::TrackingLower, 1.0, 0.1, 10.0));
+    set.set(Specification::constant(SpecificationType::TrackingUpper, 2.0, 0.1, 10.0));
+
+    // T_U - T_L in dB: 20log10(2) - 20log10(1) = 6.0206. This is the sign
+    // three consumers compute as b-a and contour2 (wrongly) as a-b.
+    EXPECT_NEAR(set.trackingSpreadDb(1.0), 20.0 * std::log10(2.0), 1e-12);
 }
 
 } // namespace
