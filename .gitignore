@@ -57,3 +57,4 @@ build/
 CMakeSettings.json
 
 documentos/
+core.*

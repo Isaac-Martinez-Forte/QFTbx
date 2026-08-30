@@ -165,7 +165,18 @@ private:
     QVector <qreal> * omega;
 
     qint32 buscarSegundo(qint32 b1, QVector<std::complex<qreal> > *cv, qreal epsilon);
-    qint32 buscarSiguiente(qint32 punto_previo, qint32 punto_actual, QVector<std::complex<qreal> > *cv, qreal epsilon);
+
+    //excluirAnterior = true reproduce la variante relajada historica (el
+    //punto anterior no es candidato); false es la conducta fiel a EPSHULL.M.
+    qint32 buscarSiguiente(qint32 punto_previo, qint32 punto_actual, QVector<std::complex<qreal> > *cv, qreal epsilon,
+                           bool excluirAnterior = false);
+
+    //Recorrido historico del PFC (divergente de EPSHULL.M): arranca en la
+    //maxima parte imaginaria, excluye el punto anterior, trunca en MAXP y
+    //deduplica la salida. Se usa como fallback cuando el algoritmo de
+    //referencia no cierra (cicla) en la nube dada: produce siempre un
+    //contorno con cobertura <= epsilon aunque no sea el e-hull canonico.
+    QVector <std::complex <qreal> > * e_hull_relaxed(QVector<std::complex<qreal> > *temp, qreal epsilon);
 
 };
 

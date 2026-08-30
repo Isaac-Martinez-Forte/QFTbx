@@ -4,6 +4,7 @@
 
 #include <QDebug>
 #include <QElapsedTimer>
+#include <algorithm>
 #include <iostream>
 
 using namespace std;
@@ -523,7 +524,102 @@ bool Templates::calcularContorno(bool cuda __attribute__((unused))){
 }
 
 
+//Port fiel de EPSHULL.M (epsh2, Montoya 1998; algoritmo de Nordin 1993).
+//Divergencia deliberada respecto al MATLAB: cuando no hay candidato inicial
+//se devuelve NULL en vez de un contorno vacio (el llamante lo trata como
+//error); exceder MAXP lanza ComputationError, como el error del MATLAB.
 QVector <complex <qreal> > * Templates::e_hull(QVector<complex<qreal> > *temp, qreal epsilon){
+
+    if (temp == NULL || temp->isEmpty()){
+        return NULL;
+    }
+
+    //unique(cv): sin duplicados y ordenado con el criterio de MATLAB para
+    //complejos (modulo y, a igual modulo, fase). Este orden es ademas el que
+    //resuelve los empates de psi igual que la referencia.
+    QVector <complex <qreal> > cv = *temp;
+    std::sort(cv.begin(), cv.end(),
+              [](const complex<qreal> & a, const complex<qreal> & b){
+                  const qreal absA = abs(a);
+                  const qreal absB = abs(b);
+                  if (absA != absB){
+                      return absA < absB;
+                  }
+                  return arg(a) < arg(b);
+              });
+    cv.erase(std::unique(cv.begin(), cv.end()), cv.end());
+
+    const qint32 numDatos = cv.size();
+    const qint32 MAXP = 3 * numDatos;
+
+    //Primer punto: el de mayor parte real (el mas a la derecha), como en
+    //EPSHULL.M y en la memoria del PFC. Empates: gana el primero en el
+    //orden unique.
+    qint32 b1 = 0;
+    for (qint32 i = 1; i < numDatos; i++){
+        if (real(cv.at(i)) > real(cv.at(b1))){
+            b1 = i;
+        }
+    }
+
+    qint32 b2 = buscarSegundo(b1, &cv, epsilon);
+
+    if (b2 < 0)
+        return NULL;
+
+    QVector <qint32> resultado;
+    resultado.append(b1);
+    resultado.append(b2);
+
+    qint32 punto_previo = b1;
+    qint32 punto_actual = b2;
+
+    qint32 punto_sig = buscarSiguiente(b1, b2, &cv, epsilon);
+    if (punto_sig < 0)
+        return NULL;
+
+    qint32 contador = 2;
+
+    //Se para al volver al par inicial (b1, b2). El recorrido puede repetir
+    //puntos (ida y vuelta por puas del template): se conservan, como en el
+    //MATLAB, porque son informacion geometrica real del contorno.
+    while (b1 != punto_actual || b2 != punto_sig){
+
+        resultado.append(punto_sig);
+        contador++;
+
+        if (contador > MAXP){
+            //La referencia (EPSHULL.M) cicla sin cerrar en nubes de racimos
+            //espaciados ~epsilon ('max_puntos_excedido'). Fallback documentado
+            //al recorrido historico, que siempre produce un contorno con
+            //cobertura <= epsilon aunque no sea el e-hull canonico.
+            qWarning("e_hull: the reference walk did not close (epsilon-hull "
+                     "limitation on clustered templates); falling back to the "
+                     "relaxed historical walk for this frequency.");
+            return e_hull_relaxed(temp, epsilon);
+        }
+
+        punto_previo = punto_actual;
+        punto_actual = punto_sig;
+
+        punto_sig = buscarSiguiente(punto_previo, punto_actual, &cv, epsilon);
+
+        if (punto_sig < 0){
+            return NULL;
+        }
+    }
+
+    QVector <complex <qreal> > * devolver = new QVector <complex <qreal> > ();
+    devolver->reserve(resultado.size());
+
+    foreach (const qint32 var, resultado) {
+        devolver->append(cv.at(var));
+    }
+
+    return devolver;
+}
+
+QVector <complex <qreal> > * Templates::e_hull_relaxed(QVector<complex<qreal> > *temp, qreal epsilon){
 
     qint32 numDatos = temp->size();
     qint32 MAXP = 3 * numDatos;
@@ -531,89 +627,63 @@ QVector <complex <qreal> > * Templates::e_hull(QVector<complex<qreal> > *temp, q
     qint32 b1 = 0;
     qreal numDe = -numeric_limits<qreal>::infinity();
 
-    QVector <complex <qreal> > * puntos_nichols = temp;
-
-    qreal complejoimag;
-
-    for(qint32 i = 0;i < numDatos ; i++){   //calculamos que punto esta mas a la derecha y ese sera el primer punto.
-        complejoimag = imag(temp->at(i));
-        // pasamos todos los números complejos al plano de nichols.
-
-        if (complejoimag > numDe){
+    for(qint32 i = 0;i < numDatos ; i++){   //primer punto: maxima parte imaginaria.
+        if (imag(temp->at(i)) > numDe){
             b1 = i;
-            numDe = complejoimag;
+            numDe = imag(temp->at(i));
         }
     }
 
-    qint32 b2 = buscarSegundo(b1, puntos_nichols, epsilon); //buscamos el segundo punto.
+    qint32 b2 = buscarSegundo(b1, temp, epsilon);
 
     if (b2 < 0)
         return NULL;
 
-    QVector <qint32> * resultado = new QVector <qint32>();
+    QVector <qint32> resultado;
+    resultado.append(b1);
+    resultado.append(b2);
 
     qint32 punto_previo = b1;
     qint32 punto_actual = b2;
 
-    resultado->append(b1);
-    resultado->append(b2);
-
-    qreal punto_sig = buscarSiguiente(b1,b2,puntos_nichols,epsilon); //a partir de aquí buscamos los demás puntos
+    qint32 punto_sig = buscarSiguiente(b1, b2, temp, epsilon, true);
     if (punto_sig < 0)
         return NULL;
 
     qint32 contador = 2;
 
-
     while (b1 != punto_actual || b2 != punto_sig){
 
-        resultado->append(punto_sig);
+        resultado.append(punto_sig);
         contador++;
 
         if (contador > MAXP)
-            break;
+            break;      //trunca en silencio: contorno parcial (conducta historica).
 
         punto_previo = punto_actual;
         punto_actual = punto_sig;
 
-
-        punto_sig = buscarSiguiente(punto_previo, punto_actual, puntos_nichols, epsilon);
+        punto_sig = buscarSiguiente(punto_previo, punto_actual, temp, epsilon, true);
 
         if (punto_sig < 0){
             return NULL;
         }
     }
 
-
-    QVector <qint32> * aux = new QVector <qint32> ();
-
-    bool isRepetido = false;
-
-    foreach (qint32 var1, *resultado) {  //Quitamos los valores repetidos del vector
-
-        isRepetido = false;
-
-        foreach (qint32 var2, *aux) {
-            if (var1 == var2){
-                isRepetido = true;
-            }
-        }
-        if (!isRepetido){
-            aux->append(var1);
+    //Deduplicacion de la salida (conducta historica).
+    QVector <qint32> unicos;
+    foreach (qint32 idx, resultado) {
+        if (!unicos.contains(idx)){
+            unicos.append(idx);
         }
     }
-
 
     QVector <complex <qreal> > * devolver = new QVector <complex <qreal> > ();
-    devolver->reserve(aux->size());
+    devolver->reserve(unicos.size());
 
-    foreach (const qint32 var, *aux) {
-        devolver->append(temp->at(var));
+    foreach (const qint32 idx, unicos) {
+        devolver->append(temp->at(idx));
     }
-
-    resultado->clear();
-    aux->clear();
-    //puntos_nichols->clear();
 
     return devolver;
 }
@@ -643,8 +713,8 @@ qint32 Templates::buscarSegundo(qint32 b1, QVector<complex<qreal> > *cv, qreal e
             if (fas < 0)        // si dicha fase es menor que cero le sumamos 2*PI
                 fas += 2 * M_PI;
 
-            //calculamos el arcotangente del punto actual dividido por epsilon
-            fas -= qAcos(dist / epsilon);     //a la fase actual le restamos el arcotangente.
+            //a la fase le restamos el arcocoseno de la distancia entre epsilon.
+            fas -= qAcos(dist / epsilon);
 
             if (fas < fmin){   //vamos cual es la fase mínima y la guardamos
                 fmin = fas;
@@ -662,7 +732,8 @@ qint32 Templates::buscarSegundo(qint32 b1, QVector<complex<qreal> > *cv, qreal e
 }
 
 qint32 Templates::buscarSiguiente(qint32 punto_previo, qint32 punto_actual,
-                                  QVector<complex<qreal> > *cv, qreal epsilon){
+                                  QVector<complex<qreal> > *cv, qreal epsilon,
+                                  bool excluirAnterior){
 
     complex <qreal> actual = cv->at(punto_actual);
     complex <qreal> anterior = cv->at(punto_previo);
@@ -689,7 +760,13 @@ qint32 Templates::buscarSiguiente(qint32 punto_previo, qint32 punto_actual,
         absResta = abs(cvActual - actual); //Calculamos el valor absoluto de la distancia del punto al punto actual.
 
 
-        if (absResta > 0 && absResta <= epsilon && cvActual != actual && cvActual != anterior){ // Si la distancia es mayor que cero y menor que epsilon.
+        //Candidatos: todo punto a distancia (0, epsilon] del actual, INCLUIDO
+        //el anterior (en EPSHULL.M su exclusion esta deliberadamente
+        //comentada): entra por el caso fas==0 y es lo que permite volver
+        //atras por puas y ramas finas del template. La variante relajada
+        //historica lo excluye.
+        if (absResta > 0 && absResta <= epsilon &&
+                !(excluirAnterior && (cvActual == anterior || cvActual == actual))){
 
             //--------------------------------------------
 

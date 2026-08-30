@@ -101,8 +101,14 @@ TEST_F(TemplatesGolden, BruteForceMatchesFixture)
     expectNear(computed->at(0)->at(1), Complex(-0.498753, -9.97506), "t[0][1]");
 }
 
-TEST_F(TemplatesGolden, ContourMatchesFixture)
+TEST_F(TemplatesGolden, ContourMatchesFixtureAsACycle)
 {
+    // The faithful EPSHULL.M walk returns the same cycle as the historical
+    // golden but closed (last point repeats the first) and rotated (it
+    // starts at max real instead of max imaginary), so the comparison is
+    // cyclic: same sequence, same direction, any starting point. The
+    // fallback frequencies (0 and 2, where the reference walk cycles)
+    // reproduce the historical sequence exactly.
     auto* computed = templates.getContorno();
     auto* expected = parser.getContorno();
     ASSERT_NE(computed, nullptr);
@@ -112,33 +118,65 @@ TEST_F(TemplatesGolden, ContourMatchesFixture)
     const int expectedSizes[] = {30, 28, 28, 28, 28, 28};
     for (int f = 0; f < computed->size(); ++f) {
         ASSERT_EQ(expected->at(f)->size(), expectedSizes[f]);
-        ASSERT_EQ(computed->at(f)->size(), expected->at(f)->size())
-            << "frequency " << f;
-        for (int p = 0; p < computed->at(f)->size(); ++p) {
-            expectNear(computed->at(f)->at(p), expected->at(f)->at(p),
-                       "contour point");
+
+        QVector<Complex> cycle = *computed->at(f);
+        if (cycle.size() > 1 && cycle.first() == cycle.last()) {
+            cycle.removeLast(); // closing duplicate
+        }
+        ASSERT_EQ(cycle.size(), expected->at(f)->size()) << "frequency " << f;
+
+        // Locate the rotation offset: the computed point closest to the
+        // first expected point.
+        int offset = 0;
+        qreal best = std::abs(cycle.at(0) - expected->at(f)->at(0));
+        for (int i = 1; i < cycle.size(); ++i) {
+            const qreal d = std::abs(cycle.at(i) - expected->at(f)->at(0));
+            if (d < best) {
+                best = d;
+                offset = i;
+            }
+        }
+
+        for (int p = 0; p < cycle.size(); ++p) {
+            expectNear(cycle.at((offset + p) % cycle.size()),
+                       expected->at(f)->at(p), "contour point");
         }
     }
 }
 
-TEST_F(TemplatesGolden, ContourStartsAtMaxImaginary)
+TEST_F(TemplatesGolden, ContourStartHonoursTheHybridRule)
 {
-    // Explicit anchor of divergence D1: the walk currently starts at the
-    // point with the largest imaginary part; MATLAB and the PFC text use
-    // the largest real part. When D1 is aligned, this flips and the golden
-    // contours in the fixture must be regenerated.
+    // Faithful walks return CLOSED contours (last == first) starting at the
+    // max-real point (EPSHULL.M and the PFC text); when the reference walk
+    // cycles, the fallback returns the historical open, deduplicated
+    // contour starting at the max-imaginary point. WHICH frequencies fall
+    // back depends on last-digit noise of the cloud (the reference walk is
+    // that sensitive), so the rule is detected per frequency, not fixed.
     auto* temps = templates.getTemplates();
     auto* conts = templates.getContorno();
 
+    int fallbacks = 0;
     for (int f = 0; f < conts->size(); ++f) {
-        Complex maxImag = temps->at(f)->at(0);
+        const QVector<Complex>* c = conts->at(f);
+        const bool faithful = c->size() > 1 && c->first() == c->last();
+        if (!faithful) {
+            ++fallbacks;
+        }
+        Complex extreme = temps->at(f)->at(0);
         for (const Complex& p : *temps->at(f)) {
-            if (p.imag() > maxImag.imag()) {
-                maxImag = p;
+            const bool better = faithful ? p.real() > extreme.real()
+                                         : p.imag() > extreme.imag();
+            if (better) {
+                extreme = p;
             }
         }
-        EXPECT_EQ(conts->at(f)->at(0), maxImag) << "frequency " << f;
+        EXPECT_EQ(c->at(0), extreme)
+            << "frequency " << f << (faithful ? " (faithful)" : " (fallback)");
     }
+
+    // The clustered clouds of this fixture make some frequencies fall back.
+    EXPECT_GT(fallbacks, 0);
+    EXPECT_LT(fallbacks, conts->size());
 }
 
 TEST_F(TemplatesGolden, ContourIsSubsetOfTemplate)

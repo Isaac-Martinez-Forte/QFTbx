@@ -1,9 +1,12 @@
-// Characterisation tests for Templates::e_hull, the C++ port of Montoya's
-// EPSHULL.M (the epsilon-hull contour algorithm defined in Nordin 1993).
-// Synthetic point clouds pin the current behaviour; the "// BUG:" cases
-// document the known divergences from the MATLAB reference (D2: no unique(),
-// D9: the previous point is excluded from the candidates, D14: exceeding
-// MAXP truncates instead of failing) and must be flipped when each is fixed.
+// Tests for Templates::e_hull, now a faithful port of Montoya's EPSHULL.M
+// (the epsilon-hull contour algorithm defined in Nordin 1993), validated
+// against a line-by-line Python oracle of the MATLAB. Faithful semantics:
+// unique()d input in MATLAB complex order, max-real starting point, the
+// previous point stays a candidate (spikes are traversed both ways), and
+// contours are CLOSED (the last point repeats the first). When the
+// reference walk cycles (its known limitation on clustered clouds) e_hull
+// falls back to the relaxed historical walk with a warning; the golden
+// tests exercise that path.
 
 #include <gtest/gtest.h>
 
@@ -32,32 +35,30 @@ bool containsPoint(const QVector<Complex>* contour, Complex point)
     return false;
 }
 
-TEST(EHull, IrregularQuadKeepsItsFourCorners)
+TEST(EHull, IrregularQuadKeepsItsFourCornersClosed)
 {
-    // Four points, all mutually within epsilon: every one is on the contour.
-    // The walk starts at the point with the largest imaginary part (current
-    // C++ behaviour; MATLAB and the PFC text start at the largest real part
-    // - pending alignment, D1).
+    // Faithful EPSHULL.M semantics: the contour is CLOSED (the last point
+    // repeats the first) and starts at the max-real point; among real-part
+    // ties the first in MATLAB unique order (by modulus, then phase) wins.
     QVector<Complex> nube = cloud({{0.0, 0.0}, {2.0, 0.0}, {2.0, 1.0}, {0.0, 1.5}});
 
     Templates t;
     QVector<Complex>* contorno = t.e_hull(&nube, 2.6);
     ASSERT_NE(contorno, nullptr);
-    EXPECT_EQ(contorno->size(), 4);
-    EXPECT_EQ(contorno->at(0), Complex(0.0, 1.5));
+    EXPECT_EQ(contorno->size(), 5);
+    EXPECT_EQ(contorno->first(), Complex(2.0, 0.0));
+    EXPECT_EQ(contorno->first(), contorno->last());
     for (const Complex& p : nube) {
         EXPECT_TRUE(containsPoint(contorno, p));
     }
     delete contorno;
 }
 
-TEST(EHull, RegularGridProducesABogusContour)
+TEST(EHull, RegularGridKeepsExactlyTheBorder)
 {
-    // BUG (D12/D9): on a 5x5 unit grid with epsilon reaching the
-    // 4-neighbours, psi ties abound and the tie-breaking diverges from
-    // MATLAB (which walks the unique()-sorted input): the walk closes
-    // prematurely after 4 points and even includes an interior point.
-    // Expected after the fix: exactly the 16 border points.
+    // Fixed (D12/D2): walking the unique()-sorted cloud like MATLAB, the
+    // psi ties resolve correctly: the 16 border points, closed, and no
+    // interior point (the old walk closed after 4 points including one).
     QVector<Complex> nube;
     for (int x = 0; x < 5; ++x) {
         for (int y = 0; y < 5; ++y) {
@@ -68,8 +69,14 @@ TEST(EHull, RegularGridProducesABogusContour)
     Templates t;
     QVector<Complex>* contorno = t.e_hull(&nube, 1.2);
     ASSERT_NE(contorno, nullptr);
-    EXPECT_EQ(contorno->size(), 4);
-    EXPECT_TRUE(containsPoint(contorno, Complex(1.0, 3.0))); // interior!
+    EXPECT_EQ(contorno->size(), 17);
+    EXPECT_EQ(contorno->first(), contorno->last());
+    for (const Complex& p : *contorno) {
+        const bool border = p.real() == 0.0 || p.real() == 4.0 ||
+                            p.imag() == 0.0 || p.imag() == 4.0;
+        EXPECT_TRUE(border) << "interior point in contour: " << p.real()
+                            << "," << p.imag();
+    }
     delete contorno;
 }
 
@@ -82,7 +89,8 @@ TEST(EHull, TriangleWithCenterDropsTheCenter)
     Templates t;
     QVector<Complex>* contorno = t.e_hull(&nube, 10.0);
     ASSERT_NE(contorno, nullptr);
-    EXPECT_EQ(contorno->size(), 3);
+    EXPECT_EQ(contorno->size(), 4); // 3 vertices + closing point
+    EXPECT_EQ(contorno->first(), contorno->last());
     EXPECT_FALSE(containsPoint(contorno, Complex(2.0, 1.0)));
     delete contorno;
 }
@@ -97,43 +105,51 @@ TEST(EHull, TinyEpsilonReturnsNull)
     EXPECT_EQ(t.e_hull(&nube, 0.1), nullptr);
 }
 
-TEST(EHull, CollinearPointsReturnNull)
+TEST(EHull, CollinearPointsTraverseTheSpikeBothWays)
 {
-    // BUG (D9): EPSHULL.M deliberately keeps the previous point among the
-    // candidates (its exclusion is commented out), so the walk can turn
-    // back at the end of a spike and traverse it in both directions. The
-    // C++ port excludes it, so a purely collinear cloud dead-ends at the
-    // far extreme and e_hull gives up with a null.
+    // Fixed (D9): like EPSHULL.M, the previous point stays among the
+    // candidates, so the walk traverses the spike out and back:
+    // 4-3-2-1-0-1-2-3-4 (2n-1 points, closed, repetitions kept as real
+    // geometric information).
     QVector<Complex> nube = cloud(
         {{0.0, 0.0}, {1.0, 0.0}, {2.0, 0.0}, {3.0, 0.0}, {4.0, 0.0}});
 
     Templates t;
-    EXPECT_EQ(t.e_hull(&nube, 1.5), nullptr);
+    QVector<Complex>* contorno = t.e_hull(&nube, 1.5);
+    ASSERT_NE(contorno, nullptr);
+    EXPECT_EQ(contorno->size(), 9);
+    EXPECT_EQ(contorno->first(), contorno->last());
+    for (const Complex& p : nube) {
+        EXPECT_TRUE(containsPoint(contorno, p));
+    }
+    delete contorno;
 }
 
-TEST(EHull, TwoPointsReturnNull)
+TEST(EHull, TwoPointsFormTheMinimalClosedContour)
 {
-    // BUG (D9): same dead-end with the minimal spike: two points.
+    // Fixed (D9): the minimal spike closes by walking back: b1-b2-b1.
     QVector<Complex> nube = cloud({{0.0, 0.0}, {1.0, 0.0}});
 
     Templates t;
-    EXPECT_EQ(t.e_hull(&nube, 2.0), nullptr);
+    QVector<Complex>* contorno = t.e_hull(&nube, 2.0);
+    ASSERT_NE(contorno, nullptr);
+    EXPECT_EQ(contorno->size(), 3);
+    EXPECT_EQ(contorno->first(), contorno->last());
+    delete contorno;
 }
 
-TEST(EHull, DuplicatedVertexTruncatesSilently)
+TEST(EHull, DuplicatedVerticesAreUniqued)
 {
-    // BUG (D2 + D14): MATLAB unique()s the input and treats exceeding MAXP
-    // as an error; the port does neither. With a duplicated vertex the
-    // stop condition (index-based) can fail to close and the walk runs
-    // until MAXP, returning a truncated contour as if it were valid.
+    // Fixed (D2): the input is unique()d like in MATLAB, so duplicated
+    // vertices cannot derail the index-based stop condition any more.
     QVector<Complex> nube = cloud({{0.0, 0.0}, {2.0, 0.0}, {2.0, 1.0},
                                    {0.0, 1.5}, {0.0, 1.5}, {0.0, 1.5}});
 
     Templates t;
     QVector<Complex>* contorno = t.e_hull(&nube, 2.6);
-    // Pin only the loose contract: it "succeeds" and stays within 3n points.
     ASSERT_NE(contorno, nullptr);
-    EXPECT_LE(contorno->size(), 3 * nube.size());
+    EXPECT_EQ(contorno->size(), 5); // 4 unique corners + closing point
+    EXPECT_EQ(contorno->first(), contorno->last());
     delete contorno;
 }
 
