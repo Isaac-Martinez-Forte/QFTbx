@@ -1,5 +1,7 @@
 #include "parserload.h"
 
+#include "Modelo/Herramientas/exception.h"
+
 
 using namespace tools;
 using namespace std;
@@ -25,23 +27,17 @@ QVector<bool> *XmlParserLoad::recuperarXmlDatos(QString fichero){
     QFile file(fichero);
 
     if (!file.open(QIODevice::ReadOnly)){
-        menerror("No se puede leer el fichero", "Cargar Fichero");
-        resultado = new QVector <bool> (7, false);
-        return resultado;
+        throw qftbx::FileError("Cannot open project file: " + fichero.toStdString());
     }
 
     stream = new QXmlStreamReader(&file);
 
     if (!stream->readNextStartElement()){//leemos la cabecera.
-        resultado = new QVector <bool> (7, false);
         salidaError();
-        return resultado;
     }
 
     if (stream->name() != QString("QFT")){
-        resultado = new QVector <bool> (7, false);
         salidaError();
-        return resultado;
     }
 
     leerNombreSeccion();
@@ -1189,6 +1185,11 @@ inline Var *XmlParserLoad::leerVariable(qint32 tipoLectura){
 
                 stream->skipCurrentElement();
                 var->setRango(QPointF(inicio, final));
+            } else {
+                //El readNextStartElement fallido ya ha consumido el cierre de
+                //<variable-N>; el skipCurrentElement final saltaria el resto
+                //del elemento padre (numerador/denominador/tipo).
+                return var;
             }
 
         }else {
@@ -1444,7 +1445,7 @@ inline bool XmlParserLoad::leerLoopShaping(){
 }
 
 inline bool XmlParserLoad::salidaError(){
-    cout << stream->lineNumber() << endl;
-    menerror("Hay un error en el fichero\n de entrada en la línea: " + stream->lineNumber(),"Cargar Fichero");
-    return false;
+    //Lanza siempre. Se conserva la firma bool para no tocar todos los
+    //"return salidaError();" hasta la reescritura del parser.
+    throw qftbx::ParseError("Invalid .qft project file", stream->lineNumber());
 }

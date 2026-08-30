@@ -17,7 +17,6 @@
 #include "../EstructuraSistema/sistema.h"
 #include "../Herramientas/tools.h"
 #include "contour2.h"
-#include "contour.h"
 #include "../EstructurasDatos/var.h"
 #include "../EstructurasDatos/datosbound.h"
 #include "algoritmointerseccionlineal1D.h"

@@ -1,6 +1,10 @@
 #include "windowsgeneral.h"
 #include "ui_windowsgeneral.h"
 
+#include <QMessageBox>
+
+#include "Modelo/Herramientas/exception.h"
+
 #include <iostream>
 
 using namespace tools;
@@ -388,7 +392,11 @@ void WindowsGeneral::on_actionGuardar_como_triggered()
 }
 
 void WindowsGeneral::guardar(){
-    controlador->guardarSistema(ficheroGuardar);
+    try {
+        controlador->guardarSistema(ficheroGuardar);
+    } catch (const qftbx::Exception & e) {
+        QMessageBox::critical(this, tr("Guardar Fichero"), e.what());
+    }
 }
 
 void WindowsGeneral::on_actionAbrir_triggered()
@@ -398,7 +406,14 @@ void WindowsGeneral::on_actionAbrir_triggered()
 
     if (!fileName.isEmpty()){
 
-        QVector <bool> * leido = controlador->cargarSistema(fileName);
+        QVector <bool> * leido;
+
+        try {
+            leido = controlador->cargarSistema(fileName);
+        } catch (const qftbx::Exception & e) {
+            QMessageBox::critical(this, tr("Cargar Fichero"), e.what());
+            return;
+        }
 
         paso1 = leido->value(0);
         paso2 = leido->value(1);

@@ -18,10 +18,18 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(USE_CLANG       "Use CLANG"   OFF)
 option(USE_OpenMP      "Use OpenMP"  ON)
 option(USE_CUDA        "Use CUDA"    OFF)
-option(USE_OpenCL      "Use OpenCL"  OFF)
 option(USE_Doxygen     "Use Doxygen" OFF)
-option(USE_QML         "Use QML"     OFF)
 option(USE_NATIVE_ARCH "Enable -march=native" ON)
+
+# Build de desarrollo con sanitizers, p.ej. -DQFTBX_SANITIZERS=address,undefined
+# (requiere los runtimes libasan/libubsan instalados). Nota: mientras dure el
+# refactor el codigo tiene fugas conocidas; para ejecutar los tests usar
+# ASAN_OPTIONS=detect_leaks=0 hasta que cada modulo quede limpio.
+set(QFTBX_SANITIZERS "" CACHE STRING "Comma-separated sanitizers for dev builds (e.g. address,undefined)")
+if(QFTBX_SANITIZERS)
+  add_compile_options(-fsanitize=${QFTBX_SANITIZERS} -fno-omit-frame-pointer)
+  add_link_options(-fsanitize=${QFTBX_SANITIZERS})
+endif()
 
 if(WIN32)
     #set (CMAKE_PREFIX_PATH "C:\\Qt\\6.6.2\\msvc2019_64")
@@ -61,14 +69,7 @@ if(USE_CUDA)
 endif()
 
 # ------------------------------------------------------------------------------
-# OpenCL 
-# ------------------------------------------------------------------------------
-if(USE_OpenCL)
-    find_package(OpenCL)
-endif()
-
-# ------------------------------------------------------------------------------
-# Doxygen 
+# Doxygen
 # ------------------------------------------------------------------------------
 if (USE_Doxygen)
     message("Use Doxygen")
@@ -103,7 +104,9 @@ set(TS_FILES QFTbx_es_ES.ts)
 # ------------------------------------------------------------------------------
 # Fuentes del proyecto
 # ------------------------------------------------------------------------------
-set(QFTbx_SRC main.cpp
+# Backend (Modelo, DAO, XmlParser, Consola): compilado como libreria estatica
+# para poder enlazarlo tanto desde el ejecutable como desde los tests.
+set(QFTbx_BACKEND_SRC
     Modelo/LoopShaping/NaturalIntervalExtension/natural_interval_extension.cpp
     Modelo/EstructuraSistema/funciontransferencia.cpp
     DAO/adaptadorplantadao.cpp
@@ -112,30 +115,20 @@ set(QFTbx_SRC main.cpp
     Modelo/EstructuraSistema/cpolinomios.cpp
     Modelo/EstructuraSistema/kganancia.cpp
     Modelo/EstructuraSistema/knganancia.cpp
-    GUI/diagramabode.cpp
-    GUI/windowsgeneral.cpp
-    GUI/introducirplanta.cpp
-    GUI/intomega.cpp
-    GUI/intincertidumbre.cpp
     Modelo/controlador.cpp
     Modelo/EstructurasDatos/parlineedit.cpp
     DAO/adaptadoromegadao.cpp
-    Modelo/Objetos/incertidumbre.cpp
     Modelo/Templates/templates.cpp
     DAO/adaptadortemplatedao.cpp
     Modelo/Herramientas/tools.cpp
     Modelo/Objetos/omega.cpp
     DAO/adaptadorbounddao.cpp
-    GUI/viewbound.cpp
     XmlParser/xmlparsersave.cpp
     Modelo/EstructurasDatos/datosplanta.cpp
     XmlParser/xmlparserload.cpp
     DAO/fdao.cpp
-    GUI/intdatosboundaries.cpp
     Modelo/EstructurasDatos/datosbound.cpp
-    GUI/intespecificaciones.cpp
     DAO/adaptadorespecificacionesdao.cpp
-    GUI/introducirecontr.cpp
     DAO/adaptadorcontroladordao.cpp
     Modelo/LoopShaping/algorithm_sachin.cpp
     Modelo/LoopShaping/algorithm_primer_articulo.cpp
@@ -143,14 +136,10 @@ set(QFTbx_SRC main.cpp
     Modelo/EstructurasDatos/var.cpp
     Modelo/LoopShaping/algorithm_nandkishor.cpp
     Modelo/LoopShaping/algorithm_rambabu.cpp
-    GUI/viewboundreun.cpp
     Modelo/Boundaries/boundaries.cpp
-    Modelo/Boundaries/contour.cpp
     Consola/consola.cpp
     Modelo/EstructuraSistema/formatolibre.cpp
-    GUI/intloopshaping.cpp
     Modelo/LoopShaping/loopshaping.cpp
-    GUI/viewloopshaping.cpp
     Modelo/LoopShaping/EstructuraDatos/datosfeasible.cpp
     Modelo/LoopShaping/EstructuraDatos/tripleta.cpp
     Modelo/LoopShaping/EstructuraDatos/tripleta2.cpp
@@ -158,9 +147,6 @@ set(QFTbx_SRC main.cpp
     Modelo/LoopShaping/EstructuraDatos/listaordenada.cpp
     DAO/adaptadorloopshapingdao.cpp
     Modelo/EstructurasDatos/datosloopshaping.cpp
-    GUI/introducirtemplates.cpp
-    GUI/viewtemplates.cpp
-    GUI/verboundaries.cpp
     Modelo/Boundaries/algoritmointerseccionlineal1D.cpp
     Modelo/Boundaries/algoritmointerseccionproyectivo2D.cpp
     Modelo/Boundaries/contour2.cpp
@@ -168,9 +154,26 @@ set(QFTbx_SRC main.cpp
     Modelo/LoopShaping/EstructuraDatos/data_box.cpp
 )
 
-set(QFTbx_OpenCL GPU/OpenCL/e_hull_opencl.cl)
+# GUI (HMI Qt) y punto de entrada.
+set(QFTbx_GUI_SRC main.cpp
+    GUI/diagramabode.cpp
+    GUI/windowsgeneral.cpp
+    GUI/introducirplanta.cpp
+    GUI/intomega.cpp
+    GUI/intincertidumbre.cpp
+    GUI/viewbound.cpp
+    GUI/intdatosboundaries.cpp
+    GUI/intespecificaciones.cpp
+    GUI/introducirecontr.cpp
+    GUI/viewboundreun.cpp
+    GUI/intloopshaping.cpp
+    GUI/viewloopshaping.cpp
+    GUI/introducirtemplates.cpp
+    GUI/viewtemplates.cpp
+    GUI/verboundaries.cpp
+)
 
-set(QFTbx_HED
+set(QFTbx_BACKEND_HED
     Modelo/EstructuraSistema/funciontransferencia.h
     Modelo/LoopShaping/NaturalIntervalExtension/natural_interval_extension.h
     DAO/adaptadorplantadao.h
@@ -179,36 +182,27 @@ set(QFTbx_HED
     Modelo/EstructuraSistema/cpolinomios.h
     Modelo/EstructuraSistema/kganancia.h
     Modelo/EstructuraSistema/knganancia.h
-    GUI/diagramabode.h
-    GUI/windowsgeneral.h
-    GUI/introducirplanta.h
     DAO/plantadao.h
-    GUI/intomega.h
-    GUI/intincertidumbre.h
     Modelo/controlador.h
     Modelo/EstructurasDatos/parlineedit.h
     DAO/adaptadoromegadao.h
     DAO/omegadao.h
-    Modelo/Objetos/incertidumbre.h
     Modelo/Templates/templates.h
     DAO/templatedao.h
     DAO/adaptadortemplatedao.h
     Modelo/Herramientas/tools.h
+    Modelo/Herramientas/exception.h
     Modelo/Objetos/omega.h
     DAO/bounddao.h
     DAO/adaptadorbounddao.h
-    GUI/viewbound.h
     Modelo/EstructurasDatos/datosplanta.h
     DAO/dao.h
     DAO/fdao.h
-    GUI/intdatosboundaries.h
     Modelo/EstructurasDatos/datosbound.h
     XmlParser/parserload.h
     XmlParser/parsersave.h
-    GUI/intespecificaciones.h
     DAO/especificacionesdao.h
     DAO/adaptadorespecificacionesdao.h
-    GUI/introducirecontr.h
     DAO/adaptadorcontroladordao.h
     DAO/controladordao.h
     Modelo/LoopShaping/algorithm_sachin.h
@@ -218,14 +212,10 @@ set(QFTbx_HED
     Modelo/LoopShaping/algorithm_nandkishor.h
     Modelo/LoopShaping/algorithm_rambabu.h
     Modelo/LoopShaping/EstructuraDatos/arbol_exp.h
-    GUI/viewboundreun.h
     Modelo/Boundaries/boundaries.h
-    Modelo/Boundaries/contour.h
     Consola/consola.h
     Modelo/EstructuraSistema/formatolibre.h
-    GUI/intloopshaping.h
     Modelo/LoopShaping/loopshaping.h
-    GUI/viewloopshaping.h
     Modelo/LoopShaping/EstructuraDatos/avl.h
     Modelo/LoopShaping/EstructuraDatos/n.h
     Modelo/LoopShaping/EstructuraDatos/datosfeasible.h
@@ -238,14 +228,29 @@ set(QFTbx_HED
     DAO/loopshapingdao.h
     DAO/adaptadorloopshapingdao.h
     Modelo/EstructurasDatos/datosloopshaping.h
-    GUI/introducirtemplates.h
-    GUI/viewtemplates.h
-    GUI/verboundaries.h
     Modelo/Boundaries/algoritmointerseccionlineal1D.h
     Modelo/Boundaries/algoritmointerseccionproyectivo2D.h
     Modelo/Boundaries/contour2.h
     Modelo/LoopShaping/funcionescomunes.h
     Modelo/LoopShaping/EstructuraDatos/data_box.h
+)
+
+set(QFTbx_GUI_HED
+    GUI/diagramabode.h
+    GUI/windowsgeneral.h
+    GUI/introducirplanta.h
+    GUI/intomega.h
+    GUI/intincertidumbre.h
+    GUI/viewbound.h
+    GUI/intdatosboundaries.h
+    GUI/intespecificaciones.h
+    GUI/introducirecontr.h
+    GUI/viewboundreun.h
+    GUI/intloopshaping.h
+    GUI/viewloopshaping.h
+    GUI/introducirtemplates.h
+    GUI/viewtemplates.h
+    GUI/verboundaries.h
 )
 
 # Recursos
@@ -254,22 +259,32 @@ qt6_add_resources(QFTbx_ICON_RES Resources/Icon/icons.qrc)
 
 
 # ------------------------------------------------------------------------------
+# Libreria del backend (Modelo + DAO + XmlParser + Consola)
+# ------------------------------------------------------------------------------
+add_library(qftbx_backend STATIC
+    ${QFTbx_BACKEND_SRC}
+    ${QFTbx_BACKEND_HED}
+)
+
+target_include_directories(qftbx_backend PUBLIC "${CMAKE_SOURCE_DIR}")
+
+# El backend todavia depende de Qt (contenedores, QMessageBox en tools.h...);
+# la eliminacion progresiva de Qt del backend es parte del refactor en curso.
+target_link_libraries(qftbx_backend PUBLIC Qt6::Core Qt6::Gui Qt6::Widgets Qt6::PrintSupport)
+
+# ------------------------------------------------------------------------------
 # Ejecutable
 # ------------------------------------------------------------------------------
 add_executable(${EXE_NAME}
-    ${QFTbx_SRC}
-    ${QFTbx_HED}
-    ${QFTbx_QML}
+    ${QFTbx_GUI_SRC}
+    ${QFTbx_GUI_HED}
     ${CUDA_OBJECTS}
-    ${QFTbx_OpenCL}
     ${TS_FILES}
     ${QFTbx_ICON_RES}
     ${QFTbx_RES_SRC}
 )
 
-target_include_directories(${EXE_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
-
-target_link_libraries(${EXE_NAME} PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::PrintSupport)
+target_link_libraries(${EXE_NAME} PRIVATE qftbx_backend Qt6::Core Qt6::Gui Qt6::Widgets Qt6::PrintSupport)
 
 if(WIN32)
   target_sources(${EXE_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/Resources/Icon/qftbx.rc)
@@ -318,16 +333,20 @@ StartupNotify=true\n"
   )
 endif()
 
-# Warnings/arch 
+# Warnings/arch
 target_compile_options(${EXE_NAME} PRIVATE -Wall)
+target_compile_options(qftbx_backend PRIVATE -Wall)
 if(USE_NATIVE_ARCH AND (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang"))
   target_compile_options(${EXE_NAME} PRIVATE -march=native)
+  target_compile_options(qftbx_backend PRIVATE -march=native)
 endif()
 
 # OpenMP link
 if(USE_OpenMP AND OpenMP_CXX_FOUND)
-  target_link_libraries(${EXE_NAME} PRIVATE OpenMP::OpenMP_CXX)
-  target_compile_definitions(${EXE_NAME} PRIVATE OpenMP_AVAILABLE=1)
+  # PUBLIC: la definicion OpenMP_AVAILABLE cambia declaraciones en cabeceras
+  # compartidas (p.ej. templates.h), asi que debe propagarse a los consumidores.
+  target_link_libraries(qftbx_backend PUBLIC OpenMP::OpenMP_CXX)
+  target_compile_definitions(qftbx_backend PUBLIC OpenMP_AVAILABLE=1)
 else()
   if(USE_OpenMP)
     message("OpenMP NOT FOUND")
@@ -336,19 +355,8 @@ endif()
 
 # CUDA link
 if(CUDA_FOUND)
-    add_dependencies(${EXE_NAME} CUDA)
-    target_link_libraries(${EXE_NAME} PRIVATE CUDA)
-endif()
-
-# OpenCL link
-if(USE_OpenCL AND OpenCL_FOUND)
-  if(TARGET OpenCL::OpenCL)
-    target_link_libraries(${EXE_NAME} PRIVATE OpenCL::OpenCL)
-  else()
-    target_link_libraries(${EXE_NAME} PRIVATE ${OpenCL_LIBRARY})
-    target_include_directories(${EXE_NAME} PRIVATE ${OpenCL_INCLUDE_DIRS})
-  endif()
-  target_compile_definitions(${EXE_NAME} PRIVATE OpenCL_AVAILABLE=1)
+    add_dependencies(qftbx_backend CUDA)
+    target_link_libraries(qftbx_backend PUBLIC CUDA)
 endif()
 
 set_property(TARGET ${EXE_NAME} APPEND PROPERTY
@@ -361,10 +369,10 @@ qt6_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 # LIBS internas: muparserx y qcustomplot como subdirectorios
 # ------------------------------------------------------------------------------
 add_subdirectory(3rd-party/muparserx EXCLUDE_FROM_ALL)
-target_link_libraries(${EXE_NAME} PRIVATE muparserx::muparserx)
+target_link_libraries(qftbx_backend PUBLIC muparserx::muparserx)
 
 add_subdirectory(3rd-party/qcustomplot EXCLUDE_FROM_ALL)
-target_link_libraries(${EXE_NAME} PRIVATE qcustomplot::qcustomplot)
+target_link_libraries(qftbx_backend PUBLIC qcustomplot::qcustomplot)
 
 # ------------------------------------------------------------------------------
 # CXSC aislada (NO tocar cxsc). ExternalProject + imported target.
@@ -406,11 +414,21 @@ set_target_properties(cxsc::cxsc PROPERTIES
 )
 
 add_dependencies(cxsc::cxsc cxsc_ep)
-target_link_libraries(${EXE_NAME} PRIVATE cxsc::cxsc)
+target_link_libraries(qftbx_backend PUBLIC cxsc::cxsc)
 
 # RPATH en Linux para encontrar libcxsc.so al ejecutar desde build
 if(UNIX AND NOT APPLE AND NOT WIN32)
   set_target_properties(${EXE_NAME} PROPERTIES
     BUILD_RPATH "${CXSC_LIBDIR}"
   )
+endif()
+
+# ------------------------------------------------------------------------------
+# Tests (GoogleTest)
+# ------------------------------------------------------------------------------
+option(QFTBX_BUILD_TESTS "Build unit tests" ON)
+
+if(QFTBX_BUILD_TESTS)
+  enable_testing()
+  add_subdirectory(tests)
 endif()

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<QFT>
+    <Planta nombre="cervera">
+        <tipo tipo="0">
+            <expresion size="2">
+                <numerador>a</numerador>
+                <denominador>(s^2)*((s^2) + a)</denominador>
+            </expresion>
+            <numerador size="1">
+                <variable-0>
+                    <nominal>2</nominal>
+                    <variable>true</variable>
+                    <nombre>a</nombre>
+                    <exp>a</exp>
+                    <rango>
+                        <inicio>0.5</inicio>
+                        <final>2</final>
+                    </rango>
+                </variable-0>
+            </numerador>
+            <denominador size="1">
+                <variable-0>
+                    <nominal>2</nominal>
+                    <variable>true</variable>
+                    <nombre>a</nombre>
+                    <exp>a</exp>
+                    <rango>
+                        <inicio>0.5</inicio>
+                        <final>2</final>
+                    </rango>
+                </variable-0>
+            </denominador>
+            <variable-k>
+                <nominal>1</nominal>
+                <variable>false</variable>
+            </variable-k>
+            <variable-ret>
+                <nominal>0</nominal>
+                <variable>false</variable>
+            </variable-ret>
+        </tipo>
+    </Planta>
+    <omega>
+        <inicio>0</inicio>
+        <final>0</final>
+        <nPuntos>4</nPuntos>
+        <tipo>2</tipo>
+        <valores>0.1 5 10 100 </valores>
+    </omega>
+</QFT>
