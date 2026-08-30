@@ -169,7 +169,7 @@ tools::alg_loop_shaping IntLoopShaping::getAlg(){
     return alg;
 }
 
-QPointF IntLoopShaping::getRango(){
+QPointF IntLoopShaping::range(){
     return rango;
 }
 

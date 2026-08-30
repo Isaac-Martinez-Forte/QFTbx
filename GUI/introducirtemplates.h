@@ -14,9 +14,9 @@
 
 
 #include "Modelo/EstructurasDatos/parlineedit.h"
-#include "Modelo/EstructuraSistema/sistema.h"
+#include "src/core/system/lti_system.h"
 #include "Modelo/controlador.h"
-#include "Modelo/EstructurasDatos/var.h"
+#include "src/core/system/parameter.h"
 #include "Modelo/EstructurasDatos/parlineedit.h"
 #include "Modelo/Herramientas/tools.h"
 #include "intespecificaciones.h"
@@ -61,7 +61,7 @@ public:
     * @brief Función que lanza la creación gráfica de la clase.
     */
     
-    void lanzarViewTemp(Sistema * planta, qint32 numOmegas);
+    void lanzarViewTemp(LtiSystem * planta, qint32 numOmegas);
     
     
    /**
@@ -71,7 +71,7 @@ public:
     * @return mapa hash con los distintos valores que pueden tomar las variables.
     */
     
-    QHash<Var *, QVector<qreal> *> * getMapa();
+    QHash<Parameter *, QVector<qreal> *> * getMapa();
     
     
    /**
@@ -135,18 +135,18 @@ private:
 
 
     void crearWidget (QWidget *widget, QVector<ParLineEdit *> *par, QVector <tresRadioButton> * radioButtons);
-    void formartablas(QVector<Var *> *numerador, QVector<Var *> *denominador);
-    bool extraerVariable(ParLineEdit* parlines, tresRadioButton radioButtons, Var * var,
+    void formartablas(QVector<Parameter *> *numerador, QVector<Parameter *> *denominador);
+    bool extraerVariable(ParLineEdit* parlines, tresRadioButton radioButtons, Parameter * var,
                          bool linsp, bool logsp);
 
     QVector <ParLineEdit*>* parNume;
     QVector <ParLineEdit*>* parDeno ;
-    QHash <Var *, QVector<qreal> * > * mapa = NULL;
+    QHash <Parameter *, QVector<qreal> * > * mapa = NULL;
     QVector <tresRadioButton> * radioButtonsNume;
     QVector <tresRadioButton> * radioButtonsDeno;
-    QVector<Var *> *numerador;
-    QVector<Var *> *denominador;
-    Sistema * planta;
+    QVector<Parameter *> *numerador;
+    QVector<Parameter *> *denominador;
+    LtiSystem * planta;
 
     bool variablesCreadas = false;
     bool cuda = false;

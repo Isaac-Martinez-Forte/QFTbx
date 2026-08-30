@@ -17,24 +17,9 @@ Natura_Interval_extension::~Natura_Interval_extension()
 
 }
 
-cinterval Natura_Interval_extension::get_box_termino_nume(Var * var, qreal w, complex p0) {
+cinterval Natura_Interval_extension::get_box_termino_nume(Parameter * var, qreal w, complex p0) {
 
-    cinterval a = (complex (0, w) + interval(var->getRango().x(), var->getRango().y())) * p0;
-
-    interval g = abs(a);
-
-    if (Inf(g) == 0){
-        SetInf(g, 0.01);
-    }
-
-    interval theta = _arg(a);
-
-    return cinterval (20.0 * log10(g), theta * 180.0 / PI);
-}
-
-cinterval Natura_Interval_extension::get_box_termino_deno(Var * var, qreal w, complex p0) {
-
-    cinterval a = 1 / (complex (0, w) + interval(var->getRango().x(), var->getRango().y())) * p0;
+    cinterval a = (complex (0, w) + interval(var->range().x(), var->range().y())) * p0;
 
     interval g = abs(a);
 
@@ -47,9 +32,9 @@ cinterval Natura_Interval_extension::get_box_termino_deno(Var * var, qreal w, co
     return cinterval (20.0 * log10(g), theta * 180.0 / PI);
 }
 
-cinterval Natura_Interval_extension::get_box_termino_k(Var * var, complex p0) {
+cinterval Natura_Interval_extension::get_box_termino_deno(Parameter * var, qreal w, complex p0) {
 
-    cinterval a = (interval(var->getRango().x(), var->getRango().y())) * p0;
+    cinterval a = 1 / (complex (0, w) + interval(var->range().x(), var->range().y())) * p0;
 
     interval g = abs(a);
 
@@ -62,15 +47,30 @@ cinterval Natura_Interval_extension::get_box_termino_k(Var * var, complex p0) {
     return cinterval (20.0 * log10(g), theta * 180.0 / PI);
 }
 
-cinterval Natura_Interval_extension::get_box(Sistema *sistema, qreal w, complex p0, bool nyquist){
+cinterval Natura_Interval_extension::get_box_termino_k(Parameter * var, complex p0) {
+
+    cinterval a = (interval(var->range().x(), var->range().y())) * p0;
+
+    interval g = abs(a);
+
+    if (Inf(g) == 0){
+        SetInf(g, 0.01);
+    }
+
+    interval theta = _arg(a);
+
+    return cinterval (20.0 * log10(g), theta * 180.0 / PI);
+}
+
+cinterval Natura_Interval_extension::get_box(LtiSystem *sistema, qreal w, complex p0, bool nyquist){
 
     cinterval a;
 
-    /*if (sistema->getClass() == Sistema::cof_polinomios){ //TODO arreglar falta formato libre
+    /*if (sistema->type() == LtiSystem::SystemType::PolynomialForm){ //TODO arreglar falta formato libre
 
         a = get_box_cpolinomios(sistema, w);
 
-    } else if (sistema->getClass() == Sistema::k_ganancia){
+    } else if (sistema->type() == LtiSystem::SystemType::ZeroPoleGain){
         a = get_box_kganancia(sistema, w);
 
     } else {
@@ -79,10 +79,10 @@ cinterval Natura_Interval_extension::get_box(Sistema *sistema, qreal w, complex 
 
     //////////////////////////////////////////////////////////////////
 
-    QVector <Var*> * nume = sistema->getNumerador();
-    QVector <Var * > * deno = sistema->getDenominador();
+    QVector <Parameter*> * nume = sistema->numerator();
+    QVector <Parameter * > * deno = sistema->denominator();
 
-    Var * kv = sistema->getK();
+    Parameter * kv = sistema->gain();
 
 
     //Creamos el numerador.
@@ -91,21 +91,21 @@ cinterval Natura_Interval_extension::get_box(Sistema *sistema, qreal w, complex 
 
 
     if (!nume->isEmpty()){
-        QVector <Var*>::iterator it = nume->begin();
+        QVector <Parameter*>::iterator it = nume->begin();
 
-        if ((*it)->isVariable()){
-            numerador = (complejo + interval((*it)->getRango().x(), (*it)->getRango().y()));
+        if ((*it)->isUncertain()){
+            numerador = (complejo + interval((*it)->range().x(), (*it)->range().y()));
         }else{
-            numerador = (complejo + interval((*it)->getNominal()));
+            numerador = (complejo + interval((*it)->nominal()));
         }
 
         it++;
 
         for (; it != nume->end(); it++) {
-            if ((*it)->isVariable()){
-                numerador = numerador * (complejo + interval((*it)->getRango().x(), (*it)->getRango().y()));
+            if ((*it)->isUncertain()){
+                numerador = numerador * (complejo + interval((*it)->range().x(), (*it)->range().y()));
             }else{
-                numerador = numerador * (complejo + interval((*it)->getNominal()));
+                numerador = numerador * (complejo + interval((*it)->nominal()));
             }
         }
 
@@ -115,30 +115,30 @@ cinterval Natura_Interval_extension::get_box(Sistema *sistema, qreal w, complex 
     cinterval denominador;
 
     if (!deno->isEmpty()){
-        QVector <Var*>::iterator it = deno->begin();
+        QVector <Parameter*>::iterator it = deno->begin();
 
-        if ((*it)->isVariable()){
-            denominador = (complejo + interval((*it)->getRango().x(), (*it)->getRango().y()));
+        if ((*it)->isUncertain()){
+            denominador = (complejo + interval((*it)->range().x(), (*it)->range().y()));
         }else{
-            denominador = (complejo + interval((*it)->getNominal()));
+            denominador = (complejo + interval((*it)->nominal()));
         }
 
         it++;
 
         for (; it != deno->end(); it++) {
-            if ((*it)->isVariable()){
-                denominador = denominador * (complejo + interval((*it)->getRango().x(), (*it)->getRango().y()));
+            if ((*it)->isUncertain()){
+                denominador = denominador * (complejo + interval((*it)->range().x(), (*it)->range().y()));
             }else{
-                denominador = denominador * (complejo + interval((*it)->getNominal()));
+                denominador = denominador * (complejo + interval((*it)->nominal()));
             }
         }
     }
 
 
-    if(kv->isVariable()){
-        a = interval(kv->getRango().x(), kv->getRango().y()) * numerador * p0;
+    if(kv->isUncertain()){
+        a = interval(kv->range().x(), kv->range().y()) * numerador * p0;
     } else{
-        a = kv->getNominal() * numerador * p0;
+        a = kv->nominal() * numerador * p0;
     }
 
     //////////////////////////////////////////////////////////////////
@@ -212,14 +212,14 @@ cinterval Natura_Interval_extension::getBoxDB(){
     return boxDB;
 }
 
-cinterval Natura_Interval_extension::get_box_nume(QVector <Var * > * nume, qreal w, Sistema::tipo_planta tipo, bool nyquist){
+cinterval Natura_Interval_extension::get_box_nume(QVector <Parameter * > * nume, qreal w, LtiSystem::SystemType tipo, bool nyquist){
     cinterval a;
 
-    if (tipo == Sistema::cof_polinomios){ //TODO arreglar falta formato libre
+    if (tipo == LtiSystem::SystemType::PolynomialForm){ //TODO arreglar falta formato libre
 
         //a = get_box_cpolinomios(sistema, w);
 
-    } else if (tipo == Sistema::k_ganancia){
+    } else if (tipo == LtiSystem::SystemType::ZeroPoleGain){
         a = get_box_kganancia_nume(nume, w);
 
     } else {
@@ -238,14 +238,14 @@ cinterval Natura_Interval_extension::get_box_nume(QVector <Var * > * nume, qreal
     return cinterval (20.0 * log10(b), _arg(a) * 180.0 / PI);
 }
 
-cinterval Natura_Interval_extension::get_box_deno(QVector <Var * > * deno, qreal w, Sistema::tipo_planta tipo, bool nyquist){
+cinterval Natura_Interval_extension::get_box_deno(QVector <Parameter * > * deno, qreal w, LtiSystem::SystemType tipo, bool nyquist){
     cinterval a;
 
-    if (tipo == Sistema::cof_polinomios){ //TODO arreglar falta formato libre
+    if (tipo == LtiSystem::SystemType::PolynomialForm){ //TODO arreglar falta formato libre
 
         //a = get_box_cpolinomios(sistema, w);
 
-    } else if (tipo == Sistema::k_ganancia){
+    } else if (tipo == LtiSystem::SystemType::ZeroPoleGain){
         a = get_box_kganancia_deno(deno, w);
 
     } else {
@@ -264,12 +264,12 @@ cinterval Natura_Interval_extension::get_box_deno(QVector <Var * > * deno, qreal
     return cinterval (20.0 * log10(b), _arg(a) * 180.0 / PI);
 }
 
-inline cinterval Natura_Interval_extension::get_box_kganancia(Sistema *sistema, qreal w){
+inline cinterval Natura_Interval_extension::get_box_kganancia(LtiSystem *sistema, qreal w){
 
-    QVector <Var*> * nume = sistema->getNumerador();
-    QVector <Var * > * deno = sistema->getDenominador();
+    QVector <Parameter*> * nume = sistema->numerator();
+    QVector <Parameter * > * deno = sistema->denominator();
 
-    Var * kv = sistema->getK();
+    Parameter * kv = sistema->gain();
 
 
     //Creamos el numerador.
@@ -279,21 +279,21 @@ inline cinterval Natura_Interval_extension::get_box_kganancia(Sistema *sistema, 
 
 
     if (!nume->isEmpty()){
-        QVector <Var*>::iterator it = nume->begin();
+        QVector <Parameter*>::iterator it = nume->begin();
 
-        if ((*it)->isVariable()){
-            numerador = (complejo + interval((*it)->getRango().x(), (*it)->getRango().y()));
+        if ((*it)->isUncertain()){
+            numerador = (complejo + interval((*it)->range().x(), (*it)->range().y()));
         }else{
-            numerador = (complejo + interval((*it)->getNominal()));
+            numerador = (complejo + interval((*it)->nominal()));
         }
 
         it++;
 
         for (; it != nume->end(); it++) {
-            if ((*it)->isVariable()){
-                numerador = numerador * (complejo + interval((*it)->getRango().x(), (*it)->getRango().y()));
+            if ((*it)->isUncertain()){
+                numerador = numerador * (complejo + interval((*it)->range().x(), (*it)->range().y()));
             }else{
-                numerador = numerador * (complejo + interval((*it)->getNominal()));
+                numerador = numerador * (complejo + interval((*it)->nominal()));
             }
         }
 
@@ -303,30 +303,30 @@ inline cinterval Natura_Interval_extension::get_box_kganancia(Sistema *sistema, 
     cinterval denominador (interval (1));
 
     if (!deno->isEmpty()){
-        QVector <Var*>::iterator it = deno->begin();
+        QVector <Parameter*>::iterator it = deno->begin();
 
-        if ((*it)->isVariable()){
-            denominador = (complejo + interval((*it)->getRango().x(), (*it)->getRango().y()));
+        if ((*it)->isUncertain()){
+            denominador = (complejo + interval((*it)->range().x(), (*it)->range().y()));
         }else{
-            denominador = (complejo + interval((*it)->getNominal()));
+            denominador = (complejo + interval((*it)->nominal()));
         }
 
         it++;
 
         for (; it != deno->end(); it++) {
-            if ((*it)->isVariable()){
-                denominador = denominador * (complejo + interval((*it)->getRango().x(), (*it)->getRango().y()));
+            if ((*it)->isUncertain()){
+                denominador = denominador * (complejo + interval((*it)->range().x(), (*it)->range().y()));
             }else{
-                denominador = denominador * (complejo + interval((*it)->getNominal()));
+                denominador = denominador * (complejo + interval((*it)->nominal()));
             }
         }
     }
     
 
-    if(kv->isVariable()){
+    if(kv->isUncertain()){
 
         if (0.0 <= Re(denominador) && 0.0 <= Im(denominador) ) {
-            cinterval a = interval(kv->getRango().x(), kv->getRango().y()) * numerador;
+            cinterval a = interval(kv->range().x(), kv->range().y()) * numerador;
             interval g1 = abs(a);
 
             if (Inf(g1) == 0){
@@ -351,35 +351,35 @@ inline cinterval Natura_Interval_extension::get_box_kganancia(Sistema *sistema, 
             return L;
 
         } else {
-            return interval(kv->getRango().x(), kv->getRango().y()) * numerador / denominador;
+            return interval(kv->range().x(), kv->range().y()) * numerador / denominador;
         }
     } else{
-        return kv->getNominal() * numerador / denominador;
+        return kv->nominal() * numerador / denominador;
     }
 }
 
-inline cinterval Natura_Interval_extension::get_box_kganancia_nume (QVector <Var*> * nume, qreal w){
+inline cinterval Natura_Interval_extension::get_box_kganancia_nume (QVector <Parameter*> * nume, qreal w){
 
     cinterval numerador (1);
     complex complejo (0, w);
 
 
     if (!nume->isEmpty()){
-        QVector <Var*>::iterator it = nume->begin();
+        QVector <Parameter*>::iterator it = nume->begin();
 
-        if ((*it)->isVariable()){
-            numerador = (complejo + interval((*it)->getRango().x(), (*it)->getRango().y()));
+        if ((*it)->isUncertain()){
+            numerador = (complejo + interval((*it)->range().x(), (*it)->range().y()));
         }else{
-            numerador = (complejo + interval((*it)->getNominal()));
+            numerador = (complejo + interval((*it)->nominal()));
         }
 
         it++;
 
         for (; it != nume->end(); it++) {
-            if ((*it)->isVariable()){
-                numerador = numerador * (complejo + interval((*it)->getRango().x(), (*it)->getRango().y()));
+            if ((*it)->isUncertain()){
+                numerador = numerador * (complejo + interval((*it)->range().x(), (*it)->range().y()));
             }else{
-                numerador = numerador * (complejo + interval((*it)->getNominal()));
+                numerador = numerador * (complejo + interval((*it)->nominal()));
             }
         }
     }
@@ -387,27 +387,27 @@ inline cinterval Natura_Interval_extension::get_box_kganancia_nume (QVector <Var
     return numerador;
 }
 
-inline cinterval Natura_Interval_extension::get_box_kganancia_deno (QVector <Var * > * deno, qreal w){
+inline cinterval Natura_Interval_extension::get_box_kganancia_deno (QVector <Parameter * > * deno, qreal w){
 
     cinterval denominador (interval (1));
     complex complejo (0, w);
 
     if (!deno->isEmpty()){
-        QVector <Var*>::iterator it = deno->begin();
+        QVector <Parameter*>::iterator it = deno->begin();
 
-        if ((*it)->isVariable()){
-            denominador = (complejo + interval((*it)->getRango().x(), (*it)->getRango().y()));
+        if ((*it)->isUncertain()){
+            denominador = (complejo + interval((*it)->range().x(), (*it)->range().y()));
         }else{
-            denominador = (complejo + interval((*it)->getNominal()));
+            denominador = (complejo + interval((*it)->nominal()));
         }
 
         it++;
 
         for (; it != deno->end(); it++) {
-            if ((*it)->isVariable()){
-                denominador = denominador * (complejo + interval((*it)->getRango().x(), (*it)->getRango().y()));
+            if ((*it)->isUncertain()){
+                denominador = denominador * (complejo + interval((*it)->range().x(), (*it)->range().y()));
             }else{
-                denominador = denominador * (complejo + interval((*it)->getNominal()));
+                denominador = denominador * (complejo + interval((*it)->nominal()));
             }
         }
     }
@@ -415,12 +415,12 @@ inline cinterval Natura_Interval_extension::get_box_kganancia_deno (QVector <Var
     return denominador;
 }
 
-inline cinterval Natura_Interval_extension::get_box_knoganacia(Sistema *sistema, qreal w){
+inline cinterval Natura_Interval_extension::get_box_knoganacia(LtiSystem *sistema, qreal w){
 
-    QVector <Var*> * nume = sistema->getNumerador();
-    QVector <Var*> * deno = sistema->getDenominador();
+    QVector <Parameter*> * nume = sistema->numerator();
+    QVector <Parameter*> * deno = sistema->denominator();
 
-    Var * kv = sistema->getK();
+    Parameter * kv = sistema->gain();
 
     complex complejo(0, w);
 
@@ -428,23 +428,23 @@ inline cinterval Natura_Interval_extension::get_box_knoganacia(Sistema *sistema,
 
     cinterval numerador(1);
 
-    QVector <Var*>::iterator it = nume->begin();
+    QVector <Parameter*>::iterator it = nume->begin();
 
     if (!nume->empty()){
 
-        if ((*it)->isVariable()){
-            numerador = ((complejo / interval((*it)->getRango().x(),(*it)->getRango().y())) + 1.);
+        if ((*it)->isUncertain()){
+            numerador = ((complejo / interval((*it)->range().x(),(*it)->range().y())) + 1.);
         }else{
-            numerador = ((complejo / (*it)->getNominal()) + 1.);
+            numerador = ((complejo / (*it)->nominal()) + 1.);
         }
 
         it++;
 
         for (; it != nume->end(); it++) {
-            if ((*it)->isVariable()){
-                numerador = numerador * ((complejo / interval((*it)->getRango().x(),(*it)->getRango().y())) + 1.);
+            if ((*it)->isUncertain()){
+                numerador = numerador * ((complejo / interval((*it)->range().x(),(*it)->range().y())) + 1.);
             }else{
-                numerador = numerador * ((complejo / (*it)->getNominal()) + 1.);
+                numerador = numerador * ((complejo / (*it)->nominal()) + 1.);
             }
         }
     }
@@ -455,37 +455,37 @@ inline cinterval Natura_Interval_extension::get_box_knoganacia(Sistema *sistema,
     if (!deno->empty()){
         it = deno->begin();
 
-        if ((*it)->isVariable()){
-            denominador = ((complejo / interval((*it)->getRango().x(),(*it)->getRango().y())) + 1.);
+        if ((*it)->isUncertain()){
+            denominador = ((complejo / interval((*it)->range().x(),(*it)->range().y())) + 1.);
         }else{
-            denominador = ((complejo / (*it)->getNominal()) + 1.);
+            denominador = ((complejo / (*it)->nominal()) + 1.);
         }
 
         it++;
 
         for (; it != deno->end(); it++) {
-            if ((*it)->isVariable()){
-                denominador = denominador * ((complejo / interval((*it)->getRango().x(),(*it)->getRango().y())) + 1.);
+            if ((*it)->isUncertain()){
+                denominador = denominador * ((complejo / interval((*it)->range().x(),(*it)->range().y())) + 1.);
             }else{
-                denominador = denominador * ((complejo / (*it)->getNominal()) + 1.);
+                denominador = denominador * ((complejo / (*it)->nominal()) + 1.);
             }
         }
     }
 
 
-    if(kv->isVariable()){
-        return interval(kv->getRango().x(), kv->getRango().y()) * (numerador / denominador);
+    if(kv->isUncertain()){
+        return interval(kv->range().x(), kv->range().y()) * (numerador / denominador);
     } else{
-        return kv->getNominal() * (numerador / denominador);
+        return kv->nominal() * (numerador / denominador);
     }
 }
 
-inline cinterval Natura_Interval_extension::get_box_cpolinomios(Sistema * sistema, qreal w){
+inline cinterval Natura_Interval_extension::get_box_cpolinomios(LtiSystem * sistema, qreal w){
 
-    QVector <Var*> * nume = sistema->getNumerador();
-    QVector <Var * > * deno = sistema->getDenominador();
+    QVector <Parameter*> * nume = sistema->numerator();
+    QVector <Parameter * > * deno = sistema->denominator();
 
-    Var * kv = sistema->getK();
+    Parameter * kv = sistema->gain();
 
     //Calculamos el numerador
     qint32 expo = nume->size() - 1;
@@ -493,23 +493,23 @@ inline cinterval Natura_Interval_extension::get_box_cpolinomios(Sistema * sistem
     complex complejo (0, w);
     
     for (qint32 i = 1;  i < nume->size(); i++) {
-        Var * n = nume->at(i);
-        if (n->isVariable()) {
-            QPointF x = n->getRango();
+        Parameter * n = nume->at(i);
+        if (n->isUncertain()) {
+            QPointF x = n->range();
             numerador = numerador + pow(interval(x.x(), x.y()) * complejo, interval(expo));
         } else {
-            numerador = numerador + pow(n->getNominal() * complejo, expo);
+            numerador = numerador + pow(n->nominal() * complejo, expo);
         }
         expo--;
     }
 
-    Var * n = nume->last();
+    Parameter * n = nume->last();
 
-    if (n->isVariable()){
-        QPointF x = n->getRango();
+    if (n->isUncertain()){
+        QPointF x = n->range();
         numerador = numerador + pow(interval(x.x(), x.y()) * complejo, interval(expo));
     }else {
-        numerador = numerador + pow(n->getNominal() * complejo, expo);
+        numerador = numerador + pow(n->nominal() * complejo, expo);
     }
 
 
@@ -518,30 +518,30 @@ inline cinterval Natura_Interval_extension::get_box_cpolinomios(Sistema * sistem
     cinterval denominador (0);
 
     for (qint32 i = 1;  i < deno->size(); i++) {
-        Var * n = deno->at(i);
-        if (n->isVariable()) {
-            QPointF x = n->getRango();
+        Parameter * n = deno->at(i);
+        if (n->isUncertain()) {
+            QPointF x = n->range();
             denominador = denominador + pow(interval(x.x(), x.y()) * complejo, interval(expo));
         } else {
-            denominador = denominador + pow(n->getNominal() * complejo, expo);
+            denominador = denominador + pow(n->nominal() * complejo, expo);
         }
         expo--;
     }
 
     n = deno->last();
 
-    if (n->isVariable()){
-        QPointF x = n->getRango();
+    if (n->isUncertain()){
+        QPointF x = n->range();
         denominador = denominador + pow(interval(x.x(), x.y()) * complejo, interval(expo));
     }else {
-        denominador = denominador + pow(n->getNominal() * complejo, expo);
+        denominador = denominador + pow(n->nominal() * complejo, expo);
     }
 
 
-    if(kv->isVariable()){
-        return interval(kv->getRango().x(), kv->getRango().y()) * (numerador / denominador);
+    if(kv->isUncertain()){
+        return interval(kv->range().x(), kv->range().y()) * (numerador / denominador);
     } else{
-        return kv->getNominal() * (numerador / denominador);
+        return kv->nominal() * (numerador / denominador);
     }
 
 }

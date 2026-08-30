@@ -10,7 +10,7 @@
 
 #include "Modelo/EstructurasDatos/datosbound.h"
 
-#include "Modelo/EstructuraSistema/sistema.h"
+#include "src/core/system/lti_system.h"
 #include "Modelo/LoopShaping/NaturalIntervalExtension/natural_interval_extension.h"
 
 
@@ -28,7 +28,7 @@ public:
 
 
     void setDatos (DatosBound * boundariesNichols, DatosBound * boundariesNyquist, QVector<qreal> *omega,
-                   Sistema * planta, Sistema * controlador, bool nichols, bool nyquist);
+                   LtiSystem * planta, LtiSystem * controlador, bool nichols, bool nyquist);
 
     void mostrar_diagrama();
 
@@ -43,8 +43,8 @@ private:
 
     DatosBound * boundariesNichols;
     DatosBound * boundariesNyquist;
-    Sistema * planta;
-    Sistema * controlador;
+    LtiSystem * planta;
+    LtiSystem * controlador;
     QVector <qreal> * omega;
 
     bool ejecutado;

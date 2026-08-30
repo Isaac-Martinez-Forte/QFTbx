@@ -108,13 +108,12 @@ set(TS_FILES QFTbx_es_ES.ts)
 # para poder enlazarlo tanto desde el ejecutable como desde los tests.
 set(QFTbx_BACKEND_SRC
     Modelo/LoopShaping/NaturalIntervalExtension/natural_interval_extension.cpp
-    Modelo/EstructuraSistema/funciontransferencia.cpp
+    src/core/system/transfer_function.cpp
     DAO/adaptadorplantadao.cpp
-    Modelo/EstructuraSistema/sistema.cpp
-    Modelo/EstructuraSistema/polosceros.cpp
-    Modelo/EstructuraSistema/cpolinomios.cpp
-    Modelo/EstructuraSistema/kganancia.cpp
-    Modelo/EstructuraSistema/knganancia.cpp
+    src/core/system/lti_system.cpp
+    src/core/system/polynomial_form.cpp
+    src/core/system/zero_pole_gain.cpp
+    src/core/system/time_constant_gain.cpp
     Modelo/controlador.cpp
     Modelo/EstructurasDatos/parlineedit.cpp
     DAO/adaptadoromegadao.cpp
@@ -133,12 +132,12 @@ set(QFTbx_BACKEND_SRC
     Modelo/LoopShaping/algorithm_sachin.cpp
     Modelo/LoopShaping/algorithm_primer_articulo.cpp
     Modelo/LoopShaping/algorithm_segundo_articulo.cpp
-    Modelo/EstructurasDatos/var.cpp
+    src/core/system/parameter.cpp
     Modelo/LoopShaping/algorithm_nandkishor.cpp
     Modelo/LoopShaping/algorithm_rambabu.cpp
     Modelo/Boundaries/boundaries.cpp
     Consola/consola.cpp
-    Modelo/EstructuraSistema/formatolibre.cpp
+    src/core/system/free_form.cpp
     Modelo/LoopShaping/loopshaping.cpp
     Modelo/LoopShaping/EstructuraDatos/datosfeasible.cpp
     Modelo/LoopShaping/EstructuraDatos/tripleta.cpp
@@ -174,14 +173,13 @@ set(QFTbx_GUI_SRC main.cpp
 )
 
 set(QFTbx_BACKEND_HED
-    Modelo/EstructuraSistema/funciontransferencia.h
+    src/core/system/transfer_function.h
     Modelo/LoopShaping/NaturalIntervalExtension/natural_interval_extension.h
     DAO/adaptadorplantadao.h
-    Modelo/EstructuraSistema/sistema.h
-    Modelo/EstructuraSistema/polosceros.h
-    Modelo/EstructuraSistema/cpolinomios.h
-    Modelo/EstructuraSistema/kganancia.h
-    Modelo/EstructuraSistema/knganancia.h
+    src/core/system/lti_system.h
+    src/core/system/polynomial_form.h
+    src/core/system/zero_pole_gain.h
+    src/core/system/time_constant_gain.h
     DAO/plantadao.h
     Modelo/controlador.h
     Modelo/EstructurasDatos/parlineedit.h
@@ -208,13 +206,13 @@ set(QFTbx_BACKEND_HED
     Modelo/LoopShaping/algorithm_sachin.h
     Modelo/LoopShaping/algorithm_primer_articulo.h
     Modelo/LoopShaping/algorithm_segundo_articulo.h
-    Modelo/EstructurasDatos/var.h
+    src/core/system/parameter.h
     Modelo/LoopShaping/algorithm_nandkishor.h
     Modelo/LoopShaping/algorithm_rambabu.h
     Modelo/LoopShaping/EstructuraDatos/arbol_exp.h
     Modelo/Boundaries/boundaries.h
     Consola/consola.h
-    Modelo/EstructuraSistema/formatolibre.h
+    src/core/system/free_form.h
     Modelo/LoopShaping/loopshaping.h
     Modelo/LoopShaping/EstructuraDatos/avl.h
     Modelo/LoopShaping/EstructuraDatos/n.h

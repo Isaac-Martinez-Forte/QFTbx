@@ -7,14 +7,14 @@
 #include <QMap>
 
 #include "Modelo/EstructurasDatos/datosbound.h"
-#include "Modelo/EstructuraSistema/sistema.h"
+#include "src/core/system/lti_system.h"
 #include "NaturalIntervalExtension/natural_interval_extension.h"
 #include "EstructuraDatos/avl.h"
 #include "EstructuraDatos/tripleta.h"
 #include "Modelo/Herramientas/tools.h"
-#include "Modelo/EstructuraSistema/cpolinomios.h"
-#include "Modelo/EstructuraSistema/kganancia.h"
-#include "Modelo/EstructuraSistema/knganancia.h"
+#include "src/core/system/polynomial_form.h"
+#include "src/core/system/zero_pole_gain.h"
+#include "src/core/system/time_constant_gain.h"
 #include "DeteccionViolacionBoundaries/deteccionviolacionboundaries.h"
 #include "EstructuraDatos/listaordenada.h"
 #include "funcionescomunes.h"
@@ -29,29 +29,29 @@ public:
     ~Algorithm_rambabu();
 
 
-    void set_datos(Sistema *planta, Sistema *controlador, QVector<qreal> * omega, DatosBound *boundaries,
+    void set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> * omega, DatosBound *boundaries,
                                      qreal epsilon, QVector<QVector<QVector<QPointF> *> *> *reunBoun, bool depuracion,
                                       QVector <QVector <std::complex <qreal> > * > * temp, QVector <tools::dBND *> * espe);
 
     bool init_algorithm();
 
-    Sistema * getControlador();
+    LtiSystem * getControlador();
 
 
 private:
 
     tools::flags_box feasibility_test (cinterval box, qreal omega);
-    tools::flags_box check_box_feasibility(Sistema *v);
-    Sistema *acelerated(Sistema * controlador);
+    tools::flags_box check_box_feasibility(LtiSystem *v);
+    LtiSystem *acelerated(LtiSystem * controlador);
 
-    bool crear_ecuaciones(Sistema *controlador);
+    bool crear_ecuaciones(LtiSystem *controlador);
 
     //Funciones para crear las ecuaciones
-    QVector<QVector<QString> *> *kganacia(Sistema * controlador);
-    QVector<QVector<QString> *> * knganancia (Sistema * controlador);
+    QVector<QVector<QString> *> *kganacia(LtiSystem * controlador);
+    QVector<QVector<QString> *> * knganancia (LtiSystem * controlador);
 
-    Sistema * planta;
-    Sistema * controlador;
+    LtiSystem * planta;
+    LtiSystem * controlador;
     QVector <qreal> * omega;
     DatosBound * boundaries;
     Natura_Interval_extension * conversion;
@@ -61,7 +61,7 @@ private:
     QVector <QVector <std::complex <qreal> > * > * temp;
     QVector <tools::dBND *> * espe;
 
-    Sistema * controlador_retorno;
+    LtiSystem * controlador_retorno;
 
     qreal minimo_boundaries;
 

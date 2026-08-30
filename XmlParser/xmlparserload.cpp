@@ -100,7 +100,7 @@ inline bool XmlParserLoad::asignarLectura(QString cont){
     return false;
 }
 
-Sistema *XmlParserLoad::getPlanta(){
+LtiSystem *XmlParserLoad::getPlanta(){
     return planta;
 }
 
@@ -128,7 +128,7 @@ QVector <QVector <QVector <qreal> * > *> * XmlParserLoad::getSabana(){
     return sabanas;
 }
 
-Sistema * XmlParserLoad::getControlador(){
+LtiSystem * XmlParserLoad::getControlador(){
     return controlador;
 }
 
@@ -637,7 +637,7 @@ inline bool XmlParserLoad::leerEspecificaciones(){
         bool utilizado = false;
         QString altura;
         bool constante = false;
-        Sistema * sis = NULL;
+        LtiSystem * sis = NULL;
         qreal iniciofrec = 0;
         qreal finalfrec = 0;
 
@@ -727,7 +727,7 @@ inline bool XmlParserLoad::leerEspecificaciones(){
                     return salidaError();
                 }
 
-                Sistema::tipo_planta tipoPlanta = static_cast <Sistema::tipo_planta> (stream->attributes()[0].value().toInt()); //leemos su tipo
+                LtiSystem::SystemType tipoPlanta = static_cast <LtiSystem::SystemType> (stream->attributes()[0].value().toInt()); //leemos su tipo
 
 
                 if (!stream->readNextStartElement()){       //leemos la sección expresion
@@ -783,12 +783,12 @@ inline bool XmlParserLoad::leerEspecificaciones(){
                     return salidaError();
                 }
 
-                QVector <Var*> * numerador = new QVector <Var*>();
+                QVector <Parameter*> * numerador = new QVector <Parameter*>();
                 numerador->reserve(longitudNumerador);
 
                 for (qint32 i = 0; i < longitudNumerador; i++){
 
-                    Var * var = leerVariable(0);
+                    Parameter * var = leerVariable(0);
 
                     if(var == NULL){
                         return false;
@@ -817,11 +817,11 @@ inline bool XmlParserLoad::leerEspecificaciones(){
                     return salidaError();
                 }
 
-                QVector <Var*> * denominador = new QVector <Var*>();
+                QVector <Parameter*> * denominador = new QVector <Parameter*>();
                 numerador->reserve(longitudDenominador);
 
                 for (qint32 i = 0; i < longitudDenominador; i++){
-                    Var * var = leerVariable(0);
+                    Parameter * var = leerVariable(0);
 
                     if(var == NULL){
                         return false;
@@ -832,26 +832,26 @@ inline bool XmlParserLoad::leerEspecificaciones(){
 
                 stream->skipCurrentElement();
 
-                Var * k = leerVariable(0);
+                Parameter * k = leerVariable(0);
 
                 if(k == NULL){
                     return false;
                 }
 
-                Var * ret = leerVariable(0);
+                Parameter * ret = leerVariable(0);
 
                 if(ret == NULL){
                     return false;
                 }
 
-                if (tipoPlanta == Sistema::cof_polinomios){
-                    sis = new CPolinomios (nombrePlanta, numerador,denominador,k,ret);
-                }else if (tipoPlanta == Sistema::k_ganancia){
-                    sis = new KGanancia(nombrePlanta,numerador,denominador,k,ret);
-                }else if (tipoPlanta == Sistema::k_no_ganancia){
-                    sis = new KNGanancia(nombrePlanta,numerador,denominador,k,ret);
-                }else if (tipoPlanta == Sistema::formato_libre) {
-                    sis = new FormatoLibre(nombrePlanta,numerador,denominador,k,ret, exp_nume, exp_deno);
+                if (tipoPlanta == LtiSystem::SystemType::PolynomialForm){
+                    sis = new PolynomialForm (nombrePlanta, numerador,denominador,k,ret);
+                }else if (tipoPlanta == LtiSystem::SystemType::ZeroPoleGain){
+                    sis = new ZeroPoleGain(nombrePlanta,numerador,denominador,k,ret);
+                }else if (tipoPlanta == LtiSystem::SystemType::TimeConstantGain){
+                    sis = new TimeConstantGain(nombrePlanta,numerador,denominador,k,ret);
+                }else if (tipoPlanta == LtiSystem::SystemType::FreeForm) {
+                    sis = new FreeForm(nombrePlanta,numerador,denominador,k,ret, exp_nume, exp_deno);
                 }else{
                     return salidaError();
                 }
@@ -898,7 +898,7 @@ inline bool XmlParserLoad::leerPlanta(qint32 tipoLectura){
         return salidaError();
     }
 
-    Sistema::tipo_planta tipoPlanta = static_cast<Sistema::tipo_planta>(stream->attributes()[0].value().toInt()); //leemos su tipo
+    LtiSystem::SystemType tipoPlanta = static_cast<LtiSystem::SystemType>(stream->attributes()[0].value().toInt()); //leemos su tipo
 
 
     if (!stream->readNextStartElement()){       //leemos la sección expresion
@@ -954,12 +954,12 @@ inline bool XmlParserLoad::leerPlanta(qint32 tipoLectura){
         return salidaError();
     }
 
-    QVector <Var*> * numerador = new QVector <Var*>();
+    QVector <Parameter*> * numerador = new QVector <Parameter*>();
     numerador->reserve(longitudNumerador);
 
     for (qint32 i = 0; i < longitudNumerador; i++){
 
-        Var * var = leerVariable(tipoLectura);
+        Parameter * var = leerVariable(tipoLectura);
 
         if(var == NULL){
             return false;
@@ -988,11 +988,11 @@ inline bool XmlParserLoad::leerPlanta(qint32 tipoLectura){
         return salidaError();
     }
 
-    QVector <Var*> * denominador = new QVector <Var*>();
+    QVector <Parameter*> * denominador = new QVector <Parameter*>();
     numerador->reserve(longitudDenominador);
 
     for (qint32 i = 0; i < longitudDenominador; i++){
-        Var * var = leerVariable(tipoLectura);
+        Parameter * var = leerVariable(tipoLectura);
 
         if(var == NULL){
             return false;
@@ -1003,39 +1003,39 @@ inline bool XmlParserLoad::leerPlanta(qint32 tipoLectura){
 
     stream->skipCurrentElement();
 
-    Var * k = leerVariable(tipoLectura);
+    Parameter * k = leerVariable(tipoLectura);
 
     if(k == NULL){
         return false;
     }
 
-    Var * ret = leerVariable(0);
+    Parameter * ret = leerVariable(0);
 
     if(ret == NULL){
         return false;
     }
 
     if (tipoLectura == 0){
-        if (tipoPlanta == Sistema::cof_polinomios){
-            planta = new CPolinomios (nombrePlanta, numerador,denominador,k,ret);
-        }else if (tipoPlanta == Sistema::k_ganancia){
-            planta = new KGanancia(nombrePlanta,numerador,denominador,k,ret);
-        }else if (tipoPlanta == Sistema::k_no_ganancia){
-            planta = new KNGanancia(nombrePlanta,numerador,denominador,k,ret);
-        }else if (tipoPlanta == Sistema::formato_libre) {
-            planta = new FormatoLibre(nombrePlanta,numerador,denominador,k,ret, exp_nume, exp_deno);
+        if (tipoPlanta == LtiSystem::SystemType::PolynomialForm){
+            planta = new PolynomialForm (nombrePlanta, numerador,denominador,k,ret);
+        }else if (tipoPlanta == LtiSystem::SystemType::ZeroPoleGain){
+            planta = new ZeroPoleGain(nombrePlanta,numerador,denominador,k,ret);
+        }else if (tipoPlanta == LtiSystem::SystemType::TimeConstantGain){
+            planta = new TimeConstantGain(nombrePlanta,numerador,denominador,k,ret);
+        }else if (tipoPlanta == LtiSystem::SystemType::FreeForm) {
+            planta = new FreeForm(nombrePlanta,numerador,denominador,k,ret, exp_nume, exp_deno);
         }else{
             return salidaError();
         }
     }else {
-        if (tipoPlanta == Sistema::cof_polinomios){
-            controlador = new CPolinomios (nombrePlanta, numerador,denominador,k,ret);
-        }else if (tipoPlanta == Sistema::k_ganancia){
-            controlador = new KGanancia(nombrePlanta,numerador,denominador,k,ret);
-        }else if (tipoPlanta == Sistema::k_no_ganancia){
-            controlador = new KNGanancia(nombrePlanta,numerador,denominador,k,ret);
-        }else if (tipoPlanta == Sistema::formato_libre) {
-            planta = new FormatoLibre(nombrePlanta,numerador,denominador,k,ret, exp_nume, exp_deno);
+        if (tipoPlanta == LtiSystem::SystemType::PolynomialForm){
+            controlador = new PolynomialForm (nombrePlanta, numerador,denominador,k,ret);
+        }else if (tipoPlanta == LtiSystem::SystemType::ZeroPoleGain){
+            controlador = new ZeroPoleGain(nombrePlanta,numerador,denominador,k,ret);
+        }else if (tipoPlanta == LtiSystem::SystemType::TimeConstantGain){
+            controlador = new TimeConstantGain(nombrePlanta,numerador,denominador,k,ret);
+        }else if (tipoPlanta == LtiSystem::SystemType::FreeForm) {
+            planta = new FreeForm(nombrePlanta,numerador,denominador,k,ret, exp_nume, exp_deno);
         }else{
             return salidaError();
         }
@@ -1047,10 +1047,10 @@ inline bool XmlParserLoad::leerPlanta(qint32 tipoLectura){
     return true;
 }
 
-inline Var *XmlParserLoad::leerVariable(qint32 tipoLectura){
+inline Parameter *XmlParserLoad::leerVariable(qint32 tipoLectura){
     bool noError;
 
-    Var * var;
+    Parameter * var;
 
     if (!stream->readNextStartElement()){       //leemos la sección variable
         salidaError();
@@ -1077,7 +1077,7 @@ inline Var *XmlParserLoad::leerVariable(qint32 tipoLectura){
     if (tipoLectura == 0){
 
         if (stream->readElementText() == "false"){
-            var = new Var (nominal);
+            var = new Parameter (nominal);
         }else {
 
             if (!stream->readNextStartElement()){       //leemos dentro de la variable
@@ -1128,11 +1128,11 @@ inline Var *XmlParserLoad::leerVariable(qint32 tipoLectura){
 
             stream->skipCurrentElement();
 
-            var = new Var (nombreVar, QPointF(inicio, final), nominal, exp);
+            var = new Parameter (nombreVar, QPointF(inicio, final), nominal, exp);
         }
     } else {
         if (stream->readElementText() == "false"){
-            var = new Var (nominal);
+            var = new Parameter (nominal);
 
             bool salta = false;
 
@@ -1184,7 +1184,7 @@ inline Var *XmlParserLoad::leerVariable(qint32 tipoLectura){
                 }
 
                 stream->skipCurrentElement();
-                var->setRango(QPointF(inicio, final));
+                var->setRange(QPointF(inicio, final));
             } else {
                 //El readNextStartElement fallido ya ha consumido el cierre de
                 //<variable-N>; el skipCurrentElement final saltaria el resto
@@ -1242,7 +1242,7 @@ inline Var *XmlParserLoad::leerVariable(qint32 tipoLectura){
 
             stream->skipCurrentElement();
 
-            var = new Var (nombreVar, QPointF(inicio, final), nominal, exp);
+            var = new Parameter (nombreVar, QPointF(inicio, final), nominal, exp);
         }
     }
 
@@ -1303,7 +1303,7 @@ inline bool XmlParserLoad::leerLoopShaping(){
         return salidaError();
     }
 
-    Sistema::tipo_planta tipoPlanta = static_cast<Sistema::tipo_planta>(stream->attributes()[0].value().toInt()); //leemos su tipo
+    LtiSystem::SystemType tipoPlanta = static_cast<LtiSystem::SystemType>(stream->attributes()[0].value().toInt()); //leemos su tipo
 
 
     if (!stream->readNextStartElement()){       //leemos la sección expresion
@@ -1359,12 +1359,12 @@ inline bool XmlParserLoad::leerLoopShaping(){
         return salidaError();
     }
 
-    QVector <Var*> * numerador = new QVector <Var*>();
+    QVector <Parameter*> * numerador = new QVector <Parameter*>();
     numerador->reserve(longitudNumerador);
 
     for (qint32 i = 0; i < longitudNumerador; i++){
 
-        Var * var = leerVariable(0);
+        Parameter * var = leerVariable(0);
 
         if(var == NULL){
             return false;
@@ -1393,11 +1393,11 @@ inline bool XmlParserLoad::leerLoopShaping(){
         return salidaError();
     }
 
-    QVector <Var*> * denominador = new QVector <Var*>();
+    QVector <Parameter*> * denominador = new QVector <Parameter*>();
     numerador->reserve(longitudDenominador);
 
     for (qint32 i = 0; i < longitudDenominador; i++){
-        Var * var = leerVariable(0);
+        Parameter * var = leerVariable(0);
 
         if(var == NULL){
             return false;
@@ -1408,28 +1408,28 @@ inline bool XmlParserLoad::leerLoopShaping(){
 
     stream->skipCurrentElement();
 
-    Var * k = leerVariable(0);
+    Parameter * k = leerVariable(0);
 
     if(k == NULL){
         return false;
     }
 
-    Var * ret = leerVariable(0);
+    Parameter * ret = leerVariable(0);
 
     if(ret == NULL){
         return false;
     }
 
-    Sistema * sistema;
+    LtiSystem * sistema;
 
-    if (tipoPlanta == Sistema::cof_polinomios){
-        sistema = new CPolinomios (nombrePlanta, numerador,denominador,k,ret);
-    }else if (tipoPlanta == Sistema::k_ganancia){
-        sistema = new KGanancia(nombrePlanta,numerador,denominador,k,ret);
-    }else if (tipoPlanta == Sistema::k_no_ganancia){
-        sistema = new KNGanancia(nombrePlanta,numerador,denominador,k,ret);
-    }else if (tipoPlanta == Sistema::formato_libre) {
-        sistema = new FormatoLibre(nombrePlanta,numerador,denominador,k,ret, exp_nume, exp_deno);
+    if (tipoPlanta == LtiSystem::SystemType::PolynomialForm){
+        sistema = new PolynomialForm (nombrePlanta, numerador,denominador,k,ret);
+    }else if (tipoPlanta == LtiSystem::SystemType::ZeroPoleGain){
+        sistema = new ZeroPoleGain(nombrePlanta,numerador,denominador,k,ret);
+    }else if (tipoPlanta == LtiSystem::SystemType::TimeConstantGain){
+        sistema = new TimeConstantGain(nombrePlanta,numerador,denominador,k,ret);
+    }else if (tipoPlanta == LtiSystem::SystemType::FreeForm) {
+        sistema = new FreeForm(nombrePlanta,numerador,denominador,k,ret, exp_nume, exp_deno);
     }else{
         return salidaError();
     }

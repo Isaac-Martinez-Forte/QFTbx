@@ -9,10 +9,10 @@
 #include <QRegularExpression>
 #include <QRegularExpression>
 
-#include "Modelo/EstructuraSistema//kganancia.h"
-#include "Modelo/EstructuraSistema/knganancia.h"
-#include "Modelo/EstructuraSistema/cpolinomios.h"
-#include "Modelo/EstructuraSistema/formatolibre.h"
+#include "src/core/system/zero_pole_gain.h"
+#include "src/core/system/time_constant_gain.h"
+#include "src/core/system/polynomial_form.h"
+#include "src/core/system/free_form.h"
 #include "GUI/intincertidumbre.h"
 #include "Modelo/controlador.h"
 #include "Modelo/Herramientas/tools.h"
@@ -64,14 +64,14 @@ private:
 
     IntIncertidumbre * viewIncer= NULL;
 
-    Sistema * planta= NULL;
+    LtiSystem * planta= NULL;
 
     bool incertidumbreIntroducida;
 
     void openFile();
     bool guardar ();
     QVector<QVector<QString> *> *seleTabla(QVector<QVector<QString> *> *exp, QVector<QVector<bool> *> *isVar);
-    QVector<Var *> *crearNumeradorDenominador(QVector<QString> *numeros);
+    QVector<Parameter *> *crearNumeradorDenominador(QVector<QString> *numeros);
     bool parse(QString cadena);
     bool comprobarParse(QVector<QVector<QString> *> *tabla, QLineEdit * linea, QVector<QVector<QString> *> *exp,
                         QVector<QVector<bool> *> *isVar);

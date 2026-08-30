@@ -9,7 +9,7 @@
 #include <QMessageBox>
 
 #include "qcustomplot.h"
-#include "Modelo/EstructuraSistema/sistema.h"
+#include "src/core/system/lti_system.h"
 #include "Modelo/Herramientas/tools.h"
 #include "Modelo/Objetos/omega.h"
 
@@ -48,7 +48,7 @@ public:
     * @param frecuencias necesarias para resolver la Planta.
    */
 
-    void dibujarBode(Sistema * planta, Omega * omega);
+    void dibujarBode(LtiSystem * planta, Omega * omega);
 
 private slots:
     void on_actionExportar_triggered();

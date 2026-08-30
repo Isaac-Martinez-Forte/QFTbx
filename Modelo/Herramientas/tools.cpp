@@ -119,10 +119,10 @@ QColor tools::ramdonColor (qint32 i){
 
 }
 
-QVector <Var *> * tools::clonarVectorVar(QVector<Var *> *v){
-    QVector <Var *> * nuevo = new QVector <Var * > ();
+QVector <Parameter *> * tools::clonarVectorVar(QVector<Parameter *> *v){
+    QVector <Parameter *> * nuevo = new QVector <Parameter * > ();
 
-    foreach (Var * v, *v) {
+    foreach (Parameter * v, *v) {
        nuevo->append(v->clone());
     }
 

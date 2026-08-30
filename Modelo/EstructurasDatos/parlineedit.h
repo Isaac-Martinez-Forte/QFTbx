@@ -101,19 +101,19 @@ public:
     void setNominal (QLineEdit *  nominal);
     
    /**
-    * @fn getNominal
+    * @fn nominal
     * @brief Función que devuelve el objeto y guardado en el sistema.
     * 
     * @return Objeto nominal guardado en el sistema.
     * 
    */
     
-    QLineEdit * getNominal();
+    QLineEdit * nominal();
 
 private:
     QLineEdit *x;
     QLineEdit *y;
-    QLineEdit * nominal;
+    QLineEdit * m_nominal;
 };
 
 #endif // PARLABEL_H

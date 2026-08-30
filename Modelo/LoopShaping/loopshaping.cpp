@@ -17,7 +17,7 @@ LoopShaping::~LoopShaping()
 }
 
 
-bool LoopShaping::iniciar(Sistema *planta, Sistema *controlador, QVector<qreal> *omega, DatosBound *boundaries,
+bool LoopShaping::iniciar(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> *omega, DatosBound *boundaries,
                           qreal epsilon, tools::alg_loop_shaping seleccionado, bool depuracion, qreal delta,
                           QVector <QVector <std::complex <qreal> > * > * temp, QVector <tools::dBND *> * espe,
                           qint32 inicializacion, bool hilos, bool bisection_avanced, bool deteccion_avanced, bool a){
@@ -107,7 +107,7 @@ bool LoopShaping::iniciar(Sistema *planta, Sistema *controlador, QVector<qreal> 
                 if (re) {
                     this->controlador = sachin->getControlador();
                     std::cout << "LoopShaping: " << timer.elapsed() << " milliseconds" << std::endl;
-                    std::cout << "k: " << this->controlador->getK()->getRango().x() << std::endl;
+                    std::cout << "k: " << this->controlador->gain()->range().x() << std::endl;
                 }
 
 
@@ -133,7 +133,7 @@ bool LoopShaping::iniciar(Sistema *planta, Sistema *controlador, QVector<qreal> 
                     this->controlador = nandkishor->getControlador();
 
                     std::cout << "LoopShaping: " << timer.elapsed() << " milliseconds" << std::endl;
-                    std::cout << "k: " << this->controlador->getK()->getRango().x() << std::endl;
+                    std::cout << "k: " << this->controlador->gain()->range().x() << std::endl;
 
                 }
 
@@ -157,7 +157,7 @@ bool LoopShaping::iniciar(Sistema *planta, Sistema *controlador, QVector<qreal> 
                     this->controlador = rambabu->getControlador();
 
                     std::cout << "LoopShaping: " << timer.elapsed() << " milliseconds" << std::endl;
-                    std::cout << "k: " << this->controlador->getK()->getRango().x() << std::endl;
+                    std::cout << "k: " << this->controlador->gain()->range().x() << std::endl;
 
                 }
 
@@ -181,7 +181,7 @@ bool LoopShaping::iniciar(Sistema *planta, Sistema *controlador, QVector<qreal> 
                 if (re) {
                     std::cout << "LoopShaping: " << timer.elapsed() << " milliseconds" << std::endl;
                     this->controlador = primer_articulo->getControlador();
-                    std::cout << "k: " << this->controlador->getK()->getRango().x() << std::endl;
+                    std::cout << "k: " << this->controlador->gain()->range().x() << std::endl;
                 }
 
                 delete primer_articulo;
@@ -207,7 +207,7 @@ bool LoopShaping::iniciar(Sistema *planta, Sistema *controlador, QVector<qreal> 
                 if (re) {
                     std::cout << "LoopShaping: " << timer.elapsed() << " milliseconds" << std::endl;
                     this->controlador = segundo_articulo->getControlador();
-                    std::cout << "k: " << this->controlador->getK()->getRango().x() << std::endl;
+                    std::cout << "k: " << this->controlador->gain()->range().x() << std::endl;
                 }
 
                 delete segundo_articulo;
@@ -228,11 +228,11 @@ bool LoopShaping::iniciar(Sistema *planta, Sistema *controlador, QVector<qreal> 
         contador++;
 
         if (contador % 2 == 0) {
-            controlador->getDenominador()->at(contadorDeno)->setVariable(true);
+            controlador->denominator()->at(contadorDeno)->setUncertain(true);
             contadorDeno++;
         } else {
 
-            controlador->getNumerador()->at(contadorNume)->setVariable(true);
+            controlador->numerator()->at(contadorNume)->setUncertain(true);
             contadorNume++;
         }
     }
@@ -246,6 +246,6 @@ bool LoopShaping::iniciar(Sistema *planta, Sistema *controlador, QVector<qreal> 
 }
 
 
-Sistema * LoopShaping::getControlador(){
+LtiSystem * LoopShaping::getControlador(){
     return controlador;
 }

@@ -41,7 +41,7 @@ verBoundaries::~verBoundaries()
 
 
 void verBoundaries::setDatos(DatosBound *boundariesNichols, DatosBound *boundariesNyquist, QVector<qreal> *omega,
-                             Sistema *planta, Sistema *controlador, bool nichols, bool nyquist){
+                             LtiSystem *planta, LtiSystem *controlador, bool nichols, bool nyquist){
     this->boundariesNichols = boundariesNichols;
     this->boundariesNyquist = boundariesNyquist;
     this->planta = planta;
@@ -166,7 +166,7 @@ void verBoundaries::mostrar_diagrama(){
 
     foreach (qreal o, *omega) {
 
-        cinterval <qreal> box = conversion->get_box(controlador,o, planta->getPunto(o), false);
+        cinterval <qreal> box = conversion->get_box(controlador,o, planta->evaluate(o), false);
 
 
         interval <qreal> b = abs(box);

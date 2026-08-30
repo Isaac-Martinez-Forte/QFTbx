@@ -5,7 +5,7 @@ DatosLoopShaping::DatosLoopShaping()
     introducido = false;
 }
 
-DatosLoopShaping::DatosLoopShaping(Sistema *controlador, QPointF rango, qreal nPuntos){
+DatosLoopShaping::DatosLoopShaping(LtiSystem *controlador, QPointF rango, qreal nPuntos){
     this->controlador = controlador;
     this->rango = rango;
     this->nPuntos = nPuntos;
@@ -13,7 +13,7 @@ DatosLoopShaping::DatosLoopShaping(Sistema *controlador, QPointF rango, qreal nP
     introducido = false;
 }
 
-void DatosLoopShaping::setDatos(Sistema *controlador, QPointF rango, qreal nPuntos){
+void DatosLoopShaping::setDatos(LtiSystem *controlador, QPointF rango, qreal nPuntos){
     if (introducido){
         delete controlador;
     }
@@ -25,7 +25,7 @@ void DatosLoopShaping::setDatos(Sistema *controlador, QPointF rango, qreal nPunt
     this->nPuntos = nPuntos;
 }
 
-void DatosLoopShaping::setDatos(Sistema *controlador){
+void DatosLoopShaping::setDatos(LtiSystem *controlador){
     if (introducido){
         delete controlador;
     }
@@ -35,11 +35,11 @@ void DatosLoopShaping::setDatos(Sistema *controlador){
     this->controlador = controlador;
 }
 
-Sistema * DatosLoopShaping::getControlador(){
+LtiSystem * DatosLoopShaping::getControlador(){
     return controlador;
 }
 
-QPointF DatosLoopShaping::getRango(){
+QPointF DatosLoopShaping::range(){
     return rango;
 }
 

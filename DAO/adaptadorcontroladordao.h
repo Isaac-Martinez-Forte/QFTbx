@@ -16,12 +16,12 @@ public:
       ~AdaptadorControladorDAO();
 
 
-      Sistema * getControlador ();
+      LtiSystem * getControlador ();
 
-      void setControlador (Sistema * controlador);
+      void setControlador (LtiSystem * controlador);
 
   private:
-      Sistema * controlador = NULL;
+      LtiSystem * controlador = NULL;
 };
 
 #endif // ADAPTADORCONTROLADORDAO_H

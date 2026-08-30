@@ -116,14 +116,14 @@ bool introducirEContr::comprobarParse(QVector<QVector <QString> * > * tabla, QLi
             QString captura = match.captured(0);
             e.remove(captura);
 
-            bool isVariable = false;
+            bool isUncertain = false;
 
             while (!captura.isNull()){
 
                 if (!p.IsFunDefined(captura.toStdString())){
                     vec->append(captura);
                     captura = QString();
-                    isVariable = true;
+                    isUncertain = true;
                     break;
                 }
                 match = re.match(e);
@@ -131,9 +131,9 @@ bool introducirEContr::comprobarParse(QVector<QVector <QString> * > * tabla, QLi
                 e.remove(captura);
             }
 
-            vec2->append(isVariable);
+            vec2->append(isUncertain);
 
-            if (!isVariable){
+            if (!isUncertain){
                 vec->append(e);
             }
         }
@@ -228,11 +228,11 @@ void introducirEContr::on_aceptar_clicked()
     }
 
 
-    Var * kv;
-    Var * retv;
+    Parameter * kv;
+    Parameter * retv;
 
     if (datosTabla->at(2)->size() == 0){
-        kv = new Var (1);
+        kv = new Parameter (1);
     }else{
 
         QPointF punto;
@@ -243,7 +243,7 @@ void introducirEContr::on_aceptar_clicked()
         punto.setY(p.Eval().GetFloat());
 
         if (punto.x() == punto.y()){
-            kv = new Var (punto.x());
+            kv = new Parameter (punto.x());
         }else {
 
             if (punto.x() > punto.y()){
@@ -252,36 +252,41 @@ void introducirEContr::on_aceptar_clicked()
                 punto.setY(a);
             }
 
-            kv = new Var ("kv", punto, (punto.x() + punto.y()) / 2);
+            kv = new Parameter ("kv", punto, (punto.x() + punto.y()) / 2);
         }
     }
 
-    retv = new Var (0.0);
+    retv = new Parameter (0.0);
 
 
     if (incertidumbreIntroducida){
+        //La planta toma propiedad de sus variables: se le entregan copias y
+        //el dialogo de incertidumbre conserva sus originales para editar.
+        QVector <Parameter*> * nume = Parameter::cloneVector(viewIncer->numerator());
+        QVector <Parameter*> * deno = Parameter::cloneVector(viewIncer->denominator());
+
         if (ui->hf->isChecked()){
-            planta = new KGanancia("",viewIncer->getNumerador(), viewIncer->getDenominador(),kv,retv);
+            planta = new ZeroPoleGain("",nume, deno,kv,retv);
         }else if(ui->lf->isChecked()){
-            planta = new KNGanancia("",viewIncer->getNumerador(), viewIncer->getDenominador(),kv,retv);
+            planta = new TimeConstantGain("",nume, deno,kv,retv);
         }else if (ui->c_poli->isChecked()){
-            planta = new CPolinomios("", viewIncer->getNumerador(), viewIncer->getDenominador(),kv,retv);
+            planta = new PolynomialForm("", nume, deno,kv,retv);
         }else{
-            planta = new FormatoLibre("", viewIncer->getNumerador(), viewIncer->getDenominador(),kv,retv,
+            planta = new FreeForm("", nume, deno,kv,retv,
                                       ui->nume->text(), ui->deno->text());
         }
     }else{
         if (ui->hf->isChecked()){
-            planta = new KGanancia("",crearNumeradorDenominador(datosTabla->at(0)),
+            planta = new ZeroPoleGain("",crearNumeradorDenominador(datosTabla->at(0)),
                                    crearNumeradorDenominador(datosTabla->at(1)),kv,retv );
         }else if(ui->lf->isChecked()){
-            planta = new KNGanancia("",crearNumeradorDenominador(datosTabla->at(0)),
+            planta = new TimeConstantGain("",crearNumeradorDenominador(datosTabla->at(0)),
                                     crearNumeradorDenominador(datosTabla->at(1)),kv,retv);
         }else if (ui->c_poli->isChecked()){
-            planta = new CPolinomios("", crearNumeradorDenominador(datosTabla->at(0)),
+            planta = new PolynomialForm("", crearNumeradorDenominador(datosTabla->at(0)),
                                      crearNumeradorDenominador(datosTabla->at(1)),kv,retv);
         }else {
-            planta = new FormatoLibre("", crearNumeradorDenominador(datosTabla->at(0)),
+            planta = new FreeForm("", crearNumeradorDenominador(datosTabla->at(0)),
                                       crearNumeradorDenominador(datosTabla->at(1)),kv,retv,
                                       ui->nume->text(), ui->deno->text());
         }
@@ -300,8 +305,8 @@ void introducirEContr::on_aceptar_clicked()
 }
 
 
-QVector <Var * > * introducirEContr::crearNumeradorDenominador(QVector <QString> * numeros){
-    QVector <Var *> * var = new QVector <Var *> ();
+QVector <Parameter * > * introducirEContr::crearNumeradorDenominador(QVector <QString> * numeros){
+    QVector <Parameter *> * var = new QVector <Parameter *> ();
     var->reserve(numeros->size());
 
     if (numeros->isEmpty()){
@@ -310,7 +315,7 @@ QVector <Var * > * introducirEContr::crearNumeradorDenominador(QVector <QString>
 
     foreach (const QString &string, *numeros) {
         p.SetExpr(string.toStdString());
-        var->append(new Var(p.Eval().GetFloat()));
+        var->append(new Parameter(p.Eval().GetFloat()));
     }
 
     return var;

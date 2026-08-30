@@ -1,0 +1,69 @@
+#ifndef QFTBX_FREE_FORM_H
+#define QFTBX_FREE_FORM_H
+
+#include <QVector>
+
+#include "transfer_function.h"
+#include "complex"
+#include "mpParser.h"
+
+namespace qftbx {
+
+/**
+ * @brief Transfer function defined by free-text expressions in 's':
+ * \f$ P(s) = k \, e^{-s\tau} \, N(s) / D(s) \f$.
+ *
+ * The parameter vectors do not describe the structure (numerator and
+ * denominator are text): they only enumerate the uncertain parameters
+ * present in the expressions, for the template sweep. Evaluation replaces
+ * 's' textually and hands the expression to muParserX.
+ */
+
+class FreeForm : public TransferFunction
+{
+public:
+
+    /// The parameter vectors list the uncertain parameters appearing in the
+    /// numerator/denominator expression texts.
+    FreeForm(QString name, QVector <Parameter*> * numerator, QVector <Parameter*> * denominator, Parameter * k, Parameter* delay, QString numeratorExpr,
+                 QString denominatorExpr);
+
+    QString expression (QVector <qreal> * numerator, QVector <qreal> * denominator,
+                             qreal k, qreal delay, qreal omega);
+
+    QString expression(qreal w);
+
+    QString expression();
+
+    std::complex <qreal> evaluateNumerator(QVector <qreal> * nume, qreal omega);
+
+    std::complex <qreal> evaluateDenominator(QVector <qreal> * deno, qreal omega);
+
+    std::complex <qreal> evaluate (QVector <qreal> * numerator, QVector <qreal> * denominator,
+                                           qreal k, qreal delay, qreal omega);
+
+    //Re-expose the inherited nominal evaluation hidden by the overloads above.
+    using TransferFunction::evaluate;
+
+    SystemType type();
+
+    LtiSystem * create (QString name, QVector <Parameter*> * numerator, QVector <Parameter*> * denominator,
+                              Parameter * k, Parameter* delay, QString numeratorExpr = 0, QString denominatorExpr = 0);
+
+    QString numeratorString();
+    QString denominatorString();
+
+    LtiSystem * clone();
+
+private:
+    QString m_numeratorExpr;
+    QString m_denominatorExpr;
+};
+
+} // namespace qftbx
+
+//Transitional: unqualified name for consumers not yet migrated
+//to the qftbx namespace. Remove when the migration is complete.
+using qftbx::FreeForm;
+
+#endif // QFTBX_FREE_FORM_H

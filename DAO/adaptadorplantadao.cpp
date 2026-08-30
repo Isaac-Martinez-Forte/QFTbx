@@ -9,11 +9,11 @@ AdaptadorPlantaDAO::~AdaptadorPlantaDAO(){
         delete planta;
 }
 
-Sistema *AdaptadorPlantaDAO::getPlanta(){
+LtiSystem *AdaptadorPlantaDAO::getPlanta(){
     return planta;
 }
 
-void AdaptadorPlantaDAO::setPlanta(Sistema *planta){
+void AdaptadorPlantaDAO::setPlanta(LtiSystem *planta){
 
     if (this->planta != NULL)
         delete this->planta;

@@ -6,14 +6,14 @@
 #include <QHash>
 
 #include "Modelo/EstructurasDatos/datosbound.h"
-#include "Modelo/EstructuraSistema/sistema.h"
+#include "src/core/system/lti_system.h"
 #include "NaturalIntervalExtension/natural_interval_extension.h"
 #include "EstructuraDatos/avl.h"
 #include "EstructuraDatos/tripleta.h"
 #include "Modelo/Herramientas/tools.h"
-#include "Modelo/EstructuraSistema/cpolinomios.h"
-#include "Modelo/EstructuraSistema/kganancia.h"
-#include "Modelo/EstructuraSistema/knganancia.h"
+#include "src/core/system/polynomial_form.h"
+#include "src/core/system/zero_pole_gain.h"
+#include "src/core/system/time_constant_gain.h"
 #include "DeteccionViolacionBoundaries/deteccionviolacionboundaries.h"
 #include "EstructuraDatos/listaordenada.h"
 
@@ -29,12 +29,12 @@ public:
     ~Algorithm_nandkishor();
 
 
-    void set_datos (Sistema * planta, Sistema * controlador, QVector<qreal> *omega, DatosBound * boundaries,
+    void set_datos (LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, DatosBound * boundaries,
                      qreal epsilon, QVector<QVector<QVector<QPointF> *> *> * reunBoun, qreal delta, qint32 inicializacion );
 
     bool init_algorithm();
 
-    Sistema * getControlador();
+    LtiSystem * getControlador();
 
 
 private:
@@ -43,65 +43,65 @@ private:
 
     inline flags_box check_box_feasibility ( QVector <qreal> * nume, QVector <qreal> * deno, qreal k,
             qreal ret );
-    inline Sistema * acelerated(Sistema * v, QVector<data_box *> *datosCortesBoundaries);
-    inline void local_optimization ( Sistema * controlador );
-    inline Sistema * get_minimo_sistema ( Sistema *v );
-    inline qreal busqueda_local ( qreal delta, Sistema *controlador );
+    inline LtiSystem * acelerated(LtiSystem * v, QVector<data_box *> *datosCortesBoundaries);
+    inline void local_optimization ( LtiSystem * controlador );
+    inline LtiSystem * get_minimo_sistema ( LtiSystem *v );
+    inline qreal busqueda_local ( qreal delta, LtiSystem *controlador );
 
-    inline tools::flags_box check_box_feasibility ( Sistema *controlador );
+    inline tools::flags_box check_box_feasibility ( LtiSystem *controlador );
 
-    /*inline qreal get_k (Sistema *controlador, QVector<qreal> *nume_sup, QVector<qreal> *deno_inf, qreal minimo_boundarie,
+    /*inline qreal get_k (LtiSystem *controlador, QVector<qreal> *nume_sup, QVector<qreal> *deno_inf, qreal minimo_boundarie,
                          std::complex <qreal> p0, qreal omega, qreal k_min, qreal k_max);
-    inline QVector<qreal> * get_nume_kganancia (Sistema * controlador, QVector<qreal> *nume_sup, QVector<qreal> *deno_inf, qreal k_max, qreal minimo_boundarie,
+    inline QVector<qreal> * get_nume_kganancia (LtiSystem * controlador, QVector<qreal> *nume_sup, QVector<qreal> *deno_inf, qreal k_max, qreal minimo_boundarie,
             std::complex <qreal> p0, qreal omega, QVector<qreal> * nume_inf );
-    inline QVector<qreal> * get_deno_kganancia (Sistema * controlador, QVector<qreal> *nume_sup, QVector<qreal> *deno_inf, qreal k_max, qreal minimo_boundarie,
+    inline QVector<qreal> * get_deno_kganancia (LtiSystem * controlador, QVector<qreal> *nume_sup, QVector<qreal> *deno_inf, qreal k_max, qreal minimo_boundarie,
             std::complex <qreal> p0, qreal omega , QVector<qreal> *deno_sup);
 
-    inline QVector<qreal> * get_nume_knganancia ( Sistema * controlador, QVector<qreal> *nume, QVector<qreal> *deno, qreal k, qreal minimo_boundarie,
+    inline QVector<qreal> * get_nume_knganancia ( LtiSystem * controlador, QVector<qreal> *nume, QVector<qreal> *deno, qreal k, qreal minimo_boundarie,
             std::complex <qreal> p0, qreal omega, QVector<qreal> * nume_bajo );
-    inline QVector<qreal> * get_deno_knganancia (Sistema * controlador, QVector<qreal> *nume, QVector<qreal> *deno_inf, QVector<qreal> *deno_sup, qreal k, qreal minimo_boundarie,
+    inline QVector<qreal> * get_deno_knganancia (LtiSystem * controlador, QVector<qreal> *nume, QVector<qreal> *deno_inf, QVector<qreal> *deno_sup, qreal k, qreal minimo_boundarie,
             std::complex <qreal> p0, qreal omega );
 
-    inline QVector<qreal> * get_nume_cpol ( Sistema * controlador, QVector<qreal> *nume, QVector<qreal> *deno, qreal k, qreal minimo_boundarie,
+    inline QVector<qreal> * get_nume_cpol ( LtiSystem * controlador, QVector<qreal> *nume, QVector<qreal> *deno, qreal k, qreal minimo_boundarie,
                                             std::complex <qreal> p0, qreal omega, QVector<qreal> * nume_bajo );
-    inline QVector<qreal> * get_deno_cpol ( Sistema * controlador, QVector<qreal> *nume, QVector<qreal> *deno, qreal k, qreal minimo_boundarie,
+    inline QVector<qreal> * get_deno_cpol ( LtiSystem * controlador, QVector<qreal> *nume, QVector<qreal> *deno, qreal k, qreal minimo_boundarie,
                                             std::complex <qreal> p0, qreal omega );*/
 
-    inline qint32 crearVectores ( Sistema * controlador, QVector <qreal> * numerador, QVector <qreal> * denominador, QVector<qreal> *k,
+    inline qint32 crearVectores ( LtiSystem * controlador, QVector <qreal> * numerador, QVector <qreal> * denominador, QVector<qreal> *k,
                                   QVector<QVector<qreal> * > * variables, qreal delta, QVector <qreal> * numeNominales,
                                   QVector <qreal> * denoNominales, qreal kNominal );
 
 
-    /*inline qreal get_k_max(Sistema *controlador, QVector <qreal> * nume_inf, QVector <qreal> * deno_sup,
+    /*inline qreal get_k_max(LtiSystem *controlador, QVector <qreal> * nume_inf, QVector <qreal> * deno_sup,
                                              qreal maximo_boundarie,
                                              std::complex<qreal> p0, qreal omega, qreal k_min, qreal k_max);
 
 
-    inline QVector<qreal> * get_nume_kganancia_max(Sistema *controlador, QVector <qreal> * nume_inf, QVector <qreal> * deno_sup,
+    inline QVector<qreal> * get_nume_kganancia_max(LtiSystem *controlador, QVector <qreal> * nume_inf, QVector <qreal> * deno_sup,
                                                                      qreal k_min,
                                                                      qreal maximo_boundarie, std::complex<qreal> p0, qreal omega,
                                                                      QVector <qreal> * nume_sup);
 
-    inline QVector<qreal> * get_deno_kganancia_max(Sistema *controlador, QVector <qreal> * nume_inf, QVector <qreal> * deno_sup,
+    inline QVector<qreal> * get_deno_kganancia_max(LtiSystem *controlador, QVector <qreal> * nume_inf, QVector <qreal> * deno_sup,
                                                                      qreal k_min, qreal maximo_boundarie, std::complex<qreal> p0, qreal omega, QVector <qreal> * deno_inf);*/
 
     inline qreal log10 (qreal a);
 
 
 
-    inline qreal inicializacion ( Sistema * controlador, QVector <qreal> * numerador, QVector <qreal> * denominador, tipoInicializacion tipo );
+    inline qreal inicializacion ( LtiSystem * controlador, QVector <qreal> * numerador, QVector <qreal> * denominador, tipoInicializacion tipo );
 
-    inline void comprobarVariables ( Sistema * controlador );
+    inline void comprobarVariables ( LtiSystem * controlador );
 
-    Sistema * planta;
-    Sistema * controlador;
-    Sistema * controlador_inicial;
+    LtiSystem * planta;
+    LtiSystem * controlador;
+    LtiSystem * controlador_inicial;
     QVector <qreal> * omega;
     DatosBound * boundaries;
     Natura_Interval_extension * conversion;
     ListaOrdenada * lista;
 
-    Sistema * controlador_retorno;
+    LtiSystem * controlador_retorno;
     qreal current_omega;
     qreal epsilon;
     qreal delta;

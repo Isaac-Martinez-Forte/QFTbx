@@ -2,13 +2,13 @@
 
 using namespace tools;
 
-Tripleta::Tripleta(qreal index, Sistema * sistema, flags_box flags){
+Tripleta::Tripleta(qreal index, LtiSystem * sistema, flags_box flags){
     this->index = index;
     this->sistema = sistema;
     this->flags = flags;
 }
 
-Tripleta::Tripleta(qreal index, Sistema * sistema,  QVector <data_box *> * datos) : Tripleta(index, sistema) {
+Tripleta::Tripleta(qreal index, LtiSystem * sistema,  QVector <data_box *> * datos) : Tripleta(index, sistema) {
     this->datos = datos;
 }
 
@@ -17,7 +17,7 @@ Tripleta::~Tripleta() {
     if (!b) {
         if (sistema != nullptr){
             if (!b2) {
-                sistema->noBorrar();
+                sistema->releaseOwnership();
             }
             delete sistema;
         }
@@ -86,12 +86,12 @@ void Tripleta::setDatos(QVector<data_box *> *value)
     datos = value;
 }
 
-Sistema * Tripleta::getSistema() const
+LtiSystem * Tripleta::getSistema() const
 {
     return sistema;
 }
 
-void Tripleta::setSistema(Sistema *value)
+void Tripleta::setSistema(LtiSystem *value)
 {
     sistema = value;
 }
@@ -110,7 +110,7 @@ void Tripleta::setPuntosCorte(QVector<qreal> *value)
 {
     puntosCorte = value;
 }
-void Tripleta::noBorrar() {
+void Tripleta::releaseOwnership() {
     b = false;
 }
 

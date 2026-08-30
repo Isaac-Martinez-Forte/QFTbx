@@ -1,7 +1,7 @@
 #ifndef ADAPTADORPLANTADAO_H
 #define ADAPTADORPLANTADAO_H
 
-#include "Modelo/EstructuraSistema/sistema.h"
+#include "src/core/system/lti_system.h"
 #include "DAO/plantadao.h"
 
 /**
@@ -30,7 +30,7 @@ public:
     * @return Planta guardada en el objeto.
    */
 
-    Sistema * getPlanta ();
+    LtiSystem * getPlanta ();
 
 
    /**
@@ -42,10 +42,10 @@ public:
     * @param planta a guardar.
    */
 
-    void setPlanta (Sistema * planta);
+    void setPlanta (LtiSystem * planta);
 
 private:
-    Sistema * planta = NULL;
+    LtiSystem * planta = NULL;
 
 };
 

@@ -91,9 +91,9 @@ void IntIncertidumbre::formarango(){
 
     cajas = new QVector <QWidget *> ();
 
-    this->numerador = new QVector <Var*> ();
+    this->numerador = new QVector <Parameter*> ();
     this->numerador->reserve(numerador->size());
-    this->denominador = new QVector <Var*> ();
+    this->denominador = new QVector <Parameter*> ();
     this->denominador->reserve(denominador->size());
 
     rango = true;
@@ -219,15 +219,15 @@ void IntIncertidumbre::on_denominador_clicked()
     ui->boxDeno->setVisible(true);
 }
 
-QVector <Var*> * IntIncertidumbre::getNumerador(){
+QVector <Parameter*> * IntIncertidumbre::numerator(){
     return numerador;
 }
 
-QVector<Var*> *IntIncertidumbre::getDenominador(){
+QVector<Parameter*> *IntIncertidumbre::denominator(){
     return denominador;
 }
 
-QPointF IntIncertidumbre::getK(){
+QPointF IntIncertidumbre::gain(){
 
     mup::ParserX p;
 
@@ -249,7 +249,7 @@ QPointF IntIncertidumbre::getK(){
     return rango;
 }
 
-QPointF IntIncertidumbre::getRet(){
+QPointF IntIncertidumbre::delay(){
 
     mup::ParserX p;
 
@@ -294,7 +294,7 @@ bool IntIncertidumbre::guardarrango(){
     QVector <QString> * nombres = new QVector <QString> ();
 
     for (qint32 i = 0; i < numeradorNombre->size(); i++){
-        Var * variable = NULL;
+        Parameter * variable = NULL;
         valido = true;
         if(isVar->at(0)->at(i)){
             if (!nombres->contains(numeradorNombre->at(i))){
@@ -303,7 +303,7 @@ bool IntIncertidumbre::guardarrango(){
 
                 rangoX = aux->getX();
                 rangoY = aux->getY();
-                nominal= aux->getNominal();
+                nominal= aux->nominal();
                 if (controlador){
                     nominal->setText(QString::number((rangoX->text().toDouble() + rangoY->text().toDouble()) / 2));
                 }
@@ -320,7 +320,7 @@ bool IntIncertidumbre::guardarrango(){
 
                     if ((rangoX_real <= nominal_real) && (nominal_real <= rangoY_real)){
                         QPointF rango (rangoX_real, rangoY_real);
-                        variable = new Var (numeradorNombre->at(i), rango, nominal_real, exp->at(0)->at(i));
+                        variable = new Parameter (numeradorNombre->at(i), rango, nominal_real, exp->at(0)->at(i));
 
                         rangoX->setStyleSheet("background : white");
                         rangoY->setStyleSheet("background : white");
@@ -338,15 +338,15 @@ bool IntIncertidumbre::guardarrango(){
                 }
             } else{
                 for (qint32 x = 0; x < numerador->size(); x++){
-                    if (numerador->at(x)->getNombre() == numeradorNombre->at(i)){
-                        Var * v = numerador->at(x);
-                        variable = new Var(v->getNombre(),v->getR(),v->getN(),v->getExp());
+                    if (numerador->at(x)->name() == numeradorNombre->at(i)){
+                        Parameter * v = numerador->at(x);
+                        variable = new Parameter(v->name(),v->rawRange(),v->rawNominal(),v->expression());
                         break;
                     }
                 }
             }
         }else {
-            variable = new Var (numeradorNombre->at(i).toDouble());
+            variable = new Parameter (numeradorNombre->at(i).toDouble());
         }
 
         if (valido){
@@ -365,7 +365,7 @@ bool IntIncertidumbre::guardarrango(){
     validoGlobal = true;
 
     for (qint32 i = 0; i < denominadorNombre->size(); i++){
-        Var * variable = NULL;
+        Parameter * variable = NULL;
         if(isVar->at(1)->at(i)){
             if (!nombres->contains(denominadorNombre->at(i))){
 
@@ -373,7 +373,7 @@ bool IntIncertidumbre::guardarrango(){
 
                 rangoX = aux->getX();
                 rangoY = aux->getY();
-                nominal = aux->getNominal();
+                nominal = aux->nominal();
 
                 if (controlador){
                     nominal->setText(QString::number((rangoX->text().toDouble() + rangoY->text().toDouble()) / 2));
@@ -392,7 +392,7 @@ bool IntIncertidumbre::guardarrango(){
                     if (valido){
                         if ((rangoX_real <= nominal_real) && (nominal_real <= rangoY_real)){
                             QPointF rango (rangoX_real, rangoY_real);
-                            variable = new Var (denominadorNombre->at(i), rango, nominal_real, exp->at(1)->at(i));
+                            variable = new Parameter (denominadorNombre->at(i), rango, nominal_real, exp->at(1)->at(i));
 
                             rangoX->setStyleSheet("background : white");
                             rangoY->setStyleSheet("background : white");
@@ -411,25 +411,25 @@ bool IntIncertidumbre::guardarrango(){
             } else{
                 bool elegido = false;
                 for (qint32 x = 0; x < numerador->size(); x++){
-                    if (numerador->at(x)->getNombre() == denominadorNombre->at(i)){
-                        Var * v = numerador->at(x);
-                        variable = new Var(v->getNombre(),v->getR(),v->getN(),v->getExp());
+                    if (numerador->at(x)->name() == denominadorNombre->at(i)){
+                        Parameter * v = numerador->at(x);
+                        variable = new Parameter(v->name(),v->rawRange(),v->rawNominal(),v->expression());
                         break;
                     }
                 }
 
                 if (!elegido){
                     for (qint32 x = 0; x < denominador->size(); x++){
-                        if (denominador->at(x)->getNombre() == denominadorNombre->at(i)){
-                            Var * v = denominador->at(x);
-                            variable = new Var(v->getNombre(),v->getR(),v->getN(),v->getExp());
+                        if (denominador->at(x)->name() == denominadorNombre->at(i)){
+                            Parameter * v = denominador->at(x);
+                            variable = new Parameter(v->name(),v->rawRange(),v->rawNominal(),v->expression());
                             break;
                         }
                     }
                 }
             }
         }else {
-            variable = new Var (denominadorNombre->at(i).toDouble());
+            variable = new Parameter (denominadorNombre->at(i).toDouble());
         }
 
         if (valido){

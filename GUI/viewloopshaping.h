@@ -5,7 +5,7 @@
 
 #include "Modelo/Herramientas/tools.h"
 #include "qcustomplot.h"
-#include "Modelo/EstructuraSistema/sistema.h"
+#include "src/core/system/lti_system.h"
 #include "Modelo/EstructurasDatos/datosloopshaping.h"
 
 
@@ -22,7 +22,7 @@ public:
     ~ViewLoopShaping();
 
 
-    void setDatos (QVector<QVector<QPointF> *> *boun, QVector<qreal> *omega, DatosLoopShaping * datos, Sistema *planta, bool linSpace);
+    void setDatos (QVector<QVector<QPointF> *> *boun, QVector<qreal> *omega, DatosLoopShaping * datos, LtiSystem *planta, bool linSpace);
 
     void mostrar_diagrama();
 
@@ -36,7 +36,7 @@ private:
 
     QVector <QVector <QPointF> * > * boun;
     QVector <qreal> * omega;
-    Sistema * planta;
+    LtiSystem * planta;
     DatosLoopShaping * datos;
 
     bool ejecutado;

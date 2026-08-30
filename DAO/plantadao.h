@@ -1,7 +1,7 @@
 #ifndef PLANTADAO_H
 #define PLANTADAO_H
 
-#include <Modelo/EstructuraSistema/sistema.h>
+#include "src/core/system/lti_system.h"
 
   /**
     * @class PlantaDAO
@@ -32,7 +32,7 @@ public:
     * @return Planta con la planta guardada en el sistema.
     */
 
-    virtual Sistema * getPlanta () = 0;
+    virtual LtiSystem * getPlanta () = 0;
     
   /**
     * @fn setPlanta
@@ -41,7 +41,7 @@ public:
     * @param planta a guardar en el sistema.
     */
     
-    virtual void setPlanta (Sistema * planta) = 0;
+    virtual void setPlanta (LtiSystem * planta) = 0;
 };
 
 #endif // PLANTADAO_H

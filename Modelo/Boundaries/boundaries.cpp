@@ -20,7 +20,7 @@ Boundaries::Boundaries()
     boolcreados = false;
 }
 
-void Boundaries::lanzarCalculo(QVector<qreal> *omega, Sistema *planta, QVector<QVector<complex<qreal> > *> *templates,
+void Boundaries::lanzarCalculo(QVector<qreal> *omega, LtiSystem *planta, QVector<QVector<complex<qreal> > *> *templates,
                                QVector<dBND *> *altura, QPointF datosFas, qint32 puntosFas, QPointF datosMag,
                                qint32 puntosMag, qreal infinito, bool cuda){
 
@@ -81,7 +81,7 @@ void Boundaries::lanzarCalculo(QVector<qreal> *omega, Sistema *planta, QVector<Q
 
         for (int i = 0; i < omega->size(); i++){
 
-            std::complex <qreal> p0 = planta->getPunto(omega->at(i));
+            std::complex <qreal> p0 = planta->evaluate(omega->at(i));
             QVector <complex <qreal> >  * p = templates->at(i);
 
             std::vector <float *> * vecSabanasCuda = bnd_cuda(p->toStdVector(),p0, infinito,
@@ -527,7 +527,7 @@ qint32 Boundaries::getZona(QVector<QPointF> * vec, complex <qreal> p0, QVector <
     return 1;
 }
 
-void Boundaries::bnd(QVector<qreal> *omega, Sistema *planta, QVector <QVector <complex <qreal> > *>
+void Boundaries::bnd(QVector<qreal> *omega, LtiSystem *planta, QVector <QVector <complex <qreal> > *>
                      * templates, QPointF datosFas, qint32 puntosFas,
                      QPointF datosMag, qint32 puntosMag, qreal infinito)
 {
@@ -583,7 +583,7 @@ QVector <qreal> * Boundaries::getOmega(){
 }
 
 
-void Boundaries::calcularBndOmega (qreal omega, Sistema * planta,
+void Boundaries::calcularBndOmega (qreal omega, LtiSystem * planta,
                                    QVector<std::complex <qreal> > * temp, QVector <qreal> * fases,
                                    QVector <qreal> * mag, qreal inf __attribute__((unused)), qint32 contador, qint32 num_hilo,
                                    QVector <qreal> * nueva_omega){
@@ -594,7 +594,7 @@ void Boundaries::calcularBndOmega (qreal omega, Sistema * planta,
     //Se obtiene cada plantilla.
     QVector <complex <qreal> >  * p = temp;
     //Se resuelve la planta con las frecuencias de diseño.
-    p0 = planta->getPunto(omega);
+    p0 = planta->evaluate(omega);
 
     //Una sábana por cada frecuencia de diseño.
     QVector <QVector <qreal> * > * sabanaEstabilidadRuido = new QVector <QVector <qreal> * > ();

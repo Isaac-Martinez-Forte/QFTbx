@@ -42,7 +42,7 @@ ViewLoopShaping::~ViewLoopShaping()
 
 
 void ViewLoopShaping::setDatos(QVector<QVector<QPointF> *> *boun, QVector<qreal> *omega, DatosLoopShaping *datos,
-                               Sistema* planta, bool linSpace){
+                               LtiSystem* planta, bool linSpace){
     this->boun = boun;
     this->omega = omega;
     this->datos = datos;
@@ -55,23 +55,23 @@ void ViewLoopShaping::mostrar_diagrama(){
     QString numerador = "", denominador = "";
 
     qint32 i = 0;
-    for (i = 0; i < datos->getControlador()->getNumerador()->size(); i++){
-        numerador += QString::number(datos->getControlador()->getNumerador()->at(i)->getNominal()) + " ";
+    for (i = 0; i < datos->getControlador()->numerator()->size(); i++){
+        numerador += QString::number(datos->getControlador()->numerator()->at(i)->nominal()) + " ";
     }
-    for (i = 0; i < datos->getControlador()->getDenominador()->size(); i++){
-        denominador += QString::number(datos->getControlador()->getDenominador()->at(i)->getNominal()) + " ";
+    for (i = 0; i < datos->getControlador()->denominator()->size(); i++){
+        denominador += QString::number(datos->getControlador()->denominator()->at(i)->nominal()) + " ";
     }
 
     ui->nume->setText(numerador);
     ui->deno->setText(denominador);
-    ui->k->setText(QString::number(datos->getControlador()->getK()->getNominal()));
+    ui->k->setText(QString::number(datos->getControlador()->gain()->nominal()));
 
-    Sistema::tipo_planta tipo = datos->getControlador()->getClass();
+    LtiSystem::SystemType tipo = datos->getControlador()->type();
 
-    if (tipo == Sistema::cof_polinomios){
+    if (tipo == LtiSystem::SystemType::PolynomialForm){
         QPixmap imagen (":/figures/copol.png");
         ui->tipoSistema->setPixmap(imagen);
-    } else if (tipo == Sistema::k_ganancia){
+    } else if (tipo == LtiSystem::SystemType::ZeroPoleGain){
         QPixmap imagen (":/figures/kgan.png");
         ui->tipoSistema->setPixmap(imagen);
     }else {
@@ -148,10 +148,10 @@ void ViewLoopShaping::mostrar_diagrama(){
     QVector <qreal> * frecuencias;
 
     /*if(linSpace){
-        frecuencias = tools::linspace(datos->getRango().x(), datos->getRango().y(), datos->getNPuntos());
+        frecuencias = tools::linspace(datos->range().x(), datos->range().y(), datos->getNPuntos());
 
     } else {
-        frecuencias = tools::logspace(datos->getRango().x(), datos->getRango().y(), datos->getNPuntos());
+        frecuencias = tools::logspace(datos->range().x(), datos->range().y(), datos->getNPuntos());
     }*/
 
     frecuencias = tools::logspace(-5, 5, 10000);
@@ -163,7 +163,7 @@ void ViewLoopShaping::mostrar_diagrama(){
     QVector <qreal> * ejeyActual = new QVector <qreal> ();
 
 
-    std::complex <qreal> c = planta->getPunto(frecuencias->at(0)) * datos->getControlador()->getPunto(frecuencias->at(0));
+    std::complex <qreal> c = planta->evaluate(frecuencias->at(0)) * datos->getControlador()->evaluate(frecuencias->at(0));
 
     qreal fas = arg(c) *180 / M_PI;
     qreal mag = 20*log10(abs(c));
@@ -177,7 +177,7 @@ void ViewLoopShaping::mostrar_diagrama(){
 
 
     foreach (qreal a, *frecuencias) {
-        std::complex <qreal> c = planta->getPunto(a) * datos->getControlador()->getPunto(a);
+        std::complex <qreal> c = planta->evaluate(a) * datos->getControlador()->evaluate(a);
 
         qreal fas = arg(c) *180 / M_PI;
         qreal mag = 20*log10(abs(c));
@@ -247,7 +247,7 @@ void ViewLoopShaping::mostrar_diagrama(){
         QVector <qreal> ejex;
         QVector <qreal> ejey;
 
-        std::complex <qreal> c = datos->getControlador()->getPunto(omega->at(i)) * planta->getPunto(omega->at(i));
+        std::complex <qreal> c = datos->getControlador()->evaluate(omega->at(i)) * planta->evaluate(omega->at(i));
         ejey.append(20*log10(abs(c)));
         qreal fas = arg(c) *180 / M_PI;
         if (fas > 0)

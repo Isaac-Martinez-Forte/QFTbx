@@ -10,8 +10,8 @@
 #include <QTranslator>
 
 
-#include "Modelo/EstructuraSistema/sistema.h"
-#include "Modelo/EstructurasDatos/var.h"
+#include "src/core/system/lti_system.h"
+#include "src/core/system/parameter.h"
 
 /**
     * @namespace tools
@@ -109,7 +109,7 @@ QColor ramdonColor (qint32 i);
 struct dBND{
     QString nombre;
     bool utilizado;
-    Sistema * sistema;
+    LtiSystem * sistema;
     qreal altura;
     bool constante;
     qreal frecinicio;
@@ -120,7 +120,7 @@ struct dBND{
             return 20 * log10(altura);
         }
 
-        return 20 * log10(abs(sistema->getPunto(omega)));
+        return 20 * log10(abs(sistema->evaluate(omega)));
     }
 };
 
@@ -145,7 +145,7 @@ struct recortes {
     QVector <qreal> * minimosMaximos;
 };
 
-QVector <Var *> * clonarVectorVar (QVector <Var *> * v);
+QVector <Parameter *> * clonarVectorVar (QVector <Parameter *> * v);
 }
 
 #endif // TOOLS_H

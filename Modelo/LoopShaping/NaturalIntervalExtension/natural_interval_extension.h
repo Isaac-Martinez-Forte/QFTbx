@@ -5,8 +5,8 @@
 #include <QPointF>
 #include <math.h>
 
-#include "Modelo/EstructurasDatos/var.h"
-#include "Modelo/EstructuraSistema/sistema.h"
+#include "src/core/system/parameter.h"
+#include "src/core/system/lti_system.h"
 
 #include <complex>
 
@@ -22,27 +22,27 @@ public:
     Natura_Interval_extension();
     ~Natura_Interval_extension();
 
-    cinterval get_box(Sistema * sistema, qreal w, complex p0, bool nyquist = false);
+    cinterval get_box(LtiSystem * sistema, qreal w, complex p0, bool nyquist = false);
     
-    cinterval get_box_nume (QVector <Var * > * nume, qreal w, Sistema::tipo_planta tipo, bool nyquist = false);
-    cinterval get_box_deno (QVector <Var * > * deno, qreal w, Sistema::tipo_planta tipo, bool nyquist = false);
+    cinterval get_box_nume (QVector <Parameter * > * nume, qreal w, LtiSystem::SystemType tipo, bool nyquist = false);
+    cinterval get_box_deno (QVector <Parameter * > * deno, qreal w, LtiSystem::SystemType tipo, bool nyquist = false);
 
     qreal getBoxInf();
     cxsc::cinterval getBoxDB();
 
-    cinterval get_box_termino_nume(Var * var, qreal w, complex p0);
-    cinterval get_box_termino_deno(Var * var, qreal w, complex p0);
-    cinterval get_box_termino_k(Var * var, complex p0);
+    cinterval get_box_termino_nume(Parameter * var, qreal w, complex p0);
+    cinterval get_box_termino_deno(Parameter * var, qreal w, complex p0);
+    cinterval get_box_termino_k(Parameter * var, complex p0);
 
 private:
 
-    inline cinterval get_box_kganancia (Sistema * sistema, qreal w);
-    inline cinterval get_box_knoganacia (Sistema * sistema, qreal w);
-    inline cinterval get_box_cpolinomios (Sistema * sistema, qreal w);
-    inline cinterval get_box_flibre (Sistema * sistema, qreal w);
+    inline cinterval get_box_kganancia (LtiSystem * sistema, qreal w);
+    inline cinterval get_box_knoganacia (LtiSystem * sistema, qreal w);
+    inline cinterval get_box_cpolinomios (LtiSystem * sistema, qreal w);
+    inline cinterval get_box_flibre (LtiSystem * sistema, qreal w);
 
-    inline cinterval get_box_kganancia_nume (QVector <Var * > * nume, qreal w);
-    inline cinterval get_box_kganancia_deno (QVector <Var * > * deno, qreal w);
+    inline cinterval get_box_kganancia_nume (QVector <Parameter * > * nume, qreal w);
+    inline cinterval get_box_kganancia_deno (QVector <Parameter * > * deno, qreal w);
     inline interval _arg(cinterval z);
 
     qreal boxInf;

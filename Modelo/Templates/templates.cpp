@@ -23,7 +23,7 @@ Templates::Templates()
 Templates::~Templates(){
 }
 
-void Templates::setMapa(QHash<Var *, QVector<qreal> *> *mapa){
+void Templates::setMapa(QHash<Parameter *, QVector<qreal> *> *mapa){
     this->mapa = mapa;
 }
 
@@ -31,7 +31,7 @@ void Templates::setEpsilon(QVector<qreal> *epsilon){
     this->epsilon = epsilon;
 }
 
-bool Templates::lanzarCalculo(Sistema *planta, QVector<qreal> *omega, bool cuda){
+bool Templates::lanzarCalculo(LtiSystem *planta, QVector<qreal> *omega, bool cuda){
     this->cuda = cuda;
 
     QElapsedTimer timer;
@@ -83,13 +83,13 @@ QVector<QVector<complex<qreal> > *> * Templates::getContorno(){
     return contorno;
 }
 
-QVector<qreal> * Templates::getVariables(Var * a){
+QVector<qreal> * Templates::getVariables(Parameter * a){
 
     return mapa->value(a);
 }
 
 #ifndef OpenMP_AVAILABLE
-QVector<QVector<complex<qreal> > * > * Templates::calcularTemplate_secuencial (Sistema *planta, QVector<qreal> *omega){
+QVector<QVector<complex<qreal> > * > * Templates::calcularTemplate_secuencial (LtiSystem *planta, QVector<qreal> *omega){
 
     ParserX parser (pckALL_COMPLEX);
 
@@ -98,28 +98,28 @@ QVector<QVector<complex<qreal> > * > * Templates::calcularTemplate_secuencial (S
     QMap <QString, QVector <qreal> *> * variables = new QMap <QString, QVector <qreal> *> ();
     QVector <QString> * nombres = new QVector <QString> ();
 
-    qint32 lonNume = planta->getNumerador()->size();
-    qint32 lonDeno = planta->getDenominador()->size();
+    qint32 lonNume = planta->numerator()->size();
+    qint32 lonDeno = planta->denominator()->size();
     qint32 lon = 0;
 
     qint32 lonOmega = omega->size();
 
     combinaciones = 1;
 
-    Var * var;
+    Parameter * var;
 
     for (qint32 i = 0; i < lonNume; i++){
 
-        var = planta->getNumerador()->at(i);
+        var = planta->numerator()->at(i);
 
-        if (!nombres->contains(var->getNombre()) && var->isVariable()){
+        if (!nombres->contains(var->name()) && var->isUncertain()){
             lon++;
-            nombres->append(var->getNombre());
+            nombres->append(var->name());
             QVector <qreal> * vector = getVariables(var);
             combinaciones *= vector->size();
-            variables->insert(var->getNombre(),vector);
+            variables->insert(var->name(),vector);
 
-            QString s = var->getNombre() + "=" + QString::number(vector->at(0));
+            QString s = var->name() + "=" + QString::number(vector->at(0));
             parser.SetExpr(s.toStdString());
             parser.Eval();
         }
@@ -127,42 +127,42 @@ QVector<QVector<complex<qreal> > * > * Templates::calcularTemplate_secuencial (S
 
     for (qint32 i = 0; i < lonDeno; i++){
 
-        var = planta->getDenominador()->at(i);
+        var = planta->denominator()->at(i);
 
-        if (!nombres->contains(var->getNombre()) && var->isVariable()){
+        if (!nombres->contains(var->name()) && var->isUncertain()){
             lon++;
-            nombres->append(var->getNombre());
+            nombres->append(var->name());
             QVector <qreal> * vector = getVariables(var);
             combinaciones *= vector->size();
-            variables->insert(var->getNombre(),vector);
+            variables->insert(var->name(),vector);
 
-            QString s = var->getNombre() + "=" + QString::number(vector->at(0));
+            QString s = var->name() + "=" + QString::number(vector->at(0));
             parser.SetExpr(s.toStdString());
             parser.Eval();
         }
     }
 
 
-    if (planta->getK()->isVariable()){
+    if (planta->gain()->isUncertain()){
         lon++;
-        nombres->append(planta->getK()->getNombre());
-        QVector <qreal> * k = getVariables(planta->getK());
-        variables->insert(planta->getK()->getNombre(), k);
+        nombres->append(planta->gain()->name());
+        QVector <qreal> * k = getVariables(planta->gain());
+        variables->insert(planta->gain()->name(), k);
         combinaciones *= k->size();
 
-        QString s = planta->getK()->getNombre() + "=" + QString::number(k->at(0));
+        QString s = planta->gain()->name() + "=" + QString::number(k->at(0));
         parser.SetExpr(s.toStdString());
         parser.Eval();
     }
 
 
-    if(planta->getRet()->isVariable()){
+    if(planta->delay()->isUncertain()){
         lon++;
-        nombres->append(planta->getRet()->getNombre());
-        QVector <qreal> * ret = getVariables(planta->getRet());
-        variables->insert(planta->getRet()->getNombre(), ret);
+        nombres->append(planta->delay()->name());
+        QVector <qreal> * ret = getVariables(planta->delay());
+        variables->insert(planta->delay()->name(), ret);
         combinaciones *= ret->size();
-        QString s = planta->getRet()->getNombre() + "=" + QString::number(ret->at(0));
+        QString s = planta->delay()->name() + "=" + QString::number(ret->at(0));
         parser.SetExpr(s.toStdString());
         parser.Eval();
     }
@@ -179,7 +179,7 @@ QVector<QVector<complex<qreal> > * > * Templates::calcularTemplate_secuencial (S
 
         qreal w = omega->at(u);
 
-        QString es = planta->getExpr(w);
+        QString es = planta->expression(w);
 
 
         QVector <complex<qreal>> * templateParcial = new QVector <complex<qreal>> ();
@@ -236,62 +236,62 @@ QVector<QVector<complex<qreal> > * > * Templates::calcularTemplate_secuencial (S
 }
 
 #else
-QVector<QVector<std::complex<qreal> > *> * Templates::calcularTemplate_paralelo(Sistema *planta, QVector<qreal> *omega){
+QVector<QVector<std::complex<qreal> > *> * Templates::calcularTemplate_paralelo(LtiSystem *planta, QVector<qreal> *omega){
 
     QMap <QString, QVector <qreal> *> * variables = new QMap <QString, QVector <qreal> *> ();
     QVector <QString> * nombres = new QVector <QString> ();
 
-    qint32 lonNume = planta->getNumerador()->size();
-    qint32 lonDeno = planta->getDenominador()->size();
+    qint32 lonNume = planta->numerator()->size();
+    qint32 lonDeno = planta->denominator()->size();
     qint32 lon = 0;
 
     qint32 lonOmega = omega->size();
 
     combinaciones = 1;
 
-    Var * var;
+    Parameter * var;
 
     for (qint32 i = 0; i < lonNume; i++){
 
-        var = planta->getNumerador()->at(i);
+        var = planta->numerator()->at(i);
 
-        if (!nombres->contains(var->getNombre()) && var->isVariable()){
+        if (!nombres->contains(var->name()) && var->isUncertain()){
             lon++;
-            nombres->append(var->getNombre());
+            nombres->append(var->name());
             QVector <qreal> * vector = getVariables(var);
             combinaciones *= vector->size();
-            variables->insert(var->getNombre(),vector);
+            variables->insert(var->name(),vector);
         }
     }
 
     for (qint32 i = 0; i < lonDeno; i++){
 
-        var = planta->getDenominador()->at(i);
+        var = planta->denominator()->at(i);
 
-        if (!nombres->contains(var->getNombre()) && var->isVariable()){
+        if (!nombres->contains(var->name()) && var->isUncertain()){
             lon++;
-            nombres->append(var->getNombre());
+            nombres->append(var->name());
             QVector <qreal> * vector = getVariables(var);
             combinaciones *= vector->size();
-            variables->insert(var->getNombre(),vector);
+            variables->insert(var->name(),vector);
         }
     }
 
 
-    if (planta->getK()->isVariable()){
+    if (planta->gain()->isUncertain()){
         lon++;
-        nombres->append(planta->getK()->getNombre());
-        QVector <qreal> * k = getVariables(planta->getK());
-        variables->insert(planta->getK()->getNombre(), k);
+        nombres->append(planta->gain()->name());
+        QVector <qreal> * k = getVariables(planta->gain());
+        variables->insert(planta->gain()->name(), k);
         combinaciones *= k->size();
     }
 
 
-    if(planta->getRet()->isVariable()){
+    if(planta->delay()->isUncertain()){
         lon++;
-        nombres->append(planta->getRet()->getNombre());
-        QVector <qreal> * ret = getVariables(planta->getRet());
-        variables->insert(planta->getRet()->getNombre(), ret);
+        nombres->append(planta->delay()->name());
+        QVector <qreal> * ret = getVariables(planta->delay());
+        variables->insert(planta->delay()->name(), ret);
         combinaciones *= ret->size();
     }
 
@@ -322,7 +322,7 @@ QVector<QVector<std::complex<qreal> > *> * Templates::calcularTemplate_paralelo(
             parser.Eval();
         }
 
-        QString es = planta->getExpr(w);
+        QString es = planta->expression(w);
 
         templateParcial->reserve(combinaciones);
 

@@ -28,7 +28,7 @@ public:
 
     tools::alg_loop_shaping getAlg();
 
-    QPointF getRango();
+    QPointF range();
 
     qreal getNPuntos();
 

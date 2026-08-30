@@ -14,7 +14,7 @@
 #include <QHash>
 #include <complex>
 
-#include "EstructuraSistema/sistema.h"
+#include "src/core/system/lti_system.h"
 #include "Templates/templates.h"
 #include "Objetos/omega.h"
 #include "Boundaries/boundaries.h"
@@ -64,7 +64,7 @@ public:
     * Esta función accede directamente al adaptador Dao usado por el sistema para recuperar la Planta que se solicita.
     * @return planta guardada en el sistema.
     */
-    Sistema * getPlanta();
+    LtiSystem * getPlanta();
 
 
     Omega * getOmega();
@@ -89,10 +89,10 @@ public:
      * @brief Función que guarda una Planta en el sistema.
      *
      * La Planta se guardará a través el adaptador DAO definido en el sistema.
-     * @param planta Sistema a guardar en el sistema.
+     * @param planta LtiSystem a guardar en el sistema.
      */
     
-    void setPlanta (Sistema * planta);
+    void setPlanta (LtiSystem * planta);
     
     
     /**
@@ -142,7 +142,7 @@ public:
     * @param mapa QHash donde se relacionan las variables de la planta con con los reales concretos de esa variabilidad.
    */
 
-    bool calcularTemplates(QVector<qreal> *epsilon, QHash<Var *, QVector<qreal> *> *mapa, bool cuda);
+    bool calcularTemplates(QVector<qreal> *epsilon, QHash<Parameter *, QVector<qreal> *> *mapa, bool cuda);
     
     
     /**
@@ -203,9 +203,9 @@ public:
     QVector<QVector<QVector<QPointF> *> *> *getBoundariesReunHash();
 
 
-    bool setControlador (Sistema * controlador);
+    bool setControlador (LtiSystem * controlador);
 
-    Sistema * getControlador();
+    LtiSystem * getControlador();
     
 
     bool calcularLoopShaping(qreal epsilon, alg_loop_shaping seleccionado, QPointF rango, qreal nPuntos, bool depuracion,

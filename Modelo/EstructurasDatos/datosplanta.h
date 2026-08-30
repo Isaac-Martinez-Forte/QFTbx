@@ -36,7 +36,7 @@ public:
      * @fn DatosPlanta
      * @brief Constructor que crea el objeto.
      *
-     * @param planta Sistema que se quiere controlar.
+     * @param planta LtiSystem que se quiere controlar.
      * @param omegas Frecuencias de diseño.
      * @param boundaries Fronteras calculadas para la planta con las frecuencias de diseño introducidas.
      * @param templates Plantillas calculadas para la planta con las frecuencias de diseño introducidas.

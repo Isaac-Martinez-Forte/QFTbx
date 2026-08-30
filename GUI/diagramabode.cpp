@@ -18,7 +18,7 @@ DiagramaBode::~DiagramaBode()
     delete ui;
 }
 
-void DiagramaBode::dibujarBode(Sistema *planta, Omega *omega){
+void DiagramaBode::dibujarBode(LtiSystem *planta, Omega *omega){
 
     QVector <qreal> * frecuencias;
 
@@ -35,7 +35,7 @@ void DiagramaBode::dibujarBode(Sistema *planta, Omega *omega){
     ganancia->reserve(frecuencias->size());
     fase->reserve(frecuencias->size());
 
-    QVector <std::complex<qreal> > * complejos = planta->getPunto(frecuencias);
+    QVector <std::complex<qreal> > * complejos = planta->evaluate(frecuencias);
 
 
    foreach (const std::complex<qreal> &comp, *complejos){

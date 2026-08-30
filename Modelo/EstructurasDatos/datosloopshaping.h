@@ -3,27 +3,27 @@
 
 #include <QPointF>
 
-#include "Modelo/EstructuraSistema/sistema.h"
+#include "src/core/system/lti_system.h"
 
 class DatosLoopShaping
 {
 public:
     DatosLoopShaping();
-    DatosLoopShaping (Sistema * controlador, QPointF rango, qreal nPuntos);
+    DatosLoopShaping (LtiSystem * controlador, QPointF rango, qreal nPuntos);
 
-    void setDatos (Sistema * controlador, QPointF rango, qreal nPuntos);
+    void setDatos (LtiSystem * controlador, QPointF rango, qreal nPuntos);
 
-    void setDatos (Sistema * controlador);
+    void setDatos (LtiSystem * controlador);
 
-    Sistema * getControlador ();
+    LtiSystem * getControlador ();
 
-    QPointF getRango ();
+    QPointF range ();
 
     qreal getNPuntos();
 
 private:
 
-    Sistema * controlador;
+    LtiSystem * controlador;
     QPointF rango;
     qreal nPuntos;
 

@@ -52,7 +52,7 @@ Controlador::~Controlador(){
     }
 }
 
-Sistema *Controlador::getPlanta(){
+LtiSystem *Controlador::getPlanta(){
     if(!paso1)
         return NULL;
 
@@ -81,7 +81,7 @@ QVector<tools::dBND *> *Controlador::getEspecificaciones(){
     return especdao->getEspecificaciones();
 }
 
-void Controlador::setPlanta(Sistema *planta){
+void Controlador::setPlanta(LtiSystem *planta){
     if (!paso1)
         plantadao = dao->getPlantaDAO();
     paso1 = true;
@@ -151,7 +151,7 @@ QVector <QVector <std::complex <qreal> > * > * Controlador::getContorno(){
     return templatedao->getContorno();
 }
 
-bool Controlador::calcularTemplates(QVector <qreal> * epsilon, QHash <Var *, QVector<qreal> *> *mapa, bool cuda){
+bool Controlador::calcularTemplates(QVector <qreal> * epsilon, QHash <Parameter *, QVector<qreal> *> *mapa, bool cuda){
 
     if(!paso4){
         templatedao = dao->getTemplateDAO();
@@ -233,7 +233,7 @@ QVector< QVector <QVector<QPointF> * > * > * Controlador::getBoundariesReunHash(
     return bounddao->getBound()->getBoundariesReunHash();
 }
 
-bool Controlador::setControlador(Sistema *controlador){
+bool Controlador::setControlador(LtiSystem *controlador){
 
     if (!paso6){
         controladordao = dao->getControladorDAO();
@@ -246,7 +246,7 @@ bool Controlador::setControlador(Sistema *controlador){
     return true;
 }
 
-Sistema * Controlador::getControlador(){
+LtiSystem * Controlador::getControlador(){
     if (!paso6){
         return NULL;
     }

@@ -25,7 +25,7 @@ Algorithm_primer_articulo::~Algorithm_primer_articulo() {
 
 }
 
-void Algorithm_primer_articulo::set_datos(Sistema *planta, Sistema *controlador, QVector<qreal> * omega, DatosBound *boundaries,
+void Algorithm_primer_articulo::set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> * omega, DatosBound *boundaries,
                                 qreal epsilon, QVector<QVector<QVector<QPointF> *> *> *reunBounHash,
                                 bool depuracion __attribute__((unused)), bool hilos, QVector<qreal>*radiosBoundariesMayor,
                                 QVector<qreal> *radiosBoundariesMenor, QVector<QPointF> *centros, bool biseccion_avanzada, bool deteccion_avanzada, bool a) {
@@ -223,7 +223,7 @@ bool Algorithm_primer_articulo::init_algorithm() {
     conversion = new Natura_Interval_extension();
 
     Tripleta * tripleta;
-    Sistema * actual;
+    LtiSystem * actual;
 
     struct FC::return_bisection retur;
     deteccion = new DeteccionViolacionBoundaries();
@@ -233,7 +233,7 @@ bool Algorithm_primer_articulo::init_algorithm() {
     plantas_nominales2 = new QVector <std::complex <qreal>> ();
 
     foreach (qreal o, *omega) {
-        std::complex <qreal> c = planta->getPunto(o);
+        std::complex <qreal> c = planta->evaluate(o);
         plantas_nominales2->append(c);
         plantas_nominales->append(cxsc::complex(c.real(), c.imag()));
     }
@@ -318,14 +318,14 @@ bool Algorithm_primer_articulo::init_algorithm() {
 
 //Función que retorna el controlador.
 
-Sistema * Algorithm_primer_articulo::getControlador() {
+LtiSystem * Algorithm_primer_articulo::getControlador() {
     return controlador_retorno;
 }
 
 
 //Función que comprueba si la caja actual es feasible, infeasible o ambiguous.
 
-inline Tripleta * Algorithm_primer_articulo::check_box_feasibility(Sistema *controlador) {
+inline Tripleta * Algorithm_primer_articulo::check_box_feasibility(LtiSystem *controlador) {
 
     using namespace std;
 
@@ -441,22 +441,22 @@ inline Tripleta * Algorithm_primer_articulo::check_box_feasibility(Sistema *cont
 
         cout << "Área " << omega->at(k) <<": " << areasCaja.at(k) << ", " << a << ": " << areasCaja.at(k) - a << endl;
 
-        /*cout << "k: [" << controlador->getK()->getRango().x() << ", " << controlador->getK()->getRango().y();
+        /*cout << "k: [" << controlador->gain()->range().x() << ", " << controlador->gain()->range().y();
 
-        cout << " a: [" << controlador->getNumerador()->at(0)->getRango().x() << ", " << controlador->getNumerador()->at(0)->getRango().y() << "]" ;
+        cout << " a: [" << controlador->numerator()->at(0)->range().x() << ", " << controlador->numerator()->at(0)->range().y() << "]" ;
 
-        cout << " b: [" << controlador->getNumerador()->at(1)->getRango().x() << ", " << controlador->getNumerador()->at(1)->getRango().y() << "]" ;
+        cout << " b: [" << controlador->numerator()->at(1)->range().x() << ", " << controlador->numerator()->at(1)->range().y() << "]" ;
 
-        cout << " c: [" << controlador->getNumerador()->at(2)->getNominal() << "]" ;
+        cout << " c: [" << controlador->numerator()->at(2)->nominal() << "]" ;
 
 
-        cout << " d: [" << controlador->getDenominador()->at(0)->getRango().x() << ", " << controlador->getDenominador()->at(0)->getRango().y() << "]" ;
+        cout << " d: [" << controlador->denominator()->at(0)->range().x() << ", " << controlador->denominator()->at(0)->range().y() << "]" ;
 
-        cout << " e: [" << controlador->getDenominador()->at(1)->getRango().x() << ", " << controlador->getDenominador()->at(1)->getRango().y() << "]" ;
+        cout << " e: [" << controlador->denominator()->at(1)->range().x() << ", " << controlador->denominator()->at(1)->range().y() << "]" ;
 
-        cout << " f: [" << controlador->getDenominador()->at(2)->getNominal() << "]" ;
+        cout << " f: [" << controlador->denominator()->at(2)->nominal() << "]" ;
 
-        cout << " g: [" << controlador->getDenominador()->at(3)->getNominal() << "]" << endl;*/
+        cout << " g: [" << controlador->denominator()->at(3)->nominal() << "]" << endl;*/
 
 
 
@@ -483,9 +483,9 @@ inline Tripleta * Algorithm_primer_articulo::check_box_feasibility(Sistema *cont
     t->setIndex(-(20 * nFeasible) + 10 * t->getPorcentajeFeasible());
 #else
     if (penalizacion){
-        t->setIndex(controlador->getK()->getRango().x() + 100);
+        t->setIndex(controlador->gain()->range().x() + 100);
     } else {
-        t->setIndex(controlador->getK()->getRango().x());
+        t->setIndex(controlador->gain()->range().x());
     }
 #endif
 
@@ -525,11 +525,11 @@ inline Tripleta * Algorithm_primer_articulo::check_box_feasibility(Sistema *cont
 
 
 //Función que recorta la caja.
-inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector <data_box *> * datosCortesBoundaries) {
-    QVector <Var *> * denominador = v->getDenominador();
-    QVector <Var *> * numerador = v->getNumerador();
-    QPointF k = v->getK()->getRango();
-    QPointF kNuevo = v->getK()->getRango();
+inline LtiSystem * Algorithm_primer_articulo::aceleratedNuevo(LtiSystem * v, QVector <data_box *> * datosCortesBoundaries) {
+    QVector <Parameter *> * denominador = v->denominator();
+    QVector <Parameter *> * numerador = v->numerator();
+    QPointF k = v->gain()->range();
+    QPointF kNuevo = v->gain()->range();
 
 #if defined(REC_INTER) || defined(GANANCIA)
     bool kMagUnionArriba = false, kMagUnionAbajo = false, kIntersecionX = false, kIntersecionY = false;
@@ -552,19 +552,19 @@ inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector
     QVector <qreal> * numeradorNuevoInterseccionY = new QVector <qreal> ();
 #endif
 
-    foreach (Var * var, *numerador) {
-        numeradorInf->append(var->getRango().x());
-        numeradorSup->append(var->getRango().y());
-        numeradorInfNuevo->append(var->getRango().x());
-        numeradorSupNuevo->append(var->getRango().y());
+    foreach (Parameter * var, *numerador) {
+        numeradorInf->append(var->range().x());
+        numeradorSup->append(var->range().y());
+        numeradorInfNuevo->append(var->range().x());
+        numeradorSupNuevo->append(var->range().y());
 
 #ifdef REC_INTER
         numeradorUnionX->append(false);
         numeradorUnionY->append(false);
         numeradorInterseccionX->append(false);
         numeradorInterseccionY->append(false);
-        numeradorNuevoInterseccionX->append(var->getRango().y() + 1);
-        numeradorNuevoInterseccionY->append(var->getRango().x() - 1);
+        numeradorNuevoInterseccionX->append(var->range().y() + 1);
+        numeradorNuevoInterseccionY->append(var->range().x() - 1);
 #endif
     }
 
@@ -581,18 +581,18 @@ inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector
     QVector <qreal> * denominadorNuevoInterseccionY = new QVector <qreal> ();
 #endif
 
-    foreach (Var * var, *denominador) {
-        denominadorInf->append(var->getRango().x());
-        denominadorSup->append(var->getRango().y());
-        denominadorInfNuevo->append(var->getRango().x());
-        denominadorSupNuevo->append(var->getRango().y());
+    foreach (Parameter * var, *denominador) {
+        denominadorInf->append(var->range().x());
+        denominadorSup->append(var->range().y());
+        denominadorInfNuevo->append(var->range().x());
+        denominadorSupNuevo->append(var->range().y());
 #ifdef REC_INTER
         denominadorUnionX->append(false);
         denominadorUnionY->append(false);
         denominadorInterseccionX->append(false);
         denominadorInterseccionY->append(false);
-        denominadorNuevoInterseccionX->append(var->getRango().y() + 1);
-        denominadorNuevoInterseccionY->append(var->getRango().x() - 1);
+        denominadorNuevoInterseccionX->append(var->range().y() + 1);
+        denominadorNuevoInterseccionY->append(var->range().x() - 1);
 #endif
     }
 
@@ -612,7 +612,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector
             if (datosCortesBoundaries->at(i)->isRecAbajo()){
 
                 if (datosCortesBoundaries->at(i)->isUniAbajo()){
-                    nuevoMinKReal = cortesMinMag / abs(v->getPunto(numeradorSup, denominadorInf, 1, 0, o) * plantaNominal);
+                    nuevoMinKReal = cortesMinMag / abs(v->evaluate(numeradorSup, denominadorInf, 1, 0, o) * plantaNominal);
 
                     if (nuevoMinKReal > kNuevo.x() && nuevoMinKReal < kNuevo.y()) {
                         kNuevo.setX(nuevoMinKReal);
@@ -623,7 +623,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector
                 } else {
 #if defined(REC_INTER) || defined(GANANCIA)
                     if (!kMagUnionAbajo){
-                        nuevoMinKReal = cortesMinMag / abs(v->getPunto(numeradorSup, denominadorInf, 1, 0, o) * plantaNominal);
+                        nuevoMinKReal = cortesMinMag / abs(v->evaluate(numeradorSup, denominadorInf, 1, 0, o) * plantaNominal);
 
                         if (nuevoMinKReal > kNuevo.x() && nuevoMinKReal < kNuevo.y() && nuevoMinKReal < kNuevoIntersecionX) {
                             kNuevoIntersecionX = nuevoMinKReal;
@@ -637,7 +637,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector
 
             if (datosCortesBoundaries->at(i)->isRecArriba()){
                 if (datosCortesBoundaries->at(i)->isUniArriba()){
-                    nuevoMaxKReal = cortesMaxMag / abs(v->getPunto(numeradorInf, denominadorSup, 1, 0, o) * plantaNominal);
+                    nuevoMaxKReal = cortesMaxMag / abs(v->evaluate(numeradorInf, denominadorSup, 1, 0, o) * plantaNominal);
 
                     if (nuevoMaxKReal > kNuevo.x() && nuevoMaxKReal < kNuevo.y()) {
                         kNuevo.setY(nuevoMaxKReal);
@@ -649,7 +649,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector
 
 #if defined(REC_INTER) || defined(GANANCIA)
                     if (!kMagUnionArriba){
-                        nuevoMinKReal = cortesMinMag / abs(v->getPunto(numeradorSup, denominadorInf, 1, 0, o) * plantaNominal);
+                        nuevoMinKReal = cortesMinMag / abs(v->evaluate(numeradorSup, denominadorInf, 1, 0, o) * plantaNominal);
 
                         if (nuevoMinKReal > kNuevo.x() && nuevoMinKReal < kNuevo.y() && nuevoMinKReal < kNuevoIntersecionX) {
                             kNuevoIntersecionX = nuevoMinKReal;
@@ -666,7 +666,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector
             //Numerador
             if (isVariableNume){
                 for (qint32 j = 0; j < numerador->size(); j++) {
-                    if (numerador->at(j)->isVariable()){
+                    if (numerador->at(j)->isUncertain()){
 
                         n = numeradorSup->at(j);
                         numeradorSup->remove(j);
@@ -674,8 +674,8 @@ inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector
                         if (datosCortesBoundaries->at(i)->isRecAbajo()){
                             if (datosCortesBoundaries->at(i)->isUniAbajo()){
 
-                                nuevoMinNume = sqrt( pow((cortesMinMag * abs (v->getPuntoDeno(denominadorInf, o))) /
-                                                         (k.y() *  abs (v->getPuntoNume(numeradorSup, o) * plantaNominal)), 2) - pow(o, 2));
+                                nuevoMinNume = sqrt( pow((cortesMinMag * abs (v->evaluateDenominator(denominadorInf, o))) /
+                                                         (k.y() *  abs (v->evaluateNumerator(numeradorSup, o) * plantaNominal)), 2) - pow(o, 2));
 
                                 if (nuevoMinNume > numeradorInfNuevo->at(j) && nuevoMinNume < numeradorSupNuevo->at(j)) {
                                     numeradorInfNuevo->replace(j, nuevoMinNume);
@@ -686,8 +686,8 @@ inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector
                             } else {
 #if defined(REC_INTER) && defined(REC_MAG)
                                 if (!numeradorUnionX->at(j)){
-                                    nuevoMinNume = sqrt( pow((cortesMinMag * abs (v->getPuntoDeno(denominadorInf, o))) /
-                                                             (k.y() *  abs (v->getPuntoNume(numeradorSup, o) * plantaNominal)), 2) - pow(o, 2));
+                                    nuevoMinNume = sqrt( pow((cortesMinMag * abs (v->evaluateDenominator(denominadorInf, o))) /
+                                                             (k.y() *  abs (v->evaluateNumerator(numeradorSup, o) * plantaNominal)), 2) - pow(o, 2));
 
                                     if (nuevoMinNume > numeradorInfNuevo->at(j) && nuevoMinNume < numeradorSupNuevo->at(j) && nuevoMinNume < numeradorNuevoInterseccionX->at(j)) {
                                         numeradorNuevoInterseccionX->replace(j, nuevoMinNume);
@@ -702,7 +702,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector
                         if (datosCortesBoundaries->at(i)->isRecDerecha()){
                             if (datosCortesBoundaries->at(i)->isUniDerecha()){
 #if defined(REC_UNION)
-                                 nuevoMaxNume = o / tan(cortesMaxImag - std::arg (v->getPuntoNume(numeradorSup, o)) + std::arg (v->getPuntoDeno(denominadorInf, o)) - std::arg (plantaNominal));
+                                 nuevoMaxNume = o / tan(cortesMaxImag - std::arg (v->evaluateNumerator(numeradorSup, o)) + std::arg (v->evaluateDenominator(denominadorInf, o)) - std::arg (plantaNominal));
 
                                 if (nuevoMaxNume > numeradorInfNuevo->at(j) && nuevoMaxNume < numeradorSupNuevo->at(j)) {
                                     numeradorSupNuevo->replace(j, nuevoMaxNume);
@@ -714,7 +714,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector
                             } else {
 #if defined(REC_INTER)
                                 if (!numeradorUnionY->at(j)){
-                                    nuevoMaxNume = o / tan(cortesMaxImag - std::arg (v->getPuntoNume(numeradorSup, o)) + std::arg (v->getPuntoDeno(denominadorInf, o)) - std::arg (plantaNominal));
+                                    nuevoMaxNume = o / tan(cortesMaxImag - std::arg (v->evaluateNumerator(numeradorSup, o)) + std::arg (v->evaluateDenominator(denominadorInf, o)) - std::arg (plantaNominal));
                                     if (nuevoMaxNume > numeradorInfNuevo->at(j) && nuevoMaxNume < numeradorSupNuevo->at(j) && nuevoMaxNume > numeradorNuevoInterseccionY->at(j)) {
                                         numeradorNuevoInterseccionY->replace(j, nuevoMaxNume);
                                         numeradorInterseccionY->replace(j, true);
@@ -735,8 +735,8 @@ inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector
 
                         if (datosCortesBoundaries->at(i)->isRecArriba()){
                             if (datosCortesBoundaries->at(i)->isUniArriba()){
-                                nuevoMaxNume = sqrt( pow((cortesMaxMag * abs (v->getPuntoDeno(denominadorSup, o))) /
-                                                         (k.x() *  abs (v->getPuntoNume(numeradorInf, o) * plantaNominal)), 2) - pow(o, 2));
+                                nuevoMaxNume = sqrt( pow((cortesMaxMag * abs (v->evaluateDenominator(denominadorSup, o))) /
+                                                         (k.x() *  abs (v->evaluateNumerator(numeradorInf, o) * plantaNominal)), 2) - pow(o, 2));
 
                                 if (nuevoMaxNume > numeradorInfNuevo->at(j) && nuevoMaxNume < numeradorSupNuevo->at(j)) {
                                     numeradorSupNuevo->replace(j, nuevoMaxNume);
@@ -747,8 +747,8 @@ inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector
                             } else {
 #if defined(REC_INTER) && defined(REC_MAG)
                                 if (!numeradorUnionY->at(j)){
-                                    nuevoMaxNume = sqrt( pow((cortesMaxMag * abs (v->getPuntoDeno(denominadorSup, o))) /
-                                                             (k.x() *  abs (v->getPuntoNume(numeradorInf, o) * plantaNominal)), 2) - pow(o, 2));
+                                    nuevoMaxNume = sqrt( pow((cortesMaxMag * abs (v->evaluateDenominator(denominadorSup, o))) /
+                                                             (k.x() *  abs (v->evaluateNumerator(numeradorInf, o) * plantaNominal)), 2) - pow(o, 2));
 
                                     if (nuevoMaxNume > numeradorInfNuevo->at(j) && nuevoMaxNume < numeradorSupNuevo->at(j) && nuevoMaxNume > numeradorNuevoInterseccionY->at(j)) {
                                         numeradorNuevoInterseccionY->replace(j, nuevoMaxNume);
@@ -763,7 +763,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector
                         if (datosCortesBoundaries->at(i)->isRecIzquierda()){
                             if (datosCortesBoundaries->at(i)->isUniArriba()){
 #if defined(REC_UNION)
-                                nuevoMinNume = o / tan(cortesMinImag - std::arg (v->getPuntoNume(numeradorInf, o)) + std::arg (v->getPuntoDeno(denominadorSup, o)) - std::arg (plantaNominal));
+                                nuevoMinNume = o / tan(cortesMinImag - std::arg (v->evaluateNumerator(numeradorInf, o)) + std::arg (v->evaluateDenominator(denominadorSup, o)) - std::arg (plantaNominal));
 
                                 if (nuevoMinNume > numeradorInfNuevo->at(j) && nuevoMinNume < numeradorSupNuevo->at(j)) {
                                     numeradorInfNuevo->replace(j, nuevoMinNume);
@@ -776,7 +776,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector
 
 #if defined(REC_INTER)
                                 if (!numeradorUnionX->at(j)){
-                                    nuevoMinNume = o / tan(cortesMinImag - std::arg (v->getPuntoNume(numeradorInf, o)) + std::arg (v->getPuntoDeno(denominadorSup, o)) - std::arg (plantaNominal));
+                                    nuevoMinNume = o / tan(cortesMinImag - std::arg (v->evaluateNumerator(numeradorInf, o)) + std::arg (v->evaluateDenominator(denominadorSup, o)) - std::arg (plantaNominal));
 
                                     if (nuevoMinNume > numeradorInfNuevo->at(j) && nuevoMinNume < numeradorSupNuevo->at(j) && nuevoMinNume < numeradorNuevoInterseccionX->at(j)) {
                                         numeradorNuevoInterseccionX->replace(j, nuevoMinNume);
@@ -797,15 +797,15 @@ inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector
 
             if (isVariableDeno){
                 for (qint32 j = 0; j < denominador->size(); j++) {
-                    if (denominador->at(j)->isVariable()){
+                    if (denominador->at(j)->isUncertain()){
 
                         n = denominadorInf->at(j);
                         denominadorInf->remove(j);
 
                         if (datosCortesBoundaries->at(i)->isRecAbajo()){
                             if (datosCortesBoundaries->at(i)->isUniAbajo()){
-                                nuevoMaxDeno = sqrt(pow((k.y() * abs (v->getPuntoNume(numeradorSup, o) * plantaNominal)) /
-                                                        (cortesMinMag * abs(v->getPuntoDeno(denominadorInf, o))), 2) - pow(o, 2));
+                                nuevoMaxDeno = sqrt(pow((k.y() * abs (v->evaluateNumerator(numeradorSup, o) * plantaNominal)) /
+                                                        (cortesMinMag * abs(v->evaluateDenominator(denominadorInf, o))), 2) - pow(o, 2));
 
                                 if (nuevoMaxDeno < denominadorSupNuevo->at(j) && nuevoMaxDeno > denominadorInfNuevo->at(j)) {
                                     denominadorSupNuevo->replace(j, nuevoMaxDeno);
@@ -816,8 +816,8 @@ inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector
                             } else {
 #if defined(REC_INTER) && defined(REC_MAG)
                                 if (!denominadorUnionY->at(j)){
-                                    nuevoMaxDeno = sqrt(pow((k.y() * abs (v->getPuntoNume(numeradorSup, o) * plantaNominal)) /
-                                                            (cortesMinMag * abs(v->getPuntoDeno(denominadorInf, o))), 2) - pow(o, 2));
+                                    nuevoMaxDeno = sqrt(pow((k.y() * abs (v->evaluateNumerator(numeradorSup, o) * plantaNominal)) /
+                                                            (cortesMinMag * abs(v->evaluateDenominator(denominadorInf, o))), 2) - pow(o, 2));
 
                                     if (nuevoMaxDeno > denominadorInfNuevo->at(j) && nuevoMaxDeno < denominadorSupNuevo->at(j) && nuevoMaxDeno > denominadorNuevoInterseccionY->at(j)) {
                                         denominadorNuevoInterseccionY->replace(j, nuevoMaxDeno);
@@ -832,7 +832,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector
                         if (datosCortesBoundaries->at(i)->isRecIzquierda()){
                             if (datosCortesBoundaries->at(i)->isUniIzquierda()){
 #if defined(REC_UNION)
-                                nuevoMinDeno = o / tan(-cortesMaxImag + std::arg (v->getPuntoNume(numeradorInf, o)) - std::arg (v->getPuntoDeno(denominadorSup, o)) + std::arg (plantaNominal));
+                                nuevoMinDeno = o / tan(-cortesMaxImag + std::arg (v->evaluateNumerator(numeradorInf, o)) - std::arg (v->evaluateDenominator(denominadorSup, o)) + std::arg (plantaNominal));
 
                                 if (nuevoMinDeno > denominadorInfNuevo->at(j) && nuevoMinDeno < denominadorSupNuevo->at(j)) {
                                     denominadorInfNuevo->replace(j, nuevoMinDeno);
@@ -844,7 +844,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector
                             } else {
 #if defined(REC_INTER)
                                 if (!denominadorUnionX->at(j)){
-                                    nuevoMinDeno = o / tan(-cortesMaxImag + std::arg (v->getPuntoNume(numeradorInf, o)) - std::arg (v->getPuntoDeno(denominadorSup, o)) + std::arg (plantaNominal));
+                                    nuevoMinDeno = o / tan(-cortesMaxImag + std::arg (v->evaluateNumerator(numeradorInf, o)) - std::arg (v->evaluateDenominator(denominadorSup, o)) + std::arg (plantaNominal));
 
                                     if (nuevoMinDeno > denominadorInfNuevo->at(j) && nuevoMinDeno < denominadorSupNuevo->at(j) && nuevoMinDeno < denominadorNuevoInterseccionX->at(j)) {
                                         denominadorNuevoInterseccionX->replace(j, nuevoMinDeno);
@@ -863,8 +863,8 @@ inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector
 
                         if (datosCortesBoundaries->at(i)->isRecArriba()){
                             if (datosCortesBoundaries->at(i)->isUniArriba()){
-                                nuevoMinDeno = sqrt(pow((k.x() * abs (v->getPuntoNume(numeradorInf, o) * plantaNominal)) /
-                                                        (cortesMaxMag * abs(v->getPuntoDeno(denominadorSup, o))), 2) - pow(o, 2));
+                                nuevoMinDeno = sqrt(pow((k.x() * abs (v->evaluateNumerator(numeradorInf, o) * plantaNominal)) /
+                                                        (cortesMaxMag * abs(v->evaluateDenominator(denominadorSup, o))), 2) - pow(o, 2));
                                 if (nuevoMinDeno < denominadorSupNuevo->at(j) && nuevoMinDeno > denominadorInfNuevo->at(j)) {
                                     denominadorInfNuevo->replace(j, nuevoMinDeno);
 #ifdef REC_INTER
@@ -874,8 +874,8 @@ inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector
                             } else {
 #if defined(REC_INTER) && defined(REC_MAG)
                                 if (!denominadorUnionX->at(j)){
-                                    nuevoMinDeno = sqrt(pow((k.x() * abs (v->getPuntoNume(numeradorInf, o) * plantaNominal)) /
-                                                            (cortesMaxMag * abs(v->getPuntoDeno(denominadorSup, o))), 2) - pow(o, 2));
+                                    nuevoMinDeno = sqrt(pow((k.x() * abs (v->evaluateNumerator(numeradorInf, o) * plantaNominal)) /
+                                                            (cortesMaxMag * abs(v->evaluateDenominator(denominadorSup, o))), 2) - pow(o, 2));
 
                                     if (nuevoMinDeno < denominadorSupNuevo->at(j) && nuevoMinDeno > denominadorInfNuevo->at(j) && nuevoMinDeno < denominadorNuevoInterseccionX->at(j)) {
                                         denominadorNuevoInterseccionX->replace(j, nuevoMinDeno);
@@ -890,7 +890,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector
                         if (datosCortesBoundaries->at(i)->isRecDerecha()){
                             if (datosCortesBoundaries->at(i)->isUniDerecha()){
 #if defined(REC_UNION)
-                                nuevoMaxDeno = o / tan(-cortesMinImag + std::arg (v->getPuntoNume(numeradorSup, o)) - std::arg (v->getPuntoDeno(denominadorInf, o)) + std::arg (plantaNominal));
+                                nuevoMaxDeno = o / tan(-cortesMinImag + std::arg (v->evaluateNumerator(numeradorSup, o)) - std::arg (v->evaluateDenominator(denominadorInf, o)) + std::arg (plantaNominal));
 
                                 if (nuevoMaxDeno > denominadorInfNuevo->at(j) && nuevoMaxDeno < denominadorSupNuevo->at(j)) {
                                     denominadorSupNuevo->replace(j, nuevoMaxDeno);
@@ -903,7 +903,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector
 
 #if defined(REC_INTER)
                                 if (!denominadorUnionY->at(j)){
-                                    nuevoMaxDeno = o / tan(-cortesMinImag + std::arg (v->getPuntoNume(numeradorSup, o)) - std::arg (v->getPuntoDeno(denominadorInf, o)) + std::arg (plantaNominal));
+                                    nuevoMaxDeno = o / tan(-cortesMinImag + std::arg (v->evaluateNumerator(numeradorSup, o)) - std::arg (v->evaluateDenominator(denominadorInf, o)) + std::arg (plantaNominal));
 
                                     if (nuevoMaxDeno > denominadorInfNuevo->at(j) && nuevoMaxDeno < denominadorSupNuevo->at(j) && nuevoMaxDeno > denominadorNuevoInterseccionY->at(j)) {
                                         denominadorNuevoInterseccionY->replace(j, nuevoMaxDeno);
@@ -926,16 +926,16 @@ inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector
     }
 
 
-    QVector <Var *> * numerador_nuevo;
+    QVector <Parameter *> * numerador_nuevo;
 
-        numerador_nuevo = new QVector <Var *> ();
+        numerador_nuevo = new QVector <Parameter *> ();
 
         for (qint32 i = 0; i < numerador->size(); i++){
 
-            Var * var_nume_antiguo = numerador->at(i);
-            Var * var_nume_nuevo;
+            Parameter * var_nume_antiguo = numerador->at(i);
+            Parameter * var_nume_nuevo;
 
-            if (var_nume_antiguo->isVariable()){
+            if (var_nume_antiguo->isUncertain()){
 
 #ifdef REC_INTER
                 if (numeradorInterseccionX->at(i) && numeradorNuevoInterseccionX->at(i) > numeradorInfNuevo->at(i)){
@@ -946,23 +946,23 @@ inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector
                     numeradorSupNuevo->replace(i, numeradorNuevoInterseccionY->at(i));
                 }
 #endif
-                var_nume_nuevo = new Var("", QPointF(numeradorInfNuevo->at(i), numeradorSupNuevo->at(i)), 0);
+                var_nume_nuevo = new Parameter("", QPointF(numeradorInfNuevo->at(i), numeradorSupNuevo->at(i)), 0);
             } else {
-                var_nume_nuevo = new Var(var_nume_antiguo->getNominal());
+                var_nume_nuevo = new Parameter(var_nume_antiguo->nominal());
             }
 
             numerador_nuevo->append(var_nume_nuevo);
         }
 
-    QVector <Var *> * denominador_nuevo;
+    QVector <Parameter *> * denominador_nuevo;
 
-        denominador_nuevo = new QVector <Var *> ();
+        denominador_nuevo = new QVector <Parameter *> ();
         for (qint32 i = 0; i < denominador->size(); i++){
 
-            Var * var_deno_antiguo = denominador->at(i);
-            Var * var_deno_nuevo;
+            Parameter * var_deno_antiguo = denominador->at(i);
+            Parameter * var_deno_nuevo;
 
-            if (var_deno_antiguo->isVariable()){
+            if (var_deno_antiguo->isUncertain()){
 
 #ifdef REC_INTER
                 if (denominadorInterseccionX->at(i) && denominadorNuevoInterseccionX->at(i) > denominadorInfNuevo->at(i)){
@@ -974,9 +974,9 @@ inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector
                 }
 #endif
 
-                var_deno_nuevo = new Var("", QPointF(denominadorInfNuevo->at(i), denominadorSupNuevo->at(i)), 0);
+                var_deno_nuevo = new Parameter("", QPointF(denominadorInfNuevo->at(i), denominadorSupNuevo->at(i)), 0);
             } else {
-                var_deno_nuevo = new Var(var_deno_antiguo->getNominal());
+                var_deno_nuevo = new Parameter(var_deno_antiguo->nominal());
             }
 
             denominador_nuevo->append(var_deno_nuevo);
@@ -996,7 +996,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector
     }
 #endif
 
-    Sistema * nuevo_sistema = v->invoke(v->getNombre(), numerador_nuevo, denominador_nuevo, new Var("kv", kNuevo, 0), new Var (0.0));
+    LtiSystem * nuevo_sistema = v->create(v->name(), numerador_nuevo, denominador_nuevo, new Parameter("kv", kNuevo, 0), new Parameter (0.0));
     delete v;
 
 
@@ -1032,12 +1032,12 @@ inline Sistema * Algorithm_primer_articulo::aceleratedNuevo(Sistema * v, QVector
 
 
 
-inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVector <data_box *> * datosCortesBoundaries) {
+inline LtiSystem * Algorithm_primer_articulo::aceleratedAntiguo(LtiSystem * v, QVector <data_box *> * datosCortesBoundaries) {
 
-    QVector <Var *> * denominador = v->getDenominador();
-    QVector <Var *> * numerador = v->getNumerador();
-    QPointF k = v->getK()->getRango();
-    QPointF kNuevo = v->getK()->getRango();
+    QVector <Parameter *> * denominador = v->denominator();
+    QVector <Parameter *> * numerador = v->numerator();
+    QPointF k = v->gain()->range();
+    QPointF kNuevo = v->gain()->range();
 #ifdef REC_INTER
     bool kMagUnionArriba = false, kMagUnionAbajo = false, kIntersecionX = false, kIntersecionY = false;
     qreal kNuevoIntersecionX = kNuevo.y() + 1;
@@ -1059,19 +1059,19 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
     QVector <qreal> * numeradorNuevoInterseccionY = new QVector <qreal> ();
 #endif
 
-    foreach (Var * var, *numerador) {
-        numeradorInf->append(var->getRango().x());
-        numeradorSup->append(var->getRango().y());
-        numeradorInfNuevo->append(var->getRango().x());
-        numeradorSupNuevo->append(var->getRango().y());
+    foreach (Parameter * var, *numerador) {
+        numeradorInf->append(var->range().x());
+        numeradorSup->append(var->range().y());
+        numeradorInfNuevo->append(var->range().x());
+        numeradorSupNuevo->append(var->range().y());
         numeradorUnionX->append(false);
         numeradorUnionY->append(false);
 
 #ifdef REC_INTER
         numeradorInterseccionX->append(false);
         numeradorInterseccionY->append(false);
-        numeradorNuevoInterseccionX->append(var->getRango().y() + 1);
-        numeradorNuevoInterseccionY->append(var->getRango().x() - 1);
+        numeradorNuevoInterseccionX->append(var->range().y() + 1);
+        numeradorNuevoInterseccionY->append(var->range().x() - 1);
 #endif
     }
 
@@ -1088,18 +1088,18 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
     QVector <qreal> * denominadorNuevoInterseccionY = new QVector <qreal> ();
 #endif
 
-    foreach (Var * var, *denominador) {
-        denominadorInf->append(var->getRango().x());
-        denominadorSup->append(var->getRango().y());
-        denominadorInfNuevo->append(var->getRango().x());
-        denominadorSupNuevo->append(var->getRango().y());
+    foreach (Parameter * var, *denominador) {
+        denominadorInf->append(var->range().x());
+        denominadorSup->append(var->range().y());
+        denominadorInfNuevo->append(var->range().x());
+        denominadorSupNuevo->append(var->range().y());
         denominadorUnionX->append(false);
         denominadorUnionY->append(false);
 #ifdef REC_INTER
         denominadorInterseccionX->append(false);
         denominadorInterseccionY->append(false);
-        denominadorNuevoInterseccionX->append(var->getRango().y() + 1);
-        denominadorNuevoInterseccionY->append(var->getRango().x() - 1);
+        denominadorNuevoInterseccionX->append(var->range().y() + 1);
+        denominadorNuevoInterseccionY->append(var->range().x() - 1);
 #endif
     }
 
@@ -1126,7 +1126,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
 
                     if (datosCortesBoundaries->at(i)->isRecAbajo()){
 
-                        nuevoMinKReal = cortesMin / abs(v->getPunto(numeradorSup, denominadorInf, 1, 0, o) * plantaNominal);
+                        nuevoMinKReal = cortesMin / abs(v->evaluate(numeradorSup, denominadorInf, 1, 0, o) * plantaNominal);
 
                         if (nuevoMinKReal > kNuevo.x() && nuevoMinKReal < kNuevo.y()) {
                             kNuevo.setX(nuevoMinKReal);
@@ -1139,7 +1139,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
 #endif
 #ifdef REC_INTER
                     if (!kMagUnionAbajo && datosCortesBoundaries->at(i)->isRecArriba()){
-                        nuevoMaxKReal = cortesMax / abs(v->getPunto(numeradorInf, denominadorSup, 1, 0, o) * plantaNominal);
+                        nuevoMaxKReal = cortesMax / abs(v->evaluate(numeradorInf, denominadorSup, 1, 0, o) * plantaNominal);
 
                         if (nuevoMaxKReal > kNuevo.x() && nuevoMaxKReal < kNuevo.y() && nuevoMaxKReal > kNuevoIntersecionY) {
                             kNuevoIntersecionY = nuevoMaxKReal;
@@ -1150,7 +1150,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
                 } else {
 #ifdef REC_UNION
                     if (datosCortesBoundaries->at(i)->isRecArriba()){
-                        nuevoMaxKReal = cortesMax / abs(v->getPunto(numeradorInf, denominadorSup, 1, 0, o) * plantaNominal);
+                        nuevoMaxKReal = cortesMax / abs(v->evaluate(numeradorInf, denominadorSup, 1, 0, o) * plantaNominal);
 
                         if (nuevoMaxKReal > kNuevo.x() && nuevoMaxKReal < kNuevo.y()) {
                             kNuevo.setY(nuevoMaxKReal);
@@ -1164,7 +1164,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
 
 #ifdef REC_INTER
                     if (!kMagUnionArriba && datosCortesBoundaries->at(i)->isRecAbajo()){
-                        nuevoMinKReal = cortesMin / abs(v->getPunto(numeradorSup, denominadorInf, 1, 0, o) * plantaNominal);
+                        nuevoMinKReal = cortesMin / abs(v->evaluate(numeradorSup, denominadorInf, 1, 0, o) * plantaNominal);
 
                         if (nuevoMinKReal > kNuevo.x() && nuevoMinKReal < kNuevo.y() && nuevoMinKReal < kNuevoIntersecionX) {
                             kNuevoIntersecionX = nuevoMinKReal;
@@ -1179,7 +1179,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
                 //Numerador
                 if (isVariableNume){
                     for (qint32 j = 0; j < numerador->size(); j++) {
-                        if (numerador->at(j)->isVariable()){
+                        if (numerador->at(j)->isUncertain()){
                             if (!datosCortesBoundaries->at(i)->isUniArriba()){
                                 //Mag
 
@@ -1191,8 +1191,8 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
 #if defined(REC_UNION) && defined(REC_MAG)
 
                                 if (datosCortesBoundaries->at(i)->isRecAbajo()){
-                                    nuevoMinNume = sqrt( pow((cortesMin * abs (v->getPuntoDeno(denominadorInf, o))) /
-                                                             (k.y() *  abs (v->getPuntoNume(numeradorSup, o) * plantaNominal)), 2) - pow(o, 2));
+                                    nuevoMinNume = sqrt( pow((cortesMin * abs (v->evaluateDenominator(denominadorInf, o))) /
+                                                             (k.y() *  abs (v->evaluateNumerator(numeradorSup, o) * plantaNominal)), 2) - pow(o, 2));
 
                                     if (nuevoMinNume > numeradorInfNuevo->at(j) && nuevoMinNume < numeradorSupNuevo->at(j)) {
                                         numeradorInfNuevo->replace(j, nuevoMinNume);
@@ -1202,7 +1202,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
 #endif
 #if defined(REC_INTER) && defined(REC_FASE)
                                 if (!numeradorUnionY->at(j) && datosCortesBoundaries->at(i)->isRecDerecha()){
-                                    nuevoMaxNume = tan(cortesMaxImag - std::arg (v->getPuntoNume(numeradorSup, o) + std::arg (v->getPuntoDeno(denominadorInf, o))) - std::arg (plantaNominal)) * o;
+                                    nuevoMaxNume = tan(cortesMaxImag - std::arg (v->evaluateNumerator(numeradorSup, o) + std::arg (v->evaluateDenominator(denominadorInf, o))) - std::arg (plantaNominal)) * o;
                                     if (nuevoMaxNume > numeradorInfNuevo->at(j) && nuevoMaxNume < numeradorSupNuevo->at(j) && nuevoMaxNume > numeradorNuevoInterseccionY->at(j)) {
                                         numeradorNuevoInterseccionY->replace(j, nuevoMaxNume);
                                         numeradorInterseccionY->replace(j, true);
@@ -1220,7 +1220,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
 
 #if defined(REC_UNION) && defined(REC_FASE)
                                 if (datosCortesBoundaries->at(i)->isRecIzquierda()){
-                                    nuevoMinNume = tan(cortesMinImag - std::arg (v->getPuntoNume(numeradorInf, o) + std::arg (v->getPuntoDeno(denominadorSup, o))) - std::arg (plantaNominal)) * o;
+                                    nuevoMinNume = tan(cortesMinImag - std::arg (v->evaluateNumerator(numeradorInf, o) + std::arg (v->evaluateDenominator(denominadorSup, o))) - std::arg (plantaNominal)) * o;
 
                                     if (nuevoMinNume > numeradorInfNuevo->at(j) && nuevoMinNume < numeradorSupNuevo->at(j)) {
                                         numeradorInfNuevo->replace(j, nuevoMinNume);
@@ -1232,8 +1232,8 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
 
 #if defined(REC_INTER) && defined(REC_MAG)
                                 if (!numeradorUnionY->at(j) && datosCortesBoundaries->at(i)->isRecDerecha()){
-                                    nuevoMaxNume = sqrt( pow((cortesMax * abs (v->getPuntoDeno(denominadorSup, o))) /
-                                                             (k.x() *  abs (v->getPuntoNume(numeradorInf, o) * plantaNominal)), 2) - pow(o, 2));
+                                    nuevoMaxNume = sqrt( pow((cortesMax * abs (v->evaluateDenominator(denominadorSup, o))) /
+                                                             (k.x() *  abs (v->evaluateNumerator(numeradorInf, o) * plantaNominal)), 2) - pow(o, 2));
 
                                     if (nuevoMaxNume > numeradorInfNuevo->at(j) && nuevoMaxNume < numeradorSupNuevo->at(j) && nuevoMaxNume > numeradorNuevoInterseccionY->at(j)) {
                                         numeradorNuevoInterseccionY->replace(j, nuevoMaxNume);
@@ -1254,8 +1254,8 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
 #if defined(REC_UNION) && defined(REC_MAG)
 
                                 if (datosCortesBoundaries->at(i)->isRecArriba()){
-                                    nuevoMaxNume = sqrt( pow((cortesMax * abs (v->getPuntoDeno(denominadorSup, o))) /
-                                                             (k.x() *  abs (v->getPuntoNume(numeradorInf, o) * plantaNominal)), 2) - pow(o, 2));
+                                    nuevoMaxNume = sqrt( pow((cortesMax * abs (v->evaluateDenominator(denominadorSup, o))) /
+                                                             (k.x() *  abs (v->evaluateNumerator(numeradorInf, o) * plantaNominal)), 2) - pow(o, 2));
 
                                     if (nuevoMaxNume > numeradorInfNuevo->at(j) && nuevoMaxNume < numeradorSupNuevo->at(j)) {
                                         numeradorSupNuevo->replace(j, nuevoMaxNume);
@@ -1267,7 +1267,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
 
 #if defined(REC_INTER) && defined(REC_FASE)
                                 if (!numeradorUnionX->at(j) && datosCortesBoundaries->at(i)->isRecIzquierda()){
-                                    nuevoMinNume = tan(cortesMinImag - std::arg (v->getPuntoNume(numeradorInf, o) + std::arg (v->getPuntoDeno(denominadorSup, o))) - std::arg (plantaNominal)) * o;
+                                    nuevoMinNume = tan(cortesMinImag - std::arg (v->evaluateNumerator(numeradorInf, o) + std::arg (v->evaluateDenominator(denominadorSup, o))) - std::arg (plantaNominal)) * o;
 
                                     if (nuevoMinNume > numeradorInfNuevo->at(j) && nuevoMinNume < numeradorSupNuevo->at(j) && nuevoMinNume < numeradorNuevoInterseccionX->at(j)) {
                                         numeradorNuevoInterseccionX->replace(j, nuevoMinNume);
@@ -1286,7 +1286,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
 #if defined(REC_UNION) && defined(REC_FASE)
 
                                 if (datosCortesBoundaries->at(i)->isRecDerecha()){
-                                    nuevoMaxNume = tan(cortesMaxImag - std::arg (v->getPuntoNume(numeradorSup, o) + std::arg (v->getPuntoDeno(denominadorInf, o))) - std::arg (plantaNominal)) * o;
+                                    nuevoMaxNume = tan(cortesMaxImag - std::arg (v->evaluateNumerator(numeradorSup, o) + std::arg (v->evaluateDenominator(denominadorInf, o))) - std::arg (plantaNominal)) * o;
 
                                     if (nuevoMaxNume > numeradorInfNuevo->at(j) && nuevoMaxNume < numeradorSupNuevo->at(j)) {
                                         numeradorSupNuevo->replace(j, nuevoMaxNume);
@@ -1297,8 +1297,8 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
 
 #if defined(REC_INTER) && defined(REC_MAG)
                                 if (!numeradorUnionX->at(j) && datosCortesBoundaries->at(i)->isRecAbajo()){
-                                    nuevoMinNume = sqrt( pow((cortesMin * abs (v->getPuntoDeno(denominadorInf, o))) /
-                                                             (k.y() *  abs (v->getPuntoNume(numeradorSup, o) * plantaNominal)), 2) - pow(o, 2));
+                                    nuevoMinNume = sqrt( pow((cortesMin * abs (v->evaluateDenominator(denominadorInf, o))) /
+                                                             (k.y() *  abs (v->evaluateNumerator(numeradorSup, o) * plantaNominal)), 2) - pow(o, 2));
 
                                     if (nuevoMinNume > numeradorInfNuevo->at(j) && nuevoMinNume < numeradorSupNuevo->at(j) && nuevoMinNume < numeradorNuevoInterseccionX->at(j)) {
                                         numeradorNuevoInterseccionX->replace(j, nuevoMinNume);
@@ -1317,7 +1317,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
                 //Denominador
                 if (isVariableDeno){
                     for (qint32 j = 0; j < denominador->size(); j++) {
-                        if (denominador->at(j)->isVariable()){
+                        if (denominador->at(j)->isUncertain()){
 
                             if (!datosCortesBoundaries->at(i)->isUniArriba()){
 
@@ -1331,8 +1331,8 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
 #if defined(REC_UNION) && defined(REC_MAG)
 
                                 if (datosCortesBoundaries->at(i)->isRecAbajo()){
-                                    nuevoMaxDeno = sqrt(pow((k.y() * abs (v->getPuntoNume(numeradorSup, o) * plantaNominal)) /
-                                                            (cortesMin * abs(v->getPuntoDeno(denominadorInf, o))), 2) - pow(o, 2));
+                                    nuevoMaxDeno = sqrt(pow((k.y() * abs (v->evaluateNumerator(numeradorSup, o) * plantaNominal)) /
+                                                            (cortesMin * abs(v->evaluateDenominator(denominadorInf, o))), 2) - pow(o, 2));
 
                                     if (nuevoMaxDeno < denominadorSupNuevo->at(j) && nuevoMaxDeno > denominadorInfNuevo->at(j)) {
                                         denominadorSupNuevo->replace(j, nuevoMaxDeno);
@@ -1343,7 +1343,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
 
 #if defined(REC_INTER) && defined(REC_FASE)
                                 if (!denominadorUnionX->at(j) && datosCortesBoundaries->at(i)->isRecIzquierda()){
-                                    nuevoMinDeno = tan(-cortesMaxImag + std::arg (v->getPuntoNume(numeradorInf, o) - std::arg (v->getPuntoDeno(denominadorSup, o))) + std::arg (plantaNominal)) * o;
+                                    nuevoMinDeno = tan(-cortesMaxImag + std::arg (v->evaluateNumerator(numeradorInf, o) - std::arg (v->evaluateDenominator(denominadorSup, o))) + std::arg (plantaNominal)) * o;
 
                                     if (nuevoMinDeno > denominadorInfNuevo->at(j) && nuevoMinDeno < denominadorSupNuevo->at(j) && nuevoMinDeno < denominadorNuevoInterseccionX->at(j)) {
                                         denominadorNuevoInterseccionX->replace(j, nuevoMinDeno);
@@ -1361,7 +1361,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
 
 #if defined(REC_UNION) && defined(REC_FASE)
                                 if (datosCortesBoundaries->at(i)->isRecDerecha()) {
-                                    nuevoMaxDeno = tan(-cortesMinImag + std::arg (v->getPuntoNume(numeradorInf, o) - std::arg (v->getPuntoDeno(denominadorSup, o))) + std::arg (plantaNominal)) * o;
+                                    nuevoMaxDeno = tan(-cortesMinImag + std::arg (v->evaluateNumerator(numeradorInf, o) - std::arg (v->evaluateDenominator(denominadorSup, o))) + std::arg (plantaNominal)) * o;
 
                                     if (nuevoMaxDeno > denominadorInfNuevo->at(j) && nuevoMaxDeno < denominadorSupNuevo->at(j)) {
                                         denominadorSupNuevo->replace(j, nuevoMaxDeno);
@@ -1371,8 +1371,8 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
 #endif
 #if defined(REC_INTER) && defined(REC_MAG)
                                 if (!denominadorUnionX->at(j) && datosCortesBoundaries->at(i)->isRecArriba()){
-                                    nuevoMinDeno = sqrt(pow((k.x() * abs (v->getPuntoNume(numeradorInf, o) * plantaNominal)) /
-                                                            (cortesMax * abs(v->getPuntoDeno(denominadorSup, o))), 2) - pow(o, 2));
+                                    nuevoMinDeno = sqrt(pow((k.x() * abs (v->evaluateNumerator(numeradorInf, o) * plantaNominal)) /
+                                                            (cortesMax * abs(v->evaluateDenominator(denominadorSup, o))), 2) - pow(o, 2));
 
                                     if (nuevoMinDeno < denominadorSupNuevo->at(j) && nuevoMinDeno > denominadorInfNuevo->at(j) && nuevoMinDeno < denominadorNuevoInterseccionX->at(j)) {
                                         denominadorNuevoInterseccionX->replace(j, nuevoMinDeno);
@@ -1392,8 +1392,8 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
                                 denominadorSup->remove(j);
 #if defined(REC_UNION) && defined(REC_MAG)
                                 if (datosCortesBoundaries->at(i)->isRecArriba()){
-                                    nuevoMinDeno = sqrt(pow((k.x() * abs (v->getPuntoNume(numeradorInf, o) * plantaNominal)) /
-                                                            (cortesMax * abs(v->getPuntoDeno(denominadorSup, o))), 2) - pow(o, 2));
+                                    nuevoMinDeno = sqrt(pow((k.x() * abs (v->evaluateNumerator(numeradorInf, o) * plantaNominal)) /
+                                                            (cortesMax * abs(v->evaluateDenominator(denominadorSup, o))), 2) - pow(o, 2));
                                     if (nuevoMinDeno < denominadorSupNuevo->at(j) && nuevoMinDeno > denominadorInfNuevo->at(j)) {
                                         denominadorInfNuevo->replace(j, nuevoMinDeno);
                                         denominadorUnionX->replace(j, true);
@@ -1403,7 +1403,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
 
 #if defined(REC_INTER) && defined(REC_FASE)
                                 if (!denominadorUnionY->at(j) && datosCortesBoundaries->at(i)->isRecDerecha()){
-                                    nuevoMaxDeno = tan(-cortesMinImag + std::arg (v->getPuntoNume(numeradorInf, o) - std::arg (v->getPuntoDeno(denominadorSup, o))) + std::arg (plantaNominal)) * o;
+                                    nuevoMaxDeno = tan(-cortesMinImag + std::arg (v->evaluateNumerator(numeradorInf, o) - std::arg (v->evaluateDenominator(denominadorSup, o))) + std::arg (plantaNominal)) * o;
 
                                     if (nuevoMaxDeno > denominadorInfNuevo->at(j) && nuevoMaxDeno < denominadorSupNuevo->at(j) && nuevoMaxDeno > denominadorNuevoInterseccionY->at(j)) {
                                         denominadorNuevoInterseccionY->replace(j, nuevoMaxDeno);
@@ -1420,7 +1420,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
 
 #if defined(REC_UNION) && defined(REC_FASE)
                                 if (datosCortesBoundaries->at(i)->isRecIzquierda()){
-                                    nuevoMinDeno = tan(-cortesMaxImag + std::arg (v->getPuntoNume(numeradorInf, o) - std::arg (v->getPuntoDeno(denominadorSup, o))) + std::arg (plantaNominal)) * o;
+                                    nuevoMinDeno = tan(-cortesMaxImag + std::arg (v->evaluateNumerator(numeradorInf, o) - std::arg (v->evaluateDenominator(denominadorSup, o))) + std::arg (plantaNominal)) * o;
 
                                     if (nuevoMinDeno > denominadorInfNuevo->at(j) && nuevoMinDeno < denominadorSupNuevo->at(j)) {
                                         denominadorInfNuevo->replace(j, nuevoMinDeno);
@@ -1431,8 +1431,8 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
 
 #if defined(REC_INTER) && defined(REC_MAG)
                                 if (!denominadorUnionY->at(j) && datosCortesBoundaries->at(i)->isRecAbajo()){
-                                    nuevoMaxDeno = sqrt(pow((k.y() * abs (v->getPuntoNume(numeradorSup, o) * plantaNominal)) /
-                                                            (cortesMin * abs(v->getPuntoDeno(denominadorInf, o))), 2) - pow(o, 2));
+                                    nuevoMaxDeno = sqrt(pow((k.y() * abs (v->evaluateNumerator(numeradorSup, o) * plantaNominal)) /
+                                                            (cortesMin * abs(v->evaluateDenominator(denominadorInf, o))), 2) - pow(o, 2));
 
                                     if (nuevoMaxDeno > denominadorInfNuevo->at(j) && nuevoMaxDeno < denominadorSupNuevo->at(j) && nuevoMaxDeno > denominadorNuevoInterseccionY->at(j)) {
                                         denominadorNuevoInterseccionY->replace(j, nuevoMaxDeno);
@@ -1451,7 +1451,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
         }
     }
 
-    QVector <Var *> * numerador_nuevo;
+    QVector <Parameter *> * numerador_nuevo;
 
 #if defined(REC_UNION) && defined(REC_INTER)
     if (numeradorInterseccionX || numeradorInterseccionY || numeradorUnionX || numeradorUnionY){
@@ -1462,14 +1462,14 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
 #endif
 
 
-        numerador_nuevo = new QVector <Var *> ();
+        numerador_nuevo = new QVector <Parameter *> ();
 
         for (qint32 i = 0; i < numerador->size(); i++){
 
-            Var * var_nume_antiguo = numerador->at(i);
-            Var * var_nume_nuevo;
+            Parameter * var_nume_antiguo = numerador->at(i);
+            Parameter * var_nume_nuevo;
 
-            if (var_nume_antiguo->isVariable()){
+            if (var_nume_antiguo->isUncertain()){
 
 #ifdef REC_INTER
                 if (numeradorInterseccionX->at(i) && numeradorNuevoInterseccionX->at(i) > numeradorInfNuevo->at(i)){
@@ -1480,9 +1480,9 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
                     numeradorSupNuevo->replace(i, numeradorNuevoInterseccionY->at(i));
                 }
 #endif
-                var_nume_nuevo = new Var("", QPointF(numeradorInfNuevo->at(i), numeradorSupNuevo->at(i)), 0);
+                var_nume_nuevo = new Parameter("", QPointF(numeradorInfNuevo->at(i), numeradorSupNuevo->at(i)), 0);
             } else {
-                var_nume_nuevo = new Var(var_nume_antiguo->getNominal());
+                var_nume_nuevo = new Parameter(var_nume_antiguo->nominal());
             }
 
             numerador_nuevo->append(var_nume_nuevo);
@@ -1491,7 +1491,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
         numerador_nuevo = numerador;
     }
 
-    QVector <Var *> * denominador_nuevo;
+    QVector <Parameter *> * denominador_nuevo;
 
 #if defined(REC_UNION) && defined(REC_INTER)
     if (denominadorInterseccionX || denominadorInterseccionY || denominadorUnionX || denominadorUnionY){
@@ -1501,13 +1501,13 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
     if (denominadorInterseccionX || denominadorInterseccionY){
 #endif
 
-        denominador_nuevo = new QVector <Var *> ();
+        denominador_nuevo = new QVector <Parameter *> ();
         for (qint32 i = 0; i < denominador->size(); i++){
 
-            Var * var_deno_antiguo = denominador->at(i);
-            Var * var_deno_nuevo;
+            Parameter * var_deno_antiguo = denominador->at(i);
+            Parameter * var_deno_nuevo;
 
-            if (var_deno_antiguo->isVariable()){
+            if (var_deno_antiguo->isUncertain()){
 
 #ifdef REC_INTER
                 if (denominadorInterseccionX->at(i) && denominadorNuevoInterseccionX->at(i) > denominadorInfNuevo->at(i)){
@@ -1519,9 +1519,9 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
                 }
 #endif
 
-                var_deno_nuevo = new Var("", QPointF(denominadorInfNuevo->at(i), denominadorSupNuevo->at(i)), 0);
+                var_deno_nuevo = new Parameter("", QPointF(denominadorInfNuevo->at(i), denominadorSupNuevo->at(i)), 0);
             } else {
-                var_deno_nuevo = new Var(var_deno_antiguo->getNominal());
+                var_deno_nuevo = new Parameter(var_deno_antiguo->nominal());
             }
 
             denominador_nuevo->append(var_deno_nuevo);
@@ -1545,7 +1545,7 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
     }
 #endif
 
-    Sistema * nuevo_sistema = v->invoke(v->getNombre(), numerador_nuevo, denominador_nuevo, new Var("kv", kNuevo, 0), new Var (0.0));
+    LtiSystem * nuevo_sistema = v->create(v->name(), numerador_nuevo, denominador_nuevo, new Parameter("kv", kNuevo, 0), new Parameter (0.0));
     delete v;
 
 
@@ -1580,11 +1580,11 @@ inline Sistema * Algorithm_primer_articulo::aceleratedAntiguo(Sistema * v, QVect
 }
 
 
-inline void Algorithm_primer_articulo::comprobarVariables(Sistema *controlador) {
+inline void Algorithm_primer_articulo::comprobarVariables(LtiSystem *controlador) {
     bool b = true;
 
-    foreach(Var * var, *controlador->getNumerador()) {
-        if (var->isVariable()) {
+    foreach(Parameter * var, *controlador->numerator()) {
+        if (var->isUncertain()) {
             b = false;
         }
     }
@@ -1593,8 +1593,8 @@ inline void Algorithm_primer_articulo::comprobarVariables(Sistema *controlador) 
 
     b = true;
 
-    foreach(Var * var, *controlador->getDenominador()) {
-        if (var->isVariable()) {
+    foreach(Parameter * var, *controlador->denominator()) {
+        if (var->isUncertain()) {
             b = false;
         }
     }
@@ -1605,18 +1605,18 @@ inline void Algorithm_primer_articulo::comprobarVariables(Sistema *controlador) 
 
 //Función que divide la caja en dos clásica.
 
-inline FC::return_bisection Algorithm_primer_articulo::split_box_bisection(Sistema *current_controlador) {
+inline FC::return_bisection Algorithm_primer_articulo::split_box_bisection(LtiSystem *current_controlador) {
 
-    QVector <Var *> * numerador = current_controlador->getNumerador();
-    QVector <Var *> * denominador = current_controlador->getDenominador();
+    QVector <Parameter *> * numerador = current_controlador->numerator();
+    QVector <Parameter *> * denominador = current_controlador->denominator();
 
-    QVector <Var *> * numeradorCopia = new QVector <Var *> ();
-    QVector <Var *> * denominadorCopia = new QVector <Var *> ();
+    QVector <Parameter *> * numeradorCopia = new QVector <Parameter *> ();
+    QVector <Parameter *> * denominadorCopia = new QVector <Parameter *> ();
 
-    Var * k = current_controlador->getK();
-    Var * ret = current_controlador->getRet();
+    Parameter * k = current_controlador->gain();
+    Parameter * ret = current_controlador->delay();
 
-    QString nombre = current_controlador->getNombre();
+    QString nombre = current_controlador->name();
 
     //Variables contador;
     qint32 mayor_pos = -1;
@@ -1628,18 +1628,18 @@ inline FC::return_bisection Algorithm_primer_articulo::split_box_bisection(Siste
 
     //Sistemas hijos creados
 
-    Sistema * v1, * v2;
+    LtiSystem * v1, * v2;
     struct FC::return_bisection retur;
 
 
     //Bucle del numerador
-    Var * v;
+    Parameter * v;
     for (qint32 i = 0; i < numerador->size(); i++) {
         v = numerador->at(i);
         numeradorCopia->append(v->clone());
-        if (v->isVariable()) {
+        if (v->isUncertain()) {
 
-            lon = v->getRango().y() - v->getRango().x();
+            lon = v->range().y() - v->range().x();
 
             if (lon > mayor_rango) {
                 mayor_pos = cont;
@@ -1653,9 +1653,9 @@ inline FC::return_bisection Algorithm_primer_articulo::split_box_bisection(Siste
     for (qint32 i = 0; i < denominador->size(); i++) {
         v = denominador->at(i);
         denominadorCopia->append(v->clone());
-        if (v->isVariable()) {
+        if (v->isUncertain()) {
 
-            lon = v->getRango().y() - v->getRango().x();
+            lon = v->range().y() - v->range().x();
 
             if (lon > mayor_rango) {
                 mayor_pos = cont;
@@ -1666,9 +1666,9 @@ inline FC::return_bisection Algorithm_primer_articulo::split_box_bisection(Siste
     }
 
     //Estudiamos la k
-    if (k->isVariable()) {
+    if (k->isUncertain()) {
 
-        lon = k->getRango().y() - k->getRango().x();
+        lon = k->range().y() - k->range().x();
 
         if (lon > mayor_rango) {
             mayor_pos = -1;
@@ -1678,46 +1678,46 @@ inline FC::return_bisection Algorithm_primer_articulo::split_box_bisection(Siste
 
 
     if (mayor_pos == -1) {
-        qreal dis = k->getRango().x();
+        qreal dis = k->range().x();
 
-        Var * k1 = new Var("kv", QPointF(dis, dis + (mayor_rango / 2)), dis);
+        Parameter * k1 = new Parameter("kv", QPointF(dis, dis + (mayor_rango / 2)), dis);
         dis += mayor_rango / 2;
-        Var * k2 = new Var("kv", QPointF(dis, k->getRango().y()), dis);
+        Parameter * k2 = new Parameter("kv", QPointF(dis, k->range().y()), dis);
 
         delete k;
 
-        v1 = current_controlador->invoke(nombre, numerador, denominador, k1, ret);
-        v2 = current_controlador->invoke(nombre, numeradorCopia, denominadorCopia, k2, ret->clone());
+        v1 = current_controlador->create(nombre, numerador, denominador, k1, ret);
+        v2 = current_controlador->create(nombre, numeradorCopia, denominadorCopia, k2, ret->clone());
     } else if (mayor_pos < numerador->size()) {
 
-        Var * variable = numerador->at(mayor_pos);
+        Parameter * variable = numerador->at(mayor_pos);
 
-        qreal dis = variable->getRango().x();
+        qreal dis = variable->range().x();
 
-        numeradorCopia->replace(mayor_pos, new Var("", QPointF(dis, dis + mayor_rango / 2), dis));
+        numeradorCopia->replace(mayor_pos, new Parameter("", QPointF(dis, dis + mayor_rango / 2), dis));
 
         dis += mayor_rango / 2;
-        numerador->replace(mayor_pos, new Var("", QPointF(dis, variable->getRango().y()), dis));
+        numerador->replace(mayor_pos, new Parameter("", QPointF(dis, variable->range().y()), dis));
 
 
-        v1 = current_controlador->invoke(nombre, numeradorCopia, denominadorCopia, k->clone(), ret->clone());
-        v2 = current_controlador->invoke(nombre, numerador, denominador, k, ret);
+        v1 = current_controlador->create(nombre, numeradorCopia, denominadorCopia, k->clone(), ret->clone());
+        v2 = current_controlador->create(nombre, numerador, denominador, k, ret);
 
         delete variable;
 
     } else {
         mayor_pos -= numerador->size();
 
-        Var * variable = denominador->at(mayor_pos);
-        qreal dis = variable->getRango().x();
+        Parameter * variable = denominador->at(mayor_pos);
+        qreal dis = variable->range().x();
 
-        denominadorCopia->replace(mayor_pos, new Var("", QPointF(dis, dis + mayor_rango / 2), dis));
+        denominadorCopia->replace(mayor_pos, new Parameter("", QPointF(dis, dis + mayor_rango / 2), dis));
 
         dis += mayor_rango / 2;
-        denominador->replace(mayor_pos, new Var("", QPointF(dis, variable->getRango().y()), dis));
+        denominador->replace(mayor_pos, new Parameter("", QPointF(dis, variable->range().y()), dis));
 
-        v1 = current_controlador->invoke(nombre, numeradorCopia, denominadorCopia, k->clone(), ret->clone());
-        v2 = current_controlador->invoke(nombre, numerador, denominador, k, ret);
+        v1 = current_controlador->create(nombre, numeradorCopia, denominadorCopia, k->clone(), ret->clone());
+        v2 = current_controlador->create(nombre, numerador, denominador, k, ret);
 
         delete variable;
 
@@ -1732,30 +1732,30 @@ inline FC::return_bisection Algorithm_primer_articulo::split_box_bisection(Siste
 
 
 //Funcion que divida la caja en dos avanzada.
-inline FC::return_bisection Algorithm_primer_articulo::split_box_bisection_avanced(Sistema *current_controlador) {
+inline FC::return_bisection Algorithm_primer_articulo::split_box_bisection_avanced(LtiSystem *current_controlador) {
 
-    QVector <Var *> * numerador = current_controlador->getNumerador();
-    QVector <Var *> * denominador = current_controlador->getDenominador();
+    QVector <Parameter *> * numerador = current_controlador->numerator();
+    QVector <Parameter *> * denominador = current_controlador->denominator();
 
-    QPointF k = current_controlador->getK()->getRango();
-    Var * ret = current_controlador->getRet();
+    QPointF k = current_controlador->gain()->range();
+    Parameter * ret = current_controlador->delay();
 
-    QVector <Var *> * numeradorCopia = new QVector <Var *> ();
-    QVector <Var *> * denominadorCopia = new QVector <Var *> ();
+    QVector <Parameter *> * numeradorCopia = new QVector <Parameter *> ();
+    QVector <Parameter *> * denominadorCopia = new QVector <Parameter *> ();
 
-    QString nombre = current_controlador->getNombre();
+    QString nombre = current_controlador->name();
 
     qreal menor_punto_medio = 0, menor_area = 0;
     qint32 seleccionado = 0;
 
 
-    Sistema * v1, * v2;
+    LtiSystem * v1, * v2;
     struct FC::return_bisection retur;
 
     qreal punto_medio_k = k.x() + (k.y() - k.x()) / 2;
 
-    cinterval nume_box = conversion->get_box_nume(numerador, omega->at(0), current_controlador->getClass(), false);
-    cinterval deno_box = conversion->get_box_deno(denominador, omega->at(0), current_controlador->getClass(), false);
+    cinterval nume_box = conversion->get_box_nume(numerador, omega->at(0), current_controlador->type(), false);
+    cinterval deno_box = conversion->get_box_deno(denominador, omega->at(0), current_controlador->type(), false);
 
     //Comprobamos la k
     interval k1(k.x(), punto_medio_k);
@@ -1778,12 +1778,12 @@ inline FC::return_bisection Algorithm_primer_articulo::split_box_bisection_avanc
         for (qint32 i = 0; i < numerador->size(); i++) {
             numeradorCopia->append(numerador->at(i)->clone());
 
-            if (numerador->at(i)->isVariable()) {
+            if (numerador->at(i)->isUncertain()) {
 
-                Var * v = numerador->at(i);
+                Parameter * v = numerador->at(i);
                 numerador->remove(i);
 
-                qreal punto_medio = v->getRango().x() + (v->getRango().y() - v->getRango().x()) / 2;
+                qreal punto_medio = v->range().x() + (v->range().y() - v->range().x()) / 2;
 
                 a = k1 * (nume_box / deno_box);
                 s = _double(diam(Re(a)) * diam(Im(a)));
@@ -1801,9 +1801,9 @@ inline FC::return_bisection Algorithm_primer_articulo::split_box_bisection_avanc
     } else if (numerador->size() > 0) {
         numeradorCopia->append(numerador->at(0)->clone());
 
-        if (numerador->at(0)->isVariable()) {
+        if (numerador->at(0)->isUncertain()) {
 
-            QPointF v = numerador->at(0)->getRango();
+            QPointF v = numerador->at(0)->range();
             qreal punto_medio = v.x() + (v.y() - v.x()) / 2;
 
             a = k1 * (nume_box / deno_box);
@@ -1824,12 +1824,12 @@ inline FC::return_bisection Algorithm_primer_articulo::split_box_bisection_avanc
         for (qint32 i = 0; i < denominador->size(); i++) {
             denominadorCopia->append(denominador->at(i)->clone());
 
-            if (denominador->at(i)->isVariable()) {
+            if (denominador->at(i)->isUncertain()) {
 
-                Var * v = denominador->at(i);
+                Parameter * v = denominador->at(i);
                 denominador->remove(i);
 
-                qreal punto_medio = v->getRango().x() + (v->getRango().y() - v->getRango().x()) / 2;
+                qreal punto_medio = v->range().x() + (v->range().y() - v->range().x()) / 2;
 
                 a = k1 * (nume_box / deno_box);
                 s = _double(diam(Re(a)) * diam(Im(a)));
@@ -1847,9 +1847,9 @@ inline FC::return_bisection Algorithm_primer_articulo::split_box_bisection_avanc
     } else if (denominador->size() > 0) {
         denominadorCopia->append(denominador->at(0)->clone());
 
-        if (denominador->at(0)->isVariable()) {
+        if (denominador->at(0)->isUncertain()) {
 
-            QPointF v = denominador->at(0)->getRango();
+            QPointF v = denominador->at(0)->range();
             qreal punto_medio = v.x() + (v.y() - v.x()) / 2;
 
             a = k1 * (nume_box / deno_box);
@@ -1867,24 +1867,24 @@ inline FC::return_bisection Algorithm_primer_articulo::split_box_bisection_avanc
 
         //cout << "partimos K" << endl;
 
-        Var * k1 = new Var("kv", QPointF(k.x(), menor_punto_medio), k.x());
-        Var * k2 = new Var("kv", QPointF(menor_punto_medio, k.y()), menor_punto_medio);
+        Parameter * k1 = new Parameter("kv", QPointF(k.x(), menor_punto_medio), k.x());
+        Parameter * k2 = new Parameter("kv", QPointF(menor_punto_medio, k.y()), menor_punto_medio);
 
-        delete current_controlador->getK();
+        delete current_controlador->gain();
 
-        v1 = current_controlador->invoke(nombre, numerador, denominador, k1, ret);
-        v2 = current_controlador->invoke(nombre, numeradorCopia, denominadorCopia, k2, ret->clone());
+        v1 = current_controlador->create(nombre, numerador, denominador, k1, ret);
+        v2 = current_controlador->create(nombre, numeradorCopia, denominadorCopia, k2, ret->clone());
     } else if (seleccionado < numerador->size()) {
 
-        Var * variable = numerador->at(seleccionado);
+        Parameter * variable = numerador->at(seleccionado);
 
-        numeradorCopia->replace(seleccionado, new Var("", QPointF(variable->getRango().x(), menor_punto_medio), variable->getRango().x()));
+        numeradorCopia->replace(seleccionado, new Parameter("", QPointF(variable->range().x(), menor_punto_medio), variable->range().x()));
 
-        numerador->replace(seleccionado, new Var("", QPointF(menor_punto_medio, variable->getRango().y()), menor_punto_medio));
+        numerador->replace(seleccionado, new Parameter("", QPointF(menor_punto_medio, variable->range().y()), menor_punto_medio));
 
 
-        v1 = current_controlador->invoke(nombre, numerador, denominador, current_controlador->getK(), ret);
-        v2 = current_controlador->invoke(nombre, numeradorCopia, denominadorCopia, current_controlador->getK()->clone(), ret->clone());
+        v1 = current_controlador->create(nombre, numerador, denominador, current_controlador->gain(), ret);
+        v2 = current_controlador->create(nombre, numeradorCopia, denominadorCopia, current_controlador->gain()->clone(), ret->clone());
 
         delete variable;
 
@@ -1892,14 +1892,14 @@ inline FC::return_bisection Algorithm_primer_articulo::split_box_bisection_avanc
 
         seleccionado -= numerador->size();
 
-        Var * variable = denominador->at(seleccionado);
+        Parameter * variable = denominador->at(seleccionado);
 
-        denominadorCopia->replace(seleccionado, new Var("", QPointF(variable->getRango().x(), menor_punto_medio), variable->getRango().x()));
+        denominadorCopia->replace(seleccionado, new Parameter("", QPointF(variable->range().x(), menor_punto_medio), variable->range().x()));
 
-        denominador->replace(seleccionado, new Var("", QPointF(menor_punto_medio, variable->getRango().y()), menor_punto_medio));
+        denominador->replace(seleccionado, new Parameter("", QPointF(menor_punto_medio, variable->range().y()), menor_punto_medio));
 
-        v1 = current_controlador->invoke(nombre, numerador, denominador, current_controlador->getK(), ret);
-        v2 = current_controlador->invoke(nombre, numeradorCopia, denominadorCopia, current_controlador->getK()->clone(), ret->clone());
+        v1 = current_controlador->create(nombre, numerador, denominador, current_controlador->gain(), ret);
+        v2 = current_controlador->create(nombre, numeradorCopia, denominadorCopia, current_controlador->gain()->clone(), ret->clone());
 
         delete variable;
 
