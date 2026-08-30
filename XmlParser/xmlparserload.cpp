@@ -1444,7 +1444,8 @@ inline bool XmlParserLoad::leerLoopShaping(){
 }
 
 inline bool XmlParserLoad::salidaError(){
-    cout << stream->lineNumber() << endl;
-    menerror("Hay un error en el fichero\n de entrada en la línea: " + stream->lineNumber(),"Cargar Fichero");
+    menerror("Hay un error en el fichero\n de entrada en la línea: "
+                 + QString::number(stream->lineNumber()),
+             "Cargar Fichero");
     return false;
 }
