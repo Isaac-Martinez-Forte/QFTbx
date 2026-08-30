@@ -20,6 +20,15 @@ struct dBND{
     qreal frecinicio;
     qreal frecfinal;
 
+    //Deep copy: the clone owns a fresh copy of the embedded plant.
+    dBND * clone() const {
+        dBND * copy = new dBND(*this);
+        if (sistema != nullptr){
+            copy->sistema = sistema->clone();
+        }
+        return copy;
+    }
+
     qreal getAltura(qreal omega) {
         if (constante){
             return 20 * std::log10(altura);

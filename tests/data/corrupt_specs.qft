@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<QFT>
+    <especificaciones longitud="3">
+        <especificacion nombre="seguimiento">
+            <utilizado>false</utilizado>
+        </especificacion>
+        <especificacion nombre="seguimiento_1">
+            <utilizado>false</utilizado>
+        </especificacion>
+        <especificacion nombre="estabilidad">
+            <utilizado>false</utilizado>
+        </especificacion>
+    </especificaciones>
+</QFT>
