@@ -8,7 +8,7 @@ AdaptadorTemplateDAO::AdaptadorTemplateDAO()
 }
 
 //El DAO es el DUEÑO de templates, contorno y epsilon: sus setters borran en
-//profundidad lo anterior (el motor Templates y las vistas solo observan).
+//profundidad lo anterior (el motor TemplateEngine y las vistas solo observan).
 AdaptadorTemplateDAO::~AdaptadorTemplateDAO(){
     if (templates != NULL){
         qDeleteAll(*templates);

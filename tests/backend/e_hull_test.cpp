@@ -1,10 +1,10 @@
-// Tests for Templates::e_hull, now a faithful port of Montoya's EPSHULL.M
+// Tests for TemplateEngine::epsilonHull, now a faithful port of Montoya's EPSHULL.M
 // (the epsilon-hull contour algorithm defined in Nordin 1993), validated
 // against a line-by-line Python oracle of the MATLAB. Faithful semantics:
 // unique()d input in MATLAB complex order, max-real starting point, the
 // previous point stays a candidate (spikes are traversed both ways), and
 // contours are CLOSED (the last point repeats the first). When the
-// reference walk cycles (its known limitation on clustered clouds) e_hull
+// reference walk cycles (its known limitation on clustered clouds) epsilonHull
 // falls back to the relaxed historical walk with a warning; the golden
 // tests exercise that path.
 
@@ -14,7 +14,7 @@
 
 #include <QVector>
 
-#include "Modelo/Templates/templates.h"
+#include "src/core/templates/template_engine.h"
 
 namespace {
 
@@ -42,8 +42,8 @@ TEST(EHull, IrregularQuadKeepsItsFourCornersClosed)
     // ties the first in MATLAB unique order (by modulus, then phase) wins.
     QVector<Complex> nube = cloud({{0.0, 0.0}, {2.0, 0.0}, {2.0, 1.0}, {0.0, 1.5}});
 
-    Templates t;
-    QVector<Complex>* contorno = t.e_hull(&nube, 2.6);
+    TemplateEngine t;
+    QVector<Complex>* contorno = t.epsilonHull(&nube, 2.6);
     ASSERT_NE(contorno, nullptr);
     EXPECT_EQ(contorno->size(), 5);
     EXPECT_EQ(contorno->first(), Complex(2.0, 0.0));
@@ -66,8 +66,8 @@ TEST(EHull, RegularGridKeepsExactlyTheBorder)
         }
     }
 
-    Templates t;
-    QVector<Complex>* contorno = t.e_hull(&nube, 1.2);
+    TemplateEngine t;
+    QVector<Complex>* contorno = t.epsilonHull(&nube, 1.2);
     ASSERT_NE(contorno, nullptr);
     EXPECT_EQ(contorno->size(), 17);
     EXPECT_EQ(contorno->first(), contorno->last());
@@ -86,8 +86,8 @@ TEST(EHull, TriangleWithCenterDropsTheCenter)
     // the convex hull: the centroid must be dropped.
     QVector<Complex> nube = cloud({{0.0, 0.0}, {4.0, 0.0}, {2.0, 3.0}, {2.0, 1.0}});
 
-    Templates t;
-    QVector<Complex>* contorno = t.e_hull(&nube, 10.0);
+    TemplateEngine t;
+    QVector<Complex>* contorno = t.epsilonHull(&nube, 10.0);
     ASSERT_NE(contorno, nullptr);
     EXPECT_EQ(contorno->size(), 4); // 3 vertices + closing point
     EXPECT_EQ(contorno->first(), contorno->last());
@@ -101,8 +101,8 @@ TEST(EHull, TinyEpsilonReturnsNull)
     // contract is a silent null (should become a typed exception).
     QVector<Complex> nube = cloud({{0.0, 0.0}, {2.0, 0.0}, {2.0, 1.0}, {0.0, 1.0}});
 
-    Templates t;
-    EXPECT_EQ(t.e_hull(&nube, 0.1), nullptr);
+    TemplateEngine t;
+    EXPECT_EQ(t.epsilonHull(&nube, 0.1), nullptr);
 }
 
 TEST(EHull, CollinearPointsTraverseTheSpikeBothWays)
@@ -114,8 +114,8 @@ TEST(EHull, CollinearPointsTraverseTheSpikeBothWays)
     QVector<Complex> nube = cloud(
         {{0.0, 0.0}, {1.0, 0.0}, {2.0, 0.0}, {3.0, 0.0}, {4.0, 0.0}});
 
-    Templates t;
-    QVector<Complex>* contorno = t.e_hull(&nube, 1.5);
+    TemplateEngine t;
+    QVector<Complex>* contorno = t.epsilonHull(&nube, 1.5);
     ASSERT_NE(contorno, nullptr);
     EXPECT_EQ(contorno->size(), 9);
     EXPECT_EQ(contorno->first(), contorno->last());
@@ -130,8 +130,8 @@ TEST(EHull, TwoPointsFormTheMinimalClosedContour)
     // Fixed (D9): the minimal spike closes by walking back: b1-b2-b1.
     QVector<Complex> nube = cloud({{0.0, 0.0}, {1.0, 0.0}});
 
-    Templates t;
-    QVector<Complex>* contorno = t.e_hull(&nube, 2.0);
+    TemplateEngine t;
+    QVector<Complex>* contorno = t.epsilonHull(&nube, 2.0);
     ASSERT_NE(contorno, nullptr);
     EXPECT_EQ(contorno->size(), 3);
     EXPECT_EQ(contorno->first(), contorno->last());
@@ -145,8 +145,8 @@ TEST(EHull, DuplicatedVerticesAreUniqued)
     QVector<Complex> nube = cloud({{0.0, 0.0}, {2.0, 0.0}, {2.0, 1.0},
                                    {0.0, 1.5}, {0.0, 1.5}, {0.0, 1.5}});
 
-    Templates t;
-    QVector<Complex>* contorno = t.e_hull(&nube, 2.6);
+    TemplateEngine t;
+    QVector<Complex>* contorno = t.epsilonHull(&nube, 2.6);
     ASSERT_NE(contorno, nullptr);
     EXPECT_EQ(contorno->size(), 5); // 4 unique corners + closing point
     EXPECT_EQ(contorno->first(), contorno->last());
@@ -162,11 +162,11 @@ TEST(EHull, IsDeterministic)
         }
     }
 
-    Templates t;
-    QVector<Complex>* primero = t.e_hull(&nube, 1.3);
+    TemplateEngine t;
+    QVector<Complex>* primero = t.epsilonHull(&nube, 1.3);
     ASSERT_NE(primero, nullptr);
     for (int run = 0; run < 20; ++run) {
-        QVector<Complex>* otra = t.e_hull(&nube, 1.3);
+        QVector<Complex>* otra = t.epsilonHull(&nube, 1.3);
         ASSERT_NE(otra, nullptr);
         EXPECT_EQ(*otra, *primero);
         delete otra;

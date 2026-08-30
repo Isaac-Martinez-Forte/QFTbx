@@ -17,7 +17,7 @@
 
 #include "Modelo/controlador.h"
 #include "Modelo/Herramientas/exception.h"
-#include "Modelo/Templates/templates.h"
+#include "src/core/templates/template_engine.h"
 #include "src/core/system/lti_system.h"
 #include "src/core/system/parameter.h"
 #include "Modelo/Objetos/omega.h"
@@ -55,13 +55,13 @@ protected:
         epsilon = new QVector<qreal>(6, 10.0);
 
         templates.setEpsilon(epsilon);
-        templates.setMapa(mapa);
-        templates.lanzarCalculo(planta, omegaCopy, false);
+        templates.setGrids(mapa);
+        templates.compute(planta, omegaCopy, false);
     }
 
     void TearDown() override
     {
-        // Templates owns nothing it was given; free what we created.
+        // TemplateEngine owns nothing it was given; free what we created.
         for (QVector<qreal>* v : *mapa) {
             delete v;
         }
@@ -75,12 +75,12 @@ protected:
     QHash<QString, QVector<qreal>*>* mapa = nullptr;
     QVector<qreal>* omegaCopy = nullptr;
     QVector<qreal>* epsilon = nullptr;
-    Templates templates;
+    TemplateEngine templates;
 };
 
 TEST_F(TemplatesGolden, BruteForceMatchesFixture)
 {
-    auto* computed = templates.getTemplates();
+    auto* computed = templates.clouds();
     auto* expected = parser.getTemplates();
     ASSERT_NE(computed, nullptr);
     ASSERT_NE(expected, nullptr);
@@ -108,7 +108,7 @@ TEST_F(TemplatesGolden, ContourMatchesFixtureAsACycle)
     // cyclic: same sequence, same direction, any starting point. The
     // fallback frequencies (0 and 2, where the reference walk cycles)
     // reproduce the historical sequence exactly.
-    auto* computed = templates.getContorno();
+    auto* computed = templates.contours();
     auto* expected = parser.getContorno();
     ASSERT_NE(computed, nullptr);
     ASSERT_NE(expected, nullptr);
@@ -151,8 +151,8 @@ TEST_F(TemplatesGolden, ContourStartHonoursTheHybridRule)
     // contour starting at the max-imaginary point. WHICH frequencies fall
     // back depends on last-digit noise of the cloud (the reference walk is
     // that sensitive), so the rule is detected per frequency, not fixed.
-    auto* temps = templates.getTemplates();
-    auto* conts = templates.getContorno();
+    auto* temps = templates.clouds();
+    auto* conts = templates.contours();
 
     int fallbacks = 0;
     for (int f = 0; f < conts->size(); ++f) {
@@ -180,8 +180,8 @@ TEST_F(TemplatesGolden, ContourStartHonoursTheHybridRule)
 
 TEST_F(TemplatesGolden, ContourIsSubsetOfTemplate)
 {
-    auto* temps = templates.getTemplates();
-    auto* conts = templates.getContorno();
+    auto* temps = templates.clouds();
+    auto* conts = templates.contours();
 
     for (int f = 0; f < conts->size(); ++f) {
         for (const Complex& p : *conts->at(f)) {
@@ -256,10 +256,10 @@ TEST(TemplatesValidation, MissingSweepGridThrowsInvalidInput)
     auto* epsilon = new QVector<qreal>(6, 10.0);
     QVector<qreal> omega{0.1, 0.5, 1.0, 2.0, 15.0, 100.0};
 
-    Templates t;
+    TemplateEngine t;
     t.setEpsilon(epsilon);
-    t.setMapa(mapa);
-    EXPECT_THROW(t.lanzarCalculo(planta, &omega, false), qftbx::InvalidInput);
+    t.setGrids(mapa);
+    EXPECT_THROW(t.compute(planta, &omega, false), qftbx::InvalidInput);
 
     qDeleteAll(*mapa);
     delete mapa;
@@ -268,9 +268,9 @@ TEST(TemplatesValidation, MissingSweepGridThrowsInvalidInput)
 
 TEST(TemplatesValidation, RecontourWithoutTemplatesThrowsInvalidInput)
 {
-    Templates t;
+    TemplateEngine t;
     QVector<qreal> epsilon{10.0};
-    EXPECT_THROW(t.lanzarCalculoContorno(&epsilon), qftbx::InvalidInput);
+    EXPECT_THROW(t.computeContours(&epsilon), qftbx::InvalidInput);
 }
 
 } // namespace
