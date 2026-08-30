@@ -14,6 +14,7 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable(qftbx_tests
   main.cpp
+  backend/e_hull_test.cpp
   backend/omega_test.cpp
   backend/plant_fixture_test.cpp
   backend/lti_system_test.cpp
