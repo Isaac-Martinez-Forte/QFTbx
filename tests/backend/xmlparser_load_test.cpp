@@ -151,4 +151,13 @@ TEST(XmlParserLoadErrors, MalformedFileThrowsParseErrorWithLine)
     }
 }
 
+TEST(XmlParserLoadErrors, CorruptNumericValuesThrowParseError)
+{
+    // Hardened: srtovectorReal's null sentinel used to be dereferenced
+    // unchecked; every parser call site now reports a ParseError instead.
+    XmlParserLoad parser;
+    EXPECT_THROW(parser.recuperarXmlDatos(fixturePath("corrupt_omega.qft")),
+                 qftbx::ParseError);
+}
+
 } // namespace

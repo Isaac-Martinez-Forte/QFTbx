@@ -9,6 +9,7 @@
 #include <QVector>
 #include <cmath>
 
+#include "Modelo/Herramientas/exception.h"
 #include "Modelo/Herramientas/tools.h"
 #include "Modelo/Objetos/omega.h"
 #include "src/core/math/sequences.h"
@@ -31,17 +32,39 @@ TEST(Omega, ConstructorStoresFieldsVerbatim)
     EXPECT_EQ(omega.getValores(), values); // internal pointer, no copy
 }
 
-TEST(Omega, SetOmegaDoesNotUpdateNPuntos)
+TEST(Omega, ConstructorEnforcesTheSizeInvariant)
 {
-    // BUG: setOmega replaces the vector (leaking the old one) but leaves
-    // nPuntos stale, so a .qft saved after templates/boundaries reorder the
-    // frequencies carries an inconsistent <nPuntos>.
+    // Hardened: nPuntos is always valores->size(); the constructor argument
+    // is ignored on purpose (old files carry a desynchronised <nPuntos>).
+    auto* values = new QVector<qreal>{1.0, 2.0};
+    Omega omega(1.0, 2.0, 99, values, Omega::manual);
+    EXPECT_EQ(omega.getNPuntos(), 2);
+}
+
+TEST(Omega, ConstructorRejectsNullOrEmptyValues)
+{
+    EXPECT_THROW(Omega(0.0, 0.0, 0, nullptr, Omega::manual), qftbx::InvalidInput);
+    EXPECT_THROW(Omega(0.0, 0.0, 0, new QVector<qreal>(), Omega::manual),
+                 qftbx::InvalidInput);
+}
+
+TEST(Omega, SetOmegaKeepsTheInvariantAndOwnership)
+{
+    // Hardened: setOmega deletes the previous vector, keeps
+    // nPuntos == valores->size(), tolerates being handed the vector it
+    // already owns, and rejects null/empty sets.
     auto* values = new QVector<qreal>{1.0, 2.0, 3.0};
     Omega omega(1.0, 3.0, 3, values, Omega::manual);
 
     omega.setOmega(new QVector<qreal>{5.0, 6.0});
     EXPECT_EQ(omega.getValores()->size(), 2);
-    EXPECT_EQ(omega.getNPuntos(), 3);
+    EXPECT_EQ(omega.getNPuntos(), 2);
+
+    omega.setOmega(omega.getValores()); // self-assignment must be safe
+    EXPECT_EQ(omega.getNPuntos(), 2);
+
+    EXPECT_THROW(omega.setOmega(nullptr), qftbx::InvalidInput);
+    EXPECT_EQ(omega.getValores()->size(), 2); // unchanged after the throw
 }
 
 // ---------------------------------------------------------------------------

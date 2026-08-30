@@ -14,6 +14,8 @@ QVector<qreal> * AdaptadorOmegaDAO::getFrecuencias(){
 }
 
 void AdaptadorOmegaDAO::setOmega(Omega *omega){
+        delete this->omega;
+
         this->omega = omega;
 }
 
