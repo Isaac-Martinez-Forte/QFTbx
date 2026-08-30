@@ -7,6 +7,7 @@
 
 #include <QString>
 #include <QVector>
+#include <cmath>
 
 #include "Modelo/Herramientas/tools.h"
 #include "Modelo/Objetos/omega.h"
@@ -145,7 +146,7 @@ TEST(Logspace, MatchesTenToTheLinspace)
     QVector<qreal>* v = tools::logspace(-2.0, 3.0, 7);
     ASSERT_EQ(v->size(), exponents->size());
     for (int i = 0; i < v->size(); ++i) {
-        EXPECT_DOUBLE_EQ(v->at(i), qPow(10.0, exponents->at(i)));
+        EXPECT_DOUBLE_EQ(v->at(i), std::pow(10.0, exponents->at(i)));
     }
     delete exponents;
     delete v;

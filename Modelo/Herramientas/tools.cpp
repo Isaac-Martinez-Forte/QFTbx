@@ -6,11 +6,6 @@
 
 using namespace std;
 
-void tools::menerror(QString mensaje, QString nombre){
-
-    QMessageBox::critical(nullptr, nombre,mensaje,
-                         QMessageBox::Close);
-}
 
 
 //Wrapper transitorio sobre la implementacion canonica de src/core/math/
@@ -88,34 +83,4 @@ QVector <qreal> * tools::srtovectorReal (QString cadena){
 }
 
 
-QColor tools::ramdonColor (qint32 i){
 
-    qint32 color = i;
-
-    switch (color){
-    case 0: return Qt::red;
-    case 1: return Qt::darkYellow;
-    case 2: return Qt::green;
-    case 4: return Qt::magenta;
-    case 5: return Qt::darkGreen;
-    case 6: return Qt::blue;
-    case 7: return Qt::darkBlue;
-    case 8: return Qt::darkCyan;
-    case 9: return Qt::darkGray;
-    case 10: return Qt::darkMagenta;
-    case 11: return Qt::yellow;
-    case 12: return Qt::darkYellow;
-    default: return Qt::cyan;
-    }
-
-}
-
-QVector <Parameter *> * tools::clonarVectorVar(QVector<Parameter *> *v){
-    QVector <Parameter *> * nuevo = new QVector <Parameter * > ();
-
-    foreach (Parameter * v, *v) {
-       nuevo->append(v->clone());
-    }
-
-    return nuevo;
-}

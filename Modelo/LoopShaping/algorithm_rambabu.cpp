@@ -1,3 +1,4 @@
+#include "Modelo/Herramientas/exception.h"
 #include "algorithm_rambabu.h"
 
 using namespace tools;
@@ -103,12 +104,11 @@ bool Algorithm_rambabu::init_algorithm(){
     while (true){
 
         if (lista->esVacia()){
-            menerror("El espacio de parámetros inicial del controlador no es válido.", "Loop Shaping");
-
-            delete conversion;
+                        delete conversion;
             delete lista;
 
-            return false;
+            throw qftbx::InvalidInput(
+                    "The initial controller parameter space is not valid.");
         }
 
         Tripleta * tripleta = static_cast<Tripleta *>(lista->recuperarPrimero());

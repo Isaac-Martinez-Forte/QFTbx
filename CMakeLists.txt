@@ -189,6 +189,9 @@ set(QFTbx_BACKEND_HED
     DAO/templatedao.h
     DAO/adaptadortemplatedao.h
     Modelo/Herramientas/tools.h
+    Modelo/EstructurasDatos/dbnd.h
+    Modelo/LoopShaping/loop_shaping_types.h
+    src/core/math/sequences.h
     Modelo/Herramientas/exception.h
     Modelo/Objetos/omega.h
     DAO/bounddao.h
@@ -235,6 +238,8 @@ set(QFTbx_BACKEND_HED
 
 set(QFTbx_GUI_HED
     GUI/diagramabode.h
+    GUI/menerror.h
+    GUI/plot_palette.h
     GUI/windowsgeneral.h
     GUI/introducirplanta.h
     GUI/intomega.h

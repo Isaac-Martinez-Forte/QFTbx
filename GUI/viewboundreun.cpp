@@ -1,6 +1,9 @@
 #include "viewboundreun.h"
 #include "ui_viewboundreun.h"
 
+#include "GUI/menerror.h"
+#include "GUI/plot_palette.h"
+
 
 using namespace tools;
 

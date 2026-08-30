@@ -1,6 +1,9 @@
 #include "diagramabode.h"
 #include "ui_diagramabode.h"
 
+#include "GUI/menerror.h"
+#include "GUI/plot_palette.h"
+
 
 using namespace std;
 using namespace tools;

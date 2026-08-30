@@ -1,3 +1,4 @@
+#include "Modelo/Herramientas/exception.h"
 #include "algorithm_primer_articulo.h"
 
 
@@ -249,13 +250,12 @@ bool Algorithm_primer_articulo::init_algorithm() {
     tripleta = check_box_feasibility(controlador);
 
     if (tripleta == nullptr) {
-        menerror("El espacio de parámetros inicial del controlador no es válido.", "Loop Shaping");
-
         delete conversion;
-        delete lista;
-        delete deteccion;
+delete lista;
+delete deteccion;
 
-        return false;
+throw qftbx::InvalidInput(
+        "The initial controller parameter space is not valid.");
     }
 
     lista->insertar(tripleta);
@@ -263,13 +263,12 @@ bool Algorithm_primer_articulo::init_algorithm() {
     while (true) {
 
         if (lista->esVacia()) {
-            menerror("El espacio de parámetros inicial del controlador no es válido.", "Loop Shaping");
-
             delete conversion;
-            delete lista;
-            delete deteccion;
+delete lista;
+delete deteccion;
 
-            return false;
+throw qftbx::InvalidInput(
+        "The initial controller parameter space is not valid.");
         }
 
 

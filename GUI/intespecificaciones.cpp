@@ -1,6 +1,9 @@
 #include "intespecificaciones.h"
 #include "ui_intespecificaciones.h"
 
+#include "GUI/menerror.h"
+#include "GUI/plot_palette.h"
+
 using namespace tools;
 using namespace mup;
 

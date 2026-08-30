@@ -1,6 +1,9 @@
 #include "introducirtemplates.h"
 #include "ui_introducirtemplates.h"
 
+#include "GUI/menerror.h"
+#include "GUI/plot_palette.h"
+
 using namespace tools;
 using namespace mup;
 

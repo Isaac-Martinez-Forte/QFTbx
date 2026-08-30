@@ -1,6 +1,9 @@
 #include "intincertidumbre.h"
 #include "ui_intincertidumbre.h"
 
+#include "GUI/menerror.h"
+#include "GUI/plot_palette.h"
+
 using namespace tools;
 
 IntIncertidumbre::IntIncertidumbre(QWidget *parent) :
