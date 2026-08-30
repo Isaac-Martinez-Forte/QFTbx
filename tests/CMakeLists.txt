@@ -15,6 +15,7 @@ FetchContent_MakeAvailable(googletest)
 add_executable(qftbx_tests
   main.cpp
   backend/e_hull_test.cpp
+  backend/templates_golden_test.cpp
   backend/omega_test.cpp
   backend/plant_fixture_test.cpp
   backend/lti_system_test.cpp
@@ -35,4 +36,7 @@ if(UNIX AND NOT APPLE)
 endif()
 
 include(GoogleTest)
-gtest_discover_tests(qftbx_tests DISCOVERY_TIMEOUT 60)
+#OMP_NUM_THREADS=1: calcularContorno todavia permuta por orden de hilo
+#(bug conocido); se retirara el pin al corregirlo.
+gtest_discover_tests(qftbx_tests DISCOVERY_TIMEOUT 60
+  PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=1")
