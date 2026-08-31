@@ -16,7 +16,7 @@ Algorithm_sachin::~Algorithm_sachin() {
 
 }
 
-void Algorithm_sachin::set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, DatosBound * boundaries,
+void Algorithm_sachin::set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, BoundaryData * boundaries,
                                  qreal epsilon, QVector<QVector<QVector<QPointF> *> *> * reunBounHash) {
 
 
@@ -27,10 +27,10 @@ void Algorithm_sachin::set_datos(LtiSystem * planta, LtiSystem * controlador, QV
     this->epsilon = epsilon;
     this->reunBounHash = reunBounHash;
 
-    this->metaDatosArriba = boundaries->getMetaDatosArriba();
-    this->metaDatosAbierto = boundaries->getMetaDatosAbierta();
+    this->metaDatosArriba = boundaries->upperFlags();
+    this->metaDatosAbierto = boundaries->openFlags();
 
-    this->tamFas = boundaries->getTamFas() - 1;
+    this->tamFas = boundaries->phaseCount() - 1;
     this->depuracion = true;
 }
 

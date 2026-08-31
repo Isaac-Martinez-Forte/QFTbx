@@ -17,7 +17,7 @@
 #include "src/core/system/lti_system.h"
 #include "src/core/templates/template_engine.h"
 #include "Objetos/omega.h"
-#include "Boundaries/boundaries.h"
+#include "src/core/boundaries/boundary_engine.h"
 #include "XmlParser/parsersave.h"
 #include "XmlParser/parserload.h"
 #include "EstructurasDatos/datosplanta.h"
@@ -129,7 +129,7 @@ public:
      * @Param boundaries fronteras calculadas.
      */
     
-    void setBoundaries (DatosBound *bound);
+    void setBoundaries (BoundaryData *bound);
 
 
     /**
@@ -197,10 +197,10 @@ public:
     * @return Boundaries calculados en el sistema.
     */
     
-    DatosBound *getBound();
+    BoundaryData *getBound();
 
-    QVector<QVector<QPointF> *> *getBoundariesReun();
-    QVector<QVector<QVector<QPointF> *> *> *getBoundariesReunHash();
+    QVector<QVector<QPointF> *> *unionBoundaries();
+    QVector<QVector<QVector<QPointF> *> *> *unionBuckets();
 
 
     bool setControlador (LtiSystem * controlador);
@@ -259,7 +259,7 @@ private:
     bool paso6; //Introducir controlador
     bool paso7; //Loop Shaping
 
-    Boundaries * bound;
+    BoundaryEngine * bound;
     TemplateEngine * templates;
     LoopShaping * loopShaping;
 

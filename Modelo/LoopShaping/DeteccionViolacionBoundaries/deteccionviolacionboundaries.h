@@ -4,7 +4,7 @@
 #include <QPointF>
 #include <limits>
 #include "Modelo/Herramientas/tools.h"
-#include "Modelo/EstructurasDatos/datosbound.h"
+#include "src/core/boundaries/boundary_data.h"
 #include "Modelo/LoopShaping/EstructuraDatos/data_box.h"
 #include "Modelo/LoopShaping/EstructuraDatos/etapas.h"
 
@@ -32,14 +32,14 @@ public:
     DeteccionViolacionBoundaries();
     ~DeteccionViolacionBoundaries();
 
-    data_box * deteccionViolacionCajaNiNi(cinterval box, DatosBound * boundaries, qint32 contador);
-    data_box * deteccionViolacionCajaNiNi(cinterval box, DatosBound * boundaries, qint32 contador, Etapas e);
+    data_box * deteccionViolacionCajaNiNi(cinterval box, BoundaryData * boundaries, qint32 contador);
+    data_box * deteccionViolacionCajaNiNi(cinterval box, BoundaryData * boundaries, qint32 contador, Etapas e);
 
-    data_box * deteccionViolacionCajaNi(cinterval box, DatosBound * boundaries, qint32 contador);
+    data_box * deteccionViolacionCajaNi(cinterval box, BoundaryData * boundaries, qint32 contador);
 
-    data_box * deteccionViolacionCajaNyNi(cinterval box, DatosBound * boundaries, qint32 contador);
+    data_box * deteccionViolacionCajaNyNi(cinterval box, BoundaryData * boundaries, qint32 contador);
 
-    //tools::recortes deteccionViolacionCajaNyNy(cinterval box, DatosBound * boundaries, qint32 contador);
+    //tools::recortes deteccionViolacionCajaNyNy(cinterval box, BoundaryData * boundaries, qint32 contador);
 
 private:
 

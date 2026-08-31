@@ -126,7 +126,7 @@ set(QFTbx_BACKEND_SRC
     Modelo/EstructurasDatos/datosplanta.cpp
     XmlParser/xmlparserload.cpp
     DAO/fdao.cpp
-    Modelo/EstructurasDatos/datosbound.cpp
+    src/core/boundaries/boundary_data.cpp
     DAO/adaptadorespecificacionesdao.cpp
     DAO/adaptadorcontroladordao.cpp
     Modelo/LoopShaping/algorithm_sachin.cpp
@@ -135,7 +135,7 @@ set(QFTbx_BACKEND_SRC
     src/core/system/parameter.cpp
     Modelo/LoopShaping/algorithm_nandkishor.cpp
     Modelo/LoopShaping/algorithm_rambabu.cpp
-    Modelo/Boundaries/boundaries.cpp
+    src/core/boundaries/boundary_engine.cpp
     Consola/consola.cpp
     src/core/system/free_form.cpp
     Modelo/LoopShaping/loopshaping.cpp
@@ -146,9 +146,8 @@ set(QFTbx_BACKEND_SRC
     Modelo/LoopShaping/EstructuraDatos/listaordenada.cpp
     DAO/adaptadorloopshapingdao.cpp
     Modelo/EstructurasDatos/datosloopshaping.cpp
-    Modelo/Boundaries/algoritmointerseccionlineal1D.cpp
-    Modelo/Boundaries/algoritmointerseccionproyectivo2D.cpp
-    Modelo/Boundaries/contour2.cpp
+    src/core/boundaries/boundary_union_1d.cpp
+    src/core/boundaries/contour_tracer.cpp
     Modelo/LoopShaping/EstructuraDatos/arbol_exp.cpp
     Modelo/LoopShaping/EstructuraDatos/data_box.cpp
 )
@@ -200,7 +199,7 @@ set(QFTbx_BACKEND_HED
     Modelo/EstructurasDatos/datosplanta.h
     DAO/dao.h
     DAO/fdao.h
-    Modelo/EstructurasDatos/datosbound.h
+    src/core/boundaries/boundary_data.h
     XmlParser/parserload.h
     XmlParser/parsersave.h
     DAO/especificacionesdao.h
@@ -214,7 +213,7 @@ set(QFTbx_BACKEND_HED
     Modelo/LoopShaping/algorithm_nandkishor.h
     Modelo/LoopShaping/algorithm_rambabu.h
     Modelo/LoopShaping/EstructuraDatos/arbol_exp.h
-    Modelo/Boundaries/boundaries.h
+    src/core/boundaries/boundary_engine.h
     Consola/consola.h
     src/core/system/free_form.h
     Modelo/LoopShaping/loopshaping.h
@@ -230,9 +229,8 @@ set(QFTbx_BACKEND_HED
     DAO/loopshapingdao.h
     DAO/adaptadorloopshapingdao.h
     Modelo/EstructurasDatos/datosloopshaping.h
-    Modelo/Boundaries/algoritmointerseccionlineal1D.h
-    Modelo/Boundaries/algoritmointerseccionproyectivo2D.h
-    Modelo/Boundaries/contour2.h
+    src/core/boundaries/boundary_union_1d.h
+    src/core/boundaries/contour_tracer.h
     Modelo/LoopShaping/funcionescomunes.h
     Modelo/LoopShaping/EstructuraDatos/data_box.h
 )

@@ -131,10 +131,10 @@ void Controlador::setContorno(QVector<QVector<std::complex<qreal> > *> *contorno
     templatedao->setContorno(contorno);
 }
 
-void Controlador::setBoundaries(DatosBound *bound){
+void Controlador::setBoundaries(BoundaryData *bound){
 
     if (!paso5){
-        this->bound = new Boundaries();
+        this->bound = new BoundaryEngine();
         bounddao = dao->getBoundDAO();
     }
     paso5 = true;
@@ -205,36 +205,36 @@ bool Controlador::calcularBoundaries(QPointF datosFas, qint32 puntosFas, QPointF
                                      qint32 puntosMag, qreal infinito, bool contorno, bool cuda){
 
     if (!paso5){
-        bound = new Boundaries();
+        bound = new BoundaryEngine();
         bounddao = dao->getBoundDAO();
     }
     paso5 = true;
 
     if (contorno){
-        bound->lanzarCalculo(omegadao->getFrecuencias(),plantadao->getPlanta(), templatedao->getContorno()
+        bound->compute(omegadao->getFrecuencias(),plantadao->getPlanta(), templatedao->getContorno()
                          ,especdao->getEspecificaciones(), datosFas,puntosFas,datosMag,puntosMag, infinito, cuda);
     } else {
-        bound->lanzarCalculo(omegadao->getFrecuencias(),plantadao->getPlanta(), templatedao->getTemplates()
+        bound->compute(omegadao->getFrecuencias(),plantadao->getPlanta(), templatedao->getTemplates()
                          ,especdao->getEspecificaciones(), datosFas,puntosFas,datosMag,puntosMag, infinito, cuda);
     }
 
-    setBoundaries(bound->getBoundaries());
+    setBoundaries(bound->boundaryData());
 
-    getOmega()->setOmega(bound->getOmega());
+    getOmega()->setOmega(bound->omega());
 
     return true;
 }
 
-DatosBound *Controlador::getBound(){
+BoundaryData *Controlador::getBound(){
     return bounddao->getBound();
 }
 
-QVector< QVector<QPointF> * > * Controlador::getBoundariesReun(){
-    return bounddao->getBound()->getBoundariesReun();
+QVector< QVector<QPointF> * > * Controlador::unionBoundaries(){
+    return bounddao->getBound()->unionBoundaries();
 }
 
-QVector< QVector <QVector<QPointF> * > * > * Controlador::getBoundariesReunHash(){
-    return bounddao->getBound()->getBoundariesReunHash();
+QVector< QVector <QVector<QPointF> * > * > * Controlador::unionBuckets(){
+    return bounddao->getBound()->unionBuckets();
 }
 
 bool Controlador::setControlador(LtiSystem *controlador){

@@ -31,7 +31,7 @@ public:
      *
      */
 
-    void setBound(DatosBound * boundaries);
+    void setBound(BoundaryData * boundaries);
 
     /**
     * @fn getBound
@@ -41,12 +41,12 @@ public:
     *
     */
 
-    DatosBound * getBound();
+    BoundaryData * getBound();
 
 
 private:
     bool introducido;
-    DatosBound * bound;
+    BoundaryData * bound;
 
 };
 

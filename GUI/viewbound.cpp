@@ -39,7 +39,7 @@ ViewBound::~ViewBound()
     delete ui;
 }
 
-void ViewBound::setDatos(DatosBound *datos, QVector <qreal> * omega){
+void ViewBound::setDatos(BoundaryData *datos, QVector <qreal> * omega){
 
     boundaries = datos;
     this->omega = omega;
@@ -69,7 +69,7 @@ void ViewBound::mostrarDiagrama(){
 
     graficos = new QVector <QVector <QCPCurve * > * > ();
 
-    QVector <QMap <QString, QVector <QVector <QPointF> * > * > * > * boundaries = this->boundaries->getBoundaries();
+    QVector <QMap <QString, QVector <QVector <QPointF> * > * > * > * boundaries = this->boundaries->boundaries();
 
     //Recorre las frecuencias de diseño.
     for (qint32 i = 0; i < boundaries->size(); i++) {
@@ -174,12 +174,12 @@ void ViewBound::on_exportar_clicked()
    /* QString fileName = QFileDialog::getSaveFileName(this, tr("Guardar Boundaries"));
 
     QVector <QString> nombres;
-    nombres << "Seguimiento" << "Estabilidad" << "Ruido" << "RPS" << "RPE" << "EC";
+    nombres << "Tracking" << "Stability" << "SensorNoise" << "OutputDisturbance" << "InputDisturbance" << "ControlEffort";
 
-    QVector <QMap <QString, QVector <QVector <QPoint> * > *> * > * boundaries = this->boundaries->getBoundaries();
+    QVector <QMap <QString, QVector <QVector <QPoint> * > *> * > * boundaries = this->boundaries->boundaries();
 
-    qint32 puntosFas = this->boundaries->getTamFas();
-    qint32 puntosMag = this->boundaries->getTamMag();
+    qint32 puntosFas = this->boundaries->phaseCount();
+    qint32 puntosMag = this->boundaries->magnitudeCount();
 
     qint32 k = 0;*/
 

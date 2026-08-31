@@ -8,7 +8,7 @@
 #include "src/core/system/lti_system.h"
 #include "Modelo/Herramientas/tools.h"
 #include "GUI/viewboundreun.h"
-#include "Modelo/EstructurasDatos/datosbound.h"
+#include "src/core/boundaries/boundary_data.h"
 #include "Modelo/LoopShaping/NaturalIntervalExtension/natural_interval_extension.h"
 #include "Modelo/LoopShaping/DeteccionViolacionBoundaries/deteccionviolacionboundaries.h"
 #include "Modelo/LoopShaping/EstructuraDatos/listaordenada.h"
@@ -100,10 +100,10 @@ inline bool if_less_epsilon(LtiSystem * controlador, qreal epsilon, QVector <qre
     return true;
 }
 
-inline ViewBoundReun * mostrar_diagrama(QVector <QVector<QPointF> * > *vector, QVector <qreal> * omega, DatosBound * boundaries) {
+inline ViewBoundReun * mostrar_diagrama(QVector <QVector<QPointF> * > *vector, QVector <qreal> * omega, BoundaryData * boundaries) {
     ViewBoundReun * view = new ViewBoundReun();
 
-    view->setDatos(boundaries->getBoundariesReun(), omega);
+    view->setDatos(boundaries->unionBoundaries(), omega);
 
     view->mostrar_diagrama();
 
@@ -121,10 +121,10 @@ inline ViewBoundReun * mostrar_diagrama(QVector <QVector<QPointF> * > *vector, Q
     return view;
 }
 
-inline void mostrar_diagrama2 (QVector <QVector<QPointF> * > *vector, QVector <qreal> * omega, DatosBound * boundaries, ViewBoundReun * view) {
+inline void mostrar_diagrama2 (QVector <QVector<QPointF> * > *vector, QVector <qreal> * omega, BoundaryData * boundaries, ViewBoundReun * view) {
     //ViewBoundReun * view = new ViewBoundReun();
 
-    /*view->setDatos(boundaries->getBoundariesReun(), omega);
+    /*view->setDatos(boundaries->unionBoundaries(), omega);
 
         view->mostrar_diagrama();*/
 
@@ -140,10 +140,10 @@ inline void mostrar_diagrama2 (QVector <QVector<QPointF> * > *vector, QVector <q
     delete view;
 }
 
-inline void mostrar_diagramaBox(QVector<QPointF> * caja, QVector <qreal> * omega, DatosBound * boundaries) {
+inline void mostrar_diagramaBox(QVector<QPointF> * caja, QVector <qreal> * omega, BoundaryData * boundaries) {
     ViewBoundReun * view = new ViewBoundReun();
 
-    view->setDatos(boundaries->getBoundariesReun(), omega);
+    view->setDatos(boundaries->unionBoundaries(), omega);
 
     view->mostrar_diagrama();
 

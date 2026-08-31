@@ -8,7 +8,7 @@
 #include "Modelo/Herramientas/tools.h"
 #include "qcustomplot.h"
 
-#include "Modelo/EstructurasDatos/datosbound.h"
+#include "src/core/boundaries/boundary_data.h"
 
 #include "src/core/system/lti_system.h"
 #include "Modelo/LoopShaping/NaturalIntervalExtension/natural_interval_extension.h"
@@ -27,7 +27,7 @@ public:
     ~verBoundaries();
 
 
-    void setDatos (DatosBound * boundariesNichols, DatosBound * boundariesNyquist, QVector<qreal> *omega,
+    void setDatos (BoundaryData * boundariesNichols, BoundaryData * boundariesNyquist, QVector<qreal> *omega,
                    LtiSystem * planta, LtiSystem * controlador, bool nichols, bool nyquist);
 
     void mostrar_diagrama();
@@ -41,8 +41,8 @@ private slots:
 
 private:
 
-    DatosBound * boundariesNichols;
-    DatosBound * boundariesNyquist;
+    BoundaryData * boundariesNichols;
+    BoundaryData * boundariesNyquist;
     LtiSystem * planta;
     LtiSystem * controlador;
     QVector <qreal> * omega;

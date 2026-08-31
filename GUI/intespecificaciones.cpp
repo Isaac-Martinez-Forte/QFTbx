@@ -563,7 +563,7 @@ bool IntEspecificaciones::getDatos(dBND *datos, dBND *datos1, QString nombre){
     }
 
     datos->nombre = nombre;
-    datos1->nombre = nombre + "_1";
+    datos1->nombre = QStringLiteral("TrackingUpper");
 
     return true;
 }
@@ -625,17 +625,17 @@ QVector <Parameter * > * IntEspecificaciones::crearNumeradorDenominador(QString 
 void IntEspecificaciones::seleccionar()
 {
     if (activado == 1){
-        getDatos(seguimiento, seguimiento_2, "seguimiento");
+        getDatos(seguimiento, seguimiento_2, "TrackingLower");
     }else if (activado == 2){
-        getDatos(estabilidad, "estabilidad");
+        getDatos(estabilidad, "Stability");
     }else if (activado == 3){
-        getDatos(ruido, "ruido");
+        getDatos(ruido, "SensorNoise");
     }else if (activado == 4){
-        getDatos(RPS, "RPS");
+        getDatos(RPS, "OutputDisturbance");
     }else if (activado == 5){
-        getDatos(RPE, "RPE");
+        getDatos(RPE, "InputDisturbance");
     }else if (activado == 6){
-        getDatos(EC, "EC");
+        getDatos(EC, "ControlEffort");
     }
 }
 
@@ -731,17 +731,17 @@ void IntEspecificaciones::on_OK_clicked()
     bool correcto = true;
 
     if (ui->radioButton->isChecked()){
-        correcto = getDatos(seguimiento, seguimiento_2, "seguimiento");
+        correcto = getDatos(seguimiento, seguimiento_2, "TrackingLower");
     }else if (ui->radioButton_2->isChecked()){
-        correcto = getDatos(estabilidad, "estabilidad");
+        correcto = getDatos(estabilidad, "Stability");
     }else if (ui->radioButton_3->isChecked()){
-        correcto = getDatos(ruido, "ruido");
+        correcto = getDatos(ruido, "SensorNoise");
     }else if (ui->radioButton_4->isChecked()){
-        correcto = getDatos(RPS, "RPS");
+        correcto = getDatos(RPS, "OutputDisturbance");
     }else if (ui->radioButton_5->isChecked()){
-        correcto = getDatos(RPE, "RPE");
+        correcto = getDatos(RPE, "InputDisturbance");
     }else if (ui->radioButton_6->isChecked()){
-        correcto =  getDatos(EC, "EC");
+        correcto =  getDatos(EC, "ControlEffort");
     }
 
     if (!correcto){

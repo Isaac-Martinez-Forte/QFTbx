@@ -14,6 +14,7 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable(qftbx_tests
   main.cpp
+  backend/boundaries_golden_test.cpp
   backend/e_hull_test.cpp
   backend/templates_golden_test.cpp
   backend/omega_test.cpp

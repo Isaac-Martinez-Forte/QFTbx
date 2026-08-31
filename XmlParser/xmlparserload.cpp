@@ -1,6 +1,7 @@
 #include "parserload.h"
 
 #include "Modelo/Herramientas/exception.h"
+#include "src/core/specifications/specification.h"
 
 
 using namespace tools;
@@ -120,7 +121,7 @@ QVector <QVector <std::complex <qreal>> * > * XmlParserLoad::getContorno(){
     return contorno;
 }
 
-DatosBound *XmlParserLoad::getBoundaries(){
+BoundaryData *XmlParserLoad::getBoundaries(){
     return bound;
 }
 
@@ -146,7 +147,8 @@ inline bool XmlParserLoad::leerEspec(QMap <QString, QVector <QVector <QPointF> *
         return salidaError();
     }
 
-    QString nombre = stream->name().toString();
+    //Los ficheros antiguos guardan las claves historicas en espanol.
+    QString nombre = qftbx::modernSpecificationName(stream->name().toString());
     QVector <QVector <QPointF> * > * vec = new QVector <QVector <QPointF> * > ();
 
     qint32 lon = stream->attributes()[0].value().toString().toDouble();
@@ -408,7 +410,7 @@ inline bool XmlParserLoad::leerBoundaries(){
 
     stream->skipCurrentElement(); //cerramos los boundaries reunidos hash
 
-    bound = new DatosBound(boundaries, metaDatosAbierta, metaDatosArriba, tamFas, datosFas, boundariesreunidos,
+    bound = new BoundaryData(boundaries, metaDatosAbierta, metaDatosArriba, tamFas, datosFas, boundariesreunidos,
                            boundariesreunidoshash, tamMag, datosMag);
 
     stream->skipCurrentElement(); //cerramos datos
@@ -915,7 +917,7 @@ inline bool XmlParserLoad::leerEspecificaciones(){
 
         dBND * estructura = new dBND ();
 
-        estructura->nombre = nombre;
+        estructura->nombre = qftbx::modernSpecificationName(nombre);
         estructura->utilizado = utilizado;
         estructura->sistema = sis;
         estructura->altura = altura.toDouble();

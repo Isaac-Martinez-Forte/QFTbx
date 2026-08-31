@@ -34,19 +34,42 @@ enum class SpecificationType {
 
 inline constexpr int kSpecificationCount = 7;
 
-/// Canonical name, matching the historical strings of the .qft files.
+/// Canonical name, written to the .qft files since the English rename.
 inline QString specificationName(SpecificationType type)
 {
     switch (type) {
-    case SpecificationType::TrackingLower:     return QStringLiteral("seguimiento");
-    case SpecificationType::TrackingUpper:     return QStringLiteral("seguimiento_1");
-    case SpecificationType::Stability:         return QStringLiteral("estabilidad");
-    case SpecificationType::SensorNoise:       return QStringLiteral("ruido");
-    case SpecificationType::OutputDisturbance: return QStringLiteral("RPS");
-    case SpecificationType::InputDisturbance:  return QStringLiteral("RPE");
-    case SpecificationType::ControlEffort:     return QStringLiteral("EC");
+    case SpecificationType::TrackingLower:     return QStringLiteral("TrackingLower");
+    case SpecificationType::TrackingUpper:     return QStringLiteral("TrackingUpper");
+    case SpecificationType::Stability:         return QStringLiteral("Stability");
+    case SpecificationType::SensorNoise:       return QStringLiteral("SensorNoise");
+    case SpecificationType::OutputDisturbance: return QStringLiteral("OutputDisturbance");
+    case SpecificationType::InputDisturbance:  return QStringLiteral("InputDisturbance");
+    case SpecificationType::ControlEffort:     return QStringLiteral("ControlEffort");
     }
     return QString();
+}
+
+/**
+ * @brief Maps a historical Spanish name from a legacy .qft file to its
+ * canonical English form; unknown names pass through unchanged.
+ *
+ * Covers both domains that stored them: the specification records
+ * ("seguimiento", "seguimiento_1", ...) and the per-frequency boundary map
+ * keys ("Seguimiento" is the combined tracking boundary -> "Tracking").
+ */
+inline QString modernSpecificationName(const QString& name)
+{
+    if (name == QStringLiteral("seguimiento"))   return QStringLiteral("TrackingLower");
+    if (name == QStringLiteral("seguimiento_1")) return QStringLiteral("TrackingUpper");
+    if (name == QStringLiteral("Seguimiento"))   return QStringLiteral("Tracking");
+    if (name == QStringLiteral("estabilidad") ||
+        name == QStringLiteral("Estabilidad"))   return QStringLiteral("Stability");
+    if (name == QStringLiteral("ruido") ||
+        name == QStringLiteral("Ruido"))         return QStringLiteral("SensorNoise");
+    if (name == QStringLiteral("RPS"))           return QStringLiteral("OutputDisturbance");
+    if (name == QStringLiteral("RPE"))           return QStringLiteral("InputDisturbance");
+    if (name == QStringLiteral("EC"))            return QStringLiteral("ControlEffort");
+    return name;
 }
 
 /**

@@ -43,7 +43,7 @@ verBoundaries::~verBoundaries()
 }
 
 
-void verBoundaries::setDatos(DatosBound *boundariesNichols, DatosBound *boundariesNyquist, QVector<qreal> *omega,
+void verBoundaries::setDatos(BoundaryData *boundariesNichols, BoundaryData *boundariesNyquist, QVector<qreal> *omega,
                              LtiSystem *planta, LtiSystem *controlador, bool nichols, bool nyquist){
     this->boundariesNichols = boundariesNichols;
     this->boundariesNyquist = boundariesNyquist;
@@ -89,9 +89,9 @@ void verBoundaries::mostrar_diagrama(){
     //Recorre las frecuencias de diseño.
 
     qint32 c = 0;
-    foreach (QVector <QPointF> * boundNichols, *boundariesNichols->getBoundariesReun()) {
+    foreach (QVector <QPointF> * boundNichols, *boundariesNichols->unionBoundaries()) {
 
-        QVector <QPointF> * boundNyquist = boundariesNyquist->getBoundariesReun()->at(contador);
+        QVector <QPointF> * boundNyquist = boundariesNyquist->unionBoundaries()->at(contador);
 
 
         QColor color = ramdonColor(c);

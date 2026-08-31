@@ -11,7 +11,7 @@ AdaptadorBoundDAO::~AdaptadorBoundDAO(){
     }
 }
 
-void AdaptadorBoundDAO::setBound(DatosBound *boundaries){
+void AdaptadorBoundDAO::setBound(BoundaryData *boundaries){
     if (introducido){
         delete bound;
     }
@@ -21,6 +21,6 @@ void AdaptadorBoundDAO::setBound(DatosBound *boundaries){
     bound = boundaries;
 }
 
-DatosBound *AdaptadorBoundDAO::getBound(){
+BoundaryData *AdaptadorBoundDAO::getBound(){
     return bound;
 }

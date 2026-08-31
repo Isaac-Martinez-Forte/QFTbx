@@ -345,13 +345,13 @@ inline void XmlParserSave::guardarVectorBool(QVector<bool> *vec, QString nombre)
 
 inline void XmlParserSave::guardarBoundaries(BoundDAO *boundaries){
 
-    DatosBound * datos = boundaries->getBound();
+    BoundaryData * datos = boundaries->getBound();
 
-    QVector <QMap <QString, QVector <QVector <QPointF> * > * > * > * bound = datos->getBoundaries();
-    QVector <QVector  <QPointF> * > * bound_reunidos = datos->getBoundariesReun();
-    QVector <QVector <QVector <QPointF> * > * > * bound_reunidos_hash = datos->getBoundariesReunHash();
-    QVector <bool> * metaDatosArriba = datos->getMetaDatosArriba();
-    QVector <bool> * metaDatosAbierto = datos->getMetaDatosAbierta();
+    QVector <QMap <QString, QVector <QVector <QPointF> * > * > * > * bound = datos->boundaries();
+    QVector <QVector  <QPointF> * > * bound_reunidos = datos->unionBoundaries();
+    QVector <QVector <QVector <QPointF> * > * > * bound_reunidos_hash = datos->unionBuckets();
+    QVector <bool> * metaDatosArriba = datos->upperFlags();
+    QVector <bool> * metaDatosAbierto = datos->openFlags();
 
     stream->writeStartElement("boundaries"); //Empezamos la sección boundaries
 
@@ -359,15 +359,15 @@ inline void XmlParserSave::guardarBoundaries(BoundDAO *boundaries){
     stream->writeStartElement("datos"); //Datos preliminares
 
     stream->writeStartElement("fases"); //Datos fases
-    stream->writeAttribute("tamFas", QString::number(datos->getTamFas())); //tamFas
-    stream->writeTextElement("x", QString::number(datos->getDatosFas().x()));
-    stream->writeTextElement("y", QString::number(datos->getDatosFas().y()));
+    stream->writeAttribute("tamFas", QString::number(datos->phaseCount())); //tamFas
+    stream->writeTextElement("x", QString::number(datos->phaseRange().x()));
+    stream->writeTextElement("y", QString::number(datos->phaseRange().y()));
     stream->writeEndElement();
 
     stream->writeStartElement("magnitudes"); //Datos magnitudes
-    stream->writeAttribute("tamMag", QString::number(datos->getTamMag())); //tamMag
-    stream->writeTextElement("x", QString::number(datos->getDatosMag().x()));
-    stream->writeTextElement("y", QString::number(datos->getDatosMag().y()));
+    stream->writeAttribute("tamMag", QString::number(datos->magnitudeCount())); //tamMag
+    stream->writeTextElement("x", QString::number(datos->magnitudeRange().x()));
+    stream->writeTextElement("y", QString::number(datos->magnitudeRange().y()));
     stream->writeEndElement();
 
     //metadatos

@@ -16,7 +16,7 @@ Algorithm_rambabu::~Algorithm_rambabu()
 
 }
 
-void Algorithm_rambabu::set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> * omega, DatosBound *boundaries,
+void Algorithm_rambabu::set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> * omega, BoundaryData *boundaries,
                                   qreal epsilon, QVector<QVector<QVector<QPointF> *> *> *reunBounHash, bool depuracion,
                                   QVector <QVector <std::complex <qreal> > * > * temp, QVector <tools::dBND *> * espe){
     this->planta = planta;
@@ -26,16 +26,16 @@ void Algorithm_rambabu::set_datos(LtiSystem *planta, LtiSystem *controlador, QVe
     this->epsilon = epsilon;
     this->reunBounHash = reunBounHash;
 
-    this->metaDatosArriba = boundaries->getMetaDatosArriba();
-    this->metaDatosAbierto = boundaries->getMetaDatosAbierta();
+    this->metaDatosArriba = boundaries->upperFlags();
+    this->metaDatosAbierto = boundaries->openFlags();
 
-    this->tamFas = boundaries->getTamFas() -1;
+    this->tamFas = boundaries->phaseCount() -1;
     this->depuracion = depuracion;
 
     this->temp = temp;
     this->espe = espe;
 
-    QVector< QVector<QPointF> * > * boun = boundaries->getBoundariesReun();
+    QVector< QVector<QPointF> * > * boun = boundaries->unionBoundaries();
 
     QVector <QPointF> * datosFases = new QVector <QPointF> ();
     QVector <QPointF> * datosMag = new QVector <QPointF> ();
@@ -71,8 +71,8 @@ void Algorithm_rambabu::set_datos(LtiSystem *planta, LtiSystem *controlador, QVe
 
     }
 
-    boundaries->setDatosFasBound(datosFases);
-    boundaries->setDatosMagBound(datosMag);
+    boundaries->setPhaseAxis(datosFases);
+    boundaries->setMagnitudeAxis(datosMag);
 
 
 }
