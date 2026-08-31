@@ -11,6 +11,7 @@
 #include <QMessageBox>
 #include <QRadioButton>
 #include <QHash>
+#include <QStringList>
 
 
 #include "GUI/parlineedit.h"
@@ -161,6 +162,10 @@ private:
     bool todoCorrecto;
 
     QVector <qreal> * epsilonValues;
+
+    //Names entered more than once in the current OK pass (numerator and
+    //denominator sharing a parameter): reported once to the user.
+    QStringList duplicateNames;
 
     qint32 frequencyCount;
 

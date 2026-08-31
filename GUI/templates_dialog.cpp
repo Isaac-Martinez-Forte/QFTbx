@@ -3,6 +3,8 @@
 #include "ui_templates_dialog.h"
 
 #include "GUI/error_message.h"
+
+#include <QMessageBox>
 #include "GUI/plot_palette.h"
 
 using namespace tools;
@@ -252,6 +254,7 @@ void TemplatesDialog::on_okButton_clicked()
     //The previous epsilon already belongs to the DAO; the previous grid
     //map is still the dialog's and is freed here.
     releaseGrids();
+    duplicateNames.clear();
 
     epsilonValues = new QVector <qreal> ();
 
@@ -409,6 +412,13 @@ void TemplatesDialog::on_okButton_clicked()
         return;
     }
 
+    if (!duplicateNames.isEmpty()){
+        QMessageBox::information(this, tr("Template computation"),
+                tr("The parameter name(s) %1 appear more than once: the first "
+                   "grid entered is used for every occurrence.")
+                    .arg(duplicateNames.join(QStringLiteral(", "))));
+    }
+
     todoCorrecto = true;
     emit (close_ok());
 }
@@ -416,11 +426,14 @@ void TemplatesDialog::on_okButton_clicked()
 bool TemplatesDialog::readVariable(ParLineEdit *rowEdits, ThreeRadioButtons rowRadios,
                                     Parameter *parameter, bool useLinspace, bool useLogspace){
 
-    //Historical policy: for repeated names (e.g. the same 'a' in numerator
-    //and denominator) the FIRST entered grid wins. With the name key, the
-    //last one would win without this guard. Pending: warn the user about
-    //the duplicate (see REFACTOR_PLAN).
+    //Policy for repeated names (e.g. the same 'a' in numerator and
+    //denominator): the FIRST entered grid wins and the user is told once
+    //which names were unified (with the name key, the last one would
+    //silently win otherwise).
     if (gridMap->contains(parameter->name())){
+        if (!duplicateNames.contains(parameter->name())){
+            duplicateNames.append(parameter->name());
+        }
         return true;
     }
 
