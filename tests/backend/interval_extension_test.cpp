@@ -13,7 +13,7 @@
 #include <QPointF>
 #include <QVector>
 
-#include "Modelo/LoopShaping/NaturalIntervalExtension/natural_interval_extension.h"
+#include "src/core/loopshaping/natural_interval_extension.h"
 #include "src/core/system/zero_pole_gain.h"
 #include "src/core/system/parameter.h"
 

@@ -19,7 +19,7 @@
 #include "qcustomplot.h"
 
 #include "cinterval.hpp"
-#include "Modelo/LoopShaping/NaturalIntervalExtension/natural_interval_extension.h"
+#include "src/core/loopshaping/natural_interval_extension.h"
 
 
  /**

@@ -131,7 +131,7 @@ FetchContent_MakeAvailable(pugixml)
 # Backend (Modelo, DAO, XmlParser, Consola): compilado como libreria estatica
 # para poder enlazarlo tanto desde el ejecutable como desde los tests.
 set(QFTbx_BACKEND_SRC
-    Modelo/LoopShaping/NaturalIntervalExtension/natural_interval_extension.cpp
+    src/core/loopshaping/natural_interval_extension.cpp
     src/core/system/transfer_function.cpp
     DAO/adaptadorplantadao.cpp
     src/core/system/lti_system.cpp
@@ -151,27 +151,27 @@ set(QFTbx_BACKEND_SRC
     src/core/boundaries/boundary_data.cpp
     DAO/adaptadorespecificacionesdao.cpp
     DAO/adaptadorcontroladordao.cpp
-    Modelo/LoopShaping/algorithm_nt.cpp
-    Modelo/LoopShaping/nominal_stability_checker.cpp
-    Modelo/LoopShaping/algorithm_mc1.cpp
-    Modelo/LoopShaping/algorithm_mc_thesis.cpp
+    src/core/loopshaping/algorithm_nt.cpp
+    src/core/loopshaping/nominal_stability_checker.cpp
+    src/core/loopshaping/algorithm_mc1.cpp
+    src/core/loopshaping/algorithm_mc_thesis.cpp
     src/core/system/parameter.cpp
-    Modelo/LoopShaping/algorithm_nk.cpp
-    Modelo/LoopShaping/algorithm_mr.cpp
+    src/core/loopshaping/algorithm_nk.cpp
+    src/core/loopshaping/algorithm_mr.cpp
     src/core/boundaries/boundary_engine.cpp
     Consola/consola.cpp
     src/core/system/free_form.cpp
-    Modelo/LoopShaping/loopshaping.cpp
-    Modelo/LoopShaping/EstructuraDatos/tripleta.cpp
-    Modelo/LoopShaping/EstructuraDatos/tripleta2.cpp
-    Modelo/LoopShaping/DeteccionViolacionBoundaries/deteccionviolacionboundaries.cpp
-    Modelo/LoopShaping/EstructuraDatos/listaordenada.cpp
+    src/core/loopshaping/loop_shaping.cpp
+    src/core/loopshaping/search_node.cpp
+    src/core/loopshaping/mc_search_node.cpp
+    src/core/loopshaping/boundary_violation_detector.cpp
+    src/core/loopshaping/ordered_list.cpp
     DAO/adaptadorloopshapingdao.cpp
     Modelo/EstructurasDatos/datosloopshaping.cpp
     src/core/boundaries/boundary_union_1d.cpp
     src/core/boundaries/contour_tracer.cpp
-    Modelo/LoopShaping/EstructuraDatos/arbol_exp.cpp
-    Modelo/LoopShaping/EstructuraDatos/data_box.cpp
+    src/core/loopshaping/expression_tree.cpp
+    src/core/loopshaping/box_classification.cpp
 )
 
 # GUI (HMI Qt) y punto de entrada.
@@ -197,7 +197,7 @@ set(QFTbx_GUI_SRC main.cpp
 
 set(QFTbx_BACKEND_HED
     src/core/system/transfer_function.h
-    Modelo/LoopShaping/NaturalIntervalExtension/natural_interval_extension.h
+    src/core/loopshaping/natural_interval_extension.h
     DAO/adaptadorplantadao.h
     src/core/system/lti_system.h
     src/core/system/polynomial_form.h
@@ -212,7 +212,7 @@ set(QFTbx_BACKEND_HED
     DAO/adaptadortemplatedao.h
     Modelo/Herramientas/tools.h
     Modelo/EstructurasDatos/dbnd.h
-    Modelo/LoopShaping/loop_shaping_types.h
+    src/core/loopshaping/loop_shaping_types.h
     src/core/math/sequences.h
     src/core/specifications/specification.h
     Modelo/Herramientas/exception.h
@@ -229,33 +229,32 @@ set(QFTbx_BACKEND_HED
     DAO/adaptadorespecificacionesdao.h
     DAO/adaptadorcontroladordao.h
     DAO/controladordao.h
-    Modelo/LoopShaping/algorithm_nt.h
-    Modelo/LoopShaping/nominal_stability_checker.h
-    Modelo/LoopShaping/quick_solution.h
-    Modelo/LoopShaping/algorithm_mc1.h
-    Modelo/LoopShaping/algorithm_mc_thesis.h
+    src/core/loopshaping/algorithm_nt.h
+    src/core/loopshaping/nominal_stability_checker.h
+    src/core/loopshaping/quick_solution.h
+    src/core/loopshaping/algorithm_mc1.h
+    src/core/loopshaping/algorithm_mc_thesis.h
     src/core/system/parameter.h
-    Modelo/LoopShaping/algorithm_nk.h
-    Modelo/LoopShaping/algorithm_mr.h
-    Modelo/LoopShaping/EstructuraDatos/arbol_exp.h
+    src/core/loopshaping/algorithm_nk.h
+    src/core/loopshaping/algorithm_mr.h
+    src/core/loopshaping/expression_tree.h
     src/core/boundaries/boundary_engine.h
     Consola/consola.h
     src/core/system/free_form.h
-    Modelo/LoopShaping/loopshaping.h
-    Modelo/LoopShaping/EstructuraDatos/n.h
-    Modelo/LoopShaping/EstructuraDatos/tripleta.h
-    Modelo/LoopShaping/EstructuraDatos/tripleta2.h
-    Modelo/LoopShaping/EstructuraDatos/etapas.h
-    Modelo/LoopShaping/EstructuraDatos/nodo.h
-    Modelo/LoopShaping/DeteccionViolacionBoundaries/deteccionviolacionboundaries.h
-    Modelo/LoopShaping/EstructuraDatos/listaordenada.h
+    src/core/loopshaping/loop_shaping.h
+    src/core/loopshaping/list_node.h
+    src/core/loopshaping/search_node.h
+    src/core/loopshaping/mc_search_node.h
+    src/core/loopshaping/stages.h
+    src/core/loopshaping/boundary_violation_detector.h
+    src/core/loopshaping/ordered_list.h
     DAO/loopshapingdao.h
     DAO/adaptadorloopshapingdao.h
     Modelo/EstructurasDatos/datosloopshaping.h
     src/core/boundaries/boundary_union_1d.h
     src/core/boundaries/contour_tracer.h
-    Modelo/LoopShaping/funcionescomunes.h
-    Modelo/LoopShaping/EstructuraDatos/data_box.h
+    src/core/loopshaping/common_functions.h
+    src/core/loopshaping/box_classification.h
 )
 
 set(QFTbx_GUI_HED

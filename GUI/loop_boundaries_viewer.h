@@ -11,7 +11,7 @@
 #include "src/core/boundaries/boundary_data.h"
 
 #include "src/core/system/lti_system.h"
-#include "Modelo/LoopShaping/NaturalIntervalExtension/natural_interval_extension.h"
+#include "src/core/loopshaping/natural_interval_extension.h"
 
 
 namespace Ui {

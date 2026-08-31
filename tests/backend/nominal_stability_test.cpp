@@ -8,7 +8,7 @@
 #include <QString>
 #include <QVector>
 
-#include "Modelo/LoopShaping/nominal_stability_checker.h"
+#include "src/core/loopshaping/nominal_stability_checker.h"
 #include "src/core/system/zero_pole_gain.h"
 #include "src/core/system/parameter.h"
 

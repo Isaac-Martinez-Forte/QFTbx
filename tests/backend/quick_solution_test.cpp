@@ -13,7 +13,7 @@
 
 #include <QVector>
 
-#include "Modelo/LoopShaping/quick_solution.h"
+#include "src/core/loopshaping/quick_solution.h"
 
 namespace {
 

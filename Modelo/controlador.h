@@ -21,7 +21,7 @@
 #include "src/persistence/project_reader.h"
 #include "src/persistence/project_writer.h"
 #include "Herramientas/tools.h"
-#include "LoopShaping/loopshaping.h"
+#include "src/core/loopshaping/loop_shaping.h"
 
 #include <iostream>
 
@@ -207,7 +207,7 @@ public:
     LtiSystem * getControlador();
     
 
-    bool calcularLoopShaping(qreal epsilon, alg_loop_shaping seleccionado, QPointF rango, qreal nPuntos,
+    bool calcularLoopShaping(qreal epsilon, LoopShapingAlgorithm seleccionado, QPointF rango, qreal nPuntos,
                              qint32 inicializacion = 0);
 
     DatosLoopShaping * getLoopShaping ();

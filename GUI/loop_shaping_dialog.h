@@ -26,7 +26,7 @@ public:
 
     qreal epsilonValue ();
 
-    tools::alg_loop_shaping algorithmValue();
+    tools::LoopShapingAlgorithm algorithmValue();
 
     QPointF range();
 
@@ -67,7 +67,7 @@ private:
 
     qint32 initialisation;
 
-    tools::alg_loop_shaping alg;
+    tools::LoopShapingAlgorithm alg;
 
     bool linLogSpace;
 };

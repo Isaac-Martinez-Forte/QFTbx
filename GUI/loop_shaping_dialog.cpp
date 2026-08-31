@@ -136,7 +136,7 @@ qreal LoopShapingDialog::epsilonValue(){
     return epsilonEdit;
 }
 
-tools::alg_loop_shaping LoopShapingDialog::algorithmValue(){
+tools::LoopShapingAlgorithm LoopShapingDialog::algorithmValue(){
     return alg;
 }
 

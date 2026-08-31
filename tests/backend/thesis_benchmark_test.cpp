@@ -158,7 +158,7 @@ TEST(ThesisBenchmarkFixture, Acc90LoadsWithTheFullPipeline)
 struct BenchmarkGolden {
     const char* name;
     const char* file;
-    tools::alg_loop_shaping algorithm;
+    tools::LoopShapingAlgorithm algorithm;
     qreal gain;
     qreal zero;
     qreal pole;

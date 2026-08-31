@@ -9,8 +9,8 @@
 #include <QMap>
 #include <string>
 
-#include "Modelo/LoopShaping/EstructuraDatos/listaordenada.h"
-#include "Modelo/LoopShaping/EstructuraDatos/arbol_exp.h"
+#include "src/core/loopshaping/ordered_list.h"
+#include "src/core/loopshaping/expression_tree.h"
 
 #include <interval.hpp>
 
@@ -25,46 +25,46 @@ N* node(qreal index)
 
 TEST(OrderedList, AscendingInsertsKeepTheOrder)
 {
-    ListaOrdenada lista;
+    OrderedList lista;
 
-    lista.insertar(node(1));
-    lista.insertar(node(3));
-    lista.insertar(node(5));
-    lista.insertar(node(8));
-    lista.insertar(node(9));
+    lista.insert(node(1));
+    lista.insert(node(3));
+    lista.insert(node(5));
+    lista.insert(node(8));
+    lista.insert(node(9));
 
-    EXPECT_EQ(lista.recuperarPrimero()->getIndex(), 1);
-    EXPECT_EQ(lista.recuperarUltimo()->getIndex(), 9);
+    EXPECT_EQ(lista.first()->getIndex(), 1);
+    EXPECT_EQ(lista.last()->getIndex(), 9);
 }
 
 TEST(OrderedList, SmallerThanFirstGoesToTheFront)
 {
-    ListaOrdenada lista;
-    lista.insertar(node(5));
-    lista.insertar(node(2));
+    OrderedList lista;
+    lista.insert(node(5));
+    lista.insert(node(2));
 
-    EXPECT_EQ(lista.recuperarPrimero()->getIndex(), 2);
+    EXPECT_EQ(lista.first()->getIndex(), 2);
 }
 
 TEST(OrderedList, MiddleInsertKeepsTheOrder)
 {
-    // The historical insertar() placed the element at i-1 instead of i, so
+    // The historical insert() placed the element at i-1 instead of i, so
     // a value that belongs between two existing nodes landed BEFORE its
     // smaller neighbour, breaking the ordering that makes the first
     // solution of every branch & bound the global optimum. Fixed in 8b.2.
-    ListaOrdenada lista;
-    lista.insertar(node(1));
-    lista.insertar(node(3));
-    lista.insertar(node(5));
+    OrderedList lista;
+    lista.insert(node(1));
+    lista.insert(node(3));
+    lista.insert(node(5));
 
-    lista.insertar(node(4)); // belongs between 3 and 5
+    lista.insert(node(4)); // belongs between 3 and 5
 
-    lista.borrarPrimero();   // 1
-    EXPECT_EQ(lista.recuperarPrimero()->getIndex(), 3);
-    lista.borrarPrimero();
-    EXPECT_EQ(lista.recuperarPrimero()->getIndex(), 4);
-    lista.borrarPrimero();
-    EXPECT_EQ(lista.recuperarPrimero()->getIndex(), 5);
+    lista.removeFirst();   // 1
+    EXPECT_EQ(lista.first()->getIndex(), 3);
+    lista.removeFirst();
+    EXPECT_EQ(lista.first()->getIndex(), 4);
+    lista.removeFirst();
+    EXPECT_EQ(lista.first()->getIndex(), 5);
 }
 
 TEST(OrderedList, DescendingListAcceptsALargerFront)
@@ -72,34 +72,34 @@ TEST(OrderedList, DescendingListAcceptsALargerFront)
     // The historical version crashed here: on a descending list the first
     // comparison already matched at position 0 and it called insert(-1)
     // (the SIGSEGV that killed the MC algorithm on the benchmarks).
-    ListaOrdenada lista(true);
-    lista.insertar(node(5));
-    lista.insertar(node(8));
+    OrderedList lista(true);
+    lista.insert(node(5));
+    lista.insert(node(8));
 
-    EXPECT_EQ(lista.recuperarPrimero()->getIndex(), 8);
-    EXPECT_EQ(lista.recuperarUltimo()->getIndex(), 5);
+    EXPECT_EQ(lista.first()->getIndex(), 8);
+    EXPECT_EQ(lista.last()->getIndex(), 5);
 }
 
 TEST(OrderedList, FirstRetrieveAndDeleteWork)
 {
-    ListaOrdenada lista;
-    EXPECT_TRUE(lista.esVacia());
+    OrderedList lista;
+    EXPECT_TRUE(lista.isEmpty());
 
-    lista.insertar(node(7));
-    EXPECT_FALSE(lista.esVacia());
+    lista.insert(node(7));
+    EXPECT_FALSE(lista.isEmpty());
 
-    N* primero = lista.recuperarPrimeroBorrar();
+    N* primero = lista.takeFirst();
     EXPECT_EQ(primero->getIndex(), 7);
     delete primero;
 
-    EXPECT_TRUE(lista.esVacia());
+    EXPECT_TRUE(lista.isEmpty());
 }
 
-//---------------------------------------------------------------- exp_tree
+//---------------------------------------------------------------- ExpressionTree
 
 TEST(ExpressionTree, ScalarEvaluationWithVariables)
 {
-    alg::exp_tree tree("1");
+    alg::ExpressionTree tree("1");
     tree.setFunc(std::string("2*x+3"));
 
     QMap<std::string, qreal> variables;
@@ -110,7 +110,7 @@ TEST(ExpressionTree, ScalarEvaluationWithVariables)
 
 TEST(ExpressionTree, ScalarEvaluationWithFunctionsAndConstants)
 {
-    alg::exp_tree tree("1");
+    alg::ExpressionTree tree("1");
     tree.setFunc(std::string("cos(0)+sqrt(9)"));
 
     EXPECT_DOUBLE_EQ(tree.eval(static_cast<QMap<std::string, qreal> *>(nullptr)), 4.0);
@@ -118,7 +118,7 @@ TEST(ExpressionTree, ScalarEvaluationWithFunctionsAndConstants)
 
 TEST(ExpressionTree, IntervalEvaluationEnclosesTheRange)
 {
-    alg::exp_tree tree("1");
+    alg::ExpressionTree tree("1");
     tree.setFunc(std::string("2*x+3"));
 
     QMap<std::string, interval> variables;
@@ -131,16 +131,16 @@ TEST(ExpressionTree, IntervalEvaluationEnclosesTheRange)
 
 TEST(ExpressionTree, ContractionNarrowsAnInconsistentDomain)
 {
-    // recorrer() is the HC4-style contractor of the MR algorithm: it must
+    // propagate() is the HC4-style contractor of the MR algorithm: it must
     // shrink the variable domains to the part consistent with the
     // constraint (expression >= threshold by default in the MR usage).
-    alg::exp_tree tree("1");
+    alg::ExpressionTree tree("1");
     tree.setFunc(std::string("x-2"), 0.0, alg::MAYORIGUAL);
 
     QMap<std::string, interval> variables;
     variables.insert("x", interval(0.0, 10.0));
 
-    const bool consistent = tree.recorrer(&variables);
+    const bool consistent = tree.propagate(&variables);
 
     EXPECT_TRUE(consistent);
     EXPECT_DOUBLE_EQ(cxsc::_double(Inf(variables.value("x"))), 2.0);
@@ -149,13 +149,13 @@ TEST(ExpressionTree, ContractionNarrowsAnInconsistentDomain)
 
 TEST(ExpressionTree, ContractionDetectsAnEmptyDomain)
 {
-    alg::exp_tree tree("1");
+    alg::ExpressionTree tree("1");
     tree.setFunc(std::string("x-20"), 0.0, alg::MAYORIGUAL);
 
     QMap<std::string, interval> variables;
     variables.insert("x", interval(0.0, 10.0));
 
-    EXPECT_FALSE(tree.recorrer(&variables));
+    EXPECT_FALSE(tree.propagate(&variables));
 }
 
 } // namespace

@@ -258,7 +258,7 @@ LtiSystem * Controlador::getControlador(){
     return controladordao->getControlador();
 }
 
-bool Controlador::calcularLoopShaping(qreal epsilon, tools::alg_loop_shaping seleccionado, QPointF rango, qreal nPuntos,
+bool Controlador::calcularLoopShaping(qreal epsilon, tools::LoopShapingAlgorithm seleccionado, QPointF rango, qreal nPuntos,
                                       qint32 inicializacion){
 
     if (!paso7){

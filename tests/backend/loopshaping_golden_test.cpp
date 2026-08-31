@@ -31,7 +31,7 @@ namespace {
 
 struct GoldenResult {
     const char* name;
-    tools::alg_loop_shaping algorithm;
+    tools::LoopShapingAlgorithm algorithm;
     bool solutionExists;
     qreal gain;
     qreal tolerance;

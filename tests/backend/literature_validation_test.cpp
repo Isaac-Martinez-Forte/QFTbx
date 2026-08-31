@@ -31,8 +31,8 @@
 #include <QVector>
 
 #include "Modelo/controlador.h"
-#include "Modelo/LoopShaping/NaturalIntervalExtension/natural_interval_extension.h"
-#include "Modelo/LoopShaping/DeteccionViolacionBoundaries/deteccionviolacionboundaries.h"
+#include "src/core/loopshaping/natural_interval_extension.h"
+#include "src/core/loopshaping/boundary_violation_detector.h"
 #include "src/core/system/zero_pole_gain.h"
 #include "src/core/system/parameter.h"
 
@@ -64,18 +64,18 @@ protected:
 
     //Overall feasibility of a point controller against the fixture's
     //boundaries, with the same projection + detection the algorithms use.
-    tools::flags_box classify(LtiSystem* point)
+    tools::BoxFlag classify(LtiSystem* point)
     {
         QVector<qreal>* omega = controller.getOmega()->getValores();
-        tools::flags_box overall = tools::feasible;
+        tools::BoxFlag overall = tools::feasible;
 
         for (int i = 0; i < omega->size(); ++i) {
             const std::complex<qreal> pv = controller.getPlanta()->evaluate(omega->at(i));
             const cxsc::cinterval box = conversion.nicholsBox(
                 point, omega->at(i), cxsc::complex(pv.real(), pv.imag()));
-            data_box* datos = deteccion.deteccionViolacionCajaNi(
+            BoxClassification* datos = deteccion.classifyBox(
                 box, controller.getBound(), i);
-            const tools::flags_box flag = datos->getFlag();
+            const tools::BoxFlag flag = datos->flag();
             delete datos;
 
             if (flag == tools::infeasible) {
@@ -91,7 +91,7 @@ protected:
 
     Controlador controller;
     NaturalIntervalExtension conversion;
-    DeteccionViolacionBoundaries deteccion;
+    BoundaryViolationDetector deteccion;
 };
 
 TEST_F(LiteratureValidation, PublishedControllersAreFeasible)
