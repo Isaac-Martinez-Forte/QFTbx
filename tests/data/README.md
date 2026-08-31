@@ -13,5 +13,10 @@ Sample `.qft` project files used as golden data by the unit tests.
 
 `corrupt_*.qft` and `invalid.qft` are hand-made malformed inputs for the
 reader's error paths. The two thesis benchmarks were generated through the
-real pipeline (template grids 10x10 uniform and 80-point cosine-spaced
-respectively, boundaries on the standard (-360,0)x361 / (-60,60)x121 grid).
+real pipeline (template grids 25x25 uniform and 80-point cosine-spaced
+respectively; boundaries on (-360,0)x361 with magnitudes (-60,160)x441 for
+example 2 - its low-frequency tracking bound sits at +37..57 dB and the
+published optimum hugs the bounds within tenths of a dB, so the fixture
+resolution matters - and (-60,60)x121 for ACC'90). The tracking models follow Tharewal 2005 Example
+3.1 (T_U the second-order model, T_L the third-order one) and the search
+boxes are sized so the honest branch & bound stays tractable.

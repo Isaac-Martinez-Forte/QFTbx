@@ -24,14 +24,14 @@ public:
     /// spread T_U - T_L, or the specification's own bound) over the sheet.
     ContourTracer (qreal thresholdDb, QVector <QVector <qreal> *> * sheet);
 
-    QVector <QVector <QPointF> *> * trace (qreal phasePoints, qreal magnitudePoints,
-                                           qreal magnitudeShift);
+    QVector <QVector <QPointF> *> * trace (qreal phaseSpan, qreal magnitudeSpan,
+                                           qreal phaseBottom, qreal magnitudeBottom);
 
 #ifdef CUDA_AVAILABLE
     ContourTracer (qreal thresholdDb, const float * sheet);
 
-    QVector <QVector <QPointF> *> * trace (qreal phasePoints, qreal phaseCount, qreal magnitudePoints,
-                                           qreal magnitudeCount, qreal magnitudeShift);
+    QVector <QVector <QPointF> *> * trace (qreal phaseSpan, qreal phaseCount, qreal magnitudeSpan,
+                                           qreal magnitudeCount, qreal phaseBottom, qreal magnitudeBottom);
 #endif
 
 

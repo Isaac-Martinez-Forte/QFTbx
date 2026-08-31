@@ -44,19 +44,17 @@ inline flags_box DeteccionViolacionBoundaries::deteccionViolacion(QPointF punto,
         }
     }
 
+    //Open boundary: 'arriba' comes from the union metadata and means the
+    //ALLOWED side is above. An even number of boundary layers below the
+    //point leaves it UNDER the union, an odd number over it. The
+    //historical branch had the two verdicts swapped, so every open
+    //boundary (tracking, disturbance rejection) accepted exactly the
+    //loops that violated it and rejected the compliant ones.
     if (abierta) {
         if (contArriba % 2 == 0){
-            if (arriba) {
-                violacion = false;
-            } else {
-                violacion = true;
-            }
+            violacion = arriba;   //under the union
         } else {
-            if (arriba) {
-                violacion = true;
-            } else {
-                violacion = false;
-            }
+            violacion = !arriba;  //over it
         }
     } else {
         if (contArriba % 2 == 0){

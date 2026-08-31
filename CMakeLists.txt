@@ -152,6 +152,7 @@ set(QFTbx_BACKEND_SRC
     DAO/adaptadorespecificacionesdao.cpp
     DAO/adaptadorcontroladordao.cpp
     Modelo/LoopShaping/algorithm_sachin.cpp
+    Modelo/LoopShaping/nominal_stability_checker.cpp
     Modelo/LoopShaping/algorithm_primer_articulo.cpp
     Modelo/LoopShaping/algorithm_segundo_articulo.cpp
     src/core/system/parameter.cpp
@@ -230,6 +231,7 @@ set(QFTbx_BACKEND_HED
     DAO/adaptadorcontroladordao.h
     DAO/controladordao.h
     Modelo/LoopShaping/algorithm_sachin.h
+    Modelo/LoopShaping/nominal_stability_checker.h
     Modelo/LoopShaping/algorithm_primer_articulo.h
     Modelo/LoopShaping/algorithm_segundo_articulo.h
     src/core/system/parameter.h

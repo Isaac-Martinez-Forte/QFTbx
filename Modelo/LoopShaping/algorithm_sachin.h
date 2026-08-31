@@ -15,6 +15,7 @@
 #include "src/core/system/zero_pole_gain.h"
 #include "src/core/system/time_constant_gain.h"
 #include "DeteccionViolacionBoundaries/deteccionviolacionboundaries.h"
+#include "nominal_stability_checker.h"
 #include "EstructuraDatos/listaordenada.h"
 
 #include "funcionescomunes.h"
@@ -64,6 +65,7 @@ private:
     qint32 tamFas;
 
     DeteccionViolacionBoundaries * deteccion;
+    NominalStabilityChecker * stability;
     QVector <complex> * plantas_nominales;
 
 };

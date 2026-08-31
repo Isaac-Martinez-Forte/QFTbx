@@ -30,6 +30,8 @@ add_executable(qftbx_tests
   backend/interval_extension_test.cpp
   backend/loopshaping_golden_test.cpp
   backend/thesis_benchmark_test.cpp
+  backend/nominal_stability_test.cpp
+  backend/literature_validation_test.cpp
 )
 
 target_link_libraries(qftbx_tests PRIVATE qftbx_backend GTest::gtest)

@@ -98,12 +98,12 @@ private:
 
     void traceFrequency(qreal omega, QMap <QString, QVector <QVector <QPointF> * > *> * bound, QVector<QVector<QVector<qreal> *> *> *sheets,
                         QMap<QString, QVector<QPoint> *> *traceMetadata, std::complex<qreal> p0, QVector<std::complex<qreal> > *valueSet,
-                        qint32 index, qreal phasePoints, qreal magnitudePoints, qreal magnitudeShift);
+                        qint32 index, qreal phaseSpan, qreal magnitudeSpan, qreal phaseBottom, qreal magnitudeBottom);
 
     QVector<QVector<QPointF> *> *traceBoundary(qreal thresholdDb, QVector<QVector<qreal> *> *sheet,
                                                QVector<QPoint> *traceMetadata, std::complex<qreal> p0, QVector<std::complex<qreal> > *valueSet,
-                                               qint32 kind, qreal phasePoints, qreal magnitudePoints,
-                                               qreal magnitudeShift);
+                                               qint32 kind, qreal phaseSpan, qreal magnitudeSpan,
+                                               qreal phaseBottom, qreal magnitudeBottom);
 
     qint32 allowedZone(QVector <QPointF> * trace, std::complex<qreal> p0, QVector<std::complex<qreal> > *valueSet, qint32 kind, qreal thresholdDb);
 
@@ -112,12 +112,12 @@ private:
                         const BoundarySheetsCuda & cudaSheets,
                         QMap <QString, QVector <QPoint> * > * traceMetadata,
                         std::complex <qreal> p0, QVector <std::complex <qreal> > * valueSet, qint32 index,
-                        qreal phasePoints, qreal magnitudePoints, qreal magnitudeShift);
+                        qreal phaseSpan, qreal magnitudeSpan, qreal phaseBottom, qreal magnitudeBottom);
 
     QVector<QVector<QPointF> *> *traceBoundary(qreal thresholdDb, const float * sheet,
                                                QVector<QPoint> *traceMetadata, std::complex<qreal> p0, QVector<std::complex<qreal> > *valueSet,
-                                               qint32 kind, qreal phasePoints, qreal magnitudePoints,
-                                               qreal magnitudeShift);
+                                               qint32 kind, qreal phaseSpan, qreal magnitudeSpan,
+                                               qreal phaseBottom, qreal magnitudeBottom);
 #endif
 
 

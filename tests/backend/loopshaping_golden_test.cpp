@@ -5,19 +5,18 @@
 // these goldens pin behaviour, they do not exercise the full search (the
 // thesis chapter 6 cases will).
 //
-// Pinned observations (updated after the 8b.1 interval-extension fix):
-// - planta1 only uses the stability specification and its loop magnitude
-//   is far below the boundary, so the TRUE optimum is the bottom of the
-//   gain range, k = 1. NT and NK now find it (they returned 125.75 while
-//   the branch mapping excluded true phases from the projected boxes).
-// - MC-prev and MC still return k = 68.75: THEIR phase machinery
-//   (feasible/phase cutting) computes phases on its own and is now the
-//   suspect. To dissect against the papers in 8b.5/8b.6.
-// - MR (rambabu) returns k = [1, 1], the lower end of the search space,
-//   consistent with its constraint rules being unreachable (the
-//   frecfinal <= 0 masks) and the contraction never firing: the algorithm
-//   is known to be unfinished. Indistinguishable from the true optimum
-//   here (also 1) - the benchmark goldens expose it. To resolve in 8b.4.
+// Pinned observations (updated after the 8b.2b open-boundary parity fix):
+// - planta1 carries disturbance-rejection specifications whose open
+//   boundaries demand |L0| ABOVE them (8..15 dB at 0.1 rad/s). The
+//   historical detection had the open-boundary verdicts swapped, so it
+//   accepted exactly the violating loops: the k = 125.75 stored in the
+//   fixture sits ~25 dB BELOW its own bounds. With the producer and
+//   consumer agreeing, no gain inside the stored controller range
+//   satisfies the bounds: the problem is genuinely infeasible and the
+//   algorithms now say so.
+// - MR (rambabu) still "solves" it (k = 1): its constraint rules are
+//   unreachable and everything looks feasible to it. The algorithm is
+//   known to be unfinished. To resolve in 8b.4.
 
 #include <gtest/gtest.h>
 
@@ -25,12 +24,14 @@
 #include <QString>
 
 #include "Modelo/controlador.h"
+#include "Modelo/Herramientas/exception.h"
 
 namespace {
 
 struct GoldenResult {
     const char* name;
     tools::alg_loop_shaping algorithm;
+    bool solutionExists;
     qreal gain;
     qreal tolerance;
 };
@@ -53,6 +54,15 @@ TEST_P(LoopShapingGolden, Planta1ResultIsPinned)
     delete controller.cargarSistema(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/planta1.qft"));
 
+    if (!golden.solutionExists) {
+        EXPECT_THROW(controller.calcularLoopShaping(
+                         0.5, golden.algorithm, QPointF(1e-9, 10.0), 100,
+                         false, 10.0, 0, false, false, false, false),
+                     qftbx::InvalidInput)
+            << golden.name;
+        return;
+    }
+
     const bool ok = controller.calcularLoopShaping(
         0.5, golden.algorithm, QPointF(1e-9, 10.0), 100,
         false, 10.0, 0, false, false, false, false);
@@ -74,14 +84,12 @@ TEST_P(LoopShapingGolden, Planta1ResultIsPinned)
 INSTANTIATE_TEST_SUITE_P(
     Algorithms, LoopShapingGolden,
     ::testing::Values(
-        GoldenResult{"NT", tools::sachin, 1.0, 1e-6},
-        GoldenResult{"NK", tools::nandkishor, 1.0, 1e-6},
+        GoldenResult{"NT", tools::sachin, false, 0.0, 0.0},
+        GoldenResult{"NK", tools::nandkishor, false, 0.0, 0.0},
         // BUG: pinned suspicious result, see the header comment.
-        GoldenResult{"MR", tools::rambabu, 1.0, 1e-6},
-        // MC-prev and MC show a mild run-to-run wobble (~1e-5 relative):
-        // another observation for 8b.5/8b.6.
-        GoldenResult{"MCprev", tools::primer_articulo, 68.7508, 1e-3},
-        GoldenResult{"MC", tools::segundo_articulo, 68.7508, 1e-3}),
+        GoldenResult{"MR", tools::rambabu, true, 1.0, 1e-6},
+        GoldenResult{"MCprev", tools::primer_articulo, false, 0.0, 0.0},
+        GoldenResult{"MC", tools::segundo_articulo, false, 0.0, 0.0}),
     [](const ::testing::TestParamInfo<GoldenResult>& info) {
         return std::string(info.param.name);
     });

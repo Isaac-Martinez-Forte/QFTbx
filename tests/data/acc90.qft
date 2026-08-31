@@ -4593,7 +4593,7 @@
                     <name>z1</name>
                     <expr>z1</expr>
                     <range>
-                        <min>1.0000000000000001e-09</min>
+                        <min>0.01</min>
                         <max>1000</max>
                     </range>
                 </parameter>
@@ -4605,7 +4605,7 @@
                     <name>p1</name>
                     <expr>p1</expr>
                     <range>
-                        <min>1.0000000000000001e-09</min>
+                        <min>0.01</min>
                         <max>1000</max>
                     </range>
                 </parameter>
@@ -4616,7 +4616,7 @@
                 <name>kc</name>
                 <expr>kc</expr>
                 <range>
-                    <min>1.0000000000000001e-09</min>
+                    <min>1000</min>
                     <max>100000000</max>
                 </range>
             </parameter>

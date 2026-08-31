@@ -15,7 +15,13 @@ ContourTracer::ContourTracer(qreal thresholdDb, const float *sheet){
 #endif
 
 
-QVector <QVector <QPointF> *> * ContourTracer::trace(qreal phasePoints, qreal magnitudePoints, qreal magnitudeShift)
+//Grid-index to Nichols-coordinate conversion: each axis maps index ->
+//bottom + index * span / cells. The historical formulas subtracted the
+//magnitude TOP (index * span - top) and the phase span, which only equals
+//the bottom on grids symmetric around zero / ending at zero: any other
+//grid produced boundaries shifted by (top - |bottom|).
+QVector <QVector <QPointF> *> * ContourTracer::trace(qreal phaseSpan, qreal magnitudeSpan,
+                                                     qreal phaseBottom, qreal magnitudeBottom)
 {
 
     qint32 width = m_sheet->at(0)->size();
@@ -63,8 +69,8 @@ QVector <QVector <QPointF> *> * ContourTracer::trace(qreal phasePoints, qreal ma
                             if ((m_sheet->at(y)->at(x) >= threshold) && (!visited.at(y * width + x))){
 
 
-                                trace->append(QPointF(((currentX * phasePoints) / phaseCells) - phasePoints, ((currentY *
-                                                      magnitudePoints) / magnitudeCells) - magnitudeShift));
+                                trace->append(QPointF(((currentX * phaseSpan) / phaseCells) + phaseBottom, ((currentY *
+                                                      magnitudeSpan) / magnitudeCells) + magnitudeBottom));
 
                                 visited.replace(currentY * width + currentX, true);
                                 currentX = x;
@@ -78,8 +84,8 @@ QVector <QVector <QPointF> *> * ContourTracer::trace(qreal phasePoints, qreal ma
 
                     if (advanced == 0){
 
-                        trace->append(QPointF(((currentX * phasePoints) / phaseCells) - phasePoints, ((currentY *
-                                              magnitudePoints) / magnitudeCells) - magnitudeShift));
+                        trace->append(QPointF(((currentX * phaseSpan) / phaseCells) + phaseBottom, ((currentY *
+                                              magnitudeSpan) / magnitudeCells) + magnitudeBottom));
 
                         break;
                     }
@@ -90,8 +96,8 @@ QVector <QVector <QPointF> *> * ContourTracer::trace(qreal phasePoints, qreal ma
                     delete trace;
                 } else {
 
-                    trace->prepend(QPointF(trace->first().x()-(phasePoints / phaseCells), trace->first().y()));
-                    trace->append(QPointF(trace->last().x()+(phasePoints / phaseCells), trace->last().y()));
+                    trace->prepend(QPointF(trace->first().x()-(phaseSpan / phaseCells), trace->first().y()));
+                    trace->append(QPointF(trace->last().x()+(phaseSpan / phaseCells), trace->last().y()));
 
                     traces->append(trace);
                 }
@@ -104,8 +110,8 @@ QVector <QVector <QPointF> *> * ContourTracer::trace(qreal phasePoints, qreal ma
 
 
 #ifdef CUDA_AVAILABLE
-QVector <QVector <QPointF> *> * ContourTracer::trace(qreal phasePoints, qreal phaseCount, qreal magnitudePoints,
-                                                     qreal magnitudeCount, qreal magnitudeShift){
+QVector <QVector <QPointF> *> * ContourTracer::trace(qreal phaseSpan, qreal phaseCount, qreal magnitudeSpan,
+                                                     qreal magnitudeCount, qreal phaseBottom, qreal magnitudeBottom){
 
     qint32 width = phaseCount;
     qint32 height = magnitudeCount;
@@ -151,8 +157,7 @@ QVector <QVector <QPointF> *> * ContourTracer::trace(qreal phasePoints, qreal ph
                             y =  currentY + kNeighbourY[(i - 1) % 8];
 
                             if ((m_cudaSheet[x * height + y] > threshold) && (!visited.at(y * width + x))){
-                                trace->append(QPointF(((currentX * phasePoints) / phaseCount) - phasePoints, ((currentY *
-                                                      magnitudePoints) / magnitudeCount) - magnitudeShift));
+                                trace->append(QPointF(((currentX * phaseSpan) / phaseCount) + phaseBottom, ((currentY * magnitudeSpan) / magnitudeCount) + magnitudeBottom));
                                 visited.replace(currentY * width + currentX, true);
                                 currentX = x;
                                 currentY = y;
@@ -164,8 +169,7 @@ QVector <QVector <QPointF> *> * ContourTracer::trace(qreal phasePoints, qreal ph
 
 
                     if (advanced == 0){
-                        trace->append(QPointF(((currentX * phasePoints) / phaseCount) - phasePoints, ((currentY *
-                                              magnitudePoints) / magnitudeCount) - magnitudeShift));
+                        trace->append(QPointF(((currentX * phaseSpan) / phaseCount) + phaseBottom, ((currentY * magnitudeSpan) / magnitudeCount) + magnitudeBottom));
                         break;
                     }
                 }
@@ -199,8 +203,8 @@ QVector <QVector <QPointF> *> * ContourTracer::trace(qreal phasePoints, qreal ph
                                 y =  retraceY + kNeighbourY[(i + 1) % 8];
 
                                 if ((m_cudaSheet[x * height + y] > threshold) && (!visited.at(y * width + x))){
-                                    retrace->append(QPointF(((retraceX * phasePoints) / phaseCount) - phasePoints, ((retraceY *
-                                                          magnitudePoints) / magnitudeCount) - magnitudeShift));
+                                    retrace->append(QPointF(((retraceX * phaseSpan) / phaseCount) + phaseBottom, ((retraceY *
+                                                          magnitudeSpan) / magnitudeCount) + magnitudeBottom));
                                     visited.replace(retraceY * width + retraceX, true);
                                     retraceX = x;
                                     retraceY = y;
@@ -212,8 +216,8 @@ QVector <QVector <QPointF> *> * ContourTracer::trace(qreal phasePoints, qreal ph
 
 
                         if (readvanced == 0){
-                            retrace->append(QPointF(((retraceX * phasePoints) / phaseCount) - phasePoints, ((retraceY *
-                                                  magnitudePoints) / magnitudeCount) - magnitudeShift));
+                            retrace->append(QPointF(((retraceX * phaseSpan) / phaseCount) + phaseBottom, ((retraceY *
+                                                  magnitudeSpan) / magnitudeCount) + magnitudeBottom));
                             break;
                         }
                     }

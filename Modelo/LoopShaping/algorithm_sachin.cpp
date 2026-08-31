@@ -29,11 +29,12 @@ using namespace FC;
  * monotonicity of the projection makes feasible (the anti-blocking rule
  * of the QFTbx thesis, sec. 3.1).
  *
- * Known conscious deviation from the paper: the closed-loop stability
- * point check of sec. 3.3.5 (zeros of 1 + L0) is not implemented, as in
- * the historical code; the problems solved here always carry a stability
- * specification whose boundaries enforce robust stability through the
- * boundary crossing principle.
+ * The feasibility test is completed with the nominal closed-loop
+ * stability check of sec. 3.3.5, implemented on the Nichols chart by the
+ * Cohen-Chait-Yaniv criterion (NominalStabilityChecker): the QFT bounds
+ * alone do not exclude loops that encircle the critical point. The
+ * historical code approximated this with a hard-coded ordering penalty
+ * at 2 rad/s, retired by this review.
  */
 
 Algorithm_sachin::Algorithm_sachin() {
@@ -70,6 +71,7 @@ bool Algorithm_sachin::init_algorithm() {
 
     conversion = new NaturalIntervalExtension();
     deteccion = new DeteccionViolacionBoundaries();
+    stability = new NominalStabilityChecker(planta, omega);
 
     plantas_nominales = new QVector <cxsc::complex> ();
 
@@ -90,6 +92,7 @@ bool Algorithm_sachin::init_algorithm() {
             delete conversion;
             delete lista;
             delete deteccion;
+            delete stability;
 
             throw qftbx::InvalidInput(
                     "No feasible solution exists in the given search box.");
@@ -106,7 +109,18 @@ bool Algorithm_sachin::init_algorithm() {
         if (tripleta->getFlags() == feasible || if_less_epsilon(tripleta->getSistema(), this->epsilon, omega, conversion, plantas_nominales)) {
             if (tripleta->getFlags() == ambiguous) {
                 controlador_retorno = guardarControlador(tripleta->getSistema(), false);
+
+                //The anti-blocking corner is a fresh point: it must pass
+                //the nominal stability criterion too. If it does not,
+                //this node yields no solution and the search continues.
+                if (!stability->isNominallyStable(controlador_retorno)) {
+                    delete controlador_retorno;
+                    delete tripleta;
+                    continue;
+                }
             } else {
+                //The lower corner of a feasible box was already certified
+                //when the box entered the list.
                 controlador_retorno = guardarControlador(tripleta->getSistema(), true);
             }
 
@@ -114,6 +128,7 @@ bool Algorithm_sachin::init_algorithm() {
             delete lista;
             delete tripleta;
             delete deteccion;
+            delete stability;
 
             return true;
         }
@@ -204,6 +219,21 @@ inline void Algorithm_sachin::check_box_feasibility(LtiSystem * controlador) {
     //margins skip degenerate slivers that would only bloat the list.
     const qreal kInf = controlador->gain()->range().x();
     const qreal kSup = controlador->gain()->range().y();
+
+    //Nominal closed-loop stability of bounds-feasible boxes (Tharewal
+    //2005, sec. 3.3.5, by the Nichols-chart Nyquist criterion): satisfied
+    //stability bounds plus one nominally stable point make the whole box
+    //robustly stable; an unstable point discards it entirely.
+    if (flag_final == feasible) {
+        LtiSystem * point = guardarControlador(controlador, true);
+        const bool stable = stability->isNominallyStable(point);
+        delete point;
+
+        if (!stable) {
+            delete controlador;
+            return;
+        }
+    }
 
     if (flag_final == ambiguous && feasibleCertified &&
             feasibleFrom > kInf * 1.01 && feasibleFrom < kSup * 0.99) {
