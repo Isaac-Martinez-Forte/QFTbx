@@ -7,7 +7,7 @@
 
 #include "src/core/system/lti_system.h"
 #include "Modelo/Herramientas/tools.h"
-#include "GUI/viewboundreun.h"
+#include "GUI/boundary_union_viewer.h"
 #include "src/core/boundaries/boundary_data.h"
 #include "Modelo/LoopShaping/NaturalIntervalExtension/natural_interval_extension.h"
 #include "Modelo/LoopShaping/DeteccionViolacionBoundaries/deteccionviolacionboundaries.h"
@@ -100,17 +100,17 @@ inline bool if_less_epsilon(LtiSystem * controlador, qreal epsilon, QVector <qre
     return true;
 }
 
-inline ViewBoundReun * mostrar_diagrama(QVector <QVector<QPointF> * > *vector, QVector <qreal> * omega, BoundaryData * boundaries) {
-    ViewBoundReun * view = new ViewBoundReun();
+inline BoundaryUnionViewer * showDiagram(QVector <QVector<QPointF> * > *vector, QVector <qreal> * omega, BoundaryData * boundaries) {
+    BoundaryUnionViewer * view = new BoundaryUnionViewer();
 
     view->setDatos(boundaries->unionBoundaries(), omega);
 
-    view->mostrar_diagrama();
+    view->showDiagram();
 
     qint32 contador = 0;
 
     foreach(QVector <QPointF> * vec, *vector) {
-        view->dibujar_cuadro(vec->at(0), vec->at(1), vec->at(2), vec->at(3), contador);
+        view->drawBox(vec->at(0), vec->at(1), vec->at(2), vec->at(3), contador);
         contador++;
     }
 
@@ -121,17 +121,17 @@ inline ViewBoundReun * mostrar_diagrama(QVector <QVector<QPointF> * > *vector, Q
     return view;
 }
 
-inline void mostrar_diagrama2 (QVector <QVector<QPointF> * > *vector, QVector <qreal> * omega, BoundaryData * boundaries, ViewBoundReun * view) {
-    //ViewBoundReun * view = new ViewBoundReun();
+inline void mostrar_diagrama2 (QVector <QVector<QPointF> * > *vector, QVector <qreal> * omega, BoundaryData * boundaries, BoundaryUnionViewer * view) {
+    //BoundaryUnionViewer * view = new BoundaryUnionViewer();
 
     /*view->setDatos(boundaries->unionBoundaries(), omega);
 
-        view->mostrar_diagrama();*/
+        view->showDiagram();*/
 
     qint32 contador = 0;
 
     foreach(QVector <QPointF> * vec, *vector) {
-        view->dibujar_cuadro2(vec->at(0), vec->at(1), vec->at(2), vec->at(3), contador);
+        view->drawBox2(vec->at(0), vec->at(1), vec->at(2), vec->at(3), contador);
         contador++;
     }
 
@@ -141,13 +141,13 @@ inline void mostrar_diagrama2 (QVector <QVector<QPointF> * > *vector, QVector <q
 }
 
 inline void mostrar_diagramaBox(QVector<QPointF> * caja, QVector <qreal> * omega, BoundaryData * boundaries) {
-    ViewBoundReun * view = new ViewBoundReun();
+    BoundaryUnionViewer * view = new BoundaryUnionViewer();
 
     view->setDatos(boundaries->unionBoundaries(), omega);
 
-    view->mostrar_diagrama();
+    view->showDiagram();
 
-    view->dibujar_cuadro(caja->at(0), caja->at(1), caja->at(2), caja->at(3), 0);
+    view->drawBox(caja->at(0), caja->at(1), caja->at(2), caja->at(3), 0);
 
     view->exec();
 

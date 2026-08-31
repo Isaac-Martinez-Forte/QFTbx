@@ -207,7 +207,7 @@ flags_box Algorithm_rambabu::check_box_feasibility(LtiSystem * v){
     }
 #ifdef DEGUB
     if (depuracion)
-        mostrar_diagrama(puntos);
+        showDiagram(puntos);
 #endif
 
     if (flag_final == ambiguous){

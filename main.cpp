@@ -1,4 +1,4 @@
-#include "GUI/windowsgeneral.h"
+#include "GUI/main_window.h"
 #include <QApplication>
 #include <clocale>
 #include <memory>
@@ -16,7 +16,7 @@ qint32 main(qint32 argc, char *argv[])
 
     a.setWindowIcon(QIcon(":/icons/qftbx_256.png"));
 
-    auto w = std::make_shared<WindowsGeneral>();
+    auto w = std::make_shared<MainWindow>();
     w->setWindowIcon(QIcon(":/icons/qftbx_256.png"));
     w->show();
 

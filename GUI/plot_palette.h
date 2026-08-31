@@ -9,7 +9,7 @@
 //darkYellow appeared twice (two series painted alike).
 namespace tools {
 
-inline QColor ramdonColor (qint32 i){
+inline QColor randomColor (qint32 i){
 
     switch (i){
     case 0: return Qt::red;

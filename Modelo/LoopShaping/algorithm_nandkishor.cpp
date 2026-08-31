@@ -233,7 +233,7 @@ inline flags_box Algorithm_nandkishor::check_box_feasibility(LtiSystem * control
 
 #ifdef DEBUG
     //if (depuracion)
-    //mostrar_diagrama(puntos);
+    //showDiagram(puntos);
 #endif
 
     lista->insertar(new Tripleta(penalizacion ? controlador->gain()->range().x() + 100 : controlador->gain()->range().x(), controlador, flag_final));
