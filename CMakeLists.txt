@@ -292,10 +292,11 @@ add_library(qftbx_backend STATIC
 
 target_include_directories(qftbx_backend PUBLIC "${CMAKE_SOURCE_DIR}")
 
-# El backend todavia enlaza Widgets SOLO por LoopShaping (fase 8): sus
-# algoritmos incluyen visores de la GUI para depuracion. El resto del backend
-# ya no depende de Widgets.
-target_link_libraries(qftbx_backend PUBLIC Qt6::Core Qt6::Gui Qt6::Widgets Qt6::PrintSupport)
+# The backend is GUI-free since the debug viewers left with the legacy
+# algorithms: it links Core (containers) and Gui (QPointF consumers compile
+# against QtGui types in a few headers) but neither Widgets nor
+# PrintSupport.
+target_link_libraries(qftbx_backend PUBLIC Qt6::Core Qt6::Gui)
 target_link_libraries(qftbx_backend PUBLIC pugixml::pugixml)
 
 # ------------------------------------------------------------------------------
@@ -409,7 +410,8 @@ add_subdirectory(3rd-party/muparserx EXCLUDE_FROM_ALL)
 target_link_libraries(qftbx_backend PUBLIC muparserx::muparserx)
 
 add_subdirectory(3rd-party/qcustomplot EXCLUDE_FROM_ALL)
-target_link_libraries(qftbx_backend PUBLIC qcustomplot::qcustomplot)
+#Only the GUI plots: the backend no longer touches qcustomplot.
+target_link_libraries(${EXE_NAME} PRIVATE qcustomplot::qcustomplot)
 
 # ------------------------------------------------------------------------------
 # CXSC aislada (NO tocar cxsc). ExternalProject + imported target.
