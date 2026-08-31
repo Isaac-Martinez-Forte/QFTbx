@@ -1,5 +1,9 @@
 #include "free_form.h"
 
+#include <QRegularExpression>
+
+#include "Modelo/Herramientas/exception.h"
+
 using namespace std;
 using namespace mup;
 
@@ -13,35 +17,46 @@ FreeForm::FreeForm(QString name, QVector <Parameter*> * numerator, QVector <Para
     m_denominatorExpr = denominatorExpr;
 }
 
-std::complex <qreal> FreeForm::evaluate (QVector <qreal> * numerator, QVector <qreal> * denominator,
-                                             qreal k, qreal delay, qreal omega){ //TODO ver que hacer con esto
-    return complex <qreal> ();
+//Evaluation with explicit parameter values needs the free-form expression
+//rebuilt around those values, which no consumer requires any more (the
+//loop-shaping cuts moved to closed forms over zero-pole-gain structures).
+//The historical stubs returned 0 SILENTLY, poisoning any computation that
+//reached them; failing loudly keeps a future caller honest.
+std::complex <qreal> FreeForm::evaluate (QVector <qreal> *, QVector <qreal> *,
+                                             qreal, qreal, qreal){
+    throw ComputationError("FreeForm: evaluation with explicit parameter "
+                           "values is not implemented for free-form systems.");
 }
 
-QString FreeForm::expression (QVector <qreal> * numerator, QVector <qreal> * denominator,
-                               qreal k, qreal delay, qreal omega){//TODO ver que hacer con esto
-    return "";
+QString FreeForm::expression (QVector <qreal> *, QVector <qreal> *,
+                               qreal, qreal, qreal){
+    throw ComputationError("FreeForm: the expression with explicit parameter "
+                           "values is not implemented for free-form systems.");
 }
 
-std::complex <qreal> FreeForm::evaluateNumerator(QVector <qreal> * nume, qreal omega){
-
-
-    return complex <qreal> ();
+std::complex <qreal> FreeForm::evaluateNumerator(QVector <qreal> *, qreal){
+    throw ComputationError("FreeForm: numerator evaluation with explicit "
+                           "values is not implemented for free-form systems.");
 }
 
-std::complex <qreal> FreeForm::evaluateDenominator(QVector <qreal> * deno, qreal omega){
-
-
-    return complex <qreal> ();
+std::complex <qreal> FreeForm::evaluateDenominator(QVector <qreal> *, qreal){
+    throw ComputationError("FreeForm: denominator evaluation with explicit "
+                           "values is not implemented for free-form systems.");
 }
 
 QString FreeForm::expression(qreal w){
 
+    //Only the standalone Laplace variable becomes jw: a plain substring
+    //replace mutilated "sin", "sqrt", "abs" and any parameter whose name
+    //contains an 's'.
+    const QRegularExpression laplaceVariable(QStringLiteral("\\bs\\b"));
+    const QString jw = "(" + QString::number(w) + "*i)";
+
     QString n = m_numeratorExpr;
     QString d = m_denominatorExpr;
 
-    QString expr = m_gain->expression() + "*(" + n.replace("s", "(" + QString::number(w) + "*i)") + ")/(" +
-            d.replace("s", "(" + QString::number(w) + "*i)") + ")";
+    QString expr = m_gain->expression() + "*(" + n.replace(laplaceVariable, jw) + ")/(" +
+            d.replace(laplaceVariable, jw) + ")";
 
 
     //A pure delay is e^(-s*tau) => e^(-i*w*tau). Emitted when the delay is

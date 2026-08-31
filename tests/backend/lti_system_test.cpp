@@ -23,6 +23,7 @@
 #include "src/core/system/time_constant_gain.h"
 #include "src/core/system/lti_system.h"
 #include "src/core/system/parameter.h"
+#include "Modelo/Herramientas/exception.h"
 
 namespace {
 
@@ -356,6 +357,37 @@ TEST(FormatoLibreExpr, NumericExpressionSubstitutesS)
     delete planta;
 }
 
+TEST(FormatoLibreExpr, NumericExpressionOnlyReplacesTheLaplaceVariable)
+{
+    //The historical substring replace mutilated "sin", "sqrt" and any
+    //parameter whose name contains an 's'.
+    FreeForm* planta = new FreeForm(
+        QStringLiteral("tokens"),
+        vars({new Parameter(QStringLiteral("desp"), QPointF(0.5, 2.0), 1.0, QStringLiteral("desp"))}),
+        vars({}),
+        new Parameter(1.0), new Parameter(0.0),
+        QStringLiteral("sin(s) + sqrt(desp) + s"), QStringLiteral("1"));
+
+    EXPECT_EQ(planta->expression(2.0),
+              QStringLiteral("1*(sin((2*i)) + sqrt(desp) + (2*i))/(1)"));
+    delete planta;
+}
+
+TEST(FormatoLibreExpr, ExplicitValueEvaluationThrows)
+{
+    //The historical stubs returned 0 silently.
+    FreeForm* planta = makeCerveraPlant();
+    QVector<qreal> values{1.0};
+
+    EXPECT_THROW(planta->evaluate(&values, &values, 1.0, 0.0, 1.0),
+                 qftbx::ComputationError);
+    EXPECT_THROW(planta->evaluateNumerator(&values, 1.0),
+                 qftbx::ComputationError);
+    EXPECT_THROW(planta->evaluateDenominator(&values, 1.0),
+                 qftbx::ComputationError);
+    delete planta;
+}
+
 TEST(FormatoLibreExpr, NominalEvaluation)
 {
     FreeForm* planta = makeCerveraPlant();
@@ -444,19 +476,6 @@ TEST(SistemaInvoke, NullDelayBecomesZeroConstant)
     EXPECT_NEAR(value.real(), expected.real(), kTolerance);
     EXPECT_NEAR(value.imag(), expected.imag(), kTolerance);
     delete built;
-}
-
-TEST(FormatoLibreExpr, GetPuntoWithExplicitValuesIsAnUnimplementedStub)
-{
-    // BUG: FreeForm::evaluate(nume, deno, k, ret, w) is a "//TODO" stub
-    // returning 0 silently; the loop-shaping algorithms do call it.
-    FreeForm* planta = makeCerveraPlant();
-
-    QVector<qreal> nume{2.0};
-    QVector<qreal> deno{2.0};
-    const Complex value = planta->evaluate(&nume, &deno, 1.0, 0.0, 0.1);
-    EXPECT_EQ(value, Complex(0.0, 0.0));
-    delete planta;
 }
 
 } // namespace
