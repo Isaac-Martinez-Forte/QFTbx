@@ -6,7 +6,7 @@
 #include <QHash>
 #include <QMap>
 
-#include "Modelo/EstructurasDatos/datosbound.h"
+#include "src/core/boundaries/boundary_data.h"
 #include "src/core/system/lti_system.h"
 #include "NaturalIntervalExtension/natural_interval_extension.h"
 #include "EstructuraDatos/avl.h"
@@ -29,7 +29,7 @@ public:
     ~Algorithm_rambabu();
 
 
-    void set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> * omega, DatosBound *boundaries,
+    void set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> * omega, BoundaryData *boundaries,
                                      qreal epsilon, QVector<QVector<QVector<QPointF> *> *> *reunBoun, bool depuracion,
                                       QVector <QVector <std::complex <qreal> > * > * temp, QVector <tools::dBND *> * espe);
 
@@ -53,7 +53,7 @@ private:
     LtiSystem * planta;
     LtiSystem * controlador;
     QVector <qreal> * omega;
-    DatosBound * boundaries;
+    BoundaryData * boundaries;
     Natura_Interval_extension * conversion;
     ListaOrdenada * lista;
     qreal epsilon;

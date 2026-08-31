@@ -16,7 +16,7 @@ Algorithm_nandkishor::~Algorithm_nandkishor()
 }
 
 
-void Algorithm_nandkishor::set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> * omega, DatosBound *boundaries,
+void Algorithm_nandkishor::set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> * omega, BoundaryData *boundaries,
                                      qreal epsilon, QVector<QVector<QVector<QPointF> *> *> *reunBounHash,
                                      qreal delta, qint32 inicializacion){
 
@@ -28,10 +28,10 @@ void Algorithm_nandkishor::set_datos(LtiSystem *planta, LtiSystem *controlador, 
     this->epsilon = epsilon;
     this->reunBounHash = reunBounHash;
 
-    this->metaDatosArriba = boundaries->getMetaDatosArriba();
-    this->metaDatosAbierto = boundaries->getMetaDatosAbierta();
+    this->metaDatosArriba = boundaries->upperFlags();
+    this->metaDatosAbierto = boundaries->openFlags();
 
-    this->tamFas = boundaries->getTamFas() -1;
+    this->tamFas = boundaries->phaseCount() -1;
     this->depuracion = true;
 
     this->delta = delta;
@@ -39,7 +39,7 @@ void Algorithm_nandkishor::set_datos(LtiSystem *planta, LtiSystem *controlador, 
     this->ini = (tipoInicializacion) inicializacion;
 
 
-    QVector< QVector<QPointF> * > * boun = boundaries->getBoundariesReun();
+    QVector< QVector<QPointF> * > * boun = boundaries->unionBoundaries();
 
     QVector <QPointF> * datosFases = new QVector <QPointF> ();
     QVector <QPointF> * datosMag = new QVector <QPointF> ();
@@ -75,8 +75,8 @@ void Algorithm_nandkishor::set_datos(LtiSystem *planta, LtiSystem *controlador, 
 
     }
 
-    boundaries->setDatosFasBound(datosFases);
-    boundaries->setDatosMagBound(datosMag);
+    boundaries->setPhaseAxis(datosFases);
+    boundaries->setMagnitudeAxis(datosMag);
 
 
 

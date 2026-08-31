@@ -33,11 +33,13 @@ stage has a dialog in the GUI and an engine in the model layer.
 
 | Directory | Contents |
 |---|---|
-| `Modelo/EstructuraSistema/` | Plant/controller representation: `Sistema` hierarchy, transfer functions, polynomials |
-| `Modelo/EstructurasDatos/` | Data holders exchanged between stages (`Var`, template/boundary/loop-shaping data) |
+| `src/core/system/` | Plant/controller representation: `LtiSystem` hierarchy, transfer functions, parameters |
+| `src/core/templates/` | Brute-force template computation and ε-hull contour (`TemplateEngine`) |
+| `src/core/specifications/` | Validated specification set (`qftbx::Specification`) |
+| `src/core/boundaries/` | Boundary computation: sheets (`BoundaryEngine`), contour tracing (`ContourTracer`), 1D union (`BoundaryUnion1D`), results view (`BoundaryData`) |
+| `src/core/math/` | Numeric helpers (`linspace`/`logspace`) |
+| `Modelo/EstructurasDatos/` | Transitional data holders (`dBND`, plant/loop-shaping data) pending migration |
 | `Modelo/Objetos/` | Small domain objects (design frequencies `Omega`) |
-| `Modelo/Templates/` | Brute-force template computation and ε-hull contour |
-| `Modelo/Boundaries/` | Boundary computation: grid ("sábana"), contour tracing, 1D merge |
 | `Modelo/LoopShaping/` | Automatic loop-shaping algorithms and interval-arithmetic support |
 | `Modelo/Herramientas/` | Shared helpers (`tools.h`, `qftbx::Exception`) |
 | `Modelo/controlador.cpp` | `Controlador`: the single mediator between GUI and model |

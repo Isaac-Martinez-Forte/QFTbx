@@ -26,7 +26,7 @@ Algorithm_primer_articulo::~Algorithm_primer_articulo() {
 
 }
 
-void Algorithm_primer_articulo::set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> * omega, DatosBound *boundaries,
+void Algorithm_primer_articulo::set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> * omega, BoundaryData *boundaries,
                                 qreal epsilon, QVector<QVector<QVector<QPointF> *> *> *reunBounHash,
                                 bool depuracion __attribute__((unused)), bool hilos, QVector<qreal>*radiosBoundariesMayor,
                                 QVector<qreal> *radiosBoundariesMenor, QVector<QPointF> *centros, bool biseccion_avanzada, bool deteccion_avanzada, bool a) {
@@ -37,7 +37,7 @@ void Algorithm_primer_articulo::set_datos(LtiSystem *planta, LtiSystem *controla
     this->boundaries = boundaries;
     this->epsilon = epsilon;
 
-    this->tamFas = boundaries->getTamFas() - 1;
+    this->tamFas = boundaries->phaseCount() - 1;
     this->hilos = hilos;
 
     this->radiosBoundariesMayor = radiosBoundariesMayor;
@@ -56,7 +56,7 @@ void Algorithm_primer_articulo::set_datos(LtiSystem *planta, LtiSystem *controla
 
         qreal maglineal = 0;
 
-        QVector< QVector<QPointF> * > * boun = boundaries->getBoundariesReun();
+        QVector< QVector<QPointF> * > * boun = boundaries->unionBoundaries();
 
         QVector< QVector<QPointF> * > * nuevosBoundariesReun =
                 new QVector< QVector<QPointF> * > ();
@@ -69,7 +69,7 @@ void Algorithm_primer_articulo::set_datos(LtiSystem *planta, LtiSystem *controla
         QVector <QPointF> * datosFases = new QVector <QPointF> ();
         QVector <QPointF> * datosMag = new QVector <QPointF> ();
 
-        qreal tamFas = boundaries->getTamFas() - 1;
+        qreal tamFas = boundaries->phaseCount() - 1;
 
 
         foreach (auto vector, *boun) {
@@ -149,16 +149,16 @@ void Algorithm_primer_articulo::set_datos(LtiSystem *planta, LtiSystem *controla
             nuevosBoundariesReun->append(nuevoVector);
         }
 
-        DatosBound * nuevoBoundaries = new DatosBound (boundaries->getBoundaries(), boundaries->getMetaDatosAbierta(),
-                                                       boundaries->getMetaDatosArriba(), boundaries->getTamFas(),
-                                                       boundaries->getDatosFas(), nuevosBoundariesReun,
-                                                       nuevoHash_inter, boundaries->getTamMag(), boundaries->getDatosMag());
+        BoundaryData * nuevoBoundaries = new BoundaryData (boundaries->boundaries(), boundaries->openFlags(),
+                                                       boundaries->upperFlags(), boundaries->phaseCount(),
+                                                       boundaries->phaseRange(), nuevosBoundariesReun,
+                                                       nuevoHash_inter, boundaries->magnitudeCount(), boundaries->magnitudeRange());
 
-        nuevoBoundaries->setDatosFasBoundLin(datosX);
-        nuevoBoundaries->setDatosMagBoundLin(datosY);
+        nuevoBoundaries->setLinearPhaseAxis(datosX);
+        nuevoBoundaries->setLinearMagnitudeAxis(datosY);
 
-        nuevoBoundaries->setDatosFasBound(datosFases);
-        nuevoBoundaries->setDatosMagBound(datosMag);
+        nuevoBoundaries->setPhaseAxis(datosFases);
+        nuevoBoundaries->setMagnitudeAxis(datosMag);
 
         boundariesAux = boundaries;
         this->boundaries = nuevoBoundaries;
@@ -167,7 +167,7 @@ void Algorithm_primer_articulo::set_datos(LtiSystem *planta, LtiSystem *controla
         deteccionViolacion = &DeteccionViolacionBoundaries::deteccionViolacionCajaNiNi;
         Nyquist = false;
 
-        QVector< QVector<QPointF> * > * boun = boundaries->getBoundariesReun();
+        QVector< QVector<QPointF> * > * boun = boundaries->unionBoundaries();
 
         QVector <QPointF> * datosFases = new QVector <QPointF> ();
         QVector <QPointF> * datosMag = new QVector <QPointF> ();
@@ -203,8 +203,8 @@ void Algorithm_primer_articulo::set_datos(LtiSystem *planta, LtiSystem *controla
 
         }
 
-        boundaries->setDatosFasBound(datosFases);
-        boundaries->setDatosMagBound(datosMag);
+        boundaries->setPhaseAxis(datosFases);
+        boundaries->setMagnitudeAxis(datosMag);
 
     }
 
@@ -348,7 +348,7 @@ inline Tripleta * Algorithm_primer_articulo::check_box_feasibility(LtiSystem *co
 #if defined(COMPARACION_CAJAS)
     ViewBoundReun * view = new ViewBoundReun();
 
-    view->setDatos(boundaries->getBoundariesReun(), omega);
+    view->setDatos(boundaries->unionBoundaries(), omega);
 
     view->mostrar_diagrama();
 
@@ -363,7 +363,7 @@ inline Tripleta * Algorithm_primer_articulo::check_box_feasibility(LtiSystem *co
 #ifdef VER_ANTES
         ViewBoundReun * view = new ViewBoundReun();
 
-        view->setDatos(boundaries->getBoundariesReun(), omega);
+        view->setDatos(boundaries->unionBoundaries(), omega);
 
         view->mostrar_diagrama();
 #endif

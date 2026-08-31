@@ -101,7 +101,7 @@ public:
       * @return boundaries recuperados.
       */
 
-    DatosBound * getBoundaries();
+    BoundaryData * getBoundaries();
 
 
     /**
@@ -163,7 +163,7 @@ private:
      QVector <QVector <std::complex<qreal>> * > * contorno;
      QVector <qreal> * epsilon;
 
-     DatosBound * bound;
+     BoundaryData * bound;
      QVector<QVector<QVector<qreal> *> *> * sabanas;
 
      LtiSystem * controlador;

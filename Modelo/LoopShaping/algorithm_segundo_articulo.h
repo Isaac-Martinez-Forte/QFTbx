@@ -10,7 +10,7 @@
 #include <QSemaphore>
 #include <limits>
 
-#include "Modelo/EstructurasDatos/datosbound.h"
+#include "src/core/boundaries/boundary_data.h"
 #include "src/core/system/lti_system.h"
 #include "NaturalIntervalExtension/natural_interval_extension.h"
 #include "EstructuraDatos/avl.h"
@@ -37,7 +37,7 @@ public:
     Algorithm_segundo_articulo();
     ~Algorithm_segundo_articulo();
 
-    void set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, DatosBound * boundaries,
+    void set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, BoundaryData * boundaries,
                     qreal epsilon);
 
     bool init_algorithm();
@@ -70,7 +70,7 @@ private:
     LtiSystem * controlador_retorno;
 
     QVector <qreal> * omega;
-    DatosBound * boundaries;
+    BoundaryData * boundaries;
     Natura_Interval_extension * conversion;
     ListaOrdenada * lista;
     qreal epsilon;
@@ -79,7 +79,7 @@ private:
     QVector <cxsc::complex> * plantas_nominales;
     QVector <std::complex <qreal>> * plantas_nominales2;
 
-    data_box * (DeteccionViolacionBoundaries::*deteccionViolacion) (cinterval, DatosBound *, qint32, Etapas);
+    data_box * (DeteccionViolacionBoundaries::*deteccionViolacion) (cinterval, BoundaryData *, qint32, Etapas);
 
     bool isVariableNume;
     bool isVariableDeno;

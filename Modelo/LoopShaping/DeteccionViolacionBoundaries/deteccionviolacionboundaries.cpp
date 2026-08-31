@@ -162,13 +162,13 @@ inline qint32 DeteccionViolacionBoundaries::side_p_to_seg(std::complex<qreal> v1
     return lado;
 }
 
-data_box * DeteccionViolacionBoundaries::deteccionViolacionCajaNyNi(cinterval box, DatosBound * boundaries, qint32 contador)
+data_box * DeteccionViolacionBoundaries::deteccionViolacionCajaNyNi(cinterval box, BoundaryData * boundaries, qint32 contador)
 {
 
-    QVector< QVector<QPointF> * > * interseccionHash = boundaries->getBoundariesReunHash()->at(contador);
-    qreal totalFase = boundaries->getTamFas() - 1;
-    QPointF fases = boundaries->getDatosFasBoundLin()->at(contador);
-    QPointF magitudes = boundaries->getDatosMagBoundLin()->at(contador);
+    QVector< QVector<QPointF> * > * interseccionHash = boundaries->unionBuckets()->at(contador);
+    qreal totalFase = boundaries->phaseCount() - 1;
+    QPointF fases = boundaries->linearPhaseAxis()->at(contador);
+    QPointF magitudes = boundaries->linearMagnitudeAxis()->at(contador);
 
     if ( InfRe(box) < fases.x() && SupRe(box) > fases.y() && InfIm(box) < magitudes.x() && SupIm(box) > magitudes.y()){
 
@@ -180,10 +180,10 @@ data_box * DeteccionViolacionBoundaries::deteccionViolacionCajaNyNi(cinterval bo
 
         datos->setFlag(ambiguous);
 
-        minimosMaximos->append(pow(10, boundaries->getDatosMagBound()->at(contador).x() / 20));
-        minimosMaximos->append(pow(10, boundaries->getDatosMagBound()->at(contador).y() / 20));
-        minimosMaximos->append(boundaries->getDatosFasBound()->at(contador).x() * PI / 180);
-        minimosMaximos->append(boundaries->getDatosFasBound()->at(contador).y() * PI / 180);
+        minimosMaximos->append(pow(10, boundaries->magnitudeAxis()->at(contador).x() / 20));
+        minimosMaximos->append(pow(10, boundaries->magnitudeAxis()->at(contador).y() / 20));
+        minimosMaximos->append(boundaries->phaseAxis()->at(contador).x() * PI / 180);
+        minimosMaximos->append(boundaries->phaseAxis()->at(contador).y() * PI / 180);
 
         datos->setMinimoxMaximos(minimosMaximos);
 
@@ -212,9 +212,9 @@ data_box * DeteccionViolacionBoundaries::deteccionViolacionCajaNyNi(cinterval bo
 
     qreal salto = numeroFases / totalFase;
 
-    interval theta = Im(boundaries->getBox());
+    interval theta = Im(boundaries->box());
 
-    interval mag = Re(boundaries->getBox());
+    interval mag = Re(boundaries->box());
 
     qreal f = _double(InfRe(box));
 
@@ -355,10 +355,10 @@ data_box * DeteccionViolacionBoundaries::deteccionViolacionCajaNyNi(cinterval bo
     return datos;
 }
 
-data_box * DeteccionViolacionBoundaries::deteccionViolacionCajaNiNi(cinterval box, DatosBound *boundaries, qint32 contador, Etapas e) {
+data_box * DeteccionViolacionBoundaries::deteccionViolacionCajaNiNi(cinterval box, BoundaryData *boundaries, qint32 contador, Etapas e) {
 
 
-    if (e == Etapas::INICIAL &&  (InfIm(box) > boundaries->getDatosFas().x() || SupIm(box) < boundaries->getDatosFas().y())) {
+    if (e == Etapas::INICIAL &&  (InfIm(box) > boundaries->phaseRange().x() || SupIm(box) < boundaries->phaseRange().y())) {
        cambioEtapas = true;
     }
 
@@ -367,7 +367,7 @@ data_box * DeteccionViolacionBoundaries::deteccionViolacionCajaNiNi(cinterval bo
 
 
 
-data_box * DeteccionViolacionBoundaries::deteccionViolacionCajaNiNi(cinterval box, DatosBound *boundaries, qint32 contador) {
+data_box * DeteccionViolacionBoundaries::deteccionViolacionCajaNiNi(cinterval box, BoundaryData *boundaries, qint32 contador) {
 
     c++;
 
@@ -377,14 +377,14 @@ data_box * DeteccionViolacionBoundaries::deteccionViolacionCajaNiNi(cinterval bo
         qint32 a = 10;
     }*/
 
-    QVector< QVector<QPointF> * > * interseccionHash = boundaries->getBoundariesReunHash()->at(contador);
-    qreal totalFase = boundaries->getTamFas() - 1;
-    bool abierta = boundaries->getMetaDatosAbierta()->at(contador);
-    bool arriba = boundaries->getMetaDatosArriba()->at(contador);
+    QVector< QVector<QPointF> * > * interseccionHash = boundaries->unionBuckets()->at(contador);
+    qreal totalFase = boundaries->phaseCount() - 1;
+    bool abierta = boundaries->openFlags()->at(contador);
+    bool arriba = boundaries->upperFlags()->at(contador);
 
     bool ambiguo = false;
 
-    qreal numeroFases = boundaries->getDatosFas().y() - boundaries->getDatosFas().x();
+    qreal numeroFases = boundaries->phaseRange().y() - boundaries->phaseRange().x();
 
     qreal salto = numeroFases / totalFase;
 
@@ -478,12 +478,12 @@ data_box * DeteccionViolacionBoundaries::deteccionViolacionCajaNiNi(cinterval bo
     return datos;
 }
 
-data_box *DeteccionViolacionBoundaries::deteccionViolacionCajaNi(cinterval box, DatosBound *boundaries, qint32 contador) {
+data_box *DeteccionViolacionBoundaries::deteccionViolacionCajaNi(cinterval box, BoundaryData *boundaries, qint32 contador) {
 
-    QVector< QVector<QPointF> * > * interseccionHash = boundaries->getBoundariesReunHash()->at(contador);
-    qint32 totalFase = boundaries->getTamFas() - 1;
-    bool abierta = boundaries->getMetaDatosAbierta()->at(contador);
-    bool arriba = boundaries->getMetaDatosArriba()->at(contador);
+    QVector< QVector<QPointF> * > * interseccionHash = boundaries->unionBuckets()->at(contador);
+    qint32 totalFase = boundaries->phaseCount() - 1;
+    bool abierta = boundaries->openFlags()->at(contador);
+    bool arriba = boundaries->upperFlags()->at(contador);
 
 
     qreal minFasCaja = std::numeric_limits<qreal>::max(), maxFasCaja = std::numeric_limits<qreal>::lowest(),
@@ -491,7 +491,7 @@ data_box *DeteccionViolacionBoundaries::deteccionViolacionCajaNi(cinterval box, 
 
     bool ambiguo = false;
 
-    qint32 numeroFases = boundaries->getDatosFas().y() - boundaries->getDatosFas().x();
+    qint32 numeroFases = boundaries->phaseRange().y() - boundaries->phaseRange().x();
 
     qreal salto = totalFase / numeroFases;
 

@@ -7,7 +7,7 @@
 
 
 #include "Modelo/Herramientas/tools.h"
-#include "Modelo/EstructurasDatos/datosbound.h"
+#include "src/core/boundaries/boundary_data.h"
 #include "qcustomplot.h"
 
 
@@ -49,7 +49,7 @@ public:
     * @param sabana sábana completa del cálculo intermedio a los boundaries.
     */
     
-    void setDatos (DatosBound *datos, QVector<qreal> *omega);
+    void setDatos (BoundaryData *datos, QVector<qreal> *omega);
     
     
    /**
@@ -70,7 +70,7 @@ private:
 
     void crearCuadro(QColor color, qint32 pos);
 
-    DatosBound * boundaries;
+    BoundaryData * boundaries;
     QVector <qreal> * omega;
 
     bool ejecutado;

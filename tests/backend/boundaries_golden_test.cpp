@@ -16,8 +16,8 @@
 #include <QString>
 #include <QVector>
 
-#include "Modelo/Boundaries/boundaries.h"
-#include "Modelo/EstructurasDatos/datosbound.h"
+#include "src/core/boundaries/boundary_engine.h"
+#include "src/core/boundaries/boundary_data.h"
 #include "Modelo/Objetos/omega.h"
 #include "XmlParser/parserload.h"
 
@@ -51,42 +51,42 @@ protected:
         delete parser.recuperarXmlDatos(
             QStringLiteral(QFTBX_TEST_DATA_DIR "/multivaluados.qft"));
 
-        engine.lanzarCalculo(parser.getOmega()->getValores(), parser.getPlanta(),
+        engine.compute(parser.getOmega()->getValores(), parser.getPlanta(),
                              parser.getContorno(), parser.getEspecificaciones(),
                              QPointF(-360.0, 0.0), 361, QPointF(-60.0, 60.0), 121,
                              -1.0, false);
 
-        got = engine.getBoundaries();
+        got = engine.boundaryData();
         gold = parser.getBoundaries();
         ASSERT_NE(got, nullptr);
         ASSERT_NE(gold, nullptr);
     }
 
     XmlParserLoad parser;
-    Boundaries engine;
-    DatosBound* got = nullptr;
-    DatosBound* gold = nullptr;
+    BoundaryEngine engine;
+    BoundaryData* got = nullptr;
+    BoundaryData* gold = nullptr;
 };
 
 TEST_F(BoundariesGolden, GridMetadataMatches)
 {
-    EXPECT_EQ(got->getTamFas(), gold->getTamFas());   // 361
-    EXPECT_EQ(got->getTamMag(), gold->getTamMag());   // 121
-    EXPECT_EQ(got->getDatosFas(), gold->getDatosFas()); // (-360, 0)
-    EXPECT_EQ(got->getDatosMag(), gold->getDatosMag()); // (-60, 60)
+    EXPECT_EQ(got->phaseCount(), gold->phaseCount());   // 361
+    EXPECT_EQ(got->magnitudeCount(), gold->magnitudeCount());   // 121
+    EXPECT_EQ(got->phaseRange(), gold->phaseRange()); // (-360, 0)
+    EXPECT_EQ(got->magnitudeRange(), gold->magnitudeRange()); // (-60, 60)
 
-    ASSERT_NE(got->getMetaDatosAbierta(), nullptr);
-    ASSERT_EQ(got->getMetaDatosAbierta()->size(), 5);
+    ASSERT_NE(got->openFlags(), nullptr);
+    ASSERT_EQ(got->openFlags()->size(), 5);
     for (int f = 0; f < 5; ++f) {
-        EXPECT_FALSE(got->getMetaDatosAbierta()->at(f));
-        EXPECT_FALSE(got->getMetaDatosArriba()->at(f));
+        EXPECT_FALSE(got->openFlags()->at(f));
+        EXPECT_FALSE(got->upperFlags()->at(f));
     }
 }
 
 TEST_F(BoundariesGolden, TracesMatchTheGoldenInGridIndices)
 {
-    auto* gotB = got->getBoundaries();
-    auto* goldB = gold->getBoundaries();
+    auto* gotB = got->boundaries();
+    auto* goldB = gold->boundaries();
     ASSERT_EQ(gotB->size(), 5);
     ASSERT_EQ(goldB->size(), 5);
 
@@ -127,11 +127,11 @@ TEST_F(BoundariesGolden, TracesMatchTheGoldenInGridIndices)
 
 TEST_F(BoundariesGolden, ReunionIsTheConcatenationOfTheTraces)
 {
-    auto* reun = got->getBoundariesReun();
+    auto* reun = got->unionBoundaries();
     ASSERT_NE(reun, nullptr);
     ASSERT_EQ(reun->size(), 5);
 
-    auto* gotB = got->getBoundaries();
+    auto* gotB = got->boundaries();
     for (int f = 0; f < 5; ++f) {
         auto* traces = gotB->at(f)->value(QStringLiteral("Seguimiento"));
         int total = 0;
@@ -159,15 +159,15 @@ TEST_F(BoundariesGolden, ContourInputIsEquivalentToFullTemplates)
     delete parser2.recuperarXmlDatos(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/multivaluados.qft"));
 
-    Boundaries engine2;
-    engine2.lanzarCalculo(parser2.getOmega()->getValores(), parser2.getPlanta(),
+    BoundaryEngine engine2;
+    engine2.compute(parser2.getOmega()->getValores(), parser2.getPlanta(),
                           parser2.getTemplates(), parser2.getEspecificaciones(),
                           QPointF(-360.0, 0.0), 361, QPointF(-60.0, 60.0), 121,
                           -1.0, false);
-    DatosBound* other = engine2.getBoundaries();
+    BoundaryData* other = engine2.boundaryData();
 
-    auto* a = got->getBoundaries();
-    auto* b = other->getBoundaries();
+    auto* a = got->boundaries();
+    auto* b = other->boundaries();
     ASSERT_EQ(a->size(), b->size());
     for (int f = 0; f < a->size(); ++f) {
         auto* ta = a->at(f)->value(QStringLiteral("Seguimiento"));
@@ -186,11 +186,11 @@ TEST_F(BoundariesGolden, ReunionHashIsSortedDeduplicatedAndInRange)
     // indexes out of range, and each bucket is sorted ascending by
     // magnitude with duplicate magnitudes dropped - the semantics of the
     // layer buckets and of the historical files.
-    auto* hash = got->getBoundariesReunHash();
+    auto* hash = got->unionBuckets();
     ASSERT_NE(hash, nullptr);
     ASSERT_EQ(hash->size(), 5);
 
-    auto* reun = got->getBoundariesReun();
+    auto* reun = got->unionBoundaries();
 
     for (int f = 0; f < 5; ++f) {
         ASSERT_EQ(hash->at(f)->size(), 361) << "frequency " << f;

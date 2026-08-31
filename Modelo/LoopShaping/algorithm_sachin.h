@@ -5,7 +5,7 @@
 #include <QHash>
 #include <cmath>
 
-#include "Modelo/EstructurasDatos/datosbound.h"
+#include "src/core/boundaries/boundary_data.h"
 #include "src/core/system/lti_system.h"
 #include "NaturalIntervalExtension/natural_interval_extension.h"
 #include "EstructuraDatos/avl.h"
@@ -28,7 +28,7 @@ public:
     Algorithm_sachin();
     ~Algorithm_sachin();
 
-    void set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, DatosBound * boundaries,
+    void set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, BoundaryData * boundaries,
                     qreal epsilon, QVector<QVector<QVector<QPointF> *> *> * reunBounHash);
 
     bool init_algorithm();
@@ -44,7 +44,7 @@ private:
     LtiSystem * planta;
     LtiSystem * controlador;
     QVector <qreal> * omega;
-    DatosBound * boundaries;
+    BoundaryData * boundaries;
     Natura_Interval_extension * conversion;
     ListaOrdenada * lista;
     qreal epsilon;

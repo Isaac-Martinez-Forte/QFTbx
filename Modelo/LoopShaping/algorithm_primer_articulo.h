@@ -9,7 +9,7 @@
 #include <QSemaphore>
 #include <limits>
 
-#include "Modelo/EstructurasDatos/datosbound.h"
+#include "src/core/boundaries/boundary_data.h"
 #include "src/core/system/lti_system.h"
 #include "NaturalIntervalExtension/natural_interval_extension.h"
 #include "EstructuraDatos/avl.h"
@@ -35,7 +35,7 @@ public:
     Algorithm_primer_articulo();
     ~Algorithm_primer_articulo();
 
-    void set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, DatosBound * boundaries,
+    void set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, BoundaryData * boundaries,
                     qreal epsilon, QVector<QVector<QVector<QPointF> *> *> * reunBounHash, bool depuracion,
                    bool hilos, QVector <qreal> * radiosBoundariesMayor, QVector <qreal> * radiosBoundariesMenor,
                    QVector <QPointF> * centros, bool biseccion_avanzada, bool deteccion_avanzada, bool a);
@@ -60,8 +60,8 @@ private:
     LtiSystem * planta;
     LtiSystem * controlador;
     QVector <qreal> * omega;
-    DatosBound * boundaries;
-    DatosBound * boundariesAux;
+    BoundaryData * boundaries;
+    BoundaryData * boundariesAux;
     Natura_Interval_extension * conversion;
     ListaOrdenada * lista;
     qreal epsilon;
@@ -93,7 +93,7 @@ private:
     bool isVariableDeno;
     
     FC::return_bisection (Algorithm_primer_articulo::*split_box)(LtiSystem *);
-    data_box * (DeteccionViolacionBoundaries::*deteccionViolacion) (cinterval, DatosBound *, qint32);
+    data_box * (DeteccionViolacionBoundaries::*deteccionViolacion) (cinterval, BoundaryData *, qint32);
 
     LtiSystem * (Algorithm_primer_articulo::*analisis)(LtiSystem *v, QVector<data_box *> *datosCortesBoundaries);
 

@@ -5,7 +5,7 @@
 #include <QVector>
 #include <QHash>
 
-#include "Modelo/EstructurasDatos/datosbound.h"
+#include "src/core/boundaries/boundary_data.h"
 #include "src/core/system/lti_system.h"
 #include "NaturalIntervalExtension/natural_interval_extension.h"
 #include "EstructuraDatos/avl.h"
@@ -29,7 +29,7 @@ public:
     ~Algorithm_nandkishor();
 
 
-    void set_datos (LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, DatosBound * boundaries,
+    void set_datos (LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, BoundaryData * boundaries,
                      qreal epsilon, QVector<QVector<QVector<QPointF> *> *> * reunBoun, qreal delta, qint32 inicializacion );
 
     bool init_algorithm();
@@ -97,7 +97,7 @@ private:
     LtiSystem * controlador;
     LtiSystem * controlador_inicial;
     QVector <qreal> * omega;
-    DatosBound * boundaries;
+    BoundaryData * boundaries;
     Natura_Interval_extension * conversion;
     ListaOrdenada * lista;
 

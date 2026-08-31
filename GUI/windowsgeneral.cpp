@@ -285,7 +285,7 @@ void WindowsGeneral::on_BBoun_clicked()
         viewBound->mostrarDiagrama();
         viewBound->show();
 
-        viewBoundReun->setDatos(controlador->getBoundariesReun(), controlador->getOmega()->getValores());
+        viewBoundReun->setDatos(controlador->unionBoundaries(), controlador->getOmega()->getValores());
         viewBoundReun->mostrar_diagrama();
         viewBoundReun->show();
 
@@ -356,7 +356,7 @@ void WindowsGeneral::on_BDiLaz_clicked()
         }
 
         if (re){
-            viewLoopShaping->setDatos(controlador->getBoundariesReun(),controlador->getOmega()->getValores(),
+            viewLoopShaping->setDatos(controlador->unionBoundaries(),controlador->getOmega()->getValores(),
                                       controlador->getLoopShaping(), controlador->getPlanta(), loopShaping->getLinLogSpace());
 
             viewLoopShaping->mostrar_diagrama();
@@ -552,9 +552,9 @@ void WindowsGeneral::mostrarLazo(bool nichols, bool nyquist){
 
     qreal maglineal = 0;
 
-    DatosBound * boundaries = controlador->getBound();
+    BoundaryData * boundaries = controlador->getBound();
 
-    QVector< QVector<QPointF> * > * boun = boundaries->getBoundariesReun();
+    QVector< QVector<QPointF> * > * boun = boundaries->unionBoundaries();
 
     QVector< QVector<QPointF> * > * nuevosBoundariesReun =
             new QVector< QVector<QPointF> * > ();
@@ -587,17 +587,17 @@ void WindowsGeneral::mostrarLazo(bool nichols, bool nyquist){
 
 
 
-    QPointF nuevoDatosFas ((boundaries->getDatosFas().x() * M_PI) / 180, 0);
+    QPointF nuevoDatosFas ((boundaries->phaseRange().x() * M_PI) / 180, 0);
 
-    QPointF datosMag = boundaries->getDatosMag();
+    QPointF datosMag = boundaries->magnitudeRange();
 
     QPointF nuevosDatosMag (pow(10,datosMag.x()/20), pow(10,datosMag.y()/20));
 
-    DatosBound * nuevoBoundaries = new DatosBound (boundaries->getBoundaries(), boundaries->getMetaDatosAbierta(),
-                                                   boundaries->getMetaDatosArriba(), boundaries->getTamFas(),
+    BoundaryData * nuevoBoundaries = new BoundaryData (boundaries->boundaries(), boundaries->openFlags(),
+                                                   boundaries->upperFlags(), boundaries->phaseCount(),
                                                    nuevoDatosFas, nuevosBoundariesReun,
                                                    nuevoHash_inter,
-                                                   boundaries->getTamMag(), nuevosDatosMag);
+                                                   boundaries->magnitudeCount(), nuevosDatosMag);
 
 
     verBoundaries * ver = new verBoundaries();
@@ -647,8 +647,8 @@ void WindowsGeneral::on_actionBoundaries_triggered()
     viewBound->mostrarDiagrama();
     viewBound->show();*/
 
-    //viewBoundReun->setDatos(controlador->getBoundariesReunHash(), controlador->getOmega()->getValores(), controlador->getBoundariesReun()->last());
-    viewBoundReun->setDatos(controlador->getBoundariesReun(), controlador->getOmega()->getValores());
+    //viewBoundReun->setDatos(controlador->unionBuckets(), controlador->getOmega()->getValores(), controlador->unionBoundaries()->last());
+    viewBoundReun->setDatos(controlador->unionBoundaries(), controlador->getOmega()->getValores());
     viewBoundReun->mostrar_diagrama();
     viewBoundReun->show();
 
@@ -670,7 +670,7 @@ void WindowsGeneral::on_actionLazo_triggered()
         return;
     }
 
-    viewLoopShaping->setDatos(controlador->getBoundariesReun(),controlador->getOmega()->getValores(),
+    viewLoopShaping->setDatos(controlador->unionBoundaries(),controlador->getOmega()->getValores(),
                               controlador->getLoopShaping(), controlador->getPlanta(), loopShaping->getLinLogSpace());
 
     viewLoopShaping->mostrar_diagrama();

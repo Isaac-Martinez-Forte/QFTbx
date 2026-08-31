@@ -31,7 +31,7 @@ Algorithm_segundo_articulo::~Algorithm_segundo_articulo() {
 
 }
 
-void Algorithm_segundo_articulo::set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, DatosBound * boundaries,
+void Algorithm_segundo_articulo::set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, BoundaryData * boundaries,
                                            qreal epsilon) {
 
     this->planta = planta;
@@ -41,7 +41,7 @@ void Algorithm_segundo_articulo::set_datos(LtiSystem * planta, LtiSystem * contr
     this->epsilon = epsilon;
 
 
-    QVector< QVector<QPointF> * > * boun = boundaries->getBoundariesReun();
+    QVector< QVector<QPointF> * > * boun = boundaries->unionBoundaries();
 
     QVector <QPointF> * datosFases = new QVector <QPointF> ();
     QVector <QPointF> * datosMag = new QVector <QPointF> ();
@@ -76,8 +76,8 @@ void Algorithm_segundo_articulo::set_datos(LtiSystem * planta, LtiSystem * contr
 
     }
 
-    boundaries->setDatosFasBound(datosFases);
-    boundaries->setDatosMagBound(datosMag);
+    boundaries->setPhaseAxis(datosFases);
+    boundaries->setMagnitudeAxis(datosMag);
 
 
 }

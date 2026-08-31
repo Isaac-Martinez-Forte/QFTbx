@@ -17,14 +17,14 @@ LoopShaping::~LoopShaping()
 }
 
 
-bool LoopShaping::iniciar(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> *omega, DatosBound *boundaries,
+bool LoopShaping::iniciar(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> *omega, BoundaryData *boundaries,
                           qreal epsilon, tools::alg_loop_shaping seleccionado, bool depuracion, qreal delta,
                           QVector <QVector <std::complex <qreal> > * > * temp, QVector <tools::dBND *> * espe,
                           qint32 inicializacion, bool hilos, bool bisection_avanced, bool deteccion_avanced, bool a){
 
 
     //sacamos el círculo envolvente del boundarie
-    QVector< QVector<QPointF> * > * boun = boundaries->getBoundariesReun();
+    QVector< QVector<QPointF> * > * boun = boundaries->unionBoundaries();
 
     qreal maglineal;
     qreal x,y;
@@ -101,7 +101,7 @@ bool LoopShaping::iniciar(LtiSystem *planta, LtiSystem *controlador, QVector<qre
 #endif
                 Algorithm_sachin * sachin = new Algorithm_sachin();
                 timer.start();
-                sachin->set_datos(planta, controlador, omega, boundaries, epsilon, boundaries->getBoundariesReunHash());
+                sachin->set_datos(planta, controlador, omega, boundaries, epsilon, boundaries->unionBuckets());
                 re =  sachin->init_algorithm();
 #ifndef pruebas
                 if (re) {
@@ -124,7 +124,7 @@ bool LoopShaping::iniciar(LtiSystem *planta, LtiSystem *controlador, QVector<qre
 #endif
                 timer.start();
                 Algorithm_nandkishor * nandkishor = new Algorithm_nandkishor();
-                nandkishor->set_datos(planta, controlador, omega, boundaries, epsilon, boundaries->getBoundariesReunHash(),
+                nandkishor->set_datos(planta, controlador, omega, boundaries, epsilon, boundaries->unionBuckets(),
                                       delta, inicializacion);
                 re =  nandkishor->init_algorithm();
 
@@ -149,7 +149,7 @@ bool LoopShaping::iniciar(LtiSystem *planta, LtiSystem *controlador, QVector<qre
                 std::cout << "Algoritmo Rambabú" << std::endl;
 
                 Algorithm_rambabu * rambabu = new Algorithm_rambabu();
-                rambabu->set_datos(planta, controlador, omega, boundaries, epsilon, boundaries->getBoundariesReunHash(),
+                rambabu->set_datos(planta, controlador, omega, boundaries, epsilon, boundaries->unionBuckets(),
                                    depuracion, temp, espe);
                 re =  rambabu->init_algorithm();
 
@@ -170,7 +170,7 @@ bool LoopShaping::iniciar(LtiSystem *planta, LtiSystem *controlador, QVector<qre
 #endif
                 Algorithm_primer_articulo * primer_articulo = new Algorithm_primer_articulo();
 
-                primer_articulo->set_datos(planta, controlador, omega, boundaries, epsilon, boundaries->getBoundariesReunHash(),
+                primer_articulo->set_datos(planta, controlador, omega, boundaries, epsilon, boundaries->unionBuckets(),
                                  depuracion, hilos, radiosMayor, radiosMenor, centros, bisection_avanced, deteccion_avanced, a);
 
                 timer.start();

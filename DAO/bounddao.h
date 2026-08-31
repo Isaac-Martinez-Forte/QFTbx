@@ -5,7 +5,7 @@
 #include <QMap>
 #include <QString>
 
-#include "Modelo/EstructurasDatos/datosbound.h"
+#include "src/core/boundaries/boundary_data.h"
 
 /**
  * @class BoundDAO
@@ -32,7 +32,7 @@ public:
       * @param boundaries a guardar en el sistema.
      */
 
-    virtual void setBound(DatosBound * boundaries) = 0;
+    virtual void setBound(BoundaryData * boundaries) = 0;
 
 
     /**
@@ -42,7 +42,7 @@ public:
       * @return boundaries guardados en la clase.
      */
 
-    virtual DatosBound * getBound() = 0;
+    virtual BoundaryData * getBound() = 0;
 };
 
 #endif // BOUNDDAO_H
