@@ -39,7 +39,9 @@ public:
 private:
 
     inline void check_box_feasibility(LtiSystem *controlador);
-    inline LtiSystem *acelerated(LtiSystem * v, qreal minimo_boundarie, qreal maximo_boundarie, qreal o, qint32 contador, bool arriba);
+    inline LtiSystem *acelerated(LtiSystem * v, qreal minimo_boundarie, qreal o, qint32 contador, bool arriba);
+    inline bool feasibleGainFrom(LtiSystem * v, qreal maximo_boundarie, cxsc::cinterval caja,
+                                 qreal o, qint32 contador, qreal & from);
 
     LtiSystem * planta;
     LtiSystem * controlador;
@@ -60,8 +62,6 @@ private:
     QVector <bool> * metaDatosAbierto;
 
     qint32 tamFas;
-
-    bool depuracion;
 
     DeteccionViolacionBoundaries * deteccion;
     QVector <complex> * plantas_nominales;

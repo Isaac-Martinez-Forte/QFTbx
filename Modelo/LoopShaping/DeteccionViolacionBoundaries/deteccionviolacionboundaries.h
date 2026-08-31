@@ -37,6 +37,10 @@ public:
 
     data_box * deteccionViolacionCajaNi(cinterval box, BoundaryData * boundaries, qint32 contador);
 
+    /// Classifies one Nichols point (phase deg, magnitude dB) against the
+    /// boundary union at design frequency 'contador' (parity test).
+    tools::flags_box clasificarPunto(QPointF punto, BoundaryData * boundaries, qint32 contador);
+
     data_box * deteccionViolacionCajaNyNi(cinterval box, BoundaryData * boundaries, qint32 contador);
 
     //tools::recortes deteccionViolacionCajaNyNy(cinterval box, BoundaryData * boundaries, qint32 contador);

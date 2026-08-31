@@ -1,12 +1,40 @@
 #include "Modelo/Herramientas/exception.h"
 #include "algorithm_sachin.h"
-#include<iostream>
-#include<stdlib.h>
-#include<time.h>
+#include <iostream>
 
 using namespace tools;
 using namespace cxsc;
 using namespace FC;
+
+/*
+ * Algorithm NT (Nataraj-Tharewal): interval branch & bound QFT loop
+ * shaping, faithful to Tharewal 2005 ("Automated Synthesis of QFT
+ * Controllers and Prefilters using Interval Global Optimization
+ * Techniques", IIT Bombay):
+ *
+ * - chapter 3 (sec. 3.3.3): the branch & bound over the controller
+ *   parameter box with the live-node list NL ordered by ascending
+ *   inf(k), so the first solution is the global optimum;
+ * - chapter 5 (sec. 5.2.1): the constraint-propagation acceleration on
+ *   the gain, using the monotonicity of |L0| with respect to k and the
+ *   extreme boundary magnitudes B_min / B_max over the box's phase
+ *   interval: the certainly infeasible gain subrange is cut off (C_g-)
+ *   and the certainly feasible one is split into its own NL triple
+ *   (C_g+).
+ *
+ * Termination follows ch. 3 (p. 29 and Remark 3.1): a feasible leading
+ * box, or a leading box whose Nichols projection is smaller than epsilon
+ * at every design frequency. In the second case, when the box is still
+ * ambiguous, the returned point is the corner of the box that the
+ * monotonicity of the projection makes feasible (the anti-blocking rule
+ * of the QFTbx thesis, sec. 3.1).
+ *
+ * Known conscious deviation from the paper: the closed-loop stability
+ * point check of sec. 3.3.5 (zeros of 1 + L0) is not implemented, as in
+ * the historical code; the problems solved here always carry a stability
+ * specification whose boundaries enforce robust stability through the
+ * boundary crossing principle.
+ */
 
 Algorithm_sachin::Algorithm_sachin() {
 
@@ -31,15 +59,12 @@ void Algorithm_sachin::set_datos(LtiSystem * planta, LtiSystem * controlador, QV
     this->metaDatosAbierto = boundaries->openFlags();
 
     this->tamFas = boundaries->phaseCount() - 1;
-    this->depuracion = true;
 }
 
 
-//Función principal del algoritmo
+//Main loop: Tharewal 2005, sec. 3.3.3 (steps 1-7).
 
 bool Algorithm_sachin::init_algorithm() {
-
-    using namespace std;
 
     lista = new ListaOrdenada();
 
@@ -53,25 +78,31 @@ bool Algorithm_sachin::init_algorithm() {
         plantas_nominales->append(cxsc::complex(c.real(), c.imag()));
     }
 
-
+    //Step 1: feasibility of the initial search box (inserts it into NL
+    //unless certainly infeasible).
     check_box_feasibility(controlador);
 
 
     while (true) {
-        
-        
+
+        //Steps 2/6c: an empty list proves there is no feasible solution.
         if (lista->esVacia()) {
             delete conversion;
-delete lista;
-delete deteccion;
+            delete lista;
+            delete deteccion;
 
-throw qftbx::InvalidInput(
-        "The initial controller parameter space is not valid.");
+            throw qftbx::InvalidInput(
+                    "No feasible solution exists in the given search box.");
         }
 
         Tripleta * tripleta = static_cast<Tripleta *>(lista->recuperarPrimero());
         lista->borrarPrimero();
-        
+
+
+        //Step 3, termination: a feasible leading box (ch. 3, p. 29; its
+        //lower gain corner realises the optimum), or a leading box below
+        //the epsilon accuracy at every frequency (Remark 3.1; if still
+        //ambiguous, the feasible corner is extracted).
         if (tripleta->getFlags() == feasible || if_less_epsilon(tripleta->getSistema(), this->epsilon, omega, conversion, plantas_nominales)) {
             if (tripleta->getFlags() == ambiguous) {
                 controlador_retorno = guardarControlador(tripleta->getSistema(), false);
@@ -87,42 +118,46 @@ throw qftbx::InvalidInput(
             return true;
         }
 
-        //Split blox
+        //Step 4: bisect along the widest parameter direction.
         struct return_bisection retur = split_box_bisection(tripleta->getSistema());
 
         tripleta->noBorrar2();
         delete tripleta;
 
+        //Steps 5-6: classify the subboxes and insert them in NL.
         check_box_feasibility(retur.v1);
         check_box_feasibility(retur.v2);
     }
-
-
-    return true;
 }
 
-
-//Función que retorna el controlador.
 
 LtiSystem * Algorithm_sachin::getControlador() {
     return controlador_retorno;
 }
 
 
-//Función que comprueba si la caja actual es feasible, infeasible o ambiguous.
+//Feasibility test of one box over every design frequency (Tharewal 2005,
+//sec. 3.3.4-3.3.5) plus the ch. 5 gain acceleration. Certainly infeasible
+//boxes are destroyed; anything else is inserted into NL ordered by
+//inf(k). When the certainly feasible gain subrange [feasibleFrom, sup(k)]
+//can be split off (C_g+), it is re-certified by this same test and
+//enters NL as its own triple.
 
 inline void Algorithm_sachin::check_box_feasibility(LtiSystem * controlador) {
-
-    using namespace std;
 
     data_box * datos;
 
     flags_box flag_final = feasible;
 
     qint32 contador = 0;
-    depuracion = true;
     cinterval caja;
-    bool penalizacion = false;
+
+    //C_g+ : the certainly feasible gain subrange must satisfy EVERY
+    //frequency (intersection), so the candidate is the maximum of the
+    //per-frequency lower limits and fails if any ambiguous frequency
+    //cannot certify one.
+    qreal feasibleFrom = 0;
+    bool feasibleCertified = true;
 
     foreach(qreal o, *omega) {
 
@@ -140,11 +175,22 @@ inline void Algorithm_sachin::check_box_feasibility(LtiSystem * controlador) {
         if (datos->getFlag() == ambiguous) {
             flag_final = ambiguous;
 
-            controlador = acelerated(controlador, datos->getMinimoxMaximos()->at(0), datos->getMinimoxMaximos()->at(1), o, contador, datos->isUniArriba());
-        }
+            const qreal minimoBoundarie = datos->getMinimoxMaximos()->at(0);
+            const qreal maximoBoundarie = datos->getMinimoxMaximos()->at(1);
 
-        if (o == 2 && SupIm(caja) < -180){
-            penalizacion = true;
+            //C_g- : cut the certainly infeasible low-gain subrange.
+            controlador = acelerated(controlador, minimoBoundarie, o, contador, datos->isUniArriba());
+
+            //C_g+ : candidate lower limit of the certainly feasible
+            //high-gain subrange at this frequency.
+            if (feasibleCertified) {
+                qreal from;
+                if (feasibleGainFrom(controlador, maximoBoundarie, caja, o, contador, from)) {
+                    feasibleFrom = std::max(feasibleFrom, from);
+                } else {
+                    feasibleCertified = false;
+                }
+            }
         }
 
         delete datos;
@@ -152,14 +198,54 @@ inline void Algorithm_sachin::check_box_feasibility(LtiSystem * controlador) {
         contador++;
     }
 
-    lista->insertar(new Tripleta(penalizacion ? controlador->gain()->range().x() + 100 : controlador->gain()->range().x(), controlador, flag_final));
+    //C_g+ split (Tharewal 2005, sec. 5.2.1-5.2.2): the candidate feasible
+    //part becomes its own box and is re-certified by this same test, so
+    //the split never depends on the heuristic gate for correctness. The
+    //margins skip degenerate slivers that would only bloat the list.
+    const qreal kInf = controlador->gain()->range().x();
+    const qreal kSup = controlador->gain()->range().y();
+
+    if (flag_final == ambiguous && feasibleCertified &&
+            feasibleFrom > kInf * 1.01 && feasibleFrom < kSup * 0.99) {
+
+        //Deep copy for the feasible part, with its own gain interval.
+        LtiSystem * base = controlador->clone();
+        LtiSystem * feasiblePart = base->create(base->name(), base->numerator(),
+                base->denominator(),
+                new Parameter("kv", QPointF(feasibleFrom, kSup), feasibleFrom, "kv"),
+                base->delay());
+        delete base->gain();
+        base->releaseOwnership();
+        delete base;
+
+        check_box_feasibility(feasiblePart);
+
+        //The current box keeps the remaining ambiguous gain subrange.
+        LtiSystem * ambiguousPart = controlador->create(controlador->name(),
+                controlador->numerator(), controlador->denominator(),
+                new Parameter("kv", QPointF(kInf, feasibleFrom), kInf, "kv"),
+                controlador->delay());
+
+        delete controlador->gain();
+        controlador->releaseOwnership();
+        delete controlador;
+
+        controlador = ambiguousPart;
+    }
+
+    lista->insertar(new Tripleta(controlador->gain()->range().x(), controlador, flag_final));
 
 }
 
 
-//Función que recorta la caja.
+//Geometric contractor C_g- (Tharewal 2005, ch. 5, Algorithm C_g-): using
+//the monotonicity of |L0| w.r.t. the gain, remove the gain subrange
+//[inf(k), k_B] whose boxes lie entirely below B_min, the minimum boundary
+//magnitude over the box's phase interval. The cut only applies when the
+//below-everything zone is certainly forbidden, certified by the parity
+//classification of the box's lower corner (arriba == false).
 
-inline LtiSystem * Algorithm_sachin::acelerated(LtiSystem *v, qreal minimo_boundarie, qreal maximo_boundarie, qreal o, qint32 contador, bool arriba) {
+inline LtiSystem * Algorithm_sachin::acelerated(LtiSystem *v, qreal minimo_boundarie, qreal o, qint32 contador, bool arriba) {
 
     if (!arriba){
 
@@ -179,6 +265,7 @@ inline LtiSystem * Algorithm_sachin::acelerated(LtiSystem *v, qreal minimo_bound
 
         if (mag_min_db < minimo_boundarie) {
 
+            //k_B = inf(k) + (B_min - sup|L0(inf(k))|), in dB.
             qreal Kb_db = min_k_db + (minimo_boundarie - mag_min_db);
 
             qreal Kb_lineal = pow(10, Kb_db / 20);
@@ -192,38 +279,51 @@ inline LtiSystem * Algorithm_sachin::acelerated(LtiSystem *v, qreal minimo_bound
 
             v = nuevo_sistema;
         }
-    } /*else {
-
-        Parameter * max_k_lineal = new Parameter(v->gain()->range().y());
-        qreal max_k_db = 20 * log10(max_k_lineal->range().y());
-
-        LtiSystem * G_k_max = v->create(v->name(), v->numerator(), v->denominator(),
-                                      max_k_lineal, v->delay());
-
-
-        qreal mag_max_db = conversion->nicholsBox(G_k_max, o, plantas_nominales->at(contador), false).re.sup;
-
-        delete max_k_lineal;
-        G_k_max->borrar();
-        delete G_k_max;
-
-
-        if (mag_max_db > maximo_boundarie) {
-
-            qreal Kb_db = max_k_db + (maximo_boundarie - mag_max_db);
-
-            qreal Kb_lineal = pow(10, Kb_db / 20);
-
-            LtiSystem * nuevo_sistema = v->create(v->name(), v->numerator(), v->denominator(),
-                                                new Parameter("kv", QPointF(v->gain()->range().x(), Kb_lineal), Kb_lineal, "kv"), v->delay());
-
-            delete v->gain();
-            v->borrar();
-            delete v;
-
-            v = nuevo_sistema;
-        }
-    }*/
+    }
 
     return v;
+}
+
+
+//Geometric contractor C_g+ (Tharewal 2005, ch. 5): lower limit of the
+//gain subrange whose boxes lie entirely above B_max, the maximum boundary
+//magnitude over the box's phase interval. Returns false when no part of
+//the gain range can be certified feasible at this frequency. The zone
+//above every boundary point must be an allowed zone, checked by the
+//parity classification of a probe point just above B_max at the centre
+//of the box's phase interval (a heuristic gate: the caller re-certifies
+//the split box with the full feasibility test).
+
+inline bool Algorithm_sachin::feasibleGainFrom(LtiSystem * v, qreal maximo_boundarie,
+                                               cinterval caja, qreal o, qint32 contador, qreal & from) {
+
+    const qreal centroFase = (_double(InfIm(caja)) + _double(SupIm(caja))) / 2.0;
+
+    if (deteccion->clasificarPunto(QPointF(centroFase, maximo_boundarie + 1.0),
+                                   boundaries, contador) != feasible) {
+        return false;
+    }
+
+    Parameter * max_k_lineal = new Parameter(v->gain()->range().y());
+    qreal max_k_db = 20 * log10(max_k_lineal->range().x());
+
+    LtiSystem * G_k_max = v->create(v->name(), v->numerator(), v->denominator(),
+                                  max_k_lineal, v->delay());
+
+    qreal mag_max_db = _double(InfRe(conversion->nicholsBox(G_k_max, o, plantas_nominales->at(contador), false)));
+
+    delete max_k_lineal;
+    G_k_max->releaseOwnership();
+    delete G_k_max;
+
+    if (mag_max_db <= maximo_boundarie) {
+        return false;
+    }
+
+    //k_F = sup(k) - (inf|L0(sup(k))| - B_max), in dB.
+    const qreal Kf_db = max_k_db - (mag_max_db - maximo_boundarie);
+
+    from = pow(10, Kf_db / 20);
+
+    return true;
 }

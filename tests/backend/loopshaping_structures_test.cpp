@@ -46,12 +46,12 @@ TEST(OrderedList, SmallerThanFirstGoesToTheFront)
     EXPECT_EQ(lista.recuperarPrimero()->getIndex(), 2);
 }
 
-TEST(OrderedList, MiddleInsertBreaksTheOrder)
+TEST(OrderedList, MiddleInsertKeepsTheOrder)
 {
-    // BUG: insertar() places the element at i-1 instead of i, so a value
-    // that belongs between two existing nodes lands BEFORE its smaller
-    // neighbour. The live-node list of every branch & bound relies on this
-    // order for the "first solution is the optimum" guarantee.
+    // The historical insertar() placed the element at i-1 instead of i, so
+    // a value that belongs between two existing nodes landed BEFORE its
+    // smaller neighbour, breaking the ordering that makes the first
+    // solution of every branch & bound the global optimum. Fixed in 8b.2.
     ListaOrdenada lista;
     lista.insertar(node(1));
     lista.insertar(node(3));
@@ -60,10 +60,24 @@ TEST(OrderedList, MiddleInsertBreaksTheOrder)
     lista.insertar(node(4)); // belongs between 3 and 5
 
     lista.borrarPrimero();   // 1
-    // Current behaviour: 4 sits before 3.
+    EXPECT_EQ(lista.recuperarPrimero()->getIndex(), 3);
+    lista.borrarPrimero();
     EXPECT_EQ(lista.recuperarPrimero()->getIndex(), 4);
     lista.borrarPrimero();
-    EXPECT_EQ(lista.recuperarPrimero()->getIndex(), 3);
+    EXPECT_EQ(lista.recuperarPrimero()->getIndex(), 5);
+}
+
+TEST(OrderedList, DescendingListAcceptsALargerFront)
+{
+    // The historical version crashed here: on a descending list the first
+    // comparison already matched at position 0 and it called insert(-1)
+    // (the SIGSEGV that killed the MC algorithm on the benchmarks).
+    ListaOrdenada lista(true);
+    lista.insertar(node(5));
+    lista.insertar(node(8));
+
+    EXPECT_EQ(lista.recuperarPrimero()->getIndex(), 8);
+    EXPECT_EQ(lista.recuperarUltimo()->getIndex(), 5);
 }
 
 TEST(OrderedList, FirstRetrieveAndDeleteWork)

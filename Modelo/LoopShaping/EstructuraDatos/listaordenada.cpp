@@ -1,81 +1,64 @@
 #include "listaordenada.h"
 
-ListaOrdenada::ListaOrdenada(bool mayor)
+namespace {
+
+bool ascendente(qreal uno, qreal dos)
 {
-    lista = new QList <N *> ();
-
-    if (mayor) {
-        comparar = &ListaOrdenada::mayor;
-    } else {
-        comparar = &ListaOrdenada::menor;
-    }
+    return uno < dos;
 }
 
-
-ListaOrdenada::~ListaOrdenada(){
-
-   lista->clear();
+bool descendente(qreal uno, qreal dos)
+{
+    return uno > dos;
 }
 
-void ListaOrdenada::insertar(N * elemento){
-    if (lista->isEmpty()) {
-        lista->append(elemento);
+} // namespace
 
-        return;
-    }
-
-    if (elemento->getIndex() < lista->first()->getIndex()){
-        lista->insert(0, elemento);
-        return;
-    }
-
-
-
-    for (qint32 i = 0; i < lista->size(); i++) {
-
-        if ((this->*comparar)(elemento->getIndex(), lista->at(i)->getIndex())){
-            lista->insert(i-1, elemento);
-            return;
-        }
-
-    }
-
-    lista->append(elemento);
+ListaOrdenada::ListaOrdenada(bool mayor)
+    : lista(mayor ? descendente : ascendente)
+{
 }
 
-N * ListaOrdenada::recuperarPrimero(){
-    return lista->first();
+ListaOrdenada::~ListaOrdenada()
+{
+    //The list does not own the nodes: the algorithms keep and delete them.
 }
 
-N * ListaOrdenada::recuperarPrimeroBorrar() {
-    N * n = lista->first();
+void ListaOrdenada::insertar(N * elemento)
+{
+    lista.insert({elemento->getIndex(), elemento});
+}
 
-    lista->removeFirst();
+N * ListaOrdenada::recuperarPrimero()
+{
+    return lista.begin()->second;
+}
+
+N * ListaOrdenada::recuperarPrimeroBorrar()
+{
+    N * n = lista.begin()->second;
+
+    lista.erase(lista.begin());
 
     return n;
 }
 
-void ListaOrdenada::borrarPrimero(){
-    lista->removeFirst();
+void ListaOrdenada::borrarPrimero()
+{
+    lista.erase(lista.begin());
 }
 
-N * ListaOrdenada::recuperarUltimo(){
-    return lista->last();
+N * ListaOrdenada::recuperarUltimo()
+{
+    return std::prev(lista.end())->second;
 }
 
-void ListaOrdenada::borrarUltimo(){
-    lista->removeLast();
+void ListaOrdenada::borrarUltimo()
+{
+    lista.erase(std::prev(lista.end()));
 }
 
-bool ListaOrdenada::esVacia(){
-    return lista->isEmpty();
+bool ListaOrdenada::esVacia()
+{
+    return lista.empty();
 }
-
-bool ListaOrdenada::mayor(qreal uno, qreal dos) {
-    return uno > dos;
-}
-
-bool ListaOrdenada::menor(qreal uno, qreal dos) {
-    return uno < dos;
-}
-

@@ -36,6 +36,14 @@ struct return_bisection2 {
 
 enum diagrama {Nichol = false, Nyquist = true};
 
+//Extracts a point controller from a box. With x = true, the lower corner
+//of every parameter (a feasible box realises its optimum gain there).
+//With x = false, the corner that the monotonicity of the Nichols
+//projection makes feasible for an epsilon-small ambiguous box sitting on
+//a boundary whose allowed side is up (the anti-blocking rule, QFTbx
+//thesis sec. 3.1): maximum gain and zeros push the box up, but poles push
+//it DOWN, so poles take their minimum (the historical code took every
+//maximum, stepping AWAY from the allowed side in the pole directions).
 inline LtiSystem * guardarControlador(LtiSystem *controlador, bool x) {
 
 
@@ -59,11 +67,9 @@ inline LtiSystem * guardarControlador(LtiSystem *controlador, bool x) {
 
     foreach (Parameter * v, *deno) {
         if (v->isUncertain()){
-            if (x){
-                denominador->append(new Parameter (v->range().x()));
-            }else {
-                denominador->append(new Parameter (v->range().y()));
-            }
+            //Poles always take the lower corner: a larger pole moves the
+            //projection towards the forbidden side.
+            denominador->append(new Parameter (v->range().x()));
         } else {
             denominador->append(new Parameter (v->nominal()));
         }

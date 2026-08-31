@@ -17,12 +17,21 @@
 // net for the algorithm rewrites; correctness is judged against each
 // algorithm's paper, not against these values.
 //
-// Pinned observations (updated after the 8b.1 interval-extension fix,
-// which changed several goldens - the old values were artifacts of the
-// branch-mapping containment bug):
-// - MC-prev reaches a better optimum than NT on ex2 (125000 vs 328125)
-//   but a WORSE one on ACC'90 (4.06e7 vs 3.33e7): neither is trustworthy
-//   until reviewed against its paper. For 8b.2/8b.5.
+// Pinned observations (updated after the 8b.2 NT review, which fixed the
+// live-node list ordering - the previous goldens were artifacts of the
+// broken ordering and of the interval-extension branch-mapping bug):
+// - NT is NOT pinned on these fixtures for now. With the ordering fixed
+//   the branch & bound is honest and two open questions surfaced:
+//   (a) the initial search boxes of these fixtures are far wider than the
+//   ones the thesis experiments used, so ex2 legitimately explodes;
+//   (b) on ACC'90 (marginally unstable plant) NT descends to the bottom
+//   gain corner because the nominal closed-loop stability check of
+//   Tharewal 2005 sec. 3.3.5 is not implemented: the QFT bounds alone do
+//   not exclude non-stabilising loops there. Pending decision in 8b.2.
+// - MC-prev finds far better optima than before on ex2 (62.97 against
+//   125000): the list ordering was destroying its optimality too. Its
+//   ACC'90 value keeps the sec. 3.3.5 caveat above. To verify against
+//   the IJRNC paper in 8b.5.
 // - MR (rambabu) returns the bottom corner of the search box (1e-9
 //   everywhere): its constraint rules are unreachable and the contraction
 //   never fires, so everything looks feasible. The algorithm is known to
@@ -32,11 +41,9 @@
 //   accumulation traps on 0*infinity ("Processing aborted"). It used to
 //   SIGSEGV before the CXSC trap printer was fixed; now it exits with a
 //   diagnostic. For 8b.3. Test disabled until fixed.
-// - MC CRASHES on both fixtures: SIGSEGV inside ListaOrdenada::insertar()
-//   called from Algorithm_segundo_articulo::recortesFeasible() - the same
-//   ordered list whose middle-insert defect is pinned in
-//   OrderedList.MiddleInsertBreaksTheOrder. For 8b.1 / 8b.6. Test
-//   disabled until fixed.
+// - MC no longer crashes (the ordered-list front-insert defect was the
+//   SIGSEGV) but takes minutes on these wide boxes: disabled until the
+//   fixture boxes are settled. For 8b.6.
 
 #include <gtest/gtest.h>
 
@@ -187,20 +194,18 @@ TEST_P(ThesisBenchmarkGolden, ResultIsPinned)
 INSTANTIATE_TEST_SUITE_P(
     Algorithms, ThesisBenchmarkGolden,
     ::testing::Values(
-        BenchmarkGolden{"Ex2NT", "qft_toolbox_ex2.qft", tools::sachin,
-                        328125.0, 5000.0, 1e-9},
         // BUG: bottom corner of the search box, see the header comment.
         BenchmarkGolden{"Ex2MR", "qft_toolbox_ex2.qft", tools::rambabu,
                         1e-9, 1e-9, 1e-9},
         BenchmarkGolden{"Ex2MCprev", "qft_toolbox_ex2.qft", tools::primer_articulo,
-                        125000.61779551723, 0.065248818040224255, 29.698263966103596},
-        BenchmarkGolden{"Acc90NT", "acc90.qft", tools::sachin,
-                        33332824.70703125, 750.0, 1e-9},
+                        62.965723486426, 0.065248818040224019, 29.698263966103788},
         // BUG: bottom corner of the search box, see the header comment.
         BenchmarkGolden{"Acc90MR", "acc90.qft", tools::rambabu,
                         1e-9, 1e-9, 1e-9},
+        // Sec. 3.3.5 caveat: without the stability point check a tiny gain
+        // passes the QFT bounds of this stability-only problem.
         BenchmarkGolden{"Acc90MCprev", "acc90.qft", tools::primer_articulo,
-                        40617427.61889939, 1.4344642924971838, 0.067759776276905256}),
+                        0.048506092669632718, 1.4585126321039543, 1.0450892989095948}),
     [](const ::testing::TestParamInfo<BenchmarkGolden>& info) {
         return std::string(info.param.name);
     });

@@ -3,7 +3,8 @@
 using namespace tools;
 using namespace cxsc;
 
-#define PI 3.1415926535897936
+//M_PI: the historical constant here had wrong digits from the 16th on.
+#define PI M_PI
 
 DeteccionViolacionBoundaries::DeteccionViolacionBoundaries() {
 }
@@ -478,6 +479,15 @@ data_box * DeteccionViolacionBoundaries::deteccionViolacionCajaNiNi(cinterval bo
     return datos;
 }
 
+//Feasibility of a Nichols box against the boundary union at one design
+//frequency (Tharewal 2005, sec. 3.3.4): feasible when the box lies
+//entirely on the allowed side, infeasible when entirely on the forbidden
+//side, ambiguous when boundary points fall inside it. The returned
+//minimums/maximums are B_min and B_max, the extreme boundary magnitudes
+//over the box's PHASE interval (Tharewal 2005, fig. 5.1), in dB/degrees,
+//which drive the gain cutting. The historical version computed B_min and
+//B_max only from the boundary points INSIDE the box: when the boundary
+//left the box within its phase span the cut could remove feasible gains.
 data_box *DeteccionViolacionBoundaries::deteccionViolacionCajaNi(cinterval box, BoundaryData *boundaries, qint32 contador) {
 
     QVector< QVector<QPointF> * > * interseccionHash = boundaries->unionBuckets()->at(contador);
@@ -486,41 +496,50 @@ data_box *DeteccionViolacionBoundaries::deteccionViolacionCajaNi(cinterval box, 
     bool arriba = boundaries->upperFlags()->at(contador);
 
 
-    qreal minFasCaja = std::numeric_limits<qreal>::max(), maxFasCaja = std::numeric_limits<qreal>::lowest(),
-            minMagCaja = std::numeric_limits<qreal>::max(), maxMagCaja = std::numeric_limits<qreal>::lowest();
+    qreal minFasBound = std::numeric_limits<qreal>::max(), maxFasBound = std::numeric_limits<qreal>::lowest(),
+            minMagBound = std::numeric_limits<qreal>::max(), maxMagBound = std::numeric_limits<qreal>::lowest();
 
     bool ambiguo = false;
 
-    qint32 numeroFases = boundaries->phaseRange().y() - boundaries->phaseRange().x();
+    qreal numeroFases = boundaries->phaseRange().y() - boundaries->phaseRange().x();
 
-    qreal salto = totalFase / numeroFases;
+    //Degrees per bucket of the phase-bucketed union (the historical
+    //formula was inverted, which only worked on the standard 1-degree grid).
+    qreal salto = numeroFases / totalFase;
 
 
     qreal minFas = _double(InfIm(box)), maxFas = _double(SupIm(box)), minMag = _double(InfRe(box)), maxMag = _double(SupRe(box));
 
-    for (qreal f = minFas; f <= maxFas; f += salto) {
+    for (qreal f = minFas; f <= maxFas + salto; f += salto) {
 
-        foreach(auto puntoDecibelios, *interseccionHash->value(funcionHash(f, totalFase, numeroFases))) {
+        foreach(auto puntoDecibelios, *interseccionHash->value(funcionHash(std::min(f, maxFas), totalFase, numeroFases))) {
 
+            //Only boundary points within the box's phase span take part.
+            if (puntoDecibelios.x() < minFas || puntoDecibelios.x() > maxFas) {
+                continue;
+            }
+
+            //B_min / B_max over the phase interval, regardless of the
+            //box's magnitude range.
+            if (puntoDecibelios.x() > maxFasBound) {
+                maxFasBound = puntoDecibelios.x();
+            }
+
+            if (puntoDecibelios.x() < minFasBound) {
+                minFasBound = puntoDecibelios.x();
+            }
+
+            if (puntoDecibelios.y() > maxMagBound) {
+                maxMagBound = puntoDecibelios.y();
+            }
+
+            if (puntoDecibelios.y() < minMagBound) {
+                minMagBound = puntoDecibelios.y();
+            }
+
+            //A boundary point inside the box makes it ambiguous.
             if (puntoDecibelios.y() >= minMag && puntoDecibelios.y() <= maxMag) {
-
                 ambiguo = true;
-
-                if (puntoDecibelios.x() > maxFasCaja) {
-                    maxFasCaja = puntoDecibelios.x();
-                }
-
-                if (puntoDecibelios.x() < minFasCaja) {
-                    minFasCaja = puntoDecibelios.x();
-                }
-
-                if (puntoDecibelios.y() > maxMagCaja) {
-                    maxMagCaja = puntoDecibelios.y();
-                }
-
-                if (puntoDecibelios.y() < minMagCaja) {
-                    minMagCaja = puntoDecibelios.y();
-                }
             }
         }
     }
@@ -532,10 +551,10 @@ data_box *DeteccionViolacionBoundaries::deteccionViolacionCajaNi(cinterval box, 
     QVector <qreal> * minimosMaximos = new QVector <qreal> ();
 
 
-    minimosMaximos->append(minMagCaja);
-    minimosMaximos->append(maxMagCaja);
-    minimosMaximos->append(minFasCaja);
-    minimosMaximos->append(maxFasCaja);
+    minimosMaximos->append(minMagBound);
+    minimosMaximos->append(maxMagBound);
+    minimosMaximos->append(minFasBound);
+    minimosMaximos->append(maxFasBound);
 
     datos->setMinimoxMaximos(minimosMaximos);
 
@@ -554,6 +573,21 @@ data_box *DeteccionViolacionBoundaries::deteccionViolacionCajaNi(cinterval box, 
     }
 
     return datos;
+}
+
+//Classification of a single Nichols point (phase in degrees, magnitude in
+//dB) against the boundary union at one design frequency, with the same
+//parity test the box classification uses. It certifies the zone gates of
+//the gain cutting and splitting (Tharewal 2005, ch. 5).
+tools::flags_box DeteccionViolacionBoundaries::clasificarPunto(QPointF punto, BoundaryData * boundaries, qint32 contador) {
+
+    QVector< QVector<QPointF> * > * interseccionHash = boundaries->unionBuckets()->at(contador);
+    qint32 totalFase = boundaries->phaseCount() - 1;
+    bool abierta = boundaries->openFlags()->at(contador);
+    bool arriba = boundaries->upperFlags()->at(contador);
+    qreal numeroFases = boundaries->phaseRange().y() - boundaries->phaseRange().x();
+
+    return deteccionViolacion(punto, interseccionHash, totalFase, abierta, arriba, numeroFases);
 }
 
 inline qint32 DeteccionViolacionBoundaries::interseccionCajaCirculo(cinterval box, qreal radioMayor,
