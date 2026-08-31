@@ -33,6 +33,7 @@ add_executable(qftbx_tests
   backend/nominal_stability_test.cpp
   backend/literature_validation_test.cpp
   backend/quick_solution_test.cpp
+  backend/cxsc_rigor_test.cpp
 )
 
 target_link_libraries(qftbx_tests PRIVATE qftbx_backend GTest::gtest)
