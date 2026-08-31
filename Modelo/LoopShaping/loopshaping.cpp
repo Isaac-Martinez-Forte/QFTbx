@@ -79,9 +79,9 @@ bool LoopShaping::iniciar(LtiSystem *planta, LtiSystem *controlador, QVector<qre
 #ifdef pruebas
     qint32 nVariables = 8, contador = 1, contadorNume = 0, contadorDeno = 0;
 
-    if (seleccionado == tools::sachin){
+    if (seleccionado == tools::nt){
         std::cout << "Algoritmo Sachín" << std::endl;
-    }else if (seleccionado == tools::nandkishor){
+    }else if (seleccionado == tools::nk){
         std::cout << "Algoritmo Nandkishor" << std::endl;
     } else if(seleccionado == tools::isaac){
         std::cout << "Algoritmo Isaac" << std::endl;
@@ -95,131 +95,131 @@ bool LoopShaping::iniciar(LtiSystem *planta, LtiSystem *controlador, QVector<qre
         if (contador != 5) {
 #endif
 
-            if (seleccionado == tools::sachin){
+            if (seleccionado == tools::nt){
 #ifndef pruebas
                 std::cout << "Algoritmo Sachín" << std::endl;
 #endif
-                Algorithm_sachin * sachin = new Algorithm_sachin();
+                AlgorithmNt * nt = new AlgorithmNt();
                 timer.start();
-                sachin->set_datos(planta, controlador, omega, boundaries, epsilon, boundaries->unionBuckets());
-                re =  sachin->init_algorithm();
+                nt->set_datos(planta, controlador, omega, boundaries, epsilon, boundaries->unionBuckets());
+                re =  nt->init_algorithm();
 #ifndef pruebas
                 if (re) {
-                    this->controlador = sachin->getControlador();
+                    this->controlador = nt->getControlador();
                     std::cout << "LoopShaping: " << timer.elapsed() << " milliseconds" << std::endl;
                     std::cout << "k: " << this->controlador->gain()->range().x() << std::endl;
                 }
 
 
-                delete sachin;
+                delete nt;
 
                 return re;
 #else
                 std::cout << timer.elapsed() << std::endl;
-                delete sachin;
+                delete nt;
 #endif
-            } else if (seleccionado == tools::nandkishor){
+            } else if (seleccionado == tools::nk){
 #ifndef pruebas
                 std::cout << "Algoritmo Nandkishor" << std::endl;
 #endif
                 timer.start();
-                Algorithm_nandkishor * nandkishor = new Algorithm_nandkishor();
-                nandkishor->set_datos(planta, controlador, omega, boundaries, epsilon, boundaries->unionBuckets(),
+                AlgorithmNk * nk = new AlgorithmNk();
+                nk->set_datos(planta, controlador, omega, boundaries, epsilon, boundaries->unionBuckets(),
                                       delta, inicializacion);
-                re =  nandkishor->init_algorithm();
+                re =  nk->init_algorithm();
 
 #ifndef pruebas
                 if (re){
-                    this->controlador = nandkishor->getControlador();
+                    this->controlador = nk->getControlador();
 
                     std::cout << "LoopShaping: " << timer.elapsed() << " milliseconds" << std::endl;
                     std::cout << "k: " << this->controlador->gain()->range().x() << std::endl;
 
                 }
 
-                delete nandkishor;
+                delete nk;
 
                 return re;
 #else
                 std::cout << timer.elapsed()  << std::endl;
-                delete nandkishor;
+                delete nk;
 #endif
-            } else if (seleccionado == tools::rambabu){
+            } else if (seleccionado == tools::mr){
 
                 std::cout << "Algoritmo Rambabú" << std::endl;
 
-                Algorithm_rambabu * rambabu = new Algorithm_rambabu();
-                rambabu->set_datos(planta, controlador, omega, boundaries, epsilon, boundaries->unionBuckets(),
+                AlgorithmMr * mr = new AlgorithmMr();
+                mr->set_datos(planta, controlador, omega, boundaries, epsilon, boundaries->unionBuckets(),
                                    depuracion, temp, espe);
 
                 //The elapsed time printed below was garbage: this branch
                 //never started the timer.
                 timer.start();
-                re =  rambabu->init_algorithm();
+                re =  mr->init_algorithm();
 
                 if(re){
-                    this->controlador = rambabu->getControlador();
+                    this->controlador = mr->getControlador();
 
                     std::cout << "LoopShaping: " << timer.elapsed() << " milliseconds" << std::endl;
                     std::cout << "k: " << this->controlador->gain()->range().x() << std::endl;
 
                 }
 
-                delete rambabu;
+                delete mr;
 
                 return re;
-            } else if(seleccionado == tools::primer_articulo){
+            } else if(seleccionado == tools::mc1){
 #ifndef pruebas
                 std::cout << "Algoritmo primero" << std::endl;
 #endif
-                Algorithm_primer_articulo * primer_articulo = new Algorithm_primer_articulo();
+                AlgorithmMc1 * mc1 = new AlgorithmMc1();
 
-                primer_articulo->set_datos(planta, controlador, omega, boundaries, epsilon, boundaries->unionBuckets(),
+                mc1->set_datos(planta, controlador, omega, boundaries, epsilon, boundaries->unionBuckets(),
                                  depuracion, hilos, radiosMayor, radiosMenor, centros, bisection_avanced, deteccion_avanced, a);
 
                 timer.start();
 
-                re =  primer_articulo->init_algorithm();
+                re =  mc1->init_algorithm();
 #ifndef pruebas
 
                 if (re) {
                     std::cout << "LoopShaping: " << timer.elapsed() << " milliseconds" << std::endl;
-                    this->controlador = primer_articulo->getControlador();
+                    this->controlador = mc1->getControlador();
                     std::cout << "k: " << this->controlador->gain()->range().x() << std::endl;
                 }
 
-                delete primer_articulo;
+                delete mc1;
 
                 return re;
 #else
                 std::cout << timer.elapsed() << std::endl;
-                delete primer_articulo;
+                delete mc1;
 #endif
-            }else if(seleccionado == tools::segundo_articulo){
+            }else if(seleccionado == tools::mc_thesis){
 #ifndef pruebas
                 std::cout << "Algoritmo segundo" << std::endl;
 #endif
-                Algorithm_segundo_articulo * segundo_articulo = new Algorithm_segundo_articulo();
+                AlgorithmMcThesis * mc_thesis = new AlgorithmMcThesis();
 
-                segundo_articulo->set_datos(planta, controlador, omega, boundaries, epsilon);
+                mc_thesis->set_datos(planta, controlador, omega, boundaries, epsilon);
 
                 timer.start();
 
-                re =  segundo_articulo->init_algorithm();
+                re =  mc_thesis->init_algorithm();
 #ifndef pruebas
 
                 if (re) {
                     std::cout << "LoopShaping: " << timer.elapsed() << " milliseconds" << std::endl;
-                    this->controlador = segundo_articulo->getControlador();
+                    this->controlador = mc_thesis->getControlador();
                     std::cout << "k: " << this->controlador->gain()->range().x() << std::endl;
                 }
 
-                delete segundo_articulo;
+                delete mc_thesis;
 
                 return re;
 #else
                 std::cout << timer.elapsed() << std::endl;
-                delete segundo_articulo;
+                delete mc_thesis;
 #endif
             }
 #ifdef pruebas

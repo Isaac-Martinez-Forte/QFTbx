@@ -1,11 +1,11 @@
 #ifndef LOOPSHAPING_H
 #define LOOPSHAPING_H
 
-#include "Modelo/LoopShaping/algorithm_sachin.h"
-#include "Modelo/LoopShaping/algorithm_nandkishor.h"
-#include "Modelo/LoopShaping/algorithm_rambabu.h"
-#include "Modelo/LoopShaping/algorithm_primer_articulo.h"
-#include "Modelo/LoopShaping/algorithm_segundo_articulo.h"
+#include "Modelo/LoopShaping/algorithm_nt.h"
+#include "Modelo/LoopShaping/algorithm_nk.h"
+#include "Modelo/LoopShaping/algorithm_mr.h"
+#include "Modelo/LoopShaping/algorithm_mc1.h"
+#include "Modelo/LoopShaping/algorithm_mc_thesis.h"
 #include "src/core/system/lti_system.h"
 #include "src/core/boundaries/boundary_data.h"
 

@@ -55,7 +55,7 @@ private slots:
 
     void on_logspaceRadio_clicked();
 
-    void on_sachin_clicked();
+    void on_ntRadio_clicked();
 
     void on_nkRadio_clicked();
 

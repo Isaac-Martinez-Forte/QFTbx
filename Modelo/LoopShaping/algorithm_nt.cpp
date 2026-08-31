@@ -1,5 +1,5 @@
 #include "Modelo/Herramientas/exception.h"
-#include "algorithm_sachin.h"
+#include "algorithm_nt.h"
 #include <iostream>
 
 using namespace tools;
@@ -37,15 +37,15 @@ using namespace FC;
  * at 2 rad/s, retired by this review.
  */
 
-Algorithm_sachin::Algorithm_sachin() {
+AlgorithmNt::AlgorithmNt() {
 
 }
 
-Algorithm_sachin::~Algorithm_sachin() {
+AlgorithmNt::~AlgorithmNt() {
 
 }
 
-void Algorithm_sachin::set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, BoundaryData * boundaries,
+void AlgorithmNt::set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, BoundaryData * boundaries,
                                  qreal epsilon, QVector<QVector<QVector<QPointF> *> *> * reunBounHash) {
 
 
@@ -65,7 +65,7 @@ void Algorithm_sachin::set_datos(LtiSystem * planta, LtiSystem * controlador, QV
 
 //Main loop: Tharewal 2005, sec. 3.3.3 (steps 1-7).
 
-bool Algorithm_sachin::init_algorithm() {
+bool AlgorithmNt::init_algorithm() {
 
     lista = new ListaOrdenada();
 
@@ -146,7 +146,7 @@ bool Algorithm_sachin::init_algorithm() {
 }
 
 
-LtiSystem * Algorithm_sachin::getControlador() {
+LtiSystem * AlgorithmNt::getControlador() {
     return controlador_retorno;
 }
 
@@ -158,7 +158,7 @@ LtiSystem * Algorithm_sachin::getControlador() {
 //can be split off (C_g+), it is re-certified by this same test and
 //enters NL as its own triple.
 
-inline void Algorithm_sachin::check_box_feasibility(LtiSystem * controlador) {
+inline void AlgorithmNt::check_box_feasibility(LtiSystem * controlador) {
 
     data_box * datos;
 
@@ -275,7 +275,7 @@ inline void Algorithm_sachin::check_box_feasibility(LtiSystem * controlador) {
 //below-everything zone is certainly forbidden, certified by the parity
 //classification of the box's lower corner (arriba == false).
 
-inline LtiSystem * Algorithm_sachin::acelerated(LtiSystem *v, qreal minimo_boundarie, qreal o, qint32 contador, bool arriba) {
+inline LtiSystem * AlgorithmNt::acelerated(LtiSystem *v, qreal minimo_boundarie, qreal o, qint32 contador, bool arriba) {
 
     if (!arriba){
 
@@ -324,7 +324,7 @@ inline LtiSystem * Algorithm_sachin::acelerated(LtiSystem *v, qreal minimo_bound
 //of the box's phase interval (a heuristic gate: the caller re-certifies
 //the split box with the full feasibility test).
 
-inline bool Algorithm_sachin::feasibleGainFrom(LtiSystem * v, qreal maximo_boundarie,
+inline bool AlgorithmNt::feasibleGainFrom(LtiSystem * v, qreal maximo_boundarie,
                                                cinterval caja, qreal o, qint32 contador, qreal & from) {
 
     const qreal centroFase = (_double(InfIm(caja)) + _double(SupIm(caja))) / 2.0;

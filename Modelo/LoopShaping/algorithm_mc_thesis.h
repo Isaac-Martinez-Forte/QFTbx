@@ -1,5 +1,5 @@
-#ifndef ALGORITHM_SEGUNDO_ARTICULO_H
-#define ALGORITHM_SEGUNDO_ARTICULO_H
+#ifndef ALGORITHM_MC_THESIS_H
+#define ALGORITHM_MC_THESIS_H
 
 
 #include <QVector>
@@ -28,13 +28,13 @@
 #include "interval.hpp"
 #include "EstructuraDatos/n.h"
 
-class Algorithm_segundo_articulo: public QObject
+class AlgorithmMcThesis: public QObject
 {
     Q_OBJECT
 
 public:
-    Algorithm_segundo_articulo();
-    ~Algorithm_segundo_articulo();
+    AlgorithmMcThesis();
+    ~AlgorithmMcThesis();
 
     void set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, BoundaryData * boundaries,
                     qreal epsilon);
@@ -88,4 +88,4 @@ private:
     bool cambioEtapaFinal;
 };
 
-#endif // ALGORITHM_SEGUNDO_ARTICULO_H
+#endif // ALGORITHM_MC_THESIS_H

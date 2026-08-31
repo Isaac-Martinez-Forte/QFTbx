@@ -33,13 +33,13 @@
 //   keeps low-gain loops stable, so the floor of the gain box is the
 //   formal optimum (the box floor keeps the trivially sluggish loops
 //   meaningful).
-// - MR (rambabu) was rebuilt in 8b.4 as the paper's pure ICSP (quadratic
+// - MR was rebuilt in 8b.4 as the paper's pure ICSP (quadratic
 //   constraints from specs and template representatives, HC4 branch &
 //   prune, no boundaries). On ACC'90 it reproduces the same optimum as
 //   NT and NK through a third independent route. On ex2 the honest
 //   constraint search takes minutes on this box, like NT: not pinned
 //   (performance work deferred).
-// - MC-prev (primer_articulo) was rebuilt in 8b.5 as the MC of its paper
+// - MC1 was rebuilt in 8b.5 as the MC of its paper
 //   (Martinez-Forte and Cervera, IJRNC 2021): NT/NK branch & bound + QS2
 //   (magnitude, phase and feasible-boxes cuts) + the prune variable C.
 //   On ACC'90 it reproduces the same optimum as NT, NK and MR through a
@@ -207,15 +207,15 @@ TEST_P(ThesisBenchmarkGolden, ResultIsPinned)
 INSTANTIATE_TEST_SUITE_P(
     Algorithms, ThesisBenchmarkGolden,
     ::testing::Values(
-        BenchmarkGolden{"Acc90NT", "acc90.qft", tools::sachin,
+        BenchmarkGolden{"Acc90NT", "acc90.qft", tools::nt,
                         1000.0, 250.00749999999999, 750.00250000000005},
         //NK's certified local solution realises the same optimal gain as
         //NT's interval descent (the zero/pole sit at the search centre).
-        BenchmarkGolden{"Acc90NK", "acc90.qft", tools::nandkishor,
+        BenchmarkGolden{"Acc90NK", "acc90.qft", tools::nk,
                         1000.0, 500.005, 500.005},
-        BenchmarkGolden{"Acc90MR", "acc90.qft", tools::rambabu,
+        BenchmarkGolden{"Acc90MR", "acc90.qft", tools::mr,
                         1000.0, 500.005, 500.005},
-        BenchmarkGolden{"Acc90MCprev", "acc90.qft", tools::primer_articulo,
+        BenchmarkGolden{"Acc90Mc1", "acc90.qft", tools::mc1,
                         1000.0, 250.00749999999999, 750.00250000000005}),
     [](const ::testing::TestParamInfo<BenchmarkGolden>& info) {
         return std::string(info.param.name);
@@ -230,7 +230,7 @@ TEST(ThesisBenchmarkCrash, DISABLED_McCrashesInOrderedListInsert)
     delete controller.cargarSistema(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
     EXPECT_TRUE(controller.calcularLoopShaping(
-        0.5, tools::segundo_articulo, QPointF(1e-9, 10.0), 100,
+        0.5, tools::mc_thesis, QPointF(1e-9, 10.0), 100,
         false, 10.0, 0, false, false, false, false));
 }
 

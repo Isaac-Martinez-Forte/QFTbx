@@ -1,5 +1,5 @@
-#ifndef ALGORITHM_RAMBABU_H
-#define ALGORITHM_RAMBABU_H
+#ifndef ALGORITHM_MR_H
+#define ALGORITHM_MR_H
 
 #include <complex>
 
@@ -47,11 +47,11 @@
  * - The returned point must pass the nominal closed-loop stability
  *   criterion (NominalStabilityChecker).
  */
-class Algorithm_rambabu
+class AlgorithmMr
 {
 public:
-    Algorithm_rambabu();
-    ~Algorithm_rambabu();
+    AlgorithmMr();
+    ~AlgorithmMr();
 
     void set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> * omega, BoundaryData * boundaries,
                    qreal epsilon, QVector<QVector<QVector<QPointF> *> *> * reunBounHash, bool depuracion,
@@ -104,4 +104,4 @@ private:
     bool depuracion = false;
 };
 
-#endif // ALGORITHM_RAMBABU_H
+#endif // ALGORITHM_MR_H

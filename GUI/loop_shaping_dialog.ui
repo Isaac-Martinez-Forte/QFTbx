@@ -50,7 +50,7 @@
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="QRadioButton" name="sachin">
+     <widget class="QRadioButton" name="ntRadio">
       <property name="text">
        <string>A&amp;lgorithm NT</string>
       </property>
@@ -64,16 +64,16 @@
      </widget>
     </item>
     <item>
-     <widget class="QRadioButton" name="mcRadio">
+     <widget class="QRadioButton" name="mc1Radio">
       <property name="text">
-       <string>Algorith&amp;m MC-prev</string>
+       <string>Algorith&amp;m MC1</string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QRadioButton" name="ntRadio">
+     <widget class="QRadioButton" name="mcThesisRadio">
       <property name="text">
-       <string>Algorithm MC</string>
+       <string>Algorithm MC (thesis)</string>
       </property>
      </widget>
     </item>

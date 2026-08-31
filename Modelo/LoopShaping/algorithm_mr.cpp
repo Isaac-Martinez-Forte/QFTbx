@@ -1,5 +1,5 @@
 #include "Modelo/Herramientas/exception.h"
-#include "algorithm_rambabu.h"
+#include "algorithm_mr.h"
 
 #include "Modelo/EstructurasDatos/dbnd.h"
 
@@ -30,15 +30,15 @@ QString number(qreal value)
 
 } // namespace
 
-Algorithm_rambabu::Algorithm_rambabu()
+AlgorithmMr::AlgorithmMr()
 {
 }
 
-Algorithm_rambabu::~Algorithm_rambabu()
+AlgorithmMr::~AlgorithmMr()
 {
 }
 
-void Algorithm_rambabu::set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> * omega, BoundaryData *boundaries,
+void AlgorithmMr::set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> * omega, BoundaryData *boundaries,
                                   qreal epsilon, QVector<QVector<QVector<QPointF> *> *> *reunBounHash, bool depuracion,
                                   QVector<QVector<std::complex<qreal>> *> * temp, QVector<tools::dBND *> * espe){
     this->planta = planta;
@@ -59,7 +59,7 @@ void Algorithm_rambabu::set_datos(LtiSystem *planta, LtiSystem *controlador, QVe
 //factor (1 + jw/x) contributes sqrt(1 + w^2/x^2); both contribute
 //atan(w/x) to the phase in radians (the historical builder emitted
 //atan(x/w), the complement of the true phase).
-inline void Algorithm_rambabu::buildControllerExpressions(){
+inline void AlgorithmMr::buildControllerExpressions(){
 
     const bool timeConstant =
             controlador->type() == LtiSystem::SystemType::TimeConstantGain;
@@ -117,7 +117,7 @@ inline void Algorithm_rambabu::buildControllerExpressions(){
 //QFTbx quadratics for the remaining specifications), one inequality
 //"expression >= 0" per template representative (pairs for tracking) and
 //design frequency where the specification band applies.
-inline void Algorithm_rambabu::buildConstraints(){
+inline void AlgorithmMr::buildConstraints(){
 
     //The validated specification set, the same accessor the boundary
     //engine cuts at (the raw dBND::getAltura evaluated NaN on some legacy
@@ -234,7 +234,7 @@ inline void Algorithm_rambabu::buildConstraints(){
 }
 
 
-bool Algorithm_rambabu::init_algorithm(){
+bool AlgorithmMr::init_algorithm(){
 
     lista = new ListaOrdenada();
     conversion = new NaturalIntervalExtension();
@@ -300,7 +300,7 @@ bool Algorithm_rambabu::init_algorithm(){
 }
 
 
-LtiSystem * Algorithm_rambabu::getControlador(){
+LtiSystem * AlgorithmMr::getControlador(){
     return controlador_retorno;
 }
 
@@ -309,7 +309,7 @@ LtiSystem * Algorithm_rambabu::getControlador(){
 //HC4 filter over the whole constraint set; an emptied domain proves the
 //box infeasible, and non-negative interval evaluations of every
 //constraint prove it feasible.
-inline void Algorithm_rambabu::classifyAndInsert(LtiSystem * box){
+inline void AlgorithmMr::classifyAndInsert(LtiSystem * box){
 
     QMap<std::string, cxsc::interval> domains;
     loadDomains(box, domains);
@@ -328,7 +328,7 @@ inline void Algorithm_rambabu::classifyAndInsert(LtiSystem * box){
 }
 
 
-inline bool Algorithm_rambabu::narrowToFixpoint(QMap<std::string, cxsc::interval> & domains){
+inline bool AlgorithmMr::narrowToFixpoint(QMap<std::string, cxsc::interval> & domains){
 
     for (qint32 pass = 0; pass < kMaxNarrowingPasses; ++pass) {
 
@@ -358,7 +358,7 @@ inline bool Algorithm_rambabu::narrowToFixpoint(QMap<std::string, cxsc::interval
 }
 
 
-inline bool Algorithm_rambabu::certainlyFeasible(QMap<std::string, cxsc::interval> & domains){
+inline bool AlgorithmMr::certainlyFeasible(QMap<std::string, cxsc::interval> & domains){
 
     foreach (exp_tree * tree, constraints) {
         if (cxsc::_double(Inf(tree->eval(&domains))) < 0.0) {
@@ -370,7 +370,7 @@ inline bool Algorithm_rambabu::certainlyFeasible(QMap<std::string, cxsc::interva
 }
 
 
-inline void Algorithm_rambabu::loadDomains(LtiSystem * box,
+inline void AlgorithmMr::loadDomains(LtiSystem * box,
                                            QMap<std::string, cxsc::interval> & domains){
 
     domains.clear();
@@ -392,7 +392,7 @@ inline void Algorithm_rambabu::loadDomains(LtiSystem * box,
 }
 
 
-inline LtiSystem * Algorithm_rambabu::boxFromDomains(LtiSystem * box,
+inline LtiSystem * AlgorithmMr::boxFromDomains(LtiSystem * box,
                                                      const QMap<std::string, cxsc::interval> & domains){
 
     const auto rebuilt = [&](Parameter * var) -> Parameter * {

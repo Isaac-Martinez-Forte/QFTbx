@@ -107,10 +107,7 @@ void LoopShapingDialog::on_okButton_clicked()
 
     if (ui->nkRadio->isChecked()){
 
-        //NOTE (phase 8): the duplicated inner condition made
-        //nandkishor_primeraversion unreachable; decide there which control
-        //should select it.
-        alg = tools::nandkishor;
+        alg = tools::nk;
 
         if (ui->randomInit->isChecked()){
             initialisation = 2;
@@ -133,13 +130,13 @@ void LoopShapingDialog::on_okButton_clicked()
         }
 
     } else if (ui->mrRadio->isChecked()){
-        alg = tools::rambabu;
-    }else if (ui->mcRadio->isChecked()){
-        alg = tools::primer_articulo;
-    } else if (ui->ntRadio->isChecked()){
-        alg = tools::segundo_articulo;
+        alg = tools::mr;
+    }else if (ui->mc1Radio->isChecked()){
+        alg = tools::mc1;
+    } else if (ui->mcThesisRadio->isChecked()){
+        alg = tools::mc_thesis;
     } else {
-        alg = tools::sachin;
+        alg = tools::nt;
     }
 
     //Direct read: the old latch left linspace selected forever once
@@ -228,7 +225,7 @@ void LoopShapingDialog::on_logspaceRadio_clicked()
     ui->pointCountEdit->setText("1000");
 }
 
-void LoopShapingDialog::on_sachin_clicked()
+void LoopShapingDialog::on_ntRadio_clicked()
 {
     ui->algorithmStack->setCurrentIndex(0);
 }
@@ -243,7 +240,3 @@ void LoopShapingDialog::on_mrRadio_clicked()
     ui->algorithmStack->setCurrentIndex(0);
 }
 
-//NOTE (phase 8): dead since the original code - there is no radio wired to
-//the MC-prev algorithm (see the unreachable nandkishor_primeraversion in
-//on_okButton_clicked); decide there whether to add the radio or remove the
-//algorithm variant.

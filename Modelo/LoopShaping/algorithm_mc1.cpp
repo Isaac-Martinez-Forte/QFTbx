@@ -1,5 +1,5 @@
 #include "Modelo/Herramientas/exception.h"
-#include "algorithm_primer_articulo.h"
+#include "algorithm_mc1.h"
 
 #include "quick_solution.h"
 
@@ -53,16 +53,16 @@ qreal nominalPhase(std::complex<qreal> p0)
 } // namespace
 
 
-Algorithm_primer_articulo::Algorithm_primer_articulo()
+AlgorithmMc1::AlgorithmMc1()
 {
 }
 
-Algorithm_primer_articulo::~Algorithm_primer_articulo()
+AlgorithmMc1::~AlgorithmMc1()
 {
 }
 
 
-void Algorithm_primer_articulo::set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> * omega,
+void AlgorithmMc1::set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> * omega,
                                           BoundaryData * boundaries, qreal epsilon,
                                           QVector<QVector<QVector<QPointF> *> *> * reunBounHash __attribute__((unused)),
                                           bool depuracion __attribute__((unused)),
@@ -95,7 +95,7 @@ void Algorithm_primer_articulo::set_datos(LtiSystem * planta, LtiSystem * contro
 //Main loop: the NT branch & bound (paper, algorithm 5) with QS2 inside
 //the feasibility test of every box (steps 1(b-bis) and 4bis) and the
 //prune variable C of step 3bis behind bestCertifiedGain.
-bool Algorithm_primer_articulo::init_algorithm()
+bool AlgorithmMc1::init_algorithm()
 {
     lista = new ListaOrdenada();
     conversion = new NaturalIntervalExtension();
@@ -187,7 +187,7 @@ bool Algorithm_primer_articulo::init_algorithm()
 }
 
 
-LtiSystem * Algorithm_primer_articulo::getControlador()
+LtiSystem * AlgorithmMc1::getControlador()
 {
     return controlador_retorno;
 }
@@ -197,7 +197,7 @@ LtiSystem * Algorithm_primer_articulo::getControlador()
 //cutting applied per frequency with the latest updated box, and stage 3
 //attempted once on the surviving box. Certainly infeasible boxes are
 //destroyed; anything else enters the live list.
-inline void Algorithm_primer_articulo::check_box_feasibility(LtiSystem * controlador)
+inline void AlgorithmMc1::check_box_feasibility(LtiSystem * controlador)
 {
     data_box * datos;
     flags_box flag_final = feasible;
@@ -259,7 +259,7 @@ inline void Algorithm_primer_articulo::check_box_feasibility(LtiSystem * control
 //magnitude cuts of NK's Quick Solution when the strip under the boundary
 //minimum is certainly forbidden, and the phase cuts when a vertical strip
 //is. All cuts run sequentially on the latest updated values.
-inline LtiSystem * Algorithm_primer_articulo::quickSolution2(LtiSystem * v, data_box * datos,
+inline LtiSystem * AlgorithmMc1::quickSolution2(LtiSystem * v, data_box * datos,
                                                              const cxsc::cinterval & caja,
                                                              qreal w, std::complex<qreal> p0)
 {
@@ -446,7 +446,7 @@ inline LtiSystem * Algorithm_primer_articulo::quickSolution2(LtiSystem * v, data
 
 //Feasibility of the box with its gain range replaced by
 //[gainInf, gainSup] at every design frequency.
-inline bool Algorithm_primer_articulo::gainRangeIsFeasible(LtiSystem * box,
+inline bool AlgorithmMc1::gainRangeIsFeasible(LtiSystem * box,
                                                            qreal gainInf, qreal gainSup)
 {
     LtiSystem * candidate = box->create(box->name(),
@@ -477,7 +477,7 @@ inline bool Algorithm_primer_articulo::gainRangeIsFeasible(LtiSystem * box,
 //located by logarithmic bisection over the interval feasibility test and
 //the certified point must pass the nominal stability criterion before it
 //may prune the search through C.
-inline void Algorithm_primer_articulo::certifiedGainSearch(LtiSystem * box)
+inline void AlgorithmMc1::certifiedGainSearch(LtiSystem * box)
 {
     if (!box->gain()->isUncertain()) {
         return;

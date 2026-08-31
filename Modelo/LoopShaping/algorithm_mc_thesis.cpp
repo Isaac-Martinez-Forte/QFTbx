@@ -3,7 +3,7 @@
 #endif
 
 #include "Modelo/Herramientas/exception.h"
-#include "algorithm_segundo_articulo.h"
+#include "algorithm_mc_thesis.h"
 
 
 using namespace tools;
@@ -26,16 +26,16 @@ using namespace cxsc;
 //#define mensajesBi
 
 
-Algorithm_segundo_articulo::Algorithm_segundo_articulo()
+AlgorithmMcThesis::AlgorithmMcThesis()
 {
 
 }
 
-Algorithm_segundo_articulo::~Algorithm_segundo_articulo() {
+AlgorithmMcThesis::~AlgorithmMcThesis() {
 
 }
 
-void Algorithm_segundo_articulo::set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, BoundaryData * boundaries,
+void AlgorithmMcThesis::set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, BoundaryData * boundaries,
                                            qreal epsilon) {
 
     this->planta = planta;
@@ -86,7 +86,7 @@ void Algorithm_segundo_articulo::set_datos(LtiSystem * planta, LtiSystem * contr
 
 }
 
-bool Algorithm_segundo_articulo::init_algorithm(){
+bool AlgorithmMcThesis::init_algorithm(){
 
 
 #if defined (BI_ARBOL) && !(defined (REC_INTER) && (defined (REC_MAG) || defined (REC_FASE)) )
@@ -236,7 +236,7 @@ bool Algorithm_segundo_articulo::init_algorithm(){
 }
 
 // Se implementa un beneficio estimado básico que luego se mejorará
-inline Tripleta2 * Algorithm_segundo_articulo::beneficioEstimado (Tripleta2 * tripleta) {
+inline Tripleta2 * AlgorithmMcThesis::beneficioEstimado (Tripleta2 * tripleta) {
 
     // TODO falta implementar beneficio estimado avanzado.
 
@@ -245,7 +245,7 @@ inline Tripleta2 * Algorithm_segundo_articulo::beneficioEstimado (Tripleta2 * tr
     return tripleta;
 }
 
-inline bool Algorithm_segundo_articulo::aplicarMejoras (Tripleta2 *tripleta) {
+inline bool AlgorithmMcThesis::aplicarMejoras (Tripleta2 *tripleta) {
 
 
     bool noError = analizar(tripleta);
@@ -313,7 +313,7 @@ inline bool Algorithm_segundo_articulo::aplicarMejoras (Tripleta2 *tripleta) {
 
 //Función que comprueba si la caja actual es feasible, infeasible o ambiguous.
 
-inline bool Algorithm_segundo_articulo::analizar(Tripleta2 * tripleta) {
+inline bool AlgorithmMcThesis::analizar(Tripleta2 * tripleta) {
 
     data_box * datos;
 
@@ -416,7 +416,7 @@ inline bool Algorithm_segundo_articulo::analizar(Tripleta2 * tripleta) {
     return true;
 }
 
-inline FC::return_bisection2 Algorithm_segundo_articulo::biseccion(Tripleta2 * tripleta) {
+inline FC::return_bisection2 AlgorithmMcThesis::biseccion(Tripleta2 * tripleta) {
 
 
     switch (tripleta->getEtapas()) {
@@ -446,7 +446,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccion(Tripleta2 * t
     return biseccionArea(tripleta);
 }
 
-inline LtiSystem * Algorithm_segundo_articulo::busquedaMejorGanancia (Tripleta2 * tripleta) {
+inline LtiSystem * AlgorithmMcThesis::busquedaMejorGanancia (Tripleta2 * tripleta) {
 
     LtiSystem * v = tripleta->getSistema();
 
@@ -533,7 +533,7 @@ inline LtiSystem * Algorithm_segundo_articulo::busquedaMejorGanancia (Tripleta2 
     }
 }
 
-inline void Algorithm_segundo_articulo::comprobarVariables(LtiSystem *controlador) {
+inline void AlgorithmMcThesis::comprobarVariables(LtiSystem *controlador) {
     bool b = true;
 
 
@@ -560,7 +560,7 @@ inline void Algorithm_segundo_articulo::comprobarVariables(LtiSystem *controlado
 }
 
 //Función que recorta la caja.
-inline Tripleta2 * Algorithm_segundo_articulo::recortesInfeasible(Tripleta2 * tripleta) {
+inline Tripleta2 * AlgorithmMcThesis::recortesInfeasible(Tripleta2 * tripleta) {
 
     LtiSystem * v = tripleta->getSistema();
 
@@ -833,7 +833,7 @@ inline Tripleta2 * Algorithm_segundo_articulo::recortesInfeasible(Tripleta2 * tr
 }
 
 //Función que recorta la caja.
-inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *tripleta) {
+inline Tripleta2 *AlgorithmMcThesis::recortesFeasible(Tripleta2 *tripleta) {
 
 #if defined REC_INTER && (defined REC_FASE || defined REC_MAG)
 
@@ -1166,7 +1166,7 @@ inline Tripleta2 *Algorithm_segundo_articulo::recortesFeasible(Tripleta2 *triple
 }
 
 //Función que calcula los términos del controlador en decibelios
-inline Tripleta2 * Algorithm_segundo_articulo::calculoTerminosControlador (Tripleta2* controlador) {
+inline Tripleta2 * AlgorithmMcThesis::calculoTerminosControlador (Tripleta2* controlador) {
 
     LtiSystem * s = controlador->getSistema();
     QVector <cinterval> * terminosNume = new QVector<cinterval>();
@@ -1196,7 +1196,7 @@ inline Tripleta2 * Algorithm_segundo_articulo::calculoTerminosControlador (Tripl
     return controlador;
 }
 
-inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArea(Tripleta2 * tripleta) {
+inline FC::return_bisection2 AlgorithmMcThesis::biseccionArea(Tripleta2 * tripleta) {
 
     QVector <cinterval> * terminosNume = tripleta->getTerNume();
     QVector <cinterval> * terminosDeno = tripleta->getTerDeno();
@@ -1391,7 +1391,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArea(Tripleta2
     return retur;
 }
 
-inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionMag(Tripleta2 * tripleta) {
+inline FC::return_bisection2 AlgorithmMcThesis::biseccionMag(Tripleta2 * tripleta) {
 
     QVector <cinterval> * terminosNume = tripleta->getTerNume();
     QVector <cinterval> * terminosDeno = tripleta->getTerDeno();
@@ -1572,7 +1572,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionMag(Tripleta2 
 }
 
 
-inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionFas(Tripleta2 * tripleta) {
+inline FC::return_bisection2 AlgorithmMcThesis::biseccionFas(Tripleta2 * tripleta) {
 
     QVector <cinterval> * terminosNume = tripleta->getTerNume();
     QVector <cinterval> * terminosDeno = tripleta->getTerDeno();
@@ -1738,7 +1738,7 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionFas(Tripleta2 
     return retur;
 }
 
-inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta2 * tripleta) {
+inline FC::return_bisection2 AlgorithmMcThesis::biseccionArbol(Tripleta2 * tripleta) {
 
     LtiSystem * current_controlador = tripleta->getSistema();
 
@@ -2224,6 +2224,6 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
 
 }
 
-LtiSystem * Algorithm_segundo_articulo::getControlador()  {
+LtiSystem * AlgorithmMcThesis::getControlador()  {
     return controlador_retorno;
 }

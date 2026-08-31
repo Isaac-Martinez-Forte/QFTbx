@@ -1,5 +1,5 @@
 #include "Modelo/Herramientas/exception.h"
-#include "algorithm_nandkishor.h"
+#include "algorithm_nk.h"
 
 #include <QRandomGenerator>
 
@@ -11,16 +11,16 @@ using namespace FC;
 
 namespace quick_solution = qftbx::quick_solution;
 
-Algorithm_nandkishor::Algorithm_nandkishor()
+AlgorithmNk::AlgorithmNk()
 {
 }
 
-Algorithm_nandkishor::~Algorithm_nandkishor()
+AlgorithmNk::~AlgorithmNk()
 {
 }
 
 
-void Algorithm_nandkishor::set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> * omega, BoundaryData *boundaries,
+void AlgorithmNk::set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> * omega, BoundaryData *boundaries,
                                      qreal epsilon, QVector<QVector<QVector<QPointF> *> *> *reunBounHash,
                                      qreal delta, qint32 inicializacion){
 
@@ -49,7 +49,7 @@ void Algorithm_nandkishor::set_datos(LtiSystem *planta, LtiSystem *controlador, 
 //NK additions wired at the paper's steps: local optimization on the
 //leading box (steps 5-6 and 18-20) and Quick Solution inside the
 //feasibility test of every box (steps 2 and 9).
-bool Algorithm_nandkishor::init_algorithm(){
+bool AlgorithmNk::init_algorithm(){
 
     lista = new ListaOrdenada();
     conversion = new NaturalIntervalExtension();
@@ -159,7 +159,7 @@ bool Algorithm_nandkishor::init_algorithm(){
 }
 
 
-LtiSystem * Algorithm_nandkishor::getControlador(){
+LtiSystem * AlgorithmNk::getControlador(){
     return controlador_retorno;
 }
 
@@ -168,7 +168,7 @@ LtiSystem * Algorithm_nandkishor::getControlador(){
 //cutting applied per frequency with the latest updated box (paper,
 //sec. 3.3: "one always uses the latest updated values"). Certainly
 //infeasible boxes are destroyed; anything else enters the live list.
-inline void Algorithm_nandkishor::check_box_feasibility(LtiSystem * controlador){
+inline void AlgorithmNk::check_box_feasibility(LtiSystem * controlador){
 
     data_box * datos;
     flags_box flag_final = feasible;
@@ -242,7 +242,7 @@ inline void Algorithm_nandkishor::check_box_feasibility(LtiSystem * controlador)
 //infeasible subranges of the gain, every zero and every pole with the
 //closed-form monotonicity equations, sequentially, using the latest
 //updated values. boundMinDb is |B_i|min over the box's phase interval.
-inline LtiSystem * Algorithm_nandkishor::quickSolution(LtiSystem * v, qreal boundMinDb,
+inline LtiSystem * AlgorithmNk::quickSolution(LtiSystem * v, qreal boundMinDb,
                                                        qreal w, std::complex<qreal> p0){
 
     const qreal boundMin = std::pow(10.0, boundMinDb / 20.0);
@@ -359,7 +359,7 @@ const qint32 kLocalSearchBudget = 400;
 const qreal kGainTolerance = 1.01;      //1% is plenty for a pruning bound
 }
 
-inline qreal Algorithm_nandkishor::minimalFeasibleGain(const QVector<qreal> & zeros,
+inline qreal AlgorithmNk::minimalFeasibleGain(const QVector<qreal> & zeros,
                                                        const QVector<qreal> & poles,
                                                        LtiSystem * box, qint32 & budget){
 
@@ -390,7 +390,7 @@ inline qreal Algorithm_nandkishor::minimalFeasibleGain(const QVector<qreal> & ze
     return high;
 }
 
-inline void Algorithm_nandkishor::localOptimization(LtiSystem * box){
+inline void AlgorithmNk::localOptimization(LtiSystem * box){
 
     const qreal launch = box->gain()->range().x();
 
@@ -478,7 +478,7 @@ inline void Algorithm_nandkishor::localOptimization(LtiSystem * box){
 }
 
 
-inline LtiSystem * Algorithm_nandkishor::pointSystem(const QVector<qreal> & zeros,
+inline LtiSystem * AlgorithmNk::pointSystem(const QVector<qreal> & zeros,
                                                      const QVector<qreal> & poles, qreal gain){
     auto * numerador = new QVector<Parameter*>();
     foreach (qreal z, zeros) {
@@ -496,7 +496,7 @@ inline LtiSystem * Algorithm_nandkishor::pointSystem(const QVector<qreal> & zero
 //Point feasibility against the bounds at every design frequency, with the
 //same projection + detection the interval test uses (the historical local
 //search passed the GAIN as the frequency index of the detection).
-inline bool Algorithm_nandkishor::pointIsFeasible(const QVector<qreal> & zeros,
+inline bool AlgorithmNk::pointIsFeasible(const QVector<qreal> & zeros,
                                                   const QVector<qreal> & poles, qreal gain){
 
     if (gain <= 0.0 || std::isinf(gain)) {
@@ -525,7 +525,7 @@ inline bool Algorithm_nandkishor::pointIsFeasible(const QVector<qreal> & zeros,
 
 //Starting point of the local search, per the GUI choice: box centre,
 //random point, or the |L0|-maximal corner.
-inline void Algorithm_nandkishor::startingPoint(LtiSystem * box, QVector<qreal> & zeros,
+inline void AlgorithmNk::startingPoint(LtiSystem * box, QVector<qreal> & zeros,
                                                 QVector<qreal> & poles, qreal & gain){
 
     const auto pick = [this](Parameter * var, bool isPole) -> qreal {

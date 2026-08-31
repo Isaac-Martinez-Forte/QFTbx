@@ -14,7 +14,7 @@
 //   consumer agreeing, no gain inside the stored controller range
 //   satisfies the bounds: the problem is genuinely infeasible and the
 //   algorithms now say so.
-// - MR (rambabu), rebuilt as the paper's pure ICSP in 8b.4, now
+// - MR, rebuilt as the paper's pure ICSP in 8b.4, now
 //   validates the specifications: planta1's stored input-disturbance
 //   slot holds an invalid constant (magnitude <= 0, the source of NaN
 //   heights), so the validating conversion rejects the problem.
@@ -85,11 +85,11 @@ TEST_P(LoopShapingGolden, Planta1ResultIsPinned)
 INSTANTIATE_TEST_SUITE_P(
     Algorithms, LoopShapingGolden,
     ::testing::Values(
-        GoldenResult{"NT", tools::sachin, false, 0.0, 0.0},
-        GoldenResult{"NK", tools::nandkishor, false, 0.0, 0.0},
-        GoldenResult{"MR", tools::rambabu, false, 0.0, 0.0},
-        GoldenResult{"MCprev", tools::primer_articulo, false, 0.0, 0.0},
-        GoldenResult{"MC", tools::segundo_articulo, false, 0.0, 0.0}),
+        GoldenResult{"NT", tools::nt, false, 0.0, 0.0},
+        GoldenResult{"NK", tools::nk, false, 0.0, 0.0},
+        GoldenResult{"MR", tools::mr, false, 0.0, 0.0},
+        GoldenResult{"MC1", tools::mc1, false, 0.0, 0.0},
+        GoldenResult{"McThesis", tools::mc_thesis, false, 0.0, 0.0}),
     [](const ::testing::TestParamInfo<GoldenResult>& info) {
         return std::string(info.param.name);
     });

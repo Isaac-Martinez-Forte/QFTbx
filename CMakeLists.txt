@@ -151,13 +151,13 @@ set(QFTbx_BACKEND_SRC
     src/core/boundaries/boundary_data.cpp
     DAO/adaptadorespecificacionesdao.cpp
     DAO/adaptadorcontroladordao.cpp
-    Modelo/LoopShaping/algorithm_sachin.cpp
+    Modelo/LoopShaping/algorithm_nt.cpp
     Modelo/LoopShaping/nominal_stability_checker.cpp
-    Modelo/LoopShaping/algorithm_primer_articulo.cpp
-    Modelo/LoopShaping/algorithm_segundo_articulo.cpp
+    Modelo/LoopShaping/algorithm_mc1.cpp
+    Modelo/LoopShaping/algorithm_mc_thesis.cpp
     src/core/system/parameter.cpp
-    Modelo/LoopShaping/algorithm_nandkishor.cpp
-    Modelo/LoopShaping/algorithm_rambabu.cpp
+    Modelo/LoopShaping/algorithm_nk.cpp
+    Modelo/LoopShaping/algorithm_mr.cpp
     src/core/boundaries/boundary_engine.cpp
     Consola/consola.cpp
     src/core/system/free_form.cpp
@@ -230,15 +230,15 @@ set(QFTbx_BACKEND_HED
     DAO/adaptadorespecificacionesdao.h
     DAO/adaptadorcontroladordao.h
     DAO/controladordao.h
-    Modelo/LoopShaping/algorithm_sachin.h
+    Modelo/LoopShaping/algorithm_nt.h
     Modelo/LoopShaping/nominal_stability_checker.h
     Modelo/LoopShaping/quick_solution.h
     Modelo/LoopShaping/debug_viewers.h
-    Modelo/LoopShaping/algorithm_primer_articulo.h
-    Modelo/LoopShaping/algorithm_segundo_articulo.h
+    Modelo/LoopShaping/algorithm_mc1.h
+    Modelo/LoopShaping/algorithm_mc_thesis.h
     src/core/system/parameter.h
-    Modelo/LoopShaping/algorithm_nandkishor.h
-    Modelo/LoopShaping/algorithm_rambabu.h
+    Modelo/LoopShaping/algorithm_nk.h
+    Modelo/LoopShaping/algorithm_mr.h
     Modelo/LoopShaping/EstructuraDatos/arbol_exp.h
     src/core/boundaries/boundary_engine.h
     Consola/consola.h

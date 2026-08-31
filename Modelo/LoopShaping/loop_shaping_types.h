@@ -12,8 +12,8 @@ enum flags_box{
     completo
 };
 
-enum alg_loop_shaping {sachin, nandkishor, rambabu,
-                       nandkishor_primeraversion, primer_articulo, segundo_articulo};
+enum alg_loop_shaping {nt, nk, mr,
+                       mc1, mc_thesis};
 
 } // namespace tools
 

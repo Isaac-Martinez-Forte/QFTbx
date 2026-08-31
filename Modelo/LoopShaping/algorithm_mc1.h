@@ -1,5 +1,5 @@
-#ifndef ALGORITHM_PRIMER_ARTICULO_H
-#define ALGORITHM_PRIMER_ARTICULO_H
+#ifndef ALGORITHM_MC1_H
+#define ALGORITHM_MC1_H
 
 #include <complex>
 
@@ -52,13 +52,13 @@
  *   detection: the advanced-mode parameters of set_datos (threads, radii
  *   and centres of the stability circles, advanced bisection/detection)
  *   are accepted for interface compatibility and ignored; they belong to
- *   the thesis algorithms (algorithm_segundo_articulo).
+ *   the thesis algorithms (algorithm_mc_thesis).
  */
-class Algorithm_primer_articulo
+class AlgorithmMc1
 {
 public:
-    Algorithm_primer_articulo();
-    ~Algorithm_primer_articulo();
+    AlgorithmMc1();
+    ~AlgorithmMc1();
 
     void set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> * omega, BoundaryData * boundaries,
                    qreal epsilon, QVector<QVector<QVector<QPointF> *> *> * reunBounHash, bool depuracion,
@@ -102,4 +102,4 @@ private:
     bool hasUncertainPoles = false;
 };
 
-#endif // ALGORITHM_PRIMER_ARTICULO_H
+#endif // ALGORITHM_MC1_H

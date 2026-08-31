@@ -1,5 +1,5 @@
-#ifndef ALGORITHM_SACHIN_H
-#define ALGORITHM_SACHIN_H
+#ifndef ALGORITHM_NT_H
+#define ALGORITHM_NT_H
 
 #include <QVector>
 #include <QHash>
@@ -22,11 +22,11 @@
 
 
 
-class Algorithm_sachin
+class AlgorithmNt
 {
 public:
-    Algorithm_sachin();
-    ~Algorithm_sachin();
+    AlgorithmNt();
+    ~AlgorithmNt();
 
     void set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, BoundaryData * boundaries,
                     qreal epsilon, QVector<QVector<QVector<QPointF> *> *> * reunBounHash);
@@ -69,4 +69,4 @@ private:
 
 };
 
-#endif // ALGORITHM_SACHIN_H
+#endif // ALGORITHM_NT_H

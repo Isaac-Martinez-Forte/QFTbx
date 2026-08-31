@@ -1,5 +1,5 @@
-#ifndef ALGORITHM_NANDKISHOR_H
-#define ALGORITHM_NANDKISHOR_H
+#ifndef ALGORITHM_NK_H
+#define ALGORITHM_NK_H
 
 #include <complex>
 
@@ -38,11 +38,11 @@
  * formulation), implemented on the Nichols chart by the Cohen-Chait-Yaniv
  * criterion (NominalStabilityChecker).
  */
-class Algorithm_nandkishor
+class AlgorithmNk
 {
 public:
-    Algorithm_nandkishor();
-    ~Algorithm_nandkishor();
+    AlgorithmNk();
+    ~AlgorithmNk();
 
     void set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, BoundaryData * boundaries,
                    qreal epsilon, QVector<QVector<QVector<QPointF> *> *> * reunBounHash,
@@ -104,4 +104,4 @@ private:
     bool hasUncertainPoles = false;
 };
 
-#endif // ALGORITHM_NANDKISHOR_H
+#endif // ALGORITHM_NK_H
