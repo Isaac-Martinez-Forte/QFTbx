@@ -32,6 +32,12 @@ struct GoldenResult {
     qreal tolerance;
 };
 
+//Readable test names in ctest (instead of a raw byte dump).
+void PrintTo(const GoldenResult& golden, std::ostream* os)
+{
+    *os << golden.name;
+}
+
 class LoopShapingGolden : public ::testing::TestWithParam<GoldenResult>
 {
 };
