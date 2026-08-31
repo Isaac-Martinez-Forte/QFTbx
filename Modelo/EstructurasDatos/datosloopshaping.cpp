@@ -13,9 +13,16 @@ DatosLoopShaping::DatosLoopShaping(LtiSystem *controlador, QPointF rango, qreal 
     introducido = false;
 }
 
+DatosLoopShaping::~DatosLoopShaping(){
+    delete controlador;
+}
+
 void DatosLoopShaping::setDatos(LtiSystem *controlador, QPointF rango, qreal nPuntos){
-    if (introducido){
-        delete controlador;
+    //The historical version deleted the INCOMING controller instead of the
+    //stored one: a recomputation freed the new result and kept the dangling
+    //pointer.
+    if (this->controlador != controlador){
+        delete this->controlador;
     }
 
     introducido = true;
@@ -26,8 +33,8 @@ void DatosLoopShaping::setDatos(LtiSystem *controlador, QPointF rango, qreal nPu
 }
 
 void DatosLoopShaping::setDatos(LtiSystem *controlador){
-    if (introducido){
-        delete controlador;
+    if (this->controlador != controlador){
+        delete this->controlador;
     }
 
     introducido = true;

@@ -5,11 +5,14 @@
 
 #include "src/core/system/lti_system.h"
 
+//Owns the computed loop-shaping controller: replacing it frees the
+//previous one, and the record frees the last one on destruction.
 class DatosLoopShaping
 {
 public:
     DatosLoopShaping();
     DatosLoopShaping (LtiSystem * controlador, QPointF rango, qreal nPuntos);
+    ~DatosLoopShaping();
 
     void setDatos (LtiSystem * controlador, QPointF rango, qreal nPuntos);
 
@@ -23,7 +26,7 @@ public:
 
 private:
 
-    LtiSystem * controlador;
+    LtiSystem * controlador = nullptr;
     QPointF rango;
     qreal nPuntos;
 
