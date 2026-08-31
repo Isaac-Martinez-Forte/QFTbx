@@ -483,9 +483,11 @@ data_box * DeteccionViolacionBoundaries::deteccionViolacionCajaNiNi(cinterval bo
 //side, ambiguous when boundary points fall inside it. The returned
 //minimums/maximums are B_min and B_max, the extreme boundary magnitudes
 //over the box's PHASE interval (Tharewal 2005, fig. 5.1), in dB/degrees,
-//which drive the gain cutting. The historical version computed B_min and
-//B_max only from the boundary points INSIDE the box: when the boundary
-//left the box within its phase span the cut could remove feasible gains.
+//which drive the gain cutting, plus the boundary's phase extremes over
+//the same span, which drive the phase cutting of algorithm MC. The
+//historical version computed B_min and B_max only from the boundary
+//points INSIDE the box: when the boundary left the box within its phase
+//span the cut could remove feasible gains.
 data_box *DeteccionViolacionBoundaries::deteccionViolacionCajaNi(cinterval box, BoundaryData *boundaries, qint32 contador) {
 
     QVector< QVector<QPointF> * > * interseccionHash = boundaries->unionBuckets()->at(contador);
@@ -563,6 +565,20 @@ data_box *DeteccionViolacionBoundaries::deteccionViolacionCajaNi(cinterval box, 
     } else {
         datos->setUniArriba(false);
     }
+
+    //Corner classifications for the cutting strips: every boundary point
+    //whose phase lies in the box's span was scanned above, so the box
+    //regions below/left of (B_min, phase_min) and above/right of
+    //(B_max, phase_max) are boundary-free and uniformly classified by the
+    //corner they contain. The bottom-left corner drives the gain cutting
+    //(NT/NK) and the left phase strip; the top-right corner drives the
+    //right phase strip (MC, QS2 stage 2).
+    datos->setUniAbajo(f == infeasible);
+    datos->setUniIzquierda(f == infeasible);
+
+    flags_box f2 = deteccionViolacion(QPointF(maxFas, maxMag), interseccionHash, totalFase,
+                                      abierta, arriba, numeroFases);
+    datos->setUniDerecha(f2 == infeasible);
 
     if (ambiguo) {
         datos->setFlag(ambiguous);

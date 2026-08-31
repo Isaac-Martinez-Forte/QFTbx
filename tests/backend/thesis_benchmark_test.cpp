@@ -39,8 +39,15 @@
 //   NT and NK through a third independent route. On ex2 the honest
 //   constraint search takes minutes on this box, like NT: not pinned
 //   (performance work deferred).
-// - MC-prev values are pinned as behaviour, not as verified optima: its
-//   review against the IJRNC paper is 8b.5.
+// - MC-prev (primer_articulo) was rebuilt in 8b.5 as the MC of its paper
+//   (Martinez-Forte and Cervera, IJRNC 2021): NT/NK branch & bound + QS2
+//   (magnitude, phase and feasible-boxes cuts) + the prune variable C.
+//   On ACC'90 it reproduces the same optimum as NT, NK and MR through a
+//   fourth independent route. On ex2 the honest search takes minutes on
+//   this box, like NT/NK/MR: not pinned (performance work deferred). The
+//   historical implementation discarded the low-gain feasible strip
+//   instead of keeping it as the paper's feasible box z', which is why
+//   the old pinned values were far above the true optimum.
 // - NK was reviewed against its paper in 8b.3 (Quick Solution rebuilt on
 //   the closed-form linear equations, local optimisation reconnected with
 //   the 10% rule, stability check wired): the process abort disappeared
@@ -200,8 +207,6 @@ TEST_P(ThesisBenchmarkGolden, ResultIsPinned)
 INSTANTIATE_TEST_SUITE_P(
     Algorithms, ThesisBenchmarkGolden,
     ::testing::Values(
-        BenchmarkGolden{"Ex2MCprev", "qft_toolbox_ex2.qft", tools::primer_articulo,
-                        59569.844352572618, 0.38125871873113742, 0.13501820079055124},
         BenchmarkGolden{"Acc90NT", "acc90.qft", tools::sachin,
                         1000.0, 250.00749999999999, 750.00250000000005},
         //NK's certified local solution realises the same optimal gain as
@@ -211,7 +216,7 @@ INSTANTIATE_TEST_SUITE_P(
         BenchmarkGolden{"Acc90MR", "acc90.qft", tools::rambabu,
                         1000.0, 500.005, 500.005},
         BenchmarkGolden{"Acc90MCprev", "acc90.qft", tools::primer_articulo,
-                        16431.342475698933, 0.01, 3.9025789234624524}),
+                        1000.0, 250.00749999999999, 750.00250000000005}),
     [](const ::testing::TestParamInfo<BenchmarkGolden>& info) {
         return std::string(info.param.name);
     });

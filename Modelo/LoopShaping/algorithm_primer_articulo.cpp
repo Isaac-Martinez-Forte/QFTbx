@@ -1,1916 +1,536 @@
-#if defined(VER_DIAGRAMAS) || defined(COMPARACION_CAJAS) || defined(VER_ANTES)
-#include "Modelo/LoopShaping/debug_viewers.h"
-#endif
-
 #include "Modelo/Herramientas/exception.h"
 #include "algorithm_primer_articulo.h"
 
-
-//#define sachin
-#define REC_UNION
-#define REC_INTER
-#define REC_FASE
-#define REC_MAG
-#define DETEC_CASOS
-#define GANANCIA
-//#define VER_ANTES
-//#define COMPARACION_CAJAS
-//#define Bi_INTE
-//#define BE
-//#define VER_DIAGRAMAS
+#include "quick_solution.h"
 
 using namespace tools;
 using namespace cxsc;
+using namespace FC;
 
-Algorithm_primer_articulo::Algorithm_primer_articulo() {
+namespace quick_solution = qftbx::quick_solution;
 
+namespace {
+
+//Relative tolerance of the stage-3 gain bisection: 1% locates the
+//certified gain closely enough for pruning without spending the run time
+//it is meant to save.
+const qreal kCertifiedGainTolerance = 1.01;
+
+//Step 3bis.(b) of the paper: cap the gain range of a box at the prune
+//variable C. Returns the capped replacement (and destroys the original)
+//or the box itself when the cap does not apply.
+LtiSystem * capGain(LtiSystem * box, qreal cap)
+{
+    if (!box->gain()->isUncertain() ||
+            cap <= box->gain()->range().x() || cap >= box->gain()->range().y()) {
+        return box;
+    }
+
+    LtiSystem * capped = box->create(box->name(),
+            box->numerator(), box->denominator(),
+            new Parameter("kv", QPointF(box->gain()->range().x(), cap),
+                          box->gain()->range().x(), "kv"),
+            box->delay());
+    delete box->gain();
+    box->releaseOwnership();
+    delete box;
+
+    return capped;
 }
 
-Algorithm_primer_articulo::~Algorithm_primer_articulo() {
+//Nominal plant phase on the (-2 pi, 0] branch the Nichols boxes use.
+qreal nominalPhase(std::complex<qreal> p0)
+{
+    qreal phi0 = std::arg(p0);
 
+    if (phi0 > 0.0) {
+        phi0 -= 2.0 * M_PI;
+    }
+
+    return phi0;
 }
 
-void Algorithm_primer_articulo::set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> * omega, BoundaryData *boundaries,
-                                qreal epsilon, QVector<QVector<QVector<QPointF> *> *> *reunBounHash,
-                                bool depuracion __attribute__((unused)), bool hilos, QVector<qreal>*radiosBoundariesMayor,
-                                QVector<qreal> *radiosBoundariesMenor, QVector<QPointF> *centros, bool biseccion_avanzada, bool deteccion_avanzada, bool a) {
+} // namespace
 
+
+Algorithm_primer_articulo::Algorithm_primer_articulo()
+{
+}
+
+Algorithm_primer_articulo::~Algorithm_primer_articulo()
+{
+}
+
+
+void Algorithm_primer_articulo::set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> * omega,
+                                          BoundaryData * boundaries, qreal epsilon,
+                                          QVector<QVector<QVector<QPointF> *> *> * reunBounHash __attribute__((unused)),
+                                          bool depuracion __attribute__((unused)),
+                                          bool hilos __attribute__((unused)),
+                                          QVector<qreal> * radiosBoundariesMayor __attribute__((unused)),
+                                          QVector<qreal> * radiosBoundariesMenor __attribute__((unused)),
+                                          QVector<QPointF> * centros __attribute__((unused)),
+                                          bool biseccion_avanzada __attribute__((unused)),
+                                          bool deteccion_avanzada __attribute__((unused)),
+                                          bool a __attribute__((unused)))
+{
     this->planta = planta;
     this->controlador = controlador->clone();
     this->omega = omega;
     this->boundaries = boundaries;
     this->epsilon = epsilon;
 
-    this->tamFas = boundaries->phaseCount() - 1;
-    this->hilos = hilos;
-
-    this->radiosBoundariesMayor = radiosBoundariesMayor;
-    this->radiosBoundariesMenor = radiosBoundariesMenor;
-    this->centros = centros;
-
-    if (biseccion_avanzada) {
-        split_box = &Algorithm_primer_articulo::split_box_bisection_avanced;
-    } else {
-        split_box = &Algorithm_primer_articulo::split_box_bisection;
+    hasUncertainZeros = false;
+    foreach (Parameter * var, *this->controlador->numerator()) {
+        hasUncertainZeros = hasUncertainZeros || var->isUncertain();
     }
 
-    if (deteccion_avanzada) {
-        deteccionViolacion = &DeteccionViolacionBoundaries::deteccionViolacionCajaNyNi;
-        Nyquist = true;
-
-        qreal maglineal = 0;
-
-        QVector< QVector<QPointF> * > * boun = boundaries->unionBoundaries();
-
-        QVector< QVector<QPointF> * > * nuevosBoundariesReun =
-                new QVector< QVector<QPointF> * > ();
-
-        QVector< QVector< QVector<QPointF> * > * > * nuevoHash_inter = new QVector< QVector< QVector<QPointF> * > * > ();
-
-        QVector <QPointF> * datosX = new QVector <QPointF> ();
-        QVector <QPointF> * datosY = new QVector <QPointF> ();
-
-        QVector <QPointF> * datosFases = new QVector <QPointF> ();
-        QVector <QPointF> * datosMag = new QVector <QPointF> ();
-
-        qreal tamFas = boundaries->phaseCount() - 1;
-
-
-        foreach (auto vector, *boun) {
-
-            QVector<QPointF> * nuevoVector = new QVector<QPointF>  ();
-
-            QVector <QVector <QPointF> * > * nuevoHash = new QVector <QVector <QPointF> *> ();
-
-            for (qint32 i = 0; i <= tamFas; ++i) {
-                nuevoHash->append(new QVector <QPointF> ());
-            }
-
-            qreal nuevosDatosXMin = std::numeric_limits<qreal>::max(), nuevosDatosXMax = std::numeric_limits<qreal>::lowest();
-            qreal nuevosDatosYMin = std::numeric_limits<qreal>::max(), nuevosDatosYMax = std::numeric_limits<qreal>::lowest();
-
-            qreal DatosFasMin = std::numeric_limits<qreal>::max(), DatosFasMax = std::numeric_limits<qreal>::lowest();
-            qreal DatosMagMin = std::numeric_limits<qreal>::max(), DatosMagMax = std::numeric_limits<qreal>::lowest();
-
-
-            foreach (auto p, *vector) {
-                maglineal = pow(10.,p.y()/20.);
-
-                QPointF punto (maglineal * cos (p.x() * M_PI / 180.),
-                               maglineal * sin (p.x() * M_PI / 180.));
-
-                nuevoVector->append(punto);
-
-                if (punto.x() < nuevosDatosXMin) {
-                    nuevosDatosXMin = punto.x();
-                }
-
-                if (punto.x() > nuevosDatosXMax) {
-                    nuevosDatosXMax = punto.x();
-                }
-
-                if (punto.y() < nuevosDatosYMin) {
-                    nuevosDatosYMin = punto.y();
-                }
-
-                if (punto.y() > nuevosDatosYMax) {
-                    nuevosDatosYMax = punto.y();
-                }
-
-                if (p.x() < DatosFasMin) {
-                    DatosFasMin = p.x();
-                }
-
-                if (p.x() > DatosFasMax) {
-                    DatosFasMax = p.x();
-                }
-
-                if (p.y() < DatosMagMin) {
-                    DatosMagMin = p.y();
-                }
-
-                if (p.y() > DatosMagMax) {
-                    DatosMagMax = p.y();
-                }
-            }
-
-            qreal a = (nuevosDatosXMax - nuevosDatosXMin);
-
-            foreach (auto p, *nuevoVector) {
-
-                qreal res = (p.x() + std::abs(nuevosDatosXMin)) * tamFas / a;
-                nuevoHash->at((qint32) res)->append(p);
-            }
-
-            datosX->append(QPointF(nuevosDatosXMin, nuevosDatosXMax));
-            datosY->append(QPointF(nuevosDatosYMin, nuevosDatosYMax));
-
-            datosFases->append(QPointF(DatosFasMin, DatosFasMax));
-            datosMag->append(QPointF(DatosMagMin, DatosMagMax));
-
-            nuevoHash_inter->append(nuevoHash);
-
-            nuevosBoundariesReun->append(nuevoVector);
-        }
-
-        BoundaryData * nuevoBoundaries = new BoundaryData (boundaries->boundaries(), boundaries->openFlags(),
-                                                       boundaries->upperFlags(), boundaries->phaseCount(),
-                                                       boundaries->phaseRange(), nuevosBoundariesReun,
-                                                       nuevoHash_inter, boundaries->magnitudeCount(), boundaries->magnitudeRange());
-
-        nuevoBoundaries->setLinearPhaseAxis(datosX);
-        nuevoBoundaries->setLinearMagnitudeAxis(datosY);
-
-        nuevoBoundaries->setPhaseAxis(datosFases);
-        nuevoBoundaries->setMagnitudeAxis(datosMag);
-
-        boundariesAux = boundaries;
-        this->boundaries = nuevoBoundaries;
-
-    } else {
-        deteccionViolacion = &DeteccionViolacionBoundaries::deteccionViolacionCajaNiNi;
-        Nyquist = false;
-
-        QVector< QVector<QPointF> * > * boun = boundaries->unionBoundaries();
-
-        QVector <QPointF> * datosFases = new QVector <QPointF> ();
-        QVector <QPointF> * datosMag = new QVector <QPointF> ();
-
-        foreach (auto vector, *boun) {
-
-
-            qreal DatosFasMin = std::numeric_limits<qreal>::max(), DatosFasMax = std::numeric_limits<qreal>::lowest();
-            qreal DatosMagMin = std::numeric_limits<qreal>::max(), DatosMagMax = std::numeric_limits<qreal>::lowest();
-
-
-            foreach (auto p, *vector) {
-
-                if (p.x() < DatosFasMin) {
-                    DatosFasMin = p.x();
-                }
-
-                if (p.x() > DatosFasMax) {
-                    DatosFasMax = p.x();
-                }
-
-                if (p.y() < DatosMagMin) {
-                    DatosMagMin = p.y();
-                }
-
-                if (p.y() > DatosMagMax) {
-                    DatosMagMax = p.y();
-                }
-            }
-
-            datosFases->append(QPointF(DatosFasMin, DatosFasMax));
-            datosMag->append(QPointF(DatosMagMin, DatosMagMax));
-
-        }
-
-        boundaries->setPhaseAxis(datosFases);
-        boundaries->setMagnitudeAxis(datosMag);
-
+    hasUncertainPoles = false;
+    foreach (Parameter * var, *this->controlador->denominator()) {
+        hasUncertainPoles = hasUncertainPoles || var->isUncertain();
     }
-
-   // if (a){
-    analisis = &Algorithm_primer_articulo::aceleratedNuevo;
-    /*} else {
-        analisis = &Algorithm_primer_articulo::aceleratedAntiguo;
-    }*/
 }
 
 
-//Función principal del algoritmo
-bool Algorithm_primer_articulo::init_algorithm() {
-
+//Main loop: the NT branch & bound (paper, algorithm 5) with QS2 inside
+//the feasibility test of every box (steps 1(b-bis) and 4bis) and the
+//prune variable C of step 3bis behind bestCertifiedGain.
+bool Algorithm_primer_articulo::init_algorithm()
+{
     lista = new ListaOrdenada();
-
     conversion = new NaturalIntervalExtension();
-
-    Tripleta * tripleta;
-    LtiSystem * actual;
-
-    struct FC::return_bisection retur;
     deteccion = new DeteccionViolacionBoundaries();
+    stability = new NominalStabilityChecker(planta, omega);
 
+    bestCertifiedGain = std::numeric_limits<qreal>::infinity();
+    bestCertifiedController = nullptr;
 
-    plantas_nominales = new QVector <cxsc::complex> ();
-    plantas_nominales2 = new QVector <std::complex <qreal>> ();
+    plantas_nominales = new QVector<cxsc::complex>();
+    plantas_nominales_std = new QVector<std::complex<qreal>>();
 
     foreach (qreal o, *omega) {
-        std::complex <qreal> c = planta->evaluate(o);
-        plantas_nominales2->append(c);
+        std::complex<qreal> c = planta->evaluate(o);
+        plantas_nominales_std->append(c);
         plantas_nominales->append(cxsc::complex(c.real(), c.imag()));
     }
 
-
-    comprobarVariables(controlador);
-
-    /*if (!isVariableNume && !isVariableDeno) {
-        controlador_retorno = FC::guardarControlador(controlador, true);
-        return true;
-    }*/
-
-    tripleta = check_box_feasibility(controlador);
-
-    if (tripleta == nullptr) {
+    const auto cleanup = [this]() {
         delete conversion;
-delete lista;
-delete deteccion;
+        delete lista;
+        delete deteccion;
+        delete stability;
+        delete plantas_nominales;
+        delete plantas_nominales_std;
+    };
 
-throw qftbx::InvalidInput(
-        "The initial controller parameter space is not valid.");
-    }
-
-    lista->insertar(tripleta);
+    //Steps 1-2: QS2 and feasibility of the initial box happen inside
+    //check_box_feasibility, which inserts it unless certainly infeasible.
+    check_box_feasibility(controlador);
 
     while (true) {
 
         if (lista->esVacia()) {
-            delete conversion;
-delete lista;
-delete deteccion;
-
-throw qftbx::InvalidInput(
-        "The initial controller parameter space is not valid.");
-        }
-
-
-        tripleta = static_cast<Tripleta *>(lista->recuperarPrimero());
-        lista->borrarPrimero();
-
-        actual = tripleta->getSistema();
-
-        if (tripleta->getFlags() == feasible || FC::if_less_epsilon(actual, epsilon, omega, conversion, plantas_nominales)) {
-            if (tripleta->getFlags() == ambiguous) {
-                controlador_retorno = FC::guardarControlador(tripleta->getSistema(), false);
-            } else {
-                controlador_retorno = FC::guardarControlador(tripleta->getSistema(), true);
+            //The certified solution of QS2 stage 3 stands in when the
+            //interval search exhausts the space (the paper keeps its box
+            //z' in the list instead; same fallback).
+            if (bestCertifiedController != nullptr) {
+                controlador_retorno = bestCertifiedController;
+                cleanup();
+                return true;
             }
 
-            delete conversion;
-            delete lista;
-            delete deteccion;
-            delete tripleta;
+            cleanup();
+            throw qftbx::InvalidInput(
+                    "No feasible solution exists in the given search box.");
+        }
 
+        Tripleta * tripleta = static_cast<Tripleta *>(lista->recuperarPrimero());
+        lista->borrarPrimero();
+
+        //Step 3bis.(a): a node whose gain infimum cannot improve the
+        //certified solution is discarded.
+        if (tripleta->getSistema()->gain()->range().x() >= bestCertifiedGain) {
+            delete tripleta;
+            continue;
+        }
+
+        //Step 3 and Remark 3.1 termination, as reviewed for NT.
+        if (tripleta->getFlags() == feasible || if_less_epsilon(tripleta->getSistema(), this->epsilon, omega, conversion, plantas_nominales)) {
+            if (tripleta->getFlags() == ambiguous) {
+                controlador_retorno = guardarControlador(tripleta->getSistema(), false);
+
+                if (!stability->isNominallyStable(controlador_retorno)) {
+                    delete controlador_retorno;
+                    delete tripleta;
+                    continue;
+                }
+            } else {
+                controlador_retorno = guardarControlador(tripleta->getSistema(), true);
+            }
+
+            delete tripleta;
+            delete bestCertifiedController;
+            cleanup();
             return true;
         }
 
-        //Split blox
-        retur = (this->*split_box)(actual);
-
-        if (retur.v1 != nullptr){
-            Tripleta * t1 = check_box_feasibility(retur.v1);
-            if (t1 != nullptr) {
-                lista->insertar(t1);
-            }
-        }
-
-        if (retur.v2 != nullptr){
-            Tripleta * t2 = check_box_feasibility(retur.v2);
-            if (t2 != nullptr) {
-                lista->insertar(t2);
-            }
-        }
+        //Step 4: bisect along the widest parameter direction.
+        struct return_bisection retur = split_box_bisection(tripleta->getSistema());
 
         tripleta->noBorrar2();
         delete tripleta;
 
+        //Steps 4bis-6: QS2 + feasibility + insertion.
+        check_box_feasibility(retur.v1);
+        check_box_feasibility(retur.v2);
     }
 }
 
-//Función que retorna el controlador.
 
-LtiSystem * Algorithm_primer_articulo::getControlador() {
+LtiSystem * Algorithm_primer_articulo::getControlador()
+{
     return controlador_retorno;
 }
 
 
-//Función que comprueba si la caja actual es feasible, infeasible o ambiguous.
-
-inline Tripleta * Algorithm_primer_articulo::check_box_feasibility(LtiSystem *controlador) {
-
-    using namespace std;
-
+//Feasibility test over every design frequency with the QS2 stages 1-2
+//cutting applied per frequency with the latest updated box, and stage 3
+//attempted once on the surviving box. Certainly infeasible boxes are
+//destroyed; anything else enters the live list.
+inline void Algorithm_primer_articulo::check_box_feasibility(LtiSystem * controlador)
+{
     data_box * datos;
-
     flags_box flag_final = feasible;
 
-    QVector <data_box *> * datosCortesBoundaries = new QVector <data_box *> ();
+    //Step 3bis.(b): the certified solution caps the useful gain range of
+    //every new box.
+    controlador = capGain(controlador, bestCertifiedGain);
 
-    Tripleta * t = new Tripleta();
-
+    qint32 contador = 0;
     cinterval caja;
-    bool penalizacion = false;
 
-#ifdef VER_DIAGRAMAS
+    foreach (qreal o, *omega) {
 
-        QVector <QVector<QPointF> * > *vectorCajas = new QVector <QVector<QPointF> * >();
-#endif
+        caja = conversion->nicholsBox(controlador, o, plantas_nominales->at(contador), false);
 
-
-#if defined(COMPARACION_CAJAS)
-    BoundaryUnionViewer * view = new BoundaryUnionViewer();
-
-    view->setDatos(boundaries->unionBoundaries(), omega);
-
-    view->showDiagram();
-
-    QVector <qreal> areasCaja;
-#endif
-
-    for (qint32 k = 0; k < omega->size(); k++) {
-
-        caja = conversion->nicholsBox(controlador, omega->at(k), plantas_nominales->at(k), Nyquist);
-
-
-#ifdef VER_ANTES
-        BoundaryUnionViewer * view = new BoundaryUnionViewer();
-
-        view->setDatos(boundaries->unionBoundaries(), omega);
-
-        view->showDiagram();
-#endif
-
-#if defined(COMPARACION_CAJAS) || defined(VER_ANTES)
-
-#ifdef COMPARACION_CAJAS
-        areasCaja.append(_double(diam(Re(caja)) * diam(Im(caja))));
-#endif
-
-        if (Nyquist){
-            view->drawBox(QPointF(_double(InfRe(caja)), _double(InfIm(caja))),
-                                 QPointF(_double(InfRe(caja)), _double(SupIm(caja))),QPointF(_double(SupRe(caja)), _double(SupIm(caja))), QPointF(_double(SupRe(caja)), _double(InfIm(caja))), k);
-        } else {
-            view->drawBox(QPointF(_double(InfIm(caja)), _double(InfRe(caja))), QPointF(_double(InfIm(caja)), _double(SupRe(caja))),
-                                 QPointF(_double(SupIm(caja)), _double(SupRe(caja))), QPointF(_double(SupIm(caja)), _double(InfRe(caja))), k);
-        }
-
-#ifdef VER_ANTES
-        view->exec();
-        delete view;
-#endif
-#endif
-
-        boundaries->setBox(conversion->nyquistDecibelBox());
-
-        datos = (deteccion->*deteccionViolacion)(caja, boundaries, k);
-
-#ifdef VER_DIAGRAMAS
-
-        QVector <QPointF> * v = new QVector <QPointF> ();
-
-        cinterval caja = conversion->nicholsBox(controlador,omega->at(k), plantas_nominales->at(k), false);
-
-        v->append(QPointF(_double(InfIm(caja)), _double(InfRe(caja))));
-        v->append(QPointF(_double(InfIm(caja)), _double(SupRe(caja))));
-        v->append(QPointF(_double(SupIm(caja)), _double(SupRe(caja))));
-        v->append(QPointF(_double(SupIm(caja)), _double(InfRe(caja))));
-
-        //FC::mostrar_diagramaBox(v, this->omega, boundaries);
-        vectorCajas->append(v);
-        //vectorareas->append(area(caja));
-#endif
+        datos = deteccion->deteccionViolacionCajaNi(caja, boundaries, contador);
 
         if (datos->getFlag() == infeasible) {
             delete controlador;
-            datosCortesBoundaries->clear();
-            return nullptr;
+            delete datos;
+            return;
         }
-
 
         if (datos->getFlag() == ambiguous) {
             flag_final = ambiguous;
+
+            controlador = quickSolution2(controlador, datos, caja, o,
+                                         plantas_nominales_std->at(contador));
         }
 
-
-
-        datosCortesBoundaries->append(datos);
-    }
-
-
-    if (flag_final == ambiguous) {
-        controlador = (this->*analisis)(controlador, datosCortesBoundaries);
-    }
-
-
-#ifdef COMPARACION_CAJAS
-
-    for (qint32 k = 0; k < omega->size(); k++) {
-
-        caja = conversion->nicholsBox(controlador, omega->at(k), plantas_nominales->at(k), Nyquist);
-
-        qreal a = _double(diam(Re(caja)) * diam(Im(caja)));
-
-        cout << "Área " << omega->at(k) <<": " << areasCaja.at(k) << ", " << a << ": " << areasCaja.at(k) - a << endl;
-
-        /*cout << "k: [" << controlador->gain()->range().x() << ", " << controlador->gain()->range().y();
-
-        cout << " a: [" << controlador->numerator()->at(0)->range().x() << ", " << controlador->numerator()->at(0)->range().y() << "]" ;
-
-        cout << " b: [" << controlador->numerator()->at(1)->range().x() << ", " << controlador->numerator()->at(1)->range().y() << "]" ;
-
-        cout << " c: [" << controlador->numerator()->at(2)->nominal() << "]" ;
-
-
-        cout << " d: [" << controlador->denominator()->at(0)->range().x() << ", " << controlador->denominator()->at(0)->range().y() << "]" ;
-
-        cout << " e: [" << controlador->denominator()->at(1)->range().x() << ", " << controlador->denominator()->at(1)->range().y() << "]" ;
-
-        cout << " f: [" << controlador->denominator()->at(2)->nominal() << "]" ;
-
-        cout << " g: [" << controlador->denominator()->at(3)->nominal() << "]" << endl;*/
-
-
-
-        if (Nyquist){
-            view->drawBox2(QPointF(_double(InfRe(caja)), _double(InfIm(caja))),
-                                  QPointF(_double(InfRe(caja)), _double(SupIm(caja))),QPointF(_double(SupRe(caja)), _double(SupIm(caja))), QPointF(_double(SupRe(caja)), _double(InfIm(caja))), k);
-        } else {
-            view->drawBox2(QPointF(_double(InfIm(caja)), _double(InfRe(caja))), QPointF(_double(InfIm(caja)), _double(SupRe(caja))),
-                                  QPointF(_double(SupIm(caja)), _double(SupRe(caja))), QPointF(_double(SupIm(caja)), _double(InfRe(caja))), k);
-        }
-
-    }
-
-    view->exec();
-
-    delete view;
-
-#endif
-
-    t->setSistema(controlador);
-
-
-#ifdef BE
-    t->setIndex(-(20 * nFeasible) + 10 * t->getPorcentajeFeasible());
-#else
-    if (penalizacion){
-        t->setIndex(controlador->gain()->range().x() + 100);
-    } else {
-        t->setIndex(controlador->gain()->range().x());
-    }
-#endif
-
-
-#ifdef VER_DIAGRAMAS
-
-    BoundaryUnionViewer * view = FC::showDiagram(vectorCajas, this->omega, boundaries);
-    vectorCajas->clear();
-
-    vectorCajas = new QVector <QVector <QPointF> *> ();
-
-    for (qint32 k = 0; k < omega->size(); k++) {
-        QVector <QPointF> * v = new QVector <QPointF> ();
-
-        cinterval caja = conversion->nicholsBox(controlador,omega->at(k), plantas_nominales->at(k), true);
-
-        v->append(QPointF(_double(InfIm(caja)), _double(InfRe(caja))));
-        v->append(QPointF(_double(InfIm(caja)), _double(SupRe(caja))));
-        v->append(QPointF(_double(SupIm(caja)), _double(SupRe(caja))));
-        v->append(QPointF(_double(SupIm(caja)), _double(InfRe(caja))));
-
-        //FC::mostrar_diagramaBox(v, this->omega, boundaries);
-        vectorCajas->append(v);
-        //cout << vectorareas->at(k) << ";" << area(caja) << ";" << k << ";" << endl;
-    }
-
-   // FC::mostrar_diagrama2(vectorCajas, this->omega, nuevoBoundaries, view);
-    vectorCajas->clear();
-
-#endif
-
-    t->setFlags(flag_final);
-    datosCortesBoundaries->clear();
-
-    return t;
-}
-
-
-//Función que recorta la caja.
-inline LtiSystem * Algorithm_primer_articulo::aceleratedNuevo(LtiSystem * v, QVector <data_box *> * datosCortesBoundaries) {
-    QVector <Parameter *> * denominador = v->denominator();
-    QVector <Parameter *> * numerador = v->numerator();
-    QPointF k = v->gain()->range();
-    QPointF kNuevo = v->gain()->range();
-
-#if defined(REC_INTER) || defined(GANANCIA)
-    bool kMagUnionArriba = false, kMagUnionAbajo = false, kIntersecionX = false, kIntersecionY = false;
-    qreal kNuevoIntersecionX = kNuevo.y() + 1;
-    qreal kNuevoIntersecionY = kNuevo.x() - 1;
-#endif
-
-    //Creamos los numeradores y denominadores necesarios
-    QVector <qreal> * numeradorSup = new QVector <qreal> ();
-    QVector <qreal> * numeradorInf = new QVector <qreal> ();
-    QVector <qreal> * numeradorSupNuevo = new QVector <qreal> ();
-    QVector <qreal> * numeradorInfNuevo = new QVector <qreal> ();
-
-#ifdef REC_INTER
-    QVector <bool> * numeradorUnionX = new QVector <bool> ();
-    QVector <bool> * numeradorUnionY = new QVector <bool> ();
-    QVector <bool> * numeradorInterseccionX = new QVector <bool> ();
-    QVector <bool> * numeradorInterseccionY = new QVector <bool> ();
-    QVector <qreal> * numeradorNuevoInterseccionX = new QVector <qreal> ();
-    QVector <qreal> * numeradorNuevoInterseccionY = new QVector <qreal> ();
-#endif
-
-    foreach (Parameter * var, *numerador) {
-        numeradorInf->append(var->range().x());
-        numeradorSup->append(var->range().y());
-        numeradorInfNuevo->append(var->range().x());
-        numeradorSupNuevo->append(var->range().y());
-
-#ifdef REC_INTER
-        numeradorUnionX->append(false);
-        numeradorUnionY->append(false);
-        numeradorInterseccionX->append(false);
-        numeradorInterseccionY->append(false);
-        numeradorNuevoInterseccionX->append(var->range().y() + 1);
-        numeradorNuevoInterseccionY->append(var->range().x() - 1);
-#endif
-    }
-
-    QVector <qreal> * denominadorInf = new QVector <qreal> ();
-    QVector <qreal> * denominadorSup = new QVector <qreal> ();
-    QVector <qreal> * denominadorInfNuevo = new QVector <qreal> ();
-    QVector <qreal> * denominadorSupNuevo = new QVector <qreal> ();
-#ifdef REC_INTER
-    QVector <bool> * denominadorUnionX = new QVector <bool> ();
-    QVector <bool> * denominadorUnionY = new QVector <bool> ();
-    QVector <bool> * denominadorInterseccionX = new QVector <bool> ();
-    QVector <bool> * denominadorInterseccionY = new QVector <bool> ();
-    QVector <qreal> * denominadorNuevoInterseccionX = new QVector <qreal> ();
-    QVector <qreal> * denominadorNuevoInterseccionY = new QVector <qreal> ();
-#endif
-
-    foreach (Parameter * var, *denominador) {
-        denominadorInf->append(var->range().x());
-        denominadorSup->append(var->range().y());
-        denominadorInfNuevo->append(var->range().x());
-        denominadorSupNuevo->append(var->range().y());
-#ifdef REC_INTER
-        denominadorUnionX->append(false);
-        denominadorUnionY->append(false);
-        denominadorInterseccionX->append(false);
-        denominadorInterseccionY->append(false);
-        denominadorNuevoInterseccionX->append(var->range().y() + 1);
-        denominadorNuevoInterseccionY->append(var->range().x() - 1);
-#endif
-    }
-
-    qreal nuevoMinKReal, n, nuevoMinNume, nuevoMaxDeno, o, nuevoMaxKReal, nuevoMaxNume, nuevoMinDeno, cortesMinMag, cortesMaxMag, cortesMinImag, cortesMaxImag;
-    std::complex <qreal> plantaNominal;
-    for (qint32 i = 0; i < omega->size(); i++) {
-
-        if (datosCortesBoundaries->at(i)->getFlag() == ambiguous) {
-            o = omega->at(i);
-            plantaNominal = plantas_nominales2->at(i);
-            cortesMinMag = datosCortesBoundaries->at(i)->getMinimoxMaximos()->at(0);
-            cortesMaxMag = datosCortesBoundaries->at(i)->getMinimoxMaximos()->at(1);
-            cortesMinImag = datosCortesBoundaries->at(i)->getMinimoxMaximos()->at(2);
-            cortesMaxImag = datosCortesBoundaries->at(i)->getMinimoxMaximos()->at(3);
-
-            //Análisis de la ganancia
-            if (datosCortesBoundaries->at(i)->isRecAbajo()){
-
-                if (datosCortesBoundaries->at(i)->isUniAbajo()){
-                    nuevoMinKReal = cortesMinMag / abs(v->evaluate(numeradorSup, denominadorInf, 1, 0, o) * plantaNominal);
-
-                    if (nuevoMinKReal > kNuevo.x() && nuevoMinKReal < kNuevo.y()) {
-                        kNuevo.setX(nuevoMinKReal);
-#if defined(REC_INTER) || defined(GANANCIA)
-                        kMagUnionAbajo = true;
-#endif
-                    }
-                } else {
-#if defined(REC_INTER) || defined(GANANCIA)
-                    if (!kMagUnionAbajo){
-                        nuevoMinKReal = cortesMinMag / abs(v->evaluate(numeradorSup, denominadorInf, 1, 0, o) * plantaNominal);
-
-                        if (nuevoMinKReal > kNuevo.x() && nuevoMinKReal < kNuevo.y() && nuevoMinKReal < kNuevoIntersecionX) {
-                            kNuevoIntersecionX = nuevoMinKReal;
-                            kIntersecionX = true;
-                        }
-                    }
-#endif
-                }
-
-            }
-
-            if (datosCortesBoundaries->at(i)->isRecArriba()){
-                if (datosCortesBoundaries->at(i)->isUniArriba()){
-                    nuevoMaxKReal = cortesMaxMag / abs(v->evaluate(numeradorInf, denominadorSup, 1, 0, o) * plantaNominal);
-
-                    if (nuevoMaxKReal > kNuevo.x() && nuevoMaxKReal < kNuevo.y()) {
-                        kNuevo.setY(nuevoMaxKReal);
-#if defined(REC_INTER) || defined(GANANCIA)
-                        kMagUnionArriba = true;
-#endif
-                    }
-                } else {
-
-#if defined(REC_INTER) || defined(GANANCIA)
-                    if (!kMagUnionArriba){
-                        nuevoMinKReal = cortesMinMag / abs(v->evaluate(numeradorSup, denominadorInf, 1, 0, o) * plantaNominal);
-
-                        if (nuevoMinKReal > kNuevo.x() && nuevoMinKReal < kNuevo.y() && nuevoMinKReal < kNuevoIntersecionX) {
-                            kNuevoIntersecionX = nuevoMinKReal;
-                            kIntersecionX = true;
-                        }
-                    }
-#endif
-                }
-
-            }
-
-#ifndef sachin
-
-            //Numerador
-            if (isVariableNume){
-                for (qint32 j = 0; j < numerador->size(); j++) {
-                    if (numerador->at(j)->isUncertain()){
-
-                        n = numeradorSup->at(j);
-                        numeradorSup->remove(j);
-
-                        if (datosCortesBoundaries->at(i)->isRecAbajo()){
-                            if (datosCortesBoundaries->at(i)->isUniAbajo()){
-
-                                nuevoMinNume = sqrt( pow((cortesMinMag * abs (v->evaluateDenominator(denominadorInf, o))) /
-                                                         (k.y() *  abs (v->evaluateNumerator(numeradorSup, o) * plantaNominal)), 2) - pow(o, 2));
-
-                                if (nuevoMinNume > numeradorInfNuevo->at(j) && nuevoMinNume < numeradorSupNuevo->at(j)) {
-                                    numeradorInfNuevo->replace(j, nuevoMinNume);
-#ifdef REC_INTER
-                                    numeradorUnionX->replace(j, true);
-#endif
-                                }
-                            } else {
-#if defined(REC_INTER) && defined(REC_MAG)
-                                if (!numeradorUnionX->at(j)){
-                                    nuevoMinNume = sqrt( pow((cortesMinMag * abs (v->evaluateDenominator(denominadorInf, o))) /
-                                                             (k.y() *  abs (v->evaluateNumerator(numeradorSup, o) * plantaNominal)), 2) - pow(o, 2));
-
-                                    if (nuevoMinNume > numeradorInfNuevo->at(j) && nuevoMinNume < numeradorSupNuevo->at(j) && nuevoMinNume < numeradorNuevoInterseccionX->at(j)) {
-                                        numeradorNuevoInterseccionX->replace(j, nuevoMinNume);
-                                        numeradorInterseccionX->replace(j, true);
-                                    }
-                                }
-#endif
-                            }
-                        }
-
-#ifdef REC_FASE
-                        if (datosCortesBoundaries->at(i)->isRecDerecha()){
-                            if (datosCortesBoundaries->at(i)->isUniDerecha()){
-#if defined(REC_UNION)
-                                 nuevoMaxNume = o / tan(cortesMaxImag - std::arg (v->evaluateNumerator(numeradorSup, o)) + std::arg (v->evaluateDenominator(denominadorInf, o)) - std::arg (plantaNominal));
-
-                                if (nuevoMaxNume > numeradorInfNuevo->at(j) && nuevoMaxNume < numeradorSupNuevo->at(j)) {
-                                    numeradorSupNuevo->replace(j, nuevoMaxNume);
-#ifdef REC_INTER
-                                    numeradorUnionY->replace(j, true);
-#endif
-                                }
-#endif
-                            } else {
-#if defined(REC_INTER)
-                                if (!numeradorUnionY->at(j)){
-                                    nuevoMaxNume = o / tan(cortesMaxImag - std::arg (v->evaluateNumerator(numeradorSup, o)) + std::arg (v->evaluateDenominator(denominadorInf, o)) - std::arg (plantaNominal));
-                                    if (nuevoMaxNume > numeradorInfNuevo->at(j) && nuevoMaxNume < numeradorSupNuevo->at(j) && nuevoMaxNume > numeradorNuevoInterseccionY->at(j)) {
-                                        numeradorNuevoInterseccionY->replace(j, nuevoMaxNume);
-                                        numeradorInterseccionY->replace(j, true);
-                                    }
-                                }
-#endif
-                            }
-                        }
-
-#endif
-
-                        numeradorSup->insert(j, n);
-
-
-
-                        n = numeradorInf->at(j);
-                        numeradorInf->remove(j);
-
-                        if (datosCortesBoundaries->at(i)->isRecArriba()){
-                            if (datosCortesBoundaries->at(i)->isUniArriba()){
-                                nuevoMaxNume = sqrt( pow((cortesMaxMag * abs (v->evaluateDenominator(denominadorSup, o))) /
-                                                         (k.x() *  abs (v->evaluateNumerator(numeradorInf, o) * plantaNominal)), 2) - pow(o, 2));
-
-                                if (nuevoMaxNume > numeradorInfNuevo->at(j) && nuevoMaxNume < numeradorSupNuevo->at(j)) {
-                                    numeradorSupNuevo->replace(j, nuevoMaxNume);
-#ifdef REC_INTER
-                                    numeradorUnionY->replace(j, true);
-#endif
-                                }
-                            } else {
-#if defined(REC_INTER) && defined(REC_MAG)
-                                if (!numeradorUnionY->at(j)){
-                                    nuevoMaxNume = sqrt( pow((cortesMaxMag * abs (v->evaluateDenominator(denominadorSup, o))) /
-                                                             (k.x() *  abs (v->evaluateNumerator(numeradorInf, o) * plantaNominal)), 2) - pow(o, 2));
-
-                                    if (nuevoMaxNume > numeradorInfNuevo->at(j) && nuevoMaxNume < numeradorSupNuevo->at(j) && nuevoMaxNume > numeradorNuevoInterseccionY->at(j)) {
-                                        numeradorNuevoInterseccionY->replace(j, nuevoMaxNume);
-                                        numeradorInterseccionY->replace(j, true);
-                                    }
-                                }
-#endif
-                            }
-                        }
-
-#ifdef REC_FASE
-                        if (datosCortesBoundaries->at(i)->isRecIzquierda()){
-                            if (datosCortesBoundaries->at(i)->isUniArriba()){
-#if defined(REC_UNION)
-                                nuevoMinNume = o / tan(cortesMinImag - std::arg (v->evaluateNumerator(numeradorInf, o)) + std::arg (v->evaluateDenominator(denominadorSup, o)) - std::arg (plantaNominal));
-
-                                if (nuevoMinNume > numeradorInfNuevo->at(j) && nuevoMinNume < numeradorSupNuevo->at(j)) {
-                                    numeradorInfNuevo->replace(j, nuevoMinNume);
-#ifdef REC_INTER
-                                    numeradorUnionX->replace(j, true);
-#endif
-                                }
-#endif
-                            } else {
-
-#if defined(REC_INTER)
-                                if (!numeradorUnionX->at(j)){
-                                    nuevoMinNume = o / tan(cortesMinImag - std::arg (v->evaluateNumerator(numeradorInf, o)) + std::arg (v->evaluateDenominator(denominadorSup, o)) - std::arg (plantaNominal));
-
-                                    if (nuevoMinNume > numeradorInfNuevo->at(j) && nuevoMinNume < numeradorSupNuevo->at(j) && nuevoMinNume < numeradorNuevoInterseccionX->at(j)) {
-                                        numeradorNuevoInterseccionX->replace(j, nuevoMinNume);
-                                        numeradorInterseccionX->replace(j, true);
-                                    }
-                                }
-#endif
-                            }
-                        }
-#endif
-
-                        numeradorInf->insert(j, n);
-
-                    }
-                }
-            }
-
-
-            if (isVariableDeno){
-                for (qint32 j = 0; j < denominador->size(); j++) {
-                    if (denominador->at(j)->isUncertain()){
-
-                        n = denominadorInf->at(j);
-                        denominadorInf->remove(j);
-
-                        if (datosCortesBoundaries->at(i)->isRecAbajo()){
-                            if (datosCortesBoundaries->at(i)->isUniAbajo()){
-                                nuevoMaxDeno = sqrt(pow((k.y() * abs (v->evaluateNumerator(numeradorSup, o) * plantaNominal)) /
-                                                        (cortesMinMag * abs(v->evaluateDenominator(denominadorInf, o))), 2) - pow(o, 2));
-
-                                if (nuevoMaxDeno < denominadorSupNuevo->at(j) && nuevoMaxDeno > denominadorInfNuevo->at(j)) {
-                                    denominadorSupNuevo->replace(j, nuevoMaxDeno);
-#ifdef REC_INTER
-                                    denominadorUnionY->replace(j, true);
-#endif
-                                }
-                            } else {
-#if defined(REC_INTER) && defined(REC_MAG)
-                                if (!denominadorUnionY->at(j)){
-                                    nuevoMaxDeno = sqrt(pow((k.y() * abs (v->evaluateNumerator(numeradorSup, o) * plantaNominal)) /
-                                                            (cortesMinMag * abs(v->evaluateDenominator(denominadorInf, o))), 2) - pow(o, 2));
-
-                                    if (nuevoMaxDeno > denominadorInfNuevo->at(j) && nuevoMaxDeno < denominadorSupNuevo->at(j) && nuevoMaxDeno > denominadorNuevoInterseccionY->at(j)) {
-                                        denominadorNuevoInterseccionY->replace(j, nuevoMaxDeno);
-                                        denominadorInterseccionY->replace(j, true);
-                                    }
-                                }
-#endif
-                            }
-                        }
-
-#ifdef REC_FASE
-                        if (datosCortesBoundaries->at(i)->isRecIzquierda()){
-                            if (datosCortesBoundaries->at(i)->isUniIzquierda()){
-#if defined(REC_UNION)
-                                nuevoMinDeno = o / tan(-cortesMaxImag + std::arg (v->evaluateNumerator(numeradorInf, o)) - std::arg (v->evaluateDenominator(denominadorSup, o)) + std::arg (plantaNominal));
-
-                                if (nuevoMinDeno > denominadorInfNuevo->at(j) && nuevoMinDeno < denominadorSupNuevo->at(j)) {
-                                    denominadorInfNuevo->replace(j, nuevoMinDeno);
-#ifdef REC_INTER
-                                    denominadorUnionX->replace(j, true);
-#endif
-                                }
-#endif
-                            } else {
-#if defined(REC_INTER)
-                                if (!denominadorUnionX->at(j)){
-                                    nuevoMinDeno = o / tan(-cortesMaxImag + std::arg (v->evaluateNumerator(numeradorInf, o)) - std::arg (v->evaluateDenominator(denominadorSup, o)) + std::arg (plantaNominal));
-
-                                    if (nuevoMinDeno > denominadorInfNuevo->at(j) && nuevoMinDeno < denominadorSupNuevo->at(j) && nuevoMinDeno < denominadorNuevoInterseccionX->at(j)) {
-                                        denominadorNuevoInterseccionX->replace(j, nuevoMinDeno);
-                                        denominadorInterseccionX->replace(j, true);
-                                    }
-                                }
-#endif
-                            }
-                        }
-#endif
-
-                        denominadorInf->insert(j, n);
-
-                        n = denominadorSup->at(j);
-                        denominadorSup->remove(j);
-
-                        if (datosCortesBoundaries->at(i)->isRecArriba()){
-                            if (datosCortesBoundaries->at(i)->isUniArriba()){
-                                nuevoMinDeno = sqrt(pow((k.x() * abs (v->evaluateNumerator(numeradorInf, o) * plantaNominal)) /
-                                                        (cortesMaxMag * abs(v->evaluateDenominator(denominadorSup, o))), 2) - pow(o, 2));
-                                if (nuevoMinDeno < denominadorSupNuevo->at(j) && nuevoMinDeno > denominadorInfNuevo->at(j)) {
-                                    denominadorInfNuevo->replace(j, nuevoMinDeno);
-#ifdef REC_INTER
-                                    denominadorUnionX->replace(j, true);
-#endif
-                                }
-                            } else {
-#if defined(REC_INTER) && defined(REC_MAG)
-                                if (!denominadorUnionX->at(j)){
-                                    nuevoMinDeno = sqrt(pow((k.x() * abs (v->evaluateNumerator(numeradorInf, o) * plantaNominal)) /
-                                                            (cortesMaxMag * abs(v->evaluateDenominator(denominadorSup, o))), 2) - pow(o, 2));
-
-                                    if (nuevoMinDeno < denominadorSupNuevo->at(j) && nuevoMinDeno > denominadorInfNuevo->at(j) && nuevoMinDeno < denominadorNuevoInterseccionX->at(j)) {
-                                        denominadorNuevoInterseccionX->replace(j, nuevoMinDeno);
-                                        denominadorInterseccionX->replace(j, true);
-                                    }
-                                }
-#endif
-                            }
-                        }
-
-#ifdef REC_FASE
-                        if (datosCortesBoundaries->at(i)->isRecDerecha()){
-                            if (datosCortesBoundaries->at(i)->isUniDerecha()){
-#if defined(REC_UNION)
-                                nuevoMaxDeno = o / tan(-cortesMinImag + std::arg (v->evaluateNumerator(numeradorSup, o)) - std::arg (v->evaluateDenominator(denominadorInf, o)) + std::arg (plantaNominal));
-
-                                if (nuevoMaxDeno > denominadorInfNuevo->at(j) && nuevoMaxDeno < denominadorSupNuevo->at(j)) {
-                                    denominadorSupNuevo->replace(j, nuevoMaxDeno);
-#ifdef REC_INTER
-                                    denominadorUnionY->replace(j, true);
-#endif
-                                }
-#endif
-                            } else {
-
-#if defined(REC_INTER)
-                                if (!denominadorUnionY->at(j)){
-                                    nuevoMaxDeno = o / tan(-cortesMinImag + std::arg (v->evaluateNumerator(numeradorSup, o)) - std::arg (v->evaluateDenominator(denominadorInf, o)) + std::arg (plantaNominal));
-
-                                    if (nuevoMaxDeno > denominadorInfNuevo->at(j) && nuevoMaxDeno < denominadorSupNuevo->at(j) && nuevoMaxDeno > denominadorNuevoInterseccionY->at(j)) {
-                                        denominadorNuevoInterseccionY->replace(j, nuevoMaxDeno);
-                                        denominadorInterseccionY->replace(j, true);
-                                    }
-                                }
-#endif
-                            }
-                        }
-#endif
-
-                        denominadorSup->insert(j, n);
-
-                    }
-                }
-            }
-#endif
-
-        }
-    }
-
-
-    QVector <Parameter *> * numerador_nuevo;
-
-        numerador_nuevo = new QVector <Parameter *> ();
-
-        for (qint32 i = 0; i < numerador->size(); i++){
-
-            Parameter * var_nume_antiguo = numerador->at(i);
-            Parameter * var_nume_nuevo;
-
-            if (var_nume_antiguo->isUncertain()){
-
-#ifdef REC_INTER
-                if (numeradorInterseccionX->at(i) && numeradorNuevoInterseccionX->at(i) > numeradorInfNuevo->at(i)){
-                    numeradorInfNuevo->replace(i, numeradorNuevoInterseccionX->at(i));
-                }
-
-                if (numeradorInterseccionY->at(i) && numeradorNuevoInterseccionY->at(i) < numeradorSupNuevo->at(i)){
-                    numeradorSupNuevo->replace(i, numeradorNuevoInterseccionY->at(i));
-                }
-#endif
-                var_nume_nuevo = new Parameter("", QPointF(numeradorInfNuevo->at(i), numeradorSupNuevo->at(i)), 0);
-            } else {
-                var_nume_nuevo = new Parameter(var_nume_antiguo->nominal());
-            }
-
-            numerador_nuevo->append(var_nume_nuevo);
-        }
-
-    QVector <Parameter *> * denominador_nuevo;
-
-        denominador_nuevo = new QVector <Parameter *> ();
-        for (qint32 i = 0; i < denominador->size(); i++){
-
-            Parameter * var_deno_antiguo = denominador->at(i);
-            Parameter * var_deno_nuevo;
-
-            if (var_deno_antiguo->isUncertain()){
-
-#ifdef REC_INTER
-                if (denominadorInterseccionX->at(i) && denominadorNuevoInterseccionX->at(i) > denominadorInfNuevo->at(i)){
-                    denominadorInfNuevo->replace(i, denominadorNuevoInterseccionX->at(i));
-                }
-
-                if (denominadorInterseccionY->at(i) && denominadorNuevoInterseccionY->at(i) < denominadorSupNuevo->at(i)){
-                    denominadorSupNuevo->replace(i, denominadorNuevoInterseccionY->at(i));
-                }
-#endif
-
-                var_deno_nuevo = new Parameter("", QPointF(denominadorInfNuevo->at(i), denominadorSupNuevo->at(i)), 0);
-            } else {
-                var_deno_nuevo = new Parameter(var_deno_antiguo->nominal());
-            }
-
-            denominador_nuevo->append(var_deno_nuevo);
-        }
-
-#if defined(REC_INTER) || defined(GANANCIA)
-    if (kIntersecionX){
-        if (kNuevoIntersecionX > kNuevo.x()){
-            kNuevo.setX(kNuevoIntersecionX);
-        }
-    }
-
-    if (kIntersecionY){
-        if (kNuevoIntersecionY < kNuevo.y()){
-            kNuevo.setY(kNuevoIntersecionY);
-        }
-    }
-#endif
-
-    LtiSystem * nuevo_sistema = v->create(v->name(), numerador_nuevo, denominador_nuevo, new Parameter("kv", kNuevo, 0), new Parameter (0.0));
-    delete v;
-
-
-    numeradorSup->clear();
-    numeradorInf->clear();
-    numeradorInfNuevo->clear();
-    numeradorSupNuevo->clear();
-#ifdef REC_INTER
-    numeradorUnionX->clear();
-    numeradorUnionY->clear();
-    numeradorInterseccionX->clear();
-    numeradorInterseccionY->clear();
-    numeradorNuevoInterseccionX->clear();
-    numeradorNuevoInterseccionY->clear();
-#endif
-
-    denominadorInf->clear();
-    denominadorSup->clear();
-    denominadorInfNuevo->clear();
-    denominadorSupNuevo->clear();
-#ifdef REC_INTER
-    denominadorUnionX->clear();
-    denominadorUnionY->clear();
-    denominadorInterseccionX->clear();
-    denominadorInterseccionY->clear();
-    denominadorNuevoInterseccionX->clear();
-    denominadorNuevoInterseccionY->clear();
-#endif
-
-    return nuevo_sistema;
-
-}
-
-
-
-inline LtiSystem * Algorithm_primer_articulo::aceleratedAntiguo(LtiSystem * v, QVector <data_box *> * datosCortesBoundaries) {
-
-    QVector <Parameter *> * denominador = v->denominator();
-    QVector <Parameter *> * numerador = v->numerator();
-    QPointF k = v->gain()->range();
-    QPointF kNuevo = v->gain()->range();
-#ifdef REC_INTER
-    bool kMagUnionArriba = false, kMagUnionAbajo = false, kIntersecionX = false, kIntersecionY = false;
-    qreal kNuevoIntersecionX = kNuevo.y() + 1;
-    qreal kNuevoIntersecionY = kNuevo.x() - 1;
-#endif
-
-    //Creamos los numeradores y denominadores necesarios
-    QVector <qreal> * numeradorSup = new QVector <qreal> ();
-    QVector <qreal> * numeradorInf = new QVector <qreal> ();
-    QVector <qreal> * numeradorSupNuevo = new QVector <qreal> ();
-    QVector <qreal> * numeradorInfNuevo = new QVector <qreal> ();
-    QVector <bool> * numeradorUnionX = new QVector <bool> ();
-    QVector <bool> * numeradorUnionY = new QVector <bool> ();
-
-#ifdef REC_INTER
-    QVector <bool> * numeradorInterseccionX = new QVector <bool> ();
-    QVector <bool> * numeradorInterseccionY = new QVector <bool> ();
-    QVector <qreal> * numeradorNuevoInterseccionX = new QVector <qreal> ();
-    QVector <qreal> * numeradorNuevoInterseccionY = new QVector <qreal> ();
-#endif
-
-    foreach (Parameter * var, *numerador) {
-        numeradorInf->append(var->range().x());
-        numeradorSup->append(var->range().y());
-        numeradorInfNuevo->append(var->range().x());
-        numeradorSupNuevo->append(var->range().y());
-        numeradorUnionX->append(false);
-        numeradorUnionY->append(false);
-
-#ifdef REC_INTER
-        numeradorInterseccionX->append(false);
-        numeradorInterseccionY->append(false);
-        numeradorNuevoInterseccionX->append(var->range().y() + 1);
-        numeradorNuevoInterseccionY->append(var->range().x() - 1);
-#endif
-    }
-
-    QVector <qreal> * denominadorInf = new QVector <qreal> ();
-    QVector <qreal> * denominadorSup = new QVector <qreal> ();
-    QVector <qreal> * denominadorInfNuevo = new QVector <qreal> ();
-    QVector <qreal> * denominadorSupNuevo = new QVector <qreal> ();
-    QVector <bool> * denominadorUnionX = new QVector <bool> ();
-    QVector <bool> * denominadorUnionY = new QVector <bool> ();
-#ifdef REC_INTER
-    QVector <bool> * denominadorInterseccionX = new QVector <bool> ();
-    QVector <bool> * denominadorInterseccionY = new QVector <bool> ();
-    QVector <qreal> * denominadorNuevoInterseccionX = new QVector <qreal> ();
-    QVector <qreal> * denominadorNuevoInterseccionY = new QVector <qreal> ();
-#endif
-
-    foreach (Parameter * var, *denominador) {
-        denominadorInf->append(var->range().x());
-        denominadorSup->append(var->range().y());
-        denominadorInfNuevo->append(var->range().x());
-        denominadorSupNuevo->append(var->range().y());
-        denominadorUnionX->append(false);
-        denominadorUnionY->append(false);
-#ifdef REC_INTER
-        denominadorInterseccionX->append(false);
-        denominadorInterseccionY->append(false);
-        denominadorNuevoInterseccionX->append(var->range().y() + 1);
-        denominadorNuevoInterseccionY->append(var->range().x() - 1);
-#endif
-    }
-
-    qreal nuevoMinKReal, n, nuevoMinNume, nuevoMaxDeno, o, nuevoMaxKReal, nuevoMaxNume, nuevoMinDeno, cortesMin, cortesMax, cortesMinImag, cortesMaxImag;
-    std::complex <qreal> plantaNominal;
-    for (qint32 i = 0; i < omega->size(); i++) {
-
-        if (datosCortesBoundaries->at(i)->getFlag() == ambiguous) {
-
-            if (!datosCortesBoundaries->at(i)->isCompleto()) {
-                o = omega->at(i);
-                plantaNominal = plantas_nominales2->at(i);
-                cortesMin = datosCortesBoundaries->at(i)->getMinimoxMaximos()->at(0);
-                cortesMax = datosCortesBoundaries->at(i)->getMinimoxMaximos()->at(1);
-                cortesMinImag = datosCortesBoundaries->at(i)->getMinimoxMaximos()->at(2);
-                cortesMaxImag = datosCortesBoundaries->at(i)->getMinimoxMaximos()->at(3);
-
-                //Análisis de la ganancia
-
-#ifdef REC_MAG
-
-                if (!datosCortesBoundaries->at(i)->isUniArriba()){
-#ifdef REC_UNION
-
-                    if (datosCortesBoundaries->at(i)->isRecAbajo()){
-
-                        nuevoMinKReal = cortesMin / abs(v->evaluate(numeradorSup, denominadorInf, 1, 0, o) * plantaNominal);
-
-                        if (nuevoMinKReal > kNuevo.x() && nuevoMinKReal < kNuevo.y()) {
-                            kNuevo.setX(nuevoMinKReal);
-#ifdef REC_INTER
-                            kMagUnionAbajo = true;
-#endif
-
-                        }
-                    }
-#endif
-#ifdef REC_INTER
-                    if (!kMagUnionAbajo && datosCortesBoundaries->at(i)->isRecArriba()){
-                        nuevoMaxKReal = cortesMax / abs(v->evaluate(numeradorInf, denominadorSup, 1, 0, o) * plantaNominal);
-
-                        if (nuevoMaxKReal > kNuevo.x() && nuevoMaxKReal < kNuevo.y() && nuevoMaxKReal > kNuevoIntersecionY) {
-                            kNuevoIntersecionY = nuevoMaxKReal;
-                            kIntersecionY = true;
-                        }
-                    }
-#endif
-                } else {
-#ifdef REC_UNION
-                    if (datosCortesBoundaries->at(i)->isRecArriba()){
-                        nuevoMaxKReal = cortesMax / abs(v->evaluate(numeradorInf, denominadorSup, 1, 0, o) * plantaNominal);
-
-                        if (nuevoMaxKReal > kNuevo.x() && nuevoMaxKReal < kNuevo.y()) {
-                            kNuevo.setY(nuevoMaxKReal);
-#ifdef REC_INTER
-                            kMagUnionArriba = true;
-#endif
-
-                        }
-                    }
-#endif
-
-#ifdef REC_INTER
-                    if (!kMagUnionArriba && datosCortesBoundaries->at(i)->isRecAbajo()){
-                        nuevoMinKReal = cortesMin / abs(v->evaluate(numeradorSup, denominadorInf, 1, 0, o) * plantaNominal);
-
-                        if (nuevoMinKReal > kNuevo.x() && nuevoMinKReal < kNuevo.y() && nuevoMinKReal < kNuevoIntersecionX) {
-                            kNuevoIntersecionX = nuevoMinKReal;
-                            kIntersecionX = true;
-                        }
-                    }
-#endif
-                }
-
-#endif
-
-                //Numerador
-                if (isVariableNume){
-                    for (qint32 j = 0; j < numerador->size(); j++) {
-                        if (numerador->at(j)->isUncertain()){
-                            if (!datosCortesBoundaries->at(i)->isUniArriba()){
-                                //Mag
-
-#if (defined(REC_UNION) || defined(REC_INTER)) && (defined(REC_FASE) || defined(REC_MAG))
-                                n = numeradorSup->at(j);
-
-                                numeradorSup->remove(j);
-
-#if defined(REC_UNION) && defined(REC_MAG)
-
-                                if (datosCortesBoundaries->at(i)->isRecAbajo()){
-                                    nuevoMinNume = sqrt( pow((cortesMin * abs (v->evaluateDenominator(denominadorInf, o))) /
-                                                             (k.y() *  abs (v->evaluateNumerator(numeradorSup, o) * plantaNominal)), 2) - pow(o, 2));
-
-                                    if (nuevoMinNume > numeradorInfNuevo->at(j) && nuevoMinNume < numeradorSupNuevo->at(j)) {
-                                        numeradorInfNuevo->replace(j, nuevoMinNume);
-                                        numeradorUnionX->replace(j, true);
-                                    }
-                                }
-#endif
-#if defined(REC_INTER) && defined(REC_FASE)
-                                if (!numeradorUnionY->at(j) && datosCortesBoundaries->at(i)->isRecDerecha()){
-                                    nuevoMaxNume = tan(cortesMaxImag - std::arg (v->evaluateNumerator(numeradorSup, o) + std::arg (v->evaluateDenominator(denominadorInf, o))) - std::arg (plantaNominal)) * o;
-                                    if (nuevoMaxNume > numeradorInfNuevo->at(j) && nuevoMaxNume < numeradorSupNuevo->at(j) && nuevoMaxNume > numeradorNuevoInterseccionY->at(j)) {
-                                        numeradorNuevoInterseccionY->replace(j, nuevoMaxNume);
-                                        numeradorInterseccionY->replace(j, true);
-                                    }
-                                }
-#endif
-
-                                numeradorSup->insert(j, n);
-
-
-                                //fase
-                                n = numeradorInf->at(j);
-
-                                numeradorInf->remove(j);
-
-#if defined(REC_UNION) && defined(REC_FASE)
-                                if (datosCortesBoundaries->at(i)->isRecIzquierda()){
-                                    nuevoMinNume = tan(cortesMinImag - std::arg (v->evaluateNumerator(numeradorInf, o) + std::arg (v->evaluateDenominator(denominadorSup, o))) - std::arg (plantaNominal)) * o;
-
-                                    if (nuevoMinNume > numeradorInfNuevo->at(j) && nuevoMinNume < numeradorSupNuevo->at(j)) {
-                                        numeradorInfNuevo->replace(j, nuevoMinNume);
-                                        numeradorUnionX->replace(j, true);
-                                    }
-                                }
-
-#endif
-
-#if defined(REC_INTER) && defined(REC_MAG)
-                                if (!numeradorUnionY->at(j) && datosCortesBoundaries->at(i)->isRecDerecha()){
-                                    nuevoMaxNume = sqrt( pow((cortesMax * abs (v->evaluateDenominator(denominadorSup, o))) /
-                                                             (k.x() *  abs (v->evaluateNumerator(numeradorInf, o) * plantaNominal)), 2) - pow(o, 2));
-
-                                    if (nuevoMaxNume > numeradorInfNuevo->at(j) && nuevoMaxNume < numeradorSupNuevo->at(j) && nuevoMaxNume > numeradorNuevoInterseccionY->at(j)) {
-                                        numeradorNuevoInterseccionY->replace(j, nuevoMaxNume);
-                                        numeradorInterseccionY->replace(j, true);
-                                    }
-                                }
-#endif
-                                numeradorInf->insert(j, n);
-#endif
-
-                            } else {
-                                //Mag
-#if (defined(REC_UNION) || defined(REC_INTER)) && (defined(REC_FASE) || defined(REC_MAG))
-
-                                n = numeradorInf->at(j);
-
-                                numeradorInf->remove(j);
-#if defined(REC_UNION) && defined(REC_MAG)
-
-                                if (datosCortesBoundaries->at(i)->isRecArriba()){
-                                    nuevoMaxNume = sqrt( pow((cortesMax * abs (v->evaluateDenominator(denominadorSup, o))) /
-                                                             (k.x() *  abs (v->evaluateNumerator(numeradorInf, o) * plantaNominal)), 2) - pow(o, 2));
-
-                                    if (nuevoMaxNume > numeradorInfNuevo->at(j) && nuevoMaxNume < numeradorSupNuevo->at(j)) {
-                                        numeradorSupNuevo->replace(j, nuevoMaxNume);
-                                        numeradorUnionY->replace(j, true);
-                                    }
-                                }
-
-#endif
-
-#if defined(REC_INTER) && defined(REC_FASE)
-                                if (!numeradorUnionX->at(j) && datosCortesBoundaries->at(i)->isRecIzquierda()){
-                                    nuevoMinNume = tan(cortesMinImag - std::arg (v->evaluateNumerator(numeradorInf, o) + std::arg (v->evaluateDenominator(denominadorSup, o))) - std::arg (plantaNominal)) * o;
-
-                                    if (nuevoMinNume > numeradorInfNuevo->at(j) && nuevoMinNume < numeradorSupNuevo->at(j) && nuevoMinNume < numeradorNuevoInterseccionX->at(j)) {
-                                        numeradorNuevoInterseccionX->replace(j, nuevoMinNume);
-                                        numeradorInterseccionX->replace(j, true);
-                                    }
-                                }
-#endif
-                                numeradorInf->insert(j, n);
-
-                                //fase
-
-                                n = numeradorSup->at(j);
-
-                                numeradorSup->remove(j);
-
-#if defined(REC_UNION) && defined(REC_FASE)
-
-                                if (datosCortesBoundaries->at(i)->isRecDerecha()){
-                                    nuevoMaxNume = tan(cortesMaxImag - std::arg (v->evaluateNumerator(numeradorSup, o) + std::arg (v->evaluateDenominator(denominadorInf, o))) - std::arg (plantaNominal)) * o;
-
-                                    if (nuevoMaxNume > numeradorInfNuevo->at(j) && nuevoMaxNume < numeradorSupNuevo->at(j)) {
-                                        numeradorSupNuevo->replace(j, nuevoMaxNume);
-                                        numeradorUnionY->replace(j, true);
-                                    }
-                                }
-#endif
-
-#if defined(REC_INTER) && defined(REC_MAG)
-                                if (!numeradorUnionX->at(j) && datosCortesBoundaries->at(i)->isRecAbajo()){
-                                    nuevoMinNume = sqrt( pow((cortesMin * abs (v->evaluateDenominator(denominadorInf, o))) /
-                                                             (k.y() *  abs (v->evaluateNumerator(numeradorSup, o) * plantaNominal)), 2) - pow(o, 2));
-
-                                    if (nuevoMinNume > numeradorInfNuevo->at(j) && nuevoMinNume < numeradorSupNuevo->at(j) && nuevoMinNume < numeradorNuevoInterseccionX->at(j)) {
-                                        numeradorNuevoInterseccionX->replace(j, nuevoMinNume);
-                                        numeradorInterseccionX->replace(j, true);
-                                    }
-                                }
-#endif
-                                numeradorSup->insert(j, n);
-#endif
-                            }
-                        }
-                    }
-                }
-
-
-                //Denominador
-                if (isVariableDeno){
-                    for (qint32 j = 0; j < denominador->size(); j++) {
-                        if (denominador->at(j)->isUncertain()){
-
-                            if (!datosCortesBoundaries->at(i)->isUniArriba()){
-
-#if (defined(REC_UNION) || defined(REC_INTER)) && (defined(REC_FASE) || defined(REC_MAG))
-                                //mag
-
-                                n = denominadorInf->at(j);
-
-                                denominadorInf->remove(j);
-
-#if defined(REC_UNION) && defined(REC_MAG)
-
-                                if (datosCortesBoundaries->at(i)->isRecAbajo()){
-                                    nuevoMaxDeno = sqrt(pow((k.y() * abs (v->evaluateNumerator(numeradorSup, o) * plantaNominal)) /
-                                                            (cortesMin * abs(v->evaluateDenominator(denominadorInf, o))), 2) - pow(o, 2));
-
-                                    if (nuevoMaxDeno < denominadorSupNuevo->at(j) && nuevoMaxDeno > denominadorInfNuevo->at(j)) {
-                                        denominadorSupNuevo->replace(j, nuevoMaxDeno);
-                                        denominadorUnionY->replace(j, true);
-                                    }
-                                }
-#endif
-
-#if defined(REC_INTER) && defined(REC_FASE)
-                                if (!denominadorUnionX->at(j) && datosCortesBoundaries->at(i)->isRecIzquierda()){
-                                    nuevoMinDeno = tan(-cortesMaxImag + std::arg (v->evaluateNumerator(numeradorInf, o) - std::arg (v->evaluateDenominator(denominadorSup, o))) + std::arg (plantaNominal)) * o;
-
-                                    if (nuevoMinDeno > denominadorInfNuevo->at(j) && nuevoMinDeno < denominadorSupNuevo->at(j) && nuevoMinDeno < denominadorNuevoInterseccionX->at(j)) {
-                                        denominadorNuevoInterseccionX->replace(j, nuevoMinDeno);
-                                        denominadorInterseccionX->replace(j, true);
-                                    }
-                                }
-#endif
-
-                                denominadorInf->insert(j, n);
-
-                                //fas
-                                n = denominadorSup->at(j);
-
-                                denominadorSup->remove(j);
-
-#if defined(REC_UNION) && defined(REC_FASE)
-                                if (datosCortesBoundaries->at(i)->isRecDerecha()) {
-                                    nuevoMaxDeno = tan(-cortesMinImag + std::arg (v->evaluateNumerator(numeradorInf, o) - std::arg (v->evaluateDenominator(denominadorSup, o))) + std::arg (plantaNominal)) * o;
-
-                                    if (nuevoMaxDeno > denominadorInfNuevo->at(j) && nuevoMaxDeno < denominadorSupNuevo->at(j)) {
-                                        denominadorSupNuevo->replace(j, nuevoMaxDeno);
-                                        denominadorUnionY->replace(j, true);
-                                    }
-                                }
-#endif
-#if defined(REC_INTER) && defined(REC_MAG)
-                                if (!denominadorUnionX->at(j) && datosCortesBoundaries->at(i)->isRecArriba()){
-                                    nuevoMinDeno = sqrt(pow((k.x() * abs (v->evaluateNumerator(numeradorInf, o) * plantaNominal)) /
-                                                            (cortesMax * abs(v->evaluateDenominator(denominadorSup, o))), 2) - pow(o, 2));
-
-                                    if (nuevoMinDeno < denominadorSupNuevo->at(j) && nuevoMinDeno > denominadorInfNuevo->at(j) && nuevoMinDeno < denominadorNuevoInterseccionX->at(j)) {
-                                        denominadorNuevoInterseccionX->replace(j, nuevoMinDeno);
-                                        denominadorInterseccionX->replace(j, true);
-                                    }
-                                }
-#endif
-
-                                denominadorSup->insert(j, n);
-
-#endif
-                            } else {
-                                //mag
-#if (defined(REC_UNION) || defined(REC_INTER)) && (defined(REC_FASE) || defined(REC_MAG))
-                                n = denominadorSup->at(j);
-
-                                denominadorSup->remove(j);
-#if defined(REC_UNION) && defined(REC_MAG)
-                                if (datosCortesBoundaries->at(i)->isRecArriba()){
-                                    nuevoMinDeno = sqrt(pow((k.x() * abs (v->evaluateNumerator(numeradorInf, o) * plantaNominal)) /
-                                                            (cortesMax * abs(v->evaluateDenominator(denominadorSup, o))), 2) - pow(o, 2));
-                                    if (nuevoMinDeno < denominadorSupNuevo->at(j) && nuevoMinDeno > denominadorInfNuevo->at(j)) {
-                                        denominadorInfNuevo->replace(j, nuevoMinDeno);
-                                        denominadorUnionX->replace(j, true);
-                                    }
-                                }
-#endif
-
-#if defined(REC_INTER) && defined(REC_FASE)
-                                if (!denominadorUnionY->at(j) && datosCortesBoundaries->at(i)->isRecDerecha()){
-                                    nuevoMaxDeno = tan(-cortesMinImag + std::arg (v->evaluateNumerator(numeradorInf, o) - std::arg (v->evaluateDenominator(denominadorSup, o))) + std::arg (plantaNominal)) * o;
-
-                                    if (nuevoMaxDeno > denominadorInfNuevo->at(j) && nuevoMaxDeno < denominadorSupNuevo->at(j) && nuevoMaxDeno > denominadorNuevoInterseccionY->at(j)) {
-                                        denominadorNuevoInterseccionY->replace(j, nuevoMaxDeno);
-                                        denominadorInterseccionY->replace(j, true);
-                                    }
-                                }
-#endif
-                                denominadorSup->insert(j, n);
-
-                                //imaginario
-                                n = denominadorInf->at(j);
-
-                                denominadorInf->remove(j);
-
-#if defined(REC_UNION) && defined(REC_FASE)
-                                if (datosCortesBoundaries->at(i)->isRecIzquierda()){
-                                    nuevoMinDeno = tan(-cortesMaxImag + std::arg (v->evaluateNumerator(numeradorInf, o) - std::arg (v->evaluateDenominator(denominadorSup, o))) + std::arg (plantaNominal)) * o;
-
-                                    if (nuevoMinDeno > denominadorInfNuevo->at(j) && nuevoMinDeno < denominadorSupNuevo->at(j)) {
-                                        denominadorInfNuevo->replace(j, nuevoMinDeno);
-                                        denominadorUnionX->replace(j, true);
-                                    }
-                                }
-#endif
-
-#if defined(REC_INTER) && defined(REC_MAG)
-                                if (!denominadorUnionY->at(j) && datosCortesBoundaries->at(i)->isRecAbajo()){
-                                    nuevoMaxDeno = sqrt(pow((k.y() * abs (v->evaluateNumerator(numeradorSup, o) * plantaNominal)) /
-                                                            (cortesMin * abs(v->evaluateDenominator(denominadorInf, o))), 2) - pow(o, 2));
-
-                                    if (nuevoMaxDeno > denominadorInfNuevo->at(j) && nuevoMaxDeno < denominadorSupNuevo->at(j) && nuevoMaxDeno > denominadorNuevoInterseccionY->at(j)) {
-                                        denominadorNuevoInterseccionY->replace(j, nuevoMaxDeno);
-                                        denominadorInterseccionY->replace(j, true);
-                                    }
-                                }
-#endif
-
-                                denominadorInf->insert(j, n);
-#endif
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    QVector <Parameter *> * numerador_nuevo;
-
-#if defined(REC_UNION) && defined(REC_INTER)
-    if (numeradorInterseccionX || numeradorInterseccionY || numeradorUnionX || numeradorUnionY){
-#elif defined (REC_UNION)
-    if (numeradorUnionX || numeradorUnionY) {
-#elif defined (REC_INTER)
-    if (numeradorInterseccionX || numeradorInterseccionY) {
-#endif
-
-
-        numerador_nuevo = new QVector <Parameter *> ();
-
-        for (qint32 i = 0; i < numerador->size(); i++){
-
-            Parameter * var_nume_antiguo = numerador->at(i);
-            Parameter * var_nume_nuevo;
-
-            if (var_nume_antiguo->isUncertain()){
-
-#ifdef REC_INTER
-                if (numeradorInterseccionX->at(i) && numeradorNuevoInterseccionX->at(i) > numeradorInfNuevo->at(i)){
-                    numeradorInfNuevo->replace(i, numeradorNuevoInterseccionX->at(i));
-                }
-
-                if (numeradorInterseccionY->at(i) && numeradorNuevoInterseccionY->at(i) < numeradorSupNuevo->at(i)){
-                    numeradorSupNuevo->replace(i, numeradorNuevoInterseccionY->at(i));
-                }
-#endif
-                var_nume_nuevo = new Parameter("", QPointF(numeradorInfNuevo->at(i), numeradorSupNuevo->at(i)), 0);
-            } else {
-                var_nume_nuevo = new Parameter(var_nume_antiguo->nominal());
-            }
-
-            numerador_nuevo->append(var_nume_nuevo);
-        }
-    } else {
-        numerador_nuevo = numerador;
-    }
-
-    QVector <Parameter *> * denominador_nuevo;
-
-#if defined(REC_UNION) && defined(REC_INTER)
-    if (denominadorInterseccionX || denominadorInterseccionY || denominadorUnionX || denominadorUnionY){
-#elif defined (REC_UNION)
-    if (denominadorUnionX || denominadorUnionY) {
-#elif defined (REC_INTER)
-    if (denominadorInterseccionX || denominadorInterseccionY){
-#endif
-
-        denominador_nuevo = new QVector <Parameter *> ();
-        for (qint32 i = 0; i < denominador->size(); i++){
-
-            Parameter * var_deno_antiguo = denominador->at(i);
-            Parameter * var_deno_nuevo;
-
-            if (var_deno_antiguo->isUncertain()){
-
-#ifdef REC_INTER
-                if (denominadorInterseccionX->at(i) && denominadorNuevoInterseccionX->at(i) > denominadorInfNuevo->at(i)){
-                    denominadorInfNuevo->replace(i, denominadorNuevoInterseccionX->at(i));
-                }
-
-                if (denominadorInterseccionY->at(i) && denominadorNuevoInterseccionY->at(i) < denominadorSupNuevo->at(i)){
-                    denominadorSupNuevo->replace(i, denominadorNuevoInterseccionY->at(i));
-                }
-#endif
-
-                var_deno_nuevo = new Parameter("", QPointF(denominadorInfNuevo->at(i), denominadorSupNuevo->at(i)), 0);
-            } else {
-                var_deno_nuevo = new Parameter(var_deno_antiguo->nominal());
-            }
-
-            denominador_nuevo->append(var_deno_nuevo);
-        }
-
-    } else {
-        denominador_nuevo = denominador;
-    }
-
-#ifdef REC_INTER
-    if (kIntersecionX){
-        if (kNuevoIntersecionX > kNuevo.x()){
-            kNuevo.setX(kNuevoIntersecionX);
-        }
-    }
-
-    if (kIntersecionY){
-        if (kNuevoIntersecionY < kNuevo.y()){
-            kNuevo.setY(kNuevoIntersecionY);
-        }
-    }
-#endif
-
-    LtiSystem * nuevo_sistema = v->create(v->name(), numerador_nuevo, denominador_nuevo, new Parameter("kv", kNuevo, 0), new Parameter (0.0));
-    delete v;
-
-
-    numeradorSup->clear();
-    numeradorInf->clear();
-    numeradorInfNuevo->clear();
-    numeradorSupNuevo->clear();
-#ifdef REC_INTER
-    numeradorUnionX->clear();
-    numeradorUnionY->clear();
-    numeradorInterseccionX->clear();
-    numeradorInterseccionY->clear();
-    numeradorNuevoInterseccionX->clear();
-    numeradorNuevoInterseccionY->clear();
-#endif
-
-    denominadorInf->clear();
-    denominadorSup->clear();
-    denominadorInfNuevo->clear();
-    denominadorSupNuevo->clear();
-#ifdef REC_INTER
-    denominadorUnionX->clear();
-    denominadorUnionY->clear();
-    denominadorInterseccionX->clear();
-    denominadorInterseccionY->clear();
-    denominadorNuevoInterseccionX->clear();
-    denominadorNuevoInterseccionY->clear();
-#endif
-
-    return nuevo_sistema;
-
-}
-
-
-inline void Algorithm_primer_articulo::comprobarVariables(LtiSystem *controlador) {
-    bool b = true;
-
-    foreach(Parameter * var, *controlador->numerator()) {
-        if (var->isUncertain()) {
-            b = false;
-        }
-    }
-
-    isVariableNume = !b;
-
-    b = true;
-
-    foreach(Parameter * var, *controlador->denominator()) {
-        if (var->isUncertain()) {
-            b = false;
-        }
-    }
-
-    isVariableDeno = !b;
-}
-
-
-//Función que divide la caja en dos clásica.
-
-inline FC::return_bisection Algorithm_primer_articulo::split_box_bisection(LtiSystem *current_controlador) {
-
-    QVector <Parameter *> * numerador = current_controlador->numerator();
-    QVector <Parameter *> * denominador = current_controlador->denominator();
-
-    QVector <Parameter *> * numeradorCopia = new QVector <Parameter *> ();
-    QVector <Parameter *> * denominadorCopia = new QVector <Parameter *> ();
-
-    Parameter * k = current_controlador->gain();
-    Parameter * ret = current_controlador->delay();
-
-    QString nombre = current_controlador->name();
-
-    //Variables contador;
-    qint32 mayor_pos = -1;
-    qreal mayor_rango = -1;
-
-    //Variables auxiliares
-    qreal lon = 0;
-    qint32 cont = 0;
-
-    //Sistemas hijos creados
-
-    LtiSystem * v1, * v2;
-    struct FC::return_bisection retur;
-
-
-    //Bucle del numerador
-    Parameter * v;
-    for (qint32 i = 0; i < numerador->size(); i++) {
-        v = numerador->at(i);
-        numeradorCopia->append(v->clone());
-        if (v->isUncertain()) {
-
-            lon = v->range().y() - v->range().x();
-
-            if (lon > mayor_rango) {
-                mayor_pos = cont;
-                mayor_rango = lon;
-            }
-        }
-        cont++;
-    }
-
-    //Bucle del denominador
-    for (qint32 i = 0; i < denominador->size(); i++) {
-        v = denominador->at(i);
-        denominadorCopia->append(v->clone());
-        if (v->isUncertain()) {
-
-            lon = v->range().y() - v->range().x();
-
-            if (lon > mayor_rango) {
-                mayor_pos = cont;
-                mayor_rango = lon;
-            }
-        }
-        cont++;
-    }
-
-    //Estudiamos la k
-    if (k->isUncertain()) {
-
-        lon = k->range().y() - k->range().x();
-
-        if (lon > mayor_rango) {
-            mayor_pos = -1;
-            mayor_rango = lon;
-        }
-    }
-
-
-    if (mayor_pos == -1) {
-        qreal dis = k->range().x();
-
-        Parameter * k1 = new Parameter("kv", QPointF(dis, dis + (mayor_rango / 2)), dis);
-        dis += mayor_rango / 2;
-        Parameter * k2 = new Parameter("kv", QPointF(dis, k->range().y()), dis);
-
-        delete k;
-
-        v1 = current_controlador->create(nombre, numerador, denominador, k1, ret);
-        v2 = current_controlador->create(nombre, numeradorCopia, denominadorCopia, k2, ret->clone());
-    } else if (mayor_pos < numerador->size()) {
-
-        Parameter * variable = numerador->at(mayor_pos);
-
-        qreal dis = variable->range().x();
-
-        numeradorCopia->replace(mayor_pos, new Parameter("", QPointF(dis, dis + mayor_rango / 2), dis));
-
-        dis += mayor_rango / 2;
-        numerador->replace(mayor_pos, new Parameter("", QPointF(dis, variable->range().y()), dis));
-
-
-        v1 = current_controlador->create(nombre, numeradorCopia, denominadorCopia, k->clone(), ret->clone());
-        v2 = current_controlador->create(nombre, numerador, denominador, k, ret);
-
-        delete variable;
-
-    } else {
-        mayor_pos -= numerador->size();
-
-        Parameter * variable = denominador->at(mayor_pos);
-        qreal dis = variable->range().x();
-
-        denominadorCopia->replace(mayor_pos, new Parameter("", QPointF(dis, dis + mayor_rango / 2), dis));
-
-        dis += mayor_rango / 2;
-        denominador->replace(mayor_pos, new Parameter("", QPointF(dis, variable->range().y()), dis));
-
-        v1 = current_controlador->create(nombre, numeradorCopia, denominadorCopia, k->clone(), ret->clone());
-        v2 = current_controlador->create(nombre, numerador, denominador, k, ret);
-
-        delete variable;
-
-    }
-
-    retur.v1 = v1;
-    retur.v2 = v2;
-
-    return retur;
-}
-
-
-
-//Funcion que divida la caja en dos avanzada.
-inline FC::return_bisection Algorithm_primer_articulo::split_box_bisection_avanced(LtiSystem *current_controlador) {
-
-    QVector <Parameter *> * numerador = current_controlador->numerator();
-    QVector <Parameter *> * denominador = current_controlador->denominator();
-
-    QPointF k = current_controlador->gain()->range();
-    Parameter * ret = current_controlador->delay();
-
-    QVector <Parameter *> * numeradorCopia = new QVector <Parameter *> ();
-    QVector <Parameter *> * denominadorCopia = new QVector <Parameter *> ();
-
-    QString nombre = current_controlador->name();
-
-    qreal menor_punto_medio = 0, menor_area = 0;
-    qint32 seleccionado = 0;
-
-
-    LtiSystem * v1, * v2;
-    struct FC::return_bisection retur;
-
-    qreal punto_medio_k = k.x() + (k.y() - k.x()) / 2;
-
-    cinterval nume_box = conversion->numeratorBox(numerador, omega->at(0), current_controlador->type(), false);
-    cinterval deno_box = conversion->denominatorBox(denominador, omega->at(0), current_controlador->type(), false);
-
-    //Comprobamos la k
-    interval k1(k.x(), punto_medio_k);
-
-    cinterval a = k1 * (nume_box / deno_box);
-    qreal s = _double(diam(Re(a)) * diam(Im(a)));
-
-    menor_area = s;
-    seleccionado = -1;
-    menor_punto_medio = punto_medio_k;
-
-    qint32 contador = 0;
-
-    complex complejo(0, omega->at(0));
-
-    //Comprobamos el numerador
-
-    if (numerador->size() > 1) {
-
-        for (qint32 i = 0; i < numerador->size(); i++) {
-            numeradorCopia->append(numerador->at(i)->clone());
-
-            if (numerador->at(i)->isUncertain()) {
-
-                Parameter * v = numerador->at(i);
-                numerador->remove(i);
-
-                qreal punto_medio = v->range().x() + (v->range().y() - v->range().x()) / 2;
-
-                a = k1 * (nume_box / deno_box);
-                s = _double(diam(Re(a)) * diam(Im(a)));
-
-                numerador->insert(i, v);
-
-                if (s < menor_area) {
-                    menor_area = s;
-                    seleccionado = contador;
-                    menor_punto_medio = punto_medio;
-                }
-            }
-            contador++;
-        }
-    } else if (numerador->size() > 0) {
-        numeradorCopia->append(numerador->at(0)->clone());
-
-        if (numerador->at(0)->isUncertain()) {
-
-            QPointF v = numerador->at(0)->range();
-            qreal punto_medio = v.x() + (v.y() - v.x()) / 2;
-
-            a = k1 * (nume_box / deno_box);
-            s = _double(diam(Re(a)) * diam(Im(a)));
-
-            if (s < menor_area) {
-                menor_area = s;
-                seleccionado = contador;
-                menor_punto_medio = punto_medio;
-            }
-        }
+        delete datos;
         contador++;
     }
 
-    //Comprobamos el denominador
-    if (denominador->size() > 1) {
+    //Nominal closed-loop stability of bounds-feasible boxes, as reviewed
+    //for NT/NK.
+    if (flag_final == feasible) {
+        LtiSystem * point = guardarControlador(controlador, true);
+        const bool stable = stability->isNominallyStable(point);
+        delete point;
 
-        for (qint32 i = 0; i < denominador->size(); i++) {
-            denominadorCopia->append(denominador->at(i)->clone());
+        if (!stable) {
+            delete controlador;
+            return;
+        }
+    }
 
-            if (denominador->at(i)->isUncertain()) {
+    //QS2 stage 3 on the surviving ambiguous box: a certified feasible
+    //gain subrange updates the prune variable C.
+    if (flag_final == ambiguous) {
+        certifiedGainSearch(controlador);
+    }
 
-                Parameter * v = denominador->at(i);
-                denominador->remove(i);
+    lista->insertar(new Tripleta(controlador->gain()->range().x(), controlador, flag_final));
+}
 
-                qreal punto_medio = v->range().x() + (v->range().y() - v->range().x()) / 2;
 
-                a = k1 * (nume_box / deno_box);
-                s = _double(diam(Re(a)) * diam(Im(a)));
+//QS2 stages 1 and 2 at one design frequency (paper, algorithm 4): the
+//magnitude cuts of NK's Quick Solution when the strip under the boundary
+//minimum is certainly forbidden, and the phase cuts when a vertical strip
+//is. All cuts run sequentially on the latest updated values.
+inline LtiSystem * Algorithm_primer_articulo::quickSolution2(LtiSystem * v, data_box * datos,
+                                                             const cxsc::cinterval & caja,
+                                                             qreal w, std::complex<qreal> p0)
+{
+    QVector<qreal> zeroInfs, zeroSups, poleInfs, poleSups;
+    foreach (Parameter * var, *v->numerator()) {
+        zeroInfs.append(var->isUncertain() ? var->range().x() : var->nominal());
+        zeroSups.append(var->isUncertain() ? var->range().y() : var->nominal());
+    }
+    foreach (Parameter * var, *v->denominator()) {
+        poleInfs.append(var->isUncertain() ? var->range().x() : var->nominal());
+        poleSups.append(var->isUncertain() ? var->range().y() : var->nominal());
+    }
 
-                denominador->insert(i, v);
+    qreal gainInf = v->gain()->range().x();
+    const qreal gainSup = v->gain()->range().y();
 
-                if (s < menor_area) {
-                    menor_area = s;
-                    seleccionado = contador;
-                    menor_punto_medio = punto_medio;
+    bool cut = false;
+
+    //-------------------------------------------------- stage 1, magnitude
+    //Sound only when the zone under every boundary point is certainly
+    //forbidden, certified by the parity classification of the box's lower
+    //corner (same gate as NK).
+    if (datos->isUniAbajo()) {
+
+        const qreal boundMin = std::pow(10.0, datos->getMinimoxMaximos()->at(0) / 20.0);
+
+        if (v->gain()->isUncertain()) {
+            const qreal k = quick_solution::gainCut(boundMin, zeroSups, poleInfs, w, p0);
+
+            if (k > gainInf && k < gainSup) {
+                gainInf = k;
+                cut = true;
+            }
+        }
+
+        if (hasUncertainZeros) {
+            for (qint32 j = 0; j < zeroInfs.size(); ++j) {
+                if (!v->numerator()->at(j)->isUncertain()) {
+                    continue;
+                }
+
+                const qreal z = quick_solution::zeroCut(boundMin, gainSup, zeroSups,
+                                                        poleInfs, j, w, p0);
+
+                if (z > zeroInfs.at(j) && z < zeroSups.at(j)) {
+                    zeroInfs.replace(j, z);
+                    cut = true;
                 }
             }
-            contador++;
         }
-    } else if (denominador->size() > 0) {
-        denominadorCopia->append(denominador->at(0)->clone());
 
-        if (denominador->at(0)->isUncertain()) {
+        if (hasUncertainPoles) {
+            for (qint32 j = 0; j < poleInfs.size(); ++j) {
+                if (!v->denominator()->at(j)->isUncertain()) {
+                    continue;
+                }
 
-            QPointF v = denominador->at(0)->range();
-            qreal punto_medio = v.x() + (v.y() - v.x()) / 2;
+                const qreal p = quick_solution::poleCut(boundMin, gainSup, zeroSups,
+                                                        poleInfs, j, w, p0);
 
-            a = k1 * (nume_box / deno_box);
-            s = _double(diam(Re(a)) * diam(Im(a)));
-            if (s < menor_area) {
-                menor_area = s;
-                seleccionado = contador;
-                menor_punto_medio = punto_medio;
+                if (p > poleInfs.at(j) && p < poleSups.at(j)) {
+                    poleSups.replace(j, p);
+                    cut = true;
+                }
             }
         }
     }
 
+    //------------------------------------------------------ stage 2, phase
+    if (hasUncertainZeros || hasUncertainPoles) {
 
-    if (seleccionado == -1) {
+        const qreal phi0 = nominalPhase(p0);
+        const qreal salto = (boundaries->phaseRange().y() - boundaries->phaseRange().x()) /
+                            (boundaries->phaseCount() - 1);
 
-        //cout << "partimos K" << endl;
+        const qreal boxPhaseMin = _double(Inf(Im(caja)));
+        const qreal boxPhaseMax = _double(Sup(Im(caja)));
 
-        Parameter * k1 = new Parameter("kv", QPointF(k.x(), menor_punto_medio), k.x());
-        Parameter * k2 = new Parameter("kv", QPointF(menor_punto_medio, k.y()), menor_punto_medio);
+        const qreal boundPhaseMin = datos->getMinimoxMaximos()->at(2);
+        const qreal boundPhaseMax = datos->getMinimoxMaximos()->at(3);
 
-        delete current_controlador->gain();
+        //Right strip (phases above the boundary maximum) certainly
+        //forbidden, and wider than one grid step of the union.
+        if (datos->isUniDerecha() && boundPhaseMax < boxPhaseMax - salto) {
 
-        v1 = current_controlador->create(nombre, numerador, denominador, k1, ret);
-        v2 = current_controlador->create(nombre, numeradorCopia, denominadorCopia, k2, ret->clone());
-    } else if (seleccionado < numerador->size()) {
+            const qreal thetaMax = boundPhaseMax * M_PI / 180.0;
 
-        Parameter * variable = numerador->at(seleccionado);
+            for (qint32 j = 0; hasUncertainZeros && j < zeroInfs.size(); ++j) {
+                if (!v->numerator()->at(j)->isUncertain()) {
+                    continue;
+                }
 
-        numeradorCopia->replace(seleccionado, new Parameter("", QPointF(variable->range().x(), menor_punto_medio), variable->range().x()));
+                const qreal z = quick_solution::zeroPhaseCutHigh(thetaMax, phi0, zeroSups,
+                                                                 poleInfs, j, w);
 
-        numerador->replace(seleccionado, new Parameter("", QPointF(menor_punto_medio, variable->range().y()), menor_punto_medio));
+                if (z > zeroInfs.at(j) && z < zeroSups.at(j)) {
+                    zeroInfs.replace(j, z);
+                    cut = true;
+                }
+            }
 
+            for (qint32 j = 0; hasUncertainPoles && j < poleInfs.size(); ++j) {
+                if (!v->denominator()->at(j)->isUncertain()) {
+                    continue;
+                }
 
-        v1 = current_controlador->create(nombre, numerador, denominador, current_controlador->gain(), ret);
-        v2 = current_controlador->create(nombre, numeradorCopia, denominadorCopia, current_controlador->gain()->clone(), ret->clone());
+                const qreal p = quick_solution::polePhaseCutHigh(thetaMax, phi0, zeroSups,
+                                                                 poleInfs, j, w);
 
-        delete variable;
+                if (p > poleInfs.at(j) && p < poleSups.at(j)) {
+                    poleSups.replace(j, p);
+                    cut = true;
+                }
+            }
+        }
 
-    } else {
+        //Left strip (phases below the boundary minimum) certainly
+        //forbidden.
+        if (datos->isUniIzquierda() && boundPhaseMin > boxPhaseMin + salto) {
 
-        seleccionado -= numerador->size();
+            const qreal thetaMin = boundPhaseMin * M_PI / 180.0;
 
-        Parameter * variable = denominador->at(seleccionado);
+            for (qint32 j = 0; hasUncertainZeros && j < zeroInfs.size(); ++j) {
+                if (!v->numerator()->at(j)->isUncertain()) {
+                    continue;
+                }
 
-        denominadorCopia->replace(seleccionado, new Parameter("", QPointF(variable->range().x(), menor_punto_medio), variable->range().x()));
+                const qreal z = quick_solution::zeroPhaseCutLow(thetaMin, phi0, zeroInfs,
+                                                                poleSups, j, w);
 
-        denominador->replace(seleccionado, new Parameter("", QPointF(menor_punto_medio, variable->range().y()), menor_punto_medio));
+                if (z > zeroInfs.at(j) && z < zeroSups.at(j)) {
+                    zeroSups.replace(j, z);
+                    cut = true;
+                }
+            }
 
-        v1 = current_controlador->create(nombre, numerador, denominador, current_controlador->gain(), ret);
-        v2 = current_controlador->create(nombre, numeradorCopia, denominadorCopia, current_controlador->gain()->clone(), ret->clone());
+            for (qint32 j = 0; hasUncertainPoles && j < poleInfs.size(); ++j) {
+                if (!v->denominator()->at(j)->isUncertain()) {
+                    continue;
+                }
 
-        delete variable;
+                const qreal p = quick_solution::polePhaseCutLow(thetaMin, phi0, zeroInfs,
+                                                                poleSups, j, w);
 
+                if (p > poleInfs.at(j) && p < poleSups.at(j)) {
+                    poleInfs.replace(j, p);
+                    cut = true;
+                }
+            }
+        }
     }
 
-    retur.v1 = v1;
-    retur.v2 = v2;
-    retur.descartado = false;
+    if (!cut) {
+        return v;
+    }
 
-    return retur;
+    auto * numerador = new QVector<Parameter*>();
+    for (qint32 j = 0; j < zeroInfs.size(); ++j) {
+        Parameter * old = v->numerator()->at(j);
+        numerador->append(old->isUncertain()
+                ? new Parameter(old->name(), QPointF(zeroInfs.at(j), zeroSups.at(j)), zeroInfs.at(j))
+                : new Parameter(old->nominal()));
+    }
+
+    auto * denominador = new QVector<Parameter*>();
+    for (qint32 j = 0; j < poleInfs.size(); ++j) {
+        Parameter * old = v->denominator()->at(j);
+        denominador->append(old->isUncertain()
+                ? new Parameter(old->name(), QPointF(poleInfs.at(j), poleSups.at(j)), poleInfs.at(j))
+                : new Parameter(old->nominal()));
+    }
+
+    LtiSystem * nuevo = v->create(v->name(), numerador, denominador,
+            v->gain()->isUncertain()
+                ? new Parameter("kv", QPointF(gainInf, gainSup), gainInf, "kv")
+                : new Parameter(v->gain()->nominal()),
+            v->delay()->clone());
+
+    delete v;
+
+    return nuevo;
+}
+
+
+//Feasibility of the box with its gain range replaced by
+//[gainInf, gainSup] at every design frequency.
+inline bool Algorithm_primer_articulo::gainRangeIsFeasible(LtiSystem * box,
+                                                           qreal gainInf, qreal gainSup)
+{
+    LtiSystem * candidate = box->create(box->name(),
+            box->numerator(), box->denominator(),
+            new Parameter("kv", QPointF(gainInf, gainSup), gainInf, "kv"),
+            box->delay());
+
+    bool feasibleEverywhere = true;
+
+    for (qint32 i = 0; i < omega->size() && feasibleEverywhere; ++i) {
+        const cinterval caja = conversion->nicholsBox(candidate, omega->at(i),
+                                                      plantas_nominales->at(i), false);
+        data_box * datos = deteccion->deteccionViolacionCajaNi(caja, boundaries, i);
+        feasibleEverywhere = (datos->getFlag() == feasible);
+        delete datos;
+    }
+
+    candidate->releaseOwnership();
+    delete candidate->gain();
+    delete candidate;
+
+    return feasibleEverywhere;
+}
+
+
+//QS2 stage 3 (paper, algorithm 4): the largest upper gain subrange
+//[k_f, sup k] certainly feasible at every design frequency. k_f is
+//located by logarithmic bisection over the interval feasibility test and
+//the certified point must pass the nominal stability criterion before it
+//may prune the search through C.
+inline void Algorithm_primer_articulo::certifiedGainSearch(LtiSystem * box)
+{
+    if (!box->gain()->isUncertain()) {
+        return;
+    }
+
+    const qreal low = box->gain()->range().x();
+    qreal high = box->gain()->range().y();
+
+    if (low <= 0.0 || !gainRangeIsFeasible(box, high, high)) {
+        return;
+    }
+
+    qreal lo = low;
+
+    if (gainRangeIsFeasible(box, lo, high)) {
+        high = lo;
+    } else {
+        qreal hi = high;
+
+        while (hi / lo > kCertifiedGainTolerance) {
+            const qreal mid = std::sqrt(lo * hi);
+
+            if (gainRangeIsFeasible(box, mid, high)) {
+                hi = mid;
+            } else {
+                lo = mid;
+            }
+        }
+
+        high = hi;
+    }
+
+    if (high >= bestCertifiedGain) {
+        return;
+    }
+
+    //The z' box, and its minimal-gain point as certified solution.
+    LtiSystem * zPrime = box->create(box->name(),
+            box->numerator(), box->denominator(),
+            new Parameter("kv", QPointF(high, box->gain()->range().y()), high, "kv"),
+            box->delay());
+
+    LtiSystem * point = guardarControlador(zPrime, true);
+
+    zPrime->releaseOwnership();
+    delete zPrime->gain();
+    delete zPrime;
+
+    if (stability->isNominallyStable(point)) {
+        bestCertifiedGain = high;
+        delete bestCertifiedController;
+        bestCertifiedController = point;
+    } else {
+        delete point;
+    }
 }

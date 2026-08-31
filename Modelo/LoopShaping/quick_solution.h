@@ -119,6 +119,138 @@ inline qreal poleCut(qreal boundMinLinear, qreal gainSup,
     return std::sqrt(radicand);
 }
 
+/**
+ * @brief Phase cutting equations of algorithm MC (Martinez-Forte and
+ * Cervera, "Accelerated quantitative feedback theory interval automatic
+ * loop shaping algorithm", Int. J. Robust Nonlinear Control 31, 2021,
+ * DOI 10.1002/rnc.5499, sec. 3.1 and algorithm QS2 stage 2).
+ *
+ * The loop phase decomposes term by term,
+ *
+ *   \f$ \angle L_0 = \varphi_0 + \sum_i \arctan(\omega/z_i)
+ *                  - \sum_l \arctan(\omega/p_l) \f$,
+ *
+ * with \f$ \varphi_0 = \angle P_0(j\omega) \f$ on the \f$ (-2\pi, 0] \f$
+ * branch (the gain adds no phase, which is why QS2 stage 2 skips it). Every
+ * term is monotonic in its parameter, so when a vertical strip of the
+ * Nichols rectangle is certainly forbidden, fixing the other parameters at
+ * the corner that puts the loop CLOSEST to the allowed side and solving for
+ * the remaining term yields the point where its range stops being certainly
+ * infeasible:
+ *
+ * - Strip of HIGH phase forbidden (right side, threshold
+ *   \f$ \theta_{max} \f$): the closest-to-allowed corner is the phase
+ *   minimum (zeros at their supremum, poles at their infimum). A zero
+ *   below \f$ \omega/\tan(m) \f$, \f$ m = \theta_{max} - \varphi_0 -
+ *   \sum_{i \ne j}\arctan(\omega/\bar z_i) + \sum_l\arctan(\omega/
+ *   \underline p_l) \f$, keeps even that corner beyond the threshold
+ *   (cut z to [z', sup z]); a pole above \f$ \omega/\tan(m') \f$ does the
+ *   same (cut p to [inf p, p']).
+ * - Strip of LOW phase forbidden (left side, threshold
+ *   \f$ \theta_{min} \f$): symmetric with the phase maximum corner (zeros
+ *   at their infimum, poles at their supremum); the zero cuts its upper
+ *   end and the pole its lower end.
+ *
+ * The published pseudocode of QS2 stage 2 assigns zeros to sup and poles
+ * to inf while its comment says the assignment "maximizes the contribution
+ * to the phase"; those extremes MINIMIZE it (the phase of a zero term is
+ * arctan(omega/z), decreasing). The assignments are the ones consistent
+ * with the right-side cut the paper illustrates; the comment is the
+ * erratum.
+ *
+ * All angles are RADIANS on the box's own branch. The functions return the
+ * cut point, or a negative value when no sound cut exists at this
+ * frequency (the margin must lie strictly inside (0, pi/2): outside it the
+ * equation has no solution in the parameter's positive range, and the
+ * conservative answer is not to cut).
+ */
+
+/// Sum of the phase contributions atan(w/x) of the terms (jw + x),
+/// optionally skipping one term.
+inline qreal termPhaseSum(const QVector<qreal> & values, qreal w,
+                          int skipIndex = -1)
+{
+    qreal sum = 0.0;
+
+    for (int i = 0; i < values.size(); ++i) {
+        if (i != skipIndex) {
+            sum += std::atan2(w, values.at(i));
+        }
+    }
+
+    return sum;
+}
+
+/// z' for the zero at 'index' when the phases ABOVE thetaMax are certainly
+/// forbidden: below z' even the phase-minimal corner of the other
+/// parameters stays beyond the threshold (cut z to [z', sup z]).
+inline qreal zeroPhaseCutHigh(qreal thetaMax, qreal phi0,
+                              const QVector<qreal> & zeroSups,
+                              const QVector<qreal> & poleInfs, int index,
+                              qreal w)
+{
+    const qreal margin = thetaMax - phi0 - termPhaseSum(zeroSups, w, index) +
+                         termPhaseSum(poleInfs, w);
+
+    if (margin <= 0.0 || margin >= M_PI_2) {
+        return -1.0;
+    }
+
+    return w / std::tan(margin);
+}
+
+/// p' for the pole at 'index' when the phases ABOVE thetaMax are certainly
+/// forbidden (cut p to [inf p, p']).
+inline qreal polePhaseCutHigh(qreal thetaMax, qreal phi0,
+                              const QVector<qreal> & zeroSups,
+                              const QVector<qreal> & poleInfs, int index,
+                              qreal w)
+{
+    const qreal margin = phi0 + termPhaseSum(zeroSups, w) -
+                         termPhaseSum(poleInfs, w, index) - thetaMax;
+
+    if (margin <= 0.0 || margin >= M_PI_2) {
+        return -1.0;
+    }
+
+    return w / std::tan(margin);
+}
+
+/// z' for the zero at 'index' when the phases BELOW thetaMin are certainly
+/// forbidden: above z' even the phase-maximal corner of the other
+/// parameters stays under the threshold (cut z to [inf z, z']).
+inline qreal zeroPhaseCutLow(qreal thetaMin, qreal phi0,
+                             const QVector<qreal> & zeroInfs,
+                             const QVector<qreal> & poleSups, int index,
+                             qreal w)
+{
+    const qreal margin = thetaMin - phi0 - termPhaseSum(zeroInfs, w, index) +
+                         termPhaseSum(poleSups, w);
+
+    if (margin <= 0.0 || margin >= M_PI_2) {
+        return -1.0;
+    }
+
+    return w / std::tan(margin);
+}
+
+/// p' for the pole at 'index' when the phases BELOW thetaMin are certainly
+/// forbidden (cut p to [p', sup p]).
+inline qreal polePhaseCutLow(qreal thetaMin, qreal phi0,
+                             const QVector<qreal> & zeroInfs,
+                             const QVector<qreal> & poleSups, int index,
+                             qreal w)
+{
+    const qreal margin = phi0 + termPhaseSum(zeroInfs, w) -
+                         termPhaseSum(poleSups, w, index) - thetaMin;
+
+    if (margin <= 0.0 || margin >= M_PI_2) {
+        return -1.0;
+    }
+
+    return w / std::tan(margin);
+}
+
 } // namespace quick_solution
 } // namespace qftbx
 
