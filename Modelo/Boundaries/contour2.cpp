@@ -28,7 +28,9 @@ QVector <QVector <QPointF> *> * Contour2::getContour(qreal nPuntosFas, qreal nPu
     qint32 tamFas = ancho - 1;
     qint32 tamMag = alto - 1;
 
-    mascara = new QVector <bool> ((ancho + 1) * (alto + 1), false);
+    //Mascara local: el miembro anterior se creaba en cada llamada y se
+    //abandonaba con un clear().
+    QVector <bool> mascara ((ancho + 1) * (alto + 1), false);
 
     QVector <QVector <QPointF> *> * resultado = new QVector <QVector <QPointF> *> ();
 
@@ -37,7 +39,7 @@ QVector <QVector <QPointF> *> * Contour2::getContour(qreal nPuntosFas, qreal nPu
         for (qint32 fila = 1; fila < alto-1; fila++)
         {
 
-            if ((sabana->at(fila)->at(columna) >= alt) && (!mascara->at(fila * ancho + columna))){
+            if ((sabana->at(fila)->at(columna) >= alt) && (!mascara.at(fila * ancho + columna))){
 
                 QVector <QPointF> * lista = new QVector <QPointF> ();
 
@@ -63,13 +65,13 @@ QVector <QVector <QPointF> *> * Contour2::getContour(qreal nPuntosFas, qreal nPu
                             x =  nuevax + coorX8Connect[(i - 1) % 8];
                             y =  nuevay + coorY8Connect[(i - 1) % 8];
 
-                            if ((sabana->at(y)->at(x) >= alt) && (!mascara->at(y * ancho + x))){
+                            if ((sabana->at(y)->at(x) >= alt) && (!mascara.at(y * ancho + x))){
 
 
                                 lista->append(QPointF(((nuevax * nPuntosFas) / tamFas) - nPuntosFas, ((nuevay *
                                                       nPuntosMag) / tamMag) - moverMag));
 
-                                mascara->replace(nuevay * ancho + nuevax, true);
+                                mascara.replace(nuevay * ancho + nuevax, true);
                                 nuevax = x;
                                 nuevay = y;
                                 corte++;
@@ -88,8 +90,10 @@ QVector <QVector <QPointF> *> * Contour2::getContour(qreal nPuntosFas, qreal nPu
                     }
                 }
 
+                //Las trazas degeneradas (<= 1 punto) se descartan liberandolas;
+                //el clear() anterior abandonaba el QVector en cada descarte.
                 if (lista->size() <= 1){
-                    lista->clear();
+                    delete lista;
                 } else {
 
                     lista->prepend(QPointF(lista->first().x()-(nPuntosFas / tamFas), lista->first().y()));
@@ -100,8 +104,6 @@ QVector <QVector <QPointF> *> * Contour2::getContour(qreal nPuntosFas, qreal nPu
             }
         }
     }
-
-    mascara->clear();
 
     return resultado;
 }
@@ -118,7 +120,9 @@ QVector <QVector <QPointF> *> * Contour2::getContour(qreal nPuntosFas, qreal tam
     tamMag--;
 
 
-    mascara = new QVector <bool> ((ancho + 1) * (alto + 1), false);
+    //Mascara local: el miembro anterior se creaba en cada llamada y se
+    //abandonaba con un clear().
+    QVector <bool> mascara ((ancho + 1) * (alto + 1), false);
 
     QVector <QVector <QPointF> *> * resultado = new QVector <QVector <QPointF> *> ();
 
@@ -127,7 +131,7 @@ QVector <QVector <QPointF> *> * Contour2::getContour(qreal nPuntosFas, qreal tam
         for (qint32 fila = 1; fila < alto-1; fila++)
         {
 
-            if ((sabanaCuda[columna * alto + fila] >= alt) && (!mascara->at(fila * ancho + columna))){
+            if ((sabanaCuda[columna * alto + fila] >= alt) && (!mascara.at(fila * ancho + columna))){
 
                 QVector <QPointF> * lista = new QVector <QPointF> ();
 
@@ -154,10 +158,10 @@ QVector <QVector <QPointF> *> * Contour2::getContour(qreal nPuntosFas, qreal tam
                             x =  nuevax + coorX8Connect[(i - 1) % 8];
                             y =  nuevay + coorY8Connect[(i - 1) % 8];
 
-                            if ((sabanaCuda[x * alto + y] > alt) && (!mascara->at(y * ancho + x))){
+                            if ((sabanaCuda[x * alto + y] > alt) && (!mascara.at(y * ancho + x))){
                                 lista->append(QPointF(((nuevax * nPuntosFas) / tamFas) - nPuntosFas, ((nuevay *
                                                       nPuntosMag) / tamMag) - moverMag));
-                                mascara->replace(nuevay * ancho + nuevax, true);
+                                mascara.replace(nuevay * ancho + nuevax, true);
                                 nuevax = x;
                                 nuevay = y;
                                 corte++;
@@ -175,9 +179,9 @@ QVector <QVector <QPointF> *> * Contour2::getContour(qreal nPuntosFas, qreal tam
                 }
 
                 if (lista->size() <= 1){
-                    lista->clear();
+                    delete lista;
                 }else if (lista->size() == 2){
-                    lista->clear();
+                    delete lista;
 
                     QVector <QPointF> * lista = new QVector <QPointF> ();
 
@@ -204,10 +208,10 @@ QVector <QVector <QPointF> *> * Contour2::getContour(qreal nPuntosFas, qreal tam
                                 x =  nuevax + coorX8Connect[(i + 1) % 8];
                                 y =  nuevay + coorY8Connect[(i + 1) % 8];
 
-                                if ((sabanaCuda[x * alto + y] > alt) && (!mascara->at(y * ancho + x))){
+                                if ((sabanaCuda[x * alto + y] > alt) && (!mascara.at(y * ancho + x))){
                                     lista->append(QPointF(((nuevax * nPuntosFas) / tamFas) - nPuntosFas, ((nuevay *
                                                           nPuntosMag) / tamMag) - moverMag));
-                                    mascara->replace(nuevay * ancho + nuevax, true);
+                                    mascara.replace(nuevay * ancho + nuevax, true);
                                     nuevax = x;
                                     nuevay = y;
                                     corte++;
@@ -225,7 +229,7 @@ QVector <QVector <QPointF> *> * Contour2::getContour(qreal nPuntosFas, qreal tam
                     }
 
                     if (lista->size() <= 1){
-                        lista->clear();
+                        delete lista;
                     } else{
                         resultado->append(lista);
                     }
@@ -235,8 +239,6 @@ QVector <QVector <QPointF> *> * Contour2::getContour(qreal nPuntosFas, qreal tam
             }
         }
     }
-
-    mascara->clear();
 
     return resultado;
 

@@ -32,7 +32,6 @@ private:
 #ifdef CUDA_AVAILABLE
     float * sabanaCuda;
 #endif
-    bool ** sabana_bool;
 
     // Get borders and Contours
     // Direction-number		Y
@@ -43,11 +42,6 @@ private:
     //						            N	NO	O	SO	S	SE	E	NE
     const char	coorX8Connect[8] =	{	0,	 1,	1,	1,	0,	-1,	-1,	-1	};
     const char	coorY8Connect[8] =	{  -1,	-1,	0,	1,	1,	 1,	 0,	-1	};
-
-    QVector <bool> * cerrados;
-
-    QVector <bool> * mascara;
-
 
 };
 

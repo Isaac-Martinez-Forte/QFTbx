@@ -4,9 +4,7 @@
 #include <QVector>
 #include <complex>
 #include <qmath.h>
-#include <QTransform>
 #include <limits>
-#include <qprogressbar.h>
 #include <cmath>
 #ifdef OpenMP_AVAILABLE
 #include <omp.h>
@@ -29,7 +27,7 @@
  * @author Isaac Martínez Forte
  */
 
-class Boundaries : public QObject
+class Boundaries
 {
 public:
 
@@ -39,6 +37,11 @@ public:
    */
 
     Boundaries();
+
+    ~Boundaries();
+
+    Boundaries(const Boundaries &) = delete;
+    Boundaries & operator=(const Boundaries &) = delete;
 
 
     /**
@@ -122,18 +125,11 @@ public:
 
 
 private:
-    bool pnpoly(QVector <QPointF * > * vector, QPointF * punto);
-
-    bool repetido;
-
-    bool boundariesCreados;
-
     qftbx::SpecificationSet especificaciones;
 
-    qreal unwrap(qreal previousAngle,qreal newAngle);
-    qreal constrainAngle(qreal x);
-    qreal angleConv(qreal angle);
-    qreal angleDiff(qreal a,qreal b);
+    //Libera en profundidad los resultados de la ejecucion anterior (el motor
+    //es el dueno; los DatosBound repartidos son vistas no propietarias).
+    void liberarResultados();
 
     QVector<QVector<QPointF> *> *calcularContourVector(qreal umbralDb, QVector<QVector<qreal> *> *sabana,
                                                       QVector<QPoint> *metaBoun, std::complex<qreal> p0, QVector<std::complex<qreal> > *p,
@@ -166,17 +162,17 @@ private:
 
     qint32 getZona(QVector <QPointF> * vec, std::complex<qreal> p0, QVector<std::complex<qreal> > *p, qint32 i, qreal altura);
 
-    QVector <bool> * boolseguimiento;
-    QVector <bool> * boolestabilidad;
-    QVector <bool> * boolruido;
-    QVector <bool> * boolRPS;
-    QVector <bool> * boolRPE;
-    QVector <bool> * boolEC;
-    bool boolcreados;
+    QVector <bool> boolseguimiento;
+    QVector <bool> boolestabilidad;
+    QVector <bool> boolruido;
+    QVector <bool> boolRPS;
+    QVector <bool> boolRPE;
+    QVector <bool> boolEC;
 
     QVector <bool> * metaDatosAbierta;
     QVector <bool> * metaDatosArriba;
 
+    //Alias del vector de frecuencias del llamador: no se libera aqui.
     QVector <qreal> * nueva_omega;
 
     bool cuda;

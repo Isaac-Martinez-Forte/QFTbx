@@ -7,6 +7,13 @@
 #include <QString>
 #include <cinterval.hpp>
 
+/**
+ * @brief Non-owning view over one boundary computation's results.
+ *
+ * The containers belong to their producer (the Boundaries engine or the
+ * file parser); destroying a DatosBound never touches them, so temporary
+ * views can be created and deleted freely.
+ */
 class DatosBound
 {
 public:

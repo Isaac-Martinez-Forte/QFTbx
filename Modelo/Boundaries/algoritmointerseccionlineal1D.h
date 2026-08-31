@@ -60,7 +60,6 @@ private:
 
     qint32 funcionHash(qreal x, qreal totalFase, qint32 numeroFases);
 
-    void SelectionSort(QVector<QPointF> * array);
     QVector<QPointF> * OrdenacionPuntos(QVector<QPointF> * array);
 
 

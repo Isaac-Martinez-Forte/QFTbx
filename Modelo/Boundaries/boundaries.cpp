@@ -20,8 +20,75 @@ std::vector <float *> * bnd_cuda(vector<complex<double> > templates, complex <do
 
 Boundaries::Boundaries()
 {
-    boundariesCreados = false;
-    boolcreados = false;
+    boundaries = nullptr;
+    metaDatosBoundaries = nullptr;
+    boun_reunidos = nullptr;
+    boundariesHash = nullptr;
+    metaDatosAbierta = nullptr;
+    metaDatosArriba = nullptr;
+    nueva_omega = nullptr;
+    cuda = false;
+}
+
+Boundaries::~Boundaries()
+{
+    liberarResultados();
+}
+
+void Boundaries::liberarResultados()
+{
+    if (boundaries != nullptr){
+        foreach (auto * mapa, *boundaries){
+            foreach (auto * trazas, *mapa){
+                foreach (QVector <QPointF> * traza, *trazas){
+                    delete traza;
+                }
+                delete trazas;
+            }
+            delete mapa;
+        }
+        delete boundaries;
+        boundaries = nullptr;
+    }
+
+    if (metaDatosBoundaries != nullptr){
+        foreach (auto * mapa, *metaDatosBoundaries){
+            foreach (QVector <QPoint> * meta, *mapa){
+                delete meta;
+            }
+            delete mapa;
+        }
+        delete metaDatosBoundaries;
+        metaDatosBoundaries = nullptr;
+    }
+
+    if (boun_reunidos != nullptr){
+        foreach (QVector <QPointF> * reunido, *boun_reunidos){
+            delete reunido;
+        }
+        delete boun_reunidos;
+        boun_reunidos = nullptr;
+    }
+
+    if (boundariesHash != nullptr){
+        foreach (auto * porFrecuencia, *boundariesHash){
+            foreach (QVector <QPointF> * cubeta, *porFrecuencia){
+                delete cubeta;
+            }
+            delete porFrecuencia;
+        }
+        delete boundariesHash;
+        boundariesHash = nullptr;
+    }
+
+    delete metaDatosAbierta;
+    metaDatosAbierta = nullptr;
+
+    delete metaDatosArriba;
+    metaDatosArriba = nullptr;
+
+    //nueva_omega es un alias del vector del llamador: no se libera.
+    nueva_omega = nullptr;
 }
 
 void Boundaries::lanzarCalculo(QVector<qreal> *omega, LtiSystem *planta, QVector<QVector<complex<qreal> > *> *templates,
@@ -40,35 +107,29 @@ void Boundaries::lanzarCalculo(QVector<qreal> *omega, LtiSystem *planta, QVector
     this->datosFas = datosFas;
     this->datosMag = datosMag;
 
-    if (boolcreados){
-        boolseguimiento->clear();
-        boolestabilidad->clear();
-        boolRPS->clear();
-        boolRPE->clear();
-        boolEC->clear();
-    }
+    //Los resultados de la ejecucion anterior se liberan aqui: cada ejecucion
+    //acumulaba contenedores enteros (y la mascara boolruido ni se vaciaba).
+    liberarResultados();
 
-    boolcreados = true;
-
-    boolseguimiento = new QVector <bool> ();
-    boolestabilidad = new QVector <bool> ();
-    boolruido = new QVector <bool> ();
-    boolRPS = new QVector <bool> ();
-    boolRPE = new QVector <bool> ();
-    boolEC = new QVector <bool> ();
+    boolseguimiento.clear();
+    boolestabilidad.clear();
+    boolruido.clear();
+    boolRPS.clear();
+    boolRPE.clear();
+    boolEC.clear();
 
     //Como siempre, la banda de seguimiento la gobierna T_L (el limite
     //inferior); T_U solo aporta la altura del corte.
     foreach(qreal o, *omega){
-        boolseguimiento->append(especificaciones.at(SpecificationType::TrackingLower).appliesAt(o));
-        boolestabilidad->append(especificaciones.at(SpecificationType::Stability).appliesAt(o));
-        boolruido->append(especificaciones.at(SpecificationType::SensorNoise).appliesAt(o));
-        boolRPS->append(especificaciones.at(SpecificationType::OutputDisturbance).appliesAt(o));
-        boolRPE->append(especificaciones.at(SpecificationType::InputDisturbance).appliesAt(o));
-        boolEC->append(especificaciones.at(SpecificationType::ControlEffort).appliesAt(o));
+        boolseguimiento.append(especificaciones.at(SpecificationType::TrackingLower).appliesAt(o));
+        boolestabilidad.append(especificaciones.at(SpecificationType::Stability).appliesAt(o));
+        boolruido.append(especificaciones.at(SpecificationType::SensorNoise).appliesAt(o));
+        boolRPS.append(especificaciones.at(SpecificationType::OutputDisturbance).appliesAt(o));
+        boolRPE.append(especificaciones.at(SpecificationType::InputDisturbance).appliesAt(o));
+        boolEC.append(especificaciones.at(SpecificationType::ControlEffort).appliesAt(o));
     }
 
-    if (boolseguimiento->contains(true) &&
+    if (boolseguimiento.contains(true) &&
             !especificaciones.at(SpecificationType::TrackingUpper).used()){
         //El codigo historico desreferenciaba la planta nula de T_U.
         throw qftbx::InvalidInput("The tracking boundary needs both tracking "
@@ -126,8 +187,6 @@ void Boundaries::lanzarCalculo(QVector<qreal> *omega, LtiSystem *planta, QVector
             boundaries->append(bound);
         }
 
-        boundariesCreados = true;
-
         nueva_omega = new QVector <qreal> (*omega);
 
         cout << "boundarie CUDA: " << timer.elapsed() << " milliseconds" << endl;
@@ -147,7 +206,9 @@ void Boundaries::lanzarCalculo(QVector<qreal> *omega, LtiSystem *planta, QVector
 
     timer.restart();
 
-    interseccion->ejecutarAlgoritmo(getBoundaries(), metaDatosBoundaries);
+    DatosBound * vista = getBoundaries();
+    interseccion->ejecutarAlgoritmo(vista, metaDatosBoundaries);
+    delete vista;
 
     cout << "Algoritmo Intersección 1D: " << timer.elapsed() << " milliseconds" << endl;
 
@@ -159,9 +220,13 @@ void Boundaries::lanzarCalculo(QVector<qreal> *omega, LtiSystem *planta, QVector
 
     delete interseccion;
 
-    //metaDatosBoundaries->clear();
-
-
+    //Los metadatos ya han sido consumidos por la union 1D.
+    foreach (auto * mapa, *metaDatosBoundaries){
+        foreach (QVector <QPoint> * meta, *mapa){
+            delete meta;
+        }
+        delete mapa;
+    }
     metaDatosBoundaries->clear();
 
 }
@@ -184,7 +249,7 @@ void Boundaries::calcularContour(qreal omega, QMap <QString, QVector <QVector <Q
 
 
     //Boundarie seguimiento
-    if (boolseguimiento->at(contador)){
+    if (boolseguimiento.at(contador)){
 
         QVector <QPoint> * metaBoun = new QVector <QPoint> ();
 
@@ -196,7 +261,7 @@ void Boundaries::calcularContour(qreal omega, QMap <QString, QVector <QVector <Q
     }
 
     //Boundarie estabilidad
-    if (boolestabilidad->at(contador)){
+    if (boolestabilidad.at(contador)){
 
         QVector <QPoint> * metaBoun = new QVector <QPoint> ();
 
@@ -208,7 +273,7 @@ void Boundaries::calcularContour(qreal omega, QMap <QString, QVector <QVector <Q
     }
 
     //Boundarie ruido
-    if (boolruido->at(contador)){
+    if (boolruido.at(contador)){
 
         QVector <QPoint> * metaBoun = new QVector <QPoint> ();
         bound->insert("Ruido",
@@ -219,7 +284,7 @@ void Boundaries::calcularContour(qreal omega, QMap <QString, QVector <QVector <Q
     }
 
     //Boundarie RPS
-    if (boolRPS->at(contador)){
+    if (boolRPS.at(contador)){
 
         QVector <QPoint> * metaBoun = new QVector <QPoint> ();
 
@@ -231,7 +296,7 @@ void Boundaries::calcularContour(qreal omega, QMap <QString, QVector <QVector <Q
     }
 
     //Boundarie RPE
-    if (boolRPE->at(contador)){
+    if (boolRPE.at(contador)){
 
         QVector <QPoint> * metaBoun = new QVector <QPoint> ();
 
@@ -243,7 +308,7 @@ void Boundaries::calcularContour(qreal omega, QMap <QString, QVector <QVector <Q
     }
 
     //Boundarie EC
-    if (boolEC->at(contador)){
+    if (boolEC.at(contador)){
 
         QVector <QPoint> * metaBoun = new QVector <QPoint> ();
 
@@ -263,7 +328,7 @@ void Boundaries::calcularContour(qreal omega, QMap <QString, QVector <QVector <Q
                                  qreal nPuntosFas, qreal nPuntosMag, qreal moverMag){
 
     //Boundarie seguimiento
-    if (boolseguimiento->at(contador)){
+    if (boolseguimiento.at(contador)){
 
         QVector <QPoint> * metaBoun = new QVector <QPoint> ();
 
@@ -275,7 +340,7 @@ void Boundaries::calcularContour(qreal omega, QMap <QString, QVector <QVector <Q
     }
 
     //Boundarie estabilidad
-    if (boolestabilidad->at(contador)){
+    if (boolestabilidad.at(contador)){
 
         QVector <QPoint> * metaBoun = new QVector <QPoint> ();
 
@@ -287,7 +352,7 @@ void Boundaries::calcularContour(qreal omega, QMap <QString, QVector <QVector <Q
     }
 
     //Boundarie ruido
-    if (boolruido->at(contador)){
+    if (boolruido.at(contador)){
 
         QVector <QPoint> * metaBoun = new QVector <QPoint> ();
 
@@ -299,7 +364,7 @@ void Boundaries::calcularContour(qreal omega, QMap <QString, QVector <QVector <Q
     }
 
     //Boundarie RPS
-    if (boolRPS->at(contador)){
+    if (boolRPS.at(contador)){
 
         QVector <QPoint> * metaBoun = new QVector <QPoint> ();
 
@@ -311,7 +376,7 @@ void Boundaries::calcularContour(qreal omega, QMap <QString, QVector <QVector <Q
     }
 
     //Boundarie RPE
-    if (boolRPE->at(contador)){
+    if (boolRPE.at(contador)){
 
         QVector <QPoint> * metaBoun = new QVector <QPoint> ();
 
@@ -323,7 +388,7 @@ void Boundaries::calcularContour(qreal omega, QMap <QString, QVector <QVector <Q
     }
 
     //Boundarie EC
-    if (boolEC->at(contador)){
+    if (boolEC.at(contador)){
 
         QVector <QPoint> * metaBoun = new QVector <QPoint> ();
 
@@ -356,6 +421,10 @@ QVector<QVector<QPointF> *> * Boundaries::calcularContourVector(qreal umbralDb, 
     boun = contour->getContour(nPuntosFas, nPuntosMag, moverMag);
 
 
+    //Pre-dimensionado y escritura en el indice j: el critical de antes
+    //permutaba los metadatos respecto a sus trazas segun el orden de hilos.
+    metaBoun->resize(boun->size());
+
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
 #endif
@@ -365,14 +434,7 @@ QVector<QVector<QPointF> *> * Boundaries::calcularContourVector(qreal umbralDb, 
         //mismo corte en dB con el que se ha trazado el contorno.
         punto.setX(getZona(boun->at(j), p0, p, i, umbralDb));
 
-#ifdef OpenMP_AVAILABLE
-#pragma omp critical
-        {
-            metaBoun->append(punto);
-        }
-#else
-        metaBoun->append(punto);
-#endif
+        metaBoun->replace(j, punto);
     }
 
     if (metaBoun->isEmpty()) {
@@ -399,6 +461,10 @@ QVector<QVector<QPointF> *> * Boundaries::calcularContourVector(qreal umbralDb, 
     boun = contour->getContour(nPuntosFas,tamFas, nPuntosMag, tamMag, moverMag);
 
 
+    //Pre-dimensionado y escritura en el indice j: el critical de antes
+    //permutaba los metadatos respecto a sus trazas segun el orden de hilos.
+    metaBoun->resize(boun->size());
+
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
 #endif
@@ -408,14 +474,7 @@ QVector<QVector<QPointF> *> * Boundaries::calcularContourVector(qreal umbralDb, 
         //mismo corte en dB con el que se ha trazado el contorno.
         punto.setX(getZona(boun->at(j), p0, p, i, umbralDb));
 
-#ifdef OpenMP_AVAILABLE
-#pragma omp critical
-        {
-            metaBoun->append(punto);
-        }
-#else
-        metaBoun->append(punto);
-#endif
+        metaBoun->replace(j, punto);
     }
 
     delete contour;
@@ -554,10 +613,6 @@ void Boundaries::bnd(QVector<qreal> *omega, LtiSystem *planta, QVector <QVector 
         inf = infinito;
     }
 
-    if (boundariesCreados){
-        boundaries->clear();
-    }
-
     //Contenedores pre-dimensionados: cada frecuencia escribe en SU indice.
     //La version anterior con OpenMP creaba los contenedores VACIOS y escribia
     //con replace(num_hilo) donde num_hilo se pasaba POR VALOR (siempre 0):
@@ -574,6 +629,9 @@ void Boundaries::bnd(QVector<qreal> *omega, LtiSystem *planta, QVector <QVector 
 
         calcularBndOmega(omega->at(i), planta, templates->at(i), fases, mag, inf, i);
     }
+
+    delete fases;
+    delete mag;
 
     nueva_omega = omega;
 
@@ -754,51 +812,17 @@ void Boundaries::calcularBndOmega (qreal omega, LtiSystem * planta,
 
     calcularContour(omega, bound, vecSabanas, metaBound, p0, p, contador, abs(datosFas.x()), abs(datosMag.x()) + abs (datosMag.y()), datosMag.y());
 
-    vecSabanas->clear();
+    //Las sabanas (~1.7 MB por frecuencia) ya no se necesitan: los contornos
+    //y las zonas estan extraidos. Antes se abandonaban con un clear().
+    foreach (QVector <QVector <qreal> * > * sabana, *vecSabanas){
+        foreach (QVector <qreal> * filaSabana, *sabana){
+            delete filaSabana;
+        }
+        delete sabana;
+    }
+    delete vecSabanas;
 
     //Cada frecuencia escribe en su indice: sin criticals ni permutaciones.
     metaDatosBoundaries->replace(contador, metaBound);
     boundaries->replace(contador, bound);
-
-    boundariesCreados = true;
-}
-
-bool Boundaries::pnpoly(QVector<QPointF *> *vector, QPointF *punto)
-{
-    qint32 i, j;
-    qint32 lon = vector->size();
-    bool c = false;
-    for (i = 0, j = lon-1; i < lon; j = i++) {
-        if (((vector->at(i)->y() > punto->y()) != (vector->at(j)->y() > punto->y())) &&
-                (punto->x() < (vector->at(j)->x()) - vector->at(i)->x() *
-                 (punto->y()-vector->at(i)->y()) / (vector->at(j)->y()-vector->at(i)->y()) +
-                 vector->at(i)->x()) )
-            c = !c;
-    }
-
-    delete punto;
-    return c;
-}
-
-//Se normaliza a valores [-180,180):
-qreal Boundaries::constrainAngle(qreal x){
-    x = fmod(x + M_PI,2 * M_PI);
-    if (x < 0)
-        x += 2 * M_PI;
-    return x - M_PI;
-}
-
-//Se convierte a valores [-360,360]
-qreal Boundaries::angleConv(qreal angle){
-    return fmod(constrainAngle(angle),2 * M_PI);
-}
-qreal Boundaries::angleDiff(qreal a,qreal b){
-    qreal dif = fmod(b - a + M_PI,2 * M_PI);
-    if (dif < 0)
-        dif += 2 * M_PI;
-    return dif - M_PI;
-}
-qreal Boundaries::unwrap(qreal previousAngle,qreal newAngle){
-    //Hay que pasar el ángulo actual y el anterior.
-    return previousAngle - angleDiff(newAngle,angleConv(previousAngle));
 }

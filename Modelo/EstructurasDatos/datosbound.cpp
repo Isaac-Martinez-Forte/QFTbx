@@ -17,27 +17,10 @@ DatosBound::DatosBound(QVector <QMap <QString, QVector <QVector <QPointF> * > *>
 }
 
 DatosBound::~DatosBound(){
-    boundaries->clear();
-    hash_inter_boundaries->clear();
-    metadatosabierta->clear();
-    metadatosarriba->clear();
-    boundaries_reun->clear();
-
-    if (datosFasBound != NULL){
-        datosFasBound->clear();
-    }
-
-    if (datosMagBound != NULL) {
-        datosMagBound->clear();
-    }
-
-    if (datosFasBoundLin != NULL){
-        datosFasBoundLin->clear();
-    }
-
-    if (datosMagBoundLin != NULL) {
-        datosMagBoundLin->clear();
-    }
+    //Vista no propietaria: los contenedores pertenecen a quien los calculo
+    //(Boundaries) o los cargo (parser). El destructor anterior los VACIABA:
+    //borrar la vista auxiliar de verboundaries dejaba sin datos al DatosBound
+    //del DAO, que compartia los mismos punteros.
 }
 
 void DatosBound::setBox(cxsc::cinterval a) {

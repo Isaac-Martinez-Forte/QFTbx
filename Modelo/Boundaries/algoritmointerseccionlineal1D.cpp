@@ -211,12 +211,6 @@ QVector<QPointF> * AlgoritmoInterseccionLineal1D::dibujarSegundaCapa(QVector< QV
     return capa2;
 }
 
-int compareQPointF (const void * a, const void * b)
-{
-    return (*(QPointF*)a).x() <  (*(QPointF*)b).x();
-
-}
-
 inline qint32 AlgoritmoInterseccionLineal1D::funcionHash(qreal x, qreal totalFase, qint32 numeroFases)
 {
     double res = (abs(x)*((qreal)numeroFases/totalFase));
@@ -343,15 +337,30 @@ void AlgoritmoInterseccionLineal1D::ejecutarAlgoritmo(DatosBound * boundaries,
 
             QVector<QPointF> * capa1 = dibujarPrimeraCapa(fronterasElegidas,fronterasHash,totalFase,abierta1,abierta2);
             QVector<QPointF> * capa2 = dibujarSegundaCapa(fronterasElegidas,fronterasHash,totalFase,abierta1,abierta2);
-            interseccion->clear();
+
+            //La interseccion acumulada y la frontera recien unida ya estan
+            //fundidas en las capas: se liberan junto con el hash auxiliar
+            //(antes cada especificacion adicional los abandonaba enteros).
+            delete interseccion;
             interseccion = unirCapas(capa1, capa2);
-            //cout << "--->" << (abierta1||abierta2) << endl;
+            delete capa1;
+            delete capa2;
+            delete fronteraActual;
+
+            foreach (QVector <QVector <QPointF> * > * nivel, *fronterasHash){
+                foreach (QVector <QPointF> * cubeta, *nivel){
+                    delete cubeta;
+                }
+                delete nivel;
+            }
+            delete fronterasHash;
+
             if((abierta1||abierta2)&&!metadatosAbierta->at(i))
             {
                 metadatosAbierta->replace(i, abierta1||abierta2);
                 metadatosArriba->replace(i, arriba);
             }
-            fronterasElegidas->clear();
+            delete fronterasElegidas;
         }
 
         //cout << "Arriba: " << metadatosArriba->at(i) << endl;
@@ -375,13 +384,14 @@ void AlgoritmoInterseccionLineal1D::ejecutarAlgoritmo(DatosBound * boundaries,
     foreach (QVector<QPointF> * b, *interseccionesVectores) {
         if (metadatosAbierta->at(c)){
             dos->append(OrdenacionPuntos(b));
+            delete b;
         } else {
             dos->append(b);
         }
         c++;
     }
 
-    interseccionesVectores->clear();
+    delete interseccionesVectores;
     interseccionesVectores = dos;
 }
 
@@ -405,26 +415,6 @@ QVector <bool> * AlgoritmoInterseccionLineal1D::getMetadatosArriba()
     return metadatosArriba;
 }
 
-
-
-void AlgoritmoInterseccionLineal1D::SelectionSort(QVector<QPointF> * array) {
-
-    qint32 n = array->size();
-    QPointF tmp;
-    qint32 x, y, min;
-
-    for(x = 0; x < n; x++) {
-        min = x;
-        for(y = x + 1; y < n; y++) {
-            if(array->at(min).x() > array->at(y).x()) {
-                min = y;
-            }
-        }
-        tmp = array->at(min);
-        array->replace(min, array->at(x));
-        array->replace(x, tmp);
-    }
-}
 
 QVector<QPointF> * AlgoritmoInterseccionLineal1D::OrdenacionPuntos(QVector<QPointF> * array) {
 
