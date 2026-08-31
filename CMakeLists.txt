@@ -102,6 +102,16 @@ endif()
 set(TS_FILES QFTbx_es_ES.ts)
 
 # ------------------------------------------------------------------------------
+# pugixml (persistencia .qft; MIT, anclada por tag)
+# ------------------------------------------------------------------------------
+include(FetchContent)
+FetchContent_Declare(pugixml
+  GIT_REPOSITORY https://github.com/zeux/pugixml.git
+  GIT_TAG        v1.14
+)
+FetchContent_MakeAvailable(pugixml)
+
+# ------------------------------------------------------------------------------
 # Fuentes del proyecto
 # ------------------------------------------------------------------------------
 # Backend (Modelo, DAO, XmlParser, Consola): compilado como libreria estatica
@@ -273,6 +283,7 @@ target_include_directories(qftbx_backend PUBLIC "${CMAKE_SOURCE_DIR}")
 # El backend todavia depende de Qt (contenedores, QMessageBox en tools.h...);
 # la eliminacion progresiva de Qt del backend es parte del refactor en curso.
 target_link_libraries(qftbx_backend PUBLIC Qt6::Core Qt6::Gui Qt6::Widgets Qt6::PrintSupport)
+target_link_libraries(qftbx_backend PUBLIC pugixml::pugixml)
 
 # ------------------------------------------------------------------------------
 # Ejecutable
