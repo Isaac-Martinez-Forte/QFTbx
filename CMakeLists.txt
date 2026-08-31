@@ -233,6 +233,7 @@ set(QFTbx_BACKEND_HED
     Modelo/LoopShaping/algorithm_sachin.h
     Modelo/LoopShaping/nominal_stability_checker.h
     Modelo/LoopShaping/quick_solution.h
+    Modelo/LoopShaping/debug_viewers.h
     Modelo/LoopShaping/algorithm_primer_articulo.h
     Modelo/LoopShaping/algorithm_segundo_articulo.h
     src/core/system/parameter.h
@@ -369,6 +370,19 @@ if(USE_NATIVE_ARCH AND (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang"))
   target_compile_options(${EXE_NAME} PRIVATE -march=native)
   target_compile_options(qftbx_backend PRIVATE -march=native)
 endif()
+
+# Every translation unit that includes the C-XSC headers compiles its
+# INLINE directed-rounding interval operators (interval.inl: subdown/subup
+# switch the FPU rounding mode around each endpoint). Without this flag the
+# optimiser assumes round-to-nearest everywhere and reorders/fuses the
+# arithmetic across the mode switches, producing intervals with the lower
+# end above the upper one (observed live at -O3 -march=native: the HC4
+# filter aborted on ERROR_INTERVAL_EMPTY_INTERVAL raised by a plain
+# interval subtraction). The whole interval-arithmetic correctness of the
+# toolbox rests on this flag. It cannot be global: it demotes Qt's
+# constexpr float arithmetic, so it applies to the interval-computing
+# targets only.
+target_compile_options(qftbx_backend PRIVATE -frounding-math)
 
 # OpenMP link
 if(USE_OpenMP AND OpenMP_CXX_FOUND)

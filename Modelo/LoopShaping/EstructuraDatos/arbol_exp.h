@@ -181,15 +181,26 @@ private :
 
     interval eval_tree_complex_interval(exp_node *nod);
 
-    void eval_tree_out(exp_node * nod, interval intervalo);
+    /// Backward (projection) phase of the HC4 filter: narrows the domains
+    /// towards consistency with 'intervalo'. Returns false when a domain
+    /// empties (the constraint proves the box inconsistent). Projections
+    /// that are unsafe or multi-branch (trigonometric inverses outside a
+    /// monotone branch, divisors straddling zero, non-square powers) are
+    /// skipped: skipping narrows nothing and stays sound.
+    bool eval_tree_out(exp_node * nod, interval intervalo);
+
+    /// Intersection with an empty-signal instead of the historical throw
+    /// (the release build compiled the guarding assert out, so an empty
+    /// intersection built an invalid interval and aborted the process).
+    bool interseccionSegura(const interval & a, const interval & b, interval & out);
 
     void build_tree(std::string &in_exp);
 
     bool es_letra(char tex);
 
-    interval interseccion (interval a, interval b);
 
-    interval unio (interval a, interval b);
+
+
 
     exp_node *root;
     QMap <std::string, qreal> * variables;

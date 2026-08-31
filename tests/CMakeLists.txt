@@ -37,6 +37,10 @@ add_executable(qftbx_tests
 
 target_link_libraries(qftbx_tests PRIVATE qftbx_backend GTest::gtest)
 
+#See the -frounding-math rationale in the top-level CMakeLists: the tests
+#compile the C-XSC inline interval operators too.
+target_compile_options(qftbx_tests PRIVATE -frounding-math)
+
 target_compile_definitions(qftbx_tests
   PRIVATE QFTBX_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data"
 )

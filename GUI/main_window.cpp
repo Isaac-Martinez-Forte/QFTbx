@@ -1,3 +1,4 @@
+#include "GUI/loop_boundaries_viewer.h"
 #include "main_window.h"
 #include "GUI/error_message.h"
 #include "GUI/plot_palette.h"

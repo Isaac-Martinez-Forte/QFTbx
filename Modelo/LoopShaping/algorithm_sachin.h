@@ -20,7 +20,6 @@
 
 #include "funcionescomunes.h"
 
-#include "GUI/boundary_union_viewer.h"
 
 
 class Algorithm_sachin

@@ -7,7 +7,6 @@
 
 #include "src/core/system/lti_system.h"
 #include "Modelo/Herramientas/tools.h"
-#include "GUI/boundary_union_viewer.h"
 #include "src/core/boundaries/boundary_data.h"
 #include "Modelo/LoopShaping/NaturalIntervalExtension/natural_interval_extension.h"
 #include "Modelo/LoopShaping/DeteccionViolacionBoundaries/deteccionviolacionboundaries.h"
@@ -106,61 +105,6 @@ inline bool if_less_epsilon(LtiSystem * controlador, qreal epsilon, QVector <qre
     return true;
 }
 
-inline BoundaryUnionViewer * showDiagram(QVector <QVector<QPointF> * > *vector, QVector <qreal> * omega, BoundaryData * boundaries) {
-    BoundaryUnionViewer * view = new BoundaryUnionViewer();
-
-    view->setDatos(boundaries->unionBoundaries(), omega);
-
-    view->showDiagram();
-
-    qint32 contador = 0;
-
-    foreach(QVector <QPointF> * vec, *vector) {
-        view->drawBox(vec->at(0), vec->at(1), vec->at(2), vec->at(3), contador);
-        contador++;
-    }
-
-    //view->exec();
-
-        //delete view;
-
-    return view;
-}
-
-inline void mostrar_diagrama2 (QVector <QVector<QPointF> * > *vector, QVector <qreal> * omega, BoundaryData * boundaries, BoundaryUnionViewer * view) {
-    //BoundaryUnionViewer * view = new BoundaryUnionViewer();
-
-    /*view->setDatos(boundaries->unionBoundaries(), omega);
-
-        view->showDiagram();*/
-
-    qint32 contador = 0;
-
-    foreach(QVector <QPointF> * vec, *vector) {
-        view->drawBox2(vec->at(0), vec->at(1), vec->at(2), vec->at(3), contador);
-        contador++;
-    }
-
-    view->exec();
-
-    delete view;
-}
-
-inline void mostrar_diagramaBox(QVector<QPointF> * caja, QVector <qreal> * omega, BoundaryData * boundaries) {
-    BoundaryUnionViewer * view = new BoundaryUnionViewer();
-
-    view->setDatos(boundaries->unionBoundaries(), omega);
-
-    view->showDiagram();
-
-    view->drawBox(caja->at(0), caja->at(1), caja->at(2), caja->at(3), 0);
-
-    view->exec();
-
-    delete view;
-    caja->clear();
-}
-
 //Función que divide la caja en dos.
 
 inline return_bisection split_box_bisection(LtiSystem *current_controlador) {
@@ -236,10 +180,13 @@ inline return_bisection split_box_bisection(LtiSystem *current_controlador) {
 
 
     if (mayor_pos == -1) {
+        //The halves keep the parameter's NAME: the ICSP constraint trees
+        //address the variables by name (the historical code renamed the
+        //gain to "kv" and erased the zero/pole names).
         qreal dis = k->range().x();
-        Parameter * k1 = new Parameter("kv", QPointF(dis, dis + (mayor_rango / 2)), dis);
+        Parameter * k1 = new Parameter(k->name(), QPointF(dis, dis + (mayor_rango / 2)), dis);
         dis += mayor_rango / 2;
-        Parameter * k2 = new Parameter("kv", QPointF(dis, k->range().y()), dis);
+        Parameter * k2 = new Parameter(k->name(), QPointF(dis, k->range().y()), dis);
 
         delete k;
 
@@ -251,10 +198,10 @@ inline return_bisection split_box_bisection(LtiSystem *current_controlador) {
 
         qreal dis = variable->range().x();
 
-        numeradorCopia->replace(mayor_pos, new Parameter("", QPointF(dis, dis + mayor_rango / 2), dis));
+        numeradorCopia->replace(mayor_pos, new Parameter(variable->name(), QPointF(dis, dis + mayor_rango / 2), dis));
 
         dis += mayor_rango / 2;
-        numerador->replace(mayor_pos, new Parameter("", QPointF(dis, variable->range().y()), dis));
+        numerador->replace(mayor_pos, new Parameter(variable->name(), QPointF(dis, variable->range().y()), dis));
 
 
         v1 = current_controlador->create(nombre, numeradorCopia, denominadorCopia, k->clone(), ret->clone());
@@ -268,10 +215,10 @@ inline return_bisection split_box_bisection(LtiSystem *current_controlador) {
         Parameter * variable = denominador->at(mayor_pos);
         qreal dis = variable->range().x();
 
-        denominadorCopia->replace(mayor_pos, new Parameter("", QPointF(dis, dis + mayor_rango / 2), dis));
+        denominadorCopia->replace(mayor_pos, new Parameter(variable->name(), QPointF(dis, dis + mayor_rango / 2), dis));
 
         dis += mayor_rango / 2;
-        denominador->replace(mayor_pos, new Parameter("", QPointF(dis, variable->range().y()), dis));
+        denominador->replace(mayor_pos, new Parameter(variable->name(), QPointF(dis, variable->range().y()), dis));
 
         v1 = current_controlador->create(nombre, numeradorCopia, denominadorCopia, k->clone(), ret->clone());
         v2 = current_controlador->create(nombre, numerador, denominador, k, ret);

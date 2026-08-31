@@ -21,7 +21,6 @@
 #include "DeteccionViolacionBoundaries/deteccionviolacionboundaries.h"
 #include "EstructuraDatos/listaordenada.h"
 #include "funcionescomunes.h"
-#include "GUI/boundary_union_viewer.h"
 #include "interval.hpp"
 #include "Modelo/LoopShaping/EstructuraDatos/data_box.h"
 

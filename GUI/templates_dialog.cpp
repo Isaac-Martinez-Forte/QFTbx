@@ -1,3 +1,4 @@
+#include <QDoubleValidator>
 #include "templates_dialog.h"
 #include "ui_templates_dialog.h"
 

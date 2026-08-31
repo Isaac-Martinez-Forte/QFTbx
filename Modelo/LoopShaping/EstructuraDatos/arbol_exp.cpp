@@ -7,6 +7,8 @@ Roberto C. Cruz Rodríguez
 
 #include "arbol_exp.h"
 
+#include <stdexcept>
+
 #define PI1 3.1415926535897936
 #define E1 2.71828182846
 
@@ -282,8 +284,14 @@ interval exp_tree::eval(QMap<string, interval > *variables){
 */
 exp_tree &exp_tree::operator=(const exp_tree &other)
 {
-    delete_tree(root);
-    root = make_cpy(other.root);
+    //Falling off the end of a value-returning function is undefined
+    //behaviour (the historical version did, flagged by every build).
+    if (this != &other) {
+        delete_tree(root);
+        root = make_cpy(other.root);
+    }
+
+    return *this;
 }
 
 /*****************************************************************************
@@ -411,173 +419,288 @@ bool exp_tree::recorrer(QMap<string, interval > *variables){
         return false;
     }
 
-    eval_tree_out(root, nuevo_intervalo);
+    //A domain emptied during the backward projection proves the box
+    //inconsistent with the constraint.
+    return eval_tree_out(root, nuevo_intervalo);
+}
 
+bool exp_tree::interseccionSegura(const interval & a, const interval & b, interval & out){
 
+    const real low = (Inf(a) > Inf(b)) ? Inf(a) : Inf(b);
+    const real high = (Sup(a) < Sup(b)) ? Sup(a) : Sup(b);
+
+    if (low > high) {
+        return false;
+    }
+
+    out = interval(low, high);
     return true;
 }
 
-interval exp_tree::interseccion(interval a, interval b){
+//Backward (projection) phase of the HC4 filter. Every child projection is
+//intersected with the child's forward value; an empty intersection proves
+//the whole box inconsistent (return false). Unsafe projections are
+//skipped rather than risked: the historical version fed negative ranges
+//to pow (ln of a negative aborts inside the noexcept library), called
+//acos/asin outside [-1, 1], divided by intervals straddling zero and
+//treated multi-branch trigonometric inverses as single-branch.
+bool exp_tree::eval_tree_out(exp_node *nod, interval intervalo){
 
-    assert((Sup(a) > Inf(b)) && (Sup(b) > Inf(a)));
-
-    return interval ((Inf(a) > Inf(b) ? Inf(a) : Inf(b)),
-                            (Sup(a) < Sup(b) ? Sup(a) : Sup(b)));
-}
-
-interval exp_tree::unio(interval a, interval b){
-
-    assert((Sup(a) > Inf(b)) || (Sup(b) > Inf(a)));
-
-    return interval ((Inf(a) > Inf(b) ? Inf(b) : Inf(a)),
-                            (Sup(a) < Sup(b) ? Sup(b) : Sup(a)));
-}
-
-void exp_tree::eval_tree_out(exp_node *nod, interval intervalo){
+    interval candidato;
 
     switch (nod->type)
     {
 
     case CONS :
-        return;
+        return true;
 
     case VAR  :
     {
         variables_in->insert(nod->var, intervalo);
-        return;
+        return true;
     }
 
     case SUMA :
     {
-        interval left = nod->left->intervalo;
-        interval rigth = nod->rigth->intervalo;
+        interval a;
+        if (!interseccionSegura(nod->left->intervalo, intervalo - nod->rigth->intervalo, a)) {
+            return false;
+        }
+        if (!eval_tree_out(nod->left, a)) {
+            return false;
+        }
 
-        interval b = intervalo - rigth;
-
-        interval a = interseccion(left, b);
-        eval_tree_out(nod->left, a);
-
-        eval_tree_out(nod->rigth, interseccion(rigth, intervalo - a));
-
-        return;
+        interval b;
+        if (!interseccionSegura(nod->rigth->intervalo, intervalo - a, b)) {
+            return false;
+        }
+        return eval_tree_out(nod->rigth, b);
     }
 
     case RESTA :
     {
+        interval a;
+        if (!interseccionSegura(nod->left->intervalo, intervalo + nod->rigth->intervalo, a)) {
+            return false;
+        }
+        if (!eval_tree_out(nod->left, a)) {
+            return false;
+        }
 
-        interval a = interseccion(nod->left->intervalo, intervalo + nod->rigth->intervalo);
-        eval_tree_out(nod->left, a);
-
-        eval_tree_out(nod->rigth, interseccion(nod->rigth->intervalo, -intervalo + a));
-
-        return;
+        interval b;
+        if (!interseccionSegura(nod->rigth->intervalo, a - intervalo, b)) {
+            return false;
+        }
+        return eval_tree_out(nod->rigth, b);
     }
 
     case MULT :
     {
-        interval a = interseccion(nod->left->intervalo, intervalo / nod->rigth->intervalo);
-        eval_tree_out(nod->left, a);
+        //Each factor projects as a quotient: only when the divisor does
+        //not straddle zero (interval division would abort otherwise).
+        interval a = nod->left->intervalo;
 
-        eval_tree_out(nod->rigth, interseccion(nod->rigth->intervalo, intervalo / a));
+        if (Inf(nod->rigth->intervalo) > 0.0 || Sup(nod->rigth->intervalo) < 0.0) {
+            if (!interseccionSegura(a, intervalo / nod->rigth->intervalo, a)) {
+                return false;
+            }
+            if (!eval_tree_out(nod->left, a)) {
+                return false;
+            }
+        }
 
-        return;
+        if (Inf(a) > 0.0 || Sup(a) < 0.0) {
+            interval b;
+            if (!interseccionSegura(nod->rigth->intervalo, intervalo / a, b)) {
+                return false;
+            }
+            return eval_tree_out(nod->rigth, b);
+        }
+
+        return true;
     }
 
     case DIV :
     {
+        interval a;
+        if (!interseccionSegura(nod->left->intervalo, intervalo * nod->rigth->intervalo, a)) {
+            return false;
+        }
+        if (!eval_tree_out(nod->left, a)) {
+            return false;
+        }
 
-        interval a = interseccion(nod->left->intervalo, intervalo * nod->rigth->intervalo);
-        eval_tree_out(nod->left, a);
+        if (Inf(intervalo) > 0.0 || Sup(intervalo) < 0.0) {
+            interval b;
+            if (!interseccionSegura(nod->rigth->intervalo, a / intervalo, b)) {
+                return false;
+            }
+            return eval_tree_out(nod->rigth, b);
+        }
 
-        eval_tree_out(nod->rigth, interseccion(nod->rigth->intervalo, a / intervalo ));
-
-        return;
+        return true;
     }
 
     case POT :
     {
+        //Only the square is projected (the constraint grammar uses no
+        //other exponent): x^2 = I implies x in +-sqrt(I intersect [0,inf)).
+        if (Inf(nod->rigth->intervalo) != 2.0) {
+            return true;
+        }
 
-        interval inter = pow(intervalo, 1 / interval(Inf(nod->rigth->intervalo)));
-        eval_tree_out(nod->left, interseccion(nod->left->intervalo, interval(-Sup(inter), Sup(inter))));
+        interval positivo;
+        if (!interseccionSegura(intervalo, interval(0.0, MaxReal), positivo)) {
+            return false;
+        }
 
-        return;
+        const interval raiz = sqrt(positivo);
+        if (!interseccionSegura(nod->left->intervalo,
+                                interval(-Sup(raiz), Sup(raiz)), candidato)) {
+            return false;
+        }
+        return eval_tree_out(nod->left, candidato);
     }
 
     case SQRT :
     {
-        interval inter = pow(intervalo, interval(2));
-        eval_tree_out(nod->left, interseccion(nod->left->intervalo, interval(-Sup(inter), Sup(inter))));
+        //sqrt(x) = I: the result is never negative.
+        interval positivo;
+        if (!interseccionSegura(intervalo, interval(0.0, MaxReal), positivo)) {
+            return false;
+        }
 
-        return;
+        if (!interseccionSegura(nod->left->intervalo, sqr(positivo), candidato)) {
+            return false;
+        }
+        return eval_tree_out(nod->left, candidato);
     }
+
     case SIN :
     {
+        interval acotado;
+        if (!interseccionSegura(intervalo, interval(-1.0, 1.0), acotado)) {
+            return false;
+        }
 
-        eval_tree_out(nod->left, interseccion(nod->left->intervalo, asin(intervalo)));
+        //Only within the principal monotone branch of the argument.
+        if (Inf(nod->left->intervalo) < -M_PI / 2 || Sup(nod->left->intervalo) > M_PI / 2) {
+            return true;
+        }
 
-        return;
+        if (!interseccionSegura(nod->left->intervalo, asin(acotado), candidato)) {
+            return false;
+        }
+        return eval_tree_out(nod->left, candidato);
     }
 
     case COS :
     {
+        interval acotado;
+        if (!interseccionSegura(intervalo, interval(-1.0, 1.0), acotado)) {
+            return false;
+        }
 
-        eval_tree_out(nod->left, interseccion(nod->left->intervalo, -acos(intervalo)));
+        //cos is monotone on [-pi, 0] and on [0, pi]; anything wider is
+        //left unprojected.
+        if (Inf(nod->left->intervalo) >= -M_PI && Sup(nod->left->intervalo) <= 0.0) {
+            if (!interseccionSegura(nod->left->intervalo, -acos(acotado), candidato)) {
+                return false;
+            }
+            return eval_tree_out(nod->left, candidato);
+        }
 
-        return;
+        if (Inf(nod->left->intervalo) >= 0.0 && Sup(nod->left->intervalo) <= M_PI) {
+            if (!interseccionSegura(nod->left->intervalo, acos(acotado), candidato)) {
+                return false;
+            }
+            return eval_tree_out(nod->left, candidato);
+        }
+
+        return true;
     }
 
     case TAN :
     {
+        if (Inf(nod->left->intervalo) <= -M_PI / 2 || Sup(nod->left->intervalo) >= M_PI / 2) {
+            return true;
+        }
 
-        eval_tree_out(nod->left, interseccion(nod->left->intervalo, atan(intervalo)));
-
-        return;
+        if (!interseccionSegura(nod->left->intervalo, atan(intervalo), candidato)) {
+            return false;
+        }
+        return eval_tree_out(nod->left, candidato);
     }
 
     case ATAN :
     {
+        interval acotado;
+        if (!interseccionSegura(intervalo, interval(-M_PI / 2, M_PI / 2), acotado)) {
+            return false;
+        }
 
-        eval_tree_out(nod->left, interseccion(nod->left->intervalo, tan(intervalo)));
-
-        return;
+        if (!interseccionSegura(nod->left->intervalo, tan(acotado), candidato)) {
+            return false;
+        }
+        return eval_tree_out(nod->left, candidato);
     }
 
     case ASIN :
     {
+        interval acotado;
+        if (!interseccionSegura(intervalo, interval(-M_PI / 2, M_PI / 2), acotado)) {
+            return false;
+        }
 
-        eval_tree_out(nod->left, interseccion(nod->left->intervalo, sin(intervalo)));
-
-        return;
+        if (!interseccionSegura(nod->left->intervalo, sin(acotado), candidato)) {
+            return false;
+        }
+        return eval_tree_out(nod->left, candidato);
     }
 
     case ACOS :
     {
+        interval acotado;
+        if (!interseccionSegura(intervalo, interval(0.0, M_PI), acotado)) {
+            return false;
+        }
 
-        eval_tree_out(nod->left, interseccion(nod->left->intervalo, cos(intervalo)));
-
-        return;
+        if (!interseccionSegura(nod->left->intervalo, cos(acotado), candidato)) {
+            return false;
+        }
+        return eval_tree_out(nod->left, candidato);
     }
 
     case ABS :
     {
+        //|x| = I: x in [-Sup(I+), Sup(I+)].
+        interval positivo;
+        if (!interseccionSegura(intervalo, interval(0.0, MaxReal), positivo)) {
+            return false;
+        }
 
-        fabs ( eval_tree(nod->left) );
-
-        return;
+        if (!interseccionSegura(nod->left->intervalo,
+                                interval(-Sup(positivo), Sup(positivo)), candidato)) {
+            return false;
+        }
+        return eval_tree_out(nod->left, candidato);
     }
 
     case LN :
     {
+        //exp overflows past ~709: skip rather than trap.
+        if (Sup(intervalo) > 700.0) {
+            return true;
+        }
 
-        eval_tree_out(nod->left, interseccion(nod->left->intervalo, exp(intervalo)));
-
-        return;
+        if (!interseccionSegura(nod->left->intervalo, exp(intervalo), candidato)) {
+            return false;
+        }
+        return eval_tree_out(nod->left, candidato);
     }
 
-        /* si se ha añadido otra función, entoces solo agregue otro 'case ' y defina la operación a realizar */
-
     default:
-        return;
+        return true;
     }
 }
 
@@ -590,6 +713,12 @@ interval exp_tree::eval_tree_in(exp_node *nod)
         return nod->intervalo = interval (nod->c_const);
 
     case VAR  :
+        //A missing variable used to return a default-constructed cxsc
+        //interval, whose bounds are UNINITIALIZED memory.
+        if (!variables_in->contains(nod->var)) {
+            throw std::invalid_argument(
+                    "exp_tree: unknown variable '" + nod->var + "' in the expression.");
+        }
         return nod->intervalo = variables_in->value(nod->var);
 
     case E:
@@ -611,7 +740,18 @@ interval exp_tree::eval_tree_in(exp_node *nod)
         return nod->intervalo = eval_tree_in(nod->left) / eval_tree_in(nod->rigth);
 
     case POT :
-        return nod->intervalo = pow (eval_tree_in(nod->left),  interval(Inf(eval_tree_in(nod->rigth))));
+    {
+        //An integral square must not go through pow (exp of ln: a base
+        //touching zero or negative aborts inside the noexcept library).
+        const interval base = eval_tree_in(nod->left);
+        const interval exponente = eval_tree_in(nod->rigth);
+
+        if (Inf(exponente) == 2.0 && Sup(exponente) == 2.0) {
+            return nod->intervalo = sqr(base);
+        }
+
+        return nod->intervalo = pow(base, exponente);
+    }
 
     case SIN :
         return nod->intervalo = sin ( eval_tree_in(nod->left) );
@@ -914,7 +1054,17 @@ y modificando el 'enun type_node' y la función 'eval_tree(..)' */
             root->type = CONS;
 
             i = pos++;
-            while ( isdigit(in_exp[pos]) || in_exp[pos] == '.' ) ++pos; // se lee la constante completa
+            while ( isdigit(in_exp[pos]) || in_exp[pos] == '.' ) ++pos;
+            //Scientific notation ("1e-16", "2.5e+3"): the exponent belongs
+            //to the constant (the historical lexer stopped at the 'e' and
+            //re-read it as an identifier).
+            if ( pos + 1 < len && (in_exp[pos] == 'e' || in_exp[pos] == 'E') &&
+                 (isdigit(in_exp[pos+1]) ||
+                  (pos + 2 < len && (in_exp[pos+1] == '+' || in_exp[pos+1] == '-') && isdigit(in_exp[pos+2]))) )
+            {
+                pos += 2;
+                while ( pos < len && isdigit(in_exp[pos]) ) ++pos;
+            } // se lee la constante completa
 
             root->c_const = QString::fromUtf8(in_exp.substr(i, pos-i).c_str()).toDouble();
 
@@ -929,6 +1079,16 @@ y modificando el 'enun type_node' y la función 'eval_tree(..)' */
 
             i = pos++;
             while ( isdigit(in_exp[pos]) || in_exp[pos] == '.' ) ++pos;
+            //Scientific notation ("1e-16", "2.5e+3"): the exponent belongs
+            //to the constant (the historical lexer stopped at the 'e' and
+            //re-read it as an identifier).
+            if ( pos + 1 < len && (in_exp[pos] == 'e' || in_exp[pos] == 'E') &&
+                 (isdigit(in_exp[pos+1]) ||
+                  (pos + 2 < len && (in_exp[pos+1] == '+' || in_exp[pos+1] == '-') && isdigit(in_exp[pos+2]))) )
+            {
+                pos += 2;
+                while ( pos < len && isdigit(in_exp[pos]) ) ++pos;
+            }
 
             root->c_const = QString::fromUtf8(in_exp.substr(i, pos-i).c_str()).toDouble();
 
@@ -943,6 +1103,16 @@ y modificando el 'enun type_node' y la función 'eval_tree(..)' */
 
             i = pos;
             while ( isdigit(in_exp[pos]) || in_exp[pos] == '.' ) ++pos;
+            //Scientific notation ("1e-16", "2.5e+3"): the exponent belongs
+            //to the constant (the historical lexer stopped at the 'e' and
+            //re-read it as an identifier).
+            if ( pos + 1 < len && (in_exp[pos] == 'e' || in_exp[pos] == 'E') &&
+                 (isdigit(in_exp[pos+1]) ||
+                  (pos + 2 < len && (in_exp[pos+1] == '+' || in_exp[pos+1] == '-') && isdigit(in_exp[pos+2]))) )
+            {
+                pos += 2;
+                while ( pos < len && isdigit(in_exp[pos]) ) ++pos;
+            }
 
             root->c_const = QString::fromUtf8(in_exp.substr(i, pos-i).c_str()).toDouble();
 
@@ -971,7 +1141,11 @@ y modificando el 'enun type_node' y la función 'eval_tree(..)' */
             std::string tmp_str;
             std::string::size_type i = pos, len = in_exp.length();
 
-            while ( (es_letra(in_exp[i]) && (i < len))) ++i;
+            //An identifier is a letter followed by letters, digits or
+            //underscores: the historical lexer stopped at the first
+            //non-letter, so "z1" parsed as the variable "z" and a stray
+            //constant 1.
+            while ( i < len && (es_letra(in_exp[i]) || isdigit((unsigned char)in_exp[i]) || in_exp[i] == '_') ) ++i;
 
             tmp_str = in_exp.substr(pos, i-pos);
             pos = i;

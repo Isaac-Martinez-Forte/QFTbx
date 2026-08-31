@@ -1,3 +1,7 @@
+#if defined(VER_DIAGRAMAS) || defined(COMPARACION_CAJAS) || defined(VER_ANTES)
+#include "Modelo/LoopShaping/debug_viewers.h"
+#endif
+
 #include "Modelo/Herramientas/exception.h"
 #include "algorithm_segundo_articulo.h"
 

@@ -13,7 +13,6 @@
 #include <complex>
 #include <cmath>
 
-#include "GUI/boundary_union_viewer.h"
 
 /**
  * @class DeteccionViolacionBoundaries
