@@ -17,8 +17,9 @@ namespace qftbx {
  * can be created and deleted freely.
  *
  * Per design frequency, boundaries() maps each specification name (the
- * historical keys of the .qft files: "Seguimiento", "Estabilidad", "Ruido",
- * "RPS", "RPE", "EC") to its traced contours, unionBoundaries() holds the
+ * persisted keys of the .qft files: "Tracking", "Stability", "SensorNoise",
+ * "OutputDisturbance", "InputDisturbance", "ControlEffort") to its traced
+ * contours, unionBoundaries() holds the
  * 1D union of all specifications and unionBuckets() the same union bucketed
  * by phase, sorted by magnitude.
  */

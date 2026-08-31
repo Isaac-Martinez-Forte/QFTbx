@@ -2,6 +2,9 @@
 // multivaluados.qft, which ships the boundaries computed by the original
 // (sequential, dB) build for 5 frequencies of a tracking specification.
 //
+// Key note: the fixture stores the legacy Spanish map keys ("Seguimiento");
+// the loader maps them to the canonical English ones ("Tracking").
+//
 // Coordinate note: the fixture was produced by a legacy mapping that scaled
 // by the POINT COUNT instead of the range (x = n*361/360 - 361,
 // y = m*121/120 - 60) and prepended its two synthetic endpoints in inverted
@@ -95,11 +98,11 @@ TEST_F(BoundariesGolden, TracesMatchTheGoldenInGridIndices)
     for (int f = 0; f < 5; ++f) {
         auto* gotMap = gotB->at(f);
         auto* goldMap = goldB->at(f);
-        ASSERT_TRUE(gotMap->contains(QStringLiteral("Seguimiento")))
+        ASSERT_TRUE(gotMap->contains(QStringLiteral("Tracking")))
             << "frequency " << f;
         ASSERT_EQ(goldMap->size(), 1);
 
-        auto* gotTraces = gotMap->value(QStringLiteral("Seguimiento"));
+        auto* gotTraces = gotMap->value(QStringLiteral("Tracking"));
         auto* goldTraces = goldMap->first();
         ASSERT_EQ(goldTraces->size(), expectedTraces[f]) << "frequency " << f;
         ASSERT_EQ(gotTraces->size(), goldTraces->size()) << "frequency " << f;
@@ -133,7 +136,7 @@ TEST_F(BoundariesGolden, ReunionIsTheConcatenationOfTheTraces)
 
     auto* gotB = got->boundaries();
     for (int f = 0; f < 5; ++f) {
-        auto* traces = gotB->at(f)->value(QStringLiteral("Seguimiento"));
+        auto* traces = gotB->at(f)->value(QStringLiteral("Tracking"));
         int total = 0;
         for (QVector<QPointF>* t : *traces) {
             total += t->size();
@@ -170,8 +173,8 @@ TEST_F(BoundariesGolden, ContourInputIsEquivalentToFullTemplates)
     auto* b = other->boundaries();
     ASSERT_EQ(a->size(), b->size());
     for (int f = 0; f < a->size(); ++f) {
-        auto* ta = a->at(f)->value(QStringLiteral("Seguimiento"));
-        auto* tb = b->at(f)->value(QStringLiteral("Seguimiento"));
+        auto* ta = a->at(f)->value(QStringLiteral("Tracking"));
+        auto* tb = b->at(f)->value(QStringLiteral("Tracking"));
         ASSERT_EQ(ta->size(), tb->size()) << "frequency " << f;
         for (int t = 0; t < ta->size(); ++t) {
             ASSERT_EQ(*ta->at(t), *tb->at(t)) << "frequency " << f << " trace " << t;

@@ -174,7 +174,7 @@ void ViewBound::on_exportar_clicked()
    /* QString fileName = QFileDialog::getSaveFileName(this, tr("Guardar Boundaries"));
 
     QVector <QString> nombres;
-    nombres << "Seguimiento" << "Estabilidad" << "Ruido" << "RPS" << "RPE" << "EC";
+    nombres << "Tracking" << "Stability" << "SensorNoise" << "OutputDisturbance" << "InputDisturbance" << "ControlEffort";
 
     QVector <QMap <QString, QVector <QVector <QPoint> * > *> * > * boundaries = this->boundaries->boundaries();
 

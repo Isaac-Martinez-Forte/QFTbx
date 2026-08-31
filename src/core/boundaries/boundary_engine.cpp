@@ -242,70 +242,71 @@ void BoundaryEngine::traceFrequency(qreal omega, QMap <QString, QVector <QVector
                                     qreal phasePoints, qreal magnitudePoints, qreal magnitudeShift){
 
 
-    //The map keys are the historical .qft names: they are persisted data.
+    //The map keys are persisted in the .qft files; the loader maps the
+    //historical Spanish names of legacy files to these.
     if (m_trackingMask.at(index)){
 
         QVector <QPoint> * metadata = new QVector <QPoint> ();
 
-        bound->insert("Seguimiento",
+        bound->insert("Tracking",
                       traceBoundary(m_specifications.trackingSpreadDb(omega), sheets->at(1),
                                     metadata, p0, valueSet, 1, phasePoints, magnitudePoints, magnitudeShift));
 
-        traceMetadata->insert("Seguimiento", metadata);
+        traceMetadata->insert("Tracking", metadata);
     }
 
     if (m_stabilityMask.at(index)){
 
         QVector <QPoint> * metadata = new QVector <QPoint> ();
 
-        bound->insert("Estabilidad",
+        bound->insert("Stability",
                       traceBoundary(m_specifications.at(SpecificationType::Stability).boundDb(omega), sheets->at(0),
                                     metadata, p0, valueSet, 0, phasePoints, magnitudePoints, magnitudeShift));
 
-        traceMetadata->insert("Estabilidad", metadata);
+        traceMetadata->insert("Stability", metadata);
     }
 
     if (m_noiseMask.at(index)){
 
         QVector <QPoint> * metadata = new QVector <QPoint> ();
-        bound->insert("Ruido",
+        bound->insert("SensorNoise",
                       traceBoundary(m_specifications.at(SpecificationType::SensorNoise).boundDb(omega), sheets->at(0),
                                     metadata, p0, valueSet, 0, phasePoints, magnitudePoints, magnitudeShift));
 
-        traceMetadata->insert("Ruido", metadata);
+        traceMetadata->insert("SensorNoise", metadata);
     }
 
     if (m_outputDisturbanceMask.at(index)){
 
         QVector <QPoint> * metadata = new QVector <QPoint> ();
 
-        bound->insert("RPS",
+        bound->insert("OutputDisturbance",
                       traceBoundary(m_specifications.at(SpecificationType::OutputDisturbance).boundDb(omega), sheets->at(2),
                                     metadata, p0, valueSet, 2, phasePoints, magnitudePoints, magnitudeShift));
 
-        traceMetadata->insert("RPS", metadata);
+        traceMetadata->insert("OutputDisturbance", metadata);
     }
 
     if (m_inputDisturbanceMask.at(index)){
 
         QVector <QPoint> * metadata = new QVector <QPoint> ();
 
-        bound->insert("RPE",
+        bound->insert("InputDisturbance",
                       traceBoundary(m_specifications.at(SpecificationType::InputDisturbance).boundDb(omega), sheets->at(3),
                                     metadata, p0, valueSet, 3, phasePoints, magnitudePoints, magnitudeShift));
 
-        traceMetadata->insert("RPE", metadata);
+        traceMetadata->insert("InputDisturbance", metadata);
     }
 
     if (m_controlEffortMask.at(index)){
 
         QVector <QPoint> * metadata = new QVector <QPoint> ();
 
-        bound->insert("EC",
+        bound->insert("ControlEffort",
                       traceBoundary(m_specifications.at(SpecificationType::ControlEffort).boundDb(omega), sheets->at(4),
                                     metadata, p0, valueSet, 4, phasePoints, magnitudePoints, magnitudeShift));
 
-        traceMetadata->insert("EC", metadata);
+        traceMetadata->insert("ControlEffort", metadata);
     }
 }
 
@@ -320,66 +321,66 @@ void BoundaryEngine::traceFrequency(qreal omega, QMap <QString, QVector <QVector
 
         QVector <QPoint> * metadata = new QVector <QPoint> ();
 
-        bound->insert("Seguimiento",
+        bound->insert("Tracking",
                       traceBoundary(m_specifications.trackingSpreadDb(omega), cudaSheets->at(1),
                                     metadata, p0, valueSet, 1, phasePoints, magnitudePoints, magnitudeShift));
 
-        traceMetadata->insert("Seguimiento", metadata);
+        traceMetadata->insert("Tracking", metadata);
     }
 
     if (m_stabilityMask.at(index)){
 
         QVector <QPoint> * metadata = new QVector <QPoint> ();
 
-        bound->insert("Estabilidad",
+        bound->insert("Stability",
                       traceBoundary(m_specifications.at(SpecificationType::Stability).boundDb(omega), cudaSheets->at(0),
                                     metadata, p0, valueSet, 0, phasePoints, magnitudePoints, magnitudeShift));
 
-        traceMetadata->insert("Estabilidad", metadata);
+        traceMetadata->insert("Stability", metadata);
     }
 
     if (m_noiseMask.at(index)){
 
         QVector <QPoint> * metadata = new QVector <QPoint> ();
 
-        bound->insert("Ruido",
+        bound->insert("SensorNoise",
                       traceBoundary(m_specifications.at(SpecificationType::SensorNoise).boundDb(omega), cudaSheets->at(0),
                                     metadata, p0, valueSet, 0, phasePoints, magnitudePoints, magnitudeShift));
 
-        traceMetadata->insert("Ruido", metadata);
+        traceMetadata->insert("SensorNoise", metadata);
     }
 
     if (m_outputDisturbanceMask.at(index)){
 
         QVector <QPoint> * metadata = new QVector <QPoint> ();
 
-        bound->insert("RPS",
+        bound->insert("OutputDisturbance",
                       traceBoundary(m_specifications.at(SpecificationType::OutputDisturbance).boundDb(omega), cudaSheets->at(2),
                                     metadata, p0, valueSet, 2, phasePoints, magnitudePoints, magnitudeShift));
 
-        traceMetadata->insert("RPS", metadata);
+        traceMetadata->insert("OutputDisturbance", metadata);
     }
 
     if (m_inputDisturbanceMask.at(index)){
 
         QVector <QPoint> * metadata = new QVector <QPoint> ();
 
-        bound->insert("RPE",
+        bound->insert("InputDisturbance",
                       traceBoundary(m_specifications.at(SpecificationType::InputDisturbance).boundDb(omega), cudaSheets->at(3),
                                     metadata, p0, valueSet, 3, phasePoints, magnitudePoints, magnitudeShift));
 
-        traceMetadata->insert("RPE", metadata);
+        traceMetadata->insert("InputDisturbance", metadata);
     }
 
     if (m_controlEffortMask.at(index)){
 
         QVector <QPoint> * metadata = new QVector <QPoint> ();
 
-        bound->insert("EC",
+        bound->insert("ControlEffort",
                       traceBoundary(m_specifications.at(SpecificationType::ControlEffort).boundDb(omega), cudaSheets->at(4),
                                     metadata, p0, valueSet, 4, phasePoints, magnitudePoints, magnitudeShift));
 
-        traceMetadata->insert("EC", metadata);
+        traceMetadata->insert("ControlEffort", metadata);
     }
 
 }

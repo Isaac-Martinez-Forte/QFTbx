@@ -133,7 +133,7 @@ TEST(SpecificationPersistence, MultivaluadosSpecificationsRoundTrip)
     ASSERT_EQ(specs->size(), 7);
 
     tools::dBND* lower = specs->at(0);
-    EXPECT_EQ(lower->nombre, QStringLiteral("seguimiento"));
+    EXPECT_EQ(lower->nombre, QStringLiteral("TrackingLower")); // "seguimiento" in the file, mapped on load
     EXPECT_TRUE(lower->utilizado);
     EXPECT_FALSE(lower->constante);
     EXPECT_DOUBLE_EQ(lower->frecinicio, 1.0);
@@ -143,7 +143,7 @@ TEST(SpecificationPersistence, MultivaluadosSpecificationsRoundTrip)
     EXPECT_EQ(lower->sistema->numerator()->size(), 2);
 
     tools::dBND* upper = specs->at(1);
-    EXPECT_EQ(upper->nombre, QStringLiteral("seguimiento_1"));
+    EXPECT_EQ(upper->nombre, QStringLiteral("TrackingUpper")); // "seguimiento_1" in the file, mapped on load
     EXPECT_TRUE(upper->utilizado);
     ASSERT_NE(upper->sistema, nullptr);
     EXPECT_EQ(upper->sistema->numerator()->size(), 3);
