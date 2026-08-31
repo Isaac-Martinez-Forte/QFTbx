@@ -18,13 +18,7 @@ BoundaryData::BoundaryData(QVector <QMap <QString, QVector <QVector <QPointF> * 
     m_upperFlags = upperFlags;
 }
 
-void BoundaryData::setBox(cxsc::cinterval a) {
-    m_box = a;
-}
 
-cxsc::cinterval BoundaryData::box() const {
-    return m_box;
-}
 
 QVector<QMap<QString, QVector<QVector<QPointF> *> *> *> * BoundaryData::boundaries() const {
     return m_boundaries;
@@ -62,36 +56,12 @@ QVector <bool> * BoundaryData::upperFlags() const {
     return m_upperFlags;
 }
 
-QVector<QPointF> * BoundaryData::phaseAxis() const {
-    return m_phaseAxis;
-}
 
-QVector<QPointF> * BoundaryData::magnitudeAxis() const {
-    return m_magnitudeAxis;
-}
 
-void BoundaryData::setPhaseAxis(QVector<QPointF> * v){
-    m_phaseAxis = v;
-}
 
-void BoundaryData::setMagnitudeAxis(QVector<QPointF> * v) {
-    m_magnitudeAxis = v;
-}
 
-QVector<QPointF> * BoundaryData::linearPhaseAxis() const {
-    return m_linearPhaseAxis;
-}
 
-QVector<QPointF> * BoundaryData::linearMagnitudeAxis() const {
-    return m_linearMagnitudeAxis;
-}
 
-void BoundaryData::setLinearPhaseAxis(QVector<QPointF> * v){
-    m_linearPhaseAxis = v;
-}
 
-void BoundaryData::setLinearMagnitudeAxis(QVector<QPointF> * v) {
-    m_linearMagnitudeAxis = v;
-}
 
 } // namespace qftbx

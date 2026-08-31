@@ -1,9 +1,18 @@
 #ifndef DATA_BOX_H
 #define DATA_BOX_H
 
-#include "Modelo/Herramientas/tools.h"
-#include "QVector"
+#include <QVector>
 
+#include "Modelo/Herramientas/tools.h"
+
+//Result of classifying one projected Nichols box against the boundary
+//union at one design frequency (DeteccionViolacionBoundaries): the
+//feasibility flag, the boundary extremes over the box's phase span
+//(B_min/B_max in dB, C_min/C_max in degrees, indices 0-3 of
+//minimosMaximos) and the corner classifications that certify the cutting
+//strips (uniAbajo/uniIzquierda: bottom-left corner infeasible;
+//uniDerecha: top-right corner infeasible; uniArriba keeps the historical
+//meaning "bottom-left corner feasible" for algorithm NK's gate).
 class data_box
 {
 public:
@@ -11,63 +20,33 @@ public:
 
     ~data_box();
 
-    void setFlag (tools::flags_box f);
+    void setFlag(tools::flags_box f);
     tools::flags_box getFlag();
 
-    void setMinimoxMaximos(QVector <qreal> * mm);
-    QVector <qreal> * getMinimoxMaximos ();
+    void setMinimoxMaximos(QVector<qreal> * mm);
+    QVector<qreal> * getMinimoxMaximos();
 
-    void setCompleto (bool c);
-    bool isCompleto ();
-
-    void setRecArriba (bool r);
-    bool isRecArriba();
-
-    void setRecAbajo (bool r);
-    bool isRecAbajo();
-
-    void setUniArriba (bool r);
+    void setUniArriba(bool r);
     bool isUniArriba();
 
-    void setUniAbajo (bool r);
+    void setUniAbajo(bool r);
     bool isUniAbajo();
 
-    void setRecDerecha (bool r);
-    bool isRecDerecha();
-
-    void setRecIzquierda (bool r);
-    bool isRecIzquierda();
-
-    void setUniDerecha (bool r);
+    void setUniDerecha(bool r);
     bool isUniDerecha();
 
-    void setUniIzquierda (bool r);
+    void setUniIzquierda(bool r);
     bool isUniIzquierda();
-
-    void setCambioEtapa (bool r);
-    bool getCambioEtapa();
-
 
 private:
 
     tools::flags_box flag;
-    QVector <qreal> * minimosMaximos = nullptr;
-    qreal porcentajeFeasible = 0;
+    QVector<qreal> * minimosMaximos = nullptr;
 
-    bool completo = false;
-
-    // Se puede recortar por arriba, y arriba está la parte infeasible.
-    bool recArriba= false, uniArriba= false;
-
-    // Se puede recortar por abajo, y abajo está la parte infeasible.
-    bool recAbajo= false, uniAbajo= false;
-
-    // ...
-    bool recDerecha= false, uniDerecha= false;
-    bool recIzquierda= false, uniIzquierda= false;
-
-    bool cambioEtapa = false;
-
+    bool uniArriba = false;
+    bool uniAbajo = false;
+    bool uniDerecha = false;
+    bool uniIzquierda = false;
 };
 
 #endif // DATA_BOX_H

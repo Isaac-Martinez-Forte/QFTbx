@@ -43,22 +43,18 @@ class NaturalIntervalExtension
 public:
     /// Nichols-plane enclosure of the controller box times the nominal
     /// plant value p0: Re = magnitude interval (dB), Im = phase interval
-    /// (degrees, branch (-360, 0]). With nyquist = true the same enclosure
-    /// is returned as a complex-plane rectangle instead, and the dB box and
-    /// the phase infimum (radians) stay readable through nyquistDecibelBox()
-    /// / nyquistPhaseInf().
+    /// (degrees, branch (-360, 0]).
     cxsc::cinterval nicholsBox(LtiSystem * controller, qreal w,
-                               cxsc::complex p0, bool nyquist = false);
+                               cxsc::complex p0);
 
-    /// Enclosure of the numerator product alone (no gain, no plant):
-    /// dB/degrees, or the complex rectangle with nyquist = true.
+    /// Enclosure of the numerator product alone (no gain, no plant),
+    /// dB/degrees.
     cxsc::cinterval numeratorBox(QVector<Parameter*> * numerator, qreal w,
-                                 LtiSystem::SystemType type, bool nyquist = false);
+                                 LtiSystem::SystemType type);
 
-    /// Enclosure of the denominator product alone: dB/degrees, or the
-    /// complex rectangle with nyquist = true.
+    /// Enclosure of the denominator product alone, dB/degrees.
     cxsc::cinterval denominatorBox(QVector<Parameter*> * denominator, qreal w,
-                                   LtiSystem::SystemType type, bool nyquist = false);
+                                   LtiSystem::SystemType type);
 
     /// Per-term enclosures (dB/degrees) used by the parameter cutting
     /// equations: one numerator factor (jw + z) p0, one denominator factor
@@ -66,10 +62,6 @@ public:
     cxsc::cinterval numeratorTermBox(Parameter * zero, qreal w, cxsc::complex p0);
     cxsc::cinterval denominatorTermBox(Parameter * pole, qreal w, cxsc::complex p0);
     cxsc::cinterval gainTermBox(Parameter * gain, cxsc::complex p0);
-
-    /// State stored by the last nicholsBox(..., nyquist = true) call.
-    qreal nyquistPhaseInf();
-    cxsc::cinterval nyquistDecibelBox();
 
 private:
     /// Interval product of (jw + parameter) factors; the neutral value 1
@@ -88,9 +80,7 @@ private:
     /// product used to reach log10(+inf), aborting the process in fi_lib).
     cxsc::interval toDecibel(cxsc::interval magnitude);
 
-    qreal m_nyquistPhaseInf = 0;
     //cxsc::cinterval's default constructor leaves the bounds UNINITIALIZED.
-    cxsc::cinterval m_nyquistDecibelBox{cxsc::interval(0.0), cxsc::interval(0.0)};
 };
 
 } // namespace qftbx

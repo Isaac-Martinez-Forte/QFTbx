@@ -8,8 +8,7 @@ namespace tools {
 enum flags_box{
     feasible,
     infeasible,
-    ambiguous,
-    completo
+    ambiguous
 };
 
 enum alg_loop_shaping {nt, nk, mr,

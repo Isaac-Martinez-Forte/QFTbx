@@ -62,7 +62,7 @@ TEST(NaturalIntervalExtension, CertainControllerProjectsToAPoint)
 
     NaturalIntervalExtension extension;
     const cxsc::complex nominal(1.0, 0.0);
-    const cxsc::cinterval box = extension.nicholsBox(controlador, 1.0, nominal, false);
+    const cxsc::cinterval box = extension.nicholsBox(controlador, 1.0, nominal);
 
     const NicholsPoint expected = zpkAt(2.0, 3.0, 5.0, 1.0, Complex(1.0, 0.0));
 
@@ -88,7 +88,7 @@ TEST(NaturalIntervalExtension, UncertainGainBoxContainsTheTrueExtremes)
 
     NaturalIntervalExtension extension;
     const cxsc::cinterval box = extension.nicholsBox(controlador, 1.0,
-                                                  cxsc::complex(1.0, 0.0), false);
+                                                  cxsc::complex(1.0, 0.0));
 
     const NicholsPoint low = zpkAt(1.0, 3.0, 5.0, 1.0, Complex(1.0, 0.0));
     const NicholsPoint high = zpkAt(10.0, 3.0, 5.0, 1.0, Complex(1.0, 0.0));
@@ -118,7 +118,7 @@ TEST(NaturalIntervalExtension, PureGainControllerProjectsExactly)
 
     NaturalIntervalExtension extension;
     const cxsc::cinterval box = extension.nicholsBox(controlador, 1.0,
-                                                     cxsc::complex(1.0, 0.0), false);
+                                                     cxsc::complex(1.0, 0.0));
 
     EXPECT_NEAR(cxsc::_double(Inf(Re(box))), 20.0 * std::log10(2.0), 1e-9);
     EXPECT_NEAR(cxsc::_double(Sup(Re(box))), 20.0 * std::log10(2.0), 1e-9);
@@ -140,7 +140,7 @@ TEST(NaturalIntervalExtension, HugeBoxesStayFiniteInDecibels)
 
     NaturalIntervalExtension extension;
     const cxsc::cinterval box = extension.nicholsBox(controlador, 100.0,
-                                                     cxsc::complex(1e-8, -1e8), false);
+                                                     cxsc::complex(1e-8, -1e8));
 
     EXPECT_TRUE(std::isfinite(cxsc::_double(Inf(Re(box)))));
     EXPECT_TRUE(std::isfinite(cxsc::_double(Sup(Re(box)))));
@@ -162,7 +162,7 @@ TEST(NaturalIntervalExtension, SampledInstancesStayInsideTheBox)
     const qreal w = 2.0;
     const Complex p0Value(0.8, -0.4);
     const cxsc::cinterval box =
-        extension.nicholsBox(controlador, w, cxsc::complex(0.8, -0.4), false);
+        extension.nicholsBox(controlador, w, cxsc::complex(0.8, -0.4));
 
     const qreal magLo = cxsc::_double(Inf(Re(box)));
     const qreal magHi = cxsc::_double(Sup(Re(box)));

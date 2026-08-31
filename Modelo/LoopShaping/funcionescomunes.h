@@ -95,7 +95,7 @@ inline bool if_less_epsilon(LtiSystem * controlador, qreal epsilon, QVector <qre
 
     cinterval box;
     for (qint32 i = 0; i < omega->size(); i++){
-        box = conversion->nicholsBox(controlador, omega->at(i), plantas_nominales->at(i), false);
+        box = conversion->nicholsBox(controlador, omega->at(i), plantas_nominales->at(i));
 
         if ((cxsc::diam(Re(box)) >= epsilon) || (cxsc::diam(Im(box)) >= epsilon)) {
             return false;

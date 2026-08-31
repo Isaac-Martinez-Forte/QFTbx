@@ -143,7 +143,7 @@ interval NaturalIntervalExtension::toDecibel(interval magnitude)
 }
 
 cinterval NaturalIntervalExtension::nicholsBox(LtiSystem * controller, qreal w,
-                                               complex p0, bool nyquist)
+                                               complex p0)
 {
     ensureSupportedStructure(controller->type());
 
@@ -156,41 +156,30 @@ cinterval NaturalIntervalExtension::nicholsBox(LtiSystem * controller, qreal w,
     //|a| / |den| and arg(a) - arg(den), the phase mapped back onto the
     //(-360, 0] branch. The historical remapping through a complex-plane
     //rectangle inflated the box AND mangled sets crossing the branch cut.
+    //(The cartesian "Nyquist" projection mode is gone: the thesis tried
+    //that detection and discarded it, secs. 4.5-4.6.)
     const interval magnitude = abs(a) / abs(denominator);
     const interval theta = wrapToBranch(argEnclosure(a) - argEnclosure(denominator));
-
-    if (nyquist) {
-        m_nyquistPhaseInf = cxsc::_double(Inf(theta));
-        m_nyquistDecibelBox = cinterval(toDecibel(magnitude), theta * kRadToDeg);
-
-        return cinterval(magnitude * cos(theta), magnitude * sin(theta));
-    }
 
     return cinterval(toDecibel(magnitude), theta * kRadToDeg);
 }
 
 cinterval NaturalIntervalExtension::numeratorBox(QVector<Parameter*> * numerator,
-                                                 qreal w, LtiSystem::SystemType type,
-                                                 bool nyquist)
+                                                 qreal w, LtiSystem::SystemType type)
 {
     ensureSupportedStructure(type);
 
     const cinterval a = factorProduct(numerator, w);
 
-    if (nyquist) {
-        return a;
-    }
-
     return cinterval(toDecibel(abs(a)), argEnclosure(a) * kRadToDeg);
 }
 
 cinterval NaturalIntervalExtension::denominatorBox(QVector<Parameter*> * denominator,
-                                                   qreal w, LtiSystem::SystemType type,
-                                                   bool nyquist)
+                                                   qreal w, LtiSystem::SystemType type)
 {
     //The denominator product is enclosed as such (not inverted): the
     //caller combines it, matching the historical contract.
-    return numeratorBox(denominator, w, type, nyquist);
+    return numeratorBox(denominator, w, type);
 }
 
 cinterval NaturalIntervalExtension::numeratorTermBox(Parameter * zero, qreal w,
@@ -214,16 +203,6 @@ cinterval NaturalIntervalExtension::gainTermBox(Parameter * gain, complex p0)
     const cinterval a = parameterInterval(gain) * p0;
 
     return cinterval(toDecibel(abs(a)), argEnclosure(a) * kRadToDeg);
-}
-
-qreal NaturalIntervalExtension::nyquistPhaseInf()
-{
-    return m_nyquistPhaseInf;
-}
-
-cinterval NaturalIntervalExtension::nyquistDecibelBox()
-{
-    return m_nyquistDecibelBox;
 }
 
 } // namespace qftbx

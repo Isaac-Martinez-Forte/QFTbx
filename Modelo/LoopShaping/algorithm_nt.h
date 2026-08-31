@@ -8,7 +8,6 @@
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/system/lti_system.h"
 #include "NaturalIntervalExtension/natural_interval_extension.h"
-#include "EstructuraDatos/avl.h"
 #include "EstructuraDatos/tripleta.h"
 #include "Modelo/Herramientas/tools.h"
 #include "src/core/system/polynomial_form.h"

@@ -363,7 +363,7 @@ inline bool AlgorithmMcThesis::analyse(Tripleta2 * node, NodeAnalysis & out)
         }
 
         const cinterval caja = conversion->nicholsBox(node->getSistema(), omega->at(i),
-                                                      plantas_nominales->at(i), false);
+                                                      plantas_nominales->at(i));
 
         data_box * datos = deteccion->deteccionViolacionCajaNi(caja, boundaries, i);
 
@@ -444,7 +444,7 @@ inline void AlgorithmMcThesis::improveNode(Tripleta2 * node, NodeAnalysis & anal
 inline bool AlgorithmMcThesis::boxIsFeasibleAt(LtiSystem * box, qint32 freqIndex)
 {
     const cinterval caja = conversion->nicholsBox(box, omega->at(freqIndex),
-                                                  plantas_nominales->at(freqIndex), false);
+                                                  plantas_nominales->at(freqIndex));
     data_box * datos = deteccion->deteccionViolacionCajaNi(caja, boundaries, freqIndex);
     const bool feasibleHere = datos->getFlag() == feasible;
     delete datos;

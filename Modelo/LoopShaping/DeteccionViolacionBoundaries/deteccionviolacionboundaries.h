@@ -3,27 +3,27 @@
 
 #include <QPointF>
 #include <limits>
+
 #include "Modelo/Herramientas/tools.h"
 #include "src/core/boundaries/boundary_data.h"
 #include "Modelo/LoopShaping/EstructuraDatos/data_box.h"
-#include "Modelo/LoopShaping/EstructuraDatos/etapas.h"
 
 #include <cinterval.hpp>
-#include <interval.hpp>
-#include <complex>
-#include <cmath>
-
 
 /**
  * @class DeteccionViolacionBoundaries
- * @brief Clase que usa los datos calculados en la intersección de boundaries 1D para detectar si unos puntos dados violan o no violan.
+ * @brief Feasibility classification of projected Nichols boxes and points
+ * against the boundary union of each design frequency (Tharewal 2005,
+ * sec. 3.3.4), including the boundary extremes over the box's phase span
+ * that drive the cutting equations of NT/NK/MC1/MC (fig. 5.1).
+ *
+ * The historical Nyquist-plane variants (detection in cartesian
+ * coordinates) were tried and discarded by the thesis (secs. 4.5-4.6)
+ * and are gone with the algorithms that carried them.
  *
  * @author Moisés Frutos Plaza
  * @author Isaac Martínez Forte
  */
-
-using namespace cxsc;
-
 class DeteccionViolacionBoundaries
 {
 public:
@@ -31,43 +31,17 @@ public:
     DeteccionViolacionBoundaries();
     ~DeteccionViolacionBoundaries();
 
-    data_box * deteccionViolacionCajaNiNi(cinterval box, BoundaryData * boundaries, qint32 contador);
-    data_box * deteccionViolacionCajaNiNi(cinterval box, BoundaryData * boundaries, qint32 contador, Etapas e);
-
-    data_box * deteccionViolacionCajaNi(cinterval box, BoundaryData * boundaries, qint32 contador);
+    data_box * deteccionViolacionCajaNi(cxsc::cinterval box, BoundaryData * boundaries, qint32 contador);
 
     /// Classifies one Nichols point (phase deg, magnitude dB) against the
     /// boundary union at design frequency 'contador' (parity test).
     tools::flags_box clasificarPunto(QPointF punto, BoundaryData * boundaries, qint32 contador);
 
-    data_box * deteccionViolacionCajaNyNi(cinterval box, BoundaryData * boundaries, qint32 contador);
-
-    //tools::recortes deteccionViolacionCajaNyNy(cinterval box, BoundaryData * boundaries, qint32 contador);
-
 private:
 
-
     inline tools::flags_box deteccionViolacion(QPointF punto, QVector< QVector<QPointF> * > * interseccionHash,
-                                        qint32 totalFase, bool abierta, bool arriba, qint32 numeroFases);
+                                               qint32 totalFase, bool abierta, bool arriba, qint32 numeroFases);
     inline qint32 funcionHash(qreal x, qreal totalFase, qint32 numeroFases);
-    inline qint32 funcionHashNy(qreal x, qreal totalFase, qint32 numeroFases, qreal minFas);
-    inline qint32 interseccionCajaCirculo(cinterval box, qreal radioMayor, qreal radioMenor, QPointF centroCirculo);
-
-    ////////////////////////////////7
-
-    inline bool seg_intersection(std::complex<qreal> u1, std::complex<qreal> u2, std::complex<qreal> v1, std::complex<qreal> v2);
-
-    inline qint32 side_p_to_seg(std::complex<qreal> v1, std::complex<qreal> v2, std::complex<qreal> p);
-
-    inline qreal _arg(std::complex <qreal> c);
-    inline cxsc::interval _arg(cinterval z);
-
-    //////////////////////////
-
-    bool cambioEtapas = false;
-
-    qint32 c = 0;
-
 };
 
 #endif // DETECCIONVIOLACIONNINI_H

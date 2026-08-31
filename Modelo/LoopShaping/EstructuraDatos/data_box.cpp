@@ -2,106 +2,70 @@
 
 data_box::data_box()
 {
-
 }
 
-data_box::~data_box() {
-    if (minimosMaximos != nullptr) {
-        minimosMaximos->clear();
-    }
+data_box::~data_box()
+{
+    delete minimosMaximos;
 }
 
-void data_box::setFlag (tools::flags_box f){
+void data_box::setFlag(tools::flags_box f)
+{
     flag = f;
 }
-tools::flags_box data_box::getFlag(){
+
+tools::flags_box data_box::getFlag()
+{
     return flag;
 }
 
-void data_box::setMinimoxMaximos(QVector <qreal> * mm){
+void data_box::setMinimoxMaximos(QVector<qreal> * mm)
+{
+    delete minimosMaximos;
     minimosMaximos = mm;
 }
 
-QVector <qreal> * data_box::getMinimoxMaximos (){
+QVector<qreal> * data_box::getMinimoxMaximos()
+{
     return minimosMaximos;
 }
 
-void data_box::setCompleto (bool c){
-    completo = c;
-}
-
-bool data_box::isCompleto (){
-    return completo;
-}
-
-void data_box::setRecArriba (bool r){
-    recArriba = r;
-}
-
-bool data_box::isRecArriba(){
-    return recArriba;
-}
-
-void data_box::setRecAbajo (bool r){
-    recAbajo = r;
-}
-
-bool data_box::isRecAbajo(){
-    return recAbajo;
-}
-
-void data_box::setUniArriba (bool r){
+void data_box::setUniArriba(bool r)
+{
     uniArriba = r;
 }
 
-bool data_box::isUniArriba(){
+bool data_box::isUniArriba()
+{
     return uniArriba;
 }
 
-void data_box::setUniAbajo (bool r){
+void data_box::setUniAbajo(bool r)
+{
     uniAbajo = r;
 }
 
-bool data_box::isUniAbajo() {
+bool data_box::isUniAbajo()
+{
     return uniAbajo;
 }
 
-void data_box::setRecDerecha (bool r){
-    recDerecha = r;
-}
-
-bool data_box::isRecDerecha(){
-    return recDerecha;
-}
-
-void data_box::setRecIzquierda (bool r){
-    recIzquierda = r;
-}
-
-bool data_box::isRecIzquierda(){
-    return recIzquierda;
-}
-
-void data_box::setUniDerecha (bool r){
+void data_box::setUniDerecha(bool r)
+{
     uniDerecha = r;
 }
 
-bool data_box::isUniDerecha(){
+bool data_box::isUniDerecha()
+{
     return uniDerecha;
 }
 
-void data_box::setUniIzquierda (bool r){
+void data_box::setUniIzquierda(bool r)
+{
     uniIzquierda = r;
 }
 
-bool data_box::isUniIzquierda(){
+bool data_box::isUniIzquierda()
+{
     return uniIzquierda;
-}
-
-void data_box::setCambioEtapa(bool r) {
-    cambioEtapa = r;
-}
-
-bool data_box::getCambioEtapa() {
-    return cambioEtapa;
 }

@@ -8,10 +8,6 @@ Tripleta::Tripleta(qreal index, LtiSystem * sistema, flags_box flags){
     this->flags = flags;
 }
 
-Tripleta::Tripleta(qreal index, LtiSystem * sistema,  QVector <data_box *> * datos) : Tripleta(index, sistema) {
-    this->datos = datos;
-}
-
 Tripleta::~Tripleta() {
 
     if (!b) {
@@ -21,18 +17,6 @@ Tripleta::~Tripleta() {
             }
             delete sistema;
         }
-    }
-
-    if (datos != nullptr){
-        datos->clear();
-    }
-
-    if (puntosCorte != nullptr){
-        puntosCorte->clear();
-    }
-
-    if (feasible != nullptr){
-        feasible->clear();
     }
 }
 
@@ -76,16 +60,6 @@ void Tripleta::setFlags(const flags_box &value)
     flags = value;
 }
 
-QVector<data_box *> *Tripleta::getDatos() const
-{
-    return datos;
-}
-
-void Tripleta::setDatos(QVector<data_box *> *value)
-{
-    datos = value;
-}
-
 LtiSystem * Tripleta::getSistema() const
 {
     return sistema;
@@ -96,20 +70,6 @@ void Tripleta::setSistema(LtiSystem *value)
     sistema = value;
 }
 
-void Tripleta::setFeasible(QVector<bool> *value)
-{
-    feasible = value;
-}
-
-QVector<qreal> * Tripleta::getPuntosCorte() const
-{
-    return puntosCorte;
-}
-
-void Tripleta::setPuntosCorte(QVector<qreal> *value)
-{
-    puntosCorte = value;
-}
 void Tripleta::releaseOwnership() {
     b = false;
 }

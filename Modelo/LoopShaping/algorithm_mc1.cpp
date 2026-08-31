@@ -211,7 +211,7 @@ inline void AlgorithmMc1::check_box_feasibility(LtiSystem * controlador)
 
     foreach (qreal o, *omega) {
 
-        caja = conversion->nicholsBox(controlador, o, plantas_nominales->at(contador), false);
+        caja = conversion->nicholsBox(controlador, o, plantas_nominales->at(contador));
 
         datos = deteccion->deteccionViolacionCajaNi(caja, boundaries, contador);
 
@@ -458,7 +458,7 @@ inline bool AlgorithmMc1::gainRangeIsFeasible(LtiSystem * box,
 
     for (qint32 i = 0; i < omega->size() && feasibleEverywhere; ++i) {
         const cinterval caja = conversion->nicholsBox(candidate, omega->at(i),
-                                                      plantas_nominales->at(i), false);
+                                                      plantas_nominales->at(i));
         data_box * datos = deteccion->deteccionViolacionCajaNi(caja, boundaries, i);
         feasibleEverywhere = (datos->getFlag() == feasible);
         delete datos;

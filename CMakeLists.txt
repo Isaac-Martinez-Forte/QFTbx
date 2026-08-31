@@ -162,7 +162,6 @@ set(QFTbx_BACKEND_SRC
     Consola/consola.cpp
     src/core/system/free_form.cpp
     Modelo/LoopShaping/loopshaping.cpp
-    Modelo/LoopShaping/EstructuraDatos/datosfeasible.cpp
     Modelo/LoopShaping/EstructuraDatos/tripleta.cpp
     Modelo/LoopShaping/EstructuraDatos/tripleta2.cpp
     Modelo/LoopShaping/DeteccionViolacionBoundaries/deteccionviolacionboundaries.cpp
@@ -233,7 +232,6 @@ set(QFTbx_BACKEND_HED
     Modelo/LoopShaping/algorithm_nt.h
     Modelo/LoopShaping/nominal_stability_checker.h
     Modelo/LoopShaping/quick_solution.h
-    Modelo/LoopShaping/debug_viewers.h
     Modelo/LoopShaping/algorithm_mc1.h
     Modelo/LoopShaping/algorithm_mc_thesis.h
     src/core/system/parameter.h
@@ -244,9 +242,7 @@ set(QFTbx_BACKEND_HED
     Consola/consola.h
     src/core/system/free_form.h
     Modelo/LoopShaping/loopshaping.h
-    Modelo/LoopShaping/EstructuraDatos/avl.h
     Modelo/LoopShaping/EstructuraDatos/n.h
-    Modelo/LoopShaping/EstructuraDatos/datosfeasible.h
     Modelo/LoopShaping/EstructuraDatos/tripleta.h
     Modelo/LoopShaping/EstructuraDatos/tripleta2.h
     Modelo/LoopShaping/EstructuraDatos/etapas.h

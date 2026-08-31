@@ -72,7 +72,7 @@ protected:
         for (int i = 0; i < omega->size(); ++i) {
             const std::complex<qreal> pv = controller.getPlanta()->evaluate(omega->at(i));
             const cxsc::cinterval box = conversion.nicholsBox(
-                point, omega->at(i), cxsc::complex(pv.real(), pv.imag()), false);
+                point, omega->at(i), cxsc::complex(pv.real(), pv.imag()));
             data_box* datos = deteccion.deteccionViolacionCajaNi(
                 box, controller.getBound(), i);
             const tools::flags_box flag = datos->getFlag();

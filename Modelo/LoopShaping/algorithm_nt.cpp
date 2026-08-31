@@ -176,7 +176,7 @@ inline void AlgorithmNt::check_box_feasibility(LtiSystem * controlador) {
 
     foreach(qreal o, *omega) {
 
-        caja = conversion->nicholsBox(controlador, o, plantas_nominales->at(contador), false);
+        caja = conversion->nicholsBox(controlador, o, plantas_nominales->at(contador));
 
         datos = deteccion->deteccionViolacionCajaNi(caja, boundaries, contador);
 
@@ -286,7 +286,7 @@ inline LtiSystem * AlgorithmNt::acelerated(LtiSystem *v, qreal minimo_boundarie,
                                       min_k_lineal, v->delay());
 
 
-        qreal mag_min_db = _double(SupRe(conversion->nicholsBox(G_k_min, o, plantas_nominales->at(contador), false)));
+        qreal mag_min_db = _double(SupRe(conversion->nicholsBox(G_k_min, o, plantas_nominales->at(contador))));
 
         delete min_k_lineal;
         G_k_min->releaseOwnership();
@@ -340,7 +340,7 @@ inline bool AlgorithmNt::feasibleGainFrom(LtiSystem * v, qreal maximo_boundarie,
     LtiSystem * G_k_max = v->create(v->name(), v->numerator(), v->denominator(),
                                   max_k_lineal, v->delay());
 
-    qreal mag_max_db = _double(InfRe(conversion->nicholsBox(G_k_max, o, plantas_nominales->at(contador), false)));
+    qreal mag_max_db = _double(InfRe(conversion->nicholsBox(G_k_max, o, plantas_nominales->at(contador))));
 
     delete max_k_lineal;
     G_k_max->releaseOwnership();

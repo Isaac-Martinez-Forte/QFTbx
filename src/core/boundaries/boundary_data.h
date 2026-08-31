@@ -5,7 +5,6 @@
 #include <QPointF>
 #include <QMap>
 #include <QString>
-#include <cinterval.hpp>
 
 namespace qftbx {
 
@@ -41,19 +40,6 @@ public:
     QVector <bool> * openFlags () const;
     QVector <bool> * upperFlags () const;
 
-    //Auxiliary axes filled in by the loop-shaping stage.
-    QVector<QPointF> * phaseAxis () const;
-    void setPhaseAxis (QVector<QPointF> * v);
-    QVector<QPointF> * magnitudeAxis () const;
-    void setMagnitudeAxis (QVector<QPointF> * v);
-    QVector<QPointF> * linearPhaseAxis () const;
-    void setLinearPhaseAxis (QVector<QPointF> * v);
-    QVector<QPointF> * linearMagnitudeAxis () const;
-    void setLinearMagnitudeAxis (QVector<QPointF> * v);
-
-    cxsc::cinterval box () const;
-    void setBox (cxsc::cinterval a);
-
 private:
     QVector <QMap <QString, QVector <QVector <QPointF> * > *> * > * m_boundaries;
     QVector <bool> * m_openFlags;
@@ -64,14 +50,6 @@ private:
     QPointF m_magnitudeRange;
     QVector< QVector<QPointF> * > * m_unionBoundaries;
     QVector< QVector< QVector<QPointF> * > * > * m_unionBuckets;
-    QVector<QPointF> * m_phaseAxis = nullptr;
-    QVector<QPointF> * m_magnitudeAxis = nullptr;
-
-    QVector<QPointF> * m_linearPhaseAxis = nullptr;
-    QVector<QPointF> * m_linearMagnitudeAxis = nullptr;
-
-    cxsc::cinterval m_box;
-
 };
 
 } // namespace qftbx

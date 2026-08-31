@@ -193,7 +193,7 @@ inline void AlgorithmNk::check_box_feasibility(LtiSystem * controlador){
 
     foreach (qreal o, *omega) {
 
-        caja = conversion->nicholsBox(controlador, o, plantas_nominales->at(contador), false);
+        caja = conversion->nicholsBox(controlador, o, plantas_nominales->at(contador));
 
         datos = deteccion->deteccionViolacionCajaNi(caja, boundaries, contador);
 
@@ -507,7 +507,7 @@ inline bool AlgorithmNk::pointIsFeasible(const QVector<qreal> & zeros,
 
     for (qint32 i = 0; i < omega->size(); ++i) {
         const cinterval caja = conversion->nicholsBox(point, omega->at(i),
-                                                      plantas_nominales->at(i), false);
+                                                      plantas_nominales->at(i));
         data_box * datos = deteccion->deteccionViolacionCajaNi(caja, boundaries, i);
         const flags_box flag = datos->getFlag();
         delete datos;
