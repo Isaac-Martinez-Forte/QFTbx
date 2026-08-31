@@ -10,14 +10,13 @@
 using namespace std;
 using namespace mup;
 
+#ifdef CUDA_AVAILABLE
+//GPU epsilon-hull (relaxed-walk semantics, see the header).
+#include "src/core/gpu/template_contour_cuda.h"
+#endif
+
 namespace qftbx {
 
-
-#ifdef CUDA_AVAILABLE
-//CUDA kernel solving the epsilon-hull (parked).
-extern "C"
-vector <complex <double> > e_hull_cuda(vector <complex <double> > puntos, float epsilon);
-#endif
 
 TemplateEngine::TemplateEngine()
 {
@@ -202,25 +201,24 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
 
 #ifdef CUDA_AVAILABLE
     if (cuda){
-        //CUDA branch parked (2026-08-30 decision): unvalidated since Qt 5
-        //(toStdVector/fromStdVector no longer exist in Qt 6). Kept as a
-        //reference until the GPU stage.
-        contorno = new QVector <QVector <complex <qreal> > * > ();
+        //GPU path (relaxed-walk semantics: the parity reference is
+        //epsilonHullRelaxed, not the faithful walk - see the header).
+        m_contours = new QVector <QVector <complex <qreal> > * > ();
 
         for (qint32 i = 0; i < digitCount; i++){
 
-            vector <complex <double> > aux = e_hull_cuda(templates->at(i)->toStdVector(), epsilon->at(i));
-            QVector <complex <qreal> > aux2 = QVector<complex <qreal> >::fromStdVector(aux);
-            QVector <complex <qreal> > * cont = new QVector <complex <qreal> > (aux2);
+            const vector <complex <double> > hull = epsilonHullCuda(
+                std::vector<complex<double>>(m_clouds->at(i)->begin(), m_clouds->at(i)->end()),
+                m_epsilon->at(i));
 
-            if (aux.size() == 0){
+            if (hull.empty()){
                 succeeded = false;
             }
-            contorno->append(cont);
+            m_contours->append(new QVector <complex <qreal> > (hull.begin(), hull.end()));
         }
 
         if (!succeeded){
-            throw qftbx::ComputationError("Could not compute the template contours.");
+            throw ComputationError("Could not compute the template contours.");
         }
 
         return true;

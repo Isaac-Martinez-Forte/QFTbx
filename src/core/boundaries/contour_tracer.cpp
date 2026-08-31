@@ -8,7 +8,7 @@ ContourTracer::ContourTracer(qreal thresholdDb, QVector<QVector<qreal> *> *sheet
 }
 
 #ifdef CUDA_AVAILABLE
-ContourTracer::ContourTracer(qreal thresholdDb, float *sheet){
+ContourTracer::ContourTracer(qreal thresholdDb, const float *sheet){
     m_thresholdDb = thresholdDb;
     m_cudaSheet = sheet;
 }

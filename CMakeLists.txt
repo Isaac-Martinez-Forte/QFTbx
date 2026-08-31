@@ -50,19 +50,33 @@ if(USE_OpenMP)
 endif()
 
 # ------------------------------------------------------------------------------
-# CUDA
+# CUDA (lenguaje de primera clase de CMake; find_package(CUDA) y
+# CUDA_ADD_LIBRARY llevan años obsoletos)
 # ------------------------------------------------------------------------------
 if(USE_CUDA)
     message("Use CUDA")
-    find_package(CUDA)
-    if(CUDA_FOUND)
-        message("CUDA found")
-        list(APPEND CUDA_NVCC_FLAGS "-std=c++20;-O3;-DVERBOSE")
-        set(CUDA_PROPAGATE_HOST_FLAGS OFF)
-        set(CUDA_SEPARABLE_COMPILATION ON)
-        file(GLOB QFTbx_CUDA GPU/CUDA/bnd_cuda.cu GPU/CUDA/e_hull_cuda.cu)
-        add_definitions(-DCUDA_AVAILABLE=1)
-        CUDA_ADD_LIBRARY(CUDA STATIC ${QFTbx_CUDA})
+    include(CheckLanguage)
+    check_language(CUDA)
+    if(CMAKE_CUDA_COMPILER)
+        enable_language(CUDA)
+        message("CUDA found: ${CMAKE_CUDA_COMPILER}")
+        set(CMAKE_CUDA_STANDARD 17)
+        set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+        # Arquitecturas por defecto razonables; sobreescribir con
+        # -DCMAKE_CUDA_ARCHITECTURES=... segun la tarjeta.
+        if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+            set(CMAKE_CUDA_ARCHITECTURES 61 75 86)
+        endif()
+        add_library(qftbx_cuda STATIC
+            src/core/gpu/boundary_sheets_cuda.cu
+            src/core/gpu/boundary_sheets_cuda.h
+            src/core/gpu/template_contour_cuda.cu
+            src/core/gpu/template_contour_cuda.h
+            src/core/gpu/cuda_utility.cuh
+        )
+        target_include_directories(qftbx_cuda PUBLIC "${CMAKE_SOURCE_DIR}")
+        set_target_properties(qftbx_cuda PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+        add_compile_definitions(CUDA_AVAILABLE=1)
     else()
         message("CUDA NOT found")
     endif()
@@ -291,7 +305,6 @@ target_link_libraries(qftbx_backend PUBLIC pugixml::pugixml)
 add_executable(${EXE_NAME}
     ${QFTbx_GUI_SRC}
     ${QFTbx_GUI_HED}
-    ${CUDA_OBJECTS}
     ${TS_FILES}
     ${QFTbx_ICON_RES}
     ${QFTbx_RES_SRC}
@@ -367,9 +380,8 @@ else()
 endif()
 
 # CUDA link
-if(CUDA_FOUND)
-    add_dependencies(qftbx_backend CUDA)
-    target_link_libraries(qftbx_backend PUBLIC CUDA)
+if(TARGET qftbx_cuda)
+    target_link_libraries(qftbx_backend PUBLIC qftbx_cuda)
 endif()
 
 set_property(TARGET ${EXE_NAME} APPEND PROPERTY

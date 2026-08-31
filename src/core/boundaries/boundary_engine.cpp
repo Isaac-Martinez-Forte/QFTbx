@@ -12,12 +12,8 @@ using std::numeric_limits;
 
 namespace qftbx {
 
-#ifdef CUDA_AVAILABLE
-//CUDA kernel computing the boundary sheets on the GPU.
-extern "C"
-std::vector <float *> * bnd_cuda(std::vector<complex<double> > templates, complex <double> p0, double infinito, std::vector<float> fas,
-                                 std::vector<float> mag);
-#endif
+//The CUDA interface lives in src/core/gpu/boundary_sheets_cuda.h (plain
+//C++ header; only the .cu needs nvcc).
 
 BoundaryEngine::BoundaryEngine()
 {
@@ -163,10 +159,12 @@ void BoundaryEngine::compute(QVector<qreal> *omega, LtiSystem *plant, QVector<QV
             std::complex <qreal> p0 = plant->evaluate(omega->at(i));
             QVector <complex <qreal> >  * valueSet = templates->at(i);
 
-            std::vector <float *> * cudaSheets = bnd_cuda(valueSet->toStdVector(), p0, infinity,
-                                                          tools::linspace1(phaseRange.x(), phaseRange.y(), phaseCount),
-                                                          tools::linspace1(magnitudeRange.x(), magnitudeRange.y(), magnitudeCount));
-
+            //Sheets come back by value in one struct: the old raw float*
+            //vector leaked all five sheets on every frequency.
+            const BoundarySheetsCuda cudaSheets = boundarySheetsCuda(
+                std::vector<complex<double>>(valueSet->begin(), valueSet->end()), p0,
+                tools::linspace1(phaseRange.x(), phaseRange.y(), phaseCount),
+                tools::linspace1(magnitudeRange.x(), magnitudeRange.y(), magnitudeCount));
 
             QMap <QString, QVector <QVector <QPointF> * > *> * bound = new QMap <QString, QVector <QVector <QPointF> * > *> ();
 
@@ -175,13 +173,13 @@ void BoundaryEngine::compute(QVector<qreal> *omega, LtiSystem *plant, QVector<QV
             traceFrequency(omega->at(i), bound, cudaSheets, traceMetadata, p0, valueSet, i,
                            std::abs(phaseRange.x()), std::abs(magnitudeRange.x()) + std::abs(magnitudeRange.y()), magnitudeRange.y());
 
-            cudaSheets->clear();
-
             m_traceMetadata->append(traceMetadata);
             m_boundaries->append(bound);
         }
 
-        m_omega = new QVector <qreal> (*omega);
+        //Alias of the caller's vector, like the CPU path (the old copy was
+        //the one leak releaseResults could not free).
+        m_omega = omega;
 
         cout << "boundaries CUDA: " << timer.elapsed() << " milliseconds" << endl;
 
@@ -312,7 +310,7 @@ void BoundaryEngine::traceFrequency(qreal omega, QMap <QString, QVector <QVector
 
 #ifdef CUDA_AVAILABLE
 void BoundaryEngine::traceFrequency(qreal omega, QMap <QString, QVector <QVector <QPointF> * > *> * bound,
-                                    std::vector <float *> * cudaSheets,
+                                    const BoundarySheetsCuda & cudaSheets,
                                     QMap <QString, QVector <QPoint> * > * traceMetadata,
                                     complex <qreal> p0, QVector <complex <qreal> > * valueSet, qint32 index,
                                     qreal phasePoints, qreal magnitudePoints, qreal magnitudeShift){
@@ -322,7 +320,7 @@ void BoundaryEngine::traceFrequency(qreal omega, QMap <QString, QVector <QVector
         QVector <QPoint> * metadata = new QVector <QPoint> ();
 
         bound->insert("Tracking",
-                      traceBoundary(m_specifications.trackingSpreadDb(omega), cudaSheets->at(1),
+                      traceBoundary(m_specifications.trackingSpreadDb(omega), cudaSheets.tracking.data(),
                                     metadata, p0, valueSet, 1, phasePoints, magnitudePoints, magnitudeShift));
 
         traceMetadata->insert("Tracking", metadata);
@@ -333,7 +331,7 @@ void BoundaryEngine::traceFrequency(qreal omega, QMap <QString, QVector <QVector
         QVector <QPoint> * metadata = new QVector <QPoint> ();
 
         bound->insert("Stability",
-                      traceBoundary(m_specifications.at(SpecificationType::Stability).boundDb(omega), cudaSheets->at(0),
+                      traceBoundary(m_specifications.at(SpecificationType::Stability).boundDb(omega), cudaSheets.stabilityNoise.data(),
                                     metadata, p0, valueSet, 0, phasePoints, magnitudePoints, magnitudeShift));
 
         traceMetadata->insert("Stability", metadata);
@@ -344,7 +342,7 @@ void BoundaryEngine::traceFrequency(qreal omega, QMap <QString, QVector <QVector
         QVector <QPoint> * metadata = new QVector <QPoint> ();
 
         bound->insert("SensorNoise",
-                      traceBoundary(m_specifications.at(SpecificationType::SensorNoise).boundDb(omega), cudaSheets->at(0),
+                      traceBoundary(m_specifications.at(SpecificationType::SensorNoise).boundDb(omega), cudaSheets.stabilityNoise.data(),
                                     metadata, p0, valueSet, 0, phasePoints, magnitudePoints, magnitudeShift));
 
         traceMetadata->insert("SensorNoise", metadata);
@@ -355,7 +353,7 @@ void BoundaryEngine::traceFrequency(qreal omega, QMap <QString, QVector <QVector
         QVector <QPoint> * metadata = new QVector <QPoint> ();
 
         bound->insert("OutputDisturbance",
-                      traceBoundary(m_specifications.at(SpecificationType::OutputDisturbance).boundDb(omega), cudaSheets->at(2),
+                      traceBoundary(m_specifications.at(SpecificationType::OutputDisturbance).boundDb(omega), cudaSheets.outputDisturbance.data(),
                                     metadata, p0, valueSet, 2, phasePoints, magnitudePoints, magnitudeShift));
 
         traceMetadata->insert("OutputDisturbance", metadata);
@@ -366,7 +364,7 @@ void BoundaryEngine::traceFrequency(qreal omega, QMap <QString, QVector <QVector
         QVector <QPoint> * metadata = new QVector <QPoint> ();
 
         bound->insert("InputDisturbance",
-                      traceBoundary(m_specifications.at(SpecificationType::InputDisturbance).boundDb(omega), cudaSheets->at(3),
+                      traceBoundary(m_specifications.at(SpecificationType::InputDisturbance).boundDb(omega), cudaSheets.inputDisturbance.data(),
                                     metadata, p0, valueSet, 3, phasePoints, magnitudePoints, magnitudeShift));
 
         traceMetadata->insert("InputDisturbance", metadata);
@@ -377,7 +375,7 @@ void BoundaryEngine::traceFrequency(qreal omega, QMap <QString, QVector <QVector
         QVector <QPoint> * metadata = new QVector <QPoint> ();
 
         bound->insert("ControlEffort",
-                      traceBoundary(m_specifications.at(SpecificationType::ControlEffort).boundDb(omega), cudaSheets->at(4),
+                      traceBoundary(m_specifications.at(SpecificationType::ControlEffort).boundDb(omega), cudaSheets.controlEffort.data(),
                                     metadata, p0, valueSet, 4, phasePoints, magnitudePoints, magnitudeShift));
 
         traceMetadata->insert("ControlEffort", metadata);
@@ -422,7 +420,7 @@ QVector<QVector<QPointF> *> * BoundaryEngine::traceBoundary(qreal thresholdDb, Q
 
 
 #ifdef CUDA_AVAILABLE
-QVector<QVector<QPointF> *> * BoundaryEngine::traceBoundary(qreal thresholdDb, float *sheet,
+QVector<QVector<QPointF> *> * BoundaryEngine::traceBoundary(qreal thresholdDb, const float *sheet,
                                                             QVector<QPoint> *traceMetadata, std::complex<qreal> p0,
                                                             QVector<std::complex<qreal> > *valueSet, qint32 kind,
                                                             qreal phasePoints, qreal magnitudePoints, qreal magnitudeShift){

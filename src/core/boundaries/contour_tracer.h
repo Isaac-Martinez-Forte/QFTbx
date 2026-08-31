@@ -28,7 +28,7 @@ public:
                                            qreal magnitudeShift);
 
 #ifdef CUDA_AVAILABLE
-    ContourTracer (qreal thresholdDb, float * sheet);
+    ContourTracer (qreal thresholdDb, const float * sheet);
 
     QVector <QVector <QPointF> *> * trace (qreal phasePoints, qreal phaseCount, qreal magnitudePoints,
                                            qreal magnitudeCount, qreal magnitudeShift);
@@ -40,7 +40,7 @@ private:
     qreal m_thresholdDb;
     QVector <QVector <qreal> *> * m_sheet = nullptr;
 #ifdef CUDA_AVAILABLE
-    float * m_cudaSheet = nullptr;
+    const float * m_cudaSheet = nullptr;
 #endif
 
     // Moore neighbourhood, clockwise from north:

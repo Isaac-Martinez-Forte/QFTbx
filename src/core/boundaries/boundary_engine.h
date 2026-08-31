@@ -9,6 +9,9 @@
 #ifdef OpenMP_AVAILABLE
 #include <omp.h>
 #endif
+#ifdef CUDA_AVAILABLE
+#include "src/core/gpu/boundary_sheets_cuda.h"
+#endif
 #include <QMap>
 
 #include "src/core/system/lti_system.h"
@@ -106,12 +109,12 @@ private:
 
 #ifdef CUDA_AVAILABLE
     void traceFrequency(qreal omega, QMap <QString, QVector <QVector <QPointF> * > *> * bound,
-                        std::vector <float *> * cudaSheets,
+                        const BoundarySheetsCuda & cudaSheets,
                         QMap <QString, QVector <QPoint> * > * traceMetadata,
                         std::complex <qreal> p0, QVector <std::complex <qreal> > * valueSet, qint32 index,
                         qreal phasePoints, qreal magnitudePoints, qreal magnitudeShift);
 
-    QVector<QVector<QPointF> *> *traceBoundary(qreal thresholdDb, float * sheet,
+    QVector<QVector<QPointF> *> *traceBoundary(qreal thresholdDb, const float * sheet,
                                                QVector<QPoint> *traceMetadata, std::complex<qreal> p0, QVector<std::complex<qreal> > *valueSet,
                                                qint32 kind, qreal phasePoints, qreal magnitudePoints,
                                                qreal magnitudeShift);
