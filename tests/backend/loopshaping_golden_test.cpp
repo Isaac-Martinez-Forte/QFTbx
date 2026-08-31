@@ -14,9 +14,10 @@
 //   consumer agreeing, no gain inside the stored controller range
 //   satisfies the bounds: the problem is genuinely infeasible and the
 //   algorithms now say so.
-// - MR (rambabu) still "solves" it (k = 1): its constraint rules are
-//   unreachable and everything looks feasible to it. The algorithm is
-//   known to be unfinished. To resolve in 8b.4.
+// - MR (rambabu), rebuilt as the paper's pure ICSP in 8b.4, now
+//   validates the specifications: planta1's stored input-disturbance
+//   slot holds an invalid constant (magnitude <= 0, the source of NaN
+//   heights), so the validating conversion rejects the problem.
 
 #include <gtest/gtest.h>
 
@@ -86,8 +87,7 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::Values(
         GoldenResult{"NT", tools::sachin, false, 0.0, 0.0},
         GoldenResult{"NK", tools::nandkishor, false, 0.0, 0.0},
-        // BUG: pinned suspicious result, see the header comment.
-        GoldenResult{"MR", tools::rambabu, true, 1.0, 1e-6},
+        GoldenResult{"MR", tools::rambabu, false, 0.0, 0.0},
         GoldenResult{"MCprev", tools::primer_articulo, false, 0.0, 0.0},
         GoldenResult{"MC", tools::segundo_articulo, false, 0.0, 0.0}),
     [](const ::testing::TestParamInfo<GoldenResult>& info) {

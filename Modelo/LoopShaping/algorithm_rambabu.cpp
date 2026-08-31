@@ -1,147 +1,302 @@
 #include "Modelo/Herramientas/exception.h"
 #include "algorithm_rambabu.h"
 
+#include "Modelo/EstructurasDatos/dbnd.h"
+
+#include <cmath>
+
 using namespace tools;
 using namespace cxsc;
 using namespace FC;
 using namespace alg;
 
+namespace {
+
+//Template representatives per frequency entering the constraint set (the
+//paper uses 9 plants; the tracking constraints pair them quadratically).
+const qint32 kTemplateRepresentatives = 9;
+
+//Passes of the HC4 fixpoint loop per box (a bound protects against
+//oscillating contractions; convergence is typically immediate).
+const qint32 kMaxNarrowingPasses = 8;
+
+QString number(qreal value)
+{
+    //Full precision; the expression lexer understands scientific
+    //notation (fixed notation truncated the small tracking coefficients
+    //to zero).
+    return QString::number(value, 'g', 17);
+}
+
+} // namespace
+
 Algorithm_rambabu::Algorithm_rambabu()
 {
-
 }
 
 Algorithm_rambabu::~Algorithm_rambabu()
 {
-
 }
 
 void Algorithm_rambabu::set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> * omega, BoundaryData *boundaries,
                                   qreal epsilon, QVector<QVector<QVector<QPointF> *> *> *reunBounHash, bool depuracion,
-                                  QVector <QVector <std::complex <qreal> > * > * temp, QVector <tools::dBND *> * espe){
+                                  QVector<QVector<std::complex<qreal>> *> * temp, QVector<tools::dBND *> * espe){
     this->planta = planta;
     this->controlador = controlador->clone();
     this->omega = omega;
     this->boundaries = boundaries;
     this->epsilon = epsilon;
     this->reunBounHash = reunBounHash;
-
-    this->metaDatosArriba = boundaries->upperFlags();
-    this->metaDatosAbierto = boundaries->openFlags();
-
-    this->tamFas = boundaries->phaseCount() -1;
     this->depuracion = depuracion;
-
     this->temp = temp;
     this->espe = espe;
-
-    QVector< QVector<QPointF> * > * boun = boundaries->unionBoundaries();
-
-    QVector <QPointF> * datosFases = new QVector <QPointF> ();
-    QVector <QPointF> * datosMag = new QVector <QPointF> ();
-
-    foreach (auto vector, *boun) {
+}
 
 
-        qreal DatosFasMin = std::numeric_limits<qreal>::max(), DatosFasMax = std::numeric_limits<qreal>::lowest();
-        qreal DatosMagMin = std::numeric_limits<qreal>::max(), DatosMagMax = std::numeric_limits<qreal>::lowest();
+//Controller magnitude and phase as expression strings over the uncertain
+//parameter names, one pair per design frequency. A zero-pole-gain factor
+//(jw + x) contributes sqrt(x^2 + w^2) to the magnitude; a time-constant
+//factor (1 + jw/x) contributes sqrt(1 + w^2/x^2); both contribute
+//atan(w/x) to the phase in radians (the historical builder emitted
+//atan(x/w), the complement of the true phase).
+inline void Algorithm_rambabu::buildControllerExpressions(){
+
+    const bool timeConstant =
+            controlador->type() == LtiSystem::SystemType::TimeConstantGain;
+
+    if (!timeConstant && controlador->type() != LtiSystem::SystemType::ZeroPoleGain) {
+        throw qftbx::InvalidInput(
+                "The ICSP loop-shaping algorithm needs a zero-pole-gain or "
+                "time-constant controller structure.");
+    }
+
+    const auto term = [&](Parameter * var, qreal w) -> QString {
+        const QString value = var->isUncertain() ? var->name() : number(var->nominal());
+        if (timeConstant) {
+            return "sqrt(1+(" + number(w * w) + "/(" + value + "^2)))";
+        }
+        return "sqrt((" + value + "^2)+" + number(w * w) + ")";
+    };
+
+    const auto phaseTerm = [&](Parameter * var, qreal w) -> QString {
+        const QString value = var->isUncertain() ? var->name() : number(var->nominal());
+        return "atan(" + number(w) + "/(" + value + "))";
+    };
+
+    const QString gain = controlador->gain()->isUncertain()
+            ? controlador->gain()->name()
+            : number(controlador->gain()->nominal());
+
+    magnitudeExpressions.clear();
+    phaseExpressions.clear();
+
+    foreach (qreal w, *omega) {
+
+        QString magnitude = "(" + gain + ")";
+        QString phase = "(0";
+
+        foreach (Parameter * var, *controlador->numerator()) {
+            magnitude += "*" + term(var, w);
+            phase += "+" + phaseTerm(var, w);
+        }
+
+        foreach (Parameter * var, *controlador->denominator()) {
+            magnitude += "/" + term(var, w);
+            phase += "-" + phaseTerm(var, w);
+        }
+
+        phase += ")";
+
+        magnitudeExpressions.append(magnitude);
+        phaseExpressions.append(phase);
+    }
+}
 
 
-        foreach (auto p, *vector) {
+//The constraint set of the ICSP (paper eqs. (10)-(11) plus the analogous
+//QFTbx quadratics for the remaining specifications), one inequality
+//"expression >= 0" per template representative (pairs for tracking) and
+//design frequency where the specification band applies.
+inline void Algorithm_rambabu::buildConstraints(){
 
-            if (p.x() < DatosFasMin) {
-                DatosFasMin = p.x();
-            }
+    //The validated specification set, the same accessor the boundary
+    //engine cuts at (the raw dBND::getAltura evaluated NaN on some legacy
+    //system specifications).
+    const qftbx::SpecificationSet specifications = tools::toSpecificationSet(*espe);
 
-            if (p.x() > DatosFasMax) {
-                DatosFasMax = p.x();
-            }
+    const auto applies = [&](qint32 slot, qreal w) {
+        return specifications.at(static_cast<qftbx::SpecificationType>(slot)).appliesAt(w);
+    };
 
-            if (p.y() < DatosMagMin) {
-                DatosMagMin = p.y();
-            }
+    const auto boundDb = [&](qint32 slot, qreal w) {
+        return specifications.at(static_cast<qftbx::SpecificationType>(slot)).boundDb(w);
+    };
 
-            if (p.y() > DatosMagMax) {
-                DatosMagMax = p.y();
+    const auto addConstraint = [&](const QString & expression) {
+        exp_tree * tree = new exp_tree("1");
+        tree->setFunc(expression.toStdString(), 0.0, alg::MAYORIGUAL);
+        constraints.append(tree);
+        constraintTexts.append(expression);
+    };
+
+    for (qint32 i = 0; i < omega->size(); ++i) {
+
+        const qreal w = omega->at(i);
+        const QString & g = magnitudeExpressions.at(i);
+        const QString & phi = phaseExpressions.at(i);
+
+        //Template representatives, evenly subsampled along the contour.
+        //Non-finite or null points (artefacts of a degenerate contour)
+        //would embed "nan" into the expression texts: they are skipped.
+        QVector<std::complex<qreal>> points;
+        const QVector<std::complex<qreal>> * contour = temp->at(i);
+        const qint32 take = std::min<qint32>(kTemplateRepresentatives, contour->size());
+        for (qint32 j = 0; j < take; ++j) {
+            const std::complex<qreal> value = contour->at(j * contour->size() / take);
+            if (std::isfinite(value.real()) && std::isfinite(value.imag()) &&
+                    std::abs(value) > 0.0) {
+                points.append(value);
             }
         }
 
-        datosFases->append(QPointF(DatosFasMin, DatosFasMax));
-        datosMag->append(QPointF(DatosMagMin, DatosMagMax));
+        foreach (const std::complex<qreal> & value, points) {
 
+            const QString p = number(std::abs(value));
+            const QString p2 = number(std::abs(value) * std::abs(value));
+            const QString theta = number(std::arg(value));
+
+            //|1 + L|^2 expanded: g^2 p^2 + 2 g p cos(phi + theta) + 1.
+            const QString l2 = "((" + g + ")^2)*(" + p2 + ")+2*(" + g + ")*(" + p +
+                    ")*cos((" + phi + ")+(" + theta + "))+1";
+
+            //Stability margin |T| <= ws (paper eq. (10)); the sensor noise
+            //specification shares the same transfer.
+            for (qint32 slot : {2, 3}) {
+                if (applies(slot, w)) {
+                    const qreal ws = std::pow(10.0, boundDb(slot, w) / 20.0);
+                    addConstraint("((" + g + ")^2)*(" + p2 + ")*(1-" +
+                                  number(1.0 / (ws * ws)) + ")+2*(" + g + ")*(" + p +
+                                  ")*cos((" + phi + ")+(" + theta + "))+1");
+                }
+            }
+
+            //Output disturbance rejection |1/(1+L)| <= d:
+            //|1+L|^2 - 1/d^2 >= 0.
+            if (applies(4, w)) {
+                const qreal d = std::pow(10.0, boundDb(4, w) / 20.0);
+                addConstraint("(" + l2 + ")-" + number(1.0 / (d * d)));
+            }
+
+            //Input disturbance rejection |P/(1+L)| <= d:
+            //|1+L|^2 - p^2/d^2 >= 0.
+            if (applies(5, w)) {
+                const qreal d = std::pow(10.0, boundDb(5, w) / 20.0);
+                addConstraint("(" + l2 + ")-(" + p2 + ")*" + number(1.0 / (d * d)));
+            }
+
+            //Control effort |G/(1+L)| <= d: |1+L|^2 - g^2/d^2 >= 0 (the
+            //historical rule dropped the g^2 factor).
+            if (applies(6, w)) {
+                const qreal d = std::pow(10.0, boundDb(6, w) / 20.0);
+                addConstraint("(" + l2 + ")-((" + g + ")^2)*" + number(1.0 / (d * d)));
+            }
+        }
+
+        //Tracking spread (paper eq. (11)) over ORDERED representative
+        //pairs, with delta = |T_U/T_L| at this frequency.
+        if (applies(0, w) && applies(1, w)) {
+
+            const qreal deltaDb = boundDb(1, w) - boundDb(0, w);
+            const qreal delta2 = std::pow(10.0, deltaDb / 10.0);
+            const QString invDelta2 = number(1.0 / delta2);
+
+            for (qint32 a = 0; a < points.size(); ++a) {
+                for (qint32 b = 0; b < points.size(); ++b) {
+                    if (a == b) {
+                        continue;
+                    }
+
+                    const qreal pi = std::abs(points.at(a));
+                    const qreal thetaI = std::arg(points.at(a));
+                    const qreal pk = std::abs(points.at(b));
+                    const qreal thetaK = std::arg(points.at(b));
+
+                    addConstraint("((" + g + ")^2)*" + number(pk * pk * pi * pi) +
+                            "*(1-" + invDelta2 + ")+2*(" + g + ")*" + number(pk * pi) +
+                            "*(" + number(pk) + "*cos((" + phi + ")+(" + number(thetaI) +
+                            "))-" + number(pi) + "*" + invDelta2 + "*cos((" + phi +
+                            ")+(" + number(thetaK) + ")))+" +
+                            number(pk * pk) + "-" + number(pi * pi) + "*" + invDelta2);
+                }
+            }
+        }
     }
-
-    boundaries->setPhaseAxis(datosFases);
-    boundaries->setMagnitudeAxis(datosMag);
-
-
 }
 
-//Función principal del algoritmo
+
 bool Algorithm_rambabu::init_algorithm(){
 
-    using namespace std;
+    lista = new ListaOrdenada();
+    conversion = new NaturalIntervalExtension();
+    stability = new NominalStabilityChecker(planta, omega);
 
-    lista = new ListaOrdenada ();
-
-    conversion = new NaturalIntervalExtension ();
-    lista = new ListaOrdenada ();
-
-    deteccion = new DeteccionViolacionBoundaries ();
-
-    plantas_nominales = new QVector <cxsc::complex> ();
-    plantas_nominales2 = new QVector <std::complex <qreal>> ();
-
+    plantas_nominales = new QVector<cxsc::complex>();
     foreach (qreal o, *omega) {
-        std::complex <qreal> c = planta->evaluate(o);
-        plantas_nominales2->append(c);
+        std::complex<qreal> c = planta->evaluate(o);
         plantas_nominales->append(cxsc::complex(c.real(), c.imag()));
     }
 
-    check_box_feasibility(controlador);
+    buildControllerExpressions();
+    buildConstraints();
 
+    const auto cleanup = [this]() {
+        delete conversion;
+        delete lista;
+        delete stability;
+        delete plantas_nominales;
+        qDeleteAll(constraints);
+        constraints.clear();
+    };
 
-    while (true){
+    classifyAndInsert(controlador);
 
-        if (lista->esVacia()){
-                        delete conversion;
-            delete lista;
+    while (true) {
 
+        if (lista->esVacia()) {
+            cleanup();
             throw qftbx::InvalidInput(
-                    "The initial controller parameter space is not valid.");
+                    "No feasible solution exists in the given search box.");
         }
 
         Tripleta * tripleta = static_cast<Tripleta *>(lista->recuperarPrimero());
         lista->borrarPrimero();
 
-        if (tripleta->getFlags() == feasible || FC::if_less_epsilon(tripleta->getSistema(), epsilon, omega, conversion, plantas_nominales)) {
-            if (tripleta->getFlags() == ambiguous){
-                controlador_retorno = guardarControlador(tripleta->getSistema(), false);
-            } else {
-                controlador_retorno = guardarControlador(tripleta->getSistema(), true);
+        if (tripleta->getFlags() == feasible || FC::if_less_epsilon(
+                    tripleta->getSistema(), epsilon, omega, conversion, plantas_nominales)) {
+
+            controlador_retorno = guardarControlador(tripleta->getSistema(),
+                                                     tripleta->getFlags() != ambiguous);
+
+            //Every returned point must be nominally stabilising.
+            if (!stability->isNominallyStable(controlador_retorno)) {
+                delete controlador_retorno;
+                delete tripleta;
+                continue;
             }
 
-            delete conversion;
-            delete lista;
             delete tripleta;
-            delete deteccion;
-
+            cleanup();
             return true;
         }
 
-        //Split blox
         struct return_bisection retur = split_box_bisection(tripleta->getSistema());
 
+        tripleta->noBorrar2();
         delete tripleta;
 
-        if (!retur.descartado){
-            check_box_feasibility(retur.v1);
-            check_box_feasibility(retur.v2);
-        }
+        classifyAndInsert(retur.v1);
+        classifyAndInsert(retur.v2);
     }
-
-
-    return true;
 }
 
 
@@ -149,435 +304,117 @@ LtiSystem * Algorithm_rambabu::getControlador(){
     return controlador_retorno;
 }
 
-//Función que comprueba si la caja actual es feasible, infeasible o ambiguous.
-flags_box Algorithm_rambabu::check_box_feasibility(LtiSystem * v){
 
-    using namespace std;
+//Branch & prune step for one box: narrow the parameter domains with the
+//HC4 filter over the whole constraint set; an emptied domain proves the
+//box infeasible, and non-negative interval evaluations of every
+//constraint prove it feasible.
+inline void Algorithm_rambabu::classifyAndInsert(LtiSystem * box){
 
-    flags_box flag_final = feasible;
-    flags_box flag;
-    cinterval caja;
+    QMap<std::string, cxsc::interval> domains;
+    loadDomains(box, domains);
 
-    qint32 contador = 0;
-    QVector <flags_box> flags;
-    qint32 contador2;
-    data_box * datos;
-
-
-
-#ifdef DEGUB
-    QVector <QVector <QPointF> * > * puntos;
-
-    if (depuracion)
-        puntos = new QVector <QVector <QPointF> * > ();
-#endif
-
-    for (qint32 k = 0; k < omega->size(); k++) {
-
-        caja = conversion->nicholsBox(controlador, omega->at(k), plantas_nominales->at(k), false);
-
-        datos = deteccion->deteccionViolacionCajaNiNi(caja, boundaries, k);
-
-
-#ifdef DEGUB
-        if (depuracion)
-            puntos->append(deteccion_violacion->getPuntos());
-#endif
-        contador2 = 0;
-
-        for (qint32 i = 0; i < flags.size(); i++){
-            if (flags.at(i) == infeasible){
-                contador2++;
-            }
-        }
-
-        if (contador2 == 0){
-            flag = feasible;
-        } else if (contador2 < flags.size()){
-            flag = ambiguous;
-        } else {
-            return infeasible;
-        }
-
-        if (flag == ambiguous){
-            flag_final = ambiguous;
-        }
-
-        contador++;
-    }
-#ifdef DEGUB
-    if (depuracion)
-        showDiagram(puntos);
-#endif
-
-    if (flag_final == ambiguous){
-        v = acelerated(v);
-
-        if (v == nullptr){
-            return infeasible;
-        }
+    if (!narrowToFixpoint(domains)) {
+        delete box;
+        return;
     }
 
-    lista->insertar(new Tripleta(controlador->gain()->range().x(), controlador, flag_final));
+    LtiSystem * narrowed = boxFromDomains(box, domains);
+    delete box;
 
-    return flag_final;
-}
+    const flags_box flag = certainlyFeasible(domains) ? feasible : ambiguous;
 
-LtiSystem * Algorithm_rambabu::acelerated(LtiSystem * controlador){
-
-    //creamos los datos del controlador.
-
-    QVector <QVector <QString> * > * vec;
-
-    if (controlador->type() == LtiSystem::SystemType::ZeroPoleGain){
-        vec = kganacia(controlador);
-    } else if (controlador->type() == LtiSystem::SystemType::TimeConstantGain){
-        vec = knganancia(controlador);
-    } else {
-        return controlador;
-    }
-
-    QVector <QString> * g = vec->at(0);
-    QVector <QString> * phi = vec->at(1);
-
-    qreal p_mag;
-    qreal p_fas;
-
-    qreal pk_mag;
-    qreal pk_fas;
-
-    qint32 contador;
-
-    QPointF rango;
-    Parameter * var;
-
-    exp_tree ob("1");
-    QMap <std::string, interval > * mapa = new QMap <std::string, interval > ();
-
-    QVector <QString> * reglas = nullptr;
-
-    for (qint32 i = 0; i < temp->size(); i++) { //Recorremos los templates
-
-        contador = 0;
-
-        QVector <std::complex <qreal> > * templates = temp->at(i);
-
-        foreach (std::complex <qreal> complejo, *templates) {
-
-            reglas = new QVector <QString> ();
-
-
-            //TODO magnitud y radianes.
-            p_mag = abs(complejo);
-            p_fas = arg(complejo);
-
-
-            //guardamos las variables en el árbol
-            //ejecutamos el árbol
-            //guardamos las variables intervalares.
-            foreach (var, *controlador->numerator()) {
-                if (var->isUncertain()){
-                    rango = var->range();
-                    mapa->insert(var->name().toStdString(), interval (rango.x(),rango.y()));
-                }
-            }
-            foreach (var, *controlador->denominator()) {
-                if (var->isUncertain()){
-                    rango = var->range();
-                    mapa->insert(var->name().toStdString(), interval (rango.x(),rango.y()));
-                }
-            }
-
-            var = controlador->gain();
-            if (var->isUncertain()){
-                mapa->insert(var->name().toStdString(), interval(var->range().x(),var->range().y()));
-            }
-
-            //estabilidad
-
-            qreal altura = 0;
-
-            if (espe->at(2)->utilizado && espe->at(2)->frecfinal <= altura){
-
-                //g^2 g^2 + 2gp cos( pi + zeta) + 1
-
-                reglas->append(QString("(") + g->at(i) + "^2)*(" + QString::number(p_mag) + "^2)+"+"2*" + g->at(i) + "*(" + QString::number(p_mag)
-                               + ")*cos(" + phi->at(i) + "+(" + QString::number(p_fas) + ")) + 1");
-
-                //estabilidad robusta
-
-                //g^2 p^2 (1 - 1/alt^2) + 2gp cos( pi + zeta) + 1
-
-                altura = pow(10,espe->at(2)->getAltura(omega->at(i))/20);
-
-                reglas->append(QString("(") + g->at(i) + "^2)*(" + QString::number(p_mag) + "^2)*(1-(1/(" + QString::number(
-                                    altura)+ "^2)))+"+"2*" + g->at(i) + "*(" + QString::number(p_mag) + ")*cos(" +
-                                phi->at(i) + "+(" + QString::number(p_fas) + ")) + 1");
-
-            }
-
-
-            //rechazo de perturbaciones a la salida.
-
-            //g^2 p^2 + 2gp cos (pi + zeta) + (1 - 1/alt^2)
-
-            if (espe->at(4)->utilizado && espe->at(4)->frecfinal <= altura){
-
-                altura = pow(10,espe->at(4)->getAltura(omega->at(i))/20);
-
-                reglas->append(QString("(") + g->at(i) + "^2)*(" + QString::number(p_mag) + "^2)+"+"2*" + g->at(i) + "*(" + QString::number(p_mag)
-                               + ")*cos(" + phi->at(i) + "+(" + QString::number(p_fas) + ")) + (1-(1/("
-                               + QString::number(altura) + "^2)))");
-            }
-
-
-
-            //rechado de perturbaciones a la entrada
-
-            //g^2 p^2 + 2gp cos (alpha + beta) + [1 - p^2 / alt^2] >= 0
-
-            if(espe->at(5)->utilizado && espe->at(5)->frecfinal <= altura){
-
-                altura = pow(10,espe->at(5)->getAltura(omega->at(i))/20);
-
-
-                 reglas->append(QString("(") + g->at(i) + "^2)*(" + QString::number(p_mag) + "^2)+" + "2*" + g->at(i) +
-                                "*(" + QString::number(p_mag) + ")*cos(" + phi->at(i) + "+(" + QString::number(p_fas)
-                                + ")) + (1 - ((" + QString::number(p_mag) + "^2 ) / (" + QString::number(altura)
-                                + "^2)))");
-
-            }
-
-
-
-            //traking
-
-            if (espe->at(0)->utilizado){
-                for (qint32 j = contador; j < templates->size(); j++){
-
-                    pk_mag = abs(templates->at(j));
-                    pk_fas = -arg(templates->at(j)) * 180;
-
-                    qreal alt = espe->at(1)->getAltura(omega->at(i)) - espe->at(0)->getAltura(omega->at(i));
-
-                    alt = altura = pow(10,alt/20);
-
-                    reglas->append(QString("g") + "^2*" + QString::number(pk_mag) + "^2 *" + QString::number(p_mag) + "^2 *(1-1/"
-                                   + QString::number(alt) + "^2 )+2*" + QString("g") + "*" + QString::number(pk_mag) + "*"
-                                   + QString::number(p_mag) + "*(" + QString::number(pk_mag) + "*cos(" + QString("phi") + "+" + QString::number(p_fas) + ")-"
-                                   + QString::number(p_mag) + "/" + QString::number(alt) + "^2 *cos("+ QString("phi") + "+"
-                                   + QString::number(pk_fas) + "))+" + QString::number(pk_mag) + "^2 -" + QString::number(p_mag) + "^2 /"
-                                   + QString::number(alt) + "^2");
-                }
-            }
-
-
-
-            //esfuerzo de control
-
-            if(espe->at(6)->utilizado){
-
-                //g^2 p^2 - 1/alt^2 + 2gp cos (pi + zeta) +1
-
-                altura = pow(10,espe->at(6)->getAltura(omega->at(i))/20);
-
-                reglas->append(QString("(") + g->at(i) + "^2)*(" + QString::number(p_mag) + "^2)-(1/(" +
-                               QString::number(altura)+ "^2))+"+"2*" + g->at(i) + "*" + QString::number(p_mag) +
-                               "*cos(" + phi->at(i) + "+(" + QString::number(p_fas) + ")) + 1");
-            }
-
-
-            foreach (QString es, *reglas) {
-                ob.setFunc(es.toStdString());
-
-                //ob.imprimir();
-
-                //std::cout << es.toStdString() << std::endl << std::endl;
-
-                if (!ob.recorrer(mapa)){
-                    reglas->clear();
-
-                    g->clear();
-                    phi->clear();
-                    vec->clear();
-                    delete mapa;
-
-                    return NULL;
-                }
-            }
-        }
-
-        reglas->clear();
-        contador++;
-    }
-
-    //Si todo ha ido bien generamos el nuevo controlador recortado.
-    interval i;
-    QVector <Parameter *> * nume = new QVector <Parameter *> ();
-    foreach (var, *controlador->numerator()) {
-        if (var->isUncertain()){
-            i = mapa->value(var->name().toStdString());
-            nume->append(new Parameter(var->name(), QPointF(_double(Inf(i)), _double(Sup(i))), _double(Inf(i))));
-        }else{
-            nume->append(new Parameter(var->nominal()));
-        }
-    }
-
-    QVector <Parameter *> * deno = new QVector <Parameter *> ();
-    foreach (var, *controlador->denominator()) {
-        if (var->isUncertain()){
-            i = mapa->value(var->name().toStdString());
-            deno->append(new Parameter(var->name(), QPointF(_double(Inf(i)), _double(Sup(i))), _double(Inf(i))));
-        }else{
-            deno->append(new Parameter(var->nominal()));
-        }
-    }
-
-    Parameter * k;
-    var = controlador->gain();
-    if (var->isUncertain()){
-        i = mapa->value(var->name().toStdString());
-        k = new Parameter (var->name(), QPointF(_double(Inf(i)), _double(Sup(i))), _double(Inf(i)));
-    }else {
-        k = new Parameter (var->nominal());
-    }
-
-
-    LtiSystem * ns = controlador->create(controlador->name(), nume, deno, k, new Parameter((qreal)0));
-
-    delete controlador;
-    vec->clear();
-    delete mapa;
-
-    return ns;
-}
-
-QVector <QVector <QString> * > * Algorithm_rambabu::kganacia(LtiSystem * controlador){
-
-    QVector <Parameter *> * nume = controlador->numerator();
-    QVector <Parameter *> * deno = controlador->denominator();
-
-    QVector <QString> * mag = new QVector <QString> ();
-    QVector <QString> * fas = new QVector <QString> ();
-
-    Parameter * v;
-
-    foreach (qreal w, *omega) {
-         QString re = "(kv*(";
-         QString re1 = "((";
-
-        for (qint32 i = 0; i < nume->size(); i++) {
-            v = nume->at(i);
-            if (v->isUncertain()){
-                re += "sqrt(" + v->name() + "^2 +" + QString::number(w) + "^2)";
-                re1 += "atan(" + v->name() + "/" + QString::number(w) + ")";
-            } else {
-                re += "sqrt(" + QString::number(v->nominal()) + "^2 +" + QString::number(w) + "^2)";
-                re1 += "atan(" + QString::number(v->nominal()) + "/" + QString::number(w) + ")";
-            }
-
-            if (i < (nume->size()-1)){
-                re += "*";
-                re1 += "*";
-            }
-        }
-
-        re += ")/(";
-        re1 +=")-(";
-
-        for (qint32 i = 0; i < deno->size(); i++) {
-            v = deno->at(i);
-            if (v->isUncertain()){
-                re += "sqrt(" + v->name() + "^2 +" + QString::number(w) + "^2)";
-                re1 += "atan(" + v->name() + "/" + QString::number(w) + ")";
-            } else {
-                re += "sqrt(" + QString::number(v->nominal()) + "^2+" + QString::number(w) + "^2)";
-                re1 += "atan(" + QString::number(v->nominal()) + "/" + QString::number(w) + ")";
-            }
-
-            if (i < (deno->size()-1)){
-                re += "*";
-                re1 += "*";
-            }
-        }
-
-        re +="))";
-        re1 += "))";
-
-        mag->append(re);
-        fas->append(re1);
-    }
-
-    QVector <QVector <QString> * > * vec = new QVector <QVector <QString> * > ();
-
-    vec->append(mag);
-    vec->append(fas);
-
-    return vec;
+    lista->insertar(new Tripleta(narrowed->gain()->range().x(), narrowed, flag));
 }
 
 
-QVector<QVector<QString> *> *Algorithm_rambabu::knganancia(LtiSystem *controlador){
+inline bool Algorithm_rambabu::narrowToFixpoint(QMap<std::string, cxsc::interval> & domains){
 
-    QVector <Parameter *> * nume = controlador->numerator();
-    QVector <Parameter *> * deno = controlador->denominator();
+    for (qint32 pass = 0; pass < kMaxNarrowingPasses; ++pass) {
 
-    QVector <QString> * mag = new QVector <QString> ();
-    QVector <QString> * fas = new QVector <QString> ();
+        const QMap<std::string, cxsc::interval> snapshot = domains;
 
-    Parameter * v;
-
-    foreach (qreal w, *omega) {
-        QString re = "(kv*(";
-        QString re1 = "((";
-
-        for (qint32 i = 0; i < nume->size(); i++) {
-            v = nume->at(i);
-            if (v->isUncertain()){
-                re += "sqrt(((" + QString::number(w) + "^2) / (" + v->name() + "^2)) + 1)";
-                re1 += "atan(" + v->name() + "/" + QString::number(w) + ")";
-            } else {
-                re += "sqrt(((" + QString::number(w) + "^2) / (" + QString::number(v->nominal()) + "^2)) + 1)";
-                re1 += "atan(" + QString::number(w) + "/" + QString::number(v->nominal()) + ")";
-            }
-
-            if (i < (nume->size()-1)){
-                re += "*";
-                re1 += "*";
+        foreach (exp_tree * tree, constraints) {
+            if (!tree->recorrer(&domains)) {
+                return false;
             }
         }
 
-        re += ")/(";
-        re1 +=")-(";
-
-        for (qint32 i = 0; i < deno->size(); i++) {
-            v = deno->at(i);
-            if (v->isUncertain()){
-                re += "sqrt(((" + QString::number(w) + "^2) / (" + v->name() + "^2)) + 1)";
-                re1 += "atan(" + v->name() + "/" + QString::number(w) + ")";
-            } else {
-                re += "sqrt(((" + QString::number(w) + "^2) / (" + QString::number(v->nominal()) + "^2)) + 1)";
-                re1 += "atan(" + QString::number(w) + "/" + QString::number(v->nominal()) + ")";
-            }
-
-
-            if (i < (deno->size()-1)){
-                re += "*";
-                re1 += "*";
+        bool changed = false;
+        for (auto it = domains.constBegin(); it != domains.constEnd(); ++it) {
+            const cxsc::interval previous = snapshot.value(it.key());
+            if (Inf(it.value()) != Inf(previous) || Sup(it.value()) != Sup(previous)) {
+                changed = true;
+                break;
             }
         }
 
-        re +="))";
-        re1 += "))";
-
-        mag->append(re);
-        fas->append(re1);
+        if (!changed) {
+            break;
+        }
     }
 
-    QVector <QVector <QString> * > * vec = new QVector <QVector <QString> * > ();
+    return true;
+}
 
-    vec->append(mag);
-    vec->append(fas);
 
-    return vec;
+inline bool Algorithm_rambabu::certainlyFeasible(QMap<std::string, cxsc::interval> & domains){
+
+    foreach (exp_tree * tree, constraints) {
+        if (cxsc::_double(Inf(tree->eval(&domains))) < 0.0) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
+inline void Algorithm_rambabu::loadDomains(LtiSystem * box,
+                                           QMap<std::string, cxsc::interval> & domains){
+
+    domains.clear();
+
+    const auto load = [&](Parameter * var) {
+        if (var->isUncertain()) {
+            domains.insert(var->name().toStdString(),
+                           cxsc::interval(var->range().x(), var->range().y()));
+        }
+    };
+
+    foreach (Parameter * var, *box->numerator()) {
+        load(var);
+    }
+    foreach (Parameter * var, *box->denominator()) {
+        load(var);
+    }
+    load(box->gain());
+}
+
+
+inline LtiSystem * Algorithm_rambabu::boxFromDomains(LtiSystem * box,
+                                                     const QMap<std::string, cxsc::interval> & domains){
+
+    const auto rebuilt = [&](Parameter * var) -> Parameter * {
+        if (!var->isUncertain()) {
+            return new Parameter(var->nominal());
+        }
+        const cxsc::interval value = domains.value(var->name().toStdString());
+        return new Parameter(var->name(),
+                             QPointF(cxsc::_double(Inf(value)), cxsc::_double(Sup(value))),
+                             cxsc::_double(Inf(value)));
+    };
+
+    auto * nume = new QVector<Parameter*>();
+    foreach (Parameter * var, *box->numerator()) {
+        nume->append(rebuilt(var));
+    }
+
+    auto * deno = new QVector<Parameter*>();
+    foreach (Parameter * var, *box->denominator()) {
+        deno->append(rebuilt(var));
+    }
+
+    return box->create(box->name(), nume, deno, rebuilt(box->gain()),
+                       new Parameter(qreal(0)));
 }

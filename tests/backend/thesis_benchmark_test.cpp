@@ -33,9 +33,12 @@
 //   keeps low-gain loops stable, so the floor of the gain box is the
 //   formal optimum (the box floor keeps the trivially sluggish loops
 //   meaningful).
-// - MR (rambabu) returns the bottom corner of the search box everywhere:
-//   its constraint rules are unreachable and everything looks feasible.
-//   The algorithm is known to be unfinished. For 8b.4.
+// - MR (rambabu) was rebuilt in 8b.4 as the paper's pure ICSP (quadratic
+//   constraints from specs and template representatives, HC4 branch &
+//   prune, no boundaries). On ACC'90 it reproduces the same optimum as
+//   NT and NK through a third independent route. On ex2 the honest
+//   constraint search takes minutes on this box, like NT: not pinned
+//   (performance work deferred).
 // - MC-prev values are pinned as behaviour, not as verified optima: its
 //   review against the IJRNC paper is 8b.5.
 // - NK was reviewed against its paper in 8b.3 (Quick Solution rebuilt on
@@ -197,9 +200,6 @@ TEST_P(ThesisBenchmarkGolden, ResultIsPinned)
 INSTANTIATE_TEST_SUITE_P(
     Algorithms, ThesisBenchmarkGolden,
     ::testing::Values(
-        // BUG: bottom corner of the search box, see the header comment.
-        BenchmarkGolden{"Ex2MR", "qft_toolbox_ex2.qft", tools::rambabu,
-                        1.0, 0.01, 0.01},
         BenchmarkGolden{"Ex2MCprev", "qft_toolbox_ex2.qft", tools::primer_articulo,
                         59569.844352572618, 0.38125871873113742, 0.13501820079055124},
         BenchmarkGolden{"Acc90NT", "acc90.qft", tools::sachin,
@@ -208,9 +208,8 @@ INSTANTIATE_TEST_SUITE_P(
         //NT's interval descent (the zero/pole sit at the search centre).
         BenchmarkGolden{"Acc90NK", "acc90.qft", tools::nandkishor,
                         1000.0, 500.005, 500.005},
-        // BUG: bottom corner of the search box, see the header comment.
         BenchmarkGolden{"Acc90MR", "acc90.qft", tools::rambabu,
-                        1000.0, 0.01, 0.01},
+                        1000.0, 500.005, 500.005},
         BenchmarkGolden{"Acc90MCprev", "acc90.qft", tools::primer_articulo,
                         16431.342475698933, 0.01, 3.9025789234624524}),
     [](const ::testing::TestParamInfo<BenchmarkGolden>& info) {

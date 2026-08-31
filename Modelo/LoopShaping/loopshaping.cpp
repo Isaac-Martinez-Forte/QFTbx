@@ -151,6 +151,10 @@ bool LoopShaping::iniciar(LtiSystem *planta, LtiSystem *controlador, QVector<qre
                 Algorithm_rambabu * rambabu = new Algorithm_rambabu();
                 rambabu->set_datos(planta, controlador, omega, boundaries, epsilon, boundaries->unionBuckets(),
                                    depuracion, temp, espe);
+
+                //The elapsed time printed below was garbage: this branch
+                //never started the timer.
+                timer.start();
                 re =  rambabu->init_algorithm();
 
                 if(re){
