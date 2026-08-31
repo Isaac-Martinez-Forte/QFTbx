@@ -346,7 +346,7 @@ inline Tripleta * Algorithm_primer_articulo::check_box_feasibility(LtiSystem *co
 
 
 #if defined(COMPARACION_CAJAS)
-    ViewBoundReun * view = new ViewBoundReun();
+    BoundaryUnionViewer * view = new BoundaryUnionViewer();
 
     view->setDatos(boundaries->unionBoundaries(), omega);
 
@@ -361,7 +361,7 @@ inline Tripleta * Algorithm_primer_articulo::check_box_feasibility(LtiSystem *co
 
 
 #ifdef VER_ANTES
-        ViewBoundReun * view = new ViewBoundReun();
+        BoundaryUnionViewer * view = new BoundaryUnionViewer();
 
         view->setDatos(boundaries->unionBoundaries(), omega);
 
@@ -491,7 +491,7 @@ inline Tripleta * Algorithm_primer_articulo::check_box_feasibility(LtiSystem *co
 
 #ifdef VER_DIAGRAMAS
 
-    ViewBoundReun * view = FC::mostrar_diagrama(vectorCajas, this->omega, boundaries);
+    BoundaryUnionViewer * view = FC::mostrar_diagrama(vectorCajas, this->omega, boundaries);
     vectorCajas->clear();
 
     vectorCajas = new QVector <QVector <QPointF> *> ();

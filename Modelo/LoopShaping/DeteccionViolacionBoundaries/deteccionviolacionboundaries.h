@@ -13,7 +13,7 @@
 #include <complex>
 #include <cmath>
 
-#include "GUI/viewboundreun.h"
+#include "GUI/boundary_union_viewer.h"
 
 /**
  * @class DeteccionViolacionBoundaries

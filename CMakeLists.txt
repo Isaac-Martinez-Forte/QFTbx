@@ -164,21 +164,21 @@ set(QFTbx_BACKEND_SRC
 set(QFTbx_GUI_SRC main.cpp
     GUI/parlineedit.cpp
     GUI/parlineedit.h
-    GUI/diagramabode.cpp
-    GUI/windowsgeneral.cpp
-    GUI/introducirplanta.cpp
-    GUI/intomega.cpp
-    GUI/intincertidumbre.cpp
-    GUI/viewbound.cpp
-    GUI/intdatosboundaries.cpp
-    GUI/intespecificaciones.cpp
-    GUI/introducirecontr.cpp
-    GUI/viewboundreun.cpp
-    GUI/intloopshaping.cpp
-    GUI/viewloopshaping.cpp
-    GUI/introducirtemplates.cpp
-    GUI/viewtemplates.cpp
-    GUI/verboundaries.cpp
+    GUI/bode_viewer.cpp
+    GUI/main_window.cpp
+    GUI/plant_dialog.cpp
+    GUI/frequencies_dialog.cpp
+    GUI/uncertainty_dialog.cpp
+    GUI/boundary_viewer.cpp
+    GUI/boundary_grid_dialog.cpp
+    GUI/specifications_dialog.cpp
+    GUI/controller_dialog.cpp
+    GUI/boundary_union_viewer.cpp
+    GUI/loop_shaping_dialog.cpp
+    GUI/loop_shaping_viewer.cpp
+    GUI/templates_dialog.cpp
+    GUI/template_viewer.cpp
+    GUI/loop_boundaries_viewer.cpp
 )
 
 set(QFTbx_BACKEND_HED
@@ -245,23 +245,23 @@ set(QFTbx_BACKEND_HED
 )
 
 set(QFTbx_GUI_HED
-    GUI/diagramabode.h
-    GUI/menerror.h
+    GUI/bode_viewer.h
+    GUI/error_message.h
     GUI/plot_palette.h
-    GUI/windowsgeneral.h
-    GUI/introducirplanta.h
-    GUI/intomega.h
-    GUI/intincertidumbre.h
-    GUI/viewbound.h
-    GUI/intdatosboundaries.h
-    GUI/intespecificaciones.h
-    GUI/introducirecontr.h
-    GUI/viewboundreun.h
-    GUI/intloopshaping.h
-    GUI/viewloopshaping.h
-    GUI/introducirtemplates.h
-    GUI/viewtemplates.h
-    GUI/verboundaries.h
+    GUI/main_window.h
+    GUI/plant_dialog.h
+    GUI/frequencies_dialog.h
+    GUI/uncertainty_dialog.h
+    GUI/boundary_viewer.h
+    GUI/boundary_grid_dialog.h
+    GUI/specifications_dialog.h
+    GUI/controller_dialog.h
+    GUI/boundary_union_viewer.h
+    GUI/loop_shaping_dialog.h
+    GUI/loop_shaping_viewer.h
+    GUI/templates_dialog.h
+    GUI/template_viewer.h
+    GUI/loop_boundaries_viewer.h
 )
 
 # Recursos

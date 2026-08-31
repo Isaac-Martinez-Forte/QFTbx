@@ -9,7 +9,7 @@
 #include "src/core/system/lti_system.h"
 #include "src/core/boundaries/boundary_data.h"
 
-#include "GUI/verboundaries.h"
+#include "GUI/loop_boundaries_viewer.h"
 
 class LoopShaping
 {

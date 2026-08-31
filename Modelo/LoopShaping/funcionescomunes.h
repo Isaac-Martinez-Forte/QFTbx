@@ -7,7 +7,7 @@
 
 #include "src/core/system/lti_system.h"
 #include "Modelo/Herramientas/tools.h"
-#include "GUI/viewboundreun.h"
+#include "GUI/boundary_union_viewer.h"
 #include "src/core/boundaries/boundary_data.h"
 #include "Modelo/LoopShaping/NaturalIntervalExtension/natural_interval_extension.h"
 #include "Modelo/LoopShaping/DeteccionViolacionBoundaries/deteccionviolacionboundaries.h"
@@ -100,8 +100,8 @@ inline bool if_less_epsilon(LtiSystem * controlador, qreal epsilon, QVector <qre
     return true;
 }
 
-inline ViewBoundReun * mostrar_diagrama(QVector <QVector<QPointF> * > *vector, QVector <qreal> * omega, BoundaryData * boundaries) {
-    ViewBoundReun * view = new ViewBoundReun();
+inline BoundaryUnionViewer * mostrar_diagrama(QVector <QVector<QPointF> * > *vector, QVector <qreal> * omega, BoundaryData * boundaries) {
+    BoundaryUnionViewer * view = new BoundaryUnionViewer();
 
     view->setDatos(boundaries->unionBoundaries(), omega);
 
@@ -121,8 +121,8 @@ inline ViewBoundReun * mostrar_diagrama(QVector <QVector<QPointF> * > *vector, Q
     return view;
 }
 
-inline void mostrar_diagrama2 (QVector <QVector<QPointF> * > *vector, QVector <qreal> * omega, BoundaryData * boundaries, ViewBoundReun * view) {
-    //ViewBoundReun * view = new ViewBoundReun();
+inline void mostrar_diagrama2 (QVector <QVector<QPointF> * > *vector, QVector <qreal> * omega, BoundaryData * boundaries, BoundaryUnionViewer * view) {
+    //BoundaryUnionViewer * view = new BoundaryUnionViewer();
 
     /*view->setDatos(boundaries->unionBoundaries(), omega);
 
@@ -141,7 +141,7 @@ inline void mostrar_diagrama2 (QVector <QVector<QPointF> * > *vector, QVector <q
 }
 
 inline void mostrar_diagramaBox(QVector<QPointF> * caja, QVector <qreal> * omega, BoundaryData * boundaries) {
-    ViewBoundReun * view = new ViewBoundReun();
+    BoundaryUnionViewer * view = new BoundaryUnionViewer();
 
     view->setDatos(boundaries->unionBoundaries(), omega);
 
