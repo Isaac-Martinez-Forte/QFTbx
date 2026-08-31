@@ -112,19 +112,19 @@ private:
 
     qint32 posBarra;
 
-    Controlador * controlador = NULL;
-    IntroducirPlanta * intPlanta = NULL;
-    IntOmega * intOmega = NULL;
-    DiagramaBode * diagramaBode = NULL;
-    IntroducirTemplates * vTemplates = NULL;
-    ViewTemplates * graficoTemplate = NULL;
-    IntDatosBoundaries * datosBoun = NULL;
-    ViewBound * viewBound = NULL;
-    ViewBoundReun * viewBoundReun = NULL;
-    IntEspecificaciones * especificaciones = NULL;
-    introducirEContr * eControlador = NULL;
-    IntLoopShaping * loopShaping = NULL;
-    ViewLoopShaping * viewLoopShaping = NULL;
+    Controlador * controlador = nullptr;
+    IntroducirPlanta * intPlanta = nullptr;
+    IntOmega * intOmega = nullptr;
+    DiagramaBode * diagramaBode = nullptr;
+    IntroducirTemplates * vTemplates = nullptr;
+    ViewTemplates * graficoTemplate = nullptr;
+    IntDatosBoundaries * datosBoun = nullptr;
+    ViewBound * viewBound = nullptr;
+    ViewBoundReun * viewBoundReun = nullptr;
+    IntEspecificaciones * especificaciones = nullptr;
+    introducirEContr * eControlador = nullptr;
+    IntLoopShaping * loopShaping = nullptr;
+    ViewLoopShaping * viewLoopShaping = nullptr;
 
     QString ficheroGuardar;
 
@@ -134,6 +134,8 @@ private:
 
     void crear();
     void destruir();
+    void destruirDialogos();
+    void retrocederPaso(bool & paso);
 
 };
 

@@ -24,7 +24,7 @@ IntEspecificaciones::IntEspecificaciones(Controlador *controlador, QWidget *pare
 
     setWindowTitle("Introducir Datos Especificaciones");
 
-    retorno = NULL;
+    retorno = nullptr;
 
     //Establecemos las figures de las plantas:
 
@@ -88,7 +88,7 @@ IntEspecificaciones::IntEspecificaciones(Controlador *controlador, QWidget *pare
     //de ELLAS: antes arrancaba con 7 registros vacios y el primer Aceptar
     //machacaba lo cargado (perdida de datos silenciosa).
     QVector <dBND *> * cargadas = controlador->getEspecificaciones();
-    if (cargadas != NULL && cargadas->size() == 7){
+    if (cargadas != nullptr && cargadas->size() == 7){
         delete seguimiento;
         delete seguimiento_2;
         delete estabilidad;
@@ -298,7 +298,7 @@ bool IntEspecificaciones::getDatos(dBND * datos, QString nombre)
         //sistema debe quedar nulo: si esta lectura acaba en no-utilizado, el
         //clone() de Aceptar clonaba un puntero colgante.
         delete datos->sistema;
-        datos->sistema = NULL;
+        datos->sistema = nullptr;
         datos->constante = false;
         datos->utilizado = false;
     }
@@ -376,15 +376,15 @@ bool IntEspecificaciones::getDatos(dBND * datos, QString nombre)
             return true;
         }
 
-        QVector <Parameter *> * nume = NULL;
-        QVector <Parameter *> * deno = NULL;
+        QVector <Parameter *> * nume = nullptr;
+        QVector <Parameter *> * deno = nullptr;
 
         //Ganancia y retardo se validan SIEMPRE: la rama libre construia el
-        //FreeForm con los crearKRet sin comprobar (NULL ante un error de
+        //FreeForm con los crearKRet sin comprobar (nullptr ante un error de
         //sintaxis y crash posterior).
         Parameter * k = crearKRet(ui->k->text(), true);
 
-        if (k == NULL){
+        if (k == nullptr){
             menerror("Error en la ganancia.", "Introducir especificaciones.");
             ui->k->setStyleSheet("background : red");
             datos->utilizado = false;
@@ -394,7 +394,7 @@ bool IntEspecificaciones::getDatos(dBND * datos, QString nombre)
 
         Parameter * ret = crearKRet(ui->ret->text(), false);
 
-        if (ret == NULL){
+        if (ret == nullptr){
             menerror("Error en el retardo.", "Introducir especificaciones.");
             ui->ret->setStyleSheet("background : red");
             delete k;
@@ -407,7 +407,7 @@ bool IntEspecificaciones::getDatos(dBND * datos, QString nombre)
 
             nume = crearNumeradorDenominador(ui->nume->text());
 
-            if (nume == NULL){
+            if (nume == nullptr){
                 menerror("Error en el numerador.", "Introducir especificaciones.");
                 ui->nume->setStyleSheet("background : red");
                 delete k;
@@ -419,7 +419,7 @@ bool IntEspecificaciones::getDatos(dBND * datos, QString nombre)
 
             deno = crearNumeradorDenominador(ui->deno->text());
 
-            if (deno == NULL){
+            if (deno == nullptr){
                 menerror("Error en el denominador.", "Introducir especificaciones.");
                 ui->deno->setStyleSheet("background : red");
                 qDeleteAll(*nume);
@@ -443,11 +443,11 @@ bool IntEspecificaciones::getDatos(dBND * datos, QString nombre)
         }else {
             //Si se llego aqui con coeficientes construidos (sin radio de
             //tipo marcado), no deben fugarse.
-            if (nume != NULL){
+            if (nume != nullptr){
                 qDeleteAll(*nume);
                 delete nume;
             }
-            if (deno != NULL){
+            if (deno != nullptr){
                 qDeleteAll(*deno);
                 delete deno;
             }
@@ -466,14 +466,14 @@ bool IntEspecificaciones::getDatos(dBND *datos, dBND *datos1, QString nombre){
 
     if (datos->utilizado && !datos->constante){
         delete datos->sistema;
-        datos->sistema = NULL;
+        datos->sistema = nullptr;
         datos->constante = false;
         datos->utilizado = false;
     }
 
     if (datos1->utilizado && !datos1->constante){
         delete datos1->sistema;
-        datos1->sistema = NULL;
+        datos1->sistema = nullptr;
         datos1->constante = false;
         datos1->utilizado = false;
     }
@@ -559,15 +559,15 @@ bool IntEspecificaciones::getDatos(dBND *datos, dBND *datos1, QString nombre){
             return true;
         }
 
-        QVector <Parameter *> * nume = NULL;
-        QVector <Parameter *> * deno = NULL;
+        QVector <Parameter *> * nume = nullptr;
+        QVector <Parameter *> * deno = nullptr;
 
         //Ganancia y retardo se validan SIEMPRE: la rama libre construia el
-        //FreeForm con los crearKRet sin comprobar (NULL ante un error de
+        //FreeForm con los crearKRet sin comprobar (nullptr ante un error de
         //sintaxis y crash posterior).
         Parameter * k = crearKRet(ui->KSe1->text(), true);
 
-        if (k == NULL){
+        if (k == nullptr){
             menerror("Error en la ganancia.", "Introducir especificaciones.");
             ui->KSe1->setStyleSheet("background : red");
             datos->utilizado = false;
@@ -577,7 +577,7 @@ bool IntEspecificaciones::getDatos(dBND *datos, dBND *datos1, QString nombre){
 
         Parameter * ret = crearKRet(ui->RetSe1->text(), false);
 
-        if (ret == NULL){
+        if (ret == nullptr){
             menerror("Error en el retardo.", "Introducir especificaciones.");
             ui->RetSe1->setStyleSheet("background : red");
             delete k;
@@ -590,7 +590,7 @@ bool IntEspecificaciones::getDatos(dBND *datos, dBND *datos1, QString nombre){
 
             nume = crearNumeradorDenominador(ui->NumeSe1->text());
 
-            if (nume == NULL){
+            if (nume == nullptr){
                 menerror("Error en el numerador.", "Introducir especificaciones.");
                 ui->NumeSe1->setStyleSheet("background : red");
                 delete k;
@@ -602,7 +602,7 @@ bool IntEspecificaciones::getDatos(dBND *datos, dBND *datos1, QString nombre){
 
             deno = crearNumeradorDenominador(ui->DenoSe1->text());
 
-            if (deno == NULL){
+            if (deno == nullptr){
                 menerror("Error en el denominador.", "Introducir especificaciones.");
                 ui->DenoSe1->setStyleSheet("background : red");
                 qDeleteAll(*nume);
@@ -626,11 +626,11 @@ bool IntEspecificaciones::getDatos(dBND *datos, dBND *datos1, QString nombre){
         }else {
             //Si se llego aqui con coeficientes construidos (sin radio de
             //tipo marcado), no deben fugarse.
-            if (nume != NULL){
+            if (nume != nullptr){
                 qDeleteAll(*nume);
                 delete nume;
             }
-            if (deno != NULL){
+            if (deno != nullptr){
                 qDeleteAll(*deno);
                 delete deno;
             }
@@ -680,15 +680,15 @@ bool IntEspecificaciones::getDatos(dBND *datos, dBND *datos1, QString nombre){
             return true;
         }
 
-        QVector <Parameter *> * nume = NULL;
-        QVector <Parameter *> * deno = NULL;
+        QVector <Parameter *> * nume = nullptr;
+        QVector <Parameter *> * deno = nullptr;
 
         //Ganancia y retardo se validan SIEMPRE: la rama libre construia el
-        //FreeForm con los crearKRet sin comprobar (NULL ante un error de
+        //FreeForm con los crearKRet sin comprobar (nullptr ante un error de
         //sintaxis y crash posterior).
         Parameter * k = crearKRet(ui->KSe1_2->text(), true);
 
-        if (k == NULL){
+        if (k == nullptr){
             menerror("Error en la ganancia.", "Introducir especificaciones.");
             ui->KSe1_2->setStyleSheet("background : red");
             datos1->utilizado = false;
@@ -698,7 +698,7 @@ bool IntEspecificaciones::getDatos(dBND *datos, dBND *datos1, QString nombre){
 
         Parameter * ret = crearKRet(ui->RetSe1_2->text(), false);
 
-        if (ret == NULL){
+        if (ret == nullptr){
             menerror("Error en el retardo.", "Introducir especificaciones.");
             ui->RetSe1_2->setStyleSheet("background : red");
             delete k;
@@ -711,7 +711,7 @@ bool IntEspecificaciones::getDatos(dBND *datos, dBND *datos1, QString nombre){
 
             nume = crearNumeradorDenominador(ui->NumeSe1_2->text());
 
-            if (nume == NULL){
+            if (nume == nullptr){
                 menerror("Error en el numerador.", "Introducir especificaciones.");
                 ui->NumeSe1_2->setStyleSheet("background : red");
                 delete k;
@@ -723,7 +723,7 @@ bool IntEspecificaciones::getDatos(dBND *datos, dBND *datos1, QString nombre){
 
             deno = crearNumeradorDenominador(ui->DenoSe1_2->text());
 
-            if (deno == NULL){
+            if (deno == nullptr){
                 menerror("Error en el denominador.", "Introducir especificaciones.");
                 ui->DenoSe1_2->setStyleSheet("background : red");
                 qDeleteAll(*nume);
@@ -746,11 +746,11 @@ bool IntEspecificaciones::getDatos(dBND *datos, dBND *datos1, QString nombre){
         }else {
             //Si se llego aqui con coeficientes construidos (sin radio de
             //tipo marcado), no deben fugarse.
-            if (nume != NULL){
+            if (nume != nullptr){
                 qDeleteAll(*nume);
                 delete nume;
             }
-            if (deno != NULL){
+            if (deno != nullptr){
                 qDeleteAll(*deno);
                 delete deno;
             }
@@ -781,7 +781,7 @@ Parameter * IntEspecificaciones::crearKRet(QString linea, bool isK){
         try {
             res = p.Eval().GetFloat();
         }catch (ParserError &e){
-            return NULL;
+            return nullptr;
         }
 
         return new Parameter(res);
@@ -812,7 +812,7 @@ QVector <Parameter * > * IntEspecificaciones::crearNumeradorDenominador(QString 
             delete numeros;
             qDeleteAll(*var);
             delete var;
-            return NULL;
+            return nullptr;
         }
 
         var->append(new Parameter(res));
@@ -927,7 +927,7 @@ void IntEspecificaciones::on_OK_clicked()
 {
     //El vector anterior es ya propiedad del DAO (se le entrego): aqui solo
     //se suelta la referencia. Antes se fugaba un QVector por cada Aceptar.
-    retorno = NULL;
+    retorno = nullptr;
 
     bool correcto = true;
 

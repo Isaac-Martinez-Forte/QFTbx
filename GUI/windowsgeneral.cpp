@@ -22,7 +22,8 @@ WindowsGeneral::WindowsGeneral(QWidget *parent) :
     ui->setupUi(this);
     setWindowTitle("QFT: Quantitative feedback theory");
 
-    ui->barraprogreso->setRange(0,8);
+    //7 pasos reales: con rango 0-8 la barra nunca llegaba al 100%.
+    ui->barraprogreso->setRange(0,7);
 
     crear();
 }
@@ -56,44 +57,76 @@ void WindowsGeneral::crear(){
     ui->BTemp->setEnabled(false);
     ui->BBoun->setEnabled(false);
     ui->BDiLaz->setEnabled(false);
+    ui->barraDiagramaBode->setEnabled(false);
+
+    //Sin esto, "Guardar" tras "Nuevo" sobreescribia el ultimo fichero
+    //abierto con el proyecto vacio.
+    ficheroGuardar.clear();
 }
 
-void WindowsGeneral::destruir(){
+//Retrocede un paso: la barra debe reflejarlo (antes se quedaba contando
+//pasos que ya no existian).
+void WindowsGeneral::retrocederPaso(bool & paso){
+    if (paso){
+        posBarra--;
+        ui->barraprogreso->setValue(posBarra);
+    }
+    paso = false;
+}
+
+void WindowsGeneral::destruirDialogos(){
     if (paso1){
         delete intPlanta;
+        intPlanta = nullptr;
     }
 
     if (paso2){
         delete especificaciones;
+        especificaciones = nullptr;
     }
 
     if (paso3){
         delete intOmega;
+        intOmega = nullptr;
     }
 
     if (paso4){
         delete vTemplates;
+        vTemplates = nullptr;
         delete graficoTemplate;
+        graficoTemplate = nullptr;
     }
 
     if (paso5){
         delete datosBoun;
+        datosBoun = nullptr;
         delete viewBound;
+        viewBound = nullptr;
         delete viewBoundReun;
+        viewBoundReun = nullptr;
     }
 
     if (paso6){
         delete eControlador;
+        eControlador = nullptr;
     }
 
     if (digBode){
         delete diagramaBode;
+        diagramaBode = nullptr;
+        digBode = false;
     }
 
     if (paso7){
         delete loopShaping;
+        loopShaping = nullptr;
         delete viewLoopShaping;
+        viewLoopShaping = nullptr;
     }
+}
+
+void WindowsGeneral::destruir(){
+    destruirDialogos();
 
     delete controlador;
 }
@@ -119,7 +152,8 @@ void WindowsGeneral::on_BDefiPlanta_clicked()
         paso1 = true;
     } else {
         delete intPlanta;
-        paso1 = false;
+        intPlanta = nullptr;
+        retrocederPaso(paso1);
     }
 }
 
@@ -146,7 +180,8 @@ void WindowsGeneral::on_BEspi_clicked()
         paso2 = true;
     } else {
         delete especificaciones;
-        paso2 = false;
+        especificaciones = nullptr;
+        retrocederPaso(paso2);
     }
 }
 
@@ -176,7 +211,8 @@ void WindowsGeneral::on_BFrec_clicked()
 
     } else {
         delete intOmega;
-        paso3 = false;
+        intOmega = nullptr;
+        retrocederPaso(paso3);
     }
 }
 
@@ -204,6 +240,11 @@ void WindowsGeneral::on_BTemp_clicked()
         } catch (const qftbx::Exception & e) {
             this->setCursor(Qt::ArrowCursor);
             QMessageBox::critical(this, tr("Calculo de Templates"), e.what());
+            delete vTemplates;
+            vTemplates = nullptr;
+            delete graficoTemplate;
+            graficoTemplate = nullptr;
+            retrocederPaso(paso4);
             return;
         }
 
@@ -229,14 +270,18 @@ void WindowsGeneral::on_BTemp_clicked()
             paso4 = true;
         } else {
             delete vTemplates;
+            vTemplates = nullptr;
             delete graficoTemplate;
-            paso4 = false;
+            graficoTemplate = nullptr;
+            retrocederPaso(paso4);
         }
         this->setCursor(Qt::ArrowCursor);
     } else {
         delete vTemplates;
+        vTemplates = nullptr;
         delete graficoTemplate;
-        paso4 = false;
+        graficoTemplate = nullptr;
+        retrocederPaso(paso4);
     }
 }
 
@@ -265,6 +310,13 @@ void WindowsGeneral::on_BBoun_clicked()
         } catch (const qftbx::Exception & e) {
             this->setCursor(Qt::ArrowCursor);
             QMessageBox::critical(this, tr("Calculo de Boundaries"), e.what());
+            delete datosBoun;
+            datosBoun = nullptr;
+            delete viewBound;
+            viewBound = nullptr;
+            delete viewBoundReun;
+            viewBoundReun = nullptr;
+            retrocederPaso(paso5);
             return;
         }
 
@@ -272,9 +324,12 @@ void WindowsGeneral::on_BBoun_clicked()
             this->setCursor(Qt::ArrowCursor);
 
             delete datosBoun;
+            datosBoun = nullptr;
             delete viewBound;
+            viewBound = nullptr;
             delete viewBoundReun;
-            paso5 = false;
+            viewBoundReun = nullptr;
+            retrocederPaso(paso5);
 
             return;
         }
@@ -327,7 +382,8 @@ void WindowsGeneral::on_BECont_clicked()
         //ui->menuDiagrama_Lazo->setEnabled(true);
     } else {
         delete eControlador;
-        paso6 = false;
+        eControlador = nullptr;
+        retrocederPaso(paso6);
     }
 }
 
@@ -352,6 +408,11 @@ void WindowsGeneral::on_BDiLaz_clicked()
                                                   loopShaping->getDeteccionAvanced(), loopShaping->getAcelerated());
         } catch (const qftbx::Exception & e) {
             QMessageBox::critical(this, tr("Loop Shaping"), e.what());
+            delete loopShaping;
+            loopShaping = nullptr;
+            delete viewLoopShaping;
+            viewLoopShaping = nullptr;
+            retrocederPaso(paso7);
             return;
         }
 
@@ -369,13 +430,17 @@ void WindowsGeneral::on_BDiLaz_clicked()
             paso7 = true;
         } else {
             delete loopShaping;
+            loopShaping = nullptr;
             delete viewLoopShaping;
-            paso7 = false;
+            viewLoopShaping = nullptr;
+            retrocederPaso(paso7);
         }
     } else {
         delete loopShaping;
+        loopShaping = nullptr;
         delete viewLoopShaping;
-        paso7 = false;
+        viewLoopShaping = nullptr;
+        retrocederPaso(paso7);
     }
 }
 
@@ -429,6 +494,21 @@ void WindowsGeneral::on_actionAbrir_triggered()
             return;
         }
 
+        //Los dialogos de la sesion anterior se liberan y la barra se
+        //reinicia: antes cada apertura fugaba los dialogos existentes y la
+        //barra acumulaba pasos entre ficheros.
+        destruirDialogos();
+        posBarra = 0;
+        ui->barraprogreso->setValue(0);
+        ui->BEspi->setEnabled(false);
+        ui->BTemp->setEnabled(false);
+        ui->BBoun->setEnabled(false);
+        ui->BDiLaz->setEnabled(false);
+        ui->barraDiagramaBode->setEnabled(false);
+
+        //"Guardar" vuelve a escribir sobre el fichero recien abierto.
+        ficheroGuardar = fileName;
+
         paso1 = leido->value(0);
         paso2 = leido->value(1);
         paso3 = leido->value(2);
@@ -436,6 +516,8 @@ void WindowsGeneral::on_actionAbrir_triggered()
         paso5 = leido->value(4);
         paso6 = leido->value(5);
         paso7 = leido->value(6);
+
+        delete leido;
 
 
         if (paso1){
@@ -550,6 +632,13 @@ void WindowsGeneral::on_actionTodos_los_Diagramas_2_triggered()
 
 void WindowsGeneral::mostrarLazo(bool nichols, bool nyquist){
 
+    //Sin boundaries y estructura del controlador no hay lazo que mostrar
+    //(antes se desreferenciaban DAOs sin inicializar).
+    if (!paso5 || !paso6){
+        menerror("Para ver el diagrama del lazo hay que calcular antes los boundaries e introducir la estructura del controlador.", "QFT");
+        return;
+    }
+
     qreal maglineal = 0;
 
     BoundaryData * boundaries = controlador->getBound();
@@ -609,15 +698,32 @@ void WindowsGeneral::mostrarLazo(bool nichols, bool nyquist){
 
     ver->exec();
 
+    //BoundaryData es una vista no propietaria: los contenedores temporales
+    //construidos aqui se liberan aparte (antes se abandonaban).
     delete nuevoBoundaries;
+
+    foreach (QVector<QPointF> * vector, *nuevosBoundariesReun) {
+        delete vector;
+    }
+    delete nuevosBoundariesReun;
+
+    foreach (auto * porFrecuencia, *nuevoHash_inter) {
+        foreach (QVector<QPointF> * cubeta, *porFrecuencia) {
+            delete cubeta;
+        }
+        delete porFrecuencia;
+    }
+    delete nuevoHash_inter;
+
     delete ver;
 }
 
 void WindowsGeneral::on_actionTemplates_triggered()
 {
+    //Accion de "volver a ver": si no hay templates calculados no hay nada
+    //que mostrar (antes marcaba el paso como hecho sin datos).
     if (!paso4){
-        vTemplates = new IntroducirTemplates(this);
-        graficoTemplate = new ViewTemplates(this);
+        return;
     }
 
     if (controlador->getTemplate() != nullptr && controlador->getContorno() != nullptr){
@@ -626,42 +732,17 @@ void WindowsGeneral::on_actionTemplates_triggered()
 
         graficoTemplate->show();
     }
-
-    if (!paso4){
-        posBarra++;
-        ui->barraprogreso->setValue(posBarra);
-    }
-
-    paso4 = true;
 }
 
 void WindowsGeneral::on_actionBoundaries_triggered()
 {
     if (!paso5){
-        datosBoun = new IntDatosBoundaries(this);
-        viewBound = new ViewBound(this);
-        viewBoundReun = new ViewBoundReun(this);
+        return;
     }
 
-    /*viewBound->setDatos(controlador->getBound(), controlador->getOmega()->getValores());
-    viewBound->mostrarDiagrama();
-    viewBound->show();*/
-
-    //viewBoundReun->setDatos(controlador->unionBuckets(), controlador->getOmega()->getValores(), controlador->unionBoundaries()->last());
     viewBoundReun->setDatos(controlador->unionBoundaries(), controlador->getOmega()->getValores());
     viewBoundReun->mostrar_diagrama();
     viewBoundReun->show();
-
-    if (!paso5){
-        posBarra++;
-        ui->barraprogreso->setValue(posBarra);
-    }
-
-    paso5 = true;
-
-    if (paso6 && paso5){
-        ui->BDiLaz->setEnabled(true);
-    }
 }
 
 void WindowsGeneral::on_actionLazo_triggered()
@@ -675,11 +756,4 @@ void WindowsGeneral::on_actionLazo_triggered()
 
     viewLoopShaping->mostrar_diagrama();
     viewLoopShaping->show();
-
-    if (!paso7){
-        posBarra++;
-        ui->barraprogreso->setValue(posBarra);
-    }
-    paso7 = true;
-
 }
