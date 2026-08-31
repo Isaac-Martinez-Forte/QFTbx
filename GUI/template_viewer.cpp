@@ -228,9 +228,9 @@ void TemplateViewer::plotDiagram(bool plot){
 
     /////////////////////////////////////////////
 
-    /*Natura_Interval_extension * conversion = new Natura_Interval_extension ();
+    /*NaturalIntervalExtension * conversion = new NaturalIntervalExtension ();
 
-    cinterval <qreal> caja = conversion->get_box(controller->getPlanta(),omega->at(0));
+    cinterval <qreal> caja = conversion->nicholsBox(controller->getPlanta(),omega->at(0));
 
     QPointF uno (caja.re.inf, caja.im.inf);
     QPointF dos (caja.re.inf, caja.im.sup);

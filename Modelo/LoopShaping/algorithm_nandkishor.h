@@ -98,7 +98,7 @@ private:
     LtiSystem * controlador_inicial;
     QVector <qreal> * omega;
     BoundaryData * boundaries;
-    Natura_Interval_extension * conversion;
+    NaturalIntervalExtension * conversion;
     ListaOrdenada * lista;
 
     LtiSystem * controlador_retorno;

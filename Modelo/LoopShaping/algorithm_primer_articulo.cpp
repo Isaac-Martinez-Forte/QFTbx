@@ -221,7 +221,7 @@ bool Algorithm_primer_articulo::init_algorithm() {
 
     lista = new ListaOrdenada();
 
-    conversion = new Natura_Interval_extension();
+    conversion = new NaturalIntervalExtension();
 
     Tripleta * tripleta;
     LtiSystem * actual;
@@ -357,7 +357,7 @@ inline Tripleta * Algorithm_primer_articulo::check_box_feasibility(LtiSystem *co
 
     for (qint32 k = 0; k < omega->size(); k++) {
 
-        caja = conversion->get_box(controlador, omega->at(k), plantas_nominales->at(k), Nyquist);
+        caja = conversion->nicholsBox(controlador, omega->at(k), plantas_nominales->at(k), Nyquist);
 
 
 #ifdef VER_ANTES
@@ -388,7 +388,7 @@ inline Tripleta * Algorithm_primer_articulo::check_box_feasibility(LtiSystem *co
 #endif
 #endif
 
-        boundaries->setBox(conversion->getBoxDB());
+        boundaries->setBox(conversion->nyquistDecibelBox());
 
         datos = (deteccion->*deteccionViolacion)(caja, boundaries, k);
 
@@ -396,7 +396,7 @@ inline Tripleta * Algorithm_primer_articulo::check_box_feasibility(LtiSystem *co
 
         QVector <QPointF> * v = new QVector <QPointF> ();
 
-        cinterval caja = conversion->get_box(controlador,omega->at(k), plantas_nominales->at(k), false);
+        cinterval caja = conversion->nicholsBox(controlador,omega->at(k), plantas_nominales->at(k), false);
 
         v->append(QPointF(_double(InfIm(caja)), _double(InfRe(caja))));
         v->append(QPointF(_double(InfIm(caja)), _double(SupRe(caja))));
@@ -434,7 +434,7 @@ inline Tripleta * Algorithm_primer_articulo::check_box_feasibility(LtiSystem *co
 
     for (qint32 k = 0; k < omega->size(); k++) {
 
-        caja = conversion->get_box(controlador, omega->at(k), plantas_nominales->at(k), Nyquist);
+        caja = conversion->nicholsBox(controlador, omega->at(k), plantas_nominales->at(k), Nyquist);
 
         qreal a = _double(diam(Re(caja)) * diam(Im(caja)));
 
@@ -499,7 +499,7 @@ inline Tripleta * Algorithm_primer_articulo::check_box_feasibility(LtiSystem *co
     for (qint32 k = 0; k < omega->size(); k++) {
         QVector <QPointF> * v = new QVector <QPointF> ();
 
-        cinterval caja = conversion->get_box(controlador,omega->at(k), plantas_nominales->at(k), true);
+        cinterval caja = conversion->nicholsBox(controlador,omega->at(k), plantas_nominales->at(k), true);
 
         v->append(QPointF(_double(InfIm(caja)), _double(InfRe(caja))));
         v->append(QPointF(_double(InfIm(caja)), _double(SupRe(caja))));
@@ -1753,8 +1753,8 @@ inline FC::return_bisection Algorithm_primer_articulo::split_box_bisection_avanc
 
     qreal punto_medio_k = k.x() + (k.y() - k.x()) / 2;
 
-    cinterval nume_box = conversion->get_box_nume(numerador, omega->at(0), current_controlador->type(), false);
-    cinterval deno_box = conversion->get_box_deno(denominador, omega->at(0), current_controlador->type(), false);
+    cinterval nume_box = conversion->numeratorBox(numerador, omega->at(0), current_controlador->type(), false);
+    cinterval deno_box = conversion->denominatorBox(denominador, omega->at(0), current_controlador->type(), false);
 
     //Comprobamos la k
     interval k1(k.x(), punto_medio_k);

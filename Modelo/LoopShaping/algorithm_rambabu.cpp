@@ -84,7 +84,7 @@ bool Algorithm_rambabu::init_algorithm(){
 
     lista = new ListaOrdenada ();
 
-    conversion = new Natura_Interval_extension ();
+    conversion = new NaturalIntervalExtension ();
     lista = new ListaOrdenada ();
 
     deteccion = new DeteccionViolacionBoundaries ();
@@ -174,7 +174,7 @@ flags_box Algorithm_rambabu::check_box_feasibility(LtiSystem * v){
 
     for (qint32 k = 0; k < omega->size(); k++) {
 
-        caja = conversion->get_box(controlador, omega->at(k), plantas_nominales->at(k), false);
+        caja = conversion->nicholsBox(controlador, omega->at(k), plantas_nominales->at(k), false);
 
         datos = deteccion->deteccionViolacionCajaNiNi(caja, boundaries, k);
 

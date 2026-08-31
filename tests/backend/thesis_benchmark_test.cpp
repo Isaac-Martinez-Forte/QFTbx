@@ -17,19 +17,21 @@
 // net for the algorithm rewrites; correctness is judged against each
 // algorithm's paper, not against these values.
 //
-// Pinned observations to dissect in later tandas:
-// - MC-prev reaches a better optimum than NT on BOTH cases (250000 vs
-//   328125 and 2.5e7 vs 3.33e7): same suspicion as on planta1 about NT/NK
-//   optimality (live-node ordered-list insertion defect). For 8b.2.
+// Pinned observations (updated after the 8b.1 interval-extension fix,
+// which changed several goldens - the old values were artifacts of the
+// branch-mapping containment bug):
+// - MC-prev reaches a better optimum than NT on ex2 (125000 vs 328125)
+//   but a WORSE one on ACC'90 (4.06e7 vs 3.33e7): neither is trustworthy
+//   until reviewed against its paper. For 8b.2/8b.5.
 // - MR (rambabu) returns the bottom corner of the search box (1e-9
 //   everywhere): its constraint rules are unreachable and the contraction
 //   never fires, so everything looks feasible. The algorithm is known to
 //   be unfinished. For 8b.4.
-// - NK CRASHES on both fixtures: a CXSC arithmetic trap inside
-//   sqrtx2y2() called from Natura_Interval_extension::get_box() during
-//   init_algorithm() (huge parameter boxes produce an invalid/overflowing
-//   interval). planta1's one-dimensional search never reached this path.
-//   For 8b.1 (get_box) / 8b.3 (NK). Test disabled until fixed.
+// - NK ABORTS the process on both fixtures: its own cutting equations
+//   overflow an interval product to infinity and a later dotprecision
+//   accumulation traps on 0*infinity ("Processing aborted"). It used to
+//   SIGSEGV before the CXSC trap printer was fixed; now it exits with a
+//   diagnostic. For 8b.3. Test disabled until fixed.
 // - MC CRASHES on both fixtures: SIGSEGV inside ListaOrdenada::insertar()
 //   called from Algorithm_segundo_articulo::recortesFeasible() - the same
 //   ordered list whose middle-insert defect is pinned in
@@ -186,19 +188,19 @@ INSTANTIATE_TEST_SUITE_P(
     Algorithms, ThesisBenchmarkGolden,
     ::testing::Values(
         BenchmarkGolden{"Ex2NT", "qft_toolbox_ex2.qft", tools::sachin,
-                        328125.0, 5000.0, 5000.0},
+                        328125.0, 5000.0, 1e-9},
         // BUG: bottom corner of the search box, see the header comment.
         BenchmarkGolden{"Ex2MR", "qft_toolbox_ex2.qft", tools::rambabu,
                         1e-9, 1e-9, 1e-9},
         BenchmarkGolden{"Ex2MCprev", "qft_toolbox_ex2.qft", tools::primer_articulo,
-                        250000.00342968662, 0.14984963916870972, 0.26408434145678922},
+                        125000.61779551723, 0.065248818040224255, 29.698263966103596},
         BenchmarkGolden{"Acc90NT", "acc90.qft", tools::sachin,
                         33332824.70703125, 750.0, 1e-9},
         // BUG: bottom corner of the search box, see the header comment.
         BenchmarkGolden{"Acc90MR", "acc90.qft", tools::rambabu,
                         1e-9, 1e-9, 1e-9},
         BenchmarkGolden{"Acc90MCprev", "acc90.qft", tools::primer_articulo,
-                        25000000.000570104, 1e-9, 0.67074960321314647}),
+                        40617427.61889939, 1.4344642924971838, 0.067759776276905256}),
     [](const ::testing::TestParamInfo<BenchmarkGolden>& info) {
         return std::string(info.param.name);
     });

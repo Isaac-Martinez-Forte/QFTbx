@@ -90,7 +90,7 @@ bool Algorithm_nandkishor::init_algorithm(){
 
     lista = new ListaOrdenada ();
 
-    conversion = new Natura_Interval_extension ();
+    conversion = new NaturalIntervalExtension ();
     lista = new ListaOrdenada ();
     deteccion = new DeteccionViolacionBoundaries();
 
@@ -199,7 +199,7 @@ inline flags_box Algorithm_nandkishor::check_box_feasibility(LtiSystem * control
     for (qint32 k = 0; k < omega->size(); k++) {
 
 
-        caja = conversion->get_box(controlador, omega->at(k), plantas_nominales->at(k), false);
+        caja = conversion->nicholsBox(controlador, omega->at(k), plantas_nominales->at(k), false);
 
         datos = deteccion->deteccionViolacionCajaNi(caja, boundaries, k);
 

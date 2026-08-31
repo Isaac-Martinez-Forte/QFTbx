@@ -76,6 +76,11 @@ e_list
         aentry *ent;
         a_bool found = FALSE;
 
+        /* f_errr is only connected by p_init(), which never runs when   */
+        /* the library is embedded in a C++ application: fall back to    */
+        /* stderr so reporting a trap cannot crash the process.          */
+        if (f_errr.fp==NULL) f_errr.fp = stderr;
+
         e_open(e_argc);
 
         /* split code value                                     */

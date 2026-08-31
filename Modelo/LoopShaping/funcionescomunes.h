@@ -86,11 +86,11 @@ inline LtiSystem * guardarControlador(LtiSystem *controlador, bool x) {
 }
 
 inline bool if_less_epsilon(LtiSystem * controlador, qreal epsilon, QVector <qreal> * omega,
-                            Natura_Interval_extension *conversion, QVector <complex> * plantas_nominales) {
+                            NaturalIntervalExtension *conversion, QVector <complex> * plantas_nominales) {
 
     cinterval box;
     for (qint32 i = 0; i < omega->size(); i++){
-        box = conversion->get_box(controlador, omega->at(i), plantas_nominales->at(i), false);
+        box = conversion->nicholsBox(controlador, omega->at(i), plantas_nominales->at(i), false);
 
         if ((cxsc::diam(Re(box)) >= epsilon) || (cxsc::diam(Im(box)) >= epsilon)) {
             return false;

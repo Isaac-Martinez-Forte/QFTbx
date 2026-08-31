@@ -43,7 +43,7 @@ bool Algorithm_sachin::init_algorithm() {
 
     lista = new ListaOrdenada();
 
-    conversion = new Natura_Interval_extension();
+    conversion = new NaturalIntervalExtension();
     deteccion = new DeteccionViolacionBoundaries();
 
     plantas_nominales = new QVector <cxsc::complex> ();
@@ -126,7 +126,7 @@ inline void Algorithm_sachin::check_box_feasibility(LtiSystem * controlador) {
 
     foreach(qreal o, *omega) {
 
-        caja = conversion->get_box(controlador, o, plantas_nominales->at(contador), false);
+        caja = conversion->nicholsBox(controlador, o, plantas_nominales->at(contador), false);
 
         datos = deteccion->deteccionViolacionCajaNi(caja, boundaries, contador);
 
@@ -170,7 +170,7 @@ inline LtiSystem * Algorithm_sachin::acelerated(LtiSystem *v, qreal minimo_bound
                                       min_k_lineal, v->delay());
 
 
-        qreal mag_min_db = _double(SupRe(conversion->get_box(G_k_min, o, plantas_nominales->at(contador), false)));
+        qreal mag_min_db = _double(SupRe(conversion->nicholsBox(G_k_min, o, plantas_nominales->at(contador), false)));
 
         delete min_k_lineal;
         G_k_min->releaseOwnership();
@@ -201,7 +201,7 @@ inline LtiSystem * Algorithm_sachin::acelerated(LtiSystem *v, qreal minimo_bound
                                       max_k_lineal, v->delay());
 
 
-        qreal mag_max_db = conversion->get_box(G_k_max, o, plantas_nominales->at(contador), false).re.sup;
+        qreal mag_max_db = conversion->nicholsBox(G_k_max, o, plantas_nominales->at(contador), false).re.sup;
 
         delete max_k_lineal;
         G_k_max->borrar();

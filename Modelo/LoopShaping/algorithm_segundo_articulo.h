@@ -71,7 +71,7 @@ private:
 
     QVector <qreal> * omega;
     BoundaryData * boundaries;
-    Natura_Interval_extension * conversion;
+    NaturalIntervalExtension * conversion;
     ListaOrdenada * lista;
     qreal epsilon;
 

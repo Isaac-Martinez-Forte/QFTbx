@@ -170,13 +170,13 @@ void LoopBoundariesViewer::showDiagram(){
 
     delete rowColors;
 
-    /*Natura_Interval_extension * conversion = new Natura_Interval_extension();
+    /*NaturalIntervalExtension * conversion = new NaturalIntervalExtension();
 
     contador = 0;
 
     foreach (qreal o, *omega) {
 
-        cinterval <qreal> box = conversion->get_box(controller,o, plant->evaluate(o), false);
+        cinterval <qreal> box = conversion->nicholsBox(controller,o, plant->evaluate(o), false);
 
 
         interval <qreal> b = abs(box);

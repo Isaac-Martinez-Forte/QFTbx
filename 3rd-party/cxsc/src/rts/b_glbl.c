@@ -115,7 +115,11 @@ local double e_srdd = 1.0;			/* RS/6000 fpscr down */
 
 local a_btyp b_maxl = 3;
 
-local char *e_head = NULL;
+/* Message header, formerly NULL until p_init() copied o_text[0] into   */
+/* it. p_init() never runs when the library is embedded in a C++        */
+/* application, and printing a NULL header crashes the process, so the  */
+/* header value is set statically.                                      */
+local char *e_head = "--- ";
 
 local char f_name[f_fnsz];
 

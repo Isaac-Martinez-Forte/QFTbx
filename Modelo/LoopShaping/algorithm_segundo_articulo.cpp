@@ -92,7 +92,7 @@ bool Algorithm_segundo_articulo::init_algorithm(){
 
     lista = new ListaOrdenada();
 
-    conversion = new Natura_Interval_extension();
+    conversion = new NaturalIntervalExtension();
 
     Tripleta2 * tripleta;
 
@@ -333,9 +333,9 @@ inline bool Algorithm_segundo_articulo::analizar(Tripleta2 * tripleta) {
         // Comprobamos si para esta frecuencia la caja de proyección es feasible.
         if (!tripleta->isFrecueciaFeasible(k)) {
 
-            caja = conversion->get_box(tripleta->getSistema(), omega->at(k), plantas_nominales->at(k));
+            caja = conversion->nicholsBox(tripleta->getSistema(), omega->at(k), plantas_nominales->at(k));
 
-            boundaries->setBox(conversion->getBoxDB());
+            boundaries->setBox(conversion->nyquistDecibelBox());
 
             datos = (deteccion->*deteccionViolacion)(caja, boundaries, k, tripleta->getEtapas());
 
@@ -344,7 +344,7 @@ inline bool Algorithm_segundo_articulo::analizar(Tripleta2 * tripleta) {
 
             QVector <QPointF> * v = new QVector <QPointF> ();
 
-            cinterval caja = conversion->get_box(tripleta->getSistema(),omega->at(k), plantas_nominales->at(k), false);
+            cinterval caja = conversion->nicholsBox(tripleta->getSistema(),omega->at(k), plantas_nominales->at(k), false);
 
             v->append(QPointF(_double(InfIm(caja)), _double(InfRe(caja))));
             v->append(QPointF(_double(InfIm(caja)), _double(SupRe(caja))));
@@ -1171,7 +1171,7 @@ inline Tripleta2 * Algorithm_segundo_articulo::calculoTerminosControlador (Tripl
 
     if (this->isVariableNume){
         foreach (Parameter*  nume , *s->numerator()){
-            terminosNume->append(conversion->get_box_termino_nume(nume, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
+            terminosNume->append(conversion->numeratorTermBox(nume, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
         }
     }
 
@@ -1179,13 +1179,13 @@ inline Tripleta2 * Algorithm_segundo_articulo::calculoTerminosControlador (Tripl
 
     if (this->isVariableDeno){
         foreach (Parameter*  deno , *s->denominator()){
-            terminosDeno->append(conversion->get_box_termino_deno(deno, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
+            terminosDeno->append(conversion->denominatorTermBox(deno, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
         }
     }
 
     controlador->setTerDeno(terminosDeno);
 
-    terminosK = conversion->get_box_termino_k(controlador->getSistema()->gain(), plantas_nominales->at(frecuenciaPrincipal));
+    terminosK = conversion->gainTermBox(controlador->getSistema()->gain(), plantas_nominales->at(frecuenciaPrincipal));
 
     controlador->setTerK(terminosK);
 
@@ -1285,8 +1285,8 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArea(Tripleta2
         k = new Parameter("", QPointF(variable->range().x(), punto_medio), variable->range().x());
         kCopia =  new Parameter("", QPointF(punto_medio, variable->range().y()), punto_medio);
 
-        terminosK = conversion->get_box_termino_k(k, plantas_nominales->at(frecuenciaPrincipal));
-        terminosCopiaK = conversion->get_box_termino_k(kCopia, plantas_nominales->at(frecuenciaPrincipal));
+        terminosK = conversion->gainTermBox(k, plantas_nominales->at(frecuenciaPrincipal));
+        terminosCopiaK = conversion->gainTermBox(kCopia, plantas_nominales->at(frecuenciaPrincipal));
 
         delete variable;
 
@@ -1304,8 +1304,8 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArea(Tripleta2
             Parameter * var1 = new Parameter("", QPointF(variable->range().x(), punto_medio), variable->range().x());
             Parameter * var2 =  new Parameter("", QPointF(punto_medio, variable->range().y()), punto_medio);
 
-            terminosNume->replace(posicion, conversion->get_box_termino_nume(var1, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
-            terminosCopiaNume->replace(posicion, conversion->get_box_termino_nume(var2, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
+            terminosNume->replace(posicion, conversion->numeratorTermBox(var1, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
+            terminosCopiaNume->replace(posicion, conversion->numeratorTermBox(var2, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
 
 
             numerador->replace(posicion, var1);
@@ -1325,8 +1325,8 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArea(Tripleta2
             Parameter * var1 = new Parameter("", QPointF(variable->range().x(), punto_medio), variable->range().x());
             Parameter * var2 =  new Parameter("", QPointF(punto_medio, variable->range().y()), punto_medio);
 
-            terminosDeno->replace(pos, conversion->get_box_termino_deno(var1, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
-            terminosCopiaDeno->replace(pos, conversion->get_box_termino_deno(var2, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
+            terminosDeno->replace(pos, conversion->denominatorTermBox(var1, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
+            terminosCopiaDeno->replace(pos, conversion->denominatorTermBox(var2, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
 
 
             denominador->replace(pos, var1);
@@ -1467,8 +1467,8 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionMag(Tripleta2 
         k1 = new Parameter("", QPointF(k->range().x(), punto_medio), k->range().x());
         k2 = new Parameter("", QPointF(punto_medio, k->range().y()), punto_medio);
 
-        terminosK = conversion->get_box_termino_k(k1, plantas_nominales->at(frecuenciaPrincipal));
-        terminosCopiaK = conversion->get_box_termino_k(k2, plantas_nominales->at(frecuenciaPrincipal));
+        terminosK = conversion->gainTermBox(k1, plantas_nominales->at(frecuenciaPrincipal));
+        terminosCopiaK = conversion->gainTermBox(k2, plantas_nominales->at(frecuenciaPrincipal));
 
         delete k;
 
@@ -1486,8 +1486,8 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionMag(Tripleta2 
             Parameter * var1 = new Parameter("", QPointF(variable->range().x(), punto_medio), variable->range().x());
             Parameter * var2 =  new Parameter("", QPointF(punto_medio, variable->range().y()), punto_medio);
 
-            terminosNume->replace(posicion, conversion->get_box_termino_nume(var1, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
-            terminosCopiaNume->replace(posicion, conversion->get_box_termino_nume(var2, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
+            terminosNume->replace(posicion, conversion->numeratorTermBox(var1, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
+            terminosCopiaNume->replace(posicion, conversion->numeratorTermBox(var2, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
 
 
             numerador->replace(posicion, var1);
@@ -1507,8 +1507,8 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionMag(Tripleta2 
             Parameter * var1 = new Parameter("", QPointF(variable->range().x(), punto_medio), variable->range().x());
             Parameter * var2 =  new Parameter("", QPointF(punto_medio, variable->range().y()), punto_medio);
 
-            terminosDeno->replace(pos, conversion->get_box_termino_deno(var1, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
-            terminosCopiaDeno->replace(pos, conversion->get_box_termino_deno(var2, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
+            terminosDeno->replace(pos, conversion->denominatorTermBox(var1, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
+            terminosCopiaDeno->replace(pos, conversion->denominatorTermBox(var2, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
 
 
             denominador->replace(pos, var1);
@@ -1655,8 +1655,8 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionFas(Tripleta2 
         Parameter * var1 = new Parameter("", QPointF(variable->range().x(), punto_medio), variable->range().x());
         Parameter * var2 =  new Parameter("", QPointF(punto_medio, variable->range().y()), punto_medio);
 
-        terminosNume->replace(posicion, conversion->get_box_termino_nume(var1, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
-        terminosCopiaNume->replace(posicion, conversion->get_box_termino_nume(var2, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
+        terminosNume->replace(posicion, conversion->numeratorTermBox(var1, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
+        terminosCopiaNume->replace(posicion, conversion->numeratorTermBox(var2, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
 
 
         numerador->replace(posicion, var1);
@@ -1676,8 +1676,8 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionFas(Tripleta2 
         Parameter * var1 = new Parameter("", QPointF(variable->range().x(), punto_medio), variable->range().x());
         Parameter * var2 =  new Parameter("", QPointF(punto_medio, variable->range().y()), punto_medio);
 
-        terminosDeno->replace(pos, conversion->get_box_termino_deno(var1, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
-        terminosCopiaDeno->replace(pos, conversion->get_box_termino_deno(var2, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
+        terminosDeno->replace(pos, conversion->denominatorTermBox(var1, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
+        terminosCopiaDeno->replace(pos, conversion->denominatorTermBox(var2, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
 
 
         denominador->replace(pos, var1);
@@ -2000,8 +2000,8 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
 #endif
 
 
-        terminosK = conversion->get_box_termino_k(var1, plantas_nominales->at(frecuenciaPrincipal));
-        terminosCopiaK = conversion->get_box_termino_k(var2, plantas_nominales->at(frecuenciaPrincipal));
+        terminosK = conversion->gainTermBox(var1, plantas_nominales->at(frecuenciaPrincipal));
+        terminosCopiaK = conversion->gainTermBox(var2, plantas_nominales->at(frecuenciaPrincipal));
 
         delete variable;
         delete variable2;
@@ -2065,8 +2065,8 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
         numeradorCopia->replace(mejorPosicion, var2);
 
 
-        terminosNume->replace(mejorPosicion, conversion->get_box_termino_nume(var1, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
-        terminosCopiaNume->replace(mejorPosicion, conversion->get_box_termino_nume(var2, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
+        terminosNume->replace(mejorPosicion, conversion->numeratorTermBox(var1, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
+        terminosCopiaNume->replace(mejorPosicion, conversion->numeratorTermBox(var2, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
 
 
         delete variable;
@@ -2130,8 +2130,8 @@ inline FC::return_bisection2 Algorithm_segundo_articulo::biseccionArbol(Tripleta
         denominador->replace(pos, var1);
         denominadorCopia->replace(pos, var2);
 
-        terminosDeno->replace(pos, conversion->get_box_termino_deno(var1, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
-        terminosCopiaDeno->replace(pos, conversion->get_box_termino_deno(var2, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
+        terminosDeno->replace(pos, conversion->denominatorTermBox(var1, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
+        terminosCopiaDeno->replace(pos, conversion->denominatorTermBox(var2, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
 
 
         delete variable;

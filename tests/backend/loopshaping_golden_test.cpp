@@ -5,16 +5,19 @@
 // these goldens pin behaviour, they do not exercise the full search (the
 // thesis chapter 6 cases will).
 //
-// Pinned observations to dissect in later tandas:
-// - NT and NK return k = 125.75 while MC-prev and MC return k = 68.75 for
-//   the SAME zero/pole. If 68.75 is feasible, NT/NK should find it too:
-//   suspect the live-node ordered-list insertion defect (see
-//   OrderedList.MiddleInsertBreaksTheOrder) or a feasibility difference.
-//   To investigate in 8b.2/8b.3.
+// Pinned observations (updated after the 8b.1 interval-extension fix):
+// - planta1 only uses the stability specification and its loop magnitude
+//   is far below the boundary, so the TRUE optimum is the bottom of the
+//   gain range, k = 1. NT and NK now find it (they returned 125.75 while
+//   the branch mapping excluded true phases from the projected boxes).
+// - MC-prev and MC still return k = 68.75: THEIR phase machinery
+//   (feasible/phase cutting) computes phases on its own and is now the
+//   suspect. To dissect against the papers in 8b.5/8b.6.
 // - MR (rambabu) returns k = [1, 1], the lower end of the search space,
 //   consistent with its constraint rules being unreachable (the
 //   frecfinal <= 0 masks) and the contraction never firing: the algorithm
-//   is known to be unfinished. To resolve in 8b.4.
+//   is known to be unfinished. Indistinguishable from the true optimum
+//   here (also 1) - the benchmark goldens expose it. To resolve in 8b.4.
 
 #include <gtest/gtest.h>
 
@@ -71,8 +74,8 @@ TEST_P(LoopShapingGolden, Planta1ResultIsPinned)
 INSTANTIATE_TEST_SUITE_P(
     Algorithms, LoopShapingGolden,
     ::testing::Values(
-        GoldenResult{"NT", tools::sachin, 125.75, 1e-6},
-        GoldenResult{"NK", tools::nandkishor, 125.75, 1e-6},
+        GoldenResult{"NT", tools::sachin, 1.0, 1e-6},
+        GoldenResult{"NK", tools::nandkishor, 1.0, 1e-6},
         // BUG: pinned suspicious result, see the header comment.
         GoldenResult{"MR", tools::rambabu, 1.0, 1e-6},
         // MC-prev and MC show a mild run-to-run wobble (~1e-5 relative):
