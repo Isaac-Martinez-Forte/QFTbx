@@ -10,6 +10,26 @@
 
 using namespace tools;
 
+namespace {
+
+//Las tres tablas paralelas del parseo (valores, expresiones, flags) se crean
+//juntas: se liberan juntas. Antes los caminos de error y el propio Aceptar
+//las abandonaban con clear().
+void liberarTablas(QVector <QVector <QString> * > * datosTabla,
+                   QVector <QVector <QString> * > * exp,
+                   QVector <QVector <bool> * > * isVar){
+    if (datosTabla != nullptr){
+        qDeleteAll(*datosTabla);
+        delete datosTabla;
+    }
+    qDeleteAll(*exp);
+    delete exp;
+    qDeleteAll(*isVar);
+    delete isVar;
+}
+
+} // namespace
+
 IntroducirPlanta::IntroducirPlanta(Controlador * controlador, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::IntroducirPlanta)
@@ -295,49 +315,73 @@ QVector<QVector <QString> * > * IntroducirPlanta::seleTabla(QVector <QVector <QS
 void IntroducirPlanta::on_ok_clicked()
 {
 
+    //El nombre tambien se exige aqui: antes solo lo validaba el camino de la
+    //incertidumbre y se podian guardar plantas sin nombre.
+    if (ui->nombre->text().isEmpty()){
+        menerror("Hay un error en el nombre de la planta.","Introducir Planta");
+        ui->nombre->setStyleSheet("background : red");
+        return;
+    }
+    ui->nombre->setStyleSheet("background : white");
+
     QVector <QVector <QString> * > * exp = new QVector <QVector <QString> * > ();
     QVector <QVector <bool> * > *  isVar = new QVector <QVector <bool> * >  ();
     QVector <QVector <QString> * > * datosTabla = seleTabla(exp, isVar);
 
     if (datosTabla == NULL){
+        qDeleteAll(*exp);
+        delete exp;
+        qDeleteAll(*isVar);
+        delete isVar;
         menerror("Hay un error en los datos de la planta","Introducir Planta");
         return;
     }
 
-    Parameter * kv;
-    Parameter * retv;
+    Parameter * kv = nullptr;
+    Parameter * retv = nullptr;
 
-    if (datosTabla->at(2)->size() == 0){
-        kv = new Parameter (1);
-    }else{
+    //Las expresiones vienen del usuario: un error de sintaxis en muParserX
+    //lanzaba y tiraba la aplicacion.
+    try {
+        if (datosTabla->at(2)->size() == 0){
+            kv = new Parameter (1);
+        }else{
 
-        QPointF punto = viewIncer->gain();
-        p.SetExpr(exp->at(2)->at(0).toStdString());
-        qreal d = p.Eval().GetFloat();
+            QPointF punto = viewIncer->gain();
+            p.SetExpr(exp->at(2)->at(0).toStdString());
+            qreal d = p.Eval().GetFloat();
 
-        if (d == punto.x() && d == punto.y()){
-            kv = new Parameter (d);
-        }else {
-            kv = new Parameter ("kv", punto, d, "kv");
+            if (d == punto.x() && d == punto.y()){
+                kv = new Parameter (d);
+            }else {
+                kv = new Parameter ("kv", punto, d, "kv");
+            }
         }
+
+        if (datosTabla->at(3)->size() == 0){
+            retv = new Parameter (qreal(0));
+        }else{
+
+            QPointF punto = viewIncer->delay();
+            p.SetExpr(exp->at(3)->at(0).toStdString());
+            qreal d = p.Eval().GetFloat();
+
+            if (d == punto.x() && d == punto.y()){
+                retv = new Parameter (d);
+            }else {
+                retv = new Parameter ("ret", punto, d, "ret");
+            }
+        }
+    } catch (mup::ParserError &) {
+        delete kv;
+        liberarTablas(datosTabla, exp, isVar);
+        menerror("Hay un error en los datos de la planta","Introducir Planta");
+        return;
     }
 
-    if (datosTabla->at(3)->size() == 0){
-        retv = new Parameter (qreal(0));
-    }else{
-
-        QPointF punto = viewIncer->delay();
-        p.SetExpr(exp->at(3)->at(0).toStdString());
-        qreal d = p.Eval().GetFloat();
-
-        if (d == punto.x() && d == punto.y()){
-            retv = new Parameter (d);
-        }else {
-            retv = new Parameter ("ret", punto, d, "ret");
-        }
-    }
-
-    if (incertidumbreIntroducida){
+    //La incertidumbre solo cuenta si su dialogo se ACEPTO (abrirlo y
+    //cancelar dejaba el flag puesto y se usaba un estado a medias).
+    if (incertidumbreIntroducida && viewIncer->getTodoCorrecto()){
         //La planta toma propiedad de sus variables: se le entregan copias y
         //el dialogo de incertidumbre conserva sus originales para editar.
         QVector <Parameter*> * nume = Parameter::cloneVector(viewIncer->numerator());
@@ -373,9 +417,7 @@ void IntroducirPlanta::on_ok_clicked()
     }
 
     controlador->setPlanta(planta);
-    datosTabla->clear();
-    exp->clear();
-    isVar->clear();
+    liberarTablas(datosTabla, exp, isVar);
 
     todoCorrecto = true;
 
@@ -392,7 +434,13 @@ QVector <Parameter * > * IntroducirPlanta::crearNumeradorDenominador(QVector <QS
 
     foreach (const QString &string, *numeros) {
         p.SetExpr(string.toStdString());
-        var->append(new Parameter(p.Eval().GetFloat()));
+        try {
+            var->append(new Parameter(p.Eval().GetFloat()));
+        } catch (mup::ParserError &) {
+            //Coeficiente invalido: se toma 0 y el aviso lo dio seleTabla;
+            //antes la excepcion tiraba la aplicacion.
+            var->append(new Parameter(qreal(0)));
+        }
     }
 
     return var;
@@ -405,12 +453,16 @@ void IntroducirPlanta::on_Inertidumbre_clicked()
     QVector <QVector <QString> * > * datosTabla = seleTabla(exp, isVar);
 
     if (datosTabla == NULL){
+        qDeleteAll(*exp);
+        delete exp;
+        qDeleteAll(*isVar);
+        delete isVar;
         menerror("Hay un error en los datos de la planta","Introducir Planta");
         return;
     }
 
     if (ui->nombre->text().isEmpty()){
-        datosTabla->clear();
+        liberarTablas(datosTabla, exp, isVar);
         menerror("Hay un error en el nombre de la planta.","Introducir Planta");
         ui->nombre->setStyleSheet("background : red");
         return;
@@ -419,6 +471,7 @@ void IntroducirPlanta::on_Inertidumbre_clicked()
     }
 
 
+    //Las tablas pasan a ser propiedad del dialogo de incertidumbre.
     viewIncer->lanzarViewIncer(datosTabla, exp, isVar, false);
     viewIncer->show();
     incertidumbreIntroducida = true;

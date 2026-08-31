@@ -63,6 +63,9 @@ private slots:
 
     void on_isaac_clicked();
 
+protected:
+    void showEvent(QShowEvent * event) override;
+
 private:
     Ui::IntLoopShaping *ui;
 

@@ -1,6 +1,8 @@
 #include "intdatosboundaries.h"
 #include "ui_intdatosboundaries.h"
 
+#include "GUI/menerror.h"
+
 
 using namespace tools;
 using namespace std;
@@ -84,21 +86,37 @@ void IntDatosBoundaries::on_buttonBox_accepted()
         infinito = ui->infinito->text().toDouble();
     }
 
-
-    realizado = true;
-
     datosFase = QPointF(ui->fasInit->text().toDouble(),ui->fasFin->text().toDouble());
     datosMag = QPointF(ui->magInit->text().toDouble(),ui->magFin->text().toDouble());
 
     nPuntosFas = ui->fasPuntos->text().toInt();
     nPuntosMag = ui->magPuntos->text().toInt();
 
-
-    if(ui->cuda->isChecked()){
-        cuda = true;
+    //La rejilla debe tener sentido antes de lanzar el calculo: rangos
+    //crecientes y al menos dos puntos por eje (antes cualquier valor pasaba
+    //directo al motor).
+    if (datosFase.x() >= datosFase.y() || datosMag.x() >= datosMag.y() ||
+            nPuntosFas < 2 || nPuntosMag < 2){
+        tools::menerror("Los rangos de la rejilla deben ser crecientes y con al menos 2 puntos por eje.",
+                        "Introducir Datos Boundaries");
+        todoCorrecto = false;
+        return;
     }
 
+    realizado = true;
+
+    //Lectura directa: el latch anterior dejaba CUDA activado para siempre
+    //tras marcarlo una vez.
+    cuda = ui->cuda->isChecked();
+
     todoCorrecto = true;
+}
+
+void IntDatosBoundaries::showEvent(QShowEvent * event)
+{
+    //Reabrir y cancelar no debe relanzar el calculo con los datos antiguos.
+    todoCorrecto = false;
+    QDialog::showEvent(event);
 }
 
 bool IntDatosBoundaries::getCUDA(){

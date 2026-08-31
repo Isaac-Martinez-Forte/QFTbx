@@ -30,17 +30,52 @@ IntIncertidumbre::~IntIncertidumbre(){
     if (rango == true){
         delete layoutnume;
         delete layoutdeno;
-        parNume->clear();
-        parDeno->clear();
-        this->numerador->clear();
-        this->denominador->clear();
-        cajas->clear();
+        //Los ParLineEdit y los Parameter de trabajo son del dialogo (la
+        //planta recibe clones): antes se abandonaban con clear().
+        for (ParLineEdit * par : *parNume){
+            delete par;
+        }
+        delete parNume;
+        for (ParLineEdit * par : *parDeno){
+            delete par;
+        }
+        delete parDeno;
+        qDeleteAll(*numerador);
+        delete numerador;
+        qDeleteAll(*denominador);
+        delete denominador;
+        delete cajas;
+    }
+
+    liberarTablas();
+}
+
+//Las tablas de entrada llegan de IntroducirPlanta y pasan a ser del dialogo.
+void IntIncertidumbre::liberarTablas(){
+    if (tabla != nullptr){
+        qDeleteAll(*tabla);
+        delete tabla;
+        tabla = nullptr;
+    }
+    if (exp != nullptr){
+        qDeleteAll(*exp);
+        delete exp;
+        exp = nullptr;
+    }
+    if (isVar != nullptr){
+        qDeleteAll(*isVar);
+        delete isVar;
+        isVar = nullptr;
     }
 }
 
 
 bool IntIncertidumbre::lanzarViewIncer(QVector <QVector <QString> * > * tabla, QVector <QVector <QString> * > * exp,
                                        QVector<QVector<bool> *> *isVar, bool rango){
+
+    //Cada lanzamiento reemplaza las tablas anteriores (se fugaban).
+    liberarTablas();
+    aceptado = false;
 
     this->tabla = tabla;
     this->exp = exp;
@@ -76,14 +111,22 @@ void IntIncertidumbre::formarango(){
     if (rango == true){
         delete layoutnume;
         delete layoutdeno;
-        parNume->clear();
-        parDeno->clear();
-        this->numerador->clear();
-        this->denominador->clear();
+        for (ParLineEdit * par : *parNume){
+            delete par;
+        }
+        delete parNume;
+        for (ParLineEdit * par : *parDeno){
+            delete par;
+        }
+        delete parDeno;
+        qDeleteAll(*numerador);
+        delete numerador;
+        qDeleteAll(*denominador);
+        delete denominador;
         for (qint32 i = 0; i < cajas->size(); i++) {
             delete cajas->at(i);
         }
-        cajas->clear();
+        delete cajas;
     }
 
     parNume = new std::list <ParLineEdit*> ();
@@ -132,7 +175,7 @@ void IntIncertidumbre::formarango(){
         i++;
     }
 
-    nombres->clear();
+    delete nombres;
 
     ui->areaScrolldeno->setAutoFillBackground(true);
     ui->areaScrollnume->setAutoFillBackground(true);
@@ -283,6 +326,13 @@ qreal IntIncertidumbre::parse(QString cadena)
 
 bool IntIncertidumbre::guardarrango(){
 
+    //Reintento idempotente: tras un error parcial, la ejecucion anterior
+    //dejaba parametros ya insertados y el siguiente Aceptar los DUPLICABA.
+    qDeleteAll(*numerador);
+    numerador->clear();
+    qDeleteAll(*denominador);
+    denominador->clear();
+
     QLineEdit * rangoX;
     QLineEdit * rangoY;
     QLineEdit * nominal;
@@ -317,11 +367,22 @@ bool IntIncertidumbre::guardarrango(){
                     nominal->setStyleSheet("background : red");
                     valido = false;
                 }else{
-                    rangoX_real = parse(rangoX->text());
-                    rangoY_real = parse(rangoY->text());
-                    nominal_real = parse(nominal->text());
+                    try {
+                        rangoX_real = parse(rangoX->text());
+                        rangoY_real = parse(rangoY->text());
+                        nominal_real = parse(nominal->text());
+                    } catch (mup::ParserError &) {
+                        //Expresion invalida: antes reventaba el dialogo.
+                        rangoX->setStyleSheet("background : red");
+                        rangoY->setStyleSheet("background : red");
+                        nominal->setStyleSheet("background : red");
+                        valido = false;
+                        rangoX_real = 1;
+                        rangoY_real = 0;
+                        nominal_real = 0;
+                    }
 
-                    if ((rangoX_real <= nominal_real) && (nominal_real <= rangoY_real)){
+                    if (valido && (rangoX_real <= nominal_real) && (nominal_real <= rangoY_real)){
                         QPointF rango (rangoX_real, rangoY_real);
                         variable = new Parameter (numeradorNombre->at(i), rango, nominal_real, exp->at(0)->at(i));
 
@@ -352,7 +413,7 @@ bool IntIncertidumbre::guardarrango(){
             variable = new Parameter (numeradorNombre->at(i).toDouble());
         }
 
-        if (valido){
+        if (valido && variable != NULL){
             numerador->insert(i,variable);
             nombres->append(numeradorNombre->at(i));
         }else{
@@ -361,6 +422,7 @@ bool IntIncertidumbre::guardarrango(){
     }
 
     if (!validoGlobal){
+        delete nombres;
         menerror("Hay errores en los rango de las variables", "Introducir incertidumbre");
         return false;
     }
@@ -388,9 +450,16 @@ bool IntIncertidumbre::guardarrango(){
                     rangoY->setStyleSheet("background : red");
                     nominal->setStyleSheet("background : red");
                 }else{
-                    rangoX_real = parse(rangoX->text());
-                    rangoY_real = parse(rangoY->text());
-                    nominal_real = parse(nominal->text());
+                    try {
+                        rangoX_real = parse(rangoX->text());
+                        rangoY_real = parse(rangoY->text());
+                        nominal_real = parse(nominal->text());
+                    } catch (mup::ParserError &) {
+                        rangoX->setStyleSheet("background : red");
+                        rangoY->setStyleSheet("background : red");
+                        nominal->setStyleSheet("background : red");
+                        valido = false;
+                    }
 
                     if (valido){
                         if ((rangoX_real <= nominal_real) && (nominal_real <= rangoY_real)){
@@ -435,7 +504,7 @@ bool IntIncertidumbre::guardarrango(){
             variable = new Parameter (denominadorNombre->at(i).toDouble());
         }
 
-        if (valido){
+        if (valido && variable != NULL){
             denominador->insert(i,variable);
             nombres->append(denominadorNombre->at(i));
         }else{
@@ -443,7 +512,7 @@ bool IntIncertidumbre::guardarrango(){
         }
     }
 
-    nombres->clear();
+    delete nombres;
 
     if (!validoGlobal){
         menerror("Hay errores en los rango de las variables", "Introducir incertidumbre");
@@ -457,7 +526,12 @@ void IntIncertidumbre::on_aceptar_clicked()
 {
     if (ui->elegirforma->currentIndex() == 0){
         if (guardarrango()){
+            aceptado = true;
             this->close();
         }
     }
+}
+
+bool IntIncertidumbre::getTodoCorrecto(){
+    return aceptado;
 }

@@ -10,7 +10,7 @@
 #include <QVBoxLayout>
 
 #include "src/core/system/parameter.h"
-#include "Modelo/EstructurasDatos/parlineedit.h"
+#include "GUI/parlineedit.h"
 #include "mpParser.h"
 #include "Modelo/Herramientas/tools.h"
 
@@ -83,7 +83,10 @@ public:
    */
     
     QPointF delay();
-    
+
+    /// True when the user accepted the dialog with valid ranges.
+    bool getTodoCorrecto();
+
     
    /**
     * @fn lanzarViewIncer
@@ -157,11 +160,14 @@ private:
     qreal resultado;
     mup::ParserX p;
 
-    QVector<QVector<QString> *> *tabla;
-    QVector<QVector<QString> *> *exp;
-    QVector <QVector <bool> * > * isVar;
+    QVector<QVector<QString> *> *tabla = nullptr;
+    QVector<QVector<QString> *> *exp = nullptr;
+    QVector <QVector <bool> * > * isVar = nullptr;
+
+    void liberarTablas();
 
     bool controlador;
+    bool aceptado = false;
 };
 
 #endif // INTINCERTIDUMBRE_H

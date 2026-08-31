@@ -13,11 +13,11 @@
 #include <QHash>
 
 
-#include "Modelo/EstructurasDatos/parlineedit.h"
+#include "GUI/parlineedit.h"
 #include "src/core/system/lti_system.h"
 #include "Modelo/controlador.h"
 #include "src/core/system/parameter.h"
-#include "Modelo/EstructurasDatos/parlineedit.h"
+#include "GUI/parlineedit.h"
 #include "Modelo/Herramientas/tools.h"
 #include "intespecificaciones.h"
 
@@ -131,6 +131,9 @@ signals:
 
 
 private:
+    void limpiarTablas();
+    void liberarMapa();
+
     Ui::IntroducirTemplates *ui;
 
 

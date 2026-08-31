@@ -37,6 +37,13 @@ IntLoopShaping::~IntLoopShaping()
     delete ui;
 }
 
+void IntLoopShaping::showEvent(QShowEvent * event)
+{
+    //Reabrir y cancelar no debe relanzar el calculo con los datos antiguos.
+    todoCorrecto = false;
+    QDialog::showEvent(event);
+}
+
 void IntLoopShaping::setDatos(qreal epsilon){
     ui->epsilon->setText(QString::number(epsilon));
 }
@@ -100,11 +107,9 @@ void IntLoopShaping::on_ok_clicked()
 
     if (ui->nand->isChecked()){
 
-        if (ui->nand->isChecked()){
-            alg = tools::nandkishor;
-        } else {
-            alg = tools::nandkishor_primeraversion;
-        }
+        //NOTA (fase 8): la condicion interior duplicada hace inalcanzable
+        //nandkishor_primeraversion; decidir alli que control debe elegirla.
+        alg = tools::nandkishor;
 
         if (ui->aleatorio->isChecked()){
             inicializacion = 2;
@@ -136,9 +141,9 @@ void IntLoopShaping::on_ok_clicked()
         alg = tools::sachin;
     }
 
-    if(ui->linspace->isChecked()){
-        linLogSpace = true;
-    }
+    //Lectura directa: el latch anterior dejaba linspace activado para
+    //siempre tras marcarlo una vez.
+    linLogSpace = ui->linspace->isChecked();
 
     //if (ui->depuracion->isChecked()){
      //   depuracion = true;

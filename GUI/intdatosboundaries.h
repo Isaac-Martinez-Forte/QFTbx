@@ -112,6 +112,9 @@ public:
 private slots:
     void on_buttonBox_accepted();
 
+protected:
+    void showEvent(QShowEvent * event) override;
+
 private:
     Ui::IntDatosBoundaries *ui;
 

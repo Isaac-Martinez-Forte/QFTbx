@@ -11,6 +11,25 @@
 using namespace tools;
 using namespace mup;
 
+namespace {
+
+//Las tres tablas paralelas del parseo se liberan juntas (antes se
+//abandonaban con clear() o directamente se perdian en los errores).
+void liberarTablas(QVector <QVector <QString> * > * datosTabla,
+                   QVector <QVector <QString> * > * exp,
+                   QVector <QVector <bool> * > * isVar){
+    if (datosTabla != nullptr){
+        qDeleteAll(*datosTabla);
+        delete datosTabla;
+    }
+    qDeleteAll(*exp);
+    delete exp;
+    qDeleteAll(*isVar);
+    delete isVar;
+}
+
+} // namespace
+
 introducirEContr::introducirEContr(Controlador * cont, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::introducirEContr)
@@ -68,11 +87,16 @@ void introducirEContr::on_libertad_clicked()
     QVector <QVector <QString> * > * datosTabla = seleTabla(exp, isVar);
 
     if (datosTabla == NULL){
-        menerror("Hay un error en los datos de la planta","Introducir Planta");
+        qDeleteAll(*exp);
+        delete exp;
+        qDeleteAll(*isVar);
+        delete isVar;
+        menerror("Hay un error en los datos del controlador","Introducir Controlador");
         return;
     }
 
 
+    //Las tablas pasan a ser propiedad del dialogo de incertidumbre.
     viewIncer->lanzarViewIncer(datosTabla, exp, isVar, true);
     viewIncer->show();
     incertidumbreIntroducida = true;
@@ -96,7 +120,8 @@ QVector<QVector <QString> * > * introducirEContr::seleTabla(QVector <QVector <QS
     }
 
     if (!valido){
-        devolver->clear();
+        qDeleteAll(*devolver);
+        delete devolver;
         return NULL;
     }
 
@@ -157,9 +182,8 @@ bool introducirEContr::comprobarParseKREt(QVector<QVector <QString> * > * tabla,
                                           QVector <QVector <QString> * > * exp, QVector <QVector <bool> * > * isVar){
 
 
-    QString aux = linea1->text();
-    QString aux1 = linea2->text();
-    aux.trimmed();
+    QString aux = linea1->text().trimmed();
+    QString aux1 = linea2->text().trimmed();
 
     QVector <QString> * vec1 = new QVector <QString> ();
     QVector <QString> * vec = new QVector <QString> ();
@@ -192,6 +216,10 @@ bool introducirEContr::comprobarParserFL(QLineEdit * linea, QVector<QVector <QSt
     QRegularExpressionMatch match = re.match(nume_s);
     QString captura = match.captured(0);
 
+    //La primera captura debe salir de la cadena ANTES del bucle (como en
+    //IntroducirPlanta): sin esto cada variable incierta se registraba DOS
+    //veces en el camino de formato libre.
+    nume_s.remove(captura);
 
     while (!captura.isNull()){
 
@@ -230,43 +258,56 @@ void introducirEContr::on_aceptar_clicked()
     QVector <QVector <QString> * > * datosTabla = seleTabla(exp, isVar);
 
     if (datosTabla == NULL){
-        menerror("Hay un error en los datos de la planta","Introducir Planta");
+        qDeleteAll(*exp);
+        delete exp;
+        qDeleteAll(*isVar);
+        delete isVar;
+        menerror("Hay un error en los datos del controlador","Introducir Controlador");
         return;
     }
 
 
-    Parameter * kv;
-    Parameter * retv;
+    Parameter * kv = nullptr;
+    Parameter * retv = nullptr;
 
-    if (datosTabla->at(2)->size() == 0){
-        kv = new Parameter (1);
-    }else{
+    //Expresiones del usuario: un error de sintaxis lanzaba y tiraba la
+    //aplicacion.
+    try {
+        if (datosTabla->at(2)->size() == 0){
+            kv = new Parameter (1);
+        }else{
 
-        QPointF punto;
-        p.SetExpr(exp->at(2)->at(0).toStdString());
-        punto.setX(p.Eval().GetFloat());
+            QPointF punto;
+            p.SetExpr(exp->at(2)->at(0).toStdString());
+            punto.setX(p.Eval().GetFloat());
 
-        p.SetExpr(exp->at(2)->at(1).toStdString());
-        punto.setY(p.Eval().GetFloat());
+            p.SetExpr(exp->at(2)->at(1).toStdString());
+            punto.setY(p.Eval().GetFloat());
 
-        if (punto.x() == punto.y()){
-            kv = new Parameter (punto.x());
-        }else {
+            if (punto.x() == punto.y()){
+                kv = new Parameter (punto.x());
+            }else {
 
-            if (punto.x() > punto.y()){
-                qreal a = punto.x();
-                punto.setX(punto.y());
-                punto.setY(a);
+                if (punto.x() > punto.y()){
+                    qreal a = punto.x();
+                    punto.setX(punto.y());
+                    punto.setY(a);
+                }
+
+                kv = new Parameter ("kv", punto, (punto.x() + punto.y()) / 2);
             }
-
-            kv = new Parameter ("kv", punto, (punto.x() + punto.y()) / 2);
         }
+    } catch (mup::ParserError &) {
+        liberarTablas(datosTabla, exp, isVar);
+        menerror("Hay un error en los datos del controlador","Introducir Controlador");
+        return;
     }
 
     retv = new Parameter (0.0);
 
 
-    if (incertidumbreIntroducida){
+    //La incertidumbre solo cuenta si su dialogo se ACEPTO.
+    if (incertidumbreIntroducida && viewIncer->getTodoCorrecto()){
         //La planta toma propiedad de sus variables: se le entregan copias y
         //el dialogo de incertidumbre conserva sus originales para editar.
         QVector <Parameter*> * nume = Parameter::cloneVector(viewIncer->numerator());
@@ -302,9 +343,7 @@ void introducirEContr::on_aceptar_clicked()
     }
 
     controlador->setControlador(planta);
-    datosTabla->clear();
-    exp->clear();
-    isVar->clear();
+    liberarTablas(datosTabla, exp, isVar);
 
     todoCorrecto = true;
 
@@ -322,7 +361,12 @@ QVector <Parameter * > * introducirEContr::crearNumeradorDenominador(QVector <QS
 
     foreach (const QString &string, *numeros) {
         p.SetExpr(string.toStdString());
-        var->append(new Parameter(p.Eval().GetFloat()));
+        try {
+            var->append(new Parameter(p.Eval().GetFloat()));
+        } catch (mup::ParserError &) {
+            //Coeficiente invalido: 0 en vez de tirar la aplicacion.
+            var->append(new Parameter(qreal(0)));
+        }
     }
 
     return var;

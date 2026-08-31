@@ -33,12 +33,49 @@ IntroducirTemplates::IntroducirTemplates(QWidget *parent) :
 
 IntroducirTemplates::~IntroducirTemplates()
 {
+    limpiarTablas();
+    liberarMapa();
+
     delete ui;
-    if (variablesCreadas){
-        parNume->clear();
-        parDeno->clear();
-        radioButtonsNume->clear();
-        radioButtonsDeno->clear();
+    delete parser;
+}
+
+//Filas de variables: cada ParLineEdit y su pagina de pestana son del
+//dialogo; antes se abandonaban con clear() y las paginas se acumulaban.
+void IntroducirTemplates::limpiarTablas(){
+    if (!variablesCreadas){
+        return;
+    }
+
+    foreach (ParLineEdit * par, *parNume){
+        delete par->getX()->parentWidget();
+        delete par;
+    }
+    delete parNume;
+    parNume = nullptr;
+
+    foreach (ParLineEdit * par, *parDeno){
+        delete par->getX()->parentWidget();
+        delete par;
+    }
+    delete parDeno;
+    parDeno = nullptr;
+
+    delete radioButtonsNume;
+    radioButtonsNume = nullptr;
+    delete radioButtonsDeno;
+    radioButtonsDeno = nullptr;
+
+    variablesCreadas = false;
+}
+
+//El mapa de rejillas es del dialogo (el motor lo lee sin tomar propiedad):
+//el clear() anterior fugaba las rejillas de cada calculo.
+void IntroducirTemplates::liberarMapa(){
+    if (mapa != NULL){
+        qDeleteAll(*mapa);
+        delete mapa;
+        mapa = NULL;
     }
 }
 
@@ -60,12 +97,8 @@ void IntroducirTemplates::formartablas(QVector<Parameter *> *numerador, QVector<
     this->numerador = numerador;
     this->denominador = denominador;
 
-    if (variablesCreadas){
-        parNume->clear();
-        parDeno->clear();
-        radioButtonsNume->clear();
-        radioButtonsDeno->clear();
-    }
+    limpiarTablas();
+
     parNume = new QVector <ParLineEdit*> ();
     parDeno = new QVector <ParLineEdit*> ();
     radioButtonsNume = new QVector <tresRadioButton> ();
@@ -212,15 +245,20 @@ void IntroducirTemplates::on_Aceptar_clicked()
     else if (ui->nicols->isChecked())
         diagrama = true;
 
-    if (ui->CUDA->isChecked()){
-        cuda = true;
-    }
+    //Lectura directa: el latch anterior dejaba CUDA activado para siempre.
+    cuda = ui->CUDA->isChecked();
+
+    //El epsilon anterior es ya del DAO; el mapa anterior sigue siendo del
+    //dialogo y se libera aqui.
+    liberarMapa();
 
     epsilon = new QVector <qreal> ();
 
     if (ui->epsilon->text().isEmpty()){
         menerror("No ha introducido un valor para epsilon", "Calculo de Templates");
         ui->epsilon->setStyleSheet("background : red");
+        delete epsilon;
+        epsilon = NULL;
         return;
     }else {
 
@@ -231,12 +269,24 @@ void IntroducirTemplates::on_Aceptar_clicked()
 
         qint32 contador = 0;
 
-        foreach (QString s, *v) {
-            parser->SetExpr(s.toStdString());
-            ultimaEpsilon = parser->Eval().GetFloat();
-            epsilon->append(ultimaEpsilon);
-            contador++;
+        //Expresiones del usuario: un epsilon invalido lanzaba y tiraba la
+        //aplicacion.
+        try {
+            foreach (QString s, *v) {
+                parser->SetExpr(s.toStdString());
+                ultimaEpsilon = parser->Eval().GetFloat();
+                epsilon->append(ultimaEpsilon);
+                contador++;
+            }
+        } catch (mup::ParserError &) {
+            menerror("Error en la expresión de epsilon.", "Cálculo de Templates");
+            ui->epsilon->setStyleSheet("background : red");
+            delete v;
+            delete epsilon;
+            epsilon = NULL;
+            return;
         }
+        delete v;
 
         for (; contador < numOmegas; contador++){
             epsilon->append(ultimaEpsilon);
@@ -246,10 +296,6 @@ void IntroducirTemplates::on_Aceptar_clicked()
     bool linsp = false;
     bool logsp = false;
 
-    if (mapa != NULL){
-        mapa->clear();
-    }
-
     mapa = new QHash <QString, QVector<qreal> * > ();
 
     if (ui->seleLinSpace->isChecked() && !ui->todasNPuntos->text().isEmpty()){
@@ -258,9 +304,13 @@ void IntroducirTemplates::on_Aceptar_clicked()
         logsp = true;
     }else {
         menerror("ERROR: Tiene señalar logspace o linspace en el apartado general.", "Cálculo de Templates");
+        liberarMapa();
+        delete epsilon;
+        epsilon = NULL;
         return;
     }
 
+    try {
 
     struct tresRadioButton radioButtons;
     ParLineEdit * parlines;
@@ -275,13 +325,12 @@ void IntroducirTemplates::on_Aceptar_clicked()
             if (!extraerVariable(parlines, radioButtons,var,linsp,logsp)){
                 menerror("ERROR: Los valores introducidos para la variable \"" + var->name()
                          + "\" son incorrectos", "Cálculo de Templates");
+                liberarMapa();
+                delete epsilon;
+                epsilon = NULL;
                 return;
             }
-        }/*else {
-            QVector <qreal> * vector = new QVector <qreal> ();
-            vector->append(var->nominal());;
-            mapa->insert(var->name(), vector);
-        }*/
+        }
     }
 
     contVar = 0;
@@ -297,13 +346,12 @@ void IntroducirTemplates::on_Aceptar_clicked()
             if (!extraerVariable(parlines, radioButtons,var,linsp,logsp)){
                 menerror("ERROR: Los valores introducidos para la variable \"" + var->name()
                          + "\" son incorrectos", "Cálculo de Templates");
+                liberarMapa();
+                delete epsilon;
+                epsilon = NULL;
                 return;
             }
-        }/*else {
-            QVector <qreal> * vector = new QVector <qreal> ();
-            vector->append(var->nominal());
-            mapa->insert(var->name(), vector);
-        }*/
+        }
     }
 
     if (!planta->gain()->isUncertain()){
@@ -350,6 +398,16 @@ void IntroducirTemplates::on_Aceptar_clicked()
         }
     }
 
+    } catch (mup::ParserError &) {
+        //Numero de puntos o rejilla manual invalidos: antes tiraba la
+        //aplicacion.
+        menerror("Error en las expresiones de las rejillas.", "Cálculo de Templates");
+        liberarMapa();
+        delete epsilon;
+        epsilon = NULL;
+        return;
+    }
+
     todoCorrecto = true;
     emit (close_ok());
 }
@@ -394,10 +452,17 @@ bool IntroducirTemplates::extraerVariable(ParLineEdit *parlines, tresRadioButton
         QVector <QString> * vector = srtovectorString(parlines->nominal()->text());
         QVector <qreal> * vector2 = new QVector <qreal> ();
 
-        foreach (QString numeroS, *vector) {
-            parser->SetExpr(numeroS.toStdString());
-            vector2->append(parser->Eval().GetFloat());
+        try {
+            foreach (QString numeroS, *vector) {
+                parser->SetExpr(numeroS.toStdString());
+                vector2->append(parser->Eval().GetFloat());
+            }
+        } catch (mup::ParserError &) {
+            delete vector;
+            delete vector2;
+            throw;
         }
+        delete vector;
         mapa->insert(var->name(), vector2);
     }else if (linsp || logsp){
 

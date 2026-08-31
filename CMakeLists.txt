@@ -125,7 +125,6 @@ set(QFTbx_BACKEND_SRC
     src/core/system/zero_pole_gain.cpp
     src/core/system/time_constant_gain.cpp
     Modelo/controlador.cpp
-    Modelo/EstructurasDatos/parlineedit.cpp
     DAO/adaptadoromegadao.cpp
     src/core/templates/template_engine.cpp
     DAO/adaptadortemplatedao.cpp
@@ -163,6 +162,8 @@ set(QFTbx_BACKEND_SRC
 
 # GUI (HMI Qt) y punto de entrada.
 set(QFTbx_GUI_SRC main.cpp
+    GUI/parlineedit.cpp
+    GUI/parlineedit.h
     GUI/diagramabode.cpp
     GUI/windowsgeneral.cpp
     GUI/introducirplanta.cpp
@@ -190,7 +191,6 @@ set(QFTbx_BACKEND_HED
     src/core/system/time_constant_gain.h
     DAO/plantadao.h
     Modelo/controlador.h
-    Modelo/EstructurasDatos/parlineedit.h
     DAO/adaptadoromegadao.h
     DAO/omegadao.h
     src/core/templates/template_engine.h
@@ -279,8 +279,9 @@ add_library(qftbx_backend STATIC
 
 target_include_directories(qftbx_backend PUBLIC "${CMAKE_SOURCE_DIR}")
 
-# El backend todavia depende de Qt (contenedores, QMessageBox en tools.h...);
-# la eliminacion progresiva de Qt del backend es parte del refactor en curso.
+# El backend todavia enlaza Widgets SOLO por LoopShaping (fase 8): sus
+# algoritmos incluyen visores de la GUI para depuracion. El resto del backend
+# ya no depende de Widgets.
 target_link_libraries(qftbx_backend PUBLIC Qt6::Core Qt6::Gui Qt6::Widgets Qt6::PrintSupport)
 target_link_libraries(qftbx_backend PUBLIC pugixml::pugixml)
 

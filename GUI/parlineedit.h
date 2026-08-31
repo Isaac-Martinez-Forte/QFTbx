@@ -21,8 +21,6 @@ public:
     * @brief Constructor por defecto sin parámetros.
     * 
    */
-  
-    ParLineEdit();
     
   /**
     * @fn ParLineEdit
@@ -41,8 +39,6 @@ public:
      * @fn ~ParLineEdit
      * @brief Destructor de la clase.
      */
-    
-    ~ParLineEdit();
     
    /**
     * @fn setX
