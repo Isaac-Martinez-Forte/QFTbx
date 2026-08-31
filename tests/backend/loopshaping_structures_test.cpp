@@ -6,7 +6,7 @@
 
 #include <gtest/gtest.h>
 
-#include <QMap>
+#include <map>
 #include <string>
 
 #include "src/core/loopshaping/ordered_list.h"
@@ -102,8 +102,8 @@ TEST(ExpressionTree, ScalarEvaluationWithVariables)
     alg::ExpressionTree tree("1");
     tree.setFunc(std::string("2*x+3"));
 
-    QMap<std::string, qreal> variables;
-    variables.insert("x", 5.0);
+    std::map<std::string, qreal> variables;
+    variables["x"] = 5.0;
 
     EXPECT_DOUBLE_EQ(tree.eval(&variables), 13.0);
 }
@@ -113,7 +113,7 @@ TEST(ExpressionTree, ScalarEvaluationWithFunctionsAndConstants)
     alg::ExpressionTree tree("1");
     tree.setFunc(std::string("cos(0)+sqrt(9)"));
 
-    EXPECT_DOUBLE_EQ(tree.eval(static_cast<QMap<std::string, qreal> *>(nullptr)), 4.0);
+    EXPECT_DOUBLE_EQ(tree.eval(static_cast<std::map<std::string, qreal> *>(nullptr)), 4.0);
 }
 
 TEST(ExpressionTree, IntervalEvaluationEnclosesTheRange)
@@ -121,8 +121,8 @@ TEST(ExpressionTree, IntervalEvaluationEnclosesTheRange)
     alg::ExpressionTree tree("1");
     tree.setFunc(std::string("2*x+3"));
 
-    QMap<std::string, interval> variables;
-    variables.insert("x", interval(1.0, 4.0));
+    std::map<std::string, interval> variables;
+    variables["x"] = interval(1.0, 4.0);
 
     const interval result = tree.eval(&variables);
     EXPECT_DOUBLE_EQ(cxsc::_double(Inf(result)), 5.0);
@@ -137,14 +137,14 @@ TEST(ExpressionTree, ContractionNarrowsAnInconsistentDomain)
     alg::ExpressionTree tree("1");
     tree.setFunc(std::string("x-2"), 0.0, alg::MAYORIGUAL);
 
-    QMap<std::string, interval> variables;
-    variables.insert("x", interval(0.0, 10.0));
+    std::map<std::string, interval> variables;
+    variables["x"] = interval(0.0, 10.0);
 
     const bool consistent = tree.propagate(&variables);
 
     EXPECT_TRUE(consistent);
-    EXPECT_DOUBLE_EQ(cxsc::_double(Inf(variables.value("x"))), 2.0);
-    EXPECT_DOUBLE_EQ(cxsc::_double(Sup(variables.value("x"))), 10.0);
+    EXPECT_DOUBLE_EQ(cxsc::_double(Inf(variables.at("x"))), 2.0);
+    EXPECT_DOUBLE_EQ(cxsc::_double(Sup(variables.at("x"))), 10.0);
 }
 
 TEST(ExpressionTree, ContractionDetectsAnEmptyDomain)
@@ -152,8 +152,8 @@ TEST(ExpressionTree, ContractionDetectsAnEmptyDomain)
     alg::ExpressionTree tree("1");
     tree.setFunc(std::string("x-20"), 0.0, alg::MAYORIGUAL);
 
-    QMap<std::string, interval> variables;
-    variables.insert("x", interval(0.0, 10.0));
+    std::map<std::string, interval> variables;
+    variables["x"] = interval(0.0, 10.0);
 
     EXPECT_FALSE(tree.propagate(&variables));
 }

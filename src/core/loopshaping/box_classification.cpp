@@ -1,52 +1,41 @@
-#include "src/core/loopshaping/box_classification.h"
-
-BoxClassification::BoxClassification()
-{
-}
-
-BoxClassification::~BoxClassification()
-{
-    delete m_extremes;
-}
+#include "box_classification.h"
 
 void BoxClassification::setFlag(tools::BoxFlag f)
 {
     m_flag = f;
 }
 
-tools::BoxFlag BoxClassification::flag()
+tools::BoxFlag BoxClassification::flag() const
 {
     return m_flag;
 }
 
-void BoxClassification::setExtremes(QVector<qreal> * mm)
+void BoxClassification::setExtremes(const std::array<double, 4> & extremes)
 {
-    delete m_extremes;
-    m_extremes = mm;
+    m_extremes = extremes;
 }
 
-QVector<qreal> * BoxClassification::extremes()
+const std::array<double, 4> & BoxClassification::extremes() const
 {
     return m_extremes;
 }
 
-void BoxClassification::setBottomLeftForbidden(bool r)
+void BoxClassification::setBottomLeftForbidden(bool forbidden)
 {
-    bottomLeftForbidden = r;
+    m_bottomLeftForbidden = forbidden;
 }
 
-bool BoxClassification::isBottomLeftForbidden()
+bool BoxClassification::isBottomLeftForbidden() const
 {
-    return bottomLeftForbidden;
+    return m_bottomLeftForbidden;
 }
 
-void BoxClassification::setTopRightForbidden(bool r)
+void BoxClassification::setTopRightForbidden(bool forbidden)
 {
-    topRightForbidden = r;
+    m_topRightForbidden = forbidden;
 }
 
-bool BoxClassification::isTopRightForbidden()
+bool BoxClassification::isTopRightForbidden() const
 {
-    return topRightForbidden;
+    return m_topRightForbidden;
 }
-

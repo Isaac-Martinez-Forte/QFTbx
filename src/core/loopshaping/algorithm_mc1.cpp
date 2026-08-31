@@ -254,14 +254,14 @@ inline LtiSystem * AlgorithmMc1::quickSolution2(LtiSystem * v, BoxClassification
                                                              const cxsc::cinterval & caja,
                                                              qreal w, std::complex<qreal> p0)
 {
-    QVector<qreal> zeroInfs, zeroSups, poleInfs, poleSups;
+    std::vector<double> zeroInfs, zeroSups, poleInfs, poleSups;
     foreach (Parameter * var, *v->numerator()) {
-        zeroInfs.append(var->isUncertain() ? var->range().x() : var->nominal());
-        zeroSups.append(var->isUncertain() ? var->range().y() : var->nominal());
+        zeroInfs.push_back(var->isUncertain() ? var->range().x() : var->nominal());
+        zeroSups.push_back(var->isUncertain() ? var->range().y() : var->nominal());
     }
     foreach (Parameter * var, *v->denominator()) {
-        poleInfs.append(var->isUncertain() ? var->range().x() : var->nominal());
-        poleSups.append(var->isUncertain() ? var->range().y() : var->nominal());
+        poleInfs.push_back(var->isUncertain() ? var->range().x() : var->nominal());
+        poleSups.push_back(var->isUncertain() ? var->range().y() : var->nominal());
     }
 
     qreal gainInf = v->gain()->range().x();
@@ -275,7 +275,7 @@ inline LtiSystem * AlgorithmMc1::quickSolution2(LtiSystem * v, BoxClassification
     //corner (same gate as NK).
     if (datos->isBottomLeftForbidden()) {
 
-        const qreal boundMin = std::pow(10.0, datos->extremes()->at(0) / 20.0);
+        const qreal boundMin = std::pow(10.0, datos->extremes()[0] / 20.0);
 
         if (v->gain()->isUncertain()) {
             const qreal k = quick_solution::gainCut(boundMin, zeroSups, poleInfs, w, p0);
@@ -287,7 +287,7 @@ inline LtiSystem * AlgorithmMc1::quickSolution2(LtiSystem * v, BoxClassification
         }
 
         if (hasUncertainZeros) {
-            for (qint32 j = 0; j < zeroInfs.size(); ++j) {
+            for (qint32 j = 0; j < static_cast<qint32>(zeroInfs.size()); ++j) {
                 if (!v->numerator()->at(j)->isUncertain()) {
                     continue;
                 }
@@ -295,15 +295,15 @@ inline LtiSystem * AlgorithmMc1::quickSolution2(LtiSystem * v, BoxClassification
                 const qreal z = quick_solution::zeroCut(boundMin, gainSup, zeroSups,
                                                         poleInfs, j, w, p0);
 
-                if (z > zeroInfs.at(j) && z < zeroSups.at(j)) {
-                    zeroInfs.replace(j, z);
+                if (z > zeroInfs[j] && z < zeroSups[j]) {
+                    zeroInfs[j] = z;
                     cut = true;
                 }
             }
         }
 
         if (hasUncertainPoles) {
-            for (qint32 j = 0; j < poleInfs.size(); ++j) {
+            for (qint32 j = 0; j < static_cast<qint32>(poleInfs.size()); ++j) {
                 if (!v->denominator()->at(j)->isUncertain()) {
                     continue;
                 }
@@ -311,8 +311,8 @@ inline LtiSystem * AlgorithmMc1::quickSolution2(LtiSystem * v, BoxClassification
                 const qreal p = quick_solution::poleCut(boundMin, gainSup, zeroSups,
                                                         poleInfs, j, w, p0);
 
-                if (p > poleInfs.at(j) && p < poleSups.at(j)) {
-                    poleSups.replace(j, p);
+                if (p > poleInfs[j] && p < poleSups[j]) {
+                    poleSups[j] = p;
                     cut = true;
                 }
             }
@@ -329,8 +329,8 @@ inline LtiSystem * AlgorithmMc1::quickSolution2(LtiSystem * v, BoxClassification
         const qreal boxPhaseMin = _double(Inf(Im(caja)));
         const qreal boxPhaseMax = _double(Sup(Im(caja)));
 
-        const qreal boundPhaseMin = datos->extremes()->at(2);
-        const qreal boundPhaseMax = datos->extremes()->at(3);
+        const qreal boundPhaseMin = datos->extremes()[2];
+        const qreal boundPhaseMax = datos->extremes()[3];
 
         //Right strip (phases above the boundary maximum) certainly
         //forbidden, and wider than one grid step of the union.
@@ -338,7 +338,7 @@ inline LtiSystem * AlgorithmMc1::quickSolution2(LtiSystem * v, BoxClassification
 
             const qreal thetaMax = boundPhaseMax * M_PI / 180.0;
 
-            for (qint32 j = 0; hasUncertainZeros && j < zeroInfs.size(); ++j) {
+            for (qint32 j = 0; hasUncertainZeros && j < static_cast<qint32>(zeroInfs.size()); ++j) {
                 if (!v->numerator()->at(j)->isUncertain()) {
                     continue;
                 }
@@ -346,13 +346,13 @@ inline LtiSystem * AlgorithmMc1::quickSolution2(LtiSystem * v, BoxClassification
                 const qreal z = quick_solution::zeroPhaseCutHigh(thetaMax, phi0, zeroSups,
                                                                  poleInfs, j, w);
 
-                if (z > zeroInfs.at(j) && z < zeroSups.at(j)) {
-                    zeroInfs.replace(j, z);
+                if (z > zeroInfs[j] && z < zeroSups[j]) {
+                    zeroInfs[j] = z;
                     cut = true;
                 }
             }
 
-            for (qint32 j = 0; hasUncertainPoles && j < poleInfs.size(); ++j) {
+            for (qint32 j = 0; hasUncertainPoles && j < static_cast<qint32>(poleInfs.size()); ++j) {
                 if (!v->denominator()->at(j)->isUncertain()) {
                     continue;
                 }
@@ -360,8 +360,8 @@ inline LtiSystem * AlgorithmMc1::quickSolution2(LtiSystem * v, BoxClassification
                 const qreal p = quick_solution::polePhaseCutHigh(thetaMax, phi0, zeroSups,
                                                                  poleInfs, j, w);
 
-                if (p > poleInfs.at(j) && p < poleSups.at(j)) {
-                    poleSups.replace(j, p);
+                if (p > poleInfs[j] && p < poleSups[j]) {
+                    poleSups[j] = p;
                     cut = true;
                 }
             }
@@ -373,7 +373,7 @@ inline LtiSystem * AlgorithmMc1::quickSolution2(LtiSystem * v, BoxClassification
 
             const qreal thetaMin = boundPhaseMin * M_PI / 180.0;
 
-            for (qint32 j = 0; hasUncertainZeros && j < zeroInfs.size(); ++j) {
+            for (qint32 j = 0; hasUncertainZeros && j < static_cast<qint32>(zeroInfs.size()); ++j) {
                 if (!v->numerator()->at(j)->isUncertain()) {
                     continue;
                 }
@@ -381,13 +381,13 @@ inline LtiSystem * AlgorithmMc1::quickSolution2(LtiSystem * v, BoxClassification
                 const qreal z = quick_solution::zeroPhaseCutLow(thetaMin, phi0, zeroInfs,
                                                                 poleSups, j, w);
 
-                if (z > zeroInfs.at(j) && z < zeroSups.at(j)) {
-                    zeroSups.replace(j, z);
+                if (z > zeroInfs[j] && z < zeroSups[j]) {
+                    zeroSups[j] = z;
                     cut = true;
                 }
             }
 
-            for (qint32 j = 0; hasUncertainPoles && j < poleInfs.size(); ++j) {
+            for (qint32 j = 0; hasUncertainPoles && j < static_cast<qint32>(poleInfs.size()); ++j) {
                 if (!v->denominator()->at(j)->isUncertain()) {
                     continue;
                 }
@@ -395,8 +395,8 @@ inline LtiSystem * AlgorithmMc1::quickSolution2(LtiSystem * v, BoxClassification
                 const qreal p = quick_solution::polePhaseCutLow(thetaMin, phi0, zeroInfs,
                                                                 poleSups, j, w);
 
-                if (p > poleInfs.at(j) && p < poleSups.at(j)) {
-                    poleInfs.replace(j, p);
+                if (p > poleInfs[j] && p < poleSups[j]) {
+                    poleInfs[j] = p;
                     cut = true;
                 }
             }
@@ -408,18 +408,18 @@ inline LtiSystem * AlgorithmMc1::quickSolution2(LtiSystem * v, BoxClassification
     }
 
     auto * numerador = new QVector<Parameter*>();
-    for (qint32 j = 0; j < zeroInfs.size(); ++j) {
+    for (qint32 j = 0; j < static_cast<qint32>(zeroInfs.size()); ++j) {
         Parameter * old = v->numerator()->at(j);
         numerador->append(old->isUncertain()
-                ? new Parameter(old->name(), QPointF(zeroInfs.at(j), zeroSups.at(j)), zeroInfs.at(j))
+                ? new Parameter(old->name(), QPointF(zeroInfs[j], zeroSups[j]), zeroInfs[j])
                 : new Parameter(old->nominal()));
     }
 
     auto * denominador = new QVector<Parameter*>();
-    for (qint32 j = 0; j < poleInfs.size(); ++j) {
+    for (qint32 j = 0; j < static_cast<qint32>(poleInfs.size()); ++j) {
         Parameter * old = v->denominator()->at(j);
         denominador->append(old->isUncertain()
-                ? new Parameter(old->name(), QPointF(poleInfs.at(j), poleSups.at(j)), poleInfs.at(j))
+                ? new Parameter(old->name(), QPointF(poleInfs[j], poleSups[j]), poleInfs[j])
                 : new Parameter(old->nominal()));
     }
 

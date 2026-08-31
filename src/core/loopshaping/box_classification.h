@@ -1,44 +1,40 @@
 #ifndef QFTBX_LOOPSHAPING_BOX_CLASSIFICATION_H
 #define QFTBX_LOOPSHAPING_BOX_CLASSIFICATION_H
 
-#include <QVector>
+#include <array>
 
 #include "Modelo/Herramientas/tools.h"
 
 //Result of classifying one projected Nichols box against the boundary
 //union at one design frequency (BoundaryViolationDetector): the
 //feasibility flag, the boundary extremes over the box's phase span
-//(B_min/B_max in dB, C_min/C_max in degrees, indices 0-3 of
-//m_extremes) and the corner classifications that certify the cutting
-//strips (bottomLeftForbidden/uniIzquierda: bottom-left corner infeasible;
-//topRightForbidden: top-right corner infeasible; uniArriba keeps the historical
-//meaning "bottom-left corner feasible" for algorithm NK's gate).
+//(indices 0-3: B_min/B_max in dB, C_min/C_max in degrees) and the corner
+//classifications that certify the cutting strips (bottom-left corner for
+//the bottom and left strips, top-right corner for the top and right
+//ones).
 class BoxClassification
 {
 public:
-    BoxClassification();
-
-    ~BoxClassification();
 
     void setFlag(tools::BoxFlag f);
-    tools::BoxFlag flag();
+    tools::BoxFlag flag() const;
 
-    void setExtremes(QVector<qreal> * mm);
-    QVector<qreal> * extremes();
+    void setExtremes(const std::array<double, 4> & extremes);
+    const std::array<double, 4> & extremes() const;
 
-    void setBottomLeftForbidden(bool r);
-    bool isBottomLeftForbidden();
+    void setBottomLeftForbidden(bool forbidden);
+    bool isBottomLeftForbidden() const;
 
-    void setTopRightForbidden(bool r);
-    bool isTopRightForbidden();
+    void setTopRightForbidden(bool forbidden);
+    bool isTopRightForbidden() const;
 
 private:
 
-    tools::BoxFlag m_flag;
-    QVector<qreal> * m_extremes = nullptr;
+    tools::BoxFlag m_flag = tools::ambiguous;
+    std::array<double, 4> m_extremes{};
 
-    bool bottomLeftForbidden = false;
-    bool topRightForbidden = false;
+    bool m_bottomLeftForbidden = false;
+    bool m_topRightForbidden = false;
 };
 
 #endif // QFTBX_LOOPSHAPING_BOX_CLASSIFICATION_H

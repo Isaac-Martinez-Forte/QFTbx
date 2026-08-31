@@ -48,18 +48,18 @@ qreal nominalPhase(std::complex<qreal> p0)
 //Corner value vectors of a box (uncertain parameters at the requested
 //extreme, fixed ones at their nominal).
 void cornerVectors(LtiSystem * box, bool zerosAtSup, bool polesAtSup,
-                   QVector<qreal> & zeros, QVector<qreal> & poles)
+                   std::vector<double> & zeros, std::vector<double> & poles)
 {
     zeros.clear();
     poles.clear();
 
     foreach (Parameter * var, *box->numerator()) {
-        zeros.append(!var->isUncertain() ? var->nominal()
-                     : (zerosAtSup ? var->range().y() : var->range().x()));
+        zeros.push_back(!var->isUncertain() ? var->nominal()
+                        : (zerosAtSup ? var->range().y() : var->range().x()));
     }
     foreach (Parameter * var, *box->denominator()) {
-        poles.append(!var->isUncertain() ? var->nominal()
-                     : (polesAtSup ? var->range().y() : var->range().x()));
+        poles.push_back(!var->isUncertain() ? var->nominal()
+                        : (polesAtSup ? var->range().y() : var->range().x()));
     }
 }
 
@@ -480,7 +480,7 @@ inline bool AlgorithmMcThesis::bestGainSearch(McSearchNode * node, const NodeAna
         return false;
     }
 
-    QVector<qreal> zeroSups, poleInfs;
+    std::vector<double> zeroSups, poleInfs;
     cornerVectors(box, true, false, zeroSups, poleInfs);
 
     const qreal kInf = box->gain()->range().x();
@@ -499,8 +499,8 @@ inline bool AlgorithmMcThesis::bestGainSearch(McSearchNode * node, const NodeAna
 
         const qreal w = omega->at(i);
         const std::complex<qreal> p0 = plantas_nominales_std->at(i);
-        const qreal boundMin = std::pow(10.0, datos->extremes()->at(0) / 20.0);
-        const qreal boundMax = std::pow(10.0, datos->extremes()->at(1) / 20.0);
+        const qreal boundMin = std::pow(10.0, datos->extremes()[0] / 20.0);
+        const qreal boundMax = std::pow(10.0, datos->extremes()[1] / 20.0);
 
         //Preferring the bottom strip serves the objective (it allows the
         //gain infimum); the top strip is the fallback.
@@ -644,7 +644,7 @@ inline void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnaly
 
                 //Corner vectors are refreshed per attempt: earlier
                 //extractions may have shrunk the box.
-                QVector<qreal> zeroInfs, zeroSups, poleInfs, poleSups;
+                std::vector<double> zeroInfs, zeroSups, poleInfs, poleSups;
                 cornerVectors(box, false, true, zeroInfs, poleSups);
                 cornerVectors(box, true, false, zeroSups, poleInfs);
                 const qreal kInf = box->gain()->range().x();
@@ -669,8 +669,8 @@ inline void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnaly
                     qreal t = -1.0;
 
                     if (family == 0) {
-                        const qreal boundMin = std::pow(10.0, datos->extremes()->at(0) / 20.0);
-                        const qreal boundMax = std::pow(10.0, datos->extremes()->at(1) / 20.0);
+                        const qreal boundMin = std::pow(10.0, datos->extremes()[0] / 20.0);
+                        const qreal boundMax = std::pow(10.0, datos->extremes()[1] / 20.0);
 
                         //Which boundary side must be feasible follows the
                         //parameter's monotonicity: gain and zeros raise
@@ -707,8 +707,8 @@ inline void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnaly
                         }
                     } else {
                         const qreal phi0 = nominalPhase(p0);
-                        const qreal thetaMin = datos->extremes()->at(2) * M_PI / 180.0;
-                        const qreal thetaMax = datos->extremes()->at(3) * M_PI / 180.0;
+                        const qreal thetaMin = datos->extremes()[2] * M_PI / 180.0;
+                        const qreal thetaMax = datos->extremes()[3] * M_PI / 180.0;
                         const QPointF boxPhase = analysis.boxPhase.at(i);
 
                         //Zeros lower the phase as they grow, poles raise
@@ -718,7 +718,7 @@ inline void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnaly
 
                         if (rightStrip) {
                             if (datos->isTopRightForbidden() ||
-                                    datos->extremes()->at(3) >= boxPhase.y() - phaseGridStep) {
+                                    datos->extremes()[3] >= boxPhase.y() - phaseGridStep) {
                                 allCertified = false;
                                 break;
                             }
@@ -727,7 +727,7 @@ inline void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnaly
                                 : quick_solution::polePhaseCutHigh(thetaMax, phi0, zeroSups, poleInfs, termIndex, w);
                         } else {
                             if (datos->isBottomLeftForbidden() ||
-                                    datos->extremes()->at(2) <= boxPhase.x() + phaseGridStep) {
+                                    datos->extremes()[2] <= boxPhase.x() + phaseGridStep) {
                                 allCertified = false;
                                 break;
                             }
@@ -824,14 +824,14 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
 {
     LtiSystem * v = node->system();
 
-    QVector<qreal> zeroInfs, zeroSups, poleInfs, poleSups;
+    std::vector<double> zeroInfs, zeroSups, poleInfs, poleSups;
     foreach (Parameter * var, *v->numerator()) {
-        zeroInfs.append(var->isUncertain() ? var->range().x() : var->nominal());
-        zeroSups.append(var->isUncertain() ? var->range().y() : var->nominal());
+        zeroInfs.push_back(var->isUncertain() ? var->range().x() : var->nominal());
+        zeroSups.push_back(var->isUncertain() ? var->range().y() : var->nominal());
     }
     foreach (Parameter * var, *v->denominator()) {
-        poleInfs.append(var->isUncertain() ? var->range().x() : var->nominal());
-        poleSups.append(var->isUncertain() ? var->range().y() : var->nominal());
+        poleInfs.push_back(var->isUncertain() ? var->range().x() : var->nominal());
+        poleSups.push_back(var->isUncertain() ? var->range().y() : var->nominal());
     }
 
     qreal gainInf = v->gain()->range().x();
@@ -849,8 +849,8 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
 
         const qreal w = omega->at(i);
         const std::complex<qreal> p0 = plantas_nominales_std->at(i);
-        const qreal boundMin = std::pow(10.0, datos->extremes()->at(0) / 20.0);
-        const qreal boundMax = std::pow(10.0, datos->extremes()->at(1) / 20.0);
+        const qreal boundMin = std::pow(10.0, datos->extremes()[0] / 20.0);
+        const qreal boundMax = std::pow(10.0, datos->extremes()[1] / 20.0);
 
         //Bottom strip certainly forbidden: cuts from below (NK's QS).
         if (strategies.infeasibleMagnitude && datos->isBottomLeftForbidden()) {
@@ -863,20 +863,20 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
                 }
             }
 
-            for (qint32 j = 0; hasUncertainZeros && j < zeroInfs.size(); ++j) {
+            for (qint32 j = 0; hasUncertainZeros && j < static_cast<qint32>(zeroInfs.size()); ++j) {
                 if (!v->numerator()->at(j)->isUncertain()) continue;
                 const qreal z = quick_solution::zeroCut(boundMin, gainSup, zeroSups, poleInfs, j, w, p0);
-                if (z > zeroInfs.at(j) && z < zeroSups.at(j)) {
-                    zeroInfs.replace(j, z);
+                if (z > zeroInfs[j] && z < zeroSups[j]) {
+                    zeroInfs[j] = z;
                     cut = true;
                 }
             }
 
-            for (qint32 j = 0; hasUncertainPoles && j < poleInfs.size(); ++j) {
+            for (qint32 j = 0; hasUncertainPoles && j < static_cast<qint32>(poleInfs.size()); ++j) {
                 if (!v->denominator()->at(j)->isUncertain()) continue;
                 const qreal p = quick_solution::poleCut(boundMin, gainSup, zeroSups, poleInfs, j, w, p0);
-                if (p > poleInfs.at(j) && p < poleSups.at(j)) {
-                    poleSups.replace(j, p);
+                if (p > poleInfs[j] && p < poleSups[j]) {
+                    poleSups[j] = p;
                     cut = true;
                 }
             }
@@ -894,20 +894,20 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
                 }
             }
 
-            for (qint32 j = 0; hasUncertainZeros && j < zeroInfs.size(); ++j) {
+            for (qint32 j = 0; hasUncertainZeros && j < static_cast<qint32>(zeroInfs.size()); ++j) {
                 if (!v->numerator()->at(j)->isUncertain()) continue;
                 const qreal z = quick_solution::zeroCut(boundMax, gainInf, zeroInfs, poleSups, j, w, p0);
-                if (z > zeroInfs.at(j) && z < zeroSups.at(j)) {
-                    zeroSups.replace(j, z);
+                if (z > zeroInfs[j] && z < zeroSups[j]) {
+                    zeroSups[j] = z;
                     cut = true;
                 }
             }
 
-            for (qint32 j = 0; hasUncertainPoles && j < poleInfs.size(); ++j) {
+            for (qint32 j = 0; hasUncertainPoles && j < static_cast<qint32>(poleInfs.size()); ++j) {
                 if (!v->denominator()->at(j)->isUncertain()) continue;
                 const qreal p = quick_solution::poleCut(boundMax, gainInf, zeroInfs, poleSups, j, w, p0);
-                if (p > poleInfs.at(j) && p < poleSups.at(j)) {
-                    poleInfs.replace(j, p);
+                if (p > poleInfs[j] && p < poleSups[j]) {
+                    poleInfs[j] = p;
                     cut = true;
                 }
             }
@@ -918,27 +918,27 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
 
             const qreal phi0 = nominalPhase(p0);
             const QPointF boxPhase = analysis.boxPhase.at(i);
-            const qreal boundPhaseMin = datos->extremes()->at(2);
-            const qreal boundPhaseMax = datos->extremes()->at(3);
+            const qreal boundPhaseMin = datos->extremes()[2];
+            const qreal boundPhaseMax = datos->extremes()[3];
 
             if (datos->isTopRightForbidden() && boundPhaseMax < boxPhase.y() - phaseGridStep) {
 
                 const qreal thetaMax = boundPhaseMax * M_PI / 180.0;
 
-                for (qint32 j = 0; hasUncertainZeros && j < zeroInfs.size(); ++j) {
+                for (qint32 j = 0; hasUncertainZeros && j < static_cast<qint32>(zeroInfs.size()); ++j) {
                     if (!v->numerator()->at(j)->isUncertain()) continue;
                     const qreal z = quick_solution::zeroPhaseCutHigh(thetaMax, phi0, zeroSups, poleInfs, j, w);
-                    if (z > zeroInfs.at(j) && z < zeroSups.at(j)) {
-                        zeroInfs.replace(j, z);
+                    if (z > zeroInfs[j] && z < zeroSups[j]) {
+                        zeroInfs[j] = z;
                         cut = true;
                     }
                 }
 
-                for (qint32 j = 0; hasUncertainPoles && j < poleInfs.size(); ++j) {
+                for (qint32 j = 0; hasUncertainPoles && j < static_cast<qint32>(poleInfs.size()); ++j) {
                     if (!v->denominator()->at(j)->isUncertain()) continue;
                     const qreal p = quick_solution::polePhaseCutHigh(thetaMax, phi0, zeroSups, poleInfs, j, w);
-                    if (p > poleInfs.at(j) && p < poleSups.at(j)) {
-                        poleSups.replace(j, p);
+                    if (p > poleInfs[j] && p < poleSups[j]) {
+                        poleSups[j] = p;
                         cut = true;
                     }
                 }
@@ -948,20 +948,20 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
 
                 const qreal thetaMin = boundPhaseMin * M_PI / 180.0;
 
-                for (qint32 j = 0; hasUncertainZeros && j < zeroInfs.size(); ++j) {
+                for (qint32 j = 0; hasUncertainZeros && j < static_cast<qint32>(zeroInfs.size()); ++j) {
                     if (!v->numerator()->at(j)->isUncertain()) continue;
                     const qreal z = quick_solution::zeroPhaseCutLow(thetaMin, phi0, zeroInfs, poleSups, j, w);
-                    if (z > zeroInfs.at(j) && z < zeroSups.at(j)) {
-                        zeroSups.replace(j, z);
+                    if (z > zeroInfs[j] && z < zeroSups[j]) {
+                        zeroSups[j] = z;
                         cut = true;
                     }
                 }
 
-                for (qint32 j = 0; hasUncertainPoles && j < poleInfs.size(); ++j) {
+                for (qint32 j = 0; hasUncertainPoles && j < static_cast<qint32>(poleInfs.size()); ++j) {
                     if (!v->denominator()->at(j)->isUncertain()) continue;
                     const qreal p = quick_solution::polePhaseCutLow(thetaMin, phi0, zeroInfs, poleSups, j, w);
-                    if (p > poleInfs.at(j) && p < poleSups.at(j)) {
-                        poleInfs.replace(j, p);
+                    if (p > poleInfs[j] && p < poleSups[j]) {
+                        poleInfs[j] = p;
                         cut = true;
                     }
                 }
@@ -974,18 +974,18 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
     }
 
     auto * numerador = new QVector<Parameter*>();
-    for (qint32 j = 0; j < zeroInfs.size(); ++j) {
+    for (qint32 j = 0; j < static_cast<qint32>(zeroInfs.size()); ++j) {
         Parameter * old = v->numerator()->at(j);
         numerador->append(old->isUncertain()
-                ? new Parameter(old->name(), QPointF(zeroInfs.at(j), zeroSups.at(j)), zeroInfs.at(j))
+                ? new Parameter(old->name(), QPointF(zeroInfs[j], zeroSups[j]), zeroInfs[j])
                 : new Parameter(old->nominal()));
     }
 
     auto * denominador = new QVector<Parameter*>();
-    for (qint32 j = 0; j < poleInfs.size(); ++j) {
+    for (qint32 j = 0; j < static_cast<qint32>(poleInfs.size()); ++j) {
         Parameter * old = v->denominator()->at(j);
         denominador->append(old->isUncertain()
-                ? new Parameter(old->name(), QPointF(poleInfs.at(j), poleSups.at(j)), poleInfs.at(j))
+                ? new Parameter(old->name(), QPointF(poleInfs[j], poleSups[j]), poleInfs[j])
                 : new Parameter(old->nominal()));
     }
 

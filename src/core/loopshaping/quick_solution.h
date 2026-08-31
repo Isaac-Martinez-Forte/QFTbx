@@ -4,7 +4,7 @@
 #include <cmath>
 #include <complex>
 
-#include <QVector>
+#include <vector>
 
 /**
  * @brief Quick Solution cutting equations of algorithm NK (Paluri/Nataraj
@@ -40,14 +40,14 @@
 namespace qftbx {
 namespace quick_solution {
 
-inline qreal factorProductMagnitude(const QVector<qreal> & values, qreal w,
+inline double factorProductMagnitude(const std::vector<double> & values, double w,
                                     int skipIndex = -1)
 {
-    qreal product = 1.0;
+    double product = 1.0;
 
-    for (int i = 0; i < values.size(); ++i) {
-        if (i != skipIndex) {
-            product *= std::abs(std::complex<qreal>(values.at(i), w));
+    for (std::size_t i = 0; i < values.size(); ++i) {
+        if (static_cast<int>(i) != skipIndex) {
+            product *= std::abs(std::complex<double>(values.at(i), w));
         }
     }
 
@@ -55,11 +55,11 @@ inline qreal factorProductMagnitude(const QVector<qreal> & values, qreal w,
 }
 
 /// k' such that |L0(k', sup z, inf p)| equals the linear bound minimum.
-inline qreal gainCut(qreal boundMinLinear, const QVector<qreal> & zeroSups,
-                     const QVector<qreal> & poleInfs, qreal w,
-                     std::complex<qreal> p0)
+inline double gainCut(double boundMinLinear, const std::vector<double> & zeroSups,
+                     const std::vector<double> & poleInfs, double w,
+                     std::complex<double> p0)
 {
-    const qreal rest = factorProductMagnitude(zeroSups, w) /
+    const double rest = factorProductMagnitude(zeroSups, w) /
                        factorProductMagnitude(poleInfs, w) * std::abs(p0);
 
     if (rest <= 0.0) {
@@ -71,21 +71,21 @@ inline qreal gainCut(qreal boundMinLinear, const QVector<qreal> & zeroSups,
 
 /// z' for the zero at 'index', the other parameters at their |L0|-maximal
 /// corner. Negative when the equation has no real solution.
-inline qreal zeroCut(qreal boundMinLinear, qreal gainSup,
-                     const QVector<qreal> & zeroSups,
-                     const QVector<qreal> & poleInfs, int index, qreal w,
-                     std::complex<qreal> p0)
+inline double zeroCut(double boundMinLinear, double gainSup,
+                     const std::vector<double> & zeroSups,
+                     const std::vector<double> & poleInfs, int index, double w,
+                     std::complex<double> p0)
 {
-    const qreal denominator = gainSup *
+    const double denominator = gainSup *
             factorProductMagnitude(zeroSups, w, index) * std::abs(p0);
 
     if (denominator <= 0.0) {
         return -1.0;
     }
 
-    const qreal factor = boundMinLinear *
+    const double factor = boundMinLinear *
             factorProductMagnitude(poleInfs, w) / denominator;
-    const qreal radicand = factor * factor - w * w;
+    const double radicand = factor * factor - w * w;
 
     if (radicand < 0.0) {
         return -1.0;
@@ -96,21 +96,21 @@ inline qreal zeroCut(qreal boundMinLinear, qreal gainSup,
 
 /// p' for the pole at 'index', the other parameters at their |L0|-maximal
 /// corner. Negative when the equation has no real solution.
-inline qreal poleCut(qreal boundMinLinear, qreal gainSup,
-                     const QVector<qreal> & zeroSups,
-                     const QVector<qreal> & poleInfs, int index, qreal w,
-                     std::complex<qreal> p0)
+inline double poleCut(double boundMinLinear, double gainSup,
+                     const std::vector<double> & zeroSups,
+                     const std::vector<double> & poleInfs, int index, double w,
+                     std::complex<double> p0)
 {
-    const qreal denominator = boundMinLinear *
+    const double denominator = boundMinLinear *
             factorProductMagnitude(poleInfs, w, index);
 
     if (denominator <= 0.0) {
         return -1.0;
     }
 
-    const qreal factor = gainSup * factorProductMagnitude(zeroSups, w) *
+    const double factor = gainSup * factorProductMagnitude(zeroSups, w) *
             std::abs(p0) / denominator;
-    const qreal radicand = factor * factor - w * w;
+    const double radicand = factor * factor - w * w;
 
     if (radicand < 0.0) {
         return -1.0;
@@ -167,13 +167,13 @@ inline qreal poleCut(qreal boundMinLinear, qreal gainSup,
 
 /// Sum of the phase contributions atan(w/x) of the terms (jw + x),
 /// optionally skipping one term.
-inline qreal termPhaseSum(const QVector<qreal> & values, qreal w,
+inline double termPhaseSum(const std::vector<double> & values, double w,
                           int skipIndex = -1)
 {
-    qreal sum = 0.0;
+    double sum = 0.0;
 
-    for (int i = 0; i < values.size(); ++i) {
-        if (i != skipIndex) {
+    for (std::size_t i = 0; i < values.size(); ++i) {
+        if (static_cast<int>(i) != skipIndex) {
             sum += std::atan2(w, values.at(i));
         }
     }
@@ -184,12 +184,12 @@ inline qreal termPhaseSum(const QVector<qreal> & values, qreal w,
 /// z' for the zero at 'index' when the phases ABOVE thetaMax are certainly
 /// forbidden: below z' even the phase-minimal corner of the other
 /// parameters stays beyond the threshold (cut z to [z', sup z]).
-inline qreal zeroPhaseCutHigh(qreal thetaMax, qreal phi0,
-                              const QVector<qreal> & zeroSups,
-                              const QVector<qreal> & poleInfs, int index,
-                              qreal w)
+inline double zeroPhaseCutHigh(double thetaMax, double phi0,
+                              const std::vector<double> & zeroSups,
+                              const std::vector<double> & poleInfs, int index,
+                              double w)
 {
-    const qreal margin = thetaMax - phi0 - termPhaseSum(zeroSups, w, index) +
+    const double margin = thetaMax - phi0 - termPhaseSum(zeroSups, w, index) +
                          termPhaseSum(poleInfs, w);
 
     if (margin <= 0.0 || margin >= M_PI_2) {
@@ -201,12 +201,12 @@ inline qreal zeroPhaseCutHigh(qreal thetaMax, qreal phi0,
 
 /// p' for the pole at 'index' when the phases ABOVE thetaMax are certainly
 /// forbidden (cut p to [inf p, p']).
-inline qreal polePhaseCutHigh(qreal thetaMax, qreal phi0,
-                              const QVector<qreal> & zeroSups,
-                              const QVector<qreal> & poleInfs, int index,
-                              qreal w)
+inline double polePhaseCutHigh(double thetaMax, double phi0,
+                              const std::vector<double> & zeroSups,
+                              const std::vector<double> & poleInfs, int index,
+                              double w)
 {
-    const qreal margin = phi0 + termPhaseSum(zeroSups, w) -
+    const double margin = phi0 + termPhaseSum(zeroSups, w) -
                          termPhaseSum(poleInfs, w, index) - thetaMax;
 
     if (margin <= 0.0 || margin >= M_PI_2) {
@@ -219,12 +219,12 @@ inline qreal polePhaseCutHigh(qreal thetaMax, qreal phi0,
 /// z' for the zero at 'index' when the phases BELOW thetaMin are certainly
 /// forbidden: above z' even the phase-maximal corner of the other
 /// parameters stays under the threshold (cut z to [inf z, z']).
-inline qreal zeroPhaseCutLow(qreal thetaMin, qreal phi0,
-                             const QVector<qreal> & zeroInfs,
-                             const QVector<qreal> & poleSups, int index,
-                             qreal w)
+inline double zeroPhaseCutLow(double thetaMin, double phi0,
+                             const std::vector<double> & zeroInfs,
+                             const std::vector<double> & poleSups, int index,
+                             double w)
 {
-    const qreal margin = thetaMin - phi0 - termPhaseSum(zeroInfs, w, index) +
+    const double margin = thetaMin - phi0 - termPhaseSum(zeroInfs, w, index) +
                          termPhaseSum(poleSups, w);
 
     if (margin <= 0.0 || margin >= M_PI_2) {
@@ -236,12 +236,12 @@ inline qreal zeroPhaseCutLow(qreal thetaMin, qreal phi0,
 
 /// p' for the pole at 'index' when the phases BELOW thetaMin are certainly
 /// forbidden (cut p to [p', sup p]).
-inline qreal polePhaseCutLow(qreal thetaMin, qreal phi0,
-                             const QVector<qreal> & zeroInfs,
-                             const QVector<qreal> & poleSups, int index,
-                             qreal w)
+inline double polePhaseCutLow(double thetaMin, double phi0,
+                             const std::vector<double> & zeroInfs,
+                             const std::vector<double> & poleSups, int index,
+                             double w)
 {
-    const qreal margin = phi0 + termPhaseSum(zeroInfs, w) -
+    const double margin = phi0 + termPhaseSum(zeroInfs, w) -
                          termPhaseSum(poleSups, w, index) - thetaMin;
 
     if (margin <= 0.0 || margin >= M_PI_2) {

@@ -189,8 +189,8 @@ inline void AlgorithmNt::check_box_feasibility(LtiSystem * controlador) {
         if (datos->flag() == ambiguous) {
             flag_final = ambiguous;
 
-            const qreal minimoBoundarie = datos->extremes()->at(0);
-            const qreal maximoBoundarie = datos->extremes()->at(1);
+            const qreal minimoBoundarie = datos->extremes()[0];
+            const qreal maximoBoundarie = datos->extremes()[1];
 
             //C_g- : cut the certainly infeasible low-gain subrange.
             controlador = acelerated(controlador, minimoBoundarie, o, contador, !datos->isBottomLeftForbidden());

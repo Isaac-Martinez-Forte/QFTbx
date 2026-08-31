@@ -119,7 +119,7 @@ void ExpressionTree::setFunc(const char *tex)
 * Esta función nos permite evaluar
 * la expresión matemática
 */
-qreal ExpressionTree::eval(QMap<std::string, qreal> *variables )
+qreal ExpressionTree::eval(std::map<std::string, qreal> *variables )
 {
     this->variables = variables;
 
@@ -260,13 +260,13 @@ string ExpressionTree::tipo(type_node tipo)  {
     return "";
 }
 
-interval ExpressionTree::eval(QMap<string, interval > *variables){
+interval ExpressionTree::eval(std::map<string, interval> *variables){
     this->variables_in = variables;
 
     return eval_tree_in(root);
 }
 
-/*interval ExpressionTree::eval(QMap<string, interval > *variables, qreal w){
+/*interval ExpressionTree::eval(std::map<string, interval> *variables, qreal w){
 
     this->w = w;
     this->variables_in = variables;
@@ -301,12 +301,12 @@ ExpressionTree &ExpressionTree::operator=(const ExpressionTree &other)
 * evaluar la expresion usando parentesis
 * de esta forma result = function(78,0,0,1)
 */
-qreal ExpressionTree::operator()(QMap <std::string, qreal> * variables)
+qreal ExpressionTree::operator()(std::map<std::string, qreal> * variables)
 {
     return eval (variables);
 }
 
-interval ExpressionTree::operator ()(QMap <std::string, interval > * variables){
+interval ExpressionTree::operator ()(std::map<std::string, interval> * variables){
     return eval (variables);
 }
 
@@ -328,7 +328,7 @@ qreal ExpressionTree::eval_tree(exp_node *nod)
         return nod->c_const;
 
     case VAR  :
-        return variables->value(nod->var);
+        return variables->at(nod->var);
 
     case E:
         return E1;
@@ -401,7 +401,7 @@ qreal ExpressionTree::eval_tree(exp_node *nod)
 }
 
 
-bool ExpressionTree::propagate(QMap<string, interval > *variables){
+bool ExpressionTree::propagate(std::map<string, interval> *variables){
 
     this->variables_in = variables;
 
@@ -456,7 +456,7 @@ bool ExpressionTree::eval_tree_out(exp_node *nod, interval intervalo){
 
     case VAR  :
     {
-        variables_in->insert(nod->var, intervalo);
+        (*variables_in)[nod->var] = intervalo;
         return true;
     }
 
@@ -715,11 +715,11 @@ interval ExpressionTree::eval_tree_in(exp_node *nod)
     case VAR  :
         //A missing variable used to return a default-constructed cxsc
         //interval, whose bounds are UNINITIALIZED memory.
-        if (!variables_in->contains(nod->var)) {
+        if (variables_in->find(nod->var) == variables_in->end()) {
             throw std::invalid_argument(
                     "ExpressionTree: unknown variable '" + nod->var + "' in the expression.");
         }
-        return nod->intervalo = variables_in->value(nod->var);
+        return nod->intervalo = variables_in->at(nod->var);
 
     case E:
         return interval (E1);
@@ -812,7 +812,7 @@ interval ExpressionTree::eval_tree_in(exp_node *nod)
         if (nod->var == "s")
             return complex<qreal> (0, w) * interval(1);
 
-        return  variables_in->value(nod->var) * complejo_vacio;
+        return  variables_in->at(nod->var) * complejo_vacio;
 
 
     case E:

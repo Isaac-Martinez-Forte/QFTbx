@@ -137,15 +137,7 @@ BoxClassification *BoundaryViolationDetector::classifyBox(cinterval box, Boundar
 
     BoxClassification * datos = new BoxClassification();
 
-    QVector <qreal> * m_extremes = new QVector <qreal> ();
-
-
-    m_extremes->append(minMagBound);
-    m_extremes->append(maxMagBound);
-    m_extremes->append(minFasBound);
-    m_extremes->append(maxFasBound);
-
-    datos->setExtremes(m_extremes);
+    datos->setExtremes({minMagBound, maxMagBound, minFasBound, maxFasBound});
 
     //Corner classifications for the cutting strips: every boundary point
     //whose phase lies in the box's span was scanned above, so the box

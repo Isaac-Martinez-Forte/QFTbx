@@ -3,6 +3,8 @@
 
 #include <complex>
 
+#include <map>
+
 #include <QString>
 #include <QVector>
 
@@ -63,17 +65,17 @@ public:
 private:
 
     struct BoxDomains {
-        QMap<std::string, cxsc::interval> values;
+        std::map<std::string, cxsc::interval> values;
     };
 
     inline void buildControllerExpressions();
     inline void buildConstraints();
     inline void classifyAndInsert(LtiSystem * box);
-    inline bool narrowToFixpoint(QMap<std::string, cxsc::interval> & domains);
-    inline bool certainlyFeasible(QMap<std::string, cxsc::interval> & domains);
-    inline void loadDomains(LtiSystem * box, QMap<std::string, cxsc::interval> & domains);
+    inline bool narrowToFixpoint(std::map<std::string, cxsc::interval> & domains);
+    inline bool certainlyFeasible(std::map<std::string, cxsc::interval> & domains);
+    inline void loadDomains(LtiSystem * box, std::map<std::string, cxsc::interval> & domains);
     inline LtiSystem * boxFromDomains(LtiSystem * box,
-                                      const QMap<std::string, cxsc::interval> & domains);
+                                      const std::map<std::string, cxsc::interval> & domains);
 
     LtiSystem * planta = nullptr;
     LtiSystem * controlador = nullptr;

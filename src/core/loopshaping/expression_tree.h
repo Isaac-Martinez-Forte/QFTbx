@@ -14,7 +14,7 @@ Roberto C. Cruz Rodríguez
 #include <cassert>
 #include <iostream>
 
-#include <QMap>
+#include <map>
 #include <QRegularExpression>
 
 #include "interval.hpp"
@@ -95,16 +95,16 @@ public :
     void setFunc(const char *tex);
 
     /// Evaluates over reals with the given variable values.
-    qreal eval(QMap <std::string, qreal> * variables = NULL);
+    qreal eval(std::map<std::string, qreal> * variables = NULL);
 
     /// Evaluates over intervals with the given variable domains.
-    interval eval (QMap<std::string, interval > *variables);
+    interval eval (std::map<std::string, interval> *variables);
 
     /// One HC4 pass over the constraint: forward interval evaluation,
     /// intersection with the constraint set, backward projection narrowing
     /// 'variables' in place. Returns false when a domain empties (the
     /// constraint proves the box infeasible).
-    bool propagate (QMap<std::string, interval > *variables);
+    bool propagate (std::map<std::string, interval> *variables);
 
     /// Prints the tree to stdout (debugging aid).
     void imprimir ();
@@ -112,9 +112,9 @@ public :
     ExpressionTree &operator=(const ExpressionTree & other);
 
     /// Alternative spelling of eval().
-    qreal operator()(QMap <std::string, qreal> * variables = NULL);
+    qreal operator()(std::map<std::string, qreal> * variables = NULL);
 
-    interval operator() (QMap<std::string, interval > *variables);
+    interval operator() (std::map<std::string, interval> *variables);
 
 private :
 
@@ -149,8 +149,8 @@ private :
     bool es_letra(char tex);
 
     exp_node *root;
-    QMap <std::string, qreal> * variables;
-    QMap <std::string, interval > * variables_in;
+    std::map<std::string, qreal> * variables;
+    std::map<std::string, interval> * variables_in;
 
     qreal numero_comparar;
     com comparacion;

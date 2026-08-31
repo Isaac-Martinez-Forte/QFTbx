@@ -308,7 +308,7 @@ LtiSystem * AlgorithmMr::getControlador(){
 //constraint prove it feasible.
 inline void AlgorithmMr::classifyAndInsert(LtiSystem * box){
 
-    QMap<std::string, cxsc::interval> domains;
+    std::map<std::string, cxsc::interval> domains;
     loadDomains(box, domains);
 
     if (!narrowToFixpoint(domains)) {
@@ -325,11 +325,11 @@ inline void AlgorithmMr::classifyAndInsert(LtiSystem * box){
 }
 
 
-inline bool AlgorithmMr::narrowToFixpoint(QMap<std::string, cxsc::interval> & domains){
+inline bool AlgorithmMr::narrowToFixpoint(std::map<std::string, cxsc::interval> & domains){
 
     for (qint32 pass = 0; pass < kMaxNarrowingPasses; ++pass) {
 
-        const QMap<std::string, cxsc::interval> snapshot = domains;
+        const std::map<std::string, cxsc::interval> snapshot = domains;
 
         foreach (ExpressionTree * tree, constraints) {
             if (!tree->propagate(&domains)) {
@@ -338,9 +338,9 @@ inline bool AlgorithmMr::narrowToFixpoint(QMap<std::string, cxsc::interval> & do
         }
 
         bool changed = false;
-        for (auto it = domains.constBegin(); it != domains.constEnd(); ++it) {
-            const cxsc::interval previous = snapshot.value(it.key());
-            if (Inf(it.value()) != Inf(previous) || Sup(it.value()) != Sup(previous)) {
+        for (auto it = domains.begin(); it != domains.end(); ++it) {
+            const cxsc::interval previous = snapshot.at(it->first);
+            if (Inf(it->second) != Inf(previous) || Sup(it->second) != Sup(previous)) {
                 changed = true;
                 break;
             }
@@ -355,7 +355,7 @@ inline bool AlgorithmMr::narrowToFixpoint(QMap<std::string, cxsc::interval> & do
 }
 
 
-inline bool AlgorithmMr::certainlyFeasible(QMap<std::string, cxsc::interval> & domains){
+inline bool AlgorithmMr::certainlyFeasible(std::map<std::string, cxsc::interval> & domains){
 
     foreach (ExpressionTree * tree, constraints) {
         if (cxsc::_double(Inf(tree->eval(&domains))) < 0.0) {
@@ -368,14 +368,14 @@ inline bool AlgorithmMr::certainlyFeasible(QMap<std::string, cxsc::interval> & d
 
 
 inline void AlgorithmMr::loadDomains(LtiSystem * box,
-                                           QMap<std::string, cxsc::interval> & domains){
+                                           std::map<std::string, cxsc::interval> & domains){
 
     domains.clear();
 
     const auto load = [&](Parameter * var) {
         if (var->isUncertain()) {
-            domains.insert(var->name().toStdString(),
-                           cxsc::interval(var->range().x(), var->range().y()));
+            domains[var->name().toStdString()] =
+                    cxsc::interval(var->range().x(), var->range().y());
         }
     };
 
@@ -390,13 +390,13 @@ inline void AlgorithmMr::loadDomains(LtiSystem * box,
 
 
 inline LtiSystem * AlgorithmMr::boxFromDomains(LtiSystem * box,
-                                                     const QMap<std::string, cxsc::interval> & domains){
+                                                     const std::map<std::string, cxsc::interval> & domains){
 
     const auto rebuilt = [&](Parameter * var) -> Parameter * {
         if (!var->isUncertain()) {
             return new Parameter(var->nominal());
         }
-        const cxsc::interval value = domains.value(var->name().toStdString());
+        const cxsc::interval value = domains.at(var->name().toStdString());
         return new Parameter(var->name(),
                              QPointF(cxsc::_double(Inf(value)), cxsc::_double(Sup(value))),
                              cxsc::_double(Inf(value)));
