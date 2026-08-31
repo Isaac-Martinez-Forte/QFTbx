@@ -18,9 +18,8 @@
 #include "src/core/templates/template_engine.h"
 #include "Objetos/omega.h"
 #include "src/core/boundaries/boundary_engine.h"
-#include "XmlParser/parsersave.h"
-#include "XmlParser/parserload.h"
-#include "EstructurasDatos/datosplanta.h"
+#include "src/persistence/project_reader.h"
+#include "src/persistence/project_writer.h"
 #include "Herramientas/tools.h"
 #include "LoopShaping/loopshaping.h"
 

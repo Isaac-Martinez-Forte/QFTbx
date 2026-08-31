@@ -44,7 +44,7 @@ stage has a dialog in the GUI and an engine in the model layer.
 | `Modelo/Herramientas/` | Shared helpers (`tools.h`, `qftbx::Exception`) |
 | `Modelo/controlador.cpp` | `Controlador`: the single mediator between GUI and model |
 | `DAO/` | In-memory storage of each stage's results (DAO pattern behind `FDAO`) |
-| `XmlParser/` | Load/save of `.qft` project files (Qt XML streaming, isolated here) |
+| `src/persistence/` | Load/save of `.qft` project files (pugixml; versioned English dialect, legacy Spanish files still load) |
 | `GUI/` | Qt Widgets HMI: one dialog per stage plus plot viewers (QCustomPlot) |
 | `GPU/CUDA/` | Optional CUDA kernels for templates/boundaries (`USE_CUDA`) |
 | `tests/` | GoogleTest suite; golden `.qft` projects in `tests/data/` |

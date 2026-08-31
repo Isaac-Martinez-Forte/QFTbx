@@ -298,74 +298,73 @@ DatosLoopShaping * Controlador::getLoopShaping(){
 
 bool Controlador::guardarSistema(QString fichero){
 
-    bool retorno = true;
-
-    DatosPlanta * datosPlanta = new DatosPlanta();
+    ProjectContent content;
 
     if (paso1)
-        datosPlanta->setPlanta(plantadao);
+        content.plant = plantadao->getPlanta();
 
     if (paso2)
-        datosPlanta->setEspecificaciones(especdao);
+        content.specifications = especdao->getEspecificaciones();
 
     if (paso3)
-        datosPlanta->setOmega(omegadao);
+        content.omega = omegadao->getOmega();
 
-    if (paso4)
-        datosPlanta->setTemplates(templatedao);
+    if (paso4){
+        content.templates = templatedao->getTemplates();
+        content.epsilon = templatedao->getEpsilon();
+        if (templatedao->isContorno()){
+            content.contour = templatedao->getContorno();
+        }
+    }
 
     if (paso5)
-        datosPlanta->setBoundaries(bounddao);
+        content.boundaries = bounddao->getBound();
 
     if (paso6)
-        datosPlanta->setControlador(controladordao);
+        content.controller = controladordao->getControlador();
 
     if (paso7)
-        datosPlanta->setLoopShaping(loopshapingdao);
+        content.loopShaping = loopshapingdao->getLoopShaping();
 
+    ProjectWriter writer;
+    writer.save(fichero, content);
 
-    XmlParserSave * parser = new XmlParserSave();
-    parser->guardarXMLDatos(fichero, datosPlanta);
-
-    delete parser;
-    delete datosPlanta;
-
-    return retorno;
+    return true;
 }
 
 QVector <bool> * Controlador::cargarSistema(QString fichero){
 
-    XmlParserLoad * leer = new XmlParserLoad();
+    ProjectReader leer;
 
-    QVector <bool> * retorno =  leer->recuperarXmlDatos(fichero);
+    QVector <bool> * retorno = leer.load(fichero);
 
     if (retorno->value(0))
-        setPlanta(leer->getPlanta());
+        setPlanta(leer.plant());
 
     if (retorno->value(1))
-        setEspecificaciones(leer->getEspecificaciones());
+        setEspecificaciones(leer.specifications());
 
     if (retorno->value(2))
-        setOmega(leer->getOmega());
+        setOmega(leer.omega());
 
     if (retorno->value(3)){
         if (retorno->value(7)){
-            setTemplate(leer->getTemplates(), leer->getContorno(), true);
+            setTemplate(leer.templates(), leer.contour(), true);
         }else {
-            setTemplate(leer->getTemplates(), NULL, false);
+            setTemplate(leer.templates(), NULL, false);
         }
-        templatedao->setEpsilon(leer->getEpsilon());
+        templatedao->setEpsilon(leer.epsilon());
     }
 
     if (retorno->value(4))
-        setBoundaries(leer->getBoundaries());
+        setBoundaries(leer.boundaries());
 
     if (retorno->value(5)){
-        setControlador(leer->getControlador());
+        setControlador(leer.controller());
     }
 
     if (retorno->value(6)){
-        setLoopShaping(leer->getLoopShaping());
+        setLoopShaping(leer.loopShaping());
     }
 
     return retorno;

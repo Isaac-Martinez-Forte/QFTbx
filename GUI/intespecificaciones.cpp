@@ -5,6 +5,10 @@
 
 #include "GUI/menerror.h"
 #include "GUI/plot_palette.h"
+#include "src/core/system/free_form.h"
+#include "src/core/system/polynomial_form.h"
+#include "src/core/system/zero_pole_gain.h"
+#include "src/core/system/time_constant_gain.h"
 
 using namespace tools;
 using namespace mup;

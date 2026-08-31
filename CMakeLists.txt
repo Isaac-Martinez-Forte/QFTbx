@@ -102,6 +102,16 @@ endif()
 set(TS_FILES QFTbx_es_ES.ts)
 
 # ------------------------------------------------------------------------------
+# pugixml (persistencia .qft; MIT, anclada por tag)
+# ------------------------------------------------------------------------------
+include(FetchContent)
+FetchContent_Declare(pugixml
+  GIT_REPOSITORY https://github.com/zeux/pugixml.git
+  GIT_TAG        v1.14
+)
+FetchContent_MakeAvailable(pugixml)
+
+# ------------------------------------------------------------------------------
 # Fuentes del proyecto
 # ------------------------------------------------------------------------------
 # Backend (Modelo, DAO, XmlParser, Consola): compilado como libreria estatica
@@ -122,9 +132,8 @@ set(QFTbx_BACKEND_SRC
     Modelo/Herramientas/tools.cpp
     Modelo/Objetos/omega.cpp
     DAO/adaptadorbounddao.cpp
-    XmlParser/xmlparsersave.cpp
-    Modelo/EstructurasDatos/datosplanta.cpp
-    XmlParser/xmlparserload.cpp
+    src/persistence/project_reader.cpp
+    src/persistence/project_writer.cpp
     DAO/fdao.cpp
     src/core/boundaries/boundary_data.cpp
     DAO/adaptadorespecificacionesdao.cpp
@@ -196,12 +205,12 @@ set(QFTbx_BACKEND_HED
     Modelo/Objetos/omega.h
     DAO/bounddao.h
     DAO/adaptadorbounddao.h
-    Modelo/EstructurasDatos/datosplanta.h
     DAO/dao.h
     DAO/fdao.h
     src/core/boundaries/boundary_data.h
-    XmlParser/parserload.h
-    XmlParser/parsersave.h
+    src/persistence/project_reader.h
+    src/persistence/project_writer.h
+    src/persistence/qft_dialect.h
     DAO/especificacionesdao.h
     DAO/adaptadorespecificacionesdao.h
     DAO/adaptadorcontroladordao.h
@@ -273,6 +282,7 @@ target_include_directories(qftbx_backend PUBLIC "${CMAKE_SOURCE_DIR}")
 # El backend todavia depende de Qt (contenedores, QMessageBox en tools.h...);
 # la eliminacion progresiva de Qt del backend es parte del refactor en curso.
 target_link_libraries(qftbx_backend PUBLIC Qt6::Core Qt6::Gui Qt6::Widgets Qt6::PrintSupport)
+target_link_libraries(qftbx_backend PUBLIC pugixml::pugixml)
 
 # ------------------------------------------------------------------------------
 # Ejecutable

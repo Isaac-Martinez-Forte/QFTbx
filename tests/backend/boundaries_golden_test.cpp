@@ -22,7 +22,7 @@
 #include "src/core/boundaries/boundary_engine.h"
 #include "src/core/boundaries/boundary_data.h"
 #include "Modelo/Objetos/omega.h"
-#include "XmlParser/parserload.h"
+#include "src/persistence/project_reader.h"
 
 namespace {
 
@@ -51,21 +51,21 @@ class BoundariesGolden : public ::testing::Test
 protected:
     void SetUp() override
     {
-        delete parser.recuperarXmlDatos(
+        delete parser.load(
             QStringLiteral(QFTBX_TEST_DATA_DIR "/multivaluados.qft"));
 
-        engine.compute(parser.getOmega()->getValores(), parser.getPlanta(),
-                             parser.getContorno(), parser.getEspecificaciones(),
+        engine.compute(parser.omega()->getValores(), parser.plant(),
+                             parser.contour(), parser.specifications(),
                              QPointF(-360.0, 0.0), 361, QPointF(-60.0, 60.0), 121,
                              -1.0, false);
 
         got = engine.boundaryData();
-        gold = parser.getBoundaries();
+        gold = parser.boundaries();
         ASSERT_NE(got, nullptr);
         ASSERT_NE(gold, nullptr);
     }
 
-    XmlParserLoad parser;
+    ProjectReader parser;
     BoundaryEngine engine;
     BoundaryData* got = nullptr;
     BoundaryData* gold = nullptr;
@@ -158,13 +158,13 @@ TEST_F(BoundariesGolden, ContourInputIsEquivalentToFullTemplates)
 {
     // The sheet is a max/min over the cloud, so feeding the full clouds
     // instead of the contours must give the same boundaries.
-    XmlParserLoad parser2;
-    delete parser2.recuperarXmlDatos(
+    ProjectReader parser2;
+    delete parser2.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/multivaluados.qft"));
 
     BoundaryEngine engine2;
-    engine2.compute(parser2.getOmega()->getValores(), parser2.getPlanta(),
-                          parser2.getTemplates(), parser2.getEspecificaciones(),
+    engine2.compute(parser2.omega()->getValores(), parser2.plant(),
+                          parser2.templates(), parser2.specifications(),
                           QPointF(-360.0, 0.0), 361, QPointF(-60.0, 60.0), 121,
                           -1.0, false);
     BoundaryData* other = engine2.boundaryData();

@@ -22,7 +22,7 @@
 #include "src/core/system/parameter.h"
 #include "Modelo/Objetos/omega.h"
 #include "Modelo/Herramientas/tools.h"
-#include "XmlParser/parserload.h"
+#include "src/persistence/project_reader.h"
 
 namespace {
 
@@ -41,9 +41,9 @@ class TemplatesGolden : public ::testing::Test
 protected:
     void SetUp() override
     {
-        delete parser.recuperarXmlDatos(
+        delete parser.load(
             QStringLiteral(QFTBX_TEST_DATA_DIR "/planta2.qft"));
-        planta = parser.getPlanta();
+        planta = parser.plant();
         ASSERT_NE(planta, nullptr);
 
         // The fixture was computed on a 10x10 grid: a and kv in [1,10].
@@ -51,7 +51,7 @@ protected:
         mapa->insert(planta->numerator()->at(0)->name(), tools::linspace(1.0, 10.0, 10));
         mapa->insert(planta->gain()->name(), tools::linspace(1.0, 10.0, 10));
 
-        omegaCopy = new QVector<qreal>(*parser.getOmega()->getValores());
+        omegaCopy = new QVector<qreal>(*parser.omega()->getValores());
         epsilon = new QVector<qreal>(6, 10.0);
 
         templates.setEpsilon(epsilon);
@@ -70,7 +70,7 @@ protected:
         delete epsilon;
     }
 
-    XmlParserLoad parser;
+    ProjectReader parser;
     LtiSystem* planta = nullptr;
     QHash<QString, QVector<qreal>*>* mapa = nullptr;
     QVector<qreal>* omegaCopy = nullptr;
@@ -81,7 +81,7 @@ protected:
 TEST_F(TemplatesGolden, BruteForceMatchesFixture)
 {
     auto* computed = templates.clouds();
-    auto* expected = parser.getTemplates();
+    auto* expected = parser.templates();
     ASSERT_NE(computed, nullptr);
     ASSERT_NE(expected, nullptr);
     ASSERT_EQ(computed->size(), expected->size());
@@ -109,7 +109,7 @@ TEST_F(TemplatesGolden, ContourMatchesFixtureAsACycle)
     // fallback frequencies (0 and 2, where the reference walk cycles)
     // reproduce the historical sequence exactly.
     auto* computed = templates.contours();
-    auto* expected = parser.getContorno();
+    auto* expected = parser.contour();
     ASSERT_NE(computed, nullptr);
     ASSERT_NE(expected, nullptr);
     ASSERT_EQ(computed->size(), expected->size());
@@ -244,10 +244,10 @@ TEST(TemplatesValidation, MissingSweepGridThrowsInvalidInput)
 {
     // Hardened: a map without an entry for some uncertain parameter used to
     // dereference null; now it reports which grid is missing.
-    XmlParserLoad parser;
-    delete parser.recuperarXmlDatos(
+    ProjectReader parser;
+    delete parser.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/planta2.qft"));
-    LtiSystem* planta = parser.getPlanta();
+    LtiSystem* planta = parser.plant();
 
     auto* mapa = new QHash<QString, QVector<qreal>*>();
     mapa->insert(planta->numerator()->at(0)->name(), tools::linspace(1.0, 10.0, 10));

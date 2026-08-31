@@ -1,4 +1,4 @@
-// Smoke tests for XmlParserLoad: load the sample .qft project files shipped
+// Smoke tests for ProjectReader: load the sample .qft project files shipped
 // as test data and check that every section present in the file is recognised
 // and recovered.
 //
@@ -10,14 +10,14 @@
 #include <QString>
 #include <QVector>
 
-#include "XmlParser/parserload.h"
+#include "src/persistence/project_reader.h"
 #include "src/core/system/lti_system.h"
 #include "Modelo/Herramientas/exception.h"
 #include "Modelo/Objetos/omega.h"
 
 namespace {
 
-// Indices of the flag vector returned by XmlParserLoad::recuperarXmlDatos().
+// Indices of the flag vector returned by ProjectReader::load().
 enum SectionFlag {
     kPlant = 0,
     kSpecifications,
@@ -35,11 +35,11 @@ QString fixturePath(const char *name)
     return QString(QFTBX_TEST_DATA_DIR "/") + name;
 }
 
-QVector<bool> loadFlags(XmlParserLoad &parser, const char *fixture)
+QVector<bool> loadFlags(ProjectReader &parser, const char *fixture)
 {
-    QVector<bool> *flags = parser.recuperarXmlDatos(fixturePath(fixture));
+    QVector<bool> *flags = parser.load(fixturePath(fixture));
     if (flags == nullptr) {
-        ADD_FAILURE() << "recuperarXmlDatos returned null for " << fixture;
+        ADD_FAILURE() << "load returned null for " << fixture;
         return {};
     }
     QVector<bool> copy = *flags;
@@ -47,9 +47,9 @@ QVector<bool> loadFlags(XmlParserLoad &parser, const char *fixture)
     return copy;
 }
 
-TEST(XmlParserLoadSmoke, CerveraLoadsPlantAndFrequenciesOnly)
+TEST(ProjectReaderSmoke, CerveraLoadsPlantAndFrequenciesOnly)
 {
-    XmlParserLoad parser;
+    ProjectReader parser;
     const QVector<bool> flags = loadFlags(parser, "cervera.qft");
     ASSERT_EQ(flags.size(), kSectionFlagCount);
 
@@ -62,9 +62,9 @@ TEST(XmlParserLoadSmoke, CerveraLoadsPlantAndFrequenciesOnly)
     EXPECT_FALSE(flags[kLoopShaping]);
     EXPECT_FALSE(flags[kContour]);
 
-    ASSERT_NE(parser.getPlanta(), nullptr);
+    ASSERT_NE(parser.plant(), nullptr);
 
-    Omega *omega = parser.getOmega();
+    Omega *omega = parser.omega();
     ASSERT_NE(omega, nullptr);
     ASSERT_NE(omega->getValores(), nullptr);
     const QVector<qreal> &values = *omega->getValores();
@@ -75,9 +75,9 @@ TEST(XmlParserLoadSmoke, CerveraLoadsPlantAndFrequenciesOnly)
     EXPECT_DOUBLE_EQ(values[3], 100.0);
 }
 
-TEST(XmlParserLoadSmoke, Planta2LoadsUpToTemplates)
+TEST(ProjectReaderSmoke, Planta2LoadsUpToTemplates)
 {
-    XmlParserLoad parser;
+    ProjectReader parser;
     const QVector<bool> flags = loadFlags(parser, "planta2.qft");
     ASSERT_EQ(flags.size(), kSectionFlagCount);
 
@@ -91,15 +91,15 @@ TEST(XmlParserLoadSmoke, Planta2LoadsUpToTemplates)
     EXPECT_FALSE(flags[kLoopShaping]);
 
     // One template (full cloud + contour) per design frequency.
-    ASSERT_NE(parser.getTemplates(), nullptr);
-    EXPECT_EQ(parser.getTemplates()->size(), 6);
-    ASSERT_NE(parser.getContorno(), nullptr);
-    EXPECT_EQ(parser.getContorno()->size(), 6);
+    ASSERT_NE(parser.templates(), nullptr);
+    EXPECT_EQ(parser.templates()->size(), 6);
+    ASSERT_NE(parser.contour(), nullptr);
+    EXPECT_EQ(parser.contour()->size(), 6);
 }
 
-TEST(XmlParserLoadSmoke, MultivaluadosLoadsUpToBoundaries)
+TEST(ProjectReaderSmoke, MultivaluadosLoadsUpToBoundaries)
 {
-    XmlParserLoad parser;
+    ProjectReader parser;
     const QVector<bool> flags = loadFlags(parser, "multivaluados.qft");
     ASSERT_EQ(flags.size(), kSectionFlagCount);
 
@@ -112,14 +112,14 @@ TEST(XmlParserLoadSmoke, MultivaluadosLoadsUpToBoundaries)
     EXPECT_TRUE(flags[kController]);
     EXPECT_FALSE(flags[kLoopShaping]);
 
-    ASSERT_NE(parser.getTemplates(), nullptr);
-    EXPECT_EQ(parser.getTemplates()->size(), 5);
-    EXPECT_NE(parser.getBoundaries(), nullptr);
+    ASSERT_NE(parser.templates(), nullptr);
+    EXPECT_EQ(parser.templates()->size(), 5);
+    EXPECT_NE(parser.boundaries(), nullptr);
 }
 
-TEST(XmlParserLoadSmoke, Planta1LoadsFullProject)
+TEST(ProjectReaderSmoke, Planta1LoadsFullProject)
 {
-    XmlParserLoad parser;
+    ProjectReader parser;
     const QVector<bool> flags = loadFlags(parser, "planta1.qft");
     ASSERT_EQ(flags.size(), kSectionFlagCount);
 
@@ -127,23 +127,23 @@ TEST(XmlParserLoadSmoke, Planta1LoadsFullProject)
         EXPECT_TRUE(flags[i]) << "section flag " << i << " not recovered";
     }
 
-    ASSERT_NE(parser.getTemplates(), nullptr);
-    EXPECT_EQ(parser.getTemplates()->size(), 4);
-    EXPECT_NE(parser.getBoundaries(), nullptr);
+    ASSERT_NE(parser.templates(), nullptr);
+    EXPECT_EQ(parser.templates()->size(), 4);
+    EXPECT_NE(parser.boundaries(), nullptr);
 }
 
-TEST(XmlParserLoadErrors, MissingFileThrowsFileError)
+TEST(ProjectReaderErrors, MissingFileThrowsFileError)
 {
-    XmlParserLoad parser;
-    EXPECT_THROW(parser.recuperarXmlDatos(fixturePath("does-not-exist.qft")),
+    ProjectReader parser;
+    EXPECT_THROW(parser.load(fixturePath("does-not-exist.qft")),
                  qftbx::FileError);
 }
 
-TEST(XmlParserLoadErrors, MalformedFileThrowsParseErrorWithLine)
+TEST(ProjectReaderErrors, MalformedFileThrowsParseErrorWithLine)
 {
-    XmlParserLoad parser;
+    ProjectReader parser;
     try {
-        parser.recuperarXmlDatos(fixturePath("invalid.qft"));
+        parser.load(fixturePath("invalid.qft"));
         FAIL() << "expected qftbx::ParseError";
     } catch (const qftbx::ParseError &e) {
         EXPECT_GT(e.line(), 0);
@@ -151,12 +151,12 @@ TEST(XmlParserLoadErrors, MalformedFileThrowsParseErrorWithLine)
     }
 }
 
-TEST(XmlParserLoadErrors, CorruptNumericValuesThrowParseError)
+TEST(ProjectReaderErrors, CorruptNumericValuesThrowParseError)
 {
-    // Hardened: srtovectorReal's null sentinel used to be dereferenced
-    // unchecked; every parser call site now reports a ParseError instead.
-    XmlParserLoad parser;
-    EXPECT_THROW(parser.recuperarXmlDatos(fixturePath("corrupt_omega.qft")),
+    // A numeric list with garbage is rejected with a located error (the
+    // historical loader silently kept the prefix before the bad token).
+    ProjectReader parser;
+    EXPECT_THROW(parser.load(fixturePath("corrupt_omega.qft")),
                  qftbx::ParseError);
 }
 

@@ -17,7 +17,7 @@
 #include "DAO/adaptadorespecificacionesdao.h"
 #include "src/core/system/polynomial_form.h"
 #include "src/core/system/parameter.h"
-#include "XmlParser/parserload.h"
+#include "src/persistence/project_reader.h"
 
 namespace {
 
@@ -124,11 +124,11 @@ TEST(SpecificationDao, OwnsReplacesAndToleratesIdentity)
 
 TEST(SpecificationPersistence, MultivaluadosSpecificationsRoundTrip)
 {
-    XmlParserLoad parser;
-    delete parser.recuperarXmlDatos(
+    ProjectReader parser;
+    delete parser.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/multivaluados.qft"));
 
-    QVector<tools::dBND*>* specs = parser.getEspecificaciones();
+    QVector<tools::dBND*>* specs = parser.specifications();
     ASSERT_NE(specs, nullptr);
     ASSERT_EQ(specs->size(), 7);
 
@@ -155,11 +155,11 @@ TEST(SpecificationPersistence, MultivaluadosSpecificationsRoundTrip)
 
 TEST(SpecificationPersistence, Planta2RecoversBothTrackingPlants)
 {
-    XmlParserLoad parser;
-    delete parser.recuperarXmlDatos(
+    ProjectReader parser;
+    delete parser.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/planta2.qft"));
 
-    QVector<tools::dBND*>* specs = parser.getEspecificaciones();
+    QVector<tools::dBND*>* specs = parser.specifications();
     ASSERT_NE(specs, nullptr);
     ASSERT_EQ(specs->size(), 7);
 
@@ -178,11 +178,11 @@ TEST(SpecificationPersistence, Planta2RecoversBothTrackingPlants)
 
 TEST(SpecificationPersistence, Planta1RecoversTheConstantStability)
 {
-    XmlParserLoad parser;
-    delete parser.recuperarXmlDatos(
+    ProjectReader parser;
+    delete parser.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/planta1.qft"));
 
-    QVector<tools::dBND*>* specs = parser.getEspecificaciones();
+    QVector<tools::dBND*>* specs = parser.specifications();
     ASSERT_NE(specs, nullptr);
     ASSERT_EQ(specs->size(), 7);
 
@@ -200,8 +200,8 @@ TEST(SpecificationPersistence, WrongSpecificationCountThrowsParseError)
 {
     // Hardened: the set is positional with exactly 7 slots and consumers
     // index blindly; a shorter file used to crash out of range downstream.
-    XmlParserLoad parser;
-    EXPECT_THROW(parser.recuperarXmlDatos(
+    ProjectReader parser;
+    EXPECT_THROW(parser.load(
                      QStringLiteral(QFTBX_TEST_DATA_DIR "/corrupt_specs.qft")),
                  qftbx::ParseError);
 }

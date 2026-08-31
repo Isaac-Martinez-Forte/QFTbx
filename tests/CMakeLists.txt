@@ -22,7 +22,9 @@ add_executable(qftbx_tests
   backend/lti_system_test.cpp
   backend/parameter_test.cpp
   backend/specification_test.cpp
-  backend/xmlparser_load_test.cpp
+  backend/project_reader_load_test.cpp
+  backend/pugixml_smoke_test.cpp
+  backend/project_roundtrip_test.cpp
 )
 
 target_link_libraries(qftbx_tests PRIVATE qftbx_backend GTest::gtest)
