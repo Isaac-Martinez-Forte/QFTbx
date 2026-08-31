@@ -232,6 +232,7 @@ set(QFTbx_BACKEND_HED
     DAO/controladordao.h
     Modelo/LoopShaping/algorithm_sachin.h
     Modelo/LoopShaping/nominal_stability_checker.h
+    Modelo/LoopShaping/quick_solution.h
     Modelo/LoopShaping/algorithm_primer_articulo.h
     Modelo/LoopShaping/algorithm_segundo_articulo.h
     src/core/system/parameter.h

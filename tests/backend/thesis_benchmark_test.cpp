@@ -38,10 +38,12 @@
 //   The algorithm is known to be unfinished. For 8b.4.
 // - MC-prev values are pinned as behaviour, not as verified optima: its
 //   review against the IJRNC paper is 8b.5.
-// - NK ABORTS the process on both fixtures: its own cutting equations
-//   overflow an interval product to infinity and a later dotprecision
-//   accumulation traps on 0*infinity ("Processing aborted"). For 8b.3.
-//   Test disabled until fixed.
+// - NK was reviewed against its paper in 8b.3 (Quick Solution rebuilt on
+//   the closed-form linear equations, local optimisation reconnected with
+//   the 10% rule, stability check wired): the process abort disappeared
+//   with the dimensionally broken cutting equations. Its ex2 run still
+//   takes minutes on this box (performance work deferred); ACC'90 is
+//   pinned below.
 // - MC throws "initial controller parameter space is not valid" on these
 //   fixtures (its own initial classification; to dissect in 8b.6) and is
 //   not pinned here yet.
@@ -202,6 +204,10 @@ INSTANTIATE_TEST_SUITE_P(
                         59569.844352572618, 0.38125871873113742, 0.13501820079055124},
         BenchmarkGolden{"Acc90NT", "acc90.qft", tools::sachin,
                         1000.0, 250.00749999999999, 750.00250000000005},
+        //NK's certified local solution realises the same optimal gain as
+        //NT's interval descent (the zero/pole sit at the search centre).
+        BenchmarkGolden{"Acc90NK", "acc90.qft", tools::nandkishor,
+                        1000.0, 500.005, 500.005},
         // BUG: bottom corner of the search box, see the header comment.
         BenchmarkGolden{"Acc90MR", "acc90.qft", tools::rambabu,
                         1000.0, 0.01, 0.01},
@@ -211,18 +217,9 @@ INSTANTIATE_TEST_SUITE_P(
         return std::string(info.param.name);
     });
 
-//NK and MC crash on these fixtures (see the header comment): the disabled
-//tests document the expectation and become live goldens once fixed.
-TEST(ThesisBenchmarkCrash, DISABLED_NkCrashesInGetBoxOnWideBoxes)
-{
-    Controlador controller;
-    delete controller.cargarSistema(
-        QStringLiteral(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
-    EXPECT_TRUE(controller.calcularLoopShaping(
-        0.5, tools::nandkishor, QPointF(1e-9, 10.0), 100,
-        false, 10.0, 0, false, false, false, false));
-}
-
+//MC still declares these fixtures invalid at its initial classification
+//(to dissect against the thesis in 8b.6): the disabled test becomes a
+//live golden once reviewed.
 TEST(ThesisBenchmarkCrash, DISABLED_McCrashesInOrderedListInsert)
 {
     Controlador controller;

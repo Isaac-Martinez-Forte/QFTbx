@@ -1,18 +1,22 @@
 #include "Modelo/Herramientas/exception.h"
 #include "algorithm_nandkishor.h"
 
+#include <QRandomGenerator>
+
+#include "quick_solution.h"
+
 using namespace tools;
 using namespace cxsc;
 using namespace FC;
 
+namespace quick_solution = qftbx::quick_solution;
+
 Algorithm_nandkishor::Algorithm_nandkishor()
 {
-
 }
 
 Algorithm_nandkishor::~Algorithm_nandkishor()
 {
-
 }
 
 
@@ -22,784 +26,543 @@ void Algorithm_nandkishor::set_datos(LtiSystem *planta, LtiSystem *controlador, 
 
     this->planta = planta;
     this->controlador = controlador->clone();
-    this->controlador_inicial = controlador->clone();
     this->omega = omega;
     this->boundaries = boundaries;
     this->epsilon = epsilon;
     this->reunBounHash = reunBounHash;
-
-    this->metaDatosArriba = boundaries->upperFlags();
-    this->metaDatosAbierto = boundaries->openFlags();
-
-    this->tamFas = boundaries->phaseCount() -1;
-    this->depuracion = true;
-
     this->delta = delta;
-
     this->ini = (tipoInicializacion) inicializacion;
 
-
-    QVector< QVector<QPointF> * > * boun = boundaries->unionBoundaries();
-
-    QVector <QPointF> * datosFases = new QVector <QPointF> ();
-    QVector <QPointF> * datosMag = new QVector <QPointF> ();
-
-    foreach (auto vector, *boun) {
-
-
-        qreal DatosFasMin = std::numeric_limits<qreal>::max(), DatosFasMax = std::numeric_limits<qreal>::lowest();
-        qreal DatosMagMin = std::numeric_limits<qreal>::max(), DatosMagMax = std::numeric_limits<qreal>::lowest();
-
-
-        foreach (auto p, *vector) {
-
-            if (p.x() < DatosFasMin) {
-                DatosFasMin = p.x();
-            }
-
-            if (p.x() > DatosFasMax) {
-                DatosFasMax = p.x();
-            }
-
-            if (p.y() < DatosMagMin) {
-                DatosMagMin = p.y();
-            }
-
-            if (p.y() > DatosMagMax) {
-                DatosMagMax = p.y();
-            }
-        }
-
-        datosFases->append(QPointF(DatosFasMin, DatosFasMax));
-        datosMag->append(QPointF(DatosMagMin, DatosMagMax));
-
+    hasUncertainZeros = false;
+    foreach (Parameter * var, *this->controlador->numerator()) {
+        hasUncertainZeros = hasUncertainZeros || var->isUncertain();
     }
 
-    boundaries->setPhaseAxis(datosFases);
-    boundaries->setMagnitudeAxis(datosMag);
-
-
-
+    hasUncertainPoles = false;
+    foreach (Parameter * var, *this->controlador->denominator()) {
+        hasUncertainPoles = hasUncertainPoles || var->isUncertain();
+    }
 }
 
 
-//Función principal del algoritmo
+//Main loop: the NT branch & bound (Tharewal 2005, sec. 3.3.3) with the
+//NK additions wired at the paper's steps: local optimization on the
+//leading box (steps 5-6 and 18-20) and Quick Solution inside the
+//feasibility test of every box (steps 2 and 9).
 bool Algorithm_nandkishor::init_algorithm(){
 
-    using namespace std;
-
-    lista = new ListaOrdenada ();
-
-    conversion = new NaturalIntervalExtension ();
-    lista = new ListaOrdenada ();
+    lista = new ListaOrdenada();
+    conversion = new NaturalIntervalExtension();
     deteccion = new DeteccionViolacionBoundaries();
+    stability = new NominalStabilityChecker(planta, omega);
 
-    anterior_sis_min = new QVector <qreal> ();
+    bestLocalGain = std::numeric_limits<qreal>::infinity();
+    bestLocalController = nullptr;
+    launchGains.clear();
 
-    mejor_k = std::numeric_limits<qreal>::infinity();
-    depuracion = true;
+    //Stable prototype for building point controllers: the working box
+    //pointer is replaced as Quick Solution rebuilds it.
+    prototype = controlador->clone();
 
-    plantas_nominales = new QVector <cxsc::complex> ();
-    plantas_nominales2 = new QVector <std::complex <qreal>> ();
+    plantas_nominales = new QVector<cxsc::complex>();
+    plantas_nominales_std = new QVector<std::complex<qreal>>();
 
     foreach (qreal o, *omega) {
-        std::complex <qreal> c = planta->evaluate(o);
-        plantas_nominales2->append(c);
+        std::complex<qreal> c = planta->evaluate(o);
+        plantas_nominales_std->append(c);
         plantas_nominales->append(cxsc::complex(c.real(), c.imag()));
     }
 
+    const auto cleanup = [this]() {
+        delete conversion;
+        delete lista;
+        delete deteccion;
+        delete stability;
+        delete plantas_nominales;
+        delete plantas_nominales_std;
+        delete prototype;
+    };
 
-    comprobarVariables(controlador);
-
+    //Steps 1-3: Quick Solution and feasibility of the initial box happen
+    //inside check_box_feasibility, which inserts it unless certainly
+    //infeasible.
     check_box_feasibility(controlador);
 
-    while (true){
+    while (true) {
 
-        if (lista->esVacia()){
-                        delete conversion;
-            delete lista;
-            delete anterior_sis_min;
-            delete controlador_inicial;
-            delete deteccion;
+        if (lista->esVacia()) {
+            //Step 15. A certified feasible local solution stands in as
+            //the answer when the interval search exhausts the space (the
+            //local point was verified against bounds and stability).
+            if (bestLocalController != nullptr) {
+                controlador_retorno = bestLocalController;
+                cleanup();
+                return true;
+            }
 
+            cleanup();
             throw qftbx::InvalidInput(
-                    "The initial controller parameter space is not valid.");
+                    "No feasible solution exists in the given search box.");
         }
 
-        Tripleta * tripleta = static_cast<Tripleta2 *>(lista->recuperarPrimero());
+        Tripleta * tripleta = static_cast<Tripleta *>(lista->recuperarPrimero());
         lista->borrarPrimero();
 
-        //local_optimization(tripleta->sistema);
+        //Pruning by the local solution (step 4 of the paper's outline /
+        //G-bis of the thesis): a node whose gain infimum cannot improve
+        //the certified local solution is discarded.
+        if (tripleta->getSistema()->gain()->range().x() >= bestLocalGain) {
+            delete tripleta;
+            continue;
+        }
 
-        //if (tripleta->k <= mejor_k){
+        //Steps 17-20: local optimization launched from the leading box
+        //under the 10% decision rule; a feasible result prunes the list
+        //through bestLocalGain.
+        localOptimization(tripleta->getSistema());
 
-        if (tripleta->getFlags() == feasible || if_less_epsilon(tripleta->getSistema(), this->epsilon, omega, conversion, plantas_nominales)){
-            if (tripleta->getFlags() == ambiguous){
+        if (tripleta->getSistema()->gain()->range().x() >= bestLocalGain) {
+            delete tripleta;
+            continue;
+        }
+
+        //Step 21 and Remark 3.1 termination, as reviewed for NT.
+        if (tripleta->getFlags() == feasible || if_less_epsilon(tripleta->getSistema(), this->epsilon, omega, conversion, plantas_nominales)) {
+            if (tripleta->getFlags() == ambiguous) {
                 controlador_retorno = guardarControlador(tripleta->getSistema(), false);
+
+                if (!stability->isNominallyStable(controlador_retorno)) {
+                    delete controlador_retorno;
+                    delete tripleta;
+                    continue;
+                }
             } else {
                 controlador_retorno = guardarControlador(tripleta->getSistema(), true);
             }
 
-            delete conversion;
-            delete lista;
             delete tripleta;
-            delete anterior_sis_min;
-            delete controlador_inicial;
-            delete deteccion;
-
+            delete bestLocalController;
+            cleanup();
             return true;
         }
 
-        //Split blox
+        //Step 8: bisect along the widest parameter direction.
         struct return_bisection retur = split_box_bisection(tripleta->getSistema());
 
         tripleta->noBorrar2();
         delete tripleta;
 
-        if (!retur.descartado){
-            check_box_feasibility(retur.v1);
-            check_box_feasibility(retur.v2);
-        }
-        //} //cierre mejor k
+        //Steps 9-14: Quick Solution + feasibility + insertion.
+        check_box_feasibility(retur.v1);
+        check_box_feasibility(retur.v2);
     }
-
-
-    return true;
 }
 
 
-//Función que retorna el controlador.
 LtiSystem * Algorithm_nandkishor::getControlador(){
     return controlador_retorno;
 }
 
 
-//Función que comprueba si la caja actual es feasible, infeasible o ambiguous.
-inline flags_box Algorithm_nandkishor::check_box_feasibility(LtiSystem * controlador){
-
-    using namespace std;
+//Feasibility test over every design frequency with the NK Quick Solution
+//cutting applied per frequency with the latest updated box (paper,
+//sec. 3.3: "one always uses the latest updated values"). Certainly
+//infeasible boxes are destroyed; anything else enters the live list.
+inline void Algorithm_nandkishor::check_box_feasibility(LtiSystem * controlador){
 
     data_box * datos;
     flags_box flag_final = feasible;
 
-#ifdef DEBUG
-    QVector <QVector <QPointF> * > * puntos;
-
-    if (depuracion)
-        puntos = new QVector <QVector <QPointF> * > ();
-#endif
-
-    QVector <data_box *> * datosCortesBoundaries = new QVector <data_box *> ();
-    bool penalizacion = false;
-    cinterval caja;
-
-    bool completo = false;
-
-
-    for (qint32 k = 0; k < omega->size(); k++) {
-
-
-        caja = conversion->nicholsBox(controlador, omega->at(k), plantas_nominales->at(k), false);
-
-        datos = deteccion->deteccionViolacionCajaNi(caja, boundaries, k);
-
-        if (datos->getFlag() == ambiguous){
-            flag_final = ambiguous;
-        } else if (datos->getFlag() == infeasible){
-            delete controlador;
-            datosCortesBoundaries->clear();
-            return infeasible;
-        }
-
-        datosCortesBoundaries->append(datos);
-
-        if (omega->at(k) == 2 && SupIm(caja) < -180){
-            penalizacion = true;
-        }
-
-        if (datos->isCompleto()){
-            completo = true;
-        }
-
+    //Step 20 of the paper: the certified local solution caps the useful
+    //gain range of every new box.
+    if (bestLocalGain < controlador->gain()->range().y() &&
+            bestLocalGain > controlador->gain()->range().x()) {
+        LtiSystem * capped = controlador->create(controlador->name(),
+                controlador->numerator(), controlador->denominator(),
+                new Parameter("kv", QPointF(controlador->gain()->range().x(), bestLocalGain),
+                              controlador->gain()->range().x(), "kv"),
+                controlador->delay());
+        delete controlador->gain();
+        controlador->releaseOwnership();
+        delete controlador;
+        controlador = capped;
     }
 
-    if (flag_final == ambiguous && !completo){
-        controlador = acelerated(controlador, datosCortesBoundaries);
-    }
-
-
-    datosCortesBoundaries->clear();
-
-
-#ifdef DEBUG
-    //if (depuracion)
-    //showDiagram(puntos);
-#endif
-
-    lista->insertar(new Tripleta(penalizacion ? controlador->gain()->range().x() + 100 : controlador->gain()->range().x(), controlador, flag_final));
-
-    return flag_final;
-}
-
-//Función que recorta la caja.
-inline LtiSystem * Algorithm_nandkishor::acelerated(LtiSystem * v, QVector<data_box *> *datosCortesBoundaries) {
-
-    QVector <Parameter *> * denominador = v->denominator();
-    QVector <Parameter *> * numerador = v->numerator();
-    QPointF k = v->gain()->range();
-    QPointF kNuevo;
-
-
-    kNuevo.setX(20 * log10(v->gain()->range().x()));
-    kNuevo.setY(20 * log10(v->gain()->range().y()));
-
-    //Creamos los numeradores y denominadores necesarios
-    QVector <qreal> * numeradorSup = new QVector <qreal> ();
-    QVector <qreal> * numeradorInf = new QVector <qreal> ();
-    QVector <qreal> * numeradorSupNuevo = new QVector <qreal> ();
-    QVector <qreal> * numeradorInfNuevo = new QVector <qreal> ();
-
-    foreach (Parameter * var, *numerador) {
-        numeradorInf->append(var->range().x());
-        numeradorSup->append(var->range().y());
-        numeradorInfNuevo->append(var->range().x());
-        numeradorSupNuevo->append(var->range().y());
-    }
-
-    QVector <qreal> * denominadorInf = new QVector <qreal> ();
-    QVector <qreal> * denominadorSup = new QVector <qreal> ();
-    QVector <qreal> * denominadorInfNuevo = new QVector <qreal> ();
-    QVector <qreal> * denominadorSupNuevo = new QVector <qreal> ();
-
-    foreach (Parameter * var, *denominador) {
-        denominadorInf->append(var->range().x());
-        denominadorSup->append(var->range().y());
-        denominadorInfNuevo->append(var->range().x());
-        denominadorSupNuevo->append(var->range().y());
-    }
-
-    qreal nuevoMinKReal, n, nuevoMinNume, nuevoMaxDeno, o, nuevoMaxKReal, nuevoMaxNume, nuevoMinDeno, cortesMin, cortesMax;
-    std::complex <qreal> plantaNominal;
-
-
-    for (qint32 i = 0; i < omega->size(); i++) {
-
-        if (datosCortesBoundaries->at(i)->getFlag() == ambiguous && !datosCortesBoundaries->at(i)->isCompleto()) {
-
-            o = omega->at(i);
-            plantaNominal = plantas_nominales2->at(i);
-            cortesMin = datosCortesBoundaries->at(i)->getMinimoxMaximos()->at(0);
-            cortesMax = datosCortesBoundaries->at(i)->getMinimoxMaximos()->at(1);
-
-            //Análisis de la ganancia
-
-            if (datosCortesBoundaries->at(i)->isRecAbajo() && datosCortesBoundaries->at(i)->isUniAbajo()){
-                nuevoMinKReal = cortesMin / 20 * log10(abs(v->evaluate(numeradorSup, denominadorInf, 1, 0, o) * plantaNominal));
-
-                if (nuevoMinKReal > kNuevo.x() && nuevoMinKReal < kNuevo.y()) {
-                    kNuevo.setX(nuevoMinKReal);
-                }
-            }else if (datosCortesBoundaries->at(i)->isRecArriba() && datosCortesBoundaries->at(i)->isUniArriba()) {
-                nuevoMaxKReal = cortesMax / 20 * log10(abs(v->evaluate(numeradorInf, denominadorSup, 1, 0, o) * plantaNominal));
-
-                if (nuevoMaxKReal > kNuevo.x() && nuevoMaxKReal < kNuevo.y()) {
-                    kNuevo.setY(nuevoMaxKReal);
-                }
-            }
-
-            //Numerador
-            if (isVariableNume){
-                for (qint32 j = 0; j < numerador->size(); j++) {
-                    if (numerador->at(j)->isUncertain()){
-                        if (datosCortesBoundaries->at(i)->isRecAbajo() && datosCortesBoundaries->at(i)->isUniAbajo()){
-                            n = numeradorSup->at(j);
-
-                            numeradorSup->remove(j);
-
-                            nuevoMinNume = sqrt( pow((cortesMin * 20 * log10(abs (v->evaluateDenominator(denominadorInf, o)))) /
-                                                     (20 * log10(k.y()) *  20 * log10(abs (v->evaluateNumerator(numeradorSup, o) * plantaNominal))), 2) - 20 * log10(pow(o, 2)));
-
-
-                            numeradorSup->insert(j, n);
-
-                            if (nuevoMinNume > numeradorInfNuevo->at(j) && nuevoMinNume < numeradorSupNuevo->at(j)) {
-                                numeradorInfNuevo->replace(j, nuevoMinNume);
-                            }
-                        } else if (datosCortesBoundaries->at(i)->isRecArriba() && datosCortesBoundaries->at(i)->isUniArriba()) {
-                            n = numeradorInf->at(j);
-
-                            numeradorInf->remove(j);
-
-                            nuevoMaxNume = sqrt( pow((cortesMax * 20 * log10(abs (v->evaluateDenominator(denominadorSup, o)))) /
-                                                     (20 * log10(k.x()) *  20 * log10(abs (v->evaluateNumerator(numeradorInf, o) * plantaNominal))), 2) - 20 * log10(pow(o, 2)));
-
-
-                            numeradorInf->insert(j, n);
-
-                            if (nuevoMaxNume > numeradorInfNuevo->at(j) && nuevoMaxNume < numeradorSupNuevo->at(j)) {
-                                numeradorSupNuevo->replace(j, nuevoMaxNume);
-                            }
-                        }
-                    }
-                }
-            }
-
-
-            //Denominador
-            if (isVariableDeno){
-                for (qint32 j = 0; j < denominador->size(); j++) {
-                    if (denominador->at(j)->isUncertain()){
-
-                        if (datosCortesBoundaries->at(i)->isRecAbajo() && datosCortesBoundaries->at(i)->isUniAbajo()) {
-                            n = denominadorInf->at(j);
-
-                            denominadorInf->remove(j);
-
-                            nuevoMaxDeno = sqrt(pow((20 * log10(k.y()) * 20 * log10(abs (v->evaluateNumerator(numeradorSup, o) * plantaNominal))) /
-                                                    (cortesMin * 20 * log10(abs(v->evaluateDenominator(denominadorInf, o)))), 2) - 20 * log10(pow(o, 2)));
-
-                            denominadorInf->insert(j, n);
-
-                            if (nuevoMaxDeno < denominadorSupNuevo->at(j) && nuevoMaxDeno > denominadorInfNuevo->at(j)) {
-                                denominadorSupNuevo->replace(j, nuevoMaxDeno);
-                            }
-                        } else  if (datosCortesBoundaries->at(i)->isRecArriba() && datosCortesBoundaries->at(i)->isUniArriba()) {
-                            n = denominadorSup->at(j);
-
-                            denominadorSup->remove(j);
-
-                            nuevoMinDeno = sqrt(pow((20 * log10(k.x()) * 20 * log10(abs (v->evaluateNumerator(numeradorInf, o) * plantaNominal))) /
-                                                    (cortesMax * 20 * log10(abs(v->evaluateDenominator(denominadorSup, o)))), 2) - 20 * log10(pow(o, 2)));
-
-                            denominadorSup->insert(j, n);
-                            if (nuevoMinDeno < denominadorSupNuevo->at(j) && nuevoMinDeno > denominadorInfNuevo->at(j)) {
-                                denominadorInfNuevo->replace(j, nuevoMinDeno);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    QVector <Parameter *> * numerador_nuevo = new QVector <Parameter *> ();
-
-    for (qint32 i = 0; i < numerador->size(); i++){
-
-        Parameter * var_nume_antiguo = numerador->at(i);
-        Parameter * var_nume_nuevo;
-
-        if (var_nume_antiguo->isUncertain()){
-            var_nume_nuevo = new Parameter("", QPointF(pow(10, numeradorInfNuevo->at(i) / 20), pow(10, numeradorSupNuevo->at(i) / 20)), 0);
-        } else {
-            var_nume_nuevo = new Parameter(var_nume_antiguo->nominal());
-        }
-
-        numerador_nuevo->append(var_nume_nuevo);
-    }
-
-    QVector <Parameter *> * denominador_nuevo = new QVector <Parameter *> ();
-
-    for (qint32 i = 0; i < denominador->size(); i++){
-
-        Parameter * var_deno_antiguo = denominador->at(i);
-        Parameter * var_deno_nuevo;
-
-        if (var_deno_antiguo->isUncertain()){
-            var_deno_nuevo = new Parameter("", QPointF(pow(10, denominadorInfNuevo->at(i) / 20), pow(10, denominadorSupNuevo->at(i) / 20)), 0);
-        } else {
-            var_deno_nuevo = new Parameter(var_deno_antiguo->nominal());
-        }
-
-        denominador_nuevo->append(var_deno_nuevo);
-    }
-
-    kNuevo.setX(pow(10, kNuevo.x() / 20));
-    kNuevo.setY(pow(10, kNuevo.y() / 20));
-
-    LtiSystem * nuevo_sistema = v->create(v->name(), numerador_nuevo, denominador_nuevo, new Parameter("kv", kNuevo, 0), new Parameter (0.0));
-    delete v;
-
-
-    numeradorSup->clear();
-    numeradorInf->clear();
-    numeradorInfNuevo->clear();
-    numeradorSupNuevo->clear();
-    denominadorInf->clear();
-    denominadorSup->clear();
-    denominadorInfNuevo->clear();
-    denominadorSupNuevo->clear();
-
-    return nuevo_sistema;
-
-}
-
-
-//Función que hace la búsqueda local.
-inline void Algorithm_nandkishor::local_optimization(LtiSystem *controlador){
-
-    qreal nuevo_min = 0;
-
-    nuevo_min += pow(controlador->gain()->nominal(), 2);
-
-    foreach (Parameter * var, *controlador->numerator()) {
-        nuevo_min += var->range().x();
-    }
-
-
-    foreach (Parameter * var, *controlador->denominator()) {
-        nuevo_min += var->range().x();
-    }
-
-    nuevo_min = abs(sqrt(nuevo_min));
-
-    bool hacer = true;
-
-    foreach (qreal sis_min, *anterior_sis_min) {
-        if ((nuevo_min - sis_min) < 0.1){
-            hacer = false;
-        }
-    }
-
-    if (hacer){
-
-        anterior_sis_min->append(nuevo_min);
-
-        //std::cout << "Búsqueda local" << std::endl;
-        qreal nueva_mejor_k = busqueda_local(delta, controlador);
-
-        if (nueva_mejor_k < mejor_k){
-            mejor_k = nueva_mejor_k;
-            //std::cout << "Mejor k: " << mejor_k << std::endl;
-        }
-    }
-}
-
-//Función que checkea si el sistema viola o no los boundaries para el algoritmo de búsqueda local.
-inline flags_box Algorithm_nandkishor::check_box_feasibility(QVector<qreal> *nume, QVector<qreal> *deno, qreal k,
-                                                             qreal ret){
-
-    using namespace std;
-
-    data_box * datos = new data_box();
-
-    flags_box flag_final = feasible;
-
-    cinterval box;
     qint32 contador = 0;
+    cinterval caja;
 
     foreach (qreal o, *omega) {
 
-        std::complex <qreal> c = planta->evaluate(o) * controlador_inicial->evaluate(nume, deno, k, ret, o);
-        box = cinterval (interval(c.real()), interval(c.imag()));
+        caja = conversion->nicholsBox(controlador, o, plantas_nominales->at(contador), false);
 
-        datos = deteccion->deteccionViolacionCajaNiNi(box, boundaries, k);
+        datos = deteccion->deteccionViolacionCajaNi(caja, boundaries, contador);
 
-
-        if (datos->getFlag() == ambiguous){
-            flag_final = ambiguous;
-        } else if (datos->getFlag() == infeasible){
+        if (datos->getFlag() == infeasible) {
+            delete controlador;
             delete datos;
-            return infeasible;
+            return;
         }
 
+        if (datos->getFlag() == ambiguous) {
+            flag_final = ambiguous;
+
+            //Quick Solution at this frequency: sound only when the zone
+            //under every boundary point is certainly forbidden, certified
+            //by the parity classification of the box's lower corner.
+            if (!datos->isUniArriba()) {
+                controlador = quickSolution(controlador,
+                                            datos->getMinimoxMaximos()->at(0),
+                                            o, plantas_nominales_std->at(contador));
+            }
+        }
+
+        delete datos;
         contador++;
     }
 
-    return flag_final;
+    //Nominal closed-loop stability of bounds-feasible boxes (the paper
+    //demands the zeros of 1 + L0 in the left half-plane; checked on the
+    //Nichols chart).
+    if (flag_final == feasible) {
+        LtiSystem * point = guardarControlador(controlador, true);
+        const bool stable = stability->isNominallyStable(point);
+        delete point;
+
+        if (!stable) {
+            delete controlador;
+            return;
+        }
+    }
+
+    lista->insertar(new Tripleta(controlador->gain()->range().x(), controlador, flag_final));
 }
 
-inline void Algorithm_nandkishor::comprobarVariables(LtiSystem *controlador){
-    bool b = true;
 
-    foreach (Parameter * var, *controlador->numerator()) {
-        if (var->isUncertain()){
-            b = false;
+//Quick Solution (paper sec. 3.3, algorithm QS): cut the certainly
+//infeasible subranges of the gain, every zero and every pole with the
+//closed-form monotonicity equations, sequentially, using the latest
+//updated values. boundMinDb is |B_i|min over the box's phase interval.
+inline LtiSystem * Algorithm_nandkishor::quickSolution(LtiSystem * v, qreal boundMinDb,
+                                                       qreal w, std::complex<qreal> p0){
+
+    const qreal boundMin = std::pow(10.0, boundMinDb / 20.0);
+
+    QVector<qreal> zeroInfs, zeroSups, poleInfs, poleSups;
+    foreach (Parameter * var, *v->numerator()) {
+        zeroInfs.append(var->isUncertain() ? var->range().x() : var->nominal());
+        zeroSups.append(var->isUncertain() ? var->range().y() : var->nominal());
+    }
+    foreach (Parameter * var, *v->denominator()) {
+        poleInfs.append(var->isUncertain() ? var->range().x() : var->nominal());
+        poleSups.append(var->isUncertain() ? var->range().y() : var->nominal());
+    }
+
+    qreal gainInf = v->gain()->range().x();
+    const qreal gainSup = v->gain()->range().y();
+
+    bool cut = false;
+
+    //Steps (3)-(4): the gain, from below.
+    if (v->gain()->isUncertain()) {
+        const qreal k = quick_solution::gainCut(boundMin, zeroSups, poleInfs, w, p0);
+
+        if (k > gainInf && k < gainSup) {
+            gainInf = k;
+            cut = true;
         }
     }
 
-    isVariableNume = !b;
+    //Steps (5)-(6): every zero, from below.
+    if (hasUncertainZeros) {
+        for (qint32 j = 0; j < zeroInfs.size(); ++j) {
+            if (!v->numerator()->at(j)->isUncertain()) {
+                continue;
+            }
 
-    b = true;
+            const qreal z = quick_solution::zeroCut(boundMin, gainSup, zeroSups,
+                                                    poleInfs, j, w, p0);
 
-    foreach (Parameter * var, *controlador->denominator()) {
-        if (var->isUncertain()){
-            b = false;
+            if (z > zeroInfs.at(j) && z < zeroSups.at(j)) {
+                zeroInfs.replace(j, z);
+                cut = true;
+            }
         }
     }
 
-    isVariableDeno = !b;
+    //Steps (7)-(8): every pole, from ABOVE (a larger pole lowers the loop
+    //towards the forbidden side; the thesis text says the opposite
+    //interval - an erratum, see quick_solution.h).
+    if (hasUncertainPoles) {
+        for (qint32 j = 0; j < poleInfs.size(); ++j) {
+            if (!v->denominator()->at(j)->isUncertain()) {
+                continue;
+            }
+
+            const qreal p = quick_solution::poleCut(boundMin, gainSup, zeroSups,
+                                                    poleInfs, j, w, p0);
+
+            if (p > poleInfs.at(j) && p < poleSups.at(j)) {
+                poleSups.replace(j, p);
+                cut = true;
+            }
+        }
+    }
+
+    if (!cut) {
+        return v;
+    }
+
+    auto * numerador = new QVector<Parameter*>();
+    for (qint32 j = 0; j < zeroInfs.size(); ++j) {
+        Parameter * old = v->numerator()->at(j);
+        numerador->append(old->isUncertain()
+                ? new Parameter(old->name(), QPointF(zeroInfs.at(j), zeroSups.at(j)), zeroInfs.at(j))
+                : new Parameter(old->nominal()));
+    }
+
+    auto * denominador = new QVector<Parameter*>();
+    for (qint32 j = 0; j < poleInfs.size(); ++j) {
+        Parameter * old = v->denominator()->at(j);
+        denominador->append(old->isUncertain()
+                ? new Parameter(old->name(), QPointF(poleInfs.at(j), poleSups.at(j)), poleInfs.at(j))
+                : new Parameter(old->nominal()));
+    }
+
+    LtiSystem * nuevo = v->create(v->name(), numerador, denominador,
+            v->gain()->isUncertain()
+                ? new Parameter("kv", QPointF(gainInf, gainSup), gainInf, "kv")
+                : new Parameter(v->gain()->nominal()),
+            v->delay()->clone());
+
+    delete v;
+
+    return nuevo;
 }
 
-inline qint32 Algorithm_nandkishor::crearVectores(LtiSystem *controlador, QVector<qreal> *numerador, QVector<qreal> *denominador,
-                                                  QVector<qreal> * k,
-                                                  QVector<QVector<qreal> *> *variables, qreal delta,
-                                                  QVector <qreal> * numeNominales,
-                                                  QVector <qreal> * denoNominales, qreal kNominal){
 
-    QVector <Parameter *> * nume = controlador->numerator();
-    QVector <Parameter *> * deno = controlador->denominator();
+//Local optimization (paper sec. 3.2; the paper only says "call any
+//nonlinear constrained local optimization routine", so the routine is
+//ours): a lean two-level pattern search. The objective is the gain alone,
+//so the inner level finds the minimal feasible gain for fixed zeros/poles
+//by logarithmic bisection (the predicate is the point bounds test; local
+//crossing only, as a local method promises), and the outer level moves
+//the zeros/poles with a Hooke-Jeeves style coordinate pattern in LOG
+//space with an adaptive, coarsening step. A hard evaluation budget keeps
+//the search cheaper than the pruning it buys, and the candidate must pass
+//the nominal stability criterion once, at the end, before it may prune
+//the global search. Launched under the paper's 10% decision rule. (The
+//GUI 'delta' step no longer applies: the step adapts; the parameter is
+//kept for compatibility until the phase-8 GUI pass.)
 
-    qint32 lonNume = nume->size();
-
-    qint32 lonDeno = deno->size();
-
-    qint32 combinaciones = 1;
-    qint32 i;
-
-    for (i = 0; i < lonNume; i++){
-        Parameter * n = nume->at(i);
-        qreal nominal = numeNominales->at(i);
-        QVector <qreal> * vector = new QVector <qreal> ();
-        qint32 mult = 0;
-        if (n->isUncertain()){
-
-            if ((nominal-delta) > n->range().x()){
-                vector->append(nominal - delta);
-                mult++;
-            }
-
-            vector->append(nominal);
-            mult++;
-
-            if ((nominal+delta) < n->range().y()){
-                vector->append(nominal + delta);
-                mult++;
-            }
-
-        } else{
-            vector->append(nominal);
-            mult++;
-        }
-
-
-        combinaciones *= mult;
-        variables->insert(i,vector);
-        numerador->insert(i,vector->at(0));
-    }
-
-    qint32 salto = i;
-
-    for (i = 0; i < lonDeno; i++){
-        Parameter * n = deno->at(i);
-        qreal nominal = denoNominales->at(i);
-        QVector <qreal> * vector = new QVector <qreal> ();
-        qint32 mult = 0;
-        if (n->isUncertain()){
-
-            if ((nominal-delta) > n->range().x()){
-                vector->append(nominal - delta);
-                mult++;
-            }
-
-            vector->append(nominal);
-            mult++;
-
-            if ((nominal+delta) < n->range().y()){
-                vector->append(nominal + delta);
-                mult++;
-            }
-
-        } else{
-            vector->append(nominal);
-            mult++;
-        }
-
-
-        combinaciones *= mult;
-        variables->insert(salto + i,vector);
-        denominador->insert(i,vector->at(0));
-    }
-
-    Parameter * n = controlador->gain();
-    qreal nominal = kNominal;
-    if (n->isUncertain()){
-
-        if ((nominal-delta) > n->range().x()){
-            k->append(nominal - delta);
-        }
-
-        k->append(nominal);
-
-        if ((nominal+delta) < n->range().y()){
-            k->append(nominal + delta);
-        }
-
-    }else{
-        k->append(controlador->gain()->nominal());
-    }
-
-
-    return combinaciones;
+namespace {
+const qint32 kLocalSearchBudget = 400;
+const qreal kGainTolerance = 1.01;      //1% is plenty for a pruning bound
 }
 
-inline qreal Algorithm_nandkishor::inicializacion(LtiSystem * controlador, QVector<qreal> *numerador, QVector<qreal> *denominador,
-                                                  tipoInicializacion tipo){
+inline qreal Algorithm_nandkishor::minimalFeasibleGain(const QVector<qreal> & zeros,
+                                                       const QVector<qreal> & poles,
+                                                       LtiSystem * box, qint32 & budget){
 
-    if (tipo == centro){
-        foreach (Parameter * var, *controlador->numerator()) {
-            numerador->append(var->nominal());
-        }
+    qreal high = box->gain()->range().y();
+    qreal low = box->gain()->range().x();
 
-        foreach (Parameter * var, *controlador->denominator()) {
-            denominador->append(var->nominal());
-        }
-
-        return controlador->gain()->nominal();
-    } else if (tipo == aleatorio){
-        foreach (Parameter * var, *controlador->numerator()) {
-            QPointF r = var->range();
-            numerador->append(r.x() + (QRandomGenerator::global()->generate() % (qint32) (r.y() - r.x() + 1)));
-        }
-
-        foreach (Parameter * var, *controlador->denominator()) {
-            QPointF r = var->range();
-            denominador->append(r.x() + (QRandomGenerator::global()->generate() % (qint32) (r.y() - r.x() + 1)));
-        }
-
-        QPointF  k = controlador->gain()->range();
-
-        qreal a = k.x() + (QRandomGenerator::global()->generate() % (qint32) (k.y() - k.x() + 1));
-
-
-        return a;
-    } else {
-        foreach (Parameter * var, *controlador->numerator()) {
-            QPointF r = var->range();
-            numerador->append(r.x());
-        }
-
-        foreach (Parameter * var, *controlador->denominator()) {
-            QPointF r = var->range();
-            denominador->append(r.y());
-        }
-
-        return controlador->gain()->range().y();
+    budget--;
+    if (!pointIsFeasible(zeros, poles, high)) {
+        return std::numeric_limits<qreal>::infinity();
     }
 
-    return 0;
-}
+    budget--;
+    if (pointIsFeasible(zeros, poles, low)) {
+        return low;
+    }
 
-//Algorítmo de búsqueda local.
-inline qreal Algorithm_nandkishor::busqueda_local(qreal delta, LtiSystem * controlador){
+    while (high / low > kGainTolerance && budget > 0) {
+        const qreal mid = std::sqrt(low * high);
 
-    QVector <Parameter *> * nume = controlador->numerator();
-    QVector <Parameter *> * deno = controlador->denominator();
-
-    QVector <qreal> * numeNominales = new QVector <qreal> ();
-    QVector <qreal> * denoNominales = new QVector <qreal> ();
-
-    qreal kNominales = inicializacion(controlador, numeNominales, denoNominales, ini);
-
-    //Declarvamos las variables
-    qint32 lonNume = nume->size();
-    qint32 lonDeno = deno->size();
-
-    QVector <qreal> * denominador = new QVector <qreal> ();
-    QVector <qreal> * numerador = new QVector <qreal> ();
-    numerador->reserve(lonNume);
-    denominador->reserve(lonDeno);
-
-    QVector<QVector<qreal> * > * variables = new QVector <QVector <qreal> * > ();
-    variables->reserve(lonNume + lonDeno);
-
-    QVector <qreal> * k = new QVector <qreal> ();
-
-    bool resultado_encontrado = false;
-    qreal mejor_k = std::numeric_limits<qreal>::infinity();
-    qreal mejor_k_global = std::numeric_limits<qreal>::infinity();
-
-    qint32 combinaciones = crearVectores(controlador, numerador, denominador, k, variables,delta, numeNominales,
-                                         denoNominales, kNominales);
-
-
-    qreal retT = 0;
-
-    while (!resultado_encontrado){
-
-        QVector <qint32> * contador = new QVector <qint32> (lonDeno + lonNume + 1, 0);
-
-        for (qint32 i = 0; i < combinaciones; i++){
-
-            foreach (qreal kv, *k) {
-
-                if (check_box_feasibility(numerador, denominador, kv, retT) == feasible){
-
-                    if (kv < mejor_k){
-                        mejor_k = kv;
-
-                        numeNominales->clear();
-                        denoNominales->clear();
-
-                        numeNominales = new QVector <qreal> (*numerador);
-                        denoNominales = new QVector <qreal> (*denominador);
-                        kNominales = kv;
-                    }
-                }
-            }
-
-            contador->replace(0, contador->first()+1);
-
-            bool salir = false;
-
-            for (qint32 j = 0; j < lonNume+lonDeno && salir == false;j++){
-
-                if (contador->at(j) >= (variables->at(j)->size())){
-                    contador->replace(j,0);
-                    contador->replace(j+1, contador->at(j+1) +1);
-                }else {
-                    salir = true;
-                }
-
-                if (j < lonNume){
-                    numerador->replace(j,variables->at(j)->at(contador->at(j)));
-
-                }else {
-                    denominador->replace(j-lonNume,variables->at(j)->at(contador->at(j)));
-
-                }
-            }
-        }
-
-        numerador->clear();
-        denominador->clear();
-        contador->clear();
-        variables->clear();
-        k->clear();
-
-        denominador = new QVector <qreal> ();
-        numerador = new QVector <qreal> ();
-        numerador->reserve(lonNume);
-        denominador->reserve(lonDeno);
-
-        variables = new QVector <QVector <qreal> * > ();
-        variables->reserve(lonNume + lonDeno);
-
-        k = new QVector <qreal> ();
-
-        if (mejor_k < mejor_k_global){
-            mejor_k_global = mejor_k;
-            resultado_encontrado = false;
+        budget--;
+        if (pointIsFeasible(zeros, poles, mid)) {
+            high = mid;
         } else {
-            resultado_encontrado = true;
+            low = mid;
         }
-
-        crearVectores(controlador, numerador, denominador, k, variables,delta, numeNominales, denoNominales, kNominales);
     }
 
-    numeNominales->clear();
-    denoNominales->clear();
-    denominador->clear();
-    numerador->clear();
-    variables->clear();
-
-    return mejor_k;
+    return high;
 }
 
-inline qreal Algorithm_nandkishor::log10(qreal a){
-    if (a == 0){
-        a = 0.001;
+inline void Algorithm_nandkishor::localOptimization(LtiSystem * box){
+
+    const qreal launch = box->gain()->range().x();
+
+    foreach (qreal previous, launchGains) {
+        if (std::abs(launch - previous) <= 0.1 * std::max<qreal>(1.0, std::abs(previous))) {
+            return;
+        }
     }
 
-    return std::log10(a);
+    launchGains.append(launch);
+
+    QVector<qreal> zeros, poles;
+    qreal gain;
+    startingPoint(box, zeros, poles, gain);
+
+    qint32 budget = kLocalSearchBudget;
+
+    qreal bestGain = minimalFeasibleGain(zeros, poles, box, budget);
+    QVector<qreal> bestZeros = zeros;
+    QVector<qreal> bestPoles = poles;
+
+    //Coordinate pattern over zeros/poles in log space, coarse to fine.
+    const auto logRange = [](Parameter * var) {
+        return std::log10(var->range().y()) - std::log10(std::max<qreal>(var->range().x(), 1e-12));
+    };
+
+    const auto tryMove = [&](bool isPole, qint32 j, qreal stepDecades) -> bool {
+        Parameter * var = isPole ? box->denominator()->at(j) : box->numerator()->at(j);
+        QVector<qreal> & values = isPole ? bestPoles : bestZeros;
+
+        for (qreal direction : {stepDecades, -stepDecades}) {
+            const qreal candidate = values.at(j) * std::pow(10.0, direction);
+
+            if (candidate <= var->range().x() || candidate >= var->range().y()) {
+                continue;
+            }
+
+            QVector<qreal> trial = values;
+            trial.replace(j, candidate);
+
+            const qreal k = isPole ? minimalFeasibleGain(bestZeros, trial, box, budget)
+                                   : minimalFeasibleGain(trial, bestPoles, box, budget);
+
+            if (k < bestGain / kGainTolerance) {
+                values = trial;
+                bestGain = k;
+                return true;
+            }
+        }
+
+        return false;
+    };
+
+    for (qreal divisor : {4.0, 8.0, 16.0}) {
+        bool improved = true;
+
+        while (improved && budget > 0) {
+            improved = false;
+
+            for (qint32 j = 0; j < bestZeros.size() && budget > 0; ++j) {
+                if (box->numerator()->at(j)->isUncertain()) {
+                    improved = tryMove(false, j, logRange(box->numerator()->at(j)) / divisor) || improved;
+                }
+            }
+
+            for (qint32 j = 0; j < bestPoles.size() && budget > 0; ++j) {
+                if (box->denominator()->at(j)->isUncertain()) {
+                    improved = tryMove(true, j, logRange(box->denominator()->at(j)) / divisor) || improved;
+                }
+            }
+        }
+    }
+
+    if (bestGain < bestLocalGain) {
+        LtiSystem * candidate = pointSystem(bestZeros, bestPoles, bestGain);
+
+        if (stability->isNominallyStable(candidate)) {
+            bestLocalGain = bestGain;
+            delete bestLocalController;
+            bestLocalController = candidate;
+        } else {
+            delete candidate;
+        }
+    }
+}
+
+
+inline LtiSystem * Algorithm_nandkishor::pointSystem(const QVector<qreal> & zeros,
+                                                     const QVector<qreal> & poles, qreal gain){
+    auto * numerador = new QVector<Parameter*>();
+    foreach (qreal z, zeros) {
+        numerador->append(new Parameter(z));
+    }
+    auto * denominador = new QVector<Parameter*>();
+    foreach (qreal p, poles) {
+        denominador->append(new Parameter(p));
+    }
+    return prototype->create(prototype->name(), numerador, denominador,
+                             new Parameter(gain), new Parameter(qreal(0)));
+}
+
+
+//Point feasibility against the bounds at every design frequency, with the
+//same projection + detection the interval test uses (the historical local
+//search passed the GAIN as the frequency index of the detection).
+inline bool Algorithm_nandkishor::pointIsFeasible(const QVector<qreal> & zeros,
+                                                  const QVector<qreal> & poles, qreal gain){
+
+    if (gain <= 0.0 || std::isinf(gain)) {
+        return false;
+    }
+
+    LtiSystem * point = pointSystem(zeros, poles, gain);
+
+    for (qint32 i = 0; i < omega->size(); ++i) {
+        const cinterval caja = conversion->nicholsBox(point, omega->at(i),
+                                                      plantas_nominales->at(i), false);
+        data_box * datos = deteccion->deteccionViolacionCajaNi(caja, boundaries, i);
+        const flags_box flag = datos->getFlag();
+        delete datos;
+
+        if (flag != feasible) {
+            delete point;
+            return false;
+        }
+    }
+
+    delete point;
+    return true;
+}
+
+
+//Starting point of the local search, per the GUI choice: box centre,
+//random point, or the |L0|-maximal corner.
+inline void Algorithm_nandkishor::startingPoint(LtiSystem * box, QVector<qreal> & zeros,
+                                                QVector<qreal> & poles, qreal & gain){
+
+    const auto pick = [this](Parameter * var, bool isPole) -> qreal {
+        if (!var->isUncertain()) {
+            return var->nominal();
+        }
+        const QPointF r = var->range();
+        switch (ini) {
+        case centro:
+            return (r.x() + r.y()) / 2.0;
+        case aleatorio:
+            return r.x() + QRandomGenerator::global()->generateDouble() * (r.y() - r.x());
+        case extremos:
+        default:
+            return isPole ? r.y() : r.x();
+        }
+    };
+
+    zeros.clear();
+    poles.clear();
+
+    foreach (Parameter * var, *box->numerator()) {
+        zeros.append(pick(var, false));
+    }
+    foreach (Parameter * var, *box->denominator()) {
+        poles.append(pick(var, true));
+    }
+
+    Parameter * k = box->gain();
+    if (!k->isUncertain()) {
+        gain = k->nominal();
+    } else if (ini == centro) {
+        gain = (k->range().x() + k->range().y()) / 2.0;
+    } else if (ini == aleatorio) {
+        gain = k->range().x() + QRandomGenerator::global()->generateDouble() *
+                (k->range().y() - k->range().x());
+    } else {
+        gain = k->range().y();
+    }
 }

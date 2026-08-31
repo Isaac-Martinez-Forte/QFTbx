@@ -1,134 +1,107 @@
 #ifndef ALGORITHM_NANDKISHOR_H
 #define ALGORITHM_NANDKISHOR_H
 
+#include <complex>
 
 #include <QVector>
-#include <QHash>
 
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/system/lti_system.h"
 #include "NaturalIntervalExtension/natural_interval_extension.h"
-#include "EstructuraDatos/avl.h"
-#include "EstructuraDatos/tripleta.h"
-#include "Modelo/Herramientas/tools.h"
-#include "src/core/system/polynomial_form.h"
-#include "src/core/system/zero_pole_gain.h"
-#include "src/core/system/time_constant_gain.h"
 #include "DeteccionViolacionBoundaries/deteccionviolacionboundaries.h"
 #include "EstructuraDatos/listaordenada.h"
+#include "EstructuraDatos/tripleta.h"
+#include "nominal_stability_checker.h"
+#include "Modelo/Herramientas/tools.h"
 
-#include "Modelo/LoopShaping/funcionescomunes.h"
+#include "funcionescomunes.h"
 
-#include "mpParser.h"
-
-
+/*
+ * Algorithm NK (Paluri/Nataraj and Kubal, "Automatic loop shaping in QFT
+ * using hybrid optimization and constraint propagation techniques",
+ * Int. J. Robust Nonlinear Control 17:251-264, 2007): the NT branch &
+ * bound extended with
+ *
+ * - Quick Solution (sec. 3.3): before a box enters the live list, the
+ *   certainly infeasible subranges of the gain, every zero and every pole
+ *   are cut off with the closed-form monotonicity equations (see
+ *   quick_solution.h), applied per design frequency with the latest
+ *   updated values.
+ * - Local optimization (sec. 3.2): a coordinate-pattern search launched
+ *   from the leading box when its gain infimum differs by more than 10%
+ *   from every previous launch point; a feasible local solution prunes
+ *   every node whose gain infimum cannot beat it, clips the gain range of
+ *   new boxes, and stands in as the answer if the list ever empties.
+ *
+ * The feasibility test is completed with the nominal closed-loop
+ * stability check (zeros of 1 + L0, demanded by the paper's problem
+ * formulation), implemented on the Nichols chart by the Cohen-Chait-Yaniv
+ * criterion (NominalStabilityChecker).
+ */
 class Algorithm_nandkishor
 {
 public:
     Algorithm_nandkishor();
     ~Algorithm_nandkishor();
 
-
-    void set_datos (LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, BoundaryData * boundaries,
-                     qreal epsilon, QVector<QVector<QVector<QPointF> *> *> * reunBoun, qreal delta, qint32 inicializacion );
+    void set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, BoundaryData * boundaries,
+                   qreal epsilon, QVector<QVector<QVector<QPointF> *> *> * reunBounHash,
+                   qreal delta, qint32 inicializacion);
 
     bool init_algorithm();
 
     LtiSystem * getControlador();
 
-
 private:
 
-    enum tipoInicializacion {centro, superior, aleatorio};
+    enum tipoInicializacion {centro, aleatorio, extremos};
 
-    inline flags_box check_box_feasibility ( QVector <qreal> * nume, QVector <qreal> * deno, qreal k,
-            qreal ret );
-    inline LtiSystem * acelerated(LtiSystem * v, QVector<data_box *> *datosCortesBoundaries);
-    inline void local_optimization ( LtiSystem * controlador );
-    inline LtiSystem * get_minimo_sistema ( LtiSystem *v );
-    inline qreal busqueda_local ( qreal delta, LtiSystem *controlador );
+    inline void check_box_feasibility(LtiSystem * controlador);
+    inline LtiSystem * quickSolution(LtiSystem * v, qreal boundMinDb, qreal w,
+                                     std::complex<qreal> p0);
 
-    inline tools::flags_box check_box_feasibility ( LtiSystem *controlador );
+    inline void localOptimization(LtiSystem * box);
+    inline qreal minimalFeasibleGain(const QVector<qreal> & zeros, const QVector<qreal> & poles,
+                                     LtiSystem * box, qint32 & budget);
+    inline bool pointIsFeasible(const QVector<qreal> & zeros, const QVector<qreal> & poles,
+                                qreal gain);
+    inline LtiSystem * pointSystem(const QVector<qreal> & zeros, const QVector<qreal> & poles,
+                                   qreal gain);
+    inline void startingPoint(LtiSystem * box, QVector<qreal> & zeros,
+                              QVector<qreal> & poles, qreal & gain);
 
-    /*inline qreal get_k (LtiSystem *controlador, QVector<qreal> *nume_sup, QVector<qreal> *deno_inf, qreal minimo_boundarie,
-                         std::complex <qreal> p0, qreal omega, qreal k_min, qreal k_max);
-    inline QVector<qreal> * get_nume_kganancia (LtiSystem * controlador, QVector<qreal> *nume_sup, QVector<qreal> *deno_inf, qreal k_max, qreal minimo_boundarie,
-            std::complex <qreal> p0, qreal omega, QVector<qreal> * nume_inf );
-    inline QVector<qreal> * get_deno_kganancia (LtiSystem * controlador, QVector<qreal> *nume_sup, QVector<qreal> *deno_inf, qreal k_max, qreal minimo_boundarie,
-            std::complex <qreal> p0, qreal omega , QVector<qreal> *deno_sup);
+    LtiSystem * planta = nullptr;
+    LtiSystem * controlador = nullptr;
+    QVector<qreal> * omega = nullptr;
+    BoundaryData * boundaries = nullptr;
+    qreal epsilon = 0;
+    QVector<QVector<QVector<QPointF> *> *> * reunBounHash = nullptr;
 
-    inline QVector<qreal> * get_nume_knganancia ( LtiSystem * controlador, QVector<qreal> *nume, QVector<qreal> *deno, qreal k, qreal minimo_boundarie,
-            std::complex <qreal> p0, qreal omega, QVector<qreal> * nume_bajo );
-    inline QVector<qreal> * get_deno_knganancia (LtiSystem * controlador, QVector<qreal> *nume, QVector<qreal> *deno_inf, QVector<qreal> *deno_sup, qreal k, qreal minimo_boundarie,
-            std::complex <qreal> p0, qreal omega );
+    NaturalIntervalExtension * conversion = nullptr;
+    DeteccionViolacionBoundaries * deteccion = nullptr;
+    NominalStabilityChecker * stability = nullptr;
+    ListaOrdenada * lista = nullptr;
 
-    inline QVector<qreal> * get_nume_cpol ( LtiSystem * controlador, QVector<qreal> *nume, QVector<qreal> *deno, qreal k, qreal minimo_boundarie,
-                                            std::complex <qreal> p0, qreal omega, QVector<qreal> * nume_bajo );
-    inline QVector<qreal> * get_deno_cpol ( LtiSystem * controlador, QVector<qreal> *nume, QVector<qreal> *deno, qreal k, qreal minimo_boundarie,
-                                            std::complex <qreal> p0, qreal omega );*/
+    QVector<cxsc::complex> * plantas_nominales = nullptr;
+    QVector<std::complex<qreal>> * plantas_nominales_std = nullptr;
 
-    inline qint32 crearVectores ( LtiSystem * controlador, QVector <qreal> * numerador, QVector <qreal> * denominador, QVector<qreal> *k,
-                                  QVector<QVector<qreal> * > * variables, qreal delta, QVector <qreal> * numeNominales,
-                                  QVector <qreal> * denoNominales, qreal kNominal );
+    LtiSystem * controlador_retorno = nullptr;
+    LtiSystem * prototype = nullptr;
 
+    //Local optimization state: the best certified feasible gain (prunes
+    //the tree), its controller point, and the previous launch points of
+    //the 10% decision rule.
+    qreal bestLocalGain = 0;
+    LtiSystem * bestLocalController = nullptr;
+    QVector<qreal> launchGains;
 
-    /*inline qreal get_k_max(LtiSystem *controlador, QVector <qreal> * nume_inf, QVector <qreal> * deno_sup,
-                                             qreal maximo_boundarie,
-                                             std::complex<qreal> p0, qreal omega, qreal k_min, qreal k_max);
+    //Local search configuration from the GUI: coordinate step and
+    //starting-point strategy.
+    qreal delta = 0;
+    tipoInicializacion ini = centro;
 
-
-    inline QVector<qreal> * get_nume_kganancia_max(LtiSystem *controlador, QVector <qreal> * nume_inf, QVector <qreal> * deno_sup,
-                                                                     qreal k_min,
-                                                                     qreal maximo_boundarie, std::complex<qreal> p0, qreal omega,
-                                                                     QVector <qreal> * nume_sup);
-
-    inline QVector<qreal> * get_deno_kganancia_max(LtiSystem *controlador, QVector <qreal> * nume_inf, QVector <qreal> * deno_sup,
-                                                                     qreal k_min, qreal maximo_boundarie, std::complex<qreal> p0, qreal omega, QVector <qreal> * deno_inf);*/
-
-    inline qreal log10 (qreal a);
-
-
-
-    inline qreal inicializacion ( LtiSystem * controlador, QVector <qreal> * numerador, QVector <qreal> * denominador, tipoInicializacion tipo );
-
-    inline void comprobarVariables ( LtiSystem * controlador );
-
-    LtiSystem * planta;
-    LtiSystem * controlador;
-    LtiSystem * controlador_inicial;
-    QVector <qreal> * omega;
-    BoundaryData * boundaries;
-    NaturalIntervalExtension * conversion;
-    ListaOrdenada * lista;
-
-    LtiSystem * controlador_retorno;
-    qreal current_omega;
-    qreal epsilon;
-    qreal delta;
-
-    qreal mejor_k;
-    QVector <qreal> * anterior_sis_min;
-
-    qreal minimo_boundaries;
-
-    QVector<QVector<QVector<QPointF> *> *> * reunBounHash;
-
-    QVector <bool> * metaDatosArriba;
-    QVector <bool> * metaDatosAbierto;
-
-    bool isVariableNume;
-    bool isVariableDeno;
-
-    qint32 tamFas;
-
-    bool depuracion;
-
-    QVector <complex> * plantas_nominales;
-    QVector <std::complex <qreal> > * plantas_nominales2;
-
-    tipoInicializacion ini;
-
-    DeteccionViolacionBoundaries * deteccion;
+    bool hasUncertainZeros = false;
+    bool hasUncertainPoles = false;
 };
 
 #endif // ALGORITHM_NANDKISHOR_H
