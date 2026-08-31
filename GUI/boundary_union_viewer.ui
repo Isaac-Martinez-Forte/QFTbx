@@ -13,7 +13,7 @@
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
-  <widget class="QCustomPlot" name="diagrama" native="true">
+  <widget class="QCustomPlot" name="plot" native="true">
    <property name="geometry">
     <rect>
      <x>140</x>
@@ -35,7 +35,7 @@
    <property name="title">
     <string>Options</string>
    </property>
-   <widget class="QPushButton" name="guardar">
+   <widget class="QPushButton" name="saveImage">
     <property name="geometry">
      <rect>
       <x>20</x>

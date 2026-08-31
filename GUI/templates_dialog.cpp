@@ -12,18 +12,18 @@ TemplatesDialog::TemplatesDialog(QWidget *parent) :
     ui(new Ui::TemplatesDialog)
 {
     ui->setupUi(this);
-    ui->todasNPuntos->setValidator(new QDoubleValidator(this));
+    ui->globalPointCount->setValidator(new QDoubleValidator(this));
 
     setWindowTitle(tr("Template input"));
 
-    ui->todasNPuntos->setText("10");
+    ui->globalPointCount->setText("10");
 
-    //conectamos el boton cancelar
-    connect(ui->cancelar, SIGNAL(clicked()), this, SLOT(close()));
+    //Wire the cancel button.
+    connect(ui->cancelButton, SIGNAL(clicked()), this, SLOT(close()));
     connect (this, SIGNAL(close_ok()), this,SLOT(close()));
 
 #ifndef CUDA_AVAILABLE
-    ui->CUDA->setVisible(false);
+    ui->cudaCheck->setVisible(false);
 #endif
 
     parser =  new ParserX (pckALL_NON_COMPLEX);
@@ -33,107 +33,107 @@ TemplatesDialog::TemplatesDialog(QWidget *parent) :
 
 TemplatesDialog::~TemplatesDialog()
 {
-    limpiarTablas();
-    liberarMapa();
+    clearTables();
+    releaseGrids();
 
     delete ui;
     delete parser;
 }
 
-//Filas de variables: cada ParLineEdit y su pagina de pestana son del
-//dialogo; antes se abandonaban con clear() y las paginas se acumulaban.
-void TemplatesDialog::limpiarTablas(){
-    if (!variablesCreadas){
+//Variable rows: each ParLineEdit and its tab page belong to the dialog;
+//they used to be abandoned with clear() and the pages piled up.
+void TemplatesDialog::clearTables(){
+    if (!rowsBuilt){
         return;
     }
 
-    foreach (ParLineEdit * par, *parNume){
+    foreach (ParLineEdit * par, *numeratorRows){
         delete par->getX()->parentWidget();
         delete par;
     }
-    delete parNume;
-    parNume = nullptr;
+    delete numeratorRows;
+    numeratorRows = nullptr;
 
-    foreach (ParLineEdit * par, *parDeno){
+    foreach (ParLineEdit * par, *denominatorRows){
         delete par->getX()->parentWidget();
         delete par;
     }
-    delete parDeno;
-    parDeno = nullptr;
+    delete denominatorRows;
+    denominatorRows = nullptr;
 
-    delete radioButtonsNume;
-    radioButtonsNume = nullptr;
-    delete radioButtonsDeno;
-    radioButtonsDeno = nullptr;
+    delete numeratorRadios;
+    numeratorRadios = nullptr;
+    delete denominatorRadios;
+    denominatorRadios = nullptr;
 
-    variablesCreadas = false;
+    rowsBuilt = false;
 }
 
-//El mapa de rejillas es del dialogo (el motor lo lee sin tomar propiedad):
-//el clear() anterior fugaba las rejillas de cada calculo.
-void TemplatesDialog::liberarMapa(){
-    if (mapa != NULL){
-        qDeleteAll(*mapa);
-        delete mapa;
-        mapa = NULL;
+//The grid map belongs to the dialog (the engine reads it without taking
+//ownership): the old clear() leaked every computation's grids.
+void TemplatesDialog::releaseGrids(){
+    if (gridMap != NULL){
+        qDeleteAll(*gridMap);
+        delete gridMap;
+        gridMap = NULL;
     }
 }
 
 QVector<qreal> * TemplatesDialog::getEpsilon(){
-    return epsilon;
+    return epsilonValues;
 }
 
-void TemplatesDialog::lanzarViewTemp(LtiSystem *planta, qint32 numOmegas){
+void TemplatesDialog::launch(LtiSystem *plant, qint32 frequencyCount){
 
-    this->planta = planta;
-    this->numOmegas = numOmegas;
+    this->plant = plant;
+    this->frequencyCount = frequencyCount;
 
 
-    formartablas(planta->numerator(), planta->denominator());
+    buildTables(plant->numerator(), plant->denominator());
 }
 
-void TemplatesDialog::formartablas(QVector<Parameter *> *numerador, QVector<Parameter *> *denominador){
+void TemplatesDialog::buildTables(QVector<Parameter *> *numerator, QVector<Parameter *> *denominator){
 
-    this->numerador = numerador;
-    this->denominador = denominador;
+    this->numerator = numerator;
+    this->denominator = denominator;
 
-    limpiarTablas();
+    clearTables();
 
-    parNume = new QVector <ParLineEdit*> ();
-    parDeno = new QVector <ParLineEdit*> ();
-    radioButtonsNume = new QVector <tresRadioButton> ();
-    radioButtonsDeno = new QVector <tresRadioButton> ();
+    numeratorRows = new QVector <ParLineEdit*> ();
+    denominatorRows = new QVector <ParLineEdit*> ();
+    numeratorRadios = new QVector <ThreeRadioButtons> ();
+    denominatorRadios = new QVector <ThreeRadioButtons> ();
 
-    variablesCreadas = true;
+    rowsBuilt = true;
 
 
-    qint32 indice = 0;
-    foreach (Parameter * variable, *numerador){
-        QString valor = variable->name();
+    qint32 tabIndex = 0;
+    foreach (Parameter * variable, *numerator){
+        QString name_text = variable->name();
         if(variable->isUncertain()){
-            QWidget * widget = new QWidget(ui->agrNuDe);
-            crearWidget(widget,parNume, radioButtonsNume);
-            ui->tabNume->insertTab(indice,widget,valor);
-            indice++;
+            QWidget * widget = new QWidget(ui->variablesStack);
+            buildRow(widget,numeratorRows, numeratorRadios);
+            ui->numeratorTabs->insertTab(tabIndex,widget,name_text);
+            tabIndex++;
         }
-        ui->tabNume->removeTab(indice);
-        ui->tabNume->removeTab(indice+1);
+        ui->numeratorTabs->removeTab(tabIndex);
+        ui->numeratorTabs->removeTab(tabIndex+1);
     }
-    indice = 0;
-    foreach (Parameter * variable, *denominador){
-        QString valor = variable->name();
+    tabIndex = 0;
+    foreach (Parameter * variable, *denominator){
+        QString name_text = variable->name();
         if(variable->isUncertain()){
-            QWidget * widget = new QWidget(ui->agrNuDe);
-            crearWidget(widget, parDeno, radioButtonsDeno);
-            ui->tabDeno->insertTab(indice,widget, valor);
-            indice++;
+            QWidget * widget = new QWidget(ui->variablesStack);
+            buildRow(widget, denominatorRows, denominatorRadios);
+            ui->denominatorTabs->insertTab(tabIndex,widget, name_text);
+            tabIndex++;
         }
-        ui->tabDeno->removeTab(indice);
-        ui->tabDeno->removeTab(indice+1);
+        ui->denominatorTabs->removeTab(tabIndex);
+        ui->denominatorTabs->removeTab(tabIndex+1);
     }
 }
 
-void TemplatesDialog::crearWidget(QWidget *widget, QVector <ParLineEdit*> * par, QVector <tresRadioButton> * radioButtons){
+void TemplatesDialog::buildRow(QWidget *widget, QVector <ParLineEdit*> * par, QVector <ThreeRadioButtons> * rowRadios){
 
     QVBoxLayout *verticalLayout;
     QHBoxLayout *horizontalLayout;
@@ -205,157 +205,157 @@ void TemplatesDialog::crearWidget(QWidget *widget, QVector <ParLineEdit*> * par,
 
     par->append(new ParLineEdit(lin,log,manual));
 
-    struct tresRadioButton radio;
+    struct ThreeRadioButtons radio;
     radio.uno = rLin;
     radio.dos = rLog;
     radio.tres = rManual;
 
-    radioButtons->append(radio);
+    rowRadios->append(radio);
 
 }
 
-void TemplatesDialog::on_Todas_clicked()
+void TemplatesDialog::on_allVariablesRadio_clicked()
 {
-    ui->agrupador->setCurrentIndex(0);
+    ui->modeStack->setCurrentIndex(0);
 }
 
-void TemplatesDialog::on_unaxuna_clicked()
+void TemplatesDialog::on_oneByOneRadio_clicked()
 {
-    ui->agrupador->setCurrentIndex(2);
+    ui->modeStack->setCurrentIndex(2);
 }
 
-void TemplatesDialog::on_radioNumerador_clicked()
+void TemplatesDialog::on_numeratorRadio_clicked()
 {
-    ui->agrNuDe->setCurrentIndex(1);
+    ui->variablesStack->setCurrentIndex(1);
 }
 
-void TemplatesDialog::on_radioDenominador_clicked()
+void TemplatesDialog::on_denominatorRadio_clicked()
 {
-    ui->agrNuDe->setCurrentIndex(2);
+    ui->variablesStack->setCurrentIndex(2);
 }
 
-void TemplatesDialog::on_cancelar_clicked()
+void TemplatesDialog::on_cancelButton_clicked()
 {
     emit (close_ok());
 }
-void TemplatesDialog::on_Aceptar_clicked()
+void TemplatesDialog::on_okButton_clicked()
 {
-    if (ui->nyquist->isChecked())
-        diagrama = false;
-    else if (ui->nicols->isChecked())
-        diagrama = true;
+    if (ui->nyquistRadio->isChecked())
+        nicholsDiagram = false;
+    else if (ui->nicholsRadio->isChecked())
+        nicholsDiagram = true;
 
-    //Lectura directa: el latch anterior dejaba CUDA activado para siempre.
-    cuda = ui->CUDA->isChecked();
+    //Direct read: the old latch left CUDA enabled forever once checked.
+    cudaEnabled = ui->cudaCheck->isChecked();
 
-    //El epsilon anterior es ya del DAO; el mapa anterior sigue siendo del
-    //dialogo y se libera aqui.
-    liberarMapa();
+    //The previous epsilon already belongs to the DAO; the previous grid
+    //map is still the dialog's and is freed here.
+    releaseGrids();
 
-    epsilon = new QVector <qreal> ();
+    epsilonValues = new QVector <qreal> ();
 
-    if (ui->epsilon->text().isEmpty()){
-        errorMessage(tr("No epsilon value was entered"), tr("Template computation"));
-        ui->epsilon->setStyleSheet("background : red");
-        delete epsilon;
-        epsilon = NULL;
+    if (ui->epsilonEdit->text().isEmpty()){
+        errorMessage(tr("No epsilonValues value was entered"), tr("Template computation"));
+        ui->epsilonEdit->setStyleSheet("background : red");
+        delete epsilonValues;
+        epsilonValues = NULL;
         return;
     }else {
 
-        ui->epsilon->setStyleSheet("background : white");
-        QVector <QString> * v = tools::srtovectorString(ui->epsilon->text());
+        ui->epsilonEdit->setStyleSheet("background : white");
+        QVector <QString> * v = tools::srtovectorString(ui->epsilonEdit->text());
 
-        qreal ultimaEpsilon = 0;
+        qreal lastEpsilon = 0;
 
-        qint32 contador = 0;
+        qint32 counter = 0;
 
-        //Expresiones del usuario: un epsilon invalido lanzaba y tiraba la
-        //aplicacion.
+        //User expressions: an invalid epsilon used to throw and bring the
+        //application down.
         try {
             foreach (QString s, *v) {
                 parser->SetExpr(s.toStdString());
-                ultimaEpsilon = parser->Eval().GetFloat();
-                epsilon->append(ultimaEpsilon);
-                contador++;
+                lastEpsilon = parser->Eval().GetFloat();
+                epsilonValues->append(lastEpsilon);
+                counter++;
             }
         } catch (mup::ParserError &) {
-            errorMessage(tr("Invalid epsilon expression."), tr("Template computation"));
-            ui->epsilon->setStyleSheet("background : red");
+            errorMessage(tr("Invalid epsilonValues expression."), tr("Template computation"));
+            ui->epsilonEdit->setStyleSheet("background : red");
             delete v;
-            delete epsilon;
-            epsilon = NULL;
+            delete epsilonValues;
+            epsilonValues = NULL;
             return;
         }
         delete v;
 
-        for (; contador < numOmegas; contador++){
-            epsilon->append(ultimaEpsilon);
+        for (; counter < frequencyCount; counter++){
+            epsilonValues->append(lastEpsilon);
         }
     }
 
-    bool linsp = false;
-    bool logsp = false;
+    bool useLinspace = false;
+    bool useLogspace = false;
 
-    mapa = new QHash <QString, QVector<qreal> * > ();
+    gridMap = new QHash <QString, QVector<qreal> * > ();
 
-    if (ui->seleLinSpace->isChecked() && !ui->todasNPuntos->text().isEmpty()){
-        linsp = true;
-    }else if (ui->selecLogSpace->isChecked() && !ui->todasNPuntos->text().isEmpty()){
-        logsp = true;
+    if (ui->linspaceRadio->isChecked() && !ui->globalPointCount->text().isEmpty()){
+        useLinspace = true;
+    }else if (ui->logspaceRadio->isChecked() && !ui->globalPointCount->text().isEmpty()){
+        useLogspace = true;
     }else {
         errorMessage(tr("ERROR: select logspace or linspace in the general section."), tr("Template computation"));
-        liberarMapa();
-        delete epsilon;
-        epsilon = NULL;
+        releaseGrids();
+        delete epsilonValues;
+        epsilonValues = NULL;
         return;
     }
 
     try {
 
-    struct tresRadioButton radioButtons;
-    ParLineEdit * parlines;
-    Parameter* var;
-    qint32 contVar = 0;
-    for (qint32 i = 0; i < numerador->size(); i++){
-        var = numerador->at(i);
-        if (var->isUncertain()){
-            parlines = parNume->at(contVar);
-            radioButtons = radioButtonsNume->at(contVar);
-            contVar++;
-            if (!extraerVariable(parlines, radioButtons,var,linsp,logsp)){
-                errorMessage(tr("ERROR: the values entered for parameter \"%1\" are invalid").arg(var->name()),
+    struct ThreeRadioButtons rowRadios;
+    ParLineEdit * rowEdits;
+    Parameter* parameter;
+    qint32 variableIndex = 0;
+    for (qint32 i = 0; i < numerator->size(); i++){
+        parameter = numerator->at(i);
+        if (parameter->isUncertain()){
+            rowEdits = numeratorRows->at(variableIndex);
+            rowRadios = numeratorRadios->at(variableIndex);
+            variableIndex++;
+            if (!readVariable(rowEdits, rowRadios,parameter,useLinspace,useLogspace)){
+                errorMessage(tr("ERROR: the values entered for parameter \"%1\" are invalid").arg(parameter->name()),
                          tr("Template computation"));
-                liberarMapa();
-                delete epsilon;
-                epsilon = NULL;
+                releaseGrids();
+                delete epsilonValues;
+                epsilonValues = NULL;
                 return;
             }
         }
     }
 
-    contVar = 0;
+    variableIndex = 0;
 
-    for (qint32 i = 0; i < denominador->size(); i++){
+    for (qint32 i = 0; i < denominator->size(); i++){
 
-        var = denominador->at(i);
-        if (var->isUncertain()){
+        parameter = denominator->at(i);
+        if (parameter->isUncertain()){
 
-            parlines = parDeno->at(contVar);
-            radioButtons = radioButtonsDeno->at(contVar);
-            contVar++;
-            if (!extraerVariable(parlines, radioButtons,var,linsp,logsp)){
-                errorMessage(tr("ERROR: the values entered for parameter \"%1\" are invalid").arg(var->name()),
+            rowEdits = denominatorRows->at(variableIndex);
+            rowRadios = denominatorRadios->at(variableIndex);
+            variableIndex++;
+            if (!readVariable(rowEdits, rowRadios,parameter,useLinspace,useLogspace)){
+                errorMessage(tr("ERROR: the values entered for parameter \"%1\" are invalid").arg(parameter->name()),
                          tr("Template computation"));
-                liberarMapa();
-                delete epsilon;
-                epsilon = NULL;
+                releaseGrids();
+                delete epsilonValues;
+                epsilonValues = NULL;
                 return;
             }
         }
     }
 
-    if (!planta->gain()->isUncertain()){
-        mapa->insert(planta->gain()->name(), new QVector <qreal> (1, planta->gain()->nominal()));
+    if (!plant->gain()->isUncertain()){
+        gridMap->insert(plant->gain()->name(), new QVector <qreal> (1, plant->gain()->nominal()));
     }
     else{
 
@@ -363,48 +363,48 @@ void TemplatesDialog::on_Aceptar_clicked()
         qreal final;
         qint32 npuntos;
 
-        inicio = planta->gain()->range().x();
-        final = planta->gain()->range().y();
-        parser->SetExpr(ui->todasNPuntos->text().toStdString());
+        inicio = plant->gain()->range().x();
+        final = plant->gain()->range().y();
+        parser->SetExpr(ui->globalPointCount->text().toStdString());
         npuntos = parser->Eval().GetFloat();
 
-        if (linsp){
-            mapa->insert(planta->gain()->name(), linspace(inicio, final, npuntos));
+        if (useLinspace){
+            gridMap->insert(plant->gain()->name(), linspace(inicio, final, npuntos));
         } else {
-            mapa->insert(planta->gain()->name(), logspace(inicio, final, npuntos));
+            gridMap->insert(plant->gain()->name(), logspace(inicio, final, npuntos));
         }
     }
 
-    if (!planta->delay()->isUncertain()){
-        mapa->insert(planta->delay()->name(), new QVector <qreal> (1, planta->delay()->nominal()));
+    if (!plant->delay()->isUncertain()){
+        gridMap->insert(plant->delay()->name(), new QVector <qreal> (1, plant->delay()->nominal()));
     }else {
 
         qreal inicio;
         qreal final;
         qint32 npuntos;
 
-        inicio = planta->delay()->range().x();
-        final = planta->delay()->range().y();
-        parser->SetExpr(ui->todasNPuntos->text().toStdString());
+        inicio = plant->delay()->range().x();
+        final = plant->delay()->range().y();
+        parser->SetExpr(ui->globalPointCount->text().toStdString());
         npuntos = parser->Eval().GetFloat();
 
-        //Antes esta rama insertaba la rejilla del retardo bajo la CLAVE de
-        //la ganancia: machacaba la de la ganancia y dejaba al retardo sin
-        //entrada (crash en el barrido con retardo incierto).
-        if (linsp){
-            mapa->insert(planta->delay()->name(), linspace(inicio, final, npuntos));
+        //This branch used to insert the delay grid under the GAIN's key:
+        //it clobbered the gain's grid and left the delay without an entry
+        //(crashing the sweep with an uncertain delay).
+        if (useLinspace){
+            gridMap->insert(plant->delay()->name(), linspace(inicio, final, npuntos));
         } else {
-            mapa->insert(planta->delay()->name(), logspace(inicio, final, npuntos));
+            gridMap->insert(plant->delay()->name(), logspace(inicio, final, npuntos));
         }
     }
 
     } catch (mup::ParserError &) {
-        //Numero de puntos o rejilla manual invalidos: antes tiraba la
-        //aplicacion.
+        //Invalid point count or manual grid: it used to bring the
+        //application down.
         errorMessage(tr("Invalid grid expressions."), tr("Template computation"));
-        liberarMapa();
-        delete epsilon;
-        epsilon = NULL;
+        releaseGrids();
+        delete epsilonValues;
+        epsilonValues = NULL;
         return;
     }
 
@@ -412,14 +412,14 @@ void TemplatesDialog::on_Aceptar_clicked()
     emit (close_ok());
 }
 
-bool TemplatesDialog::extraerVariable(ParLineEdit *parlines, tresRadioButton radioButtons,
-                                    Parameter *var, bool linsp, bool logsp){
+bool TemplatesDialog::readVariable(ParLineEdit *rowEdits, ThreeRadioButtons rowRadios,
+                                    Parameter *parameter, bool useLinspace, bool useLogspace){
 
-    //Politica historica: para nombres repetidos (p.ej. la misma 'a' en
-    //numerador y denominador) gana la PRIMERA rejilla introducida. Con la
-    //clave por nombre, sin esta guarda ganaria la ultima. Pendiente: avisar
-    //al usuario del duplicado (ver REFACTOR_PLAN).
-    if (mapa->contains(var->name())){
+    //Historical policy: for repeated names (e.g. the same 'a' in numerator
+    //and denominator) the FIRST entered grid wins. With the name key, the
+    //last one would win without this guard. Pending: warn the user about
+    //the duplicate (see REFACTOR_PLAN).
+    if (gridMap->contains(parameter->name())){
         return true;
     }
 
@@ -428,28 +428,28 @@ bool TemplatesDialog::extraerVariable(ParLineEdit *parlines, tresRadioButton rad
     qreal npuntos;
 
 
-    if (radioButtons.uno->isChecked() && !parlines->getX()->text().isEmpty()){
+    if (rowRadios.uno->isChecked() && !rowEdits->getX()->text().isEmpty()){
 
-        inicio = var->range().x();
-        final = var->range().y();
+        inicio = parameter->range().x();
+        final = parameter->range().y();
 
-        parser->SetExpr(parlines->getX()->text().toStdString());
+        parser->SetExpr(rowEdits->getX()->text().toStdString());
         npuntos = parser->Eval().GetFloat();
 
-        mapa->insert(var->name(), linspace(inicio,final, npuntos));
+        gridMap->insert(parameter->name(), linspace(inicio,final, npuntos));
 
-    }else if (radioButtons.dos->isChecked() && !parlines->getY()->text().isEmpty()){
+    }else if (rowRadios.dos->isChecked() && !rowEdits->getY()->text().isEmpty()){
 
-        inicio = var->range().x();
-        final = var->range().y();
-        parser->SetExpr(parlines->getY()->text().toStdString());
+        inicio = parameter->range().x();
+        final = parameter->range().y();
+        parser->SetExpr(rowEdits->getY()->text().toStdString());
         npuntos = parser->Eval().GetFloat();
 
-        mapa->insert(var->name(), logspace(inicio, final, npuntos));
+        gridMap->insert(parameter->name(), logspace(inicio, final, npuntos));
 
-    }else if(radioButtons.tres->isChecked() && !parlines->nominal()->text().isEmpty()){
+    }else if(rowRadios.tres->isChecked() && !rowEdits->nominal()->text().isEmpty()){
 
-        QVector <QString> * vector = srtovectorString(parlines->nominal()->text());
+        QVector <QString> * vector = srtovectorString(rowEdits->nominal()->text());
         QVector <qreal> * vector2 = new QVector <qreal> ();
 
         try {
@@ -463,19 +463,19 @@ bool TemplatesDialog::extraerVariable(ParLineEdit *parlines, tresRadioButton rad
             throw;
         }
         delete vector;
-        mapa->insert(var->name(), vector2);
-    }else if (linsp || logsp){
+        gridMap->insert(parameter->name(), vector2);
+    }else if (useLinspace || useLogspace){
 
-        inicio = var->range().x();
-        final = var->range().y();
+        inicio = parameter->range().x();
+        final = parameter->range().y();
 
-        parser->SetExpr(ui->todasNPuntos->text().toStdString());
+        parser->SetExpr(ui->globalPointCount->text().toStdString());
         npuntos = parser->Eval().GetFloat();
 
-        if(linsp){
-            mapa->insert(var->name(), linspace(inicio, final, npuntos));
+        if(useLinspace){
+            gridMap->insert(parameter->name(), linspace(inicio, final, npuntos));
         }else {
-            mapa->insert(var->name(), logspace(inicio, final, npuntos));
+            gridMap->insert(parameter->name(), logspace(inicio, final, npuntos));
         }
     }else{
         return false;
@@ -484,17 +484,17 @@ bool TemplatesDialog::extraerVariable(ParLineEdit *parlines, tresRadioButton rad
     return true;
 }
 
-QHash <QString, QVector<qreal> * > * TemplatesDialog::getMapa(){
-    return mapa;
+QHash <QString, QVector<qreal> * > * TemplatesDialog::grids(){
+    return gridMap;
 }
 
 
-bool TemplatesDialog::getElecDiagram(){
-    return diagrama;
+bool TemplatesDialog::nicholsSelected(){
+    return nicholsDiagram;
 }
 
-bool TemplatesDialog::getElecCUDA(){
-    return cuda;
+bool TemplatesDialog::cudaSelected(){
+    return cudaEnabled;
 }
 
 bool TemplatesDialog::getTodoCorrecto(){

@@ -14,7 +14,7 @@
 
   /**
     * @class BoundaryViewer
-    * @brief Clase que representa gráficamente los boundaries calculados.
+    * @brief Clase que representa gráficamente los boundaryData calculados.
     * 
     * @author Isaac Martínez Forte
     */
@@ -43,45 +43,45 @@ public:
     
    /**
     * @fn setDatos
-    * @brief Función que introduce los datos necesarios para representar los boundaries.
+    * @brief Función que introduce los datos necesarios para representar los boundaryData.
     * 
-    * @param datos boundaries calculados.
-    * @param sabana sábana completa del cálculo intermedio a los boundaries.
+    * @param datos boundaryData calculados.
+    * @param sabana sábana completa del cálculo intermedio a los boundaryData.
     */
     
     void setDatos (BoundaryData *datos, QVector<qreal> *omega);
     
     
    /**
-    * @fn mostrarDiagrama
+    * @fn showDiagram
     * @brief Función que crea la gráfica con los datos introducidos anteriormente.
     */
     
-    void mostrarDiagrama();
+    void showDiagram();
 
 private slots:
-    void on_exportar_clicked();
+    void on_exportData_clicked();
 
-    void on_guardar_clicked();
+    void on_saveImage_clicked();
 
-    void revisarCheckBox ();
+    void applyCheckboxes ();
 
 private:
 
-    void crearCuadro(QColor color, qint32 pos);
+    void addFrequencyRow(QColor color, qint32 pos);
     void clearDiagram();
 
-    BoundaryData * boundaries;
+    BoundaryData * boundaryData;
     QVector <qreal> * omega;
 
-    bool ejecutado;
+    bool plotted;
 
-    QVector <QVector <QCPCurve * > * > * graficos;
+    QVector <QVector <QCPCurve * > * > * curves;
 
-    QGroupBox * cajaFrecuencias;
-    QVector <QCheckBox *> * checkbox;
+    QGroupBox * frequenciesBox;
+    QVector <QCheckBox *> * checkboxes;
     QMap <QString, QColor> * colores;
-    QVBoxLayout * layoutColores;
+    QVBoxLayout * colorsLayout;
 
     Ui::BoundaryViewer *ui;
 };

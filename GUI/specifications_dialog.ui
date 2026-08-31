@@ -37,42 +37,42 @@
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="QRadioButton" name="radioButton">
+     <widget class="QRadioButton" name="trackingRadio">
       <property name="text">
        <string>Tracking</string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QRadioButton" name="radioButton_2">
+     <widget class="QRadioButton" name="stabilityRadio">
       <property name="text">
        <string>Stability</string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QRadioButton" name="radioButton_3">
+     <widget class="QRadioButton" name="noiseRadio">
       <property name="text">
        <string>Sensor noise</string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QRadioButton" name="radioButton_4">
+     <widget class="QRadioButton" name="outputDisturbanceRadio">
       <property name="text">
        <string>Output disturbance</string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QRadioButton" name="radioButton_5">
+     <widget class="QRadioButton" name="inputDisturbanceRadio">
       <property name="text">
        <string>Input disturbance</string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QRadioButton" name="radioButton_6">
+     <widget class="QRadioButton" name="controlEffortRadio">
       <property name="text">
        <string>Control effort</string>
       </property>
@@ -91,14 +91,14 @@
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout">
     <item>
-     <widget class="QRadioButton" name="cons">
+     <widget class="QRadioButton" name="constantRadio">
       <property name="text">
        <string>Constant</string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QRadioButton" name="fun">
+     <widget class="QRadioButton" name="systemRadio">
       <property name="text">
        <string>Transfer function</string>
       </property>
@@ -106,7 +106,7 @@
     </item>
    </layout>
   </widget>
-  <widget class="QWidget" name="layoutWidget6">
+  <widget class="QWidget" name="buttonsWidget">
    <property name="geometry">
     <rect>
      <x>450</x>
@@ -117,16 +117,16 @@
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout_8">
     <item>
-     <widget class="QPushButton" name="Cancel">
+     <widget class="QPushButton" name="cancelButton">
       <property name="text">
-       <string>Cancel</string>
+       <string>cancelButton</string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="OK">
+     <widget class="QPushButton" name="okButton">
       <property name="text">
-       <string>OK</string>
+       <string>okButton</string>
       </property>
      </widget>
     </item>
@@ -150,7 +150,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QLineEdit" name="frecini"/>
+     <widget class="QLineEdit" name="startFrequencyEdit"/>
     </item>
     <item>
      <widget class="QLabel" name="label_8">
@@ -160,7 +160,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QLineEdit" name="frecfin"/>
+     <widget class="QLineEdit" name="endFrequencyEdit"/>
     </item>
     <item>
      <widget class="QLabel" name="label_9">
@@ -171,7 +171,7 @@
     </item>
    </layout>
   </widget>
-  <widget class="QStackedWidget" name="principal">
+  <widget class="QStackedWidget" name="pageStack">
    <property name="geometry">
     <rect>
      <x>170</x>
@@ -181,7 +181,7 @@
     </rect>
    </property>
    <widget class="QWidget" name="principal_todos">
-    <widget class="QStackedWidget" name="stackedWidget">
+    <widget class="QStackedWidget" name="modeStack">
      <property name="geometry">
       <rect>
        <x>150</x>
@@ -210,7 +210,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="altura"/>
+         <widget class="QLineEdit" name="magnitudeEdit"/>
         </item>
        </layout>
       </widget>
@@ -225,14 +225,14 @@
        </property>
        <layout class="QHBoxLayout" name="horizontalLayout_9">
         <item>
-         <widget class="QRadioButton" name="lineal">
+         <widget class="QRadioButton" name="linearRadio">
           <property name="text">
            <string>Linear</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QRadioButton" name="decibelios">
+         <widget class="QRadioButton" name="decibelsRadio">
           <property name="text">
            <string>Decibels</string>
           </property>
@@ -242,7 +242,7 @@
       </widget>
      </widget>
      <widget class="QWidget" name="FT">
-      <widget class="QStackedWidget" name="figures">
+      <widget class="QStackedWidget" name="figureStack">
        <property name="geometry">
         <rect>
          <x>180</x>
@@ -253,7 +253,7 @@
        </property>
        <widget class="QWidget" name="page_9"/>
        <widget class="QWidget" name="page_3">
-        <widget class="QLabel" name="imagCP">
+        <widget class="QLabel" name="polyImage">
          <property name="geometry">
           <rect>
            <x>10</x>
@@ -268,7 +268,7 @@
         </widget>
        </widget>
        <widget class="QWidget" name="page_5">
-        <widget class="QLabel" name="imagLF">
+        <widget class="QLabel" name="tcgImage">
          <property name="geometry">
           <rect>
            <x>10</x>
@@ -283,7 +283,7 @@
         </widget>
        </widget>
        <widget class="QWidget" name="page_4">
-        <widget class="QLabel" name="imagHF">
+        <widget class="QLabel" name="zpkImage">
          <property name="geometry">
           <rect>
            <x>10</x>
@@ -318,7 +318,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="nume"/>
+           <widget class="QLineEdit" name="numeratorEdit"/>
           </item>
          </layout>
         </item>
@@ -332,7 +332,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="deno"/>
+           <widget class="QLineEdit" name="denominatorEdit"/>
           </item>
          </layout>
         </item>
@@ -367,12 +367,12 @@
           <item>
            <widget class="QLabel" name="label_6">
             <property name="text">
-             <string>ret:</string>
+             <string>delayEdit:</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="ret"/>
+           <widget class="QLineEdit" name="delayEdit"/>
           </item>
          </layout>
         </item>
@@ -391,14 +391,14 @@
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_4">
           <item>
-           <widget class="QRadioButton" name="poli">
+           <widget class="QRadioButton" name="polynomialRadio">
             <property name="text">
              <string>Polynomial form</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QRadioButton" name="libre">
+           <widget class="QRadioButton" name="freeFormRadio">
             <property name="text">
              <string>Free form</string>
             </property>
@@ -409,16 +409,16 @@
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_5">
           <item>
-           <widget class="QRadioButton" name="hfgain">
+           <widget class="QRadioButton" name="tcgRadio">
             <property name="text">
-             <string>K = hfgain</string>
+             <string>K = tcgRadio</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QRadioButton" name="lfgain">
+           <widget class="QRadioButton" name="zpkRadio">
             <property name="text">
-             <string>k = lfgain</string>
+             <string>k = zpkRadio</string>
             </property>
            </widget>
           </item>
@@ -429,7 +429,7 @@
      </widget>
      <widget class="QWidget" name="page_6"/>
     </widget>
-    <widget class="QLabel" name="imagen">
+    <widget class="QLabel" name="specificationImage">
      <property name="geometry">
       <rect>
        <x>30</x>
@@ -444,7 +444,7 @@
     </widget>
    </widget>
    <widget class="QWidget" name="principal_se">
-    <widget class="QLabel" name="imagen2">
+    <widget class="QLabel" name="trackingImage">
      <property name="geometry">
       <rect>
        <x>280</x>
@@ -457,7 +457,7 @@
       <string/>
      </property>
     </widget>
-    <widget class="QStackedWidget" name="Se_1">
+    <widget class="QStackedWidget" name="lowerModeStack">
      <property name="geometry">
       <rect>
        <x>0</x>
@@ -488,21 +488,21 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="altura_se1"/>
+           <widget class="QLineEdit" name="lowerMagnitudeEdit"/>
           </item>
          </layout>
         </item>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_22">
           <item>
-           <widget class="QRadioButton" name="linea_se1">
+           <widget class="QRadioButton" name="lowerLinearRadio">
             <property name="text">
              <string>Linear</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QRadioButton" name="decibelios_se1">
+           <widget class="QRadioButton" name="lowerDecibelsRadio">
             <property name="text">
              <string>Decibels</string>
             </property>
@@ -527,14 +527,14 @@
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_6">
           <item>
-           <widget class="QRadioButton" name="CPoliSe1">
+           <widget class="QRadioButton" name="lowerPolynomialRadio">
             <property name="text">
              <string>Polynomial form</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QRadioButton" name="FLSe1">
+           <widget class="QRadioButton" name="lowerFreeFormRadio">
             <property name="text">
              <string>Free form</string>
             </property>
@@ -545,16 +545,16 @@
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_7">
           <item>
-           <widget class="QRadioButton" name="KGSe1">
+           <widget class="QRadioButton" name="lowerZpkRadio">
             <property name="text">
-             <string>k=hfgain</string>
+             <string>k=tcgRadio</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QRadioButton" name="KNGSe1">
+           <widget class="QRadioButton" name="lowerTcgRadio">
             <property name="text">
-             <string>k=lfgain</string>
+             <string>k=zpkRadio</string>
             </property>
            </widget>
           </item>
@@ -582,7 +582,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="NumeSe1"/>
+           <widget class="QLineEdit" name="lowerNumeratorEdit"/>
           </item>
          </layout>
         </item>
@@ -596,7 +596,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="DenoSe1"/>
+           <widget class="QLineEdit" name="lowerDenominatorEdit"/>
           </item>
          </layout>
         </item>
@@ -622,7 +622,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="KSe1"/>
+           <widget class="QLineEdit" name="lowerGainEdit"/>
           </item>
          </layout>
         </item>
@@ -636,13 +636,13 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="RetSe1"/>
+           <widget class="QLineEdit" name="lowerDelayEdit"/>
           </item>
          </layout>
         </item>
        </layout>
       </widget>
-      <widget class="QStackedWidget" name="imagen_se_1">
+      <widget class="QStackedWidget" name="lowerFigureStack">
        <property name="geometry">
         <rect>
          <x>150</x>
@@ -656,7 +656,7 @@
        </property>
        <widget class="QWidget" name="page"/>
        <widget class="QWidget" name="page_7">
-        <widget class="QLabel" name="imgKGse1">
+        <widget class="QLabel" name="lowerZpkImage">
          <property name="geometry">
           <rect>
            <x>0</x>
@@ -671,7 +671,7 @@
         </widget>
        </widget>
        <widget class="QWidget" name="page_8">
-        <widget class="QLabel" name="imgKNGse1">
+        <widget class="QLabel" name="lowerTcgImage">
          <property name="geometry">
           <rect>
            <x>10</x>
@@ -686,7 +686,7 @@
         </widget>
        </widget>
        <widget class="QWidget" name="page_2">
-        <widget class="QLabel" name="imgCPse1">
+        <widget class="QLabel" name="lowerPolyImage">
          <property name="geometry">
           <rect>
            <x>0</x>
@@ -703,7 +703,7 @@
       </widget>
      </widget>
     </widget>
-    <widget class="QStackedWidget" name="Se_2">
+    <widget class="QStackedWidget" name="upperModeStack">
      <property name="geometry">
       <rect>
        <x>390</x>
@@ -734,21 +734,21 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="altura_se1_2"/>
+           <widget class="QLineEdit" name="upperMagnitudeEdit"/>
           </item>
          </layout>
         </item>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_24">
           <item>
-           <widget class="QRadioButton" name="linea_se1_2">
+           <widget class="QRadioButton" name="upperLinearRadio">
             <property name="text">
              <string>Linear</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QRadioButton" name="decibelios_se1_2">
+           <widget class="QRadioButton" name="upperDecibelsRadio">
             <property name="text">
              <string>Decibels</string>
             </property>
@@ -773,14 +773,14 @@
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_8">
           <item>
-           <widget class="QRadioButton" name="CPoliSe1_2">
+           <widget class="QRadioButton" name="upperPolynomialRadio">
             <property name="text">
              <string>Polynomial form</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QRadioButton" name="FLSe1_2">
+           <widget class="QRadioButton" name="upperFreeFormRadio">
             <property name="text">
              <string>Free form</string>
             </property>
@@ -791,16 +791,16 @@
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_9">
           <item>
-           <widget class="QRadioButton" name="KGSe1_2">
+           <widget class="QRadioButton" name="upperZpkRadio">
             <property name="text">
-             <string>k=hfgain</string>
+             <string>k=tcgRadio</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QRadioButton" name="KNGSe1_2">
+           <widget class="QRadioButton" name="upperTcgRadio">
             <property name="text">
-             <string>k=lfgain</string>
+             <string>k=zpkRadio</string>
             </property>
            </widget>
           </item>
@@ -828,7 +828,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="NumeSe1_2"/>
+           <widget class="QLineEdit" name="upperNumeratorEdit"/>
           </item>
          </layout>
         </item>
@@ -842,7 +842,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="DenoSe1_2"/>
+           <widget class="QLineEdit" name="upperDenominatorEdit"/>
           </item>
          </layout>
         </item>
@@ -868,7 +868,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="KSe1_2"/>
+           <widget class="QLineEdit" name="upperGainEdit"/>
           </item>
          </layout>
         </item>
@@ -882,13 +882,13 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="RetSe1_2"/>
+           <widget class="QLineEdit" name="upperDelayEdit"/>
           </item>
          </layout>
         </item>
        </layout>
       </widget>
-      <widget class="QStackedWidget" name="imagen_se_2">
+      <widget class="QStackedWidget" name="upperFigureStack">
        <property name="geometry">
         <rect>
          <x>120</x>
@@ -902,7 +902,7 @@
        </property>
        <widget class="QWidget" name="page_10"/>
        <widget class="QWidget" name="page_11">
-        <widget class="QLabel" name="imgKGse1_2">
+        <widget class="QLabel" name="upperZpkImage">
          <property name="geometry">
           <rect>
            <x>0</x>
@@ -917,7 +917,7 @@
         </widget>
        </widget>
        <widget class="QWidget" name="page_12">
-        <widget class="QLabel" name="imgKNGse1_2">
+        <widget class="QLabel" name="upperTcgImage">
          <property name="geometry">
           <rect>
            <x>10</x>
@@ -932,7 +932,7 @@
         </widget>
        </widget>
        <widget class="QWidget" name="page_13">
-        <widget class="QLabel" name="imgCPse1_2">
+        <widget class="QLabel" name="upperPolyImage">
          <property name="geometry">
           <rect>
            <x>0</x>
@@ -953,9 +953,9 @@
   </widget>
   <zorder>layoutWidget4</zorder>
   <zorder>layoutWidget5</zorder>
-  <zorder>layoutWidget6</zorder>
+  <zorder>buttonsWidget</zorder>
   <zorder>layoutWidget</zorder>
-  <zorder>principal</zorder>
+  <zorder>pageStack</zorder>
   <zorder>label</zorder>
  </widget>
  <resources/>

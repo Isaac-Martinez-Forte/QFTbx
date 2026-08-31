@@ -22,53 +22,53 @@ public:
     ~BoundaryUnionViewer();
 
 
-    void setDatos (QVector< QVector<QPointF> * > * boun, QVector<qreal> *omega);
-    void setDatos (QVector< QVector<QPointF> * > * boun, QVector<qreal> *omega, qint32 unBoundarie);
+    void setDatos (QVector< QVector<QPointF> * > * unionTraces, QVector<qreal> *omega);
+    void setDatos (QVector< QVector<QPointF> * > * unionTraces, QVector<qreal> *omega, qint32 singleBoundary);
 
-    void setDatos (QVector< QVector< QVector<QPointF> * > * > * boun, QVector<qreal> *omega);
+    void setDatos (QVector< QVector< QVector<QPointF> * > * > * unionTraces, QVector<qreal> *omega);
 
-    void setDatos (QVector< QVector< QVector<QPointF> * > * > * boun, QVector<qreal> *omega, QVector<QPointF> * b);
+    void setDatos (QVector< QVector< QVector<QPointF> * > * > * unionTraces, QVector<qreal> *omega, QVector<QPointF> * b);
 
-    void mostrar_diagrama();
+    void showDiagram();
 
-    void dibujar_cuadro (QPointF uno, QPointF dos, QPointF tres, QPointF cuatro, qint32 contador);
-    void dibujar_cuadro2 (QPointF uno, QPointF dos, QPointF tres, QPointF cuatro, qint32 contador);
+    void drawBox (QPointF uno, QPointF dos, QPointF tres, QPointF cuatro, qint32 contador);
+    void drawBox2 (QPointF uno, QPointF dos, QPointF tres, QPointF cuatro, qint32 contador);
 
 private slots:
-    void revisarCheckBox();
+    void applyCheckboxes();
 
-    void on_guardar_clicked();
+    void on_saveImage_clicked();
 
 private:
 
-    QVector< QVector<QPointF> * > * boun;
-    QVector< QVector< QVector<QPointF> * > * > * bounHash;
+    QVector< QVector<QPointF> * > * unionTraces;
+    QVector< QVector< QVector<QPointF> * > * > * unionBuckets;
     QVector <qreal> * omega;
     QVector<QPointF> * b = nullptr;
 
-    bool hash;
+    bool bucketMode;
 
-    bool ejecutado;
+    bool plotted;
 
-    QVector <QCPCurve * > * graficos;
-    QVector <QCPCurve * > * graficos2;
-    QVector <QCPCurve * > * graficos3;
-    QGroupBox * cajaFrecuencias;
-    QVector <QCheckBox *> * checkbox;
+    QVector <QCPCurve * > * curves;
+    QVector <QCPCurve * > * boxCurves;
+    QVector <QCPCurve * > * boxCurves2;
+    QGroupBox * frequenciesBox;
+    QVector <QCheckBox *> * checkboxes;
     QMap <QString, QColor> * colores;
-    QVBoxLayout * layoutColores;
+    QVBoxLayout * colorsLayout;
 
-    void pintarCuadro(QColor color, qint32 pos);
+    void addFrequencyRow(QColor color, qint32 pos);
     void clearDiagram();
 
 
     Ui::BoundaryUnionViewer *ui;
 
-    qint32 finalk;
+    qint32 finalCurveIndex;
 
-    QVector <QColor> * col;
+    QVector <QColor> * colors;
 
-    qint32 unBoundarie = -1;
+    qint32 singleBoundary = -1;
 };
 
 #endif // QFTBX_BOUNDARY_UNION_VIEWER_H

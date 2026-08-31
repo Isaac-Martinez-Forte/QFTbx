@@ -16,7 +16,7 @@
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
-  <widget class="QComboBox" name="elegirforma">
+  <widget class="QComboBox" name="modeStack">
    <property name="geometry">
     <rect>
      <x>40</x>
@@ -31,7 +31,7 @@
     </property>
    </item>
   </widget>
-  <widget class="QStackedWidget" name="numdeno">
+  <widget class="QStackedWidget" name="numDenStack">
    <property name="geometry">
     <rect>
      <x>20</x>
@@ -44,7 +44,7 @@
     <number>0</number>
    </property>
    <widget class="QWidget" name="pagenume">
-    <widget class="QScrollArea" name="boxNume">
+    <widget class="QScrollArea" name="numeratorBox">
      <property name="geometry">
       <rect>
        <x>0</x>
@@ -56,7 +56,7 @@
      <property name="widgetResizable">
       <bool>true</bool>
      </property>
-     <widget class="QWidget" name="areaScrollnume">
+     <widget class="QWidget" name="numeratorArea">
       <property name="geometry">
        <rect>
         <x>0</x>
@@ -69,7 +69,7 @@
     </widget>
    </widget>
    <widget class="QWidget" name="pagedeno">
-    <widget class="QScrollArea" name="boxDeno">
+    <widget class="QScrollArea" name="denominatorBox">
      <property name="geometry">
       <rect>
        <x>0</x>
@@ -81,7 +81,7 @@
      <property name="widgetResizable">
       <bool>true</bool>
      </property>
-     <widget class="QWidget" name="areaScrolldeno">
+     <widget class="QWidget" name="denominatorArea">
       <property name="geometry">
        <rect>
         <x>0</x>
@@ -105,14 +105,14 @@
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="QRadioButton" name="numerador">
+     <widget class="QRadioButton" name="numeratorRadio">
       <property name="text">
        <string>Numerator</string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QRadioButton" name="denominador">
+     <widget class="QRadioButton" name="denominatorRadio">
       <property name="text">
        <string>Denominator</string>
       </property>
@@ -138,7 +138,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QLineEdit" name="rInicioK"/>
+     <widget class="QLineEdit" name="gainStart"/>
     </item>
     <item>
      <widget class="QLabel" name="label_2">
@@ -148,7 +148,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QLineEdit" name="rFinK"/>
+     <widget class="QLineEdit" name="gainEnd"/>
     </item>
     <item>
      <widget class="QLabel" name="label_3">
@@ -177,7 +177,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QLineEdit" name="rInicioRet"/>
+     <widget class="QLineEdit" name="delayStart"/>
     </item>
     <item>
      <widget class="QLabel" name="label_5">
@@ -187,7 +187,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QLineEdit" name="rFinRet"/>
+     <widget class="QLineEdit" name="delayEnd"/>
     </item>
     <item>
      <widget class="QLabel" name="label_6">
@@ -222,14 +222,14 @@
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout_3">
     <item>
-     <widget class="QPushButton" name="cancelar">
+     <widget class="QPushButton" name="cancelButton">
       <property name="text">
        <string>Cancel</string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="aceptar">
+     <widget class="QPushButton" name="okButton">
       <property name="text">
        <string>OK</string>
       </property>

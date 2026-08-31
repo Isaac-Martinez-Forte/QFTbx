@@ -17,134 +17,134 @@ TemplateViewer::TemplateViewer(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    verTemplate = false;
-    verContorno = true;
-    color = false;
+    templatesVisible = false;
+    contourVisible = true;
+    colorsCreated = false;
     setWindowTitle(tr("Templates"));
 
 
-    cajaFrecuencias = new QGroupBox(this);
-    cajaFrecuencias->setObjectName("cajaFrecuencias");
-    cajaFrecuencias->setGeometry(QRect(660, 0, 141, 461));
-    cajaFrecuencias->setTitle(QApplication::translate("TemplateViewer", "Frequencies", 0));
+    frequenciesBox = new QGroupBox(this);
+    frequenciesBox->setObjectName("frequenciesBox");
+    frequenciesBox->setGeometry(QRect(660, 0, 141, 461));
+    frequenciesBox->setTitle(QApplication::translate("TemplateViewer", "Frequencies", 0));
 
-    //Conectados UNA vez (cada repintado anadia una conexion duplicada).
-    connect(ui->diagrama->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->diagrama->xAxis2, SLOT(setRange(QCPRange)));
-    connect(ui->diagrama->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->diagrama->yAxis2, SLOT(setRange(QCPRange)));
+    //Connected ONCE (every replot used to add a duplicated connection).
+    connect(ui->plot->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->xAxis2, SLOT(setRange(QCPRange)));
+    connect(ui->plot->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->yAxis2, SLOT(setRange(QCPRange)));
 }
 
 TemplateViewer::~TemplateViewer()
 {
     clearDiagram();
 
-    if (color){
-        delete colores;
+    if (colorsCreated){
+        delete colorByFrequency;
     }
 
-    delete cajaFrecuencias;
+    delete frequenciesBox;
 
     delete ui;
 }
 
 void TemplateViewer::clearDiagram(){
 
-    if (!ejecutada){
+    if (!plotted){
         return;
     }
 
-    ui->diagrama->clearFocus();
-    ui->diagrama->clearGraphs();
-    ui->diagrama->clearItems();
-    //QCustomPlot es dueno de los graficos: clearGraphs los libera.
-    ui->diagrama->clearPlottables();
-    verTemplate = false;
+    ui->plot->clearFocus();
+    ui->plot->clearGraphs();
+    ui->plot->clearItems();
+    //QCustomPlot owns the graphs: clearGraphs frees them.
+    ui->plot->clearPlottables();
+    templatesVisible = false;
 
-    //Cada fila de la caja de frecuencias se libera ENTERA via su widget
-    //contenedor (checkbox, slider y linea son hijos suyos): antes se
-    //borraban los controles sueltos y los contenedores se acumulaban en el
-    //layout en cada repintado. Los vectores de punteros tambien se fugaban.
-    foreach (QCheckBox * che, *checkbox) {
+    //Every frequency-box row is freed WHOLE through its container widget
+    //(checkbox, slider and line edit are its children): the loose controls
+    //used to be deleted while the containers piled up in the layout on
+    //every replot. The pointer vectors leaked too.
+    foreach (QCheckBox * che, *checkboxes) {
         delete che->parentWidget();
     }
-    delete checkbox;
-    checkbox = nullptr;
-    delete lineas;
-    lineas = nullptr;
-    delete sliders;
-    sliders = nullptr;
+    delete checkboxes;
+    checkboxes = nullptr;
+    delete epsilonEdits;
+    epsilonEdits = nullptr;
+    delete epsilonSliders;
+    epsilonSliders = nullptr;
 
-    delete graContorno;
-    graContorno = nullptr;
-    delete graTemplates;
-    graTemplates = nullptr;
+    delete contourGraphs;
+    contourGraphs = nullptr;
+    delete templateGraphs;
+    templateGraphs = nullptr;
 
-    delete layoutColores;
-    layoutColores = nullptr;
+    delete colorsLayout;
+    colorsLayout = nullptr;
 
-    ejecutada = false;
+    plotted = false;
 }
 
-void TemplateViewer::setDatos(Controlador * controlador){
+void TemplateViewer::setDatos(Controlador * controller){
 
-    if (color){
-        //delete, no clear(): el mapa anterior se fugaba en cada recalculo.
-        delete colores;
+    if (colorsCreated){
+        //delete, not clear(): the previous map leaked on every recompute.
+        delete colorByFrequency;
     }
 
-    colores = new QMap <qreal, QColor> ();
-    color = true;
+    colorByFrequency = new QMap <qreal, QColor> ();
+    colorsCreated = true;
 
-    setTemplates(controlador->getTemplate());
-    setContorno(controlador->getContorno());
+    setTemplates(controller->getTemplate());
+    setContour(controller->getContorno());
 
-    this->controlador = controlador;
+    this->controller = controller;
 
-    this->omega = controlador->getOmega()->getValores();
+    this->omega = controller->getOmega()->getValores();
 
-    this->epsilon = controlador->getEpsilon();
+    this->epsilon = controller->getEpsilon();
 
     for (qint32 i = 0; i < omega->size(); i++){
-        colores->insert(omega->at(i), randomColor(i));
+        colorByFrequency->insert(omega->at(i), randomColor(i));
     }
 }
 
-void TemplateViewer::setTemplates(QVector<QVector<std::complex<qreal> > *> *templates){
-    this->templates = templates;
+void TemplateViewer::setTemplates(QVector<QVector<std::complex<qreal> > *> *templatesButton){
+    this->templatesButton = templatesButton;
 }
 
-void TemplateViewer::setContorno(QVector<QVector<std::complex<qreal> > *> *contorno){
-    this->contorno = contorno;
+void TemplateViewer::setContour(QVector<QVector<std::complex<qreal> > *> *contourButton){
+    this->contourButton = contourButton;
 }
 
-void TemplateViewer::pintarGrafico(bool diagrama){
+void TemplateViewer::plotDiagram(bool plot){
 
 
 
-    this->diagrama = diagrama;
+    this->plot = plot;
 
     clearDiagram();
 
-    graContorno = new QVector <QCPGraph *> ();
-    graTemplates = new QVector <QCPGraph *> ();
+    contourGraphs = new QVector <QCPGraph *> ();
+    templateGraphs = new QVector <QCPGraph *> ();
 
-    layoutColores = new QVBoxLayout (cajaFrecuencias);
+    colorsLayout = new QVBoxLayout (frequenciesBox);
 
-    checkbox = new QVector <QCheckBox *> ();
+    checkboxes = new QVector <QCheckBox *> ();
 
-    lineas = new QVector <QLineEdit *> ();
-    sliders = new QVector <QSlider *> ();
+    epsilonEdits = new QVector <QLineEdit *> ();
+    epsilonSliders = new QVector <QSlider *> ();
 
-    ejecutada = true;
+    plotted = true;
     qint32 i = 0;
-    qint32 contador = 0;
+    qint32 counter = 0;
 
-    if (templates == NULL)
+    if (templatesButton == NULL)
         return;
-    graTemplates->reserve(templates->size());
+    templateGraphs->reserve(templatesButton->size());
 
-    if (contorno != NULL){
-        graContorno->reserve(contorno->size());
-        foreach (const QVector<std::complex<qreal> > * vector, *contorno) {
+    if (contourButton != NULL){
+        contourGraphs->reserve(contourButton->size());
+        foreach (const QVector<std::complex<qreal> > * vector, *contourButton) {
 
             QVector <qreal> * fas = new QVector <qreal>();
             fas->reserve(vector->size());
@@ -153,7 +153,7 @@ void TemplateViewer::pintarGrafico(bool diagrama){
 
             foreach (const std::complex <qreal> complejo, *vector) {
 
-                if (diagrama){
+                if (plot){
                     qreal fase = arg(complejo)* 180 / M_PI;
                     if (fase >= 0){
                         fase -= 360;
@@ -168,19 +168,19 @@ void TemplateViewer::pintarGrafico(bool diagrama){
                 }
             }
 
-            pintarLinea(i,graContorno,fas, gan, true, true,contador);
+            plotLine(i,contourGraphs,fas, gan, true, true,counter);
 
             delete fas;
             delete gan;
             i++;
-            contador++;
+            counter++;
         }
 
     }
 
-    contador = 0;
+    counter = 0;
 
-    foreach (const QVector<std::complex<qreal> > * vector, *templates) {
+    foreach (const QVector<std::complex<qreal> > * vector, *templatesButton) {
 
         QVector <qreal> * fas = new QVector <qreal>();
         fas->reserve(vector->size());
@@ -189,7 +189,7 @@ void TemplateViewer::pintarGrafico(bool diagrama){
 
         foreach (const std::complex <qreal> complejo, *vector) {
 
-            if (diagrama){
+            if (plot){
                 qreal fase = arg(complejo)* 180 / M_PI;
                 if (fase >= 0){
                     fase -= 360;
@@ -204,33 +204,33 @@ void TemplateViewer::pintarGrafico(bool diagrama){
 
         }
 
-        pintarLinea(i,graTemplates, fas, gan, false, false, contador);
+        plotLine(i,templateGraphs, fas, gan, false, false, counter);
         delete fas;
         delete gan;
         i++;
-        contador++;
+        counter++;
     }
 
-    cajaFrecuencias->setLayout(layoutColores);
+    frequenciesBox->setLayout(colorsLayout);
 
-    ui->diagrama->xAxis2->setVisible(true);
-    ui->diagrama->xAxis2->setTickLabels(false);
-    ui->diagrama->yAxis2->setVisible(true);
-    ui->diagrama->yAxis2->setTickLabels(false);
+    ui->plot->xAxis2->setVisible(true);
+    ui->plot->xAxis2->setTickLabels(false);
+    ui->plot->yAxis2->setVisible(true);
+    ui->plot->yAxis2->setTickLabels(false);
 
-    //ui->diagrama->legend->setVisible(true);
-    //ui->diagrama->legend->setBrush(QColor(255, 255, 255, 150));
+    //ui->plot->legend->setVisible(true);
+    //ui->plot->legend->setBrush(QColor(255, 255, 255, 150));
 
-    ui->diagrama->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
+    ui->plot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
 
-    ui->diagrama->replot();
+    ui->plot->replot();
 
 
     /////////////////////////////////////////////
 
     /*Natura_Interval_extension * conversion = new Natura_Interval_extension ();
 
-    cinterval <qreal> caja = conversion->get_box(controlador->getPlanta(),omega->at(0));
+    cinterval <qreal> caja = conversion->get_box(controller->getPlanta(),omega->at(0));
 
     QPointF uno (caja.re.inf, caja.im.inf);
     QPointF dos (caja.re.inf, caja.im.sup);
@@ -251,51 +251,51 @@ void TemplateViewer::pintarGrafico(bool diagrama){
     ejey.append(cuatro.y());
 
 
-    ui->diagrama->addGraph();
-    ui->diagrama->graph(i)->setData(ejex, ejey);
+    ui->plot->addGraph();
+    ui->plot->graph(i)->setData(ejex, ejey);
 
-    ui->diagrama->graph(i)->setLineStyle(QCPGraph::lsLine);
-    ui->diagrama->graph(i)->setScatterStyle(QCPScatterStyle::ssCross);
+    ui->plot->graph(i)->setLineStyle(QCPGraph::lsLine);
+    ui->plot->graph(i)->setScatterStyle(QCPScatterStyle::ssCross);
 
-     ui->diagrama->replot();*/
+     ui->plot->replot();*/
 
     ////////////////////////////////////////////
 
 }
 
-void TemplateViewer::pintarLinea(qint32 pos, QVector <QCPGraph *> * guardar, QVector <qreal> * fas, QVector <qreal> * gan, bool tipo,
-                                bool visible, qint32 contador){
-    guardar->append(ui->diagrama->addGraph());
-    ui->diagrama->graph(pos)->setData(*fas, *gan);
+void TemplateViewer::plotLine(qint32 pos, QVector <QCPGraph *> * saveImage, QVector <qreal> * fas, QVector <qreal> * gan, bool tipo,
+                                bool visible, qint32 counter){
+    saveImage->append(ui->plot->addGraph());
+    ui->plot->graph(pos)->setData(*fas, *gan);
 
     if (tipo){
-        ui->diagrama->graph(pos)->setScatterStyle(QCPScatterStyle::ssNone);
-        ui->diagrama->graph(pos)->setLineStyle(QCPGraph::lsLine);
+        ui->plot->graph(pos)->setScatterStyle(QCPScatterStyle::ssNone);
+        ui->plot->graph(pos)->setLineStyle(QCPGraph::lsLine);
     }else{
-        ui->diagrama->graph(pos)->setScatterStyle(QCPScatterStyle::ssCross);
-        ui->diagrama->graph(pos)->setLineStyle(QCPGraph::lsNone);
+        ui->plot->graph(pos)->setScatterStyle(QCPScatterStyle::ssCross);
+        ui->plot->graph(pos)->setLineStyle(QCPGraph::lsNone);
     }
-    QColor color;
+    QColor colorsCreated;
 
     if (visible){
-        color = colores->value(omega->at(contador));
-        pintarCuadro(color, pos);
+        colorsCreated = colorByFrequency->value(omega->at(counter));
+        addFrequencyRow(colorsCreated, pos);
     }else{
-        color = colores->value(omega->at(contador));
+        colorsCreated = colorByFrequency->value(omega->at(counter));
     }
 
-    ui->diagrama->graph(pos)->setPen(color);
-    ui->diagrama->graph(pos)->setVisible(visible);
+    ui->plot->graph(pos)->setPen(colorsCreated);
+    ui->plot->graph(pos)->setVisible(visible);
 
     if (pos == 0){
-        ui->diagrama->graph(pos)->rescaleAxes();
+        ui->plot->graph(pos)->rescaleAxes();
         return;
     }
-    ui->diagrama->graph(pos)->rescaleAxes(true);
+    ui->plot->graph(pos)->rescaleAxes(true);
 
 }
 
-void TemplateViewer::pintarCuadro(QColor color, qint32 pos){
+void TemplateViewer::addFrequencyRow(QColor colorsCreated, qint32 pos){
 
     QWidget *widget;
     QVBoxLayout *verticalLayout;
@@ -304,7 +304,7 @@ void TemplateViewer::pintarCuadro(QColor color, qint32 pos){
     QSlider *slider;
     QLineEdit *linea;
 
-    widget = new QWidget(cajaFrecuencias);
+    widget = new QWidget(frequenciesBox);
     widget->setObjectName(QString::fromUtf8("widget"));
     widget->setGeometry(QRect(60, 70, 177, 58));
 
@@ -322,9 +322,9 @@ void TemplateViewer::pintarCuadro(QColor color, qint32 pos){
     check = new QCheckBox(widget);
     check->setObjectName(QString::fromUtf8("check"));
     check->setText(QString::number(omega->at(pos)));
-    check->setStyleSheet("color : " + color.name());
+    check->setStyleSheet("colorsCreated : " + colorsCreated.name());
 
-    checkbox->append(check);
+    checkboxes->append(check);
     check->setCheckState(Qt::Checked);
     horizontalLayout->addWidget(check);
 
@@ -335,7 +335,7 @@ void TemplateViewer::pintarCuadro(QColor color, qint32 pos){
     slider->setMaximum(epsilon->at(pos) * 10000);
     slider->setValue(epsilon->at(pos) * 1000);
 
-    sliders->append(slider);
+    epsilonSliders->append(slider);
     horizontalLayout->addWidget(slider);
 
 
@@ -345,17 +345,17 @@ void TemplateViewer::pintarCuadro(QColor color, qint32 pos){
     linea->setObjectName(QString::fromUtf8("linea"));
     linea->setText(QString::number(epsilon->at(pos)));
 
-    lineas->append(linea);
+    epsilonEdits->append(linea);
     verticalLayout->addWidget(linea);
 
 
-    layoutColores->addWidget(widget);
+    colorsLayout->addWidget(widget);
 
-    connect(slider, SIGNAL (sliderMoved (int)), this, SLOT (moverSliders ()));
-    connect(check, SIGNAL (clicked()), this, SLOT (revisarCheckBox()));
+    connect(slider, SIGNAL (sliderMoved (int)), this, SLOT (syncSliders ()));
+    connect(check, SIGNAL (clicked()), this, SLOT (applyCheckboxes()));
 }
 
-void TemplateViewer::on_guardar_clicked()
+void TemplateViewer::on_saveImage_clicked()
 {
     bool noFallo = true;
     QString extension;
@@ -363,13 +363,13 @@ void TemplateViewer::on_guardar_clicked()
                                                     tr((".png (*.png);;.pdf(*.pdf);; .jpg(*.jpg);; .bmp(*.bmp)")), &extension);
     if (!fileName.isEmpty()){
         if (extension.contains(".pdf", Qt::CaseInsensitive)){
-            noFallo = ui->diagrama->savePdf(fileName, true);
+            noFallo = ui->plot->savePdf(fileName, true);
         }else if (extension.contains(".png", Qt::CaseInsensitive)){
-            noFallo = ui->diagrama->savePng(fileName);
+            noFallo = ui->plot->savePng(fileName);
         }else if (extension.contains(".jpg", Qt::CaseInsensitive)){
-            noFallo = ui->diagrama->saveJpg(fileName);
+            noFallo = ui->plot->saveJpg(fileName);
         }else if (extension.contains(".bmp", Qt::CaseInsensitive)){
-            noFallo = ui->diagrama->saveBmp(fileName);
+            noFallo = ui->plot->saveBmp(fileName);
         }else{
             noFallo = false;
         }
@@ -379,37 +379,37 @@ void TemplateViewer::on_guardar_clicked()
     }
 }
 
-void TemplateViewer::on_templates_clicked()
+void TemplateViewer::on_templatesButton_clicked()
 {
-    verTemplate = !verTemplate;
+    templatesVisible = !templatesVisible;
 
-    if (verTemplate)
-        ui->templates->setText(tr("Hide\ntemplates"));
+    if (templatesVisible)
+        ui->templatesButton->setText(tr("Hide\ntemplates"));
     else
-        ui->templates->setText(tr("Show\ntemplates"));
+        ui->templatesButton->setText(tr("Show\ntemplates"));
 
-    foreach (QCPGraph * var, *graTemplates) {
-        var->setVisible(verTemplate);
+    foreach (QCPGraph * parameter, *templateGraphs) {
+        parameter->setVisible(templatesVisible);
     }
-    ui->diagrama->replot();
+    ui->plot->replot();
 }
 
-void TemplateViewer::on_contorno_clicked()
+void TemplateViewer::on_contourButton_clicked()
 {
-    verContorno = !verContorno;
+    contourVisible = !contourVisible;
 
-    if (verContorno)
-        ui->contorno->setText(tr("Hide\ncontour"));
+    if (contourVisible)
+        ui->contourButton->setText(tr("Hide\ncontour"));
     else
-        ui->contorno->setText(tr("Show\ncontour"));
+        ui->contourButton->setText(tr("Show\ncontour"));
 
-    foreach (QCPGraph * var, *graContorno) {
-        var->setVisible(verContorno);
+    foreach (QCPGraph * parameter, *contourGraphs) {
+        parameter->setVisible(contourVisible);
     }
-    ui->diagrama->replot();
+    ui->plot->replot();
 }
 
-void TemplateViewer::on_eContorno_clicked()
+void TemplateViewer::on_exportContourButton_clicked()
 {
     QString fileName = QFileDialog::getSaveFileName(this, tr("Save file"));
 
@@ -421,54 +421,54 @@ void TemplateViewer::on_eContorno_clicked()
         return;
     }
 
-    //TODO como guardar numeros complejos...***
+    //TODO: how to store complex numbers...***
 
 }
 
 
-void TemplateViewer::moverSliders(){
-    for (qint32 i = 0; i < sliders->size(); i++){
-        lineas->at(i)->setText(QString::number(sliders->at(i)->value() / 1000.0));
+void TemplateViewer::syncSliders(){
+    for (qint32 i = 0; i < epsilonSliders->size(); i++){
+        epsilonEdits->at(i)->setText(QString::number(epsilonSliders->at(i)->value() / 1000.0));
     }
 }
 
-void TemplateViewer::revisarCheckBox(){
-    for (qint32 i = 0; i < checkbox->size(); i++){
-        if (checkbox->at(i)->checkState() == 0){
-            graContorno->at(i)->setVisible(false);
+void TemplateViewer::applyCheckboxes(){
+    for (qint32 i = 0; i < checkboxes->size(); i++){
+        if (checkboxes->at(i)->checkState() == 0){
+            contourGraphs->at(i)->setVisible(false);
         }else {
-            graContorno->at(i)->setVisible(true);
+            contourGraphs->at(i)->setVisible(true);
         }
     }
-    ui->diagrama->replot();
+    ui->plot->replot();
 }
 
-void TemplateViewer::on_recalcular_clicked()
+void TemplateViewer::on_recomputeButton_clicked()
 {
     QVector <qreal> * epsilon = new QVector <qreal> ();
 
-    for (qint32 i = 0; i < lineas->size(); i++) {
-        qreal pos = lineas->at(i)->text().toDouble();
-        sliders->at(i)->setValue(pos * 1000);
+    for (qint32 i = 0; i < epsilonEdits->size(); i++) {
+        qreal pos = epsilonEdits->at(i)->text().toDouble();
+        epsilonSliders->at(i)->setValue(pos * 1000);
         epsilon->append(pos);
     }
 
     try {
-        setContorno(controlador->recalcularContorno(epsilon));
+        setContour(controller->recalcularContorno(epsilon));
     } catch (const qftbx::Exception & e) {
         QMessageBox::critical(this, tr("Template computation"), e.what());
         return;
     }
-    omega = controlador->getOmega()->getValores();
-    //El epsilon anterior lo borra el DAO al aceptar el nuevo; tocarlo aqui
-    //seria un use-after-free.
-    this->epsilon = controlador->getEpsilon();
-    pintarGrafico(diagrama);
+    omega = controller->getOmega()->getValores();
+    //The previous epsilon is deleted by the DAO when accepting the new
+    //one; touching it here would be a use-after-free.
+    this->epsilon = controller->getEpsilon();
+    plotDiagram(plot);
 }
 
 
-void TemplateViewer::on_eTemplate_clicked()
+void TemplateViewer::on_exportTemplateButton_clicked()
 {
- // TODO falta implementar la exportación numérica.
+ // TODO: numeric export not implemented.
 }
 

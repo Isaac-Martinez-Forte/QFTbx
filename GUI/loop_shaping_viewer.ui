@@ -13,7 +13,7 @@
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
-  <widget class="QCustomPlot" name="diagrama" native="true">
+  <widget class="QCustomPlot" name="plot" native="true">
    <property name="geometry">
     <rect>
      <x>150</x>
@@ -41,7 +41,7 @@
    <property name="title">
     <string>Options</string>
    </property>
-   <widget class="QPushButton" name="guardar">
+   <widget class="QPushButton" name="saveImage">
     <property name="geometry">
      <rect>
       <x>20</x>
@@ -55,7 +55,7 @@
     </property>
    </widget>
   </widget>
-  <widget class="QGroupBox" name="frecuencias">
+  <widget class="QGroupBox" name="frequencies">
    <property name="geometry">
     <rect>
      <x>1060</x>
@@ -106,7 +106,7 @@
      <string>System type:</string>
     </property>
    </widget>
-   <widget class="QLabel" name="tipoSistema">
+   <widget class="QLabel" name="systemTypeImage">
     <property name="geometry">
      <rect>
       <x>50</x>
@@ -139,7 +139,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="nume"/>
+        <widget class="QLineEdit" name="numeratorEdit"/>
        </item>
       </layout>
      </item>
@@ -153,7 +153,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="deno"/>
+        <widget class="QLineEdit" name="denominatorEdit"/>
        </item>
       </layout>
      </item>
@@ -167,7 +167,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="k"/>
+        <widget class="QLineEdit" name="gainEdit"/>
        </item>
       </layout>
      </item>

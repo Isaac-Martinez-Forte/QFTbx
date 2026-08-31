@@ -13,125 +13,125 @@
 using namespace tools;
 using namespace mup;
 
-SpecificationsDialog::SpecificationsDialog(Controlador *controlador, QWidget *parent) :
+SpecificationsDialog::SpecificationsDialog(Controlador *controller, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::SpecificationsDialog)
 {
     ui->setupUi(this);
 
-    this->controlador = controlador;
-    this->omega = controlador->getOmega()->getValores();
+    this->controller = controller;
+    this->frequencies = controller->getOmega()->getValores();
 
     setWindowTitle(tr("Specifications input"));
 
-    retorno = nullptr;
+    published = nullptr;
 
-    //Establecemos las figures de las plantas:
+    //Plant figure images:
 
     QPixmap imagen1 (":/figures/kgan.png");
-    ui->imagHF->setPixmap(imagen1);
-    ui->imgKGse1->setPixmap(imagen1);
-    ui->imgKGse1_2->setPixmap(imagen1);
+    ui->zpkImage->setPixmap(imagen1);
+    ui->lowerZpkImage->setPixmap(imagen1);
+    ui->upperZpkImage->setPixmap(imagen1);
 
-    QPixmap imagen2 (":/figures/knogan.png");
-    ui->imagLF->setPixmap(imagen2);
-    ui->imgKNGse1->setPixmap(imagen2);
-    ui->imgKNGse1_2->setPixmap(imagen2);
+    QPixmap trackingImage (":/figures/knogan.png");
+    ui->tcgImage->setPixmap(trackingImage);
+    ui->lowerTcgImage->setPixmap(trackingImage);
+    ui->upperTcgImage->setPixmap(trackingImage);
 
     QPixmap imagen3 (":/figures/copol.png");
-    ui->imagCP->setPixmap(imagen3);
-    ui->imgCPse1->setPixmap(imagen3);
-    ui->imgCPse1_2->setPixmap(imagen3);
+    ui->polyImage->setPixmap(imagen3);
+    ui->lowerPolyImage->setPixmap(imagen3);
+    ui->upperPolyImage->setPixmap(imagen3);
 
-    activado = 0;
+    activeTab = 0;
 
     ui->k->setText("1");
-    ui->ret->setText("0");
+    ui->delayEdit->setText("0");
 
-    seguimiento = new dBND();
-    seguimiento_2 = new dBND();
-    estabilidad = new dBND();
-    ruido = new dBND();
-    RPS = new dBND();
-    RPE = new dBND();
-    EC = new dBND();
+    tracking = new dBND();
+    trackingUpper = new dBND();
+    stability = new dBND();
+    sensorNoise = new dBND();
+    outputDisturbance = new dBND();
+    inputDisturbance = new dBND();
+    controlEffort = new dBND();
 
-    //figures
-    seguimiento_img = QPixmap (":/figures/seguimiento.png");
-    EC_img = QPixmap (":/figures/EC.png");
-    RPS_img= QPixmap (":/figures/RPS.png");
-    RPE_img= QPixmap (":/figures/RPE.png");
-    ruidosensor_img= QPixmap (":/figures/ruidosensor.png");
-    estabilidad_img= QPixmap (":/figures/estabilidad.png");
+    //figureStack
+    trackingImagePixmap = QPixmap (":/figures/seguimiento.png");
+    controlEffortPixmap = QPixmap (":/figures/EC.png");
+    outputDisturbancePixmap= QPixmap (":/figures/RPS.png");
+    inputDisturbancePixmap= QPixmap (":/figures/RPE.png");
+    sensorNoisePixmap= QPixmap (":/figures/ruidosensor.png");
+    stabilityPixmap= QPixmap (":/figures/estabilidad.png");
 
-    ui->frecini->setText(QString::number(omega->first()));
-    ui->frecfin->setText(QString::number(omega->last()));
+    ui->startFrequencyEdit->setText(QString::number(frequencies->first()));
+    ui->endFrequencyEdit->setText(QString::number(frequencies->last()));
 
-    ui->imagen2->setPixmap(seguimiento_img);
+    ui->trackingImage->setPixmap(trackingImagePixmap);
 
-    //Estados por defecto de los radios (el .ui no marca ninguno): constante,
-    //forma polinomica y unidades lineales. Sin tipo marcado, la cascada de
-    //lectura caia en un FreeForm accidental.
-    ui->cons->setChecked(true);
-    on_cons_clicked();
-    ui->lineal->setChecked(true);
-    ui->linea_se1->setChecked(true);
-    ui->linea_se1_2->setChecked(true);
-    ui->poli->setChecked(true);
-    on_poli_clicked();
-    ui->CPoliSe1->setChecked(true);
-    on_CPoliSe1_clicked();
-    ui->CPoliSe1_2->setChecked(true);
-    on_CPoliSe1_2_clicked();
+    //Default radio states (the .ui checks none): constant, polynomial form
+    //and linear units. With no type checked, the reading cascade used to
+    //fall into an accidental FreeForm.
+    ui->constantRadio->setChecked(true);
+    on_constantRadio_clicked();
+    ui->linearRadio->setChecked(true);
+    ui->lowerLinearRadio->setChecked(true);
+    ui->upperLinearRadio->setChecked(true);
+    ui->polynomialRadio->setChecked(true);
+    on_polynomialRadio_clicked();
+    ui->lowerPolynomialRadio->setChecked(true);
+    on_lowerPolynomialRadio_clicked();
+    ui->upperPolynomialRadio->setChecked(true);
+    on_upperPolynomialRadio_clicked();
 
-    //Si el proyecto trae especificaciones (fichero cargado), el dialogo parte
-    //de ELLAS: antes arrancaba con 7 registros vacios y el primer Aceptar
-    //machacaba lo cargado (perdida de datos silenciosa).
-    QVector <dBND *> * cargadas = controlador->getEspecificaciones();
-    if (cargadas != nullptr && cargadas->size() == 7){
-        delete seguimiento;
-        delete seguimiento_2;
-        delete estabilidad;
-        delete ruido;
-        delete RPS;
-        delete RPE;
-        delete EC;
+    //If the project carries specifications (a loaded file), the dialog
+    //starts from THEM: it used to start from 7 empty records and the first
+    //accept silently wiped whatever was loaded.
+    QVector <dBND *> * loaded = controller->getEspecificaciones();
+    if (loaded != nullptr && loaded->size() == 7){
+        delete tracking;
+        delete trackingUpper;
+        delete stability;
+        delete sensorNoise;
+        delete outputDisturbance;
+        delete inputDisturbance;
+        delete controlEffort;
 
-        seguimiento = cargadas->at(0)->clone();
-        seguimiento_2 = cargadas->at(1)->clone();
-        estabilidad = cargadas->at(2)->clone();
-        ruido = cargadas->at(3)->clone();
-        RPS = cargadas->at(4)->clone();
-        RPE = cargadas->at(5)->clone();
-        EC = cargadas->at(6)->clone();
+        tracking = loaded->at(0)->clone();
+        trackingUpper = loaded->at(1)->clone();
+        stability = loaded->at(2)->clone();
+        sensorNoise = loaded->at(3)->clone();
+        outputDisturbance = loaded->at(4)->clone();
+        inputDisturbance = loaded->at(5)->clone();
+        controlEffort = loaded->at(6)->clone();
     }
 
-    //Pestana de seguimiento seleccionada y restaurada desde el arranque: sin
-    //esto ningun radio estaba marcado y Aceptar publicaba los 7 vacios.
-    ui->radioButton->setChecked(true);
-    on_radioButton_clicked();
+    //Tracking tab selected and restored from startup: without this no
+    //radio was checked and accept published the 7 empty records.
+    ui->trackingRadio->setChecked(true);
+    on_trackingRadio_clicked();
 
     todoCorrecto = false;
 }
 
 SpecificationsDialog::~SpecificationsDialog()
 {
-    //Los 7 registros de trabajo (y sus plantas) son del dialogo: el DAO
-    //recibio clones profundos.
-    dBND * registros[] = {seguimiento, seguimiento_2, estabilidad,
-                          ruido, RPS, RPE, EC};
-    for (dBND * registro : registros) {
-        delete registro->sistema;
-        delete registro;
+    //The 7 working records (and their plants) belong to the dialog: the
+    //DAO received deep clones.
+    dBND * records[] = {tracking, trackingUpper, stability,
+                          sensorNoise, outputDisturbance, inputDisturbance, controlEffort};
+    for (dBND * record : records) {
+        delete record->sistema;
+        delete record;
     }
 
     delete ui;
 }
 
-//Coeficientes nominales en el formato que espera crearNumeradorDenominador
-//(separados por espacios). Los tipos no-FreeForm no tienen representacion
-//textual propia: antes se pintaba numeratorString()=="" y la especificacion
-//se perdia en silencio al reabrir.
+//Nominal coefficients in the format buildParameters expects (space
+//separated). The non-FreeForm types have no textual representation of
+//their own: numeratorString()=="" used to be painted and the
+//specification silently vanished on reopen.
 QString SpecificationsDialog::coefficientsText(QVector <Parameter *> * parametros)
 {
     QString texto;
@@ -157,616 +157,616 @@ QString SpecificationsDialog::denominatorText(LtiSystem * sistema)
     return coefficientsText(sistema->denominator());
 }
 
-void SpecificationsDialog::setDatos(dBND * datos)
+void SpecificationsDialog::setDatos(dBND * record_in)
 {
-    if (datos->utilizado){
+    if (record_in->utilizado){
 
-        ui->frecini->setText(QString::number(datos->frecinicio));
-        ui->frecfin->setText(QString::number(datos->frecfinal));
+        ui->startFrequencyEdit->setText(QString::number(record_in->frecinicio));
+        ui->endFrequencyEdit->setText(QString::number(record_in->frecfinal));
 
-        if (datos->constante){
-            ui->cons->setChecked(true);
-            on_cons_clicked();
-            //altura es lineal: se pinta tal cual y se marca el radio lineal
-            //para que Aceptar no la reinterprete como dB.
-            ui->lineal->setChecked(true);
-            ui->altura->setText(QString::number(datos->altura));
+        if (record_in->constante){
+            ui->constantRadio->setChecked(true);
+            on_constantRadio_clicked();
+            //The stored magnitude is linear: painted as-is with the linear
+            //radio checked so accept does not reread it as dB.
+            ui->linearRadio->setChecked(true);
+            ui->magnitudeEdit->setText(QString::number(record_in->altura));
         } else{
-            ui->fun->setChecked(true);
-            on_fun_clicked();
+            ui->systemRadio->setChecked(true);
+            on_systemRadio_clicked();
 
-            switch (datos->sistema->type()){
+            switch (record_in->sistema->type()){
             case LtiSystem::SystemType::ZeroPoleGain:
-                ui->lfgain->setChecked(true);
-                on_lfgain_clicked();
+                ui->zpkRadio->setChecked(true);
+                on_zpkRadio_clicked();
                 break;
             case LtiSystem::SystemType::TimeConstantGain:
-                ui->hfgain->setChecked(true);
-                on_hfgain_clicked();
+                ui->tcgRadio->setChecked(true);
+                on_tcgRadio_clicked();
                 break;
             case LtiSystem::SystemType::PolynomialForm:
-                ui->poli->setChecked(true);
-                on_poli_clicked();
+                ui->polynomialRadio->setChecked(true);
+                on_polynomialRadio_clicked();
                 break;
             default:
-                ui->libre->setChecked(true);
-                on_libre_clicked();
+                ui->freeFormRadio->setChecked(true);
+                on_freeFormRadio_clicked();
                 break;
             }
 
-            ui->nume->setText(numeratorText(datos->sistema));
-            ui->deno->setText(denominatorText(datos->sistema));
-            ui->k->setText(QString::number(datos->sistema->gain()->nominal()));
-            ui->ret->setText(QString::number(datos->sistema->delay()->nominal()));
+            ui->numeratorEdit->setText(numeratorText(record_in->sistema));
+            ui->denominatorEdit->setText(denominatorText(record_in->sistema));
+            ui->k->setText(QString::number(record_in->sistema->gain()->nominal()));
+            ui->delayEdit->setText(QString::number(record_in->sistema->delay()->nominal()));
         }
     } else {
-        ui->altura->setText("");
-        ui->nume->setText("");
-        ui->deno->setText("");
+        ui->magnitudeEdit->setText("");
+        ui->numeratorEdit->setText("");
+        ui->denominatorEdit->setText("");
         ui->k->setText("1");
-        ui->ret->setText("0");
+        ui->delayEdit->setText("0");
     }
 }
 
 
-void SpecificationsDialog::setDatos(dBND *datos, dBND *datos1){
+void SpecificationsDialog::setDatos(dBND *record_in, dBND *upperRecord){
 
-    if (datos->utilizado){
+    if (record_in->utilizado){
 
-        ui->frecini->setText(QString::number(datos->frecinicio));
-        ui->frecfin->setText(QString::number(datos->frecfinal));
+        ui->startFrequencyEdit->setText(QString::number(record_in->frecinicio));
+        ui->endFrequencyEdit->setText(QString::number(record_in->frecfinal));
 
-        if (datos->constante){
-            ui->cons->setChecked(true);
-            on_cons_clicked();
-            ui->linea_se1->setChecked(true);
-            ui->linea_se1_2->setChecked(true);
-            ui->altura_se1->setText(QString::number(datos->altura));
+        if (record_in->constante){
+            ui->constantRadio->setChecked(true);
+            on_constantRadio_clicked();
+            ui->lowerLinearRadio->setChecked(true);
+            ui->upperLinearRadio->setChecked(true);
+            ui->lowerMagnitudeEdit->setText(QString::number(record_in->altura));
 
-            ui->altura_se1_2->setText(QString::number(datos1->altura));
+            ui->upperMagnitudeEdit->setText(QString::number(upperRecord->altura));
         }else{
-            ui->fun->setChecked(true);
-            on_fun_clicked();
+            ui->systemRadio->setChecked(true);
+            on_systemRadio_clicked();
 
-            switch (datos->sistema->type()){
+            switch (record_in->sistema->type()){
             case LtiSystem::SystemType::ZeroPoleGain:
-                ui->KGSe1->setChecked(true);
-                on_KGSe1_clicked();
+                ui->lowerZpkRadio->setChecked(true);
+                on_lowerZpkRadio_clicked();
                 break;
             case LtiSystem::SystemType::TimeConstantGain:
-                ui->KNGSe1->setChecked(true);
-                on_KNGSe1_clicked();
+                ui->lowerTcgRadio->setChecked(true);
+                on_lowerTcgRadio_clicked();
                 break;
             case LtiSystem::SystemType::PolynomialForm:
-                ui->CPoliSe1->setChecked(true);
-                on_CPoliSe1_clicked();
+                ui->lowerPolynomialRadio->setChecked(true);
+                on_lowerPolynomialRadio_clicked();
                 break;
             default:
-                ui->FLSe1->setChecked(true);
-                on_FLSe1_clicked();
+                ui->lowerFreeFormRadio->setChecked(true);
+                on_lowerFreeFormRadio_clicked();
                 break;
             }
 
-            switch (datos1->sistema->type()){
+            switch (upperRecord->sistema->type()){
             case LtiSystem::SystemType::ZeroPoleGain:
-                ui->KGSe1_2->setChecked(true);
-                on_KGSe1_2_clicked();
+                ui->upperZpkRadio->setChecked(true);
+                on_upperZpkRadio_clicked();
                 break;
             case LtiSystem::SystemType::TimeConstantGain:
-                ui->KNGSe1_2->setChecked(true);
-                on_KNGSe1_2_clicked();
+                ui->upperTcgRadio->setChecked(true);
+                on_upperTcgRadio_clicked();
                 break;
             case LtiSystem::SystemType::PolynomialForm:
-                ui->CPoliSe1_2->setChecked(true);
-                on_CPoliSe1_2_clicked();
+                ui->upperPolynomialRadio->setChecked(true);
+                on_upperPolynomialRadio_clicked();
                 break;
             default:
-                ui->FLSe1_2->setChecked(true);
-                on_FLSe1_2_clicked();
+                ui->upperFreeFormRadio->setChecked(true);
+                on_upperFreeFormRadio_clicked();
                 break;
             }
 
-            ui->NumeSe1->setText(numeratorText(datos->sistema));
-            ui->DenoSe1->setText(denominatorText(datos->sistema));
-            ui->KSe1->setText(QString::number(datos->sistema->gain()->nominal()));
-            ui->RetSe1->setText(QString::number(datos->sistema->delay()->nominal()));
+            ui->lowerNumeratorEdit->setText(numeratorText(record_in->sistema));
+            ui->lowerDenominatorEdit->setText(denominatorText(record_in->sistema));
+            ui->lowerGainEdit->setText(QString::number(record_in->sistema->gain()->nominal()));
+            ui->lowerDelayEdit->setText(QString::number(record_in->sistema->delay()->nominal()));
 
-            ui->NumeSe1_2->setText(numeratorText(datos1->sistema));
-            ui->DenoSe1_2->setText(denominatorText(datos1->sistema));
-            ui->KSe1_2->setText(QString::number(datos1->sistema->gain()->nominal()));
-            ui->RetSe1_2->setText(QString::number(datos1->sistema->delay()->nominal()));
+            ui->upperNumeratorEdit->setText(numeratorText(upperRecord->sistema));
+            ui->upperDenominatorEdit->setText(denominatorText(upperRecord->sistema));
+            ui->upperGainEdit->setText(QString::number(upperRecord->sistema->gain()->nominal()));
+            ui->upperDelayEdit->setText(QString::number(upperRecord->sistema->delay()->nominal()));
         }
     } else {
-        ui->altura_se1->setText("");
-        ui->NumeSe1->setText("");
-        ui->DenoSe1->setText("");
-        ui->KSe1->setText("1");
-        ui->RetSe1->setText("0");
+        ui->lowerMagnitudeEdit->setText("");
+        ui->lowerNumeratorEdit->setText("");
+        ui->lowerDenominatorEdit->setText("");
+        ui->lowerGainEdit->setText("1");
+        ui->lowerDelayEdit->setText("0");
 
-        ui->altura_se1_2->setText("");
-        ui->NumeSe1_2->setText("");
-        ui->DenoSe1_2->setText("");
-        ui->KSe1_2->setText("1");
-        ui->RetSe1_2->setText("0");
+        ui->upperMagnitudeEdit->setText("");
+        ui->upperNumeratorEdit->setText("");
+        ui->upperDenominatorEdit->setText("");
+        ui->upperGainEdit->setText("1");
+        ui->upperDelayEdit->setText("0");
     }
 }
 
-bool SpecificationsDialog::getDatos(dBND * datos, QString nombre)
+bool SpecificationsDialog::getDatos(dBND * record_in, QString name_in)
 {
 
-    if (datos->utilizado && !datos->constante){
-        //sistema debe quedar nulo: si esta lectura acaba en no-utilizado, el
-        //clone() de Aceptar clonaba un puntero colgante.
-        delete datos->sistema;
-        datos->sistema = nullptr;
-        datos->constante = false;
-        datos->utilizado = false;
+    if (record_in->utilizado && !record_in->constante){
+        //sistema must end up null: when this read finishes as not-used,
+        //the clone() on accept used to clone a dangling pointer.
+        delete record_in->sistema;
+        record_in->sistema = nullptr;
+        record_in->constante = false;
+        record_in->utilizado = false;
     }
 
-    if (ui->frecini->text().isEmpty()){
-        datos->frecinicio = omega->first();
+    if (ui->startFrequencyEdit->text().isEmpty()){
+        record_in->frecinicio = frequencies->first();
     } else {
         ParserX p (pckALL_NON_COMPLEX);
-        p.SetExpr(ui->frecini->text().toStdString());
+        p.SetExpr(ui->startFrequencyEdit->text().toStdString());
 
         try {
-            datos->frecinicio = p.Eval().GetFloat();
-            ui->frecini->setStyleSheet("background : white");
+            record_in->frecinicio = p.Eval().GetFloat();
+            ui->startFrequencyEdit->setStyleSheet("background : white");
         }catch (ParserError &e){
-            datos->utilizado = false;
-            ui->frecini->setStyleSheet("background : red");
+            record_in->utilizado = false;
+            ui->startFrequencyEdit->setStyleSheet("background : red");
             errorMessage(tr("Invalid frequency band."), tr("Specifications input"));
             return false;
         }
     }
 
-    if (ui->frecfin->text().isEmpty()){
-        datos->frecfinal = omega->last();
+    if (ui->endFrequencyEdit->text().isEmpty()){
+        record_in->frecfinal = frequencies->last();
     } else {
         ParserX p (pckALL_NON_COMPLEX);
-        p.SetExpr(ui->frecfin->text().toStdString());
+        p.SetExpr(ui->endFrequencyEdit->text().toStdString());
 
         try {
-            datos->frecfinal = p.Eval().GetFloat();
-            ui->frecfin->setStyleSheet("background : white");
+            record_in->frecfinal = p.Eval().GetFloat();
+            ui->endFrequencyEdit->setStyleSheet("background : white");
         }catch (ParserError &e){
-            datos->utilizado = false;
-            ui->frecfin->setStyleSheet("background : red");
+            record_in->utilizado = false;
+            ui->endFrequencyEdit->setStyleSheet("background : red");
             errorMessage(tr("Invalid frequency band."), tr("Specifications input"));
             return false;
         }
     }
 
-    if (ui->cons->isChecked()){
+    if (ui->constantRadio->isChecked()){
 
-        if (!ui->altura->text().isEmpty()){
+        if (!ui->magnitudeEdit->text().isEmpty()){
 
             ParserX p (pckALL_NON_COMPLEX);
-            p.SetExpr(ui->altura->text().toStdString());
+            p.SetExpr(ui->magnitudeEdit->text().toStdString());
 
-            datos->constante = true;
+            record_in->constante = true;
 
             try {
 
                 qreal alt = p.Eval().GetFloat();
 
-                if (ui->decibelios->isChecked()){
-                    datos->altura = qftbx::dbToLinear(alt);
+                if (ui->decibelsRadio->isChecked()){
+                    record_in->altura = qftbx::dbToLinear(alt);
                 }else {
-                    datos->altura = alt;
+                    record_in->altura = alt;
                 }
 
-                ui->altura->setStyleSheet("background : white");
+                ui->magnitudeEdit->setStyleSheet("background : white");
             }catch (ParserError &e){
-                datos->utilizado = false;
-                ui->altura->setStyleSheet("background : red");
+                record_in->utilizado = false;
+                ui->magnitudeEdit->setStyleSheet("background : red");
                 errorMessage(tr("Invalid magnitude value."), tr("Specifications input"));
                 return false;
             }
 
-            ui->altura->setStyleSheet("background : white");
-            datos->utilizado = true;
+            ui->magnitudeEdit->setStyleSheet("background : white");
+            record_in->utilizado = true;
         } else {
-            datos->utilizado = false;
+            record_in->utilizado = false;
         }
     }else {
 
-        if (ui->deno->text().isEmpty()){
-            datos->utilizado = false;
+        if (ui->denominatorEdit->text().isEmpty()){
+            record_in->utilizado = false;
             return true;
         }
 
-        QVector <Parameter *> * nume = nullptr;
-        QVector <Parameter *> * deno = nullptr;
+        QVector <Parameter *> * numeratorEdit = nullptr;
+        QVector <Parameter *> * denominatorEdit = nullptr;
 
-        //Ganancia y retardo se validan SIEMPRE: la rama libre construia el
-        //FreeForm con los crearKRet sin comprobar (nullptr ante un error de
-        //sintaxis y crash posterior).
-        Parameter * k = crearKRet(ui->k->text(), true);
+        //Gain and delay are ALWAYS validated: the free-form branch used to
+        //build the FreeForm from unchecked buildScalar results (nullptr on a
+        //syntax error, crashing later).
+        Parameter * k = buildScalar(ui->k->text(), true);
 
         if (k == nullptr){
             errorMessage(tr("Invalid gain."), tr("Specifications input"));
             ui->k->setStyleSheet("background : red");
-            datos->utilizado = false;
+            record_in->utilizado = false;
             return false;
         }
         ui->k->setStyleSheet("background : white");
 
-        Parameter * ret = crearKRet(ui->ret->text(), false);
+        Parameter * delayEdit = buildScalar(ui->delayEdit->text(), false);
 
-        if (ret == nullptr){
+        if (delayEdit == nullptr){
             errorMessage(tr("Invalid delay."), tr("Specifications input"));
-            ui->ret->setStyleSheet("background : red");
+            ui->delayEdit->setStyleSheet("background : red");
             delete k;
-            datos->utilizado = false;
+            record_in->utilizado = false;
             return false;
         }
-        ui->ret->setStyleSheet("background : white");
+        ui->delayEdit->setStyleSheet("background : white");
 
-        if (!ui->libre->isChecked()){
+        if (!ui->freeFormRadio->isChecked()){
 
-            nume = crearNumeradorDenominador(ui->nume->text());
+            numeratorEdit = buildParameters(ui->numeratorEdit->text());
 
-            if (nume == nullptr){
+            if (numeratorEdit == nullptr){
                 errorMessage(tr("Invalid numerator."), tr("Specifications input"));
-                ui->nume->setStyleSheet("background : red");
+                ui->numeratorEdit->setStyleSheet("background : red");
                 delete k;
-                delete ret;
-                datos->utilizado = false;
+                delete delayEdit;
+                record_in->utilizado = false;
                 return false;
             }
-            ui->nume->setStyleSheet("background : white");
+            ui->numeratorEdit->setStyleSheet("background : white");
 
-            deno = crearNumeradorDenominador(ui->deno->text());
+            denominatorEdit = buildParameters(ui->denominatorEdit->text());
 
-            if (deno == nullptr){
+            if (denominatorEdit == nullptr){
                 errorMessage(tr("Invalid denominator."), tr("Specifications input"));
-                ui->deno->setStyleSheet("background : red");
-                qDeleteAll(*nume);
-                delete nume;
+                ui->denominatorEdit->setStyleSheet("background : red");
+                qDeleteAll(*numeratorEdit);
+                delete numeratorEdit;
                 delete k;
-                delete ret;
-                datos->utilizado = false;
+                delete delayEdit;
+                record_in->utilizado = false;
                 return false;
             }
-            ui->deno->setStyleSheet("background : white");
+            ui->denominatorEdit->setStyleSheet("background : white");
         }
 
 
-        datos->constante = false;
-        if(ui->lfgain->isChecked()){
-            datos->sistema = new ZeroPoleGain (nombre, nume, deno, k, ret);
-        }else if (ui->hfgain->isChecked()){
-            datos->sistema = new TimeConstantGain (nombre, nume, deno, k, ret);
-        }else if (ui->poli->isChecked()) {
-            datos->sistema = new PolynomialForm (nombre, nume, deno, k, ret);
+        record_in->constante = false;
+        if(ui->zpkRadio->isChecked()){
+            record_in->sistema = new ZeroPoleGain (name_in, numeratorEdit, denominatorEdit, k, delayEdit);
+        }else if (ui->tcgRadio->isChecked()){
+            record_in->sistema = new TimeConstantGain (name_in, numeratorEdit, denominatorEdit, k, delayEdit);
+        }else if (ui->polynomialRadio->isChecked()) {
+            record_in->sistema = new PolynomialForm (name_in, numeratorEdit, denominatorEdit, k, delayEdit);
         }else {
-            //Si se llego aqui con coeficientes construidos (sin radio de
-            //tipo marcado), no deben fugarse.
-            if (nume != nullptr){
-                qDeleteAll(*nume);
-                delete nume;
+            //If we got here with coefficient vectors built (no type radio
+            //checked), they must not leak.
+            if (numeratorEdit != nullptr){
+                qDeleteAll(*numeratorEdit);
+                delete numeratorEdit;
             }
-            if (deno != nullptr){
-                qDeleteAll(*deno);
-                delete deno;
+            if (denominatorEdit != nullptr){
+                qDeleteAll(*denominatorEdit);
+                delete denominatorEdit;
             }
-            datos->sistema = new FreeForm (nombre, new QVector <Parameter *> (), new QVector <Parameter *> (), k, ret,
-                                               ui->nume->text(), ui->deno->text());
+            record_in->sistema = new FreeForm (name_in, new QVector <Parameter *> (), new QVector <Parameter *> (), k, delayEdit,
+                                               ui->numeratorEdit->text(), ui->denominatorEdit->text());
         }
-        datos->utilizado = true;
+        record_in->utilizado = true;
     }
 
-    datos->nombre = nombre;
+    record_in->nombre = name_in;
 
     return true;
 }
 
-bool SpecificationsDialog::getDatos(dBND *datos, dBND *datos1, QString nombre){
+bool SpecificationsDialog::getDatos(dBND *record_in, dBND *upperRecord, QString name_in){
 
-    if (datos->utilizado && !datos->constante){
-        delete datos->sistema;
-        datos->sistema = nullptr;
-        datos->constante = false;
-        datos->utilizado = false;
+    if (record_in->utilizado && !record_in->constante){
+        delete record_in->sistema;
+        record_in->sistema = nullptr;
+        record_in->constante = false;
+        record_in->utilizado = false;
     }
 
-    if (datos1->utilizado && !datos1->constante){
-        delete datos1->sistema;
-        datos1->sistema = nullptr;
-        datos1->constante = false;
-        datos1->utilizado = false;
+    if (upperRecord->utilizado && !upperRecord->constante){
+        delete upperRecord->sistema;
+        upperRecord->sistema = nullptr;
+        upperRecord->constante = false;
+        upperRecord->utilizado = false;
     }
 
-    if (ui->frecini->text().isEmpty()){
-        datos->frecinicio = omega->first();
-        datos1->frecinicio = omega->first();
+    if (ui->startFrequencyEdit->text().isEmpty()){
+        record_in->frecinicio = frequencies->first();
+        upperRecord->frecinicio = frequencies->first();
     } else {
         ParserX p (pckALL_NON_COMPLEX);
-        p.SetExpr(ui->frecini->text().toStdString());
+        p.SetExpr(ui->startFrequencyEdit->text().toStdString());
 
         try {
-            datos->frecinicio = p.Eval().GetFloat();
-            datos1->frecinicio = datos->frecinicio;
-            ui->frecini->setStyleSheet("background : white");
+            record_in->frecinicio = p.Eval().GetFloat();
+            upperRecord->frecinicio = record_in->frecinicio;
+            ui->startFrequencyEdit->setStyleSheet("background : white");
         }catch (ParserError &e){
-            datos->utilizado = false;
-            datos1->utilizado = false;
-            ui->frecini->setStyleSheet("background : red");
+            record_in->utilizado = false;
+            upperRecord->utilizado = false;
+            ui->startFrequencyEdit->setStyleSheet("background : red");
             errorMessage(tr("Invalid frequency band."), tr("Specifications input"));
             return false;
         }
     }
 
-    if (ui->frecfin->text().isEmpty()){
-        datos->frecfinal = omega->last();
-        datos1->frecfinal = omega->last();
+    if (ui->endFrequencyEdit->text().isEmpty()){
+        record_in->frecfinal = frequencies->last();
+        upperRecord->frecfinal = frequencies->last();
     } else {
         ParserX p (pckALL_NON_COMPLEX);
-        p.SetExpr(ui->frecfin->text().toStdString());
+        p.SetExpr(ui->endFrequencyEdit->text().toStdString());
 
         try {
-            datos->frecfinal = p.Eval().GetFloat();
-            datos1->frecfinal = datos->frecfinal;
-            ui->frecfin->setStyleSheet("background : white");
+            record_in->frecfinal = p.Eval().GetFloat();
+            upperRecord->frecfinal = record_in->frecfinal;
+            ui->endFrequencyEdit->setStyleSheet("background : white");
         }catch (ParserError &e){
-            datos->utilizado = false;
-            datos1->utilizado = false;
-            ui->frecfin->setStyleSheet("background : red");
+            record_in->utilizado = false;
+            upperRecord->utilizado = false;
+            ui->endFrequencyEdit->setStyleSheet("background : red");
             errorMessage(tr("Invalid frequency band."), tr("Specifications input"));
             return false;
         }
     }
 
-    if (ui->cons->isChecked()){
+    if (ui->constantRadio->isChecked()){
 
-        if (!ui->altura_se1->text().isEmpty()){
+        if (!ui->lowerMagnitudeEdit->text().isEmpty()){
 
             ParserX p (pckALL_NON_COMPLEX);
-            p.SetExpr(ui->altura_se1->text().toStdString());
+            p.SetExpr(ui->lowerMagnitudeEdit->text().toStdString());
 
-            datos->constante = true;
+            record_in->constante = true;
 
             try {
 
                 qreal alt = p.Eval().GetFloat();
 
-                //dBND::altura es magnitud LINEAL: antes esta ruta tenia las
-                //dos ramas intercambiadas respecto a la ruta simple.
-                if (ui->decibelios_se1->isChecked()){
-                    datos->altura = qftbx::dbToLinear(alt);
+                //dBND::altura is a LINEAR magnitude: this path used to have
+                //both branches swapped relative to the simple path.
+                if (ui->lowerDecibelsRadio->isChecked()){
+                    record_in->altura = qftbx::dbToLinear(alt);
                 }else {
-                    datos->altura = alt;
+                    record_in->altura = alt;
                 }
 
-                ui->altura_se1->setStyleSheet("background : white");
+                ui->lowerMagnitudeEdit->setStyleSheet("background : white");
             }catch (ParserError &e){
-                datos->utilizado = false;
-                ui->altura_se1->setStyleSheet("background : red");
+                record_in->utilizado = false;
+                ui->lowerMagnitudeEdit->setStyleSheet("background : red");
                 errorMessage(tr("Invalid magnitude value."), tr("Specifications input"));
                 return false;
             }
 
-            ui->altura_se1->setStyleSheet("background : white");
-            datos->utilizado = true;
+            ui->lowerMagnitudeEdit->setStyleSheet("background : white");
+            record_in->utilizado = true;
         } else {
-            datos->utilizado = false;
+            record_in->utilizado = false;
         }
     }else {
 
-        if (ui->DenoSe1->text().isEmpty()){
-            datos->utilizado = false;
+        if (ui->lowerDenominatorEdit->text().isEmpty()){
+            record_in->utilizado = false;
             return true;
         }
 
-        QVector <Parameter *> * nume = nullptr;
-        QVector <Parameter *> * deno = nullptr;
+        QVector <Parameter *> * numeratorEdit = nullptr;
+        QVector <Parameter *> * denominatorEdit = nullptr;
 
-        //Ganancia y retardo se validan SIEMPRE: la rama libre construia el
-        //FreeForm con los crearKRet sin comprobar (nullptr ante un error de
-        //sintaxis y crash posterior).
-        Parameter * k = crearKRet(ui->KSe1->text(), true);
+        //Gain and delay are ALWAYS validated: the free-form branch used to
+        //build the FreeForm from unchecked buildScalar results (nullptr on a
+        //syntax error, crashing later).
+        Parameter * k = buildScalar(ui->lowerGainEdit->text(), true);
 
         if (k == nullptr){
             errorMessage(tr("Invalid gain."), tr("Specifications input"));
-            ui->KSe1->setStyleSheet("background : red");
-            datos->utilizado = false;
+            ui->lowerGainEdit->setStyleSheet("background : red");
+            record_in->utilizado = false;
             return false;
         }
-        ui->KSe1->setStyleSheet("background : white");
+        ui->lowerGainEdit->setStyleSheet("background : white");
 
-        Parameter * ret = crearKRet(ui->RetSe1->text(), false);
+        Parameter * delayEdit = buildScalar(ui->lowerDelayEdit->text(), false);
 
-        if (ret == nullptr){
+        if (delayEdit == nullptr){
             errorMessage(tr("Invalid delay."), tr("Specifications input"));
-            ui->RetSe1->setStyleSheet("background : red");
+            ui->lowerDelayEdit->setStyleSheet("background : red");
             delete k;
-            datos->utilizado = false;
+            record_in->utilizado = false;
             return false;
         }
-        ui->RetSe1->setStyleSheet("background : white");
+        ui->lowerDelayEdit->setStyleSheet("background : white");
 
-        if (!ui->FLSe1->isChecked()){
+        if (!ui->lowerFreeFormRadio->isChecked()){
 
-            nume = crearNumeradorDenominador(ui->NumeSe1->text());
+            numeratorEdit = buildParameters(ui->lowerNumeratorEdit->text());
 
-            if (nume == nullptr){
+            if (numeratorEdit == nullptr){
                 errorMessage(tr("Invalid numerator."), tr("Specifications input"));
-                ui->NumeSe1->setStyleSheet("background : red");
+                ui->lowerNumeratorEdit->setStyleSheet("background : red");
                 delete k;
-                delete ret;
-                datos->utilizado = false;
+                delete delayEdit;
+                record_in->utilizado = false;
                 return false;
             }
-            ui->NumeSe1->setStyleSheet("background : white");
+            ui->lowerNumeratorEdit->setStyleSheet("background : white");
 
-            deno = crearNumeradorDenominador(ui->DenoSe1->text());
+            denominatorEdit = buildParameters(ui->lowerDenominatorEdit->text());
 
-            if (deno == nullptr){
+            if (denominatorEdit == nullptr){
                 errorMessage(tr("Invalid denominator."), tr("Specifications input"));
-                ui->DenoSe1->setStyleSheet("background : red");
-                qDeleteAll(*nume);
-                delete nume;
+                ui->lowerDenominatorEdit->setStyleSheet("background : red");
+                qDeleteAll(*numeratorEdit);
+                delete numeratorEdit;
                 delete k;
-                delete ret;
-                datos->utilizado = false;
+                delete delayEdit;
+                record_in->utilizado = false;
                 return false;
             }
-            ui->DenoSe1->setStyleSheet("background : white");
+            ui->lowerDenominatorEdit->setStyleSheet("background : white");
         }
 
 
-        datos->constante = false;
-        if(ui->KGSe1->isChecked()){
-            datos->sistema = new ZeroPoleGain (nombre, nume, deno, k, ret);
-        }else if (ui->KNGSe1->isChecked()){
-            datos->sistema = new TimeConstantGain (nombre, nume, deno, k, ret);
-        }else if (ui->CPoliSe1->isChecked()) {
-            datos->sistema = new PolynomialForm (nombre, nume, deno, k, ret);
+        record_in->constante = false;
+        if(ui->lowerZpkRadio->isChecked()){
+            record_in->sistema = new ZeroPoleGain (name_in, numeratorEdit, denominatorEdit, k, delayEdit);
+        }else if (ui->lowerTcgRadio->isChecked()){
+            record_in->sistema = new TimeConstantGain (name_in, numeratorEdit, denominatorEdit, k, delayEdit);
+        }else if (ui->lowerPolynomialRadio->isChecked()) {
+            record_in->sistema = new PolynomialForm (name_in, numeratorEdit, denominatorEdit, k, delayEdit);
         }else {
-            //Si se llego aqui con coeficientes construidos (sin radio de
-            //tipo marcado), no deben fugarse.
-            if (nume != nullptr){
-                qDeleteAll(*nume);
-                delete nume;
+            //If we got here with coefficient vectors built (no type radio
+            //checked), they must not leak.
+            if (numeratorEdit != nullptr){
+                qDeleteAll(*numeratorEdit);
+                delete numeratorEdit;
             }
-            if (deno != nullptr){
-                qDeleteAll(*deno);
-                delete deno;
+            if (denominatorEdit != nullptr){
+                qDeleteAll(*denominatorEdit);
+                delete denominatorEdit;
             }
-            datos->sistema = new FreeForm (nombre, new QVector <Parameter *> (), new QVector <Parameter *> (), k, ret,
-                                               ui->NumeSe1->text(), ui->DenoSe1->text());
+            record_in->sistema = new FreeForm (name_in, new QVector <Parameter *> (), new QVector <Parameter *> (), k, delayEdit,
+                                               ui->lowerNumeratorEdit->text(), ui->lowerDenominatorEdit->text());
         }
-        datos->utilizado = true;
+        record_in->utilizado = true;
     }
 
 
-    if (ui->cons->isChecked()){
+    if (ui->constantRadio->isChecked()){
 
-        if (!ui->altura_se1_2->text().isEmpty()){
+        if (!ui->upperMagnitudeEdit->text().isEmpty()){
 
             ParserX p (pckALL_NON_COMPLEX);
-            p.SetExpr(ui->altura_se1_2->text().toStdString());
+            p.SetExpr(ui->upperMagnitudeEdit->text().toStdString());
 
-            datos1->constante = true;
+            upperRecord->constante = true;
 
             try {
 
                 qreal alt = p.Eval().GetFloat();
 
-                if (ui->decibelios_se1_2->isChecked()){
-                    datos1->altura = qftbx::dbToLinear(alt);
+                if (ui->upperDecibelsRadio->isChecked()){
+                    upperRecord->altura = qftbx::dbToLinear(alt);
                 }else {
-                    datos1->altura = alt;
+                    upperRecord->altura = alt;
                 }
 
-                ui->altura_se1_2->setStyleSheet("background : white");
+                ui->upperMagnitudeEdit->setStyleSheet("background : white");
             }catch (ParserError &e){
-                datos1->utilizado = false;
-                ui->altura_se1_2->setStyleSheet("background : red");
+                upperRecord->utilizado = false;
+                ui->upperMagnitudeEdit->setStyleSheet("background : red");
                 errorMessage(tr("Invalid magnitude value."), tr("Specifications input"));
                 return false;
             }
 
-            ui->altura_se1_2->setStyleSheet("background : white");
-            datos1->utilizado = true;
+            ui->upperMagnitudeEdit->setStyleSheet("background : white");
+            upperRecord->utilizado = true;
         } else {
-            datos1->utilizado = false;
+            upperRecord->utilizado = false;
         }
     }else {
 
-        if (ui->DenoSe1_2->text().isEmpty()){
-            datos1->utilizado = false;
+        if (ui->upperDenominatorEdit->text().isEmpty()){
+            upperRecord->utilizado = false;
             return true;
         }
 
-        QVector <Parameter *> * nume = nullptr;
-        QVector <Parameter *> * deno = nullptr;
+        QVector <Parameter *> * numeratorEdit = nullptr;
+        QVector <Parameter *> * denominatorEdit = nullptr;
 
-        //Ganancia y retardo se validan SIEMPRE: la rama libre construia el
-        //FreeForm con los crearKRet sin comprobar (nullptr ante un error de
-        //sintaxis y crash posterior).
-        Parameter * k = crearKRet(ui->KSe1_2->text(), true);
+        //Gain and delay are ALWAYS validated: the free-form branch used to
+        //build the FreeForm from unchecked buildScalar results (nullptr on a
+        //syntax error, crashing later).
+        Parameter * k = buildScalar(ui->upperGainEdit->text(), true);
 
         if (k == nullptr){
             errorMessage(tr("Invalid gain."), tr("Specifications input"));
-            ui->KSe1_2->setStyleSheet("background : red");
-            datos1->utilizado = false;
+            ui->upperGainEdit->setStyleSheet("background : red");
+            upperRecord->utilizado = false;
             return false;
         }
-        ui->KSe1_2->setStyleSheet("background : white");
+        ui->upperGainEdit->setStyleSheet("background : white");
 
-        Parameter * ret = crearKRet(ui->RetSe1_2->text(), false);
+        Parameter * delayEdit = buildScalar(ui->upperDelayEdit->text(), false);
 
-        if (ret == nullptr){
+        if (delayEdit == nullptr){
             errorMessage(tr("Invalid delay."), tr("Specifications input"));
-            ui->RetSe1_2->setStyleSheet("background : red");
+            ui->upperDelayEdit->setStyleSheet("background : red");
             delete k;
-            datos1->utilizado = false;
+            upperRecord->utilizado = false;
             return false;
         }
-        ui->RetSe1_2->setStyleSheet("background : white");
+        ui->upperDelayEdit->setStyleSheet("background : white");
 
-        if (!ui->FLSe1_2->isChecked()){
+        if (!ui->upperFreeFormRadio->isChecked()){
 
-            nume = crearNumeradorDenominador(ui->NumeSe1_2->text());
+            numeratorEdit = buildParameters(ui->upperNumeratorEdit->text());
 
-            if (nume == nullptr){
+            if (numeratorEdit == nullptr){
                 errorMessage(tr("Invalid numerator."), tr("Specifications input"));
-                ui->NumeSe1_2->setStyleSheet("background : red");
+                ui->upperNumeratorEdit->setStyleSheet("background : red");
                 delete k;
-                delete ret;
-                datos1->utilizado = false;
+                delete delayEdit;
+                upperRecord->utilizado = false;
                 return false;
             }
-            ui->NumeSe1_2->setStyleSheet("background : white");
+            ui->upperNumeratorEdit->setStyleSheet("background : white");
 
-            deno = crearNumeradorDenominador(ui->DenoSe1_2->text());
+            denominatorEdit = buildParameters(ui->upperDenominatorEdit->text());
 
-            if (deno == nullptr){
+            if (denominatorEdit == nullptr){
                 errorMessage(tr("Invalid denominator."), tr("Specifications input"));
-                ui->DenoSe1_2->setStyleSheet("background : red");
-                qDeleteAll(*nume);
-                delete nume;
+                ui->upperDenominatorEdit->setStyleSheet("background : red");
+                qDeleteAll(*numeratorEdit);
+                delete numeratorEdit;
                 delete k;
-                delete ret;
-                datos1->utilizado = false;
+                delete delayEdit;
+                upperRecord->utilizado = false;
                 return false;
             }
-            ui->DenoSe1_2->setStyleSheet("background : white");
+            ui->upperDenominatorEdit->setStyleSheet("background : white");
         }
 
-        datos1->constante = false;
-        if(ui->KGSe1_2->isChecked()){
-            datos1->sistema = new ZeroPoleGain (nombre, nume, deno, k, ret);
-        }else if (ui->KNGSe1_2->isChecked()){
-            datos1->sistema = new TimeConstantGain (nombre, nume, deno, k, ret);
-        }else if (ui->CPoliSe1_2->isChecked()) {
-            datos1->sistema = new PolynomialForm (nombre, nume, deno, k, ret);
+        upperRecord->constante = false;
+        if(ui->upperZpkRadio->isChecked()){
+            upperRecord->sistema = new ZeroPoleGain (name_in, numeratorEdit, denominatorEdit, k, delayEdit);
+        }else if (ui->upperTcgRadio->isChecked()){
+            upperRecord->sistema = new TimeConstantGain (name_in, numeratorEdit, denominatorEdit, k, delayEdit);
+        }else if (ui->upperPolynomialRadio->isChecked()) {
+            upperRecord->sistema = new PolynomialForm (name_in, numeratorEdit, denominatorEdit, k, delayEdit);
         }else {
-            //Si se llego aqui con coeficientes construidos (sin radio de
-            //tipo marcado), no deben fugarse.
-            if (nume != nullptr){
-                qDeleteAll(*nume);
-                delete nume;
+            //If we got here with coefficient vectors built (no type radio
+            //checked), they must not leak.
+            if (numeratorEdit != nullptr){
+                qDeleteAll(*numeratorEdit);
+                delete numeratorEdit;
             }
-            if (deno != nullptr){
-                qDeleteAll(*deno);
-                delete deno;
+            if (denominatorEdit != nullptr){
+                qDeleteAll(*denominatorEdit);
+                delete denominatorEdit;
             }
-            datos1->sistema = new FreeForm (nombre, new QVector <Parameter *> (), new QVector <Parameter *> (), k, ret,
-                                                ui->NumeSe1_2->text(), ui->DenoSe1_2->text());
+            upperRecord->sistema = new FreeForm (name_in, new QVector <Parameter *> (), new QVector <Parameter *> (), k, delayEdit,
+                                                ui->upperNumeratorEdit->text(), ui->upperDenominatorEdit->text());
         }
-        datos1->utilizado = true;
+        upperRecord->utilizado = true;
     }
 
-    datos->nombre = nombre;
-    datos1->nombre = QStringLiteral("TrackingUpper");
+    record_in->nombre = name_in;
+    upperRecord->nombre = QStringLiteral("TrackingUpper");
 
     return true;
 }
 
-Parameter * SpecificationsDialog::crearKRet(QString linea, bool isK){
+Parameter * SpecificationsDialog::buildScalar(QString linea, bool isK){
     ParserX p (pckALL_NON_COMPLEX);
 
     if (linea.isEmpty()){
@@ -788,7 +788,7 @@ Parameter * SpecificationsDialog::crearKRet(QString linea, bool isK){
     }
 }
 
-QVector <Parameter * > * SpecificationsDialog::crearNumeradorDenominador(QString linea){
+QVector <Parameter * > * SpecificationsDialog::buildParameters(QString linea){
 
     ParserX p (pckALL_NON_COMPLEX);
 
@@ -808,7 +808,7 @@ QVector <Parameter * > * SpecificationsDialog::crearNumeradorDenominador(QString
         try {
             res = p.Eval().GetFloat();
         }catch (ParserError &e){
-            //Antes se abandonaban los Parameter ya creados y ambos vectores.
+            //The already-built Parameters and both vectors used to leak.
             delete numeros;
             qDeleteAll(*var);
             delete var;
@@ -823,145 +823,145 @@ QVector <Parameter * > * SpecificationsDialog::crearNumeradorDenominador(QString
     return var;
 }
 
-void SpecificationsDialog::seleccionar()
+void SpecificationsDialog::saveActiveTab()
 {
-    if (activado == 1){
-        getDatos(seguimiento, seguimiento_2, "TrackingLower");
-    }else if (activado == 2){
-        getDatos(estabilidad, "Stability");
-    }else if (activado == 3){
-        getDatos(ruido, "SensorNoise");
-    }else if (activado == 4){
-        getDatos(RPS, "OutputDisturbance");
-    }else if (activado == 5){
-        getDatos(RPE, "InputDisturbance");
-    }else if (activado == 6){
-        getDatos(EC, "ControlEffort");
+    if (activeTab == 1){
+        getDatos(tracking, trackingUpper, "TrackingLower");
+    }else if (activeTab == 2){
+        getDatos(stability, "Stability");
+    }else if (activeTab == 3){
+        getDatos(sensorNoise, "SensorNoise");
+    }else if (activeTab == 4){
+        getDatos(outputDisturbance, "OutputDisturbance");
+    }else if (activeTab == 5){
+        getDatos(inputDisturbance, "InputDisturbance");
+    }else if (activeTab == 6){
+        getDatos(controlEffort, "ControlEffort");
     }
 }
 
-void SpecificationsDialog::on_radioButton_clicked()
+void SpecificationsDialog::on_trackingRadio_clicked()
 {
-    ui->principal->setCurrentIndex(1);
-    seleccionar();
-    activado = 1;
-    setDatos(seguimiento, seguimiento_2);
+    ui->pageStack->setCurrentIndex(1);
+    saveActiveTab();
+    activeTab = 1;
+    setDatos(tracking, trackingUpper);
     this->resize(867, 363);
-    ui->layoutWidget6->move(670, 320);
+    ui->buttonsWidget->move(670, 320);
 }
 
-void SpecificationsDialog::on_radioButton_2_clicked()
+void SpecificationsDialog::on_stabilityRadio_clicked()
 {
-    ui->principal->setCurrentIndex(0);
-    seleccionar();
-    activado = 2;
-    setDatos(estabilidad);
-    ui->imagen->setPixmap(estabilidad_img);
+    ui->pageStack->setCurrentIndex(0);
+    saveActiveTab();
+    activeTab = 2;
+    setDatos(stability);
+    ui->specificationImage->setPixmap(stabilityPixmap);
     this->resize(647, 363);
-    ui->layoutWidget6->move(450, 320);
+    ui->buttonsWidget->move(450, 320);
 }
 
-void SpecificationsDialog::on_radioButton_3_clicked()
+void SpecificationsDialog::on_noiseRadio_clicked()
 {
-    ui->principal->setCurrentIndex(0);
-    seleccionar();
-    activado = 3;
-    setDatos(ruido);
-    ui->imagen->setPixmap(ruidosensor_img);
+    ui->pageStack->setCurrentIndex(0);
+    saveActiveTab();
+    activeTab = 3;
+    setDatos(sensorNoise);
+    ui->specificationImage->setPixmap(sensorNoisePixmap);
     this->resize(647, 363);
-    ui->layoutWidget6->move(450, 320);
+    ui->buttonsWidget->move(450, 320);
 }
 
-void SpecificationsDialog::on_radioButton_4_clicked()
+void SpecificationsDialog::on_outputDisturbanceRadio_clicked()
 {
-    ui->principal->setCurrentIndex(0);
-    seleccionar();
-    activado = 4;
-    setDatos(RPS);
-    ui->imagen->setPixmap(RPS_img);
+    ui->pageStack->setCurrentIndex(0);
+    saveActiveTab();
+    activeTab = 4;
+    setDatos(outputDisturbance);
+    ui->specificationImage->setPixmap(outputDisturbancePixmap);
     this->resize(647, 363);
 }
 
-void SpecificationsDialog::on_radioButton_5_clicked()
+void SpecificationsDialog::on_inputDisturbanceRadio_clicked()
 {
-    ui->principal->setCurrentIndex(0);
-    seleccionar();
-    activado = 5;
-    setDatos(RPE);
-    ui->imagen->setPixmap(RPE_img);
+    ui->pageStack->setCurrentIndex(0);
+    saveActiveTab();
+    activeTab = 5;
+    setDatos(inputDisturbance);
+    ui->specificationImage->setPixmap(inputDisturbancePixmap);
     this->resize(647, 363);
-    ui->layoutWidget6->move(450, 320);
+    ui->buttonsWidget->move(450, 320);
 }
 
-void SpecificationsDialog::on_radioButton_6_clicked()
+void SpecificationsDialog::on_controlEffortRadio_clicked()
 {
-    ui->principal->setCurrentIndex(0);
-    seleccionar();
-    activado = 6;
-    setDatos(EC);
-    ui->imagen->setPixmap(EC_img);
+    ui->pageStack->setCurrentIndex(0);
+    saveActiveTab();
+    activeTab = 6;
+    setDatos(controlEffort);
+    ui->specificationImage->setPixmap(controlEffortPixmap);
     this->resize(647, 363);
-    ui->layoutWidget6->move(450, 320);
+    ui->buttonsWidget->move(450, 320);
 }
 
-void SpecificationsDialog::on_cons_clicked()
+void SpecificationsDialog::on_constantRadio_clicked()
 {
-    ui->stackedWidget->setCurrentIndex(1);
-    ui->Se_1->setCurrentIndex(1);
-    ui->Se_2->setCurrentIndex(1);
+    ui->modeStack->setCurrentIndex(1);
+    ui->lowerModeStack->setCurrentIndex(1);
+    ui->upperModeStack->setCurrentIndex(1);
 }
 
-void SpecificationsDialog::on_fun_clicked()
+void SpecificationsDialog::on_systemRadio_clicked()
 {
-    ui->stackedWidget->setCurrentIndex(2);
-    ui->Se_1->setCurrentIndex(2);
-    ui->Se_2->setCurrentIndex(2);
+    ui->modeStack->setCurrentIndex(2);
+    ui->lowerModeStack->setCurrentIndex(2);
+    ui->upperModeStack->setCurrentIndex(2);
 }
 
-void SpecificationsDialog::on_Cancel_clicked()
+void SpecificationsDialog::on_cancelButton_clicked()
 {
     emit(close());
 }
 
-void SpecificationsDialog::on_OK_clicked()
+void SpecificationsDialog::on_okButton_clicked()
 {
-    //El vector anterior es ya propiedad del DAO (se le entrego): aqui solo
-    //se suelta la referencia. Antes se fugaba un QVector por cada Aceptar.
-    retorno = nullptr;
+    //The previous vector already belongs to the DAO: only the reference is
+    //dropped here. A QVector used to leak on every accept.
+    published = nullptr;
 
     bool correcto = true;
 
-    if (ui->radioButton->isChecked()){
-        correcto = getDatos(seguimiento, seguimiento_2, "TrackingLower");
-    }else if (ui->radioButton_2->isChecked()){
-        correcto = getDatos(estabilidad, "Stability");
-    }else if (ui->radioButton_3->isChecked()){
-        correcto = getDatos(ruido, "SensorNoise");
-    }else if (ui->radioButton_4->isChecked()){
-        correcto = getDatos(RPS, "OutputDisturbance");
-    }else if (ui->radioButton_5->isChecked()){
-        correcto = getDatos(RPE, "InputDisturbance");
-    }else if (ui->radioButton_6->isChecked()){
-        correcto =  getDatos(EC, "ControlEffort");
+    if (ui->trackingRadio->isChecked()){
+        correcto = getDatos(tracking, trackingUpper, "TrackingLower");
+    }else if (ui->stabilityRadio->isChecked()){
+        correcto = getDatos(stability, "Stability");
+    }else if (ui->noiseRadio->isChecked()){
+        correcto = getDatos(sensorNoise, "SensorNoise");
+    }else if (ui->outputDisturbanceRadio->isChecked()){
+        correcto = getDatos(outputDisturbance, "OutputDisturbance");
+    }else if (ui->inputDisturbanceRadio->isChecked()){
+        correcto = getDatos(inputDisturbance, "InputDisturbance");
+    }else if (ui->controlEffortRadio->isChecked()){
+        correcto =  getDatos(controlEffort, "ControlEffort");
     }
 
     if (!correcto){
         return;
     }
 
-    retorno = new QVector <dBND *> ();
+    published = new QVector <dBND *> ();
 
-    //El DAO toma propiedad: se le entregan clones profundos y el dialogo
-    //conserva sus originales para seguir editando.
-    retorno->append(seguimiento->clone());
-    retorno->append(seguimiento_2->clone());
-    retorno->append(estabilidad->clone());
-    retorno->append(ruido->clone());
-    retorno->append(RPS->clone());
-    retorno->append(RPE->clone());
-    retorno->append(EC->clone());
+    //The DAO takes ownership: it receives deep clones and the dialog keeps
+    //its originals for further editing.
+    published->append(tracking->clone());
+    published->append(trackingUpper->clone());
+    published->append(stability->clone());
+    published->append(sensorNoise->clone());
+    published->append(outputDisturbance->clone());
+    published->append(inputDisturbance->clone());
+    published->append(controlEffort->clone());
 
-    controlador->setEspecificaciones(retorno);
+    controller->setEspecificaciones(published);
 
     todoCorrecto = true;
 
@@ -974,63 +974,63 @@ bool SpecificationsDialog::getTodoCorrecto(){
 
 
 
-void SpecificationsDialog::on_CPoliSe1_clicked()
+void SpecificationsDialog::on_lowerPolynomialRadio_clicked()
 {
-    ui->imagen_se_1-> setCurrentIndex(3);
+    ui->lowerFigureStack-> setCurrentIndex(3);
 }
 
-void SpecificationsDialog::on_FLSe1_clicked()
+void SpecificationsDialog::on_lowerFreeFormRadio_clicked()
 {
-    ui->imagen_se_1-> setCurrentIndex(0);
+    ui->lowerFigureStack-> setCurrentIndex(0);
 }
 
-void SpecificationsDialog::on_KGSe1_clicked()
+void SpecificationsDialog::on_lowerZpkRadio_clicked()
 {
-    ui->imagen_se_1-> setCurrentIndex(1);
+    ui->lowerFigureStack-> setCurrentIndex(1);
 }
 
-void SpecificationsDialog::on_KNGSe1_clicked()
+void SpecificationsDialog::on_lowerTcgRadio_clicked()
 {
-    ui->imagen_se_1-> setCurrentIndex(2);
+    ui->lowerFigureStack-> setCurrentIndex(2);
 }
 
-void SpecificationsDialog::on_CPoliSe1_2_clicked()
+void SpecificationsDialog::on_upperPolynomialRadio_clicked()
 {
-    ui->imagen_se_2-> setCurrentIndex(3);
+    ui->upperFigureStack-> setCurrentIndex(3);
 }
 
-void SpecificationsDialog::on_KGSe1_2_clicked()
+void SpecificationsDialog::on_upperZpkRadio_clicked()
 {
-    ui->imagen_se_2-> setCurrentIndex(1);
+    ui->upperFigureStack-> setCurrentIndex(1);
 }
 
-void SpecificationsDialog::on_KNGSe1_2_clicked()
+void SpecificationsDialog::on_upperTcgRadio_clicked()
 {
-    ui->imagen_se_2-> setCurrentIndex(2);
+    ui->upperFigureStack-> setCurrentIndex(2);
 }
 
-void SpecificationsDialog::on_FLSe1_2_clicked()
+void SpecificationsDialog::on_upperFreeFormRadio_clicked()
 {
-    ui->imagen_se_2-> setCurrentIndex(0);
+    ui->upperFigureStack-> setCurrentIndex(0);
 }
 
-void SpecificationsDialog::on_poli_clicked()
+void SpecificationsDialog::on_polynomialRadio_clicked()
 {
-    ui->figures->setCurrentIndex(1);
+    ui->figureStack->setCurrentIndex(1);
 }
 
-void SpecificationsDialog::on_hfgain_clicked()
+void SpecificationsDialog::on_tcgRadio_clicked()
 {
-    ui->figures->setCurrentIndex(3);
+    ui->figureStack->setCurrentIndex(3);
 }
 
-void SpecificationsDialog::on_libre_clicked()
+void SpecificationsDialog::on_freeFormRadio_clicked()
 {
-    ui->figures->setCurrentIndex(0);
+    ui->figureStack->setCurrentIndex(0);
 }
 
-void SpecificationsDialog::on_lfgain_clicked()
+void SpecificationsDialog::on_zpkRadio_clicked()
 {
-    ui->figures->setCurrentIndex(2);
+    ui->figureStack->setCurrentIndex(2);
 }
 

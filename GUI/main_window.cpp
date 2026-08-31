@@ -22,229 +22,229 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     setWindowTitle(tr("QFT: Quantitative feedback theory"));
 
-    //7 pasos reales: con rango 0-8 la barra nunca llegaba al 100%.
-    ui->barraprogreso->setRange(0,7);
+    //7 real steps: with the 0-8 range the bar never reached 100%.
+    ui->progressBar->setRange(0,7);
 
-    crear();
+    createSession();
 }
 
 MainWindow::~MainWindow()
 {
-    destruir();
+    destroySession();
 
     delete ui;
 }
 
-void MainWindow::crear(){
+void MainWindow::createSession(){
 
-    controlador = new Controlador();
+    controller = new Controlador();
 
-    ui->barraprogreso->setValue(0);
-    posBarra = 0;
+    ui->progressBar->setValue(0);
+    progressPosition = 0;
 
-    paso1 = false;  //planta
-    paso2 = false;  //especificaciones
-    paso3 = false;  //omega
-    paso4 = false;  //templates
-    paso5 = false;  //estructura del controlador
-    paso6 = false;  //boundaries
-    paso7 = false;  //lazo
+    plantDone = false;  //plant
+    specificationsDone = false;  //specificationsDialog
+    frequenciesDone = false;  //omega
+    templatesDone = false;  //templates
+    boundariesDone = false;  //estructura del controller
+    controllerDone = false;  //boundaries
+    loopDone = false;  //lazo
 
-    digBode = false;
-    digconsola = false;
+    bodeCreated = false;
+    consoleCreated = false;
 
-    ui->BEspi->setEnabled(false);
-    ui->BTemp->setEnabled(false);
-    ui->BBoun->setEnabled(false);
-    ui->BDiLaz->setEnabled(false);
-    ui->barraDiagramaBode->setEnabled(false);
+    ui->specificationsButton->setEnabled(false);
+    ui->templatesButton->setEnabled(false);
+    ui->boundariesButton->setEnabled(false);
+    ui->loopButton->setEnabled(false);
+    ui->bodeAction->setEnabled(false);
 
-    //Sin esto, "Guardar" tras "Nuevo" sobreescribia el ultimo fichero
-    //abierto con el proyecto vacio.
-    ficheroGuardar.clear();
+    //Without this, Save after New overwrote the last opened file with the
+    //empty project.
+    saveFilePath.clear();
 }
 
-//Retrocede un paso: la barra debe reflejarlo (antes se quedaba contando
-//pasos que ya no existian).
+//Walks one step back: the bar must reflect it (it used to keep counting
+//steps that no longer existed).
 void MainWindow::stepBack(bool & paso){
     if (paso){
-        posBarra--;
-        ui->barraprogreso->setValue(posBarra);
+        progressPosition--;
+        ui->progressBar->setValue(progressPosition);
     }
     paso = false;
 }
 
 void MainWindow::destroyDialogs(){
-    if (paso1){
-        delete intPlanta;
-        intPlanta = nullptr;
+    if (plantDone){
+        delete plantDialog;
+        plantDialog = nullptr;
     }
 
-    if (paso2){
-        delete especificaciones;
-        especificaciones = nullptr;
+    if (specificationsDone){
+        delete specificationsDialog;
+        specificationsDialog = nullptr;
     }
 
-    if (paso3){
-        delete intOmega;
-        intOmega = nullptr;
+    if (frequenciesDone){
+        delete frequenciesDialog;
+        frequenciesDialog = nullptr;
     }
 
-    if (paso4){
-        delete vTemplates;
-        vTemplates = nullptr;
-        delete graficoTemplate;
-        graficoTemplate = nullptr;
+    if (templatesDone){
+        delete templatesDialog;
+        templatesDialog = nullptr;
+        delete templateViewer;
+        templateViewer = nullptr;
     }
 
-    if (paso5){
-        delete datosBoun;
-        datosBoun = nullptr;
-        delete viewBound;
-        viewBound = nullptr;
-        delete viewBoundReun;
-        viewBoundReun = nullptr;
+    if (boundariesDone){
+        delete boundaryGridDialog;
+        boundaryGridDialog = nullptr;
+        delete boundaryViewer;
+        boundaryViewer = nullptr;
+        delete boundaryUnionViewer;
+        boundaryUnionViewer = nullptr;
     }
 
-    if (paso6){
-        delete eControlador;
-        eControlador = nullptr;
+    if (controllerDone){
+        delete controllerDialog;
+        controllerDialog = nullptr;
     }
 
-    if (digBode){
-        delete diagramaBode;
-        diagramaBode = nullptr;
-        digBode = false;
+    if (bodeCreated){
+        delete bodeViewer;
+        bodeViewer = nullptr;
+        bodeCreated = false;
     }
 
-    if (paso7){
-        delete loopShaping;
-        loopShaping = nullptr;
-        delete viewLoopShaping;
-        viewLoopShaping = nullptr;
+    if (loopDone){
+        delete loopShapingDialog;
+        loopShapingDialog = nullptr;
+        delete loopShapingViewer;
+        loopShapingViewer = nullptr;
     }
 }
 
-void MainWindow::destruir(){
+void MainWindow::destroySession(){
     destroyDialogs();
 
-    delete controlador;
+    delete controller;
 }
 
-void MainWindow::on_BDefiPlanta_clicked()
+void MainWindow::on_plantButton_clicked()
 {
-    if (!paso1){
-        intPlanta = new PlantDialog(controlador, this);
+    if (!plantDone){
+        plantDialog = new PlantDialog(controller, this);
     }
 
-    intPlanta->exec();
+    plantDialog->exec();
 
-    if (intPlanta->getTodoCorrecto()){
-        if (paso3){
-            ui->BTemp->setEnabled(true);
+    if (plantDialog->getTodoCorrecto()){
+        if (frequenciesDone){
+            ui->templatesButton->setEnabled(true);
         }
 
-        if (!paso1){
-            posBarra++;
-            ui->barraprogreso->setValue(posBarra);
+        if (!plantDone){
+            progressPosition++;
+            ui->progressBar->setValue(progressPosition);
         }
 
-        paso1 = true;
+        plantDone = true;
     } else {
-        delete intPlanta;
-        intPlanta = nullptr;
-        stepBack(paso1);
+        delete plantDialog;
+        plantDialog = nullptr;
+        stepBack(plantDone);
     }
 }
 
-void MainWindow::on_BEspi_clicked()
+void MainWindow::on_specificationsButton_clicked()
 {
 
-    if (!paso2){
-        especificaciones = new SpecificationsDialog(controlador, this);
+    if (!specificationsDone){
+        specificationsDialog = new SpecificationsDialog(controller, this);
 
     }
 
-    especificaciones->exec();
+    specificationsDialog->exec();
 
-    if (especificaciones->getTodoCorrecto()){
+    if (specificationsDialog->getTodoCorrecto()){
 
-        if (paso4){
-            ui->BBoun->setEnabled(true);
+        if (templatesDone){
+            ui->boundariesButton->setEnabled(true);
         }
 
-        if (!paso2){
-            posBarra++;
-            ui->barraprogreso->setValue(posBarra);
+        if (!specificationsDone){
+            progressPosition++;
+            ui->progressBar->setValue(progressPosition);
         }
-        paso2 = true;
+        specificationsDone = true;
     } else {
-        delete especificaciones;
-        especificaciones = nullptr;
-        stepBack(paso2);
+        delete specificationsDialog;
+        specificationsDialog = nullptr;
+        stepBack(specificationsDone);
     }
 }
 
-void MainWindow::on_BFrec_clicked()
+void MainWindow::on_frequenciesButton_clicked()
 {
-    if (!paso3){
-        intOmega = new FrequenciesDialog(controlador,this);
+    if (!frequenciesDone){
+        frequenciesDialog = new FrequenciesDialog(controller,this);
     }
 
-    intOmega->exec();
+    frequenciesDialog->exec();
 
-    if (intOmega->getTodoCorrecto()){
+    if (frequenciesDialog->getTodoCorrecto()){
 
-        if (paso1){
-            ui->BTemp->setEnabled(true);
+        if (plantDone){
+            ui->templatesButton->setEnabled(true);
         }
 
-        ui->BEspi->setEnabled(true);
-        ui->barraDiagramaBode->setEnabled(true);
+        ui->specificationsButton->setEnabled(true);
+        ui->bodeAction->setEnabled(true);
 
-        if (!paso3){
-            posBarra++;
-            ui->barraprogreso->setValue(posBarra);
+        if (!frequenciesDone){
+            progressPosition++;
+            ui->progressBar->setValue(progressPosition);
         }
 
-        paso3 = true;
+        frequenciesDone = true;
 
     } else {
-        delete intOmega;
-        intOmega = nullptr;
-        stepBack(paso3);
+        delete frequenciesDialog;
+        frequenciesDialog = nullptr;
+        stepBack(frequenciesDone);
     }
 }
 
-void MainWindow::on_BTemp_clicked()
+void MainWindow::on_templatesButton_clicked()
 {
 
-    if (!paso4){
-        vTemplates = new TemplatesDialog(this);
-        graficoTemplate = new TemplateViewer(this);
+    if (!templatesDone){
+        templatesDialog = new TemplatesDialog(this);
+        templateViewer = new TemplateViewer(this);
     }
 
-    vTemplates->lanzarViewTemp(controlador->getPlanta(), controlador->getOmega()->getValores()->size());
+    templatesDialog->launch(controller->getPlanta(), controller->getOmega()->getValores()->size());
 
-    vTemplates->exec();
+    templatesDialog->exec();
 
-    if (vTemplates->getTodoCorrecto()){
+    if (templatesDialog->getTodoCorrecto()){
 
         this->setCursor(Qt::WaitCursor);
 
         bool templatesOk = false;
 
         try {
-            templatesOk = controlador->calcularTemplates(vTemplates->getEpsilon(), vTemplates->getMapa(),
-                                                         vTemplates->getElecCUDA());
+            templatesOk = controller->calcularTemplates(templatesDialog->getEpsilon(), templatesDialog->grids(),
+                                                         templatesDialog->cudaSelected());
         } catch (const qftbx::Exception & e) {
             this->setCursor(Qt::ArrowCursor);
             QMessageBox::critical(this, tr("Template computation"), e.what());
-            delete vTemplates;
-            vTemplates = nullptr;
-            delete graficoTemplate;
-            graficoTemplate = nullptr;
-            stepBack(paso4);
+            delete templatesDialog;
+            templatesDialog = nullptr;
+            delete templateViewer;
+            templateViewer = nullptr;
+            stepBack(templatesDone);
             return;
         }
 
@@ -253,234 +253,234 @@ void MainWindow::on_BTemp_clicked()
             this->setCursor(Qt::ArrowCursor);
 
 
-            if (paso2){
-                ui->BBoun->setEnabled(true);
+            if (specificationsDone){
+                ui->boundariesButton->setEnabled(true);
             }
 
-            graficoTemplate->setDatos(controlador);
-            graficoTemplate->pintarGrafico(vTemplates->getElecDiagram());
+            templateViewer->setDatos(controller);
+            templateViewer->plotDiagram(templatesDialog->nicholsSelected());
 
-            graficoTemplate->show();
+            templateViewer->show();
 
-            if (!paso4){
-                posBarra++;
-                ui->barraprogreso->setValue(posBarra);
+            if (!templatesDone){
+                progressPosition++;
+                ui->progressBar->setValue(progressPosition);
             }
 
-            paso4 = true;
+            templatesDone = true;
         } else {
-            delete vTemplates;
-            vTemplates = nullptr;
-            delete graficoTemplate;
-            graficoTemplate = nullptr;
-            stepBack(paso4);
+            delete templatesDialog;
+            templatesDialog = nullptr;
+            delete templateViewer;
+            templateViewer = nullptr;
+            stepBack(templatesDone);
         }
         this->setCursor(Qt::ArrowCursor);
     } else {
-        delete vTemplates;
-        vTemplates = nullptr;
-        delete graficoTemplate;
-        graficoTemplate = nullptr;
-        stepBack(paso4);
+        delete templatesDialog;
+        templatesDialog = nullptr;
+        delete templateViewer;
+        templateViewer = nullptr;
+        stepBack(templatesDone);
     }
 }
 
-void MainWindow::on_BBoun_clicked()
+void MainWindow::on_boundariesButton_clicked()
 {
 
-    if (!paso5){
-        datosBoun = new BoundaryGridDialog(this);
-        viewBound = new BoundaryViewer(this);
-        viewBoundReun = new BoundaryUnionViewer(this);
+    if (!boundariesDone){
+        boundaryGridDialog = new BoundaryGridDialog(this);
+        boundaryViewer = new BoundaryViewer(this);
+        boundaryUnionViewer = new BoundaryUnionViewer(this);
     }
 
-    datosBoun->exec();
+    boundaryGridDialog->exec();
 
-    if (datosBoun->getTodoCorrecto()){
+    if (boundaryGridDialog->getTodoCorrecto()){
 
         this->setCursor(Qt::WaitCursor);
 
         bool boundariesOk = false;
 
         try {
-            boundariesOk = controlador->calcularBoundaries(datosBoun->getDatosFas(),
-                                                           datosBoun->getPuntosFas(), datosBoun->getDatosMag(),
-                                                           datosBoun->getPuntosMag(), datosBoun->getInfinito(),
-                                                           datosBoun->isContornoSelect(), datosBoun->getCUDA());
+            boundariesOk = controller->calcularBoundaries(boundaryGridDialog->phaseRangeValue(),
+                                                           boundaryGridDialog->phaseCountValue(), boundaryGridDialog->magnitudeRangeValue(),
+                                                           boundaryGridDialog->magnitudeCountValue(), boundaryGridDialog->infinityValue(),
+                                                           boundaryGridDialog->contourSelected(), boundaryGridDialog->cudaSelected());
         } catch (const qftbx::Exception & e) {
             this->setCursor(Qt::ArrowCursor);
             QMessageBox::critical(this, tr("Boundary computation"), e.what());
-            delete datosBoun;
-            datosBoun = nullptr;
-            delete viewBound;
-            viewBound = nullptr;
-            delete viewBoundReun;
-            viewBoundReun = nullptr;
-            stepBack(paso5);
+            delete boundaryGridDialog;
+            boundaryGridDialog = nullptr;
+            delete boundaryViewer;
+            boundaryViewer = nullptr;
+            delete boundaryUnionViewer;
+            boundaryUnionViewer = nullptr;
+            stepBack(boundariesDone);
             return;
         }
 
         if (!boundariesOk){
             this->setCursor(Qt::ArrowCursor);
 
-            delete datosBoun;
-            datosBoun = nullptr;
-            delete viewBound;
-            viewBound = nullptr;
-            delete viewBoundReun;
-            viewBoundReun = nullptr;
-            stepBack(paso5);
+            delete boundaryGridDialog;
+            boundaryGridDialog = nullptr;
+            delete boundaryViewer;
+            boundaryViewer = nullptr;
+            delete boundaryUnionViewer;
+            boundaryUnionViewer = nullptr;
+            stepBack(boundariesDone);
 
             return;
         }
 
         this->setCursor(Qt::ArrowCursor);
 
-        viewBound->setDatos(controlador->getBound(), controlador->getOmega()->getValores());
-        viewBound->mostrarDiagrama();
-        viewBound->show();
+        boundaryViewer->setDatos(controller->getBound(), controller->getOmega()->getValores());
+        boundaryViewer->showDiagram();
+        boundaryViewer->show();
 
-        viewBoundReun->setDatos(controlador->unionBoundaries(), controlador->getOmega()->getValores());
-        viewBoundReun->mostrar_diagrama();
-        viewBoundReun->show();
+        boundaryUnionViewer->setDatos(controller->unionBoundaries(), controller->getOmega()->getValores());
+        boundaryUnionViewer->showDiagram();
+        boundaryUnionViewer->show();
 
-        if (!paso5){
-            posBarra++;
-            ui->barraprogreso->setValue(posBarra);
+        if (!boundariesDone){
+            progressPosition++;
+            ui->progressBar->setValue(progressPosition);
         }
 
-        paso5 = true;
+        boundariesDone = true;
 
-        if (paso6 && paso5){
-            ui->BDiLaz->setEnabled(true);
+        if (controllerDone && boundariesDone){
+            ui->loopButton->setEnabled(true);
         }
 
     }
 }
 
 
-void MainWindow::on_BECont_clicked()
+void MainWindow::on_controllerButton_clicked()
 {
 
-    if (!paso6){
-        eControlador = new ControllerDialog(controlador, this);
+    if (!controllerDone){
+        controllerDialog = new ControllerDialog(controller, this);
     }
 
-    eControlador->exec();
+    controllerDialog->exec();
 
 
-    if (eControlador->getTodoCorrecto()){
-        if (paso5){
-            ui->BDiLaz->setEnabled(true);
+    if (controllerDialog->getTodoCorrecto()){
+        if (boundariesDone){
+            ui->loopButton->setEnabled(true);
         }
 
-        if (!paso6){
-            posBarra++;
-            ui->barraprogreso->setValue(posBarra);
+        if (!controllerDone){
+            progressPosition++;
+            ui->progressBar->setValue(progressPosition);
         }
-        paso6 = true;
-        //ui->menuDiagrama_Lazo->setEnabled(true);
+        controllerDone = true;
+        //ui->menuLoopDiagram->setEnabled(true);
     } else {
-        delete eControlador;
-        eControlador = nullptr;
-        stepBack(paso6);
+        delete controllerDialog;
+        controllerDialog = nullptr;
+        stepBack(controllerDone);
     }
 }
 
-void MainWindow::on_BDiLaz_clicked()
+void MainWindow::on_loopButton_clicked()
 {
-    if (!paso7){
-        loopShaping = new LoopShapingDialog(this);
-        viewLoopShaping = new LoopShapingViewer(this);
+    if (!loopDone){
+        loopShapingDialog = new LoopShapingDialog(this);
+        loopShapingViewer = new LoopShapingViewer(this);
     }
 
 
-    loopShaping->exec();
+    loopShapingDialog->exec();
 
-    if (loopShaping->getTodoCorrecto()){
+    if (loopShapingDialog->getTodoCorrecto()){
         bool re = false;
 
         try {
-            re = controlador->calcularLoopShaping(loopShaping->getEpsilon(), loopShaping->getAlg(), loopShaping->range(),
-                                                  loopShaping->getNPuntos(), loopShaping->getDepuracion(),
-                                                  loopShaping->getDelta(), loopShaping->getInicializacion(),
-                                                  loopShaping->getHilos(), loopShaping->getBisectionAvanced(),
-                                                  loopShaping->getDeteccionAvanced(), loopShaping->getAcelerated());
+            re = controller->calcularLoopShaping(loopShapingDialog->epsilonValue(), loopShapingDialog->algorithmValue(), loopShapingDialog->range(),
+                                                  loopShapingDialog->pointCountValue(), loopShapingDialog->debugValue(),
+                                                  loopShapingDialog->deltaValue(), loopShapingDialog->initialisationValue(),
+                                                  loopShapingDialog->threadsValue(), loopShapingDialog->bisectionValue(),
+                                                  loopShapingDialog->detectionValue(), loopShapingDialog->acceleratedValue());
         } catch (const qftbx::Exception & e) {
             QMessageBox::critical(this, tr("Loop Shaping"), e.what());
-            delete loopShaping;
-            loopShaping = nullptr;
-            delete viewLoopShaping;
-            viewLoopShaping = nullptr;
-            stepBack(paso7);
+            delete loopShapingDialog;
+            loopShapingDialog = nullptr;
+            delete loopShapingViewer;
+            loopShapingViewer = nullptr;
+            stepBack(loopDone);
             return;
         }
 
         if (re){
-            viewLoopShaping->setDatos(controlador->unionBoundaries(),controlador->getOmega()->getValores(),
-                                      controlador->getLoopShaping(), controlador->getPlanta(), loopShaping->getLinLogSpace());
+            loopShapingViewer->setDatos(controller->unionBoundaries(),controller->getOmega()->getValores(),
+                                      controller->getLoopShaping(), controller->getPlanta(), loopShapingDialog->isLinSpace());
 
-            viewLoopShaping->mostrar_diagrama();
-            viewLoopShaping->show();
+            loopShapingViewer->showDiagram();
+            loopShapingViewer->show();
 
-            if (!paso7){
-                posBarra++;
-                ui->barraprogreso->setValue(posBarra);
+            if (!loopDone){
+                progressPosition++;
+                ui->progressBar->setValue(progressPosition);
             }
-            paso7 = true;
+            loopDone = true;
         } else {
-            delete loopShaping;
-            loopShaping = nullptr;
-            delete viewLoopShaping;
-            viewLoopShaping = nullptr;
-            stepBack(paso7);
+            delete loopShapingDialog;
+            loopShapingDialog = nullptr;
+            delete loopShapingViewer;
+            loopShapingViewer = nullptr;
+            stepBack(loopDone);
         }
     } else {
-        delete loopShaping;
-        loopShaping = nullptr;
-        delete viewLoopShaping;
-        viewLoopShaping = nullptr;
-        stepBack(paso7);
+        delete loopShapingDialog;
+        loopShapingDialog = nullptr;
+        delete loopShapingViewer;
+        loopShapingViewer = nullptr;
+        stepBack(loopDone);
     }
 }
 
-void MainWindow::on_actionGuardar_triggered()
+void MainWindow::on_actionSave_triggered()
 {
-    if(ficheroGuardar.isEmpty()){
-        on_actionGuardar_como_triggered();
+    if(saveFilePath.isEmpty()){
+        on_actionSaveAs_triggered();
     } else {
-        guardar();
+        saveProject();
     }
 }
 
-void MainWindow::on_actionGuardar_como_triggered()
+void MainWindow::on_actionSaveAs_triggered()
 {
-    QString fileName = QFileDialog::getSaveFileName(this, tr("Save file"),"planta",
+    QString fileName = QFileDialog::getSaveFileName(this, tr("Save file"),"plant",
                                                     tr("QFT Files (*.qft)"));
 
 
     if (!fileName.isEmpty()){
 
         if (fileName.right(4) != ".qft"){
-            ficheroGuardar = fileName+".qft";
+            saveFilePath = fileName+".qft";
         } else {
-            ficheroGuardar = fileName;
+            saveFilePath = fileName;
         }
-        guardar();
+        saveProject();
     }
 }
 
-void MainWindow::guardar(){
+void MainWindow::saveProject(){
     try {
-        controlador->guardarSistema(ficheroGuardar);
+        controller->guardarSistema(saveFilePath);
     } catch (const qftbx::Exception & e) {
         QMessageBox::critical(this, tr("Save file"), e.what());
     }
 }
 
-void MainWindow::on_actionAbrir_triggered()
+void MainWindow::on_actionOpen_triggered()
 {
-    QString fileName = QFileDialog::getOpenFileName(this, tr("Open project"),"planta",
+    QString fileName = QFileDialog::getOpenFileName(this, tr("Open project"),"plant",
                                                     tr("QFT Files (*.qft)"));
 
     if (!fileName.isEmpty()){
@@ -488,160 +488,160 @@ void MainWindow::on_actionAbrir_triggered()
         QVector <bool> * leido;
 
         try {
-            leido = controlador->cargarSistema(fileName);
+            leido = controller->cargarSistema(fileName);
         } catch (const qftbx::Exception & e) {
             QMessageBox::critical(this, tr("Open project"), e.what());
             return;
         }
 
-        //Los dialogos de la sesion anterior se liberan y la barra se
-        //reinicia: antes cada apertura fugaba los dialogos existentes y la
-        //barra acumulaba pasos entre ficheros.
+        //The previous session's dialogs are freed and the bar restarts:
+        //every open used to leak the existing dialogs and the bar kept
+        //accumulating steps across files.
         destroyDialogs();
-        posBarra = 0;
-        ui->barraprogreso->setValue(0);
-        ui->BEspi->setEnabled(false);
-        ui->BTemp->setEnabled(false);
-        ui->BBoun->setEnabled(false);
-        ui->BDiLaz->setEnabled(false);
-        ui->barraDiagramaBode->setEnabled(false);
+        progressPosition = 0;
+        ui->progressBar->setValue(0);
+        ui->specificationsButton->setEnabled(false);
+        ui->templatesButton->setEnabled(false);
+        ui->boundariesButton->setEnabled(false);
+        ui->loopButton->setEnabled(false);
+        ui->bodeAction->setEnabled(false);
 
-        //"Guardar" vuelve a escribir sobre el fichero recien abierto.
-        ficheroGuardar = fileName;
+        //Save writes back to the file that was just opened.
+        saveFilePath = fileName;
 
-        paso1 = leido->value(0);
-        paso2 = leido->value(1);
-        paso3 = leido->value(2);
-        paso4 = leido->value(3);
-        paso5 = leido->value(4);
-        paso6 = leido->value(5);
-        paso7 = leido->value(6);
+        plantDone = leido->value(0);
+        specificationsDone = leido->value(1);
+        frequenciesDone = leido->value(2);
+        templatesDone = leido->value(3);
+        boundariesDone = leido->value(4);
+        controllerDone = leido->value(5);
+        loopDone = leido->value(6);
 
         delete leido;
 
 
-        if (paso1){
-            intPlanta = new PlantDialog(controlador, this);
-            posBarra++;
-            ui->barraprogreso->setValue(posBarra);
+        if (plantDone){
+            plantDialog = new PlantDialog(controller, this);
+            progressPosition++;
+            ui->progressBar->setValue(progressPosition);
         }
 
-        if (paso2){
-            especificaciones = new SpecificationsDialog(controlador, this);
-            posBarra++;
-            ui->barraprogreso->setValue(posBarra);
+        if (specificationsDone){
+            specificationsDialog = new SpecificationsDialog(controller, this);
+            progressPosition++;
+            ui->progressBar->setValue(progressPosition);
         }
 
-        if (paso3){
-            intOmega = new FrequenciesDialog(controlador,this);
-            posBarra++;
-            ui->barraprogreso->setValue(posBarra);
-            ui->BEspi->setEnabled(true);
-            ui->barraDiagramaBode->setEnabled(true);
+        if (frequenciesDone){
+            frequenciesDialog = new FrequenciesDialog(controller,this);
+            progressPosition++;
+            ui->progressBar->setValue(progressPosition);
+            ui->specificationsButton->setEnabled(true);
+            ui->bodeAction->setEnabled(true);
         }
 
-        if (paso4){
-            vTemplates = new TemplatesDialog(this);
-            graficoTemplate = new TemplateViewer(this);
-            posBarra++;
-            ui->barraprogreso->setValue(posBarra);
+        if (templatesDone){
+            templatesDialog = new TemplatesDialog(this);
+            templateViewer = new TemplateViewer(this);
+            progressPosition++;
+            ui->progressBar->setValue(progressPosition);
         }
 
-        if (paso5){
-            datosBoun = new BoundaryGridDialog(this);
-            viewBound = new BoundaryViewer(this);
-            viewBoundReun = new BoundaryUnionViewer (this);
-            posBarra++;
-            ui->barraprogreso->setValue(posBarra);
+        if (boundariesDone){
+            boundaryGridDialog = new BoundaryGridDialog(this);
+            boundaryViewer = new BoundaryViewer(this);
+            boundaryUnionViewer = new BoundaryUnionViewer (this);
+            progressPosition++;
+            ui->progressBar->setValue(progressPosition);
         }
 
-        if (paso6){
-            eControlador = new ControllerDialog(controlador, this);
-            posBarra++;
-            ui->barraprogreso->setValue(posBarra);
-            //ui->menuDiagrama_Lazo->setEnabled(true);
+        if (controllerDone){
+            controllerDialog = new ControllerDialog(controller, this);
+            progressPosition++;
+            ui->progressBar->setValue(progressPosition);
+            //ui->menuLoopDiagram->setEnabled(true);
         }
 
-        if (paso7){
-            loopShaping = new LoopShapingDialog(this);
-            viewLoopShaping = new LoopShapingViewer(this);
-            posBarra++;
-            ui->barraprogreso->setValue(posBarra);
+        if (loopDone){
+            loopShapingDialog = new LoopShapingDialog(this);
+            loopShapingViewer = new LoopShapingViewer(this);
+            progressPosition++;
+            ui->progressBar->setValue(progressPosition);
         }
 
-        if (paso1 && paso3){
-            ui->BTemp->setEnabled(true);
+        if (plantDone && frequenciesDone){
+            ui->templatesButton->setEnabled(true);
         }
 
-        if (paso4 && paso2){
-            ui->BBoun->setEnabled(true);
+        if (templatesDone && specificationsDone){
+            ui->boundariesButton->setEnabled(true);
 
         }
 
-        if (paso5 && paso6){
-            ui->BDiLaz->setEnabled(true);
+        if (boundariesDone && controllerDone){
+            ui->loopButton->setEnabled(true);
         }
 
-        ui->barraprogreso->setValue(posBarra);
+        ui->progressBar->setValue(progressPosition);
     }
 
 }
 
-void MainWindow::on_actionConsola_triggered()
+void MainWindow::on_actionConsole_triggered()
 {
     consola con;
     con.mostrar();
 }
 
-void MainWindow::on_actionNuevo_triggered()
+void MainWindow::on_actionNew_triggered()
 {
-    destruir();
-    crear();
+    destroySession();
+    createSession();
 }
 
-/*void MainWindow::on_actionDiagrama_de_Bode_2_triggered()
+/*void MainWindow::on_actionBodeDiagram_triggered()
 {
-    if (paso1 && paso3){
+    if (plantDone && frequenciesDone){
 
-        if(!digBode)
-            diagramaBode = new BodeViewer(this);
+        if(!bodeCreated)
+            bodeViewer = new BodeViewer(this);
 
-        digBode = true;
+        bodeCreated = true;
 
-        diagramaBode->dibujarBode(controlador->getPlanta(),controlador->getOmega());
-        diagramaBode->show();
+        bodeViewer->dibujarBode(controller->getPlanta(),controller->getOmega());
+        bodeViewer->show();
     }else{
         errorMessage(tr("To show the Bode diagram, first enter a valid plant and a set of design frequencies"), tr("QFT"));
     }
 }*/
 
-void MainWindow::on_actionDiagrama_Lazo_Nichols_2_triggered()
+void MainWindow::on_actionNicholsLoop_triggered()
 {
-    mostrarLazo(true, false);
+    showLoopDiagrams(true, false);
 }
 
-void MainWindow::on_actionDiagrama_Lazo_Nyquist_triggered()
+void MainWindow::on_actionNyquistLoop_triggered()
 {
-    mostrarLazo(false, true);
+    showLoopDiagrams(false, true);
 }
 
-void MainWindow::on_actionTodos_los_Diagramas_2_triggered()
+void MainWindow::on_actionAllLoopDiagrams_triggered()
 {
-    mostrarLazo(true, true);
+    showLoopDiagrams(true, true);
 }
 
-void MainWindow::mostrarLazo(bool nichols, bool nyquist){
+void MainWindow::showLoopDiagrams(bool nichols, bool nyquistRadio){
 
-    //Sin boundaries y estructura del controlador no hay lazo que mostrar
-    //(antes se desreferenciaban DAOs sin inicializar).
-    if (!paso5 || !paso6){
+    //Without boundaries and a controller structure there is no loop to
+    //show (uninitialised DAOs used to be dereferenced).
+    if (!boundariesDone || !controllerDone){
         errorMessage(tr("To show the loop diagram, first compute the boundaries and enter the controller structure."), tr("QFT"));
         return;
     }
 
     qreal maglineal = 0;
 
-    BoundaryData * boundaries = controlador->getBound();
+    BoundaryData * boundaries = controller->getBound();
 
     QVector< QVector<QPointF> * > * boun = boundaries->unionBoundaries();
 
@@ -660,10 +660,10 @@ void MainWindow::mostrarLazo(bool nichols, bool nyquist){
         foreach (auto p, *vector) {
             maglineal = pow(10,p.y()/20);
 
-            QPointF punto (maglineal * cos (p.x() * M_PI / 180),
+            QPointF range_point (maglineal * cos (p.x() * M_PI / 180),
                            maglineal * sin (p.x() * M_PI / 180));
 
-            nuevoVector->append(punto);
+            nuevoVector->append(range_point);
 
 
         }
@@ -691,15 +691,15 @@ void MainWindow::mostrarLazo(bool nichols, bool nyquist){
 
     LoopBoundariesViewer * ver = new LoopBoundariesViewer();
 
-    ver->setDatos(boundaries, nuevoBoundaries, controlador->getOmega()->getValores(), controlador->getPlanta(),
-                  controlador->getControlador(), nichols, nyquist);
+    ver->setDatos(boundaries, nuevoBoundaries, controller->getOmega()->getValores(), controller->getPlanta(),
+                  controller->getControlador(), nichols, nyquistRadio);
 
-    ver->mostrar_diagrama();
+    ver->showDiagram();
 
     ver->exec();
 
-    //BoundaryData es una vista no propietaria: los contenedores temporales
-    //construidos aqui se liberan aparte (antes se abandonaban).
+    //BoundaryData is a non-owning view: the temporary containers built
+    //here are freed separately (they used to be abandoned).
     delete nuevoBoundaries;
 
     foreach (QVector<QPointF> * vector, *nuevosBoundariesReun) {
@@ -720,40 +720,40 @@ void MainWindow::mostrarLazo(bool nichols, bool nyquist){
 
 void MainWindow::on_actionTemplates_triggered()
 {
-    //Accion de "volver a ver": si no hay templates calculados no hay nada
-    //que mostrar (antes marcaba el paso como hecho sin datos).
-    if (!paso4){
+    //View-again action: with no computed templates there is nothing to
+    //show (it used to mark the step done without data).
+    if (!templatesDone){
         return;
     }
 
-    if (controlador->getTemplate() != nullptr && controlador->getContorno() != nullptr){
-        graficoTemplate->setDatos(controlador);
-        graficoTemplate->pintarGrafico(true);
+    if (controller->getTemplate() != nullptr && controller->getContorno() != nullptr){
+        templateViewer->setDatos(controller);
+        templateViewer->plotDiagram(true);
 
-        graficoTemplate->show();
+        templateViewer->show();
     }
 }
 
 void MainWindow::on_actionBoundaries_triggered()
 {
-    if (!paso5){
+    if (!boundariesDone){
         return;
     }
 
-    viewBoundReun->setDatos(controlador->unionBoundaries(), controlador->getOmega()->getValores());
-    viewBoundReun->mostrar_diagrama();
-    viewBoundReun->show();
+    boundaryUnionViewer->setDatos(controller->unionBoundaries(), controller->getOmega()->getValores());
+    boundaryUnionViewer->showDiagram();
+    boundaryUnionViewer->show();
 }
 
-void MainWindow::on_actionLazo_triggered()
+void MainWindow::on_actionLoop_triggered()
 {
-    if (!paso7){
+    if (!loopDone){
         return;
     }
 
-    viewLoopShaping->setDatos(controlador->unionBoundaries(),controlador->getOmega()->getValores(),
-                              controlador->getLoopShaping(), controlador->getPlanta(), loopShaping->getLinLogSpace());
+    loopShapingViewer->setDatos(controller->unionBoundaries(),controller->getOmega()->getValores(),
+                              controller->getLoopShaping(), controller->getPlanta(), loopShapingDialog->isLinSpace());
 
-    viewLoopShaping->mostrar_diagrama();
-    viewLoopShaping->show();
+    loopShapingViewer->showDiagram();
+    loopShapingViewer->show();
 }

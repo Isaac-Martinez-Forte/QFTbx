@@ -58,82 +58,82 @@ public:
     ~MainWindow();
 
 private slots:
-    void on_BDefiPlanta_clicked();
+    void on_plantButton_clicked();
 
-    void on_BFrec_clicked();
+    void on_frequenciesButton_clicked();
 
-    void on_BTemp_clicked();
+    void on_templatesButton_clicked();
 
-    void on_BBoun_clicked();
+    void on_boundariesButton_clicked();
 
-    void on_actionGuardar_triggered();
+    void on_actionSave_triggered();
 
-    void on_actionGuardar_como_triggered();
+    void on_actionSaveAs_triggered();
 
-    void on_actionAbrir_triggered();
+    void on_actionOpen_triggered();
 
-    void on_actionConsola_triggered();
+    void on_actionConsole_triggered();
 
-    void on_BEspi_clicked();
+    void on_specificationsButton_clicked();
 
-    void on_BDiLaz_clicked();
+    void on_loopButton_clicked();
 
-    void on_BECont_clicked();
+    void on_controllerButton_clicked();
 
-    void on_actionNuevo_triggered();
+    void on_actionNew_triggered();
 
-    void on_actionDiagrama_Lazo_Nichols_2_triggered();
+    void on_actionNicholsLoop_triggered();
 
-    void on_actionDiagrama_Lazo_Nyquist_triggered();
+    void on_actionNyquistLoop_triggered();
 
-    void on_actionTodos_los_Diagramas_2_triggered();
+    void on_actionAllLoopDiagrams_triggered();
 
     void on_actionTemplates_triggered();
 
     void on_actionBoundaries_triggered();
 
-    void on_actionLazo_triggered();
+    void on_actionLoop_triggered();
 
 private:
     Ui::MainWindow *ui;
 
-    bool paso1; //introducir planta
-    bool paso2; //introducir especificacione
-    bool paso3; //introducir frecuencias de diseño
-    bool paso4; //templates
-    bool paso5; //Boundaries
-    bool paso6; //introducir controlador
-    bool paso7; //Ajuste del lazo
+    bool plantDone;
+    bool specificationsDone;
+    bool frequenciesDone;
+    bool templatesDone;
+    bool boundariesDone;
+    bool controllerDone;
+    bool loopDone;
 
-    bool digBode;
-    bool digconsola;
+    bool bodeCreated;
+    bool consoleCreated;
 
     bool digBodeFichero;
 
-    qint32 posBarra;
+    qint32 progressPosition;
 
-    Controlador * controlador = nullptr;
-    PlantDialog * intPlanta = nullptr;
-    FrequenciesDialog * intOmega = nullptr;
-    BodeViewer * diagramaBode = nullptr;
-    TemplatesDialog * vTemplates = nullptr;
-    TemplateViewer * graficoTemplate = nullptr;
-    BoundaryGridDialog * datosBoun = nullptr;
-    BoundaryViewer * viewBound = nullptr;
-    BoundaryUnionViewer * viewBoundReun = nullptr;
-    SpecificationsDialog * especificaciones = nullptr;
-    ControllerDialog * eControlador = nullptr;
-    LoopShapingDialog * loopShaping = nullptr;
-    LoopShapingViewer * viewLoopShaping = nullptr;
+    Controlador * controller = nullptr;
+    PlantDialog * plantDialog = nullptr;
+    FrequenciesDialog * frequenciesDialog = nullptr;
+    BodeViewer * bodeViewer = nullptr;
+    TemplatesDialog * templatesDialog = nullptr;
+    TemplateViewer * templateViewer = nullptr;
+    BoundaryGridDialog * boundaryGridDialog = nullptr;
+    BoundaryViewer * boundaryViewer = nullptr;
+    BoundaryUnionViewer * boundaryUnionViewer = nullptr;
+    SpecificationsDialog * specificationsDialog = nullptr;
+    ControllerDialog * controllerDialog = nullptr;
+    LoopShapingDialog * loopShapingDialog = nullptr;
+    LoopShapingViewer * loopShapingViewer = nullptr;
 
-    QString ficheroGuardar;
+    QString saveFilePath;
 
-    void mostrarLazo (bool nichols, bool nyquist);
+    void showLoopDiagrams (bool nichols, bool nyquist);
 
-    void guardar ();
+    void saveProject ();
 
-    void crear();
-    void destruir();
+    void createSession();
+    void destroySession();
     void destroyDialogs();
     void stepBack(bool & paso);
 

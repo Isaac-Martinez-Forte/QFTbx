@@ -13,7 +13,7 @@
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
-  <widget class="QCustomPlot" name="diagrama" native="true">
+  <widget class="QCustomPlot" name="plot" native="true">
    <property name="geometry">
     <rect>
      <x>140</x>
@@ -59,15 +59,15 @@
     </property>
     <layout class="QVBoxLayout" name="verticalLayout">
      <item>
-      <widget class="QPushButton" name="templates">
+      <widget class="QPushButton" name="templatesButton">
        <property name="text">
         <string>Show
-templates</string>
+templatesButton</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="contorno">
+      <widget class="QPushButton" name="contourButton">
        <property name="text">
         <string>Hide
 contour</string>
@@ -87,21 +87,21 @@ contour</string>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout_2">
      <item>
-      <widget class="QPushButton" name="eContorno">
+      <widget class="QPushButton" name="exportContourButton">
        <property name="text">
         <string>Export contour</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="eTemplate">
+      <widget class="QPushButton" name="exportTemplateButton">
        <property name="text">
         <string>Export template</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="guardar">
+      <widget class="QPushButton" name="saveImage">
        <property name="text">
         <string>Save</string>
        </property>
@@ -109,7 +109,7 @@ contour</string>
      </item>
     </layout>
    </widget>
-   <widget class="QPushButton" name="recalcular">
+   <widget class="QPushButton" name="recomputeButton">
     <property name="geometry">
      <rect>
       <x>20</x>

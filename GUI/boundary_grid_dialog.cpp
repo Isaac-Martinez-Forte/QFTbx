@@ -13,32 +13,32 @@ BoundaryGridDialog::BoundaryGridDialog(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    realizado = false;
+    accepted_once = false;
 
-    ui->fasInit->setValidator(new QDoubleValidator(this));
-    ui->fasFin->setValidator(new QDoubleValidator(this));
-    ui->magInit->setValidator(new QDoubleValidator(this));
-    ui->magFin->setValidator(new QDoubleValidator(this));
+    ui->phaseStart->setValidator(new QDoubleValidator(this));
+    ui->phaseEnd->setValidator(new QDoubleValidator(this));
+    ui->magnitudeStart->setValidator(new QDoubleValidator(this));
+    ui->magnitudeEnd->setValidator(new QDoubleValidator(this));
 
-    ui->fasPuntos->setValidator(new QIntValidator(this));
-    ui->magPuntos->setValidator(new QIntValidator(this));
+    ui->phasePoints->setValidator(new QIntValidator(this));
+    ui->magnitudePoints->setValidator(new QIntValidator(this));
 
-    ui->infinito->setValidator(new QDoubleValidator(this));
+    ui->infinityEdit->setValidator(new QDoubleValidator(this));
 
-    ui->fasInit->setText("-360");
-    ui->fasFin->setText("0");
-    ui->fasPuntos->setText("361");
+    ui->phaseStart->setText("-360");
+    ui->phaseEnd->setText("0");
+    ui->phasePoints->setText("361");
 
-    ui->magInit->setText("-60");
-    ui->magFin->setText("60");
-    ui->magPuntos->setText("121");
+    ui->magnitudeStart->setText("-60");
+    ui->magnitudeEnd->setText("60");
+    ui->magnitudePoints->setText("121");
 
-    cuda = false;
+    cudaCheck = false;
 
     setWindowTitle(tr("Boundary grid input"));
 
 #ifndef CUDA_AVAILABLE
-    ui->cuda->setVisible(false);
+    ui->cudaCheck->setVisible(false);
 #endif
 
     todoCorrecto = false;
@@ -49,29 +49,29 @@ BoundaryGridDialog::~BoundaryGridDialog()
     delete ui;
 }
 
-QPointF BoundaryGridDialog::getDatosFas(){
-    return datosFase;
+QPointF BoundaryGridDialog::phaseRangeValue(){
+    return phaseRange;
 }
 
-QPointF BoundaryGridDialog::getDatosMag(){
-    return datosMag;
+QPointF BoundaryGridDialog::magnitudeRangeValue(){
+    return magnitudeRange;
 }
 
-qint32 BoundaryGridDialog::getPuntosFas(){
-    return nPuntosFas;
+qint32 BoundaryGridDialog::phaseCountValue(){
+    return phaseCount;
 }
 
-qint32 BoundaryGridDialog::getPuntosMag(){
-    return nPuntosMag;
+qint32 BoundaryGridDialog::magnitudeCountValue(){
+    return magnitudeCount;
 }
 
-qreal BoundaryGridDialog::getInfinito(){
-    return infinito;
+qreal BoundaryGridDialog::infinityValue(){
+    return infinityEdit;
 }
 
-bool BoundaryGridDialog::isContornoSelect(){
+bool BoundaryGridDialog::contourSelected(){
 
-    if (ui->template_2->isChecked()){
+    if (ui->fullTemplateRadio->isChecked()){
         return false;
     }
 
@@ -80,46 +80,45 @@ bool BoundaryGridDialog::isContornoSelect(){
 
 void BoundaryGridDialog::on_buttonBox_accepted()
 {
-    if (ui->infinito->text().isEmpty()){
-        infinito = -1;
+    if (ui->infinityEdit->text().isEmpty()){
+        infinityEdit = -1;
     }else{
-        infinito = ui->infinito->text().toDouble();
+        infinityEdit = ui->infinityEdit->text().toDouble();
     }
 
-    datosFase = QPointF(ui->fasInit->text().toDouble(),ui->fasFin->text().toDouble());
-    datosMag = QPointF(ui->magInit->text().toDouble(),ui->magFin->text().toDouble());
+    phaseRange = QPointF(ui->phaseStart->text().toDouble(),ui->phaseEnd->text().toDouble());
+    magnitudeRange = QPointF(ui->magnitudeStart->text().toDouble(),ui->magnitudeEnd->text().toDouble());
 
-    nPuntosFas = ui->fasPuntos->text().toInt();
-    nPuntosMag = ui->magPuntos->text().toInt();
+    phaseCount = ui->phasePoints->text().toInt();
+    magnitudeCount = ui->magnitudePoints->text().toInt();
 
-    //La rejilla debe tener sentido antes de lanzar el calculo: rangos
-    //crecientes y al menos dos puntos por eje (antes cualquier valor pasaba
-    //directo al motor).
-    if (datosFase.x() >= datosFase.y() || datosMag.x() >= datosMag.y() ||
-            nPuntosFas < 2 || nPuntosMag < 2){
+    //The grid must make sense before launching the computation: increasing
+    //ranges and at least two points per axis (any value used to go straight
+    //into the engine).
+    if (phaseRange.x() >= phaseRange.y() || magnitudeRange.x() >= magnitudeRange.y() ||
+            phaseCount < 2 || magnitudeCount < 2){
         tools::errorMessage(tr("The grid ranges must be increasing, with at least 2 points per axis."), tr("Boundary grid input"));
         todoCorrecto = false;
         return;
     }
 
-    realizado = true;
+    accepted_once = true;
 
-    //Lectura directa: el latch anterior dejaba CUDA activado para siempre
-    //tras marcarlo una vez.
-    cuda = ui->cuda->isChecked();
+    //Direct read: the old latch left CUDA enabled forever once checked.
+    cudaCheck = ui->cudaCheck->isChecked();
 
     todoCorrecto = true;
 }
 
 void BoundaryGridDialog::showEvent(QShowEvent * event)
 {
-    //Reabrir y cancelar no debe relanzar el calculo con los datos antiguos.
+    //Reopening and cancelling must not relaunch the computation with the old data.
     todoCorrecto = false;
     QDialog::showEvent(event);
 }
 
-bool BoundaryGridDialog::getCUDA(){
-    return cuda;
+bool BoundaryGridDialog::cudaSelected(){
+    return cudaCheck;
 }
 
 bool BoundaryGridDialog::getTodoCorrecto(){

@@ -12,136 +12,136 @@ using namespace tools;
 
 namespace {
 
-//Las tres tablas paralelas del parseo (valores, expresiones, flags) se crean
-//juntas: se liberan juntas. Antes los caminos de error y el propio Aceptar
-//las abandonaban con clear().
-void liberarTablas(QVector <QVector <QString> * > * datosTabla,
-                   QVector <QVector <QString> * > * exp,
-                   QVector <QVector <bool> * > * isVar){
-    if (datosTabla != nullptr){
-        qDeleteAll(*datosTabla);
-        delete datosTabla;
+//The three parallel parse tables (values, expressions, flags) are created
+//together and freed together. The error paths and accept itself used to
+//abandon them with clear().
+void releaseTables(QVector <QVector <QString> * > * valueTable,
+                   QVector <QVector <QString> * > * expressionTable,
+                   QVector <QVector <bool> * > * uncertainTable){
+    if (valueTable != nullptr){
+        qDeleteAll(*valueTable);
+        delete valueTable;
     }
-    qDeleteAll(*exp);
-    delete exp;
-    qDeleteAll(*isVar);
-    delete isVar;
+    qDeleteAll(*expressionTable);
+    delete expressionTable;
+    qDeleteAll(*uncertainTable);
+    delete uncertainTable;
 }
 
 } // namespace
 
-PlantDialog::PlantDialog(Controlador * controlador, QWidget *parent) :
+PlantDialog::PlantDialog(Controlador * controller, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::PlantDialog)
 {
     ui->setupUi(this);
     setWindowTitle(tr("Plant input"));
 
-    this->controlador = controlador;
+    this->controller = controller;
     
-    //ocultamos al inicio los botones no necesarios
-    ui->pYCe->setVisible(false);
-    ui->cDPol->setVisible(false);
-    ui->kGa->setVisible(false);
-    ui->kNoGa->setVisible(false);
+    //Hide the buttons that do not apply yet.
+    ui->zerosPolesRadio->setVisible(false);
+    ui->polynomialRadio->setVisible(false);
+    ui->zpkRadio->setVisible(false);
+    ui->tcgRadio->setVisible(false);
 
-    ui->kCP->setText("1");
-    ui->retCP->setText("0");
+    ui->polyGain->setText("1");
+    ui->polyDelay->setText("0");
 
-    ui->kKG->setText("1");
-    ui->retKG->setText("0");
-
-
-    ui->kkNG->setText("1");
-    ui->retKNG->setText("0");
-
-    ui->kFL->setText("1");
-    ui->retFL->setText("0");
+    ui->zpkGain->setText("1");
+    ui->zpkDelay->setText("0");
 
 
-    incertidumbreIntroducida = false;
+    ui->tcgGain->setText("1");
+    ui->tcgDelay->setText("0");
+
+    ui->freeGain->setText("1");
+    ui->freeDelay->setText("0");
+
+
+    uncertaintyEntered = false;
 
     todoCorrecto = false;
 
-    //Creamos la pantalla para introducir la incertidumbre que usaremos despues.
-    viewIncer = new UncertaintyDialog (this);
+    //The uncertainty dialog is created up front and reused.
+    uncertaintyDialog = new UncertaintyDialog (this);
 
-    //Establecemos las figures de las plantas:
+    //Plant figure images:
 
     QPixmap imagen1 (":/figures/kgan.png");
-    ui->imaKG->setPixmap(imagen1);
+    ui->zpkImage->setPixmap(imagen1);
 
     QPixmap imagen2 (":/figures/knogan.png");
-    ui->imaKNG->setPixmap(imagen2);
+    ui->tcgImage->setPixmap(imagen2);
 
     QPixmap imagen3 (":/figures/copol.png");
-    ui->imaCP->setPixmap(imagen3);
+    ui->polyImage->setPixmap(imagen3);
 
-    //conectamos el boton cancelar
-    connect(ui->cancel, SIGNAL(clicked()), this, SLOT(close()));
+    //Wire the cancel button.
+    connect(ui->cancelButton, SIGNAL(clicked()), this, SLOT(close()));
 }
 
 PlantDialog::~PlantDialog()
 {
     delete ui;
-    delete viewIncer;
+    delete uncertaintyDialog;
 }
 
-void PlantDialog::on_pYCe_toggled(bool checked)
+void PlantDialog::on_zerosPolesRadio_toggled(bool checked)
 {
-    ui->kGa->setVisible(checked);
-    ui->kNoGa->setVisible(checked);
-    ui->pYCe->setVisible(checked);
-    ui->cDPol->setVisible(checked);
+    ui->zpkRadio->setVisible(checked);
+    ui->tcgRadio->setVisible(checked);
+    ui->zerosPolesRadio->setVisible(checked);
+    ui->polynomialRadio->setVisible(checked);
 
     if (checked == true)
-        ui->agrupador->setCurrentIndex(0);
+        ui->formStack->setCurrentIndex(0);
 }
 
-void PlantDialog::on_fT_toggled(bool checked)
+void PlantDialog::on_transferFunctionRadio_toggled(bool checked)
 {
-    ui->pYCe->setVisible(checked);
-    ui->cDPol->setVisible(checked);
+    ui->zerosPolesRadio->setVisible(checked);
+    ui->polynomialRadio->setVisible(checked);
 
     if (checked == true)
-        ui->agrupador->setCurrentIndex(0);
+        ui->formStack->setCurrentIndex(0);
 }
 
-void PlantDialog::on_kGa_toggled(bool checked)
+void PlantDialog::on_zpkRadio_toggled(bool checked)
 {
-    ui->pYCe->setVisible(checked);
-    ui->cDPol->setVisible(checked);
-    ui->kGa->setVisible(checked);
-    ui->kNoGa->setVisible(checked);
+    ui->zerosPolesRadio->setVisible(checked);
+    ui->polynomialRadio->setVisible(checked);
+    ui->zpkRadio->setVisible(checked);
+    ui->tcgRadio->setVisible(checked);
 
     if (checked == true)
-        ui->agrupador->setCurrentIndex(3);
+        ui->formStack->setCurrentIndex(3);
 
 }
 
-void PlantDialog::on_kNoGa_toggled(bool checked)
+void PlantDialog::on_tcgRadio_toggled(bool checked)
 {
 
-    ui->pYCe->setVisible(checked);
-    ui->cDPol->setVisible(checked);
-    ui->kGa->setVisible(checked);
-    ui->kNoGa->setVisible(checked);
+    ui->zerosPolesRadio->setVisible(checked);
+    ui->polynomialRadio->setVisible(checked);
+    ui->zpkRadio->setVisible(checked);
+    ui->tcgRadio->setVisible(checked);
 
     if (checked == true)
-        ui->agrupador->setCurrentIndex(4);
+        ui->formStack->setCurrentIndex(4);
 }
 
-void PlantDialog::on_cDPol_toggled(bool checked)
+void PlantDialog::on_polynomialRadio_toggled(bool checked)
 {
-    ui->pYCe->setVisible(checked);
-    ui->cDPol->setVisible(checked);
+    ui->zerosPolesRadio->setVisible(checked);
+    ui->polynomialRadio->setVisible(checked);
 
     if (checked == true)
-        ui->agrupador->setCurrentIndex(2);
+        ui->formStack->setCurrentIndex(2);
 }
 
-bool PlantDialog::comprobarParse(QVector<QVector <QString> * > * tabla, QLineEdit *linea,
-                                      QVector<QVector <QString> * > * exp, QVector <QVector <bool> * > * isVar){
+bool PlantDialog::parseCoefficients(QVector<QVector <QString> * > * tabla, QLineEdit *linea,
+                                      QVector<QVector <QString> * > * expressionTable, QVector <QVector <bool> * > * uncertainTable){
 
     QVector <QString> * vec1 = tools::srtovectorString(linea->text());
     QVector <QString> * vec = new QVector <QString> ();
@@ -157,22 +157,22 @@ bool PlantDialog::comprobarParse(QVector<QVector <QString> * > * tabla, QLineEdi
             QRegularExpression re("[a-zA-Z]+");
 
             QRegularExpressionMatch match = re.match(e);
-            QString captura = match.captured(0);
-            e.remove(captura);
+            QString capture = match.captured(0);
+            e.remove(capture);
 
             bool isUncertain = false;
 
-            while (!captura.isNull()){
+            while (!capture.isNull()){
 
-                if (!p.IsFunDefined(captura.toStdString())){
-                    vec->append(captura);
-                    captura = QString();
+                if (!p.IsFunDefined(capture.toStdString())){
+                    vec->append(capture);
+                    capture = QString();
                     isUncertain = true;
                     break;
                 }
                 match = re.match(e);
-                captura = match.captured(0);
-                e.remove(captura);
+                capture = match.captured(0);
+                e.remove(capture);
             }
 
             vec2->append(isUncertain);
@@ -184,14 +184,14 @@ bool PlantDialog::comprobarParse(QVector<QVector <QString> * > * tabla, QLineEdi
     }
 
     tabla->append(vec);
-    isVar->append(vec2);
-    exp->append(vec1);
+    uncertainTable->append(vec2);
+    expressionTable->append(vec1);
 
     return true;
 }
 
-bool PlantDialog::comprobarParseKREt(QVector<QVector <QString> * > * tabla, QLineEdit *linea,
-                                          QVector <QVector <QString> * > * exp, QVector <QVector <bool> * > * isVar){
+bool PlantDialog::parseScalar(QVector<QVector <QString> * > * tabla, QLineEdit *linea,
+                                          QVector <QVector <QString> * > * expressionTable, QVector <QVector <bool> * > * uncertainTable){
 
 
     QString aux = linea->text();
@@ -204,21 +204,21 @@ bool PlantDialog::comprobarParseKREt(QVector<QVector <QString> * > * tabla, QLin
     QRegularExpression re("[a-zA-Z]+");
     QRegularExpressionMatch match = re.match(aux);
     qint32 i = 0;
-    QString captura = match.captured(i);
+    QString capture = match.captured(i);
 
     bool isUncertain = false;
 
-    while (!captura.isNull()){
+    while (!capture.isNull()){
 
-        if (!p.IsFunDefined(captura.toStdString())){
-            vec->append(captura);
-            captura = QString();
+        if (!p.IsFunDefined(capture.toStdString())){
+            vec->append(capture);
+            capture = QString();
             isUncertain = true;
             break;
         }
         match = re.match(aux);
-        captura = match.captured(0);
-        aux.remove(captura);
+        capture = match.captured(0);
+        aux.remove(capture);
     }
 
     vec2->append(isUncertain);
@@ -228,111 +228,111 @@ bool PlantDialog::comprobarParseKREt(QVector<QVector <QString> * > * tabla, QLin
     }
 
     tabla->append(vec);
-    exp->append(vec1);
-    isVar->append(vec2);
+    expressionTable->append(vec1);
+    uncertainTable->append(vec2);
 
     return true;
 }
 
-bool PlantDialog::comprobarParserFL(QLineEdit * linea, QVector<QVector <QString> * > * tabla, QVector<QVector<QString> *> *exp,
-                       QVector <QVector <bool> * > * isVar){
+bool PlantDialog::parseFreeForm(QLineEdit * linea, QVector<QVector <QString> * > * tabla, QVector<QVector<QString> *> *expressionTable,
+                       QVector <QVector <bool> * > * uncertainTable){
 
-    QVector <QString> * vec_exp = new QVector <QString> ();
-    QVector <QString> * vec_tabla = new QVector <QString> ();
-    QVector <bool> * vec_isVar  = new QVector <bool> ();
+    QVector <QString> * expressions = new QVector <QString> ();
+    QVector <QString> * values = new QVector <QString> ();
+    QVector <bool> * flags  = new QVector <bool> ();
 
-    QString nume_s = linea->text();
+    QString text = linea->text();
 
     QRegularExpression re("[a-zA-Z]+");
-    QRegularExpressionMatch match = re.match(nume_s);
-    QString captura = match.captured(0);
+    QRegularExpressionMatch match = re.match(text);
+    QString capture = match.captured(0);
 
-    nume_s.remove(captura);
+    text.remove(capture);
 
-    while (!captura.isNull()){
+    while (!capture.isNull()){
 
-        if (!p.IsFunDefined(captura.toStdString()) && captura != "s"){
+        if (!p.IsFunDefined(capture.toStdString()) && capture != "s"){
 
-            vec_exp->append(captura);
-            vec_tabla->append(captura);
-            vec_isVar->append(true);
+            expressions->append(capture);
+            values->append(capture);
+            flags->append(true);
 
-            captura = QString();
+            capture = QString();
         }
-        match = re.match(nume_s);
-        captura = match.captured(0);
-        nume_s.remove(captura);
+        match = re.match(text);
+        capture = match.captured(0);
+        text.remove(capture);
     }
 
 
-    tabla->append(vec_tabla);
-    exp->append(vec_exp);
-    isVar->append(vec_isVar);
+    tabla->append(values);
+    expressionTable->append(expressions);
+    uncertainTable->append(flags);
 
     return true;
 }
 
 
-QVector<QVector <QString> * > * PlantDialog::seleTabla(QVector <QVector <QString> * > * exp, QVector <QVector <bool> * > * isVar){
+QVector<QVector <QString> * > * PlantDialog::readTables(QVector <QVector <QString> * > * expressionTable, QVector <QVector <bool> * > * uncertainTable){
 
-    QVector <QVector <QString> * > * devolver = new QVector <QVector <QString> * > ();
+    QVector <QVector <QString> * > * tables = new QVector <QVector <QString> * > ();
 
-    if (ui->cDPol->isChecked()){
-        comprobarParse(devolver, ui->numeCP, exp, isVar);
-        comprobarParse(devolver, ui->denoCP, exp, isVar);
-        comprobarParseKREt(devolver, ui->kCP, exp, isVar);
-        comprobarParseKREt(devolver, ui->retCP, exp, isVar);
-    }else if (ui->kGa->isChecked()){
-        comprobarParse(devolver, ui->numeKG, exp, isVar);
-        comprobarParse(devolver, ui->denoKG, exp, isVar);
-        comprobarParseKREt(devolver, ui->kKG, exp, isVar);
-        comprobarParseKREt(devolver, ui->retKG, exp, isVar);
-    }else if (ui->kNoGa->isChecked()){
-        comprobarParse(devolver, ui->numeKNG, exp, isVar);
-        comprobarParse(devolver, ui->denoKNG, exp, isVar);
-        comprobarParseKREt(devolver, ui->kkNG, exp, isVar);
-        comprobarParseKREt(devolver, ui->retKNG, exp, isVar);
-    }else if (ui->Formato_Libre->isChecked()){
-        comprobarParserFL(ui->numeFL, devolver, exp, isVar);
-        comprobarParserFL(ui->denoFL, devolver, exp, isVar);
-        comprobarParseKREt(devolver, ui->kFL, exp, isVar);
-        comprobarParseKREt(devolver, ui->retFL, exp, isVar);
+    if (ui->polynomialRadio->isChecked()){
+        parseCoefficients(tables, ui->polyNumerator, expressionTable, uncertainTable);
+        parseCoefficients(tables, ui->polyDenominator, expressionTable, uncertainTable);
+        parseScalar(tables, ui->polyGain, expressionTable, uncertainTable);
+        parseScalar(tables, ui->polyDelay, expressionTable, uncertainTable);
+    }else if (ui->zpkRadio->isChecked()){
+        parseCoefficients(tables, ui->zpkNumerator, expressionTable, uncertainTable);
+        parseCoefficients(tables, ui->zpkDenominator, expressionTable, uncertainTable);
+        parseScalar(tables, ui->zpkGain, expressionTable, uncertainTable);
+        parseScalar(tables, ui->zpkDelay, expressionTable, uncertainTable);
+    }else if (ui->tcgRadio->isChecked()){
+        parseCoefficients(tables, ui->tcgNumerator, expressionTable, uncertainTable);
+        parseCoefficients(tables, ui->tcgDenominator, expressionTable, uncertainTable);
+        parseScalar(tables, ui->tcgGain, expressionTable, uncertainTable);
+        parseScalar(tables, ui->tcgDelay, expressionTable, uncertainTable);
+    }else if (ui->freeFormRadio->isChecked()){
+        parseFreeForm(ui->freeNumerator, tables, expressionTable, uncertainTable);
+        parseFreeForm(ui->freeDenominator, tables, expressionTable, uncertainTable);
+        parseScalar(tables, ui->freeGain, expressionTable, uncertainTable);
+        parseScalar(tables, ui->freeDelay, expressionTable, uncertainTable);
     }else{
-        devolver->clear();
-        exp->clear();
-        isVar->clear();
+        tables->clear();
+        expressionTable->clear();
+        uncertainTable->clear();
         return NULL;
     }
 
-    /* if (!valido){
-        devolver->clear();
+    /* if (!valid){
+        tables->clear();
         return NULL;
     }*/
 
-    return devolver;
+    return tables;
 }
 
-void PlantDialog::on_ok_clicked()
+void PlantDialog::on_okButton_clicked()
 {
 
-    //El nombre tambien se exige aqui: antes solo lo validaba el camino de la
-    //incertidumbre y se podian guardar plantas sin nombre.
-    if (ui->nombre->text().isEmpty()){
+    //The name is required here too: only the uncertainty path used to
+    //validate it, and nameless plants could be saved.
+    if (ui->nameEdit->text().isEmpty()){
         errorMessage(tr("The plant name is missing."), tr("Plant input"));
-        ui->nombre->setStyleSheet("background : red");
+        ui->nameEdit->setStyleSheet("background : red");
         return;
     }
-    ui->nombre->setStyleSheet("background : white");
+    ui->nameEdit->setStyleSheet("background : white");
 
-    QVector <QVector <QString> * > * exp = new QVector <QVector <QString> * > ();
-    QVector <QVector <bool> * > *  isVar = new QVector <QVector <bool> * >  ();
-    QVector <QVector <QString> * > * datosTabla = seleTabla(exp, isVar);
+    QVector <QVector <QString> * > * expressionTable = new QVector <QVector <QString> * > ();
+    QVector <QVector <bool> * > *  uncertainTable = new QVector <QVector <bool> * >  ();
+    QVector <QVector <QString> * > * valueTable = readTables(expressionTable, uncertainTable);
 
-    if (datosTabla == NULL){
-        qDeleteAll(*exp);
-        delete exp;
-        qDeleteAll(*isVar);
-        delete isVar;
+    if (valueTable == NULL){
+        qDeleteAll(*expressionTable);
+        delete expressionTable;
+        qDeleteAll(*uncertainTable);
+        delete uncertainTable;
         errorMessage(tr("There is an error in the plant data"), tr("Plant input"));
         return;
     }
@@ -340,91 +340,91 @@ void PlantDialog::on_ok_clicked()
     Parameter * kv = nullptr;
     Parameter * retv = nullptr;
 
-    //Las expresiones vienen del usuario: un error de sintaxis en muParserX
-    //lanzaba y tiraba la aplicacion.
+    //The expressions come from the user: a muParserX syntax error used to
+    //throw and bring the application down.
     try {
-        if (datosTabla->at(2)->size() == 0){
+        if (valueTable->at(2)->size() == 0){
             kv = new Parameter (1);
         }else{
 
-            QPointF punto = viewIncer->gain();
-            p.SetExpr(exp->at(2)->at(0).toStdString());
+            QPointF range_point = uncertaintyDialog->gain();
+            p.SetExpr(expressionTable->at(2)->at(0).toStdString());
             qreal d = p.Eval().GetFloat();
 
-            if (d == punto.x() && d == punto.y()){
+            if (d == range_point.x() && d == range_point.y()){
                 kv = new Parameter (d);
             }else {
-                kv = new Parameter ("kv", punto, d, "kv");
+                kv = new Parameter ("kv", range_point, d, "kv");
             }
         }
 
-        if (datosTabla->at(3)->size() == 0){
+        if (valueTable->at(3)->size() == 0){
             retv = new Parameter (qreal(0));
         }else{
 
-            QPointF punto = viewIncer->delay();
-            p.SetExpr(exp->at(3)->at(0).toStdString());
+            QPointF range_point = uncertaintyDialog->delay();
+            p.SetExpr(expressionTable->at(3)->at(0).toStdString());
             qreal d = p.Eval().GetFloat();
 
-            if (d == punto.x() && d == punto.y()){
+            if (d == range_point.x() && d == range_point.y()){
                 retv = new Parameter (d);
             }else {
-                retv = new Parameter ("ret", punto, d, "ret");
+                retv = new Parameter ("ret", range_point, d, "ret");
             }
         }
     } catch (mup::ParserError &) {
         delete kv;
-        liberarTablas(datosTabla, exp, isVar);
+        releaseTables(valueTable, expressionTable, uncertainTable);
         errorMessage(tr("There is an error in the plant data"), tr("Plant input"));
         return;
     }
 
-    //La incertidumbre solo cuenta si su dialogo se ACEPTO (abrirlo y
-    //cancelar dejaba el flag puesto y se usaba un estado a medias).
-    if (incertidumbreIntroducida && viewIncer->getTodoCorrecto()){
-        //La planta toma propiedad de sus variables: se le entregan copias y
-        //el dialogo de incertidumbre conserva sus originales para editar.
-        QVector <Parameter*> * nume = Parameter::cloneVector(viewIncer->numerator());
-        QVector <Parameter*> * deno = Parameter::cloneVector(viewIncer->denominator());
+    //The uncertainty only counts if its dialog was ACCEPTED (opening and
+    //cancelling used to leave the flag set and a half-built state in use).
+    if (uncertaintyEntered && uncertaintyDialog->getTodoCorrecto()){
+        //The plant takes ownership of its parameters: it receives copies
+        //and the uncertainty dialog keeps its originals for editing.
+        QVector <Parameter*> * nume = Parameter::cloneVector(uncertaintyDialog->numerator());
+        QVector <Parameter*> * deno = Parameter::cloneVector(uncertaintyDialog->denominator());
 
-        if (ui->kGa->isChecked()){
-            planta = new ZeroPoleGain(ui->nombre->text(),nume, deno,kv,retv);
-        }else if(ui->kNoGa->isChecked()){
-            planta = new TimeConstantGain(ui->nombre->text(),nume, deno,kv,retv);
-        }else if (ui->cDPol->isChecked()){
-            planta = new PolynomialForm(ui->nombre->text(), nume, deno,kv,retv);
+        if (ui->zpkRadio->isChecked()){
+            plant = new ZeroPoleGain(ui->nameEdit->text(),nume, deno,kv,retv);
+        }else if(ui->tcgRadio->isChecked()){
+            plant = new TimeConstantGain(ui->nameEdit->text(),nume, deno,kv,retv);
+        }else if (ui->polynomialRadio->isChecked()){
+            plant = new PolynomialForm(ui->nameEdit->text(), nume, deno,kv,retv);
         }else{
-            planta = new FreeForm(ui->nombre->text(), nume, deno,kv,retv,
-                                      ui->numeFL->text(), ui->denoFL->text());
+            plant = new FreeForm(ui->nameEdit->text(), nume, deno,kv,retv,
+                                      ui->freeNumerator->text(), ui->freeDenominator->text());
         }
     }else{
-        if (ui->kGa->isChecked()){
-            planta = new ZeroPoleGain(ui->nombre->text(),crearNumeradorDenominador(datosTabla->at(0)),
-                                   crearNumeradorDenominador(datosTabla->at(1)),kv,retv );
-        }else if(ui->kNoGa->isChecked()){
-            planta = new TimeConstantGain(ui->nombre->text(),crearNumeradorDenominador(datosTabla->at(0)),
-                                    crearNumeradorDenominador(datosTabla->at(1)),kv,retv);
-        }else if (ui->cDPol->isChecked()){
-            planta = new PolynomialForm(ui->nombre->text(), crearNumeradorDenominador(datosTabla->at(0)),
-                                     crearNumeradorDenominador(datosTabla->at(1)),kv,retv);
+        if (ui->zpkRadio->isChecked()){
+            plant = new ZeroPoleGain(ui->nameEdit->text(),buildParameters(valueTable->at(0)),
+                                   buildParameters(valueTable->at(1)),kv,retv );
+        }else if(ui->tcgRadio->isChecked()){
+            plant = new TimeConstantGain(ui->nameEdit->text(),buildParameters(valueTable->at(0)),
+                                    buildParameters(valueTable->at(1)),kv,retv);
+        }else if (ui->polynomialRadio->isChecked()){
+            plant = new PolynomialForm(ui->nameEdit->text(), buildParameters(valueTable->at(0)),
+                                     buildParameters(valueTable->at(1)),kv,retv);
         }else {
-            planta = new FreeForm(ui->nombre->text(), crearNumeradorDenominador(datosTabla->at(0)),
-                                      crearNumeradorDenominador(datosTabla->at(1)),kv,retv,
-                                      ui->numeFL->text(), ui->denoFL->text());
+            plant = new FreeForm(ui->nameEdit->text(), buildParameters(valueTable->at(0)),
+                                      buildParameters(valueTable->at(1)),kv,retv,
+                                      ui->freeNumerator->text(), ui->freeDenominator->text());
         }
 
 
     }
 
-    controlador->setPlanta(planta);
-    liberarTablas(datosTabla, exp, isVar);
+    controller->setPlanta(plant);
+    releaseTables(valueTable, expressionTable, uncertainTable);
 
     todoCorrecto = true;
 
     this->close();
 }
 
-QVector <Parameter * > * PlantDialog::crearNumeradorDenominador(QVector <QString> * numeros){
+QVector <Parameter * > * PlantDialog::buildParameters(QVector <QString> * numeros){
     QVector <Parameter *> * var = new QVector <Parameter *> ();
     var->reserve(numeros->size());
 
@@ -437,8 +437,8 @@ QVector <Parameter * > * PlantDialog::crearNumeradorDenominador(QVector <QString
         try {
             var->append(new Parameter(p.Eval().GetFloat()));
         } catch (mup::ParserError &) {
-            //Coeficiente invalido: se toma 0 y el aviso lo dio seleTabla;
-            //antes la excepcion tiraba la aplicacion.
+            //Invalid coefficient: 0 is used and readTables already warned;
+            //the exception used to bring the application down.
             var->append(new Parameter(qreal(0)));
         }
     }
@@ -446,40 +446,40 @@ QVector <Parameter * > * PlantDialog::crearNumeradorDenominador(QVector <QString
     return var;
 }
 
-void PlantDialog::on_Inertidumbre_clicked()
+void PlantDialog::on_uncertaintyButton_clicked()
 {
-    QVector <QVector <QString> * > * exp  = new QVector <QVector <QString> * > ();
-    QVector <QVector <bool> * > *  isVar = new QVector <QVector <bool> * >  ();
-    QVector <QVector <QString> * > * datosTabla = seleTabla(exp, isVar);
+    QVector <QVector <QString> * > * expressionTable  = new QVector <QVector <QString> * > ();
+    QVector <QVector <bool> * > *  uncertainTable = new QVector <QVector <bool> * >  ();
+    QVector <QVector <QString> * > * valueTable = readTables(expressionTable, uncertainTable);
 
-    if (datosTabla == NULL){
-        qDeleteAll(*exp);
-        delete exp;
-        qDeleteAll(*isVar);
-        delete isVar;
+    if (valueTable == NULL){
+        qDeleteAll(*expressionTable);
+        delete expressionTable;
+        qDeleteAll(*uncertainTable);
+        delete uncertainTable;
         errorMessage(tr("There is an error in the plant data"), tr("Plant input"));
         return;
     }
 
-    if (ui->nombre->text().isEmpty()){
-        liberarTablas(datosTabla, exp, isVar);
+    if (ui->nameEdit->text().isEmpty()){
+        releaseTables(valueTable, expressionTable, uncertainTable);
         errorMessage(tr("The plant name is missing."), tr("Plant input"));
-        ui->nombre->setStyleSheet("background : red");
+        ui->nameEdit->setStyleSheet("background : red");
         return;
     }else{
-        ui->nombre->setStyleSheet("background : white");
+        ui->nameEdit->setStyleSheet("background : white");
     }
 
 
-    //Las tablas pasan a ser propiedad del dialogo de incertidumbre.
-    viewIncer->lanzarViewIncer(datosTabla, exp, isVar, false);
-    viewIncer->show();
-    incertidumbreIntroducida = true;
+    //The tables become property of the uncertainty dialog.
+    uncertaintyDialog->launch(valueTable, expressionTable, uncertainTable, false);
+    uncertaintyDialog->show();
+    uncertaintyEntered = true;
 }
 
-void PlantDialog::on_Formato_Libre_clicked()
+void PlantDialog::on_freeFormRadio_clicked()
 {
-    ui->agrupador->setCurrentIndex(1);
+    ui->formStack->setCurrentIndex(1);
 }
 
 

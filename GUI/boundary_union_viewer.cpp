@@ -13,18 +13,18 @@ BoundaryUnionViewer::BoundaryUnionViewer(QWidget *parent) :
 {
     ui->setupUi(this);
     setWindowTitle(tr("Boundary union"));
-    ejecutado = false;
+    plotted = false;
 
 
-    cajaFrecuencias = new QGroupBox(this);
-    cajaFrecuencias->setObjectName("cajaFrecuencias");
-    cajaFrecuencias->setGeometry(QRect(10, 120, 120, 451));
-    graficos2 = nullptr;
-    graficos3 = nullptr;
+    frequenciesBox = new QGroupBox(this);
+    frequenciesBox->setObjectName("frequenciesBox");
+    frequenciesBox->setGeometry(QRect(10, 120, 120, 451));
+    boxCurves = nullptr;
+    boxCurves2 = nullptr;
 
-    //Conectados UNA vez (cada repintado anadia una conexion duplicada).
-    connect(ui->diagrama->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->diagrama->xAxis2, SLOT(setRange(QCPRange)));
-    connect(ui->diagrama->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->diagrama->yAxis2, SLOT(setRange(QCPRange)));
+    //Connected ONCE (every replot used to add a duplicated connection).
+    connect(ui->plot->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->xAxis2, SLOT(setRange(QCPRange)));
+    connect(ui->plot->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->yAxis2, SLOT(setRange(QCPRange)));
 }
 
 BoundaryUnionViewer::~BoundaryUnionViewer()
@@ -36,101 +36,101 @@ BoundaryUnionViewer::~BoundaryUnionViewer()
 
 void BoundaryUnionViewer::clearDiagram(){
 
-    //graficos2/graficos3 apuntan a plottables que clearPlottables libera:
-    //conservarlos entre repintados dejaba punteros colgantes en
-    //revisarCheckBox. Se liberan los contenedores y se anulan siempre.
-    delete graficos2;
-    graficos2 = nullptr;
-    delete graficos3;
-    graficos3 = nullptr;
+    //boxCurves/boxCurves2 point at plottables that clearPlottables frees:
+    //keeping them across replots left dangling pointers in applyCheckboxes.
+    //The containers are freed and nulled always.
+    delete boxCurves;
+    boxCurves = nullptr;
+    delete boxCurves2;
+    boxCurves2 = nullptr;
 
-    if (!ejecutado){
+    if (!plotted){
         return;
     }
 
-    ui->diagrama->clearFocus();
-    ui->diagrama->clearGraphs();
-    ui->diagrama->clearItems();
-    //QCustomPlot es dueno de las curvas: clearPlottables las libera.
-    ui->diagrama->clearPlottables();
+    ui->plot->clearFocus();
+    ui->plot->clearGraphs();
+    ui->plot->clearItems();
+    //QCustomPlot owns the curves: clearPlottables frees them.
+    ui->plot->clearPlottables();
 
-    foreach (QCheckBox * che, *checkbox) {
+    foreach (QCheckBox * che, *checkboxes) {
         delete che->parentWidget();
     }
-    delete checkbox;
-    checkbox = nullptr;
+    delete checkboxes;
+    checkboxes = nullptr;
 
-    delete graficos;
-    graficos = nullptr;
+    delete curves;
+    curves = nullptr;
 
-    delete layoutColores;
-    layoutColores = nullptr;
+    delete colorsLayout;
+    colorsLayout = nullptr;
 
-    delete col;
-    col = nullptr;
+    delete colors;
+    colors = nullptr;
 
-    ejecutado = false;
+    plotted = false;
 }
 
 
-void BoundaryUnionViewer::setDatos(QVector<QVector<QPointF> *> *boun, QVector<qreal> *omega){
-    this->boun = boun;
+void BoundaryUnionViewer::setDatos(QVector<QVector<QPointF> *> *unionTraces, QVector<qreal> *omega){
+    this->unionTraces = unionTraces;
     this->omega = omega;
-    hash = false;
-    //Sin esto, un uso previo del modo un-solo-boundarie dejaba el indice
-    //pegado y este modo pintaba una sola frecuencia.
-    unBoundarie = -1;
+    bucketMode = false;
+    //Without this, a previous single-boundary use left the index stuck and
+    //this mode painted a single frequency.
+    singleBoundary = -1;
     b = nullptr;
 }
 
-void BoundaryUnionViewer::setDatos(QVector<QVector<QPointF> *> *boun, QVector<qreal> *omega, qint32 unBoundarie){
-    this->boun = boun;
+void BoundaryUnionViewer::setDatos(QVector<QVector<QPointF> *> *unionTraces, QVector<qreal> *omega, qint32 singleBoundary){
+    this->unionTraces = unionTraces;
     this->omega = omega;
-    hash = false;
-    this->unBoundarie = unBoundarie;
+    bucketMode = false;
+    this->singleBoundary = singleBoundary;
 }
 
-void BoundaryUnionViewer::setDatos (QVector< QVector< QVector<QPointF> * > * > * boun, QVector<qreal> *omega) {
-    bounHash = boun;
+void BoundaryUnionViewer::setDatos (QVector< QVector< QVector<QPointF> * > * > * unionTraces, QVector<qreal> *omega) {
+    unionBuckets = unionTraces;
     this->omega = omega;
-    hash = true;
-    unBoundarie = -1;
+    bucketMode = true;
+    singleBoundary = -1;
     b = nullptr;
 }
 
-void BoundaryUnionViewer::setDatos (QVector< QVector< QVector<QPointF> * > * > * boun, QVector<qreal> *omega, QVector<QPointF> * b) {
-    bounHash = boun;
+void BoundaryUnionViewer::setDatos (QVector< QVector< QVector<QPointF> * > * > * unionTraces, QVector<qreal> *omega, QVector<QPointF> * b) {
+    unionBuckets = unionTraces;
     this->omega = omega;
-    hash = true;
-    unBoundarie = -1;
+    bucketMode = true;
+    singleBoundary = -1;
     this->b = b;
 }
 
-void BoundaryUnionViewer::mostrar_diagrama(){
+void BoundaryUnionViewer::showDiagram(){
 
     clearDiagram();
 
-    layoutColores = new QVBoxLayout (cajaFrecuencias);
-    checkbox = new QVector <QCheckBox *> ();
-    graficos = new QVector <QCPCurve * > ();
-    col = new QVector <QColor> ();
+    colorsLayout = new QVBoxLayout (frequenciesBox);
+    checkboxes = new QVector <QCheckBox *> ();
+    curves = new QVector <QCPCurve * > ();
+    colors = new QVector <QColor> ();
 
 
-    ejecutado = true;
+    plotted = true;
 
     qint32 k = 0;
 
-    //Recorre las frecuencias de diseño.
+    //Sweep the design frequencies.
 
     qint32 contador = 0;
 
-    if (unBoundarie < 0) {
+    if (singleBoundary < 0) {
 
-        if (!hash){
-            foreach (QVector <QPointF> * bound, *boun) {
+        if (!bucketMode){
+            foreach (QVector <QPointF> * bound, *unionTraces) {
                 QColor color = randomColor(contador);
                 contador++;
-                col->append(color);
+                colors->append(color);
 
                 QVector <qreal> * ejex = new QVector <qreal> ();
                 QVector <qreal> * ejey = new QVector <qreal> ();
@@ -140,11 +140,11 @@ void BoundaryUnionViewer::mostrar_diagrama(){
                     ejey->append(p.y());
                 }
 
-                QCPCurve *curva = new QCPCurve(ui->diagrama->xAxis, ui->diagrama->yAxis);
+                QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
                 curva->setData(*ejex, *ejey);
                 curva->setPen(color);
-                graficos->append(curva);
-                pintarCuadro(color, k);
+                curves->append(curva);
+                addFrequencyRow(color, k);
 
                 delete ejex;
                 delete ejey;
@@ -153,16 +153,17 @@ void BoundaryUnionViewer::mostrar_diagrama(){
             }
         } else {
 
-            //El contenedor es del DAO: antes se le hacia removeLast() y la
-            //ultima frecuencia desaparecia PERMANENTEMENTE del proyecto.
-            const qint32 frecuencias = (this->b != nullptr) ? bounHash->size() - 1
-                                                            : bounHash->size();
+            //The container belongs to the DAO: removeLast() used to be
+            //called on it and the last frequency vanished PERMANENTLY from
+            //the project.
+            const qint32 frequencyCount = (this->b != nullptr) ? unionBuckets->size() - 1
+                                                            : unionBuckets->size();
 
-            for (qint32 f = 0; f < frecuencias; f++) {
-                QVector <QVector <QPointF> * > * bound = bounHash->at(f);
+            for (qint32 f = 0; f < frequencyCount; f++) {
+                QVector <QVector <QPointF> * > * bound = unionBuckets->at(f);
                 QColor color = randomColor(contador);
                 contador++;
-                col->append(color);
+                colors->append(color);
 
                 QVector <qreal> * ejex = new QVector <qreal> ();
                 QVector <qreal> * ejey = new QVector <qreal> ();
@@ -174,12 +175,12 @@ void BoundaryUnionViewer::mostrar_diagrama(){
                     }
                 }
 
-                QCPCurve *curva = new QCPCurve(ui->diagrama->xAxis, ui->diagrama->yAxis);
+                QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
                 curva->setData(*ejex, *ejey);
                 curva->setPen(color);
-                graficos->append(curva);
+                curves->append(curva);
 
-                pintarCuadro(color, k);
+                addFrequencyRow(color, k);
 
                 delete ejex;
                 delete ejey;
@@ -189,7 +190,7 @@ void BoundaryUnionViewer::mostrar_diagrama(){
             if (this->b != nullptr){
                 QColor color = randomColor(contador);
                 contador++;
-                col->append(color);
+                colors->append(color);
 
                 QVector <qreal> * ejex = new QVector <qreal> ();
                 QVector <qreal> * ejey = new QVector <qreal> ();
@@ -199,12 +200,12 @@ void BoundaryUnionViewer::mostrar_diagrama(){
                     ejey->append(p.y());
                 }
 
-                QCPCurve *curva = new QCPCurve(ui->diagrama->xAxis, ui->diagrama->yAxis);
+                QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
                 curva->setData(*ejex, *ejey);
                 curva->setPen(color);
-                graficos->append(curva);
+                curves->append(curva);
 
-                pintarCuadro(color, k);
+                addFrequencyRow(color, k);
 
                 delete ejex;
                 delete ejey;
@@ -216,21 +217,21 @@ void BoundaryUnionViewer::mostrar_diagrama(){
     } else {
         QColor color = randomColor(contador);
         contador++;
-        col->append(color);
+        colors->append(color);
 
         QVector <qreal> * ejex = new QVector <qreal> ();
         QVector <qreal> * ejey = new QVector <qreal> ();
 
-        foreach (QPointF p, *boun->at(unBoundarie)) {
+        foreach (QPointF p, *unionTraces->at(singleBoundary)) {
             ejex->append(p.x());
             ejey->append(p.y());
         }
 
-        QCPCurve *curva = new QCPCurve(ui->diagrama->xAxis, ui->diagrama->yAxis);
+        QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
         curva->setData(*ejex, *ejey);
         curva->setPen(color);
-        graficos->append(curva);
-        pintarCuadro(color, k);
+        curves->append(curva);
+        addFrequencyRow(color, k);
 
         delete ejex;
         delete ejey;
@@ -238,50 +239,50 @@ void BoundaryUnionViewer::mostrar_diagrama(){
         k++;
     }
 
-    ui->diagrama->xAxis2->setVisible(true);
-    ui->diagrama->xAxis2->setTickLabels(false);
-    ui->diagrama->yAxis2->setVisible(true);
-    ui->diagrama->yAxis2->setTickLabels(false);
+    ui->plot->xAxis2->setVisible(true);
+    ui->plot->xAxis2->setTickLabels(false);
+    ui->plot->yAxis2->setVisible(true);
+    ui->plot->yAxis2->setTickLabels(false);
 
-    ui->diagrama->axisRect()->setupFullAxesBox();
-    ui->diagrama->rescaleAxes();
+    ui->plot->axisRect()->setupFullAxesBox();
+    ui->plot->rescaleAxes();
 
-    ui->diagrama->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
+    ui->plot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
 
-    finalk = k++;
+    finalCurveIndex = k++;
 
-    ui->diagrama->replot();
+    ui->plot->replot();
 }
 
-void BoundaryUnionViewer::revisarCheckBox(){
-    for (qint32 i = 0; i < checkbox->size(); i++){
-        if (checkbox->at(i)->checkState() == 0){
-            graficos->at(i)->setVisible(false);
-            if (graficos2 != nullptr){
-                graficos2->at(i)->setVisible(false);
+void BoundaryUnionViewer::applyCheckboxes(){
+    for (qint32 i = 0; i < checkboxes->size(); i++){
+        if (checkboxes->at(i)->checkState() == 0){
+            curves->at(i)->setVisible(false);
+            if (boxCurves != nullptr){
+                boxCurves->at(i)->setVisible(false);
             }
-            if (graficos3 != nullptr){
-                graficos3->at(i)->setVisible(false);
+            if (boxCurves2 != nullptr){
+                boxCurves2->at(i)->setVisible(false);
             }
         }else {
-            graficos->at(i)->setVisible(true);
-            if (graficos2 != nullptr){
-                graficos2->at(i)->setVisible(true);
+            curves->at(i)->setVisible(true);
+            if (boxCurves != nullptr){
+                boxCurves->at(i)->setVisible(true);
             }
-            if (graficos3 != nullptr){
-                graficos3->at(i)->setVisible(true);
+            if (boxCurves2 != nullptr){
+                boxCurves2->at(i)->setVisible(true);
             }
         }
     }
-    ui->diagrama->replot();
+    ui->plot->replot();
 }
 
-void BoundaryUnionViewer::pintarCuadro(QColor color, qint32 pos){
+void BoundaryUnionViewer::addFrequencyRow(QColor color, qint32 pos){
 
     QWidget *widget;
     QCheckBox *checkBox;
 
-    widget = new QWidget(cajaFrecuencias);
+    widget = new QWidget(frequenciesBox);
     widget->setObjectName("widget");
     widget->setGeometry(QRect(10, 10, 111, 23));
     checkBox = new QCheckBox(widget);
@@ -298,18 +299,18 @@ void BoundaryUnionViewer::pintarCuadro(QColor color, qint32 pos){
 
     checkBox->setStyleSheet("color : " + color.name());
 
-    layoutColores->addWidget(widget);
-    checkbox->append(checkBox);
+    colorsLayout->addWidget(widget);
+    checkboxes->append(checkBox);
     checkBox->setCheckState(Qt::Checked);
 
-    connect(checkBox, SIGNAL (clicked()), this, SLOT (revisarCheckBox()));
+    connect(checkBox, SIGNAL (clicked()), this, SLOT (applyCheckboxes()));
 }
 
 
-void BoundaryUnionViewer::dibujar_cuadro(QPointF uno, QPointF dos, QPointF tres, QPointF cuatro, qint32 contador){
+void BoundaryUnionViewer::drawBox(QPointF uno, QPointF dos, QPointF tres, QPointF cuatro, qint32 contador){
 
-    if (graficos2 == NULL){
-        graficos2 = new QVector <QCPCurve * > ();
+    if (boxCurves == NULL){
+        boxCurves = new QVector <QCPCurve * > ();
     }
 
     QVector <qreal> ejex;
@@ -327,28 +328,28 @@ void BoundaryUnionViewer::dibujar_cuadro(QPointF uno, QPointF dos, QPointF tres,
     ejey.append(cuatro.y());
     ejey.append(uno.y());
 
-    /*graficos2->append(ui->diagrama->addGraph());
-    ui->diagrama->graph(finalk)->setData(ejex, ejey);
+    /*boxCurves->append(ui->plot->addGraph());
+    ui->plot->graph(finalCurveIndex)->setData(ejex, ejey);
 
-    ui->diagrama->graph(finalk)->setPen(col->at(contador));
-    ui->diagrama->graph(finalk)->setLineStyle(QCPGraph::lsLine);
-    ui->diagrama->graph(finalk)->setScatterStyle(QCPScatterStyle::ssCross);
-    ui->diagrama->graph(finalk)->rescaleAxes(true);*/
+    ui->plot->graph(finalCurveIndex)->setPen(colors->at(contador));
+    ui->plot->graph(finalCurveIndex)->setLineStyle(QCPGraph::lsLine);
+    ui->plot->graph(finalCurveIndex)->setScatterStyle(QCPScatterStyle::ssCross);
+    ui->plot->graph(finalCurveIndex)->rescaleAxes(true);*/
 
-    QCPCurve *curva = new QCPCurve(ui->diagrama->xAxis, ui->diagrama->yAxis);
+    QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
     curva->setData(ejex, ejey);
-    curva->setPen(col->at(contador));
-    graficos2->append(curva);
+    curva->setPen(colors->at(contador));
+    boxCurves->append(curva);
 
-    //ui->diagrama->rescaleAxes(true);
+    //ui->plot->rescaleAxes(true);
 
-    ui->diagrama->replot();
+    ui->plot->replot();
 }
 
-void BoundaryUnionViewer::dibujar_cuadro2(QPointF uno, QPointF dos, QPointF tres, QPointF cuatro, qint32 contador){
+void BoundaryUnionViewer::drawBox2(QPointF uno, QPointF dos, QPointF tres, QPointF cuatro, qint32 contador){
 
-    if (graficos3 == NULL){
-        graficos3 = new QVector <QCPCurve * > ();
+    if (boxCurves2 == NULL){
+        boxCurves2 = new QVector <QCPCurve * > ();
     }
     QVector <qreal> ejex;
     QVector <qreal> ejey;
@@ -365,24 +366,24 @@ void BoundaryUnionViewer::dibujar_cuadro2(QPointF uno, QPointF dos, QPointF tres
     ejey.append(cuatro.y());
     ejey.append(uno.y());
 
-    /*graficos3->append(ui->diagrama->addGraph());
-    ui->diagrama->graph(finalk)->setData(ejex, ejey);
+    /*boxCurves2->append(ui->plot->addGraph());
+    ui->plot->graph(finalCurveIndex)->setData(ejex, ejey);
 
-    ui->diagrama->graph(finalk)->setPen(col->at(contador));
-    ui->diagrama->graph(finalk)->setLineStyle(QCPGraph::lsLine);
-    ui->diagrama->graph(finalk)->setScatterStyle(QCPScatterStyle::ssCircle);*/
+    ui->plot->graph(finalCurveIndex)->setPen(colors->at(contador));
+    ui->plot->graph(finalCurveIndex)->setLineStyle(QCPGraph::lsLine);
+    ui->plot->graph(finalCurveIndex)->setScatterStyle(QCPScatterStyle::ssCircle);*/
 
-    QCPCurve *curva = new QCPCurve(ui->diagrama->xAxis, ui->diagrama->yAxis);
+    QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
     curva->setData(ejex, ejey);
-    curva->setPen(col->at(contador));
-    graficos3->append(curva);
+    curva->setPen(colors->at(contador));
+    boxCurves2->append(curva);
 
-    ui->diagrama->rescaleAxes(true);
+    ui->plot->rescaleAxes(true);
 
-    ui->diagrama->replot();
+    ui->plot->replot();
 }
 
-void BoundaryUnionViewer::on_guardar_clicked()
+void BoundaryUnionViewer::on_saveImage_clicked()
 {
     bool noFallo = true;
     QString extension;
@@ -390,13 +391,13 @@ void BoundaryUnionViewer::on_guardar_clicked()
                                                     tr((".png (*.png);;.pdf(*.pdf);; .jpg(*.jpg);; .bmp(*.bmp)")), &extension);
     if (!fileName.isEmpty()){
         if (extension.contains(".pdf", Qt::CaseInsensitive)){
-            noFallo = ui->diagrama->savePdf(fileName, true);
+            noFallo = ui->plot->savePdf(fileName, true);
         }else if (extension.contains(".png", Qt::CaseInsensitive)){
-            noFallo = ui->diagrama->savePng(fileName);
+            noFallo = ui->plot->savePng(fileName);
         }else if (extension.contains(".jpg", Qt::CaseInsensitive)){
-            noFallo = ui->diagrama->saveJpg(fileName);
+            noFallo = ui->plot->saveJpg(fileName);
         }else if (extension.contains(".bmp", Qt::CaseInsensitive)){
-            noFallo = ui->diagrama->saveBmp(fileName);
+            noFallo = ui->plot->saveBmp(fileName);
         }else{
             noFallo = false;
         }

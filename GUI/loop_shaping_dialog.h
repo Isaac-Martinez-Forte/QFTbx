@@ -20,48 +20,46 @@ public:
     explicit LoopShapingDialog(QWidget *parent = 0);
     ~LoopShapingDialog();
 
-    void setDatos (qreal epsilon);
+    void setEpsilonValue (qreal epsilonEdit);
 
     bool getTodoCorrecto();
 
-    qreal getEpsilon ();
+    qreal epsilonValue ();
 
-    tools::alg_loop_shaping getAlg();
+    tools::alg_loop_shaping algorithmValue();
 
     QPointF range();
 
-    qreal getNPuntos();
+    qreal pointCountValue();
 
-    qreal getDelta ();
+    qreal deltaValue ();
 
-    bool getLinLogSpace();
+    bool isLinSpace();
 
-    bool getDepuracion();
+    bool debugValue();
 
-    qint32 getInicializacion ();
+    qint32 initialisationValue ();
 
-    bool getHilos();
+    bool threadsValue();
     
-    bool getBisectionAvanced();
-    bool getDeteccionAvanced();
-    bool getAcelerated();
+    bool bisectionValue();
+    bool detectionValue();
+    bool acceleratedValue();
 
 private slots:
-    void on_cancel_clicked();
+    void on_cancelButton_clicked();
 
-    void on_ok_clicked();
+    void on_okButton_clicked();
 
-    void on_linspace_clicked();
+    void on_linspaceRadio_clicked();
 
-    void on_logspace_clicked();
+    void on_logspaceRadio_clicked();
 
     void on_sachin_clicked();
 
-    void on_nand_clicked();
+    void on_nkRadio_clicked();
 
-    void on_ram_clicked();
-
-    void on_isaac_clicked();
+    void on_mrRadio_clicked();
 
 protected:
     void showEvent(QShowEvent * event) override;
@@ -71,21 +69,21 @@ private:
 
     bool todoCorrecto;
 
-    qreal epsilon;
+    qreal epsilonEdit;
 
-    QPointF rango;
+    QPointF plotRange;
 
-    qreal nPuntos;
+    qreal pointCountEdit;
 
-    bool hilos;
+    bool threadsCheck;
     
-    qreal delta;
-    qint32 inicializacion;
+    qreal deltaEdit;
+    qint32 initialisation;
 
     tools::alg_loop_shaping alg;
 
     bool linLogSpace;
-    bool depuracion;
+    bool debugCheck;
 };
 
 #endif // QFTBX_LOOP_SHAPING_DIALOG_H

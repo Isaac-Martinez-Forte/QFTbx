@@ -350,7 +350,7 @@ inline Tripleta * Algorithm_primer_articulo::check_box_feasibility(LtiSystem *co
 
     view->setDatos(boundaries->unionBoundaries(), omega);
 
-    view->mostrar_diagrama();
+    view->showDiagram();
 
     QVector <qreal> areasCaja;
 #endif
@@ -365,7 +365,7 @@ inline Tripleta * Algorithm_primer_articulo::check_box_feasibility(LtiSystem *co
 
         view->setDatos(boundaries->unionBoundaries(), omega);
 
-        view->mostrar_diagrama();
+        view->showDiagram();
 #endif
 
 #if defined(COMPARACION_CAJAS) || defined(VER_ANTES)
@@ -375,10 +375,10 @@ inline Tripleta * Algorithm_primer_articulo::check_box_feasibility(LtiSystem *co
 #endif
 
         if (Nyquist){
-            view->dibujar_cuadro(QPointF(_double(InfRe(caja)), _double(InfIm(caja))),
+            view->drawBox(QPointF(_double(InfRe(caja)), _double(InfIm(caja))),
                                  QPointF(_double(InfRe(caja)), _double(SupIm(caja))),QPointF(_double(SupRe(caja)), _double(SupIm(caja))), QPointF(_double(SupRe(caja)), _double(InfIm(caja))), k);
         } else {
-            view->dibujar_cuadro(QPointF(_double(InfIm(caja)), _double(InfRe(caja))), QPointF(_double(InfIm(caja)), _double(SupRe(caja))),
+            view->drawBox(QPointF(_double(InfIm(caja)), _double(InfRe(caja))), QPointF(_double(InfIm(caja)), _double(SupRe(caja))),
                                  QPointF(_double(SupIm(caja)), _double(SupRe(caja))), QPointF(_double(SupIm(caja)), _double(InfRe(caja))), k);
         }
 
@@ -460,10 +460,10 @@ inline Tripleta * Algorithm_primer_articulo::check_box_feasibility(LtiSystem *co
 
 
         if (Nyquist){
-            view->dibujar_cuadro2(QPointF(_double(InfRe(caja)), _double(InfIm(caja))),
+            view->drawBox2(QPointF(_double(InfRe(caja)), _double(InfIm(caja))),
                                   QPointF(_double(InfRe(caja)), _double(SupIm(caja))),QPointF(_double(SupRe(caja)), _double(SupIm(caja))), QPointF(_double(SupRe(caja)), _double(InfIm(caja))), k);
         } else {
-            view->dibujar_cuadro2(QPointF(_double(InfIm(caja)), _double(InfRe(caja))), QPointF(_double(InfIm(caja)), _double(SupRe(caja))),
+            view->drawBox2(QPointF(_double(InfIm(caja)), _double(InfRe(caja))), QPointF(_double(InfIm(caja)), _double(SupRe(caja))),
                                   QPointF(_double(SupIm(caja)), _double(SupRe(caja))), QPointF(_double(SupIm(caja)), _double(InfRe(caja))), k);
         }
 
@@ -491,7 +491,7 @@ inline Tripleta * Algorithm_primer_articulo::check_box_feasibility(LtiSystem *co
 
 #ifdef VER_DIAGRAMAS
 
-    BoundaryUnionViewer * view = FC::mostrar_diagrama(vectorCajas, this->omega, boundaries);
+    BoundaryUnionViewer * view = FC::showDiagram(vectorCajas, this->omega, boundaries);
     vectorCajas->clear();
 
     vectorCajas = new QVector <QVector <QPointF> *> ();

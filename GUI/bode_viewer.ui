@@ -27,11 +27,11 @@
      <string>File</string>
     </property>
     <addaction name="separator"/>
-    <addaction name="actionExportar"/>
+    <addaction name="actionExport"/>
    </widget>
    <addaction name="menuArchivo"/>
   </widget>
-  <widget class="QCustomPlot" name="customPlot" native="true">
+  <widget class="QCustomPlot" name="magnitudePlot" native="true">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -41,7 +41,7 @@
     </rect>
    </property>
   </widget>
-  <widget class="QCustomPlot" name="customPlot_2" native="true">
+  <widget class="QCustomPlot" name="phasePlot" native="true">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -51,7 +51,7 @@
     </rect>
    </property>
   </widget>
-  <action name="actionExportar">
+  <action name="actionExport">
    <property name="text">
     <string>Export...</string>
    </property>

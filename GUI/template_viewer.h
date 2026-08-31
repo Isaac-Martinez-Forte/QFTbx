@@ -24,7 +24,7 @@
 
  /**
     * @class TemplateViewer
-    * @brief Clase que representa gráficamente los templates de una planta.
+    * @brief Clase que representa gráficamente los templatesButton de una planta.
     *
     * @author Isaac Martínez Forte
    */
@@ -52,13 +52,13 @@ public:
 
 
      /**
-    * @fn pintarGrafico
-    * @brief Función que crea la gráfica que representa a los templates de una planta.
+    * @fn plotDiagram
+    * @brief Función que crea la gráfica que representa a los templatesButton de una planta.
     *
-    * @param diagrama booleano que indica el tipo de diagrama a representar, diagrama de Nichols o diagrama de Nyquist.
+    * @param plot booleano que indica el tipo de plot a representar, plot de Nichols o plot de Nyquist.
    */
 
-    void pintarGrafico(bool diagrama);
+    void plotDiagram(bool plot);
 
    /**
     * @fn setDatos
@@ -66,80 +66,80 @@ public:
     *
     * Esta funcion hace de resumen de otras dos funciones set para no tener que llamarlos por separado.
     *
-    * @param templates a representar en la gráfica.
-    * @param contorno a representar en la gráfica.
+    * @param templatesButton a representar en la gráfica.
+    * @param contourButton a representar en la gráfica.
    */
 
-    void setDatos(Controlador *controlador);
+    void setDatos(Controlador *controller);
 
 
    /**
     * @fn setTemplates
-    * @brief Función que guarda los templates de la planta para que se representen gráficamente.
+    * @brief Función que guarda los templatesButton de la planta para que se representen gráficamente.
     *
-    *  @param templates a representar en la gráfica.
+    *  @param templatesButton a representar en la gráfica.
     */
 
-    void setTemplates (QVector<QVector<std::complex<qreal> > *> * templates);
+    void setTemplates (QVector<QVector<std::complex<qreal> > *> * templatesButton);
 
 
    /**
-    * @fn setContorno
-    * @brief Función que guarda el contorno de los templates de la planta para que se representen gráficamente.
+    * @fn setContour
+    * @brief Función que guarda el contourButton de los templatesButton de la planta para que se representen gráficamente.
     *
-    *  @param contorno de templates a representar gráficamente.
+    *  @param contourButton de templatesButton a representar gráficamente.
     */
 
-    void setContorno (QVector<QVector<std::complex<qreal> > *> * contorno);
+    void setContour (QVector<QVector<std::complex<qreal> > *> * contourButton);
 
 
 private slots:
-    void on_guardar_clicked();
+    void on_saveImage_clicked();
 
-    void on_templates_clicked();
+    void on_templatesButton_clicked();
 
-    void on_contorno_clicked();
+    void on_contourButton_clicked();
 
-    void on_eContorno_clicked();
+    void on_exportContourButton_clicked();
 
-    void revisarCheckBox ();
+    void applyCheckboxes ();
 
-    void moverSliders();
+    void syncSliders();
 
-    void on_recalcular_clicked();
+    void on_recomputeButton_clicked();
 
-    void on_eTemplate_clicked();
+    void on_exportTemplateButton_clicked();
 
 private:
     Ui::TemplateViewer *ui;
-    bool ejecutada = false;
-    void pintarLinea(qint32 pos, QVector <QCPGraph *> * guardar, QVector <qreal> * fas, QVector <qreal> * gan, bool tipo, bool visible, qint32 contador);
-    void pintarCuadro (QColor color, qint32 pos);
+    bool plotted = false;
+    void plotLine(qint32 pos, QVector <QCPGraph *> * saveImage, QVector <qreal> * fas, QVector <qreal> * gan, bool tipo, bool visible, qint32 contador);
+    void addFrequencyRow (QColor colorsCreated, qint32 pos);
     void clearDiagram();
 
-    QVector <QVector<std::complex<qreal> > *> * templates;
-    QVector <QVector<std::complex<qreal> > *> * contorno;
+    QVector <QVector<std::complex<qreal> > *> * templatesButton;
+    QVector <QVector<std::complex<qreal> > *> * contourButton;
     QVector <qreal> * omega;
     QVector <qreal> * epsilon;
 
-    QVector <QCPGraph * > * graTemplates;
-    QVector <QCPGraph * > * graContorno;
-    QGroupBox * cajaFrecuencias;
-    QVector <QCheckBox *> * checkbox;
-    QMap <qreal, QColor> * colores;
+    QVector <QCPGraph * > * templateGraphs;
+    QVector <QCPGraph * > * contourGraphs;
+    QGroupBox * frequenciesBox;
+    QVector <QCheckBox *> * checkboxes;
+    QMap <qreal, QColor> * colorByFrequency;
 
-    QVector <QLineEdit *> * lineas;
-    QVector <QSlider *> * sliders;
+    QVector <QLineEdit *> * epsilonEdits;
+    QVector <QSlider *> * epsilonSliders;
 
-    bool verTemplate;
-    bool verContorno;
+    bool templatesVisible;
+    bool contourVisible;
 
-    Controlador * controlador;
+    Controlador * controller;
 
-    QVBoxLayout * layoutColores;
+    QVBoxLayout * colorsLayout;
 
-    bool diagrama;
-    bool color;
+    bool plot;
+    bool colorsCreated;
 };
 
 #endif // QFTBX_TEMPLATE_VIEWER_H

@@ -13,7 +13,7 @@
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
-  <widget class="QStackedWidget" name="figures">
+  <widget class="QStackedWidget" name="figureStack">
    <property name="geometry">
     <rect>
      <x>240</x>
@@ -24,7 +24,7 @@
    </property>
    <widget class="QWidget" name="page"/>
    <widget class="QWidget" name="page_2">
-    <widget class="QLabel" name="label_poli">
+    <widget class="QLabel" name="polyImage">
      <property name="geometry">
       <rect>
        <x>0</x>
@@ -39,7 +39,7 @@
     </widget>
    </widget>
    <widget class="QWidget" name="page_3">
-    <widget class="QLabel" name="label_hf">
+    <widget class="QLabel" name="zpkImage">
      <property name="geometry">
       <rect>
        <x>0</x>
@@ -54,7 +54,7 @@
     </widget>
    </widget>
    <widget class="QWidget" name="page_4">
-    <widget class="QLabel" name="label_hl">
+    <widget class="QLabel" name="tcgImage">
      <property name="geometry">
       <rect>
        <x>0</x>
@@ -69,7 +69,7 @@
     </widget>
    </widget>
   </widget>
-  <widget class="QPushButton" name="libertad">
+  <widget class="QPushButton" name="uncertaintyButton">
    <property name="geometry">
     <rect>
      <x>40</x>
@@ -103,7 +103,7 @@ freedom</string>
        </widget>
       </item>
       <item>
-       <widget class="QLineEdit" name="nume"/>
+       <widget class="QLineEdit" name="numeratorEdit"/>
       </item>
      </layout>
     </item>
@@ -117,7 +117,7 @@ freedom</string>
        </widget>
       </item>
       <item>
-       <widget class="QLineEdit" name="deno"/>
+       <widget class="QLineEdit" name="denominatorEdit"/>
       </item>
      </layout>
     </item>
@@ -134,14 +134,14 @@ freedom</string>
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout_5">
     <item>
-     <widget class="QPushButton" name="cancelar">
+     <widget class="QPushButton" name="cancelButton">
       <property name="text">
        <string>Cancel</string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="aceptar">
+     <widget class="QPushButton" name="okButton">
       <property name="text">
        <string>OK</string>
       </property>
@@ -162,14 +162,14 @@ freedom</string>
     <item>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
-       <widget class="QRadioButton" name="c_poli">
+       <widget class="QRadioButton" name="polynomialRadio">
         <property name="text">
          <string>Polynomial form</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QRadioButton" name="fl">
+       <widget class="QRadioButton" name="freeFormRadio">
         <property name="text">
          <string>Free form</string>
         </property>
@@ -180,14 +180,14 @@ freedom</string>
     <item>
      <layout class="QVBoxLayout" name="verticalLayout_3">
       <item>
-       <widget class="QRadioButton" name="hf">
+       <widget class="QRadioButton" name="zpkRadio">
         <property name="text">
          <string>k = hfgain</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QRadioButton" name="lf">
+       <widget class="QRadioButton" name="tcgRadio">
         <property name="text">
          <string>k = hlgain</string>
         </property>
@@ -215,7 +215,7 @@ freedom</string>
      </widget>
     </item>
     <item>
-     <widget class="QLineEdit" name="kInicio"/>
+     <widget class="QLineEdit" name="gainStart"/>
     </item>
     <item>
      <widget class="QLabel" name="label_4">
@@ -225,7 +225,7 @@ freedom</string>
      </widget>
     </item>
     <item>
-     <widget class="QLineEdit" name="kFinal"/>
+     <widget class="QLineEdit" name="gainEnd"/>
     </item>
     <item>
      <widget class="QLabel" name="label_5">

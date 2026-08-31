@@ -20,96 +20,96 @@ class SpecificationsDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit SpecificationsDialog(Controlador * controlador, QWidget *parent = 0);
+    explicit SpecificationsDialog(Controlador * controller, QWidget *parent = 0);
     ~SpecificationsDialog();
 
 
     bool getTodoCorrecto ();
 
 private slots:
-    void on_poli_clicked();
+    void on_polynomialRadio_clicked();
 
-    void on_hfgain_clicked();
+    void on_tcgRadio_clicked();
 
-    void on_lfgain_clicked();
+    void on_zpkRadio_clicked();
 
-    void on_radioButton_clicked();
+    void on_trackingRadio_clicked();
 
-    void on_radioButton_2_clicked();
+    void on_stabilityRadio_clicked();
 
-    void on_radioButton_3_clicked();
+    void on_noiseRadio_clicked();
 
-    void on_radioButton_4_clicked();
+    void on_outputDisturbanceRadio_clicked();
 
-    void on_radioButton_5_clicked();
+    void on_inputDisturbanceRadio_clicked();
 
-    void on_radioButton_6_clicked();
+    void on_controlEffortRadio_clicked();
 
-    void on_cons_clicked();
+    void on_constantRadio_clicked();
 
-    void on_fun_clicked();
+    void on_systemRadio_clicked();
 
-    void on_Cancel_clicked();
+    void on_cancelButton_clicked();
 
-    void on_OK_clicked();
+    void on_okButton_clicked();
 
-    void on_libre_clicked();
+    void on_freeFormRadio_clicked();
 
-    void on_CPoliSe1_clicked();
+    void on_lowerPolynomialRadio_clicked();
 
-    void on_FLSe1_clicked();
+    void on_lowerFreeFormRadio_clicked();
 
-    void on_KGSe1_clicked();
+    void on_lowerZpkRadio_clicked();
 
-    void on_KNGSe1_clicked();
+    void on_lowerTcgRadio_clicked();
 
-    void on_CPoliSe1_2_clicked();
+    void on_upperPolynomialRadio_clicked();
 
-    void on_KGSe1_2_clicked();
+    void on_upperZpkRadio_clicked();
 
-    void on_KNGSe1_2_clicked();
+    void on_upperTcgRadio_clicked();
 
-    void on_FLSe1_2_clicked();
+    void on_upperFreeFormRadio_clicked();
 
 private:
     Ui::SpecificationsDialog *ui;
 
-    dBND *seguimiento;
-    dBND *seguimiento_2;
-    dBND *estabilidad;
-    dBND *ruido;
-    dBND *RPS;
-    dBND *RPE;
-    dBND *EC;
+    dBND *tracking;
+    dBND *trackingUpper;
+    dBND *stability;
+    dBND *sensorNoise;
+    dBND *outputDisturbance;
+    dBND *inputDisturbance;
+    dBND *controlEffort;
 
-    QVector <dBND *> * retorno;
+    QVector <dBND *> * published;
 
-    qint32 activado;
+    qint32 activeTab;
 
-    bool getDatos(dBND * datos, QString nombre);
-    bool getDatos(dBND *datos, dBND * datos1, QString nombre);
-    void setDatos (dBND * datos);
-    void setDatos (dBND * datos, dBND * datos1);
-    void seleccionar();
+    bool getDatos(dBND * record_in, QString name_in);
+    bool getDatos(dBND *record_in, dBND * upperRecord, QString name_in);
+    void setDatos (dBND * record_in);
+    void setDatos (dBND * record_in, dBND * upperRecord);
+    void saveActiveTab();
 
-    QVector <Parameter * > * crearNumeradorDenominador(QString linea);
-    Parameter * crearKRet(QString linea, bool isK);
+    QVector <Parameter * > * buildParameters(QString linea);
+    Parameter * buildScalar(QString linea, bool isK);
 
     static QString coefficientsText(QVector <Parameter *> * parametros);
     static QString numeratorText(LtiSystem * sistema);
     static QString denominatorText(LtiSystem * sistema);
 
-    Controlador * controlador;
+    Controlador * controller;
 
-    //imágenes
-    QPixmap seguimiento_img;
-    QPixmap EC_img;
-    QPixmap RPS_img;
-    QPixmap RPE_img;
-    QPixmap ruidosensor_img;
-    QPixmap estabilidad_img;
+    //images
+    QPixmap trackingImagePixmap;
+    QPixmap controlEffortPixmap;
+    QPixmap outputDisturbancePixmap;
+    QPixmap inputDisturbancePixmap;
+    QPixmap sensorNoisePixmap;
+    QPixmap stabilityPixmap;
 
-    QVector <qreal> * omega;
+    QVector <qreal> * frequencies;
 
     bool todoCorrecto;
 };

@@ -19,7 +19,7 @@ class FrequenciesDialog;
 
 /**
     * @class FrequenciesDialog
-    * @brief Clase gráfica a través de la cual se puede introducir las frecuencias de diseño (Omega) para guardarlas en el sistema.
+    * @brief Clase gráfica a través de la cual se puede introducir las frequencies de diseño (Omega) para guardarlas en el sistema.
     * 
     * @author Isaac Martínez Forte
    */
@@ -55,16 +55,16 @@ public:
     
 private slots:
 
-    void on_buttonFic_clicked();
+    void on_fileButton_clicked();
 
-    void on_ok_clicked();
+    void on_okButton_clicked();
 
 signals:
     void close_ok ();
 
 private:
     Controlador * controlador;
-    QString file;
+    QString filePath;
 
     Ui::FrequenciesDialog *ui;
 

@@ -1,9 +1,10 @@
 #include "parlineedit.h"
 
-//Agrupa tres QLineEdit SIN tomar propiedad: los line edits son hijos Qt del
-//widget de su fila y mueren con el. El constructor delegado anterior creaba
-//tres QLineEdit que se fugaban de inmediato, y el destructor los borraba a
-//pesar de no ser suyos (doble borrado junto al padre Qt).
+//Groups three QLineEdits WITHOUT taking ownership: the line edits are Qt
+//children of their row widget and die with it. The old delegating
+//constructor created three QLineEdits that leaked immediately, and the
+//destructor deleted widgets it did not own (double delete with the Qt
+//parent).
 ParLineEdit::ParLineEdit(QLineEdit * x, QLineEdit*  y, QLineEdit * nominal){
     this->x = x;
     this->y = y;

@@ -14,13 +14,13 @@ LoopBoundariesViewer::LoopBoundariesViewer(QWidget *parent) :
 {
     ui->setupUi(this);
     setWindowTitle(tr("Boundary union"));
-    ejecutado = false;
+    plotted = false;
 
 
-    cajaFrecuencias = new QGroupBox(this);
-    cajaFrecuencias->setObjectName("cajaFrecuencias");
-    cajaFrecuencias->setGeometry(QRect(660, 0, 141, 461));
-    //cajaFrecuencias->setTitle(QApplication::translate("GrafTemp", "Frequencies", 0));
+    frequenciesBox = new QGroupBox(this);
+    frequenciesBox->setObjectName("frequenciesBox");
+    frequenciesBox->setGeometry(QRect(660, 0, 141, 461));
+    //frequenciesBox->setTitle(QApplication::translate("GrafTemp", "Frequencies", 0));
 }
 
 LoopBoundariesViewer::~LoopBoundariesViewer()
@@ -32,44 +32,44 @@ LoopBoundariesViewer::~LoopBoundariesViewer()
 
 void LoopBoundariesViewer::clearDiagram(){
 
-    if (!ejecutado){
+    if (!plotted){
         return;
     }
 
-    ui->diagrama->clearFocus();
-    ui->diagrama->clearGraphs();
-    ui->diagrama->clearItems();
-    //QCustomPlot es dueno de las curvas: clearPlottables las libera.
-    ui->diagrama->clearPlottables();
+    ui->plot->clearFocus();
+    ui->plot->clearGraphs();
+    ui->plot->clearItems();
+    //QCustomPlot owns the curves: clearPlottables frees them.
+    ui->plot->clearPlottables();
 
-    foreach (QCheckBox * che, *checkbox) {
+    foreach (QCheckBox * che, *checkboxes) {
         delete che->parentWidget();
     }
-    delete checkbox;
-    checkbox = nullptr;
+    delete checkboxes;
+    checkboxes = nullptr;
 
-    delete graficos;
-    graficos = nullptr;
+    delete curves;
+    curves = nullptr;
 
-    delete layoutColores;
-    layoutColores = nullptr;
+    delete colorsLayout;
+    colorsLayout = nullptr;
 
-    ejecutado = false;
+    plotted = false;
 }
 
 
-void LoopBoundariesViewer::setDatos(BoundaryData *boundariesNichols, BoundaryData *boundariesNyquist, QVector<qreal> *omega,
-                             LtiSystem *planta, LtiSystem *controlador, bool nichols, bool nyquist){
-    this->boundariesNichols = boundariesNichols;
-    this->boundariesNyquist = boundariesNyquist;
-    this->planta = planta;
-    this->controlador = controlador;
+void LoopBoundariesViewer::setDatos(BoundaryData *nicholsData, BoundaryData *nyquistData, QVector<qreal> *omega,
+                             LtiSystem *plant, LtiSystem *controller, bool nichols, bool nyquist){
+    this->nicholsData = nicholsData;
+    this->nyquistData = nyquistData;
+    this->plant = plant;
+    this->controller = controller;
     this->omega = omega;
     this->nichols = nichols;
     this->nyquist = nyquist;
 }
 
-void LoopBoundariesViewer::mostrar_diagrama(){
+void LoopBoundariesViewer::showDiagram(){
 
 
     bool mostrarNichols = nichols;
@@ -78,23 +78,23 @@ void LoopBoundariesViewer::mostrar_diagrama(){
 
     clearDiagram();
 
-    layoutColores = new QVBoxLayout (cajaFrecuencias);
-    checkbox = new QVector <QCheckBox *> ();
-    graficos = new QVector <QCPCurve * > ();
+    colorsLayout = new QVBoxLayout (frequenciesBox);
+    checkboxes = new QVector <QCheckBox *> ();
+    curves = new QVector <QCPCurve * > ();
 
-    ejecutado = true;
+    plotted = true;
 
     qint32 k = 0;
     qint32 contador = 0;
 
-    QVector <QColor > * colores = new QVector <QColor> ();
+    QVector <QColor > * rowColors = new QVector <QColor> ();
 
-    //Recorre las frecuencias de diseño.
+    //Sweep the design frequencies.
 
     qint32 c = 0;
-    foreach (QVector <QPointF> * boundNichols, *boundariesNichols->unionBoundaries()) {
+    foreach (QVector <QPointF> * boundNichols, *nicholsData->unionBoundaries()) {
 
-        QVector <QPointF> * boundNyquist = boundariesNyquist->unionBoundaries()->at(contador);
+        QVector <QPointF> * boundNyquist = nyquistData->unionBoundaries()->at(contador);
 
 
         QColor color = randomColor(c);
@@ -102,8 +102,8 @@ void LoopBoundariesViewer::mostrar_diagrama(){
         QColor color2 = randomColor(c);
         c++;
 
-        colores->append(color);
-        colores->append(color2);
+        rowColors->append(color);
+        rowColors->append(color2);
 
         QVector <qreal> * ejex = new QVector <qreal> ();
         QVector <qreal> * ejey = new QVector <qreal> ();
@@ -126,22 +126,22 @@ void LoopBoundariesViewer::mostrar_diagrama(){
         }
 
         if (mostrarNichols){
-            QCPCurve *curva = new QCPCurve(ui->diagrama->xAxis, ui->diagrama->yAxis);
+            QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
             curva->setData(*ejex, *ejey);
             curva->setPen(color);
-            pintarCuadro(color, contador);
-            graficos->append(curva);
+            addFrequencyRow(color, contador);
+            curves->append(curva);
             k++;
         }
 
-        //El modo "solo Nyquist" no pintaba nada: la curva exigia ademas
+        //The Nyquist-only mode drew nothing: the curve also required
         //mostrarNichols.
         if(mostrarNyquist){
-            QCPCurve *curva2 = new QCPCurve(ui->diagrama->xAxis, ui->diagrama->yAxis);
+            QCPCurve *curva2 = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
             curva2->setData(*ejex1, *ejey1);
             curva2->setPen(color2);
-            pintarCuadro(color2, contador);
-            graficos->append(curva2);
+            addFrequencyRow(color2, contador);
+            curves->append(curva2);
             k++;
         }
 
@@ -153,22 +153,22 @@ void LoopBoundariesViewer::mostrar_diagrama(){
         contador++;
     }
 
-    /*ui->diagrama->xAxis2->setVisible(true);
-    ui->diagrama->xAxis2->setTickLabels(false);
-    ui->diagrama->yAxis2->setVisible(true);
-    ui->diagrama->yAxis2->setTickLabels(false);
+    /*ui->plot->xAxis2->setVisible(true);
+    ui->plot->xAxis2->setTickLabels(false);
+    ui->plot->yAxis2->setVisible(true);
+    ui->plot->yAxis2->setTickLabels(false);
 
-    connect(ui->diagrama->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->diagrama->xAxis2, SLOT(setRange(QCPRange)));
-    connect(ui->diagrama->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->diagrama->yAxis2, SLOT(setRange(QCPRange)));*/
+    connect(ui->plot->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->xAxis2, SLOT(setRange(QCPRange)));
+    connect(ui->plot->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->yAxis2, SLOT(setRange(QCPRange)));*/
 
 
-    ui->diagrama->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
-    ui->diagrama->axisRect()->setupFullAxesBox();
-    ui->diagrama->rescaleAxes();
+    ui->plot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
+    ui->plot->axisRect()->setupFullAxesBox();
+    ui->plot->rescaleAxes();
 
-    finalk = k;
+    finalCurveIndex = k;
 
-    delete colores;
+    delete rowColors;
 
     /*Natura_Interval_extension * conversion = new Natura_Interval_extension();
 
@@ -176,7 +176,7 @@ void LoopBoundariesViewer::mostrar_diagrama(){
 
     foreach (qreal o, *omega) {
 
-        cinterval <qreal> box = conversion->get_box(controlador,o, planta->evaluate(o), false);
+        cinterval <qreal> box = conversion->get_box(controller,o, plant->evaluate(o), false);
 
 
         interval <qreal> b = abs(box);
@@ -191,42 +191,42 @@ void LoopBoundariesViewer::mostrar_diagrama(){
         interval<qreal> theta = arg(box) * (180 / M_PI);
 
         if (mostrarNichols){
-            dibujar_cuadro(QPointF(theta.inf, g.inf), QPointF(theta.inf, g.sup),
-                           QPointF(theta.sup, g.inf), QPointF(theta.sup, g.sup), colores->at(contador));
+            drawBox(QPointF(theta.inf, g.inf), QPointF(theta.inf, g.sup),
+                           QPointF(theta.sup, g.inf), QPointF(theta.sup, g.sup), rowColors->at(contador));
         }
 
         contador++;
 
 
         if (mostrarNyquist){
-            dibujar_cuadro(QPointF(box.re.inf, box.im.inf), QPointF(box.re.inf, box.im.sup),
-                           QPointF(box.re.sup, box.im.inf), QPointF(box.re.sup, box.im.sup), colores->at(contador));
+            drawBox(QPointF(box.re.inf, box.im.inf), QPointF(box.re.inf, box.im.sup),
+                           QPointF(box.re.sup, box.im.inf), QPointF(box.re.sup, box.im.sup), rowColors->at(contador));
         }
 
         contador++;
     }*/
 
 
-    ui->diagrama->replot();
+    ui->plot->replot();
 }
 
-void LoopBoundariesViewer::revisarCheckBox(){
-    for (qint32 i = 0; i < checkbox->size(); i++){
-        if (checkbox->at(i)->checkState() == 0){
-            graficos->at(i)->setVisible(false);
+void LoopBoundariesViewer::applyCheckboxes(){
+    for (qint32 i = 0; i < checkboxes->size(); i++){
+        if (checkboxes->at(i)->checkState() == 0){
+            curves->at(i)->setVisible(false);
         }else {
-            graficos->at(i)->setVisible(true);
+            curves->at(i)->setVisible(true);
         }
     }
-    ui->diagrama->replot();
+    ui->plot->replot();
 }
 
-void LoopBoundariesViewer::pintarCuadro(QColor color, qint32 pos){
+void LoopBoundariesViewer::addFrequencyRow(QColor color, qint32 pos){
 
     QWidget *widget;
     QCheckBox *checkBox;
 
-    widget = new QWidget(cajaFrecuencias);
+    widget = new QWidget(frequenciesBox);
     widget->setObjectName("widget");
     widget->setGeometry(QRect(10, 10, 111, 23));
     checkBox = new QCheckBox(widget);
@@ -239,15 +239,15 @@ void LoopBoundariesViewer::pintarCuadro(QColor color, qint32 pos){
 
     checkBox->setStyleSheet("color : " + color.name());
 
-    layoutColores->addWidget(widget);
-    checkbox->append(checkBox);
+    colorsLayout->addWidget(widget);
+    checkboxes->append(checkBox);
     checkBox->setCheckState(Qt::Checked);
 
-    connect(checkBox, SIGNAL (clicked()), this, SLOT (revisarCheckBox()));
+    connect(checkBox, SIGNAL (clicked()), this, SLOT (applyCheckboxes()));
 }
 
 
-void LoopBoundariesViewer::dibujar_cuadro(QPointF uno, QPointF dos, QPointF tres, QPointF cuatro, QColor color){
+void LoopBoundariesViewer::drawBox(QPointF uno, QPointF dos, QPointF tres, QPointF cuatro, QColor color){
 
     QVector <qreal> ejex;
     QVector <qreal> ejey;
@@ -263,19 +263,19 @@ void LoopBoundariesViewer::dibujar_cuadro(QPointF uno, QPointF dos, QPointF tres
     ejey.append(cuatro.y());
 
 
-    ui->diagrama->addGraph();
-    ui->diagrama->graph(finalk)->setData(ejex, ejey);
+    ui->plot->addGraph();
+    ui->plot->graph(finalCurveIndex)->setData(ejex, ejey);
 
-    ui->diagrama->graph(finalk)->setPen(color);
-    ui->diagrama->graph(finalk)->setLineStyle(QCPGraph::lsLine);
-    ui->diagrama->graph(finalk)->setScatterStyle(QCPScatterStyle::ssCircle);
+    ui->plot->graph(finalCurveIndex)->setPen(color);
+    ui->plot->graph(finalCurveIndex)->setLineStyle(QCPGraph::lsLine);
+    ui->plot->graph(finalCurveIndex)->setScatterStyle(QCPScatterStyle::ssCircle);
 
-    finalk++;
+    finalCurveIndex++;
 
-    ui->diagrama->replot();
+    ui->plot->replot();
 }
 
-void LoopBoundariesViewer::on_guardar_clicked()
+void LoopBoundariesViewer::on_saveImage_clicked()
 {
     bool noFallo = true;
     QString extension;
@@ -283,13 +283,13 @@ void LoopBoundariesViewer::on_guardar_clicked()
                                                     tr((".png (*.png);;.pdf(*.pdf);; .jpg(*.jpg);; .bmp(*.bmp)")), &extension);
     if (!fileName.isEmpty()){
         if (extension.contains(".pdf", Qt::CaseInsensitive)){
-            noFallo = ui->diagrama->savePdf(fileName, true);
+            noFallo = ui->plot->savePdf(fileName, true);
         }else if (extension.contains(".png", Qt::CaseInsensitive)){
-            noFallo = ui->diagrama->savePng(fileName);
+            noFallo = ui->plot->savePng(fileName);
         }else if (extension.contains(".jpg", Qt::CaseInsensitive)){
-            noFallo = ui->diagrama->saveJpg(fileName);
+            noFallo = ui->plot->saveJpg(fileName);
         }else if (extension.contains(".bmp", Qt::CaseInsensitive)){
-            noFallo = ui->diagrama->saveBmp(fileName);
+            noFallo = ui->plot->saveBmp(fileName);
         }else{
             noFallo = false;
         }

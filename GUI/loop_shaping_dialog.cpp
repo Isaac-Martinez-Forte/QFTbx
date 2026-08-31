@@ -14,20 +14,20 @@ LoopShapingDialog::LoopShapingDialog(QWidget *parent) :
 
     setWindowTitle(tr("Loop-shaping input"));
 
-    ui->inicio->setText("10^-9");
-    ui->final_2->setText("10^1");
-    ui->nPuntos->setText("100");
+    ui->startEdit->setText("10^-9");
+    ui->endEdit->setText("10^1");
+    ui->pointCountEdit->setText("100");
 
-    ui->delta->setText("10");
+    ui->deltaEdit->setText("10");
 
-    //ui->bisectionAvanced->setCheckState(Qt::Checked);
+    //ui->bisectionCheck->setCheckState(Qt::Checked);
 
 #ifndef DEBUG
-   // ui->depuracion->setVisible(false);
+   // ui->debugCheck->setVisible(false);
 #endif
 
     linLogSpace = false;
-    depuracion = false;
+    debugCheck = false;
 
     todoCorrecto = false;
 }
@@ -39,120 +39,121 @@ LoopShapingDialog::~LoopShapingDialog()
 
 void LoopShapingDialog::showEvent(QShowEvent * event)
 {
-    //Reabrir y cancelar no debe relanzar el calculo con los datos antiguos.
+    //Reopening and cancelling must not relaunch the computation with the old data.
     todoCorrecto = false;
     QDialog::showEvent(event);
 }
 
-void LoopShapingDialog::setDatos(qreal epsilon){
-    ui->epsilon->setText(QString::number(epsilon));
+void LoopShapingDialog::setEpsilonValue(qreal epsilonEdit){
+    ui->epsilonEdit->setText(QString::number(epsilonEdit));
 }
 
-void LoopShapingDialog::on_cancel_clicked()
+void LoopShapingDialog::on_cancelButton_clicked()
 {
     this->close();
 }
 
-void LoopShapingDialog::on_ok_clicked()
+void LoopShapingDialog::on_okButton_clicked()
 {
     ParserX p (mup::pckALL_NON_COMPLEX);
 
-    //Resolvemos epsilón.
-    p.SetExpr(ui->epsilon->text().toStdString());
+    //Evaluate epsilon.
+    p.SetExpr(ui->epsilonEdit->text().toStdString());
 
     try {
-        epsilon = p.Eval().GetFloat();
-        ui->epsilon->setStyleSheet("background : white");
+        epsilonEdit = p.Eval().GetFloat();
+        ui->epsilonEdit->setStyleSheet("background : white");
     } catch (mup::ParserError &e){
-        tools::errorMessage(tr("Invalid epsilon expression."), tr("Loop Shaping"));
-        ui->epsilon->setStyleSheet("background : red");
+        tools::errorMessage(tr("Invalid epsilonEdit expression."), tr("Loop Shaping"));
+        ui->epsilonEdit->setStyleSheet("background : red");
         return;
     }
 
-    //Resolvemos inicio frecuencias:
-    p.SetExpr(ui->inicio->text().toStdString());
+    //Evaluate the start frequency:
+    p.SetExpr(ui->startEdit->text().toStdString());
 
     try {
-        rango.setX(p.Eval().GetFloat());
-        ui->inicio->setStyleSheet("background : white");
+        plotRange.setX(p.Eval().GetFloat());
+        ui->startEdit->setStyleSheet("background : white");
     } catch (mup::ParserError &e){
         tools::errorMessage(tr("Invalid start-frequency expression."), tr("Loop Shaping"));
-        ui->inicio->setStyleSheet("background : red");
+        ui->startEdit->setStyleSheet("background : red");
         return;
     }
 
-    //Resolvemos final frecuencias:
-    p.SetExpr(ui->final_2->text().toStdString());
+    //Evaluate the end frequency:
+    p.SetExpr(ui->endEdit->text().toStdString());
 
     try {
-        rango.setY(p.Eval().GetFloat());
-        ui->final_2->setStyleSheet("background : white");
+        plotRange.setY(p.Eval().GetFloat());
+        ui->endEdit->setStyleSheet("background : white");
     } catch (mup::ParserError &e){
         tools::errorMessage(tr("Invalid end-frequency expression."), tr("Loop Shaping"));
-        ui->final_2->setStyleSheet("background : red");
+        ui->endEdit->setStyleSheet("background : red");
         return;
     }
 
-    //Resolvemos número de puntos:
-    p.SetExpr(ui->nPuntos->text().toStdString());
+    //Evaluate the point count:
+    p.SetExpr(ui->pointCountEdit->text().toStdString());
 
     try {
-        nPuntos = p.Eval().GetFloat();
-        ui->nPuntos->setStyleSheet("background : white");
+        pointCountEdit = p.Eval().GetFloat();
+        ui->pointCountEdit->setStyleSheet("background : white");
     } catch (mup::ParserError &e){
         tools::errorMessage(tr("Invalid point-count expression."), tr("Loop Shaping"));
-        ui->nPuntos->setStyleSheet("background : red");
+        ui->pointCountEdit->setStyleSheet("background : red");
         return;
     }
 
-    if (ui->nand->isChecked()){
+    if (ui->nkRadio->isChecked()){
 
-        //NOTA (fase 8): la condicion interior duplicada hace inalcanzable
-        //nandkishor_primeraversion; decidir alli que control debe elegirla.
+        //NOTE (phase 8): the duplicated inner condition made
+        //nandkishor_primeraversion unreachable; decide there which control
+        //should select it.
         alg = tools::nandkishor;
 
-        if (ui->aleatorio->isChecked()){
-            inicializacion = 2;
-        } else if (ui->superior->isChecked()){
-            inicializacion = 1;
+        if (ui->randomInit->isChecked()){
+            initialisation = 2;
+        } else if (ui->upperInit->isChecked()){
+            initialisation = 1;
         } else {
-            inicializacion = 0;
+            initialisation = 0;
         }
 
-        //Resolvemos el delta:
-        p.SetExpr(ui->delta->text().toStdString());
+        //Evaluate delta:
+        p.SetExpr(ui->deltaEdit->text().toStdString());
 
         try {
-            delta = p.Eval().GetFloat();
-            ui->delta->setStyleSheet("background : white");
+            deltaEdit = p.Eval().GetFloat();
+            ui->deltaEdit->setStyleSheet("background : white");
         } catch (mup::ParserError &e){
-            tools::errorMessage(tr("Invalid delta expression."), tr("Loop Shaping"));
-            ui->delta->setStyleSheet("background : red");
+            tools::errorMessage(tr("Invalid deltaEdit expression."), tr("Loop Shaping"));
+            ui->deltaEdit->setStyleSheet("background : red");
             return;
         }
 
-    } else if (ui->ram->isChecked()){
+    } else if (ui->mrRadio->isChecked()){
         alg = tools::rambabu;
-    }else if (ui->primero->isChecked()){
+    }else if (ui->mcRadio->isChecked()){
         alg = tools::primer_articulo;
-    } else if (ui->segundo->isChecked()){
+    } else if (ui->ntRadio->isChecked()){
         alg = tools::segundo_articulo;
     } else {
         alg = tools::sachin;
     }
 
-    //Lectura directa: el latch anterior dejaba linspace activado para
-    //siempre tras marcarlo una vez.
-    linLogSpace = ui->linspace->isChecked();
+    //Direct read: the old latch left linspace selected forever once
+    //checked.
+    linLogSpace = ui->linspaceRadio->isChecked();
 
-    //if (ui->depuracion->isChecked()){
-     //   depuracion = true;
+    //if (ui->debugCheck->isChecked()){
+     //   debugCheck = true;
     //}
 
-    /*if (ui->hilos->isChecked()){
-        hilos = true;
+    /*if (ui->threadsCheck->isChecked()){
+        threadsCheck = true;
     } else {*/
-        hilos = false;
+        threadsCheck = false;
     //}
 
     todoCorrecto = true;
@@ -160,8 +161,8 @@ void LoopShapingDialog::on_ok_clicked()
     this->close();
 }
 
-bool LoopShapingDialog::getHilos(){
-    return hilos;
+bool LoopShapingDialog::threadsValue(){
+    return threadsCheck;
 }
 
 bool LoopShapingDialog::getTodoCorrecto(){
@@ -169,80 +170,80 @@ bool LoopShapingDialog::getTodoCorrecto(){
 }
 
 
-qreal LoopShapingDialog::getEpsilon(){
-    return epsilon;
+qreal LoopShapingDialog::epsilonValue(){
+    return epsilonEdit;
 }
 
-tools::alg_loop_shaping LoopShapingDialog::getAlg(){
+tools::alg_loop_shaping LoopShapingDialog::algorithmValue(){
     return alg;
 }
 
 QPointF LoopShapingDialog::range(){
-    return rango;
+    return plotRange;
 }
 
-qreal LoopShapingDialog::getNPuntos(){
-    return nPuntos;
+qreal LoopShapingDialog::pointCountValue(){
+    return pointCountEdit;
 }
 
-qreal LoopShapingDialog::getDelta(){
-    return delta;
+qreal LoopShapingDialog::deltaValue(){
+    return deltaEdit;
 }
 
-bool LoopShapingDialog::getLinLogSpace(){
+bool LoopShapingDialog::isLinSpace(){
     return linLogSpace;
 }
 
-bool LoopShapingDialog::getDepuracion(){
-    return depuracion;
+bool LoopShapingDialog::debugValue(){
+    return debugCheck;
 }
 
-qint32 LoopShapingDialog::getInicializacion(){
-    return inicializacion;
+qint32 LoopShapingDialog::initialisationValue(){
+    return initialisation;
 }
 
-bool LoopShapingDialog::getBisectionAvanced () {
-    return ui->bisectionAvanced->checkState() == Qt::Checked;
+bool LoopShapingDialog::bisectionValue () {
+    return ui->bisectionCheck->checkState() == Qt::Checked;
 }
 
-bool LoopShapingDialog::getDeteccionAvanced() {
-    return ui->deteccionAvanced->checkState() == Qt::Checked;
+bool LoopShapingDialog::detectionValue() {
+    return ui->detectionCheck->checkState() == Qt::Checked;
 }
 
-bool LoopShapingDialog::getAcelerated() {
-    return ui->aceleratedAvanced->checkState() == Qt::Checked;
+bool LoopShapingDialog::acceleratedValue() {
+    return ui->acceleratedCheck->checkState() == Qt::Checked;
 }
 
-void LoopShapingDialog::on_linspace_clicked()
+void LoopShapingDialog::on_linspaceRadio_clicked()
 {
-    ui->inicio->setText("10^-4");
-    ui->final_2->setText("10^4");
-    ui->nPuntos->setText("1000");
+    ui->startEdit->setText("10^-4");
+    ui->endEdit->setText("10^4");
+    ui->pointCountEdit->setText("1000");
 }
 
-void LoopShapingDialog::on_logspace_clicked()
+void LoopShapingDialog::on_logspaceRadio_clicked()
 {
-    ui->inicio->setText("10^-6");
-    ui->final_2->setText("10^1");
-    ui->nPuntos->setText("1000");
+    ui->startEdit->setText("10^-6");
+    ui->endEdit->setText("10^1");
+    ui->pointCountEdit->setText("1000");
 }
 
 void LoopShapingDialog::on_sachin_clicked()
 {
-    ui->datosAlg->setCurrentIndex(0);
+    ui->algorithmStack->setCurrentIndex(0);
 }
 
-void LoopShapingDialog::on_nand_clicked()
+void LoopShapingDialog::on_nkRadio_clicked()
 {
-    ui->datosAlg->setCurrentIndex(2);
+    ui->algorithmStack->setCurrentIndex(2);
 }
 
-void LoopShapingDialog::on_ram_clicked()
+void LoopShapingDialog::on_mrRadio_clicked()
 {
-    ui->datosAlg->setCurrentIndex(0);
+    ui->algorithmStack->setCurrentIndex(0);
 }
 
-void LoopShapingDialog::on_isaac_clicked()
-{
-    ui->datosAlg->setCurrentIndex(1);
-}
+//NOTE (phase 8): dead since the original code - there is no radio wired to
+//the MC-prev algorithm (see the unreachable nandkishor_primeraversion in
+//on_okButton_clicked); decide there whether to add the radio or remove the
+//algorithm variant.

@@ -46,65 +46,65 @@ public:
     
     
     /**
-      * @fn getDatosFas
+      * @fn phaseRangeValue
       * @brief Función que retorna el inicio y el fin del eje de coordenadas de las fases.
       * 
       * @return ParVal con el inicio y el fin del eje de coordenadas de las fases.
       */
 
-    QPointF getDatosFas();
+    QPointF phaseRangeValue();
     
     
     /**
-      * @fn getPuntosFas
+      * @fn phaseCountValue
       * @brief Función que retorna el número de puntos que tiene el eje de coordenadas de las fases.
       * 
       * @return entero con el número de puntos del eje de coordenadas de las fases.
       */
     
-    qint32 getPuntosFas();
+    qint32 phaseCountValue();
     
     
     /**
-      * @fn getDatosMag
+      * @fn magnitudeRangeValue
       * @brief Función que retorna el inicio y el fin del eje de coordenadas de las magnitudes.
       * 
       * @return ParVal con el inicio y el fin del eje de coordenadas de las magnitudes.
       */
     
-    QPointF getDatosMag();
+    QPointF magnitudeRangeValue();
     
     
     /**
-      * @fn getPuntosMag
+      * @fn magnitudeCountValue
       * @brief Función que retorna el número de puntos que tiene el eje de coordenadas de las magnitudes.
       * 
       * @return entero con el número de puntos del eje de coordenadas de las magnitudes.
       */
     
-    qint32 getPuntosMag();
+    qint32 magnitudeCountValue();
     
     
     /**
-      * @fn getInfinito
-      * @brief Función que retorna el valor que se ha establecido para infinito.
+      * @fn infinityValue
+      * @brief Función que retorna el valor que se ha establecido para infinityEdit.
       * 
-      * @return real con el valor establecido para el infinito.
+      * @return real con el valor establecido para el infinityEdit.
       */
     
-    qreal getInfinito();
+    qreal infinityValue();
     
     
     /**
-      * @fn isContornoSelect
+      * @fn contourSelected
       * @brief Función que retorna un booleando indicando si el usuario a seleccionado utilizar el contorno de los templates para el cálculo de boundaries.
       * 
       * @return booleano indicando si se ha seleccionado utilizar el contorno de los templates para el cálculo de boundaries.
       */
     
-    bool isContornoSelect();
+    bool contourSelected();
 
-    bool getCUDA();
+    bool cudaSelected();
 
     bool getTodoCorrecto();
 
@@ -118,13 +118,13 @@ protected:
 private:
     Ui::BoundaryGridDialog *ui;
 
-    QPointF datosFase;
-    QPointF datosMag;
-    qint32 nPuntosFas;
-    qint32 nPuntosMag;
-    qreal infinito;
-    bool realizado;
-    bool cuda;
+    QPointF phaseRange;
+    QPointF magnitudeRange;
+    qint32 phaseCount;
+    qint32 magnitudeCount;
+    qreal infinityEdit;
+    bool accepted_once;
+    bool cudaCheck;
 
     bool todoCorrecto;
 };

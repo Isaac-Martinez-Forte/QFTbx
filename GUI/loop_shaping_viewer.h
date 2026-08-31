@@ -22,32 +22,32 @@ public:
     ~LoopShapingViewer();
 
 
-    void setDatos (QVector<QVector<QPointF> *> *boun, QVector<qreal> *omega, DatosLoopShaping * datos, LtiSystem *planta, bool linSpace);
+    void setDatos (QVector<QVector<QPointF> *> *unionTraces, QVector<qreal> *omega, DatosLoopShaping * loopShapingData, LtiSystem *plant, bool linSpace);
 
-    void mostrar_diagrama();
+    void showDiagram();
 
 private slots:
-    void revisarCheckBox();
+    void applyCheckboxes();
 
 
-    void on_guardar_clicked();
+    void on_saveImage_clicked();
 
 private:
 
-    QVector <QVector <QPointF> * > * boun;
+    QVector <QVector <QPointF> * > * unionTraces;
     QVector <qreal> * omega;
-    LtiSystem * planta;
-    DatosLoopShaping * datos;
+    LtiSystem * plant;
+    DatosLoopShaping * loopShapingData;
 
-    bool ejecutado;
+    bool plotted;
 
-    QVector <QCPCurve * > * graficos;
-    QGroupBox * cajaFrecuencias;
-    QVector <QCheckBox *> * checkbox;
-    QMap <QString, QColor> * colores;
-    QVBoxLayout * layoutColores;
+    QVector <QCPCurve * > * curves;
+    QGroupBox * frequenciesBox;
+    QVector <QCheckBox *> * checkboxes;
+    QMap <QString, QColor> * rowColors;
+    QVBoxLayout * colorsLayout;
 
-    void pintarCuadro(QColor color, qint32 pos);
+    void addFrequencyRow(QColor color, qint32 pos);
     void clearDiagram();
 
     bool linSpace;

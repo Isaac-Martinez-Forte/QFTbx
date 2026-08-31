@@ -38,14 +38,14 @@
      <item>
       <layout class="QVBoxLayout" name="verticalLayout">
        <item>
-        <widget class="QPushButton" name="exportar">
+        <widget class="QPushButton" name="exportData">
          <property name="text">
           <string>Export </string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="guardar">
+        <widget class="QPushButton" name="saveImage">
          <property name="text">
           <string>Save</string>
          </property>
@@ -56,7 +56,7 @@
     </layout>
    </widget>
   </widget>
-  <widget class="QCustomPlot" name="diagrama" native="true">
+  <widget class="QCustomPlot" name="plot" native="true">
    <property name="geometry">
     <rect>
      <x>150</x>

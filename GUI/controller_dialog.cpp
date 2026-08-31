@@ -13,19 +13,19 @@ using namespace mup;
 
 namespace {
 
-//Las tres tablas paralelas del parseo se liberan juntas (antes se
-//abandonaban con clear() o directamente se perdian en los errores).
-void liberarTablas(QVector <QVector <QString> * > * datosTabla,
-                   QVector <QVector <QString> * > * exp,
-                   QVector <QVector <bool> * > * isVar){
-    if (datosTabla != nullptr){
-        qDeleteAll(*datosTabla);
-        delete datosTabla;
+//The three parallel parse tables are freed together (they used to be
+//abandoned with clear() or simply lost on the error paths).
+void releaseTables(QVector <QVector <QString> * > * valueTable,
+                   QVector <QVector <QString> * > * expressionTable,
+                   QVector <QVector <bool> * > * uncertainTable){
+    if (valueTable != nullptr){
+        qDeleteAll(*valueTable);
+        delete valueTable;
     }
-    qDeleteAll(*exp);
-    delete exp;
-    qDeleteAll(*isVar);
-    delete isVar;
+    qDeleteAll(*expressionTable);
+    delete expressionTable;
+    qDeleteAll(*uncertainTable);
+    delete uncertainTable;
 }
 
 } // namespace
@@ -36,26 +36,26 @@ ControllerDialog::ControllerDialog(Controlador * cont, QWidget *parent) :
 {
     ui->setupUi(this);
 
-    this->controlador = cont;
+    this->controller = cont;
 
     setWindowTitle(tr("Controller structure input"));
 
     QPixmap imagen1 (":/figures/kgan.png");
-    ui->label_hf->setPixmap(imagen1);
+    ui->zpkImage->setPixmap(imagen1);
 
     QPixmap imagen2 (":/figures/knogan.png");
-    ui->label_hl->setPixmap(imagen2);
+    ui->tcgImage->setPixmap(imagen2);
 
     QPixmap imagen3 (":/figures/copol.png");
-    ui->label_poli->setPixmap(imagen3);
+    ui->polyImage->setPixmap(imagen3);
 
-    ui->kInicio->setText("1");
-    ui->kFinal->setText("1");
+    ui->gainStart->setText("1");
+    ui->gainEnd->setText("1");
 
-    incertidumbreIntroducida = false;
+    uncertaintyEntered = false;
 
-    //Creamos la pantalla para introducir la incertidumbre que usaremos despues.
-    viewIncer = new UncertaintyDialog (this);
+    //The uncertainty dialog is created up front and reused.
+    uncertaintyDialog = new UncertaintyDialog (this);
 
     todoCorrecto = false;
 }
@@ -65,71 +65,71 @@ ControllerDialog::~ControllerDialog()
     delete ui;
 }
 
-void ControllerDialog::on_c_poli_clicked()
+void ControllerDialog::on_polynomialRadio_clicked()
 {
-    ui->figures->setCurrentIndex(1);
+    ui->figureStack->setCurrentIndex(1);
 }
 
-void ControllerDialog::on_hf_clicked()
+void ControllerDialog::on_zpkRadio_clicked()
 {
-    ui->figures->setCurrentIndex(2);
+    ui->figureStack->setCurrentIndex(2);
 }
 
-void ControllerDialog::on_lf_clicked()
+void ControllerDialog::on_tcgRadio_clicked()
 {
-    ui->figures->setCurrentIndex(3);
+    ui->figureStack->setCurrentIndex(3);
 }
 
-void ControllerDialog::on_libertad_clicked()
+void ControllerDialog::on_uncertaintyButton_clicked()
 {
-    QVector <QVector <QString> * > * exp  = new QVector <QVector <QString> * > ();
-    QVector <QVector <bool> * > *  isVar = new QVector <QVector <bool> * >  ();
-    QVector <QVector <QString> * > * datosTabla = seleTabla(exp, isVar);
+    QVector <QVector <QString> * > * expressionTable  = new QVector <QVector <QString> * > ();
+    QVector <QVector <bool> * > *  uncertainTable = new QVector <QVector <bool> * >  ();
+    QVector <QVector <QString> * > * valueTable = readTables(expressionTable, uncertainTable);
 
-    if (datosTabla == NULL){
-        qDeleteAll(*exp);
-        delete exp;
-        qDeleteAll(*isVar);
-        delete isVar;
+    if (valueTable == NULL){
+        qDeleteAll(*expressionTable);
+        delete expressionTable;
+        qDeleteAll(*uncertainTable);
+        delete uncertainTable;
         errorMessage(tr("There is an error in the controller data"), tr("Controller input"));
         return;
     }
 
 
-    //Las tablas pasan a ser propiedad del dialogo de incertidumbre.
-    viewIncer->lanzarViewIncer(datosTabla, exp, isVar, true);
-    viewIncer->show();
-    incertidumbreIntroducida = true;
+    //The tables become property of the uncertainty dialog.
+    uncertaintyDialog->launch(valueTable, expressionTable, uncertainTable, true);
+    uncertaintyDialog->show();
+    uncertaintyEntered = true;
 }
 
-QVector<QVector <QString> * > * ControllerDialog::seleTabla(QVector <QVector <QString> * > * exp,
-                                                            QVector <QVector <bool> * > * isVar){
+QVector<QVector <QString> * > * ControllerDialog::readTables(QVector <QVector <QString> * > * expressionTable,
+                                                            QVector <QVector <bool> * > * uncertainTable){
 
-    bool valido = true;
-    QVector <QVector <QString> * > * devolver = new QVector <QVector <QString> * > ();
-    devolver->reserve(4);
+    bool valid = true;
+    QVector <QVector <QString> * > * tables = new QVector <QVector <QString> * > ();
+    tables->reserve(4);
 
-    if (ui->fl->isChecked()){
-        valido = comprobarParserFL(ui->nume, devolver, exp, isVar);
-        valido = comprobarParserFL(ui->deno, devolver, exp, isVar);
-        valido = comprobarParseKREt(devolver, ui->kInicio, ui->kFinal, exp, isVar);
+    if (ui->freeFormRadio->isChecked()){
+        valid = parseFreeForm(ui->numeratorEdit, tables, expressionTable, uncertainTable);
+        valid = parseFreeForm(ui->denominatorEdit, tables, expressionTable, uncertainTable);
+        valid = parseGainRange(tables, ui->gainStart, ui->gainEnd, expressionTable, uncertainTable);
     }else {
-        valido = comprobarParse(devolver, ui->nume, exp, isVar);
-        valido = comprobarParse(devolver, ui->deno, exp, isVar);
-        valido = comprobarParseKREt(devolver, ui->kInicio, ui->kFinal, exp, isVar);
+        valid = parseCoefficients(tables, ui->numeratorEdit, expressionTable, uncertainTable);
+        valid = parseCoefficients(tables, ui->denominatorEdit, expressionTable, uncertainTable);
+        valid = parseGainRange(tables, ui->gainStart, ui->gainEnd, expressionTable, uncertainTable);
     }
 
-    if (!valido){
-        qDeleteAll(*devolver);
-        delete devolver;
+    if (!valid){
+        qDeleteAll(*tables);
+        delete tables;
         return NULL;
     }
 
-    return devolver;
+    return tables;
 }
 
-bool ControllerDialog::comprobarParse(QVector<QVector <QString> * > * tabla, QLineEdit *linea,
-                                      QVector<QVector <QString> * > * exp, QVector <QVector <bool> * > * isVar){
+bool ControllerDialog::parseCoefficients(QVector<QVector <QString> * > * tabla, QLineEdit *linea,
+                                      QVector<QVector <QString> * > * expressionTable, QVector <QVector <bool> * > * uncertainTable){
 
     QVector <QString> * vec1 = tools::srtovectorString(linea->text());
     QVector <QString> * vec = new QVector <QString> ();
@@ -145,22 +145,22 @@ bool ControllerDialog::comprobarParse(QVector<QVector <QString> * > * tabla, QLi
             QRegularExpression re("[a-zA-Z]+");
 
             QRegularExpressionMatch match = re.match(e);
-            QString captura = match.captured(0);
-            e.remove(captura);
+            QString capture = match.captured(0);
+            e.remove(capture);
 
             bool isUncertain = false;
 
-            while (!captura.isNull()){
+            while (!capture.isNull()){
 
-                if (!p.IsFunDefined(captura.toStdString())){
-                    vec->append(captura);
-                    captura = QString();
+                if (!p.IsFunDefined(capture.toStdString())){
+                    vec->append(capture);
+                    capture = QString();
                     isUncertain = true;
                     break;
                 }
                 match = re.match(e);
-                captura = match.captured(0);
-                e.remove(captura);
+                capture = match.captured(0);
+                e.remove(capture);
             }
 
             vec2->append(isUncertain);
@@ -172,14 +172,14 @@ bool ControllerDialog::comprobarParse(QVector<QVector <QString> * > * tabla, QLi
     }
 
     tabla->append(vec);
-    isVar->append(vec2);
-    exp->append(vec1);
+    uncertainTable->append(vec2);
+    expressionTable->append(vec1);
 
     return true;
 }
 
-bool ControllerDialog::comprobarParseKREt(QVector<QVector <QString> * > * tabla, QLineEdit *linea1, QLineEdit * linea2,
-                                          QVector <QVector <QString> * > * exp, QVector <QVector <bool> * > * isVar){
+bool ControllerDialog::parseGainRange(QVector<QVector <QString> * > * tabla, QLineEdit *linea1, QLineEdit * linea2,
+                                          QVector <QVector <QString> * > * expressionTable, QVector <QVector <bool> * > * uncertainTable){
 
 
     QString aux = linea1->text().trimmed();
@@ -197,71 +197,71 @@ bool ControllerDialog::comprobarParseKREt(QVector<QVector <QString> * > * tabla,
     vec1->append(aux1);
 
     tabla->append(vec);
-    exp->append(vec1);
-    isVar->append(vec2);
+    expressionTable->append(vec1);
+    uncertainTable->append(vec2);
 
     return true;
 }
 
-bool ControllerDialog::comprobarParserFL(QLineEdit * linea, QVector<QVector <QString> * > * tabla, QVector<QVector<QString> *> *exp,
-                                         QVector <QVector <bool> * > * isVar){
+bool ControllerDialog::parseFreeForm(QLineEdit * linea, QVector<QVector <QString> * > * tabla, QVector<QVector<QString> *> *expressionTable,
+                                         QVector <QVector <bool> * > * uncertainTable){
 
-    QVector <QString> * vec_exp = new QVector <QString> ();
-    QVector <QString> * vec_tabla = new QVector <QString> ();
-    QVector <bool> * vec_isVar  = new QVector <bool> ();
+    QVector <QString> * expressions = new QVector <QString> ();
+    QVector <QString> * values = new QVector <QString> ();
+    QVector <bool> * flags  = new QVector <bool> ();
 
-    QString nume_s = linea->text();
+    QString text = linea->text();
 
     QRegularExpression re("[a-zA-Z]+");
-    QRegularExpressionMatch match = re.match(nume_s);
-    QString captura = match.captured(0);
+    QRegularExpressionMatch match = re.match(text);
+    QString capture = match.captured(0);
 
-    //La primera captura debe salir de la cadena ANTES del bucle (como en
-    //PlantDialog): sin esto cada variable incierta se registraba DOS
-    //veces en el camino de formato libre.
-    nume_s.remove(captura);
+    //The first capture must leave the string BEFORE the loop (as in
+    //PlantDialog): without this every uncertain variable was registered
+    //TWICE on the free-form path.
+    text.remove(capture);
 
-    while (!captura.isNull()){
+    while (!capture.isNull()){
 
-        if (!p.IsFunDefined(captura.toStdString()) && captura != "s"){
+        if (!p.IsFunDefined(capture.toStdString()) && capture != "s"){
 
-            vec_exp->append(captura);
-            vec_tabla->append(captura);
-            vec_isVar->append(true);
+            expressions->append(capture);
+            values->append(capture);
+            flags->append(true);
 
-            captura = QString();
+            capture = QString();
         }
-        match = re.match(nume_s);
-        captura = match.captured(0);
-        nume_s.remove(captura);
+        match = re.match(text);
+        capture = match.captured(0);
+        text.remove(capture);
     }
 
 
-    tabla->append(vec_tabla);
-    exp->append(vec_exp);
-    isVar->append(vec_isVar);
+    tabla->append(values);
+    expressionTable->append(expressions);
+    uncertainTable->append(flags);
 
     return true;
 }
 
 
-void ControllerDialog::on_cancelar_clicked()
+void ControllerDialog::on_cancelButton_clicked()
 {
     emit(close());
 }
 
-void ControllerDialog::on_aceptar_clicked()
+void ControllerDialog::on_okButton_clicked()
 {
 
-    QVector <QVector <QString> * > * exp = new QVector <QVector <QString> * > ();
-    QVector <QVector <bool> * > *  isVar = new QVector <QVector <bool> * >  ();
-    QVector <QVector <QString> * > * datosTabla = seleTabla(exp, isVar);
+    QVector <QVector <QString> * > * expressionTable = new QVector <QVector <QString> * > ();
+    QVector <QVector <bool> * > *  uncertainTable = new QVector <QVector <bool> * >  ();
+    QVector <QVector <QString> * > * valueTable = readTables(expressionTable, uncertainTable);
 
-    if (datosTabla == NULL){
-        qDeleteAll(*exp);
-        delete exp;
-        qDeleteAll(*isVar);
-        delete isVar;
+    if (valueTable == NULL){
+        qDeleteAll(*expressionTable);
+        delete expressionTable;
+        qDeleteAll(*uncertainTable);
+        delete uncertainTable;
         errorMessage(tr("There is an error in the controller data"), tr("Controller input"));
         return;
     }
@@ -270,35 +270,35 @@ void ControllerDialog::on_aceptar_clicked()
     Parameter * kv = nullptr;
     Parameter * retv = nullptr;
 
-    //Expresiones del usuario: un error de sintaxis lanzaba y tiraba la
-    //aplicacion.
+    //User expressions: a syntax error used to throw and bring the
+    //application down.
     try {
-        if (datosTabla->at(2)->size() == 0){
+        if (valueTable->at(2)->size() == 0){
             kv = new Parameter (1);
         }else{
 
-            QPointF punto;
-            p.SetExpr(exp->at(2)->at(0).toStdString());
-            punto.setX(p.Eval().GetFloat());
+            QPointF range_point;
+            p.SetExpr(expressionTable->at(2)->at(0).toStdString());
+            range_point.setX(p.Eval().GetFloat());
 
-            p.SetExpr(exp->at(2)->at(1).toStdString());
-            punto.setY(p.Eval().GetFloat());
+            p.SetExpr(expressionTable->at(2)->at(1).toStdString());
+            range_point.setY(p.Eval().GetFloat());
 
-            if (punto.x() == punto.y()){
-                kv = new Parameter (punto.x());
+            if (range_point.x() == range_point.y()){
+                kv = new Parameter (range_point.x());
             }else {
 
-                if (punto.x() > punto.y()){
-                    qreal a = punto.x();
-                    punto.setX(punto.y());
-                    punto.setY(a);
+                if (range_point.x() > range_point.y()){
+                    qreal a = range_point.x();
+                    range_point.setX(range_point.y());
+                    range_point.setY(a);
                 }
 
-                kv = new Parameter ("kv", punto, (punto.x() + punto.y()) / 2);
+                kv = new Parameter ("kv", range_point, (range_point.x() + range_point.y()) / 2);
             }
         }
     } catch (mup::ParserError &) {
-        liberarTablas(datosTabla, exp, isVar);
+        releaseTables(valueTable, expressionTable, uncertainTable);
         errorMessage(tr("There is an error in the controller data"), tr("Controller input"));
         return;
     }
@@ -306,44 +306,44 @@ void ControllerDialog::on_aceptar_clicked()
     retv = new Parameter (0.0);
 
 
-    //La incertidumbre solo cuenta si su dialogo se ACEPTO.
-    if (incertidumbreIntroducida && viewIncer->getTodoCorrecto()){
-        //La planta toma propiedad de sus variables: se le entregan copias y
-        //el dialogo de incertidumbre conserva sus originales para editar.
-        QVector <Parameter*> * nume = Parameter::cloneVector(viewIncer->numerator());
-        QVector <Parameter*> * deno = Parameter::cloneVector(viewIncer->denominator());
+    //The uncertainty only counts if its dialog was ACCEPTED.
+    if (uncertaintyEntered && uncertaintyDialog->getTodoCorrecto()){
+        //The controller takes ownership of its parameters: it receives
+        //copies and the uncertainty dialog keeps its originals for editing.
+        QVector <Parameter*> * numeratorEdit = Parameter::cloneVector(uncertaintyDialog->numerator());
+        QVector <Parameter*> * denominatorEdit = Parameter::cloneVector(uncertaintyDialog->denominator());
 
-        if (ui->hf->isChecked()){
-            planta = new ZeroPoleGain("",nume, deno,kv,retv);
-        }else if(ui->lf->isChecked()){
-            planta = new TimeConstantGain("",nume, deno,kv,retv);
-        }else if (ui->c_poli->isChecked()){
-            planta = new PolynomialForm("", nume, deno,kv,retv);
+        if (ui->zpkRadio->isChecked()){
+            controllerSystem = new ZeroPoleGain("",numeratorEdit, denominatorEdit,kv,retv);
+        }else if(ui->tcgRadio->isChecked()){
+            controllerSystem = new TimeConstantGain("",numeratorEdit, denominatorEdit,kv,retv);
+        }else if (ui->polynomialRadio->isChecked()){
+            controllerSystem = new PolynomialForm("", numeratorEdit, denominatorEdit,kv,retv);
         }else{
-            planta = new FreeForm("", nume, deno,kv,retv,
-                                      ui->nume->text(), ui->deno->text());
+            controllerSystem = new FreeForm("", numeratorEdit, denominatorEdit,kv,retv,
+                                      ui->numeratorEdit->text(), ui->denominatorEdit->text());
         }
     }else{
-        if (ui->hf->isChecked()){
-            planta = new ZeroPoleGain("",crearNumeradorDenominador(datosTabla->at(0)),
-                                   crearNumeradorDenominador(datosTabla->at(1)),kv,retv );
-        }else if(ui->lf->isChecked()){
-            planta = new TimeConstantGain("",crearNumeradorDenominador(datosTabla->at(0)),
-                                    crearNumeradorDenominador(datosTabla->at(1)),kv,retv);
-        }else if (ui->c_poli->isChecked()){
-            planta = new PolynomialForm("", crearNumeradorDenominador(datosTabla->at(0)),
-                                     crearNumeradorDenominador(datosTabla->at(1)),kv,retv);
+        if (ui->zpkRadio->isChecked()){
+            controllerSystem = new ZeroPoleGain("",buildParameters(valueTable->at(0)),
+                                   buildParameters(valueTable->at(1)),kv,retv );
+        }else if(ui->tcgRadio->isChecked()){
+            controllerSystem = new TimeConstantGain("",buildParameters(valueTable->at(0)),
+                                    buildParameters(valueTable->at(1)),kv,retv);
+        }else if (ui->polynomialRadio->isChecked()){
+            controllerSystem = new PolynomialForm("", buildParameters(valueTable->at(0)),
+                                     buildParameters(valueTable->at(1)),kv,retv);
         }else {
-            planta = new FreeForm("", crearNumeradorDenominador(datosTabla->at(0)),
-                                      crearNumeradorDenominador(datosTabla->at(1)),kv,retv,
-                                      ui->nume->text(), ui->deno->text());
+            controllerSystem = new FreeForm("", buildParameters(valueTable->at(0)),
+                                      buildParameters(valueTable->at(1)),kv,retv,
+                                      ui->numeratorEdit->text(), ui->denominatorEdit->text());
         }
 
 
     }
 
-    controlador->setControlador(planta);
-    liberarTablas(datosTabla, exp, isVar);
+    controller->setControlador(controllerSystem);
+    releaseTables(valueTable, expressionTable, uncertainTable);
 
     todoCorrecto = true;
 
@@ -351,7 +351,7 @@ void ControllerDialog::on_aceptar_clicked()
 }
 
 
-QVector <Parameter * > * ControllerDialog::crearNumeradorDenominador(QVector <QString> * numeros){
+QVector <Parameter * > * ControllerDialog::buildParameters(QVector <QString> * numeros){
     QVector <Parameter *> * var = new QVector <Parameter *> ();
     var->reserve(numeros->size());
 
@@ -364,7 +364,7 @@ QVector <Parameter * > * ControllerDialog::crearNumeradorDenominador(QVector <QS
         try {
             var->append(new Parameter(p.Eval().GetFloat()));
         } catch (mup::ParserError &) {
-            //Coeficiente invalido: 0 en vez de tirar la aplicacion.
+            //Invalid coefficient: 0 instead of bringing the application down.
             var->append(new Parameter(qreal(0)));
         }
     }

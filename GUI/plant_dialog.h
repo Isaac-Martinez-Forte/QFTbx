@@ -28,7 +28,7 @@ class PlantDialog : public QDialog
 
 public:
 
-    explicit PlantDialog(Controlador *controlador, QWidget *parent = 0);
+    explicit PlantDialog(Controlador *controller, QWidget *parent = 0);
     ~PlantDialog();
 
     bool getTodoCorrecto();
@@ -37,48 +37,48 @@ public:
     
 private slots:
 
-    void on_pYCe_toggled(bool checked);
+    void on_zerosPolesRadio_toggled(bool checked);
 
-    void on_fT_toggled(bool checked);
+    void on_transferFunctionRadio_toggled(bool checked);
 
-    void on_kGa_toggled(bool checked);
+    void on_zpkRadio_toggled(bool checked);
 
-    void on_kNoGa_toggled(bool checked);
+    void on_tcgRadio_toggled(bool checked);
 
-    void on_cDPol_toggled(bool checked);
+    void on_polynomialRadio_toggled(bool checked);
 
-    void on_ok_clicked();
+    void on_okButton_clicked();
 
-    void on_Inertidumbre_clicked();
+    void on_uncertaintyButton_clicked();
 
-    void on_Formato_Libre_clicked();
+    void on_freeFormRadio_clicked();
     
 
 private:
     Ui::PlantDialog *ui;
     
-    Controlador * controlador = NULL;
+    Controlador * controller = NULL;
 
     QRadioButton * gFT= NULL;
     QString file;
 
-    UncertaintyDialog * viewIncer= NULL;
+    UncertaintyDialog * uncertaintyDialog= NULL;
 
-    LtiSystem * planta= NULL;
+    LtiSystem * plant= NULL;
 
-    bool incertidumbreIntroducida;
+    bool uncertaintyEntered;
 
     void openFile();
     bool guardar ();
-    QVector<QVector<QString> *> *seleTabla(QVector<QVector<QString> *> *exp, QVector<QVector<bool> *> *isVar);
-    QVector<Parameter *> *crearNumeradorDenominador(QVector<QString> *numeros);
+    QVector<QVector<QString> *> *readTables(QVector<QVector<QString> *> *expressionTable, QVector<QVector<bool> *> *uncertainTable);
+    QVector<Parameter *> *buildParameters(QVector<QString> *numeros);
     bool parse(QString cadena);
-    bool comprobarParse(QVector<QVector<QString> *> *tabla, QLineEdit * linea, QVector<QVector<QString> *> *exp,
-                        QVector<QVector<bool> *> *isVar);
-    bool comprobarParseKREt(QVector<QVector <QString> * > * tabla, QLineEdit *linea, QVector<QVector<QString> *> *exp,
-                            QVector <QVector <bool> * > * isVar);
-    bool comprobarParserFL(QLineEdit * linea, QVector<QVector <QString> * > * tabla, QVector<QVector<QString> *> *exp,
-                           QVector <QVector <bool> * > * isVar);
+    bool parseCoefficients(QVector<QVector<QString> *> *tabla, QLineEdit * linea, QVector<QVector<QString> *> *expressionTable,
+                        QVector<QVector<bool> *> *uncertainTable);
+    bool parseScalar(QVector<QVector <QString> * > * tabla, QLineEdit *linea, QVector<QVector<QString> *> *expressionTable,
+                            QVector <QVector <bool> * > * uncertainTable);
+    bool parseFreeForm(QLineEdit * linea, QVector<QVector <QString> * > * tabla, QVector<QVector<QString> *> *expressionTable,
+                           QVector <QVector <bool> * > * uncertainTable);
 
 
     qreal resultado;

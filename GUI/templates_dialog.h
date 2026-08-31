@@ -57,54 +57,54 @@ public:
 
     
    /**
-    * @fn lanzarViewTemp
+    * @fn launch
     * @brief Función que lanza la creación gráfica de la clase.
     */
     
-    void lanzarViewTemp(LtiSystem * planta, qint32 numOmegas);
+    void launch(LtiSystem * plant, qint32 frequencyCount);
     
     
    /**
-    * @fn getMapa
-    * @brief Función que retorna un mapa con los distintos valores que pueden tomar las variables.
+    * @fn grids
+    * @brief Función que retorna un gridMap con los distintos valores que pueden tomar las variables.
     * 
-    * @return mapa hash con los distintos valores que pueden tomar las variables.
+    * @return gridMap hash con los distintos valores que pueden tomar las variables.
     */
     
-    QHash<QString, QVector<qreal> *> * getMapa();
+    QHash<QString, QVector<qreal> *> * grids();
     
     
    /**
     * @fn getEpsilon
-    * @brief Función que retorna el valor de epsilon.
+    * @brief Función que retorna el name_text de epsilonValues.
     * 
-    * @return real con el valor de epsilon necesario para calcular el contorno de los templates.
+    * @return real con el name_text de epsilonValues necesario para calcular el contorno de los templates.
     */
     
     QVector <qreal> * getEpsilon();
     
     
    /**
-    * @fn getElecDiagram
-    * @brief Función que retorna un booleano indicando que tipo de diagrama ha seleccionado el usuario para representar los templates y su contorno.
+    * @fn nicholsSelected
+    * @brief Función que retorna un booleano indicando que tipo de nicholsDiagram ha seleccionado el usuario para representar los templates y su contorno.
     * 
-    * @return booleano con el tipo de diagrama seleccionado por el usuario.
+    * @return booleano con el tipo de nicholsDiagram seleccionado por el usuario.
     */
     
-    bool getElecDiagram();
+    bool nicholsSelected();
 
 
     /**
-     * @fn getElecCUDA
-     * @brief Función que retorna un booleano indicando si se ha elegido usar CUDA.
+     * @fn cudaSelected
+     * @brief Función que retorna un booleano indicando si se ha elegido usar cudaCheck.
      *
-     * @return booleano indicando si se ha elegido usar CUDA.
+     * @return booleano indicando si se ha elegido usar cudaCheck.
      */
 
-    bool getElecCUDA();
+    bool cudaSelected();
 
 
-    struct tresRadioButton{
+    struct ThreeRadioButtons{
         QRadioButton * uno;
         QRadioButton * dos;
         QRadioButton * tres;
@@ -114,55 +114,55 @@ public:
     bool getTodoCorrecto();
     
 private slots:
-    void on_Todas_clicked();
+    void on_allVariablesRadio_clicked();
 
-    void on_unaxuna_clicked();
+    void on_oneByOneRadio_clicked();
 
-    void on_radioNumerador_clicked();
+    void on_numeratorRadio_clicked();
 
-    void on_radioDenominador_clicked();
+    void on_denominatorRadio_clicked();
 
-    void on_cancelar_clicked();
+    void on_cancelButton_clicked();
 
-    void on_Aceptar_clicked();
+    void on_okButton_clicked();
 
 signals:
     void close_ok ();
 
 
 private:
-    void limpiarTablas();
-    void liberarMapa();
+    void clearTables();
+    void releaseGrids();
 
     Ui::TemplatesDialog *ui;
 
 
-    void crearWidget (QWidget *widget, QVector<ParLineEdit *> *par, QVector <tresRadioButton> * radioButtons);
-    void formartablas(QVector<Parameter *> *numerador, QVector<Parameter *> *denominador);
-    bool extraerVariable(ParLineEdit* parlines, tresRadioButton radioButtons, Parameter * var,
-                         bool linsp, bool logsp);
+    void buildRow (QWidget *widget, QVector<ParLineEdit *> *par, QVector <ThreeRadioButtons> * rowRadios);
+    void buildTables(QVector<Parameter *> *numerator, QVector<Parameter *> *denominator);
+    bool readVariable(ParLineEdit* rowEdits, ThreeRadioButtons rowRadios, Parameter * parameter,
+                         bool useLinspace, bool useLogspace);
 
-    QVector <ParLineEdit*>* parNume;
-    QVector <ParLineEdit*>* parDeno ;
-    QHash <QString, QVector<qreal> * > * mapa = NULL;
-    QVector <tresRadioButton> * radioButtonsNume;
-    QVector <tresRadioButton> * radioButtonsDeno;
-    QVector<Parameter *> *numerador;
-    QVector<Parameter *> *denominador;
-    LtiSystem * planta;
+    QVector <ParLineEdit*>* numeratorRows;
+    QVector <ParLineEdit*>* denominatorRows ;
+    QHash <QString, QVector<qreal> * > * gridMap = NULL;
+    QVector <ThreeRadioButtons> * numeratorRadios;
+    QVector <ThreeRadioButtons> * denominatorRadios;
+    QVector<Parameter *> *numerator;
+    QVector<Parameter *> *denominator;
+    LtiSystem * plant;
 
-    bool variablesCreadas = false;
-    bool cuda = false;
+    bool rowsBuilt = false;
+    bool cudaEnabled = false;
 
-    bool diagrama  = true;
+    bool nicholsDiagram  = true;
 
     mup::ParserX * parser;
 
     bool todoCorrecto;
 
-    QVector <qreal> * epsilon;
+    QVector <qreal> * epsilonValues;
 
-    qint32 numOmegas;
+    qint32 frequencyCount;
 
 };
 

@@ -392,7 +392,7 @@ inline bool Algorithm_segundo_articulo::analizar(Tripleta2 * tripleta) {
     }
 
 #ifdef VER_DIAGRAMAS
-    FC::mostrar_diagrama(vectorCajas, omega, boundaries);
+    FC::showDiagram(vectorCajas, omega, boundaries);
 #endif
 
 #ifdef ETAPAS

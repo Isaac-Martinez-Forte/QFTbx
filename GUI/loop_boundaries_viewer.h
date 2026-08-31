@@ -27,35 +27,35 @@ public:
     ~LoopBoundariesViewer();
 
 
-    void setDatos (BoundaryData * boundariesNichols, BoundaryData * boundariesNyquist, QVector<qreal> *omega,
-                   LtiSystem * planta, LtiSystem * controlador, bool nichols, bool nyquist);
+    void setDatos (BoundaryData * nicholsData, BoundaryData * nyquistData, QVector<qreal> *omega,
+                   LtiSystem * plant, LtiSystem * controller, bool nichols, bool nyquist);
 
-    void mostrar_diagrama();
+    void showDiagram();
 
-    void dibujar_cuadro (QPointF uno, QPointF dos, QPointF tres, QPointF cuatro, QColor color);
+    void drawBox (QPointF uno, QPointF dos, QPointF tres, QPointF cuatro, QColor color);
 
 private slots:
-    void revisarCheckBox();
+    void applyCheckboxes();
 
-    void on_guardar_clicked();
+    void on_saveImage_clicked();
 
 private:
 
-    BoundaryData * boundariesNichols;
-    BoundaryData * boundariesNyquist;
-    LtiSystem * planta;
-    LtiSystem * controlador;
+    BoundaryData * nicholsData;
+    BoundaryData * nyquistData;
+    LtiSystem * plant;
+    LtiSystem * controller;
     QVector <qreal> * omega;
 
-    bool ejecutado;
+    bool plotted;
 
-    QVector <QCPCurve * > * graficos;
-    QGroupBox * cajaFrecuencias;
-    QVector <QCheckBox *> * checkbox;
-    QMap <QString, QColor> * colores;
-    QVBoxLayout * layoutColores;
+    QVector <QCPCurve * > * curves;
+    QGroupBox * frequenciesBox;
+    QVector <QCheckBox *> * checkboxes;
+    QMap <QString, QColor> * rowColors;
+    QVBoxLayout * colorsLayout;
 
-    void pintarCuadro(QColor color, qint32 pos);
+    void addFrequencyRow(QColor color, qint32 pos);
     void clearDiagram();
 
     bool nichols;
@@ -63,7 +63,7 @@ private:
 
     Ui::LoopBoundariesViewer *ui;
 
-    qint32 finalk;
+    qint32 finalCurveIndex;
 
 };
 

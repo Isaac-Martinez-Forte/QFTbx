@@ -22,51 +22,51 @@ class ControllerDialog : public QDialog
     Q_OBJECT
     
 public:
-    explicit ControllerDialog(Controlador * controlador, QWidget *parent = 0);
+    explicit ControllerDialog(Controlador * controller, QWidget *parent = 0);
     ~ControllerDialog();
 
     bool getTodoCorrecto();
     
 private slots:
-    void on_c_poli_clicked();
+    void on_polynomialRadio_clicked();
 
-    void on_hf_clicked();
+    void on_zpkRadio_clicked();
 
-    void on_lf_clicked();
+    void on_tcgRadio_clicked();
 
-    void on_libertad_clicked();
+    void on_uncertaintyButton_clicked();
 
-    void on_cancelar_clicked();
+    void on_cancelButton_clicked();
 
-    void on_aceptar_clicked();
+    void on_okButton_clicked();
 
 private:
     Ui::ControllerDialog *ui;
 
 
 
-    Controlador * controlador = NULL;
+    Controlador * controller = NULL;
 
     QString file;
 
-    UncertaintyDialog * viewIncer= NULL;
+    UncertaintyDialog * uncertaintyDialog= NULL;
 
-    LtiSystem * planta= NULL;
+    LtiSystem * controllerSystem= NULL;
 
-    bool incertidumbreIntroducida;
+    bool uncertaintyEntered;
 
-    QVector<QVector<QString> *> * seleTabla(QVector <QVector <QString> * > * exp,
-                                            QVector <QVector <bool> * > * isVar);
-    QVector<Parameter *> * crearNumeradorDenominador(QVector<QString> *numeros);
+    QVector<QVector<QString> *> * readTables(QVector <QVector <QString> * > * expressionTable,
+                                            QVector <QVector <bool> * > * uncertainTable);
+    QVector<Parameter *> * buildParameters(QVector<QString> *numeros);
     bool parse(QString cadena);
-    bool comprobarParse(QVector<QVector <QString> * > * tabla, QLineEdit *linea,
-                        QVector<QVector <QString> * > * exp, QVector <QVector <bool> * > * isVar);
-    bool comprobarParseKREt(QVector<QVector <QString> * > * tabla, QLineEdit *linea1, QLineEdit *linea2,
-                            QVector <QVector <QString> * > * exp, QVector <QVector <bool> * > * isVar);
+    bool parseCoefficients(QVector<QVector <QString> * > * tabla, QLineEdit *linea,
+                        QVector<QVector <QString> * > * expressionTable, QVector <QVector <bool> * > * uncertainTable);
+    bool parseGainRange(QVector<QVector <QString> * > * tabla, QLineEdit *linea1, QLineEdit *linea2,
+                            QVector <QVector <QString> * > * expressionTable, QVector <QVector <bool> * > * uncertainTable);
 
-    bool comprobarParserFL(QLineEdit * linea, QVector<QVector <QString> * > * tabla,
-                                             QVector<QVector<QString> *> *exp,
-                                             QVector <QVector <bool> * > * isVar);
+    bool parseFreeForm(QLineEdit * linea, QVector<QVector <QString> * > * tabla,
+                                             QVector<QVector<QString> *> *expressionTable,
+                                             QVector <QVector <bool> * > * uncertainTable);
 
     qreal resultado;
     mup::ParserX p;

@@ -41,21 +41,21 @@ public:
 
 
   /**
-    * @fn dibujarBode
+    * @fn drawBode
     * @brief Función que dibuja gráficamente el Diagrama de Bode a partir de los parámetros pasados.
     *
     * @param planta de la cual queremos ver su Diagrama de Bode.
-    * @param frecuencias necesarias para resolver la Planta.
+    * @param frequencies necesarias para resolver la Planta.
    */
 
-    void dibujarBode(LtiSystem * planta, Omega * omega);
+    void drawBode(LtiSystem * planta, Omega * omega);
 
 private slots:
-    void on_actionExportar_triggered();
+    void on_actionExport_triggered();
 
 private:
     Ui::BodeViewer *ui;
-    void dibujarDiagrama(QString nombreEjeY, QVector<qreal> *ejeY, QVector<qreal> *frecuencias, QCustomPlot * customPlot);
+    void drawAxis(QString yAxisName, QVector<qreal> *yAxis_values, QVector<qreal> *frequencies, QCustomPlot * magnitudePlot);
 };
 
 #endif // QFTBX_BODE_VIEWER_H

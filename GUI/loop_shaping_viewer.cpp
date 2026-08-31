@@ -12,19 +12,19 @@ LoopShapingViewer::LoopShapingViewer(QWidget *parent) :
 {
     ui->setupUi(this);
     setWindowTitle(tr("Loop Shaping"));
-    ejecutado = false;
+    plotted = false;
 
-    ui->nume->setReadOnly(true);
-    ui->deno->setReadOnly(true);
-    ui->k->setReadOnly(true);
+    ui->numeratorEdit->setReadOnly(true);
+    ui->denominatorEdit->setReadOnly(true);
+    ui->gainEdit->setReadOnly(true);
 
-    cajaFrecuencias = new QGroupBox(this);
-    cajaFrecuencias->setObjectName("cajaFrecuencias");
-    cajaFrecuencias->setGeometry(QRect(1060, 0, 120, 581));
+    frequenciesBox = new QGroupBox(this);
+    frequenciesBox->setObjectName("frequenciesBox");
+    frequenciesBox->setGeometry(QRect(1060, 0, 120, 581));
 
-    //Conectados UNA vez (cada repintado anadia una conexion duplicada).
-    connect(ui->diagrama->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->diagrama->xAxis2, SLOT(setRange(QCPRange)));
-    connect(ui->diagrama->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->diagrama->yAxis2, SLOT(setRange(QCPRange)));
+    //Connected ONCE (every replot used to add a duplicated connection).
+    connect(ui->plot->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->xAxis2, SLOT(setRange(QCPRange)));
+    connect(ui->plot->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->yAxis2, SLOT(setRange(QCPRange)));
 }
 
 LoopShapingViewer::~LoopShapingViewer()
@@ -36,94 +36,94 @@ LoopShapingViewer::~LoopShapingViewer()
 
 void LoopShapingViewer::clearDiagram(){
 
-    if (!ejecutado){
+    if (!plotted){
         return;
     }
 
-    ui->diagrama->clearFocus();
-    ui->diagrama->clearGraphs();
-    ui->diagrama->clearItems();
-    //QCustomPlot es dueno de las curvas: clearPlottables las libera.
-    ui->diagrama->clearPlottables();
+    ui->plot->clearFocus();
+    ui->plot->clearGraphs();
+    ui->plot->clearItems();
+    //QCustomPlot owns the curves: clearPlottables frees them.
+    ui->plot->clearPlottables();
 
-    //Filas de la caja de frecuencias enteras y contenedores de punteros:
-    //antes los widgets contenedores se acumulaban y los vectores se fugaban.
-    foreach (QCheckBox * che, *checkbox) {
+    //Whole frequency-box rows and the pointer containers: the row widgets
+    //used to pile up and the vectors leaked.
+    foreach (QCheckBox * che, *checkboxes) {
         delete che->parentWidget();
     }
-    delete checkbox;
-    checkbox = nullptr;
+    delete checkboxes;
+    checkboxes = nullptr;
 
-    delete graficos;
-    graficos = nullptr;
+    delete curves;
+    curves = nullptr;
 
-    delete layoutColores;
-    layoutColores = nullptr;
+    delete colorsLayout;
+    colorsLayout = nullptr;
 
-    ejecutado = false;
+    plotted = false;
 }
 
 
-void LoopShapingViewer::setDatos(QVector<QVector<QPointF> *> *boun, QVector<qreal> *omega, DatosLoopShaping *datos,
-                               LtiSystem* planta, bool linSpace){
-    this->boun = boun;
+void LoopShapingViewer::setDatos(QVector<QVector<QPointF> *> *unionTraces, QVector<qreal> *omega, DatosLoopShaping *loopShapingData,
+                               LtiSystem* plant, bool linSpace){
+    this->unionTraces = unionTraces;
     this->omega = omega;
-    this->datos = datos;
-    this->planta = planta;
+    this->loopShapingData = loopShapingData;
+    this->plant = plant;
     this->linSpace = linSpace;
 }
 
-void LoopShapingViewer::mostrar_diagrama(){
+void LoopShapingViewer::showDiagram(){
 
     QString numerador = "", denominador = "";
 
     qint32 i = 0;
-    for (i = 0; i < datos->getControlador()->numerator()->size(); i++){
-        numerador += QString::number(datos->getControlador()->numerator()->at(i)->nominal()) + " ";
+    for (i = 0; i < loopShapingData->getControlador()->numerator()->size(); i++){
+        numerador += QString::number(loopShapingData->getControlador()->numerator()->at(i)->nominal()) + " ";
     }
-    for (i = 0; i < datos->getControlador()->denominator()->size(); i++){
-        denominador += QString::number(datos->getControlador()->denominator()->at(i)->nominal()) + " ";
+    for (i = 0; i < loopShapingData->getControlador()->denominator()->size(); i++){
+        denominador += QString::number(loopShapingData->getControlador()->denominator()->at(i)->nominal()) + " ";
     }
 
-    ui->nume->setText(numerador);
-    ui->deno->setText(denominador);
-    ui->k->setText(QString::number(datos->getControlador()->gain()->nominal()));
+    ui->numeratorEdit->setText(numerador);
+    ui->denominatorEdit->setText(denominador);
+    ui->gainEdit->setText(QString::number(loopShapingData->getControlador()->gain()->nominal()));
 
-    LtiSystem::SystemType tipo = datos->getControlador()->type();
+    LtiSystem::SystemType tipo = loopShapingData->getControlador()->type();
 
     if (tipo == LtiSystem::SystemType::PolynomialForm){
         QPixmap imagen (":/figures/copol.png");
-        ui->tipoSistema->setPixmap(imagen);
+        ui->systemTypeImage->setPixmap(imagen);
     } else if (tipo == LtiSystem::SystemType::ZeroPoleGain){
         QPixmap imagen (":/figures/kgan.png");
-        ui->tipoSistema->setPixmap(imagen);
+        ui->systemTypeImage->setPixmap(imagen);
     }else {
         QPixmap imagen (":/figures/knogan.png");
-        ui->tipoSistema->setPixmap(imagen);
+        ui->systemTypeImage->setPixmap(imagen);
     }
 
 
 
     clearDiagram();
 
-    layoutColores = new QVBoxLayout (cajaFrecuencias);
-    checkbox = new QVector <QCheckBox *> ();
-    graficos = new QVector <QCPCurve * > ();
+    colorsLayout = new QVBoxLayout (frequenciesBox);
+    checkboxes = new QVector <QCheckBox *> ();
+    curves = new QVector <QCPCurve * > ();
 
 
-    ejecutado = true;
+    plotted = true;
 
-    qint32 k = 0;
+    qint32 gainEdit = 0;
 
-    //Recorre los boundaries.
+    //Sweep the boundaries.
 
-    QVector <QColor> colores;
+    QVector <QColor> rowColors;
 
     qint32 contador = 0;
-    foreach (QVector <QPointF> * bound, *boun) {
+    foreach (QVector <QPointF> * bound, *unionTraces) {
         QColor color = randomColor(contador);
         contador++;
-        colores.append(color);
+        rowColors.append(color);
 
         QVector <qreal> * ejex = new QVector <qreal> ();
         QVector <qreal> * ejey = new QVector <qreal> ();
@@ -133,39 +133,39 @@ void LoopShapingViewer::mostrar_diagrama(){
             ejey->append(p.y());
         }
 
-        /*graficos->append(ui->diagrama->addGraph());
-        ui->diagrama->graph(k)->setData(*ejex, *ejey);*/
+        /*curves->append(ui->plot->addGraph());
+        ui->plot->graph(gainEdit)->setData(*ejex, *ejey);*/
 
-        QCPCurve *curva = new QCPCurve(ui->diagrama->xAxis, ui->diagrama->yAxis);
+        QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
         curva->setData(*ejex, *ejey);
         curva->setPen(color);
-        graficos->append(curva);
+        curves->append(curva);
 
         delete ejex;
         delete ejey;
 
-        /*ui->diagrama->graph(k)->setPen(color);
-        ui->diagrama->graph(k)->setLineStyle(QCPGraph::lsNone);
-        ui->diagrama->graph(k)->setScatterStyle(QCPScatterStyle::ssCircle);*/
-        pintarCuadro(color, k);
+        /*ui->plot->graph(gainEdit)->setPen(color);
+        ui->plot->graph(gainEdit)->setLineStyle(QCPGraph::lsNone);
+        ui->plot->graph(gainEdit)->setScatterStyle(QCPScatterStyle::ssCircle);*/
+        addFrequencyRow(color, gainEdit);
 
-        k++;
+        gainEdit++;
     }
 
-    ui->diagrama->rescaleAxes();
+    ui->plot->rescaleAxes();
 
-    //Dibujamos el lazo cerrado
+    //Draw the open-loop curve.
 
-    QVector <qreal> * frecuencias;
+    QVector <qreal> * frequencies;
 
     /*if(linSpace){
-        frecuencias = tools::linspace(datos->range().x(), datos->range().y(), datos->getNPuntos());
+        frequencies = tools::linspace(loopShapingData->range().x(), loopShapingData->range().y(), loopShapingData->getNPuntos());
 
     } else {
-        frecuencias = tools::logspace(datos->range().x(), datos->range().y(), datos->getNPuntos());
+        frequencies = tools::logspace(loopShapingData->range().x(), loopShapingData->range().y(), loopShapingData->getNPuntos());
     }*/
 
-    frecuencias = tools::logspace(-5, 5, 10000);
+    frequencies = tools::logspace(-5, 5, 10000);
 
     QVector<QVector <qreal> *> * ejex = new QVector<QVector <qreal> *> ();
     QVector<QVector <qreal> *> * ejey = new QVector<QVector <qreal> *> ();
@@ -174,7 +174,7 @@ void LoopShapingViewer::mostrar_diagrama(){
     QVector <qreal> * ejeyActual = new QVector <qreal> ();
 
 
-    std::complex <qreal> c = planta->evaluate(frecuencias->at(0)) * datos->getControlador()->evaluate(frecuencias->at(0));
+    std::complex <qreal> c = plant->evaluate(frequencies->at(0)) * loopShapingData->getControlador()->evaluate(frequencies->at(0));
 
     qreal fas = arg(c) *180 / M_PI;
     qreal mag = 20*log10(abs(c));
@@ -184,23 +184,23 @@ void LoopShapingViewer::mostrar_diagrama(){
      ejexActual->append(fas);
      ejeyActual->append(mag);
 
-     qreal puntoXAnterior = fas;
+     qreal previousPhase = fas;
 
 
-    foreach (qreal a, *frecuencias) {
-        std::complex <qreal> c = planta->evaluate(a) * datos->getControlador()->evaluate(a);
+    foreach (qreal a, *frequencies) {
+        std::complex <qreal> c = plant->evaluate(a) * loopShapingData->getControlador()->evaluate(a);
 
         qreal fas = arg(c) *180 / M_PI;
         qreal mag = 20*log10(abs(c));
         if (fas > 0)
             fas -= 360;
 
-        if (abs(fas - puntoXAnterior) < 100) {
+        if (abs(fas - previousPhase) < 100) {
             ejexActual->append(fas);
             ejeyActual->append(mag);
         } else {
 
-            /*if (puntoXAnterior < -100){
+            /*if (previousPhase < -100){
                 ejexActual->append(0);
                 ejeyActual->append(puntoYAnterior);
             } else {
@@ -226,14 +226,14 @@ void LoopShapingViewer::mostrar_diagrama(){
             ejeyActual->append(mag);
         }
 
-        puntoXAnterior = fas;
+        previousPhase = fas;
     }
 
     ejex->append(ejexActual);
     ejey->append(ejeyActual);
 
 
-    /*QCPGraph * gra = ui->diagrama->addGraph();
+    /*QCPGraph * gra = ui->plot->addGraph();
     gra->setData(*ejex, *ejey);
 
     gra->setPen(randomColor(contador));
@@ -241,76 +241,76 @@ void LoopShapingViewer::mostrar_diagrama(){
     gra->setLineStyle(QCPGraph::lsNone);*/
 
     for (qint32 i = 0; i < ejex->size(); i++){
-        QCPCurve *curva = new QCPCurve(ui->diagrama->xAxis, ui->diagrama->yAxis);
+        QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
         curva->setData(*ejex->at(i), *ejey->at(i));
         curva->setPen((QColor) Qt::black);
-        graficos->append(curva);
+        curves->append(curva);
     }
 
 
-    //Los tramos del lazo ya estan copiados en las curvas: se liberan los
-    //vectores (antes se abandonaban todos en cada repintado), igual que el
-    //vector de frecuencias del barrido.
-    foreach (QVector <qreal> * tramo, *ejex) {
-        delete tramo;
+    //The loop segments are already copied into the curves: the vectors are
+    //freed (they all used to be abandoned on every replot), as is the sweep
+    //frequency vector.
+    foreach (QVector <qreal> * segment, *ejex) {
+        delete segment;
     }
     delete ejex;
-    foreach (QVector <qreal> * tramo, *ejey) {
-        delete tramo;
+    foreach (QVector <qreal> * segment, *ejey) {
+        delete segment;
     }
     delete ejey;
 
-    delete frecuencias;
+    delete frequencies;
 
 
-    //Dibujamos las cruces para cada frecuencia
+    //Draw the marker for each design frequency.
     for (qint32 i = 0; i < omega->size(); i++){
 
         QVector <qreal> ejex;
         QVector <qreal> ejey;
 
-        std::complex <qreal> c = datos->getControlador()->evaluate(omega->at(i)) * planta->evaluate(omega->at(i));
+        std::complex <qreal> c = loopShapingData->getControlador()->evaluate(omega->at(i)) * plant->evaluate(omega->at(i));
         ejey.append(20*log10(abs(c)));
         qreal fas = arg(c) *180 / M_PI;
         if (fas > 0)
             fas -= 360;
         ejex.append(fas);
 
-        QCPGraph * gra = ui->diagrama->addGraph();
+        QCPGraph * gra = ui->plot->addGraph();
         gra->setData(ejex, ejey);
 
-        gra->setPen(colores.at(i));
+        gra->setPen(rowColors.at(i));
         gra->setScatterStyle(QCPScatterStyle::ssCircle);
         gra->setLineStyle(QCPGraph::lsNone);
     }
 
-    ui->diagrama->xAxis2->setVisible(true);
-    ui->diagrama->xAxis2->setTickLabels(false);
-    ui->diagrama->yAxis2->setVisible(true);
-    ui->diagrama->yAxis2->setTickLabels(false);
+    ui->plot->xAxis2->setVisible(true);
+    ui->plot->xAxis2->setTickLabels(false);
+    ui->plot->yAxis2->setVisible(true);
+    ui->plot->yAxis2->setTickLabels(false);
 
-    ui->diagrama->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
+    ui->plot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
 
-    ui->diagrama->replot();
+    ui->plot->replot();
 }
 
-void LoopShapingViewer::revisarCheckBox(){
-    for (qint32 i = 0; i < checkbox->size(); i++){
-        if (checkbox->at(i)->checkState() == 0){
-            graficos->at(i)->setVisible(false);
+void LoopShapingViewer::applyCheckboxes(){
+    for (qint32 i = 0; i < checkboxes->size(); i++){
+        if (checkboxes->at(i)->checkState() == 0){
+            curves->at(i)->setVisible(false);
         }else {
-            graficos->at(i)->setVisible(true);
+            curves->at(i)->setVisible(true);
         }
     }
-    ui->diagrama->replot();
+    ui->plot->replot();
 }
 
-void LoopShapingViewer::pintarCuadro(QColor color, qint32 pos){
+void LoopShapingViewer::addFrequencyRow(QColor color, qint32 pos){
 
     QWidget *widget;
     QCheckBox *checkBox;
 
-    widget = new QWidget(cajaFrecuencias);
+    widget = new QWidget(frequenciesBox);
     widget->setObjectName("widget");
     widget->setGeometry(QRect(10, 10, 111, 23));
     checkBox = new QCheckBox(widget);
@@ -323,14 +323,14 @@ void LoopShapingViewer::pintarCuadro(QColor color, qint32 pos){
 
     checkBox->setStyleSheet("color : " + color.name());
 
-    layoutColores->addWidget(widget);
-    checkbox->append(checkBox);
+    colorsLayout->addWidget(widget);
+    checkboxes->append(checkBox);
     checkBox->setCheckState(Qt::Checked);
 
-    connect(checkBox, SIGNAL (clicked()), this, SLOT (revisarCheckBox()));
+    connect(checkBox, SIGNAL (clicked()), this, SLOT (applyCheckboxes()));
 }
 
-void LoopShapingViewer::on_guardar_clicked()
+void LoopShapingViewer::on_saveImage_clicked()
 {
     bool noFallo = true;
     QString extension;
@@ -338,13 +338,13 @@ void LoopShapingViewer::on_guardar_clicked()
                                                     tr((".png (*.png);;.pdf(*.pdf);; .jpg(*.jpg);; .bmp(*.bmp)")), &extension);
     if (!fileName.isEmpty()){
         if (extension.contains(".pdf", Qt::CaseInsensitive)){
-            noFallo = ui->diagrama->savePdf(fileName, true);
+            noFallo = ui->plot->savePdf(fileName, true);
         }else if (extension.contains(".png", Qt::CaseInsensitive)){
-            noFallo = ui->diagrama->savePng(fileName);
+            noFallo = ui->plot->savePng(fileName);
         }else if (extension.contains(".jpg", Qt::CaseInsensitive)){
-            noFallo = ui->diagrama->saveJpg(fileName);
+            noFallo = ui->plot->saveJpg(fileName);
         }else if (extension.contains(".bmp", Qt::CaseInsensitive)){
-            noFallo = ui->diagrama->saveBmp(fileName);
+            noFallo = ui->plot->saveBmp(fileName);
         }else{
             noFallo = false;
         }

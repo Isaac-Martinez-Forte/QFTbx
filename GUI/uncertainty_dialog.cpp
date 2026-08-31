@@ -10,180 +10,180 @@ UncertaintyDialog::UncertaintyDialog(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::UncertaintyDialog)
 {
-    rango = false;
+    rowsBuilt = false;
     ui->setupUi(this);
 
-    ui->boxNume->setVisible(false);
-    ui->boxDeno->setVisible(false);
+    ui->numeratorBox->setVisible(false);
+    ui->denominatorBox->setVisible(false);
 
-    rango = false;
+    rowsBuilt = false;
 
     setWindowTitle(tr("Plant uncertainty input"));
 
-    connect(ui->cancelar, SIGNAL(clicked()), this, SLOT(close()));
+    connect(ui->cancelButton, SIGNAL(clicked()), this, SLOT(close()));
 }
 
 UncertaintyDialog::~UncertaintyDialog(){
 
     delete ui;
 
-    if (rango == true){
-        delete layoutnume;
-        delete layoutdeno;
-        //Los ParLineEdit y los Parameter de trabajo son del dialogo (la
-        //planta recibe clones): antes se abandonaban con clear().
-        for (ParLineEdit * par : *parNume){
+    if (rowsBuilt == true){
+        delete numeratorLayout;
+        delete denominatorLayout;
+        //The working ParLineEdits and Parameters belong to the dialog (the
+        //plant receives clones): they used to be abandoned with clear().
+        for (ParLineEdit * par : *numeratorRows){
             delete par;
         }
-        delete parNume;
-        for (ParLineEdit * par : *parDeno){
+        delete numeratorRows;
+        for (ParLineEdit * par : *denominatorRows){
             delete par;
         }
-        delete parDeno;
-        qDeleteAll(*numerador);
-        delete numerador;
-        qDeleteAll(*denominador);
-        delete denominador;
-        delete cajas;
+        delete denominatorRows;
+        qDeleteAll(*numeratorParameters);
+        delete numeratorParameters;
+        qDeleteAll(*denominatorParameters);
+        delete denominatorParameters;
+        delete rowWidgets;
     }
 
-    liberarTablas();
+    releaseTables();
 }
 
-//Las tablas de entrada llegan de PlantDialog y pasan a ser del dialogo.
-void UncertaintyDialog::liberarTablas(){
-    if (tabla != nullptr){
-        qDeleteAll(*tabla);
-        delete tabla;
-        tabla = nullptr;
+//The input tables arrive from PlantDialog and become the dialog's.
+void UncertaintyDialog::releaseTables(){
+    if (valueTable != nullptr){
+        qDeleteAll(*valueTable);
+        delete valueTable;
+        valueTable = nullptr;
     }
-    if (exp != nullptr){
-        qDeleteAll(*exp);
-        delete exp;
-        exp = nullptr;
+    if (expressionTable != nullptr){
+        qDeleteAll(*expressionTable);
+        delete expressionTable;
+        expressionTable = nullptr;
     }
-    if (isVar != nullptr){
-        qDeleteAll(*isVar);
-        delete isVar;
-        isVar = nullptr;
+    if (uncertainTable != nullptr){
+        qDeleteAll(*uncertainTable);
+        delete uncertainTable;
+        uncertainTable = nullptr;
     }
 }
 
 
-bool UncertaintyDialog::lanzarViewIncer(QVector <QVector <QString> * > * tabla, QVector <QVector <QString> * > * exp,
-                                       QVector<QVector<bool> *> *isVar, bool rango){
+bool UncertaintyDialog::launch(QVector <QVector <QString> * > * valueTable, QVector <QVector <QString> * > * expressionTable,
+                                       QVector<QVector<bool> *> *uncertainTable, bool rowsBuilt){
 
-    //Cada lanzamiento reemplaza las tablas anteriores (se fugaban).
-    liberarTablas();
-    aceptado = false;
+    //Every launch replaces the previous tables (they used to leak).
+    releaseTables();
+    accepted_ok = false;
 
-    this->tabla = tabla;
-    this->exp = exp;
-    this->isVar = isVar;
+    this->valueTable = valueTable;
+    this->expressionTable = expressionTable;
+    this->uncertainTable = uncertainTable;
 
-    this->controlador = rango;
+    this->rangeOnlyMode = rowsBuilt;
 
-    if (rango){
+    if (rowsBuilt){
         ui->label->setVisible(false);
         ui->label_2->setVisible(false);
         ui->label_3->setVisible(false);
-        ui->rInicioK->setVisible(false);
-        ui->rFinK->setVisible(false);
+        ui->gainStart->setVisible(false);
+        ui->gainEnd->setVisible(false);
 
-        ui->rInicioRet->setVisible(false);
-        ui->rFinRet->setVisible(false);
+        ui->delayStart->setVisible(false);
+        ui->delayEnd->setVisible(false);
         ui->label_4->setVisible(false);
         ui->label_5->setVisible(false);
         ui->label_6->setVisible(false);
     }
 
-    formarango();
+    buildRows();
 
     return true;
 }
 
-void UncertaintyDialog::formarango(){
+void UncertaintyDialog::buildRows(){
 
 
-    numeradorNombre = tabla->at(0);
-    denominadorNombre = tabla->at(1);
+    numeratorTokens = valueTable->at(0);
+    denominatorTokens = valueTable->at(1);
 
-    if (rango == true){
-        delete layoutnume;
-        delete layoutdeno;
-        for (ParLineEdit * par : *parNume){
+    if (rowsBuilt == true){
+        delete numeratorLayout;
+        delete denominatorLayout;
+        for (ParLineEdit * par : *numeratorRows){
             delete par;
         }
-        delete parNume;
-        for (ParLineEdit * par : *parDeno){
+        delete numeratorRows;
+        for (ParLineEdit * par : *denominatorRows){
             delete par;
         }
-        delete parDeno;
-        qDeleteAll(*numerador);
-        delete numerador;
-        qDeleteAll(*denominador);
-        delete denominador;
-        for (qint32 i = 0; i < cajas->size(); i++) {
-            delete cajas->at(i);
+        delete denominatorRows;
+        qDeleteAll(*numeratorParameters);
+        delete numeratorParameters;
+        qDeleteAll(*denominatorParameters);
+        delete denominatorParameters;
+        for (qint32 i = 0; i < rowWidgets->size(); i++) {
+            delete rowWidgets->at(i);
         }
-        delete cajas;
+        delete rowWidgets;
     }
 
-    parNume = new std::list <ParLineEdit*> ();
-    parDeno = new std::list <ParLineEdit*> ();
+    numeratorRows = new std::list <ParLineEdit*> ();
+    denominatorRows = new std::list <ParLineEdit*> ();
 
-    layoutnume=new QVBoxLayout(ui->boxNume);
-    layoutdeno=new QVBoxLayout(ui->boxDeno);
+    numeratorLayout=new QVBoxLayout(ui->numeratorBox);
+    denominatorLayout=new QVBoxLayout(ui->denominatorBox);
 
-    cajas = new QVector <QWidget *> ();
+    rowWidgets = new QVector <QWidget *> ();
 
-    this->numerador = new QVector <Parameter*> ();
-    this->numerador->reserve(numerador->size());
-    this->denominador = new QVector <Parameter*> ();
-    this->denominador->reserve(denominador->size());
+    this->numeratorParameters = new QVector <Parameter*> ();
+    this->numeratorParameters->reserve(numeratorParameters->size());
+    this->denominatorParameters = new QVector <Parameter*> ();
+    this->denominatorParameters->reserve(denominatorParameters->size());
 
-    rango = true;
+    rowsBuilt = true;
 
-    QVector <QString> * nombres = new QVector <QString> ();
+    QVector <QString> * seenNames = new QVector <QString> ();
 
     qint32 i = 0;
 
-    foreach (const QString &valor, *numeradorNombre){
-        if(isVar->at(0)->at(i)){
-            if (!nombres->contains(valor)){
-                QWidget * widget = new QWidget(ui->boxNume);
-                formarLinea(widget, valor, parNume, controlador);
-                layoutnume->addWidget(widget);
-                cajas->append(widget);
-                nombres->append(valor);
+    foreach (const QString &valor, *numeratorTokens){
+        if(uncertainTable->at(0)->at(i)){
+            if (!seenNames->contains(valor)){
+                QWidget * widget = new QWidget(ui->numeratorBox);
+                buildRow(widget, valor, numeratorRows, rangeOnlyMode);
+                numeratorLayout->addWidget(widget);
+                rowWidgets->append(widget);
+                seenNames->append(valor);
             }
         }
         i++;
     }
 
     i = 0;
-    foreach (const QString &valor, *denominadorNombre){
-        if(isVar->at(1)->at(i)){
-            if (!nombres->contains(valor)){
-                QWidget * widget = new QWidget(ui->boxDeno);
-                formarLinea(widget, valor, parDeno, controlador);
-                layoutdeno->addWidget(widget);
-                cajas->append(widget);
-                nombres->append(valor);
+    foreach (const QString &valor, *denominatorTokens){
+        if(uncertainTable->at(1)->at(i)){
+            if (!seenNames->contains(valor)){
+                QWidget * widget = new QWidget(ui->denominatorBox);
+                buildRow(widget, valor, denominatorRows, rangeOnlyMode);
+                denominatorLayout->addWidget(widget);
+                rowWidgets->append(widget);
+                seenNames->append(valor);
             }
         }
         i++;
     }
 
-    delete nombres;
+    delete seenNames;
 
-    ui->areaScrolldeno->setAutoFillBackground(true);
-    ui->areaScrollnume->setAutoFillBackground(true);
-    ui->areaScrolldeno->setLayout(layoutdeno);
-    ui->areaScrollnume->setLayout(layoutnume);
+    ui->denominatorArea->setAutoFillBackground(true);
+    ui->numeratorArea->setAutoFillBackground(true);
+    ui->denominatorArea->setLayout(denominatorLayout);
+    ui->numeratorArea->setLayout(numeratorLayout);
 }
 
-void UncertaintyDialog:: formarLinea(QWidget *widget, QString variable, std::list <ParLineEdit*> * vector, bool rango){
+void UncertaintyDialog:: buildRow(QWidget *widget, QString parameter, std::list <ParLineEdit*> * vector, bool rowsBuilt){
 
     QHBoxLayout *horizontalLayout;
     QLabel *label;
@@ -228,18 +228,18 @@ void UncertaintyDialog:: formarLinea(QWidget *widget, QString variable, std::lis
     nominal->setObjectName(QString::fromUtf8("nominal"));
     horizontalLayout->addWidget(nominal);
 
-    if (rango){
+    if (rowsBuilt){
         nominal->setVisible(false);
     }
 
     inicio->raise();
 
-    QString cad = variable + ": [";
+    QString cad = parameter + ": [";
 
     label->setText(QApplication::tr("%1").arg(cad));
     label_2->setText(QApplication::translate("UncertaintyDialog", ",", 0));
 
-    if (!controlador){
+    if (!rangeOnlyMode){
         label_3->setText(QApplication::translate("UncertaintyDialog", "] Nominal:", 0));
     } else {
         label_3->setText(QApplication::translate("UncertaintyDialog", "]", 0));
@@ -248,73 +248,73 @@ void UncertaintyDialog:: formarLinea(QWidget *widget, QString variable, std::lis
     ParLineEdit * par = new ParLineEdit(inicio, fin, nominal);
     vector->push_back(par);
 
-    //cajas->append(horizontalLayout);
+    //rowWidgets->append(horizontalLayout);
 }
 
-void UncertaintyDialog::on_numerador_clicked()
+void UncertaintyDialog::on_numeratorRadio_clicked()
 {
-    ui->boxDeno->setVisible(false);
-    ui->numdeno->setCurrentIndex(0);
-    ui->boxNume->setVisible(true);
+    ui->denominatorBox->setVisible(false);
+    ui->numDenStack->setCurrentIndex(0);
+    ui->numeratorBox->setVisible(true);
 }
 
-void UncertaintyDialog::on_denominador_clicked()
+void UncertaintyDialog::on_denominatorRadio_clicked()
 {
-    ui->boxNume->setVisible(false);
-    ui->numdeno->setCurrentIndex(1);
-    ui->boxDeno->setVisible(true);
+    ui->numeratorBox->setVisible(false);
+    ui->numDenStack->setCurrentIndex(1);
+    ui->denominatorBox->setVisible(true);
 }
 
 QVector <Parameter*> * UncertaintyDialog::numerator(){
-    return numerador;
+    return numeratorParameters;
 }
 
 QVector<Parameter*> *UncertaintyDialog::denominator(){
-    return denominador;
+    return denominatorParameters;
 }
 
 QPointF UncertaintyDialog::gain(){
 
     mup::ParserX p;
 
-    if (ui->rInicioK->text().isEmpty() || ui->rFinK->text().isEmpty()){
-        ui->rInicioK->setText("1");
-        ui->rFinK->setText("1");
+    if (ui->gainStart->text().isEmpty() || ui->gainEnd->text().isEmpty()){
+        ui->gainStart->setText("1");
+        ui->gainEnd->setText("1");
     }
 
-    p.SetExpr(ui->rInicioK->text().toStdString());
+    p.SetExpr(ui->gainStart->text().toStdString());
 
-    QPointF rango;
+    QPointF rowsBuilt;
 
-    rango.setX(p.Eval().GetFloat());
+    rowsBuilt.setX(p.Eval().GetFloat());
 
-    p.SetExpr(ui->rFinK->text().toStdString());
+    p.SetExpr(ui->gainEnd->text().toStdString());
 
-    rango.setY(p.Eval().GetFloat());
+    rowsBuilt.setY(p.Eval().GetFloat());
 
-    return rango;
+    return rowsBuilt;
 }
 
 QPointF UncertaintyDialog::delay(){
 
     mup::ParserX p;
 
-    if (ui->rInicioRet->text().isEmpty() || ui->rFinRet->text().isEmpty()){
-        ui->rInicioRet->setText("0");
-        ui->rFinRet->setText("0");
+    if (ui->delayStart->text().isEmpty() || ui->delayEnd->text().isEmpty()){
+        ui->delayStart->setText("0");
+        ui->delayEnd->setText("0");
     }
 
-    p.SetExpr(ui->rInicioRet->text().toStdString());
+    p.SetExpr(ui->delayStart->text().toStdString());
 
-    QPointF rango;
+    QPointF rowsBuilt;
 
-    rango.setX(p.Eval().GetFloat());
+    rowsBuilt.setX(p.Eval().GetFloat());
 
-    p.SetExpr(ui->rFinRet->text().toStdString());
+    p.SetExpr(ui->delayEnd->text().toStdString());
 
-    rango.setY(p.Eval().GetFloat());
+    rowsBuilt.setY(p.Eval().GetFloat());
 
-    return rango;
+    return rowsBuilt;
 }
 
 qreal UncertaintyDialog::parse(QString cadena)
@@ -324,197 +324,197 @@ qreal UncertaintyDialog::parse(QString cadena)
     return p.Eval().GetFloat();
 }
 
-bool UncertaintyDialog::guardarrango(){
+bool UncertaintyDialog::readRanges(){
 
-    //Reintento idempotente: tras un error parcial, la ejecucion anterior
-    //dejaba parametros ya insertados y el siguiente Aceptar los DUPLICABA.
-    qDeleteAll(*numerador);
-    numerador->clear();
-    qDeleteAll(*denominador);
-    denominador->clear();
+    //Idempotent retry: after a partial error, the previous run left
+    //parameters inserted and the next accept DUPLICATED them.
+    qDeleteAll(*numeratorParameters);
+    numeratorParameters->clear();
+    qDeleteAll(*denominatorParameters);
+    denominatorParameters->clear();
 
-    QLineEdit * rangoX;
-    QLineEdit * rangoY;
+    QLineEdit * startEdit;
+    QLineEdit * endEdit;
     QLineEdit * nominal;
 
-    qreal rangoX_real = 0;
-    qreal rangoY_real = 0;
-    qreal nominal_real = 0;
+    qreal startValue = 0;
+    qreal endValue = 0;
+    qreal nominalValue = 0;
 
-    bool validoGlobal = true;
-    bool valido = true;
+    bool allValid = true;
+    bool valid = true;
 
-    QVector <QString> * nombres = new QVector <QString> ();
+    QVector <QString> * seenNames = new QVector <QString> ();
 
-    for (qint32 i = 0; i < numeradorNombre->size(); i++){
-        Parameter * variable = NULL;
-        valido = true;
-        if(isVar->at(0)->at(i)){
-            if (!nombres->contains(numeradorNombre->at(i))){
+    for (qint32 i = 0; i < numeratorTokens->size(); i++){
+        Parameter * parameter = NULL;
+        valid = true;
+        if(uncertainTable->at(0)->at(i)){
+            if (!seenNames->contains(numeratorTokens->at(i))){
 
-                ParLineEdit * aux = parNume->front();
+                ParLineEdit * aux = numeratorRows->front();
 
-                rangoX = aux->getX();
-                rangoY = aux->getY();
+                startEdit = aux->getX();
+                endEdit = aux->getY();
                 nominal= aux->nominal();
-                if (controlador){
-                    nominal->setText(QString::number((rangoX->text().toDouble() + rangoY->text().toDouble()) / 2));
+                if (rangeOnlyMode){
+                    nominal->setText(QString::number((startEdit->text().toDouble() + endEdit->text().toDouble()) / 2));
                 }
 
-                if (rangoX->text().isEmpty() || rangoY->text().isEmpty() || nominal->text().isEmpty()){
-                    rangoX->setStyleSheet("background : red");
-                    rangoY->setStyleSheet("background : red");
+                if (startEdit->text().isEmpty() || endEdit->text().isEmpty() || nominal->text().isEmpty()){
+                    startEdit->setStyleSheet("background : red");
+                    endEdit->setStyleSheet("background : red");
                     nominal->setStyleSheet("background : red");
-                    valido = false;
+                    valid = false;
                 }else{
                     try {
-                        rangoX_real = parse(rangoX->text());
-                        rangoY_real = parse(rangoY->text());
-                        nominal_real = parse(nominal->text());
+                        startValue = parse(startEdit->text());
+                        endValue = parse(endEdit->text());
+                        nominalValue = parse(nominal->text());
                     } catch (mup::ParserError &) {
-                        //Expresion invalida: antes reventaba el dialogo.
-                        rangoX->setStyleSheet("background : red");
-                        rangoY->setStyleSheet("background : red");
+                        //Invalid expression: it used to blow the dialog up.
+                        startEdit->setStyleSheet("background : red");
+                        endEdit->setStyleSheet("background : red");
                         nominal->setStyleSheet("background : red");
-                        valido = false;
-                        rangoX_real = 1;
-                        rangoY_real = 0;
-                        nominal_real = 0;
+                        valid = false;
+                        startValue = 1;
+                        endValue = 0;
+                        nominalValue = 0;
                     }
 
-                    if (valido && (rangoX_real <= nominal_real) && (nominal_real <= rangoY_real)){
-                        QPointF rango (rangoX_real, rangoY_real);
-                        variable = new Parameter (numeradorNombre->at(i), rango, nominal_real, exp->at(0)->at(i));
+                    if (valid && (startValue <= nominalValue) && (nominalValue <= endValue)){
+                        QPointF rowsBuilt (startValue, endValue);
+                        parameter = new Parameter (numeratorTokens->at(i), rowsBuilt, nominalValue, expressionTable->at(0)->at(i));
 
-                        rangoX->setStyleSheet("background : white");
-                        rangoY->setStyleSheet("background : white");
+                        startEdit->setStyleSheet("background : white");
+                        endEdit->setStyleSheet("background : white");
                         nominal->setStyleSheet("background : white");
 
-                        parNume->pop_front();
+                        numeratorRows->pop_front();
                         delete aux;
-                        valido = true;
+                        valid = true;
                     } else {
-                        rangoX->setStyleSheet("background : red");
-                        rangoY->setStyleSheet("background : red");
+                        startEdit->setStyleSheet("background : red");
+                        endEdit->setStyleSheet("background : red");
                         nominal->setStyleSheet("background : red");
-                        valido = false;
+                        valid = false;
                     }
                 }
             } else{
-                for (qint32 x = 0; x < numerador->size(); x++){
-                    if (numerador->at(x)->name() == numeradorNombre->at(i)){
-                        Parameter * v = numerador->at(x);
-                        variable = new Parameter(v->name(),v->rawRange(),v->rawNominal(),v->expression());
+                for (qint32 x = 0; x < numeratorParameters->size(); x++){
+                    if (numeratorParameters->at(x)->name() == numeratorTokens->at(i)){
+                        Parameter * v = numeratorParameters->at(x);
+                        parameter = new Parameter(v->name(),v->rawRange(),v->rawNominal(),v->expression());
                         break;
                     }
                 }
             }
         }else {
-            variable = new Parameter (numeradorNombre->at(i).toDouble());
+            parameter = new Parameter (numeratorTokens->at(i).toDouble());
         }
 
-        if (valido && variable != NULL){
-            numerador->insert(i,variable);
-            nombres->append(numeradorNombre->at(i));
+        if (valid && parameter != NULL){
+            numeratorParameters->insert(i,parameter);
+            seenNames->append(numeratorTokens->at(i));
         }else{
-            validoGlobal = false;
+            allValid = false;
         }
     }
 
-    if (!validoGlobal){
-        delete nombres;
+    if (!allValid){
+        delete seenNames;
         errorMessage(tr("There are errors in the parameter ranges"), tr("Uncertainty input"));
         return false;
     }
 
-    validoGlobal = true;
+    allValid = true;
 
-    for (qint32 i = 0; i < denominadorNombre->size(); i++){
-        Parameter * variable = NULL;
-        if(isVar->at(1)->at(i)){
-            if (!nombres->contains(denominadorNombre->at(i))){
+    for (qint32 i = 0; i < denominatorTokens->size(); i++){
+        Parameter * parameter = NULL;
+        if(uncertainTable->at(1)->at(i)){
+            if (!seenNames->contains(denominatorTokens->at(i))){
 
-                ParLineEdit * aux = parDeno->front();
+                ParLineEdit * aux = denominatorRows->front();
 
-                rangoX = aux->getX();
-                rangoY = aux->getY();
+                startEdit = aux->getX();
+                endEdit = aux->getY();
                 nominal = aux->nominal();
 
-                if (controlador){
-                    nominal->setText(QString::number((rangoX->text().toDouble() + rangoY->text().toDouble()) / 2));
+                if (rangeOnlyMode){
+                    nominal->setText(QString::number((startEdit->text().toDouble() + endEdit->text().toDouble()) / 2));
                 }
 
-                if (rangoX->text().isEmpty() || rangoY->text().isEmpty() || nominal->text().isEmpty()){
-                    valido = false;
-                    rangoX->setStyleSheet("background : red");
-                    rangoY->setStyleSheet("background : red");
+                if (startEdit->text().isEmpty() || endEdit->text().isEmpty() || nominal->text().isEmpty()){
+                    valid = false;
+                    startEdit->setStyleSheet("background : red");
+                    endEdit->setStyleSheet("background : red");
                     nominal->setStyleSheet("background : red");
                 }else{
                     try {
-                        rangoX_real = parse(rangoX->text());
-                        rangoY_real = parse(rangoY->text());
-                        nominal_real = parse(nominal->text());
+                        startValue = parse(startEdit->text());
+                        endValue = parse(endEdit->text());
+                        nominalValue = parse(nominal->text());
                     } catch (mup::ParserError &) {
-                        rangoX->setStyleSheet("background : red");
-                        rangoY->setStyleSheet("background : red");
+                        startEdit->setStyleSheet("background : red");
+                        endEdit->setStyleSheet("background : red");
                         nominal->setStyleSheet("background : red");
-                        valido = false;
+                        valid = false;
                     }
 
-                    if (valido){
-                        if ((rangoX_real <= nominal_real) && (nominal_real <= rangoY_real)){
-                            QPointF rango (rangoX_real, rangoY_real);
-                            variable = new Parameter (denominadorNombre->at(i), rango, nominal_real, exp->at(1)->at(i));
+                    if (valid){
+                        if ((startValue <= nominalValue) && (nominalValue <= endValue)){
+                            QPointF rowsBuilt (startValue, endValue);
+                            parameter = new Parameter (denominatorTokens->at(i), rowsBuilt, nominalValue, expressionTable->at(1)->at(i));
 
-                            rangoX->setStyleSheet("background : white");
-                            rangoY->setStyleSheet("background : white");
+                            startEdit->setStyleSheet("background : white");
+                            endEdit->setStyleSheet("background : white");
                             nominal->setStyleSheet("background : white");
 
-                            parDeno->pop_front();
+                            denominatorRows->pop_front();
                             delete aux;
                         } else {
-                            valido = false;
-                            rangoX->setStyleSheet("background : red");
-                            rangoY->setStyleSheet("background : red");
+                            valid = false;
+                            startEdit->setStyleSheet("background : red");
+                            endEdit->setStyleSheet("background : red");
                             nominal->setStyleSheet("background : red");
                         }
                     }
                 }
             } else{
                 bool elegido = false;
-                for (qint32 x = 0; x < numerador->size(); x++){
-                    if (numerador->at(x)->name() == denominadorNombre->at(i)){
-                        Parameter * v = numerador->at(x);
-                        variable = new Parameter(v->name(),v->rawRange(),v->rawNominal(),v->expression());
+                for (qint32 x = 0; x < numeratorParameters->size(); x++){
+                    if (numeratorParameters->at(x)->name() == denominatorTokens->at(i)){
+                        Parameter * v = numeratorParameters->at(x);
+                        parameter = new Parameter(v->name(),v->rawRange(),v->rawNominal(),v->expression());
                         break;
                     }
                 }
 
                 if (!elegido){
-                    for (qint32 x = 0; x < denominador->size(); x++){
-                        if (denominador->at(x)->name() == denominadorNombre->at(i)){
-                            Parameter * v = denominador->at(x);
-                            variable = new Parameter(v->name(),v->rawRange(),v->rawNominal(),v->expression());
+                    for (qint32 x = 0; x < denominatorParameters->size(); x++){
+                        if (denominatorParameters->at(x)->name() == denominatorTokens->at(i)){
+                            Parameter * v = denominatorParameters->at(x);
+                            parameter = new Parameter(v->name(),v->rawRange(),v->rawNominal(),v->expression());
                             break;
                         }
                     }
                 }
             }
         }else {
-            variable = new Parameter (denominadorNombre->at(i).toDouble());
+            parameter = new Parameter (denominatorTokens->at(i).toDouble());
         }
 
-        if (valido && variable != NULL){
-            denominador->insert(i,variable);
-            nombres->append(denominadorNombre->at(i));
+        if (valid && parameter != NULL){
+            denominatorParameters->insert(i,parameter);
+            seenNames->append(denominatorTokens->at(i));
         }else{
-            validoGlobal = false;
+            allValid = false;
         }
     }
 
-    delete nombres;
+    delete seenNames;
 
-    if (!validoGlobal){
+    if (!allValid){
         errorMessage(tr("There are errors in the parameter ranges"), tr("Uncertainty input"));
         return false;
     }
@@ -522,16 +522,16 @@ bool UncertaintyDialog::guardarrango(){
     return true;
 }
 
-void UncertaintyDialog::on_aceptar_clicked()
+void UncertaintyDialog::on_okButton_clicked()
 {
-    if (ui->elegirforma->currentIndex() == 0){
-        if (guardarrango()){
-            aceptado = true;
+    if (ui->modeStack->currentIndex() == 0){
+        if (readRanges()){
+            accepted_ok = true;
             this->close();
         }
     }
 }
 
 bool UncertaintyDialog::getTodoCorrecto(){
-    return aceptado;
+    return accepted_ok;
 }
