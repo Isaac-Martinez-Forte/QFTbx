@@ -269,9 +269,11 @@ qreal Contour2::getAltura(){
         a = altura->getAltura(omega);
         b = altura2->getAltura(omega);
 
-        //std::cout << "a: " << a << ", b: " << b << ", b-a: " << a - b << endl;
-
-        return  a - b;
+        //El corte de seguimiento es el spread T_U - T_L en dB (> 0), como
+        //calculan los otros tres consumidores y confirma el golden. Con el
+        //signo invertido el conjunto era el plano entero y el boundary
+        //degeneraba (cero trazas).
+        return  b - a;
     }
 
     a = altura->getAltura(omega);

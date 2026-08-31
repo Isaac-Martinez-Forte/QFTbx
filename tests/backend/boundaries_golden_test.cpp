@@ -1,0 +1,182 @@
+// Golden tests for the boundary computation against tests/data/
+// multivaluados.qft, which ships the boundaries computed by the original
+// (sequential, dB) build for 5 frequencies of a tracking specification.
+//
+// Coordinate note: the fixture was produced by a legacy mapping that scaled
+// by the POINT COUNT instead of the range (x = n*361/360 - 361,
+// y = m*121/120 - 60) and prepended its two synthetic endpoints in inverted
+// order; the current code maps correctly (x = n - 360, y = m - 60) and
+// appends first-1 / last+1 around the core. Comparisons therefore run in
+// GRID-INDEX space, where the equality is exact and integer.
+
+#include <gtest/gtest.h>
+
+#include <QMap>
+#include <QPointF>
+#include <QString>
+#include <QVector>
+
+#include "Modelo/Boundaries/boundaries.h"
+#include "Modelo/EstructurasDatos/datosbound.h"
+#include "Modelo/Objetos/omega.h"
+#include "XmlParser/parserload.h"
+
+namespace {
+
+struct GridPoint
+{
+    int n;
+    int m;
+
+    bool operator==(const GridPoint& o) const { return n == o.n && m == o.m; }
+};
+
+GridPoint currentToGrid(QPointF p)
+{
+    return {static_cast<int>(std::lround(p.x() + 360.0)),
+            static_cast<int>(std::lround(p.y() + 60.0))};
+}
+
+GridPoint goldenToGrid(QPointF p)
+{
+    return {static_cast<int>(std::lround((p.x() + 361.0) * 360.0 / 361.0)),
+            static_cast<int>(std::lround((p.y() + 60.0) * 120.0 / 121.0))};
+}
+
+class BoundariesGolden : public ::testing::Test
+{
+protected:
+    void SetUp() override
+    {
+        delete parser.recuperarXmlDatos(
+            QStringLiteral(QFTBX_TEST_DATA_DIR "/multivaluados.qft"));
+
+        engine.lanzarCalculo(parser.getOmega()->getValores(), parser.getPlanta(),
+                             parser.getContorno(), parser.getEspecificaciones(),
+                             QPointF(-360.0, 0.0), 361, QPointF(-60.0, 60.0), 121,
+                             -1.0, false);
+
+        got = engine.getBoundaries();
+        gold = parser.getBoundaries();
+        ASSERT_NE(got, nullptr);
+        ASSERT_NE(gold, nullptr);
+    }
+
+    XmlParserLoad parser;
+    Boundaries engine;
+    DatosBound* got = nullptr;
+    DatosBound* gold = nullptr;
+};
+
+TEST_F(BoundariesGolden, GridMetadataMatches)
+{
+    EXPECT_EQ(got->getTamFas(), gold->getTamFas());   // 361
+    EXPECT_EQ(got->getTamMag(), gold->getTamMag());   // 121
+    EXPECT_EQ(got->getDatosFas(), gold->getDatosFas()); // (-360, 0)
+    EXPECT_EQ(got->getDatosMag(), gold->getDatosMag()); // (-60, 60)
+
+    ASSERT_NE(got->getMetaDatosAbierta(), nullptr);
+    ASSERT_EQ(got->getMetaDatosAbierta()->size(), 5);
+    for (int f = 0; f < 5; ++f) {
+        EXPECT_FALSE(got->getMetaDatosAbierta()->at(f));
+        EXPECT_FALSE(got->getMetaDatosArriba()->at(f));
+    }
+}
+
+TEST_F(BoundariesGolden, TracesMatchTheGoldenInGridIndices)
+{
+    auto* gotB = got->getBoundaries();
+    auto* goldB = gold->getBoundaries();
+    ASSERT_EQ(gotB->size(), 5);
+    ASSERT_EQ(goldB->size(), 5);
+
+    const int expectedTraces[] = {5, 1, 2, 4, 5};
+
+    for (int f = 0; f < 5; ++f) {
+        auto* gotMap = gotB->at(f);
+        auto* goldMap = goldB->at(f);
+        ASSERT_TRUE(gotMap->contains(QStringLiteral("Seguimiento")))
+            << "frequency " << f;
+        ASSERT_EQ(goldMap->size(), 1);
+
+        auto* gotTraces = gotMap->value(QStringLiteral("Seguimiento"));
+        auto* goldTraces = goldMap->first();
+        ASSERT_EQ(goldTraces->size(), expectedTraces[f]) << "frequency " << f;
+        ASSERT_EQ(gotTraces->size(), goldTraces->size()) << "frequency " << f;
+
+        for (int t = 0; t < gotTraces->size(); ++t) {
+            QVector<QPointF>* gotTrace = gotTraces->at(t);
+            QVector<QPointF>* goldTrace = goldTraces->at(t);
+            ASSERT_EQ(gotTrace->size(), goldTrace->size())
+                << "frequency " << f << " trace " << t;
+
+            // Core: current = [synthetic, core..., synthetic]; the legacy
+            // golden = [synthetic(last+1), synthetic(first-1), core...].
+            const int n = gotTrace->size();
+            for (int k = 0; k < n - 2; ++k) {
+                const GridPoint a = currentToGrid(gotTrace->at(1 + k));
+                const GridPoint b = goldenToGrid(goldTrace->at(2 + k));
+                ASSERT_TRUE(a == b)
+                    << "frequency " << f << " trace " << t << " point " << k
+                    << ": got grid (" << a.n << "," << a.m << ") vs golden ("
+                    << b.n << "," << b.m << ")";
+            }
+        }
+    }
+}
+
+TEST_F(BoundariesGolden, ReunionIsTheConcatenationOfTheTraces)
+{
+    auto* reun = got->getBoundariesReun();
+    ASSERT_NE(reun, nullptr);
+    ASSERT_EQ(reun->size(), 5);
+
+    auto* gotB = got->getBoundaries();
+    for (int f = 0; f < 5; ++f) {
+        auto* traces = gotB->at(f)->value(QStringLiteral("Seguimiento"));
+        int total = 0;
+        for (QVector<QPointF>* t : *traces) {
+            total += t->size();
+        }
+        ASSERT_EQ(reun->at(f)->size(), total) << "frequency " << f;
+
+        int idx = 0;
+        for (QVector<QPointF>* t : *traces) {
+            for (const QPointF& p : *t) {
+                ASSERT_EQ(reun->at(f)->at(idx), p)
+                    << "frequency " << f << " flat index " << idx;
+                ++idx;
+            }
+        }
+    }
+}
+
+TEST_F(BoundariesGolden, ContourInputIsEquivalentToFullTemplates)
+{
+    // The sheet is a max/min over the cloud, so feeding the full clouds
+    // instead of the contours must give the same boundaries.
+    XmlParserLoad parser2;
+    delete parser2.recuperarXmlDatos(
+        QStringLiteral(QFTBX_TEST_DATA_DIR "/multivaluados.qft"));
+
+    Boundaries engine2;
+    engine2.lanzarCalculo(parser2.getOmega()->getValores(), parser2.getPlanta(),
+                          parser2.getTemplates(), parser2.getEspecificaciones(),
+                          QPointF(-360.0, 0.0), 361, QPointF(-60.0, 60.0), 121,
+                          -1.0, false);
+    DatosBound* other = engine2.getBoundaries();
+
+    auto* a = got->getBoundaries();
+    auto* b = other->getBoundaries();
+    ASSERT_EQ(a->size(), b->size());
+    for (int f = 0; f < a->size(); ++f) {
+        auto* ta = a->at(f)->value(QStringLiteral("Seguimiento"));
+        auto* tb = b->at(f)->value(QStringLiteral("Seguimiento"));
+        ASSERT_EQ(ta->size(), tb->size()) << "frequency " << f;
+        for (int t = 0; t < ta->size(); ++t) {
+            ASSERT_EQ(*ta->at(t), *tb->at(t)) << "frequency " << f << " trace " << t;
+        }
+    }
+}
+
+} // namespace
