@@ -54,9 +54,13 @@
 //   with the dimensionally broken cutting equations. Its ex2 run still
 //   takes minutes on this box (performance work deferred); ACC'90 is
 //   pinned below.
-// - MC throws "initial controller parameter space is not valid" on these
-//   fixtures (its own initial classification; to dissect in 8b.6) and is
-//   not pinned here yet.
+// - MC (thesis) was rebuilt in 8b.6 against thesis chapters 4-5 (QSInv,
+//   QSFact with the feasible boxes UM/UF, MG, tree bisection, execution
+//   stages). The legacy shell threw "initial parameter space not valid"
+//   on these fixtures; the rebuilt algorithm reproduces the ACC'90
+//   optimum of the other four algorithms (the zero/pole land on a
+//   different corner of the optimal-gain shelf; the objective is the
+//   gain alone).
 
 #include <gtest/gtest.h>
 
@@ -216,22 +220,11 @@ INSTANTIATE_TEST_SUITE_P(
         BenchmarkGolden{"Acc90MR", "acc90.qft", tools::mr,
                         1000.0, 500.005, 500.005},
         BenchmarkGolden{"Acc90Mc1", "acc90.qft", tools::mc1,
-                        1000.0, 250.00749999999999, 750.00250000000005}),
+                        1000.0, 250.00749999999999, 750.00250000000005},
+        BenchmarkGolden{"Acc90McThesis", "acc90.qft", tools::mc_thesis,
+                        1000.0, 250.00749999999999, 0.01}),
     [](const ::testing::TestParamInfo<BenchmarkGolden>& info) {
         return std::string(info.param.name);
     });
-
-//MC still declares these fixtures invalid at its initial classification
-//(to dissect against the thesis in 8b.6): the disabled test becomes a
-//live golden once reviewed.
-TEST(ThesisBenchmarkCrash, DISABLED_McCrashesInOrderedListInsert)
-{
-    Controlador controller;
-    delete controller.cargarSistema(
-        QStringLiteral(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
-    EXPECT_TRUE(controller.calcularLoopShaping(
-        0.5, tools::mc_thesis, QPointF(1e-9, 10.0), 100,
-        false, 10.0, 0, false, false, false, false));
-}
 
 } // namespace

@@ -1,2229 +1,1157 @@
-#if defined(VER_DIAGRAMAS) || defined(COMPARACION_CAJAS) || defined(VER_ANTES)
-#include "Modelo/LoopShaping/debug_viewers.h"
-#endif
-
 #include "Modelo/Herramientas/exception.h"
 #include "algorithm_mc_thesis.h"
 
+#include "quick_solution.h"
 
 using namespace tools;
 using namespace cxsc;
+using namespace FC;
 
-#define SACHIN
-#define NAND
+namespace quick_solution = qftbx::quick_solution;
 
-#define REC_UNION
-#define REC_INTER
-#define REC_FASE
-#define REC_MAG
-#define MEJOR_K
-#define BI_ARBOL
-#define ETAPAS
+namespace {
 
-//#define VER_DIAGRAMAS
-//#define mensajes
-//#define cambioEtapas
-//#define mensajesBi
+//Prune step of thesis 5.4.3: cap the gain range of a box at the prune
+//variable C. Returns the capped replacement (destroying the original) or
+//the box itself when the cap does not apply.
+LtiSystem * capGain(LtiSystem * box, qreal cap)
+{
+    if (!box->gain()->isUncertain() ||
+            cap <= box->gain()->range().x() || cap >= box->gain()->range().y()) {
+        return box;
+    }
+
+    LtiSystem * capped = box->create(box->name(),
+            box->numerator(), box->denominator(),
+            new Parameter("kv", QPointF(box->gain()->range().x(), cap),
+                          box->gain()->range().x(), "kv"),
+            box->delay());
+    delete box->gain();
+    box->releaseOwnership();
+    delete box;
+
+    return capped;
+}
+
+//Nominal plant phase on the (-2 pi, 0] branch the Nichols boxes use.
+qreal nominalPhase(std::complex<qreal> p0)
+{
+    qreal phi0 = std::arg(p0);
+
+    if (phi0 > 0.0) {
+        phi0 -= 2.0 * M_PI;
+    }
+
+    return phi0;
+}
+
+//Corner value vectors of a box (uncertain parameters at the requested
+//extreme, fixed ones at their nominal).
+void cornerVectors(LtiSystem * box, bool zerosAtSup, bool polesAtSup,
+                   QVector<qreal> & zeros, QVector<qreal> & poles)
+{
+    zeros.clear();
+    poles.clear();
+
+    foreach (Parameter * var, *box->numerator()) {
+        zeros.append(!var->isUncertain() ? var->nominal()
+                     : (zerosAtSup ? var->range().y() : var->range().x()));
+    }
+    foreach (Parameter * var, *box->denominator()) {
+        poles.append(!var->isUncertain() ? var->nominal()
+                     : (polesAtSup ? var->range().y() : var->range().x()));
+    }
+}
+
+//Deep destruction of a node: Tripleta keeps the system alive by default
+//(the legacy split shares internals); here every child is a deep copy,
+//so the popped node's system dies with it.
+void destroyNode(Tripleta2 * node)
+{
+    node->releaseOwnership();
+    node->noBorrar2();
+    delete node;
+}
+
+} // namespace
+
+
+AlgorithmMcThesis::NodeAnalysis::~NodeAnalysis()
+{
+    foreach (data_box * d, datos) {
+        delete d;
+    }
+}
 
 
 AlgorithmMcThesis::AlgorithmMcThesis()
 {
-
 }
 
-AlgorithmMcThesis::~AlgorithmMcThesis() {
-
+AlgorithmMcThesis::~AlgorithmMcThesis()
+{
 }
 
-void AlgorithmMcThesis::set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, BoundaryData * boundaries,
-                                           qreal epsilon) {
 
+void AlgorithmMcThesis::setStrategies(const Strategies & s)
+{
+    strategies = s;
+}
+
+
+void AlgorithmMcThesis::set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> * omega,
+                                  BoundaryData * boundaries, qreal epsilon)
+{
     this->planta = planta;
     this->controlador = controlador->clone();
     this->omega = omega;
     this->boundaries = boundaries;
     this->epsilon = epsilon;
 
+    phaseSpanWidth = boundaries->phaseRange().y() - boundaries->phaseRange().x();
+    phaseGridStep = phaseSpanWidth / (boundaries->phaseCount() - 1);
 
-    QVector< QVector<QPointF> * > * boun = boundaries->unionBoundaries();
-
-    QVector <QPointF> * datosFases = new QVector <QPointF> ();
-    QVector <QPointF> * datosMag = new QVector <QPointF> ();
-
-    foreach (auto vector, *boun) {
-
-        qreal DatosFasMin = std::numeric_limits<qreal>::max(), DatosFasMax = std::numeric_limits<qreal>::lowest();
-        qreal DatosMagMin = std::numeric_limits<qreal>::max(), DatosMagMax = std::numeric_limits<qreal>::lowest();
-
-
-        foreach (auto p, *vector) {
-
-            if (p.x() < DatosFasMin) {
-                DatosFasMin = p.x();
-            }
-
-            if (p.x() > DatosFasMax) {
-                DatosFasMax = p.x();
-            }
-
-            if (p.y() < DatosMagMin) {
-                DatosMagMin = p.y();
-            }
-
-            if (p.y() > DatosMagMax) {
-                DatosMagMax = p.y();
-            }
-        }
-
-        datosFases->append(QPointF(DatosFasMin, DatosFasMax));
-        datosMag->append(QPointF(DatosMagMin, DatosMagMax));
-
+    hasUncertainZeros = false;
+    foreach (Parameter * var, *this->controlador->numerator()) {
+        hasUncertainZeros = hasUncertainZeros || var->isUncertain();
     }
 
-    boundaries->setPhaseAxis(datosFases);
-    boundaries->setMagnitudeAxis(datosMag);
-
-
+    hasUncertainPoles = false;
+    foreach (Parameter * var, *this->controlador->denominator()) {
+        hasUncertainPoles = hasUncertainPoles || var->isUncertain();
+    }
 }
 
-bool AlgorithmMcThesis::init_algorithm(){
+
+//--------------------------------------------------------- parameter access
+//Uniform view of the controller parameters: 0 is the gain, then the
+//zeros, then the poles (the thesis' x vector).
+
+inline qint32 AlgorithmMcThesis::parameterCount(LtiSystem * box) const
+{
+    return 1 + box->numerator()->size() + box->denominator()->size();
+}
+
+inline QPointF AlgorithmMcThesis::parameterRange(LtiSystem * box, qint32 parameter) const
+{
+    Parameter * var;
+
+    if (parameter == 0) {
+        var = box->gain();
+    } else if (parameter <= box->numerator()->size()) {
+        var = box->numerator()->at(parameter - 1);
+    } else {
+        var = box->denominator()->at(parameter - 1 - box->numerator()->size());
+    }
+
+    return var->isUncertain() ? var->range()
+                              : QPointF(var->nominal(), var->nominal());
+}
+
+//New box with one parameter's range replaced (deep copy, the original is
+//left untouched).
+inline LtiSystem * AlgorithmMcThesis::replaceParameter(LtiSystem * box, qint32 parameter,
+                                                       QPointF range) const
+{
+    auto * numerador = new QVector<Parameter*>();
+    for (qint32 j = 0; j < box->numerator()->size(); ++j) {
+        Parameter * old = box->numerator()->at(j);
+        numerador->append(parameter == j + 1
+                ? new Parameter(old->name(), range, range.x())
+                : old->clone());
+    }
+
+    auto * denominador = new QVector<Parameter*>();
+    for (qint32 j = 0; j < box->denominator()->size(); ++j) {
+        Parameter * old = box->denominator()->at(j);
+        denominador->append(parameter == j + 1 + box->numerator()->size()
+                ? new Parameter(old->name(), range, range.x())
+                : old->clone());
+    }
+
+    Parameter * gain = parameter == 0
+            ? new Parameter("kv", range, range.x(), "kv")
+            : box->gain()->clone();
+
+    return box->create(box->name(), numerador, denominador, gain,
+                       box->delay()->clone());
+}
 
 
-#if defined (BI_ARBOL) && !(defined (REC_INTER) && (defined (REC_MAG) || defined (REC_FASE)) )
-    std::cout << "No se puede activar la Bisección en forma de árbol sin tener activo el recorte en fase" << std::endl;
-#endif
-
-
+//------------------------------------------------------------ main loop
+//Thesis 5.4, algorithm MC: branch & bound over the live list ordered by
+//ascending gain infimum, with the prune variable C, the execution stages
+//and the cutting/bisection strategies wired per the pseudocode.
+bool AlgorithmMcThesis::init_algorithm()
+{
     lista = new ListaOrdenada();
-
     conversion = new NaturalIntervalExtension();
-
-    Tripleta2 * tripleta;
-
-    struct FC::return_bisection2 retur;
     deteccion = new DeteccionViolacionBoundaries();
-    deteccionViolacion = &DeteccionViolacionBoundaries::deteccionViolacionCajaNiNi;
+    stability = new NominalStabilityChecker(planta, omega);
 
-    frecuenciaPrincipal = 0;
+    bestCertifiedGain = std::numeric_limits<qreal>::infinity();
+    bestCertifiedController = nullptr;
 
-
-    // Creamos las plantas nominales para todas las frecuencias
-    plantas_nominales = new QVector <cxsc::complex> ();
-    plantas_nominales2 = new QVector <std::complex <qreal>> ();
+    plantas_nominales = new QVector<cxsc::complex>();
+    plantas_nominales_std = new QVector<std::complex<qreal>>();
 
     foreach (qreal o, *omega) {
-        std::complex <qreal> c = planta->evaluate(o);
-        plantas_nominales2->append(c);
+        std::complex<qreal> c = planta->evaluate(o);
+        plantas_nominales_std->append(c);
         plantas_nominales->append(cxsc::complex(c.real(), c.imag()));
     }
 
-    // Comprobamos si el controlador tiene variables en el numerador o denominador
-    comprobarVariables(controlador);
+    const auto cleanup = [this]() {
+        delete conversion;
+        delete lista;
+        delete deteccion;
+        delete stability;
+        delete plantas_nominales;
+        delete plantas_nominales_std;
+    };
 
-
-    // Comprobamos si el controlador tiene variables en numerador, denominador o ganancia
-    // Si no lo tiene se puede retornar ya, no se puede trabajar con el.
-    if (!isVariableNume && !isVariableDeno && !controlador->gain()->isUncertain()) {
-        controlador_retorno = FC::guardarControlador(controlador, true);
+    //A controller with no uncertain parameter offers nothing to search.
+    if (!hasUncertainZeros && !hasUncertainPoles && !controlador->gain()->isUncertain()) {
+        controlador_retorno = guardarControlador(controlador, true);
+        delete controlador;
+        cleanup();
         return false;
     }
 
-    // Inicializamos la mejor solucion al controlador inicial.
-
-    QVector <Parameter *> * numerador = controlador->numerator();
-    QVector <Parameter *> * numerador_nuevo = new QVector <Parameter *> ();
-
-    foreach (Parameter * a, *numerador) {
-        numerador_nuevo->append(a->clone());
-    }
-
-
-    QVector <Parameter *> * denominador = controlador->denominator();
-    QVector <Parameter *> * denominador_nuevo = new QVector <Parameter *> ();
-
-    foreach (Parameter * a, *denominador) {
-        denominador_nuevo->append(a->clone());
-    }
-
-    Parameter * kNuevo = controlador->gain()->clone();
-
-    mejorSolucion = controlador->create(controlador->name(), numerador_nuevo, denominador_nuevo, kNuevo, new Parameter (0.0));
-
-    // Insertamos el controlador en la LNV
-
-    Tripleta2 * t = new Tripleta2();
-    t->setSistema(controlador);
-    t->setRecorteActivado(true);
-
-#ifdef ETAPAS
-    t->setEtapas(Etapas::INICIAL);
-#else
-    t->setEtapas(Etapas::INTERMEDIA);
-#endif
-#ifdef cambioEtapas
-    std::cout << "Etapa Inicial" << std::endl;
-#endif
-
-    t->setRecorteActivado(true);
-
-    t = calculoTerminosControlador(t);
-
-    lista->insertar(t);
+    //Step A/B: the initial box enters the list; its feasibility test
+    //happens when it is popped (step D).
+    Tripleta2 * inicial = new Tripleta2(controlador->gain()->range().x(), controlador, ambiguous);
+    inicial->setEtapas(strategies.stages ? Etapas::INICIAL : Etapas::INTERMEDIA);
+    inicial->setRecorteActivado(true);
+    inicial->setFrecuenciasFeasible(new QHash<qreal, qreal>());
+    lista->insertar(inicial);
 
     while (true) {
 
+        //Step C: pop, prune and cap with C.
         if (lista->esVacia()) {
-                        delete conversion;
-            delete lista;
-            delete deteccion;
-            delete mejorSolucion;
-
-            throw qftbx::InvalidInput(
-                    "The initial controller parameter space is not valid.");
-        }
-
-        tripleta = static_cast<Tripleta2 *>(lista->recuperarPrimero());
-        lista->borrarPrimero();
-
-        LtiSystem * controladorActual = tripleta->getSistema();
-
-        // Si la mejor solucion es mejor que el nodo extraido este se descarta y pasa al siguiente.
-        if (mejorSolucion->gain()->range().y() < controladorActual->gain()->range().x() ){
-            delete tripleta;
-            continue;
-        }
-
-        // Si la mejor solucion NO es menor que el nodo actual, pero la parte superior si es menor, esta se puede actualizar para quitar espacio de busqueda.
-        if (mejorSolucion->gain()->range().y() < controladorActual->gain()->range().y()) {
-            controladorActual->gain()->range().setY(mejorSolucion->gain()->range().y() );
-        }
-
-        // Aplicar mejoras sobre el nodo
-        bool aplicadas = aplicarMejoras(tripleta);
-
-        if (!aplicadas) {
-            continue;
-        }
-
-        // Comprobamos si el controlador actual es solución.
-        if (tripleta->getFlags() == feasible || FC::if_less_epsilon(tripleta->getSistema(), epsilon, omega, conversion, plantas_nominales)) {
-            if (tripleta->getFlags() == ambiguous) {
-                controlador_retorno = FC::guardarControlador(tripleta->getSistema(), false);
-            } else {
-                controlador_retorno = FC::guardarControlador(tripleta->getSistema(), true);
+            //The certified solution of MG stands in when the search
+            //exhausts the space (the thesis pseudocode reports "no
+            //solution" here even when C holds one; returning it is the
+            //sound completion).
+            if (bestCertifiedController != nullptr) {
+                controlador_retorno = bestCertifiedController;
+                cleanup();
+                return true;
             }
 
-            delete conversion;
-            delete lista;
-            delete deteccion;
-            delete tripleta;
-            delete mejorSolucion;
+            cleanup();
+            throw qftbx::InvalidInput(
+                    "No feasible solution exists in the given search box.");
+        }
 
+        Tripleta2 * node = static_cast<Tripleta2 *>(lista->recuperarPrimero());
+        lista->borrarPrimero();
+
+        //Strict comparison: a node whose infimum EQUALS C still realises
+        //the certified optimum (thesis 5.4.3 prescribes < over <=).
+        if (bestCertifiedGain < node->getSistema()->gain()->range().x()) {
+            destroyNode(node);
+            continue;
+        }
+
+        node->setSistema(capGain(node->getSistema(), bestCertifiedGain));
+
+        //A feasible node is a solution: its gain infimum corner realises
+        //the optimum of the box (stability was certified at insertion).
+        if (node->getFlags() == feasible) {
+            controlador_retorno = guardarControlador(node->getSistema(), true);
+            destroyNode(node);
+            delete bestCertifiedController;
+            cleanup();
             return true;
         }
 
-        retur = biseccion(tripleta);
-
-        if (retur.t1 != nullptr) {
-            // Calculamos el beneficio estimado y guardamos en la lista.
-            lista->insertar(beneficioEstimado(retur.t1));
+        //Step D: feasibility test of the current box.
+        NodeAnalysis analysis;
+        if (!analyse(node, analysis)) {
+            continue;   //certainly infeasible, destroyed inside
         }
-        if (retur.t2 != nullptr) {
-            // Calculamos el beneficio estimado y guardamos en la lista.
-            lista->insertar(beneficioEstimado(retur.t2));
+
+        if (analysis.flag == feasible) {
+            controlador_retorno = guardarControlador(node->getSistema(), true);
+            destroyNode(node);
+
+            if (!stability->isNominallyStable(controlador_retorno)) {
+                delete controlador_retorno;
+                continue;
+            }
+
+            delete bestCertifiedController;
+            cleanup();
+            return true;
+        }
+
+        //Termination on the epsilon-small leading box (thesis 3.3, the
+        //solution function): the returned point is unverified, so it must
+        //pass the stability criterion, as reviewed for NT.
+        if (if_less_epsilon(node->getSistema(), epsilon, omega, conversion, plantas_nominales)) {
+            controlador_retorno = guardarControlador(node->getSistema(), false);
+            destroyNode(node);
+
+            if (!stability->isNominallyStable(controlador_retorno)) {
+                delete controlador_retorno;
+                continue;
+            }
+
+            delete bestCertifiedController;
+            cleanup();
+            return true;
+        }
+
+        //Steps E-F: stage bookkeeping, MG, QSFact, QSInv.
+        QVector<FeasibleThreshold> thresholds;
+        improveNode(node, analysis, thresholds);
+
+        //C may have improved inside F.
+        if (bestCertifiedGain < node->getSistema()->gain()->range().x()) {
+            destroyNode(node);
+            continue;
+        }
+
+        //Steps G-H: bisect and insert the children.
+        FC::return_bisection2 children = bisect(node, analysis, thresholds);
+
+        for (Tripleta2 * child : {children.t1, children.t2}) {
+            if (child == nullptr) {
+                continue;
+            }
+
+            if (bestCertifiedGain < child->getSistema()->gain()->range().x()) {
+                destroyNode(child);
+                continue;
+            }
+
+            child->setIndex(child->getSistema()->gain()->range().x());
+            lista->insertar(child);
         }
     }
 }
 
-// Se implementa un beneficio estimado básico que luego se mejorará
-inline Tripleta2 * AlgorithmMcThesis::beneficioEstimado (Tripleta2 * tripleta) {
 
-    // TODO falta implementar beneficio estimado avanzado.
-
-    tripleta->setIndex(tripleta->getSistema()->gain()->range().x());
-
-    return tripleta;
+LtiSystem * AlgorithmMcThesis::getControlador()
+{
+    return controlador_retorno;
 }
 
-inline bool AlgorithmMcThesis::aplicarMejoras (Tripleta2 *tripleta) {
+
+//------------------------------------------------------- feasibility test
+//Step D: one detection per design frequency (skipping the frequencies
+//the node history already certifies as feasible), collecting the data
+//the cutting stages and the bisection need. Returns false (destroying
+//the node) when some frequency is certainly infeasible.
+inline bool AlgorithmMcThesis::analyse(Tripleta2 * node, NodeAnalysis & out)
+{
+    out.flag = feasible;
+    out.mainFrequency = 0;
+    out.anyFullPhaseWidth = false;
+
+    qreal largestArea = std::numeric_limits<qreal>::lowest();
+
+    for (qint32 i = 0; i < omega->size(); ++i) {
+
+        if (node->isFrecueciaFeasible(i)) {
+            out.datos.append(nullptr);
+            out.boxMag.append(QPointF());
+            out.boxPhase.append(QPointF());
+            continue;
+        }
+
+        const cinterval caja = conversion->nicholsBox(node->getSistema(), omega->at(i),
+                                                      plantas_nominales->at(i), false);
+
+        data_box * datos = deteccion->deteccionViolacionCajaNi(caja, boundaries, i);
+
+        if (datos->getFlag() == infeasible) {
+            delete datos;
+            destroyNode(node);
+            return false;
+        }
+
+        out.datos.append(datos);
+        out.boxMag.append(QPointF(_double(Inf(Re(caja))), _double(Sup(Re(caja)))));
+        out.boxPhase.append(QPointF(_double(Inf(Im(caja))), _double(Sup(Im(caja)))));
+
+        const qreal phaseWidth = _double(diam(Im(caja)));
+
+        if (phaseWidth >= phaseSpanWidth - phaseGridStep) {
+            out.anyFullPhaseWidth = true;
+        }
+
+        if (datos->getFlag() == ambiguous) {
+            out.flag = ambiguous;
+
+            const qreal area = _double(diam(Re(caja))) * phaseWidth;
+            if (area > largestArea) {
+                largestArea = area;
+                out.mainFrequency = i;
+            }
+        }
+    }
+
+    return true;
+}
 
 
-    bool noError = analizar(tripleta);
+//--------------------------------------------------------------- steps E-F
+inline void AlgorithmMcThesis::improveNode(Tripleta2 * node, NodeAnalysis & analysis,
+                                           QVector<FeasibleThreshold> & thresholds)
+{
+    //Step E (thesis 4.4): the initial stage ends when no projected box
+    //spans the full phase width of the Nichols plane any more.
+    if (strategies.stages &&
+            node->getEtapas() == Etapas::INICIAL && !analysis.anyFullPhaseWidth) {
+        node->setEtapas(Etapas::INTERMEDIA);
+    }
 
-    if (!noError) {
+    if (!node->isRecorteActivado()) {
+        return;
+    }
+
+    //Step F: MG first; QSFact only when MG finds nothing (thesis 5.1.2:
+    //they overlap in purpose); QSInv always.
+    bool improved = false;
+
+    if (strategies.bestGain && bestGainSearch(node, analysis)) {
+        improved = true;
+    } else if (strategies.feasibleMagnitude || strategies.feasiblePhase) {
+        feasibleCuts(node, analysis, thresholds, improved);
+    }
+
+    if (strategies.infeasibleMagnitude || strategies.infeasiblePhase) {
+        infeasibleCuts(node, analysis, improved);
+    }
+
+    //The final stage begins when a full pass yields nothing (thesis 4.4):
+    //the cuts are disabled from here on for this node and its children.
+    if (strategies.stages && !improved && node->getEtapas() == Etapas::INTERMEDIA) {
+        node->setEtapas(Etapas::FINAL);
+        node->setRecorteActivado(false);
+    }
+}
+
+
+//Feasibility of a box (or point) at one design frequency, and at all of
+//them: the defensive verification of everything the closed-form
+//certificates produce (MG candidates, UM/UF boxes, tree-bisection
+//marks). An equation slip then costs a missed acceleration, never a
+//wrong verdict.
+inline bool AlgorithmMcThesis::boxIsFeasibleAt(LtiSystem * box, qint32 freqIndex)
+{
+    const cinterval caja = conversion->nicholsBox(box, omega->at(freqIndex),
+                                                  plantas_nominales->at(freqIndex), false);
+    data_box * datos = deteccion->deteccionViolacionCajaNi(caja, boundaries, freqIndex);
+    const bool feasibleHere = datos->getFlag() == feasible;
+    delete datos;
+
+    return feasibleHere;
+}
+
+inline bool AlgorithmMcThesis::boxIsFeasible(LtiSystem * box)
+{
+    for (qint32 i = 0; i < omega->size(); ++i) {
+        if (!boxIsFeasibleAt(box, i)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
+//----------------------------------------------------------------- MG
+//Best-gain search (thesis 4.3 and 5.2): with the other parameters fixed
+//at the corner that maximises the controller magnitude (zeros sup, poles
+//inf), each ambiguous frequency yields a closed-form gain threshold on
+//its feasible side; their intersection is the best certified gain of the
+//box. The candidate is verified against the feasibility test and the
+//stability criterion before it may prune through C (the thesis relies on
+//the strip geometry alone; the extra checks cost |Omega| detections).
+inline bool AlgorithmMcThesis::bestGainSearch(Tripleta2 * node, const NodeAnalysis & analysis)
+{
+    LtiSystem * box = node->getSistema();
+
+    if (!box->gain()->isUncertain()) {
         return false;
     }
 
-    if (tripleta->getFlags() == feasible) {
-        return true;
-    }
+    QVector<qreal> zeroSups, poleInfs;
+    cornerVectors(box, true, false, zeroSups, poleInfs);
 
-    if (tripleta->isRecorteActivado()){
+    const qreal kInf = box->gain()->range().x();
+    const qreal kSup = box->gain()->range().y();
 
-        cambioEtapaFinal = true;
+    qreal lowNeeded = kInf;    //k must be >= (top-side feasible strips)
+    qreal highAllowed = kSup;  //k must be <= (bottom-side feasible strips)
 
-        // Ejecutamos los recortes infeasible.
-        tripleta = recortesInfeasible(tripleta);
+    for (qint32 i = 0; i < omega->size(); ++i) {
 
-#ifdef MEJOR_K
-        // Ejecutamos la búsqueda de mejor ganancia
-        LtiSystem * mS = busquedaMejorGanancia(tripleta);
-#else
-        LtiSystem * mS = nullptr;
-#endif
+        data_box * datos = analysis.datos.value(i);
 
-        // Si búsqueda mejor ganancia ha encontrado un resultado
-        if (mS != nullptr) {
+        if (datos == nullptr || datos->getFlag() != ambiguous) {
+            continue;   //the whole box, corner included, is feasible here
+        }
 
-            //Comprobamos si es mejor solución que la mejor solución actual.
-            // TODO redefinir operador para LtiSystem y tripleta.
-            if (mS->gain()->range().y() < mejorSolucion->gain()->range().y()) {
+        const qreal w = omega->at(i);
+        const std::complex<qreal> p0 = plantas_nominales_std->at(i);
+        const qreal boundMin = std::pow(10.0, datos->getMinimoxMaximos()->at(0) / 20.0);
+        const qreal boundMax = std::pow(10.0, datos->getMinimoxMaximos()->at(1) / 20.0);
 
-                // Si es así borramos la anterior solución y ponemos la nueva.
-                delete mejorSolucion;
-                mejorSolucion = mS;
-            } else {
-                delete mS;
+        //Preferring the bottom strip serves the objective (it allows the
+        //gain infimum); the top strip is the fallback.
+        bool constrained = false;
+
+        if (!datos->isUniAbajo()) {   //strip under B_min certainly feasible
+            const qreal t = quick_solution::gainCut(boundMin, zeroSups, poleInfs, w, p0);
+
+            if (t >= kInf) {
+                highAllowed = std::min(highAllowed, t);
+                constrained = true;
             }
-
         }
-        // Si búsqueda mejor ganancia no nos da resultado ejecutamos los recortes feasible.
-#if defined REC_INTER && (defined REC_FASE || defined REC_MAG)
-        tripleta = recortesFeasible(tripleta);
-#endif
 
+        if (!constrained && !datos->isUniDerecha()) {   //strip over B_max feasible
+            const qreal t = quick_solution::gainCut(boundMax, zeroSups, poleInfs, w, p0);
 
-        // TODO revisar esto.
-        // Se comprueba si se ha llegado al límite para hacer recortes, si es así, se pasa a la etapa final del algoritmo.
-#ifdef ETAPAS
-        if (tripleta->getEtapas() == Etapas::INTERMEDIA && cambioEtapaFinal){
-
-            tripleta->setRecorteActivado(false);
-            tripleta->setEtapas(Etapas::FINAL);
-#ifdef cambioEtapas
-            std::cout << "Etapa Final" << std::endl;
-#endif
+            if (t <= kSup && t > 0.0) {
+                lowNeeded = std::max(lowNeeded, t);
+                constrained = true;
+            }
         }
-#endif
 
+        if (!constrained) {
+            return false;   //this frequency cannot be certified at the corner
+        }
     }
+
+    if (lowNeeded > highAllowed || lowNeeded >= bestCertifiedGain) {
+        return false;
+    }
+
+    //The certified point: gain at the intersection infimum, the other
+    //parameters at the corner (thesis 4.3: the solution is a POINT; its
+    //pseudocode substitutes into the whole box, an erratum).
+    auto * numerador = new QVector<Parameter*>();
+    foreach (qreal z, zeroSups) {
+        numerador->append(new Parameter(z));
+    }
+    auto * denominador = new QVector<Parameter*>();
+    foreach (qreal p, poleInfs) {
+        denominador->append(new Parameter(p));
+    }
+
+    LtiSystem * point = box->create(box->name(), numerador, denominador,
+                                    new Parameter(lowNeeded), new Parameter(qreal(0)));
+
+    if (!boxIsFeasible(point) || !stability->isNominallyStable(point)) {
+        delete point;
+        return false;
+    }
+
+    bestCertifiedGain = lowNeeded;
+    delete bestCertifiedController;
+    bestCertifiedController = point;
 
     return true;
 }
 
-//Función que comprueba si la caja actual es feasible, infeasible o ambiguous.
 
-inline bool AlgorithmMcThesis::analizar(Tripleta2 * tripleta) {
+//------------------------------------------------------------------ QSFact
+//Insertion of a certainly feasible box into the live list, guarded by the
+//prune variable and the stability criterion.
+inline void AlgorithmMcThesis::insertFeasibleBox(LtiSystem * box, Tripleta2 * parent)
+{
+    const qreal gainInf = box->gain()->range().x();
 
-    data_box * datos;
-
-    flags_box flag_final = feasible;
-
-    QVector <data_box *> * datosCortesBoundaries = new QVector <data_box *> ();
-
-    cinterval caja;
-
-    qreal areaMasGrande = std::numeric_limits<qreal>::lowest();
-
-    bool cambioEtapa = true;
-
-#ifdef VER_DIAGRAMAS
-
-    QVector <QVector<QPointF> * > *vectorCajas = new QVector <QVector<QPointF> * >();
-#endif
-
-    for (qint32 k = 0; k < omega->size(); k++) {
-
-        // Comprobamos si para esta frecuencia la caja de proyección es feasible.
-        if (!tripleta->isFrecueciaFeasible(k)) {
-
-            caja = conversion->nicholsBox(tripleta->getSistema(), omega->at(k), plantas_nominales->at(k));
-
-            boundaries->setBox(conversion->nyquistDecibelBox());
-
-            datos = (deteccion->*deteccionViolacion)(caja, boundaries, k, tripleta->getEtapas());
-
-
-#ifdef VER_DIAGRAMAS
-
-            QVector <QPointF> * v = new QVector <QPointF> ();
-
-            cinterval caja = conversion->nicholsBox(tripleta->getSistema(),omega->at(k), plantas_nominales->at(k), false);
-
-            v->append(QPointF(_double(InfIm(caja)), _double(InfRe(caja))));
-            v->append(QPointF(_double(InfIm(caja)), _double(SupRe(caja))));
-            v->append(QPointF(_double(SupIm(caja)), _double(SupRe(caja))));
-            v->append(QPointF(_double(SupIm(caja)), _double(InfRe(caja))));
-
-            vectorCajas->append(v);
-#endif
-
-
-
-            if (datos->getFlag() == infeasible) {
-
-                datosCortesBoundaries->clear();
-
-                delete tripleta;
-                return false;
-            }
-
-            qreal area = _double(diam(Re(caja)) * diam(Im(caja)));
-
-            if (datos->getFlag() == ambiguous && area > areaMasGrande) {
-                areaMasGrande = area;
-
-                frecuenciaPrincipal = k;
-
-                tripleta->setLados(_double(diam(Re(caja))), _double(diam(Im(caja))));
-            }
-
-            if (!datos->getCambioEtapa()) {
-                cambioEtapa = false;
-            }
-
-
-            if (datos->getFlag() == ambiguous) {
-                flag_final = ambiguous;
-            }
-        } else {
-            datos = new data_box();
-            datos->setFlag(feasible);
-        }
-
-
-        datosCortesBoundaries->append(datos);
+    if (gainInf > bestCertifiedGain) {
+        delete box;
+        return;
     }
 
-#ifdef VER_DIAGRAMAS
-    FC::showDiagram(vectorCajas, omega, boundaries);
-#endif
+    LtiSystem * point = guardarControlador(box, true);
+    const bool stable = stability->isNominallyStable(point);
 
-#ifdef ETAPAS
-
-    if (tripleta->getEtapas() == Etapas::INICIAL && cambioEtapa) {
-        tripleta->setEtapas(Etapas::INTERMEDIA);
-#ifdef cambioEtapas
-        std::cout << "Etapa Intermedia" << std::endl;
-#endif
-    }
-#endif
-
-    tripleta->setFlags(flag_final);
-
-    tripleta->setDatosCortesBoundaries(datosCortesBoundaries);
-
-    return true;
-}
-
-inline FC::return_bisection2 AlgorithmMcThesis::biseccion(Tripleta2 * tripleta) {
-
-
-    switch (tripleta->getEtapas()) {
-    case Etapas::INICIAL:
-        return biseccionArea(tripleta);
-        break;
-
-    case Etapas::INTERMEDIA:
-#ifdef BI_ARBOL
-        return biseccionArbol(tripleta);
-#else
-        return biseccionArea(tripleta);
-#endif
-        break;
-
-    case Etapas::FINAL:
-
-        if ((tripleta->getAnchoFas() < tripleta->getAnchoMag())){
-            return biseccionFas(tripleta);
-        } else {
-            return biseccionMag(tripleta);
-        }
-
-        break;
+    if (!stable) {
+        delete point;
+        delete box;
+        return;
     }
 
-    return biseccionArea(tripleta);
-}
-
-inline LtiSystem * AlgorithmMcThesis::busquedaMejorGanancia (Tripleta2 * tripleta) {
-
-    LtiSystem * v = tripleta->getSistema();
-
-    QVector<data_box *> * datosCortesBoundaries = tripleta->getDatosCortesBoundaries();
-
-    QVector <Parameter *> * denominador = v->denominator();
-    QVector <Parameter *> * numerador = v->numerator();
-    QVector <Parameter *> * denominador_nuevo = new QVector <Parameter *>();
-    QVector <Parameter *> * numerador_nuevo = new QVector <Parameter *>();
-
-    QPointF k = v->gain()->range();
-    qreal kNuevo = v->gain()->range().y();
-
-    //QVector <qreal> * mejoresGanacias = new QVector<qreal>();
-
-    QVector <qreal> * numeradorSup = new QVector <qreal> ();
-    QVector <qreal> * denominadorInf = new QVector <qreal> ();
-
-    foreach (Parameter * var, *numerador) {
-        numeradorSup->append(var->range().y());
-
-        numerador_nuevo->append(var->clone());
-    }
-
-    foreach (Parameter * var, *denominador) {
-        denominadorInf->append(var->range().x());
-
-        denominador_nuevo->append(var->clone());
-    }
-
-    bool entra = false;
-
-    // Frecuencia de diseño a usar, valores de de Mag min y max del boundarie dentro de la caja de proyección, nueva ganancia solución feasible.
-    qreal o, cortesMax, gananciaFeasible;
-
-    std::complex <qreal> plantaNominal;
-    for (qint32 i = 0; i < omega->size(); i++) {
-
-        if (datosCortesBoundaries->at(i)->getFlag() == ambiguous) {
-            o = omega->at(i);
-            plantaNominal = plantas_nominales2->at(i);
-            cortesMax = datosCortesBoundaries->at(i)->getMinimoxMaximos()->at(1);
-
-            //Análisis de la ganancia
-
-            // Si se puede recortar por abajo y abajo es la parte feasible.
-            // Se comenta porque por ahora no se va a implementar esta opción.
-            // TODO falta por implementar
-
-            // Si se puede recortar por arriba y arriba es la parte feasible.
-            if (datosCortesBoundaries->at(i)->isRecArriba() && !datosCortesBoundaries->at(i)->isUniArriba()){
-                gananciaFeasible = cortesMax / abs(v->evaluate(numeradorSup, denominadorInf, 1, 0, o) * plantaNominal);
-
-                if (gananciaFeasible > k.x() && gananciaFeasible < k.y()) {
-
-                    if (gananciaFeasible < kNuevo) {
-                        kNuevo = gananciaFeasible;
-
-                        entra = true;
-                    }
-                } /*else if (datosCortesBoundaries->at(i)->isRecAbajo() && !datosCortesBoundaries->at(i)->isUniAbajo()){
-
-                }*/
-            }
-        }
-    }
-
-
-
-
-    if (entra) {
-        k.setY(kNuevo);
-        v->gain()->setRange(k);
-
-        cambioEtapaFinal = false;
-
-#ifdef mensajes
-        std::cout << "Entra mejor k" << std::endl;
-#endif
-
-        return v->create(v->name(), numerador_nuevo, denominador_nuevo, new Parameter("kv", QPointF(k.x(), kNuevo), k.x()), new Parameter (0.0));
+    //A feasible box also certifies its own gain infimum: it feeds C like
+    //an MG solution (the thesis keeps both mechanisms; folding them keeps
+    //one prune variable).
+    if (gainInf < bestCertifiedGain) {
+        bestCertifiedGain = gainInf;
+        delete bestCertifiedController;
+        bestCertifiedController = point;
     } else {
-        return nullptr;
+        delete point;
     }
+
+    Tripleta2 * t = new Tripleta2(gainInf, box, feasible);
+    t->setEtapas(parent->getEtapas());
+    t->setRecorteActivado(false);
+    t->setFrecuenciasFeasible(new QHash<qreal, qreal>());
+    lista->insertar(t);
 }
 
-inline void AlgorithmMcThesis::comprobarVariables(LtiSystem *controlador) {
-    bool b = true;
 
+//QSFact (thesis 5.1.2): certainly feasible subranges of every parameter.
+//For each parameter, each family (magnitude/phase) and each side of the
+//range, every ambiguous frequency must certify a threshold with the
+//closed-form equations at the corner that puts the loop CLOSEST to the
+//boundary (the quantification runs over all values of the other
+//parameters); frequencies where the box is feasible impose nothing. The
+//intersection across frequencies (UM/UF) is split off into the live list
+//and every valid per-frequency threshold is recorded for the tree
+//bisection (MM/MF).
+inline void AlgorithmMcThesis::feasibleCuts(Tripleta2 * node, const NodeAnalysis & analysis,
+                                            QVector<FeasibleThreshold> & thresholds, bool & improved)
+{
+    LtiSystem * box = node->getSistema();
+    const qint32 total = parameterCount(box);
 
-    foreach(Parameter * var, *controlador->numerator()) {
-        if (var->isUncertain()) {
-            b = false;
-            break;
+    //family 0 = magnitude, 1 = phase; side true = upper subrange.
+    for (qint32 parameter = 0; parameter < total; ++parameter) {
+
+        const QPointF range = parameterRange(box, parameter);
+
+        if (range.x() >= range.y()) {
+            continue;   //fixed parameter
         }
-    }
 
-    isVariableNume = !b;
+        const bool isGain = parameter == 0;
+        const bool isZero = !isGain && parameter <= box->numerator()->size();
+        const qint32 termIndex = isGain ? -1
+                : (isZero ? parameter - 1 : parameter - 1 - box->numerator()->size());
 
-    b = true;
+        for (qint32 family = 0; family < 2; ++family) {
 
-    foreach(Parameter * var, *controlador->denominator()) {
-        if (var->isUncertain()) {
-            b = false;
-            break;
-        }
-    }
+            if (family == 0 && !strategies.feasibleMagnitude) {
+                continue;
+            }
 
-    isVariableDeno = !b;
+            if (family == 1 && (isGain || !strategies.feasiblePhase)) {
+                continue;
+            }
 
-}
+            for (bool upperSide : {false, true}) {
 
-//Función que recorta la caja.
-inline Tripleta2 * AlgorithmMcThesis::recortesInfeasible(Tripleta2 * tripleta) {
+                //Corner vectors are refreshed per attempt: earlier
+                //extractions may have shrunk the box.
+                QVector<qreal> zeroInfs, zeroSups, poleInfs, poleSups;
+                cornerVectors(box, false, true, zeroInfs, poleSups);
+                cornerVectors(box, true, false, zeroSups, poleInfs);
+                const qreal kInf = box->gain()->range().x();
+                const qreal kSup = box->gain()->range().y();
 
-    LtiSystem * v = tripleta->getSistema();
+                qreal intersection = upperSide
+                        ? std::numeric_limits<qreal>::lowest()
+                        : std::numeric_limits<qreal>::max();
+                bool allCertified = true;
 
-    QVector<data_box *> * datosCortesBoundaries = tripleta->getDatosCortesBoundaries();
+                for (qint32 i = 0; i < omega->size() && allCertified; ++i) {
 
-    QVector <Parameter *> * denominador = v->denominator();
-    QVector <Parameter *> * numerador = v->numerator();
-    QPointF k = v->gain()->range();
-    QPointF kNuevo = v->gain()->range();
+                    data_box * datos = analysis.datos.value(i);
 
-    //Creamos los numeradores y denominadores necesarios
-    QVector <qreal> * numeradorSup = new QVector <qreal> ();
-    QVector <qreal> * numeradorInf = new QVector <qreal> ();
-    QVector <qreal> * numeradorInfNuevo = new QVector <qreal> ();
-    QVector <qreal> * numeradorSupNuevo = new QVector <qreal> ();
+                    if (datos == nullptr || datos->getFlag() != ambiguous) {
+                        continue;   //feasible here for the whole range
+                    }
 
-    //Creamos el vector de segundos mejores feasible para guardarlos.
-    //QVector <qreal> * segundosTerminosNume = new QVector <qreal>();
-    //QVector <qreal> * segundosTerminosDeno = new QVector <qreal>();
+                    const qreal w = omega->at(i);
+                    const std::complex<qreal> p0 = plantas_nominales_std->at(i);
 
-    foreach (Parameter * var, *numerador) {
-        numeradorInf->append(var->range().x());
-        numeradorSup->append(var->range().y());
-        numeradorInfNuevo->append(var->range().x());
-        numeradorSupNuevo->append(var->range().y());
-        //segundosTerminosNume->append(var->range().x());
-    }
+                    qreal t = -1.0;
 
-    QVector <qreal> * denominadorInf = new QVector <qreal> ();
-    QVector <qreal> * denominadorSup = new QVector <qreal> ();
-    QVector <qreal> * denominadorSupNuevo = new QVector <qreal> ();
-    QVector <qreal> * denominadorInfNuevo = new QVector <qreal> ();
+                    if (family == 0) {
+                        const qreal boundMin = std::pow(10.0, datos->getMinimoxMaximos()->at(0) / 20.0);
+                        const qreal boundMax = std::pow(10.0, datos->getMinimoxMaximos()->at(1) / 20.0);
 
-    foreach (Parameter * var, *denominador) {
-        denominadorInf->append(var->range().x());
-        denominadorSup->append(var->range().y());
-        denominadorInfNuevo->append(var->range().x());
-        denominadorSupNuevo->append(var->range().y());
-        //segundosTerminosDeno->append(var->range().y());
-    }
+                        //Which boundary side must be feasible follows the
+                        //parameter's monotonicity: gain and zeros raise
+                        //the loop, poles lower it (the upper subrange of
+                        //a pole lives on the bottom strip).
+                        const bool topStrip = (isGain || isZero) ? upperSide : !upperSide;
 
-    bool entraNume = false, entraDeno = false, entraK = false;
+                        if (topStrip) {
+                            if (datos->isUniDerecha()) {   //top strip forbidden
+                                allCertified = false;
+                                break;
+                            }
+                            //Others at the loop-minimising corner.
+                            if (isGain) {
+                                t = quick_solution::gainCut(boundMax, zeroInfs, poleSups, w, p0);
+                            } else if (isZero) {
+                                t = quick_solution::zeroCut(boundMax, kInf, zeroInfs, poleSups, termIndex, w, p0);
+                            } else {
+                                t = quick_solution::poleCut(boundMax, kInf, zeroInfs, poleSups, termIndex, w, p0);
+                            }
+                        } else {
+                            if (datos->isUniAbajo()) {     //bottom strip forbidden
+                                allCertified = false;
+                                break;
+                            }
+                            //Others at the loop-maximising corner.
+                            if (isGain) {
+                                t = quick_solution::gainCut(boundMin, zeroSups, poleInfs, w, p0);
+                            } else if (isZero) {
+                                t = quick_solution::zeroCut(boundMin, kSup, zeroSups, poleInfs, termIndex, w, p0);
+                            } else {
+                                t = quick_solution::poleCut(boundMin, kSup, zeroSups, poleInfs, termIndex, w, p0);
+                            }
+                        }
+                    } else {
+                        const qreal phi0 = nominalPhase(p0);
+                        const qreal thetaMin = datos->getMinimoxMaximos()->at(2) * M_PI / 180.0;
+                        const qreal thetaMax = datos->getMinimoxMaximos()->at(3) * M_PI / 180.0;
+                        const QPointF boxPhase = analysis.boxPhase.at(i);
 
-    qreal nuevoMinKReal, nuevoMaxKReal, n, nuevoMinNume, nuevoMaxDeno, o, cortesMinMag, nuevoMaxNume, cortesMaxImag, cortesMinImag, cortesMaxMag, nuevoMinDeno;
-    std::complex <qreal> plantaNominal;
-    for (qint32 i = 0; i < omega->size(); i++) {
+                        //Zeros lower the phase as they grow, poles raise
+                        //it: the upper subrange of a zero lives on the
+                        //LEFT strip, of a pole on the RIGHT strip.
+                        const bool rightStrip = isZero ? !upperSide : upperSide;
 
-        if (datosCortesBoundaries->at(i)->getFlag() == ambiguous) {
+                        if (rightStrip) {
+                            if (datos->isUniDerecha() ||
+                                    datos->getMinimoxMaximos()->at(3) >= boxPhase.y() - phaseGridStep) {
+                                allCertified = false;
+                                break;
+                            }
+                            t = isZero
+                                ? quick_solution::zeroPhaseCutHigh(thetaMax, phi0, zeroSups, poleInfs, termIndex, w)
+                                : quick_solution::polePhaseCutHigh(thetaMax, phi0, zeroSups, poleInfs, termIndex, w);
+                        } else {
+                            if (datos->isUniIzquierda() ||
+                                    datos->getMinimoxMaximos()->at(2) <= boxPhase.x() + phaseGridStep) {
+                                allCertified = false;
+                                break;
+                            }
+                            t = isZero
+                                ? quick_solution::zeroPhaseCutLow(thetaMin, phi0, zeroInfs, poleSups, termIndex, w)
+                                : quick_solution::polePhaseCutLow(thetaMin, phi0, zeroInfs, poleSups, termIndex, w);
+                        }
+                    }
 
-            o = omega->at(i);
+                    if (t < 0.0) {
+                        allCertified = false;
+                        break;
+                    }
 
-            plantaNominal = plantas_nominales2->at(i);
-            cortesMinMag = datosCortesBoundaries->at(i)->getMinimoxMaximos()->at(0);
-            cortesMaxMag = datosCortesBoundaries->at(i)->getMinimoxMaximos()->at(1);
-            cortesMinImag = datosCortesBoundaries->at(i)->getMinimoxMaximos()->at(2);
-            cortesMaxImag = datosCortesBoundaries->at(i)->getMinimoxMaximos()->at(3);
+                    //A threshold beyond the range on the certifying side
+                    //imposes nothing at this frequency; one beyond the
+                    //other side leaves no feasible subrange.
+                    if (upperSide) {
+                        if (t >= range.y()) {
+                            allCertified = false;
+                            break;
+                        }
+                        const qreal clamped = std::max(t, range.x());
+                        intersection = std::max(intersection, clamped);
 
-            //Análisis de la ganancia
-#ifdef SACHIN
-            // Unión K
-            if (datosCortesBoundaries->at(i)->isRecAbajo() && datosCortesBoundaries->at(i)->isUniAbajo()){
-                nuevoMinKReal = cortesMinMag / abs(v->evaluate(numeradorSup, denominadorInf, 1, 0, o) * plantaNominal);
+                        if (t > range.x()) {
+                            thresholds.append({parameter, i, t, true,
+                                               (range.y() - t) / (range.y() - range.x())});
+                        }
+                    } else {
+                        if (t <= range.x()) {
+                            allCertified = false;
+                            break;
+                        }
+                        const qreal clamped = std::min(t, range.y());
+                        intersection = std::min(intersection, clamped);
 
-                if (nuevoMinKReal > kNuevo.x() && nuevoMinKReal < kNuevo.y()) {
-                    kNuevo.setX(nuevoMinKReal);
-                    entraK = true;
+                        if (t < range.y()) {
+                            thresholds.append({parameter, i, t, false,
+                                               (t - range.x()) / (range.y() - range.x())});
+                        }
+                    }
                 }
-            } else if (datosCortesBoundaries->at(i)->isRecArriba() && datosCortesBoundaries->at(i)->isUniArriba()){
-                nuevoMaxKReal = cortesMaxMag / abs(v->evaluate(numeradorInf, denominadorSup, 1, 0, o) * plantaNominal);
 
-                if (nuevoMaxKReal > kNuevo.x() && nuevoMaxKReal < kNuevo.y()) {
+                if (!allCertified) {
+                    continue;
+                }
 
-                    kNuevo.setY(nuevoMaxKReal);
-                    entraK = true;
+                //Strictly interior intersection: split the feasible
+                //subrange off into the live list (UM/UF) and keep the
+                //ambiguous remainder in the node.
+                if (intersection <= range.x() || intersection >= range.y()) {
+                    continue;
+                }
+
+                const QPointF feasiblePart = upperSide
+                        ? QPointF(intersection, range.y())
+                        : QPointF(range.x(), intersection);
+                const QPointF ambiguousPart = upperSide
+                        ? QPointF(range.x(), intersection)
+                        : QPointF(intersection, range.y());
+
+                LtiSystem * um = replaceParameter(box, parameter, feasiblePart);
+
+                //Defensive verification with the real detection before
+                //trusting the closed-form certificate.
+                if (!boxIsFeasible(um)) {
+                    delete um;
+                    continue;
+                }
+
+                insertFeasibleBox(um, node);
+
+                LtiSystem * remainder = replaceParameter(box, parameter, ambiguousPart);
+                delete box;
+                node->setSistema(remainder);
+                box = remainder;
+
+                improved = true;
+            }
+        }
+    }
+}
+
+
+//------------------------------------------------------------------- QSInv
+//QSInv (thesis 5.1.1): certainly infeasible subranges cut away, on every
+//side of the projected box the corner classification certifies as
+//forbidden: the magnitude cuts of NK's Quick Solution (bottom strip, plus
+//their mirror on the top strip) and the phase cuts of thesis 4.1.2. All
+//cuts run sequentially on the latest updated values.
+inline void AlgorithmMcThesis::infeasibleCuts(Tripleta2 * node, const NodeAnalysis & analysis,
+                                              bool & improved)
+{
+    LtiSystem * v = node->getSistema();
+
+    QVector<qreal> zeroInfs, zeroSups, poleInfs, poleSups;
+    foreach (Parameter * var, *v->numerator()) {
+        zeroInfs.append(var->isUncertain() ? var->range().x() : var->nominal());
+        zeroSups.append(var->isUncertain() ? var->range().y() : var->nominal());
+    }
+    foreach (Parameter * var, *v->denominator()) {
+        poleInfs.append(var->isUncertain() ? var->range().x() : var->nominal());
+        poleSups.append(var->isUncertain() ? var->range().y() : var->nominal());
+    }
+
+    qreal gainInf = v->gain()->range().x();
+    qreal gainSup = v->gain()->range().y();
+
+    bool cut = false;
+
+    for (qint32 i = 0; i < omega->size(); ++i) {
+
+        data_box * datos = analysis.datos.value(i);
+
+        if (datos == nullptr || datos->getFlag() != ambiguous) {
+            continue;
+        }
+
+        const qreal w = omega->at(i);
+        const std::complex<qreal> p0 = plantas_nominales_std->at(i);
+        const qreal boundMin = std::pow(10.0, datos->getMinimoxMaximos()->at(0) / 20.0);
+        const qreal boundMax = std::pow(10.0, datos->getMinimoxMaximos()->at(1) / 20.0);
+
+        //Bottom strip certainly forbidden: cuts from below (NK's QS).
+        if (strategies.infeasibleMagnitude && datos->isUniAbajo()) {
+
+            if (v->gain()->isUncertain()) {
+                const qreal k = quick_solution::gainCut(boundMin, zeroSups, poleInfs, w, p0);
+                if (k > gainInf && k < gainSup) {
+                    gainInf = k;
+                    cut = true;
                 }
             }
-#endif
 
-            //Numerador
-            if (isVariableNume){
-                for (qint32 j = 0; j < numerador->size(); j++) {
-                    if (numerador->at(j)->isUncertain()){
+            for (qint32 j = 0; hasUncertainZeros && j < zeroInfs.size(); ++j) {
+                if (!v->numerator()->at(j)->isUncertain()) continue;
+                const qreal z = quick_solution::zeroCut(boundMin, gainSup, zeroSups, poleInfs, j, w, p0);
+                if (z > zeroInfs.at(j) && z < zeroSups.at(j)) {
+                    zeroInfs.replace(j, z);
+                    cut = true;
+                }
+            }
 
-                        n = numeradorSup->at(j);
-                        numeradorSup->remove(j);
-#ifdef NAND
+            for (qint32 j = 0; hasUncertainPoles && j < poleInfs.size(); ++j) {
+                if (!v->denominator()->at(j)->isUncertain()) continue;
+                const qreal p = quick_solution::poleCut(boundMin, gainSup, zeroSups, poleInfs, j, w, p0);
+                if (p > poleInfs.at(j) && p < poleSups.at(j)) {
+                    poleSups.replace(j, p);
+                    cut = true;
+                }
+            }
+        }
 
-                        if (datosCortesBoundaries->at(i)->isRecAbajo() && datosCortesBoundaries->at(i)->isUniAbajo()){
+        //Top strip certainly forbidden: the mirror cuts from above, with
+        //the loop-minimising corner and B_max.
+        if (strategies.infeasibleMagnitude && datos->isUniDerecha()) {
 
-                            nuevoMinNume = sqrt( pow((cortesMinMag * abs (v->evaluateDenominator(denominadorInf, o))) /
-                                                     (k.y() *  abs (v->evaluateNumerator(numeradorSup, o) * plantaNominal)), 2) - pow(o, 2));
+            if (v->gain()->isUncertain()) {
+                const qreal k = quick_solution::gainCut(boundMax, zeroInfs, poleSups, w, p0);
+                if (k > gainInf && k < gainSup) {
+                    gainSup = k;
+                    cut = true;
+                }
+            }
 
-                            if (nuevoMinNume > numeradorInfNuevo->at(j) && nuevoMinNume < numeradorSupNuevo->at(j)) {
-                                numeradorInfNuevo->replace(j, nuevoMinNume);
-                                entraNume = true;
-                            }
-                        }
-#endif
+            for (qint32 j = 0; hasUncertainZeros && j < zeroInfs.size(); ++j) {
+                if (!v->numerator()->at(j)->isUncertain()) continue;
+                const qreal z = quick_solution::zeroCut(boundMax, gainInf, zeroInfs, poleSups, j, w, p0);
+                if (z > zeroInfs.at(j) && z < zeroSups.at(j)) {
+                    zeroSups.replace(j, z);
+                    cut = true;
+                }
+            }
 
-#if defined REC_FASE && defined REC_UNION
-                        if (datosCortesBoundaries->at(i)->isRecDerecha() && datosCortesBoundaries->at(i)->isUniDerecha()){
-                            nuevoMaxNume = o / tan(cortesMaxImag - std::arg (v->evaluateNumerator(numeradorSup, o)) + std::arg (v->evaluateDenominator(denominadorInf, o)) - std::arg (plantaNominal));
+            for (qint32 j = 0; hasUncertainPoles && j < poleInfs.size(); ++j) {
+                if (!v->denominator()->at(j)->isUncertain()) continue;
+                const qreal p = quick_solution::poleCut(boundMax, gainInf, zeroInfs, poleSups, j, w, p0);
+                if (p > poleInfs.at(j) && p < poleSups.at(j)) {
+                    poleInfs.replace(j, p);
+                    cut = true;
+                }
+            }
+        }
 
-                            if (nuevoMaxNume > numeradorInfNuevo->at(j) && nuevoMaxNume < numeradorSupNuevo->at(j)) {
-                                numeradorSupNuevo->replace(j, nuevoMaxNume);
-                                entraNume = true;
-                            }
-                        }
-#endif
-                        numeradorSup->insert(j, n);
+        //Phase strips (thesis 4.1.2), when wider than one grid step.
+        if (strategies.infeasiblePhase && (hasUncertainZeros || hasUncertainPoles)) {
 
-                        n = numeradorInf->at(j);
-                        numeradorInf->remove(j);
+            const qreal phi0 = nominalPhase(p0);
+            const QPointF boxPhase = analysis.boxPhase.at(i);
+            const qreal boundPhaseMin = datos->getMinimoxMaximos()->at(2);
+            const qreal boundPhaseMax = datos->getMinimoxMaximos()->at(3);
 
-#ifdef NAND
-                        if (datosCortesBoundaries->at(i)->isRecArriba() && datosCortesBoundaries->at(i)->isUniArriba()){
-                            nuevoMaxNume = sqrt( pow((cortesMaxMag * abs (v->evaluateDenominator(denominadorSup, o))) /
-                                                     (k.x() *  abs (v->evaluateNumerator(numeradorInf, o) * plantaNominal)), 2) - pow(o, 2));
+            if (datos->isUniDerecha() && boundPhaseMax < boxPhase.y() - phaseGridStep) {
 
-                            if (nuevoMaxNume > numeradorInfNuevo->at(j) && nuevoMaxNume < numeradorSupNuevo->at(j)) {
-                                numeradorSupNuevo->replace(j, nuevoMaxNume);
-                                entraNume = true;
-                            }
-                        }
+                const qreal thetaMax = boundPhaseMax * M_PI / 180.0;
 
-#endif
+                for (qint32 j = 0; hasUncertainZeros && j < zeroInfs.size(); ++j) {
+                    if (!v->numerator()->at(j)->isUncertain()) continue;
+                    const qreal z = quick_solution::zeroPhaseCutHigh(thetaMax, phi0, zeroSups, poleInfs, j, w);
+                    if (z > zeroInfs.at(j) && z < zeroSups.at(j)) {
+                        zeroInfs.replace(j, z);
+                        cut = true;
+                    }
+                }
 
-#if defined REC_FASE && defined REC_UNION
-                        if (datosCortesBoundaries->at(i)->isRecIzquierda() && datosCortesBoundaries->at(i)->isUniIzquierda()){
-
-                            nuevoMinNume = o / tan(cortesMinImag - std::arg (v->evaluateNumerator(numeradorInf, o)) + std::arg (v->evaluateDenominator(denominadorSup, o)) - std::arg (plantaNominal));
-
-                            if (nuevoMinNume > numeradorInfNuevo->at(j) && nuevoMinNume < numeradorSupNuevo->at(j)) {
-                                numeradorInfNuevo->replace(j, nuevoMinNume);
-                                entraNume = true;
-                            }
-                        }
-#endif
-
-                        numeradorInf->insert(j, n);
-
+                for (qint32 j = 0; hasUncertainPoles && j < poleInfs.size(); ++j) {
+                    if (!v->denominator()->at(j)->isUncertain()) continue;
+                    const qreal p = quick_solution::polePhaseCutHigh(thetaMax, phi0, zeroSups, poleInfs, j, w);
+                    if (p > poleInfs.at(j) && p < poleSups.at(j)) {
+                        poleSups.replace(j, p);
+                        cut = true;
                     }
                 }
             }
 
+            if (datos->isUniIzquierda() && boundPhaseMin > boxPhase.x() + phaseGridStep) {
 
-            if (isVariableDeno){
-                for (qint32 j = 0; j < denominador->size(); j++) {
-                    if (denominador->at(j)->isUncertain()){
+                const qreal thetaMin = boundPhaseMin * M_PI / 180.0;
 
-                        n = denominadorInf->at(j);
-                        denominadorInf->remove(j);
-
-#ifdef NAND
-
-                        if (datosCortesBoundaries->at(i)->isRecAbajo() && datosCortesBoundaries->at(i)->isUniAbajo()){
-
-                            nuevoMaxDeno = sqrt(pow((k.y() * abs (v->evaluateNumerator(numeradorSup, o) * plantaNominal)) /
-                                                    (cortesMinMag * abs(v->evaluateDenominator(denominadorInf, o))), 2) - pow(o, 2));
-
-                            if (nuevoMaxDeno < denominadorSupNuevo->at(j) && nuevoMaxDeno > denominadorInfNuevo->at(j)) {
-                                denominadorSupNuevo->replace(j, nuevoMaxDeno);
-                                entraDeno = true;
-                            }
-                        }
-#endif
-
-#if defined REC_FASE && defined REC_UNION
-                        if (datosCortesBoundaries->at(i)->isRecDerecha() && datosCortesBoundaries->at(i)->isUniDerecha()){
-                            nuevoMaxDeno = o / tan(-cortesMinImag + std::arg (v->evaluateNumerator(numeradorSup, o)) - std::arg (v->evaluateDenominator(denominadorInf, o)) + std::arg (plantaNominal));
-
-                            if (nuevoMaxDeno > denominadorInfNuevo->at(j) && nuevoMaxDeno < denominadorSupNuevo->at(j)) {
-                                denominadorSupNuevo->replace(j, nuevoMaxDeno);
-                                entraDeno = true;
-                            }
-                        }
-#endif
-                        denominadorInf->insert(j, n);
-
-                        n = denominadorSup->at(j);
-                        denominadorSup->remove(j);
-
-#ifdef NAND
-                        if (datosCortesBoundaries->at(i)->isRecArriba() && datosCortesBoundaries->at(i)->isUniArriba()){
-                            nuevoMinDeno = sqrt(pow((k.x() * abs (v->evaluateNumerator(numeradorInf, o) * plantaNominal)) /
-                                                    (cortesMaxMag * abs(v->evaluateDenominator(denominadorSup, o))), 2) - pow(o, 2));
-                            if (nuevoMinDeno < denominadorSupNuevo->at(j) && nuevoMinDeno > denominadorInfNuevo->at(j)) {
-                                denominadorInfNuevo->replace(j, nuevoMinDeno);
-                                entraDeno = true;
-                            }
-                        }
-#endif
-
-#if defined REC_FASE && defined REC_UNION
-                        if (datosCortesBoundaries->at(i)->isRecIzquierda() && datosCortesBoundaries->at(i)->isUniIzquierda()){
-                            nuevoMinDeno = o / tan(-cortesMaxImag + std::arg (v->evaluateNumerator(numeradorInf, o)) - std::arg (v->evaluateDenominator(denominadorSup, o)) + std::arg (plantaNominal));
-
-                            if (nuevoMinDeno > denominadorInfNuevo->at(j) && nuevoMinDeno < denominadorSupNuevo->at(j)) {
-                                denominadorInfNuevo->replace(j, nuevoMinDeno);
-                                entraDeno = true;
-                            }
-                        }
-#endif
-
-                        denominadorSup->insert(j, n);
+                for (qint32 j = 0; hasUncertainZeros && j < zeroInfs.size(); ++j) {
+                    if (!v->numerator()->at(j)->isUncertain()) continue;
+                    const qreal z = quick_solution::zeroPhaseCutLow(thetaMin, phi0, zeroInfs, poleSups, j, w);
+                    if (z > zeroInfs.at(j) && z < zeroSups.at(j)) {
+                        zeroSups.replace(j, z);
+                        cut = true;
                     }
                 }
-            }
-        }
-    }
 
-
-    if (entraNume || entraDeno || entraK) {
-        QVector <Parameter *> * numerador_nuevo;
-
-        numerador_nuevo = new QVector <Parameter *> ();
-
-        for (qint32 i = 0; i < numerador->size(); i++){
-
-            Parameter * var_nume_antiguo = numerador->at(i);
-            Parameter * var_nume_nuevo;
-
-            if (var_nume_antiguo->isUncertain()){
-                var_nume_nuevo = new Parameter("", QPointF(numeradorInfNuevo->at(i), numeradorSupNuevo->at(i)), 0);
-            } else {
-                var_nume_nuevo = new Parameter(var_nume_antiguo->nominal());
-            }
-
-            numerador_nuevo->append(var_nume_nuevo);
-        }
-
-        QVector <Parameter *> * denominador_nuevo;
-
-        denominador_nuevo = new QVector <Parameter *> ();
-        for (qint32 i = 0; i < denominador->size(); i++){
-
-            Parameter * var_deno_antiguo = denominador->at(i);
-            Parameter * var_deno_nuevo;
-
-            if (var_deno_antiguo->isUncertain()){
-                var_deno_nuevo = new Parameter("", QPointF(denominadorInfNuevo->at(i), denominadorSupNuevo->at(i)), 0);
-            } else {
-                var_deno_nuevo = new Parameter(var_deno_antiguo->nominal());
-            }
-
-            denominador_nuevo->append(var_deno_nuevo);
-        }
-
-        LtiSystem * nuevo_sistema = v->create(v->name(), numerador_nuevo, denominador_nuevo, new Parameter("kv", kNuevo, 0), new Parameter (0.0));
-        delete v;
-
-
-
-        numeradorSup->clear();
-        numeradorInf->clear();
-        numeradorInfNuevo->clear();
-
-        denominadorInf->clear();
-        denominadorSup->clear();
-        denominadorSupNuevo->clear();
-
-        tripleta->setSistema(nuevo_sistema);
-
-        cambioEtapaFinal = false;
-    }
-
-
-    return tripleta;
-
-}
-
-//Función que recorta la caja.
-inline Tripleta2 *AlgorithmMcThesis::recortesFeasible(Tripleta2 *tripleta) {
-
-#if defined REC_INTER && (defined REC_FASE || defined REC_MAG)
-
-    LtiSystem * v = tripleta->getSistema();
-
-    QVector<data_box *> * datosCortesBoundaries = tripleta->getDatosCortesBoundaries();
-
-    QVector <Parameter *> * denominador = v->denominator();
-    QVector <Parameter *> * numerador = v->numerator();
-    QPointF k = v->gain()->range();
-
-    ListaOrdenada * kNuevoMax = new ListaOrdenada(true);
-    ListaOrdenada * kNuevoMin = new ListaOrdenada();
-
-    //Creamos los numeradores y denominadores necesarios
-    QVector <qreal> * numeradorSup = new QVector <qreal> ();
-    QVector <qreal> * numeradorInf = new QVector <qreal> ();
-
-    QVector <ListaOrdenada *> * numeradorSupNuevoMag = new QVector <ListaOrdenada *> ();
-    QVector <ListaOrdenada *> * numeradorInfNuevoMag = new QVector <ListaOrdenada *> ();
-    QVector <ListaOrdenada *> * numeradorSupNuevoFas = new QVector <ListaOrdenada *> ();
-    QVector <ListaOrdenada *> * numeradorInfNuevoFas = new QVector <ListaOrdenada *> ();
-
-    bool entraK = false;
-    bool entraNume = false;
-    bool entraDeno = false;
-
-    foreach (Parameter * var, *numerador) {
-        numeradorInf->append(var->range().x());
-        numeradorSup->append(var->range().y());
-
-        numeradorSupNuevoMag->append(new ListaOrdenada(true));
-        numeradorInfNuevoMag->append(new ListaOrdenada());
-
-        numeradorSupNuevoFas->append(new ListaOrdenada(true));
-        numeradorInfNuevoFas->append(new ListaOrdenada());
-    }
-
-    QVector <qreal> * denominadorInf = new QVector <qreal> ();
-    QVector <qreal> * denominadorSup = new QVector <qreal> ();
-
-    QVector <ListaOrdenada *> * denominadorInfNuevoMag = new QVector <ListaOrdenada *> ();
-    QVector <ListaOrdenada *> * denominadorSupNuevoMag = new QVector <ListaOrdenada *> ();
-    QVector <ListaOrdenada *> * denominadorInfNuevoFas = new QVector <ListaOrdenada *> ();
-    QVector <ListaOrdenada *> * denominadorSupNuevoFas = new QVector <ListaOrdenada *> ();
-
-    foreach (Parameter * var, *denominador) {
-        denominadorInf->append(var->range().x());
-        denominadorSup->append(var->range().y());
-
-        denominadorInfNuevoMag->append(new ListaOrdenada(true));
-        denominadorSupNuevoMag->append(new ListaOrdenada());
-
-        denominadorInfNuevoFas->append(new ListaOrdenada(true));
-        denominadorSupNuevoFas->append(new ListaOrdenada());
-    }
-
-    qreal nuevoMaxKReal, nuevoMinKReal, n, nuevoMinNume, nuevoMaxDeno, o, cortesMinMag, nuevoMaxNume, cortesMaxImag, cortesMinImag, cortesMaxMag, nuevoMinDeno;
-    std::complex <qreal> plantaNominal;
-    for (qint32 i = 0; i < omega->size(); i++) {
-
-           // TODO revisar la cajas factibles resultado de la bisección.
-        if (datosCortesBoundaries->at(i)->getFlag() == ambiguous) {
-            o = omega->at(i);
-            plantaNominal = plantas_nominales2->at(i);
-            cortesMinMag = datosCortesBoundaries->at(i)->getMinimoxMaximos()->at(0);
-            cortesMaxMag = datosCortesBoundaries->at(i)->getMinimoxMaximos()->at(1);
-            cortesMinImag = datosCortesBoundaries->at(i)->getMinimoxMaximos()->at(2);
-            cortesMaxImag = datosCortesBoundaries->at(i)->getMinimoxMaximos()->at(3);
-
-            //Análisis de la ganancia
-
-#ifdef REC_MAG
-            // intersección k
-            if (datosCortesBoundaries->at(i)->isRecArriba() && !datosCortesBoundaries->at(i)->isUniArriba()){
-                nuevoMaxKReal = cortesMaxMag / abs(v->evaluate(numeradorInf, denominadorSup, 1, 0, o) * plantaNominal);
-
-                if (nuevoMaxKReal > k.x() && nuevoMaxKReal < k.y()) {
-
-                    kNuevoMax->insertar(new DatosFeasible(nuevoMaxKReal, i, "kv",
-                                                          100 - ((((k.y() - k.x()) - (k.y()  - nuevoMaxKReal))
-                                                                  / (k.y()  - k.x())) * 100 )));
-
-                    entraK = true;
-                }
-            } else if (datosCortesBoundaries->at(i)->isRecAbajo() && !datosCortesBoundaries->at(i)->isUniAbajo()) {
-                nuevoMinKReal = cortesMinMag / abs(v->evaluate(numeradorSup, denominadorInf, 1, 0, o) * plantaNominal);
-
-                if (nuevoMinKReal > k.x() && nuevoMinKReal < k.y()) {
-
-                    kNuevoMin->insertar(new DatosFeasible(nuevoMinKReal, i, "kv", ( ((nuevoMinKReal - k.x()) * 100) / (k.y() - k.x()) )));
-
-                    entraK = true;
-
-                }
-            }
-#endif
-
-            //Numerador
-            if (isVariableNume){
-                for (qint32 j = 0; j < numerador->size(); j++) {
-                    if (numerador->at(j)->isUncertain()){
-
-                        n = numeradorInf->at(j);
-                        numeradorInf->remove(j);
-
-#ifdef REC_MAG
-                        if (datosCortesBoundaries->at(i)->isRecArriba() && !datosCortesBoundaries->at(i)->isUniArriba()){
-                            nuevoMaxNume = sqrt( pow((cortesMaxMag * abs (v->evaluateDenominator(denominadorSup, o))) /
-                                                     (k.x() *  abs (v->evaluateNumerator(numeradorInf, o) * plantaNominal)), 2) - pow(o, 2));
-
-                            if (nuevoMaxNume > n && nuevoMaxNume < numeradorSup->at(j)) {
-                                numeradorSupNuevoMag->at(j)->insertar(new DatosFeasible(nuevoMaxNume, i, numerador->at(j)->name(),
-                                                                                        ( ((numeradorSup->at(j) - nuevoMaxNume) * 100) / (numeradorSup->at(j) - n))));
-
-                                entraNume = true;
-
-                            }
-                        }
-#endif
-#ifdef REC_FASE
-
-                        if (datosCortesBoundaries->at(i)->isRecIzquierda() && !datosCortesBoundaries->at(i)->isUniIzquierda()){
-                            nuevoMinNume = o / tan(cortesMinImag - std::arg (v->evaluateNumerator(numeradorInf, o)) + std::arg (v->evaluateDenominator(denominadorSup, o)) - std::arg (plantaNominal));
-
-                            if (nuevoMinNume > n && nuevoMinNume < numeradorSup->at(j)) {
-                                numeradorInfNuevoFas->at(j)->insertar(new DatosFeasible(nuevoMinNume, i, numerador->at(j)->name(),
-                                                                                        ( ((nuevoMinNume - n) * 100) / (numeradorSup->at(j) - n) )));
-
-                                entraNume = true;
-                            }
-                        }
-#endif
-                        numeradorInf->insert(j, n);
-
-                        n = numeradorSup->at(j);
-                        numeradorSup->remove(j);
-
-#ifdef REC_MAG
-                        if (datosCortesBoundaries->at(i)->isRecAbajo() && !datosCortesBoundaries->at(i)->isUniAbajo()) {
-                            nuevoMinNume = sqrt( pow((cortesMinMag * abs (v->evaluateDenominator(denominadorInf, o))) /
-                                                     (k.y() *  abs (v->evaluateNumerator(numeradorSup, o) * plantaNominal)), 2) - pow(o, 2));
-
-                            if (nuevoMinNume > numeradorInf->at(j) && nuevoMinNume < n) {
-                                numeradorInfNuevoMag->at(j)->insertar(new DatosFeasible(nuevoMinNume, i, numerador->at(j)->name(),
-                                                                                        ( ((nuevoMinNume - numeradorInf->at(j)) * 100) / (n - numeradorInf->at(j)) )));
-
-                                entraNume = true;
-                            }
-                        }
-#endif
-#ifdef REC_FASE
-
-                        if (datosCortesBoundaries->at(i)->isRecDerecha() && !datosCortesBoundaries->at(i)->isUniDerecha()){
-                            nuevoMaxNume = o / tan(cortesMaxImag - std::arg (v->evaluateNumerator(numeradorSup, o)) +
-                                                   std::arg (v->evaluateDenominator(denominadorInf, o)) - std::arg (plantaNominal));
-
-                            if (nuevoMaxNume > numeradorInf->at(j) && nuevoMaxNume < n) {
-                                numeradorSupNuevoFas->at(j)->insertar(new DatosFeasible(nuevoMaxNume, i, numerador->at(j)->name(),
-                                                                                        ( ((n - nuevoMaxNume) * 100) / (n - numeradorInf->at(j)) )));
-                                entraNume = true;
-                            }
-                        }
-#endif
-
-                        numeradorSup->insert(j, n);
-                    }
-                }
-            }
-
-
-            if (isVariableDeno){
-                for (qint32 j = 0; j < denominador->size(); j++) {
-                    if (denominador->at(j)->isUncertain()){
-
-                        n = denominadorSup->at(j);
-                        denominadorSup->remove(j);
-#ifdef REC_MAG
-                        if (datosCortesBoundaries->at(i)->isRecArriba() && !datosCortesBoundaries->at(i)->isUniArriba()){
-
-                            nuevoMinDeno = sqrt(pow((k.x() * abs (v->evaluateNumerator(numeradorInf, o) * plantaNominal)) /
-                                                    (cortesMaxMag * abs(v->evaluateDenominator(denominadorSup, o))), 2) - pow(o, 2));
-
-                            if (nuevoMinDeno < n && nuevoMinDeno > denominadorInf->at(j)) {
-                                denominadorInfNuevoMag->at(j)->insertar(new DatosFeasible(nuevoMinDeno, i, denominador->at(j)->name(),
-                                                                                          ( ((nuevoMinDeno - denominadorInf->at(j)) * 100) / (n - denominadorInf->at(j)) ) ));
-                                entraDeno = true;
-                            }
-                        }
-#endif
-#ifdef REC_FASE
-                        if (datosCortesBoundaries->at(i)->isRecDerecha() && !datosCortesBoundaries->at(i)->isUniDerecha()){
-                            nuevoMaxDeno = o / tan(-cortesMinImag + std::arg (v->evaluateNumerator(numeradorInf, o)) -
-                                                   std::arg (v->evaluateDenominator(denominadorSup, o)) + std::arg (plantaNominal));
-
-                            if (nuevoMaxDeno < n && nuevoMaxDeno > denominadorInf->at(j)) {
-                                denominadorSupNuevoFas->at(j)->insertar(new DatosFeasible(nuevoMaxDeno, i, denominador->at(j)->name(),
-                                                                                          ( ((n - nuevoMaxDeno) * 100) / (n - denominadorInf->at(j)) )));
-                                entraDeno = true;
-                            }
-                        }
-#endif
-                        denominadorSup->insert(j, n);
-
-                        n = denominadorInf->at(j);
-                        denominadorInf->remove(j);
-#ifdef REC_MAG
-
-                        if (datosCortesBoundaries->at(i)->isRecAbajo() && !datosCortesBoundaries->at(i)->isUniAbajo()){
-
-                            nuevoMaxDeno = sqrt(pow((k.y() * abs (v->evaluateNumerator(numeradorSup, o) * plantaNominal)) /
-                                                    (cortesMinMag * abs(v->evaluateDenominator(denominadorInf, o))), 2) - pow(o, 2));
-
-                            if (nuevoMaxDeno < denominadorSup->at(j) && nuevoMaxDeno > n) {
-                                denominadorSupNuevoMag->at(j)->insertar(new DatosFeasible(nuevoMaxDeno, i, denominador->at(j)->name(),
-                                                                                          ( ((denominadorSup->at(j) - nuevoMaxDeno) * 100) / (denominadorSup->at(j) - n) )));
-                                entraDeno = true;
-                            }
-                        }
-#endif
-#ifdef REC_FASE
-                        if (datosCortesBoundaries->at(i)->isRecIzquierda() && !datosCortesBoundaries->at(i)->isUniIzquierda()){
-                            nuevoMinDeno = tan(-cortesMaxImag + std::arg (v->evaluateNumerator(numeradorInf, o)) -
-                                               std::arg (v->evaluateDenominator(denominadorSup, o)) + std::arg (plantaNominal)) * o;
-
-                            if (nuevoMinDeno < denominadorSup->at(j) && nuevoMinDeno > n) {
-                                denominadorInfNuevoFas->at(j)->insertar(new DatosFeasible(nuevoMinDeno, i, denominador->at(j)->name(),
-                                                                                          ( ((nuevoMinDeno - n) * 100) / (denominadorSup->at(j) - n) )));
-                                entraDeno = true;
-                            }
-                        }
-#endif
-                        denominadorInf->insert(j, n);
-
+                for (qint32 j = 0; hasUncertainPoles && j < poleInfs.size(); ++j) {
+                    if (!v->denominator()->at(j)->isUncertain()) continue;
+                    const qreal p = quick_solution::polePhaseCutLow(thetaMin, phi0, zeroInfs, poleSups, j, w);
+                    if (p > poleInfs.at(j) && p < poleSups.at(j)) {
+                        poleInfs.replace(j, p);
+                        cut = true;
                     }
                 }
             }
         }
     }
 
-    if (entraK || entraNume || entraDeno) {
-
-        Parameter * k_nuevo;
-
-        k_nuevo = new Parameter ("kv", QPointF( kNuevoMin->esVacia() ? k.x() : kNuevoMin->recuperarPrimeroBorrar()->getIndex(),
-                                          kNuevoMax->esVacia() ? k.y() : kNuevoMax->recuperarPrimeroBorrar()->getIndex()), 0);
-
-
-        QVector <Parameter *> * numerador_nuevo = new QVector <Parameter *> ();
-
-        //getMax
-        for (qint32 i = 0; i < numerador->size(); i++){
-
-            Parameter * var_nume_antiguo = numerador->at(i);
-            Parameter * var_nume_nuevo;
-
-            if (var_nume_antiguo->isUncertain()){
-
-                qreal unoMag = numeradorInfNuevoMag->at(i)->esVacia() ? numeradorInf->at(i) : numeradorInfNuevoMag->at(i)->recuperarPrimeroBorrar()->getIndex();
-                qreal unoFas = numeradorInfNuevoFas->at(i)->esVacia() ? numeradorInf->at(i) : numeradorInfNuevoFas->at(i)->recuperarPrimeroBorrar()->getIndex();
-
-                qreal dosMag = numeradorSupNuevoMag->at(i)->esVacia() ? numeradorSup->at(i) : numeradorSupNuevoMag->at(i)->recuperarPrimeroBorrar()->getIndex();
-                qreal dosFas = numeradorSupNuevoFas->at(i)->esVacia() ? numeradorSup->at(i) : numeradorSupNuevoFas->at(i)->recuperarPrimeroBorrar()->getIndex();
-
-                var_nume_nuevo = new Parameter(var_nume_antiguo->name(),
-                                         QPointF(unoMag > unoFas ? unoMag : unoFas, dosMag < dosFas ? dosMag : dosFas), 0);
-            } else {
-                var_nume_nuevo = new Parameter(var_nume_antiguo->nominal());
-            }
-
-            numerador_nuevo->append(var_nume_nuevo);
-        }
-
-        QVector <Parameter *> * denominador_nuevo;
-
-        //getMin
-        denominador_nuevo = new QVector <Parameter *> ();
-        for (qint32 i = 0; i < denominador->size(); i++){
-
-            Parameter * var_deno_antiguo = denominador->at(i);
-            Parameter * var_deno_nuevo;
-
-            if (var_deno_antiguo->isUncertain()){
-
-                qreal unoMag = denominadorInfNuevoMag->at(i)->esVacia() ? denominadorInf->at(i) : denominadorInfNuevoMag->at(i)->recuperarPrimeroBorrar()->getIndex();
-                qreal unoFas = denominadorInfNuevoFas->at(i)->esVacia() ? denominadorInf->at(i) : denominadorInfNuevoFas->at(i)->recuperarPrimeroBorrar()->getIndex();
-
-                qreal dosMag = denominadorSupNuevoMag->at(i)->esVacia() ? denominadorSup->at(i) : denominadorSupNuevoMag->at(i)->recuperarPrimeroBorrar()->getIndex();
-                qreal dosFas = denominadorSupNuevoFas->at(i)->esVacia() ? denominadorSup->at(i) : denominadorSupNuevoFas->at(i)->recuperarPrimeroBorrar()->getIndex();
-
-                var_deno_nuevo = new Parameter(var_deno_antiguo->name(),
-                                         QPointF(unoMag > unoFas ? unoMag : unoFas, dosMag < dosFas ? dosMag : dosFas), 0);
-            } else {
-                var_deno_nuevo = new Parameter(var_deno_antiguo->nominal());
-            }
-
-            denominador_nuevo->append(var_deno_nuevo);
-        }
-
-        LtiSystem * nuevo_sistema = v->create(v->name(), numerador_nuevo, denominador_nuevo, k_nuevo, new Parameter (0.0));
-        delete v;
-
-        cambioEtapaFinal = false;
-
-        tripleta->setSistema(nuevo_sistema);
+    if (!cut) {
+        return;
     }
 
-    numeradorSup->clear();
-    numeradorInf->clear();
+    auto * numerador = new QVector<Parameter*>();
+    for (qint32 j = 0; j < zeroInfs.size(); ++j) {
+        Parameter * old = v->numerator()->at(j);
+        numerador->append(old->isUncertain()
+                ? new Parameter(old->name(), QPointF(zeroInfs.at(j), zeroSups.at(j)), zeroInfs.at(j))
+                : new Parameter(old->nominal()));
+    }
 
-    denominadorInf->clear();
-    denominadorSup->clear();
+    auto * denominador = new QVector<Parameter*>();
+    for (qint32 j = 0; j < poleInfs.size(); ++j) {
+        Parameter * old = v->denominator()->at(j);
+        denominador->append(old->isUncertain()
+                ? new Parameter(old->name(), QPointF(poleInfs.at(j), poleSups.at(j)), poleInfs.at(j))
+                : new Parameter(old->nominal()));
+    }
 
-    tripleta->setKInf(kNuevoMin);
-    tripleta->setKSup(kNuevoMax);
+    LtiSystem * nuevo = v->create(v->name(), numerador, denominador,
+            v->gain()->isUncertain()
+                ? new Parameter("kv", QPointF(gainInf, gainSup), gainInf, "kv")
+                : new Parameter(v->gain()->nominal()),
+            v->delay()->clone());
 
-    tripleta->setNumeradorInfMag(numeradorInfNuevoMag);
-    tripleta->setNumeradorSupMag(numeradorSupNuevoMag);
-    tripleta->setNumeradorInfFas(numeradorInfNuevoFas);
-    tripleta->setNumeradorSupFas(numeradorSupNuevoFas);
-
-    tripleta->setDenominadorInfMag(denominadorInfNuevoMag);
-    tripleta->setDenominadorSupMag(denominadorSupNuevoMag);
-    tripleta->setDenominadorInfFas(denominadorInfNuevoFas);
-    tripleta->setDenominadorSupFas(denominadorSupNuevoFas);
-
-#endif
-
-    return tripleta;
+    delete v;
+    node->setSistema(nuevo);
+    improved = true;
 }
 
-//Función que calcula los términos del controlador en decibelios
-inline Tripleta2 * AlgorithmMcThesis::calculoTerminosControlador (Tripleta2* controlador) {
 
-    LtiSystem * s = controlador->getSistema();
-    QVector <cinterval> * terminosNume = new QVector<cinterval>();
-    QVector <cinterval> * terminosDeno = new QVector<cinterval>();
-    cinterval terminosK;
-
-    if (this->isVariableNume){
-        foreach (Parameter*  nume , *s->numerator()){
-            terminosNume->append(conversion->numeratorTermBox(nume, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
-        }
-    }
-
-    controlador->setTerNume(terminosNume);
-
-    if (this->isVariableDeno){
-        foreach (Parameter*  deno , *s->denominator()){
-            terminosDeno->append(conversion->denominatorTermBox(deno, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
-        }
-    }
-
-    controlador->setTerDeno(terminosDeno);
-
-    terminosK = conversion->gainTermBox(controlador->getSistema()->gain(), plantas_nominales->at(frecuenciaPrincipal));
-
-    controlador->setTerK(terminosK);
-
-    return controlador;
-}
-
-inline FC::return_bisection2 AlgorithmMcThesis::biseccionArea(Tripleta2 * tripleta) {
-
-    QVector <cinterval> * terminosNume = tripleta->getTerNume();
-    QVector <cinterval> * terminosDeno = tripleta->getTerDeno();
-    cinterval terminosK = tripleta->getTerK();
-
-    QVector <cinterval> * terminosCopiaNume = new QVector <cinterval> ();
-    QVector <cinterval> * terminosCopiaDeno = new QVector <cinterval> ();
-    cinterval terminosCopiaK;
-
-
-    LtiSystem * current_controlador = tripleta->getSistema();
-
-    QVector <Parameter *> * numerador = current_controlador->numerator();
-    QVector <Parameter *> * denominador = current_controlador->denominator();
-
-    Parameter * ret = current_controlador->delay();
-
-    QVector <Parameter *> * numeradorCopia = new QVector <Parameter *> ();
-    QVector <Parameter *> * denominadorCopia = new QVector <Parameter *> ();
-
-    QString nombre = current_controlador->name();
-
-    qint32 posicion = -1;
-    qreal mejorArea = -1;
-
-    qint32 contador = 0;
-
-    // Calculamos para la ganancia K
-
-
-    terminosCopiaK = terminosK;
-    qreal area = _double(diam(Re(terminosK)));
-
-    if (area > mejorArea) {
-        mejorArea = area;
-        posicion = -1;
-    }
-
-
-    // Calculamos para el numerador
-    for (qint32 i = 0; i < numerador->size(); i++){
-
-        numeradorCopia->append(numerador->at(i)->clone());
-
-        if (numerador->at(i)->isUncertain()) {
-
-            cinterval t = terminosNume->at(i);
-            terminosCopiaNume->append(t);
-            qreal area = _double(diam(Re(t)) * diam(Im(t)));
-
-            if (area > mejorArea) {
-                mejorArea = area;
-                posicion = contador;
-            }
-        }
-
-        contador++;
-    }
-
-
-    // Calculamos para el denominador
-    for (qint32 i = 0; i < denominador->size(); i++){
-
-        denominadorCopia->append(denominador->at(i)->clone());
-
-        if (denominador->at(i)->isUncertain()) {
-            cinterval t = terminosDeno->at(i);
-            terminosCopiaDeno->append(t);
-
-            qreal area = _double(diam(Re(t)) * diam(Im(t)));
-
-            if (area > mejorArea) {
-                mejorArea = area;
-                posicion = contador;
-            }
-        }
-
-        contador++;
-    }
-
-
-    Parameter * k, * kCopia;
-
-    if (posicion == -1) {
-
-        Parameter * variable = current_controlador->gain();
-
-        qreal punto_medio = variable->range().x() + (variable->range().y() - variable->range().x()) / 2;
-
-        k = new Parameter("", QPointF(variable->range().x(), punto_medio), variable->range().x());
-        kCopia =  new Parameter("", QPointF(punto_medio, variable->range().y()), punto_medio);
-
-        terminosK = conversion->gainTermBox(k, plantas_nominales->at(frecuenciaPrincipal));
-        terminosCopiaK = conversion->gainTermBox(kCopia, plantas_nominales->at(frecuenciaPrincipal));
-
-        delete variable;
-
-    }else{
-
-        k = current_controlador->gain();
-        kCopia = k->clone();
-
-        if (posicion < numerador->size()) {
-
-            Parameter * variable = numerador->at(posicion);
-
-            qreal punto_medio = variable->range().x() + (variable->range().y() - variable->range().x()) / 2;
-
-            Parameter * var1 = new Parameter("", QPointF(variable->range().x(), punto_medio), variable->range().x());
-            Parameter * var2 =  new Parameter("", QPointF(punto_medio, variable->range().y()), punto_medio);
-
-            terminosNume->replace(posicion, conversion->numeratorTermBox(var1, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
-            terminosCopiaNume->replace(posicion, conversion->numeratorTermBox(var2, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
-
-
-            numerador->replace(posicion, var1);
-            numeradorCopia->replace(posicion, var2);
-
-
-            delete variable;
-
-        } else {
-
-            qint32 pos = posicion - numerador->size();
-
-            Parameter * variable = denominador->at(pos);
-
-            qreal punto_medio = variable->range().x() + (variable->range().y() - variable->range().x()) / 2;
-
-            Parameter * var1 = new Parameter("", QPointF(variable->range().x(), punto_medio), variable->range().x());
-            Parameter * var2 =  new Parameter("", QPointF(punto_medio, variable->range().y()), punto_medio);
-
-            terminosDeno->replace(pos, conversion->denominatorTermBox(var1, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
-            terminosCopiaDeno->replace(pos, conversion->denominatorTermBox(var2, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
-
-
-            denominador->replace(pos, var1);
-            denominadorCopia->replace(pos, var2);
-
-
-            delete variable;
-
-        }
-    }
-
-    Tripleta2 * t1, * t2;
-    LtiSystem * v1, * v2;
-
-    v1 = current_controlador->create(nombre, numerador, denominador, k, ret);
-    v2 = current_controlador->create(nombre, numeradorCopia, denominadorCopia, kCopia, ret->clone());
-
-    t1 = new Tripleta2();
-
-    t1->setSistema(v1);
-    t1->setTerNume(terminosNume);
-    t1->setTerDeno(terminosDeno);
-    t1->setTerK(terminosK);
-    t1->setFrecuenciasFeasible(tripleta->getFrecuenciasFeasible());
-    t1->setRecorteActivado(tripleta->isRecorteActivado());
-    t1->setEtapas(tripleta->getEtapas());
-
-    t2 = new Tripleta2();
-
-    t2->setSistema(v2);
-    t2->setTerNume(terminosCopiaNume);
-    t2->setTerDeno(terminosCopiaDeno);
-    t2->setTerK(terminosCopiaK);
-    t2->setRecorteActivado(tripleta->isRecorteActivado());
-    t2->setEtapas(tripleta->getEtapas());
-
-
-
-    QHash <qreal, qreal> * hash = tripleta->getFrecuenciasFeasible();
-
-    if (hash != nullptr) {
-        t2->setFrecuenciasFeasible(new QHash <qreal, qreal> (*(hash)));
-    } else {
-        t2->setFrecuenciasFeasible(new QHash <qreal, qreal> ());
-    }
-
-
-    struct FC::return_bisection2 retur;
-
-    retur.t1 = t1;
-    retur.t2 = t2;
+//-------------------------------------------------------------- bisection
+//Split one parameter at 'point'; both children inherit the node's stage,
+//cut switch and feasible-frequency history.
+inline FC::return_bisection2 AlgorithmMcThesis::bisectAt(Tripleta2 * node, qint32 parameter,
+                                                         qreal point)
+{
+    LtiSystem * box = node->getSistema();
+    const QPointF range = parameterRange(box, parameter);
+
+    LtiSystem * lower = replaceParameter(box, parameter, QPointF(range.x(), point));
+    LtiSystem * upper = replaceParameter(box, parameter, QPointF(point, range.y()));
+
+    const auto makeChild = [&](LtiSystem * system) {
+        Tripleta2 * t = new Tripleta2(system->gain()->range().x(), system, ambiguous);
+        t->setEtapas(node->getEtapas());
+        t->setRecorteActivado(node->isRecorteActivado());
+        t->setFrecuenciasFeasible(node->getFrecuenciasFeasible() != nullptr
+                ? new QHash<qreal, qreal>(*node->getFrecuenciasFeasible())
+                : new QHash<qreal, qreal>());
+        return t;
+    };
+
+    FC::return_bisection2 retur;
+    retur.t1 = makeChild(lower);
+    retur.t2 = makeChild(upper);
     retur.descartado = false;
 
-
-    tripleta->noBorrar2();
-    delete tripleta;
-
-    return retur;
-}
-
-inline FC::return_bisection2 AlgorithmMcThesis::biseccionMag(Tripleta2 * tripleta) {
-
-    QVector <cinterval> * terminosNume = tripleta->getTerNume();
-    QVector <cinterval> * terminosDeno = tripleta->getTerDeno();
-    cinterval terminosK = tripleta->getTerK();
-
-    QVector <cinterval> * terminosCopiaNume = new QVector <cinterval> ();
-    QVector <cinterval> * terminosCopiaDeno = new QVector <cinterval> ();
-    cinterval terminosCopiaK;
-
-    LtiSystem * current_controlador = tripleta->getSistema();
-
-    QVector <Parameter *> * numerador = current_controlador->numerator();
-    QVector <Parameter *> * denominador = current_controlador->denominator();
-
-    Parameter * ret = current_controlador->delay();
-
-    Parameter * k = current_controlador->gain();
-
-    QVector <Parameter *> * numeradorCopia = new QVector <Parameter *> ();
-    QVector <Parameter *> * denominadorCopia = new QVector <Parameter *> ();
-
-    QString nombre = current_controlador->name();
-
-    qint32 posicion = -1;
-    qreal mejorMag = -1;
-
-
-    // Calculamos la k
-    mejorMag = _double(diam(20 * cxsc::log10(cxsc::abs(interval(k->range().x(), k->range().y()) * plantas_nominales->at(frecuenciaPrincipal)))));
-    qint32 contador = 0;
-
-
-    for (qint32 i = 0; i < numerador->size(); i++){
-
-        numeradorCopia->append(numerador->at(i)->clone());
-
-        if (numerador->at(i)->isUncertain()) {
-            cinterval t = terminosNume->at(i);
-            terminosCopiaNume->append(t);
-            qreal mag = _double(diam(Re(t)));
-
-            if (mag > mejorMag) {
-                mejorMag = mag;
-                posicion = contador;
-            }
-        }
-
-        contador++;
-    }
-
-    for (qint32 i = 0; i < denominador->size(); i++){
-
-        denominadorCopia->append(denominador->at(i)->clone());
-
-        if (denominador->at(i)->isUncertain()) {
-            cinterval t = terminosDeno->at(i);
-            terminosCopiaDeno->append(t);
-
-            qreal mag = _double(diam(Re(t)));
-
-            if (mag > mejorMag) {
-                mejorMag = mag;
-                posicion = contador;
-            }
-        }
-
-        contador++;
-    }
-
-    Parameter * k1, * k2;
-
-    if (posicion == -1) {
-
-
-        qreal punto_medio = k->range().x() + (k->range().y() - k->range().x()) / 2;
-
-        k1 = new Parameter("", QPointF(k->range().x(), punto_medio), k->range().x());
-        k2 = new Parameter("", QPointF(punto_medio, k->range().y()), punto_medio);
-
-        terminosK = conversion->gainTermBox(k1, plantas_nominales->at(frecuenciaPrincipal));
-        terminosCopiaK = conversion->gainTermBox(k2, plantas_nominales->at(frecuenciaPrincipal));
-
-        delete k;
-
-    } else {
-
-        k1 = k;
-        k2 = k->clone();
-
-        if (posicion < numerador->size()) {
-
-            Parameter * variable = numerador->at(posicion);
-
-            qreal punto_medio = variable->range().x() + (variable->range().y() - variable->range().x()) / 2;
-
-            Parameter * var1 = new Parameter("", QPointF(variable->range().x(), punto_medio), variable->range().x());
-            Parameter * var2 =  new Parameter("", QPointF(punto_medio, variable->range().y()), punto_medio);
-
-            terminosNume->replace(posicion, conversion->numeratorTermBox(var1, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
-            terminosCopiaNume->replace(posicion, conversion->numeratorTermBox(var2, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
-
-
-            numerador->replace(posicion, var1);
-            numeradorCopia->replace(posicion, var2);
-
-
-            delete variable;
-
-        } else {
-
-            qint32 pos = posicion - numerador->size();
-
-            Parameter * variable = denominador->at(pos);
-
-            qreal punto_medio = variable->range().x() + (variable->range().y() - variable->range().x()) / 2;
-
-            Parameter * var1 = new Parameter("", QPointF(variable->range().x(), punto_medio), variable->range().x());
-            Parameter * var2 =  new Parameter("", QPointF(punto_medio, variable->range().y()), punto_medio);
-
-            terminosDeno->replace(pos, conversion->denominatorTermBox(var1, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
-            terminosCopiaDeno->replace(pos, conversion->denominatorTermBox(var2, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
-
-
-            denominador->replace(pos, var1);
-            denominadorCopia->replace(pos, var2);
-
-
-            delete variable;
-
-        }
-    }
-
-    Tripleta2 * t1, * t2;
-    LtiSystem * v1, * v2;
-
-    v1 = current_controlador->create(nombre, numerador, denominador, k1, ret);
-    v2 = current_controlador->create(nombre, numeradorCopia, denominadorCopia, k2, ret->clone());
-
-    t1 = new Tripleta2();
-
-    t1->setSistema(v1);
-    t1->setTerNume(terminosNume);
-    t1->setTerDeno(terminosDeno);
-    t1->setTerK(terminosK);
-    t1->setFrecuenciasFeasible(tripleta->getFrecuenciasFeasible());
-    t1->setRecorteActivado(tripleta->isRecorteActivado());
-    t1->setEtapas(tripleta->getEtapas());
-
-
-    t2 = new Tripleta2();
-
-    t2->setSistema(v2);
-    t2->setTerNume(terminosCopiaNume);
-    t2->setTerDeno(terminosCopiaDeno);
-    t2->setTerK(terminosCopiaK);
-    t2->setRecorteActivado(tripleta->isRecorteActivado());
-    t2->setEtapas(tripleta->getEtapas());
-
-
-    QHash <qreal, qreal> * hash = tripleta->getFrecuenciasFeasible();
-
-    if (hash != nullptr) {
-        t2->setFrecuenciasFeasible(new QHash <qreal, qreal> (*(hash)));
-    } else {
-        t2->setFrecuenciasFeasible(new QHash <qreal, qreal> ());
-    }
-
-    struct FC::return_bisection2 retur;
-
-    retur.t1 = t1;
-    retur.t2 = t2;
-    retur.descartado = false;
-
-    tripleta->noBorrar2();
-    delete tripleta;
+    destroyNode(node);
 
     return retur;
 }
 
 
-inline FC::return_bisection2 AlgorithmMcThesis::biseccionFas(Tripleta2 * tripleta) {
+//The parameter whose Nichols term box at the main frequency contributes
+//most by the requested measure (0 = area, 1 = magnitude, 2 = phase).
+//The gain has no phase component, so measure 2 skips it and measures 0/1
+//use its magnitude width (its phase width is zero).
+inline qint32 AlgorithmMcThesis::widestByMeasure(Tripleta2 * node, qint32 mainFrequency, int measure)
+{
+    LtiSystem * box = node->getSistema();
+    const qreal w = omega->at(mainFrequency);
+    const cxsc::complex p0 = plantas_nominales->at(mainFrequency);
 
-    QVector <cinterval> * terminosNume = tripleta->getTerNume();
-    QVector <cinterval> * terminosDeno = tripleta->getTerDeno();
-    cinterval terminosK = tripleta->getTerK();
+    qint32 best = -1;
+    qreal bestValue = -1.0;
 
-    QVector <cinterval> * terminosCopiaNume = new QVector <cinterval> ();
-    QVector <cinterval> * terminosCopiaDeno = new QVector <cinterval> ();
-    cinterval terminosCopiaK;
+    const auto consider = [&](qint32 parameter, const cinterval & term, bool gainTerm) {
+        qreal value;
 
-    LtiSystem * current_controlador = tripleta->getSistema();
-
-    QVector <Parameter *> * numerador = current_controlador->numerator();
-    QVector <Parameter *> * denominador = current_controlador->denominator();
-
-    Parameter * ret = current_controlador->delay();
-
-    Parameter * k = current_controlador->gain();
-
-    QVector <Parameter *> * numeradorCopia = new QVector <Parameter *> ();
-    QVector <Parameter *> * denominadorCopia = new QVector <Parameter *> ();
-
-    QString nombre = current_controlador->name();
-
-    qint32 posicion = -1;
-    qreal mejorFas = -1;
-
-    qint32 contador = 0;
-
-    bool entra = false;
-
-
-    for (qint32 i = 0; i < numerador->size(); i++){
-
-        numeradorCopia->append(numerador->at(i)->clone());
-
-        if (numerador->at(i)->isUncertain()) {
-
-            cinterval t = terminosNume->at(i);
-            terminosCopiaNume->append(t);
-            qreal fase = _double(diam(Re(t)));
-
-            if (fase > mejorFas) {
-                mejorFas = fase;
-                posicion = contador;
-
-                entra = true;
+        if (measure == 2) {
+            if (gainTerm) {
+                return;
             }
+            value = _double(diam(Im(term)));
+        } else if (measure == 1 || gainTerm) {
+            value = _double(diam(Re(term)));
+        } else {
+            value = _double(diam(Re(term))) * _double(diam(Im(term)));
         }
 
-        contador++;
-    }
-
-    for (qint32 i = 0; i < denominador->size(); i++){
-
-        denominadorCopia->append(denominador->at(i)->clone());
-
-        if (denominador->at(i)->isUncertain()) {
-            cinterval t = terminosDeno->at(i);
-            terminosCopiaDeno->append(t);
-
-            qreal fase = _double(diam(Re(t)));
-
-            if (fase > mejorFas) {
-                mejorFas = fase;
-                posicion = contador;
-
-                entra = true;
-            }
+        if (value > bestValue) {
+            bestValue = value;
+            best = parameter;
         }
+    };
 
-        contador++;
+    if (box->gain()->isUncertain()) {
+        consider(0, conversion->gainTermBox(box->gain(), p0), true);
     }
 
-    if (!entra) {
-        return biseccionArea(tripleta);
+    for (qint32 j = 0; j < box->numerator()->size(); ++j) {
+        if (box->numerator()->at(j)->isUncertain()) {
+            consider(j + 1, conversion->numeratorTermBox(box->numerator()->at(j), w, p0), false);
+        }
     }
 
-    if (posicion < numerador->size()) {
-
-        Parameter * variable = numerador->at(posicion);
-
-        qreal punto_medio = variable->range().x() + (variable->range().y() - variable->range().x()) / 2;
-
-        Parameter * var1 = new Parameter("", QPointF(variable->range().x(), punto_medio), variable->range().x());
-        Parameter * var2 =  new Parameter("", QPointF(punto_medio, variable->range().y()), punto_medio);
-
-        terminosNume->replace(posicion, conversion->numeratorTermBox(var1, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
-        terminosCopiaNume->replace(posicion, conversion->numeratorTermBox(var2, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
-
-
-        numerador->replace(posicion, var1);
-        numeradorCopia->replace(posicion, var2);
-
-
-        delete variable;
-
-    } else {
-
-        qint32 pos = posicion - numerador->size();
-
-        Parameter * variable = denominador->at(pos);
-
-        qreal punto_medio = variable->range().x() + (variable->range().y() - variable->range().x()) / 2;
-
-        Parameter * var1 = new Parameter("", QPointF(variable->range().x(), punto_medio), variable->range().x());
-        Parameter * var2 =  new Parameter("", QPointF(punto_medio, variable->range().y()), punto_medio);
-
-        terminosDeno->replace(pos, conversion->denominatorTermBox(var1, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
-        terminosCopiaDeno->replace(pos, conversion->denominatorTermBox(var2, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
-
-
-        denominador->replace(pos, var1);
-        denominadorCopia->replace(pos, var2);
-
-        delete variable;
-
+    for (qint32 j = 0; j < box->denominator()->size(); ++j) {
+        if (box->denominator()->at(j)->isUncertain()) {
+            consider(j + 1 + box->numerator()->size(),
+                     conversion->denominatorTermBox(box->denominator()->at(j), w, p0), false);
+        }
     }
 
-    Tripleta2 * t1, * t2;
-    LtiSystem * v1, * v2;
-
-    v1 = current_controlador->create(nombre, numerador, denominador, k, ret);
-    v2 = current_controlador->create(nombre, numeradorCopia, denominadorCopia, k->clone(), ret->clone());
-
-    t1 = new Tripleta2();
-
-    t1->setSistema(v1);
-    t1->setTerNume(terminosNume);
-    t1->setTerDeno(terminosDeno);
-    t1->setTerK(terminosK);
-    t1->setFrecuenciasFeasible(tripleta->getFrecuenciasFeasible());
-    t1->setRecorteActivado(tripleta->isRecorteActivado());
-    t1->setEtapas(tripleta->getEtapas());
-
-
-    t2 = new Tripleta2();
-
-    t2->setSistema(v2);
-    t2->setTerNume(terminosCopiaNume);
-    t2->setTerDeno(terminosCopiaDeno);
-    t2->setTerK(terminosCopiaK);
-    t2->setRecorteActivado(tripleta->isRecorteActivado());
-    t2->setEtapas(tripleta->getEtapas());
-
-
-    QHash <qreal, qreal> * hash = tripleta->getFrecuenciasFeasible();
-
-    if (hash != nullptr) {
-        t2->setFrecuenciasFeasible(new QHash <qreal, qreal> (*(hash)));
-    } else {
-        t2->setFrecuenciasFeasible(new QHash <qreal, qreal> ());
-    }
-
-    struct FC::return_bisection2 retur;
-
-    retur.t1 = t1;
-    retur.t2 = t2;
-    retur.descartado = false;
-
-    tripleta->noBorrar2();
-    delete tripleta;
-
-    return retur;
+    return best;
 }
 
-inline FC::return_bisection2 AlgorithmMcThesis::biseccionArbol(Tripleta2 * tripleta) {
 
-    LtiSystem * current_controlador = tripleta->getSistema();
+//Step G (thesis 5.4.6): the bisection strategy follows the node's stage.
+inline FC::return_bisection2 AlgorithmMcThesis::bisect(Tripleta2 * node, const NodeAnalysis & analysis,
+                                                       const QVector<FeasibleThreshold> & thresholds)
+{
+    //Tree bisection (thesis 5.3): split at the stored feasible threshold
+    //covering the largest fraction of its parameter's current range, and
+    //mark the feasible child for that frequency.
+    if (strategies.treeBisection &&
+            node->getEtapas() == Etapas::INTERMEDIA && !thresholds.isEmpty()) {
 
-    QVector <cinterval> * terminosNume = tripleta->getTerNume();
-    QVector <cinterval> * terminosDeno = tripleta->getTerDeno();
-    cinterval terminosK = tripleta->getTerK();
+        const FeasibleThreshold * bestThreshold = nullptr;
+        qreal bestFraction = 0.0;
 
-    QVector <cinterval> * terminosCopiaNume = new QVector <cinterval> ();
-    QVector <cinterval> * terminosCopiaDeno = new QVector <cinterval> ();
-    cinterval terminosCopiaK = tripleta->getTerK();
+        foreach (const FeasibleThreshold & t, thresholds) {
+            const QPointF range = parameterRange(node->getSistema(), t.parameter);
 
-    qint32 mejorPosicion = -1;
-    qreal mejorPorcentaje = -1;
-    bool izSup = false, mag = false, entra = false;
-
-    QVector <Parameter *> * numerador = current_controlador->numerator();
-    QVector <Parameter *> * denominador = current_controlador->denominator();
-
-    ListaOrdenada * kSup = tripleta->getKSup();
-    ListaOrdenada * kInf = tripleta->getKInf();
-
-    QVector <ListaOrdenada *> * numeradorInfMag = tripleta->getNumeradorInfMag();
-    QVector <ListaOrdenada *> * numeradorSupMag = tripleta->getNumeradorSupMag();
-    QVector <ListaOrdenada *> * numeradorInfFas = tripleta->getNumeradorInfFas();
-    QVector <ListaOrdenada *> * numeradorSupFas = tripleta->getNumeradorSupFas();
-
-    QVector <ListaOrdenada *> * denominadorInfMag = tripleta->getDenominadorInfMag();
-    QVector <ListaOrdenada *> * denominadorSupMag = tripleta->getDenominadorSupMag();
-    QVector <ListaOrdenada *> * denominadorInfFas = tripleta->getDenominadorInfFas();
-    QVector <ListaOrdenada *> * denominadorSupFas = tripleta->getDenominadorSupFas();
-
-    QVector <Parameter *> * numeradorCopia = new QVector <Parameter *> ();
-    QVector <Parameter *> * denominadorCopia = new QVector <Parameter *> ();
-
-    qint32 contador = -1;
-
-    DatosFeasible * dato;
-
-    Parameter * k = current_controlador->gain();
-    Parameter * kCopia = k->clone();
-
-#ifdef mensajesBi
-    QVector <QString> * numeS = new QVector<QString> ();
-    QVector <QString> * denoS = new QVector<QString> ();
-    QString kS = QString::fromStdString("[" + std::to_string(k->range().x()) + ". " + std::to_string(k->range().y()) + "]");
-#endif
-
-    if (!kSup->esVacia()){
-
-        dato = static_cast<DatosFeasible *>( kSup->recuperarUltimo());
-        mejorPorcentaje = dato->getPorcentaje();
-        mejorPosicion = contador;
-
-        mag = true;
-        izSup = true;
-
-        entra = true;
-    } else if (!kInf->esVacia()) {
-
-        dato = static_cast<DatosFeasible *>( kInf->recuperarUltimo());
-        mejorPorcentaje = dato->getPorcentaje();
-        mejorPosicion = contador;
-
-        mag = true;
-        izSup = false;
-
-        entra = true;
-    }
-
-    contador++;
-
-    for (qint32 i = 0; i < numeradorSupMag->size(); i++){
-
-        numeradorCopia->append(numerador->at(i)->clone());
-
-#ifdef mensajesBi
-        numeS->append(QString::fromStdString("[" + std::to_string(numerador->at(i)->range().x()) + ". " + std::to_string(numerador->at(i)->range().y()) + "]"));
-#endif
-
-        if (numerador->at(i)->isUncertain()) {
-            terminosCopiaNume->append(terminosNume->at(i));
-
-            if (!numeradorSupMag->at(i)->esVacia()) {
-
-                dato = static_cast<DatosFeasible *>( numeradorSupMag->at(i)->recuperarUltimo());
-
-                qreal por = dato->getPorcentaje();
-
-                if (por > mejorPorcentaje) {
-                    mejorPorcentaje = por;
-                    mejorPosicion = contador;
-
-                    mag = true;
-                    izSup = true;
-
-                    entra = true;
-                }
-            } else if (!numeradorInfMag->at(i)->esVacia()) {
-                dato = static_cast<DatosFeasible *>( numeradorInfMag->at(i)->recuperarUltimo());
-
-                qreal por = dato->getPorcentaje();
-
-                if (por > mejorPorcentaje) {
-                    mejorPorcentaje = por;
-                    mejorPosicion = contador;
-
-                    mag = true;
-                    izSup = false;
-
-                    entra = true;
-                }
+            if (t.threshold <= range.x() || t.threshold >= range.y()) {
+                continue;   //the range moved since the threshold was recorded
             }
 
-            if (!numeradorSupFas->at(i)->esVacia()) {
-                dato = static_cast<DatosFeasible *>( numeradorSupFas->at(i)->recuperarUltimo());
+            const qreal fraction = t.upperSide
+                    ? (range.y() - t.threshold) / (range.y() - range.x())
+                    : (t.threshold - range.x()) / (range.y() - range.x());
 
-                qreal por = dato->getPorcentaje();
-
-                if (por > mejorPorcentaje) {
-                    mejorPorcentaje = por;
-                    mejorPosicion = contador;
-
-                    mag = false;
-                    izSup = true;
-
-                    entra = true;
-                }
-            } else  if (!numeradorInfFas->at(i)->esVacia()) {
-                dato = static_cast<DatosFeasible *>( numeradorInfFas->at(i)->recuperarUltimo());
-
-                qreal por = dato->getPorcentaje();
-
-                if (por > mejorPorcentaje) {
-                    mejorPorcentaje = por;
-                    mejorPosicion = contador;
-
-                    mag = false;
-                    izSup = false;
-
-                    entra = true;
-                }
+            if (fraction > bestFraction) {
+                bestFraction = fraction;
+                bestThreshold = &t;
             }
         }
 
-        contador++;
-    }
+        if (bestThreshold != nullptr) {
+            const qint32 freq = bestThreshold->freqIndex;
+            FC::return_bisection2 retur = bisectAt(node, bestThreshold->parameter,
+                                                   bestThreshold->threshold);
+            Tripleta2 * feasibleChild = bestThreshold->upperSide ? retur.t2 : retur.t1;
 
-    for (qint32 i = 0; i < denominadorInfMag->size(); i++){
-
-        denominadorCopia->append(denominador->at(i)->clone());
-
-#ifdef mensajesBi
-        denoS->append(QString::fromStdString("[" + std::to_string(denominador->at(i)->range().x()) + ". " + std::to_string(denominador->at(i)->range().y()) + "]"));
-#endif
-
-        if (denominador->at(i)->isUncertain()) {
-            terminosCopiaDeno->append(terminosDeno->at(i));
-
-            if (!denominadorSupMag->at(i)->esVacia()) {
-
-                dato = static_cast<DatosFeasible *>( denominadorSupMag->at(i)->recuperarUltimo());
-
-                qreal por = dato->getPorcentaje();
-
-                if (por > mejorPorcentaje) {
-                    mejorPorcentaje = por;
-                    mejorPosicion = contador;
-
-                    mag = true;
-                    izSup = true;
-
-                    entra = true;
-                }
-            } else if (!denominadorInfMag->at(i)->esVacia()) {
-                dato = static_cast<DatosFeasible *>( denominadorInfMag->at(i)->recuperarUltimo());
-
-                qreal por = dato->getPorcentaje();
-
-                if (por > mejorPorcentaje) {
-                    mejorPorcentaje = por;
-                    mejorPosicion = contador;
-
-                    mag = true;
-                    izSup = false;
-
-                    entra = true;
-                }
+            //Defensive verification of the mark with the real detection:
+            //an unverified mark would silently skip this frequency's
+            //feasibility test in the whole subtree.
+            if (boxIsFeasibleAt(feasibleChild->getSistema(), freq)) {
+                feasibleChild->addFrecuenciaFeasible(freq, omega->at(freq));
             }
 
-            if (!denominadorSupFas->at(i)->esVacia()) {
-                dato = static_cast<DatosFeasible *>( denominadorSupFas->at(i)->recuperarUltimo());
-
-                qreal por = dato->getPorcentaje();
-
-                if (por > mejorPorcentaje) {
-                    mejorPorcentaje = por;
-                    mejorPosicion = contador;
-
-                    mag = false;
-                    izSup = true;
-
-                    entra = true;
-                }
-            } else  if (!denominadorInfFas->at(i)->esVacia()) {
-                dato = static_cast<DatosFeasible *>( denominadorInfFas->at(i)->recuperarUltimo());
-
-                qreal por = dato->getPorcentaje();
-
-                if (por > mejorPorcentaje) {
-                    mejorPorcentaje = por;
-                    mejorPosicion = contador;
-
-                    mag = false;
-                    izSup = false;
-
-                    entra = true;
-                }
-            }
+            return retur;
         }
-
-        contador++;
     }
 
-    if (!entra) {
-        return biseccionArea(tripleta);
+    //Stage-driven measure: area in the initial stage (and as the general
+    //fallback), the wider of magnitude/phase in the final stage.
+    int measure = 0;
+
+    if (node->getEtapas() == Etapas::FINAL) {
+        const QPointF mag = analysis.boxMag.at(analysis.mainFrequency);
+        const QPointF fas = analysis.boxPhase.at(analysis.mainFrequency);
+        measure = (fas.y() - fas.x()) > (mag.y() - mag.x()) ? 2 : 1;
     }
 
-    QPointF guardarHash;
+    qint32 parameter = widestByMeasure(node, analysis.mainFrequency, measure);
 
-    if (mejorPosicion == -1) {
-
-        Parameter * variable = k;
-        Parameter * variable2 = kCopia;
-
-        qreal punto_corte;
-
-        if (izSup) {
-
-            dato = static_cast<DatosFeasible *>( kSup->recuperarUltimo() );
-
-            punto_corte =  dato->getIndex();
-
-            guardarHash.setX(dato->getPosFrecuencia());
-            guardarHash.setY(omega->at(dato->getPosFrecuencia()));
-
-        } else {
-            punto_corte =  kInf->recuperarUltimo()->getIndex();
-        }
-
-        Parameter * var1 = new Parameter("", QPointF(variable->range().x(), punto_corte), variable->range().x());
-        Parameter * var2 =  new Parameter("", QPointF(punto_corte, variable->range().y()), punto_corte);
-
-        k = var1;
-        kCopia = var2;
-
-
-#ifdef mensajes
-        std::cout << "Recorte K: [" +  std::to_string(variable->range().x()) + "," + std::to_string(punto_corte) + "] - ["
-                     +  std::to_string(punto_corte) + "," + std::to_string(variable->range().y()) + "]";
-
-        std::cout << "Nume: [" +  std::to_string(numerador->at(0)->range().x()) + "," + std::to_string(numerador->at(0)->range().y()) + "]";
-        std::cout << "Deno: [" +  std::to_string(denominador->at(0)->range().x()) + "," + std::to_string(denominador->at(0)->range().y()) + "]" << std::endl;
-#endif
-
-
-        terminosK = conversion->gainTermBox(var1, plantas_nominales->at(frecuenciaPrincipal));
-        terminosCopiaK = conversion->gainTermBox(var2, plantas_nominales->at(frecuenciaPrincipal));
-
-        delete variable;
-        delete variable2;
-
-    } else if (mejorPosicion < numeradorSupMag->size()) {
-
-        Parameter * variable = numerador->at(mejorPosicion);
-        Parameter * variable2 = numeradorCopia->at(mejorPosicion);
-
-        qreal punto_corte;
-
-        if (mag) {
-            if (izSup) {
-
-                dato = static_cast<DatosFeasible *>( numeradorSupMag->at(mejorPosicion)->recuperarUltimo() );
-
-                punto_corte =  dato->getIndex();
-
-                guardarHash.setX(dato->getPosFrecuencia());
-                guardarHash.setY(omega->at(dato->getPosFrecuencia()));
-            } else {
-
-                dato = static_cast<DatosFeasible *>( numeradorInfMag->at(mejorPosicion)->recuperarUltimo() );
-
-                punto_corte =  dato->getIndex();
-
-                guardarHash.setX(dato->getPosFrecuencia());
-                guardarHash.setY(omega->at(dato->getPosFrecuencia()));
-            }
-        } else {
-            if (izSup) {
-
-                dato = static_cast<DatosFeasible *>( numeradorSupFas->at(mejorPosicion)->recuperarUltimo() );
-
-                punto_corte =  dato->getIndex();
-
-                guardarHash.setX(dato->getPosFrecuencia());
-                guardarHash.setY(omega->at(dato->getPosFrecuencia()));
-            } else {
-
-                dato = static_cast<DatosFeasible *>( numeradorInfFas->at(mejorPosicion)->recuperarUltimo() );
-
-                punto_corte =  dato->getIndex();
-
-                guardarHash.setX(dato->getPosFrecuencia());
-                guardarHash.setY(omega->at(dato->getPosFrecuencia()));
-            }
-        }
-
-        Parameter * var1 = new Parameter("", QPointF(variable->range().x(), punto_corte), variable->range().x());
-        Parameter * var2 =  new Parameter("", QPointF(punto_corte, variable->range().y()), punto_corte);
-
-#ifdef mensajes
-        std::cout << "Recorte N: [" +  std::to_string(variable->range().x()) + ". " + std::to_string(punto_corte) + "] - ["
-                     +  std::to_string(punto_corte) + "," + std::to_string(variable->range().y()) + "]";
-
-        std::cout << "K: [" +  std::to_string(k->range().x()) + ". " + std::to_string(k->range().y()) + "]";
-        std::cout << "Deno: [" +  std::to_string(denominador->at(0)->range().x()) + ". " + std::to_string(denominador->at(0)->range().y()) + "]" << std::endl;
-#endif
-        numerador->replace(mejorPosicion, var1);
-        numeradorCopia->replace(mejorPosicion, var2);
-
-
-        terminosNume->replace(mejorPosicion, conversion->numeratorTermBox(var1, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
-        terminosCopiaNume->replace(mejorPosicion, conversion->numeratorTermBox(var2, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
-
-
-        delete variable;
-        delete variable2;
-    } else {
-
-        qint32 pos = mejorPosicion - numerador->size();
-
-        Parameter * variable = denominador->at(pos);
-        Parameter * variable2 = denominadorCopia->at(pos);
-
-        qreal punto_corte;
-
-        if (mag) {
-            if (izSup) {
-
-                dato = static_cast<DatosFeasible *>( denominadorSupMag->at(pos)->recuperarUltimo() );
-
-                punto_corte =  dato->getIndex();
-
-                guardarHash.setX(dato->getPosFrecuencia());
-                guardarHash.setY(omega->at(dato->getPosFrecuencia()));
-            } else {
-
-                dato = static_cast<DatosFeasible *>( denominadorInfMag->at(pos)->recuperarUltimo() );
-
-                punto_corte =  dato->getIndex();
-
-                guardarHash.setX(dato->getPosFrecuencia());
-                guardarHash.setY(omega->at(dato->getPosFrecuencia()));
-            }
-        } else {
-            if (izSup) {
-
-                dato = static_cast<DatosFeasible *>( denominadorSupFas->at(pos)->recuperarUltimo() );
-
-                punto_corte =  dato->getIndex();
-
-                guardarHash.setX(dato->getPosFrecuencia());
-                guardarHash.setY(omega->at(dato->getPosFrecuencia()));
-            } else {
-
-                dato = static_cast<DatosFeasible *>( denominadorInfFas->at(pos)->recuperarUltimo() );
-
-                punto_corte =  dato->getIndex();
-
-                guardarHash.setX(dato->getPosFrecuencia());
-                guardarHash.setY(omega->at(dato->getPosFrecuencia()));
-            }
-        }
-
-        Parameter * var1 = new Parameter("", QPointF(variable->range().x(), punto_corte), variable->range().x());
-        Parameter * var2 =  new Parameter("", QPointF(punto_corte, variable->range().y()), punto_corte);
-#ifdef mensajes
-        std::cout << "Recorte D: [" +  std::to_string(variable->range().x()) + ". " + std::to_string(punto_corte) + "] - ["
-                     +  std::to_string(punto_corte) + ". " + std::to_string(variable->range().y()) + "]";
-
-        std::cout << "K: [" +  std::to_string(k->range().x()) + "," + std::to_string(k->range().y()) + "]";
-        std::cout << "Nume: [" +  std::to_string(numerador->at(0)->range().x()) + ". " + std::to_string(numerador->at(0)->range().y()) + "]" << std::endl;
-#endif
-        denominador->replace(pos, var1);
-        denominadorCopia->replace(pos, var2);
-
-        terminosDeno->replace(pos, conversion->denominatorTermBox(var1, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
-        terminosCopiaDeno->replace(pos, conversion->denominatorTermBox(var2, omega->at(frecuenciaPrincipal), plantas_nominales->at(frecuenciaPrincipal)));
-
-
-        delete variable;
-        delete variable2;
+    if (parameter < 0) {
+        parameter = widestByMeasure(node, analysis.mainFrequency, 0);
     }
 
-    Tripleta2 * t1, * t2;
-    LtiSystem * v1, * v2;
+    const QPointF range = parameterRange(node->getSistema(), parameter);
 
-    Parameter * ret = current_controlador->delay();
-    QString nombre = current_controlador->name();
-
-    v1 = current_controlador->create(nombre, numerador, denominador, k, ret);
-    v2 = current_controlador->create(nombre, numeradorCopia, denominadorCopia, kCopia, ret->clone());
-
-    t1 = new Tripleta2();
-
-    t1->setSistema(v1);
-    t1->setTerNume(terminosNume);
-    t1->setTerDeno(terminosDeno);
-    t1->setTerK(terminosK);
-    t1->setFrecuenciasFeasible(tripleta->getFrecuenciasFeasible());
-    t1->setRecorteActivado(tripleta->isRecorteActivado());
-    t1->setEtapas(tripleta->getEtapas());
-
-
-    t2 = new Tripleta2();
-
-    t2->setSistema(v2);
-    t2->setTerNume(terminosCopiaNume);
-    t2->setTerDeno(terminosCopiaDeno);
-    t2->setTerK(terminosCopiaK);
-    t2->setRecorteActivado(tripleta->isRecorteActivado());
-    t2->setEtapas(tripleta->getEtapas());
-
-
-
-    QHash <qreal, qreal> * hash = tripleta->getFrecuenciasFeasible();
-
-    if (hash != nullptr) {
-        t2->setFrecuenciasFeasible(new QHash <qreal, qreal> (*(hash)));
-    } else {
-        t2->setFrecuenciasFeasible(new QHash <qreal, qreal> ());
-    }
-
-    t2->addFrecuenciaFeasible(guardarHash.x(), guardarHash.y());
-
-
-#ifdef mensajes
-    std::cout << "FFeasible 1: ";
-
-    if (t1->getFrecuenciasFeasible() == nullptr) {
-        std::cout << "null" << std::endl;
-    } else {
-
-        std::list<double> list = t1->getFrecuenciasFeasible()->values().toStdList();
-
-        for (auto const &i: list) {
-            std::cout << i << " ";
-        }
-
-        std::cout << std::endl;
-    }
-
-    std::cout << "FFeasible 2: ";
-
-    std::list<double> list = t2->getFrecuenciasFeasible()->values().toStdList();
-
-    for (auto const &i: list) {
-        std::cout << i << " ";
-    }
-
-    std::cout << std::endl;
-#endif
-
-    struct FC::return_bisection2 retur;
-
-    retur.t1 = t1;
-    retur.t2 = t2;
-    retur.descartado = false;
-
-    tripleta->noBorrar2();
-    delete tripleta;
-
-    return retur;
-
-}
-
-LtiSystem * AlgorithmMcThesis::getControlador()  {
-    return controlador_retorno;
+    return bisectAt(node, parameter, range.x() + (range.y() - range.x()) / 2.0);
 }
