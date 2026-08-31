@@ -1,40 +1,21 @@
 #include "contour2.h"
 
-using namespace std;
-using namespace tools;
-
 Contour2::Contour2(){
 
 }
 
-void Contour2::setDatos(tools::dBND *altura, QVector<QVector<qreal> *> *sabana, qreal omega, dBND *altura2){
+void Contour2::setDatos(qreal umbralDb, QVector<QVector<qreal> *> *sabana){
 
-    this->altura = altura;
+    this->umbralDb = umbralDb;
     this->sabana = sabana;
-    this->omega = omega;
-    this->altura2 = altura2;
-
-
-    /*if (altura->nombre == "seguimiento"){
-        for (qint32 i = 0; i < sabana->size(); i++){
-            for (qint32 j = 0; j < sabana->at(0)->size(); j++){
-                cout << sabana->at(i)->at(j) << " ";
-            }
-            cout << endl;
-        }
-
-        cout << "------------------------------------------------------------------------------------------------------------" << endl;
-    }
-
-    cout << "------------------------------------------------------------------------------------------------------------" << endl;*/
 }
 
-void Contour2::setDatos(dBND *altura, float *sabana, qreal omega, dBND *altura2){
-    this->altura = altura;
-    this->altura2 = altura2;
+#ifdef CUDA_AVAILABLE
+void Contour2::setDatos(qreal umbralDb, float *sabana){
+    this->umbralDb = umbralDb;
     this->sabanaCuda = sabana;
-    this->omega = omega;
 }
+#endif
 
 
 QVector <QVector <QPointF> *> * Contour2::getContour(qreal nPuntosFas, qreal nPuntosMag, qreal moverMag)
@@ -42,7 +23,7 @@ QVector <QVector <QPointF> *> * Contour2::getContour(qreal nPuntosFas, qreal nPu
 
     qint32 ancho = sabana->at(0)->size();
     qint32 alto = sabana->size();
-    qreal alt = getAltura();
+    qreal alt = umbralDb;
 
     qint32 tamFas = ancho - 1;
     qint32 tamMag = alto - 1;
@@ -126,12 +107,13 @@ QVector <QVector <QPointF> *> * Contour2::getContour(qreal nPuntosFas, qreal nPu
 }
 
 
+#ifdef CUDA_AVAILABLE
 QVector <QVector <QPointF> *> * Contour2::getContour(qreal nPuntosFas, qreal tamFas, qreal nPuntosMag,
                                                      qreal tamMag, qreal moverMag){
 
     qint32 ancho = tamFas;
     qint32 alto = tamMag;
-    qreal alt = getAltura();
+    qreal alt = umbralDb;
     tamFas--;
     tamMag--;
 
@@ -259,24 +241,4 @@ QVector <QVector <QPointF> *> * Contour2::getContour(qreal nPuntosFas, qreal tam
     return resultado;
 
 }
-
-qreal Contour2::getAltura(){
-
-    qreal a, b;
-
-    if (altura->nombre == "seguimiento"){
-
-        a = altura->getAltura(omega);
-        b = altura2->getAltura(omega);
-
-        //El corte de seguimiento es el spread T_U - T_L en dB (> 0), como
-        //calculan los otros tres consumidores y confirma el golden. Con el
-        //signo invertido el conjunto era el plano entero y el boundary
-        //degeneraba (cero trazas).
-        return  b - a;
-    }
-
-    a = altura->getAltura(omega);
-
-    return a;
-}
+#endif

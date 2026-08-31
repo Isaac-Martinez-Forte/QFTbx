@@ -15,7 +15,8 @@
 #include <QHash>
 
 #include "src/core/system/lti_system.h"
-#include "../Herramientas/tools.h"
+#include "src/core/specifications/specification.h"
+#include "../EstructurasDatos/dbnd.h"
 #include "contour2.h"
 #include "src/core/system/parameter.h"
 #include "../EstructurasDatos/datosbound.h"
@@ -95,11 +96,13 @@ public:
                          qint32 contador, qreal nPuntosFas, qreal nPuntosMag, qreal moverMag);
 
 
+#ifdef CUDA_AVAILABLE
     void calcularContour(qreal omega, QMap <QString, QVector <QVector <QPointF> * > *> * bound,
                                      std::vector <float *> * vecSabanasCuda,
                                      QMap <QString, QVector <QPoint> * > * metaBound,
                                      std::complex <qreal> p0, QVector <std::complex <qreal> > * p, qint32 contador,
                                      qreal nPuntosFas, qreal nPuntosMag, qreal moverMag);
+#endif
 
 
     /**
@@ -125,22 +128,24 @@ private:
 
     bool boundariesCreados;
 
-    QVector<tools::dBND *> * altura;
+    qftbx::SpecificationSet especificaciones;
 
     qreal unwrap(qreal previousAngle,qreal newAngle);
     qreal constrainAngle(qreal x);
     qreal angleConv(qreal angle);
     qreal angleDiff(qreal a,qreal b);
 
-    QVector<QVector<QPointF> *> *calcularContourVector(tools::dBND * altura, QVector<QVector<qreal> *> *sabana, qreal omega,
+    QVector<QVector<QPointF> *> *calcularContourVector(qreal umbralDb, QVector<QVector<qreal> *> *sabana,
                                                       QVector<QPoint> *metaBoun, std::complex<qreal> p0, QVector<std::complex<qreal> > *p,
                                                       qint32 i, qreal nPuntosFas, qreal nPuntosMag,
-                                                       qreal moverMag, tools::dBND *altura2 = NULL);
+                                                      qreal moverMag);
 
-    QVector<QVector<QPointF> *> *calcularContourVector(tools::dBND * altura, float * sabana, qreal omega,
+#ifdef CUDA_AVAILABLE
+    QVector<QVector<QPointF> *> *calcularContourVector(qreal umbralDb, float * sabana,
                                                       QVector<QPoint> *metaBoun, std::complex<qreal> p0, QVector<std::complex<qreal> > *p,
                                                       qint32 i, qreal nPuntosFas, qreal nPuntosMag,
-                                                       qreal moverMag, tools::dBND *altura2 = NULL);
+                                                      qreal moverMag);
+#endif
 
     void calcularBndOmega(qreal omega, LtiSystem * planta,
                                        QVector<std::complex <qreal> > * temp, QVector <qreal> * fases,

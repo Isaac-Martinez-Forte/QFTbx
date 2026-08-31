@@ -255,33 +255,28 @@ void WindowsGeneral::on_BBoun_clicked()
 
         this->setCursor(Qt::WaitCursor);
 
-        if (datosBoun->isContornoSelect()){
+        bool boundariesOk = false;
 
-            if (!controlador->calcularBoundaries(datosBoun->getDatosFas(),
-                                                 datosBoun->getPuntosFas(), datosBoun->getDatosMag(),
-                                                 datosBoun->getPuntosMag(), datosBoun->getInfinito(), true, datosBoun->getCUDA())){
-                this->setCursor(Qt::ArrowCursor);
+        try {
+            boundariesOk = controlador->calcularBoundaries(datosBoun->getDatosFas(),
+                                                           datosBoun->getPuntosFas(), datosBoun->getDatosMag(),
+                                                           datosBoun->getPuntosMag(), datosBoun->getInfinito(),
+                                                           datosBoun->isContornoSelect(), datosBoun->getCUDA());
+        } catch (const qftbx::Exception & e) {
+            this->setCursor(Qt::ArrowCursor);
+            QMessageBox::critical(this, tr("Calculo de Boundaries"), e.what());
+            return;
+        }
 
-                delete datosBoun;
-                delete viewBound;
-                delete viewBoundReun;
-                paso5 = false;
+        if (!boundariesOk){
+            this->setCursor(Qt::ArrowCursor);
 
-                return;
-            }
-        }else {
-            if (!controlador->calcularBoundaries(datosBoun->getDatosFas(),
-                                                 datosBoun->getPuntosFas(), datosBoun->getDatosMag(),
-                                                 datosBoun->getPuntosMag(), datosBoun->getInfinito(), false, datosBoun->getCUDA())){
-                this->setCursor(Qt::ArrowCursor);
+            delete datosBoun;
+            delete viewBound;
+            delete viewBoundReun;
+            paso5 = false;
 
-                delete datosBoun;
-                delete viewBound;
-                delete viewBoundReun;
-                paso5 = false;
-
-                return;
-            }
+            return;
         }
 
         this->setCursor(Qt::ArrowCursor);

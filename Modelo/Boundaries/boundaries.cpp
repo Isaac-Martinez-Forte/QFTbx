@@ -3,8 +3,12 @@
 #include <QElapsedTimer>
 #include <iostream>
 
+#include "../Herramientas/tools.h" //linspace de los ejes de la sabana
+
 using namespace std;
 using namespace tools;
+
+using qftbx::SpecificationType;
 
 
 #ifdef CUDA_AVAILABLE
@@ -25,7 +29,10 @@ void Boundaries::lanzarCalculo(QVector<qreal> *omega, LtiSystem *planta, QVector
                                qint32 puntosMag, qreal infinito, bool cuda){
 
 
-    this->altura = altura;
+    //El registro historico se valida al convertirlo: una especificacion en
+    //uso con altura <= 0 o banda invertida lanza qftbx::InvalidInput aqui,
+    //en la frontera, en vez de degenerar el corte en silencio.
+    especificaciones = toSpecificationSet(*altura);
     this->cuda = cuda;
 
     tamFas = puntosFas;
@@ -50,13 +57,22 @@ void Boundaries::lanzarCalculo(QVector<qreal> *omega, LtiSystem *planta, QVector
     boolRPE = new QVector <bool> ();
     boolEC = new QVector <bool> ();
 
+    //Como siempre, la banda de seguimiento la gobierna T_L (el limite
+    //inferior); T_U solo aporta la altura del corte.
     foreach(qreal o, *omega){
-        boolseguimiento->append(altura->at(0)->utilizado && altura->at(0)->frecinicio <= o && altura->at(0)->frecfinal >= o);
-        boolestabilidad->append(altura->at(2)->utilizado && altura->at(2)->frecinicio <= o && altura->at(2)->frecfinal >= o);
-        boolruido->append(altura->at(3)->utilizado && altura->at(3)->frecinicio <= o && altura->at(3)->frecfinal >= o);
-        boolRPS->append(altura->at(4)->utilizado && altura->at(4)->frecinicio <= o && altura->at(4)->frecfinal >= o);
-        boolRPE->append(altura->at(5)->utilizado && altura->at(5)->frecinicio <= o && altura->at(5)->frecfinal >= o);
-        boolEC->append(altura->at(6)->utilizado && altura->at(6)->frecinicio <= o && altura->at(6)->frecfinal >= o);
+        boolseguimiento->append(especificaciones.at(SpecificationType::TrackingLower).appliesAt(o));
+        boolestabilidad->append(especificaciones.at(SpecificationType::Stability).appliesAt(o));
+        boolruido->append(especificaciones.at(SpecificationType::SensorNoise).appliesAt(o));
+        boolRPS->append(especificaciones.at(SpecificationType::OutputDisturbance).appliesAt(o));
+        boolRPE->append(especificaciones.at(SpecificationType::InputDisturbance).appliesAt(o));
+        boolEC->append(especificaciones.at(SpecificationType::ControlEffort).appliesAt(o));
+    }
+
+    if (boolseguimiento->contains(true) &&
+            !especificaciones.at(SpecificationType::TrackingUpper).used()){
+        //El codigo historico desreferenciaba la planta nula de T_U.
+        throw qftbx::InvalidInput("The tracking boundary needs both tracking "
+                                  "specifications (T_L and T_U).");
     }
 
 
@@ -173,9 +189,8 @@ void Boundaries::calcularContour(qreal omega, QMap <QString, QVector <QVector <Q
         QVector <QPoint> * metaBoun = new QVector <QPoint> ();
 
         bound->insert("Seguimiento",
-                      calcularContourVector(altura->at(0), vecSabanas->at(1),
-                                            omega, metaBoun, p0, p, 1, nPuntosFas, nPuntosMag, moverMag,
-                                            altura->at(1)));
+                      calcularContourVector(especificaciones.trackingSpreadDb(omega), vecSabanas->at(1),
+                                            metaBoun, p0, p, 1, nPuntosFas, nPuntosMag, moverMag));
 
         metaBound->insert("Seguimiento", metaBoun);
     }
@@ -186,8 +201,8 @@ void Boundaries::calcularContour(qreal omega, QMap <QString, QVector <QVector <Q
         QVector <QPoint> * metaBoun = new QVector <QPoint> ();
 
         bound->insert("Estabilidad",
-                      calcularContourVector(altura->at(2), vecSabanas->at(0),
-                                            omega, metaBoun, p0, p, 0, nPuntosFas, nPuntosMag, moverMag));
+                      calcularContourVector(especificaciones.at(SpecificationType::Stability).boundDb(omega), vecSabanas->at(0),
+                                            metaBoun, p0, p, 0, nPuntosFas, nPuntosMag, moverMag));
 
         metaBound->insert("Estabilidad", metaBoun);
     }
@@ -197,8 +212,8 @@ void Boundaries::calcularContour(qreal omega, QMap <QString, QVector <QVector <Q
 
         QVector <QPoint> * metaBoun = new QVector <QPoint> ();
         bound->insert("Ruido",
-                      calcularContourVector(altura->at(3), vecSabanas->at(0),
-                                            omega, metaBoun, p0, p, 0, nPuntosFas, nPuntosMag, moverMag));
+                      calcularContourVector(especificaciones.at(SpecificationType::SensorNoise).boundDb(omega), vecSabanas->at(0),
+                                            metaBoun, p0, p, 0, nPuntosFas, nPuntosMag, moverMag));
 
         metaBound->insert("Ruido", metaBoun);
     }
@@ -209,8 +224,8 @@ void Boundaries::calcularContour(qreal omega, QMap <QString, QVector <QVector <Q
         QVector <QPoint> * metaBoun = new QVector <QPoint> ();
 
         bound->insert("RPS",
-                      calcularContourVector(altura->at(4), vecSabanas->at(2),
-                                            omega, metaBoun, p0, p, 2, nPuntosFas, nPuntosMag, moverMag));
+                      calcularContourVector(especificaciones.at(SpecificationType::OutputDisturbance).boundDb(omega), vecSabanas->at(2),
+                                            metaBoun, p0, p, 2, nPuntosFas, nPuntosMag, moverMag));
 
         metaBound->insert("RPS", metaBoun);
     }
@@ -221,8 +236,8 @@ void Boundaries::calcularContour(qreal omega, QMap <QString, QVector <QVector <Q
         QVector <QPoint> * metaBoun = new QVector <QPoint> ();
 
         bound->insert("RPE",
-                      calcularContourVector(altura->at(5), vecSabanas->at(3),
-                                            omega, metaBoun, p0, p, 3, nPuntosFas, nPuntosMag, moverMag));
+                      calcularContourVector(especificaciones.at(SpecificationType::InputDisturbance).boundDb(omega), vecSabanas->at(3),
+                                            metaBoun, p0, p, 3, nPuntosFas, nPuntosMag, moverMag));
 
         metaBound->insert("RPE", metaBoun);
     }
@@ -233,13 +248,14 @@ void Boundaries::calcularContour(qreal omega, QMap <QString, QVector <QVector <Q
         QVector <QPoint> * metaBoun = new QVector <QPoint> ();
 
         bound->insert("EC",
-                      calcularContourVector(altura->at(6), vecSabanas->at(4),
-                                            omega, metaBoun, p0, p, 4, nPuntosFas, nPuntosMag, moverMag));
+                      calcularContourVector(especificaciones.at(SpecificationType::ControlEffort).boundDb(omega), vecSabanas->at(4),
+                                            metaBoun, p0, p, 4, nPuntosFas, nPuntosMag, moverMag));
 
         metaBound->insert("EC", metaBoun);
     }
 }
 
+#ifdef CUDA_AVAILABLE
 void Boundaries::calcularContour(qreal omega, QMap <QString, QVector <QVector <QPointF> * > *> * bound,
                                  std::vector <float *> * vecSabanasCuda,
                                  QMap <QString, QVector <QPoint> * > * metaBound,
@@ -252,9 +268,8 @@ void Boundaries::calcularContour(qreal omega, QMap <QString, QVector <QVector <Q
         QVector <QPoint> * metaBoun = new QVector <QPoint> ();
 
         bound->insert("Seguimiento",
-                      calcularContourVector(altura->at(0), vecSabanasCuda->at(1),
-                                            omega, metaBoun, p0, p, 1, nPuntosFas, nPuntosMag, moverMag,
-                                            altura->at(1)));
+                      calcularContourVector(especificaciones.trackingSpreadDb(omega), vecSabanasCuda->at(1),
+                                            metaBoun, p0, p, 1, nPuntosFas, nPuntosMag, moverMag));
 
         metaBound->insert("Seguimiento", metaBoun);
     }
@@ -265,8 +280,8 @@ void Boundaries::calcularContour(qreal omega, QMap <QString, QVector <QVector <Q
         QVector <QPoint> * metaBoun = new QVector <QPoint> ();
 
         bound->insert("Estabilidad",
-                      calcularContourVector(altura->at(2), vecSabanasCuda->at(0),
-                                            omega, metaBoun, p0, p, 0, nPuntosFas, nPuntosMag, moverMag));
+                      calcularContourVector(especificaciones.at(SpecificationType::Stability).boundDb(omega), vecSabanasCuda->at(0),
+                                            metaBoun, p0, p, 0, nPuntosFas, nPuntosMag, moverMag));
 
         metaBound->insert("Estabilidad", metaBoun);
     }
@@ -277,8 +292,8 @@ void Boundaries::calcularContour(qreal omega, QMap <QString, QVector <QVector <Q
         QVector <QPoint> * metaBoun = new QVector <QPoint> ();
 
         bound->insert("Ruido",
-                      calcularContourVector(altura->at(3), vecSabanasCuda->at(0),
-                                            omega, metaBoun, p0, p, 0, nPuntosFas, nPuntosMag, moverMag));
+                      calcularContourVector(especificaciones.at(SpecificationType::SensorNoise).boundDb(omega), vecSabanasCuda->at(0),
+                                            metaBoun, p0, p, 0, nPuntosFas, nPuntosMag, moverMag));
 
         metaBound->insert("Ruido", metaBoun);
     }
@@ -289,8 +304,8 @@ void Boundaries::calcularContour(qreal omega, QMap <QString, QVector <QVector <Q
         QVector <QPoint> * metaBoun = new QVector <QPoint> ();
 
         bound->insert("RPS",
-                      calcularContourVector(altura->at(4), vecSabanasCuda->at(2),
-                                            omega, metaBoun, p0, p, 2, nPuntosFas, nPuntosMag, moverMag));
+                      calcularContourVector(especificaciones.at(SpecificationType::OutputDisturbance).boundDb(omega), vecSabanasCuda->at(2),
+                                            metaBoun, p0, p, 2, nPuntosFas, nPuntosMag, moverMag));
 
         metaBound->insert("RPS", metaBoun);
     }
@@ -301,8 +316,8 @@ void Boundaries::calcularContour(qreal omega, QMap <QString, QVector <QVector <Q
         QVector <QPoint> * metaBoun = new QVector <QPoint> ();
 
         bound->insert("RPE",
-                      calcularContourVector(altura->at(5), vecSabanasCuda->at(3),
-                                            omega, metaBoun, p0, p, 3, nPuntosFas, nPuntosMag, moverMag));
+                      calcularContourVector(especificaciones.at(SpecificationType::InputDisturbance).boundDb(omega), vecSabanasCuda->at(3),
+                                            metaBoun, p0, p, 3, nPuntosFas, nPuntosMag, moverMag));
 
         metaBound->insert("RPE", metaBoun);
     }
@@ -313,31 +328,30 @@ void Boundaries::calcularContour(qreal omega, QMap <QString, QVector <QVector <Q
         QVector <QPoint> * metaBoun = new QVector <QPoint> ();
 
         bound->insert("EC",
-                      calcularContourVector(altura->at(6), vecSabanasCuda->at(4),
-                                            omega, metaBoun, p0, p, 4, nPuntosFas, nPuntosMag, moverMag));
+                      calcularContourVector(especificaciones.at(SpecificationType::ControlEffort).boundDb(omega), vecSabanasCuda->at(4),
+                                            metaBoun, p0, p, 4, nPuntosFas, nPuntosMag, moverMag));
 
         metaBound->insert("EC", metaBoun);
     }
 
 }
+#endif
 
 QVector <QMap <QString, QVector <QPoint> * > *> * Boundaries::getMetaDatosBoundaries(){
     return metaDatosBoundaries;
 }
 
-QVector<QVector<QPointF> *> * Boundaries::calcularContourVector(tools::dBND * altura, QVector<QVector<qreal> *> *sabana, qreal omega,
+QVector<QVector<QPointF> *> * Boundaries::calcularContourVector(qreal umbralDb, QVector<QVector<qreal> *> *sabana,
                                                                 QVector<QPoint> *metaBoun, std::complex<qreal> p0, QVector<std::complex<qreal> > *p,
                                                                 qint32 i, qreal nPuntosFas, qreal nPuntosMag,
-                                                                qreal moverMag, tools::dBND * altura2)
+                                                                qreal moverMag)
 {
 
     QVector<QVector<QPointF> *> *  boun;
 
     Contour2 * contour = new Contour2();
 
-    contour->setDatos(altura, sabana, omega, altura2);
-
-    //boun = contour->getContour(nPuntosFas, tamFas, nPuntosMag, tamMag, moverMag);
+    contour->setDatos(umbralDb, sabana);
 
     boun = contour->getContour(nPuntosFas, nPuntosMag, moverMag);
 
@@ -347,13 +361,9 @@ QVector<QVector<QPointF> *> * Boundaries::calcularContourVector(tools::dBND * al
 #endif
     for (qint32 j = 0; j < boun->size(); j++) {
         QPoint punto;
-        //Guardamos la zona de inviolabilidad del boundarie
-
-        if (altura->nombre == "seguimiento"){
-            punto.setX(getZona(boun->at(j), p0, p, i,altura2->getAltura(omega) - altura->getAltura(omega)));
-        }else {
-            punto.setX(getZona(boun->at(j), p0, p, i, altura->getAltura(omega)));
-        }
+        //Guardamos la zona de inviolabilidad del boundarie: el umbral es el
+        //mismo corte en dB con el que se ha trazado el contorno.
+        punto.setX(getZona(boun->at(j), p0, p, i, umbralDb));
 
 #ifdef OpenMP_AVAILABLE
 #pragma omp critical
@@ -375,16 +385,16 @@ QVector<QVector<QPointF> *> * Boundaries::calcularContourVector(tools::dBND * al
 }
 
 
-QVector<QVector<QPointF> *> * Boundaries::calcularContourVector(dBND *altura, float *sabana, qreal omega,
+#ifdef CUDA_AVAILABLE
+QVector<QVector<QPointF> *> * Boundaries::calcularContourVector(qreal umbralDb, float *sabana,
                                                                 QVector<QPoint> *metaBoun, std::complex<qreal> p0,
                                                                 QVector<std::complex<qreal> > *p, qint32 i,
-                                                                qreal nPuntosFas, qreal nPuntosMag, qreal moverMag,
-                                                                dBND *altura2){
+                                                                qreal nPuntosFas, qreal nPuntosMag, qreal moverMag){
     QVector<QVector<QPointF> *> *  boun;
 
     Contour2 * contour = new Contour2();
 
-    contour->setDatos(altura, sabana, omega, altura2);
+    contour->setDatos(umbralDb, sabana);
 
     boun = contour->getContour(nPuntosFas,tamFas, nPuntosMag, tamMag, moverMag);
 
@@ -394,13 +404,9 @@ QVector<QVector<QPointF> *> * Boundaries::calcularContourVector(dBND *altura, fl
 #endif
     for (qint32 j = 0; j < boun->size(); j++) {
         QPoint punto;
-        //Guardamos la zona de inviolabilidad del boundarie
-
-        if (altura->nombre == "seguimiento"){
-            punto.setX(getZona(boun->at(j), p0, p, i, altura2->getAltura(omega) - altura->getAltura(omega)));
-        }else {
-            punto.setX(getZona(boun->at(j), p0, p, i, altura->getAltura(omega)));
-        }
+        //Guardamos la zona de inviolabilidad del boundarie: el umbral es el
+        //mismo corte en dB con el que se ha trazado el contorno.
+        punto.setX(getZona(boun->at(j), p0, p, i, umbralDb));
 
 #ifdef OpenMP_AVAILABLE
 #pragma omp critical
@@ -416,6 +422,7 @@ QVector<QVector<QPointF> *> * Boundaries::calcularContourVector(dBND *altura, fl
 
     return boun;
 }
+#endif
 
 qint32 Boundaries::getZona(QVector<QPointF> * vec, complex <qreal> p0, QVector <complex <qreal> > * p,
                            qint32 i, qreal altura){

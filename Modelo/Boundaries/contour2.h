@@ -4,7 +4,6 @@
 
 #include <QVector>
 #include <QPointF>
-#include "Modelo/Herramientas/tools.h"
 
 class Contour2
 {
@@ -14,26 +13,26 @@ public:
     QVector <QVector <QPointF> *> * getContour (qreal nPuntosFas, qreal nPuntosMag,
                                                 qreal moverMag);
 
+    void setDatos (qreal umbralDb, QVector <QVector <qreal> *> * sabana);
+
+#ifdef CUDA_AVAILABLE
     QVector <QVector <QPointF> *> * getContour (qreal nPuntosFas, qreal tamFas, qreal nPuntosMag, qreal tamMag,
                                                 qreal moverMag);
 
-    void setDatos (tools::dBND * altura, QVector <QVector <qreal> *> * sabana, qreal omega,
-                   tools::dBND * altura2 = NULL);
-
-    void setDatos (tools::dBND * altura, float * sabana, qreal omega,
-                   tools::dBND * altura2 = NULL);
+    void setDatos (qreal umbralDb, float * sabana);
+#endif
 
 
 private:
 
-    tools::dBND * altura;
-    tools::dBND * altura2;
+    //Altura del corte en dB, ya resuelta por el llamador (spread T_U - T_L
+    //para seguimiento, boundDb de la especificacion para el resto).
+    qreal umbralDb;
     QVector <QVector <qreal> *> * sabana;
+#ifdef CUDA_AVAILABLE
     float * sabanaCuda;
+#endif
     bool ** sabana_bool;
-    qreal omega;
-
-    qreal getAltura();
 
     // Get borders and Contours
     // Direction-number		Y
