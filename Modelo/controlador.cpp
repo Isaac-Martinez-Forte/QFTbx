@@ -259,8 +259,7 @@ LtiSystem * Controlador::getControlador(){
 }
 
 bool Controlador::calcularLoopShaping(qreal epsilon, tools::alg_loop_shaping seleccionado, QPointF rango, qreal nPuntos,
-                                      bool depuracion, qreal delta, qint32 inicializacion, bool hilos, bool bisection_avanced, bool deteccion_avanced,
-                                      bool a){
+                                      qint32 inicializacion){
 
     if (!paso7){
         loopShaping = new LoopShaping();
@@ -270,8 +269,8 @@ bool Controlador::calcularLoopShaping(qreal epsilon, tools::alg_loop_shaping sel
     paso7 = true;
 
     bool re = loopShaping->iniciar(plantadao->getPlanta(), controladordao->getControlador(), omegadao->getFrecuencias(), bounddao->getBound(),
-                           epsilon, seleccionado, depuracion, delta, templatedao->getContorno(), especdao->getEspecificaciones(),
-                                   inicializacion, hilos, bisection_avanced, deteccion_avanced, a);
+                           epsilon, seleccionado, templatedao->getContorno(), especdao->getEspecificaciones(),
+                                   inicializacion);
 
     if (re){
         loopshapingdao->setDatos(new DatosLoopShaping(loopShaping->getControlador(), rango, nPuntos));

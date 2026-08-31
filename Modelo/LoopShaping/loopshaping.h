@@ -16,10 +16,10 @@ public:
     LoopShaping();
     ~LoopShaping();
 
-    bool iniciar(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, BoundaryData * boundaries,
-                   qreal epsilon, alg_loop_shaping seleccionado, bool depuracion, qreal delta,
-                 QVector<QVector<std::complex<qreal> > *> *temp, QVector<dBND *> *espe, qint32 inicializacion,
-                 bool hilos, bool bisection_avanced, bool deteccion_avanced, bool a);
+    bool iniciar(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> * omega, BoundaryData * boundaries,
+                 qreal epsilon, alg_loop_shaping seleccionado,
+                 QVector<QVector<std::complex<qreal>> *> * temp, QVector<dBND *> * espe,
+                 qint32 inicializacion);
 
     LtiSystem * getControlador();
 

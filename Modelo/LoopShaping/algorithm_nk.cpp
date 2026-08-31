@@ -21,16 +21,13 @@ AlgorithmNk::~AlgorithmNk()
 
 
 void AlgorithmNk::set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> * omega, BoundaryData *boundaries,
-                                     qreal epsilon, QVector<QVector<QVector<QPointF> *> *> *reunBounHash,
-                                     qreal delta, qint32 inicializacion){
+                                     qreal epsilon, qint32 inicializacion){
 
     this->planta = planta;
     this->controlador = controlador->clone();
     this->omega = omega;
     this->boundaries = boundaries;
     this->epsilon = epsilon;
-    this->reunBounHash = reunBounHash;
-    this->delta = delta;
     this->ini = (tipoInicializacion) inicializacion;
 
     hasUncertainZeros = false;

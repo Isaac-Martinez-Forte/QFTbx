@@ -48,11 +48,6 @@
  *   miss a certificate (never accepts a false one).
  * - The returned point must pass the nominal closed-loop stability
  *   criterion (NominalStabilityChecker), as reviewed for NT/NK.
- * - The paper's MC has no debug/threading machinery and no Nyquist-plane
- *   detection: the advanced-mode parameters of set_datos (threads, radii
- *   and centres of the stability circles, advanced bisection/detection)
- *   are accepted for interface compatibility and ignored; they belong to
- *   the thesis algorithms (algorithm_mc_thesis).
  */
 class AlgorithmMc1
 {
@@ -61,9 +56,7 @@ public:
     ~AlgorithmMc1();
 
     void set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> * omega, BoundaryData * boundaries,
-                   qreal epsilon, QVector<QVector<QVector<QPointF> *> *> * reunBounHash, bool depuracion,
-                   bool hilos, QVector<qreal> * radiosBoundariesMayor, QVector<qreal> * radiosBoundariesMenor,
-                   QVector<QPointF> * centros, bool biseccion_avanzada, bool deteccion_avanzada, bool a);
+                   qreal epsilon);
 
     bool init_algorithm();
 

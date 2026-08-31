@@ -237,54 +237,6 @@
     </rect>
    </property>
    <widget class="QWidget" name="vacia"/>
-   <widget class="QWidget" name="page_isaac">
-    <widget class="QLabel" name="label_8">
-     <property name="geometry">
-      <rect>
-       <x>20</x>
-       <y>20</y>
-       <width>71</width>
-       <height>18</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Options:</string>
-     </property>
-    </widget>
-    <widget class="QWidget" name="layoutWidget7">
-     <property name="geometry">
-      <rect>
-       <x>30</x>
-       <y>50</y>
-       <width>158</width>
-       <height>83</height>
-      </rect>
-     </property>
-     <layout class="QVBoxLayout" name="verticalLayout_6">
-      <item>
-       <widget class="QCheckBox" name="bisectionCheck">
-        <property name="text">
-         <string>Advanced bisection</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="acceleratedCheck">
-        <property name="text">
-         <string>Advanced acceleration</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="detectionCheck">
-        <property name="text">
-         <string>Advanced detection</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </widget>
    <widget class="QWidget" name="page_nand">
     <widget class="QWidget" name="layoutWidget6">
      <property name="geometry">
@@ -332,28 +284,7 @@
       <string>Initialisation type:</string>
      </property>
     </widget>
-    <widget class="QWidget" name="layoutWidget5">
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>10</y>
-       <width>111</width>
-       <height>34</height>
-      </rect>
-     </property>
-     <layout class="QHBoxLayout" name="horizontalLayout_5">
-      <item>
-       <widget class="QLabel" name="label_delta">
-        <property name="text">
-         <string>Delta:</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLineEdit" name="deltaEdit"/>
-      </item>
-     </layout>
-    </widget>
+    
    </widget>
   </widget>
  </widget>

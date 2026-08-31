@@ -39,15 +39,12 @@ AlgorithmMr::~AlgorithmMr()
 }
 
 void AlgorithmMr::set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> * omega, BoundaryData *boundaries,
-                                  qreal epsilon, QVector<QVector<QVector<QPointF> *> *> *reunBounHash, bool depuracion,
-                                  QVector<QVector<std::complex<qreal>> *> * temp, QVector<tools::dBND *> * espe){
+                                  qreal epsilon, QVector<QVector<std::complex<qreal>> *> * temp, QVector<tools::dBND *> * espe){
     this->planta = planta;
     this->controlador = controlador->clone();
     this->omega = omega;
     this->boundaries = boundaries;
     this->epsilon = epsilon;
-    this->reunBounHash = reunBounHash;
-    this->depuracion = depuracion;
     this->temp = temp;
     this->espe = espe;
 }

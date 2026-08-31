@@ -57,16 +57,14 @@ TEST_P(LoopShapingGolden, Planta1ResultIsPinned)
 
     if (!golden.solutionExists) {
         EXPECT_THROW(controller.calcularLoopShaping(
-                         0.5, golden.algorithm, QPointF(1e-9, 10.0), 100,
-                         false, 10.0, 0, false, false, false, false),
+                         0.5, golden.algorithm, QPointF(1e-9, 10.0), 100),
                      qftbx::InvalidInput)
             << golden.name;
         return;
     }
 
     const bool ok = controller.calcularLoopShaping(
-        0.5, golden.algorithm, QPointF(1e-9, 10.0), 100,
-        false, 10.0, 0, false, false, false, false);
+        0.5, golden.algorithm, QPointF(1e-9, 10.0), 100);
 
     ASSERT_TRUE(ok) << golden.name;
 

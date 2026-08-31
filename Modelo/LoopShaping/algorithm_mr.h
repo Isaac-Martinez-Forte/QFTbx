@@ -54,8 +54,7 @@ public:
     ~AlgorithmMr();
 
     void set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> * omega, BoundaryData * boundaries,
-                   qreal epsilon, QVector<QVector<QVector<QPointF> *> *> * reunBounHash, bool depuracion,
-                   QVector<QVector<std::complex<qreal>> *> * temp, QVector<tools::dBND *> * espe);
+                   qreal epsilon, QVector<QVector<std::complex<qreal>> *> * temp, QVector<tools::dBND *> * espe);
 
     bool init_algorithm();
 
@@ -81,7 +80,6 @@ private:
     QVector<qreal> * omega = nullptr;
     BoundaryData * boundaries = nullptr;
     qreal epsilon = 0;
-    QVector<QVector<QVector<QPointF> *> *> * reunBounHash = nullptr;
     QVector<QVector<std::complex<qreal>> *> * temp = nullptr;
     QVector<tools::dBND *> * espe = nullptr;
 
@@ -101,7 +99,6 @@ private:
 
     LtiSystem * controlador_retorno = nullptr;
 
-    bool depuracion = false;
 };
 
 #endif // ALGORITHM_MR_H

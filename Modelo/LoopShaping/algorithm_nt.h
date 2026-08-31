@@ -28,7 +28,7 @@ public:
     ~AlgorithmNt();
 
     void set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, BoundaryData * boundaries,
-                    qreal epsilon, QVector<QVector<QVector<QPointF> *> *> * reunBounHash);
+                    qreal epsilon);
 
     bool init_algorithm();
 
@@ -53,7 +53,6 @@ private:
     LtiSystem * controlador_retorno;
     qreal minimo_boundaries;
 
-    QVector<QVector<QVector<QPointF> *> *> * reunBounHash;
 
     QPointF interseccion (QPointF uno, QPointF dos);
 

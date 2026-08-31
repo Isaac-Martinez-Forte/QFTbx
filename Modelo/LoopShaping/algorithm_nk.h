@@ -45,8 +45,7 @@ public:
     ~AlgorithmNk();
 
     void set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, BoundaryData * boundaries,
-                   qreal epsilon, QVector<QVector<QVector<QPointF> *> *> * reunBounHash,
-                   qreal delta, qint32 inicializacion);
+                   qreal epsilon, qint32 inicializacion);
 
     bool init_algorithm();
 
@@ -75,7 +74,6 @@ private:
     QVector<qreal> * omega = nullptr;
     BoundaryData * boundaries = nullptr;
     qreal epsilon = 0;
-    QVector<QVector<QVector<QPointF> *> *> * reunBounHash = nullptr;
 
     NaturalIntervalExtension * conversion = nullptr;
     DeteccionViolacionBoundaries * deteccion = nullptr;
@@ -97,7 +95,6 @@ private:
 
     //Local search configuration from the GUI: coordinate step and
     //starting-point strategy.
-    qreal delta = 0;
     tipoInicializacion ini = centro;
 
     bool hasUncertainZeros = false;

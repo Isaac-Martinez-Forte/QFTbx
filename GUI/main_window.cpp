@@ -403,10 +403,7 @@ void MainWindow::on_loopButton_clicked()
 
         try {
             re = controller->calcularLoopShaping(loopShapingDialog->epsilonValue(), loopShapingDialog->algorithmValue(), loopShapingDialog->range(),
-                                                  loopShapingDialog->pointCountValue(), loopShapingDialog->debugValue(),
-                                                  loopShapingDialog->deltaValue(), loopShapingDialog->initialisationValue(),
-                                                  loopShapingDialog->threadsValue(), loopShapingDialog->bisectionValue(),
-                                                  loopShapingDialog->detectionValue(), loopShapingDialog->acceleratedValue());
+                                                  loopShapingDialog->pointCountValue(), loopShapingDialog->initialisationValue());
         } catch (const qftbx::Exception & e) {
             QMessageBox::critical(this, tr("Loop Shaping"), e.what());
             delete loopShapingDialog;

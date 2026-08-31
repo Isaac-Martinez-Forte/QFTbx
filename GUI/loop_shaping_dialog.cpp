@@ -18,16 +18,7 @@ LoopShapingDialog::LoopShapingDialog(QWidget *parent) :
     ui->endEdit->setText("10^1");
     ui->pointCountEdit->setText("100");
 
-    ui->deltaEdit->setText("10");
-
-    //ui->bisectionCheck->setCheckState(Qt::Checked);
-
-#ifndef DEBUG
-   // ui->debugCheck->setVisible(false);
-#endif
-
     linLogSpace = false;
-    debugCheck = false;
 
     todoCorrecto = false;
 }
@@ -117,18 +108,6 @@ void LoopShapingDialog::on_okButton_clicked()
             initialisation = 0;
         }
 
-        //Evaluate delta:
-        p.SetExpr(ui->deltaEdit->text().toStdString());
-
-        try {
-            deltaEdit = p.Eval().GetFloat();
-            ui->deltaEdit->setStyleSheet("background : white");
-        } catch (mup::ParserError &e){
-            tools::errorMessage(tr("Invalid deltaEdit expression."), tr("Loop Shaping"));
-            ui->deltaEdit->setStyleSheet("background : red");
-            return;
-        }
-
     } else if (ui->mrRadio->isChecked()){
         alg = tools::mr;
     }else if (ui->mc1Radio->isChecked()){
@@ -143,23 +122,9 @@ void LoopShapingDialog::on_okButton_clicked()
     //checked.
     linLogSpace = ui->linspaceRadio->isChecked();
 
-    //if (ui->debugCheck->isChecked()){
-     //   debugCheck = true;
-    //}
-
-    /*if (ui->threadsCheck->isChecked()){
-        threadsCheck = true;
-    } else {*/
-        threadsCheck = false;
-    //}
-
     todoCorrecto = true;
 
     this->close();
-}
-
-bool LoopShapingDialog::threadsValue(){
-    return threadsCheck;
 }
 
 bool LoopShapingDialog::getTodoCorrecto(){
@@ -183,32 +148,12 @@ qreal LoopShapingDialog::pointCountValue(){
     return pointCountEdit;
 }
 
-qreal LoopShapingDialog::deltaValue(){
-    return deltaEdit;
-}
-
 bool LoopShapingDialog::isLinSpace(){
     return linLogSpace;
 }
 
-bool LoopShapingDialog::debugValue(){
-    return debugCheck;
-}
-
 qint32 LoopShapingDialog::initialisationValue(){
     return initialisation;
-}
-
-bool LoopShapingDialog::bisectionValue () {
-    return ui->bisectionCheck->checkState() == Qt::Checked;
-}
-
-bool LoopShapingDialog::detectionValue() {
-    return ui->detectionCheck->checkState() == Qt::Checked;
-}
-
-bool LoopShapingDialog::acceleratedValue() {
-    return ui->acceleratedCheck->checkState() == Qt::Checked;
 }
 
 void LoopShapingDialog::on_linspaceRadio_clicked()

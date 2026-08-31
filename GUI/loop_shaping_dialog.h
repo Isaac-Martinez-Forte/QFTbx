@@ -32,19 +32,9 @@ public:
 
     qreal pointCountValue();
 
-    qreal deltaValue ();
-
     bool isLinSpace();
 
-    bool debugValue();
-
     qint32 initialisationValue ();
-
-    bool threadsValue();
-    
-    bool bisectionValue();
-    bool detectionValue();
-    bool acceleratedValue();
 
 private slots:
     void on_cancelButton_clicked();
@@ -75,15 +65,11 @@ private:
 
     qreal pointCountEdit;
 
-    bool threadsCheck;
-    
-    qreal deltaEdit;
     qint32 initialisation;
 
     tools::alg_loop_shaping alg;
 
     bool linLogSpace;
-    bool debugCheck;
 };
 
 #endif // QFTBX_LOOP_SHAPING_DIALOG_H

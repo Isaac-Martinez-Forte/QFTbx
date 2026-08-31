@@ -207,9 +207,8 @@ public:
     LtiSystem * getControlador();
     
 
-    bool calcularLoopShaping(qreal epsilon, alg_loop_shaping seleccionado, QPointF rango, qreal nPuntos, bool depuracion,
-                             qreal delta, qint32 inicializacion, bool hilos, bool bisection_avanced, bool deteccion_avanced,
-                             bool a);
+    bool calcularLoopShaping(qreal epsilon, alg_loop_shaping seleccionado, QPointF rango, qreal nPuntos,
+                             qint32 inicializacion = 0);
 
     DatosLoopShaping * getLoopShaping ();
     

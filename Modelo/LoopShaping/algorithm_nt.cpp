@@ -46,7 +46,7 @@ AlgorithmNt::~AlgorithmNt() {
 }
 
 void AlgorithmNt::set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, BoundaryData * boundaries,
-                                 qreal epsilon, QVector<QVector<QVector<QPointF> *> *> * reunBounHash) {
+                                 qreal epsilon) {
 
 
     this->planta = planta;
@@ -54,7 +54,6 @@ void AlgorithmNt::set_datos(LtiSystem * planta, LtiSystem * controlador, QVector
     this->omega = omega;
     this->boundaries = boundaries;
     this->epsilon = epsilon;
-    this->reunBounHash = reunBounHash;
 
     this->metaDatosArriba = boundaries->upperFlags();
     this->metaDatosAbierto = boundaries->openFlags();

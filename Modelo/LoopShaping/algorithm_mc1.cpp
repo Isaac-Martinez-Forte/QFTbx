@@ -63,16 +63,7 @@ AlgorithmMc1::~AlgorithmMc1()
 
 
 void AlgorithmMc1::set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> * omega,
-                                          BoundaryData * boundaries, qreal epsilon,
-                                          QVector<QVector<QVector<QPointF> *> *> * reunBounHash __attribute__((unused)),
-                                          bool depuracion __attribute__((unused)),
-                                          bool hilos __attribute__((unused)),
-                                          QVector<qreal> * radiosBoundariesMayor __attribute__((unused)),
-                                          QVector<qreal> * radiosBoundariesMenor __attribute__((unused)),
-                                          QVector<QPointF> * centros __attribute__((unused)),
-                                          bool biseccion_avanzada __attribute__((unused)),
-                                          bool deteccion_avanzada __attribute__((unused)),
-                                          bool a __attribute__((unused)))
+                                          BoundaryData * boundaries, qreal epsilon)
 {
     this->planta = planta;
     this->controlador = controlador->clone();
