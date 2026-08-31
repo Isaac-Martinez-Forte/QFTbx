@@ -69,13 +69,92 @@ IntEspecificaciones::IntEspecificaciones(Controlador *controlador, QWidget *pare
 
     ui->imagen2->setPixmap(seguimiento_img);
 
+    //Estados por defecto de los radios (el .ui no marca ninguno): constante,
+    //forma polinomica y unidades lineales. Sin tipo marcado, la cascada de
+    //lectura caia en un FreeForm accidental.
+    ui->cons->setChecked(true);
+    on_cons_clicked();
+    ui->lineal->setChecked(true);
+    ui->linea_se1->setChecked(true);
+    ui->linea_se1_2->setChecked(true);
+    ui->poli->setChecked(true);
+    on_poli_clicked();
+    ui->CPoliSe1->setChecked(true);
+    on_CPoliSe1_clicked();
+    ui->CPoliSe1_2->setChecked(true);
+    on_CPoliSe1_2_clicked();
+
+    //Si el proyecto trae especificaciones (fichero cargado), el dialogo parte
+    //de ELLAS: antes arrancaba con 7 registros vacios y el primer Aceptar
+    //machacaba lo cargado (perdida de datos silenciosa).
+    QVector <dBND *> * cargadas = controlador->getEspecificaciones();
+    if (cargadas != NULL && cargadas->size() == 7){
+        delete seguimiento;
+        delete seguimiento_2;
+        delete estabilidad;
+        delete ruido;
+        delete RPS;
+        delete RPE;
+        delete EC;
+
+        seguimiento = cargadas->at(0)->clone();
+        seguimiento_2 = cargadas->at(1)->clone();
+        estabilidad = cargadas->at(2)->clone();
+        ruido = cargadas->at(3)->clone();
+        RPS = cargadas->at(4)->clone();
+        RPE = cargadas->at(5)->clone();
+        EC = cargadas->at(6)->clone();
+    }
+
+    //Pestana de seguimiento seleccionada y restaurada desde el arranque: sin
+    //esto ningun radio estaba marcado y Aceptar publicaba los 7 vacios.
+    ui->radioButton->setChecked(true);
+    on_radioButton_clicked();
 
     todoCorrecto = false;
 }
 
 IntEspecificaciones::~IntEspecificaciones()
 {
+    //Los 7 registros de trabajo (y sus plantas) son del dialogo: el DAO
+    //recibio clones profundos.
+    dBND * registros[] = {seguimiento, seguimiento_2, estabilidad,
+                          ruido, RPS, RPE, EC};
+    for (dBND * registro : registros) {
+        delete registro->sistema;
+        delete registro;
+    }
+
     delete ui;
+}
+
+//Coeficientes nominales en el formato que espera crearNumeradorDenominador
+//(separados por espacios). Los tipos no-FreeForm no tienen representacion
+//textual propia: antes se pintaba numeratorString()=="" y la especificacion
+//se perdia en silencio al reabrir.
+QString IntEspecificaciones::textoCoeficientes(QVector <Parameter *> * parametros)
+{
+    QString texto;
+    foreach (Parameter * parametro, *parametros) {
+        texto += QString::number(parametro->nominal()) + " ";
+    }
+    return texto.trimmed();
+}
+
+QString IntEspecificaciones::textoNumerador(LtiSystem * sistema)
+{
+    if (sistema->type() == LtiSystem::SystemType::FreeForm){
+        return sistema->numeratorString();
+    }
+    return textoCoeficientes(sistema->numerator());
+}
+
+QString IntEspecificaciones::textoDenominador(LtiSystem * sistema)
+{
+    if (sistema->type() == LtiSystem::SystemType::FreeForm){
+        return sistema->denominatorString();
+    }
+    return textoCoeficientes(sistema->denominator());
 }
 
 void IntEspecificaciones::setDatos(dBND * datos)
@@ -86,13 +165,37 @@ void IntEspecificaciones::setDatos(dBND * datos)
         ui->frecfin->setText(QString::number(datos->frecfinal));
 
         if (datos->constante){
-            //altura es lineal: se pinta tal cual (antes se le aplicaba
-            //10^(x/20) y el valor derivaba en cada apertura del dialogo).
-            //Pendiente fase 7 (B4): marcar el radio "lineal" al restaurar.
+            ui->cons->setChecked(true);
+            on_cons_clicked();
+            //altura es lineal: se pinta tal cual y se marca el radio lineal
+            //para que Aceptar no la reinterprete como dB.
+            ui->lineal->setChecked(true);
             ui->altura->setText(QString::number(datos->altura));
         } else{
-            ui->nume->setText(datos->sistema->numeratorString());
-            ui->deno->setText(datos->sistema->denominatorString());
+            ui->fun->setChecked(true);
+            on_fun_clicked();
+
+            switch (datos->sistema->type()){
+            case LtiSystem::SystemType::ZeroPoleGain:
+                ui->lfgain->setChecked(true);
+                on_lfgain_clicked();
+                break;
+            case LtiSystem::SystemType::TimeConstantGain:
+                ui->hfgain->setChecked(true);
+                on_hfgain_clicked();
+                break;
+            case LtiSystem::SystemType::PolynomialForm:
+                ui->poli->setChecked(true);
+                on_poli_clicked();
+                break;
+            default:
+                ui->libre->setChecked(true);
+                on_libre_clicked();
+                break;
+            }
+
+            ui->nume->setText(textoNumerador(datos->sistema));
+            ui->deno->setText(textoDenominador(datos->sistema));
             ui->k->setText(QString::number(datos->sistema->gain()->nominal()));
             ui->ret->setText(QString::number(datos->sistema->delay()->nominal()));
         }
@@ -114,17 +217,62 @@ void IntEspecificaciones::setDatos(dBND *datos, dBND *datos1){
         ui->frecfin->setText(QString::number(datos->frecfinal));
 
         if (datos->constante){
+            ui->cons->setChecked(true);
+            on_cons_clicked();
+            ui->linea_se1->setChecked(true);
+            ui->linea_se1_2->setChecked(true);
             ui->altura_se1->setText(QString::number(datos->altura));
 
             ui->altura_se1_2->setText(QString::number(datos1->altura));
         }else{
-            ui->NumeSe1->setText(datos->sistema->numeratorString());
-            ui->DenoSe1->setText(datos->sistema->denominatorString());
+            ui->fun->setChecked(true);
+            on_fun_clicked();
+
+            switch (datos->sistema->type()){
+            case LtiSystem::SystemType::ZeroPoleGain:
+                ui->KGSe1->setChecked(true);
+                on_KGSe1_clicked();
+                break;
+            case LtiSystem::SystemType::TimeConstantGain:
+                ui->KNGSe1->setChecked(true);
+                on_KNGSe1_clicked();
+                break;
+            case LtiSystem::SystemType::PolynomialForm:
+                ui->CPoliSe1->setChecked(true);
+                on_CPoliSe1_clicked();
+                break;
+            default:
+                ui->FLSe1->setChecked(true);
+                on_FLSe1_clicked();
+                break;
+            }
+
+            switch (datos1->sistema->type()){
+            case LtiSystem::SystemType::ZeroPoleGain:
+                ui->KGSe1_2->setChecked(true);
+                on_KGSe1_2_clicked();
+                break;
+            case LtiSystem::SystemType::TimeConstantGain:
+                ui->KNGSe1_2->setChecked(true);
+                on_KNGSe1_2_clicked();
+                break;
+            case LtiSystem::SystemType::PolynomialForm:
+                ui->CPoliSe1_2->setChecked(true);
+                on_CPoliSe1_2_clicked();
+                break;
+            default:
+                ui->FLSe1_2->setChecked(true);
+                on_FLSe1_2_clicked();
+                break;
+            }
+
+            ui->NumeSe1->setText(textoNumerador(datos->sistema));
+            ui->DenoSe1->setText(textoDenominador(datos->sistema));
             ui->KSe1->setText(QString::number(datos->sistema->gain()->nominal()));
             ui->RetSe1->setText(QString::number(datos->sistema->delay()->nominal()));
 
-            ui->NumeSe1_2->setText(datos1->sistema->numeratorString());
-            ui->DenoSe1_2->setText(datos1->sistema->denominatorString());
+            ui->NumeSe1_2->setText(textoNumerador(datos1->sistema));
+            ui->DenoSe1_2->setText(textoDenominador(datos1->sistema));
             ui->KSe1_2->setText(QString::number(datos1->sistema->gain()->nominal()));
             ui->RetSe1_2->setText(QString::number(datos1->sistema->delay()->nominal()));
         }
@@ -147,7 +295,10 @@ bool IntEspecificaciones::getDatos(dBND * datos, QString nombre)
 {
 
     if (datos->utilizado && !datos->constante){
+        //sistema debe quedar nulo: si esta lectura acaba en no-utilizado, el
+        //clone() de Aceptar clonaba un puntero colgante.
         delete datos->sistema;
+        datos->sistema = NULL;
         datos->constante = false;
         datos->utilizado = false;
     }
@@ -227,8 +378,30 @@ bool IntEspecificaciones::getDatos(dBND * datos, QString nombre)
 
         QVector <Parameter *> * nume = NULL;
         QVector <Parameter *> * deno = NULL;
-        Parameter * k = NULL;
-        Parameter * ret = NULL;
+
+        //Ganancia y retardo se validan SIEMPRE: la rama libre construia el
+        //FreeForm con los crearKRet sin comprobar (NULL ante un error de
+        //sintaxis y crash posterior).
+        Parameter * k = crearKRet(ui->k->text(), true);
+
+        if (k == NULL){
+            menerror("Error en la ganancia.", "Introducir especificaciones.");
+            ui->k->setStyleSheet("background : red");
+            datos->utilizado = false;
+            return false;
+        }
+        ui->k->setStyleSheet("background : white");
+
+        Parameter * ret = crearKRet(ui->ret->text(), false);
+
+        if (ret == NULL){
+            menerror("Error en el retardo.", "Introducir especificaciones.");
+            ui->ret->setStyleSheet("background : red");
+            delete k;
+            datos->utilizado = false;
+            return false;
+        }
+        ui->ret->setStyleSheet("background : white");
 
         if (!ui->libre->isChecked()){
 
@@ -237,44 +410,26 @@ bool IntEspecificaciones::getDatos(dBND * datos, QString nombre)
             if (nume == NULL){
                 menerror("Error en el numerador.", "Introducir especificaciones.");
                 ui->nume->setStyleSheet("background : red");
+                delete k;
+                delete ret;
                 datos->utilizado = false;
                 return false;
-            } else {
-                ui->nume->setStyleSheet("background : white");
             }
+            ui->nume->setStyleSheet("background : white");
 
             deno = crearNumeradorDenominador(ui->deno->text());
 
             if (deno == NULL){
                 menerror("Error en el denominador.", "Introducir especificaciones.");
                 ui->deno->setStyleSheet("background : red");
+                qDeleteAll(*nume);
+                delete nume;
+                delete k;
+                delete ret;
                 datos->utilizado = false;
                 return false;
-            } else {
-                ui->deno->setStyleSheet("background : white");
             }
-
-            k = crearKRet(ui->k->text(), true);
-
-            if (k == NULL){
-                menerror("Error en la ganancia.", "Introducir especificaciones.");
-                ui->k->setStyleSheet("background : red");
-                datos->utilizado = false;
-                return false;
-            } else {
-                ui->k->setStyleSheet("background : white");
-            }
-
-            ret = crearKRet(ui->ret->text(), false);
-
-            if (ret == NULL){
-                menerror("Error en el retardo.", "Introducir especificaciones.");
-                ui->ret->setStyleSheet("background : red");
-                datos->utilizado = false;
-                return false;
-            } else {
-                ui->ret->setStyleSheet("background : white");
-            }
+            ui->deno->setStyleSheet("background : white");
         }
 
 
@@ -286,8 +441,18 @@ bool IntEspecificaciones::getDatos(dBND * datos, QString nombre)
         }else if (ui->poli->isChecked()) {
             datos->sistema = new PolynomialForm (nombre, nume, deno, k, ret);
         }else {
-            datos->sistema = new FreeForm (nombre, new QVector <Parameter *> (), new QVector <Parameter *> (), crearKRet(ui->k->text(), true),
-                                               crearKRet(ui->ret->text(), false), ui->nume->text(), ui->deno->text());
+            //Si se llego aqui con coeficientes construidos (sin radio de
+            //tipo marcado), no deben fugarse.
+            if (nume != NULL){
+                qDeleteAll(*nume);
+                delete nume;
+            }
+            if (deno != NULL){
+                qDeleteAll(*deno);
+                delete deno;
+            }
+            datos->sistema = new FreeForm (nombre, new QVector <Parameter *> (), new QVector <Parameter *> (), k, ret,
+                                               ui->nume->text(), ui->deno->text());
         }
         datos->utilizado = true;
     }
@@ -301,12 +466,14 @@ bool IntEspecificaciones::getDatos(dBND *datos, dBND *datos1, QString nombre){
 
     if (datos->utilizado && !datos->constante){
         delete datos->sistema;
+        datos->sistema = NULL;
         datos->constante = false;
         datos->utilizado = false;
     }
 
     if (datos1->utilizado && !datos1->constante){
         delete datos1->sistema;
+        datos1->sistema = NULL;
         datos1->constante = false;
         datos1->utilizado = false;
     }
@@ -394,55 +561,58 @@ bool IntEspecificaciones::getDatos(dBND *datos, dBND *datos1, QString nombre){
 
         QVector <Parameter *> * nume = NULL;
         QVector <Parameter *> * deno = NULL;
-        Parameter * k = NULL;
-        Parameter * ret = NULL;
 
-        if(!ui->FLSe1->isChecked()){
+        //Ganancia y retardo se validan SIEMPRE: la rama libre construia el
+        //FreeForm con los crearKRet sin comprobar (NULL ante un error de
+        //sintaxis y crash posterior).
+        Parameter * k = crearKRet(ui->KSe1->text(), true);
+
+        if (k == NULL){
+            menerror("Error en la ganancia.", "Introducir especificaciones.");
+            ui->KSe1->setStyleSheet("background : red");
+            datos->utilizado = false;
+            return false;
+        }
+        ui->KSe1->setStyleSheet("background : white");
+
+        Parameter * ret = crearKRet(ui->RetSe1->text(), false);
+
+        if (ret == NULL){
+            menerror("Error en el retardo.", "Introducir especificaciones.");
+            ui->RetSe1->setStyleSheet("background : red");
+            delete k;
+            datos->utilizado = false;
+            return false;
+        }
+        ui->RetSe1->setStyleSheet("background : white");
+
+        if (!ui->FLSe1->isChecked()){
 
             nume = crearNumeradorDenominador(ui->NumeSe1->text());
 
             if (nume == NULL){
                 menerror("Error en el numerador.", "Introducir especificaciones.");
                 ui->NumeSe1->setStyleSheet("background : red");
+                delete k;
+                delete ret;
                 datos->utilizado = false;
                 return false;
-            } else {
-                ui->NumeSe1->setStyleSheet("background : white");
             }
+            ui->NumeSe1->setStyleSheet("background : white");
 
             deno = crearNumeradorDenominador(ui->DenoSe1->text());
 
             if (deno == NULL){
                 menerror("Error en el denominador.", "Introducir especificaciones.");
                 ui->DenoSe1->setStyleSheet("background : red");
+                qDeleteAll(*nume);
+                delete nume;
+                delete k;
+                delete ret;
                 datos->utilizado = false;
                 return false;
-            } else {
-                ui->DenoSe1->setStyleSheet("background : white");
             }
-
-            k = crearKRet(ui->KSe1->text(), true);
-
-            if (k == NULL){
-                menerror("Error en la ganancia.", "Introducir especificaciones.");
-                ui->KSe1->setStyleSheet("background : red");
-                datos->utilizado = false;
-                return false;
-            } else {
-                ui->KSe1->setStyleSheet("background : white");
-            }
-
-            ret = crearKRet(ui->RetSe1->text(), false);
-
-            if (ret == NULL){
-                menerror("Error en el retardo.", "Introducir especificaciones.");
-                ui->RetSe1->setStyleSheet("background : red");
-                datos->utilizado = false;
-                return false;
-            } else {
-                ui->RetSe1->setStyleSheet("background : white");
-            }
-
+            ui->DenoSe1->setStyleSheet("background : white");
         }
 
 
@@ -454,8 +624,18 @@ bool IntEspecificaciones::getDatos(dBND *datos, dBND *datos1, QString nombre){
         }else if (ui->CPoliSe1->isChecked()) {
             datos->sistema = new PolynomialForm (nombre, nume, deno, k, ret);
         }else {
-            datos->sistema = new FreeForm (nombre, new QVector <Parameter *> (), new QVector <Parameter *> (), crearKRet(ui->KSe1->text(), true),
-                                               crearKRet(ui->RetSe1->text(), false), ui->NumeSe1->text(), ui->DenoSe1->text());
+            //Si se llego aqui con coeficientes construidos (sin radio de
+            //tipo marcado), no deben fugarse.
+            if (nume != NULL){
+                qDeleteAll(*nume);
+                delete nume;
+            }
+            if (deno != NULL){
+                qDeleteAll(*deno);
+                delete deno;
+            }
+            datos->sistema = new FreeForm (nombre, new QVector <Parameter *> (), new QVector <Parameter *> (), k, ret,
+                                               ui->NumeSe1->text(), ui->DenoSe1->text());
         }
         datos->utilizado = true;
     }
@@ -502,8 +682,30 @@ bool IntEspecificaciones::getDatos(dBND *datos, dBND *datos1, QString nombre){
 
         QVector <Parameter *> * nume = NULL;
         QVector <Parameter *> * deno = NULL;
-        Parameter * k = NULL;
-        Parameter * ret = NULL;
+
+        //Ganancia y retardo se validan SIEMPRE: la rama libre construia el
+        //FreeForm con los crearKRet sin comprobar (NULL ante un error de
+        //sintaxis y crash posterior).
+        Parameter * k = crearKRet(ui->KSe1_2->text(), true);
+
+        if (k == NULL){
+            menerror("Error en la ganancia.", "Introducir especificaciones.");
+            ui->KSe1_2->setStyleSheet("background : red");
+            datos1->utilizado = false;
+            return false;
+        }
+        ui->KSe1_2->setStyleSheet("background : white");
+
+        Parameter * ret = crearKRet(ui->RetSe1_2->text(), false);
+
+        if (ret == NULL){
+            menerror("Error en el retardo.", "Introducir especificaciones.");
+            ui->RetSe1_2->setStyleSheet("background : red");
+            delete k;
+            datos1->utilizado = false;
+            return false;
+        }
+        ui->RetSe1_2->setStyleSheet("background : white");
 
         if (!ui->FLSe1_2->isChecked()){
 
@@ -512,44 +714,26 @@ bool IntEspecificaciones::getDatos(dBND *datos, dBND *datos1, QString nombre){
             if (nume == NULL){
                 menerror("Error en el numerador.", "Introducir especificaciones.");
                 ui->NumeSe1_2->setStyleSheet("background : red");
+                delete k;
+                delete ret;
                 datos1->utilizado = false;
                 return false;
-            } else {
-                ui->NumeSe1_2->setStyleSheet("background : white");
             }
+            ui->NumeSe1_2->setStyleSheet("background : white");
 
             deno = crearNumeradorDenominador(ui->DenoSe1_2->text());
 
             if (deno == NULL){
                 menerror("Error en el denominador.", "Introducir especificaciones.");
                 ui->DenoSe1_2->setStyleSheet("background : red");
+                qDeleteAll(*nume);
+                delete nume;
+                delete k;
+                delete ret;
                 datos1->utilizado = false;
                 return false;
-            } else {
-                ui->DenoSe1_2->setStyleSheet("background : white");
             }
-
-            k = crearKRet(ui->KSe1_2->text(), true);
-
-            if (k == NULL){
-                menerror("Error en la ganancia.", "Introducir especificaciones.");
-                ui->KSe1_2->setStyleSheet("background : red");
-                datos1->utilizado = false;
-                return false;
-            } else {
-                ui->KSe1_2->setStyleSheet("background : white");
-            }
-
-            ret = crearKRet(ui->RetSe1_2->text(), false);
-
-            if (ret == NULL){
-                menerror("Error en el retardo.", "Introducir especificaciones.");
-                ui->RetSe1_2->setStyleSheet("background : red");
-                datos1->utilizado = false;
-                return false;
-            } else {
-                ui->RetSe1_2->setStyleSheet("background : white");
-            }
+            ui->DenoSe1_2->setStyleSheet("background : white");
         }
 
         datos1->constante = false;
@@ -560,8 +744,18 @@ bool IntEspecificaciones::getDatos(dBND *datos, dBND *datos1, QString nombre){
         }else if (ui->CPoliSe1_2->isChecked()) {
             datos1->sistema = new PolynomialForm (nombre, nume, deno, k, ret);
         }else {
-            datos1->sistema = new FreeForm (nombre, new QVector <Parameter *> (), new QVector <Parameter *> (), crearKRet(ui->KSe1_2->text(), true),
-                                                crearKRet(ui->RetSe1_2->text(), false), ui->NumeSe1_2->text(), ui->DenoSe1_2->text());
+            //Si se llego aqui con coeficientes construidos (sin radio de
+            //tipo marcado), no deben fugarse.
+            if (nume != NULL){
+                qDeleteAll(*nume);
+                delete nume;
+            }
+            if (deno != NULL){
+                qDeleteAll(*deno);
+                delete deno;
+            }
+            datos1->sistema = new FreeForm (nombre, new QVector <Parameter *> (), new QVector <Parameter *> (), k, ret,
+                                                ui->NumeSe1_2->text(), ui->DenoSe1_2->text());
         }
         datos1->utilizado = true;
     }
@@ -604,6 +798,7 @@ QVector <Parameter * > * IntEspecificaciones::crearNumeradorDenominador(QString 
     var->reserve(numeros->size());
 
     if (numeros->isEmpty()){
+        delete numeros;
         return var;
     }
 
@@ -613,15 +808,17 @@ QVector <Parameter * > * IntEspecificaciones::crearNumeradorDenominador(QString 
         try {
             res = p.Eval().GetFloat();
         }catch (ParserError &e){
-            numeros->clear();
-            var->clear();
+            //Antes se abandonaban los Parameter ya creados y ambos vectores.
+            delete numeros;
+            qDeleteAll(*var);
+            delete var;
             return NULL;
         }
 
         var->append(new Parameter(res));
     }
 
-    numeros->clear();
+    delete numeros;
 
     return var;
 }
