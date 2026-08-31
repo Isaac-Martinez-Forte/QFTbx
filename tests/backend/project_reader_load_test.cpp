@@ -12,8 +12,8 @@
 
 #include "src/persistence/project_reader.h"
 #include "src/core/system/lti_system.h"
-#include "Modelo/Herramientas/exception.h"
-#include "Modelo/Objetos/omega.h"
+#include "src/core/exception.h"
+#include "src/core/frequencies/omega.h"
 
 namespace {
 
@@ -66,8 +66,8 @@ TEST(ProjectReaderSmoke, CerveraLoadsPlantAndFrequenciesOnly)
 
     Omega *omega = parser.omega();
     ASSERT_NE(omega, nullptr);
-    ASSERT_NE(omega->getValores(), nullptr);
-    const QVector<qreal> &values = *omega->getValores();
+    ASSERT_NE(omega->values(), nullptr);
+    const QVector<qreal> &values = *omega->values();
     ASSERT_EQ(values.size(), 4);
     EXPECT_DOUBLE_EQ(values[0], 0.1);
     EXPECT_DOUBLE_EQ(values[1], 5.0);

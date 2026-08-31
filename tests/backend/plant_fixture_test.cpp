@@ -11,7 +11,7 @@
 
 #include "src/core/system/lti_system.h"
 #include "src/core/system/parameter.h"
-#include "Modelo/Objetos/omega.h"
+#include "src/core/frequencies/omega.h"
 #include "src/persistence/project_reader.h"
 
 namespace {
@@ -59,7 +59,7 @@ TEST(PlantFixture, CerveraRoundTrip)
 
     Omega* omega = parser.omega();
     ASSERT_NE(omega, nullptr);
-    ASSERT_EQ(omega->getValores()->size(), 4);
+    ASSERT_EQ(omega->values()->size(), 4);
 }
 
 TEST(PlantFixture, Planta1RoundTrip)

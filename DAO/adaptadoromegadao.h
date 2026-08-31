@@ -4,7 +4,7 @@
 #include <DAO/omegadao.h>
 #include <QVector>
 
-#include "Modelo/Objetos/omega.h"
+#include "src/core/frequencies/omega.h"
 
 /**
  * @class AdaptadorOmegaDAO
@@ -26,7 +26,7 @@ public:
     ~AdaptadorOmegaDAO();
 
    /**
-    * @fn setOmega
+    * @fn setValues
     * @brief Guarda un vector de frecuencias en el objeto y otros datos asociados encapsulados en el objeto Omega.
     * 
     * Si hubiera datos guardados anteriormente estos serán destruidos para que no haya fugas de memoria.
@@ -35,7 +35,7 @@ public:
     * 
     */
   
-    void setOmega(Omega * omega);
+    void setValues(Omega * omega);
     
     /**
     * @fn getFrecuencias

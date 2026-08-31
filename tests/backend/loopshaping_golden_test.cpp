@@ -25,7 +25,7 @@
 #include <QString>
 
 #include "Modelo/controlador.h"
-#include "Modelo/Herramientas/exception.h"
+#include "src/core/exception.h"
 
 namespace {
 

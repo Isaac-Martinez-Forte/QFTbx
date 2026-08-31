@@ -20,7 +20,7 @@ SpecificationsDialog::SpecificationsDialog(Controlador *controller, QWidget *par
     ui->setupUi(this);
 
     this->controller = controller;
-    this->frequencies = controller->getOmega()->getValores();
+    this->frequencies = controller->getOmega()->values();
 
     setWindowTitle(tr("Specifications input"));
 

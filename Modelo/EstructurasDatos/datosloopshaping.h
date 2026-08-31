@@ -19,7 +19,7 @@ public:
 
     QPointF range ();
 
-    qreal getNPuntos();
+    qreal pointCount();
 
 private:
 

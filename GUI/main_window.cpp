@@ -6,7 +6,7 @@
 
 #include <QMessageBox>
 
-#include "Modelo/Herramientas/exception.h"
+#include "src/core/exception.h"
 
 #include <iostream>
 
@@ -225,7 +225,7 @@ void MainWindow::on_templatesButton_clicked()
         templateViewer = new TemplateViewer(this);
     }
 
-    templatesDialog->launch(controller->getPlanta(), controller->getOmega()->getValores()->size());
+    templatesDialog->launch(controller->getPlanta(), controller->getOmega()->values()->size());
 
     templatesDialog->exec();
 
@@ -337,11 +337,11 @@ void MainWindow::on_boundariesButton_clicked()
 
         this->setCursor(Qt::ArrowCursor);
 
-        boundaryViewer->setDatos(controller->getBound(), controller->getOmega()->getValores());
+        boundaryViewer->setDatos(controller->getBound(), controller->getOmega()->values());
         boundaryViewer->showDiagram();
         boundaryViewer->show();
 
-        boundaryUnionViewer->setDatos(controller->unionBoundaries(), controller->getOmega()->getValores());
+        boundaryUnionViewer->setDatos(controller->unionBoundaries(), controller->getOmega()->values());
         boundaryUnionViewer->showDiagram();
         boundaryUnionViewer->show();
 
@@ -415,7 +415,7 @@ void MainWindow::on_loopButton_clicked()
         }
 
         if (re){
-            loopShapingViewer->setDatos(controller->unionBoundaries(),controller->getOmega()->getValores(),
+            loopShapingViewer->setDatos(controller->unionBoundaries(),controller->getOmega()->values(),
                                       controller->getLoopShaping(), controller->getPlanta(), loopShapingDialog->isLinSpace());
 
             loopShapingViewer->showDiagram();
@@ -689,7 +689,7 @@ void MainWindow::showLoopDiagrams(bool nichols, bool nyquistRadio){
 
     LoopBoundariesViewer * ver = new LoopBoundariesViewer();
 
-    ver->setDatos(boundaries, nuevoBoundaries, controller->getOmega()->getValores(), controller->getPlanta(),
+    ver->setDatos(boundaries, nuevoBoundaries, controller->getOmega()->values(), controller->getPlanta(),
                   controller->getControlador(), nichols, nyquistRadio);
 
     ver->showDiagram();
@@ -738,7 +738,7 @@ void MainWindow::on_actionBoundaries_triggered()
         return;
     }
 
-    boundaryUnionViewer->setDatos(controller->unionBoundaries(), controller->getOmega()->getValores());
+    boundaryUnionViewer->setDatos(controller->unionBoundaries(), controller->getOmega()->values());
     boundaryUnionViewer->showDiagram();
     boundaryUnionViewer->show();
 }
@@ -749,7 +749,7 @@ void MainWindow::on_actionLoop_triggered()
         return;
     }
 
-    loopShapingViewer->setDatos(controller->unionBoundaries(),controller->getOmega()->getValores(),
+    loopShapingViewer->setDatos(controller->unionBoundaries(),controller->getOmega()->values(),
                               controller->getLoopShaping(), controller->getPlanta(), loopShapingDialog->isLinSpace());
 
     loopShapingViewer->showDiagram();

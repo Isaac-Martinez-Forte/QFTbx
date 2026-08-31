@@ -8,7 +8,7 @@
 
 #include <pugixml.hpp>
 
-#include "Modelo/Herramientas/exception.h"
+#include "src/core/exception.h"
 #include "qft_dialect.h"
 #include "src/core/system/parameter.h"
 
@@ -145,11 +145,11 @@ void writeSpecifications(pugi::xml_node root, QVector <tools::dBND *> * specific
 void writeOmega(pugi::xml_node root, Omega * omega)
 {
     pugi::xml_node section = root.append_child(t.omega);
-    addReal(section, t.omegaMin, omega->getInicio());
-    addReal(section, t.omegaMax, omega->getFinal());
-    addText(section, t.pointCount, std::to_string(omega->getNPuntos()));
-    addText(section, t.omegaType, std::to_string(static_cast<qint32>(omega->getTipo())));
-    addText(section, t.values, realVectorText(*omega->getValores()));
+    addReal(section, t.omegaMin, omega->start());
+    addReal(section, t.omegaMax, omega->end());
+    addText(section, t.pointCount, std::to_string(omega->pointCount()));
+    addText(section, t.omegaType, std::to_string(static_cast<qint32>(omega->type())));
+    addText(section, t.values, realVectorText(*omega->values()));
 }
 
 void writeComplexVectors(pugi::xml_node section,
@@ -242,7 +242,7 @@ void writeLoopShaping(pugi::xml_node root, DatosLoopShaping * loopShaping)
     pugi::xml_node section = root.append_child(t.loopShaping);
 
     pugi::xml_node data = section.append_child(t.boundariesData);
-    data.append_attribute(t.loopShapingPointCountAttribute) = loopShaping->getNPuntos();
+    data.append_attribute(t.loopShapingPointCountAttribute) = loopShaping->pointCount();
     addReal(data, t.axisMin, loopShaping->range().x());
     addReal(data, t.axisMax, loopShaping->range().y());
 

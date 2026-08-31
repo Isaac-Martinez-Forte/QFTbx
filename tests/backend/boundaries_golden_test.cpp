@@ -21,7 +21,7 @@
 
 #include "src/core/boundaries/boundary_engine.h"
 #include "src/core/boundaries/boundary_data.h"
-#include "Modelo/Objetos/omega.h"
+#include "src/core/frequencies/omega.h"
 #include "src/persistence/project_reader.h"
 
 namespace {
@@ -54,7 +54,7 @@ protected:
         delete parser.load(
             QStringLiteral(QFTBX_TEST_DATA_DIR "/multivaluados.qft"));
 
-        engine.compute(parser.omega()->getValores(), parser.plant(),
+        engine.compute(parser.omega()->values(), parser.plant(),
                              parser.contour(), parser.specifications(),
                              QPointF(-360.0, 0.0), 361, QPointF(-60.0, 60.0), 121,
                              -1.0, false);
@@ -163,7 +163,7 @@ TEST_F(BoundariesGolden, ContourInputIsEquivalentToFullTemplates)
         QStringLiteral(QFTBX_TEST_DATA_DIR "/multivaluados.qft"));
 
     BoundaryEngine engine2;
-    engine2.compute(parser2.omega()->getValores(), parser2.plant(),
+    engine2.compute(parser2.omega()->values(), parser2.plant(),
                           parser2.templates(), parser2.specifications(),
                           QPointF(-360.0, 0.0), 361, QPointF(-60.0, 60.0), 121,
                           -1.0, false);

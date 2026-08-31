@@ -3,7 +3,7 @@
 
 #include <QVector>
 
-#include "Modelo/Objetos/omega.h"
+#include "src/core/frequencies/omega.h"
 
 
   /**
@@ -34,7 +34,7 @@ public:
    */
   
     
-    virtual void setOmega(Omega * omega) = 0;
+    virtual void setValues(Omega * omega) = 0;
     
   /**
     * @fn getFrecuencias

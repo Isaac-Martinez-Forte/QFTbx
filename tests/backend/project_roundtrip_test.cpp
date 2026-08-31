@@ -91,12 +91,12 @@ TEST_P(RoundTrip, EverySectionSurvivesBitExact)
 {
     QVector<qreal> probes{0.5, 1.0, 7.3};
     if (originalFlags->at(2)) {
-        EXPECT_EQ(*original.omega()->getValores(), *reloaded.omega()->getValores());
-        EXPECT_EQ(original.omega()->getInicio(), reloaded.omega()->getInicio());
-        EXPECT_EQ(original.omega()->getFinal(), reloaded.omega()->getFinal());
-        EXPECT_EQ(original.omega()->getNPuntos(), reloaded.omega()->getNPuntos());
-        EXPECT_EQ(original.omega()->getTipo(), reloaded.omega()->getTipo());
-        probes = *original.omega()->getValores();
+        EXPECT_EQ(*original.omega()->values(), *reloaded.omega()->values());
+        EXPECT_EQ(original.omega()->start(), reloaded.omega()->start());
+        EXPECT_EQ(original.omega()->end(), reloaded.omega()->end());
+        EXPECT_EQ(original.omega()->pointCount(), reloaded.omega()->pointCount());
+        EXPECT_EQ(original.omega()->type(), reloaded.omega()->type());
+        probes = *original.omega()->values();
     }
 
     if (originalFlags->at(0)) {

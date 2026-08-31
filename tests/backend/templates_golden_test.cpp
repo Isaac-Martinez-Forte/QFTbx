@@ -16,11 +16,11 @@
 #include <QVector>
 
 #include "Modelo/controlador.h"
-#include "Modelo/Herramientas/exception.h"
+#include "src/core/exception.h"
 #include "src/core/templates/template_engine.h"
 #include "src/core/system/lti_system.h"
 #include "src/core/system/parameter.h"
-#include "Modelo/Objetos/omega.h"
+#include "src/core/frequencies/omega.h"
 #include "Modelo/Herramientas/tools.h"
 #include "src/persistence/project_reader.h"
 
@@ -51,7 +51,7 @@ protected:
         mapa->insert(planta->numerator()->at(0)->name(), tools::linspace(1.0, 10.0, 10));
         mapa->insert(planta->gain()->name(), tools::linspace(1.0, 10.0, 10));
 
-        omegaCopy = new QVector<qreal>(*parser.omega()->getValores());
+        omegaCopy = new QVector<qreal>(*parser.omega()->values());
         epsilon = new QVector<qreal>(6, 10.0);
 
         templates.setEpsilon(epsilon);

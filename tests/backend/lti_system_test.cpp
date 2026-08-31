@@ -23,7 +23,7 @@
 #include "src/core/system/time_constant_gain.h"
 #include "src/core/system/lti_system.h"
 #include "src/core/system/parameter.h"
-#include "Modelo/Herramientas/exception.h"
+#include "src/core/exception.h"
 
 namespace {
 

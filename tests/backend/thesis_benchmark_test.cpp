@@ -91,7 +91,7 @@ TEST(ThesisBenchmarkFixture, QftToolboxEx2LoadsWithTheFullPipeline)
 
     const QVector<qreal> expectedOmega{0.1, 0.5, 1.0, 2.0, 15.0, 100.0};
     ASSERT_NE(controller.getOmega(), nullptr);
-    EXPECT_EQ(*controller.getOmega()->getValores(), expectedOmega);
+    EXPECT_EQ(*controller.getOmega()->values(), expectedOmega);
 
     QVector<tools::dBND*>* specs = controller.getEspecificaciones();
     ASSERT_NE(specs, nullptr);
@@ -133,7 +133,7 @@ TEST(ThesisBenchmarkFixture, Acc90LoadsWithTheFullPipeline)
     const QVector<qreal> expectedOmega{0.1, 0.98, 0.99, 1.0, 2.0, 5.0,
                                        7.0, 8.5, 10.0, 15.0, 20.0, 100.0};
     ASSERT_NE(controller.getOmega(), nullptr);
-    EXPECT_EQ(*controller.getOmega()->getValores(), expectedOmega);
+    EXPECT_EQ(*controller.getOmega()->values(), expectedOmega);
 
     QVector<tools::dBND*>* specs = controller.getEspecificaciones();
     ASSERT_NE(specs, nullptr);

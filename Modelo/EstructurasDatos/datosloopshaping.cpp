@@ -43,7 +43,7 @@ QPointF DatosLoopShaping::range(){
     return rango;
 }
 
-qreal DatosLoopShaping::getNPuntos(){
+qreal DatosLoopShaping::pointCount(){
     return nPuntos;
 }
 

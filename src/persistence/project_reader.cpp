@@ -8,7 +8,7 @@
 #include <pugixml.hpp>
 #include <iterator>
 
-#include "Modelo/Herramientas/exception.h"
+#include "src/core/exception.h"
 #include "src/core/specifications/specification.h"
 #include "src/core/system/free_form.h"
 #include "src/core/system/parameter.h"
@@ -283,7 +283,7 @@ public:
         const qreal min = realChild(section, t.omegaMin);
         const qreal max = realChild(section, t.omegaMax);
         const qint32 pointCount = static_cast<qint32>(realChild(section, t.pointCount));
-        const auto type = static_cast<Omega::tiposOmega>(
+        const auto type = static_cast<Omega::GenerationType>(
             static_cast<qint32>(realChild(section, t.omegaType)));
         QVector <qreal> * values = realVector(require(section, t.values));
 

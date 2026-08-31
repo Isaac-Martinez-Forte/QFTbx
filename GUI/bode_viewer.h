@@ -11,7 +11,7 @@
 #include "qcustomplot.h"
 #include "src/core/system/lti_system.h"
 #include "Modelo/Herramientas/tools.h"
-#include "Modelo/Objetos/omega.h"
+#include "src/core/frequencies/omega.h"
 
  /**
     * @class BodeViewer

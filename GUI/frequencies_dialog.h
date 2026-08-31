@@ -11,7 +11,7 @@
 
 #include "Modelo/controlador.h"
 #include "Modelo/Herramientas/tools.h"
-#include "Modelo/Objetos/omega.h"
+#include "src/core/frequencies/omega.h"
 
 namespace Ui {
 class FrequenciesDialog;

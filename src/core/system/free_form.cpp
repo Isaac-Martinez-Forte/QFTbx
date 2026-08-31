@@ -2,7 +2,7 @@
 
 #include <QRegularExpression>
 
-#include "Modelo/Herramientas/exception.h"
+#include "src/core/exception.h"
 
 using namespace std;
 using namespace mup;

@@ -10,7 +10,7 @@
 #include "src/core/boundaries/boundary_data.h"
 #include "Modelo/EstructurasDatos/dbnd.h"
 #include "Modelo/EstructurasDatos/datosloopshaping.h"
-#include "Modelo/Objetos/omega.h"
+#include "src/core/frequencies/omega.h"
 
 namespace qftbx {
 

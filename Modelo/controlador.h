@@ -16,7 +16,7 @@
 
 #include "src/core/system/lti_system.h"
 #include "src/core/templates/template_engine.h"
-#include "Objetos/omega.h"
+#include "src/core/frequencies/omega.h"
 #include "src/core/boundaries/boundary_engine.h"
 #include "src/persistence/project_reader.h"
 #include "src/persistence/project_writer.h"
@@ -95,14 +95,14 @@ public:
     
     
     /**
-     * @fn setOmega
+     * @fn setValues
      * @brief Función que guarda un vector de frecuencias de diseño en el sistema.
      *
      * El vector de Omega de guardará a través del adaptador DAO definido en el sistema.
      * @Param frecuencias vector de reales que contiene las frecuencias Omega.
      */
     
-    void setOmega (Omega * omega);
+    void setValues (Omega * omega);
     
     
     /**

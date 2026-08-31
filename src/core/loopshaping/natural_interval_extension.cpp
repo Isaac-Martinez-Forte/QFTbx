@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-#include "Modelo/Herramientas/exception.h"
+#include "src/core/exception.h"
 
 using cxsc::cinterval;
 using cxsc::complex;

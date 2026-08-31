@@ -119,7 +119,7 @@ inline void expectSameLoopShaping(DatosLoopShaping* a, DatosLoopShaping* b)
 {
     ASSERT_NE(a, nullptr);
     ASSERT_NE(b, nullptr);
-    EXPECT_EQ(a->getNPuntos(), b->getNPuntos());
+    EXPECT_EQ(a->pointCount(), b->pointCount());
     EXPECT_EQ(a->range(), b->range());
     expectSameSystem(a->getControlador(), b->getControlador(), {0.5, 2.0}, "loop shaping");
 }

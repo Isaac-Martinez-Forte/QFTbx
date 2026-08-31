@@ -130,7 +130,7 @@ TEST(ControllerPipeline, SaveAndReloadRoundTripsTheProject)
     delete originalFlags;
     delete rewrittenFlags;
 
-    const QVector<qreal> probes = *original.omega()->getValores();
+    const QVector<qreal> probes = *original.omega()->values();
     expectSameSystem(original.plant(), rewritten.plant(), probes, "plant");
     expectSameSpecifications(original.specifications(), rewritten.specifications());
     EXPECT_EQ(*original.epsilon(), *rewritten.epsilon());

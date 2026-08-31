@@ -32,13 +32,13 @@ void BodeViewer::drawBode(LtiSystem *planta, Omega *omega){
     QVector <qreal> * frequencies;
     bool ownFrequencies = true;
 
-    if (omega->getTipo() == Omega::linSpace){
-        frequencies = linspace(-1, omega->getFinal(),100);
-    }else if (omega->getTipo() == Omega::logSpace){
-        frequencies = logspace(-1, omega->getFinal(),100);
+    if (omega->type() == Omega::LinSpace){
+        frequencies = linspace(-1, omega->end(),100);
+    }else if (omega->type() == Omega::LogSpace){
+        frequencies = logspace(-1, omega->end(),100);
     }else {
         //DAO's vector: not freed here.
-        frequencies = omega->getValores();
+        frequencies = omega->values();
         ownFrequencies = false;
     }
 

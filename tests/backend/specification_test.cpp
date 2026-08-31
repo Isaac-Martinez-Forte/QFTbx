@@ -12,7 +12,7 @@
 #include <QVector>
 
 #include "Modelo/EstructurasDatos/dbnd.h"
-#include "Modelo/Herramientas/exception.h"
+#include "src/core/exception.h"
 #include "src/core/specifications/specification.h"
 #include "DAO/adaptadorespecificacionesdao.h"
 #include "src/core/system/polynomial_form.h"

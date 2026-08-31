@@ -10,10 +10,10 @@ AdaptadorOmegaDAO::~AdaptadorOmegaDAO(){
 }
 
 QVector<qreal> * AdaptadorOmegaDAO::getFrecuencias(){
-    return omega->getValores();
+    return omega->values();
 }
 
-void AdaptadorOmegaDAO::setOmega(Omega *omega){
+void AdaptadorOmegaDAO::setValues(Omega *omega){
         delete this->omega;
 
         this->omega = omega;

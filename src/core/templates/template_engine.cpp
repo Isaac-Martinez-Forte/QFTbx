@@ -1,6 +1,6 @@
 #include "template_engine.h"
 
-#include "Modelo/Herramientas/exception.h"
+#include "src/core/exception.h"
 
 #include <QDebug>
 #include <QElapsedTimer>

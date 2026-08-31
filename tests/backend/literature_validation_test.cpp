@@ -66,7 +66,7 @@ protected:
     //boundaries, with the same projection + detection the algorithms use.
     tools::BoxFlag classify(LtiSystem* point)
     {
-        QVector<qreal>* omega = controller.getOmega()->getValores();
+        QVector<qreal>* omega = controller.getOmega()->values();
         tools::BoxFlag overall = tools::feasible;
 
         for (int i = 0; i < omega->size(); ++i) {

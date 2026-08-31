@@ -7,7 +7,7 @@
 #include "Modelo/Herramientas/tools.h"
 #include "Modelo/controlador.h"
 #include "mpParser.h"
-#include "Modelo/Objetos/omega.h"
+#include "src/core/frequencies/omega.h"
 
 using namespace tools;
 

@@ -3,7 +3,7 @@
 
 #include <QMessageBox>
 
-#include "Modelo/Herramientas/exception.h"
+#include "src/core/exception.h"
 
 using namespace tools;
 
@@ -52,12 +52,12 @@ void FrequenciesDialog::on_okButton_clicked()
 {
     qreal start = 0;
     qreal end = 0;
-    Omega::tiposOmega type;
+    Omega::GenerationType type;
     QVector <qreal> * frequencies;
 
     if (ui->modeStack->currentIndex() == 0){ //manual
         frequencies = srtovectorReal(ui->manualValues->text());
-        type = Omega::manual;
+        type = Omega::Manual;
         if (frequencies == NULL){
             //Invalid input: it used to carry on and dereference the null
             //pointer a few lines below.
@@ -71,7 +71,7 @@ void FrequenciesDialog::on_okButton_clicked()
                                ui->logCount->text().toDouble());
         start = ui->logStart->text().toDouble();
         end = ui->logEnd->text().toDouble();
-        type = Omega::logSpace;
+        type = Omega::LogSpace;
 
     }else if (ui->modeStack->currentIndex() == 2) { //linspace
 
@@ -82,7 +82,7 @@ void FrequenciesDialog::on_okButton_clicked()
         //linStart used to be re-read: every linear Omega was stored with
         //end == start (and travelled like that into the .qft and Bode).
         end = ui->linEnd->text().toDouble();
-        type = Omega::linSpace;
+        type = Omega::LinSpace;
 
     } else {
         try {
@@ -91,11 +91,11 @@ void FrequenciesDialog::on_okButton_clicked()
             QMessageBox::critical(this, tr("Design frequencies input"), e.what());
             return;
         }
-        type = Omega::fichero;
+        type = Omega::File;
     }
 
     Omega * omega = new Omega(start, end, frequencies->size(),frequencies,type);
-    controlador->setOmega(omega);
+    controlador->setValues(omega);
 
     todoCorrecto = true;
 

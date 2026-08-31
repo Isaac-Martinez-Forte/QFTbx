@@ -1,5 +1,5 @@
 
-#include "Modelo/Herramientas/exception.h"
+#include "src/core/exception.h"
 #include <QMessageBox>
 
 #include "template_viewer.h"
@@ -99,7 +99,7 @@ void TemplateViewer::setDatos(Controlador * controller){
 
     this->controller = controller;
 
-    this->omega = controller->getOmega()->getValores();
+    this->omega = controller->getOmega()->values();
 
     this->epsilon = controller->getEpsilon();
 
@@ -459,7 +459,7 @@ void TemplateViewer::on_recomputeButton_clicked()
         QMessageBox::critical(this, tr("Template computation"), e.what());
         return;
     }
-    omega = controller->getOmega()->getValores();
+    omega = controller->getOmega()->values();
     //The previous epsilon is deleted by the DAO when accepting the new
     //one; touching it here would be a use-after-free.
     this->epsilon = controller->getEpsilon();

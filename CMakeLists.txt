@@ -143,7 +143,7 @@ set(QFTbx_BACKEND_SRC
     src/core/templates/template_engine.cpp
     DAO/adaptadortemplatedao.cpp
     Modelo/Herramientas/tools.cpp
-    Modelo/Objetos/omega.cpp
+    src/core/frequencies/omega.cpp
     DAO/adaptadorbounddao.cpp
     src/persistence/project_reader.cpp
     src/persistence/project_writer.cpp
@@ -215,8 +215,8 @@ set(QFTbx_BACKEND_HED
     src/core/loopshaping/loop_shaping_types.h
     src/core/math/sequences.h
     src/core/specifications/specification.h
-    Modelo/Herramientas/exception.h
-    Modelo/Objetos/omega.h
+    src/core/exception.h
+    src/core/frequencies/omega.h
     DAO/bounddao.h
     DAO/adaptadorbounddao.h
     DAO/dao.h

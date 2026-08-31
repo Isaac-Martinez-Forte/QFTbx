@@ -88,12 +88,12 @@ void Controlador::setPlanta(LtiSystem *planta){
     plantadao->setPlanta(planta);
 }
 
-void Controlador::setOmega(Omega *omega){
+void Controlador::setValues(Omega *omega){
     if(!paso3)
         omegadao = dao->getOmegaDAO();
     paso3 = true;
 
-    omegadao->setOmega(omega);
+    omegadao->setValues(omega);
 }
 
 void Controlador::setEspecificaciones(QVector<tools::dBND *> *espe){
@@ -166,7 +166,7 @@ bool Controlador::calcularTemplates(QVector <qreal> * epsilon, QHash <QString, Q
     templates->setEpsilon(epsilon);
     templates->setGrids(mapa);
 
-    templates->compute(getPlanta(),getOmega()->getValores(), cuda);
+    templates->compute(getPlanta(),getOmega()->values(), cuda);
 
     //El calculo ya no reordena ni sustituye las frecuencias: basta guardar
     //el epsilon usado para la persistencia.
@@ -220,7 +220,7 @@ bool Controlador::calcularBoundaries(QPointF datosFas, qint32 puntosFas, QPointF
 
     setBoundaries(bound->boundaryData());
 
-    getOmega()->setOmega(bound->omega());
+    getOmega()->setValues(bound->omega());
 
     return true;
 }
@@ -344,7 +344,7 @@ QVector <bool> * Controlador::cargarSistema(QString fichero){
         setEspecificaciones(leer.specifications());
 
     if (retorno->value(2))
-        setOmega(leer.omega());
+        setValues(leer.omega());
 
     if (retorno->value(3)){
         if (retorno->value(7)){
