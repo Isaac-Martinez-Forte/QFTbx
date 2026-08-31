@@ -221,6 +221,9 @@ inline qint32 AlgoritmoInterseccionLineal1D::funcionHash(qreal x, qreal totalFas
 {
     double res = (abs(x)*((qreal)numeroFases/totalFase));
     if(res<0) res=0;
+    //El punto sintetico del borde (|x| == totalFase) daba la cubeta
+    //numeroFases sobre numeroFases cubetas: fuera de rango.
+    if(res > numeroFases - 1) res = numeroFases - 1;
     return (qint32) res;
 }
 
@@ -236,9 +239,27 @@ QVector< QVector<QPointF> * > * AlgoritmoInterseccionLineal1D::crearInterseccion
 
     QPointF punto;
 
-    for (qint32 i=1;i < interseccion->size(); i++) {
+    //Desde i=0 (antes se saltaba el primer punto) y con insercion ordenada
+    //por magnitud y deduplicada, como las cubetas de las capas (y como el
+    //formato de los ficheros historicos).
+    for (qint32 i=0;i < interseccion->size(); i++) {
         punto = interseccion->at(i);
-        interseccionHash->at(funcionHash(punto.x(), totalFase, npuntos))->append(punto);
+        QVector<QPointF> * cubeta = interseccionHash->at(funcionHash(punto.x(), totalFase, npuntos));
+
+        qint32 pos = 0;
+        bool repetido = false;
+        for (; pos < cubeta->size(); pos++){
+            if (cubeta->at(pos).y() == punto.y()){
+                repetido = true;
+                break;
+            }
+            if (cubeta->at(pos).y() > punto.y()){
+                break;
+            }
+        }
+        if (!repetido){
+            cubeta->insert(pos, punto);
+        }
     }
 
     return interseccionHash;
@@ -280,13 +301,15 @@ void AlgoritmoInterseccionLineal1D::ejecutarAlgoritmo(DatosBound * boundaries,
         metadatosArriba->append(false);
 
         bool primeraEspecificacion = true;
-        foreach (QVector <QVector <QPointF> * > * vectorEspecificaciones, *mapa)
+        for (auto it = mapa->constBegin(); it != mapa->constEnd(); ++it)
         {
-            QMapIterator <QString, QVector <QPoint> * > iterador(*mapaMetadatos);
-            if(iterador.hasNext())
+            QVector <QVector <QPointF> * > * vectorEspecificaciones = it.value();
+
+            //Metadatos de LA MISMA especificacion (antes se abria un
+            //iterador nuevo y se leia siempre la primera clave del mapa).
+            QVector <QPoint> * fronterasMetadatos = mapaMetadatos->value(it.key());
+            if (fronterasMetadatos != NULL && !fronterasMetadatos->isEmpty())
             {
-                iterador.next();
-                QVector <QPoint> * fronterasMetadatos = iterador.value();
                 //Si en el eje X de cualquiera de los puntos devuelve 0 la parte permitida va por Arriba y 1 si va por Abajo
                 arriba = !fronterasMetadatos->at(0).x(); //Nos vale el primer punto para saber si la zona permitida es por Arriba o por Abajo
             }

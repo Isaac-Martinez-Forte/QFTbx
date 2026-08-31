@@ -494,29 +494,32 @@ qint32 Boundaries::getZona(QVector<QPointF> * vec, complex <qreal> p0, QVector <
         }
     }
 
+    //La sabana esta en dB: el sondeo de zona compara tambien en dB (antes
+    //se comparaban magnitudes LINEALES contra alturas en dB, y para el
+    //seguimiento una resta lineal contra un spread en dB).
     switch (i){
     case 0:
-        if (dEstabilidadRuido > altura){
+        if (20 * log10(dEstabilidadRuido) > altura){
             return 0;
         }
         break;
     case 1:
-        if ((dEstabilidadRuido - dSeguimiento) > altura){
+        if ((20 * log10(dEstabilidadRuido) - 20 * log10(dSeguimiento)) > altura){
             return 0;
         }
         break;
     case 2:
-        if(dRPS > altura){
+        if(20 * log10(dRPS) > altura){
             return 0;
         }
         break;
     case 3:
-        if (dRPE > altura){
+        if (20 * log10(dRPE) > altura){
             return 0;
         }
         break;
     case 4:
-        if (dEC > altura){
+        if (20 * log10(dEC) > altura){
             return 0;
         }
         break;

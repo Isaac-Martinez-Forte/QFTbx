@@ -179,4 +179,37 @@ TEST_F(BoundariesGolden, ContourInputIsEquivalentToFullTemplates)
     }
 }
 
+TEST_F(BoundariesGolden, ReunionHashIsSortedDeduplicatedAndInRange)
+{
+    // Fixed (C7): the per-phase buckets are built from ALL reunion points
+    // (the first one used to be skipped), the border bucket no longer
+    // indexes out of range, and each bucket is sorted ascending by
+    // magnitude with duplicate magnitudes dropped - the semantics of the
+    // layer buckets and of the historical files.
+    auto* hash = got->getBoundariesReunHash();
+    ASSERT_NE(hash, nullptr);
+    ASSERT_EQ(hash->size(), 5);
+
+    auto* reun = got->getBoundariesReun();
+
+    for (int f = 0; f < 5; ++f) {
+        ASSERT_EQ(hash->at(f)->size(), 361) << "frequency " << f;
+
+        int total = 0;
+        for (QVector<QPointF>* bucket : *hash->at(f)) {
+            for (int k = 0; k < bucket->size(); ++k) {
+                EXPECT_TRUE(reun->at(f)->contains(bucket->at(k)))
+                    << "frequency " << f;
+                if (k > 0) {
+                    EXPECT_GT(bucket->at(k).y(), bucket->at(k - 1).y())
+                        << "frequency " << f << " bucket not strictly sorted";
+                }
+            }
+            total += bucket->size();
+        }
+        EXPECT_GT(total, 0) << "frequency " << f;
+        EXPECT_LE(total, reun->at(f)->size()) << "frequency " << f;
+    }
+}
+
 } // namespace
