@@ -24,13 +24,10 @@ using namespace cxsc;
 namespace alg {
 
 /**
-* Contiene una lista de las operaciones y funciones soportadas por el interprete.
+* Node kinds of the expression interpreter.
 *
-* CONST, PI, E, VARX, VARY, VARZ, VART : siempre serán nodos hojas poque representan un valor (operando)
-*
-* SUMA, RESTA, MULT, DIV, POT : son los operadores binarios soportados por el intérprete, siempre serán nodos binarios
-*
-* SIN, COS, LN, ABS, .... : son los operadores unarios soportados, siempre serán nodos unarios
+* CONS, PI, E, VAR are always leaves (they stand for a value);
+* SUMA..POT are the binary operators; SIN..SQRT the unary functions.
 */
 enum type_node { CONS, PI, E, VAR,
                  PAR,
@@ -38,130 +35,83 @@ enum type_node { CONS, PI, E, VAR,
                  SIN, COS, TAN, SINH, COSH, ATAN, TANH, ASIN,
                  ACOS, EXP, ABS, LN, LG, SQRT };
 
+/// Comparison attached to a constraint expression (expr >= value, ...).
 enum com { MAYOR, MENOR, MAYORIGUAL, MENORIGUAL, IGUAL};
 
 /**
-*  Node del árbol binario de expresiones.
+* One node of the binary expression tree: a leaf holds a numeric value
+* (c_const) or a variable identifier (var); an inner node holds the
+* operation applied to its branches. 'intervalo' caches the interval of
+* the subtree during the forward phase of the HC4 filter, so the backward
+* phase can project through it.
 */
 struct exp_node
 {
-    /**
-* c_const : este campo almacena un valor númerico, que puede el valor de una variable (x, y, z, t)
-* o bien un valor constante contenido en la expresión matemática. Este campo solo es usado cuando el nodo
-* no tiene más ramificaciones (nodo hoja)
-*/
     double c_const;
 
-    /**
-* type : indica el tipo de nodo, en el árbol de expresiones cada nodo indica una operación a realizar
-* o bien almacena un valor númerico (que estará en c_const), en cuyo caso la operación a realizar es
-* retornar dicho valor.
-*/
     type_node type;
 
-    /**
-* var : indica el identificador de la variable.
-*/
     std::string var;
 
-    /**
-* intervalo : indica el valor del intervalo en ese nodo;
-*/
     interval intervalo;
 
-    /**
-* left : es un puntero a otro nodo, es la rama izquierda del nodo, cuando left contiene el valor NULL
-* entones el nodo no tiene rama izquierda.
-*/
     exp_node *left;
 
-    /**
-* rigth : es un puntero a otro nodo, es la rama derecha del nodo, cuando rigth contiene el valor NULL
-* entones el nodo no tiene rama derecha.
-*/
     exp_node *rigth;
 };
 
 /**
-*  La clase  ExpressionTree define un arbol binario de expresiones.
-*  Esta clase implementa un interprete de funciones de cuatro variables
-*  x, y, z, y t.
+* Binary expression tree over named variables: parses a textual expression
+* once and evaluates it over reals or over intervals, and — as the HC4
+* hull-consistency filter of algorithm MR — narrows the variable domains
+* against the constraint "expression <comparison> value" (propagate).
+*
+* The lexer accepts identifiers [A-Za-z][A-Za-z0-9_]*, numeric constants
+* with scientific notation, the operators + - * / ^ and the unary
+* functions listed in type_node. An unknown variable at evaluation time
+* throws std::invalid_argument (the historical code returned an
+* UNINITIALISED interval).
 */
 class ExpressionTree
 {
 public :
-    /**
-* Constructor simple.
-*/
     ExpressionTree();
 
-    /**
-* Constructor simple.
-* @param tex : es una referencia a un objeto std::string
-* donde esta contenida la expresión matemática, dicha expresión
-* debe contener solamente carácteres alfanúmericos y espacios en blanco
-*/
+    /// Parses "tex <comparacion> num" as a constraint (the HC4 use).
     ExpressionTree(const std::string &tex, qreal num, com comparacion);
 
-    /**
-* Constructor simple.
-* @param tex : es un puntero a una cadena de carácteres
-* donde esta contenida la expresión matemática, dicha cadena
-* debe contener solamente carácteres alfanúmericos y espacios en blanco
-*/
+    /// Parses a plain expression.
     ExpressionTree(const char *tex);
 
-    /**
-* Constructor de copia.
-* @param other : es una referencia a otra objeto del tipo ExpressionTree,
-*
-*/
     ExpressionTree(const ExpressionTree & other);
     ~ExpressionTree();
 
-    /**
-* Establece una nueva expresión matemática.
-* @param tex : es una referencia a un objeto std::string
-* donde esta contenida la expresión matemática, dicha expresión
-* debe contener solamente carácteres alfanúmericos y espacios en blanco
-*/
+    /// Replaces the parsed expression.
     void setFunc(const std::string &tex);
 
+    /// Replaces the parsed expression and its constraint comparison.
     void setFunc(const std::string &tex, qreal resultado, com comparacion);
 
-    /**
-* Establece una nueva expresión matemática.
-* @param tex : es un puntero a una cadena de carácteres
-* donde esta contenida la expresión matemática, dicha cadena
-* debe contener solamente carácteres alfanúmericos y espacios en blanco
-*/
     void setFunc(const char *tex);
 
-    /**
-* Evalua la expresión matemática.
-* @return Se retorna el resultado de evaluar la expresión matemática.
-*/
+    /// Evaluates over reals with the given variable values.
     qreal eval(QMap <std::string, qreal> * variables = NULL);
 
-    interval eval (QMap<std::string, interval > *variables);///////////////////////////////////////////
+    /// Evaluates over intervals with the given variable domains.
+    interval eval (QMap<std::string, interval > *variables);
 
-    //interval eval (QMap<std::string, interval > *variables, qreal w);///////////////////////////////////////////
-
+    /// One HC4 pass over the constraint: forward interval evaluation,
+    /// intersection with the constraint set, backward projection narrowing
+    /// 'variables' in place. Returns false when a domain empties (the
+    /// constraint proves the box infeasible).
     bool propagate (QMap<std::string, interval > *variables);
 
+    /// Prints the tree to stdout (debugging aid).
     void imprimir ();
 
-    /**
-* Operador de asignación.
-*/
     ExpressionTree &operator=(const ExpressionTree & other);
 
-    /**
-* Operador de paréntesis ().
-* El operador de paréntesis, es una alternativa
-* a la función miembro eval, para evaluar la expresión matemática.
-* @return Se retorna resultado de evaluar la expresión.
-*/
+    /// Alternative spelling of eval().
     qreal operator()(QMap <std::string, qreal> * variables = NULL);
 
     interval operator() (QMap<std::string, interval > *variables);
@@ -198,10 +148,6 @@ private :
 
     bool es_letra(char tex);
 
-
-
-
-
     exp_node *root;
     QMap <std::string, qreal> * variables;
     QMap <std::string, interval > * variables_in;
@@ -213,7 +159,7 @@ private :
 };
 
 /**
-*   Pila de Nodos
+*   Stack of nodes (used by the parser).
 */
 class pilaNode
 {
@@ -234,7 +180,7 @@ private:
 };
 
 /**
-*   Pila de Operadores
+*   Stack of operators (used by the parser).
 */
 class pilaOp
 {
