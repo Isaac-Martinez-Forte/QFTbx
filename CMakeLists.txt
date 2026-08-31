@@ -136,6 +136,7 @@ set(QFTbx_BACKEND_SRC
     Modelo/EstructurasDatos/datosplanta.cpp
     XmlParser/xmlparserload.cpp
     src/persistence/project_reader.cpp
+    src/persistence/project_writer.cpp
     DAO/fdao.cpp
     src/core/boundaries/boundary_data.cpp
     DAO/adaptadorespecificacionesdao.cpp
@@ -213,6 +214,8 @@ set(QFTbx_BACKEND_HED
     src/core/boundaries/boundary_data.h
     XmlParser/parserload.h
     src/persistence/project_reader.h
+    src/persistence/project_writer.h
+    src/persistence/qft_dialect.h
     XmlParser/parsersave.h
     DAO/especificacionesdao.h
     DAO/adaptadorespecificacionesdao.h
