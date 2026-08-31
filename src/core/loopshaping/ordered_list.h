@@ -25,14 +25,14 @@ public:
     OrderedList(bool mayor = false);
     ~OrderedList();
 
-    void insert (N *elemento);
+    void insert (ListNode *elemento);
 
-    N * first();
-    N * takeFirst();
+    ListNode * first();
+    ListNode * takeFirst();
 
     void removeFirst();
 
-    N * last();
+    ListNode * last();
 
     void removeLast();
 
@@ -41,7 +41,7 @@ public:
 private:
 
     //Ascending or descending by node index; ties keep insertion order.
-    std::multimap <qreal, N *, bool(*)(qreal, qreal)> lista;
+    std::multimap <qreal, ListNode *, bool(*)(qreal, qreal)> lista;
 
 };
 

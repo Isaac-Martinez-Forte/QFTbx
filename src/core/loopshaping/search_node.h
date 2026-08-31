@@ -1,50 +1,37 @@
 #ifndef QFTBX_LOOPSHAPING_SEARCH_NODE_H
 #define QFTBX_LOOPSHAPING_SEARCH_NODE_H
 
-#include "cinterval.hpp"
 #include "Modelo/Herramientas/tools.h"
 #include "src/core/system/lti_system.h"
-#include "src/core/loopshaping/list_node.h"
+#include "list_node.h"
 
-using namespace tools;
-
-class SearchNode : public N {
+//Live-list node of the interval branch & bound: the controller parameter
+//box, its objective infimum (the list index, inherited from ListNode) and
+//its feasibility flag. THE NODE OWNS ITS SYSTEM: destroying the node
+//destroys the box (children of a bisection are always deep copies).
+class SearchNode : public ListNode {
 
 public:
 
     SearchNode() {}
 
-    SearchNode(qreal index, LtiSystem * sistema, BoxFlag flags = ambiguous);
+    SearchNode(qreal index, LtiSystem * sistema, tools::BoxFlag flag = tools::ambiguous);
 
     ~SearchNode();
 
-    SearchNode &operator=(const SearchNode &c) ;
+    tools::BoxFlag flag() const;
+    void setFlag(const tools::BoxFlag & value);
 
-    bool operator==(const SearchNode &c) const;
-    bool operator!=(const SearchNode &c) const;
-    bool operator<(const SearchNode &c) const;
-    bool operator>(const SearchNode &c) const;
-    bool operator<=(const SearchNode &c) const;
-    bool operator>=(const SearchNode &c) const;
+    LtiSystem * system() const;
 
-    BoxFlag flag() const;
+    /// Replaces the owned system pointer; the CALLER disposes of the
+    /// previous one (the cutting passes rebuild it in place).
+    void setSystem(LtiSystem * value);
 
-    void setFlag(const BoxFlag &value);
-
-    LtiSystem *system() const;
-
-    void setSystem(LtiSystem *value);
-
-    void releaseOwnership();
-    void deepDeleteSystem();
 protected:
 
-    LtiSystem * sistema;
-    BoxFlag flags;
-
-    bool b = true;
-    bool b2 = true;
-
+    LtiSystem * sistema = nullptr;
+    tools::BoxFlag flags = tools::ambiguous;
 };
 
 #endif // QFTBX_LOOPSHAPING_SEARCH_NODE_H

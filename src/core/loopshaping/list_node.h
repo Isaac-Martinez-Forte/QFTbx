@@ -4,14 +4,18 @@
 #include "QtCore"
 
 
-class N {
+class ListNode {
 
 public:
-    N(){};
+    ListNode(){};
 
-    N(qreal index) {
+    ListNode(qreal index) {
         this->index = index;
     }
+
+    //Nodes are deleted through this base by their owners (the live list
+    //drains its leftovers on destruction).
+    virtual ~ListNode() {}
 
     qreal getIndex() const
     {

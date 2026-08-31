@@ -21,22 +21,27 @@ OrderedList::OrderedList(bool mayor)
 
 OrderedList::~OrderedList()
 {
-    //The list does not own the nodes: the algorithms keep and delete them.
+    //Nodes taken out of the list belong to the taker; whatever is still
+    //queued when the search ends dies with the list (the historical
+    //version leaked every live node left behind by a successful return).
+    for (auto & entry : lista) {
+        delete entry.second;
+    }
 }
 
-void OrderedList::insert(N * elemento)
+void OrderedList::insert(ListNode * elemento)
 {
     lista.insert({elemento->getIndex(), elemento});
 }
 
-N * OrderedList::first()
+ListNode * OrderedList::first()
 {
     return lista.begin()->second;
 }
 
-N * OrderedList::takeFirst()
+ListNode * OrderedList::takeFirst()
 {
-    N * n = lista.begin()->second;
+    ListNode * n = lista.begin()->second;
 
     lista.erase(lista.begin());
 
@@ -48,7 +53,7 @@ void OrderedList::removeFirst()
     lista.erase(lista.begin());
 }
 
-N * OrderedList::last()
+ListNode * OrderedList::last()
 {
     return std::prev(lista.end())->second;
 }

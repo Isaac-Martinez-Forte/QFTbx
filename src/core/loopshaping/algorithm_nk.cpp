@@ -146,7 +146,6 @@ bool AlgorithmNk::init_algorithm(){
         //Step 8: bisect along the widest parameter direction.
         struct BisectionResult retur = bisectWidestParameter(node->system());
 
-        node->deepDeleteSystem();
         delete node;
 
         //Steps 9-14: Quick Solution + feasibility + insertion.

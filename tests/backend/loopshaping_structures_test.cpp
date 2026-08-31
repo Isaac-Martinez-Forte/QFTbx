@@ -18,9 +18,9 @@ namespace {
 
 using cxsc::interval;
 
-N* node(qreal index)
+ListNode* node(qreal index)
 {
-    return new N(index);
+    return new ListNode(index);
 }
 
 TEST(OrderedList, AscendingInsertsKeepTheOrder)
@@ -88,7 +88,7 @@ TEST(OrderedList, FirstRetrieveAndDeleteWork)
     lista.insert(node(7));
     EXPECT_FALSE(lista.isEmpty());
 
-    N* primero = lista.takeFirst();
+    ListNode* primero = lista.takeFirst();
     EXPECT_EQ(primero->getIndex(), 7);
     delete primero;
 

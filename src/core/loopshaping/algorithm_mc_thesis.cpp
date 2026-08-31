@@ -63,16 +63,6 @@ void cornerVectors(LtiSystem * box, bool zerosAtSup, bool polesAtSup,
     }
 }
 
-//Deep destruction of a node: SearchNode keeps the system alive by default
-//(the legacy split shares internals); here every child is a deep copy,
-//so the popped node's system dies with it.
-void destroyNode(McSearchNode * node)
-{
-    node->releaseOwnership();
-    node->deepDeleteSystem();
-    delete node;
-}
-
 } // namespace
 
 
@@ -251,7 +241,7 @@ bool AlgorithmMcThesis::init_algorithm()
         //Strict comparison: a node whose infimum EQUALS C still realises
         //the certified optimum (thesis 5.4.3 prescribes < over <=).
         if (bestCertifiedGain < node->system()->gain()->range().x()) {
-            destroyNode(node);
+            delete node;
             continue;
         }
 
@@ -261,7 +251,7 @@ bool AlgorithmMcThesis::init_algorithm()
         //the optimum of the box (stability was certified at insertion).
         if (node->flag() == feasible) {
             controlador_retorno = pointFromBox(node->system(), true);
-            destroyNode(node);
+            delete node;
             delete bestCertifiedController;
             cleanup();
             return true;
@@ -275,7 +265,7 @@ bool AlgorithmMcThesis::init_algorithm()
 
         if (analysis.flag == feasible) {
             controlador_retorno = pointFromBox(node->system(), true);
-            destroyNode(node);
+            delete node;
 
             if (!stability->isNominallyStable(controlador_retorno)) {
                 delete controlador_retorno;
@@ -292,7 +282,7 @@ bool AlgorithmMcThesis::init_algorithm()
         //pass the stability criterion, as reviewed for NT.
         if (isEpsilonSmall(node->system(), epsilon, omega, conversion, plantas_nominales)) {
             controlador_retorno = pointFromBox(node->system(), false);
-            destroyNode(node);
+            delete node;
 
             if (!stability->isNominallyStable(controlador_retorno)) {
                 delete controlador_retorno;
@@ -310,7 +300,7 @@ bool AlgorithmMcThesis::init_algorithm()
 
         //C may have improved inside F.
         if (bestCertifiedGain < node->system()->gain()->range().x()) {
-            destroyNode(node);
+            delete node;
             continue;
         }
 
@@ -323,7 +313,7 @@ bool AlgorithmMcThesis::init_algorithm()
             }
 
             if (bestCertifiedGain < child->system()->gain()->range().x()) {
-                destroyNode(child);
+                delete child;
                 continue;
             }
 
@@ -369,7 +359,7 @@ inline bool AlgorithmMcThesis::analyse(McSearchNode * node, NodeAnalysis & out)
 
         if (datos->flag() == infeasible) {
             delete datos;
-            destroyNode(node);
+            delete node;
             return false;
         }
 
@@ -1028,7 +1018,7 @@ inline FC::McBisectionResult AlgorithmMcThesis::bisectAt(McSearchNode * node, qi
     retur.t2 = makeChild(upper);
     retur.descartado = false;
 
-    destroyNode(node);
+    delete node;
 
     return retur;
 }

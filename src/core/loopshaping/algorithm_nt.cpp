@@ -135,7 +135,6 @@ bool AlgorithmNt::init_algorithm() {
         //Step 4: bisect along the widest parameter direction.
         struct BisectionResult retur = bisectWidestParameter(node->system());
 
-        node->deepDeleteSystem();
         delete node;
 
         //Steps 5-6: classify the subboxes and insert them in NL.

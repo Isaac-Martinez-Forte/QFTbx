@@ -168,7 +168,6 @@ bool AlgorithmMc1::init_algorithm()
         //Step 4: bisect along the widest parameter direction.
         struct BisectionResult retur = bisectWidestParameter(node->system());
 
-        node->deepDeleteSystem();
         delete node;
 
         //Steps 4bis-6: QS2 + feasibility + insertion.

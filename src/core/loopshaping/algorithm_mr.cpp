@@ -288,7 +288,6 @@ bool AlgorithmMr::init_algorithm(){
 
         struct BisectionResult retur = bisectWidestParameter(node->system());
 
-        node->deepDeleteSystem();
         delete node;
 
         classifyAndInsert(retur.v1);

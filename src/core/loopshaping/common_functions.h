@@ -107,130 +107,78 @@ inline bool isEpsilonSmall(LtiSystem * controlador, qreal epsilon, QVector <qrea
 
 //Función que divide la caja en dos.
 
-inline BisectionResult bisectWidestParameter(LtiSystem *current_controlador) {
+inline BisectionResult bisectWidestParameter(LtiSystem * box) {
 
-    QVector <Parameter *> * numerador = current_controlador->numerator();
-    QVector <Parameter *> * denominador = current_controlador->denominator();
+    //Widest uncertain parameter: -1 is the gain, then the numerator and
+    //denominator positions.
+    qint32 widest = -2;
+    qreal width = -1;
+    QPointF range;
 
-    QVector <Parameter *> * numeradorCopia = new QVector <Parameter *> ();
-    QVector <Parameter *> * denominadorCopia = new QVector <Parameter *> ();
+    if (box->gain()->isUncertain()) {
+        range = box->gain()->range();
+        widest = -1;
+        width = range.y() - range.x();
+    }
 
-    Parameter * k = current_controlador->gain();
-    Parameter * ret = current_controlador->delay();
+    qint32 position = 0;
 
-    QString nombre = current_controlador->name();
-
-    //Variables contador;
-    qint32 mayor_pos = -1;
-    qreal mayor_rango = -1;
-
-    //Variables auxiliares
-    qreal lon = 0;
-    qreal cont = 0;
-
-    //Sistemas hijos creados
-
-    LtiSystem * v1, * v2;
-    struct FC::BisectionResult retur;
-
-
-    //Bucle del numerador
-    Parameter * v;
-    for (qint32 i = 0; i < numerador->size(); i++) {
-        v = numerador->at(i);
-        numeradorCopia->append(v->clone());
-        if (v->isUncertain()) {
-
-            lon = v->range().y() - v->range().x();
-
-            if (lon > mayor_rango) {
-                mayor_pos = cont;
-                mayor_rango = lon;
-            }
+    const auto consider = [&](Parameter * var) {
+        if (var->isUncertain() && var->range().y() - var->range().x() > width) {
+            widest = position;
+            width = var->range().y() - var->range().x();
+            range = var->range();
         }
-        cont++;
+        position++;
+    };
+
+    foreach (Parameter * var, *box->numerator()) {
+        consider(var);
+    }
+    foreach (Parameter * var, *box->denominator()) {
+        consider(var);
     }
 
-    //Bucle del denominador
-    for (qint32 i = 0; i < denominador->size(); i++) {
-        v = denominador->at(i);
-        denominadorCopia->append(v->clone());
-        if (v->isUncertain()) {
+    const qreal middle = range.x() + width / 2;
 
-            lon = v->range().y() - v->range().x();
+    //Both children are DEEP copies and the parent stays untouched: its
+    //node keeps sole ownership of it (the historical version handed the
+    //parent's vectors to the second child, forcing every caller to leak
+    //the parent shell to stay safe). The halves keep the parameter's
+    //NAME: the ICSP constraint trees address the variables by name.
+    const auto half = [&](bool lower) -> LtiSystem * {
+        const QPointF halfRange = lower ? QPointF(range.x(), middle)
+                                        : QPointF(middle, range.y());
 
-            if (lon > mayor_rango) {
-                mayor_pos = cont;
-                mayor_rango = lon;
-            }
+        Parameter * gain = widest == -1
+                ? new Parameter(box->gain()->name(), halfRange, halfRange.x(), box->gain()->name())
+                : box->gain()->clone();
+
+        qint32 index = 0;
+
+        auto * numerator = new QVector<Parameter*>();
+        foreach (Parameter * var, *box->numerator()) {
+            numerator->append(index++ == widest
+                    ? new Parameter(var->name(), halfRange, halfRange.x())
+                    : var->clone());
         }
-        cont++;
-    }
 
-    //Estudiamos la k
-    if (k->isUncertain()) {
-
-        lon = k->range().y() - k->range().x();
-
-        if (lon > mayor_rango) {
-            mayor_pos = -1;
-            mayor_rango = lon;
+        auto * denominator = new QVector<Parameter*>();
+        foreach (Parameter * var, *box->denominator()) {
+            denominator->append(index++ == widest
+                    ? new Parameter(var->name(), halfRange, halfRange.x())
+                    : var->clone());
         }
-    }
 
+        return box->create(box->name(), numerator, denominator, gain,
+                           box->delay()->clone());
+    };
 
-    if (mayor_pos == -1) {
-        //The halves keep the parameter's NAME: the ICSP constraint trees
-        //address the variables by name (the historical code renamed the
-        //gain to "kv" and erased the zero/pole names).
-        qreal dis = k->range().x();
-        Parameter * k1 = new Parameter(k->name(), QPointF(dis, dis + (mayor_rango / 2)), dis);
-        dis += mayor_rango / 2;
-        Parameter * k2 = new Parameter(k->name(), QPointF(dis, k->range().y()), dis);
-
-        delete k;
-
-        v1 = current_controlador->create(nombre, numerador, denominador, k1, ret);
-        v2 = current_controlador->create(nombre, numeradorCopia, denominadorCopia, k2, ret->clone());
-    } else if (mayor_pos < numerador->size()) {
-
-        Parameter * variable = numerador->at(mayor_pos);
-
-        qreal dis = variable->range().x();
-
-        numeradorCopia->replace(mayor_pos, new Parameter(variable->name(), QPointF(dis, dis + mayor_rango / 2), dis));
-
-        dis += mayor_rango / 2;
-        numerador->replace(mayor_pos, new Parameter(variable->name(), QPointF(dis, variable->range().y()), dis));
-
-
-        v1 = current_controlador->create(nombre, numeradorCopia, denominadorCopia, k->clone(), ret->clone());
-        v2 = current_controlador->create(nombre, numerador, denominador, k, ret);
-
-        delete variable;
-
-    } else {
-        mayor_pos -= numerador->size();
-
-        Parameter * variable = denominador->at(mayor_pos);
-        qreal dis = variable->range().x();
-
-        denominadorCopia->replace(mayor_pos, new Parameter(variable->name(), QPointF(dis, dis + mayor_rango / 2), dis));
-
-        dis += mayor_rango / 2;
-        denominador->replace(mayor_pos, new Parameter(variable->name(), QPointF(dis, variable->range().y()), dis));
-
-        v1 = current_controlador->create(nombre, numeradorCopia, denominadorCopia, k->clone(), ret->clone());
-        v2 = current_controlador->create(nombre, numerador, denominador, k, ret);
-
-        delete variable;
-
-    }
-
-
-    retur.v1 = v1;
-    retur.v2 = v2;
+    BisectionResult retur;
+    retur.v1 = half(true);
+    retur.v2 = half(false);
     retur.descartado = false;
+
     return retur;
 }
 
