@@ -69,6 +69,7 @@ private slots:
 private:
 
     void crearCuadro(QColor color, qint32 pos);
+    void clearDiagram();
 
     BoundaryData * boundaries;
     QVector <qreal> * omega;

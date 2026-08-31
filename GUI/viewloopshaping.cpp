@@ -21,26 +21,46 @@ ViewLoopShaping::ViewLoopShaping(QWidget *parent) :
     cajaFrecuencias = new QGroupBox(this);
     cajaFrecuencias->setObjectName("cajaFrecuencias");
     cajaFrecuencias->setGeometry(QRect(1060, 0, 120, 581));
-    //cajaFrecuencias->setTitle(QApplication::translate("GrafTemp", "Frecuencias", 0));
+
+    //Conectados UNA vez (cada repintado anadia una conexion duplicada).
+    connect(ui->diagrama->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->diagrama->xAxis2, SLOT(setRange(QCPRange)));
+    connect(ui->diagrama->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->diagrama->yAxis2, SLOT(setRange(QCPRange)));
 }
 
 ViewLoopShaping::~ViewLoopShaping()
 {
-    if (ejecutado){
-        graficos->clear();
-        ui->diagrama->clearFocus();
-        ui->diagrama->clearGraphs();
-        ui->diagrama->clearItems();
-        ui->diagrama->clearPlottables();
-        foreach (QCheckBox * che, *checkbox) {
-            delete che;
-        }
-
-        checkbox->clear();
-        delete layoutColores;
-    }
+    clearDiagram();
 
     delete ui;
+}
+
+void ViewLoopShaping::clearDiagram(){
+
+    if (!ejecutado){
+        return;
+    }
+
+    ui->diagrama->clearFocus();
+    ui->diagrama->clearGraphs();
+    ui->diagrama->clearItems();
+    //QCustomPlot es dueno de las curvas: clearPlottables las libera.
+    ui->diagrama->clearPlottables();
+
+    //Filas de la caja de frecuencias enteras y contenedores de punteros:
+    //antes los widgets contenedores se acumulaban y los vectores se fugaban.
+    foreach (QCheckBox * che, *checkbox) {
+        delete che->parentWidget();
+    }
+    delete checkbox;
+    checkbox = nullptr;
+
+    delete graficos;
+    graficos = nullptr;
+
+    delete layoutColores;
+    layoutColores = nullptr;
+
+    ejecutado = false;
 }
 
 
@@ -84,19 +104,7 @@ void ViewLoopShaping::mostrar_diagrama(){
 
 
 
-    if (ejecutado){
-        graficos->clear();
-        ui->diagrama->clearFocus();
-        ui->diagrama->clearGraphs();
-        ui->diagrama->clearItems();
-        ui->diagrama->clearPlottables();
-        foreach (QCheckBox * che, *checkbox) {
-            delete che;
-        }
-
-        checkbox->clear();
-        delete layoutColores;
-    }
+    clearDiagram();
 
     layoutColores = new QVBoxLayout (cajaFrecuencias);
     checkbox = new QVector <QCheckBox *> ();
@@ -133,8 +141,8 @@ void ViewLoopShaping::mostrar_diagrama(){
         curva->setPen(color);
         graficos->append(curva);
 
-        ejex->clear();
-        ejey->clear();
+        delete ejex;
+        delete ejey;
 
         /*ui->diagrama->graph(k)->setPen(color);
         ui->diagrama->graph(k)->setLineStyle(QCPGraph::lsNone);
@@ -240,8 +248,19 @@ void ViewLoopShaping::mostrar_diagrama(){
     }
 
 
-    ejex->clear();
-    ejey->clear();
+    //Los tramos del lazo ya estan copiados en las curvas: se liberan los
+    //vectores (antes se abandonaban todos en cada repintado), igual que el
+    //vector de frecuencias del barrido.
+    foreach (QVector <qreal> * tramo, *ejex) {
+        delete tramo;
+    }
+    delete ejex;
+    foreach (QVector <qreal> * tramo, *ejey) {
+        delete tramo;
+    }
+    delete ejey;
+
+    delete frecuencias;
 
 
     //Dibujamos las cruces para cada frecuencia
@@ -269,9 +288,6 @@ void ViewLoopShaping::mostrar_diagrama(){
     ui->diagrama->xAxis2->setTickLabels(false);
     ui->diagrama->yAxis2->setVisible(true);
     ui->diagrama->yAxis2->setTickLabels(false);
-
-    connect(ui->diagrama->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->diagrama->xAxis2, SLOT(setRange(QCPRange)));
-    connect(ui->diagrama->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->diagrama->yAxis2, SLOT(setRange(QCPRange)));
 
     ui->diagrama->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
 
@@ -317,24 +333,23 @@ void ViewLoopShaping::pintarCuadro(QColor color, qint32 pos){
 void ViewLoopShaping::on_guardar_clicked()
 {
     bool noFallo = true;
-    QString * extension = new QString();
+    QString extension;
     QString fileName = QFileDialog::getSaveFileName(this, tr("Guardar Fichero"),"",
-                                                    tr((".png (*.png);;.pdf(*.pdf);; .jpg(*.jpg);; .bmp(*.bmp)")), extension);
+                                                    tr((".png (*.png);;.pdf(*.pdf);; .jpg(*.jpg);; .bmp(*.bmp)")), &extension);
     if (!fileName.isEmpty()){
-        if (extension->contains(".pdf", Qt::CaseInsensitive)){
+        if (extension.contains(".pdf", Qt::CaseInsensitive)){
             noFallo = ui->diagrama->savePdf(fileName, true);
-        }else if (extension->contains(".png", Qt::CaseInsensitive)){
+        }else if (extension.contains(".png", Qt::CaseInsensitive)){
             noFallo = ui->diagrama->savePng(fileName);
-        }else if (extension->contains(".jpg", Qt::CaseInsensitive)){
+        }else if (extension.contains(".jpg", Qt::CaseInsensitive)){
             noFallo = ui->diagrama->saveJpg(fileName);
-        }else if (extension->contains(".bmp", Qt::CaseInsensitive)){
+        }else if (extension.contains(".bmp", Qt::CaseInsensitive)){
             noFallo = ui->diagrama->saveBmp(fileName);
         }else{
             noFallo = false;
         }
 
         if (!noFallo)
-            menerror("No se ha podido guardar la imagen", "Grafico Boundaries");
+            menerror("No se ha podido guardar la imagen", "Grafico Loop Shaping");
     }
-    delete extension;
 }

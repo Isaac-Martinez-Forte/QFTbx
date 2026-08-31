@@ -19,37 +19,57 @@ ViewBoundReun::ViewBoundReun(QWidget *parent) :
     cajaFrecuencias = new QGroupBox(this);
     cajaFrecuencias->setObjectName("cajaFrecuencias");
     cajaFrecuencias->setGeometry(QRect(10, 120, 120, 451));
-    graficos2 = NULL;
-    graficos3 = NULL;
-    //cajaFrecuencias->setTitle(QApplication::translate("GrafTemp", "Frecuencias", 0));
+    graficos2 = nullptr;
+    graficos3 = nullptr;
+
+    //Conectados UNA vez (cada repintado anadia una conexion duplicada).
+    connect(ui->diagrama->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->diagrama->xAxis2, SLOT(setRange(QCPRange)));
+    connect(ui->diagrama->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->diagrama->yAxis2, SLOT(setRange(QCPRange)));
 }
 
 ViewBoundReun::~ViewBoundReun()
 {
-    if (ejecutado){
-        graficos->clear();
-        ui->diagrama->clearFocus();
-        ui->diagrama->clearGraphs();
-        ui->diagrama->clearItems();
-        ui->diagrama->clearPlottables();
-        foreach (QCheckBox * che, *checkbox) {
-            delete che;
-        }
-
-        checkbox->clear();
-        delete layoutColores;
-        col->clear();
-    }
-
-    if (graficos2 != NULL){
-        graficos2->clear();
-    }
-
-    if (graficos3 != NULL){
-        graficos3->clear();
-    }
+    clearDiagram();
 
     delete ui;
+}
+
+void ViewBoundReun::clearDiagram(){
+
+    //graficos2/graficos3 apuntan a plottables que clearPlottables libera:
+    //conservarlos entre repintados dejaba punteros colgantes en
+    //revisarCheckBox. Se liberan los contenedores y se anulan siempre.
+    delete graficos2;
+    graficos2 = nullptr;
+    delete graficos3;
+    graficos3 = nullptr;
+
+    if (!ejecutado){
+        return;
+    }
+
+    ui->diagrama->clearFocus();
+    ui->diagrama->clearGraphs();
+    ui->diagrama->clearItems();
+    //QCustomPlot es dueno de las curvas: clearPlottables las libera.
+    ui->diagrama->clearPlottables();
+
+    foreach (QCheckBox * che, *checkbox) {
+        delete che->parentWidget();
+    }
+    delete checkbox;
+    checkbox = nullptr;
+
+    delete graficos;
+    graficos = nullptr;
+
+    delete layoutColores;
+    layoutColores = nullptr;
+
+    delete col;
+    col = nullptr;
+
+    ejecutado = false;
 }
 
 
@@ -57,6 +77,10 @@ void ViewBoundReun::setDatos(QVector<QVector<QPointF> *> *boun, QVector<qreal> *
     this->boun = boun;
     this->omega = omega;
     hash = false;
+    //Sin esto, un uso previo del modo un-solo-boundarie dejaba el indice
+    //pegado y este modo pintaba una sola frecuencia.
+    unBoundarie = -1;
+    b = nullptr;
 }
 
 void ViewBoundReun::setDatos(QVector<QVector<QPointF> *> *boun, QVector<qreal> *omega, qint32 unBoundarie){
@@ -70,31 +94,21 @@ void ViewBoundReun::setDatos (QVector< QVector< QVector<QPointF> * > * > * boun,
     bounHash = boun;
     this->omega = omega;
     hash = true;
+    unBoundarie = -1;
+    b = nullptr;
 }
 
 void ViewBoundReun::setDatos (QVector< QVector< QVector<QPointF> * > * > * boun, QVector<qreal> *omega, QVector<QPointF> * b) {
     bounHash = boun;
     this->omega = omega;
     hash = true;
+    unBoundarie = -1;
     this->b = b;
 }
 
 void ViewBoundReun::mostrar_diagrama(){
 
-    if (ejecutado){
-        graficos->clear();
-        ui->diagrama->clearFocus();
-        ui->diagrama->clearGraphs();
-        ui->diagrama->clearItems();
-        ui->diagrama->clearPlottables();
-        foreach (QCheckBox * che, *checkbox) {
-            delete che;
-        }
-
-        checkbox->clear();
-        delete layoutColores;
-        col->clear();
-    }
+    clearDiagram();
 
     layoutColores = new QVBoxLayout (cajaFrecuencias);
     checkbox = new QVector <QCheckBox *> ();
@@ -132,18 +146,20 @@ void ViewBoundReun::mostrar_diagrama(){
                 graficos->append(curva);
                 pintarCuadro(color, k);
 
-                ejex->clear();
-                ejey->clear();
+                delete ejex;
+                delete ejey;
 
                 k++;
             }
         } else {
 
-            if (this->b != nullptr){
-                bounHash->removeLast();
-            }
+            //El contenedor es del DAO: antes se le hacia removeLast() y la
+            //ultima frecuencia desaparecia PERMANENTEMENTE del proyecto.
+            const qint32 frecuencias = (this->b != nullptr) ? bounHash->size() - 1
+                                                            : bounHash->size();
 
-            foreach (QVector <QVector <QPointF> * > * bound, *bounHash) {
+            for (qint32 f = 0; f < frecuencias; f++) {
+                QVector <QVector <QPointF> * > * bound = bounHash->at(f);
                 QColor color = ramdonColor(contador);
                 contador++;
                 col->append(color);
@@ -165,8 +181,8 @@ void ViewBoundReun::mostrar_diagrama(){
 
                 pintarCuadro(color, k);
 
-                ejex->clear();
-                ejey->clear();
+                delete ejex;
+                delete ejey;
 
                 k++;
             }
@@ -190,8 +206,8 @@ void ViewBoundReun::mostrar_diagrama(){
 
                 pintarCuadro(color, k);
 
-                ejex->clear();
-                ejey->clear();
+                delete ejex;
+                delete ejey;
 
                 k++;
             }
@@ -216,8 +232,8 @@ void ViewBoundReun::mostrar_diagrama(){
         graficos->append(curva);
         pintarCuadro(color, k);
 
-        ejex->clear();
-        ejey->clear();
+        delete ejex;
+        delete ejey;
 
         k++;
     }
@@ -226,9 +242,6 @@ void ViewBoundReun::mostrar_diagrama(){
     ui->diagrama->xAxis2->setTickLabels(false);
     ui->diagrama->yAxis2->setVisible(true);
     ui->diagrama->yAxis2->setTickLabels(false);
-
-    connect(ui->diagrama->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->diagrama->xAxis2, SLOT(setRange(QCPRange)));
-    connect(ui->diagrama->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->diagrama->yAxis2, SLOT(setRange(QCPRange)));
 
     ui->diagrama->axisRect()->setupFullAxesBox();
     ui->diagrama->rescaleAxes();
@@ -277,7 +290,11 @@ void ViewBoundReun::pintarCuadro(QColor color, qint32 pos){
     QMetaObject::connectSlotsByName(widget);
 
 
-    checkBox->setText(QString::number(omega->at(pos)));
+    if (pos < omega->size()){
+        checkBox->setText(QString::number(omega->at(pos)));
+    } else {
+        checkBox->setText("union");
+    }
 
     checkBox->setStyleSheet("color : " + color.name());
 
@@ -368,17 +385,17 @@ void ViewBoundReun::dibujar_cuadro2(QPointF uno, QPointF dos, QPointF tres, QPoi
 void ViewBoundReun::on_guardar_clicked()
 {
     bool noFallo = true;
-    QString * extension = new QString();
+    QString extension;
     QString fileName = QFileDialog::getSaveFileName(this, tr("Guardar Fichero"),"",
-                                                    tr((".png (*.png);;.pdf(*.pdf);; .jpg(*.jpg);; .bmp(*.bmp)")), extension);
+                                                    tr((".png (*.png);;.pdf(*.pdf);; .jpg(*.jpg);; .bmp(*.bmp)")), &extension);
     if (!fileName.isEmpty()){
-        if (extension->contains(".pdf", Qt::CaseInsensitive)){
+        if (extension.contains(".pdf", Qt::CaseInsensitive)){
             noFallo = ui->diagrama->savePdf(fileName, true);
-        }else if (extension->contains(".png", Qt::CaseInsensitive)){
+        }else if (extension.contains(".png", Qt::CaseInsensitive)){
             noFallo = ui->diagrama->savePng(fileName);
-        }else if (extension->contains(".jpg", Qt::CaseInsensitive)){
+        }else if (extension.contains(".jpg", Qt::CaseInsensitive)){
             noFallo = ui->diagrama->saveJpg(fileName);
-        }else if (extension->contains(".bmp", Qt::CaseInsensitive)){
+        }else if (extension.contains(".bmp", Qt::CaseInsensitive)){
             noFallo = ui->diagrama->saveBmp(fileName);
         }else{
             noFallo = false;
@@ -387,5 +404,4 @@ void ViewBoundReun::on_guardar_clicked()
         if (!noFallo)
             menerror("No se ha podido guardar la imagen", "Grafico Boundaries");
     }
-    delete extension;
 }

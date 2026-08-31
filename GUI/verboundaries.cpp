@@ -25,21 +25,36 @@ verBoundaries::verBoundaries(QWidget *parent) :
 
 verBoundaries::~verBoundaries()
 {
-    if (ejecutado){
-        graficos->clear();
-        ui->diagrama->clearFocus();
-        ui->diagrama->clearGraphs();
-        ui->diagrama->clearItems();
-        ui->diagrama->clearPlottables();
-        foreach (QCheckBox * che, *checkbox) {
-            delete che;
-        }
-
-        checkbox->clear();
-        delete layoutColores;
-    }
+    clearDiagram();
 
     delete ui;
+}
+
+void verBoundaries::clearDiagram(){
+
+    if (!ejecutado){
+        return;
+    }
+
+    ui->diagrama->clearFocus();
+    ui->diagrama->clearGraphs();
+    ui->diagrama->clearItems();
+    //QCustomPlot es dueno de las curvas: clearPlottables las libera.
+    ui->diagrama->clearPlottables();
+
+    foreach (QCheckBox * che, *checkbox) {
+        delete che->parentWidget();
+    }
+    delete checkbox;
+    checkbox = nullptr;
+
+    delete graficos;
+    graficos = nullptr;
+
+    delete layoutColores;
+    layoutColores = nullptr;
+
+    ejecutado = false;
 }
 
 
@@ -61,19 +76,7 @@ void verBoundaries::mostrar_diagrama(){
     bool mostrarNyquist = nyquist;
 
 
-    if (ejecutado){
-        graficos->clear();
-        ui->diagrama->clearFocus();
-        ui->diagrama->clearGraphs();
-        ui->diagrama->clearItems();
-        ui->diagrama->clearPlottables();
-        foreach (QCheckBox * che, *checkbox) {
-            delete che;
-        }
-
-        checkbox->clear();
-        delete layoutColores;
-    }
+    clearDiagram();
 
     layoutColores = new QVBoxLayout (cajaFrecuencias);
     checkbox = new QVector <QCheckBox *> ();
@@ -131,7 +134,9 @@ void verBoundaries::mostrar_diagrama(){
             k++;
         }
 
-        if(mostrarNyquist && mostrarNichols){
+        //El modo "solo Nyquist" no pintaba nada: la curva exigia ademas
+        //mostrarNichols.
+        if(mostrarNyquist){
             QCPCurve *curva2 = new QCPCurve(ui->diagrama->xAxis, ui->diagrama->yAxis);
             curva2->setData(*ejex1, *ejey1);
             curva2->setPen(color2);
@@ -140,10 +145,10 @@ void verBoundaries::mostrar_diagrama(){
             k++;
         }
 
-        ejex->clear();
-        ejey->clear();
-        ejex1->clear();
-        ejey1->clear();
+        delete ejex;
+        delete ejey;
+        delete ejex1;
+        delete ejey1;
 
         contador++;
     }
@@ -162,6 +167,8 @@ void verBoundaries::mostrar_diagrama(){
     ui->diagrama->rescaleAxes();
 
     finalk = k;
+
+    delete colores;
 
     /*Natura_Interval_extension * conversion = new Natura_Interval_extension();
 
@@ -271,17 +278,17 @@ void verBoundaries::dibujar_cuadro(QPointF uno, QPointF dos, QPointF tres, QPoin
 void verBoundaries::on_guardar_clicked()
 {
     bool noFallo = true;
-    QString * extension = new QString();
+    QString extension;
     QString fileName = QFileDialog::getSaveFileName(this, tr("Guardar Fichero"),"",
-                                                    tr((".png (*.png);;.pdf(*.pdf);; .jpg(*.jpg);; .bmp(*.bmp)")), extension);
+                                                    tr((".png (*.png);;.pdf(*.pdf);; .jpg(*.jpg);; .bmp(*.bmp)")), &extension);
     if (!fileName.isEmpty()){
-        if (extension->contains(".pdf", Qt::CaseInsensitive)){
+        if (extension.contains(".pdf", Qt::CaseInsensitive)){
             noFallo = ui->diagrama->savePdf(fileName, true);
-        }else if (extension->contains(".png", Qt::CaseInsensitive)){
+        }else if (extension.contains(".png", Qt::CaseInsensitive)){
             noFallo = ui->diagrama->savePng(fileName);
-        }else if (extension->contains(".jpg", Qt::CaseInsensitive)){
+        }else if (extension.contains(".jpg", Qt::CaseInsensitive)){
             noFallo = ui->diagrama->saveJpg(fileName);
-        }else if (extension->contains(".bmp", Qt::CaseInsensitive)){
+        }else if (extension.contains(".bmp", Qt::CaseInsensitive)){
             noFallo = ui->diagrama->saveBmp(fileName);
         }else{
             noFallo = false;
@@ -290,5 +297,4 @@ void verBoundaries::on_guardar_clicked()
         if (!noFallo)
             menerror("No se ha podido guardar la imagen", "Grafico Boundaries");
     }
-    delete extension;
 }

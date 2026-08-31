@@ -66,7 +66,7 @@ void WindowsGeneral::crear(){
 
 //Retrocede un paso: la barra debe reflejarlo (antes se quedaba contando
 //pasos que ya no existian).
-void WindowsGeneral::retrocederPaso(bool & paso){
+void WindowsGeneral::stepBack(bool & paso){
     if (paso){
         posBarra--;
         ui->barraprogreso->setValue(posBarra);
@@ -74,7 +74,7 @@ void WindowsGeneral::retrocederPaso(bool & paso){
     paso = false;
 }
 
-void WindowsGeneral::destruirDialogos(){
+void WindowsGeneral::destroyDialogs(){
     if (paso1){
         delete intPlanta;
         intPlanta = nullptr;
@@ -126,7 +126,7 @@ void WindowsGeneral::destruirDialogos(){
 }
 
 void WindowsGeneral::destruir(){
-    destruirDialogos();
+    destroyDialogs();
 
     delete controlador;
 }
@@ -153,7 +153,7 @@ void WindowsGeneral::on_BDefiPlanta_clicked()
     } else {
         delete intPlanta;
         intPlanta = nullptr;
-        retrocederPaso(paso1);
+        stepBack(paso1);
     }
 }
 
@@ -181,7 +181,7 @@ void WindowsGeneral::on_BEspi_clicked()
     } else {
         delete especificaciones;
         especificaciones = nullptr;
-        retrocederPaso(paso2);
+        stepBack(paso2);
     }
 }
 
@@ -212,7 +212,7 @@ void WindowsGeneral::on_BFrec_clicked()
     } else {
         delete intOmega;
         intOmega = nullptr;
-        retrocederPaso(paso3);
+        stepBack(paso3);
     }
 }
 
@@ -244,7 +244,7 @@ void WindowsGeneral::on_BTemp_clicked()
             vTemplates = nullptr;
             delete graficoTemplate;
             graficoTemplate = nullptr;
-            retrocederPaso(paso4);
+            stepBack(paso4);
             return;
         }
 
@@ -273,7 +273,7 @@ void WindowsGeneral::on_BTemp_clicked()
             vTemplates = nullptr;
             delete graficoTemplate;
             graficoTemplate = nullptr;
-            retrocederPaso(paso4);
+            stepBack(paso4);
         }
         this->setCursor(Qt::ArrowCursor);
     } else {
@@ -281,7 +281,7 @@ void WindowsGeneral::on_BTemp_clicked()
         vTemplates = nullptr;
         delete graficoTemplate;
         graficoTemplate = nullptr;
-        retrocederPaso(paso4);
+        stepBack(paso4);
     }
 }
 
@@ -316,7 +316,7 @@ void WindowsGeneral::on_BBoun_clicked()
             viewBound = nullptr;
             delete viewBoundReun;
             viewBoundReun = nullptr;
-            retrocederPaso(paso5);
+            stepBack(paso5);
             return;
         }
 
@@ -329,7 +329,7 @@ void WindowsGeneral::on_BBoun_clicked()
             viewBound = nullptr;
             delete viewBoundReun;
             viewBoundReun = nullptr;
-            retrocederPaso(paso5);
+            stepBack(paso5);
 
             return;
         }
@@ -383,7 +383,7 @@ void WindowsGeneral::on_BECont_clicked()
     } else {
         delete eControlador;
         eControlador = nullptr;
-        retrocederPaso(paso6);
+        stepBack(paso6);
     }
 }
 
@@ -412,7 +412,7 @@ void WindowsGeneral::on_BDiLaz_clicked()
             loopShaping = nullptr;
             delete viewLoopShaping;
             viewLoopShaping = nullptr;
-            retrocederPaso(paso7);
+            stepBack(paso7);
             return;
         }
 
@@ -433,14 +433,14 @@ void WindowsGeneral::on_BDiLaz_clicked()
             loopShaping = nullptr;
             delete viewLoopShaping;
             viewLoopShaping = nullptr;
-            retrocederPaso(paso7);
+            stepBack(paso7);
         }
     } else {
         delete loopShaping;
         loopShaping = nullptr;
         delete viewLoopShaping;
         viewLoopShaping = nullptr;
-        retrocederPaso(paso7);
+        stepBack(paso7);
     }
 }
 
@@ -497,7 +497,7 @@ void WindowsGeneral::on_actionAbrir_triggered()
         //Los dialogos de la sesion anterior se liberan y la barra se
         //reinicia: antes cada apertura fugaba los dialogos existentes y la
         //barra acumulaba pasos entre ficheros.
-        destruirDialogos();
+        destroyDialogs();
         posBarra = 0;
         ui->barraprogreso->setValue(0);
         ui->BEspi->setEnabled(false);

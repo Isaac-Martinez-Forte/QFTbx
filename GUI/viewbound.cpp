@@ -17,26 +17,51 @@ ViewBound::ViewBound(QWidget *parent) :
     cajaFrecuencias = new QGroupBox(this);
     cajaFrecuencias->setObjectName("cajaFrecuencias");
     cajaFrecuencias->setGeometry(QRect(660, 0, 141, 461));
-   // cajaFrecuencias->setTitle(QApplication::translate("GrafTemp", "Frecuencias", 0));
+
+    //Ejes secundarios espejados: conectados UNA vez (cada repintado anadia
+    //una conexion duplicada).
+    connect(ui->diagrama->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->diagrama->xAxis2, SLOT(setRange(QCPRange)));
+    connect(ui->diagrama->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->diagrama->yAxis2, SLOT(setRange(QCPRange)));
 }
 
 ViewBound::~ViewBound()
 {
-    if (ejecutado){
-        graficos->clear();
-        ui->diagrama->clearFocus();
-        ui->diagrama->clearGraphs();
-        ui->diagrama->clearItems();
-        ui->diagrama->clearPlottables();
-        foreach (QCheckBox * che, *checkbox) {
-            delete che;
-        }
-
-        checkbox->clear();
-        delete layoutColores;
-    }
+    clearDiagram();
 
     delete ui;
+}
+
+void ViewBound::clearDiagram(){
+
+    if (!ejecutado){
+        return;
+    }
+
+    ui->diagrama->clearFocus();
+    ui->diagrama->clearGraphs();
+    ui->diagrama->clearItems();
+    //QCustomPlot es dueno de las curvas: clearPlottables las libera.
+    ui->diagrama->clearPlottables();
+
+    //Solo se liberan los CONTENEDORES de punteros (antes se fugaban) y las
+    //filas de la caja de frecuencias enteras: borrar solo el checkbox dejaba
+    //su widget contenedor acumulandose en el layout en cada repintado.
+    foreach (QVector <QCPCurve * > * gra, *graficos) {
+        delete gra;
+    }
+    delete graficos;
+    graficos = nullptr;
+
+    foreach (QCheckBox * che, *checkbox) {
+        delete che->parentWidget();
+    }
+    delete checkbox;
+    checkbox = nullptr;
+
+    delete layoutColores;
+    layoutColores = nullptr;
+
+    ejecutado = false;
 }
 
 void ViewBound::setDatos(BoundaryData *datos, QVector <qreal> * omega){
@@ -49,19 +74,7 @@ void ViewBound::mostrarDiagrama(){
 
     qint32 k = 0;
 
-    if (ejecutado){
-        graficos->clear();
-        ui->diagrama->clearFocus();
-        ui->diagrama->clearGraphs();
-        ui->diagrama->clearItems();
-        ui->diagrama->clearPlottables();
-        foreach (QCheckBox * che, *checkbox) {
-            delete che;
-        }
-
-        checkbox->clear();
-        delete layoutColores;
-    }
+    clearDiagram();
 
     layoutColores = new QVBoxLayout (cajaFrecuencias);
     checkbox = new QVector <QCheckBox *> ();
@@ -103,8 +116,8 @@ void ViewBound::mostrarDiagrama(){
                 curva->setPen(color);
                 gra->append(curva);
 
-                ejex->clear();
-                ejey->clear();
+                delete ejex;
+                delete ejey;
                 k++;
             }
         }
@@ -117,8 +130,6 @@ void ViewBound::mostrarDiagrama(){
     ui->diagrama->yAxis2->setVisible(true);
     ui->diagrama->yAxis2->setTickLabels(false);
 
-    connect(ui->diagrama->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->diagrama->xAxis2, SLOT(setRange(QCPRange)));
-    connect(ui->diagrama->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->diagrama->yAxis2, SLOT(setRange(QCPRange)));
     ui->diagrama->axisRect()->setupFullAxesBox();
     ui->diagrama->rescaleAxes();
 
@@ -192,7 +203,7 @@ void ViewBound::on_exportar_clicked()
             QTextStream out (&fichero);
 
             if (!fichero.open(QIODevice::WriteOnly)){
-                menerror("Gráfico Boundaries", "No se pueden exportar los datos al fichero seleccionado");
+                menerror("No se pueden exportar los datos al fichero seleccionado", "Gráfico Boundaries");
                 return;
             }
 
@@ -216,17 +227,17 @@ void ViewBound::on_exportar_clicked()
 void ViewBound::on_guardar_clicked()
 {
     bool noFallo = true;
-    QString * extension = new QString();
+    QString extension;
     QString fileName = QFileDialog::getSaveFileName(this, tr("Guardar Fichero"),"",
-                                                    tr((".png (*.png);;.pdf(*.pdf);; .jpg(*.jpg);; .bmp(*.bmp)")), extension);
+                                                    tr((".png (*.png);;.pdf(*.pdf);; .jpg(*.jpg);; .bmp(*.bmp)")), &extension);
     if (!fileName.isEmpty()){
-        if (extension->contains(".pdf", Qt::CaseInsensitive)){
+        if (extension.contains(".pdf", Qt::CaseInsensitive)){
             noFallo = ui->diagrama->savePdf(fileName, true);
-        }else if (extension->contains(".png", Qt::CaseInsensitive)){
+        }else if (extension.contains(".png", Qt::CaseInsensitive)){
             noFallo = ui->diagrama->savePng(fileName);
-        }else if (extension->contains(".jpg", Qt::CaseInsensitive)){
+        }else if (extension.contains(".jpg", Qt::CaseInsensitive)){
             noFallo = ui->diagrama->saveJpg(fileName);
-        }else if (extension->contains(".bmp", Qt::CaseInsensitive)){
+        }else if (extension.contains(".bmp", Qt::CaseInsensitive)){
             noFallo = ui->diagrama->saveBmp(fileName);
         }else{
             noFallo = false;
@@ -235,5 +246,4 @@ void ViewBound::on_guardar_clicked()
         if (!noFallo)
             menerror("No se ha podido guardar la imagen", "Grafico Boundaries");
     }
-    delete extension;
 }

@@ -134,8 +134,8 @@ private:
 
     void crear();
     void destruir();
-    void destruirDialogos();
-    void retrocederPaso(bool & paso);
+    void destroyDialogs();
+    void stepBack(bool & paso);
 
 };
 

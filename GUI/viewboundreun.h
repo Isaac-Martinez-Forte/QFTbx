@@ -59,6 +59,7 @@ private:
     QVBoxLayout * layoutColores;
 
     void pintarCuadro(QColor color, qint32 pos);
+    void clearDiagram();
 
 
     Ui::ViewBoundReun *ui;

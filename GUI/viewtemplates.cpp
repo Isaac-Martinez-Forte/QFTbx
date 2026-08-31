@@ -27,28 +27,18 @@ ViewTemplates::ViewTemplates(QWidget *parent) :
     cajaFrecuencias->setObjectName("cajaFrecuencias");
     cajaFrecuencias->setGeometry(QRect(660, 0, 141, 461));
     cajaFrecuencias->setTitle(QApplication::translate("ViewTemplates", "Frecuencias", 0));
+
+    //Conectados UNA vez (cada repintado anadia una conexion duplicada).
+    connect(ui->diagrama->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->diagrama->xAxis2, SLOT(setRange(QCPRange)));
+    connect(ui->diagrama->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->diagrama->yAxis2, SLOT(setRange(QCPRange)));
 }
 
 ViewTemplates::~ViewTemplates()
 {
-    if (ejecutada){
-        graContorno->clear();
-        graTemplates->clear();
-        ui->diagrama->clearFocus();
-        ui->diagrama->clearGraphs();
-        ui->diagrama->clearItems();
-        ui->diagrama->clearPlottables();
-        verTemplate = false;
-
-        checkbox->clear();
-        delete layoutColores;
-
-        lineas->clear();
-        sliders->clear();
-    }
+    clearDiagram();
 
     if (color){
-        colores->clear();
+        delete colores;
     }
 
     delete cajaFrecuencias;
@@ -56,10 +46,49 @@ ViewTemplates::~ViewTemplates()
     delete ui;
 }
 
+void ViewTemplates::clearDiagram(){
+
+    if (!ejecutada){
+        return;
+    }
+
+    ui->diagrama->clearFocus();
+    ui->diagrama->clearGraphs();
+    ui->diagrama->clearItems();
+    //QCustomPlot es dueno de los graficos: clearGraphs los libera.
+    ui->diagrama->clearPlottables();
+    verTemplate = false;
+
+    //Cada fila de la caja de frecuencias se libera ENTERA via su widget
+    //contenedor (checkbox, slider y linea son hijos suyos): antes se
+    //borraban los controles sueltos y los contenedores se acumulaban en el
+    //layout en cada repintado. Los vectores de punteros tambien se fugaban.
+    foreach (QCheckBox * che, *checkbox) {
+        delete che->parentWidget();
+    }
+    delete checkbox;
+    checkbox = nullptr;
+    delete lineas;
+    lineas = nullptr;
+    delete sliders;
+    sliders = nullptr;
+
+    delete graContorno;
+    graContorno = nullptr;
+    delete graTemplates;
+    graTemplates = nullptr;
+
+    delete layoutColores;
+    layoutColores = nullptr;
+
+    ejecutada = false;
+}
+
 void ViewTemplates::setDatos(Controlador * controlador){
 
     if (color){
-        colores->clear();
+        //delete, no clear(): el mapa anterior se fugaba en cada recalculo.
+        delete colores;
     }
 
     colores = new QMap <qreal, QColor> ();
@@ -93,26 +122,7 @@ void ViewTemplates::pintarGrafico(bool diagrama){
 
     this->diagrama = diagrama;
 
-    if (ejecutada){
-        graContorno->clear();
-        graTemplates->clear();
-        ui->diagrama->clearFocus();
-        ui->diagrama->clearGraphs();
-        ui->diagrama->clearItems();
-        ui->diagrama->clearPlottables();
-        verTemplate = false;
-        for (qint32 i = 0; i < omega->size(); i++) {
-            delete checkbox->at(i);
-            delete lineas->at(i);
-            delete sliders->at(i);
-        }
-
-        checkbox->clear();
-        delete layoutColores;
-
-        lineas->clear();
-        sliders->clear();
-    }
+    clearDiagram();
 
     graContorno = new QVector <QCPGraph *> ();
     graTemplates = new QVector <QCPGraph *> ();
@@ -160,10 +170,8 @@ void ViewTemplates::pintarGrafico(bool diagrama){
 
             pintarLinea(i,graContorno,fas, gan, true, true,contador);
 
-
-
-            fas->clear();
-            gan->clear();
+            delete fas;
+            delete gan;
             i++;
             contador++;
         }
@@ -197,8 +205,8 @@ void ViewTemplates::pintarGrafico(bool diagrama){
         }
 
         pintarLinea(i,graTemplates, fas, gan, false, false, contador);
-        fas->clear();
-        gan->clear();
+        delete fas;
+        delete gan;
         i++;
         contador++;
     }
@@ -212,9 +220,6 @@ void ViewTemplates::pintarGrafico(bool diagrama){
 
     //ui->diagrama->legend->setVisible(true);
     //ui->diagrama->legend->setBrush(QColor(255, 255, 255, 150));
-
-    connect(ui->diagrama->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->diagrama->xAxis2, SLOT(setRange(QCPRange)));
-    connect(ui->diagrama->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->diagrama->yAxis2, SLOT(setRange(QCPRange)));
 
     ui->diagrama->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
 
@@ -353,17 +358,17 @@ void ViewTemplates::pintarCuadro(QColor color, qint32 pos){
 void ViewTemplates::on_guardar_clicked()
 {
     bool noFallo = true;
-    QString * extension = new QString();
+    QString extension;
     QString fileName = QFileDialog::getSaveFileName(this, tr("Guardar Fichero"),"",
-                                                    tr((".png (*.png);;.pdf(*.pdf);; .jpg(*.jpg);; .bmp(*.bmp)")), extension);
+                                                    tr((".png (*.png);;.pdf(*.pdf);; .jpg(*.jpg);; .bmp(*.bmp)")), &extension);
     if (!fileName.isEmpty()){
-        if (extension->contains(".pdf", Qt::CaseInsensitive)){
+        if (extension.contains(".pdf", Qt::CaseInsensitive)){
             noFallo = ui->diagrama->savePdf(fileName, true);
-        }else if (extension->contains(".png", Qt::CaseInsensitive)){
+        }else if (extension.contains(".png", Qt::CaseInsensitive)){
             noFallo = ui->diagrama->savePng(fileName);
-        }else if (extension->contains(".jpg", Qt::CaseInsensitive)){
+        }else if (extension.contains(".jpg", Qt::CaseInsensitive)){
             noFallo = ui->diagrama->saveJpg(fileName);
-        }else if (extension->contains(".bmp", Qt::CaseInsensitive)){
+        }else if (extension.contains(".bmp", Qt::CaseInsensitive)){
             noFallo = ui->diagrama->saveBmp(fileName);
         }else{
             noFallo = false;
@@ -372,7 +377,6 @@ void ViewTemplates::on_guardar_clicked()
         if (!noFallo)
             menerror("No se ha podido guardar la imagen", "Grafico Template");
     }
-    delete extension;
 }
 
 void ViewTemplates::on_templates_clicked()
@@ -413,7 +417,8 @@ void ViewTemplates::on_eContorno_clicked()
     QTextStream out (&fichero);
 
     if (!fichero.open(QIODevice::WriteOnly)){
-        menerror("Gráfico Template", "No se pueden exportar los datos al fichero seleccionado");
+        menerror("No se pueden exportar los datos al fichero seleccionado", "Gráfico Template");
+        return;
     }
 
     //TODO como guardar numeros complejos...***
@@ -423,7 +428,7 @@ void ViewTemplates::on_eContorno_clicked()
 
 void ViewTemplates::moverSliders(){
     for (qint32 i = 0; i < sliders->size(); i++){
-        lineas->at(i)->setText(QString::number(sliders->at(i)->value() / 1000));
+        lineas->at(i)->setText(QString::number(sliders->at(i)->value() / 1000.0));
     }
 }
 

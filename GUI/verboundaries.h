@@ -56,6 +56,7 @@ private:
     QVBoxLayout * layoutColores;
 
     void pintarCuadro(QColor color, qint32 pos);
+    void clearDiagram();
 
     bool nichols;
     bool nyquist;

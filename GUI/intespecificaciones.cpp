@@ -132,7 +132,7 @@ IntEspecificaciones::~IntEspecificaciones()
 //(separados por espacios). Los tipos no-FreeForm no tienen representacion
 //textual propia: antes se pintaba numeratorString()=="" y la especificacion
 //se perdia en silencio al reabrir.
-QString IntEspecificaciones::textoCoeficientes(QVector <Parameter *> * parametros)
+QString IntEspecificaciones::coefficientsText(QVector <Parameter *> * parametros)
 {
     QString texto;
     foreach (Parameter * parametro, *parametros) {
@@ -141,20 +141,20 @@ QString IntEspecificaciones::textoCoeficientes(QVector <Parameter *> * parametro
     return texto.trimmed();
 }
 
-QString IntEspecificaciones::textoNumerador(LtiSystem * sistema)
+QString IntEspecificaciones::numeratorText(LtiSystem * sistema)
 {
     if (sistema->type() == LtiSystem::SystemType::FreeForm){
         return sistema->numeratorString();
     }
-    return textoCoeficientes(sistema->numerator());
+    return coefficientsText(sistema->numerator());
 }
 
-QString IntEspecificaciones::textoDenominador(LtiSystem * sistema)
+QString IntEspecificaciones::denominatorText(LtiSystem * sistema)
 {
     if (sistema->type() == LtiSystem::SystemType::FreeForm){
         return sistema->denominatorString();
     }
-    return textoCoeficientes(sistema->denominator());
+    return coefficientsText(sistema->denominator());
 }
 
 void IntEspecificaciones::setDatos(dBND * datos)
@@ -194,8 +194,8 @@ void IntEspecificaciones::setDatos(dBND * datos)
                 break;
             }
 
-            ui->nume->setText(textoNumerador(datos->sistema));
-            ui->deno->setText(textoDenominador(datos->sistema));
+            ui->nume->setText(numeratorText(datos->sistema));
+            ui->deno->setText(denominatorText(datos->sistema));
             ui->k->setText(QString::number(datos->sistema->gain()->nominal()));
             ui->ret->setText(QString::number(datos->sistema->delay()->nominal()));
         }
@@ -266,13 +266,13 @@ void IntEspecificaciones::setDatos(dBND *datos, dBND *datos1){
                 break;
             }
 
-            ui->NumeSe1->setText(textoNumerador(datos->sistema));
-            ui->DenoSe1->setText(textoDenominador(datos->sistema));
+            ui->NumeSe1->setText(numeratorText(datos->sistema));
+            ui->DenoSe1->setText(denominatorText(datos->sistema));
             ui->KSe1->setText(QString::number(datos->sistema->gain()->nominal()));
             ui->RetSe1->setText(QString::number(datos->sistema->delay()->nominal()));
 
-            ui->NumeSe1_2->setText(textoNumerador(datos1->sistema));
-            ui->DenoSe1_2->setText(textoDenominador(datos1->sistema));
+            ui->NumeSe1_2->setText(numeratorText(datos1->sistema));
+            ui->DenoSe1_2->setText(denominatorText(datos1->sistema));
             ui->KSe1_2->setText(QString::number(datos1->sistema->gain()->nominal()));
             ui->RetSe1_2->setText(QString::number(datos1->sistema->delay()->nominal()));
         }

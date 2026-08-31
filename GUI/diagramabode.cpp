@@ -2,6 +2,8 @@
 #include "ui_diagramabode.h"
 
 #include "GUI/menerror.h"
+
+#include <QFileInfo>
 #include "GUI/plot_palette.h"
 
 
@@ -23,14 +25,21 @@ DiagramaBode::~DiagramaBode()
 
 void DiagramaBode::dibujarBode(LtiSystem *planta, Omega *omega){
 
+    //Redibujable: sin esto cada llamada apilaba curvas nuevas.
+    ui->customPlot->clearPlottables();
+    ui->customPlot_2->clearPlottables();
+
     QVector <qreal> * frecuencias;
+    bool frecuenciasPropias = true;
 
     if (omega->getTipo() == Omega::linSpace){
         frecuencias = linspace(-1, omega->getFinal(),100);
     }else if (omega->getTipo() == Omega::logSpace){
         frecuencias = logspace(-1, omega->getFinal(),100);
     }else {
+        //Vector del DAO: no se libera aqui.
         frecuencias = omega->getValores();
+        frecuenciasPropias = false;
     }
 
     QVector <qreal> * ganancia = new QVector <qreal> ();
@@ -52,8 +61,12 @@ void DiagramaBode::dibujarBode(LtiSystem *planta, Omega *omega){
     ui->customPlot->replot();
     ui->customPlot_2->replot();
 
-    ganancia->clear();
-    fase->clear();
+    delete complejos;
+    delete ganancia;
+    delete fase;
+    if (frecuenciasPropias){
+        delete frecuencias;
+    }
 }
 
 
@@ -73,28 +86,33 @@ void DiagramaBode::dibujarDiagrama(QString nombreEjeY, QVector<qreal> * ejeY, QV
 void DiagramaBode::on_actionExportar_triggered()
 {
     bool noFallo = true;
-    QString * extension = new QString();
+    QString extension;
     QString fileName = QFileDialog::getSaveFileName(this, tr("Guardar Fichero"),"",
-      tr((".png (*.png);;.pdf(*.pdf);; .jpg(*.jpg);; .bmp(*.bmp)")), extension);
+      tr((".png (*.png);;.pdf(*.pdf);; .jpg(*.jpg);; .bmp(*.bmp)")), &extension);
     if (!fileName.isEmpty()){
-        if (extension->contains(".pdf", Qt::CaseInsensitive)){
-            noFallo = ui->customPlot->savePdf("0-" + fileName, true);
-            noFallo = ui->customPlot_2->savePdf("1-" + fileName, true);
-        }else if (extension->contains(".png", Qt::CaseInsensitive)){
-            noFallo = ui->customPlot->savePng("0-" + fileName);
-            noFallo = ui->customPlot_2->savePng("1-" + fileName);
-        }else if (extension->contains(".jpg", Qt::CaseInsensitive)){
-            noFallo = ui->customPlot->saveJpg("0-" + fileName);
-            noFallo = ui->customPlot_2->saveJpg("1-" + fileName);
-        }else if (extension->contains(".bmp", Qt::CaseInsensitive)){
-            noFallo = ui->customPlot->saveBmp("0-" + fileName);
-            noFallo = ui->customPlot_2->saveBmp("1-" + fileName);
+        //Prefijar la RUTA completa ("0-/home/...") generaba rutas invalidas:
+        //el sufijo va en el nombre del fichero.
+        QFileInfo info (fileName);
+        const QString magnitud = info.dir().filePath(info.completeBaseName() + "-mag." + info.suffix());
+        const QString faseNombre = info.dir().filePath(info.completeBaseName() + "-fase." + info.suffix());
+
+        if (extension.contains(".pdf", Qt::CaseInsensitive)){
+            noFallo = ui->customPlot->savePdf(magnitud, true);
+            noFallo = ui->customPlot_2->savePdf(faseNombre, true) && noFallo;
+        }else if (extension.contains(".png", Qt::CaseInsensitive)){
+            noFallo = ui->customPlot->savePng(magnitud);
+            noFallo = ui->customPlot_2->savePng(faseNombre) && noFallo;
+        }else if (extension.contains(".jpg", Qt::CaseInsensitive)){
+            noFallo = ui->customPlot->saveJpg(magnitud);
+            noFallo = ui->customPlot_2->saveJpg(faseNombre) && noFallo;
+        }else if (extension.contains(".bmp", Qt::CaseInsensitive)){
+            noFallo = ui->customPlot->saveBmp(magnitud);
+            noFallo = ui->customPlot_2->saveBmp(faseNombre) && noFallo;
         }else{
             noFallo = false;
         }
 
         if (!noFallo)
-            menerror("No se ha podido guardar la imagen", "Grafico Template");
+            menerror("No se ha podido guardar la imagen", "Diagrama de Bode");
     }
-    delete extension;
 }

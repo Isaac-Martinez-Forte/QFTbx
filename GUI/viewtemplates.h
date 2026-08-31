@@ -115,6 +115,7 @@ private:
     bool ejecutada = false;
     void pintarLinea(qint32 pos, QVector <QCPGraph *> * guardar, QVector <qreal> * fas, QVector <qreal> * gan, bool tipo, bool visible, qint32 contador);
     void pintarCuadro (QColor color, qint32 pos);
+    void clearDiagram();
 
     QVector <QVector<std::complex<qreal> > *> * templates;
     QVector <QVector<std::complex<qreal> > *> * contorno;

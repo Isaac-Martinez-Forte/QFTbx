@@ -95,9 +95,9 @@ private:
     QVector <Parameter * > * crearNumeradorDenominador(QString linea);
     Parameter * crearKRet(QString linea, bool isK);
 
-    static QString textoCoeficientes(QVector <Parameter *> * parametros);
-    static QString textoNumerador(LtiSystem * sistema);
-    static QString textoDenominador(LtiSystem * sistema);
+    static QString coefficientsText(QVector <Parameter *> * parametros);
+    static QString numeratorText(LtiSystem * sistema);
+    static QString denominatorText(LtiSystem * sistema);
 
     Controlador * controlador;
 
