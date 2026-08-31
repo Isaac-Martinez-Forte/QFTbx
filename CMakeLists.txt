@@ -132,9 +132,6 @@ set(QFTbx_BACKEND_SRC
     Modelo/Herramientas/tools.cpp
     Modelo/Objetos/omega.cpp
     DAO/adaptadorbounddao.cpp
-    XmlParser/xmlparsersave.cpp
-    Modelo/EstructurasDatos/datosplanta.cpp
-    XmlParser/xmlparserload.cpp
     src/persistence/project_reader.cpp
     src/persistence/project_writer.cpp
     DAO/fdao.cpp
@@ -208,15 +205,12 @@ set(QFTbx_BACKEND_HED
     Modelo/Objetos/omega.h
     DAO/bounddao.h
     DAO/adaptadorbounddao.h
-    Modelo/EstructurasDatos/datosplanta.h
     DAO/dao.h
     DAO/fdao.h
     src/core/boundaries/boundary_data.h
-    XmlParser/parserload.h
     src/persistence/project_reader.h
     src/persistence/project_writer.h
     src/persistence/qft_dialect.h
-    XmlParser/parsersave.h
     DAO/especificacionesdao.h
     DAO/adaptadorespecificacionesdao.h
     DAO/adaptadorcontroladordao.h

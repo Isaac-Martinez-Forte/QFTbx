@@ -12,7 +12,7 @@
 #include "src/core/system/lti_system.h"
 #include "src/core/system/parameter.h"
 #include "Modelo/Objetos/omega.h"
-#include "XmlParser/parserload.h"
+#include "src/persistence/project_reader.h"
 
 namespace {
 
@@ -22,10 +22,10 @@ constexpr qreal kTolerance = 1e-9;
 
 TEST(PlantFixture, CerveraRoundTrip)
 {
-    XmlParserLoad parser;
-    delete parser.recuperarXmlDatos(QString(QFTBX_TEST_DATA_DIR "/cervera.qft"));
+    ProjectReader parser;
+    delete parser.load(QString(QFTBX_TEST_DATA_DIR "/cervera.qft"));
 
-    LtiSystem* planta = parser.getPlanta();
+    LtiSystem* planta = parser.plant();
     ASSERT_NE(planta, nullptr);
 
     EXPECT_EQ(planta->type(), LtiSystem::SystemType::FreeForm);
@@ -57,17 +57,17 @@ TEST(PlantFixture, CerveraRoundTrip)
     EXPECT_NEAR(value.real(), expected.real(), kTolerance);
     EXPECT_NEAR(value.imag(), expected.imag(), kTolerance);
 
-    Omega* omega = parser.getOmega();
+    Omega* omega = parser.omega();
     ASSERT_NE(omega, nullptr);
     ASSERT_EQ(omega->getValores()->size(), 4);
 }
 
 TEST(PlantFixture, Planta1RoundTrip)
 {
-    XmlParserLoad parser;
-    delete parser.recuperarXmlDatos(QString(QFTBX_TEST_DATA_DIR "/planta1.qft"));
+    ProjectReader parser;
+    delete parser.load(QString(QFTBX_TEST_DATA_DIR "/planta1.qft"));
 
-    LtiSystem* planta = parser.getPlanta();
+    LtiSystem* planta = parser.plant();
     ASSERT_NE(planta, nullptr);
 
     EXPECT_EQ(planta->type(), LtiSystem::SystemType::ZeroPoleGain);

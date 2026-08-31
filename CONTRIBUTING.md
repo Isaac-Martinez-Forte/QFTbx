@@ -44,7 +44,7 @@ bug fixes need a test that fails before the fix. For memory checking, configure 
 - **Language**: everything in English — identifiers, comments, commit messages, docs.
 - **C++20, value semantics first**: no raw `new`/`delete`; use standard containers and
   `std::unique_ptr` where ownership is needed.
-- **Qt only in the GUI**: the backend (`Modelo/`, `DAO/`, `XmlParser/`) uses the standard
+- **Qt only in the GUI**: the backend (`Modelo/`, `DAO/`, `src/persistence/`) uses the standard
   library. Exception: the XML persistence module keeps `QXmlStream` internally.
 - **Errors**: the backend never talks to the user; it throws `qftbx::Exception` (see
   `Modelo/Herramientas/exception.h`) and GUI slots catch and display.
