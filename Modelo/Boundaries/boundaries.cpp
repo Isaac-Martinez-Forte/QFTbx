@@ -548,30 +548,21 @@ void Boundaries::bnd(QVector<qreal> *omega, LtiSystem *planta, QVector <QVector 
         boundaries->clear();
     }
 
-    QVector <qreal> * aux_omega = omega;
-
-#ifdef OpenMP_AVAILABLE
-
-    boundaries = new QVector <QMap <QString, QVector <QVector <QPointF> * > * > * >  ();
-    metaDatosBoundaries = new QVector <QMap <QString, QVector <QPoint> * > * >  ();
-    omega = new QVector <qreal> (omega->size());
-#else
-    boundaries = new QVector <QMap <QString, QVector <QVector <QPointF> * > * > * >  ();
-    metaDatosBoundaries = new QVector <QMap <QString, QVector <QPoint> * > * >  ();
-    omega = new QVector <qreal> ();
-#endif
-
-
-
-    qint32 numeroHilo = 0;
+    //Contenedores pre-dimensionados: cada frecuencia escribe en SU indice.
+    //La version anterior con OpenMP creaba los contenedores VACIOS y escribia
+    //con replace(num_hilo) donde num_hilo se pasaba POR VALOR (siempre 0):
+    //escritura fuera de rango y boundaries de tamano 0 en el build por
+    //defecto. El vector de frecuencias del llamante ya no se toca.
+    boundaries = new QVector <QMap <QString, QVector <QVector <QPointF> * > * > * >  (omega->size());
+    metaDatosBoundaries = new QVector <QMap <QString, QVector <QPoint> * > * >  (omega->size());
 
     //Se recorren las frecuencias de diseño.
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
 #endif
-    for (qint32 i = 0; i < aux_omega->size(); i++){
+    for (qint32 i = 0; i < omega->size(); i++){
 
-        calcularBndOmega(aux_omega->at(i), planta, templates->at(i), fases, mag, inf, i, numeroHilo, omega);
+        calcularBndOmega(omega->at(i), planta, templates->at(i), fases, mag, inf, i);
     }
 
     nueva_omega = omega;
@@ -585,8 +576,7 @@ QVector <qreal> * Boundaries::getOmega(){
 
 void Boundaries::calcularBndOmega (qreal omega, LtiSystem * planta,
                                    QVector<std::complex <qreal> > * temp, QVector <qreal> * fases,
-                                   QVector <qreal> * mag, qreal inf __attribute__((unused)), qint32 contador, qint32 num_hilo,
-                                   QVector <qreal> * nueva_omega){
+                                   QVector <qreal> * mag, qreal inf __attribute__((unused)), qint32 contador){
 
     //Se crean las variables necesarias
     complex <qreal> p0;
@@ -641,10 +631,9 @@ void Boundaries::calcularBndOmega (qreal omega, LtiSystem * planta,
     qreal dTempEC;
     complex<qreal> aux_complex;
 
-    //Se recorre la rejilla
-#ifdef OpenMP_AVAILABLE
-#pragma omp parallel for
-#endif
+    //Se recorre la rejilla (sin paralelismo anidado: el bucle exterior por
+    //frecuencia ya es paralelo, y estos bucles comparten variables de ambito
+    //de funcion).
     for (qint32 k = 0; k < mag->size(); k++){ // f
 
         vectorEstabilidadRuido = new QVector <qreal> ();
@@ -662,9 +651,6 @@ void Boundaries::calcularBndOmega (qreal omega, LtiSystem * planta,
         vectorEC = new QVector <qreal> ();
         vectorEC->reserve(fases->size());
 
-#ifdef OpenMP_AVAILABLE
-#pragma omp parallel for
-#endif
         for (qint32 j = 0; j < fases->size(); j++){ //l
 
             //variables necesarias
@@ -724,41 +710,20 @@ void Boundaries::calcularBndOmega (qreal omega, LtiSystem * planta,
                 }
             }
 
-#ifdef OpenMP_AVAILABLE
-#pragma omp critical
-            {
-
-                vectorEstabilidadRuido->append(dEstabilidadRuido);
-                vectorSeguimiento->append(dEstabilidadRuido - dSeguimiento);
-                vectorRPS->append(dRPS);
-                vectorRPE->append(dRPE);
-                vectorEC->append(dEC);
-
-            }
-#else
+            //La sabana se guarda SIEMPRE en dB (contrato validado contra el
+            //golden; la antigua rama OpenMP guardaba magnitudes lineales y
+            //el seguimiento como resta lineal).
             vectorEstabilidadRuido->append(20 * log10(dEstabilidadRuido));
             vectorSeguimiento->append((20 * log10(dEstabilidadRuido)) - (20 * log10(dSeguimiento)));
             vectorRPS->append(20 * log10(dRPS));
             vectorRPE->append(20 * log10(dRPE));
             vectorEC->append(20 * log10(dEC));
-#endif
         }
-#ifdef OpenMP_AVAILABLE
-#pragma omp critical
-        {
-            sabanaEstabilidadRuido->append(vectorEstabilidadRuido);
-            sabanaSeguimiento->append(vectorSeguimiento);
-            sabanaRPS->append(vectorRPS);
-            sabanaRPE->append(vectorRPE);
-            sabanaEC->append(vectorEC);
-        }
-#else
         sabanaEstabilidadRuido->append(vectorEstabilidadRuido);
         sabanaSeguimiento->append(vectorSeguimiento);
         sabanaRPS->append(vectorRPS);
         sabanaRPE->append(vectorRPE);
         sabanaEC->append(vectorEC);
-#endif
     }
 
     //Vector donde se guardaran los boundaries
@@ -781,19 +746,9 @@ void Boundaries::calcularBndOmega (qreal omega, LtiSystem * planta,
 
     vecSabanas->clear();
 
-#ifdef OpenMP_AVAILABLE
-#pragma omp critical
-    {
-        metaDatosBoundaries->replace(num_hilo, metaBound);
-        boundaries->replace(num_hilo, bound);
-        nueva_omega->replace(num_hilo, omega);
-        num_hilo++;
-    }
-#else
-    metaDatosBoundaries->append(metaBound);
-    boundaries->append(bound);
-    nueva_omega->append(omega);
-#endif
+    //Cada frecuencia escribe en su indice: sin criticals ni permutaciones.
+    metaDatosBoundaries->replace(contador, metaBound);
+    boundaries->replace(contador, bound);
 
     boundariesCreados = true;
 }

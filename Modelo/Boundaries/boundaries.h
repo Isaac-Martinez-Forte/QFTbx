@@ -144,8 +144,7 @@ private:
 
     void calcularBndOmega(qreal omega, LtiSystem * planta,
                                        QVector<std::complex <qreal> > * temp, QVector <qreal> * fases,
-                                       QVector <qreal> * mag, qreal inf, qint32 contador, qint32 num_hilo,
-                          QVector<qreal> *nueva_omega);
+                                       QVector <qreal> * mag, qreal inf, qint32 contador);
 
 
     QPointF datosFas;
