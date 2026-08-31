@@ -36,7 +36,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>Enter epsilonEdit:</string>
+    <string>Enter epsilon:</string>
    </property>
   </widget>
   <widget class="QWidget" name="layoutWidget">
