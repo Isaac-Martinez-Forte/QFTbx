@@ -147,7 +147,6 @@ set(QFTbx_BACKEND_SRC
     DAO/adaptadorloopshapingdao.cpp
     Modelo/EstructurasDatos/datosloopshaping.cpp
     Modelo/Boundaries/algoritmointerseccionlineal1D.cpp
-    Modelo/Boundaries/algoritmointerseccionproyectivo2D.cpp
     Modelo/Boundaries/contour2.cpp
     Modelo/LoopShaping/EstructuraDatos/arbol_exp.cpp
     Modelo/LoopShaping/EstructuraDatos/data_box.cpp
@@ -231,7 +230,6 @@ set(QFTbx_BACKEND_HED
     DAO/adaptadorloopshapingdao.h
     Modelo/EstructurasDatos/datosloopshaping.h
     Modelo/Boundaries/algoritmointerseccionlineal1D.h
-    Modelo/Boundaries/algoritmointerseccionproyectivo2D.h
     Modelo/Boundaries/contour2.h
     Modelo/LoopShaping/funcionescomunes.h
     Modelo/LoopShaping/EstructuraDatos/data_box.h
