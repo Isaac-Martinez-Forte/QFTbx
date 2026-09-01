@@ -22,6 +22,7 @@
 #include <QPushButton>
 #include <QRadioButton>
 #include <QComboBox>
+#include <QDialogButtonBox>
 #include <QStackedWidget>
 #include <QString>
 #include <QStringList>
@@ -35,6 +36,9 @@
 #include "GUI/bode_viewer.h"
 #include "src/core/math/sequence_vectors.h"
 #include "src/core/system/polynomial_form.h"
+#include "GUI/boundary_grid_dialog.h"
+#include "GUI/templates_dialog.h"
+#include "GUI/loop_shaping_dialog.h"
 #include "GUI/main_window.h"
 #include "GUI/error_message.h"
 #include "src/core/exception.h"
@@ -400,6 +404,108 @@ TEST_F(GuiSmoke, BodeViewerDrawsBothAxesOfTheDiagram)
     //Redrawing must replace the curves, not pile new ones on.
     viewer.drawBode(&plant, &omega);
     EXPECT_EQ(magnitude->plottableCount(), 1) << "a redraw piled up curves";
+}
+
+TEST_F(GuiSmoke, BoundaryGridDialogBuildsTheNicholsGrid)
+{
+    BoundaryGridDialog dialog;
+
+    //The DEFAULT window must be the full [-360, 0]: loop shaping refuses a
+    //narrower one, and the reader of the phase buckets is scaled by it.
+    QDialogButtonBox * buttons = child<QDialogButtonBox>(&dialog, "buttonBox");
+    ASSERT_NE(buttons, nullptr);
+
+    type(&dialog, "phasePoints", QStringLiteral("361"));
+    type(&dialog, "magnitudePoints", QStringLiteral("121"));
+
+    buttons->button(QDialogButtonBox::Ok)->click();
+
+    ASSERT_TRUE(dialog.getTodoCorrecto()) << "the dialog rejected its own defaults";
+
+    EXPECT_DOUBLE_EQ(dialog.phaseRangeValue().x(), -360.0);
+    EXPECT_DOUBLE_EQ(dialog.phaseRangeValue().y(), 0.0);
+    EXPECT_EQ(dialog.phaseCountValue(), 361);
+    EXPECT_EQ(dialog.magnitudeCountValue(), 121);
+    EXPECT_LT(dialog.magnitudeRangeValue().x(), dialog.magnitudeRangeValue().y());
+
+    //A window narrower than 360 degrees would be refused later by
+    //LoopShaping::run; the default one must not be.
+    EXPECT_DOUBLE_EQ(dialog.phaseRangeValue().y() - dialog.phaseRangeValue().x(), 360.0);
+}
+
+TEST_F(GuiSmoke, BoundaryGridDialogRejectsAnInvertedRange)
+{
+    BoundaryGridDialog dialog;
+
+    type(&dialog, "phaseStart", QStringLiteral("0"));
+    type(&dialog, "phaseEnd", QStringLiteral("-360"));
+
+    child<QDialogButtonBox>(&dialog, "buttonBox")->button(QDialogButtonBox::Ok)->click();
+
+    EXPECT_FALSE(dialog.getTodoCorrecto()) << "an inverted phase range was accepted";
+}
+
+TEST_F(GuiSmoke, TemplatesDialogBuildsOneEpsilonPerFrequency)
+{
+    TemplatesDialog dialog;
+
+    std::vector<Parameter> numerator{Parameter(1.0)};
+    std::vector<Parameter> denominator{
+        Parameter(QStringLiteral("a"), qftbx::Range(1.0, 5.0), 5.0)};
+    PolynomialForm plant(QStringLiteral("templates"), numerator, denominator,
+                         Parameter(1.0), Parameter(0.0));
+
+    dialog.launch(&plant, 4);
+
+    type(&dialog, "epsilonEdit", QStringLiteral("0.05"));
+
+    //The general section demands a spacing and a point count for the
+    //parameter grids.
+    check(&dialog, "linspaceRadio");
+    type(&dialog, "globalPointCount", QStringLiteral("3"));
+    check(&dialog, "allVariablesRadio");
+    check(&dialog, "nicholsRadio");
+
+    press(&dialog, "okButton");
+
+    ASSERT_TRUE(dialog.getTodoCorrecto()) << "the dialog rejected valid data";
+
+    //One epsilon per design frequency: the template computation indexes it
+    //by frequency.
+    //Ownership comes with it: the window hands it to the project.
+    std::unique_ptr<QVector<qreal>> epsilon(dialog.takeEpsilon());
+    ASSERT_NE(epsilon, nullptr);
+    EXPECT_EQ(epsilon->size(), 4);
+    for (qreal value : *epsilon) {
+        EXPECT_DOUBLE_EQ(value, 0.05);
+    }
+
+    //A grid per uncertain parameter, and none for the constants.
+    QHash<QString, QVector<qreal> *> * grids = dialog.grids();
+    ASSERT_NE(grids, nullptr);
+    EXPECT_TRUE(grids->contains(QStringLiteral("a")))
+        << "the uncertain parameter got no grid";
+}
+
+TEST_F(GuiSmoke, LoopShapingDialogCarriesTheChosenAlgorithm)
+{
+    LoopShapingDialog dialog;
+
+    type(&dialog, "epsilonEdit", QStringLiteral("0.01"));
+    type(&dialog, "startEdit", QStringLiteral("0.1"));
+    type(&dialog, "endEdit", QStringLiteral("100"));
+    type(&dialog, "pointCountEdit", QStringLiteral("200"));
+    check(&dialog, "mrRadio");
+
+    press(&dialog, "okButton");
+
+    ASSERT_TRUE(dialog.getTodoCorrecto()) << "the dialog rejected valid data";
+
+    EXPECT_EQ(dialog.algorithmValue(), tools::mr);
+    EXPECT_DOUBLE_EQ(dialog.epsilonValue(), 0.01);
+    EXPECT_DOUBLE_EQ(dialog.range().x(), 0.1);
+    EXPECT_DOUBLE_EQ(dialog.range().y(), 100.0);
+    EXPECT_DOUBLE_EQ(dialog.pointCountValue(), 200.0);
 }
 
 TEST_F(GuiSmoke, TheMainWindowBuildsItsWholeWidgetTree)

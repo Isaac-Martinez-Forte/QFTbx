@@ -83,7 +83,11 @@ public:
     * @return real con el name_text de epsilonValues necesario para calcular el contorno de los templates.
     */
     
-    QVector <qreal> * epsilon();
+    /// The per-frequency epsilon the user described, or nullptr when the
+    /// dialog was cancelled or rejected. Ownership passes to the caller:
+    /// this used to be a plain getter whose value the project then took,
+    /// leaving the dialog holding a dangling pointer between accepts.
+    QVector <qreal> * takeEpsilon();
     
     
    /**

@@ -278,7 +278,7 @@ void MainWindow::on_templatesButton_clicked()
         bool templatesOk = false;
 
         try {
-            templatesOk = controller->computeTemplates(templatesDialog->epsilon(), templatesDialog->grids(),
+            templatesOk = controller->computeTemplates(templatesDialog->takeEpsilon(), templatesDialog->grids(),
                                                          templatesDialog->cudaSelected());
         } catch (const qftbx::Exception & e) {
             this->setCursor(Qt::ArrowCursor);

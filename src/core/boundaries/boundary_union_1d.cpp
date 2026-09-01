@@ -87,7 +87,15 @@ QVector<QPointF> * BoundaryUnion1D::drawFirstLayer(QVector< QVector<QPointF> * >
                 for(qint32 j=0;j<(qint32)bucketPoints->size();j+=2)
                 {
                     if(curvePoint.y() >= bucketPoints->at(0).y()) layer1->push_back(curvePoint);
-                    if(bucketSize-j>1)
+                    //The guard has to cover the FURTHEST index read, j+2:
+                    //`bucketSize-j>1` only promises j+1, so an even bucket of
+                    //more than two points reached at(bucketSize) on its last
+                    //pair - one past the end. Not reachable with the current
+                    //fixtures (verified by instrumenting the branch), so this
+                    //changes no case that was already in range; which verdict
+                    //the final pair of an even bucket deserves is a question
+                    //for the thesis, noted in the plan.
+                    if(j+2 < bucketSize)
                     {
                         if((curvePoint.y() <= bucketPoints->at(j+1).y())&&
                                 (curvePoint.y() >= bucketPoints->at(j+2).y())) layer1->push_back(curvePoint);

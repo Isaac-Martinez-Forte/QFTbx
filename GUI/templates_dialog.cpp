@@ -40,6 +40,9 @@ TemplatesDialog::~TemplatesDialog()
     clearTables();
     releaseGrids();
 
+    //Not taken (cancelled, or never asked for): the dialog built it.
+    delete epsilonValues;
+
     delete ui;
     delete parser;
 }
@@ -83,8 +86,11 @@ void TemplatesDialog::releaseGrids(){
     }
 }
 
-QVector<qreal> * TemplatesDialog::epsilon(){
-    return epsilonValues;
+QVector<qreal> * TemplatesDialog::takeEpsilon(){
+    QVector<qreal> * built = epsilonValues;
+    epsilonValues = nullptr;
+
+    return built;
 }
 
 void TemplatesDialog::launch(LtiSystem *plant, qint32 frequencyCount){

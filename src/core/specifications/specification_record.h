@@ -16,13 +16,17 @@ namespace qftbx {
 //the validated Specification produced by toSpecification(), which is where
 //the invariants are enforced.
 struct SpecificationRecord {
+    //Initialised here so that a plain `SpecificationRecord r;` is as safe as
+    //the `new SpecificationRecord()` every caller happens to use today:
+    //value-initialisation zeroes the members, a declaration without it does
+    //not, and `system` is deleted by the owners.
     QString name;
-    bool used;
-    LtiSystem * system;
-    qreal height;          //LINEAR magnitude (heightDb() converts)
-    bool constant;
-    qreal omegaStart;
-    qreal omegaEnd;
+    bool used = false;
+    LtiSystem * system = nullptr;
+    qreal height = 0.0;    //LINEAR magnitude (heightDb() converts)
+    bool constant = false;
+    qreal omegaStart = 0.0;
+    qreal omegaEnd = 0.0;
 
     //Deep copy: the clone owns a fresh copy of the embedded plant.
     SpecificationRecord * clone() const {

@@ -47,17 +47,21 @@ enum com { MAYOR, MENOR, MAYORIGUAL, MENORIGUAL, IGUAL};
 */
 struct exp_node
 {
-    double c_const;
+    //Initialised here: the 17 construction sites each assign type, left and
+    //rigth by hand (verified), and the tree walkers dereference the children
+    //unconditionally - one forgotten assignment is an indeterminate pointer,
+    //not a null one.
+    double c_const = 0.0;
 
-    type_node type;
+    type_node type = {};
 
     std::string var;
 
     interval intervalo;
 
-    exp_node *left;
+    exp_node *left = nullptr;
 
-    exp_node *rigth;
+    exp_node *rigth = nullptr;
 };
 
 /**
