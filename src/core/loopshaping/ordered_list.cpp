@@ -48,10 +48,6 @@ ListNode * OrderedList::takeFirst()
     return n;
 }
 
-void OrderedList::removeFirst()
-{
-    lista.erase(lista.begin());
-}
 
 ListNode * OrderedList::last()
 {

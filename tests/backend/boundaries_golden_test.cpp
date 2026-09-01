@@ -14,6 +14,8 @@
 
 #include <gtest/gtest.h>
 
+#include <memory>
+
 #include "src/core/math/sequences.h"
 
 #include <vector>
@@ -75,8 +77,16 @@ protected:
 
     ProjectReader parser;
     BoundaryEngine engine;
+    //boundaryData() hands out a NON-owning view, freshly allocated each call:
+    //the engine keeps the data. The view itself is the caller's, and every
+    //one of these tests used to drop it on the floor.
+    void TearDown() override
+    {
+        delete got;
+    }
+
     BoundaryData* got = nullptr;
-    BoundaryData* gold = nullptr;
+    BoundaryData* gold = nullptr;   //owned by the reader
 };
 
 TEST_F(BoundariesGolden, GridMetadataMatches)
@@ -175,7 +185,7 @@ TEST_F(BoundariesGolden, ContourInputIsEquivalentToFullTemplates)
                           parser2.templates(), parser2.specifications(),
                           QPointF(-360.0, 0.0), 361, QPointF(-60.0, 60.0), 121,
                           -1.0, false);
-    BoundaryData* other = engine2.boundaryData();
+    const std::unique_ptr<BoundaryData> other(engine2.boundaryData());
 
     auto* a = got->boundaries();
     auto* b = other->boundaries();
@@ -317,8 +327,11 @@ TEST(BoundaryCriticalPoint, UndampedResonanceIsRejectedWithAdvice)
 
     try {
         controller.computeTemplates(epsilon, grids, false);
+        delete epsilon;
         FAIL() << "an undamped resonance must be reported, not swept under";
     } catch (const qftbx::ComputationError & error) {
+        //A refusal never took the epsilon: the store only keeps it on success.
+        delete epsilon;
         const QString message = QString::fromUtf8(error.what());
         EXPECT_TRUE(message.contains(QStringLiteral("1 rad/s"))) << error.what();
         EXPECT_TRUE(message.contains(QStringLiteral("largest |P|"))) << error.what();

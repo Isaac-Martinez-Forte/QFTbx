@@ -133,8 +133,7 @@ bool AlgorithmMc1::init_algorithm()
                     "No feasible solution exists in the given search box.");
         }
 
-        SearchNode * node = static_cast<SearchNode *>(lista->first());
-        lista->removeFirst();
+        SearchNode * node = static_cast<SearchNode *>(lista->takeFirst());
 
         //Step 3bis.(a): a node whose gain infimum cannot improve the
         //certified solution is discarded.

@@ -100,8 +100,7 @@ bool AlgorithmNk::init_algorithm(){
                     "No feasible solution exists in the given search box.");
         }
 
-        SearchNode * node = static_cast<SearchNode *>(lista->first());
-        lista->removeFirst();
+        SearchNode * node = static_cast<SearchNode *>(lista->takeFirst());
 
         //Pruning by the local solution (step 4 of the paper's outline /
         //G-bis of the thesis): a node whose gain infimum cannot improve

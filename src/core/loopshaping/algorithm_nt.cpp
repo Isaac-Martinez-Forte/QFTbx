@@ -101,8 +101,7 @@ bool AlgorithmNt::init_algorithm() {
                     "No feasible solution exists in the given search box.");
         }
 
-        SearchNode * node = static_cast<SearchNode *>(lista->first());
-        lista->removeFirst();
+        SearchNode * node = static_cast<SearchNode *>(lista->takeFirst());
 
 
         //Step 3, termination: a feasible leading box (ch. 3, p. 29; its

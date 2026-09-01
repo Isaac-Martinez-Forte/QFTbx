@@ -265,8 +265,7 @@ bool AlgorithmMr::init_algorithm(){
                     "No feasible solution exists in the given search box.");
         }
 
-        SearchNode * node = static_cast<SearchNode *>(lista->first());
-        lista->removeFirst();
+        SearchNode * node = static_cast<SearchNode *>(lista->takeFirst());
 
         if (node->flag() == feasible || FC::isEpsilonSmall(
                     node->system(), epsilon, omega, conversion, plantas_nominales)) {

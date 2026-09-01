@@ -50,6 +50,19 @@ public:
     /// containers with no other owner (the file parser).
     void takeOwnership ();
 
+    /**
+     * @brief Neither copyable nor assignable.
+     *
+     * It owns a raw-pointer inventory and deep-deletes it when m_owns is set,
+     * so a compiler-generated copy would give two objects the same pointers
+     * and the second destructor would double-free them. Nothing in the
+     * toolbox copies one - boundary sets travel by pointer - so this only
+     * makes the hazard impossible instead of latent. The same Rule of Three
+     * slip Parameter had.
+     */
+    BoundaryData(const BoundaryData &) = delete;
+    BoundaryData & operator=(const BoundaryData &) = delete;
+
     ~BoundaryData();
 
 private:

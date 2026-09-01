@@ -231,8 +231,7 @@ bool AlgorithmMcThesis::init_algorithm()
                     "No feasible solution exists in the given search box.");
         }
 
-        McSearchNode * node = static_cast<McSearchNode *>(lista->first());
-        lista->removeFirst();
+        McSearchNode * node = static_cast<McSearchNode *>(lista->takeFirst());
 
         //Strict comparison: a node whose infimum EQUALS C still realises
         //the certified optimum (thesis 5.4.3 prescribes < over <=).

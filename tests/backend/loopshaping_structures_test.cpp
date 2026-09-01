@@ -62,11 +62,12 @@ TEST(OrderedList, MiddleInsertKeepsTheOrder)
 
     lista.insert(node(4)); // belongs between 3 and 5
 
-    lista.removeFirst();   // 1
+    //takeFirst hands the node over, so the test owns it from here.
+    delete lista.takeFirst();   // 1
     EXPECT_EQ(lista.first()->getIndex(), 3);
-    lista.removeFirst();
+    delete lista.takeFirst();
     EXPECT_EQ(lista.first()->getIndex(), 4);
-    lista.removeFirst();
+    delete lista.takeFirst();
     EXPECT_EQ(lista.first()->getIndex(), 5);
 }
 

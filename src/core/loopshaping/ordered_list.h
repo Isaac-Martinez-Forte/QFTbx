@@ -28,9 +28,17 @@ public:
     void insert (ListNode *elemento);
 
     ListNode * first();
-    ListNode * takeFirst();
 
-    void removeFirst();
+    /**
+     * @brief Unlinks the first node and hands it over.
+     *
+     * Removing and obtaining used to be two calls - first() then
+     * removeFirst() - and removeFirst() did NOT delete: forgetting the first()
+     * grab leaked the node silently, inside a branch and bound loop that
+     * visits millions of them. The algorithms all did it right; the test did
+     * not, which is how it was noticed. One call cannot be got wrong.
+     */
+    ListNode * takeFirst();
 
     ListNode * last();
 
