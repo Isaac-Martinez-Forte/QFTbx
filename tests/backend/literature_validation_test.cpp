@@ -31,7 +31,7 @@
 #include <QString>
 #include <QVector>
 
-#include "Modelo/controlador.h"
+#include "src/core/project_controller.h"
 #include "src/core/loopshaping/natural_interval_extension.h"
 #include "src/core/loopshaping/boundary_violation_detector.h"
 #include "src/core/system/zero_pole_gain.h"
@@ -59,7 +59,7 @@ class LiteratureValidation : public ::testing::Test
 protected:
     void SetUp() override
     {
-        delete controller.cargarSistema(
+        delete controller.load(
             QStringLiteral(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
     }
 
@@ -67,15 +67,15 @@ protected:
     //boundaries, with the same projection + detection the algorithms use.
     tools::BoxFlag classify(LtiSystem* point)
     {
-        QVector<qreal>* omega = controller.getOmega()->values();
+        QVector<qreal>* omega = controller.omega()->values();
         tools::BoxFlag overall = tools::feasible;
 
         for (int i = 0; i < omega->size(); ++i) {
-            const std::complex<qreal> pv = controller.getPlanta()->evaluate(omega->at(i));
+            const std::complex<qreal> pv = controller.plant()->evaluate(omega->at(i));
             const cxsc::cinterval box = conversion.nicholsBox(
                 point, omega->at(i), cxsc::complex(pv.real(), pv.imag()));
             BoxClassification* datos = deteccion.classifyBox(
-                box, controller.getBound(), i);
+                box, controller.boundaries(), i);
             const tools::BoxFlag flag = datos->flag();
             delete datos;
 
@@ -90,7 +90,7 @@ protected:
         return overall;
     }
 
-    Controlador controller;
+    ProjectController controller;
     NaturalIntervalExtension conversion;
     BoundaryViolationDetector deteccion;
 };

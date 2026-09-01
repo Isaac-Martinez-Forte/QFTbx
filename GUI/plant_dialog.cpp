@@ -31,7 +31,7 @@ void releaseTables(QVector <QVector <QString> * > * valueTable,
 
 } // namespace
 
-PlantDialog::PlantDialog(Controlador * controller, QWidget *parent) :
+PlantDialog::PlantDialog(ProjectController * controller, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::PlantDialog)
 {
@@ -416,7 +416,7 @@ void PlantDialog::on_okButton_clicked()
 
     }
 
-    controller->setPlanta(plant);
+    controller->setPlant(plant);
     releaseTables(valueTable, expressionTable, uncertainTable);
 
     todoCorrecto = true;

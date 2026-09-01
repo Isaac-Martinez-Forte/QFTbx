@@ -247,11 +247,11 @@ set(QFTbx_GUI_SRC
 
 # Fachada de la aplicacion: coordina el nucleo y la persistencia.
 set(QFTbx_APP_SRC
-    Modelo/controlador.cpp
+    src/core/project_controller.cpp
 )
 
 set(QFTbx_APP_HED
-    Modelo/controlador.h
+    src/core/project_controller.h
 )
 
 

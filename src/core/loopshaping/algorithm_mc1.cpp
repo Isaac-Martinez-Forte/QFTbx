@@ -175,7 +175,7 @@ bool AlgorithmMc1::init_algorithm()
 }
 
 
-LtiSystem * AlgorithmMc1::getControlador()
+LtiSystem * AlgorithmMc1::controllerStructure()
 {
     return controlador_retorno;
 }

@@ -38,7 +38,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::createSession(){
 
-    controller = new Controlador();
+    controller = new ProjectController();
 
     ui->progressBar->setValue(0);
     progressPosition = 0;
@@ -225,7 +225,7 @@ void MainWindow::on_templatesButton_clicked()
         templateViewer = new TemplateViewer(this);
     }
 
-    templatesDialog->launch(controller->getPlanta(), controller->getOmega()->values()->size());
+    templatesDialog->launch(controller->plant(), controller->omega()->values()->size());
 
     templatesDialog->exec();
 
@@ -236,7 +236,7 @@ void MainWindow::on_templatesButton_clicked()
         bool templatesOk = false;
 
         try {
-            templatesOk = controller->calcularTemplates(templatesDialog->getEpsilon(), templatesDialog->grids(),
+            templatesOk = controller->computeTemplates(templatesDialog->epsilon(), templatesDialog->grids(),
                                                          templatesDialog->cudaSelected());
         } catch (const qftbx::Exception & e) {
             this->setCursor(Qt::ArrowCursor);
@@ -304,7 +304,7 @@ void MainWindow::on_boundariesButton_clicked()
         bool boundariesOk = false;
 
         try {
-            boundariesOk = controller->calcularBoundaries(boundaryGridDialog->phaseRangeValue(),
+            boundariesOk = controller->computeBoundaries(boundaryGridDialog->phaseRangeValue(),
                                                            boundaryGridDialog->phaseCountValue(), boundaryGridDialog->magnitudeRangeValue(),
                                                            boundaryGridDialog->magnitudeCountValue(), boundaryGridDialog->infinityValue(),
                                                            boundaryGridDialog->contourSelected(), boundaryGridDialog->cudaSelected());
@@ -337,11 +337,11 @@ void MainWindow::on_boundariesButton_clicked()
 
         this->setCursor(Qt::ArrowCursor);
 
-        boundaryViewer->setDatos(controller->getBound(), controller->getOmega()->values());
+        boundaryViewer->setDatos(controller->boundaries(), controller->omega()->values());
         boundaryViewer->showDiagram();
         boundaryViewer->show();
 
-        boundaryUnionViewer->setDatos(controller->unionBoundaries(), controller->getOmega()->values());
+        boundaryUnionViewer->setDatos(controller->unionBoundaries(), controller->omega()->values());
         boundaryUnionViewer->showDiagram();
         boundaryUnionViewer->show();
 
@@ -402,7 +402,7 @@ void MainWindow::on_loopButton_clicked()
         bool re = false;
 
         try {
-            re = controller->calcularLoopShaping(loopShapingDialog->epsilonValue(), loopShapingDialog->algorithmValue(), loopShapingDialog->range(),
+            re = controller->computeLoopShaping(loopShapingDialog->epsilonValue(), loopShapingDialog->algorithmValue(), loopShapingDialog->range(),
                                                   loopShapingDialog->pointCountValue(), loopShapingDialog->initialisationValue());
         } catch (const qftbx::Exception & e) {
             QMessageBox::critical(this, tr("Loop Shaping"), e.what());
@@ -415,8 +415,8 @@ void MainWindow::on_loopButton_clicked()
         }
 
         if (re){
-            loopShapingViewer->setDatos(controller->unionBoundaries(),controller->getOmega()->values(),
-                                      controller->getLoopShaping(), controller->getPlanta(), loopShapingDialog->isLinSpace());
+            loopShapingViewer->setDatos(controller->unionBoundaries(),controller->omega()->values(),
+                                      controller->loopShapingResult(), controller->plant(), loopShapingDialog->isLinSpace());
 
             loopShapingViewer->showDiagram();
             loopShapingViewer->show();
@@ -470,7 +470,7 @@ void MainWindow::on_actionSaveAs_triggered()
 
 void MainWindow::saveProject(){
     try {
-        controller->guardarSistema(saveFilePath);
+        controller->save(saveFilePath);
     } catch (const qftbx::Exception & e) {
         QMessageBox::critical(this, tr("Save file"), e.what());
     }
@@ -486,7 +486,7 @@ void MainWindow::on_actionOpen_triggered()
         QVector <bool> * leido;
 
         try {
-            leido = controller->cargarSistema(fileName);
+            leido = controller->load(fileName);
         } catch (const qftbx::Exception & e) {
             QMessageBox::critical(this, tr("Open project"), e.what());
             return;
@@ -606,7 +606,7 @@ void MainWindow::on_actionNew_triggered()
 
         bodeCreated = true;
 
-        bodeViewer->dibujarBode(controller->getPlanta(),controller->getOmega());
+        bodeViewer->dibujarBode(controller->plant(),controller->omega());
         bodeViewer->show();
     }else{
         errorMessage(tr("To show the Bode diagram, first enter a valid plant and a set of design frequencies"), tr("QFT"));
@@ -639,7 +639,7 @@ void MainWindow::showLoopDiagrams(bool nichols, bool nyquistRadio){
 
     qreal maglineal = 0;
 
-    BoundaryData * boundaries = controller->getBound();
+    BoundaryData * boundaries = controller->boundaries();
 
     QVector< QVector<QPointF> * > * boun = boundaries->unionBoundaries();
 
@@ -689,8 +689,8 @@ void MainWindow::showLoopDiagrams(bool nichols, bool nyquistRadio){
 
     LoopBoundariesViewer * ver = new LoopBoundariesViewer();
 
-    ver->setDatos(boundaries, nuevoBoundaries, controller->getOmega()->values(), controller->getPlanta(),
-                  controller->getControlador(), nichols, nyquistRadio);
+    ver->setDatos(boundaries, nuevoBoundaries, controller->omega()->values(), controller->plant(),
+                  controller->controllerStructure(), nichols, nyquistRadio);
 
     ver->showDiagram();
 
@@ -724,7 +724,7 @@ void MainWindow::on_actionTemplates_triggered()
         return;
     }
 
-    if (controller->getTemplate() != nullptr && controller->getContorno() != nullptr){
+    if (controller->templates() != nullptr && controller->contour() != nullptr){
         templateViewer->setDatos(controller);
         templateViewer->plotDiagram(true);
 
@@ -738,7 +738,7 @@ void MainWindow::on_actionBoundaries_triggered()
         return;
     }
 
-    boundaryUnionViewer->setDatos(controller->unionBoundaries(), controller->getOmega()->values());
+    boundaryUnionViewer->setDatos(controller->unionBoundaries(), controller->omega()->values());
     boundaryUnionViewer->showDiagram();
     boundaryUnionViewer->show();
 }
@@ -749,8 +749,8 @@ void MainWindow::on_actionLoop_triggered()
         return;
     }
 
-    loopShapingViewer->setDatos(controller->unionBoundaries(),controller->getOmega()->values(),
-                              controller->getLoopShaping(), controller->getPlanta(), loopShapingDialog->isLinSpace());
+    loopShapingViewer->setDatos(controller->unionBoundaries(),controller->omega()->values(),
+                              controller->loopShapingResult(), controller->plant(), loopShapingDialog->isLinSpace());
 
     loopShapingViewer->showDiagram();
     loopShapingViewer->show();

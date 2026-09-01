@@ -65,7 +65,7 @@ public:
     void setController(LtiSystem * controller);
 
     LoopShapingResult * loopShaping() const;
-    void setLoopShaping(LoopShapingResult * loopShaping);
+    void setLoopShapingResult(LoopShapingResult * loopShaping);
 
 private:
     LtiSystem * m_plant = nullptr;

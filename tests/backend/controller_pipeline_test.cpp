@@ -1,4 +1,4 @@
-// End-to-end validation of the PFC workflow through Controlador, the
+// End-to-end validation of the PFC workflow through ProjectController, the
 // mediator the GUI drives: load a full project, recompute the boundaries
 // with the same grid the file was made with, compare them against the
 // stored ones, then save and reload the whole project. This covers the DAO
@@ -11,7 +11,7 @@
 #include <QTemporaryDir>
 #include <QVector>
 
-#include "Modelo/controlador.h"
+#include "src/core/project_controller.h"
 #include "project_compare.h"
 #include "src/persistence/project_reader.h"
 
@@ -48,9 +48,9 @@ GridPoint goldenToGrid(QPointF p)
 
 TEST(ControllerPipeline, RecomputedBoundariesMatchTheLoadedProject)
 {
-    Controlador controller;
+    ProjectController controller;
 
-    QVector<bool>* flags = controller.cargarSistema(fixture("multivaluados.qft"));
+    QVector<bool>* flags = controller.load(fixture("multivaluados.qft"));
     ASSERT_EQ(flags->size(), 8);
     EXPECT_TRUE(flags->at(0)); // plant
     EXPECT_TRUE(flags->at(1)); // specifications
@@ -59,9 +59,9 @@ TEST(ControllerPipeline, RecomputedBoundariesMatchTheLoadedProject)
     EXPECT_TRUE(flags->at(4)); // boundaries
     delete flags;
 
-    // Keep the traces of the boundaries as loaded from the file: getBound()
+    // Keep the traces of the boundaries as loaded from the file: boundaries()
     // hands a view whose containers are replaced when recomputing.
-    BoundaryData* loaded = controller.getBound();
+    BoundaryData* loaded = controller.boundaries();
     QVector<QVector<QVector<QPointF>>> storedTraces;
     for (auto* map : *loaded->boundaries()) {
         QVector<QVector<QPointF>> perFrequency;
@@ -76,11 +76,11 @@ TEST(ControllerPipeline, RecomputedBoundariesMatchTheLoadedProject)
 
     // Recompute through the same call the GUI makes, with the grid the
     // fixture was generated on (contour input, no CUDA).
-    ASSERT_TRUE(controller.calcularBoundaries(QPointF(-360.0, 0.0), 361,
+    ASSERT_TRUE(controller.computeBoundaries(QPointF(-360.0, 0.0), 361,
                                               QPointF(-60.0, 60.0), 121,
                                               -1.0, true, false));
 
-    BoundaryData* recomputed = controller.getBound();
+    BoundaryData* recomputed = controller.boundaries();
     ASSERT_NE(recomputed, nullptr);
     ASSERT_EQ(recomputed->boundaries()->size(), 5);
 
@@ -115,9 +115,9 @@ TEST(ControllerPipeline, SaveAndReloadRoundTripsTheProject)
     const QString saved = temporary.filePath(QStringLiteral("pipeline.qft"));
 
     {
-        Controlador controller;
-        delete controller.cargarSistema(fixture("planta1.qft"));
-        ASSERT_TRUE(controller.guardarSistema(saved));
+        ProjectController controller;
+        delete controller.load(fixture("planta1.qft"));
+        ASSERT_TRUE(controller.save(saved));
     }
 
     // The saved v2 file must carry the same project as the legacy original.

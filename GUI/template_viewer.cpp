@@ -84,7 +84,7 @@ void TemplateViewer::clearDiagram(){
     plotted = false;
 }
 
-void TemplateViewer::setDatos(Controlador * controller){
+void TemplateViewer::setDatos(ProjectController * controller){
 
     if (colorsCreated){
         //delete, not clear(): the previous map leaked on every recompute.
@@ -94,14 +94,14 @@ void TemplateViewer::setDatos(Controlador * controller){
     colorByFrequency = new QMap <qreal, QColor> ();
     colorsCreated = true;
 
-    setTemplates(controller->getTemplate());
-    setContour(controller->getContorno());
+    setTemplates(controller->templates());
+    setContour(controller->contour());
 
     this->controller = controller;
 
-    this->omega = controller->getOmega()->values();
+    this->omega = controller->omega()->values();
 
-    this->epsilon = controller->getEpsilon();
+    this->epsilon = controller->epsilon();
 
     for (qint32 i = 0; i < omega->size(); i++){
         colorByFrequency->insert(omega->at(i), randomColor(i));
@@ -230,7 +230,7 @@ void TemplateViewer::plotDiagram(bool plot){
 
     /*NaturalIntervalExtension * conversion = new NaturalIntervalExtension ();
 
-    cinterval <qreal> caja = conversion->nicholsBox(controller->getPlanta(),omega->at(0));
+    cinterval <qreal> caja = conversion->nicholsBox(controller->plant(),omega->at(0));
 
     QPointF uno (caja.re.inf, caja.im.inf);
     QPointF dos (caja.re.inf, caja.im.sup);
@@ -454,15 +454,15 @@ void TemplateViewer::on_recomputeButton_clicked()
     }
 
     try {
-        setContour(controller->recalcularContorno(epsilon));
+        setContour(controller->recomputeContour(epsilon));
     } catch (const qftbx::Exception & e) {
         QMessageBox::critical(this, tr("Template computation"), e.what());
         return;
     }
-    omega = controller->getOmega()->values();
+    omega = controller->omega()->values();
     //The previous epsilon is deleted by the DAO when accepting the new
     //one; touching it here would be a use-after-free.
-    this->epsilon = controller->getEpsilon();
+    this->epsilon = controller->epsilon();
     plotDiagram(plot);
 }
 

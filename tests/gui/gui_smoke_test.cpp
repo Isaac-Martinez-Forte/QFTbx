@@ -21,7 +21,7 @@
 #include <QString>
 #include <QStringList>
 
-#include "Modelo/controlador.h"
+#include "src/core/project_controller.h"
 #include "GUI/plant_dialog.h"
 #include "GUI/controller_dialog.h"
 #include "GUI/frequencies_dialog.h"
@@ -102,7 +102,7 @@ void press(QWidget * dialog, const char * name)
 
 TEST_F(GuiSmoke, PlantDialogBuildsAZeroPoleGainPlant)
 {
-    Controlador controller;
+    ProjectController controller;
     PlantDialog dialog(&controller);
 
     type(&dialog, "nameEdit", QStringLiteral("smoke"));
@@ -116,7 +116,7 @@ TEST_F(GuiSmoke, PlantDialogBuildsAZeroPoleGainPlant)
 
     ASSERT_TRUE(dialog.getTodoCorrecto()) << "the dialog rejected valid data";
 
-    LtiSystem * plant = controller.getPlanta();
+    LtiSystem * plant = controller.plant();
     ASSERT_NE(plant, nullptr);
     EXPECT_EQ(plant->type(), LtiSystem::SystemType::ZeroPoleGain);
     EXPECT_EQ(plant->name(), QStringLiteral("smoke"));
@@ -135,7 +135,7 @@ TEST_F(GuiSmoke, PlantDialogRejectsAnInvalidExpression)
 {
     //A malformed coefficient must be reported, not crash the application
     //(muParserX throws and the dialog used to let it through).
-    Controlador controller;
+    ProjectController controller;
     PlantDialog dialog(&controller);
 
     type(&dialog, "nameEdit", QStringLiteral("broken"));
@@ -148,13 +148,13 @@ TEST_F(GuiSmoke, PlantDialogRejectsAnInvalidExpression)
     press(&dialog, "okButton");
 
     EXPECT_FALSE(dialog.getTodoCorrecto());
-    EXPECT_EQ(controller.getPlanta(), nullptr);
+    EXPECT_EQ(controller.plant(), nullptr);
     EXPECT_FALSE(m_reported.isEmpty()) << "the rejection must be reported";
 }
 
 TEST_F(GuiSmoke, FrequenciesDialogBuildsTheDesignFrequencies)
 {
-    Controlador controller;
+    ProjectController controller;
     FrequenciesDialog dialog(&controller);
 
     //modeStack is the generation-mode combo (manual is entry 0); the pages
@@ -168,7 +168,7 @@ TEST_F(GuiSmoke, FrequenciesDialogBuildsTheDesignFrequencies)
 
     ASSERT_TRUE(dialog.getTodoCorrecto()) << "the dialog rejected valid data";
 
-    Omega * omega = controller.getOmega();
+    Omega * omega = controller.omega();
     ASSERT_NE(omega, nullptr);
     ASSERT_NE(omega->values(), nullptr);
     const QVector<qreal> expected{0.1, 1.0, 10.0, 100.0};
@@ -178,7 +178,7 @@ TEST_F(GuiSmoke, FrequenciesDialogBuildsTheDesignFrequencies)
 
 TEST_F(GuiSmoke, ControllerDialogBuildsTheControllerStructure)
 {
-    Controlador controller;
+    ProjectController controller;
     ControllerDialog dialog(&controller);
 
     check(&dialog, "zpkRadio");
@@ -192,7 +192,7 @@ TEST_F(GuiSmoke, ControllerDialogBuildsTheControllerStructure)
 
     ASSERT_TRUE(dialog.getTodoCorrecto()) << "the dialog rejected valid data";
 
-    LtiSystem * structure = controller.getControlador();
+    LtiSystem * structure = controller.controllerStructure();
     ASSERT_NE(structure, nullptr);
     ASSERT_EQ(structure->numerator().size(), 1u);
     EXPECT_DOUBLE_EQ(structure->numerator()[0].nominal(), 1.0);
@@ -208,18 +208,18 @@ TEST_F(GuiSmoke, SpecificationsDialogNeedsTheFrequenciesFirst)
     //The main window gates the step order, but the dialog used to reach
     //first()/last() on a null frequency vector and take the application
     //down; it says so now.
-    Controlador controller;
+    ProjectController controller;
 
     EXPECT_THROW(SpecificationsDialog dialog(&controller), qftbx::InvalidInput);
 }
 
 TEST_F(GuiSmoke, SpecificationsDialogStoresAConstantStabilitySpecification)
 {
-    Controlador controller;
+    ProjectController controller;
 
     //Real step order: the frequencies come first.
     auto * frequencies = new QVector<qreal>{0.1, 1.0, 10.0, 100.0};
-    controller.setValues(new Omega(0.1, 100.0, 4, frequencies, Omega::Manual));
+    controller.setOmega(new Omega(0.1, 100.0, 4, frequencies, Omega::Manual));
 
     SpecificationsDialog dialog(&controller);
 
@@ -231,7 +231,7 @@ TEST_F(GuiSmoke, SpecificationsDialogStoresAConstantStabilitySpecification)
 
     press(&dialog, "okButton");
 
-    QVector<qftbx::SpecificationRecord *> * records = controller.getEspecificaciones();
+    QVector<qftbx::SpecificationRecord *> * records = controller.specifications();
 
     if (records == nullptr) {
         //The dialog declined the combination; the smoke value here is that

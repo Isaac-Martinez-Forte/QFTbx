@@ -51,20 +51,20 @@ TEST(Omega, ConstructorRejectsNullOrEmptyValues)
 
 TEST(Omega, SetOmegaKeepsTheInvariantAndOwnership)
 {
-    // Hardened: setValues deletes the previous vector, keeps
+    // Hardened: setOmega deletes the previous vector, keeps
     // nPuntos == valores->size(), tolerates being handed the vector it
     // already owns, and rejects null/empty sets.
     auto* values = new QVector<qreal>{1.0, 2.0, 3.0};
     Omega omega(1.0, 3.0, 3, values, Omega::Manual);
 
-    omega.setValues(new QVector<qreal>{5.0, 6.0});
+    omega.setOmega(new QVector<qreal>{5.0, 6.0});
     EXPECT_EQ(omega.values()->size(), 2);
     EXPECT_EQ(omega.pointCount(), 2);
 
-    omega.setValues(omega.values()); // self-assignment must be safe
+    omega.setOmega(omega.values()); // self-assignment must be safe
     EXPECT_EQ(omega.pointCount(), 2);
 
-    EXPECT_THROW(omega.setValues(nullptr), qftbx::InvalidInput);
+    EXPECT_THROW(omega.setOmega(nullptr), qftbx::InvalidInput);
     EXPECT_EQ(omega.values()->size(), 2); // unchanged after the throw
 }
 

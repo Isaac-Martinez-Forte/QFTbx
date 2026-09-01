@@ -39,7 +39,7 @@ public:
 
     GenerationType type();
 
-    void setValues(QVector<qreal> * values);
+    void setOmega(QVector<qreal> * values);
 
 private:
     qreal m_start;

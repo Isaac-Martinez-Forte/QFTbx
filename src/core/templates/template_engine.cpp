@@ -258,11 +258,11 @@ QVector<QVector<complex<qreal> > * > * TemplateEngine::computeClouds(LtiSystem *
     return allClouds;
 }
 
-QVector <qreal> * TemplateEngine::getOmega(){
+QVector <qreal> * TemplateEngine::omega(){
     return m_frequencies;
 }
 
-QVector <qreal> * TemplateEngine::getEpsilon(){
+QVector <qreal> * TemplateEngine::epsilon(){
     return m_epsilon;
 }
 

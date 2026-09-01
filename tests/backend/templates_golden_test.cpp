@@ -15,7 +15,7 @@
 #include <QString>
 #include <QVector>
 
-#include "Modelo/controlador.h"
+#include "src/core/project_controller.h"
 #include "src/core/exception.h"
 #include "src/core/templates/template_engine.h"
 #include "src/core/system/lti_system.h"
@@ -197,7 +197,7 @@ TEST_F(TemplatesGolden, FrequencyAlignmentPreserved)
     // number of OpenMP threads (the old thread-counter renumbering broke
     // this intermittently).
     const QVector<qreal> original{0.1, 0.5, 1.0, 2.0, 15.0, 100.0};
-    auto* omegaOut = templates.getOmega();
+    auto* omegaOut = templates.omega();
     ASSERT_NE(omegaOut, nullptr);
     ASSERT_EQ(omegaOut->size(), original.size());
     for (int i = 0; i < original.size(); ++i) {
@@ -220,12 +220,12 @@ TEST(TemplatesReload, RecalculateContourAfterLoadingAProject)
 {
     // Fixed crash: loading a project fed only the DAO, so recalculating
     // the contour dereferenced a null templates vector inside the engine.
-    Controlador controlador;
-    delete controlador.cargarSistema(
+    ProjectController controlador;
+    delete controlador.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/planta2.qft"));
 
     auto* epsilon = new QVector<qreal>(6, 10.0);
-    auto* contornos = controlador.recalcularContorno(epsilon);
+    auto* contornos = controlador.recomputeContour(epsilon);
     ASSERT_NE(contornos, nullptr);
     ASSERT_EQ(contornos->size(), 6);
     for (const QVector<Complex>* c : *contornos) {
@@ -235,7 +235,7 @@ TEST(TemplatesReload, RecalculateContourAfterLoadingAProject)
     // Second recalculation: the DAO must deep-delete the previous contour
     // and epsilon without double frees or use-after-free (checked by the
     // ASan runs of this suite).
-    auto* contornos2 = controlador.recalcularContorno(new QVector<qreal>(6, 8.0));
+    auto* contornos2 = controlador.recomputeContour(new QVector<qreal>(6, 8.0));
     ASSERT_NE(contornos2, nullptr);
     ASSERT_EQ(contornos2->size(), 6);
 }

@@ -70,7 +70,7 @@
 #include <QString>
 #include <QVector>
 
-#include "Modelo/controlador.h"
+#include "src/core/project_controller.h"
 
 namespace {
 
@@ -78,11 +78,11 @@ namespace {
 
 TEST(ThesisBenchmarkFixture, QftToolboxEx2LoadsWithTheFullPipeline)
 {
-    Controlador controller;
-    delete controller.cargarSistema(
+    ProjectController controller;
+    delete controller.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
 
-    LtiSystem* plant = controller.getPlanta();
+    LtiSystem* plant = controller.plant();
     ASSERT_NE(plant, nullptr);
     EXPECT_EQ(plant->type(), LtiSystem::SystemType::FreeForm);
     EXPECT_TRUE(plant->gain().isUncertain());
@@ -91,10 +91,10 @@ TEST(ThesisBenchmarkFixture, QftToolboxEx2LoadsWithTheFullPipeline)
     EXPECT_EQ(plant->numerator()[0].range(), Range(1.0, 10.0));
 
     const QVector<qreal> expectedOmega{0.1, 0.5, 1.0, 2.0, 15.0, 100.0};
-    ASSERT_NE(controller.getOmega(), nullptr);
-    EXPECT_EQ(*controller.getOmega()->values(), expectedOmega);
+    ASSERT_NE(controller.omega(), nullptr);
+    EXPECT_EQ(*controller.omega()->values(), expectedOmega);
 
-    QVector<qftbx::SpecificationRecord*>* specs = controller.getEspecificaciones();
+    QVector<qftbx::SpecificationRecord*>* specs = controller.specifications();
     ASSERT_NE(specs, nullptr);
     ASSERT_EQ(specs->size(), 7);
     EXPECT_TRUE(specs->at(0)->used);  // tracking lower (alpha)
@@ -103,28 +103,28 @@ TEST(ThesisBenchmarkFixture, QftToolboxEx2LoadsWithTheFullPipeline)
     EXPECT_TRUE(specs->at(2)->constant);
     EXPECT_DOUBLE_EQ(specs->at(2)->height, 1.2);
 
-    ASSERT_NE(controller.getTemplate(), nullptr);
-    EXPECT_EQ(controller.getTemplate()->size(), expectedOmega.size());
+    ASSERT_NE(controller.templates(), nullptr);
+    EXPECT_EQ(controller.templates()->size(), expectedOmega.size());
 
-    ASSERT_NE(controller.getBound(), nullptr);
-    ASSERT_EQ(controller.getBound()->boundaries()->size(), expectedOmega.size());
+    ASSERT_NE(controller.boundaries(), nullptr);
+    ASSERT_EQ(controller.boundaries()->boundaries()->size(), expectedOmega.size());
     for (int f = 0; f < expectedOmega.size(); ++f) {
-        EXPECT_EQ(controller.getBound()->boundaries()->at(f)->size(), 2)
+        EXPECT_EQ(controller.boundaries()->boundaries()->at(f)->size(), 2)
             << "frequency " << f << " should carry tracking + stability";
     }
 
-    ASSERT_NE(controller.getControlador(), nullptr);
-    EXPECT_EQ(controller.getControlador()->type(),
+    ASSERT_NE(controller.controllerStructure(), nullptr);
+    EXPECT_EQ(controller.controllerStructure()->type(),
               LtiSystem::SystemType::ZeroPoleGain);
 }
 
 TEST(ThesisBenchmarkFixture, Acc90LoadsWithTheFullPipeline)
 {
-    Controlador controller;
-    delete controller.cargarSistema(
+    ProjectController controller;
+    delete controller.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/acc90.qft"));
 
-    LtiSystem* plant = controller.getPlanta();
+    LtiSystem* plant = controller.plant();
     ASSERT_NE(plant, nullptr);
     EXPECT_EQ(plant->type(), LtiSystem::SystemType::FreeForm);
     EXPECT_FALSE(plant->gain().isUncertain());
@@ -133,10 +133,10 @@ TEST(ThesisBenchmarkFixture, Acc90LoadsWithTheFullPipeline)
 
     const QVector<qreal> expectedOmega{0.1, 0.98, 0.99, 1.0, 2.0, 5.0,
                                        7.0, 8.5, 10.0, 15.0, 20.0, 100.0};
-    ASSERT_NE(controller.getOmega(), nullptr);
-    EXPECT_EQ(*controller.getOmega()->values(), expectedOmega);
+    ASSERT_NE(controller.omega(), nullptr);
+    EXPECT_EQ(*controller.omega()->values(), expectedOmega);
 
-    QVector<qftbx::SpecificationRecord*>* specs = controller.getEspecificaciones();
+    QVector<qftbx::SpecificationRecord*>* specs = controller.specifications();
     ASSERT_NE(specs, nullptr);
     ASSERT_EQ(specs->size(), 7);
     EXPECT_FALSE(specs->at(0)->used);
@@ -144,14 +144,14 @@ TEST(ThesisBenchmarkFixture, Acc90LoadsWithTheFullPipeline)
     EXPECT_TRUE(specs->at(2)->constant);
     EXPECT_DOUBLE_EQ(specs->at(2)->height, 1.75);
 
-    ASSERT_NE(controller.getBound(), nullptr);
-    ASSERT_EQ(controller.getBound()->boundaries()->size(), expectedOmega.size());
+    ASSERT_NE(controller.boundaries(), nullptr);
+    ASSERT_EQ(controller.boundaries()->boundaries()->size(), expectedOmega.size());
     for (int f = 0; f < expectedOmega.size(); ++f) {
-        EXPECT_EQ(controller.getBound()->boundaries()->at(f)->size(), 1)
+        EXPECT_EQ(controller.boundaries()->boundaries()->at(f)->size(), 1)
             << "frequency " << f << " should carry stability only";
     }
 
-    ASSERT_NE(controller.getControlador(), nullptr);
+    ASSERT_NE(controller.controllerStructure(), nullptr);
 }
 
 //----------------------------------------------------------------- goldens
@@ -179,16 +179,16 @@ TEST_P(ThesisBenchmarkGolden, ResultIsPinned)
 {
     const BenchmarkGolden golden = GetParam();
 
-    Controlador controller;
-    delete controller.cargarSistema(
+    ProjectController controller;
+    delete controller.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR) + "/" + golden.file);
 
-    const bool ok = controller.calcularLoopShaping(
+    const bool ok = controller.computeLoopShaping(
         0.5, golden.algorithm, QPointF(1e-9, 10.0), 100);
 
     ASSERT_TRUE(ok) << golden.name;
 
-    LtiSystem* result = controller.getLoopShaping()->controller();
+    LtiSystem* result = controller.loopShapingResult()->controller();
     ASSERT_NE(result, nullptr);
 
     //Relative tolerance: the exact optimum wobbles with build flags (FP

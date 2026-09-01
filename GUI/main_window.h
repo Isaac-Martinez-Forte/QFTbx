@@ -112,7 +112,7 @@ private:
 
     qint32 progressPosition;
 
-    Controlador * controller = nullptr;
+    ProjectController * controller = nullptr;
     PlantDialog * plantDialog = nullptr;
     FrequenciesDialog * frequenciesDialog = nullptr;
     BodeViewer * bodeViewer = nullptr;

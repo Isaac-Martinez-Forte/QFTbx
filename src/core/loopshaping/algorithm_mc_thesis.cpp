@@ -320,7 +320,7 @@ bool AlgorithmMcThesis::init_algorithm()
 }
 
 
-LtiSystem * AlgorithmMcThesis::getControlador()
+LtiSystem * AlgorithmMcThesis::controllerStructure()
 {
     return controlador_retorno;
 }

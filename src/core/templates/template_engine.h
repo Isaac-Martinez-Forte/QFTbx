@@ -89,9 +89,9 @@ public:
 
     QVector<QVector<std::complex<qreal> > *> * contours();
 
-    QVector <qreal> * getOmega();
+    QVector <qreal> * omega();
 
-    QVector <qreal> * getEpsilon ();
+    QVector <qreal> * epsilon ();
 
 private:
     /// Grid for an uncertain parameter, looked up by name; throws

@@ -18,7 +18,7 @@
 
 #include "GUI/parlineedit.h"
 #include "src/core/system/lti_system.h"
-#include "Modelo/controlador.h"
+#include "src/core/project_controller.h"
 #include "src/core/system/parameter.h"
 #include "GUI/parlineedit.h"
 #include "src/core/math/sequence_vectors.h"
@@ -78,13 +78,13 @@ public:
     
     
    /**
-    * @fn getEpsilon
+    * @fn epsilon
     * @brief Función que retorna el name_text de epsilonValues.
     * 
     * @return real con el name_text de epsilonValues necesario para calcular el contorno de los templates.
     */
     
-    QVector <qreal> * getEpsilon();
+    QVector <qreal> * epsilon();
     
     
    /**

@@ -16,7 +16,7 @@
 #include "src/core/system/polynomial_form.h"
 #include "src/core/system/free_form.h"
 #include "GUI/uncertainty_dialog.h"
-#include "Modelo/controlador.h"
+#include "src/core/project_controller.h"
 #include "src/core/math/sequence_vectors.h"
 #include "mpParser.h"
 
@@ -30,7 +30,7 @@ class PlantDialog : public QDialog
 
 public:
 
-    explicit PlantDialog(Controlador *controller, QWidget *parent = 0);
+    explicit PlantDialog(ProjectController *controller, QWidget *parent = 0);
     ~PlantDialog();
 
     bool getTodoCorrecto();
@@ -59,7 +59,7 @@ private slots:
 private:
     Ui::PlantDialog *ui;
     
-    Controlador * controller = NULL;
+    ProjectController * controller = NULL;
 
     QRadioButton * gFT= NULL;
     QString file;

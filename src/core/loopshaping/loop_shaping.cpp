@@ -18,10 +18,10 @@ LoopShaping::~LoopShaping()
 //the plant, the controller search box, the design frequencies and the
 //boundaries; NK also takes the local-search starting-point choice, and
 //MR the templates and specifications its constraints are built from.
-bool LoopShaping::iniciar(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> * omega,
-                          BoundaryData * boundaries, qreal epsilon, tools::LoopShapingAlgorithm seleccionado,
-                          QVector<QVector<std::complex<qreal>> *> * temp, QVector<qftbx::SpecificationRecord *> * espe,
-                          qint32 inicializacion)
+bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, QVector<qreal> * omega,
+                          BoundaryData * boundaries, qreal epsilon, tools::LoopShapingAlgorithm algorithm,
+                          QVector<QVector<std::complex<qreal>> *> * contour, QVector<qftbx::SpecificationRecord *> * specifications,
+                          qint32 initialisation)
 {
     //The algorithms own themselves through unique_ptr: init_algorithm()
     //throws on an invalid or infeasible problem, and the raw new/delete
@@ -31,57 +31,57 @@ bool LoopShaping::iniciar(LtiSystem * planta, LtiSystem * controlador, QVector<q
     bool re = false;
 
     const auto report = [&](LtiSystem * resultado) {
-        this->controlador = resultado;
+        this->controller = resultado;
         std::cout << "LoopShaping: " << timer.elapsed() << " milliseconds" << std::endl;
         std::cout << "k: " << resultado->gain().range().min << std::endl;
     };
 
-    if (seleccionado == tools::nt) {
+    if (algorithm == tools::nt) {
         auto nt = std::make_unique<AlgorithmNt>();
-        nt->set_datos(planta, controlador, omega, boundaries, epsilon);
+        nt->set_datos(plant, controller, omega, boundaries, epsilon);
         timer.start();
         re = nt->init_algorithm();
         if (re) {
-            report(nt->getControlador());
+            report(nt->controllerStructure());
         }
-    } else if (seleccionado == tools::nk) {
+    } else if (algorithm == tools::nk) {
         auto nk = std::make_unique<AlgorithmNk>();
-        nk->set_datos(planta, controlador, omega, boundaries, epsilon, inicializacion);
+        nk->set_datos(plant, controller, omega, boundaries, epsilon, initialisation);
         timer.start();
         re = nk->init_algorithm();
         if (re) {
-            report(nk->getControlador());
+            report(nk->controllerStructure());
         }
-    } else if (seleccionado == tools::mr) {
+    } else if (algorithm == tools::mr) {
         auto mr = std::make_unique<AlgorithmMr>();
-        mr->set_datos(planta, controlador, omega, boundaries, epsilon, temp, espe);
+        mr->set_datos(plant, controller, omega, boundaries, epsilon, contour, specifications);
         timer.start();
         re = mr->init_algorithm();
         if (re) {
-            report(mr->getControlador());
+            report(mr->controllerStructure());
         }
-    } else if (seleccionado == tools::mc1) {
+    } else if (algorithm == tools::mc1) {
         auto mc1 = std::make_unique<AlgorithmMc1>();
-        mc1->set_datos(planta, controlador, omega, boundaries, epsilon);
+        mc1->set_datos(plant, controller, omega, boundaries, epsilon);
         timer.start();
         re = mc1->init_algorithm();
         if (re) {
-            report(mc1->getControlador());
+            report(mc1->controllerStructure());
         }
-    } else if (seleccionado == tools::mc_thesis) {
+    } else if (algorithm == tools::mc_thesis) {
         auto mc_thesis = std::make_unique<AlgorithmMcThesis>();
-        mc_thesis->set_datos(planta, controlador, omega, boundaries, epsilon);
+        mc_thesis->set_datos(plant, controller, omega, boundaries, epsilon);
         timer.start();
         re = mc_thesis->init_algorithm();
         if (re) {
-            report(mc_thesis->getControlador());
+            report(mc_thesis->controllerStructure());
         }
     }
 
     return re;
 }
 
-LtiSystem * LoopShaping::getControlador()
+LtiSystem * LoopShaping::controllerStructure()
 {
-    return controlador;
+    return controller;
 }

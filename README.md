@@ -132,10 +132,11 @@ No installer is currently provided. The application is intended to be run direct
       loopshaping/       the five algorithms (NT, NK, MR, MC1, MC thesis)
       gpu/               CUDA kernels (optional)
       math/              numeric sequences
+      project_controller the application facade (owns the project data)
     src/persistence/   .qft project reading and writing
     GUI/               Qt dialogs, viewers and the main window
-    Modelo/            the project facade, being migrated
-    tests/backend/     the test suite
+    tests/backend/     the computational test suite
+    tests/gui/         the headless dialog smoke suite
     3rd-party/         vendored dependencies
 
 ---

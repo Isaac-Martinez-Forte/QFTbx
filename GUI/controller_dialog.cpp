@@ -32,7 +32,7 @@ void releaseTables(QVector <QVector <QString> * > * valueTable,
 
 } // namespace
 
-ControllerDialog::ControllerDialog(Controlador * cont, QWidget *parent) :
+ControllerDialog::ControllerDialog(ProjectController * cont, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::ControllerDialog)
 {
@@ -344,7 +344,7 @@ void ControllerDialog::on_okButton_clicked()
 
     }
 
-    controller->setControlador(controllerSystem);
+    controller->setControllerStructure(controllerSystem);
     releaseTables(valueTable, expressionTable, uncertainTable);
 
     todoCorrecto = true;

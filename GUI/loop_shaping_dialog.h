@@ -5,7 +5,7 @@
 
 #include "mpParser.h"
 #include "src/core/math/sequence_vectors.h"
-#include "Modelo/controlador.h"
+#include "src/core/project_controller.h"
 #include "src/core/math/sequence_vectors.h"
 
 namespace Ui {  

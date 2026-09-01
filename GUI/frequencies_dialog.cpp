@@ -32,7 +32,7 @@ FrequenciesDialog::FrequenciesDialog(QWidget *parent) :
     connect (this, SIGNAL(close_ok()), this,SLOT(close()));
 }
 
-FrequenciesDialog::FrequenciesDialog(Controlador *controlador, QWidget *parent):FrequenciesDialog(parent){
+FrequenciesDialog::FrequenciesDialog(ProjectController *controlador, QWidget *parent):FrequenciesDialog(parent){
     this->controlador = controlador;
 }
 
@@ -96,7 +96,7 @@ void FrequenciesDialog::on_okButton_clicked()
     }
 
     Omega * omega = new Omega(start, end, frequencies->size(),frequencies,type);
-    controlador->setValues(omega);
+    controlador->setOmega(omega);
 
     todoCorrecto = true;
 

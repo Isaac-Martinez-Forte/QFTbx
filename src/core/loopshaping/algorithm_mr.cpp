@@ -296,7 +296,7 @@ bool AlgorithmMr::init_algorithm(){
 }
 
 
-LtiSystem * AlgorithmMr::getControlador(){
+LtiSystem * AlgorithmMr::controllerStructure(){
     return controlador_retorno;
 }
 

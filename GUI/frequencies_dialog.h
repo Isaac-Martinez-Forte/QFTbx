@@ -9,7 +9,7 @@
 #include <QMessageBox>
 #include <QTextStream>
 
-#include "Modelo/controlador.h"
+#include "src/core/project_controller.h"
 #include "src/core/math/sequence_vectors.h"
 #include "src/core/frequencies/omega.h"
 
@@ -47,7 +47,7 @@ public:
     * @param controlador del sistema.
     */
   
-    explicit FrequenciesDialog(Controlador * controlador, QWidget *parent = 0);
+    explicit FrequenciesDialog(ProjectController * controlador, QWidget *parent = 0);
     ~FrequenciesDialog();
 
 
@@ -63,7 +63,7 @@ signals:
     void close_ok ();
 
 private:
-    Controlador * controlador;
+    ProjectController * controlador;
     QString filePath;
 
     Ui::FrequenciesDialog *ui;

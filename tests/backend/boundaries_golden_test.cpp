@@ -28,7 +28,7 @@
 #include "src/persistence/project_reader.h"
 #include "src/core/system/free_form.h"
 #include "src/core/exception.h"
-#include "Modelo/controlador.h"
+#include "src/core/project_controller.h"
 
 namespace {
 
@@ -234,13 +234,13 @@ TEST(BoundaryCriticalPoint, CriticalCellViolatesEverySpecification)
     // sin(-pi) is -1.2e-16 instead of 0, which is why the cell reads as a
     // huge but finite value; the engine no longer depends on that accident,
     // as the tracking case below shows.
-    Controlador controller;
-    delete controller.cargarSistema(
+    ProjectController controller;
+    delete controller.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/acc90.qft"));
 
-    LtiSystem* plant = controller.getPlanta();
-    QVector<qreal>* omega = controller.getOmega()->values();
-    QVector<QVector<std::complex<qreal>>*>* templates = controller.getTemplate();
+    LtiSystem* plant = controller.plant();
+    QVector<qreal>* omega = controller.omega()->values();
+    QVector<QVector<std::complex<qreal>>*>* templates = controller.templates();
 
     const std::complex<qreal> L(std::pow(10.0, 0.0 / 20.0) * std::cos(-180.0 * M_PI / 180.0),
                                 std::pow(10.0, 0.0 / 20.0) * std::sin(-180.0 * M_PI / 180.0));
@@ -282,8 +282,8 @@ TEST(BoundaryCriticalPoint, UndampedResonanceIsRejectedWithAdvice)
     // hits an exact zero), and no epsilon walks a cloud of that span: the
     // engine reports the frequency, the largest magnitude found and the
     // likely cause instead of the bare "could not compute" it used to give.
-    Controlador controller;
-    delete controller.cargarSistema(
+    ProjectController controller;
+    delete controller.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/acc90.qft"));
 
     // Undamped version of the fixture's plant, swept exactly at a resonance.
@@ -301,11 +301,11 @@ TEST(BoundaryCriticalPoint, UndampedResonanceIsRejectedWithAdvice)
         Parameter(1.0), Parameter(0.0),
         QStringLiteral("ev"), QStringLiteral("s^2*(s^2 + 2*ev)"));
 
-    controller.setPlanta(undamped);
+    controller.setPlant(undamped);
 
     auto* frequencies = new QVector<qreal>();
     frequencies->append(1.0);              // exact resonance of ev = 0.5
-    controller.setValues(new Omega(frequencies->at(0), frequencies->at(0), 1,
+    controller.setOmega(new Omega(frequencies->at(0), frequencies->at(0), 1,
                                    frequencies, Omega::Manual));
 
     auto* epsilon = new QVector<qreal>();
@@ -316,7 +316,7 @@ TEST(BoundaryCriticalPoint, UndampedResonanceIsRejectedWithAdvice)
     grids->insert(QStringLiteral("ev"), grid);
 
     try {
-        controller.calcularTemplates(epsilon, grids, false);
+        controller.computeTemplates(epsilon, grids, false);
         FAIL() << "an undamped resonance must be reported, not swept under";
     } catch (const qftbx::ComputationError & error) {
         const QString message = QString::fromUtf8(error.what());

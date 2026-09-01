@@ -48,7 +48,7 @@ Omega::GenerationType Omega::type(){
     return m_type;
 }
 
-void Omega::setValues(QVector<qreal> * values){
+void Omega::setOmega(QVector<qreal> * values){
 
     if (values == nullptr || values->isEmpty()){
         if (values != m_values){

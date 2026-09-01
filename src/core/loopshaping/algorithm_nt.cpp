@@ -145,7 +145,7 @@ bool AlgorithmNt::init_algorithm() {
 }
 
 
-LtiSystem * AlgorithmNt::getControlador() {
+LtiSystem * AlgorithmNt::controllerStructure() {
     return controlador_retorno;
 }
 

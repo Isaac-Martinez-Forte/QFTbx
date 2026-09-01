@@ -83,7 +83,7 @@ void TemplatesDialog::releaseGrids(){
     }
 }
 
-QVector<qreal> * TemplatesDialog::getEpsilon(){
+QVector<qreal> * TemplatesDialog::epsilon(){
     return epsilonValues;
 }
 

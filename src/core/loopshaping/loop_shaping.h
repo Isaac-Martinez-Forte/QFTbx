@@ -16,16 +16,16 @@ public:
     LoopShaping();
     ~LoopShaping();
 
-    bool iniciar(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> * omega, BoundaryData * boundaries,
-                 qreal epsilon, LoopShapingAlgorithm seleccionado,
-                 QVector<QVector<std::complex<qreal>> *> * temp, QVector<qftbx::SpecificationRecord *> * espe,
-                 qint32 inicializacion);
+    bool run(LtiSystem * plant, LtiSystem * controller, QVector<qreal> * omega, BoundaryData * boundaries,
+                 qreal epsilon, LoopShapingAlgorithm algorithm,
+                 QVector<QVector<std::complex<qreal>> *> * contour, QVector<qftbx::SpecificationRecord *> * specifications,
+                 qint32 initialisation);
 
-    LtiSystem * getControlador();
+    LtiSystem * controllerStructure();
 
 private:
 
-    LtiSystem * controlador;
+    LtiSystem * controller;
 };
 
 #endif // QFTBX_LOOPSHAPING_LOOP_SHAPING_H

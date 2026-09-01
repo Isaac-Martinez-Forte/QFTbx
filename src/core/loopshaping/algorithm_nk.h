@@ -49,7 +49,7 @@ public:
 
     bool init_algorithm();
 
-    LtiSystem * getControlador();
+    LtiSystem * controllerStructure();
 
 private:
 

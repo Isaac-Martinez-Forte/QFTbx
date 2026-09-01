@@ -8,7 +8,7 @@
 #include <QPixmap>
 
 #include "src/core/math/sequence_vectors.h"
-#include "Modelo/controlador.h"
+#include "src/core/project_controller.h"
 #include "mpParser.h"
 #include "src/core/frequencies/omega.h"
 
@@ -23,7 +23,7 @@ class SpecificationsDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit SpecificationsDialog(Controlador * controller, QWidget *parent = 0);
+    explicit SpecificationsDialog(ProjectController * controller, QWidget *parent = 0);
     ~SpecificationsDialog();
 
 
@@ -102,7 +102,7 @@ private:
     static QString numeratorText(LtiSystem * sistema);
     static QString denominatorText(LtiSystem * sistema);
 
-    Controlador * controller;
+    ProjectController * controller;
 
     //images
     QPixmap trackingImagePixmap;

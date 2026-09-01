@@ -10,7 +10,7 @@
 #include "src/core/system/time_constant_gain.h"
 #include "src/core/system/polynomial_form.h"
 #include "GUI/uncertainty_dialog.h"
-#include "Modelo/controlador.h"
+#include "src/core/project_controller.h"
 #include "src/core/math/sequence_vectors.h"
 #include "mpParser.h"
 
@@ -24,7 +24,7 @@ class ControllerDialog : public QDialog
     Q_OBJECT
     
 public:
-    explicit ControllerDialog(Controlador * controller, QWidget *parent = 0);
+    explicit ControllerDialog(ProjectController * controller, QWidget *parent = 0);
     ~ControllerDialog();
 
     bool getTodoCorrecto();
@@ -47,7 +47,7 @@ private:
 
 
 
-    Controlador * controller = NULL;
+    ProjectController * controller = NULL;
 
     QString file;
 

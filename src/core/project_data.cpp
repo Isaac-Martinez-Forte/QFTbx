@@ -163,7 +163,7 @@ LoopShapingResult * ProjectData::loopShaping() const
     return m_loopShaping;
 }
 
-void ProjectData::setLoopShaping(LoopShapingResult * loopShaping)
+void ProjectData::setLoopShapingResult(LoopShapingResult * loopShaping)
 {
     if (m_loopShaping != loopShaping) {
         delete m_loopShaping;

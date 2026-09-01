@@ -153,7 +153,7 @@ bool AlgorithmNk::init_algorithm(){
 }
 
 
-LtiSystem * AlgorithmNk::getControlador(){
+LtiSystem * AlgorithmNk::controllerStructure(){
     return controlador_retorno;
 }
 

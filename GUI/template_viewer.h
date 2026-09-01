@@ -15,7 +15,7 @@
 #include <QCheckBox>
 
 #include "src/core/math/sequence_vectors.h"
-#include "Modelo/controlador.h"
+#include "src/core/project_controller.h"
 #include "qcustomplot.h"
 
 #include "cinterval.hpp"
@@ -70,7 +70,7 @@ public:
     * @param contourButton a representar en la gráfica.
    */
 
-    void setDatos(Controlador *controller);
+    void setDatos(ProjectController *controller);
 
 
    /**
@@ -134,7 +134,7 @@ private:
     bool templatesVisible;
     bool contourVisible;
 
-    Controlador * controller;
+    ProjectController * controller;
 
     QVBoxLayout * colorsLayout;
 

@@ -1,5 +1,5 @@
 // End-to-end characterisation goldens for the five loop-shaping algorithms
-// (phase 8b.0 safety net), run through Controlador on planta1.qft with a
+// (phase 8b.0 safety net), run through ProjectController on planta1.qft with a
 // fixed parameter set. planta1's stored controller has fixed zero/pole and
 // an uncertain gain, so the search is one-dimensional and near-instant:
 // these goldens pin behaviour, they do not exercise the full search (the
@@ -24,7 +24,7 @@
 #include <QPointF>
 #include <QString>
 
-#include "Modelo/controlador.h"
+#include "src/core/project_controller.h"
 #include "src/core/exception.h"
 
 namespace {
@@ -51,24 +51,24 @@ TEST_P(LoopShapingGolden, Planta1ResultIsPinned)
 {
     const GoldenResult golden = GetParam();
 
-    Controlador controller;
-    delete controller.cargarSistema(
+    ProjectController controller;
+    delete controller.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/planta1.qft"));
 
     if (!golden.solutionExists) {
-        EXPECT_THROW(controller.calcularLoopShaping(
+        EXPECT_THROW(controller.computeLoopShaping(
                          0.5, golden.algorithm, QPointF(1e-9, 10.0), 100),
                      qftbx::InvalidInput)
             << golden.name;
         return;
     }
 
-    const bool ok = controller.calcularLoopShaping(
+    const bool ok = controller.computeLoopShaping(
         0.5, golden.algorithm, QPointF(1e-9, 10.0), 100);
 
     ASSERT_TRUE(ok) << golden.name;
 
-    LtiSystem* result = controller.getLoopShaping()->controller();
+    LtiSystem* result = controller.loopShapingResult()->controller();
     ASSERT_NE(result, nullptr);
 
     EXPECT_NEAR(result->gain().range().min, golden.gain, golden.tolerance) << golden.name;

@@ -18,7 +18,7 @@
 using namespace tools;
 using namespace mup;
 
-SpecificationsDialog::SpecificationsDialog(Controlador *controller, QWidget *parent) :
+SpecificationsDialog::SpecificationsDialog(ProjectController *controller, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::SpecificationsDialog)
 {
@@ -29,7 +29,7 @@ SpecificationsDialog::SpecificationsDialog(Controlador *controller, QWidget *par
     //The step order of the main window guarantees a frequency set here, but
     //an empty one used to reach first()/last() below and take the whole
     //application down instead of saying anything.
-    Omega * omega = controller->getOmega();
+    Omega * omega = controller->omega();
 
     if (omega == nullptr || omega->values() == nullptr || omega->values()->isEmpty()) {
         throw qftbx::InvalidInput("The design frequencies must be entered "
@@ -103,7 +103,7 @@ SpecificationsDialog::SpecificationsDialog(Controlador *controller, QWidget *par
     //If the project carries specifications (a loaded file), the dialog
     //starts from THEM: it used to start from 7 empty records and the first
     //accept silently wiped whatever was loaded.
-    QVector <qftbx::SpecificationRecord *> * loaded = controller->getEspecificaciones();
+    QVector <qftbx::SpecificationRecord *> * loaded = controller->specifications();
     if (loaded != nullptr && loaded->size() == 7){
         delete tracking;
         delete trackingUpper;
@@ -932,7 +932,7 @@ void SpecificationsDialog::on_okButton_clicked()
     published->append(inputDisturbance->clone());
     published->append(controlEffort->clone());
 
-    controller->setEspecificaciones(published);
+    controller->setSpecifications(published);
 
     todoCorrecto = true;
 
