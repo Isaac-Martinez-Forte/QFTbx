@@ -86,6 +86,8 @@ private slots:
 
     void on_actionNew_triggered();
 
+    void on_bodeAction_triggered();
+
     void on_actionNicholsLoop_triggered();
 
     void on_actionNyquistLoop_triggered();

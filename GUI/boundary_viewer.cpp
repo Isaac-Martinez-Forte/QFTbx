@@ -180,50 +180,6 @@ void BoundaryViewer::applyCheckboxes(){
     ui->plot->replot();
 }
 
-void BoundaryViewer::on_exportData_clicked()
-{
-   /* QString fileName = QFileDialog::getSaveFileName(this, tr("Save boundaryData"));
-
-    QVector <QString> nombres;
-    nombres << "Tracking" << "Stability" << "SensorNoise" << "OutputDisturbance" << "InputDisturbance" << "ControlEffort";
-
-    QVector <QMap <QString, QVector <QVector <QPoint> * > *> * > * boundaryData = this->boundaryData->boundaries();
-
-    qint32 puntosFas = this->boundaryData->phaseCount();
-    qint32 puntosMag = this->boundaryData->magnitudeCount();
-
-    qint32 k = 0;*/
-
-    //TODO Queda por hacer.
- /*   foreach (QVector <QVector <QVector <QPoint> * > * >* b, *boundaryData) {
-        for (qint32 i = 0; i < b->size(); i++){
-
-            QVector <QVector <QPoint> * > * vectores = b->at(i);
-            QFile fichero (fileName+"-" + nombres.at(k) + "-" + QString::number(i));
-            QTextStream out (&fichero);
-
-            if (!fichero.open(QIODevice::WriteOnly)){
-                errorMessage(tr("The data cannot be exported to the chosen file"), tr("Boundary plot"));
-                return;
-            }
-
-            for (qint32 j = 0; j < vectores->size(); j = j+2){
-
-                QVector <QPoint> * vector = vectores->at(j);
-
-                for (qint32 k = 0; k < vector->size(); k++){
-
-                    out << vector->at(k).x() - puntosFas << " " << vector->at(k).y() - puntosMag << endl;
-
-                }
-                out << endl;
-            }
-        }
-        k++;
-    }*/
-
-}
-
 void BoundaryViewer::on_saveImage_clicked()
 {
     bool noFallo = true;

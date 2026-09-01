@@ -87,20 +87,6 @@ contour</string>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout_2">
      <item>
-      <widget class="QPushButton" name="exportContourButton">
-       <property name="text">
-        <string>Export contour</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="exportTemplateButton">
-       <property name="text">
-        <string>Export template</string>
-       </property>
-      </widget>
-     </item>
-     <item>
       <widget class="QPushButton" name="saveImage">
        <property name="text">
         <string>Save</string>

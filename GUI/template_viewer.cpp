@@ -428,23 +428,6 @@ void TemplateViewer::on_contourButton_clicked()
     ui->plot->replot();
 }
 
-void TemplateViewer::on_exportContourButton_clicked()
-{
-    QString fileName = QFileDialog::getSaveFileName(this, tr("Save file"));
-
-    QFile fichero (fileName);
-    QTextStream out (&fichero);
-
-    if (!fichero.open(QIODevice::WriteOnly)){
-        tools::errorMessage(tr("The data cannot be exported to the chosen file"), tr("Template plot"));
-        return;
-    }
-
-    //TODO: how to store complex numbers...***
-
-}
-
-
 void TemplateViewer::syncSliders(){
     for (qint32 i = 0; i < epsilonSliders->size(); i++){
         epsilonEdits->at(i)->setText(QString::number(epsilonSliders->at(i)->value() / 1000.0));
@@ -489,9 +472,4 @@ void TemplateViewer::on_recomputeButton_clicked()
     recompute(epsilon);
 }
 
-
-void TemplateViewer::on_exportTemplateButton_clicked()
-{
- // TODO: numeric export not implemented.
-}
 

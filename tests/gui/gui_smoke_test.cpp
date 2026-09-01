@@ -32,6 +32,9 @@
 #include "GUI/frequencies_dialog.h"
 #include "GUI/specifications_dialog.h"
 #include "GUI/template_viewer.h"
+#include "GUI/bode_viewer.h"
+#include "src/core/math/sequence_vectors.h"
+#include "src/core/system/polynomial_form.h"
 #include "GUI/main_window.h"
 #include "GUI/error_message.h"
 #include "src/core/exception.h"
@@ -356,6 +359,47 @@ TEST_F(GuiSmoke, TemplateViewerWithNothingPlottedIgnoresTheRecomputeButton)
     TemplateViewer viewer;
 
     press(&viewer, "recomputeButton");
+}
+
+TEST_F(GuiSmoke, BodeViewerDrawsBothAxesOfTheDiagram)
+{
+    //The menu entry had been dead since the initial upload, so nothing had
+    //exercised this path. It draws two plots, magnitude and phase, over the
+    //design frequency span.
+    BodeViewer viewer;
+
+    //A first-order plant, 1/(s+1): -3 dB and -45 degrees at 1 rad/s.
+    std::vector<Parameter> numerator{Parameter(1.0)};
+    std::vector<Parameter> denominator{Parameter(1.0), Parameter(1.0)};
+    PolynomialForm plant(QStringLiteral("bode"), numerator, denominator,
+                         Parameter(1.0), Parameter(0.0));
+
+    //Logarithmic span: start() and end() are EXPONENTS here, 0.01 to 100.
+    Omega omega(-2.0, 2.0, 100, tools::logspace(-2.0, 2.0, 100), Omega::LogSpace);
+
+    viewer.drawBode(&plant, &omega);
+
+    QCustomPlot * magnitude = child<QCustomPlot>(&viewer, "magnitudePlot");
+    QCustomPlot * phase = child<QCustomPlot>(&viewer, "phasePlot");
+    ASSERT_NE(magnitude, nullptr);
+    ASSERT_NE(phase, nullptr);
+
+    EXPECT_EQ(magnitude->plottableCount(), 1) << "the magnitude curve is missing";
+    EXPECT_EQ(phase->plottableCount(), 1) << "the phase curve is missing";
+
+    //The sweep must start at the design start, not at a hardcoded -1: a
+    //logarithmic axis cannot render a range that begins at or below zero.
+    EXPECT_GT(magnitude->xAxis->range().lower, 0.0);
+    EXPECT_NEAR(magnitude->xAxis->range().lower, 0.01, 1e-9);
+    EXPECT_NEAR(magnitude->xAxis->range().upper, 100.0, 1e-6);
+
+    //Phase in DEGREES: a first-order lag spans (0, -90], never radians.
+    EXPECT_LT(phase->yAxis->range().lower, -80.0);
+    EXPECT_GT(phase->yAxis->range().lower, -90.5);
+
+    //Redrawing must replace the curves, not pile new ones on.
+    viewer.drawBode(&plant, &omega);
+    EXPECT_EQ(magnitude->plottableCount(), 1) << "a redraw piled up curves";
 }
 
 TEST_F(GuiSmoke, TheMainWindowBuildsItsWholeWidgetTree)

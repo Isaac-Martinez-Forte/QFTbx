@@ -60,7 +60,6 @@ public:
     void showDiagram();
 
 private slots:
-    void on_exportData_clicked();
 
     void on_saveImage_clicked();
 

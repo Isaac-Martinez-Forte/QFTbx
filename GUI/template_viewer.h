@@ -137,7 +137,6 @@ private slots:
 
     void on_contourButton_clicked();
 
-    void on_exportContourButton_clicked();
 
     void applyCheckboxes ();
 
@@ -145,7 +144,6 @@ private slots:
 
     void on_recomputeButton_clicked();
 
-    void on_exportTemplateButton_clicked();
 
 private:
     Ui::TemplateViewer *ui;

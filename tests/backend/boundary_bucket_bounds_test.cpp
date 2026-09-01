@@ -17,7 +17,9 @@
 #include <QVector>
 
 #include "src/core/boundaries/boundary_data.h"
+#include "src/core/exception.h"
 #include "src/core/loopshaping/boundary_violation_detector.h"
+#include "src/core/loopshaping/loop_shaping.h"
 #include "src/core/loopshaping/loop_shaping_types.h"
 
 namespace {
@@ -83,6 +85,29 @@ TEST(BoundaryBucketBounds, TheFullWindowEdgeIsTheLastBucket)
     EXPECT_TRUE(verdict == tools::feasible || verdict == tools::infeasible);
 
     delete boundaries;
+}
+
+TEST(BoundaryBucketBounds, LoopShapingRefusesAWindowNarrowerThanTheLoopPhase)
+{
+    //The clamp keeps the read inside the buckets, but a point outside the
+    //window would then get the verdict of the edge bucket, which nobody
+    //computed. The search says so instead, once and before any algorithm
+    //starts (a throw from inside an OpenMP region would end the process).
+    BoundaryData * narrow = narrowWindow(-180.0, 181);
+
+    LoopShaping search;
+
+    //The check runs before anything is dereferenced, which is the point of
+    //putting it first: the rest of the arguments are never touched.
+    EXPECT_THROW(search.run(nullptr, nullptr, nullptr, narrow, 0.0,
+                            tools::nt, nullptr, nullptr, 0),
+                 qftbx::ComputationError);
+
+    delete narrow;
+
+    //That a 360 degree window is ACCEPTED needs no assertion here: every
+    //loop-shaping golden test runs over the default [-360, 0] window and
+    //would fail at once if this rejected it.
 }
 
 } // namespace

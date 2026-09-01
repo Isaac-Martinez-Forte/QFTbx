@@ -648,7 +648,11 @@ void MainWindow::on_actionNew_triggered()
     createSession();
 }
 
-/*void MainWindow::on_actionBodeDiagram_triggered()
+//The menu entry was enabled and disabled with care but connected to
+//nothing: the handler had been commented out since the initial upload and
+//the action it was named after has since been renamed, so nothing wired it
+//up. Reconnected here; the drawing itself needed fixing (see drawBode).
+void MainWindow::on_bodeAction_triggered()
 {
     if (plantDone && frequenciesDone){
 
@@ -657,12 +661,12 @@ void MainWindow::on_actionNew_triggered()
 
         bodeCreated = true;
 
-        bodeViewer->dibujarBode(controller->plant(),controller->omega());
+        bodeViewer->drawBode(controller->plant(), controller->omega());
         bodeViewer->show();
     }else{
         errorMessage(tr("To show the Bode diagram, first enter a valid plant and a set of design frequencies"), tr("QFT"));
     }
-}*/
+}
 
 void MainWindow::on_actionNicholsLoop_triggered()
 {
