@@ -68,13 +68,16 @@ public:
     *        on entry (throws qftbx::InvalidInput on invalid used records).
     * @param phaseRange, phaseCount Nichols window phase axis (degrees).
     * @param magnitudeRange, magnitudeCount Nichols window magnitude axis (dB).
-    * @param infinity user value standing in for infinity; < 0 means IEEE inf
+    * @param exportInfinity finite stand-in for infinity when the results are
+    * EXPORTED (thesis ch. 7: a compatibility value for formats that cannot
+    * carry an infinity); < 0 means "none given". It never takes part in the
+    * sweep, which is IEEE throughout.
     *        (currently unused - see the (-180, 0 dB) decision, deferred).
     * @param cuda compute the sheets on the GPU (CUDA builds only).
     */
     void compute(QVector <qreal> * omega, LtiSystem * plant, QVector<QVector<std::complex <qreal> > *> *templates,
                  QVector <qftbx::SpecificationRecord *> * specifications, QPointF phaseRange,
-                 qint32 phaseCount, QPointF magnitudeRange, qint32 magnitudeCount, qreal infinity, bool cuda);
+                 qint32 phaseCount, QPointF magnitudeRange, qint32 magnitudeCount, qreal exportInfinity, bool cuda);
 
     /// A fresh non-owning view over the last computed results.
     BoundaryData * boundaryData();
@@ -90,11 +93,11 @@ private:
     void releaseResults();
 
     void computeFrequencies(QVector <qreal> * omega, LtiSystem * plant, QVector<QVector<std::complex <qreal> > *> *templates,
-                            QPointF phaseRange, qint32 phaseCount, QPointF magnitudeRange, qint32 magnitudeCount, qreal infinity);
+                            QPointF phaseRange, qint32 phaseCount, QPointF magnitudeRange, qint32 magnitudeCount);
 
     void computeFrequency(qreal omega, LtiSystem * plant,
                           QVector<std::complex <qreal> > * valueSet, QVector <qreal> * phases,
-                          QVector <qreal> * magnitudes, qreal infinity, qint32 index);
+                          QVector <qreal> * magnitudes, qint32 index);
 
     void traceFrequency(qreal omega, QMap <QString, QVector <QVector <QPointF> * > *> * bound, QVector<QVector<QVector<qreal> *> *> *sheets,
                         QMap<QString, QVector<QPoint> *> *traceMetadata, std::complex<qreal> p0, QVector<std::complex<qreal> > *valueSet,

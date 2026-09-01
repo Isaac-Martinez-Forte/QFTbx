@@ -90,7 +90,14 @@ void BoundaryEngine::releaseResults()
 
 void BoundaryEngine::compute(QVector<qreal> *omega, LtiSystem *plant, QVector<QVector<complex<qreal> > *> *templates,
                              QVector<qftbx::SpecificationRecord *> *specifications, QPointF phaseRange, qint32 phaseCount, QPointF magnitudeRange,
-                             qint32 magnitudeCount, qreal infinity, bool cuda){
+                             qint32 magnitudeCount, qreal exportInfinity, bool cuda){
+
+    //The export stand-in for infinity is not part of the computation
+    //(thesis ch. 7: it exists so exported data can carry a finite value in
+    //formats that cannot represent an infinity). It is kept in the
+    //interface for the numeric export, still to be implemented.
+    Q_UNUSED(exportInfinity);
+
 
 
     //The historical records are validated on conversion: a used
@@ -144,7 +151,7 @@ void BoundaryEngine::compute(QVector<qreal> *omega, LtiSystem *plant, QVector<QV
     if (!cuda){
 
         computeFrequencies(omega, plant, templates, phaseRange,
-                           phaseCount, magnitudeRange, magnitudeCount, infinity);
+                           phaseCount, magnitudeRange, magnitudeCount);
 
         cout << "boundaries OpenMP: " << timer.elapsed() << " milliseconds" << endl;
 
@@ -190,7 +197,7 @@ void BoundaryEngine::compute(QVector<qreal> *omega, LtiSystem *plant, QVector<QV
     QElapsedTimer timer;
     timer.start();
 
-    computeFrequencies(omega, plant, templates, phaseRange, phaseCount, magnitudeRange, magnitudeCount, infinity);
+    computeFrequencies(omega, plant, templates, phaseRange, phaseCount, magnitudeRange, magnitudeCount);
 
     cout << "boundaries OpenMP: " << timer.elapsed() << " milliseconds" << endl;
 #endif
@@ -555,20 +562,11 @@ qint32 BoundaryEngine::allowedZone(QVector<QPointF> * trace, complex <qreal> p0,
 
 void BoundaryEngine::computeFrequencies(QVector<qreal> *omega, LtiSystem *plant, QVector <QVector <complex <qreal> > *>
                                         * templates, QPointF phaseRange, qint32 phaseCount,
-                                        QPointF magnitudeRange, qint32 magnitudeCount, qreal infinity)
+                                        QPointF magnitudeRange, qint32 magnitudeCount)
 {
     //Base grid of the algorithm.
     QVector <qreal> * phases = tools::linspace(phaseRange.x(), phaseRange.y(), phaseCount);
     QVector <qreal> * magnitudes = tools::linspace(magnitudeRange.x(), magnitudeRange.y(), magnitudeCount);
-
-    qreal inf;
-
-    //A negative value means the user did not provide one.
-    if (infinity < 0){
-        inf = numeric_limits<qreal>::infinity();
-    }else {
-        inf = infinity;
-    }
 
     //Pre-sized containers: every frequency writes at ITS index. The old
     //OpenMP branch created the containers EMPTY and wrote with
@@ -583,7 +581,7 @@ void BoundaryEngine::computeFrequencies(QVector<qreal> *omega, LtiSystem *plant,
 #endif
     for (qint32 i = 0; i < omega->size(); i++){
 
-        computeFrequency(omega->at(i), plant, templates->at(i), phases, magnitudes, inf, i);
+        computeFrequency(omega->at(i), plant, templates->at(i), phases, magnitudes, i);
     }
 
     delete phases;
@@ -594,9 +592,34 @@ void BoundaryEngine::computeFrequencies(QVector<qreal> *omega, LtiSystem *plant,
 }
 
 
+namespace {
+
+//At the critical grid point L = -1 (phase -180 deg, magnitude 0 dB) the
+//nominal plant makes the closed-loop denominator 1 + L vanish: the loop
+//has a pole on the imaginary axis and its transfer magnitude is infinite,
+//so the cell violates EVERY finite specification. In practice the exact
+//zero never occurs because sin(-pi) is -1.2e-16 rather than 0, which
+//turns the cell into a finite ~318 dB, and the tracking spread would only
+//go NaN (inf - inf) for a single-point value set exactly there. Relying on
+//that floating-point accident is not a contract: a non-finite cell is
+//stated to violate, since a NaN compares FALSE against the threshold and
+//would silently read as ALLOWED. The contour tracer only compares cells
+//against the threshold (it never interpolates between them), so an
+//infinite cell is safe for it.
+qreal violatingDb(qreal valueDb)
+{
+    if (std::isnan(valueDb)) {
+        return std::numeric_limits<qreal>::infinity();
+    }
+
+    return valueDb;
+}
+
+} // namespace
+
 void BoundaryEngine::computeFrequency (qreal omega, LtiSystem * plant,
                                        QVector<std::complex <qreal> > * valueSet, QVector <qreal> * phases,
-                                       QVector <qreal> * magnitudes, qreal infinity __attribute__((unused)), qint32 index){
+                                       QVector <qreal> * magnitudes, qint32 index){
 
     //Nominal plant at this design frequency.
     complex <qreal> p0 = plant->evaluate(omega);
@@ -720,12 +743,13 @@ void BoundaryEngine::computeFrequency (qreal omega, LtiSystem * plant,
 
             //The sheet is ALWAYS stored in dB (contract validated against
             //the golden; the old OpenMP branch stored linear magnitudes and
-            //tracking as a linear difference).
-            stabilityNoiseRow->append(20 * log10(dStabilityNoise));
-            trackingRow->append((20 * log10(dStabilityNoise)) - (20 * log10(dTrackingMin)));
-            outputDisturbanceRow->append(20 * log10(dOutputDisturbance));
-            inputDisturbanceRow->append(20 * log10(dInputDisturbance));
-            controlEffortRow->append(20 * log10(dControlEffort));
+            //tracking as a linear difference), with the critical point made
+            //explicit (see violatingDb).
+            stabilityNoiseRow->append(violatingDb(20 * log10(dStabilityNoise)));
+            trackingRow->append(violatingDb((20 * log10(dStabilityNoise)) - (20 * log10(dTrackingMin))));
+            outputDisturbanceRow->append(violatingDb(20 * log10(dOutputDisturbance)));
+            inputDisturbanceRow->append(violatingDb(20 * log10(dInputDisturbance)));
+            controlEffortRow->append(violatingDb(20 * log10(dControlEffort)));
         }
         stabilityNoiseSheet->append(stabilityNoiseRow);
         trackingSheet->append(trackingRow);

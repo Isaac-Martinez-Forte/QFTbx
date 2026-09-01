@@ -23,6 +23,9 @@
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/frequencies/omega.h"
 #include "src/persistence/project_reader.h"
+#include "src/core/system/free_form.h"
+#include "src/core/exception.h"
+#include "Modelo/controlador.h"
 
 namespace {
 
@@ -213,6 +216,114 @@ TEST_F(BoundariesGolden, ReunionHashIsSortedDeduplicatedAndInRange)
         EXPECT_GT(total, 0) << "frequency " << f;
         EXPECT_LE(total, reun->at(f)->size()) << "frequency " << f;
     }
+}
+
+// ---------------------------------------------------------------------------
+// The critical Nichols point and non-finite plant magnitudes (decision D8)
+// ---------------------------------------------------------------------------
+
+TEST(BoundaryCriticalPoint, CriticalCellViolatesEverySpecification)
+{
+    // At the grid point L = -1 (phase -180 deg, magnitude 0 dB) the nominal
+    // plant makes the closed-loop denominator vanish: the loop has a pole on
+    // the imaginary axis, so |T| is unbounded and the cell must violate any
+    // finite specification. The exact zero never materialises because
+    // sin(-pi) is -1.2e-16 instead of 0, which is why the cell reads as a
+    // huge but finite value; the engine no longer depends on that accident,
+    // as the tracking case below shows.
+    Controlador controller;
+    delete controller.cargarSistema(
+        QStringLiteral(QFTBX_TEST_DATA_DIR "/acc90.qft"));
+
+    LtiSystem* plant = controller.getPlanta();
+    QVector<qreal>* omega = controller.getOmega()->values();
+    QVector<QVector<std::complex<qreal>>*>* templates = controller.getTemplate();
+
+    const std::complex<qreal> L(std::pow(10.0, 0.0 / 20.0) * std::cos(-180.0 * M_PI / 180.0),
+                                std::pow(10.0, 0.0 / 20.0) * std::sin(-180.0 * M_PI / 180.0));
+
+    for (int i = 0; i < omega->size(); ++i) {
+        const std::complex<qreal> p0 = plant->evaluate(omega->at(i));
+
+        qreal worst = -std::numeric_limits<qreal>::infinity();
+        for (const std::complex<qreal>& p : *templates->at(i)) {
+            worst = std::max(worst, std::abs(L / ((p0 / p) + L)));
+        }
+
+        // Way above any sane robust-stability threshold (gamma = 1.75 here).
+        EXPECT_GT(20.0 * std::log10(worst), 200.0)
+            << "frequency " << omega->at(i);
+    }
+}
+
+TEST(BoundaryCriticalPoint, NanSheetValueWouldReadAsAllowed)
+{
+    // Why the engine states non-finite cells as violating: a NaN compares
+    // FALSE against the threshold, so a NaN cell would silently read as
+    // ALLOWED, while an infinity reads as forbidden, which is correct.
+    const qreal threshold = 1.75;
+    EXPECT_FALSE(std::nan("") > threshold);
+    EXPECT_TRUE(std::numeric_limits<qreal>::infinity() > threshold);
+}
+
+TEST(BoundaryCriticalPoint, UndampedResonanceIsRejectedWithAdvice)
+{
+    // The ACC'90 plant without the light damping the literature prescribes:
+    // P(s) = ev/(s^2 (s^2 + 2ev)) has poles at +-j*sqrt(2ev), so with
+    // ev in [0.5, 2] the resonance sweeps [1, 2] rad/s and SOME plant of the
+    // value set blows up at every frequency of that band - no frequency grid
+    // can dodge it, which is why the literature damps the poles instead.
+    //
+    // The magnitude comes out astronomical rather than infinite (muParserX
+    // evaluates (1i)^2 as -1 + 1.2e-16i, so the resonant denominator never
+    // hits an exact zero), and no epsilon walks a cloud of that span: the
+    // engine reports the frequency, the largest magnitude found and the
+    // likely cause instead of the bare "could not compute" it used to give.
+    Controlador controller;
+    delete controller.cargarSistema(
+        QStringLiteral(QFTBX_TEST_DATA_DIR "/acc90.qft"));
+
+    // Undamped version of the fixture's plant, swept exactly at a resonance.
+    // The parameter is named 'ev' as in the fixture: 'e' is Euler's number
+    // in muParserX.
+    auto* numerator = new QVector<Parameter*>();
+    numerator->append(new Parameter(QStringLiteral("ev"), QPointF(0.5, 2.0), 1.0,
+                                    QStringLiteral("ev")));
+    auto* denominator = new QVector<Parameter*>();
+    denominator->append(new Parameter(QStringLiteral("ev"), QPointF(0.5, 2.0), 1.0,
+                                      QStringLiteral("ev")));
+
+    LtiSystem* undamped = new qftbx::FreeForm(
+        QStringLiteral("undamped"), numerator, denominator,
+        new Parameter(1.0), new Parameter(0.0),
+        QStringLiteral("ev"), QStringLiteral("s^2*(s^2 + 2*ev)"));
+
+    controller.setPlanta(undamped);
+
+    auto* frequencies = new QVector<qreal>();
+    frequencies->append(1.0);              // exact resonance of ev = 0.5
+    controller.setValues(new Omega(frequencies->at(0), frequencies->at(0), 1,
+                                   frequencies, Omega::Manual));
+
+    auto* epsilon = new QVector<qreal>();
+    epsilon->append(10.0);
+    auto* grids = new QHash<QString, QVector<qreal>*>();
+    auto* grid = new QVector<qreal>();
+    grid->append(0.5);                     // sqrt(2*0.5) = 1 exactly: |P| = inf
+    grids->insert(QStringLiteral("ev"), grid);
+
+    try {
+        controller.calcularTemplates(epsilon, grids, false);
+        FAIL() << "an undamped resonance must be reported, not swept under";
+    } catch (const qftbx::ComputationError & error) {
+        const QString message = QString::fromUtf8(error.what());
+        EXPECT_TRUE(message.contains(QStringLiteral("1 rad/s"))) << error.what();
+        EXPECT_TRUE(message.contains(QStringLiteral("largest |P|"))) << error.what();
+        EXPECT_TRUE(message.contains(QStringLiteral("resonance"))) << error.what();
+    }
+
+    qDeleteAll(*grids);
+    delete grids;
 }
 
 } // namespace

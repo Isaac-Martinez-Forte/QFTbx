@@ -1,5 +1,7 @@
 #include "template_engine.h"
 
+#include <QStringList>
+
 #include "src/core/exception.h"
 
 #include <QDebug>
@@ -137,6 +139,11 @@ QVector<QVector<complex<qreal> > * > * TemplateEngine::computeClouds(LtiSystem *
 
     QVector<QVector<complex<qreal> > * > * allClouds = new QVector <QVector<complex<qreal> > * > (frequencyCount);
 
+    //One flag and one error slot per frequency, filled inside the parallel
+    //loop below (nothing may be thrown from within it).
+    QVector <bool> nonFiniteFrequencies (frequencyCount, false);
+    QVector <QString> parserErrors (frequencyCount);
+
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
 #endif
@@ -161,9 +168,36 @@ QVector<QVector<complex<qreal> > * > * TemplateEngine::computeClouds(LtiSystem *
 
         QVector <qint32> counter (digitCount + 1, 0);
 
+        //Non-finite plant values: an undamped resonance inside the
+        //uncertainty makes |P(jw)| infinite at some frequency (the ACC'90
+        //benchmark, whose resonance sqrt(2e) SWEEPS a whole band with e, is
+        //the canonical case). The boundary sweep survives it - the limits
+        //of the four closed-loop magnitudes are well defined as |p| grows -
+        //but a cloud with infinite points has no magnitude grid that covers
+        //it and no epsilon-hull that can walk it, so the contour would come
+        //out as noise. The frequency is recorded and reported instead of
+        //silently producing that noise (the literature's own answer is to
+        //damp the resonance lightly: see the ACC'90 fixture).
+        bool nonFinite = false;
+
         for (qint32 i = 0; i < m_combinationCount; i++){
 
-            cloud->append(parser.Eval().GetComplex());
+            complex<qreal> value;
+
+            //An expression muParserX rejects (a name colliding with one of
+            //its constants, a malformed plant) used to let mup::ParserError
+            //escape the OpenMP region, which TERMINATES the process instead
+            //of reporting anything. The message is kept and rethrown after
+            //the loop.
+            try {
+                value = parser.Eval().GetComplex();
+            } catch (mup::ParserError & error) {
+                parserErrors.replace(u, QString::fromStdString(error.GetMsg()));
+                break;
+            }
+
+            nonFinite = nonFinite || !std::isfinite(value.real()) || !std::isfinite(value.imag());
+            cloud->append(value);
 
             counter[0]++;
             for (qint32 j = 0; j < digitCount; j++){
@@ -178,9 +212,47 @@ QVector<QVector<complex<qreal> > * > * TemplateEngine::computeClouds(LtiSystem *
             }
         }
 
+        if (nonFinite){
+            nonFiniteFrequencies.replace(u, true);
+        }
+
         //Every frequency writes at its own index: no critical sections,
         //no permutations.
         allClouds->replace(u, cloud);
+    }
+
+    //Reported after the parallel loop, where throwing is safe again.
+    for (qint32 u = 0; u < frequencyCount; u++){
+        if (!parserErrors.at(u).isEmpty()){
+            const std::string message = parserErrors.at(u).toStdString();
+            qDeleteAll(*allClouds);
+            delete allClouds;
+
+            throw qftbx::InvalidInput(
+                    "The plant expression could not be evaluated at "
+                    + std::to_string(omega->at(u)) + " rad/s: " + message);
+        }
+    }
+
+    //Reported after the parallel loop, naming every affected frequency.
+    QStringList affected;
+    for (qint32 u = 0; u < frequencyCount; u++){
+        if (nonFiniteFrequencies.at(u)){
+            affected.append(QString::number(omega->at(u)));
+        }
+    }
+
+    if (!affected.isEmpty()){
+        qDeleteAll(*allClouds);
+        delete allClouds;
+
+        throw qftbx::InvalidInput(
+                "The plant has infinite magnitude at the design frequencies "
+                + affected.join(QStringLiteral(", ")).toStdString()
+                + " rad/s: an undamped resonance inside the uncertainty. Its "
+                  "template cannot be bounded or contoured. Add light damping "
+                  "to the resonant poles (the usual answer for the ACC'90 "
+                  "benchmark) or move those frequencies out of the set.");
     }
 
     return allClouds;
@@ -232,6 +304,10 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
     //of the GUI (aliasing). Without the permutation they stay intact.
     m_contours = new QVector <QVector <complex <qreal> > * > (digitCount);
 
+    //Per-frequency diagnosis of a failure (nothing may be thrown from
+    //inside the parallel region).
+    QVector <bool> failed (digitCount, false);
+
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
 #endif
@@ -241,6 +317,7 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
 
         if (cont == NULL){
             cont = new QVector <complex <qreal> >();
+            failed.replace(i, true);
 
 #ifdef OpenMP_AVAILABLE
 #pragma omp critical
@@ -252,8 +329,38 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
 
         m_contours->replace(i, cont);
     }
+
     if (!succeeded){
-        throw qftbx::ComputationError("Could not compute the template contours.");
+        //The message names the frequencies and their largest magnitude: a
+        //resonance inside the uncertainty makes the cloud span astronomical
+        //magnitudes (finite ones when the exact singular frequency is not
+        //representable), and no epsilon walks a cloud like that. Without the
+        //figure the user only saw "could not compute".
+        QStringList detail;
+
+        for (qint32 i = 0; i < digitCount; i++){
+            if (!failed.at(i)){
+                continue;
+            }
+
+            qreal largest = 0;
+            foreach (const complex<qreal> & value, *m_clouds->at(i)){
+                largest = std::max(largest, std::abs(value));
+            }
+
+            detail.append(QStringLiteral("%1 rad/s (largest |P| = %2)")
+                              .arg(m_frequencies != nullptr && i < m_frequencies->size()
+                                       ? QString::number(m_frequencies->at(i))
+                                       : QString::number(i))
+                              .arg(largest, 0, 'g', 3));
+        }
+
+        throw qftbx::ComputationError(
+                "Could not compute the template contour at "
+                + detail.join(QStringLiteral("; ")).toStdString()
+                + ". A cloud spanning extreme magnitudes has no epsilon-hull: "
+                  "check for a resonance inside the plant uncertainty and damp "
+                  "it lightly if so.");
     }
 
     return true;
