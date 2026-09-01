@@ -63,6 +63,10 @@ public:
 
     bool computeContourSet(bool cuda);
 
+    /// Frees the partially built contour row on a failure: see the note on
+    /// the definition.
+    void discardContours();
+
     /**
      * @brief Epsilon-hull contour of a point cloud, faithful to EPSHULL.M:
      * unique()d input in MATLAB complex order, max-real starting point, the

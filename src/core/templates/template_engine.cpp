@@ -59,7 +59,21 @@ bool TemplateEngine::compute(LtiSystem *plant, QVector<qreal> *omega, bool cuda)
     QElapsedTimer timer2;
     timer2.start();
 
-    bool result = computeContourSet(cuda);
+    //Nobody owns the clouds yet: the facade publishes them only when this
+    //returns, so a throw from here would leak everything computeClouds just
+    //built. computeClouds frees its own work on its two throw paths; this is
+    //the gap between them and the caller.
+    bool result = false;
+
+    try {
+        result = computeContourSet(cuda);
+    } catch (...) {
+        qDeleteAll(*m_clouds);
+        delete m_clouds;
+        m_clouds = nullptr;
+
+        throw;
+    }
 
     qDebug() << "Calcular contorno: " << timer2.elapsed() << "milliseconds";
 
@@ -320,6 +334,19 @@ QVector <qreal> * TemplateEngine::epsilon(){
     return m_epsilon;
 }
 
+//The contours built so far, which nobody owns yet: the facade takes them only
+//when the computation returns, so a throw in the middle would leak both the
+//row and every contour already in it.
+void TemplateEngine::discardContours(){
+    if (m_contours == nullptr){
+        return;
+    }
+
+    qDeleteAll(*m_contours);
+    delete m_contours;
+    m_contours = nullptr;
+}
+
 bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
 
     bool succeeded = true;
@@ -344,6 +371,8 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
         }
 
         if (!succeeded){
+            discardContours();
+
             throw ComputationError("Could not compute the template contours.");
         }
 
@@ -433,6 +462,8 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
                                        : QString::number(i))
                               .arg(largest, 0, 'g', 3));
         }
+
+        discardContours();
 
         throw qftbx::ComputationError(
                 "Could not compute the template contour at "

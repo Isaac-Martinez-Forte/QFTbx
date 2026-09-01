@@ -39,6 +39,19 @@ LtiSystem * makePlant(const QString & name)
                               Parameter(0.0));
 }
 
+//The engine only STORES the grid map, it never owns it, so whoever built it
+//has to free it - after the computation, because the engine reads it during.
+void releaseGrids(QHash<QString, QVector<qreal> *> * grids)
+{
+    if (grids == nullptr) {
+        return;
+    }
+    for (QVector<qreal> * grid : *grids) {
+        delete grid;
+    }
+    delete grids;
+}
+
 QHash<QString, QVector<qreal> *> * makeGrids()
 {
     auto * grids = new QHash<QString, QVector<qreal> *>();
@@ -61,8 +74,11 @@ protected:
         controller.setPlant(makePlant(QStringLiteral("first")));
         controller.setOmega(makeOmega());
 
-        ASSERT_TRUE(controller.computeTemplates(new QVector<qreal>(3, 10.0), makeGrids(), false));
+        QHash<QString, QVector<qreal> *> * grids = makeGrids();
+        ASSERT_TRUE(controller.computeTemplates(new QVector<qreal>(3, 10.0), grids, false));
         ASSERT_NE(controller.templates(), nullptr);
+
+        releaseGrids(grids);
     }
 
     ProjectController controller;
@@ -141,7 +157,9 @@ TEST_F(Staleness, TheTemplatesCanBeRecomputedAfterTheirInputsChange)
     controller.setPlant(makePlant(QStringLiteral("third")));
     ASSERT_EQ(controller.templates(), nullptr);
 
-    ASSERT_TRUE(controller.computeTemplates(new QVector<qreal>(3, 10.0), makeGrids(), false));
+    QHash<QString, QVector<qreal> *> * grids = makeGrids();
+    ASSERT_TRUE(controller.computeTemplates(new QVector<qreal>(3, 10.0), grids, false));
+    releaseGrids(grids);
 
     EXPECT_NE(controller.templates(), nullptr)
         << "the project could not be brought back to a computed state";
