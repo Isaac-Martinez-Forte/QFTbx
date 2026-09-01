@@ -1,6 +1,8 @@
 #ifndef QFTBX_PROJECT_DATA_H
 #define QFTBX_PROJECT_DATA_H
 
+#include <optional>
+
 #include "src/core/templates/cloud_set.h"
 #include <complex>
 
@@ -64,8 +66,12 @@ public:
     QVector<qreal> * epsilon() const;
     void setEpsilon(QVector<qreal> * epsilon);
 
-    BoundaryData * boundaries() const;
-    void setBoundaries(BoundaryData * boundaries);
+    /// The boundaries, or nullptr when none have been computed. The store
+    /// holds them BY VALUE in an optional; the pointer is only how callers
+    /// ask "are there any", which is what they already did.
+    BoundaryData * boundaries();
+    const BoundaryData * boundaries() const;
+    void setBoundaries(std::optional<BoundaryData> boundaries);
 
     LtiSystem * controller() const;
     void setController(LtiSystem * controller);
@@ -81,7 +87,7 @@ private:
     CloudSet m_contour;
     bool m_hasContour = false;
     QVector<qreal> * m_epsilon = nullptr;
-    BoundaryData * m_boundaries = nullptr;
+    std::optional<BoundaryData> m_boundaries;
     LtiSystem * m_controller = nullptr;
     LoopShapingResult * m_loopShaping = nullptr;
 };

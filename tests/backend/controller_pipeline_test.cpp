@@ -62,11 +62,11 @@ TEST(ControllerPipeline, RecomputedBoundariesMatchTheLoadedProject)
     // hands a view whose containers are replaced when recomputing.
     BoundaryData* loaded = controller.boundaries();
     QVector<QVector<QVector<QPointF>>> storedTraces;
-    for (auto* map : *loaded->boundaries()) {
+    for (const auto & map : loaded->boundaries()) {
         QVector<QVector<QPointF>> perFrequency;
-        foreach (const QString& key, map->keys()) {
-            for (QVector<QPointF>* trace : *map->value(key)) {
-                perFrequency.append(*trace);
+        for (const auto & entry : map) {
+            for (const qftbx::Trace & trace : entry.second) {
+                perFrequency.append(QVector<QPointF>(trace.begin(), trace.end()));
             }
         }
         storedTraces.append(perFrequency);
@@ -81,24 +81,25 @@ TEST(ControllerPipeline, RecomputedBoundariesMatchTheLoadedProject)
 
     BoundaryData* recomputed = controller.boundaries();
     ASSERT_NE(recomputed, nullptr);
-    ASSERT_EQ(recomputed->boundaries()->size(), 5);
+    ASSERT_EQ(recomputed->boundaries().size(), 5u);
 
     for (int f = 0; f < 5; ++f) {
-        auto* map = recomputed->boundaries()->at(f);
-        ASSERT_EQ(map->size(), 1) << "frequency " << f;
-        auto* traces = map->value(QStringLiteral("Tracking"));
-        ASSERT_NE(traces, nullptr) << "frequency " << f;
-        ASSERT_EQ(traces->size(), storedTraces.at(f).size()) << "frequency " << f;
+        const auto & map = recomputed->boundaries().at(static_cast<std::size_t>(f));
+        ASSERT_EQ(map.size(), 1u) << "frequency " << f;
+        const auto foundTraces = map.find(QStringLiteral("Tracking"));
+        ASSERT_NE(foundTraces, map.end()) << "frequency " << f;
+        const qftbx::TraceSet & traces = foundTraces->second;
+        ASSERT_EQ(static_cast<int>(traces.size()), storedTraces.at(f).size()) << "frequency " << f;
 
-        for (int t = 0; t < traces->size(); ++t) {
+        for (int t = 0; t < static_cast<int>(traces.size()); ++t) {
             const QVector<QPointF>& gold = storedTraces.at(f).at(t);
-            QVector<QPointF>* got = traces->at(t);
-            ASSERT_EQ(got->size(), gold.size()) << "frequency " << f << " trace " << t;
+            const qftbx::Trace & got = traces.at(static_cast<std::size_t>(t));
+            ASSERT_EQ(static_cast<int>(got.size()), gold.size()) << "frequency " << f << " trace " << t;
 
             // Current layout: [synthetic, core..., synthetic]; the legacy
             // file: [synthetic(last+1), synthetic(first-1), core...].
-            for (int k = 0; k < got->size() - 2; ++k) {
-                const GridPoint a = currentToGrid(got->at(1 + k));
+            for (int k = 0; k < static_cast<int>(got.size()) - 2; ++k) {
+                const GridPoint a = currentToGrid(got.at(static_cast<std::size_t>(1 + k)));
                 const GridPoint b = goldenToGrid(gold.at(2 + k));
                 ASSERT_TRUE(a == b) << "frequency " << f << " trace " << t
                                     << " point " << k;

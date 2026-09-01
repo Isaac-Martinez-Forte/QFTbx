@@ -73,32 +73,32 @@ void BoundaryUnionViewer::clearDiagram(){
 }
 
 
-void BoundaryUnionViewer::setDatos(QVector<QVector<QPointF> *> *unionTraces, QVector<qreal> *omega){
+void BoundaryUnionViewer::setDatos(const qftbx::UnionTraces & unionTraces, QVector<qreal> *omega){
     this->unionTraces = unionTraces;
     this->omega = omega;
     bucketMode = false;
     //Without this, a previous single-boundary use left the index stuck and
     //this mode painted a single frequency.
     singleBoundary = -1;
-    b = nullptr;
+    b.clear();
 }
 
-void BoundaryUnionViewer::setDatos(QVector<QVector<QPointF> *> *unionTraces, QVector<qreal> *omega, qint32 singleBoundary){
+void BoundaryUnionViewer::setDatos(const qftbx::UnionTraces & unionTraces, QVector<qreal> *omega, qint32 singleBoundary){
     this->unionTraces = unionTraces;
     this->omega = omega;
     bucketMode = false;
     this->singleBoundary = singleBoundary;
 }
 
-void BoundaryUnionViewer::setDatos (QVector< QVector< QVector<QPointF> * > * > * unionTraces, QVector<qreal> *omega) {
+void BoundaryUnionViewer::setDatos (const qftbx::UnionBuckets & unionTraces, QVector<qreal> *omega) {
     unionBuckets = unionTraces;
     this->omega = omega;
     bucketMode = true;
     singleBoundary = -1;
-    b = nullptr;
+    b.clear();
 }
 
-void BoundaryUnionViewer::setDatos (QVector< QVector< QVector<QPointF> * > * > * unionTraces, QVector<qreal> *omega, QVector<QPointF> * b) {
+void BoundaryUnionViewer::setDatos (const qftbx::UnionBuckets & unionTraces, QVector<qreal> *omega, const qftbx::Trace & b) {
     unionBuckets = unionTraces;
     this->omega = omega;
     bucketMode = true;
@@ -127,7 +127,7 @@ void BoundaryUnionViewer::showDiagram(){
     if (singleBoundary < 0) {
 
         if (!bucketMode){
-            foreach (QVector <QPointF> * bound, *unionTraces) {
+            for (const qftbx::Trace & bound : unionTraces) {
                 QColor color = randomColor(contador);
                 contador++;
                 colors->append(color);
@@ -135,7 +135,7 @@ void BoundaryUnionViewer::showDiagram(){
                 QVector <qreal> * ejex = new QVector <qreal> ();
                 QVector <qreal> * ejey = new QVector <qreal> ();
 
-                foreach (QPointF p, *bound) {
+                for (const QPointF & p : bound) {
                     ejex->append(p.x());
                     ejey->append(p.y());
                 }
@@ -156,11 +156,11 @@ void BoundaryUnionViewer::showDiagram(){
             //The container belongs to the DAO: removeLast() used to be
             //called on it and the last frequency vanished PERMANENTLY from
             //the project.
-            const qint32 frequencyCount = (this->b != nullptr) ? unionBuckets->size() - 1
-                                                            : unionBuckets->size();
+            const qint32 frequencyCount = static_cast<qint32>(
+                        this->b.empty() ? unionBuckets.size() : unionBuckets.size() - 1);
 
             for (qint32 f = 0; f < frequencyCount; f++) {
-                QVector <QVector <QPointF> * > * bound = unionBuckets->at(f);
+                const qftbx::TraceSet & bound = unionBuckets.at(static_cast<std::size_t>(f));
                 QColor color = randomColor(contador);
                 contador++;
                 colors->append(color);
@@ -168,8 +168,8 @@ void BoundaryUnionViewer::showDiagram(){
                 QVector <qreal> * ejex = new QVector <qreal> ();
                 QVector <qreal> * ejey = new QVector <qreal> ();
 
-                foreach (QVector <QPointF> * b, *bound) {
-                    foreach (QPointF p, *b) {
+                for (const qftbx::Trace & bucket : bound) {
+                    for (const QPointF & p : bucket) {
                         ejex->append(p.x());
                         ejey->append(p.y());
                     }
@@ -187,7 +187,7 @@ void BoundaryUnionViewer::showDiagram(){
 
                 k++;
             }
-            if (this->b != nullptr){
+            if (!this->b.empty()){
                 QColor color = randomColor(contador);
                 contador++;
                 colors->append(color);
@@ -195,7 +195,7 @@ void BoundaryUnionViewer::showDiagram(){
                 QVector <qreal> * ejex = new QVector <qreal> ();
                 QVector <qreal> * ejey = new QVector <qreal> ();
 
-                foreach (QPointF p, *this->b) {
+                for (const QPointF & p : this->b) {
                     ejex->append(p.x());
                     ejey->append(p.y());
                 }
@@ -222,7 +222,7 @@ void BoundaryUnionViewer::showDiagram(){
         QVector <qreal> * ejex = new QVector <qreal> ();
         QVector <qreal> * ejey = new QVector <qreal> ();
 
-        foreach (QPointF p, *unionTraces->at(singleBoundary)) {
+        for (const QPointF & p : unionTraces.at(static_cast<std::size_t>(singleBoundary))) {
             ejex->append(p.x());
             ejey->append(p.y());
         }

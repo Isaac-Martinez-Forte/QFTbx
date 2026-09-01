@@ -763,34 +763,28 @@ void MainWindow::showLoopDiagrams(bool nichols, bool nyquistRadio){
 
     BoundaryData * boundaries = controller->boundaries();
 
-    QVector< QVector<QPointF> * > * boun = boundaries->unionBoundaries();
+    //Nichols (phase in degrees, magnitude in dB) to Nyquist (the complex
+    //plane). Six heap containers used to be built here and handed to a
+    //BoundaryData that then had to be told whether it owned them.
+    qftbx::UnionTraces nuevosBoundariesReun;
+    qftbx::UnionBuckets nuevoHash_inter;
 
-    QVector< QVector<QPointF> * > * nuevosBoundariesReun =
-            new QVector< QVector<QPointF> * > ();
+    for (const qftbx::Trace & vector : boundaries->unionBoundaries()) {
 
+        qftbx::Trace nuevoVector;
 
-    QVector< QVector< QVector<QPointF> * > * > * nuevoHash_inter = new QVector< QVector< QVector<QPointF> * > * > ();
-
-    foreach (auto vector, *boun) {
-
-        QVector<QPointF> * nuevoVector = new QVector<QPointF>  ();
-
-        QVector <QVector <QPointF> * > * nuevoHash = new QVector <QVector <QPointF> *> ();
-
-        foreach (auto p, *vector) {
+        for (const QPointF & p : vector) {
             maglineal = pow(10,p.y()/20);
 
-            QPointF range_point (maglineal * cos (p.x() * M_PI / 180),
-                           maglineal * sin (p.x() * M_PI / 180));
-
-            nuevoVector->append(range_point);
-
-
+            nuevoVector.push_back(QPointF(maglineal * cos (p.x() * M_PI / 180),
+                                          maglineal * sin (p.x() * M_PI / 180)));
         }
 
-        nuevoHash_inter->append(nuevoHash);
+        //One empty bucket row per frequency: this view is only drawn, never
+        //classified, so the buckets are not needed.
+        nuevoHash_inter.push_back({});
 
-        nuevosBoundariesReun->append(nuevoVector);
+        nuevosBoundariesReun.push_back(std::move(nuevoVector));
     }
 
 
@@ -802,39 +796,25 @@ void MainWindow::showLoopDiagrams(bool nichols, bool nyquistRadio){
 
     QPointF nuevosDatosMag (pow(10,datosMag.x()/20), pow(10,datosMag.y()/20));
 
-    BoundaryData * nuevoBoundaries = new BoundaryData (boundaries->boundaries(), boundaries->openFlags(),
-                                                   boundaries->upperFlags(), boundaries->phaseCount(),
-                                                   nuevoDatosFas, nuevosBoundariesReun,
-                                                   nuevoHash_inter,
-                                                   boundaries->magnitudeCount(), nuevosDatosMag);
+    BoundaryData nuevoBoundaries (boundaries->boundaries(), boundaries->openFlags(),
+                                  boundaries->upperFlags(), boundaries->phaseCount(),
+                                  nuevoDatosFas, std::move(nuevosBoundariesReun),
+                                  std::move(nuevoHash_inter),
+                                  boundaries->magnitudeCount(), nuevosDatosMag);
 
 
     LoopBoundariesViewer * ver = new LoopBoundariesViewer();
 
-    ver->setDatos(boundaries, nuevoBoundaries, controller->omega()->values(), controller->plant(),
+    ver->setDatos(boundaries, &nuevoBoundaries, controller->omega()->values(), controller->plant(),
                   controller->controllerStructure(), nichols, nyquistRadio);
 
     ver->showDiagram();
 
     ver->exec();
 
-    //BoundaryData is a non-owning view: the temporary containers built
-    //here are freed separately (they used to be abandoned).
-    delete nuevoBoundaries;
-
-    foreach (QVector<QPointF> * vector, *nuevosBoundariesReun) {
-        delete vector;
-    }
-    delete nuevosBoundariesReun;
-
-    foreach (auto * porFrecuencia, *nuevoHash_inter) {
-        foreach (QVector<QPointF> * cubeta, *porFrecuencia) {
-            delete cubeta;
-        }
-        delete porFrecuencia;
-    }
-    delete nuevoHash_inter;
-
+    //Nothing to free: the Nyquist boundaries and their buckets are held by
+    //value and die with this scope. Twenty lines of nested deletion used to
+    //stand here, and BoundaryData had to be told it did not own them.
     delete ver;
 }
 

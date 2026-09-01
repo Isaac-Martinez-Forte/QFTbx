@@ -41,7 +41,7 @@ protected:
         content.templates = original.templates();
         content.contour = original.contour();
         content.epsilon = original.epsilon();
-        content.boundaries = original.boundaries();
+        content.boundaries = const_cast<BoundaryData *>(original.boundaries());
         content.controller = original.controller();
         content.loopShaping = original.loopShaping();
 

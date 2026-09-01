@@ -88,7 +88,7 @@ void AlgorithmMcThesis::setStrategies(const Strategies & s)
 
 
 void AlgorithmMcThesis::set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> * omega,
-                                  BoundaryData * boundaries, qreal epsilon)
+                                  const BoundaryData * boundaries, qreal epsilon)
 {
     this->planta = planta;
     this->controlador = controlador->clone();

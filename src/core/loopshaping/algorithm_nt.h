@@ -27,7 +27,7 @@ public:
     AlgorithmNt();
     ~AlgorithmNt();
 
-    void set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, BoundaryData * boundaries,
+    void set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, const BoundaryData * boundaries,
                     qreal epsilon);
 
     bool init_algorithm();
@@ -45,7 +45,7 @@ private:
     LtiSystem * planta;
     LtiSystem * controlador;
     QVector <qreal> * omega;
-    BoundaryData * boundaries;
+    const BoundaryData * boundaries = nullptr;
     NaturalIntervalExtension * conversion = nullptr;
     OrderedList * lista = nullptr;
     qreal epsilon;
@@ -56,8 +56,6 @@ private:
 
     QPointF interseccion (QPointF uno, QPointF dos);
 
-    QVector <bool> * metaDatosArriba;
-    QVector <bool> * metaDatosAbierto;
 
     qint32 tamFas;
 

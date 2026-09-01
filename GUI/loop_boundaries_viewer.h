@@ -27,7 +27,7 @@ public:
     ~LoopBoundariesViewer();
 
 
-    void setDatos (BoundaryData * nicholsData, BoundaryData * nyquistData, QVector<qreal> *omega,
+    void setDatos (const BoundaryData * nicholsData, const BoundaryData * nyquistData, QVector<qreal> *omega,
                    LtiSystem * plant, LtiSystem * controller, bool nichols, bool nyquist);
 
     void showDiagram();
@@ -41,8 +41,8 @@ private slots:
 
 private:
 
-    BoundaryData * nicholsData;
-    BoundaryData * nyquistData;
+    const BoundaryData * nicholsData = nullptr;
+    const BoundaryData * nyquistData = nullptr;
     LtiSystem * plant;
     LtiSystem * controller;
     QVector <qreal> * omega;

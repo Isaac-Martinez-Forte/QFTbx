@@ -7,6 +7,7 @@
 
 #include "src/core/math/sequence_vectors.h"
 #include "qcustomplot.h"
+#include "src/core/boundaries/boundary_types.h"
 
 
 namespace Ui {
@@ -22,12 +23,12 @@ public:
     ~BoundaryUnionViewer();
 
 
-    void setDatos (QVector< QVector<QPointF> * > * unionTraces, QVector<qreal> *omega);
-    void setDatos (QVector< QVector<QPointF> * > * unionTraces, QVector<qreal> *omega, qint32 singleBoundary);
+    void setDatos (const qftbx::UnionTraces & unionTraces, QVector<qreal> *omega);
+    void setDatos (const qftbx::UnionTraces & unionTraces, QVector<qreal> *omega, qint32 singleBoundary);
 
-    void setDatos (QVector< QVector< QVector<QPointF> * > * > * unionTraces, QVector<qreal> *omega);
+    void setDatos (const qftbx::UnionBuckets & unionTraces, QVector<qreal> *omega);
 
-    void setDatos (QVector< QVector< QVector<QPointF> * > * > * unionTraces, QVector<qreal> *omega, QVector<QPointF> * b);
+    void setDatos (const qftbx::UnionBuckets & unionTraces, QVector<qreal> *omega, const qftbx::Trace & b);
 
     void showDiagram();
 
@@ -41,10 +42,12 @@ private slots:
 
 private:
 
-    QVector< QVector<QPointF> * > * unionTraces;
-    QVector< QVector< QVector<QPointF> * > * > * unionBuckets;
+    qftbx::UnionTraces unionTraces;
+    qftbx::UnionBuckets unionBuckets;
     QVector <qreal> * omega;
-    QVector<QPointF> * b = nullptr;
+    //An extra curve painted on top, empty when there is none. It was a
+    //pointer whose nullness was the flag.
+    qftbx::Trace b;
 
     bool bucketMode;
 

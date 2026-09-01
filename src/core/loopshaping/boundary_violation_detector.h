@@ -6,6 +6,7 @@
 
 #include "src/core/math/sequence_vectors.h"
 #include "src/core/boundaries/boundary_data.h"
+#include "src/core/boundaries/boundary_types.h"
 #include "src/core/loopshaping/box_classification.h"
 
 #include <cinterval.hpp>
@@ -31,15 +32,15 @@ public:
     BoundaryViolationDetector();
     ~BoundaryViolationDetector();
 
-    BoxClassification * classifyBox(cxsc::cinterval box, BoundaryData * boundaries, qint32 contador);
+    BoxClassification * classifyBox(cxsc::cinterval box, const BoundaryData * boundaries, qint32 contador);
 
     /// Classifies one Nichols point (phase deg, magnitude dB) against the
     /// boundary union at design frequency 'contador' (parity test).
-    tools::BoxFlag classifyPoint(QPointF punto, BoundaryData * boundaries, qint32 contador);
+    tools::BoxFlag classifyPoint(QPointF punto, const BoundaryData * boundaries, qint32 contador);
 
 private:
 
-    inline tools::BoxFlag pointVerdict(QPointF punto, QVector< QVector<QPointF> * > * interseccionHash,
+    inline tools::BoxFlag pointVerdict(QPointF punto, const qftbx::TraceSet & interseccionHash,
                                                qint32 totalFase, bool abierta, bool arriba, qint32 numeroFases);
     inline qint32 phaseBucket(qreal x, qreal totalFase, qint32 numeroFases);
 };

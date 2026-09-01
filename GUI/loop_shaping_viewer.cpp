@@ -64,7 +64,7 @@ void LoopShapingViewer::clearDiagram(){
 }
 
 
-void LoopShapingViewer::setDatos(QVector<QVector<QPointF> *> *unionTraces, QVector<qreal> *omega, LoopShapingResult *loopShapingData,
+void LoopShapingViewer::setDatos(const qftbx::UnionTraces & unionTraces, QVector<qreal> *omega, LoopShapingResult *loopShapingData,
                                LtiSystem* plant, bool linSpace){
     this->unionTraces = unionTraces;
     this->omega = omega;
@@ -120,7 +120,7 @@ void LoopShapingViewer::showDiagram(){
     QVector <QColor> rowColors;
 
     qint32 contador = 0;
-    foreach (QVector <QPointF> * bound, *unionTraces) {
+    for (const qftbx::Trace & bound : unionTraces) {
         QColor color = randomColor(contador);
         contador++;
         rowColors.append(color);
@@ -128,7 +128,7 @@ void LoopShapingViewer::showDiagram(){
         QVector <qreal> * ejex = new QVector <qreal> ();
         QVector <qreal> * ejey = new QVector <qreal> ();
 
-        foreach (QPointF p, *bound) {
+        for (const QPointF & p : bound) {
             ejex->append(p.x());
             ejey->append(p.y());
         }

@@ -14,6 +14,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <memory>
 
 #include "src/core/math/sequences.h"
@@ -71,22 +72,16 @@ protected:
 
         got = engine.boundaryData();
         gold = parser.boundaries();
-        ASSERT_NE(got, nullptr);
         ASSERT_NE(gold, nullptr);
     }
 
     ProjectReader parser;
     BoundaryEngine engine;
-    //boundaryData() hands out a NON-owning view, freshly allocated each call:
-    //the engine keeps the data. The view itself is the caller's, and every
-    //one of these tests used to drop it on the floor.
-    void TearDown() override
-    {
-        delete got;
-    }
-
-    BoundaryData* got = nullptr;
-    BoundaryData* gold = nullptr;   //owned by the reader
+    //boundaryData() returns a snapshot BY VALUE now: no allocation, no
+    //TearDown, and no chance of dropping it on the floor. It used to be a
+    //freshly allocated non-owning view that every one of these tests leaked.
+    std::optional<BoundaryData> got;
+    const BoundaryData* gold = nullptr;   //owned by the reader
 };
 
 TEST_F(BoundariesGolden, GridMetadataMatches)
@@ -96,47 +91,46 @@ TEST_F(BoundariesGolden, GridMetadataMatches)
     EXPECT_EQ(got->phaseRange(), gold->phaseRange()); // (-360, 0)
     EXPECT_EQ(got->magnitudeRange(), gold->magnitudeRange()); // (-60, 60)
 
-    ASSERT_NE(got->openFlags(), nullptr);
-    ASSERT_EQ(got->openFlags()->size(), 5);
-    for (int f = 0; f < 5; ++f) {
-        EXPECT_FALSE(got->openFlags()->at(f));
-        EXPECT_FALSE(got->upperFlags()->at(f));
+    ASSERT_EQ(got->openFlags().size(), 5u);
+    for (std::size_t f = 0; f < 5; ++f) {
+        EXPECT_FALSE(got->openFlags().at(f));
+        EXPECT_FALSE(got->upperFlags().at(f));
     }
 }
 
 TEST_F(BoundariesGolden, TracesMatchTheGoldenInGridIndices)
 {
-    auto* gotB = got->boundaries();
-    auto* goldB = gold->boundaries();
-    ASSERT_EQ(gotB->size(), 5);
-    ASSERT_EQ(goldB->size(), 5);
+    const qftbx::BoundarySet & gotB = got->boundaries();
+    const qftbx::BoundarySet & goldB = gold->boundaries();
+    ASSERT_EQ(gotB.size(), 5u);
+    ASSERT_EQ(goldB.size(), 5u);
 
     const int expectedTraces[] = {5, 1, 2, 4, 5};
 
     for (int f = 0; f < 5; ++f) {
-        auto* gotMap = gotB->at(f);
-        auto* goldMap = goldB->at(f);
-        ASSERT_TRUE(gotMap->contains(QStringLiteral("Tracking")))
-            << "frequency " << f;
-        ASSERT_EQ(goldMap->size(), 1);
+        const auto & gotMap = gotB.at(static_cast<std::size_t>(f));
+        const auto & goldMap = goldB.at(static_cast<std::size_t>(f));
+        const auto foundGot = gotMap.find(QStringLiteral("Tracking"));
+        ASSERT_NE(foundGot, gotMap.end()) << "frequency " << f;
+        ASSERT_EQ(goldMap.size(), 1u);
 
-        auto* gotTraces = gotMap->value(QStringLiteral("Tracking"));
-        auto* goldTraces = goldMap->first();
-        ASSERT_EQ(goldTraces->size(), expectedTraces[f]) << "frequency " << f;
-        ASSERT_EQ(gotTraces->size(), goldTraces->size()) << "frequency " << f;
+        const qftbx::TraceSet & gotTraces = foundGot->second;
+        const qftbx::TraceSet & goldTraces = goldMap.begin()->second;
+        ASSERT_EQ(static_cast<int>(goldTraces.size()), expectedTraces[f]) << "frequency " << f;
+        ASSERT_EQ(gotTraces.size(), goldTraces.size()) << "frequency " << f;
 
-        for (int t = 0; t < gotTraces->size(); ++t) {
-            QVector<QPointF>* gotTrace = gotTraces->at(t);
-            QVector<QPointF>* goldTrace = goldTraces->at(t);
-            ASSERT_EQ(gotTrace->size(), goldTrace->size())
+        for (int t = 0; t < static_cast<int>(gotTraces.size()); ++t) {
+            const qftbx::Trace & gotTrace = gotTraces.at(static_cast<std::size_t>(t));
+            const qftbx::Trace & goldTrace = goldTraces.at(static_cast<std::size_t>(t));
+            ASSERT_EQ(gotTrace.size(), goldTrace.size())
                 << "frequency " << f << " trace " << t;
 
             // Core: current = [synthetic, core..., synthetic]; the legacy
             // golden = [synthetic(last+1), synthetic(first-1), core...].
-            const int n = gotTrace->size();
+            const int n = static_cast<int>(gotTrace.size());
             for (int k = 0; k < n - 2; ++k) {
-                const GridPoint a = currentToGrid(gotTrace->at(1 + k));
-                const GridPoint b = goldenToGrid(goldTrace->at(2 + k));
+                const GridPoint a = currentToGrid(gotTrace.at(1 + k));
+                const GridPoint b = goldenToGrid(goldTrace.at(2 + k));
                 ASSERT_TRUE(a == b)
                     << "frequency " << f << " trace " << t << " point " << k
                     << ": got grid (" << a.n << "," << a.m << ") vs golden ("
@@ -148,23 +142,23 @@ TEST_F(BoundariesGolden, TracesMatchTheGoldenInGridIndices)
 
 TEST_F(BoundariesGolden, ReunionIsTheConcatenationOfTheTraces)
 {
-    auto* reun = got->unionBoundaries();
-    ASSERT_NE(reun, nullptr);
-    ASSERT_EQ(reun->size(), 5);
+    const qftbx::UnionTraces & reun = got->unionBoundaries();
+    ASSERT_EQ(reun.size(), 5u);
 
-    auto* gotB = got->boundaries();
-    for (int f = 0; f < 5; ++f) {
-        auto* traces = gotB->at(f)->value(QStringLiteral("Tracking"));
-        int total = 0;
-        for (QVector<QPointF>* t : *traces) {
-            total += t->size();
+    const qftbx::BoundarySet & gotB = got->boundaries();
+    for (std::size_t f = 0; f < 5; ++f) {
+        const qftbx::TraceSet & traces = gotB.at(f).at(QStringLiteral("Tracking"));
+
+        std::size_t total = 0;
+        for (const qftbx::Trace & t : traces) {
+            total += t.size();
         }
-        ASSERT_EQ(reun->at(f)->size(), total) << "frequency " << f;
+        ASSERT_EQ(reun.at(f).size(), total) << "frequency " << f;
 
-        int idx = 0;
-        for (QVector<QPointF>* t : *traces) {
-            for (const QPointF& p : *t) {
-                ASSERT_EQ(reun->at(f)->at(idx), p)
+        std::size_t idx = 0;
+        for (const qftbx::Trace & t : traces) {
+            for (const QPointF& p : t) {
+                ASSERT_EQ(reun.at(f).at(idx), p)
                     << "frequency " << f << " flat index " << idx;
                 ++idx;
             }
@@ -185,18 +179,14 @@ TEST_F(BoundariesGolden, ContourInputIsEquivalentToFullTemplates)
                           parser2.templates(), parser2.specifications(),
                           QPointF(-360.0, 0.0), 361, QPointF(-60.0, 60.0), 121,
                           -1.0, false);
-    const std::unique_ptr<BoundaryData> other(engine2.boundaryData());
+    const BoundaryData other = engine2.boundaryData();
 
-    auto* a = got->boundaries();
-    auto* b = other->boundaries();
-    ASSERT_EQ(a->size(), b->size());
-    for (int f = 0; f < a->size(); ++f) {
-        auto* ta = a->at(f)->value(QStringLiteral("Tracking"));
-        auto* tb = b->at(f)->value(QStringLiteral("Tracking"));
-        ASSERT_EQ(ta->size(), tb->size()) << "frequency " << f;
-        for (int t = 0; t < ta->size(); ++t) {
-            ASSERT_EQ(*ta->at(t), *tb->at(t)) << "frequency " << f << " trace " << t;
-        }
+    const qftbx::BoundarySet & a = got->boundaries();
+    const qftbx::BoundarySet & b = other.boundaries();
+    ASSERT_EQ(a.size(), b.size());
+    for (std::size_t f = 0; f < a.size(); ++f) {
+        EXPECT_EQ(a.at(f).at(QStringLiteral("Tracking")),
+                  b.at(f).at(QStringLiteral("Tracking"))) << "frequency " << f;
     }
 }
 
@@ -207,29 +197,28 @@ TEST_F(BoundariesGolden, ReunionHashIsSortedDeduplicatedAndInRange)
     // indexes out of range, and each bucket is sorted ascending by
     // magnitude with duplicate magnitudes dropped - the semantics of the
     // layer buckets and of the historical files.
-    auto* hash = got->unionBuckets();
-    ASSERT_NE(hash, nullptr);
-    ASSERT_EQ(hash->size(), 5);
+    const qftbx::UnionBuckets & hash = got->unionBuckets();
+    ASSERT_EQ(hash.size(), 5u);
 
-    auto* reun = got->unionBoundaries();
+    const qftbx::UnionTraces & reun = got->unionBoundaries();
 
-    for (int f = 0; f < 5; ++f) {
-        ASSERT_EQ(hash->at(f)->size(), 361) << "frequency " << f;
+    for (std::size_t f = 0; f < 5; ++f) {
+        ASSERT_EQ(hash.at(f).size(), 361u) << "frequency " << f;
 
-        int total = 0;
-        for (QVector<QPointF>* bucket : *hash->at(f)) {
-            for (int k = 0; k < bucket->size(); ++k) {
-                EXPECT_TRUE(reun->at(f)->contains(bucket->at(k)))
-                    << "frequency " << f;
+        std::size_t total = 0;
+        for (const qftbx::Trace & bucket : hash.at(f)) {
+            for (std::size_t k = 0; k < bucket.size(); ++k) {
+                EXPECT_NE(std::find(reun.at(f).begin(), reun.at(f).end(), bucket.at(k)),
+                          reun.at(f).end()) << "frequency " << f;
                 if (k > 0) {
-                    EXPECT_GT(bucket->at(k).y(), bucket->at(k - 1).y())
+                    EXPECT_GT(bucket.at(k).y(), bucket.at(k - 1).y())
                         << "frequency " << f << " bucket not strictly sorted";
                 }
             }
-            total += bucket->size();
+            total += bucket.size();
         }
-        EXPECT_GT(total, 0) << "frequency " << f;
-        EXPECT_LE(total, reun->at(f)->size()) << "frequency " << f;
+        EXPECT_GT(total, 0u) << "frequency " << f;
+        EXPECT_LE(total, reun.at(f).size()) << "frequency " << f;
     }
 }
 

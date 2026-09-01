@@ -4,6 +4,7 @@
 #include <QVector>
 
 #include "src/core/templates/cloud_set.h"
+#include "src/core/boundaries/boundary_types.h"
 #include <complex>
 #include <qmath.h>
 #include <limits>
@@ -82,7 +83,10 @@ public:
                  qint32 phaseCount, QPointF magnitudeRange, qint32 magnitudeCount, qreal exportInfinity, bool cuda);
 
     /// A fresh non-owning view over the last computed results.
-    BoundaryData * boundaryData();
+    /// A snapshot of the results, by value. It used to be a freshly
+    /// allocated NON-OWNING view that every caller had to delete and that
+    /// nothing in the type said was a view.
+    BoundaryData boundaryData();
 
     QVector <qreal> * omega();
 
@@ -101,25 +105,25 @@ private:
                           const ComplexCloud & valueSet, QVector <qreal> * phases,
                           QVector <qreal> * magnitudes, qint32 index);
 
-    void traceFrequency(qreal omega, QMap <QString, QVector <QVector <QPointF> * > *> * bound, QVector<QVector<QVector<qreal> *> *> *sheets,
-                        QMap<QString, QVector<QPoint> *> *traceMetadata, std::complex<qreal> p0, const ComplexCloud & valueSet,
+    void traceFrequency(qreal omega, std::map<QString, TraceSet> & bound, QVector<QVector<QVector<qreal> *> *> *sheets,
+                        std::map<QString, TraceLabels> & traceMetadata, std::complex<qreal> p0, const ComplexCloud & valueSet,
                         qint32 index, qreal phaseSpan, qreal magnitudeSpan, qreal phaseBottom, qreal magnitudeBottom);
 
-    QVector<QVector<QPointF> *> *traceBoundary(qreal thresholdDb, QVector<QVector<qreal> *> *sheet,
-                                               QVector<QPoint> *traceMetadata, std::complex<qreal> p0, const ComplexCloud & valueSet,
+    TraceSet traceBoundary(qreal thresholdDb, QVector<QVector<qreal> *> *sheet,
+                                               TraceLabels & traceMetadata, std::complex<qreal> p0, const ComplexCloud & valueSet,
                                                qint32 kind, qreal phaseSpan, qreal magnitudeSpan,
                                                qreal phaseBottom, qreal magnitudeBottom);
 
-    qint32 allowedZone(QVector <QPointF> * trace, std::complex<qreal> p0, const ComplexCloud & valueSet, qint32 kind, qreal thresholdDb);
+    qint32 allowedZone(const Trace & trace, std::complex<qreal> p0, const ComplexCloud & valueSet, qint32 kind, qreal thresholdDb);
 
 #ifdef CUDA_AVAILABLE
-    void traceFrequency(qreal omega, QMap <QString, QVector <QVector <QPointF> * > *> * bound,
+    void traceFrequency(qreal omega, std::map<QString, TraceSet> & bound,
                         const BoundarySheetsCuda & cudaSheets,
-                        QMap <QString, QVector <QPoint> * > * traceMetadata,
+                        std::map<QString, TraceLabels> & traceMetadata,
                         std::complex <qreal> p0, const ComplexCloud & valueSet, qint32 index,
                         qreal phaseSpan, qreal magnitudeSpan, qreal phaseBottom, qreal magnitudeBottom);
 
-    QVector<QVector<QPointF> *> *traceBoundary(qreal thresholdDb, const float * sheet,
+    TraceSet traceBoundary(qreal thresholdDb, const float * sheet,
                                                QVector<QPoint> *traceMetadata, std::complex<qreal> p0, const ComplexCloud & valueSet,
                                                qint32 kind, qreal phaseSpan, qreal magnitudeSpan,
                                                qreal phaseBottom, qreal magnitudeBottom);
@@ -132,10 +136,10 @@ private:
     qint32 m_magnitudeCount;
 
 
-    QVector <QMap <QString, QVector <QVector <QPointF> * > *> * > * m_boundaries;
-    QVector <QMap <QString, QVector <QPoint> * > *> * m_traceMetadata;
-    QVector <QVector <QPointF> * > * m_unionVectors;
-    QVector< QVector< QVector<QPointF> * > * > * m_unionBuckets;
+    BoundarySet m_boundaries;
+    TraceMetadata m_traceMetadata;
+    UnionTraces m_unionVectors;
+    UnionBuckets m_unionBuckets;
 
     QVector <bool> m_trackingMask;
     QVector <bool> m_stabilityMask;
@@ -144,8 +148,8 @@ private:
     QVector <bool> m_inputDisturbanceMask;
     QVector <bool> m_controlEffortMask;
 
-    QVector <bool> * m_openFlags;
-    QVector <bool> * m_upperFlags;
+    std::vector<bool> m_openFlags;
+    std::vector<bool> m_upperFlags;
 
     //Alias of the caller's frequency vector: never freed here.
     QVector <qreal> * m_omega;

@@ -5,6 +5,7 @@
 
 #include "src/core/math/sequence_vectors.h"
 #include "qcustomplot.h"
+#include "src/core/boundaries/boundary_types.h"
 #include "src/core/system/lti_system.h"
 #include "src/core/loopshaping/loop_shaping_result.h"
 
@@ -22,7 +23,7 @@ public:
     ~LoopShapingViewer();
 
 
-    void setDatos (QVector<QVector<QPointF> *> *unionTraces, QVector<qreal> *omega, LoopShapingResult * loopShapingData, LtiSystem *plant, bool linSpace);
+    void setDatos (const qftbx::UnionTraces & unionTraces, QVector<qreal> *omega, LoopShapingResult * loopShapingData, LtiSystem *plant, bool linSpace);
 
     void showDiagram();
 
@@ -34,7 +35,7 @@ private slots:
 
 private:
 
-    QVector <QVector <QPointF> * > * unionTraces;
+    qftbx::UnionTraces unionTraces;
     QVector <qreal> * omega;
     LtiSystem * plant;
     LoopShapingResult * loopShapingData;

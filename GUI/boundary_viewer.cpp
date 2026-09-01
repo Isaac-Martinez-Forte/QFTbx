@@ -64,7 +64,7 @@ void BoundaryViewer::clearDiagram(){
     plotted = false;
 }
 
-void BoundaryViewer::setDatos(BoundaryData *datos, QVector <qreal> * omega){
+void BoundaryViewer::setDatos(const BoundaryData *datos, QVector <qreal> * omega){
 
     boundaryData = datos;
     this->omega = omega;
@@ -82,10 +82,10 @@ void BoundaryViewer::showDiagram(){
 
     curves = new QVector <QVector <QCPCurve * > * > ();
 
-    QVector <QMap <QString, QVector <QVector <QPointF> * > * > * > * boundaryData = this->boundaryData->boundaries();
+    const qftbx::BoundarySet & boundarySet = this->boundaryData->boundaries();
 
     //Sweep the design frequencies.
-    for (qint32 i = 0; i < boundaryData->size(); i++) {
+    for (qint32 i = 0; i < static_cast<qint32>(boundarySet.size()); i++) {
 
         QVector <QCPCurve * > * gra = new QVector <QCPCurve *> ();
 
@@ -93,14 +93,15 @@ void BoundaryViewer::showDiagram(){
 
         addFrequencyRow(color, i);
 
-        QMap <QString, QVector <QVector <QPointF> * > * > * mapa = boundaryData->at(i);
-        foreach (QVector <QVector <QPointF> * > * b, *mapa) {
-            foreach (QVector <QPointF> * bound, *b) {
+        const auto & mapa = boundarySet.at(static_cast<std::size_t>(i));
+        for (const auto & entry : mapa) {
+            const qftbx::TraceSet & b = entry.second;
+            for (const qftbx::Trace & bound : b) {
 
                 QVector <qreal> * ejex = new QVector <qreal> ();
                 QVector <qreal> * ejey = new QVector <qreal> ();
 
-                foreach (QPointF p, *bound) {
+                for (const QPointF & p : bound) {
                    ejex->append(p.x());
                    ejey->append(p.y());
                 }

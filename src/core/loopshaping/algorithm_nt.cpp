@@ -54,7 +54,7 @@ AlgorithmNt::~AlgorithmNt() {
     delete plantas_nominales;
 }
 
-void AlgorithmNt::set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, BoundaryData * boundaries,
+void AlgorithmNt::set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, const BoundaryData * boundaries,
                                  qreal epsilon) {
 
 
@@ -63,9 +63,6 @@ void AlgorithmNt::set_datos(LtiSystem * planta, LtiSystem * controlador, QVector
     this->omega = omega;
     this->boundaries = boundaries;
     this->epsilon = epsilon;
-
-    this->metaDatosArriba = boundaries->upperFlags();
-    this->metaDatosAbierto = boundaries->openFlags();
 
     this->tamFas = boundaries->phaseCount() - 1;
 }

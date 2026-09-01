@@ -26,35 +26,18 @@ namespace {
 
 //A one-frequency boundary set over a phase window of [phaseStart, 0] with
 //phaseCount buckets, holding a single closed boundary point.
-BoundaryData * narrowWindow(qreal phaseStart, qint32 phaseCount)
+//By value throughout: fifteen lines of heap allocation and a takeOwnership()
+//call became five, and there is nothing left for the fixture to free.
+BoundaryData narrowWindow(qreal phaseStart, qint32 phaseCount)
 {
-    auto * buckets = new QVector<QVector<QVector<QPointF> *> *>();
-    auto * row = new QVector<QVector<QPointF> *>();
-    for (qint32 i = 0; i < phaseCount; i++) {
-        row->append(new QVector<QPointF>());
-    }
-    //One boundary point, in the first bucket.
-    row->at(0)->append(QPointF(phaseStart, 0.0));
-    buckets->append(row);
+    //One bucket row of phaseCount buckets, with one boundary point in the
+    //first bucket.
+    qftbx::UnionBuckets buckets{qftbx::TraceSet(static_cast<std::size_t>(phaseCount))};
+    buckets[0][0].push_back(QPointF(phaseStart, 0.0));
 
-    auto * unionBoundaries = new QVector<QVector<QPointF> *>();
-    unionBoundaries->append(new QVector<QPointF>{QPointF(phaseStart, 0.0)});
-
-    auto * boundaries = new QVector<QMap<QString, QVector<QVector<QPointF> *> *> *>();
-    boundaries->append(new QMap<QString, QVector<QVector<QPointF> *> *>());
-
-    auto * open = new QVector<bool>{false};
-    auto * upper = new QVector<bool>{true};
-
-    //The constructor is non-owning by default (the engine keeps its own
-    //data alive); takeOwnership makes the fixture's destructor free the
-    //vectors above, as the project loader does.
-    BoundaryData * data = new BoundaryData(boundaries, open, upper, phaseCount,
-                            QPointF(phaseStart, 0.0), unionBoundaries, buckets,
-                            121, QPointF(-60.0, 60.0));
-    data->takeOwnership();
-
-    return data;
+    return BoundaryData({{}}, {false}, {true}, phaseCount, QPointF(phaseStart, 0.0),
+                        {{QPointF(phaseStart, 0.0)}}, std::move(buckets),
+                        121, QPointF(-60.0, 60.0));
 }
 
 TEST(BoundaryBucketBounds, APhaseOutsideTheNicholsWindowStaysInsideTheBuckets)
@@ -64,33 +47,29 @@ TEST(BoundaryBucketBounds, APhaseOutsideTheNicholsWindowStaysInsideTheBuckets)
     //bucket row (QVector::at is undefined behaviour out of range, and the
     //box classification reaches the same row with value(), which answers
     //nullptr and is then dereferenced).
-    BoundaryData * boundaries = narrowWindow(-180.0, 181);
+    const BoundaryData boundaries = narrowWindow(-180.0, 181);
 
     BoundaryViolationDetector detector;
 
     //The verdict itself is not the point here: not reading out of bounds is.
-    tools::BoxFlag verdict = detector.classifyPoint(QPointF(-300.0, 10.0), boundaries, 0);
+    tools::BoxFlag verdict = detector.classifyPoint(QPointF(-300.0, 10.0), &boundaries, 0);
     EXPECT_TRUE(verdict == tools::feasible || verdict == tools::infeasible);
 
     //The far edge of the window is the last valid bucket, not one past it.
-    verdict = detector.classifyPoint(QPointF(-180.0, 10.0), boundaries, 0);
+    verdict = detector.classifyPoint(QPointF(-180.0, 10.0), &boundaries, 0);
     EXPECT_TRUE(verdict == tools::feasible || verdict == tools::infeasible);
-
-    delete boundaries;
 }
 
 TEST(BoundaryBucketBounds, TheFullWindowEdgeIsTheLastBucket)
 {
     //The default window: -360 degrees must land on the last bucket of 361,
     //not on bucket 361.
-    BoundaryData * boundaries = narrowWindow(-360.0, 361);
+    const BoundaryData boundaries = narrowWindow(-360.0, 361);
 
     BoundaryViolationDetector detector;
 
-    tools::BoxFlag verdict = detector.classifyPoint(QPointF(-360.0, 10.0), boundaries, 0);
+    tools::BoxFlag verdict = detector.classifyPoint(QPointF(-360.0, 10.0), &boundaries, 0);
     EXPECT_TRUE(verdict == tools::feasible || verdict == tools::infeasible);
-
-    delete boundaries;
 }
 
 TEST(BoundaryBucketBounds, LoopShapingRefusesAWindowNarrowerThanTheLoopPhase)
@@ -99,17 +78,15 @@ TEST(BoundaryBucketBounds, LoopShapingRefusesAWindowNarrowerThanTheLoopPhase)
     //window would then get the verdict of the edge bucket, which nobody
     //computed. The search says so instead, once and before any algorithm
     //starts (a throw from inside an OpenMP region would end the process).
-    BoundaryData * narrow = narrowWindow(-180.0, 181);
+    const BoundaryData narrow = narrowWindow(-180.0, 181);
 
     LoopShaping search;
 
     //The check runs before anything is dereferenced, which is the point of
     //putting it first: the rest of the arguments are never touched.
-    EXPECT_THROW(search.run(nullptr, nullptr, nullptr, narrow, 0.0,
+    EXPECT_THROW(search.run(nullptr, nullptr, nullptr, &narrow, 0.0,
                             tools::nt, {}, nullptr, 0),
                  qftbx::ComputationError);
-
-    delete narrow;
 
     //That a 360 degree window is ACCEPTED needs no assertion here: every
     //loop-shaping golden test runs over the default [-360, 0] window and

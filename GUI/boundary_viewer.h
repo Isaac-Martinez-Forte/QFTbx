@@ -49,7 +49,7 @@ public:
     * @param sabana sábana completa del cálculo intermedio a los boundaryData.
     */
     
-    void setDatos (BoundaryData *datos, QVector<qreal> *omega);
+    void setDatos (const BoundaryData *datos, QVector<qreal> *omega);
     
     
    /**
@@ -70,7 +70,7 @@ private:
     void addFrequencyRow(QColor color, qint32 pos);
     void clearDiagram();
 
-    BoundaryData * boundaryData;
+    const BoundaryData * boundaryData = nullptr;
     QVector <qreal> * omega;
 
     bool plotted;

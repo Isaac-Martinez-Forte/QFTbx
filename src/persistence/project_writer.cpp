@@ -35,19 +35,19 @@ std::string realVectorText(const QVector <qreal> & values)
     return text;
 }
 
-std::string pointVectorText(const QVector <QPointF> & points)
+std::string pointVectorText(const std::vector<QPointF> & points)
 {
     std::string text;
-    foreach (const QPointF & point, points) {
+    for (const QPointF & point : points) {
         text += number(point.x()) + " " + number(point.y()) + " ";
     }
     return text;
 }
 
-std::string boolVectorText(const QVector <bool> & values)
+std::string boolVectorText(const std::vector<bool> & values)
 {
     std::string text;
-    foreach (bool value, values) {
+    for (const bool value : values) {
         text += value ? "1 " : "0 ";
     }
     return text;
@@ -185,10 +185,10 @@ void writeTemplates(pugi::xml_node root, const ProjectContent & content)
     }
 }
 
-void writeTraces(pugi::xml_node parent, QVector <QVector <QPointF> * > * traces)
+void writeTraces(pugi::xml_node parent, const qftbx::TraceSet & traces)
 {
-    foreach (QVector <QPointF> * trace, *traces) {
-        addText(parent, "trace", pointVectorText(*trace));
+    for (const qftbx::Trace & trace : traces) {
+        addText(parent, "trace", pointVectorText(trace));
     }
 }
 
@@ -208,30 +208,32 @@ void writeBoundaries(pugi::xml_node root, BoundaryData * boundaries)
     addReal(magnitudes, t.axisMax, boundaries->magnitudeRange().y());
 
     pugi::xml_node metadata = data.append_child(t.metadata);
-    addText(metadata, t.openFlags, boolVectorText(*boundaries->openFlags()));
-    addText(metadata, t.upperFlags, boolVectorText(*boundaries->upperFlags()));
+    addText(metadata, t.openFlags, boolVectorText(boundaries->openFlags()));
+    addText(metadata, t.upperFlags, boolVectorText(boundaries->upperFlags()));
 
     pugi::xml_node perFrequency = data.append_child(t.perFrequency);
-    perFrequency.append_attribute("size") = boundaries->boundaries()->size();
-    foreach (auto * map, *boundaries->boundaries()) {
+    perFrequency.append_attribute("size") = static_cast<qint64>(boundaries->boundaries().size());
+    for (const auto & map : boundaries->boundaries()) {
         pugi::xml_node frequency = perFrequency.append_child("frequency");
-        frequency.append_attribute("size") = map->size();
-        foreach (const QString & key, map->keys()) {
-            pugi::xml_node keyNode = frequency.append_child(key.toStdString().c_str());
-            keyNode.append_attribute("size") = map->value(key)->size();
-            writeTraces(keyNode, map->value(key));
+        frequency.append_attribute("size") = static_cast<qint64>(map.size());
+
+        //std::map iterates in key order, as QMap::keys() did.
+        for (const auto & entry : map) {
+            pugi::xml_node keyNode = frequency.append_child(entry.first.toStdString().c_str());
+            keyNode.append_attribute("size") = static_cast<qint64>(entry.second.size());
+            writeTraces(keyNode, entry.second);
         }
     }
 
     pugi::xml_node unionNode = data.append_child(t.boundaryUnion);
-    unionNode.append_attribute("size") = boundaries->unionBoundaries()->size();
+    unionNode.append_attribute("size") = static_cast<qint64>(boundaries->unionBoundaries().size());
     writeTraces(unionNode, boundaries->unionBoundaries());
 
     pugi::xml_node buckets = data.append_child(t.unionBuckets);
-    buckets.append_attribute("size") = boundaries->unionBuckets()->size();
-    foreach (auto * perFrequencyBuckets, *boundaries->unionBuckets()) {
+    buckets.append_attribute("size") = static_cast<qint64>(boundaries->unionBuckets().size());
+    for (const qftbx::TraceSet & perFrequencyBuckets : boundaries->unionBuckets()) {
         pugi::xml_node frequency = buckets.append_child("frequency");
-        frequency.append_attribute("size") = perFrequencyBuckets->size();
+        frequency.append_attribute("size") = static_cast<qint64>(perFrequencyBuckets.size());
         writeTraces(frequency, perFrequencyBuckets);
     }
 }

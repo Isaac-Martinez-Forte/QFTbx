@@ -49,7 +49,7 @@ void ProjectController::dropTemplatesAndBelow(){
 }
 
 void ProjectController::dropBoundariesAndBelow(){
-    data.setBoundaries(nullptr);
+    data.setBoundaries(std::nullopt);
 
     dropLoopShaping();
 }
@@ -117,12 +117,8 @@ void ProjectController::setContour(qftbx::CloudSet contour){
     data.setContour(std::move(contour));
 }
 
-void ProjectController::setBoundaries(BoundaryData *boundaries){
-    if (data.boundaries() == boundaries){
-        return;
-    }
-
-    data.setBoundaries(boundaries);
+void ProjectController::setBoundaries(std::optional<qftbx::BoundaryData> boundaries){
+    data.setBoundaries(std::move(boundaries));
 
     //The search runs against these boundaries: a new set voids its result.
     dropLoopShaping();
@@ -221,11 +217,11 @@ BoundaryData *ProjectController::boundaries(){
     return data.boundaries();
 }
 
-QVector< QVector<QPointF> * > * ProjectController::unionBoundaries(){
+const qftbx::UnionTraces & ProjectController::unionBoundaries(){
     return data.boundaries()->unionBoundaries();
 }
 
-QVector< QVector <QVector<QPointF> * > * > * ProjectController::unionBuckets(){
+const qftbx::UnionBuckets & ProjectController::unionBuckets(){
     return data.boundaries()->unionBuckets();
 }
 

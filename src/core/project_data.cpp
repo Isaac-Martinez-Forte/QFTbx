@@ -29,7 +29,6 @@ ProjectData::~ProjectData()
     delete m_omega;
     deleteSpecifications(m_specifications);
     delete m_epsilon;
-    delete m_boundaries;
     delete m_controller;
     delete m_loopShaping;
 }
@@ -123,17 +122,19 @@ void ProjectData::setEpsilon(QVector<qreal> * epsilon)
     m_epsilon = epsilon;
 }
 
-BoundaryData * ProjectData::boundaries() const
+BoundaryData * ProjectData::boundaries()
 {
-    return m_boundaries;
+    return m_boundaries.has_value() ? &m_boundaries.value() : nullptr;
 }
 
-void ProjectData::setBoundaries(BoundaryData * boundaries)
+const BoundaryData * ProjectData::boundaries() const
 {
-    if (m_boundaries != boundaries) {
-        delete m_boundaries;
-    }
-    m_boundaries = boundaries;
+    return m_boundaries.has_value() ? &m_boundaries.value() : nullptr;
+}
+
+void ProjectData::setBoundaries(std::optional<BoundaryData> boundaries)
+{
+    m_boundaries = std::move(boundaries);
 }
 
 LtiSystem * ProjectData::controller() const

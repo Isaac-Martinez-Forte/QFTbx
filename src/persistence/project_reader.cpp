@@ -109,30 +109,30 @@ public:
         return values;
     }
 
-    QVector <bool> * boolVector(const pugi::xml_node & node) const
+    std::vector<bool> boolVector(const pugi::xml_node & node) const
     {
         QVector <qreal> * reals = realVector(node);
-        auto * bools = new QVector <bool> ();
-        bools->reserve(reals->size());
-        foreach (qreal value, *reals) {
-            bools->append(value != 0.0);
+        std::vector<bool> bools;
+        bools.reserve(static_cast<std::size_t>(reals->size()));
+        for (const qreal value : *reals) {
+            bools.push_back(value != 0.0);
         }
         delete reals;
         return bools;
     }
 
     //"x y x y ..." pairs; an unpaired trailing token is rejected.
-    QVector <QPointF> * pointVector(const pugi::xml_node & node) const
+    qftbx::Trace pointVector(const pugi::xml_node & node) const
     {
         QVector <qreal> * reals = realVector(node);
         if (reals->size() % 2 != 0) {
             delete reals;
             fail(node, std::string("<") + node.name() + "> holds an odd point list");
         }
-        auto * points = new QVector <QPointF> ();
-        points->reserve(reals->size() / 2);
+        qftbx::Trace points;
+        points.reserve(static_cast<std::size_t>(reals->size() / 2));
         for (qint32 i = 0; i + 1 < reals->size(); i += 2) {
-            points->append(QPointF(reals->at(i), reals->at(i + 1)));
+            points.push_back(QPointF(reals->at(i), reals->at(i + 1)));
         }
         delete reals;
         return points;
@@ -328,16 +328,16 @@ public:
     }
 
     //One trace per child element, each a flat "x y x y ..." list.
-    QVector <QVector <QPointF> * > * readTraces(const pugi::xml_node & section) const
+    qftbx::TraceSet readTraces(const pugi::xml_node & section) const
     {
-        auto * traces = new QVector <QVector <QPointF> * > ();
+        qftbx::TraceSet traces;
         for (const pugi::xml_node & child : section.children()) {
-            traces->append(pointVector(child));
+            traces.push_back(pointVector(child));
         }
         return traces;
     }
 
-    BoundaryData * readBoundaries(const pugi::xml_node & section)
+    BoundaryData readBoundaries(const pugi::xml_node & section)
     {
         const pugi::xml_node data = require(section, t.boundariesData);
 
@@ -350,34 +350,31 @@ public:
         const QPointF magnitudeRange(realChild(magnitudes, t.axisMin), realChild(magnitudes, t.axisMax));
 
         const pugi::xml_node metadata = require(data, t.metadata);
-        QVector <bool> * openFlags = boolVector(require(metadata, t.openFlags));
-        QVector <bool> * upperFlags = boolVector(require(metadata, t.upperFlags));
+        std::vector<bool> openFlags = boolVector(require(metadata, t.openFlags));
+        std::vector<bool> upperFlags = boolVector(require(metadata, t.upperFlags));
 
-        auto * boundaries = new QVector <QMap <QString, QVector <QVector <QPointF> * > *> * > ();
+        qftbx::BoundarySet boundaries;
         for (const pugi::xml_node & frequencyNode : require(data, t.perFrequency).children()) {
-            auto * map = new QMap <QString, QVector <QVector <QPointF> * > *> ();
+            std::map<QString, qftbx::TraceSet> map;
             for (const pugi::xml_node & keyNode : frequencyNode.children()) {
                 //Legacy files store the historical Spanish keys.
-                map->insert(modernSpecificationName(QString(keyNode.name())),
-                            readTraces(keyNode));
+                map[modernSpecificationName(QString(keyNode.name()))] = readTraces(keyNode);
             }
-            boundaries->append(map);
+            boundaries.push_back(std::move(map));
         }
 
-        auto * unionBoundaries = readTraces(require(data, t.boundaryUnion));
+        qftbx::UnionTraces unionBoundaries = readTraces(require(data, t.boundaryUnion));
 
-        auto * unionBuckets = new QVector <QVector <QVector <QPointF> * > * > ();
+        qftbx::UnionBuckets unionBuckets;
         for (const pugi::xml_node & frequencyNode : require(data, t.unionBuckets).children()) {
-            unionBuckets->append(readTraces(frequencyNode));
+            unionBuckets.push_back(readTraces(frequencyNode));
         }
 
-        //Every container above was freshly parsed and has no other owner:
-        //the view takes them over (they used to leak with the view).
-        auto * data_ = new BoundaryData(boundaries, openFlags, upperFlags, phaseCount, phaseRange,
-                                        unionBoundaries, unionBuckets, magnitudeCount, magnitudeRange);
-        data_->takeOwnership();
-
-        return data_;
+        //No takeOwnership() any more: BoundaryData holds its containers by
+        //value, so there is one owner and it is the object itself.
+        return BoundaryData(std::move(boundaries), std::move(openFlags), std::move(upperFlags),
+                            phaseCount, phaseRange, std::move(unionBoundaries),
+                            std::move(unionBuckets), magnitudeCount, magnitudeRange);
     }
 
     LoopShapingResult * readLoopShaping(const pugi::xml_node & section) const
@@ -436,7 +433,6 @@ ProjectReader::~ProjectReader()
     deleteSpecificationRecords(m_specifications);
     delete m_omega;
     delete m_epsilon;
-    delete m_boundaries;
     delete m_controller;
     delete m_loopShaping;
 }
@@ -507,7 +503,7 @@ std::vector<bool> ProjectReader::load(const QString & filePath)
     sections.push_back(m_specifications != nullptr);
     sections.push_back(m_omega != nullptr);
     sections.push_back(!m_templates.empty());
-    sections.push_back(m_boundaries != nullptr);
+    sections.push_back(m_boundaries.has_value());
     sections.push_back(m_controller != nullptr);
     sections.push_back(m_loopShaping != nullptr);
     sections.push_back(hasContour);

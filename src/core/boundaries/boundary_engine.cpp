@@ -19,12 +19,6 @@ namespace qftbx {
 
 BoundaryEngine::BoundaryEngine()
 {
-    m_boundaries = nullptr;
-    m_traceMetadata = nullptr;
-    m_unionVectors = nullptr;
-    m_unionBuckets = nullptr;
-    m_openFlags = nullptr;
-    m_upperFlags = nullptr;
     m_omega = nullptr;
     m_cuda = false;
 }
@@ -36,55 +30,16 @@ BoundaryEngine::~BoundaryEngine()
 
 void BoundaryEngine::releaseResults()
 {
-    if (m_boundaries != nullptr){
-        foreach (auto * map, *m_boundaries){
-            foreach (auto * traces, *map){
-                foreach (QVector <QPointF> * trace, *traces){
-                    delete trace;
-                }
-                delete traces;
-            }
-            delete map;
-        }
-        delete m_boundaries;
-        m_boundaries = nullptr;
-    }
-
-    if (m_traceMetadata != nullptr){
-        foreach (auto * map, *m_traceMetadata){
-            foreach (QVector <QPoint> * metadata, *map){
-                delete metadata;
-            }
-            delete map;
-        }
-        delete m_traceMetadata;
-        m_traceMetadata = nullptr;
-    }
-
-    if (m_unionVectors != nullptr){
-        foreach (QVector <QPointF> * unionVector, *m_unionVectors){
-            delete unionVector;
-        }
-        delete m_unionVectors;
-        m_unionVectors = nullptr;
-    }
-
-    if (m_unionBuckets != nullptr){
-        foreach (auto * perFrequency, *m_unionBuckets){
-            foreach (QVector <QPointF> * bucket, *perFrequency){
-                delete bucket;
-            }
-            delete perFrequency;
-        }
-        delete m_unionBuckets;
-        m_unionBuckets = nullptr;
-    }
-
-    delete m_openFlags;
-    m_openFlags = nullptr;
-
-    delete m_upperFlags;
-    m_upperFlags = nullptr;
+    //Forty lines of nested hand-written deletion used to live here, five
+    //levels deep, and every one of them had to agree with whoever else held
+    //a pointer into the same structure. Clearing the containers is the whole
+    //of it now.
+    m_boundaries.clear();
+    m_traceMetadata.clear();
+    m_unionVectors.clear();
+    m_unionBuckets.clear();
+    m_openFlags.clear();
+    m_upperFlags.clear();
 
     //m_omega aliases the caller's vector: never freed here.
     m_omega = nullptr;
@@ -160,8 +115,8 @@ void BoundaryEngine::compute(QVector<qreal> *omega, LtiSystem *plant, const Clou
     } else {
 
 
-        m_boundaries = new QVector <QMap <QString, QVector <QVector <QPointF> * > * > * >  ();
-        m_traceMetadata = new QVector <QMap <QString, QVector <QPoint> * > * >  ();
+        m_boundaries.clear();
+        m_traceMetadata.clear();
 
         for (int i = 0; i < omega->size(); i++){
 
@@ -175,16 +130,16 @@ void BoundaryEngine::compute(QVector<qreal> *omega, LtiSystem *plant, const Clou
                 tools::linspace1(phaseRange.x(), phaseRange.y(), phaseCount),
                 tools::linspace1(magnitudeRange.x(), magnitudeRange.y(), magnitudeCount));
 
-            QMap <QString, QVector <QVector <QPointF> * > *> * bound = new QMap <QString, QVector <QVector <QPointF> * > *> ();
+            std::map<QString, TraceSet> bound;
 
-            QMap <QString, QVector <QPoint> * > * traceMetadata = new QMap <QString, QVector <QPoint> * > ();
+            std::map<QString, TraceLabels> traceMetadata;
 
             traceFrequency(omega->at(i), bound, cudaSheets, traceMetadata, p0, valueSet, i,
                            phaseRange.y() - phaseRange.x(), magnitudeRange.y() - magnitudeRange.x(),
                            phaseRange.x(), magnitudeRange.x());
 
-            m_traceMetadata->append(traceMetadata);
-            m_boundaries->append(bound);
+            m_traceMetadata.push_back(std::move(traceMetadata));
+            m_boundaries.push_back(std::move(bound));
         }
 
         //Alias of the caller's vector, like the CPU path (the old copy was
@@ -204,38 +159,33 @@ void BoundaryEngine::compute(QVector<qreal> *omega, LtiSystem *plant, const Clou
     cout << "boundaries OpenMP: " << timer.elapsed() << " milliseconds" << endl;
 #endif
 
-    BoundaryUnion1D * boundaryUnion = new BoundaryUnion1D ();
+    BoundaryUnion1D boundaryUnion;
 
     timer.restart();
 
-    BoundaryData * view = boundaryData();
-    boundaryUnion->run(view, m_traceMetadata);
-    delete view;
+    {
+        //The union reads the boundaries through a BoundaryData; building one
+        //here used to mean a heap allocation and a matching delete, and the
+        //view had to be told it did NOT own what it pointed at.
+        const BoundaryData view = boundaryData();
+        boundaryUnion.run(&view, m_traceMetadata);
+    }
 
     cout << "1D union: " << timer.elapsed() << " milliseconds" << endl;
 
-    m_unionVectors = boundaryUnion->unionVectors();
-    m_unionBuckets = boundaryUnion->unionBuckets();
+    m_unionVectors = boundaryUnion.takeUnionVectors();
+    m_unionBuckets = boundaryUnion.takeUnionBuckets();
 
-    m_openFlags = boundaryUnion->openFlags();
-    m_upperFlags = boundaryUnion->upperFlags();
-
-    delete boundaryUnion;
+    m_openFlags = boundaryUnion.takeOpenFlags();
+    m_upperFlags = boundaryUnion.takeUpperFlags();
 
     //The trace metadata has been consumed by the 1D union.
-    foreach (auto * map, *m_traceMetadata){
-        foreach (QVector <QPoint> * metadata, *map){
-            delete metadata;
-        }
-        delete map;
-    }
-    m_traceMetadata->clear();
-
+    m_traceMetadata.clear();
 }
 
-BoundaryData * BoundaryEngine::boundaryData(){
-    return new BoundaryData(m_boundaries, m_openFlags, m_upperFlags, m_phaseCount, m_phaseRange,
-                            m_unionVectors, m_unionBuckets, m_magnitudeCount, m_magnitudeRange);
+BoundaryData BoundaryEngine::boundaryData(){
+    return BoundaryData(m_boundaries, m_openFlags, m_upperFlags, m_phaseCount, m_phaseRange,
+                        m_unionVectors, m_unionBuckets, m_magnitudeCount, m_magnitudeRange);
 }
 
 QVector <qreal> * BoundaryEngine::omega(){
@@ -243,9 +193,9 @@ QVector <qreal> * BoundaryEngine::omega(){
 }
 
 
-void BoundaryEngine::traceFrequency(qreal omega, QMap <QString, QVector <QVector <QPointF> * > *> * bound,
+void BoundaryEngine::traceFrequency(qreal omega, std::map<QString, TraceSet> & bound,
                                     QVector <QVector <QVector <qreal> * > * > * sheets,
-                                    QMap <QString, QVector <QPoint> * > * traceMetadata,
+                                    std::map<QString, TraceLabels> & traceMetadata,
                                     complex <qreal> p0, const ComplexCloud & valueSet, qint32 index,
                                     qreal phaseSpan, qreal magnitudeSpan, qreal phaseBottom, qreal magnitudeBottom){
 
@@ -254,175 +204,153 @@ void BoundaryEngine::traceFrequency(qreal omega, QMap <QString, QVector <QVector
     //historical Spanish names of legacy files to these.
     if (m_trackingMask.at(index)){
 
-        QVector <QPoint> * metadata = new QVector <QPoint> ();
+        TraceLabels & metadata = traceMetadata["Tracking"];
 
-        bound->insert("Tracking",
+        bound["Tracking"] =
                       traceBoundary(m_specifications.trackingSpreadDb(omega), sheets->at(1),
-                                    metadata, p0, valueSet, 1, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom));
-
-        traceMetadata->insert("Tracking", metadata);
+                                    metadata, p0, valueSet, 1, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
     }
 
     if (m_stabilityMask.at(index)){
 
-        QVector <QPoint> * metadata = new QVector <QPoint> ();
+        TraceLabels & metadata = traceMetadata["Stability"];
 
-        bound->insert("Stability",
+        bound["Stability"] =
                       traceBoundary(m_specifications.at(SpecificationType::Stability).boundDb(omega), sheets->at(0),
-                                    metadata, p0, valueSet, 0, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom));
-
-        traceMetadata->insert("Stability", metadata);
+                                    metadata, p0, valueSet, 0, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
     }
 
     if (m_noiseMask.at(index)){
 
-        QVector <QPoint> * metadata = new QVector <QPoint> ();
-        bound->insert("SensorNoise",
-                      traceBoundary(m_specifications.at(SpecificationType::SensorNoise).boundDb(omega), sheets->at(0),
-                                    metadata, p0, valueSet, 0, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom));
+        TraceLabels & metadata = traceMetadata["SensorNoise"];
 
-        traceMetadata->insert("SensorNoise", metadata);
+        bound["SensorNoise"] =
+                      traceBoundary(m_specifications.at(SpecificationType::SensorNoise).boundDb(omega), sheets->at(0),
+                                    metadata, p0, valueSet, 0, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
     }
 
     if (m_outputDisturbanceMask.at(index)){
 
-        QVector <QPoint> * metadata = new QVector <QPoint> ();
+        TraceLabels & metadata = traceMetadata["OutputDisturbance"];
 
-        bound->insert("OutputDisturbance",
+        bound["OutputDisturbance"] =
                       traceBoundary(m_specifications.at(SpecificationType::OutputDisturbance).boundDb(omega), sheets->at(2),
-                                    metadata, p0, valueSet, 2, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom));
-
-        traceMetadata->insert("OutputDisturbance", metadata);
+                                    metadata, p0, valueSet, 2, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
     }
 
     if (m_inputDisturbanceMask.at(index)){
 
-        QVector <QPoint> * metadata = new QVector <QPoint> ();
+        TraceLabels & metadata = traceMetadata["InputDisturbance"];
 
-        bound->insert("InputDisturbance",
+        bound["InputDisturbance"] =
                       traceBoundary(m_specifications.at(SpecificationType::InputDisturbance).boundDb(omega), sheets->at(3),
-                                    metadata, p0, valueSet, 3, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom));
-
-        traceMetadata->insert("InputDisturbance", metadata);
+                                    metadata, p0, valueSet, 3, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
     }
 
     if (m_controlEffortMask.at(index)){
 
-        QVector <QPoint> * metadata = new QVector <QPoint> ();
+        TraceLabels & metadata = traceMetadata["ControlEffort"];
 
-        bound->insert("ControlEffort",
+        bound["ControlEffort"] =
                       traceBoundary(m_specifications.at(SpecificationType::ControlEffort).boundDb(omega), sheets->at(4),
-                                    metadata, p0, valueSet, 4, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom));
-
-        traceMetadata->insert("ControlEffort", metadata);
+                                    metadata, p0, valueSet, 4, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
     }
 }
 
 #ifdef CUDA_AVAILABLE
-void BoundaryEngine::traceFrequency(qreal omega, QMap <QString, QVector <QVector <QPointF> * > *> * bound,
+void BoundaryEngine::traceFrequency(qreal omega, std::map<QString, TraceSet> & bound,
                                     const BoundarySheetsCuda & cudaSheets,
-                                    QMap <QString, QVector <QPoint> * > * traceMetadata,
+                                    std::map<QString, TraceLabels> & traceMetadata,
                                     complex <qreal> p0, const ComplexCloud & valueSet, qint32 index,
                                     qreal phaseSpan, qreal magnitudeSpan, qreal phaseBottom, qreal magnitudeBottom){
 
     if (m_trackingMask.at(index)){
 
-        QVector <QPoint> * metadata = new QVector <QPoint> ();
+        TraceLabels & metadata = traceMetadata["Tracking"];
 
-        bound->insert("Tracking",
+        bound["Tracking"] =
                       traceBoundary(m_specifications.trackingSpreadDb(omega), cudaSheets.tracking.data(),
-                                    metadata, p0, valueSet, 1, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom));
-
-        traceMetadata->insert("Tracking", metadata);
+                                    metadata, p0, valueSet, 1, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
     }
 
     if (m_stabilityMask.at(index)){
 
-        QVector <QPoint> * metadata = new QVector <QPoint> ();
+        TraceLabels & metadata = traceMetadata["Stability"];
 
-        bound->insert("Stability",
+        bound["Stability"] =
                       traceBoundary(m_specifications.at(SpecificationType::Stability).boundDb(omega), cudaSheets.stabilityNoise.data(),
-                                    metadata, p0, valueSet, 0, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom));
-
-        traceMetadata->insert("Stability", metadata);
+                                    metadata, p0, valueSet, 0, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
     }
 
     if (m_noiseMask.at(index)){
 
-        QVector <QPoint> * metadata = new QVector <QPoint> ();
+        TraceLabels & metadata = traceMetadata["SensorNoise"];
 
-        bound->insert("SensorNoise",
+        bound["SensorNoise"] =
                       traceBoundary(m_specifications.at(SpecificationType::SensorNoise).boundDb(omega), cudaSheets.stabilityNoise.data(),
-                                    metadata, p0, valueSet, 0, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom));
-
-        traceMetadata->insert("SensorNoise", metadata);
+                                    metadata, p0, valueSet, 0, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
     }
 
     if (m_outputDisturbanceMask.at(index)){
 
-        QVector <QPoint> * metadata = new QVector <QPoint> ();
+        TraceLabels & metadata = traceMetadata["OutputDisturbance"];
 
-        bound->insert("OutputDisturbance",
+        bound["OutputDisturbance"] =
                       traceBoundary(m_specifications.at(SpecificationType::OutputDisturbance).boundDb(omega), cudaSheets.outputDisturbance.data(),
-                                    metadata, p0, valueSet, 2, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom));
-
-        traceMetadata->insert("OutputDisturbance", metadata);
+                                    metadata, p0, valueSet, 2, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
     }
 
     if (m_inputDisturbanceMask.at(index)){
 
-        QVector <QPoint> * metadata = new QVector <QPoint> ();
+        TraceLabels & metadata = traceMetadata["InputDisturbance"];
 
-        bound->insert("InputDisturbance",
+        bound["InputDisturbance"] =
                       traceBoundary(m_specifications.at(SpecificationType::InputDisturbance).boundDb(omega), cudaSheets.inputDisturbance.data(),
-                                    metadata, p0, valueSet, 3, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom));
-
-        traceMetadata->insert("InputDisturbance", metadata);
+                                    metadata, p0, valueSet, 3, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
     }
 
     if (m_controlEffortMask.at(index)){
 
-        QVector <QPoint> * metadata = new QVector <QPoint> ();
+        TraceLabels & metadata = traceMetadata["ControlEffort"];
 
-        bound->insert("ControlEffort",
+        bound["ControlEffort"] =
                       traceBoundary(m_specifications.at(SpecificationType::ControlEffort).boundDb(omega), cudaSheets.controlEffort.data(),
-                                    metadata, p0, valueSet, 4, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom));
-
-        traceMetadata->insert("ControlEffort", metadata);
+                                    metadata, p0, valueSet, 4, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
     }
 
 }
 #endif
 
-QVector<QVector<QPointF> *> * BoundaryEngine::traceBoundary(qreal thresholdDb, QVector<QVector<qreal> *> *sheet,
-                                                            QVector<QPoint> *traceMetadata, std::complex<qreal> p0, const ComplexCloud & valueSet,
-                                                            qint32 kind, qreal phaseSpan, qreal magnitudeSpan,
-                                                            qreal phaseBottom, qreal magnitudeBottom)
+TraceSet BoundaryEngine::traceBoundary(qreal thresholdDb, QVector<QVector<qreal> *> *sheet,
+                                       TraceLabels & traceMetadata, std::complex<qreal> p0,
+                                       const ComplexCloud & valueSet,
+                                       qint32 kind, qreal phaseSpan, qreal magnitudeSpan,
+                                       qreal phaseBottom, qreal magnitudeBottom)
 {
 
     ContourTracer tracer (thresholdDb, sheet);
 
-    QVector<QVector<QPointF> *> * traces = tracer.trace(phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
+    TraceSet traces = tracer.trace(phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
 
 
     //Pre-sized and written at index j: the critical section this replaces
     //permuted the metadata against its traces with the thread order.
-    traceMetadata->resize(traces->size());
+    traceMetadata.resize(traces.size());
 
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
 #endif
-    for (qint32 j = 0; j < traces->size(); j++) {
+    for (qint32 j = 0; j < static_cast<qint32>(traces.size()); j++) {
         QPoint label;
         //The allowed-side label of the trace: the threshold is the same dB
         //cut the contour was traced at.
-        label.setX(allowedZone(traces->at(j), p0, valueSet, kind, thresholdDb));
+        label.setX(allowedZone(traces.at(static_cast<std::size_t>(j)), p0, valueSet, kind, thresholdDb));
 
-        traceMetadata->replace(j, label);
+        traceMetadata[static_cast<std::size_t>(j)] = label;
     }
 
-    if (traceMetadata->isEmpty()) {
-        traceMetadata->append(QPoint(0,0));
+    if (traceMetadata.empty()) {
+        traceMetadata.push_back(QPoint(0,0));
     }
 
     return traces;
@@ -456,14 +384,14 @@ QVector<QVector<QPointF> *> * BoundaryEngine::traceBoundary(qreal thresholdDb, c
 }
 #endif
 
-qint32 BoundaryEngine::allowedZone(QVector<QPointF> * trace, complex <qreal> p0, const ComplexCloud & valueSet,
+qint32 BoundaryEngine::allowedZone(const Trace & trace, complex <qreal> p0, const ComplexCloud & valueSet,
                                    qint32 kind, qreal thresholdDb){
 
     //Probe point: 1 dB below the trace's maximum magnitude.
     qreal probeMagnitude = -numeric_limits<qreal>::infinity();
     qreal probePhase = -numeric_limits<qreal>::infinity();
 
-    foreach (QPointF point, *trace) {
+    for (const QPointF & point : trace) {
         if(point.y() > probeMagnitude){
             probeMagnitude = point.y();
             probePhase = point.x();
@@ -575,8 +503,8 @@ void BoundaryEngine::computeFrequencies(QVector<qreal> *omega, LtiSystem *plant,
     //replace(thread_number) where thread_number was passed BY VALUE (always
     //0): out-of-range writes and zero-sized boundaries in the default
     //build. The caller's frequency vector is no longer touched.
-    m_boundaries = new QVector <QMap <QString, QVector <QVector <QPointF> * > * > * >  (omega->size());
-    m_traceMetadata = new QVector <QMap <QString, QVector <QPoint> * > * >  (omega->size());
+    m_boundaries.assign(static_cast<std::size_t>(omega->size()), {});
+    m_traceMetadata.assign(static_cast<std::size_t>(omega->size()), {});
 
     //Before the threads exist: the loop evaluates the plant, and every
     //evaluation constructs a muParserX parser whose package singletons are
@@ -765,9 +693,9 @@ void BoundaryEngine::computeFrequency (qreal omega, LtiSystem * plant,
         controlEffortSheet->append(controlEffortRow);
     }
 
-    QMap <QString, QVector <QVector <QPointF> * > *> * bound = new QMap <QString, QVector <QVector <QPointF> * > *> ();
+    std::map<QString, TraceSet> bound;
 
-    QMap <QString, QVector <QPoint> * > * traceMetadata = new QMap <QString, QVector <QPoint> * > ();
+    std::map<QString, TraceLabels> traceMetadata;
 
     //All sheets packed together, indexed as traceFrequency expects them.
     QVector <QVector <QVector <qreal> * > * > * sheets = new QVector <QVector <QVector <qreal> * > * > ();
@@ -794,8 +722,8 @@ void BoundaryEngine::computeFrequency (qreal omega, LtiSystem * plant,
     delete sheets;
 
     //Every frequency writes at its own index: no criticals, no permutations.
-    m_traceMetadata->replace(index, traceMetadata);
-    m_boundaries->replace(index, bound);
+    m_traceMetadata[static_cast<std::size_t>(index)] = std::move(traceMetadata);
+    m_boundaries[static_cast<std::size_t>(index)] = std::move(bound);
 }
 
 } // namespace qftbx

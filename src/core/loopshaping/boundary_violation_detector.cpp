@@ -26,15 +26,14 @@ inline qint32 BoundaryViolationDetector::phaseBucket(qreal x, qreal totalFase, q
     return (qint32) res;
 }
 
-inline BoxFlag BoundaryViolationDetector::pointVerdict(QPointF punto, QVector< QVector<QPointF> * > * interseccionHash, qint32 totalFase, bool abierta, bool arriba, qint32 numeroFases) {
+inline BoxFlag BoundaryViolationDetector::pointVerdict(QPointF punto, const qftbx::TraceSet & interseccionHash, qint32 totalFase, bool abierta, bool arriba, qint32 numeroFases) {
     bool violacion = false;
 
     qint32 contArriba = 0, contAbajo = 0;
-    QVector<QPointF> * puntosHash = interseccionHash->at(phaseBucket(punto.x(), totalFase, numeroFases));
-    qint32 tamCubeta = puntosHash->size();
+    const qftbx::Trace & puntosHash =
+            interseccionHash.at(static_cast<std::size_t>(phaseBucket(punto.x(), totalFase, numeroFases)));
 
-    for (qint32 j = 0; j < tamCubeta; j++) {
-        QPointF puntoH = puntosHash->at(j);
+    for (const QPointF & puntoH : puntosHash) {
         if (punto.y() > puntoH.y()){
             contArriba++;
         } else {
@@ -87,12 +86,13 @@ inline BoxFlag BoundaryViolationDetector::pointVerdict(QPointF punto, QVector< Q
 //historical version computed B_min and B_max only from the boundary
 //points INSIDE the box: when the boundary left the box within its phase
 //span the cut could remove feasible gains.
-BoxClassification *BoundaryViolationDetector::classifyBox(cinterval box, BoundaryData *boundaries, qint32 contador) {
+BoxClassification *BoundaryViolationDetector::classifyBox(cinterval box, const BoundaryData *boundaries, qint32 contador) {
 
-    QVector< QVector<QPointF> * > * interseccionHash = boundaries->unionBuckets()->at(contador);
+    const qftbx::TraceSet & interseccionHash =
+            boundaries->unionBuckets().at(static_cast<std::size_t>(contador));
     qint32 totalFase = boundaries->phaseCount() - 1;
-    bool abierta = boundaries->openFlags()->at(contador);
-    bool arriba = boundaries->upperFlags()->at(contador);
+    bool abierta = boundaries->openFlags().at(static_cast<std::size_t>(contador));
+    bool arriba = boundaries->upperFlags().at(static_cast<std::size_t>(contador));
 
 
     qreal minFasBound = std::numeric_limits<qreal>::max(), maxFasBound = std::numeric_limits<qreal>::lowest(),
@@ -111,7 +111,11 @@ BoxClassification *BoundaryViolationDetector::classifyBox(cinterval box, Boundar
 
     for (qreal f = minFas; f <= maxFas + salto; f += salto) {
 
-        foreach(auto puntoDecibelios, *interseccionHash->value(phaseBucket(std::min(f, maxFas), totalFase, numeroFases))) {
+        //at(), not the old value(): out of range that returned nullptr and
+        //was dereferenced. The clamp inside phaseBucket keeps the index in
+        //range, and at() would now say so loudly if it ever did not.
+        for (const QPointF & puntoDecibelios :
+             interseccionHash.at(static_cast<std::size_t>(phaseBucket(std::min(f, maxFas), totalFase, numeroFases)))) {
 
             //Only boundary points within the box's phase span take part.
             if (puntoDecibelios.x() < minFas || puntoDecibelios.x() > maxFas) {
@@ -177,12 +181,13 @@ BoxClassification *BoundaryViolationDetector::classifyBox(cinterval box, Boundar
 //dB) against the boundary union at one design frequency, with the same
 //parity test the box classification uses. It certifies the zone gates of
 //the gain cutting and splitting (Tharewal 2005, ch. 5).
-tools::BoxFlag BoundaryViolationDetector::classifyPoint(QPointF punto, BoundaryData * boundaries, qint32 contador) {
+tools::BoxFlag BoundaryViolationDetector::classifyPoint(QPointF punto, const BoundaryData * boundaries, qint32 contador) {
 
-    QVector< QVector<QPointF> * > * interseccionHash = boundaries->unionBuckets()->at(contador);
+    const qftbx::TraceSet & interseccionHash =
+            boundaries->unionBuckets().at(static_cast<std::size_t>(contador));
     qint32 totalFase = boundaries->phaseCount() - 1;
-    bool abierta = boundaries->openFlags()->at(contador);
-    bool arriba = boundaries->upperFlags()->at(contador);
+    bool abierta = boundaries->openFlags().at(static_cast<std::size_t>(contador));
+    bool arriba = boundaries->upperFlags().at(static_cast<std::size_t>(contador));
     qreal numeroFases = boundaries->phaseRange().y() - boundaries->phaseRange().x();
 
     return pointVerdict(punto, interseccionHash, totalFase, abierta, arriba, numeroFases);

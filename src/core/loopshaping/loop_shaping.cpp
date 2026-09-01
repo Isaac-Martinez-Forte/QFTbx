@@ -22,7 +22,7 @@ LoopShaping::~LoopShaping()
 //boundaries; NK also takes the local-search starting-point choice, and
 //MR the templates and specifications its constraints are built from.
 bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, QVector<qreal> * omega,
-                          BoundaryData * boundaries, qreal epsilon, tools::LoopShapingAlgorithm algorithm,
+                          const BoundaryData * boundaries, qreal epsilon, tools::LoopShapingAlgorithm algorithm,
                           const qftbx::CloudSet & contour, QVector<qftbx::SpecificationRecord *> * specifications,
                           qint32 initialisation)
 {

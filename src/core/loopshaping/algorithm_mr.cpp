@@ -38,7 +38,7 @@ AlgorithmMr::~AlgorithmMr()
 {
 }
 
-void AlgorithmMr::set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> * omega, BoundaryData *boundaries,
+void AlgorithmMr::set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> * omega, const BoundaryData *boundaries,
                                   qreal epsilon, const qftbx::CloudSet & temp, QVector<qftbx::SpecificationRecord *> * espe){
     this->planta = planta;
     this->controlador = controlador->clone();

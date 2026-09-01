@@ -58,7 +58,7 @@ void LoopBoundariesViewer::clearDiagram(){
 }
 
 
-void LoopBoundariesViewer::setDatos(BoundaryData *nicholsData, BoundaryData *nyquistData, QVector<qreal> *omega,
+void LoopBoundariesViewer::setDatos(const BoundaryData *nicholsData, const BoundaryData *nyquistData, QVector<qreal> *omega,
                              LtiSystem *plant, LtiSystem *controller, bool nichols, bool nyquist){
     this->nicholsData = nicholsData;
     this->nyquistData = nyquistData;
@@ -92,9 +92,10 @@ void LoopBoundariesViewer::showDiagram(){
     //Sweep the design frequencies.
 
     qint32 c = 0;
-    foreach (QVector <QPointF> * boundNichols, *nicholsData->unionBoundaries()) {
+    for (const qftbx::Trace & boundNichols : nicholsData->unionBoundaries()) {
 
-        QVector <QPointF> * boundNyquist = nyquistData->unionBoundaries()->at(contador);
+        const qftbx::Trace & boundNyquist =
+                nyquistData->unionBoundaries().at(static_cast<std::size_t>(contador));
 
 
         QColor color = randomColor(c);
@@ -113,8 +114,8 @@ void LoopBoundariesViewer::showDiagram(){
 
         qint32 contador2 = 0;
 
-        foreach (QPointF pNichols, *boundNichols) {
-            QPointF pNyquist = boundNyquist->at(contador2);
+        for (const QPointF & pNichols : boundNichols) {
+            QPointF pNyquist = boundNyquist.at(static_cast<std::size_t>(contador2));
             ejex->append(pNichols.x());
             ejey->append(pNichols.y());
 

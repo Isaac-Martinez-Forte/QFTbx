@@ -69,7 +69,7 @@ inline void expectSameComplexVectors(const qftbx::CloudSet & a,
     EXPECT_EQ(a, b) << what;
 }
 
-inline void expectSameBoundaries(BoundaryData* a, BoundaryData* b)
+inline void expectSameBoundaries(const BoundaryData* a, const BoundaryData* b)
 {
     ASSERT_NE(a, nullptr);
     ASSERT_NE(b, nullptr);
@@ -78,39 +78,26 @@ inline void expectSameBoundaries(BoundaryData* a, BoundaryData* b)
     EXPECT_EQ(a->magnitudeCount(), b->magnitudeCount());
     EXPECT_EQ(a->phaseRange(), b->phaseRange());
     EXPECT_EQ(a->magnitudeRange(), b->magnitudeRange());
-    EXPECT_EQ(*a->openFlags(), *b->openFlags());
-    EXPECT_EQ(*a->upperFlags(), *b->upperFlags());
+    EXPECT_EQ(a->openFlags(), b->openFlags());
+    EXPECT_EQ(a->upperFlags(), b->upperFlags());
 
-    ASSERT_EQ(a->boundaries()->size(), b->boundaries()->size());
-    for (int f = 0; f < a->boundaries()->size(); ++f) {
-        auto* mapA = a->boundaries()->at(f);
-        auto* mapB = b->boundaries()->at(f);
-        ASSERT_EQ(mapA->keys(), mapB->keys()) << "frequency " << f;
-        foreach (const QString& key, mapA->keys()) {
-            auto* tracesA = mapA->value(key);
-            auto* tracesB = mapB->value(key);
-            ASSERT_EQ(tracesA->size(), tracesB->size()) << "frequency " << f;
-            for (int t = 0; t < tracesA->size(); ++t) {
-                ASSERT_EQ(*tracesA->at(t), *tracesB->at(t))
-                    << "frequency " << f << " trace " << t;
-            }
-        }
+    //Compared per frequency rather than whole, only so that a failure names
+    //the frequency instead of dumping every trace of the project. The
+    //element comparisons themselves are one == each now: this function used
+    //to walk five levels of pointers by hand.
+    ASSERT_EQ(a->boundaries().size(), b->boundaries().size());
+    for (std::size_t f = 0; f < a->boundaries().size(); ++f) {
+        EXPECT_EQ(a->boundaries()[f], b->boundaries()[f]) << "frequency " << f;
     }
 
-    ASSERT_EQ(a->unionBoundaries()->size(), b->unionBoundaries()->size());
-    for (int f = 0; f < a->unionBoundaries()->size(); ++f) {
-        ASSERT_EQ(*a->unionBoundaries()->at(f), *b->unionBoundaries()->at(f))
-            << "union " << f;
+    ASSERT_EQ(a->unionBoundaries().size(), b->unionBoundaries().size());
+    for (std::size_t f = 0; f < a->unionBoundaries().size(); ++f) {
+        EXPECT_EQ(a->unionBoundaries()[f], b->unionBoundaries()[f]) << "union " << f;
     }
 
-    ASSERT_EQ(a->unionBuckets()->size(), b->unionBuckets()->size());
-    for (int f = 0; f < a->unionBuckets()->size(); ++f) {
-        auto* bucketsA = a->unionBuckets()->at(f);
-        auto* bucketsB = b->unionBuckets()->at(f);
-        ASSERT_EQ(bucketsA->size(), bucketsB->size()) << "buckets " << f;
-        for (int k = 0; k < bucketsA->size(); ++k) {
-            ASSERT_EQ(*bucketsA->at(k), *bucketsB->at(k)) << "bucket " << f << "," << k;
-        }
+    ASSERT_EQ(a->unionBuckets().size(), b->unionBuckets().size());
+    for (std::size_t f = 0; f < a->unionBuckets().size(); ++f) {
+        EXPECT_EQ(a->unionBuckets()[f], b->unionBuckets()[f]) << "buckets " << f;
     }
 }
 

@@ -110,9 +110,9 @@ TEST(ThesisBenchmarkFixture, QftToolboxEx2LoadsWithTheFullPipeline)
     EXPECT_EQ(static_cast<int>(controller.templates().size()), expectedOmega.size());
 
     ASSERT_NE(controller.boundaries(), nullptr);
-    ASSERT_EQ(controller.boundaries()->boundaries()->size(), expectedOmega.size());
+    ASSERT_EQ(static_cast<int>(controller.boundaries()->boundaries().size()), expectedOmega.size());
     for (int f = 0; f < expectedOmega.size(); ++f) {
-        EXPECT_EQ(controller.boundaries()->boundaries()->at(f)->size(), 2)
+        EXPECT_EQ(controller.boundaries()->boundaries().at(static_cast<std::size_t>(f)).size(), 2u)
             << "frequency " << f << " should carry tracking + stability";
     }
 
@@ -148,9 +148,9 @@ TEST(ThesisBenchmarkFixture, Acc90LoadsWithTheFullPipeline)
     EXPECT_DOUBLE_EQ(specs->at(2)->height, 1.75);
 
     ASSERT_NE(controller.boundaries(), nullptr);
-    ASSERT_EQ(controller.boundaries()->boundaries()->size(), expectedOmega.size());
+    ASSERT_EQ(static_cast<int>(controller.boundaries()->boundaries().size()), expectedOmega.size());
     for (int f = 0; f < expectedOmega.size(); ++f) {
-        EXPECT_EQ(controller.boundaries()->boundaries()->at(f)->size(), 1)
+        EXPECT_EQ(controller.boundaries()->boundaries().at(static_cast<std::size_t>(f)).size(), 1u)
             << "frequency " << f << " should carry stability only";
     }
 

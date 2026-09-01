@@ -1,6 +1,8 @@
 #ifndef QFTBX_PROJECT_READER_H
 #define QFTBX_PROJECT_READER_H
 
+#include <optional>
+
 #include "src/core/templates/cloud_set.h"
 #include <complex>
 
@@ -52,7 +54,10 @@ public:
     const CloudSet & templates() const { return m_templates; }
     const CloudSet & contour() const { return m_contour; }
     QVector <qreal> * epsilon() const { return m_epsilon; }
-    BoundaryData * boundaries() const { return m_boundaries; }
+    const BoundaryData * boundaries() const
+    {
+        return m_boundaries.has_value() ? &m_boundaries.value() : nullptr;
+    }
     LtiSystem * controller() const { return m_controller; }
     LoopShapingResult * loopShaping() const { return m_loopShaping; }
 
@@ -67,7 +72,15 @@ public:
     CloudSet takeTemplates() { return std::move(m_templates); }
     CloudSet takeContour() { return std::move(m_contour); }
     QVector <qreal> * takeEpsilon() { return take(m_epsilon); }
-    BoundaryData * takeBoundaries() { return take(m_boundaries); }
+    /// The boundaries, or nothing when the file carried none. By value, so
+    /// there is no owner to hand over.
+    std::optional<BoundaryData> takeBoundaries()
+    {
+        std::optional<BoundaryData> taken = std::move(m_boundaries);
+        m_boundaries.reset();
+
+        return taken;
+    }
     LtiSystem * takeController() { return take(m_controller); }
     LoopShapingResult * takeLoopShaping() { return take(m_loopShaping); }
 
@@ -87,7 +100,7 @@ private:
     CloudSet m_templates;
     CloudSet m_contour;
     QVector <qreal> * m_epsilon = nullptr;
-    BoundaryData * m_boundaries = nullptr;
+    std::optional<BoundaryData> m_boundaries;
     LtiSystem * m_controller = nullptr;
     LoopShapingResult * m_loopShaping = nullptr;
 };

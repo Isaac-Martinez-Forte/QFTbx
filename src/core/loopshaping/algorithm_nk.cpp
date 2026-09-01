@@ -18,7 +18,7 @@ AlgorithmNk::~AlgorithmNk()
 }
 
 
-void AlgorithmNk::set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> * omega, BoundaryData *boundaries,
+void AlgorithmNk::set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> * omega, const BoundaryData *boundaries,
                                      qreal epsilon, qint32 inicializacion){
 
     this->planta = planta;

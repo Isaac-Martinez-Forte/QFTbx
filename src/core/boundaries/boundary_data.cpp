@@ -2,112 +2,69 @@
 
 namespace qftbx {
 
-BoundaryData::BoundaryData(QVector <QMap <QString, QVector <QVector <QPointF> * > *> * > * boundaries,
-                           QVector <bool> * openFlags, QVector <bool> * upperFlags,
-                           qint32 phaseCount, QPointF phaseRange, QVector< QVector<QPointF> * > * unionBoundaries,
-                           QVector< QVector< QVector<QPointF> * > * > * unionBuckets, qint32 magnitudeCount, QPointF magnitudeRange)
+BoundaryData::BoundaryData(BoundarySet boundaries, std::vector<bool> openFlags,
+                           std::vector<bool> upperFlags, qint32 phaseCount, QPointF phaseRange,
+                           UnionTraces unionBoundaries, UnionBuckets unionBuckets,
+                           qint32 magnitudeCount, QPointF magnitudeRange)
+    : m_boundaries(std::move(boundaries)),
+      m_openFlags(std::move(openFlags)),
+      m_upperFlags(std::move(upperFlags)),
+      m_phaseCount(phaseCount),
+      m_phaseRange(phaseRange),
+      m_magnitudeCount(magnitudeCount),
+      m_magnitudeRange(magnitudeRange),
+      m_unionBoundaries(std::move(unionBoundaries)),
+      m_unionBuckets(std::move(unionBuckets))
 {
-    m_boundaries = boundaries;
-    m_phaseRange = phaseRange;
-    m_magnitudeRange = magnitudeRange;
-    m_phaseCount = phaseCount;
-    m_magnitudeCount = magnitudeCount;
-    m_unionBoundaries = unionBoundaries;
-    m_unionBuckets = unionBuckets;
-    m_openFlags = openFlags;
-    m_upperFlags = upperFlags;
+    //No destructor: what used to be a hand-written deep delete over five
+    //levels of pointers - guarded by an m_owns flag, because the same class
+    //was sometimes a view and sometimes the owner - is now what the members
+    //do for themselves.
 }
 
-
-void BoundaryData::takeOwnership() {
-    m_owns = true;
-}
-
-namespace {
-
-void deleteTraces(QVector< QVector<QPointF> * > * traces) {
-    if (traces != nullptr) {
-        qDeleteAll(*traces);
-        delete traces;
-    }
-}
-
-} // namespace
-
-BoundaryData::~BoundaryData() {
-
-    if (!m_owns) {
-        return;
-    }
-
-    if (m_boundaries != nullptr) {
-        foreach (auto * perFrequency, *m_boundaries) {
-            if (perFrequency != nullptr) {
-                foreach (auto * traces, *perFrequency) {
-                    deleteTraces(traces);
-                }
-                delete perFrequency;
-            }
-        }
-        delete m_boundaries;
-    }
-
-    deleteTraces(m_unionBoundaries);
-
-    if (m_unionBuckets != nullptr) {
-        foreach (auto * perFrequency, *m_unionBuckets) {
-            deleteTraces(perFrequency);
-        }
-        delete m_unionBuckets;
-    }
-
-    delete m_openFlags;
-    delete m_upperFlags;
-}
-
-
-QVector<QMap<QString, QVector<QVector<QPointF> *> *> *> * BoundaryData::boundaries() const {
+const BoundarySet & BoundaryData::boundaries() const
+{
     return m_boundaries;
 }
 
-qint32 BoundaryData::phaseCount() const {
+qint32 BoundaryData::phaseCount() const
+{
     return m_phaseCount;
 }
 
-qint32 BoundaryData::magnitudeCount() const {
+qint32 BoundaryData::magnitudeCount() const
+{
     return m_magnitudeCount;
 }
 
-QPointF BoundaryData::phaseRange() const {
+QPointF BoundaryData::phaseRange() const
+{
     return m_phaseRange;
 }
 
-QPointF BoundaryData::magnitudeRange() const {
+QPointF BoundaryData::magnitudeRange() const
+{
     return m_magnitudeRange;
 }
 
-QVector<QVector<QPointF> *> * BoundaryData::unionBoundaries() const {
+const UnionTraces & BoundaryData::unionBoundaries() const
+{
     return m_unionBoundaries;
 }
 
-QVector<QVector<QVector<QPointF> *> *> * BoundaryData::unionBuckets() const {
+const UnionBuckets & BoundaryData::unionBuckets() const
+{
     return m_unionBuckets;
 }
 
-QVector <bool> * BoundaryData::openFlags() const {
+const std::vector<bool> & BoundaryData::openFlags() const
+{
     return m_openFlags;
 }
 
-QVector <bool> * BoundaryData::upperFlags() const {
+const std::vector<bool> & BoundaryData::upperFlags() const
+{
     return m_upperFlags;
 }
-
-
-
-
-
-
-
-
 
 } // namespace qftbx

@@ -92,7 +92,7 @@ public:
 
     void setStrategies(const Strategies & s);
 
-    void set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> * omega, BoundaryData * boundaries,
+    void set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> * omega, const BoundaryData * boundaries,
                    qreal epsilon);
 
     bool init_algorithm();
@@ -150,7 +150,7 @@ private:
     LtiSystem * planta = nullptr;
     LtiSystem * controlador = nullptr;
     QVector<qreal> * omega = nullptr;
-    BoundaryData * boundaries = nullptr;
+    const BoundaryData * boundaries = nullptr;
     qreal epsilon = 0;
 
     NaturalIntervalExtension * conversion = nullptr;

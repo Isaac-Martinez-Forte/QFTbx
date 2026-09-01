@@ -191,6 +191,7 @@ set(QFTbx_CORE_HED
     src/core/exception.h
     src/core/frequencies/omega.h
     src/core/boundaries/boundary_data.h
+    src/core/boundaries/boundary_types.h
     src/core/loopshaping/algorithm_nt.h
     src/core/loopshaping/nominal_stability_checker.h
     src/core/loopshaping/quick_solution.h

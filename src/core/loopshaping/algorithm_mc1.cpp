@@ -61,7 +61,7 @@ AlgorithmMc1::~AlgorithmMc1()
 
 
 void AlgorithmMc1::set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> * omega,
-                                          BoundaryData * boundaries, qreal epsilon)
+                                          const BoundaryData * boundaries, qreal epsilon)
 {
     this->planta = planta;
     this->controlador = controlador->clone();

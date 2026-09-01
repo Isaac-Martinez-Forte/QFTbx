@@ -15,6 +15,8 @@
 #include "src/persistence/project_writer.h"
 #include "src/core/math/sequence_vectors.h"
 #include "src/core/loopshaping/loop_shaping.h"
+#include <optional>
+
 #include "src/core/project_data.h"
 
 
@@ -102,10 +104,10 @@ public:
                            qint32 magnitudeCount, qreal exportInfinity, bool useContour, bool cuda);
 
     BoundaryData * boundaries();
-    void setBoundaries(BoundaryData * boundaries);
+    void setBoundaries(std::optional<qftbx::BoundaryData> boundaries);
 
-    QVector<QVector<QPointF> *> * unionBoundaries();
-    QVector<QVector<QVector<QPointF> *> *> * unionBuckets();
+    const qftbx::UnionTraces & unionBoundaries();
+    const qftbx::UnionBuckets & unionBuckets();
 
     // --- step 6: the controller structure ---------------------------------
 

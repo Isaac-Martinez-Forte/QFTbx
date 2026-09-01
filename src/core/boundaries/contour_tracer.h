@@ -3,6 +3,8 @@
 
 
 #include <QVector>
+
+#include "src/core/boundaries/boundary_types.h"
 #include <QPointF>
 
 namespace qftbx {
@@ -24,13 +26,13 @@ public:
     /// spread T_U - T_L, or the specification's own bound) over the sheet.
     ContourTracer (qreal thresholdDb, QVector <QVector <qreal> *> * sheet);
 
-    QVector <QVector <QPointF> *> * trace (qreal phaseSpan, qreal magnitudeSpan,
+    TraceSet trace (qreal phaseSpan, qreal magnitudeSpan,
                                            qreal phaseBottom, qreal magnitudeBottom);
 
 #ifdef CUDA_AVAILABLE
     ContourTracer (qreal thresholdDb, const float * sheet);
 
-    QVector <QVector <QPointF> *> * trace (qreal phaseSpan, qreal phaseCount, qreal magnitudeSpan,
+    TraceSet trace (qreal phaseSpan, qreal phaseCount, qreal magnitudeSpan,
                                            qreal magnitudeCount, qreal phaseBottom, qreal magnitudeBottom);
 #endif
 

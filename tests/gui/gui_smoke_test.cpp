@@ -121,34 +121,19 @@ void press(QWidget * dialog, const char * name)
 //A minimal one-frequency boundary set: one named boundary of three points
 //over the default Nichols window. Enough to drive the drawing code, which
 //is what the viewer tests are after.
-BoundaryData * oneBoundary()
+BoundaryData oneBoundary()
 {
-    auto * curve = new QVector<QPointF>{QPointF(-270.0, 10.0), QPointF(-180.0, 4.0),
-                                        QPointF(-90.0, 10.0)};
-    auto * curves = new QVector<QVector<QPointF> *>{curve};
+    //Twenty-two lines of heap allocation and a takeOwnership() call became
+    //this. The curve is one named boundary of three points over the default
+    //Nichols window - enough to drive the drawing code, which is what the
+    //viewer tests are after.
+    const qftbx::Trace curve{QPointF(-270.0, 10.0), QPointF(-180.0, 4.0),
+                             QPointF(-90.0, 10.0)};
 
-    auto * perFrequency = new QMap<QString, QVector<QVector<QPointF> *> *>();
-    perFrequency->insert(QStringLiteral("Stability"), curves);
-    auto * boundaries = new QVector<QMap<QString, QVector<QVector<QPointF> *> *> *>{perFrequency};
-
-    auto * unionBoundaries = new QVector<QVector<QPointF> *>{
-        new QVector<QPointF>{QPointF(-270.0, 10.0), QPointF(-180.0, 4.0), QPointF(-90.0, 10.0)}};
-
-    auto * row = new QVector<QVector<QPointF> *>();
-    for (qint32 i = 0; i < 361; i++) {
-        row->append(new QVector<QPointF>());
-    }
-    auto * buckets = new QVector<QVector<QVector<QPointF> *> *>{row};
-
-    //The constructor is non-owning by default (the engine keeps its own
-    //data alive); takeOwnership makes the fixture's destructor free the
-    //vectors above, as the project loader does.
-    BoundaryData * data = new BoundaryData(boundaries, new QVector<bool>{false}, new QVector<bool>{true},
-                            361, QPointF(-360.0, 0.0), unionBoundaries, buckets,
-                            121, QPointF(-60.0, 60.0));
-    data->takeOwnership();
-
-    return data;
+    return BoundaryData({{{QStringLiteral("Stability"), {curve}}}},
+                        {false}, {true}, 361, QPointF(-360.0, 0.0),
+                        {curve}, {qftbx::TraceSet(361)},
+                        121, QPointF(-60.0, 60.0));
 }
 
 // ---------------------------------------------------------------------------
@@ -663,10 +648,10 @@ TEST_F(GuiSmoke, BoundaryViewerDrawsTheBoundariesItIsGiven)
     //pile them up (the bug the Bode and template viewers both had).
     BoundaryViewer viewer;
 
-    BoundaryData * boundaries = oneBoundary();
+    const BoundaryData boundaries = oneBoundary();
     QVector<qreal> omega{1.0};
 
-    viewer.setDatos(boundaries, &omega);
+    viewer.setDatos(&boundaries, &omega);
     viewer.showDiagram();
 
     QCustomPlot * plot = child<QCustomPlot>(&viewer, "plot");
@@ -676,20 +661,17 @@ TEST_F(GuiSmoke, BoundaryViewerDrawsTheBoundariesItIsGiven)
 
     viewer.showDiagram();
     EXPECT_EQ(plot->plottableCount(), drawn) << "a redraw piled up curves";
-
-    delete boundaries;
 }
 
 TEST_F(GuiSmoke, BoundaryUnionViewerDrawsTheUnion)
 {
     BoundaryUnionViewer viewer;
 
-    auto * trace = new QVector<QPointF>{QPointF(-270.0, 10.0), QPointF(-180.0, 4.0),
-                                        QPointF(-90.0, 10.0)};
-    QVector<QVector<QPointF> *> traces{trace};
+    const qftbx::UnionTraces traces{{QPointF(-270.0, 10.0), QPointF(-180.0, 4.0),
+                                     QPointF(-90.0, 10.0)}};
     QVector<qreal> omega{1.0};
 
-    viewer.setDatos(&traces, &omega);
+    viewer.setDatos(traces, &omega);
     viewer.showDiagram();
 
     QCustomPlot * plot = child<QCustomPlot>(&viewer, "plot");
@@ -699,8 +681,6 @@ TEST_F(GuiSmoke, BoundaryUnionViewerDrawsTheUnion)
 
     viewer.showDiagram();
     EXPECT_EQ(plot->plottableCount(), drawn) << "a redraw piled up curves";
-
-    delete trace;
 }
 
 TEST_F(GuiSmoke, LoopShapingViewerDrawsTheShapedLoop)
@@ -717,20 +697,16 @@ TEST_F(GuiSmoke, LoopShapingViewerDrawsTheShapedLoop)
     LoopShapingResult result(new PolynomialForm(QStringLiteral("k"), one, one,
                                                 Parameter(1.0), Parameter(0.0)),
                              QPointF(0.1, 100.0), 50);
-
-    auto * trace = new QVector<QPointF>{QPointF(-270.0, 10.0), QPointF(-180.0, 4.0),
-                                        QPointF(-90.0, 10.0)};
-    QVector<QVector<QPointF> *> traces{trace};
+    const qftbx::UnionTraces traces{{QPointF(-270.0, 10.0), QPointF(-180.0, 4.0),
+                                     QPointF(-90.0, 10.0)}};
     QVector<qreal> omega{1.0, 10.0};
 
-    viewer.setDatos(&traces, &omega, &result, &plant, false);
+    viewer.setDatos(traces, &omega, &result, &plant, false);
     viewer.showDiagram();
 
     QCustomPlot * plot = child<QCustomPlot>(&viewer, "plot");
     ASSERT_NE(plot, nullptr);
     EXPECT_GT(plot->plottableCount(), 0) << "nothing was drawn";
-
-    delete trace;
 }
 
 TEST_F(GuiSmoke, LoopBoundariesViewerDrawsBothDiagrams)
@@ -745,19 +721,16 @@ TEST_F(GuiSmoke, LoopBoundariesViewerDrawsBothDiagrams)
     PolynomialForm controller(QStringLiteral("k"), one, one,
                               Parameter(1.0), Parameter(0.0));
 
-    BoundaryData * nichols = oneBoundary();
-    BoundaryData * nyquist = oneBoundary();
+    const BoundaryData nichols = oneBoundary();
+    const BoundaryData nyquist = oneBoundary();
     QVector<qreal> omega{1.0};
 
-    viewer.setDatos(nichols, nyquist, &omega, &plant, &controller, true, false);
+    viewer.setDatos(&nichols, &nyquist, &omega, &plant, &controller, true, false);
     viewer.showDiagram();
 
     QCustomPlot * plot = child<QCustomPlot>(&viewer, "plot");
     ASSERT_NE(plot, nullptr);
     EXPECT_GT(plot->plottableCount(), 0) << "nothing was drawn";
-
-    delete nichols;
-    delete nyquist;
 }
 
 TEST_F(GuiSmoke, TheMainWindowBuildsItsWholeWidgetTree)

@@ -17,7 +17,7 @@ public:
     LoopShaping();
     ~LoopShaping();
 
-    bool run(LtiSystem * plant, LtiSystem * controller, QVector<qreal> * omega, BoundaryData * boundaries,
+    bool run(LtiSystem * plant, LtiSystem * controller, QVector<qreal> * omega, const BoundaryData * boundaries,
                  qreal epsilon, LoopShapingAlgorithm algorithm,
                  const qftbx::CloudSet & contour, QVector<qftbx::SpecificationRecord *> * specifications,
                  qint32 initialisation);
