@@ -339,8 +339,8 @@ StartupNotify=true\n"
 endif()
 
 # Warnings/arch
-target_compile_options(${EXE_NAME} PRIVATE -Wall)
-target_compile_options(qftbx_backend PRIVATE -Wall)
+target_compile_options(${EXE_NAME} PRIVATE -Wall -Wextra)
+target_compile_options(qftbx_backend PRIVATE -Wall -Wextra)
 if(USE_NATIVE_ARCH AND (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang"))
   target_compile_options(${EXE_NAME} PRIVATE -march=native)
   target_compile_options(qftbx_backend PRIVATE -march=native)
