@@ -89,7 +89,7 @@ void BoundaryEngine::releaseResults()
 }
 
 void BoundaryEngine::compute(QVector<qreal> *omega, LtiSystem *plant, QVector<QVector<complex<qreal> > *> *templates,
-                             QVector<tools::dBND *> *specifications, QPointF phaseRange, qint32 phaseCount, QPointF magnitudeRange,
+                             QVector<qftbx::SpecificationRecord *> *specifications, QPointF phaseRange, qint32 phaseCount, QPointF magnitudeRange,
                              qint32 magnitudeCount, qreal infinity, bool cuda){
 
 
@@ -97,7 +97,7 @@ void BoundaryEngine::compute(QVector<qreal> *omega, LtiSystem *plant, QVector<QV
     //specification with height <= 0, an inverted band or a null plant
     //throws qftbx::InvalidInput here, at the entry point, instead of
     //silently degenerating the cut.
-    m_specifications = tools::toSpecificationSet(*specifications);
+    m_specifications = qftbx::toSpecificationSet(*specifications);
     m_cuda = cuda;
 
     m_phaseCount = phaseCount;

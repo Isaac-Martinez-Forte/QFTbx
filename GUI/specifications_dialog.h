@@ -74,22 +74,22 @@ private slots:
 private:
     Ui::SpecificationsDialog *ui;
 
-    dBND *tracking;
-    dBND *trackingUpper;
-    dBND *stability;
-    dBND *sensorNoise;
-    dBND *outputDisturbance;
-    dBND *inputDisturbance;
-    dBND *controlEffort;
+    qftbx::SpecificationRecord *tracking;
+    qftbx::SpecificationRecord *trackingUpper;
+    qftbx::SpecificationRecord *stability;
+    qftbx::SpecificationRecord *sensorNoise;
+    qftbx::SpecificationRecord *outputDisturbance;
+    qftbx::SpecificationRecord *inputDisturbance;
+    qftbx::SpecificationRecord *controlEffort;
 
-    QVector <dBND *> * published;
+    QVector <qftbx::SpecificationRecord *> * published;
 
     qint32 activeTab;
 
-    bool getDatos(dBND * record_in, QString name_in);
-    bool getDatos(dBND *record_in, dBND * upperRecord, QString name_in);
-    void setDatos (dBND * record_in);
-    void setDatos (dBND * record_in, dBND * upperRecord);
+    bool getDatos(qftbx::SpecificationRecord * record_in, QString name_in);
+    bool getDatos(qftbx::SpecificationRecord *record_in, qftbx::SpecificationRecord * upperRecord, QString name_in);
+    void setDatos (qftbx::SpecificationRecord * record_in);
+    void setDatos (qftbx::SpecificationRecord * record_in, qftbx::SpecificationRecord * upperRecord);
     void saveActiveTab();
 
     QVector <Parameter * > * buildParameters(QString linea);

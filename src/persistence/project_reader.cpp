@@ -225,7 +225,7 @@ public:
         fail(typeNode, "unknown system type");
     }
 
-    QVector <tools::dBND *> * readSpecifications(const pugi::xml_node & section) const
+    QVector <qftbx::SpecificationRecord *> * readSpecifications(const pugi::xml_node & section) const
     {
         //The set is positional with 7 fixed slots: consumers index blindly.
         const auto slotRange = section.children(t.specification);
@@ -234,26 +234,26 @@ public:
             fail(section, "a project needs exactly 7 specification slots");
         }
 
-        auto * specifications = new QVector <tools::dBND *> ();
+        auto * specifications = new QVector <qftbx::SpecificationRecord *> ();
         specifications->reserve(kSpecificationCount);
 
         for (const pugi::xml_node & node : section.children(t.specification)) {
-            auto * record = new tools::dBND();
-            record->nombre = modernSpecificationName(QString(node.attribute(t.nameAttribute).value()));
-            record->utilizado = boolChild(node, t.used);
-            record->sistema = nullptr;
-            record->constante = false;
-            record->altura = 0.0;
-            record->frecinicio = 0.0;
-            record->frecfinal = 0.0;
+            auto * record = new qftbx::SpecificationRecord();
+            record->name = modernSpecificationName(QString(node.attribute(t.nameAttribute).value()));
+            record->used = boolChild(node, t.used);
+            record->system = nullptr;
+            record->constant = false;
+            record->height = 0.0;
+            record->omegaStart = 0.0;
+            record->omegaEnd = 0.0;
 
-            if (record->utilizado) {
-                record->frecinicio = realChild(node, t.minFrequency);
-                record->frecfinal = realChild(node, t.maxFrequency);
-                record->constante = boolChild(node, t.constant);
+            if (record->used) {
+                record->omegaStart = realChild(node, t.minFrequency);
+                record->omegaEnd = realChild(node, t.maxFrequency);
+                record->constant = boolChild(node, t.constant);
 
-                if (record->constante) {
-                    record->altura = realChild(node, t.magnitude);
+                if (record->constant) {
+                    record->height = realChild(node, t.magnitude);
                 } else {
                     //The embedded plant is the child that carries a <type>
                     //element (its tag is the plant name in the legacy
@@ -268,7 +268,7 @@ public:
                     if (!systemNode) {
                         fail(node, "a non-constant specification needs its plant");
                     }
-                    record->sistema = readSystem(systemNode);
+                    record->system = readSystem(systemNode);
                 }
             }
 

@@ -18,7 +18,7 @@ public:
 
     bool iniciar(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> * omega, BoundaryData * boundaries,
                  qreal epsilon, LoopShapingAlgorithm seleccionado,
-                 QVector<QVector<std::complex<qreal>> *> * temp, QVector<dBND *> * espe,
+                 QVector<QVector<std::complex<qreal>> *> * temp, QVector<qftbx::SpecificationRecord *> * espe,
                  qint32 inicializacion);
 
     LtiSystem * getControlador();

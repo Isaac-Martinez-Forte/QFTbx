@@ -8,7 +8,7 @@
 
 #include "src/core/system/lti_system.h"
 #include "src/core/boundaries/boundary_data.h"
-#include "Modelo/EstructurasDatos/dbnd.h"
+#include "src/core/specifications/specification_record.h"
 #include "Modelo/EstructurasDatos/datosloopshaping.h"
 #include "src/core/frequencies/omega.h"
 
@@ -20,7 +20,7 @@ namespace qftbx {
  */
 struct ProjectContent {
     LtiSystem * plant = nullptr;
-    QVector <tools::dBND *> * specifications = nullptr;
+    QVector <qftbx::SpecificationRecord *> * specifications = nullptr;
     Omega * omega = nullptr;
     QVector <QVector <std::complex<qreal>> * > * templates = nullptr;
     QVector <QVector <std::complex<qreal>> * > * contour = nullptr;

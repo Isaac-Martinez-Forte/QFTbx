@@ -80,7 +80,7 @@ public:
     QVector <qreal> * getFrecuencias();
 
 
-    QVector<tools::dBND *> *getEspecificaciones();
+    QVector<qftbx::SpecificationRecord *> *getEspecificaciones();
 
 
     /**
@@ -114,7 +114,7 @@ public:
      */
 
 
-    void setEspecificaciones (QVector <tools::dBND * > * espe);
+    void setEspecificaciones (QVector <qftbx::SpecificationRecord * > * espe);
 
     void setTemplate (QVector <QVector <std::complex <qreal> > * > * temp, QVector <QVector <std::complex <qreal> > * > * contorno, bool isContorno);
 

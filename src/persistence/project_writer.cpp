@@ -116,28 +116,28 @@ void writeSystem(pugi::xml_node parent, const char * sectionName, LtiSystem * sy
     writeParameter(typeNode, system->delay());
 }
 
-void writeSpecifications(pugi::xml_node root, QVector <tools::dBND *> * specifications)
+void writeSpecifications(pugi::xml_node root, QVector <qftbx::SpecificationRecord *> * specifications)
 {
     pugi::xml_node section = root.append_child(t.specifications);
     section.append_attribute("count") = specifications->size();
 
-    foreach (tools::dBND * record, *specifications) {
+    foreach (qftbx::SpecificationRecord * record, *specifications) {
         pugi::xml_node node = section.append_child(t.specification);
-        node.append_attribute(t.nameAttribute) = record->nombre.toStdString().c_str();
-        addBool(node, t.used, record->utilizado);
+        node.append_attribute(t.nameAttribute) = record->name.toStdString().c_str();
+        addBool(node, t.used, record->used);
 
-        if (!record->utilizado) {
+        if (!record->used) {
             continue;
         }
 
-        addReal(node, t.minFrequency, record->frecinicio);
-        addReal(node, t.maxFrequency, record->frecfinal);
-        addBool(node, t.constant, record->constante);
+        addReal(node, t.minFrequency, record->omegaStart);
+        addReal(node, t.maxFrequency, record->omegaEnd);
+        addBool(node, t.constant, record->constant);
 
-        if (record->constante) {
-            addReal(node, t.magnitude, record->altura);
+        if (record->constant) {
+            addReal(node, t.magnitude, record->height);
         } else {
-            writeSystem(node, "system", record->sistema);
+            writeSystem(node, "system", record->system);
         }
     }
 }

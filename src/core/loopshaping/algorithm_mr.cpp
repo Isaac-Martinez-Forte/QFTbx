@@ -1,7 +1,7 @@
 #include "src/core/exception.h"
 #include "src/core/loopshaping/algorithm_mr.h"
 
-#include "Modelo/EstructurasDatos/dbnd.h"
+#include "src/core/specifications/specification_record.h"
 
 #include <cmath>
 
@@ -39,7 +39,7 @@ AlgorithmMr::~AlgorithmMr()
 }
 
 void AlgorithmMr::set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> * omega, BoundaryData *boundaries,
-                                  qreal epsilon, QVector<QVector<std::complex<qreal>> *> * temp, QVector<tools::dBND *> * espe){
+                                  qreal epsilon, QVector<QVector<std::complex<qreal>> *> * temp, QVector<qftbx::SpecificationRecord *> * espe){
     this->planta = planta;
     this->controlador = controlador->clone();
     this->omega = omega;
@@ -117,9 +117,9 @@ inline void AlgorithmMr::buildControllerExpressions(){
 inline void AlgorithmMr::buildConstraints(){
 
     //The validated specification set, the same accessor the boundary
-    //engine cuts at (the raw dBND::getAltura evaluated NaN on some legacy
+    //engine cuts at (the raw record heightDb evaluated NaN on some legacy
     //system specifications).
-    const qftbx::SpecificationSet specifications = tools::toSpecificationSet(*espe);
+    const qftbx::SpecificationSet specifications = qftbx::toSpecificationSet(*espe);
 
     const auto applies = [&](qint32 slot, qreal w) {
         return specifications.at(static_cast<qftbx::SpecificationType>(slot)).appliesAt(w);

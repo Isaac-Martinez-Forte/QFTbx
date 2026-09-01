@@ -211,7 +211,7 @@ set(QFTbx_BACKEND_HED
     DAO/templatedao.h
     DAO/adaptadortemplatedao.h
     Modelo/Herramientas/tools.h
-    Modelo/EstructurasDatos/dbnd.h
+    src/core/specifications/specification_record.h
     src/core/loopshaping/loop_shaping_types.h
     src/core/math/sequences.h
     src/core/specifications/specification.h

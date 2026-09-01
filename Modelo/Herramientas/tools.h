@@ -8,7 +8,7 @@
 
 //Transitional re-exports: these types moved to their own homes; consumers
 //will include them directly as each module is migrated.
-#include "Modelo/EstructurasDatos/dbnd.h"
+#include "src/core/specifications/specification_record.h"
 #include "src/core/loopshaping/loop_shaping_types.h"
 
 /**

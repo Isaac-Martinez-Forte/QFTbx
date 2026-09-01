@@ -74,7 +74,7 @@ QVector <qreal> * Controlador::getFrecuencias(){
 }
 
 
-QVector<tools::dBND *> *Controlador::getEspecificaciones(){
+QVector<qftbx::SpecificationRecord *> *Controlador::getEspecificaciones(){
     if(!paso2)
         return NULL;
 
@@ -96,7 +96,7 @@ void Controlador::setValues(Omega *omega){
     omegadao->setValues(omega);
 }
 
-void Controlador::setEspecificaciones(QVector<tools::dBND *> *espe){
+void Controlador::setEspecificaciones(QVector<qftbx::SpecificationRecord *> *espe){
     if(!paso2){
         especdao = dao->getEspecificacionesDAO();
     }

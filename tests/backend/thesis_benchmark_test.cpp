@@ -93,14 +93,14 @@ TEST(ThesisBenchmarkFixture, QftToolboxEx2LoadsWithTheFullPipeline)
     ASSERT_NE(controller.getOmega(), nullptr);
     EXPECT_EQ(*controller.getOmega()->values(), expectedOmega);
 
-    QVector<tools::dBND*>* specs = controller.getEspecificaciones();
+    QVector<qftbx::SpecificationRecord*>* specs = controller.getEspecificaciones();
     ASSERT_NE(specs, nullptr);
     ASSERT_EQ(specs->size(), 7);
-    EXPECT_TRUE(specs->at(0)->utilizado);  // tracking lower (alpha)
-    EXPECT_TRUE(specs->at(1)->utilizado);  // tracking upper (beta)
-    ASSERT_TRUE(specs->at(2)->utilizado);  // stability
-    EXPECT_TRUE(specs->at(2)->constante);
-    EXPECT_DOUBLE_EQ(specs->at(2)->altura, 1.2);
+    EXPECT_TRUE(specs->at(0)->used);  // tracking lower (alpha)
+    EXPECT_TRUE(specs->at(1)->used);  // tracking upper (beta)
+    ASSERT_TRUE(specs->at(2)->used);  // stability
+    EXPECT_TRUE(specs->at(2)->constant);
+    EXPECT_DOUBLE_EQ(specs->at(2)->height, 1.2);
 
     ASSERT_NE(controller.getTemplate(), nullptr);
     EXPECT_EQ(controller.getTemplate()->size(), expectedOmega.size());
@@ -135,13 +135,13 @@ TEST(ThesisBenchmarkFixture, Acc90LoadsWithTheFullPipeline)
     ASSERT_NE(controller.getOmega(), nullptr);
     EXPECT_EQ(*controller.getOmega()->values(), expectedOmega);
 
-    QVector<tools::dBND*>* specs = controller.getEspecificaciones();
+    QVector<qftbx::SpecificationRecord*>* specs = controller.getEspecificaciones();
     ASSERT_NE(specs, nullptr);
     ASSERT_EQ(specs->size(), 7);
-    EXPECT_FALSE(specs->at(0)->utilizado);
-    ASSERT_TRUE(specs->at(2)->utilizado);  // stability, the only spec
-    EXPECT_TRUE(specs->at(2)->constante);
-    EXPECT_DOUBLE_EQ(specs->at(2)->altura, 1.75);
+    EXPECT_FALSE(specs->at(0)->used);
+    ASSERT_TRUE(specs->at(2)->used);  // stability, the only spec
+    EXPECT_TRUE(specs->at(2)->constant);
+    EXPECT_DOUBLE_EQ(specs->at(2)->height, 1.75);
 
     ASSERT_NE(controller.getBound(), nullptr);
     ASSERT_EQ(controller.getBound()->boundaries()->size(), expectedOmega.size());

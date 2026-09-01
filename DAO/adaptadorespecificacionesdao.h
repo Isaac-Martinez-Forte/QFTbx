@@ -10,12 +10,12 @@ public:
     AdaptadorEspecificacionesDAO();
     ~AdaptadorEspecificacionesDAO();
 
-    void setEspecificaciones (QVector <tools::dBND *> * espe);
+    void setEspecificaciones (QVector <qftbx::SpecificationRecord *> * espe);
 
-    QVector <tools::dBND *> * getEspecificaciones();
+    QVector <qftbx::SpecificationRecord *> * getEspecificaciones();
 
 private:
-    QVector <tools::dBND *> * espe = NULL;
+    QVector <qftbx::SpecificationRecord *> * espe = NULL;
 
 };
 

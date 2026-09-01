@@ -19,7 +19,7 @@ LoopShaping::~LoopShaping()
 //MR the templates and specifications its constraints are built from.
 bool LoopShaping::iniciar(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> * omega,
                           BoundaryData * boundaries, qreal epsilon, tools::LoopShapingAlgorithm seleccionado,
-                          QVector<QVector<std::complex<qreal>> *> * temp, QVector<tools::dBND *> * espe,
+                          QVector<QVector<std::complex<qreal>> *> * temp, QVector<qftbx::SpecificationRecord *> * espe,
                           qint32 inicializacion)
 {
     QElapsedTimer timer;

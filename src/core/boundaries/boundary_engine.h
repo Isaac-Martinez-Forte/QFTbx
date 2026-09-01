@@ -16,7 +16,7 @@
 
 #include "src/core/system/lti_system.h"
 #include "src/core/specifications/specification.h"
-#include "Modelo/EstructurasDatos/dbnd.h"
+#include "src/core/specifications/specification_record.h"
 #include "contour_tracer.h"
 #include "boundary_data.h"
 #include "boundary_union_1d.h"
@@ -73,7 +73,7 @@ public:
     * @param cuda compute the sheets on the GPU (CUDA builds only).
     */
     void compute(QVector <qreal> * omega, LtiSystem * plant, QVector<QVector<std::complex <qreal> > *> *templates,
-                 QVector <tools::dBND *> * specifications, QPointF phaseRange,
+                 QVector <qftbx::SpecificationRecord *> * specifications, QPointF phaseRange,
                  qint32 phaseCount, QPointF magnitudeRange, qint32 magnitudeCount, qreal infinity, bool cuda);
 
     /// A fresh non-owning view over the last computed results.

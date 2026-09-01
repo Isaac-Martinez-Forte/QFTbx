@@ -12,7 +12,7 @@
 #include <QVector>
 
 #include "Modelo/EstructurasDatos/datosloopshaping.h"
-#include "Modelo/EstructurasDatos/dbnd.h"
+#include "src/core/specifications/specification_record.h"
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/system/lti_system.h"
 
@@ -37,7 +37,7 @@ inline void expectSameSystem(LtiSystem* a, LtiSystem* b,
     }
 }
 
-inline void expectSameSpecifications(QVector<tools::dBND*>* a, QVector<tools::dBND*>* b)
+inline void expectSameSpecifications(QVector<qftbx::SpecificationRecord*>* a, QVector<qftbx::SpecificationRecord*>* b)
 {
     ASSERT_NE(a, nullptr);
     ASSERT_NE(b, nullptr);
@@ -45,15 +45,15 @@ inline void expectSameSpecifications(QVector<tools::dBND*>* a, QVector<tools::dB
     ASSERT_EQ(b->size(), 7);
 
     for (int i = 0; i < 7; ++i) {
-        tools::dBND* sa = a->at(i);
-        tools::dBND* sb = b->at(i);
-        EXPECT_EQ(sa->nombre, sb->nombre) << "spec " << i;
-        EXPECT_EQ(sa->utilizado, sb->utilizado) << "spec " << i;
-        EXPECT_EQ(sa->constante, sb->constante) << "spec " << i;
-        EXPECT_EQ(sa->altura, sb->altura) << "spec " << i;
-        EXPECT_EQ(sa->frecinicio, sb->frecinicio) << "spec " << i;
-        EXPECT_EQ(sa->frecfinal, sb->frecfinal) << "spec " << i;
-        expectSameSystem(sa->sistema, sb->sistema, {sa->frecinicio, sa->frecfinal},
+        qftbx::SpecificationRecord* sa = a->at(i);
+        qftbx::SpecificationRecord* sb = b->at(i);
+        EXPECT_EQ(sa->name, sb->name) << "spec " << i;
+        EXPECT_EQ(sa->used, sb->used) << "spec " << i;
+        EXPECT_EQ(sa->constant, sb->constant) << "spec " << i;
+        EXPECT_EQ(sa->height, sb->height) << "spec " << i;
+        EXPECT_EQ(sa->omegaStart, sb->omegaStart) << "spec " << i;
+        EXPECT_EQ(sa->omegaEnd, sb->omegaEnd) << "spec " << i;
+        expectSameSystem(sa->system, sb->system, {sa->omegaStart, sa->omegaEnd},
                          "spec plant");
     }
 }

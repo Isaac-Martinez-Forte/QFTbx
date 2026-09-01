@@ -13,9 +13,9 @@ public:
     virtual ~EspecificacionesDAO() {}
 
 
-    virtual void setEspecificaciones (QVector <tools::dBND *> * espe) = 0;
+    virtual void setEspecificaciones (QVector <qftbx::SpecificationRecord *> * espe) = 0;
 
-    virtual QVector <tools::dBND *> * getEspecificaciones() = 0;
+    virtual QVector <qftbx::SpecificationRecord *> * getEspecificaciones() = 0;
 };
 
 
