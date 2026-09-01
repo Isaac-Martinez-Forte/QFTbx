@@ -227,6 +227,32 @@ TEST_F(GuiSmoke, PlantDialogRejectsAnInvalidCoefficient)
     delete dialog.takePlant();
 }
 
+TEST_F(GuiSmoke, PlantDialogRejectsAReservedParameterName)
+{
+    //"k" is the obvious name for a gain, and muParserX owns it as the unit
+    //multiplier 1e3. Naming a parameter after anything the parser defines
+    //used to pass the dialog - only FUNCTION names were checked - and fail
+    //much later as a generic evaluation error, or worse be read as 1e3.
+    PlantDialog dialog;
+
+    type(&dialog, "nameEdit", QStringLiteral("reserved"));
+    check(&dialog, "zpkRadio");
+    type(&dialog, "zpkNumerator", QStringLiteral("1"));
+    type(&dialog, "zpkDenominator", QStringLiteral("k"));
+    type(&dialog, "zpkGain", QStringLiteral("1"));
+    type(&dialog, "zpkDelay", QStringLiteral("0"));
+
+    press(&dialog, "okButton");
+
+    EXPECT_FALSE(dialog.getTodoCorrecto()) << "a reserved parameter name was accepted";
+    ASSERT_FALSE(m_reported.isEmpty()) << "the rejection must be reported";
+    EXPECT_TRUE(m_reported.join(QChar(' ')).contains(QStringLiteral("k")))
+        << "the message must name the offending identifier: "
+        << m_reported.join(QChar(' ')).toStdString();
+
+    delete dialog.takePlant();
+}
+
 TEST_F(GuiSmoke, FrequenciesDialogBuildsTheDesignFrequencies)
 {
     FrequenciesDialog dialog;

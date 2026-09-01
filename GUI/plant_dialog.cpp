@@ -3,6 +3,7 @@
 #include "ui_plant_dialog.h"
 
 #include "GUI/error_message.h"
+#include "src/core/math/expression_cache.h"
 #include "GUI/plot_palette.h"
 #include "src/core/system/free_form.h"
 #include "src/core/system/polynomial_form.h"
@@ -167,6 +168,24 @@ bool PlantDialog::parseCoefficients(QVector<QVector <QString> * > * tabla, QLine
 
             while (!capture.isNull()){
 
+                //A name the parser already owns cannot become a parameter:
+                //the binding fails later and the plant stops evaluating.
+                //Only FUNCTION names were checked here, which let through
+                //the constants (e, pi, i) and the unit operators - "k",
+                //"m", "u" - where "k" is the obvious name for a gain and
+                //would otherwise be read as the multiplier 1e3.
+                if (qftbx::math::isReservedName(capture)){
+                    errorMessage(tr("\"%1\" cannot be used as a parameter name: "
+                                    "the expression parser already defines it.").arg(capture),
+                                 tr("Plant input"));
+                    //The three row vectors are still ours on this path.
+                    delete vec1;
+                    delete vec;
+                    delete vec2;
+
+                    return false;
+                }
+
                 if (!p.IsFunDefined(capture.toStdString())){
                     vec->append(capture);
                     capture = QString();
@@ -280,26 +299,32 @@ QVector<QVector <QString> * > * PlantDialog::readTables(QVector <QVector <QStrin
 
     QVector <QVector <QString> * > * tables = new QVector <QVector <QString> * > ();
 
+    //Every parse result used to be discarded and the check below was
+    //commented out, so a rejected coefficient - a reserved parameter name,
+    //say - was only noticed much later, as a generic evaluation failure.
+    //&& on the RIGHT so every parse still runs and every problem is reported.
+    bool valid = true;
+
     if (ui->polynomialRadio->isChecked()){
-        parseCoefficients(tables, ui->polyNumerator, expressionTable, uncertainTable);
-        parseCoefficients(tables, ui->polyDenominator, expressionTable, uncertainTable);
-        parseScalar(tables, ui->polyGain, expressionTable, uncertainTable);
-        parseScalar(tables, ui->polyDelay, expressionTable, uncertainTable);
+        valid = parseCoefficients(tables, ui->polyNumerator, expressionTable, uncertainTable) && valid;
+        valid = parseCoefficients(tables, ui->polyDenominator, expressionTable, uncertainTable) && valid;
+        valid = parseScalar(tables, ui->polyGain, expressionTable, uncertainTable) && valid;
+        valid = parseScalar(tables, ui->polyDelay, expressionTable, uncertainTable) && valid;
     }else if (ui->zpkRadio->isChecked()){
-        parseCoefficients(tables, ui->zpkNumerator, expressionTable, uncertainTable);
-        parseCoefficients(tables, ui->zpkDenominator, expressionTable, uncertainTable);
-        parseScalar(tables, ui->zpkGain, expressionTable, uncertainTable);
-        parseScalar(tables, ui->zpkDelay, expressionTable, uncertainTable);
+        valid = parseCoefficients(tables, ui->zpkNumerator, expressionTable, uncertainTable) && valid;
+        valid = parseCoefficients(tables, ui->zpkDenominator, expressionTable, uncertainTable) && valid;
+        valid = parseScalar(tables, ui->zpkGain, expressionTable, uncertainTable) && valid;
+        valid = parseScalar(tables, ui->zpkDelay, expressionTable, uncertainTable) && valid;
     }else if (ui->tcgRadio->isChecked()){
-        parseCoefficients(tables, ui->tcgNumerator, expressionTable, uncertainTable);
-        parseCoefficients(tables, ui->tcgDenominator, expressionTable, uncertainTable);
-        parseScalar(tables, ui->tcgGain, expressionTable, uncertainTable);
-        parseScalar(tables, ui->tcgDelay, expressionTable, uncertainTable);
+        valid = parseCoefficients(tables, ui->tcgNumerator, expressionTable, uncertainTable) && valid;
+        valid = parseCoefficients(tables, ui->tcgDenominator, expressionTable, uncertainTable) && valid;
+        valid = parseScalar(tables, ui->tcgGain, expressionTable, uncertainTable) && valid;
+        valid = parseScalar(tables, ui->tcgDelay, expressionTable, uncertainTable) && valid;
     }else if (ui->freeFormRadio->isChecked()){
-        parseFreeForm(ui->freeNumerator, tables, expressionTable, uncertainTable);
-        parseFreeForm(ui->freeDenominator, tables, expressionTable, uncertainTable);
-        parseScalar(tables, ui->freeGain, expressionTable, uncertainTable);
-        parseScalar(tables, ui->freeDelay, expressionTable, uncertainTable);
+        valid = parseFreeForm(ui->freeNumerator, tables, expressionTable, uncertainTable) && valid;
+        valid = parseFreeForm(ui->freeDenominator, tables, expressionTable, uncertainTable) && valid;
+        valid = parseScalar(tables, ui->freeGain, expressionTable, uncertainTable) && valid;
+        valid = parseScalar(tables, ui->freeDelay, expressionTable, uncertainTable) && valid;
     }else{
         tables->clear();
         expressionTable->clear();
@@ -307,10 +332,12 @@ QVector<QVector <QString> * > * PlantDialog::readTables(QVector <QVector <QStrin
         return NULL;
     }
 
-    /* if (!valid){
-        tables->clear();
+    if (!valid){
+        qDeleteAll(*tables);
+        delete tables;
+
         return NULL;
-    }*/
+    }
 
     return tables;
 }

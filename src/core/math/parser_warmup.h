@@ -7,10 +7,13 @@ namespace math {
 /**
  * @brief Initialises muParserX's package singletons on the calling thread.
  *
- * muParserX builds its six function packages as lazy singletons WITHOUT
- * synchronisation (mpPackageUnit.cpp and its five siblings all read
+ * muParserX builds its function packages as lazy singletons WITHOUT
+ * synchronisation (mpPackageUnit.cpp and its siblings all read
  * `s_pInstance.get()==nullptr` and then `s_pInstance.reset(new ...)`), and
- * every mup::ParserX constructor touches all six. Two threads constructing a
+ * every mup::ParserX constructor touches every package of its set. The
+ * default set is pckALL_COMPLEX - common, complex, string, unit and matrix -
+ * which is what the whole toolbox uses; the sixth package, non-complex, is
+ * the one nothing here asks for. Two threads constructing a
  * parser at the same time therefore both see null, both construct, and one
  * reset() DELETES the object the other is about to use: a use-after-free on a
  * function table, whose symptom is a wrong or throwing evaluation once, on one

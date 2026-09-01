@@ -67,6 +67,9 @@ public:
     QString expression();
 
 private:
+    /// The reparametrisation applied to one value, parsed once per thread.
+    qreal realValueOf(qreal value) const;
+
     //Initialised here, not constructor by constructor: the value
     //constructors used to leave m_hasExpression indeterminate, and reading
     //it (the copy constructor does) is undefined behaviour. It stayed

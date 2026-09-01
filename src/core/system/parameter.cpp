@@ -1,5 +1,8 @@
 ﻿#include "parameter.h"
 
+#include "src/core/exception.h"
+#include "src/core/math/expression_cache.h"
+
 using namespace mup;
 using namespace std;
 
@@ -92,26 +95,33 @@ Range Parameter::range(){
         return m_range;
     }
 
+    //The two ends go through the SAME parsed expression: the reparametrisation
+    //is parsed once per thread and only the bound value changes. This used to
+    //build a parser, SetExpr it, evaluate, then RemoveVar/DefineVar and
+    //evaluate again - and changing the variable set throws the RPN away, so
+    //it parsed twice per call.
     Range point;
 
-    //The Values must be declared before the parser: it stores pointers to
-    //them (Variable(&v)) and destruction runs in reverse declaration order.
-    Value v(m_range.min);
-    Value v2(m_range.max);
-
-    mup::ParserX p;
-
-    p.SetExpr(m_expression.toStdString());
-    p.DefineVar(m_name.toStdString(), Variable(&v));
-
-    point.min = p.Eval().GetFloat();
-
-    p.RemoveVar(m_name.toStdString());
-    p.DefineVar(m_name.toStdString(), Variable(&v2));
-
-    point.max = p.Eval().GetFloat();
+    point.min = realValueOf(m_range.min);
+    point.max = realValueOf(m_range.max);
 
     return point;
+}
+
+//The reparametrisation applied to one value. It describes a real quantity, so
+//a complex result is a malformed expression rather than something to take the
+//real part of (the historical GetFloat() threw an untyped muParserX error).
+qreal Parameter::realValueOf(qreal value) const
+{
+    const std::complex<qreal> evaluated = qftbx::math::evaluateCached(
+            m_expression, {m_name}, {std::complex<qreal>(value, 0.0)});
+
+    if (evaluated.imag() != 0.0) {
+        throw InvalidInput("the reparametrisation of \"" + m_name.toStdString()
+                           + "\" produced a complex value");
+    }
+
+    return evaluated.real();
 }
 
 qreal Parameter::nominal(){
@@ -124,15 +134,7 @@ qreal Parameter::nominal(){
         return m_nominal;
     }
 
-    //Value before the parser: see the comment in range().
-    Value v(m_nominal);
-
-    mup::ParserX p;
-
-    p.SetExpr(m_expression.toStdString());
-    p.DefineVar(m_name.toStdString(), Variable(&v));
-
-    return p.Eval().GetFloat();
+    return realValueOf(m_nominal);
 }
 
 void Parameter::setName(QString name){

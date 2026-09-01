@@ -6,6 +6,7 @@
 #include <QRegularExpression>
 
 #include "src/core/exception.h"
+#include "src/core/math/expression_cache.h"
 
 using namespace std;
 using namespace mup;
@@ -113,8 +114,6 @@ LtiSystem * FreeForm::clone(){
                         m_numeratorExpr, m_denominatorExpr);
 }
 
-} // namespace qftbx
-
 //A free-form plant is written by the user, so its numerator and denominator
 //have to be evaluated as expressions - but neither the frequency nor the
 //coefficients need to travel as TEXT. The Laplace variable is replaced by a
@@ -127,25 +126,17 @@ std::complex <qreal> FreeForm::valueAt(qreal w, const std::vector<qreal> & numer
                                        const std::vector<qreal> & denominator,
                                        qreal gain, qreal delay)
 {
-    //Only the standalone Laplace variable becomes the bound one: a plain
-    //substring replace mutilated "sin", "sqrt", "abs" and any parameter whose
-    //name contains an 's'.
-    static const QRegularExpression laplaceVariable(QStringLiteral("\\bs\\b"));
-    static const QString laplaceName = QStringLiteral("__jw");
-
-    QString numeratorText = m_numeratorExpr;
-    QString denominatorText = m_denominatorExpr;
-    numeratorText.replace(laplaceVariable, laplaceName);
-    denominatorText.replace(laplaceVariable, laplaceName);
-
     //One value per DISTINCT name. A name appearing more than once is ONE
     //variable, not several - the cervera plant carries its "a" in both the
     //numerator and the denominator - so every appearance must be given the
-    //same value, and DefineVar would throw on the second one anyway. A
-    //disagreement means the caller built an inconsistent request; picking one
-    //of the two would evaluate a plant nobody asked for, so it is reported.
+    //same value. A disagreement means the caller built an inconsistent
+    //request; picking one of the two would evaluate a plant nobody asked
+    //for, so it is reported.
     QVector<QString> names;
-    QVector<qreal> bound;
+    std::vector<std::complex<qreal>> bound;
+
+    names.append(laplaceName());
+    bound.push_back(std::complex<qreal>(0.0, w));
 
     const auto remember = [&](std::vector<Parameter> & parameters, const std::vector<qreal> & given) {
         for (std::size_t i = 0; i < parameters.size() && i < given.size(); i++) {
@@ -154,15 +145,16 @@ std::complex <qreal> FreeForm::valueAt(qreal w, const std::vector<qreal> & numer
 
             if (at < 0) {
                 names.append(name);
-                bound.append(given[i]);
+                bound.push_back(std::complex<qreal>(given[i], 0.0));
                 continue;
             }
 
-            if (bound.at(at) != given[i]) {
+            if (bound[static_cast<std::size_t>(at)] != std::complex<qreal>(given[i], 0.0)) {
                 throw qftbx::InvalidInput(
                     QString("the parameter \"%1\" was given two different values "
                             "(%2 and %3): the same name is the same variable")
-                        .arg(name).arg(bound.at(at)).arg(given[i]).toStdString());
+                        .arg(name).arg(bound[static_cast<std::size_t>(at)].real()).arg(given[i])
+                        .toStdString());
             }
         }
     };
@@ -170,25 +162,44 @@ std::complex <qreal> FreeForm::valueAt(qreal w, const std::vector<qreal> & numer
     remember(m_numerator, numerator);
     remember(m_denominator, denominator);
 
-    //Values before the parser and SIZED UP FRONT: Variable stores a POINTER
-    //to them, so a vector that reallocated would dangle every earlier bind,
-    //and destruction runs in reverse declaration order.
-    Value laplace (std::complex<qreal>(0.0, w));
-    std::vector<Value> values (static_cast<std::size_t>(bound.size()));
-
-    ParserX parser (pckALL_COMPLEX);
-    parser.DefineVar(laplaceName.toStdString(), Variable(&laplace));
-
-    for (qint32 i = 0; i < names.size(); i++) {
-        values[static_cast<std::size_t>(i)] = Value(bound.at(i));
-        parser.DefineVar(names.at(i).toStdString(),
-                         Variable(&values[static_cast<std::size_t>(i)]));
-    }
-
-    const QString expr = "(" + numeratorText + ")/(" + denominatorText + ")";
-    parser.SetExpr(expr.toStdString());
+    //Parsed once per thread: see qftbx::math::evaluateCached. The text no
+    //longer carries the frequency, so it is the same expression on every
+    //call and the cache actually hits.
+    const std::complex<qreal> ratio =
+            qftbx::math::evaluateCached(boundExpression(), names, bound);
 
     const std::complex<qreal> s(0.0, w);
 
-    return gain * parser.Eval().GetComplex() * std::exp(-s * delay);
+    return gain * ratio * std::exp(-s * delay);
 }
+
+//The Laplace variable as a BOUND variable name. Substituting the frequency as
+//text was what rounded it to six significant digits.
+const QString & FreeForm::laplaceName()
+{
+    static const QString name = QStringLiteral("__jw");
+    return name;
+}
+
+//The user's numerator and denominator with the standalone Laplace variable
+//replaced by the bound one, built ONCE. A plain substring replace mutilated
+//"sin", "sqrt", "abs" and any parameter whose name contains an 's', hence the
+//word boundaries; and doing it per evaluation ran two regular expressions
+//over the text every time.
+const QString & FreeForm::boundExpression() const
+{
+    if (m_boundExpression.isEmpty()) {
+        static const QRegularExpression laplaceVariable(QStringLiteral("\\bs\\b"));
+
+        QString numeratorText = m_numeratorExpr;
+        QString denominatorText = m_denominatorExpr;
+        numeratorText.replace(laplaceVariable, laplaceName());
+        denominatorText.replace(laplaceVariable, laplaceName());
+
+        m_boundExpression = "(" + numeratorText + ")/(" + denominatorText + ")";
+    }
+
+    return m_boundExpression;
+}
+
+} // namespace qftbx

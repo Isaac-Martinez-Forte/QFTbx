@@ -4,6 +4,7 @@
 #include "ui_controller_dialog.h"
 
 #include "GUI/error_message.h"
+#include "src/core/math/expression_cache.h"
 #include "GUI/plot_palette.h"
 #include "src/core/system/free_form.h"
 #include "src/core/system/polynomial_form.h"
@@ -113,14 +114,16 @@ QVector<QVector <QString> * > * ControllerDialog::readTables(QVector <QVector <Q
     QVector <QVector <QString> * > * tables = new QVector <QVector <QString> * > ();
     tables->reserve(4);
 
+    //&& on the RIGHT so every parse still runs and every problem is reported:
+    //the results used to overwrite each other, so only the gain range decided.
     if (ui->freeFormRadio->isChecked()){
-        valid = parseFreeForm(ui->numeratorEdit, tables, expressionTable, uncertainTable);
-        valid = parseFreeForm(ui->denominatorEdit, tables, expressionTable, uncertainTable);
-        valid = parseGainRange(tables, ui->gainStart, ui->gainEnd, expressionTable, uncertainTable);
+        valid = parseFreeForm(ui->numeratorEdit, tables, expressionTable, uncertainTable) && valid;
+        valid = parseFreeForm(ui->denominatorEdit, tables, expressionTable, uncertainTable) && valid;
+        valid = parseGainRange(tables, ui->gainStart, ui->gainEnd, expressionTable, uncertainTable) && valid;
     }else {
-        valid = parseCoefficients(tables, ui->numeratorEdit, expressionTable, uncertainTable);
-        valid = parseCoefficients(tables, ui->denominatorEdit, expressionTable, uncertainTable);
-        valid = parseGainRange(tables, ui->gainStart, ui->gainEnd, expressionTable, uncertainTable);
+        valid = parseCoefficients(tables, ui->numeratorEdit, expressionTable, uncertainTable) && valid;
+        valid = parseCoefficients(tables, ui->denominatorEdit, expressionTable, uncertainTable) && valid;
+        valid = parseGainRange(tables, ui->gainStart, ui->gainEnd, expressionTable, uncertainTable) && valid;
     }
 
     if (!valid){
@@ -155,6 +158,24 @@ bool ControllerDialog::parseCoefficients(QVector<QVector <QString> * > * tabla, 
             bool isUncertain = false;
 
             while (!capture.isNull()){
+
+                //A name the parser already owns cannot become a parameter:
+                //the binding fails later and the plant stops evaluating.
+                //Only FUNCTION names were checked here, which let through
+                //the constants (e, pi, i) and the unit operators - "k",
+                //"m", "u" - where "k" is the obvious name for a gain and
+                //would otherwise be read as the multiplier 1e3.
+                if (qftbx::math::isReservedName(capture)){
+                    errorMessage(tr("\"%1\" cannot be used as a parameter name: "
+                                    "the expression parser already defines it.").arg(capture),
+                                 tr("Controller input"));
+                    //The three row vectors are still ours on this path.
+                    delete vec1;
+                    delete vec;
+                    delete vec2;
+
+                    return false;
+                }
 
                 if (!p.IsFunDefined(capture.toStdString())){
                     vec->append(capture);
