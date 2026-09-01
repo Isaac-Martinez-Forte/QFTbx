@@ -52,6 +52,9 @@ public:
     /// The designed controller, handed over to the caller.
     std::unique_ptr<LtiSystem> controllerStructure();
 
+    /// The most boxes the search kept alive at once (see kDefaultMaxLiveNodes).
+    std::size_t peakLiveNodes() const;
+
 private:
 
     //Starting point of the local search. The historical 'random' option

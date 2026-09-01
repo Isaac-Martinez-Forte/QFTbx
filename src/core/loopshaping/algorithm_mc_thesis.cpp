@@ -289,6 +289,12 @@ bool AlgorithmMcThesis::init_algorithm()
 }
 
 
+std::size_t AlgorithmMcThesis::peakLiveNodes() const
+{
+    return lista != nullptr ? lista->peakSize() : 0;
+}
+
+
 std::unique_ptr<LtiSystem> AlgorithmMcThesis::controllerStructure()
 {
     return std::move(controlador_retorno);

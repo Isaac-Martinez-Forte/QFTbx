@@ -13,6 +13,7 @@
 #include <memory>
 #include <string>
 
+#include "src/core/exception.h"
 #include "src/core/loopshaping/ordered_list.h"
 #include "src/core/loopshaping/expression_tree.h"
 
@@ -127,6 +128,48 @@ TEST(OrderedList, TheListFreesWhatIsStillQueued)
     }
 
     EXPECT_EQ(CountingNode::alive, 0);
+}
+
+TEST(OrderedList, TheLiveNodeCeilingIsReportedNotCrashed)
+{
+    //A branch and bound that cannot resolve its problem grows the live list
+    //without limit. With the default heuristic overcommit of Linux that ends
+    //in the OOM killer rather than in a std::bad_alloc anyone can report, so
+    //the ceiling is the only mechanism that turns it into a diagnosis.
+    OrderedList lista(false, 3);
+
+    lista.insert(node(1));
+    lista.insert(node(2));
+    lista.insert(node(3));
+
+    EXPECT_EQ(lista.size(), 3u);
+    EXPECT_THROW(lista.insert(node(4)), qftbx::ComputationError);
+
+    //The refusal leaves the list usable: what was queued is still there, in
+    //order, and taking one out makes room again.
+    EXPECT_EQ(lista.size(), 3u);
+    EXPECT_EQ(lista.first()->getIndex(), 1);
+
+    lista.takeFirst();
+    EXPECT_NO_THROW(lista.insert(node(4)));
+}
+
+TEST(OrderedList, ThePeakIsTheHighWaterMarkNotTheCurrentSize)
+{
+    //The peak is what a run cost in memory, so it must not fall back when
+    //the search drains the list.
+    OrderedList lista;
+
+    lista.insert(node(1));
+    lista.insert(node(2));
+    lista.insert(node(3));
+    EXPECT_EQ(lista.peakSize(), 3u);
+
+    lista.takeFirst();
+    lista.takeFirst();
+
+    EXPECT_EQ(lista.size(), 1u);
+    EXPECT_EQ(lista.peakSize(), 3u);
 }
 
 TEST(OrderedList, TakeFirstHandsTheNodeOver)

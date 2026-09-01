@@ -10,6 +10,28 @@
 #include "src/core/loopshaping/search_node.h"
 
 /**
+ * @brief Ceiling on the number of nodes the branch and bound may keep alive
+ * at once.
+ *
+ * A branch and bound on a problem it cannot resolve at the requested
+ * accuracy grows its live list without limit. There was no ceiling, and on
+ * Linux with the default heuristic overcommit (vm.overcommit_memory = 0)
+ * that does NOT end in a std::bad_alloc anyone could report: malloc keeps
+ * succeeding and the OOM killer takes the process down when it touches the
+ * pages, so the user loses the project with no message at all. A ceiling is
+ * the only mechanism that turns that into a diagnosis.
+ *
+ * A live node measures 528 bytes for a two-parameter controller and 1056
+ * for an eight-parameter one (measured: the tree node of the list, the
+ * SearchNode, the box and its parameter vector), so this ceiling is about
+ * 17 to 34 GB. It is deliberately far above the millions of nodes a normal
+ * hard run reaches: it is there to catch a runaway search, not to cap a
+ * legitimate one. LoopShaping reports the peak of every run, which is the
+ * number to tune this against.
+ */
+inline constexpr std::size_t kDefaultMaxLiveNodes = 32000000;
+
+/**
  * @brief Priority list of live branch & bound nodes, ordered by the node
  * index (ascending by default, descending with mayor = true).
  *
@@ -26,8 +48,14 @@
 class OrderedList
 {
 public:
-    OrderedList(bool mayor = false);
+    OrderedList(bool mayor = false, std::size_t maxNodes = kDefaultMaxLiveNodes);
 
+    /**
+     * @brief Queues one node, taking its ownership.
+     *
+     * Throws qftbx::ComputationError when the list already holds maxNodes:
+     * see kDefaultMaxLiveNodes for why the ceiling exists.
+     */
     void insert (std::unique_ptr<ListNode> elemento);
 
     /// Observer on the queued node; the list keeps ownership.
@@ -60,10 +88,20 @@ public:
 
     bool isEmpty ();
 
+    /// Nodes currently queued.
+    std::size_t size () const;
+
+    /// The most nodes ever queued at once, which is what the run cost in
+    /// memory and what the ceiling has to be tuned against.
+    std::size_t peakSize () const;
+
 private:
 
     //Ascending or descending by node index; ties keep insertion order.
     std::multimap <qreal, std::unique_ptr<ListNode>, bool(*)(qreal, qreal)> lista;
+
+    std::size_t m_maxNodes = kDefaultMaxLiveNodes;
+    std::size_t m_peakSize = 0;
 
 };
 

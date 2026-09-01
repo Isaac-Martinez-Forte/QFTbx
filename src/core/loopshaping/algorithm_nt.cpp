@@ -130,6 +130,12 @@ bool AlgorithmNt::init_algorithm() {
 }
 
 
+std::size_t AlgorithmNt::peakLiveNodes() const
+{
+    return lista != nullptr ? lista->peakSize() : 0;
+}
+
+
 std::unique_ptr<LtiSystem> AlgorithmNt::controllerStructure() {
     return std::move(controlador_retorno);
 }

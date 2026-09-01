@@ -60,9 +60,13 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, QVector<qreal> 
     QElapsedTimer timer;
     bool re = false;
 
-    const auto report = [&](std::unique_ptr<LtiSystem> resultado) {
+    //The peak live-node count is what a run costs in memory, and what the
+    //ceiling of kDefaultMaxLiveNodes has to be tuned against: it is reported
+    //rather than left to be guessed.
+    const auto report = [&](std::unique_ptr<LtiSystem> resultado, std::size_t peakLiveNodes) {
         std::cout << "LoopShaping: " << timer.elapsed() << " milliseconds" << std::endl;
         std::cout << "k: " << resultado->gain().range().min << std::endl;
+        std::cout << "peak live nodes: " << peakLiveNodes << std::endl;
         this->controller = std::move(resultado);
     };
 
@@ -72,7 +76,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, QVector<qreal> 
         timer.start();
         re = nt->init_algorithm();
         if (re) {
-            report(nt->controllerStructure());
+            report(nt->controllerStructure(), nt->peakLiveNodes());
         }
     } else if (algorithm == tools::nk) {
         auto nk = std::make_unique<AlgorithmNk>();
@@ -80,7 +84,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, QVector<qreal> 
         timer.start();
         re = nk->init_algorithm();
         if (re) {
-            report(nk->controllerStructure());
+            report(nk->controllerStructure(), nk->peakLiveNodes());
         }
     } else if (algorithm == tools::mr) {
         auto mr = std::make_unique<AlgorithmMr>();
@@ -88,7 +92,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, QVector<qreal> 
         timer.start();
         re = mr->init_algorithm();
         if (re) {
-            report(mr->controllerStructure());
+            report(mr->controllerStructure(), mr->peakLiveNodes());
         }
     } else if (algorithm == tools::mc1) {
         auto mc1 = std::make_unique<AlgorithmMc1>();
@@ -96,7 +100,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, QVector<qreal> 
         timer.start();
         re = mc1->init_algorithm();
         if (re) {
-            report(mc1->controllerStructure());
+            report(mc1->controllerStructure(), mc1->peakLiveNodes());
         }
     } else if (algorithm == tools::mc_thesis) {
         auto mc_thesis = std::make_unique<AlgorithmMcThesis>();
@@ -104,7 +108,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, QVector<qreal> 
         timer.start();
         re = mc_thesis->init_algorithm();
         if (re) {
-            report(mc_thesis->controllerStructure());
+            report(mc_thesis->controllerStructure(), mc_thesis->peakLiveNodes());
         }
     }
 

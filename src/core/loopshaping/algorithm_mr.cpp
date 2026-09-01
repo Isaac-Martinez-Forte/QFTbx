@@ -287,6 +287,12 @@ bool AlgorithmMr::init_algorithm(){
 }
 
 
+std::size_t AlgorithmMr::peakLiveNodes() const
+{
+    return lista != nullptr ? lista->peakSize() : 0;
+}
+
+
 std::unique_ptr<LtiSystem> AlgorithmMr::controllerStructure(){
     return std::move(controlador_retorno);
 }
