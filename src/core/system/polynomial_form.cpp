@@ -16,10 +16,10 @@ PolynomialForm::PolynomialForm(QString name, std::vector <Parameter> numerator, 
 PolynomialForm::~PolynomialForm(){
 }
 
-LtiSystem * PolynomialForm::create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
+std::unique_ptr<LtiSystem> PolynomialForm::create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
                                Parameter k, Parameter delay, QString numeratorExpr __attribute__((unused)), QString denominatorExpr __attribute__((unused))){
-    return new PolynomialForm(name, std::move(numerator), std::move(denominator),
-                                std::move(k), std::move(delay));
+    return std::make_unique<PolynomialForm>(name, std::move(numerator), std::move(denominator),
+                                            std::move(k), std::move(delay));
 }
 
 LtiSystem::SystemType PolynomialForm::type(){

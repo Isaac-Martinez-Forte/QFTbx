@@ -255,7 +255,7 @@ bool AlgorithmMr::init_algorithm(){
         constraints.clear();
     };
 
-    classifyAndInsert(controlador);
+    classifyAndInsert(std::move(controlador));
 
     while (true) {
 
@@ -274,8 +274,8 @@ bool AlgorithmMr::init_algorithm(){
                                                      node->flag() != ambiguous);
 
             //Every returned point must be nominally stabilising.
-            if (!stability->isNominallyStable(controlador_retorno)) {
-                delete controlador_retorno;
+            if (!stability->isNominallyStable(controlador_retorno.get())) {
+                controlador_retorno.reset();
                 continue;
             }
 
@@ -285,14 +285,14 @@ bool AlgorithmMr::init_algorithm(){
 
         struct BisectionResult retur = bisectWidestParameter(node->system());
 
-        classifyAndInsert(retur.v1);
-        classifyAndInsert(retur.v2);
+        classifyAndInsert(std::move(retur.v1));
+        classifyAndInsert(std::move(retur.v2));
     }
 }
 
 
-LtiSystem * AlgorithmMr::controllerStructure(){
-    return controlador_retorno;
+std::unique_ptr<LtiSystem> AlgorithmMr::controllerStructure(){
+    return std::move(controlador_retorno);
 }
 
 
@@ -300,23 +300,24 @@ LtiSystem * AlgorithmMr::controllerStructure(){
 //HC4 filter over the whole constraint set; an emptied domain proves the
 //box infeasible, and non-negative interval evaluations of every
 //constraint prove it feasible.
-inline void AlgorithmMr::classifyAndInsert(LtiSystem * box){
+inline void AlgorithmMr::classifyAndInsert(std::unique_ptr<LtiSystem> box){
 
     std::map<std::string, cxsc::interval> domains;
-    loadDomains(box, domains);
+    loadDomains(box.get(), domains);
 
     if (!narrowToFixpoint(domains)) {
-        delete box;
         return;
     }
 
-    LtiSystem * narrowed = boxFromDomains(box, domains);
-    delete box;
+    std::unique_ptr<LtiSystem> narrowed = boxFromDomains(box.get(), domains);
 
     const BoxFlag flag = certainlyFeasible(domains) ? feasible : ambiguous;
 
-    lista->insert(std::make_unique<SearchNode>(narrowed->gain().range().min,
-            std::unique_ptr<LtiSystem>(narrowed), flag));
+    //The index is read BEFORE the box is handed over: as arguments of one
+    //call their evaluation order is unspecified.
+    const qreal gainInf = narrowed->gain().range().min;
+
+    lista->insert(std::make_unique<SearchNode>(gainInf, std::move(narrowed), flag));
 }
 
 
@@ -384,7 +385,7 @@ inline void AlgorithmMr::loadDomains(LtiSystem * box,
 }
 
 
-inline LtiSystem * AlgorithmMr::boxFromDomains(LtiSystem * box,
+inline std::unique_ptr<LtiSystem> AlgorithmMr::boxFromDomains(LtiSystem * box,
                                                      const std::map<std::string, cxsc::interval> & domains){
 
     const auto rebuilt = [&](Parameter & var) -> Parameter {

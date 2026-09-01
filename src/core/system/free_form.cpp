@@ -111,11 +111,12 @@ LtiSystem::SystemType FreeForm::type(){
     return SystemType::FreeForm;
 }
 
-LtiSystem * FreeForm::create(QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
+std::unique_ptr<LtiSystem> FreeForm::create(QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
                                Parameter k, Parameter delay, QString numeratorExpr, QString denominatorExpr){
 
-    return new FreeForm (name, std::move(numerator), std::move(denominator), std::move(k),
-                         std::move(delay), numeratorExpr, denominatorExpr);
+    return std::make_unique<FreeForm>(name, std::move(numerator), std::move(denominator),
+                                     std::move(k), std::move(delay), numeratorExpr,
+                                     denominatorExpr);
 }
 
 
@@ -127,7 +128,7 @@ QString FreeForm::denominatorString(){
     return m_denominatorExpr;
 }
 
-LtiSystem * FreeForm::clone(){
+std::unique_ptr<LtiSystem> FreeForm::clone(){
 
     return this->create(this->name(), m_numerator, m_denominator, m_gain, m_delay,
                         m_numeratorExpr, m_denominatorExpr);

@@ -15,10 +15,10 @@ TimeConstantGain::TimeConstantGain(QString name, std::vector <Parameter> numerat
 TimeConstantGain::~TimeConstantGain(){
 }
 
-LtiSystem * TimeConstantGain::create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
+std::unique_ptr<LtiSystem> TimeConstantGain::create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
                               Parameter k, Parameter delay, QString numeratorExpr __attribute__((unused)), QString denominatorExpr __attribute__((unused))){
-    return new TimeConstantGain(name, std::move(numerator), std::move(denominator),
-                                std::move(k), std::move(delay));
+    return std::make_unique<TimeConstantGain>(name, std::move(numerator), std::move(denominator),
+                                              std::move(k), std::move(delay));
 }
 
 QString TimeConstantGain::expression (QVector <qreal> * numerator, QVector <qreal> * denominator,

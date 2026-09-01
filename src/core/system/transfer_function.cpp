@@ -84,7 +84,7 @@ QString TransferFunction::denominatorString() {
     return QString();
 }
 
-LtiSystem * TransferFunction::clone() {
+std::unique_ptr<LtiSystem> TransferFunction::clone() {
 
     //Values copy themselves: no per-parameter cloning any more. FreeForm
     //overrides this to carry its expression strings too.

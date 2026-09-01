@@ -60,10 +60,10 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, QVector<qreal> 
     QElapsedTimer timer;
     bool re = false;
 
-    const auto report = [&](LtiSystem * resultado) {
-        this->controller = resultado;
+    const auto report = [&](std::unique_ptr<LtiSystem> resultado) {
         std::cout << "LoopShaping: " << timer.elapsed() << " milliseconds" << std::endl;
         std::cout << "k: " << resultado->gain().range().min << std::endl;
+        this->controller = std::move(resultado);
     };
 
     if (algorithm == tools::nt) {
@@ -111,7 +111,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, QVector<qreal> 
     return re;
 }
 
-LtiSystem * LoopShaping::controllerStructure()
+std::unique_ptr<LtiSystem> LoopShaping::controllerStructure()
 {
-    return controller;
+    return std::move(controller);
 }

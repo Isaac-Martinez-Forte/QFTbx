@@ -60,19 +60,20 @@ public:
 
     bool init_algorithm();
 
-    LtiSystem * controllerStructure();
+    /// The designed controller, handed over to the caller.
+    std::unique_ptr<LtiSystem> controllerStructure();
 
 private:
 
-    inline void check_box_feasibility(LtiSystem * controlador);
-    inline LtiSystem * quickSolution2(LtiSystem * v, BoxClassification * datos,
+    inline void check_box_feasibility(std::unique_ptr<LtiSystem> box);
+    inline std::unique_ptr<LtiSystem> quickSolution2(std::unique_ptr<LtiSystem> v, BoxClassification * datos,
                                       const cxsc::cinterval & caja, qreal w,
                                       std::complex<qreal> p0);
     inline void certifiedGainSearch(LtiSystem * box);
     inline bool gainRangeIsFeasible(LtiSystem * box, qreal gainInf, qreal gainSup);
 
     LtiSystem * planta = nullptr;
-    LtiSystem * controlador = nullptr;
+    std::unique_ptr<LtiSystem> controlador;
     QVector<qreal> * omega = nullptr;
     const BoundaryData * boundaries = nullptr;
     qreal epsilon = 0;
@@ -87,9 +88,9 @@ private:
     //Prune variable C of the paper's step 3bis: gain and controller of
     //the best certified feasible solution found by QS2 stage 3.
     qreal bestCertifiedGain = 0;
-    LtiSystem * bestCertifiedController = nullptr;
+    std::unique_ptr<LtiSystem> bestCertifiedController;
 
-    LtiSystem * controlador_retorno = nullptr;
+    std::unique_ptr<LtiSystem> controlador_retorno;
 
     bool hasUncertainZeros = false;
     bool hasUncertainPoles = false;

@@ -32,7 +32,9 @@ struct SpecificationRecord {
     SpecificationRecord * clone() const {
         SpecificationRecord * copy = new SpecificationRecord(*this);
         if (system != nullptr){
-            copy->system = system->clone();
+            //The record keeps its plant as a raw pointer its owners delete:
+            //release() marks the one place where that contract is entered.
+            copy->system = system->clone().release();
         }
         return copy;
     }
@@ -59,7 +61,9 @@ inline Specification toSpecification(const SpecificationRecord & d, Specificatio
     if (d.system == nullptr){
         throw InvalidInput("A used specification needs a plant or a constant height.");
     }
-    return Specification::fromSystem(type, d.system->clone(), d.omegaStart, d.omegaEnd);
+    //fromSystem takes the plant over (Specification deletes it).
+    return Specification::fromSystem(type, d.system->clone().release(),
+                                     d.omegaStart, d.omegaEnd);
 }
 
 inline SpecificationSet toSpecificationSet(const QVector<SpecificationRecord *> & specs){

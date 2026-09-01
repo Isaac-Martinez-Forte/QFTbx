@@ -2,6 +2,7 @@
 #define QFTBX_LTI_SYSTEM_H
 
 #include <complex>
+#include <memory>
 #include <vector>
 
 #include <QString>
@@ -36,8 +37,12 @@ public:
      * @brief Virtual constructor: builds a new instance of the same dynamic
      * type from parameter VALUES (copied or moved in, no ownership to hand
      * over). The expression strings are only used by FreeForm.
+     *
+     * The new system belongs to the caller, and the type says so: the
+     * historical factory returned a raw pointer, and every one of its
+     * callers had to remember a delete on every path out.
      */
-    virtual LtiSystem * create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
+    virtual std::unique_ptr<LtiSystem> create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
                               Parameter k, Parameter delay = Parameter(qreal(0)),
                               QString numeratorExpr = QString(), QString denominatorExpr = QString()) = 0;
 
@@ -107,8 +112,8 @@ public:
 
     virtual SystemType type () = 0;
 
-    /// Copy of the whole system, of the same dynamic type.
-    virtual LtiSystem * clone () = 0;
+    /// Copy of the whole system, of the same dynamic type, for the caller.
+    virtual std::unique_ptr<LtiSystem> clone () = 0;
 
 private:
     QString m_name;

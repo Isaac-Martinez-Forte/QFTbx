@@ -131,7 +131,7 @@ inline Range AlgorithmMcThesis::parameterRange(LtiSystem * box, qint32 parameter
 
 //New box with one parameter's range replaced (deep copy, the original is
 //left untouched).
-inline LtiSystem * AlgorithmMcThesis::replaceParameter(LtiSystem * box, qint32 parameter,
+inline std::unique_ptr<LtiSystem> AlgorithmMcThesis::replaceParameter(LtiSystem * box, qint32 parameter,
                                                        Range range) const
 {
     std::vector<Parameter> numerador;
@@ -173,7 +173,7 @@ bool AlgorithmMcThesis::init_algorithm()
     stability = new NominalStabilityChecker(planta, omega);
 
     bestCertifiedGain = std::numeric_limits<qreal>::infinity();
-    bestCertifiedController = nullptr;
+    bestCertifiedController.reset();
 
     plantas_nominales = new QVector<cxsc::complex>();
     plantas_nominales_std = new QVector<std::complex<qreal>>();
@@ -195,16 +195,19 @@ bool AlgorithmMcThesis::init_algorithm()
 
     //A controller with no uncertain parameter offers nothing to search.
     if (!hasUncertainZeros && !hasUncertainPoles && !controlador->gain().isUncertain()) {
-        controlador_retorno = pointFromBox(controlador, true);
-        delete controlador;
+        controlador_retorno = pointFromBox(controlador.get(), true);
         cleanup();
         return false;
     }
 
     //Step A/B: the initial box enters the list; its feasibility test
     //happens when it is popped (step D).
-    auto inicial = std::make_unique<McSearchNode>(controlador->gain().range().min,
-            std::unique_ptr<LtiSystem>(controlador), ambiguous);
+    //The index is read BEFORE the box is handed over: as arguments of one
+    //call their evaluation order is unspecified.
+    const qreal initialGainInf = controlador->gain().range().min;
+
+    auto inicial = std::make_unique<McSearchNode>(initialGainInf, std::move(controlador),
+                                                 ambiguous);
     inicial->setStage(strategies.stages ? Stage::Initial : Stage::Intermediate);
     inicial->setCutsEnabled(true);
     lista->insert(std::move(inicial));
@@ -218,7 +221,7 @@ bool AlgorithmMcThesis::init_algorithm()
             //solution" here even when C holds one; returning it is the
             //sound completion).
             if (bestCertifiedController != nullptr) {
-                controlador_retorno = bestCertifiedController;
+                controlador_retorno = std::move(bestCertifiedController);
                 cleanup();
                 return true;
             }
@@ -242,7 +245,6 @@ bool AlgorithmMcThesis::init_algorithm()
         //the optimum of the box (stability was certified at insertion).
         if (node->flag() == feasible) {
             controlador_retorno = pointFromBox(node->system(), true);
-            delete bestCertifiedController;
             cleanup();
             return true;
         }
@@ -256,12 +258,11 @@ bool AlgorithmMcThesis::init_algorithm()
         if (analysis.flag == feasible) {
             controlador_retorno = pointFromBox(node->system(), true);
 
-            if (!stability->isNominallyStable(controlador_retorno)) {
-                delete controlador_retorno;
+            if (!stability->isNominallyStable(controlador_retorno.get())) {
+                controlador_retorno.reset();
                 continue;
             }
 
-            delete bestCertifiedController;
             cleanup();
             return true;
         }
@@ -272,12 +273,11 @@ bool AlgorithmMcThesis::init_algorithm()
         if (isEpsilonSmall(node->system(), epsilon, omega, conversion, plantas_nominales)) {
             controlador_retorno = pointFromBox(node->system(), false);
 
-            if (!stability->isNominallyStable(controlador_retorno)) {
-                delete controlador_retorno;
+            if (!stability->isNominallyStable(controlador_retorno.get())) {
+                controlador_retorno.reset();
                 continue;
             }
 
-            delete bestCertifiedController;
             cleanup();
             return true;
         }
@@ -312,9 +312,9 @@ bool AlgorithmMcThesis::init_algorithm()
 }
 
 
-LtiSystem * AlgorithmMcThesis::controllerStructure()
+std::unique_ptr<LtiSystem> AlgorithmMcThesis::controllerStructure()
 {
-    return controlador_retorno;
+    return std::move(controlador_retorno);
 }
 
 
@@ -525,17 +525,15 @@ inline bool AlgorithmMcThesis::bestGainSearch(McSearchNode * node, const NodeAna
         denominador.emplace_back(p);
     }
 
-    LtiSystem * point = box->create(box->name(), std::move(numerador), std::move(denominador),
-                                    Parameter(lowNeeded), Parameter(qreal(0)));
+    std::unique_ptr<LtiSystem> point = box->create(box->name(), std::move(numerador),
+            std::move(denominador), Parameter(lowNeeded), Parameter(qreal(0)));
 
-    if (!boxIsFeasible(point) || !stability->isNominallyStable(point)) {
-        delete point;
+    if (!boxIsFeasible(point.get()) || !stability->isNominallyStable(point.get())) {
         return false;
     }
 
     bestCertifiedGain = lowNeeded;
-    delete bestCertifiedController;
-    bestCertifiedController = point;
+    bestCertifiedController = std::move(point);
 
     return true;
 }
@@ -544,21 +542,18 @@ inline bool AlgorithmMcThesis::bestGainSearch(McSearchNode * node, const NodeAna
 //------------------------------------------------------------------ QSFact
 //Insertion of a certainly feasible box into the live list, guarded by the
 //prune variable and the stability criterion.
-inline void AlgorithmMcThesis::insertFeasibleBox(LtiSystem * box, McSearchNode * parent)
+inline void AlgorithmMcThesis::insertFeasibleBox(std::unique_ptr<LtiSystem> box,
+                                                McSearchNode * parent)
 {
     const qreal gainInf = box->gain().range().min;
 
     if (gainInf > bestCertifiedGain) {
-        delete box;
         return;
     }
 
-    LtiSystem * point = pointFromBox(box, true);
-    const bool stable = stability->isNominallyStable(point);
+    std::unique_ptr<LtiSystem> point = pointFromBox(box.get(), true);
 
-    if (!stable) {
-        delete point;
-        delete box;
+    if (!stability->isNominallyStable(point.get())) {
         return;
     }
 
@@ -567,14 +562,10 @@ inline void AlgorithmMcThesis::insertFeasibleBox(LtiSystem * box, McSearchNode *
     //one prune variable).
     if (gainInf < bestCertifiedGain) {
         bestCertifiedGain = gainInf;
-        delete bestCertifiedController;
-        bestCertifiedController = point;
-    } else {
-        delete point;
+        bestCertifiedController = std::move(point);
     }
 
-    auto t = std::make_unique<McSearchNode>(gainInf, std::unique_ptr<LtiSystem>(box),
-                                           feasible);
+    auto t = std::make_unique<McSearchNode>(gainInf, std::move(box), feasible);
     t->setStage(parent->stage());
     t->setCutsEnabled(false);
     lista->insert(std::move(t));
@@ -770,20 +761,20 @@ inline void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnaly
                         ? Range(range.min, intersection)
                         : Range(intersection, range.max);
 
-                LtiSystem * um = replaceParameter(box, parameter, feasiblePart);
+                std::unique_ptr<LtiSystem> um = replaceParameter(box, parameter, feasiblePart);
 
                 //Defensive verification with the real detection before
                 //trusting the closed-form certificate.
-                if (!boxIsFeasible(um)) {
-                    delete um;
+                if (!boxIsFeasible(um.get())) {
                     continue;
                 }
 
-                insertFeasibleBox(um, node);
+                insertFeasibleBox(std::move(um), node);
 
-                LtiSystem * remainder = replaceParameter(box, parameter, ambiguousPart);
-                node->setSystem(std::unique_ptr<LtiSystem>(remainder));
-                box = remainder;
+                std::unique_ptr<LtiSystem> remainder = replaceParameter(box, parameter,
+                                                                       ambiguousPart);
+                box = remainder.get();
+                node->setSystem(std::move(remainder));
 
                 improved = true;
             }
@@ -968,13 +959,11 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
                 : Parameter(old.nominal()));
     }
 
-    LtiSystem * nuevo = v->create(v->name(), numerador, denominador,
+    node->setSystem(v->create(v->name(), numerador, denominador,
             v->gain().isUncertain()
                 ? Parameter("kv", Range(gainInf, gainSup), gainInf, "kv")
                 : Parameter(v->gain().nominal()),
-            v->delay());
-
-    node->setSystem(std::unique_ptr<LtiSystem>(nuevo));
+            v->delay()));
     improved = true;
 }
 
@@ -988,12 +977,17 @@ inline FC::McBisectionResult AlgorithmMcThesis::bisectAt(McSearchNode * node, qi
     LtiSystem * box = node->system();
     const Range range = parameterRange(box, parameter);
 
-    LtiSystem * lower = replaceParameter(box, parameter, Range(range.min, point));
-    LtiSystem * upper = replaceParameter(box, parameter, Range(point, range.max));
+    std::unique_ptr<LtiSystem> lower = replaceParameter(box, parameter,
+                                                       Range(range.min, point));
+    std::unique_ptr<LtiSystem> upper = replaceParameter(box, parameter,
+                                                       Range(point, range.max));
 
-    const auto makeChild = [&](LtiSystem * system) {
-        auto t = std::make_unique<McSearchNode>(system->gain().range().min,
-                std::unique_ptr<LtiSystem>(system), ambiguous);
+    const auto makeChild = [&](std::unique_ptr<LtiSystem> system) {
+        //The index is read BEFORE the box is handed over: as arguments of
+        //one call their evaluation order is unspecified.
+        const qreal gainInf = system->gain().range().min;
+
+        auto t = std::make_unique<McSearchNode>(gainInf, std::move(system), ambiguous);
         t->setStage(node->stage());
         t->setCutsEnabled(node->cutsEnabled());
         t->setFeasibleFrequencies(node->feasibleFrequencies());
@@ -1001,8 +995,8 @@ inline FC::McBisectionResult AlgorithmMcThesis::bisectAt(McSearchNode * node, qi
     };
 
     FC::McBisectionResult retur;
-    retur.t1 = makeChild(lower);
-    retur.t2 = makeChild(upper);
+    retur.t1 = makeChild(std::move(lower));
+    retur.t2 = makeChild(std::move(upper));
     retur.descartado = false;
 
     //The bisected node is the caller's: it dies with the loop iteration.

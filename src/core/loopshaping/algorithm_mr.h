@@ -61,7 +61,8 @@ public:
 
     bool init_algorithm();
 
-    LtiSystem * controllerStructure();
+    /// The designed controller, handed over to the caller.
+    std::unique_ptr<LtiSystem> controllerStructure();
 
 private:
 
@@ -71,15 +72,15 @@ private:
 
     inline void buildControllerExpressions();
     inline void buildConstraints();
-    inline void classifyAndInsert(LtiSystem * box);
+    inline void classifyAndInsert(std::unique_ptr<LtiSystem> box);
     inline bool narrowToFixpoint(std::map<std::string, cxsc::interval> & domains);
     inline bool certainlyFeasible(std::map<std::string, cxsc::interval> & domains);
     inline void loadDomains(LtiSystem * box, std::map<std::string, cxsc::interval> & domains);
-    inline LtiSystem * boxFromDomains(LtiSystem * box,
+    inline std::unique_ptr<LtiSystem> boxFromDomains(LtiSystem * box,
                                       const std::map<std::string, cxsc::interval> & domains);
 
     LtiSystem * planta = nullptr;
-    LtiSystem * controlador = nullptr;
+    std::unique_ptr<LtiSystem> controlador;
     QVector<qreal> * omega = nullptr;
     const BoundaryData * boundaries = nullptr;
     qreal epsilon = 0;
@@ -100,7 +101,7 @@ private:
     //The source text of each constraint, for diagnostics.
     QVector<QString> constraintTexts;
 
-    LtiSystem * controlador_retorno = nullptr;
+    std::unique_ptr<LtiSystem> controlador_retorno;
 
 };
 

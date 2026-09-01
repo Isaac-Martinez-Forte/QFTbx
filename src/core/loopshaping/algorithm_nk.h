@@ -49,7 +49,8 @@ public:
 
     bool init_algorithm();
 
-    LtiSystem * controllerStructure();
+    /// The designed controller, handed over to the caller.
+    std::unique_ptr<LtiSystem> controllerStructure();
 
 private:
 
@@ -58,8 +59,8 @@ private:
     //the numeric values are the GUI/orchestrator contract.
     enum StartingPoint {Centre = 0, Extremes = 1};
 
-    inline void check_box_feasibility(LtiSystem * controlador);
-    inline LtiSystem * quickSolution(LtiSystem * v, qreal boundMinDb, qreal w,
+    inline void check_box_feasibility(std::unique_ptr<LtiSystem> box);
+    inline std::unique_ptr<LtiSystem> quickSolution(std::unique_ptr<LtiSystem> v, qreal boundMinDb, qreal w,
                                      std::complex<qreal> p0);
 
     inline void localOptimization(LtiSystem * box);
@@ -67,13 +68,13 @@ private:
                                      LtiSystem * box, qint32 & budget);
     inline bool pointIsFeasible(const QVector<qreal> & zeros, const QVector<qreal> & poles,
                                 qreal gain);
-    inline LtiSystem * pointSystem(const QVector<qreal> & zeros, const QVector<qreal> & poles,
+    inline std::unique_ptr<LtiSystem> pointSystem(const QVector<qreal> & zeros, const QVector<qreal> & poles,
                                    qreal gain);
     inline void startingPoint(LtiSystem * box, QVector<qreal> & zeros,
                               QVector<qreal> & poles, qreal & gain);
 
     LtiSystem * planta = nullptr;
-    LtiSystem * controlador = nullptr;
+    std::unique_ptr<LtiSystem> controlador;
     QVector<qreal> * omega = nullptr;
     const BoundaryData * boundaries = nullptr;
     qreal epsilon = 0;
@@ -86,14 +87,14 @@ private:
     QVector<cxsc::complex> * plantas_nominales = nullptr;
     QVector<std::complex<qreal>> * plantas_nominales_std = nullptr;
 
-    LtiSystem * controlador_retorno = nullptr;
-    LtiSystem * prototype = nullptr;
+    std::unique_ptr<LtiSystem> controlador_retorno;
+    std::unique_ptr<LtiSystem> prototype;
 
     //Local optimization state: the best certified feasible gain (prunes
     //the tree), its controller point, and the previous launch points of
     //the 10% decision rule.
     qreal bestLocalGain = 0;
-    LtiSystem * bestLocalController = nullptr;
+    std::unique_ptr<LtiSystem> bestLocalController;
     QVector<qreal> launchGains;
 
     //Local search configuration from the GUI: coordinate step and

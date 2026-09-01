@@ -124,7 +124,7 @@ TEST(KGananciaExpr, NominalEvaluation)
 TEST(KGananciaExpr, CloneIsDeep)
 {
     ZeroPoleGain* planta = makePlanta1();
-    LtiSystem* copy = planta->clone();
+    const std::unique_ptr<LtiSystem> copy = planta->clone();
     ASSERT_NE(copy, nullptr);
 
     EXPECT_EQ(copy->type(), LtiSystem::SystemType::ZeroPoleGain);
@@ -135,7 +135,6 @@ TEST(KGananciaExpr, CloneIsDeep)
     EXPECT_NE(&copy->denominator()[0], &planta->denominator()[0]);
     EXPECT_EQ(copy->denominator()[0].name(), QStringLiteral("a"));
 
-    delete copy;
     delete planta;
 }
 
@@ -424,7 +423,7 @@ TEST(FormatoLibreExpr, CloneKeepsTheDenominator)
     // clone() must produce an independent, complete deep copy (N/D, not
     // N/N); both objects own their data and can be destroyed independently.
     FreeForm* planta = makeCerveraPlant();
-    LtiSystem* copia = planta->clone();
+    const std::unique_ptr<LtiSystem> copia = planta->clone();
     ASSERT_NE(copia, nullptr);
 
     delete planta;
@@ -432,7 +431,6 @@ TEST(FormatoLibreExpr, CloneKeepsTheDenominator)
     EXPECT_EQ(copia->numeratorString(), QStringLiteral("a"));
     EXPECT_EQ(copia->denominatorString(), QStringLiteral("(s^2)*((s^2) + a)"));
     EXPECT_EQ(copia->expression(), QStringLiteral("1*(a)/((s^2)*((s^2) + a))"));
-    delete copia;
 }
 
 TEST(SistemaOwnership, CloneAndDestroyBothOwners)
@@ -441,7 +439,7 @@ TEST(SistemaOwnership, CloneAndDestroyBothOwners)
     // destroying original and clone in any order must be safe (checked for
     // leaks and double frees under ASan builds).
     ZeroPoleGain* planta = makePlanta1();
-    LtiSystem* copia = planta->clone();
+    const std::unique_ptr<LtiSystem> copia = planta->clone();
 
     delete planta;
 
@@ -450,7 +448,6 @@ TEST(SistemaOwnership, CloneAndDestroyBothOwners)
     const Complex value = copia->evaluate(0.1);
     EXPECT_NEAR(value.real(), expected.real(), kTolerance);
     EXPECT_NEAR(value.imag(), expected.imag(), kTolerance);
-    delete copia;
 }
 
 TEST(SistemaInvoke, NullDelayBecomesZeroConstant)
@@ -460,7 +457,7 @@ TEST(SistemaInvoke, NullDelayBecomesZeroConstant)
     // other types had no guard at all: expression dereferenced a null pointer.
     ZeroPoleGain proto(QStringLiteral("p"), {}, {}, Parameter(1.0), Parameter(0.0));
 
-    LtiSystem* built = proto.create(QStringLiteral("built"), vars({}),
+    const std::unique_ptr<LtiSystem> built = proto.create(QStringLiteral("built"), vars({}),
                                   vars({Parameter(5.0)}), Parameter(2.0));
     ASSERT_NE(built, nullptr);
     //An unspecified delay is a zero-delay VALUE now: there is no null to
@@ -473,7 +470,6 @@ TEST(SistemaInvoke, NullDelayBecomesZeroConstant)
     const Complex value = built->evaluate(1.0);
     EXPECT_NEAR(value.real(), expected.real(), kTolerance);
     EXPECT_NEAR(value.imag(), expected.imag(), kTolerance);
-    delete built;
 }
 
 } // namespace

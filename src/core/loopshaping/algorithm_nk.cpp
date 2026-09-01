@@ -52,7 +52,7 @@ bool AlgorithmNk::init_algorithm(){
     stability = new NominalStabilityChecker(planta, omega);
 
     bestLocalGain = std::numeric_limits<qreal>::infinity();
-    bestLocalController = nullptr;
+    bestLocalController.reset();
     launchGains.clear();
 
     //Stable prototype for building point controllers: the working box
@@ -75,13 +75,12 @@ bool AlgorithmNk::init_algorithm(){
         delete stability;
         delete plantas_nominales;
         delete plantas_nominales_std;
-        delete prototype;
     };
 
     //Steps 1-3: Quick Solution and feasibility of the initial box happen
     //inside check_box_feasibility, which inserts it unless certainly
     //infeasible.
-    check_box_feasibility(controlador);
+    check_box_feasibility(std::move(controlador));
 
     while (true) {
 
@@ -90,7 +89,7 @@ bool AlgorithmNk::init_algorithm(){
             //the answer when the interval search exhausts the space (the
             //local point was verified against bounds and stability).
             if (bestLocalController != nullptr) {
-                controlador_retorno = bestLocalController;
+                controlador_retorno = std::move(bestLocalController);
                 cleanup();
                 return true;
             }
@@ -123,15 +122,14 @@ bool AlgorithmNk::init_algorithm(){
             if (node->flag() == ambiguous) {
                 controlador_retorno = pointFromBox(node->system(), false);
 
-                if (!stability->isNominallyStable(controlador_retorno)) {
-                    delete controlador_retorno;
+                if (!stability->isNominallyStable(controlador_retorno.get())) {
+                    controlador_retorno.reset();
                     continue;
                 }
             } else {
                 controlador_retorno = pointFromBox(node->system(), true);
             }
 
-            delete bestLocalController;
             cleanup();
             return true;
         }
@@ -140,14 +138,14 @@ bool AlgorithmNk::init_algorithm(){
         struct BisectionResult retur = bisectWidestParameter(node->system());
 
         //Steps 9-14: Quick Solution + feasibility + insertion.
-        check_box_feasibility(retur.v1);
-        check_box_feasibility(retur.v2);
+        check_box_feasibility(std::move(retur.v1));
+        check_box_feasibility(std::move(retur.v2));
     }
 }
 
 
-LtiSystem * AlgorithmNk::controllerStructure(){
-    return controlador_retorno;
+std::unique_ptr<LtiSystem> AlgorithmNk::controllerStructure(){
+    return std::move(controlador_retorno);
 }
 
 
@@ -155,22 +153,19 @@ LtiSystem * AlgorithmNk::controllerStructure(){
 //cutting applied per frequency with the latest updated box (paper,
 //sec. 3.3: "one always uses the latest updated values"). Certainly
 //infeasible boxes are destroyed; anything else enters the live list.
-inline void AlgorithmNk::check_box_feasibility(LtiSystem * controlador){
+inline void AlgorithmNk::check_box_feasibility(std::unique_ptr<LtiSystem> box){
 
     BoxClassification * datos;
     BoxFlag flag_final = feasible;
 
     //Step 20 of the paper: the certified local solution caps the useful
     //gain range of every new box.
-    if (bestLocalGain < controlador->gain().range().max &&
-            bestLocalGain > controlador->gain().range().min) {
-        LtiSystem * capped = controlador->create(controlador->name(),
-                controlador->numerator(), controlador->denominator(),
-                Parameter("kv", Range(controlador->gain().range().min, bestLocalGain),
-                              controlador->gain().range().min, "kv"),
-                controlador->delay());
-    delete controlador;
-        controlador = capped;
+    if (bestLocalGain < box->gain().range().max &&
+            bestLocalGain > box->gain().range().min) {
+        box = box->create(box->name(), box->numerator(), box->denominator(),
+                Parameter("kv", Range(box->gain().range().min, bestLocalGain),
+                              box->gain().range().min, "kv"),
+                box->delay());
     }
 
     qint32 contador = 0;
@@ -178,12 +173,11 @@ inline void AlgorithmNk::check_box_feasibility(LtiSystem * controlador){
 
     foreach (qreal o, *omega) {
 
-        caja = conversion->nicholsBox(controlador, o, plantas_nominales->at(contador));
+        caja = conversion->nicholsBox(box.get(), o, plantas_nominales->at(contador));
 
         datos = deteccion->classifyBox(caja, boundaries, contador);
 
         if (datos->flag() == infeasible) {
-            delete controlador;
             delete datos;
             return;
         }
@@ -195,9 +189,8 @@ inline void AlgorithmNk::check_box_feasibility(LtiSystem * controlador){
             //under every boundary point is certainly forbidden, certified
             //by the parity classification of the box's lower corner.
             if (datos->isBottomLeftForbidden()) {
-                controlador = quickSolution(controlador,
-                                            datos->extremes()[0],
-                                            o, plantas_nominales_std->at(contador));
+                box = quickSolution(std::move(box), datos->extremes()[0],
+                                    o, plantas_nominales_std->at(contador));
             }
         }
 
@@ -209,18 +202,18 @@ inline void AlgorithmNk::check_box_feasibility(LtiSystem * controlador){
     //demands the zeros of 1 + L0 in the left half-plane; checked on the
     //Nichols chart).
     if (flag_final == feasible) {
-        LtiSystem * point = pointFromBox(controlador, true);
-        const bool stable = stability->isNominallyStable(point);
-        delete point;
+        const std::unique_ptr<LtiSystem> point = pointFromBox(box.get(), true);
 
-        if (!stable) {
-            delete controlador;
+        if (!stability->isNominallyStable(point.get())) {
             return;
         }
     }
 
-    lista->insert(std::make_unique<SearchNode>(controlador->gain().range().min,
-            std::unique_ptr<LtiSystem>(controlador), flag_final));
+    //The index is read BEFORE the box is handed over: as arguments of one
+    //call their evaluation order is unspecified.
+    const qreal gainInf = box->gain().range().min;
+
+    lista->insert(std::make_unique<SearchNode>(gainInf, std::move(box), flag_final));
 }
 
 
@@ -228,7 +221,7 @@ inline void AlgorithmNk::check_box_feasibility(LtiSystem * controlador){
 //infeasible subranges of the gain, every zero and every pole with the
 //closed-form monotonicity equations, sequentially, using the latest
 //updated values. boundMinDb is |B_i|min over the box's phase interval.
-inline LtiSystem * AlgorithmNk::quickSolution(LtiSystem * v, qreal boundMinDb,
+inline std::unique_ptr<LtiSystem> AlgorithmNk::quickSolution(std::unique_ptr<LtiSystem> v, qreal boundMinDb,
                                                        qreal w, std::complex<qreal> p0){
 
     const qreal boundMin = std::pow(10.0, boundMinDb / 20.0);
@@ -314,15 +307,11 @@ inline LtiSystem * AlgorithmNk::quickSolution(LtiSystem * v, qreal boundMinDb,
                 : Parameter(old.nominal()));
     }
 
-    LtiSystem * nuevo = v->create(v->name(), numerador, denominador,
+    return v->create(v->name(), numerador, denominador,
             v->gain().isUncertain()
                 ? Parameter("kv", Range(gainInf, gainSup), gainInf, "kv")
                 : Parameter(v->gain().nominal()),
             v->delay());
-
-    delete v;
-
-    return nuevo;
 }
 
 
@@ -451,20 +440,17 @@ inline void AlgorithmNk::localOptimization(LtiSystem * box){
     }
 
     if (bestGain < bestLocalGain) {
-        LtiSystem * candidate = pointSystem(bestZeros, bestPoles, bestGain);
+        std::unique_ptr<LtiSystem> candidate = pointSystem(bestZeros, bestPoles, bestGain);
 
-        if (stability->isNominallyStable(candidate)) {
+        if (stability->isNominallyStable(candidate.get())) {
             bestLocalGain = bestGain;
-            delete bestLocalController;
-            bestLocalController = candidate;
-        } else {
-            delete candidate;
+            bestLocalController = std::move(candidate);
         }
     }
 }
 
 
-inline LtiSystem * AlgorithmNk::pointSystem(const QVector<qreal> & zeros,
+inline std::unique_ptr<LtiSystem> AlgorithmNk::pointSystem(const QVector<qreal> & zeros,
                                                      const QVector<qreal> & poles, qreal gain){
     std::vector<Parameter> numerador;
     numerador.reserve(zeros.size());
@@ -493,22 +479,20 @@ inline bool AlgorithmNk::pointIsFeasible(const QVector<qreal> & zeros,
         return false;
     }
 
-    LtiSystem * point = pointSystem(zeros, poles, gain);
+    const std::unique_ptr<LtiSystem> point = pointSystem(zeros, poles, gain);
 
     for (qint32 i = 0; i < omega->size(); ++i) {
-        const cinterval caja = conversion->nicholsBox(point, omega->at(i),
+        const cinterval caja = conversion->nicholsBox(point.get(), omega->at(i),
                                                       plantas_nominales->at(i));
         BoxClassification * datos = deteccion->classifyBox(caja, boundaries, i);
         const BoxFlag flag = datos->flag();
         delete datos;
 
         if (flag != feasible) {
-            delete point;
             return false;
         }
     }
 
-    delete point;
     return true;
 }
 

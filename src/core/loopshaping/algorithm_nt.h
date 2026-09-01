@@ -32,25 +32,27 @@ public:
 
     bool init_algorithm();
 
-    LtiSystem * controllerStructure();
+    /// The designed controller, handed over to the caller.
+    std::unique_ptr<LtiSystem> controllerStructure();
 
 
 private:
 
-    inline void check_box_feasibility(LtiSystem *controlador);
-    inline LtiSystem *acelerated(LtiSystem * v, qreal minimo_boundarie, qreal o, qint32 contador, bool arriba);
+    inline void check_box_feasibility(std::unique_ptr<LtiSystem> box);
+    inline std::unique_ptr<LtiSystem> acelerated(std::unique_ptr<LtiSystem> v, qreal minimo_boundarie,
+                                                 qreal o, qint32 contador, bool arriba);
     inline bool feasibleGainFrom(LtiSystem * v, qreal maximo_boundarie, cxsc::cinterval caja,
                                  qreal o, qint32 contador, qreal & from);
 
     LtiSystem * planta;
-    LtiSystem * controlador;
+    std::unique_ptr<LtiSystem> controlador;
     QVector <qreal> * omega;
     const BoundaryData * boundaries = nullptr;
     NaturalIntervalExtension * conversion = nullptr;
     OrderedList * lista = nullptr;
     qreal epsilon;
 
-    LtiSystem * controlador_retorno = nullptr;
+    std::unique_ptr<LtiSystem> controlador_retorno;
     qreal minimo_boundaries;
 
 

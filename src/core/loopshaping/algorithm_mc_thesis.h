@@ -97,7 +97,8 @@ public:
 
     bool init_algorithm();
 
-    LtiSystem * controllerStructure();
+    /// The designed controller, handed over to the caller.
+    std::unique_ptr<LtiSystem> controllerStructure();
 
 private:
 
@@ -140,15 +141,15 @@ private:
 
     inline bool boxIsFeasibleAt(LtiSystem * box, qint32 freqIndex);
     inline bool boxIsFeasible(LtiSystem * box);
-    inline void insertFeasibleBox(LtiSystem * box, McSearchNode * parent);
+    inline void insertFeasibleBox(std::unique_ptr<LtiSystem> box, McSearchNode * parent);
 
     inline qint32 parameterCount(LtiSystem * box) const;
     inline Range parameterRange(LtiSystem * box, qint32 parameter) const;
-    inline LtiSystem * replaceParameter(LtiSystem * box, qint32 parameter,
-                                        Range range) const;
+    inline std::unique_ptr<LtiSystem> replaceParameter(LtiSystem * box, qint32 parameter,
+                                                       Range range) const;
 
     LtiSystem * planta = nullptr;
-    LtiSystem * controlador = nullptr;
+    std::unique_ptr<LtiSystem> controlador;
     QVector<qreal> * omega = nullptr;
     const BoundaryData * boundaries = nullptr;
     qreal epsilon = 0;
@@ -163,9 +164,9 @@ private:
     //Prune variable C (thesis 5.4.3): gain and controller of the best
     //certified solution found by MG.
     qreal bestCertifiedGain = 0;
-    LtiSystem * bestCertifiedController = nullptr;
+    std::unique_ptr<LtiSystem> bestCertifiedController;
 
-    LtiSystem * controlador_retorno = nullptr;
+    std::unique_ptr<LtiSystem> controlador_retorno;
 
     Strategies strategies;
 

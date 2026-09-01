@@ -23,7 +23,7 @@ class PolynomialForm : public TransferFunction
 public:
     PolynomialForm(QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator, Parameter k, Parameter delay);
 
-    LtiSystem * create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
+    std::unique_ptr<LtiSystem> create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
                               Parameter k, Parameter delay = Parameter(qreal(0)), QString numeratorExpr = QString(), QString denominatorExpr = QString());
 
     ~PolynomialForm();

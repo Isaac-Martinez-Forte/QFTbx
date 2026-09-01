@@ -23,9 +23,11 @@ using namespace cxsc;
 
 namespace FC {
 
+//The halves of a bisection belong to whoever receives them: each one is
+//either classified into the live list or dropped.
 struct BisectionResult {
-    LtiSystem * v1;
-    LtiSystem * v2;
+    std::unique_ptr<LtiSystem> v1;
+    std::unique_ptr<LtiSystem> v2;
     bool descartado;
 };
 
@@ -47,7 +49,7 @@ enum diagrama {Nichol = false, Nyquist = true};
 //thesis sec. 3.1): maximum gain and zeros push the box up, but poles push
 //it DOWN, so poles take their minimum (the historical code took every
 //maximum, stepping AWAY from the allowed side in the pole directions).
-inline LtiSystem * pointFromBox(LtiSystem * controlador, bool x) {
+inline std::unique_ptr<LtiSystem> pointFromBox(LtiSystem * controlador, bool x) {
 
     std::vector <Parameter> numerador;
     numerador.reserve(controlador->numerator().size());
@@ -133,7 +135,7 @@ inline BisectionResult bisectWidestParameter(LtiSystem * box) {
     //parent's vectors to the second child, forcing every caller to leak
     //the parent shell to stay safe). The halves keep the parameter's
     //NAME: the ICSP constraint trees address the variables by name.
-    const auto half = [&](bool lower) -> LtiSystem * {
+    const auto half = [&](bool lower) -> std::unique_ptr<LtiSystem> {
         const Range halfRange = lower ? Range(range.min, middle)
                                       : Range(middle, range.max);
 

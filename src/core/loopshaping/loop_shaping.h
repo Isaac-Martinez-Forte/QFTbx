@@ -1,6 +1,8 @@
 #ifndef QFTBX_LOOPSHAPING_LOOP_SHAPING_H
 #define QFTBX_LOOPSHAPING_LOOP_SHAPING_H
 
+#include <memory>
+
 #include "src/core/templates/cloud_set.h"
 #include "src/core/loopshaping/algorithm_nt.h"
 #include "src/core/loopshaping/algorithm_nk.h"
@@ -22,11 +24,17 @@ public:
                  const qftbx::CloudSet & contour, QVector<qftbx::SpecificationRecord *> * specifications,
                  qint32 initialisation);
 
-    LtiSystem * controllerStructure();
+    /**
+     * @brief The designed controller, handed over to the caller.
+     *
+     * This is the single point where the ownership of a system leaves the
+     * loop shaping: the facade beyond still holds it as a raw pointer.
+     */
+    std::unique_ptr<LtiSystem> controllerStructure();
 
 private:
 
-    LtiSystem * controller;
+    std::unique_ptr<LtiSystem> controller;
 };
 
 #endif // QFTBX_LOOPSHAPING_LOOP_SHAPING_H

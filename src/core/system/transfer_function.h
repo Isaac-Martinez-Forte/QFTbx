@@ -23,7 +23,7 @@ public:
     TransferFunction(QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
                      Parameter k, Parameter delay);
 
-    virtual LtiSystem * create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
+    virtual std::unique_ptr<LtiSystem> create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
                               Parameter k, Parameter delay = Parameter(qreal(0)),
                               QString numeratorExpr = QString(), QString denominatorExpr = QString()) = 0;
 
@@ -59,7 +59,7 @@ public:
 
     virtual SystemType type() = 0;
 
-    LtiSystem * clone ();
+    std::unique_ptr<LtiSystem> clone ();
 
 protected:
     Parameter m_gain;

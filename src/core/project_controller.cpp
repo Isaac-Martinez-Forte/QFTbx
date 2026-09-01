@@ -270,7 +270,9 @@ bool ProjectController::computeLoopShaping(qreal epsilon, tools::LoopShapingAlgo
                                          initialisation);
 
     if (succeeded){
-        data.setLoopShapingResult(new LoopShapingResult(m_loopShapingEngine->controllerStructure(), plotRange, pointCount));
+        //LoopShapingResult takes the designed controller over.
+        data.setLoopShapingResult(new LoopShapingResult(
+                m_loopShapingEngine->controllerStructure().release(), plotRange, pointCount));
         return true;
     }
 

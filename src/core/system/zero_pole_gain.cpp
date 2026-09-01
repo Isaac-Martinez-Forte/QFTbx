@@ -16,10 +16,10 @@ ZeroPoleGain::ZeroPoleGain(QString name, std::vector <Parameter> numerator, std:
 ZeroPoleGain::~ZeroPoleGain(){
 }
 
-LtiSystem * ZeroPoleGain::create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
+std::unique_ptr<LtiSystem> ZeroPoleGain::create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
                              Parameter k, Parameter delay, QString numeratorExpr __attribute__((unused)), QString denominatorExpr __attribute__((unused))){
-    return new ZeroPoleGain(name, std::move(numerator), std::move(denominator),
-                            std::move(k), std::move(delay));
+    return std::make_unique<ZeroPoleGain>(name, std::move(numerator), std::move(denominator),
+                                          std::move(k), std::move(delay));
 }
 
 
