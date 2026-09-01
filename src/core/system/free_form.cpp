@@ -19,6 +19,25 @@ FreeForm::FreeForm(QString name, std::vector <Parameter> numerator, std::vector 
 {
     m_numeratorExpr = numeratorExpr;
     m_denominatorExpr = denominatorExpr;
+
+    //Built HERE and never again. It was a lazily filled mutable member, and
+    //valueAt() runs on one plant from several OpenMP threads: two of them saw
+    //it empty, both built it and both assigned a QString - a refcounted
+    //pointer swap - which ThreadSanitizer caught as a data race. Doing it
+    //once in the constructor costs two regular expressions per plant and
+    //leaves nothing shared to race on.
+    //
+    //Only the standalone Laplace variable is replaced: a plain substring
+    //replace mutilated "sin", "sqrt", "abs" and any parameter whose name
+    //contains an 's'.
+    static const QRegularExpression laplaceVariable(QStringLiteral("\\bs\\b"));
+
+    QString numeratorText = m_numeratorExpr;
+    QString denominatorText = m_denominatorExpr;
+    numeratorText.replace(laplaceVariable, laplaceName());
+    denominatorText.replace(laplaceVariable, laplaceName());
+
+    m_boundExpression = "(" + numeratorText + ")/(" + denominatorText + ")";
 }
 
 //Evaluation with explicit parameter values needs the free-form expression
@@ -166,7 +185,7 @@ std::complex <qreal> FreeForm::valueAt(qreal w, const std::vector<qreal> & numer
     //longer carries the frequency, so it is the same expression on every
     //call and the cache actually hits.
     const std::complex<qreal> ratio =
-            qftbx::math::evaluateCached(boundExpression(), names, bound);
+            qftbx::math::evaluateCached(m_boundExpression, names, bound);
 
     const std::complex<qreal> s(0.0, w);
 
@@ -179,27 +198,6 @@ const QString & FreeForm::laplaceName()
 {
     static const QString name = QStringLiteral("__jw");
     return name;
-}
-
-//The user's numerator and denominator with the standalone Laplace variable
-//replaced by the bound one, built ONCE. A plain substring replace mutilated
-//"sin", "sqrt", "abs" and any parameter whose name contains an 's', hence the
-//word boundaries; and doing it per evaluation ran two regular expressions
-//over the text every time.
-const QString & FreeForm::boundExpression() const
-{
-    if (m_boundExpression.isEmpty()) {
-        static const QRegularExpression laplaceVariable(QStringLiteral("\\bs\\b"));
-
-        QString numeratorText = m_numeratorExpr;
-        QString denominatorText = m_denominatorExpr;
-        numeratorText.replace(laplaceVariable, laplaceName());
-        denominatorText.replace(laplaceVariable, laplaceName());
-
-        m_boundExpression = "(" + numeratorText + ")/(" + denominatorText + ")";
-    }
-
-    return m_boundExpression;
 }
 
 } // namespace qftbx

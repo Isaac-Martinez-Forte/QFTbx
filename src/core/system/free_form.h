@@ -63,11 +63,12 @@ private:
     QString m_numeratorExpr;
     QString m_denominatorExpr;
 
-    /// The two above with the Laplace variable bound, built on first use.
-    mutable QString m_boundExpression;
+    /// The two above with the Laplace variable bound. Built in the
+    /// constructor and const thereafter: valueAt() runs on one plant from
+    /// several threads, so anything it fills in lazily is a data race.
+    QString m_boundExpression;
 
     static const QString & laplaceName();
-    const QString & boundExpression() const;
 };
 
 } // namespace qftbx
