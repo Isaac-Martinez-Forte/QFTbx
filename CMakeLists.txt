@@ -130,21 +130,19 @@ FetchContent_MakeAvailable(pugixml)
 # ------------------------------------------------------------------------------
 # Backend (Modelo, DAO, XmlParser, Consola): compilado como libreria estatica
 # para poder enlazarlo tanto desde el ejecutable como desde los tests.
-set(QFTbx_BACKEND_SRC
+# Nucleo computacional: sin persistencia, sin GUI.
+set(QFTbx_CORE_SRC
     src/core/loopshaping/natural_interval_extension.cpp
     src/core/system/transfer_function.cpp
     src/core/system/lti_system.cpp
     src/core/system/polynomial_form.cpp
     src/core/system/zero_pole_gain.cpp
     src/core/system/time_constant_gain.cpp
-    Modelo/controlador.cpp
     src/core/templates/template_engine.cpp
     src/core/math/sequence_vectors.cpp
     src/core/frequencies/omega.cpp
     src/core/project_data.cpp
     src/core/text_tokens.cpp
-    src/persistence/project_reader.cpp
-    src/persistence/project_writer.cpp
     src/core/boundaries/boundary_data.cpp
     src/core/loopshaping/algorithm_nt.cpp
     src/core/loopshaping/nominal_stability_checker.cpp
@@ -168,35 +166,13 @@ set(QFTbx_BACKEND_SRC
     src/core/loopshaping/box_classification.cpp
 )
 
-# GUI (HMI Qt) y punto de entrada.
-set(QFTbx_GUI_SRC main.cpp
-    GUI/parlineedit.cpp
-    GUI/parlineedit.h
-    GUI/bode_viewer.cpp
-    GUI/main_window.cpp
-    GUI/plant_dialog.cpp
-    GUI/frequencies_dialog.cpp
-    GUI/uncertainty_dialog.cpp
-    GUI/boundary_viewer.cpp
-    GUI/boundary_grid_dialog.cpp
-    GUI/specifications_dialog.cpp
-    GUI/controller_dialog.cpp
-    GUI/boundary_union_viewer.cpp
-    GUI/loop_shaping_dialog.cpp
-    GUI/loop_shaping_viewer.cpp
-    GUI/templates_dialog.cpp
-    GUI/template_viewer.cpp
-    GUI/loop_boundaries_viewer.cpp
-)
-
-set(QFTbx_BACKEND_HED
+set(QFTbx_CORE_HED
     src/core/system/transfer_function.h
     src/core/loopshaping/natural_interval_extension.h
     src/core/system/lti_system.h
     src/core/system/polynomial_form.h
     src/core/system/zero_pole_gain.h
     src/core/system/time_constant_gain.h
-    Modelo/controlador.h
     src/core/templates/template_engine.h
     src/core/math/sequence_vectors.h
     src/core/specifications/specification_record.h
@@ -209,9 +185,6 @@ set(QFTbx_BACKEND_HED
     src/core/exception.h
     src/core/frequencies/omega.h
     src/core/boundaries/boundary_data.h
-    src/persistence/project_reader.h
-    src/persistence/project_writer.h
-    src/persistence/qft_dialect.h
     src/core/loopshaping/algorithm_nt.h
     src/core/loopshaping/nominal_stability_checker.h
     src/core/loopshaping/quick_solution.h
@@ -237,6 +210,49 @@ set(QFTbx_BACKEND_HED
     src/core/loopshaping/common_functions.h
     src/core/loopshaping/box_classification.h
 )
+
+# Persistencia de proyectos (.qft): depende del nucleo.
+set(QFTbx_PERSISTENCE_SRC
+    src/persistence/project_reader.cpp
+    src/persistence/project_writer.cpp
+)
+
+set(QFTbx_PERSISTENCE_HED
+    src/persistence/project_reader.h
+    src/persistence/project_writer.h
+    src/persistence/qft_dialect.h
+)
+
+# GUI (HMI Qt): los dialogos y visores. main.cpp va aparte, en el ejecutable.
+set(QFTbx_GUI_SRC
+    GUI/parlineedit.cpp
+    GUI/parlineedit.h
+    GUI/bode_viewer.cpp
+    GUI/main_window.cpp
+    GUI/plant_dialog.cpp
+    GUI/frequencies_dialog.cpp
+    GUI/uncertainty_dialog.cpp
+    GUI/boundary_viewer.cpp
+    GUI/boundary_grid_dialog.cpp
+    GUI/specifications_dialog.cpp
+    GUI/controller_dialog.cpp
+    GUI/boundary_union_viewer.cpp
+    GUI/loop_shaping_dialog.cpp
+    GUI/loop_shaping_viewer.cpp
+    GUI/templates_dialog.cpp
+    GUI/template_viewer.cpp
+    GUI/loop_boundaries_viewer.cpp
+)
+
+# Fachada de la aplicacion: coordina el nucleo y la persistencia.
+set(QFTbx_APP_SRC
+    Modelo/controlador.cpp
+)
+
+set(QFTbx_APP_HED
+    Modelo/controlador.h
+)
+
 
 set(QFTbx_GUI_HED
     GUI/bode_viewer.h
@@ -264,34 +280,75 @@ qt6_add_resources(QFTbx_ICON_RES Resources/Icon/icons.qrc)
 
 
 # ------------------------------------------------------------------------------
-# Libreria del backend (Modelo + DAO + XmlParser + Consola)
+# Layered libraries. The link order IS the architecture, and the linker
+# enforces it: core knows nothing of files or widgets, persistence knows
+# nothing of the facade or the GUI, and the GUI reaches the core only
+# through the facade.
+#
+#   qftbx_core  <-  qftbx_persistence  <-  qftbx_app  <-  qftbx_gui  <- QFTbx
+#
+# Everything is static: the application is meant to be run from the build
+# directory, and static linking keeps that free of library-path setup.
 # ------------------------------------------------------------------------------
-add_library(qftbx_backend STATIC
-    ${QFTbx_BACKEND_SRC}
-    ${QFTbx_BACKEND_HED}
+
+# The computational core: plants, frequencies, specifications, templates,
+# boundaries and the loop-shaping algorithms. GUI-free since the debug
+# viewers left with the legacy algorithms: it links Qt Core (containers) and
+# Qt Gui (a few headers take QPointF) but neither Widgets nor PrintSupport.
+add_library(qftbx_core STATIC
+    ${QFTbx_CORE_SRC}
+    ${QFTbx_CORE_HED}
 )
 
-target_include_directories(qftbx_backend PUBLIC "${CMAKE_SOURCE_DIR}")
+target_include_directories(qftbx_core PUBLIC "${CMAKE_SOURCE_DIR}")
+target_link_libraries(qftbx_core PUBLIC Qt6::Core Qt6::Gui)
 
-# The backend is GUI-free since the debug viewers left with the legacy
-# algorithms: it links Core (containers) and Gui (QPointF consumers compile
-# against QtGui types in a few headers) but neither Widgets nor
-# PrintSupport.
-target_link_libraries(qftbx_backend PUBLIC Qt6::Core Qt6::Gui)
-target_link_libraries(qftbx_backend PUBLIC pugixml::pugixml)
+# Project persistence (.qft): the only place that knows the file format.
+add_library(qftbx_persistence STATIC
+    ${QFTbx_PERSISTENCE_SRC}
+    ${QFTbx_PERSISTENCE_HED}
+)
+
+target_link_libraries(qftbx_persistence PUBLIC qftbx_core)
+target_link_libraries(qftbx_persistence PRIVATE pugixml::pugixml)
+
+# The application facade: owns the project data and drives the engines and
+# the persistence. It is what the GUI and the tests talk to.
+add_library(qftbx_app STATIC
+    ${QFTbx_APP_SRC}
+    ${QFTbx_APP_HED}
+)
+
+target_link_libraries(qftbx_app PUBLIC qftbx_core qftbx_persistence)
+
+# Transitional alias: consumers still ask for "qftbx_backend".
+add_library(qftbx_backend INTERFACE)
+target_link_libraries(qftbx_backend INTERFACE qftbx_app)
+
+# ------------------------------------------------------------------------------
+# Libreria de la GUI: los dialogos y visores, sin main(), para que la suite
+# pueda instanciarlos (el humo de GUI corre con QT_QPA_PLATFORM=offscreen).
+# ------------------------------------------------------------------------------
+add_library(qftbx_gui STATIC
+    ${QFTbx_GUI_SRC}
+    ${QFTbx_GUI_HED}
+    ${QFTbx_ICON_RES}
+    ${QFTbx_RES_SRC}
+)
+
+target_include_directories(qftbx_gui PUBLIC "${CMAKE_SOURCE_DIR}")
+target_link_libraries(qftbx_gui PUBLIC qftbx_app Qt6::Widgets Qt6::PrintSupport)
+target_compile_options(qftbx_gui PRIVATE -Wall -Wextra)
 
 # ------------------------------------------------------------------------------
 # Ejecutable
 # ------------------------------------------------------------------------------
 add_executable(${EXE_NAME}
-    ${QFTbx_GUI_SRC}
-    ${QFTbx_GUI_HED}
+    main.cpp
     ${TS_FILES}
-    ${QFTbx_ICON_RES}
-    ${QFTbx_RES_SRC}
 )
 
-target_link_libraries(${EXE_NAME} PRIVATE qftbx_backend Qt6::Core Qt6::Gui Qt6::Widgets Qt6::PrintSupport)
+target_link_libraries(${EXE_NAME} PRIVATE qftbx_gui)
 
 if(WIN32)
   target_sources(${EXE_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/Resources/Icon/qftbx.rc)
@@ -342,10 +399,14 @@ endif()
 
 # Warnings/arch
 target_compile_options(${EXE_NAME} PRIVATE -Wall -Wextra)
-target_compile_options(qftbx_backend PRIVATE -Wall -Wextra)
+target_compile_options(qftbx_core PRIVATE -Wall -Wextra)
+target_compile_options(qftbx_persistence PRIVATE -Wall -Wextra)
+target_compile_options(qftbx_app PRIVATE -Wall -Wextra)
 if(USE_NATIVE_ARCH AND (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang"))
   target_compile_options(${EXE_NAME} PRIVATE -march=native)
-  target_compile_options(qftbx_backend PRIVATE -march=native)
+  target_compile_options(qftbx_core PRIVATE -march=native)
+  target_compile_options(qftbx_persistence PRIVATE -march=native)
+  target_compile_options(qftbx_app PRIVATE -march=native)
 endif()
 
 # Every translation unit that includes the C-XSC headers compiles its
@@ -359,14 +420,14 @@ endif()
 # toolbox rests on this flag. It cannot be global: it demotes Qt's
 # constexpr float arithmetic, so it applies to the interval-computing
 # targets only.
-target_compile_options(qftbx_backend PRIVATE -frounding-math)
+target_compile_options(qftbx_core PRIVATE -frounding-math)
 
 # OpenMP link
 if(USE_OpenMP AND OpenMP_CXX_FOUND)
   # PUBLIC: la definicion OpenMP_AVAILABLE cambia declaraciones en cabeceras
   # compartidas (p.ej. templates.h), asi que debe propagarse a los consumidores.
-  target_link_libraries(qftbx_backend PUBLIC OpenMP::OpenMP_CXX)
-  target_compile_definitions(qftbx_backend PUBLIC OpenMP_AVAILABLE=1)
+  target_link_libraries(qftbx_core PUBLIC OpenMP::OpenMP_CXX)
+  target_compile_definitions(qftbx_core PUBLIC OpenMP_AVAILABLE=1)
 else()
   if(USE_OpenMP)
     message("OpenMP NOT FOUND")
@@ -375,7 +436,7 @@ endif()
 
 # CUDA link
 if(TARGET qftbx_cuda)
-    target_link_libraries(qftbx_backend PUBLIC qftbx_cuda)
+    target_link_libraries(qftbx_core PUBLIC qftbx_cuda)
 endif()
 
 set_property(TARGET ${EXE_NAME} APPEND PROPERTY
@@ -388,11 +449,11 @@ qt6_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 # LIBS internas: muparserx y qcustomplot como subdirectorios
 # ------------------------------------------------------------------------------
 add_subdirectory(3rd-party/muparserx EXCLUDE_FROM_ALL)
-target_link_libraries(qftbx_backend PUBLIC muparserx::muparserx)
+target_link_libraries(qftbx_core PUBLIC muparserx::muparserx)
 
 add_subdirectory(3rd-party/qcustomplot EXCLUDE_FROM_ALL)
 #Only the GUI plots: the backend no longer touches qcustomplot.
-target_link_libraries(${EXE_NAME} PRIVATE qcustomplot::qcustomplot)
+target_link_libraries(qftbx_gui PUBLIC qcustomplot::qcustomplot)
 
 # ------------------------------------------------------------------------------
 # CXSC aislada (NO tocar cxsc). ExternalProject + imported target.
@@ -434,7 +495,7 @@ set_target_properties(cxsc::cxsc PROPERTIES
 )
 
 add_dependencies(cxsc::cxsc cxsc_ep)
-target_link_libraries(qftbx_backend PUBLIC cxsc::cxsc)
+target_link_libraries(qftbx_core PUBLIC cxsc::cxsc)
 
 # RPATH en Linux para encontrar libcxsc.so al ejecutar desde build
 if(UNIX AND NOT APPLE AND NOT WIN32)

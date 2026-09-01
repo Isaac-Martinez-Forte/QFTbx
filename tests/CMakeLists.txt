@@ -36,7 +36,11 @@ add_executable(qftbx_tests
   backend/cxsc_rigor_test.cpp
 )
 
-target_link_libraries(qftbx_tests PRIVATE qftbx_backend GTest::gtest)
+#The suite talks to the facade (which drags core and persistence) and, for
+#the pugixml smoke test, to pugixml itself: persistence keeps it private so
+#a layering slip in the core does not compile.
+target_link_libraries(qftbx_tests PRIVATE qftbx_app GTest::gtest)
+target_link_libraries(qftbx_tests PRIVATE pugixml::pugixml)
 
 #See the -frounding-math rationale in the top-level CMakeLists: the tests
 #compile the C-XSC inline interval operators too.
