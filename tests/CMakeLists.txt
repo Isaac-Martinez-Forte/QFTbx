@@ -18,6 +18,7 @@ add_executable(qftbx_tests
   backend/boundary_bucket_bounds_test.cpp
   backend/e_hull_test.cpp
   backend/templates_golden_test.cpp
+  backend/templates_determinism_test.cpp
   backend/omega_test.cpp
   backend/plant_fixture_test.cpp
   backend/lti_system_test.cpp
@@ -35,6 +36,7 @@ add_executable(qftbx_tests
   backend/literature_validation_test.cpp
   backend/quick_solution_test.cpp
   backend/cxsc_rigor_test.cpp
+  backend/rounding_mode_test.cpp
 )
 
 #The suite talks to the facade (which drags core and persistence) and, for
