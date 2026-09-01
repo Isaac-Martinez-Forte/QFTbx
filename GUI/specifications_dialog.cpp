@@ -1,4 +1,5 @@
 #include "specifications_dialog.h"
+#include "src/core/text_tokens.h"
 
 #include <optional>
 
@@ -750,7 +751,7 @@ std::optional<std::vector<Parameter>> SpecificationsDialog::buildParameters(QStr
 
     ParserX p (pckALL_NON_COMPLEX);
 
-    QVector <QString> * numeros = tools::srtovectorString(linea);
+    QVector <QString> * numeros = qftbx::text::tokens(linea);
 
     std::vector<Parameter> var;
 

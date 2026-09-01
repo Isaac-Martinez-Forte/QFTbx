@@ -10,6 +10,7 @@
 #include <cmath>
 
 #include "src/core/exception.h"
+#include "src/core/text_tokens.h"
 #include "Modelo/Herramientas/tools.h"
 #include "src/core/frequencies/omega.h"
 #include "src/core/math/sequences.h"
@@ -176,13 +177,13 @@ TEST(Logspace, MatchesTenToTheLinspace)
 }
 
 // ---------------------------------------------------------------------------
-// tools::srtovectorReal (feeds the manual and file frequency modes and the
+// qftbx::text::reals (feeds the manual and file frequency modes and the
 // XML parser)
 // ---------------------------------------------------------------------------
 
 TEST(SrToVectorReal, ParsesSpaceSeparatedValues)
 {
-    QVector<qreal>* v = tools::srtovectorReal(QStringLiteral("1 2.5 10"));
+    QVector<qreal>* v = qftbx::text::reals(QStringLiteral("1 2.5 10"));
     ASSERT_NE(v, nullptr);
     ASSERT_EQ(v->size(), 3);
     EXPECT_DOUBLE_EQ(v->at(0), 1.0);
@@ -193,7 +194,7 @@ TEST(SrToVectorReal, ParsesSpaceSeparatedValues)
 
 TEST(SrToVectorReal, SkipsRepeatedSpaces)
 {
-    QVector<qreal>* v = tools::srtovectorReal(QStringLiteral("1   2"));
+    QVector<qreal>* v = qftbx::text::reals(QStringLiteral("1   2"));
     ASSERT_NE(v, nullptr);
     ASSERT_EQ(v->size(), 2);
     delete v;
@@ -204,14 +205,14 @@ TEST(SrToVectorReal, InvalidTokenReturnsNull)
     // BUG: the null sentinel is dereferenced unchecked by 6 call sites in
     // the XML parser and by the manual-frequency dialog. Will become a
     // qftbx::ParseError.
-    EXPECT_EQ(tools::srtovectorReal(QStringLiteral("1 x 3")), nullptr);
+    EXPECT_EQ(qftbx::text::reals(QStringLiteral("1 x 3")), nullptr);
 }
 
 TEST(SrToVectorReal, SplitsOnAnyWhitespace)
 {
     // Fixed: the split used to be on single spaces only, so a frequencies
     // file with one value per line produced an unparseable token.
-    QVector<qreal>* v = tools::srtovectorReal(QStringLiteral("1.0\n2.0\t3"));
+    QVector<qreal>* v = qftbx::text::reals(QStringLiteral("1.0\n2.0\t3"));
     ASSERT_NE(v, nullptr);
     ASSERT_EQ(v->size(), 3);
     EXPECT_DOUBLE_EQ(v->at(1), 2.0);

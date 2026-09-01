@@ -9,6 +9,7 @@
 //Transitional re-exports: these types moved to their own homes; consumers
 //will include them directly as each module is migrated.
 #include "src/core/specifications/specification_record.h"
+#include "src/core/text_tokens.h"
 #include "src/core/loopshaping/loop_shaping_types.h"
 
 /**
@@ -24,12 +25,6 @@ QVector <qreal> * logspace (qreal a, qreal b, qint32 N);
 
 //Float variant kept verbatim for the CUDA path (deferred).
 std::vector <float> linspace1(qreal a, qreal b, qint32 N);
-
-/// Splits a string into its whitespace-separated tokens.
-QVector <QString> * srtovectorString (QString cadena);
-
-/// Parses whitespace-separated reals; returns null on any invalid token.
-QVector <qreal> * srtovectorReal (QString cadena);
 
 }
 

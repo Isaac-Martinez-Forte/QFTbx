@@ -1,5 +1,6 @@
 #include <vector>
 #include "controller_dialog.h"
+#include "src/core/text_tokens.h"
 #include "ui_controller_dialog.h"
 
 #include "GUI/error_message.h"
@@ -132,7 +133,7 @@ QVector<QVector <QString> * > * ControllerDialog::readTables(QVector <QVector <Q
 bool ControllerDialog::parseCoefficients(QVector<QVector <QString> * > * tabla, QLineEdit *linea,
                                       QVector<QVector <QString> * > * expressionTable, QVector <QVector <bool> * > * uncertainTable){
 
-    QVector <QString> * vec1 = tools::srtovectorString(linea->text());
+    QVector <QString> * vec1 = qftbx::text::tokens(linea->text());
     QVector <QString> * vec = new QVector <QString> ();
     QVector <bool> * vec2  = new QVector <bool> ();
 

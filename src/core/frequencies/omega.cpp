@@ -1,10 +1,10 @@
 #include "src/core/frequencies/omega.h"
+#include "src/core/text_tokens.h"
 
 #include <QFile>
 #include <QTextStream>
 
 #include "src/core/exception.h"
-#include "Modelo/Herramientas/tools.h"
 
 Omega::Omega(qreal start, qreal end, qint32 pointCount, QVector<qreal> * values, GenerationType type)
 {
@@ -77,7 +77,7 @@ QVector<qreal> * Omega::valuesFromFile(QString path){
     }
 
     QTextStream in (&file);
-    QVector<qreal> * values = tools::srtovectorReal(in.readAll());
+    QVector<qreal> * values = qftbx::text::reals(in.readAll());
 
     if (values == nullptr || values->isEmpty()){
         delete values;

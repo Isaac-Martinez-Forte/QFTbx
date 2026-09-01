@@ -142,6 +142,7 @@ set(QFTbx_BACKEND_SRC
     Modelo/Herramientas/tools.cpp
     src/core/frequencies/omega.cpp
     src/core/project_data.cpp
+    src/core/text_tokens.cpp
     src/persistence/project_reader.cpp
     src/persistence/project_writer.cpp
     src/core/boundaries/boundary_data.cpp
@@ -201,6 +202,7 @@ set(QFTbx_BACKEND_HED
     src/core/specifications/specification_record.h
     src/core/project_data.h
     src/core/range.h
+    src/core/text_tokens.h
     src/core/loopshaping/loop_shaping_types.h
     src/core/math/sequences.h
     src/core/specifications/specification.h

@@ -1,4 +1,5 @@
 #include "frequencies_dialog.h"
+#include "src/core/text_tokens.h"
 #include "ui_frequencies_dialog.h"
 
 #include <QMessageBox>
@@ -56,7 +57,7 @@ void FrequenciesDialog::on_okButton_clicked()
     QVector <qreal> * frequencies;
 
     if (ui->modeStack->currentIndex() == 0){ //manual
-        frequencies = srtovectorReal(ui->manualValues->text());
+        frequencies = qftbx::text::reals(ui->manualValues->text());
         type = Omega::Manual;
         if (frequencies == NULL){
             //Invalid input: it used to carry on and dereference the null

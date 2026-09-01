@@ -1,4 +1,5 @@
 #include "plant_dialog.h"
+#include "src/core/text_tokens.h"
 #include "ui_plant_dialog.h"
 
 #include "GUI/error_message.h"
@@ -143,7 +144,7 @@ void PlantDialog::on_polynomialRadio_toggled(bool checked)
 bool PlantDialog::parseCoefficients(QVector<QVector <QString> * > * tabla, QLineEdit *linea,
                                       QVector<QVector <QString> * > * expressionTable, QVector <QVector <bool> * > * uncertainTable){
 
-    QVector <QString> * vec1 = tools::srtovectorString(linea->text());
+    QVector <QString> * vec1 = qftbx::text::tokens(linea->text());
     QVector <QString> * vec = new QVector <QString> ();
     QVector <bool> * vec2  = new QVector <bool> ();
 

@@ -1,5 +1,6 @@
 #include <QDoubleValidator>
 #include "templates_dialog.h"
+#include "src/core/text_tokens.h"
 #include "ui_templates_dialog.h"
 
 #include "GUI/error_message.h"
@@ -267,7 +268,7 @@ void TemplatesDialog::on_okButton_clicked()
     }else {
 
         ui->epsilonEdit->setStyleSheet("background : white");
-        QVector <QString> * v = tools::srtovectorString(ui->epsilonEdit->text());
+        QVector <QString> * v = qftbx::text::tokens(ui->epsilonEdit->text());
 
         qreal lastEpsilon = 0;
 
@@ -462,7 +463,7 @@ bool TemplatesDialog::readVariable(ParLineEdit *rowEdits, ThreeRadioButtons rowR
 
     }else if(rowRadios.tres->isChecked() && !rowEdits->nominal()->text().isEmpty()){
 
-        QVector <QString> * vector = srtovectorString(rowEdits->nominal()->text());
+        QVector <QString> * vector = qftbx::text::tokens(rowEdits->nominal()->text());
         QVector <qreal> * vector2 = new QVector <qreal> ();
 
         try {
