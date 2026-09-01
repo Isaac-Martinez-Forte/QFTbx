@@ -22,9 +22,11 @@ add_executable(qftbx_tests
   backend/omega_test.cpp
   backend/plant_fixture_test.cpp
   backend/lti_system_test.cpp
+  backend/evaluate_precision_test.cpp
   backend/parameter_test.cpp
   backend/specification_test.cpp
   backend/project_reader_load_test.cpp
+  backend/project_reader_malformed_test.cpp
   backend/pugixml_smoke_test.cpp
   backend/project_roundtrip_test.cpp
   backend/controller_pipeline_test.cpp
@@ -37,6 +39,7 @@ add_executable(qftbx_tests
   backend/quick_solution_test.cpp
   backend/cxsc_rigor_test.cpp
   backend/rounding_mode_test.cpp
+  backend/cxsc_printing_test.cpp
 )
 
 #The suite talks to the facade (which drags core and persistence) and, for

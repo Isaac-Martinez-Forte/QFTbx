@@ -3,6 +3,7 @@
 #include <QStringList>
 
 #include "src/core/exception.h"
+#include "src/core/math/parser_warmup.h"
 
 #include <QDebug>
 #include <QElapsedTimer>
@@ -143,6 +144,11 @@ QVector<QVector<complex<qreal> > * > * TemplateEngine::computeClouds(LtiSystem *
     //loop below (nothing may be thrown from within it).
     QVector <bool> nonFiniteFrequencies (frequencyCount, false);
     QVector <QString> parserErrors (frequencyCount);
+
+    //Before the threads exist: muParserX's package singletons are built
+    //lazily and unsynchronised, and the loop below constructs one parser per
+    //frequency. See warmUpExpressionParser().
+    qftbx::math::warmUpExpressionParser();
 
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
@@ -305,15 +311,22 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
     m_contours = new QVector <QVector <complex <qreal> > * > (digitCount);
 
     //Per-frequency diagnosis of a failure (nothing may be thrown from
-    //inside the parallel region).
+    //inside the parallel region), and of the frequencies whose faithful walk
+    //did not close.
     QVector <bool> failed (digitCount, false);
+    QVector <bool> relaxedFrequencies (digitCount, false);
 
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
 #endif
     for (qint32 i = 0; i < digitCount; i++){
 
-        QVector <complex <qreal> > * cont = epsilonHull(m_clouds->at(i), m_epsilon->at(i));
+        bool fellBack = false;
+        QVector <complex <qreal> > * cont = epsilonHull(m_clouds->at(i), m_epsilon->at(i), &fellBack);
+
+        if (fellBack){
+            relaxedFrequencies.replace(i, true);
+        }
 
         if (cont == NULL){
             cont = new QVector <complex <qreal> >();
@@ -328,6 +341,24 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
         }
 
         m_contours->replace(i, cont);
+    }
+
+    //Reported HERE, once and outside the parallel region, and naming the
+    //frequencies: from inside the loop it raced on the message handler and
+    //produced N identical lines that said nothing about which frequency fell
+    //back.
+    QStringList relaxed;
+    for (qint32 i = 0; i < digitCount; i++){
+        if (relaxedFrequencies.at(i) && m_frequencies != nullptr && i < m_frequencies->size()){
+            relaxed.append(QString::number(m_frequencies->at(i)));
+        }
+    }
+
+    if (!relaxed.isEmpty()){
+        qWarning("epsilonHull: the faithful walk did not close at w = %s rad/s "
+                 "(epsilon-hull limitation on clustered templates); the relaxed "
+                 "historical walk was used there, whose coverage is still <= epsilon.",
+                 qUtf8Printable(relaxed.join(QStringLiteral(", "))));
     }
 
     if (!succeeded){
@@ -370,7 +401,8 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
 //Faithful port of EPSHULL.M (epsh2, Montoya 1998; the algorithm defined in
 //Nordin 1993). Deliberate divergence: with no initial candidate it returns
 //NULL instead of an empty contour (the caller treats it as an error).
-QVector <complex <qreal> > * TemplateEngine::epsilonHull(QVector<complex<qreal> > *temp, qreal epsilon){
+QVector <complex <qreal> > * TemplateEngine::epsilonHull(QVector<complex<qreal> > *temp, qreal epsilon,
+                                                         bool * fellBack){
 
     if (temp == NULL || temp->isEmpty()){
         return NULL;
@@ -435,9 +467,12 @@ QVector <complex <qreal> > * TemplateEngine::epsilonHull(QVector<complex<qreal> 
             //Documented fallback to the historical walk, which always
             //yields a contour with coverage <= epsilon even if it is not
             //the canonical epsilon-hull.
-            qWarning("epsilonHull: the reference walk did not close (epsilon-hull "
-                     "limitation on clustered templates); falling back to the "
-                     "relaxed historical walk for this frequency.");
+            //Recorded, not warned: see the declaration. The caller names
+            //the frequencies once the loop is over.
+            if (fellBack != nullptr){
+                *fellBack = true;
+            }
+
             return epsilonHullRelaxed(temp, epsilon);
         }
 

@@ -140,6 +140,7 @@ set(QFTbx_CORE_SRC
     src/core/system/time_constant_gain.cpp
     src/core/templates/template_engine.cpp
     src/core/math/sequence_vectors.cpp
+    src/core/math/parser_warmup.cpp
     src/core/frequencies/omega.cpp
     src/core/project_data.cpp
     src/core/text_tokens.cpp
@@ -175,6 +176,7 @@ set(QFTbx_CORE_HED
     src/core/system/time_constant_gain.h
     src/core/templates/template_engine.h
     src/core/math/sequence_vectors.h
+    src/core/math/parser_warmup.h
     src/core/specifications/specification_record.h
     src/core/project_data.h
     src/core/range.h

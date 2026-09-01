@@ -22,6 +22,9 @@
 
 #include <gtest/gtest.h>
 
+//A failed comparison of C-XSC values must report, not crash: see the header.
+#include "tests/backend/cxsc_printing.h"
+
 #include <cmath>
 #include <complex>
 #include <vector>

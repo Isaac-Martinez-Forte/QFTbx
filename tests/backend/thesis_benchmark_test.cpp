@@ -64,6 +64,9 @@
 
 #include <gtest/gtest.h>
 
+//A failed comparison of C-XSC values must report, not crash: see the header.
+#include "tests/backend/cxsc_printing.h"
+
 #include <QMap>
 #include <QPointF>
 #include "src/core/range.h"

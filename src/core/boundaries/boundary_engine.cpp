@@ -1,5 +1,7 @@
 #include "boundary_engine.h"
 
+#include "src/core/math/parser_warmup.h"
+
 #include <QElapsedTimer>
 #include <iostream>
 
@@ -575,6 +577,11 @@ void BoundaryEngine::computeFrequencies(QVector<qreal> *omega, LtiSystem *plant,
     //build. The caller's frequency vector is no longer touched.
     m_boundaries = new QVector <QMap <QString, QVector <QVector <QPointF> * > * > * >  (omega->size());
     m_traceMetadata = new QVector <QMap <QString, QVector <QPoint> * > * >  (omega->size());
+
+    //Before the threads exist: the loop evaluates the plant, and every
+    //evaluation constructs a muParserX parser whose package singletons are
+    //built lazily and unsynchronised. See warmUpExpressionParser().
+    qftbx::math::warmUpExpressionParser();
 
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for

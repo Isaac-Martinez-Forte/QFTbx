@@ -73,7 +73,18 @@ public:
      * the reference walk cycles, falls back to the relaxed historical walk
      * (open, deduplicated, max-imaginary start).
      */
-    QVector <std::complex <qreal> > * epsilonHull(QVector<std::complex<qreal> > *cloud, qreal epsilon);
+    /**
+     * @brief The epsilon-hull contour of one cloud.
+     *
+     * @param fellBack when not null, set to true if the faithful walk did
+     * not close and the relaxed historical walk was used instead. Reported
+     * by the CALLER, after the parallel loop: warning from inside an OpenMP
+     * region raced on the message handler (helgrind), and it is the same
+     * non-local action from within a parallel region that once let a
+     * muParserX error terminate the process.
+     */
+    QVector <std::complex <qreal> > * epsilonHull(QVector<std::complex<qreal> > *cloud, qreal epsilon,
+                                                  bool * fellBack = nullptr);
 
     /// Sweep grids keyed by parameter NAME; the caller keeps ownership.
     void setGrids (QHash<QString, QVector<qreal> *> * grids);

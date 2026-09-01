@@ -16,6 +16,9 @@
 
 #include <gtest/gtest.h>
 
+//A failed comparison of C-XSC values must report, not crash: see the header.
+#include "tests/backend/cxsc_printing.h"
+
 #include <cfenv>
 
 #include "interval.hpp"
@@ -62,6 +65,17 @@ TEST_F(RoundingMode, AnIntervalOperationLeavesTheModeAsItFoundIt)
 
 TEST_F(RoundingMode, TheEnclosureDoesNotDependOnTheIncomingMode)
 {
+    //Non-degeneracy FIRST, because without it the rest of this test passes
+    //for the wrong reason: if directed rounding were not in effect at all,
+    //every mode would give the same answer and the comparisons below would
+    //be satisfied trivially. 1/10 is not a binary float, so a rigorous
+    //quotient has to straddle it. (This is what exposed valgrind, which
+    //ignores the rounding mode and collapses the interval to a point.)
+    const cxsc::interval tenth = cxsc::interval(1.0) / cxsc::interval(10.0);
+    ASSERT_LT(_double(Inf(tenth)), _double(Sup(tenth)))
+        << "the quotient collapsed to a point: directed rounding is not in "
+           "effect, so nothing below this line proves anything";
+
     const cxsc::interval fromNearest = enclose();
 
     //Entered with the mode already pointing the wrong way, as a leak from
