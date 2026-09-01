@@ -86,7 +86,7 @@ inline BoxFlag BoundaryViolationDetector::pointVerdict(QPointF punto, const qftb
 //historical version computed B_min and B_max only from the boundary
 //points INSIDE the box: when the boundary left the box within its phase
 //span the cut could remove feasible gains.
-BoxClassification *BoundaryViolationDetector::classifyBox(cinterval box, const BoundaryData *boundaries, qint32 contador) {
+BoxClassification BoundaryViolationDetector::classifyBox(cinterval box, const BoundaryData *boundaries, qint32 contador) {
 
     const qftbx::TraceSet & interseccionHash =
             boundaries->unionBuckets().at(static_cast<std::size_t>(contador));
@@ -149,9 +149,9 @@ BoxClassification *BoundaryViolationDetector::classifyBox(cinterval box, const B
 
 
 
-    BoxClassification * datos = new BoxClassification();
+    BoxClassification datos;
 
-    datos->setExtremes({minMagBound, maxMagBound, minFasBound, maxFasBound});
+    datos.setExtremes({minMagBound, maxMagBound, minFasBound, maxFasBound});
 
     //Corner classifications for the cutting strips: every boundary point
     //whose phase lies in the box's span was scanned above, so the box
@@ -162,16 +162,16 @@ BoxClassification *BoundaryViolationDetector::classifyBox(cinterval box, const B
     //drives the top and right strips (MC/thesis-MC).
     BoxFlag f = pointVerdict(QPointF(minFas, minMag), interseccionHash, totalFase,
                                      abierta, arriba, numeroFases);
-    datos->setBottomLeftForbidden(f == infeasible);
+    datos.setBottomLeftForbidden(f == infeasible);
 
     BoxFlag f2 = pointVerdict(QPointF(maxFas, maxMag), interseccionHash, totalFase,
                                       abierta, arriba, numeroFases);
-    datos->setTopRightForbidden(f2 == infeasible);
+    datos.setTopRightForbidden(f2 == infeasible);
 
     if (ambiguo) {
-        datos->setFlag(ambiguous);
+        datos.setFlag(ambiguous);
     } else {
-        datos->setFlag(f);
+        datos.setFlag(f);
     }
 
     return datos;

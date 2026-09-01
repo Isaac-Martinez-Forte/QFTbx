@@ -77,10 +77,8 @@ protected:
             const std::complex<qreal> pv = controller.plant()->evaluate(omega->at(i));
             const cxsc::cinterval box = conversion.nicholsBox(
                 point, omega->at(i), cxsc::complex(pv.real(), pv.imag()));
-            BoxClassification* datos = deteccion.classifyBox(
-                box, controller.boundaries(), i);
-            const tools::BoxFlag flag = datos->flag();
-            delete datos;
+            const tools::BoxFlag flag = deteccion.classifyBox(
+                box, controller.boundaries(), i).flag();
 
             if (flag == tools::infeasible) {
                 return tools::infeasible;

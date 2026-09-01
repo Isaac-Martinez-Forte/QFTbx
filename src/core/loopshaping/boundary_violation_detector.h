@@ -32,7 +32,9 @@ public:
     BoundaryViolationDetector();
     ~BoundaryViolationDetector();
 
-    BoxClassification * classifyBox(cxsc::cinterval box, const BoundaryData * boundaries, qint32 contador);
+    /// Classification of one projected box; a plain value (four doubles,
+    /// a flag and two corner verdicts), so there is nothing to own.
+    BoxClassification classifyBox(cxsc::cinterval box, const BoundaryData * boundaries, qint32 contador);
 
     /// Classifies one Nichols point (phase deg, magnitude dB) against the
     /// boundary union at design frequency 'contador' (parity test).

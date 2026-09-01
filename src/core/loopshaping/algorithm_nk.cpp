@@ -143,7 +143,7 @@ std::unique_ptr<LtiSystem> AlgorithmNk::controllerStructure(){
 //infeasible boxes are destroyed; anything else enters the live list.
 inline void AlgorithmNk::check_box_feasibility(std::unique_ptr<LtiSystem> box){
 
-    BoxClassification * datos;
+    BoxClassification datos;
     BoxFlag flag_final = feasible;
 
     //Step 20 of the paper: the certified local solution caps the useful
@@ -165,24 +165,22 @@ inline void AlgorithmNk::check_box_feasibility(std::unique_ptr<LtiSystem> box){
 
         datos = deteccion->classifyBox(caja, boundaries, contador);
 
-        if (datos->flag() == infeasible) {
-            delete datos;
+        if (datos.flag() == infeasible) {
             return;
         }
 
-        if (datos->flag() == ambiguous) {
+        if (datos.flag() == ambiguous) {
             flag_final = ambiguous;
 
             //Quick Solution at this frequency: sound only when the zone
             //under every boundary point is certainly forbidden, certified
             //by the parity classification of the box's lower corner.
-            if (datos->isBottomLeftForbidden()) {
-                box = quickSolution(std::move(box), datos->extremes()[0],
+            if (datos.isBottomLeftForbidden()) {
+                box = quickSolution(std::move(box), datos.extremes()[0],
                                     o, plantas_nominales_std.at(contador));
             }
         }
 
-        delete datos;
         contador++;
     }
 
@@ -472,9 +470,7 @@ inline bool AlgorithmNk::pointIsFeasible(const QVector<qreal> & zeros,
     for (qint32 i = 0; i < omega->size(); ++i) {
         const cinterval caja = conversion->nicholsBox(point.get(), omega->at(i),
                                                       plantas_nominales.at(i));
-        BoxClassification * datos = deteccion->classifyBox(caja, boundaries, i);
-        const BoxFlag flag = datos->flag();
-        delete datos;
+        const BoxFlag flag = deteccion->classifyBox(caja, boundaries, i).flag();
 
         if (flag != feasible) {
             return false;

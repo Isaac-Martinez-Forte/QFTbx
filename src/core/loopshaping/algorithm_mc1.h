@@ -66,7 +66,8 @@ public:
 private:
 
     inline void check_box_feasibility(std::unique_ptr<LtiSystem> box);
-    inline std::unique_ptr<LtiSystem> quickSolution2(std::unique_ptr<LtiSystem> v, BoxClassification * datos,
+    inline std::unique_ptr<LtiSystem> quickSolution2(std::unique_ptr<LtiSystem> v,
+                                                    const BoxClassification & datos,
                                       const cxsc::cinterval & caja, qreal w,
                                       std::complex<qreal> p0);
     inline void certifiedGainSearch(LtiSystem * box);

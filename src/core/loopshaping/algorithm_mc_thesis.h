@@ -2,6 +2,7 @@
 #define QFTBX_LOOPSHAPING_ALGORITHM_MC_THESIS_H
 
 #include <complex>
+#include <optional>
 
 #include <QHash>
 #include <QPointF>
@@ -114,15 +115,14 @@ private:
     };
 
     //Detection results of one node, one entry per design frequency
-    //(nullptr for frequencies the node is marked feasible at).
+    //(empty for frequencies the node is marked feasible at).
     struct NodeAnalysis {
-        QVector<BoxClassification *> datos;
+        QVector<std::optional<BoxClassification>> datos;
         QVector<Range> boxMag;     //dB edges of the projected box
         QVector<Range> boxPhase;   //degree edges
         tools::BoxFlag flag = tools::feasible;
         qint32 mainFrequency = 0;    //largest ambiguous projected area
         bool anyFullPhaseWidth = false;
-        ~NodeAnalysis();
     };
 
     inline bool analyse(McSearchNode * node, NodeAnalysis & out);

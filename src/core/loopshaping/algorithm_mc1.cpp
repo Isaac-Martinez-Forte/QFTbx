@@ -164,7 +164,7 @@ std::unique_ptr<LtiSystem> AlgorithmMc1::controllerStructure()
 //destroyed; anything else enters the live list.
 inline void AlgorithmMc1::check_box_feasibility(std::unique_ptr<LtiSystem> box)
 {
-    BoxClassification * datos;
+    BoxClassification datos;
     BoxFlag flag_final = feasible;
 
     //Step 3bis.(b): the certified solution caps the useful gain range of
@@ -180,19 +180,17 @@ inline void AlgorithmMc1::check_box_feasibility(std::unique_ptr<LtiSystem> box)
 
         datos = deteccion->classifyBox(caja, boundaries, contador);
 
-        if (datos->flag() == infeasible) {
-            delete datos;
+        if (datos.flag() == infeasible) {
             return;
         }
 
-        if (datos->flag() == ambiguous) {
+        if (datos.flag() == ambiguous) {
             flag_final = ambiguous;
 
             box = quickSolution2(std::move(box), datos, caja, o,
                                  plantas_nominales_std.at(contador));
         }
 
-        delete datos;
         contador++;
     }
 
@@ -225,7 +223,7 @@ inline void AlgorithmMc1::check_box_feasibility(std::unique_ptr<LtiSystem> box)
 //minimum is certainly forbidden, and the phase cuts when a vertical strip
 //is. All cuts run sequentially on the latest updated values.
 inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<LtiSystem> v,
-                                                             BoxClassification * datos,
+                                                             const BoxClassification & datos,
                                                              const cxsc::cinterval & caja,
                                                              qreal w, std::complex<qreal> p0)
 {
@@ -248,9 +246,9 @@ inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<L
     //Sound only when the zone under every boundary point is certainly
     //forbidden, certified by the parity classification of the box's lower
     //corner (same gate as NK).
-    if (datos->isBottomLeftForbidden()) {
+    if (datos.isBottomLeftForbidden()) {
 
-        const qreal boundMin = std::pow(10.0, datos->extremes()[0] / 20.0);
+        const qreal boundMin = std::pow(10.0, datos.extremes()[0] / 20.0);
 
         if (v->gain().isUncertain()) {
             const qreal k = quick_solution::gainCut(boundMin, zeroSups, poleInfs, w, p0);
@@ -304,12 +302,12 @@ inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<L
         const qreal boxPhaseMin = _double(Inf(Im(caja)));
         const qreal boxPhaseMax = _double(Sup(Im(caja)));
 
-        const qreal boundPhaseMin = datos->extremes()[2];
-        const qreal boundPhaseMax = datos->extremes()[3];
+        const qreal boundPhaseMin = datos.extremes()[2];
+        const qreal boundPhaseMax = datos.extremes()[3];
 
         //Right strip (phases above the boundary maximum) certainly
         //forbidden, and wider than one grid step of the union.
-        if (datos->isTopRightForbidden() && boundPhaseMax < boxPhaseMax - salto) {
+        if (datos.isTopRightForbidden() && boundPhaseMax < boxPhaseMax - salto) {
 
             const qreal thetaMax = boundPhaseMax * M_PI / 180.0;
 
@@ -344,7 +342,7 @@ inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<L
 
         //Left strip (phases below the boundary minimum) certainly
         //forbidden.
-        if (datos->isBottomLeftForbidden() && boundPhaseMin > boxPhaseMin + salto) {
+        if (datos.isBottomLeftForbidden() && boundPhaseMin > boxPhaseMin + salto) {
 
             const qreal thetaMin = boundPhaseMin * M_PI / 180.0;
 
@@ -421,9 +419,7 @@ inline bool AlgorithmMc1::gainRangeIsFeasible(LtiSystem * box,
     for (qint32 i = 0; i < omega->size() && feasibleEverywhere; ++i) {
         const cinterval caja = conversion->nicholsBox(candidate.get(), omega->at(i),
                                                       plantas_nominales.at(i));
-        BoxClassification * datos = deteccion->classifyBox(caja, boundaries, i);
-        feasibleEverywhere = (datos->flag() == feasible);
-        delete datos;
+        feasibleEverywhere = deteccion->classifyBox(caja, boundaries, i).flag() == feasible;
     }
 
     return feasibleEverywhere;

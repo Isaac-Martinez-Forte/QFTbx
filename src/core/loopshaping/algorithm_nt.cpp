@@ -144,7 +144,7 @@ std::unique_ptr<LtiSystem> AlgorithmNt::controllerStructure() {
 
 inline void AlgorithmNt::check_box_feasibility(std::unique_ptr<LtiSystem> box) {
 
-    BoxClassification * datos;
+    BoxClassification datos;
 
     BoxFlag flag_final = feasible;
 
@@ -164,21 +164,19 @@ inline void AlgorithmNt::check_box_feasibility(std::unique_ptr<LtiSystem> box) {
 
         datos = deteccion->classifyBox(caja, boundaries, contador);
 
-        if (datos->flag() == infeasible) {
-            delete datos;
-
+        if (datos.flag() == infeasible) {
             return;
         }
 
-        if (datos->flag() == ambiguous) {
+        if (datos.flag() == ambiguous) {
             flag_final = ambiguous;
 
-            const qreal minimoBoundarie = datos->extremes()[0];
-            const qreal maximoBoundarie = datos->extremes()[1];
+            const qreal minimoBoundarie = datos.extremes()[0];
+            const qreal maximoBoundarie = datos.extremes()[1];
 
             //C_g- : cut the certainly infeasible low-gain subrange.
             box = acelerated(std::move(box), minimoBoundarie, o, contador,
-                             !datos->isBottomLeftForbidden());
+                             !datos.isBottomLeftForbidden());
 
             //C_g+ : candidate lower limit of the certainly feasible
             //high-gain subrange at this frequency.
@@ -191,8 +189,6 @@ inline void AlgorithmNt::check_box_feasibility(std::unique_ptr<LtiSystem> box) {
                 }
             }
         }
-
-        delete datos;
 
         contador++;
     }

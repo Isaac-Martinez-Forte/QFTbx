@@ -61,14 +61,6 @@ void cornerVectors(LtiSystem * box, bool zerosAtSup, bool polesAtSup,
 } // namespace
 
 
-AlgorithmMcThesis::NodeAnalysis::~NodeAnalysis()
-{
-    foreach (BoxClassification * d, datos) {
-        delete d;
-    }
-}
-
-
 AlgorithmMcThesis::AlgorithmMcThesis()
 {
 }
@@ -319,7 +311,7 @@ inline bool AlgorithmMcThesis::analyse(McSearchNode * node, NodeAnalysis & out)
     for (qint32 i = 0; i < omega->size(); ++i) {
 
         if (node->isFrequencyFeasible(i)) {
-            out.datos.append(nullptr);
+            out.datos.append(std::nullopt);
             out.boxMag.append(Range());
             out.boxPhase.append(Range());
             continue;
@@ -328,14 +320,13 @@ inline bool AlgorithmMcThesis::analyse(McSearchNode * node, NodeAnalysis & out)
         const cinterval caja = conversion->nicholsBox(node->system(), omega->at(i),
                                                       plantas_nominales.at(i));
 
-        BoxClassification * datos = deteccion->classifyBox(caja, boundaries, i);
+        BoxClassification datos = deteccion->classifyBox(caja, boundaries, i);
 
-        if (datos->flag() == infeasible) {
-            delete datos;
+        if (datos.flag() == infeasible) {
             return false;
         }
 
-        out.datos.append(datos);
+        out.datos.append(std::move(datos));
         out.boxMag.append(Range(_double(Inf(Re(caja))), _double(Sup(Re(caja)))));
         out.boxPhase.append(Range(_double(Inf(Im(caja))), _double(Sup(Im(caja)))));
 
@@ -345,7 +336,7 @@ inline bool AlgorithmMcThesis::analyse(McSearchNode * node, NodeAnalysis & out)
             out.anyFullPhaseWidth = true;
         }
 
-        if (datos->flag() == ambiguous) {
+        if (datos.flag() == ambiguous) {
             out.flag = ambiguous;
 
             const qreal area = _double(diam(Re(caja))) * phaseWidth;
@@ -407,11 +398,7 @@ inline bool AlgorithmMcThesis::boxIsFeasibleAt(LtiSystem * box, qint32 freqIndex
 {
     const cinterval caja = conversion->nicholsBox(box, omega->at(freqIndex),
                                                   plantas_nominales.at(freqIndex));
-    BoxClassification * datos = deteccion->classifyBox(caja, boundaries, freqIndex);
-    const bool feasibleHere = datos->flag() == feasible;
-    delete datos;
-
-    return feasibleHere;
+    return deteccion->classifyBox(caja, boundaries, freqIndex).flag() == feasible;
 }
 
 inline bool AlgorithmMcThesis::boxIsFeasible(LtiSystem * box)
@@ -453,9 +440,9 @@ inline bool AlgorithmMcThesis::bestGainSearch(McSearchNode * node, const NodeAna
 
     for (qint32 i = 0; i < omega->size(); ++i) {
 
-        BoxClassification * datos = analysis.datos.value(i);
+        const std::optional<BoxClassification> & datos = analysis.datos.value(i);
 
-        if (datos == nullptr || datos->flag() != ambiguous) {
+        if (!datos.has_value() || datos->flag() != ambiguous) {
             continue;   //the whole box, corner included, is feasible here
         }
 
@@ -613,9 +600,9 @@ inline void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnaly
 
                 for (qint32 i = 0; i < omega->size() && allCertified; ++i) {
 
-                    BoxClassification * datos = analysis.datos.value(i);
+                    const std::optional<BoxClassification> & datos = analysis.datos.value(i);
 
-                    if (datos == nullptr || datos->flag() != ambiguous) {
+                    if (!datos.has_value() || datos->flag() != ambiguous) {
                         continue;   //feasible here for the whole range
                     }
 
@@ -796,9 +783,9 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
 
     for (qint32 i = 0; i < omega->size(); ++i) {
 
-        BoxClassification * datos = analysis.datos.value(i);
+        const std::optional<BoxClassification> & datos = analysis.datos.value(i);
 
-        if (datos == nullptr || datos->flag() != ambiguous) {
+        if (!datos.has_value() || datos->flag() != ambiguous) {
             continue;
         }
 
