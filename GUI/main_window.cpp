@@ -149,6 +149,45 @@ void MainWindow::recomputeContour(QVector<qreal> * epsilon){
                                    controller->epsilon());
 }
 
+//The project drops whatever was computed from an input that changed, so the
+//window has to stop offering the steps that produced it: otherwise the button
+//is still there and the step now refuses, which reads as a broken program
+//rather than as a step that has to be redone.
+void MainWindow::invalidateFromTemplates(){
+    stepBack(templatesDone);
+    invalidateFromBoundaries();
+
+    ui->boundariesButton->setEnabled(false);
+
+    delete templatesDialog;
+    templatesDialog = nullptr;
+    delete templateViewer;
+    templateViewer = nullptr;
+}
+
+void MainWindow::invalidateFromBoundaries(){
+    stepBack(boundariesDone);
+    invalidateLoopShaping();
+
+    ui->loopButton->setEnabled(false);
+
+    delete boundaryGridDialog;
+    boundaryGridDialog = nullptr;
+    delete boundaryViewer;
+    boundaryViewer = nullptr;
+    delete boundaryUnionViewer;
+    boundaryUnionViewer = nullptr;
+}
+
+void MainWindow::invalidateLoopShaping(){
+    stepBack(loopDone);
+
+    delete loopShapingDialog;
+    loopShapingDialog = nullptr;
+    delete loopShapingViewer;
+    loopShapingViewer = nullptr;
+}
+
 const QVector<qreal> * MainWindow::frequencyValues() const{
     Omega * omega = controller->omega();
 
@@ -176,7 +215,16 @@ void MainWindow::on_plantButton_clicked()
     if (plantDialog->getTodoCorrecto()){
         //The dialogs only describe; publishing into the project is the
         //window's job, so a dialog never needs to know the facade.
-        controller->setPlant(plantDialog->takePlant());
+        LtiSystem * described = plantDialog->takePlant();
+        const bool changed = described != controller->plant();
+
+        controller->setPlant(described);
+
+        //A different plant voids the templates and everything after them, in
+        //the project and therefore in the window too.
+        if (changed && templatesDone){
+            invalidateFromTemplates();
+        }
 
         if (frequenciesDone){
             ui->templatesButton->setEnabled(true);
@@ -208,7 +256,16 @@ void MainWindow::on_specificationsButton_clicked()
     specificationsDialog->exec();
 
     if (specificationsDialog->getTodoCorrecto()){
-        controller->setSpecifications(specificationsDialog->takeSpecifications());
+        QVector<qftbx::SpecificationRecord *> * described =
+                specificationsDialog->takeSpecifications();
+        const bool changed = described != controller->specifications();
+
+        controller->setSpecifications(described);
+
+        //The templates do not depend on the specifications; the boundaries do.
+        if (changed && boundariesDone){
+            invalidateFromBoundaries();
+        }
 
         if (templatesDone){
             ui->boundariesButton->setEnabled(true);
@@ -235,7 +292,14 @@ void MainWindow::on_frequenciesButton_clicked()
     frequenciesDialog->exec();
 
     if (frequenciesDialog->getTodoCorrecto()){
-        controller->setOmega(frequenciesDialog->takeOmega());
+        Omega * described = frequenciesDialog->takeOmega();
+        const bool changed = described != controller->omega();
+
+        controller->setOmega(described);
+
+        if (changed && templatesDone){
+            invalidateFromTemplates();
+        }
 
         if (plantDone){
             ui->templatesButton->setEnabled(true);
@@ -416,7 +480,14 @@ void MainWindow::on_controllerButton_clicked()
 
 
     if (controllerDialog->getTodoCorrecto()){
-        controller->setControllerStructure(controllerDialog->takeControllerStructure());
+        LtiSystem * described = controllerDialog->takeControllerStructure();
+        const bool changed = described != controller->controllerStructure();
+
+        controller->setControllerStructure(described);
+
+        if (changed && loopDone){
+            invalidateLoopShaping();
+        }
 
         if (boundariesDone){
             ui->loopButton->setEnabled(true);

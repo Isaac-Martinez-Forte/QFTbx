@@ -148,6 +148,12 @@ public:
     QVector<bool> * load(QString path);
 
 private:
+    /// Publishing an input drops whatever was computed from the old one: see
+    /// the note in the implementation.
+    void dropTemplatesAndBelow();
+    void dropBoundariesAndBelow();
+    void dropLoopShaping();
+
 
     //The project contents, owned (replaces the historical DAO layer).
     qftbx::ProjectData data;

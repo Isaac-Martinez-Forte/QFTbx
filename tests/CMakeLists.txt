@@ -31,6 +31,7 @@ add_executable(qftbx_tests
   backend/pugixml_smoke_test.cpp
   backend/project_roundtrip_test.cpp
   backend/controller_pipeline_test.cpp
+  backend/project_staleness_test.cpp
   backend/loopshaping_structures_test.cpp
   backend/interval_extension_test.cpp
   backend/loopshaping_golden_test.cpp

@@ -138,6 +138,10 @@ private:
 
     void saveProject ();
 
+    void invalidateFromTemplates();
+    void invalidateFromBoundaries();
+    void invalidateLoopShaping();
+
     void installContourRecomputer();
     void recomputeContour(QVector<qreal> * epsilon);
 
