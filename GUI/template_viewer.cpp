@@ -109,6 +109,10 @@ void TemplateViewer::setDatos(QVector <QVector <std::complex<qreal> > *> * templ
     }
 }
 
+void TemplateViewer::setContourRecomputer(ContourRecomputer recompute){
+    this->recompute = std::move(recompute);
+}
+
 void TemplateViewer::refreshContour(QVector <QVector <std::complex<qreal> > *> * contour,
                                     QVector <qreal> * omega,
                                     QVector <qreal> * epsilon){
@@ -290,16 +294,16 @@ void TemplateViewer::plotLine(qint32 pos, QVector <QCPGraph *> * saveImage, QVec
         ui->plot->graph(pos)->setScatterStyle(QCPScatterStyle::ssCross);
         ui->plot->graph(pos)->setLineStyle(QCPGraph::lsNone);
     }
-    QColor colorsCreated;
+    QColor color;
 
     if (visible){
-        colorsCreated = colorByFrequency->value(omega->at(counter));
-        addFrequencyRow(colorsCreated, pos);
+        color = colorByFrequency->value(omega->at(counter));
+        addFrequencyRow(color, pos);
     }else{
-        colorsCreated = colorByFrequency->value(omega->at(counter));
+        color = colorByFrequency->value(omega->at(counter));
     }
 
-    ui->plot->graph(pos)->setPen(colorsCreated);
+    ui->plot->graph(pos)->setPen(color);
     ui->plot->graph(pos)->setVisible(visible);
 
     if (pos == 0){
@@ -310,7 +314,7 @@ void TemplateViewer::plotLine(qint32 pos, QVector <QCPGraph *> * saveImage, QVec
 
 }
 
-void TemplateViewer::addFrequencyRow(QColor colorsCreated, qint32 pos){
+void TemplateViewer::addFrequencyRow(QColor color, qint32 pos){
 
     QWidget *widget;
     QVBoxLayout *verticalLayout;
@@ -337,7 +341,7 @@ void TemplateViewer::addFrequencyRow(QColor colorsCreated, qint32 pos){
     check = new QCheckBox(widget);
     check->setObjectName(QString::fromUtf8("check"));
     check->setText(QString::number(omega->at(pos)));
-    check->setStyleSheet("colorsCreated : " + colorsCreated.name());
+    check->setStyleSheet("color : " + color.name());
 
     checkboxes->append(check);
     check->setCheckState(Qt::Checked);
@@ -460,6 +464,13 @@ void TemplateViewer::applyCheckboxes(){
 
 void TemplateViewer::on_recomputeButton_clicked()
 {
+    //Nothing plotted yet: the epsilon controls do not exist, and their
+    //vectors are only created by plotDiagram (reading them here would be
+    //reading uninitialised pointers).
+    if (!plotted){
+        return;
+    }
+
     QVector <qreal> * epsilon = new QVector <qreal> ();
 
     for (qint32 i = 0; i < epsilonEdits->size(); i++) {
@@ -468,9 +479,14 @@ void TemplateViewer::on_recomputeButton_clicked()
         epsilon->append(pos);
     }
 
-    //The viewer draws; the computation belongs to the window, which answers
-    //with refreshContour().
-    emit recomputeRequested(epsilon);
+    //The viewer draws; the computation belongs to whoever installed the
+    //handler, which answers with refreshContour().
+    if (!recompute){
+        delete epsilon;
+        return;
+    }
+
+    recompute(epsilon);
 }
 
 

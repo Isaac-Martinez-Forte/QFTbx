@@ -136,6 +136,7 @@ private:
 
     void saveProject ();
 
+    void installContourRecomputer();
     void recomputeContour(QVector<qreal> * epsilon);
 
     void createSession();

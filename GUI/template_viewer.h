@@ -5,6 +5,7 @@
 
 #include <QDialog>
 #include <complex>
+#include <functional>
 #include <qmath.h>
 #include <QFileDialog>
 #include <QMessageBox>
@@ -80,6 +81,25 @@ public:
                   QVector <qreal> * epsilon);
 
    /**
+    * @brief What runs when the user asks for a tighter contour. Ownership of
+    * the epsilon vector passes to the handler, which answers with
+    * refreshContour().
+    *
+    * A plain callback rather than a Qt signal: one caller, one handler, same
+    * thread. Same seam as tools::ErrorReporter.
+   */
+
+    using ContourRecomputer = std::function<void (QVector <qreal> * epsilon)>;
+
+   /**
+    * @fn setContourRecomputer
+    * @brief Installs the handler of the recompute button. Without one the
+    * button does nothing: the viewer owns no computation.
+   */
+
+    void setContourRecomputer(ContourRecomputer recompute);
+
+   /**
     * @fn refreshContour
     * @brief Answer to recomputeRequested: the new contour and the epsilon
     * that produced it, redrawn without rebuilding the frequency colours.
@@ -110,15 +130,6 @@ public:
     void setContour (QVector<QVector<std::complex<qreal> > *> * contourButton);
 
 
-signals:
-
-   /**
-    * @brief The user asked for a tighter contour. Ownership of @p epsilon
-    * passes to whoever runs the computation.
-   */
-
-    void recomputeRequested(QVector <qreal> * epsilon);
-
 private slots:
     void on_saveImage_clicked();
 
@@ -140,7 +151,7 @@ private:
     Ui::TemplateViewer *ui;
     bool plotted = false;
     void plotLine(qint32 pos, QVector <QCPGraph *> * saveImage, QVector <qreal> * fas, QVector <qreal> * gan, bool tipo, bool visible, qint32 contador);
-    void addFrequencyRow (QColor colorsCreated, qint32 pos);
+    void addFrequencyRow (QColor color, qint32 pos);
     void clearDiagram();
 
     QVector <QVector<std::complex<qreal> > *> * templatesButton;
@@ -153,6 +164,8 @@ private:
     QGroupBox * frequenciesBox;
     QVector <QCheckBox *> * checkboxes;
     QMap <qreal, QColor> * colorByFrequency;
+
+    ContourRecomputer recompute;
 
     QVector <QLineEdit *> * epsilonEdits;
     QVector <QSlider *> * epsilonSliders;

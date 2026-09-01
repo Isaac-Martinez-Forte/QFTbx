@@ -126,6 +126,12 @@ void MainWindow::destroyDialogs(){
     }
 }
 
+void MainWindow::installContourRecomputer(){
+    templateViewer->setContourRecomputer([this](QVector<qreal> * epsilon) {
+        recomputeContour(epsilon);
+    });
+}
+
 void MainWindow::recomputeContour(QVector<qreal> * epsilon){
     //The viewer asked for a tighter contour: the computation, and the
     //reporting of its failure, belong here.
@@ -258,6 +264,7 @@ void MainWindow::on_templatesButton_clicked()
     if (!templatesDone){
         templatesDialog = new TemplatesDialog(this);
         templateViewer = new TemplateViewer(this);
+        installContourRecomputer();
     }
 
     templatesDialog->launch(controller->plant(), controller->omega()->values()->size());
@@ -297,8 +304,6 @@ void MainWindow::on_templatesButton_clicked()
                                      controller->contour(),
                                      controller->omega()->values(),
                                      controller->epsilon());
-            connect(templateViewer, &TemplateViewer::recomputeRequested,
-                    this, &MainWindow::recomputeContour, Qt::UniqueConnection);
             templateViewer->plotDiagram(templatesDialog->nicholsSelected());
 
             templateViewer->show();
@@ -585,6 +590,8 @@ void MainWindow::on_actionOpen_triggered()
         if (templatesDone){
             templatesDialog = new TemplatesDialog(this);
             templateViewer = new TemplateViewer(this);
+            installContourRecomputer();
+        installContourRecomputer();
             progressPosition++;
             ui->progressBar->setValue(progressPosition);
         }
@@ -773,8 +780,6 @@ void MainWindow::on_actionTemplates_triggered()
                                  controller->contour(),
                                  controller->omega()->values(),
                                  controller->epsilon());
-        connect(templateViewer, &TemplateViewer::recomputeRequested,
-                this, &MainWindow::recomputeContour, Qt::UniqueConnection);
         templateViewer->plotDiagram(true);
 
         templateViewer->show();

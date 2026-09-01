@@ -14,6 +14,7 @@
 
 #include <gtest/gtest.h>
 
+#include <complex>
 #include <memory>
 
 #include <QCheckBox>
@@ -30,6 +31,7 @@
 #include "GUI/controller_dialog.h"
 #include "GUI/frequencies_dialog.h"
 #include "GUI/specifications_dialog.h"
+#include "GUI/template_viewer.h"
 #include "GUI/main_window.h"
 #include "GUI/error_message.h"
 #include "src/core/exception.h"
@@ -255,6 +257,61 @@ TEST_F(GuiSmoke, SpecificationsDialogStoresAConstantStabilitySpecification)
         delete record;
     }
     delete records;
+}
+
+TEST_F(GuiSmoke, TemplateViewerAsksItsHandlerToRecomputeTheContour)
+{
+    //The viewer runs no computation of its own: the recompute button calls
+    //the handler the window installed, handing it the epsilon it read from
+    //the fields. A plain callback, not a Qt signal.
+    TemplateViewer viewer;
+
+    QVector<std::complex<qreal> > contourPoints{{1.0, 0.0}, {0.0, 1.0}};
+    QVector<std::complex<qreal> > templatePoints{{2.0, 0.0}, {0.0, 2.0}};
+    QVector<QVector<std::complex<qreal> > *> contour{&contourPoints};
+    QVector<QVector<std::complex<qreal> > *> templates{&templatePoints};
+    QVector<qreal> omega{1.0};
+    QVector<qreal> epsilon{0.05};
+
+    //setDatos borrows: the project owns these in the application.
+    viewer.setDatos(&templates, &contour, &omega, &epsilon);
+    viewer.plotDiagram(true);
+
+    bool called = false;
+    QVector<qreal> asked;
+    viewer.setContourRecomputer([&](QVector<qreal> * requested) {
+        called = true;
+        asked = *requested;
+
+        //Ownership came with the call.
+        delete requested;
+    });
+
+    press(&viewer, "recomputeButton");
+
+    ASSERT_TRUE(called) << "the recompute button did not reach its handler";
+    ASSERT_EQ(asked.size(), 1);
+    EXPECT_DOUBLE_EQ(asked[0], 0.05);
+
+    //Each frequency row is colour coded to its curve. The English rename
+    //(a9621ff) renamed a local QColor over the CSS property name inside the
+    //literal, so the stylesheet read "colorsCreated : #rrggbb" and Qt
+    //dropped it with an "Unknown property" warning on stderr.
+    QCheckBox * row = child<QCheckBox>(&viewer, "check");
+    ASSERT_NE(row, nullptr);
+    EXPECT_TRUE(row->styleSheet().startsWith(QStringLiteral("color")))
+        << "the frequency row lost its colour: "
+        << row->styleSheet().toStdString();
+    EXPECT_FALSE(row->styleSheet().contains(QStringLiteral("colorsCreated")));
+}
+
+TEST_F(GuiSmoke, TemplateViewerWithNothingPlottedIgnoresTheRecomputeButton)
+{
+    //With no plot the epsilon controls do not exist yet; the button used to
+    //walk pointers that had never been assigned.
+    TemplateViewer viewer;
+
+    press(&viewer, "recomputeButton");
 }
 
 TEST_F(GuiSmoke, TheMainWindowBuildsItsWholeWidgetTree)
