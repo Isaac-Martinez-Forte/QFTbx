@@ -1,3 +1,6 @@
+#include <cmath>
+#include <complex>
+
 #include "time_constant_gain.h"
 
 using namespace std;
@@ -242,3 +245,26 @@ std::complex <qreal> TimeConstantGain::evaluateDenominator(QVector <qreal> * den
 }
 
 } // namespace qftbx
+
+//P(s) = k * prod(s/tau_n[i] + 1) / prod(s/tau_d[i] + 1) at s = j*w, times
+//the pure delay. An empty list is the constant 1, as the expression
+//generator writes it. A zero time constant divides by zero here exactly as
+//it did in the text.
+std::complex <qreal> TimeConstantGain::valueAt(qreal w, const std::vector<qreal> & numerator,
+                                               const std::vector<qreal> & denominator,
+                                               qreal gain, qreal delay)
+{
+    const std::complex<qreal> s(0.0, w);
+
+    std::complex<qreal> num(1.0, 0.0);
+    for (const qreal constant : numerator) {
+        num *= s / constant + 1.0;
+    }
+
+    std::complex<qreal> den(1.0, 0.0);
+    for (const qreal constant : denominator) {
+        den *= s / constant + 1.0;
+    }
+
+    return gain * num / den * std::exp(-s * delay);
+}

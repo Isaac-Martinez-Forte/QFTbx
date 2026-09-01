@@ -1,3 +1,6 @@
+#include <cmath>
+#include <complex>
+
 #include "zero_pole_gain.h"
 
 using namespace std;
@@ -244,3 +247,26 @@ std::complex <qreal> ZeroPoleGain::evaluateDenominator(QVector <qreal> * deno, q
 }
 
 } // namespace qftbx
+
+//P(s) = k * prod(s + z[i]) / prod(s + p[i]) at s = j*w, times the pure
+//delay. An empty list is the constant 1, as the expression generator writes
+//it. Note the sign: the stored coefficients are the NEGATED roots, which is
+//what the textual form (jw) + z always computed.
+std::complex <qreal> ZeroPoleGain::valueAt(qreal w, const std::vector<qreal> & numerator,
+                                           const std::vector<qreal> & denominator,
+                                           qreal gain, qreal delay)
+{
+    const std::complex<qreal> s(0.0, w);
+
+    std::complex<qreal> num(1.0, 0.0);
+    for (const qreal zero : numerator) {
+        num *= s + zero;
+    }
+
+    std::complex<qreal> den(1.0, 0.0);
+    for (const qreal pole : denominator) {
+        den *= s + pole;
+    }
+
+    return gain * num / den * std::exp(-s * delay);
+}

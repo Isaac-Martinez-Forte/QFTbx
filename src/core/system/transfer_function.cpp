@@ -39,38 +39,30 @@ std::complex <qreal> TransferFunction::evaluate(QVector <qreal> * numerator, QVe
     return p.Eval().GetComplex();
 }
 
+namespace {
+
+//The nominal of every parameter, in order. Uncertain ones contribute their
+//nominal here exactly as they did through the parser, which bound each name
+//to its nominal before evaluating.
+std::vector<qreal> nominalsOf(std::vector<Parameter> & parameters)
+{
+    std::vector<qreal> values;
+    values.reserve(parameters.size());
+
+    for (Parameter & parameter : parameters) {
+        values.push_back(parameter.nominal());
+    }
+
+    return values;
+}
+
+} // namespace
+
 std::complex <qreal> TransferFunction::evaluate(qreal w) {
-
-    ParserX p(pckALL_COMPLEX);
-
-    p.EnableAutoCreateVar(true);
-
-    QString expr;
-
-    const auto bindNominal = [&](Parameter & parameter) {
-        if (parameter.isUncertain()) {
-            expr = parameter.name() + "=" + QString::number(parameter.nominal());
-            p.SetExpr(expr.toStdString());
-            p.Eval();
-        }
-    };
-
-    for (Parameter & n : m_numerator) {
-        bindNominal(n);
-    }
-
-    for (Parameter & d : m_denominator) {
-        bindNominal(d);
-    }
-
-    bindNominal(m_gain);
-    bindNominal(m_delay);
-
-    expr = expression(w);
-
-    p.SetExpr(expr.toStdString());
-
-    return p.Eval().GetComplex();
+    //Direct complex arithmetic: see valueAt() in the header for what this
+    //replaced and why.
+    return valueAt(w, nominalsOf(m_numerator), nominalsOf(m_denominator),
+                   m_gain.nominal(), m_delay.nominal());
 }
 
 QVector <std::complex <qreal> > * TransferFunction::evaluate(QVector <qreal> * omega) {

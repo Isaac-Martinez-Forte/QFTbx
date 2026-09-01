@@ -35,6 +35,10 @@ public:
 
     QString expression();
 
+    std::complex <qreal> valueAt(qreal w, const std::vector<qreal> & numerator,
+                                 const std::vector<qreal> & denominator,
+                                 qreal gain, qreal delay) override;
+
     std::complex <qreal> evaluateNumerator(QVector <qreal> * nume, qreal omega);
 
     std::complex <qreal> evaluateDenominator(QVector <qreal> * deno, qreal omega);

@@ -1,3 +1,6 @@
+#include <cmath>
+#include <complex>
+
 #include "polynomial_form.h"
 
 using namespace std;
@@ -257,3 +260,33 @@ std::complex <qreal> PolynomialForm::evaluateDenominator(QVector <qreal> * deno,
 }
 
 } // namespace qftbx
+
+//P(s) = k * (a[0]*s^(n-1) + ... + a[n-1]) / (b[0]*s^(m-1) + ... + b[m-1]),
+//at s = j*w, times the pure delay. Evaluated by Horner, which is both the
+//accurate way to sum a polynomial and needs no pow() on a complex base; an
+//empty list is the constant 1, as the expression generator writes it.
+std::complex <qreal> PolynomialForm::valueAt(qreal w, const std::vector<qreal> & numerator,
+                                             const std::vector<qreal> & denominator,
+                                             qreal gain, qreal delay)
+{
+    const std::complex<qreal> s(0.0, w);
+
+    std::complex<qreal> num(1.0, 0.0);
+    if (!numerator.empty()) {
+        num = std::complex<qreal>(numerator.front(), 0.0);
+        for (std::size_t i = 1; i < numerator.size(); i++) {
+            num = num * s + numerator[i];
+        }
+    }
+
+    std::complex<qreal> den(1.0, 0.0);
+    if (!denominator.empty()) {
+        den = std::complex<qreal>(denominator.front(), 0.0);
+        for (std::size_t i = 1; i < denominator.size(); i++) {
+            den = den * s + denominator[i];
+        }
+    }
+
+    //exp(0) is exactly 1, so a zero delay needs no special case.
+    return gain * num / den * std::exp(-s * delay);
+}

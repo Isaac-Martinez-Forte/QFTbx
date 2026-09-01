@@ -67,6 +67,18 @@ public:
     /// Symbolic expression in 's', for display.
     virtual QString expression() = 0;
 
+    /**
+     * @brief The transfer function at s = j*omega, computed DIRECTLY in
+     * complex arithmetic from the coefficient VALUES given, in the order of
+     * the parameter vectors.
+     *
+     * A name appearing more than once is ONE variable: every appearance must
+     * be given the same value.
+     */
+    virtual std::complex <qreal> valueAt(qreal w, const std::vector<qreal> & numerator,
+                                         const std::vector<qreal> & denominator,
+                                         qreal gain, qreal delay) = 0;
+
     virtual std::complex <qreal> evaluateNumerator(QVector <qreal> * nume, qreal omega) = 0;
 
     virtual std::complex <qreal> evaluateDenominator(QVector <qreal> * deno, qreal omega) = 0;

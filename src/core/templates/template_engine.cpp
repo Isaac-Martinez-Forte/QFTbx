@@ -138,6 +138,32 @@ QVector<QVector<complex<qreal> > * > * TemplateEngine::computeClouds(LtiSystem *
     const qint32 digitCount = names.size();
     const qint32 frequencyCount = omega->size();
 
+    //Which odometer digit drives each coefficient, and the nominals of the
+    //ones no digit drives. Built ONCE and sequentially: Parameter::nominal()
+    //can evaluate a reparametrisation, and a coefficient's plan does not
+    //change with the frequency or the combination. A name appearing twice
+    //shares its digit, which is what makes it one variable.
+    const auto slotOf = [&](Parameter & parameter) -> qint32 {
+        return parameter.isUncertain() ? names.indexOf(parameter.name()) : -1;
+    };
+
+    std::vector<qint32> numeratorSlot, denominatorSlot;
+    std::vector<qreal> numeratorNominal, denominatorNominal;
+
+    for (Parameter & parameter : plant->numerator()){
+        numeratorSlot.push_back(slotOf(parameter));
+        numeratorNominal.push_back(parameter.nominal());
+    }
+    for (Parameter & parameter : plant->denominator()){
+        denominatorSlot.push_back(slotOf(parameter));
+        denominatorNominal.push_back(parameter.nominal());
+    }
+
+    const qint32 gainSlot = slotOf(plant->gain());
+    const qint32 delaySlot = slotOf(plant->delay());
+    const qreal gainNominal = plant->gain().nominal();
+    const qreal delayNominal = plant->delay().nominal();
+
     QVector<QVector<complex<qreal> > * > * allClouds = new QVector <QVector<complex<qreal> > * > (frequencyCount);
 
     //One flag and one error slot per frequency, filled inside the parallel
@@ -155,19 +181,23 @@ QVector<QVector<complex<qreal> > * > * TemplateEngine::computeClouds(LtiSystem *
 #endif
     for (qint32 u = 0; u < frequencyCount; u++){
 
-        //One parser per frequency: the expression is parsed ONCE and every
-        //parameter is BOUND to a mup::Value mutated by the odometer (the
-        //old loop re-parsed the whole expression per combination, plus one
-        //parsed assignment per digit).
-        ParserX parser (pckALL_COMPLEX);
+        //No parser and no expression TEXT any more: the transfer function is
+        //computed directly in complex arithmetic by valueAt(). The text route
+        //cost a parse per frequency, constructed a parser inside this loop -
+        //racing on muParserX's unsynchronised package singletons - and, being
+        //written with QString::number(), evaluated the plant with its
+        //constant coefficients AND ITS FREQUENCY rounded to six significant
+        //digits. The swept coefficients were exact only because they were
+        //bound as variables.
+        const qreal w = omega->at(u);
 
-        std::vector <mup::Value> values (digitCount);
+        std::vector<qreal> numeratorValues = numeratorNominal;
+        std::vector<qreal> denominatorValues = denominatorNominal;
+
+        std::vector <qreal> digit (digitCount);
         for (qint32 j = 0; j < digitCount; j++){
-            values[j] = mup::Value(grids.at(j)->at(0));
-            parser.DefineVar(names.at(j).toStdString(), mup::Variable(&values[j]));
+            digit[j] = grids.at(j)->at(0);
         }
-
-        parser.SetExpr(plant->expression(omega->at(u)).toStdString());
 
         QVector <complex<qreal>> * cloud = new QVector <complex<qreal>> ();
         cloud->reserve(m_combinationCount);
@@ -190,15 +220,33 @@ QVector<QVector<complex<qreal> > * > * TemplateEngine::computeClouds(LtiSystem *
 
             complex<qreal> value;
 
-            //An expression muParserX rejects (a name colliding with one of
-            //its constants, a malformed plant) used to let mup::ParserError
-            //escape the OpenMP region, which TERMINATES the process instead
-            //of reporting anything. The message is kept and rethrown after
-            //the loop.
+            for (std::size_t c = 0; c < numeratorSlot.size(); c++){
+                if (numeratorSlot[c] >= 0){
+                    numeratorValues[c] = digit[numeratorSlot[c]];
+                }
+            }
+            for (std::size_t c = 0; c < denominatorSlot.size(); c++){
+                if (denominatorSlot[c] >= 0){
+                    denominatorValues[c] = digit[denominatorSlot[c]];
+                }
+            }
+
+            const qreal gainValue = gainSlot >= 0 ? digit[gainSlot] : gainNominal;
+            const qreal delayValue = delaySlot >= 0 ? digit[delaySlot] : delayNominal;
+
+            //A free-form plant still evaluates an expression, so it can still
+            //reject one (a name colliding with a muParserX constant, a
+            //malformed plant). Nothing may be thrown from inside the OpenMP
+            //region - that TERMINATES the process - so the message is kept
+            //and rethrown after the loop.
             try {
-                value = parser.Eval().GetComplex();
+                value = plant->valueAt(w, numeratorValues, denominatorValues,
+                                       gainValue, delayValue);
             } catch (mup::ParserError & error) {
                 parserErrors.replace(u, QString::fromStdString(error.GetMsg()));
+                break;
+            } catch (const qftbx::Exception & error) {
+                parserErrors.replace(u, QString::fromUtf8(error.what()));
                 break;
             }
 
@@ -210,9 +258,9 @@ QVector<QVector<complex<qreal> > * > * TemplateEngine::computeClouds(LtiSystem *
                 if (counter.at(j) >= grids.at(j)->size()){
                     counter[j] = 0;
                     counter[j+1]++;
-                    values[j] = grids.at(j)->at(0);
+                    digit[j] = grids.at(j)->at(0);
                 }else {
-                    values[j] = grids.at(j)->at(counter.at(j));
+                    digit[j] = grids.at(j)->at(counter.at(j));
                     break;
                 }
             }
