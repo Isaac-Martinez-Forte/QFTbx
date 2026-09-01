@@ -2,8 +2,8 @@
 Roberto C. Cruz Rodríguez
     rcruz@instec.cu
 */
-// Este interprete de funciones se basa en la creación de un árbol binario de expresiones
-// donde cada nodo representa una operación a realizar y cada hoja un valor númerico
+// This function interpreter builds a binary expression tree in which every
+// inner node is an operation and every leaf a value.
 
 #include "src/core/loopshaping/expression_tree.h"
 
@@ -19,7 +19,7 @@ using namespace cxsc;
 namespace alg {
 
 //////////////////////////////////////////
-// ExpressionTree implementation //
+// ExpressionTree implementation        //
 //////////////////////////////////////////
 ExpressionTree::ExpressionTree()
 {
@@ -31,8 +31,8 @@ ExpressionTree::ExpressionTree(const char *tex)
     root = nullptr;
     std::string in_exp = tex;
 
-    std::string::size_type pos = 0;                                                   // aquí se eliminan los espacios en blanco de la entrada
-    while (std::string::npos != ( pos = in_exp.find(" ",pos) ) ) in_exp.erase(pos,1); // para facilitar la lectura de la expresión matemática
+    std::string::size_type pos = 0;                                                   // whitespace is stripped from the input
+    while (std::string::npos != ( pos = in_exp.find(" ",pos) ) ) in_exp.erase(pos,1); // so the expression reads uniformly
 
     build_tree(in_exp);
 }
@@ -42,8 +42,8 @@ ExpressionTree::ExpressionTree(const std::string &tex, qreal resultado, com comp
     root = nullptr;
     std::string in_exp = tex;
 
-    std::string::size_type pos = 0;                                                   // aquí se eliminan los espacios en blanco de la entrada
-    while (std::string::npos != ( pos = in_exp.find(" ",pos) ) ) in_exp.erase(pos,1); // para facilitar la lectura de la expresión matemática
+    std::string::size_type pos = 0;                                                   // whitespace is stripped from the input
+    while (std::string::npos != ( pos = in_exp.find(" ",pos) ) ) in_exp.erase(pos,1); // so the expression reads uniformly
 
     this->numero_comparar = resultado;
     this->comparacion = comparacion;
@@ -64,9 +64,8 @@ ExpressionTree::~ExpressionTree()                                               
 /********************************************************
 * void ExpressionTree::setFunc(const std::string &tex)        *
 *********************************************************
-* Con esta función se elimina el
-* árbol actual y se construye otro
-* a partir de una nueva expresión
+* Discards the current tree and builds a new one from the given
+* expression.
 */
 
 void ExpressionTree::setFunc(const std::string &tex)
@@ -74,8 +73,8 @@ void ExpressionTree::setFunc(const std::string &tex)
     delete_tree(root);
     std::string in_exp = tex;
 
-    std::string::size_type pos = 0;                                                   // aquí se eliminan los espacios en blanco de la entrada
-    while (std::string::npos != ( pos = in_exp.find(" ",pos) ) ) in_exp.erase(pos,1); // para facilitar la lectura de la expresión matemática
+    std::string::size_type pos = 0;                                                   // whitespace is stripped from the input
+    while (std::string::npos != ( pos = in_exp.find(" ",pos) ) ) in_exp.erase(pos,1); // so the expression reads uniformly
 
     numero_comparar = 0;
     comparacion = MAYORIGUAL;
@@ -88,8 +87,8 @@ void ExpressionTree::setFunc(const std::string &tex, qreal resultado, com compar
     delete_tree(root);
     std::string in_exp = tex;
 
-    std::string::size_type pos = 0;                                                   // aquí se eliminan los espacios en blanco de la entrada
-    while (std::string::npos != ( pos = in_exp.find(" ",pos) ) ) in_exp.erase(pos,1); // para facilitar la lectura de la expresión matemática
+    std::string::size_type pos = 0;                                                   // whitespace is stripped from the input
+    while (std::string::npos != ( pos = in_exp.find(" ",pos) ) ) in_exp.erase(pos,1); // so the expression reads uniformly
 
     this->numero_comparar = resultado;
     this->comparacion = comparacion;
@@ -100,15 +99,15 @@ void ExpressionTree::setFunc(const std::string &tex, qreal resultado, com compar
 /********************************************************
 * void ExpressionTree::setFunc(const char *tex)               *
 *********************************************************
-*         La misma que la anterior
+* As above, taking a C string.
 */
 void ExpressionTree::setFunc(const char *tex)
 {
     delete_tree(root);
     std::string in_exp = tex;
 
-    std::string::size_type pos = 0;                                                   // aquí se eliminan los espacios en blanco de la entrada
-    while (std::string::npos != ( pos = in_exp.find(" ",pos) ) ) in_exp.erase(pos,1); // para facilitar la lectura de la expresión matemática
+    std::string::size_type pos = 0;                                                   // whitespace is stripped from the input
+    while (std::string::npos != ( pos = in_exp.find(" ",pos) ) ) in_exp.erase(pos,1); // so the expression reads uniformly
 
     build_tree(in_exp);
 }
@@ -116,8 +115,7 @@ void ExpressionTree::setFunc(const char *tex)
 /********************************************************
 * ExpressionTree &ExpressionTree::operator=(const ExpressionTree &other)  *
 *********************************************************
-* Esta función nos permite evaluar
-* la expresión matemática
+* Evaluates the expression.
 */
 qreal ExpressionTree::eval(std::map<std::string, qreal> *variables )
 {
@@ -313,11 +311,10 @@ interval ExpressionTree::operator ()(std::map<std::string, interval> * variables
 /********************************************************
 *    double ExpressionTree::eval_tree(exp_node *nod)          *
 *********************************************************
-* esta es la función más importante de la clase ...
-* es una función recursiva que recorre el arbol binario
+* The core of the class: a recursive walk over the binary tree
 * de expresiones y realiza la operacion matemática corres-
-* pondiente en cada nodo para finalmete, devolver el resultado
-* de evaluar la expresión contenida en el arbol .......
+* applying each node's operation and returning the value of the
+* whole expression.
 */
 qreal ExpressionTree::eval_tree(exp_node *nod)
 {
@@ -393,7 +390,7 @@ qreal ExpressionTree::eval_tree(exp_node *nod)
     case LG :
         return log10 ( eval_tree(nod->left) );
 
-        /* si se ha añadido otra función, entoces solo agregue otro 'case ' y defina la operación a realizar */
+        /* if another function was added, add its 'case' here with its operation */
 
     default:
         return 0;
@@ -791,7 +788,7 @@ interval ExpressionTree::eval_tree_in(exp_node *nod)
     default:
         return nod->intervalo;
 
-        /* si se ha añadido otra función, entoces solo agregue otro 'case ' y defina la operación a realizar */
+        /* if another function was added, add its 'case' here with its operation */
 
     }
 }
@@ -879,7 +876,7 @@ interval ExpressionTree::eval_tree_in(exp_node *nod)
     case LG :
         return  log10 ( eval_tree_complex_interval(nod->left) );
 
-         // si se ha añadido otra función, entoces solo agregue otro 'case ' y defina la operación a realizar
+         // if another function was added, add its 'case' here with its operation
 
     }
 }*/
@@ -887,11 +884,10 @@ interval ExpressionTree::eval_tree_in(exp_node *nod)
 /********************************************************
 * void ExpressionTree::delete_tree(exp_node *nod)             *
 *********************************************************
-* esta función se encarga de eliminar un subarbol
-* a partir de su nodo raiz, recorriendo el arbol
-* en post-orden. Es usada para eliminar el arbol de
+* Deletes a subtree from its root, walking it
+* in post-order. Used to destroy the tree of
 * expresiones cuando se le pasa como argumento 'root'
-*        ... es una función recursiva .........
+*        (recursive).
 */
 void ExpressionTree::delete_tree(exp_node *nod)
 {
@@ -906,10 +902,10 @@ void ExpressionTree::delete_tree(exp_node *nod)
 /********************************************************
 *      exp_node *ExpressionTree::make_cpy(exp_node *nod)      *
 *********************************************************
-* esta es otra función recursiva, que recorre el árbol
-* en pre-orden y por cada nodo crea una nuevo con la misma
+* Recursive pre-order walk that copies every node into a new one with
+* the same content, returning
 * información, para finalmente devolver un puntero a un nuevo
-* árbol de expresiones que es una copia del recorrido
+* an expression tree identical to the original.
 * ..... es usada por el constrcutor de copia y por el operador '='
 */
 exp_node *ExpressionTree::make_cpy(exp_node *nod)
@@ -929,12 +925,12 @@ exp_node *ExpressionTree::make_cpy(exp_node *nod)
 /********************************************************
 * void ExpressionTree::build_tree(std::string &in_exp)        *
 **********************************************************/
-// Con esta función se construye el árbol binario de expresiones
-// a partir de la expresión infija contenida en 'in_exp'
+// Builds the binary expression tree from the infix expression held in
+// 'in_exp'.
 
 void ExpressionTree::build_tree(std::string &in_exp)
 {
-    pilaOp   pila_op  ;  // pila de operadores
+    pilaOp   pila_op  ;  // operator stack
     pilaNode pila_nod;
 
     std::string tmp_str;
@@ -1015,18 +1011,18 @@ void ExpressionTree::build_tree(std::string &in_exp)
                 pos += (i - pos);
                 continue;
             }
-            /*se pueden añadir más funciones, poniendo un nuevo else if ()
+            /*more functions can be added with another else if ()
 y modificando el 'enun type_node' y la función 'eval_tree(..)' */
 
         }
 
         if ( in_exp[pos] == '(' )  // Ej. "(......" o "....(........"
         {
-            pila_op.push(PAR); ++pos;    // se apila siempre
+            pila_op.push(PAR); ++pos;    // always pushed
         }
         else if ( in_exp[pos] ==')' )
         {
-            while ( pila_op.top() != PAR )  // se desapilan operadores hasta que se encuentre '(' PAR
+            while ( pila_op.top() != PAR )  // pop operators until the opening '(' (PAR) shows up
             {
                 root = new exp_node;
                 root->type = pila_op.top();
@@ -1043,7 +1039,7 @@ y modificando el 'enun type_node' y la función 'eval_tree(..)' */
                 pila_op.pop();
                 pila_nod.push(root);
             }
-            pila_op.pop(); // se desapila PAR
+            pila_op.pop(); // pop the PAR itself
             ++pos;
         }
         else if (!pos && in_exp[pos] == '-' && isdigit(in_exp[pos+1]) ) // Ej. : "-34.89....." (constante negativa) Forma 1
@@ -1158,7 +1154,7 @@ y modificando el 'enun type_node' y la función 'eval_tree(..)' */
             pila_nod.push(root);
         }
         else if ( !pos && in_exp[pos] == '-' ) // Ej. : "-sin(.........." o "-x........" (- unario) Forma 1
-        {                                      // En este caso una expresión del tipo "-sin(.........." ó "-x........"
+        {                                      // an expression like "-sin(..." or "-x..."
             root = new exp_node;               // será tratada como "-1*sin(.........." y  "-1*x........"
             root->type = CONS;
             root->left = 0;
@@ -1187,7 +1183,7 @@ y modificando el 'enun type_node' y la función 'eval_tree(..)' */
             ++pos;
         }
         else if ( in_exp[pos] == '-' && in_exp[pos-1] == '(' ) // Ej. : "...(-sin..." o "...(-x..." (- unario) Forma 2
-        {                                                      // En este caso una expresión del tipo "...(-sin..." ó "...(-x..."
+        {                                                      // an expression like "...(-sin..." or "...(-x..."
             root = new exp_node;                               // será tratada como "..(-1*sin...." y  "...(-1*x...."
             root->type = CONS;
             root->left = 0;
@@ -1359,7 +1355,7 @@ bool ExpressionTree::es_letra(char tex){
 }
 
 //////////////////////////////////////////
-// IMPLEMENTACION DE LA CLASE pilaNode  //
+// pilaNode implementation             //
 //////////////////////////////////////////
 void pilaNode::pop()
 {
@@ -1367,9 +1363,9 @@ void pilaNode::pop()
         return;
     else
     {
-        node *ptr_tmp = head->next;  //se guarda la dirección del segundo nodo
-        delete head;                 //se borra el nodo de la cabecera
-        head = ptr_tmp;              //se restablece la cabecera al segundo nodo
+        node *ptr_tmp = head->next;  //keep the address of the second node
+        delete head;                 //delete the head node
+        head = ptr_tmp;              //the second node becomes the head
         --n;
     }
 }
@@ -1407,7 +1403,7 @@ pilaNode::~pilaNode()
 }
 
 //////////////////////////////////////////
-// IMPLEMENTACION DE LA CLASE pilaOp    //
+// pilaOp implementation               //
 //////////////////////////////////////////
 void pilaOp::pop()
 {
