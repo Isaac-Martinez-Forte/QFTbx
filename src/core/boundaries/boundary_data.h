@@ -9,11 +9,15 @@
 namespace qftbx {
 
 /**
- * @brief Non-owning view over one boundary computation's results.
+ * @brief View over one boundary computation's results, non-owning by
+ * default.
  *
- * The containers belong to their producer (the BoundaryEngine or the file
- * parser); destroying a BoundaryData never touches them, so temporary views
- * can be created and deleted freely.
+ * The BoundaryEngine keeps its containers as members and hands out views,
+ * so destroying such a view never touches them and temporary views can be
+ * created and deleted freely. The file parser instead allocates fresh
+ * containers with no other owner: it builds its view with
+ * takeOwnership(), and then destroying the view deep-deletes everything
+ * it holds.
  *
  * Per design frequency, boundaries() maps each specification name (the
  * persisted keys of the .qft files: "Tracking", "Stability", "SensorNoise",
@@ -40,6 +44,14 @@ public:
     QVector <bool> * openFlags () const;
     QVector <bool> * upperFlags () const;
 
+    /// Makes this view the OWNER of its containers: destroying it then
+    /// deep-deletes the per-frequency maps and their traces, the flags,
+    /// the union and its buckets. For producers that allocate fresh
+    /// containers with no other owner (the file parser).
+    void takeOwnership ();
+
+    ~BoundaryData();
+
 private:
     QVector <QMap <QString, QVector <QVector <QPointF> * > *> * > * m_boundaries;
     QVector <bool> * m_openFlags;
@@ -50,6 +62,7 @@ private:
     QPointF m_magnitudeRange;
     QVector< QVector<QPointF> * > * m_unionBoundaries;
     QVector< QVector< QVector<QPointF> * > * > * m_unionBuckets;
+    bool m_owns = false;
 };
 
 } // namespace qftbx

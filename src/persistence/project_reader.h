@@ -38,6 +38,13 @@ public:
      */
     QVector <bool> * load(const QString & filePath);
 
+    ~ProjectReader();
+
+    ProjectReader(const ProjectReader &) = delete;
+    ProjectReader & operator=(const ProjectReader &) = delete;
+
+    //Inspection: the reader KEEPS ownership, so a caller that only looks
+    //at the parsed contents needs no cleanup of its own.
     LtiSystem * plant() const { return m_plant; }
     QVector <qftbx::SpecificationRecord *> * specifications() const { return m_specifications; }
     Omega * omega() const { return m_omega; }
@@ -48,7 +55,29 @@ public:
     LtiSystem * controller() const { return m_controller; }
     DatosLoopShaping * loopShaping() const { return m_loopShaping; }
 
+    //Claim: the caller becomes the owner and the reader forgets it. Used
+    //by the facade, which hands everything to the project store; anything
+    //left unclaimed dies with the reader (it used to leak).
+    LtiSystem * takePlant() { return take(m_plant); }
+    QVector <qftbx::SpecificationRecord *> * takeSpecifications() { return take(m_specifications); }
+    Omega * takeOmega() { return take(m_omega); }
+    QVector <QVector <std::complex<qreal>> * > * takeTemplates() { return take(m_templates); }
+    QVector <QVector <std::complex<qreal>> * > * takeContour() { return take(m_contour); }
+    QVector <qreal> * takeEpsilon() { return take(m_epsilon); }
+    BoundaryData * takeBoundaries() { return take(m_boundaries); }
+    LtiSystem * takeController() { return take(m_controller); }
+    DatosLoopShaping * takeLoopShaping() { return take(m_loopShaping); }
+
 private:
+
+    template <typename T>
+    static T * take(T * & member)
+    {
+        T * claimed = member;
+        member = nullptr;
+        return claimed;
+    }
+
     LtiSystem * m_plant = nullptr;
     QVector <qftbx::SpecificationRecord *> * m_specifications = nullptr;
     Omega * m_omega = nullptr;

@@ -19,6 +19,52 @@ BoundaryData::BoundaryData(QVector <QMap <QString, QVector <QVector <QPointF> * 
 }
 
 
+void BoundaryData::takeOwnership() {
+    m_owns = true;
+}
+
+namespace {
+
+void deleteTraces(QVector< QVector<QPointF> * > * traces) {
+    if (traces != nullptr) {
+        qDeleteAll(*traces);
+        delete traces;
+    }
+}
+
+} // namespace
+
+BoundaryData::~BoundaryData() {
+
+    if (!m_owns) {
+        return;
+    }
+
+    if (m_boundaries != nullptr) {
+        foreach (auto * perFrequency, *m_boundaries) {
+            if (perFrequency != nullptr) {
+                foreach (auto * traces, *perFrequency) {
+                    deleteTraces(traces);
+                }
+                delete perFrequency;
+            }
+        }
+        delete m_boundaries;
+    }
+
+    deleteTraces(m_unionBoundaries);
+
+    if (m_unionBuckets != nullptr) {
+        foreach (auto * perFrequency, *m_unionBuckets) {
+            deleteTraces(perFrequency);
+        }
+        delete m_unionBuckets;
+    }
+
+    delete m_openFlags;
+    delete m_upperFlags;
+}
+
 
 QVector<QMap<QString, QVector<QVector<QPointF> *> *> *> * BoundaryData::boundaries() const {
     return m_boundaries;

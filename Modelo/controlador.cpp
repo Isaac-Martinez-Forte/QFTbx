@@ -212,30 +212,30 @@ QVector <bool> * Controlador::cargarSistema(QString fichero){
     QVector <bool> * retorno = leer.load(fichero);
 
     if (retorno->value(0))
-        setPlanta(leer.plant());
+        setPlanta(leer.takePlant());
 
     if (retorno->value(1))
-        setEspecificaciones(leer.specifications());
+        setEspecificaciones(leer.takeSpecifications());
 
     if (retorno->value(2))
-        setValues(leer.omega());
+        setValues(leer.takeOmega());
 
     if (retorno->value(3)){
-        setTemplate(leer.templates(),
-                    retorno->value(7) ? leer.contour() : nullptr,
+        setTemplate(leer.takeTemplates(),
+                    retorno->value(7) ? leer.takeContour() : nullptr,
                     retorno->value(7));
-        data.setEpsilon(leer.epsilon());
+        data.setEpsilon(leer.takeEpsilon());
     }
 
     if (retorno->value(4))
-        setBoundaries(leer.boundaries());
+        setBoundaries(leer.takeBoundaries());
 
     if (retorno->value(5)){
-        setControlador(leer.controller());
+        setControlador(leer.takeController());
     }
 
     if (retorno->value(6)){
-        setLoopShaping(leer.loopShaping());
+        setLoopShaping(leer.takeLoopShaping());
     }
 
     return retorno;

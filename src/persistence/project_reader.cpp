@@ -370,8 +370,13 @@ public:
             unionBuckets->append(readTraces(frequencyNode));
         }
 
-        return new BoundaryData(boundaries, openFlags, upperFlags, phaseCount, phaseRange,
-                                unionBoundaries, unionBuckets, magnitudeCount, magnitudeRange);
+        //Every container above was freshly parsed and has no other owner:
+        //the view takes them over (they used to leak with the view).
+        auto * data_ = new BoundaryData(boundaries, openFlags, upperFlags, phaseCount, phaseRange,
+                                        unionBoundaries, unionBuckets, magnitudeCount, magnitudeRange);
+        data_->takeOwnership();
+
+        return data_;
     }
 
     DatosLoopShaping * readLoopShaping(const pugi::xml_node & section) const
@@ -401,6 +406,48 @@ public:
 };
 
 ProjectReader::ProjectReader() = default;
+
+namespace {
+
+void deleteSpecificationRecords(QVector <qftbx::SpecificationRecord *> * records)
+{
+    if (records == nullptr) {
+        return;
+    }
+
+    foreach (qftbx::SpecificationRecord * record, *records) {
+        if (record != nullptr) {
+            delete record->system;
+            delete record;
+        }
+    }
+
+    delete records;
+}
+
+void deleteComplexVectors(QVector <QVector <std::complex<qreal>> * > * vectors)
+{
+    if (vectors != nullptr) {
+        qDeleteAll(*vectors);
+        delete vectors;
+    }
+}
+
+} // namespace
+
+ProjectReader::~ProjectReader()
+{
+    //Whatever no caller claimed through take*() belongs to the reader.
+    delete m_plant;
+    deleteSpecificationRecords(m_specifications);
+    delete m_omega;
+    deleteComplexVectors(m_templates);
+    deleteComplexVectors(m_contour);
+    delete m_epsilon;
+    delete m_boundaries;
+    delete m_controller;
+    delete m_loopShaping;
+}
 
 QVector <bool> * ProjectReader::load(const QString & filePath)
 {
