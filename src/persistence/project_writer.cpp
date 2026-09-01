@@ -237,7 +237,7 @@ void writeBoundaries(pugi::xml_node root, BoundaryData * boundaries)
     }
 }
 
-void writeLoopShaping(pugi::xml_node root, DatosLoopShaping * loopShaping)
+void writeLoopShaping(pugi::xml_node root, LoopShapingResult * loopShaping)
 {
     pugi::xml_node section = root.append_child(t.loopShaping);
 
@@ -246,7 +246,7 @@ void writeLoopShaping(pugi::xml_node root, DatosLoopShaping * loopShaping)
     addReal(data, t.axisMin, loopShaping->range().x());
     addReal(data, t.axisMax, loopShaping->range().y());
 
-    writeSystem(section, t.controller, loopShaping->getControlador());
+    writeSystem(section, t.controller, loopShaping->controller());
 }
 
 } // namespace

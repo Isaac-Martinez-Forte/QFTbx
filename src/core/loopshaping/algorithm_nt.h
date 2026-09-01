@@ -9,7 +9,7 @@
 #include "src/core/system/lti_system.h"
 #include "src/core/loopshaping/natural_interval_extension.h"
 #include "src/core/loopshaping/search_node.h"
-#include "Modelo/Herramientas/tools.h"
+#include "src/core/math/sequence_vectors.h"
 #include "src/core/system/polynomial_form.h"
 #include "src/core/system/zero_pole_gain.h"
 #include "src/core/system/time_constant_gain.h"

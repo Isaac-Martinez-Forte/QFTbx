@@ -9,7 +9,7 @@
 #include "src/core/system/lti_system.h"
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/specifications/specification_record.h"
-#include "Modelo/EstructurasDatos/datosloopshaping.h"
+#include "src/core/loopshaping/loop_shaping_result.h"
 #include "src/core/frequencies/omega.h"
 
 namespace qftbx {
@@ -53,7 +53,7 @@ public:
     QVector <qreal> * epsilon() const { return m_epsilon; }
     BoundaryData * boundaries() const { return m_boundaries; }
     LtiSystem * controller() const { return m_controller; }
-    DatosLoopShaping * loopShaping() const { return m_loopShaping; }
+    LoopShapingResult * loopShaping() const { return m_loopShaping; }
 
     //Claim: the caller becomes the owner and the reader forgets it. Used
     //by the facade, which hands everything to the project store; anything
@@ -66,7 +66,7 @@ public:
     QVector <qreal> * takeEpsilon() { return take(m_epsilon); }
     BoundaryData * takeBoundaries() { return take(m_boundaries); }
     LtiSystem * takeController() { return take(m_controller); }
-    DatosLoopShaping * takeLoopShaping() { return take(m_loopShaping); }
+    LoopShapingResult * takeLoopShaping() { return take(m_loopShaping); }
 
 private:
 
@@ -86,7 +86,7 @@ private:
     QVector <qreal> * m_epsilon = nullptr;
     BoundaryData * m_boundaries = nullptr;
     LtiSystem * m_controller = nullptr;
-    DatosLoopShaping * m_loopShaping = nullptr;
+    LoopShapingResult * m_loopShaping = nullptr;
 };
 
 } // namespace qftbx

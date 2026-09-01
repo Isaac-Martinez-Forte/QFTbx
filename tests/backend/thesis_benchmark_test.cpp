@@ -188,7 +188,7 @@ TEST_P(ThesisBenchmarkGolden, ResultIsPinned)
 
     ASSERT_TRUE(ok) << golden.name;
 
-    LtiSystem* result = controller.getLoopShaping()->getControlador();
+    LtiSystem* result = controller.getLoopShaping()->controller();
     ASSERT_NE(result, nullptr);
 
     //Relative tolerance: the exact optimum wobbles with build flags (FP

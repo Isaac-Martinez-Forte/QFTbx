@@ -380,7 +380,7 @@ public:
         return data_;
     }
 
-    DatosLoopShaping * readLoopShaping(const pugi::xml_node & section) const
+    LoopShapingResult * readLoopShaping(const pugi::xml_node & section) const
     {
         const pugi::xml_node data = require(section, t.boundariesData);
         const qint32 pointCount = intAttribute(data, t.loopShapingPointCountAttribute);
@@ -398,7 +398,7 @@ public:
             fail(section, "the loop-shaping section needs its controller");
         }
 
-        return new DatosLoopShaping(readSystem(systemNode), range, pointCount);
+        return new LoopShapingResult(readSystem(systemNode), range, pointCount);
     }
 
     const QString & m_filePath;

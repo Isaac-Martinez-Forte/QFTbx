@@ -9,7 +9,7 @@
 #include "src/core/frequencies/omega.h"
 #include "src/core/specifications/specification_record.h"
 #include "src/core/boundaries/boundary_data.h"
-#include "Modelo/EstructurasDatos/datosloopshaping.h"
+#include "src/core/loopshaping/loop_shaping_result.h"
 
 namespace qftbx {
 
@@ -64,8 +64,8 @@ public:
     LtiSystem * controller() const;
     void setController(LtiSystem * controller);
 
-    DatosLoopShaping * loopShaping() const;
-    void setLoopShaping(DatosLoopShaping * loopShaping);
+    LoopShapingResult * loopShaping() const;
+    void setLoopShaping(LoopShapingResult * loopShaping);
 
 private:
     LtiSystem * m_plant = nullptr;
@@ -77,7 +77,7 @@ private:
     QVector<qreal> * m_epsilon = nullptr;
     BoundaryData * m_boundaries = nullptr;
     LtiSystem * m_controller = nullptr;
-    DatosLoopShaping * m_loopShaping = nullptr;
+    LoopShapingResult * m_loopShaping = nullptr;
 };
 
 } // namespace qftbx

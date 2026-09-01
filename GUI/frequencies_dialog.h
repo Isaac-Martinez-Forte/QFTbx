@@ -10,7 +10,7 @@
 #include <QTextStream>
 
 #include "Modelo/controlador.h"
-#include "Modelo/Herramientas/tools.h"
+#include "src/core/math/sequence_vectors.h"
 #include "src/core/frequencies/omega.h"
 
 namespace Ui {

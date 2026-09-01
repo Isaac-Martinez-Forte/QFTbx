@@ -1,5 +1,5 @@
-#ifndef TOOLS_H
-#define TOOLS_H
+#ifndef QFTBX_MATH_SEQUENCE_VECTORS_H
+#define QFTBX_MATH_SEQUENCE_VECTORS_H
 
 #include <vector>
 
@@ -14,8 +14,11 @@
 
 /**
  * @namespace tools
- * @brief Remaining free helpers, pending relocation as their consumer
- * modules are migrated (see REFACTOR notes in each function).
+ * @brief Heap-QVector flavours of the numeric sequences, for the pipeline
+ * stages that still hand vectors around by pointer (the template grids and
+ * the epsilon list). They wrap the canonical std implementations in
+ * src/core/math/sequences.h and disappear once those containers become
+ * values.
  */
 namespace tools{
 
@@ -28,4 +31,4 @@ std::vector <float> linspace1(qreal a, qreal b, qint32 N);
 
 }
 
-#endif // TOOLS_H
+#endif // QFTBX_MATH_SEQUENCE_VECTORS_H

@@ -9,7 +9,7 @@
 #include "src/core/system/lti_system.h"
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/specifications/specification_record.h"
-#include "Modelo/EstructurasDatos/datosloopshaping.h"
+#include "src/core/loopshaping/loop_shaping_result.h"
 #include "src/core/frequencies/omega.h"
 
 namespace qftbx {
@@ -27,7 +27,7 @@ struct ProjectContent {
     QVector <qreal> * epsilon = nullptr;
     BoundaryData * boundaries = nullptr;
     LtiSystem * controller = nullptr;
-    DatosLoopShaping * loopShaping = nullptr;
+    LoopShapingResult * loopShaping = nullptr;
 };
 
 /**

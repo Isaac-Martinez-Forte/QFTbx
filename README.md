@@ -134,7 +134,7 @@ No installer is currently provided. The application is intended to be run direct
       math/              numeric sequences
     src/persistence/   .qft project reading and writing
     GUI/               Qt dialogs, viewers and the main window
-    Modelo/            remaining facade and helpers, being migrated
+    Modelo/            the project facade, being migrated
     tests/backend/     the test suite
     3rd-party/         vendored dependencies
 

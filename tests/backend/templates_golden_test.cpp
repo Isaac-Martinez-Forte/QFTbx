@@ -21,7 +21,7 @@
 #include "src/core/system/lti_system.h"
 #include "src/core/system/parameter.h"
 #include "src/core/frequencies/omega.h"
-#include "Modelo/Herramientas/tools.h"
+#include "src/core/math/sequence_vectors.h"
 #include "src/persistence/project_reader.h"
 
 namespace {

@@ -1,7 +1,7 @@
 #ifndef QFTBX_LOOPSHAPING_SEARCH_NODE_H
 #define QFTBX_LOOPSHAPING_SEARCH_NODE_H
 
-#include "Modelo/Herramientas/tools.h"
+#include "src/core/math/sequence_vectors.h"
 #include "src/core/system/lti_system.h"
 #include "list_node.h"
 

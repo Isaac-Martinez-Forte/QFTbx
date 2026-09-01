@@ -15,7 +15,7 @@
 #include "src/core/loopshaping/mc_search_node.h"
 #include "src/core/loopshaping/stages.h"
 #include "src/core/loopshaping/nominal_stability_checker.h"
-#include "Modelo/Herramientas/tools.h"
+#include "src/core/math/sequence_vectors.h"
 
 #include "src/core/loopshaping/common_functions.h"
 

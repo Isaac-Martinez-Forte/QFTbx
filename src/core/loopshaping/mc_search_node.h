@@ -3,7 +3,7 @@
 
 #include <QHash>
 
-#include "Modelo/Herramientas/tools.h"
+#include "src/core/math/sequence_vectors.h"
 #include "src/core/system/lti_system.h"
 #include "src/core/loopshaping/search_node.h"
 #include "src/core/loopshaping/stages.h"

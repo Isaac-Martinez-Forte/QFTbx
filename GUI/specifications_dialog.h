@@ -7,7 +7,7 @@
 #include <QDialog>
 #include <QPixmap>
 
-#include "Modelo/Herramientas/tools.h"
+#include "src/core/math/sequence_vectors.h"
 #include "Modelo/controlador.h"
 #include "mpParser.h"
 #include "src/core/frequencies/omega.h"

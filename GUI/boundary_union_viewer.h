@@ -5,7 +5,7 @@
 
 //#include "cinterval.hpp"
 
-#include "Modelo/Herramientas/tools.h"
+#include "src/core/math/sequence_vectors.h"
 #include "qcustomplot.h"
 
 

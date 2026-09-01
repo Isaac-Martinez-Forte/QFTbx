@@ -17,7 +17,7 @@
 #include "src/core/system/free_form.h"
 #include "GUI/uncertainty_dialog.h"
 #include "Modelo/controlador.h"
-#include "Modelo/Herramientas/tools.h"
+#include "src/core/math/sequence_vectors.h"
 #include "mpParser.h"
 
 namespace Ui {

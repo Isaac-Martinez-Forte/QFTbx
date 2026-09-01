@@ -1,4 +1,4 @@
-#include "tools.h"
+#include "src/core/math/sequence_vectors.h"
 
 #include <QRegularExpression>
 

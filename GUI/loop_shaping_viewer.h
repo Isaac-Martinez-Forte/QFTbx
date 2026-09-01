@@ -3,10 +3,10 @@
 
 #include <QDialog>
 
-#include "Modelo/Herramientas/tools.h"
+#include "src/core/math/sequence_vectors.h"
 #include "qcustomplot.h"
 #include "src/core/system/lti_system.h"
-#include "Modelo/EstructurasDatos/datosloopshaping.h"
+#include "src/core/loopshaping/loop_shaping_result.h"
 
 
 namespace Ui {
@@ -22,7 +22,7 @@ public:
     ~LoopShapingViewer();
 
 
-    void setDatos (QVector<QVector<QPointF> *> *unionTraces, QVector<qreal> *omega, DatosLoopShaping * loopShapingData, LtiSystem *plant, bool linSpace);
+    void setDatos (QVector<QVector<QPointF> *> *unionTraces, QVector<qreal> *omega, LoopShapingResult * loopShapingData, LtiSystem *plant, bool linSpace);
 
     void showDiagram();
 
@@ -37,7 +37,7 @@ private:
     QVector <QVector <QPointF> * > * unionTraces;
     QVector <qreal> * omega;
     LtiSystem * plant;
-    DatosLoopShaping * loopShapingData;
+    LoopShapingResult * loopShapingData;
 
     bool plotted;
 

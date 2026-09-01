@@ -6,7 +6,7 @@
 #include "QVector"
 #include "QDoubleValidator"
 #include "QIntValidator"
-#include "Modelo/Herramientas/tools.h"
+#include "src/core/math/sequence_vectors.h"
 
     /**
       * @class BoundaryGridDialog

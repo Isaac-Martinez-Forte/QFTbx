@@ -139,7 +139,7 @@ set(QFTbx_BACKEND_SRC
     src/core/system/time_constant_gain.cpp
     Modelo/controlador.cpp
     src/core/templates/template_engine.cpp
-    Modelo/Herramientas/tools.cpp
+    src/core/math/sequence_vectors.cpp
     src/core/frequencies/omega.cpp
     src/core/project_data.cpp
     src/core/text_tokens.cpp
@@ -161,7 +161,7 @@ set(QFTbx_BACKEND_SRC
     src/core/loopshaping/mc_search_node.cpp
     src/core/loopshaping/boundary_violation_detector.cpp
     src/core/loopshaping/ordered_list.cpp
-    Modelo/EstructurasDatos/datosloopshaping.cpp
+    src/core/loopshaping/loop_shaping_result.cpp
     src/core/boundaries/boundary_union_1d.cpp
     src/core/boundaries/contour_tracer.cpp
     src/core/loopshaping/expression_tree.cpp
@@ -198,7 +198,7 @@ set(QFTbx_BACKEND_HED
     src/core/system/time_constant_gain.h
     Modelo/controlador.h
     src/core/templates/template_engine.h
-    Modelo/Herramientas/tools.h
+    src/core/math/sequence_vectors.h
     src/core/specifications/specification_record.h
     src/core/project_data.h
     src/core/range.h
@@ -231,7 +231,7 @@ set(QFTbx_BACKEND_HED
     src/core/loopshaping/stages.h
     src/core/loopshaping/boundary_violation_detector.h
     src/core/loopshaping/ordered_list.h
-    Modelo/EstructurasDatos/datosloopshaping.h
+    src/core/loopshaping/loop_shaping_result.h
     src/core/boundaries/boundary_union_1d.h
     src/core/boundaries/contour_tracer.h
     src/core/loopshaping/common_functions.h

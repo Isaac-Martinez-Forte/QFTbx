@@ -16,7 +16,7 @@
 #include "src/core/system/parameter.h"
 #include "GUI/parlineedit.h"
 #include "mpParser.h"
-#include "Modelo/Herramientas/tools.h"
+#include "src/core/math/sequence_vectors.h"
 
 namespace Ui {
 class UncertaintyDialog;

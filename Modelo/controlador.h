@@ -11,7 +11,7 @@
 #include "src/core/boundaries/boundary_engine.h"
 #include "src/persistence/project_reader.h"
 #include "src/persistence/project_writer.h"
-#include "Herramientas/tools.h"
+#include "src/core/math/sequence_vectors.h"
 #include "src/core/loopshaping/loop_shaping.h"
 #include "src/core/project_data.h"
 
@@ -200,7 +200,7 @@ public:
     bool calcularLoopShaping(qreal epsilon, LoopShapingAlgorithm seleccionado, QPointF rango, qreal nPuntos,
                              qint32 inicializacion = 0);
 
-    DatosLoopShaping * getLoopShaping ();
+    LoopShapingResult * getLoopShaping ();
     
     /**
     * @fn guardarSistema
@@ -228,7 +228,7 @@ public:
     
     QVector<qreal> *getEpsilon();
 
-    void setLoopShaping (DatosLoopShaping * datos);
+    void setLoopShaping (LoopShapingResult * datos);
 
 
 private:

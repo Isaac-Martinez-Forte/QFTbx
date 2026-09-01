@@ -11,7 +11,7 @@
 
 #include "src/core/exception.h"
 #include "src/core/text_tokens.h"
-#include "Modelo/Herramientas/tools.h"
+#include "src/core/math/sequence_vectors.h"
 #include "src/core/frequencies/omega.h"
 #include "src/core/math/sequences.h"
 

@@ -11,7 +11,7 @@
 #include <QString>
 #include <QVector>
 
-#include "Modelo/EstructurasDatos/datosloopshaping.h"
+#include "src/core/loopshaping/loop_shaping_result.h"
 #include "src/core/specifications/specification_record.h"
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/system/lti_system.h"
@@ -115,13 +115,13 @@ inline void expectSameBoundaries(BoundaryData* a, BoundaryData* b)
     }
 }
 
-inline void expectSameLoopShaping(DatosLoopShaping* a, DatosLoopShaping* b)
+inline void expectSameLoopShaping(LoopShapingResult* a, LoopShapingResult* b)
 {
     ASSERT_NE(a, nullptr);
     ASSERT_NE(b, nullptr);
     EXPECT_EQ(a->pointCount(), b->pointCount());
     EXPECT_EQ(a->range(), b->range());
-    expectSameSystem(a->getControlador(), b->getControlador(), {0.5, 2.0}, "loop shaping");
+    expectSameSystem(a->controller(), b->controller(), {0.5, 2.0}, "loop shaping");
 }
 
 } // namespace qftbx_tests

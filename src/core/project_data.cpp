@@ -158,12 +158,12 @@ void ProjectData::setController(LtiSystem * controller)
     m_controller = controller;
 }
 
-DatosLoopShaping * ProjectData::loopShaping() const
+LoopShapingResult * ProjectData::loopShaping() const
 {
     return m_loopShaping;
 }
 
-void ProjectData::setLoopShaping(DatosLoopShaping * loopShaping)
+void ProjectData::setLoopShaping(LoopShapingResult * loopShaping)
 {
     if (m_loopShaping != loopShaping) {
         delete m_loopShaping;

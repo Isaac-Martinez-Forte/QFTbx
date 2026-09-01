@@ -6,7 +6,7 @@
 #include <QPointF>
 
 #include "src/core/system/lti_system.h"
-#include "Modelo/Herramientas/tools.h"
+#include "src/core/math/sequence_vectors.h"
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/loopshaping/natural_interval_extension.h"
 #include "src/core/loopshaping/boundary_violation_detector.h"

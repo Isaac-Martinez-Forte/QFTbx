@@ -3,7 +3,7 @@
 #include <QElapsedTimer>
 #include <iostream>
 
-#include "Modelo/Herramientas/tools.h" //linspace for the sheet axes
+#include "src/core/math/sequence_vectors.h" //linspace for the sheet axes
 
 using std::complex;
 using std::cout;

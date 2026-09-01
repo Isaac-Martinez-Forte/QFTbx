@@ -3,7 +3,7 @@
 
 #include <array>
 
-#include "Modelo/Herramientas/tools.h"
+#include "src/core/math/sequence_vectors.h"
 
 //Result of classifying one projected Nichols box against the boundary
 //union at one design frequency (BoundaryViolationDetector): the

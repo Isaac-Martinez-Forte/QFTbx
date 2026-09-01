@@ -166,18 +166,18 @@ bool Controlador::calcularLoopShaping(qreal epsilon, tools::LoopShapingAlgorithm
                                          inicializacion);
 
     if (re){
-        data.setLoopShaping(new DatosLoopShaping(loopShaping->getControlador(), rango, nPuntos));
+        data.setLoopShaping(new LoopShapingResult(loopShaping->getControlador(), rango, nPuntos));
         return true;
     }
 
     return false;
 }
 
-void Controlador::setLoopShaping(DatosLoopShaping *datos){
+void Controlador::setLoopShaping(LoopShapingResult *datos){
     data.setLoopShaping(datos);
 }
 
-DatosLoopShaping * Controlador::getLoopShaping(){
+LoopShapingResult * Controlador::getLoopShaping(){
     return data.loopShaping();
 }
 

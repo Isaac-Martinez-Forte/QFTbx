@@ -4,7 +4,7 @@
 #include <QPointF>
 #include <limits>
 
-#include "Modelo/Herramientas/tools.h"
+#include "src/core/math/sequence_vectors.h"
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/loopshaping/box_classification.h"
 

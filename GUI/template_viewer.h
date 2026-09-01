@@ -14,7 +14,7 @@
 #include <QVBoxLayout>
 #include <QCheckBox>
 
-#include "Modelo/Herramientas/tools.h"
+#include "src/core/math/sequence_vectors.h"
 #include "Modelo/controlador.h"
 #include "qcustomplot.h"
 
