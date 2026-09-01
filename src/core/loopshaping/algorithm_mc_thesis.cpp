@@ -167,36 +167,26 @@ inline std::unique_ptr<LtiSystem> AlgorithmMcThesis::replaceParameter(LtiSystem 
 //and the cutting/bisection strategies wired per the pseudocode.
 bool AlgorithmMcThesis::init_algorithm()
 {
-    lista = new OrderedList();
-    conversion = new NaturalIntervalExtension();
-    deteccion = new BoundaryViolationDetector();
-    stability = new NominalStabilityChecker(planta, omega);
+    lista = std::make_unique<OrderedList>();
+    conversion = std::make_unique<NaturalIntervalExtension>();
+    deteccion = std::make_unique<BoundaryViolationDetector>();
+    stability = std::make_unique<NominalStabilityChecker>(planta, omega);
 
     bestCertifiedGain = std::numeric_limits<qreal>::infinity();
     bestCertifiedController.reset();
 
-    plantas_nominales = new QVector<cxsc::complex>();
-    plantas_nominales_std = new QVector<std::complex<qreal>>();
+    plantas_nominales.clear();
+    plantas_nominales_std.clear();
 
     foreach (qreal o, *omega) {
         std::complex<qreal> c = planta->evaluate(o);
-        plantas_nominales_std->append(c);
-        plantas_nominales->append(cxsc::complex(c.real(), c.imag()));
+        plantas_nominales_std.append(c);
+        plantas_nominales.append(cxsc::complex(c.real(), c.imag()));
     }
-
-    const auto cleanup = [this]() {
-        delete conversion;
-        delete lista;
-        delete deteccion;
-        delete stability;
-        delete plantas_nominales;
-        delete plantas_nominales_std;
-    };
 
     //A controller with no uncertain parameter offers nothing to search.
     if (!hasUncertainZeros && !hasUncertainPoles && !controlador->gain().isUncertain()) {
         controlador_retorno = pointFromBox(controlador.get(), true);
-        cleanup();
         return false;
     }
 
@@ -222,11 +212,9 @@ bool AlgorithmMcThesis::init_algorithm()
             //sound completion).
             if (bestCertifiedController != nullptr) {
                 controlador_retorno = std::move(bestCertifiedController);
-                cleanup();
                 return true;
             }
 
-            cleanup();
             throw qftbx::InvalidInput(
                     "No feasible solution exists in the given search box.");
         }
@@ -245,7 +233,6 @@ bool AlgorithmMcThesis::init_algorithm()
         //the optimum of the box (stability was certified at insertion).
         if (node->flag() == feasible) {
             controlador_retorno = pointFromBox(node->system(), true);
-            cleanup();
             return true;
         }
 
@@ -263,14 +250,13 @@ bool AlgorithmMcThesis::init_algorithm()
                 continue;
             }
 
-            cleanup();
             return true;
         }
 
         //Termination on the epsilon-small leading box (thesis 3.3, the
         //solution function): the returned point is unverified, so it must
         //pass the stability criterion, as reviewed for NT.
-        if (isEpsilonSmall(node->system(), epsilon, omega, conversion, plantas_nominales)) {
+        if (isEpsilonSmall(node->system(), epsilon, omega, conversion.get(), plantas_nominales)) {
             controlador_retorno = pointFromBox(node->system(), false);
 
             if (!stability->isNominallyStable(controlador_retorno.get())) {
@@ -278,7 +264,6 @@ bool AlgorithmMcThesis::init_algorithm()
                 continue;
             }
 
-            cleanup();
             return true;
         }
 
@@ -341,7 +326,7 @@ inline bool AlgorithmMcThesis::analyse(McSearchNode * node, NodeAnalysis & out)
         }
 
         const cinterval caja = conversion->nicholsBox(node->system(), omega->at(i),
-                                                      plantas_nominales->at(i));
+                                                      plantas_nominales.at(i));
 
         BoxClassification * datos = deteccion->classifyBox(caja, boundaries, i);
 
@@ -421,7 +406,7 @@ inline void AlgorithmMcThesis::improveNode(McSearchNode * node, NodeAnalysis & a
 inline bool AlgorithmMcThesis::boxIsFeasibleAt(LtiSystem * box, qint32 freqIndex)
 {
     const cinterval caja = conversion->nicholsBox(box, omega->at(freqIndex),
-                                                  plantas_nominales->at(freqIndex));
+                                                  plantas_nominales.at(freqIndex));
     BoxClassification * datos = deteccion->classifyBox(caja, boundaries, freqIndex);
     const bool feasibleHere = datos->flag() == feasible;
     delete datos;
@@ -475,7 +460,7 @@ inline bool AlgorithmMcThesis::bestGainSearch(McSearchNode * node, const NodeAna
         }
 
         const qreal w = omega->at(i);
-        const std::complex<qreal> p0 = plantas_nominales_std->at(i);
+        const std::complex<qreal> p0 = plantas_nominales_std.at(i);
         const qreal boundMin = std::pow(10.0, datos->extremes()[0] / 20.0);
         const qreal boundMax = std::pow(10.0, datos->extremes()[1] / 20.0);
 
@@ -635,7 +620,7 @@ inline void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnaly
                     }
 
                     const qreal w = omega->at(i);
-                    const std::complex<qreal> p0 = plantas_nominales_std->at(i);
+                    const std::complex<qreal> p0 = plantas_nominales_std.at(i);
 
                     qreal t = -1.0;
 
@@ -818,7 +803,7 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
         }
 
         const qreal w = omega->at(i);
-        const std::complex<qreal> p0 = plantas_nominales_std->at(i);
+        const std::complex<qreal> p0 = plantas_nominales_std.at(i);
         const qreal boundMin = std::pow(10.0, datos->extremes()[0] / 20.0);
         const qreal boundMax = std::pow(10.0, datos->extremes()[1] / 20.0);
 
@@ -1012,7 +997,7 @@ inline qint32 AlgorithmMcThesis::widestByMeasure(McSearchNode * node, qint32 mai
 {
     LtiSystem * box = node->system();
     const qreal w = omega->at(mainFrequency);
-    const cxsc::complex p0 = plantas_nominales->at(mainFrequency);
+    const cxsc::complex p0 = plantas_nominales.at(mainFrequency);
 
     qint32 best = -1;
     qreal bestValue = -1.0;

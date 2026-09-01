@@ -87,17 +87,17 @@ private:
     qftbx::CloudSet temp;
     QVector<qftbx::SpecificationRecord *> * espe = nullptr;
 
-    NaturalIntervalExtension * conversion = nullptr;
-    NominalStabilityChecker * stability = nullptr;
-    OrderedList * lista = nullptr;
-    QVector<cxsc::complex> * plantas_nominales = nullptr;
+    std::unique_ptr<NaturalIntervalExtension> conversion;
+    std::unique_ptr<NominalStabilityChecker> stability;
+    std::unique_ptr<OrderedList> lista;
+    QVector<cxsc::complex> plantas_nominales;
 
     //Controller magnitude/phase expression strings, one per design
     //frequency, and the parsed constraint trees (built once; each box
     //only reloads the variable domains).
     QVector<QString> magnitudeExpressions;
     QVector<QString> phaseExpressions;
-    QVector<alg::ExpressionTree *> constraints;
+    std::vector<std::unique_ptr<alg::ExpressionTree>> constraints;
     //The source text of each constraint, for diagnostics.
     QVector<QString> constraintTexts;
 

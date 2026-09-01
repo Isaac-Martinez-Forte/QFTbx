@@ -48,8 +48,8 @@ private:
     std::unique_ptr<LtiSystem> controlador;
     QVector <qreal> * omega;
     const BoundaryData * boundaries = nullptr;
-    NaturalIntervalExtension * conversion = nullptr;
-    OrderedList * lista = nullptr;
+    std::unique_ptr<NaturalIntervalExtension> conversion;
+    std::unique_ptr<OrderedList> lista;
     qreal epsilon;
 
     std::unique_ptr<LtiSystem> controlador_retorno;
@@ -61,9 +61,9 @@ private:
 
     qint32 tamFas;
 
-    BoundaryViolationDetector * deteccion = nullptr;
-    NominalStabilityChecker * stability = nullptr;
-    QVector <complex> * plantas_nominales = nullptr;
+    std::unique_ptr<BoundaryViolationDetector> deteccion;
+    std::unique_ptr<NominalStabilityChecker> stability;
+    QVector <complex> plantas_nominales;
 
 };
 

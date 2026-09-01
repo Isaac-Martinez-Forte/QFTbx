@@ -82,31 +82,22 @@ void AlgorithmMc1::set_datos(LtiSystem * planta, LtiSystem * controlador, QVecto
 //prune variable C of step 3bis behind bestCertifiedGain.
 bool AlgorithmMc1::init_algorithm()
 {
-    lista = new OrderedList();
-    conversion = new NaturalIntervalExtension();
-    deteccion = new BoundaryViolationDetector();
-    stability = new NominalStabilityChecker(planta, omega);
+    lista = std::make_unique<OrderedList>();
+    conversion = std::make_unique<NaturalIntervalExtension>();
+    deteccion = std::make_unique<BoundaryViolationDetector>();
+    stability = std::make_unique<NominalStabilityChecker>(planta, omega);
 
     bestCertifiedGain = std::numeric_limits<qreal>::infinity();
     bestCertifiedController = nullptr;
 
-    plantas_nominales = new QVector<cxsc::complex>();
-    plantas_nominales_std = new QVector<std::complex<qreal>>();
+    plantas_nominales.clear();
+    plantas_nominales_std.clear();
 
     foreach (qreal o, *omega) {
         std::complex<qreal> c = planta->evaluate(o);
-        plantas_nominales_std->append(c);
-        plantas_nominales->append(cxsc::complex(c.real(), c.imag()));
+        plantas_nominales_std.append(c);
+        plantas_nominales.append(cxsc::complex(c.real(), c.imag()));
     }
-
-    const auto cleanup = [this]() {
-        delete conversion;
-        delete lista;
-        delete deteccion;
-        delete stability;
-        delete plantas_nominales;
-        delete plantas_nominales_std;
-    };
 
     //Steps 1-2: QS2 and feasibility of the initial box happen inside
     //check_box_feasibility, which inserts it unless certainly infeasible.
@@ -120,11 +111,9 @@ bool AlgorithmMc1::init_algorithm()
             //z' in the list instead; same fallback).
             if (bestCertifiedController != nullptr) {
                 controlador_retorno = std::move(bestCertifiedController);
-                cleanup();
                 return true;
             }
 
-            cleanup();
             throw qftbx::InvalidInput(
                     "No feasible solution exists in the given search box.");
         }
@@ -138,7 +127,7 @@ bool AlgorithmMc1::init_algorithm()
         }
 
         //Step 3 and Remark 3.1 termination, as reviewed for NT.
-        if (node->flag() == feasible || isEpsilonSmall(node->system(), this->epsilon, omega, conversion, plantas_nominales)) {
+        if (node->flag() == feasible || isEpsilonSmall(node->system(), this->epsilon, omega, conversion.get(), plantas_nominales)) {
             if (node->flag() == ambiguous) {
                 controlador_retorno = pointFromBox(node->system(), false);
 
@@ -150,7 +139,6 @@ bool AlgorithmMc1::init_algorithm()
                 controlador_retorno = pointFromBox(node->system(), true);
             }
 
-            cleanup();
             return true;
         }
 
@@ -188,7 +176,7 @@ inline void AlgorithmMc1::check_box_feasibility(std::unique_ptr<LtiSystem> box)
 
     foreach (qreal o, *omega) {
 
-        caja = conversion->nicholsBox(box.get(), o, plantas_nominales->at(contador));
+        caja = conversion->nicholsBox(box.get(), o, plantas_nominales.at(contador));
 
         datos = deteccion->classifyBox(caja, boundaries, contador);
 
@@ -201,7 +189,7 @@ inline void AlgorithmMc1::check_box_feasibility(std::unique_ptr<LtiSystem> box)
             flag_final = ambiguous;
 
             box = quickSolution2(std::move(box), datos, caja, o,
-                                 plantas_nominales_std->at(contador));
+                                 plantas_nominales_std.at(contador));
         }
 
         delete datos;
@@ -432,7 +420,7 @@ inline bool AlgorithmMc1::gainRangeIsFeasible(LtiSystem * box,
 
     for (qint32 i = 0; i < omega->size() && feasibleEverywhere; ++i) {
         const cinterval caja = conversion->nicholsBox(candidate.get(), omega->at(i),
-                                                      plantas_nominales->at(i));
+                                                      plantas_nominales.at(i));
         BoxClassification * datos = deteccion->classifyBox(caja, boundaries, i);
         feasibleEverywhere = (datos->flag() == feasible);
         delete datos;

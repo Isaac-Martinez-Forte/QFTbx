@@ -41,17 +41,11 @@ AlgorithmNt::AlgorithmNt() {
 
 }
 
+//Every working structure is a member that owns itself, so an exit through
+//an exception (an infeasible problem throws) frees them just like a normal
+//return. The historical throw paths freed four of the five by hand and
+//forgot the nominal-plant cache.
 AlgorithmNt::~AlgorithmNt() {
-
-    //Every working structure dies with the algorithm, so an exit through an
-    //exception (an infeasible problem throws) frees them just like a normal
-    //return: the throw paths used to free four of the five by hand and
-    //forget the nominal-plant cache.
-    delete conversion;
-    delete lista;
-    delete deteccion;
-    delete stability;
-    delete plantas_nominales;
 }
 
 void AlgorithmNt::set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, const BoundaryData * boundaries,
@@ -72,17 +66,17 @@ void AlgorithmNt::set_datos(LtiSystem * planta, LtiSystem * controlador, QVector
 
 bool AlgorithmNt::init_algorithm() {
 
-    lista = new OrderedList();
+    lista = std::make_unique<OrderedList>();
 
-    conversion = new NaturalIntervalExtension();
-    deteccion = new BoundaryViolationDetector();
-    stability = new NominalStabilityChecker(planta, omega);
+    conversion = std::make_unique<NaturalIntervalExtension>();
+    deteccion = std::make_unique<BoundaryViolationDetector>();
+    stability = std::make_unique<NominalStabilityChecker>(planta, omega);
 
-    plantas_nominales = new QVector <cxsc::complex> ();
+    plantas_nominales.clear();
 
     foreach (qreal o, *omega) {
         std::complex <qreal> c = planta->evaluate(o);
-        plantas_nominales->append(cxsc::complex(c.real(), c.imag()));
+        plantas_nominales.append(cxsc::complex(c.real(), c.imag()));
     }
 
     //Step 1: feasibility of the initial search box (inserts it into NL
@@ -105,7 +99,7 @@ bool AlgorithmNt::init_algorithm() {
         //lower gain corner realises the optimum), or a leading box below
         //the epsilon accuracy at every frequency (Remark 3.1; if still
         //ambiguous, the feasible corner is extracted).
-        if (node->flag() == feasible || isEpsilonSmall(node->system(), this->epsilon, omega, conversion, plantas_nominales)) {
+        if (node->flag() == feasible || isEpsilonSmall(node->system(), this->epsilon, omega, conversion.get(), plantas_nominales)) {
             if (node->flag() == ambiguous) {
                 controlador_retorno = pointFromBox(node->system(), false);
 
@@ -166,7 +160,7 @@ inline void AlgorithmNt::check_box_feasibility(std::unique_ptr<LtiSystem> box) {
 
     foreach(qreal o, *omega) {
 
-        caja = conversion->nicholsBox(box.get(), o, plantas_nominales->at(contador));
+        caja = conversion->nicholsBox(box.get(), o, plantas_nominales.at(contador));
 
         datos = deteccion->classifyBox(caja, boundaries, contador);
 
@@ -267,7 +261,7 @@ inline std::unique_ptr<LtiSystem> AlgorithmNt::acelerated(std::unique_ptr<LtiSys
                 v->denominator(), min_k_lineal, v->delay());
 
         qreal mag_min_db = _double(SupRe(conversion->nicholsBox(G_k_min.get(), o,
-                plantas_nominales->at(contador))));
+                plantas_nominales.at(contador))));
 
 
         if (mag_min_db < minimo_boundarie) {
@@ -313,7 +307,7 @@ inline bool AlgorithmNt::feasibleGainFrom(LtiSystem * v, qreal maximo_boundarie,
             v->denominator(), max_k_lineal, v->delay());
 
     qreal mag_max_db = _double(InfRe(conversion->nicholsBox(G_k_max.get(), o,
-            plantas_nominales->at(contador))));
+            plantas_nominales.at(contador))));
 
     if (mag_max_db <= maximo_boundarie) {
         return false;

@@ -79,13 +79,13 @@ private:
     const BoundaryData * boundaries = nullptr;
     qreal epsilon = 0;
 
-    NaturalIntervalExtension * conversion = nullptr;
-    BoundaryViolationDetector * deteccion = nullptr;
-    NominalStabilityChecker * stability = nullptr;
-    OrderedList * lista = nullptr;
+    std::unique_ptr<NaturalIntervalExtension> conversion;
+    std::unique_ptr<BoundaryViolationDetector> deteccion;
+    std::unique_ptr<NominalStabilityChecker> stability;
+    std::unique_ptr<OrderedList> lista;
 
-    QVector<cxsc::complex> * plantas_nominales = nullptr;
-    QVector<std::complex<qreal>> * plantas_nominales_std = nullptr;
+    QVector<cxsc::complex> plantas_nominales;
+    QVector<std::complex<qreal>> plantas_nominales_std;
 
     std::unique_ptr<LtiSystem> controlador_retorno;
     std::unique_ptr<LtiSystem> prototype;

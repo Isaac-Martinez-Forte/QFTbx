@@ -116,6 +116,12 @@ inline void AlgorithmMr::buildControllerExpressions(){
 //design frequency where the specification band applies.
 inline void AlgorithmMr::buildConstraints(){
 
+    //The constraint set is rebuilt from scratch: the historical version
+    //relied on the end-of-run cleanup to empty it, so a second run over
+    //the same algorithm object would have doubled every constraint.
+    constraints.clear();
+    constraintTexts.clear();
+
     //The validated specification set, the same accessor the boundary
     //engine cuts at (the raw record heightDb evaluated NaN on some legacy
     //system specifications).
@@ -130,9 +136,9 @@ inline void AlgorithmMr::buildConstraints(){
     };
 
     const auto addConstraint = [&](const QString & expression) {
-        ExpressionTree * tree = new ExpressionTree("1");
+        auto tree = std::make_unique<ExpressionTree>("1");
         tree->setFunc(expression.toStdString(), 0.0, alg::MAYORIGUAL);
-        constraints.append(tree);
+        constraints.push_back(std::move(tree));
         constraintTexts.append(expression);
     };
 
@@ -233,34 +239,24 @@ inline void AlgorithmMr::buildConstraints(){
 
 bool AlgorithmMr::init_algorithm(){
 
-    lista = new OrderedList();
-    conversion = new NaturalIntervalExtension();
-    stability = new NominalStabilityChecker(planta, omega);
+    lista = std::make_unique<OrderedList>();
+    conversion = std::make_unique<NaturalIntervalExtension>();
+    stability = std::make_unique<NominalStabilityChecker>(planta, omega);
 
-    plantas_nominales = new QVector<cxsc::complex>();
+    plantas_nominales.clear();
     foreach (qreal o, *omega) {
         std::complex<qreal> c = planta->evaluate(o);
-        plantas_nominales->append(cxsc::complex(c.real(), c.imag()));
+        plantas_nominales.append(cxsc::complex(c.real(), c.imag()));
     }
 
     buildControllerExpressions();
     buildConstraints();
-
-    const auto cleanup = [this]() {
-        delete conversion;
-        delete lista;
-        delete stability;
-        delete plantas_nominales;
-        qDeleteAll(constraints);
-        constraints.clear();
-    };
 
     classifyAndInsert(std::move(controlador));
 
     while (true) {
 
         if (lista->isEmpty()) {
-            cleanup();
             throw qftbx::InvalidInput(
                     "No feasible solution exists in the given search box.");
         }
@@ -268,7 +264,7 @@ bool AlgorithmMr::init_algorithm(){
         std::unique_ptr<SearchNode> node = lista->takeFirstAs<SearchNode>();
 
         if (node->flag() == feasible || FC::isEpsilonSmall(
-                    node->system(), epsilon, omega, conversion, plantas_nominales)) {
+                    node->system(), epsilon, omega, conversion.get(), plantas_nominales)) {
 
             controlador_retorno = pointFromBox(node->system(),
                                                      node->flag() != ambiguous);
@@ -279,7 +275,6 @@ bool AlgorithmMr::init_algorithm(){
                 continue;
             }
 
-            cleanup();
             return true;
         }
 
@@ -327,7 +322,7 @@ inline bool AlgorithmMr::narrowToFixpoint(std::map<std::string, cxsc::interval> 
 
         const std::map<std::string, cxsc::interval> snapshot = domains;
 
-        foreach (ExpressionTree * tree, constraints) {
+        for (const std::unique_ptr<ExpressionTree> & tree : constraints) {
             if (!tree->propagate(&domains)) {
                 return false;
             }
@@ -353,7 +348,7 @@ inline bool AlgorithmMr::narrowToFixpoint(std::map<std::string, cxsc::interval> 
 
 inline bool AlgorithmMr::certainlyFeasible(std::map<std::string, cxsc::interval> & domains){
 
-    foreach (ExpressionTree * tree, constraints) {
+    for (const std::unique_ptr<ExpressionTree> & tree : constraints) {
         if (cxsc::_double(Inf(tree->eval(&domains))) < 0.0) {
             return false;
         }
