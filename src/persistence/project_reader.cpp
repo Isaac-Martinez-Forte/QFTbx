@@ -441,7 +441,7 @@ ProjectReader::~ProjectReader()
     delete m_loopShaping;
 }
 
-QVector <bool> * ProjectReader::load(const QString & filePath)
+std::vector<bool> ProjectReader::load(const QString & filePath)
 {
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly)) {
@@ -502,15 +502,15 @@ QVector <bool> * ProjectReader::load(const QString & filePath)
 
     //Section flags in the historical order (always all 8: the old error
     //paths returned 7 and consumers indexed out of range).
-    auto * sections = new QVector <bool> ();
-    sections->append(m_plant != nullptr);
-    sections->append(m_specifications != nullptr);
-    sections->append(m_omega != nullptr);
-    sections->append(!m_templates.empty());
-    sections->append(m_boundaries != nullptr);
-    sections->append(m_controller != nullptr);
-    sections->append(m_loopShaping != nullptr);
-    sections->append(hasContour);
+    std::vector<bool> sections;
+    sections.push_back(m_plant != nullptr);
+    sections.push_back(m_specifications != nullptr);
+    sections.push_back(m_omega != nullptr);
+    sections.push_back(!m_templates.empty());
+    sections.push_back(m_boundaries != nullptr);
+    sections.push_back(m_controller != nullptr);
+    sections.push_back(m_loopShaping != nullptr);
+    sections.push_back(hasContour);
 
     return sections;
 }

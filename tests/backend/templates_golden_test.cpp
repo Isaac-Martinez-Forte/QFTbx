@@ -44,7 +44,7 @@ class TemplatesGolden : public ::testing::Test
 protected:
     void SetUp() override
     {
-        delete parser.load(
+        parser.load(
             QStringLiteral(QFTBX_TEST_DATA_DIR "/planta2.qft"));
         planta = parser.plant();
         ASSERT_NE(planta, nullptr);
@@ -217,7 +217,7 @@ TEST(TemplatesReload, RecalculateContourAfterLoadingAProject)
     // Fixed crash: loading a project fed only the DAO, so recalculating
     // the contour dereferenced a null templates vector inside the engine.
     ProjectController controlador;
-    delete controlador.load(
+    controlador.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/planta2.qft"));
 
     auto* epsilon = new QVector<qreal>(6, 10.0);
@@ -240,7 +240,7 @@ TEST(TemplatesValidation, MissingSweepGridThrowsInvalidInput)
     // Hardened: a map without an entry for some uncertain parameter used to
     // dereference null; now it reports which grid is missing.
     ProjectReader parser;
-    delete parser.load(
+    parser.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/planta2.qft"));
     LtiSystem* planta = parser.plant();
 

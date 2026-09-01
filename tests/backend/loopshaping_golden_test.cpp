@@ -52,7 +52,7 @@ TEST_P(LoopShapingGolden, Planta1ResultIsPinned)
     const GoldenResult golden = GetParam();
 
     ProjectController controller;
-    delete controller.load(
+    controller.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/planta1.qft"));
 
     if (!golden.solutionExists) {

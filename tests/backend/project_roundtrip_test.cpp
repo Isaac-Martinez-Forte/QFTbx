@@ -55,8 +55,8 @@ protected:
     QString rewritten;
     ProjectReader original;
     ProjectReader reloaded;
-    QVector<bool>* originalFlags = nullptr;
-    QVector<bool>* reloadedFlags = nullptr;
+    std::vector<bool> originalFlags;
+    std::vector<bool> reloadedFlags;
 };
 
 TEST_P(RoundTrip, WritesTheVersionedEnglishDialect)
@@ -71,26 +71,26 @@ TEST_P(RoundTrip, WritesTheVersionedEnglishDialect)
     // No legacy Spanish tags anywhere in a v2 file.
     EXPECT_FALSE(root.child("Planta"));
     EXPECT_FALSE(root.child("especificaciones"));
-    if (originalFlags->at(0)) {
+    if (originalFlags.at(0)) {
         EXPECT_TRUE(root.child("plant"));
     }
-    if (originalFlags->at(1)) {
+    if (originalFlags.at(1)) {
         EXPECT_TRUE(root.child("specifications"));
     }
 }
 
 TEST_P(RoundTrip, SectionFlagsSurvive)
 {
-    ASSERT_EQ(reloadedFlags->size(), 8);
+    ASSERT_EQ(static_cast<int>(reloadedFlags.size()), 8);
     for (int i = 0; i < 8; ++i) {
-        EXPECT_EQ(reloadedFlags->at(i), originalFlags->at(i)) << "flag " << i;
+        EXPECT_EQ(reloadedFlags.at(i), originalFlags.at(i)) << "flag " << i;
     }
 }
 
 TEST_P(RoundTrip, EverySectionSurvivesBitExact)
 {
     QVector<qreal> probes{0.5, 1.0, 7.3};
-    if (originalFlags->at(2)) {
+    if (originalFlags.at(2)) {
         EXPECT_EQ(*original.omega()->values(), *reloaded.omega()->values());
         EXPECT_EQ(original.omega()->start(), reloaded.omega()->start());
         EXPECT_EQ(original.omega()->end(), reloaded.omega()->end());
@@ -99,26 +99,26 @@ TEST_P(RoundTrip, EverySectionSurvivesBitExact)
         probes = *original.omega()->values();
     }
 
-    if (originalFlags->at(0)) {
+    if (originalFlags.at(0)) {
         expectSameSystem(original.plant(), reloaded.plant(), probes, "plant");
     }
-    if (originalFlags->at(1)) {
+    if (originalFlags.at(1)) {
         expectSameSpecifications(original.specifications(), reloaded.specifications());
     }
-    if (originalFlags->at(3)) {
+    if (originalFlags.at(3)) {
         EXPECT_EQ(*original.epsilon(), *reloaded.epsilon());
         expectSameComplexVectors(original.templates(), reloaded.templates(), "templates");
     }
-    if (originalFlags->at(7)) {
+    if (originalFlags.at(7)) {
         expectSameComplexVectors(original.contour(), reloaded.contour(), "contour");
     }
-    if (originalFlags->at(4)) {
+    if (originalFlags.at(4)) {
         expectSameBoundaries(original.boundaries(), reloaded.boundaries());
     }
-    if (originalFlags->at(5)) {
+    if (originalFlags.at(5)) {
         expectSameSystem(original.controller(), reloaded.controller(), probes, "controller");
     }
-    if (originalFlags->at(6)) {
+    if (originalFlags.at(6)) {
         expectSameLoopShaping(original.loopShaping(), reloaded.loopShaping());
     }
 }

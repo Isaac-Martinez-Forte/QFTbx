@@ -146,7 +146,9 @@ public:
      * specifications, omega, templates, boundaries, controller, loop
      * shaping, template contour. The caller owns the returned vector.
      */
-    QVector<bool> * load(QString path);
+    /// Which sections the file carried, in the historical order. By value:
+    /// callers used to have to delete this, and most tests did not.
+    std::vector<bool> load(QString path);
 
 private:
     /// Publishing an input drops whatever was computed from the old one: see

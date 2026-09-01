@@ -60,7 +60,7 @@ Numbers sweep(int threads)
 #endif
 
     qftbx::ProjectReader parser;
-    delete parser.load(QStringLiteral(QFTBX_TEST_DATA_DIR "/planta2.qft"));
+    parser.load(QStringLiteral(QFTBX_TEST_DATA_DIR "/planta2.qft"));
 
     LtiSystem * plant = parser.plant();
     if (plant == nullptr) {

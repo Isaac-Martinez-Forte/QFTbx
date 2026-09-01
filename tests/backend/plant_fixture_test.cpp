@@ -24,7 +24,7 @@ constexpr qreal kTolerance = 1e-9;
 TEST(PlantFixture, CerveraRoundTrip)
 {
     ProjectReader parser;
-    delete parser.load(QString(QFTBX_TEST_DATA_DIR "/cervera.qft"));
+    parser.load(QString(QFTBX_TEST_DATA_DIR "/cervera.qft"));
 
     LtiSystem* planta = parser.plant();
     ASSERT_NE(planta, nullptr);
@@ -68,7 +68,7 @@ TEST(PlantFixture, CerveraRoundTrip)
 TEST(PlantFixture, Planta1RoundTrip)
 {
     ProjectReader parser;
-    delete parser.load(QString(QFTBX_TEST_DATA_DIR "/planta1.qft"));
+    parser.load(QString(QFTBX_TEST_DATA_DIR "/planta1.qft"));
 
     LtiSystem* planta = parser.plant();
     ASSERT_NE(planta, nullptr);

@@ -313,36 +313,36 @@ bool ProjectController::save(QString fichero){
     return true;
 }
 
-QVector <bool> * ProjectController::load(QString fichero){
+std::vector<bool> ProjectController::load(QString fichero){
 
     ProjectReader reader;
 
-    QVector <bool> * flags = reader.load(fichero);
+    const std::vector<bool> flags = reader.load(fichero);
 
-    if (flags->value(0))
+    if (flags.at(0))
         setPlant(reader.takePlant());
 
-    if (flags->value(1))
+    if (flags.at(1))
         setSpecifications(reader.takeSpecifications());
 
-    if (flags->value(2))
+    if (flags.at(2))
         setOmega(reader.takeOmega());
 
-    if (flags->value(3)){
+    if (flags.at(3)){
         setTemplates(reader.takeTemplates(),
-                    flags->value(7) ? reader.takeContour() : qftbx::CloudSet(),
-                    flags->value(7));
+                    flags.at(7) ? reader.takeContour() : qftbx::CloudSet(),
+                    flags.at(7));
         data.setEpsilon(reader.takeEpsilon());
     }
 
-    if (flags->value(4))
+    if (flags.at(4))
         setBoundaries(reader.takeBoundaries());
 
-    if (flags->value(5)){
+    if (flags.at(5)){
         setControllerStructure(reader.takeController());
     }
 
-    if (flags->value(6)){
+    if (flags.at(6)){
         setLoopShapingResult(reader.takeLoopShaping());
     }
 

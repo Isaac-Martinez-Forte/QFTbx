@@ -599,7 +599,7 @@ void MainWindow::on_actionOpen_triggered()
 
     if (!fileName.isEmpty()){
 
-        QVector <bool> * leido;
+        std::vector<bool> leido;
 
         try {
             leido = controller->load(fileName);
@@ -623,15 +623,13 @@ void MainWindow::on_actionOpen_triggered()
         //Save writes back to the file that was just opened.
         saveFilePath = fileName;
 
-        plantDone = leido->value(0);
-        specificationsDone = leido->value(1);
-        frequenciesDone = leido->value(2);
-        templatesDone = leido->value(3);
-        boundariesDone = leido->value(4);
-        controllerDone = leido->value(5);
-        loopDone = leido->value(6);
-
-        delete leido;
+        plantDone = leido.at(0);
+        specificationsDone = leido.at(1);
+        frequenciesDone = leido.at(2);
+        templatesDone = leido.at(3);
+        boundariesDone = leido.at(4);
+        controllerDone = leido.at(5);
+        loopDone = leido.at(6);
 
 
         if (plantDone){

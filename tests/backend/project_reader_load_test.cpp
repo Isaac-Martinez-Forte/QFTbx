@@ -35,22 +35,19 @@ QString fixturePath(const char *name)
     return QString(QFTBX_TEST_DATA_DIR "/") + name;
 }
 
-QVector<bool> loadFlags(ProjectReader &parser, const char *fixture)
+std::vector<bool> loadFlags(ProjectReader &parser, const char *fixture)
 {
-    QVector<bool> *flags = parser.load(fixturePath(fixture));
-    if (flags == nullptr) {
-        ADD_FAILURE() << "load returned null for " << fixture;
-        return {};
-    }
-    QVector<bool> copy = *flags;
-    EXPECT_EQ(copy.size(), kSectionFlagCount) << "unexpected flag count";
-    return copy;
+    //By value: there is no null to rule out any more, and nothing to free.
+    std::vector<bool> flags = parser.load(fixturePath(fixture));
+    EXPECT_EQ(static_cast<int>(flags.size()), kSectionFlagCount)
+        << "unexpected flag count";
+    return flags;
 }
 
 TEST(ProjectReaderSmoke, CerveraLoadsPlantAndFrequenciesOnly)
 {
     ProjectReader parser;
-    const QVector<bool> flags = loadFlags(parser, "cervera.qft");
+    const std::vector<bool> flags = loadFlags(parser, "cervera.qft");
     ASSERT_EQ(flags.size(), kSectionFlagCount);
 
     EXPECT_TRUE(flags[kPlant]);
@@ -78,7 +75,7 @@ TEST(ProjectReaderSmoke, CerveraLoadsPlantAndFrequenciesOnly)
 TEST(ProjectReaderSmoke, Planta2LoadsUpToTemplates)
 {
     ProjectReader parser;
-    const QVector<bool> flags = loadFlags(parser, "planta2.qft");
+    const std::vector<bool> flags = loadFlags(parser, "planta2.qft");
     ASSERT_EQ(flags.size(), kSectionFlagCount);
 
     EXPECT_TRUE(flags[kPlant]);
@@ -100,7 +97,7 @@ TEST(ProjectReaderSmoke, Planta2LoadsUpToTemplates)
 TEST(ProjectReaderSmoke, MultivaluadosLoadsUpToBoundaries)
 {
     ProjectReader parser;
-    const QVector<bool> flags = loadFlags(parser, "multivaluados.qft");
+    const std::vector<bool> flags = loadFlags(parser, "multivaluados.qft");
     ASSERT_EQ(flags.size(), kSectionFlagCount);
 
     EXPECT_TRUE(flags[kPlant]);
@@ -120,7 +117,7 @@ TEST(ProjectReaderSmoke, MultivaluadosLoadsUpToBoundaries)
 TEST(ProjectReaderSmoke, Planta1LoadsFullProject)
 {
     ProjectReader parser;
-    const QVector<bool> flags = loadFlags(parser, "planta1.qft");
+    const std::vector<bool> flags = loadFlags(parser, "planta1.qft");
     ASSERT_EQ(flags.size(), kSectionFlagCount);
 
     for (int i = 0; i < kSectionFlagCount; ++i) {

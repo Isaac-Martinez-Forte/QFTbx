@@ -176,7 +176,7 @@ TEST_F(MalformedProject, TheSizeOfACoefficientListIsRedundantAndIgnored)
                                        "<denominator size=\"7\">");
     ASSERT_FALSE(wrongCount.isEmpty());
 
-    delete parser.load(wrongCount);
+    parser.load(wrongCount);
 
     ASSERT_NE(parser.plant(), nullptr) << "a redundant count broke the load";
     EXPECT_EQ(parser.plant()->denominator().size(), 2u)
@@ -239,7 +239,7 @@ TEST_F(MalformedProject, AGoodFileStillLoadsAfterARejectedOne)
     ASSERT_FALSE(bad.isEmpty());
     EXPECT_THROW(parser.load(bad), qftbx::ParseError);
 
-    delete parser.load(QStringLiteral(QFTBX_TEST_DATA_DIR "/planta1.qft"));
+    parser.load(QStringLiteral(QFTBX_TEST_DATA_DIR "/planta1.qft"));
 
     ASSERT_NE(parser.plant(), nullptr) << "the good file did not load after a bad one";
     EXPECT_EQ(parser.plant()->name(), QStringLiteral("aa"));

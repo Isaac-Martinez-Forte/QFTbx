@@ -59,7 +59,7 @@ class BoundariesGolden : public ::testing::Test
 protected:
     void SetUp() override
     {
-        delete parser.load(
+        parser.load(
             QStringLiteral(QFTBX_TEST_DATA_DIR "/multivaluados.qft"));
 
         engine.compute(parser.omega()->values(), parser.plant(),
@@ -167,7 +167,7 @@ TEST_F(BoundariesGolden, ContourInputIsEquivalentToFullTemplates)
     // The sheet is a max/min over the cloud, so feeding the full clouds
     // instead of the contours must give the same boundaries.
     ProjectReader parser2;
-    delete parser2.load(
+    parser2.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/multivaluados.qft"));
 
     BoundaryEngine engine2;
@@ -237,7 +237,7 @@ TEST(BoundaryCriticalPoint, CriticalCellViolatesEverySpecification)
     // huge but finite value; the engine no longer depends on that accident,
     // as the tracking case below shows.
     ProjectController controller;
-    delete controller.load(
+    controller.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/acc90.qft"));
 
     LtiSystem* plant = controller.plant();
@@ -285,7 +285,7 @@ TEST(BoundaryCriticalPoint, UndampedResonanceIsRejectedWithAdvice)
     // engine reports the frequency, the largest magnitude found and the
     // likely cause instead of the bare "could not compute" it used to give.
     ProjectController controller;
-    delete controller.load(
+    controller.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/acc90.qft"));
 
     // Undamped version of the fixture's plant, swept exactly at a resonance.

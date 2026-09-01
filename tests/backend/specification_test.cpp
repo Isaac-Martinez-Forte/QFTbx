@@ -124,7 +124,7 @@ TEST(SpecificationDao, OwnsReplacesAndToleratesIdentity)
 TEST(SpecificationPersistence, MultivaluadosSpecificationsRoundTrip)
 {
     ProjectReader parser;
-    delete parser.load(
+    parser.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/multivaluados.qft"));
 
     QVector<qftbx::SpecificationRecord*>* specs = parser.specifications();
@@ -155,7 +155,7 @@ TEST(SpecificationPersistence, MultivaluadosSpecificationsRoundTrip)
 TEST(SpecificationPersistence, Planta2RecoversBothTrackingPlants)
 {
     ProjectReader parser;
-    delete parser.load(
+    parser.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/planta2.qft"));
 
     QVector<qftbx::SpecificationRecord*>* specs = parser.specifications();
@@ -178,7 +178,7 @@ TEST(SpecificationPersistence, Planta2RecoversBothTrackingPlants)
 TEST(SpecificationPersistence, Planta1RecoversTheConstantStability)
 {
     ProjectReader parser;
-    delete parser.load(
+    parser.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/planta1.qft"));
 
     QVector<qftbx::SpecificationRecord*>* specs = parser.specifications();

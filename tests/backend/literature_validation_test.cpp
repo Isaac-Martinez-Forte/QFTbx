@@ -62,7 +62,7 @@ class LiteratureValidation : public ::testing::Test
 protected:
     void SetUp() override
     {
-        delete controller.load(
+        controller.load(
             QStringLiteral(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
     }
 

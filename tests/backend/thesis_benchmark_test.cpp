@@ -82,7 +82,7 @@ namespace {
 TEST(ThesisBenchmarkFixture, QftToolboxEx2LoadsWithTheFullPipeline)
 {
     ProjectController controller;
-    delete controller.load(
+    controller.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
 
     LtiSystem* plant = controller.plant();
@@ -124,7 +124,7 @@ TEST(ThesisBenchmarkFixture, QftToolboxEx2LoadsWithTheFullPipeline)
 TEST(ThesisBenchmarkFixture, Acc90LoadsWithTheFullPipeline)
 {
     ProjectController controller;
-    delete controller.load(
+    controller.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/acc90.qft"));
 
     LtiSystem* plant = controller.plant();
@@ -183,7 +183,7 @@ TEST_P(ThesisBenchmarkGolden, ResultIsPinned)
     const BenchmarkGolden golden = GetParam();
 
     ProjectController controller;
-    delete controller.load(
+    controller.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR) + "/" + golden.file);
 
     const bool ok = controller.computeLoopShaping(

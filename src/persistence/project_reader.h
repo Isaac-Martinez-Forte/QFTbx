@@ -37,7 +37,7 @@ public:
      * historical order: plant, specifications, omega, templates, boundaries,
      * controller, loop shaping, template contour.
      */
-    QVector <bool> * load(const QString & filePath);
+    std::vector<bool> load(const QString & filePath);
 
     ~ProjectReader();
 
