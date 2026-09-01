@@ -85,7 +85,7 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::Values(
         GoldenResult{"NT", tools::nt, false, 0.0, 0.0},
         GoldenResult{"NK", tools::nk, false, 0.0, 0.0},
-        GoldenResult{"MR", tools::mr, false, 0.0, 0.0},
+        GoldenResult{"MR", tools::mr, true, 378.58729554473427, 0.05},
         GoldenResult{"MC1", tools::mc1, false, 0.0, 0.0},
         GoldenResult{"McThesis", tools::mc_thesis, false, 0.0, 0.0}),
     [](const ::testing::TestParamInfo<GoldenResult>& info) {
