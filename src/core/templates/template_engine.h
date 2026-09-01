@@ -57,7 +57,7 @@ public:
 
     /// Recomputes only the contours (one epsilon per frequency) over the
     /// current clouds.
-    bool computeContours (QVector <qreal> * epsilon);
+    bool computeContours (QVector <qreal> epsilon);
 
     /// Brute-force sweep: one cloud per frequency, the cartesian product of
     /// the parameter grids evaluated at s = j*omega.
@@ -93,8 +93,8 @@ public:
     /// remember to free anything. See qftbx::ParameterGrids.
     void setGrids (ParameterGrids grids);
 
-    /// One epsilon per frequency; the caller keeps ownership.
-    void setEpsilon (QVector <qreal> * epsilon);
+    /// One epsilon per frequency, by value.
+    void setEpsilon (QVector <qreal> epsilon);
 
     /// Feeds precomputed clouds (e.g. loaded from a project file) so their
     /// contours can be recomputed.
@@ -108,7 +108,7 @@ public:
 
     QVector <qreal> * omega();
 
-    QVector <qreal> * epsilon ();
+    const QVector <qreal> & epsilon ();
 
 private:
     /// Grid for an uncertain parameter, looked up by name; throws
@@ -119,7 +119,7 @@ private:
     //clouds/contours to the template DAO once handed over.
     ParameterGrids m_grids;
     qint32 m_combinationCount = 0;
-    QVector <qreal> * m_epsilon = NULL;
+    QVector <qreal> m_epsilon;
     bool m_useCuda = false;
 
     CloudSet m_clouds;

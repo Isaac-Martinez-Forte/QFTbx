@@ -25,38 +25,27 @@ void deleteSpecifications(QVector<SpecificationRecord *> * specifications)
 
 ProjectData::~ProjectData()
 {
-    delete m_plant;
-    delete m_omega;
     deleteSpecifications(m_specifications);
-    delete m_epsilon;
-    delete m_controller;
-    delete m_loopShaping;
 }
 
 LtiSystem * ProjectData::plant() const
 {
-    return m_plant;
+    return m_plant.get();
 }
 
-void ProjectData::setPlant(LtiSystem * plant)
+void ProjectData::setPlant(std::unique_ptr<LtiSystem> plant)
 {
-    if (m_plant != plant) {
-        delete m_plant;
-    }
-    m_plant = plant;
+    m_plant = std::move(plant);
 }
 
 Omega * ProjectData::omega() const
 {
-    return m_omega;
+    return m_omega.get();
 }
 
-void ProjectData::setOmega(Omega * omega)
+void ProjectData::setOmega(std::unique_ptr<Omega> omega)
 {
-    if (m_omega != omega) {
-        delete m_omega;
-    }
-    m_omega = omega;
+    m_omega = std::move(omega);
 }
 
 QVector<qreal> * ProjectData::frequencies() const
@@ -109,17 +98,14 @@ bool ProjectData::hasContour() const
     return m_hasContour;
 }
 
-QVector<qreal> * ProjectData::epsilon() const
+QVector<qreal> * ProjectData::epsilon()
 {
-    return m_epsilon;
+    return m_epsilon.has_value() ? &m_epsilon.value() : nullptr;
 }
 
-void ProjectData::setEpsilon(QVector<qreal> * epsilon)
+void ProjectData::setEpsilon(std::optional<QVector<qreal>> epsilon)
 {
-    if (m_epsilon != epsilon) {
-        delete m_epsilon;
-    }
-    m_epsilon = epsilon;
+    m_epsilon = std::move(epsilon);
 }
 
 BoundaryData * ProjectData::boundaries()
@@ -139,28 +125,22 @@ void ProjectData::setBoundaries(std::optional<BoundaryData> boundaries)
 
 LtiSystem * ProjectData::controller() const
 {
-    return m_controller;
+    return m_controller.get();
 }
 
-void ProjectData::setController(LtiSystem * controller)
+void ProjectData::setController(std::unique_ptr<LtiSystem> controller)
 {
-    if (m_controller != controller) {
-        delete m_controller;
-    }
-    m_controller = controller;
+    m_controller = std::move(controller);
 }
 
 LoopShapingResult * ProjectData::loopShaping() const
 {
-    return m_loopShaping;
+    return m_loopShaping.get();
 }
 
-void ProjectData::setLoopShapingResult(LoopShapingResult * loopShaping)
+void ProjectData::setLoopShapingResult(std::unique_ptr<LoopShapingResult> loopShaping)
 {
-    if (m_loopShaping != loopShaping) {
-        delete m_loopShaping;
-    }
-    m_loopShaping = loopShaping;
+    m_loopShaping = std::move(loopShaping);
 }
 
 } // namespace qftbx

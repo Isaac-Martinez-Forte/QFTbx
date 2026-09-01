@@ -55,8 +55,8 @@ public:
     /// Value of the system at s = j*omega using the nominal parameter values.
     virtual std::complex <qreal> evaluate (qreal omega) = 0;
 
-    /// One value per frequency; the caller owns the returned vector.
-    virtual QVector <std::complex <qreal> > * evaluate (QVector <qreal> * omega) = 0;
+    /// One value per frequency.
+    virtual QVector <std::complex <qreal> > evaluate (const QVector <qreal> & omega) = 0;
 
     /// Value at s = j*omega for explicit numeric parameter values.
     virtual std::complex <qreal> evaluate (QVector <qreal> * numerator, QVector <qreal> * denominator,

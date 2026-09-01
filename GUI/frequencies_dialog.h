@@ -1,6 +1,8 @@
 #ifndef QFTBX_FREQUENCIES_DIALOG_H
 #define QFTBX_FREQUENCIES_DIALOG_H
 
+#include <memory>
+
 #include <QDialog>
 #include <QString>
 #include <QFileDialog>
@@ -41,7 +43,7 @@ public:
 
     /// The design frequencies the user described, or nullptr when cancelled
     /// or rejected. Ownership passes to the caller.
-    Omega * takeOmega();
+    std::unique_ptr<Omega> takeOmega();
     ~FrequenciesDialog();
 
 
@@ -57,7 +59,7 @@ signals:
     void close_ok ();
 
 private:
-    Omega * m_omega = nullptr;
+    std::unique_ptr<Omega> m_omega;
     QString filePath;
 
     Ui::FrequenciesDialog *ui;

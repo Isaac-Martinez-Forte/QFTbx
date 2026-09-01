@@ -65,12 +65,13 @@ std::complex <qreal> TransferFunction::evaluate(qreal w) {
                    m_gain.nominal(), m_delay.nominal());
 }
 
-QVector <std::complex <qreal> > * TransferFunction::evaluate(QVector <qreal> * omega) {
+QVector <std::complex <qreal> > TransferFunction::evaluate(const QVector <qreal> & omega) {
 
-    QVector <std::complex <qreal> > * resultado = new QVector <std::complex <qreal> > ();
+    QVector <std::complex <qreal> > resultado;
+    resultado.reserve(omega.size());
 
-    foreach(qreal o, *omega) {
-        resultado->append(evaluate(o));
+    foreach(qreal o, omega) {
+        resultado.append(evaluate(o));
     }
 
     return resultado;

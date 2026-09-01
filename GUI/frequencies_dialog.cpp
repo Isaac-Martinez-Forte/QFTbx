@@ -35,9 +35,6 @@ FrequenciesDialog::FrequenciesDialog(QWidget *parent) :
 FrequenciesDialog::~FrequenciesDialog()
 {
     delete ui;
-
-    //Not taken (cancelled, or never asked for): the dialog frees it.
-    delete m_omega;
 }
 void FrequenciesDialog::on_fileButton_clicked()
 {
@@ -53,17 +50,19 @@ void FrequenciesDialog::on_okButton_clicked()
     qreal start = 0;
     qreal end = 0;
     Omega::GenerationType type;
-    QVector <qreal> * frequencies;
+    QVector <qreal> frequencies;
 
     if (ui->modeStack->currentIndex() == 0){ //manual
-        frequencies = qftbx::text::reals(ui->manualValues->text());
+        const std::optional<QVector<qreal>> parsed =
+                qftbx::text::reals(ui->manualValues->text());
         type = Omega::Manual;
-        if (frequencies == NULL){
+        if (!parsed.has_value()){
             //Invalid input: it used to carry on and dereference the null
             //pointer a few lines below.
             ui->manualValues->setStyleSheet("background : red");
             return;
         }
+        frequencies = parsed.value();
         ui->manualValues->setStyleSheet("background : white");
 
     } else if (ui->modeStack->currentIndex() == 1) { //logspace
@@ -94,8 +93,9 @@ void FrequenciesDialog::on_okButton_clicked()
         type = Omega::File;
     }
 
-    delete m_omega;
-    m_omega = new Omega(start, end, frequencies->size(), frequencies, type);
+    const qint32 pointCount = frequencies.size();
+
+    m_omega = std::make_unique<Omega>(start, end, pointCount, std::move(frequencies), type);
 
     todoCorrecto = true;
 
@@ -107,9 +107,6 @@ bool FrequenciesDialog::getTodoCorrecto(){
     return todoCorrecto;
 }
 
-Omega * FrequenciesDialog::takeOmega(){
-    Omega * built = m_omega;
-    m_omega = nullptr;
-
-    return built;
+std::unique_ptr<Omega> FrequenciesDialog::takeOmega(){
+    return std::move(m_omega);
 }

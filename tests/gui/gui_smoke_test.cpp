@@ -209,7 +209,7 @@ TEST_F(GuiSmoke, PlantDialogRejectsAnInvalidCoefficient)
         << "a malformed coefficient was accepted";
     EXPECT_FALSE(m_reported.isEmpty()) << "the rejection must be reported";
 
-    delete dialog.takePlant();
+    dialog.takePlant();
 }
 
 TEST_F(GuiSmoke, PlantDialogRejectsAReservedParameterName)
@@ -235,7 +235,7 @@ TEST_F(GuiSmoke, PlantDialogRejectsAReservedParameterName)
         << "the message must name the offending identifier: "
         << m_reported.join(QChar(' ')).toStdString();
 
-    delete dialog.takePlant();
+    dialog.takePlant();
 }
 
 TEST_F(GuiSmoke, FrequenciesDialogBuildsTheDesignFrequencies)
@@ -380,12 +380,9 @@ TEST_F(GuiSmoke, TemplateViewerAsksItsHandlerToRecomputeTheContour)
 
     bool called = false;
     QVector<qreal> asked;
-    viewer.setContourRecomputer([&](QVector<qreal> * requested) {
+    viewer.setContourRecomputer([&](QVector<qreal> requested) {
         called = true;
-        asked = *requested;
-
-        //Ownership came with the call.
-        delete requested;
+        asked = std::move(requested);
     });
 
     press(&viewer, "recomputeButton");
@@ -522,11 +519,9 @@ TEST_F(GuiSmoke, TemplatesDialogBuildsOneEpsilonPerFrequency)
 
     //One epsilon per design frequency: the template computation indexes it
     //by frequency.
-    //Ownership comes with it: the window hands it to the project.
-    std::unique_ptr<QVector<qreal>> epsilon(dialog.takeEpsilon());
-    ASSERT_NE(epsilon, nullptr);
-    EXPECT_EQ(epsilon->size(), 4);
-    for (qreal value : *epsilon) {
+    const QVector<qreal> epsilon = dialog.takeEpsilon();
+    EXPECT_EQ(epsilon.size(), 4);
+    for (qreal value : epsilon) {
         EXPECT_DOUBLE_EQ(value, 0.05);
     }
 

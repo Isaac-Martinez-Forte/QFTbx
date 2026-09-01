@@ -1,6 +1,7 @@
 #ifndef QFTBX_PROJECT_DATA_H
 #define QFTBX_PROJECT_DATA_H
 
+#include <memory>
 #include <optional>
 
 #include "src/core/templates/cloud_set.h"
@@ -26,28 +27,29 @@ namespace qftbx {
  *
  * It replaces the historical DAO layer (seven interface/adapter pairs and
  * a factory whose polymorphism was never used) with one class and one
- * rule: every setter deletes what it replaces, and the store deletes
- * whatever it still holds on destruction. Setters tolerate being handed
- * the pointer they already own (the pipeline round-trips containers).
- *
- * Known transitional exception: BoundaryData is a non-owning VIEW over
- * containers whose ownership is still being consolidated (phase 9.4), so
- * replacing it deletes the view only, as the adapter it replaces did.
+ * rule, which is now the language's: every member owns what it holds, so
+ * a setter frees what it replaces and the store frees the rest when it
+ * dies. What a setter takes says whether it takes ownership, and the
+ * accessors hand out observers.
  */
 class ProjectData
 {
 public:
     ProjectData() = default;
+
+    //Still hand-written for ONE member: the specifications are a pointer to
+    //a QVector of pointers, and consolidating that two-level container is
+    //the next step.
     ~ProjectData();
 
     ProjectData(const ProjectData &) = delete;
     ProjectData & operator=(const ProjectData &) = delete;
 
     LtiSystem * plant() const;
-    void setPlant(LtiSystem * plant);
+    void setPlant(std::unique_ptr<LtiSystem> plant);
 
     Omega * omega() const;
-    void setOmega(Omega * omega);
+    void setOmega(std::unique_ptr<Omega> omega);
     QVector<qreal> * frequencies() const;
 
     QVector<SpecificationRecord *> * specifications() const;
@@ -63,8 +65,10 @@ public:
     /// non-empty": the epsilon-hull of an empty template set is empty too.
     bool hasContour() const;
 
-    QVector<qreal> * epsilon() const;
-    void setEpsilon(QVector<qreal> * epsilon);
+    /// The epsilon used for the contours, or nullptr when none was ever
+    /// set. Held BY VALUE in an optional, like the boundaries.
+    QVector<qreal> * epsilon();
+    void setEpsilon(std::optional<QVector<qreal>> epsilon);
 
     /// The boundaries, or nullptr when none have been computed. The store
     /// holds them BY VALUE in an optional; the pointer is only how callers
@@ -74,22 +78,22 @@ public:
     void setBoundaries(std::optional<BoundaryData> boundaries);
 
     LtiSystem * controller() const;
-    void setController(LtiSystem * controller);
+    void setController(std::unique_ptr<LtiSystem> controller);
 
     LoopShapingResult * loopShaping() const;
-    void setLoopShapingResult(LoopShapingResult * loopShaping);
+    void setLoopShapingResult(std::unique_ptr<LoopShapingResult> loopShaping);
 
 private:
-    LtiSystem * m_plant = nullptr;
-    Omega * m_omega = nullptr;
+    std::unique_ptr<LtiSystem> m_plant;
+    std::unique_ptr<Omega> m_omega;
     QVector<SpecificationRecord *> * m_specifications = nullptr;
     CloudSet m_templates;
     CloudSet m_contour;
     bool m_hasContour = false;
-    QVector<qreal> * m_epsilon = nullptr;
+    std::optional<QVector<qreal>> m_epsilon;
     std::optional<BoundaryData> m_boundaries;
-    LtiSystem * m_controller = nullptr;
-    LoopShapingResult * m_loopShaping = nullptr;
+    std::unique_ptr<LtiSystem> m_controller;
+    std::unique_ptr<LoopShapingResult> m_loopShaping;
 };
 
 } // namespace qftbx

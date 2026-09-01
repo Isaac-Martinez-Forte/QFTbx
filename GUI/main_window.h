@@ -143,7 +143,7 @@ private:
     void invalidateLoopShaping();
 
     void installContourRecomputer();
-    void recomputeContour(QVector<qreal> * epsilon);
+    void recomputeContour(QVector<qreal> epsilon);
 
     void createSession();
     void destroySession();

@@ -29,7 +29,7 @@ public:
 
     std::complex <qreal> evaluate (qreal omega);
 
-    QVector <std::complex <qreal> > * evaluate (QVector <qreal> * omega);
+    QVector <std::complex <qreal> > evaluate (const QVector <qreal> & omega);
 
     std::complex <qreal> evaluate (QVector <qreal> * numerator, QVector <qreal> * denominator,
                                            qreal k, qreal delay, qreal omega);

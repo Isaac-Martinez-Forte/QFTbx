@@ -127,16 +127,16 @@ void MainWindow::destroyDialogs(){
 }
 
 void MainWindow::installContourRecomputer(){
-    templateViewer->setContourRecomputer([this](QVector<qreal> * epsilon) {
-        recomputeContour(epsilon);
+    templateViewer->setContourRecomputer([this](QVector<qreal> epsilon) {
+        recomputeContour(std::move(epsilon));
     });
 }
 
-void MainWindow::recomputeContour(QVector<qreal> * epsilon){
+void MainWindow::recomputeContour(QVector<qreal> epsilon){
     //The viewer asked for a tighter contour: the computation, and the
     //reporting of its failure, belong here.
     try {
-        controller->recomputeContour(epsilon);
+        controller->recomputeContour(std::move(epsilon));
     } catch (const qftbx::Exception & e) {
         QMessageBox::critical(this, tr("Template computation"), e.what());
         return;
@@ -213,10 +213,10 @@ void MainWindow::on_plantButton_clicked()
     if (plantDialog->getTodoCorrecto()){
         //The dialogs only describe; publishing into the project is the
         //window's job, so a dialog never needs to know the facade.
-        LtiSystem * described = plantDialog->takePlant();
-        const bool changed = described != controller->plant();
+        std::unique_ptr<LtiSystem> described = plantDialog->takePlant();
+        const bool changed = described.get() != controller->plant();
 
-        controller->setPlant(described);
+        controller->setPlant(std::move(described));
 
         //A different plant voids the templates and everything after them, in
         //the project and therefore in the window too.
@@ -290,10 +290,10 @@ void MainWindow::on_frequenciesButton_clicked()
     frequenciesDialog->exec();
 
     if (frequenciesDialog->getTodoCorrecto()){
-        Omega * described = frequenciesDialog->takeOmega();
-        const bool changed = described != controller->omega();
+        std::unique_ptr<Omega> described = frequenciesDialog->takeOmega();
+        const bool changed = described.get() != controller->omega();
 
-        controller->setOmega(described);
+        controller->setOmega(std::move(described));
 
         if (changed && templatesDone){
             invalidateFromTemplates();
@@ -478,10 +478,10 @@ void MainWindow::on_controllerButton_clicked()
 
 
     if (controllerDialog->getTodoCorrecto()){
-        LtiSystem * described = controllerDialog->takeControllerStructure();
-        const bool changed = described != controller->controllerStructure();
+        std::unique_ptr<LtiSystem> described = controllerDialog->takeControllerStructure();
+        const bool changed = described.get() != controller->controllerStructure();
 
-        controller->setControllerStructure(described);
+        controller->setControllerStructure(std::move(described));
 
         if (changed && loopDone){
             invalidateLoopShaping();

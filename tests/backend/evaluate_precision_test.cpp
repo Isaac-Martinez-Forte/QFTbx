@@ -126,10 +126,8 @@ TEST(EvaluatePrecision, TheTemplateSweepKeepsEveryDigitToo)
     grids[QStringLiteral("kv")] = {2.0};
 
     auto * frequencies = new QVector<qreal>{w};
-    auto * epsilon = new QVector<qreal>(1, 10.0);
-
     TemplateEngine engine;
-    engine.setEpsilon(epsilon);
+    engine.setEpsilon(QVector<qreal>(1, 10.0));
     engine.setGrids(grids);
 
     const qftbx::CloudSet clouds = engine.computeClouds(&plant, frequencies);
@@ -145,7 +143,6 @@ TEST(EvaluatePrecision, TheTemplateSweepKeepsEveryDigitToo)
     EXPECT_NEAR(got.imag(), exact.imag(), 1e-15) << "the cloud lost precision";
 
     delete frequencies;
-    delete epsilon;
 }
 
 } // namespace

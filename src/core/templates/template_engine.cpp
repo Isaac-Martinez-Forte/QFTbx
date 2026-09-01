@@ -32,8 +32,8 @@ void TemplateEngine::setGrids(ParameterGrids grids){
     m_grids = std::move(grids);
 }
 
-void TemplateEngine::setEpsilon(QVector<qreal> *epsilon){
-    m_epsilon = epsilon;
+void TemplateEngine::setEpsilon(QVector<qreal> epsilon){
+    m_epsilon = std::move(epsilon);
 }
 
 void TemplateEngine::setClouds(CloudSet templates){
@@ -71,16 +71,16 @@ bool TemplateEngine::compute(LtiSystem *plant, QVector<qreal> *omega, bool cuda)
 
 }
 
-bool TemplateEngine::computeContours(QVector<qreal> *epsilon){
+bool TemplateEngine::computeContours(QVector<qreal> epsilon){
 
     if (m_clouds.empty()){
         throw qftbx::InvalidInput("There are no templates to compute contours from.");
     }
-    if (epsilon == NULL || epsilon->size() < static_cast<qint32>(m_clouds.size())){
+    if (epsilon.size() < static_cast<qint32>(m_clouds.size())){
         throw qftbx::InvalidInput("Missing epsilon values for the template contours.");
     }
 
-    m_epsilon = epsilon;
+    m_epsilon = std::move(epsilon);
     QElapsedTimer timer;
     timer.start();
 
@@ -317,7 +317,7 @@ QVector <qreal> * TemplateEngine::omega(){
     return m_frequencies;
 }
 
-QVector <qreal> * TemplateEngine::epsilon(){
+const QVector <qreal> & TemplateEngine::epsilon(){
     return m_epsilon;
 }
 
@@ -336,7 +336,7 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
 
             const vector <complex <double> > hull = epsilonHullCuda(
                 m_clouds[static_cast<std::size_t>(i)],
-                m_epsilon->at(i));
+                m_epsilon.at(i));
 
             if (hull.empty()){
                 succeeded = false;
@@ -373,7 +373,7 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
 
         bool fellBack = false;
         ComplexCloud cont = epsilonHull(m_clouds[static_cast<std::size_t>(i)],
-                                        m_epsilon->at(i), &fellBack);
+                                        m_epsilon.at(i), &fellBack);
 
         if (fellBack){
             relaxedFrequencies.replace(i, true);

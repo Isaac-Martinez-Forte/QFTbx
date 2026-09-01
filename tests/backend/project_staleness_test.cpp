@@ -28,14 +28,14 @@ namespace {
 
 //P(s) = kv / (a*s + 1), with both coefficients uncertain so the sweep has a
 //grid to walk.
-LtiSystem * makePlant(const QString & name)
+std::unique_ptr<LtiSystem> makePlant(const QString & name)
 {
     std::vector<Parameter> numerator{Parameter(1.0)};
     std::vector<Parameter> denominator{
         Parameter(QStringLiteral("a"), qftbx::Range(1.0, 2.0), 1.5),
         Parameter(1.0)};
 
-    return new PolynomialForm(name, numerator, denominator,
+    return std::make_unique<PolynomialForm>(name, numerator, denominator,
                               Parameter(QStringLiteral("kv"), qftbx::Range(1.0, 2.0), 1.5),
                               Parameter(0.0));
 }
@@ -50,9 +50,9 @@ qftbx::ParameterGrids makeGrids()
     return grids;
 }
 
-Omega * makeOmega()
+std::unique_ptr<Omega> makeOmega()
 {
-    return new Omega(0.1, 10.0, 3, tools::logspace(-1.0, 1.0, 3), Omega::LogSpace);
+    return std::make_unique<Omega>(0.1, 10.0, 3, tools::logspace(-1.0, 1.0, 3), Omega::LogSpace);
 }
 
 //A project with plant, frequencies and computed templates.
@@ -64,7 +64,7 @@ protected:
         controller.setPlant(makePlant(QStringLiteral("first")));
         controller.setOmega(makeOmega());
 
-        ASSERT_TRUE(controller.computeTemplates(new QVector<qreal>(3, 10.0), makeGrids(), false));
+        ASSERT_TRUE(controller.computeTemplates(QVector<qreal>(3, 10.0), makeGrids(), false));
         ASSERT_FALSE(controller.templates().empty());
     }
 
@@ -93,18 +93,23 @@ TEST_F(Staleness, NewFrequenciesDropTheTemplatesToo)
     EXPECT_EQ(controller.boundaries(), nullptr);
 }
 
-TEST_F(Staleness, RepublishingTheSamePlantChangesNothing)
+TEST_F(Staleness, PublishingAPlantTakesItsOwnership)
 {
-    //Identity is not a change. Dropping a finished design because the same
-    //object was handed over twice would be worse than the bug this fixes.
-    LtiSystem * same = controller.plant();
-    const qftbx::CloudSet templatesBefore = controller.templates();
+    //This used to be RepublishingTheSamePlantChangesNothing: the facade
+    //compared the incoming pointer with the stored one and returned early,
+    //so that handing the same object over twice would not throw away a
+    //finished design. The store takes the ownership now, so a caller cannot
+    //hand back what it has already given, and the guard would have been
+    //worse than its absence (it returned while still owning the object,
+    //destroying the plant the store was pointing at).
+    std::unique_ptr<LtiSystem> published = makePlant(QStringLiteral("published"));
+    LtiSystem * const handedOver = published.get();
 
-    controller.setPlant(same);
+    controller.setPlant(std::move(published));
 
-    EXPECT_EQ(controller.plant(), same);
-    EXPECT_EQ(controller.templates(), templatesBefore)
-        << "re-publishing the same plant threw the templates away";
+    EXPECT_EQ(controller.plant(), handedOver);
+    EXPECT_TRUE(controller.templates().empty())
+        << "a published plant must drop what was computed from the old one";
 }
 
 TEST_F(Staleness, NewSpecificationsKeepTheTemplatesAndDropTheBoundaries)
@@ -144,7 +149,7 @@ TEST_F(Staleness, TheTemplatesCanBeRecomputedAfterTheirInputsChange)
     controller.setPlant(makePlant(QStringLiteral("third")));
     ASSERT_TRUE(controller.templates().empty());
 
-    ASSERT_TRUE(controller.computeTemplates(new QVector<qreal>(3, 10.0), makeGrids(), false));
+    ASSERT_TRUE(controller.computeTemplates(QVector<qreal>(3, 10.0), makeGrids(), false));
 
     EXPECT_FALSE(controller.templates().empty())
         << "the project could not be brought back to a computed state";

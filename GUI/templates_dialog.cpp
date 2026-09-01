@@ -41,9 +41,6 @@ TemplatesDialog::~TemplatesDialog()
     clearTables();
     gridMap.clear();
 
-    //Not taken (cancelled, or never asked for): the dialog built it.
-    delete epsilonValues;
-
     delete ui;
     delete parser;
 }
@@ -79,11 +76,8 @@ void TemplatesDialog::clearTables(){
 
 //The grid map belongs to the dialog (the engine reads it without taking
 //ownership): the old clear() leaked every computation's grids.
-QVector<qreal> * TemplatesDialog::takeEpsilon(){
-    QVector<qreal> * built = epsilonValues;
-    epsilonValues = nullptr;
-
-    return built;
+QVector<qreal> TemplatesDialog::takeEpsilon(){
+    return std::move(epsilonValues);
 }
 
 void TemplatesDialog::launch(LtiSystem *plant, qint32 frequencyCount){
@@ -256,18 +250,17 @@ void TemplatesDialog::on_okButton_clicked()
     gridMap.clear();
     duplicateNames.clear();
 
-    epsilonValues = new QVector <qreal> ();
+    epsilonValues.clear();
 
     if (ui->epsilonEdit->text().isEmpty()){
         errorMessage(tr("No epsilonValues value was entered"), tr("Template computation"));
         ui->epsilonEdit->setStyleSheet("background : red");
-        delete epsilonValues;
-        epsilonValues = NULL;
+        epsilonValues.clear();
         return;
     }else {
 
         ui->epsilonEdit->setStyleSheet("background : white");
-        QVector <QString> * v = qftbx::text::tokens(ui->epsilonEdit->text());
+        const QVector <QString> v = qftbx::text::tokens(ui->epsilonEdit->text());
 
         qreal lastEpsilon = 0;
 
@@ -276,24 +269,21 @@ void TemplatesDialog::on_okButton_clicked()
         //User expressions: an invalid epsilon used to throw and bring the
         //application down.
         try {
-            foreach (QString s, *v) {
+            foreach (QString s, v) {
                 parser->SetExpr(s.toStdString());
                 lastEpsilon = parser->Eval().GetFloat();
-                epsilonValues->append(lastEpsilon);
+                epsilonValues.append(lastEpsilon);
                 counter++;
             }
         } catch (mup::ParserError &) {
             errorMessage(tr("Invalid epsilonValues expression."), tr("Template computation"));
             ui->epsilonEdit->setStyleSheet("background : red");
-            delete v;
-            delete epsilonValues;
-            epsilonValues = NULL;
+            epsilonValues.clear();
             return;
         }
-        delete v;
 
         for (; counter < frequencyCount; counter++){
-            epsilonValues->append(lastEpsilon);
+            epsilonValues.append(lastEpsilon);
         }
     }
 
@@ -309,8 +299,7 @@ void TemplatesDialog::on_okButton_clicked()
     }else {
         errorMessage(tr("ERROR: select logspace or linspace in the general section."), tr("Template computation"));
         gridMap.clear();
-        delete epsilonValues;
-        epsilonValues = NULL;
+        epsilonValues.clear();
         return;
     }
 
@@ -329,8 +318,7 @@ void TemplatesDialog::on_okButton_clicked()
                 errorMessage(tr("ERROR: the values entered for parameter \"%1\" are invalid").arg(parameter.name()),
                          tr("Template computation"));
                 gridMap.clear();
-                delete epsilonValues;
-                epsilonValues = NULL;
+                epsilonValues.clear();
                 return;
             }
         }
@@ -350,8 +338,7 @@ void TemplatesDialog::on_okButton_clicked()
                 errorMessage(tr("ERROR: the values entered for parameter \"%1\" are invalid").arg(parameter.name()),
                          tr("Template computation"));
                 gridMap.clear();
-                delete epsilonValues;
-                epsilonValues = NULL;
+                epsilonValues.clear();
                 return;
             }
         }
@@ -406,8 +393,7 @@ void TemplatesDialog::on_okButton_clicked()
         //application down.
         errorMessage(tr("Invalid grid expressions."), tr("Template computation"));
         gridMap.clear();
-        delete epsilonValues;
-        epsilonValues = NULL;
+        epsilonValues.clear();
         return;
     }
 
@@ -462,20 +448,14 @@ bool TemplatesDialog::readVariable(ParLineEdit *rowEdits, ThreeRadioButtons rowR
 
     }else if(rowRadios.tres->isChecked() && !rowEdits->nominal()->text().isEmpty()){
 
-        QVector <QString> * vector = qftbx::text::tokens(rowEdits->nominal()->text());
+        const QVector <QString> vector = qftbx::text::tokens(rowEdits->nominal()->text());
         std::vector<double> values;
-        values.reserve(static_cast<std::size_t>(vector->size()));
+        values.reserve(static_cast<std::size_t>(vector.size()));
 
-        try {
-            foreach (QString numeroS, *vector) {
-                parser->SetExpr(numeroS.toStdString());
-                values.push_back(parser->Eval().GetFloat());
-            }
-        } catch (mup::ParserError &) {
-            delete vector;
-            throw;
+        foreach (QString numeroS, vector) {
+            parser->SetExpr(numeroS.toStdString());
+            values.push_back(parser->Eval().GetFloat());
         }
-        delete vector;
 
         gridMap[parameter.name()] = std::move(values);
     }else if (useLinspace || useLogspace){

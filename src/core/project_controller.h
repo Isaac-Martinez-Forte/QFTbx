@@ -2,6 +2,8 @@
 #define CONTROLADOR_H
 
 
+#include <memory>
+
 #include <QHash>
 #include <complex>
 
@@ -49,7 +51,7 @@ public:
     // --- step 1: the plant -------------------------------------------------
 
     LtiSystem * plant();
-    void setPlant(LtiSystem * plant);
+    void setPlant(std::unique_ptr<LtiSystem> plant);
 
     // --- step 2: the specifications ---------------------------------------
 
@@ -59,7 +61,7 @@ public:
     // --- step 3: the design frequencies -----------------------------------
 
     Omega * omega();
-    void setOmega(Omega * omega);
+    void setOmega(std::unique_ptr<Omega> omega);
 
     /// The frequency values alone, the form every engine takes.
     QVector<qreal> * frequencies();
@@ -75,10 +77,10 @@ public:
      * @param cuda run the GPU path (requires a CUDA build).
      * @return false when either the clouds or the contours came out empty.
      */
-    bool computeTemplates(QVector<qreal> * epsilon, qftbx::ParameterGrids grids, bool cuda);
+    bool computeTemplates(QVector<qreal> epsilon, qftbx::ParameterGrids grids, bool cuda);
 
     /// Recomputes only the contours, with a new epsilon.
-    const qftbx::CloudSet & recomputeContour(QVector<qreal> * epsilon);
+    const qftbx::CloudSet & recomputeContour(QVector<qreal> epsilon);
 
     const qftbx::CloudSet & templates();
     const qftbx::CloudSet & contour();
@@ -114,7 +116,7 @@ public:
     /// The controller BEING DESIGNED: its structure and the search box of
     /// its parameters.
     LtiSystem * controllerStructure();
-    bool setControllerStructure(LtiSystem * controller);
+    bool setControllerStructure(std::unique_ptr<LtiSystem> controller);
 
     // --- step 7: the loop shaping -----------------------------------------
 
@@ -134,7 +136,7 @@ public:
                             qreal pointCount, qint32 initialisation = 0);
 
     LoopShapingResult * loopShapingResult();
-    void setLoopShapingResult(LoopShapingResult * result);
+    void setLoopShapingResult(std::unique_ptr<LoopShapingResult> result);
 
     // --- persistence ------------------------------------------------------
 

@@ -1,6 +1,8 @@
 #ifndef QFTBX_PLANT_DIALOG_H
 #define QFTBX_PLANT_DIALOG_H
 
+#include <memory>
+
 #include <optional>
 #include <vector>
 
@@ -44,7 +46,7 @@ public:
      * facade and write into it, which gave every dialog access to the whole
      * application.)
      */
-    LtiSystem * takePlant();
+    std::unique_ptr<LtiSystem> takePlant();
     
     
     
@@ -76,7 +78,7 @@ private:
 
     UncertaintyDialog * uncertaintyDialog= NULL;
 
-    LtiSystem * plant= NULL;
+    std::unique_ptr<LtiSystem> plant;
 
     bool uncertaintyEntered;
 

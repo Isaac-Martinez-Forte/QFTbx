@@ -43,7 +43,7 @@ QVector<qftbx::SpecificationRecord *> *ProjectController::specifications(){
 void ProjectController::dropTemplatesAndBelow(){
     data.setTemplates({});
     data.setContour({});
-    data.setEpsilon(nullptr);
+    data.setEpsilon(std::nullopt);
 
     dropBoundariesAndBelow();
 }
@@ -58,23 +58,18 @@ void ProjectController::dropLoopShaping(){
     data.setLoopShapingResult(nullptr);
 }
 
-void ProjectController::setPlant(LtiSystem *plant){
-    //Identity is a no-op, as in the store: re-publishing the same object is
-    //not a change and must not throw away a finished design.
-    if (data.plant() == plant){
-        return;
-    }
-
-    data.setPlant(plant);
+//The three publishers used to compare the incoming pointer with the stored
+//one and return early, so that handing the same object over twice would not
+//throw away a finished design. Taking the ownership makes that comparison
+//not just unnecessary but wrong: returning early would destroy, on the way
+//out, the very object the store is pointing at.
+void ProjectController::setPlant(std::unique_ptr<LtiSystem> plant){
+    data.setPlant(std::move(plant));
     dropTemplatesAndBelow();
 }
 
-void ProjectController::setOmega(Omega *omega){
-    if (data.omega() == omega){
-        return;
-    }
-
-    data.setOmega(omega);
+void ProjectController::setOmega(std::unique_ptr<Omega> omega){
+    data.setOmega(std::move(omega));
     dropTemplatesAndBelow();
 }
 
@@ -132,7 +127,7 @@ const qftbx::CloudSet & ProjectController::contour(){
     return data.contour();
 }
 
-bool ProjectController::computeTemplates(QVector <qreal> * epsilon, qftbx::ParameterGrids grids, bool cuda){
+bool ProjectController::computeTemplates(QVector <qreal> epsilon, qftbx::ParameterGrids grids, bool cuda){
 
     //Preconditions, stated instead of dereferenced. They matter more now that
     //publishing an input DROPS what was computed from the old one: without
@@ -156,7 +151,7 @@ bool ProjectController::computeTemplates(QVector <qreal> * epsilon, qftbx::Param
 
     //The computation no longer reorders or replaces the frequencies: it is
     //enough to keep the epsilon used, for the persistence.
-    data.setEpsilon(epsilon);
+    data.setEpsilon(std::move(epsilon));
 
     const bool produced = !m_templateEngine->clouds().empty()
             && !m_templateEngine->contours().empty();
@@ -172,11 +167,11 @@ QVector <qreal> * ProjectController::epsilon(){
 }
 
 
-const qftbx::CloudSet & ProjectController::recomputeContour(QVector <qreal> * epsilon){
+const qftbx::CloudSet & ProjectController::recomputeContour(QVector <qreal> epsilon){
     m_templateEngine->computeContours(epsilon);
 
     setContour(m_templateEngine->contours());
-    data.setEpsilon(epsilon);
+    data.setEpsilon(std::move(epsilon));
 
     return data.contour();
 }
@@ -208,7 +203,10 @@ bool ProjectController::computeBoundaries(QPointF phaseRange, qint32 phaseCount,
 
     setBoundaries(m_boundaryEngine->boundaryData());
 
-    omega()->setOmega(m_boundaryEngine->omega());
+    //The engine's frequency vector ALIASES ours, so this only re-syncs the
+    //point count; by value the copy is made before the assignment, which is
+    //what used to need an aliasing guard inside setOmega().
+    omega()->setOmega(*m_boundaryEngine->omega());
 
     return true;
 }
@@ -225,12 +223,8 @@ const qftbx::UnionBuckets & ProjectController::unionBuckets(){
     return data.boundaries()->unionBuckets();
 }
 
-bool ProjectController::setControllerStructure(LtiSystem *controller){
-    if (data.controller() == controller){
-        return true;
-    }
-
-    data.setController(controller);
+bool ProjectController::setControllerStructure(std::unique_ptr<LtiSystem> controller){
+    data.setController(std::move(controller));
 
     //A different controller structure means the computed controller answers a
     //question nobody asked any more.
@@ -270,7 +264,7 @@ bool ProjectController::computeLoopShaping(qreal epsilon, tools::LoopShapingAlgo
                                          initialisation);
 
     if (succeeded){
-        data.setLoopShapingResult(new LoopShapingResult(
+        data.setLoopShapingResult(std::make_unique<LoopShapingResult>(
                 m_loopShapingEngine->controllerStructure(), plotRange, pointCount));
         return true;
     }
@@ -278,8 +272,8 @@ bool ProjectController::computeLoopShaping(qreal epsilon, tools::LoopShapingAlgo
     return false;
 }
 
-void ProjectController::setLoopShapingResult(LoopShapingResult *datos){
-    data.setLoopShapingResult(datos);
+void ProjectController::setLoopShapingResult(std::unique_ptr<LoopShapingResult> datos){
+    data.setLoopShapingResult(std::move(datos));
 }
 
 LoopShapingResult * ProjectController::loopShapingResult(){

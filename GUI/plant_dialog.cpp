@@ -85,10 +85,6 @@ PlantDialog::~PlantDialog()
 {
     delete ui;
     delete uncertaintyDialog;
-
-    //Not taken (cancelled, or the caller never asked): the dialog built it,
-    //the dialog frees it.
-    delete plant;
 }
 
 void PlantDialog::on_zerosPolesRadio_toggled(bool checked)
@@ -147,7 +143,9 @@ void PlantDialog::on_polynomialRadio_toggled(bool checked)
 bool PlantDialog::parseCoefficients(QVector<QVector <QString> * > * tabla, QLineEdit *linea,
                                       QVector<QVector <QString> * > * expressionTable, QVector <QVector <bool> * > * uncertainTable){
 
-    QVector <QString> * vec1 = qftbx::text::tokens(linea->text());
+    //The coefficient tables still hold their rows as pointers, so the
+    //parsed tokens are handed to one: the dialogs are the next step.
+    QVector <QString> * vec1 = new QVector <QString> (qftbx::text::tokens(linea->text()));
     QVector <QString> * vec = new QVector <QString> ();
     QVector <bool> * vec2  = new QVector <bool> ();
 
@@ -410,8 +408,7 @@ void PlantDialog::on_okButton_clicked()
 
     //A second accept replaces the answer of the first one; whoever took it
     //already owns that one.
-    delete plant;
-    plant = nullptr;
+    plant.reset();
 
     //The uncertainty only counts if its dialog was ACCEPTED (opening and
     //cancelling used to leave the flag set and a half-built state in use).
@@ -422,13 +419,13 @@ void PlantDialog::on_okButton_clicked()
         std::vector<Parameter> deno = uncertaintyDialog->denominator();
 
         if (ui->zpkRadio->isChecked()){
-            plant = new ZeroPoleGain(ui->nameEdit->text(),nume, deno,kv,retv);
+            plant = std::make_unique<ZeroPoleGain>(ui->nameEdit->text(),nume, deno,kv,retv);
         }else if(ui->tcgRadio->isChecked()){
-            plant = new TimeConstantGain(ui->nameEdit->text(),nume, deno,kv,retv);
+            plant = std::make_unique<TimeConstantGain>(ui->nameEdit->text(),nume, deno,kv,retv);
         }else if (ui->polynomialRadio->isChecked()){
-            plant = new PolynomialForm(ui->nameEdit->text(), nume, deno,kv,retv);
+            plant = std::make_unique<PolynomialForm>(ui->nameEdit->text(), nume, deno,kv,retv);
         }else{
-            plant = new FreeForm(ui->nameEdit->text(), nume, deno,kv,retv,
+            plant = std::make_unique<FreeForm>(ui->nameEdit->text(), nume, deno,kv,retv,
                                       ui->freeNumerator->text(), ui->freeDenominator->text());
         }
     }else{
@@ -442,13 +439,13 @@ void PlantDialog::on_okButton_clicked()
         }
 
         if (ui->zpkRadio->isChecked()){
-            plant = new ZeroPoleGain(ui->nameEdit->text(), *nume, *deno, kv, retv);
+            plant = std::make_unique<ZeroPoleGain>(ui->nameEdit->text(), *nume, *deno, kv, retv);
         }else if(ui->tcgRadio->isChecked()){
-            plant = new TimeConstantGain(ui->nameEdit->text(), *nume, *deno, kv, retv);
+            plant = std::make_unique<TimeConstantGain>(ui->nameEdit->text(), *nume, *deno, kv, retv);
         }else if (ui->polynomialRadio->isChecked()){
-            plant = new PolynomialForm(ui->nameEdit->text(), *nume, *deno, kv, retv);
+            plant = std::make_unique<PolynomialForm>(ui->nameEdit->text(), *nume, *deno, kv, retv);
         }else {
-            plant = new FreeForm(ui->nameEdit->text(), *nume, *deno, kv, retv,
+            plant = std::make_unique<FreeForm>(ui->nameEdit->text(), *nume, *deno, kv, retv,
                                       ui->freeNumerator->text(), ui->freeDenominator->text());
         }
 
@@ -528,9 +525,6 @@ bool PlantDialog::getTodoCorrecto(){
     return todoCorrecto;
 }
 
-LtiSystem * PlantDialog::takePlant(){
-    LtiSystem * built = plant;
-    plant = nullptr;
-
-    return built;
+std::unique_ptr<LtiSystem> PlantDialog::takePlant(){
+    return std::move(plant);
 }

@@ -92,17 +92,16 @@ public:
     //Space-separated real vector, the encoding of every numeric list in the
     //format. The historical loader silently kept the prefix before the
     //first garbage token; this one rejects it.
-    QVector <qreal> * realVector(const pugi::xml_node & node) const
+    QVector <qreal> realVector(const pugi::xml_node & node) const
     {
-        auto * values = new QVector <qreal> ();
+        QVector <qreal> values;
         const QString text = QString(node.text().get());
         const QStringList tokens = text.split(' ', Qt::SkipEmptyParts);
-        values->reserve(tokens.size());
+        values.reserve(tokens.size());
         foreach (const QString & token, tokens) {
             bool ok = false;
-            values->append(token.toDouble(&ok));
+            values.append(token.toDouble(&ok));
             if (!ok) {
-                delete values;
                 fail(node, std::string("<") + node.name() + "> holds a non-numeric token");
             }
         }
@@ -111,30 +110,27 @@ public:
 
     std::vector<bool> boolVector(const pugi::xml_node & node) const
     {
-        QVector <qreal> * reals = realVector(node);
+        const QVector <qreal> reals = realVector(node);
         std::vector<bool> bools;
-        bools.reserve(static_cast<std::size_t>(reals->size()));
-        for (const qreal value : *reals) {
+        bools.reserve(static_cast<std::size_t>(reals.size()));
+        for (const qreal value : reals) {
             bools.push_back(value != 0.0);
         }
-        delete reals;
         return bools;
     }
 
     //"x y x y ..." pairs; an unpaired trailing token is rejected.
     qftbx::Trace pointVector(const pugi::xml_node & node) const
     {
-        QVector <qreal> * reals = realVector(node);
-        if (reals->size() % 2 != 0) {
-            delete reals;
+        const QVector <qreal> reals = realVector(node);
+        if (reals.size() % 2 != 0) {
             fail(node, std::string("<") + node.name() + "> holds an odd point list");
         }
         qftbx::Trace points;
-        points.reserve(static_cast<std::size_t>(reals->size() / 2));
-        for (qint32 i = 0; i + 1 < reals->size(); i += 2) {
-            points.push_back(QPointF(reals->at(i), reals->at(i + 1)));
+        points.reserve(static_cast<std::size_t>(reals.size() / 2));
+        for (qint32 i = 0; i + 1 < reals.size(); i += 2) {
+            points.push_back(QPointF(reals.at(i), reals.at(i + 1)));
         }
-        delete reals;
         return points;
     }
 
@@ -167,7 +163,7 @@ public:
                          nominal, expression);
     }
 
-    LtiSystem * readSystem(const pugi::xml_node & systemNode) const
+    std::unique_ptr<LtiSystem> readSystem(const pugi::xml_node & systemNode) const
     {
         const QString name = QString(systemNode.attribute(t.nameAttribute).value());
 
@@ -208,18 +204,18 @@ public:
 
         switch (type) {
         case LtiSystem::SystemType::PolynomialForm:
-            return new PolynomialForm(name, std::move(numerator), std::move(denominator),
-                                      std::move(gain), std::move(delay));
+            return std::make_unique<PolynomialForm>(name, std::move(numerator),
+                    std::move(denominator), std::move(gain), std::move(delay));
         case LtiSystem::SystemType::ZeroPoleGain:
-            return new ZeroPoleGain(name, std::move(numerator), std::move(denominator),
-                                    std::move(gain), std::move(delay));
+            return std::make_unique<ZeroPoleGain>(name, std::move(numerator),
+                    std::move(denominator), std::move(gain), std::move(delay));
         case LtiSystem::SystemType::TimeConstantGain:
-            return new TimeConstantGain(name, std::move(numerator), std::move(denominator),
-                                        std::move(gain), std::move(delay));
+            return std::make_unique<TimeConstantGain>(name, std::move(numerator),
+                    std::move(denominator), std::move(gain), std::move(delay));
         case LtiSystem::SystemType::FreeForm:
-            return new FreeForm(name, std::move(numerator), std::move(denominator),
-                                std::move(gain), std::move(delay),
-                                numeratorExpression, denominatorExpression);
+            return std::make_unique<FreeForm>(name, std::move(numerator),
+                    std::move(denominator), std::move(gain), std::move(delay),
+                    numeratorExpression, denominatorExpression);
         default:
             break;
         }
@@ -269,7 +265,9 @@ public:
                     if (!systemNode) {
                         fail(node, "a non-constant specification needs its plant");
                     }
-                    record->system = readSystem(systemNode);
+                    //The record keeps its plant raw, and its owners delete
+                    //it: the specifications are the next step.
+                    record->system = readSystem(systemNode).release();
                 }
             }
 
@@ -279,16 +277,15 @@ public:
         return specifications;
     }
 
-    Omega * readOmega(const pugi::xml_node & section) const
+    std::unique_ptr<Omega> readOmega(const pugi::xml_node & section) const
     {
         const qreal min = realChild(section, t.omegaMin);
         const qreal max = realChild(section, t.omegaMax);
         const qint32 pointCount = static_cast<qint32>(realChild(section, t.pointCount));
         const auto type = static_cast<Omega::GenerationType>(
             static_cast<qint32>(realChild(section, t.omegaType)));
-        QVector <qreal> * values = realVector(require(section, t.values));
-
-        return new Omega(min, max, pointCount, values, type);
+        return std::make_unique<Omega>(min, max, pointCount,
+                                      realVector(require(section, t.values)), type);
     }
 
     //Template sets are stored as (real-vector, imaginary-vector) element
@@ -304,21 +301,17 @@ public:
                 fail(child, "a complex vector needs real and imaginary parts");
             }
 
-            QVector <qreal> * reals = realVector(child);
-            QVector <qreal> * imaginaries = realVector(imaginaryNode);
-            if (reals->size() != imaginaries->size()) {
-                delete reals;
-                delete imaginaries;
+            const QVector <qreal> reals = realVector(child);
+            const QVector <qreal> imaginaries = realVector(imaginaryNode);
+            if (reals.size() != imaginaries.size()) {
                 fail(child, "real and imaginary parts differ in length");
             }
 
             qftbx::ComplexCloud vector;
-            vector.reserve(static_cast<std::size_t>(reals->size()));
-            for (qint32 i = 0; i < reals->size(); ++i) {
-                vector.push_back(std::complex<qreal>(reals->at(i), imaginaries->at(i)));
+            vector.reserve(static_cast<std::size_t>(reals.size()));
+            for (qint32 i = 0; i < reals.size(); ++i) {
+                vector.push_back(std::complex<qreal>(reals.at(i), imaginaries.at(i)));
             }
-            delete reals;
-            delete imaginaries;
 
             vectors.push_back(std::move(vector));
             child = imaginaryNode.next_sibling();
@@ -377,7 +370,7 @@ public:
                             std::move(unionBuckets), magnitudeCount, magnitudeRange);
     }
 
-    LoopShapingResult * readLoopShaping(const pugi::xml_node & section) const
+    std::unique_ptr<LoopShapingResult> readLoopShaping(const pugi::xml_node & section) const
     {
         const pugi::xml_node data = require(section, t.boundariesData);
         const qint32 pointCount = intAttribute(data, t.loopShapingPointCountAttribute);
@@ -395,10 +388,7 @@ public:
             fail(section, "the loop-shaping section needs its controller");
         }
 
-        //readSystem() still answers with a raw pointer: the reader is the
-        //next module to convert.
-        return new LoopShapingResult(std::unique_ptr<LtiSystem>(readSystem(systemNode)),
-                                     range, pointCount);
+        return std::make_unique<LoopShapingResult>(readSystem(systemNode), range, pointCount);
     }
 
     const QString & m_filePath;
@@ -432,12 +422,10 @@ void deleteSpecificationRecords(QVector <qftbx::SpecificationRecord *> * records
 ProjectReader::~ProjectReader()
 {
     //Whatever no caller claimed through take*() belongs to the reader.
-    delete m_plant;
+    //Still hand-written for ONE member: the specifications are a pointer to
+    //a QVector of pointers, and consolidating that two-level container is
+    //the next step.
     deleteSpecificationRecords(m_specifications);
-    delete m_omega;
-    delete m_epsilon;
-    delete m_controller;
-    delete m_loopShaping;
 }
 
 std::vector<bool> ProjectReader::load(const QString & filePath)

@@ -55,7 +55,8 @@ private slots:
 
 private:
     Ui::BodeViewer *ui;
-    void drawAxis(QString yAxisName, QVector<qreal> *yAxis_values, QVector<qreal> *frequencies, QCustomPlot * magnitudePlot);
+    void drawAxis(QString yAxisName, const QVector<qreal> & yAxis_values,
+                  const QVector<qreal> & frequencies, QCustomPlot * magnitudePlot);
 };
 
 #endif // QFTBX_BODE_VIEWER_H

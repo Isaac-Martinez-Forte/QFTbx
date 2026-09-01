@@ -72,7 +72,7 @@ Numbers sweep(int threads)
     grids[plant->gain().name()] = qftbx::math::linspace(1.0, 10.0, 10);
 
     auto * frequencies = new QVector<qreal>(*parser.omega()->values());
-    auto * epsilon = new QVector<qreal>(frequencies->size(), 10.0);
+    const QVector<qreal> epsilon(frequencies->size(), 10.0);
 
     TemplateEngine engine;
     engine.setEpsilon(epsilon);
@@ -84,7 +84,6 @@ Numbers sweep(int threads)
     appendAll(engine.contours(), numbers);
 
     delete frequencies;
-    delete epsilon;
 
     return numbers;
 }

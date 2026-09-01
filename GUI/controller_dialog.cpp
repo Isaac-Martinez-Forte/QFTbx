@@ -65,9 +65,6 @@ ControllerDialog::ControllerDialog(QWidget *parent) :
 ControllerDialog::~ControllerDialog()
 {
     delete ui;
-
-    //Not taken (cancelled, or never asked for): the dialog frees it.
-    delete controllerSystem;
 }
 
 void ControllerDialog::on_polynomialRadio_clicked()
@@ -138,7 +135,9 @@ QVector<QVector <QString> * > * ControllerDialog::readTables(QVector <QVector <Q
 bool ControllerDialog::parseCoefficients(QVector<QVector <QString> * > * tabla, QLineEdit *linea,
                                       QVector<QVector <QString> * > * expressionTable, QVector <QVector <bool> * > * uncertainTable){
 
-    QVector <QString> * vec1 = qftbx::text::tokens(linea->text());
+    //The coefficient tables still hold their rows as pointers, so the
+    //parsed tokens are handed to one: the dialogs are the next step.
+    QVector <QString> * vec1 = new QVector <QString> (qftbx::text::tokens(linea->text()));
     QVector <QString> * vec = new QVector <QString> ();
     QVector <bool> * vec2  = new QVector <bool> ();
 
@@ -333,8 +332,7 @@ void ControllerDialog::on_okButton_clicked()
 
     //A second accept replaces the answer of the first one; whoever took it
     //already owns that one.
-    delete controllerSystem;
-    controllerSystem = nullptr;
+    controllerSystem.reset();
 
     //The uncertainty only counts if its dialog was ACCEPTED.
     if (uncertaintyEntered && uncertaintyDialog->getTodoCorrecto()){
@@ -344,13 +342,13 @@ void ControllerDialog::on_okButton_clicked()
         std::vector<Parameter> denominatorEdit = uncertaintyDialog->denominator();
 
         if (ui->zpkRadio->isChecked()){
-            controllerSystem = new ZeroPoleGain("",numeratorEdit, denominatorEdit,kv,retv);
+            controllerSystem = std::make_unique<ZeroPoleGain>("",numeratorEdit, denominatorEdit,kv,retv);
         }else if(ui->tcgRadio->isChecked()){
-            controllerSystem = new TimeConstantGain("",numeratorEdit, denominatorEdit,kv,retv);
+            controllerSystem = std::make_unique<TimeConstantGain>("",numeratorEdit, denominatorEdit,kv,retv);
         }else if (ui->polynomialRadio->isChecked()){
-            controllerSystem = new PolynomialForm("", numeratorEdit, denominatorEdit,kv,retv);
+            controllerSystem = std::make_unique<PolynomialForm>("", numeratorEdit, denominatorEdit,kv,retv);
         }else{
-            controllerSystem = new FreeForm("", numeratorEdit, denominatorEdit,kv,retv,
+            controllerSystem = std::make_unique<FreeForm>("", numeratorEdit, denominatorEdit,kv,retv,
                                       ui->numeratorEdit->text(), ui->denominatorEdit->text());
         }
     }else{
@@ -364,13 +362,13 @@ void ControllerDialog::on_okButton_clicked()
         }
 
         if (ui->zpkRadio->isChecked()){
-            controllerSystem = new ZeroPoleGain("", *nume, *deno, kv, retv);
+            controllerSystem = std::make_unique<ZeroPoleGain>("", *nume, *deno, kv, retv);
         }else if(ui->tcgRadio->isChecked()){
-            controllerSystem = new TimeConstantGain("", *nume, *deno, kv, retv);
+            controllerSystem = std::make_unique<TimeConstantGain>("", *nume, *deno, kv, retv);
         }else if (ui->polynomialRadio->isChecked()){
-            controllerSystem = new PolynomialForm("", *nume, *deno, kv, retv);
+            controllerSystem = std::make_unique<PolynomialForm>("", *nume, *deno, kv, retv);
         }else {
-            controllerSystem = new FreeForm("", *nume, *deno, kv, retv,
+            controllerSystem = std::make_unique<FreeForm>("", *nume, *deno, kv, retv,
                                       ui->numeratorEdit->text(), ui->denominatorEdit->text());
         }
 
@@ -412,9 +410,6 @@ bool ControllerDialog::getTodoCorrecto(){
     return todoCorrecto;
 }
 
-LtiSystem * ControllerDialog::takeControllerStructure(){
-    LtiSystem * built = controllerSystem;
-    controllerSystem = nullptr;
-
-    return built;
+std::unique_ptr<LtiSystem> ControllerDialog::takeControllerStructure(){
+    return std::move(controllerSystem);
 }

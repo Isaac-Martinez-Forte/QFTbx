@@ -2,15 +2,15 @@
 
 #include <QRegularExpression>
 
-QVector<QString> * qftbx::text::tokens(const QString & line){
+QVector<QString> qftbx::text::tokens(const QString & line){
 
     QStringList parts = line.split(" ");
-    QVector<QString> * result = new QVector<QString>();
-    result->reserve(parts.size());
+    QVector<QString> result;
+    result.reserve(parts.size());
 
     foreach (const QString & part, parts){
         if (!part.isEmpty()){
-            result->append(part);
+            result.append(part);
         }
     }
 
@@ -18,7 +18,7 @@ QVector<QString> * qftbx::text::tokens(const QString & line){
 }
 
 
-QVector<qreal> * qftbx::text::reals(const QString & line){
+std::optional<QVector<qreal>> qftbx::text::reals(const QString & line){
 
     //Split on any whitespace (spaces, tabs, newlines): frequency files
     //usually carry one value per line.
@@ -32,13 +32,13 @@ QVector<qreal> * qftbx::text::reals(const QString & line){
         const qreal value = part.toDouble(&ok);
 
         if (!ok){
-            return nullptr;
+            return std::nullopt;
         }
 
         values.append(value);
     }
 
-    return new QVector<qreal>(values.begin(), values.end());
+    return QVector<qreal>(values.begin(), values.end());
 }
 
 

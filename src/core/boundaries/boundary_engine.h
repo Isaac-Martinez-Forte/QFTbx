@@ -102,8 +102,8 @@ private:
                             QPointF phaseRange, qint32 phaseCount, QPointF magnitudeRange, qint32 magnitudeCount);
 
     void computeFrequency(qreal omega, LtiSystem * plant,
-                          const ComplexCloud & valueSet, QVector <qreal> * phases,
-                          QVector <qreal> * magnitudes, qint32 index);
+                          const ComplexCloud & valueSet, const QVector <qreal> & phases,
+                          const QVector <qreal> & magnitudes, qint32 index);
 
     void traceFrequency(qreal omega, std::map<QString, TraceSet> & bound, QVector<QVector<QVector<qreal> *> *> *sheets,
                         std::map<QString, TraceLabels> & traceMetadata, std::complex<qreal> p0, const ComplexCloud & valueSet,

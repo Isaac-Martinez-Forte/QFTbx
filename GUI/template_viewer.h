@@ -90,7 +90,7 @@ public:
     * thread. Same seam as tools::ErrorReporter.
    */
 
-    using ContourRecomputer = std::function<void (QVector <qreal> * epsilon)>;
+    using ContourRecomputer = std::function<void (QVector <qreal> epsilon)>;
 
    /**
     * @fn setContourRecomputer

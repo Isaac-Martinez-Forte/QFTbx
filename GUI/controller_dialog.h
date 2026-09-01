@@ -1,6 +1,8 @@
 #ifndef QFTBX_CONTROLLER_DIALOG_H
 #define QFTBX_CONTROLLER_DIALOG_H
 
+#include <memory>
+
 #include <optional>
 #include <vector>
 
@@ -32,7 +34,7 @@ public:
     /// The controller structure the user described (with the search box of
     /// its parameters), or nullptr when cancelled or rejected. Ownership
     /// passes to the caller.
-    LtiSystem * takeControllerStructure();
+    std::unique_ptr<LtiSystem> takeControllerStructure();
     
 private slots:
     void on_polynomialRadio_clicked();
@@ -57,7 +59,7 @@ private:
 
     UncertaintyDialog * uncertaintyDialog= NULL;
 
-    LtiSystem * controllerSystem= NULL;
+    std::unique_ptr<LtiSystem> controllerSystem;
 
     bool uncertaintyEntered;
 

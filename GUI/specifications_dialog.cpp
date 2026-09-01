@@ -769,32 +769,28 @@ std::optional<std::vector<Parameter>> SpecificationsDialog::buildParameters(QStr
 
     ParserX p (pckALL_NON_COMPLEX);
 
-    QVector <QString> * numeros = qftbx::text::tokens(linea);
+    const QVector <QString> numeros = qftbx::text::tokens(linea);
 
     std::vector<Parameter> var;
 
-    if (numeros->isEmpty()){
-        delete numeros;
+    if (numeros.isEmpty()){
         return var;
     }
 
-    var.reserve(numeros->size());
+    var.reserve(numeros.size());
 
-    foreach (const QString &string, *numeros) {
+    foreach (const QString &string, numeros) {
         p.SetExpr(string.toStdString());
         qreal res;
         try {
             res = p.Eval().GetFloat();
-        }catch (ParserError &e){
+        }catch (ParserError &){
             //The already-built Parameters and both vectors used to leak.
-            delete numeros;
             return std::nullopt;
         }
 
         var.push_back(Parameter(res));
     }
-
-    delete numeros;
 
     return var;
 }

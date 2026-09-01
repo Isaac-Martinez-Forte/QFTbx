@@ -5,6 +5,8 @@
 
 #include <gtest/gtest.h>
 
+#include <optional>
+
 #include <QString>
 #include <QVector>
 #include <cmath>
@@ -23,48 +25,46 @@ namespace {
 
 TEST(Omega, ConstructorStoresFieldsVerbatim)
 {
-    auto* values = new QVector<qreal>{0.1, 5.0, 10.0, 100.0};
+    const QVector<qreal> values{0.1, 5.0, 10.0, 100.0};
     Omega omega(0.1, 100.0, 4, values, Omega::Manual);
 
     EXPECT_DOUBLE_EQ(omega.start(), 0.1);
     EXPECT_DOUBLE_EQ(omega.end(), 100.0);
     EXPECT_EQ(omega.pointCount(), 4);
     EXPECT_EQ(omega.type(), Omega::Manual);
-    EXPECT_EQ(omega.values(), values); // internal pointer, no copy
+    EXPECT_EQ(*omega.values(), values); // the set holds them by value
 }
 
 TEST(Omega, ConstructorEnforcesTheSizeInvariant)
 {
     // Hardened: nPuntos is always valores->size(); the constructor argument
     // is ignored on purpose (old files carry a desynchronised <nPuntos>).
-    auto* values = new QVector<qreal>{1.0, 2.0};
-    Omega omega(1.0, 2.0, 99, values, Omega::Manual);
+    Omega omega(1.0, 2.0, 99, QVector<qreal>{1.0, 2.0}, Omega::Manual);
     EXPECT_EQ(omega.pointCount(), 2);
 }
 
-TEST(Omega, ConstructorRejectsNullOrEmptyValues)
+TEST(Omega, ConstructorRejectsEmptyValues)
 {
-    EXPECT_THROW(Omega(0.0, 0.0, 0, nullptr, Omega::Manual), qftbx::InvalidInput);
-    EXPECT_THROW(Omega(0.0, 0.0, 0, new QVector<qreal>(), Omega::Manual),
+    //There is no null case left to reject: the frequencies arrive by value.
+    EXPECT_THROW(Omega(0.0, 0.0, 0, QVector<qreal>(), Omega::Manual),
                  qftbx::InvalidInput);
 }
 
-TEST(Omega, SetOmegaKeepsTheInvariantAndOwnership)
+TEST(Omega, SetOmegaKeepsTheInvariant)
 {
-    // Hardened: setOmega deletes the previous vector, keeps
-    // nPuntos == valores->size(), tolerates being handed the vector it
-    // already owns, and rejects null/empty sets.
-    auto* values = new QVector<qreal>{1.0, 2.0, 3.0};
-    Omega omega(1.0, 3.0, 3, values, Omega::Manual);
+    // Hardened: setOmega keeps pointCount == values().size(), tolerates
+    // being handed the very frequencies it holds, and rejects empty sets.
+    Omega omega(1.0, 3.0, 3, QVector<qreal>{1.0, 2.0, 3.0}, Omega::Manual);
 
-    omega.setOmega(new QVector<qreal>{5.0, 6.0});
+    omega.setOmega(QVector<qreal>{5.0, 6.0});
     EXPECT_EQ(omega.values()->size(), 2);
     EXPECT_EQ(omega.pointCount(), 2);
 
-    omega.setOmega(omega.values()); // self-assignment must be safe
+    omega.setOmega(*omega.values()); // self-assignment must be safe
     EXPECT_EQ(omega.pointCount(), 2);
+    EXPECT_EQ(*omega.values(), QVector<qreal>({5.0, 6.0}));
 
-    EXPECT_THROW(omega.setOmega(nullptr), qftbx::InvalidInput);
+    EXPECT_THROW(omega.setOmega(QVector<qreal>()), qftbx::InvalidInput);
     EXPECT_EQ(omega.values()->size(), 2); // unchanged after the throw
 }
 
@@ -74,50 +74,44 @@ TEST(Omega, SetOmegaKeepsTheInvariantAndOwnership)
 
 TEST(Linspace, TwoPointsAreExact)
 {
-    QVector<qreal>* v = tools::linspace(1.0, 5.0, 2);
-    ASSERT_EQ(v->size(), 2);
-    EXPECT_DOUBLE_EQ(v->at(0), 1.0);
-    EXPECT_DOUBLE_EQ(v->at(1), 5.0);
-    delete v;
+    const QVector<qreal> v = tools::linspace(1.0, 5.0, 2);
+    ASSERT_EQ(v.size(), 2);
+    EXPECT_DOUBLE_EQ(v.at(0), 1.0);
+    EXPECT_DOUBLE_EQ(v.at(1), 5.0);
 }
 
 TEST(Linspace, InteriorPointsFollowStep)
 {
-    QVector<qreal>* v = tools::linspace(0.0, 1.0, 5);
-    ASSERT_EQ(v->size(), 5);
+    const QVector<qreal> v = tools::linspace(0.0, 1.0, 5);
+    ASSERT_EQ(v.size(), 5);
     for (int i = 0; i < 5; ++i) {
-        EXPECT_NEAR(v->at(i), 0.25 * i, 1e-12);
+        EXPECT_NEAR(v.at(i), 0.25 * i, 1e-12);
     }
-    delete v;
 }
 
 TEST(Linspace, LastElementIsExactlyTheEndpoint)
 {
     // Fixed: values used to accumulate (val += h), so the endpoint could
     // drift; the canonical implementation pins it exactly, like MATLAB.
-    QVector<qreal>* v = tools::linspace(0.0, 0.3, 4);
-    ASSERT_EQ(v->size(), 4);
-    EXPECT_DOUBLE_EQ(v->last(), 0.3);
-    delete v;
+    const QVector<qreal> v = tools::linspace(0.0, 0.3, 4);
+    ASSERT_EQ(v.size(), 4);
+    EXPECT_DOUBLE_EQ(v.last(), 0.3);
 }
 
 TEST(Linspace, SinglePointReturnsStart)
 {
     // Fixed: N == 1 used to divide by zero when computing the step.
-    QVector<qreal>* v = tools::linspace(2.0, 7.0, 1);
-    ASSERT_EQ(v->size(), 1);
-    EXPECT_DOUBLE_EQ(v->at(0), 2.0);
-    delete v;
+    const QVector<qreal> v = tools::linspace(2.0, 7.0, 1);
+    ASSERT_EQ(v.size(), 1);
+    EXPECT_DOUBLE_EQ(v.at(0), 2.0);
 }
 
 TEST(Linspace, NonPositiveCountReturnsEmpty)
 {
     // Documented contract: an invalid count yields an empty vector. The
     // GUI must validate the count before building an Omega (pending).
-    QVector<qreal>* v = tools::linspace(0.0, 1.0, 0);
-    ASSERT_NE(v, nullptr);
-    EXPECT_TRUE(v->isEmpty());
-    delete v;
+    const QVector<qreal> v = tools::linspace(0.0, 1.0, 0);
+    EXPECT_TRUE(v.isEmpty());
 }
 
 TEST(MathSequences, LinspaceMatchesMatlabSemantics)
@@ -142,11 +136,10 @@ TEST(MathSequences, LogspaceIsTenToTheLinspace)
 
 TEST(Linspace, InvertedRangeDescendsSilently)
 {
-    QVector<qreal>* v = tools::linspace(5.0, 1.0, 3);
-    ASSERT_EQ(v->size(), 3);
-    EXPECT_DOUBLE_EQ(v->at(0), 5.0);
-    EXPECT_DOUBLE_EQ(v->at(1), 3.0);
-    delete v;
+    const QVector<qreal> v = tools::linspace(5.0, 1.0, 3);
+    ASSERT_EQ(v.size(), 3);
+    EXPECT_DOUBLE_EQ(v.at(0), 5.0);
+    EXPECT_DOUBLE_EQ(v.at(1), 3.0);
 }
 
 // ---------------------------------------------------------------------------
@@ -155,25 +148,22 @@ TEST(Linspace, InvertedRangeDescendsSilently)
 
 TEST(Logspace, ArgumentsAreExponents)
 {
-    QVector<qreal>* v = tools::logspace(-1.0, 2.0, 4);
-    ASSERT_EQ(v->size(), 4);
-    EXPECT_NEAR(v->at(0), 0.1, 1e-12);
-    EXPECT_NEAR(v->at(1), 1.0, 1e-12);
-    EXPECT_NEAR(v->at(2), 10.0, 1e-12);
-    EXPECT_NEAR(v->at(3), 100.0, 1e-12);
-    delete v;
+    const QVector<qreal> v = tools::logspace(-1.0, 2.0, 4);
+    ASSERT_EQ(v.size(), 4);
+    EXPECT_NEAR(v.at(0), 0.1, 1e-12);
+    EXPECT_NEAR(v.at(1), 1.0, 1e-12);
+    EXPECT_NEAR(v.at(2), 10.0, 1e-12);
+    EXPECT_NEAR(v.at(3), 100.0, 1e-12);
 }
 
 TEST(Logspace, MatchesTenToTheLinspace)
 {
-    QVector<qreal>* exponents = tools::linspace(-2.0, 3.0, 7);
-    QVector<qreal>* v = tools::logspace(-2.0, 3.0, 7);
-    ASSERT_EQ(v->size(), exponents->size());
-    for (int i = 0; i < v->size(); ++i) {
-        EXPECT_DOUBLE_EQ(v->at(i), std::pow(10.0, exponents->at(i)));
+    const QVector<qreal> exponents = tools::linspace(-2.0, 3.0, 7);
+    const QVector<qreal> v = tools::logspace(-2.0, 3.0, 7);
+    ASSERT_EQ(v.size(), exponents.size());
+    for (int i = 0; i < v.size(); ++i) {
+        EXPECT_DOUBLE_EQ(v.at(i), std::pow(10.0, exponents.at(i)));
     }
-    delete exponents;
-    delete v;
 }
 
 // ---------------------------------------------------------------------------
@@ -183,40 +173,37 @@ TEST(Logspace, MatchesTenToTheLinspace)
 
 TEST(SrToVectorReal, ParsesSpaceSeparatedValues)
 {
-    QVector<qreal>* v = qftbx::text::reals(QStringLiteral("1 2.5 10"));
-    ASSERT_NE(v, nullptr);
+    const std::optional<QVector<qreal>> v = qftbx::text::reals(QStringLiteral("1 2.5 10"));
+    ASSERT_TRUE(v.has_value());
     ASSERT_EQ(v->size(), 3);
     EXPECT_DOUBLE_EQ(v->at(0), 1.0);
     EXPECT_DOUBLE_EQ(v->at(1), 2.5);
     EXPECT_DOUBLE_EQ(v->at(2), 10.0);
-    delete v;
 }
 
 TEST(SrToVectorReal, SkipsRepeatedSpaces)
 {
-    QVector<qreal>* v = qftbx::text::reals(QStringLiteral("1   2"));
-    ASSERT_NE(v, nullptr);
+    const std::optional<QVector<qreal>> v = qftbx::text::reals(QStringLiteral("1   2"));
+    ASSERT_TRUE(v.has_value());
     ASSERT_EQ(v->size(), 2);
-    delete v;
 }
 
-TEST(SrToVectorReal, InvalidTokenReturnsNull)
+TEST(SrToVectorReal, InvalidTokenReturnsNothing)
 {
-    // BUG: the null sentinel is dereferenced unchecked by 6 call sites in
-    // the XML parser and by the manual-frequency dialog. Will become a
-    // qftbx::ParseError.
-    EXPECT_EQ(qftbx::text::reals(QStringLiteral("1 x 3")), nullptr);
+    // The sentinel used to be a null pointer, dereferenced unchecked by six
+    // call sites in the XML parser and by the manual-frequency dialog. An
+    // empty optional cannot be read by mistake.
+    EXPECT_FALSE(qftbx::text::reals(QStringLiteral("1 x 3")).has_value());
 }
 
 TEST(SrToVectorReal, SplitsOnAnyWhitespace)
 {
     // Fixed: the split used to be on single spaces only, so a frequencies
     // file with one value per line produced an unparseable token.
-    QVector<qreal>* v = qftbx::text::reals(QStringLiteral("1.0\n2.0\t3"));
-    ASSERT_NE(v, nullptr);
+    const std::optional<QVector<qreal>> v = qftbx::text::reals(QStringLiteral("1.0\n2.0\t3"));
+    ASSERT_TRUE(v.has_value());
     ASSERT_EQ(v->size(), 3);
     EXPECT_DOUBLE_EQ(v->at(1), 2.0);
-    delete v;
 }
 
 } // namespace

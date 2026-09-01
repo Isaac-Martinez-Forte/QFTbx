@@ -55,7 +55,7 @@ protected:
         mapa[planta->gain().name()] = qftbx::math::linspace(1.0, 10.0, 10);
 
         omegaCopy = new QVector<qreal>(*parser.omega()->values());
-        epsilon = new QVector<qreal>(6, 10.0);
+        epsilon = QVector<qreal>(6, 10.0);
 
         templates.setEpsilon(epsilon);
         templates.setGrids(mapa);
@@ -66,14 +66,13 @@ protected:
     {
         // TemplateEngine owns nothing it was given; free what we created.
         delete omegaCopy;
-        delete epsilon;
     }
 
     ProjectReader parser;
     LtiSystem* planta = nullptr;
     qftbx::ParameterGrids mapa;
     QVector<qreal>* omegaCopy = nullptr;
-    QVector<qreal>* epsilon = nullptr;
+    QVector<qreal> epsilon;
     TemplateEngine templates;
 };
 
@@ -208,8 +207,8 @@ TEST_F(TemplatesGolden, InputVectorsSurviveTheComputation)
     ASSERT_EQ(omegaCopy->size(), 6);
     EXPECT_DOUBLE_EQ(omegaCopy->at(0), 0.1);
     EXPECT_DOUBLE_EQ(omegaCopy->at(5), 100.0);
-    ASSERT_EQ(epsilon->size(), 6);
-    EXPECT_DOUBLE_EQ(epsilon->at(0), 10.0);
+    ASSERT_EQ(epsilon.size(), 6);
+    EXPECT_DOUBLE_EQ(epsilon.at(0), 10.0);
 }
 
 TEST(TemplatesReload, RecalculateContourAfterLoadingAProject)
@@ -220,8 +219,7 @@ TEST(TemplatesReload, RecalculateContourAfterLoadingAProject)
     controlador.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/planta2.qft"));
 
-    auto* epsilon = new QVector<qreal>(6, 10.0);
-    const qftbx::CloudSet & contornos = controlador.recomputeContour(epsilon);
+    const qftbx::CloudSet & contornos = controlador.recomputeContour(QVector<qreal>(6, 10.0));
     ASSERT_EQ(contornos.size(), 6u);
     for (const qftbx::ComplexCloud & c : contornos) {
         EXPECT_FALSE(c.empty());
@@ -231,7 +229,7 @@ TEST(TemplatesReload, RecalculateContourAfterLoadingAProject)
     // previous contour without a double free; with the set held by value
     // there is no deletion to get wrong, and the assertion is just that the
     // recomputation still produces one contour per frequency.
-    const qftbx::CloudSet & contornos2 = controlador.recomputeContour(new QVector<qreal>(6, 8.0));
+    const qftbx::CloudSet & contornos2 = controlador.recomputeContour(QVector<qreal>(6, 8.0));
     ASSERT_EQ(contornos2.size(), 6u);
 }
 
@@ -248,22 +246,18 @@ TEST(TemplatesValidation, MissingSweepGridThrowsInvalidInput)
     mapa[planta->numerator()[0].name()] = qftbx::math::linspace(1.0, 10.0, 10);
     // no grid for the uncertain gain "kv"
 
-    auto* epsilon = new QVector<qreal>(6, 10.0);
     QVector<qreal> omega{0.1, 0.5, 1.0, 2.0, 15.0, 100.0};
 
     TemplateEngine t;
-    t.setEpsilon(epsilon);
+    t.setEpsilon(QVector<qreal>(6, 10.0));
     t.setGrids(mapa);
     EXPECT_THROW(t.compute(planta, &omega, false), qftbx::InvalidInput);
-
-    delete epsilon;
 }
 
 TEST(TemplatesValidation, RecontourWithoutTemplatesThrowsInvalidInput)
 {
     TemplateEngine t;
-    QVector<qreal> epsilon{10.0};
-    EXPECT_THROW(t.computeContours(&epsilon), qftbx::InvalidInput);
+    EXPECT_THROW(t.computeContours(QVector<qreal>{10.0}), qftbx::InvalidInput);
 }
 
 } // namespace

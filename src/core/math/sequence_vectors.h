@@ -14,17 +14,15 @@
 
 /**
  * @namespace tools
- * @brief Heap-QVector flavours of the numeric sequences, for the pipeline
- * stages that still hand vectors around by pointer (the template grids and
- * the epsilon list). They wrap the canonical std implementations in
- * src/core/math/sequences.h and disappear once those containers become
- * values.
+ * @brief QVector flavours of the numeric sequences, for the consumers that
+ * speak Qt containers. They wrap the canonical std implementations in
+ * src/core/math/sequences.h.
  */
 namespace tools{
 
-//Transitional wrappers over qftbx::math (src/core/math/sequences.h).
-QVector <qreal> * linspace(qreal a, qreal b, qint32 N);
-QVector <qreal> * logspace (qreal a, qreal b, qint32 N);
+//Wrappers over qftbx::math (src/core/math/sequences.h).
+QVector <qreal> linspace(qreal a, qreal b, qint32 N);
+QVector <qreal> logspace (qreal a, qreal b, qint32 N);
 
 //Float variant kept verbatim for the CUDA path (deferred).
 std::vector <float> linspace1(qreal a, qreal b, qint32 N);

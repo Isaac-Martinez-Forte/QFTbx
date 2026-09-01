@@ -495,8 +495,9 @@ void BoundaryEngine::computeFrequencies(QVector<qreal> *omega, LtiSystem *plant,
                                         QPointF magnitudeRange, qint32 magnitudeCount)
 {
     //Base grid of the algorithm.
-    QVector <qreal> * phases = tools::linspace(phaseRange.x(), phaseRange.y(), phaseCount);
-    QVector <qreal> * magnitudes = tools::linspace(magnitudeRange.x(), magnitudeRange.y(), magnitudeCount);
+    const QVector <qreal> phases = tools::linspace(phaseRange.x(), phaseRange.y(), phaseCount);
+    const QVector <qreal> magnitudes = tools::linspace(magnitudeRange.x(), magnitudeRange.y(),
+                                                      magnitudeCount);
 
     //Pre-sized containers: every frequency writes at ITS index. The old
     //OpenMP branch created the containers EMPTY and wrote with
@@ -518,9 +519,6 @@ void BoundaryEngine::computeFrequencies(QVector<qreal> *omega, LtiSystem *plant,
 
         computeFrequency(omega->at(i), plant, templates.at(static_cast<std::size_t>(i)), phases, magnitudes, i);
     }
-
-    delete phases;
-    delete magnitudes;
 
     m_omega = omega;
 
@@ -553,8 +551,9 @@ qreal violatingDb(qreal valueDb)
 } // namespace
 
 void BoundaryEngine::computeFrequency (qreal omega, LtiSystem * plant,
-                                       const ComplexCloud & valueSet, QVector <qreal> * phases,
-                                       QVector <qreal> * magnitudes, qint32 index){
+                                       const ComplexCloud & valueSet,
+                                       const QVector <qreal> & phases,
+                                       const QVector <qreal> & magnitudes, qint32 index){
 
     //Nominal plant at this design frequency.
     complex <qreal> p0 = plant->evaluate(omega);
@@ -563,19 +562,19 @@ void BoundaryEngine::computeFrequency (qreal omega, LtiSystem * plant,
 
     //One sheet per specification family and frequency.
     QVector <QVector <qreal> * > * stabilityNoiseSheet = new QVector <QVector <qreal> * > ();
-    stabilityNoiseSheet->reserve(phases->size());
+    stabilityNoiseSheet->reserve(phases.size());
 
     QVector <QVector <qreal> * > * trackingSheet = new QVector <QVector <qreal> * > ();
-    trackingSheet->reserve(phases->size());
+    trackingSheet->reserve(phases.size());
 
     QVector <QVector <qreal> * > * outputDisturbanceSheet = new QVector <QVector <qreal> * > ();
-    outputDisturbanceSheet->reserve(phases->size());
+    outputDisturbanceSheet->reserve(phases.size());
 
     QVector <QVector <qreal> * > * inputDisturbanceSheet = new QVector <QVector <qreal> * > ();
-    inputDisturbanceSheet->reserve(phases->size());
+    inputDisturbanceSheet->reserve(phases.size());
 
     QVector <QVector <qreal> * > * controlEffortSheet = new QVector <QVector <qreal> * > ();
-    controlEffortSheet->reserve(phases->size());
+    controlEffortSheet->reserve(phases.size());
 
     //First loop variables:
     QVector <qreal> * stabilityNoiseRow;
@@ -605,27 +604,27 @@ void BoundaryEngine::computeFrequency (qreal omega, LtiSystem * plant,
 
     //Grid sweep (no nested parallelism: the outer per-frequency loop is
     //already parallel, and these loops share function-scope variables).
-    for (qint32 k = 0; k < magnitudes->size(); k++){
+    for (qint32 k = 0; k < magnitudes.size(); k++){
 
         stabilityNoiseRow = new QVector <qreal> ();
-        stabilityNoiseRow->reserve(phases->size());
+        stabilityNoiseRow->reserve(phases.size());
 
         trackingRow = new QVector <qreal> ();
-        trackingRow->reserve(phases->size());
+        trackingRow->reserve(phases.size());
 
         outputDisturbanceRow = new QVector <qreal> ();
-        outputDisturbanceRow->reserve(phases->size());
+        outputDisturbanceRow->reserve(phases.size());
 
         inputDisturbanceRow = new QVector <qreal> ();
-        inputDisturbanceRow->reserve(phases->size());
+        inputDisturbanceRow->reserve(phases.size());
 
         controlEffortRow = new QVector <qreal> ();
-        controlEffortRow->reserve(phases->size());
+        controlEffortRow->reserve(phases.size());
 
-        for (qint32 j = 0; j < phases->size(); j++){
+        for (qint32 j = 0; j < phases.size(); j++){
 
-            magnitudeDb = magnitudes->at(k);
-            phaseDegrees = phases->at(j);
+            magnitudeDb = magnitudes.at(k);
+            phaseDegrees = phases.at(j);
 
             //Nichols (dB, degrees) to the complex grid point L.
             linearMagnitude = pow(10, magnitudeDb/20);

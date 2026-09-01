@@ -48,30 +48,35 @@ public:
 
     //Inspection: the reader KEEPS ownership, so a caller that only looks
     //at the parsed contents needs no cleanup of its own.
-    LtiSystem * plant() const { return m_plant; }
+    LtiSystem * plant() const { return m_plant.get(); }
     QVector <qftbx::SpecificationRecord *> * specifications() const { return m_specifications; }
-    Omega * omega() const { return m_omega; }
+    Omega * omega() const { return m_omega.get(); }
     const CloudSet & templates() const { return m_templates; }
     const CloudSet & contour() const { return m_contour; }
-    QVector <qreal> * epsilon() const { return m_epsilon; }
+    /// The epsilon of the templates section, or nullptr when the file
+    /// carried none. Held by value, like the boundaries.
+    const QVector <qreal> * epsilon() const
+    {
+        return m_epsilon.has_value() ? &m_epsilon.value() : nullptr;
+    }
     const BoundaryData * boundaries() const
     {
         return m_boundaries.has_value() ? &m_boundaries.value() : nullptr;
     }
-    LtiSystem * controller() const { return m_controller; }
-    LoopShapingResult * loopShaping() const { return m_loopShaping; }
+    LtiSystem * controller() const { return m_controller.get(); }
+    LoopShapingResult * loopShaping() const { return m_loopShaping.get(); }
 
     //Claim: the caller becomes the owner and the reader forgets it. Used
     //by the facade, which hands everything to the project store; anything
     //left unclaimed dies with the reader (it used to leak).
-    LtiSystem * takePlant() { return take(m_plant); }
+    std::unique_ptr<LtiSystem> takePlant() { return std::move(m_plant); }
     QVector <qftbx::SpecificationRecord *> * takeSpecifications() { return take(m_specifications); }
-    Omega * takeOmega() { return take(m_omega); }
+    std::unique_ptr<Omega> takeOmega() { return std::move(m_omega); }
     /// By value, so "take" is now just a move: nothing to null out, nothing
     /// that could be freed twice.
     CloudSet takeTemplates() { return std::move(m_templates); }
     CloudSet takeContour() { return std::move(m_contour); }
-    QVector <qreal> * takeEpsilon() { return take(m_epsilon); }
+    std::optional<QVector <qreal>> takeEpsilon() { return std::move(m_epsilon); }
     /// The boundaries, or nothing when the file carried none. By value, so
     /// there is no owner to hand over.
     std::optional<BoundaryData> takeBoundaries()
@@ -81,8 +86,8 @@ public:
 
         return taken;
     }
-    LtiSystem * takeController() { return take(m_controller); }
-    LoopShapingResult * takeLoopShaping() { return take(m_loopShaping); }
+    std::unique_ptr<LtiSystem> takeController() { return std::move(m_controller); }
+    std::unique_ptr<LoopShapingResult> takeLoopShaping() { return std::move(m_loopShaping); }
 
 private:
 
@@ -94,15 +99,15 @@ private:
         return claimed;
     }
 
-    LtiSystem * m_plant = nullptr;
+    std::unique_ptr<LtiSystem> m_plant;
     QVector <qftbx::SpecificationRecord *> * m_specifications = nullptr;
-    Omega * m_omega = nullptr;
+    std::unique_ptr<Omega> m_omega;
     CloudSet m_templates;
     CloudSet m_contour;
-    QVector <qreal> * m_epsilon = nullptr;
+    std::optional<QVector <qreal>> m_epsilon;
     std::optional<BoundaryData> m_boundaries;
-    LtiSystem * m_controller = nullptr;
-    LoopShapingResult * m_loopShaping = nullptr;
+    std::unique_ptr<LtiSystem> m_controller;
+    std::unique_ptr<LoopShapingResult> m_loopShaping;
 };
 
 } // namespace qftbx

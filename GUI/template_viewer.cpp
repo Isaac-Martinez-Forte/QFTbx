@@ -454,22 +454,22 @@ void TemplateViewer::on_recomputeButton_clicked()
         return;
     }
 
-    QVector <qreal> * epsilon = new QVector <qreal> ();
+    QVector <qreal> epsilon;
+    epsilon.reserve(epsilonEdits->size());
 
     for (qint32 i = 0; i < epsilonEdits->size(); i++) {
         qreal pos = epsilonEdits->at(i)->text().toDouble();
         epsilonSliders->at(i)->setValue(pos * 1000);
-        epsilon->append(pos);
+        epsilon.append(pos);
     }
 
     //The viewer draws; the computation belongs to whoever installed the
     //handler, which answers with refreshContour().
     if (!recompute){
-        delete epsilon;
         return;
     }
 
-    recompute(epsilon);
+    recompute(std::move(epsilon));
 }
 
 

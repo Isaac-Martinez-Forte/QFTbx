@@ -22,30 +22,29 @@ public:
     /// serialized in the .qft files: do not reorder.
     enum GenerationType {LinSpace, LogSpace, Manual, File};
 
-    Omega(qreal start, qreal end, qint32 pointCount, QVector<qreal> * values, GenerationType type);
+    Omega(qreal start, qreal end, qint32 pointCount, QVector<qreal> values, GenerationType type);
 
     /// Reads a frequency file (values separated by whitespace or newlines).
     /// Throws qftbx::FileError when it cannot be opened or holds no valid
     /// frequency.
-    static QVector<qreal> * valuesFromFile(QString path);
-
-    ~Omega();
+    static QVector<qreal> valuesFromFile(QString path);
 
     qreal start();
     qreal end();
     qint32 pointCount();
 
+    /// Observer on the frequencies, which the set holds by value.
     QVector<qreal> * values();
 
     GenerationType type();
 
-    void setOmega(QVector<qreal> * values);
+    void setOmega(QVector<qreal> values);
 
 private:
     qreal m_start;
     qreal m_end;
     qint32 m_pointCount;
-    QVector<qreal> * m_values;
+    QVector<qreal> m_values;
     GenerationType m_type;
 };
 

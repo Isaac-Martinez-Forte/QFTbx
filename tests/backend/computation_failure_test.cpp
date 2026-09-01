@@ -29,21 +29,21 @@
 
 namespace {
 
-LtiSystem * makePlant()
+std::unique_ptr<LtiSystem> makePlant()
 {
     std::vector<Parameter> numerator{Parameter(1.0)};
     std::vector<Parameter> denominator{
         Parameter(QStringLiteral("a"), qftbx::Range(1.0, 2.0), 1.5),
         Parameter(1.0)};
 
-    return new PolynomialForm(QStringLiteral("failing"), numerator, denominator,
+    return std::make_unique<PolynomialForm>(QStringLiteral("failing"), numerator, denominator,
                               Parameter(QStringLiteral("kv"), qftbx::Range(1.0, 2.0), 1.5),
                               Parameter(0.0));
 }
 
-Omega * makeOmega()
+std::unique_ptr<Omega> makeOmega()
 {
-    return new Omega(0.1, 10.0, 3, tools::logspace(-1.0, 1.0, 3), Omega::LogSpace);
+    return std::make_unique<Omega>(0.1, 10.0, 3, tools::logspace(-1.0, 1.0, 3), Omega::LogSpace);
 }
 
 //Every uncertain parameter needs a sweep grid; leaving one out is the
@@ -74,7 +74,7 @@ protected:
 
 TEST_F(FailedComputation, AMissingSweepGridIsReportedAndLeavesNoTemplates)
 {
-    auto * epsilon = new QVector<qreal>(3, 10.0);
+    const QVector<qreal> epsilon(3, 10.0);
 
     EXPECT_THROW(controller.computeTemplates(epsilon, gridsMissing(QStringLiteral("kv")), false),
                  qftbx::InvalidInput);
@@ -83,26 +83,22 @@ TEST_F(FailedComputation, AMissingSweepGridIsReportedAndLeavesNoTemplates)
         << "a failed computation left templates behind";
     EXPECT_TRUE(controller.contour().empty());
     EXPECT_EQ(controller.boundaries(), nullptr);
-
-    delete epsilon;
 }
 
 TEST_F(FailedComputation, TheProjectStillWorksAfterAFailedComputation)
 {
-    auto * badEpsilon = new QVector<qreal>(3, 10.0);
+    const QVector<qreal> badEpsilon(3, 10.0);
     const qftbx::ParameterGrids badGrids = gridsMissing(QStringLiteral("a"));
 
     EXPECT_THROW(controller.computeTemplates(badEpsilon, badGrids, false),
                  qftbx::InvalidInput);
-
-    delete badEpsilon;
 
     //Same project, now with every grid: the failure must not have poisoned it.
     qftbx::ParameterGrids grids;
     grids[QStringLiteral("a")] = qftbx::math::linspace(1.0, 2.0, 3);
     grids[QStringLiteral("kv")] = qftbx::math::linspace(1.0, 2.0, 3);
 
-    ASSERT_TRUE(controller.computeTemplates(new QVector<qreal>(3, 10.0), grids, false))
+    ASSERT_TRUE(controller.computeTemplates(QVector<qreal>(3, 10.0), grids, false))
         << "the project never recovered from the earlier failure";
     EXPECT_FALSE(controller.templates().empty());
 
@@ -139,10 +135,10 @@ TEST_F(FailedComputation, LoopShapingRefusesWithoutItsInputs)
 
 TEST_F(FailedComputation, TemplatesRefuseWithoutAPlantOrFrequencies)
 {
-    //A refusal takes neither the epsilon nor the grids, so this test owns
-    //them - which is the point: the precondition fires before anything is
-    //handed over.
-    auto * epsilon = new QVector<qreal>(1, 10.0);
+    //A refusal used to leak the epsilon the caller had allocated for it:
+    //the preconditions fire before the store takes it. By value there is
+    //nothing to leak on any path.
+    const QVector<qreal> epsilon(1, 10.0);
     qftbx::ParameterGrids grids;
 
     ProjectController empty;
@@ -151,8 +147,6 @@ TEST_F(FailedComputation, TemplatesRefuseWithoutAPlantOrFrequencies)
     ProjectController plantOnly;
     plantOnly.setPlant(makePlant());
     EXPECT_THROW(plantOnly.computeTemplates(epsilon, {}, false), qftbx::InvalidInput);
-
-    delete epsilon;
 }
 
 } // namespace

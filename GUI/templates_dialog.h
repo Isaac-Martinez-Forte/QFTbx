@@ -90,7 +90,7 @@ public:
     /// dialog was cancelled or rejected. Ownership passes to the caller:
     /// this used to be a plain getter whose value the project then took,
     /// leaving the dialog holding a dangling pointer between accepts.
-    QVector <qreal> * takeEpsilon();
+    QVector <qreal> takeEpsilon();
     
     
    /**
@@ -168,7 +168,7 @@ private:
 
     bool todoCorrecto;
 
-    QVector <qreal> * epsilonValues;
+    QVector <qreal> epsilonValues;
 
     //Names entered more than once in the current OK pass (numerator and
     //denominator sharing a parameter): reported once to the user.

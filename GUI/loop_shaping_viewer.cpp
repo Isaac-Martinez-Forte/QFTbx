@@ -156,7 +156,7 @@ void LoopShapingViewer::showDiagram(){
 
     //Draw the open-loop curve.
 
-    QVector <qreal> * frequencies;
+    QVector <qreal> frequencies;
 
     /*if(linSpace){
         frequencies = tools::linspace(loopShapingData->range().min, loopShapingData->range().max, loopShapingData->pointCount());
@@ -174,7 +174,7 @@ void LoopShapingViewer::showDiagram(){
     QVector <qreal> * ejeyActual = new QVector <qreal> ();
 
 
-    std::complex <qreal> c = plant->evaluate(frequencies->at(0)) * loopShapingData->controller()->evaluate(frequencies->at(0));
+    std::complex <qreal> c = plant->evaluate(frequencies.at(0)) * loopShapingData->controller()->evaluate(frequencies.at(0));
 
     qreal fas = arg(c) *180 / M_PI;
     qreal mag = 20*log10(abs(c));
@@ -187,7 +187,7 @@ void LoopShapingViewer::showDiagram(){
      qreal previousPhase = fas;
 
 
-    foreach (qreal a, *frequencies) {
+    foreach (qreal a, frequencies) {
         std::complex <qreal> c = plant->evaluate(a) * loopShapingData->controller()->evaluate(a);
 
         qreal fas = arg(c) *180 / M_PI;
@@ -259,8 +259,6 @@ void LoopShapingViewer::showDiagram(){
         delete segment;
     }
     delete ejey;
-
-    delete frequencies;
 
 
     //Draw the marker for each design frequency.

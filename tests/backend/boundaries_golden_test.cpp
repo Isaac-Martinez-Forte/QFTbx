@@ -302,25 +302,20 @@ TEST(BoundaryCriticalPoint, UndampedResonanceIsRejectedWithAdvice)
         Parameter(1.0), Parameter(0.0),
         QStringLiteral("ev"), QStringLiteral("s^2*(s^2 + 2*ev)"));
 
-    controller.setPlant(undamped);
+    controller.setPlant(std::unique_ptr<LtiSystem>(undamped));
 
-    auto* frequencies = new QVector<qreal>();
-    frequencies->append(1.0);              // exact resonance of ev = 0.5
-    controller.setOmega(new Omega(frequencies->at(0), frequencies->at(0), 1,
-                                   frequencies, Omega::Manual));
+    const QVector<qreal> frequencies{1.0};   // exact resonance of ev = 0.5
+    controller.setOmega(std::make_unique<Omega>(frequencies.at(0), frequencies.at(0), 1,
+                                               frequencies, Omega::Manual));
 
-    auto* epsilon = new QVector<qreal>();
-    epsilon->append(10.0);
+    const QVector<qreal> epsilon{10.0};
     // sqrt(2*0.5) = 1 exactly: |P| = inf at that frequency
     qftbx::ParameterGrids grids{{QStringLiteral("ev"), {0.5}}};
 
     try {
         controller.computeTemplates(epsilon, grids, false);
-        delete epsilon;
         FAIL() << "an undamped resonance must be reported, not swept under";
     } catch (const qftbx::ComputationError & error) {
-        //A refusal never took the epsilon: the store only keeps it on success.
-        delete epsilon;
         const QString message = QString::fromUtf8(error.what());
         EXPECT_TRUE(message.contains(QStringLiteral("1 rad/s"))) << error.what();
         EXPECT_TRUE(message.contains(QStringLiteral("largest |P|"))) << error.what();
