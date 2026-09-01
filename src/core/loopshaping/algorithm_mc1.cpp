@@ -133,12 +133,11 @@ bool AlgorithmMc1::init_algorithm()
                     "No feasible solution exists in the given search box.");
         }
 
-        SearchNode * node = static_cast<SearchNode *>(lista->takeFirst());
+        std::unique_ptr<SearchNode> node = lista->takeFirstAs<SearchNode>();
 
         //Step 3bis.(a): a node whose gain infimum cannot improve the
         //certified solution is discarded.
         if (node->system()->gain().range().min >= bestCertifiedGain) {
-            delete node;
             continue;
         }
 
@@ -149,14 +148,12 @@ bool AlgorithmMc1::init_algorithm()
 
                 if (!stability->isNominallyStable(controlador_retorno)) {
                     delete controlador_retorno;
-                    delete node;
                     continue;
                 }
             } else {
                 controlador_retorno = pointFromBox(node->system(), true);
             }
 
-            delete node;
             delete bestCertifiedController;
             cleanup();
             return true;
@@ -164,8 +161,6 @@ bool AlgorithmMc1::init_algorithm()
 
         //Step 4: bisect along the widest parameter direction.
         struct BisectionResult retur = bisectWidestParameter(node->system());
-
-        delete node;
 
         //Steps 4bis-6: QS2 + feasibility + insertion.
         check_box_feasibility(retur.v1);
@@ -238,7 +233,8 @@ inline void AlgorithmMc1::check_box_feasibility(LtiSystem * controlador)
         certifiedGainSearch(controlador);
     }
 
-    lista->insert(new SearchNode(controlador->gain().range().min, controlador, flag_final));
+    lista->insert(std::make_unique<SearchNode>(controlador->gain().range().min,
+            std::unique_ptr<LtiSystem>(controlador), flag_final));
 }
 
 

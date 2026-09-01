@@ -2,6 +2,8 @@
 #define QFTBX_LOOPSHAPING_COMMON_FUNCTIONS_H
 
 
+#include <memory>
+
 #include <QVector>
 #include <QPointF>
 
@@ -27,9 +29,11 @@ struct BisectionResult {
     bool descartado;
 };
 
+//The children of a bisection belong to whoever receives them: they are
+//either inserted in the live list or dropped, and the type says so.
 struct McBisectionResult {
-    McSearchNode * t1;
-    McSearchNode * t2;
+    std::unique_ptr<McSearchNode> t1;
+    std::unique_ptr<McSearchNode> t2;
     bool descartado;
 };
 

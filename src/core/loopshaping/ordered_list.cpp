@@ -19,29 +19,21 @@ OrderedList::OrderedList(bool mayor)
 {
 }
 
-OrderedList::~OrderedList()
+void OrderedList::insert(std::unique_ptr<ListNode> elemento)
 {
-    //Nodes taken out of the list belong to the taker; whatever is still
-    //queued when the search ends dies with the list (the historical
-    //version leaked every live node left behind by a successful return).
-    for (auto & entry : lista) {
-        delete entry.second;
-    }
-}
+    const qreal index = elemento->getIndex();
 
-void OrderedList::insert(ListNode * elemento)
-{
-    lista.insert({elemento->getIndex(), elemento});
+    lista.insert({index, std::move(elemento)});
 }
 
 ListNode * OrderedList::first()
 {
-    return lista.begin()->second;
+    return lista.begin()->second.get();
 }
 
-ListNode * OrderedList::takeFirst()
+std::unique_ptr<ListNode> OrderedList::takeFirst()
 {
-    ListNode * n = lista.begin()->second;
+    std::unique_ptr<ListNode> n = std::move(lista.begin()->second);
 
     lista.erase(lista.begin());
 
@@ -51,12 +43,7 @@ ListNode * OrderedList::takeFirst()
 
 ListNode * OrderedList::last()
 {
-    return std::prev(lista.end())->second;
-}
-
-void OrderedList::removeLast()
-{
-    lista.erase(std::prev(lista.end()));
+    return std::prev(lista.end())->second.get();
 }
 
 bool OrderedList::isEmpty()

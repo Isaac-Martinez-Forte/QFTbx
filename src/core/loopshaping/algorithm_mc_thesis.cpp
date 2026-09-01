@@ -12,23 +12,20 @@ namespace quick_solution = qftbx::quick_solution;
 namespace {
 
 //Prune step of thesis 5.4.3: cap the gain range of a box at the prune
-//variable C. Returns the capped replacement (destroying the original) or
-//the box itself when the cap does not apply.
-LtiSystem * capGain(LtiSystem * box, qreal cap)
+//variable C. Takes the box over and returns either the capped
+//replacement or the box itself, when the cap does not apply.
+std::unique_ptr<LtiSystem> capGain(std::unique_ptr<LtiSystem> box, qreal cap)
 {
     if (!box->gain().isUncertain() ||
             cap <= box->gain().range().min || cap >= box->gain().range().max) {
         return box;
     }
 
-    LtiSystem * capped = box->create(box->name(),
+    return std::unique_ptr<LtiSystem>(box->create(box->name(),
             box->numerator(), box->denominator(),
             Parameter("kv", Range(box->gain().range().min, cap),
                           box->gain().range().min, "kv"),
-            box->delay());
-    delete box;
-
-    return capped;
+            box->delay()));
 }
 
 //Nominal plant phase on the (-2 pi, 0] branch the Nichols boxes use.
@@ -206,11 +203,11 @@ bool AlgorithmMcThesis::init_algorithm()
 
     //Step A/B: the initial box enters the list; its feasibility test
     //happens when it is popped (step D).
-    McSearchNode * inicial = new McSearchNode(controlador->gain().range().min, controlador, ambiguous);
+    auto inicial = std::make_unique<McSearchNode>(controlador->gain().range().min,
+            std::unique_ptr<LtiSystem>(controlador), ambiguous);
     inicial->setStage(strategies.stages ? Stage::Initial : Stage::Intermediate);
     inicial->setCutsEnabled(true);
-    inicial->setFeasibleFrequencies(new QHash<qreal, qreal>());
-    lista->insert(inicial);
+    lista->insert(std::move(inicial));
 
     while (true) {
 
@@ -231,22 +228,20 @@ bool AlgorithmMcThesis::init_algorithm()
                     "No feasible solution exists in the given search box.");
         }
 
-        McSearchNode * node = static_cast<McSearchNode *>(lista->takeFirst());
+        std::unique_ptr<McSearchNode> node = lista->takeFirstAs<McSearchNode>();
 
         //Strict comparison: a node whose infimum EQUALS C still realises
         //the certified optimum (thesis 5.4.3 prescribes < over <=).
         if (bestCertifiedGain < node->system()->gain().range().min) {
-            delete node;
             continue;
         }
 
-        node->setSystem(capGain(node->system(), bestCertifiedGain));
+        node->setSystem(capGain(node->releaseSystem(), bestCertifiedGain));
 
         //A feasible node is a solution: its gain infimum corner realises
         //the optimum of the box (stability was certified at insertion).
         if (node->flag() == feasible) {
             controlador_retorno = pointFromBox(node->system(), true);
-            delete node;
             delete bestCertifiedController;
             cleanup();
             return true;
@@ -254,13 +249,12 @@ bool AlgorithmMcThesis::init_algorithm()
 
         //Step D: feasibility test of the current box.
         NodeAnalysis analysis;
-        if (!analyse(node, analysis)) {
-            continue;   //certainly infeasible, destroyed inside
+        if (!analyse(node.get(), analysis)) {
+            continue;   //certainly infeasible: the node dies with the scope
         }
 
         if (analysis.flag == feasible) {
             controlador_retorno = pointFromBox(node->system(), true);
-            delete node;
 
             if (!stability->isNominallyStable(controlador_retorno)) {
                 delete controlador_retorno;
@@ -277,7 +271,6 @@ bool AlgorithmMcThesis::init_algorithm()
         //pass the stability criterion, as reviewed for NT.
         if (isEpsilonSmall(node->system(), epsilon, omega, conversion, plantas_nominales)) {
             controlador_retorno = pointFromBox(node->system(), false);
-            delete node;
 
             if (!stability->isNominallyStable(controlador_retorno)) {
                 delete controlador_retorno;
@@ -291,29 +284,29 @@ bool AlgorithmMcThesis::init_algorithm()
 
         //Steps E-F: stage bookkeeping, MG, QSFact, QSInv.
         QVector<FeasibleThreshold> thresholds;
-        improveNode(node, analysis, thresholds);
+        improveNode(node.get(), analysis, thresholds);
 
         //C may have improved inside F.
         if (bestCertifiedGain < node->system()->gain().range().min) {
-            delete node;
             continue;
         }
 
         //Steps G-H: bisect and insert the children.
-        FC::McBisectionResult children = bisect(node, analysis, thresholds);
+        FC::McBisectionResult children = bisect(node.get(), analysis, thresholds);
 
-        for (McSearchNode * child : {children.t1, children.t2}) {
+        for (std::unique_ptr<McSearchNode> * slot : {&children.t1, &children.t2}) {
+            std::unique_ptr<McSearchNode> child = std::move(*slot);
+
             if (child == nullptr) {
                 continue;
             }
 
             if (bestCertifiedGain < child->system()->gain().range().min) {
-                delete child;
                 continue;
             }
 
             child->setIndex(child->system()->gain().range().min);
-            lista->insert(child);
+            lista->insert(std::move(child));
         }
     }
 }
@@ -328,8 +321,8 @@ LtiSystem * AlgorithmMcThesis::controllerStructure()
 //------------------------------------------------------- feasibility test
 //Step D: one detection per design frequency (skipping the frequencies
 //the node history already certifies as feasible), collecting the data
-//the cutting stages and the bisection need. Returns false (destroying
-//the node) when some frequency is certainly infeasible.
+//the cutting stages and the bisection need. Returns false when some
+//frequency is certainly infeasible; the node is the caller's to drop.
 inline bool AlgorithmMcThesis::analyse(McSearchNode * node, NodeAnalysis & out)
 {
     out.flag = feasible;
@@ -354,7 +347,6 @@ inline bool AlgorithmMcThesis::analyse(McSearchNode * node, NodeAnalysis & out)
 
         if (datos->flag() == infeasible) {
             delete datos;
-            delete node;
             return false;
         }
 
@@ -581,11 +573,11 @@ inline void AlgorithmMcThesis::insertFeasibleBox(LtiSystem * box, McSearchNode *
         delete point;
     }
 
-    McSearchNode * t = new McSearchNode(gainInf, box, feasible);
+    auto t = std::make_unique<McSearchNode>(gainInf, std::unique_ptr<LtiSystem>(box),
+                                           feasible);
     t->setStage(parent->stage());
     t->setCutsEnabled(false);
-    t->setFeasibleFrequencies(new QHash<qreal, qreal>());
-    lista->insert(t);
+    lista->insert(std::move(t));
 }
 
 
@@ -790,8 +782,7 @@ inline void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnaly
                 insertFeasibleBox(um, node);
 
                 LtiSystem * remainder = replaceParameter(box, parameter, ambiguousPart);
-                delete box;
-                node->setSystem(remainder);
+                node->setSystem(std::unique_ptr<LtiSystem>(remainder));
                 box = remainder;
 
                 improved = true;
@@ -983,8 +974,7 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
                 : Parameter(v->gain().nominal()),
             v->delay());
 
-    delete v;
-    node->setSystem(nuevo);
+    node->setSystem(std::unique_ptr<LtiSystem>(nuevo));
     improved = true;
 }
 
@@ -1002,12 +992,11 @@ inline FC::McBisectionResult AlgorithmMcThesis::bisectAt(McSearchNode * node, qi
     LtiSystem * upper = replaceParameter(box, parameter, Range(point, range.max));
 
     const auto makeChild = [&](LtiSystem * system) {
-        McSearchNode * t = new McSearchNode(system->gain().range().min, system, ambiguous);
+        auto t = std::make_unique<McSearchNode>(system->gain().range().min,
+                std::unique_ptr<LtiSystem>(system), ambiguous);
         t->setStage(node->stage());
         t->setCutsEnabled(node->cutsEnabled());
-        t->setFeasibleFrequencies(node->feasibleFrequencies() != nullptr
-                ? new QHash<qreal, qreal>(*node->feasibleFrequencies())
-                : new QHash<qreal, qreal>());
+        t->setFeasibleFrequencies(node->feasibleFrequencies());
         return t;
     };
 
@@ -1016,8 +1005,7 @@ inline FC::McBisectionResult AlgorithmMcThesis::bisectAt(McSearchNode * node, qi
     retur.t2 = makeChild(upper);
     retur.descartado = false;
 
-    delete node;
-
+    //The bisected node is the caller's: it dies with the loop iteration.
     return retur;
 }
 
@@ -1110,7 +1098,8 @@ inline FC::McBisectionResult AlgorithmMcThesis::bisect(McSearchNode * node, cons
             const qint32 freq = bestThreshold->freqIndex;
             FC::McBisectionResult retur = bisectAt(node, bestThreshold->parameter,
                                                    bestThreshold->threshold);
-            McSearchNode * feasibleChild = bestThreshold->upperSide ? retur.t2 : retur.t1;
+            McSearchNode * feasibleChild = (bestThreshold->upperSide
+                    ? retur.t2 : retur.t1).get();
 
             //Defensive verification of the mark with the real detection:
             //an unverified mark would silently skip this frequency's

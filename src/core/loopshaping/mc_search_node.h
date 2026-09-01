@@ -1,6 +1,8 @@
 #ifndef QFTBX_LOOPSHAPING_MC_SEARCH_NODE_H
 #define QFTBX_LOOPSHAPING_MC_SEARCH_NODE_H
 
+#include <memory>
+
 #include <QHash>
 
 #include "src/core/math/sequence_vectors.h"
@@ -10,17 +12,16 @@
 
 //Live-list node of algorithm MC (thesis): a SearchNode plus the node
 //history of thesis sec. 4.4.4 (execution stage, cut switch and the
-//design frequencies the node is certified feasible at). The node owns
-//its frequency map; every child receives a copy.
+//design frequencies the node is certified feasible at). The node holds
+//its frequency map by value, so every child receives a copy for free.
 class McSearchNode : public SearchNode {
 
 public:
 
     McSearchNode() {}
 
-    McSearchNode(qreal index, LtiSystem * sistema, tools::BoxFlag flags = tools::ambiguous);
-
-    ~McSearchNode();
+    McSearchNode(qreal index, std::unique_ptr<LtiSystem> system,
+                 tools::BoxFlag flags = tools::ambiguous);
 
     void setCutsEnabled(bool recorteActivado);
     bool cutsEnabled();
@@ -29,16 +30,16 @@ public:
     Stage stage();
 
     void markFrequencyFeasible(qreal pos, qreal frec);
-    bool isFrequencyFeasible(qreal key);
-    void setFeasibleFrequencies(QHash<qreal, qreal> * frequencies);
-    QHash<qreal, qreal> * feasibleFrequencies();
+    bool isFrequencyFeasible(qreal key) const;
+    void setFeasibleFrequencies(QHash<qreal, qreal> frequencies);
+    const QHash<qreal, qreal> & feasibleFrequencies() const;
 
 protected:
 
     bool recorteActivado = true;
     Stage etapa = Stage::Initial;
 
-    QHash<qreal, qreal> * m_feasibleFrequencies = nullptr;
+    QHash<qreal, qreal> m_feasibleFrequencies;
 };
 
 #endif // QFTBX_LOOPSHAPING_MC_SEARCH_NODE_H

@@ -10,6 +10,7 @@
 #include "tests/backend/cxsc_printing.h"
 
 #include <map>
+#include <memory>
 #include <string>
 
 #include "src/core/loopshaping/ordered_list.h"
@@ -21,10 +22,22 @@ namespace {
 
 using cxsc::interval;
 
-ListNode* node(qreal index)
+std::unique_ptr<ListNode> node(qreal index)
 {
-    return new ListNode(index);
+    return std::make_unique<ListNode>(index);
 }
+
+//Counts its own lifetime, to check who frees the nodes.
+class CountingNode : public ListNode
+{
+public:
+    explicit CountingNode(qreal index) : ListNode(index) { alive++; }
+    ~CountingNode() override { alive--; }
+
+    static int alive;
+};
+
+int CountingNode::alive = 0;
 
 TEST(OrderedList, AscendingInsertsKeepTheOrder)
 {
@@ -62,12 +75,13 @@ TEST(OrderedList, MiddleInsertKeepsTheOrder)
 
     lista.insert(node(4)); // belongs between 3 and 5
 
-    //takeFirst hands the node over, so the test owns it from here.
-    delete lista.takeFirst();   // 1
+    //takeFirst hands the ownership over, so the node dies with the
+    //temporary it is returned in.
+    lista.takeFirst();   // 1
     EXPECT_EQ(lista.first()->getIndex(), 3);
-    delete lista.takeFirst();
+    lista.takeFirst();
     EXPECT_EQ(lista.first()->getIndex(), 4);
-    delete lista.takeFirst();
+    lista.takeFirst();
     EXPECT_EQ(lista.first()->getIndex(), 5);
 }
 
@@ -92,10 +106,44 @@ TEST(OrderedList, FirstRetrieveAndDeleteWork)
     lista.insert(node(7));
     EXPECT_FALSE(lista.isEmpty());
 
-    ListNode* primero = lista.takeFirst();
+    std::unique_ptr<ListNode> primero = lista.takeFirst();
     EXPECT_EQ(primero->getIndex(), 7);
-    delete primero;
 
+    EXPECT_TRUE(lista.isEmpty());
+}
+
+TEST(OrderedList, TheListFreesWhatIsStillQueued)
+{
+    //A successful branch & bound returns with millions of live nodes left
+    //in the list; they are the list's to free.
+    CountingNode::alive = 0;
+
+    {
+        OrderedList lista;
+        lista.insert(std::make_unique<CountingNode>(1));
+        lista.insert(std::make_unique<CountingNode>(2));
+
+        EXPECT_EQ(CountingNode::alive, 2);
+    }
+
+    EXPECT_EQ(CountingNode::alive, 0);
+}
+
+TEST(OrderedList, TakeFirstHandsTheNodeOver)
+{
+    CountingNode::alive = 0;
+
+    OrderedList lista;
+    lista.insert(std::make_unique<CountingNode>(1));
+
+    {
+        std::unique_ptr<ListNode> taken = lista.takeFirst();
+        EXPECT_EQ(CountingNode::alive, 1);
+    }
+
+    //Out of the taker's scope the node is gone, and the list did not
+    //keep a second owner of it.
+    EXPECT_EQ(CountingNode::alive, 0);
     EXPECT_TRUE(lista.isEmpty());
 }
 

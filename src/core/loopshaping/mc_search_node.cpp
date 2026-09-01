@@ -2,14 +2,9 @@
 
 using namespace tools;
 
-McSearchNode::McSearchNode(qreal index, LtiSystem * sistema, BoxFlag flags)
-    : SearchNode(index, sistema, flags)
+McSearchNode::McSearchNode(qreal index, std::unique_ptr<LtiSystem> system, BoxFlag flags)
+    : SearchNode(index, std::move(system), flags)
 {
-}
-
-McSearchNode::~McSearchNode()
-{
-    delete m_feasibleFrequencies;
 }
 
 void McSearchNode::setCutsEnabled(bool recorteActivado)
@@ -34,25 +29,20 @@ Stage McSearchNode::stage()
 
 void McSearchNode::markFrequencyFeasible(qreal pos, qreal frec)
 {
-    if (m_feasibleFrequencies == nullptr) {
-        m_feasibleFrequencies = new QHash<qreal, qreal>();
-    }
-
-    m_feasibleFrequencies->insert(pos, frec);
+    m_feasibleFrequencies.insert(pos, frec);
 }
 
-bool McSearchNode::isFrequencyFeasible(qreal key)
+bool McSearchNode::isFrequencyFeasible(qreal key) const
 {
-    return m_feasibleFrequencies != nullptr && m_feasibleFrequencies->contains(key);
+    return m_feasibleFrequencies.contains(key);
 }
 
-void McSearchNode::setFeasibleFrequencies(QHash<qreal, qreal> * frequencies)
+void McSearchNode::setFeasibleFrequencies(QHash<qreal, qreal> frequencies)
 {
-    delete m_feasibleFrequencies;
-    m_feasibleFrequencies = frequencies;
+    m_feasibleFrequencies = std::move(frequencies);
 }
 
-QHash<qreal, qreal> * McSearchNode::feasibleFrequencies()
+const QHash<qreal, qreal> & McSearchNode::feasibleFrequencies() const
 {
     return m_feasibleFrequencies;
 }

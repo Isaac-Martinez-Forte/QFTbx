@@ -265,7 +265,7 @@ bool AlgorithmMr::init_algorithm(){
                     "No feasible solution exists in the given search box.");
         }
 
-        SearchNode * node = static_cast<SearchNode *>(lista->takeFirst());
+        std::unique_ptr<SearchNode> node = lista->takeFirstAs<SearchNode>();
 
         if (node->flag() == feasible || FC::isEpsilonSmall(
                     node->system(), epsilon, omega, conversion, plantas_nominales)) {
@@ -276,18 +276,14 @@ bool AlgorithmMr::init_algorithm(){
             //Every returned point must be nominally stabilising.
             if (!stability->isNominallyStable(controlador_retorno)) {
                 delete controlador_retorno;
-                delete node;
                 continue;
             }
 
-            delete node;
             cleanup();
             return true;
         }
 
         struct BisectionResult retur = bisectWidestParameter(node->system());
-
-        delete node;
 
         classifyAndInsert(retur.v1);
         classifyAndInsert(retur.v2);
@@ -319,7 +315,8 @@ inline void AlgorithmMr::classifyAndInsert(LtiSystem * box){
 
     const BoxFlag flag = certainlyFeasible(domains) ? feasible : ambiguous;
 
-    lista->insert(new SearchNode(narrowed->gain().range().min, narrowed, flag));
+    lista->insert(std::make_unique<SearchNode>(narrowed->gain().range().min,
+            std::unique_ptr<LtiSystem>(narrowed), flag));
 }
 
 

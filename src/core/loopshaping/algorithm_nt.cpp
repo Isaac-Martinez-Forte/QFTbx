@@ -98,7 +98,7 @@ bool AlgorithmNt::init_algorithm() {
                     "No feasible solution exists in the given search box.");
         }
 
-        SearchNode * node = static_cast<SearchNode *>(lista->takeFirst());
+        std::unique_ptr<SearchNode> node = lista->takeFirstAs<SearchNode>();
 
 
         //Step 3, termination: a feasible leading box (ch. 3, p. 29; its
@@ -114,7 +114,6 @@ bool AlgorithmNt::init_algorithm() {
                 //this node yields no solution and the search continues.
                 if (!stability->isNominallyStable(controlador_retorno)) {
                     delete controlador_retorno;
-                    delete node;
                     continue;
                 }
             } else {
@@ -123,16 +122,12 @@ bool AlgorithmNt::init_algorithm() {
                 controlador_retorno = pointFromBox(node->system(), true);
             }
 
-            delete node;
-
             //Everything else dies with the algorithm (see the destructor).
             return true;
         }
 
         //Step 4: bisect along the widest parameter direction.
         struct BisectionResult retur = bisectWidestParameter(node->system());
-
-        delete node;
 
         //Steps 5-6: classify the subboxes and insert them in NL.
         check_box_feasibility(retur.v1);
@@ -239,7 +234,7 @@ inline void AlgorithmNt::check_box_feasibility(LtiSystem * controlador) {
                 base->denominator(),
                 Parameter("kv", Range(feasibleFrom, kSup), feasibleFrom, "kv"),
                 base->delay());
-    delete base;
+        delete base;
 
         check_box_feasibility(feasiblePart);
 
@@ -249,12 +244,13 @@ inline void AlgorithmNt::check_box_feasibility(LtiSystem * controlador) {
                 Parameter("kv", Range(kInf, feasibleFrom), kInf, "kv"),
                 controlador->delay());
 
-    delete controlador;
+        delete controlador;
 
         controlador = ambiguousPart;
     }
 
-    lista->insert(new SearchNode(controlador->gain().range().min, controlador, flag_final));
+    lista->insert(std::make_unique<SearchNode>(controlador->gain().range().min,
+            std::unique_ptr<LtiSystem>(controlador), flag_final));
 
 }
 
@@ -279,7 +275,7 @@ inline LtiSystem * AlgorithmNt::acelerated(LtiSystem *v, qreal minimo_boundarie,
 
         qreal mag_min_db = _double(SupRe(conversion->nicholsBox(G_k_min, o, plantas_nominales->at(contador))));
 
-    delete G_k_min;
+        delete G_k_min;
 
 
         if (mag_min_db < minimo_boundarie) {
@@ -292,7 +288,7 @@ inline LtiSystem * AlgorithmNt::acelerated(LtiSystem *v, qreal minimo_boundarie,
             LtiSystem * nuevo_sistema = v->create(v->name(), v->numerator(), v->denominator(),
                                                 Parameter("kv", Range(Kb_lineal, v->gain().range().max), Kb_lineal, "kv"), v->delay());
 
-    delete v;
+            delete v;
 
             v = nuevo_sistema;
         }

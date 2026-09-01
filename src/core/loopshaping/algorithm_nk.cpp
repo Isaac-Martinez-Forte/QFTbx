@@ -100,13 +100,12 @@ bool AlgorithmNk::init_algorithm(){
                     "No feasible solution exists in the given search box.");
         }
 
-        SearchNode * node = static_cast<SearchNode *>(lista->takeFirst());
+        std::unique_ptr<SearchNode> node = lista->takeFirstAs<SearchNode>();
 
         //Pruning by the local solution (step 4 of the paper's outline /
         //G-bis of the thesis): a node whose gain infimum cannot improve
         //the certified local solution is discarded.
         if (node->system()->gain().range().min >= bestLocalGain) {
-            delete node;
             continue;
         }
 
@@ -116,7 +115,6 @@ bool AlgorithmNk::init_algorithm(){
         localOptimization(node->system());
 
         if (node->system()->gain().range().min >= bestLocalGain) {
-            delete node;
             continue;
         }
 
@@ -127,14 +125,12 @@ bool AlgorithmNk::init_algorithm(){
 
                 if (!stability->isNominallyStable(controlador_retorno)) {
                     delete controlador_retorno;
-                    delete node;
                     continue;
                 }
             } else {
                 controlador_retorno = pointFromBox(node->system(), true);
             }
 
-            delete node;
             delete bestLocalController;
             cleanup();
             return true;
@@ -142,8 +138,6 @@ bool AlgorithmNk::init_algorithm(){
 
         //Step 8: bisect along the widest parameter direction.
         struct BisectionResult retur = bisectWidestParameter(node->system());
-
-        delete node;
 
         //Steps 9-14: Quick Solution + feasibility + insertion.
         check_box_feasibility(retur.v1);
@@ -225,7 +219,8 @@ inline void AlgorithmNk::check_box_feasibility(LtiSystem * controlador){
         }
     }
 
-    lista->insert(new SearchNode(controlador->gain().range().min, controlador, flag_final));
+    lista->insert(std::make_unique<SearchNode>(controlador->gain().range().min,
+            std::unique_ptr<LtiSystem>(controlador), flag_final));
 }
 
 
