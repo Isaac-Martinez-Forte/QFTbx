@@ -62,8 +62,8 @@ void ProjectController::setContour(QVector<QVector<std::complex<qreal> > *> *con
     data.setContour(contour);
 }
 
-void ProjectController::setBoundaries(BoundaryData *m_boundaryEngine){
-    data.setBoundaries(m_boundaryEngine);
+void ProjectController::setBoundaries(BoundaryData *boundaries){
+    data.setBoundaries(boundaries);
 }
 
 QVector <QVector <std::complex <qreal> > * > * ProjectController::templates(){

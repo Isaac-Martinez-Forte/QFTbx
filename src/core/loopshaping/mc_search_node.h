@@ -30,7 +30,7 @@ public:
 
     void markFrequencyFeasible(qreal pos, qreal frec);
     bool isFrequencyFeasible(qreal key);
-    void setFeasibleFrequencies(QHash<qreal, qreal> * m_feasibleFrequencies);
+    void setFeasibleFrequencies(QHash<qreal, qreal> * frequencies);
     QHash<qreal, qreal> * feasibleFrequencies();
 
 protected:

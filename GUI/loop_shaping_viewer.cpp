@@ -78,10 +78,10 @@ void LoopShapingViewer::showDiagram(){
     QString numerador = "", denominador = "";
 
     qint32 i = 0;
-    for (i = 0; i < loopShapingData->controller()->numerator().size(); i++){
+    for (i = 0; i < static_cast<qint32>(loopShapingData->controller()->numerator().size()); i++){
         numerador += QString::number(loopShapingData->controller()->numerator()[i].nominal()) + " ";
     }
-    for (i = 0; i < loopShapingData->controller()->denominator().size(); i++){
+    for (i = 0; i < static_cast<qint32>(loopShapingData->controller()->denominator().size()); i++){
         denominador += QString::number(loopShapingData->controller()->denominator()[i].nominal()) + " ";
     }
 

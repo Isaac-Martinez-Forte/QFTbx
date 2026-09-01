@@ -7,7 +7,7 @@
 class ListNode {
 
 public:
-    ListNode(){};
+    ListNode(){}
 
     ListNode(qreal index) {
         this->index = index;

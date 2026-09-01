@@ -395,7 +395,7 @@ bool UncertaintyDialog::readRanges(){
                     }
                 }
             } else{
-                for (qint32 x = 0; x < numeratorParameters.size(); x++){
+                for (qint32 x = 0; x < static_cast<qint32>(numeratorParameters.size()); x++){
                     if (numeratorParameters[x].name() == numeratorTokens->at(i)){
                         Parameter & v = numeratorParameters[x];
                         parameter = Parameter(v.name(), v.rawRange(), v.rawNominal(), v.expression());
@@ -478,7 +478,7 @@ bool UncertaintyDialog::readRanges(){
                 }
             } else{
                 bool elegido = false;
-                for (qint32 x = 0; x < numeratorParameters.size(); x++){
+                for (qint32 x = 0; x < static_cast<qint32>(numeratorParameters.size()); x++){
                     if (numeratorParameters[x].name() == denominatorTokens->at(i)){
                         Parameter & v = numeratorParameters[x];
                         parameter = Parameter(v.name(), v.rawRange(), v.rawNominal(), v.expression());
@@ -487,7 +487,7 @@ bool UncertaintyDialog::readRanges(){
                 }
 
                 if (!elegido){
-                    for (qint32 x = 0; x < denominatorParameters.size(); x++){
+                    for (qint32 x = 0; x < static_cast<qint32>(denominatorParameters.size()); x++){
                         if (denominatorParameters[x].name() == denominatorTokens->at(i)){
                             Parameter & v = denominatorParameters[x];
                             parameter = Parameter(v.name(), v.rawRange(), v.rawNominal(), v.expression());

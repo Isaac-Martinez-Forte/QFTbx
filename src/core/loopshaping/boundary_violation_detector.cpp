@@ -9,10 +9,20 @@ BoundaryViolationDetector::BoundaryViolationDetector() {
 BoundaryViolationDetector::~BoundaryViolationDetector() {
 }
 
+//Reader of the phase bucketing that BoundaryUnion1D::bucketIndex writes.
+//Both must agree on the range of valid indices, because this indexes the
+//vector the other one sized: the writer clamps to its last bucket and this
+//one did not, so a phase beyond the Nichols window walked off the end of the
+//row (at() out of range is undefined behaviour, and the box classification
+//reaches the same row through value(), which answers nullptr and was then
+//dereferenced). The window is free text in the boundaries dialog while every
+//caller normalises phase into (-360, 0], so a window narrower than 360
+//degrees was enough to reach it.
 inline qint32 BoundaryViolationDetector::phaseBucket(qreal x, qreal totalFase, qint32 numeroFases)
 {
     qreal res = (std::abs(x)*((qreal) totalFase / numeroFases));
     if(res<0) res=0;
+    if(res>totalFase) res=totalFase;
     return (qint32) res;
 }
 

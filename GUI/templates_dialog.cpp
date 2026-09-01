@@ -320,7 +320,7 @@ void TemplatesDialog::on_okButton_clicked()
     struct ThreeRadioButtons rowRadios;
     ParLineEdit * rowEdits;
     qint32 variableIndex = 0;
-    for (qint32 i = 0; i < numerator.size(); i++){
+    for (qint32 i = 0; i < static_cast<qint32>(numerator.size()); i++){
         Parameter & parameter = numerator[i];
         if (parameter.isUncertain()){
             rowEdits = numeratorRows->at(variableIndex);
@@ -339,7 +339,7 @@ void TemplatesDialog::on_okButton_clicked()
 
     variableIndex = 0;
 
-    for (qint32 i = 0; i < denominator.size(); i++){
+    for (qint32 i = 0; i < static_cast<qint32>(denominator.size()); i++){
 
         Parameter & parameter = denominator[i];
         if (parameter.isUncertain()){

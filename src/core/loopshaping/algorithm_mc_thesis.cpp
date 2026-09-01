@@ -615,7 +615,7 @@ inline void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnaly
         }
 
         const bool isGain = parameter == 0;
-        const bool isZero = !isGain && parameter <= box->numerator().size();
+        const bool isZero = !isGain && parameter <= static_cast<qint32>(box->numerator().size());
         const qint32 termIndex = isGain ? -1
                 : (isZero ? parameter - 1 : parameter - 1 - box->numerator().size());
 
@@ -1060,13 +1060,13 @@ inline qint32 AlgorithmMcThesis::widestByMeasure(McSearchNode * node, qint32 mai
         consider(0, conversion->gainTermBox(box->gain(), p0), true);
     }
 
-    for (qint32 j = 0; j < box->numerator().size(); ++j) {
+    for (qint32 j = 0; j < static_cast<qint32>(box->numerator().size()); ++j) {
         if (box->numerator()[j].isUncertain()) {
             consider(j + 1, conversion->numeratorTermBox(box->numerator()[j], w, p0), false);
         }
     }
 
-    for (qint32 j = 0; j < box->denominator().size(); ++j) {
+    for (qint32 j = 0; j < static_cast<qint32>(box->denominator().size()); ++j) {
         if (box->denominator()[j].isUncertain()) {
             consider(j + 1 + box->numerator().size(),
                      conversion->denominatorTermBox(box->denominator()[j], w, p0), false);

@@ -46,10 +46,10 @@ bool McSearchNode::isFrequencyFeasible(qreal key)
     return m_feasibleFrequencies != nullptr && m_feasibleFrequencies->contains(key);
 }
 
-void McSearchNode::setFeasibleFrequencies(QHash<qreal, qreal> * m_feasibleFrequencies)
+void McSearchNode::setFeasibleFrequencies(QHash<qreal, qreal> * frequencies)
 {
-    delete this->m_feasibleFrequencies;
-    this->m_feasibleFrequencies = m_feasibleFrequencies;
+    delete m_feasibleFrequencies;
+    m_feasibleFrequencies = frequencies;
 }
 
 QHash<qreal, qreal> * McSearchNode::feasibleFrequencies()
