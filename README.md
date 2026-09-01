@@ -39,18 +39,41 @@ Optional
 - CUDA >= 7
 - Doxygen (for documentation generation)
 
+Bundled or fetched automatically (nothing to install by hand)
+- C-XSC, the interval arithmetic library: vendored in `3rd-party/cxsc` and
+  built as an isolated ExternalProject. It is the numerical foundation of
+  the loop-shaping algorithms.
+- muParserX (expression evaluation) and QCustomPlot (plots): vendored in
+  `3rd-party/`.
+- pugixml (project files): fetched with FetchContent at configure time,
+  so the first configuration needs network access.
+
 ---
 
 ## Configuration options
 
 Dependencies and features can be enabled or disabled directly from the main CMakeLists.txt file using the following options:
 
-OPTION (USE_CLANG    "Use CLANG"    OFF)
-OPTION (USE_OpenMP   "Use OpenMP"   ON)
-OPTION (USE_CUDA     "Use CUDA"     OFF)
-OPTION (USE_Doxygen  "Use Doxygen"  OFF)
+OPTION (USE_CLANG       "Use CLANG"             OFF)
+OPTION (USE_OpenMP      "Use OpenMP"            ON)
+OPTION (USE_CUDA        "Use CUDA"              OFF)
+OPTION (USE_Doxygen     "Use Doxygen"           OFF)
+OPTION (USE_NATIVE_ARCH "Enable -march=native"  ON)
+OPTION (QFTBX_BUILD_TESTS "Build unit tests"    ON)
 
 Automatic configuration is applied based on the selected options and the available system libraries.
+
+### A note on -frounding-math
+
+The backend and the test binary are compiled with `-frounding-math`, and
+this is not optional. C-XSC implements its directed rounding with inline
+assembly in its headers; at -O3 the inliner reorders it and the interval
+arithmetic silently stops being rigorous, which would invalidate the
+global-optimality guarantee of the loop-shaping algorithms. The flag is
+applied per target (the application itself does not use it: it breaks
+Qt's constexpr float code), and `tests/backend/cxsc_rigor_test.cpp`
+fails deterministically if a build change ever breaks the rounding
+again.
 
 ---
 
@@ -67,6 +90,27 @@ If all dependencies are correctly installed, the project can be compiled on Linu
 
 ---
 
+## Tests
+
+The project ships a suite of unit, characterisation and golden tests
+(GoogleTest, fetched at configure time). It is built by default; run it
+from the build directory:
+
+    ctest
+
+or, for the detail of a failure:
+
+    ctest --output-on-failure -R <test name>
+
+The suite covers the plant/uncertainty model, the frequency set, the
+specifications, the templates and their contours, the boundaries, the
+persistence round-trip, the five loop-shaping algorithms (against
+published results where they exist) and the rigour of the interval
+arithmetic. The goldens pin current behaviour; correctness of each
+algorithm is judged against its paper.
+
+---
+
 ## Execution
 
 From the build directory:
@@ -74,6 +118,25 @@ From the build directory:
 ./QFTbx
 
 No installer is currently provided. The application is intended to be run directly from the build directory.
+
+---
+
+## Source layout
+
+    src/core/          computational core, free of GUI code
+      system/            plants and controllers (LtiSystem and its forms)
+      frequencies/       the design frequency set
+      specifications/    design specifications
+      templates/         template computation and contours
+      boundaries/        boundary computation, tracing and union
+      loopshaping/       the five algorithms (NT, NK, MR, MC1, MC thesis)
+      gpu/               CUDA kernels (optional)
+      math/              numeric sequences
+    src/persistence/   .qft project reading and writing
+    GUI/               Qt dialogs, viewers and the main window
+    Modelo/            remaining facade and helpers, being migrated
+    tests/backend/     the test suite
+    3rd-party/         vendored dependencies
 
 ---
 
