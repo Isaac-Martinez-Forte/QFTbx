@@ -222,35 +222,31 @@ public:
         fail(typeNode, "unknown system type");
     }
 
-    QVector <qftbx::SpecificationRecord *> * readSpecifications(const pugi::xml_node & section) const
+    qftbx::SpecificationRecords readSpecifications(const pugi::xml_node & section) const
     {
-        //The set is positional with 7 fixed slots: consumers index blindly.
+        //The set is positional with 7 fixed slots: consumers index blindly,
+        //and the type now carries that count.
         const auto slotRange = section.children(t.specification);
         const qint32 count = static_cast<qint32>(std::distance(slotRange.begin(), slotRange.end()));
         if (count != kSpecificationCount) {
             fail(section, "a project needs exactly 7 specification slots");
         }
 
-        auto * specifications = new QVector <qftbx::SpecificationRecord *> ();
-        specifications->reserve(kSpecificationCount);
+        qftbx::SpecificationRecords specifications;
+        std::size_t slot = 0;
 
         for (const pugi::xml_node & node : section.children(t.specification)) {
-            auto * record = new qftbx::SpecificationRecord();
-            record->name = modernSpecificationName(QString(node.attribute(t.nameAttribute).value()));
-            record->used = boolChild(node, t.used);
-            record->system = nullptr;
-            record->constant = false;
-            record->height = 0.0;
-            record->omegaStart = 0.0;
-            record->omegaEnd = 0.0;
+            qftbx::SpecificationRecord & record = specifications.at(slot++);
+            record.name = modernSpecificationName(QString(node.attribute(t.nameAttribute).value()));
+            record.used = boolChild(node, t.used);
 
-            if (record->used) {
-                record->omegaStart = realChild(node, t.minFrequency);
-                record->omegaEnd = realChild(node, t.maxFrequency);
-                record->constant = boolChild(node, t.constant);
+            if (record.used) {
+                record.omegaStart = realChild(node, t.minFrequency);
+                record.omegaEnd = realChild(node, t.maxFrequency);
+                record.constant = boolChild(node, t.constant);
 
-                if (record->constant) {
-                    record->height = realChild(node, t.magnitude);
+                if (record.constant) {
+                    record.height = realChild(node, t.magnitude);
                 } else {
                     //The embedded plant is the child that carries a <type>
                     //element (its tag is the plant name in the legacy
@@ -265,13 +261,9 @@ public:
                     if (!systemNode) {
                         fail(node, "a non-constant specification needs its plant");
                     }
-                    //The record keeps its plant raw, and its owners delete
-                    //it: the specifications are the next step.
-                    record->system = readSystem(systemNode).release();
+                    record.system = readSystem(systemNode);
                 }
             }
-
-            specifications->append(record);
         }
 
         return specifications;
@@ -400,33 +392,11 @@ ProjectReader::ProjectReader() = default;
 
 namespace {
 
-void deleteSpecificationRecords(QVector <qftbx::SpecificationRecord *> * records)
-{
-    if (records == nullptr) {
-        return;
-    }
-
-    foreach (qftbx::SpecificationRecord * record, *records) {
-        if (record != nullptr) {
-            delete record->system;
-            delete record;
-        }
-    }
-
-    delete records;
-}
-
-
 } // namespace
 
-ProjectReader::~ProjectReader()
-{
-    //Whatever no caller claimed through take*() belongs to the reader.
-    //Still hand-written for ONE member: the specifications are a pointer to
-    //a QVector of pointers, and consolidating that two-level container is
-    //the next step.
-    deleteSpecificationRecords(m_specifications);
-}
+//Whatever no caller claimed through take*() dies with the reader, which no
+//longer needs to be told: every member owns what it holds.
+ProjectReader::~ProjectReader() = default;
 
 std::vector<bool> ProjectReader::load(const QString & filePath)
 {
@@ -491,7 +461,7 @@ std::vector<bool> ProjectReader::load(const QString & filePath)
     //paths returned 7 and consumers indexed out of range).
     std::vector<bool> sections;
     sections.push_back(m_plant != nullptr);
-    sections.push_back(m_specifications != nullptr);
+    sections.push_back(m_specifications.has_value());
     sections.push_back(m_omega != nullptr);
     sections.push_back(!m_templates.empty());
     sections.push_back(m_boundaries.has_value());

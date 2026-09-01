@@ -55,8 +55,8 @@ public:
 
     // --- step 2: the specifications ---------------------------------------
 
-    QVector<qftbx::SpecificationRecord *> * specifications();
-    void setSpecifications(QVector<qftbx::SpecificationRecord *> * specifications);
+    qftbx::SpecificationRecords * specifications();
+    void setSpecifications(std::optional<qftbx::SpecificationRecords> specifications);
 
     // --- step 3: the design frequencies -----------------------------------
 

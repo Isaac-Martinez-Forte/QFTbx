@@ -73,14 +73,12 @@ TEST(Specification, SystemHeightMatchesTheAnalyticValue)
     spec.name = QStringLiteral("seguimiento");
     spec.used = true;
     spec.constant = false;
-    //The record still keeps its plant raw, and deletes it by hand below.
-    spec.system = makeTrackingPlant().release();
+    spec.system = makeTrackingPlant();
     spec.omegaStart = 0.1;
     spec.omegaEnd = 10.0;
 
     EXPECT_NEAR(spec.heightDb(1.0), analyticTrackingDb(1.0), 1e-9);
     EXPECT_NEAR(spec.heightDb(1.0), -0.76398, 1e-4); // hand-checked anchor
-    delete spec.system;
 }
 
 TEST(Specification, ZeroHeightYieldsMinusInfinity)
@@ -101,30 +99,31 @@ TEST(Specification, NegativeHeightYieldsNaN)
 
 TEST(SpecificationDao, OwnsReplacesAndToleratesIdentity)
 {
-    // Fixed: the store owns the records and their embedded plants (deep
-    // deletes on replacement and destruction, leak-checked under ASan);
-    // handing it the vector it already holds is a no-op.
-    auto* first = new QVector<qftbx::SpecificationRecord*>();
-    for (int i = 0; i < 7; ++i) {
-        auto* spec = new qftbx::SpecificationRecord{};
-        if (i == 0) {
-            spec->used = true;
-            spec->constant = false;
-            spec->system = makeTrackingPlant().release(); // deep-owned
-        }
-        first->append(spec);
-    }
+    // The store owns the seven records and their embedded plants. This used
+    // to be a pointer to a QVector of pointers, and the test had to check
+    // that replacing it deep-deleted the previous set and that handing back
+    // the very vector it held was a no-op. Held by value, neither situation
+    // can arise: the set replaced is destroyed with its plants, and there is
+    // no pointer identity left to confuse.
+    qftbx::SpecificationRecords first;
+    first.at(0).used = true;
+    first.at(0).constant = false;
+    first.at(0).system = makeTrackingPlant();
 
     qftbx::ProjectData data;
-    data.setSpecifications(first);
-    data.setSpecifications(first); // identity: must not double-delete
-    EXPECT_EQ(data.specifications(), first);
+    data.setSpecifications(std::move(first));
 
-    auto* second = new QVector<qftbx::SpecificationRecord*>();
-    second->append(new qftbx::SpecificationRecord{});
-    data.setSpecifications(second); // deep-deletes 'first' and its plant
-    EXPECT_EQ(data.specifications(), second);
-    // 'second' is deep-deleted by the store's destructor.
+    ASSERT_NE(data.specifications(), nullptr);
+    EXPECT_TRUE(data.specifications()->at(0).used);
+    ASSERT_NE(data.specifications()->at(0).system, nullptr);
+
+    qftbx::SpecificationRecords second;
+    second.at(1).used = true;
+    data.setSpecifications(std::move(second));   // frees 'first' and its plant
+
+    ASSERT_NE(data.specifications(), nullptr);
+    EXPECT_FALSE(data.specifications()->at(0).used);
+    EXPECT_TRUE(data.specifications()->at(1).used);
 }
 
 TEST(SpecificationPersistence, MultivaluadosSpecificationsRoundTrip)
@@ -133,28 +132,27 @@ TEST(SpecificationPersistence, MultivaluadosSpecificationsRoundTrip)
     parser.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/multivaluados.qft"));
 
-    QVector<qftbx::SpecificationRecord*>* specs = parser.specifications();
+    const qftbx::SpecificationRecords * specs = parser.specifications();
     ASSERT_NE(specs, nullptr);
-    ASSERT_EQ(specs->size(), 7);
 
-    qftbx::SpecificationRecord* lower = specs->at(0);
-    EXPECT_EQ(lower->name, QStringLiteral("TrackingLower")); // "seguimiento" in the file, mapped on load
-    EXPECT_TRUE(lower->used);
-    EXPECT_FALSE(lower->constant);
-    EXPECT_DOUBLE_EQ(lower->omegaStart, 1.0);
-    EXPECT_DOUBLE_EQ(lower->omegaEnd, 18.0);
-    ASSERT_NE(lower->system, nullptr);
-    EXPECT_EQ(lower->system->type(), LtiSystem::SystemType::PolynomialForm);
-    EXPECT_EQ(lower->system->numerator().size(), 2);
+    const qftbx::SpecificationRecord & lower = specs->at(0);
+    EXPECT_EQ(lower.name, QStringLiteral("TrackingLower")); // "seguimiento" in the file, mapped on load
+    EXPECT_TRUE(lower.used);
+    EXPECT_FALSE(lower.constant);
+    EXPECT_DOUBLE_EQ(lower.omegaStart, 1.0);
+    EXPECT_DOUBLE_EQ(lower.omegaEnd, 18.0);
+    ASSERT_NE(lower.system, nullptr);
+    EXPECT_EQ(lower.system->type(), LtiSystem::SystemType::PolynomialForm);
+    EXPECT_EQ(lower.system->numerator().size(), 2);
 
-    qftbx::SpecificationRecord* upper = specs->at(1);
-    EXPECT_EQ(upper->name, QStringLiteral("TrackingUpper")); // "seguimiento_1" in the file, mapped on load
-    EXPECT_TRUE(upper->used);
-    ASSERT_NE(upper->system, nullptr);
-    EXPECT_EQ(upper->system->numerator().size(), 3);
+    const qftbx::SpecificationRecord & upper = specs->at(1);
+    EXPECT_EQ(upper.name, QStringLiteral("TrackingUpper")); // "seguimiento_1" in the file, mapped on load
+    EXPECT_TRUE(upper.used);
+    ASSERT_NE(upper.system, nullptr);
+    EXPECT_EQ(upper.system->numerator().size(), 3);
 
-    for (int i = 2; i < 7; ++i) {
-        EXPECT_FALSE(specs->at(i)->used) << "index " << i;
+    for (std::size_t i = 2; i < 7; ++i) {
+        EXPECT_FALSE(specs->at(i).used) << "index " << i;
     }
 }
 
@@ -164,21 +162,20 @@ TEST(SpecificationPersistence, Planta2RecoversBothTrackingPlants)
     parser.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/planta2.qft"));
 
-    QVector<qftbx::SpecificationRecord*>* specs = parser.specifications();
+    const qftbx::SpecificationRecords * specs = parser.specifications();
     ASSERT_NE(specs, nullptr);
-    ASSERT_EQ(specs->size(), 7);
 
-    qftbx::SpecificationRecord* lower = specs->at(0);
-    ASSERT_NE(lower->system, nullptr);
-    EXPECT_EQ(lower->system->type(), LtiSystem::SystemType::PolynomialForm);
-    EXPECT_DOUBLE_EQ(lower->omegaStart, 0.1);
-    EXPECT_DOUBLE_EQ(lower->omegaEnd, 10.0);
+    const qftbx::SpecificationRecord & lower = specs->at(0);
+    ASSERT_NE(lower.system, nullptr);
+    EXPECT_EQ(lower.system->type(), LtiSystem::SystemType::PolynomialForm);
+    EXPECT_DOUBLE_EQ(lower.omegaStart, 0.1);
+    EXPECT_DOUBLE_EQ(lower.omegaEnd, 10.0);
     // The recovered plant must evaluate like the analytic reference.
-    EXPECT_NEAR(lower->heightDb(1.0), analyticTrackingDb(1.0), 1e-9);
+    EXPECT_NEAR(lower.heightDb(1.0), analyticTrackingDb(1.0), 1e-9);
 
-    qftbx::SpecificationRecord* upper = specs->at(1);
-    ASSERT_NE(upper->system, nullptr);
-    EXPECT_EQ(upper->system->type(), LtiSystem::SystemType::FreeForm);
+    const qftbx::SpecificationRecord & upper = specs->at(1);
+    ASSERT_NE(upper.system, nullptr);
+    EXPECT_EQ(upper.system->type(), LtiSystem::SystemType::FreeForm);
 }
 
 TEST(SpecificationPersistence, Planta1RecoversTheConstantStability)
@@ -187,18 +184,17 @@ TEST(SpecificationPersistence, Planta1RecoversTheConstantStability)
     parser.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/planta1.qft"));
 
-    QVector<qftbx::SpecificationRecord*>* specs = parser.specifications();
+    const qftbx::SpecificationRecords * specs = parser.specifications();
     ASSERT_NE(specs, nullptr);
-    ASSERT_EQ(specs->size(), 7);
 
-    qftbx::SpecificationRecord* stability = specs->at(2);
-    EXPECT_TRUE(stability->used);
-    EXPECT_TRUE(stability->constant);
-    EXPECT_DOUBLE_EQ(stability->height, 1.2);
-    EXPECT_NEAR(stability->heightDb(3.0), 20.0 * std::log10(1.2), 1e-12);
+    const qftbx::SpecificationRecord & stability = specs->at(2);
+    EXPECT_TRUE(stability.used);
+    EXPECT_TRUE(stability.constant);
+    EXPECT_DOUBLE_EQ(stability.height, 1.2);
+    EXPECT_NEAR(stability.heightDb(3.0), 20.0 * std::log10(1.2), 1e-12);
 
-    EXPECT_TRUE(specs->at(4)->used);   // RPS
-    EXPECT_FALSE(specs->at(4)->constant);
+    EXPECT_TRUE(specs->at(4).used);   // RPS
+    EXPECT_FALSE(specs->at(4).constant);
 }
 
 TEST(SpecificationPersistence, WrongSpecificationCountThrowsParseError)

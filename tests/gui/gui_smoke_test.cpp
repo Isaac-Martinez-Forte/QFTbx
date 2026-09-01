@@ -335,30 +335,21 @@ TEST_F(GuiSmoke, SpecificationsDialogStoresAConstantStabilitySpecification)
 
     press(&dialog, "okButton");
 
-    QVector<qftbx::SpecificationRecord *> * records = dialog.takeSpecifications();
+    const std::optional<qftbx::SpecificationRecords> records = dialog.takeSpecifications();
 
-    if (records == nullptr) {
+    if (!records.has_value()) {
         //The dialog declined the combination; the smoke value here is that
         //it said so instead of crashing or storing a half-built record.
         EXPECT_FALSE(dialog.getTodoCorrecto());
         return;
     }
 
-    ASSERT_EQ(records->size(), 7);
-    for (qftbx::SpecificationRecord * record : *records) {
-        ASSERT_NE(record, nullptr);
-        if (record->used && record->constant) {
-            EXPECT_GT(record->height, 0.0) << "a used constant specification "
-                                              "must carry a positive magnitude";
+    for (const qftbx::SpecificationRecord & record : *records) {
+        if (record.used && record.constant) {
+            EXPECT_GT(record.height, 0.0) << "a used constant specification "
+                                             "must carry a positive magnitude";
         }
     }
-
-    //takeSpecifications() transferred ownership; here nobody else claims it.
-    for (qftbx::SpecificationRecord * record : *records) {
-        delete record->system;
-        delete record;
-    }
-    delete records;
 }
 
 TEST_F(GuiSmoke, TemplateViewerAsksItsHandlerToRecomputeTheContour)

@@ -23,7 +23,7 @@ LoopShaping::~LoopShaping()
 //MR the templates and specifications its constraints are built from.
 bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, QVector<qreal> * omega,
                           const BoundaryData * boundaries, qreal epsilon, tools::LoopShapingAlgorithm algorithm,
-                          const qftbx::CloudSet & contour, QVector<qftbx::SpecificationRecord *> * specifications,
+                          const qftbx::CloudSet & contour, const qftbx::SpecificationRecords * specifications,
                           qint32 initialisation)
 {
     //Precondition, checked ONCE and sequentially, before any algorithm

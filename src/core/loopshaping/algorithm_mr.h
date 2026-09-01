@@ -57,7 +57,8 @@ public:
     ~AlgorithmMr();
 
     void set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> * omega, const BoundaryData * boundaries,
-                   qreal epsilon, const qftbx::CloudSet & temp, QVector<qftbx::SpecificationRecord *> * espe);
+                   qreal epsilon, const qftbx::CloudSet & temp,
+                   const qftbx::SpecificationRecords * espe);
 
     bool init_algorithm();
 
@@ -85,7 +86,7 @@ private:
     const BoundaryData * boundaries = nullptr;
     qreal epsilon = 0;
     qftbx::CloudSet temp;
-    QVector<qftbx::SpecificationRecord *> * espe = nullptr;
+    const qftbx::SpecificationRecords * espe = nullptr;
 
     std::unique_ptr<NaturalIntervalExtension> conversion;
     std::unique_ptr<NominalStabilityChecker> stability;

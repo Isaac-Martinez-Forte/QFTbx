@@ -2,32 +2,6 @@
 
 namespace qftbx {
 
-namespace {
-
-void deleteSpecifications(QVector<SpecificationRecord *> * specifications)
-{
-    if (specifications == nullptr) {
-        return;
-    }
-
-    foreach (SpecificationRecord * record, *specifications) {
-        if (record != nullptr) {
-            delete record->system;
-            delete record;
-        }
-    }
-
-    delete specifications;
-}
-
-
-} // namespace
-
-ProjectData::~ProjectData()
-{
-    deleteSpecifications(m_specifications);
-}
-
 LtiSystem * ProjectData::plant() const
 {
     return m_plant.get();
@@ -53,17 +27,19 @@ QVector<qreal> * ProjectData::frequencies() const
     return m_omega != nullptr ? m_omega->values() : nullptr;
 }
 
-QVector<SpecificationRecord *> * ProjectData::specifications() const
+SpecificationRecords * ProjectData::specifications()
 {
-    return m_specifications;
+    return m_specifications.has_value() ? &m_specifications.value() : nullptr;
 }
 
-void ProjectData::setSpecifications(QVector<SpecificationRecord *> * specifications)
+const SpecificationRecords * ProjectData::specifications() const
 {
-    if (m_specifications != specifications) {
-        deleteSpecifications(m_specifications);
-    }
-    m_specifications = specifications;
+    return m_specifications.has_value() ? &m_specifications.value() : nullptr;
+}
+
+void ProjectData::setSpecifications(std::optional<SpecificationRecords> specifications)
+{
+    m_specifications = std::move(specifications);
 }
 
 //By value: the assignment frees the previous set, so the "delete what you

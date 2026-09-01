@@ -119,11 +119,7 @@ TEST_F(Staleness, NewSpecificationsKeepTheTemplatesAndDropTheBoundaries)
     //specifications BEFORE the templates.
     const qftbx::CloudSet templatesBefore = controller.templates();
 
-    auto * records = new QVector<qftbx::SpecificationRecord *>();
-    for (int i = 0; i < 7; i++) {
-        records->append(new qftbx::SpecificationRecord());
-    }
-    controller.setSpecifications(records);
+    controller.setSpecifications(qftbx::SpecificationRecords());
 
     EXPECT_EQ(controller.templates(), templatesBefore)
         << "the specifications do not determine the templates";

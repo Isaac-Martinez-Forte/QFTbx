@@ -49,7 +49,10 @@ public:
     //Inspection: the reader KEEPS ownership, so a caller that only looks
     //at the parsed contents needs no cleanup of its own.
     LtiSystem * plant() const { return m_plant.get(); }
-    QVector <qftbx::SpecificationRecord *> * specifications() const { return m_specifications; }
+    const qftbx::SpecificationRecords * specifications() const
+    {
+        return m_specifications.has_value() ? &m_specifications.value() : nullptr;
+    }
     Omega * omega() const { return m_omega.get(); }
     const CloudSet & templates() const { return m_templates; }
     const CloudSet & contour() const { return m_contour; }
@@ -70,7 +73,10 @@ public:
     //by the facade, which hands everything to the project store; anything
     //left unclaimed dies with the reader (it used to leak).
     std::unique_ptr<LtiSystem> takePlant() { return std::move(m_plant); }
-    QVector <qftbx::SpecificationRecord *> * takeSpecifications() { return take(m_specifications); }
+    std::optional<qftbx::SpecificationRecords> takeSpecifications()
+    {
+        return std::move(m_specifications);
+    }
     std::unique_ptr<Omega> takeOmega() { return std::move(m_omega); }
     /// By value, so "take" is now just a move: nothing to null out, nothing
     /// that could be freed twice.
@@ -100,7 +106,7 @@ private:
     }
 
     std::unique_ptr<LtiSystem> m_plant;
-    QVector <qftbx::SpecificationRecord *> * m_specifications = nullptr;
+    std::optional<qftbx::SpecificationRecords> m_specifications;
     std::unique_ptr<Omega> m_omega;
     CloudSet m_templates;
     CloudSet m_contour;

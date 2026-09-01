@@ -97,14 +97,13 @@ TEST(ThesisBenchmarkFixture, QftToolboxEx2LoadsWithTheFullPipeline)
     ASSERT_NE(controller.omega(), nullptr);
     EXPECT_EQ(*controller.omega()->values(), expectedOmega);
 
-    QVector<qftbx::SpecificationRecord*>* specs = controller.specifications();
+    const qftbx::SpecificationRecords * specs = controller.specifications();
     ASSERT_NE(specs, nullptr);
-    ASSERT_EQ(specs->size(), 7);
-    EXPECT_TRUE(specs->at(0)->used);  // tracking lower (alpha)
-    EXPECT_TRUE(specs->at(1)->used);  // tracking upper (beta)
-    ASSERT_TRUE(specs->at(2)->used);  // stability
-    EXPECT_TRUE(specs->at(2)->constant);
-    EXPECT_DOUBLE_EQ(specs->at(2)->height, 1.2);
+    EXPECT_TRUE(specs->at(0).used);  // tracking lower (alpha)
+    EXPECT_TRUE(specs->at(1).used);  // tracking upper (beta)
+    ASSERT_TRUE(specs->at(2).used);  // stability
+    EXPECT_TRUE(specs->at(2).constant);
+    EXPECT_DOUBLE_EQ(specs->at(2).height, 1.2);
 
     ASSERT_FALSE(controller.templates().empty());
     EXPECT_EQ(static_cast<int>(controller.templates().size()), expectedOmega.size());
@@ -139,13 +138,12 @@ TEST(ThesisBenchmarkFixture, Acc90LoadsWithTheFullPipeline)
     ASSERT_NE(controller.omega(), nullptr);
     EXPECT_EQ(*controller.omega()->values(), expectedOmega);
 
-    QVector<qftbx::SpecificationRecord*>* specs = controller.specifications();
+    const qftbx::SpecificationRecords * specs = controller.specifications();
     ASSERT_NE(specs, nullptr);
-    ASSERT_EQ(specs->size(), 7);
-    EXPECT_FALSE(specs->at(0)->used);
-    ASSERT_TRUE(specs->at(2)->used);  // stability, the only spec
-    EXPECT_TRUE(specs->at(2)->constant);
-    EXPECT_DOUBLE_EQ(specs->at(2)->height, 1.75);
+    EXPECT_FALSE(specs->at(0).used);
+    ASSERT_TRUE(specs->at(2).used);  // stability, the only spec
+    EXPECT_TRUE(specs->at(2).constant);
+    EXPECT_DOUBLE_EQ(specs->at(2).height, 1.75);
 
     ASSERT_NE(controller.boundaries(), nullptr);
     ASSERT_EQ(static_cast<int>(controller.boundaries()->boundaries().size()), expectedOmega.size());

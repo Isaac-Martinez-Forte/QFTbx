@@ -34,7 +34,7 @@ public:
      * reopening the dialog starts from them instead of from blanks.
      */
     explicit SpecificationsDialog(const QVector<qreal> * frequencies,
-                                  const QVector<qftbx::SpecificationRecord *> * loaded = nullptr,
+                                  const qftbx::SpecificationRecords * loaded = nullptr,
                                   QWidget *parent = 0);
     ~SpecificationsDialog();
 
@@ -46,7 +46,7 @@ public:
      * the dialog was cancelled or its data rejected. Ownership of the vector
      * and of every record in it passes to the caller.
      */
-    QVector<qftbx::SpecificationRecord *> * takeSpecifications();
+    std::optional<qftbx::SpecificationRecords> takeSpecifications();
 
 private slots:
     void on_polynomialRadio_clicked();
@@ -96,22 +96,25 @@ private slots:
 private:
     Ui::SpecificationsDialog *ui = nullptr;
 
-    qftbx::SpecificationRecord *tracking;
-    qftbx::SpecificationRecord *trackingUpper;
-    qftbx::SpecificationRecord *stability;
-    qftbx::SpecificationRecord *sensorNoise;
-    qftbx::SpecificationRecord *outputDisturbance;
-    qftbx::SpecificationRecord *inputDisturbance;
-    qftbx::SpecificationRecord *controlEffort;
+    //The seven working records, by value: the dialog edits them and
+    //publishes deep clones.
+    qftbx::SpecificationRecord tracking;
+    qftbx::SpecificationRecord trackingUpper;
+    qftbx::SpecificationRecord stability;
+    qftbx::SpecificationRecord sensorNoise;
+    qftbx::SpecificationRecord outputDisturbance;
+    qftbx::SpecificationRecord inputDisturbance;
+    qftbx::SpecificationRecord controlEffort;
 
-    QVector <qftbx::SpecificationRecord *> * published;
+    std::optional<qftbx::SpecificationRecords> published;
 
     qint32 activeTab;
 
-    bool getDatos(qftbx::SpecificationRecord * record_in, QString name_in);
-    bool getDatos(qftbx::SpecificationRecord *record_in, qftbx::SpecificationRecord * upperRecord, QString name_in);
-    void setDatos (qftbx::SpecificationRecord * record_in);
-    void setDatos (qftbx::SpecificationRecord * record_in, qftbx::SpecificationRecord * upperRecord);
+    bool getDatos(qftbx::SpecificationRecord & record_in, QString name_in);
+    bool getDatos(qftbx::SpecificationRecord & record_in, qftbx::SpecificationRecord & upperRecord,
+                  QString name_in);
+    void setDatos (qftbx::SpecificationRecord & record_in);
+    void setDatos (qftbx::SpecificationRecord & record_in, qftbx::SpecificationRecord & upperRecord);
     void saveActiveTab();
     void discardPublished();
 

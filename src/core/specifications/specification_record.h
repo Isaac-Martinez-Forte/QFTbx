@@ -1,7 +1,9 @@
 #ifndef QFTBX_SPECIFICATION_RECORD_H
 #define QFTBX_SPECIFICATION_RECORD_H
 
+#include <array>
 #include <cmath>
+#include <memory>
 
 #include <QString>
 
@@ -16,30 +18,36 @@ namespace qftbx {
 //the validated Specification produced by toSpecification(), which is where
 //the invariants are enforced.
 struct SpecificationRecord {
-    //Initialised here so that a plain `SpecificationRecord r;` is as safe as
-    //the `new SpecificationRecord()` every caller happens to use today:
-    //value-initialisation zeroes the members, a declaration without it does
-    //not, and `system` is deleted by the owners.
     QString name;
     bool used = false;
-    LtiSystem * system = nullptr;
+    //The record OWNS its plant. It used to be a raw pointer whose owners
+    //had to walk the container and delete it, in four different places.
+    std::unique_ptr<LtiSystem> system;
     qreal height = 0.0;    //LINEAR magnitude (heightDb() converts)
     bool constant = false;
     qreal omegaStart = 0.0;
     qreal omegaEnd = 0.0;
 
-    //Deep copy: the clone owns a fresh copy of the embedded plant.
-    SpecificationRecord * clone() const {
-        SpecificationRecord * copy = new SpecificationRecord(*this);
+    //Deep copy: the copy owns a fresh copy of the embedded plant. Explicit
+    //because owning the plant makes the record move-only, which is the
+    //point: a copy of a specification is always deliberate.
+    SpecificationRecord clone() const {
+        SpecificationRecord copy;
+        copy.name = name;
+        copy.used = used;
+        copy.height = height;
+        copy.constant = constant;
+        copy.omegaStart = omegaStart;
+        copy.omegaEnd = omegaEnd;
+
         if (system != nullptr){
-            //The record keeps its plant as a raw pointer its owners delete:
-            //release() marks the one place where that contract is entered.
-            copy->system = system->clone().release();
+            copy.system = system->clone();
         }
+
         return copy;
     }
 
-    qreal heightDb(qreal omega) {
+    qreal heightDb(qreal omega) const {
         if (constant){
             return 20 * std::log10(height);
         }
@@ -47,6 +55,16 @@ struct SpecificationRecord {
         return 20 * std::log10(std::abs(system->evaluate(omega)));
     }
 };
+
+/**
+ * @brief The seven editing slots, positional: every consumer indexes them
+ * by SpecificationType, and the persistence writes them in that order.
+ *
+ * By value, with each record owning its plant. This was a POINTER to a
+ * QVector of POINTERS, so four modules carried the same nested deletion
+ * loop and the size was never checked outside the reader.
+ */
+using SpecificationRecords = std::array<SpecificationRecord, kSpecificationCount>;
 
 //Validating conversion to the engine-facing type. Throws qftbx::InvalidInput
 //when the record breaks the invariants (height <= 0, inverted band, null
@@ -65,10 +83,11 @@ inline Specification toSpecification(const SpecificationRecord & d, Specificatio
                                      d.omegaStart, d.omegaEnd);
 }
 
-inline SpecificationSet toSpecificationSet(const QVector<SpecificationRecord *> & specs){
+inline SpecificationSet toSpecificationSet(const SpecificationRecords & specs){
     SpecificationSet set;
-    for (int i = 0; i < kSpecificationCount && i < specs.size(); ++i){
-        set.set(toSpecification(*specs.at(i), static_cast<SpecificationType>(i)));
+    for (int i = 0; i < kSpecificationCount; ++i){
+        set.set(toSpecification(specs.at(static_cast<std::size_t>(i)),
+                                static_cast<SpecificationType>(i)));
     }
     return set;
 }

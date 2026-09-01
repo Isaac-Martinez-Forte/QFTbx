@@ -46,7 +46,7 @@ void BoundaryEngine::releaseResults()
 }
 
 void BoundaryEngine::compute(QVector<qreal> *omega, LtiSystem *plant, const CloudSet & templates,
-                             QVector<qftbx::SpecificationRecord *> *specifications, QPointF phaseRange, qint32 phaseCount, QPointF magnitudeRange,
+                             const qftbx::SpecificationRecords * specifications, QPointF phaseRange, qint32 phaseCount, QPointF magnitudeRange,
                              qint32 magnitudeCount, qreal exportInfinity, bool cuda){
 
     //The export stand-in for infinity is not part of the computation

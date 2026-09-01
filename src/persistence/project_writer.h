@@ -21,7 +21,7 @@ namespace qftbx {
  */
 struct ProjectContent {
     LtiSystem * plant = nullptr;
-    QVector <qftbx::SpecificationRecord *> * specifications = nullptr;
+    const qftbx::SpecificationRecords * specifications = nullptr;
     Omega * omega = nullptr;
     CloudSet templates;
     CloudSet contour;

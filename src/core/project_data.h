@@ -37,11 +37,6 @@ class ProjectData
 public:
     ProjectData() = default;
 
-    //Still hand-written for ONE member: the specifications are a pointer to
-    //a QVector of pointers, and consolidating that two-level container is
-    //the next step.
-    ~ProjectData();
-
     ProjectData(const ProjectData &) = delete;
     ProjectData & operator=(const ProjectData &) = delete;
 
@@ -52,8 +47,11 @@ public:
     void setOmega(std::unique_ptr<Omega> omega);
     QVector<qreal> * frequencies() const;
 
-    QVector<SpecificationRecord *> * specifications() const;
-    void setSpecifications(QVector<SpecificationRecord *> * specifications);
+    /// The seven specification slots, or nullptr when none were ever set.
+    /// Held BY VALUE in an optional, like the boundaries and the epsilon.
+    SpecificationRecords * specifications();
+    const SpecificationRecords * specifications() const;
+    void setSpecifications(std::optional<SpecificationRecords> specifications);
 
     const CloudSet & templates() const;
     void setTemplates(CloudSet templates);
@@ -86,7 +84,7 @@ public:
 private:
     std::unique_ptr<LtiSystem> m_plant;
     std::unique_ptr<Omega> m_omega;
-    QVector<SpecificationRecord *> * m_specifications = nullptr;
+    std::optional<SpecificationRecords> m_specifications;
     CloudSet m_templates;
     CloudSet m_contour;
     bool m_hasContour = false;

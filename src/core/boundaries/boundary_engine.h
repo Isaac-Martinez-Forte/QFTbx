@@ -79,7 +79,7 @@ public:
     * @param cuda compute the sheets on the GPU (CUDA builds only).
     */
     void compute(QVector <qreal> * omega, LtiSystem * plant, const CloudSet & templates,
-                 QVector <qftbx::SpecificationRecord *> * specifications, QPointF phaseRange,
+                 const qftbx::SpecificationRecords * specifications, QPointF phaseRange,
                  qint32 phaseCount, QPointF magnitudeRange, qint32 magnitudeCount, qreal exportInfinity, bool cuda);
 
     /// A fresh non-owning view over the last computed results.

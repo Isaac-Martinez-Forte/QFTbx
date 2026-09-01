@@ -109,11 +109,7 @@ TEST_F(FailedComputation, BoundariesRefuseWithoutTheTemplatesInsteadOfCrashing)
     //Publishing an input drops what was computed from the old one, so a step
     //whose inputs were invalidated has to SAY so: before this it walked a null
     //pointer into the boundary engine.
-    auto * records = new QVector<qftbx::SpecificationRecord *>();
-    for (int i = 0; i < 7; i++) {
-        records->append(new qftbx::SpecificationRecord());
-    }
-    controller.setSpecifications(records);
+    controller.setSpecifications(qftbx::SpecificationRecords());
 
     ASSERT_TRUE(controller.templates().empty());
 

@@ -254,14 +254,12 @@ void MainWindow::on_specificationsButton_clicked()
     specificationsDialog->exec();
 
     if (specificationsDialog->getTodoCorrecto()){
-        QVector<qftbx::SpecificationRecord *> * described =
-                specificationsDialog->takeSpecifications();
-        const bool changed = described != controller->specifications();
+        controller->setSpecifications(specificationsDialog->takeSpecifications());
 
-        controller->setSpecifications(described);
-
-        //The templates do not depend on the specifications; the boundaries do.
-        if (changed && boundariesDone){
+        //The templates do not depend on the specifications; the boundaries
+        //do. Publishing is always a change now: the dialog answers with a
+        //fresh set of clones, so there is no identity to compare.
+        if (boundariesDone){
             invalidateFromBoundaries();
         }
 

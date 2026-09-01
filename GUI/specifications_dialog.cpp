@@ -19,7 +19,7 @@ using namespace tools;
 using namespace mup;
 
 SpecificationsDialog::SpecificationsDialog(const QVector<qreal> * frequencies,
-                                           const QVector<qftbx::SpecificationRecord *> * loaded,
+                                           const qftbx::SpecificationRecords * loaded,
                                            QWidget *parent) :
     QDialog(parent)
 {
@@ -42,8 +42,6 @@ SpecificationsDialog::SpecificationsDialog(const QVector<qreal> * frequencies,
 
     setWindowTitle(tr("Specifications input"));
 
-    published = nullptr;
-
     //Plant figure images:
 
     QPixmap imagen1 (":/figures/kgan.png");
@@ -65,14 +63,6 @@ SpecificationsDialog::SpecificationsDialog(const QVector<qreal> * frequencies,
 
     ui->k->setText("1");
     ui->delayEdit->setText("0");
-
-    tracking = new qftbx::SpecificationRecord();
-    trackingUpper = new qftbx::SpecificationRecord();
-    stability = new qftbx::SpecificationRecord();
-    sensorNoise = new qftbx::SpecificationRecord();
-    outputDisturbance = new qftbx::SpecificationRecord();
-    inputDisturbance = new qftbx::SpecificationRecord();
-    controlEffort = new qftbx::SpecificationRecord();
 
     //figureStack
     trackingImagePixmap = QPixmap (":/figures/seguimiento.png");
@@ -105,22 +95,14 @@ SpecificationsDialog::SpecificationsDialog(const QVector<qreal> * frequencies,
     //If the project carries specifications (a loaded file), the dialog
     //starts from THEM: it used to start from 7 empty records and the first
     //accept silently wiped whatever was loaded.
-    if (loaded != nullptr && loaded->size() == 7){
-        delete tracking;
-        delete trackingUpper;
-        delete stability;
-        delete sensorNoise;
-        delete outputDisturbance;
-        delete inputDisturbance;
-        delete controlEffort;
-
-        tracking = loaded->at(0)->clone();
-        trackingUpper = loaded->at(1)->clone();
-        stability = loaded->at(2)->clone();
-        sensorNoise = loaded->at(3)->clone();
-        outputDisturbance = loaded->at(4)->clone();
-        inputDisturbance = loaded->at(5)->clone();
-        controlEffort = loaded->at(6)->clone();
+    if (loaded != nullptr){
+        tracking = loaded->at(0).clone();
+        trackingUpper = loaded->at(1).clone();
+        stability = loaded->at(2).clone();
+        sensorNoise = loaded->at(3).clone();
+        outputDisturbance = loaded->at(4).clone();
+        inputDisturbance = loaded->at(5).clone();
+        controlEffort = loaded->at(6).clone();
     }
 
     //Tracking tab selected and restored from startup: without this no
@@ -133,19 +115,8 @@ SpecificationsDialog::SpecificationsDialog(const QVector<qreal> * frequencies,
 
 SpecificationsDialog::~SpecificationsDialog()
 {
-    //The 7 working records (and their plants) belong to the dialog: the
-    //DAO received deep clones.
-    qftbx::SpecificationRecord * records[] = {tracking, trackingUpper, stability,
-                          sensorNoise, outputDisturbance, inputDisturbance, controlEffort};
-    for (qftbx::SpecificationRecord * record : records) {
-        delete record->system;
-        delete record;
-    }
-
-    //Published but not taken (cancelled afterwards, or never asked for):
-    //the clones are the dialog's until somebody claims them.
-    discardPublished();
-
+    //The 7 working records (and their plants) are members, and so is
+    //anything published but never taken: nothing to free by hand.
     delete ui;
 }
 
@@ -178,25 +149,25 @@ QString SpecificationsDialog::denominatorText(LtiSystem * sistema)
     return coefficientsText(sistema->denominator());
 }
 
-void SpecificationsDialog::setDatos(qftbx::SpecificationRecord * record_in)
+void SpecificationsDialog::setDatos(qftbx::SpecificationRecord & record_in)
 {
-    if (record_in->used){
+    if (record_in.used){
 
-        ui->startFrequencyEdit->setText(QString::number(record_in->omegaStart));
-        ui->endFrequencyEdit->setText(QString::number(record_in->omegaEnd));
+        ui->startFrequencyEdit->setText(QString::number(record_in.omegaStart));
+        ui->endFrequencyEdit->setText(QString::number(record_in.omegaEnd));
 
-        if (record_in->constant){
+        if (record_in.constant){
             ui->constantRadio->setChecked(true);
             on_constantRadio_clicked();
             //The stored magnitude is linear: painted as-is with the linear
             //radio checked so accept does not reread it as dB.
             ui->linearRadio->setChecked(true);
-            ui->magnitudeEdit->setText(QString::number(record_in->height));
+            ui->magnitudeEdit->setText(QString::number(record_in.height));
         } else{
             ui->systemRadio->setChecked(true);
             on_systemRadio_clicked();
 
-            switch (record_in->system->type()){
+            switch (record_in.system->type()){
             case LtiSystem::SystemType::ZeroPoleGain:
                 ui->zpkRadio->setChecked(true);
                 on_zpkRadio_clicked();
@@ -215,10 +186,10 @@ void SpecificationsDialog::setDatos(qftbx::SpecificationRecord * record_in)
                 break;
             }
 
-            ui->numeratorEdit->setText(numeratorText(record_in->system));
-            ui->denominatorEdit->setText(denominatorText(record_in->system));
-            ui->k->setText(QString::number(record_in->system->gain().nominal()));
-            ui->delayEdit->setText(QString::number(record_in->system->delay().nominal()));
+            ui->numeratorEdit->setText(numeratorText(record_in.system.get()));
+            ui->denominatorEdit->setText(denominatorText(record_in.system.get()));
+            ui->k->setText(QString::number(record_in.system->gain().nominal()));
+            ui->delayEdit->setText(QString::number(record_in.system->delay().nominal()));
         }
     } else {
         ui->magnitudeEdit->setText("");
@@ -230,26 +201,27 @@ void SpecificationsDialog::setDatos(qftbx::SpecificationRecord * record_in)
 }
 
 
-void SpecificationsDialog::setDatos(qftbx::SpecificationRecord *record_in, qftbx::SpecificationRecord *upperRecord){
+void SpecificationsDialog::setDatos(qftbx::SpecificationRecord & record_in,
+                                    qftbx::SpecificationRecord & upperRecord){
 
-    if (record_in->used){
+    if (record_in.used){
 
-        ui->startFrequencyEdit->setText(QString::number(record_in->omegaStart));
-        ui->endFrequencyEdit->setText(QString::number(record_in->omegaEnd));
+        ui->startFrequencyEdit->setText(QString::number(record_in.omegaStart));
+        ui->endFrequencyEdit->setText(QString::number(record_in.omegaEnd));
 
-        if (record_in->constant){
+        if (record_in.constant){
             ui->constantRadio->setChecked(true);
             on_constantRadio_clicked();
             ui->lowerLinearRadio->setChecked(true);
             ui->upperLinearRadio->setChecked(true);
-            ui->lowerMagnitudeEdit->setText(QString::number(record_in->height));
+            ui->lowerMagnitudeEdit->setText(QString::number(record_in.height));
 
-            ui->upperMagnitudeEdit->setText(QString::number(upperRecord->height));
+            ui->upperMagnitudeEdit->setText(QString::number(upperRecord.height));
         }else{
             ui->systemRadio->setChecked(true);
             on_systemRadio_clicked();
 
-            switch (record_in->system->type()){
+            switch (record_in.system->type()){
             case LtiSystem::SystemType::ZeroPoleGain:
                 ui->lowerZpkRadio->setChecked(true);
                 on_lowerZpkRadio_clicked();
@@ -268,7 +240,7 @@ void SpecificationsDialog::setDatos(qftbx::SpecificationRecord *record_in, qftbx
                 break;
             }
 
-            switch (upperRecord->system->type()){
+            switch (upperRecord.system->type()){
             case LtiSystem::SystemType::ZeroPoleGain:
                 ui->upperZpkRadio->setChecked(true);
                 on_upperZpkRadio_clicked();
@@ -287,15 +259,15 @@ void SpecificationsDialog::setDatos(qftbx::SpecificationRecord *record_in, qftbx
                 break;
             }
 
-            ui->lowerNumeratorEdit->setText(numeratorText(record_in->system));
-            ui->lowerDenominatorEdit->setText(denominatorText(record_in->system));
-            ui->lowerGainEdit->setText(QString::number(record_in->system->gain().nominal()));
-            ui->lowerDelayEdit->setText(QString::number(record_in->system->delay().nominal()));
+            ui->lowerNumeratorEdit->setText(numeratorText(record_in.system.get()));
+            ui->lowerDenominatorEdit->setText(denominatorText(record_in.system.get()));
+            ui->lowerGainEdit->setText(QString::number(record_in.system->gain().nominal()));
+            ui->lowerDelayEdit->setText(QString::number(record_in.system->delay().nominal()));
 
-            ui->upperNumeratorEdit->setText(numeratorText(upperRecord->system));
-            ui->upperDenominatorEdit->setText(denominatorText(upperRecord->system));
-            ui->upperGainEdit->setText(QString::number(upperRecord->system->gain().nominal()));
-            ui->upperDelayEdit->setText(QString::number(upperRecord->system->delay().nominal()));
+            ui->upperNumeratorEdit->setText(numeratorText(upperRecord.system.get()));
+            ui->upperDenominatorEdit->setText(denominatorText(upperRecord.system.get()));
+            ui->upperGainEdit->setText(QString::number(upperRecord.system->gain().nominal()));
+            ui->upperDelayEdit->setText(QString::number(upperRecord.system->delay().nominal()));
         }
     } else {
         ui->lowerMagnitudeEdit->setText("");
@@ -312,29 +284,28 @@ void SpecificationsDialog::setDatos(qftbx::SpecificationRecord *record_in, qftbx
     }
 }
 
-bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord * record_in, QString name_in)
+bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord & record_in, QString name_in)
 {
 
-    if (record_in->used && !record_in->constant){
+    if (record_in.used && !record_in.constant){
         //sistema must end up null: when this read finishes as not-used,
         //the clone() on accept used to clone a dangling pointer.
-        delete record_in->system;
-        record_in->system = nullptr;
-        record_in->constant = false;
-        record_in->used = false;
+        record_in.system.reset();
+        record_in.constant = false;
+        record_in.used = false;
     }
 
     if (ui->startFrequencyEdit->text().isEmpty()){
-        record_in->omegaStart = frequencies->first();
+        record_in.omegaStart = frequencies->first();
     } else {
         ParserX p (pckALL_NON_COMPLEX);
         p.SetExpr(ui->startFrequencyEdit->text().toStdString());
 
         try {
-            record_in->omegaStart = p.Eval().GetFloat();
+            record_in.omegaStart = p.Eval().GetFloat();
             ui->startFrequencyEdit->setStyleSheet("background : white");
         }catch (ParserError &e){
-            record_in->used = false;
+            record_in.used = false;
             ui->startFrequencyEdit->setStyleSheet("background : red");
             errorMessage(tr("Invalid frequency band."), tr("Specifications input"));
             return false;
@@ -342,16 +313,16 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord * record_in, QStr
     }
 
     if (ui->endFrequencyEdit->text().isEmpty()){
-        record_in->omegaEnd = frequencies->last();
+        record_in.omegaEnd = frequencies->last();
     } else {
         ParserX p (pckALL_NON_COMPLEX);
         p.SetExpr(ui->endFrequencyEdit->text().toStdString());
 
         try {
-            record_in->omegaEnd = p.Eval().GetFloat();
+            record_in.omegaEnd = p.Eval().GetFloat();
             ui->endFrequencyEdit->setStyleSheet("background : white");
         }catch (ParserError &e){
-            record_in->used = false;
+            record_in.used = false;
             ui->endFrequencyEdit->setStyleSheet("background : red");
             errorMessage(tr("Invalid frequency band."), tr("Specifications input"));
             return false;
@@ -365,35 +336,35 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord * record_in, QStr
             ParserX p (pckALL_NON_COMPLEX);
             p.SetExpr(ui->magnitudeEdit->text().toStdString());
 
-            record_in->constant = true;
+            record_in.constant = true;
 
             try {
 
                 qreal alt = p.Eval().GetFloat();
 
                 if (ui->decibelsRadio->isChecked()){
-                    record_in->height = qftbx::dbToLinear(alt);
+                    record_in.height = qftbx::dbToLinear(alt);
                 }else {
-                    record_in->height = alt;
+                    record_in.height = alt;
                 }
 
                 ui->magnitudeEdit->setStyleSheet("background : white");
             }catch (ParserError &e){
-                record_in->used = false;
+                record_in.used = false;
                 ui->magnitudeEdit->setStyleSheet("background : red");
                 errorMessage(tr("Invalid magnitude value."), tr("Specifications input"));
                 return false;
             }
 
             ui->magnitudeEdit->setStyleSheet("background : white");
-            record_in->used = true;
+            record_in.used = true;
         } else {
-            record_in->used = false;
+            record_in.used = false;
         }
     }else {
 
         if (ui->denominatorEdit->text().isEmpty()){
-            record_in->used = false;
+            record_in.used = false;
             return true;
         }
 
@@ -408,7 +379,7 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord * record_in, QStr
         if (!k.has_value()){
             errorMessage(tr("Invalid gain."), tr("Specifications input"));
             ui->k->setStyleSheet("background : red");
-            record_in->used = false;
+            record_in.used = false;
             return false;
         }
         ui->k->setStyleSheet("background : white");
@@ -418,7 +389,7 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord * record_in, QStr
         if (!delayEdit.has_value()){
             errorMessage(tr("Invalid delay."), tr("Specifications input"));
             ui->delayEdit->setStyleSheet("background : red");
-            record_in->used = false;
+            record_in.used = false;
             return false;
         }
         ui->delayEdit->setStyleSheet("background : white");
@@ -430,7 +401,7 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord * record_in, QStr
             if (!numeratorEdit.has_value()){
                 errorMessage(tr("Invalid numerator."), tr("Specifications input"));
                 ui->numeratorEdit->setStyleSheet("background : red");
-                record_in->used = false;
+                record_in.used = false;
                 return false;
             }
             ui->numeratorEdit->setStyleSheet("background : white");
@@ -440,65 +411,64 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord * record_in, QStr
             if (!denominatorEdit.has_value()){
                 errorMessage(tr("Invalid denominator."), tr("Specifications input"));
                 ui->denominatorEdit->setStyleSheet("background : red");
-                record_in->used = false;
+                record_in.used = false;
                 return false;
             }
             ui->denominatorEdit->setStyleSheet("background : white");
         }
 
 
-        record_in->constant = false;
+        record_in.constant = false;
         if(ui->zpkRadio->isChecked()){
-            record_in->system = new ZeroPoleGain (name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
+            record_in.system = std::make_unique<ZeroPoleGain>(name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
         }else if (ui->tcgRadio->isChecked()){
-            record_in->system = new TimeConstantGain (name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
+            record_in.system = std::make_unique<TimeConstantGain>(name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
         }else if (ui->polynomialRadio->isChecked()) {
-            record_in->system = new PolynomialForm (name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
+            record_in.system = std::make_unique<PolynomialForm>(name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
         }else {
             //No type radio checked: the free-form record carries its
             //expressions and no coefficient vectors (whatever was parsed
             //above simply goes out of scope now).
-            record_in->system = new FreeForm (name_in, {}, {}, std::move(*k), std::move(*delayEdit),
+            record_in.system = std::make_unique<FreeForm>(name_in, std::vector<Parameter>{}, std::vector<Parameter>{}, std::move(*k), std::move(*delayEdit),
                                               ui->numeratorEdit->text(), ui->denominatorEdit->text());
         }
-        record_in->used = true;
+        record_in.used = true;
     }
 
-    record_in->name = name_in;
+    record_in.name = name_in;
 
     return true;
 }
 
-bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord *record_in, qftbx::SpecificationRecord *upperRecord, QString name_in){
+bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord & record_in,
+                                    qftbx::SpecificationRecord & upperRecord, QString name_in){
 
-    if (record_in->used && !record_in->constant){
-        delete record_in->system;
-        record_in->system = nullptr;
-        record_in->constant = false;
-        record_in->used = false;
+    if (record_in.used && !record_in.constant){
+        record_in.system.reset();
+        record_in.constant = false;
+        record_in.used = false;
     }
 
-    if (upperRecord->used && !upperRecord->constant){
-        delete upperRecord->system;
-        upperRecord->system = nullptr;
-        upperRecord->constant = false;
-        upperRecord->used = false;
+    if (upperRecord.used && !upperRecord.constant){
+        upperRecord.system.reset();
+        upperRecord.constant = false;
+        upperRecord.used = false;
     }
 
     if (ui->startFrequencyEdit->text().isEmpty()){
-        record_in->omegaStart = frequencies->first();
-        upperRecord->omegaStart = frequencies->first();
+        record_in.omegaStart = frequencies->first();
+        upperRecord.omegaStart = frequencies->first();
     } else {
         ParserX p (pckALL_NON_COMPLEX);
         p.SetExpr(ui->startFrequencyEdit->text().toStdString());
 
         try {
-            record_in->omegaStart = p.Eval().GetFloat();
-            upperRecord->omegaStart = record_in->omegaStart;
+            record_in.omegaStart = p.Eval().GetFloat();
+            upperRecord.omegaStart = record_in.omegaStart;
             ui->startFrequencyEdit->setStyleSheet("background : white");
         }catch (ParserError &e){
-            record_in->used = false;
-            upperRecord->used = false;
+            record_in.used = false;
+            upperRecord.used = false;
             ui->startFrequencyEdit->setStyleSheet("background : red");
             errorMessage(tr("Invalid frequency band."), tr("Specifications input"));
             return false;
@@ -506,19 +476,19 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord *record_in, qftbx
     }
 
     if (ui->endFrequencyEdit->text().isEmpty()){
-        record_in->omegaEnd = frequencies->last();
-        upperRecord->omegaEnd = frequencies->last();
+        record_in.omegaEnd = frequencies->last();
+        upperRecord.omegaEnd = frequencies->last();
     } else {
         ParserX p (pckALL_NON_COMPLEX);
         p.SetExpr(ui->endFrequencyEdit->text().toStdString());
 
         try {
-            record_in->omegaEnd = p.Eval().GetFloat();
-            upperRecord->omegaEnd = record_in->omegaEnd;
+            record_in.omegaEnd = p.Eval().GetFloat();
+            upperRecord.omegaEnd = record_in.omegaEnd;
             ui->endFrequencyEdit->setStyleSheet("background : white");
         }catch (ParserError &e){
-            record_in->used = false;
-            upperRecord->used = false;
+            record_in.used = false;
+            upperRecord.used = false;
             ui->endFrequencyEdit->setStyleSheet("background : red");
             errorMessage(tr("Invalid frequency band."), tr("Specifications input"));
             return false;
@@ -532,7 +502,7 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord *record_in, qftbx
             ParserX p (pckALL_NON_COMPLEX);
             p.SetExpr(ui->lowerMagnitudeEdit->text().toStdString());
 
-            record_in->constant = true;
+            record_in.constant = true;
 
             try {
 
@@ -541,28 +511,28 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord *record_in, qftbx
                 //qftbx::SpecificationRecord::altura is a LINEAR magnitude: this path used to have
                 //both branches swapped relative to the simple path.
                 if (ui->lowerDecibelsRadio->isChecked()){
-                    record_in->height = qftbx::dbToLinear(alt);
+                    record_in.height = qftbx::dbToLinear(alt);
                 }else {
-                    record_in->height = alt;
+                    record_in.height = alt;
                 }
 
                 ui->lowerMagnitudeEdit->setStyleSheet("background : white");
             }catch (ParserError &e){
-                record_in->used = false;
+                record_in.used = false;
                 ui->lowerMagnitudeEdit->setStyleSheet("background : red");
                 errorMessage(tr("Invalid magnitude value."), tr("Specifications input"));
                 return false;
             }
 
             ui->lowerMagnitudeEdit->setStyleSheet("background : white");
-            record_in->used = true;
+            record_in.used = true;
         } else {
-            record_in->used = false;
+            record_in.used = false;
         }
     }else {
 
         if (ui->lowerDenominatorEdit->text().isEmpty()){
-            record_in->used = false;
+            record_in.used = false;
             return true;
         }
 
@@ -577,7 +547,7 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord *record_in, qftbx
         if (!k.has_value()){
             errorMessage(tr("Invalid gain."), tr("Specifications input"));
             ui->lowerGainEdit->setStyleSheet("background : red");
-            record_in->used = false;
+            record_in.used = false;
             return false;
         }
         ui->lowerGainEdit->setStyleSheet("background : white");
@@ -587,7 +557,7 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord *record_in, qftbx
         if (!delayEdit.has_value()){
             errorMessage(tr("Invalid delay."), tr("Specifications input"));
             ui->lowerDelayEdit->setStyleSheet("background : red");
-            record_in->used = false;
+            record_in.used = false;
             return false;
         }
         ui->lowerDelayEdit->setStyleSheet("background : white");
@@ -599,7 +569,7 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord *record_in, qftbx
             if (!numeratorEdit.has_value()){
                 errorMessage(tr("Invalid numerator."), tr("Specifications input"));
                 ui->lowerNumeratorEdit->setStyleSheet("background : red");
-                record_in->used = false;
+                record_in.used = false;
                 return false;
             }
             ui->lowerNumeratorEdit->setStyleSheet("background : white");
@@ -609,27 +579,27 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord *record_in, qftbx
             if (!denominatorEdit.has_value()){
                 errorMessage(tr("Invalid denominator."), tr("Specifications input"));
                 ui->lowerDenominatorEdit->setStyleSheet("background : red");
-                record_in->used = false;
+                record_in.used = false;
                 return false;
             }
             ui->lowerDenominatorEdit->setStyleSheet("background : white");
         }
 
 
-        record_in->constant = false;
+        record_in.constant = false;
         if(ui->lowerZpkRadio->isChecked()){
-            record_in->system = new ZeroPoleGain (name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
+            record_in.system = std::make_unique<ZeroPoleGain>(name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
         }else if (ui->lowerTcgRadio->isChecked()){
-            record_in->system = new TimeConstantGain (name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
+            record_in.system = std::make_unique<TimeConstantGain>(name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
         }else if (ui->lowerPolynomialRadio->isChecked()) {
-            record_in->system = new PolynomialForm (name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
+            record_in.system = std::make_unique<PolynomialForm>(name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
         }else {
             //No type radio checked: the free-form record carries its
             //expressions and no coefficient vectors.
-            record_in->system = new FreeForm (name_in, {}, {}, std::move(*k), std::move(*delayEdit),
+            record_in.system = std::make_unique<FreeForm>(name_in, std::vector<Parameter>{}, std::vector<Parameter>{}, std::move(*k), std::move(*delayEdit),
                                               ui->lowerNumeratorEdit->text(), ui->lowerDenominatorEdit->text());
         }
-        record_in->used = true;
+        record_in.used = true;
     }
 
 
@@ -640,35 +610,35 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord *record_in, qftbx
             ParserX p (pckALL_NON_COMPLEX);
             p.SetExpr(ui->upperMagnitudeEdit->text().toStdString());
 
-            upperRecord->constant = true;
+            upperRecord.constant = true;
 
             try {
 
                 qreal alt = p.Eval().GetFloat();
 
                 if (ui->upperDecibelsRadio->isChecked()){
-                    upperRecord->height = qftbx::dbToLinear(alt);
+                    upperRecord.height = qftbx::dbToLinear(alt);
                 }else {
-                    upperRecord->height = alt;
+                    upperRecord.height = alt;
                 }
 
                 ui->upperMagnitudeEdit->setStyleSheet("background : white");
             }catch (ParserError &e){
-                upperRecord->used = false;
+                upperRecord.used = false;
                 ui->upperMagnitudeEdit->setStyleSheet("background : red");
                 errorMessage(tr("Invalid magnitude value."), tr("Specifications input"));
                 return false;
             }
 
             ui->upperMagnitudeEdit->setStyleSheet("background : white");
-            upperRecord->used = true;
+            upperRecord.used = true;
         } else {
-            upperRecord->used = false;
+            upperRecord.used = false;
         }
     }else {
 
         if (ui->upperDenominatorEdit->text().isEmpty()){
-            upperRecord->used = false;
+            upperRecord.used = false;
             return true;
         }
 
@@ -683,7 +653,7 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord *record_in, qftbx
         if (!k.has_value()){
             errorMessage(tr("Invalid gain."), tr("Specifications input"));
             ui->upperGainEdit->setStyleSheet("background : red");
-            upperRecord->used = false;
+            upperRecord.used = false;
             return false;
         }
         ui->upperGainEdit->setStyleSheet("background : white");
@@ -693,7 +663,7 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord *record_in, qftbx
         if (!delayEdit.has_value()){
             errorMessage(tr("Invalid delay."), tr("Specifications input"));
             ui->upperDelayEdit->setStyleSheet("background : red");
-            upperRecord->used = false;
+            upperRecord.used = false;
             return false;
         }
         ui->upperDelayEdit->setStyleSheet("background : white");
@@ -705,7 +675,7 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord *record_in, qftbx
             if (!numeratorEdit.has_value()){
                 errorMessage(tr("Invalid numerator."), tr("Specifications input"));
                 ui->upperNumeratorEdit->setStyleSheet("background : red");
-                upperRecord->used = false;
+                upperRecord.used = false;
                 return false;
             }
             ui->upperNumeratorEdit->setStyleSheet("background : white");
@@ -715,30 +685,30 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord *record_in, qftbx
             if (!denominatorEdit.has_value()){
                 errorMessage(tr("Invalid denominator."), tr("Specifications input"));
                 ui->upperDenominatorEdit->setStyleSheet("background : red");
-                upperRecord->used = false;
+                upperRecord.used = false;
                 return false;
             }
             ui->upperDenominatorEdit->setStyleSheet("background : white");
         }
 
-        upperRecord->constant = false;
+        upperRecord.constant = false;
         if(ui->upperZpkRadio->isChecked()){
-            upperRecord->system = new ZeroPoleGain (name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
+            upperRecord.system = std::make_unique<ZeroPoleGain>(name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
         }else if (ui->upperTcgRadio->isChecked()){
-            upperRecord->system = new TimeConstantGain (name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
+            upperRecord.system = std::make_unique<TimeConstantGain>(name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
         }else if (ui->upperPolynomialRadio->isChecked()) {
-            upperRecord->system = new PolynomialForm (name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
+            upperRecord.system = std::make_unique<PolynomialForm>(name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
         }else {
             //No type radio checked: the free-form record carries its
             //expressions and no coefficient vectors.
-            upperRecord->system = new FreeForm (name_in, {}, {}, std::move(*k), std::move(*delayEdit),
+            upperRecord.system = std::make_unique<FreeForm>(name_in, std::vector<Parameter>{}, std::vector<Parameter>{}, std::move(*k), std::move(*delayEdit),
                                                 ui->upperNumeratorEdit->text(), ui->upperDenominatorEdit->text());
         }
-        upperRecord->used = true;
+        upperRecord.used = true;
     }
 
-    record_in->name = name_in;
-    upperRecord->name = QStringLiteral("TrackingUpper");
+    record_in.name = name_in;
+    upperRecord.name = QStringLiteral("TrackingUpper");
 
     return true;
 }
@@ -921,17 +891,11 @@ void SpecificationsDialog::on_okButton_clicked()
         return;
     }
 
-    published = new QVector <qftbx::SpecificationRecord *> ();
-
-    //The DAO takes ownership: it receives deep clones and the dialog keeps
-    //its originals for further editing.
-    published->append(tracking->clone());
-    published->append(trackingUpper->clone());
-    published->append(stability->clone());
-    published->append(sensorNoise->clone());
-    published->append(outputDisturbance->clone());
-    published->append(inputDisturbance->clone());
-    published->append(controlEffort->clone());
+    //The project takes ownership: it receives deep clones and the dialog
+    //keeps its originals for further editing.
+    published = qftbx::SpecificationRecords{tracking.clone(), trackingUpper.clone(),
+            stability.clone(), sensorNoise.clone(), outputDisturbance.clone(),
+            inputDisturbance.clone(), controlEffort.clone()};
 
     todoCorrecto = true;
 
@@ -942,25 +906,12 @@ bool SpecificationsDialog::getTodoCorrecto(){
     return todoCorrecto;
 }
 
-QVector<qftbx::SpecificationRecord *> * SpecificationsDialog::takeSpecifications(){
-    QVector<qftbx::SpecificationRecord *> * built = published;
-    published = nullptr;
-
-    return built;
+std::optional<qftbx::SpecificationRecords> SpecificationsDialog::takeSpecifications(){
+    return std::move(published);
 }
 
 void SpecificationsDialog::discardPublished(){
-    if (published == nullptr){
-        return;
-    }
-
-    for (qftbx::SpecificationRecord * record : *published) {
-        delete record->system;
-        delete record;
-    }
-
-    delete published;
-    published = nullptr;
+    published.reset();
 }
 
 

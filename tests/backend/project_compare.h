@@ -38,24 +38,23 @@ inline void expectSameSystem(LtiSystem* a, LtiSystem* b,
     }
 }
 
-inline void expectSameSpecifications(QVector<qftbx::SpecificationRecord*>* a, QVector<qftbx::SpecificationRecord*>* b)
+inline void expectSameSpecifications(const qftbx::SpecificationRecords * a,
+                                     const qftbx::SpecificationRecords * b)
 {
     ASSERT_NE(a, nullptr);
     ASSERT_NE(b, nullptr);
-    ASSERT_EQ(a->size(), 7);
-    ASSERT_EQ(b->size(), 7);
 
-    for (int i = 0; i < 7; ++i) {
-        qftbx::SpecificationRecord* sa = a->at(i);
-        qftbx::SpecificationRecord* sb = b->at(i);
-        EXPECT_EQ(sa->name, sb->name) << "spec " << i;
-        EXPECT_EQ(sa->used, sb->used) << "spec " << i;
-        EXPECT_EQ(sa->constant, sb->constant) << "spec " << i;
-        EXPECT_EQ(sa->height, sb->height) << "spec " << i;
-        EXPECT_EQ(sa->omegaStart, sb->omegaStart) << "spec " << i;
-        EXPECT_EQ(sa->omegaEnd, sb->omegaEnd) << "spec " << i;
-        expectSameSystem(sa->system, sb->system, {sa->omegaStart, sa->omegaEnd},
-                         "spec plant");
+    for (std::size_t i = 0; i < a->size(); ++i) {
+        const qftbx::SpecificationRecord & sa = a->at(i);
+        const qftbx::SpecificationRecord & sb = b->at(i);
+        EXPECT_EQ(sa.name, sb.name) << "spec " << i;
+        EXPECT_EQ(sa.used, sb.used) << "spec " << i;
+        EXPECT_EQ(sa.constant, sb.constant) << "spec " << i;
+        EXPECT_EQ(sa.height, sb.height) << "spec " << i;
+        EXPECT_EQ(sa.omegaStart, sb.omegaStart) << "spec " << i;
+        EXPECT_EQ(sa.omegaEnd, sb.omegaEnd) << "spec " << i;
+        expectSameSystem(sa.system.get(), sb.system.get(),
+                         {sa.omegaStart, sa.omegaEnd}, "spec plant");
     }
 }
 

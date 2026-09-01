@@ -19,7 +19,7 @@ QVector <qreal> * ProjectController::frequencies(){
 }
 
 
-QVector<qftbx::SpecificationRecord *> *ProjectController::specifications(){
+qftbx::SpecificationRecords * ProjectController::specifications(){
     return data.specifications();
 }
 
@@ -68,12 +68,8 @@ void ProjectController::setOmega(std::unique_ptr<Omega> omega){
     dropTemplatesAndBelow();
 }
 
-void ProjectController::setSpecifications(QVector<qftbx::SpecificationRecord *> *specifications){
-    if (data.specifications() == specifications){
-        return;
-    }
-
-    data.setSpecifications(specifications);
+void ProjectController::setSpecifications(std::optional<qftbx::SpecificationRecords> specifications){
+    data.setSpecifications(std::move(specifications));
 
     //The templates do not depend on the specifications; the boundaries do.
     dropBoundariesAndBelow();

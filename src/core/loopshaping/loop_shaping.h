@@ -21,7 +21,7 @@ public:
 
     bool run(LtiSystem * plant, LtiSystem * controller, QVector<qreal> * omega, const BoundaryData * boundaries,
                  qreal epsilon, LoopShapingAlgorithm algorithm,
-                 const qftbx::CloudSet & contour, QVector<qftbx::SpecificationRecord *> * specifications,
+                 const qftbx::CloudSet & contour, const qftbx::SpecificationRecords * specifications,
                  qint32 initialisation);
 
     /**
