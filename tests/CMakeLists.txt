@@ -58,3 +58,33 @@ endif()
 
 include(GoogleTest)
 gtest_discover_tests(qftbx_tests DISCOVERY_TIMEOUT 60)
+
+# ------------------------------------------------------------------------------
+# GUI smoke suite: drives the dialogs headless (offscreen platform plugin).
+# Separate binary because it needs a QApplication and the GUI library, which
+# the backend suite must stay free of.
+# ------------------------------------------------------------------------------
+add_executable(qftbx_gui_tests
+  gui/main.cpp
+  gui/gui_smoke_test.cpp
+)
+
+target_link_libraries(qftbx_gui_tests PRIVATE qftbx_gui GTest::gtest)
+
+#No -frounding-math here, unlike the backend suite: this binary runs no
+#interval arithmetic of its own, and the flag breaks Qt's constexpr float
+#code (qrgbafloat.h), which is exactly why the GUI target does not carry it
+#either.
+
+target_compile_definitions(qftbx_gui_tests
+  PRIVATE QFTBX_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data"
+)
+
+if(UNIX AND NOT APPLE)
+  set_target_properties(qftbx_gui_tests PROPERTIES BUILD_RPATH "${CXSC_LIBDIR}")
+endif()
+
+gtest_discover_tests(qftbx_gui_tests
+  DISCOVERY_TIMEOUT 60
+  PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+)

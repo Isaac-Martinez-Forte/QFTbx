@@ -1,4 +1,6 @@
 #include "specifications_dialog.h"
+
+#include "src/core/exception.h"
 #include "src/core/text_tokens.h"
 
 #include <optional>
@@ -23,7 +25,18 @@ SpecificationsDialog::SpecificationsDialog(Controlador *controller, QWidget *par
     ui->setupUi(this);
 
     this->controller = controller;
-    this->frequencies = controller->getOmega()->values();
+
+    //The step order of the main window guarantees a frequency set here, but
+    //an empty one used to reach first()/last() below and take the whole
+    //application down instead of saying anything.
+    Omega * omega = controller->getOmega();
+
+    if (omega == nullptr || omega->values() == nullptr || omega->values()->isEmpty()) {
+        throw qftbx::InvalidInput("The design frequencies must be entered "
+                                  "before the specifications.");
+    }
+
+    this->frequencies = omega->values();
 
     setWindowTitle(tr("Specifications input"));
 

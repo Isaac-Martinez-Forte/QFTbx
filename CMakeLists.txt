@@ -227,6 +227,7 @@ set(QFTbx_PERSISTENCE_HED
 set(QFTbx_GUI_SRC
     GUI/parlineedit.cpp
     GUI/parlineedit.h
+    GUI/error_message.cpp
     GUI/bode_viewer.cpp
     GUI/main_window.cpp
     GUI/plant_dialog.cpp
