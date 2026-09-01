@@ -32,13 +32,12 @@ FrequenciesDialog::FrequenciesDialog(QWidget *parent) :
     connect (this, SIGNAL(close_ok()), this,SLOT(close()));
 }
 
-FrequenciesDialog::FrequenciesDialog(ProjectController *controlador, QWidget *parent):FrequenciesDialog(parent){
-    this->controlador = controlador;
-}
-
 FrequenciesDialog::~FrequenciesDialog()
 {
     delete ui;
+
+    //Not taken (cancelled, or never asked for): the dialog frees it.
+    delete m_omega;
 }
 void FrequenciesDialog::on_fileButton_clicked()
 {
@@ -95,8 +94,8 @@ void FrequenciesDialog::on_okButton_clicked()
         type = Omega::File;
     }
 
-    Omega * omega = new Omega(start, end, frequencies->size(),frequencies,type);
-    controlador->setOmega(omega);
+    delete m_omega;
+    m_omega = new Omega(start, end, frequencies->size(), frequencies, type);
 
     todoCorrecto = true;
 
@@ -106,4 +105,11 @@ void FrequenciesDialog::on_okButton_clicked()
 
 bool FrequenciesDialog::getTodoCorrecto(){
     return todoCorrecto;
+}
+
+Omega * FrequenciesDialog::takeOmega(){
+    Omega * built = m_omega;
+    m_omega = nullptr;
+
+    return built;
 }

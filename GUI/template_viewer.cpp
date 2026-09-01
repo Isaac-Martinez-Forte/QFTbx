@@ -84,7 +84,10 @@ void TemplateViewer::clearDiagram(){
     plotted = false;
 }
 
-void TemplateViewer::setDatos(ProjectController * controller){
+void TemplateViewer::setDatos(QVector <QVector <std::complex<qreal> > *> * templates,
+                              QVector <QVector <std::complex<qreal> > *> * contour,
+                              QVector <qreal> * omega,
+                              QVector <qreal> * epsilon){
 
     if (colorsCreated){
         //delete, not clear(): the previous map leaked on every recompute.
@@ -94,18 +97,30 @@ void TemplateViewer::setDatos(ProjectController * controller){
     colorByFrequency = new QMap <qreal, QColor> ();
     colorsCreated = true;
 
-    setTemplates(controller->templates());
-    setContour(controller->contour());
+    setTemplates(templates);
+    setContour(contour);
 
-    this->controller = controller;
+    this->omega = omega;
 
-    this->omega = controller->omega()->values();
-
-    this->epsilon = controller->epsilon();
+    this->epsilon = epsilon;
 
     for (qint32 i = 0; i < omega->size(); i++){
-        colorByFrequency->insert(omega->at(i), randomColor(i));
+        colorByFrequency->insert(omega->at(i), tools::randomColor(i));
     }
+}
+
+void TemplateViewer::refreshContour(QVector <QVector <std::complex<qreal> > *> * contour,
+                                    QVector <qreal> * omega,
+                                    QVector <qreal> * epsilon){
+    setContour(contour);
+
+    this->omega = omega;
+
+    //The previous epsilon belongs to the project, which deleted it when it
+    //accepted the new one; touching it here would be a use-after-free.
+    this->epsilon = epsilon;
+
+    plotDiagram(plot);
 }
 
 void TemplateViewer::setTemplates(QVector<QVector<std::complex<qreal> > *> *templatesButton){
@@ -375,7 +390,7 @@ void TemplateViewer::on_saveImage_clicked()
         }
 
         if (!noFallo)
-            errorMessage(tr("The image could not be saved"), tr("Template plot"));
+            tools::errorMessage(tr("The image could not be saved"), tr("Template plot"));
     }
 }
 
@@ -417,7 +432,7 @@ void TemplateViewer::on_exportContourButton_clicked()
     QTextStream out (&fichero);
 
     if (!fichero.open(QIODevice::WriteOnly)){
-        errorMessage(tr("The data cannot be exported to the chosen file"), tr("Template plot"));
+        tools::errorMessage(tr("The data cannot be exported to the chosen file"), tr("Template plot"));
         return;
     }
 
@@ -453,17 +468,9 @@ void TemplateViewer::on_recomputeButton_clicked()
         epsilon->append(pos);
     }
 
-    try {
-        setContour(controller->recomputeContour(epsilon));
-    } catch (const qftbx::Exception & e) {
-        QMessageBox::critical(this, tr("Template computation"), e.what());
-        return;
-    }
-    omega = controller->omega()->values();
-    //The previous epsilon is deleted by the DAO when accepting the new
-    //one; touching it here would be a use-after-free.
-    this->epsilon = controller->epsilon();
-    plotDiagram(plot);
+    //The viewer draws; the computation belongs to the window, which answers
+    //with refreshContour().
+    emit recomputeRequested(epsilon);
 }
 
 

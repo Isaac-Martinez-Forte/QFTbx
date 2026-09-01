@@ -10,7 +10,6 @@
 #include "src/core/system/time_constant_gain.h"
 #include "src/core/system/polynomial_form.h"
 #include "GUI/uncertainty_dialog.h"
-#include "src/core/project_controller.h"
 #include "src/core/math/sequence_vectors.h"
 #include "mpParser.h"
 
@@ -24,10 +23,15 @@ class ControllerDialog : public QDialog
     Q_OBJECT
     
 public:
-    explicit ControllerDialog(ProjectController * controller, QWidget *parent = 0);
+    explicit ControllerDialog(QWidget *parent = 0);
     ~ControllerDialog();
 
     bool getTodoCorrecto();
+
+    /// The controller structure the user described (with the search box of
+    /// its parameters), or nullptr when cancelled or rejected. Ownership
+    /// passes to the caller.
+    LtiSystem * takeControllerStructure();
     
 private slots:
     void on_polynomialRadio_clicked();
@@ -47,7 +51,6 @@ private:
 
 
 
-    ProjectController * controller = NULL;
 
     QString file;
 

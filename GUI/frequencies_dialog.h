@@ -9,7 +9,6 @@
 #include <QMessageBox>
 #include <QTextStream>
 
-#include "src/core/project_controller.h"
 #include "src/core/math/sequence_vectors.h"
 #include "src/core/frequencies/omega.h"
 
@@ -32,22 +31,17 @@ public:
   
   /**
     * @fn FrequenciesDialog
-    * @brief Constructor de la clase, que solo tiene por parámetro el padre de dicha clase.
+    * @brief Constructor. The dialog knows nothing of the project: it builds
+    * a frequency set and takeOmega() hands it over.
     * 
-    * @param parent padre de la clase a crear, puede se vacío.
+    * @param parent padre de la clase a crear, puede ser vacío.
     */
   
     explicit FrequenciesDialog(QWidget *parent = 0);
-    
-  /**
-    * @fn FrequenciesDialog
-    * @brief Constructor de la clase, que además tiene por parámetros el controlador del sistema, necesario para poder interaccionar con la lógica del sistema.
-    * 
-    * @param parent padre de la clase a crear, puede ser vacío.
-    * @param controlador del sistema.
-    */
-  
-    explicit FrequenciesDialog(ProjectController * controlador, QWidget *parent = 0);
+
+    /// The design frequencies the user described, or nullptr when cancelled
+    /// or rejected. Ownership passes to the caller.
+    Omega * takeOmega();
     ~FrequenciesDialog();
 
 
@@ -63,7 +57,7 @@ signals:
     void close_ok ();
 
 private:
-    ProjectController * controlador;
+    Omega * m_omega = nullptr;
     QString filePath;
 
     Ui::FrequenciesDialog *ui;

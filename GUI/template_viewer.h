@@ -15,7 +15,7 @@
 #include <QCheckBox>
 
 #include "src/core/math/sequence_vectors.h"
-#include "src/core/project_controller.h"
+#include "src/core/frequencies/omega.h"
 #include "qcustomplot.h"
 
 #include "cinterval.hpp"
@@ -66,11 +66,28 @@ public:
     *
     * Esta funcion hace de resumen de otras dos funciones set para no tener que llamarlos por separado.
     *
-    * @param templatesButton a representar en la gráfica.
-    * @param contourButton a representar en la gráfica.
+    * The viewer does not reach into the project: it is handed what it draws.
+    *
+    * @param templates a representar en la gráfica.
+    * @param contour a representar en la gráfica.
+    * @param omega the design frequencies the templates belong to.
+    * @param epsilon the tightening of each frequency, one per omega entry.
    */
 
-    void setDatos(ProjectController *controller);
+    void setDatos(QVector <QVector <std::complex<qreal> > *> * templates,
+                  QVector <QVector <std::complex<qreal> > *> * contour,
+                  QVector <qreal> * omega,
+                  QVector <qreal> * epsilon);
+
+   /**
+    * @fn refreshContour
+    * @brief Answer to recomputeRequested: the new contour and the epsilon
+    * that produced it, redrawn without rebuilding the frequency colours.
+   */
+
+    void refreshContour(QVector <QVector <std::complex<qreal> > *> * contour,
+                        QVector <qreal> * omega,
+                        QVector <qreal> * epsilon);
 
 
    /**
@@ -92,6 +109,15 @@ public:
 
     void setContour (QVector<QVector<std::complex<qreal> > *> * contourButton);
 
+
+signals:
+
+   /**
+    * @brief The user asked for a tighter contour. Ownership of @p epsilon
+    * passes to whoever runs the computation.
+   */
+
+    void recomputeRequested(QVector <qreal> * epsilon);
 
 private slots:
     void on_saveImage_clicked();
@@ -133,8 +159,6 @@ private:
 
     bool templatesVisible;
     bool contourVisible;
-
-    ProjectController * controller;
 
     QVBoxLayout * colorsLayout;
 

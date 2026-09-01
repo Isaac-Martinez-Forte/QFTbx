@@ -18,6 +18,10 @@
 #include "loop_shaping_viewer.h"
 #include "plant_dialog.h"
 
+//The window is the only GUI class that talks to the project: the dialogs
+//and viewers are handed what they need and give back what they built.
+#include "src/core/project_controller.h"
+
 
  /**
     * @class MainWindow
@@ -132,8 +136,15 @@ private:
 
     void saveProject ();
 
+    void recomputeContour(QVector<qreal> * epsilon);
+
     void createSession();
     void destroySession();
+
+    /// The design frequency values of the project, or nullptr when they have
+    /// not been entered yet. The dialogs that need them are given them.
+    const QVector<qreal> * frequencyValues() const;
+
     void destroyDialogs();
     void stepBack(bool & paso);
 

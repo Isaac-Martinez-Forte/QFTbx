@@ -32,13 +32,12 @@ void releaseTables(QVector <QVector <QString> * > * valueTable,
 
 } // namespace
 
-ControllerDialog::ControllerDialog(ProjectController * cont, QWidget *parent) :
+ControllerDialog::ControllerDialog(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::ControllerDialog)
 {
     ui->setupUi(this);
 
-    this->controller = cont;
 
     setWindowTitle(tr("Controller structure input"));
 
@@ -65,6 +64,9 @@ ControllerDialog::ControllerDialog(ProjectController * cont, QWidget *parent) :
 ControllerDialog::~ControllerDialog()
 {
     delete ui;
+
+    //Not taken (cancelled, or never asked for): the dialog frees it.
+    delete controllerSystem;
 }
 
 void ControllerDialog::on_polynomialRadio_clicked()
@@ -308,6 +310,11 @@ void ControllerDialog::on_okButton_clicked()
     retv = Parameter(0.0);
 
 
+    //A second accept replaces the answer of the first one; whoever took it
+    //already owns that one.
+    delete controllerSystem;
+    controllerSystem = nullptr;
+
     //The uncertainty only counts if its dialog was ACCEPTED.
     if (uncertaintyEntered && uncertaintyDialog->getTodoCorrecto()){
         //The controller receives COPIES: the uncertainty dialog keeps its
@@ -343,8 +350,6 @@ void ControllerDialog::on_okButton_clicked()
 
 
     }
-
-    controller->setControllerStructure(controllerSystem);
     releaseTables(valueTable, expressionTable, uncertainTable);
 
     todoCorrecto = true;
@@ -376,4 +381,11 @@ std::vector<Parameter> ControllerDialog::buildParameters(QVector <QString> * num
 
 bool ControllerDialog::getTodoCorrecto(){
     return todoCorrecto;
+}
+
+LtiSystem * ControllerDialog::takeControllerStructure(){
+    LtiSystem * built = controllerSystem;
+    controllerSystem = nullptr;
+
+    return built;
 }

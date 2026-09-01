@@ -126,6 +126,33 @@ void MainWindow::destroyDialogs(){
     }
 }
 
+void MainWindow::recomputeContour(QVector<qreal> * epsilon){
+    //The viewer asked for a tighter contour: the computation, and the
+    //reporting of its failure, belong here.
+    QVector <QVector <std::complex<qreal> > *> * contour = nullptr;
+
+    try {
+        contour = controller->recomputeContour(epsilon);
+    } catch (const qftbx::Exception & e) {
+        QMessageBox::critical(this, tr("Template computation"), e.what());
+        return;
+    }
+
+    templateViewer->refreshContour(contour,
+                                   controller->omega()->values(),
+                                   controller->epsilon());
+}
+
+const QVector<qreal> * MainWindow::frequencyValues() const{
+    Omega * omega = controller->omega();
+
+    if (omega == nullptr){
+        return nullptr;
+    }
+
+    return omega->values();
+}
+
 void MainWindow::destroySession(){
     destroyDialogs();
 
@@ -135,12 +162,16 @@ void MainWindow::destroySession(){
 void MainWindow::on_plantButton_clicked()
 {
     if (!plantDone){
-        plantDialog = new PlantDialog(controller, this);
+        plantDialog = new PlantDialog(this);
     }
 
     plantDialog->exec();
 
     if (plantDialog->getTodoCorrecto()){
+        //The dialogs only describe; publishing into the project is the
+        //window's job, so a dialog never needs to know the facade.
+        controller->setPlant(plantDialog->takePlant());
+
         if (frequenciesDone){
             ui->templatesButton->setEnabled(true);
         }
@@ -162,13 +193,16 @@ void MainWindow::on_specificationsButton_clicked()
 {
 
     if (!specificationsDone){
-        specificationsDialog = new SpecificationsDialog(controller, this);
+        specificationsDialog = new SpecificationsDialog(frequencyValues(),
+                                                        controller->specifications(),
+                                                        this);
 
     }
 
     specificationsDialog->exec();
 
     if (specificationsDialog->getTodoCorrecto()){
+        controller->setSpecifications(specificationsDialog->takeSpecifications());
 
         if (templatesDone){
             ui->boundariesButton->setEnabled(true);
@@ -189,12 +223,13 @@ void MainWindow::on_specificationsButton_clicked()
 void MainWindow::on_frequenciesButton_clicked()
 {
     if (!frequenciesDone){
-        frequenciesDialog = new FrequenciesDialog(controller,this);
+        frequenciesDialog = new FrequenciesDialog(this);
     }
 
     frequenciesDialog->exec();
 
     if (frequenciesDialog->getTodoCorrecto()){
+        controller->setOmega(frequenciesDialog->takeOmega());
 
         if (plantDone){
             ui->templatesButton->setEnabled(true);
@@ -258,7 +293,12 @@ void MainWindow::on_templatesButton_clicked()
                 ui->boundariesButton->setEnabled(true);
             }
 
-            templateViewer->setDatos(controller);
+            templateViewer->setDatos(controller->templates(),
+                                     controller->contour(),
+                                     controller->omega()->values(),
+                                     controller->epsilon());
+            connect(templateViewer, &TemplateViewer::recomputeRequested,
+                    this, &MainWindow::recomputeContour, Qt::UniqueConnection);
             templateViewer->plotDiagram(templatesDialog->nicholsSelected());
 
             templateViewer->show();
@@ -364,13 +404,15 @@ void MainWindow::on_controllerButton_clicked()
 {
 
     if (!controllerDone){
-        controllerDialog = new ControllerDialog(controller, this);
+        controllerDialog = new ControllerDialog(this);
     }
 
     controllerDialog->exec();
 
 
     if (controllerDialog->getTodoCorrecto()){
+        controller->setControllerStructure(controllerDialog->takeControllerStructure());
+
         if (boundariesDone){
             ui->loopButton->setEnabled(true);
         }
@@ -519,19 +561,21 @@ void MainWindow::on_actionOpen_triggered()
 
 
         if (plantDone){
-            plantDialog = new PlantDialog(controller, this);
+            plantDialog = new PlantDialog(this);
             progressPosition++;
             ui->progressBar->setValue(progressPosition);
         }
 
         if (specificationsDone){
-            specificationsDialog = new SpecificationsDialog(controller, this);
+            specificationsDialog = new SpecificationsDialog(frequencyValues(),
+                                                            controller->specifications(),
+                                                            this);
             progressPosition++;
             ui->progressBar->setValue(progressPosition);
         }
 
         if (frequenciesDone){
-            frequenciesDialog = new FrequenciesDialog(controller,this);
+            frequenciesDialog = new FrequenciesDialog(this);
             progressPosition++;
             ui->progressBar->setValue(progressPosition);
             ui->specificationsButton->setEnabled(true);
@@ -554,7 +598,7 @@ void MainWindow::on_actionOpen_triggered()
         }
 
         if (controllerDone){
-            controllerDialog = new ControllerDialog(controller, this);
+            controllerDialog = new ControllerDialog(this);
             progressPosition++;
             ui->progressBar->setValue(progressPosition);
             //ui->menuLoopDiagram->setEnabled(true);
@@ -725,7 +769,12 @@ void MainWindow::on_actionTemplates_triggered()
     }
 
     if (controller->templates() != nullptr && controller->contour() != nullptr){
-        templateViewer->setDatos(controller);
+        templateViewer->setDatos(controller->templates(),
+                                 controller->contour(),
+                                 controller->omega()->values(),
+                                 controller->epsilon());
+        connect(templateViewer, &TemplateViewer::recomputeRequested,
+                this, &MainWindow::recomputeContour, Qt::UniqueConnection);
         templateViewer->plotDiagram(true);
 
         templateViewer->show();

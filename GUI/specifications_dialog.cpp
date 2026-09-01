@@ -18,25 +18,27 @@
 using namespace tools;
 using namespace mup;
 
-SpecificationsDialog::SpecificationsDialog(ProjectController *controller, QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::SpecificationsDialog)
+SpecificationsDialog::SpecificationsDialog(const QVector<qreal> * frequencies,
+                                           const QVector<qftbx::SpecificationRecord *> * loaded,
+                                           QWidget *parent) :
+    QDialog(parent)
 {
-    ui->setupUi(this);
-
-    this->controller = controller;
-
     //The step order of the main window guarantees a frequency set here, but
     //an empty one used to reach first()/last() below and take the whole
     //application down instead of saying anything.
-    Omega * omega = controller->omega();
-
-    if (omega == nullptr || omega->values() == nullptr || omega->values()->isEmpty()) {
+    //
+    //This runs BEFORE the widget tree is built on purpose: a constructor
+    //that throws gets no destructor, so anything allocated before the throw
+    //would be lost.
+    if (frequencies == nullptr || frequencies->isEmpty()) {
         throw qftbx::InvalidInput("The design frequencies must be entered "
                                   "before the specifications.");
     }
 
-    this->frequencies = omega->values();
+    this->frequencies = frequencies;
+
+    ui = new Ui::SpecificationsDialog();
+    ui->setupUi(this);
 
     setWindowTitle(tr("Specifications input"));
 
@@ -103,7 +105,6 @@ SpecificationsDialog::SpecificationsDialog(ProjectController *controller, QWidge
     //If the project carries specifications (a loaded file), the dialog
     //starts from THEM: it used to start from 7 empty records and the first
     //accept silently wiped whatever was loaded.
-    QVector <qftbx::SpecificationRecord *> * loaded = controller->specifications();
     if (loaded != nullptr && loaded->size() == 7){
         delete tracking;
         delete trackingUpper;
@@ -140,6 +141,10 @@ SpecificationsDialog::~SpecificationsDialog()
         delete record->system;
         delete record;
     }
+
+    //Published but not taken (cancelled afterwards, or never asked for):
+    //the clones are the dialog's until somebody claims them.
+    discardPublished();
 
     delete ui;
 }
@@ -896,9 +901,9 @@ void SpecificationsDialog::on_cancelButton_clicked()
 
 void SpecificationsDialog::on_okButton_clicked()
 {
-    //The previous vector already belongs to the DAO: only the reference is
-    //dropped here. A QVector used to leak on every accept.
-    published = nullptr;
+    //A rejected accept must not leave the previous answer behind, and the
+    //vector used to leak on every accept.
+    discardPublished();
 
     bool correcto = true;
 
@@ -932,8 +937,6 @@ void SpecificationsDialog::on_okButton_clicked()
     published->append(inputDisturbance->clone());
     published->append(controlEffort->clone());
 
-    controller->setSpecifications(published);
-
     todoCorrecto = true;
 
     emit (close());
@@ -941,6 +944,27 @@ void SpecificationsDialog::on_okButton_clicked()
 
 bool SpecificationsDialog::getTodoCorrecto(){
     return todoCorrecto;
+}
+
+QVector<qftbx::SpecificationRecord *> * SpecificationsDialog::takeSpecifications(){
+    QVector<qftbx::SpecificationRecord *> * built = published;
+    published = nullptr;
+
+    return built;
+}
+
+void SpecificationsDialog::discardPublished(){
+    if (published == nullptr){
+        return;
+    }
+
+    for (qftbx::SpecificationRecord * record : *published) {
+        delete record->system;
+        delete record;
+    }
+
+    delete published;
+    published = nullptr;
 }
 
 

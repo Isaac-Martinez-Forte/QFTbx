@@ -8,7 +8,7 @@
 #include <QPixmap>
 
 #include "src/core/math/sequence_vectors.h"
-#include "src/core/project_controller.h"
+#include "src/core/specifications/specification_record.h"
 #include "mpParser.h"
 #include "src/core/frequencies/omega.h"
 
@@ -23,11 +23,30 @@ class SpecificationsDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit SpecificationsDialog(ProjectController * controller, QWidget *parent = 0);
+    /**
+     * @brief Constructor. The dialog knows nothing of the project: it is
+     * given what it needs to read and takeSpecifications() hands over what
+     * the user described.
+     *
+     * @param frequencies the design frequencies, whose ends are the default
+     * band of every specification. Must not be null or empty.
+     * @param loaded the 7 records already in the project, if any, so that
+     * reopening the dialog starts from them instead of from blanks.
+     */
+    explicit SpecificationsDialog(const QVector<qreal> * frequencies,
+                                  const QVector<qftbx::SpecificationRecord *> * loaded = nullptr,
+                                  QWidget *parent = 0);
     ~SpecificationsDialog();
 
 
     bool getTodoCorrecto ();
+
+    /**
+     * @brief The 7 specification records the user described, or nullptr when
+     * the dialog was cancelled or its data rejected. Ownership of the vector
+     * and of every record in it passes to the caller.
+     */
+    QVector<qftbx::SpecificationRecord *> * takeSpecifications();
 
 private slots:
     void on_polynomialRadio_clicked();
@@ -75,7 +94,7 @@ private slots:
     void on_upperFreeFormRadio_clicked();
 
 private:
-    Ui::SpecificationsDialog *ui;
+    Ui::SpecificationsDialog *ui = nullptr;
 
     qftbx::SpecificationRecord *tracking;
     qftbx::SpecificationRecord *trackingUpper;
@@ -94,6 +113,7 @@ private:
     void setDatos (qftbx::SpecificationRecord * record_in);
     void setDatos (qftbx::SpecificationRecord * record_in, qftbx::SpecificationRecord * upperRecord);
     void saveActiveTab();
+    void discardPublished();
 
     std::optional<std::vector<Parameter>> buildParameters(QString linea);
     std::optional<Parameter> buildScalar(QString linea, bool isK);
@@ -101,8 +121,6 @@ private:
     static QString coefficientsText(std::vector<Parameter> & parametros);
     static QString numeratorText(LtiSystem * sistema);
     static QString denominatorText(LtiSystem * sistema);
-
-    ProjectController * controller;
 
     //images
     QPixmap trackingImagePixmap;
@@ -112,7 +130,7 @@ private:
     QPixmap sensorNoisePixmap;
     QPixmap stabilityPixmap;
 
-    QVector <qreal> * frequencies;
+    const QVector <qreal> * frequencies;
 
     bool todoCorrecto;
 };

@@ -18,7 +18,6 @@
 
 #include "GUI/parlineedit.h"
 #include "src/core/system/lti_system.h"
-#include "src/core/project_controller.h"
 #include "src/core/system/parameter.h"
 #include "GUI/parlineedit.h"
 #include "src/core/math/sequence_vectors.h"

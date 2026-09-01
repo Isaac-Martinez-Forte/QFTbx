@@ -31,14 +31,12 @@ void releaseTables(QVector <QVector <QString> * > * valueTable,
 
 } // namespace
 
-PlantDialog::PlantDialog(ProjectController * controller, QWidget *parent) :
+PlantDialog::PlantDialog(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::PlantDialog)
 {
     ui->setupUi(this);
     setWindowTitle(tr("Plant input"));
-
-    this->controller = controller;
     
     //Hide the buttons that do not apply yet.
     ui->zerosPolesRadio->setVisible(false);
@@ -86,6 +84,10 @@ PlantDialog::~PlantDialog()
 {
     delete ui;
     delete uncertaintyDialog;
+
+    //Not taken (cancelled, or the caller never asked): the dialog built it,
+    //the dialog frees it.
+    delete plant;
 }
 
 void PlantDialog::on_zerosPolesRadio_toggled(bool checked)
@@ -379,6 +381,11 @@ void PlantDialog::on_okButton_clicked()
         return;
     }
 
+    //A second accept replaces the answer of the first one; whoever took it
+    //already owns that one.
+    delete plant;
+    plant = nullptr;
+
     //The uncertainty only counts if its dialog was ACCEPTED (opening and
     //cancelling used to leave the flag set and a half-built state in use).
     if (uncertaintyEntered && uncertaintyDialog->getTodoCorrecto()){
@@ -416,7 +423,6 @@ void PlantDialog::on_okButton_clicked()
 
     }
 
-    controller->setPlant(plant);
     releaseTables(valueTable, expressionTable, uncertainTable);
 
     todoCorrecto = true;
@@ -488,3 +494,9 @@ bool PlantDialog::getTodoCorrecto(){
     return todoCorrecto;
 }
 
+LtiSystem * PlantDialog::takePlant(){
+    LtiSystem * built = plant;
+    plant = nullptr;
+
+    return built;
+}

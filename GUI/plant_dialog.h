@@ -16,7 +16,6 @@
 #include "src/core/system/polynomial_form.h"
 #include "src/core/system/free_form.h"
 #include "GUI/uncertainty_dialog.h"
-#include "src/core/project_controller.h"
 #include "src/core/math/sequence_vectors.h"
 #include "mpParser.h"
 
@@ -30,10 +29,21 @@ class PlantDialog : public QDialog
 
 public:
 
-    explicit PlantDialog(ProjectController *controller, QWidget *parent = 0);
+    explicit PlantDialog(QWidget *parent = 0);
     ~PlantDialog();
 
     bool getTodoCorrecto();
+
+    /**
+     * @brief The plant the user described, or nullptr when the dialog was
+     * cancelled or its data rejected. Ownership passes to the caller.
+     *
+     * The dialog does not know the project: it builds a plant and hands it
+     * over, and the main window is what publishes it. (It used to hold the
+     * facade and write into it, which gave every dialog access to the whole
+     * application.)
+     */
+    LtiSystem * takePlant();
     
     
     
@@ -59,7 +69,6 @@ private slots:
 private:
     Ui::PlantDialog *ui;
     
-    ProjectController * controller = NULL;
 
     QRadioButton * gFT= NULL;
     QString file;

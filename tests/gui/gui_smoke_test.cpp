@@ -5,12 +5,16 @@
 // type changes (parameters by value, ranges as their own type, the
 // optional-returning builders). These tests drive each dialog the way a
 // user does - fill the fields by object name, press OK - and then check
-// what landed in the project through the facade.
+// what the dialog handed back. The dialogs do not know the project: they
+// build objects and the main window publishes them, so the assertions read
+// the dialog's own answer.
 //
 // They are smoke tests: they answer "does the data path still work end to
 // end", not "is every validation rule right".
 
 #include <gtest/gtest.h>
+
+#include <memory>
 
 #include <QCheckBox>
 #include <QLineEdit>
@@ -102,8 +106,7 @@ void press(QWidget * dialog, const char * name)
 
 TEST_F(GuiSmoke, PlantDialogBuildsAZeroPoleGainPlant)
 {
-    ProjectController controller;
-    PlantDialog dialog(&controller);
+    PlantDialog dialog;
 
     type(&dialog, "nameEdit", QStringLiteral("smoke"));
     check(&dialog, "zpkRadio");
@@ -116,7 +119,8 @@ TEST_F(GuiSmoke, PlantDialogBuildsAZeroPoleGainPlant)
 
     ASSERT_TRUE(dialog.getTodoCorrecto()) << "the dialog rejected valid data";
 
-    LtiSystem * plant = controller.plant();
+    //Ownership comes with it: the window would hand it to the project.
+    std::unique_ptr<LtiSystem> plant(dialog.takePlant());
     ASSERT_NE(plant, nullptr);
     EXPECT_EQ(plant->type(), LtiSystem::SystemType::ZeroPoleGain);
     EXPECT_EQ(plant->name(), QStringLiteral("smoke"));
@@ -135,8 +139,7 @@ TEST_F(GuiSmoke, PlantDialogRejectsAnInvalidExpression)
 {
     //A malformed coefficient must be reported, not crash the application
     //(muParserX throws and the dialog used to let it through).
-    ProjectController controller;
-    PlantDialog dialog(&controller);
+    PlantDialog dialog;
 
     type(&dialog, "nameEdit", QStringLiteral("broken"));
     check(&dialog, "zpkRadio");
@@ -148,14 +151,13 @@ TEST_F(GuiSmoke, PlantDialogRejectsAnInvalidExpression)
     press(&dialog, "okButton");
 
     EXPECT_FALSE(dialog.getTodoCorrecto());
-    EXPECT_EQ(controller.plant(), nullptr);
+    EXPECT_EQ(dialog.takePlant(), nullptr);
     EXPECT_FALSE(m_reported.isEmpty()) << "the rejection must be reported";
 }
 
 TEST_F(GuiSmoke, FrequenciesDialogBuildsTheDesignFrequencies)
 {
-    ProjectController controller;
-    FrequenciesDialog dialog(&controller);
+    FrequenciesDialog dialog;
 
     //modeStack is the generation-mode combo (manual is entry 0); the pages
     //of values live in the selecVector stack, which follows it.
@@ -168,7 +170,7 @@ TEST_F(GuiSmoke, FrequenciesDialogBuildsTheDesignFrequencies)
 
     ASSERT_TRUE(dialog.getTodoCorrecto()) << "the dialog rejected valid data";
 
-    Omega * omega = controller.omega();
+    std::unique_ptr<Omega> omega(dialog.takeOmega());
     ASSERT_NE(omega, nullptr);
     ASSERT_NE(omega->values(), nullptr);
     const QVector<qreal> expected{0.1, 1.0, 10.0, 100.0};
@@ -178,8 +180,7 @@ TEST_F(GuiSmoke, FrequenciesDialogBuildsTheDesignFrequencies)
 
 TEST_F(GuiSmoke, ControllerDialogBuildsTheControllerStructure)
 {
-    ProjectController controller;
-    ControllerDialog dialog(&controller);
+    ControllerDialog dialog;
 
     check(&dialog, "zpkRadio");
     type(&dialog, "numeratorEdit", QStringLiteral("1"));
@@ -192,7 +193,7 @@ TEST_F(GuiSmoke, ControllerDialogBuildsTheControllerStructure)
 
     ASSERT_TRUE(dialog.getTodoCorrecto()) << "the dialog rejected valid data";
 
-    LtiSystem * structure = controller.controllerStructure();
+    std::unique_ptr<LtiSystem> structure(dialog.takeControllerStructure());
     ASSERT_NE(structure, nullptr);
     ASSERT_EQ(structure->numerator().size(), 1u);
     EXPECT_DOUBLE_EQ(structure->numerator()[0].nominal(), 1.0);
@@ -208,20 +209,19 @@ TEST_F(GuiSmoke, SpecificationsDialogNeedsTheFrequenciesFirst)
     //The main window gates the step order, but the dialog used to reach
     //first()/last() on a null frequency vector and take the application
     //down; it says so now.
-    ProjectController controller;
+    EXPECT_THROW(SpecificationsDialog dialog(nullptr), qftbx::InvalidInput);
 
-    EXPECT_THROW(SpecificationsDialog dialog(&controller), qftbx::InvalidInput);
+    const QVector<qreal> empty;
+    EXPECT_THROW(SpecificationsDialog dialog(&empty), qftbx::InvalidInput);
 }
 
 TEST_F(GuiSmoke, SpecificationsDialogStoresAConstantStabilitySpecification)
 {
-    ProjectController controller;
+    //Real step order: the frequencies come first, and the window hands them
+    //to the dialog.
+    const QVector<qreal> frequencies{0.1, 1.0, 10.0, 100.0};
 
-    //Real step order: the frequencies come first.
-    auto * frequencies = new QVector<qreal>{0.1, 1.0, 10.0, 100.0};
-    controller.setOmega(new Omega(0.1, 100.0, 4, frequencies, Omega::Manual));
-
-    SpecificationsDialog dialog(&controller);
+    SpecificationsDialog dialog(&frequencies);
 
     //Stability with a constant magnitude: the simplest complete slot.
     check(&dialog, "stabilityRadio");
@@ -231,7 +231,7 @@ TEST_F(GuiSmoke, SpecificationsDialogStoresAConstantStabilitySpecification)
 
     press(&dialog, "okButton");
 
-    QVector<qftbx::SpecificationRecord *> * records = controller.specifications();
+    QVector<qftbx::SpecificationRecord *> * records = dialog.takeSpecifications();
 
     if (records == nullptr) {
         //The dialog declined the combination; the smoke value here is that
@@ -248,6 +248,13 @@ TEST_F(GuiSmoke, SpecificationsDialogStoresAConstantStabilitySpecification)
                                               "must carry a positive magnitude";
         }
     }
+
+    //takeSpecifications() transferred ownership; here nobody else claims it.
+    for (qftbx::SpecificationRecord * record : *records) {
+        delete record->system;
+        delete record;
+    }
+    delete records;
 }
 
 TEST_F(GuiSmoke, TheMainWindowBuildsItsWholeWidgetTree)
