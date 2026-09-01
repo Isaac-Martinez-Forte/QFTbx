@@ -4,12 +4,7 @@ ProjectController::ProjectController()
 {
 }
 
-ProjectController::~ProjectController(){
-
-    delete m_boundaryEngine;
-    delete m_templateEngine;
-    delete m_loopShapingEngine;
-}
+ProjectController::~ProjectController() = default;
 
 LtiSystem *ProjectController::plant(){
     return data.plant();
@@ -88,7 +83,7 @@ void ProjectController::setTemplates(qftbx::CloudSet clouds, qftbx::CloudSet con
                                      bool hasContour){
 
     if (m_templateEngine == nullptr){
-        m_templateEngine = new TemplateEngine();
+        m_templateEngine = std::make_unique<TemplateEngine>();
     }
 
     //Feed the engine too: without this, recomputing the contour after
@@ -141,7 +136,7 @@ bool ProjectController::computeTemplates(QVector <qreal> epsilon, qftbx::Paramet
     }
 
     if (m_templateEngine == nullptr){
-        m_templateEngine = new TemplateEngine();
+        m_templateEngine = std::make_unique<TemplateEngine>();
     }
 
     m_templateEngine->setEpsilon(epsilon);
@@ -193,7 +188,7 @@ bool ProjectController::computeBoundaries(QPointF phaseRange, qint32 phaseCount,
     }
 
     if (m_boundaryEngine == nullptr){
-        m_boundaryEngine = new BoundaryEngine();
+        m_boundaryEngine = std::make_unique<BoundaryEngine>();
     }
 
     m_boundaryEngine->compute(data.frequencies(), data.plant(),
@@ -255,7 +250,7 @@ bool ProjectController::computeLoopShaping(qreal epsilon, tools::LoopShapingAlgo
     }
 
     if (m_loopShapingEngine == nullptr){
-        m_loopShapingEngine = new LoopShaping();
+        m_loopShapingEngine = std::make_unique<LoopShaping>();
     }
 
     const bool succeeded = m_loopShapingEngine->run(data.plant(), data.controller(), data.frequencies(),

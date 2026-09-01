@@ -166,9 +166,11 @@ private:
     qftbx::ProjectData data;
 
     //The three computation engines, created on first use.
-    BoundaryEngine * m_boundaryEngine = nullptr;
-    TemplateEngine * m_templateEngine = nullptr;
-    LoopShaping * m_loopShapingEngine = nullptr;
+    //Built on first use and kept: the template engine holds the clouds a
+    //recontour works from.
+    std::unique_ptr<BoundaryEngine> m_boundaryEngine;
+    std::unique_ptr<TemplateEngine> m_templateEngine;
+    std::unique_ptr<LoopShaping> m_loopShapingEngine;
 };
 
 #endif // CONTROLADOR_H
