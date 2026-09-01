@@ -71,13 +71,13 @@ TEST_P(LoopShapingGolden, Planta1ResultIsPinned)
     LtiSystem* result = controller.getLoopShaping()->getControlador();
     ASSERT_NE(result, nullptr);
 
-    EXPECT_NEAR(result->gain()->range().x(), golden.gain, golden.tolerance) << golden.name;
-    EXPECT_NEAR(result->gain()->range().y(), golden.gain, golden.tolerance) << golden.name;
+    EXPECT_NEAR(result->gain().range().x(), golden.gain, golden.tolerance) << golden.name;
+    EXPECT_NEAR(result->gain().range().y(), golden.gain, golden.tolerance) << golden.name;
 
-    ASSERT_EQ(result->numerator()->size(), 1);
-    ASSERT_EQ(result->denominator()->size(), 1);
-    EXPECT_NEAR(result->numerator()->at(0)->range().x(), 42.0, 1e-9) << golden.name;
-    EXPECT_NEAR(result->denominator()->at(0)->range().x(), 165.0, 1e-9) << golden.name;
+    ASSERT_EQ(result->numerator().size(), 1);
+    ASSERT_EQ(result->denominator().size(), 1);
+    EXPECT_NEAR(result->numerator()[0].range().x(), 42.0, 1e-9) << golden.name;
+    EXPECT_NEAR(result->denominator()[0].range().x(), 165.0, 1e-9) << golden.name;
 }
 
 INSTANTIATE_TEST_SUITE_P(

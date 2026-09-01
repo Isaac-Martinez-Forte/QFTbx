@@ -9,6 +9,8 @@
 
 #include <cmath>
 #include <complex>
+#include <optional>
+#include <vector>
 
 #include <QPointF>
 #include <QVector>
@@ -40,25 +42,26 @@ NicholsPoint zpkAt(qreal k, qreal z, qreal p, qreal w, Complex p0)
     return {20.0 * std::log10(std::abs(value)), phase};
 }
 
-//A null zero/pole stands for an empty vector (a pure-gain controller).
-LtiSystem* makeZpk(Parameter* k, Parameter* z, Parameter* p)
+//An empty optional zero/pole stands for an empty vector (a pure-gain
+//controller).
+LtiSystem* makeZpk(Parameter k, std::optional<Parameter> z, std::optional<Parameter> p)
 {
-    auto* nume = new QVector<Parameter*>();
-    auto* deno = new QVector<Parameter*>();
-    if (z != nullptr) {
-        nume->append(z);
+    std::vector<Parameter> nume;
+    std::vector<Parameter> deno;
+    if (z.has_value()) {
+        nume.push_back(*z);
     }
-    if (p != nullptr) {
-        deno->append(p);
+    if (p.has_value()) {
+        deno.push_back(*p);
     }
-    return new ZeroPoleGain(QStringLiteral("test"), nume, deno, k,
-                            new Parameter(qreal(0)));
+    return new ZeroPoleGain(QStringLiteral("test"), std::move(nume), std::move(deno),
+                            std::move(k), Parameter(qreal(0)));
 }
 
 TEST(NaturalIntervalExtension, CertainControllerProjectsToAPoint)
 {
-    LtiSystem* controlador = makeZpk(new Parameter(2.0), new Parameter(3.0),
-                                     new Parameter(5.0));
+    LtiSystem* controlador = makeZpk(Parameter(2.0), Parameter(3.0),
+                                     Parameter(5.0));
 
     NaturalIntervalExtension extension;
     const cxsc::complex nominal(1.0, 0.0);
@@ -83,8 +86,8 @@ TEST(NaturalIntervalExtension, UncertainGainBoxContainsTheTrueExtremes)
     //arc [-273, -74] here (a containment violation, the historical bug
     //this test used to pin): a set crossing the cut now degrades to the
     //whole branch, conservative but correct.
-    LtiSystem* controlador = makeZpk(new Parameter("k", QPointF(1.0, 10.0), 1.0),
-                                     new Parameter(3.0), new Parameter(5.0));
+    LtiSystem* controlador = makeZpk(Parameter("k", QPointF(1.0, 10.0), 1.0),
+                                     Parameter(3.0), Parameter(5.0));
 
     NaturalIntervalExtension extension;
     const cxsc::cinterval box = extension.nicholsBox(controlador, 1.0,
@@ -114,7 +117,7 @@ TEST(NaturalIntervalExtension, PureGainControllerProjectsExactly)
     //A controller with no zeros and no poles (the thesis benchmarks with
     //n = 1): both products are the neutral 1. The historical code left
     //them UNINITIALIZED and read garbage.
-    LtiSystem* controlador = makeZpk(new Parameter(2.0), nullptr, nullptr);
+    LtiSystem* controlador = makeZpk(Parameter(2.0), std::nullopt, std::nullopt);
 
     NaturalIntervalExtension extension;
     const cxsc::cinterval box = extension.nicholsBox(controlador, 1.0,
@@ -134,9 +137,9 @@ TEST(NaturalIntervalExtension, HugeBoxesStayFiniteInDecibels)
     //The widest search box of the thesis benchmarks: the interval products
     //must never reach log10(0) or log10(inf) (fi_lib aborts the process on
     //both; observed live through the NK crash).
-    LtiSystem* controlador = makeZpk(new Parameter("kc", QPointF(1e-9, 1e8), 1.0),
-                                     new Parameter("z1", QPointF(1e-9, 1e4), 1.0),
-                                     new Parameter("p1", QPointF(1e-9, 1e4), 1.0));
+    LtiSystem* controlador = makeZpk(Parameter("kc", QPointF(1e-9, 1e8), 1.0),
+                                     Parameter("z1", QPointF(1e-9, 1e4), 1.0),
+                                     Parameter("p1", QPointF(1e-9, 1e4), 1.0));
 
     NaturalIntervalExtension extension;
     const cxsc::cinterval box = extension.nicholsBox(controlador, 100.0,
@@ -154,9 +157,9 @@ TEST(NaturalIntervalExtension, SampledInstancesStayInsideTheBox)
 {
     //The fundamental theorem of interval analysis: every instance of the
     //box maps inside the projection.
-    LtiSystem* controlador = makeZpk(new Parameter("k", QPointF(0.5, 4.0), 1.0),
-                                     new Parameter("z", QPointF(1.0, 6.0), 2.0),
-                                     new Parameter("p", QPointF(2.0, 9.0), 3.0));
+    LtiSystem* controlador = makeZpk(Parameter("k", QPointF(0.5, 4.0), 1.0),
+                                     Parameter("z", QPointF(1.0, 6.0), 2.0),
+                                     Parameter("p", QPointF(2.0, 9.0), 3.0));
 
     NaturalIntervalExtension extension;
     const qreal w = 2.0;

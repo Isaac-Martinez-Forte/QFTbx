@@ -337,14 +337,14 @@ void PlantDialog::on_okButton_clicked()
         return;
     }
 
-    Parameter * kv = nullptr;
-    Parameter * retv = nullptr;
+    Parameter kv;
+    Parameter retv;
 
     //The expressions come from the user: a muParserX syntax error used to
     //throw and bring the application down.
     try {
         if (valueTable->at(2)->size() == 0){
-            kv = new Parameter (1);
+            kv = Parameter(1);
         }else{
 
             QPointF range_point = uncertaintyDialog->gain();
@@ -352,14 +352,14 @@ void PlantDialog::on_okButton_clicked()
             qreal d = p.Eval().GetFloat();
 
             if (d == range_point.x() && d == range_point.y()){
-                kv = new Parameter (d);
+                kv = Parameter(d);
             }else {
-                kv = new Parameter ("kv", range_point, d, "kv");
+                kv = Parameter("kv", range_point, d, "kv");
             }
         }
 
         if (valueTable->at(3)->size() == 0){
-            retv = new Parameter (qreal(0));
+            retv = Parameter(qreal(0));
         }else{
 
             QPointF range_point = uncertaintyDialog->delay();
@@ -367,13 +367,12 @@ void PlantDialog::on_okButton_clicked()
             qreal d = p.Eval().GetFloat();
 
             if (d == range_point.x() && d == range_point.y()){
-                retv = new Parameter (d);
+                retv = Parameter(d);
             }else {
-                retv = new Parameter ("ret", range_point, d, "ret");
+                retv = Parameter("ret", range_point, d, "ret");
             }
         }
     } catch (mup::ParserError &) {
-        delete kv;
         releaseTables(valueTable, expressionTable, uncertainTable);
         errorMessage(tr("There is an error in the plant data"), tr("Plant input"));
         return;
@@ -382,10 +381,10 @@ void PlantDialog::on_okButton_clicked()
     //The uncertainty only counts if its dialog was ACCEPTED (opening and
     //cancelling used to leave the flag set and a half-built state in use).
     if (uncertaintyEntered && uncertaintyDialog->getTodoCorrecto()){
-        //The plant takes ownership of its parameters: it receives copies
-        //and the uncertainty dialog keeps its originals for editing.
-        QVector <Parameter*> * nume = Parameter::cloneVector(uncertaintyDialog->numerator());
-        QVector <Parameter*> * deno = Parameter::cloneVector(uncertaintyDialog->denominator());
+        //The plant receives COPIES: the uncertainty dialog keeps its own
+        //parameters for further editing.
+        std::vector<Parameter> nume = uncertaintyDialog->numerator();
+        std::vector<Parameter> deno = uncertaintyDialog->denominator();
 
         if (ui->zpkRadio->isChecked()){
             plant = new ZeroPoleGain(ui->nameEdit->text(),nume, deno,kv,retv);
@@ -424,22 +423,23 @@ void PlantDialog::on_okButton_clicked()
     this->close();
 }
 
-QVector <Parameter * > * PlantDialog::buildParameters(QVector <QString> * numeros){
-    QVector <Parameter *> * var = new QVector <Parameter *> ();
-    var->reserve(numeros->size());
+std::vector<Parameter> PlantDialog::buildParameters(QVector <QString> * numeros){
+    std::vector<Parameter> var;
 
     if (numeros->isEmpty()){
         return var;
     }
 
+    var.reserve(numeros->size());
+
     foreach (const QString &string, *numeros) {
         p.SetExpr(string.toStdString());
         try {
-            var->append(new Parameter(p.Eval().GetFloat()));
+            var.push_back(Parameter(p.Eval().GetFloat()));
         } catch (mup::ParserError &) {
             //Invalid coefficient: 0 is used and readTables already warned;
             //the exception used to bring the application down.
-            var->append(new Parameter(qreal(0)));
+            var.push_back(Parameter(qreal(0)));
         }
     }
 

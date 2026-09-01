@@ -1,4 +1,6 @@
 #include "uncertainty_dialog.h"
+
+#include <optional>
 #include "ui_uncertainty_dialog.h"
 
 #include "GUI/error_message.h"
@@ -40,10 +42,6 @@ UncertaintyDialog::~UncertaintyDialog(){
             delete par;
         }
         delete denominatorRows;
-        qDeleteAll(*numeratorParameters);
-        delete numeratorParameters;
-        qDeleteAll(*denominatorParameters);
-        delete denominatorParameters;
         delete rowWidgets;
     }
 
@@ -119,10 +117,6 @@ void UncertaintyDialog::buildRows(){
             delete par;
         }
         delete denominatorRows;
-        qDeleteAll(*numeratorParameters);
-        delete numeratorParameters;
-        qDeleteAll(*denominatorParameters);
-        delete denominatorParameters;
         for (qint32 i = 0; i < rowWidgets->size(); i++) {
             delete rowWidgets->at(i);
         }
@@ -137,10 +131,10 @@ void UncertaintyDialog::buildRows(){
 
     rowWidgets = new QVector <QWidget *> ();
 
-    this->numeratorParameters = new QVector <Parameter*> ();
-    this->numeratorParameters->reserve(numeratorParameters->size());
-    this->denominatorParameters = new QVector <Parameter*> ();
-    this->denominatorParameters->reserve(denominatorParameters->size());
+    this->numeratorParameters.clear();
+    this->numeratorParameters.reserve(numeratorParameters.size());
+    this->denominatorParameters.clear();
+    this->denominatorParameters.reserve(denominatorParameters.size());
 
     rowsBuilt = true;
 
@@ -265,11 +259,11 @@ void UncertaintyDialog::on_denominatorRadio_clicked()
     ui->denominatorBox->setVisible(true);
 }
 
-QVector <Parameter*> * UncertaintyDialog::numerator(){
+std::vector<Parameter> & UncertaintyDialog::numerator(){
     return numeratorParameters;
 }
 
-QVector<Parameter*> *UncertaintyDialog::denominator(){
+std::vector<Parameter> & UncertaintyDialog::denominator(){
     return denominatorParameters;
 }
 
@@ -328,10 +322,8 @@ bool UncertaintyDialog::readRanges(){
 
     //Idempotent retry: after a partial error, the previous run left
     //parameters inserted and the next accept DUPLICATED them.
-    qDeleteAll(*numeratorParameters);
-    numeratorParameters->clear();
-    qDeleteAll(*denominatorParameters);
-    denominatorParameters->clear();
+    numeratorParameters.clear();
+    denominatorParameters.clear();
 
     QLineEdit * startEdit;
     QLineEdit * endEdit;
@@ -347,7 +339,9 @@ bool UncertaintyDialog::readRanges(){
     QVector <QString> * seenNames = new QVector <QString> ();
 
     for (qint32 i = 0; i < numeratorTokens->size(); i++){
-        Parameter * parameter = NULL;
+        //Optional: an invalid row leaves it empty (it used to be a null
+        //pointer used as the validity sentinel).
+        std::optional<Parameter> parameter;
         valid = true;
         if(uncertainTable->at(0)->at(i)){
             if (!seenNames->contains(numeratorTokens->at(i))){
@@ -384,7 +378,7 @@ bool UncertaintyDialog::readRanges(){
 
                     if (valid && (startValue <= nominalValue) && (nominalValue <= endValue)){
                         QPointF rowsBuilt (startValue, endValue);
-                        parameter = new Parameter (numeratorTokens->at(i), rowsBuilt, nominalValue, expressionTable->at(0)->at(i));
+                        parameter = Parameter(numeratorTokens->at(i), rowsBuilt, nominalValue, expressionTable->at(0)->at(i));
 
                         startEdit->setStyleSheet("background : white");
                         endEdit->setStyleSheet("background : white");
@@ -401,20 +395,20 @@ bool UncertaintyDialog::readRanges(){
                     }
                 }
             } else{
-                for (qint32 x = 0; x < numeratorParameters->size(); x++){
-                    if (numeratorParameters->at(x)->name() == numeratorTokens->at(i)){
-                        Parameter * v = numeratorParameters->at(x);
-                        parameter = new Parameter(v->name(),v->rawRange(),v->rawNominal(),v->expression());
+                for (qint32 x = 0; x < numeratorParameters.size(); x++){
+                    if (numeratorParameters[x].name() == numeratorTokens->at(i)){
+                        Parameter & v = numeratorParameters[x];
+                        parameter = Parameter(v.name(), v.rawRange(), v.rawNominal(), v.expression());
                         break;
                     }
                 }
             }
         }else {
-            parameter = new Parameter (numeratorTokens->at(i).toDouble());
+            parameter = Parameter(numeratorTokens->at(i).toDouble());
         }
 
-        if (valid && parameter != NULL){
-            numeratorParameters->insert(i,parameter);
+        if (valid && parameter.has_value()){
+            numeratorParameters.insert(numeratorParameters.begin() + i, *parameter);
             seenNames->append(numeratorTokens->at(i));
         }else{
             allValid = false;
@@ -430,7 +424,9 @@ bool UncertaintyDialog::readRanges(){
     allValid = true;
 
     for (qint32 i = 0; i < denominatorTokens->size(); i++){
-        Parameter * parameter = NULL;
+        //Optional: an invalid row leaves it empty (it used to be a null
+        //pointer used as the validity sentinel).
+        std::optional<Parameter> parameter;
         if(uncertainTable->at(1)->at(i)){
             if (!seenNames->contains(denominatorTokens->at(i))){
 
@@ -464,7 +460,7 @@ bool UncertaintyDialog::readRanges(){
                     if (valid){
                         if ((startValue <= nominalValue) && (nominalValue <= endValue)){
                             QPointF rowsBuilt (startValue, endValue);
-                            parameter = new Parameter (denominatorTokens->at(i), rowsBuilt, nominalValue, expressionTable->at(1)->at(i));
+                            parameter = Parameter(denominatorTokens->at(i), rowsBuilt, nominalValue, expressionTable->at(1)->at(i));
 
                             startEdit->setStyleSheet("background : white");
                             endEdit->setStyleSheet("background : white");
@@ -482,30 +478,30 @@ bool UncertaintyDialog::readRanges(){
                 }
             } else{
                 bool elegido = false;
-                for (qint32 x = 0; x < numeratorParameters->size(); x++){
-                    if (numeratorParameters->at(x)->name() == denominatorTokens->at(i)){
-                        Parameter * v = numeratorParameters->at(x);
-                        parameter = new Parameter(v->name(),v->rawRange(),v->rawNominal(),v->expression());
+                for (qint32 x = 0; x < numeratorParameters.size(); x++){
+                    if (numeratorParameters[x].name() == denominatorTokens->at(i)){
+                        Parameter & v = numeratorParameters[x];
+                        parameter = Parameter(v.name(), v.rawRange(), v.rawNominal(), v.expression());
                         break;
                     }
                 }
 
                 if (!elegido){
-                    for (qint32 x = 0; x < denominatorParameters->size(); x++){
-                        if (denominatorParameters->at(x)->name() == denominatorTokens->at(i)){
-                            Parameter * v = denominatorParameters->at(x);
-                            parameter = new Parameter(v->name(),v->rawRange(),v->rawNominal(),v->expression());
+                    for (qint32 x = 0; x < denominatorParameters.size(); x++){
+                        if (denominatorParameters[x].name() == denominatorTokens->at(i)){
+                            Parameter & v = denominatorParameters[x];
+                            parameter = Parameter(v.name(), v.rawRange(), v.rawNominal(), v.expression());
                             break;
                         }
                     }
                 }
             }
         }else {
-            parameter = new Parameter (denominatorTokens->at(i).toDouble());
+            parameter = Parameter(denominatorTokens->at(i).toDouble());
         }
 
-        if (valid && parameter != NULL){
-            denominatorParameters->insert(i,parameter);
+        if (valid && parameter.has_value()){
+            denominatorParameters.insert(denominatorParameters.begin() + i, *parameter);
             seenNames->append(denominatorTokens->at(i));
         }else{
             allValid = false;

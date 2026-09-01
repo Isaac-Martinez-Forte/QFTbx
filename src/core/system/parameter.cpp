@@ -183,31 +183,6 @@ qreal Parameter::rawNominal(){
     return m_nominal;
 }
 
-Parameter * Parameter::clone(){
 
-    if (!m_uncertain){
-        //Keep the name: a named constant ("kv") must not become a
-        //constant named after its value.
-        return new Parameter (m_name, m_nominal);
-    }
-
-    if (!m_hasExpression){
-        return new Parameter (m_name, m_range, m_nominal);
-    }
-
-    return new Parameter (m_name, m_range, m_nominal, m_expression);
-}
-
-QVector <Parameter*> * Parameter::cloneVector(QVector <Parameter*> * source){
-
-    QVector <Parameter*> * copy = new QVector <Parameter*> ();
-    copy->reserve(source->size());
-
-    foreach (Parameter * var, *source) {
-        copy->append(var->clone());
-    }
-
-    return copy;
-}
 
 } // namespace qftbx

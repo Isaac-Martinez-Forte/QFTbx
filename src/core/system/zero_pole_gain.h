@@ -20,10 +20,10 @@ class ZeroPoleGain : public TransferFunction
 {
 
 public:
-    ZeroPoleGain(QString name, QVector <Parameter*> * numerator, QVector <Parameter*> * denominator, Parameter * k, Parameter* delay);
+    ZeroPoleGain(QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator, Parameter k, Parameter delay);
 
-    LtiSystem * create (QString name, QVector <Parameter*> * numerator, QVector <Parameter*> * denominator,
-                              Parameter * k, Parameter* delay = NULL, QString numeratorExpr = 0, QString denominatorExpr = 0);
+    LtiSystem * create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
+                              Parameter k, Parameter delay = Parameter(qreal(0)), QString numeratorExpr = QString(), QString denominatorExpr = QString());
 
     ~ZeroPoleGain();
 

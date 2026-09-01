@@ -67,22 +67,22 @@ inline void AlgorithmMr::buildControllerExpressions(){
                 "time-constant controller structure.");
     }
 
-    const auto term = [&](Parameter * var, qreal w) -> QString {
-        const QString value = var->isUncertain() ? var->name() : number(var->nominal());
+    const auto term = [&](Parameter & var, qreal w) -> QString {
+        const QString value = var.isUncertain() ? var.name() : number(var.nominal());
         if (timeConstant) {
             return "sqrt(1+(" + number(w * w) + "/(" + value + "^2)))";
         }
         return "sqrt((" + value + "^2)+" + number(w * w) + ")";
     };
 
-    const auto phaseTerm = [&](Parameter * var, qreal w) -> QString {
-        const QString value = var->isUncertain() ? var->name() : number(var->nominal());
+    const auto phaseTerm = [&](Parameter & var, qreal w) -> QString {
+        const QString value = var.isUncertain() ? var.name() : number(var.nominal());
         return "atan(" + number(w) + "/(" + value + "))";
     };
 
-    const QString gain = controlador->gain()->isUncertain()
-            ? controlador->gain()->name()
-            : number(controlador->gain()->nominal());
+    const QString gain = controlador->gain().isUncertain()
+            ? controlador->gain().name()
+            : number(controlador->gain().nominal());
 
     magnitudeExpressions.clear();
     phaseExpressions.clear();
@@ -92,12 +92,12 @@ inline void AlgorithmMr::buildControllerExpressions(){
         QString magnitude = "(" + gain + ")";
         QString phase = "(0";
 
-        foreach (Parameter * var, *controlador->numerator()) {
+        for (Parameter & var : controlador->numerator()) {
             magnitude += "*" + term(var, w);
             phase += "+" + phaseTerm(var, w);
         }
 
-        foreach (Parameter * var, *controlador->denominator()) {
+        for (Parameter & var : controlador->denominator()) {
             magnitude += "/" + term(var, w);
             phase += "-" + phaseTerm(var, w);
         }
@@ -320,7 +320,7 @@ inline void AlgorithmMr::classifyAndInsert(LtiSystem * box){
 
     const BoxFlag flag = certainlyFeasible(domains) ? feasible : ambiguous;
 
-    lista->insert(new SearchNode(narrowed->gain()->range().x(), narrowed, flag));
+    lista->insert(new SearchNode(narrowed->gain().range().x(), narrowed, flag));
 }
 
 
@@ -371,17 +371,17 @@ inline void AlgorithmMr::loadDomains(LtiSystem * box,
 
     domains.clear();
 
-    const auto load = [&](Parameter * var) {
-        if (var->isUncertain()) {
-            domains[var->name().toStdString()] =
-                    cxsc::interval(var->range().x(), var->range().y());
+    const auto load = [&](Parameter & var) {
+        if (var.isUncertain()) {
+            domains[var.name().toStdString()] =
+                    cxsc::interval(var.range().x(), var.range().y());
         }
     };
 
-    foreach (Parameter * var, *box->numerator()) {
+    for (Parameter & var : box->numerator()) {
         load(var);
     }
-    foreach (Parameter * var, *box->denominator()) {
+    for (Parameter & var : box->denominator()) {
         load(var);
     }
     load(box->gain());
@@ -391,26 +391,28 @@ inline void AlgorithmMr::loadDomains(LtiSystem * box,
 inline LtiSystem * AlgorithmMr::boxFromDomains(LtiSystem * box,
                                                      const std::map<std::string, cxsc::interval> & domains){
 
-    const auto rebuilt = [&](Parameter * var) -> Parameter * {
-        if (!var->isUncertain()) {
-            return new Parameter(var->nominal());
+    const auto rebuilt = [&](Parameter & var) -> Parameter {
+        if (!var.isUncertain()) {
+            return Parameter(var.nominal());
         }
-        const cxsc::interval value = domains.at(var->name().toStdString());
-        return new Parameter(var->name(),
-                             QPointF(cxsc::_double(Inf(value)), cxsc::_double(Sup(value))),
-                             cxsc::_double(Inf(value)));
+        const cxsc::interval value = domains.at(var.name().toStdString());
+        return Parameter(var.name(),
+                         QPointF(cxsc::_double(Inf(value)), cxsc::_double(Sup(value))),
+                         cxsc::_double(Inf(value)));
     };
 
-    auto * nume = new QVector<Parameter*>();
-    foreach (Parameter * var, *box->numerator()) {
-        nume->append(rebuilt(var));
+    std::vector<Parameter> nume;
+    nume.reserve(box->numerator().size());
+    for (Parameter & var : box->numerator()) {
+        nume.push_back(rebuilt(var));
     }
 
-    auto * deno = new QVector<Parameter*>();
-    foreach (Parameter * var, *box->denominator()) {
-        deno->append(rebuilt(var));
+    std::vector<Parameter> deno;
+    deno.reserve(box->denominator().size());
+    for (Parameter & var : box->denominator()) {
+        deno.push_back(rebuilt(var));
     }
 
-    return box->create(box->name(), nume, deno, rebuilt(box->gain()),
-                       new Parameter(qreal(0)));
+    return box->create(box->name(), std::move(nume), std::move(deno),
+                       rebuilt(box->gain()), Parameter(qreal(0)));
 }

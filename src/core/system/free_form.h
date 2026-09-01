@@ -25,7 +25,7 @@ public:
 
     /// The parameter vectors list the uncertain parameters appearing in the
     /// numerator/denominator expression texts.
-    FreeForm(QString name, QVector <Parameter*> * numerator, QVector <Parameter*> * denominator, Parameter * k, Parameter* delay, QString numeratorExpr,
+    FreeForm(QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator, Parameter k, Parameter delay, QString numeratorExpr,
                  QString denominatorExpr);
 
     QString expression (QVector <qreal> * numerator, QVector <qreal> * denominator,
@@ -47,8 +47,8 @@ public:
 
     SystemType type();
 
-    LtiSystem * create (QString name, QVector <Parameter*> * numerator, QVector <Parameter*> * denominator,
-                              Parameter * k, Parameter* delay, QString numeratorExpr = 0, QString denominatorExpr = 0);
+    LtiSystem * create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
+                              Parameter k, Parameter delay = Parameter(qreal(0)), QString numeratorExpr = QString(), QString denominatorExpr = QString());
 
     QString numeratorString();
     QString denominatorString();

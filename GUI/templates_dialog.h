@@ -1,6 +1,8 @@
 #ifndef QFTBX_TEMPLATES_DIALOG_H
 #define QFTBX_TEMPLATES_DIALOG_H
 
+#include <vector>
+
 #include <QDialog>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -139,8 +141,8 @@ private:
 
 
     void buildRow (QWidget *widget, QVector<ParLineEdit *> *par, QVector <ThreeRadioButtons> * rowRadios);
-    void buildTables(QVector<Parameter *> *numerator, QVector<Parameter *> *denominator);
-    bool readVariable(ParLineEdit* rowEdits, ThreeRadioButtons rowRadios, Parameter * parameter,
+    void buildTables(std::vector<Parameter> & numerator, std::vector<Parameter> & denominator);
+    bool readVariable(ParLineEdit* rowEdits, ThreeRadioButtons rowRadios, Parameter & parameter,
                          bool useLinspace, bool useLogspace);
 
     QVector <ParLineEdit*>* numeratorRows;
@@ -148,8 +150,8 @@ private:
     QHash <QString, QVector<qreal> * > * gridMap = NULL;
     QVector <ThreeRadioButtons> * numeratorRadios;
     QVector <ThreeRadioButtons> * denominatorRadios;
-    QVector<Parameter *> *numerator;
-    QVector<Parameter *> *denominator;
+    std::vector<Parameter> numerator;
+    std::vector<Parameter> denominator;
     LtiSystem * plant;
 
     bool rowsBuilt = false;

@@ -1,5 +1,7 @@
 #include "specifications_dialog.h"
 
+#include <optional>
+
 #include "src/core/specifications/specification.h"
 #include "ui_specifications_dialog.h"
 
@@ -132,11 +134,11 @@ SpecificationsDialog::~SpecificationsDialog()
 //separated). The non-FreeForm types have no textual representation of
 //their own: numeratorString()=="" used to be painted and the
 //specification silently vanished on reopen.
-QString SpecificationsDialog::coefficientsText(QVector <Parameter *> * parametros)
+QString SpecificationsDialog::coefficientsText(std::vector<Parameter> & parametros)
 {
     QString texto;
-    foreach (Parameter * parametro, *parametros) {
-        texto += QString::number(parametro->nominal()) + " ";
+    for (Parameter & parametro : parametros) {
+        texto += QString::number(parametro.nominal()) + " ";
     }
     return texto.trimmed();
 }
@@ -196,8 +198,8 @@ void SpecificationsDialog::setDatos(qftbx::SpecificationRecord * record_in)
 
             ui->numeratorEdit->setText(numeratorText(record_in->system));
             ui->denominatorEdit->setText(denominatorText(record_in->system));
-            ui->k->setText(QString::number(record_in->system->gain()->nominal()));
-            ui->delayEdit->setText(QString::number(record_in->system->delay()->nominal()));
+            ui->k->setText(QString::number(record_in->system->gain().nominal()));
+            ui->delayEdit->setText(QString::number(record_in->system->delay().nominal()));
         }
     } else {
         ui->magnitudeEdit->setText("");
@@ -268,13 +270,13 @@ void SpecificationsDialog::setDatos(qftbx::SpecificationRecord *record_in, qftbx
 
             ui->lowerNumeratorEdit->setText(numeratorText(record_in->system));
             ui->lowerDenominatorEdit->setText(denominatorText(record_in->system));
-            ui->lowerGainEdit->setText(QString::number(record_in->system->gain()->nominal()));
-            ui->lowerDelayEdit->setText(QString::number(record_in->system->delay()->nominal()));
+            ui->lowerGainEdit->setText(QString::number(record_in->system->gain().nominal()));
+            ui->lowerDelayEdit->setText(QString::number(record_in->system->delay().nominal()));
 
             ui->upperNumeratorEdit->setText(numeratorText(upperRecord->system));
             ui->upperDenominatorEdit->setText(denominatorText(upperRecord->system));
-            ui->upperGainEdit->setText(QString::number(upperRecord->system->gain()->nominal()));
-            ui->upperDelayEdit->setText(QString::number(upperRecord->system->delay()->nominal()));
+            ui->upperGainEdit->setText(QString::number(upperRecord->system->gain().nominal()));
+            ui->upperDelayEdit->setText(QString::number(upperRecord->system->delay().nominal()));
         }
     } else {
         ui->lowerMagnitudeEdit->setText("");
@@ -376,15 +378,15 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord * record_in, QStr
             return true;
         }
 
-        QVector <Parameter *> * numeratorEdit = nullptr;
-        QVector <Parameter *> * denominatorEdit = nullptr;
+        std::optional<std::vector<Parameter>> numeratorEdit;
+        std::optional<std::vector<Parameter>> denominatorEdit;
 
         //Gain and delay are ALWAYS validated: the free-form branch used to
         //build the FreeForm from unchecked buildScalar results (nullptr on a
         //syntax error, crashing later).
-        Parameter * k = buildScalar(ui->k->text(), true);
+        std::optional<Parameter> k = buildScalar(ui->k->text(), true);
 
-        if (k == nullptr){
+        if (!k.has_value()){
             errorMessage(tr("Invalid gain."), tr("Specifications input"));
             ui->k->setStyleSheet("background : red");
             record_in->used = false;
@@ -392,12 +394,11 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord * record_in, QStr
         }
         ui->k->setStyleSheet("background : white");
 
-        Parameter * delayEdit = buildScalar(ui->delayEdit->text(), false);
+        std::optional<Parameter> delayEdit = buildScalar(ui->delayEdit->text(), false);
 
-        if (delayEdit == nullptr){
+        if (!delayEdit.has_value()){
             errorMessage(tr("Invalid delay."), tr("Specifications input"));
             ui->delayEdit->setStyleSheet("background : red");
-            delete k;
             record_in->used = false;
             return false;
         }
@@ -407,11 +408,9 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord * record_in, QStr
 
             numeratorEdit = buildParameters(ui->numeratorEdit->text());
 
-            if (numeratorEdit == nullptr){
+            if (!numeratorEdit.has_value()){
                 errorMessage(tr("Invalid numerator."), tr("Specifications input"));
                 ui->numeratorEdit->setStyleSheet("background : red");
-                delete k;
-                delete delayEdit;
                 record_in->used = false;
                 return false;
             }
@@ -419,13 +418,9 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord * record_in, QStr
 
             denominatorEdit = buildParameters(ui->denominatorEdit->text());
 
-            if (denominatorEdit == nullptr){
+            if (!denominatorEdit.has_value()){
                 errorMessage(tr("Invalid denominator."), tr("Specifications input"));
                 ui->denominatorEdit->setStyleSheet("background : red");
-                qDeleteAll(*numeratorEdit);
-                delete numeratorEdit;
-                delete k;
-                delete delayEdit;
                 record_in->used = false;
                 return false;
             }
@@ -435,24 +430,17 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord * record_in, QStr
 
         record_in->constant = false;
         if(ui->zpkRadio->isChecked()){
-            record_in->system = new ZeroPoleGain (name_in, numeratorEdit, denominatorEdit, k, delayEdit);
+            record_in->system = new ZeroPoleGain (name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
         }else if (ui->tcgRadio->isChecked()){
-            record_in->system = new TimeConstantGain (name_in, numeratorEdit, denominatorEdit, k, delayEdit);
+            record_in->system = new TimeConstantGain (name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
         }else if (ui->polynomialRadio->isChecked()) {
-            record_in->system = new PolynomialForm (name_in, numeratorEdit, denominatorEdit, k, delayEdit);
+            record_in->system = new PolynomialForm (name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
         }else {
-            //If we got here with coefficient vectors built (no type radio
-            //checked), they must not leak.
-            if (numeratorEdit != nullptr){
-                qDeleteAll(*numeratorEdit);
-                delete numeratorEdit;
-            }
-            if (denominatorEdit != nullptr){
-                qDeleteAll(*denominatorEdit);
-                delete denominatorEdit;
-            }
-            record_in->system = new FreeForm (name_in, new QVector <Parameter *> (), new QVector <Parameter *> (), k, delayEdit,
-                                               ui->numeratorEdit->text(), ui->denominatorEdit->text());
+            //No type radio checked: the free-form record carries its
+            //expressions and no coefficient vectors (whatever was parsed
+            //above simply goes out of scope now).
+            record_in->system = new FreeForm (name_in, {}, {}, std::move(*k), std::move(*delayEdit),
+                                              ui->numeratorEdit->text(), ui->denominatorEdit->text());
         }
         record_in->used = true;
     }
@@ -559,15 +547,15 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord *record_in, qftbx
             return true;
         }
 
-        QVector <Parameter *> * numeratorEdit = nullptr;
-        QVector <Parameter *> * denominatorEdit = nullptr;
+        std::optional<std::vector<Parameter>> numeratorEdit;
+        std::optional<std::vector<Parameter>> denominatorEdit;
 
         //Gain and delay are ALWAYS validated: the free-form branch used to
         //build the FreeForm from unchecked buildScalar results (nullptr on a
         //syntax error, crashing later).
-        Parameter * k = buildScalar(ui->lowerGainEdit->text(), true);
+        std::optional<Parameter> k = buildScalar(ui->lowerGainEdit->text(), true);
 
-        if (k == nullptr){
+        if (!k.has_value()){
             errorMessage(tr("Invalid gain."), tr("Specifications input"));
             ui->lowerGainEdit->setStyleSheet("background : red");
             record_in->used = false;
@@ -575,12 +563,11 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord *record_in, qftbx
         }
         ui->lowerGainEdit->setStyleSheet("background : white");
 
-        Parameter * delayEdit = buildScalar(ui->lowerDelayEdit->text(), false);
+        std::optional<Parameter> delayEdit = buildScalar(ui->lowerDelayEdit->text(), false);
 
-        if (delayEdit == nullptr){
+        if (!delayEdit.has_value()){
             errorMessage(tr("Invalid delay."), tr("Specifications input"));
             ui->lowerDelayEdit->setStyleSheet("background : red");
-            delete k;
             record_in->used = false;
             return false;
         }
@@ -590,11 +577,9 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord *record_in, qftbx
 
             numeratorEdit = buildParameters(ui->lowerNumeratorEdit->text());
 
-            if (numeratorEdit == nullptr){
+            if (!numeratorEdit.has_value()){
                 errorMessage(tr("Invalid numerator."), tr("Specifications input"));
                 ui->lowerNumeratorEdit->setStyleSheet("background : red");
-                delete k;
-                delete delayEdit;
                 record_in->used = false;
                 return false;
             }
@@ -602,13 +587,9 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord *record_in, qftbx
 
             denominatorEdit = buildParameters(ui->lowerDenominatorEdit->text());
 
-            if (denominatorEdit == nullptr){
+            if (!denominatorEdit.has_value()){
                 errorMessage(tr("Invalid denominator."), tr("Specifications input"));
                 ui->lowerDenominatorEdit->setStyleSheet("background : red");
-                qDeleteAll(*numeratorEdit);
-                delete numeratorEdit;
-                delete k;
-                delete delayEdit;
                 record_in->used = false;
                 return false;
             }
@@ -618,24 +599,16 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord *record_in, qftbx
 
         record_in->constant = false;
         if(ui->lowerZpkRadio->isChecked()){
-            record_in->system = new ZeroPoleGain (name_in, numeratorEdit, denominatorEdit, k, delayEdit);
+            record_in->system = new ZeroPoleGain (name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
         }else if (ui->lowerTcgRadio->isChecked()){
-            record_in->system = new TimeConstantGain (name_in, numeratorEdit, denominatorEdit, k, delayEdit);
+            record_in->system = new TimeConstantGain (name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
         }else if (ui->lowerPolynomialRadio->isChecked()) {
-            record_in->system = new PolynomialForm (name_in, numeratorEdit, denominatorEdit, k, delayEdit);
+            record_in->system = new PolynomialForm (name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
         }else {
-            //If we got here with coefficient vectors built (no type radio
-            //checked), they must not leak.
-            if (numeratorEdit != nullptr){
-                qDeleteAll(*numeratorEdit);
-                delete numeratorEdit;
-            }
-            if (denominatorEdit != nullptr){
-                qDeleteAll(*denominatorEdit);
-                delete denominatorEdit;
-            }
-            record_in->system = new FreeForm (name_in, new QVector <Parameter *> (), new QVector <Parameter *> (), k, delayEdit,
-                                               ui->lowerNumeratorEdit->text(), ui->lowerDenominatorEdit->text());
+            //No type radio checked: the free-form record carries its
+            //expressions and no coefficient vectors.
+            record_in->system = new FreeForm (name_in, {}, {}, std::move(*k), std::move(*delayEdit),
+                                              ui->lowerNumeratorEdit->text(), ui->lowerDenominatorEdit->text());
         }
         record_in->used = true;
     }
@@ -680,15 +653,15 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord *record_in, qftbx
             return true;
         }
 
-        QVector <Parameter *> * numeratorEdit = nullptr;
-        QVector <Parameter *> * denominatorEdit = nullptr;
+        std::optional<std::vector<Parameter>> numeratorEdit;
+        std::optional<std::vector<Parameter>> denominatorEdit;
 
         //Gain and delay are ALWAYS validated: the free-form branch used to
         //build the FreeForm from unchecked buildScalar results (nullptr on a
         //syntax error, crashing later).
-        Parameter * k = buildScalar(ui->upperGainEdit->text(), true);
+        std::optional<Parameter> k = buildScalar(ui->upperGainEdit->text(), true);
 
-        if (k == nullptr){
+        if (!k.has_value()){
             errorMessage(tr("Invalid gain."), tr("Specifications input"));
             ui->upperGainEdit->setStyleSheet("background : red");
             upperRecord->used = false;
@@ -696,12 +669,11 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord *record_in, qftbx
         }
         ui->upperGainEdit->setStyleSheet("background : white");
 
-        Parameter * delayEdit = buildScalar(ui->upperDelayEdit->text(), false);
+        std::optional<Parameter> delayEdit = buildScalar(ui->upperDelayEdit->text(), false);
 
-        if (delayEdit == nullptr){
+        if (!delayEdit.has_value()){
             errorMessage(tr("Invalid delay."), tr("Specifications input"));
             ui->upperDelayEdit->setStyleSheet("background : red");
-            delete k;
             upperRecord->used = false;
             return false;
         }
@@ -711,11 +683,9 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord *record_in, qftbx
 
             numeratorEdit = buildParameters(ui->upperNumeratorEdit->text());
 
-            if (numeratorEdit == nullptr){
+            if (!numeratorEdit.has_value()){
                 errorMessage(tr("Invalid numerator."), tr("Specifications input"));
                 ui->upperNumeratorEdit->setStyleSheet("background : red");
-                delete k;
-                delete delayEdit;
                 upperRecord->used = false;
                 return false;
             }
@@ -723,13 +693,9 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord *record_in, qftbx
 
             denominatorEdit = buildParameters(ui->upperDenominatorEdit->text());
 
-            if (denominatorEdit == nullptr){
+            if (!denominatorEdit.has_value()){
                 errorMessage(tr("Invalid denominator."), tr("Specifications input"));
                 ui->upperDenominatorEdit->setStyleSheet("background : red");
-                qDeleteAll(*numeratorEdit);
-                delete numeratorEdit;
-                delete k;
-                delete delayEdit;
                 upperRecord->used = false;
                 return false;
             }
@@ -738,23 +704,15 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord *record_in, qftbx
 
         upperRecord->constant = false;
         if(ui->upperZpkRadio->isChecked()){
-            upperRecord->system = new ZeroPoleGain (name_in, numeratorEdit, denominatorEdit, k, delayEdit);
+            upperRecord->system = new ZeroPoleGain (name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
         }else if (ui->upperTcgRadio->isChecked()){
-            upperRecord->system = new TimeConstantGain (name_in, numeratorEdit, denominatorEdit, k, delayEdit);
+            upperRecord->system = new TimeConstantGain (name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
         }else if (ui->upperPolynomialRadio->isChecked()) {
-            upperRecord->system = new PolynomialForm (name_in, numeratorEdit, denominatorEdit, k, delayEdit);
+            upperRecord->system = new PolynomialForm (name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
         }else {
-            //If we got here with coefficient vectors built (no type radio
-            //checked), they must not leak.
-            if (numeratorEdit != nullptr){
-                qDeleteAll(*numeratorEdit);
-                delete numeratorEdit;
-            }
-            if (denominatorEdit != nullptr){
-                qDeleteAll(*denominatorEdit);
-                delete denominatorEdit;
-            }
-            upperRecord->system = new FreeForm (name_in, new QVector <Parameter *> (), new QVector <Parameter *> (), k, delayEdit,
+            //No type radio checked: the free-form record carries its
+            //expressions and no coefficient vectors.
+            upperRecord->system = new FreeForm (name_in, {}, {}, std::move(*k), std::move(*delayEdit),
                                                 ui->upperNumeratorEdit->text(), ui->upperDenominatorEdit->text());
         }
         upperRecord->used = true;
@@ -766,14 +724,14 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord *record_in, qftbx
     return true;
 }
 
-Parameter * SpecificationsDialog::buildScalar(QString linea, bool isK){
+std::optional<Parameter> SpecificationsDialog::buildScalar(QString linea, bool isK){
     ParserX p (pckALL_NON_COMPLEX);
 
     if (linea.isEmpty()){
         if (isK){
-            return new Parameter (1);
+            return Parameter(1);
         }else{
-            return new Parameter (qreal(0));
+            return Parameter(qreal(0));
         }
     }else{
         qreal res;
@@ -781,26 +739,27 @@ Parameter * SpecificationsDialog::buildScalar(QString linea, bool isK){
         try {
             res = p.Eval().GetFloat();
         }catch (ParserError &e){
-            return nullptr;
+            return std::nullopt;
         }
 
-        return new Parameter(res);
+        return Parameter(res);
     }
 }
 
-QVector <Parameter * > * SpecificationsDialog::buildParameters(QString linea){
+std::optional<std::vector<Parameter>> SpecificationsDialog::buildParameters(QString linea){
 
     ParserX p (pckALL_NON_COMPLEX);
 
     QVector <QString> * numeros = tools::srtovectorString(linea);
 
-    QVector <Parameter *> * var = new QVector <Parameter *> ();
-    var->reserve(numeros->size());
+    std::vector<Parameter> var;
 
     if (numeros->isEmpty()){
         delete numeros;
         return var;
     }
+
+    var.reserve(numeros->size());
 
     foreach (const QString &string, *numeros) {
         p.SetExpr(string.toStdString());
@@ -810,12 +769,10 @@ QVector <Parameter * > * SpecificationsDialog::buildParameters(QString linea){
         }catch (ParserError &e){
             //The already-built Parameters and both vectors used to leak.
             delete numeros;
-            qDeleteAll(*var);
-            delete var;
-            return nullptr;
+            return std::nullopt;
         }
 
-        var->append(new Parameter(res));
+        var.push_back(Parameter(res));
     }
 
     delete numeros;

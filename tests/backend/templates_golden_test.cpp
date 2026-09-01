@@ -48,8 +48,8 @@ protected:
 
         // The fixture was computed on a 10x10 grid: a and kv in [1,10].
         mapa = new QHash<QString, QVector<qreal>*>();
-        mapa->insert(planta->numerator()->at(0)->name(), tools::linspace(1.0, 10.0, 10));
-        mapa->insert(planta->gain()->name(), tools::linspace(1.0, 10.0, 10));
+        mapa->insert(planta->numerator()[0].name(), tools::linspace(1.0, 10.0, 10));
+        mapa->insert(planta->gain().name(), tools::linspace(1.0, 10.0, 10));
 
         omegaCopy = new QVector<qreal>(*parser.omega()->values());
         epsilon = new QVector<qreal>(6, 10.0);
@@ -250,7 +250,7 @@ TEST(TemplatesValidation, MissingSweepGridThrowsInvalidInput)
     LtiSystem* planta = parser.plant();
 
     auto* mapa = new QHash<QString, QVector<qreal>*>();
-    mapa->insert(planta->numerator()->at(0)->name(), tools::linspace(1.0, 10.0, 10));
+    mapa->insert(planta->numerator()[0].name(), tools::linspace(1.0, 10.0, 10));
     // no grid for the uncertain gain "kv"
 
     auto* epsilon = new QVector<qreal>(6, 10.0);

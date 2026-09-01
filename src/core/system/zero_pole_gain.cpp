@@ -5,7 +5,7 @@ using namespace mup;
 
 namespace qftbx {
 
-ZeroPoleGain::ZeroPoleGain(QString name, QVector<Parameter *> *numerator, QVector<Parameter *> *denominator, Parameter *k, Parameter *delay):
+ZeroPoleGain::ZeroPoleGain(QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator, Parameter k, Parameter delay):
     TransferFunction(name, numerator, denominator,k,delay)
 {
 }
@@ -13,10 +13,10 @@ ZeroPoleGain::ZeroPoleGain(QString name, QVector<Parameter *> *numerator, QVecto
 ZeroPoleGain::~ZeroPoleGain(){
 }
 
-LtiSystem * ZeroPoleGain::create (QString name, QVector <Parameter*> * numerator, QVector <Parameter*> * denominator,
-                             Parameter * k, Parameter* delay, QString numeratorExpr __attribute__((unused)), QString denominatorExpr __attribute__((unused))){
-    //An unspecified delay means a zero delay.
-    return new ZeroPoleGain(name, numerator, denominator, k, delay == NULL ? new Parameter(0.0) : delay);
+LtiSystem * ZeroPoleGain::create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
+                             Parameter k, Parameter delay, QString numeratorExpr __attribute__((unused)), QString denominatorExpr __attribute__((unused))){
+    return new ZeroPoleGain(name, std::move(numerator), std::move(denominator),
+                            std::move(k), std::move(delay));
 }
 
 
@@ -65,54 +65,54 @@ QString ZeroPoleGain::expression (QVector <qreal> * numerator, QVector <qreal> *
 
 QString ZeroPoleGain::expression(qreal w){
 
-    qint32 sizeDen = m_denominator->size();
-    qint32 sizeNum = m_numerator->size();
+    qint32 sizeDen = m_denominator.size();
+    qint32 sizeNum = m_numerator.size();
 
     QString expr;
 
-    if (m_gain->isUncertain()){
-        expr += m_gain->name() + "*(";
+    if (m_gain.isUncertain()){
+        expr += m_gain.name() + "*(";
     }else {
-        expr += QString::number(m_gain->nominal()) + "*(";
+        expr += QString::number(m_gain.nominal()) + "*(";
     }
 
-    if (m_numerator->isEmpty()){
+    if (m_numerator.empty()){
         expr += "1) / (";
     } else {
         for (qint32 i = 0; i < sizeNum-1; i++){
 
-            if (m_numerator->at(i)->isUncertain()){
-                expr += "((" + QString::number(w) + "*i) + " + m_numerator->at(i)->name() + ") *";
+            if (m_numerator[i].isUncertain()){
+                expr += "((" + QString::number(w) + "*i) + " + m_numerator[i].name() + ") *";
             } else {
-                expr += "(("+ QString::number(w) + "*i) +" + QString::number(m_numerator->at(i)->nominal()) + ") *";
+                expr += "(("+ QString::number(w) + "*i) +" + QString::number(m_numerator[i].nominal()) + ") *";
             }
         }
 
-        if(m_numerator->last()->isUncertain()){
-            expr += "((" + QString::number(w) + "*i) + " + m_numerator->last()->name() + ")) / (";
+        if(m_numerator.back().isUncertain()){
+            expr += "((" + QString::number(w) + "*i) + " + m_numerator.back().name() + ")) / (";
         } else {
-            expr += "((" + QString::number(w) + "*i) + " + QString::number(m_numerator->last()->nominal()) + ")) / (";
+            expr += "((" + QString::number(w) + "*i) + " + QString::number(m_numerator.back().nominal()) + ")) / (";
         }
     }
 
 
-    if (m_denominator->isEmpty()){
+    if (m_denominator.empty()){
         expr += "1)";
     } else {
         for (qint32 i = 0; i < sizeDen-1; i++){
 
-            if (m_denominator->at(i)->isUncertain()){
-                expr += "((" + QString::number(w) + "*i) + " + m_denominator->at(i)->name() + ") *";
+            if (m_denominator[i].isUncertain()){
+                expr += "((" + QString::number(w) + "*i) + " + m_denominator[i].name() + ") *";
             } else {
-                expr += "(("+ QString::number(w) + "*i) + " + QString::number(m_denominator->at(i)->nominal()) + ") *";
+                expr += "(("+ QString::number(w) + "*i) + " + QString::number(m_denominator[i].nominal()) + ") *";
             }
         }
 
 
-        if (m_denominator->last()->isUncertain()){
-            expr += "((" + QString::number(w) + "*i) + " + m_denominator->last()->name() + "))";
+        if (m_denominator.back().isUncertain()){
+            expr += "((" + QString::number(w) + "*i) + " + m_denominator.back().name() + "))";
         }else{
-            expr += "(("+ QString::number(w) + "*i) + " + QString::number(m_denominator->last()->nominal()) + "))";
+            expr += "(("+ QString::number(w) + "*i) + " + QString::number(m_denominator.back().nominal()) + "))";
         }
     }
 
@@ -120,10 +120,10 @@ QString ZeroPoleGain::expression(qreal w){
     //A pure delay is e^(-s*tau) => e^(-i*w*tau). Emitted when the delay is
     //uncertain (even with a zero nominal, so the template sweep can drive
     //it) or a non-zero constant.
-    if (m_delay->isUncertain()){
-        expr += "* e^(-i*" + QString::number(w) + "*" + m_delay->name() + ")";
-    }else if (m_delay->nominal() != 0){
-        expr += "* e^(-i*" + QString::number(w) + "*" + QString::number(m_delay->nominal()) +")";
+    if (m_delay.isUncertain()){
+        expr += "* e^(-i*" + QString::number(w) + "*" + m_delay.name() + ")";
+    }else if (m_delay.nominal() != 0){
+        expr += "* e^(-i*" + QString::number(w) + "*" + QString::number(m_delay.nominal()) +")";
     }
 
     return expr;
@@ -136,60 +136,60 @@ LtiSystem::SystemType ZeroPoleGain::type(){
 
 
 QString ZeroPoleGain::expression(){
-    qint32 sizeDen = m_denominator->size();
-    qint32 sizeNum = m_numerator->size();
+    qint32 sizeDen = m_denominator.size();
+    qint32 sizeNum = m_numerator.size();
 
     QString expr;
 
-    if (m_gain->isUncertain()){
-        expr += m_gain->name() + "*(";
+    if (m_gain.isUncertain()){
+        expr += m_gain.name() + "*(";
     }else {
-        expr += QString::number(m_gain->nominal()) + "*(";
+        expr += QString::number(m_gain.nominal()) + "*(";
     }
 
-    if (m_numerator->isEmpty()){
+    if (m_numerator.empty()){
         expr += "1) / (";
     } else {
         for (qint32 i = 0; i < sizeNum-1; i++){
 
-            if (m_numerator->at(i)->isUncertain()){
-                expr += "(s + " + m_numerator->at(i)->name() + ") *";
+            if (m_numerator[i].isUncertain()){
+                expr += "(s + " + m_numerator[i].name() + ") *";
             } else {
-                expr += "(s +" + QString::number(m_numerator->at(i)->nominal()) + ") *";
+                expr += "(s +" + QString::number(m_numerator[i].nominal()) + ") *";
             }
         }
 
-        if(m_numerator->last()->isUncertain()){
-            expr += "(s + " + m_numerator->last()->name() + ")) / (";
+        if(m_numerator.back().isUncertain()){
+            expr += "(s + " + m_numerator.back().name() + ")) / (";
         } else {
-            expr += "(s + " + QString::number(m_numerator->last()->nominal()) + ")) / (";
+            expr += "(s + " + QString::number(m_numerator.back().nominal()) + ")) / (";
         }
     }
 
 
-    if (m_denominator->isEmpty()){
+    if (m_denominator.empty()){
         expr += "1)";
     }else {
         for (qint32 i = 0; i < sizeDen-1; i++){
 
-            if (m_denominator->at(i)->isUncertain()){
-                expr += "(s + " + m_denominator->at(i)->name() + ") *";
+            if (m_denominator[i].isUncertain()){
+                expr += "(s + " + m_denominator[i].name() + ") *";
             } else {
-                expr += "(s + " + QString::number(m_denominator->at(i)->nominal()) + ") *";
+                expr += "(s + " + QString::number(m_denominator[i].nominal()) + ") *";
             }
         }
 
-        if (m_denominator->last()->isUncertain()){
-            expr += "(s + " + m_denominator->last()->name() + "))";
+        if (m_denominator.back().isUncertain()){
+            expr += "(s + " + m_denominator.back().name() + "))";
         }else{
-            expr += "(s + " + QString::number(m_denominator->last()->nominal()) + "))";
+            expr += "(s + " + QString::number(m_denominator.back().nominal()) + "))";
         }
     }
 
-    if (m_delay->isUncertain()){
-        expr += " * e^(-s*" + m_delay->name() + ")";
-    }else if (m_delay->nominal() != 0){
-        expr += " * e^(-s*" + QString::number(m_delay->nominal()) +")";
+    if (m_delay.isUncertain()){
+        expr += " * e^(-s*" + m_delay.name() + ")";
+    }else if (m_delay.nominal() != 0){
+        expr += " * e^(-s*" + QString::number(m_delay.nominal()) +")";
     }
 
     return expr;

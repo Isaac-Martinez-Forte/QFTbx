@@ -61,14 +61,14 @@ std::complex<qreal> NominalStabilityChecker::controllerAt(LtiSystem * controller
 {
     const std::complex<qreal> jw(0.0, w);
 
-    std::complex<qreal> value(controller->gain()->nominal(), 0.0);
+    std::complex<qreal> value(controller->gain().nominal(), 0.0);
 
-    foreach (Parameter * zero, *controller->numerator()) {
-        value *= jw + std::complex<qreal>(zero->nominal(), 0.0);
+    for (Parameter & zero : controller->numerator()) {
+        value *= jw + std::complex<qreal>(zero.nominal(), 0.0);
     }
 
-    foreach (Parameter * pole, *controller->denominator()) {
-        value /= jw + std::complex<qreal>(pole->nominal(), 0.0);
+    for (Parameter & pole : controller->denominator()) {
+        value /= jw + std::complex<qreal>(pole.nominal(), 0.0);
     }
 
     return value;

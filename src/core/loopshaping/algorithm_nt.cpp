@@ -43,6 +43,15 @@ AlgorithmNt::AlgorithmNt() {
 
 AlgorithmNt::~AlgorithmNt() {
 
+    //Every working structure dies with the algorithm, so an exit through an
+    //exception (an infeasible problem throws) frees them just like a normal
+    //return: the throw paths used to free four of the five by hand and
+    //forget the nominal-plant cache.
+    delete conversion;
+    delete lista;
+    delete deteccion;
+    delete stability;
+    delete plantas_nominales;
 }
 
 void AlgorithmNt::set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, BoundaryData * boundaries,
@@ -88,11 +97,6 @@ bool AlgorithmNt::init_algorithm() {
 
         //Steps 2/6c: an empty list proves there is no feasible solution.
         if (lista->isEmpty()) {
-            delete conversion;
-            delete lista;
-            delete deteccion;
-            delete stability;
-
             throw qftbx::InvalidInput(
                     "No feasible solution exists in the given search box.");
         }
@@ -123,12 +127,9 @@ bool AlgorithmNt::init_algorithm() {
                 controlador_retorno = pointFromBox(node->system(), true);
             }
 
-            delete conversion;
-            delete lista;
             delete node;
-            delete deteccion;
-            delete stability;
 
+            //Everything else dies with the algorithm (see the destructor).
             return true;
         }
 
@@ -215,8 +216,8 @@ inline void AlgorithmNt::check_box_feasibility(LtiSystem * controlador) {
     //part becomes its own box and is re-certified by this same test, so
     //the split never depends on the heuristic gate for correctness. The
     //margins skip degenerate slivers that would only bloat the list.
-    const qreal kInf = controlador->gain()->range().x();
-    const qreal kSup = controlador->gain()->range().y();
+    const qreal kInf = controlador->gain().range().x();
+    const qreal kSup = controlador->gain().range().y();
 
     //Nominal closed-loop stability of bounds-feasible boxes (Tharewal
     //2005, sec. 3.3.5, by the Nichols-chart Nyquist criterion): satisfied
@@ -240,28 +241,24 @@ inline void AlgorithmNt::check_box_feasibility(LtiSystem * controlador) {
         LtiSystem * base = controlador->clone();
         LtiSystem * feasiblePart = base->create(base->name(), base->numerator(),
                 base->denominator(),
-                new Parameter("kv", QPointF(feasibleFrom, kSup), feasibleFrom, "kv"),
+                Parameter("kv", QPointF(feasibleFrom, kSup), feasibleFrom, "kv"),
                 base->delay());
-        delete base->gain();
-        base->releaseOwnership();
-        delete base;
+    delete base;
 
         check_box_feasibility(feasiblePart);
 
         //The current box keeps the remaining ambiguous gain subrange.
         LtiSystem * ambiguousPart = controlador->create(controlador->name(),
                 controlador->numerator(), controlador->denominator(),
-                new Parameter("kv", QPointF(kInf, feasibleFrom), kInf, "kv"),
+                Parameter("kv", QPointF(kInf, feasibleFrom), kInf, "kv"),
                 controlador->delay());
 
-        delete controlador->gain();
-        controlador->releaseOwnership();
-        delete controlador;
+    delete controlador;
 
         controlador = ambiguousPart;
     }
 
-    lista->insert(new SearchNode(controlador->gain()->range().x(), controlador, flag_final));
+    lista->insert(new SearchNode(controlador->gain().range().x(), controlador, flag_final));
 
 }
 
@@ -277,18 +274,16 @@ inline LtiSystem * AlgorithmNt::acelerated(LtiSystem *v, qreal minimo_boundarie,
 
     if (!arriba){
 
-        Parameter * min_k_lineal = new Parameter(v->gain()->range().x());
-        qreal min_k_db = 20 * log10(min_k_lineal->range().x());
+        Parameter min_k_lineal(v->gain().range().x());
+        qreal min_k_db = 20 * log10(min_k_lineal.range().x());
 
         LtiSystem * G_k_min = v->create(v->name(), v->numerator(), v->denominator(),
-                                      min_k_lineal, v->delay());
+                                        min_k_lineal, v->delay());
 
 
         qreal mag_min_db = _double(SupRe(conversion->nicholsBox(G_k_min, o, plantas_nominales->at(contador))));
 
-        delete min_k_lineal;
-        G_k_min->releaseOwnership();
-        delete G_k_min;
+    delete G_k_min;
 
 
         if (mag_min_db < minimo_boundarie) {
@@ -299,11 +294,9 @@ inline LtiSystem * AlgorithmNt::acelerated(LtiSystem *v, qreal minimo_boundarie,
             qreal Kb_lineal = pow(10, Kb_db / 20);
 
             LtiSystem * nuevo_sistema = v->create(v->name(), v->numerator(), v->denominator(),
-                                                new Parameter("kv", QPointF(Kb_lineal, v->gain()->range().y()), Kb_lineal, "kv"), v->delay());
+                                                Parameter("kv", QPointF(Kb_lineal, v->gain().range().y()), Kb_lineal, "kv"), v->delay());
 
-            delete v->gain();
-            v->releaseOwnership();
-            delete v;
+    delete v;
 
             v = nuevo_sistema;
         }
@@ -332,16 +325,14 @@ inline bool AlgorithmNt::feasibleGainFrom(LtiSystem * v, qreal maximo_boundarie,
         return false;
     }
 
-    Parameter * max_k_lineal = new Parameter(v->gain()->range().y());
-    qreal max_k_db = 20 * log10(max_k_lineal->range().x());
+    Parameter max_k_lineal(v->gain().range().y());
+    qreal max_k_db = 20 * log10(max_k_lineal.range().x());
 
     LtiSystem * G_k_max = v->create(v->name(), v->numerator(), v->denominator(),
-                                  max_k_lineal, v->delay());
+                                    max_k_lineal, v->delay());
 
     qreal mag_max_db = _double(InfRe(conversion->nicholsBox(G_k_max, o, plantas_nominales->at(contador))));
 
-    delete max_k_lineal;
-    G_k_max->releaseOwnership();
     delete G_k_max;
 
     if (mag_max_db <= maximo_boundarie) {

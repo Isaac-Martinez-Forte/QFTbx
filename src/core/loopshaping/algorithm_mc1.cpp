@@ -21,18 +21,16 @@ const qreal kCertifiedGainTolerance = 1.01;
 //or the box itself when the cap does not apply.
 LtiSystem * capGain(LtiSystem * box, qreal cap)
 {
-    if (!box->gain()->isUncertain() ||
-            cap <= box->gain()->range().x() || cap >= box->gain()->range().y()) {
+    if (!box->gain().isUncertain() ||
+            cap <= box->gain().range().x() || cap >= box->gain().range().y()) {
         return box;
     }
 
     LtiSystem * capped = box->create(box->name(),
             box->numerator(), box->denominator(),
-            new Parameter("kv", QPointF(box->gain()->range().x(), cap),
-                          box->gain()->range().x(), "kv"),
+            Parameter("kv", QPointF(box->gain().range().x(), cap),
+                          box->gain().range().x(), "kv"),
             box->delay());
-    delete box->gain();
-    box->releaseOwnership();
     delete box;
 
     return capped;
@@ -72,13 +70,13 @@ void AlgorithmMc1::set_datos(LtiSystem * planta, LtiSystem * controlador, QVecto
     this->epsilon = epsilon;
 
     hasUncertainZeros = false;
-    foreach (Parameter * var, *this->controlador->numerator()) {
-        hasUncertainZeros = hasUncertainZeros || var->isUncertain();
+    for (Parameter & var : this->controlador->numerator()) {
+        hasUncertainZeros = hasUncertainZeros || var.isUncertain();
     }
 
     hasUncertainPoles = false;
-    foreach (Parameter * var, *this->controlador->denominator()) {
-        hasUncertainPoles = hasUncertainPoles || var->isUncertain();
+    for (Parameter & var : this->controlador->denominator()) {
+        hasUncertainPoles = hasUncertainPoles || var.isUncertain();
     }
 }
 
@@ -140,7 +138,7 @@ bool AlgorithmMc1::init_algorithm()
 
         //Step 3bis.(a): a node whose gain infimum cannot improve the
         //certified solution is discarded.
-        if (node->system()->gain()->range().x() >= bestCertifiedGain) {
+        if (node->system()->gain().range().x() >= bestCertifiedGain) {
             delete node;
             continue;
         }
@@ -241,7 +239,7 @@ inline void AlgorithmMc1::check_box_feasibility(LtiSystem * controlador)
         certifiedGainSearch(controlador);
     }
 
-    lista->insert(new SearchNode(controlador->gain()->range().x(), controlador, flag_final));
+    lista->insert(new SearchNode(controlador->gain().range().x(), controlador, flag_final));
 }
 
 
@@ -254,17 +252,17 @@ inline LtiSystem * AlgorithmMc1::quickSolution2(LtiSystem * v, BoxClassification
                                                              qreal w, std::complex<qreal> p0)
 {
     std::vector<double> zeroInfs, zeroSups, poleInfs, poleSups;
-    foreach (Parameter * var, *v->numerator()) {
-        zeroInfs.push_back(var->isUncertain() ? var->range().x() : var->nominal());
-        zeroSups.push_back(var->isUncertain() ? var->range().y() : var->nominal());
+    for (Parameter & var : v->numerator()) {
+        zeroInfs.push_back(var.isUncertain() ? var.range().x() : var.nominal());
+        zeroSups.push_back(var.isUncertain() ? var.range().y() : var.nominal());
     }
-    foreach (Parameter * var, *v->denominator()) {
-        poleInfs.push_back(var->isUncertain() ? var->range().x() : var->nominal());
-        poleSups.push_back(var->isUncertain() ? var->range().y() : var->nominal());
+    for (Parameter & var : v->denominator()) {
+        poleInfs.push_back(var.isUncertain() ? var.range().x() : var.nominal());
+        poleSups.push_back(var.isUncertain() ? var.range().y() : var.nominal());
     }
 
-    qreal gainInf = v->gain()->range().x();
-    const qreal gainSup = v->gain()->range().y();
+    qreal gainInf = v->gain().range().x();
+    const qreal gainSup = v->gain().range().y();
 
     bool cut = false;
 
@@ -276,7 +274,7 @@ inline LtiSystem * AlgorithmMc1::quickSolution2(LtiSystem * v, BoxClassification
 
         const qreal boundMin = std::pow(10.0, datos->extremes()[0] / 20.0);
 
-        if (v->gain()->isUncertain()) {
+        if (v->gain().isUncertain()) {
             const qreal k = quick_solution::gainCut(boundMin, zeroSups, poleInfs, w, p0);
 
             if (k > gainInf && k < gainSup) {
@@ -287,7 +285,7 @@ inline LtiSystem * AlgorithmMc1::quickSolution2(LtiSystem * v, BoxClassification
 
         if (hasUncertainZeros) {
             for (qint32 j = 0; j < static_cast<qint32>(zeroInfs.size()); ++j) {
-                if (!v->numerator()->at(j)->isUncertain()) {
+                if (!v->numerator()[j].isUncertain()) {
                     continue;
                 }
 
@@ -303,7 +301,7 @@ inline LtiSystem * AlgorithmMc1::quickSolution2(LtiSystem * v, BoxClassification
 
         if (hasUncertainPoles) {
             for (qint32 j = 0; j < static_cast<qint32>(poleInfs.size()); ++j) {
-                if (!v->denominator()->at(j)->isUncertain()) {
+                if (!v->denominator()[j].isUncertain()) {
                     continue;
                 }
 
@@ -338,7 +336,7 @@ inline LtiSystem * AlgorithmMc1::quickSolution2(LtiSystem * v, BoxClassification
             const qreal thetaMax = boundPhaseMax * M_PI / 180.0;
 
             for (qint32 j = 0; hasUncertainZeros && j < static_cast<qint32>(zeroInfs.size()); ++j) {
-                if (!v->numerator()->at(j)->isUncertain()) {
+                if (!v->numerator()[j].isUncertain()) {
                     continue;
                 }
 
@@ -352,7 +350,7 @@ inline LtiSystem * AlgorithmMc1::quickSolution2(LtiSystem * v, BoxClassification
             }
 
             for (qint32 j = 0; hasUncertainPoles && j < static_cast<qint32>(poleInfs.size()); ++j) {
-                if (!v->denominator()->at(j)->isUncertain()) {
+                if (!v->denominator()[j].isUncertain()) {
                     continue;
                 }
 
@@ -373,7 +371,7 @@ inline LtiSystem * AlgorithmMc1::quickSolution2(LtiSystem * v, BoxClassification
             const qreal thetaMin = boundPhaseMin * M_PI / 180.0;
 
             for (qint32 j = 0; hasUncertainZeros && j < static_cast<qint32>(zeroInfs.size()); ++j) {
-                if (!v->numerator()->at(j)->isUncertain()) {
+                if (!v->numerator()[j].isUncertain()) {
                     continue;
                 }
 
@@ -387,7 +385,7 @@ inline LtiSystem * AlgorithmMc1::quickSolution2(LtiSystem * v, BoxClassification
             }
 
             for (qint32 j = 0; hasUncertainPoles && j < static_cast<qint32>(poleInfs.size()); ++j) {
-                if (!v->denominator()->at(j)->isUncertain()) {
+                if (!v->denominator()[j].isUncertain()) {
                     continue;
                 }
 
@@ -406,27 +404,27 @@ inline LtiSystem * AlgorithmMc1::quickSolution2(LtiSystem * v, BoxClassification
         return v;
     }
 
-    auto * numerador = new QVector<Parameter*>();
+    std::vector<Parameter> numerador;
     for (qint32 j = 0; j < static_cast<qint32>(zeroInfs.size()); ++j) {
-        Parameter * old = v->numerator()->at(j);
-        numerador->append(old->isUncertain()
-                ? new Parameter(old->name(), QPointF(zeroInfs[j], zeroSups[j]), zeroInfs[j])
-                : new Parameter(old->nominal()));
+        Parameter & old = v->numerator()[j];
+        numerador.push_back(old.isUncertain()
+                ? Parameter(old.name(), QPointF(zeroInfs[j], zeroSups[j]), zeroInfs[j])
+                : Parameter(old.nominal()));
     }
 
-    auto * denominador = new QVector<Parameter*>();
+    std::vector<Parameter> denominador;
     for (qint32 j = 0; j < static_cast<qint32>(poleInfs.size()); ++j) {
-        Parameter * old = v->denominator()->at(j);
-        denominador->append(old->isUncertain()
-                ? new Parameter(old->name(), QPointF(poleInfs[j], poleSups[j]), poleInfs[j])
-                : new Parameter(old->nominal()));
+        Parameter & old = v->denominator()[j];
+        denominador.push_back(old.isUncertain()
+                ? Parameter(old.name(), QPointF(poleInfs[j], poleSups[j]), poleInfs[j])
+                : Parameter(old.nominal()));
     }
 
     LtiSystem * nuevo = v->create(v->name(), numerador, denominador,
-            v->gain()->isUncertain()
-                ? new Parameter("kv", QPointF(gainInf, gainSup), gainInf, "kv")
-                : new Parameter(v->gain()->nominal()),
-            v->delay()->clone());
+            v->gain().isUncertain()
+                ? Parameter("kv", QPointF(gainInf, gainSup), gainInf, "kv")
+                : Parameter(v->gain().nominal()),
+            v->delay());
 
     delete v;
 
@@ -441,7 +439,7 @@ inline bool AlgorithmMc1::gainRangeIsFeasible(LtiSystem * box,
 {
     LtiSystem * candidate = box->create(box->name(),
             box->numerator(), box->denominator(),
-            new Parameter("kv", QPointF(gainInf, gainSup), gainInf, "kv"),
+            Parameter("kv", QPointF(gainInf, gainSup), gainInf, "kv"),
             box->delay());
 
     bool feasibleEverywhere = true;
@@ -454,8 +452,6 @@ inline bool AlgorithmMc1::gainRangeIsFeasible(LtiSystem * box,
         delete datos;
     }
 
-    candidate->releaseOwnership();
-    delete candidate->gain();
     delete candidate;
 
     return feasibleEverywhere;
@@ -469,12 +465,12 @@ inline bool AlgorithmMc1::gainRangeIsFeasible(LtiSystem * box,
 //may prune the search through C.
 inline void AlgorithmMc1::certifiedGainSearch(LtiSystem * box)
 {
-    if (!box->gain()->isUncertain()) {
+    if (!box->gain().isUncertain()) {
         return;
     }
 
-    const qreal low = box->gain()->range().x();
-    qreal high = box->gain()->range().y();
+    const qreal low = box->gain().range().x();
+    qreal high = box->gain().range().y();
 
     if (low <= 0.0 || !gainRangeIsFeasible(box, high, high)) {
         return;
@@ -507,13 +503,11 @@ inline void AlgorithmMc1::certifiedGainSearch(LtiSystem * box)
     //The z' box, and its minimal-gain point as certified solution.
     LtiSystem * zPrime = box->create(box->name(),
             box->numerator(), box->denominator(),
-            new Parameter("kv", QPointF(high, box->gain()->range().y()), high, "kv"),
+            Parameter("kv", QPointF(high, box->gain().range().y()), high, "kv"),
             box->delay());
 
     LtiSystem * point = pointFromBox(zPrime, true);
 
-    zPrime->releaseOwnership();
-    delete zPrime->gain();
     delete zPrime;
 
     if (stability->isNominallyStable(point)) {

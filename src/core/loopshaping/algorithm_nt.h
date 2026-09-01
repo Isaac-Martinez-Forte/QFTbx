@@ -46,11 +46,11 @@ private:
     LtiSystem * controlador;
     QVector <qreal> * omega;
     BoundaryData * boundaries;
-    NaturalIntervalExtension * conversion;
-    OrderedList * lista;
+    NaturalIntervalExtension * conversion = nullptr;
+    OrderedList * lista = nullptr;
     qreal epsilon;
 
-    LtiSystem * controlador_retorno;
+    LtiSystem * controlador_retorno = nullptr;
     qreal minimo_boundaries;
 
 
@@ -61,9 +61,9 @@ private:
 
     qint32 tamFas;
 
-    BoundaryViolationDetector * deteccion;
-    NominalStabilityChecker * stability;
-    QVector <complex> * plantas_nominales;
+    BoundaryViolationDetector * deteccion = nullptr;
+    NominalStabilityChecker * stability = nullptr;
+    QVector <complex> * plantas_nominales = nullptr;
 
 };
 

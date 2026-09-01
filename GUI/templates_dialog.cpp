@@ -95,7 +95,7 @@ void TemplatesDialog::launch(LtiSystem *plant, qint32 frequencyCount){
     buildTables(plant->numerator(), plant->denominator());
 }
 
-void TemplatesDialog::buildTables(QVector<Parameter *> *numerator, QVector<Parameter *> *denominator){
+void TemplatesDialog::buildTables(std::vector<Parameter> & numerator, std::vector<Parameter> & denominator){
 
     this->numerator = numerator;
     this->denominator = denominator;
@@ -111,9 +111,9 @@ void TemplatesDialog::buildTables(QVector<Parameter *> *numerator, QVector<Param
 
 
     qint32 tabIndex = 0;
-    foreach (Parameter * variable, *numerator){
-        QString name_text = variable->name();
-        if(variable->isUncertain()){
+    for (Parameter & variable : numerator){
+        QString name_text = variable.name();
+        if(variable.isUncertain()){
             QWidget * widget = new QWidget(ui->variablesStack);
             buildRow(widget,numeratorRows, numeratorRadios);
             ui->numeratorTabs->insertTab(tabIndex,widget,name_text);
@@ -123,9 +123,9 @@ void TemplatesDialog::buildTables(QVector<Parameter *> *numerator, QVector<Param
         ui->numeratorTabs->removeTab(tabIndex+1);
     }
     tabIndex = 0;
-    foreach (Parameter * variable, *denominator){
-        QString name_text = variable->name();
-        if(variable->isUncertain()){
+    for (Parameter & variable : denominator){
+        QString name_text = variable.name();
+        if(variable.isUncertain()){
             QWidget * widget = new QWidget(ui->variablesStack);
             buildRow(widget, denominatorRows, denominatorRadios);
             ui->denominatorTabs->insertTab(tabIndex,widget, name_text);
@@ -318,16 +318,15 @@ void TemplatesDialog::on_okButton_clicked()
 
     struct ThreeRadioButtons rowRadios;
     ParLineEdit * rowEdits;
-    Parameter* parameter;
     qint32 variableIndex = 0;
-    for (qint32 i = 0; i < numerator->size(); i++){
-        parameter = numerator->at(i);
-        if (parameter->isUncertain()){
+    for (qint32 i = 0; i < numerator.size(); i++){
+        Parameter & parameter = numerator[i];
+        if (parameter.isUncertain()){
             rowEdits = numeratorRows->at(variableIndex);
             rowRadios = numeratorRadios->at(variableIndex);
             variableIndex++;
             if (!readVariable(rowEdits, rowRadios,parameter,useLinspace,useLogspace)){
-                errorMessage(tr("ERROR: the values entered for parameter \"%1\" are invalid").arg(parameter->name()),
+                errorMessage(tr("ERROR: the values entered for parameter \"%1\" are invalid").arg(parameter.name()),
                          tr("Template computation"));
                 releaseGrids();
                 delete epsilonValues;
@@ -339,16 +338,16 @@ void TemplatesDialog::on_okButton_clicked()
 
     variableIndex = 0;
 
-    for (qint32 i = 0; i < denominator->size(); i++){
+    for (qint32 i = 0; i < denominator.size(); i++){
 
-        parameter = denominator->at(i);
-        if (parameter->isUncertain()){
+        Parameter & parameter = denominator[i];
+        if (parameter.isUncertain()){
 
             rowEdits = denominatorRows->at(variableIndex);
             rowRadios = denominatorRadios->at(variableIndex);
             variableIndex++;
             if (!readVariable(rowEdits, rowRadios,parameter,useLinspace,useLogspace)){
-                errorMessage(tr("ERROR: the values entered for parameter \"%1\" are invalid").arg(parameter->name()),
+                errorMessage(tr("ERROR: the values entered for parameter \"%1\" are invalid").arg(parameter.name()),
                          tr("Template computation"));
                 releaseGrids();
                 delete epsilonValues;
@@ -358,8 +357,8 @@ void TemplatesDialog::on_okButton_clicked()
         }
     }
 
-    if (!plant->gain()->isUncertain()){
-        gridMap->insert(plant->gain()->name(), new QVector <qreal> (1, plant->gain()->nominal()));
+    if (!plant->gain().isUncertain()){
+        gridMap->insert(plant->gain().name(), new QVector <qreal> (1, plant->gain().nominal()));
     }
     else{
 
@@ -367,28 +366,28 @@ void TemplatesDialog::on_okButton_clicked()
         qreal final;
         qint32 npuntos;
 
-        inicio = plant->gain()->range().x();
-        final = plant->gain()->range().y();
+        inicio = plant->gain().range().x();
+        final = plant->gain().range().y();
         parser->SetExpr(ui->globalPointCount->text().toStdString());
         npuntos = parser->Eval().GetFloat();
 
         if (useLinspace){
-            gridMap->insert(plant->gain()->name(), linspace(inicio, final, npuntos));
+            gridMap->insert(plant->gain().name(), linspace(inicio, final, npuntos));
         } else {
-            gridMap->insert(plant->gain()->name(), logspace(inicio, final, npuntos));
+            gridMap->insert(plant->gain().name(), logspace(inicio, final, npuntos));
         }
     }
 
-    if (!plant->delay()->isUncertain()){
-        gridMap->insert(plant->delay()->name(), new QVector <qreal> (1, plant->delay()->nominal()));
+    if (!plant->delay().isUncertain()){
+        gridMap->insert(plant->delay().name(), new QVector <qreal> (1, plant->delay().nominal()));
     }else {
 
         qreal inicio;
         qreal final;
         qint32 npuntos;
 
-        inicio = plant->delay()->range().x();
-        final = plant->delay()->range().y();
+        inicio = plant->delay().range().x();
+        final = plant->delay().range().y();
         parser->SetExpr(ui->globalPointCount->text().toStdString());
         npuntos = parser->Eval().GetFloat();
 
@@ -396,9 +395,9 @@ void TemplatesDialog::on_okButton_clicked()
         //it clobbered the gain's grid and left the delay without an entry
         //(crashing the sweep with an uncertain delay).
         if (useLinspace){
-            gridMap->insert(plant->delay()->name(), linspace(inicio, final, npuntos));
+            gridMap->insert(plant->delay().name(), linspace(inicio, final, npuntos));
         } else {
-            gridMap->insert(plant->delay()->name(), logspace(inicio, final, npuntos));
+            gridMap->insert(plant->delay().name(), logspace(inicio, final, npuntos));
         }
     }
 
@@ -424,15 +423,15 @@ void TemplatesDialog::on_okButton_clicked()
 }
 
 bool TemplatesDialog::readVariable(ParLineEdit *rowEdits, ThreeRadioButtons rowRadios,
-                                    Parameter *parameter, bool useLinspace, bool useLogspace){
+                                    Parameter & parameter, bool useLinspace, bool useLogspace){
 
     //Policy for repeated names (e.g. the same 'a' in numerator and
     //denominator): the FIRST entered grid wins and the user is told once
     //which names were unified (with the name key, the last one would
     //silently win otherwise).
-    if (gridMap->contains(parameter->name())){
-        if (!duplicateNames.contains(parameter->name())){
-            duplicateNames.append(parameter->name());
+    if (gridMap->contains(parameter.name())){
+        if (!duplicateNames.contains(parameter.name())){
+            duplicateNames.append(parameter.name());
         }
         return true;
     }
@@ -444,22 +443,22 @@ bool TemplatesDialog::readVariable(ParLineEdit *rowEdits, ThreeRadioButtons rowR
 
     if (rowRadios.uno->isChecked() && !rowEdits->getX()->text().isEmpty()){
 
-        inicio = parameter->range().x();
-        final = parameter->range().y();
+        inicio = parameter.range().x();
+        final = parameter.range().y();
 
         parser->SetExpr(rowEdits->getX()->text().toStdString());
         npuntos = parser->Eval().GetFloat();
 
-        gridMap->insert(parameter->name(), linspace(inicio,final, npuntos));
+        gridMap->insert(parameter.name(), linspace(inicio,final, npuntos));
 
     }else if (rowRadios.dos->isChecked() && !rowEdits->getY()->text().isEmpty()){
 
-        inicio = parameter->range().x();
-        final = parameter->range().y();
+        inicio = parameter.range().x();
+        final = parameter.range().y();
         parser->SetExpr(rowEdits->getY()->text().toStdString());
         npuntos = parser->Eval().GetFloat();
 
-        gridMap->insert(parameter->name(), logspace(inicio, final, npuntos));
+        gridMap->insert(parameter.name(), logspace(inicio, final, npuntos));
 
     }else if(rowRadios.tres->isChecked() && !rowEdits->nominal()->text().isEmpty()){
 
@@ -477,19 +476,19 @@ bool TemplatesDialog::readVariable(ParLineEdit *rowEdits, ThreeRadioButtons rowR
             throw;
         }
         delete vector;
-        gridMap->insert(parameter->name(), vector2);
+        gridMap->insert(parameter.name(), vector2);
     }else if (useLinspace || useLogspace){
 
-        inicio = parameter->range().x();
-        final = parameter->range().y();
+        inicio = parameter.range().x();
+        final = parameter.range().y();
 
         parser->SetExpr(ui->globalPointCount->text().toStdString());
         npuntos = parser->Eval().GetFloat();
 
         if(useLinspace){
-            gridMap->insert(parameter->name(), linspace(inicio, final, npuntos));
+            gridMap->insert(parameter.name(), linspace(inicio, final, npuntos));
         }else {
-            gridMap->insert(parameter->name(), logspace(inicio, final, npuntos));
+            gridMap->insert(parameter.name(), logspace(inicio, final, npuntos));
         }
     }else{
         return false;

@@ -9,9 +9,9 @@ using namespace mup;
 
 namespace qftbx {
 
-FreeForm::FreeForm(QString name, QVector <Parameter*> * numerator, QVector <Parameter*> * denominator, Parameter * k,
-                           Parameter* delay, QString numeratorExpr, QString denominatorExpr)
-    :TransferFunction (name, numerator, denominator, k, delay)
+FreeForm::FreeForm(QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator, Parameter k,
+                           Parameter delay, QString numeratorExpr, QString denominatorExpr)
+    :TransferFunction (name, std::move(numerator), std::move(denominator), std::move(k), std::move(delay))
 {
     m_numeratorExpr = numeratorExpr;
     m_denominatorExpr = denominatorExpr;
@@ -55,30 +55,30 @@ QString FreeForm::expression(qreal w){
     QString n = m_numeratorExpr;
     QString d = m_denominatorExpr;
 
-    QString expr = m_gain->expression() + "*(" + n.replace(laplaceVariable, jw) + ")/(" +
+    QString expr = m_gain.expression() + "*(" + n.replace(laplaceVariable, jw) + ")/(" +
             d.replace(laplaceVariable, jw) + ")";
 
 
     //A pure delay is e^(-s*tau) => e^(-i*w*tau). Emitted when the delay is
     //uncertain (even with a zero nominal, so the template sweep can drive
     //it) or a non-zero constant.
-    if (m_delay->isUncertain()){
-        expr += "* e^(-i*" + QString::number(w) + "*" + m_delay->name() + ")";
-    }else if (m_delay->nominal() != 0){
+    if (m_delay.isUncertain()){
+        expr += "* e^(-i*" + QString::number(w) + "*" + m_delay.name() + ")";
+    }else if (m_delay.nominal() != 0){
         expr += "* e^(-i*" + QString::number(w) + "*" +
-                QString::number(m_delay->nominal()) +")";
+                QString::number(m_delay.nominal()) +")";
     }
 
     return expr;
 }
 
 QString FreeForm::expression(){
-    QString expr = m_gain->expression() + "*(" + m_numeratorExpr + ")/(" + m_denominatorExpr + ")";
+    QString expr = m_gain.expression() + "*(" + m_numeratorExpr + ")/(" + m_denominatorExpr + ")";
 
-    if (m_delay->isUncertain()){
-        expr += " * e^(-s*" + m_delay->name() + ")";
-    }else if (m_delay->nominal() != 0){
-        expr += " * e^(-s*" + QString::number(m_delay->nominal()) +")";
+    if (m_delay.isUncertain()){
+        expr += " * e^(-s*" + m_delay.name() + ")";
+    }else if (m_delay.nominal() != 0){
+        expr += " * e^(-s*" + QString::number(m_delay.nominal()) +")";
     }
 
     return expr;
@@ -88,12 +88,11 @@ LtiSystem::SystemType FreeForm::type(){
     return SystemType::FreeForm;
 }
 
-LtiSystem * FreeForm::create(QString name, QVector<Parameter *> *numerator, QVector<Parameter *> *denominator,
-                               Parameter *k, Parameter *delay, QString numeratorExpr, QString denominatorExpr){
+LtiSystem * FreeForm::create(QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
+                               Parameter k, Parameter delay, QString numeratorExpr, QString denominatorExpr){
 
-    //An unspecified delay means a zero delay.
-    return new FreeForm (name, numerator, denominator, k,
-                             delay == NULL ? new Parameter(0.0) : delay, numeratorExpr, denominatorExpr);
+    return new FreeForm (name, std::move(numerator), std::move(denominator), std::move(k),
+                         std::move(delay), numeratorExpr, denominatorExpr);
 }
 
 
@@ -107,11 +106,7 @@ QString FreeForm::denominatorString(){
 
 LtiSystem * FreeForm::clone(){
 
-    Parameter * k = m_gain->clone();
-    Parameter * delay = m_delay->clone();
-
-    return this->create(this->name(), Parameter::cloneVector(m_numerator),
-                        Parameter::cloneVector(m_denominator), k, delay,
+    return this->create(this->name(), m_numerator, m_denominator, m_gain, m_delay,
                         m_numeratorExpr, m_denominatorExpr);
 }
 

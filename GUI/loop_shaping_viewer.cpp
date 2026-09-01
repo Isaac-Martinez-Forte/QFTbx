@@ -78,16 +78,16 @@ void LoopShapingViewer::showDiagram(){
     QString numerador = "", denominador = "";
 
     qint32 i = 0;
-    for (i = 0; i < loopShapingData->getControlador()->numerator()->size(); i++){
-        numerador += QString::number(loopShapingData->getControlador()->numerator()->at(i)->nominal()) + " ";
+    for (i = 0; i < loopShapingData->getControlador()->numerator().size(); i++){
+        numerador += QString::number(loopShapingData->getControlador()->numerator()[i].nominal()) + " ";
     }
-    for (i = 0; i < loopShapingData->getControlador()->denominator()->size(); i++){
-        denominador += QString::number(loopShapingData->getControlador()->denominator()->at(i)->nominal()) + " ";
+    for (i = 0; i < loopShapingData->getControlador()->denominator().size(); i++){
+        denominador += QString::number(loopShapingData->getControlador()->denominator()[i].nominal()) + " ";
     }
 
     ui->numeratorEdit->setText(numerador);
     ui->denominatorEdit->setText(denominador);
-    ui->gainEdit->setText(QString::number(loopShapingData->getControlador()->gain()->nominal()));
+    ui->gainEdit->setText(QString::number(loopShapingData->getControlador()->gain().nominal()));
 
     LtiSystem::SystemType tipo = loopShapingData->getControlador()->type();
 

@@ -1,6 +1,7 @@
 #include "src/core/loopshaping/loop_shaping.h"
 
 #include <iostream>
+#include <memory>
 
 #include <QElapsedTimer>
 
@@ -22,60 +23,59 @@ bool LoopShaping::iniciar(LtiSystem * planta, LtiSystem * controlador, QVector<q
                           QVector<QVector<std::complex<qreal>> *> * temp, QVector<qftbx::SpecificationRecord *> * espe,
                           qint32 inicializacion)
 {
+    //The algorithms own themselves through unique_ptr: init_algorithm()
+    //throws on an invalid or infeasible problem, and the raw new/delete
+    //pair leaked the whole algorithm (its lists, its detection, its
+    //nominal-plant caches) on every such throw.
     QElapsedTimer timer;
     bool re = false;
 
     const auto report = [&](LtiSystem * resultado) {
         this->controlador = resultado;
         std::cout << "LoopShaping: " << timer.elapsed() << " milliseconds" << std::endl;
-        std::cout << "k: " << resultado->gain()->range().x() << std::endl;
+        std::cout << "k: " << resultado->gain().range().x() << std::endl;
     };
 
     if (seleccionado == tools::nt) {
-        AlgorithmNt * nt = new AlgorithmNt();
+        auto nt = std::make_unique<AlgorithmNt>();
         nt->set_datos(planta, controlador, omega, boundaries, epsilon);
         timer.start();
         re = nt->init_algorithm();
         if (re) {
             report(nt->getControlador());
         }
-        delete nt;
     } else if (seleccionado == tools::nk) {
-        AlgorithmNk * nk = new AlgorithmNk();
+        auto nk = std::make_unique<AlgorithmNk>();
         nk->set_datos(planta, controlador, omega, boundaries, epsilon, inicializacion);
         timer.start();
         re = nk->init_algorithm();
         if (re) {
             report(nk->getControlador());
         }
-        delete nk;
     } else if (seleccionado == tools::mr) {
-        AlgorithmMr * mr = new AlgorithmMr();
+        auto mr = std::make_unique<AlgorithmMr>();
         mr->set_datos(planta, controlador, omega, boundaries, epsilon, temp, espe);
         timer.start();
         re = mr->init_algorithm();
         if (re) {
             report(mr->getControlador());
         }
-        delete mr;
     } else if (seleccionado == tools::mc1) {
-        AlgorithmMc1 * mc1 = new AlgorithmMc1();
+        auto mc1 = std::make_unique<AlgorithmMc1>();
         mc1->set_datos(planta, controlador, omega, boundaries, epsilon);
         timer.start();
         re = mc1->init_algorithm();
         if (re) {
             report(mc1->getControlador());
         }
-        delete mc1;
     } else if (seleccionado == tools::mc_thesis) {
-        AlgorithmMcThesis * mc_thesis = new AlgorithmMcThesis();
+        auto mc_thesis = std::make_unique<AlgorithmMcThesis>();
         mc_thesis->set_datos(planta, controlador, omega, boundaries, epsilon);
         timer.start();
         re = mc_thesis->init_algorithm();
         if (re) {
             report(mc_thesis->getControlador());
         }
-        delete mc_thesis;
     }
 
     return re;

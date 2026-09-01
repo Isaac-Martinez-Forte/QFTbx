@@ -5,6 +5,8 @@
 
 #include <gtest/gtest.h>
 
+#include <vector>
+
 #include <QPointF>
 #include <QString>
 
@@ -102,52 +104,51 @@ TEST(Parameter, CopyConstructorCopiesEverything)
     EXPECT_DOUBLE_EQ(copia.nominal(), 4.0);
 }
 
-TEST(Parameter, CloneUncertainVariablePreservesContent)
+TEST(Parameter, CopyOfUncertainVariablePreservesContent)
 {
+    // Value semantics replaced clone(): the copy constructor carries the
+    // name, the raw range, the raw nominal and the reparametrisation.
     Parameter var(QStringLiteral("a"), QPointF(1.0, 5.0), 2.0, QStringLiteral("a"));
 
-    Parameter* copy = var.clone();
-    ASSERT_NE(copy, nullptr);
-    EXPECT_NE(copy, &var);
-    EXPECT_TRUE(copy->isUncertain());
-    EXPECT_EQ(copy->name(), QStringLiteral("a"));
-    EXPECT_DOUBLE_EQ(copy->rawNominal(), 2.0);
-    EXPECT_EQ(copy->rawRange(), QPointF(1.0, 5.0));
-    EXPECT_EQ(copy->expression(), QStringLiteral("a"));
-    delete copy;
+    Parameter copy = var;
+    EXPECT_NE(&copy, &var);
+    EXPECT_TRUE(copy.isUncertain());
+    EXPECT_EQ(copy.name(), QStringLiteral("a"));
+    EXPECT_DOUBLE_EQ(copy.rawNominal(), 2.0);
+    EXPECT_EQ(copy.rawRange(), QPointF(1.0, 5.0));
+    EXPECT_EQ(copy.expression(), QStringLiteral("a"));
 }
 
-TEST(Parameter, CloneConstantKeepsItsName)
+TEST(Parameter, CopyOfConstantKeepsItsName)
 {
-    // Fixed: clone() used to route constants through Parameter(qreal), which
-    // rewrote the name as the textual value ("kv" became "1").
+    // The defect the old clone() had: it routed constants through
+    // Parameter(qreal), rewriting the name as the textual value ("kv"
+    // became "1"). A copy cannot lose the name.
     Parameter var(QStringLiteral("kv"), 1.0);
 
-    Parameter* copy = var.clone();
-    ASSERT_NE(copy, nullptr);
-    EXPECT_FALSE(copy->isUncertain());
-    EXPECT_DOUBLE_EQ(copy->nominal(), 1.0);
-    EXPECT_EQ(copy->name(), QStringLiteral("kv"));
-    delete copy;
+    Parameter copy = var;
+    EXPECT_FALSE(copy.isUncertain());
+    EXPECT_DOUBLE_EQ(copy.nominal(), 1.0);
+    EXPECT_EQ(copy.name(), QStringLiteral("kv"));
 }
 
-TEST(Parameter, ClonarVectorMakesDeepCopies)
+TEST(Parameter, VectorCopyIsIndependent)
 {
-    QVector<Parameter*> origen;
-    origen.append(new Parameter(QStringLiteral("a"), QPointF(1.0, 5.0), 2.0));
-    origen.append(new Parameter(3.5));
+    // What cloneVector() used to do by hand, std::vector does by itself.
+    std::vector<Parameter> source;
+    source.emplace_back(QStringLiteral("a"), QPointF(1.0, 5.0), 2.0);
+    source.emplace_back(3.5);
 
-    QVector<Parameter*>* copia = Parameter::cloneVector(&origen);
-    ASSERT_NE(copia, nullptr);
-    ASSERT_EQ(copia->size(), 2);
-    EXPECT_NE(copia->at(0), origen.at(0));
-    EXPECT_NE(copia->at(1), origen.at(1));
-    EXPECT_EQ(copia->at(0)->name(), QStringLiteral("a"));
-    EXPECT_DOUBLE_EQ(copia->at(1)->nominal(), 3.5);
+    std::vector<Parameter> copy = source;
+    ASSERT_EQ(copy.size(), 2u);
+    EXPECT_NE(&copy[0], &source[0]);
+    EXPECT_NE(&copy[1], &source[1]);
+    EXPECT_EQ(copy[0].name(), QStringLiteral("a"));
+    EXPECT_DOUBLE_EQ(copy[1].nominal(), 3.5);
 
-    qDeleteAll(*copia);
-    delete copia;
-    qDeleteAll(origen);
+    //Mutating the copy leaves the source alone.
+    copy[0].setNominal(9.0);
+    EXPECT_DOUBLE_EQ(source[0].rawNominal(), 2.0);
 }
 
 } // namespace

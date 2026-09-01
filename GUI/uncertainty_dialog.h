@@ -1,6 +1,8 @@
 #ifndef QFTBX_UNCERTAINTY_DIALOG_H
 #define QFTBX_UNCERTAINTY_DIALOG_H
 
+#include <vector>
+
 #include <QDialog>
 #include <QLabel>
 #include <QLineEdit>
@@ -52,7 +54,7 @@ public:
     * @return un QVector de Variables que contiene la incertidumbre introducida para cada parameter del numeratorParameters.
    */
     
-    QVector <Parameter*> *  numerator();
+    std::vector<Parameter> & numerator();
     
     
    /**
@@ -62,7 +64,7 @@ public:
     * @return un QVector de Variables que contiene la incertidumbre introducida para cada parameter del denominatorParameters.
    */
     
-    QVector <Parameter*> * denominator();
+    std::vector<Parameter> & denominator();
 
     
    /**
@@ -135,8 +137,8 @@ private:
     bool rowsBuilt;
     QVector <QString> * numeratorTokens = NULL;
     QVector <QString> * denominatorTokens = NULL;
-    QVector <Parameter*> * numeratorParameters;
-    QVector <Parameter*> * denominatorParameters;
+    std::vector<Parameter> numeratorParameters;
+    std::vector<Parameter> denominatorParameters;
     std::list <ParLineEdit*>* numeratorRows;
     std::list <ParLineEdit*>* denominatorRows;
     QVBoxLayout *denominatorLayout;

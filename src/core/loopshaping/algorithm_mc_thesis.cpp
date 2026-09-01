@@ -16,18 +16,16 @@ namespace {
 //the box itself when the cap does not apply.
 LtiSystem * capGain(LtiSystem * box, qreal cap)
 {
-    if (!box->gain()->isUncertain() ||
-            cap <= box->gain()->range().x() || cap >= box->gain()->range().y()) {
+    if (!box->gain().isUncertain() ||
+            cap <= box->gain().range().x() || cap >= box->gain().range().y()) {
         return box;
     }
 
     LtiSystem * capped = box->create(box->name(),
             box->numerator(), box->denominator(),
-            new Parameter("kv", QPointF(box->gain()->range().x(), cap),
-                          box->gain()->range().x(), "kv"),
+            Parameter("kv", QPointF(box->gain().range().x(), cap),
+                          box->gain().range().x(), "kv"),
             box->delay());
-    delete box->gain();
-    box->releaseOwnership();
     delete box;
 
     return capped;
@@ -53,13 +51,13 @@ void cornerVectors(LtiSystem * box, bool zerosAtSup, bool polesAtSup,
     zeros.clear();
     poles.clear();
 
-    foreach (Parameter * var, *box->numerator()) {
-        zeros.push_back(!var->isUncertain() ? var->nominal()
-                        : (zerosAtSup ? var->range().y() : var->range().x()));
+    for (Parameter & var : box->numerator()) {
+        zeros.push_back(!var.isUncertain() ? var.nominal()
+                        : (zerosAtSup ? var.range().y() : var.range().x()));
     }
-    foreach (Parameter * var, *box->denominator()) {
-        poles.push_back(!var->isUncertain() ? var->nominal()
-                        : (polesAtSup ? var->range().y() : var->range().x()));
+    for (Parameter & var : box->denominator()) {
+        poles.push_back(!var.isUncertain() ? var.nominal()
+                        : (polesAtSup ? var.range().y() : var.range().x()));
     }
 }
 
@@ -102,13 +100,13 @@ void AlgorithmMcThesis::set_datos(LtiSystem * planta, LtiSystem * controlador, Q
     phaseGridStep = phaseSpanWidth / (boundaries->phaseCount() - 1);
 
     hasUncertainZeros = false;
-    foreach (Parameter * var, *this->controlador->numerator()) {
-        hasUncertainZeros = hasUncertainZeros || var->isUncertain();
+    for (Parameter & var : this->controlador->numerator()) {
+        hasUncertainZeros = hasUncertainZeros || var.isUncertain();
     }
 
     hasUncertainPoles = false;
-    foreach (Parameter * var, *this->controlador->denominator()) {
-        hasUncertainPoles = hasUncertainPoles || var->isUncertain();
+    for (Parameter & var : this->controlador->denominator()) {
+        hasUncertainPoles = hasUncertainPoles || var.isUncertain();
     }
 }
 
@@ -119,23 +117,19 @@ void AlgorithmMcThesis::set_datos(LtiSystem * planta, LtiSystem * controlador, Q
 
 inline qint32 AlgorithmMcThesis::parameterCount(LtiSystem * box) const
 {
-    return 1 + box->numerator()->size() + box->denominator()->size();
+    return 1 + box->numerator().size() + box->denominator().size();
 }
 
 inline QPointF AlgorithmMcThesis::parameterRange(LtiSystem * box, qint32 parameter) const
 {
-    Parameter * var;
+    Parameter & var = parameter == 0
+            ? box->gain()
+            : (parameter <= static_cast<qint32>(box->numerator().size())
+                   ? box->numerator()[parameter - 1]
+                   : box->denominator()[parameter - 1 - box->numerator().size()]);
 
-    if (parameter == 0) {
-        var = box->gain();
-    } else if (parameter <= box->numerator()->size()) {
-        var = box->numerator()->at(parameter - 1);
-    } else {
-        var = box->denominator()->at(parameter - 1 - box->numerator()->size());
-    }
-
-    return var->isUncertain() ? var->range()
-                              : QPointF(var->nominal(), var->nominal());
+    return var.isUncertain() ? var.range()
+                             : QPointF(var.nominal(), var.nominal());
 }
 
 //New box with one parameter's range replaced (deep copy, the original is
@@ -143,28 +137,30 @@ inline QPointF AlgorithmMcThesis::parameterRange(LtiSystem * box, qint32 paramet
 inline LtiSystem * AlgorithmMcThesis::replaceParameter(LtiSystem * box, qint32 parameter,
                                                        QPointF range) const
 {
-    auto * numerador = new QVector<Parameter*>();
-    for (qint32 j = 0; j < box->numerator()->size(); ++j) {
-        Parameter * old = box->numerator()->at(j);
-        numerador->append(parameter == j + 1
-                ? new Parameter(old->name(), range, range.x())
-                : old->clone());
+    std::vector<Parameter> numerador;
+    numerador.reserve(box->numerator().size());
+    for (qint32 j = 0; j < static_cast<qint32>(box->numerator().size()); ++j) {
+        Parameter & old = box->numerator()[j];
+        numerador.push_back(parameter == j + 1
+                ? Parameter(old.name(), range, range.x())
+                : old);
     }
 
-    auto * denominador = new QVector<Parameter*>();
-    for (qint32 j = 0; j < box->denominator()->size(); ++j) {
-        Parameter * old = box->denominator()->at(j);
-        denominador->append(parameter == j + 1 + box->numerator()->size()
-                ? new Parameter(old->name(), range, range.x())
-                : old->clone());
+    std::vector<Parameter> denominador;
+    denominador.reserve(box->denominator().size());
+    for (qint32 j = 0; j < static_cast<qint32>(box->denominator().size()); ++j) {
+        Parameter & old = box->denominator()[j];
+        denominador.push_back(parameter == j + 1 + static_cast<qint32>(box->numerator().size())
+                ? Parameter(old.name(), range, range.x())
+                : old);
     }
 
-    Parameter * gain = parameter == 0
-            ? new Parameter("kv", range, range.x(), "kv")
-            : box->gain()->clone();
+    Parameter gain = parameter == 0
+            ? Parameter("kv", range, range.x(), "kv")
+            : box->gain();
 
-    return box->create(box->name(), numerador, denominador, gain,
-                       box->delay()->clone());
+    return box->create(box->name(), std::move(numerador), std::move(denominador),
+                       std::move(gain), box->delay());
 }
 
 
@@ -201,7 +197,7 @@ bool AlgorithmMcThesis::init_algorithm()
     };
 
     //A controller with no uncertain parameter offers nothing to search.
-    if (!hasUncertainZeros && !hasUncertainPoles && !controlador->gain()->isUncertain()) {
+    if (!hasUncertainZeros && !hasUncertainPoles && !controlador->gain().isUncertain()) {
         controlador_retorno = pointFromBox(controlador, true);
         delete controlador;
         cleanup();
@@ -210,7 +206,7 @@ bool AlgorithmMcThesis::init_algorithm()
 
     //Step A/B: the initial box enters the list; its feasibility test
     //happens when it is popped (step D).
-    McSearchNode * inicial = new McSearchNode(controlador->gain()->range().x(), controlador, ambiguous);
+    McSearchNode * inicial = new McSearchNode(controlador->gain().range().x(), controlador, ambiguous);
     inicial->setStage(strategies.stages ? Stage::Initial : Stage::Intermediate);
     inicial->setCutsEnabled(true);
     inicial->setFeasibleFrequencies(new QHash<qreal, qreal>());
@@ -240,7 +236,7 @@ bool AlgorithmMcThesis::init_algorithm()
 
         //Strict comparison: a node whose infimum EQUALS C still realises
         //the certified optimum (thesis 5.4.3 prescribes < over <=).
-        if (bestCertifiedGain < node->system()->gain()->range().x()) {
+        if (bestCertifiedGain < node->system()->gain().range().x()) {
             delete node;
             continue;
         }
@@ -299,7 +295,7 @@ bool AlgorithmMcThesis::init_algorithm()
         improveNode(node, analysis, thresholds);
 
         //C may have improved inside F.
-        if (bestCertifiedGain < node->system()->gain()->range().x()) {
+        if (bestCertifiedGain < node->system()->gain().range().x()) {
             delete node;
             continue;
         }
@@ -312,12 +308,12 @@ bool AlgorithmMcThesis::init_algorithm()
                 continue;
             }
 
-            if (bestCertifiedGain < child->system()->gain()->range().x()) {
+            if (bestCertifiedGain < child->system()->gain().range().x()) {
                 delete child;
                 continue;
             }
 
-            child->setIndex(child->system()->gain()->range().x());
+            child->setIndex(child->system()->gain().range().x());
             lista->insert(child);
         }
     }
@@ -466,15 +462,15 @@ inline bool AlgorithmMcThesis::bestGainSearch(McSearchNode * node, const NodeAna
 {
     LtiSystem * box = node->system();
 
-    if (!box->gain()->isUncertain()) {
+    if (!box->gain().isUncertain()) {
         return false;
     }
 
     std::vector<double> zeroSups, poleInfs;
     cornerVectors(box, true, false, zeroSups, poleInfs);
 
-    const qreal kInf = box->gain()->range().x();
-    const qreal kSup = box->gain()->range().y();
+    const qreal kInf = box->gain().range().x();
+    const qreal kSup = box->gain().range().y();
 
     qreal lowNeeded = kInf;    //k must be >= (top-side feasible strips)
     qreal highAllowed = kSup;  //k must be <= (bottom-side feasible strips)
@@ -526,17 +522,20 @@ inline bool AlgorithmMcThesis::bestGainSearch(McSearchNode * node, const NodeAna
     //The certified point: gain at the intersection infimum, the other
     //parameters at the corner (thesis 4.3: the solution is a POINT; its
     //pseudocode substitutes into the whole box, an erratum).
-    auto * numerador = new QVector<Parameter*>();
-    foreach (qreal z, zeroSups) {
-        numerador->append(new Parameter(z));
-    }
-    auto * denominador = new QVector<Parameter*>();
-    foreach (qreal p, poleInfs) {
-        denominador->append(new Parameter(p));
+    std::vector<Parameter> numerador;
+    numerador.reserve(zeroSups.size());
+    for (double z : zeroSups) {
+        numerador.emplace_back(z);
     }
 
-    LtiSystem * point = box->create(box->name(), numerador, denominador,
-                                    new Parameter(lowNeeded), new Parameter(qreal(0)));
+    std::vector<Parameter> denominador;
+    denominador.reserve(poleInfs.size());
+    for (double p : poleInfs) {
+        denominador.emplace_back(p);
+    }
+
+    LtiSystem * point = box->create(box->name(), std::move(numerador), std::move(denominador),
+                                    Parameter(lowNeeded), Parameter(qreal(0)));
 
     if (!boxIsFeasible(point) || !stability->isNominallyStable(point)) {
         delete point;
@@ -556,7 +555,7 @@ inline bool AlgorithmMcThesis::bestGainSearch(McSearchNode * node, const NodeAna
 //prune variable and the stability criterion.
 inline void AlgorithmMcThesis::insertFeasibleBox(LtiSystem * box, McSearchNode * parent)
 {
-    const qreal gainInf = box->gain()->range().x();
+    const qreal gainInf = box->gain().range().x();
 
     if (gainInf > bestCertifiedGain) {
         delete box;
@@ -616,9 +615,9 @@ inline void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnaly
         }
 
         const bool isGain = parameter == 0;
-        const bool isZero = !isGain && parameter <= box->numerator()->size();
+        const bool isZero = !isGain && parameter <= box->numerator().size();
         const qint32 termIndex = isGain ? -1
-                : (isZero ? parameter - 1 : parameter - 1 - box->numerator()->size());
+                : (isZero ? parameter - 1 : parameter - 1 - box->numerator().size());
 
         for (qint32 family = 0; family < 2; ++family) {
 
@@ -637,8 +636,8 @@ inline void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnaly
                 std::vector<double> zeroInfs, zeroSups, poleInfs, poleSups;
                 cornerVectors(box, false, true, zeroInfs, poleSups);
                 cornerVectors(box, true, false, zeroSups, poleInfs);
-                const qreal kInf = box->gain()->range().x();
-                const qreal kSup = box->gain()->range().y();
+                const qreal kInf = box->gain().range().x();
+                const qreal kSup = box->gain().range().y();
 
                 qreal intersection = upperSide
                         ? std::numeric_limits<qreal>::lowest()
@@ -815,17 +814,17 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
     LtiSystem * v = node->system();
 
     std::vector<double> zeroInfs, zeroSups, poleInfs, poleSups;
-    foreach (Parameter * var, *v->numerator()) {
-        zeroInfs.push_back(var->isUncertain() ? var->range().x() : var->nominal());
-        zeroSups.push_back(var->isUncertain() ? var->range().y() : var->nominal());
+    for (Parameter & var : v->numerator()) {
+        zeroInfs.push_back(var.isUncertain() ? var.range().x() : var.nominal());
+        zeroSups.push_back(var.isUncertain() ? var.range().y() : var.nominal());
     }
-    foreach (Parameter * var, *v->denominator()) {
-        poleInfs.push_back(var->isUncertain() ? var->range().x() : var->nominal());
-        poleSups.push_back(var->isUncertain() ? var->range().y() : var->nominal());
+    for (Parameter & var : v->denominator()) {
+        poleInfs.push_back(var.isUncertain() ? var.range().x() : var.nominal());
+        poleSups.push_back(var.isUncertain() ? var.range().y() : var.nominal());
     }
 
-    qreal gainInf = v->gain()->range().x();
-    qreal gainSup = v->gain()->range().y();
+    qreal gainInf = v->gain().range().x();
+    qreal gainSup = v->gain().range().y();
 
     bool cut = false;
 
@@ -845,7 +844,7 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
         //Bottom strip certainly forbidden: cuts from below (NK's QS).
         if (strategies.infeasibleMagnitude && datos->isBottomLeftForbidden()) {
 
-            if (v->gain()->isUncertain()) {
+            if (v->gain().isUncertain()) {
                 const qreal k = quick_solution::gainCut(boundMin, zeroSups, poleInfs, w, p0);
                 if (k > gainInf && k < gainSup) {
                     gainInf = k;
@@ -854,7 +853,7 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
             }
 
             for (qint32 j = 0; hasUncertainZeros && j < static_cast<qint32>(zeroInfs.size()); ++j) {
-                if (!v->numerator()->at(j)->isUncertain()) continue;
+                if (!v->numerator()[j].isUncertain()) continue;
                 const qreal z = quick_solution::zeroCut(boundMin, gainSup, zeroSups, poleInfs, j, w, p0);
                 if (z > zeroInfs[j] && z < zeroSups[j]) {
                     zeroInfs[j] = z;
@@ -863,7 +862,7 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
             }
 
             for (qint32 j = 0; hasUncertainPoles && j < static_cast<qint32>(poleInfs.size()); ++j) {
-                if (!v->denominator()->at(j)->isUncertain()) continue;
+                if (!v->denominator()[j].isUncertain()) continue;
                 const qreal p = quick_solution::poleCut(boundMin, gainSup, zeroSups, poleInfs, j, w, p0);
                 if (p > poleInfs[j] && p < poleSups[j]) {
                     poleSups[j] = p;
@@ -876,7 +875,7 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
         //the loop-minimising corner and B_max.
         if (strategies.infeasibleMagnitude && datos->isTopRightForbidden()) {
 
-            if (v->gain()->isUncertain()) {
+            if (v->gain().isUncertain()) {
                 const qreal k = quick_solution::gainCut(boundMax, zeroInfs, poleSups, w, p0);
                 if (k > gainInf && k < gainSup) {
                     gainSup = k;
@@ -885,7 +884,7 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
             }
 
             for (qint32 j = 0; hasUncertainZeros && j < static_cast<qint32>(zeroInfs.size()); ++j) {
-                if (!v->numerator()->at(j)->isUncertain()) continue;
+                if (!v->numerator()[j].isUncertain()) continue;
                 const qreal z = quick_solution::zeroCut(boundMax, gainInf, zeroInfs, poleSups, j, w, p0);
                 if (z > zeroInfs[j] && z < zeroSups[j]) {
                     zeroSups[j] = z;
@@ -894,7 +893,7 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
             }
 
             for (qint32 j = 0; hasUncertainPoles && j < static_cast<qint32>(poleInfs.size()); ++j) {
-                if (!v->denominator()->at(j)->isUncertain()) continue;
+                if (!v->denominator()[j].isUncertain()) continue;
                 const qreal p = quick_solution::poleCut(boundMax, gainInf, zeroInfs, poleSups, j, w, p0);
                 if (p > poleInfs[j] && p < poleSups[j]) {
                     poleInfs[j] = p;
@@ -916,7 +915,7 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
                 const qreal thetaMax = boundPhaseMax * M_PI / 180.0;
 
                 for (qint32 j = 0; hasUncertainZeros && j < static_cast<qint32>(zeroInfs.size()); ++j) {
-                    if (!v->numerator()->at(j)->isUncertain()) continue;
+                    if (!v->numerator()[j].isUncertain()) continue;
                     const qreal z = quick_solution::zeroPhaseCutHigh(thetaMax, phi0, zeroSups, poleInfs, j, w);
                     if (z > zeroInfs[j] && z < zeroSups[j]) {
                         zeroInfs[j] = z;
@@ -925,7 +924,7 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
                 }
 
                 for (qint32 j = 0; hasUncertainPoles && j < static_cast<qint32>(poleInfs.size()); ++j) {
-                    if (!v->denominator()->at(j)->isUncertain()) continue;
+                    if (!v->denominator()[j].isUncertain()) continue;
                     const qreal p = quick_solution::polePhaseCutHigh(thetaMax, phi0, zeroSups, poleInfs, j, w);
                     if (p > poleInfs[j] && p < poleSups[j]) {
                         poleSups[j] = p;
@@ -939,7 +938,7 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
                 const qreal thetaMin = boundPhaseMin * M_PI / 180.0;
 
                 for (qint32 j = 0; hasUncertainZeros && j < static_cast<qint32>(zeroInfs.size()); ++j) {
-                    if (!v->numerator()->at(j)->isUncertain()) continue;
+                    if (!v->numerator()[j].isUncertain()) continue;
                     const qreal z = quick_solution::zeroPhaseCutLow(thetaMin, phi0, zeroInfs, poleSups, j, w);
                     if (z > zeroInfs[j] && z < zeroSups[j]) {
                         zeroSups[j] = z;
@@ -948,7 +947,7 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
                 }
 
                 for (qint32 j = 0; hasUncertainPoles && j < static_cast<qint32>(poleInfs.size()); ++j) {
-                    if (!v->denominator()->at(j)->isUncertain()) continue;
+                    if (!v->denominator()[j].isUncertain()) continue;
                     const qreal p = quick_solution::polePhaseCutLow(thetaMin, phi0, zeroInfs, poleSups, j, w);
                     if (p > poleInfs[j] && p < poleSups[j]) {
                         poleInfs[j] = p;
@@ -963,27 +962,27 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
         return;
     }
 
-    auto * numerador = new QVector<Parameter*>();
+    std::vector<Parameter> numerador;
     for (qint32 j = 0; j < static_cast<qint32>(zeroInfs.size()); ++j) {
-        Parameter * old = v->numerator()->at(j);
-        numerador->append(old->isUncertain()
-                ? new Parameter(old->name(), QPointF(zeroInfs[j], zeroSups[j]), zeroInfs[j])
-                : new Parameter(old->nominal()));
+        Parameter & old = v->numerator()[j];
+        numerador.push_back(old.isUncertain()
+                ? Parameter(old.name(), QPointF(zeroInfs[j], zeroSups[j]), zeroInfs[j])
+                : Parameter(old.nominal()));
     }
 
-    auto * denominador = new QVector<Parameter*>();
+    std::vector<Parameter> denominador;
     for (qint32 j = 0; j < static_cast<qint32>(poleInfs.size()); ++j) {
-        Parameter * old = v->denominator()->at(j);
-        denominador->append(old->isUncertain()
-                ? new Parameter(old->name(), QPointF(poleInfs[j], poleSups[j]), poleInfs[j])
-                : new Parameter(old->nominal()));
+        Parameter & old = v->denominator()[j];
+        denominador.push_back(old.isUncertain()
+                ? Parameter(old.name(), QPointF(poleInfs[j], poleSups[j]), poleInfs[j])
+                : Parameter(old.nominal()));
     }
 
     LtiSystem * nuevo = v->create(v->name(), numerador, denominador,
-            v->gain()->isUncertain()
-                ? new Parameter("kv", QPointF(gainInf, gainSup), gainInf, "kv")
-                : new Parameter(v->gain()->nominal()),
-            v->delay()->clone());
+            v->gain().isUncertain()
+                ? Parameter("kv", QPointF(gainInf, gainSup), gainInf, "kv")
+                : Parameter(v->gain().nominal()),
+            v->delay());
 
     delete v;
     node->setSystem(nuevo);
@@ -1004,7 +1003,7 @@ inline FC::McBisectionResult AlgorithmMcThesis::bisectAt(McSearchNode * node, qi
     LtiSystem * upper = replaceParameter(box, parameter, QPointF(point, range.y()));
 
     const auto makeChild = [&](LtiSystem * system) {
-        McSearchNode * t = new McSearchNode(system->gain()->range().x(), system, ambiguous);
+        McSearchNode * t = new McSearchNode(system->gain().range().x(), system, ambiguous);
         t->setStage(node->stage());
         t->setCutsEnabled(node->cutsEnabled());
         t->setFeasibleFrequencies(node->feasibleFrequencies() != nullptr
@@ -1057,20 +1056,20 @@ inline qint32 AlgorithmMcThesis::widestByMeasure(McSearchNode * node, qint32 mai
         }
     };
 
-    if (box->gain()->isUncertain()) {
+    if (box->gain().isUncertain()) {
         consider(0, conversion->gainTermBox(box->gain(), p0), true);
     }
 
-    for (qint32 j = 0; j < box->numerator()->size(); ++j) {
-        if (box->numerator()->at(j)->isUncertain()) {
-            consider(j + 1, conversion->numeratorTermBox(box->numerator()->at(j), w, p0), false);
+    for (qint32 j = 0; j < box->numerator().size(); ++j) {
+        if (box->numerator()[j].isUncertain()) {
+            consider(j + 1, conversion->numeratorTermBox(box->numerator()[j], w, p0), false);
         }
     }
 
-    for (qint32 j = 0; j < box->denominator()->size(); ++j) {
-        if (box->denominator()->at(j)->isUncertain()) {
-            consider(j + 1 + box->numerator()->size(),
-                     conversion->denominatorTermBox(box->denominator()->at(j), w, p0), false);
+    for (qint32 j = 0; j < box->denominator().size(); ++j) {
+        if (box->denominator()[j].isUncertain()) {
+            consider(j + 1 + box->numerator().size(),
+                     conversion->denominatorTermBox(box->denominator()[j], w, p0), false);
         }
     }
 

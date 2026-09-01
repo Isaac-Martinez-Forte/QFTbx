@@ -1,6 +1,9 @@
 #ifndef QFTBX_SPECIFICATIONS_DIALOG_H
 #define QFTBX_SPECIFICATIONS_DIALOG_H
 
+#include <optional>
+#include <vector>
+
 #include <QDialog>
 #include <QPixmap>
 
@@ -92,10 +95,10 @@ private:
     void setDatos (qftbx::SpecificationRecord * record_in, qftbx::SpecificationRecord * upperRecord);
     void saveActiveTab();
 
-    QVector <Parameter * > * buildParameters(QString linea);
-    Parameter * buildScalar(QString linea, bool isK);
+    std::optional<std::vector<Parameter>> buildParameters(QString linea);
+    std::optional<Parameter> buildScalar(QString linea, bool isK);
 
-    static QString coefficientsText(QVector <Parameter *> * parametros);
+    static QString coefficientsText(std::vector<Parameter> & parametros);
     static QString numeratorText(LtiSystem * sistema);
     static QString denominatorText(LtiSystem * sistema);
 

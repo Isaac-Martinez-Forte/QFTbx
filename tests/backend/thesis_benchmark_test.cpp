@@ -84,10 +84,10 @@ TEST(ThesisBenchmarkFixture, QftToolboxEx2LoadsWithTheFullPipeline)
     LtiSystem* plant = controller.getPlanta();
     ASSERT_NE(plant, nullptr);
     EXPECT_EQ(plant->type(), LtiSystem::SystemType::FreeForm);
-    EXPECT_TRUE(plant->gain()->isUncertain());
-    EXPECT_EQ(plant->gain()->range(), QPointF(1.0, 10.0));
-    ASSERT_EQ(plant->numerator()->size(), 1);
-    EXPECT_EQ(plant->numerator()->at(0)->range(), QPointF(1.0, 10.0));
+    EXPECT_TRUE(plant->gain().isUncertain());
+    EXPECT_EQ(plant->gain().range(), QPointF(1.0, 10.0));
+    ASSERT_EQ(plant->numerator().size(), 1);
+    EXPECT_EQ(plant->numerator()[0].range(), QPointF(1.0, 10.0));
 
     const QVector<qreal> expectedOmega{0.1, 0.5, 1.0, 2.0, 15.0, 100.0};
     ASSERT_NE(controller.getOmega(), nullptr);
@@ -126,9 +126,9 @@ TEST(ThesisBenchmarkFixture, Acc90LoadsWithTheFullPipeline)
     LtiSystem* plant = controller.getPlanta();
     ASSERT_NE(plant, nullptr);
     EXPECT_EQ(plant->type(), LtiSystem::SystemType::FreeForm);
-    EXPECT_FALSE(plant->gain()->isUncertain());
-    ASSERT_EQ(plant->numerator()->size(), 1);
-    EXPECT_EQ(plant->numerator()->at(0)->range(), QPointF(0.5, 2.0));
+    EXPECT_FALSE(plant->gain().isUncertain());
+    ASSERT_EQ(plant->numerator().size(), 1);
+    EXPECT_EQ(plant->numerator()[0].range(), QPointF(0.5, 2.0));
 
     const QVector<qreal> expectedOmega{0.1, 0.98, 0.99, 1.0, 2.0, 5.0,
                                        7.0, 8.5, 10.0, 15.0, 20.0, 100.0};
@@ -197,14 +197,14 @@ TEST_P(ThesisBenchmarkGolden, ResultIsPinned)
                std::abs(expected) * 1e-4 + 1e-12;
     };
 
-    EXPECT_TRUE(near(result->gain()->range().x(), golden.gain))
-        << golden.name << " gain " << result->gain()->range().x();
-    ASSERT_EQ(result->numerator()->size(), 1);
-    ASSERT_EQ(result->denominator()->size(), 1);
-    EXPECT_TRUE(near(result->numerator()->at(0)->range().x(), golden.zero))
-        << golden.name << " zero " << result->numerator()->at(0)->range().x();
-    EXPECT_TRUE(near(result->denominator()->at(0)->range().x(), golden.pole))
-        << golden.name << " pole " << result->denominator()->at(0)->range().x();
+    EXPECT_TRUE(near(result->gain().range().x(), golden.gain))
+        << golden.name << " gain " << result->gain().range().x();
+    ASSERT_EQ(result->numerator().size(), 1);
+    ASSERT_EQ(result->denominator().size(), 1);
+    EXPECT_TRUE(near(result->numerator()[0].range().x(), golden.zero))
+        << golden.name << " zero " << result->numerator()[0].range().x();
+    EXPECT_TRUE(near(result->denominator()[0].range().x(), golden.pole))
+        << golden.name << " pole " << result->denominator()[0].range().x();
 }
 
 INSTANTIATE_TEST_SUITE_P(

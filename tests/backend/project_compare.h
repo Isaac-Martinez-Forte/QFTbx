@@ -27,8 +27,8 @@ inline void expectSameSystem(LtiSystem* a, LtiSystem* b,
     }
     EXPECT_EQ(a->type(), b->type()) << what;
     EXPECT_EQ(a->name(), b->name()) << what;
-    EXPECT_EQ(a->numerator()->size(), b->numerator()->size()) << what;
-    EXPECT_EQ(a->denominator()->size(), b->denominator()->size()) << what;
+    EXPECT_EQ(a->numerator().size(), b->numerator().size()) << what;
+    EXPECT_EQ(a->denominator().size(), b->denominator().size()) << what;
 
     for (qreal w : probes) {
         const std::complex<qreal> va = a->evaluate(w);

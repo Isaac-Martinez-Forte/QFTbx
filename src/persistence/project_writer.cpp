@@ -68,18 +68,18 @@ void addBool(pugi::xml_node parent, const char * name, bool value)
     parent.append_child(name).text().set(value ? "true" : "false");
 }
 
-void writeParameter(pugi::xml_node parent, Parameter * parameter)
+void writeParameter(pugi::xml_node parent, Parameter & parameter)
 {
     pugi::xml_node node = parent.append_child("parameter");
-    addReal(node, t.nominal, parameter->nominal());
-    addBool(node, t.uncertain, parameter->isUncertain());
+    addReal(node, t.nominal, parameter.nominal());
+    addBool(node, t.uncertain, parameter.isUncertain());
 
-    if (parameter->isUncertain()) {
-        addText(node, t.parameterName, parameter->name().toStdString());
-        addText(node, t.parameterExpression, parameter->expression().toStdString());
+    if (parameter.isUncertain()) {
+        addText(node, t.parameterName, parameter.name().toStdString());
+        addText(node, t.parameterExpression, parameter.expression().toStdString());
         pugi::xml_node range = node.append_child(t.range);
-        addReal(range, t.rangeMin, parameter->range().x());
-        addReal(range, t.rangeMax, parameter->range().y());
+        addReal(range, t.rangeMin, parameter.range().x());
+        addReal(range, t.rangeMax, parameter.range().y());
     }
 }
 
@@ -101,14 +101,14 @@ void writeSystem(pugi::xml_node parent, const char * sectionName, LtiSystem * sy
     }
 
     pugi::xml_node numerator = typeNode.append_child(t.numerator);
-    numerator.append_attribute("size") = system->numerator()->size();
-    foreach (Parameter * parameter, *system->numerator()) {
+    numerator.append_attribute("size") = system->numerator().size();
+    for (Parameter & parameter : system->numerator()) {
         writeParameter(numerator, parameter);
     }
 
     pugi::xml_node denominator = typeNode.append_child(t.denominator);
-    denominator.append_attribute("size") = system->denominator()->size();
-    foreach (Parameter * parameter, *system->denominator()) {
+    denominator.append_attribute("size") = system->denominator().size();
+    for (Parameter & parameter : system->denominator()) {
         writeParameter(denominator, parameter);
     }
 

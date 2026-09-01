@@ -1,3 +1,4 @@
+#include <vector>
 #include "controller_dialog.h"
 #include "ui_controller_dialog.h"
 
@@ -267,14 +268,14 @@ void ControllerDialog::on_okButton_clicked()
     }
 
 
-    Parameter * kv = nullptr;
-    Parameter * retv = nullptr;
+    Parameter kv;
+    Parameter retv;
 
     //User expressions: a syntax error used to throw and bring the
     //application down.
     try {
         if (valueTable->at(2)->size() == 0){
-            kv = new Parameter (1);
+            kv = Parameter(1);
         }else{
 
             QPointF range_point;
@@ -285,7 +286,7 @@ void ControllerDialog::on_okButton_clicked()
             range_point.setY(p.Eval().GetFloat());
 
             if (range_point.x() == range_point.y()){
-                kv = new Parameter (range_point.x());
+                kv = Parameter(range_point.x());
             }else {
 
                 if (range_point.x() > range_point.y()){
@@ -294,7 +295,7 @@ void ControllerDialog::on_okButton_clicked()
                     range_point.setY(a);
                 }
 
-                kv = new Parameter ("kv", range_point, (range_point.x() + range_point.y()) / 2);
+                kv = Parameter("kv", range_point, (range_point.x() + range_point.y()) / 2);
             }
         }
     } catch (mup::ParserError &) {
@@ -303,15 +304,15 @@ void ControllerDialog::on_okButton_clicked()
         return;
     }
 
-    retv = new Parameter (0.0);
+    retv = Parameter(0.0);
 
 
     //The uncertainty only counts if its dialog was ACCEPTED.
     if (uncertaintyEntered && uncertaintyDialog->getTodoCorrecto()){
-        //The controller takes ownership of its parameters: it receives
-        //copies and the uncertainty dialog keeps its originals for editing.
-        QVector <Parameter*> * numeratorEdit = Parameter::cloneVector(uncertaintyDialog->numerator());
-        QVector <Parameter*> * denominatorEdit = Parameter::cloneVector(uncertaintyDialog->denominator());
+        //The controller receives COPIES: the uncertainty dialog keeps its
+        //own parameters for further editing.
+        std::vector<Parameter> numeratorEdit = uncertaintyDialog->numerator();
+        std::vector<Parameter> denominatorEdit = uncertaintyDialog->denominator();
 
         if (ui->zpkRadio->isChecked()){
             controllerSystem = new ZeroPoleGain("",numeratorEdit, denominatorEdit,kv,retv);
@@ -351,9 +352,9 @@ void ControllerDialog::on_okButton_clicked()
 }
 
 
-QVector <Parameter * > * ControllerDialog::buildParameters(QVector <QString> * numeros){
-    QVector <Parameter *> * var = new QVector <Parameter *> ();
-    var->reserve(numeros->size());
+std::vector<Parameter> ControllerDialog::buildParameters(QVector <QString> * numeros){
+    std::vector<Parameter> var;
+    var.reserve(numeros->size());
 
     if (numeros->isEmpty()){
         return var;
@@ -362,10 +363,10 @@ QVector <Parameter * > * ControllerDialog::buildParameters(QVector <QString> * n
     foreach (const QString &string, *numeros) {
         p.SetExpr(string.toStdString());
         try {
-            var->append(new Parameter(p.Eval().GetFloat()));
+            var.push_back(Parameter(p.Eval().GetFloat()));
         } catch (mup::ParserError &) {
             //Invalid coefficient: 0 instead of bringing the application down.
-            var->append(new Parameter(qreal(0)));
+            var.push_back(Parameter(qreal(0)));
         }
     }
 

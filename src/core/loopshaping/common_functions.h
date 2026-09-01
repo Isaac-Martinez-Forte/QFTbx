@@ -43,51 +43,34 @@ enum diagrama {Nichol = false, Nyquist = true};
 //thesis sec. 3.1): maximum gain and zeros push the box up, but poles push
 //it DOWN, so poles take their minimum (the historical code took every
 //maximum, stepping AWAY from the allowed side in the pole directions).
-inline LtiSystem * pointFromBox(LtiSystem *controlador, bool x) {
+inline LtiSystem * pointFromBox(LtiSystem * controlador, bool x) {
 
+    std::vector <Parameter> numerador;
+    numerador.reserve(controlador->numerator().size());
 
-    QVector <Parameter *> * nume = controlador->numerator();
-    QVector <Parameter *> * numerador = new QVector <Parameter *> ();
-
-    foreach (Parameter * v, *nume) {
-        if (v->isUncertain()){
-            if (x){
-                numerador->append(new Parameter (v->range().x()));
-            }else {
-                numerador->append(new Parameter (v->range().y()));
-            }
+    for (Parameter & v : controlador->numerator()) {
+        if (!v.isUncertain()){
+            numerador.emplace_back(v.nominal());
         } else {
-            numerador->append(new Parameter (v->nominal()));
+            numerador.emplace_back(x ? v.range().x() : v.range().y());
         }
     }
 
-    QVector <Parameter *> * deno = controlador->denominator();
-    QVector <Parameter *> * denominador = new QVector <Parameter *> ();
+    std::vector <Parameter> denominador;
+    denominador.reserve(controlador->denominator().size());
 
-    foreach (Parameter * v, *deno) {
-        if (v->isUncertain()){
-            //Poles always take the lower corner: a larger pole moves the
-            //projection towards the forbidden side.
-            denominador->append(new Parameter (v->range().x()));
-        } else {
-            denominador->append(new Parameter (v->nominal()));
-        }
+    for (Parameter & v : controlador->denominator()) {
+        //Poles always take the lower corner: a larger pole moves the
+        //projection towards the forbidden side.
+        denominador.emplace_back(v.isUncertain() ? v.range().x() : v.nominal());
     }
 
-    Parameter * k;
+    const qreal k = x ? controlador->gain().range().x()
+                      : controlador->gain().range().y();
 
-    if (x){
-        k = new Parameter (controlador->gain()->range().x());
-    } else {
-        k = new Parameter (controlador->gain()->range().y());
-    }
-
-
-
-    LtiSystem * s = controlador->create(controlador->name(), numerador, denominador,
-                                      k, new Parameter ((qreal) 0));
-
-    return s;
+    return controlador->create(controlador->name(), std::move(numerador),
+                               std::move(denominador), Parameter(k),
+                               Parameter(qreal(0)));
 }
 
 inline bool isEpsilonSmall(LtiSystem * controlador, qreal epsilon, QVector <qreal> * omega,
@@ -115,27 +98,27 @@ inline BisectionResult bisectWidestParameter(LtiSystem * box) {
     qreal width = -1;
     QPointF range;
 
-    if (box->gain()->isUncertain()) {
-        range = box->gain()->range();
+    if (box->gain().isUncertain()) {
+        range = box->gain().range();
         widest = -1;
         width = range.y() - range.x();
     }
 
     qint32 position = 0;
 
-    const auto consider = [&](Parameter * var) {
-        if (var->isUncertain() && var->range().y() - var->range().x() > width) {
+    const auto consider = [&](Parameter & var) {
+        if (var.isUncertain() && var.range().y() - var.range().x() > width) {
             widest = position;
-            width = var->range().y() - var->range().x();
-            range = var->range();
+            width = var.range().y() - var.range().x();
+            range = var.range();
         }
         position++;
     };
 
-    foreach (Parameter * var, *box->numerator()) {
+    for (Parameter & var : box->numerator()) {
         consider(var);
     }
-    foreach (Parameter * var, *box->denominator()) {
+    for (Parameter & var : box->denominator()) {
         consider(var);
     }
 
@@ -150,28 +133,30 @@ inline BisectionResult bisectWidestParameter(LtiSystem * box) {
         const QPointF halfRange = lower ? QPointF(range.x(), middle)
                                         : QPointF(middle, range.y());
 
-        Parameter * gain = widest == -1
-                ? new Parameter(box->gain()->name(), halfRange, halfRange.x(), box->gain()->name())
-                : box->gain()->clone();
+        Parameter gain = widest == -1
+                ? Parameter(box->gain().name(), halfRange, halfRange.x(), box->gain().name())
+                : box->gain();
 
         qint32 index = 0;
 
-        auto * numerator = new QVector<Parameter*>();
-        foreach (Parameter * var, *box->numerator()) {
-            numerator->append(index++ == widest
-                    ? new Parameter(var->name(), halfRange, halfRange.x())
-                    : var->clone());
+        std::vector <Parameter> numerator;
+        numerator.reserve(box->numerator().size());
+        for (Parameter & var : box->numerator()) {
+            numerator.push_back(index++ == widest
+                    ? Parameter(var.name(), halfRange, halfRange.x())
+                    : var);
         }
 
-        auto * denominator = new QVector<Parameter*>();
-        foreach (Parameter * var, *box->denominator()) {
-            denominator->append(index++ == widest
-                    ? new Parameter(var->name(), halfRange, halfRange.x())
-                    : var->clone());
+        std::vector <Parameter> denominator;
+        denominator.reserve(box->denominator().size());
+        for (Parameter & var : box->denominator()) {
+            denominator.push_back(index++ == widest
+                    ? Parameter(var.name(), halfRange, halfRange.x())
+                    : var);
         }
 
-        return box->create(box->name(), numerator, denominator, gain,
-                           box->delay()->clone());
+        return box->create(box->name(), std::move(numerator), std::move(denominator),
+                           std::move(gain), box->delay());
     };
 
     BisectionResult retur;

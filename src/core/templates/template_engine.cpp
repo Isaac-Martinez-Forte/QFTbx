@@ -94,15 +94,15 @@ QVector<QVector<complex<qreal> > *> * TemplateEngine::contours(){
     return m_contours;
 }
 
-QVector<qreal> * TemplateEngine::gridFor(Parameter * a){
+QVector<qreal> * TemplateEngine::gridFor(Parameter & a){
 
     //Keyed by NAME: pointer identity went stale on every clone() or
     //project reload.
-    QVector<qreal> * values = m_grids->value(a->name());
+    QVector<qreal> * values = m_grids->value(a.name());
 
     if (values == NULL){
         throw qftbx::InvalidInput("Missing sweep grid for the uncertain parameter '"
-                                  + a->name().toStdString() + "'.");
+                                  + a.name().toStdString() + "'.");
     }
 
     return values;
@@ -118,18 +118,18 @@ QVector<QVector<complex<qreal> > * > * TemplateEngine::computeClouds(LtiSystem *
 
     m_combinationCount = 1;
 
-    auto collect = [&](Parameter * var){
-        if (var->isUncertain() && !names.contains(var->name())){
+    auto collect = [&](Parameter & var){
+        if (var.isUncertain() && !names.contains(var.name())){
             const QVector <qreal> * rejilla = gridFor(var);
-            names.append(var->name());
+            names.append(var.name());
             grids.append(rejilla);
             m_combinationCount *= rejilla->size();
         }
     };
 
-    foreach (Parameter * var, *plant->numerator())
+    for (Parameter & var : plant->numerator())
         collect(var);
-    foreach (Parameter * var, *plant->denominator())
+    for (Parameter & var : plant->denominator())
         collect(var);
     collect(plant->gain());
     collect(plant->delay());

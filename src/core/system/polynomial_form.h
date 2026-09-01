@@ -21,10 +21,10 @@ namespace qftbx {
 class PolynomialForm : public TransferFunction
 {
 public:
-    PolynomialForm(QString name, QVector <Parameter*> * numerator, QVector <Parameter*> * denominator, Parameter * k, Parameter* delay);
+    PolynomialForm(QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator, Parameter k, Parameter delay);
 
-    LtiSystem * create (QString name, QVector <Parameter*> * numerator, QVector <Parameter*> * denominator,
-                              Parameter * k, Parameter* delay, QString numeratorExpr = 0, QString denominatorExpr = 0);
+    LtiSystem * create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
+                              Parameter k, Parameter delay = Parameter(qreal(0)), QString numeratorExpr = QString(), QString denominatorExpr = QString());
 
     ~PolynomialForm();
 

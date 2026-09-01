@@ -1,6 +1,8 @@
 #ifndef QFTBX_CONTROLLER_DIALOG_H
 #define QFTBX_CONTROLLER_DIALOG_H
 
+#include <vector>
+
 #include <QDialog>
 #include <QRegularExpression>
 
@@ -57,7 +59,7 @@ private:
 
     QVector<QVector<QString> *> * readTables(QVector <QVector <QString> * > * expressionTable,
                                             QVector <QVector <bool> * > * uncertainTable);
-    QVector<Parameter *> * buildParameters(QVector<QString> *numeros);
+    std::vector<Parameter> buildParameters(QVector<QString> *numeros);
     bool parse(QString cadena);
     bool parseCoefficients(QVector<QVector <QString> * > * tabla, QLineEdit *linea,
                         QVector<QVector <QString> * > * expressionTable, QVector <QVector <bool> * > * uncertainTable);

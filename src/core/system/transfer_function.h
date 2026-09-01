@@ -1,6 +1,8 @@
 #ifndef QFTBX_TRANSFER_FUNCTION_H
 #define QFTBX_TRANSFER_FUNCTION_H
 
+#include <vector>
+
 #include "lti_system.h"
 #include <QVector>
 #include "src/core/system/parameter.h"
@@ -11,20 +13,19 @@ namespace qftbx {
 /**
  * @brief Common implementation for transfer-function systems.
  *
- * Owns the numerator/denominator Parameter vectors, the gain and the delay
- * (whoever constructs a system hands over ownership; releaseOwnership()
- * disarms deletion for structures that share the pointers). Subclasses only
- * provide the expression generators for their mathematical form.
+ * Holds the numerator/denominator parameters, the gain and the delay BY
+ * VALUE. Subclasses only provide the expression generators for their
+ * mathematical form.
  */
 class TransferFunction : public LtiSystem
 {
 public:
-    TransferFunction(QString name, QVector <Parameter*> * numerator, QVector <Parameter*> * denominator, Parameter * k, Parameter* delay);
+    TransferFunction(QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
+                     Parameter k, Parameter delay);
 
-    virtual LtiSystem * create (QString name, QVector <Parameter*> * numerator, QVector <Parameter*> * denominator,
-                              Parameter * k, Parameter* delay = NULL, QString numeratorExpr = 0, QString denominatorExpr = 0) = 0;
-
-    ~TransferFunction();
+    virtual LtiSystem * create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
+                              Parameter k, Parameter delay = Parameter(qreal(0)),
+                              QString numeratorExpr = QString(), QString denominatorExpr = QString()) = 0;
 
     std::complex <qreal> evaluate (qreal omega);
 
@@ -44,33 +45,28 @@ public:
 
     virtual std::complex <qreal> evaluateDenominator(QVector <qreal> * deno, qreal omega) = 0;
 
-    QVector <Parameter*> * numerator();
+    std::vector <Parameter> & numerator();
 
-    void releaseOwnership ();
-
-    QVector <Parameter*> * denominator();
+    std::vector <Parameter> & denominator();
 
     QString numeratorString();
 
     QString denominatorString();
 
-    Parameter * gain();
+    Parameter & gain();
 
-    Parameter * delay();
+    Parameter & delay();
 
     virtual SystemType type() = 0;
 
     LtiSystem * clone ();
 
 protected:
-    Parameter * m_gain;
-    Parameter * m_delay;
+    Parameter m_gain;
+    Parameter m_delay;
 
-    QVector <Parameter*> * m_numerator;
-    QVector <Parameter*> * m_denominator;
-
-    bool m_ownsData = true;
-
+    std::vector <Parameter> m_numerator;
+    std::vector <Parameter> m_denominator;
 };
 
 

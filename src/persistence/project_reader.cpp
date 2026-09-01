@@ -138,19 +138,19 @@ public:
         return points;
     }
 
-    Parameter * readParameter(const pugi::xml_node & node) const
+    Parameter readParameter(const pugi::xml_node & node) const
     {
         const qreal nominal = realChild(node, t.nominal);
         const bool uncertain = boolChild(node, t.uncertain);
 
         if (!uncertain) {
-            auto * parameter = new Parameter(nominal);
+            Parameter parameter(nominal);
             //Historical quirk kept for compatibility: some old controller
             //records carry a range on a non-uncertain parameter.
             const pugi::xml_node range = node.child(t.range);
             if (range) {
-                parameter->setRange(QPointF(realChild(range, t.rangeMin),
-                                            realChild(range, t.rangeMax)));
+                parameter.setRange(QPointF(realChild(range, t.rangeMin),
+                                           realChild(range, t.rangeMax)));
             }
             return parameter;
         }
@@ -162,9 +162,9 @@ public:
         const QString expression = QString(require(node, t.parameterExpression).text().get());
         const pugi::xml_node range = require(node, t.range);
 
-        return new Parameter(name, QPointF(realChild(range, t.rangeMin),
-                                           realChild(range, t.rangeMax)),
-                             nominal, expression);
+        return Parameter(name, QPointF(realChild(range, t.rangeMin),
+                                       realChild(range, t.rangeMax)),
+                         nominal, expression);
     }
 
     LtiSystem * readSystem(const pugi::xml_node & systemNode) const
@@ -182,42 +182,43 @@ public:
             denominatorExpression = QString(require(expressionNode, t.denominator).text().get());
         }
 
-        auto * numerator = new QVector <Parameter *> ();
+        std::vector <Parameter> numerator;
         for (const pugi::xml_node & child : require(typeNode, t.numerator).children()) {
-            numerator->append(readParameter(child));
+            numerator.push_back(readParameter(child));
         }
 
-        auto * denominator = new QVector <Parameter *> ();
+        std::vector <Parameter> denominator;
         for (const pugi::xml_node & child : require(typeNode, t.denominator).children()) {
-            denominator->append(readParameter(child));
+            denominator.push_back(readParameter(child));
         }
 
         //Gain and delay: the two parameter elements that are direct children
         //of <type> (the legacy dialect names them variable-k/variable-ret).
-        QVector <Parameter *> scalars;
+        std::vector <Parameter> scalars;
         for (const pugi::xml_node & child : typeNode.children()) {
             if (child.child(t.nominal)) {
-                scalars.append(readParameter(child));
+                scalars.push_back(readParameter(child));
             }
         }
         if (scalars.size() != 2) {
-            for (Parameter * scalar : scalars) {
-                delete scalar;
-            }
             fail(typeNode, "expected exactly a gain and a delay parameter");
         }
-        Parameter * gain = scalars.at(0);
-        Parameter * delay = scalars.at(1);
+        Parameter gain = scalars.at(0);
+        Parameter delay = scalars.at(1);
 
         switch (type) {
         case LtiSystem::SystemType::PolynomialForm:
-            return new PolynomialForm(name, numerator, denominator, gain, delay);
+            return new PolynomialForm(name, std::move(numerator), std::move(denominator),
+                                      std::move(gain), std::move(delay));
         case LtiSystem::SystemType::ZeroPoleGain:
-            return new ZeroPoleGain(name, numerator, denominator, gain, delay);
+            return new ZeroPoleGain(name, std::move(numerator), std::move(denominator),
+                                    std::move(gain), std::move(delay));
         case LtiSystem::SystemType::TimeConstantGain:
-            return new TimeConstantGain(name, numerator, denominator, gain, delay);
+            return new TimeConstantGain(name, std::move(numerator), std::move(denominator),
+                                        std::move(gain), std::move(delay));
         case LtiSystem::SystemType::FreeForm:
-            return new FreeForm(name, numerator, denominator, gain, delay,
+            return new FreeForm(name, std::move(numerator), std::move(denominator),
+                                std::move(gain), std::move(delay),
                                 numeratorExpression, denominatorExpression);
         default:
             break;

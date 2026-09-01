@@ -24,6 +24,7 @@
 
 #include <cmath>
 #include <complex>
+#include <vector>
 #include <initializer_list>
 
 #include <QPointF>
@@ -41,16 +42,16 @@ namespace {
 LtiSystem* zpk(qreal k, std::initializer_list<qreal> zeros,
                std::initializer_list<qreal> poles)
 {
-    auto* nume = new QVector<Parameter*>();
+    std::vector<Parameter> nume;
     for (qreal z : zeros) {
-        nume->append(new Parameter(z));
+        nume.push_back(Parameter(z));
     }
-    auto* deno = new QVector<Parameter*>();
+    std::vector<Parameter> deno;
     for (qreal p : poles) {
-        deno->append(new Parameter(p));
+        deno.push_back(Parameter(p));
     }
     return new ZeroPoleGain(QStringLiteral("ref"), nume, deno,
-                            new Parameter(k), new Parameter(qreal(0)));
+                            Parameter(k), Parameter(qreal(0)));
 }
 
 class LiteratureValidation : public ::testing::Test

@@ -16,12 +16,12 @@ namespace {
 const qreal kTwoPi = 2.0 * M_PI;
 const qreal kRadToDeg = 180.0 / M_PI;
 
-interval parameterInterval(Parameter * parameter)
+interval parameterInterval(Parameter & parameter)
 {
-    if (parameter->isUncertain()) {
-        return interval(parameter->range().x(), parameter->range().y());
+    if (parameter.isUncertain()) {
+        return interval(parameter.range().x(), parameter.range().y());
     }
-    return interval(parameter->nominal());
+    return interval(parameter.nominal());
 }
 
 //The projection below multiplies (jw + parameter) factors: the thesis'
@@ -47,7 +47,7 @@ void ensureSupportedStructure(LtiSystem::SystemType type)
 
 } // namespace
 
-cinterval NaturalIntervalExtension::factorProduct(QVector<Parameter*> * parameters,
+cinterval NaturalIntervalExtension::factorProduct(std::vector<Parameter> & parameters,
                                                   qreal w)
 {
     //Neutral element: an empty vector stands for the constant 1 (the
@@ -56,7 +56,7 @@ cinterval NaturalIntervalExtension::factorProduct(QVector<Parameter*> * paramete
     cinterval product(interval(1.0), interval(0.0));
     const complex jw(0.0, w);
 
-    foreach (Parameter * parameter, *parameters) {
+    for (Parameter & parameter : parameters) {
         product = product * (jw + parameterInterval(parameter));
     }
 
@@ -164,7 +164,7 @@ cinterval NaturalIntervalExtension::nicholsBox(LtiSystem * controller, qreal w,
     return cinterval(toDecibel(magnitude), theta * kRadToDeg);
 }
 
-cinterval NaturalIntervalExtension::numeratorBox(QVector<Parameter*> * numerator,
+cinterval NaturalIntervalExtension::numeratorBox(std::vector<Parameter> & numerator,
                                                  qreal w, LtiSystem::SystemType type)
 {
     ensureSupportedStructure(type);
@@ -174,7 +174,7 @@ cinterval NaturalIntervalExtension::numeratorBox(QVector<Parameter*> * numerator
     return cinterval(toDecibel(abs(a)), argEnclosure(a) * kRadToDeg);
 }
 
-cinterval NaturalIntervalExtension::denominatorBox(QVector<Parameter*> * denominator,
+cinterval NaturalIntervalExtension::denominatorBox(std::vector<Parameter> & denominator,
                                                    qreal w, LtiSystem::SystemType type)
 {
     //The denominator product is enclosed as such (not inverted): the
@@ -182,7 +182,7 @@ cinterval NaturalIntervalExtension::denominatorBox(QVector<Parameter*> * denomin
     return numeratorBox(denominator, w, type);
 }
 
-cinterval NaturalIntervalExtension::numeratorTermBox(Parameter * zero, qreal w,
+cinterval NaturalIntervalExtension::numeratorTermBox(Parameter & zero, qreal w,
                                                      complex p0)
 {
     const cinterval a = (complex(0.0, w) + parameterInterval(zero)) * p0;
@@ -190,7 +190,7 @@ cinterval NaturalIntervalExtension::numeratorTermBox(Parameter * zero, qreal w,
     return cinterval(toDecibel(abs(a)), argEnclosure(a) * kRadToDeg);
 }
 
-cinterval NaturalIntervalExtension::denominatorTermBox(Parameter * pole, qreal w,
+cinterval NaturalIntervalExtension::denominatorTermBox(Parameter & pole, qreal w,
                                                        complex p0)
 {
     const cinterval a = 1.0 / (complex(0.0, w) + parameterInterval(pole)) * p0;
@@ -198,7 +198,7 @@ cinterval NaturalIntervalExtension::denominatorTermBox(Parameter * pole, qreal w
     return cinterval(toDecibel(abs(a)), argEnclosure(a) * kRadToDeg);
 }
 
-cinterval NaturalIntervalExtension::gainTermBox(Parameter * gain, complex p0)
+cinterval NaturalIntervalExtension::gainTermBox(Parameter & gain, complex p0)
 {
     const cinterval a = parameterInterval(gain) * p0;
 

@@ -32,23 +32,25 @@ TEST(PlantFixture, CerveraRoundTrip)
     EXPECT_EQ(planta->numeratorString(), QStringLiteral("a"));
     EXPECT_EQ(planta->denominatorString(), QStringLiteral("(s^2)*((s^2) + a)"));
 
-    ASSERT_EQ(planta->numerator()->size(), 1);
-    Parameter* a = planta->numerator()->at(0);
-    EXPECT_TRUE(a->isUncertain());
-    EXPECT_EQ(a->name(), QStringLiteral("a"));
-    EXPECT_DOUBLE_EQ(a->rawNominal(), 2.0);
-    EXPECT_EQ(a->rawRange(), QPointF(0.5, 2.0));
+    ASSERT_EQ(planta->numerator().size(), 1);
+    Parameter & a = planta->numerator()[0];
+    EXPECT_TRUE(a.isUncertain());
+    EXPECT_EQ(a.name(), QStringLiteral("a"));
+    EXPECT_DOUBLE_EQ(a.rawNominal(), 2.0);
+    EXPECT_EQ(a.rawRange(), QPointF(0.5, 2.0));
 
     // Numerator and denominator carry two distinct Parameter objects that share
-    // the same name — the pointer-keyed template map relies on this.
-    ASSERT_EQ(planta->denominator()->size(), 1);
-    EXPECT_NE(planta->denominator()->at(0), a);
-    EXPECT_EQ(planta->denominator()->at(0)->name(), QStringLiteral("a"));
+    // the same name (the template map is keyed by NAME, which is why the
+    // numerator and denominator can hold two separate parameters with the
+    // same name and the sweep still drives both).
+    ASSERT_EQ(planta->denominator().size(), 1);
+    EXPECT_NE(&planta->denominator()[0], &a);
+    EXPECT_EQ(planta->denominator()[0].name(), QStringLiteral("a"));
 
-    EXPECT_FALSE(planta->gain()->isUncertain());
-    EXPECT_DOUBLE_EQ(planta->gain()->nominal(), 1.0);
-    EXPECT_FALSE(planta->delay()->isUncertain());
-    EXPECT_DOUBLE_EQ(planta->delay()->nominal(), 0.0);
+    EXPECT_FALSE(planta->gain().isUncertain());
+    EXPECT_DOUBLE_EQ(planta->gain().nominal(), 1.0);
+    EXPECT_FALSE(planta->delay().isUncertain());
+    EXPECT_DOUBLE_EQ(planta->delay().nominal(), 0.0);
 
     // P(j0.1) with the nominal a = 2.
     const Complex s(0.0, 0.1);
@@ -71,14 +73,14 @@ TEST(PlantFixture, Planta1RoundTrip)
     ASSERT_NE(planta, nullptr);
 
     EXPECT_EQ(planta->type(), LtiSystem::SystemType::ZeroPoleGain);
-    EXPECT_TRUE(planta->numerator()->isEmpty());
-    ASSERT_EQ(planta->denominator()->size(), 2);
-    EXPECT_EQ(planta->denominator()->at(0)->name(), QStringLiteral("a"));
-    EXPECT_EQ(planta->denominator()->at(1)->name(), QStringLiteral("b"));
+    EXPECT_TRUE(planta->numerator().empty());
+    ASSERT_EQ(planta->denominator().size(), 2);
+    EXPECT_EQ(planta->denominator()[0].name(), QStringLiteral("a"));
+    EXPECT_EQ(planta->denominator()[1].name(), QStringLiteral("b"));
 
-    EXPECT_TRUE(planta->gain()->isUncertain());
-    EXPECT_EQ(planta->gain()->name(), QStringLiteral("kv"));
-    EXPECT_EQ(planta->gain()->rawRange(), QPointF(1.0, 10.0));
+    EXPECT_TRUE(planta->gain().isUncertain());
+    EXPECT_EQ(planta->gain().name(), QStringLiteral("kv"));
+    EXPECT_EQ(planta->gain().rawRange(), QPointF(1.0, 10.0));
 
     EXPECT_EQ(planta->expression(0.1),
               QStringLiteral("kv*(1) / (((0.1*i) + a) *((0.1*i) + b))"));

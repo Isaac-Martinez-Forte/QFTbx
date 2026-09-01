@@ -1,6 +1,8 @@
 #ifndef QFTBX_PLANT_DIALOG_H
 #define QFTBX_PLANT_DIALOG_H
 
+#include <vector>
+
 #include <QDialog>
 #include <qvalidator.h>
 #include <QRadioButton>
@@ -71,7 +73,7 @@ private:
     void openFile();
     bool guardar ();
     QVector<QVector<QString> *> *readTables(QVector<QVector<QString> *> *expressionTable, QVector<QVector<bool> *> *uncertainTable);
-    QVector<Parameter *> *buildParameters(QVector<QString> *numeros);
+    std::vector<Parameter> buildParameters(QVector<QString> *numeros);
     bool parse(QString cadena);
     bool parseCoefficients(QVector<QVector<QString> *> *tabla, QLineEdit * linea, QVector<QVector<QString> *> *expressionTable,
                         QVector<QVector<bool> *> *uncertainTable);

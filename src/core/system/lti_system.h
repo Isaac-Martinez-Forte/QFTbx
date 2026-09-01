@@ -1,8 +1,10 @@
 #ifndef QFTBX_LTI_SYSTEM_H
 #define QFTBX_LTI_SYSTEM_H
 
-#include <QString>
 #include <complex>
+#include <vector>
+
+#include <QString>
 
 #include "src/core/system/parameter.h"
 #include "mpParser.h"
@@ -15,7 +17,11 @@ namespace qftbx {
  * Both the plant and the controller structure are represented through this
  * hierarchy. A system is defined by a numerator, a denominator, a gain and a
  * pure delay, each of which may be an uncertain Parameter; concrete
- * subclasses fix the mathematical form (see SystemType).
+ * subclasses fix the mathematical form (see SystemType). A system HOLDS its
+ * parameters by value: there is no ownership to transfer, disarm or share
+ * (the historical interface handed over raw pointers and offered
+ * releaseOwnership() to disarm deletion, which every consumer had to get
+ * right by hand).
  *
  * Evaluation currently works by generating a textual expression that is
  * evaluated with muParserX; expression(w) keeps uncertain parameters by name
@@ -28,11 +34,12 @@ public:
 
     /**
      * @brief Virtual constructor: builds a new instance of the same dynamic
-     * type, taking ownership of every pointer. A null delay means no delay.
-     * The expression strings are only used by FreeForm.
+     * type from parameter VALUES (copied or moved in, no ownership to hand
+     * over). The expression strings are only used by FreeForm.
      */
-    virtual LtiSystem * create (QString name, QVector <Parameter*> * numerator, QVector <Parameter*> * denominator,
-                              Parameter * k, Parameter* delay = NULL, QString numeratorExpr = 0, QString denominatorExpr = 0) = 0;
+    virtual LtiSystem * create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
+                              Parameter k, Parameter delay = Parameter(qreal(0)),
+                              QString numeratorExpr = QString(), QString denominatorExpr = QString()) = 0;
 
     virtual ~LtiSystem() {}
 
@@ -64,11 +71,11 @@ public:
 
     virtual std::complex <qreal> evaluateDenominator(QVector <qreal> * deno, qreal omega) = 0;
 
-    /// Internal vector: not a copy, the system keeps ownership.
-    virtual QVector <Parameter*> * denominator() = 0;
+    /// The system's own parameters, by reference (it holds them by value).
+    virtual std::vector <Parameter> & denominator() = 0;
 
-    /// Internal vector: not a copy, the system keeps ownership.
-    virtual QVector <Parameter*> * numerator() = 0;
+    /// The system's own parameters, by reference (it holds them by value).
+    virtual std::vector <Parameter> & numerator() = 0;
 
     /// Free-text numerator; empty except for FreeForm.
     virtual QString numeratorString() = 0;
@@ -76,9 +83,9 @@ public:
     /// Free-text denominator; empty except for FreeForm.
     virtual QString denominatorString() = 0;
 
-    virtual Parameter * gain () = 0;
+    virtual Parameter & gain () = 0;
 
-    virtual Parameter * delay() = 0;
+    virtual Parameter & delay() = 0;
 
     /**
      * @brief Mathematical form of the system. The numeric values are
@@ -88,10 +95,7 @@ public:
 
     virtual SystemType type () = 0;
 
-    /// Gives up ownership of parameters and vectors (shared-pointer case).
-    virtual void releaseOwnership () = 0;
-
-    /// Deep copy: the clone owns fresh copies of every Parameter.
+    /// Copy of the whole system, of the same dynamic type.
     virtual LtiSystem * clone () = 0;
 
 private:

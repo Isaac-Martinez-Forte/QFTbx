@@ -96,7 +96,7 @@ public:
 private:
     /// Grid for an uncertain parameter, looked up by name; throws
     /// qftbx::InvalidInput naming the parameter when the grid is missing.
-    QVector<qreal> * gridFor(Parameter *a);
+    QVector<qreal> * gridFor(Parameter & a);
 
     //The engine owns NOTHING below: grids and epsilon belong to the caller,
     //clouds/contours to the template DAO once handed over.

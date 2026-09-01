@@ -35,11 +35,6 @@ public:
 
     Parameter();
 
-    Parameter * clone ();
-
-    /// Deep copy of a parameter vector; the caller owns the copy.
-    static QVector <Parameter*> * cloneVector(QVector <Parameter*> * source);
-
     /// Constant, named by its textual value.
     Parameter (qreal value);
 

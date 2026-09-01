@@ -14,6 +14,8 @@
 
 #include <gtest/gtest.h>
 
+#include <vector>
+
 #include <QMap>
 #include <QPointF>
 #include <QString>
@@ -286,16 +288,16 @@ TEST(BoundaryCriticalPoint, UndampedResonanceIsRejectedWithAdvice)
     // Undamped version of the fixture's plant, swept exactly at a resonance.
     // The parameter is named 'ev' as in the fixture: 'e' is Euler's number
     // in muParserX.
-    auto* numerator = new QVector<Parameter*>();
-    numerator->append(new Parameter(QStringLiteral("ev"), QPointF(0.5, 2.0), 1.0,
+    std::vector<Parameter> numerator;
+    numerator.push_back(Parameter(QStringLiteral("ev"), QPointF(0.5, 2.0), 1.0,
                                     QStringLiteral("ev")));
-    auto* denominator = new QVector<Parameter*>();
-    denominator->append(new Parameter(QStringLiteral("ev"), QPointF(0.5, 2.0), 1.0,
+    std::vector<Parameter> denominator;
+    denominator.push_back(Parameter(QStringLiteral("ev"), QPointF(0.5, 2.0), 1.0,
                                       QStringLiteral("ev")));
 
     LtiSystem* undamped = new qftbx::FreeForm(
         QStringLiteral("undamped"), numerator, denominator,
-        new Parameter(1.0), new Parameter(0.0),
+        Parameter(1.0), Parameter(0.0),
         QStringLiteral("ev"), QStringLiteral("s^2*(s^2 + 2*ev)"));
 
     controller.setPlanta(undamped);

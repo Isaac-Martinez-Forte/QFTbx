@@ -40,11 +40,10 @@ qftbx::SpecificationRecord makeConstantStability(qreal linearHeight)
 // tests/data/planta2.qft.
 LtiSystem* makeTrackingPlant()
 {
-    auto* num = new QVector<Parameter*>{new Parameter(120.0)};
-    auto* den = new QVector<Parameter*>{new Parameter(1.0), new Parameter(17.0),
-                                        new Parameter(82.0), new Parameter(120.0)};
-    return new PolynomialForm(QStringLiteral("seguimiento"), num, den,
-                              new Parameter(1.0), new Parameter(0.0));
+    return new PolynomialForm(QStringLiteral("seguimiento"),
+                              {Parameter(120.0)},
+                              {Parameter(1.0), Parameter(17.0), Parameter(82.0), Parameter(120.0)},
+                              Parameter(1.0), Parameter(0.0));
 }
 
 qreal analyticTrackingDb(qreal w)
@@ -140,13 +139,13 @@ TEST(SpecificationPersistence, MultivaluadosSpecificationsRoundTrip)
     EXPECT_DOUBLE_EQ(lower->omegaEnd, 18.0);
     ASSERT_NE(lower->system, nullptr);
     EXPECT_EQ(lower->system->type(), LtiSystem::SystemType::PolynomialForm);
-    EXPECT_EQ(lower->system->numerator()->size(), 2);
+    EXPECT_EQ(lower->system->numerator().size(), 2);
 
     qftbx::SpecificationRecord* upper = specs->at(1);
     EXPECT_EQ(upper->name, QStringLiteral("TrackingUpper")); // "seguimiento_1" in the file, mapped on load
     EXPECT_TRUE(upper->used);
     ASSERT_NE(upper->system, nullptr);
-    EXPECT_EQ(upper->system->numerator()->size(), 3);
+    EXPECT_EQ(upper->system->numerator().size(), 3);
 
     for (int i = 2; i < 7; ++i) {
         EXPECT_FALSE(specs->at(i)->used) << "index " << i;
