@@ -100,13 +100,7 @@ void LoopShapingDialog::on_okButton_clicked()
 
         alg = tools::nk;
 
-        if (ui->randomInit->isChecked()){
-            initialisation = 2;
-        } else if (ui->upperInit->isChecked()){
-            initialisation = 1;
-        } else {
-            initialisation = 0;
-        }
+        initialisation = ui->upperInit->isChecked() ? 1 : 0;
 
     } else if (ui->mrRadio->isChecked()){
         alg = tools::mr;

@@ -1,8 +1,6 @@
 #include "src/core/exception.h"
 #include "src/core/loopshaping/algorithm_nk.h"
 
-#include <QRandomGenerator>
-
 #include "src/core/loopshaping/quick_solution.h"
 
 using namespace tools;
@@ -28,7 +26,7 @@ void AlgorithmNk::set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<q
     this->omega = omega;
     this->boundaries = boundaries;
     this->epsilon = epsilon;
-    this->ini = (tipoInicializacion) inicializacion;
+    this->ini = inicializacion == 1 ? Extremes : Centre;
 
     hasUncertainZeros = false;
     foreach (Parameter * var, *this->controlador->numerator()) {
@@ -529,15 +527,8 @@ inline void AlgorithmNk::startingPoint(LtiSystem * box, QVector<qreal> & zeros,
             return var->nominal();
         }
         const QPointF r = var->range();
-        switch (ini) {
-        case centro:
-            return (r.x() + r.y()) / 2.0;
-        case aleatorio:
-            return r.x() + QRandomGenerator::global()->generateDouble() * (r.y() - r.x());
-        case extremos:
-        default:
-            return isPole ? r.y() : r.x();
-        }
+        return ini == Centre ? (r.x() + r.y()) / 2.0
+                             : (isPole ? r.y() : r.x());
     };
 
     zeros.clear();
@@ -553,11 +544,8 @@ inline void AlgorithmNk::startingPoint(LtiSystem * box, QVector<qreal> & zeros,
     Parameter * k = box->gain();
     if (!k->isUncertain()) {
         gain = k->nominal();
-    } else if (ini == centro) {
+    } else if (ini == Centre) {
         gain = (k->range().x() + k->range().y()) / 2.0;
-    } else if (ini == aleatorio) {
-        gain = k->range().x() + QRandomGenerator::global()->generateDouble() *
-                (k->range().y() - k->range().x());
     } else {
         gain = k->range().y();
     }

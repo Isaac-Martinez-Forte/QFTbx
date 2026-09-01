@@ -53,7 +53,10 @@ public:
 
 private:
 
-    enum tipoInicializacion {centro, aleatorio, extremos};
+    //Starting point of the local search. The historical 'random' option
+    //made the result non-deterministic and is gone (decision 2026-09-01);
+    //the numeric values are the GUI/orchestrator contract.
+    enum StartingPoint {Centre = 0, Extremes = 1};
 
     inline void check_box_feasibility(LtiSystem * controlador);
     inline LtiSystem * quickSolution(LtiSystem * v, qreal boundMinDb, qreal w,
@@ -95,7 +98,7 @@ private:
 
     //Local search configuration from the GUI: coordinate step and
     //starting-point strategy.
-    tipoInicializacion ini = centro;
+    StartingPoint ini = Centre;
 
     bool hasUncertainZeros = false;
     bool hasUncertainPoles = false;

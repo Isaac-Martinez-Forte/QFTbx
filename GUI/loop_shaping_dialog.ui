@@ -255,13 +255,7 @@
         </property>
        </widget>
       </item>
-      <item>
-       <widget class="QRadioButton" name="randomInit">
-        <property name="text">
-         <string>Random</string>
-        </property>
-       </widget>
-      </item>
+      
       <item>
        <widget class="QRadioButton" name="upperInit">
         <property name="text">
