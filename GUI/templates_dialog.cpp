@@ -366,8 +366,8 @@ void TemplatesDialog::on_okButton_clicked()
         qreal final;
         qint32 npuntos;
 
-        inicio = plant->gain().range().x();
-        final = plant->gain().range().y();
+        inicio = plant->gain().range().min;
+        final = plant->gain().range().max;
         parser->SetExpr(ui->globalPointCount->text().toStdString());
         npuntos = parser->Eval().GetFloat();
 
@@ -386,8 +386,8 @@ void TemplatesDialog::on_okButton_clicked()
         qreal final;
         qint32 npuntos;
 
-        inicio = plant->delay().range().x();
-        final = plant->delay().range().y();
+        inicio = plant->delay().range().min;
+        final = plant->delay().range().max;
         parser->SetExpr(ui->globalPointCount->text().toStdString());
         npuntos = parser->Eval().GetFloat();
 
@@ -443,8 +443,8 @@ bool TemplatesDialog::readVariable(ParLineEdit *rowEdits, ThreeRadioButtons rowR
 
     if (rowRadios.uno->isChecked() && !rowEdits->getX()->text().isEmpty()){
 
-        inicio = parameter.range().x();
-        final = parameter.range().y();
+        inicio = parameter.range().min;
+        final = parameter.range().max;
 
         parser->SetExpr(rowEdits->getX()->text().toStdString());
         npuntos = parser->Eval().GetFloat();
@@ -453,8 +453,8 @@ bool TemplatesDialog::readVariable(ParLineEdit *rowEdits, ThreeRadioButtons rowR
 
     }else if (rowRadios.dos->isChecked() && !rowEdits->getY()->text().isEmpty()){
 
-        inicio = parameter.range().x();
-        final = parameter.range().y();
+        inicio = parameter.range().min;
+        final = parameter.range().max;
         parser->SetExpr(rowEdits->getY()->text().toStdString());
         npuntos = parser->Eval().GetFloat();
 
@@ -479,8 +479,8 @@ bool TemplatesDialog::readVariable(ParLineEdit *rowEdits, ThreeRadioButtons rowR
         gridMap->insert(parameter.name(), vector2);
     }else if (useLinspace || useLogspace){
 
-        inicio = parameter.range().x();
-        final = parameter.range().y();
+        inicio = parameter.range().min;
+        final = parameter.range().max;
 
         parser->SetExpr(ui->globalPointCount->text().toStdString());
         npuntos = parser->Eval().GetFloat();

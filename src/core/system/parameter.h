@@ -2,7 +2,7 @@
 #define QFTBX_PARAMETER_H
 
 #include <QString>
-#include <QPointF>
+#include "src/core/range.h"
 #include <QVector>
 
 #include "mpParser.h"
@@ -24,12 +24,12 @@ class Parameter
 {
 public:
     /// Uncertain parameter; an empty exp falls back to the name.
-    Parameter(QString name, QPointF range, qreal nominal, QString exp);
+    Parameter(QString name, Range range, qreal nominal, QString exp);
 
     /// Uncertain parameter without reparametrisation.
-    Parameter(QString name, QPointF range, qreal nominal);
+    Parameter(QString name, Range range, qreal nominal);
 
-    Parameter(QPointF range);
+    Parameter(Range range);
 
     Parameter (const Parameter &obj);
 
@@ -43,7 +43,7 @@ public:
 
     void setName(QString name);
 
-    void setRange (QPointF range);
+    void setRange (Range range);
 
     void setNominal(qreal nominal);
 
@@ -55,10 +55,10 @@ public:
     QString name();
 
     /// Range with the reparametrisation applied.
-    QPointF range();
+    Range range();
 
     /// Raw range, without the reparametrisation.
-    QPointF rawRange();
+    Range rawRange();
 
     /// Nominal value with the reparametrisation applied.
     qreal nominal();
@@ -70,7 +70,7 @@ public:
 
 private:
     QString m_name;
-    QPointF m_range;
+    Range m_range;
     qreal m_nominal;
     bool m_uncertain;
     QString m_expression;

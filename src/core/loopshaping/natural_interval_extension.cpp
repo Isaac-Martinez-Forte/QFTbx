@@ -19,7 +19,7 @@ const qreal kRadToDeg = 180.0 / M_PI;
 interval parameterInterval(Parameter & parameter)
 {
     if (parameter.isUncertain()) {
-        return interval(parameter.range().x(), parameter.range().y());
+        return interval(parameter.range().min, parameter.range().max);
     }
     return interval(parameter.nominal());
 }

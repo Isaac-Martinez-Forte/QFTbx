@@ -278,24 +278,24 @@ void ControllerDialog::on_okButton_clicked()
             kv = Parameter(1);
         }else{
 
-            QPointF range_point;
+            Range range_point;
             p.SetExpr(expressionTable->at(2)->at(0).toStdString());
-            range_point.setX(p.Eval().GetFloat());
+            range_point.min = p.Eval().GetFloat();
 
             p.SetExpr(expressionTable->at(2)->at(1).toStdString());
-            range_point.setY(p.Eval().GetFloat());
+            range_point.max = p.Eval().GetFloat();
 
-            if (range_point.x() == range_point.y()){
-                kv = Parameter(range_point.x());
+            if (range_point.min == range_point.max){
+                kv = Parameter(range_point.min);
             }else {
 
-                if (range_point.x() > range_point.y()){
-                    qreal a = range_point.x();
-                    range_point.setX(range_point.y());
-                    range_point.setY(a);
+                if (range_point.min > range_point.max){
+                    qreal a = range_point.min;
+                    range_point.min = range_point.max;
+                    range_point.max = a;
                 }
 
-                kv = Parameter("kv", range_point, (range_point.x() + range_point.y()) / 2);
+                kv = Parameter("kv", range_point, (range_point.min + range_point.max) / 2);
             }
         }
     } catch (mup::ParserError &) {

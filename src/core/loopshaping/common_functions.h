@@ -52,7 +52,7 @@ inline LtiSystem * pointFromBox(LtiSystem * controlador, bool x) {
         if (!v.isUncertain()){
             numerador.emplace_back(v.nominal());
         } else {
-            numerador.emplace_back(x ? v.range().x() : v.range().y());
+            numerador.emplace_back(x ? v.range().min : v.range().max);
         }
     }
 
@@ -62,11 +62,11 @@ inline LtiSystem * pointFromBox(LtiSystem * controlador, bool x) {
     for (Parameter & v : controlador->denominator()) {
         //Poles always take the lower corner: a larger pole moves the
         //projection towards the forbidden side.
-        denominador.emplace_back(v.isUncertain() ? v.range().x() : v.nominal());
+        denominador.emplace_back(v.isUncertain() ? v.range().min : v.nominal());
     }
 
-    const qreal k = x ? controlador->gain().range().x()
-                      : controlador->gain().range().y();
+    const qreal k = x ? controlador->gain().range().min
+                      : controlador->gain().range().max;
 
     return controlador->create(controlador->name(), std::move(numerador),
                                std::move(denominador), Parameter(k),
@@ -96,20 +96,20 @@ inline BisectionResult bisectWidestParameter(LtiSystem * box) {
     //denominator positions.
     qint32 widest = -2;
     qreal width = -1;
-    QPointF range;
+    Range range;
 
     if (box->gain().isUncertain()) {
         range = box->gain().range();
         widest = -1;
-        width = range.y() - range.x();
+        width = range.max - range.min;
     }
 
     qint32 position = 0;
 
     const auto consider = [&](Parameter & var) {
-        if (var.isUncertain() && var.range().y() - var.range().x() > width) {
+        if (var.isUncertain() && var.range().max - var.range().min > width) {
             widest = position;
-            width = var.range().y() - var.range().x();
+            width = var.range().max - var.range().min;
             range = var.range();
         }
         position++;
@@ -122,7 +122,7 @@ inline BisectionResult bisectWidestParameter(LtiSystem * box) {
         consider(var);
     }
 
-    const qreal middle = range.x() + width / 2;
+    const qreal middle = range.middle();
 
     //Both children are DEEP copies and the parent stays untouched: its
     //node keeps sole ownership of it (the historical version handed the
@@ -130,11 +130,11 @@ inline BisectionResult bisectWidestParameter(LtiSystem * box) {
     //the parent shell to stay safe). The halves keep the parameter's
     //NAME: the ICSP constraint trees address the variables by name.
     const auto half = [&](bool lower) -> LtiSystem * {
-        const QPointF halfRange = lower ? QPointF(range.x(), middle)
-                                        : QPointF(middle, range.y());
+        const Range halfRange = lower ? Range(range.min, middle)
+                                      : Range(middle, range.max);
 
         Parameter gain = widest == -1
-                ? Parameter(box->gain().name(), halfRange, halfRange.x(), box->gain().name())
+                ? Parameter(box->gain().name(), halfRange, halfRange.min, box->gain().name())
                 : box->gain();
 
         qint32 index = 0;
@@ -143,7 +143,7 @@ inline BisectionResult bisectWidestParameter(LtiSystem * box) {
         numerator.reserve(box->numerator().size());
         for (Parameter & var : box->numerator()) {
             numerator.push_back(index++ == widest
-                    ? Parameter(var.name(), halfRange, halfRange.x())
+                    ? Parameter(var.name(), halfRange, halfRange.min)
                     : var);
         }
 
@@ -151,7 +151,7 @@ inline BisectionResult bisectWidestParameter(LtiSystem * box) {
         denominator.reserve(box->denominator().size());
         for (Parameter & var : box->denominator()) {
             denominator.push_back(index++ == widest
-                    ? Parameter(var.name(), halfRange, halfRange.x())
+                    ? Parameter(var.name(), halfRange, halfRange.min)
                     : var);
         }
 

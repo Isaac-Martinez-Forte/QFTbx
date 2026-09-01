@@ -149,7 +149,7 @@ public:
             //records carry a range on a non-uncertain parameter.
             const pugi::xml_node range = node.child(t.range);
             if (range) {
-                parameter.setRange(QPointF(realChild(range, t.rangeMin),
+                parameter.setRange(Range(realChild(range, t.rangeMin),
                                            realChild(range, t.rangeMax)));
             }
             return parameter;
@@ -162,7 +162,7 @@ public:
         const QString expression = QString(require(node, t.parameterExpression).text().get());
         const pugi::xml_node range = require(node, t.range);
 
-        return Parameter(name, QPointF(realChild(range, t.rangeMin),
+        return Parameter(name, Range(realChild(range, t.rangeMin),
                                        realChild(range, t.rangeMax)),
                          nominal, expression);
     }

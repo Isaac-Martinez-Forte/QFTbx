@@ -13,6 +13,7 @@
 #include <vector>
 
 #include <QPointF>
+#include "src/core/range.h"
 #include <QVector>
 
 #include "src/core/loopshaping/natural_interval_extension.h"
@@ -86,7 +87,7 @@ TEST(NaturalIntervalExtension, UncertainGainBoxContainsTheTrueExtremes)
     //arc [-273, -74] here (a containment violation, the historical bug
     //this test used to pin): a set crossing the cut now degrades to the
     //whole branch, conservative but correct.
-    LtiSystem* controlador = makeZpk(Parameter("k", QPointF(1.0, 10.0), 1.0),
+    LtiSystem* controlador = makeZpk(Parameter("k", Range(1.0, 10.0), 1.0),
                                      Parameter(3.0), Parameter(5.0));
 
     NaturalIntervalExtension extension;
@@ -137,9 +138,9 @@ TEST(NaturalIntervalExtension, HugeBoxesStayFiniteInDecibels)
     //The widest search box of the thesis benchmarks: the interval products
     //must never reach log10(0) or log10(inf) (fi_lib aborts the process on
     //both; observed live through the NK crash).
-    LtiSystem* controlador = makeZpk(Parameter("kc", QPointF(1e-9, 1e8), 1.0),
-                                     Parameter("z1", QPointF(1e-9, 1e4), 1.0),
-                                     Parameter("p1", QPointF(1e-9, 1e4), 1.0));
+    LtiSystem* controlador = makeZpk(Parameter("kc", Range(1e-9, 1e8), 1.0),
+                                     Parameter("z1", Range(1e-9, 1e4), 1.0),
+                                     Parameter("p1", Range(1e-9, 1e4), 1.0));
 
     NaturalIntervalExtension extension;
     const cxsc::cinterval box = extension.nicholsBox(controlador, 100.0,
@@ -157,9 +158,9 @@ TEST(NaturalIntervalExtension, SampledInstancesStayInsideTheBox)
 {
     //The fundamental theorem of interval analysis: every instance of the
     //box maps inside the projection.
-    LtiSystem* controlador = makeZpk(Parameter("k", QPointF(0.5, 4.0), 1.0),
-                                     Parameter("z", QPointF(1.0, 6.0), 2.0),
-                                     Parameter("p", QPointF(2.0, 9.0), 3.0));
+    LtiSystem* controlador = makeZpk(Parameter("k", Range(0.5, 4.0), 1.0),
+                                     Parameter("z", Range(1.0, 6.0), 2.0),
+                                     Parameter("p", Range(2.0, 9.0), 3.0));
 
     NaturalIntervalExtension extension;
     const qreal w = 2.0;

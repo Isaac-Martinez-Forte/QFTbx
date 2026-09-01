@@ -33,7 +33,7 @@ bool LoopShaping::iniciar(LtiSystem * planta, LtiSystem * controlador, QVector<q
     const auto report = [&](LtiSystem * resultado) {
         this->controlador = resultado;
         std::cout << "LoopShaping: " << timer.elapsed() << " milliseconds" << std::endl;
-        std::cout << "k: " << resultado->gain().range().x() << std::endl;
+        std::cout << "k: " << resultado->gain().range().min << std::endl;
     };
 
     if (seleccionado == tools::nt) {

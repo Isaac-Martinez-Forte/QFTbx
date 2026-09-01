@@ -116,8 +116,8 @@ private:
     //(nullptr for frequencies the node is marked feasible at).
     struct NodeAnalysis {
         QVector<BoxClassification *> datos;
-        QVector<QPointF> boxMag;     //dB edges of the projected box
-        QVector<QPointF> boxPhase;   //degree edges
+        QVector<Range> boxMag;     //dB edges of the projected box
+        QVector<Range> boxPhase;   //degree edges
         tools::BoxFlag flag = tools::feasible;
         qint32 mainFrequency = 0;    //largest ambiguous projected area
         bool anyFullPhaseWidth = false;
@@ -143,9 +143,9 @@ private:
     inline void insertFeasibleBox(LtiSystem * box, McSearchNode * parent);
 
     inline qint32 parameterCount(LtiSystem * box) const;
-    inline QPointF parameterRange(LtiSystem * box, qint32 parameter) const;
+    inline Range parameterRange(LtiSystem * box, qint32 parameter) const;
     inline LtiSystem * replaceParameter(LtiSystem * box, qint32 parameter,
-                                        QPointF range) const;
+                                        Range range) const;
 
     LtiSystem * planta = nullptr;
     LtiSystem * controlador = nullptr;

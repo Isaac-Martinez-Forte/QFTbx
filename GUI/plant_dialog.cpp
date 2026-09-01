@@ -347,11 +347,11 @@ void PlantDialog::on_okButton_clicked()
             kv = Parameter(1);
         }else{
 
-            QPointF range_point = uncertaintyDialog->gain();
+            Range range_point = uncertaintyDialog->gain();
             p.SetExpr(expressionTable->at(2)->at(0).toStdString());
             qreal d = p.Eval().GetFloat();
 
-            if (d == range_point.x() && d == range_point.y()){
+            if (d == range_point.min && d == range_point.max){
                 kv = Parameter(d);
             }else {
                 kv = Parameter("kv", range_point, d, "kv");
@@ -362,11 +362,11 @@ void PlantDialog::on_okButton_clicked()
             retv = Parameter(qreal(0));
         }else{
 
-            QPointF range_point = uncertaintyDialog->delay();
+            Range range_point = uncertaintyDialog->delay();
             p.SetExpr(expressionTable->at(3)->at(0).toStdString());
             qreal d = p.Eval().GetFloat();
 
-            if (d == range_point.x() && d == range_point.y()){
+            if (d == range_point.min && d == range_point.max){
                 retv = Parameter(d);
             }else {
                 retv = Parameter("ret", range_point, d, "ret");

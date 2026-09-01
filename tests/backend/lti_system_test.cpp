@@ -15,6 +15,7 @@
 #include <vector>
 
 #include <QPointF>
+#include "src/core/range.h"
 #include <QString>
 #include <QVector>
 
@@ -47,9 +48,9 @@ ZeroPoleGain* makePlanta1()
     // b in [20,30] nom 30}, k = "kv" variable in [1,10] nom 1, ret = 0.
     return new ZeroPoleGain(
         QStringLiteral("aa"), vars({}),
-        vars({Parameter(QStringLiteral("a"), QPointF(1.0, 5.0), 5.0, QStringLiteral("a")),
-              Parameter(QStringLiteral("b"), QPointF(20.0, 30.0), 30.0, QStringLiteral("b"))}),
-        Parameter(QStringLiteral("kv"), QPointF(1.0, 10.0), 1.0, QStringLiteral("kv")),
+        vars({Parameter(QStringLiteral("a"), Range(1.0, 5.0), 5.0, QStringLiteral("a")),
+              Parameter(QStringLiteral("b"), Range(20.0, 30.0), 30.0, QStringLiteral("b"))}),
+        Parameter(QStringLiteral("kv"), Range(1.0, 10.0), 1.0, QStringLiteral("kv")),
         Parameter(0.0));
 }
 
@@ -100,7 +101,7 @@ TEST(KGananciaExpr, VariableDelayWithZeroNominalStaysInExpression)
     // nominal is 0, so the template sweep can drive it (it used to vanish).
     ZeroPoleGain planta(
         QStringLiteral("delayed"), vars({}), vars({Parameter(5.0)}), Parameter(1.0),
-        Parameter(QStringLiteral("tau"), QPointF(0.0, 0.5), 0.0, QStringLiteral("tau")));
+        Parameter(QStringLiteral("tau"), Range(0.0, 0.5), 0.0, QStringLiteral("tau")));
 
     EXPECT_TRUE(planta.expression(0.1).endsWith(QStringLiteral("* e^(-i*0.1*tau)")));
     EXPECT_TRUE(planta.expression().endsWith(QStringLiteral(" * e^(-s*tau)")));
@@ -209,7 +210,7 @@ TEST(KNGananciaExpr, VariableGainUsesItsRealName)
     // variable gain; with any other name muParserX auto-created kv = 0 and
     // the whole plant silently evaluated to zero.
     TimeConstantGain planta(QStringLiteral("named"), vars({}), vars({Parameter(10.0)}),
-                      Parameter(QStringLiteral("K1"), QPointF(1.0, 10.0), 5.0,
+                      Parameter(QStringLiteral("K1"), Range(1.0, 10.0), 5.0,
                               QStringLiteral("K1")),
                       Parameter(0.0));
 
@@ -260,7 +261,7 @@ TEST(CPolinomiosExpr, VariableGainUsesItsRealName)
     // Fixed: same hardcoded "kv" as TimeConstantGain.
     PolynomialForm planta(QStringLiteral("named"), vars({Parameter(1.0)}),
                        vars({Parameter(1.0), Parameter(2.0)}),
-                       Parameter(QStringLiteral("K1"), QPointF(1.0, 10.0), 2.0,
+                       Parameter(QStringLiteral("K1"), Range(1.0, 10.0), 2.0,
                                QStringLiteral("K1")),
                        Parameter(0.0));
 
@@ -318,8 +319,8 @@ FreeForm* makeCerveraPlant()
     // Parameter "a" (two distinct objects with identical content).
     return new FreeForm(
         QStringLiteral("cervera"),
-        vars({Parameter(QStringLiteral("a"), QPointF(0.5, 2.0), 2.0, QStringLiteral("a"))}),
-        vars({Parameter(QStringLiteral("a"), QPointF(0.5, 2.0), 2.0, QStringLiteral("a"))}),
+        vars({Parameter(QStringLiteral("a"), Range(0.5, 2.0), 2.0, QStringLiteral("a"))}),
+        vars({Parameter(QStringLiteral("a"), Range(0.5, 2.0), 2.0, QStringLiteral("a"))}),
         Parameter(1.0), Parameter(0.0), QStringLiteral("a"),
         QStringLiteral("(s^2)*((s^2) + a)"));
 }
@@ -360,7 +361,7 @@ TEST(FormatoLibreExpr, NumericExpressionOnlyReplacesTheLaplaceVariable)
     //parameter whose name contains an 's'.
     FreeForm* planta = new FreeForm(
         QStringLiteral("tokens"),
-        vars({Parameter(QStringLiteral("desp"), QPointF(0.5, 2.0), 1.0, QStringLiteral("desp"))}),
+        vars({Parameter(QStringLiteral("desp"), Range(0.5, 2.0), 1.0, QStringLiteral("desp"))}),
         vars({}),
         Parameter(1.0), Parameter(0.0),
         QStringLiteral("sin(s) + sqrt(desp) + s"), QStringLiteral("1"));

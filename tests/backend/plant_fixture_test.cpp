@@ -7,6 +7,7 @@
 #include <complex>
 
 #include <QPointF>
+#include "src/core/range.h"
 #include <QString>
 
 #include "src/core/system/lti_system.h"
@@ -37,7 +38,7 @@ TEST(PlantFixture, CerveraRoundTrip)
     EXPECT_TRUE(a.isUncertain());
     EXPECT_EQ(a.name(), QStringLiteral("a"));
     EXPECT_DOUBLE_EQ(a.rawNominal(), 2.0);
-    EXPECT_EQ(a.rawRange(), QPointF(0.5, 2.0));
+    EXPECT_EQ(a.rawRange(), Range(0.5, 2.0));
 
     // Numerator and denominator carry two distinct Parameter objects that share
     // the same name (the template map is keyed by NAME, which is why the
@@ -80,7 +81,7 @@ TEST(PlantFixture, Planta1RoundTrip)
 
     EXPECT_TRUE(planta->gain().isUncertain());
     EXPECT_EQ(planta->gain().name(), QStringLiteral("kv"));
-    EXPECT_EQ(planta->gain().rawRange(), QPointF(1.0, 10.0));
+    EXPECT_EQ(planta->gain().rawRange(), Range(1.0, 10.0));
 
     EXPECT_EQ(planta->expression(0.1),
               QStringLiteral("kv*(1) / (((0.1*i) + a) *((0.1*i) + b))"));

@@ -320,7 +320,7 @@ inline void AlgorithmMr::classifyAndInsert(LtiSystem * box){
 
     const BoxFlag flag = certainlyFeasible(domains) ? feasible : ambiguous;
 
-    lista->insert(new SearchNode(narrowed->gain().range().x(), narrowed, flag));
+    lista->insert(new SearchNode(narrowed->gain().range().min, narrowed, flag));
 }
 
 
@@ -374,7 +374,7 @@ inline void AlgorithmMr::loadDomains(LtiSystem * box,
     const auto load = [&](Parameter & var) {
         if (var.isUncertain()) {
             domains[var.name().toStdString()] =
-                    cxsc::interval(var.range().x(), var.range().y());
+                    cxsc::interval(var.range().min, var.range().max);
         }
     };
 
@@ -397,7 +397,7 @@ inline LtiSystem * AlgorithmMr::boxFromDomains(LtiSystem * box,
         }
         const cxsc::interval value = domains.at(var.name().toStdString());
         return Parameter(var.name(),
-                         QPointF(cxsc::_double(Inf(value)), cxsc::_double(Sup(value))),
+                         Range(cxsc::_double(Inf(value)), cxsc::_double(Sup(value))),
                          cxsc::_double(Inf(value)));
     };
 

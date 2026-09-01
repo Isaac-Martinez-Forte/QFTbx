@@ -267,7 +267,7 @@ std::vector<Parameter> & UncertaintyDialog::denominator(){
     return denominatorParameters;
 }
 
-QPointF UncertaintyDialog::gain(){
+Range UncertaintyDialog::gain(){
 
     mup::ParserX p;
 
@@ -278,18 +278,18 @@ QPointF UncertaintyDialog::gain(){
 
     p.SetExpr(ui->gainStart->text().toStdString());
 
-    QPointF rowsBuilt;
+    Range rowsBuilt;
 
-    rowsBuilt.setX(p.Eval().GetFloat());
+    rowsBuilt.min = p.Eval().GetFloat();
 
     p.SetExpr(ui->gainEnd->text().toStdString());
 
-    rowsBuilt.setY(p.Eval().GetFloat());
+    rowsBuilt.max = p.Eval().GetFloat();
 
     return rowsBuilt;
 }
 
-QPointF UncertaintyDialog::delay(){
+Range UncertaintyDialog::delay(){
 
     mup::ParserX p;
 
@@ -300,13 +300,13 @@ QPointF UncertaintyDialog::delay(){
 
     p.SetExpr(ui->delayStart->text().toStdString());
 
-    QPointF rowsBuilt;
+    Range rowsBuilt;
 
-    rowsBuilt.setX(p.Eval().GetFloat());
+    rowsBuilt.min = p.Eval().GetFloat();
 
     p.SetExpr(ui->delayEnd->text().toStdString());
 
-    rowsBuilt.setY(p.Eval().GetFloat());
+    rowsBuilt.max = p.Eval().GetFloat();
 
     return rowsBuilt;
 }
@@ -377,7 +377,7 @@ bool UncertaintyDialog::readRanges(){
                     }
 
                     if (valid && (startValue <= nominalValue) && (nominalValue <= endValue)){
-                        QPointF rowsBuilt (startValue, endValue);
+                        Range rowsBuilt (startValue, endValue);
                         parameter = Parameter(numeratorTokens->at(i), rowsBuilt, nominalValue, expressionTable->at(0)->at(i));
 
                         startEdit->setStyleSheet("background : white");
@@ -459,7 +459,7 @@ bool UncertaintyDialog::readRanges(){
 
                     if (valid){
                         if ((startValue <= nominalValue) && (nominalValue <= endValue)){
-                            QPointF rowsBuilt (startValue, endValue);
+                            Range rowsBuilt (startValue, endValue);
                             parameter = Parameter(denominatorTokens->at(i), rowsBuilt, nominalValue, expressionTable->at(1)->at(i));
 
                             startEdit->setStyleSheet("background : white");

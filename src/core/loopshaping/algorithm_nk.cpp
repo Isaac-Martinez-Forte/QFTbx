@@ -106,7 +106,7 @@ bool AlgorithmNk::init_algorithm(){
         //Pruning by the local solution (step 4 of the paper's outline /
         //G-bis of the thesis): a node whose gain infimum cannot improve
         //the certified local solution is discarded.
-        if (node->system()->gain().range().x() >= bestLocalGain) {
+        if (node->system()->gain().range().min >= bestLocalGain) {
             delete node;
             continue;
         }
@@ -116,7 +116,7 @@ bool AlgorithmNk::init_algorithm(){
         //through bestLocalGain.
         localOptimization(node->system());
 
-        if (node->system()->gain().range().x() >= bestLocalGain) {
+        if (node->system()->gain().range().min >= bestLocalGain) {
             delete node;
             continue;
         }
@@ -169,12 +169,12 @@ inline void AlgorithmNk::check_box_feasibility(LtiSystem * controlador){
 
     //Step 20 of the paper: the certified local solution caps the useful
     //gain range of every new box.
-    if (bestLocalGain < controlador->gain().range().y() &&
-            bestLocalGain > controlador->gain().range().x()) {
+    if (bestLocalGain < controlador->gain().range().max &&
+            bestLocalGain > controlador->gain().range().min) {
         LtiSystem * capped = controlador->create(controlador->name(),
                 controlador->numerator(), controlador->denominator(),
-                Parameter("kv", QPointF(controlador->gain().range().x(), bestLocalGain),
-                              controlador->gain().range().x(), "kv"),
+                Parameter("kv", Range(controlador->gain().range().min, bestLocalGain),
+                              controlador->gain().range().min, "kv"),
                 controlador->delay());
     delete controlador;
         controlador = capped;
@@ -226,7 +226,7 @@ inline void AlgorithmNk::check_box_feasibility(LtiSystem * controlador){
         }
     }
 
-    lista->insert(new SearchNode(controlador->gain().range().x(), controlador, flag_final));
+    lista->insert(new SearchNode(controlador->gain().range().min, controlador, flag_final));
 }
 
 
@@ -241,16 +241,16 @@ inline LtiSystem * AlgorithmNk::quickSolution(LtiSystem * v, qreal boundMinDb,
 
     std::vector<double> zeroInfs, zeroSups, poleInfs, poleSups;
     for (Parameter & var : v->numerator()) {
-        zeroInfs.push_back(var.isUncertain() ? var.range().x() : var.nominal());
-        zeroSups.push_back(var.isUncertain() ? var.range().y() : var.nominal());
+        zeroInfs.push_back(var.isUncertain() ? var.range().min : var.nominal());
+        zeroSups.push_back(var.isUncertain() ? var.range().max : var.nominal());
     }
     for (Parameter & var : v->denominator()) {
-        poleInfs.push_back(var.isUncertain() ? var.range().x() : var.nominal());
-        poleSups.push_back(var.isUncertain() ? var.range().y() : var.nominal());
+        poleInfs.push_back(var.isUncertain() ? var.range().min : var.nominal());
+        poleSups.push_back(var.isUncertain() ? var.range().max : var.nominal());
     }
 
-    qreal gainInf = v->gain().range().x();
-    const qreal gainSup = v->gain().range().y();
+    qreal gainInf = v->gain().range().min;
+    const qreal gainSup = v->gain().range().max;
 
     bool cut = false;
 
@@ -308,7 +308,7 @@ inline LtiSystem * AlgorithmNk::quickSolution(LtiSystem * v, qreal boundMinDb,
     for (qint32 j = 0; j < static_cast<qint32>(zeroInfs.size()); ++j) {
         Parameter & old = v->numerator()[j];
         numerador.push_back(old.isUncertain()
-                ? Parameter(old.name(), QPointF(zeroInfs[j], zeroSups[j]), zeroInfs[j])
+                ? Parameter(old.name(), Range(zeroInfs[j], zeroSups[j]), zeroInfs[j])
                 : Parameter(old.nominal()));
     }
 
@@ -316,13 +316,13 @@ inline LtiSystem * AlgorithmNk::quickSolution(LtiSystem * v, qreal boundMinDb,
     for (qint32 j = 0; j < static_cast<qint32>(poleInfs.size()); ++j) {
         Parameter & old = v->denominator()[j];
         denominador.push_back(old.isUncertain()
-                ? Parameter(old.name(), QPointF(poleInfs[j], poleSups[j]), poleInfs[j])
+                ? Parameter(old.name(), Range(poleInfs[j], poleSups[j]), poleInfs[j])
                 : Parameter(old.nominal()));
     }
 
     LtiSystem * nuevo = v->create(v->name(), numerador, denominador,
             v->gain().isUncertain()
-                ? Parameter("kv", QPointF(gainInf, gainSup), gainInf, "kv")
+                ? Parameter("kv", Range(gainInf, gainSup), gainInf, "kv")
                 : Parameter(v->gain().nominal()),
             v->delay());
 
@@ -355,8 +355,8 @@ inline qreal AlgorithmNk::minimalFeasibleGain(const QVector<qreal> & zeros,
                                                        const QVector<qreal> & poles,
                                                        LtiSystem * box, qint32 & budget){
 
-    qreal high = box->gain().range().y();
-    qreal low = box->gain().range().x();
+    qreal high = box->gain().range().max;
+    qreal low = box->gain().range().min;
 
     budget--;
     if (!pointIsFeasible(zeros, poles, high)) {
@@ -384,7 +384,7 @@ inline qreal AlgorithmNk::minimalFeasibleGain(const QVector<qreal> & zeros,
 
 inline void AlgorithmNk::localOptimization(LtiSystem * box){
 
-    const qreal launch = box->gain().range().x();
+    const qreal launch = box->gain().range().min;
 
     foreach (qreal previous, launchGains) {
         if (std::abs(launch - previous) <= 0.1 * std::max<qreal>(1.0, std::abs(previous))) {
@@ -406,7 +406,7 @@ inline void AlgorithmNk::localOptimization(LtiSystem * box){
 
     //Coordinate pattern over zeros/poles in log space, coarse to fine.
     const auto logRange = [](Parameter & var) {
-        return std::log10(var.range().y()) - std::log10(std::max<qreal>(var.range().x(), 1e-12));
+        return std::log10(var.range().max) - std::log10(std::max<qreal>(var.range().min, 1e-12));
     };
 
     const auto tryMove = [&](bool isPole, qint32 j, qreal stepDecades) -> bool {
@@ -416,7 +416,7 @@ inline void AlgorithmNk::localOptimization(LtiSystem * box){
         for (qreal direction : {stepDecades, -stepDecades}) {
             const qreal candidate = values.at(j) * std::pow(10.0, direction);
 
-            if (candidate <= var.range().x() || candidate >= var.range().y()) {
+            if (candidate <= var.range().min || candidate >= var.range().max) {
                 continue;
             }
 
@@ -528,9 +528,9 @@ inline void AlgorithmNk::startingPoint(LtiSystem * box, QVector<qreal> & zeros,
         if (!var.isUncertain()) {
             return var.nominal();
         }
-        const QPointF r = var.range();
-        return ini == Centre ? (r.x() + r.y()) / 2.0
-                             : (isPole ? r.y() : r.x());
+        const Range r = var.range();
+        return ini == Centre ? r.middle()
+                             : (isPole ? r.max : r.min);
     };
 
     zeros.clear();
@@ -547,8 +547,8 @@ inline void AlgorithmNk::startingPoint(LtiSystem * box, QVector<qreal> & zeros,
     if (!k.isUncertain()) {
         gain = k.nominal();
     } else if (ini == Centre) {
-        gain = (k.range().x() + k.range().y()) / 2.0;
+        gain = (k.range().min + k.range().max) / 2.0;
     } else {
-        gain = k.range().y();
+        gain = k.range().max;
     }
 }

@@ -18,6 +18,7 @@
 
 #include <QMap>
 #include <QPointF>
+#include "src/core/range.h"
 #include <QString>
 #include <QVector>
 
@@ -289,10 +290,10 @@ TEST(BoundaryCriticalPoint, UndampedResonanceIsRejectedWithAdvice)
     // The parameter is named 'ev' as in the fixture: 'e' is Euler's number
     // in muParserX.
     std::vector<Parameter> numerator;
-    numerator.push_back(Parameter(QStringLiteral("ev"), QPointF(0.5, 2.0), 1.0,
+    numerator.push_back(Parameter(QStringLiteral("ev"), Range(0.5, 2.0), 1.0,
                                     QStringLiteral("ev")));
     std::vector<Parameter> denominator;
-    denominator.push_back(Parameter(QStringLiteral("ev"), QPointF(0.5, 2.0), 1.0,
+    denominator.push_back(Parameter(QStringLiteral("ev"), Range(0.5, 2.0), 1.0,
                                       QStringLiteral("ev")));
 
     LtiSystem* undamped = new qftbx::FreeForm(

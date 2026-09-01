@@ -159,10 +159,10 @@ void LoopShapingViewer::showDiagram(){
     QVector <qreal> * frequencies;
 
     /*if(linSpace){
-        frequencies = tools::linspace(loopShapingData->range().x(), loopShapingData->range().y(), loopShapingData->pointCount());
+        frequencies = tools::linspace(loopShapingData->range().min, loopShapingData->range().max, loopShapingData->pointCount());
 
     } else {
-        frequencies = tools::logspace(loopShapingData->range().x(), loopShapingData->range().y(), loopShapingData->pointCount());
+        frequencies = tools::logspace(loopShapingData->range().min, loopShapingData->range().max, loopShapingData->pointCount());
     }*/
 
     frequencies = tools::logspace(-5, 5, 10000);

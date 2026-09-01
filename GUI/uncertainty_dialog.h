@@ -4,6 +4,8 @@
 #include <vector>
 
 #include <QDialog>
+
+#include "src/core/range.h"
 #include <QLabel>
 #include <QLineEdit>
 #include <QStringBuilder>
@@ -74,7 +76,7 @@ public:
     * @return un objeto tipo QPointF que el par de valores que representa la incertidumbre de K.
    */
     
-    QPointF gain();
+    Range gain();
     
     
    /**
@@ -84,7 +86,7 @@ public:
     * @return un objeto tipo QPointF que el par de valores que representa la incertidumbre de Ret.
    */
     
-    QPointF delay();
+    Range delay();
 
     /// True when the user accepted the dialog with valid ranges.
     bool getTodoCorrecto();

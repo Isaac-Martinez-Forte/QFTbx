@@ -200,6 +200,7 @@ set(QFTbx_BACKEND_HED
     Modelo/Herramientas/tools.h
     src/core/specifications/specification_record.h
     src/core/project_data.h
+    src/core/range.h
     src/core/loopshaping/loop_shaping_types.h
     src/core/math/sequences.h
     src/core/specifications/specification.h

@@ -78,8 +78,8 @@ void writeParameter(pugi::xml_node parent, Parameter & parameter)
         addText(node, t.parameterName, parameter.name().toStdString());
         addText(node, t.parameterExpression, parameter.expression().toStdString());
         pugi::xml_node range = node.append_child(t.range);
-        addReal(range, t.rangeMin, parameter.range().x());
-        addReal(range, t.rangeMax, parameter.range().y());
+        addReal(range, t.rangeMin, parameter.range().min);
+        addReal(range, t.rangeMax, parameter.range().max);
     }
 }
 
