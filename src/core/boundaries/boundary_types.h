@@ -1,6 +1,7 @@
 #ifndef QFTBX_BOUNDARY_TYPES_H
 #define QFTBX_BOUNDARY_TYPES_H
 
+#include <array>
 #include <map>
 #include <vector>
 
@@ -44,6 +45,26 @@ using UnionTraces = std::vector<Trace>;
  * is the one container of this family that is genuinely hot.
  */
 using UnionBuckets = std::vector<std::vector<Trace>>;
+
+/**
+ * @brief One boundary sheet: the specification's closed-loop transfer
+ * magnitude in dB at every Nichols grid point, one row per magnitude and one
+ * column per phase. The level curves of this surface at the specification's
+ * bound are the boundary.
+ *
+ * Held BY VALUE, ~1.7 MB per frequency. This was
+ * `QVector<QVector<qreal> *> *`, and the five of them travelled together in
+ * one more level of indirection, freed by a nested loop in the caller.
+ */
+using BoundarySheet = std::vector<std::vector<double>>;
+
+/**
+ * @brief The five sheets of one design frequency, in the order the tracing
+ * indexes them: 0 stability and sensor noise (they share the transfer
+ * magnitude), 1 tracking, 2 output disturbance, 3 input disturbance,
+ * 4 control effort.
+ */
+using BoundarySheets = std::array<BoundarySheet, 5>;
 
 /// The allowed-side label of each curve (see BoundaryEngine::allowedZone).
 using TraceLabels = std::vector<QPoint>;

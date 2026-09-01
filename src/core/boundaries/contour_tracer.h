@@ -24,7 +24,7 @@ class ContourTracer
 public:
     /// Cut threshold in dB (already resolved by the caller: the tracking
     /// spread T_U - T_L, or the specification's own bound) over the sheet.
-    ContourTracer (qreal thresholdDb, QVector <QVector <qreal> *> * sheet);
+    ContourTracer (qreal thresholdDb, const BoundarySheet & sheet);
 
     TraceSet trace (qreal phaseSpan, qreal magnitudeSpan,
                                            qreal phaseBottom, qreal magnitudeBottom);
@@ -40,7 +40,7 @@ public:
 private:
 
     qreal m_thresholdDb;
-    QVector <QVector <qreal> *> * m_sheet = nullptr;
+    const BoundarySheet * m_sheet = nullptr;
 #ifdef CUDA_AVAILABLE
     const float * m_cudaSheet = nullptr;
 #endif

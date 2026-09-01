@@ -194,7 +194,7 @@ QVector <qreal> * BoundaryEngine::omega(){
 
 
 void BoundaryEngine::traceFrequency(qreal omega, std::map<QString, TraceSet> & bound,
-                                    QVector <QVector <QVector <qreal> * > * > * sheets,
+                                    const BoundarySheets & sheets,
                                     std::map<QString, TraceLabels> & traceMetadata,
                                     complex <qreal> p0, const ComplexCloud & valueSet, qint32 index,
                                     qreal phaseSpan, qreal magnitudeSpan, qreal phaseBottom, qreal magnitudeBottom){
@@ -207,7 +207,7 @@ void BoundaryEngine::traceFrequency(qreal omega, std::map<QString, TraceSet> & b
         TraceLabels & metadata = traceMetadata["Tracking"];
 
         bound["Tracking"] =
-                      traceBoundary(m_specifications.trackingSpreadDb(omega), sheets->at(1),
+                      traceBoundary(m_specifications.trackingSpreadDb(omega), sheets.at(1),
                                     metadata, p0, valueSet, 1, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
     }
 
@@ -216,7 +216,7 @@ void BoundaryEngine::traceFrequency(qreal omega, std::map<QString, TraceSet> & b
         TraceLabels & metadata = traceMetadata["Stability"];
 
         bound["Stability"] =
-                      traceBoundary(m_specifications.at(SpecificationType::Stability).boundDb(omega), sheets->at(0),
+                      traceBoundary(m_specifications.at(SpecificationType::Stability).boundDb(omega), sheets.at(0),
                                     metadata, p0, valueSet, 0, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
     }
 
@@ -225,7 +225,7 @@ void BoundaryEngine::traceFrequency(qreal omega, std::map<QString, TraceSet> & b
         TraceLabels & metadata = traceMetadata["SensorNoise"];
 
         bound["SensorNoise"] =
-                      traceBoundary(m_specifications.at(SpecificationType::SensorNoise).boundDb(omega), sheets->at(0),
+                      traceBoundary(m_specifications.at(SpecificationType::SensorNoise).boundDb(omega), sheets.at(0),
                                     metadata, p0, valueSet, 0, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
     }
 
@@ -234,7 +234,7 @@ void BoundaryEngine::traceFrequency(qreal omega, std::map<QString, TraceSet> & b
         TraceLabels & metadata = traceMetadata["OutputDisturbance"];
 
         bound["OutputDisturbance"] =
-                      traceBoundary(m_specifications.at(SpecificationType::OutputDisturbance).boundDb(omega), sheets->at(2),
+                      traceBoundary(m_specifications.at(SpecificationType::OutputDisturbance).boundDb(omega), sheets.at(2),
                                     metadata, p0, valueSet, 2, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
     }
 
@@ -243,7 +243,7 @@ void BoundaryEngine::traceFrequency(qreal omega, std::map<QString, TraceSet> & b
         TraceLabels & metadata = traceMetadata["InputDisturbance"];
 
         bound["InputDisturbance"] =
-                      traceBoundary(m_specifications.at(SpecificationType::InputDisturbance).boundDb(omega), sheets->at(3),
+                      traceBoundary(m_specifications.at(SpecificationType::InputDisturbance).boundDb(omega), sheets.at(3),
                                     metadata, p0, valueSet, 3, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
     }
 
@@ -252,7 +252,7 @@ void BoundaryEngine::traceFrequency(qreal omega, std::map<QString, TraceSet> & b
         TraceLabels & metadata = traceMetadata["ControlEffort"];
 
         bound["ControlEffort"] =
-                      traceBoundary(m_specifications.at(SpecificationType::ControlEffort).boundDb(omega), sheets->at(4),
+                      traceBoundary(m_specifications.at(SpecificationType::ControlEffort).boundDb(omega), sheets.at(4),
                                     metadata, p0, valueSet, 4, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
     }
 }
@@ -321,7 +321,7 @@ void BoundaryEngine::traceFrequency(qreal omega, std::map<QString, TraceSet> & b
 }
 #endif
 
-TraceSet BoundaryEngine::traceBoundary(qreal thresholdDb, QVector<QVector<qreal> *> *sheet,
+TraceSet BoundaryEngine::traceBoundary(qreal thresholdDb, const BoundarySheet & sheet,
                                        TraceLabels & traceMetadata, std::complex<qreal> p0,
                                        const ComplexCloud & valueSet,
                                        qint32 kind, qreal phaseSpan, qreal magnitudeSpan,
@@ -560,28 +560,23 @@ void BoundaryEngine::computeFrequency (qreal omega, LtiSystem * plant,
 
     const ComplexCloud & p = valueSet;
 
-    //One sheet per specification family and frequency.
-    QVector <QVector <qreal> * > * stabilityNoiseSheet = new QVector <QVector <qreal> * > ();
-    stabilityNoiseSheet->reserve(phases.size());
+    //The five sheets of this frequency, in the order the tracing indexes
+    //them, with names for the ones this loop fills.
+    BoundarySheets sheets;
 
-    QVector <QVector <qreal> * > * trackingSheet = new QVector <QVector <qreal> * > ();
-    trackingSheet->reserve(phases.size());
+    BoundarySheet & stabilityNoiseSheet = sheets.at(0);
+    BoundarySheet & trackingSheet = sheets.at(1);
+    BoundarySheet & outputDisturbanceSheet = sheets.at(2);
+    BoundarySheet & inputDisturbanceSheet = sheets.at(3);
+    BoundarySheet & controlEffortSheet = sheets.at(4);
 
-    QVector <QVector <qreal> * > * outputDisturbanceSheet = new QVector <QVector <qreal> * > ();
-    outputDisturbanceSheet->reserve(phases.size());
-
-    QVector <QVector <qreal> * > * inputDisturbanceSheet = new QVector <QVector <qreal> * > ();
-    inputDisturbanceSheet->reserve(phases.size());
-
-    QVector <QVector <qreal> * > * controlEffortSheet = new QVector <QVector <qreal> * > ();
-    controlEffortSheet->reserve(phases.size());
-
-    //First loop variables:
-    QVector <qreal> * stabilityNoiseRow;
-    QVector <qreal> * trackingRow;
-    QVector <qreal> * outputDisturbanceRow;
-    QVector <qreal> * inputDisturbanceRow;
-    QVector <qreal> * controlEffortRow;
+    //One row per MAGNITUDE: the reserve used to ask for the phase count,
+    //which is the row WIDTH.
+    const std::size_t rowCount = static_cast<std::size_t>(magnitudes.size());
+    for (BoundarySheet * sheet : {&stabilityNoiseSheet, &trackingSheet, &outputDisturbanceSheet,
+                                 &inputDisturbanceSheet, &controlEffortSheet}) {
+        sheet->reserve(rowCount);
+    }
 
     //Second loop variables:
     qreal magnitudeDb;
@@ -606,20 +601,18 @@ void BoundaryEngine::computeFrequency (qreal omega, LtiSystem * plant,
     //already parallel, and these loops share function-scope variables).
     for (qint32 k = 0; k < magnitudes.size(); k++){
 
-        stabilityNoiseRow = new QVector <qreal> ();
-        stabilityNoiseRow->reserve(phases.size());
+        std::vector<double> stabilityNoiseRow;
+        std::vector<double> trackingRow;
+        std::vector<double> outputDisturbanceRow;
+        std::vector<double> inputDisturbanceRow;
+        std::vector<double> controlEffortRow;
 
-        trackingRow = new QVector <qreal> ();
-        trackingRow->reserve(phases.size());
-
-        outputDisturbanceRow = new QVector <qreal> ();
-        outputDisturbanceRow->reserve(phases.size());
-
-        inputDisturbanceRow = new QVector <qreal> ();
-        inputDisturbanceRow->reserve(phases.size());
-
-        controlEffortRow = new QVector <qreal> ();
-        controlEffortRow->reserve(phases.size());
+        const std::size_t rowWidth = static_cast<std::size_t>(phases.size());
+        stabilityNoiseRow.reserve(rowWidth);
+        trackingRow.reserve(rowWidth);
+        outputDisturbanceRow.reserve(rowWidth);
+        inputDisturbanceRow.reserve(rowWidth);
+        controlEffortRow.reserve(rowWidth);
 
         for (qint32 j = 0; j < phases.size(); j++){
 
@@ -679,46 +672,31 @@ void BoundaryEngine::computeFrequency (qreal omega, LtiSystem * plant,
             //the golden; the old OpenMP branch stored linear magnitudes and
             //tracking as a linear difference), with the critical point made
             //explicit (see violatingDb).
-            stabilityNoiseRow->append(violatingDb(20 * log10(dStabilityNoise)));
-            trackingRow->append(violatingDb((20 * log10(dStabilityNoise)) - (20 * log10(dTrackingMin))));
-            outputDisturbanceRow->append(violatingDb(20 * log10(dOutputDisturbance)));
-            inputDisturbanceRow->append(violatingDb(20 * log10(dInputDisturbance)));
-            controlEffortRow->append(violatingDb(20 * log10(dControlEffort)));
+            stabilityNoiseRow.push_back(violatingDb(20 * log10(dStabilityNoise)));
+            trackingRow.push_back(violatingDb((20 * log10(dStabilityNoise)) - (20 * log10(dTrackingMin))));
+            outputDisturbanceRow.push_back(violatingDb(20 * log10(dOutputDisturbance)));
+            inputDisturbanceRow.push_back(violatingDb(20 * log10(dInputDisturbance)));
+            controlEffortRow.push_back(violatingDb(20 * log10(dControlEffort)));
         }
-        stabilityNoiseSheet->append(stabilityNoiseRow);
-        trackingSheet->append(trackingRow);
-        outputDisturbanceSheet->append(outputDisturbanceRow);
-        inputDisturbanceSheet->append(inputDisturbanceRow);
-        controlEffortSheet->append(controlEffortRow);
+        stabilityNoiseSheet.push_back(std::move(stabilityNoiseRow));
+        trackingSheet.push_back(std::move(trackingRow));
+        outputDisturbanceSheet.push_back(std::move(outputDisturbanceRow));
+        inputDisturbanceSheet.push_back(std::move(inputDisturbanceRow));
+        controlEffortSheet.push_back(std::move(controlEffortRow));
     }
 
     std::map<QString, TraceSet> bound;
 
     std::map<QString, TraceLabels> traceMetadata;
 
-    //All sheets packed together, indexed as traceFrequency expects them.
-    QVector <QVector <QVector <qreal> * > * > * sheets = new QVector <QVector <QVector <qreal> * > * > ();
-
-    sheets->append(stabilityNoiseSheet);
-    sheets->append(trackingSheet);
-    sheets->append(outputDisturbanceSheet);
-    sheets->append(inputDisturbanceSheet);
-    sheets->append(controlEffortSheet);
-
-
     traceFrequency(omega, bound, sheets, traceMetadata, p0, p, index,
                    m_phaseRange.y() - m_phaseRange.x(), m_magnitudeRange.y() - m_magnitudeRange.x(),
                    m_phaseRange.x(), m_magnitudeRange.x());
 
-    //The sheets (~1.7 MB per frequency) are no longer needed: the contours
-    //and zones are extracted. They used to be abandoned with a clear().
-    foreach (QVector <QVector <qreal> * > * sheet, *sheets){
-        foreach (QVector <qreal> * row, *sheet){
-            delete row;
-        }
-        delete sheet;
-    }
-    delete sheets;
+    //The sheets (~1.7 MB per frequency) die here, which is where they stop
+    //being needed: the contours and the zones are extracted. They used to be
+    //abandoned with a clear(), then freed by a nested loop over three levels
+    //of pointers.
 
     //Every frequency writes at its own index: no criticals, no permutations.
     m_traceMetadata[static_cast<std::size_t>(index)] = std::move(traceMetadata);

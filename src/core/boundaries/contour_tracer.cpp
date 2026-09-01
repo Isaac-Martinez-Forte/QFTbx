@@ -2,9 +2,9 @@
 
 namespace qftbx {
 
-ContourTracer::ContourTracer(qreal thresholdDb, QVector<QVector<qreal> *> *sheet){
+ContourTracer::ContourTracer(qreal thresholdDb, const BoundarySheet & sheet){
     m_thresholdDb = thresholdDb;
-    m_sheet = sheet;
+    m_sheet = &sheet;
 }
 
 #ifdef CUDA_AVAILABLE
@@ -24,8 +24,8 @@ TraceSet ContourTracer::trace(qreal phaseSpan, qreal magnitudeSpan,
                                                      qreal phaseBottom, qreal magnitudeBottom)
 {
 
-    qint32 width = m_sheet->at(0)->size();
-    qint32 height = m_sheet->size();
+    qint32 width = static_cast<qint32>(m_sheet->at(0).size());
+    qint32 height = static_cast<qint32>(m_sheet->size());
     qreal threshold = m_thresholdDb;
 
     qint32 phaseCells = width - 1;
@@ -40,7 +40,7 @@ TraceSet ContourTracer::trace(qreal phaseSpan, qreal magnitudeSpan,
         for (qint32 row = 1; row < height-1; row++)
         {
 
-            if ((m_sheet->at(row)->at(column) >= threshold) && (!visited.at(row * width + column))){
+            if ((m_sheet->at(static_cast<std::size_t>(row)).at(static_cast<std::size_t>(column)) >= threshold) && (!visited.at(row * width + column))){
 
                 Trace trace;
 
@@ -61,12 +61,12 @@ TraceSet ContourTracer::trace(qreal phaseSpan, qreal magnitudeSpan,
                         x =  currentX + kNeighbourX[i % 8];
                         y =  currentY + kNeighbourY[i % 8];
 
-                        if ((x > 0) && (x < width-1) && (y > 0) && (y < height-1) && (m_sheet->at(y)->at(x) < threshold))
+                        if ((x > 0) && (x < width-1) && (y > 0) && (y < height-1) && (m_sheet->at(static_cast<std::size_t>(y)).at(static_cast<std::size_t>(x)) < threshold))
                         {
                             x =  currentX + kNeighbourX[(i - 1) % 8];
                             y =  currentY + kNeighbourY[(i - 1) % 8];
 
-                            if ((m_sheet->at(y)->at(x) >= threshold) && (!visited.at(y * width + x))){
+                            if ((m_sheet->at(static_cast<std::size_t>(y)).at(static_cast<std::size_t>(x)) >= threshold) && (!visited.at(y * width + x))){
 
 
                                 trace.push_back(QPointF(((currentX * phaseSpan) / phaseCells) + phaseBottom, ((currentY *

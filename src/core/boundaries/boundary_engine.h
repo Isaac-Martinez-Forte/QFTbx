@@ -105,11 +105,12 @@ private:
                           const ComplexCloud & valueSet, const QVector <qreal> & phases,
                           const QVector <qreal> & magnitudes, qint32 index);
 
-    void traceFrequency(qreal omega, std::map<QString, TraceSet> & bound, QVector<QVector<QVector<qreal> *> *> *sheets,
+    void traceFrequency(qreal omega, std::map<QString, TraceSet> & bound,
+                        const BoundarySheets & sheets,
                         std::map<QString, TraceLabels> & traceMetadata, std::complex<qreal> p0, const ComplexCloud & valueSet,
                         qint32 index, qreal phaseSpan, qreal magnitudeSpan, qreal phaseBottom, qreal magnitudeBottom);
 
-    TraceSet traceBoundary(qreal thresholdDb, QVector<QVector<qreal> *> *sheet,
+    TraceSet traceBoundary(qreal thresholdDb, const BoundarySheet & sheet,
                                                TraceLabels & traceMetadata, std::complex<qreal> p0, const ComplexCloud & valueSet,
                                                qint32 kind, qreal phaseSpan, qreal magnitudeSpan,
                                                qreal phaseBottom, qreal magnitudeBottom);
