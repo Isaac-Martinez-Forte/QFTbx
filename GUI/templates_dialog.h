@@ -18,6 +18,7 @@
 
 #include "GUI/parlineedit.h"
 #include "src/core/system/lti_system.h"
+#include "src/core/templates/parameter_grids.h"
 #include "src/core/system/parameter.h"
 #include "GUI/parlineedit.h"
 #include "src/core/math/sequence_vectors.h"
@@ -73,7 +74,9 @@ public:
     * @return gridMap hash con los distintos valores que pueden tomar las variables.
     */
     
-    QHash<QString, QVector<qreal> *> * grids();
+    /// The grids BY VALUE: nobody has to free them, and the dialog keeps its
+    /// own copy for a second accept. See qftbx::ParameterGrids.
+    qftbx::ParameterGrids grids() const;
     
     
    /**
@@ -138,7 +141,6 @@ signals:
 
 private:
     void clearTables();
-    void releaseGrids();
 
     Ui::TemplatesDialog *ui;
 
@@ -150,7 +152,7 @@ private:
 
     QVector <ParLineEdit*>* numeratorRows;
     QVector <ParLineEdit*>* denominatorRows ;
-    QHash <QString, QVector<qreal> * > * gridMap = NULL;
+    qftbx::ParameterGrids gridMap;
     QVector <ThreeRadioButtons> * numeratorRadios;
     QVector <ThreeRadioButtons> * denominatorRadios;
     std::vector<Parameter> numerator;

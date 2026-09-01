@@ -546,10 +546,10 @@ TEST_F(GuiSmoke, TemplatesDialogBuildsOneEpsilonPerFrequency)
         EXPECT_DOUBLE_EQ(value, 0.05);
     }
 
-    //A grid per uncertain parameter, and none for the constants.
-    QHash<QString, QVector<qreal> *> * grids = dialog.grids();
-    ASSERT_NE(grids, nullptr);
-    EXPECT_TRUE(grids->contains(QStringLiteral("a")))
+    //A grid per uncertain parameter, and none for the constants. By value now:
+    //nothing to free, and nothing to be null.
+    const qftbx::ParameterGrids grids = dialog.grids();
+    EXPECT_EQ(grids.count(QStringLiteral("a")), 1u)
         << "the uncertain parameter got no grid";
 }
 

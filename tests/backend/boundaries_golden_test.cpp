@@ -14,6 +14,8 @@
 
 #include <gtest/gtest.h>
 
+#include "src/core/math/sequences.h"
+
 #include <vector>
 
 #include <QMap>
@@ -310,10 +312,8 @@ TEST(BoundaryCriticalPoint, UndampedResonanceIsRejectedWithAdvice)
 
     auto* epsilon = new QVector<qreal>();
     epsilon->append(10.0);
-    auto* grids = new QHash<QString, QVector<qreal>*>();
-    auto* grid = new QVector<qreal>();
-    grid->append(0.5);                     // sqrt(2*0.5) = 1 exactly: |P| = inf
-    grids->insert(QStringLiteral("ev"), grid);
+    // sqrt(2*0.5) = 1 exactly: |P| = inf at that frequency
+    qftbx::ParameterGrids grids{{QStringLiteral("ev"), {0.5}}};
 
     try {
         controller.computeTemplates(epsilon, grids, false);
@@ -325,8 +325,6 @@ TEST(BoundaryCriticalPoint, UndampedResonanceIsRejectedWithAdvice)
         EXPECT_TRUE(message.contains(QStringLiteral("resonance"))) << error.what();
     }
 
-    qDeleteAll(*grids);
-    delete grids;
 }
 
 } // namespace

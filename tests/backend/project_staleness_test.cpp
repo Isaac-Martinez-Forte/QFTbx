@@ -18,6 +18,7 @@
 
 #include "src/core/frequencies/omega.h"
 #include "src/core/math/sequence_vectors.h"
+#include "src/core/math/sequences.h"
 #include "src/core/project_controller.h"
 #include "src/core/system/parameter.h"
 #include "src/core/system/polynomial_form.h"
@@ -39,24 +40,13 @@ LtiSystem * makePlant(const QString & name)
                               Parameter(0.0));
 }
 
-//The engine only STORES the grid map, it never owns it, so whoever built it
-//has to free it - after the computation, because the engine reads it during.
-void releaseGrids(QHash<QString, QVector<qreal> *> * grids)
+//By value: no walking the map to delete each vector, and no question of who
+//owns it on a throw path. That is what the conversion buys.
+qftbx::ParameterGrids makeGrids()
 {
-    if (grids == nullptr) {
-        return;
-    }
-    for (QVector<qreal> * grid : *grids) {
-        delete grid;
-    }
-    delete grids;
-}
-
-QHash<QString, QVector<qreal> *> * makeGrids()
-{
-    auto * grids = new QHash<QString, QVector<qreal> *>();
-    grids->insert(QStringLiteral("a"), tools::linspace(1.0, 2.0, 3));
-    grids->insert(QStringLiteral("kv"), tools::linspace(1.0, 2.0, 3));
+    qftbx::ParameterGrids grids;
+    grids[QStringLiteral("a")] = qftbx::math::linspace(1.0, 2.0, 3);
+    grids[QStringLiteral("kv")] = qftbx::math::linspace(1.0, 2.0, 3);
     return grids;
 }
 
@@ -74,11 +64,8 @@ protected:
         controller.setPlant(makePlant(QStringLiteral("first")));
         controller.setOmega(makeOmega());
 
-        QHash<QString, QVector<qreal> *> * grids = makeGrids();
-        ASSERT_TRUE(controller.computeTemplates(new QVector<qreal>(3, 10.0), grids, false));
+        ASSERT_TRUE(controller.computeTemplates(new QVector<qreal>(3, 10.0), makeGrids(), false));
         ASSERT_NE(controller.templates(), nullptr);
-
-        releaseGrids(grids);
     }
 
     ProjectController controller;
@@ -157,9 +144,7 @@ TEST_F(Staleness, TheTemplatesCanBeRecomputedAfterTheirInputsChange)
     controller.setPlant(makePlant(QStringLiteral("third")));
     ASSERT_EQ(controller.templates(), nullptr);
 
-    QHash<QString, QVector<qreal> *> * grids = makeGrids();
-    ASSERT_TRUE(controller.computeTemplates(new QVector<qreal>(3, 10.0), grids, false));
-    releaseGrids(grids);
+    ASSERT_TRUE(controller.computeTemplates(new QVector<qreal>(3, 10.0), makeGrids(), false));
 
     EXPECT_NE(controller.templates(), nullptr)
         << "the project could not be brought back to a computed state";

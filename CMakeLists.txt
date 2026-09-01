@@ -176,6 +176,7 @@ set(QFTbx_CORE_HED
     src/core/system/zero_pole_gain.h
     src/core/system/time_constant_gain.h
     src/core/templates/template_engine.h
+    src/core/templates/parameter_grids.h
     src/core/math/sequence_vectors.h
     src/core/math/parser_warmup.h
     src/core/math/expression_cache.h

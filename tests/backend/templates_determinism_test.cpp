@@ -25,6 +25,7 @@
 
 #include "src/core/frequencies/omega.h"
 #include "src/core/math/sequence_vectors.h"
+#include "src/core/math/sequences.h"
 #include "src/core/system/lti_system.h"
 #include "src/core/templates/template_engine.h"
 #include "src/persistence/project_reader.h"
@@ -76,9 +77,9 @@ Numbers sweep(int threads)
         return {};
     }
 
-    auto * grids = new QHash<QString, QVector<qreal> *>();
-    grids->insert(plant->numerator()[0].name(), tools::linspace(1.0, 10.0, 10));
-    grids->insert(plant->gain().name(), tools::linspace(1.0, 10.0, 10));
+    qftbx::ParameterGrids grids;
+    grids[plant->numerator()[0].name()] = qftbx::math::linspace(1.0, 10.0, 10);
+    grids[plant->gain().name()] = qftbx::math::linspace(1.0, 10.0, 10);
 
     auto * frequencies = new QVector<qreal>(*parser.omega()->values());
     auto * epsilon = new QVector<qreal>(frequencies->size(), 10.0);
@@ -92,11 +93,6 @@ Numbers sweep(int threads)
     appendAll(engine.clouds(), numbers);
     appendAll(engine.contours(), numbers);
 
-    //The engine owns nothing it was given.
-    for (QVector<qreal> * grid : *grids) {
-        delete grid;
-    }
-    delete grids;
     delete frequencies;
     delete epsilon;
 

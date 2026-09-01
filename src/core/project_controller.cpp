@@ -135,7 +135,7 @@ QVector <QVector <std::complex <qreal> > * > * ProjectController::contour(){
     return data.contour();
 }
 
-bool ProjectController::computeTemplates(QVector <qreal> * epsilon, QHash <QString, QVector<qreal> *> *grids, bool cuda){
+bool ProjectController::computeTemplates(QVector <qreal> * epsilon, qftbx::ParameterGrids grids, bool cuda){
 
     //Preconditions, stated instead of dereferenced. They matter more now that
     //publishing an input DROPS what was computed from the old one: without
@@ -153,7 +153,7 @@ bool ProjectController::computeTemplates(QVector <qreal> * epsilon, QHash <QStri
     }
 
     m_templateEngine->setEpsilon(epsilon);
-    m_templateEngine->setGrids(grids);
+    m_templateEngine->setGrids(std::move(grids));
 
     m_templateEngine->compute(plant(), omega()->values(), cuda);
 

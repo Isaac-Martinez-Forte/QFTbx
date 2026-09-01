@@ -9,6 +9,7 @@
 #include <QVector>
 
 #include "src/core/system/lti_system.h"
+#include "src/core/templates/parameter_grids.h"
 #include "src/core/system/parameter.h"
 
 #include "mpParser.h"
@@ -91,7 +92,9 @@ public:
                                                   bool * fellBack = nullptr);
 
     /// Sweep grids keyed by parameter NAME; the caller keeps ownership.
-    void setGrids (QHash<QString, QVector<qreal> *> * grids);
+    /// Takes the grids BY VALUE: the engine owns its copy and nobody has to
+    /// remember to free anything. See qftbx::ParameterGrids.
+    void setGrids (ParameterGrids grids);
 
     /// One epsilon per frequency; the caller keeps ownership.
     void setEpsilon (QVector <qreal> * epsilon);
@@ -111,11 +114,11 @@ public:
 private:
     /// Grid for an uncertain parameter, looked up by name; throws
     /// qftbx::InvalidInput naming the parameter when the grid is missing.
-    QVector<qreal> * gridFor(Parameter & a);
+    const std::vector<double> & gridFor(Parameter & a);
 
     //The engine owns NOTHING below: grids and epsilon belong to the caller,
     //clouds/contours to the template DAO once handed over.
-    QHash <QString, QVector<qreal> * > * m_grids = NULL;
+    ParameterGrids m_grids;
     qint32 m_combinationCount = 0;
     QVector <qreal> * m_epsilon = NULL;
     bool m_useCuda = false;

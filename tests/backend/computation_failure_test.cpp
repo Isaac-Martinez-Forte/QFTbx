@@ -21,6 +21,7 @@
 #include "src/core/exception.h"
 #include "src/core/frequencies/omega.h"
 #include "src/core/math/sequence_vectors.h"
+#include "src/core/math/sequences.h"
 #include "src/core/project_controller.h"
 #include "src/core/range.h"
 #include "src/core/system/parameter.h"
@@ -47,14 +48,14 @@ Omega * makeOmega()
 
 //Every uncertain parameter needs a sweep grid; leaving one out is the
 //deterministic way to make the template computation refuse.
-QHash<QString, QVector<qreal> *> * gridsMissing(const QString & name)
+qftbx::ParameterGrids gridsMissing(const QString & name)
 {
-    auto * grids = new QHash<QString, QVector<qreal> *>();
+    qftbx::ParameterGrids grids;
     if (name != QStringLiteral("a")) {
-        grids->insert(QStringLiteral("a"), tools::linspace(1.0, 2.0, 3));
+        grids[QStringLiteral("a")] = qftbx::math::linspace(1.0, 2.0, 3);
     }
     if (name != QStringLiteral("kv")) {
-        grids->insert(QStringLiteral("kv"), tools::linspace(1.0, 2.0, 3));
+        grids[QStringLiteral("kv")] = qftbx::math::linspace(1.0, 2.0, 3);
     }
     return grids;
 }
@@ -74,49 +75,37 @@ protected:
 TEST_F(FailedComputation, AMissingSweepGridIsReportedAndLeavesNoTemplates)
 {
     auto * epsilon = new QVector<qreal>(3, 10.0);
-    auto * grids = gridsMissing(QStringLiteral("kv"));
 
-    EXPECT_THROW(controller.computeTemplates(epsilon, grids, false), qftbx::InvalidInput);
+    EXPECT_THROW(controller.computeTemplates(epsilon, gridsMissing(QStringLiteral("kv")), false),
+                 qftbx::InvalidInput);
 
     EXPECT_EQ(controller.templates(), nullptr)
         << "a failed computation left templates behind";
     EXPECT_EQ(controller.contour(), nullptr);
     EXPECT_EQ(controller.boundaries(), nullptr);
 
-    for (QVector<qreal> * grid : *grids) {
-        delete grid;
-    }
-    delete grids;
     delete epsilon;
 }
 
 TEST_F(FailedComputation, TheProjectStillWorksAfterAFailedComputation)
 {
     auto * badEpsilon = new QVector<qreal>(3, 10.0);
-    auto * badGrids = gridsMissing(QStringLiteral("a"));
+    const qftbx::ParameterGrids badGrids = gridsMissing(QStringLiteral("a"));
 
     EXPECT_THROW(controller.computeTemplates(badEpsilon, badGrids, false),
                  qftbx::InvalidInput);
 
-    for (QVector<qreal> * grid : *badGrids) {
-        delete grid;
-    }
-    delete badGrids;
     delete badEpsilon;
 
     //Same project, now with every grid: the failure must not have poisoned it.
-    auto * grids = new QHash<QString, QVector<qreal> *>();
-    grids->insert(QStringLiteral("a"), tools::linspace(1.0, 2.0, 3));
-    grids->insert(QStringLiteral("kv"), tools::linspace(1.0, 2.0, 3));
+    qftbx::ParameterGrids grids;
+    grids[QStringLiteral("a")] = qftbx::math::linspace(1.0, 2.0, 3);
+    grids[QStringLiteral("kv")] = qftbx::math::linspace(1.0, 2.0, 3);
 
     ASSERT_TRUE(controller.computeTemplates(new QVector<qreal>(3, 10.0), grids, false))
         << "the project never recovered from the earlier failure";
     EXPECT_NE(controller.templates(), nullptr);
 
-    for (QVector<qreal> * grid : *grids) {
-        delete grid;
-    }
-    delete grids;
 }
 
 TEST_F(FailedComputation, BoundariesRefuseWithoutTheTemplatesInsteadOfCrashing)
@@ -154,16 +143,15 @@ TEST_F(FailedComputation, TemplatesRefuseWithoutAPlantOrFrequencies)
     //them - which is the point: the precondition fires before anything is
     //handed over.
     auto * epsilon = new QVector<qreal>(1, 10.0);
-    auto * grids = new QHash<QString, QVector<qreal> *>();
+    qftbx::ParameterGrids grids;
 
     ProjectController empty;
     EXPECT_THROW(empty.computeTemplates(epsilon, grids, false), qftbx::InvalidInput);
 
     ProjectController plantOnly;
     plantOnly.setPlant(makePlant());
-    EXPECT_THROW(plantOnly.computeTemplates(epsilon, grids, false), qftbx::InvalidInput);
+    EXPECT_THROW(plantOnly.computeTemplates(epsilon, {}, false), qftbx::InvalidInput);
 
-    delete grids;
     delete epsilon;
 }
 

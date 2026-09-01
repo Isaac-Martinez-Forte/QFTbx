@@ -16,6 +16,8 @@
 
 #include <gtest/gtest.h>
 
+#include "src/core/math/sequences.h"
+
 #include <complex>
 #include <vector>
 
@@ -120,8 +122,8 @@ TEST(EvaluatePrecision, TheTemplateSweepKeepsEveryDigitToo)
                          Parameter(QStringLiteral("kv"), qftbx::Range(2.0, 2.0), 2.0),
                          Parameter(0.0));
 
-    auto * grids = new QHash<QString, QVector<qreal> *>();
-    grids->insert(QStringLiteral("kv"), new QVector<qreal>{2.0});
+    qftbx::ParameterGrids grids;
+    grids[QStringLiteral("kv")] = {2.0};
 
     auto * frequencies = new QVector<qreal>{w};
     auto * epsilon = new QVector<qreal>(1, 10.0);
@@ -146,10 +148,6 @@ TEST(EvaluatePrecision, TheTemplateSweepKeepsEveryDigitToo)
 
     qDeleteAll(*clouds);
     delete clouds;
-    for (QVector<qreal> * grid : *grids) {
-        delete grid;
-    }
-    delete grids;
     delete frequencies;
     delete epsilon;
 }

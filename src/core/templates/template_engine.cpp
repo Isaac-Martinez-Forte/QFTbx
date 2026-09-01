@@ -28,8 +28,8 @@ TemplateEngine::TemplateEngine()
 TemplateEngine::~TemplateEngine(){
 }
 
-void TemplateEngine::setGrids(QHash<QString, QVector<qreal> *> *mapa){
-    m_grids = mapa;
+void TemplateEngine::setGrids(ParameterGrids grids){
+    m_grids = std::move(grids);
 }
 
 void TemplateEngine::setEpsilon(QVector<qreal> *epsilon){
@@ -109,18 +109,18 @@ QVector<QVector<complex<qreal> > *> * TemplateEngine::contours(){
     return m_contours;
 }
 
-QVector<qreal> * TemplateEngine::gridFor(Parameter & a){
+const std::vector<double> & TemplateEngine::gridFor(Parameter & a){
 
     //Keyed by NAME: pointer identity went stale on every clone() or
     //project reload.
-    QVector<qreal> * values = m_grids->value(a.name());
+    const auto found = m_grids.find(a.name());
 
-    if (values == NULL){
+    if (found == m_grids.end()){
         throw qftbx::InvalidInput("Missing sweep grid for the uncertain parameter '"
                                   + a.name().toStdString() + "'.");
     }
 
-    return values;
+    return found->second;
 }
 
 QVector<QVector<complex<qreal> > * > * TemplateEngine::computeClouds(LtiSystem *plant, QVector<qreal> *omega){
@@ -129,16 +129,19 @@ QVector<QVector<complex<qreal> > * > * TemplateEngine::computeClouds(LtiSystem *
     //grids, in numerator, denominator, gain, delay order. The index in
     //'names' is the odometer digit (0 is the fastest), as historically.
     QVector <QString> names;
-    QVector <const QVector <qreal> *> grids;
+
+    //Pointers INTO the map the engine owns: stable for the whole sweep,
+    //because nothing modifies m_grids while it runs.
+    std::vector <const std::vector<double> *> grids;
 
     m_combinationCount = 1;
 
     auto collect = [&](Parameter & var){
         if (var.isUncertain() && !names.contains(var.name())){
-            const QVector <qreal> * rejilla = gridFor(var);
+            const std::vector<double> & rejilla = gridFor(var);
             names.append(var.name());
-            grids.append(rejilla);
-            m_combinationCount *= rejilla->size();
+            grids.push_back(&rejilla);
+            m_combinationCount *= static_cast<qint32>(rejilla.size());
         }
     };
 
@@ -210,7 +213,7 @@ QVector<QVector<complex<qreal> > * > * TemplateEngine::computeClouds(LtiSystem *
 
         std::vector <qreal> digit (digitCount);
         for (qint32 j = 0; j < digitCount; j++){
-            digit[j] = grids.at(j)->at(0);
+            digit[j] = (*grids.at(static_cast<std::size_t>(j)))[0];
         }
 
         QVector <complex<qreal>> * cloud = new QVector <complex<qreal>> ();
@@ -269,12 +272,12 @@ QVector<QVector<complex<qreal> > * > * TemplateEngine::computeClouds(LtiSystem *
 
             counter[0]++;
             for (qint32 j = 0; j < digitCount; j++){
-                if (counter.at(j) >= grids.at(j)->size()){
+                if (counter.at(j) >= static_cast<qint32>(grids.at(static_cast<std::size_t>(j))->size())){
                     counter[j] = 0;
                     counter[j+1]++;
-                    digit[j] = grids.at(j)->at(0);
+                    digit[j] = (*grids.at(static_cast<std::size_t>(j)))[0];
                 }else {
-                    digit[j] = grids.at(j)->at(counter.at(j));
+                    digit[j] = (*grids.at(static_cast<std::size_t>(j)))[static_cast<std::size_t>(counter.at(j))];
                     break;
                 }
             }

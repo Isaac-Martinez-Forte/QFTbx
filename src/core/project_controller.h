@@ -7,6 +7,7 @@
 
 #include "src/core/system/lti_system.h"
 #include "src/core/templates/template_engine.h"
+#include "src/core/templates/parameter_grids.h"
 #include "src/core/frequencies/omega.h"
 #include "src/core/boundaries/boundary_engine.h"
 #include "src/persistence/project_reader.h"
@@ -71,7 +72,7 @@ public:
      * @param cuda run the GPU path (requires a CUDA build).
      * @return false when either the clouds or the contours came out empty.
      */
-    bool computeTemplates(QVector<qreal> * epsilon, QHash<QString, QVector<qreal> *> * grids, bool cuda);
+    bool computeTemplates(QVector<qreal> * epsilon, qftbx::ParameterGrids grids, bool cuda);
 
     /// Recomputes only the contours, with a new epsilon.
     QVector<QVector<std::complex<qreal>> *> * recomputeContour(QVector<qreal> * epsilon);

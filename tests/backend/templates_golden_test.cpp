@@ -22,6 +22,7 @@
 #include "src/core/system/parameter.h"
 #include "src/core/frequencies/omega.h"
 #include "src/core/math/sequence_vectors.h"
+#include "src/core/math/sequences.h"
 #include "src/persistence/project_reader.h"
 
 namespace {
@@ -47,9 +48,9 @@ protected:
         ASSERT_NE(planta, nullptr);
 
         // The fixture was computed on a 10x10 grid: a and kv in [1,10].
-        mapa = new QHash<QString, QVector<qreal>*>();
-        mapa->insert(planta->numerator()[0].name(), tools::linspace(1.0, 10.0, 10));
-        mapa->insert(planta->gain().name(), tools::linspace(1.0, 10.0, 10));
+        mapa.clear();
+        mapa[planta->numerator()[0].name()] = qftbx::math::linspace(1.0, 10.0, 10);
+        mapa[planta->gain().name()] = qftbx::math::linspace(1.0, 10.0, 10);
 
         omegaCopy = new QVector<qreal>(*parser.omega()->values());
         epsilon = new QVector<qreal>(6, 10.0);
@@ -62,17 +63,13 @@ protected:
     void TearDown() override
     {
         // TemplateEngine owns nothing it was given; free what we created.
-        for (QVector<qreal>* v : *mapa) {
-            delete v;
-        }
-        delete mapa;
         delete omegaCopy;
         delete epsilon;
     }
 
     ProjectReader parser;
     LtiSystem* planta = nullptr;
-    QHash<QString, QVector<qreal>*>* mapa = nullptr;
+    qftbx::ParameterGrids mapa;
     QVector<qreal>* omegaCopy = nullptr;
     QVector<qreal>* epsilon = nullptr;
     TemplateEngine templates;
@@ -249,8 +246,8 @@ TEST(TemplatesValidation, MissingSweepGridThrowsInvalidInput)
         QStringLiteral(QFTBX_TEST_DATA_DIR "/planta2.qft"));
     LtiSystem* planta = parser.plant();
 
-    auto* mapa = new QHash<QString, QVector<qreal>*>();
-    mapa->insert(planta->numerator()[0].name(), tools::linspace(1.0, 10.0, 10));
+    qftbx::ParameterGrids mapa;
+    mapa[planta->numerator()[0].name()] = qftbx::math::linspace(1.0, 10.0, 10);
     // no grid for the uncertain gain "kv"
 
     auto* epsilon = new QVector<qreal>(6, 10.0);
@@ -261,8 +258,6 @@ TEST(TemplatesValidation, MissingSweepGridThrowsInvalidInput)
     t.setGrids(mapa);
     EXPECT_THROW(t.compute(planta, &omega, false), qftbx::InvalidInput);
 
-    qDeleteAll(*mapa);
-    delete mapa;
     delete epsilon;
 }
 

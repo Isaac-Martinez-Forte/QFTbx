@@ -1,5 +1,6 @@
 #include <QDoubleValidator>
 #include "templates_dialog.h"
+#include "src/core/math/sequences.h"
 #include "src/core/text_tokens.h"
 #include "ui_templates_dialog.h"
 
@@ -38,7 +39,7 @@ TemplatesDialog::TemplatesDialog(QWidget *parent) :
 TemplatesDialog::~TemplatesDialog()
 {
     clearTables();
-    releaseGrids();
+    gridMap.clear();
 
     //Not taken (cancelled, or never asked for): the dialog built it.
     delete epsilonValues;
@@ -78,14 +79,6 @@ void TemplatesDialog::clearTables(){
 
 //The grid map belongs to the dialog (the engine reads it without taking
 //ownership): the old clear() leaked every computation's grids.
-void TemplatesDialog::releaseGrids(){
-    if (gridMap != NULL){
-        qDeleteAll(*gridMap);
-        delete gridMap;
-        gridMap = NULL;
-    }
-}
-
 QVector<qreal> * TemplatesDialog::takeEpsilon(){
     QVector<qreal> * built = epsilonValues;
     epsilonValues = nullptr;
@@ -260,7 +253,7 @@ void TemplatesDialog::on_okButton_clicked()
 
     //The previous epsilon already belongs to the DAO; the previous grid
     //map is still the dialog's and is freed here.
-    releaseGrids();
+    gridMap.clear();
     duplicateNames.clear();
 
     epsilonValues = new QVector <qreal> ();
@@ -307,7 +300,7 @@ void TemplatesDialog::on_okButton_clicked()
     bool useLinspace = false;
     bool useLogspace = false;
 
-    gridMap = new QHash <QString, QVector<qreal> * > ();
+    gridMap.clear();
 
     if (ui->linspaceRadio->isChecked() && !ui->globalPointCount->text().isEmpty()){
         useLinspace = true;
@@ -315,7 +308,7 @@ void TemplatesDialog::on_okButton_clicked()
         useLogspace = true;
     }else {
         errorMessage(tr("ERROR: select logspace or linspace in the general section."), tr("Template computation"));
-        releaseGrids();
+        gridMap.clear();
         delete epsilonValues;
         epsilonValues = NULL;
         return;
@@ -335,7 +328,7 @@ void TemplatesDialog::on_okButton_clicked()
             if (!readVariable(rowEdits, rowRadios,parameter,useLinspace,useLogspace)){
                 errorMessage(tr("ERROR: the values entered for parameter \"%1\" are invalid").arg(parameter.name()),
                          tr("Template computation"));
-                releaseGrids();
+                gridMap.clear();
                 delete epsilonValues;
                 epsilonValues = NULL;
                 return;
@@ -356,7 +349,7 @@ void TemplatesDialog::on_okButton_clicked()
             if (!readVariable(rowEdits, rowRadios,parameter,useLinspace,useLogspace)){
                 errorMessage(tr("ERROR: the values entered for parameter \"%1\" are invalid").arg(parameter.name()),
                          tr("Template computation"));
-                releaseGrids();
+                gridMap.clear();
                 delete epsilonValues;
                 epsilonValues = NULL;
                 return;
@@ -365,7 +358,7 @@ void TemplatesDialog::on_okButton_clicked()
     }
 
     if (!plant->gain().isUncertain()){
-        gridMap->insert(plant->gain().name(), new QVector <qreal> (1, plant->gain().nominal()));
+        gridMap[plant->gain().name()] = std::vector<double>(1, plant->gain().nominal());
     }
     else{
 
@@ -379,14 +372,14 @@ void TemplatesDialog::on_okButton_clicked()
         npuntos = parser->Eval().GetFloat();
 
         if (useLinspace){
-            gridMap->insert(plant->gain().name(), linspace(inicio, final, npuntos));
+            gridMap[plant->gain().name()] = qftbx::math::linspace(inicio, final, static_cast<std::size_t>(npuntos));
         } else {
-            gridMap->insert(plant->gain().name(), logspace(inicio, final, npuntos));
+            gridMap[plant->gain().name()] = qftbx::math::logspace(inicio, final, static_cast<std::size_t>(npuntos));
         }
     }
 
     if (!plant->delay().isUncertain()){
-        gridMap->insert(plant->delay().name(), new QVector <qreal> (1, plant->delay().nominal()));
+        gridMap[plant->delay().name()] = std::vector<double>(1, plant->delay().nominal());
     }else {
 
         qreal inicio;
@@ -402,9 +395,9 @@ void TemplatesDialog::on_okButton_clicked()
         //it clobbered the gain's grid and left the delay without an entry
         //(crashing the sweep with an uncertain delay).
         if (useLinspace){
-            gridMap->insert(plant->delay().name(), linspace(inicio, final, npuntos));
+            gridMap[plant->delay().name()] = qftbx::math::linspace(inicio, final, static_cast<std::size_t>(npuntos));
         } else {
-            gridMap->insert(plant->delay().name(), logspace(inicio, final, npuntos));
+            gridMap[plant->delay().name()] = qftbx::math::logspace(inicio, final, static_cast<std::size_t>(npuntos));
         }
     }
 
@@ -412,7 +405,7 @@ void TemplatesDialog::on_okButton_clicked()
         //Invalid point count or manual grid: it used to bring the
         //application down.
         errorMessage(tr("Invalid grid expressions."), tr("Template computation"));
-        releaseGrids();
+        gridMap.clear();
         delete epsilonValues;
         epsilonValues = NULL;
         return;
@@ -436,7 +429,7 @@ bool TemplatesDialog::readVariable(ParLineEdit *rowEdits, ThreeRadioButtons rowR
     //denominator): the FIRST entered grid wins and the user is told once
     //which names were unified (with the name key, the last one would
     //silently win otherwise).
-    if (gridMap->contains(parameter.name())){
+    if (gridMap.count(parameter.name()) != 0){
         if (!duplicateNames.contains(parameter.name())){
             duplicateNames.append(parameter.name());
         }
@@ -456,7 +449,7 @@ bool TemplatesDialog::readVariable(ParLineEdit *rowEdits, ThreeRadioButtons rowR
         parser->SetExpr(rowEdits->getX()->text().toStdString());
         npuntos = parser->Eval().GetFloat();
 
-        gridMap->insert(parameter.name(), linspace(inicio,final, npuntos));
+        gridMap[parameter.name()] = qftbx::math::linspace(inicio, final, static_cast<std::size_t>(npuntos));
 
     }else if (rowRadios.dos->isChecked() && !rowEdits->getY()->text().isEmpty()){
 
@@ -465,25 +458,26 @@ bool TemplatesDialog::readVariable(ParLineEdit *rowEdits, ThreeRadioButtons rowR
         parser->SetExpr(rowEdits->getY()->text().toStdString());
         npuntos = parser->Eval().GetFloat();
 
-        gridMap->insert(parameter.name(), logspace(inicio, final, npuntos));
+        gridMap[parameter.name()] = qftbx::math::logspace(inicio, final, static_cast<std::size_t>(npuntos));
 
     }else if(rowRadios.tres->isChecked() && !rowEdits->nominal()->text().isEmpty()){
 
         QVector <QString> * vector = qftbx::text::tokens(rowEdits->nominal()->text());
-        QVector <qreal> * vector2 = new QVector <qreal> ();
+        std::vector<double> values;
+        values.reserve(static_cast<std::size_t>(vector->size()));
 
         try {
             foreach (QString numeroS, *vector) {
                 parser->SetExpr(numeroS.toStdString());
-                vector2->append(parser->Eval().GetFloat());
+                values.push_back(parser->Eval().GetFloat());
             }
         } catch (mup::ParserError &) {
             delete vector;
-            delete vector2;
             throw;
         }
         delete vector;
-        gridMap->insert(parameter.name(), vector2);
+
+        gridMap[parameter.name()] = std::move(values);
     }else if (useLinspace || useLogspace){
 
         inicio = parameter.range().min;
@@ -493,9 +487,9 @@ bool TemplatesDialog::readVariable(ParLineEdit *rowEdits, ThreeRadioButtons rowR
         npuntos = parser->Eval().GetFloat();
 
         if(useLinspace){
-            gridMap->insert(parameter.name(), linspace(inicio, final, npuntos));
+            gridMap[parameter.name()] = qftbx::math::linspace(inicio, final, static_cast<std::size_t>(npuntos));
         }else {
-            gridMap->insert(parameter.name(), logspace(inicio, final, npuntos));
+            gridMap[parameter.name()] = qftbx::math::logspace(inicio, final, static_cast<std::size_t>(npuntos));
         }
     }else{
         return false;
@@ -504,7 +498,7 @@ bool TemplatesDialog::readVariable(ParLineEdit *rowEdits, ThreeRadioButtons rowR
     return true;
 }
 
-QHash <QString, QVector<qreal> * > * TemplatesDialog::grids(){
+qftbx::ParameterGrids TemplatesDialog::grids() const{
     return gridMap;
 }
 
