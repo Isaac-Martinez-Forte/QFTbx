@@ -2,15 +2,6 @@
 #define CONTROLADOR_H
 
 
-#include "DAO/dao.h"
-#include "DAO/fdao.h"
-#include "DAO/plantadao.h"
-#include "DAO/omegadao.h"
-#include "DAO/templatedao.h"
-#include "DAO/bounddao.h"
-#include "DAO/especificacionesdao.h"
-#include "DAO/adaptadorcontroladordao.h"
-
 #include <QHash>
 #include <complex>
 
@@ -22,8 +13,7 @@
 #include "src/persistence/project_writer.h"
 #include "Herramientas/tools.h"
 #include "src/core/loopshaping/loop_shaping.h"
-
-#include <iostream>
+#include "src/core/project_data.h"
 
 
 /**
@@ -236,40 +226,20 @@ public:
     QVector<bool> * cargarSistema(QString fichero);
     
     
-    /**
-    * @fn nivel
-    * @brief Función que retorna un entero indicando las fases de QFT que han sido completadas
-    */
-
-    qint32 nivel();
-
     QVector<qreal> *getEpsilon();
 
     void setLoopShaping (DatosLoopShaping * datos);
 
-    
+
 private:
-    bool paso1; //Planta
-    bool paso2; //Especificaciones
-    bool paso3; //Omega
-    bool paso4; //Templates
-    bool paso5; //Boundaries
-    bool paso6; //Introducir controlador
-    bool paso7; //Loop Shaping
 
-    BoundaryEngine * bound;
-    TemplateEngine * templates;
-    LoopShaping * loopShaping;
+    //The project contents, owned (replaces the historical DAO layer).
+    qftbx::ProjectData data;
 
-    DAO * dao;
-    PlantaDAO *  plantadao;
-    OmegaDAO * omegadao;
-    TemplateDAO * templatedao;
-    BoundDAO * bounddao;
-    EspecificacionesDAO * especdao;
-    ControladorDAO * controladordao;
-    LoopShapingDAO * loopshapingdao;
-
+    //The three computation engines, created on first use.
+    BoundaryEngine * bound = nullptr;
+    TemplateEngine * templates = nullptr;
+    LoopShaping * loopShaping = nullptr;
 };
 
 #endif // CONTROLADOR_H

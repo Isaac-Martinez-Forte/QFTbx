@@ -14,7 +14,7 @@
 #include "src/core/specifications/specification_record.h"
 #include "src/core/exception.h"
 #include "src/core/specifications/specification.h"
-#include "DAO/adaptadorespecificacionesdao.h"
+#include "src/core/project_data.h"
 #include "src/core/system/polynomial_form.h"
 #include "src/core/system/parameter.h"
 #include "src/persistence/project_reader.h"
@@ -96,7 +96,7 @@ TEST(Specification, NegativeHeightYieldsNaN)
 
 TEST(SpecificationDao, OwnsReplacesAndToleratesIdentity)
 {
-    // Fixed: the DAO now owns the records and their embedded plants (deep
+    // Fixed: the store owns the records and their embedded plants (deep
     // deletes on replacement and destruction, leak-checked under ASan);
     // handing it the vector it already holds is a no-op.
     auto* first = new QVector<qftbx::SpecificationRecord*>();
@@ -110,16 +110,16 @@ TEST(SpecificationDao, OwnsReplacesAndToleratesIdentity)
         first->append(spec);
     }
 
-    AdaptadorEspecificacionesDAO dao;
-    dao.setEspecificaciones(first);
-    dao.setEspecificaciones(first); // identity: must not double-delete
-    EXPECT_EQ(dao.getEspecificaciones(), first);
+    qftbx::ProjectData data;
+    data.setSpecifications(first);
+    data.setSpecifications(first); // identity: must not double-delete
+    EXPECT_EQ(data.specifications(), first);
 
     auto* second = new QVector<qftbx::SpecificationRecord*>();
     second->append(new qftbx::SpecificationRecord{});
-    dao.setEspecificaciones(second); // deep-deletes 'first' and its plant
-    EXPECT_EQ(dao.getEspecificaciones(), second);
-    // 'second' is deep-deleted by the DAO's destructor.
+    data.setSpecifications(second); // deep-deletes 'first' and its plant
+    EXPECT_EQ(data.specifications(), second);
+    // 'second' is deep-deleted by the store's destructor.
 }
 
 TEST(SpecificationPersistence, MultivaluadosSpecificationsRoundTrip)

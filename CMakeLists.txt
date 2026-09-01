@@ -133,24 +133,18 @@ FetchContent_MakeAvailable(pugixml)
 set(QFTbx_BACKEND_SRC
     src/core/loopshaping/natural_interval_extension.cpp
     src/core/system/transfer_function.cpp
-    DAO/adaptadorplantadao.cpp
     src/core/system/lti_system.cpp
     src/core/system/polynomial_form.cpp
     src/core/system/zero_pole_gain.cpp
     src/core/system/time_constant_gain.cpp
     Modelo/controlador.cpp
-    DAO/adaptadoromegadao.cpp
     src/core/templates/template_engine.cpp
-    DAO/adaptadortemplatedao.cpp
     Modelo/Herramientas/tools.cpp
     src/core/frequencies/omega.cpp
-    DAO/adaptadorbounddao.cpp
+    src/core/project_data.cpp
     src/persistence/project_reader.cpp
     src/persistence/project_writer.cpp
-    DAO/fdao.cpp
     src/core/boundaries/boundary_data.cpp
-    DAO/adaptadorespecificacionesdao.cpp
-    DAO/adaptadorcontroladordao.cpp
     src/core/loopshaping/algorithm_nt.cpp
     src/core/loopshaping/nominal_stability_checker.cpp
     src/core/loopshaping/algorithm_mc1.cpp
@@ -166,7 +160,6 @@ set(QFTbx_BACKEND_SRC
     src/core/loopshaping/mc_search_node.cpp
     src/core/loopshaping/boundary_violation_detector.cpp
     src/core/loopshaping/ordered_list.cpp
-    DAO/adaptadorloopshapingdao.cpp
     Modelo/EstructurasDatos/datosloopshaping.cpp
     src/core/boundaries/boundary_union_1d.cpp
     src/core/boundaries/contour_tracer.cpp
@@ -198,37 +191,24 @@ set(QFTbx_GUI_SRC main.cpp
 set(QFTbx_BACKEND_HED
     src/core/system/transfer_function.h
     src/core/loopshaping/natural_interval_extension.h
-    DAO/adaptadorplantadao.h
     src/core/system/lti_system.h
     src/core/system/polynomial_form.h
     src/core/system/zero_pole_gain.h
     src/core/system/time_constant_gain.h
-    DAO/plantadao.h
     Modelo/controlador.h
-    DAO/adaptadoromegadao.h
-    DAO/omegadao.h
     src/core/templates/template_engine.h
-    DAO/templatedao.h
-    DAO/adaptadortemplatedao.h
     Modelo/Herramientas/tools.h
     src/core/specifications/specification_record.h
+    src/core/project_data.h
     src/core/loopshaping/loop_shaping_types.h
     src/core/math/sequences.h
     src/core/specifications/specification.h
     src/core/exception.h
     src/core/frequencies/omega.h
-    DAO/bounddao.h
-    DAO/adaptadorbounddao.h
-    DAO/dao.h
-    DAO/fdao.h
     src/core/boundaries/boundary_data.h
     src/persistence/project_reader.h
     src/persistence/project_writer.h
     src/persistence/qft_dialect.h
-    DAO/especificacionesdao.h
-    DAO/adaptadorespecificacionesdao.h
-    DAO/adaptadorcontroladordao.h
-    DAO/controladordao.h
     src/core/loopshaping/algorithm_nt.h
     src/core/loopshaping/nominal_stability_checker.h
     src/core/loopshaping/quick_solution.h
@@ -248,8 +228,6 @@ set(QFTbx_BACKEND_HED
     src/core/loopshaping/stages.h
     src/core/loopshaping/boundary_violation_detector.h
     src/core/loopshaping/ordered_list.h
-    DAO/loopshapingdao.h
-    DAO/adaptadorloopshapingdao.h
     Modelo/EstructurasDatos/datosloopshaping.h
     src/core/boundaries/boundary_union_1d.h
     src/core/boundaries/contour_tracer.h

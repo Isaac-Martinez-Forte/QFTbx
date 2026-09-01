@@ -1,193 +1,104 @@
 #include "controlador.h"
 
-using namespace std;
-
-
 Controlador::Controlador()
 {
-    dao = new FDAO ();
-
-    paso1 = false;
-    paso2 = false;
-    paso3 = false;
-    paso4 = false;
-    paso5 = false;
-    paso6 = false;
-    paso7 = false;
 }
 
 Controlador::~Controlador(){
 
-    delete dao;
-
-    if(paso1){
-        delete plantadao;
-    }
-
-    if (paso2){
-        delete especdao;
-    }
-
-    if(paso3){
-        delete omegadao;
-    }
-
-    if(paso4){
-        delete templatedao;
-        delete templates;
-    }
-
-    if(paso5){
-        delete bounddao;
-        delete bound;
-    }
-
-    if (paso6){
-        delete controladordao;
-    }
-
-    if(paso7){
-        delete loopShaping;
-        delete loopshapingdao;
-    }
+    delete bound;
+    delete templates;
+    delete loopShaping;
 }
 
 LtiSystem *Controlador::getPlanta(){
-    if(!paso1)
-        return NULL;
-
-    return plantadao->getPlanta();
+    return data.plant();
 }
 
 Omega * Controlador::getOmega(){
-    if(!paso3)
-        return NULL;
-
-    return omegadao->getOmega();
+    return data.omega();
 }
 
 QVector <qreal> * Controlador::getFrecuencias(){
-    if(!paso3)
-        return NULL;
-
-    return omegadao->getFrecuencias();
+    return data.frequencies();
 }
 
 
 QVector<qftbx::SpecificationRecord *> *Controlador::getEspecificaciones(){
-    if(!paso2)
-        return NULL;
-
-    return especdao->getEspecificaciones();
+    return data.specifications();
 }
 
 void Controlador::setPlanta(LtiSystem *planta){
-    if (!paso1)
-        plantadao = dao->getPlantaDAO();
-    paso1 = true;
-    plantadao->setPlanta(planta);
+    data.setPlant(planta);
 }
 
 void Controlador::setValues(Omega *omega){
-    if(!paso3)
-        omegadao = dao->getOmegaDAO();
-    paso3 = true;
-
-    omegadao->setValues(omega);
+    data.setOmega(omega);
 }
 
 void Controlador::setEspecificaciones(QVector<qftbx::SpecificationRecord *> *espe){
-    if(!paso2){
-        especdao = dao->getEspecificacionesDAO();
-    }
-
-    paso2 = true;
-
-    especdao->setEspecificaciones(espe);
+    data.setSpecifications(espe);
 }
 
 void Controlador::setTemplate(QVector<QVector<std::complex<qreal> > *> *temp,
                               QVector<QVector<std::complex<qreal> > *> *contorno, bool isContorno){
 
-    if(!paso4){
-        templatedao = dao->getTemplateDAO();
+    if (templates == nullptr){
         templates = new TemplateEngine();
     }
-    paso4 = true;
 
-    templatedao->setTemplates(temp);
+    data.setTemplates(temp);
 
-    //Alimentar tambien el motor: sin esto, recalcular el contorno tras
-    //CARGAR un proyecto desreferenciaba un puntero nulo.
+    //Feed the engine too: without this, recomputing the contour after
+    //LOADING a project dereferenced a null pointer.
     templates->setClouds(temp);
 
-    if (isContorno)
-        templatedao->setContorno(contorno);
-
-
+    if (isContorno){
+        data.setContour(contorno);
+    }
 }
 
 void Controlador::setContorno(QVector<QVector<std::complex<qreal> > *> *contorno){
-    templatedao->setContorno(contorno);
+    data.setContour(contorno);
 }
 
 void Controlador::setBoundaries(BoundaryData *bound){
-
-    if (!paso5){
-        this->bound = new BoundaryEngine();
-        bounddao = dao->getBoundDAO();
-    }
-    paso5 = true;
-
-    bounddao->setBound(bound);
-
+    data.setBoundaries(bound);
 }
 
 QVector <QVector <std::complex <qreal> > * > * Controlador::getTemplate(){
-    if (!paso4)
-        return NULL;
-    return templatedao->getTemplates();
+    return data.templates();
 }
 
 QVector <QVector <std::complex <qreal> > * > * Controlador::getContorno(){
-    if (!paso4)
-        return NULL;
-    return templatedao->getContorno();
+    return data.contour();
 }
 
 bool Controlador::calcularTemplates(QVector <qreal> * epsilon, QHash <QString, QVector<qreal> *> *mapa, bool cuda){
 
-    if(!paso4){
-        templatedao = dao->getTemplateDAO();
+    if (templates == nullptr){
         templates = new TemplateEngine();
     }
-    paso4 = true;
 
     templates->setEpsilon(epsilon);
     templates->setGrids(mapa);
 
-    templates->compute(getPlanta(),getOmega()->values(), cuda);
+    templates->compute(getPlanta(), getOmega()->values(), cuda);
 
-    //El calculo ya no reordena ni sustituye las frecuencias: basta guardar
-    //el epsilon usado para la persistencia.
-    templatedao->setEpsilon(epsilon);
+    //The computation no longer reorders or replaces the frequencies: it is
+    //enough to keep the epsilon used, for the persistence.
+    data.setEpsilon(epsilon);
 
     QVector <QVector <std::complex <qreal> > * > * temp = templates->clouds();
     QVector <QVector <std::complex <qreal> > * > * cont = templates->contours();
 
-    if (cont != NULL)
-        setTemplate(temp,cont,true);
-    else
-        setTemplate(temp,cont,false);
+    setTemplate(temp, cont, cont != nullptr);
 
-    if (temp == NULL || cont == NULL)
-         return false;
-
-    return true;
+    return temp != nullptr && cont != nullptr;
 }
 
 QVector <qreal> * Controlador::getEpsilon(){
-    return templatedao->getEpsilon();
+    return data.epsilon();
 }
 
 
@@ -196,7 +107,7 @@ QVector <QVector <std::complex <qreal> > * > * Controlador::recalcularContorno(Q
     QVector <QVector <std::complex <qreal> > * > * aux = templates->contours();
 
     setContorno(aux);
-    templatedao->setEpsilon(epsilon);
+    data.setEpsilon(epsilon);
 
     return aux;
 }
@@ -204,19 +115,14 @@ QVector <QVector <std::complex <qreal> > * > * Controlador::recalcularContorno(Q
 bool Controlador::calcularBoundaries(QPointF datosFas, qint32 puntosFas, QPointF datosMag,
                                      qint32 puntosMag, qreal infinito, bool contorno, bool cuda){
 
-    if (!paso5){
+    if (bound == nullptr){
         bound = new BoundaryEngine();
-        bounddao = dao->getBoundDAO();
     }
-    paso5 = true;
 
-    if (contorno){
-        bound->compute(omegadao->getFrecuencias(),plantadao->getPlanta(), templatedao->getContorno()
-                         ,especdao->getEspecificaciones(), datosFas,puntosFas,datosMag,puntosMag, infinito, cuda);
-    } else {
-        bound->compute(omegadao->getFrecuencias(),plantadao->getPlanta(), templatedao->getTemplates()
-                         ,especdao->getEspecificaciones(), datosFas,puntosFas,datosMag,puntosMag, infinito, cuda);
-    }
+    bound->compute(data.frequencies(), data.plant(),
+                   contorno ? data.contour() : data.templates(),
+                   data.specifications(), datosFas, puntosFas, datosMag, puntosMag,
+                   infinito, cuda);
 
     setBoundaries(bound->boundaryData());
 
@@ -226,54 +132,41 @@ bool Controlador::calcularBoundaries(QPointF datosFas, qint32 puntosFas, QPointF
 }
 
 BoundaryData *Controlador::getBound(){
-    return bounddao->getBound();
+    return data.boundaries();
 }
 
 QVector< QVector<QPointF> * > * Controlador::unionBoundaries(){
-    return bounddao->getBound()->unionBoundaries();
+    return data.boundaries()->unionBoundaries();
 }
 
 QVector< QVector <QVector<QPointF> * > * > * Controlador::unionBuckets(){
-    return bounddao->getBound()->unionBuckets();
+    return data.boundaries()->unionBuckets();
 }
 
 bool Controlador::setControlador(LtiSystem *controlador){
-
-    if (!paso6){
-        controladordao = dao->getControladorDAO();
-    }
-
-    paso6 = true;
-
-    controladordao->setControlador(controlador);
+    data.setController(controlador);
 
     return true;
 }
 
 LtiSystem * Controlador::getControlador(){
-    if (!paso6){
-        return NULL;
-    }
-
-    return controladordao->getControlador();
+    return data.controller();
 }
 
 bool Controlador::calcularLoopShaping(qreal epsilon, tools::LoopShapingAlgorithm seleccionado, QPointF rango, qreal nPuntos,
                                       qint32 inicializacion){
 
-    if (!paso7){
+    if (loopShaping == nullptr){
         loopShaping = new LoopShaping();
-        loopshapingdao = dao->getLoopShapingDAO();
     }
 
-    paso7 = true;
-
-    bool re = loopShaping->iniciar(plantadao->getPlanta(), controladordao->getControlador(), omegadao->getFrecuencias(), bounddao->getBound(),
-                           epsilon, seleccionado, templatedao->getContorno(), especdao->getEspecificaciones(),
-                                   inicializacion);
+    const bool re = loopShaping->iniciar(data.plant(), data.controller(), data.frequencies(),
+                                         data.boundaries(), epsilon, seleccionado,
+                                         data.contour(), data.specifications(),
+                                         inicializacion);
 
     if (re){
-        loopshapingdao->setDatos(new DatosLoopShaping(loopShaping->getControlador(), rango, nPuntos));
+        data.setLoopShaping(new DatosLoopShaping(loopShaping->getControlador(), rango, nPuntos));
         return true;
     }
 
@@ -281,49 +174,30 @@ bool Controlador::calcularLoopShaping(qreal epsilon, tools::LoopShapingAlgorithm
 }
 
 void Controlador::setLoopShaping(DatosLoopShaping *datos){
-    if (!paso7){
-        loopShaping = new LoopShaping();
-        loopshapingdao = dao->getLoopShapingDAO();
-    }
-
-    paso7 = true;
-
-    loopshapingdao->setDatos(datos);
+    data.setLoopShaping(datos);
 }
 
 DatosLoopShaping * Controlador::getLoopShaping(){
-    return loopshapingdao->getLoopShaping();
+    return data.loopShaping();
 }
 
 bool Controlador::guardarSistema(QString fichero){
 
     ProjectContent content;
 
-    if (paso1)
-        content.plant = plantadao->getPlanta();
+    content.plant = data.plant();
+    content.specifications = data.specifications();
+    content.omega = data.omega();
+    content.templates = data.templates();
+    content.epsilon = data.epsilon();
 
-    if (paso2)
-        content.specifications = especdao->getEspecificaciones();
-
-    if (paso3)
-        content.omega = omegadao->getOmega();
-
-    if (paso4){
-        content.templates = templatedao->getTemplates();
-        content.epsilon = templatedao->getEpsilon();
-        if (templatedao->isContorno()){
-            content.contour = templatedao->getContorno();
-        }
+    if (data.hasContour()){
+        content.contour = data.contour();
     }
 
-    if (paso5)
-        content.boundaries = bounddao->getBound();
-
-    if (paso6)
-        content.controller = controladordao->getControlador();
-
-    if (paso7)
-        content.loopShaping = loopshapingdao->getLoopShaping();
+    content.boundaries = data.boundaries();
+    content.controller = data.controller();
+    content.loopShaping = data.loopShaping();
 
     ProjectWriter writer;
     writer.save(fichero, content);
@@ -347,12 +221,10 @@ QVector <bool> * Controlador::cargarSistema(QString fichero){
         setValues(leer.omega());
 
     if (retorno->value(3)){
-        if (retorno->value(7)){
-            setTemplate(leer.templates(), leer.contour(), true);
-        }else {
-            setTemplate(leer.templates(), NULL, false);
-        }
-        templatedao->setEpsilon(leer.epsilon());
+        setTemplate(leer.templates(),
+                    retorno->value(7) ? leer.contour() : nullptr,
+                    retorno->value(7));
+        data.setEpsilon(leer.epsilon());
     }
 
     if (retorno->value(4))
@@ -367,5 +239,4 @@ QVector <bool> * Controlador::cargarSistema(QString fichero){
     }
 
     return retorno;
-
 }
