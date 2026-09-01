@@ -47,15 +47,6 @@ Parameter::Parameter (Range range){
     m_hasExpression = false;
 }
 
-Parameter::Parameter(const Parameter &obj){
-    m_name = obj.m_name;
-    m_range = obj.m_range;
-    m_nominal = obj.m_nominal;
-    m_uncertain = obj.m_uncertain;
-    m_expression = obj.m_expression;
-    this->m_hasExpression = obj.m_hasExpression;
-}
-
 Parameter::Parameter() {
    m_nominal = 0;
    m_uncertain = false;

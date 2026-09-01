@@ -333,18 +333,23 @@ void ControllerDialog::on_okButton_clicked()
                                       ui->numeratorEdit->text(), ui->denominatorEdit->text());
         }
     }else{
+        std::optional<std::vector<Parameter>> nume = buildParameters(valueTable->at(0));
+        std::optional<std::vector<Parameter>> deno = buildParameters(valueTable->at(1));
+
+        if (!nume.has_value() || !deno.has_value()){
+            releaseTables(valueTable, expressionTable, uncertainTable);
+            errorMessage(tr("There is an error in the controller data"), tr("Controller input"));
+            return;
+        }
+
         if (ui->zpkRadio->isChecked()){
-            controllerSystem = new ZeroPoleGain("",buildParameters(valueTable->at(0)),
-                                   buildParameters(valueTable->at(1)),kv,retv );
+            controllerSystem = new ZeroPoleGain("", *nume, *deno, kv, retv);
         }else if(ui->tcgRadio->isChecked()){
-            controllerSystem = new TimeConstantGain("",buildParameters(valueTable->at(0)),
-                                    buildParameters(valueTable->at(1)),kv,retv);
+            controllerSystem = new TimeConstantGain("", *nume, *deno, kv, retv);
         }else if (ui->polynomialRadio->isChecked()){
-            controllerSystem = new PolynomialForm("", buildParameters(valueTable->at(0)),
-                                     buildParameters(valueTable->at(1)),kv,retv);
+            controllerSystem = new PolynomialForm("", *nume, *deno, kv, retv);
         }else {
-            controllerSystem = new FreeForm("", buildParameters(valueTable->at(0)),
-                                      buildParameters(valueTable->at(1)),kv,retv,
+            controllerSystem = new FreeForm("", *nume, *deno, kv, retv,
                                       ui->numeratorEdit->text(), ui->denominatorEdit->text());
         }
 
@@ -358,7 +363,7 @@ void ControllerDialog::on_okButton_clicked()
 }
 
 
-std::vector<Parameter> ControllerDialog::buildParameters(QVector <QString> * numeros){
+std::optional<std::vector<Parameter>> ControllerDialog::buildParameters(QVector <QString> * numeros){
     std::vector<Parameter> var;
     var.reserve(numeros->size());
 
@@ -371,8 +376,11 @@ std::vector<Parameter> ControllerDialog::buildParameters(QVector <QString> * num
         try {
             var.push_back(Parameter(p.Eval().GetFloat()));
         } catch (mup::ParserError &) {
-            //Invalid coefficient: 0 instead of bringing the application down.
-            var.push_back(Parameter(qreal(0)));
+            //An invalid coefficient used to become 0 here, silently: the
+            //controller that got designed was not the one the user typed.
+            //parseCoefficients only tokenises, so this is where it has to be
+            //said.
+            return std::nullopt;
         }
     }
 

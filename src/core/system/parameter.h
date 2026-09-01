@@ -31,8 +31,6 @@ public:
 
     Parameter(Range range);
 
-    Parameter (const Parameter &obj);
-
     Parameter();
 
     /// Constant, named by its textual value.
@@ -69,12 +67,19 @@ public:
     QString expression();
 
 private:
+    //Initialised here, not constructor by constructor: the value
+    //constructors used to leave m_hasExpression indeterminate, and reading
+    //it (the copy constructor does) is undefined behaviour. It stayed
+    //harmless only because range() and nominal() return early on
+    //!m_uncertain, so a single setUncertain(true) - or swapping those two
+    //checks - would have turned a stack byte into a muParserX evaluation of
+    //an undefined variable.
     QString m_name;
     Range m_range;
-    qreal m_nominal;
-    bool m_uncertain;
+    qreal m_nominal = 0.0;
+    bool m_uncertain = false;
     QString m_expression;
-    bool m_hasExpression;
+    bool m_hasExpression = false;
 
 };
 

@@ -405,18 +405,23 @@ void PlantDialog::on_okButton_clicked()
                                       ui->freeNumerator->text(), ui->freeDenominator->text());
         }
     }else{
+        std::optional<std::vector<Parameter>> nume = buildParameters(valueTable->at(0));
+        std::optional<std::vector<Parameter>> deno = buildParameters(valueTable->at(1));
+
+        if (!nume.has_value() || !deno.has_value()){
+            releaseTables(valueTable, expressionTable, uncertainTable);
+            errorMessage(tr("There is an error in the plant data"), tr("Plant input"));
+            return;
+        }
+
         if (ui->zpkRadio->isChecked()){
-            plant = new ZeroPoleGain(ui->nameEdit->text(),buildParameters(valueTable->at(0)),
-                                   buildParameters(valueTable->at(1)),kv,retv );
+            plant = new ZeroPoleGain(ui->nameEdit->text(), *nume, *deno, kv, retv);
         }else if(ui->tcgRadio->isChecked()){
-            plant = new TimeConstantGain(ui->nameEdit->text(),buildParameters(valueTable->at(0)),
-                                    buildParameters(valueTable->at(1)),kv,retv);
+            plant = new TimeConstantGain(ui->nameEdit->text(), *nume, *deno, kv, retv);
         }else if (ui->polynomialRadio->isChecked()){
-            plant = new PolynomialForm(ui->nameEdit->text(), buildParameters(valueTable->at(0)),
-                                     buildParameters(valueTable->at(1)),kv,retv);
+            plant = new PolynomialForm(ui->nameEdit->text(), *nume, *deno, kv, retv);
         }else {
-            plant = new FreeForm(ui->nameEdit->text(), buildParameters(valueTable->at(0)),
-                                      buildParameters(valueTable->at(1)),kv,retv,
+            plant = new FreeForm(ui->nameEdit->text(), *nume, *deno, kv, retv,
                                       ui->freeNumerator->text(), ui->freeDenominator->text());
         }
 
@@ -430,7 +435,7 @@ void PlantDialog::on_okButton_clicked()
     this->close();
 }
 
-std::vector<Parameter> PlantDialog::buildParameters(QVector <QString> * numeros){
+std::optional<std::vector<Parameter>> PlantDialog::buildParameters(QVector <QString> * numeros){
     std::vector<Parameter> var;
 
     if (numeros->isEmpty()){
@@ -444,9 +449,11 @@ std::vector<Parameter> PlantDialog::buildParameters(QVector <QString> * numeros)
         try {
             var.push_back(Parameter(p.Eval().GetFloat()));
         } catch (mup::ParserError &) {
-            //Invalid coefficient: 0 is used and readTables already warned;
-            //the exception used to bring the application down.
-            var.push_back(Parameter(qreal(0)));
+            //An invalid coefficient used to become 0 here, silently: the
+            //plant that got designed for was not the one the user typed.
+            //readTables does not validate the coefficients either, so this
+            //is where it has to be said.
+            return std::nullopt;
         }
     }
 

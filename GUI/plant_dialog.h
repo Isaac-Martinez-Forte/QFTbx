@@ -1,6 +1,7 @@
 #ifndef QFTBX_PLANT_DIALOG_H
 #define QFTBX_PLANT_DIALOG_H
 
+#include <optional>
 #include <vector>
 
 #include <QDialog>
@@ -82,7 +83,11 @@ private:
     void openFile();
     bool guardar ();
     QVector<QVector<QString> *> *readTables(QVector<QVector<QString> *> *expressionTable, QVector<QVector<bool> *> *uncertainTable);
-    std::vector<Parameter> buildParameters(QVector<QString> *numeros);
+    /// The coefficients of one polynomial, or nothing when any of them is
+    /// not a valid expression. The invalid one used to become 0 in silence,
+    /// which quietly designed for a different plant. Same contract as
+    /// SpecificationsDialog::buildParameters.
+    std::optional<std::vector<Parameter>> buildParameters(QVector<QString> *numeros);
     bool parse(QString cadena);
     bool parseCoefficients(QVector<QVector<QString> *> *tabla, QLineEdit * linea, QVector<QVector<QString> *> *expressionTable,
                         QVector<QVector<bool> *> *uncertainTable);

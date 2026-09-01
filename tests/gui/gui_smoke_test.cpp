@@ -157,6 +157,29 @@ TEST_F(GuiSmoke, PlantDialogRejectsAnInvalidExpression)
     EXPECT_FALSE(m_reported.isEmpty()) << "the rejection must be reported";
 }
 
+TEST_F(GuiSmoke, PlantDialogRejectsAnInvalidCoefficient)
+{
+    //The gain path reports a malformed expression, but buildParameters
+    //catches the parser error per COEFFICIENT and substitutes 0, so a
+    //numerator of "1*/" became the polynomial 0 with nothing said.
+    PlantDialog dialog;
+
+    type(&dialog, "nameEdit", QStringLiteral("broken-numerator"));
+    check(&dialog, "zpkRadio");
+    type(&dialog, "zpkNumerator", QStringLiteral("1*/"));
+    type(&dialog, "zpkDenominator", QStringLiteral("5 30"));
+    type(&dialog, "zpkGain", QStringLiteral("3"));
+    type(&dialog, "zpkDelay", QStringLiteral("0"));
+
+    press(&dialog, "okButton");
+
+    EXPECT_FALSE(dialog.getTodoCorrecto())
+        << "a malformed coefficient was accepted";
+    EXPECT_FALSE(m_reported.isEmpty()) << "the rejection must be reported";
+
+    delete dialog.takePlant();
+}
+
 TEST_F(GuiSmoke, FrequenciesDialogBuildsTheDesignFrequencies)
 {
     FrequenciesDialog dialog;
@@ -204,6 +227,27 @@ TEST_F(GuiSmoke, ControllerDialogBuildsTheControllerStructure)
     EXPECT_TRUE(structure->gain().isUncertain());
     EXPECT_DOUBLE_EQ(structure->gain().range().min, 1.0);
     EXPECT_DOUBLE_EQ(structure->gain().range().max, 1000.0);
+}
+
+TEST_F(GuiSmoke, ControllerDialogRejectsAnInvalidNumerator)
+{
+    //readTables() keeps only the LAST of its three parse results, so a
+    //malformed numerator or denominator was overwritten by a gain range that
+    //parsed. The plant dialog rejects the same input.
+    ControllerDialog dialog;
+
+    check(&dialog, "zpkRadio");
+    type(&dialog, "numeratorEdit", QStringLiteral("1*/"));
+    type(&dialog, "denominatorEdit", QStringLiteral("100"));
+    type(&dialog, "gainStart", QStringLiteral("1"));
+    type(&dialog, "gainEnd", QStringLiteral("1000"));
+
+    press(&dialog, "okButton");
+
+    EXPECT_FALSE(dialog.getTodoCorrecto())
+        << "a malformed numerator was accepted";
+    EXPECT_EQ(dialog.takeControllerStructure(), nullptr);
+    EXPECT_FALSE(m_reported.isEmpty()) << "the rejection must be reported";
 }
 
 TEST_F(GuiSmoke, SpecificationsDialogNeedsTheFrequenciesFirst)

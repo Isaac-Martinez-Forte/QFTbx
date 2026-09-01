@@ -46,11 +46,14 @@ private:
     static constexpr qint32 kLayerCount = 2;
     static constexpr qreal kPhaseDegrees = 360.0;
 
-    QVector < QVector < QVector<QPointF> * > * > * m_unionBuckets;
-    QVector < QVector <QPointF> * > * m_unionVectors;
+    //Initialised here: the accessors below return these, and an
+    //indeterminate pointer defeats the != nullptr guards of the callers
+    //(nullptr at least fails honestly).
+    QVector < QVector < QVector<QPointF> * > * > * m_unionBuckets = nullptr;
+    QVector < QVector <QPointF> * > * m_unionVectors = nullptr;
 
-    QVector<bool> * m_openFlags;
-    QVector<bool> * m_upperFlags;
+    QVector<bool> * m_openFlags = nullptr;
+    QVector<bool> * m_upperFlags = nullptr;
 
     qint32 bucketIndex(qreal x, qreal totalPhase);
 
