@@ -46,9 +46,15 @@ BoundaryData * narrowWindow(qreal phaseStart, qint32 phaseCount)
     auto * open = new QVector<bool>{false};
     auto * upper = new QVector<bool>{true};
 
-    return new BoundaryData(boundaries, open, upper, phaseCount,
+    //The constructor is non-owning by default (the engine keeps its own
+    //data alive); takeOwnership makes the fixture's destructor free the
+    //vectors above, as the project loader does.
+    BoundaryData * data = new BoundaryData(boundaries, open, upper, phaseCount,
                             QPointF(phaseStart, 0.0), unionBoundaries, buckets,
                             121, QPointF(-60.0, 60.0));
+    data->takeOwnership();
+
+    return data;
 }
 
 TEST(BoundaryBucketBounds, APhaseOutsideTheNicholsWindowStaysInsideTheBuckets)

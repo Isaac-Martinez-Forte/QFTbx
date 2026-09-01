@@ -36,6 +36,13 @@
 #include "GUI/bode_viewer.h"
 #include "src/core/math/sequence_vectors.h"
 #include "src/core/system/polynomial_form.h"
+#include "GUI/uncertainty_dialog.h"
+#include "GUI/boundary_viewer.h"
+#include "GUI/boundary_union_viewer.h"
+#include "GUI/loop_shaping_viewer.h"
+#include "GUI/loop_boundaries_viewer.h"
+#include "src/core/boundaries/boundary_data.h"
+#include "src/core/loopshaping/loop_shaping_result.h"
 #include "GUI/boundary_grid_dialog.h"
 #include "GUI/templates_dialog.h"
 #include "GUI/loop_shaping_dialog.h"
@@ -109,6 +116,39 @@ void press(QWidget * dialog, const char * name)
     if (button != nullptr) {
         button->click();
     }
+}
+
+//A minimal one-frequency boundary set: one named boundary of three points
+//over the default Nichols window. Enough to drive the drawing code, which
+//is what the viewer tests are after.
+BoundaryData * oneBoundary()
+{
+    auto * curve = new QVector<QPointF>{QPointF(-270.0, 10.0), QPointF(-180.0, 4.0),
+                                        QPointF(-90.0, 10.0)};
+    auto * curves = new QVector<QVector<QPointF> *>{curve};
+
+    auto * perFrequency = new QMap<QString, QVector<QVector<QPointF> *> *>();
+    perFrequency->insert(QStringLiteral("Stability"), curves);
+    auto * boundaries = new QVector<QMap<QString, QVector<QVector<QPointF> *> *> *>{perFrequency};
+
+    auto * unionBoundaries = new QVector<QVector<QPointF> *>{
+        new QVector<QPointF>{QPointF(-270.0, 10.0), QPointF(-180.0, 4.0), QPointF(-90.0, 10.0)}};
+
+    auto * row = new QVector<QVector<QPointF> *>();
+    for (qint32 i = 0; i < 361; i++) {
+        row->append(new QVector<QPointF>());
+    }
+    auto * buckets = new QVector<QVector<QVector<QPointF> *> *>{row};
+
+    //The constructor is non-owning by default (the engine keeps its own
+    //data alive); takeOwnership makes the fixture's destructor free the
+    //vectors above, as the project loader does.
+    BoundaryData * data = new BoundaryData(boundaries, new QVector<bool>{false}, new QVector<bool>{true},
+                            361, QPointF(-360.0, 0.0), unionBoundaries, buckets,
+                            121, QPointF(-60.0, 60.0));
+    data->takeOwnership();
+
+    return data;
 }
 
 // ---------------------------------------------------------------------------
@@ -506,6 +546,193 @@ TEST_F(GuiSmoke, LoopShapingDialogCarriesTheChosenAlgorithm)
     EXPECT_DOUBLE_EQ(dialog.range().x(), 0.1);
     EXPECT_DOUBLE_EQ(dialog.range().y(), 100.0);
     EXPECT_DOUBLE_EQ(dialog.pointCountValue(), 200.0);
+}
+
+TEST_F(GuiSmoke, UncertaintyDialogBuildsAnUncertainParameter)
+{
+    //This is what turns a named coefficient into an uncertain Parameter, so
+    //it feeds the uncertainty of every plant and controller. It is driven
+    //the way the plant dialog drives it: the three parallel tables, one row
+    //per uncertain name.
+    UncertaintyDialog dialog;
+
+    auto * valueTable = new QVector<QVector<QString> *>{
+        new QVector<QString>{QStringLiteral("1")},
+        new QVector<QString>{QStringLiteral("a")}};
+    auto * expressionTable = new QVector<QVector<QString> *>{
+        new QVector<QString>{QStringLiteral("1")},
+        new QVector<QString>{QStringLiteral("a")}};
+    auto * uncertainTable = new QVector<QVector<bool> *>{
+        new QVector<bool>{false},
+        new QVector<bool>{true}};
+
+    ASSERT_TRUE(dialog.launch(valueTable, expressionTable, uncertainTable, false));
+
+    //One uncertain name, so one generated row: [inicio, fin] with nominal.
+    type(&dialog, "inicio", QStringLiteral("1"));
+    type(&dialog, "fin", QStringLiteral("5"));
+    type(&dialog, "nominal", QStringLiteral("3"));
+
+    type(&dialog, "gainStart", QStringLiteral("2"));
+    type(&dialog, "gainEnd", QStringLiteral("8"));
+    type(&dialog, "delayStart", QStringLiteral("0"));
+    type(&dialog, "delayEnd", QStringLiteral("0"));
+
+    press(&dialog, "okButton");
+
+    ASSERT_TRUE(dialog.getTodoCorrecto()) << "the dialog rejected valid data";
+
+    //The constant numerator coefficient must travel as a constant, and the
+    //named denominator one as uncertain with its range and nominal.
+    ASSERT_EQ(dialog.numerator().size(), 1u);
+    EXPECT_FALSE(dialog.numerator()[0].isUncertain());
+
+    ASSERT_EQ(dialog.denominator().size(), 1u);
+    Parameter & uncertain = dialog.denominator()[0];
+    EXPECT_TRUE(uncertain.isUncertain());
+    EXPECT_EQ(uncertain.name(), QStringLiteral("a"));
+    EXPECT_DOUBLE_EQ(uncertain.rawRange().min, 1.0);
+    EXPECT_DOUBLE_EQ(uncertain.rawRange().max, 5.0);
+    EXPECT_DOUBLE_EQ(uncertain.rawNominal(), 3.0);
+
+    //Gain and delay are search RANGES here, not values.
+    EXPECT_DOUBLE_EQ(dialog.gain().min, 2.0);
+    EXPECT_DOUBLE_EQ(dialog.gain().max, 8.0);
+    EXPECT_DOUBLE_EQ(dialog.delay().min, 0.0);
+    EXPECT_DOUBLE_EQ(dialog.delay().max, 0.0);
+}
+
+TEST_F(GuiSmoke, UncertaintyDialogRejectsAnEmptyRange)
+{
+    //An empty range used to be read as a null sentinel; it must be reported
+    //and refused, not turned into a parameter.
+    UncertaintyDialog dialog;
+
+    auto * valueTable = new QVector<QVector<QString> *>{
+        new QVector<QString>{QStringLiteral("1")},
+        new QVector<QString>{QStringLiteral("a")}};
+    auto * expressionTable = new QVector<QVector<QString> *>{
+        new QVector<QString>{QStringLiteral("1")},
+        new QVector<QString>{QStringLiteral("a")}};
+    auto * uncertainTable = new QVector<QVector<bool> *>{
+        new QVector<bool>{false},
+        new QVector<bool>{true}};
+
+    ASSERT_TRUE(dialog.launch(valueTable, expressionTable, uncertainTable, false));
+
+    //The row is left blank on purpose.
+    type(&dialog, "gainStart", QStringLiteral("2"));
+    type(&dialog, "gainEnd", QStringLiteral("8"));
+    type(&dialog, "delayStart", QStringLiteral("0"));
+    type(&dialog, "delayEnd", QStringLiteral("0"));
+
+    press(&dialog, "okButton");
+
+    EXPECT_FALSE(dialog.getTodoCorrecto()) << "a blank range was accepted";
+}
+
+TEST_F(GuiSmoke, BoundaryViewerDrawsTheBoundariesItIsGiven)
+{
+    //Draw-only viewer: the value here is that the drawing code runs over a
+    //real boundary set and leaves curves behind, and that a redraw does not
+    //pile them up (the bug the Bode and template viewers both had).
+    BoundaryViewer viewer;
+
+    BoundaryData * boundaries = oneBoundary();
+    QVector<qreal> omega{1.0};
+
+    viewer.setDatos(boundaries, &omega);
+    viewer.showDiagram();
+
+    QCustomPlot * plot = child<QCustomPlot>(&viewer, "plot");
+    ASSERT_NE(plot, nullptr);
+    const int drawn = plot->plottableCount();
+    EXPECT_GT(drawn, 0) << "nothing was drawn";
+
+    viewer.showDiagram();
+    EXPECT_EQ(plot->plottableCount(), drawn) << "a redraw piled up curves";
+
+    delete boundaries;
+}
+
+TEST_F(GuiSmoke, BoundaryUnionViewerDrawsTheUnion)
+{
+    BoundaryUnionViewer viewer;
+
+    auto * trace = new QVector<QPointF>{QPointF(-270.0, 10.0), QPointF(-180.0, 4.0),
+                                        QPointF(-90.0, 10.0)};
+    QVector<QVector<QPointF> *> traces{trace};
+    QVector<qreal> omega{1.0};
+
+    viewer.setDatos(&traces, &omega);
+    viewer.showDiagram();
+
+    QCustomPlot * plot = child<QCustomPlot>(&viewer, "plot");
+    ASSERT_NE(plot, nullptr);
+    const int drawn = plot->plottableCount();
+    EXPECT_GT(drawn, 0) << "nothing was drawn";
+
+    viewer.showDiagram();
+    EXPECT_EQ(plot->plottableCount(), drawn) << "a redraw piled up curves";
+
+    delete trace;
+}
+
+TEST_F(GuiSmoke, LoopShapingViewerDrawsTheShapedLoop)
+{
+    LoopShapingViewer viewer;
+
+    //1/(s+1) as the plant and a unit gain as the computed controller.
+    std::vector<Parameter> numerator{Parameter(1.0)};
+    std::vector<Parameter> denominator{Parameter(1.0), Parameter(1.0)};
+    PolynomialForm plant(QStringLiteral("loop"), numerator, denominator,
+                         Parameter(1.0), Parameter(0.0));
+
+    std::vector<Parameter> one{Parameter(1.0)};
+    LoopShapingResult result(new PolynomialForm(QStringLiteral("k"), one, one,
+                                                Parameter(1.0), Parameter(0.0)),
+                             QPointF(0.1, 100.0), 50);
+
+    auto * trace = new QVector<QPointF>{QPointF(-270.0, 10.0), QPointF(-180.0, 4.0),
+                                        QPointF(-90.0, 10.0)};
+    QVector<QVector<QPointF> *> traces{trace};
+    QVector<qreal> omega{1.0, 10.0};
+
+    viewer.setDatos(&traces, &omega, &result, &plant, false);
+    viewer.showDiagram();
+
+    QCustomPlot * plot = child<QCustomPlot>(&viewer, "plot");
+    ASSERT_NE(plot, nullptr);
+    EXPECT_GT(plot->plottableCount(), 0) << "nothing was drawn";
+
+    delete trace;
+}
+
+TEST_F(GuiSmoke, LoopBoundariesViewerDrawsBothDiagrams)
+{
+    LoopBoundariesViewer viewer;
+
+    std::vector<Parameter> numerator{Parameter(1.0)};
+    std::vector<Parameter> denominator{Parameter(1.0), Parameter(1.0)};
+    PolynomialForm plant(QStringLiteral("loop"), numerator, denominator,
+                         Parameter(1.0), Parameter(0.0));
+    std::vector<Parameter> one{Parameter(1.0)};
+    PolynomialForm controller(QStringLiteral("k"), one, one,
+                              Parameter(1.0), Parameter(0.0));
+
+    BoundaryData * nichols = oneBoundary();
+    BoundaryData * nyquist = oneBoundary();
+    QVector<qreal> omega{1.0};
+
+    viewer.setDatos(nichols, nyquist, &omega, &plant, &controller, true, false);
+    viewer.showDiagram();
+
+    QCustomPlot * plot = child<QCustomPlot>(&viewer, "plot");
+    ASSERT_NE(plot, nullptr);
+    EXPECT_GT(plot->plottableCount(), 0) << "nothing was drawn";
+
+    delete nichols;
+    delete nyquist;
 }
 
 TEST_F(GuiSmoke, TheMainWindowBuildsItsWholeWidgetTree)
