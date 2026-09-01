@@ -53,13 +53,12 @@ ExpressionTree::ExpressionTree(const std::string &tex, qreal resultado, com comp
 
 ExpressionTree::ExpressionTree(const ExpressionTree &other )                                            // constructor de copia
 {
-    this->root = make_cpy( other.root );
+    this->root = make_cpy(other.root.get() );
 }
 
-ExpressionTree::~ExpressionTree()                                                                 // destructor
-{
-    delete_tree(root);
-}
+//The root owns the tree, and every node owns its branches: the recursive
+//post-order delete_tree() this used to call has nothing left to do.
+ExpressionTree::~ExpressionTree() = default;
 
 /********************************************************
 * void ExpressionTree::setFunc(const std::string &tex)        *
@@ -70,7 +69,6 @@ ExpressionTree::~ExpressionTree()                                               
 
 void ExpressionTree::setFunc(const std::string &tex)
 {
-    delete_tree(root);
     std::string in_exp = tex;
 
     std::string::size_type pos = 0;                                                   // whitespace is stripped from the input
@@ -84,7 +82,6 @@ void ExpressionTree::setFunc(const std::string &tex)
 
 void ExpressionTree::setFunc(const std::string &tex, qreal resultado, com comparacion)
 {
-    delete_tree(root);
     std::string in_exp = tex;
 
     std::string::size_type pos = 0;                                                   // whitespace is stripped from the input
@@ -103,7 +100,6 @@ void ExpressionTree::setFunc(const std::string &tex, qreal resultado, com compar
 */
 void ExpressionTree::setFunc(const char *tex)
 {
-    delete_tree(root);
     std::string in_exp = tex;
 
     std::string::size_type pos = 0;                                                   // whitespace is stripped from the input
@@ -121,11 +117,11 @@ qreal ExpressionTree::eval(std::map<std::string, qreal> *variables )
 {
     this->variables = variables;
 
-    return eval_tree(root);
+    return eval_tree(root.get());
 }
 
 void ExpressionTree::imprimir (){
-    alg_exp_node_print(root);
+    alg_exp_node_print(root.get());
 }
 
 
@@ -155,16 +151,16 @@ void ExpressionTree::alg_exp_node_print(exp_node * node){
         cout << node->var << endl;
 
     }else if (node->type == 9){
-        alg_exp_node_print(node->left);
+        alg_exp_node_print(node->left.get());
         cout << tipo(node->type);
         cout << "2" << endl;
     }else if (node->type > 9){
         cout << tipo(node->type);
-        alg_exp_node_print(node->left);
+        alg_exp_node_print(node->left.get());
     } else {
-        alg_exp_node_print(node->left);
+        alg_exp_node_print(node->left.get());
         cout << tipo(node->type);
-        alg_exp_node_print(node->rigth);
+        alg_exp_node_print(node->rigth.get());
     }
 
 }
@@ -261,7 +257,7 @@ string ExpressionTree::tipo(type_node tipo)  {
 interval ExpressionTree::eval(std::map<string, interval> *variables){
     this->variables_in = variables;
 
-    return eval_tree_in(root);
+    return eval_tree_in(root.get());
 }
 
 /*interval ExpressionTree::eval(std::map<string, interval> *variables, qreal w){
@@ -269,7 +265,7 @@ interval ExpressionTree::eval(std::map<string, interval> *variables){
     this->w = w;
     this->variables_in = variables;
 
-    return eval_tree_complex_interval(root);
+    return eval_tree_complex_interval(root.get());
 }*/
 
 /********************************************************
@@ -285,8 +281,7 @@ ExpressionTree &ExpressionTree::operator=(const ExpressionTree &other)
     //Falling off the end of a value-returning function is undefined
     //behaviour (the historical version did, flagged by every build).
     if (this != &other) {
-        delete_tree(root);
-        root = make_cpy(other.root);
+        root = make_cpy(other.root.get());
     }
 
     return *this;
@@ -334,61 +329,61 @@ qreal ExpressionTree::eval_tree(exp_node *nod)
         return PI1;
 
     case SUMA :
-        return eval_tree(nod->left) + eval_tree(nod->rigth);
+        return eval_tree(nod->left.get()) + eval_tree(nod->rigth.get());
 
     case RESTA :
-        return eval_tree(nod->left) - eval_tree(nod->rigth);
+        return eval_tree(nod->left.get()) - eval_tree(nod->rigth.get());
 
     case MULT :
-        return eval_tree(nod->left) * eval_tree(nod->rigth);
+        return eval_tree(nod->left.get()) * eval_tree(nod->rigth.get());
 
     case DIV :
-        return eval_tree(nod->left) / eval_tree(nod->rigth);
+        return eval_tree(nod->left.get()) / eval_tree(nod->rigth.get());
 
     case POT :
-        return pow (eval_tree(nod->left),  eval_tree(nod->rigth) );
+        return pow (eval_tree(nod->left.get()),  eval_tree(nod->rigth.get()) );
 
     case SIN :
-        return sin ( eval_tree(nod->left) );
+        return sin ( eval_tree(nod->left.get()) );
 
     case COS :
-        return cos ( eval_tree(nod->left) );
+        return cos ( eval_tree(nod->left.get()) );
 
     case SQRT :
-        return sqrt( eval_tree(nod->left) );
+        return sqrt( eval_tree(nod->left.get()) );
 
     case TAN :
-        return tan ( eval_tree(nod->left) );
+        return tan ( eval_tree(nod->left.get()) );
 
     case ATAN :
-        return atan ( eval_tree(nod->left) );
+        return atan ( eval_tree(nod->left.get()) );
 
     case SINH :
-        return sinh ( eval_tree(nod->left) );
+        return sinh ( eval_tree(nod->left.get()) );
 
     case COSH :
-        return cosh ( eval_tree(nod->left) );
+        return cosh ( eval_tree(nod->left.get()) );
 
     case TANH :
-        return tanh ( eval_tree(nod->left) );
+        return tanh ( eval_tree(nod->left.get()) );
 
     case ASIN :
-        return asin ( eval_tree(nod->left) );
+        return asin ( eval_tree(nod->left.get()) );
 
     case ACOS :
-        return acos ( eval_tree(nod->left) );
+        return acos ( eval_tree(nod->left.get()) );
 
     case EXP :
-        return exp ( eval_tree(nod->left) );
+        return exp ( eval_tree(nod->left.get()) );
 
     case ABS :
-        return fabs ( eval_tree(nod->left) );
+        return fabs ( eval_tree(nod->left.get()) );
 
     case LN :
-        return log ( eval_tree(nod->left) );
+        return log ( eval_tree(nod->left.get()) );
 
     case LG :
-        return log10 ( eval_tree(nod->left) );
+        return log10 ( eval_tree(nod->left.get()) );
 
         /* if another function was added, add its 'case' here with its operation */
 
@@ -402,7 +397,7 @@ bool ExpressionTree::propagate(std::map<string, interval> *variables){
 
     this->variables_in = variables;
 
-    interval resultado = eval_tree_in(root);
+    interval resultado = eval_tree_in(root.get());
 
     interval nuevo_intervalo;
 
@@ -418,7 +413,7 @@ bool ExpressionTree::propagate(std::map<string, interval> *variables){
 
     //A domain emptied during the backward projection proves the box
     //inconsistent with the constraint.
-    return eval_tree_out(root, nuevo_intervalo);
+    return eval_tree_out(root.get(), nuevo_intervalo);
 }
 
 bool ExpressionTree::interseccionSegura(const interval & a, const interval & b, interval & out){
@@ -463,7 +458,7 @@ bool ExpressionTree::eval_tree_out(exp_node *nod, interval intervalo){
         if (!interseccionSegura(nod->left->intervalo, intervalo - nod->rigth->intervalo, a)) {
             return false;
         }
-        if (!eval_tree_out(nod->left, a)) {
+        if (!eval_tree_out(nod->left.get(), a)) {
             return false;
         }
 
@@ -471,7 +466,7 @@ bool ExpressionTree::eval_tree_out(exp_node *nod, interval intervalo){
         if (!interseccionSegura(nod->rigth->intervalo, intervalo - a, b)) {
             return false;
         }
-        return eval_tree_out(nod->rigth, b);
+        return eval_tree_out(nod->rigth.get(), b);
     }
 
     case RESTA :
@@ -480,7 +475,7 @@ bool ExpressionTree::eval_tree_out(exp_node *nod, interval intervalo){
         if (!interseccionSegura(nod->left->intervalo, intervalo + nod->rigth->intervalo, a)) {
             return false;
         }
-        if (!eval_tree_out(nod->left, a)) {
+        if (!eval_tree_out(nod->left.get(), a)) {
             return false;
         }
 
@@ -488,7 +483,7 @@ bool ExpressionTree::eval_tree_out(exp_node *nod, interval intervalo){
         if (!interseccionSegura(nod->rigth->intervalo, a - intervalo, b)) {
             return false;
         }
-        return eval_tree_out(nod->rigth, b);
+        return eval_tree_out(nod->rigth.get(), b);
     }
 
     case MULT :
@@ -501,7 +496,7 @@ bool ExpressionTree::eval_tree_out(exp_node *nod, interval intervalo){
             if (!interseccionSegura(a, intervalo / nod->rigth->intervalo, a)) {
                 return false;
             }
-            if (!eval_tree_out(nod->left, a)) {
+            if (!eval_tree_out(nod->left.get(), a)) {
                 return false;
             }
         }
@@ -511,7 +506,7 @@ bool ExpressionTree::eval_tree_out(exp_node *nod, interval intervalo){
             if (!interseccionSegura(nod->rigth->intervalo, intervalo / a, b)) {
                 return false;
             }
-            return eval_tree_out(nod->rigth, b);
+            return eval_tree_out(nod->rigth.get(), b);
         }
 
         return true;
@@ -523,7 +518,7 @@ bool ExpressionTree::eval_tree_out(exp_node *nod, interval intervalo){
         if (!interseccionSegura(nod->left->intervalo, intervalo * nod->rigth->intervalo, a)) {
             return false;
         }
-        if (!eval_tree_out(nod->left, a)) {
+        if (!eval_tree_out(nod->left.get(), a)) {
             return false;
         }
 
@@ -532,7 +527,7 @@ bool ExpressionTree::eval_tree_out(exp_node *nod, interval intervalo){
             if (!interseccionSegura(nod->rigth->intervalo, a / intervalo, b)) {
                 return false;
             }
-            return eval_tree_out(nod->rigth, b);
+            return eval_tree_out(nod->rigth.get(), b);
         }
 
         return true;
@@ -556,7 +551,7 @@ bool ExpressionTree::eval_tree_out(exp_node *nod, interval intervalo){
                                 interval(-Sup(raiz), Sup(raiz)), candidato)) {
             return false;
         }
-        return eval_tree_out(nod->left, candidato);
+        return eval_tree_out(nod->left.get(), candidato);
     }
 
     case SQRT :
@@ -570,7 +565,7 @@ bool ExpressionTree::eval_tree_out(exp_node *nod, interval intervalo){
         if (!interseccionSegura(nod->left->intervalo, sqr(positivo), candidato)) {
             return false;
         }
-        return eval_tree_out(nod->left, candidato);
+        return eval_tree_out(nod->left.get(), candidato);
     }
 
     case SIN :
@@ -588,7 +583,7 @@ bool ExpressionTree::eval_tree_out(exp_node *nod, interval intervalo){
         if (!interseccionSegura(nod->left->intervalo, asin(acotado), candidato)) {
             return false;
         }
-        return eval_tree_out(nod->left, candidato);
+        return eval_tree_out(nod->left.get(), candidato);
     }
 
     case COS :
@@ -604,14 +599,14 @@ bool ExpressionTree::eval_tree_out(exp_node *nod, interval intervalo){
             if (!interseccionSegura(nod->left->intervalo, -acos(acotado), candidato)) {
                 return false;
             }
-            return eval_tree_out(nod->left, candidato);
+            return eval_tree_out(nod->left.get(), candidato);
         }
 
         if (Inf(nod->left->intervalo) >= 0.0 && Sup(nod->left->intervalo) <= M_PI) {
             if (!interseccionSegura(nod->left->intervalo, acos(acotado), candidato)) {
                 return false;
             }
-            return eval_tree_out(nod->left, candidato);
+            return eval_tree_out(nod->left.get(), candidato);
         }
 
         return true;
@@ -626,7 +621,7 @@ bool ExpressionTree::eval_tree_out(exp_node *nod, interval intervalo){
         if (!interseccionSegura(nod->left->intervalo, atan(intervalo), candidato)) {
             return false;
         }
-        return eval_tree_out(nod->left, candidato);
+        return eval_tree_out(nod->left.get(), candidato);
     }
 
     case ATAN :
@@ -639,7 +634,7 @@ bool ExpressionTree::eval_tree_out(exp_node *nod, interval intervalo){
         if (!interseccionSegura(nod->left->intervalo, tan(acotado), candidato)) {
             return false;
         }
-        return eval_tree_out(nod->left, candidato);
+        return eval_tree_out(nod->left.get(), candidato);
     }
 
     case ASIN :
@@ -652,7 +647,7 @@ bool ExpressionTree::eval_tree_out(exp_node *nod, interval intervalo){
         if (!interseccionSegura(nod->left->intervalo, sin(acotado), candidato)) {
             return false;
         }
-        return eval_tree_out(nod->left, candidato);
+        return eval_tree_out(nod->left.get(), candidato);
     }
 
     case ACOS :
@@ -665,7 +660,7 @@ bool ExpressionTree::eval_tree_out(exp_node *nod, interval intervalo){
         if (!interseccionSegura(nod->left->intervalo, cos(acotado), candidato)) {
             return false;
         }
-        return eval_tree_out(nod->left, candidato);
+        return eval_tree_out(nod->left.get(), candidato);
     }
 
     case ABS :
@@ -680,7 +675,7 @@ bool ExpressionTree::eval_tree_out(exp_node *nod, interval intervalo){
                                 interval(-Sup(positivo), Sup(positivo)), candidato)) {
             return false;
         }
-        return eval_tree_out(nod->left, candidato);
+        return eval_tree_out(nod->left.get(), candidato);
     }
 
     case LN :
@@ -693,7 +688,7 @@ bool ExpressionTree::eval_tree_out(exp_node *nod, interval intervalo){
         if (!interseccionSegura(nod->left->intervalo, exp(intervalo), candidato)) {
             return false;
         }
-        return eval_tree_out(nod->left, candidato);
+        return eval_tree_out(nod->left.get(), candidato);
     }
 
     default:
@@ -725,23 +720,23 @@ interval ExpressionTree::eval_tree_in(exp_node *nod)
         return interval (PI1);
 
     case SUMA :
-        return nod->intervalo = eval_tree_in(nod->left) + eval_tree_in(nod->rigth);
+        return nod->intervalo = eval_tree_in(nod->left.get()) + eval_tree_in(nod->rigth.get());
 
     case RESTA :
-        return nod->intervalo = eval_tree_in(nod->left) - eval_tree_in(nod->rigth);
+        return nod->intervalo = eval_tree_in(nod->left.get()) - eval_tree_in(nod->rigth.get());
 
     case MULT :
-        return nod->intervalo = eval_tree_in(nod->left) * eval_tree_in(nod->rigth);
+        return nod->intervalo = eval_tree_in(nod->left.get()) * eval_tree_in(nod->rigth.get());
 
     case DIV :
-        return nod->intervalo = eval_tree_in(nod->left) / eval_tree_in(nod->rigth);
+        return nod->intervalo = eval_tree_in(nod->left.get()) / eval_tree_in(nod->rigth.get());
 
     case POT :
     {
         //An integral square must not go through pow (exp of ln: a base
         //touching zero or negative aborts inside the noexcept library).
-        const interval base = eval_tree_in(nod->left);
-        const interval exponente = eval_tree_in(nod->rigth);
+        const interval base = eval_tree_in(nod->left.get());
+        const interval exponente = eval_tree_in(nod->rigth.get());
 
         if (Inf(exponente) == 2.0 && Sup(exponente) == 2.0) {
             return nod->intervalo = sqr(base);
@@ -751,40 +746,40 @@ interval ExpressionTree::eval_tree_in(exp_node *nod)
     }
 
     case SIN :
-        return nod->intervalo = sin ( eval_tree_in(nod->left) );
+        return nod->intervalo = sin ( eval_tree_in(nod->left.get()) );
 
     case COS :
-        return nod->intervalo = cos ( eval_tree_in(nod->left) );
+        return nod->intervalo = cos ( eval_tree_in(nod->left.get()) );
 
     case SQRT :
-        return nod->intervalo = sqrt( eval_tree_in(nod->left) );
+        return nod->intervalo = sqrt( eval_tree_in(nod->left.get()) );
 
     case TAN :
-        return nod->intervalo = tan ( eval_tree_in(nod->left) );
+        return nod->intervalo = tan ( eval_tree_in(nod->left.get()) );
 
     case ATAN :
-        return nod->intervalo = atan ( eval_tree_in(nod->left) );
+        return nod->intervalo = atan ( eval_tree_in(nod->left.get()) );
 
     case SINH :
-        return nod->intervalo = sinh ( eval_tree_in(nod->left) );
+        return nod->intervalo = sinh ( eval_tree_in(nod->left.get()) );
 
     case COSH :
-        return nod->intervalo = cosh ( eval_tree_in(nod->left) );
+        return nod->intervalo = cosh ( eval_tree_in(nod->left.get()) );
 
     case TANH :
-        return nod->intervalo = tanh ( eval_tree_in(nod->left) );
+        return nod->intervalo = tanh ( eval_tree_in(nod->left.get()) );
 
     case ASIN :
-        return nod->intervalo = asin ( eval_tree_in(nod->left) );
+        return nod->intervalo = asin ( eval_tree_in(nod->left.get()) );
 
     case ACOS :
-        return nod->intervalo = acos ( eval_tree_in(nod->left) );
+        return nod->intervalo = acos ( eval_tree_in(nod->left.get()) );
 
     case EXP :
-        return nod->intervalo = exp ( eval_tree_in(nod->left) );
+        return nod->intervalo = exp ( eval_tree_in(nod->left.get()) );
 
     case ABS :
-        return nod->intervalo = abs ( eval_tree_in(nod->left) );
+        return nod->intervalo = abs ( eval_tree_in(nod->left.get()) );
     default:
         return nod->intervalo;
 
@@ -820,84 +815,66 @@ interval ExpressionTree::eval_tree_in(exp_node *nod)
 
     case SUMA :
 
-        return  eval_tree_complex_interval(nod->left) + eval_tree_complex_interval(nod->rigth);
+        return  eval_tree_complex_interval(nod->left.get()) + eval_tree_complex_interval(nod->rigth.get());
 
     case RESTA :
-        return  eval_tree_complex_interval(nod->left) - eval_tree_complex_interval(nod->rigth);
+        return  eval_tree_complex_interval(nod->left.get()) - eval_tree_complex_interval(nod->rigth.get());
 
     case MULT :
-        return  eval_tree_complex_interval(nod->left) * eval_tree_complex_interval(nod->rigth);
+        return  eval_tree_complex_interval(nod->left.get()) * eval_tree_complex_interval(nod->rigth.get());
 
     case DIV :
-        return  eval_tree_complex_interval(nod->left) / eval_tree_complex_interval(nod->rigth);
+        return  eval_tree_complex_interval(nod->left.get()) / eval_tree_complex_interval(nod->rigth.get());
 
     case POT :
-        return pow (eval_tree_complex_interval(nod->left),  eval_tree_complex_interval(nod->rigth) );
+        return pow (eval_tree_complex_interval(nod->left.get()),  eval_tree_complex_interval(nod->rigth.get()) );
 
     case SIN :
-        return  sin ( eval_tree_complex_interval(nod->left) );
+        return  sin ( eval_tree_complex_interval(nod->left.get()) );
 
     case COS :
-        return  cos ( eval_tree_complex_interval(nod->left) );
+        return  cos ( eval_tree_complex_interval(nod->left.get()) );
 
     case SQRT :
-        return  sqrt( eval_tree_complex_interval(nod->left) );
+        return  sqrt( eval_tree_complex_interval(nod->left.get()) );
 
     case TAN :
-        return  tan ( eval_tree_complex_interval(nod->left) );
+        return  tan ( eval_tree_complex_interval(nod->left.get()) );
 
     case ATAN :
-        return  atan ( eval_tree_complex_interval(nod->left) );
+        return  atan ( eval_tree_complex_interval(nod->left.get()) );
 
     case SINH :
-        return  sinh ( eval_tree_complex_interval(nod->left) );
+        return  sinh ( eval_tree_complex_interval(nod->left.get()) );
 
     case COSH :
-        return  cosh ( eval_tree_complex_interval(nod->left) );
+        return  cosh ( eval_tree_complex_interval(nod->left.get()) );
 
     case TANH :
-        return  tanh ( eval_tree_complex_interval(nod->left) );
+        return  tanh ( eval_tree_complex_interval(nod->left.get()) );
 
     case ASIN :
-        return  asin ( eval_tree_complex_interval(nod->left) );
+        return  asin ( eval_tree_complex_interval(nod->left.get()) );
 
     case ACOS :
-        return  acos ( eval_tree_complex_interval(nod->left) );
+        return  acos ( eval_tree_complex_interval(nod->left.get()) );
 
     case EXP :
-        return  exp ( eval_tree_complex_interval(nod->left) );
+        return  exp ( eval_tree_complex_interval(nod->left.get()) );
 
         //case ABS :
-        //   return  abs ( eval_tree_complex_interval(nod->left) );
+        //   return  abs ( eval_tree_complex_interval(nod->left.get()) );
 
     case LN :
-        return  ln ( eval_tree_complex_interval(nod->left) );
+        return  ln ( eval_tree_complex_interval(nod->left.get()) );
 
     case LG :
-        return  log10 ( eval_tree_complex_interval(nod->left) );
+        return  log10 ( eval_tree_complex_interval(nod->left.get()) );
 
          // if another function was added, add its 'case' here with its operation
 
     }
 }*/
-
-/********************************************************
-* void ExpressionTree::delete_tree(exp_node *nod)             *
-*********************************************************
-* Deletes a subtree from its root, walking it
-* in post-order. Used to destroy the tree of
-* expresiones cuando se le pasa como argumento 'root'
-*        (recursive).
-*/
-void ExpressionTree::delete_tree(exp_node *nod)
-{
-    if (!nod)
-        return;
-
-    delete_tree(nod->left);
-    delete_tree(nod->rigth);
-    delete nod;
-}
 
 /********************************************************
 *      exp_node *ExpressionTree::make_cpy(exp_node *nod)      *
@@ -908,16 +885,16 @@ void ExpressionTree::delete_tree(exp_node *nod)
 * an expression tree identical to the original.
 * ..... es usada por el constrcutor de copia y por el operador '='
 */
-exp_node *ExpressionTree::make_cpy(exp_node *nod)
+std::unique_ptr<exp_node> ExpressionTree::make_cpy(exp_node *nod)
 {
-    if (!nod) return 0;
+    if (!nod) return nullptr;
 
-    exp_node *ptr = new exp_node;
+    auto ptr = std::make_unique<exp_node>();
     ptr->type  = nod->type;
     ptr->c_const = nod->c_const;
 
-    ptr->left = make_cpy(nod->left);
-    ptr->rigth = make_cpy(nod->rigth);
+    ptr->left = make_cpy(nod->left.get());
+    ptr->rigth = make_cpy(nod->rigth.get());
 
     return ptr;
 }
@@ -930,8 +907,13 @@ exp_node *ExpressionTree::make_cpy(exp_node *nod)
 
 void ExpressionTree::build_tree(std::string &in_exp)
 {
-    pilaOp   pila_op  ;  // operator stack
-    pilaNode pila_nod;
+    std::stack<type_node> pila_op;               // operator stack
+    std::stack<std::unique_ptr<exp_node>> pila_nod;
+
+    //Scratch node of the shunting-yard loop. This used to be the MEMBER
+    //node, borrowed as a temporary all the way through the parse and only
+    //holding the real node on the last line.
+    std::unique_ptr<exp_node> node;
 
     std::string tmp_str;
 
@@ -1024,30 +1006,30 @@ y modificando el 'enun type_node' y la función 'eval_tree(..)' */
         {
             while ( pila_op.top() != PAR )  // pop operators until the opening '(' (PAR) shows up
             {
-                root = new exp_node;
-                root->type = pila_op.top();
-                if (root->type  < SIN) // si es un operador binario
+                node = std::make_unique<exp_node>();
+                node->type = pila_op.top();
+                if (node->type  < SIN) // si es un operador binario
                 {
-                    root->rigth = pila_nod.top(); pila_nod.pop();
-                    root->left = pila_nod.top(); pila_nod.pop();
+                    node->rigth = std::move(pila_nod.top()); pila_nod.pop();
+                    node->left = std::move(pila_nod.top()); pila_nod.pop();
                 }
                 else                   // si es unario
                 {
-                    root->left = pila_nod.top(); pila_nod.pop();
-                    root->rigth = nullptr;
+                    node->left = std::move(pila_nod.top()); pila_nod.pop();
+                    node->rigth = nullptr;
                 }
                 pila_op.pop();
-                pila_nod.push(root);
+                pila_nod.push(std::move(node));
             }
             pila_op.pop(); // pop the PAR itself
             ++pos;
         }
         else if (!pos && in_exp[pos] == '-' && isdigit(in_exp[pos+1]) ) // Ej. : "-34.89....." (constante negativa) Forma 1
         {
-            root = new exp_node;
-            root->left = nullptr;
-            root->rigth = nullptr;
-            root->type = CONS;
+            node = std::make_unique<exp_node>();
+            node->left = nullptr;
+            node->rigth = nullptr;
+            node->type = CONS;
 
             i = pos++;
             while ( isdigit(in_exp[pos]) || in_exp[pos] == '.' ) ++pos;
@@ -1062,16 +1044,16 @@ y modificando el 'enun type_node' y la función 'eval_tree(..)' */
                 while ( pos < len && isdigit(in_exp[pos]) ) ++pos;
             } // se lee la constante completa
 
-            root->c_const = QString::fromUtf8(in_exp.substr(i, pos-i).c_str()).toDouble();
+            node->c_const = QString::fromUtf8(in_exp.substr(i, pos-i).c_str()).toDouble();
 
-            pila_nod.push(root);
+            pila_nod.push(std::move(node));
         }
         else if ( pos && in_exp[pos] == '-' && in_exp[pos-1] == '(' && isdigit(in_exp[pos+1]) )//Ej. "..(-34.89...." (constante negativa)
         {
-            root = new exp_node;
-            root->left = nullptr;
-            root->rigth = nullptr;
-            root->type = CONS;
+            node = std::make_unique<exp_node>();
+            node->left = nullptr;
+            node->rigth = nullptr;
+            node->type = CONS;
 
             i = pos++;
             while ( isdigit(in_exp[pos]) || in_exp[pos] == '.' ) ++pos;
@@ -1086,16 +1068,16 @@ y modificando el 'enun type_node' y la función 'eval_tree(..)' */
                 while ( pos < len && isdigit(in_exp[pos]) ) ++pos;
             }
 
-            root->c_const = QString::fromUtf8(in_exp.substr(i, pos-i).c_str()).toDouble();
+            node->c_const = QString::fromUtf8(in_exp.substr(i, pos-i).c_str()).toDouble();
 
-            pila_nod.push(root);
+            pila_nod.push(std::move(node));
         }
         else if ( isdigit(in_exp[pos]) )// Ej. : "....67.009.." ( constante positiva )
         {
-            root = new exp_node;
-            root->left = nullptr;
-            root->rigth = nullptr;
-            root->type = CONS;
+            node = std::make_unique<exp_node>();
+            node->left = nullptr;
+            node->rigth = nullptr;
+            node->type = CONS;
 
             i = pos;
             while ( isdigit(in_exp[pos]) || in_exp[pos] == '.' ) ++pos;
@@ -1110,26 +1092,26 @@ y modificando el 'enun type_node' y la función 'eval_tree(..)' */
                 while ( pos < len && isdigit(in_exp[pos]) ) ++pos;
             }
 
-            root->c_const = QString::fromUtf8(in_exp.substr(i, pos-i).c_str()).toDouble();
+            node->c_const = QString::fromUtf8(in_exp.substr(i, pos-i).c_str()).toDouble();
 
-            pila_nod.push(root);
+            pila_nod.push(std::move(node));
         }
         else if ( in_exp[pos] == 'E' || in_exp[pos] == 'P' ) // Las constantes PI y el numero E
         {
-            root = new exp_node;
-            root->left = nullptr;
-            root->rigth = nullptr;
+            node = std::make_unique<exp_node>();
+            node->left = nullptr;
+            node->rigth = nullptr;
             if (in_exp[pos] == 'E')
             {
-                root->type = E;
+                node->type = E;
                 pos++;
             }
             else
             {
-                root->type = PI;
+                node->type = PI;
                 pos+=2;
             }
-            pila_nod.push(root);
+            pila_nod.push(std::move(node));
         }
         else if ( es_letra(in_exp[pos]) ) //Ej. : "......x......." (variable x)
         {
@@ -1146,37 +1128,37 @@ y modificando el 'enun type_node' y la función 'eval_tree(..)' */
             tmp_str = in_exp.substr(pos, i-pos);
             pos = i;
 
-            root = new exp_node;
-            root->left = 0;
-            root->rigth = 0;
-            root->type = VAR;
-            root->var = tmp_str;
-            pila_nod.push(root);
+            node = std::make_unique<exp_node>();
+            node->left = nullptr;
+            node->rigth = nullptr;
+            node->type = VAR;
+            node->var = tmp_str;
+            pila_nod.push(std::move(node));
         }
         else if ( !pos && in_exp[pos] == '-' ) // Ej. : "-sin(.........." o "-x........" (- unario) Forma 1
         {                                      // an expression like "-sin(..." or "-x..."
-            root = new exp_node;               // será tratada como "-1*sin(.........." y  "-1*x........"
-            root->type = CONS;
-            root->left = 0;
-            root->rigth = 0;
-            root->c_const = -1.0000000000000000000;
-            pila_nod.push(root);
+            node = std::make_unique<exp_node>();               // será tratada como "-1*sin(.........." y  "-1*x........"
+            node->type = CONS;
+            node->left = nullptr;
+            node->rigth = nullptr;
+            node->c_const = -1.0000000000000000000;
+            pila_nod.push(std::move(node));
 
             while ( !pila_op.empty() && pila_op.top() > RESTA )
             {
-                root = new exp_node;
-                root->type = pila_op.top();
-                if  ( root->type < SIN )
+                node = std::make_unique<exp_node>();
+                node->type = pila_op.top();
+                if  ( node->type < SIN )
                 {
-                    root->rigth = pila_nod.top(); pila_nod.pop();
-                    root->left = pila_nod.top(); pila_nod.pop();
+                    node->rigth = std::move(pila_nod.top()); pila_nod.pop();
+                    node->left = std::move(pila_nod.top()); pila_nod.pop();
                 }
                 else
                 {
-                    root->left = pila_nod.top(); pila_nod.pop();
-                    root->rigth = 0;
+                    node->left = std::move(pila_nod.top()); pila_nod.pop();
+                    node->rigth = nullptr;
                 }
-                pila_nod.push(root);
+                pila_nod.push(std::move(node));
                 pila_op.pop();
             }
             pila_op.push(MULT);
@@ -1184,28 +1166,28 @@ y modificando el 'enun type_node' y la función 'eval_tree(..)' */
         }
         else if ( in_exp[pos] == '-' && in_exp[pos-1] == '(' ) // Ej. : "...(-sin..." o "...(-x..." (- unario) Forma 2
         {                                                      // an expression like "...(-sin..." or "...(-x..."
-            root = new exp_node;                               // será tratada como "..(-1*sin...." y  "...(-1*x...."
-            root->type = CONS;
-            root->left = 0;
-            root->rigth = 0;
-            root->c_const = -1.0000000000000000000;
-            pila_nod.push(root);
+            node = std::make_unique<exp_node>();                               // será tratada como "..(-1*sin...." y  "...(-1*x...."
+            node->type = CONS;
+            node->left = nullptr;
+            node->rigth = nullptr;
+            node->c_const = -1.0000000000000000000;
+            pila_nod.push(std::move(node));
 
             while ( !pila_op.empty() && pila_op.top() > RESTA )
             {
-                root = new exp_node;
-                root->type = pila_op.top();
-                if  ( root->type < SIN )
+                node = std::make_unique<exp_node>();
+                node->type = pila_op.top();
+                if  ( node->type < SIN )
                 {
-                    root->rigth = pila_nod.top(); pila_nod.pop();
-                    root->left = pila_nod.top(); pila_nod.pop();
+                    node->rigth = std::move(pila_nod.top()); pila_nod.pop();
+                    node->left = std::move(pila_nod.top()); pila_nod.pop();
                 }
                 else
                 {
-                    root->left = pila_nod.top(); pila_nod.pop();
-                    root->rigth = 0;
+                    node->left = std::move(pila_nod.top()); pila_nod.pop();
+                    node->rigth = nullptr;
                 }
-                pila_nod.push(root);
+                pila_nod.push(std::move(node));
                 pila_op.pop();
             }
             pila_op.push(MULT);
@@ -1215,20 +1197,20 @@ y modificando el 'enun type_node' y la función 'eval_tree(..)' */
         {
             while ( !pila_op.empty() && pila_op.top() != PAR )
             {
-                root = new exp_node;
-                root->type = pila_op.top();
+                node = std::make_unique<exp_node>();
+                node->type = pila_op.top();
 
-                if  ( root->type < SIN )
+                if  ( node->type < SIN )
                 {
-                    root->rigth = pila_nod.top(); pila_nod.pop();
-                    root->left  = pila_nod.top(); pila_nod.pop();
+                    node->rigth = std::move(pila_nod.top()); pila_nod.pop();
+                    node->left  = std::move(pila_nod.top()); pila_nod.pop();
                 }
                 else
                 {
-                    root->left  = pila_nod.top(); pila_nod.pop();
-                    root->rigth = 0;
+                    node->left  = std::move(pila_nod.top()); pila_nod.pop();
+                    node->rigth = nullptr;
                 }
-                pila_nod.push(root);
+                pila_nod.push(std::move(node));
                 pila_op.pop();
             }
             pila_op.push(RESTA);
@@ -1238,19 +1220,19 @@ y modificando el 'enun type_node' y la función 'eval_tree(..)' */
         {
             while ( !pila_op.empty() && pila_op.top() != PAR )
             {
-                root = new exp_node;
-                root->type = pila_op.top();
-                if  ( root->type < SIN )
+                node = std::make_unique<exp_node>();
+                node->type = pila_op.top();
+                if  ( node->type < SIN )
                 {
-                    root->rigth = pila_nod.top(); pila_nod.pop();
-                    root->left = pila_nod.top(); pila_nod.pop();
+                    node->rigth = std::move(pila_nod.top()); pila_nod.pop();
+                    node->left = std::move(pila_nod.top()); pila_nod.pop();
                 }
                 else
                 {
-                    root->left = pila_nod.top(); pila_nod.pop();
-                    root->rigth = 0;
+                    node->left = std::move(pila_nod.top()); pila_nod.pop();
+                    node->rigth = nullptr;
                 }
-                pila_nod.push(root);
+                pila_nod.push(std::move(node));
                 pila_op.pop();
             }
             pila_op.push(SUMA);
@@ -1260,19 +1242,19 @@ y modificando el 'enun type_node' y la función 'eval_tree(..)' */
         {
             while ( !pila_op.empty() && pila_op.top() > RESTA )
             {
-                root = new exp_node;
-                root->type = pila_op.top();
-                if  ( root->type < SIN )
+                node = std::make_unique<exp_node>();
+                node->type = pila_op.top();
+                if  ( node->type < SIN )
                 {
-                    root->rigth = pila_nod.top(); pila_nod.pop();
-                    root->left = pila_nod.top(); pila_nod.pop();
+                    node->rigth = std::move(pila_nod.top()); pila_nod.pop();
+                    node->left = std::move(pila_nod.top()); pila_nod.pop();
                 }
                 else
                 {
-                    root->left = pila_nod.top(); pila_nod.pop();
-                    root->rigth = 0;
+                    node->left = std::move(pila_nod.top()); pila_nod.pop();
+                    node->rigth = nullptr;
                 }
-                pila_nod.push(root);
+                pila_nod.push(std::move(node));
                 pila_op.pop();
             }
             pila_op.push(DIV);
@@ -1282,19 +1264,19 @@ y modificando el 'enun type_node' y la función 'eval_tree(..)' */
         {
             while ( !pila_op.empty() && pila_op.top() > RESTA )
             {
-                root = new exp_node;
-                root->type = pila_op.top();
-                if  ( root->type < SIN )
+                node = std::make_unique<exp_node>();
+                node->type = pila_op.top();
+                if  ( node->type < SIN )
                 {
-                    root->rigth = pila_nod.top(); pila_nod.pop();
-                    root->left = pila_nod.top();  pila_nod.pop();
+                    node->rigth = std::move(pila_nod.top()); pila_nod.pop();
+                    node->left = std::move(pila_nod.top());  pila_nod.pop();
                 }
                 else
                 {
-                    root->left = pila_nod.top(); pila_nod.pop();
-                    root->rigth = 0;
+                    node->left = std::move(pila_nod.top()); pila_nod.pop();
+                    node->rigth = nullptr;
                 }
-                pila_nod.push(root);
+                pila_nod.push(std::move(node));
                 pila_op.pop();
             }
             pila_op.push(MULT);
@@ -1304,19 +1286,19 @@ y modificando el 'enun type_node' y la función 'eval_tree(..)' */
         {
             while ( !pila_op.empty() && pila_op.top() > DIV )
             {
-                root = new exp_node;
-                root->type = pila_op.top();
-                if  ( root->type == POT )
+                node = std::make_unique<exp_node>();
+                node->type = pila_op.top();
+                if  ( node->type == POT )
                 {
-                    root->rigth = pila_nod.top(); pila_nod.pop();
-                    root->left = pila_nod.top(); pila_nod.pop();
+                    node->rigth = std::move(pila_nod.top()); pila_nod.pop();
+                    node->left = std::move(pila_nod.top()); pila_nod.pop();
                 }
                 else
                 {
-                    root->left = pila_nod.top(); pila_nod.pop();
-                    root->rigth = 0;
+                    node->left = std::move(pila_nod.top()); pila_nod.pop();
+                    node->rigth = nullptr;
                 }
-                pila_nod.push(root);
+                pila_nod.push(std::move(node));
                 pila_op.pop();
             }
             pila_op.push(POT);
@@ -1326,24 +1308,24 @@ y modificando el 'enun type_node' y la función 'eval_tree(..)' */
 
     while ( !pila_op.empty() )
     {
-        root = new exp_node;
-        root->type = pila_op.top();
+        node = std::make_unique<exp_node>();
+        node->type = pila_op.top();
 
-        if ( root->type < SIN )
+        if ( node->type < SIN )
         {
-            root->rigth = pila_nod.top(); pila_nod.pop();
-            root->left = pila_nod.top(); pila_nod.pop();
+            node->rigth = std::move(pila_nod.top()); pila_nod.pop();
+            node->left = std::move(pila_nod.top()); pila_nod.pop();
         }
         else
         {
-            root->left = pila_nod.top(); pila_nod.pop();
-            root->rigth = 0;
+            node->left = std::move(pila_nod.top()); pila_nod.pop();
+            node->rigth = nullptr;
         }
         pila_op.pop();
-        pila_nod.push(root);
+        pila_nod.push(std::move(node));
     }
 
-    root  = pila_nod.top(); pila_nod.pop();
+    root  = std::move(pila_nod.top()); pila_nod.pop();
 
 }
 
@@ -1352,101 +1334,6 @@ bool ExpressionTree::es_letra(char tex){
     QString s (1, tex);
 
     return rx.match(s).hasMatch();
-}
-
-//////////////////////////////////////////
-// pilaNode implementation             //
-//////////////////////////////////////////
-void pilaNode::pop()
-{
-    if (!n)
-        return;
-    else
-    {
-        node *ptr_tmp = head->next;  //keep the address of the second node
-        delete head;                 //delete the head node
-        head = ptr_tmp;              //the second node becomes the head
-        --n;
-    }
-}
-
-void pilaNode::push(exp_node *ptr)
-{
-
-    if (!n)
-    {
-
-        head = new node;
-        head->ptr = ptr;
-        head->next = 0;
-        ++n;
-    }
-    else
-    {
-        node *ptr_tmp = new node;
-        ptr_tmp->next = head;
-        head = ptr_tmp;
-        head->ptr = ptr;
-        ++n;
-    }
-}
-
-pilaNode::~pilaNode()
-{
-    node *ptr_tmp = head;
-    while (ptr_tmp)             //mientras que no se encuentre el final de la lista
-    {
-        ptr_tmp = head->next;   //ptr_tmp apunta al nodo siguiente
-        delete head;            //se borra el nodo actual
-        head = ptr_tmp;         //head y ptr_tmp vuelven a apuntar al mismo nodo (el siguinte)
-    }
-}
-
-//////////////////////////////////////////
-// pilaOp implementation               //
-//////////////////////////////////////////
-void pilaOp::pop()
-{
-    if (!n)
-        return;
-    else
-    {
-        node *ptr_tmp = head->next;
-        delete head;
-        head = ptr_tmp;
-        --n;
-    }
-}
-
-void pilaOp::push(type_node value)
-{
-
-    if (!n)
-    {
-        head = new node;
-        head->value = value;
-        head->next = 0;
-        ++n;
-    }
-    else
-    {
-        node *ptr_tmp = new node;
-        ptr_tmp->next = head;
-        head = ptr_tmp;
-        head->value = value;
-        ++n;
-    }
-}
-
-pilaOp::~pilaOp()
-{
-    node *ptr_tmp = head;
-    while (ptr_tmp)
-    {
-        ptr_tmp = head->next;
-        delete head;
-        head = ptr_tmp;
-    }
 }
 
 };

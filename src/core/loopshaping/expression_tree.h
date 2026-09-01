@@ -15,6 +15,8 @@ Roberto C. Cruz Rodríguez
 #include <iostream>
 
 #include <map>
+#include <memory>
+#include <stack>
 #include <QRegularExpression>
 
 #include "interval.hpp"
@@ -59,9 +61,12 @@ struct exp_node
 
     interval intervalo;
 
-    exp_node *left = nullptr;
+    //A node OWNS its branches, so a tree frees itself. There used to be a
+    //recursive delete_tree() post-order walk, and every early return of the
+    //parser had to have called it.
+    std::unique_ptr<exp_node> left;
 
-    exp_node *rigth = nullptr;
+    std::unique_ptr<exp_node> rigth;
 };
 
 /**
@@ -126,8 +131,7 @@ private :
 
     std::string tipo(alg::type_node tipo);
 
-    void delete_tree(exp_node *nod);
-    exp_node *make_cpy(exp_node *nod);
+    std::unique_ptr<exp_node> make_cpy(exp_node *nod);
 
     qreal eval_tree(exp_node *nod);
 
@@ -152,7 +156,7 @@ private :
 
     bool es_letra(char tex);
 
-    exp_node *root;
+    std::unique_ptr<exp_node> root;
     std::map<std::string, qreal> * variables;
     std::map<std::string, interval> * variables_in;
 
@@ -162,47 +166,9 @@ private :
     qreal w;
 };
 
-/**
-*   Stack of nodes (used by the parser).
-*/
-class pilaNode
-{
-public:
-    pilaNode() {n=0; head =0;}
-    ~pilaNode();
-    exp_node* top() {return head->ptr;}
-    void      pop();
-    void push(exp_node *ptr);
-    bool empty() {return (n) ? false : true;}
-private:
-    struct node
-    {
-        exp_node *ptr;
-        node *next;
-    } *head;
-    unsigned n;
-};
-
-/**
-*   Stack of operators (used by the parser).
-*/
-class pilaOp
-{
-public:
-    pilaOp() {n=0; head = 0;}
-    ~pilaOp();
-    type_node top() {return head->value;}
-    void      pop();
-    void push(type_node value);
-    bool empty() {return (n) ? false : true;}
-private:
-    struct node
-    {
-        type_node value;
-        node *next;
-    } *head;
-    unsigned n;
-};
+//The parser used to carry two hand-written singly-linked stacks, pilaNode
+//and pilaOp, a hundred lines with the same interface std::stack has
+//(top/pop/push/empty) and four deletes of their own.
 
 }
 #endif
