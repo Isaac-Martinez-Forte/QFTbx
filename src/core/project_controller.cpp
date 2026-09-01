@@ -41,8 +41,8 @@ QVector<qftbx::SpecificationRecord *> *ProjectController::specifications(){
 //specifications, omega, templates, boundaries, controller, loop shaping), so
 //each step only ever drops things that have not been set yet.
 void ProjectController::dropTemplatesAndBelow(){
-    data.setTemplates(nullptr);
-    data.setContour(nullptr);
+    data.setTemplates({});
+    data.setContour({});
     data.setEpsilon(nullptr);
 
     dropBoundariesAndBelow();
@@ -89,21 +89,22 @@ void ProjectController::setSpecifications(QVector<qftbx::SpecificationRecord *> 
     dropBoundariesAndBelow();
 }
 
-void ProjectController::setTemplates(QVector<QVector<std::complex<qreal> > *> *clouds,
-                              QVector<QVector<std::complex<qreal> > *> *contour, bool hasContour){
+void ProjectController::setTemplates(qftbx::CloudSet clouds, qftbx::CloudSet contour,
+                                     bool hasContour){
 
     if (m_templateEngine == nullptr){
         m_templateEngine = new TemplateEngine();
     }
 
-    data.setTemplates(clouds);
-
     //Feed the engine too: without this, recomputing the contour after
-    //LOADING a project dereferenced a null pointer.
+    //LOADING a project had nothing to walk. Both hold their own copy, which
+    //is the price of the aliasing going away.
     m_templateEngine->setClouds(clouds);
 
+    data.setTemplates(std::move(clouds));
+
     if (hasContour){
-        data.setContour(contour);
+        data.setContour(std::move(contour));
     }
 
     //New templates make the boundaries built from the old ones meaningless.
@@ -112,8 +113,8 @@ void ProjectController::setTemplates(QVector<QVector<std::complex<qreal> > *> *c
     dropBoundariesAndBelow();
 }
 
-void ProjectController::setContour(QVector<QVector<std::complex<qreal> > *> *contour){
-    data.setContour(contour);
+void ProjectController::setContour(qftbx::CloudSet contour){
+    data.setContour(std::move(contour));
 }
 
 void ProjectController::setBoundaries(BoundaryData *boundaries){
@@ -127,11 +128,11 @@ void ProjectController::setBoundaries(BoundaryData *boundaries){
     dropLoopShaping();
 }
 
-QVector <QVector <std::complex <qreal> > * > * ProjectController::templates(){
+const qftbx::CloudSet & ProjectController::templates(){
     return data.templates();
 }
 
-QVector <QVector <std::complex <qreal> > * > * ProjectController::contour(){
+const qftbx::CloudSet & ProjectController::contour(){
     return data.contour();
 }
 
@@ -161,12 +162,13 @@ bool ProjectController::computeTemplates(QVector <qreal> * epsilon, qftbx::Param
     //enough to keep the epsilon used, for the persistence.
     data.setEpsilon(epsilon);
 
-    QVector <QVector <std::complex <qreal> > * > * clouds = m_templateEngine->clouds();
-    QVector <QVector <std::complex <qreal> > * > * contours = m_templateEngine->contours();
+    const bool produced = !m_templateEngine->clouds().empty()
+            && !m_templateEngine->contours().empty();
 
-    setTemplates(clouds, contours, contours != nullptr);
+    setTemplates(m_templateEngine->clouds(), m_templateEngine->contours(),
+                 !m_templateEngine->contours().empty());
 
-    return clouds != nullptr && contours != nullptr;
+    return produced;
 }
 
 QVector <qreal> * ProjectController::epsilon(){
@@ -174,14 +176,13 @@ QVector <qreal> * ProjectController::epsilon(){
 }
 
 
-QVector <QVector <std::complex <qreal> > * > * ProjectController::recomputeContour(QVector <qreal> * epsilon){
+const qftbx::CloudSet & ProjectController::recomputeContour(QVector <qreal> * epsilon){
     m_templateEngine->computeContours(epsilon);
-    QVector <QVector <std::complex <qreal> > * > * contours = m_templateEngine->contours();
 
-    setContour(contours);
+    setContour(m_templateEngine->contours());
     data.setEpsilon(epsilon);
 
-    return contours;
+    return data.contour();
 }
 
 bool ProjectController::computeBoundaries(QPointF phaseRange, qint32 phaseCount, QPointF magnitudeRange,
@@ -194,7 +195,7 @@ bool ProjectController::computeBoundaries(QPointF phaseRange, qint32 phaseCount,
     if (data.specifications() == nullptr){
         throw qftbx::InvalidInput("The boundaries need the specifications.");
     }
-    if ((contour ? data.contour() : data.templates()) == nullptr){
+    if ((contour ? data.contour() : data.templates()).empty()){
         throw qftbx::InvalidInput("The boundaries need the templates, which "
                                   "have to be recomputed after the plant or "
                                   "the design frequencies change.");
@@ -329,7 +330,7 @@ QVector <bool> * ProjectController::load(QString fichero){
 
     if (flags->value(3)){
         setTemplates(reader.takeTemplates(),
-                    flags->value(7) ? reader.takeContour() : nullptr,
+                    flags->value(7) ? reader.takeContour() : qftbx::CloudSet(),
                     flags->value(7));
         data.setEpsilon(reader.takeEpsilon());
     }

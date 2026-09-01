@@ -91,10 +91,10 @@ TEST(ProjectReaderSmoke, Planta2LoadsUpToTemplates)
     EXPECT_FALSE(flags[kLoopShaping]);
 
     // One template (full cloud + contour) per design frequency.
-    ASSERT_NE(parser.templates(), nullptr);
-    EXPECT_EQ(parser.templates()->size(), 6);
-    ASSERT_NE(parser.contour(), nullptr);
-    EXPECT_EQ(parser.contour()->size(), 6);
+    ASSERT_FALSE(parser.templates().empty());
+    EXPECT_EQ(static_cast<int>(parser.templates().size()), 6);
+    ASSERT_FALSE(parser.contour().empty());
+    EXPECT_EQ(static_cast<int>(parser.contour().size()), 6);
 }
 
 TEST(ProjectReaderSmoke, MultivaluadosLoadsUpToBoundaries)
@@ -112,8 +112,8 @@ TEST(ProjectReaderSmoke, MultivaluadosLoadsUpToBoundaries)
     EXPECT_TRUE(flags[kController]);
     EXPECT_FALSE(flags[kLoopShaping]);
 
-    ASSERT_NE(parser.templates(), nullptr);
-    EXPECT_EQ(parser.templates()->size(), 5);
+    ASSERT_FALSE(parser.templates().empty());
+    EXPECT_EQ(static_cast<int>(parser.templates().size()), 5);
     EXPECT_NE(parser.boundaries(), nullptr);
 }
 
@@ -127,8 +127,8 @@ TEST(ProjectReaderSmoke, Planta1LoadsFullProject)
         EXPECT_TRUE(flags[i]) << "section flag " << i << " not recovered";
     }
 
-    ASSERT_NE(parser.templates(), nullptr);
-    EXPECT_EQ(parser.templates()->size(), 4);
+    ASSERT_FALSE(parser.templates().empty());
+    EXPECT_EQ(static_cast<int>(parser.templates().size()), 4);
     EXPECT_NE(parser.boundaries(), nullptr);
 }
 

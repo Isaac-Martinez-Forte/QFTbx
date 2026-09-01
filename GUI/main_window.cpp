@@ -135,16 +135,14 @@ void MainWindow::installContourRecomputer(){
 void MainWindow::recomputeContour(QVector<qreal> * epsilon){
     //The viewer asked for a tighter contour: the computation, and the
     //reporting of its failure, belong here.
-    QVector <QVector <std::complex<qreal> > *> * contour = nullptr;
-
     try {
-        contour = controller->recomputeContour(epsilon);
+        controller->recomputeContour(epsilon);
     } catch (const qftbx::Exception & e) {
         QMessageBox::critical(this, tr("Template computation"), e.what());
         return;
     }
 
-    templateViewer->refreshContour(contour,
+    templateViewer->refreshContour(controller->contour(),
                                    controller->omega()->values(),
                                    controller->epsilon());
 }
@@ -850,7 +848,7 @@ void MainWindow::on_actionTemplates_triggered()
         return;
     }
 
-    if (controller->templates() != nullptr && controller->contour() != nullptr){
+    if (!controller->templates().empty() && !controller->contour().empty()){
         templateViewer->setDatos(controller->templates(),
                                  controller->contour(),
                                  controller->omega()->values(),

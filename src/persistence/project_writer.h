@@ -1,6 +1,7 @@
 #ifndef QFTBX_PROJECT_WRITER_H
 #define QFTBX_PROJECT_WRITER_H
 
+#include "src/core/templates/cloud_set.h"
 #include <complex>
 
 #include <QString>
@@ -22,8 +23,8 @@ struct ProjectContent {
     LtiSystem * plant = nullptr;
     QVector <qftbx::SpecificationRecord *> * specifications = nullptr;
     Omega * omega = nullptr;
-    QVector <QVector <std::complex<qreal>> * > * templates = nullptr;
-    QVector <QVector <std::complex<qreal>> * > * contour = nullptr;
+    CloudSet templates;
+    CloudSet contour;
     QVector <qreal> * epsilon = nullptr;
     BoundaryData * boundaries = nullptr;
     LtiSystem * controller = nullptr;

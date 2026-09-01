@@ -1,6 +1,7 @@
 #ifndef QFTBX_LOOPSHAPING_ALGORITHM_MR_H
 #define QFTBX_LOOPSHAPING_ALGORITHM_MR_H
 
+#include "src/core/templates/cloud_set.h"
 #include <complex>
 
 #include <map>
@@ -56,7 +57,7 @@ public:
     ~AlgorithmMr();
 
     void set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> * omega, BoundaryData * boundaries,
-                   qreal epsilon, QVector<QVector<std::complex<qreal>> *> * temp, QVector<qftbx::SpecificationRecord *> * espe);
+                   qreal epsilon, const qftbx::CloudSet & temp, QVector<qftbx::SpecificationRecord *> * espe);
 
     bool init_algorithm();
 
@@ -82,7 +83,7 @@ private:
     QVector<qreal> * omega = nullptr;
     BoundaryData * boundaries = nullptr;
     qreal epsilon = 0;
-    QVector<QVector<std::complex<qreal>> *> * temp = nullptr;
+    qftbx::CloudSet temp;
     QVector<qftbx::SpecificationRecord *> * espe = nullptr;
 
     NaturalIntervalExtension * conversion = nullptr;

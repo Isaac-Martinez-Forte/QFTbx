@@ -1,6 +1,7 @@
 #ifndef QFTBX_PROJECT_DATA_H
 #define QFTBX_PROJECT_DATA_H
 
+#include "src/core/templates/cloud_set.h"
 #include <complex>
 
 #include <QVector>
@@ -10,6 +11,8 @@
 #include "src/core/specifications/specification_record.h"
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/loopshaping/loop_shaping_result.h"
+
+
 
 namespace qftbx {
 
@@ -48,11 +51,14 @@ public:
     QVector<SpecificationRecord *> * specifications() const;
     void setSpecifications(QVector<SpecificationRecord *> * specifications);
 
-    QVector<QVector<std::complex<qreal>> *> * templates() const;
-    void setTemplates(QVector<QVector<std::complex<qreal>> *> * templates);
+    const CloudSet & templates() const;
+    void setTemplates(CloudSet templates);
 
-    QVector<QVector<std::complex<qreal>> *> * contour() const;
-    void setContour(QVector<QVector<std::complex<qreal>> *> * contour);
+    const CloudSet & contour() const;
+    void setContour(CloudSet contour);
+
+    /// Whether a contour was ever computed. Not the same as "the contour is
+    /// non-empty": the epsilon-hull of an empty template set is empty too.
     bool hasContour() const;
 
     QVector<qreal> * epsilon() const;
@@ -71,8 +77,8 @@ private:
     LtiSystem * m_plant = nullptr;
     Omega * m_omega = nullptr;
     QVector<SpecificationRecord *> * m_specifications = nullptr;
-    QVector<QVector<std::complex<qreal>> *> * m_templates = nullptr;
-    QVector<QVector<std::complex<qreal>> *> * m_contour = nullptr;
+    CloudSet m_templates;
+    CloudSet m_contour;
     bool m_hasContour = false;
     QVector<qreal> * m_epsilon = nullptr;
     BoundaryData * m_boundaries = nullptr;

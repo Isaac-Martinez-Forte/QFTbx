@@ -18,6 +18,7 @@
 #include "src/core/math/sequence_vectors.h"
 #include "src/core/frequencies/omega.h"
 #include "qcustomplot.h"
+#include "src/core/templates/cloud_set.h"
 
 #include "cinterval.hpp"
 #include "src/core/loopshaping/natural_interval_extension.h"
@@ -75,8 +76,8 @@ public:
     * @param epsilon the tightening of each frequency, one per omega entry.
    */
 
-    void setDatos(QVector <QVector <std::complex<qreal> > *> * templates,
-                  QVector <QVector <std::complex<qreal> > *> * contour,
+    void setDatos(const qftbx::CloudSet & templates,
+                  const qftbx::CloudSet & contour,
                   QVector <qreal> * omega,
                   QVector <qreal> * epsilon);
 
@@ -105,7 +106,7 @@ public:
     * that produced it, redrawn without rebuilding the frequency colours.
    */
 
-    void refreshContour(QVector <QVector <std::complex<qreal> > *> * contour,
+    void refreshContour(const qftbx::CloudSet & contour,
                         QVector <qreal> * omega,
                         QVector <qreal> * epsilon);
 
@@ -117,7 +118,7 @@ public:
     *  @param templatesButton a representar en la gráfica.
     */
 
-    void setTemplates (QVector<QVector<std::complex<qreal> > *> * templatesButton);
+    void setTemplates (const qftbx::CloudSet & templatesButton);
 
 
    /**
@@ -127,7 +128,7 @@ public:
     *  @param contourButton de templatesButton a representar gráficamente.
     */
 
-    void setContour (QVector<QVector<std::complex<qreal> > *> * contourButton);
+    void setContour (const qftbx::CloudSet & contourButton);
 
 
 private slots:
@@ -152,8 +153,10 @@ private:
     void addFrequencyRow (QColor color, qint32 pos);
     void clearDiagram();
 
-    QVector <QVector<std::complex<qreal> > *> * templatesButton;
-    QVector <QVector<std::complex<qreal> > *> * contourButton;
+    //Its own copies now: the viewer used to alias the project's vectors,
+    //which is why a recompute had to be careful about what it freed.
+    qftbx::CloudSet templatesButton;
+    qftbx::CloudSet contourButton;
     QVector <qreal> * omega;
     QVector <qreal> * epsilon;
 

@@ -79,9 +79,9 @@ TEST_F(FailedComputation, AMissingSweepGridIsReportedAndLeavesNoTemplates)
     EXPECT_THROW(controller.computeTemplates(epsilon, gridsMissing(QStringLiteral("kv")), false),
                  qftbx::InvalidInput);
 
-    EXPECT_EQ(controller.templates(), nullptr)
+    EXPECT_TRUE(controller.templates().empty())
         << "a failed computation left templates behind";
-    EXPECT_EQ(controller.contour(), nullptr);
+    EXPECT_TRUE(controller.contour().empty());
     EXPECT_EQ(controller.boundaries(), nullptr);
 
     delete epsilon;
@@ -104,7 +104,7 @@ TEST_F(FailedComputation, TheProjectStillWorksAfterAFailedComputation)
 
     ASSERT_TRUE(controller.computeTemplates(new QVector<qreal>(3, 10.0), grids, false))
         << "the project never recovered from the earlier failure";
-    EXPECT_NE(controller.templates(), nullptr);
+    EXPECT_FALSE(controller.templates().empty());
 
 }
 
@@ -119,7 +119,7 @@ TEST_F(FailedComputation, BoundariesRefuseWithoutTheTemplatesInsteadOfCrashing)
     }
     controller.setSpecifications(records);
 
-    ASSERT_EQ(controller.templates(), nullptr);
+    ASSERT_TRUE(controller.templates().empty());
 
     EXPECT_THROW(controller.computeBoundaries(QPointF(-360.0, 0.0), 361,
                                              QPointF(-60.0, 60.0), 121, 0.0,

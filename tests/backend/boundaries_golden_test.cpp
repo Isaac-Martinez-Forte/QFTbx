@@ -242,7 +242,7 @@ TEST(BoundaryCriticalPoint, CriticalCellViolatesEverySpecification)
 
     LtiSystem* plant = controller.plant();
     QVector<qreal>* omega = controller.omega()->values();
-    QVector<QVector<std::complex<qreal>>*>* templates = controller.templates();
+    const qftbx::CloudSet & templates = controller.templates();
 
     const std::complex<qreal> L(std::pow(10.0, 0.0 / 20.0) * std::cos(-180.0 * M_PI / 180.0),
                                 std::pow(10.0, 0.0 / 20.0) * std::sin(-180.0 * M_PI / 180.0));
@@ -251,7 +251,7 @@ TEST(BoundaryCriticalPoint, CriticalCellViolatesEverySpecification)
         const std::complex<qreal> p0 = plant->evaluate(omega->at(i));
 
         qreal worst = -std::numeric_limits<qreal>::infinity();
-        for (const std::complex<qreal>& p : *templates->at(i)) {
+        for (const std::complex<qreal>& p : templates.at(static_cast<std::size_t>(i))) {
             worst = std::max(worst, std::abs(L / ((p0 / p) + L)));
         }
 

@@ -1,6 +1,7 @@
 #ifndef QFTBX_PROJECT_READER_H
 #define QFTBX_PROJECT_READER_H
 
+#include "src/core/templates/cloud_set.h"
 #include <complex>
 
 #include <QString>
@@ -48,8 +49,8 @@ public:
     LtiSystem * plant() const { return m_plant; }
     QVector <qftbx::SpecificationRecord *> * specifications() const { return m_specifications; }
     Omega * omega() const { return m_omega; }
-    QVector <QVector <std::complex<qreal>> * > * templates() const { return m_templates; }
-    QVector <QVector <std::complex<qreal>> * > * contour() const { return m_contour; }
+    const CloudSet & templates() const { return m_templates; }
+    const CloudSet & contour() const { return m_contour; }
     QVector <qreal> * epsilon() const { return m_epsilon; }
     BoundaryData * boundaries() const { return m_boundaries; }
     LtiSystem * controller() const { return m_controller; }
@@ -61,8 +62,10 @@ public:
     LtiSystem * takePlant() { return take(m_plant); }
     QVector <qftbx::SpecificationRecord *> * takeSpecifications() { return take(m_specifications); }
     Omega * takeOmega() { return take(m_omega); }
-    QVector <QVector <std::complex<qreal>> * > * takeTemplates() { return take(m_templates); }
-    QVector <QVector <std::complex<qreal>> * > * takeContour() { return take(m_contour); }
+    /// By value, so "take" is now just a move: nothing to null out, nothing
+    /// that could be freed twice.
+    CloudSet takeTemplates() { return std::move(m_templates); }
+    CloudSet takeContour() { return std::move(m_contour); }
     QVector <qreal> * takeEpsilon() { return take(m_epsilon); }
     BoundaryData * takeBoundaries() { return take(m_boundaries); }
     LtiSystem * takeController() { return take(m_controller); }
@@ -81,8 +84,8 @@ private:
     LtiSystem * m_plant = nullptr;
     QVector <qftbx::SpecificationRecord *> * m_specifications = nullptr;
     Omega * m_omega = nullptr;
-    QVector <QVector <std::complex<qreal>> * > * m_templates = nullptr;
-    QVector <QVector <std::complex<qreal>> * > * m_contour = nullptr;
+    CloudSet m_templates;
+    CloudSet m_contour;
     QVector <qreal> * m_epsilon = nullptr;
     BoundaryData * m_boundaries = nullptr;
     LtiSystem * m_controller = nullptr;

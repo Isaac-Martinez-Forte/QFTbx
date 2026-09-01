@@ -20,13 +20,6 @@ void deleteSpecifications(QVector<SpecificationRecord *> * specifications)
     delete specifications;
 }
 
-void deleteClouds(QVector<QVector<std::complex<qreal>> *> * clouds)
-{
-    if (clouds != nullptr) {
-        qDeleteAll(*clouds);
-        delete clouds;
-    }
-}
 
 } // namespace
 
@@ -35,8 +28,6 @@ ProjectData::~ProjectData()
     delete m_plant;
     delete m_omega;
     deleteSpecifications(m_specifications);
-    deleteClouds(m_templates);
-    deleteClouds(m_contour);
     delete m_epsilon;
     delete m_boundaries;
     delete m_controller;
@@ -87,31 +78,31 @@ void ProjectData::setSpecifications(QVector<SpecificationRecord *> * specificati
     m_specifications = specifications;
 }
 
-QVector<QVector<std::complex<qreal>> *> * ProjectData::templates() const
+//By value: the assignment frees the previous set, so the "delete what you
+//replace" rule these setters used to spell out is now the language's job.
+const CloudSet & ProjectData::templates() const
 {
     return m_templates;
 }
 
-void ProjectData::setTemplates(QVector<QVector<std::complex<qreal>> *> * templates)
+void ProjectData::setTemplates(CloudSet templates)
 {
-    if (m_templates != templates) {
-        deleteClouds(m_templates);
-    }
-    m_templates = templates;
+    m_templates = std::move(templates);
 }
 
-QVector<QVector<std::complex<qreal>> *> * ProjectData::contour() const
+const CloudSet & ProjectData::contour() const
 {
     return m_contour;
 }
 
-void ProjectData::setContour(QVector<QVector<std::complex<qreal>> *> * contour)
+void ProjectData::setContour(CloudSet contour)
 {
-    if (m_contour != contour) {
-        deleteClouds(m_contour);
-    }
-    m_contour = contour;
-    m_hasContour = true;
+    m_contour = std::move(contour);
+
+    //Set even for an empty contour: "was one ever computed" is a different
+    //question from "is it non-empty", and dropping the templates has to be
+    //able to answer no.
+    m_hasContour = !m_contour.empty();
 }
 
 bool ProjectData::hasContour() const

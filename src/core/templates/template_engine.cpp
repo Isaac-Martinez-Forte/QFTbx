@@ -36,8 +36,8 @@ void TemplateEngine::setEpsilon(QVector<qreal> *epsilon){
     m_epsilon = epsilon;
 }
 
-void TemplateEngine::setClouds(QVector<QVector<std::complex<qreal> > *> *templates){
-    m_clouds = templates;
+void TemplateEngine::setClouds(CloudSet templates){
+    m_clouds = std::move(templates);
 }
 
 bool TemplateEngine::compute(LtiSystem *plant, QVector<qreal> *omega, bool cuda){
@@ -52,28 +52,18 @@ bool TemplateEngine::compute(LtiSystem *plant, QVector<qreal> *omega, bool cuda)
     qDebug() << "Calcular plantilla: " << timer.elapsed() << "milliseconds";
 
 
-    if (m_clouds == NULL){
+    if (m_clouds.empty()){
         throw qftbx::ComputationError("Could not compute the templates.");
     }
 
     QElapsedTimer timer2;
     timer2.start();
 
-    //Nobody owns the clouds yet: the facade publishes them only when this
-    //returns, so a throw from here would leak everything computeClouds just
-    //built. computeClouds frees its own work on its two throw paths; this is
-    //the gap between them and the caller.
-    bool result = false;
-
-    try {
-        result = computeContourSet(cuda);
-    } catch (...) {
-        qDeleteAll(*m_clouds);
-        delete m_clouds;
-        m_clouds = nullptr;
-
-        throw;
-    }
+    //No try/catch and no freeing: m_clouds owns its data, so a throw from
+    //here unwinds and the destructor takes care of it. That whole hand-written
+    //rescue was only needed because the clouds were a raw pointer nobody
+    //owned.
+    const bool result = computeContourSet(cuda);
 
     qDebug() << "Calcular contorno: " << timer2.elapsed() << "milliseconds";
 
@@ -83,10 +73,10 @@ bool TemplateEngine::compute(LtiSystem *plant, QVector<qreal> *omega, bool cuda)
 
 bool TemplateEngine::computeContours(QVector<qreal> *epsilon){
 
-    if (m_clouds == NULL){
+    if (m_clouds.empty()){
         throw qftbx::InvalidInput("There are no templates to compute contours from.");
     }
-    if (epsilon == NULL || epsilon->size() < m_clouds->size()){
+    if (epsilon == NULL || epsilon->size() < static_cast<qint32>(m_clouds.size())){
         throw qftbx::InvalidInput("Missing epsilon values for the template contours.");
     }
 
@@ -101,11 +91,11 @@ bool TemplateEngine::computeContours(QVector<qreal> *epsilon){
     return result;
 }
 
-QVector<QVector<complex<qreal> > *> * TemplateEngine::clouds(){
+const CloudSet & TemplateEngine::clouds() const{
     return m_clouds;
 }
 
-QVector<QVector<complex<qreal> > *> * TemplateEngine::contours(){
+const CloudSet & TemplateEngine::contours() const{
     return m_contours;
 }
 
@@ -123,7 +113,7 @@ const std::vector<double> & TemplateEngine::gridFor(Parameter & a){
     return found->second;
 }
 
-QVector<QVector<complex<qreal> > * > * TemplateEngine::computeClouds(LtiSystem *plant, QVector<qreal> *omega){
+CloudSet TemplateEngine::computeClouds(LtiSystem *plant, QVector<qreal> *omega){
 
     //Collect the uncertain parameters (the first of each name) and their
     //grids, in numerator, denominator, gain, delay order. The index in
@@ -181,7 +171,7 @@ QVector<QVector<complex<qreal> > * > * TemplateEngine::computeClouds(LtiSystem *
     const qreal gainNominal = plant->gain().nominal();
     const qreal delayNominal = plant->delay().nominal();
 
-    QVector<QVector<complex<qreal> > * > * allClouds = new QVector <QVector<complex<qreal> > * > (frequencyCount);
+    CloudSet allClouds (static_cast<std::size_t>(frequencyCount));
 
     //One flag and one error slot per frequency, filled inside the parallel
     //loop below (nothing may be thrown from within it).
@@ -216,8 +206,8 @@ QVector<QVector<complex<qreal> > * > * TemplateEngine::computeClouds(LtiSystem *
             digit[j] = (*grids.at(static_cast<std::size_t>(j)))[0];
         }
 
-        QVector <complex<qreal>> * cloud = new QVector <complex<qreal>> ();
-        cloud->reserve(m_combinationCount);
+        ComplexCloud cloud;
+        cloud.reserve(static_cast<std::size_t>(m_combinationCount));
 
         QVector <qint32> counter (digitCount + 1, 0);
 
@@ -268,7 +258,7 @@ QVector<QVector<complex<qreal> > * > * TemplateEngine::computeClouds(LtiSystem *
             }
 
             nonFinite = nonFinite || !std::isfinite(value.real()) || !std::isfinite(value.imag());
-            cloud->append(value);
+            cloud.push_back(value);
 
             counter[0]++;
             for (qint32 j = 0; j < digitCount; j++){
@@ -289,16 +279,13 @@ QVector<QVector<complex<qreal> > * > * TemplateEngine::computeClouds(LtiSystem *
 
         //Every frequency writes at its own index: no critical sections,
         //no permutations.
-        allClouds->replace(u, cloud);
+        allClouds[static_cast<std::size_t>(u)] = std::move(cloud);
     }
 
     //Reported after the parallel loop, where throwing is safe again.
     for (qint32 u = 0; u < frequencyCount; u++){
         if (!parserErrors.at(u).isEmpty()){
             const std::string message = parserErrors.at(u).toStdString();
-            qDeleteAll(*allClouds);
-            delete allClouds;
-
             throw qftbx::InvalidInput(
                     "The plant expression could not be evaluated at "
                     + std::to_string(omega->at(u)) + " rad/s: " + message);
@@ -314,9 +301,6 @@ QVector<QVector<complex<qreal> > * > * TemplateEngine::computeClouds(LtiSystem *
     }
 
     if (!affected.isEmpty()){
-        qDeleteAll(*allClouds);
-        delete allClouds;
-
         throw qftbx::InvalidInput(
                 "The plant has infinite magnitude at the design frequencies "
                 + affected.join(QStringLiteral(", ")).toStdString()
@@ -337,44 +321,30 @@ QVector <qreal> * TemplateEngine::epsilon(){
     return m_epsilon;
 }
 
-//The contours built so far, which nobody owns yet: the facade takes them only
-//when the computation returns, so a throw in the middle would leak both the
-//row and every contour already in it.
-void TemplateEngine::discardContours(){
-    if (m_contours == nullptr){
-        return;
-    }
-
-    qDeleteAll(*m_contours);
-    delete m_contours;
-    m_contours = nullptr;
-}
-
 bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
 
     bool succeeded = true;
-    qint32 digitCount = m_clouds->size();
+    const qint32 digitCount = static_cast<qint32>(m_clouds.size());
 
 #ifdef CUDA_AVAILABLE
     if (cuda){
         //GPU path (relaxed-walk semantics: the parity reference is
         //epsilonHullRelaxed, not the faithful walk - see the header).
-        m_contours = new QVector <QVector <complex <qreal> > * > ();
+        m_contours.clear();
 
         for (qint32 i = 0; i < digitCount; i++){
 
             const vector <complex <double> > hull = epsilonHullCuda(
-                std::vector<complex<double>>(m_clouds->at(i)->begin(), m_clouds->at(i)->end()),
+                m_clouds[static_cast<std::size_t>(i)],
                 m_epsilon->at(i));
 
             if (hull.empty()){
                 succeeded = false;
             }
-            m_contours->append(new QVector <complex <qreal> > (hull.begin(), hull.end()));
+            m_contours.push_back(ComplexCloud(hull.begin(), hull.end()));
         }
 
         if (!succeeded){
-            discardContours();
 
             throw ComputationError("Could not compute the template contours.");
         }
@@ -388,7 +358,7 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
     //contours in thread-arrival order (desynchronising them from the
     //clouds), then 'repaired' it by clearing the live vectors of Omega and
     //of the GUI (aliasing). Without the permutation they stay intact.
-    m_contours = new QVector <QVector <complex <qreal> > * > (digitCount);
+    m_contours = CloudSet(static_cast<std::size_t>(digitCount));
 
     //Per-frequency diagnosis of a failure (nothing may be thrown from
     //inside the parallel region), and of the frequencies whose faithful walk
@@ -402,14 +372,16 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
     for (qint32 i = 0; i < digitCount; i++){
 
         bool fellBack = false;
-        QVector <complex <qreal> > * cont = epsilonHull(m_clouds->at(i), m_epsilon->at(i), &fellBack);
+        ComplexCloud cont = epsilonHull(m_clouds[static_cast<std::size_t>(i)],
+                                        m_epsilon->at(i), &fellBack);
 
         if (fellBack){
             relaxedFrequencies.replace(i, true);
         }
 
-        if (cont == NULL){
-            cont = new QVector <complex <qreal> >();
+        //Empty means the hull could not be built, the same signal the CUDA
+        //path already used. A hull of a non-empty cloud always has points.
+        if (cont.empty()){
             failed.replace(i, true);
 
 #ifdef OpenMP_AVAILABLE
@@ -420,7 +392,7 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
             }
         }
 
-        m_contours->replace(i, cont);
+        m_contours[static_cast<std::size_t>(i)] = std::move(cont);
     }
 
     //Reported HERE, once and outside the parallel region, and naming the
@@ -455,7 +427,7 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
             }
 
             qreal largest = 0;
-            foreach (const complex<qreal> & value, *m_clouds->at(i)){
+            for (const complex<qreal> & value : m_clouds[static_cast<std::size_t>(i)]){
                 largest = std::max(largest, std::abs(value));
             }
 
@@ -465,8 +437,6 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
                                        : QString::number(i))
                               .arg(largest, 0, 'g', 3));
         }
-
-        discardContours();
 
         throw qftbx::ComputationError(
                 "Could not compute the template contour at "
@@ -483,17 +453,17 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
 //Faithful port of EPSHULL.M (epsh2, Montoya 1998; the algorithm defined in
 //Nordin 1993). Deliberate divergence: with no initial candidate it returns
 //NULL instead of an empty contour (the caller treats it as an error).
-QVector <complex <qreal> > * TemplateEngine::epsilonHull(QVector<complex<qreal> > *temp, qreal epsilon,
+ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, qreal epsilon,
                                                          bool * fellBack){
 
-    if (temp == NULL || temp->isEmpty()){
-        return NULL;
+    if (temp.empty()){
+        return {};
     }
 
     //unique(cv): deduplicated and sorted with MATLAB's ordering for complex
     //values (modulus, then phase). This order also resolves the psi ties
     //exactly like the reference.
-    QVector <complex <qreal> > cv = *temp;
+    ComplexCloud cv = temp;
     std::sort(cv.begin(), cv.end(),
               [](const complex<qreal> & a, const complex<qreal> & b){
                   const qreal absA = abs(a);
@@ -517,10 +487,10 @@ QVector <complex <qreal> > * TemplateEngine::epsilonHull(QVector<complex<qreal> 
         }
     }
 
-    qint32 b2 = findSecond(b1, &cv, epsilon);
+    qint32 b2 = findSecond(b1, cv, epsilon);
 
     if (b2 < 0)
-        return NULL;
+        return {};
 
     QVector <qint32> walk;
     walk.append(b1);
@@ -529,9 +499,9 @@ QVector <complex <qreal> > * TemplateEngine::epsilonHull(QVector<complex<qreal> 
     qint32 previousPoint = b1;
     qint32 currentPoint = b2;
 
-    qint32 nextPoint = findNext(b1, b2, &cv, epsilon);
+    qint32 nextPoint = findNext(b1, b2, cv, epsilon);
     if (nextPoint < 0)
-        return NULL;
+        return {};
 
     qint32 counter = 2;
 
@@ -561,42 +531,42 @@ QVector <complex <qreal> > * TemplateEngine::epsilonHull(QVector<complex<qreal> 
         previousPoint = currentPoint;
         currentPoint = nextPoint;
 
-        nextPoint = findNext(previousPoint, currentPoint, &cv, epsilon);
+        nextPoint = findNext(previousPoint, currentPoint, cv, epsilon);
 
         if (nextPoint < 0){
-            return NULL;
+            return {};
         }
     }
 
-    QVector <complex <qreal> > * result = new QVector <complex <qreal> > ();
-    result->reserve(walk.size());
+    ComplexCloud result;
+    result.reserve(walk.size());
 
     foreach (const qint32 var, walk) {
-        result->append(cv.at(var));
+        result.push_back(cv.at(var));
     }
 
     return result;
 }
 
-QVector <complex <qreal> > * TemplateEngine::epsilonHullRelaxed(QVector<complex<qreal> > *temp, qreal epsilon){
+ComplexCloud TemplateEngine::epsilonHullRelaxed(const ComplexCloud & temp, qreal epsilon){
 
-    qint32 pointCount = temp->size();
+    qint32 pointCount = static_cast<qint32>(temp.size());
     qint32 MAXP = 3 * pointCount;
 
     qint32 b1 = 0;
     qreal numDe = -numeric_limits<qreal>::infinity();
 
     for(qint32 i = 0;i < pointCount ; i++){   //first point: largest imaginary part.
-        if (imag(temp->at(i)) > numDe){
+        if (imag(temp.at(i)) > numDe){
             b1 = i;
-            numDe = imag(temp->at(i));
+            numDe = imag(temp.at(i));
         }
     }
 
     qint32 b2 = findSecond(b1, temp, epsilon);
 
     if (b2 < 0)
-        return NULL;
+        return {};
 
     QVector <qint32> walk;
     walk.append(b1);
@@ -607,7 +577,7 @@ QVector <complex <qreal> > * TemplateEngine::epsilonHullRelaxed(QVector<complex<
 
     qint32 nextPoint = findNext(b1, b2, temp, epsilon, true);
     if (nextPoint < 0)
-        return NULL;
+        return {};
 
     qint32 counter = 2;
 
@@ -625,7 +595,7 @@ QVector <complex <qreal> > * TemplateEngine::epsilonHullRelaxed(QVector<complex<
         nextPoint = findNext(previousPoint, currentPoint, temp, epsilon, true);
 
         if (nextPoint < 0){
-            return NULL;
+            return {};
         }
     }
 
@@ -637,20 +607,20 @@ QVector <complex <qreal> > * TemplateEngine::epsilonHullRelaxed(QVector<complex<
         }
     }
 
-    QVector <complex <qreal> > * result = new QVector <complex <qreal> > ();
-    result->reserve(uniqueIdx.size());
+    ComplexCloud result;
+    result.reserve(uniqueIdx.size());
 
     foreach (const qint32 idx, uniqueIdx) {
-        result->append(temp->at(idx));
+        result.push_back(temp.at(idx));
     }
 
     return result;
 }
 
-qint32 TemplateEngine::findSecond(qint32 b1, QVector<complex<qreal> > *cv, qreal epsilon){
+qint32 TemplateEngine::findSecond(qint32 b1, const ComplexCloud & cv, qreal epsilon){
 
     qreal dist = 0;
-    complex <qreal> firstPoint = cv->at(b1);
+    complex <qreal> firstPoint = cv.at(b1);
 
     qreal fmin = numeric_limits<qreal>::infinity();
     qint32 pmin = -1;
@@ -660,9 +630,9 @@ qint32 TemplateEngine::findSecond(qint32 b1, QVector<complex<qreal> > *cv, qreal
 
     qreal fas = 0;
 
-    for (qint32 i = 0; i < cv->size(); i++){    //recorremos todo el vector de puntos.
+    for (qint32 i = 0; i < static_cast<qint32>(cv.size()); i++){    //recorremos todo el vector de puntos.
 
-        candidate = cv->at(i);
+        candidate = cv.at(i);
         dist = abs(firstPoint - candidate); //calculamos el valor absoluto de la resta.
 
         if (dist > 0 && dist <= epsilon){    //candidates within epsilon.
@@ -691,11 +661,11 @@ qint32 TemplateEngine::findSecond(qint32 b1, QVector<complex<qreal> > *cv, qreal
 }
 
 qint32 TemplateEngine::findNext(qint32 previousPoint, qint32 currentPoint,
-                                  QVector<complex<qreal> > *cv, qreal epsilon,
+                                  const ComplexCloud & cv, qreal epsilon,
                                   bool excludePrevious){
 
-    complex <qreal> current = cv->at(currentPoint);
-    complex <qreal> previous = cv->at(previousPoint);
+    complex <qreal> current = cv.at(currentPoint);
+    complex <qreal> previous = cv.at(previousPoint);
 
     qreal aco2 = qAcos(abs(previous-current) / epsilon);
 
@@ -713,9 +683,9 @@ qint32 TemplateEngine::findNext(qint32 previousPoint, qint32 currentPoint,
     complex <qreal> candidate;
     qreal distance;
 
-    for (qint32 i = 0; i < cv->size(); i++){
+    for (qint32 i = 0; i < static_cast<qint32>(cv.size()); i++){
 
-        candidate = cv->at(i);
+        candidate = cv.at(i);
         distance = abs(candidate - current); //Calculamos el valor absoluto de la distancia del punto al punto current.
 
 

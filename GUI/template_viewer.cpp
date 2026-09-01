@@ -84,8 +84,8 @@ void TemplateViewer::clearDiagram(){
     plotted = false;
 }
 
-void TemplateViewer::setDatos(QVector <QVector <std::complex<qreal> > *> * templates,
-                              QVector <QVector <std::complex<qreal> > *> * contour,
+void TemplateViewer::setDatos(const qftbx::CloudSet & templates,
+                              const qftbx::CloudSet & contour,
                               QVector <qreal> * omega,
                               QVector <qreal> * epsilon){
 
@@ -113,7 +113,7 @@ void TemplateViewer::setContourRecomputer(ContourRecomputer recompute){
     this->recompute = std::move(recompute);
 }
 
-void TemplateViewer::refreshContour(QVector <QVector <std::complex<qreal> > *> * contour,
+void TemplateViewer::refreshContour(const qftbx::CloudSet & contour,
                                     QVector <qreal> * omega,
                                     QVector <qreal> * epsilon){
     setContour(contour);
@@ -127,11 +127,11 @@ void TemplateViewer::refreshContour(QVector <QVector <std::complex<qreal> > *> *
     plotDiagram(plot);
 }
 
-void TemplateViewer::setTemplates(QVector<QVector<std::complex<qreal> > *> *templatesButton){
+void TemplateViewer::setTemplates(const qftbx::CloudSet & templatesButton){
     this->templatesButton = templatesButton;
 }
 
-void TemplateViewer::setContour(QVector<QVector<std::complex<qreal> > *> *contourButton){
+void TemplateViewer::setContour(const qftbx::CloudSet & contourButton){
     this->contourButton = contourButton;
 }
 
@@ -157,20 +157,20 @@ void TemplateViewer::plotDiagram(bool plot){
     qint32 i = 0;
     qint32 counter = 0;
 
-    if (templatesButton == NULL)
+    if (templatesButton.empty())
         return;
-    templateGraphs->reserve(templatesButton->size());
+    templateGraphs->reserve(static_cast<qint32>(templatesButton.size()));
 
-    if (contourButton != NULL){
-        contourGraphs->reserve(contourButton->size());
-        foreach (const QVector<std::complex<qreal> > * vector, *contourButton) {
+    if (!contourButton.empty()){
+        contourGraphs->reserve(static_cast<qint32>(contourButton.size()));
+        for (const qftbx::ComplexCloud & vector : contourButton) {
 
             QVector <qreal> * fas = new QVector <qreal>();
-            fas->reserve(vector->size());
+            fas->reserve(static_cast<qint32>(vector.size()));
             QVector <qreal> * gan = new QVector <qreal> ();
-            gan->reserve(vector->size());
+            gan->reserve(static_cast<qint32>(vector.size()));
 
-            foreach (const std::complex <qreal> complejo, *vector) {
+            for (const std::complex <qreal> & complejo : vector) {
 
                 if (plot){
                     qreal fase = arg(complejo)* 180 / M_PI;
@@ -199,14 +199,14 @@ void TemplateViewer::plotDiagram(bool plot){
 
     counter = 0;
 
-    foreach (const QVector<std::complex<qreal> > * vector, *templatesButton) {
+    for (const qftbx::ComplexCloud & vector : templatesButton) {
 
         QVector <qreal> * fas = new QVector <qreal>();
-        fas->reserve(vector->size());
+        fas->reserve(static_cast<qint32>(vector.size()));
         QVector <qreal> * gan = new QVector <qreal> ();
-        gan->reserve(vector->size());
+        gan->reserve(static_cast<qint32>(vector.size()));
 
-        foreach (const std::complex <qreal> complejo, *vector) {
+        for (const std::complex <qreal> & complejo : vector) {
 
             if (plot){
                 qreal fase = arg(complejo)* 180 / M_PI;

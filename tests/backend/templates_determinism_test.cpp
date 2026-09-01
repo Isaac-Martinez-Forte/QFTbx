@@ -36,21 +36,11 @@ namespace {
 //contours. Compared with ==, so any changed bit shows up.
 using Numbers = std::vector<double>;
 
-void appendAll(const QVector<QVector<std::complex<qreal> > *> * sets, Numbers & out)
+void appendAll(const qftbx::CloudSet & sets, Numbers & out)
 {
-    if (sets == nullptr) {
-        return;
-    }
-
-    for (const QVector<std::complex<qreal> > * set : *sets) {
-        if (set == nullptr) {
-            //A missing set still has to appear, or two runs that differ in
-            //WHICH set is missing would compare equal.
-            out.push_back(std::numeric_limits<double>::quiet_NaN());
-            continue;
-        }
-        out.push_back(static_cast<double>(set->size()));
-        for (const std::complex<qreal> & value : *set) {
+    for (const qftbx::ComplexCloud & set : sets) {
+        out.push_back(static_cast<double>(set.size()));
+        for (const std::complex<qreal> & value : set) {
             out.push_back(value.real());
             out.push_back(value.imag());
         }

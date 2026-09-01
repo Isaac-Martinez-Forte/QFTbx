@@ -106,7 +106,7 @@ TEST(BoundaryBucketBounds, LoopShapingRefusesAWindowNarrowerThanTheLoopPhase)
     //The check runs before anything is dereferenced, which is the point of
     //putting it first: the rest of the arguments are never touched.
     EXPECT_THROW(search.run(nullptr, nullptr, nullptr, narrow, 0.0,
-                            tools::nt, nullptr, nullptr, 0),
+                            tools::nt, {}, nullptr, 0),
                  qftbx::ComputationError);
 
     delete narrow;

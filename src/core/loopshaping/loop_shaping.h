@@ -1,6 +1,7 @@
 #ifndef QFTBX_LOOPSHAPING_LOOP_SHAPING_H
 #define QFTBX_LOOPSHAPING_LOOP_SHAPING_H
 
+#include "src/core/templates/cloud_set.h"
 #include "src/core/loopshaping/algorithm_nt.h"
 #include "src/core/loopshaping/algorithm_nk.h"
 #include "src/core/loopshaping/algorithm_mr.h"
@@ -18,7 +19,7 @@ public:
 
     bool run(LtiSystem * plant, LtiSystem * controller, QVector<qreal> * omega, BoundaryData * boundaries,
                  qreal epsilon, LoopShapingAlgorithm algorithm,
-                 QVector<QVector<std::complex<qreal>> *> * contour, QVector<qftbx::SpecificationRecord *> * specifications,
+                 const qftbx::CloudSet & contour, QVector<qftbx::SpecificationRecord *> * specifications,
                  qint32 initialisation);
 
     LtiSystem * controllerStructure();

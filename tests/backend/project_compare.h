@@ -4,6 +4,7 @@
 #ifndef QFTBX_TESTS_PROJECT_COMPARE_H
 #define QFTBX_TESTS_PROJECT_COMPARE_H
 
+#include "src/core/templates/cloud_set.h"
 #include <gtest/gtest.h>
 
 #include <complex>
@@ -58,16 +59,14 @@ inline void expectSameSpecifications(QVector<qftbx::SpecificationRecord*>* a, QV
     }
 }
 
-inline void expectSameComplexVectors(QVector<QVector<std::complex<qreal>>*>* a,
-                                     QVector<QVector<std::complex<qreal>>*>* b,
+inline void expectSameComplexVectors(const qftbx::CloudSet & a,
+                                     const qftbx::CloudSet & b,
                                      const char* what)
 {
-    ASSERT_NE(a, nullptr) << what;
-    ASSERT_NE(b, nullptr) << what;
-    ASSERT_EQ(a->size(), b->size()) << what;
-    for (int i = 0; i < a->size(); ++i) {
-        ASSERT_EQ(*a->at(i), *b->at(i)) << what << " " << i;
-    }
+    //By value: the whole set compares in one line, and there is no null to
+    //rule out first.
+    ASSERT_EQ(a.size(), b.size()) << what;
+    EXPECT_EQ(a, b) << what;
 }
 
 inline void expectSameBoundaries(BoundaryData* a, BoundaryData* b)

@@ -293,9 +293,9 @@ public:
 
     //Template sets are stored as (real-vector, imaginary-vector) element
     //pairs, one pair per design frequency.
-    QVector <QVector <std::complex<qreal>> * > * readComplexVectors(const pugi::xml_node & section) const
+    qftbx::CloudSet readComplexVectors(const pugi::xml_node & section) const
     {
-        auto * vectors = new QVector <QVector <std::complex<qreal>> * > ();
+        qftbx::CloudSet vectors;
 
         pugi::xml_node child = section.first_child();
         while (child) {
@@ -312,15 +312,15 @@ public:
                 fail(child, "real and imaginary parts differ in length");
             }
 
-            auto * vector = new QVector <std::complex<qreal>> ();
-            vector->reserve(reals->size());
+            qftbx::ComplexCloud vector;
+            vector.reserve(static_cast<std::size_t>(reals->size()));
             for (qint32 i = 0; i < reals->size(); ++i) {
-                vector->append(std::complex<qreal>(reals->at(i), imaginaries->at(i)));
+                vector.push_back(std::complex<qreal>(reals->at(i), imaginaries->at(i)));
             }
             delete reals;
             delete imaginaries;
 
-            vectors->append(vector);
+            vectors.push_back(std::move(vector));
             child = imaginaryNode.next_sibling();
         }
 
@@ -426,13 +426,6 @@ void deleteSpecificationRecords(QVector <qftbx::SpecificationRecord *> * records
     delete records;
 }
 
-void deleteComplexVectors(QVector <QVector <std::complex<qreal>> * > * vectors)
-{
-    if (vectors != nullptr) {
-        qDeleteAll(*vectors);
-        delete vectors;
-    }
-}
 
 } // namespace
 
@@ -442,8 +435,6 @@ ProjectReader::~ProjectReader()
     delete m_plant;
     deleteSpecificationRecords(m_specifications);
     delete m_omega;
-    deleteComplexVectors(m_templates);
-    deleteComplexVectors(m_contour);
     delete m_epsilon;
     delete m_boundaries;
     delete m_controller;
@@ -515,7 +506,7 @@ QVector <bool> * ProjectReader::load(const QString & filePath)
     sections->append(m_plant != nullptr);
     sections->append(m_specifications != nullptr);
     sections->append(m_omega != nullptr);
-    sections->append(m_templates != nullptr);
+    sections->append(!m_templates.empty());
     sections->append(m_boundaries != nullptr);
     sections->append(m_controller != nullptr);
     sections->append(m_loopShaping != nullptr);

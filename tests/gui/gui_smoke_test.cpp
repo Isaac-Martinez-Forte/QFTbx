@@ -383,15 +383,14 @@ TEST_F(GuiSmoke, TemplateViewerAsksItsHandlerToRecomputeTheContour)
     //the fields. A plain callback, not a Qt signal.
     TemplateViewer viewer;
 
-    QVector<std::complex<qreal> > contourPoints{{1.0, 0.0}, {0.0, 1.0}};
-    QVector<std::complex<qreal> > templatePoints{{2.0, 0.0}, {0.0, 2.0}};
-    QVector<QVector<std::complex<qreal> > *> contour{&contourPoints};
-    QVector<QVector<std::complex<qreal> > *> templates{&templatePoints};
+    const qftbx::CloudSet contour{{{1.0, 0.0}, {0.0, 1.0}}};
+    const qftbx::CloudSet templates{{{2.0, 0.0}, {0.0, 2.0}}};
     QVector<qreal> omega{1.0};
     QVector<qreal> epsilon{0.05};
 
-    //setDatos borrows: the project owns these in the application.
-    viewer.setDatos(&templates, &contour, &omega, &epsilon);
+    //The viewer takes its own copy of the clouds; the frequency and epsilon
+    //vectors are still the project's.
+    viewer.setDatos(templates, contour, &omega, &epsilon);
     viewer.plotDiagram(true);
 
     bool called = false;

@@ -152,13 +152,12 @@ void writeOmega(pugi::xml_node root, Omega * omega)
     addText(section, t.values, realVectorText(*omega->values()));
 }
 
-void writeComplexVectors(pugi::xml_node section,
-                         QVector <QVector <std::complex<qreal>> * > * vectors)
+void writeComplexVectors(pugi::xml_node section, const qftbx::CloudSet & vectors)
 {
-    foreach (QVector <std::complex<qreal>> * vector, *vectors) {
+    for (const qftbx::ComplexCloud & vector : vectors) {
         std::string reals;
         std::string imaginaries;
-        foreach (const std::complex<qreal> & value, *vector) {
+        for (const std::complex<qreal> & value : vector) {
             reals += number(value.real()) + " ";
             imaginaries += number(value.imag()) + " ";
         }
@@ -176,12 +175,12 @@ void writeTemplates(pugi::xml_node root, const ProjectContent & content)
             content.epsilon != nullptr ? realVectorText(*content.epsilon) : std::string());
 
     pugi::xml_node full = section.append_child(t.fullTemplates);
-    full.append_attribute("size") = content.templates->size();
+    full.append_attribute("size") = static_cast<qint64>(content.templates.size());
     writeComplexVectors(full, content.templates);
 
-    if (content.contour != nullptr) {
+    if (!content.contour.empty()) {
         pugi::xml_node contour = section.append_child(t.templateContour);
-        contour.append_attribute("size") = content.contour->size();
+        contour.append_attribute("size") = static_cast<qint64>(content.contour.size());
         writeComplexVectors(contour, content.contour);
     }
 }
@@ -270,7 +269,7 @@ void ProjectWriter::save(const QString & filePath, const ProjectContent & conten
     if (content.omega != nullptr) {
         writeOmega(root, content.omega);
     }
-    if (content.templates != nullptr) {
+    if (!content.templates.empty()) {
         writeTemplates(root, content);
     }
     if (content.boundaries != nullptr) {

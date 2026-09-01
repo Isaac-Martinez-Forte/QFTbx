@@ -106,8 +106,8 @@ TEST(ThesisBenchmarkFixture, QftToolboxEx2LoadsWithTheFullPipeline)
     EXPECT_TRUE(specs->at(2)->constant);
     EXPECT_DOUBLE_EQ(specs->at(2)->height, 1.2);
 
-    ASSERT_NE(controller.templates(), nullptr);
-    EXPECT_EQ(controller.templates()->size(), expectedOmega.size());
+    ASSERT_FALSE(controller.templates().empty());
+    EXPECT_EQ(static_cast<int>(controller.templates().size()), expectedOmega.size());
 
     ASSERT_NE(controller.boundaries(), nullptr);
     ASSERT_EQ(controller.boundaries()->boundaries()->size(), expectedOmega.size());

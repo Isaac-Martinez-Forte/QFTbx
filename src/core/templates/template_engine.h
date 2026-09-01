@@ -10,6 +10,7 @@
 
 #include "src/core/system/lti_system.h"
 #include "src/core/templates/parameter_grids.h"
+#include "src/core/templates/cloud_set.h"
 #include "src/core/system/parameter.h"
 
 #include "mpParser.h"
@@ -60,13 +61,9 @@ public:
 
     /// Brute-force sweep: one cloud per frequency, the cartesian product of
     /// the parameter grids evaluated at s = j*omega.
-    QVector<QVector<std::complex<qreal> > *> * computeClouds(LtiSystem *plant, QVector<qreal>* frequencies);
+    CloudSet computeClouds(LtiSystem *plant, QVector<qreal>* frequencies);
 
     bool computeContourSet(bool cuda);
-
-    /// Frees the partially built contour row on a failure: see the note on
-    /// the definition.
-    void discardContours();
 
     /**
      * @brief Epsilon-hull contour of a point cloud, faithful to EPSHULL.M:
@@ -88,8 +85,8 @@ public:
      * non-local action from within a parallel region that once let a
      * muParserX error terminate the process.
      */
-    QVector <std::complex <qreal> > * epsilonHull(QVector<std::complex<qreal> > *cloud, qreal epsilon,
-                                                  bool * fellBack = nullptr);
+    ComplexCloud epsilonHull(const ComplexCloud & cloud, qreal epsilon,
+                             bool * fellBack = nullptr);
 
     /// Sweep grids keyed by parameter NAME; the caller keeps ownership.
     /// Takes the grids BY VALUE: the engine owns its copy and nobody has to
@@ -101,11 +98,13 @@ public:
 
     /// Feeds precomputed clouds (e.g. loaded from a project file) so their
     /// contours can be recomputed.
-    void setClouds (QVector<QVector<std::complex<qreal> > *> * clouds);
+    /// Takes the clouds BY VALUE: see qftbx::CloudSet for what the pointer
+    /// version cost.
+    void setClouds (CloudSet clouds);
 
-    QVector<QVector<std::complex<qreal> > *> * clouds();
+    const CloudSet & clouds() const;
 
-    QVector<QVector<std::complex<qreal> > *> * contours();
+    const CloudSet & contours() const;
 
     QVector <qreal> * omega();
 
@@ -123,22 +122,22 @@ private:
     QVector <qreal> * m_epsilon = NULL;
     bool m_useCuda = false;
 
-    QVector<QVector<std::complex<qreal> > *> * m_clouds = NULL;
-    QVector<QVector<std::complex<qreal> > *> * m_contours = NULL;
+    CloudSet m_clouds;
+    CloudSet m_contours;
     QVector <qreal> * m_frequencies = NULL;
 
-    qint32 findSecond(qint32 b1, QVector<std::complex<qreal> > *cv, qreal epsilon);
+    qint32 findSecond(qint32 b1, const ComplexCloud & cv, qreal epsilon);
 
     /// excludePrevious = true reproduces the relaxed historical variant;
     /// false is the behaviour faithful to EPSHULL.M.
-    qint32 findNext(qint32 previousPoint, qint32 currentPoint, QVector<std::complex<qreal> > *cv, qreal epsilon,
+    qint32 findNext(qint32 previousPoint, qint32 currentPoint, const ComplexCloud & cv, qreal epsilon,
                            bool excludePrevious = false);
 
     /// Historical PFC walk (divergent from EPSHULL.M): max-imaginary start,
     /// previous point excluded, silent truncation at MAXP, deduplicated
     /// output. Used as the fallback when the reference walk cycles: it
     /// always yields a contour with coverage <= epsilon.
-    QVector <std::complex <qreal> > * epsilonHullRelaxed(QVector<std::complex<qreal> > *cloud, qreal epsilon);
+    ComplexCloud epsilonHullRelaxed(const ComplexCloud & cloud, qreal epsilon);
 
 };
 

@@ -39,7 +39,7 @@ AlgorithmMr::~AlgorithmMr()
 }
 
 void AlgorithmMr::set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> * omega, BoundaryData *boundaries,
-                                  qreal epsilon, QVector<QVector<std::complex<qreal>> *> * temp, QVector<qftbx::SpecificationRecord *> * espe){
+                                  qreal epsilon, const qftbx::CloudSet & temp, QVector<qftbx::SpecificationRecord *> * espe){
     this->planta = planta;
     this->controlador = controlador->clone();
     this->omega = omega;
@@ -146,10 +146,10 @@ inline void AlgorithmMr::buildConstraints(){
         //Non-finite or null points (artefacts of a degenerate contour)
         //would embed "nan" into the expression texts: they are skipped.
         QVector<std::complex<qreal>> points;
-        const QVector<std::complex<qreal>> * contour = temp->at(i);
-        const qint32 take = std::min<qint32>(kTemplateRepresentatives, contour->size());
+        const qftbx::ComplexCloud & contour = temp.at(static_cast<std::size_t>(i));
+        const qint32 take = std::min<qint32>(kTemplateRepresentatives, static_cast<qint32>(contour.size()));
         for (qint32 j = 0; j < take; ++j) {
-            const std::complex<qreal> value = contour->at(j * contour->size() / take);
+            const std::complex<qreal> value = contour.at(j * static_cast<qint32>(contour.size()) / take);
             if (std::isfinite(value.real()) && std::isfinite(value.imag()) &&
                     std::abs(value) > 0.0) {
                 points.append(value);

@@ -132,22 +132,18 @@ TEST(EvaluatePrecision, TheTemplateSweepKeepsEveryDigitToo)
     engine.setEpsilon(epsilon);
     engine.setGrids(grids);
 
-    QVector<QVector<std::complex<qreal> > *> * clouds = engine.computeClouds(&plant, frequencies);
+    const qftbx::CloudSet clouds = engine.computeClouds(&plant, frequencies);
 
-    ASSERT_NE(clouds, nullptr);
-    ASSERT_EQ(clouds->size(), 1);
-    ASSERT_NE(clouds->at(0), nullptr);
-    ASSERT_EQ(clouds->at(0)->size(), 1);
+    ASSERT_EQ(clouds.size(), 1u);
+    ASSERT_EQ(clouds.at(0).size(), 1u);
 
-    const std::complex<double> got = clouds->at(0)->at(0);
+    const std::complex<double> got = clouds.at(0).at(0);
     const std::complex<double> exact =
         2.0 / (std::complex<double>(0.0, 1.0) * w * a + 1.0);
 
     EXPECT_NEAR(got.real(), exact.real(), 1e-15) << "the cloud lost precision";
     EXPECT_NEAR(got.imag(), exact.imag(), 1e-15) << "the cloud lost precision";
 
-    qDeleteAll(*clouds);
-    delete clouds;
     delete frequencies;
     delete epsilon;
 }

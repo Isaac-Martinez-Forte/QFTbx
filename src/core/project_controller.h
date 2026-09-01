@@ -8,6 +8,7 @@
 #include "src/core/system/lti_system.h"
 #include "src/core/templates/template_engine.h"
 #include "src/core/templates/parameter_grids.h"
+#include "src/core/templates/cloud_set.h"
 #include "src/core/frequencies/omega.h"
 #include "src/core/boundaries/boundary_engine.h"
 #include "src/persistence/project_reader.h"
@@ -75,15 +76,14 @@ public:
     bool computeTemplates(QVector<qreal> * epsilon, qftbx::ParameterGrids grids, bool cuda);
 
     /// Recomputes only the contours, with a new epsilon.
-    QVector<QVector<std::complex<qreal>> *> * recomputeContour(QVector<qreal> * epsilon);
+    const qftbx::CloudSet & recomputeContour(QVector<qreal> * epsilon);
 
-    QVector<QVector<std::complex<qreal>> *> * templates();
-    QVector<QVector<std::complex<qreal>> *> * contour();
+    const qftbx::CloudSet & templates();
+    const qftbx::CloudSet & contour();
     QVector<qreal> * epsilon();
 
-    void setTemplates(QVector<QVector<std::complex<qreal>> *> * templates,
-                      QVector<QVector<std::complex<qreal>> *> * contour, bool hasContour);
-    void setContour(QVector<QVector<std::complex<qreal>> *> * contour);
+    void setTemplates(qftbx::CloudSet templates, qftbx::CloudSet contour, bool hasContour);
+    void setContour(qftbx::CloudSet contour);
 
     // --- step 5: the boundaries -------------------------------------------
 
