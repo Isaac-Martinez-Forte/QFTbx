@@ -61,8 +61,7 @@ inline Specification toSpecification(const SpecificationRecord & d, Specificatio
     if (d.system == nullptr){
         throw InvalidInput("A used specification needs a plant or a constant height.");
     }
-    //fromSystem takes the plant over (Specification deletes it).
-    return Specification::fromSystem(type, d.system->clone().release(),
+    return Specification::fromSystem(type, d.system->clone(),
                                      d.omegaStart, d.omegaEnd);
 }
 

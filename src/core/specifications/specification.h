@@ -3,6 +3,7 @@
 
 #include <array>
 #include <cmath>
+#include <memory>
 #include <utility>
 
 #include <QString>
@@ -109,24 +110,23 @@ public:
         return spec;
     }
 
-    /// Bound given by a transfer function; takes ownership of system.
-    static Specification fromSystem(SpecificationType type, LtiSystem* system,
+    /// Bound given by a transfer function, which the specification takes over.
+    static Specification fromSystem(SpecificationType type,
+                                    std::unique_ptr<LtiSystem> system,
                                     qreal minFrequency, qreal maxFrequency)
     {
         if (system == nullptr) {
             throw InvalidInput("A system specification needs a non-null plant.");
         }
-        try {
-            validateBand(minFrequency, maxFrequency);
-        } catch (...) {
-            delete system;
-            throw;
-        }
+
+        //A throw from here frees the plant on its way out, which the
+        //hand-written catch-and-delete-and-rethrow had to do by hand.
+        validateBand(minFrequency, maxFrequency);
 
         Specification spec(type);
         spec.m_used = true;
         spec.m_constant = false;
-        spec.m_system = system;
+        spec.m_system = std::move(system);
         spec.m_minFrequency = minFrequency;
         spec.m_maxFrequency = maxFrequency;
         return spec;
@@ -134,22 +134,20 @@ public:
 
     Specification() = default;
 
-    ~Specification() { delete m_system; }
-
     Specification(Specification&& other) noexcept { *this = std::move(other); }
 
+    //Hand-written for the one thing the generated version would not do:
+    //a moved-from specification is an UNUSED one.
     Specification& operator=(Specification&& other) noexcept
     {
         if (this != &other) {
-            delete m_system;
             m_type = other.m_type;
             m_used = other.m_used;
             m_constant = other.m_constant;
             m_magnitude = other.m_magnitude;
             m_minFrequency = other.m_minFrequency;
             m_maxFrequency = other.m_maxFrequency;
-            m_system = other.m_system;
-            other.m_system = nullptr;
+            m_system = std::move(other.m_system);
             other.m_used = false;
         }
         return *this;
@@ -185,7 +183,7 @@ public:
 
     QString name() const { return specificationName(m_type); }
 
-    const LtiSystem* system() const { return m_system; }
+    const LtiSystem* system() const { return m_system.get(); }
 
     qreal magnitude() const { return m_magnitude; }
 
@@ -210,7 +208,7 @@ private:
     qreal m_magnitude = 0.0;
     qreal m_minFrequency = 0.0;
     qreal m_maxFrequency = 0.0;
-    LtiSystem* m_system = nullptr;
+    std::unique_ptr<LtiSystem> m_system;
 };
 
 /**

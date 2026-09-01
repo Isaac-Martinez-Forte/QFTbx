@@ -5,6 +5,8 @@
 
 #include <gtest/gtest.h>
 
+#include <memory>
+
 #include <cmath>
 #include <complex>
 
@@ -38,12 +40,15 @@ qftbx::SpecificationRecord makeConstantStability(qreal linearHeight)
 
 // 120 / (s^3 + 17 s^2 + 82 s + 120): the tracking specification plant of
 // tests/data/planta2.qft.
-LtiSystem* makeTrackingPlant()
+std::unique_ptr<LtiSystem> makeTrackingPlant()
 {
-    return new PolynomialForm(QStringLiteral("seguimiento"),
-                              {Parameter(120.0)},
-                              {Parameter(1.0), Parameter(17.0), Parameter(82.0), Parameter(120.0)},
-                              Parameter(1.0), Parameter(0.0));
+    std::vector<Parameter> numerator{Parameter(120.0)};
+    std::vector<Parameter> denominator{Parameter(1.0), Parameter(17.0),
+                                       Parameter(82.0), Parameter(120.0)};
+
+    return std::make_unique<PolynomialForm>(QStringLiteral("seguimiento"),
+                                            std::move(numerator), std::move(denominator),
+                                            Parameter(1.0), Parameter(0.0));
 }
 
 qreal analyticTrackingDb(qreal w)
@@ -68,7 +73,8 @@ TEST(Specification, SystemHeightMatchesTheAnalyticValue)
     spec.name = QStringLiteral("seguimiento");
     spec.used = true;
     spec.constant = false;
-    spec.system = makeTrackingPlant();
+    //The record still keeps its plant raw, and deletes it by hand below.
+    spec.system = makeTrackingPlant().release();
     spec.omegaStart = 0.1;
     spec.omegaEnd = 10.0;
 
@@ -104,7 +110,7 @@ TEST(SpecificationDao, OwnsReplacesAndToleratesIdentity)
         if (i == 0) {
             spec->used = true;
             spec->constant = false;
-            spec->system = makeTrackingPlant(); // deep-owned
+            spec->system = makeTrackingPlant().release(); // deep-owned
         }
         first->append(spec);
     }

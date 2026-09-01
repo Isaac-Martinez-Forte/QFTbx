@@ -1,38 +1,40 @@
 #ifndef QFTBX_LOOPSHAPING_RESULT_H
 #define QFTBX_LOOPSHAPING_RESULT_H
 
+#include <memory>
+
 #include <QPointF>
 
 #include "src/core/system/lti_system.h"
 
 //The outcome of a loop-shaping run: the computed controller plus the
 //frequency window and point count the viewer plots it over. It OWNS the
-//controller: replacing it frees the previous one and the record frees the
-//last one on destruction.
+//controller, and says so in the type.
 class LoopShapingResult
 {
 public:
-    LoopShapingResult();
-    LoopShapingResult (LtiSystem * controller, QPointF plotRange, qreal pointCount);
-    ~LoopShapingResult();
+    LoopShapingResult (std::unique_ptr<LtiSystem> controller, QPointF plotRange,
+                       qreal pointCount);
 
-    void setData (LtiSystem * controller, QPointF plotRange, qreal pointCount);
-
-    void setData (LtiSystem * controller);
-
+    /// Observer on the computed controller; the record keeps ownership.
     LtiSystem * controller ();
 
     QPointF range ();
 
     qreal pointCount();
 
+    //There was a pair of setData() overloads and an m_set flag: nothing
+    //ever called them and nothing ever read the flag. The overloads
+    //carried a fixed bug (they used to delete the INCOMING controller
+    //instead of the stored one, so a recomputation freed the new result
+    //and kept the dangling pointer), which is reason enough not to leave
+    //them lying around unused.
+
 private:
 
-    LtiSystem * m_controller = nullptr;
+    std::unique_ptr<LtiSystem> m_controller;
     QPointF m_plotRange;
-    qreal m_pointCount;
-
-    bool m_set;
+    qreal m_pointCount = 0;
 };
 
 #endif // QFTBX_LOOPSHAPING_RESULT_H

@@ -694,8 +694,8 @@ TEST_F(GuiSmoke, LoopShapingViewerDrawsTheShapedLoop)
                          Parameter(1.0), Parameter(0.0));
 
     std::vector<Parameter> one{Parameter(1.0)};
-    LoopShapingResult result(new PolynomialForm(QStringLiteral("k"), one, one,
-                                                Parameter(1.0), Parameter(0.0)),
+    LoopShapingResult result(std::make_unique<PolynomialForm>(QStringLiteral("k"), one, one,
+                                                              Parameter(1.0), Parameter(0.0)),
                              QPointF(0.1, 100.0), 50);
     const qftbx::UnionTraces traces{{QPointF(-270.0, 10.0), QPointF(-180.0, 4.0),
                                      QPointF(-90.0, 10.0)}};

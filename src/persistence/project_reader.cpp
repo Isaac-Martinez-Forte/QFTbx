@@ -395,7 +395,10 @@ public:
             fail(section, "the loop-shaping section needs its controller");
         }
 
-        return new LoopShapingResult(readSystem(systemNode), range, pointCount);
+        //readSystem() still answers with a raw pointer: the reader is the
+        //next module to convert.
+        return new LoopShapingResult(std::unique_ptr<LtiSystem>(readSystem(systemNode)),
+                                     range, pointCount);
     }
 
     const QString & m_filePath;
