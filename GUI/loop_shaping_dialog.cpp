@@ -8,7 +8,7 @@ using namespace mup;
 
 LoopShapingDialog::LoopShapingDialog(QWidget *parent) :
     QDialog(parent),
-    ui(new Ui::LoopShapingDialog)
+    ui(std::make_unique<Ui::LoopShapingDialog>())
 {
     ui->setupUi(this);
 
@@ -25,7 +25,6 @@ LoopShapingDialog::LoopShapingDialog(QWidget *parent) :
 
 LoopShapingDialog::~LoopShapingDialog()
 {
-    delete ui;
 }
 
 void LoopShapingDialog::showEvent(QShowEvent * event)

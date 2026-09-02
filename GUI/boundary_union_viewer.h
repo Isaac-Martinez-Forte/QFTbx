@@ -1,6 +1,8 @@
 #ifndef QFTBX_BOUNDARY_UNION_VIEWER_H
 #define QFTBX_BOUNDARY_UNION_VIEWER_H
 
+#include <memory>
+
 #include <QDialog>
 
 //#include "cinterval.hpp"
@@ -65,7 +67,7 @@ private:
     void clearDiagram();
 
 
-    Ui::BoundaryUnionViewer *ui;
+    std::unique_ptr<Ui::BoundaryUnionViewer> ui;
 
     qint32 finalCurveIndex;
 

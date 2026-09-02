@@ -13,7 +13,7 @@ using namespace std;
 
 TemplateViewer::TemplateViewer(QWidget *parent) :
     QDialog(parent),
-    ui(new Ui::TemplateViewer)
+    ui(std::make_unique<Ui::TemplateViewer>())
 {
     ui->setupUi(this);
 
@@ -43,7 +43,6 @@ TemplateViewer::~TemplateViewer()
 
     delete frequenciesBox;
 
-    delete ui;
 }
 
 void TemplateViewer::clearDiagram(){

@@ -8,7 +8,7 @@ using namespace tools;
 
 BoundaryViewer::BoundaryViewer(QWidget *parent) :
     QDialog(parent),
-    ui(new Ui::BoundaryViewer)
+    ui(std::make_unique<Ui::BoundaryViewer>())
 {
     ui->setupUi(this);
     setWindowTitle(tr("Boundaries"));
@@ -28,7 +28,6 @@ BoundaryViewer::~BoundaryViewer()
 {
     clearDiagram();
 
-    delete ui;
 }
 
 void BoundaryViewer::clearDiagram(){

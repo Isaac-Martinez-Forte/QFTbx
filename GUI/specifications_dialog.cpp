@@ -37,7 +37,7 @@ SpecificationsDialog::SpecificationsDialog(const QVector<qreal> * frequencies,
 
     this->frequencies = frequencies;
 
-    ui = new Ui::SpecificationsDialog();
+    ui = std::make_unique<Ui::SpecificationsDialog>();
     ui->setupUi(this);
 
     setWindowTitle(tr("Specifications input"));
@@ -117,7 +117,6 @@ SpecificationsDialog::~SpecificationsDialog()
 {
     //The 7 working records (and their plants) are members, and so is
     //anything published but never taken: nothing to free by hand.
-    delete ui;
 }
 
 //Nominal coefficients in the format buildParameters expects (space

@@ -11,7 +11,7 @@ using namespace tools;
 
 FrequenciesDialog::FrequenciesDialog(QWidget *parent) :
     QDialog(parent),
-    ui(new Ui::FrequenciesDialog)
+    ui(std::make_unique<Ui::FrequenciesDialog>())
 {
 
     ui->setupUi(this);
@@ -34,7 +34,6 @@ FrequenciesDialog::FrequenciesDialog(QWidget *parent) :
 
 FrequenciesDialog::~FrequenciesDialog()
 {
-    delete ui;
 }
 void FrequenciesDialog::on_fileButton_clicked()
 {

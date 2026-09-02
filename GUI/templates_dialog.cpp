@@ -14,7 +14,7 @@ using namespace mup;
 
 TemplatesDialog::TemplatesDialog(QWidget *parent) :
     QDialog(parent),
-    ui(new Ui::TemplatesDialog)
+    ui(std::make_unique<Ui::TemplatesDialog>())
 {
     ui->setupUi(this);
     ui->globalPointCount->setValidator(new QDoubleValidator(this));
@@ -41,7 +41,6 @@ TemplatesDialog::~TemplatesDialog()
     clearTables();
     gridMap.clear();
 
-    delete ui;
     delete parser;
 }
 

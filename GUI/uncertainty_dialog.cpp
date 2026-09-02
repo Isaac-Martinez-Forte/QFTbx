@@ -10,7 +10,7 @@ using namespace tools;
 
 UncertaintyDialog::UncertaintyDialog(QWidget *parent) :
     QDialog(parent),
-    ui(new Ui::UncertaintyDialog)
+    ui(std::make_unique<Ui::UncertaintyDialog>())
 {
     rowsBuilt = false;
     ui->setupUi(this);
@@ -27,7 +27,6 @@ UncertaintyDialog::UncertaintyDialog(QWidget *parent) :
 
 UncertaintyDialog::~UncertaintyDialog(){
 
-    delete ui;
 
     if (rowsBuilt == true){
         delete numeratorLayout;

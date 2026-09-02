@@ -1,6 +1,8 @@
 #ifndef QFTBX_BODE_VIEWER_H
 #define QFTBX_BODE_VIEWER_H
 
+#include <memory>
+
 #include <QDialog>
 #include <QVector>
 #include <complex>
@@ -54,7 +56,7 @@ private slots:
     void on_actionExport_triggered();
 
 private:
-    Ui::BodeViewer *ui;
+    std::unique_ptr<Ui::BodeViewer> ui;
     void drawAxis(QString yAxisName, const QVector<qreal> & yAxis_values,
                   const QVector<qreal> & frequencies, QCustomPlot * magnitudePlot);
 };

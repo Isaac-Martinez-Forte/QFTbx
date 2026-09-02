@@ -10,7 +10,7 @@ using namespace cxsc;
 
 LoopBoundariesViewer::LoopBoundariesViewer(QWidget *parent) :
     QDialog(parent),
-    ui(new Ui::LoopBoundariesViewer)
+    ui(std::make_unique<Ui::LoopBoundariesViewer>())
 {
     ui->setupUi(this);
     setWindowTitle(tr("Boundary union"));
@@ -27,7 +27,6 @@ LoopBoundariesViewer::~LoopBoundariesViewer()
 {
     clearDiagram();
 
-    delete ui;
 }
 
 void LoopBoundariesViewer::clearDiagram(){

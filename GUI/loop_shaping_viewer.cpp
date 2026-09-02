@@ -8,7 +8,7 @@ using namespace tools;
 
 LoopShapingViewer::LoopShapingViewer(QWidget *parent) :
     QDialog(parent),
-    ui(new Ui::LoopShapingViewer)
+    ui(std::make_unique<Ui::LoopShapingViewer>())
 {
     ui->setupUi(this);
     setWindowTitle(tr("Loop Shaping"));
@@ -31,7 +31,6 @@ LoopShapingViewer::~LoopShapingViewer()
 {
     clearDiagram();
 
-    delete ui;
 }
 
 void LoopShapingViewer::clearDiagram(){

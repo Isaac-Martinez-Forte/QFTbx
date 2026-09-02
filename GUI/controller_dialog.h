@@ -50,7 +50,7 @@ private slots:
     void on_okButton_clicked();
 
 private:
-    Ui::ControllerDialog *ui;
+    std::unique_ptr<Ui::ControllerDialog> ui;
 
 
 

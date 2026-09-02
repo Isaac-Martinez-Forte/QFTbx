@@ -14,7 +14,7 @@ using namespace tools;
 
 BodeViewer::BodeViewer(QWidget *parent) :
     QDialog(parent),
-    ui(new Ui::BodeViewer)
+    ui(std::make_unique<Ui::BodeViewer>())
 {
     ui->setupUi(this);
     setWindowTitle(tr("Bode diagram"));
@@ -22,7 +22,6 @@ BodeViewer::BodeViewer(QWidget *parent) :
 
 BodeViewer::~BodeViewer()
 {
-    delete ui;
 }
 
 void BodeViewer::drawBode(LtiSystem *planta, Omega *omega){

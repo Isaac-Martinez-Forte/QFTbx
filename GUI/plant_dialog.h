@@ -70,7 +70,7 @@ private slots:
     
 
 private:
-    Ui::PlantDialog *ui;
+    std::unique_ptr<Ui::PlantDialog> ui;
     
 
     QRadioButton * gFT= NULL;

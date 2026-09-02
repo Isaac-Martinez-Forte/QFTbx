@@ -1,6 +1,8 @@
 #ifndef QFTBX_BOUNDARY_GRID_DIALOG_H
 #define QFTBX_BOUNDARY_GRID_DIALOG_H
 
+#include <memory>
+
 #include <QDialog>
 
 #include "QVector"
@@ -116,7 +118,7 @@ protected:
     void showEvent(QShowEvent * event) override;
 
 private:
-    Ui::BoundaryGridDialog *ui;
+    std::unique_ptr<Ui::BoundaryGridDialog> ui;
 
     QPointF phaseRange;
     QPointF magnitudeRange;

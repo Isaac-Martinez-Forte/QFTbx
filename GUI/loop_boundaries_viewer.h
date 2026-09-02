@@ -1,6 +1,8 @@
 #ifndef QFTBX_LOOP_BOUNDARIES_VIEWER_H
 #define QFTBX_LOOP_BOUNDARIES_VIEWER_H
 
+#include <memory>
+
 #include <QDialog>
 
 //#include "cinterval.hpp"
@@ -61,7 +63,7 @@ private:
     bool nichols;
     bool nyquist;
 
-    Ui::LoopBoundariesViewer *ui;
+    std::unique_ptr<Ui::LoopBoundariesViewer> ui;
 
     qint32 finalCurveIndex;
 

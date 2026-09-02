@@ -1,6 +1,8 @@
 #ifndef QFTBX_BOUNDARY_VIEWER_H
 #define QFTBX_BOUNDARY_VIEWER_H
 
+#include <memory>
+
 #include <QDialog>
 #include <QVector>
 #include <QFileDialog>
@@ -82,7 +84,7 @@ private:
     QMap <QString, QColor> * colores;
     QVBoxLayout * colorsLayout;
 
-    Ui::BoundaryViewer *ui;
+    std::unique_ptr<Ui::BoundaryViewer> ui;
 };
 
 #endif // QFTBX_BOUNDARY_VIEWER_H

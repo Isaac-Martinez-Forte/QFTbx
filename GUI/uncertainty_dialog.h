@@ -1,6 +1,8 @@
 #ifndef QFTBX_UNCERTAINTY_DIALOG_H
 #define QFTBX_UNCERTAINTY_DIALOG_H
 
+#include <memory>
+
 #include <vector>
 
 #include <QDialog>
@@ -156,7 +158,7 @@ private:
    // void buildRows (QVector<QString> *numeratorParameters, QVector<QString> *denominatorParameters);
     qreal parse(QString cadena);
 
-    Ui::UncertaintyDialog *ui;
+    std::unique_ptr<Ui::UncertaintyDialog> ui;
 
     qreal k;
     qreal ret;

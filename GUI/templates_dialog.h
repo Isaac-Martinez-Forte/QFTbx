@@ -1,6 +1,8 @@
 #ifndef QFTBX_TEMPLATES_DIALOG_H
 #define QFTBX_TEMPLATES_DIALOG_H
 
+#include <memory>
+
 #include <vector>
 
 #include <QDialog>
@@ -142,7 +144,7 @@ signals:
 private:
     void clearTables();
 
-    Ui::TemplatesDialog *ui;
+    std::unique_ptr<Ui::TemplatesDialog> ui;
 
 
     void buildRow (QWidget *widget, QVector<ParLineEdit *> *par, QVector <ThreeRadioButtons> * rowRadios);

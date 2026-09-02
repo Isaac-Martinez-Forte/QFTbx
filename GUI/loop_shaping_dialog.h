@@ -1,6 +1,8 @@
 #ifndef QFTBX_LOOP_SHAPING_DIALOG_H
 #define QFTBX_LOOP_SHAPING_DIALOG_H
 
+#include <memory>
+
 #include <QDialog>
 
 #include "mpParser.h"
@@ -54,7 +56,7 @@ protected:
     void showEvent(QShowEvent * event) override;
 
 private:
-    Ui::LoopShapingDialog *ui;
+    std::unique_ptr<Ui::LoopShapingDialog> ui;
 
     bool todoCorrecto;
 

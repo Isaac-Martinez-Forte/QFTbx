@@ -9,7 +9,7 @@ using namespace tools;
 
 BoundaryUnionViewer::BoundaryUnionViewer(QWidget *parent) :
     QDialog(parent),
-    ui(new Ui::BoundaryUnionViewer)
+    ui(std::make_unique<Ui::BoundaryUnionViewer>())
 {
     ui->setupUi(this);
     setWindowTitle(tr("Boundary union"));
@@ -31,7 +31,6 @@ BoundaryUnionViewer::~BoundaryUnionViewer()
 {
     clearDiagram();
 
-    delete ui;
 }
 
 void BoundaryUnionViewer::clearDiagram(){

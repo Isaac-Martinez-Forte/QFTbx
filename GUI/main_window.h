@@ -1,6 +1,8 @@
 #ifndef QFTBX_MAIN_WINDOW_H
 #define QFTBX_MAIN_WINDOW_H
 
+#include <memory>
+
 #include <QMainWindow>
 #include <QApplication>
 //#include <QQmlApplicationEngine>
@@ -101,7 +103,7 @@ private slots:
     void on_actionLoop_triggered();
 
 private:
-    Ui::MainWindow *ui;
+    std::unique_ptr<Ui::MainWindow> ui;
 
     bool plantDone;
     bool specificationsDone;

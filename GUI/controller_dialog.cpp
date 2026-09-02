@@ -35,7 +35,7 @@ void releaseTables(QVector <QVector <QString> * > * valueTable,
 
 ControllerDialog::ControllerDialog(QWidget *parent) :
     QDialog(parent),
-    ui(new Ui::ControllerDialog)
+    ui(std::make_unique<Ui::ControllerDialog>())
 {
     ui->setupUi(this);
 
@@ -64,7 +64,6 @@ ControllerDialog::ControllerDialog(QWidget *parent) :
 
 ControllerDialog::~ControllerDialog()
 {
-    delete ui;
 }
 
 void ControllerDialog::on_polynomialRadio_clicked()

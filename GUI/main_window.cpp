@@ -14,7 +14,7 @@ using namespace tools;
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::MainWindow)
+    ui(std::make_unique<Ui::MainWindow>())
 {
 
     //QQmlApplicationEngine engine;
@@ -33,7 +33,6 @@ MainWindow::~MainWindow()
 {
     destroySession();
 
-    delete ui;
 }
 
 void MainWindow::createSession(){

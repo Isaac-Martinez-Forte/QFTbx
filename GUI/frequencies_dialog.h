@@ -62,7 +62,7 @@ private:
     std::unique_ptr<Omega> m_omega;
     QString filePath;
 
-    Ui::FrequenciesDialog *ui;
+    std::unique_ptr<Ui::FrequenciesDialog> ui;
 
     bool todoCorrecto;
 };

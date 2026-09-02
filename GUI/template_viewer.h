@@ -3,6 +3,8 @@
 #ifndef QFTBX_TEMPLATE_VIEWER_H
 #define QFTBX_TEMPLATE_VIEWER_H
 
+#include <memory>
+
 #include <QDialog>
 #include <complex>
 #include <functional>
@@ -147,7 +149,7 @@ private slots:
 
 
 private:
-    Ui::TemplateViewer *ui;
+    std::unique_ptr<Ui::TemplateViewer> ui;
     bool plotted = false;
     void plotLine(qint32 pos, QVector <QCPGraph *> * saveImage, QVector <qreal> * fas, QVector <qreal> * gan, bool tipo, bool visible, qint32 contador);
     void addFrequencyRow (QColor color, qint32 pos);

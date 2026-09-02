@@ -1,6 +1,8 @@
 #ifndef QFTBX_SPECIFICATIONS_DIALOG_H
 #define QFTBX_SPECIFICATIONS_DIALOG_H
 
+#include <memory>
+
 #include <optional>
 #include <vector>
 
@@ -94,7 +96,7 @@ private slots:
     void on_upperFreeFormRadio_clicked();
 
 private:
-    Ui::SpecificationsDialog *ui = nullptr;
+    std::unique_ptr<Ui::SpecificationsDialog> ui;
 
     //The seven working records, by value: the dialog edits them and
     //publishes deep clones.

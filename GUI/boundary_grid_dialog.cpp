@@ -9,7 +9,7 @@ using namespace std;
 
 BoundaryGridDialog::BoundaryGridDialog(QWidget *parent) :
     QDialog(parent),
-    ui(new Ui::BoundaryGridDialog)
+    ui(std::make_unique<Ui::BoundaryGridDialog>())
 {
     ui->setupUi(this);
 
@@ -46,7 +46,6 @@ BoundaryGridDialog::BoundaryGridDialog(QWidget *parent) :
 
 BoundaryGridDialog::~BoundaryGridDialog()
 {
-    delete ui;
 }
 
 QPointF BoundaryGridDialog::phaseRangeValue(){

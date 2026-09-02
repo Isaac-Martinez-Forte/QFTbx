@@ -34,7 +34,7 @@ void releaseTables(QVector <QVector <QString> * > * valueTable,
 
 PlantDialog::PlantDialog(QWidget *parent) :
     QDialog(parent),
-    ui(new Ui::PlantDialog)
+    ui(std::make_unique<Ui::PlantDialog>())
 {
     ui->setupUi(this);
     setWindowTitle(tr("Plant input"));
@@ -83,7 +83,6 @@ PlantDialog::PlantDialog(QWidget *parent) :
 
 PlantDialog::~PlantDialog()
 {
-    delete ui;
     delete uncertaintyDialog;
 }
 

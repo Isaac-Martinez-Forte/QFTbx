@@ -1,6 +1,8 @@
 #ifndef QFTBX_LOOP_SHAPING_VIEWER_H
 #define QFTBX_LOOP_SHAPING_VIEWER_H
 
+#include <memory>
+
 #include <QDialog>
 
 #include "src/core/math/sequence_vectors.h"
@@ -53,7 +55,7 @@ private:
 
     bool linSpace;
 
-    Ui::LoopShapingViewer *ui;
+    std::unique_ptr<Ui::LoopShapingViewer> ui;
 };
 
 #endif // QFTBX_LOOP_SHAPING_VIEWER_H
