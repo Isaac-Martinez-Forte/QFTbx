@@ -28,22 +28,13 @@ UncertaintyDialog::UncertaintyDialog(QWidget *parent) :
 UncertaintyDialog::~UncertaintyDialog(){
 
 
+    //Qt's own mechanism: a widget holds exactly one layout. The row widgets
+    //themselves belong to the numerator/denominator boxes and die with
+    //them, and the rows are members.
     if (rowsBuilt == true){
         delete numeratorLayout;
         delete denominatorLayout;
-        //The working ParLineEdits and Parameters belong to the dialog (the
-        //plant receives clones): they used to be abandoned with clear().
-        for (ParLineEdit * par : *numeratorRows){
-            delete par;
-        }
-        delete numeratorRows;
-        for (ParLineEdit * par : *denominatorRows){
-            delete par;
-        }
-        delete denominatorRows;
-        delete rowWidgets;
     }
-
 }
 
 //The input tables arrive from PlantDialog or ControllerDialog and become
@@ -90,29 +81,22 @@ void UncertaintyDialog::buildRows(){
 
 
     if (rowsBuilt == true){
+        //Qt's own mechanism, and the only reason there are deletes here: a
+        //widget holds exactly one layout, and destroying the row widget is
+        //how it leaves the box.
         delete numeratorLayout;
         delete denominatorLayout;
-        for (ParLineEdit * par : *numeratorRows){
-            delete par;
+        for (QWidget * row : rowWidgets) {
+            delete row;
         }
-        delete numeratorRows;
-        for (ParLineEdit * par : *denominatorRows){
-            delete par;
-        }
-        delete denominatorRows;
-        for (qint32 i = 0; i < rowWidgets->size(); i++) {
-            delete rowWidgets->at(i);
-        }
-        delete rowWidgets;
     }
 
-    numeratorRows = new std::list <ParLineEdit*> ();
-    denominatorRows = new std::list <ParLineEdit*> ();
+    numeratorRows.clear();
+    denominatorRows.clear();
+    rowWidgets.clear();
 
     numeratorLayout=new QVBoxLayout(ui->numeratorBox);
     denominatorLayout=new QVBoxLayout(ui->denominatorBox);
-
-    rowWidgets = new QVector <QWidget *> ();
 
     this->numeratorParameters.clear();
     this->numeratorParameters.reserve(numeratorParameters.size());
@@ -121,18 +105,18 @@ void UncertaintyDialog::buildRows(){
 
     rowsBuilt = true;
 
-    QVector <QString> * seenNames = new QVector <QString> ();
+    QVector <QString> seenNames;
 
     qint32 i = 0;
 
     foreach (const QString &valor, numeratorTokens){
         if(uncertainTable.at(0).at(i)){
-            if (!seenNames->contains(valor)){
+            if (!seenNames.contains(valor)){
                 QWidget * widget = new QWidget(ui->numeratorBox);
                 buildRow(widget, valor, numeratorRows, rangeOnlyMode);
                 numeratorLayout->addWidget(widget);
-                rowWidgets->append(widget);
-                seenNames->append(valor);
+                rowWidgets.append(widget);
+                seenNames.append(valor);
             }
         }
         i++;
@@ -141,18 +125,17 @@ void UncertaintyDialog::buildRows(){
     i = 0;
     foreach (const QString &valor, denominatorTokens){
         if(uncertainTable.at(1).at(i)){
-            if (!seenNames->contains(valor)){
+            if (!seenNames.contains(valor)){
                 QWidget * widget = new QWidget(ui->denominatorBox);
                 buildRow(widget, valor, denominatorRows, rangeOnlyMode);
                 denominatorLayout->addWidget(widget);
-                rowWidgets->append(widget);
-                seenNames->append(valor);
+                rowWidgets.append(widget);
+                seenNames.append(valor);
             }
         }
         i++;
     }
 
-    delete seenNames;
 
     ui->denominatorArea->setAutoFillBackground(true);
     ui->numeratorArea->setAutoFillBackground(true);
@@ -160,7 +143,8 @@ void UncertaintyDialog::buildRows(){
     ui->numeratorArea->setLayout(numeratorLayout);
 }
 
-void UncertaintyDialog:: buildRow(QWidget *widget, QString parameter, std::list <ParLineEdit*> * vector, bool rowsBuilt){
+void UncertaintyDialog:: buildRow(QWidget *widget, QString parameter,
+                                  std::list <ParLineEdit> & vector, bool rowsBuilt){
 
     QHBoxLayout *horizontalLayout;
     QLabel *label;
@@ -222,10 +206,9 @@ void UncertaintyDialog:: buildRow(QWidget *widget, QString parameter, std::list 
         label_3->setText(QApplication::translate("UncertaintyDialog", "]", 0));
     }
 
-    ParLineEdit * par = new ParLineEdit(inicio, fin, nominal);
-    vector->push_back(par);
+    vector.push_back(ParLineEdit(inicio, fin, nominal));
 
-    //rowWidgets->append(horizontalLayout);
+    //rowWidgets.append(horizontalLayout);
 }
 
 void UncertaintyDialog::on_numeratorRadio_clicked()
@@ -322,7 +305,7 @@ bool UncertaintyDialog::readRanges(){
     bool allValid = true;
     bool valid = true;
 
-    QVector <QString> * seenNames = new QVector <QString> ();
+    QVector <QString> seenNames;
 
     for (qint32 i = 0; i < numeratorTokens.size(); i++){
         //Optional: an invalid row leaves it empty (it used to be a null
@@ -330,13 +313,13 @@ bool UncertaintyDialog::readRanges(){
         std::optional<Parameter> parameter;
         valid = true;
         if(uncertainTable.at(0).at(i)){
-            if (!seenNames->contains(numeratorTokens.at(i))){
+            if (!seenNames.contains(numeratorTokens.at(i))){
 
-                ParLineEdit * aux = numeratorRows->front();
+                const ParLineEdit aux = numeratorRows.front();
 
-                startEdit = aux->getX();
-                endEdit = aux->getY();
-                nominal= aux->nominal();
+                startEdit = aux.getX();
+                endEdit = aux.getY();
+                nominal= aux.nominal();
                 if (rangeOnlyMode){
                     nominal->setText(QString::number((startEdit->text().toDouble() + endEdit->text().toDouble()) / 2));
                 }
@@ -370,8 +353,7 @@ bool UncertaintyDialog::readRanges(){
                         endEdit->setStyleSheet("background : white");
                         nominal->setStyleSheet("background : white");
 
-                        numeratorRows->pop_front();
-                        delete aux;
+                        numeratorRows.pop_front();
                         valid = true;
                     } else {
                         startEdit->setStyleSheet("background : red");
@@ -395,14 +377,13 @@ bool UncertaintyDialog::readRanges(){
 
         if (valid && parameter.has_value()){
             numeratorParameters.insert(numeratorParameters.begin() + i, *parameter);
-            seenNames->append(numeratorTokens.at(i));
+            seenNames.append(numeratorTokens.at(i));
         }else{
             allValid = false;
         }
     }
 
     if (!allValid){
-        delete seenNames;
         errorMessage(tr("There are errors in the parameter ranges"), tr("Uncertainty input"));
         return false;
     }
@@ -414,13 +395,13 @@ bool UncertaintyDialog::readRanges(){
         //pointer used as the validity sentinel).
         std::optional<Parameter> parameter;
         if(uncertainTable.at(1).at(i)){
-            if (!seenNames->contains(denominatorTokens.at(i))){
+            if (!seenNames.contains(denominatorTokens.at(i))){
 
-                ParLineEdit * aux = denominatorRows->front();
+                const ParLineEdit aux = denominatorRows.front();
 
-                startEdit = aux->getX();
-                endEdit = aux->getY();
-                nominal = aux->nominal();
+                startEdit = aux.getX();
+                endEdit = aux.getY();
+                nominal = aux.nominal();
 
                 if (rangeOnlyMode){
                     nominal->setText(QString::number((startEdit->text().toDouble() + endEdit->text().toDouble()) / 2));
@@ -452,8 +433,7 @@ bool UncertaintyDialog::readRanges(){
                             endEdit->setStyleSheet("background : white");
                             nominal->setStyleSheet("background : white");
 
-                            denominatorRows->pop_front();
-                            delete aux;
+                            denominatorRows.pop_front();
                         } else {
                             valid = false;
                             startEdit->setStyleSheet("background : red");
@@ -488,13 +468,12 @@ bool UncertaintyDialog::readRanges(){
 
         if (valid && parameter.has_value()){
             denominatorParameters.insert(denominatorParameters.begin() + i, *parameter);
-            seenNames->append(denominatorTokens.at(i));
+            seenNames.append(denominatorTokens.at(i));
         }else{
             allValid = false;
         }
     }
 
-    delete seenNames;
 
     if (!allValid){
         errorMessage(tr("There are errors in the parameter ranges"), tr("Uncertainty input"));

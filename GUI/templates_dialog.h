@@ -147,16 +147,19 @@ private:
     std::unique_ptr<Ui::TemplatesDialog> ui;
 
 
-    void buildRow (QWidget *widget, QVector<ParLineEdit *> *par, QVector <ThreeRadioButtons> * rowRadios);
+    void buildRow (QWidget *widget, QVector<ParLineEdit> & par,
+                   QVector <ThreeRadioButtons> & rowRadios);
     void buildTables(std::vector<Parameter> & numerator, std::vector<Parameter> & denominator);
-    bool readVariable(ParLineEdit* rowEdits, ThreeRadioButtons rowRadios, Parameter & parameter,
+    bool readVariable(const ParLineEdit & rowEdits, ThreeRadioButtons rowRadios, Parameter & parameter,
                          bool useLinspace, bool useLogspace);
 
-    QVector <ParLineEdit*>* numeratorRows;
-    QVector <ParLineEdit*>* denominatorRows ;
+    //A ParLineEdit is three QLineEdit POINTERS, and Qt owns those through
+    //the row widget: the rows themselves are values.
+    QVector <ParLineEdit> numeratorRows;
+    QVector <ParLineEdit> denominatorRows;
     qftbx::ParameterGrids gridMap;
-    QVector <ThreeRadioButtons> * numeratorRadios;
-    QVector <ThreeRadioButtons> * denominatorRadios;
+    QVector <ThreeRadioButtons> numeratorRadios;
+    QVector <ThreeRadioButtons> denominatorRadios;
     std::vector<Parameter> numerator;
     std::vector<Parameter> denominator;
     LtiSystem * plant;
@@ -166,7 +169,7 @@ private:
 
     bool nicholsDiagram  = true;
 
-    mup::ParserX * parser;
+    std::unique_ptr<mup::ParserX> parser;
 
     bool todoCorrecto;
 

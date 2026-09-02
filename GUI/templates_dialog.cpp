@@ -31,7 +31,7 @@ TemplatesDialog::TemplatesDialog(QWidget *parent) :
     ui->cudaCheck->setVisible(false);
 #endif
 
-    parser =  new ParserX (pckALL_NON_COMPLEX);
+    parser = std::make_unique<ParserX>(pckALL_NON_COMPLEX);
 
     todoCorrecto = false;
 }
@@ -40,8 +40,6 @@ TemplatesDialog::~TemplatesDialog()
 {
     clearTables();
     gridMap.clear();
-
-    delete parser;
 }
 
 //Variable rows: each ParLineEdit and its tab page belong to the dialog;
@@ -51,24 +49,21 @@ void TemplatesDialog::clearTables(){
         return;
     }
 
-    foreach (ParLineEdit * par, *numeratorRows){
-        delete par->getX()->parentWidget();
-        delete par;
+    //Qt's own mechanism, and the only reason there is a delete here:
+    //destroying the tab page is how the three line edits of a row leave the
+    //dialog. The pages used to pile up.
+    foreach (const ParLineEdit & par, numeratorRows){
+        delete par.getX()->parentWidget();
     }
-    delete numeratorRows;
-    numeratorRows = nullptr;
+    numeratorRows.clear();
 
-    foreach (ParLineEdit * par, *denominatorRows){
-        delete par->getX()->parentWidget();
-        delete par;
+    foreach (const ParLineEdit & par, denominatorRows){
+        delete par.getX()->parentWidget();
     }
-    delete denominatorRows;
-    denominatorRows = nullptr;
+    denominatorRows.clear();
 
-    delete numeratorRadios;
-    numeratorRadios = nullptr;
-    delete denominatorRadios;
-    denominatorRadios = nullptr;
+    numeratorRadios.clear();
+    denominatorRadios.clear();
 
     rowsBuilt = false;
 }
@@ -95,10 +90,6 @@ void TemplatesDialog::buildTables(std::vector<Parameter> & numerator, std::vecto
 
     clearTables();
 
-    numeratorRows = new QVector <ParLineEdit*> ();
-    denominatorRows = new QVector <ParLineEdit*> ();
-    numeratorRadios = new QVector <ThreeRadioButtons> ();
-    denominatorRadios = new QVector <ThreeRadioButtons> ();
 
     rowsBuilt = true;
 
@@ -129,7 +120,8 @@ void TemplatesDialog::buildTables(std::vector<Parameter> & numerator, std::vecto
     }
 }
 
-void TemplatesDialog::buildRow(QWidget *widget, QVector <ParLineEdit*> * par, QVector <ThreeRadioButtons> * rowRadios){
+void TemplatesDialog::buildRow(QWidget *widget, QVector <ParLineEdit> & par,
+                               QVector <ThreeRadioButtons> & rowRadios){
 
     QVBoxLayout *verticalLayout;
     QHBoxLayout *horizontalLayout;
@@ -199,14 +191,14 @@ void TemplatesDialog::buildRow(QWidget *widget, QVector <ParLineEdit*> * par, QV
     rLog->setText(QApplication::translate("Template", "LogSpace", 0));
     rManual->setText(QApplication::translate("Template", "Manual", 0));
 
-    par->append(new ParLineEdit(lin,log,manual));
+    par.append(ParLineEdit(lin, log, manual));
 
     struct ThreeRadioButtons radio;
     radio.uno = rLin;
     radio.dos = rLog;
     radio.tres = rManual;
 
-    rowRadios->append(radio);
+    rowRadios.append(radio);
 
 }
 
@@ -305,13 +297,13 @@ void TemplatesDialog::on_okButton_clicked()
     try {
 
     struct ThreeRadioButtons rowRadios;
-    ParLineEdit * rowEdits;
+    ParLineEdit rowEdits;
     qint32 variableIndex = 0;
     for (qint32 i = 0; i < static_cast<qint32>(numerator.size()); i++){
         Parameter & parameter = numerator[i];
         if (parameter.isUncertain()){
-            rowEdits = numeratorRows->at(variableIndex);
-            rowRadios = numeratorRadios->at(variableIndex);
+            rowEdits = numeratorRows.at(variableIndex);
+            rowRadios = numeratorRadios.at(variableIndex);
             variableIndex++;
             if (!readVariable(rowEdits, rowRadios,parameter,useLinspace,useLogspace)){
                 errorMessage(tr("ERROR: the values entered for parameter \"%1\" are invalid").arg(parameter.name()),
@@ -330,8 +322,8 @@ void TemplatesDialog::on_okButton_clicked()
         Parameter & parameter = denominator[i];
         if (parameter.isUncertain()){
 
-            rowEdits = denominatorRows->at(variableIndex);
-            rowRadios = denominatorRadios->at(variableIndex);
+            rowEdits = denominatorRows.at(variableIndex);
+            rowRadios = denominatorRadios.at(variableIndex);
             variableIndex++;
             if (!readVariable(rowEdits, rowRadios,parameter,useLinspace,useLogspace)){
                 errorMessage(tr("ERROR: the values entered for parameter \"%1\" are invalid").arg(parameter.name()),
@@ -407,7 +399,7 @@ void TemplatesDialog::on_okButton_clicked()
     emit (close_ok());
 }
 
-bool TemplatesDialog::readVariable(ParLineEdit *rowEdits, ThreeRadioButtons rowRadios,
+bool TemplatesDialog::readVariable(const ParLineEdit & rowEdits, ThreeRadioButtons rowRadios,
                                     Parameter & parameter, bool useLinspace, bool useLogspace){
 
     //Policy for repeated names (e.g. the same 'a' in numerator and
@@ -426,28 +418,28 @@ bool TemplatesDialog::readVariable(ParLineEdit *rowEdits, ThreeRadioButtons rowR
     qreal npuntos;
 
 
-    if (rowRadios.uno->isChecked() && !rowEdits->getX()->text().isEmpty()){
+    if (rowRadios.uno->isChecked() && !rowEdits.getX()->text().isEmpty()){
 
         inicio = parameter.range().min;
         final = parameter.range().max;
 
-        parser->SetExpr(rowEdits->getX()->text().toStdString());
+        parser->SetExpr(rowEdits.getX()->text().toStdString());
         npuntos = parser->Eval().GetFloat();
 
         gridMap[parameter.name()] = qftbx::math::linspace(inicio, final, static_cast<std::size_t>(npuntos));
 
-    }else if (rowRadios.dos->isChecked() && !rowEdits->getY()->text().isEmpty()){
+    }else if (rowRadios.dos->isChecked() && !rowEdits.getY()->text().isEmpty()){
 
         inicio = parameter.range().min;
         final = parameter.range().max;
-        parser->SetExpr(rowEdits->getY()->text().toStdString());
+        parser->SetExpr(rowEdits.getY()->text().toStdString());
         npuntos = parser->Eval().GetFloat();
 
         gridMap[parameter.name()] = qftbx::math::logspace(inicio, final, static_cast<std::size_t>(npuntos));
 
-    }else if(rowRadios.tres->isChecked() && !rowEdits->nominal()->text().isEmpty()){
+    }else if(rowRadios.tres->isChecked() && !rowEdits.nominal()->text().isEmpty()){
 
-        const QVector <QString> vector = qftbx::text::tokens(rowEdits->nominal()->text());
+        const QVector <QString> vector = qftbx::text::tokens(rowEdits.nominal()->text());
         std::vector<double> values;
         values.reserve(static_cast<std::size_t>(vector.size()));
 

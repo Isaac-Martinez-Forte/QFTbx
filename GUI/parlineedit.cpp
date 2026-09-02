@@ -15,7 +15,7 @@ void ParLineEdit::setX(QLineEdit *label){
     x = label;
 }
 
-QLineEdit * ParLineEdit::getX(){
+QLineEdit * ParLineEdit::getX() const {
     return x;
 }
 
@@ -23,7 +23,7 @@ void ParLineEdit::setY(QLineEdit *label){
     y = label;
 }
 
-QLineEdit *ParLineEdit::getY(){
+QLineEdit *ParLineEdit::getY() const {
     return y;
 }
 
@@ -31,7 +31,7 @@ void ParLineEdit::setNominal(QLineEdit * nominal){
     m_nominal = nominal;
 }
 
-QLineEdit *ParLineEdit::nominal(){
+QLineEdit *ParLineEdit::nominal() const {
     return m_nominal;
 }
 

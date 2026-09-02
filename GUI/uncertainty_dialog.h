@@ -145,18 +145,23 @@ private:
     bool rowsBuilt;
     std::vector<Parameter> numeratorParameters;
     std::vector<Parameter> denominatorParameters;
-    std::list <ParLineEdit*>* numeratorRows;
-    std::list <ParLineEdit*>* denominatorRows;
+    //A ParLineEdit is three QLineEdit POINTERS, and Qt owns those through
+    //the row widget: the rows themselves are values, consumed front-first
+    //as each parameter is read.
+    std::list <ParLineEdit> numeratorRows;
+    std::list <ParLineEdit> denominatorRows;
     QVBoxLayout *denominatorLayout;
     QVBoxLayout *numeratorLayout;
 
-    QVector <QWidget *> * rowWidgets;
+    //The row widgets belong to the numerator/denominator boxes: only the
+    //container is the dialog's.
+    QVector <QWidget *> rowWidgets;
 
 
     void buildRows();
 
     bool readRanges();
-    void buildRow(QWidget *widget, QString numero, std::list <ParLineEdit*> * vector, bool rowsBuilt);
+    void buildRow(QWidget *widget, QString numero, std::list <ParLineEdit> & vector, bool rowsBuilt);
    // void buildRows (QVector<QString> *numeratorParameters, QVector<QString> *denominatorParameters);
     qreal parse(QString cadena);
 

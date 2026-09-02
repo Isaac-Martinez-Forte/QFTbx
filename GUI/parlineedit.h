@@ -32,6 +32,10 @@ public:
     * 
    */
     
+    //Default constructible so a row can be held by value, and empty until
+    //its widgets exist.
+    ParLineEdit() = default;
+
     ParLineEdit(QLineEdit * x, QLineEdit * y, QLineEdit * nominal);
     
     
@@ -60,7 +64,7 @@ public:
     * 
    */
     
-    QLineEdit *getX();
+    QLineEdit *getX() const;
     
    /**
     * @fn setY
@@ -82,7 +86,7 @@ public:
     * 
    */
     
-    QLineEdit *getY();
+    QLineEdit *getY() const;
     
    /**
     * @fn setNominal
@@ -104,12 +108,12 @@ public:
     * 
    */
     
-    QLineEdit * nominal();
+    QLineEdit * nominal() const;
 
 private:
-    QLineEdit *x;
-    QLineEdit *y;
-    QLineEdit * m_nominal;
+    QLineEdit *x = nullptr;
+    QLineEdit *y = nullptr;
+    QLineEdit * m_nominal = nullptr;
 };
 
 #endif // PARLABEL_H
