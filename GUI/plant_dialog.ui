@@ -166,7 +166,7 @@
       <height>161</height>
      </rect>
     </property>
-    <widget class="QWidget" name="vacia"/>
+    <widget class="QWidget" name="emptyPage"/>
     <widget class="QWidget" name="formato_libre">
      <widget class="QWidget" name="layoutWidget1">
       <property name="geometry">

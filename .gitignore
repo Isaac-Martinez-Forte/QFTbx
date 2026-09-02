@@ -58,3 +58,6 @@ CMakeSettings.json
 
 documentos/
 core.*
+
+# Generated API documentation (cmake --build build --target docs)
+docs/api/

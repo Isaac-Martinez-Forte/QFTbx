@@ -14,51 +14,37 @@
 
 
 
-  /**
-    * @class BoundaryViewer
-    * @brief Clase que representa gráficamente los boundaryData calculados.
-    * 
-    * @author Isaac Martínez Forte
-    */
-
-
 namespace Ui {
 class BoundaryViewer;
 }
 
+/**
+ * @brief Plots the computed QFT boundaries on the Nichols chart, one curve
+ * per design frequency and specification.
+ *
+ * @author Isaac Martínez Forte
+ */
 class BoundaryViewer : public QDialog
 {
     Q_OBJECT
     
 public:
-  
-   /**
-    * @fn BoundaryViewer
-    * @brief Constructor de la clase que solo tiene como parámetro el padre de la misma.
-    * 
-    * @param parent padre de la clase que se para como parámetro al constructor de la superclase, puede ser vacío.
-    */
-  
+
     explicit BoundaryViewer(QWidget *parent = 0);
     ~BoundaryViewer();
 
     
    /**
-    * @fn setDatos
-    * @brief Función que introduce los datos necesarios para representar los boundaryData.
-    * 
-    * @param datos boundaryData calculados.
-    * @param sabana sábana completa del cálculo intermedio a los boundaryData.
+    * @brief Publishes what the plot needs. Observers on both: the viewer
+    * outlives neither.
+    *
+    * @param datos the computed boundaries.
+    * @param omega the design frequencies they were computed at.
     */
-    
     void setDatos (const BoundaryData *datos, QVector<qreal> *omega);
     
     
-   /**
-    * @fn showDiagram
-    * @brief Función que crea la gráfica con los datos introducidos anteriormente.
-    */
-    
+   /// Builds the plot from the data published by setDatos().
     void showDiagram();
 
 private slots:

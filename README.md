@@ -1,16 +1,14 @@
 <p align="center">
-  <img src="Resources/Icon/QFTbx_256.png" width="96"/>
+  <img src="docs/qftbx_banner.svg" width="840" alt="QFTbx"/>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/C%2B%2B-20-blue"/>
   <img src="https://img.shields.io/badge/Qt-6-green"/>
+  <img src="https://img.shields.io/badge/license-GPLv3-lightgrey"/>
 </p>
 
-<h1 align="center">QFTbx</h1>
-
 <p align="center">
-Quantitative Feedback Theory toolbox for robust control design<br/>
 Academic-oriented software for QFT-based analysis and automatic loop shaping
 </p>
 
@@ -143,8 +141,39 @@ No installer is currently provided. The application is intended to be run direct
 
 ## Documentation
 
-Full documentation is not currently bundled.
-However, Doxygen can be used to generate partial documentation if enabled during configuration.
+The reference for the classes, the algorithms and their sources is generated with
+Doxygen. Install `doxygen` (and `graphviz`, for the inheritance and include
+diagrams), then either
+
+    cmake --build build --target docs
+
+or, without going through CMake at all, from the root of the repository:
+
+    doxygen
+
+Both read the same `Doxyfile` at the root — the CMake target is only a convenience,
+so there is no generated copy of the configuration that can drift from the one under
+version control. The result is written to `docs/api/html/index.html`, which is not
+committed; its landing page is [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+The `docs` target exists only when doxygen is found; CMake says so at configure time
+when it is not, and configuring succeeds either way.
+
+Two things worth knowing about the configuration:
+
+- **Formulas** are rendered by MathJax from a CDN, because there is no LaTeX in the
+  loop. The pages therefore need internet access for the formulas, and for nothing
+  else. To make them fully self-contained, drop a copy of MathJax somewhere and point
+  `MATHJAX_RELPATH` at it.
+- **Warnings fail the run** (`WARN_AS_ERROR`), but only the ones that are documentation
+  bugs: a `@param` naming an argument that does not exist, a half-documented
+  signature, a broken reference. Undocumented trivial accessors are deliberately not
+  warned about — the policy is to explain the algorithms and the API and to leave
+  trivia alone, so warning on it would bury the real findings.
+
+`STRIP_CODE_COMMENTS` is off on purpose: much of the reasoning in this codebase lives
+in ordinary comments beside the code, and the generated source browser is where to
+read it.
 
 ---
 

@@ -114,12 +114,12 @@ void TemplateViewer::refreshContour(const qftbx::CloudSet & contour,
     plotDiagram(plot);
 }
 
-void TemplateViewer::setTemplates(const qftbx::CloudSet & templatesButton){
-    this->templatesButton = templatesButton;
+void TemplateViewer::setTemplates(const qftbx::CloudSet & templates){
+    m_templates = templates;
 }
 
-void TemplateViewer::setContour(const qftbx::CloudSet & contourButton){
-    this->contourButton = contourButton;
+void TemplateViewer::setContour(const qftbx::CloudSet & contour){
+    m_contour = contour;
 }
 
 void TemplateViewer::plotDiagram(bool plot){
@@ -136,13 +136,13 @@ void TemplateViewer::plotDiagram(bool plot){
     qint32 i = 0;
     qint32 counter = 0;
 
-    if (templatesButton.empty())
+    if (m_templates.empty())
         return;
-    templateGraphs.reserve(static_cast<qint32>(templatesButton.size()));
+    templateGraphs.reserve(static_cast<qint32>(m_templates.size()));
 
-    if (!contourButton.empty()){
-        contourGraphs.reserve(static_cast<qint32>(contourButton.size()));
-        for (const qftbx::ComplexCloud & vector : contourButton) {
+    if (!m_contour.empty()){
+        contourGraphs.reserve(static_cast<qint32>(m_contour.size()));
+        for (const qftbx::ComplexCloud & vector : m_contour) {
 
             QVector <qreal> fas;
             fas.reserve(static_cast<qint32>(vector.size()));
@@ -176,7 +176,7 @@ void TemplateViewer::plotDiagram(bool plot){
 
     counter = 0;
 
-    for (const qftbx::ComplexCloud & vector : templatesButton) {
+    for (const qftbx::ComplexCloud & vector : m_templates) {
 
         QVector <qreal> fas;
         fas.reserve(static_cast<qint32>(vector.size()));
@@ -220,41 +220,6 @@ void TemplateViewer::plotDiagram(bool plot){
 
     ui->plot->replot();
 
-
-    /////////////////////////////////////////////
-
-    /*NaturalIntervalExtension * conversion = new NaturalIntervalExtension ();
-
-    cinterval <qreal> caja = conversion->nicholsBox(controller->plant(),omega->at(0));
-
-    QPointF uno (caja.re.inf, caja.im.inf);
-    QPointF dos (caja.re.inf, caja.im.sup);
-    QPointF tres (caja.re.sup, caja.im.inf);
-    QPointF cuatro (caja.re.sup, caja.im.sup);
-
-    QVector <qreal> ejex;
-    QVector <qreal> ejey;
-
-    ejex.append(uno.x());
-    ejex.append(dos.x());
-    ejex.append(tres.x());
-    ejex.append(cuatro.x());
-
-    ejey.append(uno.y());
-    ejey.append(dos.y());
-    ejey.append(tres.y());
-    ejey.append(cuatro.y());
-
-
-    ui->plot->addGraph();
-    ui->plot->graph(i)->setData(ejex, ejey);
-
-    ui->plot->graph(i)->setLineStyle(QCPGraph::lsLine);
-    ui->plot->graph(i)->setScatterStyle(QCPScatterStyle::ssCross);
-
-     ui->plot->replot();*/
-
-    ////////////////////////////////////////////
 
 }
 

@@ -28,9 +28,26 @@ public:
     LoopShaping();
     ~LoopShaping();
 
-    /// @param epsilon termination size, in the units of the algorithm
-    /// picked: the Nichols box diameter for NT/NK/MC1/MC, the controller
-    /// parameter width for MR. See ProjectController::computeLoopShaping.
+    /**
+     * @brief Runs one algorithm over the problem.
+     *
+     * @param plant the nominal plant.
+     * @param controller the initial search box of the controller
+     * parameters.
+     * @param omega the design frequencies.
+     * @param boundaries the QFT boundaries; MR is the one algorithm that
+     * does not use them.
+     * @param epsilon termination size, in the units of the algorithm
+     * picked: the Nichols box diameter for NT/NK/MC1/MC, the controller
+     * parameter width for MR. See
+     * ProjectController::computeLoopShaping.
+     * @param algorithm which of the five to run.
+     * @param contour the plant template contours.
+     * @param specifications the design specifications.
+     * @param initialisation starting point of NK's local search.
+     * @return false when the algorithm found no solution; it throws
+     * qftbx::InvalidInput when the problem itself is invalid.
+     */
     bool run(LtiSystem * plant, LtiSystem * controller, QVector<qreal> * omega, const BoundaryData * boundaries,
                  qreal epsilon, LoopShapingAlgorithm algorithm,
                  const qftbx::CloudSet & contour, const qftbx::SpecificationRecords * specifications,

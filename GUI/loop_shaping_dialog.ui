@@ -236,7 +236,7 @@
      <height>181</height>
     </rect>
    </property>
-   <widget class="QWidget" name="vacia"/>
+   <widget class="QWidget" name="emptyPage"/>
    <widget class="QWidget" name="page_nand">
     <widget class="QWidget" name="layoutWidget6">
      <property name="geometry">

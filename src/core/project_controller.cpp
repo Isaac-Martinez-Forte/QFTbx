@@ -271,7 +271,7 @@ LoopShapingResult * ProjectController::loopShapingResult(){
     return data.loopShaping();
 }
 
-bool ProjectController::save(QString fichero){
+bool ProjectController::save(QString path){
 
     ProjectContent content;
 
@@ -290,16 +290,16 @@ bool ProjectController::save(QString fichero){
     content.loopShaping = data.loopShaping();
 
     ProjectWriter writer;
-    writer.save(fichero, content);
+    writer.save(path, content);
 
     return true;
 }
 
-std::vector<bool> ProjectController::load(QString fichero){
+std::vector<bool> ProjectController::load(QString path){
 
     ProjectReader reader;
 
-    const std::vector<bool> flags = reader.load(fichero);
+    const std::vector<bool> flags = reader.load(path);
 
     if (flags.at(0))
         setPlant(reader.takePlant());

@@ -15,41 +15,31 @@
 #include "src/core/math/sequence_vectors.h"
 #include "src/core/frequencies/omega.h"
 
- /**
-    * @class BodeViewer
-    * @brief Clase gráfica que representa un Diagrama de Bode.
-    * Dicha clase se encarga de representar gráficamente un Diagrama de Bode.
-    *
-    * @author Isaac Martínez Forte
-   */
-
 namespace Ui {
 class BodeViewer;
 }
 
+/**
+ * @brief Plots the Bode diagram of a plant over a set of design
+ * frequencies.
+ *
+ * @author Isaac Martínez Forte
+ */
 class BodeViewer : public QDialog
 {
     Q_OBJECT
 
 public:
-  /**
-    * @fn BodeViewer
-    * @brief Constructor de la clase.
-    *
-    * @param parent padre del objeto en la jerarquía gráfica, puede ser vacío.
-    */
     explicit BodeViewer(QWidget *parent = 0);
     ~BodeViewer();
 
 
-  /**
-    * @fn drawBode
-    * @brief Función que dibuja gráficamente el Diagrama de Bode a partir de los parámetros pasados.
-    *
-    * @param planta de la cual queremos ver su Diagrama de Bode.
-    * @param frequencies necesarias para resolver la Planta.
-   */
-
+    /**
+     * @brief Draws the Bode diagram.
+     *
+     * @param planta the plant to evaluate.
+     * @param omega the frequencies to evaluate it at.
+     */
     void drawBode(LtiSystem * planta, Omega * omega);
 
 private slots:

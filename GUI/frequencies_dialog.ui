@@ -181,7 +181,7 @@
         </layout>
        </widget>
       </widget>
-      <widget class="QWidget" name="fichero">
+      <widget class="QWidget" name="filePage">
        <widget class="QPushButton" name="fileButton">
         <property name="geometry">
          <rect>

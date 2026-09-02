@@ -19,26 +19,20 @@ class FrequenciesDialog;
 }
 
 /**
-    * @class FrequenciesDialog
-    * @brief Clase gráfica a través de la cual se puede introducir las frequencies de diseño (Omega) para guardarlas en el sistema.
-    * 
-    * @author Isaac Martínez Forte
-   */
-
+ * @brief Step 2 of the design: the set of design frequencies (Omega) the
+ * whole pipeline is computed at, entered linearly, logarithmically, by
+ * hand or from a file.
+ *
+ * @author Isaac Martínez Forte
+ */
 class FrequenciesDialog : public QDialog
 {
     Q_OBJECT
     
 public:
   
-  /**
-    * @fn FrequenciesDialog
-    * @brief Constructor. The dialog knows nothing of the project: it builds
-    * a frequency set and takeOmega() hands it over.
-    * 
-    * @param parent padre de la clase a crear, puede ser vacío.
-    */
-  
+  /// The dialog knows nothing of the project: it builds a frequency set
+  /// and takeOmega() hands it over.
     explicit FrequenciesDialog(QWidget *parent = 0);
 
     /// The design frequencies the user described, or nullptr when cancelled

@@ -43,6 +43,7 @@ enum diagrama {Nichol = false, Nyquist = true};
 /**
  * @brief Extracts a point controller from a box.
  *
+ * @param controlador the box to take a corner of.
  * @param x true takes the lower corner of every parameter, which is where
  * a feasible box realises its optimum gain. false takes the corner that
  * the monotonicity of the Nichols projection makes feasible for an

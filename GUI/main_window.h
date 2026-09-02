@@ -25,42 +25,28 @@
 #include "src/core/project_controller.h"
 
 
- /**
-    * @class MainWindow
-    * @brief Clase gráfica que representa la pantalla principal del programa
-    * 
-    * Desde esta pantalla se llama al resto de funcionalidades del sistema.
-    * 
-    * @author Isaac Martínez Forte
-   */
-
-
 namespace Ui {
 class MainWindow;
 }
 
+/**
+ * @brief The main window: the seven design steps as menu entries, and the
+ * only place the GUI reaches the project through ProjectController.
+ *
+ * Every dialog and viewer of the toolbox is opened from here, in the order
+ * the QFT pipeline imposes - a step whose inputs are missing is refused
+ * rather than half-run.
+ *
+ * @author Isaac Martínez Forte
+ */
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
     
 public:
   
-  /**
-    * @fn MainWindow
-    * @brief Constructor de la clase que tiene como parámetro el padre de la misma.
-    * 
-    * 
-    * @param parent padre del objeto en la jerarquía gráfica, puede ser vacío.
-    */
+    explicit MainWindow(QWidget *parent = 0);
 
-  
-    explicit MainWindow(QWidget *parent = 0);    
-    
-    /**
-    * @fn ~MainWindow
-    * @brief Destructor de la clase.
-    */
-    
     ~MainWindow();
 
 private slots:

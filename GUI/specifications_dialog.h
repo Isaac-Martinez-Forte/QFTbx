@@ -34,6 +34,7 @@ public:
      * band of every specification. Must not be null or empty.
      * @param loaded the 7 records already in the project, if any, so that
      * reopening the dialog starts from them instead of from blanks.
+     * @param parent the Qt parent.
      */
     explicit SpecificationsDialog(const QVector<qreal> * frequencies,
                                   const qftbx::SpecificationRecords * loaded = nullptr,
@@ -138,9 +139,9 @@ private:
     std::optional<std::vector<Parameter>> buildParameters(QString linea);
     std::optional<Parameter> buildScalar(QString linea, bool isK);
 
-    static QString coefficientsText(std::vector<Parameter> & parametros);
-    static QString numeratorText(LtiSystem * sistema);
-    static QString denominatorText(LtiSystem * sistema);
+    static QString coefficientsText(std::vector<Parameter> & parameters);
+    static QString numeratorText(LtiSystem * system);
+    static QString denominatorText(LtiSystem * system);
 
     //images
     QPixmap trackingImagePixmap;

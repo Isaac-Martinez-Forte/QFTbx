@@ -26,57 +26,46 @@
 #include "src/core/loopshaping/natural_interval_extension.h"
 
 
- /**
-    * @class TemplateViewer
-    * @brief Clase que representa gráficamente los templatesButton de una planta.
-    *
-    * @author Isaac Martínez Forte
-   */
-
 namespace Ui {
 class TemplateViewer;
 }
 
+/**
+ * @brief Plots the templates of a plant - its value set at every design
+ * frequency - and the epsilon-hull contour computed from them.
+ *
+ * @author Isaac Martínez Forte
+ */
 class TemplateViewer : public QDialog
 {
     Q_OBJECT
 
 public:
 
-   /**
-    * @fn TemplateViewer
-    * @brief Constructor de la clase.
-    *
-    * @param parent padre de la clase en la jerarquía gráfica, puede ser vacío.
-    *
-   */
-
     explicit TemplateViewer(QWidget *parent = 0);
     ~TemplateViewer();
 
 
-     /**
-    * @fn plotDiagram
-    * @brief Función que crea la gráfica que representa a los templatesButton de una planta.
+   /**
+    * @brief Builds the plot.
     *
-    * @param plot booleano que indica el tipo de plot a representar, plot de Nichols o plot de Nyquist.
-   */
-
+    * @param plot which plane to draw on: see FC::diagrama - false is
+    * Nichols, true is Nyquist.
+    */
     void plotDiagram(bool plot);
 
    /**
-    * @fn setDatos
-    * @brief Función que guarda los datos necesarios para crear el gráfico.
+    * @brief Publishes everything the plot needs at once, instead of
+    * calling the two setters separately.
     *
-    * Esta funcion hace de resumen de otras dos funciones set para no tener que llamarlos por separado.
+    * The viewer does not reach into the project: it is handed what it
+    * draws.
     *
-    * The viewer does not reach into the project: it is handed what it draws.
-    *
-    * @param templates a representar en la gráfica.
-    * @param contour a representar en la gráfica.
+    * @param templates the plant value set at every design frequency.
+    * @param contour the epsilon-hull of each of those.
     * @param omega the design frequencies the templates belong to.
     * @param epsilon the tightening of each frequency, one per omega entry.
-   */
+    */
 
     void setDatos(const qftbx::CloudSet & templates,
                   const qftbx::CloudSet & contour,
@@ -113,24 +102,12 @@ public:
                         QVector <qreal> * epsilon);
 
 
-   /**
-    * @fn setTemplates
-    * @brief Función que guarda los templatesButton de la planta para que se representen gráficamente.
-    *
-    *  @param templatesButton a representar en la gráfica.
-    */
-
-    void setTemplates (const qftbx::CloudSet & templatesButton);
+   /// @param templates the plant value set at every design frequency.
+    void setTemplates (const qftbx::CloudSet & templates);
 
 
-   /**
-    * @fn setContour
-    * @brief Función que guarda el contourButton de los templatesButton de la planta para que se representen gráficamente.
-    *
-    *  @param contourButton de templatesButton a representar gráficamente.
-    */
-
-    void setContour (const qftbx::CloudSet & contourButton);
+   /// @param contour the epsilon-hull of each template.
+    void setContour (const qftbx::CloudSet & contour);
 
 
 private slots:
@@ -158,8 +135,8 @@ private:
 
     //Its own copies now: the viewer used to alias the project's vectors,
     //which is why a recompute had to be careful about what it freed.
-    qftbx::CloudSet templatesButton;
-    qftbx::CloudSet contourButton;
+    qftbx::CloudSet m_templates;
+    qftbx::CloudSet m_contour;
     QVector <qreal> * omega = nullptr;
     QVector <qreal> * epsilon = nullptr;
 

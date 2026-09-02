@@ -71,13 +71,13 @@ public:
      * previous point stays a candidate (spikes are traversed both ways) and
      * the returned contour is closed (last point repeats the first).
      *
-     * Returns null when no candidate lies within epsilon of the start; when
-     * the reference walk cycles, falls back to the relaxed historical walk
-     * (open, deduplicated, max-imaginary start).
-     */
-    /**
-     * @brief The epsilon-hull contour of one cloud.
+     * Returns empty when no candidate lies within epsilon of the start;
+     * when the reference walk cycles, falls back to the relaxed historical
+     * walk (open, deduplicated, max-imaginary start).
      *
+     * @param cloud the plant value set at one design frequency.
+     * @param epsilon how far the hull may cut across the cloud: the walk
+     * guarantees every point is covered within this distance.
      * @param fellBack when not null, set to true if the faithful walk did
      * not close and the relaxed historical walk was used instead. Reported
      * by the CALLER, after the parallel loop: warning from inside an OpenMP

@@ -123,29 +123,29 @@ SpecificationsDialog::~SpecificationsDialog()
 //separated). The non-FreeForm types have no textual representation of
 //their own: numeratorString()=="" used to be painted and the
 //specification silently vanished on reopen.
-QString SpecificationsDialog::coefficientsText(std::vector<Parameter> & parametros)
+QString SpecificationsDialog::coefficientsText(std::vector<Parameter> & parameters)
 {
-    QString texto;
-    for (Parameter & parametro : parametros) {
-        texto += QString::number(parametro.nominal()) + " ";
+    QString text;
+    for (Parameter & parameter : parameters) {
+        text += QString::number(parameter.nominal()) + " ";
     }
-    return texto.trimmed();
+    return text.trimmed();
 }
 
-QString SpecificationsDialog::numeratorText(LtiSystem * sistema)
+QString SpecificationsDialog::numeratorText(LtiSystem * system)
 {
-    if (sistema->type() == LtiSystem::SystemType::FreeForm){
-        return sistema->numeratorString();
+    if (system->type() == LtiSystem::SystemType::FreeForm){
+        return system->numeratorString();
     }
-    return coefficientsText(sistema->numerator());
+    return coefficientsText(system->numerator());
 }
 
-QString SpecificationsDialog::denominatorText(LtiSystem * sistema)
+QString SpecificationsDialog::denominatorText(LtiSystem * system)
 {
-    if (sistema->type() == LtiSystem::SystemType::FreeForm){
-        return sistema->denominatorString();
+    if (system->type() == LtiSystem::SystemType::FreeForm){
+        return system->denominatorString();
     }
-    return coefficientsText(sistema->denominator());
+    return coefficientsText(system->denominator());
 }
 
 void SpecificationsDialog::setDatos(qftbx::SpecificationRecord & record_in)
@@ -297,7 +297,7 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord & record_in, QStr
 {
 
     if (record_in.used && !record_in.constant){
-        //sistema must end up null: when this read finishes as not-used,
+        //The record's system must end up null: when this read finishes as not-used,
         //the clone() on accept used to clone a dangling pointer.
         record_in.system.reset();
         record_in.constant = false;

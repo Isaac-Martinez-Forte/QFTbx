@@ -41,7 +41,7 @@ public:
 
 protected:
 
-    std::unique_ptr<LtiSystem> sistema;
+    std::unique_ptr<LtiSystem> m_system;
     tools::BoxFlag flags = tools::ambiguous;
 };
 

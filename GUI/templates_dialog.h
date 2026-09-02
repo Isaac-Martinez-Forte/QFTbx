@@ -29,19 +29,18 @@
 #include "mpParser.h"
 
 
-  /**
-    * @class TemplateViewer
-    * @brief Clase gráfica que sirve para que el usuario introduzca los datos necesarios para calcular los templates.
-    * 
-    * @author Isaac Martínez Forte
-    */
-
-
-
 namespace Ui {
 class TemplatesDialog;
 }
 
+/**
+ * @brief Step 3 of the design: the sweep grid of every uncertain plant
+ * parameter and the epsilon of the contour walk.
+ *
+ * The class block used to name TemplateViewer, which is a different class.
+ *
+ * @author Isaac Martínez Forte
+ */
 class TemplatesDialog : public QDialog
 {
     Q_OBJECT
@@ -49,44 +48,25 @@ class TemplatesDialog : public QDialog
 public:
   
   
-   /**
-    * @fn TemplatesDialog
-    * @brief Constructor de la clase que solo tiene como parámetro el padre de la misma.
-    * 
-    * @param parent padre de la clase que se para como parámetro al constructor de la superclase, puede ser vacío.
-    */
-  
     explicit TemplatesDialog(QWidget *parent = 0);
 
     ~TemplatesDialog();
 
     
    /**
-    * @fn launch
-    * @brief Función que lanza la creación gráfica de la clase.
+    * @brief Builds the rows and shows the dialog.
+    *
+    * @param plant the plant whose uncertain parameters need a grid.
+    * @param frequencyCount how many epsilon values to ask for, one per
+    * design frequency.
     */
-    
     void launch(LtiSystem * plant, qint32 frequencyCount);
     
-    
-   /**
-    * @fn grids
-    * @brief Función que retorna un gridMap con los distintos valores que pueden tomar las variables.
-    * 
-    * @return gridMap hash con los distintos valores que pueden tomar las variables.
-    */
     
     /// The grids BY VALUE: nobody has to free them, and the dialog keeps its
     /// own copy for a second accept. See qftbx::ParameterGrids.
     qftbx::ParameterGrids grids() const;
     
-    
-   /**
-    * @fn epsilon
-    * @brief Función que retorna el name_text de epsilonValues.
-    * 
-    * @return real con el name_text de epsilonValues necesario para calcular el contorno de los templates.
-    */
     
     /// The per-frequency epsilon the user described, or nullptr when the
     /// dialog was cancelled or rejected. Ownership passes to the caller:
@@ -95,23 +75,12 @@ public:
     QVector <qreal> takeEpsilon();
     
     
-   /**
-    * @fn nicholsSelected
-    * @brief Función que retorna un booleano indicando que tipo de nicholsDiagram ha seleccionado el usuario para representar los templates y su contorno.
-    * 
-    * @return booleano con el tipo de nicholsDiagram seleccionado por el usuario.
-    */
-    
+    /// Which plane the templates and their contour are drawn on: Nichols
+    /// rather than Nyquist.
     bool nicholsSelected();
 
 
-    /**
-     * @fn cudaSelected
-     * @brief Función que retorna un booleano indicando si se ha elegido usar cudaCheck.
-     *
-     * @return booleano indicando si se ha elegido usar cudaCheck.
-     */
-
+    /// Whether the user asked for the GPU path (requires a CUDA build).
     bool cudaSelected();
 
 

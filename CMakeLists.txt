@@ -18,13 +18,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(USE_CLANG       "Use CLANG"   OFF)
 option(USE_OpenMP      "Use OpenMP"  ON)
 option(USE_CUDA        "Use CUDA"    OFF)
-option(USE_Doxygen     "Use Doxygen" OFF)
 option(USE_NATIVE_ARCH "Enable -march=native" ON)
 
-# Build de desarrollo con sanitizers, p.ej. -DQFTBX_SANITIZERS=address,undefined
-# (requiere los runtimes libasan/libubsan instalados). Nota: mientras dure el
-# refactor el codigo tiene fugas conocidas; para ejecutar los tests usar
-# ASAN_OPTIONS=detect_leaks=0 hasta que cada modulo quede limpio.
+# Development build with sanitizers, e.g. -DQFTBX_SANITIZERS=address,undefined
+# (needs the libasan/libubsan runtimes installed).
 set(QFTBX_SANITIZERS "" CACHE STRING "Comma-separated sanitizers for dev builds (e.g. address,undefined)")
 if(QFTBX_SANITIZERS)
   add_compile_options(-fsanitize=${QFTBX_SANITIZERS} -fno-omit-frame-pointer)
@@ -50,8 +47,8 @@ if(USE_OpenMP)
 endif()
 
 # ------------------------------------------------------------------------------
-# CUDA (lenguaje de primera clase de CMake; find_package(CUDA) y
-# CUDA_ADD_LIBRARY llevan años obsoletos)
+# CUDA as a first-class CMake language: find_package(CUDA) and
+# CUDA_ADD_LIBRARY have been deprecated for years.
 # ------------------------------------------------------------------------------
 if(USE_CUDA)
     message("Use CUDA")
@@ -62,8 +59,8 @@ if(USE_CUDA)
         message("CUDA found: ${CMAKE_CUDA_COMPILER}")
         set(CMAKE_CUDA_STANDARD 17)
         set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-        # Arquitecturas por defecto razonables; sobreescribir con
-        # -DCMAKE_CUDA_ARCHITECTURES=... segun la tarjeta.
+        # Sensible defaults; override with
+        # -DCMAKE_CUDA_ARCHITECTURES=... for the card at hand.
         if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
             set(CMAKE_CUDA_ARCHITECTURES 61 75 86)
         endif()
@@ -83,34 +80,33 @@ if(USE_CUDA)
 endif()
 
 # ------------------------------------------------------------------------------
-# Doxygen
+# Doxygen: the `docs` target, present only when doxygen is installed.
+#
+# The configuration lives in the Doxyfile at the root of the repository and
+# is used as it is: `doxygen` from the repository root does exactly what
+# this target does, which is the point - no configure_file, no generated
+# copy in the build tree that can drift from the one under version control.
+#
+# The previous block was dead: it pointed at doc/Doxyfile.in, which does
+# not exist, hid itself behind two nested options, and its final target ran
+# LaTeX over a Makefile nobody generates.
 # ------------------------------------------------------------------------------
-if (USE_Doxygen)
-    message("Use Doxygen")
-    find_package(Doxygen)
-    option(BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" ${DOXYGEN_FOUND})
+find_package(Doxygen OPTIONAL_COMPONENTS dot)
 
-    if(BUILD_DOCUMENTATION)
-        if(NOT DOXYGEN_FOUND)
-            message(FATAL_ERROR "Doxygen is needed to build the documentation.")
-        endif()
-        set(doxyfile_in ${CMAKE_CURRENT_SOURCE_DIR}/doc/Doxyfile.in)
-        set(doxyfile ${CMAKE_CURRENT_BINARY_DIR}/doc/Doxyfile)
-        configure_file(${doxyfile_in} ${doxyfile})
-        add_custom_target(doc1
-            COMMAND ${DOXYGEN_EXECUTABLE} ${doxyfile}
-            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-            COMMENT "Generating API documentation with Doxygen"
-            VERBATIM
-        )
-        add_custom_target(doc
-            COMMAND make -f ${CMAKE_CURRENT_BINARY_DIR}/doc/latex/Makefile
-            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc/latex
-            COMMENT "Generating Latex documentation with TexLive "
-            VERBATIM
-        )
-        add_dependencies(doc doc1)
-    endif()
+if(DOXYGEN_FOUND)
+  add_custom_target(docs
+    COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMENT "Generating the API documentation into docs/api/html"
+    VERBATIM
+  )
+  # The component variable, not DOXYGEN_DOT_FOUND: that one is not set by
+  # find_package(... OPTIONAL_COMPONENTS dot) and the check read backwards.
+  if(NOT TARGET Doxygen::dot)
+    message(STATUS "Doxygen found, graphviz not: the docs will have no diagrams")
+  endif()
+else()
+  message(STATUS "Doxygen not found: the `docs` target is unavailable")
 endif()
 
 set(TS_FILES QFTbx_es_ES.ts)
@@ -373,7 +369,7 @@ if(UNIX AND NOT APPLE)
   set(QFTBX_DESKTOP_IN  "${CMAKE_SOURCE_DIR}/Resources/Icon/QFTbx.desktop.in")
   set(QFTBX_DESKTOP_OUT "${CMAKE_BINARY_DIR}/QFTbx.desktop")
 
-  # 1) Generamos un archivo intermedio con placeholders que incluyen generator expressions
+  # 1) An intermediate file whose placeholders expand generator expressions.
   file(GENERATE
     OUTPUT "${CMAKE_BINARY_DIR}/QFTbx.desktop.gen.in"
     CONTENT
@@ -390,7 +386,7 @@ Categories=Science;Engineering;\n\
 StartupNotify=true\n"
   )
 
-  # 2) Copiamos el intermedio al .desktop final (para tener un nombre estable)
+  # 2) Copy it to the final .desktop, so the name is stable.
   add_custom_command(
     TARGET ${EXE_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -399,7 +395,7 @@ StartupNotify=true\n"
     COMMENT "Generating portable desktop file: ${QFTBX_DESKTOP_OUT}"
   )
 
-  # 3) (Opcional) hacerlo ejecutable automáticamente
+  # 3) Make it executable.
   add_custom_command(
     TARGET ${EXE_NAME} POST_BUILD
     COMMAND chmod +x "${QFTBX_DESKTOP_OUT}"

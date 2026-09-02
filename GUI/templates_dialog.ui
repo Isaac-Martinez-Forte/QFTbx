@@ -79,7 +79,7 @@
        <height>131</height>
       </rect>
      </property>
-     <widget class="QWidget" name="vacia"/>
+     <widget class="QWidget" name="emptyPage"/>
      <widget class="QWidget" name="pNume">
       <widget class="QTabWidget" name="numeratorTabs">
        <property name="geometry">

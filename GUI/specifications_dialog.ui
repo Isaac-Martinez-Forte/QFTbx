@@ -190,7 +190,7 @@
        <height>231</height>
       </rect>
      </property>
-     <widget class="QWidget" name="vacia"/>
+     <widget class="QWidget" name="emptyPage"/>
      <widget class="QWidget" name="constante">
       <widget class="QWidget" name="layoutWidget1">
        <property name="geometry">

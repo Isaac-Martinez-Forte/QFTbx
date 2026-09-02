@@ -66,6 +66,13 @@ public:
     /**
      * @brief Publishes the problem.
      *
+     * @param planta the nominal plant, for the nominal stability check.
+     * @param controlador the initial search box of the controller
+     * parameters; the algorithm takes it over.
+     * @param omega the design frequencies.
+     * @param temp the plant template contour at each of them, from which
+     * the constraint representatives are drawn.
+     * @param espe the specifications the constraints are built from.
      * @param epsilon termination width of the CONTROLLER PARAMETER box, as
      * in the paper (its eps = 0.001 on the boxes of section 5). This is NOT
      * the epsilon of the other four algorithms, which measure the diameter

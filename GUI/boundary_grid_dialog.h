@@ -10,100 +10,51 @@
 #include "QIntValidator"
 #include "src/core/math/sequence_vectors.h"
 
-    /**
-      * @class BoundaryGridDialog
-      * @brief Clase gráfica que interactúa con el usuario para recoger datos necesarios para el cálculo de boundaries.
-      *
-      * @author Isaac Martínez Forte
-     */
-
 namespace Ui {
 class BoundaryGridDialog;
 }
 
+/**
+ * @brief Asks the user for the Nichols grid the boundaries are computed
+ * over: the phase and magnitude axes, their point counts, the stand-in for
+ * infinity, and whether to feed the engine the template contours.
+ *
+ * @author Isaac Martínez Forte
+ */
 class BoundaryGridDialog : public QDialog
 {
     Q_OBJECT
     
 public:
   
-
-    /**
-      * @fn BoundaryGridDialog
-      * @brief Constructor de la clase.
-      *
-      * @param parent parámetro que indica el padre de la clase en una jerarquía gráfica, puede ser vacío.
-      */
-
     explicit BoundaryGridDialog(QWidget *parent = 0);
-    
-    
-    
-    /**
-      * @fn ~BoundaryGridDialog
-      * @brief Destructor de la clase.
-      */
-    
+
     ~BoundaryGridDialog();
     
     
-    /**
-      * @fn phaseRangeValue
-      * @brief Función que retorna el inicio y el fin del eje de coordenadas de las fases.
-      * 
-      * @return ParVal con el inicio y el fin del eje de coordenadas de las fases.
-      */
-
+    /// Start and end of the phase axis, in degrees.
     QPointF phaseRangeValue();
     
     
-    /**
-      * @fn phaseCountValue
-      * @brief Función que retorna el número de puntos que tiene el eje de coordenadas de las fases.
-      * 
-      * @return entero con el número de puntos del eje de coordenadas de las fases.
-      */
-    
+    /// How many points the phase axis is sampled at.
     qint32 phaseCountValue();
     
     
-    /**
-      * @fn magnitudeRangeValue
-      * @brief Función que retorna el inicio y el fin del eje de coordenadas de las magnitudes.
-      * 
-      * @return ParVal con el inicio y el fin del eje de coordenadas de las magnitudes.
-      */
-    
+    /// Start and end of the magnitude axis, in dB.
     QPointF magnitudeRangeValue();
     
     
-    /**
-      * @fn magnitudeCountValue
-      * @brief Función que retorna el número de puntos que tiene el eje de coordenadas de las magnitudes.
-      * 
-      * @return entero con el número de puntos del eje de coordenadas de las magnitudes.
-      */
-    
+    /// How many points the magnitude axis is sampled at.
     qint32 magnitudeCountValue();
     
     
-    /**
-      * @fn infinityValue
-      * @brief Función que retorna el valor que se ha establecido para infinityEdit.
-      * 
-      * @return real con el valor establecido para el infinityEdit.
-      */
-    
+    /// Finite stand-in for infinity when the boundaries are exported; a
+    /// negative value means none, and it takes no part in the computation.
     qreal infinityValue();
     
     
-    /**
-      * @fn contourSelected
-      * @brief Función que retorna un booleando indicando si el usuario a seleccionado utilizar el contorno de los templates para el cálculo de boundaries.
-      * 
-      * @return booleano indicando si se ha seleccionado utilizar el contorno de los templates para el cálculo de boundaries.
-      */
-    
+    /// Whether to feed the engine the template contours instead of the
+    /// full value sets: far fewer points, at the epsilon-hull's accuracy.
     bool contourSelected();
 
     bool cudaSelected();

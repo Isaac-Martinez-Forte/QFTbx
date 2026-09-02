@@ -3,7 +3,7 @@
 using namespace tools;
 
 SearchNode::SearchNode(qreal index, std::unique_ptr<LtiSystem> system, BoxFlag flag)
-    : sistema(std::move(system))
+    : m_system(std::move(system))
 {
     this->index = index;
     this->flags = flag;
@@ -21,15 +21,15 @@ void SearchNode::setFlag(const BoxFlag & value)
 
 LtiSystem * SearchNode::system() const
 {
-    return sistema.get();
+    return m_system.get();
 }
 
 void SearchNode::setSystem(std::unique_ptr<LtiSystem> value)
 {
-    sistema = std::move(value);
+    m_system = std::move(value);
 }
 
 std::unique_ptr<LtiSystem> SearchNode::releaseSystem()
 {
-    return std::move(sistema);
+    return std::move(m_system);
 }

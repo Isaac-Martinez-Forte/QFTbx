@@ -26,70 +26,40 @@ namespace Ui {
 class UncertaintyDialog;
 }
 
- /**
-    * @class UncertaintyDialog
-    * @brief Clase gráfica a través de la cual se puede introducir los distintos tipos de incertidumbre de la planta.
-    * 
-    * Dicha incertidumbre introducida después se guardará en una jerarquía de clases diferenciando los distintos tipos.
-    * 
-    * @author Isaac Martínez Forte
-   */
-
-
+/**
+ * @brief Edits the parametric uncertainty of a plant or a controller: the
+ * minimum, maximum and nominal value of every coefficient the user marked
+ * as uncertain, plus the gain and the delay.
+ *
+ * It works on the tables the calling dialog read out of its line edits and
+ * hands them back edited; it never touches the project.
+ *
+ * @author Isaac Martínez Forte
+ */
 class UncertaintyDialog : public QDialog
 {
     Q_OBJECT
     
 public:
   
-   /**
-    * @fn UncertaintyDialog
-    * @brief Constructor de la clase, al ser una clase que hereda de QDialog tiene parámetros especiales.
-    * 
-    * @param parent Objeto que se envía por parámetros al constructor padre indicando cual es el padre de la clase.
-    */
-  
     explicit UncertaintyDialog(QWidget *parent = 0);
     ~UncertaintyDialog();
 
     
-   /**
-    * @fn numerator
-    * @brief Función que retorna la incertidumbre del numeratorParameters que ha sido introducida por el usuario.
-    * 
-    * @return un QVector de Variables que contiene la incertidumbre introducida para cada parameter del numeratorParameters.
-   */
-    
+   /// The numerator coefficients as the user left them, one Parameter per
+    /// coefficient, uncertain ones carrying their range.
     std::vector<Parameter> & numerator();
     
     
-   /**
-    * @fn denominator
-    * @brief Función que retorna la incertidumbre del denominatorParameters que ha sido introducida por el usuario.
-    * 
-    * @return un QVector de Variables que contiene la incertidumbre introducida para cada parameter del denominatorParameters.
-   */
-    
+   /// The denominator coefficients, likewise.
     std::vector<Parameter> & denominator();
 
     
-   /**
-    * @fn gain
-    * @brief Función que retorna la incertidumbre de la parameter K que representa la ganancia.
-    * 
-    * @return un objeto tipo QPointF que el par de valores que representa la incertidumbre de K.
-   */
-    
+   /// Range of the gain k.
     Range gain();
     
     
-   /**
-    * @fn delay
-    * @brief Función que retorna la incertidumbre de la parameter Ret que representa el retardo de la planta.
-    * 
-    * @return un objeto tipo QPointF que el par de valores que representa la incertidumbre de Ret.
-   */
-    
+   /// Range of the transport delay.
     Range delay();
 
     /// True when the user accepted the dialog with valid ranges.
@@ -97,35 +67,18 @@ public:
 
     
    /**
-    * @fn launch
-    * @brief Función que pone en ejecución toda la funcionalidad de la clase gráfica.
-    * 
-    * @param numeratorParameters de la planta en forma de QString.
-    * @param denominatorParameters de la planta en forma de QString.
-    * @param k ganancia de la planta en forma de QString.
-    * @param ret retardo de la planta en forma de QString.
-    * 
-    * @return booleano que indica si ha funcionado correctamente todo.
-   */
-
-    /// Takes the tables the plant or controller dialog read out of its line
-    /// edits, and edits them.
+    * @brief Shows the dialog over the tables the caller read out of its
+    * line edits.
+    *
+    * @param valueTable the numeric value of every coefficient, by row.
+    * @param expressionTable the reparametrising expression of each, if any.
+    * @param uncertainTable which of them the user marked as uncertain.
+    * @param rowsBuilt whether the rows already exist from a previous edit,
+    * so their contents are kept instead of rebuilt.
+    * @return whether the user accepted with valid ranges.
+    */
     bool launch(CoefficientTable valueTable, CoefficientTable expressionTable,
                 UncertainTable uncertainTable, bool rowsBuilt);
-
-
-    /**
-     * @fn launch
-     * @brief Función que pone en ejecución toda la funcionalidad de la clase gráfica.
-     *
-     * @param numeratorParameters de la planta en forma de QString.
-     * @param denominatorParameters de la planta en forma de QString.
-     * @param k ganancia de la planta en forma de QString.
-     *
-     * @return booleano que indica si ha funcionado correctamente todo.
-    */
-
-    //bool launch(QVector<QString> *numeratorParameters, QVector<QString> *denominatorParameters, QString k);
 
 
 

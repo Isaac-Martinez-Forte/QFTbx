@@ -268,14 +268,7 @@ interval ExpressionTree::eval(std::map<string, interval> *variables){
     return eval_tree_complex_interval(root.get());
 }*/
 
-/********************************************************
-* ExpressionTree &ExpressionTree::operator=(const ExpressionTree &other)  *
-*********************************************************
-* la homonimia del operador '=', nos
-* permite especificar como debe ser la
-* asignacion de un objeto del tipo ExpressionTree
-* a otro ......
-*/
+//Assignment: a deep copy, so the two trees own separate nodes.
 ExpressionTree &ExpressionTree::operator=(const ExpressionTree &other)
 {
     //Falling off the end of a value-returning function is undefined
@@ -303,14 +296,9 @@ interval ExpressionTree::operator ()(std::map<std::string, interval> * variables
     return eval (variables);
 }
 
-/********************************************************
-*    double ExpressionTree::eval_tree(exp_node *nod)          *
-*********************************************************
-* The core of the class: a recursive walk over the binary tree
-* de expresiones y realiza la operacion matemática corres-
-* applying each node's operation and returning the value of the
-* whole expression.
-*/
+//The core of the class: a recursive walk over the binary expression tree,
+//applying each node's operation and returning the value of the whole
+//expression.
 qreal ExpressionTree::eval_tree(exp_node *nod)
 {
 
@@ -876,15 +864,9 @@ interval ExpressionTree::eval_tree_in(exp_node *nod)
     }
 }*/
 
-/********************************************************
-*      exp_node *ExpressionTree::make_cpy(exp_node *nod)      *
-*********************************************************
-* Recursive pre-order walk that copies every node into a new one with
-* the same content, returning
-* información, para finalmente devolver un puntero a un nuevo
-* an expression tree identical to the original.
-* ..... es usada por el constrcutor de copia y por el operador '='
-*/
+//Recursive pre-order walk that copies every node into a new one with the
+//same content, returning a tree identical to the original. Used by the
+//copy constructor and by the assignment operator.
 std::unique_ptr<exp_node> ExpressionTree::make_cpy(exp_node *nod)
 {
     if (!nod) return nullptr;
@@ -993,8 +975,8 @@ void ExpressionTree::build_tree(std::string &in_exp)
                 pos += (i - pos);
                 continue;
             }
-            /*more functions can be added with another else if ()
-y modificando el 'enun type_node' y la función 'eval_tree(..)' */
+            /*more functions can be added with another else if () here,
+            plus an entry in 'enum type_node' and a case in eval_tree() */
 
         }
 
