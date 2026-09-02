@@ -160,6 +160,26 @@ void LoopShapingViewer::showDiagram(){
         frequencies = tools::logspace(loopShapingData->range().min, loopShapingData->range().max, loopShapingData->pointCount());
     }*/
 
+    //FIXED ON PURPOSE, for now. The dialog asks for a range and a point
+    //count, and nothing reads them but the persistence: three reasons stand
+    //in the way of honouring them.
+    //
+    //The units are ambiguous and the two dialogs disagree without saying so
+    //(both labels read "Start:"): tools::logspace takes EXPONENTS, the
+    //frequencies dialog stores exponents in its log mode - bode_viewer
+    //depends on that - and this dialog's own defaults are written as values
+    //("10^-6", "10^1"), which as exponents would sweep 10^(1e-6) to 10^10.
+    //The disabled code above also predates Range becoming a struct, so it
+    //asks a QPointF for .min. And the segmentation below detects the phase
+    //wrap by |delta| > 100 degrees, which PRESUMES a dense sweep: a small
+    //user count would break the curve into spurious pieces.
+    //
+    //The answer is not a number of points but a tolerance, and it is already
+    //solved next door for the computation: NominalStabilityChecker derives
+    //its range from the design frequencies (kDecadesBeyond) and refines
+    //until the phase step falls under kMaxPhaseStepDegrees. Doing the same
+    //here would also make the drawing and the check look at the same place,
+    //which they need not do today.
     frequencies = tools::logspace(-5, 5, 10000);
 
     //The open-loop curve, cut into segments wherever the phase wraps: by
