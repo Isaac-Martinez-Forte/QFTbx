@@ -34,11 +34,11 @@ public:
 
     /// Classification of one projected box; a plain value (four doubles,
     /// a flag and two corner verdicts), so there is nothing to own.
-    BoxClassification classifyBox(cxsc::cinterval box, const BoundaryData * boundaries, qint32 contador);
+    BoxClassification classifyBox(cxsc::cinterval box, const BoundaryData * boundaries, qint32 frequencyIndex);
 
     /// Classifies one Nichols point (phase deg, magnitude dB) against the
-    /// boundary union at design frequency 'contador' (parity test).
-    tools::BoxFlag classifyPoint(QPointF punto, const BoundaryData * boundaries, qint32 contador);
+    /// boundary union at design frequency 'frequencyIndex' (parity test).
+    tools::BoxFlag classifyPoint(QPointF point, const BoundaryData * boundaries, qint32 frequencyIndex);
 
 private:
 
@@ -49,8 +49,8 @@ private:
     //the window width. Exact on the default 360-degree window, which is why
     //nothing showed it; wrong on any other, and a division by zero for a
     //window under one degree.
-    inline tools::BoxFlag pointVerdict(QPointF punto, const qftbx::TraceSet & interseccionHash,
-                                       qint32 bucketCount, bool abierta, bool arriba,
+    inline tools::BoxFlag pointVerdict(QPointF point, const qftbx::TraceSet & buckets,
+                                       qint32 bucketCount, bool open, bool above,
                                        qreal phaseSpanDegrees);
     inline qint32 phaseBucket(qreal phaseDegrees, qint32 bucketCount, qreal phaseSpanDegrees);
 };

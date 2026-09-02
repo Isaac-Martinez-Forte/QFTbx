@@ -37,10 +37,10 @@ public:
     /**
      * @brief Draws the Bode diagram.
      *
-     * @param planta the plant to evaluate.
+     * @param plant the plant to evaluate.
      * @param omega the frequencies to evaluate it at.
      */
-    void drawBode(LtiSystem * planta, Omega * omega);
+    void drawBode(LtiSystem * plant, Omega * omega);
 
 private slots:
     void on_actionExport_triggered();

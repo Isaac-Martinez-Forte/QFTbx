@@ -27,7 +27,7 @@ public:
     McSearchNode(qreal index, std::unique_ptr<LtiSystem> system,
                  tools::BoxFlag flags = tools::ambiguous);
 
-    void setCutsEnabled(bool recorteActivado);
+    void setCutsEnabled(bool enabled);
     bool cutsEnabled();
 
     void setStage(Stage e);
@@ -40,8 +40,8 @@ public:
 
 protected:
 
-    bool recorteActivado = true;
-    Stage etapa = Stage::Initial;
+    bool enabled = true;
+    Stage value = Stage::Initial;
 
     QHash<qreal, qreal> m_feasibleFrequencies;
 };

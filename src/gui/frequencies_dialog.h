@@ -41,7 +41,7 @@ public:
     ~FrequenciesDialog();
 
 
-    bool getTodoCorrecto();
+    bool wasAccepted();
     
 private slots:
 
@@ -58,7 +58,7 @@ private:
 
     std::unique_ptr<Ui::FrequenciesDialog> ui;
 
-    bool todoCorrecto;
+    bool accepted;
 };
 
 #endif // QFTBX_FREQUENCIES_DIALOG_H

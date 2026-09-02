@@ -59,7 +59,7 @@ void LoopBoundariesViewer::clearDiagram(){
 }
 
 
-void LoopBoundariesViewer::setDatos(const BoundaryData *nicholsData, const BoundaryData *nyquistData, QVector<qreal> *omega,
+void LoopBoundariesViewer::setData(const BoundaryData *nicholsData, const BoundaryData *nyquistData, QVector<qreal> *omega,
                              LtiSystem *plant, LtiSystem *controller, bool nichols, bool nyquist){
     this->nicholsData = nicholsData;
     this->nyquistData = nyquistData;
@@ -84,7 +84,7 @@ void LoopBoundariesViewer::showDiagram(){
     plotted = true;
 
     qint32 k = 0;
-    qint32 contador = 0;
+    qint32 frequencyIndex = 0;
 
     QVector <QColor> rowColors;
 
@@ -94,7 +94,7 @@ void LoopBoundariesViewer::showDiagram(){
     for (const qftbx::Trace & boundNichols : nicholsData->unionBoundaries()) {
 
         const qftbx::Trace & boundNyquist =
-                nyquistData->unionBoundaries().at(static_cast<std::size_t>(contador));
+                nyquistData->unionBoundaries().at(static_cast<std::size_t>(frequencyIndex));
 
 
         QColor color = randomColor(c);
@@ -111,10 +111,10 @@ void LoopBoundariesViewer::showDiagram(){
         QVector <qreal> ejex1;
         QVector <qreal> ejey1;
 
-        qint32 contador2 = 0;
+        qint32 secondIndex = 0;
 
         for (const QPointF & pNichols : boundNichols) {
-            QPointF pNyquist = boundNyquist.at(static_cast<std::size_t>(contador2));
+            QPointF pNyquist = boundNyquist.at(static_cast<std::size_t>(secondIndex));
             ejex.append(pNichols.x());
             ejey.append(pNichols.y());
 
@@ -122,14 +122,14 @@ void LoopBoundariesViewer::showDiagram(){
             ejey1.append(pNyquist.y());
 
 
-            contador2++;
+            secondIndex++;
         }
 
         if (mostrarNichols){
             QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
             curva->setData(ejex, ejey);
             curva->setPen(color);
-            addFrequencyRow(color, contador, tr("Nichols"));
+            addFrequencyRow(color, frequencyIndex, tr("Nichols"));
             curves.append(curva);
             k++;
         }
@@ -140,12 +140,12 @@ void LoopBoundariesViewer::showDiagram(){
             QCPCurve *curva2 = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
             curva2->setData(ejex1, ejey1);
             curva2->setPen(color2);
-            addFrequencyRow(color2, contador, tr("Nyquist"));
+            addFrequencyRow(color2, frequencyIndex, tr("Nyquist"));
             curves.append(curva2);
             k++;
         }
 
-        contador++;
+        frequencyIndex++;
     }
 
     /*ui->plot->xAxis2->setVisible(true);
@@ -166,7 +166,7 @@ void LoopBoundariesViewer::showDiagram(){
 
     /*NaturalIntervalExtension * conversion = new NaturalIntervalExtension();
 
-    contador = 0;
+    frequencyIndex = 0;
 
     foreach (qreal o, *omega) {
 
@@ -186,18 +186,18 @@ void LoopBoundariesViewer::showDiagram(){
 
         if (mostrarNichols){
             drawBox(QPointF(theta.inf, g.inf), QPointF(theta.inf, g.sup),
-                           QPointF(theta.sup, g.inf), QPointF(theta.sup, g.sup), rowColors.at(contador));
+                           QPointF(theta.sup, g.inf), QPointF(theta.sup, g.sup), rowColors.at(frequencyIndex));
         }
 
-        contador++;
+        frequencyIndex++;
 
 
         if (mostrarNyquist){
             drawBox(QPointF(box.re.inf, box.im.inf), QPointF(box.re.inf, box.im.sup),
-                           QPointF(box.re.sup, box.im.inf), QPointF(box.re.sup, box.im.sup), rowColors.at(contador));
+                           QPointF(box.re.sup, box.im.inf), QPointF(box.re.sup, box.im.sup), rowColors.at(frequencyIndex));
         }
 
-        contador++;
+        frequencyIndex++;
     }*/
 
 

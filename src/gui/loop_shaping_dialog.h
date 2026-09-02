@@ -32,7 +32,7 @@ public:
 
     void setEpsilonValue (qreal epsilonEdit);
 
-    bool getTodoCorrecto();
+    bool wasAccepted();
 
     qreal epsilonValue ();
 
@@ -69,7 +69,7 @@ protected:
 private:
     std::unique_ptr<Ui::LoopShapingDialog> ui;
 
-    bool todoCorrecto;
+    bool accepted;
 
     qreal epsilonEdit = 0.0;
 

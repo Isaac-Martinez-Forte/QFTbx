@@ -53,7 +53,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, QVector<qreal> 
         throw qftbx::ComputationError(message.toStdString());
     }
 
-    //The algorithms own themselves through unique_ptr: init_algorithm()
+    //The algorithms own themselves through unique_ptr: solve()
     //throws on an invalid or infeasible problem, and the raw new/delete
     //pair leaked the whole algorithm (its lists, its detection, its
     //nominal-plant caches) on every such throw.
@@ -72,41 +72,41 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, QVector<qreal> 
 
     if (algorithm == tools::nt) {
         auto nt = std::make_unique<AlgorithmNt>();
-        nt->set_datos(plant, controller, omega, boundaries, epsilon);
+        nt->setProblem(plant, controller, omega, boundaries, epsilon);
         timer.start();
-        re = nt->init_algorithm();
+        re = nt->solve();
         if (re) {
             report(nt->controllerStructure(), nt->peakLiveNodes());
         }
     } else if (algorithm == tools::nk) {
         auto nk = std::make_unique<AlgorithmNk>();
-        nk->set_datos(plant, controller, omega, boundaries, epsilon, initialisation);
+        nk->setProblem(plant, controller, omega, boundaries, epsilon, initialisation);
         timer.start();
-        re = nk->init_algorithm();
+        re = nk->solve();
         if (re) {
             report(nk->controllerStructure(), nk->peakLiveNodes());
         }
     } else if (algorithm == tools::mr) {
         auto mr = std::make_unique<AlgorithmMr>();
-        mr->set_datos(plant, controller, omega, boundaries, epsilon, contour, specifications);
+        mr->setProblem(plant, controller, omega, boundaries, epsilon, contour, specifications);
         timer.start();
-        re = mr->init_algorithm();
+        re = mr->solve();
         if (re) {
             report(mr->controllerStructure(), mr->peakLiveNodes());
         }
     } else if (algorithm == tools::mc1) {
         auto mc1 = std::make_unique<AlgorithmMc1>();
-        mc1->set_datos(plant, controller, omega, boundaries, epsilon);
+        mc1->setProblem(plant, controller, omega, boundaries, epsilon);
         timer.start();
-        re = mc1->init_algorithm();
+        re = mc1->solve();
         if (re) {
             report(mc1->controllerStructure(), mc1->peakLiveNodes());
         }
     } else if (algorithm == tools::mc_thesis) {
         auto mc_thesis = std::make_unique<AlgorithmMcThesis>();
-        mc_thesis->set_datos(plant, controller, omega, boundaries, epsilon);
+        mc_thesis->setProblem(plant, controller, omega, boundaries, epsilon);
         timer.start();
-        re = mc_thesis->init_algorithm();
+        re = mc_thesis->solve();
         if (re) {
             report(mc_thesis->controllerStructure(), mc_thesis->peakLiveNodes());
         }

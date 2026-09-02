@@ -77,7 +77,7 @@ protected:
             const std::complex<qreal> pv = controller.plant()->evaluate(omega->at(i));
             const cxsc::cinterval box = conversion.nicholsBox(
                 point, omega->at(i), cxsc::complex(pv.real(), pv.imag()));
-            const tools::BoxFlag flag = deteccion.classifyBox(
+            const tools::BoxFlag flag = detector.classifyBox(
                 box, controller.boundaries(), i).flag();
 
             if (flag == tools::infeasible) {
@@ -93,7 +93,7 @@ protected:
 
     ProjectController controller;
     NaturalIntervalExtension conversion;
-    BoundaryViolationDetector deteccion;
+    BoundaryViolationDetector detector;
 };
 
 TEST_F(LiteratureValidation, PublishedControllersAreFeasible)

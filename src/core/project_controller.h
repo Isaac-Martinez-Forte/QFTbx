@@ -1,5 +1,5 @@
-#ifndef CONTROLADOR_H
-#define CONTROLADOR_H
+#ifndef QFTBX_PROJECT_CONTROLLER_H
+#define QFTBX_PROJECT_CONTROLLER_H
 
 
 #include <memory>
@@ -180,4 +180,4 @@ private:
     std::unique_ptr<LoopShaping> m_loopShapingEngine;
 };
 
-#endif // CONTROLADOR_H
+#endif // QFTBX_PROJECT_CONTROLLER_H

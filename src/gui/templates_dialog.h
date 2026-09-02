@@ -92,7 +92,7 @@ public:
     };
 
 
-    bool getTodoCorrecto();
+    bool wasAccepted();
     
 private slots:
     void on_allVariablesRadio_clicked();
@@ -143,7 +143,7 @@ private:
 
     std::unique_ptr<mup::ParserX> parser;
 
-    bool todoCorrecto;
+    bool accepted;
 
     QVector <qreal> epsilonValues;
 

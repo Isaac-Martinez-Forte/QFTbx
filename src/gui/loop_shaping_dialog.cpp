@@ -20,7 +20,7 @@ LoopShapingDialog::LoopShapingDialog(QWidget *parent) :
 
     linLogSpace = false;
 
-    todoCorrecto = false;
+    accepted = false;
 }
 
 LoopShapingDialog::~LoopShapingDialog()
@@ -30,7 +30,7 @@ LoopShapingDialog::~LoopShapingDialog()
 void LoopShapingDialog::showEvent(QShowEvent * event)
 {
     //Reopening and cancelling must not relaunch the computation with the old data.
-    todoCorrecto = false;
+    accepted = false;
     QDialog::showEvent(event);
 }
 
@@ -115,13 +115,13 @@ void LoopShapingDialog::on_okButton_clicked()
     //checked.
     linLogSpace = ui->linspaceRadio->isChecked();
 
-    todoCorrecto = true;
+    accepted = true;
 
     this->close();
 }
 
-bool LoopShapingDialog::getTodoCorrecto(){
-    return todoCorrecto;
+bool LoopShapingDialog::wasAccepted(){
+    return accepted;
 }
 
 

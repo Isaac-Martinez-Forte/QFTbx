@@ -41,7 +41,7 @@ BoundaryGridDialog::BoundaryGridDialog(QWidget *parent) :
     ui->cudaCheck->setVisible(false);
 #endif
 
-    todoCorrecto = false;
+    accepted = false;
 }
 
 BoundaryGridDialog::~BoundaryGridDialog()
@@ -97,7 +97,7 @@ void BoundaryGridDialog::on_buttonBox_accepted()
     if (phaseRange.x() >= phaseRange.y() || magnitudeRange.x() >= magnitudeRange.y() ||
             phaseCount < 2 || magnitudeCount < 2){
         tools::errorMessage(tr("The grid ranges must be increasing, with at least 2 points per axis."), tr("Boundary grid input"));
-        todoCorrecto = false;
+        accepted = false;
         return;
     }
 
@@ -106,13 +106,13 @@ void BoundaryGridDialog::on_buttonBox_accepted()
     //Direct read: the old latch left CUDA enabled forever once checked.
     cudaCheck = ui->cudaCheck->isChecked();
 
-    todoCorrecto = true;
+    accepted = true;
 }
 
 void BoundaryGridDialog::showEvent(QShowEvent * event)
 {
     //Reopening and cancelling must not relaunch the computation with the old data.
-    todoCorrecto = false;
+    accepted = false;
     QDialog::showEvent(event);
 }
 
@@ -120,6 +120,6 @@ bool BoundaryGridDialog::cudaSelected(){
     return cudaCheck;
 }
 
-bool BoundaryGridDialog::getTodoCorrecto(){
-    return todoCorrecto;
+bool BoundaryGridDialog::wasAccepted(){
+    return accepted;
 }

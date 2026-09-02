@@ -37,7 +37,7 @@ public:
     explicit PlantDialog(QWidget *parent = 0);
     ~PlantDialog();
 
-    bool getTodoCorrecto();
+    bool wasAccepted();
 
     /**
      * @brief The plant the user described, or nullptr when the dialog was
@@ -83,8 +83,6 @@ private:
 
     bool uncertaintyEntered;
 
-    void openFile();
-    bool guardar ();
     /// The coefficients of the described system, or nothing when the dialog
     /// could not read them (the caller reports it).
     std::optional<CoefficientTable> readTables(CoefficientTable & expressionTable,
@@ -93,7 +91,7 @@ private:
     /// not a valid expression. The invalid one used to become 0 in silence,
     /// which quietly designed for a different plant. Same contract as
     /// SpecificationsDialog::buildParameters.
-    std::optional<std::vector<Parameter>> buildParameters(const CoefficientRow & numeros);
+    std::optional<std::vector<Parameter>> buildParameters(const CoefficientRow & numbers);
     bool parse(QString cadena);
     bool parseCoefficients(CoefficientTable & tabla, QLineEdit * linea,
                            CoefficientTable & expressionTable, UncertainTable & uncertainTable);
@@ -105,7 +103,7 @@ private:
 
     mup::ParserX p;
 
-    bool todoCorrecto;
+    bool accepted;
 };
 
 #endif // QFTBX_PLANT_DIALOG_H

@@ -263,8 +263,8 @@ bool ProjectController::computeLoopShaping(qreal epsilon, tools::LoopShapingAlgo
     return false;
 }
 
-void ProjectController::setLoopShapingResult(std::unique_ptr<LoopShapingResult> datos){
-    data.setLoopShapingResult(std::move(datos));
+void ProjectController::setLoopShapingResult(std::unique_ptr<LoopShapingResult> result){
+    data.setLoopShapingResult(std::move(result));
 }
 
 LoopShapingResult * ProjectController::loopShapingResult(){

@@ -64,12 +64,12 @@ LtiSystem* makeZpk(Parameter k, std::optional<Parameter> z, std::optional<Parame
 
 TEST(NaturalIntervalExtension, CertainControllerProjectsToAPoint)
 {
-    LtiSystem* controlador = makeZpk(Parameter(2.0), Parameter(3.0),
+    LtiSystem* controller = makeZpk(Parameter(2.0), Parameter(3.0),
                                      Parameter(5.0));
 
     NaturalIntervalExtension extension;
     const cxsc::complex nominal(1.0, 0.0);
-    const cxsc::cinterval box = extension.nicholsBox(controlador, 1.0, nominal);
+    const cxsc::cinterval box = extension.nicholsBox(controller, 1.0, nominal);
 
     const NicholsPoint expected = zpkAt(2.0, 3.0, 5.0, 1.0, Complex(1.0, 0.0));
 
@@ -78,7 +78,7 @@ TEST(NaturalIntervalExtension, CertainControllerProjectsToAPoint)
     EXPECT_NEAR(cxsc::_double(Inf(Im(box))), expected.phaseDegrees, 1e-9);
     EXPECT_NEAR(cxsc::_double(Sup(Im(box))), expected.phaseDegrees, 1e-9);
 
-    delete controlador;
+    delete controller;
 }
 
 TEST(NaturalIntervalExtension, UncertainGainBoxContainsTheTrueExtremes)
@@ -90,11 +90,11 @@ TEST(NaturalIntervalExtension, UncertainGainBoxContainsTheTrueExtremes)
     //arc [-273, -74] here (a containment violation, the historical bug
     //this test used to pin): a set crossing the cut now degrades to the
     //whole branch, conservative but correct.
-    LtiSystem* controlador = makeZpk(Parameter("k", Range(1.0, 10.0), 1.0),
+    LtiSystem* controller = makeZpk(Parameter("k", Range(1.0, 10.0), 1.0),
                                      Parameter(3.0), Parameter(5.0));
 
     NaturalIntervalExtension extension;
-    const cxsc::cinterval box = extension.nicholsBox(controlador, 1.0,
+    const cxsc::cinterval box = extension.nicholsBox(controller, 1.0,
                                                   cxsc::complex(1.0, 0.0));
 
     const NicholsPoint low = zpkAt(1.0, 3.0, 5.0, 1.0, Complex(1.0, 0.0));
@@ -113,7 +113,7 @@ TEST(NaturalIntervalExtension, UncertainGainBoxContainsTheTrueExtremes)
     EXPECT_NEAR(cxsc::_double(Inf(Im(box))), -360.0, 1e-9);
     EXPECT_NEAR(cxsc::_double(Sup(Im(box))), 0.0, 1e-9);
 
-    delete controlador;
+    delete controller;
 }
 
 TEST(NaturalIntervalExtension, PureGainControllerProjectsExactly)
@@ -121,10 +121,10 @@ TEST(NaturalIntervalExtension, PureGainControllerProjectsExactly)
     //A controller with no zeros and no poles (the thesis benchmarks with
     //n = 1): both products are the neutral 1. The historical code left
     //them UNINITIALIZED and read garbage.
-    LtiSystem* controlador = makeZpk(Parameter(2.0), std::nullopt, std::nullopt);
+    LtiSystem* controller = makeZpk(Parameter(2.0), std::nullopt, std::nullopt);
 
     NaturalIntervalExtension extension;
-    const cxsc::cinterval box = extension.nicholsBox(controlador, 1.0,
+    const cxsc::cinterval box = extension.nicholsBox(controller, 1.0,
                                                      cxsc::complex(1.0, 0.0));
 
     EXPECT_NEAR(cxsc::_double(Inf(Re(box))), 20.0 * std::log10(2.0), 1e-9);
@@ -133,7 +133,7 @@ TEST(NaturalIntervalExtension, PureGainControllerProjectsExactly)
     //endpoint pair, enclosed conservatively.
     EXPECT_GE(cxsc::_double(Sup(Im(box))), -360.0);
 
-    delete controlador;
+    delete controller;
 }
 
 TEST(NaturalIntervalExtension, HugeBoxesStayFiniteInDecibels)
@@ -141,12 +141,12 @@ TEST(NaturalIntervalExtension, HugeBoxesStayFiniteInDecibels)
     //The widest search box of the thesis benchmarks: the interval products
     //must never reach log10(0) or log10(inf) (fi_lib aborts the process on
     //both; observed live through the NK crash).
-    LtiSystem* controlador = makeZpk(Parameter("kc", Range(1e-9, 1e8), 1.0),
+    LtiSystem* controller = makeZpk(Parameter("kc", Range(1e-9, 1e8), 1.0),
                                      Parameter("z1", Range(1e-9, 1e4), 1.0),
                                      Parameter("p1", Range(1e-9, 1e4), 1.0));
 
     NaturalIntervalExtension extension;
-    const cxsc::cinterval box = extension.nicholsBox(controlador, 100.0,
+    const cxsc::cinterval box = extension.nicholsBox(controller, 100.0,
                                                      cxsc::complex(1e-8, -1e8));
 
     EXPECT_TRUE(std::isfinite(cxsc::_double(Inf(Re(box)))));
@@ -154,14 +154,14 @@ TEST(NaturalIntervalExtension, HugeBoxesStayFiniteInDecibels)
     EXPECT_TRUE(std::isfinite(cxsc::_double(Inf(Im(box)))));
     EXPECT_TRUE(std::isfinite(cxsc::_double(Sup(Im(box)))));
 
-    delete controlador;
+    delete controller;
 }
 
 TEST(NaturalIntervalExtension, SampledInstancesStayInsideTheBox)
 {
     //The fundamental theorem of interval analysis: every instance of the
     //box maps inside the projection.
-    LtiSystem* controlador = makeZpk(Parameter("k", Range(0.5, 4.0), 1.0),
+    LtiSystem* controller = makeZpk(Parameter("k", Range(0.5, 4.0), 1.0),
                                      Parameter("z", Range(1.0, 6.0), 2.0),
                                      Parameter("p", Range(2.0, 9.0), 3.0));
 
@@ -169,7 +169,7 @@ TEST(NaturalIntervalExtension, SampledInstancesStayInsideTheBox)
     const qreal w = 2.0;
     const Complex p0Value(0.8, -0.4);
     const cxsc::cinterval box =
-        extension.nicholsBox(controlador, w, cxsc::complex(0.8, -0.4));
+        extension.nicholsBox(controller, w, cxsc::complex(0.8, -0.4));
 
     const qreal magLo = cxsc::_double(Inf(Re(box)));
     const qreal magHi = cxsc::_double(Sup(Re(box)));
@@ -192,7 +192,7 @@ TEST(NaturalIntervalExtension, SampledInstancesStayInsideTheBox)
         }
     }
 
-    delete controlador;
+    delete controller;
 }
 
 } // namespace

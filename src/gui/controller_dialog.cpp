@@ -40,7 +40,7 @@ ControllerDialog::ControllerDialog(QWidget *parent) :
     //The uncertainty dialog is created up front and reused.
     uncertaintyDialog = new UncertaintyDialog (this);
 
-    todoCorrecto = false;
+    accepted = false;
 }
 
 ControllerDialog::~ControllerDialog()
@@ -299,7 +299,7 @@ void ControllerDialog::on_okButton_clicked()
     controllerSystem.reset();
 
     //The uncertainty only counts if its dialog was ACCEPTED.
-    if (uncertaintyEntered && uncertaintyDialog->getTodoCorrecto()){
+    if (uncertaintyEntered && uncertaintyDialog->wasAccepted()){
         //The controller receives COPIES: the uncertainty dialog keeps its
         //own parameters for further editing.
         std::vector<Parameter> numeratorEdit = uncertaintyDialog->numerator();
@@ -338,21 +338,21 @@ void ControllerDialog::on_okButton_clicked()
 
     }
 
-    todoCorrecto = true;
+    accepted = true;
 
     this->close();
 }
 
 
-std::optional<std::vector<Parameter>> ControllerDialog::buildParameters(const CoefficientRow & numeros){
+std::optional<std::vector<Parameter>> ControllerDialog::buildParameters(const CoefficientRow & numbers){
     std::vector<Parameter> var;
-    var.reserve(numeros.size());
+    var.reserve(numbers.size());
 
-    if (numeros.isEmpty()){
+    if (numbers.isEmpty()){
         return var;
     }
 
-    foreach (const QString &string, numeros) {
+    foreach (const QString &string, numbers) {
         p.SetExpr(string.toStdString());
         try {
             var.push_back(Parameter(p.Eval().GetFloat()));
@@ -368,8 +368,8 @@ std::optional<std::vector<Parameter>> ControllerDialog::buildParameters(const Co
     return var;
 }
 
-bool ControllerDialog::getTodoCorrecto(){
-    return todoCorrecto;
+bool ControllerDialog::wasAccepted(){
+    return accepted;
 }
 
 std::unique_ptr<LtiSystem> ControllerDialog::takeControllerStructure(){

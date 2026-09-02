@@ -56,22 +56,22 @@ AlgorithmMc1::~AlgorithmMc1()
 }
 
 
-void AlgorithmMc1::set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> * omega,
+void AlgorithmMc1::setProblem(LtiSystem * plant, LtiSystem * controller, QVector<qreal> * omega,
                                           const BoundaryData * boundaries, qreal epsilon)
 {
-    this->planta = planta;
-    this->controlador = controlador->clone();
+    this->plant = plant;
+    this->controller = controller->clone();
     this->omega = omega;
     this->boundaries = boundaries;
     this->epsilon = epsilon;
 
     hasUncertainZeros = false;
-    for (Parameter & var : this->controlador->numerator()) {
+    for (Parameter & var : this->controller->numerator()) {
         hasUncertainZeros = hasUncertainZeros || var.isUncertain();
     }
 
     hasUncertainPoles = false;
-    for (Parameter & var : this->controlador->denominator()) {
+    for (Parameter & var : this->controller->denominator()) {
         hasUncertainPoles = hasUncertainPoles || var.isUncertain();
     }
 }
@@ -80,37 +80,37 @@ void AlgorithmMc1::set_datos(LtiSystem * planta, LtiSystem * controlador, QVecto
 //Main loop: the NT branch & bound (paper, algorithm 5) with QS2 inside
 //the feasibility test of every box (steps 1(b-bis) and 4bis) and the
 //prune variable C of step 3bis behind bestCertifiedGain.
-bool AlgorithmMc1::init_algorithm()
+bool AlgorithmMc1::solve()
 {
-    lista = std::make_unique<OrderedList>();
+    liveList = std::make_unique<OrderedList>();
     conversion = std::make_unique<NaturalIntervalExtension>();
-    deteccion = std::make_unique<BoundaryViolationDetector>();
-    stability = std::make_unique<NominalStabilityChecker>(planta, omega);
+    detector = std::make_unique<BoundaryViolationDetector>();
+    stability = std::make_unique<NominalStabilityChecker>(plant, omega);
 
     bestCertifiedGain = std::numeric_limits<qreal>::infinity();
     bestCertifiedController = nullptr;
 
-    plantas_nominales.clear();
-    plantas_nominales_std.clear();
+    nominalPlantValues.clear();
+    nominalPlantValuesStd.clear();
 
     foreach (qreal o, *omega) {
-        std::complex<qreal> c = planta->evaluate(o);
-        plantas_nominales_std.append(c);
-        plantas_nominales.append(cxsc::complex(c.real(), c.imag()));
+        std::complex<qreal> c = plant->evaluate(o);
+        nominalPlantValuesStd.append(c);
+        nominalPlantValues.append(cxsc::complex(c.real(), c.imag()));
     }
 
     //Steps 1-2: QS2 and feasibility of the initial box happen inside
     //check_box_feasibility, which inserts it unless certainly infeasible.
-    check_box_feasibility(std::move(controlador));
+    check_box_feasibility(std::move(controller));
 
     while (true) {
 
-        if (lista->isEmpty()) {
+        if (liveList->isEmpty()) {
             //The certified solution of QS2 stage 3 stands in when the
             //interval search exhausts the space (the paper keeps its box
             //z' in the list instead; same fallback).
             if (bestCertifiedController != nullptr) {
-                controlador_retorno = std::move(bestCertifiedController);
+                designedController = std::move(bestCertifiedController);
                 return true;
             }
 
@@ -118,7 +118,7 @@ bool AlgorithmMc1::init_algorithm()
                     "No feasible solution exists in the given search box.");
         }
 
-        std::unique_ptr<SearchNode> node = lista->takeFirstAs<SearchNode>();
+        std::unique_ptr<SearchNode> node = liveList->takeFirstAs<SearchNode>();
 
         //Step 3bis.(a): a node whose gain infimum cannot improve the
         //certified solution is discarded.
@@ -127,16 +127,16 @@ bool AlgorithmMc1::init_algorithm()
         }
 
         //Step 3 and Remark 3.1 termination, as reviewed for NT.
-        if (node->flag() == feasible || isEpsilonSmall(node->system(), this->epsilon, omega, conversion.get(), plantas_nominales)) {
+        if (node->flag() == feasible || isEpsilonSmall(node->system(), this->epsilon, omega, conversion.get(), nominalPlantValues)) {
             if (node->flag() == ambiguous) {
-                controlador_retorno = pointFromBox(node->system(), false);
+                designedController = pointFromBox(node->system(), false);
 
-                if (!stability->isNominallyStable(controlador_retorno.get())) {
-                    controlador_retorno.reset();
+                if (!stability->isNominallyStable(designedController.get())) {
+                    designedController.reset();
                     continue;
                 }
             } else {
-                controlador_retorno = pointFromBox(node->system(), true);
+                designedController = pointFromBox(node->system(), true);
             }
 
             return true;
@@ -154,13 +154,13 @@ bool AlgorithmMc1::init_algorithm()
 
 std::size_t AlgorithmMc1::peakLiveNodes() const
 {
-    return lista != nullptr ? lista->peakSize() : 0;
+    return liveList != nullptr ? liveList->peakSize() : 0;
 }
 
 
 std::unique_ptr<LtiSystem> AlgorithmMc1::controllerStructure()
 {
-    return std::move(controlador_retorno);
+    return std::move(designedController);
 }
 
 
@@ -170,34 +170,34 @@ std::unique_ptr<LtiSystem> AlgorithmMc1::controllerStructure()
 //destroyed; anything else enters the live list.
 inline void AlgorithmMc1::check_box_feasibility(std::unique_ptr<LtiSystem> box)
 {
-    BoxClassification datos;
+    BoxClassification classification;
     BoxFlag flag_final = feasible;
 
     //Step 3bis.(b): the certified solution caps the useful gain range of
     //every new box.
     box = capGain(std::move(box), bestCertifiedGain);
 
-    qint32 contador = 0;
-    cinterval caja;
+    qint32 frequencyIndex = 0;
+    cinterval projection;
 
     foreach (qreal o, *omega) {
 
-        caja = conversion->nicholsBox(box.get(), o, plantas_nominales.at(contador));
+        projection = conversion->nicholsBox(box.get(), o, nominalPlantValues.at(frequencyIndex));
 
-        datos = deteccion->classifyBox(caja, boundaries, contador);
+        classification = detector->classifyBox(projection, boundaries, frequencyIndex);
 
-        if (datos.flag() == infeasible) {
+        if (classification.flag() == infeasible) {
             return;
         }
 
-        if (datos.flag() == ambiguous) {
+        if (classification.flag() == ambiguous) {
             flag_final = ambiguous;
 
-            box = quickSolution2(std::move(box), datos, caja, o,
-                                 plantas_nominales_std.at(contador));
+            box = quickSolution2(std::move(box), classification, projection, o,
+                                 nominalPlantValuesStd.at(frequencyIndex));
         }
 
-        contador++;
+        frequencyIndex++;
     }
 
     //Nominal closed-loop stability of bounds-feasible boxes, as reviewed
@@ -220,7 +220,7 @@ inline void AlgorithmMc1::check_box_feasibility(std::unique_ptr<LtiSystem> box)
     //call their evaluation order is unspecified.
     const qreal gainInf = box->gain().range().min;
 
-    lista->insert(std::make_unique<SearchNode>(gainInf, std::move(box), flag_final));
+    liveList->insert(std::make_unique<SearchNode>(gainInf, std::move(box), flag_final));
 }
 
 
@@ -229,8 +229,8 @@ inline void AlgorithmMc1::check_box_feasibility(std::unique_ptr<LtiSystem> box)
 //minimum is certainly forbidden, and the phase cuts when a vertical strip
 //is. All cuts run sequentially on the latest updated values.
 inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<LtiSystem> v,
-                                                             const BoxClassification & datos,
-                                                             const cxsc::cinterval & caja,
+                                                             const BoxClassification & classification,
+                                                             const cxsc::cinterval & projection,
                                                              qreal w, std::complex<qreal> p0)
 {
     std::vector<double> zeroInfs, zeroSups, poleInfs, poleSups;
@@ -252,9 +252,9 @@ inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<L
     //Sound only when the zone under every boundary point is certainly
     //forbidden, certified by the parity classification of the box's lower
     //corner (same gate as NK).
-    if (datos.isBottomLeftForbidden()) {
+    if (classification.isBottomLeftForbidden()) {
 
-        const qreal boundMin = std::pow(10.0, datos.extremes()[0] / 20.0);
+        const qreal boundMin = std::pow(10.0, classification.extremes()[0] / 20.0);
 
         if (v->gain().isUncertain()) {
             const qreal k = quick_solution::gainCut(boundMin, zeroSups, poleInfs, w, p0);
@@ -302,18 +302,18 @@ inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<L
     if (hasUncertainZeros || hasUncertainPoles) {
 
         const qreal phi0 = nominalPhase(p0);
-        const qreal salto = (boundaries->phaseRange().y() - boundaries->phaseRange().x()) /
+        const qreal phaseStep = (boundaries->phaseRange().y() - boundaries->phaseRange().x()) /
                             (boundaries->phaseCount() - 1);
 
-        const qreal boxPhaseMin = _double(Inf(Im(caja)));
-        const qreal boxPhaseMax = _double(Sup(Im(caja)));
+        const qreal boxPhaseMin = _double(Inf(Im(projection)));
+        const qreal boxPhaseMax = _double(Sup(Im(projection)));
 
-        const qreal boundPhaseMin = datos.extremes()[2];
-        const qreal boundPhaseMax = datos.extremes()[3];
+        const qreal boundPhaseMin = classification.extremes()[2];
+        const qreal boundPhaseMax = classification.extremes()[3];
 
         //Right strip (phases above the boundary maximum) certainly
         //forbidden, and wider than one grid step of the union.
-        if (datos.isTopRightForbidden() && boundPhaseMax < boxPhaseMax - salto) {
+        if (classification.isTopRightForbidden() && boundPhaseMax < boxPhaseMax - phaseStep) {
 
             const qreal thetaMax = boundPhaseMax * M_PI / 180.0;
 
@@ -348,7 +348,7 @@ inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<L
 
         //Left strip (phases below the boundary minimum) certainly
         //forbidden.
-        if (datos.isBottomLeftForbidden() && boundPhaseMin > boxPhaseMin + salto) {
+        if (classification.isBottomLeftForbidden() && boundPhaseMin > boxPhaseMin + phaseStep) {
 
             const qreal thetaMin = boundPhaseMin * M_PI / 180.0;
 
@@ -423,9 +423,9 @@ inline bool AlgorithmMc1::gainRangeIsFeasible(LtiSystem * box,
     bool feasibleEverywhere = true;
 
     for (qint32 i = 0; i < omega->size() && feasibleEverywhere; ++i) {
-        const cinterval caja = conversion->nicholsBox(candidate.get(), omega->at(i),
-                                                      plantas_nominales.at(i));
-        feasibleEverywhere = deteccion->classifyBox(caja, boundaries, i).flag() == feasible;
+        const cinterval projection = conversion->nicholsBox(candidate.get(), omega->at(i),
+                                                      nominalPlantValues.at(i));
+        feasibleEverywhere = detector->classifyBox(projection, boundaries, i).flag() == feasible;
     }
 
     return feasibleEverywhere;

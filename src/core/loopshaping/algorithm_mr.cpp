@@ -38,16 +38,16 @@ AlgorithmMr::~AlgorithmMr()
 {
 }
 
-void AlgorithmMr::set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> * omega, const BoundaryData *boundaries,
+void AlgorithmMr::setProblem(LtiSystem *plant, LtiSystem *controller, QVector<qreal> * omega, const BoundaryData *boundaries,
                                   qreal epsilon, const qftbx::CloudSet & temp,
-                                  const qftbx::SpecificationRecords * espe){
-    this->planta = planta;
-    this->controlador = controlador->clone();
+                                  const qftbx::SpecificationRecords * specificationRecords){
+    this->plant = plant;
+    this->controller = controller->clone();
     this->omega = omega;
     this->boundaries = boundaries;
     this->epsilon = epsilon;
     this->temp = temp;
-    this->espe = espe;
+    this->specificationRecords = specificationRecords;
 }
 
 
@@ -60,9 +60,9 @@ void AlgorithmMr::set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<q
 inline void AlgorithmMr::buildControllerExpressions(){
 
     const bool timeConstant =
-            controlador->type() == LtiSystem::SystemType::TimeConstantGain;
+            controller->type() == LtiSystem::SystemType::TimeConstantGain;
 
-    if (!timeConstant && controlador->type() != LtiSystem::SystemType::ZeroPoleGain) {
+    if (!timeConstant && controller->type() != LtiSystem::SystemType::ZeroPoleGain) {
         throw qftbx::InvalidInput(
                 "The ICSP loop-shaping algorithm needs a zero-pole-gain or "
                 "time-constant controller structure.");
@@ -81,9 +81,9 @@ inline void AlgorithmMr::buildControllerExpressions(){
         return "atan(" + number(w) + "/(" + value + "))";
     };
 
-    const QString gain = controlador->gain().isUncertain()
-            ? controlador->gain().name()
-            : number(controlador->gain().nominal());
+    const QString gain = controller->gain().isUncertain()
+            ? controller->gain().name()
+            : number(controller->gain().nominal());
 
     magnitudeExpressions.clear();
     phaseExpressions.clear();
@@ -93,12 +93,12 @@ inline void AlgorithmMr::buildControllerExpressions(){
         QString magnitude = "(" + gain + ")";
         QString phase = "(0";
 
-        for (Parameter & var : controlador->numerator()) {
+        for (Parameter & var : controller->numerator()) {
             magnitude += "*" + term(var, w);
             phase += "+" + phaseTerm(var, w);
         }
 
-        for (Parameter & var : controlador->denominator()) {
+        for (Parameter & var : controller->denominator()) {
             magnitude += "/" + term(var, w);
             phase += "-" + phaseTerm(var, w);
         }
@@ -126,7 +126,7 @@ inline void AlgorithmMr::buildConstraints(){
     //The validated specification set, the same accessor the boundary
     //engine cuts at (the raw record heightDb evaluated NaN on some legacy
     //system specifications).
-    const qftbx::SpecificationSet specifications = qftbx::toSpecificationSet(*espe);
+    const qftbx::SpecificationSet specifications = qftbx::toSpecificationSet(*specificationRecords);
 
     const auto applies = [&](qint32 slot, qreal w) {
         return specifications.at(static_cast<qftbx::SpecificationType>(slot)).appliesAt(w);
@@ -138,7 +138,7 @@ inline void AlgorithmMr::buildConstraints(){
 
     const auto addConstraint = [&](const QString & expression) {
         auto tree = std::make_unique<ExpressionTree>("1");
-        tree->setFunc(expression.toStdString(), 0.0, alg::MAYORIGUAL);
+        tree->setFunc(expression.toStdString(), 0.0, alg::GREATER_EQUAL);
         constraints.push_back(std::move(tree));
         constraintTexts.append(expression);
     };
@@ -238,24 +238,24 @@ inline void AlgorithmMr::buildConstraints(){
 }
 
 
-bool AlgorithmMr::init_algorithm(){
+bool AlgorithmMr::solve(){
 
-    lista = std::make_unique<OrderedList>();
-    stability = std::make_unique<NominalStabilityChecker>(planta, omega);
+    liveList = std::make_unique<OrderedList>();
+    stability = std::make_unique<NominalStabilityChecker>(plant, omega);
 
     buildControllerExpressions();
     buildConstraints();
 
-    classifyAndInsert(std::move(controlador));
+    classifyAndInsert(std::move(controller));
 
     while (true) {
 
-        if (lista->isEmpty()) {
+        if (liveList->isEmpty()) {
             throw qftbx::InvalidInput(
                     "No feasible solution exists in the given search box.");
         }
 
-        std::unique_ptr<SearchNode> node = lista->takeFirstAs<SearchNode>();
+        std::unique_ptr<SearchNode> node = liveList->takeFirstAs<SearchNode>();
 
         if (node->flag() == feasible || isParameterBoxSmall(node->system())) {
 
@@ -280,11 +280,11 @@ bool AlgorithmMr::init_algorithm(){
                 continue;
             }
 
-            controlador_retorno = pointFromBox(node->system(), lowerCorner);
+            designedController = pointFromBox(node->system(), lowerCorner);
 
             //Every returned point must be nominally stabilising.
-            if (!stability->isNominallyStable(controlador_retorno.get())) {
-                controlador_retorno.reset();
+            if (!stability->isNominallyStable(designedController.get())) {
+                designedController.reset();
                 continue;
             }
 
@@ -301,12 +301,12 @@ bool AlgorithmMr::init_algorithm(){
 
 std::size_t AlgorithmMr::peakLiveNodes() const
 {
-    return lista != nullptr ? lista->peakSize() : 0;
+    return liveList != nullptr ? liveList->peakSize() : 0;
 }
 
 
 std::unique_ptr<LtiSystem> AlgorithmMr::controllerStructure(){
-    return std::move(controlador_retorno);
+    return std::move(designedController);
 }
 
 
@@ -331,7 +331,7 @@ inline void AlgorithmMr::classifyAndInsert(std::unique_ptr<LtiSystem> box){
     //call their evaluation order is unspecified.
     const qreal gainInf = narrowed->gain().range().min;
 
-    lista->insert(std::make_unique<SearchNode>(gainInf, std::move(narrowed), flag));
+    liveList->insert(std::make_unique<SearchNode>(gainInf, std::move(narrowed), flag));
 }
 
 

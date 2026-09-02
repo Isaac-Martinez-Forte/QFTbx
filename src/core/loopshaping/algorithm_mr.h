@@ -45,7 +45,7 @@
  *   CONTROLLER PARAMETER box (see isParameterBoxSmall). The other four
  *   algorithms measure epsilon on the NICHOLS box instead, because that is
  *   the criterion of their own papers, so the same number means different
- *   things depending on the algorithm picked - the note on set_datos says
+ *   things depending on the algorithm picked - the note on setProblem says
  *   what. The paper collects all solution boxes of that width and sorts
  *   them afterwards; ordering the live list by gain infimum reaches the
  *   minimum-gain one first, which is the one the sort would pick.
@@ -66,13 +66,13 @@ public:
     /**
      * @brief Publishes the problem.
      *
-     * @param planta the nominal plant, for the nominal stability check.
-     * @param controlador the initial search box of the controller
+     * @param plant the nominal plant, for the nominal stability check.
+     * @param controller the initial search box of the controller
      * parameters; the algorithm takes it over.
      * @param omega the design frequencies.
      * @param temp the plant template contour at each of them, from which
      * the constraint representatives are drawn.
-     * @param espe the specifications the constraints are built from.
+     * @param specificationRecords the specifications the constraints are built from.
      * @param epsilon termination width of the CONTROLLER PARAMETER box, as
      * in the paper (its eps = 0.001 on the boxes of section 5). This is NOT
      * the epsilon of the other four algorithms, which measure the diameter
@@ -83,11 +83,11 @@ public:
      * @param boundaries unused: the constraints come from the
      * specifications and the templates, not from Nichols boundaries.
      */
-    void set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> * omega, const BoundaryData * boundaries,
+    void setProblem(LtiSystem * plant, LtiSystem * controller, QVector<qreal> * omega, const BoundaryData * boundaries,
                    qreal epsilon, const qftbx::CloudSet & temp,
-                   const qftbx::SpecificationRecords * espe);
+                   const qftbx::SpecificationRecords * specificationRecords);
 
-    bool init_algorithm();
+    bool solve();
 
     /// The designed controller, handed over to the caller.
     std::unique_ptr<LtiSystem> controllerStructure();
@@ -119,16 +119,16 @@ private:
     inline std::unique_ptr<LtiSystem> boxFromDomains(LtiSystem * box,
                                       const std::map<std::string, cxsc::interval> & domains);
 
-    LtiSystem * planta = nullptr;
-    std::unique_ptr<LtiSystem> controlador;
+    LtiSystem * plant = nullptr;
+    std::unique_ptr<LtiSystem> controller;
     QVector<qreal> * omega = nullptr;
     const BoundaryData * boundaries = nullptr;
     qreal epsilon = 0;
     qftbx::CloudSet temp;
-    const qftbx::SpecificationRecords * espe = nullptr;
+    const qftbx::SpecificationRecords * specificationRecords = nullptr;
 
     std::unique_ptr<NominalStabilityChecker> stability;
-    std::unique_ptr<OrderedList> lista;
+    std::unique_ptr<OrderedList> liveList;
 
     //Controller magnitude/phase expression strings, one per design
     //frequency, and the parsed constraint trees (built once; each box
@@ -139,7 +139,7 @@ private:
     //The source text of each constraint, for diagnostics.
     QVector<QString> constraintTexts;
 
-    std::unique_ptr<LtiSystem> controlador_retorno;
+    std::unique_ptr<LtiSystem> designedController;
 
 };
 

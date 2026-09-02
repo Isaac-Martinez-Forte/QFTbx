@@ -82,10 +82,10 @@ public:
     AlgorithmNt();
     ~AlgorithmNt();
 
-    void set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, const BoundaryData * boundaries,
+    void setProblem(LtiSystem * plant, LtiSystem * controller, QVector<qreal> *omega, const BoundaryData * boundaries,
                     qreal epsilon);
 
-    bool init_algorithm();
+    bool solve();
 
     /// The designed controller, handed over to the caller.
     std::unique_ptr<LtiSystem> controllerStructure();
@@ -97,31 +97,31 @@ public:
 private:
 
     inline void check_box_feasibility(std::unique_ptr<LtiSystem> box);
-    inline std::unique_ptr<LtiSystem> acelerated(std::unique_ptr<LtiSystem> v, qreal minimo_boundarie,
-                                                 qreal o, qint32 contador, bool arriba);
-    inline bool feasibleGainFrom(LtiSystem * v, qreal maximo_boundarie, cxsc::cinterval caja,
-                                 qreal o, qint32 contador, qreal & from);
+    inline std::unique_ptr<LtiSystem> acelerated(std::unique_ptr<LtiSystem> v, qreal minBoundary,
+                                                 qreal o, qint32 frequencyIndex, bool above);
+    inline bool feasibleGainFrom(LtiSystem * v, qreal maxBoundary, cxsc::cinterval projection,
+                                 qreal o, qint32 frequencyIndex, qreal & from);
 
-    LtiSystem * planta = nullptr;
-    std::unique_ptr<LtiSystem> controlador;
+    LtiSystem * plant = nullptr;
+    std::unique_ptr<LtiSystem> controller;
     QVector <qreal> * omega = nullptr;
     const BoundaryData * boundaries = nullptr;
     std::unique_ptr<NaturalIntervalExtension> conversion;
-    std::unique_ptr<OrderedList> lista;
+    std::unique_ptr<OrderedList> liveList;
     qreal epsilon = 0.0;
 
-    std::unique_ptr<LtiSystem> controlador_retorno;
-    qreal minimo_boundaries = 0.0;
+    std::unique_ptr<LtiSystem> designedController;
+    qreal minBoundary = 0.0;
 
 
-    QPointF interseccion (QPointF uno, QPointF dos);
+    QPointF intersection (QPointF uno, QPointF dos);
 
 
     qint32 tamFas = 0;
 
-    std::unique_ptr<BoundaryViolationDetector> deteccion;
+    std::unique_ptr<BoundaryViolationDetector> detector;
     std::unique_ptr<NominalStabilityChecker> stability;
-    QVector <complex> plantas_nominales;
+    QVector <complex> nominalPlantValues;
 
 };
 

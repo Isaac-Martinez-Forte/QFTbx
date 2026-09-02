@@ -110,28 +110,28 @@ void UncertaintyDialog::buildRows(){
 
     qint32 i = 0;
 
-    foreach (const QString &valor, numeratorTokens){
+    foreach (const QString &value, numeratorTokens){
         if(uncertainTable.at(0).at(i)){
-            if (!seenNames.contains(valor)){
+            if (!seenNames.contains(value)){
                 QWidget * widget = new QWidget(ui->numeratorArea);
-                buildRow(widget, valor, numeratorRows, rangeOnlyMode);
+                buildRow(widget, value, numeratorRows, rangeOnlyMode);
                 numeratorLayout->addWidget(widget);
                 rowWidgets.append(widget);
-                seenNames.append(valor);
+                seenNames.append(value);
             }
         }
         i++;
     }
 
     i = 0;
-    foreach (const QString &valor, denominatorTokens){
+    foreach (const QString &value, denominatorTokens){
         if(uncertainTable.at(1).at(i)){
-            if (!seenNames.contains(valor)){
+            if (!seenNames.contains(value)){
                 QWidget * widget = new QWidget(ui->denominatorArea);
-                buildRow(widget, valor, denominatorRows, rangeOnlyMode);
+                buildRow(widget, value, denominatorRows, rangeOnlyMode);
                 denominatorLayout->addWidget(widget);
                 rowWidgets.append(widget);
-                seenNames.append(valor);
+                seenNames.append(value);
             }
         }
         i++;
@@ -492,6 +492,6 @@ void UncertaintyDialog::on_okButton_clicked()
     }
 }
 
-bool UncertaintyDialog::getTodoCorrecto(){
+bool UncertaintyDialog::wasAccepted(){
     return accepted_ok;
 }

@@ -50,7 +50,7 @@
 // -- What the validation found -------------------------------------------
 //
 // Two defects, both fixed; see the comments at the exit of
-// AlgorithmMr::init_algorithm and in isParameterBoxSmall.
+// AlgorithmMr::solve and in isParameterBoxSmall.
 //
 //   - MR returned the point of an epsilon-small AMBIGUOUS box without ever
 //     checking it against its own constraint set. On this example that
@@ -296,10 +296,10 @@ TEST(MrArticleValidation, MrDesignsAFeasibleControllerUnderTheStabilityMargin)
     //MR takes no Nichols boundaries: its constraints come from the
     //specifications and the template representatives directly. The
     //epsilon is the paper's.
-    mr.set_datos(project->plant(), structure.get(), project->omega()->values(),
+    mr.setProblem(project->plant(), structure.get(), project->omega()->values(),
                  nullptr, kEpsilon, project->contour(), project->specifications());
 
-    ASSERT_TRUE(mr.init_algorithm());
+    ASSERT_TRUE(mr.solve());
 
     const std::unique_ptr<LtiSystem> designed = mr.controllerStructure();
     ASSERT_NE(designed, nullptr);

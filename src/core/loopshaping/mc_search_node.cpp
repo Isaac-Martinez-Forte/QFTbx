@@ -7,24 +7,24 @@ McSearchNode::McSearchNode(qreal index, std::unique_ptr<LtiSystem> system, BoxFl
 {
 }
 
-void McSearchNode::setCutsEnabled(bool recorteActivado)
+void McSearchNode::setCutsEnabled(bool enabled)
 {
-    this->recorteActivado = recorteActivado;
+    this->enabled = enabled;
 }
 
 bool McSearchNode::cutsEnabled()
 {
-    return recorteActivado;
+    return enabled;
 }
 
 void McSearchNode::setStage(Stage e)
 {
-    etapa = e;
+    value = e;
 }
 
 Stage McSearchNode::stage()
 {
-    return etapa;
+    return value;
 }
 
 void McSearchNode::markFrequencyFeasible(qreal pos, qreal frec)

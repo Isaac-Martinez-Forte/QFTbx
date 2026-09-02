@@ -18,23 +18,23 @@ AlgorithmNk::~AlgorithmNk()
 }
 
 
-void AlgorithmNk::set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<qreal> * omega, const BoundaryData *boundaries,
+void AlgorithmNk::setProblem(LtiSystem *plant, LtiSystem *controller, QVector<qreal> * omega, const BoundaryData *boundaries,
                                      qreal epsilon, qint32 inicializacion){
 
-    this->planta = planta;
-    this->controlador = controlador->clone();
+    this->plant = plant;
+    this->controller = controller->clone();
     this->omega = omega;
     this->boundaries = boundaries;
     this->epsilon = epsilon;
     this->ini = inicializacion == 1 ? Extremes : Centre;
 
     hasUncertainZeros = false;
-    for (Parameter & var : this->controlador->numerator()) {
+    for (Parameter & var : this->controller->numerator()) {
         hasUncertainZeros = hasUncertainZeros || var.isUncertain();
     }
 
     hasUncertainPoles = false;
-    for (Parameter & var : this->controlador->denominator()) {
+    for (Parameter & var : this->controller->denominator()) {
         hasUncertainPoles = hasUncertainPoles || var.isUncertain();
     }
 }
@@ -44,12 +44,12 @@ void AlgorithmNk::set_datos(LtiSystem *planta, LtiSystem *controlador, QVector<q
 //NK additions wired at the paper's steps: local optimization on the
 //leading box (steps 5-6 and 18-20) and Quick Solution inside the
 //feasibility test of every box (steps 2 and 9).
-bool AlgorithmNk::init_algorithm(){
+bool AlgorithmNk::solve(){
 
-    lista = std::make_unique<OrderedList>();
+    liveList = std::make_unique<OrderedList>();
     conversion = std::make_unique<NaturalIntervalExtension>();
-    deteccion = std::make_unique<BoundaryViolationDetector>();
-    stability = std::make_unique<NominalStabilityChecker>(planta, omega);
+    detector = std::make_unique<BoundaryViolationDetector>();
+    stability = std::make_unique<NominalStabilityChecker>(plant, omega);
 
     bestLocalGain = std::numeric_limits<qreal>::infinity();
     bestLocalController.reset();
@@ -57,30 +57,30 @@ bool AlgorithmNk::init_algorithm(){
 
     //Stable prototype for building point controllers: the working box
     //pointer is replaced as Quick Solution rebuilds it.
-    prototype = controlador->clone();
+    prototype = controller->clone();
 
-    plantas_nominales.clear();
-    plantas_nominales_std.clear();
+    nominalPlantValues.clear();
+    nominalPlantValuesStd.clear();
 
     foreach (qreal o, *omega) {
-        std::complex<qreal> c = planta->evaluate(o);
-        plantas_nominales_std.append(c);
-        plantas_nominales.append(cxsc::complex(c.real(), c.imag()));
+        std::complex<qreal> c = plant->evaluate(o);
+        nominalPlantValuesStd.append(c);
+        nominalPlantValues.append(cxsc::complex(c.real(), c.imag()));
     }
 
     //Steps 1-3: Quick Solution and feasibility of the initial box happen
     //inside check_box_feasibility, which inserts it unless certainly
     //infeasible.
-    check_box_feasibility(std::move(controlador));
+    check_box_feasibility(std::move(controller));
 
     while (true) {
 
-        if (lista->isEmpty()) {
+        if (liveList->isEmpty()) {
             //Step 15. A certified feasible local solution stands in as
             //the answer when the interval search exhausts the space (the
             //local point was verified against bounds and stability).
             if (bestLocalController != nullptr) {
-                controlador_retorno = std::move(bestLocalController);
+                designedController = std::move(bestLocalController);
                 return true;
             }
 
@@ -88,7 +88,7 @@ bool AlgorithmNk::init_algorithm(){
                     "No feasible solution exists in the given search box.");
         }
 
-        std::unique_ptr<SearchNode> node = lista->takeFirstAs<SearchNode>();
+        std::unique_ptr<SearchNode> node = liveList->takeFirstAs<SearchNode>();
 
         //Pruning by the local solution (step 4 of the paper's outline /
         //G-bis of the thesis): a node whose gain infimum cannot improve
@@ -107,16 +107,16 @@ bool AlgorithmNk::init_algorithm(){
         }
 
         //Step 21 and Remark 3.1 termination, as reviewed for NT.
-        if (node->flag() == feasible || isEpsilonSmall(node->system(), this->epsilon, omega, conversion.get(), plantas_nominales)) {
+        if (node->flag() == feasible || isEpsilonSmall(node->system(), this->epsilon, omega, conversion.get(), nominalPlantValues)) {
             if (node->flag() == ambiguous) {
-                controlador_retorno = pointFromBox(node->system(), false);
+                designedController = pointFromBox(node->system(), false);
 
-                if (!stability->isNominallyStable(controlador_retorno.get())) {
-                    controlador_retorno.reset();
+                if (!stability->isNominallyStable(designedController.get())) {
+                    designedController.reset();
                     continue;
                 }
             } else {
-                controlador_retorno = pointFromBox(node->system(), true);
+                designedController = pointFromBox(node->system(), true);
             }
 
             return true;
@@ -134,12 +134,12 @@ bool AlgorithmNk::init_algorithm(){
 
 std::size_t AlgorithmNk::peakLiveNodes() const
 {
-    return lista != nullptr ? lista->peakSize() : 0;
+    return liveList != nullptr ? liveList->peakSize() : 0;
 }
 
 
 std::unique_ptr<LtiSystem> AlgorithmNk::controllerStructure(){
-    return std::move(controlador_retorno);
+    return std::move(designedController);
 }
 
 
@@ -149,7 +149,7 @@ std::unique_ptr<LtiSystem> AlgorithmNk::controllerStructure(){
 //infeasible boxes are destroyed; anything else enters the live list.
 inline void AlgorithmNk::check_box_feasibility(std::unique_ptr<LtiSystem> box){
 
-    BoxClassification datos;
+    BoxClassification classification;
     BoxFlag flag_final = feasible;
 
     //Step 20 of the paper: the certified local solution caps the useful
@@ -162,32 +162,32 @@ inline void AlgorithmNk::check_box_feasibility(std::unique_ptr<LtiSystem> box){
                 box->delay());
     }
 
-    qint32 contador = 0;
-    cinterval caja;
+    qint32 frequencyIndex = 0;
+    cinterval projection;
 
     foreach (qreal o, *omega) {
 
-        caja = conversion->nicholsBox(box.get(), o, plantas_nominales.at(contador));
+        projection = conversion->nicholsBox(box.get(), o, nominalPlantValues.at(frequencyIndex));
 
-        datos = deteccion->classifyBox(caja, boundaries, contador);
+        classification = detector->classifyBox(projection, boundaries, frequencyIndex);
 
-        if (datos.flag() == infeasible) {
+        if (classification.flag() == infeasible) {
             return;
         }
 
-        if (datos.flag() == ambiguous) {
+        if (classification.flag() == ambiguous) {
             flag_final = ambiguous;
 
             //Quick Solution at this frequency: sound only when the zone
             //under every boundary point is certainly forbidden, certified
             //by the parity classification of the box's lower corner.
-            if (datos.isBottomLeftForbidden()) {
-                box = quickSolution(std::move(box), datos.extremes()[0],
-                                    o, plantas_nominales_std.at(contador));
+            if (classification.isBottomLeftForbidden()) {
+                box = quickSolution(std::move(box), classification.extremes()[0],
+                                    o, nominalPlantValuesStd.at(frequencyIndex));
             }
         }
 
-        contador++;
+        frequencyIndex++;
     }
 
     //Nominal closed-loop stability of bounds-feasible boxes (the paper
@@ -205,7 +205,7 @@ inline void AlgorithmNk::check_box_feasibility(std::unique_ptr<LtiSystem> box){
     //call their evaluation order is unspecified.
     const qreal gainInf = box->gain().range().min;
 
-    lista->insert(std::make_unique<SearchNode>(gainInf, std::move(box), flag_final));
+    liveList->insert(std::make_unique<SearchNode>(gainInf, std::move(box), flag_final));
 }
 
 
@@ -474,9 +474,9 @@ inline bool AlgorithmNk::pointIsFeasible(const QVector<qreal> & zeros,
     const std::unique_ptr<LtiSystem> point = pointSystem(zeros, poles, gain);
 
     for (qint32 i = 0; i < omega->size(); ++i) {
-        const cinterval caja = conversion->nicholsBox(point.get(), omega->at(i),
-                                                      plantas_nominales.at(i));
-        const BoxFlag flag = deteccion->classifyBox(caja, boundaries, i).flag();
+        const cinterval projection = conversion->nicholsBox(point.get(), omega->at(i),
+                                                      nominalPlantValues.at(i));
+        const BoxFlag flag = detector->classifyBox(projection, boundaries, i).flag();
 
         if (flag != feasible) {
             return false;

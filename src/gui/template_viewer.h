@@ -67,7 +67,7 @@ public:
     * @param epsilon the tightening of each frequency, one per omega entry.
     */
 
-    void setDatos(const qftbx::CloudSet & templates,
+    void setData(const qftbx::CloudSet & templates,
                   const qftbx::CloudSet & contour,
                   QVector <qreal> * omega,
                   QVector <qreal> * epsilon);
@@ -129,7 +129,7 @@ private:
     std::unique_ptr<Ui::TemplateViewer> ui;
     bool plotted = false;
     void plotLine(qint32 pos, QVector <QCPGraph *> & saveImage, const QVector <qreal> & fas,
-                  const QVector <qreal> & gan, bool tipo, bool visible, qint32 contador);
+                  const QVector <qreal> & gan, bool tipo, bool visible, qint32 frequencyIndex);
     void addFrequencyRow (QColor color, qint32 pos);
     void clearDiagram();
 

@@ -31,7 +31,7 @@ public:
     explicit ControllerDialog(QWidget *parent = 0);
     ~ControllerDialog();
 
-    bool getTodoCorrecto();
+    bool wasAccepted();
 
     /// The controller structure the user described (with the search box of
     /// its parameters), or nullptr when cancelled or rejected. Ownership
@@ -72,7 +72,7 @@ private:
     /// The coefficients of one polynomial, or nothing when any of them is
     /// not a valid expression. The invalid one used to become 0 in silence,
     /// which quietly designed a different controller.
-    std::optional<std::vector<Parameter>> buildParameters(const CoefficientRow & numeros);
+    std::optional<std::vector<Parameter>> buildParameters(const CoefficientRow & numbers);
     bool parse(QString cadena);
     bool parseCoefficients(CoefficientTable & tabla, QLineEdit *linea,
                            CoefficientTable & expressionTable, UncertainTable & uncertainTable);
@@ -84,7 +84,7 @@ private:
 
     mup::ParserX p;
 
-    bool todoCorrecto;
+    bool accepted;
 };
 
 #endif // QFTBX_CONTROLLER_DIALOG_H

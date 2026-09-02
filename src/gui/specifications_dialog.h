@@ -42,7 +42,7 @@ public:
     ~SpecificationsDialog();
 
 
-    bool getTodoCorrecto ();
+    bool wasAccepted ();
 
     /**
      * @brief The 7 specification records the user described, or nullptr when
@@ -113,15 +113,15 @@ private:
 
     qint32 activeTab;
 
-    bool getDatos(qftbx::SpecificationRecord & record_in, QString name_in);
-    bool getDatos(qftbx::SpecificationRecord & record_in, qftbx::SpecificationRecord & upperRecord,
+    bool data(qftbx::SpecificationRecord & record_in, QString name_in);
+    bool data(qftbx::SpecificationRecord & record_in, qftbx::SpecificationRecord & upperRecord,
                   QString name_in);
-    void setDatos (qftbx::SpecificationRecord & record_in);
-    void setDatos (qftbx::SpecificationRecord & record_in, qftbx::SpecificationRecord & upperRecord);
+    void setData (qftbx::SpecificationRecord & record_in);
+    void setData (qftbx::SpecificationRecord & record_in, qftbx::SpecificationRecord & upperRecord);
     /**
      * @brief Reads the tab being left into its record.
      *
-     * False when the tab could not be read: getDatos() has emptied the
+     * False when the tab could not be read: data() has emptied the
      * record it could not fill and marked the offending field, so the
      * caller must NOT switch away.
      */
@@ -153,7 +153,7 @@ private:
 
     const QVector <qreal> * frequencies;
 
-    bool todoCorrecto;
+    bool accepted;
 };
 
 

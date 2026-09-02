@@ -43,7 +43,7 @@ enum diagrama {Nichol = false, Nyquist = true};
 /**
  * @brief Extracts a point controller from a box.
  *
- * @param controlador the box to take a corner of.
+ * @param controller the box to take a corner of.
  * @param x true takes the lower corner of every parameter, which is where
  * a feasible box realises its optimum gain. false takes the corner that
  * the monotonicity of the Nichols projection makes feasible for an
@@ -53,12 +53,12 @@ enum diagrama {Nichol = false, Nyquist = true};
  * minimum. The historical code took every maximum, stepping AWAY from the
  * allowed side in the pole directions.
  */
-inline std::unique_ptr<LtiSystem> pointFromBox(LtiSystem * controlador, bool x) {
+inline std::unique_ptr<LtiSystem> pointFromBox(LtiSystem * controller, bool x) {
 
     std::vector <Parameter> numerador;
-    numerador.reserve(controlador->numerator().size());
+    numerador.reserve(controller->numerator().size());
 
-    for (Parameter & v : controlador->numerator()) {
+    for (Parameter & v : controller->numerator()) {
         if (!v.isUncertain()){
             numerador.emplace_back(v.nominal());
         } else {
@@ -67,18 +67,18 @@ inline std::unique_ptr<LtiSystem> pointFromBox(LtiSystem * controlador, bool x) 
     }
 
     std::vector <Parameter> denominador;
-    denominador.reserve(controlador->denominator().size());
+    denominador.reserve(controller->denominator().size());
 
-    for (Parameter & v : controlador->denominator()) {
+    for (Parameter & v : controller->denominator()) {
         //Poles always take the lower corner: a larger pole moves the
         //projection towards the forbidden side.
         denominador.emplace_back(v.isUncertain() ? v.range().min : v.nominal());
     }
 
-    const qreal k = x ? controlador->gain().range().min
-                      : controlador->gain().range().max;
+    const qreal k = x ? controller->gain().range().min
+                      : controller->gain().range().max;
 
-    return controlador->create(controlador->name(), std::move(numerador),
+    return controller->create(controller->name(), std::move(numerador),
                                std::move(denominador), Parameter(k),
                                Parameter(qreal(0)));
 }
@@ -100,13 +100,13 @@ inline std::unique_ptr<LtiSystem> pointFromBox(LtiSystem * controlador, bool x) 
  * \f$ |P| \f$, so the same number is far tighter on a plant with a large
  * low-frequency gain than on one without.
  */
-inline bool isEpsilonSmall(LtiSystem * controlador, qreal epsilon, QVector <qreal> * omega,
+inline bool isEpsilonSmall(LtiSystem * controller, qreal epsilon, QVector <qreal> * omega,
                             NaturalIntervalExtension *conversion,
-                            const QVector <complex> & plantas_nominales) {
+                            const QVector <complex> & nominalPlantValues) {
 
     cinterval box;
     for (qint32 i = 0; i < omega->size(); i++){
-        box = conversion->nicholsBox(controlador, omega->at(i), plantas_nominales.at(i));
+        box = conversion->nicholsBox(controller, omega->at(i), nominalPlantValues.at(i));
 
         if ((cxsc::diam(Re(box)) >= epsilon) || (cxsc::diam(Im(box)) >= epsilon)) {
             return false;

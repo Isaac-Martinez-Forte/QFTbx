@@ -63,7 +63,7 @@ public:
     Range delay();
 
     /// True when the user accepted the dialog with valid ranges.
-    bool getTodoCorrecto();
+    bool wasAccepted();
 
     
    /**
@@ -114,7 +114,7 @@ private:
     void buildRows();
 
     bool readRanges();
-    void buildRow(QWidget *widget, QString numero, std::list <ParLineEdit> & vector, bool rowsBuilt);
+    void buildRow(QWidget *widget, QString label, std::list <ParLineEdit> & vector, bool rowsBuilt);
    // void buildRows (QVector<QString> *numeratorParameters, QVector<QString> *denominatorParameters);
     qreal parse(QString cadena);
 

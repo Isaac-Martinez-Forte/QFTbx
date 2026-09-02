@@ -59,7 +59,7 @@ public:
 
     bool cudaSelected();
 
-    bool getTodoCorrecto();
+    bool wasAccepted();
 
     
 private slots:
@@ -79,7 +79,7 @@ private:
     bool accepted_once = false;
     bool cudaCheck = false;
 
-    bool todoCorrecto;
+    bool accepted;
 };
 
 #endif // QFTBX_BOUNDARY_GRID_DIALOG_H

@@ -41,7 +41,7 @@ PlantDialog::PlantDialog(QWidget *parent) :
 
     uncertaintyEntered = false;
 
-    todoCorrecto = false;
+    accepted = false;
 
     //The uncertainty dialog is created up front and reused.
     uncertaintyDialog = new UncertaintyDialog (this);
@@ -382,7 +382,7 @@ void PlantDialog::on_okButton_clicked()
 
     //The uncertainty only counts if its dialog was ACCEPTED (opening and
     //cancelling used to leave the flag set and a half-built state in use).
-    if (uncertaintyEntered && uncertaintyDialog->getTodoCorrecto()){
+    if (uncertaintyEntered && uncertaintyDialog->wasAccepted()){
         //The plant receives COPIES: the uncertainty dialog keeps its own
         //parameters for further editing.
         std::vector<Parameter> nume = uncertaintyDialog->numerator();
@@ -422,21 +422,21 @@ void PlantDialog::on_okButton_clicked()
     }
 
 
-    todoCorrecto = true;
+    accepted = true;
 
     this->close();
 }
 
-std::optional<std::vector<Parameter>> PlantDialog::buildParameters(const CoefficientRow & numeros){
+std::optional<std::vector<Parameter>> PlantDialog::buildParameters(const CoefficientRow & numbers){
     std::vector<Parameter> var;
 
-    if (numeros.isEmpty()){
+    if (numbers.isEmpty()){
         return var;
     }
 
-    var.reserve(numeros.size());
+    var.reserve(numbers.size());
 
-    foreach (const QString &string, numeros) {
+    foreach (const QString &string, numbers) {
         p.SetExpr(string.toStdString());
         try {
             var.push_back(Parameter(p.Eval().GetFloat()));
@@ -484,8 +484,8 @@ void PlantDialog::on_freeFormRadio_clicked()
 }
 
 
-bool PlantDialog::getTodoCorrecto(){
-    return todoCorrecto;
+bool PlantDialog::wasAccepted(){
+    return accepted;
 }
 
 std::unique_ptr<LtiSystem> PlantDialog::takePlant(){

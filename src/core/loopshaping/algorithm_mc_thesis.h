@@ -104,10 +104,10 @@ public:
 
     void setStrategies(const Strategies & s);
 
-    void set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> * omega, const BoundaryData * boundaries,
+    void setProblem(LtiSystem * plant, LtiSystem * controller, QVector<qreal> * omega, const BoundaryData * boundaries,
                    qreal epsilon);
 
-    bool init_algorithm();
+    bool solve();
 
     /// The designed controller, handed over to the caller.
     std::unique_ptr<LtiSystem> controllerStructure();
@@ -131,7 +131,7 @@ private:
     //Detection results of one node, one entry per design frequency
     //(empty for frequencies the node is marked feasible at).
     struct NodeAnalysis {
-        QVector<std::optional<BoxClassification>> datos;
+        QVector<std::optional<BoxClassification>> classification;
         QVector<Range> boxMag;     //dB edges of the projected box
         QVector<Range> boxPhase;   //degree edges
         tools::BoxFlag flag = tools::feasible;
@@ -162,25 +162,25 @@ private:
     inline std::unique_ptr<LtiSystem> replaceParameter(LtiSystem * box, qint32 parameter,
                                                        Range range) const;
 
-    LtiSystem * planta = nullptr;
-    std::unique_ptr<LtiSystem> controlador;
+    LtiSystem * plant = nullptr;
+    std::unique_ptr<LtiSystem> controller;
     QVector<qreal> * omega = nullptr;
     const BoundaryData * boundaries = nullptr;
     qreal epsilon = 0;
 
     std::unique_ptr<NaturalIntervalExtension> conversion;
-    std::unique_ptr<BoundaryViolationDetector> deteccion;
+    std::unique_ptr<BoundaryViolationDetector> detector;
     std::unique_ptr<NominalStabilityChecker> stability;
-    std::unique_ptr<OrderedList> lista;
-    QVector<cxsc::complex> plantas_nominales;
-    QVector<std::complex<qreal>> plantas_nominales_std;
+    std::unique_ptr<OrderedList> liveList;
+    QVector<cxsc::complex> nominalPlantValues;
+    QVector<std::complex<qreal>> nominalPlantValuesStd;
 
     //Prune variable C (thesis 5.4.3): gain and controller of the best
     //certified solution found by MG.
     qreal bestCertifiedGain = 0;
     std::unique_ptr<LtiSystem> bestCertifiedController;
 
-    std::unique_ptr<LtiSystem> controlador_retorno;
+    std::unique_ptr<LtiSystem> designedController;
 
     Strategies strategies;
 

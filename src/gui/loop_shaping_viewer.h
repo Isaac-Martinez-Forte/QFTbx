@@ -33,7 +33,7 @@ public:
     ~LoopShapingViewer();
 
 
-    void setDatos (const qftbx::UnionTraces & unionTraces, QVector<qreal> *omega, LoopShapingResult * loopShapingData, LtiSystem *plant, bool linSpace);
+    void setData (const qftbx::UnionTraces & unionTraces, QVector<qreal> *omega, LoopShapingResult * loopShapingData, LtiSystem *plant, bool linSpace);
 
     void showDiagram();
 
@@ -47,7 +47,7 @@ private:
 
     qftbx::UnionTraces unionTraces;
     QVector <qreal> * omega = nullptr;
-    //Observers on the project's objects, handed in by setDatos(): the
+    //Observers on the project's objects, handed in by setData(): the
     //viewer never owns what it draws.
     LtiSystem * plant = nullptr;
     LoopShapingResult * loopShapingData = nullptr;

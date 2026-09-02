@@ -151,7 +151,7 @@ TEST_F(GuiSmoke, PlantDialogBuildsAZeroPoleGainPlant)
 
     press(&dialog, "okButton");
 
-    ASSERT_TRUE(dialog.getTodoCorrecto()) << "the dialog rejected valid data";
+    ASSERT_TRUE(dialog.wasAccepted()) << "the dialog rejected valid data";
 
     //Ownership comes with it: the window would hand it to the project.
     std::unique_ptr<LtiSystem> plant(dialog.takePlant());
@@ -184,7 +184,7 @@ TEST_F(GuiSmoke, PlantDialogRejectsAnInvalidExpression)
 
     press(&dialog, "okButton");
 
-    EXPECT_FALSE(dialog.getTodoCorrecto());
+    EXPECT_FALSE(dialog.wasAccepted());
     EXPECT_EQ(dialog.takePlant(), nullptr);
     EXPECT_FALSE(m_reported.isEmpty()) << "the rejection must be reported";
 }
@@ -205,7 +205,7 @@ TEST_F(GuiSmoke, PlantDialogRejectsAnInvalidCoefficient)
 
     press(&dialog, "okButton");
 
-    EXPECT_FALSE(dialog.getTodoCorrecto())
+    EXPECT_FALSE(dialog.wasAccepted())
         << "a malformed coefficient was accepted";
     EXPECT_FALSE(m_reported.isEmpty()) << "the rejection must be reported";
 
@@ -229,7 +229,7 @@ TEST_F(GuiSmoke, PlantDialogRejectsAReservedParameterName)
 
     press(&dialog, "okButton");
 
-    EXPECT_FALSE(dialog.getTodoCorrecto()) << "a reserved parameter name was accepted";
+    EXPECT_FALSE(dialog.wasAccepted()) << "a reserved parameter name was accepted";
     ASSERT_FALSE(m_reported.isEmpty()) << "the rejection must be reported";
     EXPECT_TRUE(m_reported.join(QChar(' ')).contains(QStringLiteral("k")))
         << "the message must name the offending identifier: "
@@ -251,7 +251,7 @@ TEST_F(GuiSmoke, FrequenciesDialogBuildsTheDesignFrequencies)
 
     press(&dialog, "okButton");
 
-    ASSERT_TRUE(dialog.getTodoCorrecto()) << "the dialog rejected valid data";
+    ASSERT_TRUE(dialog.wasAccepted()) << "the dialog rejected valid data";
 
     std::unique_ptr<Omega> omega(dialog.takeOmega());
     ASSERT_NE(omega, nullptr);
@@ -304,7 +304,7 @@ TEST_F(GuiSmoke, FrequenciesDialogRefusesAnEmptySetInsteadOfDying)
 
     press(&dialog, "okButton");
 
-    EXPECT_FALSE(dialog.getTodoCorrecto());
+    EXPECT_FALSE(dialog.wasAccepted());
     EXPECT_FALSE(m_reported.isEmpty()) << "the rejection must be reported";
     EXPECT_EQ(dialog.takeOmega(), nullptr);
 }
@@ -321,7 +321,7 @@ TEST_F(GuiSmoke, FrequenciesDialogRefusesNonPositiveFrequencies)
 
     press(&dialog, "okButton");
 
-    EXPECT_FALSE(dialog.getTodoCorrecto());
+    EXPECT_FALSE(dialog.wasAccepted());
     ASSERT_FALSE(m_reported.isEmpty()) << "the rejection must be reported";
     EXPECT_TRUE(m_reported.join(QChar(' ')).contains(QStringLiteral("positive")))
         << m_reported.join(QChar(' ')).toStdString();
@@ -340,7 +340,7 @@ TEST_F(GuiSmoke, FrequenciesDialogRefusesAnEmptyPointCount)
 
     press(&dialog, "okButton");
 
-    EXPECT_FALSE(dialog.getTodoCorrecto());
+    EXPECT_FALSE(dialog.wasAccepted());
     EXPECT_FALSE(m_reported.isEmpty()) << "the rejection must be reported";
 }
 
@@ -383,7 +383,7 @@ TEST_F(GuiSmoke, ControllerDialogBuildsTheControllerStructure)
 
     press(&dialog, "okButton");
 
-    ASSERT_TRUE(dialog.getTodoCorrecto()) << "the dialog rejected valid data";
+    ASSERT_TRUE(dialog.wasAccepted()) << "the dialog rejected valid data";
 
     std::unique_ptr<LtiSystem> structure(dialog.takeControllerStructure());
     ASSERT_NE(structure, nullptr);
@@ -411,7 +411,7 @@ TEST_F(GuiSmoke, ControllerDialogRejectsAnInvalidNumerator)
 
     press(&dialog, "okButton");
 
-    EXPECT_FALSE(dialog.getTodoCorrecto())
+    EXPECT_FALSE(dialog.wasAccepted())
         << "a malformed numerator was accepted";
     EXPECT_EQ(dialog.takeControllerStructure(), nullptr);
     EXPECT_FALSE(m_reported.isEmpty()) << "the rejection must be reported";
@@ -449,7 +449,7 @@ TEST_F(GuiSmoke, SpecificationsDialogStoresAConstantStabilitySpecification)
     if (!records.has_value()) {
         //The dialog declined the combination; the smoke value here is that
         //it said so instead of crashing or storing a half-built record.
-        EXPECT_FALSE(dialog.getTodoCorrecto());
+        EXPECT_FALSE(dialog.wasAccepted());
         return;
     }
 
@@ -475,7 +475,7 @@ TEST_F(GuiSmoke, TemplateViewerAsksItsHandlerToRecomputeTheContour)
 
     //The viewer takes its own copy of the clouds; the frequency and epsilon
     //vectors are still the project's.
-    viewer.setDatos(templates, contour, &omega, &epsilon);
+    viewer.setData(templates, contour, &omega, &epsilon);
     viewer.plotDiagram(true);
 
     bool called = false;
@@ -567,7 +567,7 @@ TEST_F(GuiSmoke, BoundaryGridDialogBuildsTheNicholsGrid)
 
     buttons->button(QDialogButtonBox::Ok)->click();
 
-    ASSERT_TRUE(dialog.getTodoCorrecto()) << "the dialog rejected its own defaults";
+    ASSERT_TRUE(dialog.wasAccepted()) << "the dialog rejected its own defaults";
 
     EXPECT_DOUBLE_EQ(dialog.phaseRangeValue().x(), -360.0);
     EXPECT_DOUBLE_EQ(dialog.phaseRangeValue().y(), 0.0);
@@ -589,7 +589,7 @@ TEST_F(GuiSmoke, BoundaryGridDialogRejectsAnInvertedRange)
 
     child<QDialogButtonBox>(&dialog, "buttonBox")->button(QDialogButtonBox::Ok)->click();
 
-    EXPECT_FALSE(dialog.getTodoCorrecto()) << "an inverted phase range was accepted";
+    EXPECT_FALSE(dialog.wasAccepted()) << "an inverted phase range was accepted";
 }
 
 TEST_F(GuiSmoke, TemplatesDialogBuildsOneEpsilonPerFrequency)
@@ -615,7 +615,7 @@ TEST_F(GuiSmoke, TemplatesDialogBuildsOneEpsilonPerFrequency)
 
     press(&dialog, "okButton");
 
-    ASSERT_TRUE(dialog.getTodoCorrecto()) << "the dialog rejected valid data";
+    ASSERT_TRUE(dialog.wasAccepted()) << "the dialog rejected valid data";
 
     //One epsilon per design frequency: the template computation indexes it
     //by frequency.
@@ -644,7 +644,7 @@ TEST_F(GuiSmoke, LoopShapingDialogCarriesTheChosenAlgorithm)
 
     press(&dialog, "okButton");
 
-    ASSERT_TRUE(dialog.getTodoCorrecto()) << "the dialog rejected valid data";
+    ASSERT_TRUE(dialog.wasAccepted()) << "the dialog rejected valid data";
 
     EXPECT_EQ(dialog.algorithmValue(), tools::mr);
     EXPECT_DOUBLE_EQ(dialog.epsilonValue(), 0.01);
@@ -679,7 +679,7 @@ TEST_F(GuiSmoke, UncertaintyDialogBuildsAnUncertainParameter)
 
     press(&dialog, "okButton");
 
-    ASSERT_TRUE(dialog.getTodoCorrecto()) << "the dialog rejected valid data";
+    ASSERT_TRUE(dialog.wasAccepted()) << "the dialog rejected valid data";
 
     //The constant numerator coefficient must travel as a constant, and the
     //named denominator one as uncertain with its range and nominal.
@@ -721,7 +721,7 @@ TEST_F(GuiSmoke, UncertaintyDialogRejectsAnEmptyRange)
 
     press(&dialog, "okButton");
 
-    EXPECT_FALSE(dialog.getTodoCorrecto()) << "a blank range was accepted";
+    EXPECT_FALSE(dialog.wasAccepted()) << "a blank range was accepted";
 }
 
 TEST_F(GuiSmoke, BoundaryViewerDrawsTheBoundariesItIsGiven)
@@ -734,7 +734,7 @@ TEST_F(GuiSmoke, BoundaryViewerDrawsTheBoundariesItIsGiven)
     const BoundaryData boundaries = oneBoundary();
     QVector<qreal> omega{1.0};
 
-    viewer.setDatos(&boundaries, &omega);
+    viewer.setData(&boundaries, &omega);
     viewer.showDiagram();
 
     QCustomPlot * plot = child<QCustomPlot>(&viewer, "plot");
@@ -754,7 +754,7 @@ TEST_F(GuiSmoke, BoundaryUnionViewerDrawsTheUnion)
                                      QPointF(-90.0, 10.0)}};
     QVector<qreal> omega{1.0};
 
-    viewer.setDatos(traces, &omega);
+    viewer.setData(traces, &omega);
     viewer.showDiagram();
 
     QCustomPlot * plot = child<QCustomPlot>(&viewer, "plot");
@@ -784,7 +784,7 @@ TEST_F(GuiSmoke, LoopShapingViewerDrawsTheShapedLoop)
                                      QPointF(-90.0, 10.0)}};
     QVector<qreal> omega{1.0, 10.0};
 
-    viewer.setDatos(traces, &omega, &result, &plant, false);
+    viewer.setData(traces, &omega, &result, &plant, false);
     viewer.showDiagram();
 
     QCustomPlot * plot = child<QCustomPlot>(&viewer, "plot");
@@ -808,7 +808,7 @@ TEST_F(GuiSmoke, LoopBoundariesViewerDrawsBothDiagrams)
     const BoundaryData nyquist = oneBoundary();
     QVector<qreal> omega{1.0};
 
-    viewer.setDatos(&nichols, &nyquist, &omega, &plant, &controller, true, false);
+    viewer.setData(&nichols, &nyquist, &omega, &plant, &controller, true, false);
     viewer.showDiagram();
 
     QCustomPlot * plot = child<QCustomPlot>(&viewer, "plot");

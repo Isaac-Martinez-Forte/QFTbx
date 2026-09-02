@@ -47,10 +47,10 @@ public:
     AlgorithmNk();
     ~AlgorithmNk();
 
-    void set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> *omega, const BoundaryData * boundaries,
+    void setProblem(LtiSystem * plant, LtiSystem * controller, QVector<qreal> *omega, const BoundaryData * boundaries,
                    qreal epsilon, qint32 inicializacion);
 
-    bool init_algorithm();
+    bool solve();
 
     /// The designed controller, handed over to the caller.
     std::unique_ptr<LtiSystem> controllerStructure();
@@ -79,21 +79,21 @@ private:
     inline void startingPoint(LtiSystem * box, QVector<qreal> & zeros,
                               QVector<qreal> & poles, qreal & gain);
 
-    LtiSystem * planta = nullptr;
-    std::unique_ptr<LtiSystem> controlador;
+    LtiSystem * plant = nullptr;
+    std::unique_ptr<LtiSystem> controller;
     QVector<qreal> * omega = nullptr;
     const BoundaryData * boundaries = nullptr;
     qreal epsilon = 0;
 
     std::unique_ptr<NaturalIntervalExtension> conversion;
-    std::unique_ptr<BoundaryViolationDetector> deteccion;
+    std::unique_ptr<BoundaryViolationDetector> detector;
     std::unique_ptr<NominalStabilityChecker> stability;
-    std::unique_ptr<OrderedList> lista;
+    std::unique_ptr<OrderedList> liveList;
 
-    QVector<cxsc::complex> plantas_nominales;
-    QVector<std::complex<qreal>> plantas_nominales_std;
+    QVector<cxsc::complex> nominalPlantValues;
+    QVector<std::complex<qreal>> nominalPlantValuesStd;
 
-    std::unique_ptr<LtiSystem> controlador_retorno;
+    std::unique_ptr<LtiSystem> designedController;
     std::unique_ptr<LtiSystem> prototype;
 
     //Local optimization state: the best certified feasible gain (prunes

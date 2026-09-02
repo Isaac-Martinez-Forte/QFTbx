@@ -38,7 +38,7 @@ enum type_node { CONS, PI, E, VAR,
                  ACOS, EXP, ABS, LN, LG, SQRT };
 
 /// Comparison attached to a constraint expression (expr >= value, ...).
-enum com { MAYOR, MENOR, MAYORIGUAL, MENORIGUAL, IGUAL};
+enum com { GREATER, LESS, GREATER_EQUAL, LESS_EQUAL, IGUAL};
 
 /**
 * One node of the binary expression tree: a leaf holds a numeric value
@@ -150,7 +150,7 @@ private :
     /// Intersection with an empty-signal instead of the historical throw
     /// (the release build compiled the guarding assert out, so an empty
     /// intersection built an invalid interval and aborted the process).
-    bool interseccionSegura(const interval & a, const interval & b, interval & out);
+    bool safeIntersection(const interval & a, const interval & b, interval & out);
 
     void build_tree(std::string &in_exp);
 
@@ -165,14 +165,14 @@ private :
 
     //The constraint propagate() tests against. Two of the four constructors
     //do not set them, and propagate() reads both.
-    qreal numero_comparar = 0.0;
-    com comparacion = MAYORIGUAL;
+    qreal comparisonValue = 0.0;
+    com comparacion = GREATER_EQUAL;
 
     qreal w = 0.0;
 };
 
-//The parser used to carry two hand-written singly-linked stacks, pilaNode
-//and pilaOp, a hundred lines with the same interface std::stack has
+//The parser used to carry two hand-written singly-linked stacks, nodeStack
+//and operatorStack, a hundred lines with the same interface std::stack has
 //(top/pop/push/empty) and four deletes of their own.
 
 }

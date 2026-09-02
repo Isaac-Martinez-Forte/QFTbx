@@ -69,7 +69,7 @@ void BoundaryUnionViewer::clearDiagram(){
 }
 
 
-void BoundaryUnionViewer::setDatos(const qftbx::UnionTraces & unionTraces, QVector<qreal> *omega){
+void BoundaryUnionViewer::setData(const qftbx::UnionTraces & unionTraces, QVector<qreal> *omega){
     this->unionTraces = unionTraces;
     this->omega = omega;
     bucketMode = false;
@@ -79,14 +79,14 @@ void BoundaryUnionViewer::setDatos(const qftbx::UnionTraces & unionTraces, QVect
     b.clear();
 }
 
-void BoundaryUnionViewer::setDatos(const qftbx::UnionTraces & unionTraces, QVector<qreal> *omega, qint32 singleBoundary){
+void BoundaryUnionViewer::setData(const qftbx::UnionTraces & unionTraces, QVector<qreal> *omega, qint32 singleBoundary){
     this->unionTraces = unionTraces;
     this->omega = omega;
     bucketMode = false;
     this->singleBoundary = singleBoundary;
 }
 
-void BoundaryUnionViewer::setDatos (const qftbx::UnionBuckets & unionTraces, QVector<qreal> *omega) {
+void BoundaryUnionViewer::setData (const qftbx::UnionBuckets & unionTraces, QVector<qreal> *omega) {
     unionBuckets = unionTraces;
     this->omega = omega;
     bucketMode = true;
@@ -94,7 +94,7 @@ void BoundaryUnionViewer::setDatos (const qftbx::UnionBuckets & unionTraces, QVe
     b.clear();
 }
 
-void BoundaryUnionViewer::setDatos (const qftbx::UnionBuckets & unionTraces, QVector<qreal> *omega, const qftbx::Trace & b) {
+void BoundaryUnionViewer::setData (const qftbx::UnionBuckets & unionTraces, QVector<qreal> *omega, const qftbx::Trace & b) {
     unionBuckets = unionTraces;
     this->omega = omega;
     bucketMode = true;
@@ -115,14 +115,14 @@ void BoundaryUnionViewer::showDiagram(){
 
     //Sweep the design frequencies.
 
-    qint32 contador = 0;
+    qint32 frequencyIndex = 0;
 
     if (singleBoundary < 0) {
 
         if (!bucketMode){
             for (const qftbx::Trace & bound : unionTraces) {
-                QColor color = randomColor(contador);
-                contador++;
+                QColor color = randomColor(frequencyIndex);
+                frequencyIndex++;
                 colors.append(color);
 
                 QVector <qreal> ejex;
@@ -152,8 +152,8 @@ void BoundaryUnionViewer::showDiagram(){
 
             for (qint32 f = 0; f < frequencyCount; f++) {
                 const qftbx::TraceSet & bound = unionBuckets.at(static_cast<std::size_t>(f));
-                QColor color = randomColor(contador);
-                contador++;
+                QColor color = randomColor(frequencyIndex);
+                frequencyIndex++;
                 colors.append(color);
 
                 QVector <qreal> ejex;
@@ -177,8 +177,8 @@ void BoundaryUnionViewer::showDiagram(){
                 k++;
             }
             if (!this->b.empty()){
-                QColor color = randomColor(contador);
-                contador++;
+                QColor color = randomColor(frequencyIndex);
+                frequencyIndex++;
                 colors.append(color);
 
                 QVector <qreal> ejex;
@@ -202,8 +202,8 @@ void BoundaryUnionViewer::showDiagram(){
 
         }
     } else {
-        QColor color = randomColor(contador);
-        contador++;
+        QColor color = randomColor(frequencyIndex);
+        frequencyIndex++;
         colors.append(color);
 
                 QVector <qreal> ejex;
@@ -292,7 +292,7 @@ void BoundaryUnionViewer::addFrequencyRow(QColor color, qint32 pos){
 }
 
 
-void BoundaryUnionViewer::drawBox(QPointF uno, QPointF dos, QPointF tres, QPointF cuatro, qint32 contador){
+void BoundaryUnionViewer::drawBox(QPointF uno, QPointF dos, QPointF tres, QPointF cuatro, qint32 frequencyIndex){
 
     QVector <qreal> ejex;
     QVector <qreal> ejey;
@@ -312,14 +312,14 @@ void BoundaryUnionViewer::drawBox(QPointF uno, QPointF dos, QPointF tres, QPoint
     /*boxCurves.append(ui->plot->addGraph());
     ui->plot->graph(finalCurveIndex)->setData(ejex, ejey);
 
-    ui->plot->graph(finalCurveIndex)->setPen(colors.at(contador));
+    ui->plot->graph(finalCurveIndex)->setPen(colors.at(frequencyIndex));
     ui->plot->graph(finalCurveIndex)->setLineStyle(QCPGraph::lsLine);
     ui->plot->graph(finalCurveIndex)->setScatterStyle(QCPScatterStyle::ssCross);
     ui->plot->graph(finalCurveIndex)->rescaleAxes(true);*/
 
     QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
     curva->setData(ejex, ejey);
-    curva->setPen(colors.at(contador));
+    curva->setPen(colors.at(frequencyIndex));
     boxCurves.append(curva);
 
     //ui->plot->rescaleAxes(true);
@@ -327,7 +327,7 @@ void BoundaryUnionViewer::drawBox(QPointF uno, QPointF dos, QPointF tres, QPoint
     ui->plot->replot();
 }
 
-void BoundaryUnionViewer::drawBox2(QPointF uno, QPointF dos, QPointF tres, QPointF cuatro, qint32 contador){
+void BoundaryUnionViewer::drawBox2(QPointF uno, QPointF dos, QPointF tres, QPointF cuatro, qint32 frequencyIndex){
 
     QVector <qreal> ejex;
     QVector <qreal> ejey;
@@ -347,13 +347,13 @@ void BoundaryUnionViewer::drawBox2(QPointF uno, QPointF dos, QPointF tres, QPoin
     /*boxCurves2.append(ui->plot->addGraph());
     ui->plot->graph(finalCurveIndex)->setData(ejex, ejey);
 
-    ui->plot->graph(finalCurveIndex)->setPen(colors.at(contador));
+    ui->plot->graph(finalCurveIndex)->setPen(colors.at(frequencyIndex));
     ui->plot->graph(finalCurveIndex)->setLineStyle(QCPGraph::lsLine);
     ui->plot->graph(finalCurveIndex)->setScatterStyle(QCPScatterStyle::ssCircle);*/
 
     QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
     curva->setData(ejex, ejey);
-    curva->setPen(colors.at(contador));
+    curva->setPen(colors.at(frequencyIndex));
     boxCurves2.append(curva);
 
     ui->plot->rescaleAxes(true);

@@ -46,20 +46,20 @@ protected:
     {
         parser.load(
             QStringLiteral(QFTBX_TEST_DATA_DIR "/planta2.qft"));
-        planta = parser.plant();
-        ASSERT_NE(planta, nullptr);
+        plant = parser.plant();
+        ASSERT_NE(plant, nullptr);
 
         // The fixture was computed on a 10x10 grid: a and kv in [1,10].
         mapa.clear();
-        mapa[planta->numerator()[0].name()] = qftbx::math::linspace(1.0, 10.0, 10);
-        mapa[planta->gain().name()] = qftbx::math::linspace(1.0, 10.0, 10);
+        mapa[plant->numerator()[0].name()] = qftbx::math::linspace(1.0, 10.0, 10);
+        mapa[plant->gain().name()] = qftbx::math::linspace(1.0, 10.0, 10);
 
         omegaCopy = new QVector<qreal>(*parser.omega()->values());
         epsilon = QVector<qreal>(6, 10.0);
 
         templates.setEpsilon(epsilon);
         templates.setGrids(mapa);
-        templates.compute(planta, omegaCopy, false);
+        templates.compute(plant, omegaCopy, false);
     }
 
     void TearDown() override
@@ -69,7 +69,7 @@ protected:
     }
 
     ProjectReader parser;
-    LtiSystem* planta = nullptr;
+    LtiSystem* plant = nullptr;
     qftbx::ParameterGrids mapa;
     QVector<qreal>* omegaCopy = nullptr;
     QVector<qreal> epsilon;
@@ -215,11 +215,11 @@ TEST(TemplatesReload, RecalculateContourAfterLoadingAProject)
 {
     // Fixed crash: loading a project fed only the DAO, so recalculating
     // the contour dereferenced a null templates vector inside the engine.
-    ProjectController controlador;
-    controlador.load(
+    ProjectController controller;
+    controller.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/planta2.qft"));
 
-    const qftbx::CloudSet & contornos = controlador.recomputeContour(QVector<qreal>(6, 10.0));
+    const qftbx::CloudSet & contornos = controller.recomputeContour(QVector<qreal>(6, 10.0));
     ASSERT_EQ(contornos.size(), 6u);
     for (const qftbx::ComplexCloud & c : contornos) {
         EXPECT_FALSE(c.empty());
@@ -229,7 +229,7 @@ TEST(TemplatesReload, RecalculateContourAfterLoadingAProject)
     // previous contour without a double free; with the set held by value
     // there is no deletion to get wrong, and the assertion is just that the
     // recomputation still produces one contour per frequency.
-    const qftbx::CloudSet & contornos2 = controlador.recomputeContour(QVector<qreal>(6, 8.0));
+    const qftbx::CloudSet & contornos2 = controller.recomputeContour(QVector<qreal>(6, 8.0));
     ASSERT_EQ(contornos2.size(), 6u);
 }
 
@@ -240,10 +240,10 @@ TEST(TemplatesValidation, MissingSweepGridThrowsInvalidInput)
     ProjectReader parser;
     parser.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/planta2.qft"));
-    LtiSystem* planta = parser.plant();
+    LtiSystem* plant = parser.plant();
 
     qftbx::ParameterGrids mapa;
-    mapa[planta->numerator()[0].name()] = qftbx::math::linspace(1.0, 10.0, 10);
+    mapa[plant->numerator()[0].name()] = qftbx::math::linspace(1.0, 10.0, 10);
     // no grid for the uncertain gain "kv"
 
     QVector<qreal> omega{0.1, 0.5, 1.0, 2.0, 15.0, 100.0};
@@ -251,7 +251,7 @@ TEST(TemplatesValidation, MissingSweepGridThrowsInvalidInput)
     TemplateEngine t;
     t.setEpsilon(QVector<qreal>(6, 10.0));
     t.setGrids(mapa);
-    EXPECT_THROW(t.compute(planta, &omega, false), qftbx::InvalidInput);
+    EXPECT_THROW(t.compute(plant, &omega, false), qftbx::InvalidInput);
 }
 
 TEST(TemplatesValidation, RecontourWithoutTemplatesThrowsInvalidInput)

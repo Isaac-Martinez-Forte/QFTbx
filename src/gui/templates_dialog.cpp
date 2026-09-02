@@ -33,7 +33,7 @@ TemplatesDialog::TemplatesDialog(QWidget *parent) :
 
     parser = std::make_unique<ParserX>(pckALL_NON_COMPLEX);
 
-    todoCorrecto = false;
+    accepted = false;
 }
 
 TemplatesDialog::~TemplatesDialog()
@@ -342,17 +342,17 @@ void TemplatesDialog::on_okButton_clicked()
 
         qreal inicio;
         qreal final;
-        qint32 npuntos;
+        qint32 pointCount;
 
         inicio = plant->gain().range().min;
         final = plant->gain().range().max;
         parser->SetExpr(ui->globalPointCount->text().toStdString());
-        npuntos = parser->Eval().GetFloat();
+        pointCount = parser->Eval().GetFloat();
 
         if (useLinspace){
-            gridMap[plant->gain().name()] = qftbx::math::linspace(inicio, final, static_cast<std::size_t>(npuntos));
+            gridMap[plant->gain().name()] = qftbx::math::linspace(inicio, final, static_cast<std::size_t>(pointCount));
         } else {
-            gridMap[plant->gain().name()] = qftbx::math::logspace(inicio, final, static_cast<std::size_t>(npuntos));
+            gridMap[plant->gain().name()] = qftbx::math::logspace(inicio, final, static_cast<std::size_t>(pointCount));
         }
     }
 
@@ -362,20 +362,20 @@ void TemplatesDialog::on_okButton_clicked()
 
         qreal inicio;
         qreal final;
-        qint32 npuntos;
+        qint32 pointCount;
 
         inicio = plant->delay().range().min;
         final = plant->delay().range().max;
         parser->SetExpr(ui->globalPointCount->text().toStdString());
-        npuntos = parser->Eval().GetFloat();
+        pointCount = parser->Eval().GetFloat();
 
         //This branch used to insert the delay grid under the GAIN's key:
         //it clobbered the gain's grid and left the delay without an entry
         //(crashing the sweep with an uncertain delay).
         if (useLinspace){
-            gridMap[plant->delay().name()] = qftbx::math::linspace(inicio, final, static_cast<std::size_t>(npuntos));
+            gridMap[plant->delay().name()] = qftbx::math::linspace(inicio, final, static_cast<std::size_t>(pointCount));
         } else {
-            gridMap[plant->delay().name()] = qftbx::math::logspace(inicio, final, static_cast<std::size_t>(npuntos));
+            gridMap[plant->delay().name()] = qftbx::math::logspace(inicio, final, static_cast<std::size_t>(pointCount));
         }
     }
 
@@ -395,7 +395,7 @@ void TemplatesDialog::on_okButton_clicked()
                     .arg(duplicateNames.join(QStringLiteral(", "))));
     }
 
-    todoCorrecto = true;
+    accepted = true;
     emit (close_ok());
 }
 
@@ -415,7 +415,7 @@ bool TemplatesDialog::readVariable(const ParLineEdit & rowEdits, ThreeRadioButto
 
     qreal inicio;
     qreal final;
-    qreal npuntos;
+    qreal pointCount;
 
 
     if (rowRadios.uno->isChecked() && !rowEdits.getX()->text().isEmpty()){
@@ -424,18 +424,18 @@ bool TemplatesDialog::readVariable(const ParLineEdit & rowEdits, ThreeRadioButto
         final = parameter.range().max;
 
         parser->SetExpr(rowEdits.getX()->text().toStdString());
-        npuntos = parser->Eval().GetFloat();
+        pointCount = parser->Eval().GetFloat();
 
-        gridMap[parameter.name()] = qftbx::math::linspace(inicio, final, static_cast<std::size_t>(npuntos));
+        gridMap[parameter.name()] = qftbx::math::linspace(inicio, final, static_cast<std::size_t>(pointCount));
 
     }else if (rowRadios.dos->isChecked() && !rowEdits.getY()->text().isEmpty()){
 
         inicio = parameter.range().min;
         final = parameter.range().max;
         parser->SetExpr(rowEdits.getY()->text().toStdString());
-        npuntos = parser->Eval().GetFloat();
+        pointCount = parser->Eval().GetFloat();
 
-        gridMap[parameter.name()] = qftbx::math::logspace(inicio, final, static_cast<std::size_t>(npuntos));
+        gridMap[parameter.name()] = qftbx::math::logspace(inicio, final, static_cast<std::size_t>(pointCount));
 
     }else if(rowRadios.tres->isChecked() && !rowEdits.nominal()->text().isEmpty()){
 
@@ -443,8 +443,8 @@ bool TemplatesDialog::readVariable(const ParLineEdit & rowEdits, ThreeRadioButto
         std::vector<double> values;
         values.reserve(static_cast<std::size_t>(vector.size()));
 
-        foreach (QString numeroS, vector) {
-            parser->SetExpr(numeroS.toStdString());
+        foreach (QString sSymbolCount, vector) {
+            parser->SetExpr(sSymbolCount.toStdString());
             values.push_back(parser->Eval().GetFloat());
         }
 
@@ -455,12 +455,12 @@ bool TemplatesDialog::readVariable(const ParLineEdit & rowEdits, ThreeRadioButto
         final = parameter.range().max;
 
         parser->SetExpr(ui->globalPointCount->text().toStdString());
-        npuntos = parser->Eval().GetFloat();
+        pointCount = parser->Eval().GetFloat();
 
         if(useLinspace){
-            gridMap[parameter.name()] = qftbx::math::linspace(inicio, final, static_cast<std::size_t>(npuntos));
+            gridMap[parameter.name()] = qftbx::math::linspace(inicio, final, static_cast<std::size_t>(pointCount));
         }else {
-            gridMap[parameter.name()] = qftbx::math::logspace(inicio, final, static_cast<std::size_t>(npuntos));
+            gridMap[parameter.name()] = qftbx::math::logspace(inicio, final, static_cast<std::size_t>(pointCount));
         }
     }else{
         return false;
@@ -482,6 +482,6 @@ bool TemplatesDialog::cudaSelected(){
     return cudaEnabled;
 }
 
-bool TemplatesDialog::getTodoCorrecto(){
-    return todoCorrecto;
+bool TemplatesDialog::wasAccepted(){
+    return accepted;
 }

@@ -58,10 +58,10 @@ public:
     AlgorithmMc1();
     ~AlgorithmMc1();
 
-    void set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> * omega, const BoundaryData * boundaries,
+    void setProblem(LtiSystem * plant, LtiSystem * controller, QVector<qreal> * omega, const BoundaryData * boundaries,
                    qreal epsilon);
 
-    bool init_algorithm();
+    bool solve();
 
     /// The designed controller, handed over to the caller.
     std::unique_ptr<LtiSystem> controllerStructure();
@@ -73,31 +73,31 @@ private:
 
     inline void check_box_feasibility(std::unique_ptr<LtiSystem> box);
     inline std::unique_ptr<LtiSystem> quickSolution2(std::unique_ptr<LtiSystem> v,
-                                                    const BoxClassification & datos,
-                                      const cxsc::cinterval & caja, qreal w,
+                                                    const BoxClassification & classification,
+                                      const cxsc::cinterval & projection, qreal w,
                                       std::complex<qreal> p0);
     inline void certifiedGainSearch(LtiSystem * box);
     inline bool gainRangeIsFeasible(LtiSystem * box, qreal gainInf, qreal gainSup);
 
-    LtiSystem * planta = nullptr;
-    std::unique_ptr<LtiSystem> controlador;
+    LtiSystem * plant = nullptr;
+    std::unique_ptr<LtiSystem> controller;
     QVector<qreal> * omega = nullptr;
     const BoundaryData * boundaries = nullptr;
     qreal epsilon = 0;
 
     std::unique_ptr<NaturalIntervalExtension> conversion;
-    std::unique_ptr<BoundaryViolationDetector> deteccion;
+    std::unique_ptr<BoundaryViolationDetector> detector;
     std::unique_ptr<NominalStabilityChecker> stability;
-    std::unique_ptr<OrderedList> lista;
-    QVector<cxsc::complex> plantas_nominales;
-    QVector<std::complex<qreal>> plantas_nominales_std;
+    std::unique_ptr<OrderedList> liveList;
+    QVector<cxsc::complex> nominalPlantValues;
+    QVector<std::complex<qreal>> nominalPlantValuesStd;
 
     //Prune variable C of the paper's step 3bis: gain and controller of
     //the best certified feasible solution found by QS2 stage 3.
     qreal bestCertifiedGain = 0;
     std::unique_ptr<LtiSystem> bestCertifiedController;
 
-    std::unique_ptr<LtiSystem> controlador_retorno;
+    std::unique_ptr<LtiSystem> designedController;
 
     bool hasUncertainZeros = false;
     bool hasUncertainPoles = false;

@@ -24,7 +24,7 @@ BodeViewer::~BodeViewer()
 {
 }
 
-void BodeViewer::drawBode(LtiSystem *planta, Omega *omega){
+void BodeViewer::drawBode(LtiSystem *plant, Omega *omega){
 
     //Replottable: without this every call piled new curves up.
     ui->magnitudePlot->clearPlottables();
@@ -53,7 +53,7 @@ void BodeViewer::drawBode(LtiSystem *planta, Omega *omega){
     magnitude.reserve(frequencies.size());
     phase.reserve(frequencies.size());
 
-    foreach (const std::complex<qreal> &comp, planta->evaluate(frequencies)){
+    foreach (const std::complex<qreal> &comp, plant->evaluate(frequencies)){
         magnitude.append(20*log10(abs(comp)));
 
         //Degrees: a Bode phase plot is read in degrees, and arg() answers
@@ -102,20 +102,20 @@ void BodeViewer::on_actionExport_triggered()
         //the suffix goes on the file name.
         QFileInfo info (fileName);
         const QString magnitud = info.dir().filePath(info.completeBaseName() + "-mag." + info.suffix());
-        const QString faseNombre = info.dir().filePath(info.completeBaseName() + "-phase." + info.suffix());
+        const QString phaseName = info.dir().filePath(info.completeBaseName() + "-phase." + info.suffix());
 
         if (extension.contains(".pdf", Qt::CaseInsensitive)){
             noFallo = ui->magnitudePlot->savePdf(magnitud, true);
-            noFallo = ui->phasePlot->savePdf(faseNombre, true) && noFallo;
+            noFallo = ui->phasePlot->savePdf(phaseName, true) && noFallo;
         }else if (extension.contains(".png", Qt::CaseInsensitive)){
             noFallo = ui->magnitudePlot->savePng(magnitud);
-            noFallo = ui->phasePlot->savePng(faseNombre) && noFallo;
+            noFallo = ui->phasePlot->savePng(phaseName) && noFallo;
         }else if (extension.contains(".jpg", Qt::CaseInsensitive)){
             noFallo = ui->magnitudePlot->saveJpg(magnitud);
-            noFallo = ui->phasePlot->saveJpg(faseNombre) && noFallo;
+            noFallo = ui->phasePlot->saveJpg(phaseName) && noFallo;
         }else if (extension.contains(".bmp", Qt::CaseInsensitive)){
             noFallo = ui->magnitudePlot->saveBmp(magnitud);
-            noFallo = ui->phasePlot->saveBmp(faseNombre) && noFallo;
+            noFallo = ui->phasePlot->saveBmp(phaseName) && noFallo;
         }else{
             noFallo = false;
         }

@@ -200,7 +200,7 @@ void MainWindow::on_plantButton_clicked()
 
     plantDialog->exec();
 
-    if (plantDialog->getTodoCorrecto()){
+    if (plantDialog->wasAccepted()){
         //The dialogs only describe; publishing into the project is the
         //window's job, so a dialog never needs to know the facade.
         std::unique_ptr<LtiSystem> described = plantDialog->takePlant();
@@ -243,7 +243,7 @@ void MainWindow::on_specificationsButton_clicked()
 
     specificationsDialog->exec();
 
-    if (specificationsDialog->getTodoCorrecto()){
+    if (specificationsDialog->wasAccepted()){
         controller->setSpecifications(specificationsDialog->takeSpecifications());
 
         //The templates do not depend on the specifications; the boundaries
@@ -277,7 +277,7 @@ void MainWindow::on_frequenciesButton_clicked()
 
     frequenciesDialog->exec();
 
-    if (frequenciesDialog->getTodoCorrecto()){
+    if (frequenciesDialog->wasAccepted()){
         std::unique_ptr<Omega> described = frequenciesDialog->takeOmega();
         const bool changed = described.get() != controller->omega();
 
@@ -321,7 +321,7 @@ void MainWindow::on_templatesButton_clicked()
 
     templatesDialog->exec();
 
-    if (templatesDialog->getTodoCorrecto()){
+    if (templatesDialog->wasAccepted()){
 
         this->setCursor(Qt::WaitCursor);
 
@@ -350,7 +350,7 @@ void MainWindow::on_templatesButton_clicked()
                 ui->boundariesButton->setEnabled(true);
             }
 
-            templateViewer->setDatos(controller->templates(),
+            templateViewer->setData(controller->templates(),
                                      controller->contour(),
                                      controller->omega()->values(),
                                      controller->epsilon());
@@ -392,7 +392,7 @@ void MainWindow::on_boundariesButton_clicked()
 
     boundaryGridDialog->exec();
 
-    if (boundaryGridDialog->getTodoCorrecto()){
+    if (boundaryGridDialog->wasAccepted()){
 
         this->setCursor(Qt::WaitCursor);
 
@@ -432,11 +432,11 @@ void MainWindow::on_boundariesButton_clicked()
 
         this->setCursor(Qt::ArrowCursor);
 
-        boundaryViewer->setDatos(controller->boundaries(), controller->omega()->values());
+        boundaryViewer->setData(controller->boundaries(), controller->omega()->values());
         boundaryViewer->showDiagram();
         boundaryViewer->show();
 
-        boundaryUnionViewer->setDatos(controller->unionBoundaries(), controller->omega()->values());
+        boundaryUnionViewer->setData(controller->unionBoundaries(), controller->omega()->values());
         boundaryUnionViewer->showDiagram();
         boundaryUnionViewer->show();
 
@@ -465,7 +465,7 @@ void MainWindow::on_controllerButton_clicked()
     controllerDialog->exec();
 
 
-    if (controllerDialog->getTodoCorrecto()){
+    if (controllerDialog->wasAccepted()){
         std::unique_ptr<LtiSystem> described = controllerDialog->takeControllerStructure();
         const bool changed = described.get() != controller->controllerStructure();
 
@@ -502,7 +502,7 @@ void MainWindow::on_loopButton_clicked()
 
     loopShapingDialog->exec();
 
-    if (loopShapingDialog->getTodoCorrecto()){
+    if (loopShapingDialog->wasAccepted()){
         bool re = false;
 
         try {
@@ -519,7 +519,7 @@ void MainWindow::on_loopButton_clicked()
         }
 
         if (re){
-            loopShapingViewer->setDatos(controller->unionBoundaries(),controller->omega()->values(),
+            loopShapingViewer->setData(controller->unionBoundaries(),controller->omega()->values(),
                                       controller->loopShapingResult(), controller->plant(), loopShapingDialog->isLinSpace());
 
             loopShapingViewer->showDiagram();
@@ -783,17 +783,17 @@ void MainWindow::showLoopDiagrams(bool nichols, bool nyquistRadio){
 
 
 
-    QPointF nuevoDatosFas ((boundaries->phaseRange().x() * M_PI) / 180, 0);
+    QPointF newPhaseData ((boundaries->phaseRange().x() * M_PI) / 180, 0);
 
-    QPointF datosMag = boundaries->magnitudeRange();
+    QPointF magnitudeData = boundaries->magnitudeRange();
 
-    QPointF nuevosDatosMag (pow(10,datosMag.x()/20), pow(10,datosMag.y()/20));
+    QPointF newMagnitudeData (pow(10,magnitudeData.x()/20), pow(10,magnitudeData.y()/20));
 
     BoundaryData nuevoBoundaries (boundaries->boundaries(), boundaries->openFlags(),
                                   boundaries->upperFlags(), boundaries->phaseCount(),
-                                  nuevoDatosFas, std::move(nuevosBoundariesReun),
+                                  newPhaseData, std::move(nuevosBoundariesReun),
                                   std::move(nuevoHash_inter),
-                                  boundaries->magnitudeCount(), nuevosDatosMag);
+                                  boundaries->magnitudeCount(), newMagnitudeData);
 
 
     //Modal and parentless, so it is this scope's: on the stack. The Nyquist
@@ -802,7 +802,7 @@ void MainWindow::showLoopDiagrams(bool nichols, bool nyquistRadio){
     //function, and BoundaryData had to be told it did not own them.
     LoopBoundariesViewer ver;
 
-    ver.setDatos(boundaries, &nuevoBoundaries, controller->omega()->values(), controller->plant(),
+    ver.setData(boundaries, &nuevoBoundaries, controller->omega()->values(), controller->plant(),
                  controller->controllerStructure(), nichols, nyquistRadio);
 
     ver.showDiagram();
@@ -819,7 +819,7 @@ void MainWindow::on_actionTemplates_triggered()
     }
 
     if (!controller->templates().empty() && !controller->contour().empty()){
-        templateViewer->setDatos(controller->templates(),
+        templateViewer->setData(controller->templates(),
                                  controller->contour(),
                                  controller->omega()->values(),
                                  controller->epsilon());
@@ -835,7 +835,7 @@ void MainWindow::on_actionBoundaries_triggered()
         return;
     }
 
-    boundaryUnionViewer->setDatos(controller->unionBoundaries(), controller->omega()->values());
+    boundaryUnionViewer->setData(controller->unionBoundaries(), controller->omega()->values());
     boundaryUnionViewer->showDiagram();
     boundaryUnionViewer->show();
 }
@@ -846,7 +846,7 @@ void MainWindow::on_actionLoop_triggered()
         return;
     }
 
-    loopShapingViewer->setDatos(controller->unionBoundaries(),controller->omega()->values(),
+    loopShapingViewer->setData(controller->unionBoundaries(),controller->omega()->values(),
                               controller->loopShapingResult(), controller->plant(), loopShapingDialog->isLinSpace());
 
     loopShapingViewer->showDiagram();

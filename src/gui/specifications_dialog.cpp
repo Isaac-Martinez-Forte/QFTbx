@@ -110,7 +110,7 @@ SpecificationsDialog::SpecificationsDialog(const QVector<qreal> * frequencies,
     ui->trackingRadio->setChecked(true);
     on_trackingRadio_clicked();
 
-    todoCorrecto = false;
+    accepted = false;
 }
 
 SpecificationsDialog::~SpecificationsDialog()
@@ -148,7 +148,7 @@ QString SpecificationsDialog::denominatorText(LtiSystem * system)
     return coefficientsText(system->denominator());
 }
 
-void SpecificationsDialog::setDatos(qftbx::SpecificationRecord & record_in)
+void SpecificationsDialog::setData(qftbx::SpecificationRecord & record_in)
 {
     if (record_in.used){
 
@@ -205,7 +205,7 @@ void SpecificationsDialog::setDatos(qftbx::SpecificationRecord & record_in)
 }
 
 
-void SpecificationsDialog::setDatos(qftbx::SpecificationRecord & record_in,
+void SpecificationsDialog::setData(qftbx::SpecificationRecord & record_in,
                                     qftbx::SpecificationRecord & upperRecord){
 
     if (record_in.used){
@@ -293,7 +293,7 @@ void SpecificationsDialog::setDatos(qftbx::SpecificationRecord & record_in,
     }
 }
 
-bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord & record_in, QString name_in)
+bool SpecificationsDialog::data(qftbx::SpecificationRecord & record_in, QString name_in)
 {
 
     if (record_in.used && !record_in.constant){
@@ -449,7 +449,7 @@ bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord & record_in, QStr
     return true;
 }
 
-bool SpecificationsDialog::getDatos(qftbx::SpecificationRecord & record_in,
+bool SpecificationsDialog::data(qftbx::SpecificationRecord & record_in,
                                     qftbx::SpecificationRecord & upperRecord, QString name_in){
 
     if (record_in.used && !record_in.constant){
@@ -748,17 +748,17 @@ std::optional<std::vector<Parameter>> SpecificationsDialog::buildParameters(QStr
 
     ParserX p (pckALL_NON_COMPLEX);
 
-    const QVector <QString> numeros = qftbx::text::tokens(linea);
+    const QVector <QString> numbers = qftbx::text::tokens(linea);
 
     std::vector<Parameter> var;
 
-    if (numeros.isEmpty()){
+    if (numbers.isEmpty()){
         return var;
     }
 
-    var.reserve(numeros.size());
+    var.reserve(numbers.size());
 
-    foreach (const QString &string, numeros) {
+    foreach (const QString &string, numbers) {
         p.SetExpr(string.toStdString());
         qreal res;
         try {
@@ -777,17 +777,17 @@ std::optional<std::vector<Parameter>> SpecificationsDialog::buildParameters(QStr
 bool SpecificationsDialog::saveActiveTab()
 {
     if (activeTab == 1){
-        return getDatos(tracking, trackingUpper, "TrackingLower");
+        return data(tracking, trackingUpper, "TrackingLower");
     }else if (activeTab == 2){
-        return getDatos(stability, "Stability");
+        return data(stability, "Stability");
     }else if (activeTab == 3){
-        return getDatos(sensorNoise, "SensorNoise");
+        return data(sensorNoise, "SensorNoise");
     }else if (activeTab == 4){
-        return getDatos(outputDisturbance, "OutputDisturbance");
+        return data(outputDisturbance, "OutputDisturbance");
     }else if (activeTab == 5){
-        return getDatos(inputDisturbance, "InputDisturbance");
+        return data(inputDisturbance, "InputDisturbance");
     }else if (activeTab == 6){
-        return getDatos(controlEffort, "ControlEffort");
+        return data(controlEffort, "ControlEffort");
     }
 
     //No tab selected yet: the constructor's first switch has nothing to save.
@@ -814,9 +814,9 @@ bool SpecificationsDialog::leaveActiveTab()
     }
 
     //The switch used to happen anyway, and the return value was discarded.
-    //getDatos() empties the record before rebuilding it, so leaving now
+    //data() empties the record before rebuilding it, so leaving now
     //lost the whole specification - not just the bad field - and coming
-    //back showed a blank tab, because setDatos() repaints from the record.
+    //back showed a blank tab, because setData() repaints from the record.
     //Staying put keeps the user's text on screen where it can be fixed.
     restoreActiveTabRadio();
 
@@ -836,7 +836,7 @@ void SpecificationsDialog::on_trackingRadio_clicked()
 
     ui->pageStack->setCurrentIndex(1);
     activeTab = 1;
-    setDatos(tracking, trackingUpper);
+    setData(tracking, trackingUpper);
     this->resize(867, 363);
     ui->buttonsWidget->move(670, 320);
 }
@@ -849,7 +849,7 @@ void SpecificationsDialog::on_stabilityRadio_clicked()
 
     ui->pageStack->setCurrentIndex(0);
     activeTab = 2;
-    setDatos(stability);
+    setData(stability);
     ui->specificationImage->setPixmap(stabilityPixmap);
     this->resize(647, 363);
     ui->buttonsWidget->move(450, 320);
@@ -863,7 +863,7 @@ void SpecificationsDialog::on_noiseRadio_clicked()
 
     ui->pageStack->setCurrentIndex(0);
     activeTab = 3;
-    setDatos(sensorNoise);
+    setData(sensorNoise);
     ui->specificationImage->setPixmap(sensorNoisePixmap);
     this->resize(647, 363);
     ui->buttonsWidget->move(450, 320);
@@ -877,7 +877,7 @@ void SpecificationsDialog::on_outputDisturbanceRadio_clicked()
 
     ui->pageStack->setCurrentIndex(0);
     activeTab = 4;
-    setDatos(outputDisturbance);
+    setData(outputDisturbance);
     ui->specificationImage->setPixmap(outputDisturbancePixmap);
     this->resize(647, 363);
     //The only one of the six that did not move the buttons back: coming from
@@ -894,7 +894,7 @@ void SpecificationsDialog::on_inputDisturbanceRadio_clicked()
 
     ui->pageStack->setCurrentIndex(0);
     activeTab = 5;
-    setDatos(inputDisturbance);
+    setData(inputDisturbance);
     ui->specificationImage->setPixmap(inputDisturbancePixmap);
     this->resize(647, 363);
     ui->buttonsWidget->move(450, 320);
@@ -908,7 +908,7 @@ void SpecificationsDialog::on_controlEffortRadio_clicked()
 
     ui->pageStack->setCurrentIndex(0);
     activeTab = 6;
-    setDatos(controlEffort);
+    setData(controlEffort);
     ui->specificationImage->setPixmap(controlEffortPixmap);
     this->resize(647, 363);
     ui->buttonsWidget->move(450, 320);
@@ -939,23 +939,23 @@ void SpecificationsDialog::on_okButton_clicked()
     //vector used to leak on every accept.
     discardPublished();
 
-    bool correcto = true;
+    bool ok = true;
 
     if (ui->trackingRadio->isChecked()){
-        correcto = getDatos(tracking, trackingUpper, "TrackingLower");
+        ok = data(tracking, trackingUpper, "TrackingLower");
     }else if (ui->stabilityRadio->isChecked()){
-        correcto = getDatos(stability, "Stability");
+        ok = data(stability, "Stability");
     }else if (ui->noiseRadio->isChecked()){
-        correcto = getDatos(sensorNoise, "SensorNoise");
+        ok = data(sensorNoise, "SensorNoise");
     }else if (ui->outputDisturbanceRadio->isChecked()){
-        correcto = getDatos(outputDisturbance, "OutputDisturbance");
+        ok = data(outputDisturbance, "OutputDisturbance");
     }else if (ui->inputDisturbanceRadio->isChecked()){
-        correcto = getDatos(inputDisturbance, "InputDisturbance");
+        ok = data(inputDisturbance, "InputDisturbance");
     }else if (ui->controlEffortRadio->isChecked()){
-        correcto =  getDatos(controlEffort, "ControlEffort");
+        ok =  data(controlEffort, "ControlEffort");
     }
 
-    if (!correcto){
+    if (!ok){
         return;
     }
 
@@ -965,13 +965,13 @@ void SpecificationsDialog::on_okButton_clicked()
             stability.clone(), sensorNoise.clone(), outputDisturbance.clone(),
             inputDisturbance.clone(), controlEffort.clone()};
 
-    todoCorrecto = true;
+    accepted = true;
 
     emit (close());
 }
 
-bool SpecificationsDialog::getTodoCorrecto(){
-    return todoCorrecto;
+bool SpecificationsDialog::wasAccepted(){
+    return accepted;
 }
 
 std::optional<qftbx::SpecificationRecords> SpecificationsDialog::takeSpecifications(){

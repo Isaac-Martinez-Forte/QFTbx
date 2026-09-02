@@ -45,7 +45,7 @@ inline constexpr std::size_t kDefaultMaxLiveNodes = 32000000;
 
 /**
  * @brief Priority list of live branch & bound nodes, ordered by the node
- * index (ascending by default, descending with mayor = true).
+ * index (ascending by default, descending with highestFirst = true).
  *
  * Backed by a std::multimap: insertion and removal are O(log n) - the
  * live-node lists grow to millions of nodes - and ties keep insertion
@@ -60,7 +60,7 @@ inline constexpr std::size_t kDefaultMaxLiveNodes = 32000000;
 class OrderedList
 {
 public:
-    OrderedList(bool mayor = false, std::size_t maxNodes = kDefaultMaxLiveNodes);
+    OrderedList(bool highestFirst = false, std::size_t maxNodes = kDefaultMaxLiveNodes);
 
     /**
      * @brief Queues one node, taking its ownership.
@@ -68,7 +68,7 @@ public:
      * Throws qftbx::ComputationError when the list already holds maxNodes:
      * see kDefaultMaxLiveNodes for why the ceiling exists.
      */
-    void insert (std::unique_ptr<ListNode> elemento);
+    void insert (std::unique_ptr<ListNode> node);
 
     /// Observer on the queued node; the list keeps ownership.
     ListNode * first();
@@ -110,7 +110,7 @@ public:
 private:
 
     //Ascending or descending by node index; ties keep insertion order.
-    std::multimap <qreal, std::unique_ptr<ListNode>, bool(*)(qreal, qreal)> lista;
+    std::multimap <qreal, std::unique_ptr<ListNode>, bool(*)(qreal, qreal)> nodes;
 
     std::size_t m_maxNodes = kDefaultMaxLiveNodes;
     std::size_t m_peakSize = 0;

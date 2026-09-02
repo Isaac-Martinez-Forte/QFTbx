@@ -30,17 +30,17 @@ public:
     ~BoundaryUnionViewer();
 
 
-    void setDatos (const qftbx::UnionTraces & unionTraces, QVector<qreal> *omega);
-    void setDatos (const qftbx::UnionTraces & unionTraces, QVector<qreal> *omega, qint32 singleBoundary);
+    void setData (const qftbx::UnionTraces & unionTraces, QVector<qreal> *omega);
+    void setData (const qftbx::UnionTraces & unionTraces, QVector<qreal> *omega, qint32 singleBoundary);
 
-    void setDatos (const qftbx::UnionBuckets & unionTraces, QVector<qreal> *omega);
+    void setData (const qftbx::UnionBuckets & unionTraces, QVector<qreal> *omega);
 
-    void setDatos (const qftbx::UnionBuckets & unionTraces, QVector<qreal> *omega, const qftbx::Trace & b);
+    void setData (const qftbx::UnionBuckets & unionTraces, QVector<qreal> *omega, const qftbx::Trace & b);
 
     void showDiagram();
 
-    void drawBox (QPointF uno, QPointF dos, QPointF tres, QPointF cuatro, qint32 contador);
-    void drawBox2 (QPointF uno, QPointF dos, QPointF tres, QPointF cuatro, qint32 contador);
+    void drawBox (QPointF uno, QPointF dos, QPointF tres, QPointF cuatro, qint32 frequencyIndex);
+    void drawBox2 (QPointF uno, QPointF dos, QPointF tres, QPointF cuatro, qint32 frequencyIndex);
 
 private slots:
     void applyCheckboxes();

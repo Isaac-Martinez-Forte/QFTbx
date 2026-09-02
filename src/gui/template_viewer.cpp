@@ -75,7 +75,7 @@ void TemplateViewer::clearDiagram(){
     plotted = false;
 }
 
-void TemplateViewer::setDatos(const qftbx::CloudSet & templates,
+void TemplateViewer::setData(const qftbx::CloudSet & templates,
                               const qftbx::CloudSet & contour,
                               QVector <qreal> * omega,
                               QVector <qreal> * epsilon){
@@ -152,16 +152,16 @@ void TemplateViewer::plotDiagram(bool plot){
             for (const std::complex <qreal> & complejo : vector) {
 
                 if (plot){
-                    qreal fase = arg(complejo)* 180 / M_PI;
-                    if (fase >= 0){
-                        fase -= 360;
+                    qreal phase = arg(complejo)* 180 / M_PI;
+                    if (phase >= 0){
+                        phase -= 360;
                     }
-                    fas.append(fase);
+                    fas.append(phase);
                     qreal mag = 20*log10(abs(complejo));
                     gan.append(mag);
                 }else {
-                    qreal fase = complejo.real();
-                    fas.append(fase);
+                    qreal phase = complejo.real();
+                    fas.append(phase);
                     gan.append(complejo.imag());
                 }
             }
@@ -186,15 +186,15 @@ void TemplateViewer::plotDiagram(bool plot){
         for (const std::complex <qreal> & complejo : vector) {
 
             if (plot){
-                qreal fase = arg(complejo)* 180 / M_PI;
-                if (fase >= 0){
-                    fase -= 360;
+                qreal phase = arg(complejo)* 180 / M_PI;
+                if (phase >= 0){
+                    phase -= 360;
                 }
-                fas.append(fase);
+                fas.append(phase);
                 gan.append(20*log10(abs(complejo)));
             }else{
-                qreal fase = complejo.real();
-                fas.append(fase);
+                qreal phase = complejo.real();
+                fas.append(phase);
                 gan.append(complejo.imag());
             }
 

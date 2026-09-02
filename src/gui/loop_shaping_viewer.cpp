@@ -64,7 +64,7 @@ void LoopShapingViewer::clearDiagram(){
 }
 
 
-void LoopShapingViewer::setDatos(const qftbx::UnionTraces & unionTraces, QVector<qreal> *omega, LoopShapingResult *loopShapingData,
+void LoopShapingViewer::setData(const qftbx::UnionTraces & unionTraces, QVector<qreal> *omega, LoopShapingResult *loopShapingData,
                                LtiSystem* plant, bool linSpace){
     this->unionTraces = unionTraces;
     this->omega = omega;
@@ -117,10 +117,10 @@ void LoopShapingViewer::showDiagram(){
 
     QVector <QColor> rowColors;
 
-    qint32 contador = 0;
+    qint32 frequencyIndex = 0;
     for (const qftbx::Trace & bound : unionTraces) {
-        QColor color = randomColor(contador);
-        contador++;
+        QColor color = randomColor(frequencyIndex);
+        frequencyIndex++;
         rowColors.append(color);
 
         QVector <qreal> ejex;
@@ -213,10 +213,10 @@ void LoopShapingViewer::showDiagram(){
 
             /*if (previousPhase < -100){
                 ejexActual.append(0);
-                ejeyActual.append(puntoYAnterior);
+                ejeyActual.append(previousY);
             } else {
                 ejexActual.append(-360);
-                ejeyActual.append(puntoYAnterior);
+                ejeyActual.append(previousY);
             }*/
 
             ejex.append(std::move(ejexActual));
@@ -248,7 +248,7 @@ void LoopShapingViewer::showDiagram(){
     /*QCPGraph * gra = ui->plot->addGraph();
     gra->setData(*ejex, *ejey);
 
-    gra->setPen(randomColor(contador));
+    gra->setPen(randomColor(frequencyIndex));
     gra->setScatterStyle(QCPScatterStyle::ssCircle);
     gra->setLineStyle(QCPGraph::lsNone);*/
 

@@ -63,9 +63,9 @@ void BoundaryViewer::clearDiagram(){
     plotted = false;
 }
 
-void BoundaryViewer::setDatos(const BoundaryData *datos, QVector <qreal> * omega){
+void BoundaryViewer::setData(const BoundaryData *data, QVector <qreal> * omega){
 
-    boundaryData = datos;
+    boundaryData = data;
     this->omega = omega;
 }
 

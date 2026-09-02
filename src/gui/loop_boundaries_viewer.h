@@ -29,7 +29,7 @@ public:
     ~LoopBoundariesViewer();
 
 
-    void setDatos (const BoundaryData * nicholsData, const BoundaryData * nyquistData, QVector<qreal> *omega,
+    void setData (const BoundaryData * nicholsData, const BoundaryData * nyquistData, QVector<qreal> *omega,
                    LtiSystem * plant, LtiSystem * controller, bool nichols, bool nyquist);
 
     void showDiagram();
@@ -45,7 +45,7 @@ private:
 
     const BoundaryData * nicholsData = nullptr;
     const BoundaryData * nyquistData = nullptr;
-    //Observers on the project's objects, handed in by setDatos(): the
+    //Observers on the project's objects, handed in by setData(): the
     //viewer never owns what it draws.
     LtiSystem * plant = nullptr;
     LtiSystem * controller = nullptr;

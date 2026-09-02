@@ -38,13 +38,13 @@ public:
     * @brief Publishes what the plot needs. Observers on both: the viewer
     * outlives neither.
     *
-    * @param datos the computed boundaries.
+    * @param data the computed boundaries.
     * @param omega the design frequencies they were computed at.
     */
-    void setDatos (const BoundaryData *datos, QVector<qreal> *omega);
+    void setData (const BoundaryData *data, QVector<qreal> *omega);
     
     
-   /// Builds the plot from the data published by setDatos().
+   /// Builds the plot from the data published by setData().
     void showDiagram();
 
 private slots:

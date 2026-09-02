@@ -94,10 +94,10 @@ qreal designedGain(const Strategies & strategies, std::size_t * peakNodes = null
 
     AlgorithmMcThesis mc;
     mc.setStrategies(strategies);
-    mc.set_datos(project.plant(), project.controllerStructure(),
+    mc.setProblem(project.plant(), project.controllerStructure(),
                  project.omega()->values(), project.boundaries(), kEpsilon);
 
-    const bool solved = mc.init_algorithm();
+    const bool solved = mc.solve();
 
     if (peakNodes != nullptr) {
         *peakNodes = mc.peakLiveNodes();
