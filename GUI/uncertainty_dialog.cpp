@@ -28,13 +28,8 @@ UncertaintyDialog::UncertaintyDialog(QWidget *parent) :
 UncertaintyDialog::~UncertaintyDialog(){
 
 
-    //Qt's own mechanism: a widget holds exactly one layout. The row widgets
-    //themselves belong to the numerator/denominator boxes and die with
-    //them, and the rows are members.
-    if (rowsBuilt == true){
-        delete numeratorLayout;
-        delete denominatorLayout;
-    }
+    //Nothing to free: the layouts and the row widgets are Qt children of
+    //the scroll areas, which are children of this dialog.
 }
 
 //The input tables arrive from PlantDialog or ControllerDialog and become
@@ -95,8 +90,14 @@ void UncertaintyDialog::buildRows(){
     denominatorRows.clear();
     rowWidgets.clear();
 
-    numeratorLayout=new QVBoxLayout(ui->numeratorBox);
-    denominatorLayout=new QVBoxLayout(ui->denominatorBox);
+    //On the scroll AREA's inner widget, which is what holds the content of
+    //a QScrollArea. This used to build the layouts on the scroll areas
+    //themselves and then setLayout() them onto the inner widgets, which
+    //works only because Qt STEALS a layout from its old widget parent and
+    //reparents the widgets it manages: the widget named here was not the
+    //one that ended up owning them.
+    numeratorLayout = new QVBoxLayout(ui->numeratorArea);
+    denominatorLayout = new QVBoxLayout(ui->denominatorArea);
 
     this->numeratorParameters.clear();
     this->numeratorParameters.reserve(numeratorParameters.size());
@@ -112,7 +113,7 @@ void UncertaintyDialog::buildRows(){
     foreach (const QString &valor, numeratorTokens){
         if(uncertainTable.at(0).at(i)){
             if (!seenNames.contains(valor)){
-                QWidget * widget = new QWidget(ui->numeratorBox);
+                QWidget * widget = new QWidget(ui->numeratorArea);
                 buildRow(widget, valor, numeratorRows, rangeOnlyMode);
                 numeratorLayout->addWidget(widget);
                 rowWidgets.append(widget);
@@ -126,7 +127,7 @@ void UncertaintyDialog::buildRows(){
     foreach (const QString &valor, denominatorTokens){
         if(uncertainTable.at(1).at(i)){
             if (!seenNames.contains(valor)){
-                QWidget * widget = new QWidget(ui->denominatorBox);
+                QWidget * widget = new QWidget(ui->denominatorArea);
                 buildRow(widget, valor, denominatorRows, rangeOnlyMode);
                 denominatorLayout->addWidget(widget);
                 rowWidgets.append(widget);
@@ -139,8 +140,6 @@ void UncertaintyDialog::buildRows(){
 
     ui->denominatorArea->setAutoFillBackground(true);
     ui->numeratorArea->setAutoFillBackground(true);
-    ui->denominatorArea->setLayout(denominatorLayout);
-    ui->numeratorArea->setLayout(numeratorLayout);
 }
 
 void UncertaintyDialog:: buildRow(QWidget *widget, QString parameter,

@@ -53,7 +53,7 @@ private:
 
     bool bucketMode;
 
-    bool plotted;
+    bool plotted = false;
 
     //The curves BELONG TO QCustomPlot, which frees them on
     //clearPlottables(): only these containers are the viewer's, and
@@ -61,12 +61,12 @@ private:
     QVector <QCPCurve *> curves;
     QVector <QCPCurve *> boxCurves;
     QVector <QCPCurve *> boxCurves2;
-    QGroupBox * frequenciesBox;
+    QGroupBox * frequenciesBox = nullptr;
     //The checkboxes belong to their row widget: the viewer deletes the
     //rows, not these.
     QVector <QCheckBox *> checkboxes;
     QMap <QString, QColor> * colores;
-    QVBoxLayout * colorsLayout;
+    QVBoxLayout * colorsLayout = nullptr;
 
     void addFrequencyRow(QColor color, qint32 pos);
     void clearDiagram();

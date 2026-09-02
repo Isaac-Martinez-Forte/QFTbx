@@ -39,20 +39,22 @@ private:
 
     qftbx::UnionTraces unionTraces;
     QVector <qreal> * omega;
-    LtiSystem * plant;
-    LoopShapingResult * loopShapingData;
+    //Observers on the project's objects, handed in by setDatos(): the
+    //viewer never owns what it draws.
+    LtiSystem * plant = nullptr;
+    LoopShapingResult * loopShapingData = nullptr;
 
-    bool plotted;
+    bool plotted = false;
 
     //The curves BELONG TO QCustomPlot, which frees them on
     //clearPlottables(): only the container is the viewer's.
     QVector <QCPCurve *> curves;
-    QGroupBox * frequenciesBox;
+    QGroupBox * frequenciesBox = nullptr;
     //The checkboxes belong to their row widget: the viewer deletes the
     //rows, not these.
     QVector <QCheckBox *> checkboxes;
     QMap <QString, QColor> * rowColors;
-    QVBoxLayout * colorsLayout;
+    QVBoxLayout * colorsLayout = nullptr;
 
     void addFrequencyRow(QColor color, qint32 pos);
     void clearDiagram();

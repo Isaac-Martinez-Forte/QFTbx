@@ -116,9 +116,10 @@ public:
 
 
     struct ThreeRadioButtons{
-        QRadioButton * uno;
-        QRadioButton * dos;
-        QRadioButton * tres;
+        //Observers on radio buttons owned by their row widget.
+        QRadioButton * uno = nullptr;
+        QRadioButton * dos = nullptr;
+        QRadioButton * tres = nullptr;
     };
 
 
@@ -162,7 +163,9 @@ private:
     QVector <ThreeRadioButtons> denominatorRadios;
     std::vector<Parameter> numerator;
     std::vector<Parameter> denominator;
-    LtiSystem * plant;
+    //An observer on the project's plant, handed in by launch(): the
+    //dialog never owns it.
+    LtiSystem * plant = nullptr;
 
     bool rowsBuilt = false;
     bool cudaEnabled = false;

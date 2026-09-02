@@ -142,7 +142,7 @@ signals:
 
 private:
 
-    bool rowsBuilt;
+    bool rowsBuilt = false;
     std::vector<Parameter> numeratorParameters;
     std::vector<Parameter> denominatorParameters;
     //A ParLineEdit is three QLineEdit POINTERS, and Qt owns those through
@@ -150,8 +150,8 @@ private:
     //as each parameter is read.
     std::list <ParLineEdit> numeratorRows;
     std::list <ParLineEdit> denominatorRows;
-    QVBoxLayout *denominatorLayout;
-    QVBoxLayout *numeratorLayout;
+    QVBoxLayout *denominatorLayout = nullptr;
+    QVBoxLayout *numeratorLayout = nullptr;
 
     //The row widgets belong to the numerator/denominator boxes: only the
     //container is the dialog's.

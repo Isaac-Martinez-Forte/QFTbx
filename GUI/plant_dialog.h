@@ -75,7 +75,6 @@ private:
     std::unique_ptr<Ui::PlantDialog> ui;
     
 
-    QRadioButton * gFT= NULL;
     QString file;
 
     UncertaintyDialog * uncertaintyDialog= NULL;

@@ -205,7 +205,8 @@ void TemplateViewer::plotDiagram(bool plot){
         counter++;
     }
 
-    frequenciesBox->setLayout(colorsLayout);
+    //No setLayout here: the layout above was built with the frequency box
+    //as its parent, which already installs it.
 
     ui->plot->xAxis2->setVisible(true);
     ui->plot->xAxis2->setTickLabels(false);

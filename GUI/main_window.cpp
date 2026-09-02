@@ -76,55 +76,45 @@ void MainWindow::stepBack(bool & paso){
 
 //Qt's own mechanism: every dialog and viewer here is a child of this
 //window, and destroying one is how a new session gets a fresh one.
+//
+//Each delete used to be guarded by the step's own progress flag. The two
+//agree - every path that abandons a dialog deletes it, nulls it and resets
+//the flag through stepBack(), which takes it by reference - but a
+//destruction path has no business depending on a flag of the interface:
+//deleting a null pointer is a no-op, so the pointer decides.
 void MainWindow::destroyDialogs(){
-    if (plantDone){
-        delete plantDialog;
-        plantDialog = nullptr;
-    }
+    delete plantDialog;
+    plantDialog = nullptr;
 
-    if (specificationsDone){
-        delete specificationsDialog;
-        specificationsDialog = nullptr;
-    }
+    delete specificationsDialog;
+    specificationsDialog = nullptr;
 
-    if (frequenciesDone){
-        delete frequenciesDialog;
-        frequenciesDialog = nullptr;
-    }
+    delete frequenciesDialog;
+    frequenciesDialog = nullptr;
 
-    if (templatesDone){
-        delete templatesDialog;
-        templatesDialog = nullptr;
-        delete templateViewer;
-        templateViewer = nullptr;
-    }
+    delete templatesDialog;
+    templatesDialog = nullptr;
+    delete templateViewer;
+    templateViewer = nullptr;
 
-    if (boundariesDone){
-        delete boundaryGridDialog;
-        boundaryGridDialog = nullptr;
-        delete boundaryViewer;
-        boundaryViewer = nullptr;
-        delete boundaryUnionViewer;
-        boundaryUnionViewer = nullptr;
-    }
+    delete boundaryGridDialog;
+    boundaryGridDialog = nullptr;
+    delete boundaryViewer;
+    boundaryViewer = nullptr;
+    delete boundaryUnionViewer;
+    boundaryUnionViewer = nullptr;
 
-    if (controllerDone){
-        delete controllerDialog;
-        controllerDialog = nullptr;
-    }
+    delete controllerDialog;
+    controllerDialog = nullptr;
 
-    if (bodeCreated){
-        delete bodeViewer;
-        bodeViewer = nullptr;
-        bodeCreated = false;
-    }
+    delete bodeViewer;
+    bodeViewer = nullptr;
+    bodeCreated = false;
 
-    if (loopDone){
-        delete loopShapingDialog;
-        loopShapingDialog = nullptr;
-        delete loopShapingViewer;
-        loopShapingViewer = nullptr;
-    }
+    delete loopShapingDialog;
+    loopShapingDialog = nullptr;
+    delete loopShapingViewer;
+    loopShapingViewer = nullptr;
 }
 
 void MainWindow::installContourRecomputer(){
@@ -657,7 +647,6 @@ void MainWindow::on_actionOpen_triggered()
             templatesDialog = new TemplatesDialog(this);
             templateViewer = new TemplateViewer(this);
             installContourRecomputer();
-        installContourRecomputer();
             progressPosition++;
             ui->progressBar->setValue(progressPosition);
         }

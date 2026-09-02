@@ -167,7 +167,7 @@ private:
     //only these containers are the viewer's.
     QVector <QCPGraph *> templateGraphs;
     QVector <QCPGraph *> contourGraphs;
-    QGroupBox * frequenciesBox;
+    QGroupBox * frequenciesBox = nullptr;
     //The controls of a frequency row belong to their container widget: the
     //viewer deletes the rows, not these.
     QVector <QCheckBox *> checkboxes;
@@ -178,10 +178,10 @@ private:
     QVector <QLineEdit *> epsilonEdits;
     QVector <QSlider *> epsilonSliders;
 
-    bool templatesVisible;
-    bool contourVisible;
+    bool templatesVisible = false;
+    bool contourVisible = false;
 
-    QVBoxLayout * colorsLayout;
+    QVBoxLayout * colorsLayout = nullptr;
 
     bool plot;
 };

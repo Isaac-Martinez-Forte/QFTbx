@@ -75,19 +75,19 @@ private:
     const BoundaryData * boundaryData = nullptr;
     QVector <qreal> * omega;
 
-    bool plotted;
+    bool plotted = false;
 
     //The curves BELONG TO QCustomPlot, which frees them on
     //clearPlottables(): only these containers are the viewer's, and they
     //used to be a vector of pointers behind a pointer.
     QVector <QVector <QCPCurve *> > curves;
 
-    QGroupBox * frequenciesBox;
+    QGroupBox * frequenciesBox = nullptr;
     //The checkboxes belong to their row widget, which belongs to the
     //layout: the viewer deletes the rows, not these.
     QVector <QCheckBox *> checkboxes;
     QMap <QString, QColor> * colores;
-    QVBoxLayout * colorsLayout;
+    QVBoxLayout * colorsLayout = nullptr;
 
     std::unique_ptr<Ui::BoundaryViewer> ui;
 };
