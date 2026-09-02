@@ -983,7 +983,6 @@ inline FC::McBisectionResult AlgorithmMcThesis::bisectAt(McSearchNode * node, qi
     FC::McBisectionResult retur;
     retur.t1 = makeChild(std::move(lower));
     retur.t2 = makeChild(std::move(upper));
-    retur.descartado = false;
 
     //The bisected node is the caller's: it dies with the loop iteration.
     return retur;

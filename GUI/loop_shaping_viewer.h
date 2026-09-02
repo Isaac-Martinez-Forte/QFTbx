@@ -38,7 +38,7 @@ private slots:
 private:
 
     qftbx::UnionTraces unionTraces;
-    QVector <qreal> * omega;
+    QVector <qreal> * omega = nullptr;
     //Observers on the project's objects, handed in by setDatos(): the
     //viewer never owns what it draws.
     LtiSystem * plant = nullptr;
@@ -59,7 +59,7 @@ private:
     void addFrequencyRow(QColor color, qint32 pos);
     void clearDiagram();
 
-    bool linSpace;
+    bool linSpace = false;
 
     std::unique_ptr<Ui::LoopShapingViewer> ui;
 };

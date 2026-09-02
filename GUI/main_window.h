@@ -114,9 +114,7 @@ private:
     bool loopDone;
 
     bool bodeCreated;
-    bool consoleCreated;
 
-    bool digBodeFichero;
 
     qint32 progressPosition;
 

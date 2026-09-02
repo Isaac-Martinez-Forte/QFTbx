@@ -51,7 +51,6 @@ void MainWindow::createSession(){
     loopDone = false;  //lazo
 
     bodeCreated = false;
-    consoleCreated = false;
 
     ui->specificationsButton->setEnabled(false);
     ui->templatesButton->setEnabled(false);

@@ -28,7 +28,9 @@ public:
     }
 
 protected:
-    qreal index;
+    //Initialised: OrderedList orders by this, and the default constructor
+    //left it indeterminate.
+    qreal index = 0.0;
 
 };
 

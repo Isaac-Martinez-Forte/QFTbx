@@ -49,7 +49,7 @@ private:
     //viewer never owns what it draws.
     LtiSystem * plant = nullptr;
     LtiSystem * controller = nullptr;
-    QVector <qreal> * omega;
+    QVector <qreal> * omega = nullptr;
 
     bool plotted = false;
 
@@ -69,12 +69,12 @@ private:
     void addFrequencyRow(QColor color, qint32 pos, QString diagram);
     void clearDiagram();
 
-    bool nichols;
-    bool nyquist;
+    bool nichols = false;
+    bool nyquist = false;
 
     std::unique_ptr<Ui::LoopBoundariesViewer> ui;
 
-    qint32 finalCurveIndex;
+    qint32 finalCurveIndex = 0;
 
 };
 

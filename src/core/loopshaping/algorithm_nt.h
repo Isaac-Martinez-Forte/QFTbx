@@ -47,22 +47,22 @@ private:
     inline bool feasibleGainFrom(LtiSystem * v, qreal maximo_boundarie, cxsc::cinterval caja,
                                  qreal o, qint32 contador, qreal & from);
 
-    LtiSystem * planta;
+    LtiSystem * planta = nullptr;
     std::unique_ptr<LtiSystem> controlador;
-    QVector <qreal> * omega;
+    QVector <qreal> * omega = nullptr;
     const BoundaryData * boundaries = nullptr;
     std::unique_ptr<NaturalIntervalExtension> conversion;
     std::unique_ptr<OrderedList> lista;
-    qreal epsilon;
+    qreal epsilon = 0.0;
 
     std::unique_ptr<LtiSystem> controlador_retorno;
-    qreal minimo_boundaries;
+    qreal minimo_boundaries = 0.0;
 
 
     QPointF interseccion (QPointF uno, QPointF dos);
 
 
-    qint32 tamFas;
+    qint32 tamFas = 0;
 
     std::unique_ptr<BoundaryViolationDetector> deteccion;
     std::unique_ptr<NominalStabilityChecker> stability;

@@ -21,26 +21,26 @@ public:
     TimeConstantGain(QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator, Parameter k, Parameter delay);
 
     std::unique_ptr<LtiSystem> create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
-                              Parameter k, Parameter delay = Parameter(qreal(0)), QString numeratorExpr = QString(), QString denominatorExpr = QString());
+                              Parameter k, Parameter delay = Parameter(qreal(0)), QString numeratorExpr = QString(), QString denominatorExpr = QString()) override;
 
     ~TimeConstantGain();
 
-    SystemType type();
+    SystemType type() override;
 
     QString expression (QVector <qreal> * numerator, QVector <qreal> * denominator,
-                             qreal k, qreal delay, qreal omega);
+                             qreal k, qreal delay, qreal omega) override;
 
-    QString expression(qreal w);
+    QString expression(qreal w) override;
 
-    QString expression();
+    QString expression() override;
 
     std::complex <qreal> valueAt(qreal w, const std::vector<qreal> & numerator,
                                  const std::vector<qreal> & denominator,
                                  qreal gain, qreal delay) override;
 
-    std::complex <qreal> evaluateNumerator(QVector <qreal> * nume, qreal omega);
+    std::complex <qreal> evaluateNumerator(QVector <qreal> * nume, qreal omega) override;
 
-    std::complex <qreal> evaluateDenominator(QVector <qreal> * deno, qreal omega);
+    std::complex <qreal> evaluateDenominator(QVector <qreal> * deno, qreal omega) override;
 
 };
 

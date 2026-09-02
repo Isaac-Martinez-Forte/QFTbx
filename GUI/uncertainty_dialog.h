@@ -178,7 +178,7 @@ private:
     UncertainTable uncertainTable;
 
 
-    bool rangeOnlyMode;
+    bool rangeOnlyMode = false;
     bool accepted_ok = false;
 };
 

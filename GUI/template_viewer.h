@@ -160,8 +160,8 @@ private:
     //which is why a recompute had to be careful about what it freed.
     qftbx::CloudSet templatesButton;
     qftbx::CloudSet contourButton;
-    QVector <qreal> * omega;
-    QVector <qreal> * epsilon;
+    QVector <qreal> * omega = nullptr;
+    QVector <qreal> * epsilon = nullptr;
 
     //The graphs BELONG TO QCustomPlot, which frees them on clearGraphs():
     //only these containers are the viewer's.
@@ -183,7 +183,7 @@ private:
 
     QVBoxLayout * colorsLayout = nullptr;
 
-    bool plot;
+    bool plot = false;
 };
 
 #endif // QFTBX_TEMPLATE_VIEWER_H

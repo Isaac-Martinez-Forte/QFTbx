@@ -133,8 +133,8 @@ private:
 
     QPointF m_phaseRange;
     QPointF m_magnitudeRange;
-    qint32 m_phaseCount;
-    qint32 m_magnitudeCount;
+    qint32 m_phaseCount = 0;
+    qint32 m_magnitudeCount = 0;
 
 
     BoundarySet m_boundaries;
@@ -153,9 +153,9 @@ private:
     std::vector<bool> m_upperFlags;
 
     //Alias of the caller's frequency vector: never freed here.
-    QVector <qreal> * m_omega;
+    QVector <qreal> * m_omega = nullptr;
 
-    bool m_cuda;
+    bool m_cuda = false;
 
 };
 

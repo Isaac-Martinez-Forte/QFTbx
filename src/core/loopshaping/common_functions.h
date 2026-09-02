@@ -28,7 +28,6 @@ namespace FC {
 struct BisectionResult {
     std::unique_ptr<LtiSystem> v1;
     std::unique_ptr<LtiSystem> v2;
-    bool descartado;
 };
 
 //The children of a bisection belong to whoever receives them: they are
@@ -36,7 +35,6 @@ struct BisectionResult {
 struct McBisectionResult {
     std::unique_ptr<McSearchNode> t1;
     std::unique_ptr<McSearchNode> t2;
-    bool descartado;
 };
 
 enum diagrama {Nichol = false, Nyquist = true};
@@ -169,7 +167,6 @@ inline BisectionResult bisectWidestParameter(LtiSystem * box) {
     BisectionResult retur;
     retur.v1 = half(true);
     retur.v2 = half(false);
-    retur.descartado = false;
 
     return retur;
 }

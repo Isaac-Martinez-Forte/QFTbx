@@ -73,7 +73,7 @@ private:
     void clearDiagram();
 
     const BoundaryData * boundaryData = nullptr;
-    QVector <qreal> * omega;
+    QVector <qreal> * omega = nullptr;
 
     bool plotted = false;
 

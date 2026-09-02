@@ -29,35 +29,35 @@ public:
                  QString denominatorExpr);
 
     QString expression (QVector <qreal> * numerator, QVector <qreal> * denominator,
-                             qreal k, qreal delay, qreal omega);
+                             qreal k, qreal delay, qreal omega) override;
 
-    QString expression(qreal w);
+    QString expression(qreal w) override;
 
-    QString expression();
+    QString expression() override;
 
     std::complex <qreal> valueAt(qreal w, const std::vector<qreal> & numerator,
                                  const std::vector<qreal> & denominator,
                                  qreal gain, qreal delay) override;
 
-    std::complex <qreal> evaluateNumerator(QVector <qreal> * nume, qreal omega);
+    std::complex <qreal> evaluateNumerator(QVector <qreal> * nume, qreal omega) override;
 
-    std::complex <qreal> evaluateDenominator(QVector <qreal> * deno, qreal omega);
+    std::complex <qreal> evaluateDenominator(QVector <qreal> * deno, qreal omega) override;
 
     std::complex <qreal> evaluate (QVector <qreal> * numerator, QVector <qreal> * denominator,
-                                           qreal k, qreal delay, qreal omega);
+                                           qreal k, qreal delay, qreal omega) override;
 
     //Re-expose the inherited nominal evaluation hidden by the overloads above.
     using TransferFunction::evaluate;
 
-    SystemType type();
+    SystemType type() override;
 
     std::unique_ptr<LtiSystem> create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
-                              Parameter k, Parameter delay = Parameter(qreal(0)), QString numeratorExpr = QString(), QString denominatorExpr = QString());
+                              Parameter k, Parameter delay = Parameter(qreal(0)), QString numeratorExpr = QString(), QString denominatorExpr = QString()) override;
 
-    QString numeratorString();
-    QString denominatorString();
+    QString numeratorString() override;
+    QString denominatorString() override;
 
-    std::unique_ptr<LtiSystem> clone();
+    std::unique_ptr<LtiSystem> clone() override;
 
 private:
     QString m_numeratorExpr;

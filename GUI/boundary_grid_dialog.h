@@ -122,11 +122,11 @@ private:
 
     QPointF phaseRange;
     QPointF magnitudeRange;
-    qint32 phaseCount;
-    qint32 magnitudeCount;
-    qreal infinityEdit;
-    bool accepted_once;
-    bool cudaCheck;
+    qint32 phaseCount = 0;
+    qint32 magnitudeCount = 0;
+    qreal infinityEdit = 0.0;
+    bool accepted_once = false;
+    bool cudaCheck = false;
 
     bool todoCorrecto;
 };

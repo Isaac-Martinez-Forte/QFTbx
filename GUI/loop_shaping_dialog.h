@@ -62,13 +62,13 @@ private:
 
     bool todoCorrecto;
 
-    qreal epsilonEdit;
+    qreal epsilonEdit = 0.0;
 
     QPointF plotRange;
 
-    qreal pointCountEdit;
+    qreal pointCountEdit = 0.0;
 
-    qint32 initialisation;
+    qint32 initialisation = 0;
 
     tools::LoopShapingAlgorithm alg;
 

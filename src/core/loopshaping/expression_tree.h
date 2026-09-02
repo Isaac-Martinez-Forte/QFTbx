@@ -157,13 +157,18 @@ private :
     bool es_letra(char tex);
 
     std::unique_ptr<exp_node> root;
-    std::map<std::string, qreal> * variables;
-    std::map<std::string, interval> * variables_in;
+    //Set at the entry of eval()/propagate() so the recursion does not have
+    //to carry them; initialised because not every constructor passes
+    //through one of those.
+    std::map<std::string, qreal> * variables = nullptr;
+    std::map<std::string, interval> * variables_in = nullptr;
 
-    qreal numero_comparar;
-    com comparacion;
+    //The constraint propagate() tests against. Two of the four constructors
+    //do not set them, and propagate() reads both.
+    qreal numero_comparar = 0.0;
+    com comparacion = MAYORIGUAL;
 
-    qreal w;
+    qreal w = 0.0;
 };
 
 //The parser used to carry two hand-written singly-linked stacks, pilaNode

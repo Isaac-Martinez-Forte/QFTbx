@@ -46,12 +46,12 @@ private:
 
     qftbx::UnionTraces unionTraces;
     qftbx::UnionBuckets unionBuckets;
-    QVector <qreal> * omega;
+    QVector <qreal> * omega = nullptr;
     //An extra curve painted on top, empty when there is none. It was a
     //pointer whose nullness was the flag.
     qftbx::Trace b;
 
-    bool bucketMode;
+    bool bucketMode = false;
 
     bool plotted = false;
 
@@ -74,7 +74,7 @@ private:
 
     std::unique_ptr<Ui::BoundaryUnionViewer> ui;
 
-    qint32 finalCurveIndex;
+    qint32 finalCurveIndex = 0;
 
     QVector <QColor> colors;
 

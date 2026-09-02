@@ -182,7 +182,7 @@ private:
     //denominator sharing a parameter): reported once to the user.
     QStringList duplicateNames;
 
-    qint32 frequencyCount;
+    qint32 frequencyCount = 0;
 
 };
 
