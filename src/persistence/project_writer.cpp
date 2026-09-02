@@ -8,7 +8,7 @@
 
 #include <pugixml.hpp>
 
-#include "Modelo/Herramientas/exception.h"
+#include "src/core/exception.h"
 #include "qft_dialect.h"
 #include "src/core/system/parameter.h"
 
@@ -35,19 +35,19 @@ std::string realVectorText(const QVector <qreal> & values)
     return text;
 }
 
-std::string pointVectorText(const QVector <QPointF> & points)
+std::string pointVectorText(const std::vector<QPointF> & points)
 {
     std::string text;
-    foreach (const QPointF & point, points) {
+    for (const QPointF & point : points) {
         text += number(point.x()) + " " + number(point.y()) + " ";
     }
     return text;
 }
 
-std::string boolVectorText(const QVector <bool> & values)
+std::string boolVectorText(const std::vector<bool> & values)
 {
     std::string text;
-    foreach (bool value, values) {
+    for (const bool value : values) {
         text += value ? "1 " : "0 ";
     }
     return text;
@@ -68,18 +68,18 @@ void addBool(pugi::xml_node parent, const char * name, bool value)
     parent.append_child(name).text().set(value ? "true" : "false");
 }
 
-void writeParameter(pugi::xml_node parent, Parameter * parameter)
+void writeParameter(pugi::xml_node parent, Parameter & parameter)
 {
     pugi::xml_node node = parent.append_child("parameter");
-    addReal(node, t.nominal, parameter->nominal());
-    addBool(node, t.uncertain, parameter->isUncertain());
+    addReal(node, t.nominal, parameter.nominal());
+    addBool(node, t.uncertain, parameter.isUncertain());
 
-    if (parameter->isUncertain()) {
-        addText(node, t.parameterName, parameter->name().toStdString());
-        addText(node, t.parameterExpression, parameter->expression().toStdString());
+    if (parameter.isUncertain()) {
+        addText(node, t.parameterName, parameter.name().toStdString());
+        addText(node, t.parameterExpression, parameter.expression().toStdString());
         pugi::xml_node range = node.append_child(t.range);
-        addReal(range, t.rangeMin, parameter->range().x());
-        addReal(range, t.rangeMax, parameter->range().y());
+        addReal(range, t.rangeMin, parameter.range().min);
+        addReal(range, t.rangeMax, parameter.range().max);
     }
 }
 
@@ -101,14 +101,14 @@ void writeSystem(pugi::xml_node parent, const char * sectionName, LtiSystem * sy
     }
 
     pugi::xml_node numerator = typeNode.append_child(t.numerator);
-    numerator.append_attribute("size") = system->numerator()->size();
-    foreach (Parameter * parameter, *system->numerator()) {
+    numerator.append_attribute("size") = system->numerator().size();
+    for (Parameter & parameter : system->numerator()) {
         writeParameter(numerator, parameter);
     }
 
     pugi::xml_node denominator = typeNode.append_child(t.denominator);
-    denominator.append_attribute("size") = system->denominator()->size();
-    foreach (Parameter * parameter, *system->denominator()) {
+    denominator.append_attribute("size") = system->denominator().size();
+    for (Parameter & parameter : system->denominator()) {
         writeParameter(denominator, parameter);
     }
 
@@ -116,28 +116,28 @@ void writeSystem(pugi::xml_node parent, const char * sectionName, LtiSystem * sy
     writeParameter(typeNode, system->delay());
 }
 
-void writeSpecifications(pugi::xml_node root, QVector <tools::dBND *> * specifications)
+void writeSpecifications(pugi::xml_node root, const qftbx::SpecificationRecords * specifications)
 {
     pugi::xml_node section = root.append_child(t.specifications);
-    section.append_attribute("count") = specifications->size();
+    section.append_attribute("count") = static_cast<int>(specifications->size());
 
-    foreach (tools::dBND * record, *specifications) {
+    for (const qftbx::SpecificationRecord & record : *specifications) {
         pugi::xml_node node = section.append_child(t.specification);
-        node.append_attribute(t.nameAttribute) = record->nombre.toStdString().c_str();
-        addBool(node, t.used, record->utilizado);
+        node.append_attribute(t.nameAttribute) = record.name.toStdString().c_str();
+        addBool(node, t.used, record.used);
 
-        if (!record->utilizado) {
+        if (!record.used) {
             continue;
         }
 
-        addReal(node, t.minFrequency, record->frecinicio);
-        addReal(node, t.maxFrequency, record->frecfinal);
-        addBool(node, t.constant, record->constante);
+        addReal(node, t.minFrequency, record.omegaStart);
+        addReal(node, t.maxFrequency, record.omegaEnd);
+        addBool(node, t.constant, record.constant);
 
-        if (record->constante) {
-            addReal(node, t.magnitude, record->altura);
+        if (record.constant) {
+            addReal(node, t.magnitude, record.height);
         } else {
-            writeSystem(node, "system", record->sistema);
+            writeSystem(node, "system", record.system.get());
         }
     }
 }
@@ -145,20 +145,19 @@ void writeSpecifications(pugi::xml_node root, QVector <tools::dBND *> * specific
 void writeOmega(pugi::xml_node root, Omega * omega)
 {
     pugi::xml_node section = root.append_child(t.omega);
-    addReal(section, t.omegaMin, omega->getInicio());
-    addReal(section, t.omegaMax, omega->getFinal());
-    addText(section, t.pointCount, std::to_string(omega->getNPuntos()));
-    addText(section, t.omegaType, std::to_string(static_cast<qint32>(omega->getTipo())));
-    addText(section, t.values, realVectorText(*omega->getValores()));
+    addReal(section, t.omegaMin, omega->start());
+    addReal(section, t.omegaMax, omega->end());
+    addText(section, t.pointCount, std::to_string(omega->pointCount()));
+    addText(section, t.omegaType, std::to_string(static_cast<qint32>(omega->type())));
+    addText(section, t.values, realVectorText(*omega->values()));
 }
 
-void writeComplexVectors(pugi::xml_node section,
-                         QVector <QVector <std::complex<qreal>> * > * vectors)
+void writeComplexVectors(pugi::xml_node section, const qftbx::CloudSet & vectors)
 {
-    foreach (QVector <std::complex<qreal>> * vector, *vectors) {
+    for (const qftbx::ComplexCloud & vector : vectors) {
         std::string reals;
         std::string imaginaries;
-        foreach (const std::complex<qreal> & value, *vector) {
+        for (const std::complex<qreal> & value : vector) {
             reals += number(value.real()) + " ";
             imaginaries += number(value.imag()) + " ";
         }
@@ -176,20 +175,20 @@ void writeTemplates(pugi::xml_node root, const ProjectContent & content)
             content.epsilon != nullptr ? realVectorText(*content.epsilon) : std::string());
 
     pugi::xml_node full = section.append_child(t.fullTemplates);
-    full.append_attribute("size") = content.templates->size();
+    full.append_attribute("size") = static_cast<qint64>(content.templates.size());
     writeComplexVectors(full, content.templates);
 
-    if (content.contour != nullptr) {
+    if (!content.contour.empty()) {
         pugi::xml_node contour = section.append_child(t.templateContour);
-        contour.append_attribute("size") = content.contour->size();
+        contour.append_attribute("size") = static_cast<qint64>(content.contour.size());
         writeComplexVectors(contour, content.contour);
     }
 }
 
-void writeTraces(pugi::xml_node parent, QVector <QVector <QPointF> * > * traces)
+void writeTraces(pugi::xml_node parent, const qftbx::TraceSet & traces)
 {
-    foreach (QVector <QPointF> * trace, *traces) {
-        addText(parent, "trace", pointVectorText(*trace));
+    for (const qftbx::Trace & trace : traces) {
+        addText(parent, "trace", pointVectorText(trace));
     }
 }
 
@@ -209,44 +208,46 @@ void writeBoundaries(pugi::xml_node root, BoundaryData * boundaries)
     addReal(magnitudes, t.axisMax, boundaries->magnitudeRange().y());
 
     pugi::xml_node metadata = data.append_child(t.metadata);
-    addText(metadata, t.openFlags, boolVectorText(*boundaries->openFlags()));
-    addText(metadata, t.upperFlags, boolVectorText(*boundaries->upperFlags()));
+    addText(metadata, t.openFlags, boolVectorText(boundaries->openFlags()));
+    addText(metadata, t.upperFlags, boolVectorText(boundaries->upperFlags()));
 
     pugi::xml_node perFrequency = data.append_child(t.perFrequency);
-    perFrequency.append_attribute("size") = boundaries->boundaries()->size();
-    foreach (auto * map, *boundaries->boundaries()) {
+    perFrequency.append_attribute("size") = static_cast<qint64>(boundaries->boundaries().size());
+    for (const auto & map : boundaries->boundaries()) {
         pugi::xml_node frequency = perFrequency.append_child("frequency");
-        frequency.append_attribute("size") = map->size();
-        foreach (const QString & key, map->keys()) {
-            pugi::xml_node keyNode = frequency.append_child(key.toStdString().c_str());
-            keyNode.append_attribute("size") = map->value(key)->size();
-            writeTraces(keyNode, map->value(key));
+        frequency.append_attribute("size") = static_cast<qint64>(map.size());
+
+        //std::map iterates in key order, as QMap::keys() did.
+        for (const auto & entry : map) {
+            pugi::xml_node keyNode = frequency.append_child(entry.first.toStdString().c_str());
+            keyNode.append_attribute("size") = static_cast<qint64>(entry.second.size());
+            writeTraces(keyNode, entry.second);
         }
     }
 
     pugi::xml_node unionNode = data.append_child(t.boundaryUnion);
-    unionNode.append_attribute("size") = boundaries->unionBoundaries()->size();
+    unionNode.append_attribute("size") = static_cast<qint64>(boundaries->unionBoundaries().size());
     writeTraces(unionNode, boundaries->unionBoundaries());
 
     pugi::xml_node buckets = data.append_child(t.unionBuckets);
-    buckets.append_attribute("size") = boundaries->unionBuckets()->size();
-    foreach (auto * perFrequencyBuckets, *boundaries->unionBuckets()) {
+    buckets.append_attribute("size") = static_cast<qint64>(boundaries->unionBuckets().size());
+    for (const qftbx::TraceSet & perFrequencyBuckets : boundaries->unionBuckets()) {
         pugi::xml_node frequency = buckets.append_child("frequency");
-        frequency.append_attribute("size") = perFrequencyBuckets->size();
+        frequency.append_attribute("size") = static_cast<qint64>(perFrequencyBuckets.size());
         writeTraces(frequency, perFrequencyBuckets);
     }
 }
 
-void writeLoopShaping(pugi::xml_node root, DatosLoopShaping * loopShaping)
+void writeLoopShaping(pugi::xml_node root, LoopShapingResult * loopShaping)
 {
     pugi::xml_node section = root.append_child(t.loopShaping);
 
     pugi::xml_node data = section.append_child(t.boundariesData);
-    data.append_attribute(t.loopShapingPointCountAttribute) = loopShaping->getNPuntos();
+    data.append_attribute(t.loopShapingPointCountAttribute) = loopShaping->pointCount();
     addReal(data, t.axisMin, loopShaping->range().x());
     addReal(data, t.axisMax, loopShaping->range().y());
 
-    writeSystem(section, t.controller, loopShaping->getControlador());
+    writeSystem(section, t.controller, loopShaping->controller());
 }
 
 } // namespace
@@ -270,7 +271,7 @@ void ProjectWriter::save(const QString & filePath, const ProjectContent & conten
     if (content.omega != nullptr) {
         writeOmega(root, content.omega);
     }
-    if (content.templates != nullptr) {
+    if (!content.templates.empty()) {
         writeTemplates(root, content);
     }
     if (content.boundaries != nullptr) {

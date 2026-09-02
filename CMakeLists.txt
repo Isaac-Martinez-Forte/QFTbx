@@ -18,13 +18,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(USE_CLANG       "Use CLANG"   OFF)
 option(USE_OpenMP      "Use OpenMP"  ON)
 option(USE_CUDA        "Use CUDA"    OFF)
-option(USE_Doxygen     "Use Doxygen" OFF)
 option(USE_NATIVE_ARCH "Enable -march=native" ON)
 
-# Build de desarrollo con sanitizers, p.ej. -DQFTBX_SANITIZERS=address,undefined
-# (requiere los runtimes libasan/libubsan instalados). Nota: mientras dure el
-# refactor el codigo tiene fugas conocidas; para ejecutar los tests usar
-# ASAN_OPTIONS=detect_leaks=0 hasta que cada modulo quede limpio.
+# Development build with sanitizers, e.g. -DQFTBX_SANITIZERS=address,undefined
+# (needs the libasan/libubsan runtimes installed).
 set(QFTBX_SANITIZERS "" CACHE STRING "Comma-separated sanitizers for dev builds (e.g. address,undefined)")
 if(QFTBX_SANITIZERS)
   add_compile_options(-fsanitize=${QFTBX_SANITIZERS} -fno-omit-frame-pointer)
@@ -50,53 +47,66 @@ if(USE_OpenMP)
 endif()
 
 # ------------------------------------------------------------------------------
-# CUDA
+# CUDA as a first-class CMake language: find_package(CUDA) and
+# CUDA_ADD_LIBRARY have been deprecated for years.
 # ------------------------------------------------------------------------------
 if(USE_CUDA)
     message("Use CUDA")
-    find_package(CUDA)
-    if(CUDA_FOUND)
-        message("CUDA found")
-        list(APPEND CUDA_NVCC_FLAGS "-std=c++20;-O3;-DVERBOSE")
-        set(CUDA_PROPAGATE_HOST_FLAGS OFF)
-        set(CUDA_SEPARABLE_COMPILATION ON)
-        file(GLOB QFTbx_CUDA GPU/CUDA/bnd_cuda.cu GPU/CUDA/e_hull_cuda.cu)
-        add_definitions(-DCUDA_AVAILABLE=1)
-        CUDA_ADD_LIBRARY(CUDA STATIC ${QFTbx_CUDA})
+    include(CheckLanguage)
+    check_language(CUDA)
+    if(CMAKE_CUDA_COMPILER)
+        enable_language(CUDA)
+        message("CUDA found: ${CMAKE_CUDA_COMPILER}")
+        set(CMAKE_CUDA_STANDARD 17)
+        set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+        # Sensible defaults; override with
+        # -DCMAKE_CUDA_ARCHITECTURES=... for the card at hand.
+        if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+            set(CMAKE_CUDA_ARCHITECTURES 61 75 86)
+        endif()
+        add_library(qftbx_cuda STATIC
+            src/core/gpu/boundary_sheets_cuda.cu
+            src/core/gpu/boundary_sheets_cuda.h
+            src/core/gpu/template_contour_cuda.cu
+            src/core/gpu/template_contour_cuda.h
+            src/core/gpu/cuda_utility.cuh
+        )
+        target_include_directories(qftbx_cuda PUBLIC "${CMAKE_SOURCE_DIR}")
+        set_target_properties(qftbx_cuda PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+        add_compile_definitions(CUDA_AVAILABLE=1)
     else()
         message("CUDA NOT found")
     endif()
 endif()
 
 # ------------------------------------------------------------------------------
-# Doxygen
+# Doxygen: the `docs` target, present only when doxygen is installed.
+#
+# The configuration lives in the Doxyfile at the root of the repository and
+# is used as it is: `doxygen` from the repository root does exactly what
+# this target does, which is the point - no configure_file, no generated
+# copy in the build tree that can drift from the one under version control.
+#
+# The previous block was dead: it pointed at doc/Doxyfile.in, which does
+# not exist, hid itself behind two nested options, and its final target ran
+# LaTeX over a Makefile nobody generates.
 # ------------------------------------------------------------------------------
-if (USE_Doxygen)
-    message("Use Doxygen")
-    find_package(Doxygen)
-    option(BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" ${DOXYGEN_FOUND})
+find_package(Doxygen OPTIONAL_COMPONENTS dot)
 
-    if(BUILD_DOCUMENTATION)
-        if(NOT DOXYGEN_FOUND)
-            message(FATAL_ERROR "Doxygen is needed to build the documentation.")
-        endif()
-        set(doxyfile_in ${CMAKE_CURRENT_SOURCE_DIR}/doc/Doxyfile.in)
-        set(doxyfile ${CMAKE_CURRENT_BINARY_DIR}/doc/Doxyfile)
-        configure_file(${doxyfile_in} ${doxyfile})
-        add_custom_target(doc1
-            COMMAND ${DOXYGEN_EXECUTABLE} ${doxyfile}
-            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-            COMMENT "Generating API documentation with Doxygen"
-            VERBATIM
-        )
-        add_custom_target(doc
-            COMMAND make -f ${CMAKE_CURRENT_BINARY_DIR}/doc/latex/Makefile
-            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc/latex
-            COMMENT "Generating Latex documentation with TexLive "
-            VERBATIM
-        )
-        add_dependencies(doc doc1)
-    endif()
+if(DOXYGEN_FOUND)
+  add_custom_target(docs
+    COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMENT "Generating the API documentation into docs/api/html"
+    VERBATIM
+  )
+  # The component variable, not DOXYGEN_DOT_FOUND: that one is not set by
+  # find_package(... OPTIONAL_COMPONENTS dot) and the check read backwards.
+  if(NOT TARGET Doxygen::dot)
+    message(STATUS "Doxygen found, graphviz not: the docs will have no diagrams")
+  endif()
+else()
+  message(STATUS "Doxygen not found: the `docs` target is unavailable")
 endif()
 
 set(TS_FILES QFTbx_es_ES.ts)
@@ -114,154 +124,159 @@ FetchContent_MakeAvailable(pugixml)
 # ------------------------------------------------------------------------------
 # Fuentes del proyecto
 # ------------------------------------------------------------------------------
-# Backend (Modelo, DAO, XmlParser, Consola): compilado como libreria estatica
-# para poder enlazarlo tanto desde el ejecutable como desde los tests.
-set(QFTbx_BACKEND_SRC
-    Modelo/LoopShaping/NaturalIntervalExtension/natural_interval_extension.cpp
+# The backend is a static library so both the executable and the tests can
+# link it. The computational core: no persistence, no GUI.
+set(QFTbx_CORE_SRC
+    src/core/loopshaping/natural_interval_extension.cpp
     src/core/system/transfer_function.cpp
-    DAO/adaptadorplantadao.cpp
     src/core/system/lti_system.cpp
     src/core/system/polynomial_form.cpp
     src/core/system/zero_pole_gain.cpp
     src/core/system/time_constant_gain.cpp
-    Modelo/controlador.cpp
-    DAO/adaptadoromegadao.cpp
     src/core/templates/template_engine.cpp
-    DAO/adaptadortemplatedao.cpp
-    Modelo/Herramientas/tools.cpp
-    Modelo/Objetos/omega.cpp
-    DAO/adaptadorbounddao.cpp
-    src/persistence/project_reader.cpp
-    src/persistence/project_writer.cpp
-    DAO/fdao.cpp
+    src/core/math/sequence_vectors.cpp
+    src/core/math/parser_warmup.cpp
+    src/core/math/expression_cache.cpp
+    src/core/frequencies/omega.cpp
+    src/core/project_data.cpp
+    src/core/text_tokens.cpp
     src/core/boundaries/boundary_data.cpp
-    DAO/adaptadorespecificacionesdao.cpp
-    DAO/adaptadorcontroladordao.cpp
-    Modelo/LoopShaping/algorithm_sachin.cpp
-    Modelo/LoopShaping/algorithm_primer_articulo.cpp
-    Modelo/LoopShaping/algorithm_segundo_articulo.cpp
+    src/core/loopshaping/algorithm_nt.cpp
+    src/core/loopshaping/nominal_stability_checker.cpp
+    src/core/loopshaping/algorithm_mc1.cpp
+    src/core/loopshaping/algorithm_mc_thesis.cpp
     src/core/system/parameter.cpp
-    Modelo/LoopShaping/algorithm_nandkishor.cpp
-    Modelo/LoopShaping/algorithm_rambabu.cpp
+    src/core/loopshaping/algorithm_nk.cpp
+    src/core/loopshaping/algorithm_mr.cpp
     src/core/boundaries/boundary_engine.cpp
-    Consola/consola.cpp
     src/core/system/free_form.cpp
-    Modelo/LoopShaping/loopshaping.cpp
-    Modelo/LoopShaping/EstructuraDatos/datosfeasible.cpp
-    Modelo/LoopShaping/EstructuraDatos/tripleta.cpp
-    Modelo/LoopShaping/EstructuraDatos/tripleta2.cpp
-    Modelo/LoopShaping/DeteccionViolacionBoundaries/deteccionviolacionboundaries.cpp
-    Modelo/LoopShaping/EstructuraDatos/listaordenada.cpp
-    DAO/adaptadorloopshapingdao.cpp
-    Modelo/EstructurasDatos/datosloopshaping.cpp
+    src/core/loopshaping/loop_shaping.cpp
+    src/core/loopshaping/search_node.cpp
+    src/core/loopshaping/mc_search_node.cpp
+    src/core/loopshaping/boundary_violation_detector.cpp
+    src/core/loopshaping/ordered_list.cpp
+    src/core/loopshaping/loop_shaping_result.cpp
     src/core/boundaries/boundary_union_1d.cpp
     src/core/boundaries/contour_tracer.cpp
-    Modelo/LoopShaping/EstructuraDatos/arbol_exp.cpp
-    Modelo/LoopShaping/EstructuraDatos/data_box.cpp
+    src/core/loopshaping/expression_tree.cpp
+    src/core/loopshaping/box_classification.cpp
 )
 
-# GUI (HMI Qt) y punto de entrada.
-set(QFTbx_GUI_SRC main.cpp
-    GUI/parlineedit.cpp
-    GUI/parlineedit.h
-    GUI/bode_viewer.cpp
-    GUI/main_window.cpp
-    GUI/plant_dialog.cpp
-    GUI/frequencies_dialog.cpp
-    GUI/uncertainty_dialog.cpp
-    GUI/boundary_viewer.cpp
-    GUI/boundary_grid_dialog.cpp
-    GUI/specifications_dialog.cpp
-    GUI/controller_dialog.cpp
-    GUI/boundary_union_viewer.cpp
-    GUI/loop_shaping_dialog.cpp
-    GUI/loop_shaping_viewer.cpp
-    GUI/templates_dialog.cpp
-    GUI/template_viewer.cpp
-    GUI/loop_boundaries_viewer.cpp
-)
-
-set(QFTbx_BACKEND_HED
+set(QFTbx_CORE_HED
     src/core/system/transfer_function.h
-    Modelo/LoopShaping/NaturalIntervalExtension/natural_interval_extension.h
-    DAO/adaptadorplantadao.h
+    src/core/loopshaping/natural_interval_extension.h
     src/core/system/lti_system.h
     src/core/system/polynomial_form.h
     src/core/system/zero_pole_gain.h
     src/core/system/time_constant_gain.h
-    DAO/plantadao.h
-    Modelo/controlador.h
-    DAO/adaptadoromegadao.h
-    DAO/omegadao.h
     src/core/templates/template_engine.h
-    DAO/templatedao.h
-    DAO/adaptadortemplatedao.h
-    Modelo/Herramientas/tools.h
-    Modelo/EstructurasDatos/dbnd.h
-    Modelo/LoopShaping/loop_shaping_types.h
+    src/core/templates/parameter_grids.h
+    src/core/templates/cloud_set.h
+    src/core/math/sequence_vectors.h
+    src/core/math/parser_warmup.h
+    src/core/math/expression_cache.h
+    src/core/specifications/specification_record.h
+    src/core/project_data.h
+    src/core/range.h
+    src/core/text_tokens.h
+    src/core/loopshaping/loop_shaping_types.h
     src/core/math/sequences.h
     src/core/specifications/specification.h
-    Modelo/Herramientas/exception.h
-    Modelo/Objetos/omega.h
-    DAO/bounddao.h
-    DAO/adaptadorbounddao.h
-    DAO/dao.h
-    DAO/fdao.h
+    src/core/exception.h
+    src/core/frequencies/omega.h
     src/core/boundaries/boundary_data.h
+    src/core/boundaries/boundary_types.h
+    src/core/loopshaping/algorithm_nt.h
+    src/core/loopshaping/nominal_stability_checker.h
+    src/core/loopshaping/quick_solution.h
+    src/core/loopshaping/algorithm_mc1.h
+    src/core/loopshaping/algorithm_mc_thesis.h
+    src/core/system/parameter.h
+    src/core/loopshaping/algorithm_nk.h
+    src/core/loopshaping/algorithm_mr.h
+    src/core/loopshaping/expression_tree.h
+    src/core/boundaries/boundary_engine.h
+    src/core/system/free_form.h
+    src/core/loopshaping/loop_shaping.h
+    src/core/loopshaping/list_node.h
+    src/core/loopshaping/search_node.h
+    src/core/loopshaping/mc_search_node.h
+    src/core/loopshaping/stages.h
+    src/core/loopshaping/boundary_violation_detector.h
+    src/core/loopshaping/ordered_list.h
+    src/core/loopshaping/loop_shaping_result.h
+    src/core/boundaries/boundary_union_1d.h
+    src/core/boundaries/contour_tracer.h
+    src/core/loopshaping/common_functions.h
+    src/core/loopshaping/box_classification.h
+)
+
+# Persistencia de proyectos (.qft): depende del nucleo.
+set(QFTbx_PERSISTENCE_SRC
+    src/persistence/project_reader.cpp
+    src/persistence/project_writer.cpp
+)
+
+set(QFTbx_PERSISTENCE_HED
     src/persistence/project_reader.h
     src/persistence/project_writer.h
     src/persistence/qft_dialect.h
-    DAO/especificacionesdao.h
-    DAO/adaptadorespecificacionesdao.h
-    DAO/adaptadorcontroladordao.h
-    DAO/controladordao.h
-    Modelo/LoopShaping/algorithm_sachin.h
-    Modelo/LoopShaping/algorithm_primer_articulo.h
-    Modelo/LoopShaping/algorithm_segundo_articulo.h
-    src/core/system/parameter.h
-    Modelo/LoopShaping/algorithm_nandkishor.h
-    Modelo/LoopShaping/algorithm_rambabu.h
-    Modelo/LoopShaping/EstructuraDatos/arbol_exp.h
-    src/core/boundaries/boundary_engine.h
-    Consola/consola.h
-    src/core/system/free_form.h
-    Modelo/LoopShaping/loopshaping.h
-    Modelo/LoopShaping/EstructuraDatos/avl.h
-    Modelo/LoopShaping/EstructuraDatos/n.h
-    Modelo/LoopShaping/EstructuraDatos/datosfeasible.h
-    Modelo/LoopShaping/EstructuraDatos/tripleta.h
-    Modelo/LoopShaping/EstructuraDatos/tripleta2.h
-    Modelo/LoopShaping/EstructuraDatos/etapas.h
-    Modelo/LoopShaping/EstructuraDatos/nodo.h
-    Modelo/LoopShaping/DeteccionViolacionBoundaries/deteccionviolacionboundaries.h
-    Modelo/LoopShaping/EstructuraDatos/listaordenada.h
-    DAO/loopshapingdao.h
-    DAO/adaptadorloopshapingdao.h
-    Modelo/EstructurasDatos/datosloopshaping.h
-    src/core/boundaries/boundary_union_1d.h
-    src/core/boundaries/contour_tracer.h
-    Modelo/LoopShaping/funcionescomunes.h
-    Modelo/LoopShaping/EstructuraDatos/data_box.h
 )
 
+# GUI (HMI Qt): los dialogos y visores. main.cpp va aparte, en el ejecutable.
+set(QFTbx_GUI_SRC
+    src/gui/application.cpp
+    src/gui/application.h
+    src/gui/muparserx_console.cpp
+    src/gui/muparserx_console.h
+    src/gui/parlineedit.cpp
+    src/gui/parlineedit.h
+    src/gui/error_message.cpp
+    src/gui/bode_viewer.cpp
+    src/gui/main_window.cpp
+    src/gui/plant_dialog.cpp
+    src/gui/frequencies_dialog.cpp
+    src/gui/uncertainty_dialog.cpp
+    src/gui/boundary_viewer.cpp
+    src/gui/boundary_grid_dialog.cpp
+    src/gui/specifications_dialog.cpp
+    src/gui/controller_dialog.cpp
+    src/gui/boundary_union_viewer.cpp
+    src/gui/loop_shaping_dialog.cpp
+    src/gui/loop_shaping_viewer.cpp
+    src/gui/templates_dialog.cpp
+    src/gui/template_viewer.cpp
+    src/gui/loop_boundaries_viewer.cpp
+)
+
+# Fachada de la aplicacion: coordina el nucleo y la persistencia.
+set(QFTbx_APP_SRC
+    src/core/project_controller.cpp
+)
+
+set(QFTbx_APP_HED
+    src/core/project_controller.h
+)
+
+
 set(QFTbx_GUI_HED
-    GUI/bode_viewer.h
-    GUI/error_message.h
-    GUI/plot_palette.h
-    GUI/main_window.h
-    GUI/plant_dialog.h
-    GUI/frequencies_dialog.h
-    GUI/uncertainty_dialog.h
-    GUI/boundary_viewer.h
-    GUI/boundary_grid_dialog.h
-    GUI/specifications_dialog.h
-    GUI/controller_dialog.h
-    GUI/boundary_union_viewer.h
-    GUI/loop_shaping_dialog.h
-    GUI/loop_shaping_viewer.h
-    GUI/templates_dialog.h
-    GUI/template_viewer.h
-    GUI/loop_boundaries_viewer.h
+    src/gui/bode_viewer.h
+    src/gui/error_message.h
+    src/gui/plot_palette.h
+    src/gui/main_window.h
+    src/gui/plant_dialog.h
+    src/gui/frequencies_dialog.h
+    src/gui/uncertainty_dialog.h
+    src/gui/boundary_viewer.h
+    src/gui/boundary_grid_dialog.h
+    src/gui/specifications_dialog.h
+    src/gui/controller_dialog.h
+    src/gui/boundary_union_viewer.h
+    src/gui/loop_shaping_dialog.h
+    src/gui/loop_shaping_viewer.h
+    src/gui/templates_dialog.h
+    src/gui/template_viewer.h
+    src/gui/loop_boundaries_viewer.h
 )
 
 # Recursos
@@ -270,34 +285,75 @@ qt6_add_resources(QFTbx_ICON_RES Resources/Icon/icons.qrc)
 
 
 # ------------------------------------------------------------------------------
-# Libreria del backend (Modelo + DAO + XmlParser + Consola)
+# Layered libraries. The link order IS the architecture, and the linker
+# enforces it: core knows nothing of files or widgets, persistence knows
+# nothing of the facade or the GUI, and the GUI reaches the core only
+# through the facade.
+#
+#   qftbx_core  <-  qftbx_persistence  <-  qftbx_app  <-  qftbx_gui  <- QFTbx
+#
+# Everything is static: the application is meant to be run from the build
+# directory, and static linking keeps that free of library-path setup.
 # ------------------------------------------------------------------------------
-add_library(qftbx_backend STATIC
-    ${QFTbx_BACKEND_SRC}
-    ${QFTbx_BACKEND_HED}
+
+# The computational core: plants, frequencies, specifications, templates,
+# boundaries and the loop-shaping algorithms. GUI-free since the debug
+# viewers left with the legacy algorithms: it links Qt Core (containers) and
+# Qt Gui (a few headers take QPointF) but neither Widgets nor PrintSupport.
+add_library(qftbx_core STATIC
+    ${QFTbx_CORE_SRC}
+    ${QFTbx_CORE_HED}
 )
 
-target_include_directories(qftbx_backend PUBLIC "${CMAKE_SOURCE_DIR}")
+target_include_directories(qftbx_core PUBLIC "${CMAKE_SOURCE_DIR}")
+target_link_libraries(qftbx_core PUBLIC Qt6::Core Qt6::Gui)
 
-# El backend todavia enlaza Widgets SOLO por LoopShaping (fase 8): sus
-# algoritmos incluyen visores de la GUI para depuracion. El resto del backend
-# ya no depende de Widgets.
-target_link_libraries(qftbx_backend PUBLIC Qt6::Core Qt6::Gui Qt6::Widgets Qt6::PrintSupport)
-target_link_libraries(qftbx_backend PUBLIC pugixml::pugixml)
+# Project persistence (.qft): the only place that knows the file format.
+add_library(qftbx_persistence STATIC
+    ${QFTbx_PERSISTENCE_SRC}
+    ${QFTbx_PERSISTENCE_HED}
+)
+
+target_link_libraries(qftbx_persistence PUBLIC qftbx_core)
+target_link_libraries(qftbx_persistence PRIVATE pugixml::pugixml)
+
+# The application facade: owns the project data and drives the engines and
+# the persistence. It is what the GUI and the tests talk to.
+add_library(qftbx_app STATIC
+    ${QFTbx_APP_SRC}
+    ${QFTbx_APP_HED}
+)
+
+target_link_libraries(qftbx_app PUBLIC qftbx_core qftbx_persistence)
+
+# Transitional alias: consumers still ask for "qftbx_backend".
+add_library(qftbx_backend INTERFACE)
+target_link_libraries(qftbx_backend INTERFACE qftbx_app)
+
+# ------------------------------------------------------------------------------
+# Libreria de la GUI: los dialogos y visores, sin main(), para que la suite
+# pueda instanciarlos (el humo de GUI corre con QT_QPA_PLATFORM=offscreen).
+# ------------------------------------------------------------------------------
+add_library(qftbx_gui STATIC
+    ${QFTbx_GUI_SRC}
+    ${QFTbx_GUI_HED}
+    ${QFTbx_ICON_RES}
+    ${QFTbx_RES_SRC}
+)
+
+target_include_directories(qftbx_gui PUBLIC "${CMAKE_SOURCE_DIR}")
+target_link_libraries(qftbx_gui PUBLIC qftbx_app Qt6::Widgets Qt6::PrintSupport)
+target_compile_options(qftbx_gui PRIVATE -Wall -Wextra)
 
 # ------------------------------------------------------------------------------
 # Ejecutable
 # ------------------------------------------------------------------------------
 add_executable(${EXE_NAME}
-    ${QFTbx_GUI_SRC}
-    ${QFTbx_GUI_HED}
-    ${CUDA_OBJECTS}
+    main.cpp
     ${TS_FILES}
-    ${QFTbx_ICON_RES}
-    ${QFTbx_RES_SRC}
 )
 
-target_link_libraries(${EXE_NAME} PRIVATE qftbx_backend Qt6::Core Qt6::Gui Qt6::Widgets Qt6::PrintSupport)
+target_link_libraries(${EXE_NAME} PRIVATE qftbx_gui)
 
 if(WIN32)
   target_sources(${EXE_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/Resources/Icon/qftbx.rc)
@@ -309,10 +365,9 @@ if(UNIX AND NOT APPLE)
 
   # Generar .desktop en el build dir (portable, sin install)
   # Usamos generator expressions para capturar la ruta real del ejecutable
-  set(QFTBX_DESKTOP_IN  "${CMAKE_SOURCE_DIR}/Resources/Icon/QFTbx.desktop.in")
   set(QFTBX_DESKTOP_OUT "${CMAKE_BINARY_DIR}/QFTbx.desktop")
 
-  # 1) Generamos un archivo intermedio con placeholders que incluyen generator expressions
+  # 1) An intermediate file whose placeholders expand generator expressions.
   file(GENERATE
     OUTPUT "${CMAKE_BINARY_DIR}/QFTbx.desktop.gen.in"
     CONTENT
@@ -329,7 +384,7 @@ Categories=Science;Engineering;\n\
 StartupNotify=true\n"
   )
 
-  # 2) Copiamos el intermedio al .desktop final (para tener un nombre estable)
+  # 2) Copy it to the final .desktop, so the name is stable.
   add_custom_command(
     TARGET ${EXE_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -338,7 +393,7 @@ StartupNotify=true\n"
     COMMENT "Generating portable desktop file: ${QFTBX_DESKTOP_OUT}"
   )
 
-  # 3) (Opcional) hacerlo ejecutable automáticamente
+  # 3) Make it executable.
   add_custom_command(
     TARGET ${EXE_NAME} POST_BUILD
     COMMAND chmod +x "${QFTBX_DESKTOP_OUT}"
@@ -347,19 +402,36 @@ StartupNotify=true\n"
 endif()
 
 # Warnings/arch
-target_compile_options(${EXE_NAME} PRIVATE -Wall)
-target_compile_options(qftbx_backend PRIVATE -Wall)
+target_compile_options(${EXE_NAME} PRIVATE -Wall -Wextra)
+target_compile_options(qftbx_core PRIVATE -Wall -Wextra)
+target_compile_options(qftbx_persistence PRIVATE -Wall -Wextra)
+target_compile_options(qftbx_app PRIVATE -Wall -Wextra)
 if(USE_NATIVE_ARCH AND (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang"))
   target_compile_options(${EXE_NAME} PRIVATE -march=native)
-  target_compile_options(qftbx_backend PRIVATE -march=native)
+  target_compile_options(qftbx_core PRIVATE -march=native)
+  target_compile_options(qftbx_persistence PRIVATE -march=native)
+  target_compile_options(qftbx_app PRIVATE -march=native)
 endif()
+
+# Every translation unit that includes the C-XSC headers compiles its
+# INLINE directed-rounding interval operators (interval.inl: subdown/subup
+# switch the FPU rounding mode around each endpoint). Without this flag the
+# optimiser assumes round-to-nearest everywhere and reorders/fuses the
+# arithmetic across the mode switches, producing intervals with the lower
+# end above the upper one (observed live at -O3 -march=native: the HC4
+# filter aborted on ERROR_INTERVAL_EMPTY_INTERVAL raised by a plain
+# interval subtraction). The whole interval-arithmetic correctness of the
+# toolbox rests on this flag. It cannot be global: it demotes Qt's
+# constexpr float arithmetic, so it applies to the interval-computing
+# targets only.
+target_compile_options(qftbx_core PRIVATE -frounding-math)
 
 # OpenMP link
 if(USE_OpenMP AND OpenMP_CXX_FOUND)
   # PUBLIC: la definicion OpenMP_AVAILABLE cambia declaraciones en cabeceras
   # compartidas (p.ej. templates.h), asi que debe propagarse a los consumidores.
-  target_link_libraries(qftbx_backend PUBLIC OpenMP::OpenMP_CXX)
-  target_compile_definitions(qftbx_backend PUBLIC OpenMP_AVAILABLE=1)
+  target_link_libraries(qftbx_core PUBLIC OpenMP::OpenMP_CXX)
+  target_compile_definitions(qftbx_core PUBLIC OpenMP_AVAILABLE=1)
 else()
   if(USE_OpenMP)
     message("OpenMP NOT FOUND")
@@ -367,9 +439,8 @@ else()
 endif()
 
 # CUDA link
-if(CUDA_FOUND)
-    add_dependencies(qftbx_backend CUDA)
-    target_link_libraries(qftbx_backend PUBLIC CUDA)
+if(TARGET qftbx_cuda)
+    target_link_libraries(qftbx_core PUBLIC qftbx_cuda)
 endif()
 
 set_property(TARGET ${EXE_NAME} APPEND PROPERTY
@@ -382,10 +453,11 @@ qt6_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 # LIBS internas: muparserx y qcustomplot como subdirectorios
 # ------------------------------------------------------------------------------
 add_subdirectory(3rd-party/muparserx EXCLUDE_FROM_ALL)
-target_link_libraries(qftbx_backend PUBLIC muparserx::muparserx)
+target_link_libraries(qftbx_core PUBLIC muparserx::muparserx)
 
 add_subdirectory(3rd-party/qcustomplot EXCLUDE_FROM_ALL)
-target_link_libraries(qftbx_backend PUBLIC qcustomplot::qcustomplot)
+#Only the GUI plots: the backend no longer touches qcustomplot.
+target_link_libraries(qftbx_gui PUBLIC qcustomplot::qcustomplot)
 
 # ------------------------------------------------------------------------------
 # CXSC aislada (NO tocar cxsc). ExternalProject + imported target.
@@ -427,7 +499,7 @@ set_target_properties(cxsc::cxsc PROPERTIES
 )
 
 add_dependencies(cxsc::cxsc cxsc_ep)
-target_link_libraries(qftbx_backend PUBLIC cxsc::cxsc)
+target_link_libraries(qftbx_core PUBLIC cxsc::cxsc)
 
 # RPATH en Linux para encontrar libcxsc.so al ejecutar desde build
 if(UNIX AND NOT APPLE AND NOT WIN32)

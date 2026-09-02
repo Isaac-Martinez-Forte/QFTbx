@@ -5,48 +5,28 @@ using namespace mup;
 
 namespace qftbx {
 
-TransferFunction::TransferFunction(QString name, QVector <Parameter*> * numerator, QVector <Parameter*> * denominator,
-        Parameter * k, Parameter * delay) :
-LtiSystem(name) {
-    m_numerator = numerator;
-    m_denominator = denominator;
-
-    m_gain = k;
-    m_delay = delay;
+TransferFunction::TransferFunction(QString name, std::vector <Parameter> numerator,
+        std::vector <Parameter> denominator, Parameter k, Parameter delay) :
+LtiSystem(name),
+m_gain(std::move(k)),
+m_delay(std::move(delay)),
+m_numerator(std::move(numerator)),
+m_denominator(std::move(denominator)) {
 }
 
-TransferFunction::~TransferFunction() {
-
-    //The system owns its Parameters and vectors (whoever builds one hands
-    //over ownership; the GUI passes copies). releaseOwnership() disarms
-    //deletion for structures that share the pointers.
-    if (m_ownsData) {
-        qDeleteAll(*m_numerator);
-        delete m_numerator;
-        qDeleteAll(*m_denominator);
-        delete m_denominator;
-        delete m_gain;
-        delete m_delay;
-    }
-}
-
-void TransferFunction::releaseOwnership() {
-    m_ownsData = false;
-}
-
-QVector <Parameter*> * TransferFunction::numerator() {
+std::vector <Parameter> & TransferFunction::numerator() {
     return m_numerator;
 }
 
-QVector <Parameter*> * TransferFunction::denominator() {
+std::vector <Parameter> & TransferFunction::denominator() {
     return m_denominator;
 }
 
-Parameter * TransferFunction::gain() {
+Parameter & TransferFunction::gain() {
     return m_gain;
 }
 
-Parameter * TransferFunction::delay() {
+Parameter & TransferFunction::delay() {
     return m_delay;
 }
 
@@ -59,56 +39,39 @@ std::complex <qreal> TransferFunction::evaluate(QVector <qreal> * numerator, QVe
     return p.Eval().GetComplex();
 }
 
-std::complex <qreal> TransferFunction::evaluate(qreal w) {
+namespace {
 
-    ParserX p(pckALL_COMPLEX);
+//The nominal of every parameter, in order. Uncertain ones contribute their
+//nominal here exactly as they did through the parser, which bound each name
+//to its nominal before evaluating.
+std::vector<qreal> nominalsOf(std::vector<Parameter> & parameters)
+{
+    std::vector<qreal> values;
+    values.reserve(parameters.size());
 
-    p.EnableAutoCreateVar(true);
-
-    QString expr;
-
-    foreach(Parameter * n, *m_numerator) {
-
-        if (n->isUncertain()) {
-            expr = n->name() + "=" + QString::number(n->nominal());
-            p.SetExpr(expr.toStdString());
-            p.Eval();
-        }
+    for (Parameter & parameter : parameters) {
+        values.push_back(parameter.nominal());
     }
 
-    foreach(Parameter * d, *m_denominator) {
-        if (d->isUncertain()) {
-            expr = d->name() + "=" + QString::number(d->nominal());
-            p.SetExpr(expr.toStdString());
-            p.Eval();
-        }
-    }
-
-    if (m_gain->isUncertain()) {
-        expr = m_gain->name() + "=" + QString::number(m_gain->nominal());
-        p.SetExpr(expr.toStdString());
-        p.Eval();
-    }
-
-    if (m_delay->isUncertain()) {
-        expr = m_delay->name() + "=" + QString::number(m_delay->nominal());
-        p.SetExpr(expr.toStdString());
-        p.Eval();
-    }
-
-    expr = expression(w);
-
-    p.SetExpr(expr.toStdString());
-
-    return p.Eval().GetComplex();
+    return values;
 }
 
-QVector <std::complex <qreal> > * TransferFunction::evaluate(QVector <qreal> * omega) {
+} // namespace
 
-    QVector <std::complex <qreal> > * resultado = new QVector <std::complex <qreal> > ();
+std::complex <qreal> TransferFunction::evaluate(qreal w) {
+    //Direct complex arithmetic: see valueAt() in the header for what this
+    //replaced and why.
+    return valueAt(w, nominalsOf(m_numerator), nominalsOf(m_denominator),
+                   m_gain.nominal(), m_delay.nominal());
+}
 
-    foreach(qreal o, *omega) {
-        resultado->append(evaluate(o));
+QVector <std::complex <qreal> > TransferFunction::evaluate(const QVector <qreal> & omega) {
+
+    QVector <std::complex <qreal> > resultado;
+    resultado.reserve(omega.size());
+
+    foreach(qreal o, omega) {
+        resultado.append(evaluate(o));
     }
 
     return resultado;
@@ -122,25 +85,11 @@ QString TransferFunction::denominatorString() {
     return QString();
 }
 
-LtiSystem * TransferFunction::clone() {
+std::unique_ptr<LtiSystem> TransferFunction::clone() {
 
-    QVector <Parameter *> * n = new QVector <Parameter *> ();
-    QVector <Parameter *> * d = new QVector <Parameter *> ();
-
-    Parameter * k = m_gain->clone();
-
-    Parameter * delay = m_delay->clone();
-
-    foreach(Parameter * v, *m_numerator) {
-        n->append(v->clone());
-    }
-
-    foreach(Parameter * v, *m_denominator) {
-        d->append(v->clone());
-    }
-
-
-    return this->create(this->name(), n, d, k, delay);
+    //Values copy themselves: no per-parameter cloning any more. FreeForm
+    //overrides this to carry its expression strings too.
+    return this->create(this->name(), m_numerator, m_denominator, m_gain, m_delay);
 }
 
 } // namespace qftbx

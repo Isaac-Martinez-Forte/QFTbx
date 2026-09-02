@@ -1,6 +1,8 @@
 #ifndef QFTBX_TRANSFER_FUNCTION_H
 #define QFTBX_TRANSFER_FUNCTION_H
 
+#include <vector>
+
 #include "lti_system.h"
 #include <QVector>
 #include "src/core/system/parameter.h"
@@ -11,66 +13,60 @@ namespace qftbx {
 /**
  * @brief Common implementation for transfer-function systems.
  *
- * Owns the numerator/denominator Parameter vectors, the gain and the delay
- * (whoever constructs a system hands over ownership; releaseOwnership()
- * disarms deletion for structures that share the pointers). Subclasses only
- * provide the expression generators for their mathematical form.
+ * Holds the numerator/denominator parameters, the gain and the delay BY
+ * VALUE. Subclasses only provide the expression generators for their
+ * mathematical form.
  */
 class TransferFunction : public LtiSystem
 {
 public:
-    TransferFunction(QString name, QVector <Parameter*> * numerator, QVector <Parameter*> * denominator, Parameter * k, Parameter* delay);
+    TransferFunction(QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
+                     Parameter k, Parameter delay);
 
-    virtual LtiSystem * create (QString name, QVector <Parameter*> * numerator, QVector <Parameter*> * denominator,
-                              Parameter * k, Parameter* delay = NULL, QString numeratorExpr = 0, QString denominatorExpr = 0) = 0;
+    std::unique_ptr<LtiSystem> create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
+                              Parameter k, Parameter delay = Parameter(qreal(0)),
+                              QString numeratorExpr = QString(), QString denominatorExpr = QString()) override = 0;
 
-    ~TransferFunction();
+    std::complex <qreal> evaluate (qreal omega) override;
 
-    std::complex <qreal> evaluate (qreal omega);
-
-    QVector <std::complex <qreal> > * evaluate (QVector <qreal> * omega);
+    QVector <std::complex <qreal> > evaluate (const QVector <qreal> & omega) override;
 
     std::complex <qreal> evaluate (QVector <qreal> * numerator, QVector <qreal> * denominator,
-                                           qreal k, qreal delay, qreal omega);
+                                           qreal k, qreal delay, qreal omega) override;
 
-    virtual QString expression (QVector <qreal> * numerator, QVector <qreal> * denominator,
-                             qreal k, qreal delay, qreal omega) = 0;
+    QString expression (QVector <qreal> * numerator, QVector <qreal> * denominator,
+                             qreal k, qreal delay, qreal omega) override = 0;
 
-    virtual QString expression(qreal w) = 0;
+    QString expression(qreal w) override = 0;
 
-    virtual QString expression() = 0;
+    QString expression() override = 0;
 
-    virtual std::complex <qreal> evaluateNumerator(QVector <qreal> * nume, qreal omega) = 0;
+    std::complex <qreal> evaluateNumerator(QVector <qreal> * nume, qreal omega) override = 0;
 
-    virtual std::complex <qreal> evaluateDenominator(QVector <qreal> * deno, qreal omega) = 0;
+    std::complex <qreal> evaluateDenominator(QVector <qreal> * deno, qreal omega) override = 0;
 
-    QVector <Parameter*> * numerator();
+    std::vector <Parameter> & numerator() override;
 
-    void releaseOwnership ();
+    std::vector <Parameter> & denominator() override;
 
-    QVector <Parameter*> * denominator();
+    QString numeratorString() override;
 
-    QString numeratorString();
+    QString denominatorString() override;
 
-    QString denominatorString();
+    Parameter & gain() override;
 
-    Parameter * gain();
+    Parameter & delay() override;
 
-    Parameter * delay();
+    SystemType type() override = 0;
 
-    virtual SystemType type() = 0;
-
-    LtiSystem * clone ();
+    std::unique_ptr<LtiSystem> clone () override;
 
 protected:
-    Parameter * m_gain;
-    Parameter * m_delay;
+    Parameter m_gain;
+    Parameter m_delay;
 
-    QVector <Parameter*> * m_numerator;
-    QVector <Parameter*> * m_denominator;
-
-    bool m_ownsData = true;
-
+    std::vector <Parameter> m_numerator;
+    std::vector <Parameter> m_denominator;
 };
 
 

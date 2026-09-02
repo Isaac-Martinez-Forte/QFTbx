@@ -520,8 +520,14 @@
 /* MSG_FILE if this macro is defined.   */
 /* Otherwise file "o_msg1.h" is included*/
 /* by the runtime system.               */
+/* Disabled: when C-XSC is embedded as  */
+/* a library the message file is never  */
+/* installed, so e_tmsg could not       */
+/* display any message. The compiled-in */
+/* messages from "o_msg1.h" are used    */
+/* instead.                             */
 /* - - - - - - - - - - - - - - - - - - -*/
-#define MSG_FILE_ENABLED
+/* #define MSG_FILE_ENABLED */
 
 /* - - - - - - - - - - - - - - - - - - -*/
 /* No function names are pushed to the  */

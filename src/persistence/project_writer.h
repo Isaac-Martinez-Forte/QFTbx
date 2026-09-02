@@ -1,6 +1,7 @@
 #ifndef QFTBX_PROJECT_WRITER_H
 #define QFTBX_PROJECT_WRITER_H
 
+#include "src/core/templates/cloud_set.h"
 #include <complex>
 
 #include <QString>
@@ -8,9 +9,9 @@
 
 #include "src/core/system/lti_system.h"
 #include "src/core/boundaries/boundary_data.h"
-#include "Modelo/EstructurasDatos/dbnd.h"
-#include "Modelo/EstructurasDatos/datosloopshaping.h"
-#include "Modelo/Objetos/omega.h"
+#include "src/core/specifications/specification_record.h"
+#include "src/core/loopshaping/loop_shaping_result.h"
+#include "src/core/frequencies/omega.h"
 
 namespace qftbx {
 
@@ -20,14 +21,14 @@ namespace qftbx {
  */
 struct ProjectContent {
     LtiSystem * plant = nullptr;
-    QVector <tools::dBND *> * specifications = nullptr;
+    const qftbx::SpecificationRecords * specifications = nullptr;
     Omega * omega = nullptr;
-    QVector <QVector <std::complex<qreal>> * > * templates = nullptr;
-    QVector <QVector <std::complex<qreal>> * > * contour = nullptr;
-    QVector <qreal> * epsilon = nullptr;
+    CloudSet templates;
+    CloudSet contour;
+    const QVector <qreal> * epsilon = nullptr;
     BoundaryData * boundaries = nullptr;
     LtiSystem * controller = nullptr;
-    DatosLoopShaping * loopShaping = nullptr;
+    LoopShapingResult * loopShaping = nullptr;
 };
 
 /**

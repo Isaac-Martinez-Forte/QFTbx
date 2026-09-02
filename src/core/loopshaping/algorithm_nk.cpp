@@ -1,0 +1,522 @@
+#include "src/core/exception.h"
+#include "src/core/loopshaping/algorithm_nk.h"
+
+#include "src/core/loopshaping/quick_solution.h"
+
+using namespace tools;
+using namespace cxsc;
+using namespace FC;
+
+namespace quick_solution = qftbx::quick_solution;
+
+AlgorithmNk::AlgorithmNk()
+{
+}
+
+AlgorithmNk::~AlgorithmNk()
+{
+}
+
+
+void AlgorithmNk::setProblem(LtiSystem *plant, LtiSystem *controller, QVector<qreal> * omega, const BoundaryData *boundaries,
+                                     qreal epsilon, qint32 inicializacion){
+
+    this->plant = plant;
+    this->controller = controller->clone();
+    this->omega = omega;
+    this->boundaries = boundaries;
+    this->epsilon = epsilon;
+    this->ini = inicializacion == 1 ? Extremes : Centre;
+
+    hasUncertainZeros = false;
+    for (Parameter & var : this->controller->numerator()) {
+        hasUncertainZeros = hasUncertainZeros || var.isUncertain();
+    }
+
+    hasUncertainPoles = false;
+    for (Parameter & var : this->controller->denominator()) {
+        hasUncertainPoles = hasUncertainPoles || var.isUncertain();
+    }
+}
+
+
+//Main loop: the NT branch & bound (Tharewal 2005, sec. 3.3.3) with the
+//NK additions wired at the paper's steps: local optimization on the
+//leading box (steps 5-6 and 18-20) and Quick Solution inside the
+//feasibility test of every box (steps 2 and 9).
+bool AlgorithmNk::solve(){
+
+    liveList = std::make_unique<OrderedList>();
+    conversion = std::make_unique<NaturalIntervalExtension>();
+    detector = std::make_unique<BoundaryViolationDetector>();
+    stability = std::make_unique<NominalStabilityChecker>(plant, omega);
+
+    bestLocalGain = std::numeric_limits<qreal>::infinity();
+    bestLocalController.reset();
+    launchGains.clear();
+
+    //Stable prototype for building point controllers: the working box
+    //pointer is replaced as Quick Solution rebuilds it.
+    prototype = controller->clone();
+
+    nominalPlantValues.clear();
+    nominalPlantValuesStd.clear();
+
+    foreach (qreal o, *omega) {
+        std::complex<qreal> c = plant->evaluate(o);
+        nominalPlantValuesStd.append(c);
+        nominalPlantValues.append(cxsc::complex(c.real(), c.imag()));
+    }
+
+    //Steps 1-3: Quick Solution and feasibility of the initial box happen
+    //inside check_box_feasibility, which inserts it unless certainly
+    //infeasible.
+    check_box_feasibility(std::move(controller));
+
+    while (true) {
+
+        if (liveList->isEmpty()) {
+            //Step 15. A certified feasible local solution stands in as
+            //the answer when the interval search exhausts the space (the
+            //local point was verified against bounds and stability).
+            if (bestLocalController != nullptr) {
+                designedController = std::move(bestLocalController);
+                return true;
+            }
+
+            throw qftbx::InvalidInput(
+                    "No feasible solution exists in the given search box.");
+        }
+
+        std::unique_ptr<SearchNode> node = liveList->takeFirstAs<SearchNode>();
+
+        //Pruning by the local solution (step 4 of the paper's outline /
+        //G-bis of the thesis): a node whose gain infimum cannot improve
+        //the certified local solution is discarded.
+        if (node->system()->gain().range().min >= bestLocalGain) {
+            continue;
+        }
+
+        //Steps 17-20: local optimization launched from the leading box
+        //under the 10% decision rule; a feasible result prunes the list
+        //through bestLocalGain.
+        localOptimization(node->system());
+
+        if (node->system()->gain().range().min >= bestLocalGain) {
+            continue;
+        }
+
+        //Step 21 and Remark 3.1 termination, as reviewed for NT.
+        if (node->flag() == feasible || isEpsilonSmall(node->system(), this->epsilon, omega, conversion.get(), nominalPlantValues)) {
+            if (node->flag() == ambiguous) {
+                designedController = pointFromBox(node->system(), false);
+
+                if (!stability->isNominallyStable(designedController.get())) {
+                    designedController.reset();
+                    continue;
+                }
+            } else {
+                designedController = pointFromBox(node->system(), true);
+            }
+
+            return true;
+        }
+
+        //Step 8: bisect along the widest parameter direction.
+        struct BisectionResult retur = bisectWidestParameter(node->system());
+
+        //Steps 9-14: Quick Solution + feasibility + insertion.
+        check_box_feasibility(std::move(retur.v1));
+        check_box_feasibility(std::move(retur.v2));
+    }
+}
+
+
+std::size_t AlgorithmNk::peakLiveNodes() const
+{
+    return liveList != nullptr ? liveList->peakSize() : 0;
+}
+
+
+std::unique_ptr<LtiSystem> AlgorithmNk::controllerStructure(){
+    return std::move(designedController);
+}
+
+
+//Feasibility test over every design frequency with the NK Quick Solution
+//cutting applied per frequency with the latest updated box (paper,
+//sec. 3.3: "one always uses the latest updated values"). Certainly
+//infeasible boxes are destroyed; anything else enters the live list.
+inline void AlgorithmNk::check_box_feasibility(std::unique_ptr<LtiSystem> box){
+
+    BoxClassification classification;
+    BoxFlag flag_final = feasible;
+
+    //Step 20 of the paper: the certified local solution caps the useful
+    //gain range of every new box.
+    if (bestLocalGain < box->gain().range().max &&
+            bestLocalGain > box->gain().range().min) {
+        box = box->create(box->name(), box->numerator(), box->denominator(),
+                Parameter("kv", Range(box->gain().range().min, bestLocalGain),
+                              box->gain().range().min, "kv"),
+                box->delay());
+    }
+
+    qint32 frequencyIndex = 0;
+    cinterval projection;
+
+    foreach (qreal o, *omega) {
+
+        projection = conversion->nicholsBox(box.get(), o, nominalPlantValues.at(frequencyIndex));
+
+        classification = detector->classifyBox(projection, boundaries, frequencyIndex);
+
+        if (classification.flag() == infeasible) {
+            return;
+        }
+
+        if (classification.flag() == ambiguous) {
+            flag_final = ambiguous;
+
+            //Quick Solution at this frequency: sound only when the zone
+            //under every boundary point is certainly forbidden, certified
+            //by the parity classification of the box's lower corner.
+            if (classification.isBottomLeftForbidden()) {
+                box = quickSolution(std::move(box), classification.extremes()[0],
+                                    o, nominalPlantValuesStd.at(frequencyIndex));
+            }
+        }
+
+        frequencyIndex++;
+    }
+
+    //Nominal closed-loop stability of bounds-feasible boxes (the paper
+    //demands the zeros of 1 + L0 in the left half-plane; checked on the
+    //Nichols chart).
+    if (flag_final == feasible) {
+        const std::unique_ptr<LtiSystem> point = pointFromBox(box.get(), true);
+
+        if (!stability->isNominallyStable(point.get())) {
+            return;
+        }
+    }
+
+    //The index is read BEFORE the box is handed over: as arguments of one
+    //call their evaluation order is unspecified.
+    const qreal gainInf = box->gain().range().min;
+
+    liveList->insert(std::make_unique<SearchNode>(gainInf, std::move(box), flag_final));
+}
+
+
+//Quick Solution (paper sec. 3.3, algorithm QS): cut the certainly
+//infeasible subranges of the gain, every zero and every pole with the
+//closed-form monotonicity equations, sequentially, using the latest
+//updated values. boundMinDb is |B_i|min over the box's phase interval.
+inline std::unique_ptr<LtiSystem> AlgorithmNk::quickSolution(std::unique_ptr<LtiSystem> v, qreal boundMinDb,
+                                                       qreal w, std::complex<qreal> p0){
+
+    const qreal boundMin = std::pow(10.0, boundMinDb / 20.0);
+
+    std::vector<double> zeroInfs, zeroSups, poleInfs, poleSups;
+    for (Parameter & var : v->numerator()) {
+        zeroInfs.push_back(var.isUncertain() ? var.range().min : var.nominal());
+        zeroSups.push_back(var.isUncertain() ? var.range().max : var.nominal());
+    }
+    for (Parameter & var : v->denominator()) {
+        poleInfs.push_back(var.isUncertain() ? var.range().min : var.nominal());
+        poleSups.push_back(var.isUncertain() ? var.range().max : var.nominal());
+    }
+
+    qreal gainInf = v->gain().range().min;
+    const qreal gainSup = v->gain().range().max;
+
+    bool cut = false;
+
+    //Steps (3)-(4): the gain, from below.
+    if (v->gain().isUncertain()) {
+        const qreal k = quick_solution::gainCut(boundMin, zeroSups, poleInfs, w, p0);
+
+        if (k > gainInf && k < gainSup) {
+            gainInf = k;
+            cut = true;
+        }
+    }
+
+    //Steps (5)-(6): every zero, from below.
+    if (hasUncertainZeros) {
+        for (qint32 j = 0; j < static_cast<qint32>(zeroInfs.size()); ++j) {
+            if (!v->numerator()[j].isUncertain()) {
+                continue;
+            }
+
+            const qreal z = quick_solution::zeroCut(boundMin, gainSup, zeroSups,
+                                                    poleInfs, j, w, p0);
+
+            if (z > zeroInfs[j] && z < zeroSups[j]) {
+                zeroInfs[j] = z;
+                cut = true;
+            }
+        }
+    }
+
+    //Steps (7)-(8): every pole, from ABOVE (a larger pole lowers the loop
+    //towards the forbidden side; the thesis text says the opposite
+    //interval - an erratum, see quick_solution.h).
+    if (hasUncertainPoles) {
+        for (qint32 j = 0; j < static_cast<qint32>(poleInfs.size()); ++j) {
+            if (!v->denominator()[j].isUncertain()) {
+                continue;
+            }
+
+            const qreal p = quick_solution::poleCut(boundMin, gainSup, zeroSups,
+                                                    poleInfs, j, w, p0);
+
+            if (p > poleInfs[j] && p < poleSups[j]) {
+                poleSups[j] = p;
+                cut = true;
+            }
+        }
+    }
+
+    if (!cut) {
+        return v;
+    }
+
+    std::vector<Parameter> numerador;
+    for (qint32 j = 0; j < static_cast<qint32>(zeroInfs.size()); ++j) {
+        Parameter & old = v->numerator()[j];
+        numerador.push_back(old.isUncertain()
+                ? Parameter(old.name(), Range(zeroInfs[j], zeroSups[j]), zeroInfs[j])
+                : Parameter(old.nominal()));
+    }
+
+    std::vector<Parameter> denominador;
+    for (qint32 j = 0; j < static_cast<qint32>(poleInfs.size()); ++j) {
+        Parameter & old = v->denominator()[j];
+        denominador.push_back(old.isUncertain()
+                ? Parameter(old.name(), Range(poleInfs[j], poleSups[j]), poleInfs[j])
+                : Parameter(old.nominal()));
+    }
+
+    return v->create(v->name(), numerador, denominador,
+            v->gain().isUncertain()
+                ? Parameter("kv", Range(gainInf, gainSup), gainInf, "kv")
+                : Parameter(v->gain().nominal()),
+            v->delay());
+}
+
+
+//Local optimization (paper sec. 3.2; the paper only says "call any
+//nonlinear constrained local optimization routine", so the routine is
+//ours): a lean two-level pattern search. The objective is the gain alone,
+//so the inner level finds the minimal feasible gain for fixed zeros/poles
+//by logarithmic bisection (the predicate is the point bounds test; local
+//crossing only, as a local method promises), and the outer level moves
+//the zeros/poles with a Hooke-Jeeves style coordinate pattern in LOG
+//space with an adaptive, coarsening step. A hard evaluation budget keeps
+//the search cheaper than the pruning it buys, and the candidate must pass
+//the nominal stability criterion once, at the end, before it may prune
+//the global search. Launched under the paper's 10% decision rule. (The
+//GUI 'delta' step no longer applies: the step adapts; the parameter is
+//kept for compatibility until the phase-8 GUI pass.)
+
+namespace {
+const qint32 kLocalSearchBudget = 400;
+const qreal kGainTolerance = 1.01;      //1% is plenty for a pruning bound
+}
+
+inline qreal AlgorithmNk::minimalFeasibleGain(const QVector<qreal> & zeros,
+                                                       const QVector<qreal> & poles,
+                                                       LtiSystem * box, qint32 & budget){
+
+    qreal high = box->gain().range().max;
+    qreal low = box->gain().range().min;
+
+    budget--;
+    if (!pointIsFeasible(zeros, poles, high)) {
+        return std::numeric_limits<qreal>::infinity();
+    }
+
+    budget--;
+    if (pointIsFeasible(zeros, poles, low)) {
+        return low;
+    }
+
+    while (high / low > kGainTolerance && budget > 0) {
+        const qreal mid = std::sqrt(low * high);
+
+        budget--;
+        if (pointIsFeasible(zeros, poles, mid)) {
+            high = mid;
+        } else {
+            low = mid;
+        }
+    }
+
+    return high;
+}
+
+inline void AlgorithmNk::localOptimization(LtiSystem * box){
+
+    const qreal launch = box->gain().range().min;
+
+    foreach (qreal previous, launchGains) {
+        if (std::abs(launch - previous) <= 0.1 * std::max<qreal>(1.0, std::abs(previous))) {
+            return;
+        }
+    }
+
+    launchGains.append(launch);
+
+    QVector<qreal> zeros, poles;
+    qreal gain;
+    startingPoint(box, zeros, poles, gain);
+
+    qint32 budget = kLocalSearchBudget;
+
+    qreal bestGain = minimalFeasibleGain(zeros, poles, box, budget);
+    QVector<qreal> bestZeros = zeros;
+    QVector<qreal> bestPoles = poles;
+
+    //Coordinate pattern over zeros/poles in log space, coarse to fine.
+    const auto logRange = [](Parameter & var) {
+        return std::log10(var.range().max) - std::log10(std::max<qreal>(var.range().min, 1e-12));
+    };
+
+    const auto tryMove = [&](bool isPole, qint32 j, qreal stepDecades) -> bool {
+        Parameter & var = isPole ? box->denominator()[j] : box->numerator()[j];
+        QVector<qreal> & values = isPole ? bestPoles : bestZeros;
+
+        for (qreal direction : {stepDecades, -stepDecades}) {
+            const qreal candidate = values.at(j) * std::pow(10.0, direction);
+
+            if (candidate <= var.range().min || candidate >= var.range().max) {
+                continue;
+            }
+
+            QVector<qreal> trial = values;
+            trial.replace(j, candidate);
+
+            const qreal k = isPole ? minimalFeasibleGain(bestZeros, trial, box, budget)
+                                   : minimalFeasibleGain(trial, bestPoles, box, budget);
+
+            if (k < bestGain / kGainTolerance) {
+                values = trial;
+                bestGain = k;
+                return true;
+            }
+        }
+
+        return false;
+    };
+
+    for (qreal divisor : {4.0, 8.0, 16.0}) {
+        bool improved = true;
+
+        while (improved && budget > 0) {
+            improved = false;
+
+            for (qint32 j = 0; j < bestZeros.size() && budget > 0; ++j) {
+                if (box->numerator()[j].isUncertain()) {
+                    improved = tryMove(false, j, logRange(box->numerator()[j]) / divisor) || improved;
+                }
+            }
+
+            for (qint32 j = 0; j < bestPoles.size() && budget > 0; ++j) {
+                if (box->denominator()[j].isUncertain()) {
+                    improved = tryMove(true, j, logRange(box->denominator()[j]) / divisor) || improved;
+                }
+            }
+        }
+    }
+
+    if (bestGain < bestLocalGain) {
+        std::unique_ptr<LtiSystem> candidate = pointSystem(bestZeros, bestPoles, bestGain);
+
+        if (stability->isNominallyStable(candidate.get())) {
+            bestLocalGain = bestGain;
+            bestLocalController = std::move(candidate);
+        }
+    }
+}
+
+
+inline std::unique_ptr<LtiSystem> AlgorithmNk::pointSystem(const QVector<qreal> & zeros,
+                                                     const QVector<qreal> & poles, qreal gain){
+    std::vector<Parameter> numerador;
+    numerador.reserve(zeros.size());
+    foreach (qreal z, zeros) {
+        numerador.emplace_back(z);
+    }
+
+    std::vector<Parameter> denominador;
+    denominador.reserve(poles.size());
+    foreach (qreal p, poles) {
+        denominador.emplace_back(p);
+    }
+
+    return prototype->create(prototype->name(), std::move(numerador), std::move(denominador),
+                             Parameter(gain), Parameter(qreal(0)));
+}
+
+
+//Point feasibility against the bounds at every design frequency, with the
+//same projection + detection the interval test uses (the historical local
+//search passed the GAIN as the frequency index of the detection).
+inline bool AlgorithmNk::pointIsFeasible(const QVector<qreal> & zeros,
+                                                  const QVector<qreal> & poles, qreal gain){
+
+    if (gain <= 0.0 || std::isinf(gain)) {
+        return false;
+    }
+
+    const std::unique_ptr<LtiSystem> point = pointSystem(zeros, poles, gain);
+
+    for (qint32 i = 0; i < omega->size(); ++i) {
+        const cinterval projection = conversion->nicholsBox(point.get(), omega->at(i),
+                                                      nominalPlantValues.at(i));
+        const BoxFlag flag = detector->classifyBox(projection, boundaries, i).flag();
+
+        if (flag != feasible) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
+//Starting point of the local search, per the GUI choice: box centre,
+//random point, or the |L0|-maximal corner.
+inline void AlgorithmNk::startingPoint(LtiSystem * box, QVector<qreal> & zeros,
+                                                QVector<qreal> & poles, qreal & gain){
+
+    const auto pick = [this](Parameter & var, bool isPole) -> qreal {
+        if (!var.isUncertain()) {
+            return var.nominal();
+        }
+        const Range r = var.range();
+        return ini == Centre ? r.middle()
+                             : (isPole ? r.max : r.min);
+    };
+
+    zeros.clear();
+    poles.clear();
+
+    for (Parameter & var : box->numerator()) {
+        zeros.append(pick(var, false));
+    }
+    for (Parameter & var : box->denominator()) {
+        poles.append(pick(var, true));
+    }
+
+    Parameter & k = box->gain();
+    if (!k.isUncertain()) {
+        gain = k.nominal();
+    } else if (ini == Centre) {
+        gain = (k.range().min + k.range().max) / 2.0;
+    } else {
+        gain = k.range().max;
+    }
+}

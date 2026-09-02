@@ -3,6 +3,8 @@
 
 
 #include <QVector>
+
+#include "src/core/boundaries/boundary_types.h"
 #include <QPointF>
 
 namespace qftbx {
@@ -22,25 +24,25 @@ class ContourTracer
 public:
     /// Cut threshold in dB (already resolved by the caller: the tracking
     /// spread T_U - T_L, or the specification's own bound) over the sheet.
-    ContourTracer (qreal thresholdDb, QVector <QVector <qreal> *> * sheet);
+    ContourTracer (qreal thresholdDb, const BoundarySheet & sheet);
 
-    QVector <QVector <QPointF> *> * trace (qreal phasePoints, qreal magnitudePoints,
-                                           qreal magnitudeShift);
+    TraceSet trace (qreal phaseSpan, qreal magnitudeSpan,
+                                           qreal phaseBottom, qreal magnitudeBottom);
 
 #ifdef CUDA_AVAILABLE
-    ContourTracer (qreal thresholdDb, float * sheet);
+    ContourTracer (qreal thresholdDb, const float * sheet);
 
-    QVector <QVector <QPointF> *> * trace (qreal phasePoints, qreal phaseCount, qreal magnitudePoints,
-                                           qreal magnitudeCount, qreal magnitudeShift);
+    TraceSet trace (qreal phaseSpan, qreal phaseCount, qreal magnitudeSpan,
+                                           qreal magnitudeCount, qreal phaseBottom, qreal magnitudeBottom);
 #endif
 
 
 private:
 
     qreal m_thresholdDb;
-    QVector <QVector <qreal> *> * m_sheet = nullptr;
+    const BoundarySheet * m_sheet = nullptr;
 #ifdef CUDA_AVAILABLE
-    float * m_cudaSheet = nullptr;
+    const float * m_cudaSheet = nullptr;
 #endif
 
     // Moore neighbourhood, clockwise from north:

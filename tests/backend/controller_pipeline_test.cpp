@@ -1,4 +1,4 @@
-// End-to-end validation of the PFC workflow through Controlador, the
+// End-to-end validation of the PFC workflow through ProjectController, the
 // mediator the GUI drives: load a full project, recompute the boundaries
 // with the same grid the file was made with, compare them against the
 // stored ones, then save and reload the whole project. This covers the DAO
@@ -11,7 +11,7 @@
 #include <QTemporaryDir>
 #include <QVector>
 
-#include "Modelo/controlador.h"
+#include "src/core/project_controller.h"
 #include "project_compare.h"
 #include "src/persistence/project_reader.h"
 
@@ -48,26 +48,25 @@ GridPoint goldenToGrid(QPointF p)
 
 TEST(ControllerPipeline, RecomputedBoundariesMatchTheLoadedProject)
 {
-    Controlador controller;
+    ProjectController controller;
 
-    QVector<bool>* flags = controller.cargarSistema(fixture("multivaluados.qft"));
-    ASSERT_EQ(flags->size(), 8);
-    EXPECT_TRUE(flags->at(0)); // plant
-    EXPECT_TRUE(flags->at(1)); // specifications
-    EXPECT_TRUE(flags->at(2)); // frequencies
-    EXPECT_TRUE(flags->at(3)); // templates
-    EXPECT_TRUE(flags->at(4)); // boundaries
-    delete flags;
+    const std::vector<bool> flags = controller.load(fixture("multivaluados.qft"));
+    ASSERT_EQ(static_cast<int>(flags.size()), 8);
+    EXPECT_TRUE(flags.at(0)); // plant
+    EXPECT_TRUE(flags.at(1)); // specifications
+    EXPECT_TRUE(flags.at(2)); // frequencies
+    EXPECT_TRUE(flags.at(3)); // templates
+    EXPECT_TRUE(flags.at(4)); // boundaries
 
-    // Keep the traces of the boundaries as loaded from the file: getBound()
+    // Keep the traces of the boundaries as loaded from the file: boundaries()
     // hands a view whose containers are replaced when recomputing.
-    BoundaryData* loaded = controller.getBound();
+    BoundaryData* loaded = controller.boundaries();
     QVector<QVector<QVector<QPointF>>> storedTraces;
-    for (auto* map : *loaded->boundaries()) {
+    for (const auto & map : loaded->boundaries()) {
         QVector<QVector<QPointF>> perFrequency;
-        foreach (const QString& key, map->keys()) {
-            for (QVector<QPointF>* trace : *map->value(key)) {
-                perFrequency.append(*trace);
+        for (const auto & entry : map) {
+            for (const qftbx::Trace & trace : entry.second) {
+                perFrequency.append(QVector<QPointF>(trace.begin(), trace.end()));
             }
         }
         storedTraces.append(perFrequency);
@@ -76,30 +75,31 @@ TEST(ControllerPipeline, RecomputedBoundariesMatchTheLoadedProject)
 
     // Recompute through the same call the GUI makes, with the grid the
     // fixture was generated on (contour input, no CUDA).
-    ASSERT_TRUE(controller.calcularBoundaries(QPointF(-360.0, 0.0), 361,
+    ASSERT_TRUE(controller.computeBoundaries(QPointF(-360.0, 0.0), 361,
                                               QPointF(-60.0, 60.0), 121,
                                               -1.0, true, false));
 
-    BoundaryData* recomputed = controller.getBound();
+    BoundaryData* recomputed = controller.boundaries();
     ASSERT_NE(recomputed, nullptr);
-    ASSERT_EQ(recomputed->boundaries()->size(), 5);
+    ASSERT_EQ(recomputed->boundaries().size(), 5u);
 
     for (int f = 0; f < 5; ++f) {
-        auto* map = recomputed->boundaries()->at(f);
-        ASSERT_EQ(map->size(), 1) << "frequency " << f;
-        auto* traces = map->value(QStringLiteral("Tracking"));
-        ASSERT_NE(traces, nullptr) << "frequency " << f;
-        ASSERT_EQ(traces->size(), storedTraces.at(f).size()) << "frequency " << f;
+        const auto & map = recomputed->boundaries().at(static_cast<std::size_t>(f));
+        ASSERT_EQ(map.size(), 1u) << "frequency " << f;
+        const auto foundTraces = map.find(QStringLiteral("Tracking"));
+        ASSERT_NE(foundTraces, map.end()) << "frequency " << f;
+        const qftbx::TraceSet & traces = foundTraces->second;
+        ASSERT_EQ(static_cast<int>(traces.size()), storedTraces.at(f).size()) << "frequency " << f;
 
-        for (int t = 0; t < traces->size(); ++t) {
+        for (int t = 0; t < static_cast<int>(traces.size()); ++t) {
             const QVector<QPointF>& gold = storedTraces.at(f).at(t);
-            QVector<QPointF>* got = traces->at(t);
-            ASSERT_EQ(got->size(), gold.size()) << "frequency " << f << " trace " << t;
+            const qftbx::Trace & got = traces.at(static_cast<std::size_t>(t));
+            ASSERT_EQ(static_cast<int>(got.size()), gold.size()) << "frequency " << f << " trace " << t;
 
             // Current layout: [synthetic, core..., synthetic]; the legacy
             // file: [synthetic(last+1), synthetic(first-1), core...].
-            for (int k = 0; k < got->size() - 2; ++k) {
-                const GridPoint a = currentToGrid(got->at(1 + k));
+            for (int k = 0; k < static_cast<int>(got.size()) - 2; ++k) {
+                const GridPoint a = currentToGrid(got.at(static_cast<std::size_t>(1 + k)));
                 const GridPoint b = goldenToGrid(gold.at(2 + k));
                 ASSERT_TRUE(a == b) << "frequency " << f << " trace " << t
                                     << " point " << k;
@@ -115,22 +115,20 @@ TEST(ControllerPipeline, SaveAndReloadRoundTripsTheProject)
     const QString saved = temporary.filePath(QStringLiteral("pipeline.qft"));
 
     {
-        Controlador controller;
-        delete controller.cargarSistema(fixture("planta1.qft"));
-        ASSERT_TRUE(controller.guardarSistema(saved));
+        ProjectController controller;
+        controller.load(fixture("planta1.qft"));
+        ASSERT_TRUE(controller.save(saved));
     }
 
     // The saved v2 file must carry the same project as the legacy original.
     ProjectReader original;
-    QVector<bool>* originalFlags = original.load(fixture("planta1.qft"));
+    const std::vector<bool> originalFlags = original.load(fixture("planta1.qft"));
     ProjectReader rewritten;
-    QVector<bool>* rewrittenFlags = rewritten.load(saved);
+    const std::vector<bool> rewrittenFlags = rewritten.load(saved);
 
-    ASSERT_EQ(*originalFlags, *rewrittenFlags);
-    delete originalFlags;
-    delete rewrittenFlags;
+    ASSERT_EQ(originalFlags, rewrittenFlags);
 
-    const QVector<qreal> probes = *original.omega()->getValores();
+    const QVector<qreal> probes = *original.omega()->values();
     expectSameSystem(original.plant(), rewritten.plant(), probes, "plant");
     expectSameSpecifications(original.specifications(), rewritten.specifications());
     EXPECT_EQ(*original.epsilon(), *rewritten.epsilon());

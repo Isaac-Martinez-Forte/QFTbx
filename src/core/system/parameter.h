@@ -2,7 +2,7 @@
 #define QFTBX_PARAMETER_H
 
 #include <QString>
-#include <QPointF>
+#include "src/core/range.h"
 #include <QVector>
 
 #include "mpParser.h"
@@ -24,21 +24,14 @@ class Parameter
 {
 public:
     /// Uncertain parameter; an empty exp falls back to the name.
-    Parameter(QString name, QPointF range, qreal nominal, QString exp);
+    Parameter(QString name, Range range, qreal nominal, QString exp);
 
     /// Uncertain parameter without reparametrisation.
-    Parameter(QString name, QPointF range, qreal nominal);
+    Parameter(QString name, Range range, qreal nominal);
 
-    Parameter(QPointF range);
-
-    Parameter (const Parameter &obj);
+    Parameter(Range range);
 
     Parameter();
-
-    Parameter * clone ();
-
-    /// Deep copy of a parameter vector; the caller owns the copy.
-    static QVector <Parameter*> * cloneVector(QVector <Parameter*> * source);
 
     /// Constant, named by its textual value.
     Parameter (qreal value);
@@ -48,7 +41,7 @@ public:
 
     void setName(QString name);
 
-    void setRange (QPointF range);
+    void setRange (Range range);
 
     void setNominal(qreal nominal);
 
@@ -60,10 +53,10 @@ public:
     QString name();
 
     /// Range with the reparametrisation applied.
-    QPointF range();
+    Range range();
 
     /// Raw range, without the reparametrisation.
-    QPointF rawRange();
+    Range rawRange();
 
     /// Nominal value with the reparametrisation applied.
     qreal nominal();
@@ -74,12 +67,22 @@ public:
     QString expression();
 
 private:
+    /// The reparametrisation applied to one value, parsed once per thread.
+    qreal realValueOf(qreal value) const;
+
+    //Initialised here, not constructor by constructor: the value
+    //constructors used to leave m_hasExpression indeterminate, and reading
+    //it (the copy constructor does) is undefined behaviour. It stayed
+    //harmless only because range() and nominal() return early on
+    //!m_uncertain, so a single setUncertain(true) - or swapping those two
+    //checks - would have turned a stack byte into a muParserX evaluation of
+    //an undefined variable.
     QString m_name;
-    QPointF m_range;
-    qreal m_nominal;
-    bool m_uncertain;
+    Range m_range;
+    qreal m_nominal = 0.0;
+    bool m_uncertain = false;
     QString m_expression;
-    bool m_hasExpression;
+    bool m_hasExpression = false;
 
 };
 

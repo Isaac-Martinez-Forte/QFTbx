@@ -1,20 +1,18 @@
 ﻿#include "parameter.h"
 
+#include "src/core/exception.h"
+#include "src/core/math/expression_cache.h"
+
 using namespace mup;
 using namespace std;
 
 namespace qftbx {
 
-Parameter::Parameter(QString name, QPointF range, qreal nominal, QString exp)
+Parameter::Parameter(QString name, Range range, qreal nominal, QString exp)
 {
     m_name = name;
 
-    if (range.x() > range.y()){
-        m_range.setX(range.y());
-        m_range.setY(range.x());
-    }else {
-        m_range = range;
-    }
+    m_range = range.ordered();
 
     m_nominal = nominal;
     m_uncertain = true;
@@ -30,15 +28,10 @@ Parameter::Parameter(QString name, QPointF range, qreal nominal, QString exp)
     }
 }
 
-Parameter::Parameter(QString name, QPointF range, qreal nominal){
+Parameter::Parameter(QString name, Range range, qreal nominal){
     m_name = name;
 
-    if (range.x() > range.y()){
-        m_range.setX(range.y());
-        m_range.setY(range.x());
-    }else {
-        m_range = range;
-    }
+    m_range = range.ordered();
 
     m_nominal = nominal;
     m_expression = name;
@@ -49,26 +42,12 @@ Parameter::Parameter(QString name, QPointF range, qreal nominal){
     m_hasExpression = false;
 }
 
-Parameter::Parameter (QPointF range){
-    if (range.x() > range.y()){
-        m_range.setX(range.y());
-        m_range.setY(range.x());
-    }else {
-        m_range = range;
-    }
+Parameter::Parameter (Range range){
+    m_range = range.ordered();
 
     m_nominal = 0;
     m_uncertain = false;
     m_hasExpression = false;
-}
-
-Parameter::Parameter(const Parameter &obj){
-    m_name = obj.m_name;
-    m_range = obj.m_range;
-    m_nominal = obj.m_nominal;
-    m_uncertain = obj.m_uncertain;
-    m_expression = obj.m_expression;
-    this->m_hasExpression = obj.m_hasExpression;
 }
 
 Parameter::Parameter() {
@@ -81,7 +60,7 @@ Parameter::Parameter (qreal value){
     m_nominal = value;
     m_name = QString::number(m_nominal);
     m_uncertain = false;
-    m_range= QPointF (m_nominal, m_nominal);
+    m_range = Range(m_nominal, m_nominal);
     m_expression = m_name;
 }
 
@@ -89,7 +68,7 @@ Parameter::Parameter (QString name, qreal value){
     m_nominal = value;
     m_name = name;
     m_uncertain = false;
-    m_range= QPointF (m_nominal, m_nominal);
+    m_range = Range(m_nominal, m_nominal);
     m_expression = name;
 }
 
@@ -106,7 +85,7 @@ QString Parameter::name(){
     return m_name;
 }
 
-QPointF Parameter::range(){
+Range Parameter::range(){
 
     if (!m_uncertain){
         return m_range;
@@ -116,26 +95,33 @@ QPointF Parameter::range(){
         return m_range;
     }
 
-    QPointF point;
+    //The two ends go through the SAME parsed expression: the reparametrisation
+    //is parsed once per thread and only the bound value changes. This used to
+    //build a parser, SetExpr it, evaluate, then RemoveVar/DefineVar and
+    //evaluate again - and changing the variable set throws the RPN away, so
+    //it parsed twice per call.
+    Range point;
 
-    //The Values must be declared before the parser: it stores pointers to
-    //them (Variable(&v)) and destruction runs in reverse declaration order.
-    Value v(m_range.x());
-    Value v2(m_range.y());
-
-    mup::ParserX p;
-
-    p.SetExpr(m_expression.toStdString());
-    p.DefineVar(m_name.toStdString(), Variable(&v));
-
-    point.setX(p.Eval().GetFloat());
-
-    p.RemoveVar(m_name.toStdString());
-    p.DefineVar(m_name.toStdString(), Variable(&v2));
-
-    point.setY(p.Eval().GetFloat());
+    point.min = realValueOf(m_range.min);
+    point.max = realValueOf(m_range.max);
 
     return point;
+}
+
+//The reparametrisation applied to one value. It describes a real quantity, so
+//a complex result is a malformed expression rather than something to take the
+//real part of (the historical GetFloat() threw an untyped muParserX error).
+qreal Parameter::realValueOf(qreal value) const
+{
+    const std::complex<qreal> evaluated = qftbx::math::evaluateCached(
+            m_expression, {m_name}, {std::complex<qreal>(value, 0.0)});
+
+    if (evaluated.imag() != 0.0) {
+        throw InvalidInput("the reparametrisation of \"" + m_name.toStdString()
+                           + "\" produced a complex value");
+    }
+
+    return evaluated.real();
 }
 
 qreal Parameter::nominal(){
@@ -148,22 +134,14 @@ qreal Parameter::nominal(){
         return m_nominal;
     }
 
-    //Value before the parser: see the comment in range().
-    Value v(m_nominal);
-
-    mup::ParserX p;
-
-    p.SetExpr(m_expression.toStdString());
-    p.DefineVar(m_name.toStdString(), Variable(&v));
-
-    return p.Eval().GetFloat();
+    return realValueOf(m_nominal);
 }
 
 void Parameter::setName(QString name){
     m_name = name;
 }
 
-void Parameter::setRange(QPointF range){
+void Parameter::setRange(Range range){
     m_range = range;
 }
 
@@ -175,7 +153,7 @@ QString Parameter::expression(){
     return m_expression;
 }
 
-QPointF Parameter::rawRange(){
+Range Parameter::rawRange(){
     return m_range;
 }
 
@@ -183,31 +161,6 @@ qreal Parameter::rawNominal(){
     return m_nominal;
 }
 
-Parameter * Parameter::clone(){
 
-    if (!m_uncertain){
-        //Keep the name: a named constant ("kv") must not become a
-        //constant named after its value.
-        return new Parameter (m_name, m_nominal);
-    }
-
-    if (!m_hasExpression){
-        return new Parameter (m_name, m_range, m_nominal);
-    }
-
-    return new Parameter (m_name, m_range, m_nominal, m_expression);
-}
-
-QVector <Parameter*> * Parameter::cloneVector(QVector <Parameter*> * source){
-
-    QVector <Parameter*> * copy = new QVector <Parameter*> ();
-    copy->reserve(source->size());
-
-    foreach (Parameter * var, *source) {
-        copy->append(var->clone());
-    }
-
-    return copy;
-}
 
 } // namespace qftbx

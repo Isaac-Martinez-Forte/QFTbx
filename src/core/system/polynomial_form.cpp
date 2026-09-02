@@ -1,10 +1,13 @@
+#include <cmath>
+#include <complex>
+
 #include "polynomial_form.h"
 
 using namespace std;
 
 namespace qftbx {
 
-PolynomialForm::PolynomialForm(QString name, QVector <Parameter*> * numerator, QVector <Parameter*> * denominator, Parameter * k, Parameter* delay):
+PolynomialForm::PolynomialForm(QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator, Parameter k, Parameter delay):
     TransferFunction(name, numerator, denominator, k , delay)
 {
 
@@ -13,10 +16,10 @@ PolynomialForm::PolynomialForm(QString name, QVector <Parameter*> * numerator, Q
 PolynomialForm::~PolynomialForm(){
 }
 
-LtiSystem * PolynomialForm::create (QString name, QVector <Parameter*> * numerator, QVector <Parameter*> * denominator,
-                               Parameter * k, Parameter* delay, QString numeratorExpr __attribute__((unused)), QString denominatorExpr __attribute__((unused))){
-    //An unspecified delay means a zero delay.
-    return new PolynomialForm(name, numerator, denominator, k, delay == NULL ? new Parameter(0.0) : delay);
+std::unique_ptr<LtiSystem> PolynomialForm::create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
+                               Parameter k, Parameter delay, QString numeratorExpr __attribute__((unused)), QString denominatorExpr __attribute__((unused))){
+    return std::make_unique<PolynomialForm>(name, std::move(numerator), std::move(denominator),
+                                            std::move(k), std::move(delay));
 }
 
 LtiSystem::SystemType PolynomialForm::type(){
@@ -77,34 +80,34 @@ QString PolynomialForm::expression (QVector <qreal> * numerator, QVector <qreal>
 
 QString PolynomialForm::expression(qreal w){
 
-    qint32 sizeDen = m_denominator->size();
-    qint32 sizeNum = m_numerator->size();
+    qint32 sizeDen = m_denominator.size();
+    qint32 sizeNum = m_numerator.size();
 
     QString expr;
 
-    if (m_gain->isUncertain()){
-        expr += "(" + m_gain->name() + "*(";
+    if (m_gain.isUncertain()){
+        expr += "(" + m_gain.name() + "*(";
     }else {
-        expr += "(" + QString::number(m_gain->nominal()) + "*(";
+        expr += "(" + QString::number(m_gain.nominal()) + "*(";
     }
 
 
     for (qint32 i = 1; i < sizeNum; i++){
 
-        if (m_numerator->at(i-1)->isUncertain()){
-            expr += "(" + m_numerator->at(i-1)->name() + "*(" + QString::number(w) + "*i)^" +
+        if (m_numerator[i-1].isUncertain()){
+            expr += "(" + m_numerator[i-1].name() + "*(" + QString::number(w) + "*i)^" +
                     QString::number(sizeNum - i) + ") +";
         } else {
-            expr += "(" + QString::number(m_numerator->at(i-1)->nominal()) + "*(" + QString::number(w) + "*i)^" +
+            expr += "(" + QString::number(m_numerator[i-1].nominal()) + "*(" + QString::number(w) + "*i)^" +
                     QString::number(sizeNum - i)+ ") +";
         }
     }
 
-    if (m_numerator->size() > 0){
-        if (m_numerator->last()->isUncertain()){
-            expr += "(" + m_numerator->last()->name() + ")) / (";
+    if (m_numerator.size() > 0){
+        if (m_numerator.back().isUncertain()){
+            expr += "(" + m_numerator.back().name() + ")) / (";
         }else{
-            expr += "(" + QString::number(m_numerator->last()->nominal()) + ")) / (";
+            expr += "(" + QString::number(m_numerator.back().nominal()) + ")) / (";
         }
     } else {
         expr += "(1)) / (";
@@ -112,21 +115,21 @@ QString PolynomialForm::expression(qreal w){
 
     for (qint32 i = 1; i < sizeDen; i++){
 
-        if (m_denominator->at(i-1)->isUncertain()){
-            expr += "(" + m_denominator->at(i-1)->name() + "*(" + QString::number(w) + "*i)^" +
+        if (m_denominator[i-1].isUncertain()){
+            expr += "(" + m_denominator[i-1].name() + "*(" + QString::number(w) + "*i)^" +
                     QString::number(sizeDen - i) + ") +";
         } else {
-            expr += "(" + QString::number(m_denominator->at(i-1)->nominal()) + "*(" + QString::number(w) + "*i)^" +
+            expr += "(" + QString::number(m_denominator[i-1].nominal()) + "*(" + QString::number(w) + "*i)^" +
                     QString::number(sizeDen - i) + ") +";
         }
     }
 
 
-    if (m_denominator->size() > 0){
-        if (m_denominator->last()->isUncertain()){
-            expr += "(" + m_denominator->last()->name() + ")))";
+    if (m_denominator.size() > 0){
+        if (m_denominator.back().isUncertain()){
+            expr += "(" + m_denominator.back().name() + ")))";
         }else{
-            expr += "(" + QString::number(m_denominator->last()->nominal()) + ")))";
+            expr += "(" + QString::number(m_denominator.back().nominal()) + ")))";
         }
     } else {
         expr += "(1)))";
@@ -135,44 +138,44 @@ QString PolynomialForm::expression(qreal w){
     //A pure delay is e^(-s*tau) => e^(-i*w*tau). Emitted when the delay is
     //uncertain (even with a zero nominal) or a non-zero constant, using the
     //parameter's real name.
-    if (m_delay->isUncertain()){
-        expr += "* e^(-i*" + QString::number(w) + "*" + m_delay->name() + ")";
-    }else if (m_delay->nominal() != 0){
-        expr += "* e^(-i*" + QString::number(w) + "*" + QString::number(m_delay->nominal()) +")";
+    if (m_delay.isUncertain()){
+        expr += "* e^(-i*" + QString::number(w) + "*" + m_delay.name() + ")";
+    }else if (m_delay.nominal() != 0){
+        expr += "* e^(-i*" + QString::number(w) + "*" + QString::number(m_delay.nominal()) +")";
     }
 
     return expr;
 }
 
 QString PolynomialForm::expression(){
-    qint32 sizeDen = m_denominator->size();
-    qint32 sizeNum = m_numerator->size();
+    qint32 sizeDen = m_denominator.size();
+    qint32 sizeNum = m_numerator.size();
 
     QString expr;
 
-    if (m_gain->isUncertain()){
-        expr += "(" + m_gain->name() + "*(";
+    if (m_gain.isUncertain()){
+        expr += "(" + m_gain.name() + "*(";
     }else {
-        expr +="(" + QString::number(m_gain->nominal()) + "*(";
+        expr +="(" + QString::number(m_gain.nominal()) + "*(";
     }
 
 
     for (qint32 i = 1; i < sizeNum; i++){
 
-        if (m_numerator->at(i-1)->isUncertain()){
-            expr += "(" + m_numerator->at(i-1)->name() + "*s^" +
+        if (m_numerator[i-1].isUncertain()){
+            expr += "(" + m_numerator[i-1].name() + "*s^" +
                     QString::number(sizeNum - i) + ") +";
         } else {
-            expr += "(" + QString::number(m_numerator->at(i-1)->nominal()) + "*s^" +
+            expr += "(" + QString::number(m_numerator[i-1].nominal()) + "*s^" +
                     QString::number(sizeNum - i)+ ") +";
         }
     }
 
-    if (m_numerator->size() > 0){
-        if (m_numerator->last()->isUncertain()){
-            expr += "(" + m_numerator->last()->name() + ")) / (";
+    if (m_numerator.size() > 0){
+        if (m_numerator.back().isUncertain()){
+            expr += "(" + m_numerator.back().name() + ")) / (";
         }else{
-            expr += "(" + QString::number(m_numerator->last()->nominal()) + ")) / (";
+            expr += "(" + QString::number(m_numerator.back().nominal()) + ")) / (";
         }
     } else {
         expr += "(1)) / (";
@@ -180,29 +183,29 @@ QString PolynomialForm::expression(){
 
     for (qint32 i = 1; i < sizeDen; i++){
 
-        if (m_denominator->at(i-1)->isUncertain()){
-            expr += "(" + m_denominator->at(i-1)->name() + "*s^" +
+        if (m_denominator[i-1].isUncertain()){
+            expr += "(" + m_denominator[i-1].name() + "*s^" +
                     QString::number(sizeDen - i) + ") +";
         } else {
-            expr += "(" + QString::number(m_denominator->at(i-1)->nominal()) + "*s^" +
+            expr += "(" + QString::number(m_denominator[i-1].nominal()) + "*s^" +
                     QString::number(sizeDen - i) + ") +";
         }
     }
 
-    if (m_denominator->size() > 0){
-        if (m_denominator->last()->isUncertain()){
-            expr += "(" + m_denominator->last()->name() + ")))";
+    if (m_denominator.size() > 0){
+        if (m_denominator.back().isUncertain()){
+            expr += "(" + m_denominator.back().name() + ")))";
         }else{
-            expr += "(" + QString::number(m_denominator->last()->nominal()) + ")))";
+            expr += "(" + QString::number(m_denominator.back().nominal()) + ")))";
         }
     } else {
         expr += "(1)))";
     }
 
-    if (m_delay->isUncertain()){
-        expr += " * e^(-s*" + m_delay->name() + ")";
-    }else if (m_delay->nominal() != 0){
-        expr += " * e^(-s*" + QString::number(m_delay->nominal()) +")";
+    if (m_delay.isUncertain()){
+        expr += " * e^(-s*" + m_delay.name() + ")";
+    }else if (m_delay.nominal() != 0){
+        expr += " * e^(-s*" + QString::number(m_delay.nominal()) +")";
     }
 
     return expr;
@@ -257,3 +260,33 @@ std::complex <qreal> PolynomialForm::evaluateDenominator(QVector <qreal> * deno,
 }
 
 } // namespace qftbx
+
+//P(s) = k * (a[0]*s^(n-1) + ... + a[n-1]) / (b[0]*s^(m-1) + ... + b[m-1]),
+//at s = j*w, times the pure delay. Evaluated by Horner, which is both the
+//accurate way to sum a polynomial and needs no pow() on a complex base; an
+//empty list is the constant 1, as the expression generator writes it.
+std::complex <qreal> PolynomialForm::valueAt(qreal w, const std::vector<qreal> & numerator,
+                                             const std::vector<qreal> & denominator,
+                                             qreal gain, qreal delay)
+{
+    const std::complex<qreal> s(0.0, w);
+
+    std::complex<qreal> num(1.0, 0.0);
+    if (!numerator.empty()) {
+        num = std::complex<qreal>(numerator.front(), 0.0);
+        for (std::size_t i = 1; i < numerator.size(); i++) {
+            num = num * s + numerator[i];
+        }
+    }
+
+    std::complex<qreal> den(1.0, 0.0);
+    if (!denominator.empty()) {
+        den = std::complex<qreal>(denominator.front(), 0.0);
+        for (std::size_t i = 1; i < denominator.size(); i++) {
+            den = den * s + denominator[i];
+        }
+    }
+
+    //exp(0) is exactly 1, so a zero delay needs no special case.
+    return gain * num / den * std::exp(-s * delay);
+}

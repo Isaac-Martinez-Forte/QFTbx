@@ -1,0 +1,488 @@
+#include "src/core/exception.h"
+#include "src/core/loopshaping/algorithm_mr.h"
+
+#include "src/core/specifications/specification_record.h"
+
+#include <cmath>
+
+using namespace tools;
+using namespace cxsc;
+using namespace FC;
+using namespace alg;
+
+namespace {
+
+//Template representatives per frequency entering the constraint set (the
+//paper uses 9 plants; the tracking constraints pair them quadratically).
+const qint32 kTemplateRepresentatives = 9;
+
+//Passes of the HC4 fixpoint loop per box (a bound protects against
+//oscillating contractions; convergence is typically immediate).
+const qint32 kMaxNarrowingPasses = 8;
+
+QString number(qreal value)
+{
+    //Full precision; the expression lexer understands scientific
+    //notation (fixed notation truncated the small tracking coefficients
+    //to zero).
+    return QString::number(value, 'g', 17);
+}
+
+} // namespace
+
+AlgorithmMr::AlgorithmMr()
+{
+}
+
+AlgorithmMr::~AlgorithmMr()
+{
+}
+
+void AlgorithmMr::setProblem(LtiSystem *plant, LtiSystem *controller, QVector<qreal> * omega, const BoundaryData *boundaries,
+                                  qreal epsilon, const qftbx::CloudSet & temp,
+                                  const qftbx::SpecificationRecords * specificationRecords){
+    this->plant = plant;
+    this->controller = controller->clone();
+    this->omega = omega;
+    this->boundaries = boundaries;
+    this->epsilon = epsilon;
+    this->temp = temp;
+    this->specificationRecords = specificationRecords;
+}
+
+
+//Controller magnitude and phase as expression strings over the uncertain
+//parameter names, one pair per design frequency. A zero-pole-gain factor
+//(jw + x) contributes sqrt(x^2 + w^2) to the magnitude; a time-constant
+//factor (1 + jw/x) contributes sqrt(1 + w^2/x^2); both contribute
+//atan(w/x) to the phase in radians (the historical builder emitted
+//atan(x/w), the complement of the true phase).
+inline void AlgorithmMr::buildControllerExpressions(){
+
+    const bool timeConstant =
+            controller->type() == LtiSystem::SystemType::TimeConstantGain;
+
+    if (!timeConstant && controller->type() != LtiSystem::SystemType::ZeroPoleGain) {
+        throw qftbx::InvalidInput(
+                "The ICSP loop-shaping algorithm needs a zero-pole-gain or "
+                "time-constant controller structure.");
+    }
+
+    const auto term = [&](Parameter & var, qreal w) -> QString {
+        const QString value = var.isUncertain() ? var.name() : number(var.nominal());
+        if (timeConstant) {
+            return "sqrt(1+(" + number(w * w) + "/(" + value + "^2)))";
+        }
+        return "sqrt((" + value + "^2)+" + number(w * w) + ")";
+    };
+
+    const auto phaseTerm = [&](Parameter & var, qreal w) -> QString {
+        const QString value = var.isUncertain() ? var.name() : number(var.nominal());
+        return "atan(" + number(w) + "/(" + value + "))";
+    };
+
+    const QString gain = controller->gain().isUncertain()
+            ? controller->gain().name()
+            : number(controller->gain().nominal());
+
+    magnitudeExpressions.clear();
+    phaseExpressions.clear();
+
+    foreach (qreal w, *omega) {
+
+        QString magnitude = "(" + gain + ")";
+        QString phase = "(0";
+
+        for (Parameter & var : controller->numerator()) {
+            magnitude += "*" + term(var, w);
+            phase += "+" + phaseTerm(var, w);
+        }
+
+        for (Parameter & var : controller->denominator()) {
+            magnitude += "/" + term(var, w);
+            phase += "-" + phaseTerm(var, w);
+        }
+
+        phase += ")";
+
+        magnitudeExpressions.append(magnitude);
+        phaseExpressions.append(phase);
+    }
+}
+
+
+//The constraint set of the ICSP (paper eqs. (10)-(11) plus the analogous
+//QFTbx quadratics for the remaining specifications), one inequality
+//"expression >= 0" per template representative (pairs for tracking) and
+//design frequency where the specification band applies.
+inline void AlgorithmMr::buildConstraints(){
+
+    //The constraint set is rebuilt from scratch: the historical version
+    //relied on the end-of-run cleanup to empty it, so a second run over
+    //the same algorithm object would have doubled every constraint.
+    constraints.clear();
+    constraintTexts.clear();
+
+    //The validated specification set, the same accessor the boundary
+    //engine cuts at (the raw record heightDb evaluated NaN on some legacy
+    //system specifications).
+    const qftbx::SpecificationSet specifications = qftbx::toSpecificationSet(*specificationRecords);
+
+    const auto applies = [&](qint32 slot, qreal w) {
+        return specifications.at(static_cast<qftbx::SpecificationType>(slot)).appliesAt(w);
+    };
+
+    const auto boundDb = [&](qint32 slot, qreal w) {
+        return specifications.at(static_cast<qftbx::SpecificationType>(slot)).boundDb(w);
+    };
+
+    const auto addConstraint = [&](const QString & expression) {
+        auto tree = std::make_unique<ExpressionTree>("1");
+        tree->setFunc(expression.toStdString(), 0.0, alg::GREATER_EQUAL);
+        constraints.push_back(std::move(tree));
+        constraintTexts.append(expression);
+    };
+
+    for (qint32 i = 0; i < omega->size(); ++i) {
+
+        const qreal w = omega->at(i);
+        const QString & g = magnitudeExpressions.at(i);
+        const QString & phi = phaseExpressions.at(i);
+
+        //Template representatives, evenly subsampled along the contour.
+        //Non-finite or null points (artefacts of a degenerate contour)
+        //would embed "nan" into the expression texts: they are skipped.
+        QVector<std::complex<qreal>> points;
+        const qftbx::ComplexCloud & contour = temp.at(static_cast<std::size_t>(i));
+        const qint32 take = std::min<qint32>(kTemplateRepresentatives, static_cast<qint32>(contour.size()));
+        for (qint32 j = 0; j < take; ++j) {
+            const std::complex<qreal> value = contour.at(j * static_cast<qint32>(contour.size()) / take);
+            if (std::isfinite(value.real()) && std::isfinite(value.imag()) &&
+                    std::abs(value) > 0.0) {
+                points.append(value);
+            }
+        }
+
+        foreach (const std::complex<qreal> & value, points) {
+
+            const QString p = number(std::abs(value));
+            const QString p2 = number(std::abs(value) * std::abs(value));
+            const QString theta = number(std::arg(value));
+
+            //|1 + L|^2 expanded: g^2 p^2 + 2 g p cos(phi + theta) + 1.
+            const QString l2 = "((" + g + ")^2)*(" + p2 + ")+2*(" + g + ")*(" + p +
+                    ")*cos((" + phi + ")+(" + theta + "))+1";
+
+            //Stability margin |T| <= ws (paper eq. (10)); the sensor noise
+            //specification shares the same transfer.
+            for (qint32 slot : {2, 3}) {
+                if (applies(slot, w)) {
+                    const qreal ws = std::pow(10.0, boundDb(slot, w) / 20.0);
+                    addConstraint("((" + g + ")^2)*(" + p2 + ")*(1-" +
+                                  number(1.0 / (ws * ws)) + ")+2*(" + g + ")*(" + p +
+                                  ")*cos((" + phi + ")+(" + theta + "))+1");
+                }
+            }
+
+            //Output disturbance rejection |1/(1+L)| <= d:
+            //|1+L|^2 - 1/d^2 >= 0.
+            if (applies(4, w)) {
+                const qreal d = std::pow(10.0, boundDb(4, w) / 20.0);
+                addConstraint("(" + l2 + ")-" + number(1.0 / (d * d)));
+            }
+
+            //Input disturbance rejection |P/(1+L)| <= d:
+            //|1+L|^2 - p^2/d^2 >= 0.
+            if (applies(5, w)) {
+                const qreal d = std::pow(10.0, boundDb(5, w) / 20.0);
+                addConstraint("(" + l2 + ")-(" + p2 + ")*" + number(1.0 / (d * d)));
+            }
+
+            //Control effort |G/(1+L)| <= d: |1+L|^2 - g^2/d^2 >= 0 (the
+            //historical rule dropped the g^2 factor).
+            if (applies(6, w)) {
+                const qreal d = std::pow(10.0, boundDb(6, w) / 20.0);
+                addConstraint("(" + l2 + ")-((" + g + ")^2)*" + number(1.0 / (d * d)));
+            }
+        }
+
+        //Tracking spread (paper eq. (11)) over ORDERED representative
+        //pairs, with delta = |T_U/T_L| at this frequency.
+        if (applies(0, w) && applies(1, w)) {
+
+            const qreal deltaDb = boundDb(1, w) - boundDb(0, w);
+            const qreal delta2 = std::pow(10.0, deltaDb / 10.0);
+            const QString invDelta2 = number(1.0 / delta2);
+
+            for (qint32 a = 0; a < points.size(); ++a) {
+                for (qint32 b = 0; b < points.size(); ++b) {
+                    if (a == b) {
+                        continue;
+                    }
+
+                    const qreal pi = std::abs(points.at(a));
+                    const qreal thetaI = std::arg(points.at(a));
+                    const qreal pk = std::abs(points.at(b));
+                    const qreal thetaK = std::arg(points.at(b));
+
+                    addConstraint("((" + g + ")^2)*" + number(pk * pk * pi * pi) +
+                            "*(1-" + invDelta2 + ")+2*(" + g + ")*" + number(pk * pi) +
+                            "*(" + number(pk) + "*cos((" + phi + ")+(" + number(thetaI) +
+                            "))-" + number(pi) + "*" + invDelta2 + "*cos((" + phi +
+                            ")+(" + number(thetaK) + ")))+" +
+                            number(pk * pk) + "-" + number(pi * pi) + "*" + invDelta2);
+                }
+            }
+        }
+    }
+}
+
+
+bool AlgorithmMr::solve(){
+
+    liveList = std::make_unique<OrderedList>();
+    stability = std::make_unique<NominalStabilityChecker>(plant, omega);
+
+    buildControllerExpressions();
+    buildConstraints();
+
+    classifyAndInsert(std::move(controller));
+
+    while (true) {
+
+        if (liveList->isEmpty()) {
+            throw qftbx::InvalidInput(
+                    "No feasible solution exists in the given search box.");
+        }
+
+        std::unique_ptr<SearchNode> node = liveList->takeFirstAs<SearchNode>();
+
+        if (node->flag() == feasible || isParameterBoxSmall(node->system())) {
+
+            const bool lowerCorner = node->flag() != ambiguous;
+
+            //An epsilon-small box can still be AMBIGUOUS, and the point
+            //taken from one is certified by nothing: the box was neither
+            //proved feasible nor proved infeasible, and epsilon only says
+            //it is small. The paper picks the minimum-gain controller out
+            //of the FEASIBLE set, so a point that misses the constraint
+            //set has to be dropped rather than reported. This is not
+            //hypothetical: on the design example of the paper itself
+            //(FDA-10 sec. 5, Example 5.1) the point of such a box missed
+            //the robust stability margin by a factor of three, and nothing
+            //said so. The check is the same constraint set the boxes are
+            //judged by, evaluated on degenerate intervals, so it is
+            //rigorous rather than a floating-point opinion. A feasible box
+            //passes it by inclusion monotonicity.
+            std::map<std::string, cxsc::interval> point;
+            loadPointDomains(node->system(), lowerCorner, point);
+            if (!certainlyFeasible(point)) {
+                continue;
+            }
+
+            designedController = pointFromBox(node->system(), lowerCorner);
+
+            //Every returned point must be nominally stabilising.
+            if (!stability->isNominallyStable(designedController.get())) {
+                designedController.reset();
+                continue;
+            }
+
+            return true;
+        }
+
+        struct BisectionResult retur = bisectWidestParameter(node->system());
+
+        classifyAndInsert(std::move(retur.v1));
+        classifyAndInsert(std::move(retur.v2));
+    }
+}
+
+
+std::size_t AlgorithmMr::peakLiveNodes() const
+{
+    return liveList != nullptr ? liveList->peakSize() : 0;
+}
+
+
+std::unique_ptr<LtiSystem> AlgorithmMr::controllerStructure(){
+    return std::move(designedController);
+}
+
+
+//Branch & prune step for one box: narrow the parameter domains with the
+//HC4 filter over the whole constraint set; an emptied domain proves the
+//box infeasible, and non-negative interval evaluations of every
+//constraint prove it feasible.
+inline void AlgorithmMr::classifyAndInsert(std::unique_ptr<LtiSystem> box){
+
+    std::map<std::string, cxsc::interval> domains;
+    loadDomains(box.get(), domains);
+
+    if (!narrowToFixpoint(domains)) {
+        return;
+    }
+
+    std::unique_ptr<LtiSystem> narrowed = boxFromDomains(box.get(), domains);
+
+    const BoxFlag flag = certainlyFeasible(domains) ? feasible : ambiguous;
+
+    //The index is read BEFORE the box is handed over: as arguments of one
+    //call their evaluation order is unspecified.
+    const qreal gainInf = narrowed->gain().range().min;
+
+    liveList->insert(std::make_unique<SearchNode>(gainInf, std::move(narrowed), flag));
+}
+
+
+inline bool AlgorithmMr::narrowToFixpoint(std::map<std::string, cxsc::interval> & domains){
+
+    for (qint32 pass = 0; pass < kMaxNarrowingPasses; ++pass) {
+
+        const std::map<std::string, cxsc::interval> snapshot = domains;
+
+        for (const std::unique_ptr<ExpressionTree> & tree : constraints) {
+            if (!tree->propagate(&domains)) {
+                return false;
+            }
+        }
+
+        bool changed = false;
+        for (auto it = domains.begin(); it != domains.end(); ++it) {
+            const cxsc::interval previous = snapshot.at(it->first);
+            if (Inf(it->second) != Inf(previous) || Sup(it->second) != Sup(previous)) {
+                changed = true;
+                break;
+            }
+        }
+
+        if (!changed) {
+            break;
+        }
+    }
+
+    return true;
+}
+
+
+inline bool AlgorithmMr::certainlyFeasible(std::map<std::string, cxsc::interval> & domains){
+
+    for (const std::unique_ptr<ExpressionTree> & tree : constraints) {
+        if (cxsc::_double(Inf(tree->eval(&domains))) < 0.0) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
+inline void AlgorithmMr::loadDomains(LtiSystem * box,
+                                           std::map<std::string, cxsc::interval> & domains){
+
+    domains.clear();
+
+    const auto load = [&](Parameter & var) {
+        if (var.isUncertain()) {
+            domains[var.name().toStdString()] =
+                    cxsc::interval(var.range().min, var.range().max);
+        }
+    };
+
+    for (Parameter & var : box->numerator()) {
+        load(var);
+    }
+    for (Parameter & var : box->denominator()) {
+        load(var);
+    }
+    load(box->gain());
+}
+
+
+//The paper's termination criterion: a box is a solution box once every
+//controller parameter has been narrowed below the requested accuracy
+//(FDA-10 sec. 5, "the controller solutions are to be found to an accuracy
+//eps"). The other four algorithms stop on the diameter of the NICHOLS box
+//instead - the criterion of their own papers, which work on the projection
+//- and that criterion does not transfer here: it scales with |P|, so on a
+//plant reaching |P| = 1e4 at its lowest design frequency the same number
+//is four decades tighter than it looks, and the ICSP never comes back.
+//Widths are absolute, as the paper's are: it quotes its answers to four
+//significant figures at eps = 0.001.
+inline bool AlgorithmMr::isParameterBoxSmall(LtiSystem * box) const {
+
+    const auto small = [&](Parameter & var) {
+        return !var.isUncertain() || var.range().width() <= epsilon;
+    };
+
+    for (Parameter & var : box->numerator()) {
+        if (!small(var)) {
+            return false;
+        }
+    }
+
+    for (Parameter & var : box->denominator()) {
+        if (!small(var)) {
+            return false;
+        }
+    }
+
+    return small(box->gain());
+}
+
+
+//The corner rule of pointFromBox(), as degenerate domains: the same
+//parameter names the constraint expressions are written in, so that the
+//candidate point can be evaluated by the same trees.
+inline void AlgorithmMr::loadPointDomains(LtiSystem * box, bool lowerCorner,
+                                          std::map<std::string, cxsc::interval> & domains){
+
+    domains.clear();
+
+    const auto at = [&](Parameter & var, qreal value) {
+        if (var.isUncertain()) {
+            domains[var.name().toStdString()] = cxsc::interval(value, value);
+        }
+    };
+
+    for (Parameter & var : box->numerator()) {
+        at(var, lowerCorner ? var.range().min : var.range().max);
+    }
+
+    //Poles always take the lower corner: see pointFromBox().
+    for (Parameter & var : box->denominator()) {
+        at(var, var.range().min);
+    }
+
+    at(box->gain(), lowerCorner ? box->gain().range().min : box->gain().range().max);
+}
+
+
+inline std::unique_ptr<LtiSystem> AlgorithmMr::boxFromDomains(LtiSystem * box,
+                                                     const std::map<std::string, cxsc::interval> & domains){
+
+    const auto rebuilt = [&](Parameter & var) -> Parameter {
+        if (!var.isUncertain()) {
+            return Parameter(var.nominal());
+        }
+        const cxsc::interval value = domains.at(var.name().toStdString());
+        return Parameter(var.name(),
+                         Range(cxsc::_double(Inf(value)), cxsc::_double(Sup(value))),
+                         cxsc::_double(Inf(value)));
+    };
+
+    std::vector<Parameter> nume;
+    nume.reserve(box->numerator().size());
+    for (Parameter & var : box->numerator()) {
+        nume.push_back(rebuilt(var));
+    }
+
+    std::vector<Parameter> deno;
+    deno.reserve(box->denominator().size());
+    for (Parameter & var : box->denominator()) {
+        deno.push_back(rebuilt(var));
+    }
+
+    return box->create(box->name(), std::move(nume), std::move(deno),
+                       rebuilt(box->gain()), Parameter(qreal(0)));
+}

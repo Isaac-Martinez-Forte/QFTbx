@@ -4,6 +4,7 @@
 #ifndef QFTBX_TESTS_PROJECT_COMPARE_H
 #define QFTBX_TESTS_PROJECT_COMPARE_H
 
+#include "src/core/templates/cloud_set.h"
 #include <gtest/gtest.h>
 
 #include <complex>
@@ -11,8 +12,8 @@
 #include <QString>
 #include <QVector>
 
-#include "Modelo/EstructurasDatos/datosloopshaping.h"
-#include "Modelo/EstructurasDatos/dbnd.h"
+#include "src/core/loopshaping/loop_shaping_result.h"
+#include "src/core/specifications/specification_record.h"
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/system/lti_system.h"
 
@@ -27,8 +28,8 @@ inline void expectSameSystem(LtiSystem* a, LtiSystem* b,
     }
     EXPECT_EQ(a->type(), b->type()) << what;
     EXPECT_EQ(a->name(), b->name()) << what;
-    EXPECT_EQ(a->numerator()->size(), b->numerator()->size()) << what;
-    EXPECT_EQ(a->denominator()->size(), b->denominator()->size()) << what;
+    EXPECT_EQ(a->numerator().size(), b->numerator().size()) << what;
+    EXPECT_EQ(a->denominator().size(), b->denominator().size()) << what;
 
     for (qreal w : probes) {
         const std::complex<qreal> va = a->evaluate(w);
@@ -37,40 +38,37 @@ inline void expectSameSystem(LtiSystem* a, LtiSystem* b,
     }
 }
 
-inline void expectSameSpecifications(QVector<tools::dBND*>* a, QVector<tools::dBND*>* b)
+inline void expectSameSpecifications(const qftbx::SpecificationRecords * a,
+                                     const qftbx::SpecificationRecords * b)
 {
     ASSERT_NE(a, nullptr);
     ASSERT_NE(b, nullptr);
-    ASSERT_EQ(a->size(), 7);
-    ASSERT_EQ(b->size(), 7);
 
-    for (int i = 0; i < 7; ++i) {
-        tools::dBND* sa = a->at(i);
-        tools::dBND* sb = b->at(i);
-        EXPECT_EQ(sa->nombre, sb->nombre) << "spec " << i;
-        EXPECT_EQ(sa->utilizado, sb->utilizado) << "spec " << i;
-        EXPECT_EQ(sa->constante, sb->constante) << "spec " << i;
-        EXPECT_EQ(sa->altura, sb->altura) << "spec " << i;
-        EXPECT_EQ(sa->frecinicio, sb->frecinicio) << "spec " << i;
-        EXPECT_EQ(sa->frecfinal, sb->frecfinal) << "spec " << i;
-        expectSameSystem(sa->sistema, sb->sistema, {sa->frecinicio, sa->frecfinal},
-                         "spec plant");
+    for (std::size_t i = 0; i < a->size(); ++i) {
+        const qftbx::SpecificationRecord & sa = a->at(i);
+        const qftbx::SpecificationRecord & sb = b->at(i);
+        EXPECT_EQ(sa.name, sb.name) << "spec " << i;
+        EXPECT_EQ(sa.used, sb.used) << "spec " << i;
+        EXPECT_EQ(sa.constant, sb.constant) << "spec " << i;
+        EXPECT_EQ(sa.height, sb.height) << "spec " << i;
+        EXPECT_EQ(sa.omegaStart, sb.omegaStart) << "spec " << i;
+        EXPECT_EQ(sa.omegaEnd, sb.omegaEnd) << "spec " << i;
+        expectSameSystem(sa.system.get(), sb.system.get(),
+                         {sa.omegaStart, sa.omegaEnd}, "spec plant");
     }
 }
 
-inline void expectSameComplexVectors(QVector<QVector<std::complex<qreal>>*>* a,
-                                     QVector<QVector<std::complex<qreal>>*>* b,
+inline void expectSameComplexVectors(const qftbx::CloudSet & a,
+                                     const qftbx::CloudSet & b,
                                      const char* what)
 {
-    ASSERT_NE(a, nullptr) << what;
-    ASSERT_NE(b, nullptr) << what;
-    ASSERT_EQ(a->size(), b->size()) << what;
-    for (int i = 0; i < a->size(); ++i) {
-        ASSERT_EQ(*a->at(i), *b->at(i)) << what << " " << i;
-    }
+    //By value: the whole set compares in one line, and there is no null to
+    //rule out first.
+    ASSERT_EQ(a.size(), b.size()) << what;
+    EXPECT_EQ(a, b) << what;
 }
 
-inline void expectSameBoundaries(BoundaryData* a, BoundaryData* b)
+inline void expectSameBoundaries(const BoundaryData* a, const BoundaryData* b)
 {
     ASSERT_NE(a, nullptr);
     ASSERT_NE(b, nullptr);
@@ -79,49 +77,36 @@ inline void expectSameBoundaries(BoundaryData* a, BoundaryData* b)
     EXPECT_EQ(a->magnitudeCount(), b->magnitudeCount());
     EXPECT_EQ(a->phaseRange(), b->phaseRange());
     EXPECT_EQ(a->magnitudeRange(), b->magnitudeRange());
-    EXPECT_EQ(*a->openFlags(), *b->openFlags());
-    EXPECT_EQ(*a->upperFlags(), *b->upperFlags());
+    EXPECT_EQ(a->openFlags(), b->openFlags());
+    EXPECT_EQ(a->upperFlags(), b->upperFlags());
 
-    ASSERT_EQ(a->boundaries()->size(), b->boundaries()->size());
-    for (int f = 0; f < a->boundaries()->size(); ++f) {
-        auto* mapA = a->boundaries()->at(f);
-        auto* mapB = b->boundaries()->at(f);
-        ASSERT_EQ(mapA->keys(), mapB->keys()) << "frequency " << f;
-        foreach (const QString& key, mapA->keys()) {
-            auto* tracesA = mapA->value(key);
-            auto* tracesB = mapB->value(key);
-            ASSERT_EQ(tracesA->size(), tracesB->size()) << "frequency " << f;
-            for (int t = 0; t < tracesA->size(); ++t) {
-                ASSERT_EQ(*tracesA->at(t), *tracesB->at(t))
-                    << "frequency " << f << " trace " << t;
-            }
-        }
+    //Compared per frequency rather than whole, only so that a failure names
+    //the frequency instead of dumping every trace of the project. The
+    //element comparisons themselves are one == each now: this function used
+    //to walk five levels of pointers by hand.
+    ASSERT_EQ(a->boundaries().size(), b->boundaries().size());
+    for (std::size_t f = 0; f < a->boundaries().size(); ++f) {
+        EXPECT_EQ(a->boundaries()[f], b->boundaries()[f]) << "frequency " << f;
     }
 
-    ASSERT_EQ(a->unionBoundaries()->size(), b->unionBoundaries()->size());
-    for (int f = 0; f < a->unionBoundaries()->size(); ++f) {
-        ASSERT_EQ(*a->unionBoundaries()->at(f), *b->unionBoundaries()->at(f))
-            << "union " << f;
+    ASSERT_EQ(a->unionBoundaries().size(), b->unionBoundaries().size());
+    for (std::size_t f = 0; f < a->unionBoundaries().size(); ++f) {
+        EXPECT_EQ(a->unionBoundaries()[f], b->unionBoundaries()[f]) << "union " << f;
     }
 
-    ASSERT_EQ(a->unionBuckets()->size(), b->unionBuckets()->size());
-    for (int f = 0; f < a->unionBuckets()->size(); ++f) {
-        auto* bucketsA = a->unionBuckets()->at(f);
-        auto* bucketsB = b->unionBuckets()->at(f);
-        ASSERT_EQ(bucketsA->size(), bucketsB->size()) << "buckets " << f;
-        for (int k = 0; k < bucketsA->size(); ++k) {
-            ASSERT_EQ(*bucketsA->at(k), *bucketsB->at(k)) << "bucket " << f << "," << k;
-        }
+    ASSERT_EQ(a->unionBuckets().size(), b->unionBuckets().size());
+    for (std::size_t f = 0; f < a->unionBuckets().size(); ++f) {
+        EXPECT_EQ(a->unionBuckets()[f], b->unionBuckets()[f]) << "buckets " << f;
     }
 }
 
-inline void expectSameLoopShaping(DatosLoopShaping* a, DatosLoopShaping* b)
+inline void expectSameLoopShaping(LoopShapingResult* a, LoopShapingResult* b)
 {
     ASSERT_NE(a, nullptr);
     ASSERT_NE(b, nullptr);
-    EXPECT_EQ(a->getNPuntos(), b->getNPuntos());
+    EXPECT_EQ(a->pointCount(), b->pointCount());
     EXPECT_EQ(a->range(), b->range());
-    expectSameSystem(a->getControlador(), b->getControlador(), {0.5, 2.0}, "loop shaping");
+    expectSameSystem(a->controller(), b->controller(), {0.5, 2.0}, "loop shaping");
 }
 
 } // namespace qftbx_tests

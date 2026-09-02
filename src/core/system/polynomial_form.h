@@ -21,25 +21,29 @@ namespace qftbx {
 class PolynomialForm : public TransferFunction
 {
 public:
-    PolynomialForm(QString name, QVector <Parameter*> * numerator, QVector <Parameter*> * denominator, Parameter * k, Parameter* delay);
+    PolynomialForm(QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator, Parameter k, Parameter delay);
 
-    LtiSystem * create (QString name, QVector <Parameter*> * numerator, QVector <Parameter*> * denominator,
-                              Parameter * k, Parameter* delay, QString numeratorExpr = 0, QString denominatorExpr = 0);
+    std::unique_ptr<LtiSystem> create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
+                              Parameter k, Parameter delay = Parameter(qreal(0)), QString numeratorExpr = QString(), QString denominatorExpr = QString()) override;
 
     ~PolynomialForm();
 
     QString expression (QVector <qreal> * numerator, QVector <qreal> * denominator,
-                             qreal k, qreal delay, qreal omega);
+                             qreal k, qreal delay, qreal omega) override;
 
-    QString expression(qreal w);
+    QString expression(qreal w) override;
 
-    QString expression();
+    QString expression() override;
 
-    std::complex <qreal> evaluateNumerator(QVector <qreal> * nume, qreal omega);
+    std::complex <qreal> valueAt(qreal w, const std::vector<qreal> & numerator,
+                                 const std::vector<qreal> & denominator,
+                                 qreal gain, qreal delay) override;
 
-    std::complex <qreal> evaluateDenominator(QVector <qreal> * deno, qreal omega);
+    std::complex <qreal> evaluateNumerator(QVector <qreal> * nume, qreal omega) override;
 
-    SystemType type();
+    std::complex <qreal> evaluateDenominator(QVector <qreal> * deno, qreal omega) override;
+
+    SystemType type() override;
 
 };
 

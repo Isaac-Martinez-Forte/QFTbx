@@ -85,6 +85,11 @@ int msgid;
         int item=0;
         char nr[8];
 
+        /* f_errr is only connected by p_init(), which never runs when   */
+        /* the library is embedded in a C++ application: fall back to    */
+        /* stderr so displaying a message cannot crash the process.      */
+        if (f_errr.fp==NULL) f_errr.fp = stderr;
+
         if (e_mfld==NULL)
            {
            desc.text = TRUE;
@@ -200,6 +205,11 @@ int msgid;
 #else
         int i;  /* !!! must be int !!! */
         char *q;
+
+        /* f_errr is only connected by p_init(), which never runs when   */
+        /* the library is embedded in a C++ application: fall back to    */
+        /* stderr so displaying a message cannot crash the process.      */
+        if (f_errr.fp==NULL) f_errr.fp = stderr;
 
         for (i=0;e_mfld[i].msgid;i++)
            {

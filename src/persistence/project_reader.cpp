@@ -8,7 +8,7 @@
 #include <pugixml.hpp>
 #include <iterator>
 
-#include "Modelo/Herramientas/exception.h"
+#include "src/core/exception.h"
 #include "src/core/specifications/specification.h"
 #include "src/core/system/free_form.h"
 #include "src/core/system/parameter.h"
@@ -92,65 +92,61 @@ public:
     //Space-separated real vector, the encoding of every numeric list in the
     //format. The historical loader silently kept the prefix before the
     //first garbage token; this one rejects it.
-    QVector <qreal> * realVector(const pugi::xml_node & node) const
+    QVector <qreal> realVector(const pugi::xml_node & node) const
     {
-        auto * values = new QVector <qreal> ();
+        QVector <qreal> values;
         const QString text = QString(node.text().get());
         const QStringList tokens = text.split(' ', Qt::SkipEmptyParts);
-        values->reserve(tokens.size());
+        values.reserve(tokens.size());
         foreach (const QString & token, tokens) {
             bool ok = false;
-            values->append(token.toDouble(&ok));
+            values.append(token.toDouble(&ok));
             if (!ok) {
-                delete values;
                 fail(node, std::string("<") + node.name() + "> holds a non-numeric token");
             }
         }
         return values;
     }
 
-    QVector <bool> * boolVector(const pugi::xml_node & node) const
+    std::vector<bool> boolVector(const pugi::xml_node & node) const
     {
-        QVector <qreal> * reals = realVector(node);
-        auto * bools = new QVector <bool> ();
-        bools->reserve(reals->size());
-        foreach (qreal value, *reals) {
-            bools->append(value != 0.0);
+        const QVector <qreal> reals = realVector(node);
+        std::vector<bool> bools;
+        bools.reserve(static_cast<std::size_t>(reals.size()));
+        for (const qreal value : reals) {
+            bools.push_back(value != 0.0);
         }
-        delete reals;
         return bools;
     }
 
     //"x y x y ..." pairs; an unpaired trailing token is rejected.
-    QVector <QPointF> * pointVector(const pugi::xml_node & node) const
+    qftbx::Trace pointVector(const pugi::xml_node & node) const
     {
-        QVector <qreal> * reals = realVector(node);
-        if (reals->size() % 2 != 0) {
-            delete reals;
+        const QVector <qreal> reals = realVector(node);
+        if (reals.size() % 2 != 0) {
             fail(node, std::string("<") + node.name() + "> holds an odd point list");
         }
-        auto * points = new QVector <QPointF> ();
-        points->reserve(reals->size() / 2);
-        for (qint32 i = 0; i + 1 < reals->size(); i += 2) {
-            points->append(QPointF(reals->at(i), reals->at(i + 1)));
+        qftbx::Trace points;
+        points.reserve(static_cast<std::size_t>(reals.size() / 2));
+        for (qint32 i = 0; i + 1 < reals.size(); i += 2) {
+            points.push_back(QPointF(reals.at(i), reals.at(i + 1)));
         }
-        delete reals;
         return points;
     }
 
-    Parameter * readParameter(const pugi::xml_node & node) const
+    Parameter readParameter(const pugi::xml_node & node) const
     {
         const qreal nominal = realChild(node, t.nominal);
         const bool uncertain = boolChild(node, t.uncertain);
 
         if (!uncertain) {
-            auto * parameter = new Parameter(nominal);
+            Parameter parameter(nominal);
             //Historical quirk kept for compatibility: some old controller
             //records carry a range on a non-uncertain parameter.
             const pugi::xml_node range = node.child(t.range);
             if (range) {
-                parameter->setRange(QPointF(realChild(range, t.rangeMin),
-                                            realChild(range, t.rangeMax)));
+                parameter.setRange(Range(realChild(range, t.rangeMin),
+                                           realChild(range, t.rangeMax)));
             }
             return parameter;
         }
@@ -162,12 +158,12 @@ public:
         const QString expression = QString(require(node, t.parameterExpression).text().get());
         const pugi::xml_node range = require(node, t.range);
 
-        return new Parameter(name, QPointF(realChild(range, t.rangeMin),
-                                           realChild(range, t.rangeMax)),
-                             nominal, expression);
+        return Parameter(name, Range(realChild(range, t.rangeMin),
+                                       realChild(range, t.rangeMax)),
+                         nominal, expression);
     }
 
-    LtiSystem * readSystem(const pugi::xml_node & systemNode) const
+    std::unique_ptr<LtiSystem> readSystem(const pugi::xml_node & systemNode) const
     {
         const QString name = QString(systemNode.attribute(t.nameAttribute).value());
 
@@ -182,78 +178,75 @@ public:
             denominatorExpression = QString(require(expressionNode, t.denominator).text().get());
         }
 
-        auto * numerator = new QVector <Parameter *> ();
+        std::vector <Parameter> numerator;
         for (const pugi::xml_node & child : require(typeNode, t.numerator).children()) {
-            numerator->append(readParameter(child));
+            numerator.push_back(readParameter(child));
         }
 
-        auto * denominator = new QVector <Parameter *> ();
+        std::vector <Parameter> denominator;
         for (const pugi::xml_node & child : require(typeNode, t.denominator).children()) {
-            denominator->append(readParameter(child));
+            denominator.push_back(readParameter(child));
         }
 
         //Gain and delay: the two parameter elements that are direct children
         //of <type> (the legacy dialect names them variable-k/variable-ret).
-        QVector <Parameter *> scalars;
+        std::vector <Parameter> scalars;
         for (const pugi::xml_node & child : typeNode.children()) {
             if (child.child(t.nominal)) {
-                scalars.append(readParameter(child));
+                scalars.push_back(readParameter(child));
             }
         }
         if (scalars.size() != 2) {
-            for (Parameter * scalar : scalars) {
-                delete scalar;
-            }
             fail(typeNode, "expected exactly a gain and a delay parameter");
         }
-        Parameter * gain = scalars.at(0);
-        Parameter * delay = scalars.at(1);
+        Parameter gain = scalars.at(0);
+        Parameter delay = scalars.at(1);
 
         switch (type) {
         case LtiSystem::SystemType::PolynomialForm:
-            return new PolynomialForm(name, numerator, denominator, gain, delay);
+            return std::make_unique<PolynomialForm>(name, std::move(numerator),
+                    std::move(denominator), std::move(gain), std::move(delay));
         case LtiSystem::SystemType::ZeroPoleGain:
-            return new ZeroPoleGain(name, numerator, denominator, gain, delay);
+            return std::make_unique<ZeroPoleGain>(name, std::move(numerator),
+                    std::move(denominator), std::move(gain), std::move(delay));
         case LtiSystem::SystemType::TimeConstantGain:
-            return new TimeConstantGain(name, numerator, denominator, gain, delay);
+            return std::make_unique<TimeConstantGain>(name, std::move(numerator),
+                    std::move(denominator), std::move(gain), std::move(delay));
         case LtiSystem::SystemType::FreeForm:
-            return new FreeForm(name, numerator, denominator, gain, delay,
-                                numeratorExpression, denominatorExpression);
+            return std::make_unique<FreeForm>(name, std::move(numerator),
+                    std::move(denominator), std::move(gain), std::move(delay),
+                    numeratorExpression, denominatorExpression);
         default:
             break;
         }
         fail(typeNode, "unknown system type");
     }
 
-    QVector <tools::dBND *> * readSpecifications(const pugi::xml_node & section) const
+    qftbx::SpecificationRecords readSpecifications(const pugi::xml_node & section) const
     {
-        //The set is positional with 7 fixed slots: consumers index blindly.
+        //The set is positional with 7 fixed slots: consumers index blindly,
+        //and the type now carries that count.
         const auto slotRange = section.children(t.specification);
         const qint32 count = static_cast<qint32>(std::distance(slotRange.begin(), slotRange.end()));
         if (count != kSpecificationCount) {
             fail(section, "a project needs exactly 7 specification slots");
         }
 
-        auto * specifications = new QVector <tools::dBND *> ();
-        specifications->reserve(kSpecificationCount);
+        qftbx::SpecificationRecords specifications;
+        std::size_t slot = 0;
 
         for (const pugi::xml_node & node : section.children(t.specification)) {
-            auto * record = new tools::dBND();
-            record->nombre = modernSpecificationName(QString(node.attribute(t.nameAttribute).value()));
-            record->utilizado = boolChild(node, t.used);
-            record->sistema = nullptr;
-            record->constante = false;
-            record->altura = 0.0;
-            record->frecinicio = 0.0;
-            record->frecfinal = 0.0;
+            qftbx::SpecificationRecord & record = specifications.at(slot++);
+            record.name = modernSpecificationName(QString(node.attribute(t.nameAttribute).value()));
+            record.used = boolChild(node, t.used);
 
-            if (record->utilizado) {
-                record->frecinicio = realChild(node, t.minFrequency);
-                record->frecfinal = realChild(node, t.maxFrequency);
-                record->constante = boolChild(node, t.constant);
+            if (record.used) {
+                record.omegaStart = realChild(node, t.minFrequency);
+                record.omegaEnd = realChild(node, t.maxFrequency);
+                record.constant = boolChild(node, t.constant);
 
-                if (record->constante) {
-                    record->altura = realChild(node, t.magnitude);
+                if (record.constant) {
+                    record.height = realChild(node, t.magnitude);
                 } else {
                     //The embedded plant is the child that carries a <type>
                     //element (its tag is the plant name in the legacy
@@ -268,33 +261,30 @@ public:
                     if (!systemNode) {
                         fail(node, "a non-constant specification needs its plant");
                     }
-                    record->sistema = readSystem(systemNode);
+                    record.system = readSystem(systemNode);
                 }
             }
-
-            specifications->append(record);
         }
 
         return specifications;
     }
 
-    Omega * readOmega(const pugi::xml_node & section) const
+    std::unique_ptr<Omega> readOmega(const pugi::xml_node & section) const
     {
         const qreal min = realChild(section, t.omegaMin);
         const qreal max = realChild(section, t.omegaMax);
         const qint32 pointCount = static_cast<qint32>(realChild(section, t.pointCount));
-        const auto type = static_cast<Omega::tiposOmega>(
+        const auto type = static_cast<Omega::GenerationType>(
             static_cast<qint32>(realChild(section, t.omegaType)));
-        QVector <qreal> * values = realVector(require(section, t.values));
-
-        return new Omega(min, max, pointCount, values, type);
+        return std::make_unique<Omega>(min, max, pointCount,
+                                      realVector(require(section, t.values)), type);
     }
 
     //Template sets are stored as (real-vector, imaginary-vector) element
     //pairs, one pair per design frequency.
-    QVector <QVector <std::complex<qreal>> * > * readComplexVectors(const pugi::xml_node & section) const
+    qftbx::CloudSet readComplexVectors(const pugi::xml_node & section) const
     {
-        auto * vectors = new QVector <QVector <std::complex<qreal>> * > ();
+        qftbx::CloudSet vectors;
 
         pugi::xml_node child = section.first_child();
         while (child) {
@@ -303,23 +293,19 @@ public:
                 fail(child, "a complex vector needs real and imaginary parts");
             }
 
-            QVector <qreal> * reals = realVector(child);
-            QVector <qreal> * imaginaries = realVector(imaginaryNode);
-            if (reals->size() != imaginaries->size()) {
-                delete reals;
-                delete imaginaries;
+            const QVector <qreal> reals = realVector(child);
+            const QVector <qreal> imaginaries = realVector(imaginaryNode);
+            if (reals.size() != imaginaries.size()) {
                 fail(child, "real and imaginary parts differ in length");
             }
 
-            auto * vector = new QVector <std::complex<qreal>> ();
-            vector->reserve(reals->size());
-            for (qint32 i = 0; i < reals->size(); ++i) {
-                vector->append(std::complex<qreal>(reals->at(i), imaginaries->at(i)));
+            qftbx::ComplexCloud vector;
+            vector.reserve(static_cast<std::size_t>(reals.size()));
+            for (qint32 i = 0; i < reals.size(); ++i) {
+                vector.push_back(std::complex<qreal>(reals.at(i), imaginaries.at(i)));
             }
-            delete reals;
-            delete imaginaries;
 
-            vectors->append(vector);
+            vectors.push_back(std::move(vector));
             child = imaginaryNode.next_sibling();
         }
 
@@ -327,16 +313,16 @@ public:
     }
 
     //One trace per child element, each a flat "x y x y ..." list.
-    QVector <QVector <QPointF> * > * readTraces(const pugi::xml_node & section) const
+    qftbx::TraceSet readTraces(const pugi::xml_node & section) const
     {
-        auto * traces = new QVector <QVector <QPointF> * > ();
+        qftbx::TraceSet traces;
         for (const pugi::xml_node & child : section.children()) {
-            traces->append(pointVector(child));
+            traces.push_back(pointVector(child));
         }
         return traces;
     }
 
-    BoundaryData * readBoundaries(const pugi::xml_node & section)
+    BoundaryData readBoundaries(const pugi::xml_node & section)
     {
         const pugi::xml_node data = require(section, t.boundariesData);
 
@@ -349,32 +335,34 @@ public:
         const QPointF magnitudeRange(realChild(magnitudes, t.axisMin), realChild(magnitudes, t.axisMax));
 
         const pugi::xml_node metadata = require(data, t.metadata);
-        QVector <bool> * openFlags = boolVector(require(metadata, t.openFlags));
-        QVector <bool> * upperFlags = boolVector(require(metadata, t.upperFlags));
+        std::vector<bool> openFlags = boolVector(require(metadata, t.openFlags));
+        std::vector<bool> upperFlags = boolVector(require(metadata, t.upperFlags));
 
-        auto * boundaries = new QVector <QMap <QString, QVector <QVector <QPointF> * > *> * > ();
+        qftbx::BoundarySet boundaries;
         for (const pugi::xml_node & frequencyNode : require(data, t.perFrequency).children()) {
-            auto * map = new QMap <QString, QVector <QVector <QPointF> * > *> ();
+            std::map<QString, qftbx::TraceSet> map;
             for (const pugi::xml_node & keyNode : frequencyNode.children()) {
                 //Legacy files store the historical Spanish keys.
-                map->insert(modernSpecificationName(QString(keyNode.name())),
-                            readTraces(keyNode));
+                map[modernSpecificationName(QString(keyNode.name()))] = readTraces(keyNode);
             }
-            boundaries->append(map);
+            boundaries.push_back(std::move(map));
         }
 
-        auto * unionBoundaries = readTraces(require(data, t.boundaryUnion));
+        qftbx::UnionTraces unionBoundaries = readTraces(require(data, t.boundaryUnion));
 
-        auto * unionBuckets = new QVector <QVector <QVector <QPointF> * > * > ();
+        qftbx::UnionBuckets unionBuckets;
         for (const pugi::xml_node & frequencyNode : require(data, t.unionBuckets).children()) {
-            unionBuckets->append(readTraces(frequencyNode));
+            unionBuckets.push_back(readTraces(frequencyNode));
         }
 
-        return new BoundaryData(boundaries, openFlags, upperFlags, phaseCount, phaseRange,
-                                unionBoundaries, unionBuckets, magnitudeCount, magnitudeRange);
+        //No takeOwnership() any more: BoundaryData holds its containers by
+        //value, so there is one owner and it is the object itself.
+        return BoundaryData(std::move(boundaries), std::move(openFlags), std::move(upperFlags),
+                            phaseCount, phaseRange, std::move(unionBoundaries),
+                            std::move(unionBuckets), magnitudeCount, magnitudeRange);
     }
 
-    DatosLoopShaping * readLoopShaping(const pugi::xml_node & section) const
+    std::unique_ptr<LoopShapingResult> readLoopShaping(const pugi::xml_node & section) const
     {
         const pugi::xml_node data = require(section, t.boundariesData);
         const qint32 pointCount = intAttribute(data, t.loopShapingPointCountAttribute);
@@ -392,7 +380,7 @@ public:
             fail(section, "the loop-shaping section needs its controller");
         }
 
-        return new DatosLoopShaping(readSystem(systemNode), range, pointCount);
+        return std::make_unique<LoopShapingResult>(readSystem(systemNode), range, pointCount);
     }
 
     const QString & m_filePath;
@@ -402,7 +390,15 @@ public:
 
 ProjectReader::ProjectReader() = default;
 
-QVector <bool> * ProjectReader::load(const QString & filePath)
+namespace {
+
+} // namespace
+
+//Whatever no caller claimed through take*() dies with the reader, which no
+//longer needs to be told: every member owns what it holds.
+ProjectReader::~ProjectReader() = default;
+
+std::vector<bool> ProjectReader::load(const QString & filePath)
 {
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly)) {
@@ -463,15 +459,15 @@ QVector <bool> * ProjectReader::load(const QString & filePath)
 
     //Section flags in the historical order (always all 8: the old error
     //paths returned 7 and consumers indexed out of range).
-    auto * sections = new QVector <bool> ();
-    sections->append(m_plant != nullptr);
-    sections->append(m_specifications != nullptr);
-    sections->append(m_omega != nullptr);
-    sections->append(m_templates != nullptr);
-    sections->append(m_boundaries != nullptr);
-    sections->append(m_controller != nullptr);
-    sections->append(m_loopShaping != nullptr);
-    sections->append(hasContour);
+    std::vector<bool> sections;
+    sections.push_back(m_plant != nullptr);
+    sections.push_back(m_specifications.has_value());
+    sections.push_back(m_omega != nullptr);
+    sections.push_back(!m_templates.empty());
+    sections.push_back(m_boundaries.has_value());
+    sections.push_back(m_controller != nullptr);
+    sections.push_back(m_loopShaping != nullptr);
+    sections.push_back(hasContour);
 
     return sections;
 }

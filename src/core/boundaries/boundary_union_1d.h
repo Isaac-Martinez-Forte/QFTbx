@@ -2,6 +2,8 @@
 #define QFTBX_BOUNDARY_UNION_1D_H
 
 #include <QVector>
+
+#include "src/core/boundaries/boundary_types.h"
 #include <QPoint>
 #include <QPointF>
 #include <cmath>
@@ -31,44 +33,47 @@ public:
     BoundaryUnion1D();
     ~BoundaryUnion1D();
 
-    void run(BoundaryData * boundaries, QVector<QMap<QString, QVector<QPoint> *> *> * traceMetadata);
+    void run(const BoundaryData * boundaries, const TraceMetadata & traceMetadata);
 
-    QVector< QVector< QVector<QPointF> * > * > * unionBuckets();
+    UnionBuckets takeUnionBuckets();
 
-    QVector < QVector<QPointF> * > * unionVectors();
+    UnionTraces takeUnionVectors();
 
-    QVector <bool> * openFlags();
+    std::vector<bool> takeOpenFlags();
 
-    QVector <bool> * upperFlags();
+    std::vector<bool> takeUpperFlags();
 
 private:
 
     static constexpr qint32 kLayerCount = 2;
     static constexpr qreal kPhaseDegrees = 360.0;
 
-    QVector < QVector < QVector<QPointF> * > * > * m_unionBuckets;
-    QVector < QVector <QPointF> * > * m_unionVectors;
+    //Initialised here: the accessors below return these, and an
+    //indeterminate pointer defeats the != nullptr guards of the callers
+    //(nullptr at least fails honestly).
+    UnionBuckets m_unionBuckets;
+    UnionTraces m_unionVectors;
 
-    QVector<bool> * m_openFlags;
-    QVector<bool> * m_upperFlags;
+    std::vector<bool> m_openFlags;
+    std::vector<bool> m_upperFlags;
 
     qint32 bucketIndex(qreal x, qreal totalPhase);
 
-    void insertSorted(QVector< QVector<QPointF> * > * layerBuckets, QVector<QPointF>::iterator it, qint32 index, QPointF point, qreal totalPhase);
+    void insertSorted(TraceSet & layerBuckets, qint32 index, QPointF point, qreal totalPhase);
 
-    QVector< QVector< QVector<QPointF> * > * > * buildLayerBuckets(QVector< QVector<QPointF> * > * &chosenCurves, qreal totalPhase, bool open, bool upper);
+    std::vector<TraceSet> buildLayerBuckets(const TraceSet & chosenCurves, qreal totalPhase, bool open, bool upper);
 
-    QVector<QPointF> * drawFirstLayer(QVector< QVector<QPointF> * > * &chosenCurves, QVector< QVector< QVector<QPointF> * > * > * &layerBuckets, qreal totalPhase, bool open1, bool open2);
+    Trace drawFirstLayer(const TraceSet & chosenCurves, const std::vector<TraceSet> & layerBuckets, qreal totalPhase, bool open1, bool open2);
 
-    QVector<QPointF> * drawSecondLayer(QVector< QVector<QPointF> * > * &chosenCurves, QVector< QVector< QVector<QPointF> * > * > * &layerBuckets, qreal totalPhase, bool open1, bool open2);
+    Trace drawSecondLayer(const TraceSet & chosenCurves, const std::vector<TraceSet> & layerBuckets, qreal totalPhase, bool open1, bool open2);
 
-    QVector<QPointF> * mergeLayers(QVector<QPointF> * &layer1, QVector<QPointF> * &layer2);
+    Trace mergeLayers(const Trace & layer1, const Trace & layer2);
 
-    QVector< QVector<QPointF> * > * buildUnionBuckets(QVector<QPointF> * &unionPoints, qreal totalPhase, qint32 pointCount);
+    TraceSet buildUnionBuckets(const Trace & unionPoints, qreal totalPhase, qint32 pointCount);
 
     qint32 bucketIndex(qreal x, qreal totalPhase, qint32 phaseCount);
 
-    QVector<QPointF> * sortByProximity(QVector<QPointF> * points);
+    Trace sortByProximity(const Trace & points);
 
 
 };

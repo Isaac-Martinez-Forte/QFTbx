@@ -12,8 +12,8 @@
 
 #include "src/persistence/project_reader.h"
 #include "src/core/system/lti_system.h"
-#include "Modelo/Herramientas/exception.h"
-#include "Modelo/Objetos/omega.h"
+#include "src/core/exception.h"
+#include "src/core/frequencies/omega.h"
 
 namespace {
 
@@ -35,22 +35,19 @@ QString fixturePath(const char *name)
     return QString(QFTBX_TEST_DATA_DIR "/") + name;
 }
 
-QVector<bool> loadFlags(ProjectReader &parser, const char *fixture)
+std::vector<bool> loadFlags(ProjectReader &parser, const char *fixture)
 {
-    QVector<bool> *flags = parser.load(fixturePath(fixture));
-    if (flags == nullptr) {
-        ADD_FAILURE() << "load returned null for " << fixture;
-        return {};
-    }
-    QVector<bool> copy = *flags;
-    EXPECT_EQ(copy.size(), kSectionFlagCount) << "unexpected flag count";
-    return copy;
+    //By value: there is no null to rule out any more, and nothing to free.
+    std::vector<bool> flags = parser.load(fixturePath(fixture));
+    EXPECT_EQ(static_cast<int>(flags.size()), kSectionFlagCount)
+        << "unexpected flag count";
+    return flags;
 }
 
 TEST(ProjectReaderSmoke, CerveraLoadsPlantAndFrequenciesOnly)
 {
     ProjectReader parser;
-    const QVector<bool> flags = loadFlags(parser, "cervera.qft");
+    const std::vector<bool> flags = loadFlags(parser, "cervera.qft");
     ASSERT_EQ(flags.size(), kSectionFlagCount);
 
     EXPECT_TRUE(flags[kPlant]);
@@ -66,8 +63,8 @@ TEST(ProjectReaderSmoke, CerveraLoadsPlantAndFrequenciesOnly)
 
     Omega *omega = parser.omega();
     ASSERT_NE(omega, nullptr);
-    ASSERT_NE(omega->getValores(), nullptr);
-    const QVector<qreal> &values = *omega->getValores();
+    ASSERT_NE(omega->values(), nullptr);
+    const QVector<qreal> &values = *omega->values();
     ASSERT_EQ(values.size(), 4);
     EXPECT_DOUBLE_EQ(values[0], 0.1);
     EXPECT_DOUBLE_EQ(values[1], 5.0);
@@ -78,7 +75,7 @@ TEST(ProjectReaderSmoke, CerveraLoadsPlantAndFrequenciesOnly)
 TEST(ProjectReaderSmoke, Planta2LoadsUpToTemplates)
 {
     ProjectReader parser;
-    const QVector<bool> flags = loadFlags(parser, "planta2.qft");
+    const std::vector<bool> flags = loadFlags(parser, "planta2.qft");
     ASSERT_EQ(flags.size(), kSectionFlagCount);
 
     EXPECT_TRUE(flags[kPlant]);
@@ -91,16 +88,16 @@ TEST(ProjectReaderSmoke, Planta2LoadsUpToTemplates)
     EXPECT_FALSE(flags[kLoopShaping]);
 
     // One template (full cloud + contour) per design frequency.
-    ASSERT_NE(parser.templates(), nullptr);
-    EXPECT_EQ(parser.templates()->size(), 6);
-    ASSERT_NE(parser.contour(), nullptr);
-    EXPECT_EQ(parser.contour()->size(), 6);
+    ASSERT_FALSE(parser.templates().empty());
+    EXPECT_EQ(static_cast<int>(parser.templates().size()), 6);
+    ASSERT_FALSE(parser.contour().empty());
+    EXPECT_EQ(static_cast<int>(parser.contour().size()), 6);
 }
 
 TEST(ProjectReaderSmoke, MultivaluadosLoadsUpToBoundaries)
 {
     ProjectReader parser;
-    const QVector<bool> flags = loadFlags(parser, "multivaluados.qft");
+    const std::vector<bool> flags = loadFlags(parser, "multivaluados.qft");
     ASSERT_EQ(flags.size(), kSectionFlagCount);
 
     EXPECT_TRUE(flags[kPlant]);
@@ -112,23 +109,23 @@ TEST(ProjectReaderSmoke, MultivaluadosLoadsUpToBoundaries)
     EXPECT_TRUE(flags[kController]);
     EXPECT_FALSE(flags[kLoopShaping]);
 
-    ASSERT_NE(parser.templates(), nullptr);
-    EXPECT_EQ(parser.templates()->size(), 5);
+    ASSERT_FALSE(parser.templates().empty());
+    EXPECT_EQ(static_cast<int>(parser.templates().size()), 5);
     EXPECT_NE(parser.boundaries(), nullptr);
 }
 
 TEST(ProjectReaderSmoke, Planta1LoadsFullProject)
 {
     ProjectReader parser;
-    const QVector<bool> flags = loadFlags(parser, "planta1.qft");
+    const std::vector<bool> flags = loadFlags(parser, "planta1.qft");
     ASSERT_EQ(flags.size(), kSectionFlagCount);
 
     for (int i = 0; i < kSectionFlagCount; ++i) {
         EXPECT_TRUE(flags[i]) << "section flag " << i << " not recovered";
     }
 
-    ASSERT_NE(parser.templates(), nullptr);
-    EXPECT_EQ(parser.templates()->size(), 4);
+    ASSERT_FALSE(parser.templates().empty());
+    EXPECT_EQ(static_cast<int>(parser.templates().size()), 4);
     EXPECT_NE(parser.boundaries(), nullptr);
 }
 

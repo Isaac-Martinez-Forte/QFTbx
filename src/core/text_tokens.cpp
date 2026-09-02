@@ -1,0 +1,45 @@
+#include "src/core/text_tokens.h"
+
+#include <QRegularExpression>
+
+QVector<QString> qftbx::text::tokens(const QString & line){
+
+    QStringList parts = line.split(" ");
+    QVector<QString> result;
+    result.reserve(parts.size());
+
+    foreach (const QString & part, parts){
+        if (!part.isEmpty()){
+            result.append(part);
+        }
+    }
+
+    return result;
+}
+
+
+std::optional<QVector<qreal>> qftbx::text::reals(const QString & line){
+
+    //Split on any whitespace (spaces, tabs, newlines): frequency files
+    //usually carry one value per line.
+    QList<QString> parts = line.split(QRegularExpression("\\s+"),
+                                                Qt::SkipEmptyParts);
+    QList<qreal> values;
+
+    bool ok = false;
+
+    foreach (const QString & part, parts){
+        const qreal value = part.toDouble(&ok);
+
+        if (!ok){
+            return std::nullopt;
+        }
+
+        values.append(value);
+    }
+
+    return QVector<qreal>(values.begin(), values.end());
+}
+
+
+

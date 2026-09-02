@@ -1,3 +1,5 @@
+![QFTbx](qftbx_banner.svg)
+
 # QFTbx architecture
 
 QFTbx is a desktop toolbox for robust controller design with Quantitative Feedback
@@ -37,21 +39,21 @@ stage has a dialog in the GUI and an engine in the model layer.
 | `src/core/templates/` | Brute-force template computation and ε-hull contour (`TemplateEngine`) |
 | `src/core/specifications/` | Validated specification set (`qftbx::Specification`) |
 | `src/core/boundaries/` | Boundary computation: sheets (`BoundaryEngine`), contour tracing (`ContourTracer`), 1D union (`BoundaryUnion1D`), results view (`BoundaryData`) |
-| `src/core/math/` | Numeric helpers (`linspace`/`logspace`) |
-| `Modelo/EstructurasDatos/` | Transitional data holders (`dBND`, plant/loop-shaping data) pending migration |
-| `Modelo/Objetos/` | Small domain objects (design frequencies `Omega`) |
-| `Modelo/LoopShaping/` | Automatic loop-shaping algorithms and interval-arithmetic support |
-| `Modelo/Herramientas/` | Shared helpers (`tools.h`, `qftbx::Exception`) |
-| `Modelo/controlador.cpp` | `Controlador`: the single mediator between GUI and model |
-| `DAO/` | In-memory storage of each stage's results (DAO pattern behind `FDAO`) |
+| `src/core/math/` | Numeric helpers (`linspace`/`logspace`), expression cache |
+| `src/core/frequencies/` | The design frequency set (`Omega`) |
+| `src/core/loopshaping/` | The five loop-shaping algorithms and their interval-arithmetic support |
+| `src/core/project_controller.h` | `ProjectController`: the single mediator between GUI and core, one method per design step |
+| `src/core/project_data.h` | What a project holds, owned by value |
+| `src/core/exception.h` | `qftbx::Exception` and its subclasses |
+| `src/core/gpu/` | Optional CUDA kernels for templates/boundaries (`USE_CUDA`) |
 | `src/persistence/` | Load/save of `.qft` project files (pugixml; versioned English dialect, legacy Spanish files still load) |
-| `GUI/` | Qt Widgets HMI: one dialog per stage plus plot viewers (QCustomPlot) |
-| `GPU/CUDA/` | Optional CUDA kernels for templates/boundaries (`USE_CUDA`) |
+| `src/gui/` | Qt Widgets HMI: one dialog per stage plus plot viewers (QCustomPlot) |
 | `tests/` | GoogleTest suite; golden `.qft` projects in `tests/data/` |
 
-Build targets: the backend (everything except `GUI/` and `main.cpp`) compiles into the
-static library `qftbx_backend`; the `QFTbx` executable adds the GUI on top, and
-`qftbx_tests` links the backend alone.
+Build targets: `qftbx_core` (the algorithms and the model), `qftbx_persistence`,
+`qftbx_app` (the mediator), `qftbx_gui`, and the `QFTbx` executable on top of them;
+`qftbx_backend` is an interface target that pulls the non-GUI ones together, which is
+what `qftbx_tests` links against.
 
 ## Third-party libraries (vendored in `3rd-party/`)
 
@@ -62,12 +64,29 @@ static library `qftbx_backend`; the `QFTbx` executable adds the GUI on top, and
 ## Error handling
 
 Backend code never interacts with the user: it throws exceptions derived from
-`qftbx::Exception` (`Modelo/Herramientas/exception.h`) and GUI slots catch them and
-show the message. Qt aborts if an exception escapes the event loop, so every slot
-reaching backend code catches at its boundary.
+`qftbx::Exception` (`src/core/exception.h`) and the GUI shows the message. An
+exception escaping a Qt slot propagates into the event loop and terminates the
+process, so slots reaching backend code catch at their boundary — and, since one
+forgotten slot is enough to lose the application, `qftbx::Application` overrides
+`QApplication::notify()` as a last-resort net that turns anything that got through
+into an error dialog. `mup::ParserError` is caught explicitly there because it does
+not derive from `std::exception`.
 
 ## Persistence
 
 Projects are saved as `.qft` files (XML): plant, frequencies, specifications,
 computed templates/contours, boundaries, controller structure and loop-shaping
 results. `tests/data/` ships real projects used as golden data by the tests.
+
+## The API documentation
+
+The reference for the classes named above is generated with Doxygen:
+
+```
+cmake --build build --target docs      # or just: doxygen
+```
+
+It lands in `docs/api/html/index.html` (not committed). The configuration is the
+`Doxyfile` at the root of the repository, written by hand and commented; the target
+only exists when doxygen is installed. Formulas are rendered by MathJax from a CDN,
+so the pages need internet for those and nothing else.

@@ -2,6 +2,9 @@
 #define QFTBX_BOUNDARY_ENGINE_H
 
 #include <QVector>
+
+#include "src/core/templates/cloud_set.h"
+#include "src/core/boundaries/boundary_types.h"
 #include <complex>
 #include <qmath.h>
 #include <limits>
@@ -9,11 +12,14 @@
 #ifdef OpenMP_AVAILABLE
 #include <omp.h>
 #endif
+#ifdef CUDA_AVAILABLE
+#include "src/core/gpu/boundary_sheets_cuda.h"
+#endif
 #include <QMap>
 
 #include "src/core/system/lti_system.h"
 #include "src/core/specifications/specification.h"
-#include "Modelo/EstructurasDatos/dbnd.h"
+#include "src/core/specifications/specification_record.h"
 #include "contour_tracer.h"
 #include "boundary_data.h"
 #include "boundary_union_1d.h"
@@ -65,16 +71,22 @@ public:
     *        on entry (throws qftbx::InvalidInput on invalid used records).
     * @param phaseRange, phaseCount Nichols window phase axis (degrees).
     * @param magnitudeRange, magnitudeCount Nichols window magnitude axis (dB).
-    * @param infinity user value standing in for infinity; < 0 means IEEE inf
+    * @param exportInfinity finite stand-in for infinity when the results are
+    * EXPORTED (thesis ch. 7: a compatibility value for formats that cannot
+    * carry an infinity); < 0 means "none given". It never takes part in the
+    * sweep, which is IEEE throughout.
     *        (currently unused - see the (-180, 0 dB) decision, deferred).
     * @param cuda compute the sheets on the GPU (CUDA builds only).
     */
-    void compute(QVector <qreal> * omega, LtiSystem * plant, QVector<QVector<std::complex <qreal> > *> *templates,
-                 QVector <tools::dBND *> * specifications, QPointF phaseRange,
-                 qint32 phaseCount, QPointF magnitudeRange, qint32 magnitudeCount, qreal infinity, bool cuda);
+    void compute(QVector <qreal> * omega, LtiSystem * plant, const CloudSet & templates,
+                 const qftbx::SpecificationRecords * specifications, QPointF phaseRange,
+                 qint32 phaseCount, QPointF magnitudeRange, qint32 magnitudeCount, qreal exportInfinity, bool cuda);
 
     /// A fresh non-owning view over the last computed results.
-    BoundaryData * boundaryData();
+    /// A snapshot of the results, by value. It used to be a freshly
+    /// allocated NON-OWNING view that every caller had to delete and that
+    /// nothing in the type said was a view.
+    BoundaryData boundaryData();
 
     QVector <qreal> * omega();
 
@@ -86,48 +98,49 @@ private:
     //BoundaryData views handed out never do).
     void releaseResults();
 
-    void computeFrequencies(QVector <qreal> * omega, LtiSystem * plant, QVector<QVector<std::complex <qreal> > *> *templates,
-                            QPointF phaseRange, qint32 phaseCount, QPointF magnitudeRange, qint32 magnitudeCount, qreal infinity);
+    void computeFrequencies(QVector <qreal> * omega, LtiSystem * plant, const CloudSet & templates,
+                            QPointF phaseRange, qint32 phaseCount, QPointF magnitudeRange, qint32 magnitudeCount);
 
     void computeFrequency(qreal omega, LtiSystem * plant,
-                          QVector<std::complex <qreal> > * valueSet, QVector <qreal> * phases,
-                          QVector <qreal> * magnitudes, qreal infinity, qint32 index);
+                          const ComplexCloud & valueSet, const QVector <qreal> & phases,
+                          const QVector <qreal> & magnitudes, qint32 index);
 
-    void traceFrequency(qreal omega, QMap <QString, QVector <QVector <QPointF> * > *> * bound, QVector<QVector<QVector<qreal> *> *> *sheets,
-                        QMap<QString, QVector<QPoint> *> *traceMetadata, std::complex<qreal> p0, QVector<std::complex<qreal> > *valueSet,
-                        qint32 index, qreal phasePoints, qreal magnitudePoints, qreal magnitudeShift);
+    void traceFrequency(qreal omega, std::map<QString, TraceSet> & bound,
+                        const BoundarySheets & sheets,
+                        std::map<QString, TraceLabels> & traceMetadata, std::complex<qreal> p0, const ComplexCloud & valueSet,
+                        qint32 index, qreal phaseSpan, qreal magnitudeSpan, qreal phaseBottom, qreal magnitudeBottom);
 
-    QVector<QVector<QPointF> *> *traceBoundary(qreal thresholdDb, QVector<QVector<qreal> *> *sheet,
-                                               QVector<QPoint> *traceMetadata, std::complex<qreal> p0, QVector<std::complex<qreal> > *valueSet,
-                                               qint32 kind, qreal phasePoints, qreal magnitudePoints,
-                                               qreal magnitudeShift);
+    TraceSet traceBoundary(qreal thresholdDb, const BoundarySheet & sheet,
+                                               TraceLabels & traceMetadata, std::complex<qreal> p0, const ComplexCloud & valueSet,
+                                               qint32 kind, qreal phaseSpan, qreal magnitudeSpan,
+                                               qreal phaseBottom, qreal magnitudeBottom);
 
-    qint32 allowedZone(QVector <QPointF> * trace, std::complex<qreal> p0, QVector<std::complex<qreal> > *valueSet, qint32 kind, qreal thresholdDb);
+    qint32 allowedZone(const Trace & trace, std::complex<qreal> p0, const ComplexCloud & valueSet, qint32 kind, qreal thresholdDb);
 
 #ifdef CUDA_AVAILABLE
-    void traceFrequency(qreal omega, QMap <QString, QVector <QVector <QPointF> * > *> * bound,
-                        std::vector <float *> * cudaSheets,
-                        QMap <QString, QVector <QPoint> * > * traceMetadata,
-                        std::complex <qreal> p0, QVector <std::complex <qreal> > * valueSet, qint32 index,
-                        qreal phasePoints, qreal magnitudePoints, qreal magnitudeShift);
+    void traceFrequency(qreal omega, std::map<QString, TraceSet> & bound,
+                        const BoundarySheetsCuda & cudaSheets,
+                        std::map<QString, TraceLabels> & traceMetadata,
+                        std::complex <qreal> p0, const ComplexCloud & valueSet, qint32 index,
+                        qreal phaseSpan, qreal magnitudeSpan, qreal phaseBottom, qreal magnitudeBottom);
 
-    QVector<QVector<QPointF> *> *traceBoundary(qreal thresholdDb, float * sheet,
-                                               QVector<QPoint> *traceMetadata, std::complex<qreal> p0, QVector<std::complex<qreal> > *valueSet,
-                                               qint32 kind, qreal phasePoints, qreal magnitudePoints,
-                                               qreal magnitudeShift);
+    TraceSet traceBoundary(qreal thresholdDb, const float * sheet,
+                                               QVector<QPoint> *traceMetadata, std::complex<qreal> p0, const ComplexCloud & valueSet,
+                                               qint32 kind, qreal phaseSpan, qreal magnitudeSpan,
+                                               qreal phaseBottom, qreal magnitudeBottom);
 #endif
 
 
     QPointF m_phaseRange;
     QPointF m_magnitudeRange;
-    qint32 m_phaseCount;
-    qint32 m_magnitudeCount;
+    qint32 m_phaseCount = 0;
+    qint32 m_magnitudeCount = 0;
 
 
-    QVector <QMap <QString, QVector <QVector <QPointF> * > *> * > * m_boundaries;
-    QVector <QMap <QString, QVector <QPoint> * > *> * m_traceMetadata;
-    QVector <QVector <QPointF> * > * m_unionVectors;
-    QVector< QVector< QVector<QPointF> * > * > * m_unionBuckets;
+    BoundarySet m_boundaries;
+    TraceMetadata m_traceMetadata;
+    UnionTraces m_unionVectors;
+    UnionBuckets m_unionBuckets;
 
     QVector <bool> m_trackingMask;
     QVector <bool> m_stabilityMask;
@@ -136,13 +149,13 @@ private:
     QVector <bool> m_inputDisturbanceMask;
     QVector <bool> m_controlEffortMask;
 
-    QVector <bool> * m_openFlags;
-    QVector <bool> * m_upperFlags;
+    std::vector<bool> m_openFlags;
+    std::vector<bool> m_upperFlags;
 
     //Alias of the caller's frequency vector: never freed here.
-    QVector <qreal> * m_omega;
+    QVector <qreal> * m_omega = nullptr;
 
-    bool m_cuda;
+    bool m_cuda = false;
 
 };
 
