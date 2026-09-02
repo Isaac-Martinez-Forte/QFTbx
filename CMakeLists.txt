@@ -306,7 +306,37 @@ add_library(qftbx_core STATIC
 )
 
 target_include_directories(qftbx_core PUBLIC "${CMAKE_SOURCE_DIR}")
-target_link_libraries(qftbx_core PUBLIC Qt6::Core Qt6::Gui)
+# Qt6::Gui was linked here and nothing under src/core or src/persistence
+# uses it - no QColor, no QImage, no QPainter, no QFont. Dropping it also
+# drops a hazard already on record: -frounding-math breaks the constexpr
+# floating-point code in QtGui's qrgbafloat.h.
+#
+# Qt6::Core is what phase 9.8 is removing. The target compiling without it
+# is the acceptance test for "the core builds without Qt installed"; until
+# then it stays.
+target_link_libraries(qftbx_core PUBLIC Qt6::Core)
+
+# ------------------------------------------------------------------------------
+# The acceptance test of phase 9.8: does the core compile with no Qt at all?
+#
+# A syntax-only target over the same sources with the Qt include paths
+# removed. It is EXCLUDE_FROM_ALL, so it does not slow the normal build and
+# does not break it while the port is unfinished; ask for it explicitly:
+#
+#     cmake --build build --target qftbx_core_noqt
+#
+# The point is that the answer stops being a matter of grepping for "QString"
+# and becomes a compiler saying yes or no. While the port runs, its error
+# list IS the work list.
+# ------------------------------------------------------------------------------
+add_library(qftbx_core_noqt OBJECT EXCLUDE_FROM_ALL
+    ${QFTbx_CORE_SRC}
+    ${QFTbx_PERSISTENCE_SRC}
+)
+target_include_directories(qftbx_core_noqt PRIVATE "${CMAKE_SOURCE_DIR}")
+target_link_libraries(qftbx_core_noqt PRIVATE muparserx::muparserx cxsc::cxsc pugixml::pugixml)
+target_compile_options(qftbx_core_noqt PRIVATE -fsyntax-only)
+set_target_properties(qftbx_core_noqt PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
 
 # Project persistence (.qft): the only place that knows the file format.
 add_library(qftbx_persistence STATIC

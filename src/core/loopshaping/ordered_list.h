@@ -5,7 +5,6 @@
 #include <memory>
 #include <type_traits>
 
-#include <QtGlobal>
 
 #include "src/core/loopshaping/search_node.h"
 
@@ -110,7 +109,7 @@ public:
 private:
 
     //Ascending or descending by node index; ties keep insertion order.
-    std::multimap <qreal, std::unique_ptr<ListNode>, bool(*)(qreal, qreal)> nodes;
+    std::multimap <double, std::unique_ptr<ListNode>, bool(*)(double, double)> nodes;
 
     std::size_t m_maxNodes = kDefaultMaxLiveNodes;
     std::size_t m_peakSize = 0;

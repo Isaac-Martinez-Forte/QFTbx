@@ -1,3 +1,4 @@
+#include <cstdint>
 #include "template_engine.h"
 
 #include <QStringList>
@@ -32,7 +33,7 @@ void TemplateEngine::setGrids(ParameterGrids grids){
     m_grids = std::move(grids);
 }
 
-void TemplateEngine::setEpsilon(QVector<qreal> epsilon){
+void TemplateEngine::setEpsilon(QVector<double> epsilon){
     m_epsilon = std::move(epsilon);
 }
 
@@ -40,7 +41,7 @@ void TemplateEngine::setClouds(CloudSet templates){
     m_clouds = std::move(templates);
 }
 
-bool TemplateEngine::compute(LtiSystem *plant, QVector<qreal> *omega, bool cuda){
+bool TemplateEngine::compute(LtiSystem *plant, QVector<double> *omega, bool cuda){
     m_useCuda = cuda;
 
     QElapsedTimer timer;
@@ -71,12 +72,12 @@ bool TemplateEngine::compute(LtiSystem *plant, QVector<qreal> *omega, bool cuda)
 
 }
 
-bool TemplateEngine::computeContours(QVector<qreal> epsilon){
+bool TemplateEngine::computeContours(QVector<double> epsilon){
 
     if (m_clouds.empty()){
         throw qftbx::InvalidInput("There are no templates to compute contours from.");
     }
-    if (epsilon.size() < static_cast<qint32>(m_clouds.size())){
+    if (epsilon.size() < static_cast<std::int32_t>(m_clouds.size())){
         throw qftbx::InvalidInput("Missing epsilon values for the template contours.");
     }
 
@@ -113,7 +114,7 @@ const std::vector<double> & TemplateEngine::gridFor(Parameter & a){
     return found->second;
 }
 
-CloudSet TemplateEngine::computeClouds(LtiSystem *plant, QVector<qreal> *omega){
+CloudSet TemplateEngine::computeClouds(LtiSystem *plant, QVector<double> *omega){
 
     //Collect the uncertain parameters (the first of each name) and their
     //grids, in numerator, denominator, gain, delay order. The index in
@@ -131,7 +132,7 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, QVector<qreal> *omega){
             const std::vector<double> & rejilla = gridFor(var);
             names.append(var.name());
             grids.push_back(&rejilla);
-            m_combinationCount *= static_cast<qint32>(rejilla.size());
+            m_combinationCount *= static_cast<std::int32_t>(rejilla.size());
         }
     };
 
@@ -142,20 +143,20 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, QVector<qreal> *omega){
     collect(plant->gain());
     collect(plant->delay());
 
-    const qint32 digitCount = names.size();
-    const qint32 frequencyCount = omega->size();
+    const std::int32_t digitCount = names.size();
+    const std::int32_t frequencyCount = omega->size();
 
     //Which odometer digit drives each coefficient, and the nominals of the
     //ones no digit drives. Built ONCE and sequentially: Parameter::nominal()
     //can evaluate a reparametrisation, and a coefficient's plan does not
     //change with the frequency or the combination. A name appearing twice
     //shares its digit, which is what makes it one variable.
-    const auto slotOf = [&](Parameter & parameter) -> qint32 {
+    const auto slotOf = [&](Parameter & parameter) -> std::int32_t {
         return parameter.isUncertain() ? names.indexOf(parameter.name()) : -1;
     };
 
-    std::vector<qint32> numeratorSlot, denominatorSlot;
-    std::vector<qreal> numeratorNominal, denominatorNominal;
+    std::vector<std::int32_t> numeratorSlot, denominatorSlot;
+    std::vector<double> numeratorNominal, denominatorNominal;
 
     for (Parameter & parameter : plant->numerator()){
         numeratorSlot.push_back(slotOf(parameter));
@@ -166,10 +167,10 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, QVector<qreal> *omega){
         denominatorNominal.push_back(parameter.nominal());
     }
 
-    const qint32 gainSlot = slotOf(plant->gain());
-    const qint32 delaySlot = slotOf(plant->delay());
-    const qreal gainNominal = plant->gain().nominal();
-    const qreal delayNominal = plant->delay().nominal();
+    const std::int32_t gainSlot = slotOf(plant->gain());
+    const std::int32_t delaySlot = slotOf(plant->delay());
+    const double gainNominal = plant->gain().nominal();
+    const double delayNominal = plant->delay().nominal();
 
     CloudSet allClouds (static_cast<std::size_t>(frequencyCount));
 
@@ -186,7 +187,7 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, QVector<qreal> *omega){
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
 #endif
-    for (qint32 u = 0; u < frequencyCount; u++){
+    for (std::int32_t u = 0; u < frequencyCount; u++){
 
         //No parser and no expression TEXT any more: the transfer function is
         //computed directly in complex arithmetic by valueAt(). The text route
@@ -196,20 +197,20 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, QVector<qreal> *omega){
         //constant coefficients AND ITS FREQUENCY rounded to six significant
         //digits. The swept coefficients were exact only because they were
         //bound as variables.
-        const qreal w = omega->at(u);
+        const double w = omega->at(u);
 
-        std::vector<qreal> numeratorValues = numeratorNominal;
-        std::vector<qreal> denominatorValues = denominatorNominal;
+        std::vector<double> numeratorValues = numeratorNominal;
+        std::vector<double> denominatorValues = denominatorNominal;
 
-        std::vector <qreal> digit (digitCount);
-        for (qint32 j = 0; j < digitCount; j++){
+        std::vector <double> digit (digitCount);
+        for (std::int32_t j = 0; j < digitCount; j++){
             digit[j] = (*grids.at(static_cast<std::size_t>(j)))[0];
         }
 
         ComplexCloud cloud;
         cloud.reserve(static_cast<std::size_t>(m_combinationCount));
 
-        QVector <qint32> counter (digitCount + 1, 0);
+        QVector <std::int32_t> counter (digitCount + 1, 0);
 
         //Non-finite plant values: an undamped resonance inside the
         //uncertainty makes |P(jw)| infinite at some frequency (the ACC'90
@@ -223,9 +224,9 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, QVector<qreal> *omega){
         //damp the resonance lightly: see the ACC'90 fixture).
         bool nonFinite = false;
 
-        for (qint32 i = 0; i < m_combinationCount; i++){
+        for (std::int32_t i = 0; i < m_combinationCount; i++){
 
-            complex<qreal> value;
+            complex<double> value;
 
             for (std::size_t c = 0; c < numeratorSlot.size(); c++){
                 if (numeratorSlot[c] >= 0){
@@ -238,8 +239,8 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, QVector<qreal> *omega){
                 }
             }
 
-            const qreal gainValue = gainSlot >= 0 ? digit[gainSlot] : gainNominal;
-            const qreal delayValue = delaySlot >= 0 ? digit[delaySlot] : delayNominal;
+            const double gainValue = gainSlot >= 0 ? digit[gainSlot] : gainNominal;
+            const double delayValue = delaySlot >= 0 ? digit[delaySlot] : delayNominal;
 
             //A free-form plant still evaluates an expression, so it can still
             //reject one (a name colliding with a muParserX constant, a
@@ -261,8 +262,8 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, QVector<qreal> *omega){
             cloud.push_back(value);
 
             counter[0]++;
-            for (qint32 j = 0; j < digitCount; j++){
-                if (counter.at(j) >= static_cast<qint32>(grids.at(static_cast<std::size_t>(j))->size())){
+            for (std::int32_t j = 0; j < digitCount; j++){
+                if (counter.at(j) >= static_cast<std::int32_t>(grids.at(static_cast<std::size_t>(j))->size())){
                     counter[j] = 0;
                     counter[j+1]++;
                     digit[j] = (*grids.at(static_cast<std::size_t>(j)))[0];
@@ -283,7 +284,7 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, QVector<qreal> *omega){
     }
 
     //Reported after the parallel loop, where throwing is safe again.
-    for (qint32 u = 0; u < frequencyCount; u++){
+    for (std::int32_t u = 0; u < frequencyCount; u++){
         if (!parserErrors.at(u).isEmpty()){
             const std::string message = parserErrors.at(u).toStdString();
             throw qftbx::InvalidInput(
@@ -294,7 +295,7 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, QVector<qreal> *omega){
 
     //Reported after the parallel loop, naming every affected frequency.
     QStringList affected;
-    for (qint32 u = 0; u < frequencyCount; u++){
+    for (std::int32_t u = 0; u < frequencyCount; u++){
         if (nonFiniteFrequencies.at(u)){
             affected.append(QString::number(omega->at(u)));
         }
@@ -313,18 +314,18 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, QVector<qreal> *omega){
     return allClouds;
 }
 
-QVector <qreal> * TemplateEngine::omega(){
+QVector <double> * TemplateEngine::omega(){
     return m_frequencies;
 }
 
-const QVector <qreal> & TemplateEngine::epsilon(){
+const QVector <double> & TemplateEngine::epsilon(){
     return m_epsilon;
 }
 
 bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
 
     bool succeeded = true;
-    const qint32 digitCount = static_cast<qint32>(m_clouds.size());
+    const std::int32_t digitCount = static_cast<std::int32_t>(m_clouds.size());
 
 #ifdef CUDA_AVAILABLE
     if (cuda){
@@ -332,7 +333,7 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
         //epsilonHullRelaxed, not the faithful walk - see the header).
         m_contours.clear();
 
-        for (qint32 i = 0; i < digitCount; i++){
+        for (std::int32_t i = 0; i < digitCount; i++){
 
             const vector <complex <double> > hull = epsilonHullCuda(
                 m_clouds[static_cast<std::size_t>(i)],
@@ -369,7 +370,7 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
 #endif
-    for (qint32 i = 0; i < digitCount; i++){
+    for (std::int32_t i = 0; i < digitCount; i++){
 
         bool fellBack = false;
         ComplexCloud cont = epsilonHull(m_clouds[static_cast<std::size_t>(i)],
@@ -400,7 +401,7 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
     //produced N identical lines that said nothing about which frequency fell
     //back.
     QStringList relaxed;
-    for (qint32 i = 0; i < digitCount; i++){
+    for (std::int32_t i = 0; i < digitCount; i++){
         if (relaxedFrequencies.at(i) && m_frequencies != nullptr && i < m_frequencies->size()){
             relaxed.append(QString::number(m_frequencies->at(i)));
         }
@@ -421,13 +422,13 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
         //figure the user only saw "could not compute".
         QStringList detail;
 
-        for (qint32 i = 0; i < digitCount; i++){
+        for (std::int32_t i = 0; i < digitCount; i++){
             if (!failed.at(i)){
                 continue;
             }
 
-            qreal largest = 0;
-            for (const complex<qreal> & value : m_clouds[static_cast<std::size_t>(i)]){
+            double largest = 0;
+            for (const complex<double> & value : m_clouds[static_cast<std::size_t>(i)]){
                 largest = std::max(largest, std::abs(value));
             }
 
@@ -453,7 +454,7 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
 //Faithful port of EPSHULL.M (epsh2, Montoya 1998; the algorithm defined in
 //Nordin 1993). Deliberate divergence: with no initial candidate it returns
 //NULL instead of an empty contour (the caller treats it as an error).
-ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, qreal epsilon,
+ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsilon,
                                                          bool * fellBack){
 
     if (temp.empty()){
@@ -465,9 +466,9 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, qreal epsilo
     //exactly like the reference.
     ComplexCloud cv = temp;
     std::sort(cv.begin(), cv.end(),
-              [](const complex<qreal> & a, const complex<qreal> & b){
-                  const qreal absA = abs(a);
-                  const qreal absB = abs(b);
+              [](const complex<double> & a, const complex<double> & b){
+                  const double absA = abs(a);
+                  const double absB = abs(b);
                   if (absA != absB){
                       return absA < absB;
                   }
@@ -475,35 +476,35 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, qreal epsilo
               });
     cv.erase(std::unique(cv.begin(), cv.end()), cv.end());
 
-    const qint32 pointCount = cv.size();
-    const qint32 MAXP = 3 * pointCount;
+    const std::int32_t pointCount = cv.size();
+    const std::int32_t MAXP = 3 * pointCount;
 
     //First point: the largest real part (the rightmost one), as in
     //EPSHULL.M and in the PFC text. Ties: the first in unique order wins.
-    qint32 b1 = 0;
-    for (qint32 i = 1; i < pointCount; i++){
+    std::int32_t b1 = 0;
+    for (std::int32_t i = 1; i < pointCount; i++){
         if (real(cv.at(i)) > real(cv.at(b1))){
             b1 = i;
         }
     }
 
-    qint32 b2 = findSecond(b1, cv, epsilon);
+    std::int32_t b2 = findSecond(b1, cv, epsilon);
 
     if (b2 < 0)
         return {};
 
-    QVector <qint32> walk;
+    QVector <std::int32_t> walk;
     walk.append(b1);
     walk.append(b2);
 
-    qint32 previousPoint = b1;
-    qint32 currentPoint = b2;
+    std::int32_t previousPoint = b1;
+    std::int32_t currentPoint = b2;
 
-    qint32 nextPoint = findNext(b1, b2, cv, epsilon);
+    std::int32_t nextPoint = findNext(b1, b2, cv, epsilon);
     if (nextPoint < 0)
         return {};
 
-    qint32 counter = 2;
+    std::int32_t counter = 2;
 
     //Stops when the walk returns to the initial (b1, b2) pair. Points may
     //repeat (out-and-back over template spikes): they are kept, like in
@@ -541,45 +542,45 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, qreal epsilo
     ComplexCloud result;
     result.reserve(walk.size());
 
-    foreach (const qint32 var, walk) {
+    foreach (const std::int32_t var, walk) {
         result.push_back(cv.at(var));
     }
 
     return result;
 }
 
-ComplexCloud TemplateEngine::epsilonHullRelaxed(const ComplexCloud & temp, qreal epsilon){
+ComplexCloud TemplateEngine::epsilonHullRelaxed(const ComplexCloud & temp, double epsilon){
 
-    qint32 pointCount = static_cast<qint32>(temp.size());
-    qint32 MAXP = 3 * pointCount;
+    std::int32_t pointCount = static_cast<std::int32_t>(temp.size());
+    std::int32_t MAXP = 3 * pointCount;
 
-    qint32 b1 = 0;
-    qreal numDe = -numeric_limits<qreal>::infinity();
+    std::int32_t b1 = 0;
+    double numDe = -numeric_limits<double>::infinity();
 
-    for(qint32 i = 0;i < pointCount ; i++){   //first point: largest imaginary part.
+    for(std::int32_t i = 0;i < pointCount ; i++){   //first point: largest imaginary part.
         if (imag(temp.at(i)) > numDe){
             b1 = i;
             numDe = imag(temp.at(i));
         }
     }
 
-    qint32 b2 = findSecond(b1, temp, epsilon);
+    std::int32_t b2 = findSecond(b1, temp, epsilon);
 
     if (b2 < 0)
         return {};
 
-    QVector <qint32> walk;
+    QVector <std::int32_t> walk;
     walk.append(b1);
     walk.append(b2);
 
-    qint32 previousPoint = b1;
-    qint32 currentPoint = b2;
+    std::int32_t previousPoint = b1;
+    std::int32_t currentPoint = b2;
 
-    qint32 nextPoint = findNext(b1, b2, temp, epsilon, true);
+    std::int32_t nextPoint = findNext(b1, b2, temp, epsilon, true);
     if (nextPoint < 0)
         return {};
 
-    qint32 counter = 2;
+    std::int32_t counter = 2;
 
     while (b1 != currentPoint || b2 != nextPoint){
 
@@ -600,8 +601,8 @@ ComplexCloud TemplateEngine::epsilonHullRelaxed(const ComplexCloud & temp, qreal
     }
 
     //Output deduplication (historical behaviour).
-    QVector <qint32> uniqueIdx;
-    foreach (qint32 idx, walk) {
+    QVector <std::int32_t> uniqueIdx;
+    foreach (std::int32_t idx, walk) {
         if (!uniqueIdx.contains(idx)){
             uniqueIdx.append(idx);
         }
@@ -610,27 +611,27 @@ ComplexCloud TemplateEngine::epsilonHullRelaxed(const ComplexCloud & temp, qreal
     ComplexCloud result;
     result.reserve(uniqueIdx.size());
 
-    foreach (const qint32 idx, uniqueIdx) {
+    foreach (const std::int32_t idx, uniqueIdx) {
         result.push_back(temp.at(idx));
     }
 
     return result;
 }
 
-qint32 TemplateEngine::findSecond(qint32 b1, const ComplexCloud & cv, qreal epsilon){
+std::int32_t TemplateEngine::findSecond(std::int32_t b1, const ComplexCloud & cv, double epsilon){
 
-    qreal dist = 0;
-    complex <qreal> firstPoint = cv.at(b1);
+    double dist = 0;
+    complex <double> firstPoint = cv.at(b1);
 
-    qreal fmin = numeric_limits<qreal>::infinity();
-    qint32 pmin = -1;
-    qreal dmax = 0;
+    double fmin = numeric_limits<double>::infinity();
+    std::int32_t pmin = -1;
+    double dmax = 0;
 
-    complex <qreal> candidate;
+    complex <double> candidate;
 
-    qreal fas = 0;
+    double fas = 0;
 
-    for (qint32 i = 0; i < static_cast<qint32>(cv.size()); i++){    //every point of the cloud.
+    for (std::int32_t i = 0; i < static_cast<std::int32_t>(cv.size()); i++){    //every point of the cloud.
 
         candidate = cv.at(i);
         dist = abs(firstPoint - candidate); //distance to the starting point.
@@ -660,30 +661,30 @@ qint32 TemplateEngine::findSecond(qint32 b1, const ComplexCloud & cv, qreal epsi
     return pmin;
 }
 
-qint32 TemplateEngine::findNext(qint32 previousPoint, qint32 currentPoint,
-                                  const ComplexCloud & cv, qreal epsilon,
+std::int32_t TemplateEngine::findNext(std::int32_t previousPoint, std::int32_t currentPoint,
+                                  const ComplexCloud & cv, double epsilon,
                                   bool excludePrevious){
 
-    complex <qreal> current = cv.at(currentPoint);
-    complex <qreal> previous = cv.at(previousPoint);
+    complex <double> current = cv.at(currentPoint);
+    complex <double> previous = cv.at(previousPoint);
 
-    qreal aco2 = qAcos(abs(previous-current) / epsilon);
+    double aco2 = qAcos(abs(previous-current) / epsilon);
 
-    qreal phase = 0;
+    double phase = 0;
 
-    qreal aco1 = 0;
-    qreal dmax = 0;
+    double aco1 = 0;
+    double dmax = 0;
 
-    qreal psi = 0;
+    double psi = 0;
 
 
-    qreal psiMin = numeric_limits<qreal>::infinity();
-    qint32 bestIndex = -1;
+    double psiMin = numeric_limits<double>::infinity();
+    std::int32_t bestIndex = -1;
 
-    complex <qreal> candidate;
-    qreal distance;
+    complex <double> candidate;
+    double distance;
 
-    for (qint32 i = 0; i < static_cast<qint32>(cv.size()); i++){
+    for (std::int32_t i = 0; i < static_cast<std::int32_t>(cv.size()); i++){
 
         candidate = cv.at(i);
         distance = abs(candidate - current); //distance to the current point.

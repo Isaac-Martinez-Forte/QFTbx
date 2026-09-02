@@ -1,3 +1,4 @@
+#include <cstdint>
 #include "src/core/math/expression_cache.h"
 
 #include <map>
@@ -22,7 +23,7 @@ struct CachedParser
     explicit CachedParser(const QString & expression, const QVector<QString> & names)
         : parser(mup::pckALL_COMPLEX), values(static_cast<std::size_t>(names.size()))
     {
-        for (qint32 i = 0; i < names.size(); i++) {
+        for (std::int32_t i = 0; i < names.size(); i++) {
             parser.DefineVar(names.at(i).toStdString(),
                              mup::Variable(&values[static_cast<std::size_t>(i)]));
         }

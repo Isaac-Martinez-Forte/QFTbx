@@ -22,7 +22,7 @@ void ProjectData::setOmega(std::unique_ptr<Omega> omega)
     m_omega = std::move(omega);
 }
 
-QVector<qreal> * ProjectData::frequencies() const
+QVector<double> * ProjectData::frequencies() const
 {
     return m_omega != nullptr ? m_omega->values() : nullptr;
 }
@@ -74,12 +74,12 @@ bool ProjectData::hasContour() const
     return m_hasContour;
 }
 
-QVector<qreal> * ProjectData::epsilon()
+QVector<double> * ProjectData::epsilon()
 {
     return m_epsilon.has_value() ? &m_epsilon.value() : nullptr;
 }
 
-void ProjectData::setEpsilon(std::optional<QVector<qreal>> epsilon)
+void ProjectData::setEpsilon(std::optional<QVector<double>> epsilon)
 {
     m_epsilon = std::move(epsilon);
 }

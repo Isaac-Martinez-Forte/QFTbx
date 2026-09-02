@@ -24,26 +24,26 @@ public:
                      Parameter k, Parameter delay);
 
     std::unique_ptr<LtiSystem> create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
-                              Parameter k, Parameter delay = Parameter(qreal(0)),
+                              Parameter k, Parameter delay = Parameter(double(0)),
                               QString numeratorExpr = QString(), QString denominatorExpr = QString()) override = 0;
 
-    std::complex <qreal> evaluate (qreal omega) override;
+    std::complex <double> evaluate (double omega) override;
 
-    QVector <std::complex <qreal> > evaluate (const QVector <qreal> & omega) override;
+    QVector <std::complex <double> > evaluate (const QVector <double> & omega) override;
 
-    std::complex <qreal> evaluate (QVector <qreal> * numerator, QVector <qreal> * denominator,
-                                           qreal k, qreal delay, qreal omega) override;
+    std::complex <double> evaluate (QVector <double> * numerator, QVector <double> * denominator,
+                                           double k, double delay, double omega) override;
 
-    QString expression (QVector <qreal> * numerator, QVector <qreal> * denominator,
-                             qreal k, qreal delay, qreal omega) override = 0;
+    QString expression (QVector <double> * numerator, QVector <double> * denominator,
+                             double k, double delay, double omega) override = 0;
 
-    QString expression(qreal w) override = 0;
+    QString expression(double w) override = 0;
 
     QString expression() override = 0;
 
-    std::complex <qreal> evaluateNumerator(QVector <qreal> * nume, qreal omega) override = 0;
+    std::complex <double> evaluateNumerator(QVector <double> * nume, double omega) override = 0;
 
-    std::complex <qreal> evaluateDenominator(QVector <qreal> * deno, qreal omega) override = 0;
+    std::complex <double> evaluateDenominator(QVector <double> * deno, double omega) override = 0;
 
     std::vector <Parameter> & numerator() override;
 

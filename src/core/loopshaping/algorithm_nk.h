@@ -1,6 +1,7 @@
 #ifndef QFTBX_LOOPSHAPING_ALGORITHM_NK_H
 #define QFTBX_LOOPSHAPING_ALGORITHM_NK_H
 
+#include <cstdint>
 #include <complex>
 
 #include <QVector>
@@ -47,8 +48,8 @@ public:
     AlgorithmNk();
     ~AlgorithmNk();
 
-    void setProblem(LtiSystem * plant, LtiSystem * controller, QVector<qreal> *omega, const BoundaryData * boundaries,
-                   qreal epsilon, qint32 inicializacion);
+    void setProblem(LtiSystem * plant, LtiSystem * controller, QVector<double> *omega, const BoundaryData * boundaries,
+                   double epsilon, std::int32_t inicializacion);
 
     bool solve();
 
@@ -66,24 +67,24 @@ private:
     enum StartingPoint {Centre = 0, Extremes = 1};
 
     inline void check_box_feasibility(std::unique_ptr<LtiSystem> box);
-    inline std::unique_ptr<LtiSystem> quickSolution(std::unique_ptr<LtiSystem> v, qreal boundMinDb, qreal w,
-                                     std::complex<qreal> p0);
+    inline std::unique_ptr<LtiSystem> quickSolution(std::unique_ptr<LtiSystem> v, double boundMinDb, double w,
+                                     std::complex<double> p0);
 
     inline void localOptimization(LtiSystem * box);
-    inline qreal minimalFeasibleGain(const QVector<qreal> & zeros, const QVector<qreal> & poles,
-                                     LtiSystem * box, qint32 & budget);
-    inline bool pointIsFeasible(const QVector<qreal> & zeros, const QVector<qreal> & poles,
-                                qreal gain);
-    inline std::unique_ptr<LtiSystem> pointSystem(const QVector<qreal> & zeros, const QVector<qreal> & poles,
-                                   qreal gain);
-    inline void startingPoint(LtiSystem * box, QVector<qreal> & zeros,
-                              QVector<qreal> & poles, qreal & gain);
+    inline double minimalFeasibleGain(const QVector<double> & zeros, const QVector<double> & poles,
+                                     LtiSystem * box, std::int32_t & budget);
+    inline bool pointIsFeasible(const QVector<double> & zeros, const QVector<double> & poles,
+                                double gain);
+    inline std::unique_ptr<LtiSystem> pointSystem(const QVector<double> & zeros, const QVector<double> & poles,
+                                   double gain);
+    inline void startingPoint(LtiSystem * box, QVector<double> & zeros,
+                              QVector<double> & poles, double & gain);
 
     LtiSystem * plant = nullptr;
     std::unique_ptr<LtiSystem> controller;
-    QVector<qreal> * omega = nullptr;
+    QVector<double> * omega = nullptr;
     const BoundaryData * boundaries = nullptr;
-    qreal epsilon = 0;
+    double epsilon = 0;
 
     std::unique_ptr<NaturalIntervalExtension> conversion;
     std::unique_ptr<BoundaryViolationDetector> detector;
@@ -91,7 +92,7 @@ private:
     std::unique_ptr<OrderedList> liveList;
 
     QVector<cxsc::complex> nominalPlantValues;
-    QVector<std::complex<qreal>> nominalPlantValuesStd;
+    QVector<std::complex<double>> nominalPlantValuesStd;
 
     std::unique_ptr<LtiSystem> designedController;
     std::unique_ptr<LtiSystem> prototype;
@@ -99,9 +100,9 @@ private:
     //Local optimization state: the best certified feasible gain (prunes
     //the tree), its controller point, and the previous launch points of
     //the 10% decision rule.
-    qreal bestLocalGain = 0;
+    double bestLocalGain = 0;
     std::unique_ptr<LtiSystem> bestLocalController;
-    QVector<qreal> launchGains;
+    QVector<double> launchGains;
 
     //Local search configuration from the GUI: coordinate step and
     //starting-point strategy.

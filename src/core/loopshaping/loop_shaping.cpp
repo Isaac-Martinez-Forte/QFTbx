@@ -1,3 +1,4 @@
+#include <cstdint>
 #include "src/core/loopshaping/loop_shaping.h"
 
 #include <cmath>
@@ -21,10 +22,10 @@ LoopShaping::~LoopShaping()
 //the plant, the controller search box, the design frequencies and the
 //boundaries; NK also takes the local-search starting-point choice, and
 //MR the templates and specifications its constraints are built from.
-bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, QVector<qreal> * omega,
-                          const BoundaryData * boundaries, qreal epsilon, tools::LoopShapingAlgorithm algorithm,
+bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, QVector<double> * omega,
+                          const BoundaryData * boundaries, double epsilon, tools::LoopShapingAlgorithm algorithm,
                           const qftbx::CloudSet & contour, const qftbx::SpecificationRecords * specifications,
-                          qint32 initialisation)
+                          std::int32_t initialisation)
 {
     //Precondition, checked ONCE and sequentially, before any algorithm
     //starts: the phase window the boundaries were computed over must cover
@@ -38,7 +39,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, QVector<qreal> 
     //Here and not inside the algorithms: a throw escaping an OpenMP region
     //ends the process. A narrow window is still fine for merely LOOKING at
     //boundaries, which is why the boundaries dialog does not forbid it.
-    const qreal phaseSpan = std::abs(boundaries->phaseRange().y() - boundaries->phaseRange().x());
+    const double phaseSpan = std::abs(boundaries->phaseRange().y() - boundaries->phaseRange().x());
 
     if (phaseSpan < 360.0) {
         const QString message =

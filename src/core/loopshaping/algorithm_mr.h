@@ -83,8 +83,8 @@ public:
      * @param boundaries unused: the constraints come from the
      * specifications and the templates, not from Nichols boundaries.
      */
-    void setProblem(LtiSystem * plant, LtiSystem * controller, QVector<qreal> * omega, const BoundaryData * boundaries,
-                   qreal epsilon, const qftbx::CloudSet & temp,
+    void setProblem(LtiSystem * plant, LtiSystem * controller, QVector<double> * omega, const BoundaryData * boundaries,
+                   double epsilon, const qftbx::CloudSet & temp,
                    const qftbx::SpecificationRecords * specificationRecords);
 
     bool solve();
@@ -121,9 +121,9 @@ private:
 
     LtiSystem * plant = nullptr;
     std::unique_ptr<LtiSystem> controller;
-    QVector<qreal> * omega = nullptr;
+    QVector<double> * omega = nullptr;
     const BoundaryData * boundaries = nullptr;
-    qreal epsilon = 0;
+    double epsilon = 0;
     qftbx::CloudSet temp;
     const qftbx::SpecificationRecords * specificationRecords = nullptr;
 

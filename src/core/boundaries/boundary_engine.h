@@ -1,6 +1,7 @@
 #ifndef QFTBX_BOUNDARY_ENGINE_H
 #define QFTBX_BOUNDARY_ENGINE_H
 
+#include <cstdint>
 #include <QVector>
 
 #include "src/core/templates/cloud_set.h"
@@ -78,9 +79,9 @@ public:
     *        (currently unused - see the (-180, 0 dB) decision, deferred).
     * @param cuda compute the sheets on the GPU (CUDA builds only).
     */
-    void compute(QVector <qreal> * omega, LtiSystem * plant, const CloudSet & templates,
+    void compute(QVector <double> * omega, LtiSystem * plant, const CloudSet & templates,
                  const qftbx::SpecificationRecords * specifications, QPointF phaseRange,
-                 qint32 phaseCount, QPointF magnitudeRange, qint32 magnitudeCount, qreal exportInfinity, bool cuda);
+                 std::int32_t phaseCount, QPointF magnitudeRange, std::int32_t magnitudeCount, double exportInfinity, bool cuda);
 
     /// A fresh non-owning view over the last computed results.
     /// A snapshot of the results, by value. It used to be a freshly
@@ -88,7 +89,7 @@ public:
     /// nothing in the type said was a view.
     BoundaryData boundaryData();
 
-    QVector <qreal> * omega();
+    QVector <double> * omega();
 
 
 private:
@@ -98,43 +99,43 @@ private:
     //BoundaryData views handed out never do).
     void releaseResults();
 
-    void computeFrequencies(QVector <qreal> * omega, LtiSystem * plant, const CloudSet & templates,
-                            QPointF phaseRange, qint32 phaseCount, QPointF magnitudeRange, qint32 magnitudeCount);
+    void computeFrequencies(QVector <double> * omega, LtiSystem * plant, const CloudSet & templates,
+                            QPointF phaseRange, std::int32_t phaseCount, QPointF magnitudeRange, std::int32_t magnitudeCount);
 
-    void computeFrequency(qreal omega, LtiSystem * plant,
-                          const ComplexCloud & valueSet, const QVector <qreal> & phases,
-                          const QVector <qreal> & magnitudes, qint32 index);
+    void computeFrequency(double omega, LtiSystem * plant,
+                          const ComplexCloud & valueSet, const QVector <double> & phases,
+                          const QVector <double> & magnitudes, std::int32_t index);
 
-    void traceFrequency(qreal omega, std::map<QString, TraceSet> & bound,
+    void traceFrequency(double omega, std::map<QString, TraceSet> & bound,
                         const BoundarySheets & sheets,
-                        std::map<QString, TraceLabels> & traceMetadata, std::complex<qreal> p0, const ComplexCloud & valueSet,
-                        qint32 index, qreal phaseSpan, qreal magnitudeSpan, qreal phaseBottom, qreal magnitudeBottom);
+                        std::map<QString, TraceLabels> & traceMetadata, std::complex<double> p0, const ComplexCloud & valueSet,
+                        std::int32_t index, double phaseSpan, double magnitudeSpan, double phaseBottom, double magnitudeBottom);
 
-    TraceSet traceBoundary(qreal thresholdDb, const BoundarySheet & sheet,
-                                               TraceLabels & traceMetadata, std::complex<qreal> p0, const ComplexCloud & valueSet,
-                                               qint32 kind, qreal phaseSpan, qreal magnitudeSpan,
-                                               qreal phaseBottom, qreal magnitudeBottom);
+    TraceSet traceBoundary(double thresholdDb, const BoundarySheet & sheet,
+                                               TraceLabels & traceMetadata, std::complex<double> p0, const ComplexCloud & valueSet,
+                                               std::int32_t kind, double phaseSpan, double magnitudeSpan,
+                                               double phaseBottom, double magnitudeBottom);
 
-    qint32 allowedZone(const Trace & trace, std::complex<qreal> p0, const ComplexCloud & valueSet, qint32 kind, qreal thresholdDb);
+    std::int32_t allowedZone(const Trace & trace, std::complex<double> p0, const ComplexCloud & valueSet, std::int32_t kind, double thresholdDb);
 
 #ifdef CUDA_AVAILABLE
-    void traceFrequency(qreal omega, std::map<QString, TraceSet> & bound,
+    void traceFrequency(double omega, std::map<QString, TraceSet> & bound,
                         const BoundarySheetsCuda & cudaSheets,
                         std::map<QString, TraceLabels> & traceMetadata,
-                        std::complex <qreal> p0, const ComplexCloud & valueSet, qint32 index,
-                        qreal phaseSpan, qreal magnitudeSpan, qreal phaseBottom, qreal magnitudeBottom);
+                        std::complex <double> p0, const ComplexCloud & valueSet, std::int32_t index,
+                        double phaseSpan, double magnitudeSpan, double phaseBottom, double magnitudeBottom);
 
-    TraceSet traceBoundary(qreal thresholdDb, const float * sheet,
-                                               QVector<QPoint> *traceMetadata, std::complex<qreal> p0, const ComplexCloud & valueSet,
-                                               qint32 kind, qreal phaseSpan, qreal magnitudeSpan,
-                                               qreal phaseBottom, qreal magnitudeBottom);
+    TraceSet traceBoundary(double thresholdDb, const float * sheet,
+                                               QVector<QPoint> *traceMetadata, std::complex<double> p0, const ComplexCloud & valueSet,
+                                               std::int32_t kind, double phaseSpan, double magnitudeSpan,
+                                               double phaseBottom, double magnitudeBottom);
 #endif
 
 
     QPointF m_phaseRange;
     QPointF m_magnitudeRange;
-    qint32 m_phaseCount = 0;
-    qint32 m_magnitudeCount = 0;
+    std::int32_t m_phaseCount = 0;
+    std::int32_t m_magnitudeCount = 0;
 
 
     BoundarySet m_boundaries;
@@ -153,7 +154,7 @@ private:
     std::vector<bool> m_upperFlags;
 
     //Alias of the caller's frequency vector: never freed here.
-    QVector <qreal> * m_omega = nullptr;
+    QVector <double> * m_omega = nullptr;
 
     bool m_cuda = false;
 

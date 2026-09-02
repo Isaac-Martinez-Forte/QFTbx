@@ -23,10 +23,10 @@ struct SpecificationRecord {
     //The record OWNS its plant. It used to be a raw pointer whose owners
     //had to walk the container and delete it, in four different places.
     std::unique_ptr<LtiSystem> system;
-    qreal height = 0.0;    //LINEAR magnitude (heightDb() converts)
+    double height = 0.0;    //LINEAR magnitude (heightDb() converts)
     bool constant = false;
-    qreal omegaStart = 0.0;
-    qreal omegaEnd = 0.0;
+    double omegaStart = 0.0;
+    double omegaEnd = 0.0;
 
     //Deep copy: the copy owns a fresh copy of the embedded plant. Explicit
     //because owning the plant makes the record move-only, which is the
@@ -47,7 +47,7 @@ struct SpecificationRecord {
         return copy;
     }
 
-    qreal heightDb(qreal omega) const {
+    double heightDb(double omega) const {
         if (constant){
             return 20 * std::log10(height);
         }

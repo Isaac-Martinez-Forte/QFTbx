@@ -43,7 +43,7 @@ public:
      * callers had to remember a delete on every path out.
      */
     virtual std::unique_ptr<LtiSystem> create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
-                              Parameter k, Parameter delay = Parameter(qreal(0)),
+                              Parameter k, Parameter delay = Parameter(double(0)),
                               QString numeratorExpr = QString(), QString denominatorExpr = QString()) = 0;
 
     virtual ~LtiSystem() {}
@@ -53,21 +53,21 @@ public:
     QString name();
 
     /// Value of the system at s = j*omega using the nominal parameter values.
-    virtual std::complex <qreal> evaluate (qreal omega) = 0;
+    virtual std::complex <double> evaluate (double omega) = 0;
 
     /// One value per frequency.
-    virtual QVector <std::complex <qreal> > evaluate (const QVector <qreal> & omega) = 0;
+    virtual QVector <std::complex <double> > evaluate (const QVector <double> & omega) = 0;
 
     /// Value at s = j*omega for explicit numeric parameter values.
-    virtual std::complex <qreal> evaluate (QVector <qreal> * numerator, QVector <qreal> * denominator,
-                                           qreal k, qreal delay, qreal omega) = 0;
+    virtual std::complex <double> evaluate (QVector <double> * numerator, QVector <double> * denominator,
+                                           double k, double delay, double omega) = 0;
 
     /// Expression for explicit numeric parameter values at s = j*omega.
-    virtual QString expression (QVector <qreal> * numerator, QVector <qreal> * denominator,
-                             qreal k, qreal delay, qreal omega) = 0;
+    virtual QString expression (QVector <double> * numerator, QVector <double> * denominator,
+                             double k, double delay, double omega) = 0;
 
     /// Expression at s = j*omega; uncertain parameters stay by name.
-    virtual QString expression(qreal w) = 0;
+    virtual QString expression(double w) = 0;
 
     /// Symbolic expression in 's', for display.
     virtual QString expression() = 0;
@@ -80,13 +80,13 @@ public:
      * A name appearing more than once is ONE variable: every appearance must
      * be given the same value.
      */
-    virtual std::complex <qreal> valueAt(qreal w, const std::vector<qreal> & numerator,
-                                         const std::vector<qreal> & denominator,
-                                         qreal gain, qreal delay) = 0;
+    virtual std::complex <double> valueAt(double w, const std::vector<double> & numerator,
+                                         const std::vector<double> & denominator,
+                                         double gain, double delay) = 0;
 
-    virtual std::complex <qreal> evaluateNumerator(QVector <qreal> * nume, qreal omega) = 0;
+    virtual std::complex <double> evaluateNumerator(QVector <double> * nume, double omega) = 0;
 
-    virtual std::complex <qreal> evaluateDenominator(QVector <qreal> * deno, qreal omega) = 0;
+    virtual std::complex <double> evaluateDenominator(QVector <double> * deno, double omega) = 0;
 
     /// The system's own parameters, by reference (it holds them by value).
     virtual std::vector <Parameter> & denominator() = 0;

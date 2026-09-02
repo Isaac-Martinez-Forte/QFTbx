@@ -28,23 +28,23 @@ public:
     FreeForm(QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator, Parameter k, Parameter delay, QString numeratorExpr,
                  QString denominatorExpr);
 
-    QString expression (QVector <qreal> * numerator, QVector <qreal> * denominator,
-                             qreal k, qreal delay, qreal omega) override;
+    QString expression (QVector <double> * numerator, QVector <double> * denominator,
+                             double k, double delay, double omega) override;
 
-    QString expression(qreal w) override;
+    QString expression(double w) override;
 
     QString expression() override;
 
-    std::complex <qreal> valueAt(qreal w, const std::vector<qreal> & numerator,
-                                 const std::vector<qreal> & denominator,
-                                 qreal gain, qreal delay) override;
+    std::complex <double> valueAt(double w, const std::vector<double> & numerator,
+                                 const std::vector<double> & denominator,
+                                 double gain, double delay) override;
 
-    std::complex <qreal> evaluateNumerator(QVector <qreal> * nume, qreal omega) override;
+    std::complex <double> evaluateNumerator(QVector <double> * nume, double omega) override;
 
-    std::complex <qreal> evaluateDenominator(QVector <qreal> * deno, qreal omega) override;
+    std::complex <double> evaluateDenominator(QVector <double> * deno, double omega) override;
 
-    std::complex <qreal> evaluate (QVector <qreal> * numerator, QVector <qreal> * denominator,
-                                           qreal k, qreal delay, qreal omega) override;
+    std::complex <double> evaluate (QVector <double> * numerator, QVector <double> * denominator,
+                                           double k, double delay, double omega) override;
 
     //Re-expose the inherited nominal evaluation hidden by the overloads above.
     using TransferFunction::evaluate;
@@ -52,7 +52,7 @@ public:
     SystemType type() override;
 
     std::unique_ptr<LtiSystem> create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
-                              Parameter k, Parameter delay = Parameter(qreal(0)), QString numeratorExpr = QString(), QString denominatorExpr = QString()) override;
+                              Parameter k, Parameter delay = Parameter(double(0)), QString numeratorExpr = QString(), QString denominatorExpr = QString()) override;
 
     QString numeratorString() override;
     QString denominatorString() override;

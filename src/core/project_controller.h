@@ -2,6 +2,7 @@
 #define QFTBX_PROJECT_CONTROLLER_H
 
 
+#include <cstdint>
 #include <memory>
 
 #include <QHash>
@@ -64,7 +65,7 @@ public:
     void setOmega(std::unique_ptr<Omega> omega);
 
     /// The frequency values alone, the form every engine takes.
-    QVector<qreal> * frequencies();
+    QVector<double> * frequencies();
 
     // --- step 4: the templates --------------------------------------------
 
@@ -77,14 +78,14 @@ public:
      * @param cuda run the GPU path (requires a CUDA build).
      * @return false when either the clouds or the contours came out empty.
      */
-    bool computeTemplates(QVector<qreal> epsilon, qftbx::ParameterGrids grids, bool cuda);
+    bool computeTemplates(QVector<double> epsilon, qftbx::ParameterGrids grids, bool cuda);
 
     /// Recomputes only the contours, with a new epsilon.
-    const qftbx::CloudSet & recomputeContour(QVector<qreal> epsilon);
+    const qftbx::CloudSet & recomputeContour(QVector<double> epsilon);
 
     const qftbx::CloudSet & templates();
     const qftbx::CloudSet & contour();
-    QVector<qreal> * epsilon();
+    QVector<double> * epsilon();
 
     void setTemplates(qftbx::CloudSet templates, qftbx::CloudSet contour, bool hasContour);
     void setContour(qftbx::CloudSet contour);
@@ -102,8 +103,8 @@ public:
      * full value sets.
      * @param cuda run the GPU path.
      */
-    bool computeBoundaries(QPointF phaseRange, qint32 phaseCount, QPointF magnitudeRange,
-                           qint32 magnitudeCount, qreal exportInfinity, bool useContour, bool cuda);
+    bool computeBoundaries(QPointF phaseRange, std::int32_t phaseCount, QPointF magnitudeRange,
+                           std::int32_t magnitudeCount, double exportInfinity, bool useContour, bool cuda);
 
     BoundaryData * boundaries();
     void setBoundaries(std::optional<qftbx::BoundaryData> boundaries);
@@ -139,8 +140,8 @@ public:
      * @return false when the algorithm found no solution; it throws
      * qftbx::InvalidInput when the problem itself is invalid or infeasible.
      */
-    bool computeLoopShaping(qreal epsilon, tools::LoopShapingAlgorithm algorithm, QPointF plotRange,
-                            qreal pointCount, qint32 initialisation = 0);
+    bool computeLoopShaping(double epsilon, tools::LoopShapingAlgorithm algorithm, QPointF plotRange,
+                            double pointCount, std::int32_t initialisation = 0);
 
     LoopShapingResult * loopShapingResult();
     void setLoopShapingResult(std::unique_ptr<LoopShapingResult> result);

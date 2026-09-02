@@ -46,7 +46,7 @@ namespace qftbx {
 class NominalStabilityChecker
 {
 public:
-    NominalStabilityChecker(LtiSystem * nominalPlant, QVector<qreal> * omega);
+    NominalStabilityChecker(LtiSystem * nominalPlant, QVector<double> * omega);
 
     /// Nyquist-on-Nichols verdict for a POINT controller (every parameter
     /// at its nominal value). Returns false when the criterion cannot be
@@ -55,14 +55,14 @@ public:
     bool isNominallyStable(LtiSystem * pointController);
 
 private:
-    std::complex<qreal> plantAt(qreal w);
-    static std::complex<qreal> controllerAt(LtiSystem * controller, qreal w);
+    std::complex<double> plantAt(double w);
+    static std::complex<double> controllerAt(LtiSystem * controller, double w);
 
     LtiSystem * m_plant;
 
     //Cached nominal plant samples over the base grid.
-    std::vector<qreal> m_frequencies;
-    std::vector<std::complex<qreal>> m_plantValues;
+    std::vector<double> m_frequencies;
+    std::vector<std::complex<double>> m_plantValues;
 };
 
 } // namespace qftbx

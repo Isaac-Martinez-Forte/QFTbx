@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <algorithm>
 
 #include "boundary_union_1d.h"
@@ -16,14 +17,14 @@ BoundaryUnion1D::~BoundaryUnion1D()
 
 }
 
-qint32 BoundaryUnion1D::bucketIndex(qreal x, qreal totalPhase)
+std::int32_t BoundaryUnion1D::bucketIndex(double x, double totalPhase)
 {
-    qreal res = totalPhase-(abs(x)*(totalPhase/(qreal)kPhaseDegrees));
+    double res = totalPhase-(abs(x)*(totalPhase/(double)kPhaseDegrees));
     if(res<0) res=0;
-    return (qint32) res;
+    return (std::int32_t) res;
 }
 
-void BoundaryUnion1D::insertSorted(TraceSet & layerBucketsRow, qint32 index, QPointF point, qreal totalPhase)
+void BoundaryUnion1D::insertSorted(TraceSet & layerBucketsRow, std::int32_t index, QPointF point, double totalPhase)
 {
     //The iterator used to be passed in from the caller, computed BEFORE this
     //function might have grown the same bucket; taking the index alone and
@@ -39,11 +40,11 @@ void BoundaryUnion1D::insertSorted(TraceSet & layerBucketsRow, qint32 index, QPo
     bucket.insert(bucket.begin() + index, point);
 }
 
-std::vector<TraceSet> BoundaryUnion1D::buildLayerBuckets(const TraceSet & chosenCurves, qreal totalPhase, bool open, bool upper)
+std::vector<TraceSet> BoundaryUnion1D::buildLayerBuckets(const TraceSet & chosenCurves, double totalPhase, bool open, bool upper)
 {
     std::vector<TraceSet> layerBuckets (kLayerCount);
 
-    for (qint32 i = 0; i < kLayerCount; i++)
+    for (std::int32_t i = 0; i < kLayerCount; i++)
     {
         TraceSet & row = layerBuckets[static_cast<std::size_t>(i)];
         row.resize(static_cast<std::size_t>(totalPhase) + 1);
@@ -52,7 +53,7 @@ std::vector<TraceSet> BoundaryUnion1D::buildLayerBuckets(const TraceSet & chosen
         {
             Trace & bucket = row.at(static_cast<std::size_t>(bucketIndex(point.x(), totalPhase)));
 
-            qint32 index = 0;
+            std::int32_t index = 0;
             for (const QPointF & placed : bucket)
             {
                 if (upper)
@@ -77,7 +78,7 @@ std::vector<TraceSet> BoundaryUnion1D::buildLayerBuckets(const TraceSet & chosen
 //layerBuckets->at(0)->at(bucketIndex(...)) four times per branch.
 Trace BoundaryUnion1D::drawFirstLayer(const TraceSet & chosenCurves,
                                       const std::vector<TraceSet> & layerBuckets,
-                                      qreal totalPhase, bool open1, bool open2)
+                                      double totalPhase, bool open1, bool open2)
 {
     Trace layer1;
 
@@ -90,7 +91,7 @@ Trace BoundaryUnion1D::drawFirstLayer(const TraceSet & chosenCurves,
         {
             const Trace & bucket =
                     firstCurveBuckets.at(static_cast<std::size_t>(bucketIndex(curvePoint.x(), totalPhase)));
-            const qint32 bucketSize = static_cast<qint32>(bucket.size());
+            const std::int32_t bucketSize = static_cast<std::int32_t>(bucket.size());
 
             if (bucketSize == 0) layer1.push_back(curvePoint);
 
@@ -105,7 +106,7 @@ Trace BoundaryUnion1D::drawFirstLayer(const TraceSet & chosenCurves,
             }
             else
             {
-                for (qint32 j = 0; j < bucketSize; j += 2)
+                for (std::int32_t j = 0; j < bucketSize; j += 2)
                 {
                     if (curvePoint.y() >= bucket[0].y()) layer1.push_back(curvePoint);
 
@@ -136,7 +137,7 @@ Trace BoundaryUnion1D::drawFirstLayer(const TraceSet & chosenCurves,
         {
             const Trace & bucket =
                     firstCurveBuckets.at(static_cast<std::size_t>(bucketIndex(curvePoint.x(), totalPhase)));
-            const qint32 bucketSize = static_cast<qint32>(bucket.size());
+            const std::int32_t bucketSize = static_cast<std::int32_t>(bucket.size());
 
             if (bucketSize > 1 && bucketSize % 2 == 0)
             {
@@ -148,7 +149,7 @@ Trace BoundaryUnion1D::drawFirstLayer(const TraceSet & chosenCurves,
                 }
                 else
                 {
-                    for (qint32 j = 0; j < bucketSize; j += 2)
+                    for (std::int32_t j = 0; j < bucketSize; j += 2)
                     {
                         if ((curvePoint.y() <= bucket[j].y()) &&
                                 (curvePoint.y() >= bucket[j + 1].y())) outside = false;
@@ -175,7 +176,7 @@ Trace BoundaryUnion1D::drawFirstLayer(const TraceSet & chosenCurves,
 //closed branch is open1.
 Trace BoundaryUnion1D::drawSecondLayer(const TraceSet & chosenCurves,
                                        const std::vector<TraceSet> & layerBuckets,
-                                       qreal totalPhase, bool open1, bool open2)
+                                       double totalPhase, bool open1, bool open2)
 {
     Trace layer2;
 
@@ -188,7 +189,7 @@ Trace BoundaryUnion1D::drawSecondLayer(const TraceSet & chosenCurves,
         {
             const Trace & bucket =
                     secondCurveBuckets.at(static_cast<std::size_t>(bucketIndex(curvePoint.x(), totalPhase)));
-            const qint32 bucketSize = static_cast<qint32>(bucket.size());
+            const std::int32_t bucketSize = static_cast<std::int32_t>(bucket.size());
 
             if (bucketSize == 0) layer2.push_back(curvePoint);
 
@@ -203,7 +204,7 @@ Trace BoundaryUnion1D::drawSecondLayer(const TraceSet & chosenCurves,
             }
             else
             {
-                for (qint32 j = 0; j < bucketSize; j += 2)
+                for (std::int32_t j = 0; j < bucketSize; j += 2)
                 {
                     if (curvePoint.y() >= bucket[0].y()) layer2.push_back(curvePoint);
 
@@ -234,7 +235,7 @@ Trace BoundaryUnion1D::drawSecondLayer(const TraceSet & chosenCurves,
         {
             const Trace & bucket =
                     secondCurveBuckets.at(static_cast<std::size_t>(bucketIndex(curvePoint.x(), totalPhase)));
-            const qint32 bucketSize = static_cast<qint32>(bucket.size());
+            const std::int32_t bucketSize = static_cast<std::int32_t>(bucket.size());
 
             if (bucketSize > 1 && bucketSize % 2 == 0)
             {
@@ -246,7 +247,7 @@ Trace BoundaryUnion1D::drawSecondLayer(const TraceSet & chosenCurves,
                 }
                 else
                 {
-                    for (qint32 j = 0; j < bucketSize; j += 2)
+                    for (std::int32_t j = 0; j < bucketSize; j += 2)
                     {
                         //STRICT here, unlike layer 1.
                         if ((curvePoint.y() < bucket[j].y()) &&
@@ -267,17 +268,17 @@ Trace BoundaryUnion1D::drawSecondLayer(const TraceSet & chosenCurves,
     return layer2;
 }
 
-inline qint32 BoundaryUnion1D::bucketIndex(qreal x, qreal totalPhase, qint32 phaseCount)
+inline std::int32_t BoundaryUnion1D::bucketIndex(double x, double totalPhase, std::int32_t phaseCount)
 {
-    double res = (abs(x)*((qreal)phaseCount/totalPhase));
+    double res = (abs(x)*((double)phaseCount/totalPhase));
     if(res<0) res=0;
     //The synthetic border point (|x| == totalPhase) used to yield bucket
     //phaseCount out of phaseCount buckets: out of range.
     if(res > phaseCount - 1) res = phaseCount - 1;
-    return (qint32) res;
+    return (std::int32_t) res;
 }
 
-TraceSet BoundaryUnion1D::buildUnionBuckets(const Trace & unionPoints, qreal totalPhase, qint32 pointCount)
+TraceSet BoundaryUnion1D::buildUnionBuckets(const Trace & unionPoints, double totalPhase, std::int32_t pointCount)
 {
     TraceSet unionBucketsRow (static_cast<std::size_t>(pointCount));
 
@@ -327,8 +328,8 @@ void BoundaryUnion1D::run(const BoundaryData * boundaries, const TraceMetadata &
     //degrees.
     const BoundarySet & boundariesPerFrequency = boundaries->boundaries();
 
-    const qreal totalPhase = -boundaries->phaseRange().x();
-    const qint32 phasePointCount = boundaries->phaseCount();
+    const double totalPhase = -boundaries->phaseRange().x();
+    const std::int32_t phasePointCount = boundaries->phaseCount();
 
     for (std::size_t i = 0; i < boundariesPerFrequency.size(); i++)
     {
@@ -380,8 +381,8 @@ void BoundaryUnion1D::run(const BoundaryData * boundaries, const TraceMetadata &
                 currentCurve.insert(currentCurve.end(), trace.begin(), trace.end());
             }
 
-            if (static_cast<qreal>(unionPoints.size()) >= totalPhase) open1 = true;
-            if (static_cast<qreal>(currentCurve.size()) >= totalPhase) open2 = true;
+            if (static_cast<double>(unionPoints.size()) >= totalPhase) open1 = true;
+            if (static_cast<double>(currentCurve.size()) >= totalPhase) open2 = true;
 
             const TraceSet chosenCurves{unionPoints, currentCurve};
             const std::vector<TraceSet> layerBuckets =
@@ -469,10 +470,10 @@ Trace BoundaryUnion1D::sortByProximity(const Trace & points) {
 
     for (std::size_t i = 0; i < lon; i++){
         const QPointF uno(tmp);
-        qreal dis = 10000;
+        double dis = 10000;
 
         for (const QPointF & dos : remaining){
-            const qreal dis2 = sqrt(pow(uno.x() - dos.x(), 2) + pow(uno.y() - dos.y(), 2));
+            const double dis2 = sqrt(pow(uno.x() - dos.x(), 2) + pow(uno.y() - dos.y(), 2));
             if (dis2 < dis){
                 dis = dis2;
                 tmp = QPointF (dos);

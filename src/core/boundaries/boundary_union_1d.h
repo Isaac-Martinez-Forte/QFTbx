@@ -1,6 +1,7 @@
 #ifndef QFTBX_BOUNDARY_UNION_1D_H
 #define QFTBX_BOUNDARY_UNION_1D_H
 
+#include <cstdint>
 #include <QVector>
 
 #include "src/core/boundaries/boundary_types.h"
@@ -45,8 +46,8 @@ public:
 
 private:
 
-    static constexpr qint32 kLayerCount = 2;
-    static constexpr qreal kPhaseDegrees = 360.0;
+    static constexpr std::int32_t kLayerCount = 2;
+    static constexpr double kPhaseDegrees = 360.0;
 
     //Initialised here: the accessors below return these, and an
     //indeterminate pointer defeats the != nullptr guards of the callers
@@ -57,21 +58,21 @@ private:
     std::vector<bool> m_openFlags;
     std::vector<bool> m_upperFlags;
 
-    qint32 bucketIndex(qreal x, qreal totalPhase);
+    std::int32_t bucketIndex(double x, double totalPhase);
 
-    void insertSorted(TraceSet & layerBuckets, qint32 index, QPointF point, qreal totalPhase);
+    void insertSorted(TraceSet & layerBuckets, std::int32_t index, QPointF point, double totalPhase);
 
-    std::vector<TraceSet> buildLayerBuckets(const TraceSet & chosenCurves, qreal totalPhase, bool open, bool upper);
+    std::vector<TraceSet> buildLayerBuckets(const TraceSet & chosenCurves, double totalPhase, bool open, bool upper);
 
-    Trace drawFirstLayer(const TraceSet & chosenCurves, const std::vector<TraceSet> & layerBuckets, qreal totalPhase, bool open1, bool open2);
+    Trace drawFirstLayer(const TraceSet & chosenCurves, const std::vector<TraceSet> & layerBuckets, double totalPhase, bool open1, bool open2);
 
-    Trace drawSecondLayer(const TraceSet & chosenCurves, const std::vector<TraceSet> & layerBuckets, qreal totalPhase, bool open1, bool open2);
+    Trace drawSecondLayer(const TraceSet & chosenCurves, const std::vector<TraceSet> & layerBuckets, double totalPhase, bool open1, bool open2);
 
     Trace mergeLayers(const Trace & layer1, const Trace & layer2);
 
-    TraceSet buildUnionBuckets(const Trace & unionPoints, qreal totalPhase, qint32 pointCount);
+    TraceSet buildUnionBuckets(const Trace & unionPoints, double totalPhase, std::int32_t pointCount);
 
-    qint32 bucketIndex(qreal x, qreal totalPhase, qint32 phaseCount);
+    std::int32_t bucketIndex(double x, double totalPhase, std::int32_t phaseCount);
 
     Trace sortByProximity(const Trace & points);
 

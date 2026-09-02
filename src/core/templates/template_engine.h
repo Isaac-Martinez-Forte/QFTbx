@@ -1,6 +1,7 @@
 #ifndef QFTBX_TEMPLATE_ENGINE_H
 #define QFTBX_TEMPLATE_ENGINE_H
 
+#include <cstdint>
 #include <complex>
 #include <limits>
 
@@ -53,15 +54,15 @@ public:
 
     /// Sweeps the plant and extracts every contour. Throws qftbx::Exception
     /// on invalid input or when a computation fails.
-    bool compute(LtiSystem *plant, QVector<qreal>* frequencies, bool cuda);
+    bool compute(LtiSystem *plant, QVector<double>* frequencies, bool cuda);
 
     /// Recomputes only the contours (one epsilon per frequency) over the
     /// current clouds.
-    bool computeContours (QVector <qreal> epsilon);
+    bool computeContours (QVector <double> epsilon);
 
     /// Brute-force sweep: one cloud per frequency, the cartesian product of
     /// the parameter grids evaluated at s = j*omega.
-    CloudSet computeClouds(LtiSystem *plant, QVector<qreal>* frequencies);
+    CloudSet computeClouds(LtiSystem *plant, QVector<double>* frequencies);
 
     bool computeContourSet(bool cuda);
 
@@ -85,7 +86,7 @@ public:
      * non-local action from within a parallel region that once let a
      * muParserX error terminate the process.
      */
-    ComplexCloud epsilonHull(const ComplexCloud & cloud, qreal epsilon,
+    ComplexCloud epsilonHull(const ComplexCloud & cloud, double epsilon,
                              bool * fellBack = nullptr);
 
     /// Sweep grids keyed by parameter NAME; the caller keeps ownership.
@@ -94,7 +95,7 @@ public:
     void setGrids (ParameterGrids grids);
 
     /// One epsilon per frequency, by value.
-    void setEpsilon (QVector <qreal> epsilon);
+    void setEpsilon (QVector <double> epsilon);
 
     /// Feeds precomputed clouds (e.g. loaded from a project file) so their
     /// contours can be recomputed.
@@ -106,9 +107,9 @@ public:
 
     const CloudSet & contours() const;
 
-    QVector <qreal> * omega();
+    QVector <double> * omega();
 
-    const QVector <qreal> & epsilon ();
+    const QVector <double> & epsilon ();
 
 private:
     /// Grid for an uncertain parameter, looked up by name; throws
@@ -118,26 +119,26 @@ private:
     //The engine owns NOTHING below: grids and epsilon belong to the caller,
     //clouds/contours to the template DAO once handed over.
     ParameterGrids m_grids;
-    qint32 m_combinationCount = 0;
-    QVector <qreal> m_epsilon;
+    std::int32_t m_combinationCount = 0;
+    QVector <double> m_epsilon;
     bool m_useCuda = false;
 
     CloudSet m_clouds;
     CloudSet m_contours;
-    QVector <qreal> * m_frequencies = NULL;
+    QVector <double> * m_frequencies = NULL;
 
-    qint32 findSecond(qint32 b1, const ComplexCloud & cv, qreal epsilon);
+    std::int32_t findSecond(std::int32_t b1, const ComplexCloud & cv, double epsilon);
 
     /// excludePrevious = true reproduces the relaxed historical variant;
     /// false is the behaviour faithful to EPSHULL.M.
-    qint32 findNext(qint32 previousPoint, qint32 currentPoint, const ComplexCloud & cv, qreal epsilon,
+    std::int32_t findNext(std::int32_t previousPoint, std::int32_t currentPoint, const ComplexCloud & cv, double epsilon,
                            bool excludePrevious = false);
 
     /// Historical PFC walk (divergent from EPSHULL.M): max-imaginary start,
     /// previous point excluded, silent truncation at MAXP, deduplicated
     /// output. Used as the fallback when the reference walk cycles: it
     /// always yields a contour with coverage <= epsilon.
-    ComplexCloud epsilonHullRelaxed(const ComplexCloud & cloud, qreal epsilon);
+    ComplexCloud epsilonHullRelaxed(const ComplexCloud & cloud, double epsilon);
 
 };
 

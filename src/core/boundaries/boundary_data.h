@@ -1,6 +1,7 @@
 #ifndef QFTBX_BOUNDARY_DATA_H
 #define QFTBX_BOUNDARY_DATA_H
 
+#include <cstdint>
 #include <QVector>
 
 #include "src/core/boundaries/boundary_types.h"
@@ -32,13 +33,13 @@ class BoundaryData
 {
 public:
     BoundaryData(BoundarySet boundaries, std::vector<bool> openFlags,
-                 std::vector<bool> upperFlags, qint32 phaseCount, QPointF phaseRange,
+                 std::vector<bool> upperFlags, std::int32_t phaseCount, QPointF phaseRange,
                  UnionTraces unionBoundaries, UnionBuckets unionBuckets,
-                 qint32 magnitudeCount, QPointF magnitudeRange);
+                 std::int32_t magnitudeCount, QPointF magnitudeRange);
 
     const BoundarySet & boundaries () const;
-    qint32 phaseCount () const;
-    qint32 magnitudeCount () const;
+    std::int32_t phaseCount () const;
+    std::int32_t magnitudeCount () const;
     QPointF phaseRange () const;
     QPointF magnitudeRange () const;
     const UnionTraces & unionBoundaries () const;
@@ -58,9 +59,9 @@ private:
     BoundarySet m_boundaries;
     std::vector<bool> m_openFlags;
     std::vector<bool> m_upperFlags;
-    qint32 m_phaseCount = 0;
+    std::int32_t m_phaseCount = 0;
     QPointF m_phaseRange;
-    qint32 m_magnitudeCount = 0;
+    std::int32_t m_magnitudeCount = 0;
     QPointF m_magnitudeRange;
     UnionTraces m_unionBoundaries;
     UnionBuckets m_unionBuckets;

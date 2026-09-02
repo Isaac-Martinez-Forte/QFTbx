@@ -1,3 +1,4 @@
+#include <cstdint>
 #include "src/core/exception.h"
 #include "src/core/loopshaping/algorithm_mc1.h"
 
@@ -14,12 +15,12 @@ namespace {
 //Relative tolerance of the stage-3 gain bisection: 1% locates the
 //certified gain closely enough for pruning without spending the run time
 //it is meant to save.
-const qreal kCertifiedGainTolerance = 1.01;
+const double kCertifiedGainTolerance = 1.01;
 
 //Step 3bis.(b) of the paper: cap the gain range of a box at the prune
 //variable C. Returns the capped replacement (and destroys the original)
 //or the box itself when the cap does not apply.
-std::unique_ptr<LtiSystem> capGain(std::unique_ptr<LtiSystem> box, qreal cap)
+std::unique_ptr<LtiSystem> capGain(std::unique_ptr<LtiSystem> box, double cap)
 {
     if (!box->gain().isUncertain() ||
             cap <= box->gain().range().min || cap >= box->gain().range().max) {
@@ -33,9 +34,9 @@ std::unique_ptr<LtiSystem> capGain(std::unique_ptr<LtiSystem> box, qreal cap)
 }
 
 //Nominal plant phase on the (-2 pi, 0] branch the Nichols boxes use.
-qreal nominalPhase(std::complex<qreal> p0)
+double nominalPhase(std::complex<double> p0)
 {
-    qreal phi0 = std::arg(p0);
+    double phi0 = std::arg(p0);
 
     if (phi0 > 0.0) {
         phi0 -= 2.0 * M_PI;
@@ -56,8 +57,8 @@ AlgorithmMc1::~AlgorithmMc1()
 }
 
 
-void AlgorithmMc1::setProblem(LtiSystem * plant, LtiSystem * controller, QVector<qreal> * omega,
-                                          const BoundaryData * boundaries, qreal epsilon)
+void AlgorithmMc1::setProblem(LtiSystem * plant, LtiSystem * controller, QVector<double> * omega,
+                                          const BoundaryData * boundaries, double epsilon)
 {
     this->plant = plant;
     this->controller = controller->clone();
@@ -87,14 +88,14 @@ bool AlgorithmMc1::solve()
     detector = std::make_unique<BoundaryViolationDetector>();
     stability = std::make_unique<NominalStabilityChecker>(plant, omega);
 
-    bestCertifiedGain = std::numeric_limits<qreal>::infinity();
+    bestCertifiedGain = std::numeric_limits<double>::infinity();
     bestCertifiedController = nullptr;
 
     nominalPlantValues.clear();
     nominalPlantValuesStd.clear();
 
-    foreach (qreal o, *omega) {
-        std::complex<qreal> c = plant->evaluate(o);
+    foreach (double o, *omega) {
+        std::complex<double> c = plant->evaluate(o);
         nominalPlantValuesStd.append(c);
         nominalPlantValues.append(cxsc::complex(c.real(), c.imag()));
     }
@@ -177,10 +178,10 @@ inline void AlgorithmMc1::check_box_feasibility(std::unique_ptr<LtiSystem> box)
     //every new box.
     box = capGain(std::move(box), bestCertifiedGain);
 
-    qint32 frequencyIndex = 0;
+    std::int32_t frequencyIndex = 0;
     cinterval projection;
 
-    foreach (qreal o, *omega) {
+    foreach (double o, *omega) {
 
         projection = conversion->nicholsBox(box.get(), o, nominalPlantValues.at(frequencyIndex));
 
@@ -218,7 +219,7 @@ inline void AlgorithmMc1::check_box_feasibility(std::unique_ptr<LtiSystem> box)
 
     //The index is read BEFORE the box is handed over: as arguments of one
     //call their evaluation order is unspecified.
-    const qreal gainInf = box->gain().range().min;
+    const double gainInf = box->gain().range().min;
 
     liveList->insert(std::make_unique<SearchNode>(gainInf, std::move(box), flag_final));
 }
@@ -231,7 +232,7 @@ inline void AlgorithmMc1::check_box_feasibility(std::unique_ptr<LtiSystem> box)
 inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<LtiSystem> v,
                                                              const BoxClassification & classification,
                                                              const cxsc::cinterval & projection,
-                                                             qreal w, std::complex<qreal> p0)
+                                                             double w, std::complex<double> p0)
 {
     std::vector<double> zeroInfs, zeroSups, poleInfs, poleSups;
     for (Parameter & var : v->numerator()) {
@@ -243,8 +244,8 @@ inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<L
         poleSups.push_back(var.isUncertain() ? var.range().max : var.nominal());
     }
 
-    qreal gainInf = v->gain().range().min;
-    const qreal gainSup = v->gain().range().max;
+    double gainInf = v->gain().range().min;
+    const double gainSup = v->gain().range().max;
 
     bool cut = false;
 
@@ -254,10 +255,10 @@ inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<L
     //corner (same gate as NK).
     if (classification.isBottomLeftForbidden()) {
 
-        const qreal boundMin = std::pow(10.0, classification.extremes()[0] / 20.0);
+        const double boundMin = std::pow(10.0, classification.extremes()[0] / 20.0);
 
         if (v->gain().isUncertain()) {
-            const qreal k = quick_solution::gainCut(boundMin, zeroSups, poleInfs, w, p0);
+            const double k = quick_solution::gainCut(boundMin, zeroSups, poleInfs, w, p0);
 
             if (k > gainInf && k < gainSup) {
                 gainInf = k;
@@ -266,12 +267,12 @@ inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<L
         }
 
         if (hasUncertainZeros) {
-            for (qint32 j = 0; j < static_cast<qint32>(zeroInfs.size()); ++j) {
+            for (std::int32_t j = 0; j < static_cast<std::int32_t>(zeroInfs.size()); ++j) {
                 if (!v->numerator()[j].isUncertain()) {
                     continue;
                 }
 
-                const qreal z = quick_solution::zeroCut(boundMin, gainSup, zeroSups,
+                const double z = quick_solution::zeroCut(boundMin, gainSup, zeroSups,
                                                         poleInfs, j, w, p0);
 
                 if (z > zeroInfs[j] && z < zeroSups[j]) {
@@ -282,12 +283,12 @@ inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<L
         }
 
         if (hasUncertainPoles) {
-            for (qint32 j = 0; j < static_cast<qint32>(poleInfs.size()); ++j) {
+            for (std::int32_t j = 0; j < static_cast<std::int32_t>(poleInfs.size()); ++j) {
                 if (!v->denominator()[j].isUncertain()) {
                     continue;
                 }
 
-                const qreal p = quick_solution::poleCut(boundMin, gainSup, zeroSups,
+                const double p = quick_solution::poleCut(boundMin, gainSup, zeroSups,
                                                         poleInfs, j, w, p0);
 
                 if (p > poleInfs[j] && p < poleSups[j]) {
@@ -301,28 +302,28 @@ inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<L
     //------------------------------------------------------ stage 2, phase
     if (hasUncertainZeros || hasUncertainPoles) {
 
-        const qreal phi0 = nominalPhase(p0);
-        const qreal phaseStep = (boundaries->phaseRange().y() - boundaries->phaseRange().x()) /
+        const double phi0 = nominalPhase(p0);
+        const double phaseStep = (boundaries->phaseRange().y() - boundaries->phaseRange().x()) /
                             (boundaries->phaseCount() - 1);
 
-        const qreal boxPhaseMin = _double(Inf(Im(projection)));
-        const qreal boxPhaseMax = _double(Sup(Im(projection)));
+        const double boxPhaseMin = _double(Inf(Im(projection)));
+        const double boxPhaseMax = _double(Sup(Im(projection)));
 
-        const qreal boundPhaseMin = classification.extremes()[2];
-        const qreal boundPhaseMax = classification.extremes()[3];
+        const double boundPhaseMin = classification.extremes()[2];
+        const double boundPhaseMax = classification.extremes()[3];
 
         //Right strip (phases above the boundary maximum) certainly
         //forbidden, and wider than one grid step of the union.
         if (classification.isTopRightForbidden() && boundPhaseMax < boxPhaseMax - phaseStep) {
 
-            const qreal thetaMax = boundPhaseMax * M_PI / 180.0;
+            const double thetaMax = boundPhaseMax * M_PI / 180.0;
 
-            for (qint32 j = 0; hasUncertainZeros && j < static_cast<qint32>(zeroInfs.size()); ++j) {
+            for (std::int32_t j = 0; hasUncertainZeros && j < static_cast<std::int32_t>(zeroInfs.size()); ++j) {
                 if (!v->numerator()[j].isUncertain()) {
                     continue;
                 }
 
-                const qreal z = quick_solution::zeroPhaseCutHigh(thetaMax, phi0, zeroSups,
+                const double z = quick_solution::zeroPhaseCutHigh(thetaMax, phi0, zeroSups,
                                                                  poleInfs, j, w);
 
                 if (z > zeroInfs[j] && z < zeroSups[j]) {
@@ -331,12 +332,12 @@ inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<L
                 }
             }
 
-            for (qint32 j = 0; hasUncertainPoles && j < static_cast<qint32>(poleInfs.size()); ++j) {
+            for (std::int32_t j = 0; hasUncertainPoles && j < static_cast<std::int32_t>(poleInfs.size()); ++j) {
                 if (!v->denominator()[j].isUncertain()) {
                     continue;
                 }
 
-                const qreal p = quick_solution::polePhaseCutHigh(thetaMax, phi0, zeroSups,
+                const double p = quick_solution::polePhaseCutHigh(thetaMax, phi0, zeroSups,
                                                                  poleInfs, j, w);
 
                 if (p > poleInfs[j] && p < poleSups[j]) {
@@ -350,14 +351,14 @@ inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<L
         //forbidden.
         if (classification.isBottomLeftForbidden() && boundPhaseMin > boxPhaseMin + phaseStep) {
 
-            const qreal thetaMin = boundPhaseMin * M_PI / 180.0;
+            const double thetaMin = boundPhaseMin * M_PI / 180.0;
 
-            for (qint32 j = 0; hasUncertainZeros && j < static_cast<qint32>(zeroInfs.size()); ++j) {
+            for (std::int32_t j = 0; hasUncertainZeros && j < static_cast<std::int32_t>(zeroInfs.size()); ++j) {
                 if (!v->numerator()[j].isUncertain()) {
                     continue;
                 }
 
-                const qreal z = quick_solution::zeroPhaseCutLow(thetaMin, phi0, zeroInfs,
+                const double z = quick_solution::zeroPhaseCutLow(thetaMin, phi0, zeroInfs,
                                                                 poleSups, j, w);
 
                 if (z > zeroInfs[j] && z < zeroSups[j]) {
@@ -366,12 +367,12 @@ inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<L
                 }
             }
 
-            for (qint32 j = 0; hasUncertainPoles && j < static_cast<qint32>(poleInfs.size()); ++j) {
+            for (std::int32_t j = 0; hasUncertainPoles && j < static_cast<std::int32_t>(poleInfs.size()); ++j) {
                 if (!v->denominator()[j].isUncertain()) {
                     continue;
                 }
 
-                const qreal p = quick_solution::polePhaseCutLow(thetaMin, phi0, zeroInfs,
+                const double p = quick_solution::polePhaseCutLow(thetaMin, phi0, zeroInfs,
                                                                 poleSups, j, w);
 
                 if (p > poleInfs[j] && p < poleSups[j]) {
@@ -387,7 +388,7 @@ inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<L
     }
 
     std::vector<Parameter> numerador;
-    for (qint32 j = 0; j < static_cast<qint32>(zeroInfs.size()); ++j) {
+    for (std::int32_t j = 0; j < static_cast<std::int32_t>(zeroInfs.size()); ++j) {
         Parameter & old = v->numerator()[j];
         numerador.push_back(old.isUncertain()
                 ? Parameter(old.name(), Range(zeroInfs[j], zeroSups[j]), zeroInfs[j])
@@ -395,7 +396,7 @@ inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<L
     }
 
     std::vector<Parameter> denominador;
-    for (qint32 j = 0; j < static_cast<qint32>(poleInfs.size()); ++j) {
+    for (std::int32_t j = 0; j < static_cast<std::int32_t>(poleInfs.size()); ++j) {
         Parameter & old = v->denominator()[j];
         denominador.push_back(old.isUncertain()
                 ? Parameter(old.name(), Range(poleInfs[j], poleSups[j]), poleInfs[j])
@@ -413,7 +414,7 @@ inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<L
 //Feasibility of the box with its gain range replaced by
 //[gainInf, gainSup] at every design frequency.
 inline bool AlgorithmMc1::gainRangeIsFeasible(LtiSystem * box,
-                                                           qreal gainInf, qreal gainSup)
+                                                           double gainInf, double gainSup)
 {
     const std::unique_ptr<LtiSystem> candidate = box->create(box->name(),
             box->numerator(), box->denominator(),
@@ -422,7 +423,7 @@ inline bool AlgorithmMc1::gainRangeIsFeasible(LtiSystem * box,
 
     bool feasibleEverywhere = true;
 
-    for (qint32 i = 0; i < omega->size() && feasibleEverywhere; ++i) {
+    for (std::int32_t i = 0; i < omega->size() && feasibleEverywhere; ++i) {
         const cinterval projection = conversion->nicholsBox(candidate.get(), omega->at(i),
                                                       nominalPlantValues.at(i));
         feasibleEverywhere = detector->classifyBox(projection, boundaries, i).flag() == feasible;
@@ -443,22 +444,22 @@ inline void AlgorithmMc1::certifiedGainSearch(LtiSystem * box)
         return;
     }
 
-    const qreal low = box->gain().range().min;
-    qreal high = box->gain().range().max;
+    const double low = box->gain().range().min;
+    double high = box->gain().range().max;
 
     if (low <= 0.0 || !gainRangeIsFeasible(box, high, high)) {
         return;
     }
 
-    qreal lo = low;
+    double lo = low;
 
     if (gainRangeIsFeasible(box, lo, high)) {
         high = lo;
     } else {
-        qreal hi = high;
+        double hi = high;
 
         while (hi / lo > kCertifiedGainTolerance) {
-            const qreal mid = std::sqrt(lo * hi);
+            const double mid = std::sqrt(lo * hi);
 
             if (gainRangeIsFeasible(box, mid, high)) {
                 hi = mid;

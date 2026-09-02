@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <cmath>
 #include <complex>
 
@@ -26,11 +27,11 @@ LtiSystem::SystemType PolynomialForm::type(){
     return SystemType::PolynomialForm;
 }
 
-QString PolynomialForm::expression (QVector <qreal> * numerator, QVector <qreal> * denominator,
-                              qreal k, qreal delay, qreal omega){
+QString PolynomialForm::expression (QVector <double> * numerator, QVector <double> * denominator,
+                              double k, double delay, double omega){
 
-    qint32 sizeDen = denominator->size();
-    qint32 sizeNum = numerator->size();
+    std::int32_t sizeDen = denominator->size();
+    std::int32_t sizeNum = numerator->size();
 
     QString expr;
 
@@ -39,7 +40,7 @@ QString PolynomialForm::expression (QVector <qreal> * numerator, QVector <qreal>
 
 
 
-    for (qint32 i = 1; i < sizeNum; i++){
+    for (std::int32_t i = 1; i < sizeNum; i++){
 
 
         expr += "(" + QString::number(numerator->at(i-1)) + "*(" + QString::number(omega) + "*i)^" +
@@ -55,7 +56,7 @@ QString PolynomialForm::expression (QVector <qreal> * numerator, QVector <qreal>
     }
 
 
-    for (qint32 i = 1; i < sizeDen; i++){
+    for (std::int32_t i = 1; i < sizeDen; i++){
 
 
         expr += "(" + QString::number(denominator->at(i-1)) + "*(" + QString::number(omega) + "*i)^" +
@@ -78,10 +79,10 @@ QString PolynomialForm::expression (QVector <qreal> * numerator, QVector <qreal>
     return expr;
 }
 
-QString PolynomialForm::expression(qreal w){
+QString PolynomialForm::expression(double w){
 
-    qint32 sizeDen = m_denominator.size();
-    qint32 sizeNum = m_numerator.size();
+    std::int32_t sizeDen = m_denominator.size();
+    std::int32_t sizeNum = m_numerator.size();
 
     QString expr;
 
@@ -92,7 +93,7 @@ QString PolynomialForm::expression(qreal w){
     }
 
 
-    for (qint32 i = 1; i < sizeNum; i++){
+    for (std::int32_t i = 1; i < sizeNum; i++){
 
         if (m_numerator[i-1].isUncertain()){
             expr += "(" + m_numerator[i-1].name() + "*(" + QString::number(w) + "*i)^" +
@@ -113,7 +114,7 @@ QString PolynomialForm::expression(qreal w){
         expr += "(1)) / (";
     }
 
-    for (qint32 i = 1; i < sizeDen; i++){
+    for (std::int32_t i = 1; i < sizeDen; i++){
 
         if (m_denominator[i-1].isUncertain()){
             expr += "(" + m_denominator[i-1].name() + "*(" + QString::number(w) + "*i)^" +
@@ -148,8 +149,8 @@ QString PolynomialForm::expression(qreal w){
 }
 
 QString PolynomialForm::expression(){
-    qint32 sizeDen = m_denominator.size();
-    qint32 sizeNum = m_numerator.size();
+    std::int32_t sizeDen = m_denominator.size();
+    std::int32_t sizeNum = m_numerator.size();
 
     QString expr;
 
@@ -160,7 +161,7 @@ QString PolynomialForm::expression(){
     }
 
 
-    for (qint32 i = 1; i < sizeNum; i++){
+    for (std::int32_t i = 1; i < sizeNum; i++){
 
         if (m_numerator[i-1].isUncertain()){
             expr += "(" + m_numerator[i-1].name() + "*s^" +
@@ -181,7 +182,7 @@ QString PolynomialForm::expression(){
         expr += "(1)) / (";
     }
 
-    for (qint32 i = 1; i < sizeDen; i++){
+    for (std::int32_t i = 1; i < sizeDen; i++){
 
         if (m_denominator[i-1].isUncertain()){
             expr += "(" + m_denominator[i-1].name() + "*s^" +
@@ -211,17 +212,17 @@ QString PolynomialForm::expression(){
     return expr;
 }
 
-std::complex <qreal> PolynomialForm::evaluateNumerator(QVector <qreal> * nume, qreal omega){
+std::complex <double> PolynomialForm::evaluateNumerator(QVector <double> * nume, double omega){
 
     if (nume->size() == 0){
-        return std::complex <qreal> (1, 0);
+        return std::complex <double> (1, 0);
     }
 
-    qint32 sizeNum = nume->size();
+    std::int32_t sizeNum = nume->size();
     QString expr = "(";
 
 
-    for (qint32 i = 1; i < sizeNum; i++){
+    for (std::int32_t i = 1; i < sizeNum; i++){
         expr += "(" + QString::number(nume->at(i-1)) + "*(" + QString::number(omega) + "*i)^" +
                 QString::number(sizeNum - i)+ ") +";
     }
@@ -235,17 +236,17 @@ std::complex <qreal> PolynomialForm::evaluateNumerator(QVector <qreal> * nume, q
     return p.Eval().GetComplex();
 }
 
-std::complex <qreal> PolynomialForm::evaluateDenominator(QVector <qreal> * deno, qreal omega){
+std::complex <double> PolynomialForm::evaluateDenominator(QVector <double> * deno, double omega){
 
     if (deno->size() == 0){
-        return std::complex <qreal> (1, 0);
+        return std::complex <double> (1, 0);
     }
 
-    qint32 sizeDen = deno->size();
+    std::int32_t sizeDen = deno->size();
     QString expr = "(";
 
 
-    for (qint32 i = 1; i < sizeDen; i++){
+    for (std::int32_t i = 1; i < sizeDen; i++){
         expr += "(" + QString::number(deno->at(i-1)) + "*(" + QString::number(omega) + "*i)^" +
                 QString::number(sizeDen - i)+ ") +";
     }
@@ -265,23 +266,23 @@ std::complex <qreal> PolynomialForm::evaluateDenominator(QVector <qreal> * deno,
 //at s = j*w, times the pure delay. Evaluated by Horner, which is both the
 //accurate way to sum a polynomial and needs no pow() on a complex base; an
 //empty list is the constant 1, as the expression generator writes it.
-std::complex <qreal> PolynomialForm::valueAt(qreal w, const std::vector<qreal> & numerator,
-                                             const std::vector<qreal> & denominator,
-                                             qreal gain, qreal delay)
+std::complex <double> PolynomialForm::valueAt(double w, const std::vector<double> & numerator,
+                                             const std::vector<double> & denominator,
+                                             double gain, double delay)
 {
-    const std::complex<qreal> s(0.0, w);
+    const std::complex<double> s(0.0, w);
 
-    std::complex<qreal> num(1.0, 0.0);
+    std::complex<double> num(1.0, 0.0);
     if (!numerator.empty()) {
-        num = std::complex<qreal>(numerator.front(), 0.0);
+        num = std::complex<double>(numerator.front(), 0.0);
         for (std::size_t i = 1; i < numerator.size(); i++) {
             num = num * s + numerator[i];
         }
     }
 
-    std::complex<qreal> den(1.0, 0.0);
+    std::complex<double> den(1.0, 0.0);
     if (!denominator.empty()) {
-        den = std::complex<qreal>(denominator.front(), 0.0);
+        den = std::complex<double>(denominator.front(), 0.0);
         for (std::size_t i = 1; i < denominator.size(); i++) {
             den = den * s + denominator[i];
         }

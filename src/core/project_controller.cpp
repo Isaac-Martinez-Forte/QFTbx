@@ -1,3 +1,4 @@
+#include <cstdint>
 #include "src/core/project_controller.h"
 
 ProjectController::ProjectController()
@@ -14,7 +15,7 @@ Omega * ProjectController::omega(){
     return data.omega();
 }
 
-QVector <qreal> * ProjectController::frequencies(){
+QVector <double> * ProjectController::frequencies(){
     return data.frequencies();
 }
 
@@ -118,7 +119,7 @@ const qftbx::CloudSet & ProjectController::contour(){
     return data.contour();
 }
 
-bool ProjectController::computeTemplates(QVector <qreal> epsilon, qftbx::ParameterGrids grids, bool cuda){
+bool ProjectController::computeTemplates(QVector <double> epsilon, qftbx::ParameterGrids grids, bool cuda){
 
     //Preconditions, stated instead of dereferenced. They matter more now that
     //publishing an input DROPS what was computed from the old one: without
@@ -153,12 +154,12 @@ bool ProjectController::computeTemplates(QVector <qreal> epsilon, qftbx::Paramet
     return produced;
 }
 
-QVector <qreal> * ProjectController::epsilon(){
+QVector <double> * ProjectController::epsilon(){
     return data.epsilon();
 }
 
 
-const qftbx::CloudSet & ProjectController::recomputeContour(QVector <qreal> epsilon){
+const qftbx::CloudSet & ProjectController::recomputeContour(QVector <double> epsilon){
     m_templateEngine->computeContours(epsilon);
 
     setContour(m_templateEngine->contours());
@@ -167,8 +168,8 @@ const qftbx::CloudSet & ProjectController::recomputeContour(QVector <qreal> epsi
     return data.contour();
 }
 
-bool ProjectController::computeBoundaries(QPointF phaseRange, qint32 phaseCount, QPointF magnitudeRange,
-                                     qint32 magnitudeCount, qreal exportInfinity, bool contour, bool cuda){
+bool ProjectController::computeBoundaries(QPointF phaseRange, std::int32_t phaseCount, QPointF magnitudeRange,
+                                     std::int32_t magnitudeCount, double exportInfinity, bool contour, bool cuda){
 
     if (data.plant() == nullptr || data.frequencies() == nullptr){
         throw qftbx::InvalidInput("The boundaries need a plant and a set of "
@@ -228,8 +229,8 @@ LtiSystem * ProjectController::controllerStructure(){
     return data.controller();
 }
 
-bool ProjectController::computeLoopShaping(qreal epsilon, tools::LoopShapingAlgorithm algorithm, QPointF plotRange, qreal pointCount,
-                                      qint32 initialisation){
+bool ProjectController::computeLoopShaping(double epsilon, tools::LoopShapingAlgorithm algorithm, QPointF plotRange, double pointCount,
+                                      std::int32_t initialisation){
 
     if (data.plant() == nullptr || data.frequencies() == nullptr){
         throw qftbx::InvalidInput("The loop shaping needs a plant and a set of "

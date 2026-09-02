@@ -1,11 +1,12 @@
+#include <cstdint>
 #include "boundary_data.h"
 
 namespace qftbx {
 
 BoundaryData::BoundaryData(BoundarySet boundaries, std::vector<bool> openFlags,
-                           std::vector<bool> upperFlags, qint32 phaseCount, QPointF phaseRange,
+                           std::vector<bool> upperFlags, std::int32_t phaseCount, QPointF phaseRange,
                            UnionTraces unionBoundaries, UnionBuckets unionBuckets,
-                           qint32 magnitudeCount, QPointF magnitudeRange)
+                           std::int32_t magnitudeCount, QPointF magnitudeRange)
     : m_boundaries(std::move(boundaries)),
       m_openFlags(std::move(openFlags)),
       m_upperFlags(std::move(upperFlags)),
@@ -27,12 +28,12 @@ const BoundarySet & BoundaryData::boundaries() const
     return m_boundaries;
 }
 
-qint32 BoundaryData::phaseCount() const
+std::int32_t BoundaryData::phaseCount() const
 {
     return m_phaseCount;
 }
 
-qint32 BoundaryData::magnitudeCount() const
+std::int32_t BoundaryData::magnitudeCount() const
 {
     return m_magnitudeCount;
 }

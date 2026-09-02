@@ -1,3 +1,4 @@
+#include <cstdint>
 #include "src/core/math/sequence_vectors.h"
 
 #include <QRegularExpression>
@@ -10,13 +11,13 @@ using namespace std;
 
 //Wrapper over the canonical implementation in src/core/math/ (no
 //accumulation drift, exact final endpoint).
-QVector <qreal> tools::linspace(qreal a, qreal b, qint32 N) {
+QVector <double> tools::linspace(double a, double b, std::int32_t N) {
     const std::vector<double> values = qftbx::math::linspace(a, b, N > 0 ? N : 0);
-    return QVector<qreal>(values.begin(), values.end());
+    return QVector<double>(values.begin(), values.end());
 }
 
 
-std::vector<float> tools::linspace1(qreal a, qreal b, qint32 N){
+std::vector<float> tools::linspace1(double a, double b, std::int32_t N){
     //N == 1 divided by zero here. The canonical linspace was fixed for it and
     //this float variant, kept for the CUDA path, was not.
     if (N <= 0){
@@ -32,7 +33,7 @@ std::vector<float> tools::linspace1(qreal a, qreal b, qint32 N){
 
     float val = a;
 
-    for (qint32 i = 0; i < N; i++){ // https://gist.github.com/jmbr/2375233
+    for (std::int32_t i = 0; i < N; i++){ // https://gist.github.com/jmbr/2375233
         vec.push_back(val);
         val+=h;
     }
@@ -42,7 +43,7 @@ std::vector<float> tools::linspace1(qreal a, qreal b, qint32 N){
 
 
 //See tools::linspace.
-QVector <qreal> tools::logspace (qreal a, qreal b, qint32 N){
+QVector <double> tools::logspace (double a, double b, std::int32_t N){
     const std::vector<double> values = qftbx::math::logspace(a, b, N > 0 ? N : 0);
-    return QVector<qreal>(values.begin(), values.end());
+    return QVector<double>(values.begin(), values.end());
 }

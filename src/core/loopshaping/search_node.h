@@ -24,7 +24,7 @@ public:
 
     SearchNode() {}
 
-    SearchNode(qreal index, std::unique_ptr<LtiSystem> system,
+    SearchNode(double index, std::unique_ptr<LtiSystem> system,
                tools::BoxFlag flag = tools::ambiguous);
 
     tools::BoxFlag flag() const;

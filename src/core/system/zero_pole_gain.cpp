@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <cmath>
 #include <complex>
 
@@ -24,10 +25,10 @@ std::unique_ptr<LtiSystem> ZeroPoleGain::create (QString name, std::vector <Para
 
 
 
-QString ZeroPoleGain::expression (QVector <qreal> * numerator, QVector <qreal> * denominator,
-                            qreal k, qreal delay, qreal omega){
-    qint32 sizeDen = denominator->size();
-    qint32 sizeNum = numerator->size();
+QString ZeroPoleGain::expression (QVector <double> * numerator, QVector <double> * denominator,
+                            double k, double delay, double omega){
+    std::int32_t sizeDen = denominator->size();
+    std::int32_t sizeNum = numerator->size();
 
     QString expr;
 
@@ -38,7 +39,7 @@ QString ZeroPoleGain::expression (QVector <qreal> * numerator, QVector <qreal> *
     if (numerator->isEmpty()){
         expr += "1) / (";
     } else {
-        for (qint32 i = 0; i < sizeNum-1; i++){
+        for (std::int32_t i = 0; i < sizeNum-1; i++){
 
             expr += "(("+ QString::number(omega) + "*i) +" + QString::number(numerator->at(i)) + ") *";
         }
@@ -50,7 +51,7 @@ QString ZeroPoleGain::expression (QVector <qreal> * numerator, QVector <qreal> *
     if (denominator->isEmpty()){
         expr += "1)";
     } else {
-        for (qint32 i = 0; i < sizeDen-1; i++){
+        for (std::int32_t i = 0; i < sizeDen-1; i++){
 
             expr += "(("+ QString::number(omega) + "*i) + " + QString::number(denominator->at(i)) + ") *";
         }
@@ -66,10 +67,10 @@ QString ZeroPoleGain::expression (QVector <qreal> * numerator, QVector <qreal> *
     return expr;
 }
 
-QString ZeroPoleGain::expression(qreal w){
+QString ZeroPoleGain::expression(double w){
 
-    qint32 sizeDen = m_denominator.size();
-    qint32 sizeNum = m_numerator.size();
+    std::int32_t sizeDen = m_denominator.size();
+    std::int32_t sizeNum = m_numerator.size();
 
     QString expr;
 
@@ -82,7 +83,7 @@ QString ZeroPoleGain::expression(qreal w){
     if (m_numerator.empty()){
         expr += "1) / (";
     } else {
-        for (qint32 i = 0; i < sizeNum-1; i++){
+        for (std::int32_t i = 0; i < sizeNum-1; i++){
 
             if (m_numerator[i].isUncertain()){
                 expr += "((" + QString::number(w) + "*i) + " + m_numerator[i].name() + ") *";
@@ -102,7 +103,7 @@ QString ZeroPoleGain::expression(qreal w){
     if (m_denominator.empty()){
         expr += "1)";
     } else {
-        for (qint32 i = 0; i < sizeDen-1; i++){
+        for (std::int32_t i = 0; i < sizeDen-1; i++){
 
             if (m_denominator[i].isUncertain()){
                 expr += "((" + QString::number(w) + "*i) + " + m_denominator[i].name() + ") *";
@@ -139,8 +140,8 @@ LtiSystem::SystemType ZeroPoleGain::type(){
 
 
 QString ZeroPoleGain::expression(){
-    qint32 sizeDen = m_denominator.size();
-    qint32 sizeNum = m_numerator.size();
+    std::int32_t sizeDen = m_denominator.size();
+    std::int32_t sizeNum = m_numerator.size();
 
     QString expr;
 
@@ -153,7 +154,7 @@ QString ZeroPoleGain::expression(){
     if (m_numerator.empty()){
         expr += "1) / (";
     } else {
-        for (qint32 i = 0; i < sizeNum-1; i++){
+        for (std::int32_t i = 0; i < sizeNum-1; i++){
 
             if (m_numerator[i].isUncertain()){
                 expr += "(s + " + m_numerator[i].name() + ") *";
@@ -173,7 +174,7 @@ QString ZeroPoleGain::expression(){
     if (m_denominator.empty()){
         expr += "1)";
     }else {
-        for (qint32 i = 0; i < sizeDen-1; i++){
+        for (std::int32_t i = 0; i < sizeDen-1; i++){
 
             if (m_denominator[i].isUncertain()){
                 expr += "(s + " + m_denominator[i].name() + ") *";
@@ -199,16 +200,16 @@ QString ZeroPoleGain::expression(){
 }
 
 
-std::complex <qreal> ZeroPoleGain::evaluateNumerator(QVector <qreal> * nume, qreal omega){
+std::complex <double> ZeroPoleGain::evaluateNumerator(QVector <double> * nume, double omega){
 
     if (nume->isEmpty()){
-        return std::complex <qreal>(1);
+        return std::complex <double>(1);
     }
 
-    qint32 sizeNum = nume->size();
+    std::int32_t sizeNum = nume->size();
     QString expr = "(";
 
-    for (qint32 i = 0; i < sizeNum-1; i++){
+    for (std::int32_t i = 0; i < sizeNum-1; i++){
 
         expr += "(("+ QString::number(omega) + "*i) +" + QString::number(nume->at(i)) + ") *";
     }
@@ -223,16 +224,16 @@ std::complex <qreal> ZeroPoleGain::evaluateNumerator(QVector <qreal> * nume, qre
     return p.Eval().GetComplex();
 }
 
-std::complex <qreal> ZeroPoleGain::evaluateDenominator(QVector <qreal> * deno, qreal omega){
+std::complex <double> ZeroPoleGain::evaluateDenominator(QVector <double> * deno, double omega){
 
     if (deno->isEmpty()){
-        return std::complex <qreal>(1);
+        return std::complex <double>(1);
     }
 
-    qint32 sizeDen = deno->size();
+    std::int32_t sizeDen = deno->size();
     QString expr = "(";
 
-    for (qint32 i = 0; i < sizeDen-1; i++){
+    for (std::int32_t i = 0; i < sizeDen-1; i++){
 
         expr += "(("+ QString::number(omega) + "*i) + " + QString::number(deno->at(i)) + ") *";
     }
@@ -252,19 +253,19 @@ std::complex <qreal> ZeroPoleGain::evaluateDenominator(QVector <qreal> * deno, q
 //delay. An empty list is the constant 1, as the expression generator writes
 //it. Note the sign: the stored coefficients are the NEGATED roots, which is
 //what the textual form (jw) + z always computed.
-std::complex <qreal> ZeroPoleGain::valueAt(qreal w, const std::vector<qreal> & numerator,
-                                           const std::vector<qreal> & denominator,
-                                           qreal gain, qreal delay)
+std::complex <double> ZeroPoleGain::valueAt(double w, const std::vector<double> & numerator,
+                                           const std::vector<double> & denominator,
+                                           double gain, double delay)
 {
-    const std::complex<qreal> s(0.0, w);
+    const std::complex<double> s(0.0, w);
 
-    std::complex<qreal> num(1.0, 0.0);
-    for (const qreal zero : numerator) {
+    std::complex<double> num(1.0, 0.0);
+    for (const double zero : numerator) {
         num *= s + zero;
     }
 
-    std::complex<qreal> den(1.0, 0.0);
-    for (const qreal pole : denominator) {
+    std::complex<double> den(1.0, 0.0);
+    for (const double pole : denominator) {
         den *= s + pole;
     }
 

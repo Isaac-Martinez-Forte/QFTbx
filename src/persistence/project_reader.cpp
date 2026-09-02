@@ -1,3 +1,4 @@
+#include <cstdint>
 #include "project_reader.h"
 
 #include <QByteArray>
@@ -30,7 +31,7 @@ public:
 
     [[noreturn]] void fail(const pugi::xml_node & node, const std::string & what) const
     {
-        qint64 line = 0;
+        std::int64_t line = 0;
         const ptrdiff_t offset = node.offset_debug();
         if (offset >= 0 && offset <= m_raw.size()) {
             line = 1 + QByteArray(m_raw.constData(), offset).count('\n');
@@ -47,17 +48,17 @@ public:
         return node;
     }
 
-    qreal realText(const pugi::xml_node & node) const
+    double realText(const pugi::xml_node & node) const
     {
         bool ok = false;
-        const qreal value = QString(node.text().get()).toDouble(&ok);
+        const double value = QString(node.text().get()).toDouble(&ok);
         if (!ok) {
             fail(node, std::string("<") + node.name() + "> is not a number");
         }
         return value;
     }
 
-    qreal realChild(const pugi::xml_node & parent, const char * name) const
+    double realChild(const pugi::xml_node & parent, const char * name) const
     {
         return realText(require(parent, name));
     }
@@ -75,14 +76,14 @@ public:
         fail(node, std::string("<") + name + "> is not a boolean");
     }
 
-    qint32 intAttribute(const pugi::xml_node & node, const char * name) const
+    std::int32_t intAttribute(const pugi::xml_node & node, const char * name) const
     {
         const pugi::xml_attribute attribute = node.attribute(name);
         if (!attribute) {
             fail(node, std::string("missing attribute '") + name + "'");
         }
         bool ok = false;
-        const qint32 value = QString(attribute.value()).toInt(&ok);
+        const std::int32_t value = QString(attribute.value()).toInt(&ok);
         if (!ok) {
             fail(node, std::string("attribute '") + name + "' is not an integer");
         }
@@ -92,9 +93,9 @@ public:
     //Space-separated real vector, the encoding of every numeric list in the
     //format. The historical loader silently kept the prefix before the
     //first garbage token; this one rejects it.
-    QVector <qreal> realVector(const pugi::xml_node & node) const
+    QVector <double> realVector(const pugi::xml_node & node) const
     {
-        QVector <qreal> values;
+        QVector <double> values;
         const QString text = QString(node.text().get());
         const QStringList tokens = text.split(' ', Qt::SkipEmptyParts);
         values.reserve(tokens.size());
@@ -110,10 +111,10 @@ public:
 
     std::vector<bool> boolVector(const pugi::xml_node & node) const
     {
-        const QVector <qreal> reals = realVector(node);
+        const QVector <double> reals = realVector(node);
         std::vector<bool> bools;
         bools.reserve(static_cast<std::size_t>(reals.size()));
-        for (const qreal value : reals) {
+        for (const double value : reals) {
             bools.push_back(value != 0.0);
         }
         return bools;
@@ -122,13 +123,13 @@ public:
     //"x y x y ..." pairs; an unpaired trailing token is rejected.
     qftbx::Trace pointVector(const pugi::xml_node & node) const
     {
-        const QVector <qreal> reals = realVector(node);
+        const QVector <double> reals = realVector(node);
         if (reals.size() % 2 != 0) {
             fail(node, std::string("<") + node.name() + "> holds an odd point list");
         }
         qftbx::Trace points;
         points.reserve(static_cast<std::size_t>(reals.size() / 2));
-        for (qint32 i = 0; i + 1 < reals.size(); i += 2) {
+        for (std::int32_t i = 0; i + 1 < reals.size(); i += 2) {
             points.push_back(QPointF(reals.at(i), reals.at(i + 1)));
         }
         return points;
@@ -136,7 +137,7 @@ public:
 
     Parameter readParameter(const pugi::xml_node & node) const
     {
-        const qreal nominal = realChild(node, t.nominal);
+        const double nominal = realChild(node, t.nominal);
         const bool uncertain = boolChild(node, t.uncertain);
 
         if (!uncertain) {
@@ -227,7 +228,7 @@ public:
         //The set is positional with 7 fixed slots: consumers index blindly,
         //and the type now carries that count.
         const auto slotRange = section.children(t.specification);
-        const qint32 count = static_cast<qint32>(std::distance(slotRange.begin(), slotRange.end()));
+        const std::int32_t count = static_cast<std::int32_t>(std::distance(slotRange.begin(), slotRange.end()));
         if (count != kSpecificationCount) {
             fail(section, "a project needs exactly 7 specification slots");
         }
@@ -271,11 +272,11 @@ public:
 
     std::unique_ptr<Omega> readOmega(const pugi::xml_node & section) const
     {
-        const qreal min = realChild(section, t.omegaMin);
-        const qreal max = realChild(section, t.omegaMax);
-        const qint32 pointCount = static_cast<qint32>(realChild(section, t.pointCount));
+        const double min = realChild(section, t.omegaMin);
+        const double max = realChild(section, t.omegaMax);
+        const std::int32_t pointCount = static_cast<std::int32_t>(realChild(section, t.pointCount));
         const auto type = static_cast<Omega::GenerationType>(
-            static_cast<qint32>(realChild(section, t.omegaType)));
+            static_cast<std::int32_t>(realChild(section, t.omegaType)));
         return std::make_unique<Omega>(min, max, pointCount,
                                       realVector(require(section, t.values)), type);
     }
@@ -293,16 +294,16 @@ public:
                 fail(child, "a complex vector needs real and imaginary parts");
             }
 
-            const QVector <qreal> reals = realVector(child);
-            const QVector <qreal> imaginaries = realVector(imaginaryNode);
+            const QVector <double> reals = realVector(child);
+            const QVector <double> imaginaries = realVector(imaginaryNode);
             if (reals.size() != imaginaries.size()) {
                 fail(child, "real and imaginary parts differ in length");
             }
 
             qftbx::ComplexCloud vector;
             vector.reserve(static_cast<std::size_t>(reals.size()));
-            for (qint32 i = 0; i < reals.size(); ++i) {
-                vector.push_back(std::complex<qreal>(reals.at(i), imaginaries.at(i)));
+            for (std::int32_t i = 0; i < reals.size(); ++i) {
+                vector.push_back(std::complex<double>(reals.at(i), imaginaries.at(i)));
             }
 
             vectors.push_back(std::move(vector));
@@ -327,11 +328,11 @@ public:
         const pugi::xml_node data = require(section, t.boundariesData);
 
         const pugi::xml_node phases = require(data, t.phases);
-        const qint32 phaseCount = intAttribute(phases, t.phaseCountAttribute);
+        const std::int32_t phaseCount = intAttribute(phases, t.phaseCountAttribute);
         const QPointF phaseRange(realChild(phases, t.axisMin), realChild(phases, t.axisMax));
 
         const pugi::xml_node magnitudes = require(data, t.magnitudes);
-        const qint32 magnitudeCount = intAttribute(magnitudes, t.magnitudeCountAttribute);
+        const std::int32_t magnitudeCount = intAttribute(magnitudes, t.magnitudeCountAttribute);
         const QPointF magnitudeRange(realChild(magnitudes, t.axisMin), realChild(magnitudes, t.axisMax));
 
         const pugi::xml_node metadata = require(data, t.metadata);
@@ -365,7 +366,7 @@ public:
     std::unique_ptr<LoopShapingResult> readLoopShaping(const pugi::xml_node & section) const
     {
         const pugi::xml_node data = require(section, t.boundariesData);
-        const qint32 pointCount = intAttribute(data, t.loopShapingPointCountAttribute);
+        const std::int32_t pointCount = intAttribute(data, t.loopShapingPointCountAttribute);
         const QPointF range(realChild(data, t.axisMin), realChild(data, t.axisMax));
 
         //The embedded controller is the child that carries a <type> element.
@@ -411,8 +412,8 @@ std::vector<bool> ProjectReader::load(const QString & filePath)
     const pugi::xml_parse_result result = document.load_buffer(raw.constData(), raw.size(),
                                                                pugi::parse_default, pugi::encoding_utf8);
     if (!result) {
-        const qint64 line = 1 + QByteArray(raw.constData(),
-                                           qMin<qint64>(result.offset, raw.size())).count('\n');
+        const std::int64_t line = 1 + QByteArray(raw.constData(),
+                                           qMin<std::int64_t>(result.offset, raw.size())).count('\n');
         throw ParseError(filePath.toStdString() + ": " + result.description(), line);
     }
 

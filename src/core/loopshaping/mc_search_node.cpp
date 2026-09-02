@@ -2,7 +2,7 @@
 
 using namespace tools;
 
-McSearchNode::McSearchNode(qreal index, std::unique_ptr<LtiSystem> system, BoxFlag flags)
+McSearchNode::McSearchNode(double index, std::unique_ptr<LtiSystem> system, BoxFlag flags)
     : SearchNode(index, std::move(system), flags)
 {
 }
@@ -27,22 +27,22 @@ Stage McSearchNode::stage()
     return value;
 }
 
-void McSearchNode::markFrequencyFeasible(qreal pos, qreal frec)
+void McSearchNode::markFrequencyFeasible(double pos, double frec)
 {
     m_feasibleFrequencies.insert(pos, frec);
 }
 
-bool McSearchNode::isFrequencyFeasible(qreal key) const
+bool McSearchNode::isFrequencyFeasible(double key) const
 {
     return m_feasibleFrequencies.contains(key);
 }
 
-void McSearchNode::setFeasibleFrequencies(QHash<qreal, qreal> frequencies)
+void McSearchNode::setFeasibleFrequencies(QHash<double, double> frequencies)
 {
     m_feasibleFrequencies = std::move(frequencies);
 }
 
-const QHash<qreal, qreal> & McSearchNode::feasibleFrequencies() const
+const QHash<double, double> & McSearchNode::feasibleFrequencies() const
 {
     return m_feasibleFrequencies;
 }

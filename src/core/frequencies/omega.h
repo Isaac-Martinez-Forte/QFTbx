@@ -1,6 +1,7 @@
 #ifndef QFTBX_FREQUENCIES_OMEGA_H
 #define QFTBX_FREQUENCIES_OMEGA_H
 
+#include <cstdint>
 #include <QString>
 #include <QVector>
 
@@ -22,29 +23,29 @@ public:
     /// serialized in the .qft files: do not reorder.
     enum GenerationType {LinSpace, LogSpace, Manual, File};
 
-    Omega(qreal start, qreal end, qint32 pointCount, QVector<qreal> values, GenerationType type);
+    Omega(double start, double end, std::int32_t pointCount, QVector<double> values, GenerationType type);
 
     /// Reads a frequency file (values separated by whitespace or newlines).
     /// Throws qftbx::FileError when it cannot be opened or holds no valid
     /// frequency.
-    static QVector<qreal> valuesFromFile(QString path);
+    static QVector<double> valuesFromFile(QString path);
 
-    qreal start();
-    qreal end();
-    qint32 pointCount();
+    double start();
+    double end();
+    std::int32_t pointCount();
 
     /// Observer on the frequencies, which the set holds by value.
-    QVector<qreal> * values();
+    QVector<double> * values();
 
     GenerationType type();
 
-    void setOmega(QVector<qreal> values);
+    void setOmega(QVector<double> values);
 
 private:
-    qreal m_start;
-    qreal m_end;
-    qint32 m_pointCount;
-    QVector<qreal> m_values;
+    double m_start;
+    double m_end;
+    std::int32_t m_pointCount;
+    QVector<double> m_values;
     GenerationType m_type;
 };
 

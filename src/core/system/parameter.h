@@ -24,26 +24,26 @@ class Parameter
 {
 public:
     /// Uncertain parameter; an empty exp falls back to the name.
-    Parameter(QString name, Range range, qreal nominal, QString exp);
+    Parameter(QString name, Range range, double nominal, QString exp);
 
     /// Uncertain parameter without reparametrisation.
-    Parameter(QString name, Range range, qreal nominal);
+    Parameter(QString name, Range range, double nominal);
 
     Parameter(Range range);
 
     Parameter();
 
     /// Constant, named by its textual value.
-    Parameter (qreal value);
+    Parameter (double value);
 
     /// Named constant.
-    Parameter (QString name, qreal value);
+    Parameter (QString name, double value);
 
     void setName(QString name);
 
     void setRange (Range range);
 
-    void setNominal(qreal nominal);
+    void setNominal(double nominal);
 
     /// True for uncertain parameters, false for constants.
     bool isUncertain ();
@@ -59,16 +59,16 @@ public:
     Range rawRange();
 
     /// Nominal value with the reparametrisation applied.
-    qreal nominal();
+    double nominal();
 
     /// Raw nominal value, without the reparametrisation.
-    qreal rawNominal();
+    double rawNominal();
 
     QString expression();
 
 private:
     /// The reparametrisation applied to one value, parsed once per thread.
-    qreal realValueOf(qreal value) const;
+    double realValueOf(double value) const;
 
     //Initialised here, not constructor by constructor: the value
     //constructors used to leave m_hasExpression indeterminate, and reading
@@ -79,7 +79,7 @@ private:
     //an undefined variable.
     QString m_name;
     Range m_range;
-    qreal m_nominal = 0.0;
+    double m_nominal = 0.0;
     bool m_uncertain = false;
     QString m_expression;
     bool m_hasExpression = false;

@@ -1,5 +1,8 @@
+#include <cstdint>
 #include "src/core/exception.h"
 #include "src/core/loopshaping/algorithm_mr.h"
+
+#include "src/core/text_tokens.h"
 
 #include "src/core/specifications/specification_record.h"
 
@@ -14,18 +17,18 @@ namespace {
 
 //Template representatives per frequency entering the constraint set (the
 //paper uses 9 plants; the tracking constraints pair them quadratically).
-const qint32 kTemplateRepresentatives = 9;
+const std::int32_t kTemplateRepresentatives = 9;
 
 //Passes of the HC4 fixpoint loop per box (a bound protects against
 //oscillating contractions; convergence is typically immediate).
-const qint32 kMaxNarrowingPasses = 8;
+const std::int32_t kMaxNarrowingPasses = 8;
 
-QString number(qreal value)
+QString number(double value)
 {
-    //Full precision; the expression lexer understands scientific
-    //notation (fixed notation truncated the small tracking coefficients
-    //to zero).
-    return QString::number(value, 'g', 17);
+    //Through the shared primitive: it round-trips, so the lexer parses back
+    //exactly this double, and it is far shorter than the 'g',17 this used
+    //to ask for - these strings are built by the thousand.
+    return QString::fromStdString(qftbx::text::number(value));
 }
 
 } // namespace
@@ -38,8 +41,8 @@ AlgorithmMr::~AlgorithmMr()
 {
 }
 
-void AlgorithmMr::setProblem(LtiSystem *plant, LtiSystem *controller, QVector<qreal> * omega, const BoundaryData *boundaries,
-                                  qreal epsilon, const qftbx::CloudSet & temp,
+void AlgorithmMr::setProblem(LtiSystem *plant, LtiSystem *controller, QVector<double> * omega, const BoundaryData *boundaries,
+                                  double epsilon, const qftbx::CloudSet & temp,
                                   const qftbx::SpecificationRecords * specificationRecords){
     this->plant = plant;
     this->controller = controller->clone();
@@ -68,7 +71,7 @@ inline void AlgorithmMr::buildControllerExpressions(){
                 "time-constant controller structure.");
     }
 
-    const auto term = [&](Parameter & var, qreal w) -> QString {
+    const auto term = [&](Parameter & var, double w) -> QString {
         const QString value = var.isUncertain() ? var.name() : number(var.nominal());
         if (timeConstant) {
             return "sqrt(1+(" + number(w * w) + "/(" + value + "^2)))";
@@ -76,7 +79,7 @@ inline void AlgorithmMr::buildControllerExpressions(){
         return "sqrt((" + value + "^2)+" + number(w * w) + ")";
     };
 
-    const auto phaseTerm = [&](Parameter & var, qreal w) -> QString {
+    const auto phaseTerm = [&](Parameter & var, double w) -> QString {
         const QString value = var.isUncertain() ? var.name() : number(var.nominal());
         return "atan(" + number(w) + "/(" + value + "))";
     };
@@ -88,7 +91,7 @@ inline void AlgorithmMr::buildControllerExpressions(){
     magnitudeExpressions.clear();
     phaseExpressions.clear();
 
-    foreach (qreal w, *omega) {
+    foreach (double w, *omega) {
 
         QString magnitude = "(" + gain + ")";
         QString phase = "(0";
@@ -128,11 +131,11 @@ inline void AlgorithmMr::buildConstraints(){
     //system specifications).
     const qftbx::SpecificationSet specifications = qftbx::toSpecificationSet(*specificationRecords);
 
-    const auto applies = [&](qint32 slot, qreal w) {
+    const auto applies = [&](std::int32_t slot, double w) {
         return specifications.at(static_cast<qftbx::SpecificationType>(slot)).appliesAt(w);
     };
 
-    const auto boundDb = [&](qint32 slot, qreal w) {
+    const auto boundDb = [&](std::int32_t slot, double w) {
         return specifications.at(static_cast<qftbx::SpecificationType>(slot)).boundDb(w);
     };
 
@@ -143,27 +146,27 @@ inline void AlgorithmMr::buildConstraints(){
         constraintTexts.append(expression);
     };
 
-    for (qint32 i = 0; i < omega->size(); ++i) {
+    for (std::int32_t i = 0; i < omega->size(); ++i) {
 
-        const qreal w = omega->at(i);
+        const double w = omega->at(i);
         const QString & g = magnitudeExpressions.at(i);
         const QString & phi = phaseExpressions.at(i);
 
         //Template representatives, evenly subsampled along the contour.
         //Non-finite or null points (artefacts of a degenerate contour)
         //would embed "nan" into the expression texts: they are skipped.
-        QVector<std::complex<qreal>> points;
+        QVector<std::complex<double>> points;
         const qftbx::ComplexCloud & contour = temp.at(static_cast<std::size_t>(i));
-        const qint32 take = std::min<qint32>(kTemplateRepresentatives, static_cast<qint32>(contour.size()));
-        for (qint32 j = 0; j < take; ++j) {
-            const std::complex<qreal> value = contour.at(j * static_cast<qint32>(contour.size()) / take);
+        const std::int32_t take = std::min<std::int32_t>(kTemplateRepresentatives, static_cast<std::int32_t>(contour.size()));
+        for (std::int32_t j = 0; j < take; ++j) {
+            const std::complex<double> value = contour.at(j * static_cast<std::int32_t>(contour.size()) / take);
             if (std::isfinite(value.real()) && std::isfinite(value.imag()) &&
                     std::abs(value) > 0.0) {
                 points.append(value);
             }
         }
 
-        foreach (const std::complex<qreal> & value, points) {
+        foreach (const std::complex<double> & value, points) {
 
             const QString p = number(std::abs(value));
             const QString p2 = number(std::abs(value) * std::abs(value));
@@ -175,9 +178,9 @@ inline void AlgorithmMr::buildConstraints(){
 
             //Stability margin |T| <= ws (paper eq. (10)); the sensor noise
             //specification shares the same transfer.
-            for (qint32 slot : {2, 3}) {
+            for (std::int32_t slot : {2, 3}) {
                 if (applies(slot, w)) {
-                    const qreal ws = std::pow(10.0, boundDb(slot, w) / 20.0);
+                    const double ws = std::pow(10.0, boundDb(slot, w) / 20.0);
                     addConstraint("((" + g + ")^2)*(" + p2 + ")*(1-" +
                                   number(1.0 / (ws * ws)) + ")+2*(" + g + ")*(" + p +
                                   ")*cos((" + phi + ")+(" + theta + "))+1");
@@ -187,21 +190,21 @@ inline void AlgorithmMr::buildConstraints(){
             //Output disturbance rejection |1/(1+L)| <= d:
             //|1+L|^2 - 1/d^2 >= 0.
             if (applies(4, w)) {
-                const qreal d = std::pow(10.0, boundDb(4, w) / 20.0);
+                const double d = std::pow(10.0, boundDb(4, w) / 20.0);
                 addConstraint("(" + l2 + ")-" + number(1.0 / (d * d)));
             }
 
             //Input disturbance rejection |P/(1+L)| <= d:
             //|1+L|^2 - p^2/d^2 >= 0.
             if (applies(5, w)) {
-                const qreal d = std::pow(10.0, boundDb(5, w) / 20.0);
+                const double d = std::pow(10.0, boundDb(5, w) / 20.0);
                 addConstraint("(" + l2 + ")-(" + p2 + ")*" + number(1.0 / (d * d)));
             }
 
             //Control effort |G/(1+L)| <= d: |1+L|^2 - g^2/d^2 >= 0 (the
             //historical rule dropped the g^2 factor).
             if (applies(6, w)) {
-                const qreal d = std::pow(10.0, boundDb(6, w) / 20.0);
+                const double d = std::pow(10.0, boundDb(6, w) / 20.0);
                 addConstraint("(" + l2 + ")-((" + g + ")^2)*" + number(1.0 / (d * d)));
             }
         }
@@ -210,20 +213,20 @@ inline void AlgorithmMr::buildConstraints(){
         //pairs, with delta = |T_U/T_L| at this frequency.
         if (applies(0, w) && applies(1, w)) {
 
-            const qreal deltaDb = boundDb(1, w) - boundDb(0, w);
-            const qreal delta2 = std::pow(10.0, deltaDb / 10.0);
+            const double deltaDb = boundDb(1, w) - boundDb(0, w);
+            const double delta2 = std::pow(10.0, deltaDb / 10.0);
             const QString invDelta2 = number(1.0 / delta2);
 
-            for (qint32 a = 0; a < points.size(); ++a) {
-                for (qint32 b = 0; b < points.size(); ++b) {
+            for (std::int32_t a = 0; a < points.size(); ++a) {
+                for (std::int32_t b = 0; b < points.size(); ++b) {
                     if (a == b) {
                         continue;
                     }
 
-                    const qreal pi = std::abs(points.at(a));
-                    const qreal thetaI = std::arg(points.at(a));
-                    const qreal pk = std::abs(points.at(b));
-                    const qreal thetaK = std::arg(points.at(b));
+                    const double pi = std::abs(points.at(a));
+                    const double thetaI = std::arg(points.at(a));
+                    const double pk = std::abs(points.at(b));
+                    const double thetaK = std::arg(points.at(b));
 
                     addConstraint("((" + g + ")^2)*" + number(pk * pk * pi * pi) +
                             "*(1-" + invDelta2 + ")+2*(" + g + ")*" + number(pk * pi) +
@@ -329,7 +332,7 @@ inline void AlgorithmMr::classifyAndInsert(std::unique_ptr<LtiSystem> box){
 
     //The index is read BEFORE the box is handed over: as arguments of one
     //call their evaluation order is unspecified.
-    const qreal gainInf = narrowed->gain().range().min;
+    const double gainInf = narrowed->gain().range().min;
 
     liveList->insert(std::make_unique<SearchNode>(gainInf, std::move(narrowed), flag));
 }
@@ -337,7 +340,7 @@ inline void AlgorithmMr::classifyAndInsert(std::unique_ptr<LtiSystem> box){
 
 inline bool AlgorithmMr::narrowToFixpoint(std::map<std::string, cxsc::interval> & domains){
 
-    for (qint32 pass = 0; pass < kMaxNarrowingPasses; ++pass) {
+    for (std::int32_t pass = 0; pass < kMaxNarrowingPasses; ++pass) {
 
         const std::map<std::string, cxsc::interval> snapshot = domains;
 
@@ -439,7 +442,7 @@ inline void AlgorithmMr::loadPointDomains(LtiSystem * box, bool lowerCorner,
 
     domains.clear();
 
-    const auto at = [&](Parameter & var, qreal value) {
+    const auto at = [&](Parameter & var, double value) {
         if (var.isUncertain()) {
             domains[var.name().toStdString()] = cxsc::interval(value, value);
         }
@@ -484,5 +487,5 @@ inline std::unique_ptr<LtiSystem> AlgorithmMr::boxFromDomains(LtiSystem * box,
     }
 
     return box->create(box->name(), std::move(nume), std::move(deno),
-                       rebuilt(box->gain()), Parameter(qreal(0)));
+                       rebuilt(box->gain()), Parameter(double(0)));
 }

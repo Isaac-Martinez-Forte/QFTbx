@@ -24,7 +24,7 @@ public:
 
     McSearchNode() {}
 
-    McSearchNode(qreal index, std::unique_ptr<LtiSystem> system,
+    McSearchNode(double index, std::unique_ptr<LtiSystem> system,
                  tools::BoxFlag flags = tools::ambiguous);
 
     void setCutsEnabled(bool enabled);
@@ -33,17 +33,17 @@ public:
     void setStage(Stage e);
     Stage stage();
 
-    void markFrequencyFeasible(qreal pos, qreal frec);
-    bool isFrequencyFeasible(qreal key) const;
-    void setFeasibleFrequencies(QHash<qreal, qreal> frequencies);
-    const QHash<qreal, qreal> & feasibleFrequencies() const;
+    void markFrequencyFeasible(double pos, double frec);
+    bool isFrequencyFeasible(double key) const;
+    void setFeasibleFrequencies(QHash<double, double> frequencies);
+    const QHash<double, double> & feasibleFrequencies() const;
 
 protected:
 
     bool enabled = true;
     Stage value = Stage::Initial;
 
-    QHash<qreal, qreal> m_feasibleFrequencies;
+    QHash<double, double> m_feasibleFrequencies;
 };
 
 #endif // QFTBX_LOOPSHAPING_MC_SEARCH_NODE_H

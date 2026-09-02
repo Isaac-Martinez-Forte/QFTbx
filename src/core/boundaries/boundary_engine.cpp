@@ -1,3 +1,4 @@
+#include <cstdint>
 #include "boundary_engine.h"
 
 #include "src/core/math/parser_warmup.h"
@@ -45,9 +46,9 @@ void BoundaryEngine::releaseResults()
     m_omega = nullptr;
 }
 
-void BoundaryEngine::compute(QVector<qreal> *omega, LtiSystem *plant, const CloudSet & templates,
-                             const qftbx::SpecificationRecords * specifications, QPointF phaseRange, qint32 phaseCount, QPointF magnitudeRange,
-                             qint32 magnitudeCount, qreal exportInfinity, bool cuda){
+void BoundaryEngine::compute(QVector<double> *omega, LtiSystem *plant, const CloudSet & templates,
+                             const qftbx::SpecificationRecords * specifications, QPointF phaseRange, std::int32_t phaseCount, QPointF magnitudeRange,
+                             std::int32_t magnitudeCount, double exportInfinity, bool cuda){
 
     //The export stand-in for infinity is not part of the computation
     //(thesis ch. 7: it exists so exported data can carry a finite value in
@@ -82,7 +83,7 @@ void BoundaryEngine::compute(QVector<qreal> *omega, LtiSystem *plant, const Clou
 
     //As always, the tracking band is governed by T_L (the lower bound);
     //T_U only provides the cut height.
-    foreach(qreal o, *omega){
+    foreach(double o, *omega){
         m_trackingMask.append(m_specifications.at(SpecificationType::TrackingLower).appliesAt(o));
         m_stabilityMask.append(m_specifications.at(SpecificationType::Stability).appliesAt(o));
         m_noiseMask.append(m_specifications.at(SpecificationType::SensorNoise).appliesAt(o));
@@ -120,7 +121,7 @@ void BoundaryEngine::compute(QVector<qreal> *omega, LtiSystem *plant, const Clou
 
         for (int i = 0; i < omega->size(); i++){
 
-            std::complex <qreal> p0 = plant->evaluate(omega->at(i));
+            std::complex <double> p0 = plant->evaluate(omega->at(i));
             const ComplexCloud & valueSet = templates.at(static_cast<std::size_t>(i));
 
             //Sheets come back by value in one struct: the old raw float*
@@ -188,16 +189,16 @@ BoundaryData BoundaryEngine::boundaryData(){
                         m_unionVectors, m_unionBuckets, m_magnitudeCount, m_magnitudeRange);
 }
 
-QVector <qreal> * BoundaryEngine::omega(){
+QVector <double> * BoundaryEngine::omega(){
     return m_omega;
 }
 
 
-void BoundaryEngine::traceFrequency(qreal omega, std::map<QString, TraceSet> & bound,
+void BoundaryEngine::traceFrequency(double omega, std::map<QString, TraceSet> & bound,
                                     const BoundarySheets & sheets,
                                     std::map<QString, TraceLabels> & traceMetadata,
-                                    complex <qreal> p0, const ComplexCloud & valueSet, qint32 index,
-                                    qreal phaseSpan, qreal magnitudeSpan, qreal phaseBottom, qreal magnitudeBottom){
+                                    complex <double> p0, const ComplexCloud & valueSet, std::int32_t index,
+                                    double phaseSpan, double magnitudeSpan, double phaseBottom, double magnitudeBottom){
 
 
     //The map keys are persisted in the .qft files; the loader maps the
@@ -258,11 +259,11 @@ void BoundaryEngine::traceFrequency(qreal omega, std::map<QString, TraceSet> & b
 }
 
 #ifdef CUDA_AVAILABLE
-void BoundaryEngine::traceFrequency(qreal omega, std::map<QString, TraceSet> & bound,
+void BoundaryEngine::traceFrequency(double omega, std::map<QString, TraceSet> & bound,
                                     const BoundarySheetsCuda & cudaSheets,
                                     std::map<QString, TraceLabels> & traceMetadata,
-                                    complex <qreal> p0, const ComplexCloud & valueSet, qint32 index,
-                                    qreal phaseSpan, qreal magnitudeSpan, qreal phaseBottom, qreal magnitudeBottom){
+                                    complex <double> p0, const ComplexCloud & valueSet, std::int32_t index,
+                                    double phaseSpan, double magnitudeSpan, double phaseBottom, double magnitudeBottom){
 
     if (m_trackingMask.at(index)){
 
@@ -321,11 +322,11 @@ void BoundaryEngine::traceFrequency(qreal omega, std::map<QString, TraceSet> & b
 }
 #endif
 
-TraceSet BoundaryEngine::traceBoundary(qreal thresholdDb, const BoundarySheet & sheet,
-                                       TraceLabels & traceMetadata, std::complex<qreal> p0,
+TraceSet BoundaryEngine::traceBoundary(double thresholdDb, const BoundarySheet & sheet,
+                                       TraceLabels & traceMetadata, std::complex<double> p0,
                                        const ComplexCloud & valueSet,
-                                       qint32 kind, qreal phaseSpan, qreal magnitudeSpan,
-                                       qreal phaseBottom, qreal magnitudeBottom)
+                                       std::int32_t kind, double phaseSpan, double magnitudeSpan,
+                                       double phaseBottom, double magnitudeBottom)
 {
 
     ContourTracer tracer (thresholdDb, sheet);
@@ -340,7 +341,7 @@ TraceSet BoundaryEngine::traceBoundary(qreal thresholdDb, const BoundarySheet & 
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
 #endif
-    for (qint32 j = 0; j < static_cast<qint32>(traces.size()); j++) {
+    for (std::int32_t j = 0; j < static_cast<std::int32_t>(traces.size()); j++) {
         QPoint label;
         //The allowed-side label of the trace: the threshold is the same dB
         //cut the contour was traced at.
@@ -358,10 +359,10 @@ TraceSet BoundaryEngine::traceBoundary(qreal thresholdDb, const BoundarySheet & 
 
 
 #ifdef CUDA_AVAILABLE
-QVector<QVector<QPointF> *> * BoundaryEngine::traceBoundary(qreal thresholdDb, const float *sheet,
-                                                            QVector<QPoint> *traceMetadata, std::complex<qreal> p0,
-                                                            const ComplexCloud & valueSet, qint32 kind,
-                                                            qreal phaseSpan, qreal magnitudeSpan, qreal phaseBottom, qreal magnitudeBottom){
+QVector<QVector<QPointF> *> * BoundaryEngine::traceBoundary(double thresholdDb, const float *sheet,
+                                                            QVector<QPoint> *traceMetadata, std::complex<double> p0,
+                                                            const ComplexCloud & valueSet, std::int32_t kind,
+                                                            double phaseSpan, double magnitudeSpan, double phaseBottom, double magnitudeBottom){
 
     ContourTracer tracer (thresholdDb, sheet);
 
@@ -373,7 +374,7 @@ QVector<QVector<QPointF> *> * BoundaryEngine::traceBoundary(qreal thresholdDb, c
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
 #endif
-    for (qint32 j = 0; j < traces->size(); j++) {
+    for (std::int32_t j = 0; j < traces->size(); j++) {
         QPoint label;
         label.setX(allowedZone(traces->at(j), p0, valueSet, kind, thresholdDb));
 
@@ -384,12 +385,12 @@ QVector<QVector<QPointF> *> * BoundaryEngine::traceBoundary(qreal thresholdDb, c
 }
 #endif
 
-qint32 BoundaryEngine::allowedZone(const Trace & trace, complex <qreal> p0, const ComplexCloud & valueSet,
-                                   qint32 kind, qreal thresholdDb){
+std::int32_t BoundaryEngine::allowedZone(const Trace & trace, complex <double> p0, const ComplexCloud & valueSet,
+                                   std::int32_t kind, double thresholdDb){
 
     //Probe point: 1 dB below the trace's maximum magnitude.
-    qreal probeMagnitude = -numeric_limits<qreal>::infinity();
-    qreal probePhase = -numeric_limits<qreal>::infinity();
+    double probeMagnitude = -numeric_limits<double>::infinity();
+    double probePhase = -numeric_limits<double>::infinity();
 
     for (const QPointF & point : trace) {
         if(point.y() > probeMagnitude){
@@ -401,29 +402,29 @@ qint32 BoundaryEngine::allowedZone(const Trace & trace, complex <qreal> p0, cons
     probeMagnitude -= 1;
 
     //Nichols (dB, degrees) back to a complex L.
-    qreal linearMagnitude = pow(10, probeMagnitude/20);
-    complex<qreal> L = complex<qreal> (linearMagnitude * cos (probePhase * M_PI / 180),
+    double linearMagnitude = pow(10, probeMagnitude/20);
+    complex<double> L = complex<double> (linearMagnitude * cos (probePhase * M_PI / 180),
                                        linearMagnitude * sin (probePhase * M_PI / 180));
 
 
-    complex <qreal> p;
-    qreal dStabilityNoiseCandidate;
-    qreal dOutputDisturbanceCandidate;
-    qreal dInputDisturbanceCandidate;
-    qreal dControlEffortCandidate;
+    complex <double> p;
+    double dStabilityNoiseCandidate;
+    double dOutputDisturbanceCandidate;
+    double dInputDisturbanceCandidate;
+    double dControlEffortCandidate;
 
-    qreal dStabilityNoise = -numeric_limits<qreal>::infinity();
-    qreal dTrackingMin = numeric_limits<qreal>::infinity();
-    qreal dOutputDisturbance = -numeric_limits<qreal>::infinity();
-    qreal dInputDisturbance = -numeric_limits<qreal>::infinity();
-    qreal dControlEffort = -numeric_limits<qreal>::infinity();
+    double dStabilityNoise = -numeric_limits<double>::infinity();
+    double dTrackingMin = numeric_limits<double>::infinity();
+    double dOutputDisturbance = -numeric_limits<double>::infinity();
+    double dInputDisturbance = -numeric_limits<double>::infinity();
+    double dControlEffort = -numeric_limits<double>::infinity();
 
 
-    for (qint32 h = 0; h < valueSet.size(); h++) {
+    for (std::int32_t h = 0; h < valueSet.size(); h++) {
 
         p = valueSet.at(h);
 
-        complex<qreal> denominator = (p0 / p) + L;
+        complex<double> denominator = (p0 / p) + L;
 
         //Stability and sensor noise share the same transfer magnitude.
         dStabilityNoiseCandidate = abs (L / denominator);
@@ -490,13 +491,13 @@ qint32 BoundaryEngine::allowedZone(const Trace & trace, complex <qreal> p0, cons
     return 1;
 }
 
-void BoundaryEngine::computeFrequencies(QVector<qreal> *omega, LtiSystem *plant,
-                                        const CloudSet & templates, QPointF phaseRange, qint32 phaseCount,
-                                        QPointF magnitudeRange, qint32 magnitudeCount)
+void BoundaryEngine::computeFrequencies(QVector<double> *omega, LtiSystem *plant,
+                                        const CloudSet & templates, QPointF phaseRange, std::int32_t phaseCount,
+                                        QPointF magnitudeRange, std::int32_t magnitudeCount)
 {
     //Base grid of the algorithm.
-    const QVector <qreal> phases = tools::linspace(phaseRange.x(), phaseRange.y(), phaseCount);
-    const QVector <qreal> magnitudes = tools::linspace(magnitudeRange.x(), magnitudeRange.y(),
+    const QVector <double> phases = tools::linspace(phaseRange.x(), phaseRange.y(), phaseCount);
+    const QVector <double> magnitudes = tools::linspace(magnitudeRange.x(), magnitudeRange.y(),
                                                       magnitudeCount);
 
     //Pre-sized containers: every frequency writes at ITS index. The old
@@ -515,7 +516,7 @@ void BoundaryEngine::computeFrequencies(QVector<qreal> *omega, LtiSystem *plant,
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
 #endif
-    for (qint32 i = 0; i < omega->size(); i++){
+    for (std::int32_t i = 0; i < omega->size(); i++){
 
         computeFrequency(omega->at(i), plant, templates.at(static_cast<std::size_t>(i)), phases, magnitudes, i);
     }
@@ -539,10 +540,10 @@ namespace {
 //would silently read as ALLOWED. The contour tracer only compares cells
 //against the threshold (it never interpolates between them), so an
 //infinite cell is safe for it.
-qreal violatingDb(qreal valueDb)
+double violatingDb(double valueDb)
 {
     if (std::isnan(valueDb)) {
-        return std::numeric_limits<qreal>::infinity();
+        return std::numeric_limits<double>::infinity();
     }
 
     return valueDb;
@@ -550,13 +551,13 @@ qreal violatingDb(qreal valueDb)
 
 } // namespace
 
-void BoundaryEngine::computeFrequency (qreal omega, LtiSystem * plant,
+void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
                                        const ComplexCloud & valueSet,
-                                       const QVector <qreal> & phases,
-                                       const QVector <qreal> & magnitudes, qint32 index){
+                                       const QVector <double> & phases,
+                                       const QVector <double> & magnitudes, std::int32_t index){
 
     //Nominal plant at this design frequency.
-    complex <qreal> p0 = plant->evaluate(omega);
+    complex <double> p0 = plant->evaluate(omega);
 
     const ComplexCloud & p = valueSet;
 
@@ -579,27 +580,27 @@ void BoundaryEngine::computeFrequency (qreal omega, LtiSystem * plant,
     }
 
     //Second loop variables:
-    qreal magnitudeDb;
-    qreal phaseDegrees;
-    qreal linearMagnitude;
-    complex <qreal> L;
-    qreal dStabilityNoise;
-    qreal dOutputDisturbance;
-    qreal dInputDisturbance;
-    qreal dControlEffort;
-    qreal dTrackingMin;
+    double magnitudeDb;
+    double phaseDegrees;
+    double linearMagnitude;
+    complex <double> L;
+    double dStabilityNoise;
+    double dOutputDisturbance;
+    double dInputDisturbance;
+    double dControlEffort;
+    double dTrackingMin;
 
     //Third loop variables:
-    complex <qreal> pCurrent;
-    qreal dStabilityNoiseCandidate;
-    qreal dOutputDisturbanceCandidate;
-    qreal dInputDisturbanceCandidate;
-    qreal dControlEffortCandidate;
-    complex<qreal> denominator;
+    complex <double> pCurrent;
+    double dStabilityNoiseCandidate;
+    double dOutputDisturbanceCandidate;
+    double dInputDisturbanceCandidate;
+    double dControlEffortCandidate;
+    complex<double> denominator;
 
     //Grid sweep (no nested parallelism: the outer per-frequency loop is
     //already parallel, and these loops share function-scope variables).
-    for (qint32 k = 0; k < magnitudes.size(); k++){
+    for (std::int32_t k = 0; k < magnitudes.size(); k++){
 
         std::vector<double> stabilityNoiseRow;
         std::vector<double> trackingRow;
@@ -614,24 +615,24 @@ void BoundaryEngine::computeFrequency (qreal omega, LtiSystem * plant,
         inputDisturbanceRow.reserve(rowWidth);
         controlEffortRow.reserve(rowWidth);
 
-        for (qint32 j = 0; j < phases.size(); j++){
+        for (std::int32_t j = 0; j < phases.size(); j++){
 
             magnitudeDb = magnitudes.at(k);
             phaseDegrees = phases.at(j);
 
             //Nichols (dB, degrees) to the complex grid point L.
             linearMagnitude = pow(10, magnitudeDb/20);
-            L = complex<qreal> (linearMagnitude * cos (phaseDegrees * M_PI / 180),
+            L = complex<double> (linearMagnitude * cos (phaseDegrees * M_PI / 180),
                                 linearMagnitude * sin (phaseDegrees * M_PI / 180));
 
 
             //Template sweep: worst case over the value set at this L.
 
-            dStabilityNoise = -numeric_limits<qreal>::infinity();
-            dTrackingMin = numeric_limits<qreal>::infinity();
-            dOutputDisturbance = -numeric_limits<qreal>::infinity();
-            dInputDisturbance = -numeric_limits<qreal>::infinity();
-            dControlEffort = -numeric_limits<qreal>::infinity();
+            dStabilityNoise = -numeric_limits<double>::infinity();
+            dTrackingMin = numeric_limits<double>::infinity();
+            dOutputDisturbance = -numeric_limits<double>::infinity();
+            dInputDisturbance = -numeric_limits<double>::infinity();
+            dControlEffort = -numeric_limits<double>::infinity();
 
             for (std::size_t h = 0; h < p.size(); h++) {
 

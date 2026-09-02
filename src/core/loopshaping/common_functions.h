@@ -2,6 +2,7 @@
 #define QFTBX_LOOPSHAPING_COMMON_FUNCTIONS_H
 
 
+#include <cstdint>
 #include <memory>
 
 #include <QVector>
@@ -75,12 +76,12 @@ inline std::unique_ptr<LtiSystem> pointFromBox(LtiSystem * controller, bool x) {
         denominador.emplace_back(v.isUncertain() ? v.range().min : v.nominal());
     }
 
-    const qreal k = x ? controller->gain().range().min
+    const double k = x ? controller->gain().range().min
                       : controller->gain().range().max;
 
     return controller->create(controller->name(), std::move(numerador),
                                std::move(denominador), Parameter(k),
-                               Parameter(qreal(0)));
+                               Parameter(double(0)));
 }
 
 /**
@@ -100,12 +101,12 @@ inline std::unique_ptr<LtiSystem> pointFromBox(LtiSystem * controller, bool x) {
  * \f$ |P| \f$, so the same number is far tighter on a plant with a large
  * low-frequency gain than on one without.
  */
-inline bool isEpsilonSmall(LtiSystem * controller, qreal epsilon, QVector <qreal> * omega,
+inline bool isEpsilonSmall(LtiSystem * controller, double epsilon, QVector <double> * omega,
                             NaturalIntervalExtension *conversion,
                             const QVector <complex> & nominalPlantValues) {
 
     cinterval box;
-    for (qint32 i = 0; i < omega->size(); i++){
+    for (std::int32_t i = 0; i < omega->size(); i++){
         box = conversion->nicholsBox(controller, omega->at(i), nominalPlantValues.at(i));
 
         if ((cxsc::diam(Re(box)) >= epsilon) || (cxsc::diam(Im(box)) >= epsilon)) {
@@ -128,8 +129,8 @@ inline BisectionResult bisectWidestParameter(LtiSystem * box) {
 
     //Widest uncertain parameter: -1 is the gain, then the numerator and
     //denominator positions.
-    qint32 widest = -2;
-    qreal width = -1;
+    std::int32_t widest = -2;
+    double width = -1;
     Range range;
 
     if (box->gain().isUncertain()) {
@@ -138,7 +139,7 @@ inline BisectionResult bisectWidestParameter(LtiSystem * box) {
         width = range.max - range.min;
     }
 
-    qint32 position = 0;
+    std::int32_t position = 0;
 
     const auto consider = [&](Parameter & var) {
         if (var.isUncertain() && var.range().max - var.range().min > width) {
@@ -156,7 +157,7 @@ inline BisectionResult bisectWidestParameter(LtiSystem * box) {
         consider(var);
     }
 
-    const qreal middle = range.middle();
+    const double middle = range.middle();
 
     //Both children are DEEP copies and the parent stays untouched: its
     //node keeps sole ownership of it (the historical version handed the
@@ -171,7 +172,7 @@ inline BisectionResult bisectWidestParameter(LtiSystem * box) {
                 ? Parameter(box->gain().name(), halfRange, halfRange.min, box->gain().name())
                 : box->gain();
 
-        qint32 index = 0;
+        std::int32_t index = 0;
 
         std::vector <Parameter> numerator;
         numerator.reserve(box->numerator().size());

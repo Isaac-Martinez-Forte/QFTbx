@@ -25,7 +25,7 @@ struct ProjectContent {
     Omega * omega = nullptr;
     CloudSet templates;
     CloudSet contour;
-    const QVector <qreal> * epsilon = nullptr;
+    const QVector <double> * epsilon = nullptr;
     BoundaryData * boundaries = nullptr;
     LtiSystem * controller = nullptr;
     LoopShapingResult * loopShaping = nullptr;

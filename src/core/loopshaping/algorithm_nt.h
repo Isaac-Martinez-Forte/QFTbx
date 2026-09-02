@@ -1,6 +1,7 @@
 #ifndef QFTBX_LOOPSHAPING_ALGORITHM_NT_H
 #define QFTBX_LOOPSHAPING_ALGORITHM_NT_H
 
+#include <cstdint>
 #include <QVector>
 #include <QHash>
 #include <cmath>
@@ -82,8 +83,8 @@ public:
     AlgorithmNt();
     ~AlgorithmNt();
 
-    void setProblem(LtiSystem * plant, LtiSystem * controller, QVector<qreal> *omega, const BoundaryData * boundaries,
-                    qreal epsilon);
+    void setProblem(LtiSystem * plant, LtiSystem * controller, QVector<double> *omega, const BoundaryData * boundaries,
+                    double epsilon);
 
     bool solve();
 
@@ -97,27 +98,27 @@ public:
 private:
 
     inline void check_box_feasibility(std::unique_ptr<LtiSystem> box);
-    inline std::unique_ptr<LtiSystem> acelerated(std::unique_ptr<LtiSystem> v, qreal minBoundary,
-                                                 qreal o, qint32 frequencyIndex, bool above);
-    inline bool feasibleGainFrom(LtiSystem * v, qreal maxBoundary, cxsc::cinterval projection,
-                                 qreal o, qint32 frequencyIndex, qreal & from);
+    inline std::unique_ptr<LtiSystem> acelerated(std::unique_ptr<LtiSystem> v, double minBoundary,
+                                                 double o, std::int32_t frequencyIndex, bool above);
+    inline bool feasibleGainFrom(LtiSystem * v, double maxBoundary, cxsc::cinterval projection,
+                                 double o, std::int32_t frequencyIndex, double & from);
 
     LtiSystem * plant = nullptr;
     std::unique_ptr<LtiSystem> controller;
-    QVector <qreal> * omega = nullptr;
+    QVector <double> * omega = nullptr;
     const BoundaryData * boundaries = nullptr;
     std::unique_ptr<NaturalIntervalExtension> conversion;
     std::unique_ptr<OrderedList> liveList;
-    qreal epsilon = 0.0;
+    double epsilon = 0.0;
 
     std::unique_ptr<LtiSystem> designedController;
-    qreal minBoundary = 0.0;
+    double minBoundary = 0.0;
 
 
     QPointF intersection (QPointF uno, QPointF dos);
 
 
-    qint32 tamFas = 0;
+    std::int32_t tamFas = 0;
 
     std::unique_ptr<BoundaryViolationDetector> detector;
     std::unique_ptr<NominalStabilityChecker> stability;

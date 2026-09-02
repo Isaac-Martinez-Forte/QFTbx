@@ -17,14 +17,14 @@ class LoopShapingResult
 {
 public:
     LoopShapingResult (std::unique_ptr<LtiSystem> controller, QPointF plotRange,
-                       qreal pointCount);
+                       double pointCount);
 
     /// Observer on the computed controller; the record keeps ownership.
     LtiSystem * controller ();
 
     QPointF range ();
 
-    qreal pointCount();
+    double pointCount();
 
     //There was a pair of setData() overloads and an m_set flag: nothing
     //ever called them and nothing ever read the flag. The overloads
@@ -37,7 +37,7 @@ private:
 
     std::unique_ptr<LtiSystem> m_controller;
     QPointF m_plotRange;
-    qreal m_pointCount = 0;
+    double m_pointCount = 0;
 };
 
 #endif // QFTBX_LOOPSHAPING_RESULT_H

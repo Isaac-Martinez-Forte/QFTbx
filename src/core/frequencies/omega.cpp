@@ -1,3 +1,4 @@
+#include <cstdint>
 #include "src/core/frequencies/omega.h"
 #include "src/core/text_tokens.h"
 
@@ -6,7 +7,7 @@
 
 #include "src/core/exception.h"
 
-Omega::Omega(qreal start, qreal end, qint32 pointCount, QVector<qreal> values, GenerationType type)
+Omega::Omega(double start, double end, std::int32_t pointCount, QVector<double> values, GenerationType type)
 {
     Q_UNUSED(pointCount);
 
@@ -23,19 +24,19 @@ Omega::Omega(qreal start, qreal end, qint32 pointCount, QVector<qreal> values, G
     m_type = type;
 }
 
-qreal Omega::start(){
+double Omega::start(){
     return m_start;
 }
 
-qreal Omega::end(){
+double Omega::end(){
     return m_end;
 }
 
-qint32 Omega::pointCount(){
+std::int32_t Omega::pointCount(){
     return m_pointCount;
 }
 
-QVector<qreal> * Omega::values(){
+QVector<double> * Omega::values(){
     return &m_values;
 }
 
@@ -43,7 +44,7 @@ Omega::GenerationType Omega::type(){
     return m_type;
 }
 
-void Omega::setOmega(QVector<qreal> values){
+void Omega::setOmega(QVector<double> values){
 
     if (values.isEmpty()){
         throw qftbx::InvalidInput("A frequency set needs at least one value.");
@@ -56,7 +57,7 @@ void Omega::setOmega(QVector<qreal> values){
     m_values = std::move(values);
 }
 
-QVector<qreal> Omega::valuesFromFile(QString path){
+QVector<double> Omega::valuesFromFile(QString path){
 
     QFile file (path);
 
@@ -65,7 +66,7 @@ QVector<qreal> Omega::valuesFromFile(QString path){
     }
 
     QTextStream in (&file);
-    const std::optional<QVector<qreal>> values = qftbx::text::reals(in.readAll());
+    const std::optional<QVector<double>> values = qftbx::text::reals(in.readAll());
 
     if (!values.has_value() || values->isEmpty()){
         throw qftbx::FileError("The frequencies file contains no valid values: "

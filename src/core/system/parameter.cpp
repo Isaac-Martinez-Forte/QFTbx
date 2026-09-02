@@ -8,7 +8,7 @@ using namespace std;
 
 namespace qftbx {
 
-Parameter::Parameter(QString name, Range range, qreal nominal, QString exp)
+Parameter::Parameter(QString name, Range range, double nominal, QString exp)
 {
     m_name = name;
 
@@ -28,7 +28,7 @@ Parameter::Parameter(QString name, Range range, qreal nominal, QString exp)
     }
 }
 
-Parameter::Parameter(QString name, Range range, qreal nominal){
+Parameter::Parameter(QString name, Range range, double nominal){
     m_name = name;
 
     m_range = range.ordered();
@@ -56,7 +56,7 @@ Parameter::Parameter() {
    m_hasExpression = false;
 }
 
-Parameter::Parameter (qreal value){
+Parameter::Parameter (double value){
     m_nominal = value;
     m_name = QString::number(m_nominal);
     m_uncertain = false;
@@ -64,7 +64,7 @@ Parameter::Parameter (qreal value){
     m_expression = m_name;
 }
 
-Parameter::Parameter (QString name, qreal value){
+Parameter::Parameter (QString name, double value){
     m_nominal = value;
     m_name = name;
     m_uncertain = false;
@@ -111,10 +111,10 @@ Range Parameter::range(){
 //The reparametrisation applied to one value. It describes a real quantity, so
 //a complex result is a malformed expression rather than something to take the
 //real part of (the historical GetFloat() threw an untyped muParserX error).
-qreal Parameter::realValueOf(qreal value) const
+double Parameter::realValueOf(double value) const
 {
-    const std::complex<qreal> evaluated = qftbx::math::evaluateCached(
-            m_expression, {m_name}, {std::complex<qreal>(value, 0.0)});
+    const std::complex<double> evaluated = qftbx::math::evaluateCached(
+            m_expression, {m_name}, {std::complex<double>(value, 0.0)});
 
     if (evaluated.imag() != 0.0) {
         throw InvalidInput("the reparametrisation of \"" + m_name.toStdString()
@@ -124,7 +124,7 @@ qreal Parameter::realValueOf(qreal value) const
     return evaluated.real();
 }
 
-qreal Parameter::nominal(){
+double Parameter::nominal(){
 
     if (!m_uncertain){
         return m_nominal;
@@ -145,7 +145,7 @@ void Parameter::setRange(Range range){
     m_range = range;
 }
 
-void Parameter::setNominal(qreal nominal){
+void Parameter::setNominal(double nominal){
     m_nominal = nominal;
 }
 
@@ -157,7 +157,7 @@ Range Parameter::rawRange(){
     return m_range;
 }
 
-qreal Parameter::rawNominal(){
+double Parameter::rawNominal(){
     return m_nominal;
 }
 

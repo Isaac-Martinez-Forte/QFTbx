@@ -1,14 +1,15 @@
+#include <cstdint>
 #include "contour_tracer.h"
 
 namespace qftbx {
 
-ContourTracer::ContourTracer(qreal thresholdDb, const BoundarySheet & sheet){
+ContourTracer::ContourTracer(double thresholdDb, const BoundarySheet & sheet){
     m_thresholdDb = thresholdDb;
     m_sheet = &sheet;
 }
 
 #ifdef CUDA_AVAILABLE
-ContourTracer::ContourTracer(qreal thresholdDb, const float *sheet){
+ContourTracer::ContourTracer(double thresholdDb, const float *sheet){
     m_thresholdDb = thresholdDb;
     m_cudaSheet = sheet;
 }
@@ -20,24 +21,24 @@ ContourTracer::ContourTracer(qreal thresholdDb, const float *sheet){
 //magnitude TOP (index * span - top) and the phase span, which only equals
 //the bottom on grids symmetric around zero / ending at zero: any other
 //grid produced boundaries shifted by (top - |bottom|).
-TraceSet ContourTracer::trace(qreal phaseSpan, qreal magnitudeSpan,
-                                                     qreal phaseBottom, qreal magnitudeBottom)
+TraceSet ContourTracer::trace(double phaseSpan, double magnitudeSpan,
+                                                     double phaseBottom, double magnitudeBottom)
 {
 
-    qint32 width = static_cast<qint32>(m_sheet->at(0).size());
-    qint32 height = static_cast<qint32>(m_sheet->size());
-    qreal threshold = m_thresholdDb;
+    std::int32_t width = static_cast<std::int32_t>(m_sheet->at(0).size());
+    std::int32_t height = static_cast<std::int32_t>(m_sheet->size());
+    double threshold = m_thresholdDb;
 
-    qint32 phaseCells = width - 1;
-    qint32 magnitudeCells = height - 1;
+    std::int32_t phaseCells = width - 1;
+    std::int32_t magnitudeCells = height - 1;
 
     QVector <bool> visited ((width + 1) * (height + 1), false);
 
     TraceSet traces;
 
     // We look for pixels contained in a connected set (gray-level value >= threshold) in the image
-    for (qint32 column = 1; column < width-1; column++){
-        for (qint32 row = 1; row < height-1; row++)
+    for (std::int32_t column = 1; column < width-1; column++){
+        for (std::int32_t row = 1; row < height-1; row++)
         {
 
             if ((m_sheet->at(static_cast<std::size_t>(row)).at(static_cast<std::size_t>(column)) >= threshold) && (!visited.at(row * width + column))){
@@ -45,18 +46,18 @@ TraceSet ContourTracer::trace(qreal phaseSpan, qreal magnitudeSpan,
                 Trace trace;
 
 
-                qint32 currentX = column;
-                qint32 currentY = row;
+                std::int32_t currentX = column;
+                std::int32_t currentY = row;
 
-                qint32 advanced = 0;
+                std::int32_t advanced = 0;
 
-                qint32 x,y;
+                std::int32_t x,y;
 
                 while (true){
 
                     advanced = 0;
 
-                    for (qint32 i = 15; i>7; i--)
+                    for (std::int32_t i = 15; i>7; i--)
                     {
                         x =  currentX + kNeighbourX[i % 8];
                         y =  currentY + kNeighbourY[i % 8];
@@ -109,12 +110,12 @@ TraceSet ContourTracer::trace(qreal phaseSpan, qreal magnitudeSpan,
 
 
 #ifdef CUDA_AVAILABLE
-TraceSet ContourTracer::trace(qreal phaseSpan, qreal phaseCount, qreal magnitudeSpan,
-                                                     qreal magnitudeCount, qreal phaseBottom, qreal magnitudeBottom){
+TraceSet ContourTracer::trace(double phaseSpan, double phaseCount, double magnitudeSpan,
+                                                     double magnitudeCount, double phaseBottom, double magnitudeBottom){
 
-    qint32 width = phaseCount;
-    qint32 height = magnitudeCount;
-    qreal threshold = m_thresholdDb;
+    std::int32_t width = phaseCount;
+    std::int32_t height = magnitudeCount;
+    double threshold = m_thresholdDb;
     phaseCount--;
     magnitudeCount--;
 
@@ -124,8 +125,8 @@ TraceSet ContourTracer::trace(qreal phaseSpan, qreal phaseCount, qreal magnitude
     TraceSet traces;
 
     // We look for pixels contained in a connected set (gray-level value >= threshold) in the image
-    for (qint32 column = 1; column < width-1; column++){
-        for (qint32 row = 1; row < height-1; row++)
+    for (std::int32_t column = 1; column < width-1; column++){
+        for (std::int32_t row = 1; row < height-1; row++)
         {
 
             if ((m_cudaSheet[column * height + row] >= threshold) && (!visited.at(row * width + column))){
@@ -133,18 +134,18 @@ TraceSet ContourTracer::trace(qreal phaseSpan, qreal phaseCount, qreal magnitude
                 Trace trace;
 
 
-                qint32 currentX = column;
-                qint32 currentY = row;
+                std::int32_t currentX = column;
+                std::int32_t currentY = row;
 
-                qint32 advanced = 0;
+                std::int32_t advanced = 0;
 
-                qint32 x,y;
+                std::int32_t x,y;
 
                 while (true){
 
                     advanced = 0;
 
-                    for (qint32 i = 15; i>7; i--)
+                    for (std::int32_t i = 15; i>7; i--)
                     {
                         x =  currentX + kNeighbourX[i % 8];
                         y =  currentY + kNeighbourY[i % 8];
@@ -181,16 +182,16 @@ TraceSet ContourTracer::trace(qreal phaseSpan, qreal phaseCount, qreal magnitude
                     Trace retrace;
 
 
-                    qint32 retraceX = column;
-                    qint32 retraceY = row;
+                    std::int32_t retraceX = column;
+                    std::int32_t retraceY = row;
 
-                    qint32 readvanced = 0;
+                    std::int32_t readvanced = 0;
 
                     while (true){
 
                         readvanced = 0;
 
-                        for (qint32 i = 0; i<8; i++)
+                        for (std::int32_t i = 0; i<8; i++)
                         {
                             x =  retraceX + kNeighbourX[i];
                             y =  retraceY + kNeighbourY[i];

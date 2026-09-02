@@ -30,8 +30,8 @@ Parameter & TransferFunction::delay() {
     return m_delay;
 }
 
-std::complex <qreal> TransferFunction::evaluate(QVector <qreal> * numerator, QVector <qreal> * denominator,
-        qreal k, qreal delay, qreal omega) {
+std::complex <double> TransferFunction::evaluate(QVector <double> * numerator, QVector <double> * denominator,
+        double k, double delay, double omega) {
     ParserX p(pckALL_COMPLEX);
 
     p.SetExpr(expression(numerator, denominator, k, delay, omega).toStdString());
@@ -44,9 +44,9 @@ namespace {
 //The nominal of every parameter, in order. Uncertain ones contribute their
 //nominal here exactly as they did through the parser, which bound each name
 //to its nominal before evaluating.
-std::vector<qreal> nominalsOf(std::vector<Parameter> & parameters)
+std::vector<double> nominalsOf(std::vector<Parameter> & parameters)
 {
-    std::vector<qreal> values;
+    std::vector<double> values;
     values.reserve(parameters.size());
 
     for (Parameter & parameter : parameters) {
@@ -58,19 +58,19 @@ std::vector<qreal> nominalsOf(std::vector<Parameter> & parameters)
 
 } // namespace
 
-std::complex <qreal> TransferFunction::evaluate(qreal w) {
+std::complex <double> TransferFunction::evaluate(double w) {
     //Direct complex arithmetic: see valueAt() in the header for what this
     //replaced and why.
     return valueAt(w, nominalsOf(m_numerator), nominalsOf(m_denominator),
                    m_gain.nominal(), m_delay.nominal());
 }
 
-QVector <std::complex <qreal> > TransferFunction::evaluate(const QVector <qreal> & omega) {
+QVector <std::complex <double> > TransferFunction::evaluate(const QVector <double> & omega) {
 
-    QVector <std::complex <qreal> > resultado;
+    QVector <std::complex <double> > resultado;
     resultado.reserve(omega.size());
 
-    foreach(qreal o, omega) {
+    foreach(double o, omega) {
         resultado.append(evaluate(o));
     }
 

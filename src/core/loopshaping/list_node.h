@@ -17,7 +17,7 @@ class ListNode {
 public:
     ListNode(){}
 
-    ListNode(qreal index) {
+    ListNode(double index) {
         this->index = index;
     }
 
@@ -25,12 +25,12 @@ public:
     //drains its leftovers on destruction).
     virtual ~ListNode() {}
 
-    qreal getIndex() const
+    double getIndex() const
     {
         return index;
     }
 
-    void setIndex(const qreal &value)
+    void setIndex(const double &value)
     {
         index = value;
     }
@@ -38,7 +38,7 @@ public:
 protected:
     //Initialised: OrderedList orders by this, and the default constructor
     //left it indeterminate.
-    qreal index = 0.0;
+    double index = 0.0;
 
 };
 

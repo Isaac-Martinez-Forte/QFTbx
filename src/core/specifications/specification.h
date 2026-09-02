@@ -14,10 +14,10 @@
 namespace qftbx {
 
 /// dB -> linear magnitude.
-inline qreal dbToLinear(qreal db) { return std::pow(10.0, db / 20.0); }
+inline double dbToLinear(double db) { return std::pow(10.0, db / 20.0); }
 
 /// Linear magnitude -> dB.
-inline qreal linearToDb(qreal linear) { return 20.0 * std::log10(linear); }
+inline double linearToDb(double linear) { return 20.0 * std::log10(linear); }
 
 /**
  * @brief The seven QFT specification slots, in the order they have always
@@ -93,8 +93,8 @@ public:
     }
 
     /// Constant bound; magnitude in linear units (not dB), > 0.
-    static Specification constant(SpecificationType type, qreal magnitude,
-                                  qreal minFrequency, qreal maxFrequency)
+    static Specification constant(SpecificationType type, double magnitude,
+                                  double minFrequency, double maxFrequency)
     {
         if (!(magnitude > 0.0) || !std::isfinite(magnitude)) {
             throw InvalidInput("A constant specification needs a finite magnitude > 0.");
@@ -113,7 +113,7 @@ public:
     /// Bound given by a transfer function, which the specification takes over.
     static Specification fromSystem(SpecificationType type,
                                     std::unique_ptr<LtiSystem> system,
-                                    qreal minFrequency, qreal maxFrequency)
+                                    double minFrequency, double maxFrequency)
     {
         if (system == nullptr) {
             throw InvalidInput("A system specification needs a non-null plant.");
@@ -161,7 +161,7 @@ public:
      * Constant: 20*log10(magnitude), omega is ignored. System:
      * 20*log10(|H(j*omega)|).
      */
-    qreal boundDb(qreal omega) const
+    double boundDb(double omega) const
     {
         if (m_constant) {
             return 20.0 * std::log10(m_magnitude);
@@ -170,7 +170,7 @@ public:
     }
 
     /// used() and minFrequency <= omega <= maxFrequency (closed interval).
-    bool appliesAt(qreal omega) const
+    bool appliesAt(double omega) const
     {
         return m_used && m_minFrequency <= omega && omega <= m_maxFrequency;
     }
@@ -185,16 +185,16 @@ public:
 
     const LtiSystem* system() const { return m_system.get(); }
 
-    qreal magnitude() const { return m_magnitude; }
+    double magnitude() const { return m_magnitude; }
 
-    qreal minFrequency() const { return m_minFrequency; }
+    double minFrequency() const { return m_minFrequency; }
 
-    qreal maxFrequency() const { return m_maxFrequency; }
+    double maxFrequency() const { return m_maxFrequency; }
 
 private:
     explicit Specification(SpecificationType type) : m_type(type) {}
 
-    static void validateBand(qreal minFrequency, qreal maxFrequency)
+    static void validateBand(double minFrequency, double maxFrequency)
     {
         if (!std::isfinite(minFrequency) || !std::isfinite(maxFrequency) ||
             minFrequency < 0.0 || maxFrequency < minFrequency) {
@@ -205,9 +205,9 @@ private:
     SpecificationType m_type = SpecificationType::TrackingLower;
     bool m_used = false;
     bool m_constant = false;
-    qreal m_magnitude = 0.0;
-    qreal m_minFrequency = 0.0;
-    qreal m_maxFrequency = 0.0;
+    double m_magnitude = 0.0;
+    double m_minFrequency = 0.0;
+    double m_maxFrequency = 0.0;
     std::unique_ptr<LtiSystem> m_system;
 };
 
@@ -242,7 +242,7 @@ public:
      * tracking boundary cuts at. Centralises the sign that three consumers
      * computed as b-a and one, wrongly, as a-b.
      */
-    qreal trackingSpreadDb(qreal omega) const
+    double trackingSpreadDb(double omega) const
     {
         return at(SpecificationType::TrackingUpper).boundDb(omega) -
                at(SpecificationType::TrackingLower).boundDb(omega);
