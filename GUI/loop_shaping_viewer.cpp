@@ -171,18 +171,12 @@ void LoopShapingViewer::showDiagram(){
     QVector <qreal> ejeyActual;
 
 
-    std::complex <qreal> c = plant->evaluate(frequencies.at(0)) * loopShapingData->controller()->evaluate(frequencies.at(0));
-
-    qreal fas = arg(c) *180 / M_PI;
-    qreal mag = 20*log10(abs(c));
-    if (fas > 0)
-        fas -= 360;
-
-     ejexActual.append(fas);
-     ejeyActual.append(mag);
-
-     qreal previousPhase = fas;
-
+    //The first sample only seeds the phase comparison, so it is taken
+    //inside the loop: it used to be computed before it as well, which put
+    //the first frequency in the curve TWICE, and read frequencies.at(0)
+    //without knowing there was one.
+    qreal previousPhase = 0.0;
+    bool firstSample = true;
 
     foreach (qreal a, frequencies) {
         std::complex <qreal> c = plant->evaluate(a) * loopShapingData->controller()->evaluate(a);
@@ -192,7 +186,7 @@ void LoopShapingViewer::showDiagram(){
         if (fas > 0)
             fas -= 360;
 
-        if (abs(fas - previousPhase) < 100) {
+        if (firstSample || abs(fas - previousPhase) < 100) {
             ejexActual.append(fas);
             ejeyActual.append(mag);
         } else {
@@ -224,6 +218,7 @@ void LoopShapingViewer::showDiagram(){
         }
 
         previousPhase = fas;
+        firstSample = false;
     }
 
     ejex.append(std::move(ejexActual));
