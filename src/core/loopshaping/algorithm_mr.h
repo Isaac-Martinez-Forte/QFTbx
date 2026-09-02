@@ -80,6 +80,11 @@ private:
     inline bool narrowToFixpoint(std::map<std::string, cxsc::interval> & domains);
     inline bool certainlyFeasible(std::map<std::string, cxsc::interval> & domains);
     inline void loadDomains(LtiSystem * box, std::map<std::string, cxsc::interval> & domains);
+
+    /// Degenerate domains at the corner pointFromBox() would take, so that
+    /// the point itself can be run through the constraint set.
+    inline void loadPointDomains(LtiSystem * box, bool lowerCorner,
+                                 std::map<std::string, cxsc::interval> & domains);
     inline std::unique_ptr<LtiSystem> boxFromDomains(LtiSystem * box,
                                       const std::map<std::string, cxsc::interval> & domains);
 

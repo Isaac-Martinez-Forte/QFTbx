@@ -267,8 +267,28 @@ bool AlgorithmMr::init_algorithm(){
         if (node->flag() == feasible || FC::isEpsilonSmall(
                     node->system(), epsilon, omega, conversion.get(), plantas_nominales)) {
 
-            controlador_retorno = pointFromBox(node->system(),
-                                                     node->flag() != ambiguous);
+            const bool lowerCorner = node->flag() != ambiguous;
+
+            //An epsilon-small box can still be AMBIGUOUS, and the point
+            //taken from one is certified by nothing: the box was neither
+            //proved feasible nor proved infeasible, and epsilon only says
+            //it is small. The paper picks the minimum-gain controller out
+            //of the FEASIBLE set, so a point that misses the constraint
+            //set has to be dropped rather than reported. This is not
+            //hypothetical: on the design example of the paper itself
+            //(FDA-10 sec. 5, Example 5.1) the point of such a box missed
+            //the robust stability margin by a factor of three, and nothing
+            //said so. The check is the same constraint set the boxes are
+            //judged by, evaluated on degenerate intervals, so it is
+            //rigorous rather than a floating-point opinion. A feasible box
+            //passes it by inclusion monotonicity.
+            std::map<std::string, cxsc::interval> point;
+            loadPointDomains(node->system(), lowerCorner, point);
+            if (!certainlyFeasible(point)) {
+                continue;
+            }
+
+            controlador_retorno = pointFromBox(node->system(), lowerCorner);
 
             //Every returned point must be nominally stabilising.
             if (!stability->isNominallyStable(controlador_retorno.get())) {
@@ -384,6 +404,33 @@ inline void AlgorithmMr::loadDomains(LtiSystem * box,
         load(var);
     }
     load(box->gain());
+}
+
+
+//The corner rule of pointFromBox(), as degenerate domains: the same
+//parameter names the constraint expressions are written in, so that the
+//candidate point can be evaluated by the same trees.
+inline void AlgorithmMr::loadPointDomains(LtiSystem * box, bool lowerCorner,
+                                          std::map<std::string, cxsc::interval> & domains){
+
+    domains.clear();
+
+    const auto at = [&](Parameter & var, qreal value) {
+        if (var.isUncertain()) {
+            domains[var.name().toStdString()] = cxsc::interval(value, value);
+        }
+    };
+
+    for (Parameter & var : box->numerator()) {
+        at(var, lowerCorner ? var.range().min : var.range().max);
+    }
+
+    //Poles always take the lower corner: see pointFromBox().
+    for (Parameter & var : box->denominator()) {
+        at(var, var.range().min);
+    }
+
+    at(box->gain(), lowerCorner ? box->gain().range().min : box->gain().range().max);
 }
 
 

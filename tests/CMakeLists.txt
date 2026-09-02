@@ -17,6 +17,7 @@ add_executable(qftbx_tests
   backend/boundaries_golden_test.cpp
   backend/boundary_bucket_bounds_test.cpp
   backend/mc_thesis_strategies_test.cpp
+  backend/mr_article_validation_test.cpp
   backend/e_hull_test.cpp
   backend/templates_golden_test.cpp
   backend/templates_determinism_test.cpp
