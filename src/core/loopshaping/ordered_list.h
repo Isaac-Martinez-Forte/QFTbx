@@ -26,8 +26,20 @@
  * SearchNode, the box and its parameter vector), so this ceiling is about
  * 17 to 34 GB. It is deliberately far above the millions of nodes a normal
  * hard run reaches: it is there to catch a runaway search, not to cap a
- * legitimate one. LoopShaping reports the peak of every run, which is the
- * number to tune this against.
+ * legitimate one.
+ *
+ * NOT YET VALIDATED against a genuinely hard problem. Every fixture in the
+ * tree resolves early - peaks of 1 to 281 nodes, whatever the epsilon,
+ * because acc90 and planta1 both terminate on a certified feasible box
+ * before the accuracy matters - so this figure is reasoned from the
+ * measured node size, not confirmed by a run that approaches it. That is
+ * why LoopShaping reports the peak of every run next to the elapsed time:
+ * the peaks of the thesis benchmarks (the ones that take tens of minutes)
+ * are what to set this against.
+ *
+ * A caller that needs a different ceiling passes it to the OrderedList
+ * constructor; nothing plumbs it to the interface yet, which belongs with
+ * the deferred usability work.
  */
 inline constexpr std::size_t kDefaultMaxLiveNodes = 32000000;
 
