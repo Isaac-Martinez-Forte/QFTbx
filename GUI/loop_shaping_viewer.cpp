@@ -45,17 +45,18 @@ void LoopShapingViewer::clearDiagram(){
     //QCustomPlot owns the curves: clearPlottables frees them.
     ui->plot->clearPlottables();
 
-    //Whole frequency-box rows and the pointer containers: the row widgets
-    //used to pile up and the vectors leaked.
-    foreach (QCheckBox * che, *checkboxes) {
+    //Qt's own mechanism: destroying the row widget is how a widget leaves
+    //a layout, and it takes its checkbox with it. The row widgets used to
+    //pile up on every replot.
+    foreach (QCheckBox * che, checkboxes) {
         delete che->parentWidget();
     }
-    delete checkboxes;
-    checkboxes = nullptr;
+    checkboxes.clear();
 
-    delete curves;
-    curves = nullptr;
+    curves.clear();
 
+    //Also Qt's: a widget holds exactly one layout, so rebuilding the
+    //frequency box means destroying the one it has.
     delete colorsLayout;
     colorsLayout = nullptr;
 
@@ -106,8 +107,6 @@ void LoopShapingViewer::showDiagram(){
     clearDiagram();
 
     colorsLayout = new QVBoxLayout (frequenciesBox);
-    checkboxes = new QVector <QCheckBox *> ();
-    curves = new QVector <QCPCurve * > ();
 
 
     plotted = true;
@@ -124,24 +123,21 @@ void LoopShapingViewer::showDiagram(){
         contador++;
         rowColors.append(color);
 
-        QVector <qreal> * ejex = new QVector <qreal> ();
-        QVector <qreal> * ejey = new QVector <qreal> ();
+        QVector <qreal> ejex;
+        QVector <qreal> ejey;
 
         for (const QPointF & p : bound) {
-            ejex->append(p.x());
-            ejey->append(p.y());
+            ejex.append(p.x());
+            ejey.append(p.y());
         }
 
-        /*curves->append(ui->plot->addGraph());
+        /*curves.append(ui->plot->addGraph());
         ui->plot->graph(gainEdit)->setData(*ejex, *ejey);*/
 
         QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-        curva->setData(*ejex, *ejey);
+        curva->setData(ejex, ejey);
         curva->setPen(color);
-        curves->append(curva);
-
-        delete ejex;
-        delete ejey;
+        curves.append(curva);
 
         /*ui->plot->graph(gainEdit)->setPen(color);
         ui->plot->graph(gainEdit)->setLineStyle(QCPGraph::lsNone);
@@ -166,11 +162,13 @@ void LoopShapingViewer::showDiagram(){
 
     frequencies = tools::logspace(-5, 5, 10000);
 
-    QVector<QVector <qreal> *> * ejex = new QVector<QVector <qreal> *> ();
-    QVector<QVector <qreal> *> * ejey = new QVector<QVector <qreal> *> ();
+    //The open-loop curve, cut into segments wherever the phase wraps: by
+    //value, so a replot does not abandon them (they all used to be).
+    QVector<QVector <qreal> > ejex;
+    QVector<QVector <qreal> > ejey;
 
-    QVector <qreal> * ejexActual = new QVector <qreal> ();
-    QVector <qreal> * ejeyActual = new QVector <qreal> ();
+    QVector <qreal> ejexActual;
+    QVector <qreal> ejeyActual;
 
 
     std::complex <qreal> c = plant->evaluate(frequencies.at(0)) * loopShapingData->controller()->evaluate(frequencies.at(0));
@@ -180,8 +178,8 @@ void LoopShapingViewer::showDiagram(){
     if (fas > 0)
         fas -= 360;
 
-     ejexActual->append(fas);
-     ejeyActual->append(mag);
+     ejexActual.append(fas);
+     ejeyActual.append(mag);
 
      qreal previousPhase = fas;
 
@@ -195,41 +193,41 @@ void LoopShapingViewer::showDiagram(){
             fas -= 360;
 
         if (abs(fas - previousPhase) < 100) {
-            ejexActual->append(fas);
-            ejeyActual->append(mag);
+            ejexActual.append(fas);
+            ejeyActual.append(mag);
         } else {
 
             /*if (previousPhase < -100){
-                ejexActual->append(0);
-                ejeyActual->append(puntoYAnterior);
+                ejexActual.append(0);
+                ejeyActual.append(puntoYAnterior);
             } else {
-                ejexActual->append(-360);
-                ejeyActual->append(puntoYAnterior);
+                ejexActual.append(-360);
+                ejeyActual.append(puntoYAnterior);
             }*/
 
-            ejex->append(ejexActual);
-            ejey->append(ejeyActual);
+            ejex.append(std::move(ejexActual));
+            ejey.append(std::move(ejeyActual));
 
-            ejexActual = new QVector <qreal> ();
-            ejeyActual = new QVector <qreal> ();
+            ejexActual = QVector <qreal> ();
+            ejeyActual = QVector <qreal> ();
 
             /*if (fas > -100){
-                ejexActual->append(0);
-                ejeyActual->append(mag);
+                ejexActual.append(0);
+                ejeyActual.append(mag);
             } else {
-                ejexActual->append(-360);
-                ejeyActual->append(mag);
+                ejexActual.append(-360);
+                ejeyActual.append(mag);
             }*/
 
-            ejexActual->append(fas);
-            ejeyActual->append(mag);
+            ejexActual.append(fas);
+            ejeyActual.append(mag);
         }
 
         previousPhase = fas;
     }
 
-    ejex->append(ejexActual);
-    ejey->append(ejeyActual);
+    ejex.append(std::move(ejexActual));
+    ejey.append(std::move(ejeyActual));
 
 
     /*QCPGraph * gra = ui->plot->addGraph();
@@ -239,25 +237,13 @@ void LoopShapingViewer::showDiagram(){
     gra->setScatterStyle(QCPScatterStyle::ssCircle);
     gra->setLineStyle(QCPGraph::lsNone);*/
 
-    for (qint32 i = 0; i < ejex->size(); i++){
+    for (qint32 i = 0; i < ejex.size(); i++){
         QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-        curva->setData(*ejex->at(i), *ejey->at(i));
+        curva->setData(ejex.at(i), ejey.at(i));
         curva->setPen((QColor) Qt::black);
-        curves->append(curva);
+        curves.append(curva);
     }
 
-
-    //The loop segments are already copied into the curves: the vectors are
-    //freed (they all used to be abandoned on every replot), as is the sweep
-    //frequency vector.
-    foreach (QVector <qreal> * segment, *ejex) {
-        delete segment;
-    }
-    delete ejex;
-    foreach (QVector <qreal> * segment, *ejey) {
-        delete segment;
-    }
-    delete ejey;
 
 
     //Draw the marker for each design frequency.
@@ -292,11 +278,11 @@ void LoopShapingViewer::showDiagram(){
 }
 
 void LoopShapingViewer::applyCheckboxes(){
-    for (qint32 i = 0; i < checkboxes->size(); i++){
-        if (checkboxes->at(i)->checkState() == 0){
-            curves->at(i)->setVisible(false);
+    for (qint32 i = 0; i < checkboxes.size(); i++){
+        if (checkboxes.at(i)->checkState() == 0){
+            curves.at(i)->setVisible(false);
         }else {
-            curves->at(i)->setVisible(true);
+            curves.at(i)->setVisible(true);
         }
     }
     ui->plot->replot();
@@ -321,7 +307,7 @@ void LoopShapingViewer::addFrequencyRow(QColor color, qint32 pos){
     checkBox->setStyleSheet("color : " + color.name());
 
     colorsLayout->addWidget(widget);
-    checkboxes->append(checkBox);
+    checkboxes.append(checkBox);
     checkBox->setCheckState(Qt::Checked);
 
     connect(checkBox, SIGNAL (clicked()), this, SLOT (applyCheckboxes()));

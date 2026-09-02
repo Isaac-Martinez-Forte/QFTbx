@@ -151,7 +151,8 @@ private slots:
 private:
     std::unique_ptr<Ui::TemplateViewer> ui;
     bool plotted = false;
-    void plotLine(qint32 pos, QVector <QCPGraph *> * saveImage, QVector <qreal> * fas, QVector <qreal> * gan, bool tipo, bool visible, qint32 contador);
+    void plotLine(qint32 pos, QVector <QCPGraph *> & saveImage, const QVector <qreal> & fas,
+                  const QVector <qreal> & gan, bool tipo, bool visible, qint32 contador);
     void addFrequencyRow (QColor color, qint32 pos);
     void clearDiagram();
 
@@ -162,16 +163,20 @@ private:
     QVector <qreal> * omega;
     QVector <qreal> * epsilon;
 
-    QVector <QCPGraph * > * templateGraphs;
-    QVector <QCPGraph * > * contourGraphs;
+    //The graphs BELONG TO QCustomPlot, which frees them on clearGraphs():
+    //only these containers are the viewer's.
+    QVector <QCPGraph *> templateGraphs;
+    QVector <QCPGraph *> contourGraphs;
     QGroupBox * frequenciesBox;
-    QVector <QCheckBox *> * checkboxes;
-    QMap <qreal, QColor> * colorByFrequency;
+    //The controls of a frequency row belong to their container widget: the
+    //viewer deletes the rows, not these.
+    QVector <QCheckBox *> checkboxes;
+    QMap <qreal, QColor> colorByFrequency;
 
     ContourRecomputer recompute;
 
-    QVector <QLineEdit *> * epsilonEdits;
-    QVector <QSlider *> * epsilonSliders;
+    QVector <QLineEdit *> epsilonEdits;
+    QVector <QSlider *> epsilonSliders;
 
     bool templatesVisible;
     bool contourVisible;
@@ -179,7 +184,6 @@ private:
     QVBoxLayout * colorsLayout;
 
     bool plot;
-    bool colorsCreated;
 };
 
 #endif // QFTBX_TEMPLATE_VIEWER_H

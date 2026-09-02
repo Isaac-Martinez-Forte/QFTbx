@@ -19,7 +19,6 @@ TemplateViewer::TemplateViewer(QWidget *parent) :
 
     templatesVisible = false;
     contourVisible = true;
-    colorsCreated = false;
     setWindowTitle(tr("Templates"));
 
 
@@ -35,14 +34,9 @@ TemplateViewer::TemplateViewer(QWidget *parent) :
 
 TemplateViewer::~TemplateViewer()
 {
+    //The frequency box is parented to this widget, so Qt frees it, and the
+    //colour map is a member: there is nothing left to free by hand.
     clearDiagram();
-
-    if (colorsCreated){
-        delete colorByFrequency;
-    }
-
-    delete frequenciesBox;
-
 }
 
 void TemplateViewer::clearDiagram(){
@@ -58,25 +52,23 @@ void TemplateViewer::clearDiagram(){
     ui->plot->clearPlottables();
     templatesVisible = false;
 
-    //Every frequency-box row is freed WHOLE through its container widget
-    //(checkbox, slider and line edit are its children): the loose controls
-    //used to be deleted while the containers piled up in the layout on
-    //every replot. The pointer vectors leaked too.
-    foreach (QCheckBox * che, *checkboxes) {
+    //Qt's own mechanism, and the only reason there is a delete here: every
+    //frequency-box row is freed WHOLE through its container widget, whose
+    //children the checkbox, the slider and the line edit are. The loose
+    //controls used to be deleted while the containers piled up in the
+    //layout on every replot.
+    foreach (QCheckBox * che, checkboxes) {
         delete che->parentWidget();
     }
-    delete checkboxes;
-    checkboxes = nullptr;
-    delete epsilonEdits;
-    epsilonEdits = nullptr;
-    delete epsilonSliders;
-    epsilonSliders = nullptr;
+    checkboxes.clear();
+    epsilonEdits.clear();
+    epsilonSliders.clear();
 
-    delete contourGraphs;
-    contourGraphs = nullptr;
-    delete templateGraphs;
-    templateGraphs = nullptr;
+    contourGraphs.clear();
+    templateGraphs.clear();
 
+    //Also Qt's: a widget holds exactly one layout, so rebuilding the
+    //frequency box means destroying the one it has.
     delete colorsLayout;
     colorsLayout = nullptr;
 
@@ -88,13 +80,9 @@ void TemplateViewer::setDatos(const qftbx::CloudSet & templates,
                               QVector <qreal> * omega,
                               QVector <qreal> * epsilon){
 
-    if (colorsCreated){
-        //delete, not clear(): the previous map leaked on every recompute.
-        delete colorByFrequency;
-    }
-
-    colorByFrequency = new QMap <qreal, QColor> ();
-    colorsCreated = true;
+    //The map used to be replaced with a new/delete pair, and leaked on
+    //every recompute when the delete was forgotten.
+    colorByFrequency.clear();
 
     setTemplates(templates);
     setContour(contour);
@@ -104,7 +92,7 @@ void TemplateViewer::setDatos(const qftbx::CloudSet & templates,
     this->epsilon = epsilon;
 
     for (qint32 i = 0; i < omega->size(); i++){
-        colorByFrequency->insert(omega->at(i), tools::randomColor(i));
+        colorByFrequency.insert(omega->at(i), tools::randomColor(i));
     }
 }
 
@@ -142,15 +130,7 @@ void TemplateViewer::plotDiagram(bool plot){
 
     clearDiagram();
 
-    contourGraphs = new QVector <QCPGraph *> ();
-    templateGraphs = new QVector <QCPGraph *> ();
-
     colorsLayout = new QVBoxLayout (frequenciesBox);
-
-    checkboxes = new QVector <QCheckBox *> ();
-
-    epsilonEdits = new QVector <QLineEdit *> ();
-    epsilonSliders = new QVector <QSlider *> ();
 
     plotted = true;
     qint32 i = 0;
@@ -158,16 +138,16 @@ void TemplateViewer::plotDiagram(bool plot){
 
     if (templatesButton.empty())
         return;
-    templateGraphs->reserve(static_cast<qint32>(templatesButton.size()));
+    templateGraphs.reserve(static_cast<qint32>(templatesButton.size()));
 
     if (!contourButton.empty()){
-        contourGraphs->reserve(static_cast<qint32>(contourButton.size()));
+        contourGraphs.reserve(static_cast<qint32>(contourButton.size()));
         for (const qftbx::ComplexCloud & vector : contourButton) {
 
-            QVector <qreal> * fas = new QVector <qreal>();
-            fas->reserve(static_cast<qint32>(vector.size()));
-            QVector <qreal> * gan = new QVector <qreal> ();
-            gan->reserve(static_cast<qint32>(vector.size()));
+            QVector <qreal> fas;
+            fas.reserve(static_cast<qint32>(vector.size()));
+            QVector <qreal> gan;
+            gan.reserve(static_cast<qint32>(vector.size()));
 
             for (const std::complex <qreal> & complejo : vector) {
 
@@ -176,20 +156,18 @@ void TemplateViewer::plotDiagram(bool plot){
                     if (fase >= 0){
                         fase -= 360;
                     }
-                    fas->append(fase);
+                    fas.append(fase);
                     qreal mag = 20*log10(abs(complejo));
-                    gan->append(mag);
+                    gan.append(mag);
                 }else {
                     qreal fase = complejo.real();
-                    fas->append(fase);
-                    gan->append(complejo.imag());
+                    fas.append(fase);
+                    gan.append(complejo.imag());
                 }
             }
 
             plotLine(i,contourGraphs,fas, gan, true, true,counter);
 
-            delete fas;
-            delete gan;
             i++;
             counter++;
         }
@@ -200,10 +178,10 @@ void TemplateViewer::plotDiagram(bool plot){
 
     for (const qftbx::ComplexCloud & vector : templatesButton) {
 
-        QVector <qreal> * fas = new QVector <qreal>();
-        fas->reserve(static_cast<qint32>(vector.size()));
-        QVector <qreal> * gan = new QVector <qreal> ();
-        gan->reserve(static_cast<qint32>(vector.size()));
+        QVector <qreal> fas;
+        fas.reserve(static_cast<qint32>(vector.size()));
+        QVector <qreal> gan;
+        gan.reserve(static_cast<qint32>(vector.size()));
 
         for (const std::complex <qreal> & complejo : vector) {
 
@@ -212,19 +190,17 @@ void TemplateViewer::plotDiagram(bool plot){
                 if (fase >= 0){
                     fase -= 360;
                 }
-                fas->append(fase);
-                gan->append(20*log10(abs(complejo)));
+                fas.append(fase);
+                gan.append(20*log10(abs(complejo)));
             }else{
                 qreal fase = complejo.real();
-                fas->append(fase);
-                gan->append(complejo.imag());
+                fas.append(fase);
+                gan.append(complejo.imag());
             }
 
         }
 
         plotLine(i,templateGraphs, fas, gan, false, false, counter);
-        delete fas;
-        delete gan;
         i++;
         counter++;
     }
@@ -281,10 +257,11 @@ void TemplateViewer::plotDiagram(bool plot){
 
 }
 
-void TemplateViewer::plotLine(qint32 pos, QVector <QCPGraph *> * saveImage, QVector <qreal> * fas, QVector <qreal> * gan, bool tipo,
-                                bool visible, qint32 counter){
-    saveImage->append(ui->plot->addGraph());
-    ui->plot->graph(pos)->setData(*fas, *gan);
+void TemplateViewer::plotLine(qint32 pos, QVector <QCPGraph *> & saveImage,
+                              const QVector <qreal> & fas, const QVector <qreal> & gan,
+                              bool tipo, bool visible, qint32 counter){
+    saveImage.append(ui->plot->addGraph());
+    ui->plot->graph(pos)->setData(fas, gan);
 
     if (tipo){
         ui->plot->graph(pos)->setScatterStyle(QCPScatterStyle::ssNone);
@@ -296,10 +273,10 @@ void TemplateViewer::plotLine(qint32 pos, QVector <QCPGraph *> * saveImage, QVec
     QColor color;
 
     if (visible){
-        color = colorByFrequency->value(omega->at(counter));
+        color = colorByFrequency.value(omega->at(counter));
         addFrequencyRow(color, pos);
     }else{
-        color = colorByFrequency->value(omega->at(counter));
+        color = colorByFrequency.value(omega->at(counter));
     }
 
     ui->plot->graph(pos)->setPen(color);
@@ -342,7 +319,7 @@ void TemplateViewer::addFrequencyRow(QColor color, qint32 pos){
     check->setText(QString::number(omega->at(pos)));
     check->setStyleSheet("color : " + color.name());
 
-    checkboxes->append(check);
+    checkboxes.append(check);
     check->setCheckState(Qt::Checked);
     horizontalLayout->addWidget(check);
 
@@ -353,7 +330,7 @@ void TemplateViewer::addFrequencyRow(QColor color, qint32 pos){
     slider->setMaximum(epsilon->at(pos) * 10000);
     slider->setValue(epsilon->at(pos) * 1000);
 
-    epsilonSliders->append(slider);
+    epsilonSliders.append(slider);
     horizontalLayout->addWidget(slider);
 
 
@@ -363,7 +340,7 @@ void TemplateViewer::addFrequencyRow(QColor color, qint32 pos){
     linea->setObjectName(QString::fromUtf8("linea"));
     linea->setText(QString::number(epsilon->at(pos)));
 
-    epsilonEdits->append(linea);
+    epsilonEdits.append(linea);
     verticalLayout->addWidget(linea);
 
 
@@ -406,7 +383,7 @@ void TemplateViewer::on_templatesButton_clicked()
     else
         ui->templatesButton->setText(tr("Show\ntemplates"));
 
-    foreach (QCPGraph * parameter, *templateGraphs) {
+    foreach (QCPGraph * parameter, templateGraphs) {
         parameter->setVisible(templatesVisible);
     }
     ui->plot->replot();
@@ -421,24 +398,24 @@ void TemplateViewer::on_contourButton_clicked()
     else
         ui->contourButton->setText(tr("Show\ncontour"));
 
-    foreach (QCPGraph * parameter, *contourGraphs) {
+    foreach (QCPGraph * parameter, contourGraphs) {
         parameter->setVisible(contourVisible);
     }
     ui->plot->replot();
 }
 
 void TemplateViewer::syncSliders(){
-    for (qint32 i = 0; i < epsilonSliders->size(); i++){
-        epsilonEdits->at(i)->setText(QString::number(epsilonSliders->at(i)->value() / 1000.0));
+    for (qint32 i = 0; i < epsilonSliders.size(); i++){
+        epsilonEdits.at(i)->setText(QString::number(epsilonSliders.at(i)->value() / 1000.0));
     }
 }
 
 void TemplateViewer::applyCheckboxes(){
-    for (qint32 i = 0; i < checkboxes->size(); i++){
-        if (checkboxes->at(i)->checkState() == 0){
-            contourGraphs->at(i)->setVisible(false);
+    for (qint32 i = 0; i < checkboxes.size(); i++){
+        if (checkboxes.at(i)->checkState() == 0){
+            contourGraphs.at(i)->setVisible(false);
         }else {
-            contourGraphs->at(i)->setVisible(true);
+            contourGraphs.at(i)->setVisible(true);
         }
     }
     ui->plot->replot();
@@ -454,11 +431,11 @@ void TemplateViewer::on_recomputeButton_clicked()
     }
 
     QVector <qreal> epsilon;
-    epsilon.reserve(epsilonEdits->size());
+    epsilon.reserve(epsilonEdits.size());
 
-    for (qint32 i = 0; i < epsilonEdits->size(); i++) {
-        qreal pos = epsilonEdits->at(i)->text().toDouble();
-        epsilonSliders->at(i)->setValue(pos * 1000);
+    for (qint32 i = 0; i < epsilonEdits.size(); i++) {
+        qreal pos = epsilonEdits.at(i)->text().toDouble();
+        epsilonSliders.at(i)->setValue(pos * 1000);
         epsilon.append(pos);
     }
 

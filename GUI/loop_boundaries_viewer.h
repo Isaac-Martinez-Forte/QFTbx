@@ -51,9 +51,13 @@ private:
 
     bool plotted;
 
-    QVector <QCPCurve * > * curves;
+    //The curves BELONG TO QCustomPlot, which frees them on
+    //clearPlottables(): only the container is the viewer's.
+    QVector <QCPCurve *> curves;
     QGroupBox * frequenciesBox;
-    QVector <QCheckBox *> * checkboxes;
+    //The checkboxes belong to their row widget: the viewer deletes the
+    //rows, not these.
+    QVector <QCheckBox *> checkboxes;
     QMap <QString, QColor> * rowColors;
     QVBoxLayout * colorsLayout;
 
