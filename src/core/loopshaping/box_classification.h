@@ -5,13 +5,16 @@
 
 #include "src/core/math/sequence_vectors.h"
 
-//Result of classifying one projected Nichols box against the boundary
-//union at one design frequency (BoundaryViolationDetector): the
-//feasibility flag, the boundary extremes over the box's phase span
-//(indices 0-3: B_min/B_max in dB, C_min/C_max in degrees) and the corner
-//classifications that certify the cutting strips (bottom-left corner for
-//the bottom and left strips, top-right corner for the top and right
-//ones).
+/**
+ * @brief Result of classifying one projected Nichols box against the
+ * boundary union at one design frequency (BoundaryViolationDetector).
+ *
+ * Carries the feasibility flag, the boundary extremes over the box's
+ * phase span (indices 0-3: B_min/B_max in dB, C_min/C_max in degrees) and
+ * the corner classifications that certify the cutting strips: the
+ * bottom-left corner for the bottom and left strips, the top-right corner
+ * for the top and right ones.
+ */
 class BoxClassification
 {
 public:

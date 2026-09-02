@@ -4,6 +4,14 @@
 #include "QtCore"
 
 
+/**
+ * @brief Base of the live-list nodes: everything OrderedList holds is one
+ * of these, ordered by the index each node carries.
+ *
+ * The interface is deliberately thin - an index and a virtual destructor -
+ * because the list owns nodes through this base and each algorithm adds
+ * its own payload below it (SearchNode, McSearchNode).
+ */
 class ListNode {
 
 public:

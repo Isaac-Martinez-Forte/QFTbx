@@ -16,6 +16,14 @@ namespace Ui {
 class LoopShapingViewer;
 }
 
+/**
+ * @brief Shows the designed controller and its nominal loop transmission
+ * over the Nichols chart, against the boundaries it had to respect.
+ *
+ * The frequency sweep it plots over is fixed rather than taken from the
+ * user; the reasons, and where the answer lies, are recorded at the
+ * commented-out block in the implementation.
+ */
 class LoopShapingViewer : public QDialog
 {
     Q_OBJECT

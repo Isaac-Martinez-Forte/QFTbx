@@ -7,9 +7,12 @@
 
 #include "src/core/system/lti_system.h"
 
-//The outcome of a loop-shaping run: the computed controller plus the
-//frequency window and point count the viewer plots it over. It OWNS the
-//controller, and says so in the type.
+/**
+ * @brief The outcome of a loop-shaping run: the computed controller plus
+ * the frequency window and point count the viewer plots it over.
+ *
+ * It OWNS the controller, and says so in the type.
+ */
 class LoopShapingResult
 {
 public:

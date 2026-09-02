@@ -10,10 +10,14 @@
 #include "src/core/loopshaping/search_node.h"
 #include "src/core/loopshaping/stages.h"
 
-//Live-list node of algorithm MC (thesis): a SearchNode plus the node
-//history of thesis sec. 4.4.4 (execution stage, cut switch and the
-//design frequencies the node is certified feasible at). The node holds
-//its frequency map by value, so every child receives a copy for free.
+/**
+ * @brief Live-list node of algorithm MC (thesis): a SearchNode plus the
+ * node history of thesis sec. 4.4.4 - the execution stage, the cut switch
+ * and the design frequencies the node is certified feasible at.
+ *
+ * The node holds its frequency map by value, so every child of a
+ * bisection receives a copy for free.
+ */
 class McSearchNode : public SearchNode {
 
 public:

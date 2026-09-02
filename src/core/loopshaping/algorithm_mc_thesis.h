@@ -20,8 +20,11 @@
 
 #include "src/core/loopshaping/common_functions.h"
 
-/*
- * Algorithm MC of the QFTbx thesis (chapters 4 and 5): the NT/NK interval
+/**
+ * @brief Algorithm MC of the QFTbx thesis: the NT/NK branch & bound with
+ * every strategy of chapter 4.
+ *
+ * Thesis chapters 4 and 5: the NT/NK interval
  * branch & bound extended with every strategy of chapter 4, assembled as
  * the pseudocode of chapter 5 prescribes:
  *
@@ -72,12 +75,20 @@ class AlgorithmMcThesis
 {
 public:
 
-    //Runtime switches for the thesis strategies, replacing the historical
-    //compile-time defines (SACHIN/NAND/REC_*/MEJOR_K/BI_ARBOL/ETAPAS):
-    //the chapter-6 case studies exercise every improvement alone and in
-    //combination, so each one can be disabled independently without
-    //rebuilding. All enabled is the thesis MC; everything disabled is the
-    //bare branch & bound with area bisection.
+    /**
+     * @brief Runtime switches for the thesis strategies, replacing the
+     * historical compile-time defines
+     * (SACHIN, NAND, the REC_ family, MEJOR_K, BI_ARBOL, ETAPAS).
+     *
+     * The chapter-6 case studies exercise every improvement alone and in
+     * combination, so each one can be disabled independently without
+     * rebuilding. All enabled is the thesis MC; everything disabled is the
+     * bare branch & bound with area bisection. None of them changes the
+     * answer - each only discards boxes it has certified cannot hold a
+     * better one - which is what mc_thesis_strategies_test asserts. By
+     * decision they are not exposed in the interface: a user has no reason
+     * to disable a proof.
+     */
     struct Strategies {
         bool infeasibleMagnitude = true;  //QSInv, magnitude cuts (NK's QS)
         bool infeasiblePhase = true;      //QSInv, phase cuts (thesis 4.1.2)

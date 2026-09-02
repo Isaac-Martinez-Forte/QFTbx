@@ -16,6 +16,11 @@ namespace Ui {
 class BoundaryUnionViewer;
 }
 
+/**
+ * @brief Plots the union of the QFT boundaries of every specification, one
+ * curve per design frequency: the single set of bounds the loop shaping
+ * actually has to respect.
+ */
 class BoundaryUnionViewer : public QDialog
 {
     Q_OBJECT

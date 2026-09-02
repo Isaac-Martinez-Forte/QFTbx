@@ -19,8 +19,11 @@
 
 #include "src/core/loopshaping/common_functions.h"
 
-/*
- * Algorithm MR (Rambabu Kalla and Nataraj, "Synthesis of fractional-order
+/**
+ * @brief Algorithm MR: QFT synthesis as an interval constraint
+ * satisfaction problem, solved by branch & prune.
+ *
+ * Rambabu Kalla and Nataraj, "Synthesis of fractional-order
  * QFT controllers using interval constraint satisfaction technique",
  * FDA 2010): QFT synthesis as an interval constraint satisfaction
  * problem. The specifications translate into quadratic inequalities in

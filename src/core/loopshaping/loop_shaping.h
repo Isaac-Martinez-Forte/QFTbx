@@ -13,6 +13,15 @@
 #include "src/core/boundaries/boundary_data.h"
 
 
+/**
+ * @brief Facade over the five loop-shaping algorithms: picks one, runs it
+ * over the current problem, and hands back the controller it designed.
+ *
+ * The single point where the ownership of a designed system leaves the
+ * engine, and the only thing above it that knows there are five
+ * algorithms at all. What their shared epsilon argument measures is NOT
+ * shared - see run().
+ */
 class LoopShaping
 {
 public:

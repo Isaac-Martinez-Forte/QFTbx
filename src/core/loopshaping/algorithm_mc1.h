@@ -17,8 +17,11 @@
 
 #include "src/core/loopshaping/common_functions.h"
 
-/*
- * Algorithm MC (Martinez-Forte and Cervera, "Accelerated quantitative
+/**
+ * @brief Algorithm MC of the 2021 paper: the NT/NK branch & bound
+ * accelerated with the QS2 parameter box reduction.
+ *
+ * Martinez-Forte and Cervera, "Accelerated quantitative
  * feedback theory interval automatic loop shaping algorithm", Int. J.
  * Robust Nonlinear Control 31, 2021, DOI 10.1002/rnc.5499): the NT/NK
  * interval branch & bound accelerated with the QS2 parameter box

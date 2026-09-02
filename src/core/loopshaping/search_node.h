@@ -7,13 +7,17 @@
 #include "src/core/system/lti_system.h"
 #include "list_node.h"
 
-//Live-list node of the interval branch & bound: the controller parameter
-//box, its objective infimum (the list index, inherited from ListNode) and
-//its feasibility flag. THE NODE OWNS ITS BOX, and says so in the type:
-//children of a bisection are always deep copies, so no two nodes ever
-//share one. The historical node held a raw pointer plus two flags
-//(noBorrar/noBorrar2) that told its destructor how much of the box to
-//free, because the box shared its parameter vectors with its parent.
+/**
+ * @brief Live-list node of the interval branch & bound: a controller
+ * parameter box, its objective infimum (the list index, inherited from
+ * ListNode) and its feasibility flag.
+ *
+ * The node OWNS its box, and says so in the type: the children of a
+ * bisection are always deep copies, so no two nodes ever share one. The
+ * historical node held a raw pointer plus two flags (noBorrar/noBorrar2)
+ * that told its destructor how much of the box to free, because the box
+ * shared its parameter vectors with its parent.
+ */
 class SearchNode : public ListNode {
 
 public:

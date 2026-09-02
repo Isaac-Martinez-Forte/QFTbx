@@ -4,9 +4,12 @@
 #include <QColor>
 #include <Qt>
 
-//Series palette for the plots, moved out of the backend (tools.h).
-//Fixed while moving: index 3 used to fall through to the default colour and
-//darkYellow appeared twice (two series painted alike).
+/**
+ * @brief Series palette for the plots, moved out of the backend (tools.h).
+ *
+ * Fixed while moving: index 3 used to fall through to the default colour,
+ * and darkYellow appeared twice, so two series were painted alike.
+ */
 namespace tools {
 
 inline QColor randomColor (qint32 i){

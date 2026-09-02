@@ -18,8 +18,8 @@ BoundaryViewer::BoundaryViewer(QWidget *parent) :
     frequenciesBox->setObjectName("frequenciesBox");
     frequenciesBox->setGeometry(QRect(660, 0, 141, 461));
 
-    //Ejes secundarios espejados: conectados UNA vez (cada repintado anadia
-    //una conexion duplicada).
+    //Mirrored secondary axes, connected ONCE: every repaint used to add a
+    //duplicate connection.
     connect(ui->plot->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->xAxis2, SLOT(setRange(QCPRange)));
     connect(ui->plot->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->yAxis2, SLOT(setRange(QCPRange)));
 }

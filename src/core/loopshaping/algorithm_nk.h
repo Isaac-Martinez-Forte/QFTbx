@@ -16,8 +16,11 @@
 
 #include "src/core/loopshaping/common_functions.h"
 
-/*
- * Algorithm NK (Paluri/Nataraj and Kubal, "Automatic loop shaping in QFT
+/**
+ * @brief Algorithm NK: the NT branch & bound with Quick Solution cuts,
+ * local optimisation and constraint propagation.
+ *
+ * Paluri/Nataraj and Kubal, "Automatic loop shaping in QFT
  * using hybrid optimization and constraint propagation techniques",
  * Int. J. Robust Nonlinear Control 17:251-264, 2007): the NT branch &
  * bound extended with

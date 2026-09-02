@@ -49,7 +49,7 @@ bool TemplateEngine::compute(LtiSystem *plant, QVector<qreal> *omega, bool cuda)
 
     m_clouds = computeClouds(plant, omega);
 
-    qDebug() << "Calcular plantilla: " << timer.elapsed() << "milliseconds";
+    qDebug() << "Templates: " << timer.elapsed() << "milliseconds";
 
 
     if (m_clouds.empty()){
@@ -65,7 +65,7 @@ bool TemplateEngine::compute(LtiSystem *plant, QVector<qreal> *omega, bool cuda)
     //owned.
     const bool result = computeContourSet(cuda);
 
-    qDebug() << "Calcular contorno: " << timer2.elapsed() << "milliseconds";
+    qDebug() << "Contours: " << timer2.elapsed() << "milliseconds";
 
     return result;
 
@@ -86,7 +86,7 @@ bool TemplateEngine::computeContours(QVector<qreal> epsilon){
 
     bool result = computeContourSet(m_useCuda);
 
-    qDebug() << "Calcular contorno: " << timer.elapsed() << "milliseconds";
+    qDebug() << "Contours: " << timer.elapsed() << "milliseconds";
 
     return result;
 }
@@ -630,16 +630,16 @@ qint32 TemplateEngine::findSecond(qint32 b1, const ComplexCloud & cv, qreal epsi
 
     qreal fas = 0;
 
-    for (qint32 i = 0; i < static_cast<qint32>(cv.size()); i++){    //recorremos todo el vector de puntos.
+    for (qint32 i = 0; i < static_cast<qint32>(cv.size()); i++){    //every point of the cloud.
 
         candidate = cv.at(i);
-        dist = abs(firstPoint - candidate); //calculamos el valor absoluto de la resta.
+        dist = abs(firstPoint - candidate); //distance to the starting point.
 
         if (dist > 0 && dist <= epsilon){    //candidates within epsilon.
 
             fas = arg (candidate - firstPoint); //phase of the difference
 
-            if (fas < 0)        // si dicha fase es menor que cero le sumamos 2*PI
+            if (fas < 0)        //brought into [0, 2*PI)
                 fas += 2 * M_PI;
 
             //subtract from the phase the arccosine of distance over epsilon.
@@ -650,7 +650,7 @@ qint32 TemplateEngine::findSecond(qint32 b1, const ComplexCloud & cv, qreal epsi
                 pmin = i;
                 dmax = dist;
 
-            }else if (fas == fmin && dist > dmax){ //si son iguales guardamos aquella que su distancia sea mayor.
+            }else if (fas == fmin && dist > dmax){ //on a tie, keep the farthest.
                 pmin = i;
                 dmax = dist;
             }
@@ -686,28 +686,29 @@ qint32 TemplateEngine::findNext(qint32 previousPoint, qint32 currentPoint,
     for (qint32 i = 0; i < static_cast<qint32>(cv.size()); i++){
 
         candidate = cv.at(i);
-        distance = abs(candidate - current); //Calculamos el valor absoluto de la distancia del punto al punto current.
+        distance = abs(candidate - current); //distance to the current point.
 
 
-        //Candidatos: todo punto a distancia (0, epsilon] del actual, INCLUIDO
-        //el anterior (en EPSHULL.M su exclusion esta deliberadamente
-        //comentada): entra por el caso fas==0 y es lo que permite volver
-        //atras por puas y ramas finas del template. La variante relajada
-        //historica lo excluye.
+        //Candidates: every point at a distance in (0, epsilon] of the
+        //current one, INCLUDING the previous one - its exclusion is
+        //deliberately commented out in EPSHULL.M. It comes in through the
+        //phase == 0 case, and it is what lets the walk go back along the
+        //spikes and the thin branches of a template. The relaxed
+        //historical variant excludes it.
         if (distance > 0 && distance <= epsilon &&
                 !(excludePrevious && (candidate == previous || candidate == current))){
 
             //--------------------------------------------
 
-            //calculamos la fase entre los dos puntos normalizada.
+            //phase between the two points, normalised by the incoming leg.
             phase = arg((candidate - current) / (previous - current));
 
-            if(phase < 0) // si es menor que cero le sumamos 2*PI.
+            if(phase < 0) //brought into [0, 2*PI)
                 phase +=  2 * M_PI;
 
             //------------------------------------------------------------
 
-            aco1 = qAcos(distance / epsilon );  //calculamos la arcosecante de dicho valor absoluto
+            aco1 = qAcos(distance / epsilon );  //half-angle subtended by the step
 
             //------------------------------------------------------------
 
@@ -719,14 +720,14 @@ qint32 TemplateEngine::findNext(qint32 previousPoint, qint32 currentPoint,
                 psi = phase - aco1 - aco2;
             }
 
-            if (psi < 0)                   // Si alguno es negativo se sumamos 2*PI
+            if (psi < 0)                   //brought into [0, 2*PI)
                 psi +=  2 * M_PI;
 
             //------------------------------------------------------------
 
-            if (psi < psiMin) {       //keep the minimum psi
-                psiMin = psi;         //como puede haber iguales nos quedamos con el de la
-                bestIndex = i;                   //distancia mas grande.
+            if (psi < psiMin) {       //keep the minimum psi, and on a tie
+                psiMin = psi;         //the farthest candidate: ties are
+                bestIndex = i;        //possible and the longer step wins.
                 dmax = distance;
             }else if (psi == psiMin &&
                       (distance > dmax)){

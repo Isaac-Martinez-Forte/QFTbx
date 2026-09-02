@@ -1008,12 +1008,12 @@ y modificando el 'enun type_node' y la función 'eval_tree(..)' */
             {
                 node = std::make_unique<exp_node>();
                 node->type = pila_op.top();
-                if (node->type  < SIN) // si es un operador binario
+                if (node->type  < SIN) // a binary operator
                 {
                     node->rigth = std::move(pila_nod.top()); pila_nod.pop();
                     node->left = std::move(pila_nod.top()); pila_nod.pop();
                 }
-                else                   // si es unario
+                else                   // a unary one
                 {
                     node->left = std::move(pila_nod.top()); pila_nod.pop();
                     node->rigth = nullptr;
@@ -1024,7 +1024,7 @@ y modificando el 'enun type_node' y la función 'eval_tree(..)' */
             pila_op.pop(); // pop the PAR itself
             ++pos;
         }
-        else if (!pos && in_exp[pos] == '-' && isdigit(in_exp[pos+1]) ) // Ej. : "-34.89....." (constante negativa) Forma 1
+        else if (!pos && in_exp[pos] == '-' && isdigit(in_exp[pos+1]) ) // e.g. "-34.89...": a negative constant, form 1
         {
             node = std::make_unique<exp_node>();
             node->left = nullptr;
@@ -1042,7 +1042,7 @@ y modificando el 'enun type_node' y la función 'eval_tree(..)' */
             {
                 pos += 2;
                 while ( pos < len && isdigit(in_exp[pos]) ) ++pos;
-            } // se lee la constante completa
+            } // the whole constant has been read
 
             node->c_const = QString::fromUtf8(in_exp.substr(i, pos-i).c_str()).toDouble();
 
@@ -1096,7 +1096,7 @@ y modificando el 'enun type_node' y la función 'eval_tree(..)' */
 
             pila_nod.push(std::move(node));
         }
-        else if ( in_exp[pos] == 'E' || in_exp[pos] == 'P' ) // Las constantes PI y el numero E
+        else if ( in_exp[pos] == 'E' || in_exp[pos] == 'P' ) // the constants PI and E
         {
             node = std::make_unique<exp_node>();
             node->left = nullptr;
@@ -1135,9 +1135,9 @@ y modificando el 'enun type_node' y la función 'eval_tree(..)' */
             node->var = tmp_str;
             pila_nod.push(std::move(node));
         }
-        else if ( !pos && in_exp[pos] == '-' ) // Ej. : "-sin(.........." o "-x........" (- unario) Forma 1
+        else if ( !pos && in_exp[pos] == '-' ) // a leading unary minus, form 1:
         {                                      // an expression like "-sin(..." or "-x..."
-            node = std::make_unique<exp_node>();               // será tratada como "-1*sin(.........." y  "-1*x........"
+            node = std::make_unique<exp_node>();               // is treated as "-1*sin(..." and "-1*x.."
             node->type = CONS;
             node->left = nullptr;
             node->rigth = nullptr;
@@ -1164,9 +1164,9 @@ y modificando el 'enun type_node' y la función 'eval_tree(..)' */
             pila_op.push(MULT);
             ++pos;
         }
-        else if ( in_exp[pos] == '-' && in_exp[pos-1] == '(' ) // Ej. : "...(-sin..." o "...(-x..." (- unario) Forma 2
+        else if ( in_exp[pos] == '-' && in_exp[pos-1] == '(' ) // a unary minus after '(', form 2:
         {                                                      // an expression like "...(-sin..." or "...(-x..."
-            node = std::make_unique<exp_node>();                               // será tratada como "..(-1*sin...." y  "...(-1*x...."
+            node = std::make_unique<exp_node>();                               // is treated as "...(-1*sin..." and "...(-1*x.."
             node->type = CONS;
             node->left = nullptr;
             node->rigth = nullptr;

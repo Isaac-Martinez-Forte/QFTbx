@@ -13,6 +13,15 @@ namespace Ui {
 class LoopShapingDialog;
 }
 
+/**
+ * @brief Step 7 of the design: picks one of the five loop-shaping
+ * algorithms and the accuracy to run it to.
+ *
+ * What the accuracy measures depends on the algorithm chosen, because each
+ * follows the criterion of its own paper - see
+ * ProjectController::computeLoopShaping. The single field does not say so
+ * yet.
+ */
 class LoopShapingDialog : public QDialog
 {
     Q_OBJECT

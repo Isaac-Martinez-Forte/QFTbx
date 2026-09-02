@@ -23,30 +23,35 @@ using namespace cxsc;
 
 namespace FC {
 
-//The halves of a bisection belong to whoever receives them: each one is
-//either classified into the live list or dropped.
+/// The halves of a bisection belong to whoever receives them: each one is
+/// either classified into the live list or dropped.
 struct BisectionResult {
     std::unique_ptr<LtiSystem> v1;
     std::unique_ptr<LtiSystem> v2;
 };
 
-//The children of a bisection belong to whoever receives them: they are
-//either inserted in the live list or dropped, and the type says so.
+/// The children of a bisection belong to whoever receives them: they are
+/// either inserted in the live list or dropped, and the type says so.
 struct McBisectionResult {
     std::unique_ptr<McSearchNode> t1;
     std::unique_ptr<McSearchNode> t2;
 };
 
+/// Which plane a projection is asked for.
 enum diagrama {Nichol = false, Nyquist = true};
 
-//Extracts a point controller from a box. With x = true, the lower corner
-//of every parameter (a feasible box realises its optimum gain there).
-//With x = false, the corner that the monotonicity of the Nichols
-//projection makes feasible for an epsilon-small ambiguous box sitting on
-//a boundary whose allowed side is up (the anti-blocking rule, QFTbx
-//thesis sec. 3.1): maximum gain and zeros push the box up, but poles push
-//it DOWN, so poles take their minimum (the historical code took every
-//maximum, stepping AWAY from the allowed side in the pole directions).
+/**
+ * @brief Extracts a point controller from a box.
+ *
+ * @param x true takes the lower corner of every parameter, which is where
+ * a feasible box realises its optimum gain. false takes the corner that
+ * the monotonicity of the Nichols projection makes feasible for an
+ * epsilon-small ambiguous box sitting on a boundary whose allowed side is
+ * up (the anti-blocking rule, QFTbx thesis sec. 3.1): maximum gain and
+ * zeros push the box up, but poles push it DOWN, so poles take their
+ * minimum. The historical code took every maximum, stepping AWAY from the
+ * allowed side in the pole directions.
+ */
 inline std::unique_ptr<LtiSystem> pointFromBox(LtiSystem * controlador, bool x) {
 
     std::vector <Parameter> numerador;
@@ -77,6 +82,23 @@ inline std::unique_ptr<LtiSystem> pointFromBox(LtiSystem * controlador, bool x) 
                                Parameter(qreal(0)));
 }
 
+/**
+ * @brief Termination test of NT, NK, MC1 and MC: the box's Nichols
+ * rectangle is narrower than epsilon, in both coordinates, at EVERY
+ * design frequency.
+ *
+ * The four measure epsilon on the projection because that is where their
+ * papers place the accuracy: the answer they give is a loop transmission,
+ * and how well it is pinned down is a question about \f$ L_0 \f$, not
+ * about the parameters that produced it. MR is the exception and does not
+ * come through here - its paper solves a constraint satisfaction problem
+ * over the parameters and measures the accuracy there
+ * (AlgorithmMr::isParameterBoxSmall).
+ *
+ * One consequence worth keeping in mind: this criterion scales with
+ * \f$ |P| \f$, so the same number is far tighter on a plant with a large
+ * low-frequency gain than on one without.
+ */
 inline bool isEpsilonSmall(LtiSystem * controlador, qreal epsilon, QVector <qreal> * omega,
                             NaturalIntervalExtension *conversion,
                             const QVector <complex> & plantas_nominales) {
@@ -93,8 +115,14 @@ inline bool isEpsilonSmall(LtiSystem * controlador, qreal epsilon, QVector <qrea
     return true;
 }
 
-//Función que divide la caja en dos.
-
+/**
+ * @brief Bisects the box at the middle of its widest uncertain parameter.
+ *
+ * The direction that halves the largest remaining uncertainty is the one
+ * that makes the interval enclosure tightest fastest, which is why every
+ * one of the five algorithms branches this way by default (MC's tree
+ * bisection is the documented exception).
+ */
 inline BisectionResult bisectWidestParameter(LtiSystem * box) {
 
     //Widest uncertain parameter: -1 is the gain, then the numerator and
