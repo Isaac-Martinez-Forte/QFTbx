@@ -14,25 +14,6 @@
 using namespace tools;
 using namespace mup;
 
-namespace {
-
-//The three parallel parse tables are freed together (they used to be
-//abandoned with clear() or simply lost on the error paths).
-void releaseTables(QVector <QVector <QString> * > * valueTable,
-                   QVector <QVector <QString> * > * expressionTable,
-                   QVector <QVector <bool> * > * uncertainTable){
-    if (valueTable != nullptr){
-        qDeleteAll(*valueTable);
-        delete valueTable;
-    }
-    qDeleteAll(*expressionTable);
-    delete expressionTable;
-    qDeleteAll(*uncertainTable);
-    delete uncertainTable;
-}
-
-} // namespace
-
 ControllerDialog::ControllerDialog(QWidget *parent) :
     QDialog(parent),
     ui(std::make_unique<Ui::ControllerDialog>())
@@ -83,32 +64,27 @@ void ControllerDialog::on_tcgRadio_clicked()
 
 void ControllerDialog::on_uncertaintyButton_clicked()
 {
-    QVector <QVector <QString> * > * expressionTable  = new QVector <QVector <QString> * > ();
-    QVector <QVector <bool> * > *  uncertainTable = new QVector <QVector <bool> * >  ();
-    QVector <QVector <QString> * > * valueTable = readTables(expressionTable, uncertainTable);
+    CoefficientTable expressionTable;
+    UncertainTable uncertainTable;
+    std::optional<CoefficientTable> valueTable = readTables(expressionTable, uncertainTable);
 
-    if (valueTable == NULL){
-        qDeleteAll(*expressionTable);
-        delete expressionTable;
-        qDeleteAll(*uncertainTable);
-        delete uncertainTable;
+    if (!valueTable.has_value()){
         errorMessage(tr("There is an error in the controller data"), tr("Controller input"));
         return;
     }
 
-
-    //The tables become property of the uncertainty dialog.
-    uncertaintyDialog->launch(valueTable, expressionTable, uncertainTable, true);
+    uncertaintyDialog->launch(std::move(*valueTable), std::move(expressionTable),
+                              std::move(uncertainTable), true);
     uncertaintyDialog->show();
     uncertaintyEntered = true;
 }
 
-QVector<QVector <QString> * > * ControllerDialog::readTables(QVector <QVector <QString> * > * expressionTable,
-                                                            QVector <QVector <bool> * > * uncertainTable){
+std::optional<CoefficientTable> ControllerDialog::readTables(CoefficientTable & expressionTable,
+                                                             UncertainTable & uncertainTable){
 
     bool valid = true;
-    QVector <QVector <QString> * > * tables = new QVector <QVector <QString> * > ();
-    tables->reserve(4);
+    CoefficientTable tables;
+    tables.reserve(4);
 
     //&& on the RIGHT so every parse still runs and every problem is reported:
     //the results used to overwrite each other, so only the gain range decided.
@@ -123,29 +99,26 @@ QVector<QVector <QString> * > * ControllerDialog::readTables(QVector <QVector <Q
     }
 
     if (!valid){
-        qDeleteAll(*tables);
-        delete tables;
-        return NULL;
+        return std::nullopt;
     }
 
     return tables;
 }
 
-bool ControllerDialog::parseCoefficients(QVector<QVector <QString> * > * tabla, QLineEdit *linea,
-                                      QVector<QVector <QString> * > * expressionTable, QVector <QVector <bool> * > * uncertainTable){
+bool ControllerDialog::parseCoefficients(CoefficientTable & tabla, QLineEdit *linea,
+                                         CoefficientTable & expressionTable,
+                                         UncertainTable & uncertainTable){
 
-    //The coefficient tables still hold their rows as pointers, so the
-    //parsed tokens are handed to one: the dialogs are the next step.
-    QVector <QString> * vec1 = new QVector <QString> (qftbx::text::tokens(linea->text()));
-    QVector <QString> * vec = new QVector <QString> ();
-    QVector <bool> * vec2  = new QVector <bool> ();
+    CoefficientRow vec1 = qftbx::text::tokens(linea->text());
+    CoefficientRow vec;
+    UncertainRow vec2;
 
     if (linea->text().isEmpty()){
-        vec1->append("1");
-        vec2->append(false);
+        vec1.append("1");
+        vec2.append(false);
     } else{
 
-        foreach (QString e, *vec1) {
+        foreach (QString e, vec1) {
 
             QRegularExpression re("[a-zA-Z]+");
 
@@ -167,16 +140,11 @@ bool ControllerDialog::parseCoefficients(QVector<QVector <QString> * > * tabla, 
                     errorMessage(tr("\"%1\" cannot be used as a parameter name: "
                                     "the expression parser already defines it.").arg(capture),
                                  tr("Controller input"));
-                    //The three row vectors are still ours on this path.
-                    delete vec1;
-                    delete vec;
-                    delete vec2;
-
                     return false;
                 }
 
                 if (!p.IsFunDefined(capture.toStdString())){
-                    vec->append(capture);
+                    vec.append(capture);
                     capture = QString();
                     isUncertain = true;
                     break;
@@ -186,52 +154,54 @@ bool ControllerDialog::parseCoefficients(QVector<QVector <QString> * > * tabla, 
                 e.remove(capture);
             }
 
-            vec2->append(isUncertain);
+            vec2.append(isUncertain);
 
             if (!isUncertain){
-                vec->append(e);
+                vec.append(e);
             }
         }
     }
 
-    tabla->append(vec);
-    uncertainTable->append(vec2);
-    expressionTable->append(vec1);
+    tabla.append(vec);
+    uncertainTable.append(vec2);
+    expressionTable.append(vec1);
 
     return true;
 }
 
-bool ControllerDialog::parseGainRange(QVector<QVector <QString> * > * tabla, QLineEdit *linea1, QLineEdit * linea2,
-                                          QVector <QVector <QString> * > * expressionTable, QVector <QVector <bool> * > * uncertainTable){
+bool ControllerDialog::parseGainRange(CoefficientTable & tabla, QLineEdit *linea1, QLineEdit * linea2,
+                                      CoefficientTable & expressionTable,
+                                      UncertainTable & uncertainTable){
 
 
     QString aux = linea1->text().trimmed();
     QString aux1 = linea2->text().trimmed();
 
-    QVector <QString> * vec1 = new QVector <QString> ();
-    QVector <QString> * vec = new QVector <QString> ();
-    QVector <bool> * vec2 = new QVector <bool> ();
-    vec2->append(true);
+    CoefficientRow vec1;
+    CoefficientRow vec;
+    UncertainRow vec2;
+    vec2.append(true);
 
-    vec->append(aux);
-    vec->append(aux1);
+    vec.append(aux);
+    vec.append(aux1);
 
-    vec1->append(aux);
-    vec1->append(aux1);
+    vec1.append(aux);
+    vec1.append(aux1);
 
-    tabla->append(vec);
-    expressionTable->append(vec1);
-    uncertainTable->append(vec2);
+    tabla.append(vec);
+    expressionTable.append(vec1);
+    uncertainTable.append(vec2);
 
     return true;
 }
 
-bool ControllerDialog::parseFreeForm(QLineEdit * linea, QVector<QVector <QString> * > * tabla, QVector<QVector<QString> *> *expressionTable,
-                                         QVector <QVector <bool> * > * uncertainTable){
+bool ControllerDialog::parseFreeForm(QLineEdit * linea, CoefficientTable & tabla,
+                                     CoefficientTable & expressionTable,
+                                     UncertainTable & uncertainTable){
 
-    QVector <QString> * expressions = new QVector <QString> ();
-    QVector <QString> * values = new QVector <QString> ();
-    QVector <bool> * flags  = new QVector <bool> ();
+    CoefficientRow expressions;
+    CoefficientRow values;
+    UncertainRow flags;
 
     QString text = linea->text();
 
@@ -248,9 +218,9 @@ bool ControllerDialog::parseFreeForm(QLineEdit * linea, QVector<QVector <QString
 
         if (!p.IsFunDefined(capture.toStdString()) && capture != "s"){
 
-            expressions->append(capture);
-            values->append(capture);
-            flags->append(true);
+            expressions.append(capture);
+            values.append(capture);
+            flags.append(true);
 
             capture = QString();
         }
@@ -260,9 +230,9 @@ bool ControllerDialog::parseFreeForm(QLineEdit * linea, QVector<QVector <QString
     }
 
 
-    tabla->append(values);
-    expressionTable->append(expressions);
-    uncertainTable->append(flags);
+    tabla.append(values);
+    expressionTable.append(expressions);
+    uncertainTable.append(flags);
 
     return true;
 }
@@ -276,15 +246,11 @@ void ControllerDialog::on_cancelButton_clicked()
 void ControllerDialog::on_okButton_clicked()
 {
 
-    QVector <QVector <QString> * > * expressionTable = new QVector <QVector <QString> * > ();
-    QVector <QVector <bool> * > *  uncertainTable = new QVector <QVector <bool> * >  ();
-    QVector <QVector <QString> * > * valueTable = readTables(expressionTable, uncertainTable);
+    CoefficientTable expressionTable;
+    UncertainTable uncertainTable;
+    const std::optional<CoefficientTable> valueTable = readTables(expressionTable, uncertainTable);
 
-    if (valueTable == NULL){
-        qDeleteAll(*expressionTable);
-        delete expressionTable;
-        qDeleteAll(*uncertainTable);
-        delete uncertainTable;
+    if (!valueTable.has_value()){
         errorMessage(tr("There is an error in the controller data"), tr("Controller input"));
         return;
     }
@@ -296,15 +262,15 @@ void ControllerDialog::on_okButton_clicked()
     //User expressions: a syntax error used to throw and bring the
     //application down.
     try {
-        if (valueTable->at(2)->size() == 0){
+        if (valueTable->at(2).size() == 0){
             kv = Parameter(1);
         }else{
 
             Range range_point;
-            p.SetExpr(expressionTable->at(2)->at(0).toStdString());
+            p.SetExpr(expressionTable.at(2).at(0).toStdString());
             range_point.min = p.Eval().GetFloat();
 
-            p.SetExpr(expressionTable->at(2)->at(1).toStdString());
+            p.SetExpr(expressionTable.at(2).at(1).toStdString());
             range_point.max = p.Eval().GetFloat();
 
             if (range_point.min == range_point.max){
@@ -321,7 +287,6 @@ void ControllerDialog::on_okButton_clicked()
             }
         }
     } catch (mup::ParserError &) {
-        releaseTables(valueTable, expressionTable, uncertainTable);
         errorMessage(tr("There is an error in the controller data"), tr("Controller input"));
         return;
     }
@@ -355,7 +320,6 @@ void ControllerDialog::on_okButton_clicked()
         std::optional<std::vector<Parameter>> deno = buildParameters(valueTable->at(1));
 
         if (!nume.has_value() || !deno.has_value()){
-            releaseTables(valueTable, expressionTable, uncertainTable);
             errorMessage(tr("There is an error in the controller data"), tr("Controller input"));
             return;
         }
@@ -373,7 +337,6 @@ void ControllerDialog::on_okButton_clicked()
 
 
     }
-    releaseTables(valueTable, expressionTable, uncertainTable);
 
     todoCorrecto = true;
 
@@ -381,15 +344,15 @@ void ControllerDialog::on_okButton_clicked()
 }
 
 
-std::optional<std::vector<Parameter>> ControllerDialog::buildParameters(QVector <QString> * numeros){
+std::optional<std::vector<Parameter>> ControllerDialog::buildParameters(const CoefficientRow & numeros){
     std::vector<Parameter> var;
-    var.reserve(numeros->size());
+    var.reserve(numeros.size());
 
-    if (numeros->isEmpty()){
+    if (numeros.isEmpty()){
         return var;
     }
 
-    foreach (const QString &string, *numeros) {
+    foreach (const QString &string, numeros) {
         p.SetExpr(string.toStdString());
         try {
             var.push_back(Parameter(p.Eval().GetFloat()));

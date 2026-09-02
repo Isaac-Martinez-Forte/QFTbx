@@ -1,6 +1,8 @@
 #ifndef QFTBX_CONTROLLER_DIALOG_H
 #define QFTBX_CONTROLLER_DIALOG_H
 
+#include "GUI/coefficient_tables.h"
+
 #include <memory>
 
 #include <optional>
@@ -63,21 +65,22 @@ private:
 
     bool uncertaintyEntered;
 
-    QVector<QVector<QString> *> * readTables(QVector <QVector <QString> * > * expressionTable,
-                                            QVector <QVector <bool> * > * uncertainTable);
+    /// The coefficients of the described controller, or nothing when the
+    /// dialog could not read them (the caller reports it).
+    std::optional<CoefficientTable> readTables(CoefficientTable & expressionTable,
+                                               UncertainTable & uncertainTable);
     /// The coefficients of one polynomial, or nothing when any of them is
     /// not a valid expression. The invalid one used to become 0 in silence,
     /// which quietly designed a different controller.
-    std::optional<std::vector<Parameter>> buildParameters(QVector<QString> *numeros);
+    std::optional<std::vector<Parameter>> buildParameters(const CoefficientRow & numeros);
     bool parse(QString cadena);
-    bool parseCoefficients(QVector<QVector <QString> * > * tabla, QLineEdit *linea,
-                        QVector<QVector <QString> * > * expressionTable, QVector <QVector <bool> * > * uncertainTable);
-    bool parseGainRange(QVector<QVector <QString> * > * tabla, QLineEdit *linea1, QLineEdit *linea2,
-                            QVector <QVector <QString> * > * expressionTable, QVector <QVector <bool> * > * uncertainTable);
+    bool parseCoefficients(CoefficientTable & tabla, QLineEdit *linea,
+                           CoefficientTable & expressionTable, UncertainTable & uncertainTable);
+    bool parseGainRange(CoefficientTable & tabla, QLineEdit *linea1, QLineEdit *linea2,
+                        CoefficientTable & expressionTable, UncertainTable & uncertainTable);
 
-    bool parseFreeForm(QLineEdit * linea, QVector<QVector <QString> * > * tabla,
-                                             QVector<QVector<QString> *> *expressionTable,
-                                             QVector <QVector <bool> * > * uncertainTable);
+    bool parseFreeForm(QLineEdit * linea, CoefficientTable & tabla,
+                       CoefficientTable & expressionTable, UncertainTable & uncertainTable);
 
     qreal resultado;
     mup::ParserX p;

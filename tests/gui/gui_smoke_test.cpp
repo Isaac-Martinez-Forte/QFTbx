@@ -552,15 +552,9 @@ TEST_F(GuiSmoke, UncertaintyDialogBuildsAnUncertainParameter)
     //per uncertain name.
     UncertaintyDialog dialog;
 
-    auto * valueTable = new QVector<QVector<QString> *>{
-        new QVector<QString>{QStringLiteral("1")},
-        new QVector<QString>{QStringLiteral("a")}};
-    auto * expressionTable = new QVector<QVector<QString> *>{
-        new QVector<QString>{QStringLiteral("1")},
-        new QVector<QString>{QStringLiteral("a")}};
-    auto * uncertainTable = new QVector<QVector<bool> *>{
-        new QVector<bool>{false},
-        new QVector<bool>{true}};
+    const CoefficientTable valueTable{{QStringLiteral("1")}, {QStringLiteral("a")}};
+    const CoefficientTable expressionTable{{QStringLiteral("1")}, {QStringLiteral("a")}};
+    const UncertainTable uncertainTable{{false}, {true}};
 
     ASSERT_TRUE(dialog.launch(valueTable, expressionTable, uncertainTable, false));
 
@@ -604,15 +598,9 @@ TEST_F(GuiSmoke, UncertaintyDialogRejectsAnEmptyRange)
     //and refused, not turned into a parameter.
     UncertaintyDialog dialog;
 
-    auto * valueTable = new QVector<QVector<QString> *>{
-        new QVector<QString>{QStringLiteral("1")},
-        new QVector<QString>{QStringLiteral("a")}};
-    auto * expressionTable = new QVector<QVector<QString> *>{
-        new QVector<QString>{QStringLiteral("1")},
-        new QVector<QString>{QStringLiteral("a")}};
-    auto * uncertainTable = new QVector<QVector<bool> *>{
-        new QVector<bool>{false},
-        new QVector<bool>{true}};
+    const CoefficientTable valueTable{{QStringLiteral("1")}, {QStringLiteral("a")}};
+    const CoefficientTable expressionTable{{QStringLiteral("1")}, {QStringLiteral("a")}};
+    const UncertainTable uncertainTable{{false}, {true}};
 
     ASSERT_TRUE(dialog.launch(valueTable, expressionTable, uncertainTable, false));
 

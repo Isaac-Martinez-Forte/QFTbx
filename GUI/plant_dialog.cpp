@@ -12,26 +12,6 @@
 
 using namespace tools;
 
-namespace {
-
-//The three parallel parse tables (values, expressions, flags) are created
-//together and freed together. The error paths and accept itself used to
-//abandon them with clear().
-void releaseTables(QVector <QVector <QString> * > * valueTable,
-                   QVector <QVector <QString> * > * expressionTable,
-                   QVector <QVector <bool> * > * uncertainTable){
-    if (valueTable != nullptr){
-        qDeleteAll(*valueTable);
-        delete valueTable;
-    }
-    qDeleteAll(*expressionTable);
-    delete expressionTable;
-    qDeleteAll(*uncertainTable);
-    delete uncertainTable;
-}
-
-} // namespace
-
 PlantDialog::PlantDialog(QWidget *parent) :
     QDialog(parent),
     ui(std::make_unique<Ui::PlantDialog>())
@@ -139,21 +119,20 @@ void PlantDialog::on_polynomialRadio_toggled(bool checked)
         ui->formStack->setCurrentIndex(2);
 }
 
-bool PlantDialog::parseCoefficients(QVector<QVector <QString> * > * tabla, QLineEdit *linea,
-                                      QVector<QVector <QString> * > * expressionTable, QVector <QVector <bool> * > * uncertainTable){
+bool PlantDialog::parseCoefficients(CoefficientTable & tabla, QLineEdit *linea,
+                                    CoefficientTable & expressionTable,
+                                    UncertainTable & uncertainTable){
 
-    //The coefficient tables still hold their rows as pointers, so the
-    //parsed tokens are handed to one: the dialogs are the next step.
-    QVector <QString> * vec1 = new QVector <QString> (qftbx::text::tokens(linea->text()));
-    QVector <QString> * vec = new QVector <QString> ();
-    QVector <bool> * vec2  = new QVector <bool> ();
+    CoefficientRow vec1 = qftbx::text::tokens(linea->text());
+    CoefficientRow vec;
+    UncertainRow vec2;
 
     if (linea->text().isEmpty()){
-        vec1->append("1");
-        vec2->append(false);
+        vec1.append("1");
+        vec2.append(false);
     } else{
 
-        foreach (QString e, *vec1) {
+        foreach (QString e, vec1) {
 
             QRegularExpression re("[a-zA-Z]+");
 
@@ -175,16 +154,11 @@ bool PlantDialog::parseCoefficients(QVector<QVector <QString> * > * tabla, QLine
                     errorMessage(tr("\"%1\" cannot be used as a parameter name: "
                                     "the expression parser already defines it.").arg(capture),
                                  tr("Plant input"));
-                    //The three row vectors are still ours on this path.
-                    delete vec1;
-                    delete vec;
-                    delete vec2;
-
                     return false;
                 }
 
                 if (!p.IsFunDefined(capture.toStdString())){
-                    vec->append(capture);
+                    vec.append(capture);
                     capture = QString();
                     isUncertain = true;
                     break;
@@ -194,31 +168,32 @@ bool PlantDialog::parseCoefficients(QVector<QVector <QString> * > * tabla, QLine
                 e.remove(capture);
             }
 
-            vec2->append(isUncertain);
+            vec2.append(isUncertain);
 
             if (!isUncertain){
-                vec->append(e);
+                vec.append(e);
             }
         }
     }
 
-    tabla->append(vec);
-    uncertainTable->append(vec2);
-    expressionTable->append(vec1);
+    tabla.append(vec);
+    uncertainTable.append(vec2);
+    expressionTable.append(vec1);
 
     return true;
 }
 
-bool PlantDialog::parseScalar(QVector<QVector <QString> * > * tabla, QLineEdit *linea,
-                                          QVector <QVector <QString> * > * expressionTable, QVector <QVector <bool> * > * uncertainTable){
+bool PlantDialog::parseScalar(CoefficientTable & tabla, QLineEdit *linea,
+                              CoefficientTable & expressionTable,
+                              UncertainTable & uncertainTable){
 
 
     QString aux = linea->text();
     aux = aux.trimmed();
 
-    QVector <QString> * vec1 = new QVector <QString> (1, aux);
-    QVector <QString> * vec = new QVector <QString> ();
-    QVector <bool> * vec2 = new QVector <bool> ();
+    CoefficientRow vec1(1, aux);
+    CoefficientRow vec;
+    UncertainRow vec2;
 
     QRegularExpression re("[a-zA-Z]+");
     QRegularExpressionMatch match = re.match(aux);
@@ -230,7 +205,7 @@ bool PlantDialog::parseScalar(QVector<QVector <QString> * > * tabla, QLineEdit *
     while (!capture.isNull()){
 
         if (!p.IsFunDefined(capture.toStdString())){
-            vec->append(capture);
+            vec.append(capture);
             capture = QString();
             isUncertain = true;
             break;
@@ -240,25 +215,26 @@ bool PlantDialog::parseScalar(QVector<QVector <QString> * > * tabla, QLineEdit *
         aux.remove(capture);
     }
 
-    vec2->append(isUncertain);
+    vec2.append(isUncertain);
 
     if (!isUncertain){
-        vec->append(aux);
+        vec.append(aux);
     }
 
-    tabla->append(vec);
-    expressionTable->append(vec1);
-    uncertainTable->append(vec2);
+    tabla.append(vec);
+    expressionTable.append(vec1);
+    uncertainTable.append(vec2);
 
     return true;
 }
 
-bool PlantDialog::parseFreeForm(QLineEdit * linea, QVector<QVector <QString> * > * tabla, QVector<QVector<QString> *> *expressionTable,
-                       QVector <QVector <bool> * > * uncertainTable){
+bool PlantDialog::parseFreeForm(QLineEdit * linea, CoefficientTable & tabla,
+                                CoefficientTable & expressionTable,
+                                UncertainTable & uncertainTable){
 
-    QVector <QString> * expressions = new QVector <QString> ();
-    QVector <QString> * values = new QVector <QString> ();
-    QVector <bool> * flags  = new QVector <bool> ();
+    CoefficientRow expressions;
+    CoefficientRow values;
+    UncertainRow flags;
 
     QString text = linea->text();
 
@@ -272,9 +248,9 @@ bool PlantDialog::parseFreeForm(QLineEdit * linea, QVector<QVector <QString> * >
 
         if (!p.IsFunDefined(capture.toStdString()) && capture != "s"){
 
-            expressions->append(capture);
-            values->append(capture);
-            flags->append(true);
+            expressions.append(capture);
+            values.append(capture);
+            flags.append(true);
 
             capture = QString();
         }
@@ -284,17 +260,18 @@ bool PlantDialog::parseFreeForm(QLineEdit * linea, QVector<QVector <QString> * >
     }
 
 
-    tabla->append(values);
-    expressionTable->append(expressions);
-    uncertainTable->append(flags);
+    tabla.append(values);
+    expressionTable.append(expressions);
+    uncertainTable.append(flags);
 
     return true;
 }
 
 
-QVector<QVector <QString> * > * PlantDialog::readTables(QVector <QVector <QString> * > * expressionTable, QVector <QVector <bool> * > * uncertainTable){
+std::optional<CoefficientTable> PlantDialog::readTables(CoefficientTable & expressionTable,
+                                                        UncertainTable & uncertainTable){
 
-    QVector <QVector <QString> * > * tables = new QVector <QVector <QString> * > ();
+    CoefficientTable tables;
 
     //Every parse result used to be discarded and the check below was
     //commented out, so a rejected coefficient - a reserved parameter name,
@@ -323,17 +300,14 @@ QVector<QVector <QString> * > * PlantDialog::readTables(QVector <QVector <QStrin
         valid = parseScalar(tables, ui->freeGain, expressionTable, uncertainTable) && valid;
         valid = parseScalar(tables, ui->freeDelay, expressionTable, uncertainTable) && valid;
     }else{
-        tables->clear();
-        expressionTable->clear();
-        uncertainTable->clear();
-        return NULL;
+        tables.clear();
+        expressionTable.clear();
+        uncertainTable.clear();
+        return std::nullopt;
     }
 
     if (!valid){
-        qDeleteAll(*tables);
-        delete tables;
-
-        return NULL;
+        return std::nullopt;
     }
 
     return tables;
@@ -351,15 +325,11 @@ void PlantDialog::on_okButton_clicked()
     }
     ui->nameEdit->setStyleSheet("background : white");
 
-    QVector <QVector <QString> * > * expressionTable = new QVector <QVector <QString> * > ();
-    QVector <QVector <bool> * > *  uncertainTable = new QVector <QVector <bool> * >  ();
-    QVector <QVector <QString> * > * valueTable = readTables(expressionTable, uncertainTable);
+    CoefficientTable expressionTable;
+    UncertainTable uncertainTable;
+    const std::optional<CoefficientTable> valueTable = readTables(expressionTable, uncertainTable);
 
-    if (valueTable == NULL){
-        qDeleteAll(*expressionTable);
-        delete expressionTable;
-        qDeleteAll(*uncertainTable);
-        delete uncertainTable;
+    if (!valueTable.has_value()){
         errorMessage(tr("There is an error in the plant data"), tr("Plant input"));
         return;
     }
@@ -370,12 +340,12 @@ void PlantDialog::on_okButton_clicked()
     //The expressions come from the user: a muParserX syntax error used to
     //throw and bring the application down.
     try {
-        if (valueTable->at(2)->size() == 0){
+        if (valueTable->at(2).size() == 0){
             kv = Parameter(1);
         }else{
 
             Range range_point = uncertaintyDialog->gain();
-            p.SetExpr(expressionTable->at(2)->at(0).toStdString());
+            p.SetExpr(expressionTable.at(2).at(0).toStdString());
             qreal d = p.Eval().GetFloat();
 
             if (d == range_point.min && d == range_point.max){
@@ -385,12 +355,12 @@ void PlantDialog::on_okButton_clicked()
             }
         }
 
-        if (valueTable->at(3)->size() == 0){
+        if (valueTable->at(3).size() == 0){
             retv = Parameter(qreal(0));
         }else{
 
             Range range_point = uncertaintyDialog->delay();
-            p.SetExpr(expressionTable->at(3)->at(0).toStdString());
+            p.SetExpr(expressionTable.at(3).at(0).toStdString());
             qreal d = p.Eval().GetFloat();
 
             if (d == range_point.min && d == range_point.max){
@@ -400,7 +370,6 @@ void PlantDialog::on_okButton_clicked()
             }
         }
     } catch (mup::ParserError &) {
-        releaseTables(valueTable, expressionTable, uncertainTable);
         errorMessage(tr("There is an error in the plant data"), tr("Plant input"));
         return;
     }
@@ -432,7 +401,6 @@ void PlantDialog::on_okButton_clicked()
         std::optional<std::vector<Parameter>> deno = buildParameters(valueTable->at(1));
 
         if (!nume.has_value() || !deno.has_value()){
-            releaseTables(valueTable, expressionTable, uncertainTable);
             errorMessage(tr("There is an error in the plant data"), tr("Plant input"));
             return;
         }
@@ -451,23 +419,22 @@ void PlantDialog::on_okButton_clicked()
 
     }
 
-    releaseTables(valueTable, expressionTable, uncertainTable);
 
     todoCorrecto = true;
 
     this->close();
 }
 
-std::optional<std::vector<Parameter>> PlantDialog::buildParameters(QVector <QString> * numeros){
+std::optional<std::vector<Parameter>> PlantDialog::buildParameters(const CoefficientRow & numeros){
     std::vector<Parameter> var;
 
-    if (numeros->isEmpty()){
+    if (numeros.isEmpty()){
         return var;
     }
 
-    var.reserve(numeros->size());
+    var.reserve(numeros.size());
 
-    foreach (const QString &string, *numeros) {
+    foreach (const QString &string, numeros) {
         p.SetExpr(string.toStdString());
         try {
             var.push_back(Parameter(p.Eval().GetFloat()));
@@ -485,21 +452,16 @@ std::optional<std::vector<Parameter>> PlantDialog::buildParameters(QVector <QStr
 
 void PlantDialog::on_uncertaintyButton_clicked()
 {
-    QVector <QVector <QString> * > * expressionTable  = new QVector <QVector <QString> * > ();
-    QVector <QVector <bool> * > *  uncertainTable = new QVector <QVector <bool> * >  ();
-    QVector <QVector <QString> * > * valueTable = readTables(expressionTable, uncertainTable);
+    CoefficientTable expressionTable;
+    UncertainTable uncertainTable;
+    std::optional<CoefficientTable> valueTable = readTables(expressionTable, uncertainTable);
 
-    if (valueTable == NULL){
-        qDeleteAll(*expressionTable);
-        delete expressionTable;
-        qDeleteAll(*uncertainTable);
-        delete uncertainTable;
+    if (!valueTable.has_value()){
         errorMessage(tr("There is an error in the plant data"), tr("Plant input"));
         return;
     }
 
     if (ui->nameEdit->text().isEmpty()){
-        releaseTables(valueTable, expressionTable, uncertainTable);
         errorMessage(tr("The plant name is missing."), tr("Plant input"));
         ui->nameEdit->setStyleSheet("background : red");
         return;
@@ -508,8 +470,8 @@ void PlantDialog::on_uncertaintyButton_clicked()
     }
 
 
-    //The tables become property of the uncertainty dialog.
-    uncertaintyDialog->launch(valueTable, expressionTable, uncertainTable, false);
+    uncertaintyDialog->launch(std::move(*valueTable), std::move(expressionTable),
+                              std::move(uncertainTable), false);
     uncertaintyDialog->show();
     uncertaintyEntered = true;
 }

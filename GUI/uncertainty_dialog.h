@@ -1,6 +1,8 @@
 #ifndef QFTBX_UNCERTAINTY_DIALOG_H
 #define QFTBX_UNCERTAINTY_DIALOG_H
 
+#include "GUI/coefficient_tables.h"
+
 #include <memory>
 
 #include <vector>
@@ -106,8 +108,10 @@ public:
     * @return booleano que indica si ha funcionado correctamente todo.
    */
 
-    bool launch(QVector<QVector<QString> *> *valueTable, QVector<QVector<QString> *> *expressionTable,
-                         QVector <QVector <bool> * > * uncertainTable, bool rowsBuilt);
+    /// Takes the tables the plant or controller dialog read out of its line
+    /// edits, and edits them.
+    bool launch(CoefficientTable valueTable, CoefficientTable expressionTable,
+                UncertainTable uncertainTable, bool rowsBuilt);
 
 
     /**
@@ -139,8 +143,6 @@ signals:
 private:
 
     bool rowsBuilt;
-    QVector <QString> * numeratorTokens = NULL;
-    QVector <QString> * denominatorTokens = NULL;
     std::vector<Parameter> numeratorParameters;
     std::vector<Parameter> denominatorParameters;
     std::list <ParLineEdit*>* numeratorRows;
@@ -166,11 +168,10 @@ private:
     qreal resultado;
     mup::ParserX p;
 
-    QVector<QVector<QString> *> *valueTable = nullptr;
-    QVector<QVector<QString> *> *expressionTable = nullptr;
-    QVector <QVector <bool> * > * uncertainTable = nullptr;
+    CoefficientTable valueTable;
+    CoefficientTable expressionTable;
+    UncertainTable uncertainTable;
 
-    void releaseTables();
 
     bool rangeOnlyMode;
     bool accepted_ok = false;
