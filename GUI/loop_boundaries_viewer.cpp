@@ -129,7 +129,7 @@ void LoopBoundariesViewer::showDiagram(){
             QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
             curva->setData(ejex, ejey);
             curva->setPen(color);
-            addFrequencyRow(color, contador);
+            addFrequencyRow(color, contador, tr("Nichols"));
             curves.append(curva);
             k++;
         }
@@ -140,7 +140,7 @@ void LoopBoundariesViewer::showDiagram(){
             QCPCurve *curva2 = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
             curva2->setData(ejex1, ejey1);
             curva2->setPen(color2);
-            addFrequencyRow(color2, contador);
+            addFrequencyRow(color2, contador, tr("Nyquist"));
             curves.append(curva2);
             k++;
         }
@@ -215,7 +215,7 @@ void LoopBoundariesViewer::applyCheckboxes(){
     ui->plot->replot();
 }
 
-void LoopBoundariesViewer::addFrequencyRow(QColor color, qint32 pos){
+void LoopBoundariesViewer::addFrequencyRow(QColor color, qint32 pos, QString diagram){
 
     QWidget *widget;
     QCheckBox *checkBox;
@@ -229,7 +229,7 @@ void LoopBoundariesViewer::addFrequencyRow(QColor color, qint32 pos){
     QMetaObject::connectSlotsByName(widget);
 
 
-    checkBox->setText(QString::number(omega->at(pos)));
+    checkBox->setText(QString::number(omega->at(pos)) + " " + diagram);
 
     checkBox->setStyleSheet("color : " + color.name());
 

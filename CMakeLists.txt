@@ -232,6 +232,8 @@ set(QFTbx_PERSISTENCE_HED
 
 # GUI (HMI Qt): los dialogos y visores. main.cpp va aparte, en el ejecutable.
 set(QFTbx_GUI_SRC
+    GUI/application.cpp
+    GUI/application.h
     GUI/parlineedit.cpp
     GUI/parlineedit.h
     GUI/error_message.cpp

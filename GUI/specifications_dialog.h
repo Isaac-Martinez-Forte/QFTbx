@@ -117,7 +117,22 @@ private:
                   QString name_in);
     void setDatos (qftbx::SpecificationRecord & record_in);
     void setDatos (qftbx::SpecificationRecord & record_in, qftbx::SpecificationRecord & upperRecord);
-    void saveActiveTab();
+    /**
+     * @brief Reads the tab being left into its record.
+     *
+     * False when the tab could not be read: getDatos() has emptied the
+     * record it could not fill and marked the offending field, so the
+     * caller must NOT switch away.
+     */
+    bool saveActiveTab();
+
+    /// saveActiveTab() plus the refusal: puts the selection back on the tab
+    /// that failed and says why. False means stay where you are.
+    bool leaveActiveTab();
+
+    /// Re-checks the radio of the tab in activeTab. setChecked() does not
+    /// emit clicked(), so this does not re-enter the handlers.
+    void restoreActiveTabRadio();
     void discardPublished();
 
     std::optional<std::vector<Parameter>> buildParameters(QString linea);

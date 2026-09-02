@@ -51,6 +51,8 @@ private slots:
     void on_nkRadio_clicked();
 
     void on_mrRadio_clicked();
+    void on_mc1Radio_clicked();
+    void on_mcThesisRadio_clicked();
 
 protected:
     void showEvent(QShowEvent * event) override;

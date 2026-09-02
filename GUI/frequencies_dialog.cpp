@@ -2,8 +2,11 @@
 #include "src/core/text_tokens.h"
 #include "ui_frequencies_dialog.h"
 
+#include <cmath>
+
 #include <QMessageBox>
 
+#include "GUI/error_message.h"
 #include "src/core/exception.h"
 
 using namespace tools;
@@ -90,6 +93,26 @@ void FrequenciesDialog::on_okButton_clicked()
             return;
         }
         type = Omega::File;
+    }
+
+    //Validated HERE, on the result, so the four modes are covered by one
+    //check: a design frequency set must be non-empty and every value must be
+    //a positive real. Without it the Omega constructor refused the set by
+    //throwing, and that exception escaped this slot and ABORTED the
+    //application - pressing OK on a freshly opened dialog was enough.
+    if (frequencies.isEmpty()){
+        errorMessage(tr("Enter at least one design frequency."),
+                     tr("Design frequencies input"));
+        return;
+    }
+
+    for (const qreal frequency : frequencies){
+        if (!std::isfinite(frequency) || frequency <= 0.0){
+            errorMessage(tr("A design frequency must be a positive real, and "
+                            "%1 is not.").arg(frequency),
+                         tr("Design frequencies input"));
+            return;
+        }
     }
 
     const qint32 pointCount = frequencies.size();

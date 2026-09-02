@@ -7,13 +7,15 @@
 
 #include <gtest/gtest.h>
 
-#include <QApplication>
+#include "GUI/application.h"
 
 int main(int argc, char ** argv)
 {
     qputenv("QT_QPA_PLATFORM", "offscreen");
 
-    QApplication application(argc, argv);
+    //The same Application the program uses, so the suite exercises the
+    //safety net that catches a backend error escaping a slot.
+    qftbx::Application application(argc, argv);
 
     //The same reset the application does in main.cpp, and for the same
     //reason: QApplication adopts the system locale, and with a decimal-comma

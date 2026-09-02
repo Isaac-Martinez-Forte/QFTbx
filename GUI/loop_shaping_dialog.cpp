@@ -170,10 +170,28 @@ void LoopShapingDialog::on_ntRadio_clicked()
 
 void LoopShapingDialog::on_nkRadio_clicked()
 {
-    ui->algorithmStack->setCurrentIndex(2);
+    //Page 1 is page_nand, which holds NK's starting-point choice. This
+    //asked for page 2 and there are only two pages: Qt ignores an
+    //out-of-range index in silence, so the panel was never shown and the
+    //choice could not be made - the local search always started at the
+    //centre.
+    ui->algorithmStack->setCurrentIndex(1);
 }
 
 void LoopShapingDialog::on_mrRadio_clicked()
+{
+    ui->algorithmStack->setCurrentIndex(0);
+}
+
+//MC1 and MC (thesis) have no options of their own yet: page 0 is the empty
+//one. Without these two the panel kept whatever the previous algorithm had
+//put there.
+void LoopShapingDialog::on_mc1Radio_clicked()
+{
+    ui->algorithmStack->setCurrentIndex(0);
+}
+
+void LoopShapingDialog::on_mcThesisRadio_clicked()
 {
     ui->algorithmStack->setCurrentIndex(0);
 }

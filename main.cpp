@@ -1,12 +1,13 @@
+#include "GUI/application.h"
 #include "GUI/main_window.h"
-#include <QApplication>
 #include <clocale>
 #include <memory>
 #include <QIcon>
 
 qint32 main(qint32 argc, char *argv[])
 {
-    QApplication a(argc, argv);
+    //Reports a backend error instead of letting it kill the process.
+    qftbx::Application a(argc, argv);
 
     //QApplication adopta el locale del sistema (LC_ALL); con locales de coma
     //decimal (es_ES, de_DE...) muParserX deja de aceptar literales como

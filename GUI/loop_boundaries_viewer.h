@@ -63,7 +63,10 @@ private:
     QMap <QString, QColor> * rowColors;
     QVBoxLayout * colorsLayout = nullptr;
 
-    void addFrequencyRow(QColor color, qint32 pos);
+    /// One row per curve, labelled with its frequency and its diagram: in
+    /// the both-diagrams mode a frequency gets two rows, and they used to
+    /// carry the same text.
+    void addFrequencyRow(QColor color, qint32 pos, QString diagram);
     void clearDiagram();
 
     bool nichols;

@@ -191,6 +191,11 @@ void SpecificationsDialog::setDatos(qftbx::SpecificationRecord & record_in)
             ui->delayEdit->setText(QString::number(record_in.system->delay().nominal()));
         }
     } else {
+        //The band too: it used to keep the PREVIOUS tab's values, and an
+        //empty band means the whole design range, so the user could save a
+        //band they never chose for this specification.
+        ui->startFrequencyEdit->setText("");
+        ui->endFrequencyEdit->setText("");
         ui->magnitudeEdit->setText("");
         ui->numeratorEdit->setText("");
         ui->denominatorEdit->setText("");
@@ -269,6 +274,11 @@ void SpecificationsDialog::setDatos(qftbx::SpecificationRecord & record_in,
             ui->upperDelayEdit->setText(QString::number(upperRecord.system->delay().nominal()));
         }
     } else {
+        //The band too, for the same reason as the single specifications: an
+        //empty band means the whole design range.
+        ui->startFrequencyEdit->setText("");
+        ui->endFrequencyEdit->setText("");
+
         ui->lowerMagnitudeEdit->setText("");
         ui->lowerNumeratorEdit->setText("");
         ui->lowerDenominatorEdit->setText("");
@@ -764,27 +774,67 @@ std::optional<std::vector<Parameter>> SpecificationsDialog::buildParameters(QStr
     return var;
 }
 
-void SpecificationsDialog::saveActiveTab()
+bool SpecificationsDialog::saveActiveTab()
 {
     if (activeTab == 1){
-        getDatos(tracking, trackingUpper, "TrackingLower");
+        return getDatos(tracking, trackingUpper, "TrackingLower");
     }else if (activeTab == 2){
-        getDatos(stability, "Stability");
+        return getDatos(stability, "Stability");
     }else if (activeTab == 3){
-        getDatos(sensorNoise, "SensorNoise");
+        return getDatos(sensorNoise, "SensorNoise");
     }else if (activeTab == 4){
-        getDatos(outputDisturbance, "OutputDisturbance");
+        return getDatos(outputDisturbance, "OutputDisturbance");
     }else if (activeTab == 5){
-        getDatos(inputDisturbance, "InputDisturbance");
+        return getDatos(inputDisturbance, "InputDisturbance");
     }else if (activeTab == 6){
-        getDatos(controlEffort, "ControlEffort");
+        return getDatos(controlEffort, "ControlEffort");
     }
+
+    //No tab selected yet: the constructor's first switch has nothing to save.
+    return true;
+}
+
+void SpecificationsDialog::restoreActiveTabRadio()
+{
+    switch (activeTab){
+    case 1: ui->trackingRadio->setChecked(true); break;
+    case 2: ui->stabilityRadio->setChecked(true); break;
+    case 3: ui->noiseRadio->setChecked(true); break;
+    case 4: ui->outputDisturbanceRadio->setChecked(true); break;
+    case 5: ui->inputDisturbanceRadio->setChecked(true); break;
+    case 6: ui->controlEffortRadio->setChecked(true); break;
+    default: break;
+    }
+}
+
+bool SpecificationsDialog::leaveActiveTab()
+{
+    if (saveActiveTab()){
+        return true;
+    }
+
+    //The switch used to happen anyway, and the return value was discarded.
+    //getDatos() empties the record before rebuilding it, so leaving now
+    //lost the whole specification - not just the bad field - and coming
+    //back showed a blank tab, because setDatos() repaints from the record.
+    //Staying put keeps the user's text on screen where it can be fixed.
+    restoreActiveTabRadio();
+
+    errorMessage(tr("This specification could not be read, so it has not been "
+                    "saved. Correct the field marked in red, or empty it to "
+                    "leave the specification unused."),
+                 tr("Specifications input"));
+
+    return false;
 }
 
 void SpecificationsDialog::on_trackingRadio_clicked()
 {
+    if (!leaveActiveTab()){
+        return;
+    }
+
     ui->pageStack->setCurrentIndex(1);
-    saveActiveTab();
     activeTab = 1;
     setDatos(tracking, trackingUpper);
     this->resize(867, 363);
@@ -793,8 +843,11 @@ void SpecificationsDialog::on_trackingRadio_clicked()
 
 void SpecificationsDialog::on_stabilityRadio_clicked()
 {
+    if (!leaveActiveTab()){
+        return;
+    }
+
     ui->pageStack->setCurrentIndex(0);
-    saveActiveTab();
     activeTab = 2;
     setDatos(stability);
     ui->specificationImage->setPixmap(stabilityPixmap);
@@ -804,8 +857,11 @@ void SpecificationsDialog::on_stabilityRadio_clicked()
 
 void SpecificationsDialog::on_noiseRadio_clicked()
 {
+    if (!leaveActiveTab()){
+        return;
+    }
+
     ui->pageStack->setCurrentIndex(0);
-    saveActiveTab();
     activeTab = 3;
     setDatos(sensorNoise);
     ui->specificationImage->setPixmap(sensorNoisePixmap);
@@ -815,18 +871,28 @@ void SpecificationsDialog::on_noiseRadio_clicked()
 
 void SpecificationsDialog::on_outputDisturbanceRadio_clicked()
 {
+    if (!leaveActiveTab()){
+        return;
+    }
+
     ui->pageStack->setCurrentIndex(0);
-    saveActiveTab();
     activeTab = 4;
     setDatos(outputDisturbance);
     ui->specificationImage->setPixmap(outputDisturbancePixmap);
     this->resize(647, 363);
+    //The only one of the six that did not move the buttons back: coming from
+    //the tracking tab, which widens the window and puts them at x = 670,
+    //they landed outside the 647 this resize leaves.
+    ui->buttonsWidget->move(450, 320);
 }
 
 void SpecificationsDialog::on_inputDisturbanceRadio_clicked()
 {
+    if (!leaveActiveTab()){
+        return;
+    }
+
     ui->pageStack->setCurrentIndex(0);
-    saveActiveTab();
     activeTab = 5;
     setDatos(inputDisturbance);
     ui->specificationImage->setPixmap(inputDisturbancePixmap);
@@ -836,8 +902,11 @@ void SpecificationsDialog::on_inputDisturbanceRadio_clicked()
 
 void SpecificationsDialog::on_controlEffortRadio_clicked()
 {
+    if (!leaveActiveTab()){
+        return;
+    }
+
     ui->pageStack->setCurrentIndex(0);
-    saveActiveTab();
     activeTab = 6;
     setDatos(controlEffort);
     ui->specificationImage->setPixmap(controlEffortPixmap);

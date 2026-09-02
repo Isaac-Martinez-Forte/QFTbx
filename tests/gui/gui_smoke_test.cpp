@@ -261,6 +261,115 @@ TEST_F(GuiSmoke, FrequenciesDialogBuildsTheDesignFrequencies)
     EXPECT_EQ(omega->pointCount(), 4);
 }
 
+TEST_F(GuiSmoke, SpecificationsDialogRefusesToLeaveATabItCannotRead)
+{
+    //Switching away used to happen anyway and the return value of the read
+    //was discarded, so the whole specification was lost - not just the bad
+    //field - and coming back showed a blank tab.
+    const QVector<qreal> frequencies{0.1, 1.0, 10.0};
+    SpecificationsDialog dialog(&frequencies);
+
+    check(&dialog, "stabilityRadio");
+    dialog.findChild<QRadioButton *>("stabilityRadio")->click();
+
+    //A valid constant stability specification.
+    check(&dialog, "constantRadio");
+    check(&dialog, "linearRadio");
+    type(&dialog, "magnitudeEdit", QStringLiteral("1.2"));
+
+    //Now break the band and try to leave.
+    type(&dialog, "startFrequencyEdit", QStringLiteral("not a number"));
+    m_reported.clear();
+
+    dialog.findChild<QRadioButton *>("noiseRadio")->click();
+
+    EXPECT_FALSE(m_reported.isEmpty()) << "the refusal must be reported";
+    EXPECT_TRUE(dialog.findChild<QRadioButton *>("stabilityRadio")->isChecked())
+        << "the tab that could not be read must stay selected";
+    EXPECT_FALSE(dialog.findChild<QRadioButton *>("noiseRadio")->isChecked());
+
+    //The user's text is still on screen, where it can be corrected.
+    EXPECT_EQ(dialog.findChild<QLineEdit *>("magnitudeEdit")->text(),
+              QStringLiteral("1.2"));
+}
+
+TEST_F(GuiSmoke, FrequenciesDialogRefusesAnEmptySetInsteadOfDying)
+{
+    //Pressing OK on a freshly opened dialog ABORTED the application: the
+    //Omega constructor refuses an empty frequency set by throwing, and that
+    //exception escaped this slot into Qt's event loop.
+    FrequenciesDialog dialog;
+
+    child<QComboBox>(&dialog, "modeStack")->setCurrentIndex(0);
+
+    press(&dialog, "okButton");
+
+    EXPECT_FALSE(dialog.getTodoCorrecto());
+    EXPECT_FALSE(m_reported.isEmpty()) << "the rejection must be reported";
+    EXPECT_EQ(dialog.takeOmega(), nullptr);
+}
+
+TEST_F(GuiSmoke, FrequenciesDialogRefusesNonPositiveFrequencies)
+{
+    //A design frequency is evaluated on the imaginary axis at s = jw and
+    //plotted on a logarithmic axis: zero and negative values are not a
+    //frequency set, and the manual mode used to accept them.
+    FrequenciesDialog dialog;
+
+    child<QComboBox>(&dialog, "modeStack")->setCurrentIndex(0);
+    type(&dialog, "manualValues", QStringLiteral("0.1 0 10"));
+
+    press(&dialog, "okButton");
+
+    EXPECT_FALSE(dialog.getTodoCorrecto());
+    ASSERT_FALSE(m_reported.isEmpty()) << "the rejection must be reported";
+    EXPECT_TRUE(m_reported.join(QChar(' ')).contains(QStringLiteral("positive")))
+        << m_reported.join(QChar(' ')).toStdString();
+}
+
+TEST_F(GuiSmoke, FrequenciesDialogRefusesAnEmptyPointCount)
+{
+    //An empty count reads as zero, linspace answers an empty set, and the
+    //same throw followed.
+    FrequenciesDialog dialog;
+
+    child<QComboBox>(&dialog, "modeStack")->setCurrentIndex(2);
+    type(&dialog, "linStart", QStringLiteral("1"));
+    type(&dialog, "linEnd", QStringLiteral("10"));
+    //linCount deliberately left empty
+
+    press(&dialog, "okButton");
+
+    EXPECT_FALSE(dialog.getTodoCorrecto());
+    EXPECT_FALSE(m_reported.isEmpty()) << "the rejection must be reported";
+}
+
+//A QObject whose event handling throws, to reach the net underneath.
+class ThrowingObject : public QObject
+{
+public:
+    bool event(QEvent *) override
+    {
+        throw qftbx::InvalidInput("the backend refused something");
+    }
+};
+
+TEST_F(GuiSmoke, TheApplicationReportsABackendErrorInsteadOfDyingOfIt)
+{
+    //Each case belongs guarded where it happens; this is the net underneath,
+    //so that the next one to be missed is a message and not a crash. The
+    //suite runs under the same Application as the program.
+    ThrowingObject victim;
+    QEvent event(QEvent::User);
+
+    const bool handled = qApp->notify(&victim, &event);
+
+    EXPECT_TRUE(handled);
+    ASSERT_FALSE(m_reported.isEmpty()) << "the escaped error must be reported";
+    EXPECT_TRUE(m_reported.join(QChar(' ')).contains(QStringLiteral("refused something")))
+        << m_reported.join(QChar(' ')).toStdString();
+}
+
 TEST_F(GuiSmoke, ControllerDialogBuildsTheControllerStructure)
 {
     ControllerDialog dialog;
