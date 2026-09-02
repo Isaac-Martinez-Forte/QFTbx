@@ -63,7 +63,9 @@ PlantDialog::PlantDialog(QWidget *parent) :
 
 PlantDialog::~PlantDialog()
 {
-    delete uncertaintyDialog;
+    //The uncertainty dialog is a Qt child of this one, so Qt frees it: the
+    //controller dialog, which builds the same child, already relied on
+    //that.
 }
 
 void PlantDialog::on_zerosPolesRadio_toggled(bool checked)

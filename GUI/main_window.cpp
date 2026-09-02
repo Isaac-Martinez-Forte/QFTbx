@@ -37,7 +37,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::createSession(){
 
-    controller = new ProjectController();
+    controller = std::make_unique<ProjectController>();
 
     ui->progressBar->setValue(0);
     progressPosition = 0;
@@ -74,6 +74,8 @@ void MainWindow::stepBack(bool & paso){
     paso = false;
 }
 
+//Qt's own mechanism: every dialog and viewer here is a child of this
+//window, and destroying one is how a new session gets a fresh one.
 void MainWindow::destroyDialogs(){
     if (plantDone){
         delete plantDialog;
@@ -198,7 +200,7 @@ const QVector<qreal> * MainWindow::frequencyValues() const{
 void MainWindow::destroySession(){
     destroyDialogs();
 
-    delete controller;
+    controller.reset();
 }
 
 void MainWindow::on_plantButton_clicked()
@@ -800,19 +802,18 @@ void MainWindow::showLoopDiagrams(bool nichols, bool nyquistRadio){
                                   boundaries->magnitudeCount(), nuevosDatosMag);
 
 
-    LoopBoundariesViewer * ver = new LoopBoundariesViewer();
+    //Modal and parentless, so it is this scope's: on the stack. The Nyquist
+    //boundaries and their buckets are held by value and die here too -
+    //twenty lines of nested deletion used to stand at the end of this
+    //function, and BoundaryData had to be told it did not own them.
+    LoopBoundariesViewer ver;
 
-    ver->setDatos(boundaries, &nuevoBoundaries, controller->omega()->values(), controller->plant(),
-                  controller->controllerStructure(), nichols, nyquistRadio);
+    ver.setDatos(boundaries, &nuevoBoundaries, controller->omega()->values(), controller->plant(),
+                 controller->controllerStructure(), nichols, nyquistRadio);
 
-    ver->showDiagram();
+    ver.showDiagram();
 
-    ver->exec();
-
-    //Nothing to free: the Nyquist boundaries and their buckets are held by
-    //value and die with this scope. Twenty lines of nested deletion used to
-    //stand here, and BoundaryData had to be told it did not own them.
-    delete ver;
+    ver.exec();
 }
 
 void MainWindow::on_actionTemplates_triggered()

@@ -120,7 +120,14 @@ private:
 
     qint32 progressPosition;
 
-    ProjectController * controller = nullptr;
+    //The facade is the window's own, and the only thing here that is not a
+    //Qt child.
+    std::unique_ptr<ProjectController> controller;
+    //Every dialog and viewer below is created with THIS as its Qt parent,
+    //so Qt owns it and frees it with the window. They are raw pointers on
+    //purpose: holding one in a unique_ptr would make two owners and free it
+    //twice. destroyDialogs() deletes them to REBUILD them for a new
+    //session, which is Qt's own mechanism, not memory management of ours.
     PlantDialog * plantDialog = nullptr;
     FrequenciesDialog * frequenciesDialog = nullptr;
     BodeViewer * bodeViewer = nullptr;
