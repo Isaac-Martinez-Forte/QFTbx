@@ -105,18 +105,18 @@ private slots:
 private:
     std::unique_ptr<Ui::MainWindow> ui;
 
-    bool plantDone;
-    bool specificationsDone;
-    bool frequenciesDone;
-    bool templatesDone;
-    bool boundariesDone;
-    bool controllerDone;
-    bool loopDone;
+    bool plantDone = false;
+    bool specificationsDone = false;
+    bool frequenciesDone = false;
+    bool templatesDone = false;
+    bool boundariesDone = false;
+    bool controllerDone = false;
+    bool loopDone = false;
 
-    bool bodeCreated;
+    bool bodeCreated = false;
 
 
-    qint32 progressPosition;
+    qint32 progressPosition = 0;
 
     //The facade is the window's own, and the only thing here that is not a
     //Qt child.

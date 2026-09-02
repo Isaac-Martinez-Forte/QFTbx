@@ -70,7 +70,7 @@ private:
 
     qint32 initialisation = 0;
 
-    tools::LoopShapingAlgorithm alg;
+    tools::LoopShapingAlgorithm alg = tools::nt;
 
     bool linLogSpace;
 };

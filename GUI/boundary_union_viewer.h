@@ -65,7 +65,6 @@ private:
     //The checkboxes belong to their row widget: the viewer deletes the
     //rows, not these.
     QVector <QCheckBox *> checkboxes;
-    QMap <QString, QColor> * colores;
     QVBoxLayout * colorsLayout = nullptr;
 
     void addFrequencyRow(QColor color, qint32 pos);

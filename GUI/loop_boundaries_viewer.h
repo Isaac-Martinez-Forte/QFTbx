@@ -60,7 +60,6 @@ private:
     //The checkboxes belong to their row widget: the viewer deletes the
     //rows, not these.
     QVector <QCheckBox *> checkboxes;
-    QMap <QString, QColor> * rowColors;
     QVBoxLayout * colorsLayout = nullptr;
 
     /// One row per curve, labelled with its frequency and its diagram: in

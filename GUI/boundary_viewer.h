@@ -86,7 +86,6 @@ private:
     //The checkboxes belong to their row widget, which belongs to the
     //layout: the viewer deletes the rows, not these.
     QVector <QCheckBox *> checkboxes;
-    QMap <QString, QColor> * colores;
     QVBoxLayout * colorsLayout = nullptr;
 
     std::unique_ptr<Ui::BoundaryViewer> ui;

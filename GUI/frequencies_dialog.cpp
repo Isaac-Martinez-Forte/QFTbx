@@ -51,7 +51,7 @@ void FrequenciesDialog::on_okButton_clicked()
 {
     qreal start = 0;
     qreal end = 0;
-    Omega::GenerationType type;
+    Omega::GenerationType type = Omega::Manual;
     QVector <qreal> frequencies;
 
     if (ui->modeStack->currentIndex() == 0){ //manual

@@ -103,7 +103,6 @@ private:
                        CoefficientTable & expressionTable, UncertainTable & uncertainTable);
 
 
-    qreal resultado;
     mup::ParserX p;
 
     bool todoCorrecto;

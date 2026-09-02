@@ -170,7 +170,6 @@ private:
     qreal k;
     qreal ret;
 
-    qreal resultado;
     mup::ParserX p;
 
     CoefficientTable valueTable;
