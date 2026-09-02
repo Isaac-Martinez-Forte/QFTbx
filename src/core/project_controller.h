@@ -124,7 +124,14 @@ public:
      * @brief Runs the selected loop-shaping algorithm over the current
      * problem.
      *
-     * @param epsilon termination size of the interval search.
+     * @param epsilon termination size of the interval search. WHAT it
+     * measures depends on the algorithm, because each one follows the
+     * criterion of its own paper: NT, NK, MC1 and MC stop on the diameter
+     * of the Nichols box (they work on that projection), MR on the width of
+     * the controller parameter box (its paper solves an ICSP over the
+     * parameters). The same number is therefore not comparable across
+     * algorithms - on a plant whose |P| reaches 1e4, the Nichols reading is
+     * four decades tighter than the parameter one.
      * @param algorithm which of the five algorithms to run.
      * @param plotRange, pointCount frequency window the result is plotted
      * over (stored with the result, not used by the search).

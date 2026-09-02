@@ -241,14 +241,7 @@ inline void AlgorithmMr::buildConstraints(){
 bool AlgorithmMr::init_algorithm(){
 
     lista = std::make_unique<OrderedList>();
-    conversion = std::make_unique<NaturalIntervalExtension>();
     stability = std::make_unique<NominalStabilityChecker>(planta, omega);
-
-    plantas_nominales.clear();
-    foreach (qreal o, *omega) {
-        std::complex<qreal> c = planta->evaluate(o);
-        plantas_nominales.append(cxsc::complex(c.real(), c.imag()));
-    }
 
     buildControllerExpressions();
     buildConstraints();
@@ -264,8 +257,7 @@ bool AlgorithmMr::init_algorithm(){
 
         std::unique_ptr<SearchNode> node = lista->takeFirstAs<SearchNode>();
 
-        if (node->flag() == feasible || FC::isEpsilonSmall(
-                    node->system(), epsilon, omega, conversion.get(), plantas_nominales)) {
+        if (node->flag() == feasible || isParameterBoxSmall(node->system())) {
 
             const bool lowerCorner = node->flag() != ambiguous;
 
@@ -404,6 +396,38 @@ inline void AlgorithmMr::loadDomains(LtiSystem * box,
         load(var);
     }
     load(box->gain());
+}
+
+
+//The paper's termination criterion: a box is a solution box once every
+//controller parameter has been narrowed below the requested accuracy
+//(FDA-10 sec. 5, "the controller solutions are to be found to an accuracy
+//eps"). The other four algorithms stop on the diameter of the NICHOLS box
+//instead - the criterion of their own papers, which work on the projection
+//- and that criterion does not transfer here: it scales with |P|, so on a
+//plant reaching |P| = 1e4 at its lowest design frequency the same number
+//is four decades tighter than it looks, and the ICSP never comes back.
+//Widths are absolute, as the paper's are: it quotes its answers to four
+//significant figures at eps = 0.001.
+inline bool AlgorithmMr::isParameterBoxSmall(LtiSystem * box) const {
+
+    const auto small = [&](Parameter & var) {
+        return !var.isUncertain() || var.range().width() <= epsilon;
+    };
+
+    for (Parameter & var : box->numerator()) {
+        if (!small(var)) {
+            return false;
+        }
+    }
+
+    for (Parameter & var : box->denominator()) {
+        if (!small(var)) {
+            return false;
+        }
+    }
+
+    return small(box->gain());
 }
 
 

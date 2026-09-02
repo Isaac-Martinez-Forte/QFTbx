@@ -49,20 +49,23 @@
 //
 // -- What the validation found -------------------------------------------
 //
-// One defect, fixed: MR returned the point of an epsilon-small AMBIGUOUS
-// box without ever checking it against its own constraint set. On this
-// example that point missed the robust stability margin by a factor of
-// three (|T| = 3.81 against 1.2), and nothing said so. See the comment at
-// the exit of AlgorithmMr::init_algorithm.
+// Two defects, both fixed; see the comments at the exit of
+// AlgorithmMr::init_algorithm and in isParameterBoxSmall.
 //
-// One difference of termination criterion, recorded and not touched: the
-// paper's eps is a precision on the CONTROLLER PARAMETER box, while QFTbx
-// stops on the diameter of the NICHOLS box (FC::isEpsilonSmall), the loop
-// transmission interval at every design frequency. On this plant |P|
-// reaches 1e4 at w = 0.001, so pinning L to 0.001 there would need a gain
-// interval narrower than 1e-7: the numbers are not interchangeable, and
-// neither is the tractability that follows. kEpsilon below is therefore in
-// QFTbx's units, not the paper's.
+//   - MR returned the point of an epsilon-small AMBIGUOUS box without ever
+//     checking it against its own constraint set. On this example that
+//     point missed the robust stability margin by a factor of three
+//     (|T| = 3.81 against 1.2), and nothing said so.
+//   - MR measured epsilon on the NICHOLS box, the criterion of the other
+//     four algorithms, whose papers work on that projection. The paper's
+//     eps is a width on the CONTROLLER PARAMETER box, and the difference is
+//     not cosmetic: the Nichols diameter scales with |P|, which reaches 1e4
+//     at this problem's lowest design frequency, so the paper's 0.001 was
+//     four decades tighter than it looked and the search never came back.
+//     With the criterion on the paper's footing, eps = 0.001 is what the
+//     tests below pass. On planta1 the pinned optimum improved by a tenth
+//     of a percent, downwards, which is the direction a finer stop should
+//     move a minimum.
 //
 // One limitation, measured and left alone. The specifications are
 // discretised over at most kTemplateRepresentatives = 9 evenly spaced
@@ -115,9 +118,9 @@ const qreal kWs = 1.2;
 //The paper's 9 plants: minimum, mean and maximum of each parameter.
 const std::vector<double> kParameterValues{1.0, 5.5, 10.0};
 
-//Termination size of the interval search, in QFTbx's own units - see the
-//header: the paper's 0.001 measures something else.
-const qreal kEpsilon = 0.5;
+//The paper's own accuracy, which MR can now be given: a width on the
+//controller parameter box.
+const qreal kEpsilon = 0.001;
 
 qreal toDb(qreal magnitude)
 {
@@ -291,7 +294,8 @@ TEST(MrArticleValidation, MrDesignsAFeasibleControllerUnderTheStabilityMargin)
 
     AlgorithmMr mr;
     //MR takes no Nichols boundaries: its constraints come from the
-    //specifications and the template representatives directly.
+    //specifications and the template representatives directly. The
+    //epsilon is the paper's.
     mr.set_datos(project->plant(), structure.get(), project->omega()->values(),
                  nullptr, kEpsilon, project->contour(), project->specifications());
 

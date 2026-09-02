@@ -11,7 +11,6 @@
 
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/system/lti_system.h"
-#include "src/core/loopshaping/natural_interval_extension.h"
 #include "src/core/loopshaping/ordered_list.h"
 #include "src/core/loopshaping/search_node.h"
 #include "src/core/loopshaping/expression_tree.h"
@@ -38,10 +37,15 @@
  * QFTbx deviations, documented:
  * - The live list is ordered by ascending gain infimum and the search
  *   stops at the first certainly feasible box (every constraint's
- *   interval evaluation non-negative) or at the epsilon-small leading box
- *   (the projection criterion shared by the other algorithms; the paper
- *   collects ALL solution boxes of parameter width epsilon and sorts them
- *   afterwards).
+ *   interval evaluation non-negative) or at the epsilon-small leading box,
+ *   where epsilon-small means what it means in the paper: the width of the
+ *   CONTROLLER PARAMETER box (see isParameterBoxSmall). The other four
+ *   algorithms measure epsilon on the NICHOLS box instead, because that is
+ *   the criterion of their own papers, so the same number means different
+ *   things depending on the algorithm picked - the note on set_datos says
+ *   what. The paper collects all solution boxes of that width and sorts
+ *   them afterwards; ordering the live list by gain infimum reaches the
+ *   minimum-gain one first, which is the one the sort would pick.
  * - The template contour is subsampled to a handful of representatives
  *   per frequency (the paper uses 9 plants; the full contour would square
  *   into the tracking pairs).
@@ -56,6 +60,19 @@ public:
     AlgorithmMr();
     ~AlgorithmMr();
 
+    /**
+     * @brief Publishes the problem.
+     *
+     * @param epsilon termination width of the CONTROLLER PARAMETER box, as
+     * in the paper (its eps = 0.001 on the boxes of section 5). This is NOT
+     * the epsilon of the other four algorithms, which measure the diameter
+     * of the Nichols box: on a plant whose |P| reaches 1e4 at the lowest
+     * design frequency, a Nichols epsilon of 0.001 would demand a gain
+     * interval narrower than 1e-7, and the two numbers are neither
+     * comparable nor interchangeable.
+     * @param boundaries unused: the constraints come from the
+     * specifications and the templates, not from Nichols boundaries.
+     */
     void set_datos(LtiSystem * planta, LtiSystem * controlador, QVector<qreal> * omega, const BoundaryData * boundaries,
                    qreal epsilon, const qftbx::CloudSet & temp,
                    const qftbx::SpecificationRecords * espe);
@@ -81,6 +98,10 @@ private:
     inline bool certainlyFeasible(std::map<std::string, cxsc::interval> & domains);
     inline void loadDomains(LtiSystem * box, std::map<std::string, cxsc::interval> & domains);
 
+    /// True when every uncertain controller parameter has been narrowed to
+    /// an interval no wider than epsilon: the paper's termination criterion.
+    inline bool isParameterBoxSmall(LtiSystem * box) const;
+
     /// Degenerate domains at the corner pointFromBox() would take, so that
     /// the point itself can be run through the constraint set.
     inline void loadPointDomains(LtiSystem * box, bool lowerCorner,
@@ -96,10 +117,8 @@ private:
     qftbx::CloudSet temp;
     const qftbx::SpecificationRecords * espe = nullptr;
 
-    std::unique_ptr<NaturalIntervalExtension> conversion;
     std::unique_ptr<NominalStabilityChecker> stability;
     std::unique_ptr<OrderedList> lista;
-    QVector<cxsc::complex> plantas_nominales;
 
     //Controller magnitude/phase expression strings, one per design
     //frequency, and the parsed constraint trees (built once; each box

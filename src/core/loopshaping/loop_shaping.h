@@ -19,6 +19,9 @@ public:
     LoopShaping();
     ~LoopShaping();
 
+    /// @param epsilon termination size, in the units of the algorithm
+    /// picked: the Nichols box diameter for NT/NK/MC1/MC, the controller
+    /// parameter width for MR. See ProjectController::computeLoopShaping.
     bool run(LtiSystem * plant, LtiSystem * controller, QVector<qreal> * omega, const BoundaryData * boundaries,
                  qreal epsilon, LoopShapingAlgorithm algorithm,
                  const qftbx::CloudSet & contour, const qftbx::SpecificationRecords * specifications,

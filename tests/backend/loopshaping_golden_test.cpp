@@ -18,6 +18,13 @@
 //   validates the specifications: planta1's stored input-disturbance
 //   slot holds an invalid constant (magnitude <= 0, the source of NaN
 //   heights), so the validating conversion rejects the problem.
+// - MR's gain moved from 378.58729554473427 to the value pinned below when
+//   its termination criterion was put back on the paper's footing: the
+//   width of the CONTROLLER PARAMETER box (FDA-10 sec. 5) instead of the
+//   diameter of the Nichols box that the other four measure. The 0.5 below
+//   therefore means different things per algorithm. The search goes one
+//   notch deeper and the optimum improves by 0.43, a tenth of a percent,
+//   downwards - which is the direction a finer stop should move a minimum.
 
 #include <gtest/gtest.h>
 
@@ -85,7 +92,7 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::Values(
         GoldenResult{"NT", tools::nt, false, 0.0, 0.0},
         GoldenResult{"NK", tools::nk, false, 0.0, 0.0},
-        GoldenResult{"MR", tools::mr, true, 378.58729554473427, 0.05},
+        GoldenResult{"MR", tools::mr, true, 378.15738155492267, 0.05},
         GoldenResult{"MC1", tools::mc1, false, 0.0, 0.0},
         GoldenResult{"McThesis", tools::mc_thesis, false, 0.0, 0.0}),
     [](const ::testing::TestParamInfo<GoldenResult>& info) {
