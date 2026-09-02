@@ -42,9 +42,17 @@ public:
 
 private:
 
+    //bucketCount is the number of phase cells of the union (phaseCount - 1)
+    //and phaseSpanDegrees the width of the window in degrees. They used to be
+    //called totalFase and numeroFases and declared with their types CROSSED -
+    //the count as a real and the SPAN AS AN INTEGER - so every call truncated
+    //the window width. Exact on the default 360-degree window, which is why
+    //nothing showed it; wrong on any other, and a division by zero for a
+    //window under one degree.
     inline tools::BoxFlag pointVerdict(QPointF punto, const qftbx::TraceSet & interseccionHash,
-                                               qint32 totalFase, bool abierta, bool arriba, qint32 numeroFases);
-    inline qint32 phaseBucket(qreal x, qreal totalFase, qint32 numeroFases);
+                                       qint32 bucketCount, bool abierta, bool arriba,
+                                       qreal phaseSpanDegrees);
+    inline qint32 phaseBucket(qreal phaseDegrees, qint32 bucketCount, qreal phaseSpanDegrees);
 };
 
 #endif // QFTBX_LOOPSHAPING_BOUNDARY_VIOLATION_DETECTOR_H

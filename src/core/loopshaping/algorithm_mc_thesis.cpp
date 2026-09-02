@@ -328,7 +328,15 @@ inline bool AlgorithmMcThesis::analyse(McSearchNode * node, NodeAnalysis & out)
 
         BoxClassification datos = deteccion->classifyBox(caja, boundaries, i);
 
-        if (datos.flag() == infeasible) {
+        //Read BEFORE the move: the verdict is needed again below, and a
+        //moved-from object is only guaranteed to be valid, not to still
+        //hold anything. It does today because every member of a
+        //BoxClassification is trivially copyable, so the move is a copy -
+        //which is exactly the kind of thing that stops being true the day
+        //someone adds a container to it.
+        const BoxFlag verdict = datos.flag();
+
+        if (verdict == infeasible) {
             return false;
         }
 
@@ -342,7 +350,7 @@ inline bool AlgorithmMcThesis::analyse(McSearchNode * node, NodeAnalysis & out)
             out.anyFullPhaseWidth = true;
         }
 
-        if (datos.flag() == ambiguous) {
+        if (verdict == ambiguous) {
             out.flag = ambiguous;
 
             const qreal area = _double(diam(Re(caja))) * phaseWidth;

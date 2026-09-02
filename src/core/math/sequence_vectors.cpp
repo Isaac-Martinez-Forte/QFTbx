@@ -17,6 +17,15 @@ QVector <qreal> tools::linspace(qreal a, qreal b, qint32 N) {
 
 
 std::vector<float> tools::linspace1(qreal a, qreal b, qint32 N){
+    //N == 1 divided by zero here. The canonical linspace was fixed for it and
+    //this float variant, kept for the CUDA path, was not.
+    if (N <= 0){
+        return std::vector<float>();
+    }
+    if (N == 1){
+        return std::vector<float>(1, static_cast<float>(a));
+    }
+
     float h = (b - a) / (N-1);
     vector <float> vec;
     vec.reserve(N);

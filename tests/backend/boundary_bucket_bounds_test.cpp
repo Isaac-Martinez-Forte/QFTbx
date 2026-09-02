@@ -72,6 +72,56 @@ TEST(BoundaryBucketBounds, TheFullWindowEdgeIsTheLastBucket)
     EXPECT_TRUE(verdict == tools::feasible || verdict == tools::infeasible);
 }
 
+//A window whose width is NOT a whole number of degrees, with one boundary
+//point in a chosen bucket and nothing anywhere else. An open boundary whose
+//allowed side is up gives a parity rule the bucket can be read through: one
+//boundary point below the query means feasible, an empty bucket means
+//infeasible.
+BoundaryData fractionalWindow(qreal phaseStart, qint32 phaseCount, std::size_t pointBucket)
+{
+    qftbx::UnionBuckets buckets{qftbx::TraceSet(static_cast<std::size_t>(phaseCount))};
+    buckets[0][pointBucket].push_back(QPointF(phaseStart, 0.0));
+
+    return BoundaryData({{}}, {true}, {true}, phaseCount, QPointF(phaseStart, 0.0),
+                        {{QPointF(phaseStart, 0.0)}}, std::move(buckets),
+                        121, QPointF(-60.0, 60.0));
+}
+
+TEST(BoundaryBucketBounds, AFractionalPhaseWindowScalesTheBucketsCorrectly)
+{
+    //The reader took the window WIDTH as an integer (its two functions
+    //declared the cell count and the span with their types crossed), so a
+    //window of 1.5 degrees was scaled as if it were 1: exact on the default
+    //360-degree window, wrong on any other.
+    //
+    //Window [-1.5, 0] with 4 cells: 3 intervals over 1.5 degrees is 2 cells
+    //per degree, so -1.0 degrees belongs to cell 2. Truncating the width to
+    //1 gives 3 cells per degree and sends it to cell 3.
+    const BoundaryData boundaries = fractionalWindow(-1.5, 4, 2);
+
+    BoundaryViolationDetector detector;
+
+    //Cell 2 holds the boundary point, one below the query: feasible.
+    EXPECT_EQ(detector.classifyPoint(QPointF(-1.0, 10.0), &boundaries, 0), tools::feasible);
+
+    //And a phase that belongs elsewhere still finds its own cell empty.
+    EXPECT_EQ(detector.classifyPoint(QPointF(-0.25, 10.0), &boundaries, 0), tools::infeasible);
+}
+
+TEST(BoundaryBucketBounds, ASubDegreeWindowDoesNotDivideByZero)
+{
+    //Under one degree the truncated width was ZERO: the scale divided by it,
+    //the index came out infinite and the clamp sent every phase to the last
+    //cell, whatever it was asked.
+    const BoundaryData boundaries = fractionalWindow(-0.5, 3, 1);
+
+    BoundaryViolationDetector detector;
+
+    //Half the window of 0.5 degrees, with 2 cells over it: 4 cells per
+    //degree, so -0.25 belongs to cell 1, which holds the point.
+    EXPECT_EQ(detector.classifyPoint(QPointF(-0.25, 10.0), &boundaries, 0), tools::feasible);
+}
+
 TEST(BoundaryBucketBounds, LoopShapingRefusesAWindowNarrowerThanTheLoopPhase)
 {
     //The clamp keeps the read inside the buckets, but a point outside the
