@@ -1,7 +1,7 @@
 #ifndef QFTBX_UNCERTAINTY_DIALOG_H
 #define QFTBX_UNCERTAINTY_DIALOG_H
 
-#include "GUI/coefficient_tables.h"
+#include "src/gui/coefficient_tables.h"
 
 #include <memory>
 
@@ -18,7 +18,7 @@
 #include <QVBoxLayout>
 
 #include "src/core/system/parameter.h"
-#include "GUI/parlineedit.h"
+#include "src/gui/parlineedit.h"
 #include "mpParser.h"
 #include "src/core/math/sequence_vectors.h"
 

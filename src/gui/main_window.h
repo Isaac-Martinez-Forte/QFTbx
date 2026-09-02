@@ -13,7 +13,7 @@
 #include "template_viewer.h"
 #include "boundary_grid_dialog.h"
 #include "boundary_viewer.h"
-#include "Consola/consola.h"
+#include "muparserx_console.h"
 #include "controller_dialog.h"
 #include "boundary_union_viewer.h"
 #include "loop_shaping_dialog.h"

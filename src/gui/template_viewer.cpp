@@ -5,8 +5,8 @@
 #include "template_viewer.h"
 #include "ui_template_viewer.h"
 
-#include "GUI/error_message.h"
-#include "GUI/plot_palette.h"
+#include "src/gui/error_message.h"
+#include "src/gui/plot_palette.h"
 
 using namespace std;
 //using namespace tools;

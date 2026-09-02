@@ -1,7 +1,7 @@
 #ifndef QFTBX_CONTROLLER_DIALOG_H
 #define QFTBX_CONTROLLER_DIALOG_H
 
-#include "GUI/coefficient_tables.h"
+#include "src/gui/coefficient_tables.h"
 
 #include <memory>
 
@@ -14,7 +14,7 @@
 #include "src/core/system/zero_pole_gain.h"
 #include "src/core/system/time_constant_gain.h"
 #include "src/core/system/polynomial_form.h"
-#include "GUI/uncertainty_dialog.h"
+#include "src/gui/uncertainty_dialog.h"
 #include "src/core/math/sequence_vectors.h"
 #include "mpParser.h"
 

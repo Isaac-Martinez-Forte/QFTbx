@@ -1,5 +1,5 @@
-#include "GUI/application.h"
-#include "GUI/main_window.h"
+#include "src/gui/application.h"
+#include "src/gui/main_window.h"
 #include <clocale>
 #include <memory>
 #include <QIcon>

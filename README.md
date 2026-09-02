@@ -132,7 +132,7 @@ No installer is currently provided. The application is intended to be run direct
       math/              numeric sequences
       project_controller the application facade (owns the project data)
     src/persistence/   .qft project reading and writing
-    GUI/               Qt dialogs, viewers and the main window
+    src/gui/           Qt dialogs, viewers and the main window
     tests/backend/     the computational test suite
     tests/gui/         the headless dialog smoke suite
     3rd-party/         vendored dependencies

@@ -1,8 +1,8 @@
 #include "boundary_union_viewer.h"
 #include "ui_boundary_union_viewer.h"
 
-#include "GUI/error_message.h"
-#include "GUI/plot_palette.h"
+#include "src/gui/error_message.h"
+#include "src/gui/plot_palette.h"
 
 
 using namespace tools;

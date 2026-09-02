@@ -124,9 +124,8 @@ FetchContent_MakeAvailable(pugixml)
 # ------------------------------------------------------------------------------
 # Fuentes del proyecto
 # ------------------------------------------------------------------------------
-# Backend (Modelo, DAO, XmlParser, Consola): compilado como libreria estatica
-# para poder enlazarlo tanto desde el ejecutable como desde los tests.
-# Nucleo computacional: sin persistencia, sin GUI.
+# The backend is a static library so both the executable and the tests can
+# link it. The computational core: no persistence, no GUI.
 set(QFTbx_CORE_SRC
     src/core/loopshaping/natural_interval_extension.cpp
     src/core/system/transfer_function.cpp
@@ -150,7 +149,6 @@ set(QFTbx_CORE_SRC
     src/core/loopshaping/algorithm_nk.cpp
     src/core/loopshaping/algorithm_mr.cpp
     src/core/boundaries/boundary_engine.cpp
-    Consola/consola.cpp
     src/core/system/free_form.cpp
     src/core/loopshaping/loop_shaping.cpp
     src/core/loopshaping/search_node.cpp
@@ -198,7 +196,6 @@ set(QFTbx_CORE_HED
     src/core/loopshaping/algorithm_mr.h
     src/core/loopshaping/expression_tree.h
     src/core/boundaries/boundary_engine.h
-    Consola/consola.h
     src/core/system/free_form.h
     src/core/loopshaping/loop_shaping.h
     src/core/loopshaping/list_node.h
@@ -228,26 +225,28 @@ set(QFTbx_PERSISTENCE_HED
 
 # GUI (HMI Qt): los dialogos y visores. main.cpp va aparte, en el ejecutable.
 set(QFTbx_GUI_SRC
-    GUI/application.cpp
-    GUI/application.h
-    GUI/parlineedit.cpp
-    GUI/parlineedit.h
-    GUI/error_message.cpp
-    GUI/bode_viewer.cpp
-    GUI/main_window.cpp
-    GUI/plant_dialog.cpp
-    GUI/frequencies_dialog.cpp
-    GUI/uncertainty_dialog.cpp
-    GUI/boundary_viewer.cpp
-    GUI/boundary_grid_dialog.cpp
-    GUI/specifications_dialog.cpp
-    GUI/controller_dialog.cpp
-    GUI/boundary_union_viewer.cpp
-    GUI/loop_shaping_dialog.cpp
-    GUI/loop_shaping_viewer.cpp
-    GUI/templates_dialog.cpp
-    GUI/template_viewer.cpp
-    GUI/loop_boundaries_viewer.cpp
+    src/gui/application.cpp
+    src/gui/application.h
+    src/gui/muparserx_console.cpp
+    src/gui/muparserx_console.h
+    src/gui/parlineedit.cpp
+    src/gui/parlineedit.h
+    src/gui/error_message.cpp
+    src/gui/bode_viewer.cpp
+    src/gui/main_window.cpp
+    src/gui/plant_dialog.cpp
+    src/gui/frequencies_dialog.cpp
+    src/gui/uncertainty_dialog.cpp
+    src/gui/boundary_viewer.cpp
+    src/gui/boundary_grid_dialog.cpp
+    src/gui/specifications_dialog.cpp
+    src/gui/controller_dialog.cpp
+    src/gui/boundary_union_viewer.cpp
+    src/gui/loop_shaping_dialog.cpp
+    src/gui/loop_shaping_viewer.cpp
+    src/gui/templates_dialog.cpp
+    src/gui/template_viewer.cpp
+    src/gui/loop_boundaries_viewer.cpp
 )
 
 # Fachada de la aplicacion: coordina el nucleo y la persistencia.
@@ -261,23 +260,23 @@ set(QFTbx_APP_HED
 
 
 set(QFTbx_GUI_HED
-    GUI/bode_viewer.h
-    GUI/error_message.h
-    GUI/plot_palette.h
-    GUI/main_window.h
-    GUI/plant_dialog.h
-    GUI/frequencies_dialog.h
-    GUI/uncertainty_dialog.h
-    GUI/boundary_viewer.h
-    GUI/boundary_grid_dialog.h
-    GUI/specifications_dialog.h
-    GUI/controller_dialog.h
-    GUI/boundary_union_viewer.h
-    GUI/loop_shaping_dialog.h
-    GUI/loop_shaping_viewer.h
-    GUI/templates_dialog.h
-    GUI/template_viewer.h
-    GUI/loop_boundaries_viewer.h
+    src/gui/bode_viewer.h
+    src/gui/error_message.h
+    src/gui/plot_palette.h
+    src/gui/main_window.h
+    src/gui/plant_dialog.h
+    src/gui/frequencies_dialog.h
+    src/gui/uncertainty_dialog.h
+    src/gui/boundary_viewer.h
+    src/gui/boundary_grid_dialog.h
+    src/gui/specifications_dialog.h
+    src/gui/controller_dialog.h
+    src/gui/boundary_union_viewer.h
+    src/gui/loop_shaping_dialog.h
+    src/gui/loop_shaping_viewer.h
+    src/gui/templates_dialog.h
+    src/gui/template_viewer.h
+    src/gui/loop_boundaries_viewer.h
 )
 
 # Recursos
@@ -366,7 +365,6 @@ if(UNIX AND NOT APPLE)
 
   # Generar .desktop en el build dir (portable, sin install)
   # Usamos generator expressions para capturar la ruta real del ejecutable
-  set(QFTBX_DESKTOP_IN  "${CMAKE_SOURCE_DIR}/Resources/Icon/QFTbx.desktop.in")
   set(QFTBX_DESKTOP_OUT "${CMAKE_BINARY_DIR}/QFTbx.desktop")
 
   # 1) An intermediate file whose placeholders expand generator expressions.

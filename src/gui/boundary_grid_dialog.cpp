@@ -1,7 +1,7 @@
 #include "boundary_grid_dialog.h"
 #include "ui_boundary_grid_dialog.h"
 
-#include "GUI/error_message.h"
+#include "src/gui/error_message.h"
 
 
 using namespace tools;

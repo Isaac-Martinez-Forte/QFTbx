@@ -1,7 +1,7 @@
-#include "GUI/loop_boundaries_viewer.h"
+#include "src/gui/loop_boundaries_viewer.h"
 #include "main_window.h"
-#include "GUI/error_message.h"
-#include "GUI/plot_palette.h"
+#include "src/gui/error_message.h"
+#include "src/gui/plot_palette.h"
 #include "ui_main_window.h"
 
 #include <QMessageBox>
@@ -692,8 +692,14 @@ void MainWindow::on_actionOpen_triggered()
 
 void MainWindow::on_actionConsole_triggered()
 {
-    consola con;
-    con.mostrar();
+    //Unreachable while the action is disabled in the .ui; kept so the
+    //parked console has a caller the day its two paths exist. See
+    //MuParserXConsole.
+    QString missing;
+    if (!MuParserXConsole::launch(&missing)) {
+        tools::errorMessage(tr("The muParserX console could not be started: "
+                               "%1 is not there.").arg(missing), tr("QFTbx"));
+    }
 }
 
 void MainWindow::on_actionNew_triggered()

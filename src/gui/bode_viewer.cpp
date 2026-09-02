@@ -3,10 +3,10 @@
 #include "bode_viewer.h"
 #include "ui_bode_viewer.h"
 
-#include "GUI/error_message.h"
+#include "src/gui/error_message.h"
 
 #include <QFileInfo>
-#include "GUI/plot_palette.h"
+#include "src/gui/plot_palette.h"
 
 
 using namespace std;

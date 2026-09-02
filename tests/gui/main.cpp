@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 
-#include "GUI/application.h"
+#include "src/gui/application.h"
 
 int main(int argc, char ** argv)
 {

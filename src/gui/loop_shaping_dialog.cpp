@@ -1,8 +1,8 @@
 #include "loop_shaping_dialog.h"
 #include "ui_loop_shaping_dialog.h"
 
-#include "GUI/error_message.h"
-#include "GUI/plot_palette.h"
+#include "src/gui/error_message.h"
+#include "src/gui/plot_palette.h"
 
 using namespace mup;
 

@@ -4,10 +4,10 @@
 #include "src/core/text_tokens.h"
 #include "ui_templates_dialog.h"
 
-#include "GUI/error_message.h"
+#include "src/gui/error_message.h"
 
 #include <QMessageBox>
-#include "GUI/plot_palette.h"
+#include "src/gui/plot_palette.h"
 
 using namespace tools;
 using namespace mup;

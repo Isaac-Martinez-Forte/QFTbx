@@ -1,8 +1,8 @@
-#include "GUI/application.h"
+#include "src/gui/application.h"
 
 #include "mpParser.h"
 
-#include "GUI/error_message.h"
+#include "src/gui/error_message.h"
 #include "src/core/exception.h"
 
 namespace qftbx {

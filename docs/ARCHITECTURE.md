@@ -47,7 +47,7 @@ stage has a dialog in the GUI and an engine in the model layer.
 | `src/core/exception.h` | `qftbx::Exception` and its subclasses |
 | `src/core/gpu/` | Optional CUDA kernels for templates/boundaries (`USE_CUDA`) |
 | `src/persistence/` | Load/save of `.qft` project files (pugixml; versioned English dialect, legacy Spanish files still load) |
-| `GUI/` | Qt Widgets HMI: one dialog per stage plus plot viewers (QCustomPlot) |
+| `src/gui/` | Qt Widgets HMI: one dialog per stage plus plot viewers (QCustomPlot) |
 | `tests/` | GoogleTest suite; golden `.qft` projects in `tests/data/` |
 
 Build targets: `qftbx_core` (the algorithms and the model), `qftbx_persistence`,

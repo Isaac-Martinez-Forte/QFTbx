@@ -42,8 +42,7 @@ STRIP_FROM_PATH        = .
 # already explains the QFT pipeline and the module layout, and one
 # description of those is enough.
 INPUT                  = docs/ARCHITECTURE.md \
-                         src \
-                         GUI
+                         src
 USE_MDFILE_AS_MAINPAGE = docs/ARCHITECTURE.md
 
 FILE_PATTERNS          = *.h *.cpp *.md

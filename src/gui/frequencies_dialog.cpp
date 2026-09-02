@@ -6,7 +6,7 @@
 
 #include <QMessageBox>
 
-#include "GUI/error_message.h"
+#include "src/gui/error_message.h"
 #include "src/core/exception.h"
 
 using namespace tools;

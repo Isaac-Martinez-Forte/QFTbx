@@ -276,6 +276,12 @@ structure</string>
    </property>
   </action>
   <action name="actionConsole">
+   <!-- Parked: the muParserX console launches two paths this project does
+        not ship. Disabled so the entry is not a silent no-op; see
+        MuParserXConsole. -->
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>&amp;Console</string>
    </property>

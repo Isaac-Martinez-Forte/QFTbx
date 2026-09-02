@@ -8,8 +8,8 @@
 #include "src/core/specifications/specification.h"
 #include "ui_specifications_dialog.h"
 
-#include "GUI/error_message.h"
-#include "GUI/plot_palette.h"
+#include "src/gui/error_message.h"
+#include "src/gui/plot_palette.h"
 #include "src/core/system/free_form.h"
 #include "src/core/system/polynomial_form.h"
 #include "src/core/system/zero_pole_gain.h"

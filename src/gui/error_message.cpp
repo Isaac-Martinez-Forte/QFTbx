@@ -1,4 +1,4 @@
-#include "GUI/error_message.h"
+#include "src/gui/error_message.h"
 
 #include <QMessageBox>
 

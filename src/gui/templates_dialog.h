@@ -18,11 +18,11 @@
 #include <QStringList>
 
 
-#include "GUI/parlineedit.h"
+#include "src/gui/parlineedit.h"
 #include "src/core/system/lti_system.h"
 #include "src/core/templates/parameter_grids.h"
 #include "src/core/system/parameter.h"
-#include "GUI/parlineedit.h"
+#include "src/gui/parlineedit.h"
 #include "src/core/math/sequence_vectors.h"
 #include "specifications_dialog.h"
 
