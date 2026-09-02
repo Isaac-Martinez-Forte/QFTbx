@@ -42,21 +42,21 @@ void BoundaryViewer::clearDiagram(){
     //QCustomPlot owns the curves: clearPlottables frees them.
     ui->plot->clearPlottables();
 
-    //Only the pointer CONTAINERS are freed here (they used to leak), plus
-    //the whole frequency-box rows: deleting just the checkbox left its
-    //container widget piling up in the layout on every replot.
-    foreach (QVector <QCPCurve * > * gra, *curves) {
-        delete gra;
-    }
-    delete curves;
-    curves = nullptr;
+    //The containers are members, so only the frequency-box ROWS are freed
+    //here: deleting just the checkbox left its container widget piling up
+    //in the layout on every replot.
+    curves.clear();
 
-    foreach (QCheckBox * che, *checkboxes) {
+    //Qt's own mechanism, and the only reason there is a delete left here:
+    //destroying the row widget is how a widget leaves a layout, and it
+    //takes its checkbox with it.
+    foreach (QCheckBox * che, checkboxes) {
         delete che->parentWidget();
     }
-    delete checkboxes;
-    checkboxes = nullptr;
+    checkboxes.clear();
 
+    //Also Qt's: a widget holds exactly one layout, so rebuilding the
+    //frequency box means destroying the one it has.
     delete colorsLayout;
     colorsLayout = nullptr;
 
@@ -76,17 +76,14 @@ void BoundaryViewer::showDiagram(){
     clearDiagram();
 
     colorsLayout = new QVBoxLayout (frequenciesBox);
-    checkboxes = new QVector <QCheckBox *> ();
     plotted = true;
-
-    curves = new QVector <QVector <QCPCurve * > * > ();
 
     const qftbx::BoundarySet & boundarySet = this->boundaryData->boundaries();
 
     //Sweep the design frequencies.
     for (qint32 i = 0; i < static_cast<qint32>(boundarySet.size()); i++) {
 
-        QVector <QCPCurve * > * gra = new QVector <QCPCurve *> ();
+        QVector <QCPCurve *> gra;
 
         QColor color = randomColor(i);
 
@@ -97,12 +94,14 @@ void BoundaryViewer::showDiagram(){
             const qftbx::TraceSet & b = entry.second;
             for (const qftbx::Trace & bound : b) {
 
-                QVector <qreal> * ejex = new QVector <qreal> ();
-                QVector <qreal> * ejey = new QVector <qreal> ();
+                QVector <qreal> ejex;
+                QVector <qreal> ejey;
+                ejex.reserve(static_cast<qsizetype>(bound.size()));
+                ejey.reserve(static_cast<qsizetype>(bound.size()));
 
                 for (const QPointF & p : bound) {
-                   ejex->append(p.x());
-                   ejey->append(p.y());
+                   ejex.append(p.x());
+                   ejey.append(p.y());
                 }
 
                 /*gra->append(ui->plot->addGraph());
@@ -112,17 +111,15 @@ void BoundaryViewer::showDiagram(){
                 ui->plot->graph(k)->setScatterStyle(QCPScatterStyle::ssCircle);*/
 
                 QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-                curva->setData(*ejex, *ejey);
+                curva->setData(ejex, ejey);
                 curva->setPen(color);
-                gra->append(curva);
+                gra.append(curva);
 
-                delete ejex;
-                delete ejey;
                 k++;
             }
         }
 
-        curves->append(gra);
+        curves.append(std::move(gra));
     }
 
     ui->plot->xAxis2->setVisible(true);
@@ -158,22 +155,22 @@ void BoundaryViewer::addFrequencyRow(QColor color, qint32 pos){
     checkBox->setStyleSheet("color : " + color.name());
 
     colorsLayout->addWidget(widget);
-    checkboxes->append(checkBox);
+    checkboxes.append(checkBox);
     checkBox->setCheckState(Qt::Checked);
 
     connect(checkBox, SIGNAL (clicked()), this, SLOT (applyCheckboxes()));
 }
 
 void BoundaryViewer::applyCheckboxes(){
-    for (qint32 i = 0; i < checkboxes->size(); i++){
-        if (checkboxes->at(i)->checkState() == 0){
+    for (qint32 i = 0; i < checkboxes.size(); i++){
+        if (checkboxes.at(i)->checkState() == 0){
 
-            for (qint32 j = 0; j < curves->at(i)->size(); j++){
-                curves->at(i)->at(j)->setVisible(false);
+            for (qint32 j = 0; j < curves.at(i).size(); j++){
+                curves.at(i).at(j)->setVisible(false);
             }
         }else {
-            for (qint32 j = 0; j < curves->at(i)->size(); j++){
-                curves->at(i)->at(j)->setVisible(true);
+            for (qint32 j = 0; j < curves.at(i).size(); j++){
+                curves.at(i).at(j)->setVisible(true);
             }
         }
     }
