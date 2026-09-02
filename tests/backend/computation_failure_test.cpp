@@ -113,8 +113,8 @@ TEST_F(FailedComputation, BoundariesRefuseWithoutTheTemplatesInsteadOfCrashing)
 
     ASSERT_TRUE(controller.templates().empty());
 
-    EXPECT_THROW(controller.computeBoundaries(QPointF(-360.0, 0.0), 361,
-                                             QPointF(-60.0, 60.0), 121, 0.0,
+    EXPECT_THROW(controller.computeBoundaries(qftbx::Range(-360.0, 0.0), 361,
+                                             qftbx::Range(-60.0, 60.0), 121, 0.0,
                                              false, false),
                  qftbx::InvalidInput);
 
@@ -123,7 +123,7 @@ TEST_F(FailedComputation, BoundariesRefuseWithoutTheTemplatesInsteadOfCrashing)
 
 TEST_F(FailedComputation, LoopShapingRefusesWithoutItsInputs)
 {
-    EXPECT_THROW(controller.computeLoopShaping(0.01, tools::nt, QPointF(0.1, 100.0), 50, 0),
+    EXPECT_THROW(controller.computeLoopShaping(0.01, tools::nt, qftbx::Range(0.1, 100.0), 50, 0),
                  qftbx::InvalidInput);
 
     EXPECT_EQ(controller.loopShapingResult(), nullptr);

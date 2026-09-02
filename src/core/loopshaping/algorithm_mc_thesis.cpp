@@ -86,7 +86,7 @@ void AlgorithmMcThesis::setProblem(LtiSystem * plant, LtiSystem * controller, QV
     this->boundaries = boundaries;
     this->epsilon = epsilon;
 
-    phaseSpanWidth = boundaries->phaseRange().y() - boundaries->phaseRange().x();
+    phaseSpanWidth = boundaries->phaseRange().width();
     phaseGridStep = phaseSpanWidth / (boundaries->phaseCount() - 1);
 
     hasUncertainZeros = false;

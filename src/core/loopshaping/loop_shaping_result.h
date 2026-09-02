@@ -3,7 +3,6 @@
 
 #include <memory>
 
-#include <QPointF>
 
 #include "src/core/system/lti_system.h"
 
@@ -16,13 +15,13 @@
 class LoopShapingResult
 {
 public:
-    LoopShapingResult (std::unique_ptr<LtiSystem> controller, QPointF plotRange,
+    LoopShapingResult (std::unique_ptr<LtiSystem> controller, qftbx::Range plotRange,
                        double pointCount);
 
     /// Observer on the computed controller; the record keeps ownership.
     LtiSystem * controller ();
 
-    QPointF range ();
+    qftbx::Range range ();
 
     double pointCount();
 
@@ -36,7 +35,7 @@ public:
 private:
 
     std::unique_ptr<LtiSystem> m_controller;
-    QPointF m_plotRange;
+    qftbx::Range m_plotRange;
     double m_pointCount = 0;
 };
 

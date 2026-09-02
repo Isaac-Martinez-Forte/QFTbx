@@ -39,7 +39,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, QVector<double>
     //Here and not inside the algorithms: a throw escaping an OpenMP region
     //ends the process. A narrow window is still fine for merely LOOKING at
     //boundaries, which is why the boundaries dialog does not forbid it.
-    const double phaseSpan = std::abs(boundaries->phaseRange().y() - boundaries->phaseRange().x());
+    const double phaseSpan = std::abs(boundaries->phaseRange().width());
 
     if (phaseSpan < 360.0) {
         const QString message =
@@ -48,8 +48,8 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, QVector<double>
                     "loop phase can take (-360 to 0 degrees). Recompute the "
                     "boundaries over a window of at least 360 degrees.")
                 .arg(phaseSpan)
-                .arg(boundaries->phaseRange().x())
-                .arg(boundaries->phaseRange().y());
+                .arg(boundaries->phaseRange().min)
+                .arg(boundaries->phaseRange().max);
 
         throw qftbx::ComputationError(message.toStdString());
     }

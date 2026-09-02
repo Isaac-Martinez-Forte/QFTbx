@@ -47,7 +47,7 @@ void BoundaryEngine::releaseResults()
 }
 
 void BoundaryEngine::compute(QVector<double> *omega, LtiSystem *plant, const CloudSet & templates,
-                             const qftbx::SpecificationRecords * specifications, QPointF phaseRange, std::int32_t phaseCount, QPointF magnitudeRange,
+                             const qftbx::SpecificationRecords * specifications, qftbx::Range phaseRange, std::int32_t phaseCount, qftbx::Range magnitudeRange,
                              std::int32_t magnitudeCount, double exportInfinity, bool cuda){
 
     //The export stand-in for infinity is not part of the computation
@@ -128,16 +128,16 @@ void BoundaryEngine::compute(QVector<double> *omega, LtiSystem *plant, const Clo
             //vector leaked all five sheets on every frequency.
             const BoundarySheetsCuda cudaSheets = boundarySheetsCuda(
                 valueSet, p0,
-                tools::linspace1(phaseRange.x(), phaseRange.y(), phaseCount),
-                tools::linspace1(magnitudeRange.x(), magnitudeRange.y(), magnitudeCount));
+                tools::linspace1(phaseRange.min, phaseRange.max, phaseCount),
+                tools::linspace1(magnitudeRange.min, magnitudeRange.max, magnitudeCount));
 
             std::map<QString, TraceSet> bound;
 
             std::map<QString, TraceLabels> traceMetadata;
 
             traceFrequency(omega->at(i), bound, cudaSheets, traceMetadata, p0, valueSet, i,
-                           phaseRange.y() - phaseRange.x(), magnitudeRange.y() - magnitudeRange.x(),
-                           phaseRange.x(), magnitudeRange.x());
+                           phaseRange.y - phaseRange.x, magnitudeRange.y - magnitudeRange.x,
+                           phaseRange.x, magnitudeRange.x);
 
             m_traceMetadata.push_back(std::move(traceMetadata));
             m_boundaries.push_back(std::move(bound));
@@ -342,16 +342,14 @@ TraceSet BoundaryEngine::traceBoundary(double thresholdDb, const BoundarySheet &
 #pragma omp parallel for
 #endif
     for (std::int32_t j = 0; j < static_cast<std::int32_t>(traces.size()); j++) {
-        QPoint label;
         //The allowed-side label of the trace: the threshold is the same dB
         //cut the contour was traced at.
-        label.setX(allowedZone(traces.at(static_cast<std::size_t>(j)), p0, valueSet, kind, thresholdDb));
-
-        traceMetadata[static_cast<std::size_t>(j)] = label;
+        traceMetadata[static_cast<std::size_t>(j)] =
+                allowedZone(traces.at(static_cast<std::size_t>(j)), p0, valueSet, kind, thresholdDb) != 0;
     }
 
     if (traceMetadata.empty()) {
-        traceMetadata.push_back(QPoint(0,0));
+        traceMetadata.push_back(false);
     }
 
     return traces;
@@ -359,14 +357,14 @@ TraceSet BoundaryEngine::traceBoundary(double thresholdDb, const BoundarySheet &
 
 
 #ifdef CUDA_AVAILABLE
-QVector<QVector<QPointF> *> * BoundaryEngine::traceBoundary(double thresholdDb, const float *sheet,
-                                                            QVector<QPoint> *traceMetadata, std::complex<double> p0,
+QVector<QVector<qftbx::Point> *> * BoundaryEngine::traceBoundary(double thresholdDb, const float *sheet,
+                                                            QVector<qftbx::Point> *traceMetadata, std::complex<double> p0,
                                                             const ComplexCloud & valueSet, std::int32_t kind,
                                                             double phaseSpan, double magnitudeSpan, double phaseBottom, double magnitudeBottom){
 
     ContourTracer tracer (thresholdDb, sheet);
 
-    QVector<QVector<QPointF> *> * traces = tracer.trace(phaseSpan, m_phaseCount, magnitudeSpan, m_magnitudeCount, phaseBottom, magnitudeBottom);
+    QVector<QVector<qftbx::Point> *> * traces = tracer.trace(phaseSpan, m_phaseCount, magnitudeSpan, m_magnitudeCount, phaseBottom, magnitudeBottom);
 
 
     traceMetadata->resize(traces->size());
@@ -375,10 +373,7 @@ QVector<QVector<QPointF> *> * BoundaryEngine::traceBoundary(double thresholdDb, 
 #pragma omp parallel for
 #endif
     for (std::int32_t j = 0; j < traces->size(); j++) {
-        QPoint label;
-        label.setX(allowedZone(traces->at(j), p0, valueSet, kind, thresholdDb));
-
-        traceMetadata->replace(j, label);
+        traceMetadata->replace(j, allowedZone(traces->at(j), p0, valueSet, kind, thresholdDb) != 0);
     }
 
     return traces;
@@ -392,10 +387,10 @@ std::int32_t BoundaryEngine::allowedZone(const Trace & trace, complex <double> p
     double probeMagnitude = -numeric_limits<double>::infinity();
     double probePhase = -numeric_limits<double>::infinity();
 
-    for (const QPointF & point : trace) {
-        if(point.y() > probeMagnitude){
-            probeMagnitude = point.y();
-            probePhase = point.x();
+    for (const qftbx::Point & point : trace) {
+        if(point.y > probeMagnitude){
+            probeMagnitude = point.y;
+            probePhase = point.x;
         }
     }
 
@@ -492,12 +487,12 @@ std::int32_t BoundaryEngine::allowedZone(const Trace & trace, complex <double> p
 }
 
 void BoundaryEngine::computeFrequencies(QVector<double> *omega, LtiSystem *plant,
-                                        const CloudSet & templates, QPointF phaseRange, std::int32_t phaseCount,
-                                        QPointF magnitudeRange, std::int32_t magnitudeCount)
+                                        const CloudSet & templates, qftbx::Range phaseRange, std::int32_t phaseCount,
+                                        qftbx::Range magnitudeRange, std::int32_t magnitudeCount)
 {
     //Base grid of the algorithm.
-    const QVector <double> phases = tools::linspace(phaseRange.x(), phaseRange.y(), phaseCount);
-    const QVector <double> magnitudes = tools::linspace(magnitudeRange.x(), magnitudeRange.y(),
+    const QVector <double> phases = tools::linspace(phaseRange.min, phaseRange.max, phaseCount);
+    const QVector <double> magnitudes = tools::linspace(magnitudeRange.min, magnitudeRange.max,
                                                       magnitudeCount);
 
     //Pre-sized containers: every frequency writes at ITS index. The old
@@ -691,8 +686,8 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
     std::map<QString, TraceLabels> traceMetadata;
 
     traceFrequency(omega, bound, sheets, traceMetadata, p0, p, index,
-                   m_phaseRange.y() - m_phaseRange.x(), m_magnitudeRange.y() - m_magnitudeRange.x(),
-                   m_phaseRange.x(), m_magnitudeRange.x());
+                   m_phaseRange.width(), m_magnitudeRange.width(),
+                   m_phaseRange.min, m_magnitudeRange.min);
 
     //The sheets (~1.7 MB per frequency) die here, which is where they stop
     //being needed: the contours and the zones are extracted. They used to be

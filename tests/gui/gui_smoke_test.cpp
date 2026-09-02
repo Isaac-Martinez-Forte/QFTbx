@@ -14,6 +14,10 @@
 
 #include <gtest/gtest.h>
 
+#include "src/core/point.h"
+
+#include "src/core/range.h"
+
 #include <complex>
 #include <memory>
 
@@ -127,13 +131,13 @@ BoundaryData oneBoundary()
     //this. The curve is one named boundary of three points over the default
     //Nichols window - enough to drive the drawing code, which is what the
     //viewer tests are after.
-    const qftbx::Trace curve{QPointF(-270.0, 10.0), QPointF(-180.0, 4.0),
-                             QPointF(-90.0, 10.0)};
+    const qftbx::Trace curve{qftbx::Point(-270.0, 10.0), qftbx::Point(-180.0, 4.0),
+                             qftbx::Point(-90.0, 10.0)};
 
     return BoundaryData({{{QStringLiteral("Stability"), {curve}}}},
-                        {false}, {true}, 361, QPointF(-360.0, 0.0),
+                        {false}, {true}, 361, qftbx::Range(-360.0, 0.0),
                         {curve}, {qftbx::TraceSet(361)},
-                        121, QPointF(-60.0, 60.0));
+                        121, qftbx::Range(-60.0, 60.0));
 }
 
 // ---------------------------------------------------------------------------
@@ -569,15 +573,15 @@ TEST_F(GuiSmoke, BoundaryGridDialogBuildsTheNicholsGrid)
 
     ASSERT_TRUE(dialog.wasAccepted()) << "the dialog rejected its own defaults";
 
-    EXPECT_DOUBLE_EQ(dialog.phaseRangeValue().x(), -360.0);
-    EXPECT_DOUBLE_EQ(dialog.phaseRangeValue().y(), 0.0);
+    EXPECT_DOUBLE_EQ(dialog.phaseRangeValue().min, -360.0);
+    EXPECT_DOUBLE_EQ(dialog.phaseRangeValue().max, 0.0);
     EXPECT_EQ(dialog.phaseCountValue(), 361);
     EXPECT_EQ(dialog.magnitudeCountValue(), 121);
-    EXPECT_LT(dialog.magnitudeRangeValue().x(), dialog.magnitudeRangeValue().y());
+    EXPECT_LT(dialog.magnitudeRangeValue().min, dialog.magnitudeRangeValue().max);
 
     //A window narrower than 360 degrees would be refused later by
     //LoopShaping::run; the default one must not be.
-    EXPECT_DOUBLE_EQ(dialog.phaseRangeValue().y() - dialog.phaseRangeValue().x(), 360.0);
+    EXPECT_DOUBLE_EQ(dialog.phaseRangeValue().max - dialog.phaseRangeValue().min, 360.0);
 }
 
 TEST_F(GuiSmoke, BoundaryGridDialogRejectsAnInvertedRange)
@@ -648,8 +652,8 @@ TEST_F(GuiSmoke, LoopShapingDialogCarriesTheChosenAlgorithm)
 
     EXPECT_EQ(dialog.algorithmValue(), tools::mr);
     EXPECT_DOUBLE_EQ(dialog.epsilonValue(), 0.01);
-    EXPECT_DOUBLE_EQ(dialog.range().x(), 0.1);
-    EXPECT_DOUBLE_EQ(dialog.range().y(), 100.0);
+    EXPECT_DOUBLE_EQ(dialog.range().min, 0.1);
+    EXPECT_DOUBLE_EQ(dialog.range().max, 100.0);
     EXPECT_DOUBLE_EQ(dialog.pointCountValue(), 200.0);
 }
 
@@ -750,8 +754,8 @@ TEST_F(GuiSmoke, BoundaryUnionViewerDrawsTheUnion)
 {
     BoundaryUnionViewer viewer;
 
-    const qftbx::UnionTraces traces{{QPointF(-270.0, 10.0), QPointF(-180.0, 4.0),
-                                     QPointF(-90.0, 10.0)}};
+    const qftbx::UnionTraces traces{{qftbx::Point(-270.0, 10.0), qftbx::Point(-180.0, 4.0),
+                                     qftbx::Point(-90.0, 10.0)}};
     QVector<qreal> omega{1.0};
 
     viewer.setData(traces, &omega);
@@ -779,9 +783,9 @@ TEST_F(GuiSmoke, LoopShapingViewerDrawsTheShapedLoop)
     std::vector<Parameter> one{Parameter(1.0)};
     LoopShapingResult result(std::make_unique<PolynomialForm>(QStringLiteral("k"), one, one,
                                                               Parameter(1.0), Parameter(0.0)),
-                             QPointF(0.1, 100.0), 50);
-    const qftbx::UnionTraces traces{{QPointF(-270.0, 10.0), QPointF(-180.0, 4.0),
-                                     QPointF(-90.0, 10.0)}};
+                             qftbx::Range(0.1, 100.0), 50);
+    const qftbx::UnionTraces traces{{qftbx::Point(-270.0, 10.0), qftbx::Point(-180.0, 4.0),
+                                     qftbx::Point(-90.0, 10.0)}};
     QVector<qreal> omega{1.0, 10.0};
 
     viewer.setData(traces, &omega, &result, &plant, false);

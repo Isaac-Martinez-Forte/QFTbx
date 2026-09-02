@@ -303,7 +303,7 @@ inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<L
     if (hasUncertainZeros || hasUncertainPoles) {
 
         const double phi0 = nominalPhase(p0);
-        const double phaseStep = (boundaries->phaseRange().y() - boundaries->phaseRange().x()) /
+        const double phaseStep = boundaries->phaseRange().width() /
                             (boundaries->phaseCount() - 1);
 
         const double boxPhaseMin = _double(Inf(Im(projection)));

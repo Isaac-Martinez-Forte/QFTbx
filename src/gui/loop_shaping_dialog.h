@@ -5,6 +5,8 @@
 
 #include <QDialog>
 
+#include "src/core/range.h"
+
 #include "mpParser.h"
 #include "src/core/math/sequence_vectors.h"
 #include "src/core/math/sequence_vectors.h"
@@ -38,7 +40,7 @@ public:
 
     tools::LoopShapingAlgorithm algorithmValue();
 
-    QPointF range();
+    qftbx::Range range();
 
     qreal pointCountValue();
 
@@ -73,7 +75,7 @@ private:
 
     qreal epsilonEdit = 0.0;
 
-    QPointF plotRange;
+    qftbx::Range plotRange;
 
     qreal pointCountEdit = 0.0;
 

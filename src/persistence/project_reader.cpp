@@ -3,7 +3,7 @@
 
 #include <QByteArray>
 #include <QFile>
-#include <QPointF>
+#include "src/core/point.h"
 #include <QMap>
 
 #include <pugixml.hpp>
@@ -130,7 +130,7 @@ public:
         qftbx::Trace points;
         points.reserve(static_cast<std::size_t>(reals.size() / 2));
         for (std::int32_t i = 0; i + 1 < reals.size(); i += 2) {
-            points.push_back(QPointF(reals.at(i), reals.at(i + 1)));
+            points.push_back(qftbx::Point(reals.at(i), reals.at(i + 1)));
         }
         return points;
     }
@@ -329,11 +329,11 @@ public:
 
         const pugi::xml_node phases = require(data, t.phases);
         const std::int32_t phaseCount = intAttribute(phases, t.phaseCountAttribute);
-        const QPointF phaseRange(realChild(phases, t.axisMin), realChild(phases, t.axisMax));
+        const qftbx::Range phaseRange(realChild(phases, t.axisMin), realChild(phases, t.axisMax));
 
         const pugi::xml_node magnitudes = require(data, t.magnitudes);
         const std::int32_t magnitudeCount = intAttribute(magnitudes, t.magnitudeCountAttribute);
-        const QPointF magnitudeRange(realChild(magnitudes, t.axisMin), realChild(magnitudes, t.axisMax));
+        const qftbx::Range magnitudeRange(realChild(magnitudes, t.axisMin), realChild(magnitudes, t.axisMax));
 
         const pugi::xml_node metadata = require(data, t.metadata);
         std::vector<bool> openFlags = boolVector(require(metadata, t.openFlags));
@@ -367,7 +367,7 @@ public:
     {
         const pugi::xml_node data = require(section, t.boundariesData);
         const std::int32_t pointCount = intAttribute(data, t.loopShapingPointCountAttribute);
-        const QPointF range(realChild(data, t.axisMin), realChild(data, t.axisMax));
+        const qftbx::Range range(realChild(data, t.axisMin), realChild(data, t.axisMax));
 
         //The embedded controller is the child that carries a <type> element.
         pugi::xml_node systemNode;

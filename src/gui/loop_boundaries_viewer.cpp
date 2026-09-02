@@ -113,13 +113,13 @@ void LoopBoundariesViewer::showDiagram(){
 
         qint32 secondIndex = 0;
 
-        for (const QPointF & pNichols : boundNichols) {
-            QPointF pNyquist = boundNyquist.at(static_cast<std::size_t>(secondIndex));
-            ejex.append(pNichols.x());
-            ejey.append(pNichols.y());
+        for (const qftbx::Point & pNichols : boundNichols) {
+            const qftbx::Point pNyquist = boundNyquist.at(static_cast<std::size_t>(secondIndex));
+            ejex.append(pNichols.x);
+            ejey.append(pNichols.y);
 
-            ejex1.append(pNyquist.x());
-            ejey1.append(pNyquist.y());
+            ejex1.append(pNyquist.x);
+            ejey1.append(pNyquist.y);
 
 
             secondIndex++;

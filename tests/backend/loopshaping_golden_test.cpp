@@ -28,6 +28,8 @@
 
 #include <gtest/gtest.h>
 
+#include "src/core/range.h"
+
 #include <QPointF>
 #include <QString>
 
@@ -64,14 +66,14 @@ TEST_P(LoopShapingGolden, Planta1ResultIsPinned)
 
     if (!golden.solutionExists) {
         EXPECT_THROW(controller.computeLoopShaping(
-                         0.5, golden.algorithm, QPointF(1e-9, 10.0), 100),
+                         0.5, golden.algorithm, qftbx::Range(1e-9, 10.0), 100),
                      qftbx::InvalidInput)
             << golden.name;
         return;
     }
 
     const bool ok = controller.computeLoopShaping(
-        0.5, golden.algorithm, QPointF(1e-9, 10.0), 100);
+        0.5, golden.algorithm, qftbx::Range(1e-9, 10.0), 100);
 
     ASSERT_TRUE(ok) << golden.name;
 

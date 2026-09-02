@@ -126,9 +126,9 @@ void LoopShapingViewer::showDiagram(){
         QVector <qreal> ejex;
         QVector <qreal> ejey;
 
-        for (const QPointF & p : bound) {
-            ejex.append(p.x());
-            ejey.append(p.y());
+        for (const qftbx::Point & p : bound) {
+            ejex.append(p.x);
+            ejey.append(p.y);
         }
 
         /*curves.append(ui->plot->addGraph());

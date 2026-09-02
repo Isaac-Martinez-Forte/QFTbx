@@ -168,7 +168,7 @@ const qftbx::CloudSet & ProjectController::recomputeContour(QVector <double> eps
     return data.contour();
 }
 
-bool ProjectController::computeBoundaries(QPointF phaseRange, std::int32_t phaseCount, QPointF magnitudeRange,
+bool ProjectController::computeBoundaries(qftbx::Range phaseRange, std::int32_t phaseCount, qftbx::Range magnitudeRange,
                                      std::int32_t magnitudeCount, double exportInfinity, bool contour, bool cuda){
 
     if (data.plant() == nullptr || data.frequencies() == nullptr){
@@ -229,7 +229,7 @@ LtiSystem * ProjectController::controllerStructure(){
     return data.controller();
 }
 
-bool ProjectController::computeLoopShaping(double epsilon, tools::LoopShapingAlgorithm algorithm, QPointF plotRange, double pointCount,
+bool ProjectController::computeLoopShaping(double epsilon, tools::LoopShapingAlgorithm algorithm, qftbx::Range plotRange, double pointCount,
                                       std::int32_t initialisation){
 
     if (data.plant() == nullptr || data.frequencies() == nullptr){

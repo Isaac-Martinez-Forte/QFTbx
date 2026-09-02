@@ -48,11 +48,11 @@ BoundaryGridDialog::~BoundaryGridDialog()
 {
 }
 
-QPointF BoundaryGridDialog::phaseRangeValue(){
+qftbx::Range BoundaryGridDialog::phaseRangeValue(){
     return phaseRange;
 }
 
-QPointF BoundaryGridDialog::magnitudeRangeValue(){
+qftbx::Range BoundaryGridDialog::magnitudeRangeValue(){
     return magnitudeRange;
 }
 
@@ -85,8 +85,8 @@ void BoundaryGridDialog::on_buttonBox_accepted()
         infinityEdit = ui->infinityEdit->text().toDouble();
     }
 
-    phaseRange = QPointF(ui->phaseStart->text().toDouble(),ui->phaseEnd->text().toDouble());
-    magnitudeRange = QPointF(ui->magnitudeStart->text().toDouble(),ui->magnitudeEnd->text().toDouble());
+    phaseRange = qftbx::Range(ui->phaseStart->text().toDouble(),ui->phaseEnd->text().toDouble());
+    magnitudeRange = qftbx::Range(ui->magnitudeStart->text().toDouble(),ui->magnitudeEnd->text().toDouble());
 
     phaseCount = ui->phasePoints->text().toInt();
     magnitudeCount = ui->magnitudePoints->text().toInt();
@@ -94,7 +94,7 @@ void BoundaryGridDialog::on_buttonBox_accepted()
     //The grid must make sense before launching the computation: increasing
     //ranges and at least two points per axis (any value used to go straight
     //into the engine).
-    if (phaseRange.x() >= phaseRange.y() || magnitudeRange.x() >= magnitudeRange.y() ||
+    if (phaseRange.min >= phaseRange.max || magnitudeRange.min >= magnitudeRange.max ||
             phaseCount < 2 || magnitudeCount < 2){
         tools::errorMessage(tr("The grid ranges must be increasing, with at least 2 points per axis."), tr("Boundary grid input"));
         accepted = false;

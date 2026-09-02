@@ -6,7 +6,6 @@
 #include <memory>
 
 #include <QVector>
-#include <QPointF>
 
 #include "src/core/system/lti_system.h"
 #include "src/core/math/sequence_vectors.h"

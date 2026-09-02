@@ -63,7 +63,7 @@ void LoopShapingDialog::on_okButton_clicked()
     p.SetExpr(ui->startEdit->text().toStdString());
 
     try {
-        plotRange.setX(p.Eval().GetFloat());
+        plotRange.min = p.Eval().GetFloat();
         ui->startEdit->setStyleSheet("background : white");
     } catch (mup::ParserError &e){
         tools::errorMessage(tr("Invalid start-frequency expression."), tr("Loop Shaping"));
@@ -75,7 +75,7 @@ void LoopShapingDialog::on_okButton_clicked()
     p.SetExpr(ui->endEdit->text().toStdString());
 
     try {
-        plotRange.setY(p.Eval().GetFloat());
+        plotRange.max = p.Eval().GetFloat();
         ui->endEdit->setStyleSheet("background : white");
     } catch (mup::ParserError &e){
         tools::errorMessage(tr("Invalid end-frequency expression."), tr("Loop Shaping"));
@@ -133,7 +133,7 @@ tools::LoopShapingAlgorithm LoopShapingDialog::algorithmValue(){
     return alg;
 }
 
-QPointF LoopShapingDialog::range(){
+qftbx::Range LoopShapingDialog::range(){
     return plotRange;
 }
 

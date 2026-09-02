@@ -2,6 +2,7 @@
 #define QFTBX_BOUNDARY_ENGINE_H
 
 #include <cstdint>
+#include "src/core/range.h"
 #include <QVector>
 
 #include "src/core/templates/cloud_set.h"
@@ -80,8 +81,8 @@ public:
     * @param cuda compute the sheets on the GPU (CUDA builds only).
     */
     void compute(QVector <double> * omega, LtiSystem * plant, const CloudSet & templates,
-                 const qftbx::SpecificationRecords * specifications, QPointF phaseRange,
-                 std::int32_t phaseCount, QPointF magnitudeRange, std::int32_t magnitudeCount, double exportInfinity, bool cuda);
+                 const qftbx::SpecificationRecords * specifications, qftbx::Range phaseRange,
+                 std::int32_t phaseCount, qftbx::Range magnitudeRange, std::int32_t magnitudeCount, double exportInfinity, bool cuda);
 
     /// A fresh non-owning view over the last computed results.
     /// A snapshot of the results, by value. It used to be a freshly
@@ -100,7 +101,7 @@ private:
     void releaseResults();
 
     void computeFrequencies(QVector <double> * omega, LtiSystem * plant, const CloudSet & templates,
-                            QPointF phaseRange, std::int32_t phaseCount, QPointF magnitudeRange, std::int32_t magnitudeCount);
+                            qftbx::Range phaseRange, std::int32_t phaseCount, qftbx::Range magnitudeRange, std::int32_t magnitudeCount);
 
     void computeFrequency(double omega, LtiSystem * plant,
                           const ComplexCloud & valueSet, const QVector <double> & phases,
@@ -126,14 +127,14 @@ private:
                         double phaseSpan, double magnitudeSpan, double phaseBottom, double magnitudeBottom);
 
     TraceSet traceBoundary(double thresholdDb, const float * sheet,
-                                               QVector<QPoint> *traceMetadata, std::complex<double> p0, const ComplexCloud & valueSet,
+                                               QVector<qftbx::Point> *traceMetadata, std::complex<double> p0, const ComplexCloud & valueSet,
                                                std::int32_t kind, double phaseSpan, double magnitudeSpan,
                                                double phaseBottom, double magnitudeBottom);
 #endif
 
 
-    QPointF m_phaseRange;
-    QPointF m_magnitudeRange;
+    qftbx::Range m_phaseRange;
+    qftbx::Range m_magnitudeRange;
     std::int32_t m_phaseCount = 0;
     std::int32_t m_magnitudeCount = 0;
 

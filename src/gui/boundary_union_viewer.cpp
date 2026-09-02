@@ -128,9 +128,9 @@ void BoundaryUnionViewer::showDiagram(){
                 QVector <qreal> ejex;
                 QVector <qreal> ejey;
 
-                for (const QPointF & p : bound) {
-                    ejex.append(p.x());
-                    ejey.append(p.y());
+                for (const qftbx::Point & p : bound) {
+                    ejex.append(p.x);
+                    ejey.append(p.y);
                 }
 
                 QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
@@ -160,9 +160,9 @@ void BoundaryUnionViewer::showDiagram(){
                 QVector <qreal> ejey;
 
                 for (const qftbx::Trace & bucket : bound) {
-                    for (const QPointF & p : bucket) {
-                        ejex.append(p.x());
-                        ejey.append(p.y());
+                    for (const qftbx::Point & p : bucket) {
+                        ejex.append(p.x);
+                        ejey.append(p.y);
                     }
                 }
 
@@ -184,9 +184,9 @@ void BoundaryUnionViewer::showDiagram(){
                 QVector <qreal> ejex;
                 QVector <qreal> ejey;
 
-                for (const QPointF & p : this->b) {
-                    ejex.append(p.x());
-                    ejey.append(p.y());
+                for (const qftbx::Point & p : this->b) {
+                    ejex.append(p.x);
+                    ejey.append(p.y);
                 }
 
                 QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
@@ -209,9 +209,9 @@ void BoundaryUnionViewer::showDiagram(){
                 QVector <qreal> ejex;
                 QVector <qreal> ejey;
 
-        for (const QPointF & p : unionTraces.at(static_cast<std::size_t>(singleBoundary))) {
-            ejex.append(p.x());
-            ejey.append(p.y());
+        for (const qftbx::Point & p : unionTraces.at(static_cast<std::size_t>(singleBoundary))) {
+            ejex.append(p.x);
+            ejey.append(p.y);
         }
 
         QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);

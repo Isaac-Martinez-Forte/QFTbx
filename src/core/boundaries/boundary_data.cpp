@@ -4,9 +4,9 @@
 namespace qftbx {
 
 BoundaryData::BoundaryData(BoundarySet boundaries, std::vector<bool> openFlags,
-                           std::vector<bool> upperFlags, std::int32_t phaseCount, QPointF phaseRange,
+                           std::vector<bool> upperFlags, std::int32_t phaseCount, qftbx::Range phaseRange,
                            UnionTraces unionBoundaries, UnionBuckets unionBuckets,
-                           std::int32_t magnitudeCount, QPointF magnitudeRange)
+                           std::int32_t magnitudeCount, qftbx::Range magnitudeRange)
     : m_boundaries(std::move(boundaries)),
       m_openFlags(std::move(openFlags)),
       m_upperFlags(std::move(upperFlags)),
@@ -38,12 +38,12 @@ std::int32_t BoundaryData::magnitudeCount() const
     return m_magnitudeCount;
 }
 
-QPointF BoundaryData::phaseRange() const
+qftbx::Range BoundaryData::phaseRange() const
 {
     return m_phaseRange;
 }
 
-QPointF BoundaryData::magnitudeRange() const
+qftbx::Range BoundaryData::magnitudeRange() const
 {
     return m_magnitudeRange;
 }

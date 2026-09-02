@@ -185,7 +185,7 @@ TEST_P(ThesisBenchmarkGolden, ResultIsPinned)
         QStringLiteral(QFTBX_TEST_DATA_DIR) + "/" + golden.file);
 
     const bool ok = controller.computeLoopShaping(
-        0.5, golden.algorithm, QPointF(1e-9, 10.0), 100);
+        0.5, golden.algorithm, qftbx::Range(1e-9, 10.0), 100);
 
     ASSERT_TRUE(ok) << golden.name;
 

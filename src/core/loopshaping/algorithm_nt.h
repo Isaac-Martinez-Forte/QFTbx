@@ -115,7 +115,6 @@ private:
     double minBoundary = 0.0;
 
 
-    QPointF intersection (QPointF uno, QPointF dos);
 
 
     std::int32_t tamFas = 0;

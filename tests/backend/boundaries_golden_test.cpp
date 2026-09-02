@@ -22,7 +22,7 @@
 #include <vector>
 
 #include <QMap>
-#include <QPointF>
+#include "src/core/point.h"
 #include "src/core/range.h"
 #include <QString>
 #include <QVector>
@@ -45,16 +45,16 @@ struct GridPoint
     bool operator==(const GridPoint& o) const { return n == o.n && m == o.m; }
 };
 
-GridPoint currentToGrid(QPointF p)
+GridPoint currentToGrid(qftbx::Point p)
 {
-    return {static_cast<int>(std::lround(p.x() + 360.0)),
-            static_cast<int>(std::lround(p.y() + 60.0))};
+    return {static_cast<int>(std::lround(p.x + 360.0)),
+            static_cast<int>(std::lround(p.y + 60.0))};
 }
 
-GridPoint goldenToGrid(QPointF p)
+GridPoint goldenToGrid(qftbx::Point p)
 {
-    return {static_cast<int>(std::lround((p.x() + 361.0) * 360.0 / 361.0)),
-            static_cast<int>(std::lround((p.y() + 60.0) * 120.0 / 121.0))};
+    return {static_cast<int>(std::lround((p.x + 361.0) * 360.0 / 361.0)),
+            static_cast<int>(std::lround((p.y + 60.0) * 120.0 / 121.0))};
 }
 
 class BoundariesGolden : public ::testing::Test
@@ -67,7 +67,7 @@ protected:
 
         engine.compute(parser.omega()->values(), parser.plant(),
                              parser.contour(), parser.specifications(),
-                             QPointF(-360.0, 0.0), 361, QPointF(-60.0, 60.0), 121,
+                             qftbx::Range(-360.0, 0.0), 361, qftbx::Range(-60.0, 60.0), 121,
                              -1.0, false);
 
         got = engine.boundaryData();
@@ -157,7 +157,7 @@ TEST_F(BoundariesGolden, ReunionIsTheConcatenationOfTheTraces)
 
         std::size_t idx = 0;
         for (const qftbx::Trace & t : traces) {
-            for (const QPointF& p : t) {
+            for (const qftbx::Point& p : t) {
                 ASSERT_EQ(reun.at(f).at(idx), p)
                     << "frequency " << f << " flat index " << idx;
                 ++idx;
@@ -177,7 +177,7 @@ TEST_F(BoundariesGolden, ContourInputIsEquivalentToFullTemplates)
     BoundaryEngine engine2;
     engine2.compute(parser2.omega()->values(), parser2.plant(),
                           parser2.templates(), parser2.specifications(),
-                          QPointF(-360.0, 0.0), 361, QPointF(-60.0, 60.0), 121,
+                          qftbx::Range(-360.0, 0.0), 361, qftbx::Range(-60.0, 60.0), 121,
                           -1.0, false);
     const BoundaryData other = engine2.boundaryData();
 
@@ -211,7 +211,7 @@ TEST_F(BoundariesGolden, ReunionHashIsSortedDeduplicatedAndInRange)
                 EXPECT_NE(std::find(reun.at(f).begin(), reun.at(f).end(), bucket.at(k)),
                           reun.at(f).end()) << "frequency " << f;
                 if (k > 0) {
-                    EXPECT_GT(bucket.at(k).y(), bucket.at(k - 1).y())
+                    EXPECT_GT(bucket.at(k).y, bucket.at(k - 1).y)
                         << "frequency " << f << " bucket not strictly sorted";
                 }
             }

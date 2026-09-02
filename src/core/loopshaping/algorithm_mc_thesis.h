@@ -6,7 +6,6 @@
 #include <optional>
 
 #include <QHash>
-#include <QPointF>
 #include <QVector>
 
 #include "src/core/boundaries/boundary_data.h"

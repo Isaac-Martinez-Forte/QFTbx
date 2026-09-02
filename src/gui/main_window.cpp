@@ -6,6 +6,7 @@
 
 #include <QMessageBox>
 
+#include "src/core/point.h"
 #include "src/core/exception.h"
 
 #include <iostream>
@@ -766,11 +767,11 @@ void MainWindow::showLoopDiagrams(bool nichols, bool nyquistRadio){
 
         qftbx::Trace nuevoVector;
 
-        for (const QPointF & p : vector) {
-            maglineal = pow(10,p.y()/20);
+        for (const qftbx::Point & p : vector) {
+            maglineal = pow(10,p.y/20);
 
-            nuevoVector.push_back(QPointF(maglineal * cos (p.x() * M_PI / 180),
-                                          maglineal * sin (p.x() * M_PI / 180)));
+            nuevoVector.push_back(qftbx::Point(maglineal * cos (p.x * M_PI / 180),
+                                               maglineal * sin (p.x * M_PI / 180)));
         }
 
         //One empty bucket row per frequency: this view is only drawn, never
@@ -783,11 +784,11 @@ void MainWindow::showLoopDiagrams(bool nichols, bool nyquistRadio){
 
 
 
-    QPointF newPhaseData ((boundaries->phaseRange().x() * M_PI) / 180, 0);
+    qftbx::Range newPhaseData ((boundaries->phaseRange().min * M_PI) / 180, 0);
 
-    QPointF magnitudeData = boundaries->magnitudeRange();
+    const qftbx::Range magnitudeData = boundaries->magnitudeRange();
 
-    QPointF newMagnitudeData (pow(10,magnitudeData.x()/20), pow(10,magnitudeData.y()/20));
+    qftbx::Range newMagnitudeData (pow(10,magnitudeData.min/20), pow(10,magnitudeData.max/20));
 
     BoundaryData nuevoBoundaries (boundaries->boundaries(), boundaries->openFlags(),
                                   boundaries->upperFlags(), boundaries->phaseCount(),

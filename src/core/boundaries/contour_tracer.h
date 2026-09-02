@@ -5,7 +5,7 @@
 #include <QVector>
 
 #include "src/core/boundaries/boundary_types.h"
-#include <QPointF>
+#include "src/core/point.h"
 
 namespace qftbx {
 

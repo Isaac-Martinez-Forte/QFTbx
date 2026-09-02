@@ -3,7 +3,6 @@
 
 #include <complex>
 
-#include <QPointF>
 #include <QVector>
 
 #include "src/core/boundaries/boundary_data.h"

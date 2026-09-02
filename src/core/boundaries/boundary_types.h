@@ -5,14 +5,13 @@
 #include <map>
 #include <vector>
 
-#include <QPoint>
-#include <QPointF>
+#include "src/core/point.h"
 #include <QString>
 
 namespace qftbx {
 
 /// One boundary curve in the Nichols plane: phase in degrees, magnitude in dB.
-using Trace = std::vector<QPointF>;
+using Trace = std::vector<Point>;
 
 /// The curves of one specification at one design frequency. A boundary is
 /// multivalued in general, hence several curves rather than one.
@@ -66,8 +65,15 @@ using BoundarySheet = std::vector<std::vector<double>>;
  */
 using BoundarySheets = std::array<BoundarySheet, 5>;
 
-/// The allowed-side label of each curve (see BoundaryEngine::allowedZone).
-using TraceLabels = std::vector<QPoint>;
+/**
+ * @brief The allowed-side label of each curve: true when the allowed side is
+ * up (see BoundaryEngine::allowedZone, which returns 0 or 1).
+ *
+ * It was a vector of QPoint with the flag in x and y always zero and never
+ * read - a boolean stuffed into a 2D integer point. The open and upper
+ * flags beside it were already plain bool vectors.
+ */
+using TraceLabels = std::vector<bool>;
 
 /// Per design frequency, the labels of each specification's curves.
 using TraceMetadata = std::vector<std::map<QString, TraceLabels>>;

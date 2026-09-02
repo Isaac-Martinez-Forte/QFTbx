@@ -103,7 +103,7 @@ public:
      * full value sets.
      * @param cuda run the GPU path.
      */
-    bool computeBoundaries(QPointF phaseRange, std::int32_t phaseCount, QPointF magnitudeRange,
+    bool computeBoundaries(qftbx::Range phaseRange, std::int32_t phaseCount, qftbx::Range magnitudeRange,
                            std::int32_t magnitudeCount, double exportInfinity, bool useContour, bool cuda);
 
     BoundaryData * boundaries();
@@ -140,7 +140,7 @@ public:
      * @return false when the algorithm found no solution; it throws
      * qftbx::InvalidInput when the problem itself is invalid or infeasible.
      */
-    bool computeLoopShaping(double epsilon, tools::LoopShapingAlgorithm algorithm, QPointF plotRange,
+    bool computeLoopShaping(double epsilon, tools::LoopShapingAlgorithm algorithm, qftbx::Range plotRange,
                             double pointCount, std::int32_t initialisation = 0);
 
     LoopShapingResult * loopShapingResult();

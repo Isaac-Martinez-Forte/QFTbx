@@ -5,7 +5,7 @@
 #include <string>
 
 #include <QMap>
-#include <QPointF>
+#include "src/core/point.h"
 
 #include <pugixml.hpp>
 
@@ -37,11 +37,11 @@ std::string realVectorText(const QVector <double> & values)
     return text;
 }
 
-std::string pointVectorText(const std::vector<QPointF> & points)
+std::string pointVectorText(const std::vector<qftbx::Point> & points)
 {
     std::string text;
-    for (const QPointF & point : points) {
-        text += number(point.x()) + " " + number(point.y()) + " ";
+    for (const qftbx::Point & point : points) {
+        text += number(point.x) + " " + number(point.y) + " ";
     }
     return text;
 }
@@ -201,13 +201,13 @@ void writeBoundaries(pugi::xml_node root, BoundaryData * boundaries)
 
     pugi::xml_node phases = data.append_child(t.phases);
     phases.append_attribute(t.phaseCountAttribute) = boundaries->phaseCount();
-    addReal(phases, t.axisMin, boundaries->phaseRange().x());
-    addReal(phases, t.axisMax, boundaries->phaseRange().y());
+    addReal(phases, t.axisMin, boundaries->phaseRange().min);
+    addReal(phases, t.axisMax, boundaries->phaseRange().max);
 
     pugi::xml_node magnitudes = data.append_child(t.magnitudes);
     magnitudes.append_attribute(t.magnitudeCountAttribute) = boundaries->magnitudeCount();
-    addReal(magnitudes, t.axisMin, boundaries->magnitudeRange().x());
-    addReal(magnitudes, t.axisMax, boundaries->magnitudeRange().y());
+    addReal(magnitudes, t.axisMin, boundaries->magnitudeRange().min);
+    addReal(magnitudes, t.axisMax, boundaries->magnitudeRange().max);
 
     pugi::xml_node metadata = data.append_child(t.metadata);
     addText(metadata, t.openFlags, boolVectorText(boundaries->openFlags()));
@@ -246,8 +246,8 @@ void writeLoopShaping(pugi::xml_node root, LoopShapingResult * loopShaping)
 
     pugi::xml_node data = section.append_child(t.boundariesData);
     data.append_attribute(t.loopShapingPointCountAttribute) = loopShaping->pointCount();
-    addReal(data, t.axisMin, loopShaping->range().x());
-    addReal(data, t.axisMax, loopShaping->range().y());
+    addReal(data, t.axisMin, loopShaping->range().min);
+    addReal(data, t.axisMax, loopShaping->range().max);
 
     writeSystem(section, t.controller, loopShaping->controller());
 }

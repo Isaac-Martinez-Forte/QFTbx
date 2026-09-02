@@ -5,8 +5,8 @@
 #include <QVector>
 
 #include "src/core/boundaries/boundary_types.h"
-#include <QPoint>
-#include <QPointF>
+#include "src/core/point.h"
+#include "src/core/point.h"
 #include <cmath>
 
 #include "boundary_data.h"
@@ -60,7 +60,7 @@ private:
 
     std::int32_t bucketIndex(double x, double totalPhase);
 
-    void insertSorted(TraceSet & layerBuckets, std::int32_t index, QPointF point, double totalPhase);
+    void insertSorted(TraceSet & layerBuckets, std::int32_t index, qftbx::Point point, double totalPhase);
 
     std::vector<TraceSet> buildLayerBuckets(const TraceSet & chosenCurves, double totalPhase, bool open, bool upper);
 
