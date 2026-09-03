@@ -319,7 +319,7 @@ inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<L
 
             const double thetaMax = boundPhaseMax * M_PI / 180.0;
 
-            for (std::int32_t j = 0; hasUncertainZeros && j < static_cast<std::int32_t>(zeroInfs.size()); ++j) {
+            for (std::size_t j = 0; hasUncertainZeros && j < zeroInfs.size(); ++j) {
                 if (!v->numerator()[j].isUncertain()) {
                     continue;
                 }
@@ -333,7 +333,7 @@ inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<L
                 }
             }
 
-            for (std::int32_t j = 0; hasUncertainPoles && j < static_cast<std::int32_t>(poleInfs.size()); ++j) {
+            for (std::size_t j = 0; hasUncertainPoles && j < poleInfs.size(); ++j) {
                 if (!v->denominator()[j].isUncertain()) {
                     continue;
                 }
@@ -354,7 +354,7 @@ inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<L
 
             const double thetaMin = boundPhaseMin * M_PI / 180.0;
 
-            for (std::int32_t j = 0; hasUncertainZeros && j < static_cast<std::int32_t>(zeroInfs.size()); ++j) {
+            for (std::size_t j = 0; hasUncertainZeros && j < zeroInfs.size(); ++j) {
                 if (!v->numerator()[j].isUncertain()) {
                     continue;
                 }
@@ -368,7 +368,7 @@ inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<L
                 }
             }
 
-            for (std::int32_t j = 0; hasUncertainPoles && j < static_cast<std::int32_t>(poleInfs.size()); ++j) {
+            for (std::size_t j = 0; hasUncertainPoles && j < poleInfs.size(); ++j) {
                 if (!v->denominator()[j].isUncertain()) {
                     continue;
                 }

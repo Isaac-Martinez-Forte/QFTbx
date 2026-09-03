@@ -92,7 +92,7 @@ Trace BoundaryUnion1D::drawFirstLayer(const TraceSet & chosenCurves,
         {
             const Trace & bucket =
                     firstCurveBuckets.at(static_cast<std::size_t>(bucketIndex(curvePoint.phase, totalPhase)));
-            const std::int32_t bucketSize = static_cast<std::int32_t>(bucket.size());
+            const std::size_t bucketSize = bucket.size();
 
             if (bucketSize == 0) layer1.push_back(curvePoint);
 
@@ -107,7 +107,7 @@ Trace BoundaryUnion1D::drawFirstLayer(const TraceSet & chosenCurves,
             }
             else
             {
-                for (std::int32_t j = 0; j < bucketSize; j += 2)
+                for (std::size_t j = 0; j < bucketSize; j += 2)
                 {
                     if (curvePoint.magnitude >= bucket[0].magnitude) layer1.push_back(curvePoint);
 
@@ -138,7 +138,7 @@ Trace BoundaryUnion1D::drawFirstLayer(const TraceSet & chosenCurves,
         {
             const Trace & bucket =
                     firstCurveBuckets.at(static_cast<std::size_t>(bucketIndex(curvePoint.phase, totalPhase)));
-            const std::int32_t bucketSize = static_cast<std::int32_t>(bucket.size());
+            const std::size_t bucketSize = bucket.size();
 
             if (bucketSize > 1 && bucketSize % 2 == 0)
             {
@@ -150,7 +150,7 @@ Trace BoundaryUnion1D::drawFirstLayer(const TraceSet & chosenCurves,
                 }
                 else
                 {
-                    for (std::int32_t j = 0; j < bucketSize; j += 2)
+                    for (std::size_t j = 0; j < bucketSize; j += 2)
                     {
                         if ((curvePoint.magnitude <= bucket[j].magnitude) &&
                                 (curvePoint.magnitude >= bucket[j + 1].magnitude)) outside = false;
@@ -190,7 +190,7 @@ Trace BoundaryUnion1D::drawSecondLayer(const TraceSet & chosenCurves,
         {
             const Trace & bucket =
                     secondCurveBuckets.at(static_cast<std::size_t>(bucketIndex(curvePoint.phase, totalPhase)));
-            const std::int32_t bucketSize = static_cast<std::int32_t>(bucket.size());
+            const std::size_t bucketSize = bucket.size();
 
             if (bucketSize == 0) layer2.push_back(curvePoint);
 
@@ -205,7 +205,7 @@ Trace BoundaryUnion1D::drawSecondLayer(const TraceSet & chosenCurves,
             }
             else
             {
-                for (std::int32_t j = 0; j < bucketSize; j += 2)
+                for (std::size_t j = 0; j < bucketSize; j += 2)
                 {
                     if (curvePoint.magnitude >= bucket[0].magnitude) layer2.push_back(curvePoint);
 
@@ -236,7 +236,7 @@ Trace BoundaryUnion1D::drawSecondLayer(const TraceSet & chosenCurves,
         {
             const Trace & bucket =
                     secondCurveBuckets.at(static_cast<std::size_t>(bucketIndex(curvePoint.phase, totalPhase)));
-            const std::int32_t bucketSize = static_cast<std::int32_t>(bucket.size());
+            const std::size_t bucketSize = bucket.size();
 
             if (bucketSize > 1 && bucketSize % 2 == 0)
             {
@@ -248,7 +248,7 @@ Trace BoundaryUnion1D::drawSecondLayer(const TraceSet & chosenCurves,
                 }
                 else
                 {
-                    for (std::int32_t j = 0; j < bucketSize; j += 2)
+                    for (std::size_t j = 0; j < bucketSize; j += 2)
                     {
                         //STRICT here, unlike layer 1.
                         if ((curvePoint.magnitude < bucket[j].magnitude) &&

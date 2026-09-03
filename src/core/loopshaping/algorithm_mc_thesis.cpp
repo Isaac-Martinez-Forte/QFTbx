@@ -130,7 +130,7 @@ inline std::unique_ptr<LtiSystem> AlgorithmMcThesis::replaceParameter(LtiSystem 
 {
     std::vector<Parameter> numerador;
     numerador.reserve(box->numerator().size());
-    for (std::int32_t j = 0; j < static_cast<std::int32_t>(box->numerator().size()); ++j) {
+    for (std::size_t j = 0; j < box->numerator().size(); ++j) {
         Parameter & old = box->numerator()[j];
         numerador.push_back(parameter == j + 1
                 ? Parameter(old.name(), range, range.min)
@@ -139,7 +139,7 @@ inline std::unique_ptr<LtiSystem> AlgorithmMcThesis::replaceParameter(LtiSystem 
 
     std::vector<Parameter> denominador;
     denominador.reserve(box->denominator().size());
-    for (std::int32_t j = 0; j < static_cast<std::int32_t>(box->denominator().size()); ++j) {
+    for (std::size_t j = 0; j < box->denominator().size(); ++j) {
         Parameter & old = box->denominator()[j];
         denominador.push_back(parameter == j + 1 + static_cast<std::int32_t>(box->numerator().size())
                 ? Parameter(old.name(), range, range.min)
@@ -824,7 +824,7 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
                 }
             }
 
-            for (std::int32_t j = 0; hasUncertainZeros && j < static_cast<std::int32_t>(zeroInfs.size()); ++j) {
+            for (std::size_t j = 0; hasUncertainZeros && j < zeroInfs.size(); ++j) {
                 if (!v->numerator()[j].isUncertain()) continue;
                 const double z = quick_solution::zeroCut(boundMin, gainSup, zeroSups, poleInfs, j, w, p0);
                 if (z > zeroInfs[j] && z < zeroSups[j]) {
@@ -833,7 +833,7 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
                 }
             }
 
-            for (std::int32_t j = 0; hasUncertainPoles && j < static_cast<std::int32_t>(poleInfs.size()); ++j) {
+            for (std::size_t j = 0; hasUncertainPoles && j < poleInfs.size(); ++j) {
                 if (!v->denominator()[j].isUncertain()) continue;
                 const double p = quick_solution::poleCut(boundMin, gainSup, zeroSups, poleInfs, j, w, p0);
                 if (p > poleInfs[j] && p < poleSups[j]) {
@@ -855,7 +855,7 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
                 }
             }
 
-            for (std::int32_t j = 0; hasUncertainZeros && j < static_cast<std::int32_t>(zeroInfs.size()); ++j) {
+            for (std::size_t j = 0; hasUncertainZeros && j < zeroInfs.size(); ++j) {
                 if (!v->numerator()[j].isUncertain()) continue;
                 const double z = quick_solution::zeroCut(boundMax, gainInf, zeroInfs, poleSups, j, w, p0);
                 if (z > zeroInfs[j] && z < zeroSups[j]) {
@@ -864,7 +864,7 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
                 }
             }
 
-            for (std::int32_t j = 0; hasUncertainPoles && j < static_cast<std::int32_t>(poleInfs.size()); ++j) {
+            for (std::size_t j = 0; hasUncertainPoles && j < poleInfs.size(); ++j) {
                 if (!v->denominator()[j].isUncertain()) continue;
                 const double p = quick_solution::poleCut(boundMax, gainInf, zeroInfs, poleSups, j, w, p0);
                 if (p > poleInfs[j] && p < poleSups[j]) {
@@ -886,7 +886,7 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
 
                 const double thetaMax = boundPhaseMax * M_PI / 180.0;
 
-                for (std::int32_t j = 0; hasUncertainZeros && j < static_cast<std::int32_t>(zeroInfs.size()); ++j) {
+                for (std::size_t j = 0; hasUncertainZeros && j < zeroInfs.size(); ++j) {
                     if (!v->numerator()[j].isUncertain()) continue;
                     const double z = quick_solution::zeroPhaseCutHigh(thetaMax, phi0, zeroSups, poleInfs, j, w);
                     if (z > zeroInfs[j] && z < zeroSups[j]) {
@@ -895,7 +895,7 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
                     }
                 }
 
-                for (std::int32_t j = 0; hasUncertainPoles && j < static_cast<std::int32_t>(poleInfs.size()); ++j) {
+                for (std::size_t j = 0; hasUncertainPoles && j < poleInfs.size(); ++j) {
                     if (!v->denominator()[j].isUncertain()) continue;
                     const double p = quick_solution::polePhaseCutHigh(thetaMax, phi0, zeroSups, poleInfs, j, w);
                     if (p > poleInfs[j] && p < poleSups[j]) {
@@ -909,7 +909,7 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
 
                 const double thetaMin = boundPhaseMin * M_PI / 180.0;
 
-                for (std::int32_t j = 0; hasUncertainZeros && j < static_cast<std::int32_t>(zeroInfs.size()); ++j) {
+                for (std::size_t j = 0; hasUncertainZeros && j < zeroInfs.size(); ++j) {
                     if (!v->numerator()[j].isUncertain()) continue;
                     const double z = quick_solution::zeroPhaseCutLow(thetaMin, phi0, zeroInfs, poleSups, j, w);
                     if (z > zeroInfs[j] && z < zeroSups[j]) {
@@ -918,7 +918,7 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
                     }
                 }
 
-                for (std::int32_t j = 0; hasUncertainPoles && j < static_cast<std::int32_t>(poleInfs.size()); ++j) {
+                for (std::size_t j = 0; hasUncertainPoles && j < poleInfs.size(); ++j) {
                     if (!v->denominator()[j].isUncertain()) continue;
                     const double p = quick_solution::polePhaseCutLow(thetaMin, phi0, zeroInfs, poleSups, j, w);
                     if (p > poleInfs[j] && p < poleSups[j]) {
@@ -1031,13 +1031,13 @@ inline std::int32_t AlgorithmMcThesis::widestByMeasure(McSearchNode * node, std:
         consider(0, conversion->gainTermBox(box->gain(), p0), true);
     }
 
-    for (std::int32_t j = 0; j < static_cast<std::int32_t>(box->numerator().size()); ++j) {
+    for (std::size_t j = 0; j < box->numerator().size(); ++j) {
         if (box->numerator()[j].isUncertain()) {
             consider(j + 1, conversion->numeratorTermBox(box->numerator()[j], w, p0), false);
         }
     }
 
-    for (std::int32_t j = 0; j < static_cast<std::int32_t>(box->denominator().size()); ++j) {
+    for (std::size_t j = 0; j < box->denominator().size(); ++j) {
         if (box->denominator()[j].isUncertain()) {
             consider(j + 1 + box->numerator().size(),
                      conversion->denominatorTermBox(box->denominator()[j], w, p0), false);

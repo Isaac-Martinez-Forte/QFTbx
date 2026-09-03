@@ -198,7 +198,7 @@ std::vector <double> * BoundaryEngine::omega(){
 void BoundaryEngine::traceFrequency(double omega, std::map<std::string, TraceSet> & bound,
                                     const BoundarySheets & sheets,
                                     std::map<std::string, TraceLabels> & traceMetadata,
-                                    complex <double> p0, const ComplexCloud & valueSet, std::int32_t index,
+                                    complex <double> p0, const ComplexCloud & valueSet, std::size_t index,
                                     double phaseSpan, double magnitudeSpan, double phaseBottom, double magnitudeBottom){
 
 
@@ -263,7 +263,7 @@ void BoundaryEngine::traceFrequency(double omega, std::map<std::string, TraceSet
 void BoundaryEngine::traceFrequency(double omega, std::map<std::string, TraceSet> & bound,
                                     const BoundarySheetsCuda & cudaSheets,
                                     std::map<std::string, TraceLabels> & traceMetadata,
-                                    complex <double> p0, const ComplexCloud & valueSet, std::int32_t index,
+                                    complex <double> p0, const ComplexCloud & valueSet, std::size_t index,
                                     double phaseSpan, double magnitudeSpan, double phaseBottom, double magnitudeBottom){
 
     if (m_trackingMask.at(index)){
@@ -559,7 +559,7 @@ double violatingDb(double valueDb)
 void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
                                        const ComplexCloud & valueSet,
                                        const std::vector <double> & phases,
-                                       const std::vector <double> & magnitudes, std::int32_t index){
+                                       const std::vector <double> & magnitudes, std::size_t index){
 
     //Nominal plant at this design frequency.
     complex <double> p0 = plant->evaluate(omega);

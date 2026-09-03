@@ -104,12 +104,12 @@ private:
 
     void computeFrequency(double omega, LtiSystem * plant,
                           const ComplexCloud & valueSet, const std::vector <double> & phases,
-                          const std::vector <double> & magnitudes, std::int32_t index);
+                          const std::vector <double> & magnitudes, std::size_t index);
 
     void traceFrequency(double omega, std::map<std::string, TraceSet> & bound,
                         const BoundarySheets & sheets,
                         std::map<std::string, TraceLabels> & traceMetadata, std::complex<double> p0, const ComplexCloud & valueSet,
-                        std::int32_t index, double phaseSpan, double magnitudeSpan, double phaseBottom, double magnitudeBottom);
+                        std::size_t index, double phaseSpan, double magnitudeSpan, double phaseBottom, double magnitudeBottom);
 
     TraceSet traceBoundary(double thresholdDb, const BoundarySheet & sheet,
                                                TraceLabels & traceMetadata, std::complex<double> p0, const ComplexCloud & valueSet,
@@ -122,7 +122,7 @@ private:
     void traceFrequency(double omega, std::map<std::string, TraceSet> & bound,
                         const BoundarySheetsCuda & cudaSheets,
                         std::map<std::string, TraceLabels> & traceMetadata,
-                        std::complex <double> p0, const ComplexCloud & valueSet, std::int32_t index,
+                        std::complex <double> p0, const ComplexCloud & valueSet, std::size_t index,
                         double phaseSpan, double magnitudeSpan, double phaseBottom, double magnitudeBottom);
 
     TraceSet traceBoundary(double thresholdDb, const float * sheet,
