@@ -249,7 +249,9 @@ public:
 
         for (const pugi::xml_node & node : section.children(t.specification)) {
             qftbx::SpecificationRecord & record = specifications.at(slot++);
-            record.name = modernSpecificationName(std::string(node.attribute(t.nameAttribute).value()));
+            //Canonical as stored: version 2 writes the English names, and
+            //the translation from the Spanish ones went with the dialect.
+            record.name = std::string(node.attribute(t.nameAttribute).value());
             record.used = boolChild(node, t.used);
 
             if (record.used) {
@@ -376,7 +378,7 @@ public:
             std::map<std::string, qftbx::TraceSet> map;
             for (const pugi::xml_node & keyNode : frequencyNode.children()) {
                 //Legacy files store the historical Spanish keys.
-                map[modernSpecificationName(std::string(keyNode.name()))] = readTraces(keyNode);
+                map[std::string(keyNode.name())] = readTraces(keyNode);
             }
             boundaries.push_back(std::move(map));
         }
@@ -461,9 +463,22 @@ std::vector<bool> ProjectReader::load(const std::string & filePath)
                          + root.name() + ">)", 1);
     }
 
-    const bool isV2 = root.attribute("version").as_int(1) >= 2;
-    ProjectFileParser parser(filePath, raw, isV2 ? kV2 : kLegacy);
-    const Tags & t = isV2 ? kV2 : kLegacy;
+    //Version 2 is the only format. A file without the attribute used to be
+    //read as the historical Spanish dialect; that path is gone, and guessing
+    //is worse than refusing - the two dialects share tag names with
+    //DIFFERENT meanings (<inicio> is a range start and also an omega start,
+    //<tipo> is an element in one place and an attribute in another), so a
+    //wrong guess does not fail, it reads the wrong numbers.
+    const int version = root.attribute("version").as_int(0);
+    if (version != 2) {
+        throw ParseError(filePath + ": unsupported .qft version (found " +
+                         (version == 0 ? std::string("no version attribute")
+                                       : std::to_string(version)) +
+                         ", this build reads version 2)", 1);
+    }
+
+    ProjectFileParser parser(filePath, raw, kV2);
+    const Tags & t = kV2;
 
     bool hasContour = false;
 

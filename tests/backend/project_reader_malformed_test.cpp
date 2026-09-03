@@ -126,6 +126,35 @@ TEST_F(MalformedProject, AForeignRootElementIsAParseError)
     EXPECT_THROW(parser.load(path), qftbx::ParseError);
 }
 
+TEST_F(MalformedProject, AFileWithNoVersionIsRefused)
+{
+    //Version 2 is the only format. A file with no version attribute was the
+    //historical Spanish dialect, and it used to be read as such; every .qft
+    //has been converted and that path is gone. It has to be REFUSED rather
+    //than attempted, because the two dialects share tag names with different
+    //meanings - <inicio> is both a range start and an omega start - so
+    //reading one as the other would not fail, it would return wrong numbers.
+    qftbx::ProjectReader parser;
+
+    const std::string path = mutated("planta1.qft", "<QFT version=\"2\">", "<QFT>");
+    ASSERT_FALSE(path.empty());
+
+    EXPECT_THROW(parser.load(path), qftbx::ParseError);
+}
+
+TEST_F(MalformedProject, AFutureVersionIsRefused)
+{
+    //And a version this build does not know is refused too, instead of being
+    //read as if it were 2.
+    qftbx::ProjectReader parser;
+
+    const std::string path = mutated("planta1.qft", "<QFT version=\"2\">",
+                                     "<QFT version=\"3\">");
+    ASSERT_FALSE(path.empty());
+
+    EXPECT_THROW(parser.load(path), qftbx::ParseError);
+}
+
 // --- the contents ----------------------------------------------------------
 
 TEST_F(MalformedProject, ANonNumericValueIsAParseError)

@@ -52,29 +52,6 @@ inline std::string specificationName(SpecificationType type)
 }
 
 /**
- * @brief Maps a historical Spanish name from a legacy .qft file to its
- * canonical English form; unknown names pass through unchanged.
- *
- * Covers both domains that stored them: the specification records
- * ("seguimiento", "seguimiento_1", ...) and the per-frequency boundary map
- * keys ("Seguimiento" is the combined tracking boundary -> "Tracking").
- */
-inline std::string modernSpecificationName(const std::string& name)
-{
-    if (name == ("seguimiento"))   return ("TrackingLower");
-    if (name == ("seguimiento_1")) return ("TrackingUpper");
-    if (name == ("Seguimiento"))   return ("Tracking");
-    if (name == ("estabilidad") ||
-        name == ("Estabilidad"))   return ("Stability");
-    if (name == ("ruido") ||
-        name == ("Ruido"))         return ("SensorNoise");
-    if (name == ("RPS"))           return ("OutputDisturbance");
-    if (name == ("RPE"))           return ("InputDisturbance");
-    if (name == ("EC"))            return ("ControlEffort");
-    return name;
-}
-
-/**
  * @brief One QFT specification: a magnitude bound over a frequency band.
  *
  * Built only through the validating factories, so its invariants hold by
