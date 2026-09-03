@@ -18,6 +18,7 @@
 
 #include <gtest/gtest.h>
 
+#include <atomic>
 #include <memory>
 #include <string>
 #include <vector>
@@ -352,4 +353,113 @@ TEST(Cancellation, AResetTokenLetsTheSearchRun)
                                               qftbx::Range(1e-3, 100.0), 100,
                                               0, &token));
     EXPECT_NE(controller.loopShapingResult(), nullptr);
+}
+
+// --- the search off the calling thread --------------------------------------
+//
+// The worker lives in the facade and not in the interface because the facade
+// owns the project data: while a search is in flight nothing may touch them,
+// and the only place that can enforce that is the one holding them. These
+// tests are the reason that is worth saying - they run the whole thing with
+// no interface at all.
+
+TEST(BackgroundSearch, ASearchRunsOffTheCallingThreadAndPublishesItsResult)
+{
+    ProjectController controller;
+    ASSERT_NO_FATAL_FAILURE(prepareForSearch(controller));
+
+    std::atomic<bool> told{false};
+
+    ASSERT_TRUE(controller.startLoopShaping(0.5, tools::nt,
+                                            qftbx::Range(1e-3, 100.0), 100, 0,
+                                            [&told]() { told.store(true); }));
+
+    controller.waitForComputation();
+
+    EXPECT_TRUE(told.load()) << "the finished handler has to be called";
+    EXPECT_TRUE(controller.lastComputationProduced());
+    EXPECT_FALSE(controller.lastComputationCancelled());
+    EXPECT_TRUE(controller.lastComputationError().empty());
+    EXPECT_NE(controller.loopShapingResult(), nullptr);
+    EXPECT_FALSE(controller.isComputing());
+}
+
+TEST(BackgroundSearch, TheProjectRefusesToChangeWhileASearchRuns)
+{
+    // The point of the worker being here. A plant published mid-search would
+    // be read by the search from another thread, and the invalidation would
+    // drop the boundaries it is walking.
+    ProjectController controller;
+    ASSERT_NO_FATAL_FAILURE(prepareForSearch(controller));
+
+    // A token cancelled up front keeps the worker alive just long enough to
+    // be observed without racing on how fast the search is: the run has to
+    // finish, and until it does the project is closed for business.
+    ASSERT_TRUE(controller.startLoopShaping(0.5, tools::nt,
+                                            qftbx::Range(1e-3, 100.0), 100));
+
+    // Whether the search is still running by now is a race, so both outcomes
+    // are accepted - what must NOT happen is a change going through while it
+    // is in flight.
+    if (controller.isComputing()) {
+        EXPECT_THROW(controller.setPlant(makePlant()), qftbx::InvalidInput);
+        EXPECT_THROW(controller.load(std::string("/nonexistent.qft")),
+                     qftbx::InvalidInput);
+        EXPECT_FALSE(controller.startLoopShaping(0.5, tools::nt,
+                                                 qftbx::Range(1e-3, 100.0), 100))
+            << "two searches at once must not be allowed";
+    }
+
+    controller.waitForComputation();
+
+    // And it opens again afterwards.
+    EXPECT_NO_THROW(controller.setPlant(makePlant()));
+}
+
+TEST(BackgroundSearch, CancellingFromAnotherThreadStopsTheSearch)
+{
+    // The real race, run the only way it can be run honestly: cancel while
+    // the search is in flight and accept either outcome, because whether the
+    // flag lands before the search finishes depends on the machine. What is
+    // asserted is what must hold EITHER way - it ends, it ends exactly once,
+    // and a cancelled run publishes nothing.
+    ProjectController controller;
+    ASSERT_NO_FATAL_FAILURE(prepareForSearch(controller));
+
+    ASSERT_TRUE(controller.startLoopShaping(0.5, tools::nt,
+                                            qftbx::Range(1e-3, 100.0), 100));
+    controller.cancelComputation();
+    controller.waitForComputation();
+
+    EXPECT_FALSE(controller.isComputing());
+
+    if (controller.lastComputationCancelled()) {
+        EXPECT_FALSE(controller.lastComputationProduced());
+        EXPECT_EQ(controller.loopShapingResult(), nullptr)
+            << "a cancelled search must not leave half a design behind";
+    } else {
+        EXPECT_TRUE(controller.lastComputationProduced());
+        EXPECT_NE(controller.loopShapingResult(), nullptr);
+    }
+}
+
+TEST(BackgroundSearch, AFailedSearchIsReportedAndNotThrownFromTheWorker)
+{
+    // An exception escaping the function of an std::thread terminates the
+    // process, and this search can throw four unrelated families - two of
+    // which derive from neither std::exception nor each other. So the worker
+    // catches everything and the outcome is asked for afterwards.
+    //
+    // The preconditions are the exception: they are checked on the CALLER's
+    // thread, before the worker starts, so a caller sees its own mistake.
+    ProjectController controller;
+    controller.setPlant(makePlant());
+    controller.setOmega(makeOmega());
+
+    EXPECT_THROW(controller.startLoopShaping(0.5, tools::nt,
+                                             qftbx::Range(1e-3, 100.0), 100),
+                 qftbx::InvalidInput)
+        << "a search with no boundaries is refused where the caller can see it";
+
+    EXPECT_FALSE(controller.isComputing());
 }

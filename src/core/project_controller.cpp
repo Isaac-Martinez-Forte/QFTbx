@@ -101,6 +101,8 @@ void ProjectController::dropLoopShaping(){
 //Null on either side counts as a change: there is nothing to compare, and
 //of the two possible mistakes only "different" is harmless.
 bool ProjectController::setPlant(std::unique_ptr<LtiSystem> plant){
+    requireNotComputing();
+
     if (plant != nullptr) {
         requireUsableNames(*plant);
     }
@@ -118,6 +120,8 @@ bool ProjectController::setPlant(std::unique_ptr<LtiSystem> plant){
 }
 
 bool ProjectController::setOmega(std::unique_ptr<Omega> omega){
+    requireNotComputing();
+
     const bool changed = omega == nullptr || data.omega() == nullptr ||
             !omega->sameAs(*data.omega());
 
@@ -131,6 +135,8 @@ bool ProjectController::setOmega(std::unique_ptr<Omega> omega){
 }
 
 void ProjectController::setSpecifications(std::optional<qftbx::SpecificationRecords> specifications){
+    requireNotComputing();
+
     data.setSpecifications(std::move(specifications));
 
     //The templates do not depend on the specifications; the boundaries do.
@@ -170,6 +176,8 @@ const qftbx::CloudSet & ProjectController::contour(){
 
 bool ProjectController::computeTemplates(std::vector <double> epsilon, qftbx::ParameterGrids grids, bool cuda){
 
+    requireNotComputing();
+
     //The preconditions, the engine and the publishing live in the stage now.
     //What stays here is the dependency graph, and it has to be applied
     //EXPLICITLY: this used to reach it through setTemplates, and routing the
@@ -196,6 +204,8 @@ const qftbx::CloudSet & ProjectController::recomputeContour(std::vector <double>
 
 bool ProjectController::computeBoundaries(qftbx::Range phaseRange, std::int32_t phaseCount, qftbx::Range magnitudeRange,
                                      std::int32_t magnitudeCount, double exportInfinity, bool contour, bool cuda){
+
+    requireNotComputing();
 
     const bool produced = m_boundaries.run(data, phaseRange, phaseCount,
                                            magnitudeRange, magnitudeCount,
@@ -224,6 +234,8 @@ const qftbx::UnionBuckets & ProjectController::unionBuckets(){
 }
 
 bool ProjectController::setControllerStructure(std::unique_ptr<LtiSystem> controller){
+    requireNotComputing();
+
     if (controller != nullptr) {
         requireUsableNames(*controller);
     }
@@ -250,9 +262,76 @@ bool ProjectController::computeLoopShaping(double epsilon, tools::LoopShapingAlg
                                       std::int32_t initialisation,
                                       const qftbx::CancellationToken * cancellation){
 
+    requireNotComputing();
+
     //Nothing downstream to invalidate: this result IS the design.
     return m_loopShaping.run(data, epsilon, algorithm, plotRange, pointCount,
                              initialisation, cancellation);
+}
+
+//A computation in flight has the project data to itself. Refusing is the
+//point of the worker living here: the alternative is documenting that callers
+//must not touch anything and hoping, which is how data races are written.
+void ProjectController::requireNotComputing() const
+{
+    if (m_background.running()) {
+        throw qftbx::InvalidInput("A computation is running: cancel it or wait "
+                                  "for it before changing the project.");
+    }
+}
+
+bool ProjectController::startLoopShaping(double epsilon, tools::LoopShapingAlgorithm algorithm,
+                                         qftbx::Range plotRange, double pointCount,
+                                         std::int32_t initialisation,
+                                         std::function<void ()> finished)
+{
+    if (m_background.running()) {
+        return false;
+    }
+
+    //Checked on THIS thread, before anything starts: a search with no
+    //boundaries is the caller's mistake and it should surface where the caller
+    //made it, not as a message field on a worker that has already returned.
+    m_loopShaping.requirePrerequisites(data);
+
+    m_cancellation.reset();
+
+    return m_background.start(
+        [this, epsilon, algorithm, plotRange, pointCount, initialisation]() {
+            return m_loopShaping.run(data, epsilon, algorithm, plotRange,
+                                     pointCount, initialisation, &m_cancellation);
+        },
+        std::move(finished));
+}
+
+void ProjectController::cancelComputation()
+{
+    m_cancellation.cancel();
+}
+
+bool ProjectController::isComputing() const
+{
+    return m_background.running();
+}
+
+void ProjectController::waitForComputation()
+{
+    m_background.wait();
+}
+
+bool ProjectController::lastComputationProduced() const
+{
+    return m_background.produced();
+}
+
+bool ProjectController::lastComputationCancelled() const
+{
+    return m_background.cancelled();
+}
+
+const std::string & ProjectController::lastComputationError() const
+{
+    return m_background.error();
 }
 
 void ProjectController::setLoopShapingResult(std::unique_ptr<LoopShapingResult> result){
@@ -264,6 +343,9 @@ LoopShapingResult * ProjectController::loopShapingResult(){
 }
 
 bool ProjectController::save(std::string path){
+    //Reading, but reading a project a worker is writing the design into.
+    requireNotComputing();
+
 
     ProjectContent content;
 
@@ -288,6 +370,8 @@ bool ProjectController::save(std::string path){
 }
 
 std::vector<bool> ProjectController::load(std::string path){
+    requireNotComputing();
+
 
     ProjectReader reader;
 

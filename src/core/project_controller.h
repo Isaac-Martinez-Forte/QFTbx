@@ -2,6 +2,7 @@
 #define QFTBX_PROJECT_CONTROLLER_H
 
 
+#include <functional>
 #include <string>
 #include <vector>
 #include <cstdint>
@@ -10,6 +11,7 @@
 #include <complex>
 
 #include "src/core/system/lti_system.h"
+#include "src/core/background_run.h"
 #include "src/core/loopshaping/loop_shaping_types.h"
 #include "src/core/stages/boundary_stage.h"
 #include "src/core/stages/loop_shaping_stage.h"
@@ -187,6 +189,74 @@ public:
                             double pointCount, std::int32_t initialisation = 0,
                             const qftbx::CancellationToken * cancellation = nullptr);
 
+    // --- the search, off the calling thread --------------------------------
+    //
+    //The same computation as above, started on a worker and left to run. It
+    //lives HERE and not in the interface because this class owns the project
+    //data: while a search is in flight nothing may touch them, and the only
+    //place that can actually enforce that is the one holding them. Every
+    //mutating entry point refuses while a run is in flight, which is the
+    //whole reason the threading is in the core rather than in the window.
+    //
+    //WHAT THE WORKER TOUCHES, exactly, because "do not touch the project" is
+    //too vague to build an interface on:
+    //  - it READS the plant, the controller structure, the frequencies, the
+    //    boundaries, the contour and the specifications. Reading those from
+    //    another thread at the same time is a read against a read, so a
+    //    viewer may refresh from them while the search runs.
+    //  - it WRITES exactly one thing, once, at the very end: the
+    //    loop-shaping result. So loopShapingResult() is the one getter that
+    //    must not be read until the run is over - isComputing() says when,
+    //    and waitForComputation() waits.
+    //  - and it MUTATES nothing else, which is what the guard enforces
+    //    rather than asks for.
+    //
+    //start() is not safe against itself: one caller starts runs. It is safe
+    //against everything else, which is what matters here.
+
+    /**
+     * @brief Starts the search on a worker thread.
+     * @param finished called when it ends, however it ends - ON THE WORKER
+     *        THREAD. In a Qt application that means a queued invocation, and
+     *        that is the interface's business; a caller who would rather not
+     *        deal with it can leave it empty and poll isComputing().
+     * @return false when a computation is already in flight, in which case
+     *         nothing is started.
+     *
+     * It throws the preconditions BEFORE starting - a search with no
+     * boundaries is refused on the caller's thread, where the caller can see
+     * it, not two lines into a worker.
+     */
+    bool startLoopShaping(double epsilon, tools::LoopShapingAlgorithm algorithm,
+                          qftbx::Range plotRange, double pointCount,
+                          std::int32_t initialisation = 0,
+                          std::function<void ()> finished = std::function<void ()>());
+
+    /// Asks the search in flight to stop. Safe at any time, from any thread;
+    /// does nothing when there is no run.
+    void cancelComputation();
+
+    /// Whether a computation started here is in flight.
+    bool isComputing() const;
+
+    /// Blocks until the run in flight finishes. For tests and for shutdown.
+    void waitForComputation();
+
+    //The three below describe the last FINISHED run, and they are only
+    //meaningful once it has finished: ask isComputing() first, or call
+    //waitForComputation(). What publishes them is the release of the running
+    //flag and the join, so reading them mid-run is reading a value that is
+    //being written.
+
+    /// Whether the last finished run published a design.
+    bool lastComputationProduced() const;
+
+    /// Whether the last finished run ended by being cancelled.
+    bool lastComputationCancelled() const;
+
+    /// What the last finished run threw, or empty when it threw nothing.
+    const std::string & lastComputationError() const;
+
     LoopShapingResult * loopShapingResult();
     void setLoopShapingResult(std::unique_ptr<LoopShapingResult> result);
 
@@ -225,7 +295,15 @@ private:
     //engine, its parameters and the publishing of its outputs. This class
     //keeps the data and the dependency graph, and delegates the rest.
     qftbx::TemplateStage m_templates;
+    /// Throws InvalidInput when a computation is in flight.
+    void requireNotComputing() const;
+
     qftbx::LoopShapingStage m_loopShaping;
+
+    //The worker and the flag it reads. Both live as long as this class, so a
+    //token cannot outlive the search that reads it.
+    qftbx::BackgroundRun m_background;
+    qftbx::CancellationToken m_cancellation;
 };
 
 #endif // QFTBX_PROJECT_CONTROLLER_H
