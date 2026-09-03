@@ -10,6 +10,7 @@
 #include <complex>
 
 #include "src/core/system/lti_system.h"
+#include "src/core/stages/template_stage.h"
 #include "src/core/templates/template_engine.h"
 #include "src/core/templates/parameter_grids.h"
 #include "src/core/templates/cloud_set.h"
@@ -217,7 +218,10 @@ private:
     //Built on first use and kept: the template engine holds the clouds a
     //recontour works from.
     std::unique_ptr<BoundaryEngine> m_boundaryEngine;
-    std::unique_ptr<TemplateEngine> m_templateEngine;
+    //One stage per phase of the pipeline: each owns its preconditions, its
+    //engine, its parameters and the publishing of its outputs. This class
+    //keeps the data and the dependency graph, and delegates the rest.
+    qftbx::TemplateStage m_templates;
     std::unique_ptr<LoopShaping> m_loopShapingEngine;
 };
 

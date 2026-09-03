@@ -144,24 +144,12 @@ void ProjectController::setSpecifications(std::optional<qftbx::SpecificationReco
 void ProjectController::setTemplates(qftbx::CloudSet clouds, qftbx::CloudSet contour,
                                      bool hasContour){
 
-    if (m_templateEngine == nullptr){
-        m_templateEngine = std::make_unique<TemplateEngine>();
-    }
-
-    //Feed the engine too: without this, recomputing the contour after
-    //LOADING a project had nothing to walk. Both hold their own copy, which
-    //is the price of the aliasing going away.
-    m_templateEngine->setClouds(clouds);
-
-    data.setTemplates(std::move(clouds));
-
-    if (hasContour){
-        data.setContour(std::move(contour));
-    }
+    m_templates.adopt(data, std::move(clouds), std::move(contour), hasContour);
 
     //New templates make the boundaries built from the old ones meaningless.
-    //Called from computeTemplates() too, which is why the epsilon is not
-    //dropped here: the computation stores it right after.
+    //The stage does not do this: the dependency graph stays here, in the one
+    //class that owns it. Called from computeTemplates() too, which is why the
+    //epsilon is not dropped here - the computation stores it right after.
     dropBoundariesAndBelow();
 }
 
@@ -186,35 +174,17 @@ const qftbx::CloudSet & ProjectController::contour(){
 
 bool ProjectController::computeTemplates(std::vector <double> epsilon, qftbx::ParameterGrids grids, bool cuda){
 
-    //Preconditions, stated instead of dereferenced. They matter more now that
-    //publishing an input DROPS what was computed from the old one: without
-    //them a step whose inputs have just been invalidated would walk a null
-    //pointer instead of saying what is missing.
-    if (data.plant() == nullptr){
-        throw qftbx::InvalidInput("The templates need a plant.");
-    }
-    if (data.omega() == nullptr){
-        throw qftbx::InvalidInput("The templates need a set of design frequencies.");
-    }
+    //The preconditions, the engine and the publishing live in the stage now.
+    //What stays here is the dependency graph, and it has to be applied
+    //EXPLICITLY: this used to reach it through setTemplates, and routing the
+    //publishing through the stage instead silently stopped dropping the
+    //boundaries. Nothing caught it, which is now covered by
+    //StageSequence.RecomputingTheTemplatesDropsTheBoundaries.
+    const bool produced = m_templates.run(data, std::move(epsilon),
+                                          std::move(grids), cuda);
 
-    if (m_templateEngine == nullptr){
-        m_templateEngine = std::make_unique<TemplateEngine>();
-    }
-
-    m_templateEngine->setEpsilon(epsilon);
-    m_templateEngine->setGrids(std::move(grids));
-
-    m_templateEngine->compute(plant(), omega()->values(), cuda);
-
-    //The computation no longer reorders or replaces the frequencies: it is
-    //enough to keep the epsilon used, for the persistence.
-    data.setEpsilon(std::move(epsilon));
-
-    const bool produced = !m_templateEngine->clouds().empty()
-            && !m_templateEngine->contours().empty();
-
-    setTemplates(m_templateEngine->clouds(), m_templateEngine->contours(),
-                 !m_templateEngine->contours().empty());
+    //New templates make the boundaries built from the old ones meaningless.
+    dropBoundariesAndBelow();
 
     return produced;
 }
@@ -225,12 +195,7 @@ std::vector <double> * ProjectController::epsilon(){
 
 
 const qftbx::CloudSet & ProjectController::recomputeContour(std::vector <double> epsilon){
-    m_templateEngine->computeContours(epsilon);
-
-    setContour(m_templateEngine->contours());
-    data.setEpsilon(std::move(epsilon));
-
-    return data.contour();
+    return m_templates.recomputeContour(data, std::move(epsilon));
 }
 
 bool ProjectController::computeBoundaries(qftbx::Range phaseRange, std::int32_t phaseCount, qftbx::Range magnitudeRange,

@@ -206,3 +206,31 @@ TEST(StageSequence, AConstantKeepsItsNumericName)
     EXPECT_NO_THROW(controller.setPlant(std::move(plant)));
     EXPECT_NE(controller.plant(), nullptr);
 }
+
+TEST(StageSequence, RecomputingTheTemplatesDropsTheBoundaries)
+{
+    // The boundaries are computed FROM the templates, so a new sweep voids
+    // them. Every other link of the chain had a test; this one did not, and
+    // it went missing the moment the publishing moved into TemplateStage:
+    // ProjectController::computeTemplates used to reach the invalidation
+    // through setTemplates, and delegating the publishing bypassed it. The
+    // whole suite stayed green.
+    ProjectController controller;
+
+    controller.setPlant(makePlant());
+    controller.setSpecifications(makeSpecifications());
+    controller.setOmega(makeOmega());
+
+    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), makeGrids(), false));
+    ASSERT_TRUE(controller.computeBoundaries(qftbx::Range(-360.0, 0.0), 37,
+                                             qftbx::Range(-40.0, 40.0), 21,
+                                             -1.0, false, false));
+    ASSERT_NE(controller.boundaries(), nullptr);
+
+    // A second sweep, with a different epsilon: the boundaries must be gone.
+    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 8.0), makeGrids(), false));
+
+    EXPECT_EQ(controller.boundaries(), nullptr)
+        << "boundaries computed from the previous templates must not survive a new sweep";
+    EXPECT_FALSE(controller.templates().empty());
+}

@@ -134,6 +134,7 @@ set(QFTbx_CORE_SRC
     src/core/system/zero_pole_gain.cpp
     src/core/system/time_constant_gain.cpp
     src/core/templates/template_engine.cpp
+    src/core/stages/template_stage.cpp
     src/core/math/sequence_vectors.cpp
     src/core/math/parser_warmup.cpp
     src/core/math/expression_cache.cpp
