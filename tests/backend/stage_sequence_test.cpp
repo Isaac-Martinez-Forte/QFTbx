@@ -234,3 +234,34 @@ TEST(StageSequence, RecomputingTheTemplatesDropsTheBoundaries)
         << "boundaries computed from the previous templates must not survive a new sweep";
     EXPECT_FALSE(controller.templates().empty());
 }
+
+TEST(StageSequence, RecomputingTheBoundariesDropsTheLoopShaping)
+{
+    // The link one below the previous test, and it is written BEFORE the
+    // boundary stage is carved out on purpose: moving the publishing into a
+    // stage is exactly what broke this link for the templates, and the suite
+    // did not notice. The search runs against a set of boundaries, so a new
+    // set voids its answer.
+    ProjectController controller;
+
+    controller.setPlant(makePlant());
+    controller.setSpecifications(makeSpecifications());
+    controller.setOmega(makeOmega());
+    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), makeGrids(), false));
+    ASSERT_TRUE(controller.computeBoundaries(qftbx::Range(-360.0, 0.0), 37,
+                                             qftbx::Range(-40.0, 40.0), 21,
+                                             -1.0, false, false));
+    controller.setControllerStructure(makeControllerStructure());
+    ASSERT_TRUE(controller.computeLoopShaping(0.5, tools::nt,
+                                              qftbx::Range(1e-3, 100.0), 100));
+    ASSERT_NE(controller.loopShapingResult(), nullptr);
+
+    // A second boundary computation, on a different grid.
+    ASSERT_TRUE(controller.computeBoundaries(qftbx::Range(-360.0, 0.0), 25,
+                                             qftbx::Range(-40.0, 40.0), 15,
+                                             -1.0, false, false));
+
+    EXPECT_EQ(controller.loopShapingResult(), nullptr)
+        << "a design found against the previous boundaries must not survive them";
+    EXPECT_NE(controller.boundaries(), nullptr);
+}

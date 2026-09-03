@@ -10,6 +10,8 @@
 #include <complex>
 
 #include "src/core/system/lti_system.h"
+#include "src/core/stages/boundary_stage.h"
+#include "src/core/stages/loop_shaping_stage.h"
 #include "src/core/stages/template_stage.h"
 #include "src/core/templates/template_engine.h"
 #include "src/core/templates/parameter_grids.h"
@@ -217,12 +219,12 @@ private:
     //The three computation engines, created on first use.
     //Built on first use and kept: the template engine holds the clouds a
     //recontour works from.
-    std::unique_ptr<BoundaryEngine> m_boundaryEngine;
+    qftbx::BoundaryStage m_boundaries;
     //One stage per phase of the pipeline: each owns its preconditions, its
     //engine, its parameters and the publishing of its outputs. This class
     //keeps the data and the dependency graph, and delegates the rest.
     qftbx::TemplateStage m_templates;
-    std::unique_ptr<LoopShaping> m_loopShapingEngine;
+    qftbx::LoopShapingStage m_loopShaping;
 };
 
 #endif // QFTBX_PROJECT_CONTROLLER_H

@@ -201,36 +201,18 @@ const qftbx::CloudSet & ProjectController::recomputeContour(std::vector <double>
 bool ProjectController::computeBoundaries(qftbx::Range phaseRange, std::int32_t phaseCount, qftbx::Range magnitudeRange,
                                      std::int32_t magnitudeCount, double exportInfinity, bool contour, bool cuda){
 
-    if (data.plant() == nullptr || data.frequencies() == nullptr){
-        throw qftbx::InvalidInput("The boundaries need a plant and a set of "
-                                  "design frequencies.");
-    }
-    if (data.specifications() == nullptr){
-        throw qftbx::InvalidInput("The boundaries need the specifications.");
-    }
-    if ((contour ? data.contour() : data.templates()).empty()){
-        throw qftbx::InvalidInput("The boundaries need the templates, which "
-                                  "have to be recomputed after the plant or "
-                                  "the design frequencies change.");
-    }
+    const bool produced = m_boundaries.run(data, phaseRange, phaseCount,
+                                           magnitudeRange, magnitudeCount,
+                                           exportInfinity, contour, cuda);
 
-    if (m_boundaryEngine == nullptr){
-        m_boundaryEngine = std::make_unique<BoundaryEngine>();
-    }
+    //The search runs against these boundaries: a new set voids its result.
+    //Applied here and not in the stage, for the same reason as the
+    //templates - the dependency graph lives in one place. And stated
+    //explicitly, because reaching it through setBoundaries() is exactly what
+    //stopped happening when the templates moved into their own stage.
+    dropLoopShaping();
 
-    m_boundaryEngine->compute(data.frequencies(), data.plant(),
-                   contour ? data.contour() : data.templates(),
-                   data.specifications(), phaseRange, phaseCount, magnitudeRange, magnitudeCount,
-                   exportInfinity, cuda);
-
-    setBoundaries(m_boundaryEngine->boundaryData());
-
-    //The engine's frequency vector ALIASES ours, so this only re-syncs the
-    //point count; by value the copy is made before the assignment, which is
-    //what used to need an aliasing guard inside setOmega().
-    omega()->setOmega(*m_boundaryEngine->omega());
-
-    return true;
+    return produced;
 }
 
 BoundaryData *ProjectController::boundaries(){
@@ -271,36 +253,9 @@ LtiSystem * ProjectController::controllerStructure(){
 bool ProjectController::computeLoopShaping(double epsilon, tools::LoopShapingAlgorithm algorithm, qftbx::Range plotRange, double pointCount,
                                       std::int32_t initialisation){
 
-    if (data.plant() == nullptr || data.frequencies() == nullptr){
-        throw qftbx::InvalidInput("The loop shaping needs a plant and a set of "
-                                  "design frequencies.");
-    }
-    if (data.controller() == nullptr){
-        throw qftbx::InvalidInput("The loop shaping needs a controller structure.");
-    }
-    if (data.boundaries() == nullptr){
-        throw qftbx::InvalidInput("The loop shaping needs the boundaries, which "
-                                  "have to be recomputed after the plant, the "
-                                  "design frequencies, the specifications or "
-                                  "the templates change.");
-    }
-
-    if (m_loopShapingEngine == nullptr){
-        m_loopShapingEngine = std::make_unique<LoopShaping>();
-    }
-
-    const bool succeeded = m_loopShapingEngine->run(data.plant(), data.controller(), data.frequencies(),
-                                         data.boundaries(), epsilon, algorithm,
-                                         data.contour(), data.specifications(),
-                                         initialisation);
-
-    if (succeeded){
-        data.setLoopShapingResult(std::make_unique<LoopShapingResult>(
-                m_loopShapingEngine->controllerStructure(), plotRange, pointCount));
-        return true;
-    }
-
-    return false;
+    //Nothing downstream to invalidate: this result IS the design.
+    return m_loopShaping.run(data, epsilon, algorithm, plotRange, pointCount,
+                             initialisation);
 }
 
 void ProjectController::setLoopShapingResult(std::unique_ptr<LoopShapingResult> result){
