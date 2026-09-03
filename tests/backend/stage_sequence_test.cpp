@@ -118,7 +118,7 @@ TEST(StageSequence, TheSevenStagesWalkedFromNothing)
     // --- 3: the design frequencies
     EXPECT_TRUE(controller.setOmega(makeOmega()));
     ASSERT_NE(controller.omega(), nullptr);
-    ASSERT_EQ(controller.frequencies()->size(), 3u);
+    ASSERT_EQ(controller.omega()->values()->size(), 3u);
 
     // --- 4: the templates. One cloud per design frequency, and the plant
     // and the frequencies are still the ones published above.

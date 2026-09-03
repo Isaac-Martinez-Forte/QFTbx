@@ -18,10 +18,6 @@ Omega * ProjectController::omega(){
     return data.omega();
 }
 
-std::vector <double> * ProjectController::frequencies(){
-    return data.frequencies();
-}
-
 
 qftbx::SpecificationRecords * ProjectController::specifications(){
     return data.specifications();

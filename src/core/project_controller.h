@@ -10,18 +10,16 @@
 #include <complex>
 
 #include "src/core/system/lti_system.h"
+#include "src/core/loopshaping/loop_shaping_types.h"
 #include "src/core/stages/boundary_stage.h"
 #include "src/core/stages/loop_shaping_stage.h"
 #include "src/core/stages/template_stage.h"
-#include "src/core/templates/template_engine.h"
 #include "src/core/templates/parameter_grids.h"
 #include "src/core/templates/cloud_set.h"
 #include "src/core/frequencies/omega.h"
-#include "src/core/boundaries/boundary_engine.h"
 #include "src/persistence/project_reader.h"
 #include "src/persistence/project_writer.h"
 #include "src/core/math/sequence_vectors.h"
-#include "src/core/loopshaping/loop_shaping.h"
 #include <optional>
 
 #include "src/core/project_data.h"
@@ -94,8 +92,10 @@ public:
      */
     bool setOmega(std::unique_ptr<Omega> omega);
 
-    /// The frequency values alone, the form every engine takes.
-    std::vector<double> * frequencies();
+    //frequencies() lived here too, returning omega()->values() under another
+    //name. Two ways to ask the same question is one too many, and this was
+    //the one nobody used: ProjectData::frequencies() is what the stages read,
+    //and the interface goes through omega()->values().
 
     // --- step 4: the templates --------------------------------------------
 
