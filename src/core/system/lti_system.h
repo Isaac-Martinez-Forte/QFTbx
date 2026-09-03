@@ -112,6 +112,24 @@ public:
 
     virtual SystemType type () = 0;
 
+    /**
+     * @brief Value equality between two systems, for telling a real change
+     * from a dialog accepted without an edit.
+     *
+     * Not virtual: it compares the dynamic TYPE and then everything a system
+     * is made of - name, the textual numerator and denominator (which is how
+     * a FreeForm's own expressions get compared, since numeratorString() is
+     * virtual), and the four parameter groups. A subclass with state outside
+     * all of that would have to override it.
+     *
+     * Conservative by design: the two answers are not symmetric. A wrong
+     * "equal" keeps the templates computed for the OLD plant, which is the
+     * silent defect this class's own users warn about; a wrong "different"
+     * costs one recomputation. Nothing is left out on the grounds that it
+     * probably does not matter.
+     */
+    bool sameAs(LtiSystem & other);
+
     /// Copy of the whole system, of the same dynamic type, for the caller.
     virtual std::unique_ptr<LtiSystem> clone () = 0;
 

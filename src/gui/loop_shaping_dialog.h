@@ -49,6 +49,10 @@ public:
     qint32 initialisationValue ();
 
 private slots:
+    /// Says which epsilon the field is asking for, because it is not the
+    /// same quantity for every algorithm.
+    void updateEpsilonLabel();
+
     void on_cancelButton_clicked();
 
     void on_okButton_clicked();

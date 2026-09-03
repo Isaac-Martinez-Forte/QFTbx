@@ -120,6 +120,12 @@ private:
     void buildRow (QWidget *widget, QVector<ParLineEdit> & par,
                    QVector <ThreeRadioButtons> & rowRadios);
     void buildTables(std::vector<Parameter> & numerator, std::vector<Parameter> & denominator);
+    /// Why the last readVariable() refused its input, empty when it has
+    /// nothing to add to the caller's message. It exists so the operator is
+    /// told WHICH rule the entry broke: "invalid" alone left them guessing
+    /// between a syntax error and a count out of range.
+    QString m_readReason;
+
     bool readVariable(const ParLineEdit & rowEdits, ThreeRadioButtons rowRadios, Parameter & parameter,
                          bool useLinspace, bool useLogspace);
 

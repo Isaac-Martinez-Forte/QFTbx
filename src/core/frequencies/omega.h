@@ -41,6 +41,19 @@ public:
 
     void setOmega(std::vector<double> values);
 
+    /**
+     * @brief Value equality: the values, and the description they came from.
+     *
+     * Conservative like LtiSystem::sameAs, and for the same reason - a wrong
+     * "equal" leaves templates computed for a DIFFERENT frequency set in
+     * place. The start, the end and the type are compared as well as the
+     * values, even though the values are what the sweep reads: two sets with
+     * the same values but a different generation type are not
+     * interchangeable, because bode_viewer re-derives its own sweep from the
+     * start, the end and the type.
+     */
+    bool sameAs(const Omega & other) const;
+
 private:
     double m_start;
     double m_end;

@@ -1,3 +1,4 @@
+#include <cmath>
 #include <vector>
 #include <algorithm>
 
@@ -44,8 +45,20 @@ void BodeViewer::drawBode(LtiSystem *plant, Omega *omega){
     if (omega->type() == Omega::LinSpace){
         frequencies = linspace(omega->start(), omega->end(), 100);
     }else if (omega->type() == Omega::LogSpace){
-        //start()/end() hold the EXPONENTS on this path, as logspace expects.
-        frequencies = logspace(omega->start(), omega->end(), 100);
+        //start()/end() are in rad/s, like every other frequency in the
+        //toolbox, and tools::logspace takes exponents - so the conversion
+        //happens here, the same way the frequencies dialog does it when it
+        //builds the set. They used to hold the exponents themselves, which
+        //made this line shorter and the unit a secret shared between two
+        //files.
+        if (omega->start() > 0.0 && omega->end() > 0.0){
+            frequencies = logspace(std::log10(omega->start()),
+                                   std::log10(omega->end()), 100);
+        } else {
+            //An older set, or one that cannot be re-derived: its own values
+            //are always there.
+            frequencies = *omega->values();
+        }
     }else {
         frequencies = *omega->values();
     }

@@ -19,6 +19,29 @@ namespace {
 
 //Template representatives per frequency entering the constraint set (the
 //paper uses 9 plants; the tracking constraints pair them quadratically).
+//
+//KNOWN AND ACCEPTED LIMIT, measured on the FDA-10 Example 5.1 fixture over a
+//51x51 sweep of the uncertainty: the design this certifies exceeds the TRUE
+//tracking bound by 12% to 19% at two of the five design frequencies
+//(0.456 dB of spread against 0.408 allowed at w = 0.25; 1.81e-3 against
+//1.52e-3 at w = 0.015). Nine points spread evenly along the contour, paired
+//quadratically, is simply too coarse for this problem.
+//
+//What was ruled out, with numbers:
+//  - Raising the count to 25 shrinks the excess (0.456 -> 0.431 dB) without
+//    removing it, at twelve times the cost (5 s -> 64 s).
+//  - The contour epsilon is NOT the cause: with 10 and with 2 the design
+//    comes out identical, and with 0.5 there is no hull at all.
+//
+//The way OUT of it, and why it is not done here: the excess exists because
+//the spread of |T| is SAMPLED. Bounding it instead - evaluating |T| as an
+//interval over the template's contour, edge by edge, the way every other
+//quantity in this file is bounded - would give a guaranteed enclosure and no
+//discretisation gap at all, and it need not even be dearer: one interval
+//evaluation per box against the 9x8 ordered pairs of today. But that changes
+//what the algorithm COMPUTES, and it departs from the constraint set the
+//article formulates. It is a modelling decision for the thesis, not a repair
+//of this code, so this stays as the paper has it, with the gap written down.
 const std::int32_t kTemplateRepresentatives = 9;
 
 //Passes of the HC4 fixpoint loop per box (a bound protects against

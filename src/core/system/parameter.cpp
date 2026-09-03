@@ -1,5 +1,7 @@
 ﻿#include "parameter.h"
 
+#include <cmath>
+
 #include "src/core/text_tokens.h"
 
 #include "src/core/exception.h"
@@ -10,8 +12,47 @@ using namespace std;
 
 namespace qftbx {
 
+namespace {
+
+//muParserX does not complain about a degenerate expression: "0/0", "1/0",
+//"log(-1)" and "sqrt(-1)" all evaluate quietly to a NaN or an infinity
+//(measured, not assumed). Every one of those values used to sail straight
+//into the model from a dialog field, and nothing downstream looks: the
+//templates come out non-finite, so do the boundaries, the plot is empty and
+//the search never converges - without one message anywhere saying why.
+//A parameter is the choke point every uncertainty bound and nominal value
+//goes through, so the check belongs here.
+void requireFinite(double value, const char * what)
+{
+    if (!std::isfinite(value)) {
+        throw InvalidInput(std::string("A parameter's ") + what +
+                           " must be a finite number.");
+    }
+}
+
+void requireFiniteRange(const Range & range)
+{
+    requireFinite(range.min, "range start");
+    requireFinite(range.max, "range end");
+}
+
+}
+
+bool Parameter::operator==(Parameter & other)
+{
+    return m_name == other.m_name &&
+            rawRange() == other.rawRange() &&
+            rawNominal() == other.rawNominal() &&
+            m_expression == other.m_expression &&
+            m_uncertain == other.m_uncertain &&
+            m_hasExpression == other.m_hasExpression;
+}
+
 Parameter::Parameter(std::string name, Range range, double nominal, std::string exp)
 {
+    requireFiniteRange(range);
+    requireFinite(nominal, "nominal value");
+
     m_name = name;
 
     m_range = range.ordered();
@@ -31,6 +72,9 @@ Parameter::Parameter(std::string name, Range range, double nominal, std::string 
 }
 
 Parameter::Parameter(std::string name, Range range, double nominal){
+    requireFiniteRange(range);
+    requireFinite(nominal, "nominal value");
+
     m_name = name;
 
     m_range = range.ordered();
@@ -45,6 +89,8 @@ Parameter::Parameter(std::string name, Range range, double nominal){
 }
 
 Parameter::Parameter (Range range){
+    requireFiniteRange(range);
+
     m_range = range.ordered();
 
     m_nominal = 0;
@@ -59,6 +105,8 @@ Parameter::Parameter() {
 }
 
 Parameter::Parameter (double value){
+    requireFinite(value, "value");
+
     m_nominal = value;
     m_name = qftbx::text::number(m_nominal);
     m_uncertain = false;
@@ -67,6 +115,8 @@ Parameter::Parameter (double value){
 }
 
 Parameter::Parameter (std::string name, double value){
+    requireFinite(value, "value");
+
     m_nominal = value;
     m_name = name;
     m_uncertain = false;

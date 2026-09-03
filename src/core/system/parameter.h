@@ -66,6 +66,26 @@ public:
 
     const std::string & expression() const;
 
+    /**
+     * @brief Value equality, on the RAW state: name, raw range, raw nominal,
+     * reparametrisation expression and the two flags.
+     *
+     * Deliberately conservative and deliberately total - every member is
+     * compared. It exists so the project can tell a real change from a
+     * dialog accepted without an edit, and the two answers are not
+     * symmetric: saying "equal" when something did change leaves the
+     * templates computed for the OLD plant in place, which is the silent
+     * defect ProjectController warns about. Saying "different" when nothing
+     * changed only costs a recomputation. So anything not compared here
+     * would have to be proven irrelevant first, and nothing is.
+     *
+     * The raw values are the ones compared, not the reparametrised ones:
+     * they are the state, and the transformed ones are derived from them.
+     */
+    bool operator==(Parameter & other);
+
+    bool operator!=(Parameter & other) { return !(*this == other); }
+
 private:
     /// The reparametrisation applied to one value, parsed once per thread.
     double realValueOf(double value) const;

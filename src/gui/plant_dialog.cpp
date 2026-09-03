@@ -2,6 +2,7 @@
 #include "src/core/text_tokens.h"
 #include "ui_plant_dialog.h"
 
+#include "src/core/exception.h"
 #include "src/gui/error_message.h"
 #include "src/core/math/expression_cache.h"
 #include "src/gui/plot_palette.h"
@@ -377,6 +378,12 @@ void PlantDialog::on_okButton_clicked()
     } catch (mup::ParserError &) {
         errorMessage(tr("There is an error in the plant data"), tr("Plant input"));
         return;
+    } catch (const qftbx::Exception & e) {
+        //And the same treatment for a value that parses but is not a number
+        //a model can use: muParserX answers "0/0" and "1/0" with a NaN and
+        //an infinity instead of complaining, and Parameter refuses those.
+        errorMessage(e.what(), tr("Plant input"));
+        return;
     }
 
     //A second accept replaces the answer of the first one; whoever took it
@@ -443,6 +450,9 @@ std::optional<std::vector<Parameter>> PlantDialog::buildParameters(const Coeffic
         p.SetExpr(string.toStdString());
         try {
             var.push_back(Parameter(p.Eval().GetFloat()));
+        } catch (const qftbx::Exception &) {
+            //A coefficient that is not a finite number: same answer.
+            return std::nullopt;
         } catch (mup::ParserError &) {
             //An invalid coefficient used to become 0 here, silently: the
             //plant that got designed for was not the one the user typed.

@@ -206,9 +206,14 @@ void MainWindow::on_plantButton_clicked()
         //The dialogs only describe; publishing into the project is the
         //window's job, so a dialog never needs to know the facade.
         std::unique_ptr<LtiSystem> described = plantDialog->takePlant();
-        const bool changed = described.get() != controller->plant();
 
-        controller->setPlant(std::move(described));
+        //The controller answers whether it dropped anything, so the window
+        //resets its own steps exactly when the project dropped the artefacts
+        //behind them. This used to be decided here, by comparing the address
+        //of a freshly built object with the stored one - a test that can
+        //never match, so it always invalidated. It agreed with the project
+        //only by accident.
+        const bool changed = controller->setPlant(std::move(described));
 
         //A different plant voids the templates and everything after them, in
         //the project and therefore in the window too.
@@ -236,11 +241,24 @@ void MainWindow::on_plantButton_clicked()
 void MainWindow::on_specificationsButton_clicked()
 {
 
-    if (!specificationsDone){
-        specificationsDialog = new SpecificationsDialog(frequencyValues(),
-                                                        controller->specifications(),
-                                                        this);
-
+    //Both of these refuse a project with no design frequencies by throwing,
+    //and an exception leaving a slot takes the application down. The button
+    //is only enabled once the frequencies are in, so this is a broken
+    //invariant rather than a user error - which is exactly the kind that
+    //should be reported instead of aborting.
+    try {
+        if (!specificationsDone){
+            specificationsDialog = new SpecificationsDialog(frequencyValues(),
+                                                            controller->specifications(),
+                                                            this);
+        } else {
+            //The frequency set the dialog was built with may be gone:
+            //entering new frequencies destroys the Omega that owns the values.
+            specificationsDialog->setFrequencies(frequencyValues());
+        }
+    } catch (const qftbx::Exception & e) {
+        QMessageBox::critical(this, tr("Specifications input"), e.what());
+        return;
     }
 
     specificationsDialog->exec();
@@ -281,9 +299,14 @@ void MainWindow::on_frequenciesButton_clicked()
 
     if (frequenciesDialog->wasAccepted()){
         std::unique_ptr<Omega> described = frequenciesDialog->takeOmega();
-        const bool changed = described.get() != controller->omega();
 
-        controller->setOmega(std::move(described));
+        //The controller answers whether it dropped anything, so the window
+        //resets its own steps exactly when the project dropped the artefacts
+        //behind them. This used to be decided here, by comparing the address
+        //of a freshly built object with the stored one - a test that can
+        //never match, so it always invalidated. It agreed with the project
+        //only by accident.
+        const bool changed = controller->setOmega(std::move(described));
 
         if (changed && templatesDone){
             invalidateFromTemplates();
@@ -469,9 +492,14 @@ void MainWindow::on_controllerButton_clicked()
 
     if (controllerDialog->wasAccepted()){
         std::unique_ptr<LtiSystem> described = controllerDialog->takeControllerStructure();
-        const bool changed = described.get() != controller->controllerStructure();
 
-        controller->setControllerStructure(std::move(described));
+        //The controller answers whether it dropped anything, so the window
+        //resets its own steps exactly when the project dropped the artefacts
+        //behind them. This used to be decided here, by comparing the address
+        //of a freshly built object with the stored one - a test that can
+        //never match, so it always invalidated. It agreed with the project
+        //only by accident.
+        const bool changed = controller->setControllerStructure(std::move(described));
 
         if (changed && loopDone){
             invalidateLoopShaping();

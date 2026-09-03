@@ -68,16 +68,23 @@ std::complex<double> evaluateCached(const std::string & expression,
     //std::string makes it a real allocation, which showed up as a 20% loss
     //on the template and boundary tests the moment the strings changed.
     //
-    //The pointers are compared, not the strings: a hit needs the caller to
-    //hand over the very same objects, which is what the callers do - a
-    //Parameter or a FreeForm evaluating itself over and over.
-    static thread_local const std::string * lastExpression = nullptr;
-    static thread_local const std::vector<std::string> * lastNames = nullptr;
+    //It compares the CONTENT, not the addresses. Comparing addresses was the
+    //first attempt and it is wrong: destroy the object at some address,
+    //allocate a different one there - which the loop shaping does constantly,
+    //since bisecting a box deep-copies its Parameters - and the memo hits
+    //when it must not, evaluating one expression's parse tree for another.
+    //Silently, and with a number as the result. Comparing costs no
+    //allocation, which is the whole difference from building the Key.
+    //What it points at is the key INSIDE the map, which costs nothing to
+    //remember: std::map is node-based, so a key never moves, and this cache
+    //only ever grows - nothing is erased from it.
+    static thread_local const Key * lastKey = nullptr;
     static thread_local CachedParser * lastParser = nullptr;
 
     CachedParser * cached = nullptr;
 
-    if (lastParser != nullptr && lastExpression == &expression && lastNames == &names) {
+    if (lastParser != nullptr && lastKey->first == expression &&
+            lastKey->second == names) {
         cached = lastParser;
     } else {
         auto & parsers = cache();
@@ -89,8 +96,7 @@ std::complex<double> evaluateCached(const std::string & expression,
         }
 
         cached = found->second.get();
-        lastExpression = &expression;
-        lastNames = &names;
+        lastKey = &found->first;
         lastParser = cached;
     }
 

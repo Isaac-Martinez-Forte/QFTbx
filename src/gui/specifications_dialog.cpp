@@ -1,3 +1,4 @@
+#include <cmath>
 #include "specifications_dialog.h"
 
 #include "src/core/exception.h"
@@ -18,6 +19,35 @@
 
 using namespace tools;
 using namespace mup;
+
+namespace {
+
+//The band is checked here, where it was typed. Specification::constant and
+//fromSystem both refuse an inverted or non-finite band, but that throw only
+//happens when the records are turned into specifications, which is when the
+//BOUNDARIES are computed: the dialog accepted "start 10, end 1" without a
+//word and the complaint arrived several steps later, naming no
+//specification. Worse than the message was the silence when it did not
+//throw at all - a band is only used through appliesAt(), which answers
+//min <= omega && omega <= max, so an inverted one quietly applied to no
+//frequency and the requirement did nothing.
+bool bandIsUsable(double start, double end)
+{
+    return std::isfinite(start) && std::isfinite(end) &&
+            start >= 0.0 && end >= start;
+}
+
+//A bound's magnitude, in linear units by the time it gets here. Same story
+//as the band: Specification::constant refuses a non-finite or non-positive
+//magnitude, but only when the records become specifications, which is when
+//the boundaries are computed. And a NaN gets here easily - muParserX
+//evaluates "0/0" quietly to one.
+bool magnitudeIsUsable(double magnitude)
+{
+    return std::isfinite(magnitude) && magnitude > 0.0;
+}
+
+}
 
 SpecificationsDialog::SpecificationsDialog(const std::vector<double> * frequencies,
                                            const qftbx::SpecificationRecords * loaded,
@@ -339,6 +369,15 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record_in, QString 
         }
     }
 
+    if (!bandIsUsable(record_in.omegaStart, record_in.omegaEnd)){
+        ui->startFrequencyEdit->setStyleSheet("background : red");
+        ui->endFrequencyEdit->setStyleSheet("background : red");
+        record_in.used = false;
+        errorMessage(tr("The frequency band needs 0 <= start <= end."),
+                     tr("Specifications input"));
+        return false;
+    }
+
     if (ui->constantRadio->isChecked()){
 
         if (!ui->magnitudeEdit->text().isEmpty()){
@@ -356,6 +395,15 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record_in, QString 
                     record_in.height = qftbx::dbToLinear(alt);
                 }else {
                     record_in.height = alt;
+                }
+
+                if (!magnitudeIsUsable(record_in.height)){
+                    record_in.used = false;
+                    ui->magnitudeEdit->setStyleSheet("background : red");
+                    errorMessage(tr("The magnitude must be a finite number, "
+                                    "and positive in linear units."),
+                                 tr("Specifications input"));
+                    return false;
                 }
 
                 ui->magnitudeEdit->setStyleSheet("background : white");
@@ -505,6 +553,16 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record_in,
         }
     }
 
+    if (!bandIsUsable(record_in.omegaStart, record_in.omegaEnd)){
+        ui->startFrequencyEdit->setStyleSheet("background : red");
+        ui->endFrequencyEdit->setStyleSheet("background : red");
+        record_in.used = false;
+        upperRecord.used = false;
+        errorMessage(tr("The frequency band needs 0 <= start <= end."),
+                     tr("Specifications input"));
+        return false;
+    }
+
     if (ui->constantRadio->isChecked()){
 
         if (!ui->lowerMagnitudeEdit->text().isEmpty()){
@@ -524,6 +582,16 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record_in,
                     record_in.height = qftbx::dbToLinear(alt);
                 }else {
                     record_in.height = alt;
+                }
+
+                if (!magnitudeIsUsable(record_in.height)){
+                    record_in.used = false;
+                    upperRecord.used = false;
+                    ui->lowerMagnitudeEdit->setStyleSheet("background : red");
+                    errorMessage(tr("The lower magnitude must be a finite "
+                                    "number, and positive in linear units."),
+                                 tr("Specifications input"));
+                    return false;
                 }
 
                 ui->lowerMagnitudeEdit->setStyleSheet("background : white");
@@ -630,6 +698,16 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record_in,
                     upperRecord.height = qftbx::dbToLinear(alt);
                 }else {
                     upperRecord.height = alt;
+                }
+
+                if (!magnitudeIsUsable(upperRecord.height)){
+                    record_in.used = false;
+                    upperRecord.used = false;
+                    ui->upperMagnitudeEdit->setStyleSheet("background : red");
+                    errorMessage(tr("The upper magnitude must be a finite "
+                                    "number, and positive in linear units."),
+                                 tr("Specifications input"));
+                    return false;
                 }
 
                 ui->upperMagnitudeEdit->setStyleSheet("background : white");
@@ -969,6 +1047,16 @@ void SpecificationsDialog::on_okButton_clicked()
     accepted = true;
 
     emit (close());
+}
+
+void SpecificationsDialog::setFrequencies(const std::vector<double> * frequencies)
+{
+    if (frequencies == nullptr || frequencies->empty()) {
+        throw qftbx::InvalidInput("The design frequencies must be entered "
+                                  "before the specifications.");
+    }
+
+    this->frequencies = frequencies;
 }
 
 bool SpecificationsDialog::wasAccepted(){

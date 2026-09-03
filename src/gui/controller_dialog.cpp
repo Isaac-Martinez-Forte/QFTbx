@@ -3,6 +3,7 @@
 #include "src/core/text_tokens.h"
 #include "ui_controller_dialog.h"
 
+#include "src/core/exception.h"
 #include "src/gui/error_message.h"
 #include "src/core/math/expression_cache.h"
 #include "src/gui/plot_palette.h"
@@ -292,6 +293,12 @@ void ControllerDialog::on_okButton_clicked()
     } catch (mup::ParserError &) {
         errorMessage(tr("There is an error in the controller data"), tr("Controller input"));
         return;
+    } catch (const qftbx::Exception & e) {
+        //And the same treatment for a value that parses but is not a number
+        //a model can use: muParserX answers "0/0" and "1/0" with a NaN and
+        //an infinity instead of complaining, and Parameter refuses those.
+        errorMessage(e.what(), tr("Controller input"));
+        return;
     }
 
     retv = Parameter(0.0);
@@ -359,6 +366,9 @@ std::optional<std::vector<Parameter>> ControllerDialog::buildParameters(const Co
         p.SetExpr(string.toStdString());
         try {
             var.push_back(Parameter(p.Eval().GetFloat()));
+        } catch (const qftbx::Exception &) {
+            //A coefficient that is not a finite number: same answer.
+            return std::nullopt;
         } catch (mup::ParserError &) {
             //An invalid coefficient used to become 0 here, silently: the
             //controller that got designed was not the one the user typed.

@@ -61,14 +61,32 @@ void ProjectController::dropLoopShaping(){
 //throw away a finished design. Taking the ownership makes that comparison
 //not just unnecessary but wrong: returning early would destroy, on the way
 //out, the very object the store is pointing at.
-void ProjectController::setPlant(std::unique_ptr<LtiSystem> plant){
+//Null on either side counts as a change: there is nothing to compare, and
+//of the two possible mistakes only "different" is harmless.
+bool ProjectController::setPlant(std::unique_ptr<LtiSystem> plant){
+    const bool changed = plant == nullptr || data.plant() == nullptr ||
+            !plant->sameAs(*data.plant());
+
     data.setPlant(std::move(plant));
-    dropTemplatesAndBelow();
+
+    if (changed) {
+        dropTemplatesAndBelow();
+    }
+
+    return changed;
 }
 
-void ProjectController::setOmega(std::unique_ptr<Omega> omega){
+bool ProjectController::setOmega(std::unique_ptr<Omega> omega){
+    const bool changed = omega == nullptr || data.omega() == nullptr ||
+            !omega->sameAs(*data.omega());
+
     data.setOmega(std::move(omega));
-    dropTemplatesAndBelow();
+
+    if (changed) {
+        dropTemplatesAndBelow();
+    }
+
+    return changed;
 }
 
 void ProjectController::setSpecifications(std::optional<qftbx::SpecificationRecords> specifications){
@@ -218,13 +236,18 @@ const qftbx::UnionBuckets & ProjectController::unionBuckets(){
 }
 
 bool ProjectController::setControllerStructure(std::unique_ptr<LtiSystem> controller){
+    const bool changed = controller == nullptr || data.controller() == nullptr ||
+            !controller->sameAs(*data.controller());
+
     data.setController(std::move(controller));
 
     //A different controller structure means the computed controller answers a
-    //question nobody asked any more.
-    dropLoopShaping();
+    //question nobody asked any more. The same one means it still answers it.
+    if (changed) {
+        dropLoopShaping();
+    }
 
-    return true;
+    return changed;
 }
 
 LtiSystem * ProjectController::controllerStructure(){

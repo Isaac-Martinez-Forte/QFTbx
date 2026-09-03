@@ -53,7 +53,20 @@ public:
     // --- step 1: the plant -------------------------------------------------
 
     LtiSystem * plant();
-    void setPlant(std::unique_ptr<LtiSystem> plant);
+
+    /**
+     * @brief Publishes a new plant and drops what was computed from the old one.
+     * @return true when it DID drop something, i.e. when the new plant is not
+     * the same by value as the one it replaced.
+     *
+     * The comparison lives here and not in the interface: it is this class
+     * that decides whether the computed artefacts survive, so anywhere else
+     * would be a second opinion on the same question - and the window used
+     * to hold one, comparing the addresses of a fresh object and a stored
+     * one, which can never match. It always invalidated, and it agreed with
+     * this class only by accident.
+     */
+    bool setPlant(std::unique_ptr<LtiSystem> plant);
 
     // --- step 2: the specifications ---------------------------------------
 
@@ -63,7 +76,20 @@ public:
     // --- step 3: the design frequencies -----------------------------------
 
     Omega * omega();
-    void setOmega(std::unique_ptr<Omega> omega);
+
+    /**
+     * @brief Publishes a new frequency set and drops what was computed from the old one.
+     * @return true when it DID drop something, i.e. when the new set is not
+     * the same by value as the one it replaced.
+     *
+     * The comparison lives here and not in the interface: it is this class
+     * that decides whether the computed artefacts survive, so anywhere else
+     * would be a second opinion on the same question - and the window used
+     * to hold one, comparing the addresses of a fresh object and a stored
+     * one, which can never match. It always invalidated, and it agreed with
+     * this class only by accident.
+     */
+    bool setOmega(std::unique_ptr<Omega> omega);
 
     /// The frequency values alone, the form every engine takes.
     std::vector<double> * frequencies();
@@ -118,6 +144,19 @@ public:
     /// The controller BEING DESIGNED: its structure and the search box of
     /// its parameters.
     LtiSystem * controllerStructure();
+
+    /**
+     * @brief Publishes a new controller structure and drops what was computed from the old one.
+     * @return true when it DID drop something, i.e. when the new structure is not
+     * the same by value as the one it replaced.
+     *
+     * The comparison lives here and not in the interface: it is this class
+     * that decides whether the computed artefacts survive, so anywhere else
+     * would be a second opinion on the same question - and the window used
+     * to hold one, comparing the addresses of a fresh object and a stored
+     * one, which can never match. It always invalidated, and it agreed with
+     * this class only by accident.
+     */
     bool setControllerStructure(std::unique_ptr<LtiSystem> controller);
 
     // --- step 7: the loop shaping -----------------------------------------

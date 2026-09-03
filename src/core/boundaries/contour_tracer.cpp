@@ -1,3 +1,5 @@
+#include <limits>
+#include <algorithm>
 #include <vector>
 #include <cstdint>
 #include "contour_tracer.h"
@@ -22,6 +24,30 @@ ContourTracer::ContourTracer(double thresholdDb, const float *sheet){
 //magnitude TOP (index * span - top) and the phase span, which only equals
 //the bottom on grids symmetric around zero / ending at zero: any other
 //grid produced boundaries shifted by (top - |bottom|).
+namespace {
+
+//The flat index of a grid cell, multiplied in std::size_t. Every one of
+//these used to read `static_cast<std::size_t>(row * width + column)`, which
+//multiplies in std::int32_t and widens only the result: an overflow would
+//already have happened before the cast could help. The same cast shape
+//sized the visited vector, so a grid large enough to overflow would have
+//produced a vector too small for the indices it is then read with - and one
+//of those reads is an operator[], with no bounds check to catch it.
+inline std::size_t flatIndex(std::int32_t row, std::int32_t column, std::int32_t width)
+{
+    return static_cast<std::size_t>(row) * static_cast<std::size_t>(width) +
+            static_cast<std::size_t>(column);
+}
+
+//Cells of a (width + 1) x (height + 1) grid, likewise widened first.
+inline std::size_t cellCount(std::int32_t width, std::int32_t height)
+{
+    return (static_cast<std::size_t>(width) + 1) *
+            (static_cast<std::size_t>(height) + 1);
+}
+
+}
+
 TraceSet ContourTracer::trace(double phaseSpan, double magnitudeSpan,
                                                      double phaseBottom, double magnitudeBottom)
 {
@@ -33,7 +59,7 @@ TraceSet ContourTracer::trace(double phaseSpan, double magnitudeSpan,
     std::int32_t phaseCells = width - 1;
     std::int32_t magnitudeCells = height - 1;
 
-    std::vector <bool> visited (static_cast<std::size_t>((width + 1) * (height + 1)), false);
+    std::vector <bool> visited (cellCount(width, height), false);
 
     TraceSet traces;
 
@@ -42,7 +68,7 @@ TraceSet ContourTracer::trace(double phaseSpan, double magnitudeSpan,
         for (std::int32_t row = 1; row < height-1; row++)
         {
 
-            if ((m_sheet->at(static_cast<std::size_t>(row)).at(static_cast<std::size_t>(column)) >= threshold) && (!visited.at(static_cast<std::size_t>(row * width + column)))){
+            if ((m_sheet->at(static_cast<std::size_t>(row)).at(static_cast<std::size_t>(column)) >= threshold) && (!visited.at(flatIndex(row, column, width)))){
 
                 Trace trace;
 
@@ -68,13 +94,13 @@ TraceSet ContourTracer::trace(double phaseSpan, double magnitudeSpan,
                             x =  currentX + kNeighbourX[(i - 1) % 8];
                             y =  currentY + kNeighbourY[(i - 1) % 8];
 
-                            if ((m_sheet->at(static_cast<std::size_t>(y)).at(static_cast<std::size_t>(x)) >= threshold) && (!visited.at(static_cast<std::size_t>(y * width + x)))){
+                            if ((m_sheet->at(static_cast<std::size_t>(y)).at(static_cast<std::size_t>(x)) >= threshold) && (!visited.at(flatIndex(y, x, width)))){
 
 
                                 trace.push_back(qftbx::NicholsPoint(((currentX * phaseSpan) / phaseCells) + phaseBottom, ((currentY *
                                                       magnitudeSpan) / magnitudeCells) + magnitudeBottom));
 
-                                visited[static_cast<std::size_t>(currentY * width + currentX)] = true;
+                                visited[flatIndex(currentY, currentX, width)] = true;
                                 currentX = x;
                                 currentY = y;
                                 advanced++;
@@ -114,14 +140,20 @@ TraceSet ContourTracer::trace(double phaseSpan, double magnitudeSpan,
 TraceSet ContourTracer::trace(double phaseSpan, double phaseCount, double magnitudeSpan,
                                                      double magnitudeCount, double phaseBottom, double magnitudeBottom){
 
-    std::int32_t width = phaseCount;
-    std::int32_t height = magnitudeCount;
+    //Both arrive as doubles (the CUDA overload's signature) and went into an
+    //std::int32_t with nothing checked, which is undefined behaviour for a
+    //value out of range. No compiler on the development machine sees this
+    //branch, so it is written to be right by inspection.
+    const std::int32_t width = static_cast<std::int32_t>(
+                std::min(phaseCount, static_cast<double>(std::numeric_limits<std::int32_t>::max())));
+    const std::int32_t height = static_cast<std::int32_t>(
+                std::min(magnitudeCount, static_cast<double>(std::numeric_limits<std::int32_t>::max())));
     double threshold = m_thresholdDb;
     phaseCount--;
     magnitudeCount--;
 
 
-    std::vector <bool> visited (static_cast<std::size_t>((width + 1) * (height + 1)), false);
+    std::vector <bool> visited (cellCount(width, height), false);
 
     TraceSet traces;
 
@@ -130,7 +162,7 @@ TraceSet ContourTracer::trace(double phaseSpan, double phaseCount, double magnit
         for (std::int32_t row = 1; row < height-1; row++)
         {
 
-            if ((m_cudaSheet[column * height + row] >= threshold) && (!visited.at(static_cast<std::size_t>(row * width + column)))){
+            if ((m_cudaSheet[column * height + row] >= threshold) && (!visited.at(flatIndex(row, column, width)))){
 
                 Trace trace;
 
@@ -157,9 +189,9 @@ TraceSet ContourTracer::trace(double phaseSpan, double phaseCount, double magnit
                             x =  currentX + kNeighbourX[(i - 1) % 8];
                             y =  currentY + kNeighbourY[(i - 1) % 8];
 
-                            if ((m_cudaSheet[x * height + y] > threshold) && (!visited.at(static_cast<std::size_t>(y * width + x)))){
+                            if ((m_cudaSheet[x * height + y] > threshold) && (!visited.at(flatIndex(y, x, width)))){
                                 trace.push_back(qftbx::NicholsPoint(((currentX * phaseSpan) / phaseCount) + phaseBottom, ((currentY * magnitudeSpan) / magnitudeCount) + magnitudeBottom));
-                                visited[static_cast<std::size_t>(currentY * width + currentX)] = true;
+                                visited[flatIndex(currentY, currentX, width)] = true;
                                 currentX = x;
                                 currentY = y;
                                 advanced++;
@@ -203,10 +235,10 @@ TraceSet ContourTracer::trace(double phaseSpan, double phaseCount, double magnit
                                 x =  retraceX + kNeighbourX[(i + 1) % 8];
                                 y =  retraceY + kNeighbourY[(i + 1) % 8];
 
-                                if ((m_cudaSheet[x * height + y] > threshold) && (!visited.at(static_cast<std::size_t>(y * width + x)))){
+                                if ((m_cudaSheet[x * height + y] > threshold) && (!visited.at(flatIndex(y, x, width)))){
                                     retrace.push_back(qftbx::NicholsPoint(((retraceX * phaseSpan) / phaseCount) + phaseBottom, ((retraceY *
                                                           magnitudeSpan) / magnitudeCount) + magnitudeBottom));
-                                    visited[static_cast<std::size_t>(retraceY * width + retraceX)] = true;
+                                    visited[flatIndex(retraceY, retraceX, width)] = true;
                                     retraceX = x;
                                     retraceY = y;
                                     readvanced++;

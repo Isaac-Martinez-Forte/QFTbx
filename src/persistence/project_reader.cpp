@@ -1,3 +1,5 @@
+#include <limits>
+#include <cmath>
 #include <fstream>
 #include <algorithm>
 #include <cstdlib>
@@ -283,9 +285,30 @@ public:
     {
         const double min = realChild(section, t.omegaMin);
         const double max = realChild(section, t.omegaMax);
-        const std::int32_t pointCount = static_cast<std::int32_t>(realChild(section, t.pointCount));
+        //The stored count is read and passed on, but Omega ignores it and
+        //recomputes the count from the values (old files carry a
+        //desynchronised one). It is still clamped before the conversion:
+        //turning a file's "1e300" into an std::int32_t is undefined
+        //behaviour, whether or not anybody reads the result.
+        const double storedCount = realChild(section, t.pointCount);
+        const std::int32_t pointCount = std::isfinite(storedCount)
+                ? static_cast<std::int32_t>(std::clamp(storedCount, 0.0,
+                          static_cast<double>(std::numeric_limits<std::int32_t>::max())))
+                : 0;
+
+        //An unknown generation type used to travel in as-is and then behave
+        //as linear wherever it was compared, which hid a corrupt file
+        //instead of reporting it.
+        const double storedType = realChild(section, t.omegaType);
+        if (storedType != static_cast<double>(Omega::LinSpace) &&
+                storedType != static_cast<double>(Omega::LogSpace) &&
+                storedType != static_cast<double>(Omega::Manual) &&
+                storedType != static_cast<double>(Omega::File)) {
+            fail(section, "the frequency set has an unknown generation type");
+        }
         const auto type = static_cast<Omega::GenerationType>(
-            static_cast<std::int32_t>(realChild(section, t.omegaType)));
+            static_cast<std::int32_t>(storedType));
+
         return std::make_unique<Omega>(min, max, pointCount,
                                       realVector(require(section, t.values)), type);
     }

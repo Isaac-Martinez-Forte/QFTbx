@@ -85,3 +85,13 @@ std::vector<double> Omega::valuesFromFile(std::string path){
 
     return values.value();
 }
+
+bool Omega::sameAs(const Omega & other) const
+{
+    return m_type == other.m_type &&
+            m_start == other.m_start &&
+            m_end == other.m_end &&
+            m_pointCount == other.m_pointCount &&
+            m_values == other.m_values;
+}
+

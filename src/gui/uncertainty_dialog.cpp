@@ -3,6 +3,7 @@
 #include <optional>
 #include "ui_uncertainty_dialog.h"
 
+#include "src/core/exception.h"
 #include "src/gui/error_message.h"
 #include "src/gui/plot_palette.h"
 
@@ -333,6 +334,14 @@ bool UncertaintyDialog::readRanges(){
                         startValue = parse(startEdit->text());
                         endValue = parse(endEdit->text());
                         nominalValue = parse(nominal->text());
+                    } catch (const qftbx::Exception &) {
+                        //A bound or a nominal that is not a finite number:
+                        //muParserX answers "0/0" with a NaN rather than
+                        //complaining, and Parameter refuses it.
+                        startEdit->setStyleSheet("background : red");
+                        endEdit->setStyleSheet("background : red");
+                        nominal->setStyleSheet("background : red");
+                        valid = false;
                     } catch (mup::ParserError &) {
                         //Invalid expression: it used to blow the dialog up.
                         startEdit->setStyleSheet("background : red");
@@ -416,6 +425,11 @@ bool UncertaintyDialog::readRanges(){
                         startValue = parse(startEdit->text());
                         endValue = parse(endEdit->text());
                         nominalValue = parse(nominal->text());
+                    } catch (const qftbx::Exception &) {
+                        startEdit->setStyleSheet("background : red");
+                        endEdit->setStyleSheet("background : red");
+                        nominal->setStyleSheet("background : red");
+                        valid = false;
                     } catch (mup::ParserError &) {
                         startEdit->setStyleSheet("background : red");
                         endEdit->setStyleSheet("background : red");
