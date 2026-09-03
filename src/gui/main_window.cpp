@@ -9,6 +9,8 @@
 #include "src/core/point.h"
 #include "src/core/exception.h"
 
+#include <mpParser.h>
+
 #include <vector>
 #include <iostream>
 
@@ -355,6 +357,18 @@ void MainWindow::on_templatesButton_clicked()
         try {
             templatesOk = controller->computeTemplates(templatesDialog->takeEpsilon(), templatesDialog->grids(),
                                                          templatesDialog->cudaSelected());
+        } catch (mup::ParserError & parserError) {
+            //A muParserX error is neither a qftbx::Exception nor a
+            //std::exception, so it escaped this slot and took the application
+            //down. Parameter names are validated when a system is published,
+            //which is where this class of problem belongs, but a computation
+            //must not be able to kill the window either way.
+            this->setCursor(Qt::ArrowCursor);
+            QMessageBox::critical(this, tr("Template computation"),
+                                  tr("The expression parser refused this "
+                                     "computation: %1")
+                                      .arg(QString::fromStdString(parserError.GetMsg())));
+            return;
         } catch (const qftbx::Exception & e) {
             this->setCursor(Qt::ArrowCursor);
             QMessageBox::critical(this, tr("Template computation"), e.what());
@@ -428,6 +442,18 @@ void MainWindow::on_boundariesButton_clicked()
                                                            boundaryGridDialog->phaseCountValue(), boundaryGridDialog->magnitudeRangeValue(),
                                                            boundaryGridDialog->magnitudeCountValue(), boundaryGridDialog->infinityValue(),
                                                            boundaryGridDialog->contourSelected(), boundaryGridDialog->cudaSelected());
+        } catch (mup::ParserError & parserError) {
+            //A muParserX error is neither a qftbx::Exception nor a
+            //std::exception, so it escaped this slot and took the application
+            //down. Parameter names are validated when a system is published,
+            //which is where this class of problem belongs, but a computation
+            //must not be able to kill the window either way.
+            this->setCursor(Qt::ArrowCursor);
+            QMessageBox::critical(this, tr("Boundary computation"),
+                                  tr("The expression parser refused this "
+                                     "computation: %1")
+                                      .arg(QString::fromStdString(parserError.GetMsg())));
+            return;
         } catch (const qftbx::Exception & e) {
             this->setCursor(Qt::ArrowCursor);
             QMessageBox::critical(this, tr("Boundary computation"), e.what());
@@ -538,6 +564,23 @@ void MainWindow::on_loopButton_clicked()
         try {
             re = controller->computeLoopShaping(loopShapingDialog->epsilonValue(), loopShapingDialog->algorithmValue(), loopShapingDialog->range(),
                                                   loopShapingDialog->pointCountValue(), loopShapingDialog->initialisationValue());
+        } catch (mup::ParserError & parserError) {
+            //Same treatment as a qftbx::Exception, and the reason it is
+            //needed: a muParserX error is neither that nor a std::exception,
+            //so it escaped this slot and took the application down. Naming a
+            //controller gain "k" was enough - the parser reserves it as its
+            //kilo postfix operator. Names are validated when a system is
+            //published now; this is the net under it.
+            QMessageBox::critical(this, tr("Loop Shaping"),
+                                  tr("The expression parser refused this "
+                                     "computation: %1")
+                                      .arg(QString::fromStdString(parserError.GetMsg())));
+            delete loopShapingDialog;
+            loopShapingDialog = nullptr;
+            delete loopShapingViewer;
+            loopShapingViewer = nullptr;
+            stepBack(loopDone);
+            return;
         } catch (const qftbx::Exception & e) {
             QMessageBox::critical(this, tr("Loop Shaping"), e.what());
             delete loopShapingDialog;

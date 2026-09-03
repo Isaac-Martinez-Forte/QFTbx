@@ -34,6 +34,7 @@ add_executable(qftbx_tests
   backend/project_roundtrip_test.cpp
   backend/controller_pipeline_test.cpp
   backend/project_staleness_test.cpp
+  backend/stage_sequence_test.cpp
   backend/computation_failure_test.cpp
   backend/loopshaping_structures_test.cpp
   backend/interval_extension_test.cpp

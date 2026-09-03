@@ -2,6 +2,7 @@
 #include <vector>
 #include <cstdint>
 #include "src/core/project_controller.h"
+#include "src/core/math/expression_cache.h"
 
 ProjectController::ProjectController()
 {
@@ -24,6 +25,46 @@ std::vector <double> * ProjectController::frequencies(){
 
 qftbx::SpecificationRecords * ProjectController::specifications(){
     return data.specifications();
+}
+
+namespace {
+
+//Every parameter name of a system that is about to be published has to be a
+//name muParserX can bind, because that is what the sweeps and the search do
+//with it. Six single letters are reserved as SI unit postfix operators -
+//n, u, m, k, M, G - and "k" is the canonical name for a gain, so this is not
+//a theoretical collision: naming a controller gain "k" used to throw a
+//mup::ParserError from deep inside the search, which is neither a
+//qftbx::Exception nor a std::exception, so it escaped the window's catch and
+//took the application down.
+//Checked HERE, once per publish, and not in Parameter's constructor: the
+//search deep-copies parameters for every box it bisects, and that is not a
+//place to ask a parser anything.
+void requireUsableNames(LtiSystem & system)
+{
+    //Not by const reference: isUncertain() and name() are not const on
+    //Parameter, and widening that is not this change's business.
+    const auto check = [](Parameter & parameter) {
+        if (!parameter.isUncertain()) {
+            //A constant carries no variable into any expression; its name is
+            //often the number itself.
+            return;
+        }
+        if (!qftbx::math::isUsableVariableName(parameter.name())) {
+            throw qftbx::InvalidInput(
+                "\"" + parameter.name() + "\" cannot be used as a parameter "
+                "name: the expression parser reserves it. The single letters "
+                "n, u, m, k, M and G are its unit multipliers, so a gain has "
+                "to be called something else - kv, for instance.");
+        }
+    };
+
+    for (Parameter & parameter : system.numerator()) { check(parameter); }
+    for (Parameter & parameter : system.denominator()) { check(parameter); }
+    check(system.gain());
+    check(system.delay());
+}
+
 }
 
 //Everything the sweeps and the search COMPUTE is a function of the inputs
@@ -64,6 +105,10 @@ void ProjectController::dropLoopShaping(){
 //Null on either side counts as a change: there is nothing to compare, and
 //of the two possible mistakes only "different" is harmless.
 bool ProjectController::setPlant(std::unique_ptr<LtiSystem> plant){
+    if (plant != nullptr) {
+        requireUsableNames(*plant);
+    }
+
     const bool changed = plant == nullptr || data.plant() == nullptr ||
             !plant->sameAs(*data.plant());
 
@@ -236,6 +281,10 @@ const qftbx::UnionBuckets & ProjectController::unionBuckets(){
 }
 
 bool ProjectController::setControllerStructure(std::unique_ptr<LtiSystem> controller){
+    if (controller != nullptr) {
+        requireUsableNames(*controller);
+    }
+
     const bool changed = controller == nullptr || data.controller() == nullptr ||
             !controller->sameAs(*data.controller());
 
