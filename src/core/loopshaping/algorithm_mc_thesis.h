@@ -1,6 +1,7 @@
 #ifndef QFTBX_LOOPSHAPING_ALGORITHM_MC_THESIS_H
 #define QFTBX_LOOPSHAPING_ALGORITHM_MC_THESIS_H
 
+#include "src/core/loopshaping/cancellation.h"
 #include <cstdint>
 #include <complex>
 #include <optional>
@@ -106,6 +107,16 @@ public:
     void setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> * omega, const BoundaryData * boundaries,
                    double epsilon);
 
+    /**
+     * @brief Installs the flag the search reads once per node.
+     *
+     * A pointer, and null by default: a caller that never cancels - every
+     * test that drives this algorithm directly - carries on unchanged. The
+     * token has to outlive solve().
+     */
+    void setCancellation(const qftbx::CancellationToken * token)
+    { m_cancellation = token; }
+
     bool solve();
 
     /// The designed controller, handed over to the caller.
@@ -188,6 +199,10 @@ private:
 
     bool hasUncertainZeros = false;
     bool hasUncertainPoles = false;
+
+    /// Not owned. Null means this run cannot be cancelled.
+    const qftbx::CancellationToken * m_cancellation = nullptr;
+
 };
 
 #endif // QFTBX_LOOPSHAPING_ALGORITHM_MC_THESIS_H

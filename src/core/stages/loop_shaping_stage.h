@@ -35,11 +35,17 @@ public:
      * @brief Runs the search and, if it succeeds, publishes the design.
      * @return false when the search finished without a solution. It THROWS
      *         when the problem itself is wrong - no feasible point exists, or
-     *         the structure is one the algorithms cannot project.
+     *         the structure is one the algorithms cannot project - and
+     *         qftbx::Cancelled when the token below is raised.
+     * @param cancellation read once per node, so a run that is going to take
+     *        tens of minutes can be given up on. Null means it cannot.
+     *        Whoever holds it decides which thread the run happens on: see
+     *        CancellationToken on why that is not the core's business.
      */
     bool run(ProjectData & data, double epsilon,
              tools::LoopShapingAlgorithm algorithm, Range plotRange,
-             double pointCount, std::int32_t initialisation);
+             double pointCount, std::int32_t initialisation,
+             const CancellationToken * cancellation = nullptr);
 
 private:
     LoopShaping & engine();

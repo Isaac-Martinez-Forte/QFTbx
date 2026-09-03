@@ -184,7 +184,8 @@ public:
      * qftbx::InvalidInput when the problem itself is invalid or infeasible.
      */
     bool computeLoopShaping(double epsilon, tools::LoopShapingAlgorithm algorithm, qftbx::Range plotRange,
-                            double pointCount, std::int32_t initialisation = 0);
+                            double pointCount, std::int32_t initialisation = 0,
+                            const qftbx::CancellationToken * cancellation = nullptr);
 
     LoopShapingResult * loopShapingResult();
     void setLoopShapingResult(std::unique_ptr<LoopShapingResult> result);

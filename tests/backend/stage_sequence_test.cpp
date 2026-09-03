@@ -26,6 +26,7 @@
 #include "src/core/frequencies/omega.h"
 #include "src/core/math/sequence_vectors.h"
 #include "src/core/math/sequences.h"
+#include "src/core/loopshaping/cancellation.h"
 #include "src/core/project_controller.h"
 #include "src/core/range.h"
 #include "src/core/specifications/specification_record.h"
@@ -264,4 +265,91 @@ TEST(StageSequence, RecomputingTheBoundariesDropsTheLoopShaping)
     EXPECT_EQ(controller.loopShapingResult(), nullptr)
         << "a design found against the previous boundaries must not survive them";
     EXPECT_NE(controller.boundaries(), nullptr);
+}
+
+// --- cancellation -----------------------------------------------------------
+//
+// The mechanism, without the button: the interface has no way to raise this
+// yet, and where the button goes is a question for a later phase. What is
+// pinned here is that the search reads the flag, that giving up travels all
+// the way out as qftbx::Cancelled, and that a token does not linger into the
+// next run.
+//
+// The cross-thread part is not tested, deliberately: an std::atomic being
+// visible to another thread is the standard library's contract, not this
+// code's. What this code owes is a search that looks at the flag often enough
+// to matter, and it looks once per node.
+
+namespace {
+
+//A project standing at the point where the search can be started.
+void prepareForSearch(ProjectController & controller)
+{
+    controller.setPlant(makePlant());
+    controller.setSpecifications(makeSpecifications());
+    controller.setOmega(makeOmega());
+    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), makeGrids(), false));
+    ASSERT_TRUE(controller.computeBoundaries(qftbx::Range(-360.0, 0.0), 37,
+                                             qftbx::Range(-40.0, 40.0), 21,
+                                             -1.0, false, false));
+    controller.setControllerStructure(makeControllerStructure());
+}
+
+} // namespace
+
+TEST(Cancellation, ACancelledSearchGivesUpAndPublishesNothing)
+{
+    ProjectController controller;
+    ASSERT_NO_FATAL_FAILURE(prepareForSearch(controller));
+
+    qftbx::CancellationToken token;
+    token.cancel();
+
+    EXPECT_THROW(controller.computeLoopShaping(0.5, tools::nt,
+                                               qftbx::Range(1e-3, 100.0), 100,
+                                               0, &token),
+                 qftbx::Cancelled);
+
+    EXPECT_EQ(controller.loopShapingResult(), nullptr)
+        << "a search that gave up must not leave half a design behind";
+}
+
+TEST(Cancellation, ATokenDoesNotLingerIntoTheNextRun)
+{
+    // The stage installs the token on EVERY run, so a cancelled one from a
+    // previous attempt cannot poison the next. Without that the engine, which
+    // is kept between runs, would still be holding it.
+    ProjectController controller;
+    ASSERT_NO_FATAL_FAILURE(prepareForSearch(controller));
+
+    qftbx::CancellationToken token;
+    token.cancel();
+
+    EXPECT_THROW(controller.computeLoopShaping(0.5, tools::nt,
+                                               qftbx::Range(1e-3, 100.0), 100,
+                                               0, &token),
+                 qftbx::Cancelled);
+
+    // Again, with no token at all: it has to run to the end.
+    EXPECT_TRUE(controller.computeLoopShaping(0.5, tools::nt,
+                                              qftbx::Range(1e-3, 100.0), 100));
+    EXPECT_NE(controller.loopShapingResult(), nullptr);
+}
+
+TEST(Cancellation, AResetTokenLetsTheSearchRun)
+{
+    ProjectController controller;
+    ASSERT_NO_FATAL_FAILURE(prepareForSearch(controller));
+
+    qftbx::CancellationToken token;
+    token.cancel();
+    EXPECT_TRUE(token.cancelled());
+
+    token.reset();
+    EXPECT_FALSE(token.cancelled());
+
+    EXPECT_TRUE(controller.computeLoopShaping(0.5, tools::nt,
+                                              qftbx::Range(1e-3, 100.0), 100,
+                                              0, &token));
+    EXPECT_NE(controller.loopShapingResult(), nullptr);
 }

@@ -278,6 +278,15 @@ bool AlgorithmMr::solve(){
 
     while (true) {
 
+        //Once per node: the cheapest possible place to notice, and the only
+        //one that bounds how long a cancellation takes to take effect. It
+        //throws rather than returning false, because false already means
+        //"searched everything and found nothing", which is a different
+        //answer and one the caller reports differently.
+        if (qftbx::cancellationAsked(m_cancellation)) {
+            throw qftbx::Cancelled();
+        }
+
         if (liveList->isEmpty()) {
             throw qftbx::InvalidInput(
                     "No feasible solution exists in the given search box.");

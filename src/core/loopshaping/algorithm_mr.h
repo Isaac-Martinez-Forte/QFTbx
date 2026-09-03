@@ -1,6 +1,7 @@
 #ifndef QFTBX_LOOPSHAPING_ALGORITHM_MR_H
 #define QFTBX_LOOPSHAPING_ALGORITHM_MR_H
 
+#include "src/core/loopshaping/cancellation.h"
 #include "src/core/templates/cloud_set.h"
 #include <complex>
 
@@ -87,6 +88,16 @@ public:
                    double epsilon, const qftbx::CloudSet & temp,
                    const qftbx::SpecificationRecords * specificationRecords);
 
+    /**
+     * @brief Installs the flag the search reads once per node.
+     *
+     * A pointer, and null by default: a caller that never cancels - every
+     * test that drives this algorithm directly - carries on unchanged. The
+     * token has to outlive solve().
+     */
+    void setCancellation(const qftbx::CancellationToken * token)
+    { m_cancellation = token; }
+
     bool solve();
 
     /// The designed controller, handed over to the caller.
@@ -140,6 +151,10 @@ private:
     std::vector<std::string> constraintTexts;
 
     std::unique_ptr<LtiSystem> designedController;
+
+
+    /// Not owned. Null means this run cannot be cancelled.
+    const qftbx::CancellationToken * m_cancellation = nullptr;
 
 };
 

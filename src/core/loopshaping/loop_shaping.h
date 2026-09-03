@@ -1,6 +1,7 @@
 #ifndef QFTBX_LOOPSHAPING_LOOP_SHAPING_H
 #define QFTBX_LOOPSHAPING_LOOP_SHAPING_H
 
+#include "src/core/loopshaping/cancellation.h"
 #include <vector>
 #include <cstdint>
 #include <memory>
@@ -63,7 +64,26 @@ public:
      */
     std::unique_ptr<LtiSystem> controllerStructure();
 
+    /**
+     * @brief Installs the flag every algorithm reads once per node, so a run
+     * can be given up on.
+     *
+     * Null by default, which is what it stays for every caller that does not
+     * want to cancel. The token has to outlive run(), and run() throws
+     * qftbx::Cancelled when it is raised.
+     *
+     * THREADS ARE NOT HERE ON PURPOSE. Whoever wants a search that does not
+     * block them runs it wherever they like and holds the token; a Qt
+     * application has better tools for that than a std::thread inside the
+     * model. What the core owes is a search that can be interrupted.
+     */
+    void setCancellation(const qftbx::CancellationToken * token)
+    { m_cancellation = token; }
+
 private:
+    /// Not owned; handed to whichever algorithm run() builds.
+    const qftbx::CancellationToken * m_cancellation = nullptr;
+
 
     std::unique_ptr<LtiSystem> controller;
 };

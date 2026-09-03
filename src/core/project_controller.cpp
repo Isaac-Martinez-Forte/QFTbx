@@ -247,11 +247,12 @@ LtiSystem * ProjectController::controllerStructure(){
 }
 
 bool ProjectController::computeLoopShaping(double epsilon, tools::LoopShapingAlgorithm algorithm, qftbx::Range plotRange, double pointCount,
-                                      std::int32_t initialisation){
+                                      std::int32_t initialisation,
+                                      const qftbx::CancellationToken * cancellation){
 
     //Nothing downstream to invalidate: this result IS the design.
     return m_loopShaping.run(data, epsilon, algorithm, plotRange, pointCount,
-                             initialisation);
+                             initialisation, cancellation);
 }
 
 void ProjectController::setLoopShapingResult(std::unique_ptr<LoopShapingResult> result){

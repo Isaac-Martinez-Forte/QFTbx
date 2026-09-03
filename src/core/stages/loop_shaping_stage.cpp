@@ -33,11 +33,15 @@ void LoopShapingStage::requirePrerequisites(const ProjectData & data) const
 bool LoopShapingStage::run(ProjectData & data, double epsilon,
                            tools::LoopShapingAlgorithm algorithm,
                            Range plotRange, double pointCount,
-                           std::int32_t initialisation)
+                           std::int32_t initialisation,
+                           const CancellationToken * cancellation)
 {
     requirePrerequisites(data);
 
     LoopShaping & search = engine();
+
+    //Set on every run, so a token from a previous one cannot linger.
+    search.setCancellation(cancellation);
 
     const bool succeeded = search.run(data.plant(), data.controller(),
                                       data.frequencies(), data.boundaries(),
