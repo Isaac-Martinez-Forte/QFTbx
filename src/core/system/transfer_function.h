@@ -1,6 +1,7 @@
 #ifndef QFTBX_TRANSFER_FUNCTION_H
 #define QFTBX_TRANSFER_FUNCTION_H
 
+#include <string>
 #include <vector>
 
 #include "lti_system.h"
@@ -20,12 +21,12 @@ namespace qftbx {
 class TransferFunction : public LtiSystem
 {
 public:
-    TransferFunction(QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
+    TransferFunction(std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
                      Parameter k, Parameter delay);
 
-    std::unique_ptr<LtiSystem> create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
+    std::unique_ptr<LtiSystem> create (std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
                               Parameter k, Parameter delay = Parameter(double(0)),
-                              QString numeratorExpr = QString(), QString denominatorExpr = QString()) override = 0;
+                              std::string numeratorExpr = std::string(), std::string denominatorExpr = std::string()) override = 0;
 
     std::complex <double> evaluate (double omega) override;
 
@@ -34,12 +35,12 @@ public:
     std::complex <double> evaluate (std::vector <double> * numerator, std::vector <double> * denominator,
                                            double k, double delay, double omega) override;
 
-    QString expression (std::vector <double> * numerator, std::vector <double> * denominator,
+    std::string expression (std::vector <double> * numerator, std::vector <double> * denominator,
                              double k, double delay, double omega) override = 0;
 
-    QString expression(double w) override = 0;
+    std::string expression(double w) override = 0;
 
-    QString expression() override = 0;
+    std::string expression() override = 0;
 
     std::complex <double> evaluateNumerator(std::vector <double> * nume, double omega) override = 0;
 
@@ -49,9 +50,9 @@ public:
 
     std::vector <Parameter> & denominator() override;
 
-    QString numeratorString() override;
+    std::string numeratorString() override;
 
-    QString denominatorString() override;
+    std::string denominatorString() override;
 
     Parameter & gain() override;
 

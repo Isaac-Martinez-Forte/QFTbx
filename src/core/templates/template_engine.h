@@ -5,8 +5,7 @@
 #include <complex>
 #include <limits>
 
-#include <QHash>
-#include <QString>
+#include <string>
 #include <vector>
 
 #include "src/core/system/lti_system.h"

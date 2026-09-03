@@ -277,7 +277,7 @@ void BoundaryUnionViewer::addFrequencyRow(QColor color, qint32 pos){
     QMetaObject::connectSlotsByName(widget);
 
 
-    if (pos < omega->size()){
+    if (pos < static_cast<std::int32_t>(omega->size())){
         checkBox->setText(QString::number(omega->at(pos)));
     } else {
         checkBox->setText(tr("union"));

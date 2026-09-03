@@ -7,7 +7,7 @@
 #include <memory>
 #include <utility>
 
-#include <QString>
+#include <string>
 
 #include "src/core/exception.h"
 #include "src/core/system/lti_system.h"
@@ -37,18 +37,18 @@ enum class SpecificationType {
 inline constexpr int kSpecificationCount = 7;
 
 /// Canonical name, written to the .qft files since the English rename.
-inline QString specificationName(SpecificationType type)
+inline std::string specificationName(SpecificationType type)
 {
     switch (type) {
-    case SpecificationType::TrackingLower:     return QStringLiteral("TrackingLower");
-    case SpecificationType::TrackingUpper:     return QStringLiteral("TrackingUpper");
-    case SpecificationType::Stability:         return QStringLiteral("Stability");
-    case SpecificationType::SensorNoise:       return QStringLiteral("SensorNoise");
-    case SpecificationType::OutputDisturbance: return QStringLiteral("OutputDisturbance");
-    case SpecificationType::InputDisturbance:  return QStringLiteral("InputDisturbance");
-    case SpecificationType::ControlEffort:     return QStringLiteral("ControlEffort");
+    case SpecificationType::TrackingLower:     return ("TrackingLower");
+    case SpecificationType::TrackingUpper:     return ("TrackingUpper");
+    case SpecificationType::Stability:         return ("Stability");
+    case SpecificationType::SensorNoise:       return ("SensorNoise");
+    case SpecificationType::OutputDisturbance: return ("OutputDisturbance");
+    case SpecificationType::InputDisturbance:  return ("InputDisturbance");
+    case SpecificationType::ControlEffort:     return ("ControlEffort");
     }
-    return QString();
+    return std::string();
 }
 
 /**
@@ -59,18 +59,18 @@ inline QString specificationName(SpecificationType type)
  * ("seguimiento", "seguimiento_1", ...) and the per-frequency boundary map
  * keys ("Seguimiento" is the combined tracking boundary -> "Tracking").
  */
-inline QString modernSpecificationName(const QString& name)
+inline std::string modernSpecificationName(const std::string& name)
 {
-    if (name == QStringLiteral("seguimiento"))   return QStringLiteral("TrackingLower");
-    if (name == QStringLiteral("seguimiento_1")) return QStringLiteral("TrackingUpper");
-    if (name == QStringLiteral("Seguimiento"))   return QStringLiteral("Tracking");
-    if (name == QStringLiteral("estabilidad") ||
-        name == QStringLiteral("Estabilidad"))   return QStringLiteral("Stability");
-    if (name == QStringLiteral("ruido") ||
-        name == QStringLiteral("Ruido"))         return QStringLiteral("SensorNoise");
-    if (name == QStringLiteral("RPS"))           return QStringLiteral("OutputDisturbance");
-    if (name == QStringLiteral("RPE"))           return QStringLiteral("InputDisturbance");
-    if (name == QStringLiteral("EC"))            return QStringLiteral("ControlEffort");
+    if (name == ("seguimiento"))   return ("TrackingLower");
+    if (name == ("seguimiento_1")) return ("TrackingUpper");
+    if (name == ("Seguimiento"))   return ("Tracking");
+    if (name == ("estabilidad") ||
+        name == ("Estabilidad"))   return ("Stability");
+    if (name == ("ruido") ||
+        name == ("Ruido"))         return ("SensorNoise");
+    if (name == ("RPS"))           return ("OutputDisturbance");
+    if (name == ("RPE"))           return ("InputDisturbance");
+    if (name == ("EC"))            return ("ControlEffort");
     return name;
 }
 
@@ -182,7 +182,7 @@ public:
 
     SpecificationType type() const { return m_type; }
 
-    QString name() const { return specificationName(m_type); }
+    std::string name() const { return specificationName(m_type); }
 
     const LtiSystem* system() const { return m_system.get(); }
 

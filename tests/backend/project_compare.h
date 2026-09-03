@@ -7,12 +7,12 @@
 #include "src/core/templates/cloud_set.h"
 #include <gtest/gtest.h>
 
+#include <string>
+
 #include <vector>
 
 #include <complex>
 
-#include <QString>
-#include <QVector>
 
 #include "src/core/loopshaping/loop_shaping_result.h"
 #include "src/core/specifications/specification_record.h"
@@ -33,9 +33,9 @@ inline void expectSameSystem(LtiSystem* a, LtiSystem* b,
     EXPECT_EQ(a->numerator().size(), b->numerator().size()) << what;
     EXPECT_EQ(a->denominator().size(), b->denominator().size()) << what;
 
-    for (qreal w : probes) {
-        const std::complex<qreal> va = a->evaluate(w);
-        const std::complex<qreal> vb = b->evaluate(w);
+    for (double w : probes) {
+        const std::complex<double> va = a->evaluate(w);
+        const std::complex<double> vb = b->evaluate(w);
         EXPECT_EQ(va, vb) << what << " at w=" << w;
     }
 }

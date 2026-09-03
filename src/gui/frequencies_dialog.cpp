@@ -57,7 +57,7 @@ void FrequenciesDialog::on_okButton_clicked()
 
     if (ui->modeStack->currentIndex() == 0){ //manual
         const std::optional<std::vector<double>> parsed =
-                qftbx::text::reals(ui->manualValues->text());
+                qftbx::text::reals(ui->manualValues->text().toStdString());
         type = Omega::Manual;
         if (!parsed.has_value()){
             //Invalid input: it used to carry on and dereference the null
@@ -88,7 +88,7 @@ void FrequenciesDialog::on_okButton_clicked()
 
     } else {
         try {
-            frequencies = Omega::valuesFromFile(filePath);
+            frequencies = Omega::valuesFromFile(filePath.toStdString());
         } catch (const qftbx::Exception & e) {
             QMessageBox::critical(this, tr("Design frequencies input"), e.what());
             return;

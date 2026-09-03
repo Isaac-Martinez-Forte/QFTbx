@@ -1,5 +1,7 @@
 ﻿#include "parameter.h"
 
+#include "src/core/text_tokens.h"
+
 #include "src/core/exception.h"
 #include "src/core/math/expression_cache.h"
 
@@ -8,7 +10,7 @@ using namespace std;
 
 namespace qftbx {
 
-Parameter::Parameter(QString name, Range range, double nominal, QString exp)
+Parameter::Parameter(std::string name, Range range, double nominal, std::string exp)
 {
     m_name = name;
 
@@ -17,7 +19,7 @@ Parameter::Parameter(QString name, Range range, double nominal, QString exp)
     m_nominal = nominal;
     m_uncertain = true;
 
-    if (exp == nullptr || exp.isEmpty()) {
+    if (exp.empty()) {
         //Without a reparametrisation the expression is the parameter
         //itself, as in the three-argument constructor.
         m_expression = name;
@@ -28,7 +30,7 @@ Parameter::Parameter(QString name, Range range, double nominal, QString exp)
     }
 }
 
-Parameter::Parameter(QString name, Range range, double nominal){
+Parameter::Parameter(std::string name, Range range, double nominal){
     m_name = name;
 
     m_range = range.ordered();
@@ -58,13 +60,13 @@ Parameter::Parameter() {
 
 Parameter::Parameter (double value){
     m_nominal = value;
-    m_name = QString::number(m_nominal);
+    m_name = qftbx::text::number(m_nominal);
     m_uncertain = false;
     m_range = Range(m_nominal, m_nominal);
     m_expression = m_name;
 }
 
-Parameter::Parameter (QString name, double value){
+Parameter::Parameter (std::string name, double value){
     m_nominal = value;
     m_name = name;
     m_uncertain = false;
@@ -81,7 +83,7 @@ void Parameter::setUncertain(bool a) {
     m_uncertain = a;
 }
 
-QString Parameter::name(){
+const std::string & Parameter::name() const {
     return m_name;
 }
 
@@ -117,7 +119,7 @@ double Parameter::realValueOf(double value) const
             m_expression, {m_name}, {std::complex<double>(value, 0.0)});
 
     if (evaluated.imag() != 0.0) {
-        throw InvalidInput("the reparametrisation of \"" + m_name.toStdString()
+        throw InvalidInput("the reparametrisation of \"" + m_name
                            + "\" produced a complex value");
     }
 
@@ -137,7 +139,7 @@ double Parameter::nominal(){
     return realValueOf(m_nominal);
 }
 
-void Parameter::setName(QString name){
+void Parameter::setName(std::string name){
     m_name = name;
 }
 
@@ -149,7 +151,7 @@ void Parameter::setNominal(double nominal){
     m_nominal = nominal;
 }
 
-QString Parameter::expression(){
+const std::string & Parameter::expression() const {
     return m_expression;
 }
 

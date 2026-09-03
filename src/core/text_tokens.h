@@ -4,7 +4,7 @@
 #include <optional>
 #include <string>
 
-#include <QString>
+#include <string>
 #include <vector>
 
 namespace qftbx {
@@ -19,7 +19,7 @@ namespace text {
  * many digits" is given once.
  *
  * The floor of six digits is deliberate and is what makes this change
- * safe: QString::number(double) used exactly six, so every value that
+ * safe: qftbx::text::number(double) used exactly six, so every value that
  * already printed exactly keeps printing byte for byte the same text -
  * 1000 is still "1000", 0.1 is still "0.1", 1e-16 is still "1e-16" - and
  * only the values that six digits could not represent change, which is the
@@ -39,13 +39,21 @@ namespace text {
  */
 std::string number(double value);
 
+/**
+ * @brief The pieces joined by a separator, as QStringList::join() did.
+ *
+ * Needed because std::string has no join and the alternative at every call
+ * is a loop with a "first time round" flag.
+ */
+std::string join(const std::vector<std::string> & pieces, const std::string & separator);
+
 /// Splits a string into its whitespace-separated tokens.
-std::vector<QString> tokens(const QString & line);
+std::vector<std::string> tokens(const std::string & line);
 
 /// Parses whitespace-separated reals, or nothing when any token is not a
 /// valid real, so a malformed frequency file or coefficient list is
 /// rejected as a whole rather than silently truncated.
-std::optional<std::vector<double>> reals(const QString & line);
+std::optional<std::vector<double>> reals(const std::string & line);
 
 } // namespace text
 } // namespace qftbx

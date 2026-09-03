@@ -9,15 +9,14 @@
 
 #include <gtest/gtest.h>
 
+#include <string>
+
 #include <vector>
 
 #include <algorithm>
 
 #include <complex>
 
-#include <QHash>
-#include <QString>
-#include <QVector>
 
 #include "src/core/project_controller.h"
 #include "src/core/exception.h"
@@ -31,12 +30,12 @@
 
 namespace {
 
-using Complex = std::complex<qreal>;
+using Complex = std::complex<double>;
 
 void expectNear(Complex actual, Complex expected, const char* where)
 {
-    const qreal tolR = std::max(1e-9, 1e-5 * std::abs(expected.real()));
-    const qreal tolI = std::max(1e-9, 1e-5 * std::abs(expected.imag()));
+    const double tolR = std::max(1e-9, 1e-5 * std::abs(expected.real()));
+    const double tolI = std::max(1e-9, 1e-5 * std::abs(expected.imag()));
     EXPECT_NEAR(actual.real(), expected.real(), tolR) << where;
     EXPECT_NEAR(actual.imag(), expected.imag(), tolI) << where;
 }
@@ -47,7 +46,7 @@ protected:
     void SetUp() override
     {
         parser.load(
-            QStringLiteral(QFTBX_TEST_DATA_DIR "/planta2.qft"));
+            std::string(QFTBX_TEST_DATA_DIR "/planta2.qft"));
         plant = parser.plant();
         ASSERT_NE(plant, nullptr);
 
@@ -114,18 +113,18 @@ TEST_F(TemplatesGolden, ContourMatchesFixtureAsACycle)
     for (int f = 0; f < static_cast<int>(computed.size()); ++f) {
         ASSERT_EQ(expected.at(f).size(), expectedSizes[f]);
 
-        QVector<Complex> cycle(computed.at(f).begin(), computed.at(f).end());
+        std::vector<Complex> cycle(computed.at(f).begin(), computed.at(f).end());
         if (cycle.size() > 1 && cycle.front() == cycle.back()) {
-            cycle.removeLast(); // closing duplicate
+            cycle.pop_back(); // closing duplicate
         }
         ASSERT_EQ(cycle.size(), expected.at(f).size()) << "frequency " << f;
 
         // Locate the rotation offset: the computed point closest to the
         // first expected point.
         int offset = 0;
-        qreal best = std::abs(cycle.at(0) - expected.at(f).at(0));
+        double best = std::abs(cycle.at(0) - expected.at(f).at(0));
         for (int i = 1; i < cycle.size(); ++i) {
-            const qreal d = std::abs(cycle.at(i) - expected.at(f).at(0));
+            const double d = std::abs(cycle.at(i) - expected.at(f).at(0));
             if (d < best) {
                 best = d;
                 offset = i;
@@ -219,7 +218,7 @@ TEST(TemplatesReload, RecalculateContourAfterLoadingAProject)
     // the contour dereferenced a null templates vector inside the engine.
     ProjectController controller;
     controller.load(
-        QStringLiteral(QFTBX_TEST_DATA_DIR "/planta2.qft"));
+        std::string(QFTBX_TEST_DATA_DIR "/planta2.qft"));
 
     const qftbx::CloudSet & contornos = controller.recomputeContour(std::vector<double>(6, 10.0));
     ASSERT_EQ(contornos.size(), 6u);
@@ -241,7 +240,7 @@ TEST(TemplatesValidation, MissingSweepGridThrowsInvalidInput)
     // dereference null; now it reports which grid is missing.
     ProjectReader parser;
     parser.load(
-        QStringLiteral(QFTBX_TEST_DATA_DIR "/planta2.qft"));
+        std::string(QFTBX_TEST_DATA_DIR "/planta2.qft"));
     LtiSystem* plant = parser.plant();
 
     qftbx::ParameterGrids mapa;

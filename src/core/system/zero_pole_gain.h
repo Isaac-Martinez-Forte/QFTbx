@@ -4,8 +4,7 @@
 #include "transfer_function.h"
 #include "mpParser.h"
 
-#include <QString>
-#include <QDebug>
+#include <string>
 
 namespace qftbx {
 
@@ -20,19 +19,19 @@ class ZeroPoleGain : public TransferFunction
 {
 
 public:
-    ZeroPoleGain(QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator, Parameter k, Parameter delay);
+    ZeroPoleGain(std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator, Parameter k, Parameter delay);
 
-    std::unique_ptr<LtiSystem> create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
-                              Parameter k, Parameter delay = Parameter(double(0)), QString numeratorExpr = QString(), QString denominatorExpr = QString()) override;
+    std::unique_ptr<LtiSystem> create (std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
+                              Parameter k, Parameter delay = Parameter(double(0)), std::string numeratorExpr = std::string(), std::string denominatorExpr = std::string()) override;
 
     ~ZeroPoleGain();
 
-    QString expression (std::vector <double> * numerator, std::vector <double> * denominator,
+    std::string expression (std::vector <double> * numerator, std::vector <double> * denominator,
                              double k, double delay, double omega) override;
 
-    QString expression(double w) override;
+    std::string expression(double w) override;
 
-    QString expression() override;
+    std::string expression() override;
 
     std::complex <double> valueAt(double w, const std::vector<double> & numerator,
                                  const std::vector<double> & denominator,

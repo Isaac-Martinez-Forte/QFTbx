@@ -1,9 +1,9 @@
 #ifndef QFTBX_LOOPSHAPING_MC_SEARCH_NODE_H
 #define QFTBX_LOOPSHAPING_MC_SEARCH_NODE_H
 
+#include <map>
 #include <memory>
 
-#include <QHash>
 
 #include "src/core/math/sequence_vectors.h"
 #include "src/core/system/lti_system.h"
@@ -35,15 +35,15 @@ public:
 
     void markFrequencyFeasible(double pos, double frec);
     bool isFrequencyFeasible(double key) const;
-    void setFeasibleFrequencies(QHash<double, double> frequencies);
-    const QHash<double, double> & feasibleFrequencies() const;
+    void setFeasibleFrequencies(std::map<double, double> frequencies);
+    const std::map<double, double> & feasibleFrequencies() const;
 
 protected:
 
     bool enabled = true;
     Stage value = Stage::Initial;
 
-    QHash<double, double> m_feasibleFrequencies;
+    std::map<double, double> m_feasibleFrequencies;
 };
 
 #endif // QFTBX_LOOPSHAPING_MC_SEARCH_NODE_H

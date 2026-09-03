@@ -5,7 +5,6 @@
 #include <complex>
 #include <optional>
 
-#include <QHash>
 #include <vector>
 
 #include "src/core/boundaries/boundary_data.h"

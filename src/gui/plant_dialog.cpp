@@ -125,7 +125,10 @@ bool PlantDialog::parseCoefficients(CoefficientTable & tabla, QLineEdit *linea,
                                     CoefficientTable & expressionTable,
                                     UncertainTable & uncertainTable){
 
-    CoefficientRow vec1 = qftbx::text::tokens(linea->text());
+    CoefficientRow vec1;
+    for (const std::string & token : qftbx::text::tokens(linea->text().toStdString())) {
+        vec1.push_back(QString::fromStdString(token));
+    }
     CoefficientRow vec;
     UncertainRow vec2;
 
@@ -152,7 +155,7 @@ bool PlantDialog::parseCoefficients(CoefficientTable & tabla, QLineEdit *linea,
                 //the constants (e, pi, i) and the unit operators - "k",
                 //"m", "u" - where "k" is the obvious name for a gain and
                 //would otherwise be read as the multiplier 1e3.
-                if (qftbx::math::isReservedName(capture)){
+                if (qftbx::math::isReservedName(capture.toStdString())){
                     errorMessage(tr("\"%1\" cannot be used as a parameter name: "
                                     "the expression parser already defines it.").arg(capture),
                                  tr("Plant input"));
@@ -389,14 +392,14 @@ void PlantDialog::on_okButton_clicked()
         std::vector<Parameter> deno = uncertaintyDialog->denominator();
 
         if (ui->zpkRadio->isChecked()){
-            plant = std::make_unique<ZeroPoleGain>(ui->nameEdit->text(),nume, deno,kv,retv);
+            plant = std::make_unique<ZeroPoleGain>(ui->nameEdit->text().toStdString(),nume, deno,kv,retv);
         }else if(ui->tcgRadio->isChecked()){
-            plant = std::make_unique<TimeConstantGain>(ui->nameEdit->text(),nume, deno,kv,retv);
+            plant = std::make_unique<TimeConstantGain>(ui->nameEdit->text().toStdString(),nume, deno,kv,retv);
         }else if (ui->polynomialRadio->isChecked()){
-            plant = std::make_unique<PolynomialForm>(ui->nameEdit->text(), nume, deno,kv,retv);
+            plant = std::make_unique<PolynomialForm>(ui->nameEdit->text().toStdString(), nume, deno,kv,retv);
         }else{
-            plant = std::make_unique<FreeForm>(ui->nameEdit->text(), nume, deno,kv,retv,
-                                      ui->freeNumerator->text(), ui->freeDenominator->text());
+            plant = std::make_unique<FreeForm>(ui->nameEdit->text().toStdString(), nume, deno,kv,retv,
+                                      ui->freeNumerator->text().toStdString(), ui->freeDenominator->text().toStdString());
         }
     }else{
         std::optional<std::vector<Parameter>> nume = buildParameters(valueTable->at(0));
@@ -408,14 +411,14 @@ void PlantDialog::on_okButton_clicked()
         }
 
         if (ui->zpkRadio->isChecked()){
-            plant = std::make_unique<ZeroPoleGain>(ui->nameEdit->text(), *nume, *deno, kv, retv);
+            plant = std::make_unique<ZeroPoleGain>(ui->nameEdit->text().toStdString(), *nume, *deno, kv, retv);
         }else if(ui->tcgRadio->isChecked()){
-            plant = std::make_unique<TimeConstantGain>(ui->nameEdit->text(), *nume, *deno, kv, retv);
+            plant = std::make_unique<TimeConstantGain>(ui->nameEdit->text().toStdString(), *nume, *deno, kv, retv);
         }else if (ui->polynomialRadio->isChecked()){
-            plant = std::make_unique<PolynomialForm>(ui->nameEdit->text(), *nume, *deno, kv, retv);
+            plant = std::make_unique<PolynomialForm>(ui->nameEdit->text().toStdString(), *nume, *deno, kv, retv);
         }else {
-            plant = std::make_unique<FreeForm>(ui->nameEdit->text(), *nume, *deno, kv, retv,
-                                      ui->freeNumerator->text(), ui->freeDenominator->text());
+            plant = std::make_unique<FreeForm>(ui->nameEdit->text().toStdString(), *nume, *deno, kv, retv,
+                                      ui->freeNumerator->text().toStdString(), ui->freeDenominator->text().toStdString());
         }
 
 

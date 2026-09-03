@@ -576,7 +576,7 @@ void MainWindow::on_actionSaveAs_triggered()
 
 void MainWindow::saveProject(){
     try {
-        controller->save(saveFilePath);
+        controller->save(saveFilePath.toStdString());
     } catch (const qftbx::Exception & e) {
         QMessageBox::critical(this, tr("Save file"), e.what());
     }
@@ -592,7 +592,7 @@ void MainWindow::on_actionOpen_triggered()
         std::vector<bool> leido;
 
         try {
-            leido = controller->load(fileName);
+            leido = controller->load(fileName.toStdString());
         } catch (const qftbx::Exception & e) {
             QMessageBox::critical(this, tr("Open project"), e.what());
             return;

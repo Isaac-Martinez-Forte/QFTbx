@@ -136,7 +136,7 @@ QString SpecificationsDialog::coefficientsText(std::vector<Parameter> & paramete
 QString SpecificationsDialog::numeratorText(LtiSystem * system)
 {
     if (system->type() == LtiSystem::SystemType::FreeForm){
-        return system->numeratorString();
+        return QString::fromStdString(system->numeratorString());
     }
     return coefficientsText(system->numerator());
 }
@@ -144,7 +144,7 @@ QString SpecificationsDialog::numeratorText(LtiSystem * system)
 QString SpecificationsDialog::denominatorText(LtiSystem * system)
 {
     if (system->type() == LtiSystem::SystemType::FreeForm){
-        return system->denominatorString();
+        return QString::fromStdString(system->denominatorString());
     }
     return coefficientsText(system->denominator());
 }
@@ -430,22 +430,22 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record_in, QString 
 
         record_in.constant = false;
         if(ui->zpkRadio->isChecked()){
-            record_in.system = std::make_unique<ZeroPoleGain>(name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
+            record_in.system = std::make_unique<ZeroPoleGain>(name_in.toStdString(), std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
         }else if (ui->tcgRadio->isChecked()){
-            record_in.system = std::make_unique<TimeConstantGain>(name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
+            record_in.system = std::make_unique<TimeConstantGain>(name_in.toStdString(), std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
         }else if (ui->polynomialRadio->isChecked()) {
-            record_in.system = std::make_unique<PolynomialForm>(name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
+            record_in.system = std::make_unique<PolynomialForm>(name_in.toStdString(), std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
         }else {
             //No type radio checked: the free-form record carries its
             //expressions and no coefficient vectors (whatever was parsed
             //above simply goes out of scope now).
-            record_in.system = std::make_unique<FreeForm>(name_in, std::vector<Parameter>{}, std::vector<Parameter>{}, std::move(*k), std::move(*delayEdit),
-                                              ui->numeratorEdit->text(), ui->denominatorEdit->text());
+            record_in.system = std::make_unique<FreeForm>(name_in.toStdString(), std::vector<Parameter>{}, std::vector<Parameter>{}, std::move(*k), std::move(*delayEdit),
+                                              ui->numeratorEdit->text().toStdString(), ui->denominatorEdit->text().toStdString());
         }
         record_in.used = true;
     }
 
-    record_in.name = name_in;
+    record_in.name = name_in.toStdString();
 
     return true;
 }
@@ -598,16 +598,16 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record_in,
 
         record_in.constant = false;
         if(ui->lowerZpkRadio->isChecked()){
-            record_in.system = std::make_unique<ZeroPoleGain>(name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
+            record_in.system = std::make_unique<ZeroPoleGain>(name_in.toStdString(), std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
         }else if (ui->lowerTcgRadio->isChecked()){
-            record_in.system = std::make_unique<TimeConstantGain>(name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
+            record_in.system = std::make_unique<TimeConstantGain>(name_in.toStdString(), std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
         }else if (ui->lowerPolynomialRadio->isChecked()) {
-            record_in.system = std::make_unique<PolynomialForm>(name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
+            record_in.system = std::make_unique<PolynomialForm>(name_in.toStdString(), std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
         }else {
             //No type radio checked: the free-form record carries its
             //expressions and no coefficient vectors.
-            record_in.system = std::make_unique<FreeForm>(name_in, std::vector<Parameter>{}, std::vector<Parameter>{}, std::move(*k), std::move(*delayEdit),
-                                              ui->lowerNumeratorEdit->text(), ui->lowerDenominatorEdit->text());
+            record_in.system = std::make_unique<FreeForm>(name_in.toStdString(), std::vector<Parameter>{}, std::vector<Parameter>{}, std::move(*k), std::move(*delayEdit),
+                                              ui->lowerNumeratorEdit->text().toStdString(), ui->lowerDenominatorEdit->text().toStdString());
         }
         record_in.used = true;
     }
@@ -703,22 +703,22 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record_in,
 
         upperRecord.constant = false;
         if(ui->upperZpkRadio->isChecked()){
-            upperRecord.system = std::make_unique<ZeroPoleGain>(name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
+            upperRecord.system = std::make_unique<ZeroPoleGain>(name_in.toStdString(), std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
         }else if (ui->upperTcgRadio->isChecked()){
-            upperRecord.system = std::make_unique<TimeConstantGain>(name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
+            upperRecord.system = std::make_unique<TimeConstantGain>(name_in.toStdString(), std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
         }else if (ui->upperPolynomialRadio->isChecked()) {
-            upperRecord.system = std::make_unique<PolynomialForm>(name_in, std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
+            upperRecord.system = std::make_unique<PolynomialForm>(name_in.toStdString(), std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
         }else {
             //No type radio checked: the free-form record carries its
             //expressions and no coefficient vectors.
-            upperRecord.system = std::make_unique<FreeForm>(name_in, std::vector<Parameter>{}, std::vector<Parameter>{}, std::move(*k), std::move(*delayEdit),
-                                                ui->upperNumeratorEdit->text(), ui->upperDenominatorEdit->text());
+            upperRecord.system = std::make_unique<FreeForm>(name_in.toStdString(), std::vector<Parameter>{}, std::vector<Parameter>{}, std::move(*k), std::move(*delayEdit),
+                                                ui->upperNumeratorEdit->text().toStdString(), ui->upperDenominatorEdit->text().toStdString());
         }
         upperRecord.used = true;
     }
 
-    record_in.name = name_in;
-    upperRecord.name = QStringLiteral("TrackingUpper");
+    record_in.name = name_in.toStdString();
+    upperRecord.name = "TrackingUpper";
 
     return true;
 }
@@ -749,7 +749,7 @@ std::optional<std::vector<Parameter>> SpecificationsDialog::buildParameters(QStr
 
     ParserX p (pckALL_NON_COMPLEX);
 
-    const std::vector<QString> numbers = qftbx::text::tokens(linea);
+    const std::vector<std::string> numbers = qftbx::text::tokens(linea.toStdString());
 
     std::vector<Parameter> var;
 
@@ -759,8 +759,8 @@ std::optional<std::vector<Parameter>> SpecificationsDialog::buildParameters(QStr
 
     var.reserve(numbers.size());
 
-    for (const QString &string : numbers) {
-        p.SetExpr(string.toStdString());
+    for (const std::string & string : numbers) {
+        p.SetExpr(string);
         qreal res;
         try {
             res = p.Eval().GetFloat();

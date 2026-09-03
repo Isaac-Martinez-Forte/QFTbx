@@ -1,14 +1,14 @@
+#include <chrono>
+#include <string>
 #include <vector>
 #include <cstdint>
 #include "template_engine.h"
 
-#include <QStringList>
 
+#include "src/core/text_tokens.h"
 #include "src/core/exception.h"
 #include "src/core/math/parser_warmup.h"
 
-#include <QDebug>
-#include <QElapsedTimer>
 #include <algorithm>
 #include <iostream>
 
@@ -45,21 +45,19 @@ void TemplateEngine::setClouds(CloudSet templates){
 bool TemplateEngine::compute(LtiSystem *plant, std::vector<double> *omega, bool cuda){
     m_useCuda = cuda;
 
-    QElapsedTimer timer;
-    timer.start();
+    const auto timer = std::chrono::steady_clock::now();
     m_frequencies = omega;
 
     m_clouds = computeClouds(plant, omega);
 
-    qDebug() << "Templates: " << timer.elapsed() << "milliseconds";
+    std::cout << "Templates: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timer).count() << "milliseconds";
 
 
     if (m_clouds.empty()){
         throw qftbx::ComputationError("Could not compute the templates.");
     }
 
-    QElapsedTimer timer2;
-    timer2.start();
+    const auto timer2 = std::chrono::steady_clock::now();
 
     //No try/catch and no freeing: m_clouds owns its data, so a throw from
     //here unwinds and the destructor takes care of it. That whole hand-written
@@ -67,7 +65,7 @@ bool TemplateEngine::compute(LtiSystem *plant, std::vector<double> *omega, bool 
     //owned.
     const bool result = computeContourSet(cuda);
 
-    qDebug() << "Contours: " << timer2.elapsed() << "milliseconds";
+    std::cout << "Contours: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timer2).count() << "milliseconds";
 
     return result;
 
@@ -83,12 +81,11 @@ bool TemplateEngine::computeContours(std::vector<double> epsilon){
     }
 
     m_epsilon = std::move(epsilon);
-    QElapsedTimer timer;
-    timer.start();
+    const auto timer = std::chrono::steady_clock::now();
 
     bool result = computeContourSet(m_useCuda);
 
-    qDebug() << "Contours: " << timer.elapsed() << "milliseconds";
+    std::cout << "Contours: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timer).count() << "milliseconds";
 
     return result;
 }
@@ -109,7 +106,7 @@ const std::vector<double> & TemplateEngine::gridFor(Parameter & a){
 
     if (found == m_grids.end()){
         throw qftbx::InvalidInput("Missing sweep grid for the uncertain parameter '"
-                                  + a.name().toStdString() + "'.");
+                                  + a.name() + "'.");
     }
 
     return found->second;
@@ -120,7 +117,7 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
     //Collect the uncertain parameters (the first of each name) and their
     //grids, in numerator, denominator, gain, delay order. The index in
     //'names' is the odometer digit (0 is the fastest), as historically.
-    std::vector <QString> names;
+    std::vector <std::string> names;
 
     //Pointers INTO the map the engine owns: stable for the whole sweep,
     //because nothing modifies m_grids while it runs.
@@ -185,7 +182,7 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
     //One flag and one error slot per frequency, filled inside the parallel
     //loop below (nothing may be thrown from within it).
     std::vector <bool> nonFiniteFrequencies (frequencyCount, false);
-    std::vector <QString> parserErrors (frequencyCount);
+    std::vector <std::string> parserErrors (frequencyCount);
 
     //Before the threads exist: muParserX's package singletons are built
     //lazily and unsynchronised, and the loop below constructs one parser per
@@ -201,7 +198,7 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
         //computed directly in complex arithmetic by valueAt(). The text route
         //cost a parse per frequency, constructed a parser inside this loop -
         //racing on muParserX's unsynchronised package singletons - and, being
-        //written with QString::number(), evaluated the plant with its
+        //written with qftbx::text::number(), evaluated the plant with its
         //constant coefficients AND ITS FREQUENCY rounded to six significant
         //digits. The swept coefficients were exact only because they were
         //bound as variables.
@@ -259,10 +256,10 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
                 value = plant->valueAt(w, numeratorValues, denominatorValues,
                                        gainValue, delayValue);
             } catch (mup::ParserError & error) {
-                parserErrors[u] = QString::fromStdString(error.GetMsg());
+                parserErrors[u] = (error.GetMsg());
                 break;
             } catch (const qftbx::Exception & error) {
-                parserErrors[u] = QString::fromUtf8(error.what());
+                parserErrors[u] = std::string(error.what());
                 break;
             }
 
@@ -293,8 +290,8 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
 
     //Reported after the parallel loop, where throwing is safe again.
     for (std::int32_t u = 0; u < frequencyCount; u++){
-        if (!parserErrors.at(u).isEmpty()){
-            const std::string message = parserErrors.at(u).toStdString();
+        if (!parserErrors.at(u).empty()){
+            const std::string message = parserErrors.at(u);
             throw qftbx::InvalidInput(
                     "The plant expression could not be evaluated at "
                     + std::to_string(omega->at(u)) + " rad/s: " + message);
@@ -302,17 +299,17 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
     }
 
     //Reported after the parallel loop, naming every affected frequency.
-    QStringList affected;
+    std::vector<std::string> affected;
     for (std::int32_t u = 0; u < frequencyCount; u++){
         if (nonFiniteFrequencies.at(u)){
-            affected.push_back(QString::number(omega->at(u)));
+            affected.push_back(qftbx::text::number(omega->at(u)));
         }
     }
 
     if (!affected.empty()){
         throw qftbx::InvalidInput(
                 "The plant has infinite magnitude at the design frequencies "
-                + affected.join(QStringLiteral(", ")).toStdString()
+                + qftbx::text::join(affected, ", ")
                 + " rad/s: an undamped resonance inside the uncertainty. Its "
                   "template cannot be bounded or contoured. Add light damping "
                   "to the resonant poles (the usual answer for the ACC'90 "
@@ -408,18 +405,19 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
     //frequencies: from inside the loop it raced on the message handler and
     //produced N identical lines that said nothing about which frequency fell
     //back.
-    QStringList relaxed;
+    std::vector<std::string> relaxed;
     for (std::int32_t i = 0; i < digitCount; i++){
         if (relaxedFrequencies.at(i) && m_frequencies != nullptr && i < static_cast<std::int32_t>(m_frequencies->size())){
-            relaxed.push_back(QString::number(m_frequencies->at(i)));
+            relaxed.push_back(qftbx::text::number(m_frequencies->at(i)));
         }
     }
 
     if (!relaxed.empty()){
-        qWarning("epsilonHull: the faithful walk did not close at w = %s rad/s "
-                 "(epsilon-hull limitation on clustered templates); the relaxed "
-                 "historical walk was used there, whose coverage is still <= epsilon.",
-                 qUtf8Printable(relaxed.join(QStringLiteral(", "))));
+        std::cerr << "epsilonHull: the faithful walk did not close at w = "
+                  << qftbx::text::join(relaxed, ", ")
+                  << " rad/s (epsilon-hull limitation on clustered templates); "
+                     "the relaxed historical walk was used there, whose coverage "
+                     "is still <= epsilon." << std::endl;
     }
 
     if (!succeeded){
@@ -428,7 +426,7 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
         //magnitudes (finite ones when the exact singular frequency is not
         //representable), and no epsilon walks a cloud like that. Without the
         //figure the user only saw "could not compute".
-        QStringList detail;
+        std::vector<std::string> detail;
 
         for (std::int32_t i = 0; i < digitCount; i++){
             if (!failed.at(i)){
@@ -440,16 +438,17 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
                 largest = std::max(largest, std::abs(value));
             }
 
-            detail.push_back(QStringLiteral("%1 rad/s (largest |P| = %2)")
-                              .arg(m_frequencies != nullptr && i < static_cast<std::int32_t>(m_frequencies->size())
-                                       ? QString::number(m_frequencies->at(i))
-                                       : QString::number(i))
-                              .arg(largest, 0, 'g', 3));
+            const std::string where = m_frequencies != nullptr && i < static_cast<std::int32_t>(m_frequencies->size())
+                    ? qftbx::text::number(m_frequencies->at(i))
+                    : std::to_string(i);
+
+            detail.push_back(where + " rad/s (largest |P| = "
+                             + qftbx::text::number(largest) + ")");
         }
 
         throw qftbx::ComputationError(
                 "Could not compute the template contour at "
-                + detail.join(QStringLiteral("; ")).toStdString()
+                + qftbx::text::join(detail, "; ")
                 + ". A cloud spanning extreme magnitudes has no epsilon-hull: "
                   "check for a resonance inside the plant uncertainty and damp "
                   "it lightly if so.");
@@ -652,7 +651,7 @@ std::int32_t TemplateEngine::findSecond(std::int32_t b1, const ComplexCloud & cv
                 fas += 2 * M_PI;
 
             //subtract from the phase the arccosine of distance over epsilon.
-            fas -= qAcos(dist / epsilon);
+            fas -= std::acos(dist / epsilon);
 
             if (fas < fmin){   //keep the minimum phase
                 fmin = fas;
@@ -676,7 +675,7 @@ std::int32_t TemplateEngine::findNext(std::int32_t previousPoint, std::int32_t c
     complex <double> current = cv.at(currentPoint);
     complex <double> previous = cv.at(previousPoint);
 
-    double aco2 = qAcos(abs(previous-current) / epsilon);
+    double aco2 = std::acos(abs(previous-current) / epsilon);
 
     double phase = 0;
 
@@ -717,7 +716,7 @@ std::int32_t TemplateEngine::findNext(std::int32_t previousPoint, std::int32_t c
 
             //------------------------------------------------------------
 
-            aco1 = qAcos(distance / epsilon );  //half-angle subtended by the step
+            aco1 = std::acos(distance / epsilon );  //half-angle subtended by the step
 
             //------------------------------------------------------------
 

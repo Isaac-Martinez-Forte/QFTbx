@@ -7,10 +7,10 @@
 
 #include <gtest/gtest.h>
 
+#include <string>
+
 #include <vector>
 
-#include <QString>
-#include <QVector>
 
 #include "src/persistence/project_reader.h"
 #include "src/core/system/lti_system.h"
@@ -32,9 +32,9 @@ enum SectionFlag {
     kSectionFlagCount
 };
 
-QString fixturePath(const char *name)
+std::string fixturePath(const char *name)
 {
-    return QString(QFTBX_TEST_DATA_DIR "/") + name;
+    return std::string(QFTBX_TEST_DATA_DIR "/") + name;
 }
 
 std::vector<bool> loadFlags(ProjectReader &parser, const char *fixture)

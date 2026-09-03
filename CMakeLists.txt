@@ -311,10 +311,14 @@ target_include_directories(qftbx_core PUBLIC "${CMAKE_SOURCE_DIR}")
 # drops a hazard already on record: -frounding-math breaks the constexpr
 # floating-point code in QtGui's qrgbafloat.h.
 #
-# Qt6::Core is what phase 9.8 is removing. The target compiling without it
-# is the acceptance test for "the core builds without Qt installed"; until
-# then it stays.
-target_link_libraries(qftbx_core PUBLIC Qt6::Core)
+# No Qt. That was the point of phase 9.8, and qftbx_core_noqt is what says
+# so: the same sources, syntax-only, with the Qt include paths taken away.
+# The persistence links this and nothing Qt either.
+#
+# Qt6::Gui went first (nothing here ever used it, and -frounding-math breaks
+# the constexpr floating point in its headers); Qt6::Core followed once the
+# types did.
+target_link_libraries(qftbx_core PUBLIC muparserx::muparserx)
 
 # ------------------------------------------------------------------------------
 # The acceptance test of phase 9.8: does the core compile with no Qt at all?

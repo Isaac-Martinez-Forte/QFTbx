@@ -4,11 +4,12 @@
 
 #include <gtest/gtest.h>
 
+#include <string>
+
 #include <complex>
 
-#include <QPointF>
+#include "src/core/point.h"
 #include "src/core/range.h"
-#include <QString>
 
 #include "src/core/system/lti_system.h"
 #include "src/core/system/parameter.h"
@@ -17,26 +18,26 @@
 
 namespace {
 
-using Complex = std::complex<qreal>;
+using Complex = std::complex<double>;
 
-constexpr qreal kTolerance = 1e-9;
+constexpr double kTolerance = 1e-9;
 
 TEST(PlantFixture, CerveraRoundTrip)
 {
     ProjectReader parser;
-    parser.load(QString(QFTBX_TEST_DATA_DIR "/cervera.qft"));
+    parser.load(std::string(QFTBX_TEST_DATA_DIR "/cervera.qft"));
 
     LtiSystem* plant = parser.plant();
     ASSERT_NE(plant, nullptr);
 
     EXPECT_EQ(plant->type(), LtiSystem::SystemType::FreeForm);
-    EXPECT_EQ(plant->numeratorString(), QStringLiteral("a"));
-    EXPECT_EQ(plant->denominatorString(), QStringLiteral("(s^2)*((s^2) + a)"));
+    EXPECT_EQ(plant->numeratorString(), std::string("a"));
+    EXPECT_EQ(plant->denominatorString(), std::string("(s^2)*((s^2) + a)"));
 
     ASSERT_EQ(plant->numerator().size(), 1);
     Parameter & a = plant->numerator()[0];
     EXPECT_TRUE(a.isUncertain());
-    EXPECT_EQ(a.name(), QStringLiteral("a"));
+    EXPECT_EQ(a.name(), std::string("a"));
     EXPECT_DOUBLE_EQ(a.rawNominal(), 2.0);
     EXPECT_EQ(a.rawRange(), Range(0.5, 2.0));
 
@@ -46,7 +47,7 @@ TEST(PlantFixture, CerveraRoundTrip)
     // same name and the sweep still drives both).
     ASSERT_EQ(plant->denominator().size(), 1);
     EXPECT_NE(&plant->denominator()[0], &a);
-    EXPECT_EQ(plant->denominator()[0].name(), QStringLiteral("a"));
+    EXPECT_EQ(plant->denominator()[0].name(), std::string("a"));
 
     EXPECT_FALSE(plant->gain().isUncertain());
     EXPECT_DOUBLE_EQ(plant->gain().nominal(), 1.0);
@@ -68,7 +69,7 @@ TEST(PlantFixture, CerveraRoundTrip)
 TEST(PlantFixture, Planta1RoundTrip)
 {
     ProjectReader parser;
-    parser.load(QString(QFTBX_TEST_DATA_DIR "/planta1.qft"));
+    parser.load(std::string(QFTBX_TEST_DATA_DIR "/planta1.qft"));
 
     LtiSystem* plant = parser.plant();
     ASSERT_NE(plant, nullptr);
@@ -76,15 +77,15 @@ TEST(PlantFixture, Planta1RoundTrip)
     EXPECT_EQ(plant->type(), LtiSystem::SystemType::ZeroPoleGain);
     EXPECT_TRUE(plant->numerator().empty());
     ASSERT_EQ(plant->denominator().size(), 2);
-    EXPECT_EQ(plant->denominator()[0].name(), QStringLiteral("a"));
-    EXPECT_EQ(plant->denominator()[1].name(), QStringLiteral("b"));
+    EXPECT_EQ(plant->denominator()[0].name(), std::string("a"));
+    EXPECT_EQ(plant->denominator()[1].name(), std::string("b"));
 
     EXPECT_TRUE(plant->gain().isUncertain());
-    EXPECT_EQ(plant->gain().name(), QStringLiteral("kv"));
+    EXPECT_EQ(plant->gain().name(), std::string("kv"));
     EXPECT_EQ(plant->gain().rawRange(), Range(1.0, 10.0));
 
     EXPECT_EQ(plant->expression(0.1),
-              QStringLiteral("kv*(1) / (((0.1*i) + a) *((0.1*i) + b))"));
+              std::string("kv*(1) / (((0.1*i) + a) *((0.1*i) + b))"));
 
     // Nominals kv=1, a=5, b=30 at s = 0.1j.
     const Complex s(0.0, 0.1);

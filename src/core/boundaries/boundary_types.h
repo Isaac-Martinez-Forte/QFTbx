@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "src/core/point.h"
-#include <QString>
+#include <string>
 
 namespace qftbx {
 
@@ -22,14 +22,14 @@ using TraceSet = std::vector<Trace>;
  * specification, keyed by its name.
  *
  * Held BY VALUE. This was
- * `std::vector<QMap<QString, std::vector<std::vector<QPointF> *> *> *> *`: a pointer to a
+ * `std::vector<QMap<std::string, std::vector<std::vector<QPointF> *> *> *> *`: a pointer to a
  * vector of pointers to maps of pointers to vectors of pointers to vectors.
  * Four levels of indirection, each with its own answer to who frees it, and
  * the answer lived in comments rather than in the types. BoundaryData even
  * carried an m_owns flag because the same object was sometimes a view over
  * the engine's data and sometimes the owner of a loaded project's.
  */
-using BoundarySet = std::vector<std::map<QString, TraceSet>>;
+using BoundarySet = std::vector<std::map<std::string, TraceSet>>;
 
 /// The 1D union of all specifications at each design frequency: one curve per
 /// frequency, the upper envelope the search tests against.
@@ -84,7 +84,7 @@ using BoundarySheets = std::array<BoundarySheet, 5>;
 using TraceLabels = std::vector<bool>;
 
 /// Per design frequency, the labels of each specification's curves.
-using TraceMetadata = std::vector<std::map<QString, TraceLabels>>;
+using TraceMetadata = std::vector<std::map<std::string, TraceLabels>>;
 
 } // namespace qftbx
 

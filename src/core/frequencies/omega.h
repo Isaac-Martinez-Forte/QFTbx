@@ -2,7 +2,7 @@
 #define QFTBX_FREQUENCIES_OMEGA_H
 
 #include <cstdint>
-#include <QString>
+#include <string>
 #include <vector>
 
 /**
@@ -28,7 +28,7 @@ public:
     /// Reads a frequency file (values separated by whitespace or newlines).
     /// Throws qftbx::FileError when it cannot be opened or holds no valid
     /// frequency.
-    static std::vector<double> valuesFromFile(QString path);
+    static std::vector<double> valuesFromFile(std::string path);
 
     double start();
     double end();

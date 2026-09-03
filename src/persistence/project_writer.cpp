@@ -5,7 +5,6 @@
 #include <cstdio>
 #include <string>
 
-#include <QMap>
 #include "src/core/point.h"
 
 #include <pugixml.hpp>
@@ -78,8 +77,8 @@ void writeParameter(pugi::xml_node parent, Parameter & parameter)
     addBool(node, t.uncertain, parameter.isUncertain());
 
     if (parameter.isUncertain()) {
-        addText(node, t.parameterName, parameter.name().toStdString());
-        addText(node, t.parameterExpression, parameter.expression().toStdString());
+        addText(node, t.parameterName, parameter.name());
+        addText(node, t.parameterExpression, parameter.expression());
         pugi::xml_node range = node.append_child(t.range);
         addReal(range, t.rangeMin, parameter.range().min);
         addReal(range, t.rangeMax, parameter.range().max);
@@ -89,7 +88,7 @@ void writeParameter(pugi::xml_node parent, Parameter & parameter)
 void writeSystem(pugi::xml_node parent, const char * sectionName, LtiSystem * system)
 {
     pugi::xml_node node = parent.append_child(sectionName);
-    node.append_attribute(t.nameAttribute) = system->name().toStdString().c_str();
+    node.append_attribute(t.nameAttribute) = system->name().c_str();
 
     pugi::xml_node typeNode = node.append_child(t.type);
     typeNode.append_attribute(t.typeAttribute) = static_cast<std::int32_t>(system->type());
@@ -97,8 +96,8 @@ void writeSystem(pugi::xml_node parent, const char * sectionName, LtiSystem * sy
     pugi::xml_node expression = typeNode.append_child(t.expression);
     if (system->type() == LtiSystem::SystemType::FreeForm) {
         expression.append_attribute("size") = 2;
-        addText(expression, t.numerator, system->numeratorString().toStdString());
-        addText(expression, t.denominator, system->denominatorString().toStdString());
+        addText(expression, t.numerator, system->numeratorString());
+        addText(expression, t.denominator, system->denominatorString());
     } else {
         expression.append_attribute("size") = 0;
     }
@@ -126,7 +125,7 @@ void writeSpecifications(pugi::xml_node root, const qftbx::SpecificationRecords 
 
     for (const qftbx::SpecificationRecord & record : *specifications) {
         pugi::xml_node node = section.append_child(t.specification);
-        node.append_attribute(t.nameAttribute) = record.name.toStdString().c_str();
+        node.append_attribute(t.nameAttribute) = record.name.c_str();
         addBool(node, t.used, record.used);
 
         if (!record.used) {
@@ -222,7 +221,7 @@ void writeBoundaries(pugi::xml_node root, BoundaryData * boundaries)
 
         //std::map iterates in key order, as QMap::keys() did.
         for (const auto & entry : map) {
-            pugi::xml_node keyNode = frequency.append_child(entry.first.toStdString().c_str());
+            pugi::xml_node keyNode = frequency.append_child(entry.first.c_str());
             keyNode.append_attribute("size") = static_cast<std::int64_t>(entry.second.size());
             writeTraces(keyNode, entry.second);
         }
@@ -255,7 +254,7 @@ void writeLoopShaping(pugi::xml_node root, LoopShapingResult * loopShaping)
 
 } // namespace
 
-void ProjectWriter::save(const QString & filePath, const ProjectContent & content)
+void ProjectWriter::save(const std::string & filePath, const ProjectContent & content)
 {
     pugi::xml_document document;
     pugi::xml_node declaration = document.append_child(pugi::node_declaration);
@@ -287,9 +286,9 @@ void ProjectWriter::save(const QString & filePath, const ProjectContent & conten
         writeLoopShaping(root, content.loopShaping);
     }
 
-    if (!document.save_file(filePath.toUtf8().constData(), "    ",
+    if (!document.save_file(filePath.c_str(), "    ",
                             pugi::format_default, pugi::encoding_utf8)) {
-        throw FileError("Cannot write project file: " + filePath.toStdString());
+        throw FileError("Cannot write project file: " + filePath);
     }
 }
 

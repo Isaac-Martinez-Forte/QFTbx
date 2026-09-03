@@ -346,7 +346,7 @@ bool UncertaintyDialog::readRanges(){
 
                     if (valid && (startValue <= nominalValue) && (nominalValue <= endValue)){
                         Range rowsBuilt (startValue, endValue);
-                        parameter = Parameter(numeratorTokens.at(i), rowsBuilt, nominalValue, expressionTable.at(0).at(i));
+                        parameter = Parameter(numeratorTokens.at(i).toStdString(), rowsBuilt, nominalValue, expressionTable.at(0).at(i).toStdString());
 
                         startEdit->setStyleSheet("background : white");
                         endEdit->setStyleSheet("background : white");
@@ -363,7 +363,7 @@ bool UncertaintyDialog::readRanges(){
                 }
             } else{
                 for (qint32 x = 0; x < static_cast<qint32>(numeratorParameters.size()); x++){
-                    if (numeratorParameters[x].name() == numeratorTokens.at(i)){
+                    if (numeratorParameters[x].name() == numeratorTokens.at(i).toStdString()){
                         Parameter & v = numeratorParameters[x];
                         parameter = Parameter(v.name(), v.rawRange(), v.rawNominal(), v.expression());
                         break;
@@ -426,7 +426,7 @@ bool UncertaintyDialog::readRanges(){
                     if (valid){
                         if ((startValue <= nominalValue) && (nominalValue <= endValue)){
                             Range rowsBuilt (startValue, endValue);
-                            parameter = Parameter(denominatorTokens.at(i), rowsBuilt, nominalValue, expressionTable.at(1).at(i));
+                            parameter = Parameter(denominatorTokens.at(i).toStdString(), rowsBuilt, nominalValue, expressionTable.at(1).at(i).toStdString());
 
                             startEdit->setStyleSheet("background : white");
                             endEdit->setStyleSheet("background : white");
@@ -444,7 +444,7 @@ bool UncertaintyDialog::readRanges(){
             } else{
                 bool elegido = false;
                 for (qint32 x = 0; x < static_cast<qint32>(numeratorParameters.size()); x++){
-                    if (numeratorParameters[x].name() == denominatorTokens.at(i)){
+                    if (numeratorParameters[x].name() == denominatorTokens.at(i).toStdString()){
                         Parameter & v = numeratorParameters[x];
                         parameter = Parameter(v.name(), v.rawRange(), v.rawNominal(), v.expression());
                         break;
@@ -453,7 +453,7 @@ bool UncertaintyDialog::readRanges(){
 
                 if (!elegido){
                     for (qint32 x = 0; x < static_cast<qint32>(denominatorParameters.size()); x++){
-                        if (denominatorParameters[x].name() == denominatorTokens.at(i)){
+                        if (denominatorParameters[x].name() == denominatorTokens.at(i).toStdString()){
                             Parameter & v = denominatorParameters[x];
                             parameter = Parameter(v.name(), v.rawRange(), v.rawNominal(), v.expression());
                             break;

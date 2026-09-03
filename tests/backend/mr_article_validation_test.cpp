@@ -84,6 +84,8 @@
 
 #include <gtest/gtest.h>
 
+#include <string>
+
 #include <algorithm>
 #include <cmath>
 #include <complex>
@@ -91,8 +93,6 @@
 #include <memory>
 #include <vector>
 
-#include <QString>
-#include <QVector>
 
 #include "src/core/frequencies/omega.h"
 #include "src/core/loopshaping/algorithm_mr.h"
@@ -113,49 +113,49 @@ using qftbx::Range;
 const std::vector<double> kOmega{0.001, 0.015, 0.25, 3.84, 60.0};
 
 //The paper's robust stability margin.
-const qreal kWs = 1.2;
+const double kWs = 1.2;
 
 //The paper's 9 plants: minimum, mean and maximum of each parameter.
 const std::vector<double> kParameterValues{1.0, 5.5, 10.0};
 
 //The paper's own accuracy, which MR can now be given: a width on the
 //controller parameter box.
-const qreal kEpsilon = 0.001;
+const double kEpsilon = 0.001;
 
-qreal toDb(qreal magnitude)
+double toDb(double magnitude)
 {
     return 20.0 * std::log10(magnitude);
 }
 
-std::complex<qreal> articlePlant(qreal k, qreal a, qreal w)
+std::complex<double> articlePlant(double k, double a, double w)
 {
-    const std::complex<qreal> s(0.0, w);
+    const std::complex<double> s(0.0, w);
     return (k * a) / (s * (s + a));
 }
 
 //Eq. (17): G(s) = 2.785 + 1.968 s^0.787, with (jw)^b = w^b e^{j b pi/2}.
-std::complex<qreal> articleController(qreal w)
+std::complex<double> articleController(double w)
 {
-    const qreal beta = 0.787;
-    return std::complex<qreal>(2.785, 0.0)
+    const double beta = 0.787;
+    return std::complex<double>(2.785, 0.0)
             + 1.968 * std::polar(std::pow(w, beta), beta * M_PI / 2.0);
 }
 
 //The allowed closed-loop spread |T_U/T_L| in dB, from the paper's models.
-qreal allowedSpreadDb(qreal w)
+double allowedSpreadDb(double w)
 {
-    const std::complex<qreal> s(0.0, w);
-    const qreal upper = std::abs(1.5 / (s + 1.5));
-    const qreal lower = std::abs(1.0 / ((s + 1.0) * (s + 1.0)));
+    const std::complex<double> s(0.0, w);
+    const double upper = std::abs(1.5 / (s + 1.5));
+    const double lower = std::abs(1.0 / ((s + 1.0) * (s + 1.0)));
     return toDb(upper) - toDb(lower);
 }
 
 struct Verdict {
     //Largest |T| over every plant and every design frequency.
-    qreal worstMargin = 0.0;
+    double worstMargin = 0.0;
     //Smallest (allowed spread - achieved spread), over the frequencies.
-    qreal worstTrackingSlackDb = std::numeric_limits<qreal>::max();
-    qreal worstTrackingFrequency = 0.0;
+    double worstTrackingSlackDb = std::numeric_limits<double>::max();
+    double worstTrackingFrequency = 0.0;
 };
 
 //Independent evaluation of the paper's specifications for a controller
@@ -165,22 +165,22 @@ Verdict checkSpecifications(const Controller & controller)
 {
     Verdict verdict;
 
-    for (const qreal w : kOmega) {
+    for (const double w : kOmega) {
 
-        qreal maxTdb = -std::numeric_limits<qreal>::max();
-        qreal minTdb = std::numeric_limits<qreal>::max();
+        double maxTdb = -std::numeric_limits<double>::max();
+        double minTdb = std::numeric_limits<double>::max();
 
-        for (const qreal k : kParameterValues) {
-            for (const qreal a : kParameterValues) {
-                const std::complex<qreal> l = articlePlant(k, a, w) * controller(w);
-                const qreal t = std::abs(l / (1.0 + l));
+        for (const double k : kParameterValues) {
+            for (const double a : kParameterValues) {
+                const std::complex<double> l = articlePlant(k, a, w) * controller(w);
+                const double t = std::abs(l / (1.0 + l));
                 verdict.worstMargin = std::max(verdict.worstMargin, t);
                 maxTdb = std::max(maxTdb, toDb(t));
                 minTdb = std::min(minTdb, toDb(t));
             }
         }
 
-        const qreal slack = allowedSpreadDb(w) - (maxTdb - minTdb);
+        const double slack = allowedSpreadDb(w) - (maxTdb - minTdb);
         if (slack < verdict.worstTrackingSlackDb) {
             verdict.worstTrackingSlackDb = slack;
             verdict.worstTrackingFrequency = w;
@@ -203,34 +203,34 @@ std::unique_ptr<ProjectController> articleProblem(bool withTracking)
     std::vector<Parameter> numerator{Parameter("a", Range(1.0, 10.0), 1.0)};
     std::vector<Parameter> denominator{Parameter("a", Range(1.0, 10.0), 1.0)};
     project->setPlant(std::make_unique<qftbx::FreeForm>(
-        QStringLiteral("FDA-10 Example 5.1"), std::move(numerator), std::move(denominator),
-        Parameter("kv", Range(1.0, 10.0), 1.0), Parameter(qreal(0)),
-        QStringLiteral("a"), QStringLiteral("s*(s+a)")));
+        std::string("FDA-10 Example 5.1"), std::move(numerator), std::move(denominator),
+        Parameter("kv", Range(1.0, 10.0), 1.0), Parameter(double(0)),
+        std::string("a"), std::string("s*(s+a)")));
 
     qftbx::SpecificationRecords specifications;
 
     //T_L = 1/(s+1)^2 = 1/(s^2 + 2s + 1).
-    specifications[0].name = QStringLiteral("tracking lower");
+    specifications[0].name = std::string("tracking lower");
     specifications[0].used = withTracking;
     specifications[0].system = std::make_unique<qftbx::PolynomialForm>(
-        QStringLiteral("TL"), std::vector<Parameter>{},
+        std::string("TL"), std::vector<Parameter>{},
         std::vector<Parameter>{Parameter(1.0), Parameter(2.0), Parameter(1.0)},
-        Parameter(1.0), Parameter(qreal(0)));
+        Parameter(1.0), Parameter(double(0)));
     specifications[0].omegaStart = kOmega.front();
     specifications[0].omegaEnd = kOmega.back();
 
     //T_U = 1.5/(s + 1.5).
-    specifications[1].name = QStringLiteral("tracking upper");
+    specifications[1].name = std::string("tracking upper");
     specifications[1].used = withTracking;
     specifications[1].system = std::make_unique<qftbx::PolynomialForm>(
-        QStringLiteral("TU"), std::vector<Parameter>{},
+        std::string("TU"), std::vector<Parameter>{},
         std::vector<Parameter>{Parameter(1.0), Parameter(1.5)},
-        Parameter(1.5), Parameter(qreal(0)));
+        Parameter(1.5), Parameter(double(0)));
     specifications[1].omegaStart = kOmega.front();
     specifications[1].omegaEnd = kOmega.back();
 
     //Robust stability margin ws = 1.2.
-    specifications[2].name = QStringLiteral("stability");
+    specifications[2].name = std::string("stability");
     specifications[2].used = true;
     specifications[2].constant = true;
     specifications[2].height = kWs;
@@ -289,8 +289,8 @@ TEST(MrArticleValidation, MrDesignsAFeasibleControllerUnderTheStabilityMargin)
     std::vector<Parameter> zeros{Parameter("z1", Range(0.01, 1e3), 1.0)};
     std::vector<Parameter> poles{Parameter("p1", Range(0.01, 1e3), 1.0)};
     auto structure = std::make_unique<qftbx::ZeroPoleGain>(
-        QStringLiteral("n3"), std::move(zeros), std::move(poles),
-        Parameter("kc", Range(0.1, 1e4), 1.0), Parameter(qreal(0)));
+        std::string("n3"), std::move(zeros), std::move(poles),
+        Parameter("kc", Range(0.1, 1e4), 1.0), Parameter(double(0)));
 
     AlgorithmMr mr;
     //MR takes no Nichols boundaries: its constraints come from the
@@ -304,12 +304,12 @@ TEST(MrArticleValidation, MrDesignsAFeasibleControllerUnderTheStabilityMargin)
     const std::unique_ptr<LtiSystem> designed = mr.controllerStructure();
     ASSERT_NE(designed, nullptr);
 
-    const qreal kc = designed->gain().range().min;
-    const qreal z1 = designed->numerator().at(0).range().min;
-    const qreal p1 = designed->denominator().at(0).range().min;
+    const double kc = designed->gain().range().min;
+    const double z1 = designed->numerator().at(0).range().min;
+    const double p1 = designed->denominator().at(0).range().min;
 
-    const Verdict verdict = checkSpecifications([&](qreal w) {
-        const std::complex<qreal> s(0.0, w);
+    const Verdict verdict = checkSpecifications([&](double w) {
+        const std::complex<double> s(0.0, w);
         return kc * (s + z1) / (s + p1);
     });
 

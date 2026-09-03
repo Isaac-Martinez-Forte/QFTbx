@@ -109,7 +109,10 @@ bool ControllerDialog::parseCoefficients(CoefficientTable & tabla, QLineEdit *li
                                          CoefficientTable & expressionTable,
                                          UncertainTable & uncertainTable){
 
-    CoefficientRow vec1 = qftbx::text::tokens(linea->text());
+    CoefficientRow vec1;
+    for (const std::string & token : qftbx::text::tokens(linea->text().toStdString())) {
+        vec1.push_back(QString::fromStdString(token));
+    }
     CoefficientRow vec;
     UncertainRow vec2;
 
@@ -136,7 +139,7 @@ bool ControllerDialog::parseCoefficients(CoefficientTable & tabla, QLineEdit *li
                 //the constants (e, pi, i) and the unit operators - "k",
                 //"m", "u" - where "k" is the obvious name for a gain and
                 //would otherwise be read as the multiplier 1e3.
-                if (qftbx::math::isReservedName(capture)){
+                if (qftbx::math::isReservedName(capture.toStdString())){
                     errorMessage(tr("\"%1\" cannot be used as a parameter name: "
                                     "the expression parser already defines it.").arg(capture),
                                  tr("Controller input"));
@@ -313,7 +316,7 @@ void ControllerDialog::on_okButton_clicked()
             controllerSystem = std::make_unique<PolynomialForm>("", numeratorEdit, denominatorEdit,kv,retv);
         }else{
             controllerSystem = std::make_unique<FreeForm>("", numeratorEdit, denominatorEdit,kv,retv,
-                                      ui->numeratorEdit->text(), ui->denominatorEdit->text());
+                                      ui->numeratorEdit->text().toStdString(), ui->denominatorEdit->text().toStdString());
         }
     }else{
         std::optional<std::vector<Parameter>> nume = buildParameters(valueTable->at(0));
@@ -332,7 +335,7 @@ void ControllerDialog::on_okButton_clicked()
             controllerSystem = std::make_unique<PolynomialForm>("", *nume, *deno, kv, retv);
         }else {
             controllerSystem = std::make_unique<FreeForm>("", *nume, *deno, kv, retv,
-                                      ui->numeratorEdit->text(), ui->denominatorEdit->text());
+                                      ui->numeratorEdit->text().toStdString(), ui->denominatorEdit->text().toStdString());
         }
 
 

@@ -4,16 +4,16 @@ using namespace std;
 
 namespace qftbx {
 
-LtiSystem::LtiSystem(QString name)
+LtiSystem::LtiSystem(std::string name)
 {
     m_name = name;
 }
 
-void LtiSystem:: setName (QString name){
+void LtiSystem:: setName (std::string name){
     m_name = name;
 }
 
-QString LtiSystem:: name(){
+const std::string & LtiSystem::name() const {
     return m_name;
 }
 

@@ -4,7 +4,7 @@
 #include "src/core/templates/cloud_set.h"
 #include <complex>
 
-#include <QString>
+#include <string>
 #include <vector>
 
 #include "src/core/system/lti_system.h"
@@ -42,7 +42,7 @@ struct ProjectContent {
 class ProjectWriter
 {
 public:
-    void save(const QString & filePath, const ProjectContent & content);
+    void save(const std::string & filePath, const ProjectContent & content);
 };
 
 } // namespace qftbx

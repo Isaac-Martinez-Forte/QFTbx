@@ -14,6 +14,8 @@
 
 #include <gtest/gtest.h>
 
+#include <string>
+
 #include <algorithm>
 #include <memory>
 
@@ -21,11 +23,8 @@
 
 #include <vector>
 
-#include <QMap>
 #include "src/core/point.h"
 #include "src/core/range.h"
-#include <QString>
-#include <QVector>
 
 #include "src/core/boundaries/boundary_engine.h"
 #include "src/core/boundaries/boundary_data.h"
@@ -63,7 +62,7 @@ protected:
     void SetUp() override
     {
         parser.load(
-            QStringLiteral(QFTBX_TEST_DATA_DIR "/multivaluados.qft"));
+            std::string(QFTBX_TEST_DATA_DIR "/multivaluados.qft"));
 
         engine.compute(parser.omega()->values(), parser.plant(),
                              parser.contour(), parser.specifications(),
@@ -110,7 +109,7 @@ TEST_F(BoundariesGolden, TracesMatchTheGoldenInGridIndices)
     for (int f = 0; f < 5; ++f) {
         const auto & gotMap = gotB.at(static_cast<std::size_t>(f));
         const auto & goldMap = goldB.at(static_cast<std::size_t>(f));
-        const auto foundGot = gotMap.find(QStringLiteral("Tracking"));
+        const auto foundGot = gotMap.find(std::string("Tracking"));
         ASSERT_NE(foundGot, gotMap.end()) << "frequency " << f;
         ASSERT_EQ(goldMap.size(), 1u);
 
@@ -147,7 +146,7 @@ TEST_F(BoundariesGolden, ReunionIsTheConcatenationOfTheTraces)
 
     const qftbx::BoundarySet & gotB = got->boundaries();
     for (std::size_t f = 0; f < 5; ++f) {
-        const qftbx::TraceSet & traces = gotB.at(f).at(QStringLiteral("Tracking"));
+        const qftbx::TraceSet & traces = gotB.at(f).at(std::string("Tracking"));
 
         std::size_t total = 0;
         for (const qftbx::Trace & t : traces) {
@@ -172,7 +171,7 @@ TEST_F(BoundariesGolden, ContourInputIsEquivalentToFullTemplates)
     // instead of the contours must give the same boundaries.
     ProjectReader parser2;
     parser2.load(
-        QStringLiteral(QFTBX_TEST_DATA_DIR "/multivaluados.qft"));
+        std::string(QFTBX_TEST_DATA_DIR "/multivaluados.qft"));
 
     BoundaryEngine engine2;
     engine2.compute(parser2.omega()->values(), parser2.plant(),
@@ -185,8 +184,8 @@ TEST_F(BoundariesGolden, ContourInputIsEquivalentToFullTemplates)
     const qftbx::BoundarySet & b = other.boundaries();
     ASSERT_EQ(a.size(), b.size());
     for (std::size_t f = 0; f < a.size(); ++f) {
-        EXPECT_EQ(a.at(f).at(QStringLiteral("Tracking")),
-                  b.at(f).at(QStringLiteral("Tracking"))) << "frequency " << f;
+        EXPECT_EQ(a.at(f).at(std::string("Tracking")),
+                  b.at(f).at(std::string("Tracking"))) << "frequency " << f;
     }
 }
 
@@ -237,20 +236,20 @@ TEST(BoundaryCriticalPoint, CriticalCellViolatesEverySpecification)
     // as the tracking case below shows.
     ProjectController controller;
     controller.load(
-        QStringLiteral(QFTBX_TEST_DATA_DIR "/acc90.qft"));
+        std::string(QFTBX_TEST_DATA_DIR "/acc90.qft"));
 
     LtiSystem* plant = controller.plant();
     std::vector<double>* omega = controller.omega()->values();
     const qftbx::CloudSet & templates = controller.templates();
 
-    const std::complex<qreal> L(std::pow(10.0, 0.0 / 20.0) * std::cos(-180.0 * M_PI / 180.0),
+    const std::complex<double> L(std::pow(10.0, 0.0 / 20.0) * std::cos(-180.0 * M_PI / 180.0),
                                 std::pow(10.0, 0.0 / 20.0) * std::sin(-180.0 * M_PI / 180.0));
 
     for (int i = 0; i < omega->size(); ++i) {
-        const std::complex<qreal> p0 = plant->evaluate(omega->at(i));
+        const std::complex<double> p0 = plant->evaluate(omega->at(i));
 
-        qreal worst = -std::numeric_limits<qreal>::infinity();
-        for (const std::complex<qreal>& p : templates.at(static_cast<std::size_t>(i))) {
+        double worst = -std::numeric_limits<double>::infinity();
+        for (const std::complex<double>& p : templates.at(static_cast<std::size_t>(i))) {
             worst = std::max(worst, std::abs(L / ((p0 / p) + L)));
         }
 
@@ -265,9 +264,9 @@ TEST(BoundaryCriticalPoint, NanSheetValueWouldReadAsAllowed)
     // Why the engine states non-finite cells as violating: a NaN compares
     // FALSE against the threshold, so a NaN cell would silently read as
     // ALLOWED, while an infinity reads as forbidden, which is correct.
-    const qreal threshold = 1.75;
+    const double threshold = 1.75;
     EXPECT_FALSE(std::nan("") > threshold);
-    EXPECT_TRUE(std::numeric_limits<qreal>::infinity() > threshold);
+    EXPECT_TRUE(std::numeric_limits<double>::infinity() > threshold);
 }
 
 TEST(BoundaryCriticalPoint, UndampedResonanceIsRejectedWithAdvice)
@@ -285,22 +284,22 @@ TEST(BoundaryCriticalPoint, UndampedResonanceIsRejectedWithAdvice)
     // likely cause instead of the bare "could not compute" it used to give.
     ProjectController controller;
     controller.load(
-        QStringLiteral(QFTBX_TEST_DATA_DIR "/acc90.qft"));
+        std::string(QFTBX_TEST_DATA_DIR "/acc90.qft"));
 
     // Undamped version of the fixture's plant, swept exactly at a resonance.
     // The parameter is named 'ev' as in the fixture: 'e' is Euler's number
     // in muParserX.
     std::vector<Parameter> numerator;
-    numerator.push_back(Parameter(QStringLiteral("ev"), Range(0.5, 2.0), 1.0,
-                                    QStringLiteral("ev")));
+    numerator.push_back(Parameter(std::string("ev"), Range(0.5, 2.0), 1.0,
+                                    std::string("ev")));
     std::vector<Parameter> denominator;
-    denominator.push_back(Parameter(QStringLiteral("ev"), Range(0.5, 2.0), 1.0,
-                                      QStringLiteral("ev")));
+    denominator.push_back(Parameter(std::string("ev"), Range(0.5, 2.0), 1.0,
+                                      std::string("ev")));
 
     LtiSystem* undamped = new qftbx::FreeForm(
-        QStringLiteral("undamped"), numerator, denominator,
+        std::string("undamped"), numerator, denominator,
         Parameter(1.0), Parameter(0.0),
-        QStringLiteral("ev"), QStringLiteral("s^2*(s^2 + 2*ev)"));
+        std::string("ev"), std::string("s^2*(s^2 + 2*ev)"));
 
     controller.setPlant(std::unique_ptr<LtiSystem>(undamped));
 
@@ -310,16 +309,16 @@ TEST(BoundaryCriticalPoint, UndampedResonanceIsRejectedWithAdvice)
 
     const std::vector<double> epsilon{10.0};
     // sqrt(2*0.5) = 1 exactly: |P| = inf at that frequency
-    qftbx::ParameterGrids grids{{QStringLiteral("ev"), {0.5}}};
+    qftbx::ParameterGrids grids{{std::string("ev"), {0.5}}};
 
     try {
         controller.computeTemplates(epsilon, grids, false);
         FAIL() << "an undamped resonance must be reported, not swept under";
     } catch (const qftbx::ComputationError & error) {
-        const QString message = QString::fromUtf8(error.what());
-        EXPECT_TRUE(message.contains(QStringLiteral("1 rad/s"))) << error.what();
-        EXPECT_TRUE(message.contains(QStringLiteral("largest |P|"))) << error.what();
-        EXPECT_TRUE(message.contains(QStringLiteral("resonance"))) << error.what();
+        const std::string message = std::string(error.what());
+        EXPECT_TRUE(message.find("1 rad/s") != std::string::npos) << error.what();
+        EXPECT_TRUE(message.find("largest |P|") != std::string::npos) << error.what();
+        EXPECT_TRUE(message.find("resonance") != std::string::npos) << error.what();
     }
 
 }

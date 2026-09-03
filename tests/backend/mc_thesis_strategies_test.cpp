@@ -40,6 +40,8 @@
 
 #include <gtest/gtest.h>
 
+#include <string>
+
 #include <cmath>
 
 #include "src/core/loopshaping/algorithm_mc_thesis.h"
@@ -48,10 +50,10 @@
 namespace {
 
 //The optimum of acc90, reached independently by NT, NK, MR, MC1 and MC.
-const qreal kAcc90Gain = 1000.0;
+const double kAcc90Gain = 1000.0;
 
 //Termination accuracy: the same the benchmark goldens use.
-const qreal kEpsilon = 0.5;
+const double kEpsilon = 0.5;
 
 using Strategies = AlgorithmMcThesis::Strategies;
 
@@ -87,10 +89,10 @@ Variant without(const char * name, void (*disable)(Strategies &))
 
 //Runs MC over acc90 with the given strategies. Returns the gain of the
 //controller it designed, and the peak of its live list through peakNodes.
-qreal designedGain(const Strategies & strategies, std::size_t * peakNodes = nullptr)
+double designedGain(const Strategies & strategies, std::size_t * peakNodes = nullptr)
 {
     ProjectController project;
-    project.load(QStringLiteral(QFTBX_TEST_DATA_DIR "/acc90.qft"));
+    project.load(std::string(QFTBX_TEST_DATA_DIR "/acc90.qft"));
 
     AlgorithmMcThesis mc;
     mc.setStrategies(strategies);
@@ -116,7 +118,7 @@ class McThesisStrategies : public ::testing::TestWithParam<Variant>
 
 TEST_P(McThesisStrategies, EveryCombinationReachesTheSameOptimum)
 {
-    const qreal gain = designedGain(GetParam().strategies);
+    const double gain = designedGain(GetParam().strategies);
 
     //Relative tolerance, as the benchmark goldens use: the corner the search
     //stops on differs between variants, and so do the zero and the pole it

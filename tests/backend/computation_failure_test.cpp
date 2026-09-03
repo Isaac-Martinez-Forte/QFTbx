@@ -14,11 +14,10 @@
 
 #include <gtest/gtest.h>
 
+#include <string>
+
 #include <vector>
 
-#include <QHash>
-#include <QString>
-#include <QVector>
 
 #include "src/core/exception.h"
 #include "src/core/frequencies/omega.h"
@@ -35,11 +34,11 @@ std::unique_ptr<LtiSystem> makePlant()
 {
     std::vector<Parameter> numerator{Parameter(1.0)};
     std::vector<Parameter> denominator{
-        Parameter(QStringLiteral("a"), qftbx::Range(1.0, 2.0), 1.5),
+        Parameter(std::string("a"), qftbx::Range(1.0, 2.0), 1.5),
         Parameter(1.0)};
 
-    return std::make_unique<PolynomialForm>(QStringLiteral("failing"), numerator, denominator,
-                              Parameter(QStringLiteral("kv"), qftbx::Range(1.0, 2.0), 1.5),
+    return std::make_unique<PolynomialForm>(std::string("failing"), numerator, denominator,
+                              Parameter(std::string("kv"), qftbx::Range(1.0, 2.0), 1.5),
                               Parameter(0.0));
 }
 
@@ -50,14 +49,14 @@ std::unique_ptr<Omega> makeOmega()
 
 //Every uncertain parameter needs a sweep grid; leaving one out is the
 //deterministic way to make the template computation refuse.
-qftbx::ParameterGrids gridsMissing(const QString & name)
+qftbx::ParameterGrids gridsMissing(const std::string & name)
 {
     qftbx::ParameterGrids grids;
-    if (name != QStringLiteral("a")) {
-        grids[QStringLiteral("a")] = qftbx::math::linspace(1.0, 2.0, 3);
+    if (name != std::string("a")) {
+        grids[std::string("a")] = qftbx::math::linspace(1.0, 2.0, 3);
     }
-    if (name != QStringLiteral("kv")) {
-        grids[QStringLiteral("kv")] = qftbx::math::linspace(1.0, 2.0, 3);
+    if (name != std::string("kv")) {
+        grids[std::string("kv")] = qftbx::math::linspace(1.0, 2.0, 3);
     }
     return grids;
 }
@@ -78,7 +77,7 @@ TEST_F(FailedComputation, AMissingSweepGridIsReportedAndLeavesNoTemplates)
 {
     const std::vector<double> epsilon(3, 10.0);
 
-    EXPECT_THROW(controller.computeTemplates(epsilon, gridsMissing(QStringLiteral("kv")), false),
+    EXPECT_THROW(controller.computeTemplates(epsilon, gridsMissing(std::string("kv")), false),
                  qftbx::InvalidInput);
 
     EXPECT_TRUE(controller.templates().empty())
@@ -90,15 +89,15 @@ TEST_F(FailedComputation, AMissingSweepGridIsReportedAndLeavesNoTemplates)
 TEST_F(FailedComputation, TheProjectStillWorksAfterAFailedComputation)
 {
     const std::vector<double> badEpsilon(3, 10.0);
-    const qftbx::ParameterGrids badGrids = gridsMissing(QStringLiteral("a"));
+    const qftbx::ParameterGrids badGrids = gridsMissing(std::string("a"));
 
     EXPECT_THROW(controller.computeTemplates(badEpsilon, badGrids, false),
                  qftbx::InvalidInput);
 
     //Same project, now with every grid: the failure must not have poisoned it.
     qftbx::ParameterGrids grids;
-    grids[QStringLiteral("a")] = qftbx::math::linspace(1.0, 2.0, 3);
-    grids[QStringLiteral("kv")] = qftbx::math::linspace(1.0, 2.0, 3);
+    grids[std::string("a")] = qftbx::math::linspace(1.0, 2.0, 3);
+    grids[std::string("kv")] = qftbx::math::linspace(1.0, 2.0, 3);
 
     ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), grids, false))
         << "the project never recovered from the earlier failure";

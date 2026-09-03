@@ -6,8 +6,7 @@
 #include <vector>
 
 #include "src/core/boundaries/boundary_types.h"
-#include <QMap>
-#include <QString>
+#include <string>
 
 namespace qftbx {
 

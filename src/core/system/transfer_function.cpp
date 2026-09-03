@@ -5,7 +5,7 @@ using namespace mup;
 
 namespace qftbx {
 
-TransferFunction::TransferFunction(QString name, std::vector <Parameter> numerator,
+TransferFunction::TransferFunction(std::string name, std::vector <Parameter> numerator,
         std::vector <Parameter> denominator, Parameter k, Parameter delay) :
 LtiSystem(name),
 m_gain(std::move(k)),
@@ -34,7 +34,7 @@ std::complex <double> TransferFunction::evaluate(std::vector <double> * numerato
         double k, double delay, double omega) {
     ParserX p(pckALL_COMPLEX);
 
-    p.SetExpr(expression(numerator, denominator, k, delay, omega).toStdString());
+    p.SetExpr(expression(numerator, denominator, k, delay, omega));
 
     return p.Eval().GetComplex();
 }
@@ -77,12 +77,12 @@ std::vector <std::complex <double> > TransferFunction::evaluate(const std::vecto
     return resultado;
 }
 
-QString TransferFunction::numeratorString() {
-    return QString();
+std::string TransferFunction::numeratorString() {
+    return std::string();
 }
 
-QString TransferFunction::denominatorString() {
-    return QString();
+std::string TransferFunction::denominatorString() {
+    return std::string();
 }
 
 std::unique_ptr<LtiSystem> TransferFunction::clone() {

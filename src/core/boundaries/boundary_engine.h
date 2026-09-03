@@ -1,6 +1,7 @@
 #ifndef QFTBX_BOUNDARY_ENGINE_H
 #define QFTBX_BOUNDARY_ENGINE_H
 
+#include <string>
 #include <cstdint>
 #include "src/core/range.h"
 #include <vector>
@@ -8,7 +9,6 @@
 #include "src/core/templates/cloud_set.h"
 #include "src/core/boundaries/boundary_types.h"
 #include <complex>
-#include <qmath.h>
 #include <limits>
 #include <cmath>
 #ifdef OpenMP_AVAILABLE
@@ -17,7 +17,6 @@
 #ifdef CUDA_AVAILABLE
 #include "src/core/gpu/boundary_sheets_cuda.h"
 #endif
-#include <QMap>
 
 #include "src/core/system/lti_system.h"
 #include "src/core/specifications/specification.h"
@@ -107,9 +106,9 @@ private:
                           const ComplexCloud & valueSet, const std::vector <double> & phases,
                           const std::vector <double> & magnitudes, std::int32_t index);
 
-    void traceFrequency(double omega, std::map<QString, TraceSet> & bound,
+    void traceFrequency(double omega, std::map<std::string, TraceSet> & bound,
                         const BoundarySheets & sheets,
-                        std::map<QString, TraceLabels> & traceMetadata, std::complex<double> p0, const ComplexCloud & valueSet,
+                        std::map<std::string, TraceLabels> & traceMetadata, std::complex<double> p0, const ComplexCloud & valueSet,
                         std::int32_t index, double phaseSpan, double magnitudeSpan, double phaseBottom, double magnitudeBottom);
 
     TraceSet traceBoundary(double thresholdDb, const BoundarySheet & sheet,
@@ -120,9 +119,9 @@ private:
     std::int32_t allowedZone(const Trace & trace, std::complex<double> p0, const ComplexCloud & valueSet, std::int32_t kind, double thresholdDb);
 
 #ifdef CUDA_AVAILABLE
-    void traceFrequency(double omega, std::map<QString, TraceSet> & bound,
+    void traceFrequency(double omega, std::map<std::string, TraceSet> & bound,
                         const BoundarySheetsCuda & cudaSheets,
-                        std::map<QString, TraceLabels> & traceMetadata,
+                        std::map<std::string, TraceLabels> & traceMetadata,
                         std::complex <double> p0, const ComplexCloud & valueSet, std::int32_t index,
                         double phaseSpan, double magnitudeSpan, double phaseBottom, double magnitudeBottom);
 

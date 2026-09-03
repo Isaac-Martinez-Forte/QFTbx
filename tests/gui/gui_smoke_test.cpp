@@ -136,7 +136,7 @@ BoundaryData oneBoundary()
     const qftbx::Trace curve{qftbx::NicholsPoint(-270.0, 10.0), qftbx::NicholsPoint(-180.0, 4.0),
                              qftbx::NicholsPoint(-90.0, 10.0)};
 
-    return BoundaryData({{{QStringLiteral("Stability"), {curve}}}},
+    return BoundaryData({{{"Stability", {curve}}}},
                         {false}, {true}, 361, qftbx::Range(-360.0, 0.0),
                         {curve}, {qftbx::TraceSet(361)},
                         121, qftbx::Range(-60.0, 60.0));
@@ -148,12 +148,12 @@ TEST_F(GuiSmoke, PlantDialogBuildsAZeroPoleGainPlant)
 {
     PlantDialog dialog;
 
-    type(&dialog, "nameEdit", QStringLiteral("smoke"));
+    type(&dialog, "nameEdit", "smoke");
     check(&dialog, "zpkRadio");
-    type(&dialog, "zpkNumerator", QStringLiteral("2"));
-    type(&dialog, "zpkDenominator", QStringLiteral("5 30"));
-    type(&dialog, "zpkGain", QStringLiteral("3"));
-    type(&dialog, "zpkDelay", QStringLiteral("0"));
+    type(&dialog, "zpkNumerator", "2");
+    type(&dialog, "zpkDenominator", "5 30");
+    type(&dialog, "zpkGain", "3");
+    type(&dialog, "zpkDelay", "0");
 
     press(&dialog, "okButton");
 
@@ -163,7 +163,7 @@ TEST_F(GuiSmoke, PlantDialogBuildsAZeroPoleGainPlant)
     std::unique_ptr<LtiSystem> plant(dialog.takePlant());
     ASSERT_NE(plant, nullptr);
     EXPECT_EQ(plant->type(), LtiSystem::SystemType::ZeroPoleGain);
-    EXPECT_EQ(plant->name(), QStringLiteral("smoke"));
+    EXPECT_EQ(plant->name(), "smoke");
 
     //The numbers must have travelled into parameter VALUES.
     ASSERT_EQ(plant->numerator().size(), 1u);
@@ -181,18 +181,18 @@ TEST_F(GuiSmoke, PlantDialogRejectsAnInvalidExpression)
     //(muParserX throws and the dialog used to let it through).
     PlantDialog dialog;
 
-    type(&dialog, "nameEdit", QStringLiteral("broken"));
+    type(&dialog, "nameEdit", "broken");
     check(&dialog, "zpkRadio");
-    type(&dialog, "zpkNumerator", QStringLiteral("2"));
-    type(&dialog, "zpkDenominator", QStringLiteral("5"));
-    type(&dialog, "zpkGain", QStringLiteral("3*/"));
-    type(&dialog, "zpkDelay", QStringLiteral("0"));
+    type(&dialog, "zpkNumerator", "2");
+    type(&dialog, "zpkDenominator", "5");
+    type(&dialog, "zpkGain", "3*/");
+    type(&dialog, "zpkDelay", "0");
 
     press(&dialog, "okButton");
 
     EXPECT_FALSE(dialog.wasAccepted());
     EXPECT_EQ(dialog.takePlant(), nullptr);
-    EXPECT_FALSE(m_reported.isEmpty()) << "the rejection must be reported";
+    EXPECT_FALSE(m_reported.empty()) << "the rejection must be reported";
 }
 
 TEST_F(GuiSmoke, PlantDialogRejectsAnInvalidCoefficient)
@@ -202,18 +202,18 @@ TEST_F(GuiSmoke, PlantDialogRejectsAnInvalidCoefficient)
     //numerator of "1*/" became the polynomial 0 with nothing said.
     PlantDialog dialog;
 
-    type(&dialog, "nameEdit", QStringLiteral("broken-numerator"));
+    type(&dialog, "nameEdit", "broken-numerator");
     check(&dialog, "zpkRadio");
-    type(&dialog, "zpkNumerator", QStringLiteral("1*/"));
-    type(&dialog, "zpkDenominator", QStringLiteral("5 30"));
-    type(&dialog, "zpkGain", QStringLiteral("3"));
-    type(&dialog, "zpkDelay", QStringLiteral("0"));
+    type(&dialog, "zpkNumerator", "1*/");
+    type(&dialog, "zpkDenominator", "5 30");
+    type(&dialog, "zpkGain", "3");
+    type(&dialog, "zpkDelay", "0");
 
     press(&dialog, "okButton");
 
     EXPECT_FALSE(dialog.wasAccepted())
         << "a malformed coefficient was accepted";
-    EXPECT_FALSE(m_reported.isEmpty()) << "the rejection must be reported";
+    EXPECT_FALSE(m_reported.empty()) << "the rejection must be reported";
 
     dialog.takePlant();
 }
@@ -226,18 +226,18 @@ TEST_F(GuiSmoke, PlantDialogRejectsAReservedParameterName)
     //much later as a generic evaluation error, or worse be read as 1e3.
     PlantDialog dialog;
 
-    type(&dialog, "nameEdit", QStringLiteral("reserved"));
+    type(&dialog, "nameEdit", "reserved");
     check(&dialog, "zpkRadio");
-    type(&dialog, "zpkNumerator", QStringLiteral("1"));
-    type(&dialog, "zpkDenominator", QStringLiteral("k"));
-    type(&dialog, "zpkGain", QStringLiteral("1"));
-    type(&dialog, "zpkDelay", QStringLiteral("0"));
+    type(&dialog, "zpkNumerator", "1");
+    type(&dialog, "zpkDenominator", "k");
+    type(&dialog, "zpkGain", "1");
+    type(&dialog, "zpkDelay", "0");
 
     press(&dialog, "okButton");
 
     EXPECT_FALSE(dialog.wasAccepted()) << "a reserved parameter name was accepted";
-    ASSERT_FALSE(m_reported.isEmpty()) << "the rejection must be reported";
-    EXPECT_TRUE(m_reported.join(QChar(' ')).contains(QStringLiteral("k")))
+    ASSERT_FALSE(m_reported.empty()) << "the rejection must be reported";
+    EXPECT_TRUE(m_reported.join(QChar(' ')).contains("k"))
         << "the message must name the offending identifier: "
         << m_reported.join(QChar(' ')).toStdString();
 
@@ -253,7 +253,7 @@ TEST_F(GuiSmoke, FrequenciesDialogBuildsTheDesignFrequencies)
     QComboBox * mode = child<QComboBox>(&dialog, "modeStack");
     ASSERT_NE(mode, nullptr);
     mode->setCurrentIndex(0);
-    type(&dialog, "manualValues", QStringLiteral("0.1 1 10 100"));
+    type(&dialog, "manualValues", "0.1 1 10 100");
 
     press(&dialog, "okButton");
 
@@ -281,22 +281,22 @@ TEST_F(GuiSmoke, SpecificationsDialogRefusesToLeaveATabItCannotRead)
     //A valid constant stability specification.
     check(&dialog, "constantRadio");
     check(&dialog, "linearRadio");
-    type(&dialog, "magnitudeEdit", QStringLiteral("1.2"));
+    type(&dialog, "magnitudeEdit", "1.2");
 
     //Now break the band and try to leave.
-    type(&dialog, "startFrequencyEdit", QStringLiteral("not a number"));
+    type(&dialog, "startFrequencyEdit", "not a number");
     m_reported.clear();
 
     dialog.findChild<QRadioButton *>("noiseRadio")->click();
 
-    EXPECT_FALSE(m_reported.isEmpty()) << "the refusal must be reported";
+    EXPECT_FALSE(m_reported.empty()) << "the refusal must be reported";
     EXPECT_TRUE(dialog.findChild<QRadioButton *>("stabilityRadio")->isChecked())
         << "the tab that could not be read must stay selected";
     EXPECT_FALSE(dialog.findChild<QRadioButton *>("noiseRadio")->isChecked());
 
     //The user's text is still on screen, where it can be corrected.
     EXPECT_EQ(dialog.findChild<QLineEdit *>("magnitudeEdit")->text(),
-              QStringLiteral("1.2"));
+              "1.2");
 }
 
 TEST_F(GuiSmoke, FrequenciesDialogRefusesAnEmptySetInsteadOfDying)
@@ -311,7 +311,7 @@ TEST_F(GuiSmoke, FrequenciesDialogRefusesAnEmptySetInsteadOfDying)
     press(&dialog, "okButton");
 
     EXPECT_FALSE(dialog.wasAccepted());
-    EXPECT_FALSE(m_reported.isEmpty()) << "the rejection must be reported";
+    EXPECT_FALSE(m_reported.empty()) << "the rejection must be reported";
     EXPECT_EQ(dialog.takeOmega(), nullptr);
 }
 
@@ -323,13 +323,13 @@ TEST_F(GuiSmoke, FrequenciesDialogRefusesNonPositiveFrequencies)
     FrequenciesDialog dialog;
 
     child<QComboBox>(&dialog, "modeStack")->setCurrentIndex(0);
-    type(&dialog, "manualValues", QStringLiteral("0.1 0 10"));
+    type(&dialog, "manualValues", "0.1 0 10");
 
     press(&dialog, "okButton");
 
     EXPECT_FALSE(dialog.wasAccepted());
-    ASSERT_FALSE(m_reported.isEmpty()) << "the rejection must be reported";
-    EXPECT_TRUE(m_reported.join(QChar(' ')).contains(QStringLiteral("positive")))
+    ASSERT_FALSE(m_reported.empty()) << "the rejection must be reported";
+    EXPECT_TRUE(m_reported.join(QChar(' ')).contains("positive"))
         << m_reported.join(QChar(' ')).toStdString();
 }
 
@@ -340,14 +340,14 @@ TEST_F(GuiSmoke, FrequenciesDialogRefusesAnEmptyPointCount)
     FrequenciesDialog dialog;
 
     child<QComboBox>(&dialog, "modeStack")->setCurrentIndex(2);
-    type(&dialog, "linStart", QStringLiteral("1"));
-    type(&dialog, "linEnd", QStringLiteral("10"));
+    type(&dialog, "linStart", "1");
+    type(&dialog, "linEnd", "10");
     //linCount deliberately left empty
 
     press(&dialog, "okButton");
 
     EXPECT_FALSE(dialog.wasAccepted());
-    EXPECT_FALSE(m_reported.isEmpty()) << "the rejection must be reported";
+    EXPECT_FALSE(m_reported.empty()) << "the rejection must be reported";
 }
 
 //A QObject whose event handling throws, to reach the net underneath.
@@ -371,8 +371,8 @@ TEST_F(GuiSmoke, TheApplicationReportsABackendErrorInsteadOfDyingOfIt)
     const bool handled = qApp->notify(&victim, &event);
 
     EXPECT_TRUE(handled);
-    ASSERT_FALSE(m_reported.isEmpty()) << "the escaped error must be reported";
-    EXPECT_TRUE(m_reported.join(QChar(' ')).contains(QStringLiteral("refused something")))
+    ASSERT_FALSE(m_reported.empty()) << "the escaped error must be reported";
+    EXPECT_TRUE(m_reported.join(QChar(' ')).contains("refused something"))
         << m_reported.join(QChar(' ')).toStdString();
 }
 
@@ -381,11 +381,11 @@ TEST_F(GuiSmoke, ControllerDialogBuildsTheControllerStructure)
     ControllerDialog dialog;
 
     check(&dialog, "zpkRadio");
-    type(&dialog, "numeratorEdit", QStringLiteral("1"));
-    type(&dialog, "denominatorEdit", QStringLiteral("100"));
+    type(&dialog, "numeratorEdit", "1");
+    type(&dialog, "denominatorEdit", "100");
     //The controller's gain is a SEARCH RANGE, not a value.
-    type(&dialog, "gainStart", QStringLiteral("1"));
-    type(&dialog, "gainEnd", QStringLiteral("1000"));
+    type(&dialog, "gainStart", "1");
+    type(&dialog, "gainEnd", "1000");
 
     press(&dialog, "okButton");
 
@@ -410,17 +410,17 @@ TEST_F(GuiSmoke, ControllerDialogRejectsAnInvalidNumerator)
     ControllerDialog dialog;
 
     check(&dialog, "zpkRadio");
-    type(&dialog, "numeratorEdit", QStringLiteral("1*/"));
-    type(&dialog, "denominatorEdit", QStringLiteral("100"));
-    type(&dialog, "gainStart", QStringLiteral("1"));
-    type(&dialog, "gainEnd", QStringLiteral("1000"));
+    type(&dialog, "numeratorEdit", "1*/");
+    type(&dialog, "denominatorEdit", "100");
+    type(&dialog, "gainStart", "1");
+    type(&dialog, "gainEnd", "1000");
 
     press(&dialog, "okButton");
 
     EXPECT_FALSE(dialog.wasAccepted())
         << "a malformed numerator was accepted";
     EXPECT_EQ(dialog.takeControllerStructure(), nullptr);
-    EXPECT_FALSE(m_reported.isEmpty()) << "the rejection must be reported";
+    EXPECT_FALSE(m_reported.empty()) << "the rejection must be reported";
 }
 
 TEST_F(GuiSmoke, SpecificationsDialogNeedsTheFrequenciesFirst)
@@ -446,7 +446,7 @@ TEST_F(GuiSmoke, SpecificationsDialogStoresAConstantStabilitySpecification)
     check(&dialog, "stabilityRadio");
     check(&dialog, "constantRadio");
     check(&dialog, "linearRadio");
-    type(&dialog, "magnitudeEdit", QStringLiteral("1.2"));
+    type(&dialog, "magnitudeEdit", "1.2");
 
     press(&dialog, "okButton");
 
@@ -503,10 +503,10 @@ TEST_F(GuiSmoke, TemplateViewerAsksItsHandlerToRecomputeTheContour)
     //dropped it with an "Unknown property" warning on stderr.
     QCheckBox * row = child<QCheckBox>(&viewer, "check");
     ASSERT_NE(row, nullptr);
-    EXPECT_TRUE(row->styleSheet().startsWith(QStringLiteral("color")))
+    EXPECT_TRUE(row->styleSheet().startsWith("color"))
         << "the frequency row lost its colour: "
         << row->styleSheet().toStdString();
-    EXPECT_FALSE(row->styleSheet().contains(QStringLiteral("colorsCreated")));
+    EXPECT_FALSE(row->styleSheet().contains("colorsCreated"));
 }
 
 TEST_F(GuiSmoke, TemplateViewerWithNothingPlottedIgnoresTheRecomputeButton)
@@ -528,7 +528,7 @@ TEST_F(GuiSmoke, BodeViewerDrawsBothAxesOfTheDiagram)
     //A first-order plant, 1/(s+1): -3 dB and -45 degrees at 1 rad/s.
     std::vector<Parameter> numerator{Parameter(1.0)};
     std::vector<Parameter> denominator{Parameter(1.0), Parameter(1.0)};
-    PolynomialForm plant(QStringLiteral("bode"), numerator, denominator,
+    PolynomialForm plant("bode", numerator, denominator,
                          Parameter(1.0), Parameter(0.0));
 
     //Logarithmic span: start() and end() are EXPONENTS here, 0.01 to 100.
@@ -568,8 +568,8 @@ TEST_F(GuiSmoke, BoundaryGridDialogBuildsTheNicholsGrid)
     QDialogButtonBox * buttons = child<QDialogButtonBox>(&dialog, "buttonBox");
     ASSERT_NE(buttons, nullptr);
 
-    type(&dialog, "phasePoints", QStringLiteral("361"));
-    type(&dialog, "magnitudePoints", QStringLiteral("121"));
+    type(&dialog, "phasePoints", "361");
+    type(&dialog, "magnitudePoints", "121");
 
     buttons->button(QDialogButtonBox::Ok)->click();
 
@@ -590,8 +590,8 @@ TEST_F(GuiSmoke, BoundaryGridDialogRejectsAnInvertedRange)
 {
     BoundaryGridDialog dialog;
 
-    type(&dialog, "phaseStart", QStringLiteral("0"));
-    type(&dialog, "phaseEnd", QStringLiteral("-360"));
+    type(&dialog, "phaseStart", "0");
+    type(&dialog, "phaseEnd", "-360");
 
     child<QDialogButtonBox>(&dialog, "buttonBox")->button(QDialogButtonBox::Ok)->click();
 
@@ -604,18 +604,18 @@ TEST_F(GuiSmoke, TemplatesDialogBuildsOneEpsilonPerFrequency)
 
     std::vector<Parameter> numerator{Parameter(1.0)};
     std::vector<Parameter> denominator{
-        Parameter(QStringLiteral("a"), qftbx::Range(1.0, 5.0), 5.0)};
-    PolynomialForm plant(QStringLiteral("templates"), numerator, denominator,
+        Parameter("a", qftbx::Range(1.0, 5.0), 5.0)};
+    PolynomialForm plant("templates", numerator, denominator,
                          Parameter(1.0), Parameter(0.0));
 
     dialog.launch(&plant, 4);
 
-    type(&dialog, "epsilonEdit", QStringLiteral("0.05"));
+    type(&dialog, "epsilonEdit", "0.05");
 
     //The general section demands a spacing and a point count for the
     //parameter grids.
     check(&dialog, "linspaceRadio");
-    type(&dialog, "globalPointCount", QStringLiteral("3"));
+    type(&dialog, "globalPointCount", "3");
     check(&dialog, "allVariablesRadio");
     check(&dialog, "nicholsRadio");
 
@@ -627,14 +627,14 @@ TEST_F(GuiSmoke, TemplatesDialogBuildsOneEpsilonPerFrequency)
     //by frequency.
     const std::vector<double> epsilon = dialog.takeEpsilon();
     EXPECT_EQ(epsilon.size(), 4);
-    for (qreal value : epsilon) {
+    for (double value : epsilon) {
         EXPECT_DOUBLE_EQ(value, 0.05);
     }
 
     //A grid per uncertain parameter, and none for the constants. By value now:
     //nothing to free, and nothing to be null.
     const qftbx::ParameterGrids grids = dialog.grids();
-    EXPECT_EQ(grids.count(QStringLiteral("a")), 1u)
+    EXPECT_EQ(grids.count("a"), 1u)
         << "the uncertain parameter got no grid";
 }
 
@@ -642,10 +642,10 @@ TEST_F(GuiSmoke, LoopShapingDialogCarriesTheChosenAlgorithm)
 {
     LoopShapingDialog dialog;
 
-    type(&dialog, "epsilonEdit", QStringLiteral("0.01"));
-    type(&dialog, "startEdit", QStringLiteral("0.1"));
-    type(&dialog, "endEdit", QStringLiteral("100"));
-    type(&dialog, "pointCountEdit", QStringLiteral("200"));
+    type(&dialog, "epsilonEdit", "0.01");
+    type(&dialog, "startEdit", "0.1");
+    type(&dialog, "endEdit", "100");
+    type(&dialog, "pointCountEdit", "200");
     check(&dialog, "mrRadio");
 
     press(&dialog, "okButton");
@@ -667,21 +667,21 @@ TEST_F(GuiSmoke, UncertaintyDialogBuildsAnUncertainParameter)
     //per uncertain name.
     UncertaintyDialog dialog;
 
-    const CoefficientTable valueTable{{QStringLiteral("1")}, {QStringLiteral("a")}};
-    const CoefficientTable expressionTable{{QStringLiteral("1")}, {QStringLiteral("a")}};
+    const CoefficientTable valueTable{{"1"}, {"a"}};
+    const CoefficientTable expressionTable{{"1"}, {"a"}};
     const UncertainTable uncertainTable{{false}, {true}};
 
     ASSERT_TRUE(dialog.launch(valueTable, expressionTable, uncertainTable, false));
 
     //One uncertain name, so one generated row: [inicio, fin] with nominal.
-    type(&dialog, "inicio", QStringLiteral("1"));
-    type(&dialog, "fin", QStringLiteral("5"));
-    type(&dialog, "nominal", QStringLiteral("3"));
+    type(&dialog, "inicio", "1");
+    type(&dialog, "fin", "5");
+    type(&dialog, "nominal", "3");
 
-    type(&dialog, "gainStart", QStringLiteral("2"));
-    type(&dialog, "gainEnd", QStringLiteral("8"));
-    type(&dialog, "delayStart", QStringLiteral("0"));
-    type(&dialog, "delayEnd", QStringLiteral("0"));
+    type(&dialog, "gainStart", "2");
+    type(&dialog, "gainEnd", "8");
+    type(&dialog, "delayStart", "0");
+    type(&dialog, "delayEnd", "0");
 
     press(&dialog, "okButton");
 
@@ -695,7 +695,7 @@ TEST_F(GuiSmoke, UncertaintyDialogBuildsAnUncertainParameter)
     ASSERT_EQ(dialog.denominator().size(), 1u);
     Parameter & uncertain = dialog.denominator()[0];
     EXPECT_TRUE(uncertain.isUncertain());
-    EXPECT_EQ(uncertain.name(), QStringLiteral("a"));
+    EXPECT_EQ(uncertain.name(), "a");
     EXPECT_DOUBLE_EQ(uncertain.rawRange().min, 1.0);
     EXPECT_DOUBLE_EQ(uncertain.rawRange().max, 5.0);
     EXPECT_DOUBLE_EQ(uncertain.rawNominal(), 3.0);
@@ -713,17 +713,17 @@ TEST_F(GuiSmoke, UncertaintyDialogRejectsAnEmptyRange)
     //and refused, not turned into a parameter.
     UncertaintyDialog dialog;
 
-    const CoefficientTable valueTable{{QStringLiteral("1")}, {QStringLiteral("a")}};
-    const CoefficientTable expressionTable{{QStringLiteral("1")}, {QStringLiteral("a")}};
+    const CoefficientTable valueTable{{"1"}, {"a"}};
+    const CoefficientTable expressionTable{{"1"}, {"a"}};
     const UncertainTable uncertainTable{{false}, {true}};
 
     ASSERT_TRUE(dialog.launch(valueTable, expressionTable, uncertainTable, false));
 
     //The row is left blank on purpose.
-    type(&dialog, "gainStart", QStringLiteral("2"));
-    type(&dialog, "gainEnd", QStringLiteral("8"));
-    type(&dialog, "delayStart", QStringLiteral("0"));
-    type(&dialog, "delayEnd", QStringLiteral("0"));
+    type(&dialog, "gainStart", "2");
+    type(&dialog, "gainEnd", "8");
+    type(&dialog, "delayStart", "0");
+    type(&dialog, "delayEnd", "0");
 
     press(&dialog, "okButton");
 
@@ -779,11 +779,11 @@ TEST_F(GuiSmoke, LoopShapingViewerDrawsTheShapedLoop)
     //1/(s+1) as the plant and a unit gain as the computed controller.
     std::vector<Parameter> numerator{Parameter(1.0)};
     std::vector<Parameter> denominator{Parameter(1.0), Parameter(1.0)};
-    PolynomialForm plant(QStringLiteral("loop"), numerator, denominator,
+    PolynomialForm plant("loop", numerator, denominator,
                          Parameter(1.0), Parameter(0.0));
 
     std::vector<Parameter> one{Parameter(1.0)};
-    LoopShapingResult result(std::make_unique<PolynomialForm>(QStringLiteral("k"), one, one,
+    LoopShapingResult result(std::make_unique<PolynomialForm>("k", one, one,
                                                               Parameter(1.0), Parameter(0.0)),
                              qftbx::Range(0.1, 100.0), 50);
     const qftbx::UnionTraces traces{{qftbx::NicholsPoint(-270.0, 10.0), qftbx::NicholsPoint(-180.0, 4.0),
@@ -804,10 +804,10 @@ TEST_F(GuiSmoke, LoopBoundariesViewerDrawsBothDiagrams)
 
     std::vector<Parameter> numerator{Parameter(1.0)};
     std::vector<Parameter> denominator{Parameter(1.0), Parameter(1.0)};
-    PolynomialForm plant(QStringLiteral("loop"), numerator, denominator,
+    PolynomialForm plant("loop", numerator, denominator,
                          Parameter(1.0), Parameter(0.0));
     std::vector<Parameter> one{Parameter(1.0)};
-    PolynomialForm controller(QStringLiteral("k"), one, one,
+    PolynomialForm controller("k", one, one,
                               Parameter(1.0), Parameter(0.0));
 
     const BoundaryData nichols = oneBoundary();

@@ -2,11 +2,11 @@
 #define QFTBX_PROJECT_CONTROLLER_H
 
 
+#include <string>
 #include <vector>
 #include <cstdint>
 #include <memory>
 
-#include <QHash>
 #include <complex>
 
 #include "src/core/system/lti_system.h"
@@ -150,7 +150,7 @@ public:
     // --- persistence ------------------------------------------------------
 
     /// Writes the whole project to a .qft file.
-    bool save(QString path);
+    bool save(std::string path);
 
     /**
      * @brief Reads a .qft file into the project.
@@ -161,7 +161,7 @@ public:
      */
     /// Which sections the file carried, in the historical order. By value:
     /// callers used to have to delete this, and most tests did not.
-    std::vector<bool> load(QString path);
+    std::vector<bool> load(std::string path);
 
 private:
     /// Publishing an input drops whatever was computed from the old one: see

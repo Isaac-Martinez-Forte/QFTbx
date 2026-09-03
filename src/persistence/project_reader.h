@@ -6,7 +6,7 @@
 #include "src/core/templates/cloud_set.h"
 #include <complex>
 
-#include <QString>
+#include <string>
 #include <vector>
 
 #include "src/core/system/lti_system.h"
@@ -39,7 +39,7 @@ public:
      * historical order: plant, specifications, omega, templates, boundaries,
      * controller, loop shaping, template contour.
      */
-    std::vector<bool> load(const QString & filePath);
+    std::vector<bool> load(const std::string & filePath);
 
     ~ProjectReader();
 

@@ -5,7 +5,7 @@
 #include <memory>
 #include <vector>
 
-#include <QString>
+#include <string>
 
 #include "src/core/system/parameter.h"
 #include "mpParser.h"
@@ -31,7 +31,7 @@ namespace qftbx {
 class LtiSystem
 {
 public:
-    LtiSystem(QString name);
+    LtiSystem(std::string name);
 
     /**
      * @brief Virtual constructor: builds a new instance of the same dynamic
@@ -42,15 +42,15 @@ public:
      * historical factory returned a raw pointer, and every one of its
      * callers had to remember a delete on every path out.
      */
-    virtual std::unique_ptr<LtiSystem> create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
+    virtual std::unique_ptr<LtiSystem> create (std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
                               Parameter k, Parameter delay = Parameter(double(0)),
-                              QString numeratorExpr = QString(), QString denominatorExpr = QString()) = 0;
+                              std::string numeratorExpr = std::string(), std::string denominatorExpr = std::string()) = 0;
 
     virtual ~LtiSystem() {}
 
-    void setName (QString name);
+    void setName (std::string name);
 
-    QString name();
+    const std::string & name() const;
 
     /// Value of the system at s = j*omega using the nominal parameter values.
     virtual std::complex <double> evaluate (double omega) = 0;
@@ -63,14 +63,14 @@ public:
                                            double k, double delay, double omega) = 0;
 
     /// Expression for explicit numeric parameter values at s = j*omega.
-    virtual QString expression (std::vector <double> * numerator, std::vector <double> * denominator,
+    virtual std::string expression (std::vector <double> * numerator, std::vector <double> * denominator,
                              double k, double delay, double omega) = 0;
 
     /// Expression at s = j*omega; uncertain parameters stay by name.
-    virtual QString expression(double w) = 0;
+    virtual std::string expression(double w) = 0;
 
     /// Symbolic expression in 's', for display.
-    virtual QString expression() = 0;
+    virtual std::string expression() = 0;
 
     /**
      * @brief The transfer function at s = j*omega, computed DIRECTLY in
@@ -95,10 +95,10 @@ public:
     virtual std::vector <Parameter> & numerator() = 0;
 
     /// Free-text numerator; empty except for FreeForm.
-    virtual QString numeratorString() = 0;
+    virtual std::string numeratorString() = 0;
 
     /// Free-text denominator; empty except for FreeForm.
-    virtual QString denominatorString() = 0;
+    virtual std::string denominatorString() = 0;
 
     virtual Parameter & gain () = 0;
 
@@ -116,7 +116,7 @@ public:
     virtual std::unique_ptr<LtiSystem> clone () = 0;
 
 private:
-    QString m_name;
+    std::string m_name;
 };
 
 } // namespace qftbx

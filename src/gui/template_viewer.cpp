@@ -92,7 +92,7 @@ void TemplateViewer::setData(const qftbx::CloudSet & templates,
 
     this->epsilon = epsilon;
 
-    for (qint32 i = 0; i < omega->size(); i++){
+    for (qint32 i = 0; i < static_cast<std::int32_t>(omega->size()); i++){
         colorByFrequency.insert(omega->at(i), tools::randomColor(i));
     }
 }

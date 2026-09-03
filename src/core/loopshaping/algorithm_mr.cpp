@@ -1,3 +1,4 @@
+#include <string>
 #include <vector>
 #include <cstdint>
 #include "src/core/exception.h"
@@ -24,12 +25,12 @@ const std::int32_t kTemplateRepresentatives = 9;
 //oscillating contractions; convergence is typically immediate).
 const std::int32_t kMaxNarrowingPasses = 8;
 
-QString number(double value)
+std::string number(double value)
 {
     //Through the shared primitive: it round-trips, so the lexer parses back
     //exactly this double, and it is far shorter than the 'g',17 this used
     //to ask for - these strings are built by the thousand.
-    return QString::fromStdString(qftbx::text::number(value));
+    return (qftbx::text::number(value));
 }
 
 } // namespace
@@ -72,20 +73,20 @@ inline void AlgorithmMr::buildControllerExpressions(){
                 "time-constant controller structure.");
     }
 
-    const auto term = [&](Parameter & var, double w) -> QString {
-        const QString value = var.isUncertain() ? var.name() : number(var.nominal());
+    const auto term = [&](Parameter & var, double w) -> std::string {
+        const std::string value = var.isUncertain() ? var.name() : number(var.nominal());
         if (timeConstant) {
             return "sqrt(1+(" + number(w * w) + "/(" + value + "^2)))";
         }
         return "sqrt((" + value + "^2)+" + number(w * w) + ")";
     };
 
-    const auto phaseTerm = [&](Parameter & var, double w) -> QString {
-        const QString value = var.isUncertain() ? var.name() : number(var.nominal());
+    const auto phaseTerm = [&](Parameter & var, double w) -> std::string {
+        const std::string value = var.isUncertain() ? var.name() : number(var.nominal());
         return "atan(" + number(w) + "/(" + value + "))";
     };
 
-    const QString gain = controller->gain().isUncertain()
+    const std::string gain = controller->gain().isUncertain()
             ? controller->gain().name()
             : number(controller->gain().nominal());
 
@@ -94,8 +95,8 @@ inline void AlgorithmMr::buildControllerExpressions(){
 
     for (double w : *omega) {
 
-        QString magnitude = "(" + gain + ")";
-        QString phase = "(0";
+        std::string magnitude = "(" + gain + ")";
+        std::string phase = "(0";
 
         for (Parameter & var : controller->numerator()) {
             magnitude += "*" + term(var, w);
@@ -140,9 +141,9 @@ inline void AlgorithmMr::buildConstraints(){
         return specifications.at(static_cast<qftbx::SpecificationType>(slot)).boundDb(w);
     };
 
-    const auto addConstraint = [&](const QString & expression) {
+    const auto addConstraint = [&](const std::string & expression) {
         auto tree = std::make_unique<ExpressionTree>("1");
-        tree->setFunc(expression.toStdString(), 0.0, alg::GREATER_EQUAL);
+        tree->setFunc(expression, 0.0, alg::GREATER_EQUAL);
         constraints.push_back(std::move(tree));
         constraintTexts.push_back(expression);
     };
@@ -150,8 +151,8 @@ inline void AlgorithmMr::buildConstraints(){
     for (std::size_t i = 0; i < omega->size(); ++i) {
 
         const double w = omega->at(i);
-        const QString & g = magnitudeExpressions.at(i);
-        const QString & phi = phaseExpressions.at(i);
+        const std::string & g = magnitudeExpressions.at(i);
+        const std::string & phi = phaseExpressions.at(i);
 
         //Template representatives, evenly subsampled along the contour.
         //Non-finite or null points (artefacts of a degenerate contour)
@@ -169,12 +170,12 @@ inline void AlgorithmMr::buildConstraints(){
 
         for (const std::complex<double> & value : points) {
 
-            const QString p = number(std::abs(value));
-            const QString p2 = number(std::abs(value) * std::abs(value));
-            const QString theta = number(std::arg(value));
+            const std::string p = number(std::abs(value));
+            const std::string p2 = number(std::abs(value) * std::abs(value));
+            const std::string theta = number(std::arg(value));
 
             //|1 + L|^2 expanded: g^2 p^2 + 2 g p cos(phi + theta) + 1.
-            const QString l2 = "((" + g + ")^2)*(" + p2 + ")+2*(" + g + ")*(" + p +
+            const std::string l2 = "((" + g + ")^2)*(" + p2 + ")+2*(" + g + ")*(" + p +
                     ")*cos((" + phi + ")+(" + theta + "))+1";
 
             //Stability margin |T| <= ws (paper eq. (10)); the sensor noise
@@ -216,7 +217,7 @@ inline void AlgorithmMr::buildConstraints(){
 
             const double deltaDb = boundDb(1, w) - boundDb(0, w);
             const double delta2 = std::pow(10.0, deltaDb / 10.0);
-            const QString invDelta2 = number(1.0 / delta2);
+            const std::string invDelta2 = number(1.0 / delta2);
 
             for (std::size_t a = 0; a < points.size(); ++a) {
                 for (std::size_t b = 0; b < points.size(); ++b) {
@@ -388,7 +389,7 @@ inline void AlgorithmMr::loadDomains(LtiSystem * box,
 
     const auto load = [&](Parameter & var) {
         if (var.isUncertain()) {
-            domains[var.name().toStdString()] =
+            domains[var.name()] =
                     cxsc::interval(var.range().min, var.range().max);
         }
     };
@@ -445,7 +446,7 @@ inline void AlgorithmMr::loadPointDomains(LtiSystem * box, bool lowerCorner,
 
     const auto at = [&](Parameter & var, double value) {
         if (var.isUncertain()) {
-            domains[var.name().toStdString()] = cxsc::interval(value, value);
+            domains[var.name()] = cxsc::interval(value, value);
         }
     };
 
@@ -469,7 +470,7 @@ inline std::unique_ptr<LtiSystem> AlgorithmMr::boxFromDomains(LtiSystem * box,
         if (!var.isUncertain()) {
             return Parameter(var.nominal());
         }
-        const cxsc::interval value = domains.at(var.name().toStdString());
+        const cxsc::interval value = domains.at(var.name());
         return Parameter(var.name(),
                          Range(cxsc::_double(Inf(value)), cxsc::_double(Sup(value))),
                          cxsc::_double(Inf(value)));

@@ -1,7 +1,7 @@
 #ifndef QFTBX_PARAMETER_H
 #define QFTBX_PARAMETER_H
 
-#include <QString>
+#include <string>
 #include "src/core/range.h"
 #include <vector>
 
@@ -24,10 +24,10 @@ class Parameter
 {
 public:
     /// Uncertain parameter; an empty exp falls back to the name.
-    Parameter(QString name, Range range, double nominal, QString exp);
+    Parameter(std::string name, Range range, double nominal, std::string exp);
 
     /// Uncertain parameter without reparametrisation.
-    Parameter(QString name, Range range, double nominal);
+    Parameter(std::string name, Range range, double nominal);
 
     Parameter(Range range);
 
@@ -37,9 +37,9 @@ public:
     Parameter (double value);
 
     /// Named constant.
-    Parameter (QString name, double value);
+    Parameter (std::string name, double value);
 
-    void setName(QString name);
+    void setName(std::string name);
 
     void setRange (Range range);
 
@@ -50,7 +50,7 @@ public:
 
     void setUncertain (bool a);
 
-    QString name();
+    const std::string & name() const;
 
     /// Range with the reparametrisation applied.
     Range range();
@@ -64,7 +64,7 @@ public:
     /// Raw nominal value, without the reparametrisation.
     double rawNominal();
 
-    QString expression();
+    const std::string & expression() const;
 
 private:
     /// The reparametrisation applied to one value, parsed once per thread.
@@ -77,11 +77,11 @@ private:
     //!m_uncertain, so a single setUncertain(true) - or swapping those two
     //checks - would have turned a stack byte into a muParserX evaluation of
     //an undefined variable.
-    QString m_name;
+    std::string m_name;
     Range m_range;
     double m_nominal = 0.0;
     bool m_uncertain = false;
-    QString m_expression;
+    std::string m_expression;
     bool m_hasExpression = false;
 
 };

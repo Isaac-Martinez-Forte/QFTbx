@@ -5,11 +5,11 @@
 
 #include <gtest/gtest.h>
 
+#include <string>
+
 #include <vector>
 
-#include <QString>
 #include <QTemporaryDir>
-#include <QVector>
 
 #include <pugixml.hpp>
 
@@ -21,9 +21,9 @@ namespace {
 
 using namespace qftbx_tests;
 
-QString fixture(const char* name)
+std::string fixture(const char* name)
 {
-    return QStringLiteral(QFTBX_TEST_DATA_DIR "/") + QLatin1String(name);
+    return std::string(QFTBX_TEST_DATA_DIR "/") + name;
 }
 
 class RoundTrip : public ::testing::TestWithParam<const char*>
@@ -32,7 +32,7 @@ protected:
     void SetUp() override
     {
         ASSERT_TRUE(temporary.isValid());
-        rewritten = temporary.filePath(QStringLiteral("roundtrip.qft"));
+        rewritten = temporary.filePath("roundtrip.qft").toStdString();
 
         originalFlags = original.load(fixture(GetParam()));
 
@@ -54,7 +54,7 @@ protected:
     }
 
     QTemporaryDir temporary;
-    QString rewritten;
+    std::string rewritten;
     ProjectReader original;
     ProjectReader reloaded;
     std::vector<bool> originalFlags;
@@ -64,7 +64,7 @@ protected:
 TEST_P(RoundTrip, WritesTheVersionedEnglishDialect)
 {
     pugi::xml_document document;
-    ASSERT_TRUE(document.load_file(rewritten.toUtf8().constData()));
+    ASSERT_TRUE(document.load_file(rewritten.c_str()));
 
     const pugi::xml_node root = document.document_element();
     EXPECT_STREQ(root.name(), "QFT");
@@ -129,16 +129,16 @@ INSTANTIATE_TEST_SUITE_P(Fixtures, RoundTrip,
                          ::testing::Values("cervera.qft", "planta2.qft",
                                            "multivaluados.qft", "planta1.qft"),
                          [](const ::testing::TestParamInfo<const char*>& info) {
-                             QString name = QLatin1String(info.param);
-                             name.chop(4);
-                             return name.toStdString();
+                             std::string name = info.param;
+                             name.resize(name.size() - 4);   //drop the ".qft"
+                             return name;
                          });
 
 TEST(ProjectWriterErrors, UnwritablePathThrowsFileError)
 {
     ProjectWriter writer;
     ProjectContent empty;
-    EXPECT_THROW(writer.save(QStringLiteral("/does/not/exist/out.qft"), empty),
+    EXPECT_THROW(writer.save(std::string("/does/not/exist/out.qft"), empty),
                  qftbx::FileError);
 }
 

@@ -8,6 +8,7 @@ Roberto C. Cruz Rodríguez
 #ifndef QFTBX_LOOPSHAPING_EXPRESSION_TREE_H
 #define QFTBX_LOOPSHAPING_EXPRESSION_TREE_H
 
+#include <string>
 #include <cstdlib>
 #include <cctype>
 #include <cmath>
@@ -17,7 +18,6 @@ Roberto C. Cruz Rodríguez
 #include <map>
 #include <memory>
 #include <stack>
-#include <QRegularExpression>
 
 #include "interval.hpp"
 

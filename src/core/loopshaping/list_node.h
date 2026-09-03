@@ -1,7 +1,8 @@
 #ifndef QFTBX_LOOPSHAPING_LIST_NODE_H
 #define QFTBX_LOOPSHAPING_LIST_NODE_H
 
-#include "QtCore"
+#include <cstdint>
+
 
 
 /**

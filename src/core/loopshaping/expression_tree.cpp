@@ -7,6 +7,7 @@ Roberto C. Cruz Rodríguez
 
 #include "src/core/loopshaping/expression_tree.h"
 
+#include <string>
 #include <stdexcept>
 
 #define PI1 3.1415926535897936
@@ -1026,7 +1027,7 @@ void ExpressionTree::build_tree(std::string &in_exp)
                 while ( pos < len && isdigit(in_exp[pos]) ) ++pos;
             } // the whole constant has been read
 
-            node->c_const = QString::fromUtf8(in_exp.substr(i, pos-i).c_str()).toDouble();
+            node->c_const = std::strtod(in_exp.substr(i, pos-i).c_str(), nullptr);
 
             nodeStack.push(std::move(node));
         }
@@ -1050,7 +1051,7 @@ void ExpressionTree::build_tree(std::string &in_exp)
                 while ( pos < len && isdigit(in_exp[pos]) ) ++pos;
             }
 
-            node->c_const = QString::fromUtf8(in_exp.substr(i, pos-i).c_str()).toDouble();
+            node->c_const = std::strtod(in_exp.substr(i, pos-i).c_str(), nullptr);
 
             nodeStack.push(std::move(node));
         }
@@ -1074,7 +1075,7 @@ void ExpressionTree::build_tree(std::string &in_exp)
                 while ( pos < len && isdigit(in_exp[pos]) ) ++pos;
             }
 
-            node->c_const = QString::fromUtf8(in_exp.substr(i, pos-i).c_str()).toDouble();
+            node->c_const = std::strtod(in_exp.substr(i, pos-i).c_str(), nullptr);
 
             nodeStack.push(std::move(node));
         }
@@ -1312,10 +1313,12 @@ void ExpressionTree::build_tree(std::string &in_exp)
 }
 
 bool ExpressionTree::es_letra(char tex){
-    static QRegularExpression rx("^[a-zA-Z]*$");
-    QString s (1, tex);
-
-    return rx.match(s).hasMatch();
+    //This built a regular expression, then a one-character string, to ask
+    //whether a character is a letter. The ranges are what the pattern
+    //"[a-zA-Z]" said, spelled out - and unlike std::isalpha they do not
+    //depend on the locale, which could otherwise start accepting accented
+    //letters the lexer has no rule for.
+    return (tex >= 'a' && tex <= 'z') || (tex >= 'A' && tex <= 'Z');
 }
 
 };

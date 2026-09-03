@@ -6,7 +6,7 @@
 #include <cmath>
 #include <memory>
 
-#include <QString>
+#include <string>
 
 #include "src/core/system/lti_system.h"
 #include "src/core/specifications/specification.h"
@@ -19,7 +19,7 @@ namespace qftbx {
 //the validated Specification produced by toSpecification(), which is where
 //the invariants are enforced.
 struct SpecificationRecord {
-    QString name;
+    std::string name;
     bool used = false;
     //The record OWNS its plant. It used to be a raw pointer whose owners
     //had to walk the container and delete it, in four different places.

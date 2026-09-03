@@ -96,7 +96,7 @@ void TemplatesDialog::buildTables(std::vector<Parameter> & numerator, std::vecto
 
     qint32 tabIndex = 0;
     for (Parameter & variable : numerator){
-        QString name_text = variable.name();
+        QString name_text = QString::fromStdString(variable.name());
         if(variable.isUncertain()){
             QWidget * widget = new QWidget(ui->variablesStack);
             buildRow(widget,numeratorRows, numeratorRadios);
@@ -108,7 +108,7 @@ void TemplatesDialog::buildTables(std::vector<Parameter> & numerator, std::vecto
     }
     tabIndex = 0;
     for (Parameter & variable : denominator){
-        QString name_text = variable.name();
+        QString name_text = QString::fromStdString(variable.name());
         if(variable.isUncertain()){
             QWidget * widget = new QWidget(ui->variablesStack);
             buildRow(widget, denominatorRows, denominatorRadios);
@@ -251,7 +251,7 @@ void TemplatesDialog::on_okButton_clicked()
     }else {
 
         ui->epsilonEdit->setStyleSheet("background : white");
-        const std::vector<QString> v = qftbx::text::tokens(ui->epsilonEdit->text());
+        const std::vector<std::string> v = qftbx::text::tokens(ui->epsilonEdit->text().toStdString());
 
         qreal lastEpsilon = 0;
 
@@ -260,8 +260,8 @@ void TemplatesDialog::on_okButton_clicked()
         //User expressions: an invalid epsilon used to throw and bring the
         //application down.
         try {
-            for (QString s : v) {
-                parser->SetExpr(s.toStdString());
+            for (const std::string & s : v) {
+                parser->SetExpr(s);
                 lastEpsilon = parser->Eval().GetFloat();
                 epsilonValues.push_back(lastEpsilon);
                 counter++;
@@ -306,7 +306,7 @@ void TemplatesDialog::on_okButton_clicked()
             rowRadios = numeratorRadios.at(variableIndex);
             variableIndex++;
             if (!readVariable(rowEdits, rowRadios,parameter,useLinspace,useLogspace)){
-                errorMessage(tr("ERROR: the values entered for parameter \"%1\" are invalid").arg(parameter.name()),
+                errorMessage(tr("ERROR: the values entered for parameter \"%1\" are invalid").arg(QString::fromStdString(parameter.name())),
                          tr("Template computation"));
                 gridMap.clear();
                 epsilonValues.clear();
@@ -326,7 +326,7 @@ void TemplatesDialog::on_okButton_clicked()
             rowRadios = denominatorRadios.at(variableIndex);
             variableIndex++;
             if (!readVariable(rowEdits, rowRadios,parameter,useLinspace,useLogspace)){
-                errorMessage(tr("ERROR: the values entered for parameter \"%1\" are invalid").arg(parameter.name()),
+                errorMessage(tr("ERROR: the values entered for parameter \"%1\" are invalid").arg(QString::fromStdString(parameter.name())),
                          tr("Template computation"));
                 gridMap.clear();
                 epsilonValues.clear();
@@ -407,8 +407,8 @@ bool TemplatesDialog::readVariable(const ParLineEdit & rowEdits, ThreeRadioButto
     //which names were unified (with the name key, the last one would
     //silently win otherwise).
     if (gridMap.count(parameter.name()) != 0){
-        if (!duplicateNames.contains(parameter.name())){
-            duplicateNames.push_back(parameter.name());
+        if (!duplicateNames.contains(QString::fromStdString(parameter.name()))){
+            duplicateNames.push_back(QString::fromStdString(parameter.name()));
         }
         return true;
     }
@@ -439,12 +439,12 @@ bool TemplatesDialog::readVariable(const ParLineEdit & rowEdits, ThreeRadioButto
 
     }else if(rowRadios.tres->isChecked() && !rowEdits.nominal()->text().isEmpty()){
 
-        const std::vector<QString> vector = qftbx::text::tokens(rowEdits.nominal()->text());
+        const std::vector<std::string> vector = qftbx::text::tokens(rowEdits.nominal()->text().toStdString());
         std::vector<double> values;
         values.reserve(static_cast<std::size_t>(vector.size()));
 
-        for (QString sSymbolCount : vector) {
-            parser->SetExpr(sSymbolCount.toStdString());
+        for (const std::string & sSymbolCount : vector) {
+            parser->SetExpr(sSymbolCount);
             values.push_back(parser->Eval().GetFloat());
         }
 

@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <vector>
 
-#include <QString>
+#include <string>
 #include <vector>
 
 //Transitional re-exports: these types moved to their own homes; consumers

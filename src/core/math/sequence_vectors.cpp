@@ -2,7 +2,6 @@
 #include <cstdint>
 #include "src/core/math/sequence_vectors.h"
 
-#include <QRegularExpression>
 
 #include "src/core/math/sequences.h"
 

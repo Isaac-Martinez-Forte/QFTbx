@@ -1,3 +1,5 @@
+#include <map>
+
 #include "src/core/loopshaping/mc_search_node.h"
 
 using namespace tools;
@@ -29,20 +31,20 @@ Stage McSearchNode::stage()
 
 void McSearchNode::markFrequencyFeasible(double pos, double frec)
 {
-    m_feasibleFrequencies.insert(pos, frec);
+    m_feasibleFrequencies[pos] = frec;
 }
 
 bool McSearchNode::isFrequencyFeasible(double key) const
 {
-    return m_feasibleFrequencies.contains(key);
+    return m_feasibleFrequencies.find(key) != m_feasibleFrequencies.end();
 }
 
-void McSearchNode::setFeasibleFrequencies(QHash<double, double> frequencies)
+void McSearchNode::setFeasibleFrequencies(std::map<double, double> frequencies)
 {
     m_feasibleFrequencies = std::move(frequencies);
 }
 
-const QHash<double, double> & McSearchNode::feasibleFrequencies() const
+const std::map<double, double> & McSearchNode::feasibleFrequencies() const
 {
     return m_feasibleFrequencies;
 }

@@ -6,7 +6,7 @@
 
 #include <map>
 
-#include <QString>
+#include <string>
 #include <vector>
 
 #include "src/core/boundaries/boundary_data.h"
@@ -133,11 +133,11 @@ private:
     //Controller magnitude/phase expression strings, one per design
     //frequency, and the parsed constraint trees (built once; each box
     //only reloads the variable domains).
-    std::vector<QString> magnitudeExpressions;
-    std::vector<QString> phaseExpressions;
+    std::vector<std::string> magnitudeExpressions;
+    std::vector<std::string> phaseExpressions;
     std::vector<std::unique_ptr<alg::ExpressionTree>> constraints;
     //The source text of each constraint, for diagnostics.
-    std::vector<QString> constraintTexts;
+    std::vector<std::string> constraintTexts;
 
     std::unique_ptr<LtiSystem> designedController;
 

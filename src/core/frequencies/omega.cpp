@@ -1,16 +1,17 @@
+#include <fstream>
+#include <iterator>
+#include <string>
 #include <vector>
 #include <cstdint>
 #include "src/core/frequencies/omega.h"
 #include "src/core/text_tokens.h"
 
-#include <QFile>
-#include <QTextStream>
 
 #include "src/core/exception.h"
 
 Omega::Omega(double start, double end, std::int32_t pointCount, std::vector<double> values, GenerationType type)
 {
-    Q_UNUSED(pointCount);
+    (void) pointCount;   //old files carry a desynchronised point count
 
     if (values.empty()){
         throw qftbx::InvalidInput("A frequency set needs at least one value.");
@@ -58,20 +59,28 @@ void Omega::setOmega(std::vector<double> values){
     m_values = std::move(values);
 }
 
-std::vector<double> Omega::valuesFromFile(QString path){
+std::vector<double> Omega::valuesFromFile(std::string path){
 
-    QFile file (path);
+    //std::ifstream and not QFile: this is the core, and reading a text file
+    //of numbers needs nothing from Qt.
+    std::ifstream file (path);
 
-    if (!file.open(QIODevice::ReadOnly)){
-        throw qftbx::FileError("Cannot open frequencies file: " + path.toStdString());
+    if (!file.is_open()){
+        throw qftbx::FileError("Cannot open frequencies file: " + path);
     }
 
-    QTextStream in (&file);
-    const std::optional<std::vector<double>> values = qftbx::text::reals(in.readAll());
+    file.seekg(0, std::ios::end);
+    std::string contents;
+    contents.resize(static_cast<std::size_t>(file.tellg()));
+    file.seekg(0, std::ios::beg);
+    file.read(&contents[0], static_cast<std::streamsize>(contents.size()));
+    contents.resize(static_cast<std::size_t>(file.gcount()));
+
+    const std::optional<std::vector<double>> values = qftbx::text::reals(contents);
 
     if (!values.has_value() || values->empty()){
         throw qftbx::FileError("The frequencies file contains no valid values: "
-                               + path.toStdString());
+                               + path);
     }
 
     return values.value();

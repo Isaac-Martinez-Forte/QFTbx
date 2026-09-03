@@ -1,3 +1,4 @@
+#include <string>
 #include <vector>
 #include <cstdint>
 #include "src/core/project_controller.h"
@@ -273,7 +274,7 @@ LoopShapingResult * ProjectController::loopShapingResult(){
     return data.loopShaping();
 }
 
-bool ProjectController::save(QString path){
+bool ProjectController::save(std::string path){
 
     ProjectContent content;
 
@@ -297,7 +298,7 @@ bool ProjectController::save(QString path){
     return true;
 }
 
-std::vector<bool> ProjectController::load(QString path){
+std::vector<bool> ProjectController::load(std::string path){
 
     ProjectReader reader;
 

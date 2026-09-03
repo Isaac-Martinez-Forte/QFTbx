@@ -11,13 +11,13 @@
 
 #include <gtest/gtest.h>
 
+#include <string>
+
 #include <complex>
 #include <vector>
 
-#include <QPointF>
+#include "src/core/point.h"
 #include "src/core/range.h"
-#include <QString>
-#include <QVector>
 
 #include "src/core/system/polynomial_form.h"
 #include "src/core/system/free_form.h"
@@ -29,9 +29,17 @@
 
 namespace {
 
-using Complex = std::complex<qreal>;
+//std::string has no endsWith until C++20.
+bool endsWith(const std::string & text, const std::string & suffix)
+{
+    return text.size() >= suffix.size()
+            && text.compare(text.size() - suffix.size(), suffix.size(), suffix) == 0;
+}
 
-constexpr qreal kTolerance = 1e-9;
+
+using Complex = std::complex<double>;
+
+constexpr double kTolerance = 1e-9;
 
 std::vector<Parameter> vars(std::initializer_list<Parameter> list)
 {
@@ -47,10 +55,10 @@ ZeroPoleGain* makePlanta1()
     // planta1.qft: empty numerator, denominator {a in [1,5] nom 5,
     // b in [20,30] nom 30}, k = "kv" variable in [1,10] nom 1, ret = 0.
     return new ZeroPoleGain(
-        QStringLiteral("aa"), vars({}),
-        vars({Parameter(QStringLiteral("a"), Range(1.0, 5.0), 5.0, QStringLiteral("a")),
-              Parameter(QStringLiteral("b"), Range(20.0, 30.0), 30.0, QStringLiteral("b"))}),
-        Parameter(QStringLiteral("kv"), Range(1.0, 10.0), 1.0, QStringLiteral("kv")),
+        std::string("aa"), vars({}),
+        vars({Parameter(std::string("a"), Range(1.0, 5.0), 5.0, std::string("a")),
+              Parameter(std::string("b"), Range(20.0, 30.0), 30.0, std::string("b"))}),
+        Parameter(std::string("kv"), Range(1.0, 10.0), 1.0, std::string("kv")),
         Parameter(0.0));
 }
 
@@ -65,7 +73,7 @@ TEST(kGainExpr, NumericExpressionKeepsVariableNames)
 {
     ZeroPoleGain* plant = makePlanta1();
     EXPECT_EQ(plant->expression(0.1),
-              QStringLiteral("kv*(1) / (((0.1*i) + a) *((0.1*i) + b))"));
+              std::string("kv*(1) / (((0.1*i) + a) *((0.1*i) + b))"));
     delete plant;
 }
 
@@ -74,17 +82,17 @@ TEST(kGainExpr, SymbolicExpressionOmitsZeroFixedDelay)
     // Fixed in the delay rework: a zero fixed delay is not emitted (it used
     // to append "* e^(s*0)" unconditionally, and with the wrong sign).
     ZeroPoleGain* plant = makePlanta1();
-    EXPECT_EQ(plant->expression(), QStringLiteral("kv*(1) / ((s + a) *(s + b))"));
+    EXPECT_EQ(plant->expression(), std::string("kv*(1) / ((s + a) *(s + b))"));
     delete plant;
 }
 
 TEST(kGainExpr, FixedDelayEvaluatesAsNegativeExponential)
 {
     // P(s) = 1/(s+5) with a pure delay of 0.5s: P(jw)*e^(-j*w*0.5).
-    ZeroPoleGain plant(QStringLiteral("delayed"), vars({}), vars({Parameter(5.0)}),
+    ZeroPoleGain plant(std::string("delayed"), vars({}), vars({Parameter(5.0)}),
                      Parameter(1.0), Parameter(0.5));
 
-    const qreal w = 2.0;
+    const double w = 2.0;
     const Complex s(0.0, w);
     const Complex expected = std::exp(-s * 0.5) / (s + 5.0);
 
@@ -92,7 +100,7 @@ TEST(kGainExpr, FixedDelayEvaluatesAsNegativeExponential)
     EXPECT_NEAR(value.real(), expected.real(), kTolerance);
     EXPECT_NEAR(value.imag(), expected.imag(), kTolerance);
 
-    EXPECT_TRUE(plant.expression().endsWith(QStringLiteral(" * e^(-s*0.5)")));
+    EXPECT_TRUE(endsWith(plant.expression(), " * e^(-s*0.5)"));
 }
 
 TEST(kGainExpr, VariableDelayWithZeroNominalStaysInExpression)
@@ -100,11 +108,11 @@ TEST(kGainExpr, VariableDelayWithZeroNominalStaysInExpression)
     // An uncertain delay must stay in the expression by name even when its
     // nominal is 0, so the template sweep can drive it (it used to vanish).
     ZeroPoleGain plant(
-        QStringLiteral("delayed"), vars({}), vars({Parameter(5.0)}), Parameter(1.0),
-        Parameter(QStringLiteral("tau"), Range(0.0, 0.5), 0.0, QStringLiteral("tau")));
+        std::string("delayed"), vars({}), vars({Parameter(5.0)}), Parameter(1.0),
+        Parameter(std::string("tau"), Range(0.0, 0.5), 0.0, std::string("tau")));
 
-    EXPECT_TRUE(plant.expression(0.1).endsWith(QStringLiteral("* e^(-i*0.1*tau)")));
-    EXPECT_TRUE(plant.expression().endsWith(QStringLiteral(" * e^(-s*tau)")));
+    EXPECT_TRUE(endsWith(plant.expression(0.1), "* e^(-i*0.1*tau)"));
+    EXPECT_TRUE(endsWith(plant.expression(), " * e^(-s*tau)"));
 }
 
 TEST(kGainExpr, NominalEvaluation)
@@ -133,7 +141,7 @@ TEST(kGainExpr, CloneIsDeep)
     EXPECT_NE(&copy->numerator(), &plant->numerator());
     ASSERT_EQ(copy->denominator().size(), 2);
     EXPECT_NE(&copy->denominator()[0], &plant->denominator()[0]);
-    EXPECT_EQ(copy->denominator()[0].name(), QStringLiteral("a"));
+    EXPECT_EQ(copy->denominator()[0].name(), std::string("a"));
 
     delete plant;
 }
@@ -145,7 +153,7 @@ TEST(kGainExpr, CloneIsDeep)
 TimeConstantGain* makeTimeConstantPlant()
 {
     // P(s) = 5 / ((s/10 + 1)(s/20 + 1)), all values fixed.
-    return new TimeConstantGain(QStringLiteral("tc"), vars({}),
+    return new TimeConstantGain(std::string("tc"), vars({}),
                           vars({Parameter(10.0), Parameter(20.0)}), Parameter(5.0),
                           Parameter(0.0));
 }
@@ -208,13 +216,13 @@ TEST(kNumeratorGainExpr, VariableGainUsesItsRealName)
     // Fixed: the expression emitted the hardcoded identifier "kv" for a
     // variable gain; with any other name muParserX auto-created kv = 0 and
     // the whole plant silently evaluated to zero.
-    TimeConstantGain plant(QStringLiteral("named"), vars({}), vars({Parameter(10.0)}),
-                      Parameter(QStringLiteral("K1"), Range(1.0, 10.0), 5.0,
-                              QStringLiteral("K1")),
+    TimeConstantGain plant(std::string("named"), vars({}), vars({Parameter(10.0)}),
+                      Parameter(std::string("K1"), Range(1.0, 10.0), 5.0,
+                              std::string("K1")),
                       Parameter(0.0));
 
-    EXPECT_TRUE(plant.expression(1.0).startsWith(QStringLiteral("K1*(")));
-    EXPECT_TRUE(plant.expression().startsWith(QStringLiteral("K1*(")));
+    EXPECT_TRUE(plant.expression(1.0).rfind("K1*(", 0) == 0);
+    EXPECT_TRUE(plant.expression().rfind("K1*(", 0) == 0);
 
     const Complex s(0.0, 1.0);
     const Complex expected = 5.0 / (s / 10.0 + 1.0);
@@ -230,7 +238,7 @@ TEST(kNumeratorGainExpr, VariableGainUsesItsRealName)
 PolynomialForm* makePolynomialPlant()
 {
     // P(s) = 1 / (s^2 + 2s + 3): numerator {1}, denominator {1, 2, 3}.
-    return new PolynomialForm(QStringLiteral("poly"), vars({Parameter(1.0)}),
+    return new PolynomialForm(std::string("poly"), vars({Parameter(1.0)}),
                            vars({Parameter(1.0), Parameter(2.0), Parameter(3.0)}),
                            Parameter(1.0), Parameter(0.0));
 }
@@ -258,13 +266,13 @@ TEST(CPolinomiosExpr, NominalEvaluationMatchesPolynomialForm)
 TEST(CPolinomiosExpr, VariableGainUsesItsRealName)
 {
     // Fixed: same hardcoded "kv" as TimeConstantGain.
-    PolynomialForm plant(QStringLiteral("named"), vars({Parameter(1.0)}),
+    PolynomialForm plant(std::string("named"), vars({Parameter(1.0)}),
                        vars({Parameter(1.0), Parameter(2.0)}),
-                       Parameter(QStringLiteral("K1"), Range(1.0, 10.0), 2.0,
-                               QStringLiteral("K1")),
+                       Parameter(std::string("K1"), Range(1.0, 10.0), 2.0,
+                               std::string("K1")),
                        Parameter(0.0));
 
-    EXPECT_TRUE(plant.expression(1.0).startsWith(QStringLiteral("(K1*(")));
+    EXPECT_TRUE(plant.expression(1.0).rfind("(K1*(", 0) == 0);
 
     const Complex s(0.0, 1.0);
     const Complex expected = 2.0 / (s + 2.0);
@@ -277,11 +285,11 @@ TEST(CPolinomiosExpr, FixedDelayEvaluatesAsNegativeExponential)
 {
     // P(s) = 1/(s^2+2s+3) with a pure delay of 0.7s. The symbolic form used
     // to concatenate the delay without a '*' (a parse error) — now fixed.
-    PolynomialForm plant(QStringLiteral("delayed"), vars({Parameter(1.0)}),
+    PolynomialForm plant(std::string("delayed"), vars({Parameter(1.0)}),
                        vars({Parameter(1.0), Parameter(2.0), Parameter(3.0)}),
                        Parameter(1.0), Parameter(0.7));
 
-    const qreal w = 2.0;
+    const double w = 2.0;
     const Complex s(0.0, w);
     const Complex expected = std::exp(-s * 0.7) / (s * s + 2.0 * s + 3.0);
 
@@ -289,16 +297,16 @@ TEST(CPolinomiosExpr, FixedDelayEvaluatesAsNegativeExponential)
     EXPECT_NEAR(value.real(), expected.real(), kTolerance);
     EXPECT_NEAR(value.imag(), expected.imag(), kTolerance);
 
-    EXPECT_TRUE(plant.expression().endsWith(QStringLiteral(" * e^(-s*0.7)")));
+    EXPECT_TRUE(endsWith(plant.expression(), " * e^(-s*0.7)"));
 }
 
 TEST(kNumeratorGainExpr, FixedDelayEvaluatesAsNegativeExponential)
 {
     // P(s) = 5/(s/10+1) with a pure delay of 0.3s.
-    TimeConstantGain plant(QStringLiteral("delayed"), vars({}), vars({Parameter(10.0)}),
+    TimeConstantGain plant(std::string("delayed"), vars({}), vars({Parameter(10.0)}),
                       Parameter(5.0), Parameter(0.3));
 
-    const qreal w = 1.0;
+    const double w = 1.0;
     const Complex s(0.0, w);
     const Complex expected = 5.0 * std::exp(-s * 0.3) / (s / 10.0 + 1.0);
 
@@ -317,11 +325,11 @@ FreeForm* makeCerveraPlant()
     // k = 1 fixed, ret = 0. Numerator and denominator each hold their own
     // Parameter "a" (two distinct objects with identical content).
     return new FreeForm(
-        QStringLiteral("cervera"),
-        vars({Parameter(QStringLiteral("a"), Range(0.5, 2.0), 2.0, QStringLiteral("a"))}),
-        vars({Parameter(QStringLiteral("a"), Range(0.5, 2.0), 2.0, QStringLiteral("a"))}),
-        Parameter(1.0), Parameter(0.0), QStringLiteral("a"),
-        QStringLiteral("(s^2)*((s^2) + a)"));
+        std::string("cervera"),
+        vars({Parameter(std::string("a"), Range(0.5, 2.0), 2.0, std::string("a"))}),
+        vars({Parameter(std::string("a"), Range(0.5, 2.0), 2.0, std::string("a"))}),
+        Parameter(1.0), Parameter(0.0), std::string("a"),
+        std::string("(s^2)*((s^2) + a)"));
 }
 
 TEST(FormatoLibreExpr, Class)
@@ -334,15 +342,15 @@ TEST(FormatoLibreExpr, Class)
 TEST(FormatoLibreExpr, StoredExpressionsAreVisible)
 {
     FreeForm* plant = makeCerveraPlant();
-    EXPECT_EQ(plant->numeratorString(), QStringLiteral("a"));
-    EXPECT_EQ(plant->denominatorString(), QStringLiteral("(s^2)*((s^2) + a)"));
+    EXPECT_EQ(plant->numeratorString(), std::string("a"));
+    EXPECT_EQ(plant->denominatorString(), std::string("(s^2)*((s^2) + a)"));
     delete plant;
 }
 
 TEST(FormatoLibreExpr, SymbolicExpression)
 {
     FreeForm* plant = makeCerveraPlant();
-    EXPECT_EQ(plant->expression(), QStringLiteral("1*(a)/((s^2)*((s^2) + a))"));
+    EXPECT_EQ(plant->expression(), std::string("1*(a)/((s^2)*((s^2) + a))"));
     delete plant;
 }
 
@@ -350,7 +358,7 @@ TEST(FormatoLibreExpr, NumericExpressionSubstitutesS)
 {
     FreeForm* plant = makeCerveraPlant();
     EXPECT_EQ(plant->expression(0.1),
-              QStringLiteral("1*(a)/(((0.1*i)^2)*(((0.1*i)^2) + a))"));
+              std::string("1*(a)/(((0.1*i)^2)*(((0.1*i)^2) + a))"));
     delete plant;
 }
 
@@ -359,14 +367,14 @@ TEST(FormatoLibreExpr, NumericExpressionOnlyReplacesTheLaplaceVariable)
     //The historical substring replace mutilated "sin", "sqrt" and any
     //parameter whose name contains an 's'.
     FreeForm* plant = new FreeForm(
-        QStringLiteral("tokens"),
-        vars({Parameter(QStringLiteral("desp"), Range(0.5, 2.0), 1.0, QStringLiteral("desp"))}),
+        std::string("tokens"),
+        vars({Parameter(std::string("desp"), Range(0.5, 2.0), 1.0, std::string("desp"))}),
         vars({}),
         Parameter(1.0), Parameter(0.0),
-        QStringLiteral("sin(s) + sqrt(desp) + s"), QStringLiteral("1"));
+        std::string("sin(s) + sqrt(desp) + s"), std::string("1"));
 
     EXPECT_EQ(plant->expression(2.0),
-              QStringLiteral("1*(sin((2*i)) + sqrt(desp) + (2*i))/(1)"));
+              std::string("1*(sin((2*i)) + sqrt(desp) + (2*i))/(1)"));
     delete plant;
 }
 
@@ -403,11 +411,11 @@ TEST(FormatoLibreExpr, FixedDelayEvaluatesAsNegativeExponential)
 {
     // P(s) = 1/(s+2) with a pure delay of 0.4s. The symbolic form used to
     // ignore the delay entirely — now both forms emit e^(-s*tau).
-    FreeForm plant(QStringLiteral("delayed"), vars({}), vars({}),
-                        Parameter(1.0), Parameter(0.4), QStringLiteral("1"),
-                        QStringLiteral("s+2"));
+    FreeForm plant(std::string("delayed"), vars({}), vars({}),
+                        Parameter(1.0), Parameter(0.4), std::string("1"),
+                        std::string("s+2"));
 
-    const qreal w = 1.0;
+    const double w = 1.0;
     const Complex s(0.0, w);
     const Complex expected = std::exp(-s * 0.4) / (s + 2.0);
 
@@ -415,7 +423,7 @@ TEST(FormatoLibreExpr, FixedDelayEvaluatesAsNegativeExponential)
     EXPECT_NEAR(value.real(), expected.real(), kTolerance);
     EXPECT_NEAR(value.imag(), expected.imag(), kTolerance);
 
-    EXPECT_TRUE(plant.expression().endsWith(QStringLiteral(" * e^(-s*0.4)")));
+    EXPECT_TRUE(endsWith(plant.expression(), " * e^(-s*0.4)"));
 }
 
 TEST(FormatoLibreExpr, CloneKeepsTheDenominator)
@@ -428,9 +436,9 @@ TEST(FormatoLibreExpr, CloneKeepsTheDenominator)
 
     delete plant;
 
-    EXPECT_EQ(copia->numeratorString(), QStringLiteral("a"));
-    EXPECT_EQ(copia->denominatorString(), QStringLiteral("(s^2)*((s^2) + a)"));
-    EXPECT_EQ(copia->expression(), QStringLiteral("1*(a)/((s^2)*((s^2) + a))"));
+    EXPECT_EQ(copia->numeratorString(), std::string("a"));
+    EXPECT_EQ(copia->denominatorString(), std::string("(s^2)*((s^2) + a)"));
+    EXPECT_EQ(copia->expression(), std::string("1*(a)/((s^2)*((s^2) + a))"));
 }
 
 TEST(SystemOwnership, CloneAndDestroyBothOwners)
@@ -455,9 +463,9 @@ TEST(SystemInvoke, NullDelayBecomesZeroConstant)
     // Fixed: create() declares ret = NULL as default, but ZeroPoleGain's guard
     // was `ret = NULL ? ... : ret` (assignment, not comparison) and the
     // other types had no guard at all: expression dereferenced a null pointer.
-    ZeroPoleGain proto(QStringLiteral("p"), {}, {}, Parameter(1.0), Parameter(0.0));
+    ZeroPoleGain proto(std::string("p"), {}, {}, Parameter(1.0), Parameter(0.0));
 
-    const std::unique_ptr<LtiSystem> built = proto.create(QStringLiteral("built"), vars({}),
+    const std::unique_ptr<LtiSystem> built = proto.create(std::string("built"), vars({}),
                                   vars({Parameter(5.0)}), Parameter(2.0));
     ASSERT_NE(built, nullptr);
     //An unspecified delay is a zero-delay VALUE now: there is no null to

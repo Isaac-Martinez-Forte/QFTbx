@@ -23,7 +23,7 @@ namespace {
 
 using cxsc::interval;
 
-std::unique_ptr<ListNode> node(qreal index)
+std::unique_ptr<ListNode> node(double index)
 {
     return std::make_unique<ListNode>(index);
 }
@@ -32,7 +32,7 @@ std::unique_ptr<ListNode> node(qreal index)
 class CountingNode : public ListNode
 {
 public:
-    explicit CountingNode(qreal index) : ListNode(index) { alive++; }
+    explicit CountingNode(double index) : ListNode(index) { alive++; }
     ~CountingNode() override { alive--; }
 
     static int alive;
@@ -197,7 +197,7 @@ TEST(ExpressionTree, ScalarEvaluationWithVariables)
     alg::ExpressionTree tree("1");
     tree.setFunc(std::string("2*x+3"));
 
-    std::map<std::string, qreal> variables;
+    std::map<std::string, double> variables;
     variables["x"] = 5.0;
 
     EXPECT_DOUBLE_EQ(tree.eval(&variables), 13.0);
@@ -208,7 +208,7 @@ TEST(ExpressionTree, ScalarEvaluationWithFunctionsAndConstants)
     alg::ExpressionTree tree("1");
     tree.setFunc(std::string("cos(0)+sqrt(9)"));
 
-    EXPECT_DOUBLE_EQ(tree.eval(static_cast<std::map<std::string, qreal> *>(nullptr)), 4.0);
+    EXPECT_DOUBLE_EQ(tree.eval(static_cast<std::map<std::string, double> *>(nullptr)), 4.0);
 }
 
 TEST(ExpressionTree, IntervalEvaluationEnclosesTheRange)

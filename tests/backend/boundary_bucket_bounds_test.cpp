@@ -11,12 +11,13 @@
 
 #include <gtest/gtest.h>
 
-#include <QMap>
+#include <cstdint>
+
+#include <string>
+
 #include "src/core/point.h"
 
 #include "src/core/range.h"
-#include <QString>
-#include <QVector>
 
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/exception.h"
@@ -30,7 +31,7 @@ namespace {
 //phaseCount buckets, holding a single closed boundary point.
 //By value throughout: fifteen lines of heap allocation and a takeOwnership()
 //call became five, and there is nothing left for the fixture to free.
-BoundaryData narrowWindow(qreal phaseStart, qint32 phaseCount)
+BoundaryData narrowWindow(double phaseStart, std::int32_t phaseCount)
 {
     //One bucket row of phaseCount buckets, with one boundary point in the
     //first bucket.
@@ -79,7 +80,7 @@ TEST(BoundaryBucketBounds, TheFullWindowEdgeIsTheLastBucket)
 //allowed side is up gives a parity rule the bucket can be read through: one
 //boundary point below the query means feasible, an empty bucket means
 //infeasible.
-BoundaryData fractionalWindow(qreal phaseStart, qint32 phaseCount, std::size_t pointBucket)
+BoundaryData fractionalWindow(double phaseStart, std::int32_t phaseCount, std::size_t pointBucket)
 {
     qftbx::UnionBuckets buckets{qftbx::TraceSet(static_cast<std::size_t>(phaseCount))};
     buckets[0][pointBucket].push_back(qftbx::NicholsPoint(phaseStart, 0.0));

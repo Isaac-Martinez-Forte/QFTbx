@@ -1,15 +1,17 @@
+#include <string>
 #include <vector>
 #include <cstdint>
 #include <cmath>
 #include <complex>
 
+#include "src/core/text_tokens.h"
 #include "time_constant_gain.h"
 
 using namespace std;
 
 namespace qftbx {
 
-TimeConstantGain::TimeConstantGain(QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator, Parameter k, Parameter delay):
+TimeConstantGain::TimeConstantGain(std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator, Parameter k, Parameter delay):
     TransferFunction(name, numerator, denominator,k,delay)
 {
 }
@@ -17,74 +19,74 @@ TimeConstantGain::TimeConstantGain(QString name, std::vector <Parameter> numerat
 TimeConstantGain::~TimeConstantGain(){
 }
 
-std::unique_ptr<LtiSystem> TimeConstantGain::create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
-                              Parameter k, Parameter delay, QString numeratorExpr __attribute__((unused)), QString denominatorExpr __attribute__((unused))){
+std::unique_ptr<LtiSystem> TimeConstantGain::create (std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
+                              Parameter k, Parameter delay, std::string numeratorExpr __attribute__((unused)), std::string denominatorExpr __attribute__((unused))){
     return std::make_unique<TimeConstantGain>(name, std::move(numerator), std::move(denominator),
                                               std::move(k), std::move(delay));
 }
 
-QString TimeConstantGain::expression (std::vector <double> * numerator, std::vector <double> * denominator,
+std::string TimeConstantGain::expression (std::vector <double> * numerator, std::vector <double> * denominator,
                              double k, double delay, double omega){
     std::int32_t sizeDen = denominator->size();
     std::int32_t sizeNum = numerator->size();
 
-    QString expr;
+    std::string expr;
 
-    expr += QString::number(k) + "*(";
+    expr += qftbx::text::number(k) + "*(";
 
 
     for (std::int32_t i = 0; i < sizeNum-1; i++){
 
-        expr += "((("+ QString::number(omega) + "*i) /" + QString::number(numerator->at(i)) + ")+1) *";
+        expr += "((("+ qftbx::text::number(omega) + "*i) /" + qftbx::text::number(numerator->at(i)) + ")+1) *";
     }
 
     if (sizeNum == 0){
         expr += "(1)) / (";
     } else{
-        expr += "(((" + QString::number(omega) + "*i) / " + QString::number(numerator->back()) + ")+1)) / (";
+        expr += "(((" + qftbx::text::number(omega) + "*i) / " + qftbx::text::number(numerator->back()) + ")+1)) / (";
     }
 
 
     for (std::int32_t i = 0; i < sizeDen-1; i++){
 
-        expr += "((("+ QString::number(omega) + "*i) / " + QString::number(denominator->at(i)) + ")+1) *";
+        expr += "((("+ qftbx::text::number(omega) + "*i) / " + qftbx::text::number(denominator->at(i)) + ")+1) *";
     }
 
     if (sizeDen == 0){
         expr += "(1))";
     }else {
-        expr += "((("+ QString::number(omega) + "*i) /" + QString::number(denominator->back()) + ")+1))";
+        expr += "((("+ qftbx::text::number(omega) + "*i) /" + qftbx::text::number(denominator->back()) + ")+1))";
     }
 
 
     if (delay != 0){
-        expr += "* e^(-i*" + QString::number(omega) + "*" + QString::number(delay) +")";
+        expr += "* e^(-i*" + qftbx::text::number(omega) + "*" + qftbx::text::number(delay) +")";
     }
 
 
     return expr;
 }
 
-QString TimeConstantGain::expression(double w){
+std::string TimeConstantGain::expression(double w){
 
     std::int32_t sizeDen = m_denominator.size();
     std::int32_t sizeNum = m_numerator.size();
 
-    QString expr;
+    std::string expr;
 
     if (m_gain.isUncertain()){
         expr += m_gain.name() + "*(";
     }else {
-        expr += QString::number(m_gain.nominal()) + "*(";
+        expr += qftbx::text::number(m_gain.nominal()) + "*(";
     }
 
 
     for (std::int32_t i = 0; i < sizeNum-1; i++){
 
         if (m_numerator[i].isUncertain()){
-            expr += "(((" + QString::number(w) + "*i) / " + m_numerator[i].name() + ")+1) *";
+            expr += "(((" + qftbx::text::number(w) + "*i) / " + m_numerator[i].name() + ")+1) *";
         } else {
-            expr += "((("+ QString::number(w) + "*i) /" + QString::number(m_numerator[i].nominal()) + ")+1) *";
+            expr += "((("+ qftbx::text::number(w) + "*i) /" + qftbx::text::number(m_numerator[i].nominal()) + ")+1) *";
         }
     }
 
@@ -92,18 +94,18 @@ QString TimeConstantGain::expression(double w){
         expr += "(1)) / (";
     }else {
         if(m_numerator.back().isUncertain()){
-            expr += "(((" + QString::number(w) + "*i) / " + m_numerator.back().name() + ")+1)) / (";
+            expr += "(((" + qftbx::text::number(w) + "*i) / " + m_numerator.back().name() + ")+1)) / (";
         } else {
-            expr += "(((" + QString::number(w) + "*i) / " + QString::number(m_numerator.back().nominal()) + ")+1)) / (";
+            expr += "(((" + qftbx::text::number(w) + "*i) / " + qftbx::text::number(m_numerator.back().nominal()) + ")+1)) / (";
         }
     }
 
     for (std::int32_t i = 0; i < sizeDen-1; i++){
 
         if (m_denominator[i].isUncertain()){
-            expr += "(((" + QString::number(w) + "*i) / " + m_denominator[i].name() + ")+1) *";
+            expr += "(((" + qftbx::text::number(w) + "*i) / " + m_denominator[i].name() + ")+1) *";
         } else {
-            expr += "((("+ QString::number(w) + "*i) / " + QString::number(m_denominator[i].nominal()) + ")+1) *";
+            expr += "((("+ qftbx::text::number(w) + "*i) / " + qftbx::text::number(m_denominator[i].nominal()) + ")+1) *";
         }
     }
 
@@ -112,9 +114,9 @@ QString TimeConstantGain::expression(double w){
     } else {
 
         if (m_denominator.back().isUncertain()){
-            expr += "(((" + QString::number(w) + "*i) / " + m_denominator.back().name() + ")+1))";
+            expr += "(((" + qftbx::text::number(w) + "*i) / " + m_denominator.back().name() + ")+1))";
         }else{
-            expr += "((("+ QString::number(w) + "*i) /" + QString::number(m_denominator.back().nominal()) + ")+1))";
+            expr += "((("+ qftbx::text::number(w) + "*i) /" + qftbx::text::number(m_denominator.back().nominal()) + ")+1))";
         }
     }
 
@@ -122,24 +124,24 @@ QString TimeConstantGain::expression(double w){
     //uncertain (even with a zero nominal) or a non-zero constant, using the
     //parameter's real name.
     if (m_delay.isUncertain()){
-        expr += "* e^(-i*" + QString::number(w) + "*" + m_delay.name() + ")";
+        expr += "* e^(-i*" + qftbx::text::number(w) + "*" + m_delay.name() + ")";
     }else if (m_delay.nominal() != 0){
-        expr += "* e^(-i*" + QString::number(w) + "*" + QString::number(m_delay.nominal()) +")";
+        expr += "* e^(-i*" + qftbx::text::number(w) + "*" + qftbx::text::number(m_delay.nominal()) +")";
     }
 
     return expr;
 }
 
-QString TimeConstantGain::expression(){
+std::string TimeConstantGain::expression(){
     std::int32_t sizeDen = m_denominator.size();
     std::int32_t sizeNum = m_numerator.size();
 
-    QString expr;
+    std::string expr;
 
     if (m_gain.isUncertain()){
         expr += m_gain.name() + "*(";
     }else {
-        expr += QString::number(m_gain.nominal()) + "*(";
+        expr += qftbx::text::number(m_gain.nominal()) + "*(";
     }
 
 
@@ -148,7 +150,7 @@ QString TimeConstantGain::expression(){
         if (m_numerator[i].isUncertain()){
             expr += "(s / " + m_numerator[i].name() + "+1) *";
         } else {
-            expr += "(s /" + QString::number(m_numerator[i].nominal()) + "+1) *";
+            expr += "(s /" + qftbx::text::number(m_numerator[i].nominal()) + "+1) *";
         }
     }
 
@@ -159,7 +161,7 @@ QString TimeConstantGain::expression(){
         if(m_numerator.back().isUncertain()){
             expr += "(s / " + m_numerator.back().name() + "+1)) / (";
         } else {
-            expr += "(s / " + QString::number(m_numerator.back().nominal()) + "+1)) / (";
+            expr += "(s / " + qftbx::text::number(m_numerator.back().nominal()) + "+1)) / (";
         }
     }
 
@@ -168,7 +170,7 @@ QString TimeConstantGain::expression(){
         if (m_denominator[i].isUncertain()){
             expr += "(s / " + m_denominator[i].name() + "+1) *";
         } else {
-            expr += "(s / " + QString::number(m_denominator[i].nominal()) + "+1) *";
+            expr += "(s / " + qftbx::text::number(m_denominator[i].nominal()) + "+1) *";
         }
     }
 
@@ -179,14 +181,14 @@ QString TimeConstantGain::expression(){
         if (m_denominator.back().isUncertain()){
             expr += "(s / " + m_denominator.back().name() + "+1))";
         }else{
-            expr += "(s /" + QString::number(m_denominator.back().nominal()) + "+1))";
+            expr += "(s /" + qftbx::text::number(m_denominator.back().nominal()) + "+1))";
         }
     }
 
     if (m_delay.isUncertain()){
         expr += "* e^(-s*" + m_delay.name() + ")";
     }else if (m_delay.nominal() != 0){
-        expr += "* e^(-s*" + QString::number(m_delay.nominal()) +")";
+        expr += "* e^(-s*" + qftbx::text::number(m_delay.nominal()) +")";
     }
 
     return expr;
@@ -206,19 +208,19 @@ std::complex <double> TimeConstantGain::evaluateNumerator(std::vector <double> *
     }
 
     std::int32_t sizeNum = nume->size();
-    QString expr = "(";
+    std::string expr = "(";
 
 
     for (std::int32_t i = 0; i < sizeNum-1; i++){
 
-        expr += "((("+ QString::number(omega) + "*i) /" + QString::number(nume->at(i)) + ")+1) *";
+        expr += "((("+ qftbx::text::number(omega) + "*i) /" + qftbx::text::number(nume->at(i)) + ")+1) *";
     }
 
-    expr += "(((" + QString::number(omega) + "*i) / " + QString::number(nume->back()) + ")+1))";
+    expr += "(((" + qftbx::text::number(omega) + "*i) / " + qftbx::text::number(nume->back()) + ")+1))";
 
     mup::ParserX p (mup::pckALL_COMPLEX);
 
-    p.SetExpr(expr.toStdString());
+    p.SetExpr(expr);
 
     return p.Eval().GetComplex();
 }
@@ -230,18 +232,18 @@ std::complex <double> TimeConstantGain::evaluateDenominator(std::vector <double>
     }
 
     std::int32_t sizeDen = deno->size();
-    QString expr = "(";
+    std::string expr = "(";
 
     for (std::int32_t i = 0; i < sizeDen-1; i++){
 
-        expr += "((("+ QString::number(omega) + "*i) / " + QString::number(deno->at(i)) + ")+1) *";
+        expr += "((("+ qftbx::text::number(omega) + "*i) / " + qftbx::text::number(deno->at(i)) + ")+1) *";
     }
 
-    expr += "((("+ QString::number(omega) + "*i) /" + QString::number(deno->back()) + ")+1))";
+    expr += "((("+ qftbx::text::number(omega) + "*i) /" + qftbx::text::number(deno->back()) + ")+1))";
 
     mup::ParserX p (mup::pckALL_COMPLEX);
 
-    p.SetExpr(expr.toStdString());
+    p.SetExpr(expr);
 
     return p.Eval().GetComplex();
 }

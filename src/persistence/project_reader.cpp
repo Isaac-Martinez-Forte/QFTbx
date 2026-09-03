@@ -1,11 +1,14 @@
+#include <fstream>
+#include <algorithm>
+#include <cstdlib>
+#include <optional>
+#include <string>
 #include <vector>
 #include <cstdint>
 #include "project_reader.h"
 
-#include <QByteArray>
-#include <QFile>
+#include "src/core/text_tokens.h"
 #include "src/core/point.h"
-#include <QMap>
 
 #include <pugixml.hpp>
 #include <iterator>
@@ -27,7 +30,7 @@ namespace qftbx {
 class ProjectFileParser
 {
 public:
-    ProjectFileParser(const QString & filePath, const QByteArray & raw, const Tags & tags)
+    ProjectFileParser(const std::string & filePath, const std::string & raw, const Tags & tags)
         : m_filePath(filePath), m_raw(raw), t(tags) {}
 
     [[noreturn]] void fail(const pugi::xml_node & node, const std::string & what) const
@@ -35,9 +38,10 @@ public:
         std::int64_t line = 0;
         const ptrdiff_t offset = node.offset_debug();
         if (offset >= 0 && offset <= m_raw.size()) {
-            line = 1 + QByteArray(m_raw.constData(), offset).count('\n');
+            line = 1 + std::count(m_raw.begin(),
+                                  m_raw.begin() + static_cast<std::ptrdiff_t>(offset), '\n');
         }
-        throw ParseError(m_filePath.toStdString() + ": " + what, line);
+        throw ParseError(m_filePath + ": " + what, line);
     }
 
     pugi::xml_node require(const pugi::xml_node & parent, const char * name) const
@@ -51,8 +55,10 @@ public:
 
     double realText(const pugi::xml_node & node) const
     {
-        bool ok = false;
-        const double value = QString(node.text().get()).toDouble(&ok);
+        char * end = nullptr;
+        const char * raw = node.text().get();
+        const double value = std::strtod(raw, &end);
+        const bool ok = end != nullptr && end != raw && *end == '\0';
         if (!ok) {
             fail(node, std::string("<") + node.name() + "> is not a number");
         }
@@ -67,11 +73,11 @@ public:
     bool boolChild(const pugi::xml_node & parent, const char * name) const
     {
         const pugi::xml_node node = require(parent, name);
-        const QString text = node.text().get();
-        if (text == QStringLiteral("true")) {
+        const std::string text = node.text().get();
+        if (text == ("true")) {
             return true;
         }
-        if (text == QStringLiteral("false")) {
+        if (text == ("false")) {
             return false;
         }
         fail(node, std::string("<") + name + "> is not a boolean");
@@ -83,8 +89,12 @@ public:
         if (!attribute) {
             fail(node, std::string("missing attribute '") + name + "'");
         }
-        bool ok = false;
-        const std::int32_t value = QString(attribute.value()).toInt(&ok);
+        char * end = nullptr;
+        const char * raw = attribute.value();
+        const long parsed = std::strtol(raw, &end, 10);
+        const std::int32_t value = static_cast<std::int32_t>(parsed);
+        const bool ok = end != nullptr && end != raw && *end == '\0'
+                && parsed >= INT32_MIN && parsed <= INT32_MAX;
         if (!ok) {
             fail(node, std::string("attribute '") + name + "' is not an integer");
         }
@@ -96,18 +106,16 @@ public:
     //first garbage token; this one rejects it.
     std::vector <double> realVector(const pugi::xml_node & node) const
     {
-        std::vector <double> values;
-        const QString text = QString(node.text().get());
-        const QStringList tokens = text.split(' ', Qt::SkipEmptyParts);
-        values.reserve(tokens.size());
-        for (const QString & token : tokens) {
-            bool ok = false;
-            values.push_back(token.toDouble(&ok));
-            if (!ok) {
-                fail(node, std::string("<") + node.name() + "> holds a non-numeric token");
-            }
+        //text::reals answers exactly this, whole-token validation and all:
+        //this loop was a second implementation of the same rule.
+        const std::optional<std::vector<double>> values =
+                qftbx::text::reals(node.text().get());
+
+        if (!values.has_value()) {
+            fail(node, std::string("<") + node.name() + "> holds a non-numeric token");
         }
-        return values;
+
+        return values.value();
     }
 
     std::vector<bool> boolVector(const pugi::xml_node & node) const
@@ -156,8 +164,8 @@ public:
         //The parameter name shares the tag with the section-name field in
         //the legacy dialect ("nombre"): resolve it positionally after
         //'uncertain', which every dialect writes before it.
-        const QString name = QString(require(node, t.parameterName).text().get());
-        const QString expression = QString(require(node, t.parameterExpression).text().get());
+        const std::string name = std::string(require(node, t.parameterName).text().get());
+        const std::string expression = std::string(require(node, t.parameterExpression).text().get());
         const pugi::xml_node range = require(node, t.range);
 
         return Parameter(name, Range(realChild(range, t.rangeMin),
@@ -167,17 +175,17 @@ public:
 
     std::unique_ptr<LtiSystem> readSystem(const pugi::xml_node & systemNode) const
     {
-        const QString name = QString(systemNode.attribute(t.nameAttribute).value());
+        const std::string name = std::string(systemNode.attribute(t.nameAttribute).value());
 
         const pugi::xml_node typeNode = require(systemNode, t.type);
         const auto type = static_cast<LtiSystem::SystemType>(intAttribute(typeNode, t.typeAttribute));
 
         const pugi::xml_node expressionNode = require(typeNode, t.expression);
-        QString numeratorExpression;
-        QString denominatorExpression;
+        std::string numeratorExpression;
+        std::string denominatorExpression;
         if (intAttribute(expressionNode, "size") == 2) {
-            numeratorExpression = QString(require(expressionNode, t.numerator).text().get());
-            denominatorExpression = QString(require(expressionNode, t.denominator).text().get());
+            numeratorExpression = std::string(require(expressionNode, t.numerator).text().get());
+            denominatorExpression = std::string(require(expressionNode, t.denominator).text().get());
         }
 
         std::vector <Parameter> numerator;
@@ -239,7 +247,7 @@ public:
 
         for (const pugi::xml_node & node : section.children(t.specification)) {
             qftbx::SpecificationRecord & record = specifications.at(slot++);
-            record.name = modernSpecificationName(QString(node.attribute(t.nameAttribute).value()));
+            record.name = modernSpecificationName(std::string(node.attribute(t.nameAttribute).value()));
             record.used = boolChild(node, t.used);
 
             if (record.used) {
@@ -342,10 +350,10 @@ public:
 
         qftbx::BoundarySet boundaries;
         for (const pugi::xml_node & frequencyNode : require(data, t.perFrequency).children()) {
-            std::map<QString, qftbx::TraceSet> map;
+            std::map<std::string, qftbx::TraceSet> map;
             for (const pugi::xml_node & keyNode : frequencyNode.children()) {
                 //Legacy files store the historical Spanish keys.
-                map[modernSpecificationName(QString(keyNode.name()))] = readTraces(keyNode);
+                map[modernSpecificationName(std::string(keyNode.name()))] = readTraces(keyNode);
             }
             boundaries.push_back(std::move(map));
         }
@@ -385,8 +393,8 @@ public:
         return std::make_unique<LoopShapingResult>(readSystem(systemNode), range, pointCount);
     }
 
-    const QString & m_filePath;
-    const QByteArray & m_raw;
+    const std::string & m_filePath;
+    const std::string & m_raw;
     const Tags & t;
 };
 
@@ -400,27 +408,33 @@ namespace {
 //longer needs to be told: every member owns what it holds.
 ProjectReader::~ProjectReader() = default;
 
-std::vector<bool> ProjectReader::load(const QString & filePath)
+std::vector<bool> ProjectReader::load(const std::string & filePath)
 {
-    QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly)) {
-        throw FileError("Cannot open project file: " + filePath.toStdString());
+    std::ifstream file(filePath, std::ios::binary);
+    if (!file.is_open()) {
+        throw FileError("Cannot open project file: " + filePath);
     }
-    const QByteArray raw = file.readAll();
+    file.seekg(0, std::ios::end);
+    std::string raw;
+    raw.resize(static_cast<std::size_t>(file.tellg()));
+    file.seekg(0, std::ios::beg);
+    file.read(&raw[0], static_cast<std::streamsize>(raw.size()));
+    raw.resize(static_cast<std::size_t>(file.gcount()));
     file.close();
 
     pugi::xml_document document;
-    const pugi::xml_parse_result result = document.load_buffer(raw.constData(), raw.size(),
+    const pugi::xml_parse_result result = document.load_buffer(raw.data(), raw.size(),
                                                                pugi::parse_default, pugi::encoding_utf8);
     if (!result) {
-        const std::int64_t line = 1 + QByteArray(raw.constData(),
-                                           qMin<std::int64_t>(result.offset, raw.size())).count('\n');
-        throw ParseError(filePath.toStdString() + ": " + result.description(), line);
+        const std::size_t upTo = std::min(static_cast<std::size_t>(result.offset), raw.size());
+        const std::int64_t line = 1 + std::count(raw.begin(), raw.begin()
+                                                 + static_cast<std::ptrdiff_t>(upTo), '\n');
+        throw ParseError(filePath + ": " + result.description(), line);
     }
 
     const pugi::xml_node root = document.document_element();
-    if (QString(root.name()) != QStringLiteral("QFT")) {
-        throw ParseError(filePath.toStdString() + ": not a QFT project file (root <"
+    if (std::string(root.name()) != ("QFT")) {
+        throw ParseError(filePath + ": not a QFT project file (root <"
                          + root.name() + ">)", 1);
     }
 

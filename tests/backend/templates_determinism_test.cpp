@@ -12,12 +12,11 @@
 
 #include <gtest/gtest.h>
 
+#include <string>
+
 #include <complex>
 #include <vector>
 
-#include <QHash>
-#include <QString>
-#include <QVector>
 
 #ifdef OpenMP_AVAILABLE
 #include <omp.h>
@@ -40,7 +39,7 @@ void appendAll(const qftbx::CloudSet & sets, Numbers & out)
 {
     for (const qftbx::ComplexCloud & set : sets) {
         out.push_back(static_cast<double>(set.size()));
-        for (const std::complex<qreal> & value : set) {
+        for (const std::complex<double> & value : set) {
             out.push_back(value.real());
             out.push_back(value.imag());
         }
@@ -60,7 +59,7 @@ Numbers sweep(int threads)
 #endif
 
     qftbx::ProjectReader parser;
-    parser.load(QStringLiteral(QFTBX_TEST_DATA_DIR "/planta2.qft"));
+    parser.load(std::string(QFTBX_TEST_DATA_DIR "/planta2.qft"));
 
     LtiSystem * plant = parser.plant();
     if (plant == nullptr) {

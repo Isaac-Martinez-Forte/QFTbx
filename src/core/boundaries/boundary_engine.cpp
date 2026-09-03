@@ -1,3 +1,5 @@
+#include <chrono>
+#include <string>
 #include <algorithm>
 #include <vector>
 #include <cstdint>
@@ -5,7 +7,6 @@
 
 #include "src/core/math/parser_warmup.h"
 
-#include <QElapsedTimer>
 #include <iostream>
 
 #include "src/core/math/sequence_vectors.h" //linspace for the sheet axes
@@ -56,7 +57,7 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
     //(thesis ch. 7: it exists so exported data can carry a finite value in
     //formats that cannot represent an infinity). It is kept in the
     //interface for the numeric export, still to be implemented.
-    Q_UNUSED(exportInfinity);
+    (void) exportInfinity;
 
 
 
@@ -105,15 +106,14 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
 
 #ifdef CUDA_AVAILABLE
 
-    QElapsedTimer timer;
-    timer.start();
+    const auto timer = std::chrono::steady_clock::now();
 
     if (!cuda){
 
         computeFrequencies(omega, plant, templates, phaseRange,
                            phaseCount, magnitudeRange, magnitudeCount);
 
-        cout << "boundaries OpenMP: " << timer.elapsed() << " milliseconds" << endl;
+        cout << "boundaries OpenMP: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timer).count() << " milliseconds" << endl;
 
     } else {
 
@@ -133,9 +133,9 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
                 tools::linspace1(phaseRange.min, phaseRange.max, phaseCount),
                 tools::linspace1(magnitudeRange.min, magnitudeRange.max, magnitudeCount));
 
-            std::map<QString, TraceSet> bound;
+            std::map<std::string, TraceSet> bound;
 
-            std::map<QString, TraceLabels> traceMetadata;
+            std::map<std::string, TraceLabels> traceMetadata;
 
             traceFrequency(omega->at(i), bound, cudaSheets, traceMetadata, p0, valueSet, i,
                            phaseRange.magnitude - phaseRange.phase, magnitudeRange.magnitude - magnitudeRange.phase,
@@ -149,22 +149,21 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
         //the one leak releaseResults could not free).
         m_omega = omega;
 
-        cout << "boundaries CUDA: " << timer.elapsed() << " milliseconds" << endl;
+        cout << "boundaries CUDA: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timer).count() << " milliseconds" << endl;
 
 
     }
 #else
-    QElapsedTimer timer;
-    timer.start();
+    auto timer = std::chrono::steady_clock::now();
 
     computeFrequencies(omega, plant, templates, phaseRange, phaseCount, magnitudeRange, magnitudeCount);
 
-    cout << "boundaries OpenMP: " << timer.elapsed() << " milliseconds" << endl;
+    cout << "boundaries OpenMP: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timer).count() << " milliseconds" << endl;
 #endif
 
     BoundaryUnion1D boundaryUnion;
 
-    timer.restart();
+    timer = std::chrono::steady_clock::now();
 
     {
         //The union reads the boundaries through a BoundaryData; building one
@@ -174,7 +173,7 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
         boundaryUnion.run(&view, m_traceMetadata);
     }
 
-    cout << "1D union: " << timer.elapsed() << " milliseconds" << endl;
+    cout << "1D union: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timer).count() << " milliseconds" << endl;
 
     m_unionVectors = boundaryUnion.takeUnionVectors();
     m_unionBuckets = boundaryUnion.takeUnionBuckets();
@@ -196,9 +195,9 @@ std::vector <double> * BoundaryEngine::omega(){
 }
 
 
-void BoundaryEngine::traceFrequency(double omega, std::map<QString, TraceSet> & bound,
+void BoundaryEngine::traceFrequency(double omega, std::map<std::string, TraceSet> & bound,
                                     const BoundarySheets & sheets,
-                                    std::map<QString, TraceLabels> & traceMetadata,
+                                    std::map<std::string, TraceLabels> & traceMetadata,
                                     complex <double> p0, const ComplexCloud & valueSet, std::int32_t index,
                                     double phaseSpan, double magnitudeSpan, double phaseBottom, double magnitudeBottom){
 
@@ -261,9 +260,9 @@ void BoundaryEngine::traceFrequency(double omega, std::map<QString, TraceSet> & 
 }
 
 #ifdef CUDA_AVAILABLE
-void BoundaryEngine::traceFrequency(double omega, std::map<QString, TraceSet> & bound,
+void BoundaryEngine::traceFrequency(double omega, std::map<std::string, TraceSet> & bound,
                                     const BoundarySheetsCuda & cudaSheets,
-                                    std::map<QString, TraceLabels> & traceMetadata,
+                                    std::map<std::string, TraceLabels> & traceMetadata,
                                     complex <double> p0, const ComplexCloud & valueSet, std::int32_t index,
                                     double phaseSpan, double magnitudeSpan, double phaseBottom, double magnitudeBottom){
 
@@ -692,9 +691,9 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
         controlEffortSheet.push_back(std::move(controlEffortRow));
     }
 
-    std::map<QString, TraceSet> bound;
+    std::map<std::string, TraceSet> bound;
 
-    std::map<QString, TraceLabels> traceMetadata;
+    std::map<std::string, TraceLabels> traceMetadata;
 
     traceFrequency(omega, bound, sheets, traceMetadata, p0, p, index,
                    m_phaseRange.width(), m_magnitudeRange.width(),

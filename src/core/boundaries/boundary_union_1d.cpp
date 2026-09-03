@@ -1,3 +1,4 @@
+#include <string>
 #include <cstdint>
 #include <algorithm>
 
@@ -333,8 +334,8 @@ void BoundaryUnion1D::run(const BoundaryData * boundaries, const TraceMetadata &
 
     for (std::size_t i = 0; i < boundariesPerFrequency.size(); i++)
     {
-        const std::map<QString, TraceSet> & map = boundariesPerFrequency[i];
-        const std::map<QString, TraceLabels> & metadataMap = traceMetadata.at(i);
+        const std::map<std::string, TraceSet> & map = boundariesPerFrequency[i];
+        const std::map<std::string, TraceLabels> & metadataMap = traceMetadata.at(i);
 
         Trace unionPoints;
 

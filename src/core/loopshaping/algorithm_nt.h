@@ -3,7 +3,6 @@
 
 #include <cstdint>
 #include <vector>
-#include <QHash>
 #include <cmath>
 
 #include "src/core/boundaries/boundary_data.h"

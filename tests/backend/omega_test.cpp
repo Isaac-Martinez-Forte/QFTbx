@@ -5,12 +5,12 @@
 
 #include <gtest/gtest.h>
 
+#include <string>
+
 #include <vector>
 
 #include <optional>
 
-#include <QString>
-#include <QVector>
 #include <cmath>
 
 #include "src/core/exception.h"
@@ -175,7 +175,7 @@ TEST(Logspace, MatchesTenToTheLinspace)
 
 TEST(SrToVectorReal, ParsesSpaceSeparatedValues)
 {
-    const std::optional<std::vector<double>> v = qftbx::text::reals(QStringLiteral("1 2.5 10"));
+    const std::optional<std::vector<double>> v = qftbx::text::reals(std::string("1 2.5 10"));
     ASSERT_TRUE(v.has_value());
     ASSERT_EQ(v->size(), 3);
     EXPECT_DOUBLE_EQ(v->at(0), 1.0);
@@ -185,7 +185,7 @@ TEST(SrToVectorReal, ParsesSpaceSeparatedValues)
 
 TEST(SrToVectorReal, SkipsRepeatedSpaces)
 {
-    const std::optional<std::vector<double>> v = qftbx::text::reals(QStringLiteral("1   2"));
+    const std::optional<std::vector<double>> v = qftbx::text::reals(std::string("1   2"));
     ASSERT_TRUE(v.has_value());
     ASSERT_EQ(v->size(), 2);
 }
@@ -195,14 +195,14 @@ TEST(SrToVectorReal, InvalidTokenReturnsNothing)
     // The sentinel used to be a null pointer, dereferenced unchecked by six
     // call sites in the XML parser and by the manual-frequency dialog. An
     // empty optional cannot be read by mistake.
-    EXPECT_FALSE(qftbx::text::reals(QStringLiteral("1 x 3")).has_value());
+    EXPECT_FALSE(qftbx::text::reals(std::string("1 x 3")).has_value());
 }
 
 TEST(SrToVectorReal, SplitsOnAnyWhitespace)
 {
     // Fixed: the split used to be on single spaces only, so a frequencies
     // file with one value per line produced an unparseable token.
-    const std::optional<std::vector<double>> v = qftbx::text::reals(QStringLiteral("1.0\n2.0\t3"));
+    const std::optional<std::vector<double>> v = qftbx::text::reals(std::string("1.0\n2.0\t3"));
     ASSERT_TRUE(v.has_value());
     ASSERT_EQ(v->size(), 3);
     EXPECT_DOUBLE_EQ(v->at(1), 2.0);

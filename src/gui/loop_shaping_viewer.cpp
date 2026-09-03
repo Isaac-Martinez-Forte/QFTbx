@@ -263,7 +263,7 @@ void LoopShapingViewer::showDiagram(){
 
 
     //Draw the marker for each design frequency.
-    for (qint32 i = 0; i < omega->size(); i++){
+    for (qint32 i = 0; i < static_cast<std::int32_t>(omega->size()); i++){
 
         std::vector<double> ejex;
         std::vector<double> ejey;

@@ -22,6 +22,8 @@
 
 #include <gtest/gtest.h>
 
+#include <string>
+
 //A failed comparison of C-XSC values must report, not crash: see the header.
 #include "tests/backend/cxsc_printing.h"
 
@@ -30,9 +32,7 @@
 #include <vector>
 #include <initializer_list>
 
-#include <QPointF>
-#include <QString>
-#include <QVector>
+#include "src/core/point.h"
 
 #include "src/core/project_controller.h"
 #include "src/core/loopshaping/natural_interval_extension.h"
@@ -42,19 +42,19 @@
 
 namespace {
 
-LtiSystem* zpk(qreal k, std::initializer_list<qreal> zeros,
-               std::initializer_list<qreal> poles)
+LtiSystem* zpk(double k, std::initializer_list<double> zeros,
+               std::initializer_list<double> poles)
 {
     std::vector<Parameter> nume;
-    for (qreal z : zeros) {
+    for (double z : zeros) {
         nume.push_back(Parameter(z));
     }
     std::vector<Parameter> deno;
-    for (qreal p : poles) {
+    for (double p : poles) {
         deno.push_back(Parameter(p));
     }
-    return new ZeroPoleGain(QStringLiteral("ref"), nume, deno,
-                            Parameter(k), Parameter(qreal(0)));
+    return new ZeroPoleGain(std::string("ref"), nume, deno,
+                            Parameter(k), Parameter(double(0)));
 }
 
 class LiteratureValidation : public ::testing::Test
@@ -63,7 +63,7 @@ protected:
     void SetUp() override
     {
         controller.load(
-            QStringLiteral(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
+            std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
     }
 
     //Overall feasibility of a point controller against the fixture's
@@ -74,7 +74,7 @@ protected:
         tools::BoxFlag overall = tools::feasible;
 
         for (int i = 0; i < omega->size(); ++i) {
-            const std::complex<qreal> pv = controller.plant()->evaluate(omega->at(i));
+            const std::complex<double> pv = controller.plant()->evaluate(omega->at(i));
             const cxsc::cinterval box = conversion.nicholsBox(
                 point, omega->at(i), cxsc::complex(pv.real(), pv.imag()));
             const tools::BoxFlag flag = detector.classifyBox(
@@ -129,11 +129,11 @@ TEST_F(LiteratureValidation, MinimalFeasibleGainMatchesTharewal)
     //Bisection of the minimal feasible gain for Tharewal's exact
     //zero/poles: the detection reproduces his published optimum within
     //the template/boundary discretisation of the fixture (measured 1.3%).
-    qreal low = 1e4;
-    qreal high = 1e8;
+    double low = 1e4;
+    double high = 1e8;
 
     for (int i = 0; i < 40; ++i) {
-        const qreal mid = std::sqrt(low * high);
+        const double mid = std::sqrt(low * high);
         LtiSystem* point = zpk(mid, {3.85}, {931.27, 946.83});
         (classify(point) == tools::infeasible ? low : high) = mid;
         delete point;

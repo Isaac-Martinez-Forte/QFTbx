@@ -1,15 +1,17 @@
+#include <string>
 #include <vector>
 #include <cstdint>
 #include <cmath>
 #include <complex>
 
+#include "src/core/text_tokens.h"
 #include "polynomial_form.h"
 
 using namespace std;
 
 namespace qftbx {
 
-PolynomialForm::PolynomialForm(QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator, Parameter k, Parameter delay):
+PolynomialForm::PolynomialForm(std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator, Parameter k, Parameter delay):
     TransferFunction(name, numerator, denominator, k , delay)
 {
 
@@ -18,8 +20,8 @@ PolynomialForm::PolynomialForm(QString name, std::vector <Parameter> numerator, 
 PolynomialForm::~PolynomialForm(){
 }
 
-std::unique_ptr<LtiSystem> PolynomialForm::create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
-                               Parameter k, Parameter delay, QString numeratorExpr __attribute__((unused)), QString denominatorExpr __attribute__((unused))){
+std::unique_ptr<LtiSystem> PolynomialForm::create (std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
+                               Parameter k, Parameter delay, std::string numeratorExpr __attribute__((unused)), std::string denominatorExpr __attribute__((unused))){
     return std::make_unique<PolynomialForm>(name, std::move(numerator), std::move(denominator),
                                             std::move(k), std::move(delay));
 }
@@ -28,30 +30,30 @@ LtiSystem::SystemType PolynomialForm::type(){
     return SystemType::PolynomialForm;
 }
 
-QString PolynomialForm::expression (std::vector <double> * numerator, std::vector <double> * denominator,
+std::string PolynomialForm::expression (std::vector <double> * numerator, std::vector <double> * denominator,
                               double k, double delay, double omega){
 
     std::int32_t sizeDen = denominator->size();
     std::int32_t sizeNum = numerator->size();
 
-    QString expr;
+    std::string expr;
 
 
-    expr +=  "(" +  QString::number(k) + "*(";
+    expr +=  "(" +  qftbx::text::number(k) + "*(";
 
 
 
     for (std::int32_t i = 1; i < sizeNum; i++){
 
 
-        expr += "(" + QString::number(numerator->at(i-1)) + "*(" + QString::number(omega) + "*i)^" +
-                QString::number(sizeNum - i)+ ") +";
+        expr += "(" + qftbx::text::number(numerator->at(i-1)) + "*(" + qftbx::text::number(omega) + "*i)^" +
+                std::to_string(sizeNum - i)+ ") +";
 
     }
 
 
     if (sizeNum > 0){
-        expr += "(" + QString::number(numerator->back()) + ")) / (";
+        expr += "(" + qftbx::text::number(numerator->back()) + ")) / (";
     } else {
         expr += "(1))/(";
     }
@@ -60,48 +62,48 @@ QString PolynomialForm::expression (std::vector <double> * numerator, std::vecto
     for (std::int32_t i = 1; i < sizeDen; i++){
 
 
-        expr += "(" + QString::number(denominator->at(i-1)) + "*(" + QString::number(omega) + "*i)^" +
-                QString::number(sizeDen - i) + ") +";
+        expr += "(" + qftbx::text::number(denominator->at(i-1)) + "*(" + qftbx::text::number(omega) + "*i)^" +
+                std::to_string(sizeDen - i) + ") +";
 
     }
 
     if (sizeDen > 0){
-        expr += "(" + QString::number(denominator->back()) + ")))";
+        expr += "(" + qftbx::text::number(denominator->back()) + ")))";
     }else {
         expr += "(1)))";
     }
 
     if (delay != 0){
 
-        expr += "* e^(-i*" + QString::number(omega) + "*" + QString::number(delay) +")";
+        expr += "* e^(-i*" + qftbx::text::number(omega) + "*" + qftbx::text::number(delay) +")";
     }
 
 
     return expr;
 }
 
-QString PolynomialForm::expression(double w){
+std::string PolynomialForm::expression(double w){
 
     std::int32_t sizeDen = m_denominator.size();
     std::int32_t sizeNum = m_numerator.size();
 
-    QString expr;
+    std::string expr;
 
     if (m_gain.isUncertain()){
         expr += "(" + m_gain.name() + "*(";
     }else {
-        expr += "(" + QString::number(m_gain.nominal()) + "*(";
+        expr += "(" + qftbx::text::number(m_gain.nominal()) + "*(";
     }
 
 
     for (std::int32_t i = 1; i < sizeNum; i++){
 
         if (m_numerator[i-1].isUncertain()){
-            expr += "(" + m_numerator[i-1].name() + "*(" + QString::number(w) + "*i)^" +
-                    QString::number(sizeNum - i) + ") +";
+            expr += "(" + m_numerator[i-1].name() + "*(" + qftbx::text::number(w) + "*i)^" +
+                    std::to_string(sizeNum - i) + ") +";
         } else {
-            expr += "(" + QString::number(m_numerator[i-1].nominal()) + "*(" + QString::number(w) + "*i)^" +
-                    QString::number(sizeNum - i)+ ") +";
+            expr += "(" + qftbx::text::number(m_numerator[i-1].nominal()) + "*(" + qftbx::text::number(w) + "*i)^" +
+                    std::to_string(sizeNum - i)+ ") +";
         }
     }
 
@@ -109,7 +111,7 @@ QString PolynomialForm::expression(double w){
         if (m_numerator.back().isUncertain()){
             expr += "(" + m_numerator.back().name() + ")) / (";
         }else{
-            expr += "(" + QString::number(m_numerator.back().nominal()) + ")) / (";
+            expr += "(" + qftbx::text::number(m_numerator.back().nominal()) + ")) / (";
         }
     } else {
         expr += "(1)) / (";
@@ -118,11 +120,11 @@ QString PolynomialForm::expression(double w){
     for (std::int32_t i = 1; i < sizeDen; i++){
 
         if (m_denominator[i-1].isUncertain()){
-            expr += "(" + m_denominator[i-1].name() + "*(" + QString::number(w) + "*i)^" +
-                    QString::number(sizeDen - i) + ") +";
+            expr += "(" + m_denominator[i-1].name() + "*(" + qftbx::text::number(w) + "*i)^" +
+                    std::to_string(sizeDen - i) + ") +";
         } else {
-            expr += "(" + QString::number(m_denominator[i-1].nominal()) + "*(" + QString::number(w) + "*i)^" +
-                    QString::number(sizeDen - i) + ") +";
+            expr += "(" + qftbx::text::number(m_denominator[i-1].nominal()) + "*(" + qftbx::text::number(w) + "*i)^" +
+                    std::to_string(sizeDen - i) + ") +";
         }
     }
 
@@ -131,7 +133,7 @@ QString PolynomialForm::expression(double w){
         if (m_denominator.back().isUncertain()){
             expr += "(" + m_denominator.back().name() + ")))";
         }else{
-            expr += "(" + QString::number(m_denominator.back().nominal()) + ")))";
+            expr += "(" + qftbx::text::number(m_denominator.back().nominal()) + ")))";
         }
     } else {
         expr += "(1)))";
@@ -141,24 +143,24 @@ QString PolynomialForm::expression(double w){
     //uncertain (even with a zero nominal) or a non-zero constant, using the
     //parameter's real name.
     if (m_delay.isUncertain()){
-        expr += "* e^(-i*" + QString::number(w) + "*" + m_delay.name() + ")";
+        expr += "* e^(-i*" + qftbx::text::number(w) + "*" + m_delay.name() + ")";
     }else if (m_delay.nominal() != 0){
-        expr += "* e^(-i*" + QString::number(w) + "*" + QString::number(m_delay.nominal()) +")";
+        expr += "* e^(-i*" + qftbx::text::number(w) + "*" + qftbx::text::number(m_delay.nominal()) +")";
     }
 
     return expr;
 }
 
-QString PolynomialForm::expression(){
+std::string PolynomialForm::expression(){
     std::int32_t sizeDen = m_denominator.size();
     std::int32_t sizeNum = m_numerator.size();
 
-    QString expr;
+    std::string expr;
 
     if (m_gain.isUncertain()){
         expr += "(" + m_gain.name() + "*(";
     }else {
-        expr +="(" + QString::number(m_gain.nominal()) + "*(";
+        expr +="(" + qftbx::text::number(m_gain.nominal()) + "*(";
     }
 
 
@@ -166,10 +168,10 @@ QString PolynomialForm::expression(){
 
         if (m_numerator[i-1].isUncertain()){
             expr += "(" + m_numerator[i-1].name() + "*s^" +
-                    QString::number(sizeNum - i) + ") +";
+                    std::to_string(sizeNum - i) + ") +";
         } else {
-            expr += "(" + QString::number(m_numerator[i-1].nominal()) + "*s^" +
-                    QString::number(sizeNum - i)+ ") +";
+            expr += "(" + qftbx::text::number(m_numerator[i-1].nominal()) + "*s^" +
+                    std::to_string(sizeNum - i)+ ") +";
         }
     }
 
@@ -177,7 +179,7 @@ QString PolynomialForm::expression(){
         if (m_numerator.back().isUncertain()){
             expr += "(" + m_numerator.back().name() + ")) / (";
         }else{
-            expr += "(" + QString::number(m_numerator.back().nominal()) + ")) / (";
+            expr += "(" + qftbx::text::number(m_numerator.back().nominal()) + ")) / (";
         }
     } else {
         expr += "(1)) / (";
@@ -187,10 +189,10 @@ QString PolynomialForm::expression(){
 
         if (m_denominator[i-1].isUncertain()){
             expr += "(" + m_denominator[i-1].name() + "*s^" +
-                    QString::number(sizeDen - i) + ") +";
+                    std::to_string(sizeDen - i) + ") +";
         } else {
-            expr += "(" + QString::number(m_denominator[i-1].nominal()) + "*s^" +
-                    QString::number(sizeDen - i) + ") +";
+            expr += "(" + qftbx::text::number(m_denominator[i-1].nominal()) + "*s^" +
+                    std::to_string(sizeDen - i) + ") +";
         }
     }
 
@@ -198,7 +200,7 @@ QString PolynomialForm::expression(){
         if (m_denominator.back().isUncertain()){
             expr += "(" + m_denominator.back().name() + ")))";
         }else{
-            expr += "(" + QString::number(m_denominator.back().nominal()) + ")))";
+            expr += "(" + qftbx::text::number(m_denominator.back().nominal()) + ")))";
         }
     } else {
         expr += "(1)))";
@@ -207,7 +209,7 @@ QString PolynomialForm::expression(){
     if (m_delay.isUncertain()){
         expr += " * e^(-s*" + m_delay.name() + ")";
     }else if (m_delay.nominal() != 0){
-        expr += " * e^(-s*" + QString::number(m_delay.nominal()) +")";
+        expr += " * e^(-s*" + qftbx::text::number(m_delay.nominal()) +")";
     }
 
     return expr;
@@ -220,19 +222,19 @@ std::complex <double> PolynomialForm::evaluateNumerator(std::vector <double> * n
     }
 
     std::int32_t sizeNum = nume->size();
-    QString expr = "(";
+    std::string expr = "(";
 
 
     for (std::int32_t i = 1; i < sizeNum; i++){
-        expr += "(" + QString::number(nume->at(i-1)) + "*(" + QString::number(omega) + "*i)^" +
-                QString::number(sizeNum - i)+ ") +";
+        expr += "(" + qftbx::text::number(nume->at(i-1)) + "*(" + qftbx::text::number(omega) + "*i)^" +
+                std::to_string(sizeNum - i)+ ") +";
     }
 
-    expr += "(" + QString::number(nume->back()) + "))";
+    expr += "(" + qftbx::text::number(nume->back()) + "))";
 
     mup::ParserX p (mup::pckALL_COMPLEX);
 
-    p.SetExpr(expr.toStdString());
+    p.SetExpr(expr);
 
     return p.Eval().GetComplex();
 }
@@ -244,19 +246,19 @@ std::complex <double> PolynomialForm::evaluateDenominator(std::vector <double> *
     }
 
     std::int32_t sizeDen = deno->size();
-    QString expr = "(";
+    std::string expr = "(";
 
 
     for (std::int32_t i = 1; i < sizeDen; i++){
-        expr += "(" + QString::number(deno->at(i-1)) + "*(" + QString::number(omega) + "*i)^" +
-                QString::number(sizeDen - i)+ ") +";
+        expr += "(" + qftbx::text::number(deno->at(i-1)) + "*(" + qftbx::text::number(omega) + "*i)^" +
+                std::to_string(sizeDen - i)+ ") +";
     }
 
-    expr += "(" + QString::number(deno->back()) + "))";
+    expr += "(" + qftbx::text::number(deno->back()) + "))";
 
     mup::ParserX p (mup::pckALL_COMPLEX);
 
-    p.SetExpr(expr.toStdString());
+    p.SetExpr(expr);
 
     return p.Eval().GetComplex();
 }

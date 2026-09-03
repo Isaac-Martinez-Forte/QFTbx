@@ -7,6 +7,8 @@
 
 #include <gtest/gtest.h>
 
+#include <string>
+
 //A failed comparison of C-XSC values must report, not crash: see the header.
 #include "tests/backend/cxsc_printing.h"
 
@@ -15,9 +17,8 @@
 #include <optional>
 #include <vector>
 
-#include <QPointF>
+#include "src/core/point.h"
 #include "src/core/range.h"
-#include <QVector>
 
 #include "src/core/loopshaping/natural_interval_extension.h"
 #include "src/core/system/zero_pole_gain.h"
@@ -25,19 +26,19 @@
 
 namespace {
 
-using Complex = std::complex<qreal>;
+using Complex = std::complex<double>;
 
 //C(s) = k (s + z) / (s + p), evaluated by hand on the Nichols plane.
 struct NicholsPoint {
-    qreal magnitudeDb;
-    qreal phaseDegrees;
+    double magnitudeDb;
+    double phaseDegrees;
 };
 
-NicholsPoint zpkAt(qreal k, qreal z, qreal p, qreal w, Complex p0)
+NicholsPoint zpkAt(double k, double z, double p, double w, Complex p0)
 {
     const Complex s(0.0, w);
     const Complex value = k * (s + z) / (s + p) * p0;
-    qreal phase = std::arg(value) * 180.0 / M_PI;
+    double phase = std::arg(value) * 180.0 / M_PI;
     //nicholsBox maps phases onto the (-360, 0] branch, the Nichols convention
     //shared with the boundaries.
     if (phase > 0.0) {
@@ -58,8 +59,8 @@ LtiSystem* makeZpk(Parameter k, std::optional<Parameter> z, std::optional<Parame
     if (p.has_value()) {
         deno.push_back(*p);
     }
-    return new ZeroPoleGain(QStringLiteral("test"), std::move(nume), std::move(deno),
-                            std::move(k), Parameter(qreal(0)));
+    return new ZeroPoleGain(std::string("test"), std::move(nume), std::move(deno),
+                            std::move(k), Parameter(double(0)));
 }
 
 TEST(NaturalIntervalExtension, CertainControllerProjectsToAPoint)
@@ -166,19 +167,19 @@ TEST(NaturalIntervalExtension, SampledInstancesStayInsideTheBox)
                                      Parameter("p", Range(2.0, 9.0), 3.0));
 
     NaturalIntervalExtension extension;
-    const qreal w = 2.0;
+    const double w = 2.0;
     const Complex p0Value(0.8, -0.4);
     const cxsc::cinterval box =
         extension.nicholsBox(controller, w, cxsc::complex(0.8, -0.4));
 
-    const qreal magLo = cxsc::_double(Inf(Re(box)));
-    const qreal magHi = cxsc::_double(Sup(Re(box)));
-    const qreal phaseLo = cxsc::_double(Inf(Im(box)));
-    const qreal phaseHi = cxsc::_double(Sup(Im(box)));
+    const double magLo = cxsc::_double(Inf(Re(box)));
+    const double magHi = cxsc::_double(Sup(Re(box)));
+    const double phaseLo = cxsc::_double(Inf(Im(box)));
+    const double phaseHi = cxsc::_double(Sup(Im(box)));
 
-    for (qreal k : {0.5, 1.7, 4.0}) {
-        for (qreal z : {1.0, 3.3, 6.0}) {
-            for (qreal p : {2.0, 5.1, 9.0}) {
+    for (double k : {0.5, 1.7, 4.0}) {
+        for (double z : {1.0, 3.3, 6.0}) {
+            for (double p : {2.0, 5.1, 9.0}) {
                 const NicholsPoint point = zpkAt(k, z, p, w, p0Value);
                 EXPECT_LE(magLo - 1e-9, point.magnitudeDb)
                     << "k=" << k << " z=" << z << " p=" << p;

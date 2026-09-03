@@ -50,7 +50,11 @@ add_executable(qftbx_tests
 #The suite talks to the facade (which drags core and persistence) and, for
 #the pugixml smoke test, to pugixml itself: persistence keeps it private so
 #a layering slip in the core does not compile.
-target_link_libraries(qftbx_tests PRIVATE qftbx_app GTest::gtest)
+# Qt6::Core here is TEST SCAFFOLDING only - QTemporaryDir for the files a
+# couple of tests write. The core and the persistence link no Qt at all
+# since phase 9.8, and qftbx_core_noqt is what proves it: the same sources
+# compiled with the Qt include paths taken away.
+target_link_libraries(qftbx_tests PRIVATE qftbx_app GTest::gtest Qt6::Core)
 target_link_libraries(qftbx_tests PRIVATE pugixml::pugixml)
 
 #See the -frounding-math rationale in the top-level CMakeLists: the tests
