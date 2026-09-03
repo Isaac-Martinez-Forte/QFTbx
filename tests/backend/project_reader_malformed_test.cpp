@@ -191,8 +191,11 @@ TEST_F(MalformedProject, ACountThatIsActuallyReadRejectsGarbage)
     //nonsense, because they size the vectors that follow.
     qftbx::ProjectReader parser;
 
-    const std::string path = mutated("multivaluados.qft", "tamFas=\"361\"",
-                                 "tamFas=\"many\"");
+    //<phases count> in version 2; it was tamFas in the Spanish dialect,
+    //which the reader no longer speaks. The fixture holds exactly one
+    //count="361", so replacing the string cannot hit anything else.
+    const std::string path = mutated("multivaluados.qft", "count=\"361\"",
+                                 "count=\"many\"");
     ASSERT_FALSE(path.empty());
 
     EXPECT_THROW(parser.load(path), qftbx::ParseError);
