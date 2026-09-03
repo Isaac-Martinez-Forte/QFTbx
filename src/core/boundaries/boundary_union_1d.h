@@ -60,7 +60,7 @@ private:
 
     std::int32_t bucketIndex(double x, double totalPhase);
 
-    void insertSorted(TraceSet & layerBuckets, std::int32_t index, qftbx::NicholsPoint point, double totalPhase);
+    void insertSorted(TraceSet & layerBuckets, std::size_t index, qftbx::NicholsPoint point, double totalPhase);
 
     std::vector<TraceSet> buildLayerBuckets(const TraceSet & chosenCurves, double totalPhase, bool open, bool upper);
 
@@ -70,7 +70,7 @@ private:
 
     Trace mergeLayers(const Trace & layer1, const Trace & layer2);
 
-    TraceSet buildUnionBuckets(const Trace & unionPoints, double totalPhase, std::int32_t pointCount);
+    TraceSet buildUnionBuckets(const Trace & unionPoints, double totalPhase, std::size_t pointCount);
 
     std::int32_t bucketIndex(double x, double totalPhase, std::int32_t phaseCount);
 

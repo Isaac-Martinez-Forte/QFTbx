@@ -33,7 +33,7 @@ TraceSet ContourTracer::trace(double phaseSpan, double magnitudeSpan,
     std::int32_t phaseCells = width - 1;
     std::int32_t magnitudeCells = height - 1;
 
-    std::vector <bool> visited ((width + 1) * (height + 1), false);
+    std::vector <bool> visited (static_cast<std::size_t>((width + 1) * (height + 1)), false);
 
     TraceSet traces;
 
@@ -42,7 +42,7 @@ TraceSet ContourTracer::trace(double phaseSpan, double magnitudeSpan,
         for (std::int32_t row = 1; row < height-1; row++)
         {
 
-            if ((m_sheet->at(row).at(column) >= threshold) && (!visited.at(row * width + column))){
+            if ((m_sheet->at(static_cast<std::size_t>(row)).at(static_cast<std::size_t>(column)) >= threshold) && (!visited.at(static_cast<std::size_t>(row * width + column)))){
 
                 Trace trace;
 
@@ -63,12 +63,12 @@ TraceSet ContourTracer::trace(double phaseSpan, double magnitudeSpan,
                         x =  currentX + kNeighbourX[i % 8];
                         y =  currentY + kNeighbourY[i % 8];
 
-                        if ((x > 0) && (x < width-1) && (y > 0) && (y < height-1) && (m_sheet->at(y).at(x) < threshold))
+                        if ((x > 0) && (x < width - 1) && (y > 0) && (y < height-1) && (m_sheet->at(static_cast<std::size_t>(y)).at(static_cast<std::size_t>(x)) < threshold))
                         {
                             x =  currentX + kNeighbourX[(i - 1) % 8];
                             y =  currentY + kNeighbourY[(i - 1) % 8];
 
-                            if ((m_sheet->at(y).at(x) >= threshold) && (!visited.at(y * width + x))){
+                            if ((m_sheet->at(static_cast<std::size_t>(y)).at(static_cast<std::size_t>(x)) >= threshold) && (!visited.at(static_cast<std::size_t>(y * width + x)))){
 
 
                                 trace.push_back(qftbx::NicholsPoint(((currentX * phaseSpan) / phaseCells) + phaseBottom, ((currentY *
@@ -121,7 +121,7 @@ TraceSet ContourTracer::trace(double phaseSpan, double phaseCount, double magnit
     magnitudeCount--;
 
 
-    std::vector <bool> visited ((width + 1) * (height + 1), false);
+    std::vector <bool> visited (static_cast<std::size_t>((width + 1) * (height + 1)), false);
 
     TraceSet traces;
 
@@ -130,7 +130,7 @@ TraceSet ContourTracer::trace(double phaseSpan, double phaseCount, double magnit
         for (std::int32_t row = 1; row < height-1; row++)
         {
 
-            if ((m_cudaSheet[column * height + row] >= threshold) && (!visited.at(row * width + column))){
+            if ((m_cudaSheet[column * height + row] >= threshold) && (!visited.at(static_cast<std::size_t>(row * width + column)))){
 
                 Trace trace;
 
@@ -151,13 +151,13 @@ TraceSet ContourTracer::trace(double phaseSpan, double phaseCount, double magnit
                         x =  currentX + kNeighbourX[i % 8];
                         y =  currentY + kNeighbourY[i % 8];
 
-                        if ((x > 0) && (x < width-1) && (y > 0) && (y < height-1) &&
+                        if ((x > 0) && (x < width - 1) && (y > 0) && (y < height-1) &&
                                 (m_cudaSheet[x * height + y] <= threshold))
                         {
                             x =  currentX + kNeighbourX[(i - 1) % 8];
                             y =  currentY + kNeighbourY[(i - 1) % 8];
 
-                            if ((m_cudaSheet[x * height + y] > threshold) && (!visited.at(y * width + x))){
+                            if ((m_cudaSheet[x * height + y] > threshold) && (!visited.at(static_cast<std::size_t>(y * width + x)))){
                                 trace.push_back(qftbx::NicholsPoint(((currentX * phaseSpan) / phaseCount) + phaseBottom, ((currentY * magnitudeSpan) / magnitudeCount) + magnitudeBottom));
                                 visited[static_cast<std::size_t>(currentY * width + currentX)] = true;
                                 currentX = x;
@@ -197,13 +197,13 @@ TraceSet ContourTracer::trace(double phaseSpan, double phaseCount, double magnit
                             x =  retraceX + kNeighbourX[i];
                             y =  retraceY + kNeighbourY[i];
 
-                            if ((x > 0) && (x < width-1) && (y > 0) && (y < height-1) &&
+                            if ((x > 0) && (x < width - 1) && (y > 0) && (y < height-1) &&
                                     (m_cudaSheet[x * height + y] <= threshold))
                             {
                                 x =  retraceX + kNeighbourX[(i + 1) % 8];
                                 y =  retraceY + kNeighbourY[(i + 1) % 8];
 
-                                if ((m_cudaSheet[x * height + y] > threshold) && (!visited.at(y * width + x))){
+                                if ((m_cudaSheet[x * height + y] > threshold) && (!visited.at(static_cast<std::size_t>(y * width + x)))){
                                     retrace.push_back(qftbx::NicholsPoint(((retraceX * phaseSpan) / phaseCount) + phaseBottom, ((retraceY *
                                                           magnitudeSpan) / magnitudeCount) + magnitudeBottom));
                                     visited[static_cast<std::size_t>(retraceY * width + retraceX)] = true;

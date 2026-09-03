@@ -179,7 +179,7 @@ inline void AlgorithmMc1::check_box_feasibility(std::unique_ptr<LtiSystem> box)
     //every new box.
     box = capGain(std::move(box), bestCertifiedGain);
 
-    std::int32_t frequencyIndex = 0;
+    std::size_t frequencyIndex = 0;
     cinterval projection;
 
     for (double o : *omega) {
@@ -424,7 +424,7 @@ inline bool AlgorithmMc1::gainRangeIsFeasible(LtiSystem * box,
 
     bool feasibleEverywhere = true;
 
-    for (std::int32_t i = 0; i < static_cast<std::int32_t>(omega->size()) && feasibleEverywhere; ++i) {
+    for (std::size_t i = 0; i < omega->size() && feasibleEverywhere; ++i) {
         const cinterval projection = conversion->nicholsBox(candidate.get(), omega->at(i),
                                                       nominalPlantValues.at(i));
         feasibleEverywhere = detector->classifyBox(projection, boundaries, i).flag() == feasible;

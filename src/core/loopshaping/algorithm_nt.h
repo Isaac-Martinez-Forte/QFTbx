@@ -98,9 +98,9 @@ private:
 
     inline void check_box_feasibility(std::unique_ptr<LtiSystem> box);
     inline std::unique_ptr<LtiSystem> acelerated(std::unique_ptr<LtiSystem> v, double minBoundary,
-                                                 double o, std::int32_t frequencyIndex, bool above);
+                                                 double o, std::size_t frequencyIndex, bool above);
     inline bool feasibleGainFrom(LtiSystem * v, double maxBoundary, cxsc::cinterval projection,
-                                 double o, std::int32_t frequencyIndex, double & from);
+                                 double o, std::size_t frequencyIndex, double & from);
 
     LtiSystem * plant = nullptr;
     std::unique_ptr<LtiSystem> controller;

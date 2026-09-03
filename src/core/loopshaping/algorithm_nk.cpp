@@ -164,7 +164,7 @@ inline void AlgorithmNk::check_box_feasibility(std::unique_ptr<LtiSystem> box){
                 box->delay());
     }
 
-    std::int32_t frequencyIndex = 0;
+    std::size_t frequencyIndex = 0;
     cinterval projection;
 
     for (double o : *omega) {
@@ -386,7 +386,7 @@ inline void AlgorithmNk::localOptimization(LtiSystem * box){
         return std::log10(var.range().max) - std::log10(std::max<double>(var.range().min, 1e-12));
     };
 
-    const auto tryMove = [&](bool isPole, std::int32_t j, double stepDecades) -> bool {
+    const auto tryMove = [&](bool isPole, std::size_t j, double stepDecades) -> bool {
         Parameter & var = isPole ? box->denominator()[j] : box->numerator()[j];
         std::vector<double> & values = isPole ? bestPoles : bestZeros;
 
@@ -419,13 +419,13 @@ inline void AlgorithmNk::localOptimization(LtiSystem * box){
         while (improved && budget > 0) {
             improved = false;
 
-            for (std::int32_t j = 0; j < static_cast<std::int32_t>(bestZeros.size()) && budget > 0; ++j) {
+            for (std::size_t j = 0; j < static_cast<std::int32_t>(bestZeros.size()) && budget > 0; ++j) {
                 if (box->numerator()[j].isUncertain()) {
                     improved = tryMove(false, j, logRange(box->numerator()[j]) / divisor) || improved;
                 }
             }
 
-            for (std::int32_t j = 0; j < static_cast<std::int32_t>(bestPoles.size()) && budget > 0; ++j) {
+            for (std::size_t j = 0; j < static_cast<std::int32_t>(bestPoles.size()) && budget > 0; ++j) {
                 if (box->denominator()[j].isUncertain()) {
                     improved = tryMove(true, j, logRange(box->denominator()[j]) / divisor) || improved;
                 }

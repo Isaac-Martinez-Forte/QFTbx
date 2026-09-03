@@ -109,7 +109,7 @@ bool NominalStabilityChecker::isNominallyStable(LtiSystem * pointController)
         if (step > kMaxPhaseStepDegrees && curve[i + 1].w - curve[i].w > 1e-12 * curve[i].w) {
             const double w = std::sqrt(curve[i].w * curve[i + 1].w);
             const std::complex<double> loop = controllerAt(pointController, w) * plantAt(w);
-            curve.insert(curve.begin() + i + 1, {w, std::abs(loop), phaseDegrees(loop)});
+            curve.insert(curve.begin() + static_cast<std::ptrdiff_t>(i) + 1, {w, std::abs(loop), phaseDegrees(loop)});
             --budget;
         } else {
             ++i;

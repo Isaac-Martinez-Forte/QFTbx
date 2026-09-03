@@ -118,7 +118,11 @@ private:
     //The engine owns NOTHING below: grids and epsilon belong to the caller,
     //clouds/contours to the template DAO once handed over.
     ParameterGrids m_grids;
-    std::int32_t m_combinationCount = 0;
+    //The cartesian product of the grid sizes, so size_t and not int32:
+    //eight uncertain parameters on a 25-point grid is 25^8, about 1.5e11,
+    //which overflows a 32-bit int - and an overflowed count does not make
+    //the sweep slow, it makes it silently wrong.
+    std::size_t m_combinationCount = 0;
     std::vector <double> m_epsilon;
     bool m_useCuda = false;
 

@@ -86,7 +86,7 @@ inline Specification toSpecification(const SpecificationRecord & d, Specificatio
 
 inline SpecificationSet toSpecificationSet(const SpecificationRecords & specs){
     SpecificationSet set;
-    for (int i = 0; i < kSpecificationCount; ++i){
+    for (std::size_t i = 0; i < kSpecificationCount; ++i){
         set.set(toSpecification(specs.at(i),
                                 static_cast<SpecificationType>(i)));
     }

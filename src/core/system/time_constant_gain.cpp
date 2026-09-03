@@ -27,15 +27,15 @@ std::unique_ptr<LtiSystem> TimeConstantGain::create (std::string name, std::vect
 
 std::string TimeConstantGain::expression (std::vector <double> * numerator, std::vector <double> * denominator,
                              double k, double delay, double omega){
-    std::int32_t sizeDen = denominator->size();
-    std::int32_t sizeNum = numerator->size();
+    std::size_t sizeDen = denominator->size();
+    std::size_t sizeNum = numerator->size();
 
     std::string expr;
 
     expr += qftbx::text::number(k) + "*(";
 
 
-    for (std::int32_t i = 0; i < sizeNum-1; i++){
+    for (std::size_t i = 0; i + 1 < sizeNum; i++){
 
         expr += "((("+ qftbx::text::number(omega) + "*i) /" + qftbx::text::number(numerator->at(i)) + ")+1) *";
     }
@@ -47,7 +47,7 @@ std::string TimeConstantGain::expression (std::vector <double> * numerator, std:
     }
 
 
-    for (std::int32_t i = 0; i < sizeDen-1; i++){
+    for (std::size_t i = 0; i + 1 < sizeDen; i++){
 
         expr += "((("+ qftbx::text::number(omega) + "*i) / " + qftbx::text::number(denominator->at(i)) + ")+1) *";
     }
@@ -69,8 +69,8 @@ std::string TimeConstantGain::expression (std::vector <double> * numerator, std:
 
 std::string TimeConstantGain::expression(double w){
 
-    std::int32_t sizeDen = m_denominator.size();
-    std::int32_t sizeNum = m_numerator.size();
+    std::size_t sizeDen = m_denominator.size();
+    std::size_t sizeNum = m_numerator.size();
 
     std::string expr;
 
@@ -81,7 +81,7 @@ std::string TimeConstantGain::expression(double w){
     }
 
 
-    for (std::int32_t i = 0; i < sizeNum-1; i++){
+    for (std::size_t i = 0; i + 1 < sizeNum; i++){
 
         if (m_numerator[i].isUncertain()){
             expr += "(((" + qftbx::text::number(w) + "*i) / " + m_numerator[i].name() + ")+1) *";
@@ -100,7 +100,7 @@ std::string TimeConstantGain::expression(double w){
         }
     }
 
-    for (std::int32_t i = 0; i < sizeDen-1; i++){
+    for (std::size_t i = 0; i + 1 < sizeDen; i++){
 
         if (m_denominator[i].isUncertain()){
             expr += "(((" + qftbx::text::number(w) + "*i) / " + m_denominator[i].name() + ")+1) *";
@@ -133,8 +133,8 @@ std::string TimeConstantGain::expression(double w){
 }
 
 std::string TimeConstantGain::expression(){
-    std::int32_t sizeDen = m_denominator.size();
-    std::int32_t sizeNum = m_numerator.size();
+    std::size_t sizeDen = m_denominator.size();
+    std::size_t sizeNum = m_numerator.size();
 
     std::string expr;
 
@@ -145,7 +145,7 @@ std::string TimeConstantGain::expression(){
     }
 
 
-    for (std::int32_t i = 0; i < sizeNum-1; i++){
+    for (std::size_t i = 0; i + 1 < sizeNum; i++){
 
         if (m_numerator[i].isUncertain()){
             expr += "(s / " + m_numerator[i].name() + "+1) *";
@@ -165,7 +165,7 @@ std::string TimeConstantGain::expression(){
         }
     }
 
-    for (std::int32_t i = 0; i < sizeDen-1; i++){
+    for (std::size_t i = 0; i + 1 < sizeDen; i++){
 
         if (m_denominator[i].isUncertain()){
             expr += "(s / " + m_denominator[i].name() + "+1) *";
@@ -207,11 +207,11 @@ std::complex <double> TimeConstantGain::evaluateNumerator(std::vector <double> *
         return std::complex <double> (1);
     }
 
-    std::int32_t sizeNum = nume->size();
+    std::size_t sizeNum = nume->size();
     std::string expr = "(";
 
 
-    for (std::int32_t i = 0; i < sizeNum-1; i++){
+    for (std::size_t i = 0; i + 1 < sizeNum; i++){
 
         expr += "((("+ qftbx::text::number(omega) + "*i) /" + qftbx::text::number(nume->at(i)) + ")+1) *";
     }
@@ -231,10 +231,10 @@ std::complex <double> TimeConstantGain::evaluateDenominator(std::vector <double>
         return std::complex <double> (1);
     }
 
-    std::int32_t sizeDen = deno->size();
+    std::size_t sizeDen = deno->size();
     std::string expr = "(";
 
-    for (std::int32_t i = 0; i < sizeDen-1; i++){
+    for (std::size_t i = 0; i + 1 < sizeDen; i++){
 
         expr += "((("+ qftbx::text::number(omega) + "*i) / " + qftbx::text::number(deno->at(i)) + ")+1) *";
     }

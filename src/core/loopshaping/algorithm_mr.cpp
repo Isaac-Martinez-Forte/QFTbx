@@ -159,9 +159,9 @@ inline void AlgorithmMr::buildConstraints(){
         //would embed "nan" into the expression texts: they are skipped.
         std::vector<std::complex<double>> points;
         const qftbx::ComplexCloud & contour = temp.at(i);
-        const std::int32_t take = std::min<std::int32_t>(kTemplateRepresentatives, static_cast<std::int32_t>(contour.size()));
-        for (std::int32_t j = 0; j < take; ++j) {
-            const std::complex<double> value = contour.at(j * static_cast<std::int32_t>(contour.size()) / take);
+        const std::size_t take = std::min<std::size_t>(kTemplateRepresentatives, contour.size());
+        for (std::size_t j = 0; j < take; ++j) {
+            const std::complex<double> value = contour.at(j * contour.size() / take);
             if (std::isfinite(value.real()) && std::isfinite(value.imag()) &&
                     std::abs(value) > 0.0) {
                 points.push_back(value);

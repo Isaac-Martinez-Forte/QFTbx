@@ -131,7 +131,7 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
             const std::vector<double> & rejilla = gridFor(var);
             names.push_back(var.name());
             grids.push_back(&rejilla);
-            m_combinationCount *= static_cast<std::int32_t>(rejilla.size());
+            m_combinationCount *= rejilla.size();
         }
     };
 
@@ -142,8 +142,8 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
     collect(plant->gain());
     collect(plant->delay());
 
-    const std::int32_t digitCount = names.size();
-    const std::int32_t frequencyCount = omega->size();
+    const std::size_t digitCount = names.size();
+    const std::size_t frequencyCount = omega->size();
 
     //Which odometer digit drives each coefficient, and the nominals of the
     //ones no digit drives. Built ONCE and sequentially: Parameter::nominal()
@@ -192,7 +192,7 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
 #endif
-    for (std::int32_t u = 0; u < frequencyCount; u++){
+    for (std::size_t u = 0; u < frequencyCount; u++){
 
         //No parser and no expression TEXT any more: the transfer function is
         //computed directly in complex arithmetic by valueAt(). The text route
@@ -208,14 +208,14 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
         std::vector<double> denominatorValues = denominatorNominal;
 
         std::vector <double> digit (digitCount);
-        for (std::int32_t j = 0; j < digitCount; j++){
+        for (std::size_t j = 0; j < digitCount; j++){
             digit[j] = (*grids.at(j))[0];
         }
 
         ComplexCloud cloud;
         cloud.reserve(m_combinationCount);
 
-        std::vector <std::int32_t> counter (digitCount + 1, 0);
+        std::vector <std::size_t> counter (digitCount + 1, 0);
 
         //Non-finite plant values: an undamped resonance inside the
         //uncertainty makes |P(jw)| infinite at some frequency (the ACC'90
@@ -229,23 +229,23 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
         //damp the resonance lightly: see the ACC'90 fixture).
         bool nonFinite = false;
 
-        for (std::int32_t i = 0; i < m_combinationCount; i++){
+        for (std::size_t i = 0; i < m_combinationCount; i++){
 
             complex<double> value;
 
             for (std::size_t c = 0; c < numeratorSlot.size(); c++){
                 if (numeratorSlot[c] >= 0){
-                    numeratorValues[c] = digit[numeratorSlot[c]];
+                    numeratorValues[c] = digit[static_cast<std::size_t>(numeratorSlot[c])];
                 }
             }
             for (std::size_t c = 0; c < denominatorSlot.size(); c++){
                 if (denominatorSlot[c] >= 0){
-                    denominatorValues[c] = digit[denominatorSlot[c]];
+                    denominatorValues[c] = digit[static_cast<std::size_t>(denominatorSlot[c])];
                 }
             }
 
-            const double gainValue = gainSlot >= 0 ? digit[gainSlot] : gainNominal;
-            const double delayValue = delaySlot >= 0 ? digit[delaySlot] : delayNominal;
+            const double gainValue = gainSlot >= 0 ? digit[static_cast<std::size_t>(gainSlot)] : gainNominal;
+            const double delayValue = delaySlot >= 0 ? digit[static_cast<std::size_t>(delaySlot)] : delayNominal;
 
             //A free-form plant still evaluates an expression, so it can still
             //reject one (a name colliding with a muParserX constant, a
@@ -267,13 +267,13 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
             cloud.push_back(value);
 
             counter[0]++;
-            for (std::int32_t j = 0; j < digitCount; j++){
-                if (counter.at(j) >= static_cast<std::int32_t>(grids.at(j)->size())){
+            for (std::size_t j = 0; j < digitCount; j++){
+                if (counter.at(j) >= grids.at(j)->size()){
                     counter[j] = 0;
                     counter[j+1]++;
                     digit[j] = (*grids.at(j))[0];
                 }else {
-                    digit[j] = (*grids.at(j))[static_cast<std::size_t>(counter.at(j))];
+                    digit[j] = (*grids.at(j))[counter.at(j)];
                     break;
                 }
             }
@@ -289,7 +289,7 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
     }
 
     //Reported after the parallel loop, where throwing is safe again.
-    for (std::int32_t u = 0; u < frequencyCount; u++){
+    for (std::size_t u = 0; u < frequencyCount; u++){
         if (!parserErrors.at(u).empty()){
             const std::string message = parserErrors.at(u);
             throw qftbx::InvalidInput(
@@ -300,7 +300,7 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
 
     //Reported after the parallel loop, naming every affected frequency.
     std::vector<std::string> affected;
-    for (std::int32_t u = 0; u < frequencyCount; u++){
+    for (std::size_t u = 0; u < frequencyCount; u++){
         if (nonFiniteFrequencies.at(u)){
             affected.push_back(qftbx::text::number(omega->at(u)));
         }
@@ -330,7 +330,7 @@ const std::vector <double> & TemplateEngine::epsilon(){
 bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
 
     bool succeeded = true;
-    const std::int32_t digitCount = static_cast<std::int32_t>(m_clouds.size());
+    const std::size_t digitCount = m_clouds.size();
 
 #ifdef CUDA_AVAILABLE
     if (cuda){
@@ -338,7 +338,7 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
         //epsilonHullRelaxed, not the faithful walk - see the header).
         m_contours.clear();
 
-        for (std::int32_t i = 0; i < digitCount; i++){
+        for (std::size_t i = 0; i < digitCount; i++){
 
             const vector <complex <double> > hull = epsilonHullCuda(
                 m_clouds[i],
@@ -375,7 +375,7 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
 #endif
-    for (std::int32_t i = 0; i < digitCount; i++){
+    for (std::size_t i = 0; i < digitCount; i++){
 
         bool fellBack = false;
         ComplexCloud cont = epsilonHull(m_clouds[i],
@@ -406,7 +406,7 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
     //produced N identical lines that said nothing about which frequency fell
     //back.
     std::vector<std::string> relaxed;
-    for (std::int32_t i = 0; i < digitCount; i++){
+    for (std::size_t i = 0; i < digitCount; i++){
         if (relaxedFrequencies.at(i) && m_frequencies != nullptr && i < static_cast<std::int32_t>(m_frequencies->size())){
             relaxed.push_back(qftbx::text::number(m_frequencies->at(i)));
         }
@@ -428,7 +428,7 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
         //figure the user only saw "could not compute".
         std::vector<std::string> detail;
 
-        for (std::int32_t i = 0; i < digitCount; i++){
+        for (std::size_t i = 0; i < digitCount; i++){
             if (!failed.at(i)){
                 continue;
             }
@@ -483,14 +483,14 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsil
               });
     cv.erase(std::unique(cv.begin(), cv.end()), cv.end());
 
-    const std::int32_t pointCount = cv.size();
-    const std::int32_t MAXP = 3 * pointCount;
+    const std::size_t pointCount = cv.size();
+    const std::size_t MAXP = 3 * pointCount;
 
     //First point: the largest real part (the rightmost one), as in
     //EPSHULL.M and in the PFC text. Ties: the first in unique order wins.
     std::int32_t b1 = 0;
-    for (std::int32_t i = 1; i < pointCount; i++){
-        if (real(cv.at(i)) > real(cv.at(b1))){
+    for (std::size_t i = 1; i < pointCount; i++){
+        if (real(cv.at(i)) > real(cv.at(static_cast<std::size_t>(b1)))){
             b1 = i;
         }
     }
@@ -550,7 +550,7 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsil
     result.reserve(walk.size());
 
     for (const std::int32_t var : walk) {
-        result.push_back(cv.at(var));
+        result.push_back(cv.at(static_cast<std::size_t>(var)));
     }
 
     return result;
@@ -558,13 +558,13 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsil
 
 ComplexCloud TemplateEngine::epsilonHullRelaxed(const ComplexCloud & temp, double epsilon){
 
-    std::int32_t pointCount = static_cast<std::int32_t>(temp.size());
-    std::int32_t MAXP = 3 * pointCount;
+    std::size_t pointCount = temp.size();
+    std::size_t MAXP = 3 * pointCount;
 
     std::int32_t b1 = 0;
     double numDe = -numeric_limits<double>::infinity();
 
-    for(std::int32_t i = 0;i < pointCount ; i++){   //first point: largest imaginary part.
+    for(std::size_t i = 0;i < pointCount ; i++){   //first point: largest imaginary part.
         if (imag(temp.at(i)) > numDe){
             b1 = i;
             numDe = imag(temp.at(i));
@@ -619,7 +619,7 @@ ComplexCloud TemplateEngine::epsilonHullRelaxed(const ComplexCloud & temp, doubl
     result.reserve(uniqueIdx.size());
 
     for (const std::int32_t idx : uniqueIdx) {
-        result.push_back(temp.at(idx));
+        result.push_back(temp.at(static_cast<std::size_t>(idx)));
     }
 
     return result;
@@ -628,7 +628,7 @@ ComplexCloud TemplateEngine::epsilonHullRelaxed(const ComplexCloud & temp, doubl
 std::int32_t TemplateEngine::findSecond(std::int32_t b1, const ComplexCloud & cv, double epsilon){
 
     double dist = 0;
-    complex <double> firstPoint = cv.at(b1);
+    complex <double> firstPoint = cv.at(static_cast<std::size_t>(b1));
 
     double fmin = numeric_limits<double>::infinity();
     std::int32_t pmin = -1;
@@ -672,8 +672,8 @@ std::int32_t TemplateEngine::findNext(std::int32_t previousPoint, std::int32_t c
                                   const ComplexCloud & cv, double epsilon,
                                   bool excludePrevious){
 
-    complex <double> current = cv.at(currentPoint);
-    complex <double> previous = cv.at(previousPoint);
+    complex <double> current = cv.at(static_cast<std::size_t>(currentPoint));
+    complex <double> previous = cv.at(static_cast<std::size_t>(previousPoint));
 
     double aco2 = std::acos(abs(previous-current) / epsilon);
 

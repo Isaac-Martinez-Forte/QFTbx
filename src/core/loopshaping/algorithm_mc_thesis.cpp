@@ -116,8 +116,9 @@ inline Range AlgorithmMcThesis::parameterRange(LtiSystem * box, std::int32_t par
     Parameter & var = parameter == 0
             ? box->gain()
             : (parameter <= static_cast<std::int32_t>(box->numerator().size())
-                   ? box->numerator()[parameter - 1]
-                   : box->denominator()[parameter - 1 - box->numerator().size()]);
+                   ? box->numerator()[static_cast<std::size_t>(parameter - 1)]
+                   : box->denominator()[static_cast<std::size_t>(parameter - 1)
+                                        - box->numerator().size()]);
 
     return var.isUncertain() ? var.range()
                              : Range(var.nominal(), var.nominal());
@@ -141,7 +142,7 @@ inline std::unique_ptr<LtiSystem> AlgorithmMcThesis::replaceParameter(LtiSystem 
     denominador.reserve(box->denominator().size());
     for (std::size_t j = 0; j < box->denominator().size(); ++j) {
         Parameter & old = box->denominator()[j];
-        denominador.push_back(parameter == j + 1 + static_cast<std::int32_t>(box->numerator().size())
+        denominador.push_back(static_cast<std::size_t>(parameter) == j + 1 + box->numerator().size()
                 ? Parameter(old.name(), range, range.min)
                 : old);
     }
@@ -410,7 +411,7 @@ inline void AlgorithmMcThesis::improveNode(McSearchNode * node, NodeAnalysis & a
 //certificates produce (MG candidates, UM/UF boxes, tree-bisection
 //marks). An equation slip then costs a missed acceleration, never a
 //wrong verdict.
-inline bool AlgorithmMcThesis::boxIsFeasibleAt(LtiSystem * box, std::int32_t freqIndex)
+inline bool AlgorithmMcThesis::boxIsFeasibleAt(LtiSystem * box, std::size_t freqIndex)
 {
     const cinterval projection = conversion->nicholsBox(box, omega->at(freqIndex),
                                                   nominalPlantValues.at(freqIndex));
@@ -587,8 +588,10 @@ inline void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnaly
 
         const bool isGain = parameter == 0;
         const bool isZero = !isGain && parameter <= static_cast<std::int32_t>(box->numerator().size());
-        const std::int32_t termIndex = isGain ? -1
-                : (isZero ? parameter - 1 : parameter - 1 - box->numerator().size());
+            const std::int32_t termIndex = isGain
+            ? -1
+            : (isZero ? parameter - 1
+                      : parameter - 1 - static_cast<std::int32_t>(box->numerator().size()));
 
         for (std::int32_t family = 0; family < 2; ++family) {
 
@@ -615,7 +618,7 @@ inline void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnaly
                         : std::numeric_limits<double>::max();
                 bool allCertified = true;
 
-                for (std::int32_t i = 0; i < static_cast<std::int32_t>(omega->size()) && allCertified; ++i) {
+                for (std::size_t i = 0; i < omega->size() && allCertified; ++i) {
 
                     const std::optional<BoxClassification> & classification =
                 analysis.classification.at(i);
@@ -998,7 +1001,7 @@ inline FC::McBisectionResult AlgorithmMcThesis::bisectAt(McSearchNode * node, st
 //most by the requested measure (0 = area, 1 = magnitude, 2 = phase).
 //The gain has no phase component, so measure 2 skips it and measures 0/1
 //use its magnitude width (its phase width is zero).
-inline std::int32_t AlgorithmMcThesis::widestByMeasure(McSearchNode * node, std::int32_t mainFrequency, int measure)
+inline std::int32_t AlgorithmMcThesis::widestByMeasure(McSearchNode * node, std::size_t mainFrequency, int measure)
 {
     LtiSystem * box = node->system();
     const double w = omega->at(mainFrequency);
@@ -1079,7 +1082,7 @@ inline FC::McBisectionResult AlgorithmMcThesis::bisect(McSearchNode * node, cons
         }
 
         if (bestThreshold != nullptr) {
-            const std::int32_t freq = bestThreshold->freqIndex;
+            const std::size_t freq = bestThreshold->freqIndex;
             FC::McBisectionResult retur = bisectAt(node, bestThreshold->parameter,
                                                    bestThreshold->threshold);
             McSearchNode * feasibleChild = (bestThreshold->upperSide

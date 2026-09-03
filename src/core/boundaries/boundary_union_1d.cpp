@@ -25,7 +25,7 @@ std::int32_t BoundaryUnion1D::bucketIndex(double x, double totalPhase)
     return (std::int32_t) res;
 }
 
-void BoundaryUnion1D::insertSorted(TraceSet & layerBucketsRow, std::int32_t index, qftbx::NicholsPoint point, double totalPhase)
+void BoundaryUnion1D::insertSorted(TraceSet & layerBucketsRow, std::size_t index, qftbx::NicholsPoint point, double totalPhase)
 {
     //The iterator used to be passed in from the caller, computed BEFORE this
     //function might have grown the same bucket; taking the index alone and
@@ -38,14 +38,14 @@ void BoundaryUnion1D::insertSorted(TraceSet & layerBucketsRow, std::int32_t inde
         }
     }
 
-    bucket.insert(bucket.begin() + index, point);
+    bucket.insert(bucket.begin() + static_cast<std::ptrdiff_t>(index), point);
 }
 
 std::vector<TraceSet> BoundaryUnion1D::buildLayerBuckets(const TraceSet & chosenCurves, double totalPhase, bool open, bool upper)
 {
     std::vector<TraceSet> layerBuckets (kLayerCount);
 
-    for (std::int32_t i = 0; i < kLayerCount; i++)
+    for (std::size_t i = 0; i < kLayerCount; i++)
     {
         TraceSet & row = layerBuckets[i];
         row.resize(totalPhase + 1);
@@ -54,7 +54,7 @@ std::vector<TraceSet> BoundaryUnion1D::buildLayerBuckets(const TraceSet & chosen
         {
             Trace & bucket = row.at(static_cast<std::size_t>(bucketIndex(point.phase, totalPhase)));
 
-            std::int32_t index = 0;
+            std::size_t index = 0;
             for (const qftbx::NicholsPoint & placed : bucket)
             {
                 if (upper)
@@ -279,7 +279,7 @@ inline std::int32_t BoundaryUnion1D::bucketIndex(double x, double totalPhase, st
     return (std::int32_t) res;
 }
 
-TraceSet BoundaryUnion1D::buildUnionBuckets(const Trace & unionPoints, double totalPhase, std::int32_t pointCount)
+TraceSet BoundaryUnion1D::buildUnionBuckets(const Trace & unionPoints, double totalPhase, std::size_t pointCount)
 {
     TraceSet unionBucketsRow (pointCount);
 
@@ -404,7 +404,7 @@ void BoundaryUnion1D::run(const BoundaryData * boundaries, const TraceMetadata &
             }
         }
 
-        m_unionBuckets.push_back(buildUnionBuckets(unionPoints, totalPhase, phasePointCount));
+        m_unionBuckets.push_back(buildUnionBuckets(unionPoints, totalPhase, static_cast<std::size_t>(phasePointCount)));
 
         //Ordered by proximity only where the boundary is open: a closed one
         //is already a cycle.

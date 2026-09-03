@@ -222,19 +222,19 @@ class SpecificationSet
 public:
     SpecificationSet()
     {
-        for (int i = 0; i < kSpecificationCount; ++i) {
+        for (std::size_t i = 0; i < kSpecificationCount; ++i) {
             m_slots[i] = Specification::unused(static_cast<SpecificationType>(i));
         }
     }
 
     const Specification& at(SpecificationType type) const
     {
-        return m_slots[static_cast<int>(type)];
+        return m_slots[static_cast<std::size_t>(type)];
     }
 
     void set(Specification&& specification)
     {
-        const int index = static_cast<int>(specification.type());
+        const std::size_t index = static_cast<std::size_t>(specification.type());
         m_slots[index] = std::move(specification);
     }
 

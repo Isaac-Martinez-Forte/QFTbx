@@ -156,7 +156,7 @@ inline void AlgorithmNt::check_box_feasibility(std::unique_ptr<LtiSystem> box) {
 
     BoxFlag flag_final = feasible;
 
-    std::int32_t frequencyIndex = 0;
+    std::size_t frequencyIndex = 0;
     cinterval projection;
 
     //C_g+ : the certainly feasible gain subrange must satisfy EVERY
@@ -254,7 +254,7 @@ inline void AlgorithmNt::check_box_feasibility(std::unique_ptr<LtiSystem> box) {
 //classification of the box's lower corner (above == false).
 
 inline std::unique_ptr<LtiSystem> AlgorithmNt::acelerated(std::unique_ptr<LtiSystem> v,
-        double minBoundary, double o, std::int32_t frequencyIndex, bool above) {
+        double minBoundary, double o, std::size_t frequencyIndex, bool above) {
 
     if (!above){
 
@@ -295,7 +295,7 @@ inline std::unique_ptr<LtiSystem> AlgorithmNt::acelerated(std::unique_ptr<LtiSys
 //the split box with the full feasibility test).
 
 inline bool AlgorithmNt::feasibleGainFrom(LtiSystem * v, double maxBoundary,
-                                               cinterval projection, double o, std::int32_t frequencyIndex, double & from) {
+                                               cinterval projection, double o, std::size_t frequencyIndex, double & from) {
 
     const double phaseCentre = (_double(InfIm(projection)) + _double(SupIm(projection))) / 2.0;
 

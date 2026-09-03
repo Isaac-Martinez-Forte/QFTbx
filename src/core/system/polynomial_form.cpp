@@ -33,8 +33,8 @@ LtiSystem::SystemType PolynomialForm::type(){
 std::string PolynomialForm::expression (std::vector <double> * numerator, std::vector <double> * denominator,
                               double k, double delay, double omega){
 
-    std::int32_t sizeDen = denominator->size();
-    std::int32_t sizeNum = numerator->size();
+    std::size_t sizeDen = denominator->size();
+    std::size_t sizeNum = numerator->size();
 
     std::string expr;
 
@@ -43,7 +43,7 @@ std::string PolynomialForm::expression (std::vector <double> * numerator, std::v
 
 
 
-    for (std::int32_t i = 1; i < sizeNum; i++){
+    for (std::size_t i = 1; i < sizeNum; i++){
 
 
         expr += "(" + qftbx::text::number(numerator->at(i-1)) + "*(" + qftbx::text::number(omega) + "*i)^" +
@@ -59,7 +59,7 @@ std::string PolynomialForm::expression (std::vector <double> * numerator, std::v
     }
 
 
-    for (std::int32_t i = 1; i < sizeDen; i++){
+    for (std::size_t i = 1; i < sizeDen; i++){
 
 
         expr += "(" + qftbx::text::number(denominator->at(i-1)) + "*(" + qftbx::text::number(omega) + "*i)^" +
@@ -84,8 +84,8 @@ std::string PolynomialForm::expression (std::vector <double> * numerator, std::v
 
 std::string PolynomialForm::expression(double w){
 
-    std::int32_t sizeDen = m_denominator.size();
-    std::int32_t sizeNum = m_numerator.size();
+    std::size_t sizeDen = m_denominator.size();
+    std::size_t sizeNum = m_numerator.size();
 
     std::string expr;
 
@@ -96,7 +96,7 @@ std::string PolynomialForm::expression(double w){
     }
 
 
-    for (std::int32_t i = 1; i < sizeNum; i++){
+    for (std::size_t i = 1; i < sizeNum; i++){
 
         if (m_numerator[i-1].isUncertain()){
             expr += "(" + m_numerator[i-1].name() + "*(" + qftbx::text::number(w) + "*i)^" +
@@ -117,7 +117,7 @@ std::string PolynomialForm::expression(double w){
         expr += "(1)) / (";
     }
 
-    for (std::int32_t i = 1; i < sizeDen; i++){
+    for (std::size_t i = 1; i < sizeDen; i++){
 
         if (m_denominator[i-1].isUncertain()){
             expr += "(" + m_denominator[i-1].name() + "*(" + qftbx::text::number(w) + "*i)^" +
@@ -152,8 +152,8 @@ std::string PolynomialForm::expression(double w){
 }
 
 std::string PolynomialForm::expression(){
-    std::int32_t sizeDen = m_denominator.size();
-    std::int32_t sizeNum = m_numerator.size();
+    std::size_t sizeDen = m_denominator.size();
+    std::size_t sizeNum = m_numerator.size();
 
     std::string expr;
 
@@ -164,7 +164,7 @@ std::string PolynomialForm::expression(){
     }
 
 
-    for (std::int32_t i = 1; i < sizeNum; i++){
+    for (std::size_t i = 1; i < sizeNum; i++){
 
         if (m_numerator[i-1].isUncertain()){
             expr += "(" + m_numerator[i-1].name() + "*s^" +
@@ -185,7 +185,7 @@ std::string PolynomialForm::expression(){
         expr += "(1)) / (";
     }
 
-    for (std::int32_t i = 1; i < sizeDen; i++){
+    for (std::size_t i = 1; i < sizeDen; i++){
 
         if (m_denominator[i-1].isUncertain()){
             expr += "(" + m_denominator[i-1].name() + "*s^" +
@@ -221,11 +221,11 @@ std::complex <double> PolynomialForm::evaluateNumerator(std::vector <double> * n
         return std::complex <double> (1, 0);
     }
 
-    std::int32_t sizeNum = nume->size();
+    std::size_t sizeNum = nume->size();
     std::string expr = "(";
 
 
-    for (std::int32_t i = 1; i < sizeNum; i++){
+    for (std::size_t i = 1; i < sizeNum; i++){
         expr += "(" + qftbx::text::number(nume->at(i-1)) + "*(" + qftbx::text::number(omega) + "*i)^" +
                 std::to_string(sizeNum - i)+ ") +";
     }
@@ -245,11 +245,11 @@ std::complex <double> PolynomialForm::evaluateDenominator(std::vector <double> *
         return std::complex <double> (1, 0);
     }
 
-    std::int32_t sizeDen = deno->size();
+    std::size_t sizeDen = deno->size();
     std::string expr = "(";
 
 
-    for (std::int32_t i = 1; i < sizeDen; i++){
+    for (std::size_t i = 1; i < sizeDen; i++){
         expr += "(" + qftbx::text::number(deno->at(i-1)) + "*(" + qftbx::text::number(omega) + "*i)^" +
                 std::to_string(sizeDen - i)+ ") +";
     }

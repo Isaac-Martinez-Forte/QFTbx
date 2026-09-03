@@ -121,7 +121,7 @@ private:
     //named by 'upperSide' feasible for frequency 'freqIndex'.
     struct FeasibleThreshold {
         std::int32_t parameter;   //0 = gain, 1..nz = zero, nz+1.. = pole
-        std::int32_t freqIndex;
+        std::size_t freqIndex;
         double threshold;
         bool upperSide;     //true: [threshold, sup] is the feasible part
         double fraction;     //|feasible part| / |range|
@@ -134,7 +134,7 @@ private:
         std::vector<Range> boxMag;     //dB edges of the projected box
         std::vector<Range> boxPhase;   //degree edges
         tools::BoxFlag flag = tools::feasible;
-        std::int32_t mainFrequency = 0;    //largest ambiguous projected area
+        std::size_t mainFrequency = 0;    //largest ambiguous projected area
         bool anyFullPhaseWidth = false;
     };
 
@@ -150,9 +150,9 @@ private:
     inline FC::McBisectionResult bisect(McSearchNode * node, const NodeAnalysis & analysis,
                                         const std::vector<FeasibleThreshold> & thresholds);
     inline FC::McBisectionResult bisectAt(McSearchNode * node, std::int32_t parameter, double point);
-    inline std::int32_t widestByMeasure(McSearchNode * node, std::int32_t mainFrequency, int measure);
+    inline std::int32_t widestByMeasure(McSearchNode * node, std::size_t mainFrequency, int measure);
 
-    inline bool boxIsFeasibleAt(LtiSystem * box, std::int32_t freqIndex);
+    inline bool boxIsFeasibleAt(LtiSystem * box, std::size_t freqIndex);
     inline bool boxIsFeasible(LtiSystem * box);
     inline void insertFeasibleBox(std::unique_ptr<LtiSystem> box, McSearchNode * parent);
 

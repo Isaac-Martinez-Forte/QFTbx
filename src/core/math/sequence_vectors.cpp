@@ -12,7 +12,7 @@ using namespace std;
 //Wrapper over the canonical implementation in src/core/math/ (no
 //accumulation drift, exact final endpoint).
 std::vector <double> tools::linspace(double a, double b, std::int32_t N) {
-    const std::vector<double> values = qftbx::math::linspace(a, b, N > 0 ? N : 0);
+    const std::vector<double> values = qftbx::math::linspace(a, b, static_cast<std::size_t>(N > 0 ? N : 0));
     return std::vector<double>(values.begin(), values.end());
 }
 
@@ -29,7 +29,7 @@ std::vector<float> tools::linspace1(double a, double b, std::int32_t N){
 
     float h = (b - a) / (N-1);
     vector <float> vec;
-    vec.reserve(N);
+    vec.reserve(static_cast<std::size_t>(N));
 
     float val = a;
 
@@ -44,6 +44,6 @@ std::vector<float> tools::linspace1(double a, double b, std::int32_t N){
 
 //See tools::linspace.
 std::vector <double> tools::logspace (double a, double b, std::int32_t N){
-    const std::vector<double> values = qftbx::math::logspace(a, b, N > 0 ? N : 0);
+    const std::vector<double> values = qftbx::math::logspace(a, b, static_cast<std::size_t>(N > 0 ? N : 0));
     return std::vector<double>(values.begin(), values.end());
 }

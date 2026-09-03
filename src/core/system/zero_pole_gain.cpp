@@ -30,8 +30,8 @@ std::unique_ptr<LtiSystem> ZeroPoleGain::create (std::string name, std::vector <
 
 std::string ZeroPoleGain::expression (std::vector <double> * numerator, std::vector <double> * denominator,
                             double k, double delay, double omega){
-    std::int32_t sizeDen = denominator->size();
-    std::int32_t sizeNum = numerator->size();
+    std::size_t sizeDen = denominator->size();
+    std::size_t sizeNum = numerator->size();
 
     std::string expr;
 
@@ -42,7 +42,7 @@ std::string ZeroPoleGain::expression (std::vector <double> * numerator, std::vec
     if (numerator->empty()){
         expr += "1) / (";
     } else {
-        for (std::int32_t i = 0; i < sizeNum-1; i++){
+        for (std::size_t i = 0; i + 1 < sizeNum; i++){
 
             expr += "(("+ qftbx::text::number(omega) + "*i) +" + qftbx::text::number(numerator->at(i)) + ") *";
         }
@@ -54,7 +54,7 @@ std::string ZeroPoleGain::expression (std::vector <double> * numerator, std::vec
     if (denominator->empty()){
         expr += "1)";
     } else {
-        for (std::int32_t i = 0; i < sizeDen-1; i++){
+        for (std::size_t i = 0; i + 1 < sizeDen; i++){
 
             expr += "(("+ qftbx::text::number(omega) + "*i) + " + qftbx::text::number(denominator->at(i)) + ") *";
         }
@@ -72,8 +72,8 @@ std::string ZeroPoleGain::expression (std::vector <double> * numerator, std::vec
 
 std::string ZeroPoleGain::expression(double w){
 
-    std::int32_t sizeDen = m_denominator.size();
-    std::int32_t sizeNum = m_numerator.size();
+    std::size_t sizeDen = m_denominator.size();
+    std::size_t sizeNum = m_numerator.size();
 
     std::string expr;
 
@@ -86,7 +86,7 @@ std::string ZeroPoleGain::expression(double w){
     if (m_numerator.empty()){
         expr += "1) / (";
     } else {
-        for (std::int32_t i = 0; i < sizeNum-1; i++){
+        for (std::size_t i = 0; i + 1 < sizeNum; i++){
 
             if (m_numerator[i].isUncertain()){
                 expr += "((" + qftbx::text::number(w) + "*i) + " + m_numerator[i].name() + ") *";
@@ -106,7 +106,7 @@ std::string ZeroPoleGain::expression(double w){
     if (m_denominator.empty()){
         expr += "1)";
     } else {
-        for (std::int32_t i = 0; i < sizeDen-1; i++){
+        for (std::size_t i = 0; i + 1 < sizeDen; i++){
 
             if (m_denominator[i].isUncertain()){
                 expr += "((" + qftbx::text::number(w) + "*i) + " + m_denominator[i].name() + ") *";
@@ -143,8 +143,8 @@ LtiSystem::SystemType ZeroPoleGain::type(){
 
 
 std::string ZeroPoleGain::expression(){
-    std::int32_t sizeDen = m_denominator.size();
-    std::int32_t sizeNum = m_numerator.size();
+    std::size_t sizeDen = m_denominator.size();
+    std::size_t sizeNum = m_numerator.size();
 
     std::string expr;
 
@@ -157,7 +157,7 @@ std::string ZeroPoleGain::expression(){
     if (m_numerator.empty()){
         expr += "1) / (";
     } else {
-        for (std::int32_t i = 0; i < sizeNum-1; i++){
+        for (std::size_t i = 0; i + 1 < sizeNum; i++){
 
             if (m_numerator[i].isUncertain()){
                 expr += "(s + " + m_numerator[i].name() + ") *";
@@ -177,7 +177,7 @@ std::string ZeroPoleGain::expression(){
     if (m_denominator.empty()){
         expr += "1)";
     }else {
-        for (std::int32_t i = 0; i < sizeDen-1; i++){
+        for (std::size_t i = 0; i + 1 < sizeDen; i++){
 
             if (m_denominator[i].isUncertain()){
                 expr += "(s + " + m_denominator[i].name() + ") *";
@@ -209,10 +209,10 @@ std::complex <double> ZeroPoleGain::evaluateNumerator(std::vector <double> * num
         return std::complex <double>(1);
     }
 
-    std::int32_t sizeNum = nume->size();
+    std::size_t sizeNum = nume->size();
     std::string expr = "(";
 
-    for (std::int32_t i = 0; i < sizeNum-1; i++){
+    for (std::size_t i = 0; i + 1 < sizeNum; i++){
 
         expr += "(("+ qftbx::text::number(omega) + "*i) +" + qftbx::text::number(nume->at(i)) + ") *";
     }
@@ -233,10 +233,10 @@ std::complex <double> ZeroPoleGain::evaluateDenominator(std::vector <double> * d
         return std::complex <double>(1);
     }
 
-    std::int32_t sizeDen = deno->size();
+    std::size_t sizeDen = deno->size();
     std::string expr = "(";
 
-    for (std::int32_t i = 0; i < sizeDen-1; i++){
+    for (std::size_t i = 0; i + 1 < sizeDen; i++){
 
         expr += "(("+ qftbx::text::number(omega) + "*i) + " + qftbx::text::number(deno->at(i)) + ") *";
     }

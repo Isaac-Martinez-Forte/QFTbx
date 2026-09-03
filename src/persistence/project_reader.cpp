@@ -138,7 +138,7 @@ public:
         }
         qftbx::Trace points;
         points.reserve(static_cast<std::size_t>(reals.size() / 2));
-        for (std::int32_t i = 0; i + 1 < static_cast<std::int32_t>(reals.size()); i += 2) {
+        for (std::size_t i = 0; i + 1 < reals.size(); i += 2) {
             points.push_back(qftbx::NicholsPoint(reals.at(i), reals.at(i + 1)));
         }
         return points;
@@ -311,7 +311,7 @@ public:
 
             qftbx::ComplexCloud vector;
             vector.reserve(static_cast<std::size_t>(reals.size()));
-            for (std::int32_t i = 0; i < static_cast<std::int32_t>(reals.size()); ++i) {
+            for (std::size_t i = 0; i < reals.size(); ++i) {
                 vector.push_back(std::complex<double>(reals.at(i), imaginaries.at(i)));
             }
 
