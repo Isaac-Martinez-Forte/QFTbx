@@ -1,3 +1,4 @@
+#include <vector>
 #include <cstdint>
 #include <cmath>
 #include <complex>
@@ -25,7 +26,7 @@ std::unique_ptr<LtiSystem> ZeroPoleGain::create (QString name, std::vector <Para
 
 
 
-QString ZeroPoleGain::expression (QVector <double> * numerator, QVector <double> * denominator,
+QString ZeroPoleGain::expression (std::vector <double> * numerator, std::vector <double> * denominator,
                             double k, double delay, double omega){
     std::int32_t sizeDen = denominator->size();
     std::int32_t sizeNum = numerator->size();
@@ -36,7 +37,7 @@ QString ZeroPoleGain::expression (QVector <double> * numerator, QVector <double>
     expr += QString::number(k) + "*(";
 
 
-    if (numerator->isEmpty()){
+    if (numerator->empty()){
         expr += "1) / (";
     } else {
         for (std::int32_t i = 0; i < sizeNum-1; i++){
@@ -44,11 +45,11 @@ QString ZeroPoleGain::expression (QVector <double> * numerator, QVector <double>
             expr += "(("+ QString::number(omega) + "*i) +" + QString::number(numerator->at(i)) + ") *";
         }
 
-        expr += "((" + QString::number(omega) + "*i) + " + QString::number(numerator->last()) + ")) / (";
+        expr += "((" + QString::number(omega) + "*i) + " + QString::number(numerator->back()) + ")) / (";
     }
 
 
-    if (denominator->isEmpty()){
+    if (denominator->empty()){
         expr += "1)";
     } else {
         for (std::int32_t i = 0; i < sizeDen-1; i++){
@@ -56,7 +57,7 @@ QString ZeroPoleGain::expression (QVector <double> * numerator, QVector <double>
             expr += "(("+ QString::number(omega) + "*i) + " + QString::number(denominator->at(i)) + ") *";
         }
 
-        expr += "(("+ QString::number(omega) + "*i) + " + QString::number(denominator->last()) + "))";
+        expr += "(("+ QString::number(omega) + "*i) + " + QString::number(denominator->back()) + "))";
     }
 
     if (delay != 0){
@@ -200,9 +201,9 @@ QString ZeroPoleGain::expression(){
 }
 
 
-std::complex <double> ZeroPoleGain::evaluateNumerator(QVector <double> * nume, double omega){
+std::complex <double> ZeroPoleGain::evaluateNumerator(std::vector <double> * nume, double omega){
 
-    if (nume->isEmpty()){
+    if (nume->empty()){
         return std::complex <double>(1);
     }
 
@@ -214,7 +215,7 @@ std::complex <double> ZeroPoleGain::evaluateNumerator(QVector <double> * nume, d
         expr += "(("+ QString::number(omega) + "*i) +" + QString::number(nume->at(i)) + ") *";
     }
 
-    expr += "((" + QString::number(omega) + "*i) + " + QString::number(nume->last()) + "))";
+    expr += "((" + QString::number(omega) + "*i) + " + QString::number(nume->back()) + "))";
 
 
     mup::ParserX p (mup::pckALL_COMPLEX);
@@ -224,9 +225,9 @@ std::complex <double> ZeroPoleGain::evaluateNumerator(QVector <double> * nume, d
     return p.Eval().GetComplex();
 }
 
-std::complex <double> ZeroPoleGain::evaluateDenominator(QVector <double> * deno, double omega){
+std::complex <double> ZeroPoleGain::evaluateDenominator(std::vector <double> * deno, double omega){
 
-    if (deno->isEmpty()){
+    if (deno->empty()){
         return std::complex <double>(1);
     }
 
@@ -238,7 +239,7 @@ std::complex <double> ZeroPoleGain::evaluateDenominator(QVector <double> * deno,
         expr += "(("+ QString::number(omega) + "*i) + " + QString::number(deno->at(i)) + ") *";
     }
 
-    expr += "(("+ QString::number(omega) + "*i) + " + QString::number(deno->last()) + "))";
+    expr += "(("+ QString::number(omega) + "*i) + " + QString::number(deno->back()) + "))";
 
     mup::ParserX p (mup::pckALL_COMPLEX);
 

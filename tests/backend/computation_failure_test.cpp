@@ -14,6 +14,8 @@
 
 #include <gtest/gtest.h>
 
+#include <vector>
+
 #include <QHash>
 #include <QString>
 #include <QVector>
@@ -74,7 +76,7 @@ protected:
 
 TEST_F(FailedComputation, AMissingSweepGridIsReportedAndLeavesNoTemplates)
 {
-    const QVector<qreal> epsilon(3, 10.0);
+    const std::vector<double> epsilon(3, 10.0);
 
     EXPECT_THROW(controller.computeTemplates(epsilon, gridsMissing(QStringLiteral("kv")), false),
                  qftbx::InvalidInput);
@@ -87,7 +89,7 @@ TEST_F(FailedComputation, AMissingSweepGridIsReportedAndLeavesNoTemplates)
 
 TEST_F(FailedComputation, TheProjectStillWorksAfterAFailedComputation)
 {
-    const QVector<qreal> badEpsilon(3, 10.0);
+    const std::vector<double> badEpsilon(3, 10.0);
     const qftbx::ParameterGrids badGrids = gridsMissing(QStringLiteral("a"));
 
     EXPECT_THROW(controller.computeTemplates(badEpsilon, badGrids, false),
@@ -98,7 +100,7 @@ TEST_F(FailedComputation, TheProjectStillWorksAfterAFailedComputation)
     grids[QStringLiteral("a")] = qftbx::math::linspace(1.0, 2.0, 3);
     grids[QStringLiteral("kv")] = qftbx::math::linspace(1.0, 2.0, 3);
 
-    ASSERT_TRUE(controller.computeTemplates(QVector<qreal>(3, 10.0), grids, false))
+    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), grids, false))
         << "the project never recovered from the earlier failure";
     EXPECT_FALSE(controller.templates().empty());
 
@@ -134,7 +136,7 @@ TEST_F(FailedComputation, TemplatesRefuseWithoutAPlantOrFrequencies)
     //A refusal used to leak the epsilon the caller had allocated for it:
     //the preconditions fire before the store takes it. By value there is
     //nothing to leak on any path.
-    const QVector<qreal> epsilon(1, 10.0);
+    const std::vector<double> epsilon(1, 10.0);
     qftbx::ParameterGrids grids;
 
     ProjectController empty;

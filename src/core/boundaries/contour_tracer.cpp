@@ -1,3 +1,4 @@
+#include <vector>
 #include <cstdint>
 #include "contour_tracer.h"
 
@@ -32,7 +33,7 @@ TraceSet ContourTracer::trace(double phaseSpan, double magnitudeSpan,
     std::int32_t phaseCells = width - 1;
     std::int32_t magnitudeCells = height - 1;
 
-    QVector <bool> visited ((width + 1) * (height + 1), false);
+    std::vector <bool> visited ((width + 1) * (height + 1), false);
 
     TraceSet traces;
 
@@ -73,7 +74,7 @@ TraceSet ContourTracer::trace(double phaseSpan, double magnitudeSpan,
                                 trace.push_back(qftbx::NicholsPoint(((currentX * phaseSpan) / phaseCells) + phaseBottom, ((currentY *
                                                       magnitudeSpan) / magnitudeCells) + magnitudeBottom));
 
-                                visited.replace(currentY * width + currentX, true);
+                                visited[static_cast<std::size_t>(currentY * width + currentX)] = true;
                                 currentX = x;
                                 currentY = y;
                                 advanced++;
@@ -120,7 +121,7 @@ TraceSet ContourTracer::trace(double phaseSpan, double phaseCount, double magnit
     magnitudeCount--;
 
 
-    QVector <bool> visited ((width + 1) * (height + 1), false);
+    std::vector <bool> visited ((width + 1) * (height + 1), false);
 
     TraceSet traces;
 
@@ -158,7 +159,7 @@ TraceSet ContourTracer::trace(double phaseSpan, double phaseCount, double magnit
 
                             if ((m_cudaSheet[x * height + y] > threshold) && (!visited.at(y * width + x))){
                                 trace.push_back(qftbx::NicholsPoint(((currentX * phaseSpan) / phaseCount) + phaseBottom, ((currentY * magnitudeSpan) / magnitudeCount) + magnitudeBottom));
-                                visited.replace(currentY * width + currentX, true);
+                                visited[static_cast<std::size_t>(currentY * width + currentX)] = true;
                                 currentX = x;
                                 currentY = y;
                                 advanced++;
@@ -205,7 +206,7 @@ TraceSet ContourTracer::trace(double phaseSpan, double phaseCount, double magnit
                                 if ((m_cudaSheet[x * height + y] > threshold) && (!visited.at(y * width + x))){
                                     retrace.push_back(qftbx::NicholsPoint(((retraceX * phaseSpan) / phaseCount) + phaseBottom, ((retraceY *
                                                           magnitudeSpan) / magnitudeCount) + magnitudeBottom));
-                                    visited.replace(retraceY * width + retraceX, true);
+                                    visited[static_cast<std::size_t>(retraceY * width + retraceX)] = true;
                                     retraceX = x;
                                     retraceY = y;
                                     readvanced++;

@@ -110,28 +110,28 @@ void UncertaintyDialog::buildRows(){
 
     qint32 i = 0;
 
-    foreach (const QString &value, numeratorTokens){
+    for (const QString &value : numeratorTokens){
         if(uncertainTable.at(0).at(i)){
             if (!seenNames.contains(value)){
                 QWidget * widget = new QWidget(ui->numeratorArea);
                 buildRow(widget, value, numeratorRows, rangeOnlyMode);
                 numeratorLayout->addWidget(widget);
-                rowWidgets.append(widget);
-                seenNames.append(value);
+                rowWidgets.push_back(widget);
+                seenNames.push_back(value);
             }
         }
         i++;
     }
 
     i = 0;
-    foreach (const QString &value, denominatorTokens){
+    for (const QString &value : denominatorTokens){
         if(uncertainTable.at(1).at(i)){
             if (!seenNames.contains(value)){
                 QWidget * widget = new QWidget(ui->denominatorArea);
                 buildRow(widget, value, denominatorRows, rangeOnlyMode);
                 denominatorLayout->addWidget(widget);
-                rowWidgets.append(widget);
-                seenNames.append(value);
+                rowWidgets.push_back(widget);
+                seenNames.push_back(value);
             }
         }
         i++;
@@ -207,7 +207,7 @@ void UncertaintyDialog:: buildRow(QWidget *widget, QString parameter,
 
     vector.push_back(ParLineEdit(inicio, fin, nominal));
 
-    //rowWidgets.append(horizontalLayout);
+    //rowWidgets.push_back(horizontalLayout);
 }
 
 void UncertaintyDialog::on_numeratorRadio_clicked()
@@ -376,7 +376,7 @@ bool UncertaintyDialog::readRanges(){
 
         if (valid && parameter.has_value()){
             numeratorParameters.insert(numeratorParameters.begin() + i, *parameter);
-            seenNames.append(numeratorTokens.at(i));
+            seenNames.push_back(numeratorTokens.at(i));
         }else{
             allValid = false;
         }
@@ -467,7 +467,7 @@ bool UncertaintyDialog::readRanges(){
 
         if (valid && parameter.has_value()){
             denominatorParameters.insert(denominatorParameters.begin() + i, *parameter);
-            seenNames.append(denominatorTokens.at(i));
+            seenNames.push_back(denominatorTokens.at(i));
         }else{
             allValid = false;
         }

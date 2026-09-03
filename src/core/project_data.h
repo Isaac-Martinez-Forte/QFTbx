@@ -7,7 +7,7 @@
 #include "src/core/templates/cloud_set.h"
 #include <complex>
 
-#include <QVector>
+#include <vector>
 
 #include "src/core/system/lti_system.h"
 #include "src/core/frequencies/omega.h"
@@ -45,7 +45,7 @@ public:
 
     Omega * omega() const;
     void setOmega(std::unique_ptr<Omega> omega);
-    QVector<double> * frequencies() const;
+    std::vector<double> * frequencies() const;
 
     /// The seven specification slots, or nullptr when none were ever set.
     /// Held BY VALUE in an optional, like the boundaries and the epsilon.
@@ -65,8 +65,8 @@ public:
 
     /// The epsilon used for the contours, or nullptr when none was ever
     /// set. Held BY VALUE in an optional, like the boundaries.
-    QVector<double> * epsilon();
-    void setEpsilon(std::optional<QVector<double>> epsilon);
+    std::vector<double> * epsilon();
+    void setEpsilon(std::optional<std::vector<double>> epsilon);
 
     /// The boundaries, or nullptr when none have been computed. The store
     /// holds them BY VALUE in an optional; the pointer is only how callers
@@ -88,7 +88,7 @@ private:
     CloudSet m_templates;
     CloudSet m_contour;
     bool m_hasContour = false;
-    std::optional<QVector<double>> m_epsilon;
+    std::optional<std::vector<double>> m_epsilon;
     std::optional<BoundaryData> m_boundaries;
     std::unique_ptr<LtiSystem> m_controller;
     std::unique_ptr<LoopShapingResult> m_loopShaping;

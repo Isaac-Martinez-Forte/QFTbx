@@ -7,7 +7,7 @@
 
 #include <QHash>
 #include <QString>
-#include <QVector>
+#include <vector>
 
 #include "src/core/system/lti_system.h"
 #include "src/core/templates/parameter_grids.h"
@@ -54,15 +54,15 @@ public:
 
     /// Sweeps the plant and extracts every contour. Throws qftbx::Exception
     /// on invalid input or when a computation fails.
-    bool compute(LtiSystem *plant, QVector<double>* frequencies, bool cuda);
+    bool compute(LtiSystem *plant, std::vector<double>* frequencies, bool cuda);
 
     /// Recomputes only the contours (one epsilon per frequency) over the
     /// current clouds.
-    bool computeContours (QVector <double> epsilon);
+    bool computeContours (std::vector <double> epsilon);
 
     /// Brute-force sweep: one cloud per frequency, the cartesian product of
     /// the parameter grids evaluated at s = j*omega.
-    CloudSet computeClouds(LtiSystem *plant, QVector<double>* frequencies);
+    CloudSet computeClouds(LtiSystem *plant, std::vector<double>* frequencies);
 
     bool computeContourSet(bool cuda);
 
@@ -95,7 +95,7 @@ public:
     void setGrids (ParameterGrids grids);
 
     /// One epsilon per frequency, by value.
-    void setEpsilon (QVector <double> epsilon);
+    void setEpsilon (std::vector <double> epsilon);
 
     /// Feeds precomputed clouds (e.g. loaded from a project file) so their
     /// contours can be recomputed.
@@ -107,9 +107,9 @@ public:
 
     const CloudSet & contours() const;
 
-    QVector <double> * omega();
+    std::vector <double> * omega();
 
-    const QVector <double> & epsilon ();
+    const std::vector <double> & epsilon ();
 
 private:
     /// Grid for an uncertain parameter, looked up by name; throws
@@ -120,12 +120,12 @@ private:
     //clouds/contours to the template DAO once handed over.
     ParameterGrids m_grids;
     std::int32_t m_combinationCount = 0;
-    QVector <double> m_epsilon;
+    std::vector <double> m_epsilon;
     bool m_useCuda = false;
 
     CloudSet m_clouds;
     CloudSet m_contours;
-    QVector <double> * m_frequencies = NULL;
+    std::vector <double> * m_frequencies = NULL;
 
     std::int32_t findSecond(std::int32_t b1, const ComplexCloud & cv, double epsilon);
 

@@ -1,3 +1,4 @@
+#include <vector>
 #include <cstdint>
 #include "src/core/exception.h"
 #include "src/core/loopshaping/algorithm_mc_thesis.h"
@@ -77,7 +78,7 @@ void AlgorithmMcThesis::setStrategies(const Strategies & s)
 }
 
 
-void AlgorithmMcThesis::setProblem(LtiSystem * plant, LtiSystem * controller, QVector<double> * omega,
+void AlgorithmMcThesis::setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> * omega,
                                   const BoundaryData * boundaries, double epsilon)
 {
     this->plant = plant;
@@ -171,10 +172,10 @@ bool AlgorithmMcThesis::solve()
     nominalPlantValues.clear();
     nominalPlantValuesStd.clear();
 
-    foreach (double o, *omega) {
+    for (double o : *omega) {
         std::complex<double> c = plant->evaluate(o);
-        nominalPlantValuesStd.append(c);
-        nominalPlantValues.append(cxsc::complex(c.real(), c.imag()));
+        nominalPlantValuesStd.push_back(c);
+        nominalPlantValues.push_back(cxsc::complex(c.real(), c.imag()));
     }
 
     //A controller with no uncertain parameter offers nothing to search.
@@ -261,7 +262,7 @@ bool AlgorithmMcThesis::solve()
         }
 
         //Steps E-F: stage bookkeeping, MG, QSFact, QSInv.
-        QVector<FeasibleThreshold> thresholds;
+        std::vector<FeasibleThreshold> thresholds;
         improveNode(node.get(), analysis, thresholds);
 
         //C may have improved inside F.
@@ -315,12 +316,12 @@ inline bool AlgorithmMcThesis::analyse(McSearchNode * node, NodeAnalysis & out)
 
     double largestArea = std::numeric_limits<double>::lowest();
 
-    for (std::int32_t i = 0; i < omega->size(); ++i) {
+    for (std::int32_t i = 0; i < static_cast<std::int32_t>(omega->size()); ++i) {
 
         if (node->isFrequencyFeasible(i)) {
-            out.classification.append(std::nullopt);
-            out.boxMag.append(Range());
-            out.boxPhase.append(Range());
+            out.classification.push_back(std::nullopt);
+            out.boxMag.push_back(Range());
+            out.boxPhase.push_back(Range());
             continue;
         }
 
@@ -341,9 +342,9 @@ inline bool AlgorithmMcThesis::analyse(McSearchNode * node, NodeAnalysis & out)
             return false;
         }
 
-        out.classification.append(std::move(classification));
-        out.boxMag.append(Range(_double(Inf(Re(projection))), _double(Sup(Re(projection)))));
-        out.boxPhase.append(Range(_double(Inf(Im(projection))), _double(Sup(Im(projection)))));
+        out.classification.push_back(std::move(classification));
+        out.boxMag.push_back(Range(_double(Inf(Re(projection))), _double(Sup(Re(projection)))));
+        out.boxPhase.push_back(Range(_double(Inf(Im(projection))), _double(Sup(Im(projection)))));
 
         const double phaseWidth = _double(diam(Im(projection)));
 
@@ -368,7 +369,7 @@ inline bool AlgorithmMcThesis::analyse(McSearchNode * node, NodeAnalysis & out)
 
 //--------------------------------------------------------------- steps E-F
 inline void AlgorithmMcThesis::improveNode(McSearchNode * node, NodeAnalysis & analysis,
-                                           QVector<FeasibleThreshold> & thresholds)
+                                           std::vector<FeasibleThreshold> & thresholds)
 {
     //Step E (thesis 4.4): the initial stage ends when no projected box
     //spans the full phase width of the Nichols plane any more.
@@ -418,7 +419,7 @@ inline bool AlgorithmMcThesis::boxIsFeasibleAt(LtiSystem * box, std::int32_t fre
 
 inline bool AlgorithmMcThesis::boxIsFeasible(LtiSystem * box)
 {
-    for (std::int32_t i = 0; i < omega->size(); ++i) {
+    for (std::int32_t i = 0; i < static_cast<std::int32_t>(omega->size()); ++i) {
         if (!boxIsFeasibleAt(box, i)) {
             return false;
         }
@@ -453,9 +454,10 @@ inline bool AlgorithmMcThesis::bestGainSearch(McSearchNode * node, const NodeAna
     double lowNeeded = kInf;    //k must be >= (top-side feasible strips)
     double highAllowed = kSup;  //k must be <= (bottom-side feasible strips)
 
-    for (std::int32_t i = 0; i < omega->size(); ++i) {
+    for (std::int32_t i = 0; i < static_cast<std::int32_t>(omega->size()); ++i) {
 
-        const std::optional<BoxClassification> & classification = analysis.classification.value(i);
+        const std::optional<BoxClassification> & classification =
+                analysis.classification.at(static_cast<std::size_t>(i));
 
         if (!classification.has_value() || classification->flag() != ambiguous) {
             continue;   //the whole box, corner included, is feasible here
@@ -569,7 +571,7 @@ inline void AlgorithmMcThesis::insertFeasibleBox(std::unique_ptr<LtiSystem> box,
 //and every valid per-frequency threshold is recorded for the tree
 //bisection (MM/MF).
 inline void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
-                                            QVector<FeasibleThreshold> & thresholds, bool & improved)
+                                            std::vector<FeasibleThreshold> & thresholds, bool & improved)
 {
     LtiSystem * box = node->system();
     const std::int32_t total = parameterCount(box);
@@ -613,9 +615,10 @@ inline void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnaly
                         : std::numeric_limits<double>::max();
                 bool allCertified = true;
 
-                for (std::int32_t i = 0; i < omega->size() && allCertified; ++i) {
+                for (std::int32_t i = 0; i < static_cast<std::int32_t>(omega->size()) && allCertified; ++i) {
 
-                    const std::optional<BoxClassification> & classification = analysis.classification.value(i);
+                    const std::optional<BoxClassification> & classification =
+                analysis.classification.at(static_cast<std::size_t>(i));
 
                     if (!classification.has_value() || classification->flag() != ambiguous) {
                         continue;   //feasible here for the whole range
@@ -712,7 +715,7 @@ inline void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnaly
                         intersection = std::max(intersection, clamped);
 
                         if (t > range.min) {
-                            thresholds.append({parameter, i, t, true,
+                            thresholds.push_back({parameter, i, t, true,
                                                (range.max - t) / range.width()});
                         }
                     } else {
@@ -724,7 +727,7 @@ inline void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnaly
                         intersection = std::min(intersection, clamped);
 
                         if (t < range.max) {
-                            thresholds.append({parameter, i, t, false,
+                            thresholds.push_back({parameter, i, t, false,
                                                (t - range.min) / range.width()});
                         }
                     }
@@ -796,9 +799,10 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
 
     bool cut = false;
 
-    for (std::int32_t i = 0; i < omega->size(); ++i) {
+    for (std::int32_t i = 0; i < static_cast<std::int32_t>(omega->size()); ++i) {
 
-        const std::optional<BoxClassification> & classification = analysis.classification.value(i);
+        const std::optional<BoxClassification> & classification =
+                analysis.classification.at(static_cast<std::size_t>(i));
 
         if (!classification.has_value() || classification->flag() != ambiguous) {
             continue;
@@ -1046,18 +1050,18 @@ inline std::int32_t AlgorithmMcThesis::widestByMeasure(McSearchNode * node, std:
 
 //Step G (thesis 5.4.6): the bisection strategy follows the node's stage.
 inline FC::McBisectionResult AlgorithmMcThesis::bisect(McSearchNode * node, const NodeAnalysis & analysis,
-                                                       const QVector<FeasibleThreshold> & thresholds)
+                                                       const std::vector<FeasibleThreshold> & thresholds)
 {
     //Tree bisection (thesis 5.3): split at the stored feasible threshold
     //covering the largest fraction of its parameter's current range, and
     //mark the feasible child for that frequency.
     if (strategies.treeBisection &&
-            node->stage() == Stage::Intermediate && !thresholds.isEmpty()) {
+            node->stage() == Stage::Intermediate && !thresholds.empty()) {
 
         const FeasibleThreshold * bestThreshold = nullptr;
         double bestFraction = 0.0;
 
-        foreach (const FeasibleThreshold & t, thresholds) {
+        for (const FeasibleThreshold & t : thresholds) {
             const Range range = parameterRange(node->system(), t.parameter);
 
             if (t.threshold <= range.min || t.threshold >= range.max) {

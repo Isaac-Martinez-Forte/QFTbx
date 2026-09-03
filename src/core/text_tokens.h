@@ -5,7 +5,7 @@
 #include <string>
 
 #include <QString>
-#include <QVector>
+#include <vector>
 
 namespace qftbx {
 namespace text {
@@ -40,12 +40,12 @@ namespace text {
 std::string number(double value);
 
 /// Splits a string into its whitespace-separated tokens.
-QVector<QString> tokens(const QString & line);
+std::vector<QString> tokens(const QString & line);
 
 /// Parses whitespace-separated reals, or nothing when any token is not a
 /// valid real, so a malformed frequency file or coefficient list is
 /// rejected as a whole rather than silently truncated.
-std::optional<QVector<double>> reals(const QString & line);
+std::optional<std::vector<double>> reals(const QString & line);
 
 } // namespace text
 } // namespace qftbx

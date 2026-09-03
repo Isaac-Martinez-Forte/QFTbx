@@ -3,7 +3,7 @@
 
 #include <cstdint>
 #include "src/core/range.h"
-#include <QVector>
+#include <vector>
 
 #include "src/core/templates/cloud_set.h"
 #include "src/core/boundaries/boundary_types.h"
@@ -80,7 +80,7 @@ public:
     *        (currently unused - see the (-180, 0 dB) decision, deferred).
     * @param cuda compute the sheets on the GPU (CUDA builds only).
     */
-    void compute(QVector <double> * omega, LtiSystem * plant, const CloudSet & templates,
+    void compute(std::vector <double> * omega, LtiSystem * plant, const CloudSet & templates,
                  const qftbx::SpecificationRecords * specifications, qftbx::Range phaseRange,
                  std::int32_t phaseCount, qftbx::Range magnitudeRange, std::int32_t magnitudeCount, double exportInfinity, bool cuda);
 
@@ -90,7 +90,7 @@ public:
     /// nothing in the type said was a view.
     BoundaryData boundaryData();
 
-    QVector <double> * omega();
+    std::vector <double> * omega();
 
 
 private:
@@ -100,12 +100,12 @@ private:
     //BoundaryData views handed out never do).
     void releaseResults();
 
-    void computeFrequencies(QVector <double> * omega, LtiSystem * plant, const CloudSet & templates,
+    void computeFrequencies(std::vector <double> * omega, LtiSystem * plant, const CloudSet & templates,
                             qftbx::Range phaseRange, std::int32_t phaseCount, qftbx::Range magnitudeRange, std::int32_t magnitudeCount);
 
     void computeFrequency(double omega, LtiSystem * plant,
-                          const ComplexCloud & valueSet, const QVector <double> & phases,
-                          const QVector <double> & magnitudes, std::int32_t index);
+                          const ComplexCloud & valueSet, const std::vector <double> & phases,
+                          const std::vector <double> & magnitudes, std::int32_t index);
 
     void traceFrequency(double omega, std::map<QString, TraceSet> & bound,
                         const BoundarySheets & sheets,
@@ -145,18 +145,18 @@ private:
     UnionTraces m_unionVectors;
     UnionBuckets m_unionBuckets;
 
-    QVector <bool> m_trackingMask;
-    QVector <bool> m_stabilityMask;
-    QVector <bool> m_noiseMask;
-    QVector <bool> m_outputDisturbanceMask;
-    QVector <bool> m_inputDisturbanceMask;
-    QVector <bool> m_controlEffortMask;
+    std::vector <bool> m_trackingMask;
+    std::vector <bool> m_stabilityMask;
+    std::vector <bool> m_noiseMask;
+    std::vector <bool> m_outputDisturbanceMask;
+    std::vector <bool> m_inputDisturbanceMask;
+    std::vector <bool> m_controlEffortMask;
 
     std::vector<bool> m_openFlags;
     std::vector<bool> m_upperFlags;
 
     //Alias of the caller's frequency vector: never freed here.
-    QVector <double> * m_omega = nullptr;
+    std::vector <double> * m_omega = nullptr;
 
     bool m_cuda = false;
 

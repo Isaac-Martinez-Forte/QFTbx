@@ -114,11 +114,11 @@ bool ControllerDialog::parseCoefficients(CoefficientTable & tabla, QLineEdit *li
     UncertainRow vec2;
 
     if (linea->text().isEmpty()){
-        vec1.append("1");
-        vec2.append(false);
+        vec1.push_back("1");
+        vec2.push_back(false);
     } else{
 
-        foreach (QString e, vec1) {
+        for (QString e : vec1) {
 
             QRegularExpression re("[a-zA-Z]+");
 
@@ -144,7 +144,7 @@ bool ControllerDialog::parseCoefficients(CoefficientTable & tabla, QLineEdit *li
                 }
 
                 if (!p.IsFunDefined(capture.toStdString())){
-                    vec.append(capture);
+                    vec.push_back(capture);
                     capture = QString();
                     isUncertain = true;
                     break;
@@ -154,17 +154,17 @@ bool ControllerDialog::parseCoefficients(CoefficientTable & tabla, QLineEdit *li
                 e.remove(capture);
             }
 
-            vec2.append(isUncertain);
+            vec2.push_back(isUncertain);
 
             if (!isUncertain){
-                vec.append(e);
+                vec.push_back(e);
             }
         }
     }
 
-    tabla.append(vec);
-    uncertainTable.append(vec2);
-    expressionTable.append(vec1);
+    tabla.push_back(vec);
+    uncertainTable.push_back(vec2);
+    expressionTable.push_back(vec1);
 
     return true;
 }
@@ -180,17 +180,17 @@ bool ControllerDialog::parseGainRange(CoefficientTable & tabla, QLineEdit *linea
     CoefficientRow vec1;
     CoefficientRow vec;
     UncertainRow vec2;
-    vec2.append(true);
+    vec2.push_back(true);
 
-    vec.append(aux);
-    vec.append(aux1);
+    vec.push_back(aux);
+    vec.push_back(aux1);
 
-    vec1.append(aux);
-    vec1.append(aux1);
+    vec1.push_back(aux);
+    vec1.push_back(aux1);
 
-    tabla.append(vec);
-    expressionTable.append(vec1);
-    uncertainTable.append(vec2);
+    tabla.push_back(vec);
+    expressionTable.push_back(vec1);
+    uncertainTable.push_back(vec2);
 
     return true;
 }
@@ -218,9 +218,9 @@ bool ControllerDialog::parseFreeForm(QLineEdit * linea, CoefficientTable & tabla
 
         if (!p.IsFunDefined(capture.toStdString()) && capture != "s"){
 
-            expressions.append(capture);
-            values.append(capture);
-            flags.append(true);
+            expressions.push_back(capture);
+            values.push_back(capture);
+            flags.push_back(true);
 
             capture = QString();
         }
@@ -230,9 +230,9 @@ bool ControllerDialog::parseFreeForm(QLineEdit * linea, CoefficientTable & tabla
     }
 
 
-    tabla.append(values);
-    expressionTable.append(expressions);
-    uncertainTable.append(flags);
+    tabla.push_back(values);
+    expressionTable.push_back(expressions);
+    uncertainTable.push_back(flags);
 
     return true;
 }
@@ -348,11 +348,11 @@ std::optional<std::vector<Parameter>> ControllerDialog::buildParameters(const Co
     std::vector<Parameter> var;
     var.reserve(numbers.size());
 
-    if (numbers.isEmpty()){
+    if (numbers.empty()){
         return var;
     }
 
-    foreach (const QString &string, numbers) {
+    for (const QString &string : numbers) {
         p.SetExpr(string.toStdString());
         try {
             var.push_back(Parameter(p.Eval().GetFloat()));

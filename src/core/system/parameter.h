@@ -3,7 +3,7 @@
 
 #include <QString>
 #include "src/core/range.h"
-#include <QVector>
+#include <vector>
 
 #include "mpParser.h"
 #include "mpValue.h"

@@ -1,3 +1,4 @@
+#include <vector>
 #include <cstdint>
 #include "project_writer.h"
 
@@ -28,10 +29,10 @@ const Tags & t = kV2;
 
 //17 significant digits: enough for an exact double round trip.
 
-std::string realVectorText(const QVector <double> & values)
+std::string realVectorText(const std::vector <double> & values)
 {
     std::string text;
-    foreach (double value, values) {
+    for (double value : values) {
         text += number(value) + " ";
     }
     return text;

@@ -7,7 +7,7 @@
 #include <map>
 
 #include <QString>
-#include <QVector>
+#include <vector>
 
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/system/lti_system.h"
@@ -83,7 +83,7 @@ public:
      * @param boundaries unused: the constraints come from the
      * specifications and the templates, not from Nichols boundaries.
      */
-    void setProblem(LtiSystem * plant, LtiSystem * controller, QVector<double> * omega, const BoundaryData * boundaries,
+    void setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> * omega, const BoundaryData * boundaries,
                    double epsilon, const qftbx::CloudSet & temp,
                    const qftbx::SpecificationRecords * specificationRecords);
 
@@ -121,7 +121,7 @@ private:
 
     LtiSystem * plant = nullptr;
     std::unique_ptr<LtiSystem> controller;
-    QVector<double> * omega = nullptr;
+    std::vector<double> * omega = nullptr;
     const BoundaryData * boundaries = nullptr;
     double epsilon = 0;
     qftbx::CloudSet temp;
@@ -133,11 +133,11 @@ private:
     //Controller magnitude/phase expression strings, one per design
     //frequency, and the parsed constraint trees (built once; each box
     //only reloads the variable domains).
-    QVector<QString> magnitudeExpressions;
-    QVector<QString> phaseExpressions;
+    std::vector<QString> magnitudeExpressions;
+    std::vector<QString> phaseExpressions;
     std::vector<std::unique_ptr<alg::ExpressionTree>> constraints;
     //The source text of each constraint, for diagnostics.
-    QVector<QString> constraintTexts;
+    std::vector<QString> constraintTexts;
 
     std::unique_ptr<LtiSystem> designedController;
 

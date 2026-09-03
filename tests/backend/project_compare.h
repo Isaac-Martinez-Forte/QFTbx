@@ -7,6 +7,8 @@
 #include "src/core/templates/cloud_set.h"
 #include <gtest/gtest.h>
 
+#include <vector>
+
 #include <complex>
 
 #include <QString>
@@ -20,7 +22,7 @@
 namespace qftbx_tests {
 
 inline void expectSameSystem(LtiSystem* a, LtiSystem* b,
-                             const QVector<qreal>& probes, const char* what)
+                             const std::vector<double>& probes, const char* what)
 {
     ASSERT_EQ(a == nullptr, b == nullptr) << what;
     if (a == nullptr) {

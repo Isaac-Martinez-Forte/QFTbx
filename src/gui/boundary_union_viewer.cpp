@@ -1,3 +1,4 @@
+#include "qt_containers.h"
 #include "boundary_union_viewer.h"
 #include "ui_boundary_union_viewer.h"
 
@@ -51,7 +52,7 @@ void BoundaryUnionViewer::clearDiagram(){
 
     //Qt's own mechanism: destroying the row widget is how a widget leaves
     //a layout, and it takes its checkbox with it.
-    foreach (QCheckBox * che, checkboxes) {
+    for (QCheckBox * che : checkboxes) {
         delete che->parentWidget();
     }
     checkboxes.clear();
@@ -69,7 +70,7 @@ void BoundaryUnionViewer::clearDiagram(){
 }
 
 
-void BoundaryUnionViewer::setData(const qftbx::UnionTraces & unionTraces, QVector<qreal> *omega){
+void BoundaryUnionViewer::setData(const qftbx::UnionTraces & unionTraces, std::vector<double> *omega){
     this->unionTraces = unionTraces;
     this->omega = omega;
     bucketMode = false;
@@ -79,14 +80,14 @@ void BoundaryUnionViewer::setData(const qftbx::UnionTraces & unionTraces, QVecto
     b.clear();
 }
 
-void BoundaryUnionViewer::setData(const qftbx::UnionTraces & unionTraces, QVector<qreal> *omega, qint32 singleBoundary){
+void BoundaryUnionViewer::setData(const qftbx::UnionTraces & unionTraces, std::vector<double> *omega, qint32 singleBoundary){
     this->unionTraces = unionTraces;
     this->omega = omega;
     bucketMode = false;
     this->singleBoundary = singleBoundary;
 }
 
-void BoundaryUnionViewer::setData (const qftbx::UnionBuckets & unionTraces, QVector<qreal> *omega) {
+void BoundaryUnionViewer::setData (const qftbx::UnionBuckets & unionTraces, std::vector<double> *omega) {
     unionBuckets = unionTraces;
     this->omega = omega;
     bucketMode = true;
@@ -94,7 +95,7 @@ void BoundaryUnionViewer::setData (const qftbx::UnionBuckets & unionTraces, QVec
     b.clear();
 }
 
-void BoundaryUnionViewer::setData (const qftbx::UnionBuckets & unionTraces, QVector<qreal> *omega, const qftbx::Trace & b) {
+void BoundaryUnionViewer::setData (const qftbx::UnionBuckets & unionTraces, std::vector<double> *omega, const qftbx::Trace & b) {
     unionBuckets = unionTraces;
     this->omega = omega;
     bucketMode = true;
@@ -123,20 +124,20 @@ void BoundaryUnionViewer::showDiagram(){
             for (const qftbx::Trace & bound : unionTraces) {
                 QColor color = randomColor(frequencyIndex);
                 frequencyIndex++;
-                colors.append(color);
+                colors.push_back(color);
 
-                QVector <qreal> ejex;
-                QVector <qreal> ejey;
+                std::vector<double> ejex;
+                std::vector<double> ejey;
 
                 for (const qftbx::NicholsPoint & p : bound) {
-                    ejex.append(p.phase);
-                    ejey.append(p.magnitude);
+                    ejex.push_back(p.phase);
+                    ejey.push_back(p.magnitude);
                 }
 
                 QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-                curva->setData(ejex, ejey);
+                curva->setData(tools::toQVector(ejex), tools::toQVector(ejey));
                 curva->setPen(color);
-                curves.append(curva);
+                curves.push_back(curva);
                 addFrequencyRow(color, k);
 
 
@@ -154,22 +155,22 @@ void BoundaryUnionViewer::showDiagram(){
                 const qftbx::TraceSet & bound = unionBuckets.at(static_cast<std::size_t>(f));
                 QColor color = randomColor(frequencyIndex);
                 frequencyIndex++;
-                colors.append(color);
+                colors.push_back(color);
 
-                QVector <qreal> ejex;
-                QVector <qreal> ejey;
+                std::vector<double> ejex;
+                std::vector<double> ejey;
 
                 for (const qftbx::Trace & bucket : bound) {
                     for (const qftbx::NicholsPoint & p : bucket) {
-                        ejex.append(p.phase);
-                        ejey.append(p.magnitude);
+                        ejex.push_back(p.phase);
+                        ejey.push_back(p.magnitude);
                     }
                 }
 
                 QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-                curva->setData(ejex, ejey);
+                curva->setData(tools::toQVector(ejex), tools::toQVector(ejey));
                 curva->setPen(color);
-                curves.append(curva);
+                curves.push_back(curva);
 
                 addFrequencyRow(color, k);
 
@@ -179,20 +180,20 @@ void BoundaryUnionViewer::showDiagram(){
             if (!this->b.empty()){
                 QColor color = randomColor(frequencyIndex);
                 frequencyIndex++;
-                colors.append(color);
+                colors.push_back(color);
 
-                QVector <qreal> ejex;
-                QVector <qreal> ejey;
+                std::vector<double> ejex;
+                std::vector<double> ejey;
 
                 for (const qftbx::NicholsPoint & p : this->b) {
-                    ejex.append(p.phase);
-                    ejey.append(p.magnitude);
+                    ejex.push_back(p.phase);
+                    ejey.push_back(p.magnitude);
                 }
 
                 QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-                curva->setData(ejex, ejey);
+                curva->setData(tools::toQVector(ejex), tools::toQVector(ejey));
                 curva->setPen(color);
-                curves.append(curva);
+                curves.push_back(curva);
 
                 addFrequencyRow(color, k);
 
@@ -204,20 +205,20 @@ void BoundaryUnionViewer::showDiagram(){
     } else {
         QColor color = randomColor(frequencyIndex);
         frequencyIndex++;
-        colors.append(color);
+        colors.push_back(color);
 
-                QVector <qreal> ejex;
-                QVector <qreal> ejey;
+                std::vector<double> ejex;
+                std::vector<double> ejey;
 
         for (const qftbx::NicholsPoint & p : unionTraces.at(static_cast<std::size_t>(singleBoundary))) {
-            ejex.append(p.phase);
-            ejey.append(p.magnitude);
+            ejex.push_back(p.phase);
+            ejey.push_back(p.magnitude);
         }
 
         QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-        curva->setData(ejex, ejey);
+        curva->setData(tools::toQVector(ejex), tools::toQVector(ejey));
         curva->setPen(color);
-        curves.append(curva);
+        curves.push_back(curva);
         addFrequencyRow(color, k);
 
 
@@ -285,7 +286,7 @@ void BoundaryUnionViewer::addFrequencyRow(QColor color, qint32 pos){
     checkBox->setStyleSheet("color : " + color.name());
 
     colorsLayout->addWidget(widget);
-    checkboxes.append(checkBox);
+    checkboxes.push_back(checkBox);
     checkBox->setCheckState(Qt::Checked);
 
     connect(checkBox, SIGNAL (clicked()), this, SLOT (applyCheckboxes()));
@@ -294,23 +295,23 @@ void BoundaryUnionViewer::addFrequencyRow(QColor color, qint32 pos){
 
 void BoundaryUnionViewer::drawBox(QPointF uno, QPointF dos, QPointF tres, QPointF cuatro, qint32 frequencyIndex){
 
-    QVector <qreal> ejex;
-    QVector <qreal> ejey;
+    std::vector<double> ejex;
+    std::vector<double> ejey;
 
-    ejex.append(uno.x());
-    ejex.append(dos.x());
-    ejex.append(tres.x());
-    ejex.append(cuatro.x());
-    ejex.append(uno.x());
+    ejex.push_back(uno.x());
+    ejex.push_back(dos.x());
+    ejex.push_back(tres.x());
+    ejex.push_back(cuatro.x());
+    ejex.push_back(uno.x());
 
-    ejey.append(uno.y());
-    ejey.append(dos.y());
-    ejey.append(tres.y());
-    ejey.append(cuatro.y());
-    ejey.append(uno.y());
+    ejey.push_back(uno.y());
+    ejey.push_back(dos.y());
+    ejey.push_back(tres.y());
+    ejey.push_back(cuatro.y());
+    ejey.push_back(uno.y());
 
-    /*boxCurves.append(ui->plot->addGraph());
-    ui->plot->graph(finalCurveIndex)->setData(ejex, ejey);
+    /*boxCurves.push_back(ui->plot->addGraph());
+    ui->plot->graph(finalCurveIndex)->setData(tools::toQVector(ejex), tools::toQVector(ejey));
 
     ui->plot->graph(finalCurveIndex)->setPen(colors.at(frequencyIndex));
     ui->plot->graph(finalCurveIndex)->setLineStyle(QCPGraph::lsLine);
@@ -318,9 +319,9 @@ void BoundaryUnionViewer::drawBox(QPointF uno, QPointF dos, QPointF tres, QPoint
     ui->plot->graph(finalCurveIndex)->rescaleAxes(true);*/
 
     QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-    curva->setData(ejex, ejey);
+    curva->setData(tools::toQVector(ejex), tools::toQVector(ejey));
     curva->setPen(colors.at(frequencyIndex));
-    boxCurves.append(curva);
+    boxCurves.push_back(curva);
 
     //ui->plot->rescaleAxes(true);
 
@@ -329,32 +330,32 @@ void BoundaryUnionViewer::drawBox(QPointF uno, QPointF dos, QPointF tres, QPoint
 
 void BoundaryUnionViewer::drawBox2(QPointF uno, QPointF dos, QPointF tres, QPointF cuatro, qint32 frequencyIndex){
 
-    QVector <qreal> ejex;
-    QVector <qreal> ejey;
+    std::vector<double> ejex;
+    std::vector<double> ejey;
 
-    ejex.append(uno.x());
-    ejex.append(dos.x());
-    ejex.append(tres.x());
-    ejex.append(cuatro.x());
-    ejex.append(uno.x());
+    ejex.push_back(uno.x());
+    ejex.push_back(dos.x());
+    ejex.push_back(tres.x());
+    ejex.push_back(cuatro.x());
+    ejex.push_back(uno.x());
 
-    ejey.append(uno.y());
-    ejey.append(dos.y());
-    ejey.append(tres.y());
-    ejey.append(cuatro.y());
-    ejey.append(uno.y());
+    ejey.push_back(uno.y());
+    ejey.push_back(dos.y());
+    ejey.push_back(tres.y());
+    ejey.push_back(cuatro.y());
+    ejey.push_back(uno.y());
 
-    /*boxCurves2.append(ui->plot->addGraph());
-    ui->plot->graph(finalCurveIndex)->setData(ejex, ejey);
+    /*boxCurves2.push_back(ui->plot->addGraph());
+    ui->plot->graph(finalCurveIndex)->setData(tools::toQVector(ejex), tools::toQVector(ejey));
 
     ui->plot->graph(finalCurveIndex)->setPen(colors.at(frequencyIndex));
     ui->plot->graph(finalCurveIndex)->setLineStyle(QCPGraph::lsLine);
     ui->plot->graph(finalCurveIndex)->setScatterStyle(QCPScatterStyle::ssCircle);*/
 
     QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-    curva->setData(ejex, ejey);
+    curva->setData(tools::toQVector(ejex), tools::toQVector(ejey));
     curva->setPen(colors.at(frequencyIndex));
-    boxCurves2.append(curva);
+    boxCurves2.push_back(curva);
 
     ui->plot->rescaleAxes(true);
 

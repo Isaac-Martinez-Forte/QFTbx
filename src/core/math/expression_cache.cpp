@@ -1,3 +1,4 @@
+#include <vector>
 #include <cstdint>
 #include "src/core/math/expression_cache.h"
 
@@ -20,10 +21,10 @@ namespace {
 //before it.
 struct CachedParser
 {
-    explicit CachedParser(const QString & expression, const QVector<QString> & names)
+    explicit CachedParser(const QString & expression, const std::vector<QString> & names)
         : parser(mup::pckALL_COMPLEX), values(static_cast<std::size_t>(names.size()))
     {
-        for (std::int32_t i = 0; i < names.size(); i++) {
+        for (std::int32_t i = 0; i < static_cast<std::int32_t>(names.size()); i++) {
             parser.DefineVar(names.at(i).toStdString(),
                              mup::Variable(&values[static_cast<std::size_t>(i)]));
         }
@@ -38,7 +39,7 @@ struct CachedParser
 
 //Keyed by the expression and its variable names: two expressions that differ
 //only in which names they bind are different parsers.
-using Key = std::pair<QString, QVector<QString>>;
+using Key = std::pair<QString, std::vector<QString>>;
 
 //Deliberately a pointer that is never deleted. A thread_local object holding
 //muParserX state would be destroyed at thread exit, and the order against the
@@ -52,7 +53,7 @@ std::map<Key, std::unique_ptr<CachedParser>> & cache()
 } // namespace
 
 std::complex<double> evaluateCached(const QString & expression,
-                                    const QVector<QString> & names,
+                                    const std::vector<QString> & names,
                                     const std::vector<std::complex<double>> & values)
 {
     if (static_cast<std::size_t>(names.size()) != values.size()) {

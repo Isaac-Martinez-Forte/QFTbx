@@ -3,6 +3,7 @@
 #include "src/core/exception.h"
 #include "src/core/text_tokens.h"
 
+#include <vector>
 #include <optional>
 
 #include "src/core/specifications/specification.h"
@@ -18,7 +19,7 @@
 using namespace tools;
 using namespace mup;
 
-SpecificationsDialog::SpecificationsDialog(const QVector<qreal> * frequencies,
+SpecificationsDialog::SpecificationsDialog(const std::vector<double> * frequencies,
                                            const qftbx::SpecificationRecords * loaded,
                                            QWidget *parent) :
     QDialog(parent)
@@ -30,7 +31,7 @@ SpecificationsDialog::SpecificationsDialog(const QVector<qreal> * frequencies,
     //This runs BEFORE the widget tree is built on purpose: a constructor
     //that throws gets no destructor, so anything allocated before the throw
     //would be lost.
-    if (frequencies == nullptr || frequencies->isEmpty()) {
+    if (frequencies == nullptr || frequencies->empty()) {
         throw qftbx::InvalidInput("The design frequencies must be entered "
                                   "before the specifications.");
     }
@@ -72,8 +73,8 @@ SpecificationsDialog::SpecificationsDialog(const QVector<qreal> * frequencies,
     sensorNoisePixmap= QPixmap (":/figures/ruidosensor.png");
     stabilityPixmap= QPixmap (":/figures/estabilidad.png");
 
-    ui->startFrequencyEdit->setText(QString::number(frequencies->first()));
-    ui->endFrequencyEdit->setText(QString::number(frequencies->last()));
+    ui->startFrequencyEdit->setText(QString::number(frequencies->front()));
+    ui->endFrequencyEdit->setText(QString::number(frequencies->back()));
 
     ui->trackingImage->setPixmap(trackingImagePixmap);
 
@@ -305,7 +306,7 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record_in, QString 
     }
 
     if (ui->startFrequencyEdit->text().isEmpty()){
-        record_in.omegaStart = frequencies->first();
+        record_in.omegaStart = frequencies->front();
     } else {
         ParserX p (pckALL_NON_COMPLEX);
         p.SetExpr(ui->startFrequencyEdit->text().toStdString());
@@ -322,7 +323,7 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record_in, QString 
     }
 
     if (ui->endFrequencyEdit->text().isEmpty()){
-        record_in.omegaEnd = frequencies->last();
+        record_in.omegaEnd = frequencies->back();
     } else {
         ParserX p (pckALL_NON_COMPLEX);
         p.SetExpr(ui->endFrequencyEdit->text().toStdString());
@@ -465,8 +466,8 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record_in,
     }
 
     if (ui->startFrequencyEdit->text().isEmpty()){
-        record_in.omegaStart = frequencies->first();
-        upperRecord.omegaStart = frequencies->first();
+        record_in.omegaStart = frequencies->front();
+        upperRecord.omegaStart = frequencies->front();
     } else {
         ParserX p (pckALL_NON_COMPLEX);
         p.SetExpr(ui->startFrequencyEdit->text().toStdString());
@@ -485,8 +486,8 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record_in,
     }
 
     if (ui->endFrequencyEdit->text().isEmpty()){
-        record_in.omegaEnd = frequencies->last();
-        upperRecord.omegaEnd = frequencies->last();
+        record_in.omegaEnd = frequencies->back();
+        upperRecord.omegaEnd = frequencies->back();
     } else {
         ParserX p (pckALL_NON_COMPLEX);
         p.SetExpr(ui->endFrequencyEdit->text().toStdString());
@@ -748,17 +749,17 @@ std::optional<std::vector<Parameter>> SpecificationsDialog::buildParameters(QStr
 
     ParserX p (pckALL_NON_COMPLEX);
 
-    const QVector <QString> numbers = qftbx::text::tokens(linea);
+    const std::vector<QString> numbers = qftbx::text::tokens(linea);
 
     std::vector<Parameter> var;
 
-    if (numbers.isEmpty()){
+    if (numbers.empty()){
         return var;
     }
 
     var.reserve(numbers.size());
 
-    foreach (const QString &string, numbers) {
+    for (const QString &string : numbers) {
         p.SetExpr(string.toStdString());
         qreal res;
         try {

@@ -1,3 +1,4 @@
+#include <vector>
 #include <cstdint>
 #include "src/core/exception.h"
 #include "src/core/loopshaping/algorithm_mr.h"
@@ -41,7 +42,7 @@ AlgorithmMr::~AlgorithmMr()
 {
 }
 
-void AlgorithmMr::setProblem(LtiSystem *plant, LtiSystem *controller, QVector<double> * omega, const BoundaryData *boundaries,
+void AlgorithmMr::setProblem(LtiSystem *plant, LtiSystem *controller, std::vector<double> * omega, const BoundaryData *boundaries,
                                   double epsilon, const qftbx::CloudSet & temp,
                                   const qftbx::SpecificationRecords * specificationRecords){
     this->plant = plant;
@@ -91,7 +92,7 @@ inline void AlgorithmMr::buildControllerExpressions(){
     magnitudeExpressions.clear();
     phaseExpressions.clear();
 
-    foreach (double w, *omega) {
+    for (double w : *omega) {
 
         QString magnitude = "(" + gain + ")";
         QString phase = "(0";
@@ -108,8 +109,8 @@ inline void AlgorithmMr::buildControllerExpressions(){
 
         phase += ")";
 
-        magnitudeExpressions.append(magnitude);
-        phaseExpressions.append(phase);
+        magnitudeExpressions.push_back(magnitude);
+        phaseExpressions.push_back(phase);
     }
 }
 
@@ -143,10 +144,10 @@ inline void AlgorithmMr::buildConstraints(){
         auto tree = std::make_unique<ExpressionTree>("1");
         tree->setFunc(expression.toStdString(), 0.0, alg::GREATER_EQUAL);
         constraints.push_back(std::move(tree));
-        constraintTexts.append(expression);
+        constraintTexts.push_back(expression);
     };
 
-    for (std::int32_t i = 0; i < omega->size(); ++i) {
+    for (std::int32_t i = 0; i < static_cast<std::int32_t>(omega->size()); ++i) {
 
         const double w = omega->at(i);
         const QString & g = magnitudeExpressions.at(i);
@@ -155,18 +156,18 @@ inline void AlgorithmMr::buildConstraints(){
         //Template representatives, evenly subsampled along the contour.
         //Non-finite or null points (artefacts of a degenerate contour)
         //would embed "nan" into the expression texts: they are skipped.
-        QVector<std::complex<double>> points;
+        std::vector<std::complex<double>> points;
         const qftbx::ComplexCloud & contour = temp.at(static_cast<std::size_t>(i));
         const std::int32_t take = std::min<std::int32_t>(kTemplateRepresentatives, static_cast<std::int32_t>(contour.size()));
         for (std::int32_t j = 0; j < take; ++j) {
             const std::complex<double> value = contour.at(j * static_cast<std::int32_t>(contour.size()) / take);
             if (std::isfinite(value.real()) && std::isfinite(value.imag()) &&
                     std::abs(value) > 0.0) {
-                points.append(value);
+                points.push_back(value);
             }
         }
 
-        foreach (const std::complex<double> & value, points) {
+        for (const std::complex<double> & value : points) {
 
             const QString p = number(std::abs(value));
             const QString p2 = number(std::abs(value) * std::abs(value));
@@ -217,8 +218,8 @@ inline void AlgorithmMr::buildConstraints(){
             const double delta2 = std::pow(10.0, deltaDb / 10.0);
             const QString invDelta2 = number(1.0 / delta2);
 
-            for (std::int32_t a = 0; a < points.size(); ++a) {
-                for (std::int32_t b = 0; b < points.size(); ++b) {
+            for (std::int32_t a = 0; a < static_cast<std::int32_t>(points.size()); ++a) {
+                for (std::int32_t b = 0; b < static_cast<std::int32_t>(points.size()); ++b) {
                     if (a == b) {
                         continue;
                     }

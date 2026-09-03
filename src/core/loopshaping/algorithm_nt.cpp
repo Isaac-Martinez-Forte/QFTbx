@@ -1,3 +1,4 @@
+#include <vector>
 #include <cstdint>
 #include "src/core/exception.h"
 #include "src/core/loopshaping/algorithm_nt.h"
@@ -49,7 +50,7 @@ AlgorithmNt::AlgorithmNt() {
 AlgorithmNt::~AlgorithmNt() {
 }
 
-void AlgorithmNt::setProblem(LtiSystem * plant, LtiSystem * controller, QVector<double> *omega, const BoundaryData * boundaries,
+void AlgorithmNt::setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> *omega, const BoundaryData * boundaries,
                                  double epsilon) {
 
 
@@ -75,9 +76,9 @@ bool AlgorithmNt::solve() {
 
     nominalPlantValues.clear();
 
-    foreach (double o, *omega) {
+    for (double o : *omega) {
         std::complex <double> c = plant->evaluate(o);
-        nominalPlantValues.append(cxsc::complex(c.real(), c.imag()));
+        nominalPlantValues.push_back(cxsc::complex(c.real(), c.imag()));
     }
 
     //Step 1: feasibility of the initial search box (inserts it into NL
@@ -165,7 +166,7 @@ inline void AlgorithmNt::check_box_feasibility(std::unique_ptr<LtiSystem> box) {
     double feasibleFrom = 0;
     bool feasibleCertified = true;
 
-    foreach(double o, *omega) {
+    for (double o : *omega) {
 
         projection = conversion->nicholsBox(box.get(), o, nominalPlantValues.at(frequencyIndex));
 

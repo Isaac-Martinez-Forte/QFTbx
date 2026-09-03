@@ -3,7 +3,7 @@
 
 #include <complex>
 
-#include <QVector>
+#include <vector>
 
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/system/lti_system.h"
@@ -57,7 +57,7 @@ public:
     AlgorithmMc1();
     ~AlgorithmMc1();
 
-    void setProblem(LtiSystem * plant, LtiSystem * controller, QVector<double> * omega, const BoundaryData * boundaries,
+    void setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> * omega, const BoundaryData * boundaries,
                    double epsilon);
 
     bool solve();
@@ -80,7 +80,7 @@ private:
 
     LtiSystem * plant = nullptr;
     std::unique_ptr<LtiSystem> controller;
-    QVector<double> * omega = nullptr;
+    std::vector<double> * omega = nullptr;
     const BoundaryData * boundaries = nullptr;
     double epsilon = 0;
 
@@ -88,8 +88,8 @@ private:
     std::unique_ptr<BoundaryViolationDetector> detector;
     std::unique_ptr<NominalStabilityChecker> stability;
     std::unique_ptr<OrderedList> liveList;
-    QVector<cxsc::complex> nominalPlantValues;
-    QVector<std::complex<double>> nominalPlantValuesStd;
+    std::vector<cxsc::complex> nominalPlantValues;
+    std::vector<std::complex<double>> nominalPlantValuesStd;
 
     //Prune variable C of the paper's step 3bis: gain and controller of
     //the best certified feasible solution found by QS2 stage 3.

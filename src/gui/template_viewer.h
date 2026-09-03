@@ -3,6 +3,7 @@
 #ifndef QFTBX_TEMPLATE_VIEWER_H
 #define QFTBX_TEMPLATE_VIEWER_H
 
+#include <vector>
 #include <memory>
 
 #include <QDialog>
@@ -69,8 +70,8 @@ public:
 
     void setData(const qftbx::CloudSet & templates,
                   const qftbx::CloudSet & contour,
-                  QVector <qreal> * omega,
-                  QVector <qreal> * epsilon);
+                  std::vector<double> * omega,
+                  std::vector<double> * epsilon);
 
    /**
     * @brief What runs when the user asks for a tighter contour. Ownership of
@@ -81,7 +82,7 @@ public:
     * thread. Same seam as tools::ErrorReporter.
    */
 
-    using ContourRecomputer = std::function<void (QVector <qreal> epsilon)>;
+    using ContourRecomputer = std::function<void (std::vector<double> epsilon)>;
 
    /**
     * @fn setContourRecomputer
@@ -98,8 +99,8 @@ public:
    */
 
     void refreshContour(const qftbx::CloudSet & contour,
-                        QVector <qreal> * omega,
-                        QVector <qreal> * epsilon);
+                        std::vector<double> * omega,
+                        std::vector<double> * epsilon);
 
 
    /// @param templates the plant value set at every design frequency.
@@ -128,8 +129,8 @@ private slots:
 private:
     std::unique_ptr<Ui::TemplateViewer> ui;
     bool plotted = false;
-    void plotLine(qint32 pos, QVector <QCPGraph *> & saveImage, const QVector <qreal> & fas,
-                  const QVector <qreal> & gan, bool tipo, bool visible, qint32 frequencyIndex);
+    void plotLine(qint32 pos, QVector <QCPGraph *> & saveImage, const std::vector<double> & fas,
+                  const std::vector<double> & gan, bool tipo, bool visible, qint32 frequencyIndex);
     void addFrequencyRow (QColor color, qint32 pos);
     void clearDiagram();
 
@@ -137,8 +138,8 @@ private:
     //which is why a recompute had to be careful about what it freed.
     qftbx::CloudSet m_templates;
     qftbx::CloudSet m_contour;
-    QVector <qreal> * omega = nullptr;
-    QVector <qreal> * epsilon = nullptr;
+    std::vector<double> * omega = nullptr;
+    std::vector<double> * epsilon = nullptr;
 
     //The graphs BELONG TO QCustomPlot, which frees them on clearGraphs():
     //only these containers are the viewer's.

@@ -31,7 +31,7 @@ LtiSystem* makeZpk(qreal k, std::initializer_list<qreal> zeros,
                             Parameter(k), Parameter(qreal(0)));
 }
 
-QVector<qreal> designFrequencies{0.1, 1.0, 10.0};
+std::vector<double> designFrequencies{0.1, 1.0, 10.0};
 
 TEST(NominalStability, LowGainOverAStablePlantIsStable)
 {

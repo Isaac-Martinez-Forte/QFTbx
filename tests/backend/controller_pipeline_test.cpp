@@ -7,6 +7,8 @@
 
 #include <gtest/gtest.h>
 
+#include <vector>
+
 #include "src/core/point.h"
 
 #include "src/core/range.h"
@@ -65,15 +67,15 @@ TEST(ControllerPipeline, RecomputedBoundariesMatchTheLoadedProject)
     // Keep the traces of the boundaries as loaded from the file: boundaries()
     // hands a view whose containers are replaced when recomputing.
     BoundaryData* loaded = controller.boundaries();
-    QVector<QVector<QVector<qftbx::NicholsPoint>>> storedTraces;
+    std::vector<std::vector<std::vector<qftbx::NicholsPoint>>> storedTraces;
     for (const auto & map : loaded->boundaries()) {
-        QVector<QVector<qftbx::NicholsPoint>> perFrequency;
+        std::vector<std::vector<qftbx::NicholsPoint>> perFrequency;
         for (const auto & entry : map) {
             for (const qftbx::Trace & trace : entry.second) {
-                perFrequency.append(QVector<qftbx::NicholsPoint>(trace.begin(), trace.end()));
+                perFrequency.push_back(std::vector<qftbx::NicholsPoint>(trace.begin(), trace.end()));
             }
         }
-        storedTraces.append(perFrequency);
+        storedTraces.push_back(perFrequency);
     }
     ASSERT_EQ(storedTraces.size(), 5);
 
@@ -96,7 +98,7 @@ TEST(ControllerPipeline, RecomputedBoundariesMatchTheLoadedProject)
         ASSERT_EQ(static_cast<int>(traces.size()), storedTraces.at(f).size()) << "frequency " << f;
 
         for (int t = 0; t < static_cast<int>(traces.size()); ++t) {
-            const QVector<qftbx::NicholsPoint>& gold = storedTraces.at(f).at(t);
+            const std::vector<qftbx::NicholsPoint>& gold = storedTraces.at(f).at(t);
             const qftbx::Trace & got = traces.at(static_cast<std::size_t>(t));
             ASSERT_EQ(static_cast<int>(got.size()), gold.size()) << "frequency " << f << " trace " << t;
 
@@ -132,7 +134,7 @@ TEST(ControllerPipeline, SaveAndReloadRoundTripsTheProject)
 
     ASSERT_EQ(originalFlags, rewrittenFlags);
 
-    const QVector<qreal> probes = *original.omega()->values();
+    const std::vector<double> probes = *original.omega()->values();
     expectSameSystem(original.plant(), rewritten.plant(), probes, "plant");
     expectSameSpecifications(original.specifications(), rewritten.specifications());
     EXPECT_EQ(*original.epsilon(), *rewritten.epsilon());

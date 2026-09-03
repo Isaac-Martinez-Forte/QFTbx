@@ -1,6 +1,7 @@
 #ifndef QFTBX_SPECIFICATION_H
 #define QFTBX_SPECIFICATION_H
 
+#include <vector>
 #include <array>
 #include <cmath>
 #include <memory>
@@ -213,7 +214,7 @@ private:
 
 /**
  * @brief The fixed set of seven specifications, indexed by type (the
- * historical code held a positional QVector of 7 with no size checks and a
+ * historical code held a positional std::vector of 7 with no size checks and a
  * magic "seguimiento" string as the type discriminant).
  */
 class SpecificationSet

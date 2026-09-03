@@ -1,6 +1,7 @@
 #ifndef QFTBX_LOOPSHAPING_LOOP_SHAPING_H
 #define QFTBX_LOOPSHAPING_LOOP_SHAPING_H
 
+#include <vector>
 #include <cstdint>
 #include <memory>
 
@@ -49,7 +50,7 @@ public:
      * @return false when the algorithm found no solution; it throws
      * qftbx::InvalidInput when the problem itself is invalid.
      */
-    bool run(LtiSystem * plant, LtiSystem * controller, QVector<double> * omega, const BoundaryData * boundaries,
+    bool run(LtiSystem * plant, LtiSystem * controller, std::vector<double> * omega, const BoundaryData * boundaries,
                  double epsilon, LoopShapingAlgorithm algorithm,
                  const qftbx::CloudSet & contour, const qftbx::SpecificationRecords * specifications,
                  std::int32_t initialisation);

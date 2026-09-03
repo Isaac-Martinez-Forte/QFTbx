@@ -9,6 +9,7 @@
 #include "src/core/point.h"
 #include "src/core/exception.h"
 
+#include <vector>
 #include <iostream>
 
 using namespace tools;
@@ -118,12 +119,12 @@ void MainWindow::destroyDialogs(){
 }
 
 void MainWindow::installContourRecomputer(){
-    templateViewer->setContourRecomputer([this](QVector<qreal> epsilon) {
+    templateViewer->setContourRecomputer([this](std::vector<double> epsilon) {
         recomputeContour(std::move(epsilon));
     });
 }
 
-void MainWindow::recomputeContour(QVector<qreal> epsilon){
+void MainWindow::recomputeContour(std::vector<double> epsilon){
     //The viewer asked for a tighter contour: the computation, and the
     //reporting of its failure, belong here.
     try {
@@ -177,7 +178,7 @@ void MainWindow::invalidateLoopShaping(){
     loopShapingViewer = nullptr;
 }
 
-const QVector<qreal> * MainWindow::frequencyValues() const{
+const std::vector<double> * MainWindow::frequencyValues() const{
     Omega * omega = controller->omega();
 
     if (omega == nullptr){

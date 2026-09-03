@@ -1,3 +1,4 @@
+#include <vector>
 #include <cstdint>
 #include "src/core/exception.h"
 #include "src/core/loopshaping/algorithm_mc1.h"
@@ -57,7 +58,7 @@ AlgorithmMc1::~AlgorithmMc1()
 }
 
 
-void AlgorithmMc1::setProblem(LtiSystem * plant, LtiSystem * controller, QVector<double> * omega,
+void AlgorithmMc1::setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> * omega,
                                           const BoundaryData * boundaries, double epsilon)
 {
     this->plant = plant;
@@ -94,10 +95,10 @@ bool AlgorithmMc1::solve()
     nominalPlantValues.clear();
     nominalPlantValuesStd.clear();
 
-    foreach (double o, *omega) {
+    for (double o : *omega) {
         std::complex<double> c = plant->evaluate(o);
-        nominalPlantValuesStd.append(c);
-        nominalPlantValues.append(cxsc::complex(c.real(), c.imag()));
+        nominalPlantValuesStd.push_back(c);
+        nominalPlantValues.push_back(cxsc::complex(c.real(), c.imag()));
     }
 
     //Steps 1-2: QS2 and feasibility of the initial box happen inside
@@ -181,7 +182,7 @@ inline void AlgorithmMc1::check_box_feasibility(std::unique_ptr<LtiSystem> box)
     std::int32_t frequencyIndex = 0;
     cinterval projection;
 
-    foreach (double o, *omega) {
+    for (double o : *omega) {
 
         projection = conversion->nicholsBox(box.get(), o, nominalPlantValues.at(frequencyIndex));
 
@@ -423,7 +424,7 @@ inline bool AlgorithmMc1::gainRangeIsFeasible(LtiSystem * box,
 
     bool feasibleEverywhere = true;
 
-    for (std::int32_t i = 0; i < omega->size() && feasibleEverywhere; ++i) {
+    for (std::int32_t i = 0; i < static_cast<std::int32_t>(omega->size()) && feasibleEverywhere; ++i) {
         const cinterval projection = conversion->nicholsBox(candidate.get(), omega->at(i),
                                                       nominalPlantValues.at(i));
         feasibleEverywhere = detector->classifyBox(projection, boundaries, i).flag() == feasible;

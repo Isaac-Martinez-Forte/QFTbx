@@ -1,3 +1,4 @@
+#include <vector>
 #include <cstdint>
 #include "src/core/loopshaping/loop_shaping.h"
 
@@ -22,7 +23,7 @@ LoopShaping::~LoopShaping()
 //the plant, the controller search box, the design frequencies and the
 //boundaries; NK also takes the local-search starting-point choice, and
 //MR the templates and specifications its constraints are built from.
-bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, QVector<double> * omega,
+bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<double> * omega,
                           const BoundaryData * boundaries, double epsilon, tools::LoopShapingAlgorithm algorithm,
                           const qftbx::CloudSet & contour, const qftbx::SpecificationRecords * specifications,
                           std::int32_t initialisation)

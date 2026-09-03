@@ -177,7 +177,7 @@ TEST(kNumeratorGainExpr, PointDenominatorUsesAllPoles)
     // expression route). With poles {10, 20} it must be (s/10+1)(s/20+1).
     TimeConstantGain* plant = makeTimeConstantPlant();
 
-    QVector<qreal> poles{10.0, 20.0};
+    std::vector<double> poles{10.0, 20.0};
     const Complex s(0.0, 1.0);
     const Complex expected = (s / 10.0 + 1.0) * (s / 20.0 + 1.0);
 
@@ -193,8 +193,8 @@ TEST(kNumeratorGainExpr, ExplicitValuesRouteMatchesNominalRoute)
     // the nominal evaluation for the same values.
     TimeConstantGain* plant = makeTimeConstantPlant();
 
-    QVector<qreal> nume;
-    QVector<qreal> deno{10.0, 20.0};
+    std::vector<double> nume;
+    std::vector<double> deno{10.0, 20.0};
     const Complex viaValues = plant->evaluate(&nume, &deno, 5.0, 0.0, 1.0);
     const Complex viaNominals = plant->evaluate(1.0);
 
@@ -374,7 +374,7 @@ TEST(FormatoLibreExpr, ExplicitValueEvaluationThrows)
 {
     //The historical stubs returned 0 silently.
     FreeForm* plant = makeCerveraPlant();
-    QVector<qreal> values{1.0};
+    std::vector<double> values{1.0};
 
     EXPECT_THROW(plant->evaluate(&values, &values, 1.0, 0.0, 1.0),
                  qftbx::ComputationError);

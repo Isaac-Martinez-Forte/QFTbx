@@ -2,6 +2,7 @@
 #define QFTBX_PROJECT_CONTROLLER_H
 
 
+#include <vector>
 #include <cstdint>
 #include <memory>
 
@@ -65,7 +66,7 @@ public:
     void setOmega(std::unique_ptr<Omega> omega);
 
     /// The frequency values alone, the form every engine takes.
-    QVector<double> * frequencies();
+    std::vector<double> * frequencies();
 
     // --- step 4: the templates --------------------------------------------
 
@@ -78,14 +79,14 @@ public:
      * @param cuda run the GPU path (requires a CUDA build).
      * @return false when either the clouds or the contours came out empty.
      */
-    bool computeTemplates(QVector<double> epsilon, qftbx::ParameterGrids grids, bool cuda);
+    bool computeTemplates(std::vector<double> epsilon, qftbx::ParameterGrids grids, bool cuda);
 
     /// Recomputes only the contours, with a new epsilon.
-    const qftbx::CloudSet & recomputeContour(QVector<double> epsilon);
+    const qftbx::CloudSet & recomputeContour(std::vector<double> epsilon);
 
     const qftbx::CloudSet & templates();
     const qftbx::CloudSet & contour();
-    QVector<double> * epsilon();
+    std::vector<double> * epsilon();
 
     void setTemplates(qftbx::CloudSet templates, qftbx::CloudSet contour, bool hasContour);
     void setContour(qftbx::CloudSet contour);

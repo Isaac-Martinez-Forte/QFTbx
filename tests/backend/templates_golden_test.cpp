@@ -9,6 +9,8 @@
 
 #include <gtest/gtest.h>
 
+#include <vector>
+
 #include <algorithm>
 
 #include <complex>
@@ -54,8 +56,8 @@ protected:
         mapa[plant->numerator()[0].name()] = qftbx::math::linspace(1.0, 10.0, 10);
         mapa[plant->gain().name()] = qftbx::math::linspace(1.0, 10.0, 10);
 
-        omegaCopy = new QVector<qreal>(*parser.omega()->values());
-        epsilon = QVector<qreal>(6, 10.0);
+        omegaCopy = new std::vector<double>(*parser.omega()->values());
+        epsilon = std::vector<double>(6, 10.0);
 
         templates.setEpsilon(epsilon);
         templates.setGrids(mapa);
@@ -71,8 +73,8 @@ protected:
     ProjectReader parser;
     LtiSystem* plant = nullptr;
     qftbx::ParameterGrids mapa;
-    QVector<qreal>* omegaCopy = nullptr;
-    QVector<qreal> epsilon;
+    std::vector<double>* omegaCopy = nullptr;
+    std::vector<double> epsilon;
     TemplateEngine templates;
 };
 
@@ -113,7 +115,7 @@ TEST_F(TemplatesGolden, ContourMatchesFixtureAsACycle)
         ASSERT_EQ(expected.at(f).size(), expectedSizes[f]);
 
         QVector<Complex> cycle(computed.at(f).begin(), computed.at(f).end());
-        if (cycle.size() > 1 && cycle.first() == cycle.last()) {
+        if (cycle.size() > 1 && cycle.front() == cycle.back()) {
             cycle.removeLast(); // closing duplicate
         }
         ASSERT_EQ(cycle.size(), expected.at(f).size()) << "frequency " << f;
@@ -191,7 +193,7 @@ TEST_F(TemplatesGolden, FrequencyAlignmentPreserved)
     // The i-th contour must correspond to the i-th frequency, with any
     // number of OpenMP threads (the old thread-counter renumbering broke
     // this intermittently).
-    const QVector<qreal> original{0.1, 0.5, 1.0, 2.0, 15.0, 100.0};
+    const std::vector<double> original{0.1, 0.5, 1.0, 2.0, 15.0, 100.0};
     auto* omegaOut = templates.omega();
     ASSERT_NE(omegaOut, nullptr);
     ASSERT_EQ(omegaOut->size(), original.size());
@@ -219,7 +221,7 @@ TEST(TemplatesReload, RecalculateContourAfterLoadingAProject)
     controller.load(
         QStringLiteral(QFTBX_TEST_DATA_DIR "/planta2.qft"));
 
-    const qftbx::CloudSet & contornos = controller.recomputeContour(QVector<qreal>(6, 10.0));
+    const qftbx::CloudSet & contornos = controller.recomputeContour(std::vector<double>(6, 10.0));
     ASSERT_EQ(contornos.size(), 6u);
     for (const qftbx::ComplexCloud & c : contornos) {
         EXPECT_FALSE(c.empty());
@@ -229,7 +231,7 @@ TEST(TemplatesReload, RecalculateContourAfterLoadingAProject)
     // previous contour without a double free; with the set held by value
     // there is no deletion to get wrong, and the assertion is just that the
     // recomputation still produces one contour per frequency.
-    const qftbx::CloudSet & contornos2 = controller.recomputeContour(QVector<qreal>(6, 8.0));
+    const qftbx::CloudSet & contornos2 = controller.recomputeContour(std::vector<double>(6, 8.0));
     ASSERT_EQ(contornos2.size(), 6u);
 }
 
@@ -246,10 +248,10 @@ TEST(TemplatesValidation, MissingSweepGridThrowsInvalidInput)
     mapa[plant->numerator()[0].name()] = qftbx::math::linspace(1.0, 10.0, 10);
     // no grid for the uncertain gain "kv"
 
-    QVector<qreal> omega{0.1, 0.5, 1.0, 2.0, 15.0, 100.0};
+    std::vector<double> omega{0.1, 0.5, 1.0, 2.0, 15.0, 100.0};
 
     TemplateEngine t;
-    t.setEpsilon(QVector<qreal>(6, 10.0));
+    t.setEpsilon(std::vector<double>(6, 10.0));
     t.setGrids(mapa);
     EXPECT_THROW(t.compute(plant, &omega, false), qftbx::InvalidInput);
 }
@@ -257,7 +259,7 @@ TEST(TemplatesValidation, MissingSweepGridThrowsInvalidInput)
 TEST(TemplatesValidation, RecontourWithoutTemplatesThrowsInvalidInput)
 {
     TemplateEngine t;
-    EXPECT_THROW(t.computeContours(QVector<qreal>{10.0}), qftbx::InvalidInput);
+    EXPECT_THROW(t.computeContours(std::vector<double>{10.0}), qftbx::InvalidInput);
 }
 
 } // namespace

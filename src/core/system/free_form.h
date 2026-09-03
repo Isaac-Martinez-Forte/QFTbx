@@ -1,7 +1,7 @@
 #ifndef QFTBX_FREE_FORM_H
 #define QFTBX_FREE_FORM_H
 
-#include <QVector>
+#include <vector>
 
 #include "transfer_function.h"
 #include "complex"
@@ -28,7 +28,7 @@ public:
     FreeForm(QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator, Parameter k, Parameter delay, QString numeratorExpr,
                  QString denominatorExpr);
 
-    QString expression (QVector <double> * numerator, QVector <double> * denominator,
+    QString expression (std::vector <double> * numerator, std::vector <double> * denominator,
                              double k, double delay, double omega) override;
 
     QString expression(double w) override;
@@ -39,11 +39,11 @@ public:
                                  const std::vector<double> & denominator,
                                  double gain, double delay) override;
 
-    std::complex <double> evaluateNumerator(QVector <double> * nume, double omega) override;
+    std::complex <double> evaluateNumerator(std::vector <double> * nume, double omega) override;
 
-    std::complex <double> evaluateDenominator(QVector <double> * deno, double omega) override;
+    std::complex <double> evaluateDenominator(std::vector <double> * deno, double omega) override;
 
-    std::complex <double> evaluate (QVector <double> * numerator, QVector <double> * denominator,
+    std::complex <double> evaluate (std::vector <double> * numerator, std::vector <double> * denominator,
                                            double k, double delay, double omega) override;
 
     //Re-expose the inherited nominal evaluation hidden by the overloads above.

@@ -2,6 +2,7 @@
 #include "src/core/exception.h"
 #include <QMessageBox>
 
+#include "qt_containers.h"
 #include "template_viewer.h"
 #include "ui_template_viewer.h"
 
@@ -57,7 +58,7 @@ void TemplateViewer::clearDiagram(){
     //children the checkbox, the slider and the line edit are. The loose
     //controls used to be deleted while the containers piled up in the
     //layout on every replot.
-    foreach (QCheckBox * che, checkboxes) {
+    for (QCheckBox * che : checkboxes) {
         delete che->parentWidget();
     }
     checkboxes.clear();
@@ -77,8 +78,8 @@ void TemplateViewer::clearDiagram(){
 
 void TemplateViewer::setData(const qftbx::CloudSet & templates,
                               const qftbx::CloudSet & contour,
-                              QVector <qreal> * omega,
-                              QVector <qreal> * epsilon){
+                              std::vector<double> * omega,
+                              std::vector<double> * epsilon){
 
     //The map used to be replaced with a new/delete pair, and leaked on
     //every recompute when the delete was forgotten.
@@ -101,8 +102,8 @@ void TemplateViewer::setContourRecomputer(ContourRecomputer recompute){
 }
 
 void TemplateViewer::refreshContour(const qftbx::CloudSet & contour,
-                                    QVector <qreal> * omega,
-                                    QVector <qreal> * epsilon){
+                                    std::vector<double> * omega,
+                                    std::vector<double> * epsilon){
     setContour(contour);
 
     this->omega = omega;
@@ -144,9 +145,9 @@ void TemplateViewer::plotDiagram(bool plot){
         contourGraphs.reserve(static_cast<qint32>(m_contour.size()));
         for (const qftbx::ComplexCloud & vector : m_contour) {
 
-            QVector <qreal> fas;
+            std::vector<double> fas;
             fas.reserve(static_cast<qint32>(vector.size()));
-            QVector <qreal> gan;
+            std::vector<double> gan;
             gan.reserve(static_cast<qint32>(vector.size()));
 
             for (const std::complex <qreal> & complejo : vector) {
@@ -156,13 +157,13 @@ void TemplateViewer::plotDiagram(bool plot){
                     if (phase >= 0){
                         phase -= 360;
                     }
-                    fas.append(phase);
+                    fas.push_back(phase);
                     qreal mag = 20*log10(abs(complejo));
-                    gan.append(mag);
+                    gan.push_back(mag);
                 }else {
                     qreal phase = complejo.real();
-                    fas.append(phase);
-                    gan.append(complejo.imag());
+                    fas.push_back(phase);
+                    gan.push_back(complejo.imag());
                 }
             }
 
@@ -178,9 +179,9 @@ void TemplateViewer::plotDiagram(bool plot){
 
     for (const qftbx::ComplexCloud & vector : m_templates) {
 
-        QVector <qreal> fas;
+        std::vector<double> fas;
         fas.reserve(static_cast<qint32>(vector.size()));
-        QVector <qreal> gan;
+        std::vector<double> gan;
         gan.reserve(static_cast<qint32>(vector.size()));
 
         for (const std::complex <qreal> & complejo : vector) {
@@ -190,12 +191,12 @@ void TemplateViewer::plotDiagram(bool plot){
                 if (phase >= 0){
                     phase -= 360;
                 }
-                fas.append(phase);
-                gan.append(20*log10(abs(complejo)));
+                fas.push_back(phase);
+                gan.push_back(20*log10(abs(complejo)));
             }else{
                 qreal phase = complejo.real();
-                fas.append(phase);
-                gan.append(complejo.imag());
+                fas.push_back(phase);
+                gan.push_back(complejo.imag());
             }
 
         }
@@ -224,10 +225,10 @@ void TemplateViewer::plotDiagram(bool plot){
 }
 
 void TemplateViewer::plotLine(qint32 pos, QVector <QCPGraph *> & saveImage,
-                              const QVector <qreal> & fas, const QVector <qreal> & gan,
+                              const std::vector<double> & fas, const std::vector<double> & gan,
                               bool tipo, bool visible, qint32 counter){
-    saveImage.append(ui->plot->addGraph());
-    ui->plot->graph(pos)->setData(fas, gan);
+    saveImage.push_back(ui->plot->addGraph());
+    ui->plot->graph(pos)->setData(tools::toQVector(fas), tools::toQVector(gan));
 
     if (tipo){
         ui->plot->graph(pos)->setScatterStyle(QCPScatterStyle::ssNone);
@@ -285,7 +286,7 @@ void TemplateViewer::addFrequencyRow(QColor color, qint32 pos){
     check->setText(QString::number(omega->at(pos)));
     check->setStyleSheet("color : " + color.name());
 
-    checkboxes.append(check);
+    checkboxes.push_back(check);
     check->setCheckState(Qt::Checked);
     horizontalLayout->addWidget(check);
 
@@ -296,7 +297,7 @@ void TemplateViewer::addFrequencyRow(QColor color, qint32 pos){
     slider->setMaximum(epsilon->at(pos) * 10000);
     slider->setValue(epsilon->at(pos) * 1000);
 
-    epsilonSliders.append(slider);
+    epsilonSliders.push_back(slider);
     horizontalLayout->addWidget(slider);
 
 
@@ -306,7 +307,7 @@ void TemplateViewer::addFrequencyRow(QColor color, qint32 pos){
     linea->setObjectName(QString::fromUtf8("linea"));
     linea->setText(QString::number(epsilon->at(pos)));
 
-    epsilonEdits.append(linea);
+    epsilonEdits.push_back(linea);
     verticalLayout->addWidget(linea);
 
 
@@ -349,7 +350,7 @@ void TemplateViewer::on_templatesButton_clicked()
     else
         ui->templatesButton->setText(tr("Show\ntemplates"));
 
-    foreach (QCPGraph * parameter, templateGraphs) {
+    for (QCPGraph * parameter : templateGraphs) {
         parameter->setVisible(templatesVisible);
     }
     ui->plot->replot();
@@ -364,7 +365,7 @@ void TemplateViewer::on_contourButton_clicked()
     else
         ui->contourButton->setText(tr("Show\ncontour"));
 
-    foreach (QCPGraph * parameter, contourGraphs) {
+    for (QCPGraph * parameter : contourGraphs) {
         parameter->setVisible(contourVisible);
     }
     ui->plot->replot();
@@ -396,13 +397,13 @@ void TemplateViewer::on_recomputeButton_clicked()
         return;
     }
 
-    QVector <qreal> epsilon;
+    std::vector<double> epsilon;
     epsilon.reserve(epsilonEdits.size());
 
     for (qint32 i = 0; i < epsilonEdits.size(); i++) {
         qreal pos = epsilonEdits.at(i)->text().toDouble();
         epsilonSliders.at(i)->setValue(pos * 1000);
-        epsilon.append(pos);
+        epsilon.push_back(pos);
     }
 
     //The viewer draws; the computation belongs to whoever installed the

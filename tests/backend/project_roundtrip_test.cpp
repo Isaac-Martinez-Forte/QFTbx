@@ -5,6 +5,8 @@
 
 #include <gtest/gtest.h>
 
+#include <vector>
+
 #include <QString>
 #include <QTemporaryDir>
 #include <QVector>
@@ -89,7 +91,7 @@ TEST_P(RoundTrip, SectionFlagsSurvive)
 
 TEST_P(RoundTrip, EverySectionSurvivesBitExact)
 {
-    QVector<qreal> probes{0.5, 1.0, 7.3};
+    std::vector<double> probes{0.5, 1.0, 7.3};
     if (originalFlags.at(2)) {
         EXPECT_EQ(*original.omega()->values(), *reloaded.omega()->values());
         EXPECT_EQ(original.omega()->start(), reloaded.omega()->start());

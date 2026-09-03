@@ -5,6 +5,8 @@
 
 #include <gtest/gtest.h>
 
+#include <vector>
+
 #include <optional>
 
 #include <QString>
@@ -25,7 +27,7 @@ namespace {
 
 TEST(Omega, ConstructorStoresFieldsVerbatim)
 {
-    const QVector<qreal> values{0.1, 5.0, 10.0, 100.0};
+    const std::vector<double> values{0.1, 5.0, 10.0, 100.0};
     Omega omega(0.1, 100.0, 4, values, Omega::Manual);
 
     EXPECT_DOUBLE_EQ(omega.start(), 0.1);
@@ -39,14 +41,14 @@ TEST(Omega, ConstructorEnforcesTheSizeInvariant)
 {
     // Hardened: nPuntos is always valores->size(); the constructor argument
     // is ignored on purpose (old files carry a desynchronised <nPuntos>).
-    Omega omega(1.0, 2.0, 99, QVector<qreal>{1.0, 2.0}, Omega::Manual);
+    Omega omega(1.0, 2.0, 99, std::vector<double>{1.0, 2.0}, Omega::Manual);
     EXPECT_EQ(omega.pointCount(), 2);
 }
 
 TEST(Omega, ConstructorRejectsEmptyValues)
 {
     //There is no null case left to reject: the frequencies arrive by value.
-    EXPECT_THROW(Omega(0.0, 0.0, 0, QVector<qreal>(), Omega::Manual),
+    EXPECT_THROW(Omega(0.0, 0.0, 0, std::vector<double>(), Omega::Manual),
                  qftbx::InvalidInput);
 }
 
@@ -54,17 +56,17 @@ TEST(Omega, SetOmegaKeepsTheInvariant)
 {
     // Hardened: setOmega keeps pointCount == values().size(), tolerates
     // being handed the very frequencies it holds, and rejects empty sets.
-    Omega omega(1.0, 3.0, 3, QVector<qreal>{1.0, 2.0, 3.0}, Omega::Manual);
+    Omega omega(1.0, 3.0, 3, std::vector<double>{1.0, 2.0, 3.0}, Omega::Manual);
 
-    omega.setOmega(QVector<qreal>{5.0, 6.0});
+    omega.setOmega(std::vector<double>{5.0, 6.0});
     EXPECT_EQ(omega.values()->size(), 2);
     EXPECT_EQ(omega.pointCount(), 2);
 
     omega.setOmega(*omega.values()); // self-assignment must be safe
     EXPECT_EQ(omega.pointCount(), 2);
-    EXPECT_EQ(*omega.values(), QVector<qreal>({5.0, 6.0}));
+    EXPECT_EQ(*omega.values(), std::vector<double>({5.0, 6.0}));
 
-    EXPECT_THROW(omega.setOmega(QVector<qreal>()), qftbx::InvalidInput);
+    EXPECT_THROW(omega.setOmega(std::vector<double>()), qftbx::InvalidInput);
     EXPECT_EQ(omega.values()->size(), 2); // unchanged after the throw
 }
 
@@ -74,7 +76,7 @@ TEST(Omega, SetOmegaKeepsTheInvariant)
 
 TEST(Linspace, TwoPointsAreExact)
 {
-    const QVector<qreal> v = tools::linspace(1.0, 5.0, 2);
+    const std::vector<double> v = tools::linspace(1.0, 5.0, 2);
     ASSERT_EQ(v.size(), 2);
     EXPECT_DOUBLE_EQ(v.at(0), 1.0);
     EXPECT_DOUBLE_EQ(v.at(1), 5.0);
@@ -82,7 +84,7 @@ TEST(Linspace, TwoPointsAreExact)
 
 TEST(Linspace, InteriorPointsFollowStep)
 {
-    const QVector<qreal> v = tools::linspace(0.0, 1.0, 5);
+    const std::vector<double> v = tools::linspace(0.0, 1.0, 5);
     ASSERT_EQ(v.size(), 5);
     for (int i = 0; i < 5; ++i) {
         EXPECT_NEAR(v.at(i), 0.25 * i, 1e-12);
@@ -93,15 +95,15 @@ TEST(Linspace, LastElementIsExactlyTheEndpoint)
 {
     // Fixed: values used to accumulate (val += h), so the endpoint could
     // drift; the canonical implementation pins it exactly, like MATLAB.
-    const QVector<qreal> v = tools::linspace(0.0, 0.3, 4);
+    const std::vector<double> v = tools::linspace(0.0, 0.3, 4);
     ASSERT_EQ(v.size(), 4);
-    EXPECT_DOUBLE_EQ(v.last(), 0.3);
+    EXPECT_DOUBLE_EQ(v.back(), 0.3);
 }
 
 TEST(Linspace, SinglePointReturnsStart)
 {
     // Fixed: N == 1 used to divide by zero when computing the step.
-    const QVector<qreal> v = tools::linspace(2.0, 7.0, 1);
+    const std::vector<double> v = tools::linspace(2.0, 7.0, 1);
     ASSERT_EQ(v.size(), 1);
     EXPECT_DOUBLE_EQ(v.at(0), 2.0);
 }
@@ -110,8 +112,8 @@ TEST(Linspace, NonPositiveCountReturnsEmpty)
 {
     // Documented contract: an invalid count yields an empty vector. The
     // GUI must validate the count before building an Omega (pending).
-    const QVector<qreal> v = tools::linspace(0.0, 1.0, 0);
-    EXPECT_TRUE(v.isEmpty());
+    const std::vector<double> v = tools::linspace(0.0, 1.0, 0);
+    EXPECT_TRUE(v.empty());
 }
 
 TEST(MathSequences, LinspaceMatchesMatlabSemantics)
@@ -136,7 +138,7 @@ TEST(MathSequences, LogspaceIsTenToTheLinspace)
 
 TEST(Linspace, InvertedRangeDescendsSilently)
 {
-    const QVector<qreal> v = tools::linspace(5.0, 1.0, 3);
+    const std::vector<double> v = tools::linspace(5.0, 1.0, 3);
     ASSERT_EQ(v.size(), 3);
     EXPECT_DOUBLE_EQ(v.at(0), 5.0);
     EXPECT_DOUBLE_EQ(v.at(1), 3.0);
@@ -148,7 +150,7 @@ TEST(Linspace, InvertedRangeDescendsSilently)
 
 TEST(Logspace, ArgumentsAreExponents)
 {
-    const QVector<qreal> v = tools::logspace(-1.0, 2.0, 4);
+    const std::vector<double> v = tools::logspace(-1.0, 2.0, 4);
     ASSERT_EQ(v.size(), 4);
     EXPECT_NEAR(v.at(0), 0.1, 1e-12);
     EXPECT_NEAR(v.at(1), 1.0, 1e-12);
@@ -158,8 +160,8 @@ TEST(Logspace, ArgumentsAreExponents)
 
 TEST(Logspace, MatchesTenToTheLinspace)
 {
-    const QVector<qreal> exponents = tools::linspace(-2.0, 3.0, 7);
-    const QVector<qreal> v = tools::logspace(-2.0, 3.0, 7);
+    const std::vector<double> exponents = tools::linspace(-2.0, 3.0, 7);
+    const std::vector<double> v = tools::logspace(-2.0, 3.0, 7);
     ASSERT_EQ(v.size(), exponents.size());
     for (int i = 0; i < v.size(); ++i) {
         EXPECT_DOUBLE_EQ(v.at(i), std::pow(10.0, exponents.at(i)));
@@ -173,7 +175,7 @@ TEST(Logspace, MatchesTenToTheLinspace)
 
 TEST(SrToVectorReal, ParsesSpaceSeparatedValues)
 {
-    const std::optional<QVector<qreal>> v = qftbx::text::reals(QStringLiteral("1 2.5 10"));
+    const std::optional<std::vector<double>> v = qftbx::text::reals(QStringLiteral("1 2.5 10"));
     ASSERT_TRUE(v.has_value());
     ASSERT_EQ(v->size(), 3);
     EXPECT_DOUBLE_EQ(v->at(0), 1.0);
@@ -183,7 +185,7 @@ TEST(SrToVectorReal, ParsesSpaceSeparatedValues)
 
 TEST(SrToVectorReal, SkipsRepeatedSpaces)
 {
-    const std::optional<QVector<qreal>> v = qftbx::text::reals(QStringLiteral("1   2"));
+    const std::optional<std::vector<double>> v = qftbx::text::reals(QStringLiteral("1   2"));
     ASSERT_TRUE(v.has_value());
     ASSERT_EQ(v->size(), 2);
 }
@@ -200,7 +202,7 @@ TEST(SrToVectorReal, SplitsOnAnyWhitespace)
 {
     // Fixed: the split used to be on single spaces only, so a frequencies
     // file with one value per line produced an unparseable token.
-    const std::optional<QVector<qreal>> v = qftbx::text::reals(QStringLiteral("1.0\n2.0\t3"));
+    const std::optional<std::vector<double>> v = qftbx::text::reals(QStringLiteral("1.0\n2.0\t3"));
     ASSERT_TRUE(v.has_value());
     ASSERT_EQ(v->size(), 3);
     EXPECT_DOUBLE_EQ(v->at(1), 2.0);

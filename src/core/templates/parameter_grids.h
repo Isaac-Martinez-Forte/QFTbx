@@ -12,7 +12,7 @@ namespace qftbx {
  * @brief The sweep grid of every uncertain parameter, keyed by NAME.
  *
  * Held BY VALUE, which is the whole point: this used to travel as
- * `QHash<QString, QVector<double> *> *` - a pointer to a map of pointers - and
+ * `QHash<QString, std::vector<double> *> *` - a pointer to a map of pointers - and
  * nobody could tell from a signature who was supposed to free it. The engine
  * only stored the pointer, the dialog owned the map, the facade passed it
  * through, and every test had to remember to walk it and delete each vector.

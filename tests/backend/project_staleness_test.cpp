@@ -12,6 +12,8 @@
 
 #include <gtest/gtest.h>
 
+#include <vector>
+
 #include <QHash>
 #include <QString>
 #include <QVector>
@@ -64,7 +66,7 @@ protected:
         controller.setPlant(makePlant(QStringLiteral("first")));
         controller.setOmega(makeOmega());
 
-        ASSERT_TRUE(controller.computeTemplates(QVector<qreal>(3, 10.0), makeGrids(), false));
+        ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), makeGrids(), false));
         ASSERT_FALSE(controller.templates().empty());
     }
 
@@ -145,7 +147,7 @@ TEST_F(Staleness, TheTemplatesCanBeRecomputedAfterTheirInputsChange)
     controller.setPlant(makePlant(QStringLiteral("third")));
     ASSERT_TRUE(controller.templates().empty());
 
-    ASSERT_TRUE(controller.computeTemplates(QVector<qreal>(3, 10.0), makeGrids(), false));
+    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), makeGrids(), false));
 
     EXPECT_FALSE(controller.templates().empty())
         << "the project could not be brought back to a computed state";

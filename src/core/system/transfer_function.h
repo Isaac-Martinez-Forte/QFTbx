@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "lti_system.h"
-#include <QVector>
+#include <vector>
 #include "src/core/system/parameter.h"
 #include "mpParser.h"
 
@@ -29,21 +29,21 @@ public:
 
     std::complex <double> evaluate (double omega) override;
 
-    QVector <std::complex <double> > evaluate (const QVector <double> & omega) override;
+    std::vector <std::complex <double> > evaluate (const std::vector <double> & omega) override;
 
-    std::complex <double> evaluate (QVector <double> * numerator, QVector <double> * denominator,
+    std::complex <double> evaluate (std::vector <double> * numerator, std::vector <double> * denominator,
                                            double k, double delay, double omega) override;
 
-    QString expression (QVector <double> * numerator, QVector <double> * denominator,
+    QString expression (std::vector <double> * numerator, std::vector <double> * denominator,
                              double k, double delay, double omega) override = 0;
 
     QString expression(double w) override = 0;
 
     QString expression() override = 0;
 
-    std::complex <double> evaluateNumerator(QVector <double> * nume, double omega) override = 0;
+    std::complex <double> evaluateNumerator(std::vector <double> * nume, double omega) override = 0;
 
-    std::complex <double> evaluateDenominator(QVector <double> * deno, double omega) override = 0;
+    std::complex <double> evaluateDenominator(std::vector <double> * deno, double omega) override = 0;
 
     std::vector <Parameter> & numerator() override;
 

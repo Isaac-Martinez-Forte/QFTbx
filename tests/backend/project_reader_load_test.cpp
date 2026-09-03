@@ -7,6 +7,8 @@
 
 #include <gtest/gtest.h>
 
+#include <vector>
+
 #include <QString>
 #include <QVector>
 
@@ -64,7 +66,7 @@ TEST(ProjectReaderSmoke, CerveraLoadsPlantAndFrequenciesOnly)
     Omega *omega = parser.omega();
     ASSERT_NE(omega, nullptr);
     ASSERT_NE(omega->values(), nullptr);
-    const QVector<qreal> &values = *omega->values();
+    const std::vector<double> &values = *omega->values();
     ASSERT_EQ(values.size(), 4);
     EXPECT_DOUBLE_EQ(values[0], 0.1);
     EXPECT_DOUBLE_EQ(values[1], 5.0);

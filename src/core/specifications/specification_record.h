@@ -1,6 +1,7 @@
 #ifndef QFTBX_SPECIFICATION_RECORD_H
 #define QFTBX_SPECIFICATION_RECORD_H
 
+#include <vector>
 #include <array>
 #include <cmath>
 #include <memory>
@@ -61,7 +62,7 @@ struct SpecificationRecord {
  * by SpecificationType, and the persistence writes them in that order.
  *
  * By value, with each record owning its plant. This was a POINTER to a
- * QVector of POINTERS, so four modules carried the same nested deletion
+ * std::vector of POINTERS, so four modules carried the same nested deletion
  * loop and the size was never checked outside the reader.
  */
 using SpecificationRecords = std::array<SpecificationRecord, kSpecificationCount>;

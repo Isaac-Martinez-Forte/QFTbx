@@ -110,7 +110,7 @@ using qftbx::Parameter;
 using qftbx::Range;
 
 //The paper's design frequency set.
-const QVector<qreal> kOmega{0.001, 0.015, 0.25, 3.84, 60.0};
+const std::vector<double> kOmega{0.001, 0.015, 0.25, 3.84, 60.0};
 
 //The paper's robust stability margin.
 const qreal kWs = 1.2;
@@ -216,8 +216,8 @@ std::unique_ptr<ProjectController> articleProblem(bool withTracking)
         QStringLiteral("TL"), std::vector<Parameter>{},
         std::vector<Parameter>{Parameter(1.0), Parameter(2.0), Parameter(1.0)},
         Parameter(1.0), Parameter(qreal(0)));
-    specifications[0].omegaStart = kOmega.first();
-    specifications[0].omegaEnd = kOmega.last();
+    specifications[0].omegaStart = kOmega.front();
+    specifications[0].omegaEnd = kOmega.back();
 
     //T_U = 1.5/(s + 1.5).
     specifications[1].name = QStringLiteral("tracking upper");
@@ -226,20 +226,20 @@ std::unique_ptr<ProjectController> articleProblem(bool withTracking)
         QStringLiteral("TU"), std::vector<Parameter>{},
         std::vector<Parameter>{Parameter(1.0), Parameter(1.5)},
         Parameter(1.5), Parameter(qreal(0)));
-    specifications[1].omegaStart = kOmega.first();
-    specifications[1].omegaEnd = kOmega.last();
+    specifications[1].omegaStart = kOmega.front();
+    specifications[1].omegaEnd = kOmega.back();
 
     //Robust stability margin ws = 1.2.
     specifications[2].name = QStringLiteral("stability");
     specifications[2].used = true;
     specifications[2].constant = true;
     specifications[2].height = kWs;
-    specifications[2].omegaStart = kOmega.first();
-    specifications[2].omegaEnd = kOmega.last();
+    specifications[2].omegaStart = kOmega.front();
+    specifications[2].omegaEnd = kOmega.back();
 
     project->setSpecifications(std::move(specifications));
 
-    project->setOmega(std::make_unique<Omega>(kOmega.first(), kOmega.last(), kOmega.size(),
+    project->setOmega(std::make_unique<Omega>(kOmega.front(), kOmega.back(), kOmega.size(),
                                               kOmega, Omega::Manual));
 
     //The paper's 9 plants, exactly: three values per parameter.
@@ -250,7 +250,7 @@ std::unique_ptr<ProjectController> articleProblem(bool withTracking)
     //A coarse hull tolerance because a 9-point cloud spanning 40 dB has no
     //tight epsilon-hull; measurement (b) in the header establishes that the
     //design does not depend on it.
-    const QVector<qreal> contourEpsilon(kOmega.size(), 10.0);
+    const std::vector<double> contourEpsilon(kOmega.size(), 10.0);
 
     project->computeTemplates(contourEpsilon, grids, false);
 

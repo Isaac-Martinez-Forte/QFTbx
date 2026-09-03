@@ -3,7 +3,7 @@
 
 #include <cstdint>
 #include <QString>
-#include <QVector>
+#include <vector>
 
 /**
  * @class Omega
@@ -23,29 +23,29 @@ public:
     /// serialized in the .qft files: do not reorder.
     enum GenerationType {LinSpace, LogSpace, Manual, File};
 
-    Omega(double start, double end, std::int32_t pointCount, QVector<double> values, GenerationType type);
+    Omega(double start, double end, std::int32_t pointCount, std::vector<double> values, GenerationType type);
 
     /// Reads a frequency file (values separated by whitespace or newlines).
     /// Throws qftbx::FileError when it cannot be opened or holds no valid
     /// frequency.
-    static QVector<double> valuesFromFile(QString path);
+    static std::vector<double> valuesFromFile(QString path);
 
     double start();
     double end();
     std::int32_t pointCount();
 
     /// Observer on the frequencies, which the set holds by value.
-    QVector<double> * values();
+    std::vector<double> * values();
 
     GenerationType type();
 
-    void setOmega(QVector<double> values);
+    void setOmega(std::vector<double> values);
 
 private:
     double m_start;
     double m_end;
     std::int32_t m_pointCount;
-    QVector<double> m_values;
+    std::vector<double> m_values;
     GenerationType m_type;
 };
 

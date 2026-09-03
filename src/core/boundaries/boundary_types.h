@@ -22,7 +22,7 @@ using TraceSet = std::vector<Trace>;
  * specification, keyed by its name.
  *
  * Held BY VALUE. This was
- * `QVector<QMap<QString, QVector<QVector<QPointF> *> *> *> *`: a pointer to a
+ * `std::vector<QMap<QString, std::vector<std::vector<QPointF> *> *> *> *`: a pointer to a
  * vector of pointers to maps of pointers to vectors of pointers to vectors.
  * Four levels of indirection, each with its own answer to who frees it, and
  * the answer lived in comments rather than in the types. BoundaryData even
@@ -60,7 +60,7 @@ using UnionBuckets = std::vector<std::vector<Trace>>;
  * bound are the boundary.
  *
  * Held BY VALUE, ~1.7 MB per frequency. This was
- * `QVector<QVector<double> *> *`, and the five of them travelled together in
+ * `std::vector<std::vector<double> *> *`, and the five of them travelled together in
  * one more level of indirection, freed by a nested loop in the caller.
  */
 using BoundarySheet = std::vector<std::vector<double>>;

@@ -28,7 +28,7 @@ public:
 
     ~PolynomialForm();
 
-    QString expression (QVector <double> * numerator, QVector <double> * denominator,
+    QString expression (std::vector <double> * numerator, std::vector <double> * denominator,
                              double k, double delay, double omega) override;
 
     QString expression(double w) override;
@@ -39,9 +39,9 @@ public:
                                  const std::vector<double> & denominator,
                                  double gain, double delay) override;
 
-    std::complex <double> evaluateNumerator(QVector <double> * nume, double omega) override;
+    std::complex <double> evaluateNumerator(std::vector <double> * nume, double omega) override;
 
-    std::complex <double> evaluateDenominator(QVector <double> * deno, double omega) override;
+    std::complex <double> evaluateDenominator(std::vector <double> * deno, double omega) override;
 
     SystemType type() override;
 

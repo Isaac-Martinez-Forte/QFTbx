@@ -25,7 +25,7 @@ TEST(ExpressionCache, OneExpressionIsParsedOnceHoweverOftenItIsEvaluated)
     const int before = qftbx::math::cachedExpressionCount();
 
     const QString expression = QStringLiteral("2*x + 1");
-    const QVector<QString> names{QStringLiteral("x")};
+    const std::vector<QString> names{QStringLiteral("x")};
 
     for (int i = 0; i < 50; i++) {
         const std::complex<double> got = qftbx::math::evaluateCached(
@@ -42,7 +42,7 @@ TEST(ExpressionCache, DifferentExpressionsGetDifferentParsers)
 {
     const int before = qftbx::math::cachedExpressionCount();
 
-    const QVector<QString> names{QStringLiteral("y")};
+    const std::vector<QString> names{QStringLiteral("y")};
     qftbx::math::evaluateCached(QStringLiteral("y^2"), names, {std::complex<double>(3.0, 0.0)});
     qftbx::math::evaluateCached(QStringLiteral("y^3"), names, {std::complex<double>(3.0, 0.0)});
 
@@ -54,7 +54,7 @@ TEST(ExpressionCache, TheValueIsTheONEThatWasJustGiven)
     //The bound value is overwritten per call; a cached parser holding a stale
     //value would answer the previous question.
     const QString expression = QStringLiteral("z");
-    const QVector<QString> names{QStringLiteral("z")};
+    const std::vector<QString> names{QStringLiteral("z")};
 
     EXPECT_DOUBLE_EQ(qftbx::math::evaluateCached(expression, names,
                                                 {std::complex<double>(7.0, 0.0)}).real(), 7.0);

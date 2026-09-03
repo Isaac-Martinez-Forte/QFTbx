@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <vector>
 #include <cstdint>
 #include "boundary_engine.h"
 
@@ -46,7 +48,7 @@ void BoundaryEngine::releaseResults()
     m_omega = nullptr;
 }
 
-void BoundaryEngine::compute(QVector<double> *omega, LtiSystem *plant, const CloudSet & templates,
+void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const CloudSet & templates,
                              const qftbx::SpecificationRecords * specifications, qftbx::Range phaseRange, std::int32_t phaseCount, qftbx::Range magnitudeRange,
                              std::int32_t magnitudeCount, double exportInfinity, bool cuda){
 
@@ -83,16 +85,16 @@ void BoundaryEngine::compute(QVector<double> *omega, LtiSystem *plant, const Clo
 
     //As always, the tracking band is governed by T_L (the lower bound);
     //T_U only provides the cut height.
-    foreach(double o, *omega){
-        m_trackingMask.append(m_specifications.at(SpecificationType::TrackingLower).appliesAt(o));
-        m_stabilityMask.append(m_specifications.at(SpecificationType::Stability).appliesAt(o));
-        m_noiseMask.append(m_specifications.at(SpecificationType::SensorNoise).appliesAt(o));
-        m_outputDisturbanceMask.append(m_specifications.at(SpecificationType::OutputDisturbance).appliesAt(o));
-        m_inputDisturbanceMask.append(m_specifications.at(SpecificationType::InputDisturbance).appliesAt(o));
-        m_controlEffortMask.append(m_specifications.at(SpecificationType::ControlEffort).appliesAt(o));
+    for (double o : *omega){
+        m_trackingMask.push_back(m_specifications.at(SpecificationType::TrackingLower).appliesAt(o));
+        m_stabilityMask.push_back(m_specifications.at(SpecificationType::Stability).appliesAt(o));
+        m_noiseMask.push_back(m_specifications.at(SpecificationType::SensorNoise).appliesAt(o));
+        m_outputDisturbanceMask.push_back(m_specifications.at(SpecificationType::OutputDisturbance).appliesAt(o));
+        m_inputDisturbanceMask.push_back(m_specifications.at(SpecificationType::InputDisturbance).appliesAt(o));
+        m_controlEffortMask.push_back(m_specifications.at(SpecificationType::ControlEffort).appliesAt(o));
     }
 
-    if (m_trackingMask.contains(true) &&
+    if (std::find(m_trackingMask.begin(), m_trackingMask.end(), true) != m_trackingMask.end() &&
             !m_specifications.at(SpecificationType::TrackingUpper).used()){
         //The historical code dereferenced T_U's null plant.
         throw InvalidInput("The tracking boundary needs both tracking "
@@ -189,7 +191,7 @@ BoundaryData BoundaryEngine::boundaryData(){
                         m_unionVectors, m_unionBuckets, m_magnitudeCount, m_magnitudeRange);
 }
 
-QVector <double> * BoundaryEngine::omega(){
+std::vector <double> * BoundaryEngine::omega(){
     return m_omega;
 }
 
@@ -358,7 +360,7 @@ TraceSet BoundaryEngine::traceBoundary(double thresholdDb, const BoundarySheet &
 
 #ifdef CUDA_AVAILABLE
 //The CUDA-sheet twin of the function above. It had been left behind by the
-//value-semantics work of phase 9: it returned QVector<QVector<Point>*>*
+//value-semantics work of phase 9: it returned std::vector<std::vector<Point>*>*
 //while its own declaration said TraceSet, and it called a tracer overload
 //that no longer exists. Neither configuration built it - the sources are
 //behind #ifdef CUDA_AVAILABLE and USE_CUDA is off here - so nothing said
@@ -424,7 +426,7 @@ std::int32_t BoundaryEngine::allowedZone(const Trace & trace, complex <double> p
     double dControlEffort = -numeric_limits<double>::infinity();
 
 
-    for (std::int32_t h = 0; h < valueSet.size(); h++) {
+    for (std::int32_t h = 0; h < static_cast<std::int32_t>(valueSet.size()); h++) {
 
         p = valueSet.at(h);
 
@@ -495,13 +497,13 @@ std::int32_t BoundaryEngine::allowedZone(const Trace & trace, complex <double> p
     return 1;
 }
 
-void BoundaryEngine::computeFrequencies(QVector<double> *omega, LtiSystem *plant,
+void BoundaryEngine::computeFrequencies(std::vector<double> *omega, LtiSystem *plant,
                                         const CloudSet & templates, qftbx::Range phaseRange, std::int32_t phaseCount,
                                         qftbx::Range magnitudeRange, std::int32_t magnitudeCount)
 {
     //Base grid of the algorithm.
-    const QVector <double> phases = tools::linspace(phaseRange.min, phaseRange.max, phaseCount);
-    const QVector <double> magnitudes = tools::linspace(magnitudeRange.min, magnitudeRange.max,
+    const std::vector <double> phases = tools::linspace(phaseRange.min, phaseRange.max, phaseCount);
+    const std::vector <double> magnitudes = tools::linspace(magnitudeRange.min, magnitudeRange.max,
                                                       magnitudeCount);
 
     //Pre-sized containers: every frequency writes at ITS index. The old
@@ -520,7 +522,7 @@ void BoundaryEngine::computeFrequencies(QVector<double> *omega, LtiSystem *plant
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
 #endif
-    for (std::int32_t i = 0; i < omega->size(); i++){
+    for (std::int32_t i = 0; i < static_cast<std::int32_t>(omega->size()); i++){
 
         computeFrequency(omega->at(i), plant, templates.at(static_cast<std::size_t>(i)), phases, magnitudes, i);
     }
@@ -557,8 +559,8 @@ double violatingDb(double valueDb)
 
 void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
                                        const ComplexCloud & valueSet,
-                                       const QVector <double> & phases,
-                                       const QVector <double> & magnitudes, std::int32_t index){
+                                       const std::vector <double> & phases,
+                                       const std::vector <double> & magnitudes, std::int32_t index){
 
     //Nominal plant at this design frequency.
     complex <double> p0 = plant->evaluate(omega);
@@ -604,7 +606,7 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
 
     //Grid sweep (no nested parallelism: the outer per-frequency loop is
     //already parallel, and these loops share function-scope variables).
-    for (std::int32_t k = 0; k < magnitudes.size(); k++){
+    for (std::int32_t k = 0; k < static_cast<std::int32_t>(magnitudes.size()); k++){
 
         std::vector<double> stabilityNoiseRow;
         std::vector<double> trackingRow;
@@ -619,7 +621,7 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
         inputDisturbanceRow.reserve(rowWidth);
         controlEffortRow.reserve(rowWidth);
 
-        for (std::int32_t j = 0; j < phases.size(); j++){
+        for (std::int32_t j = 0; j < static_cast<std::int32_t>(phases.size()); j++){
 
             magnitudeDb = magnitudes.at(k);
             phaseDegrees = phases.at(j);

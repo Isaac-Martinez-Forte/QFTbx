@@ -125,9 +125,9 @@ TEST(EvaluatePrecision, TheTemplateSweepKeepsEveryDigitToo)
     qftbx::ParameterGrids grids;
     grids[QStringLiteral("kv")] = {2.0};
 
-    auto * frequencies = new QVector<qreal>{w};
+    auto * frequencies = new std::vector<double>{w};
     TemplateEngine engine;
-    engine.setEpsilon(QVector<qreal>(1, 10.0));
+    engine.setEpsilon(std::vector<double>(1, 10.0));
     engine.setGrids(grids);
 
     const qftbx::CloudSet clouds = engine.computeClouds(&plant, frequencies);

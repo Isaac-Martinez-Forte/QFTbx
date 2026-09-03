@@ -1,3 +1,4 @@
+#include <vector>
 #include <cstdint>
 #include "src/core/math/sequence_vectors.h"
 
@@ -11,9 +12,9 @@ using namespace std;
 
 //Wrapper over the canonical implementation in src/core/math/ (no
 //accumulation drift, exact final endpoint).
-QVector <double> tools::linspace(double a, double b, std::int32_t N) {
+std::vector <double> tools::linspace(double a, double b, std::int32_t N) {
     const std::vector<double> values = qftbx::math::linspace(a, b, N > 0 ? N : 0);
-    return QVector<double>(values.begin(), values.end());
+    return std::vector<double>(values.begin(), values.end());
 }
 
 
@@ -43,7 +44,7 @@ std::vector<float> tools::linspace1(double a, double b, std::int32_t N){
 
 
 //See tools::linspace.
-QVector <double> tools::logspace (double a, double b, std::int32_t N){
+std::vector <double> tools::logspace (double a, double b, std::int32_t N){
     const std::vector<double> values = qftbx::math::logspace(a, b, N > 0 ? N : 0);
-    return QVector<double>(values.begin(), values.end());
+    return std::vector<double>(values.begin(), values.end());
 }

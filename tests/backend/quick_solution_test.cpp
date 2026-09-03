@@ -9,6 +9,8 @@
 
 #include <gtest/gtest.h>
 
+#include <vector>
+
 #include <complex>
 
 #include <QVector>
@@ -65,8 +67,8 @@ TEST_F(QuickSolutionPaperExample, NoRealSolutionReturnsNegative)
 // inside the forbidden phase strip (soundness), and just past the cut the
 // closest-to-allowed corner leaves it (tightness).
 
-qreal loopPhase(qreal phi0, const QVector<qreal> & zeros,
-                const QVector<qreal> & poles, qreal w)
+qreal loopPhase(qreal phi0, const std::vector<double> & zeros,
+                const std::vector<double> & poles, qreal w)
 {
     qreal phase = phi0;
     foreach (qreal z, zeros) {

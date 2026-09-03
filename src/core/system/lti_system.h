@@ -56,14 +56,14 @@ public:
     virtual std::complex <double> evaluate (double omega) = 0;
 
     /// One value per frequency.
-    virtual QVector <std::complex <double> > evaluate (const QVector <double> & omega) = 0;
+    virtual std::vector <std::complex <double> > evaluate (const std::vector <double> & omega) = 0;
 
     /// Value at s = j*omega for explicit numeric parameter values.
-    virtual std::complex <double> evaluate (QVector <double> * numerator, QVector <double> * denominator,
+    virtual std::complex <double> evaluate (std::vector <double> * numerator, std::vector <double> * denominator,
                                            double k, double delay, double omega) = 0;
 
     /// Expression for explicit numeric parameter values at s = j*omega.
-    virtual QString expression (QVector <double> * numerator, QVector <double> * denominator,
+    virtual QString expression (std::vector <double> * numerator, std::vector <double> * denominator,
                              double k, double delay, double omega) = 0;
 
     /// Expression at s = j*omega; uncertain parameters stay by name.
@@ -84,9 +84,9 @@ public:
                                          const std::vector<double> & denominator,
                                          double gain, double delay) = 0;
 
-    virtual std::complex <double> evaluateNumerator(QVector <double> * nume, double omega) = 0;
+    virtual std::complex <double> evaluateNumerator(std::vector <double> * nume, double omega) = 0;
 
-    virtual std::complex <double> evaluateDenominator(QVector <double> * deno, double omega) = 0;
+    virtual std::complex <double> evaluateDenominator(std::vector <double> * deno, double omega) = 0;
 
     /// The system's own parameters, by reference (it holds them by value).
     virtual std::vector <Parameter> & denominator() = 0;

@@ -1,6 +1,7 @@
 #include "src/core/text_tokens.h"
 
 #include <QRegularExpression>
+#include <vector>
 #include <cstdio>
 #include <cstdlib>
 
@@ -34,15 +35,15 @@ std::string qftbx::text::number(double value)
 }
 
 
-QVector<QString> qftbx::text::tokens(const QString & line){
+std::vector<QString> qftbx::text::tokens(const QString & line){
 
     QStringList parts = line.split(" ");
-    QVector<QString> result;
+    std::vector<QString> result;
     result.reserve(parts.size());
 
-    foreach (const QString & part, parts){
+    for (const QString & part : parts){
         if (!part.isEmpty()){
-            result.append(part);
+            result.push_back(part);
         }
     }
 
@@ -50,7 +51,7 @@ QVector<QString> qftbx::text::tokens(const QString & line){
 }
 
 
-std::optional<QVector<double>> qftbx::text::reals(const QString & line){
+std::optional<std::vector<double>> qftbx::text::reals(const QString & line){
 
     //Split on any whitespace (spaces, tabs, newlines): frequency files
     //usually carry one value per line.
@@ -60,17 +61,17 @@ std::optional<QVector<double>> qftbx::text::reals(const QString & line){
 
     bool ok = false;
 
-    foreach (const QString & part, parts){
+    for (const QString & part : parts){
         const double value = part.toDouble(&ok);
 
         if (!ok){
             return std::nullopt;
         }
 
-        values.append(value);
+        values.push_back(value);
     }
 
-    return QVector<double>(values.begin(), values.end());
+    return std::vector<double>(values.begin(), values.end());
 }
 
 

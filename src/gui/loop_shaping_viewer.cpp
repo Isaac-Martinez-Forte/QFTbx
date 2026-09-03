@@ -1,3 +1,4 @@
+#include "qt_containers.h"
 #include "loop_shaping_viewer.h"
 #include "ui_loop_shaping_viewer.h"
 
@@ -48,7 +49,7 @@ void LoopShapingViewer::clearDiagram(){
     //Qt's own mechanism: destroying the row widget is how a widget leaves
     //a layout, and it takes its checkbox with it. The row widgets used to
     //pile up on every replot.
-    foreach (QCheckBox * che, checkboxes) {
+    for (QCheckBox * che : checkboxes) {
         delete che->parentWidget();
     }
     checkboxes.clear();
@@ -64,7 +65,7 @@ void LoopShapingViewer::clearDiagram(){
 }
 
 
-void LoopShapingViewer::setData(const qftbx::UnionTraces & unionTraces, QVector<qreal> *omega, LoopShapingResult *loopShapingData,
+void LoopShapingViewer::setData(const qftbx::UnionTraces & unionTraces, std::vector<double> *omega, LoopShapingResult *loopShapingData,
                                LtiSystem* plant, bool linSpace){
     this->unionTraces = unionTraces;
     this->omega = omega;
@@ -121,23 +122,23 @@ void LoopShapingViewer::showDiagram(){
     for (const qftbx::Trace & bound : unionTraces) {
         QColor color = randomColor(frequencyIndex);
         frequencyIndex++;
-        rowColors.append(color);
+        rowColors.push_back(color);
 
-        QVector <qreal> ejex;
-        QVector <qreal> ejey;
+        std::vector<double> ejex;
+        std::vector<double> ejey;
 
         for (const qftbx::NicholsPoint & p : bound) {
-            ejex.append(p.phase);
-            ejey.append(p.magnitude);
+            ejex.push_back(p.phase);
+            ejey.push_back(p.magnitude);
         }
 
-        /*curves.append(ui->plot->addGraph());
+        /*curves.push_back(ui->plot->addGraph());
         ui->plot->graph(gainEdit)->setData(*ejex, *ejey);*/
 
         QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-        curva->setData(ejex, ejey);
+        curva->setData(tools::toQVector(ejex), tools::toQVector(ejey));
         curva->setPen(color);
-        curves.append(curva);
+        curves.push_back(curva);
 
         /*ui->plot->graph(gainEdit)->setPen(color);
         ui->plot->graph(gainEdit)->setLineStyle(QCPGraph::lsNone);
@@ -151,7 +152,7 @@ void LoopShapingViewer::showDiagram(){
 
     //Draw the open-loop curve.
 
-    QVector <qreal> frequencies;
+    std::vector<double> frequencies;
 
     /*if(linSpace){
         frequencies = tools::linspace(loopShapingData->range().min, loopShapingData->range().max, loopShapingData->pointCount());
@@ -184,11 +185,11 @@ void LoopShapingViewer::showDiagram(){
 
     //The open-loop curve, cut into segments wherever the phase wraps: by
     //value, so a replot does not abandon them (they all used to be).
-    QVector<QVector <qreal> > ejex;
-    QVector<QVector <qreal> > ejey;
+    QVector<std::vector<double> > ejex;
+    QVector<std::vector<double> > ejey;
 
-    QVector <qreal> ejexActual;
-    QVector <qreal> ejeyActual;
+    std::vector<double> ejexActual;
+    std::vector<double> ejeyActual;
 
 
     //The first sample only seeds the phase comparison, so it is taken
@@ -198,7 +199,7 @@ void LoopShapingViewer::showDiagram(){
     qreal previousPhase = 0.0;
     bool firstSample = true;
 
-    foreach (qreal a, frequencies) {
+    for (qreal a : frequencies) {
         std::complex <qreal> c = plant->evaluate(a) * loopShapingData->controller()->evaluate(a);
 
         qreal fas = arg(c) *180 / M_PI;
@@ -207,42 +208,42 @@ void LoopShapingViewer::showDiagram(){
             fas -= 360;
 
         if (firstSample || abs(fas - previousPhase) < 100) {
-            ejexActual.append(fas);
-            ejeyActual.append(mag);
+            ejexActual.push_back(fas);
+            ejeyActual.push_back(mag);
         } else {
 
             /*if (previousPhase < -100){
-                ejexActual.append(0);
-                ejeyActual.append(previousY);
+                ejexActual.push_back(0);
+                ejeyActual.push_back(previousY);
             } else {
-                ejexActual.append(-360);
-                ejeyActual.append(previousY);
+                ejexActual.push_back(-360);
+                ejeyActual.push_back(previousY);
             }*/
 
-            ejex.append(std::move(ejexActual));
-            ejey.append(std::move(ejeyActual));
+            ejex.push_back(std::move(ejexActual));
+            ejey.push_back(std::move(ejeyActual));
 
-            ejexActual = QVector <qreal> ();
-            ejeyActual = QVector <qreal> ();
+            ejexActual = std::vector<double> ();
+            ejeyActual = std::vector<double> ();
 
             /*if (fas > -100){
-                ejexActual.append(0);
-                ejeyActual.append(mag);
+                ejexActual.push_back(0);
+                ejeyActual.push_back(mag);
             } else {
-                ejexActual.append(-360);
-                ejeyActual.append(mag);
+                ejexActual.push_back(-360);
+                ejeyActual.push_back(mag);
             }*/
 
-            ejexActual.append(fas);
-            ejeyActual.append(mag);
+            ejexActual.push_back(fas);
+            ejeyActual.push_back(mag);
         }
 
         previousPhase = fas;
         firstSample = false;
     }
 
-    ejex.append(std::move(ejexActual));
-    ejey.append(std::move(ejeyActual));
+    ejex.push_back(std::move(ejexActual));
+    ejey.push_back(std::move(ejeyActual));
 
 
     /*QCPGraph * gra = ui->plot->addGraph();
@@ -254,9 +255,9 @@ void LoopShapingViewer::showDiagram(){
 
     for (qint32 i = 0; i < ejex.size(); i++){
         QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-        curva->setData(ejex.at(i), ejey.at(i));
+        curva->setData(tools::toQVector(ejex.at(i)), tools::toQVector(ejey.at(i)));
         curva->setPen((QColor) Qt::black);
-        curves.append(curva);
+        curves.push_back(curva);
     }
 
 
@@ -264,18 +265,18 @@ void LoopShapingViewer::showDiagram(){
     //Draw the marker for each design frequency.
     for (qint32 i = 0; i < omega->size(); i++){
 
-        QVector <qreal> ejex;
-        QVector <qreal> ejey;
+        std::vector<double> ejex;
+        std::vector<double> ejey;
 
         std::complex <qreal> c = loopShapingData->controller()->evaluate(omega->at(i)) * plant->evaluate(omega->at(i));
-        ejey.append(20*log10(abs(c)));
+        ejey.push_back(20*log10(abs(c)));
         qreal fas = arg(c) *180 / M_PI;
         if (fas > 0)
             fas -= 360;
-        ejex.append(fas);
+        ejex.push_back(fas);
 
         QCPGraph * gra = ui->plot->addGraph();
-        gra->setData(ejex, ejey);
+        gra->setData(tools::toQVector(ejex), tools::toQVector(ejey));
 
         gra->setPen(rowColors.at(i));
         gra->setScatterStyle(QCPScatterStyle::ssCircle);
@@ -322,7 +323,7 @@ void LoopShapingViewer::addFrequencyRow(QColor color, qint32 pos){
     checkBox->setStyleSheet("color : " + color.name());
 
     colorsLayout->addWidget(widget);
-    checkboxes.append(checkBox);
+    checkboxes.push_back(checkBox);
     checkBox->setCheckState(Qt::Checked);
 
     connect(checkBox, SIGNAL (clicked()), this, SLOT (applyCheckboxes()));

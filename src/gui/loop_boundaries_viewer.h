@@ -1,6 +1,7 @@
 #ifndef QFTBX_LOOP_BOUNDARIES_VIEWER_H
 #define QFTBX_LOOP_BOUNDARIES_VIEWER_H
 
+#include <vector>
 #include <memory>
 
 #include <QDialog>
@@ -43,7 +44,7 @@ public:
      * @param nichols, nyquist which of the two diagrams to draw.
      */
     void setData (const BoundaryData * nicholsData, const qftbx::NyquistTraces & nyquistTraces,
-                   QVector<qreal> *omega,
+                   std::vector<double> *omega,
                    LtiSystem * plant, LtiSystem * controller, bool nichols, bool nyquist);
 
     void showDiagram();
@@ -64,7 +65,7 @@ private:
     //viewer never owns what it draws.
     LtiSystem * plant = nullptr;
     LtiSystem * controller = nullptr;
-    QVector <qreal> * omega = nullptr;
+    std::vector<double> * omega = nullptr;
 
     bool plotted = false;
 

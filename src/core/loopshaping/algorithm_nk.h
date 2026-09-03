@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <complex>
 
-#include <QVector>
+#include <vector>
 
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/system/lti_system.h"
@@ -48,7 +48,7 @@ public:
     AlgorithmNk();
     ~AlgorithmNk();
 
-    void setProblem(LtiSystem * plant, LtiSystem * controller, QVector<double> *omega, const BoundaryData * boundaries,
+    void setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> *omega, const BoundaryData * boundaries,
                    double epsilon, std::int32_t inicializacion);
 
     bool solve();
@@ -71,18 +71,18 @@ private:
                                      std::complex<double> p0);
 
     inline void localOptimization(LtiSystem * box);
-    inline double minimalFeasibleGain(const QVector<double> & zeros, const QVector<double> & poles,
+    inline double minimalFeasibleGain(const std::vector<double> & zeros, const std::vector<double> & poles,
                                      LtiSystem * box, std::int32_t & budget);
-    inline bool pointIsFeasible(const QVector<double> & zeros, const QVector<double> & poles,
+    inline bool pointIsFeasible(const std::vector<double> & zeros, const std::vector<double> & poles,
                                 double gain);
-    inline std::unique_ptr<LtiSystem> pointSystem(const QVector<double> & zeros, const QVector<double> & poles,
+    inline std::unique_ptr<LtiSystem> pointSystem(const std::vector<double> & zeros, const std::vector<double> & poles,
                                    double gain);
-    inline void startingPoint(LtiSystem * box, QVector<double> & zeros,
-                              QVector<double> & poles, double & gain);
+    inline void startingPoint(LtiSystem * box, std::vector<double> & zeros,
+                              std::vector<double> & poles, double & gain);
 
     LtiSystem * plant = nullptr;
     std::unique_ptr<LtiSystem> controller;
-    QVector<double> * omega = nullptr;
+    std::vector<double> * omega = nullptr;
     const BoundaryData * boundaries = nullptr;
     double epsilon = 0;
 
@@ -91,8 +91,8 @@ private:
     std::unique_ptr<NominalStabilityChecker> stability;
     std::unique_ptr<OrderedList> liveList;
 
-    QVector<cxsc::complex> nominalPlantValues;
-    QVector<std::complex<double>> nominalPlantValuesStd;
+    std::vector<cxsc::complex> nominalPlantValues;
+    std::vector<std::complex<double>> nominalPlantValuesStd;
 
     std::unique_ptr<LtiSystem> designedController;
     std::unique_ptr<LtiSystem> prototype;
@@ -102,7 +102,7 @@ private:
     //the 10% decision rule.
     double bestLocalGain = 0;
     std::unique_ptr<LtiSystem> bestLocalController;
-    QVector<double> launchGains;
+    std::vector<double> launchGains;
 
     //Local search configuration from the GUI: coordinate step and
     //starting-point strategy.

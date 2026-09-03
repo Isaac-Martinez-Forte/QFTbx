@@ -30,7 +30,7 @@ Parameter & TransferFunction::delay() {
     return m_delay;
 }
 
-std::complex <double> TransferFunction::evaluate(QVector <double> * numerator, QVector <double> * denominator,
+std::complex <double> TransferFunction::evaluate(std::vector <double> * numerator, std::vector <double> * denominator,
         double k, double delay, double omega) {
     ParserX p(pckALL_COMPLEX);
 
@@ -65,13 +65,13 @@ std::complex <double> TransferFunction::evaluate(double w) {
                    m_gain.nominal(), m_delay.nominal());
 }
 
-QVector <std::complex <double> > TransferFunction::evaluate(const QVector <double> & omega) {
+std::vector <std::complex <double> > TransferFunction::evaluate(const std::vector <double> & omega) {
 
-    QVector <std::complex <double> > resultado;
+    std::vector <std::complex <double> > resultado;
     resultado.reserve(omega.size());
 
-    foreach(double o, omega) {
-        resultado.append(evaluate(o));
+    for (double o : omega) {
+        resultado.push_back(evaluate(o));
     }
 
     return resultado;

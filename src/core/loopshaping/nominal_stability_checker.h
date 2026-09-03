@@ -4,7 +4,7 @@
 #include <complex>
 #include <vector>
 
-#include <QVector>
+#include <vector>
 
 #include "src/core/system/lti_system.h"
 
@@ -46,7 +46,7 @@ namespace qftbx {
 class NominalStabilityChecker
 {
 public:
-    NominalStabilityChecker(LtiSystem * nominalPlant, QVector<double> * omega);
+    NominalStabilityChecker(LtiSystem * nominalPlant, std::vector<double> * omega);
 
     /// Nyquist-on-Nichols verdict for a POINT controller (every parameter
     /// at its nominal value). Returns false when the criterion cannot be

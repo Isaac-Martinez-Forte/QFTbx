@@ -1,3 +1,4 @@
+#include <vector>
 #include <cstdint>
 #include "src/core/exception.h"
 #include "src/core/loopshaping/algorithm_nk.h"
@@ -19,7 +20,7 @@ AlgorithmNk::~AlgorithmNk()
 }
 
 
-void AlgorithmNk::setProblem(LtiSystem *plant, LtiSystem *controller, QVector<double> * omega, const BoundaryData *boundaries,
+void AlgorithmNk::setProblem(LtiSystem *plant, LtiSystem *controller, std::vector<double> * omega, const BoundaryData *boundaries,
                                      double epsilon, std::int32_t inicializacion){
 
     this->plant = plant;
@@ -63,10 +64,10 @@ bool AlgorithmNk::solve(){
     nominalPlantValues.clear();
     nominalPlantValuesStd.clear();
 
-    foreach (double o, *omega) {
+    for (double o : *omega) {
         std::complex<double> c = plant->evaluate(o);
-        nominalPlantValuesStd.append(c);
-        nominalPlantValues.append(cxsc::complex(c.real(), c.imag()));
+        nominalPlantValuesStd.push_back(c);
+        nominalPlantValues.push_back(cxsc::complex(c.real(), c.imag()));
     }
 
     //Steps 1-3: Quick Solution and feasibility of the initial box happen
@@ -166,7 +167,7 @@ inline void AlgorithmNk::check_box_feasibility(std::unique_ptr<LtiSystem> box){
     std::int32_t frequencyIndex = 0;
     cinterval projection;
 
-    foreach (double o, *omega) {
+    for (double o : *omega) {
 
         projection = conversion->nicholsBox(box.get(), o, nominalPlantValues.at(frequencyIndex));
 
@@ -327,8 +328,8 @@ const std::int32_t kLocalSearchBudget = 400;
 const double kGainTolerance = 1.01;      //1% is plenty for a pruning bound
 }
 
-inline double AlgorithmNk::minimalFeasibleGain(const QVector<double> & zeros,
-                                                       const QVector<double> & poles,
+inline double AlgorithmNk::minimalFeasibleGain(const std::vector<double> & zeros,
+                                                       const std::vector<double> & poles,
                                                        LtiSystem * box, std::int32_t & budget){
 
     double high = box->gain().range().max;
@@ -362,23 +363,23 @@ inline void AlgorithmNk::localOptimization(LtiSystem * box){
 
     const double launch = box->gain().range().min;
 
-    foreach (double previous, launchGains) {
+    for (double previous : launchGains) {
         if (std::abs(launch - previous) <= 0.1 * std::max<double>(1.0, std::abs(previous))) {
             return;
         }
     }
 
-    launchGains.append(launch);
+    launchGains.push_back(launch);
 
-    QVector<double> zeros, poles;
+    std::vector<double> zeros, poles;
     double gain;
     startingPoint(box, zeros, poles, gain);
 
     std::int32_t budget = kLocalSearchBudget;
 
     double bestGain = minimalFeasibleGain(zeros, poles, box, budget);
-    QVector<double> bestZeros = zeros;
-    QVector<double> bestPoles = poles;
+    std::vector<double> bestZeros = zeros;
+    std::vector<double> bestPoles = poles;
 
     //Coordinate pattern over zeros/poles in log space, coarse to fine.
     const auto logRange = [](Parameter & var) {
@@ -387,7 +388,7 @@ inline void AlgorithmNk::localOptimization(LtiSystem * box){
 
     const auto tryMove = [&](bool isPole, std::int32_t j, double stepDecades) -> bool {
         Parameter & var = isPole ? box->denominator()[j] : box->numerator()[j];
-        QVector<double> & values = isPole ? bestPoles : bestZeros;
+        std::vector<double> & values = isPole ? bestPoles : bestZeros;
 
         for (double direction : {stepDecades, -stepDecades}) {
             const double candidate = values.at(j) * std::pow(10.0, direction);
@@ -396,8 +397,8 @@ inline void AlgorithmNk::localOptimization(LtiSystem * box){
                 continue;
             }
 
-            QVector<double> trial = values;
-            trial.replace(j, candidate);
+            std::vector<double> trial = values;
+            trial[static_cast<std::size_t>(j)] = candidate;
 
             const double k = isPole ? minimalFeasibleGain(bestZeros, trial, box, budget)
                                    : minimalFeasibleGain(trial, bestPoles, box, budget);
@@ -418,13 +419,13 @@ inline void AlgorithmNk::localOptimization(LtiSystem * box){
         while (improved && budget > 0) {
             improved = false;
 
-            for (std::int32_t j = 0; j < bestZeros.size() && budget > 0; ++j) {
+            for (std::int32_t j = 0; j < static_cast<std::int32_t>(bestZeros.size()) && budget > 0; ++j) {
                 if (box->numerator()[j].isUncertain()) {
                     improved = tryMove(false, j, logRange(box->numerator()[j]) / divisor) || improved;
                 }
             }
 
-            for (std::int32_t j = 0; j < bestPoles.size() && budget > 0; ++j) {
+            for (std::int32_t j = 0; j < static_cast<std::int32_t>(bestPoles.size()) && budget > 0; ++j) {
                 if (box->denominator()[j].isUncertain()) {
                     improved = tryMove(true, j, logRange(box->denominator()[j]) / divisor) || improved;
                 }
@@ -443,17 +444,17 @@ inline void AlgorithmNk::localOptimization(LtiSystem * box){
 }
 
 
-inline std::unique_ptr<LtiSystem> AlgorithmNk::pointSystem(const QVector<double> & zeros,
-                                                     const QVector<double> & poles, double gain){
+inline std::unique_ptr<LtiSystem> AlgorithmNk::pointSystem(const std::vector<double> & zeros,
+                                                     const std::vector<double> & poles, double gain){
     std::vector<Parameter> numerador;
     numerador.reserve(zeros.size());
-    foreach (double z, zeros) {
+    for (double z : zeros) {
         numerador.emplace_back(z);
     }
 
     std::vector<Parameter> denominador;
     denominador.reserve(poles.size());
-    foreach (double p, poles) {
+    for (double p : poles) {
         denominador.emplace_back(p);
     }
 
@@ -465,8 +466,8 @@ inline std::unique_ptr<LtiSystem> AlgorithmNk::pointSystem(const QVector<double>
 //Point feasibility against the bounds at every design frequency, with the
 //same projection + detection the interval test uses (the historical local
 //search passed the GAIN as the frequency index of the detection).
-inline bool AlgorithmNk::pointIsFeasible(const QVector<double> & zeros,
-                                                  const QVector<double> & poles, double gain){
+inline bool AlgorithmNk::pointIsFeasible(const std::vector<double> & zeros,
+                                                  const std::vector<double> & poles, double gain){
 
     if (gain <= 0.0 || std::isinf(gain)) {
         return false;
@@ -474,7 +475,7 @@ inline bool AlgorithmNk::pointIsFeasible(const QVector<double> & zeros,
 
     const std::unique_ptr<LtiSystem> point = pointSystem(zeros, poles, gain);
 
-    for (std::int32_t i = 0; i < omega->size(); ++i) {
+    for (std::int32_t i = 0; i < static_cast<std::int32_t>(omega->size()); ++i) {
         const cinterval projection = conversion->nicholsBox(point.get(), omega->at(i),
                                                       nominalPlantValues.at(i));
         const BoxFlag flag = detector->classifyBox(projection, boundaries, i).flag();
@@ -490,8 +491,8 @@ inline bool AlgorithmNk::pointIsFeasible(const QVector<double> & zeros,
 
 //Starting point of the local search, per the GUI choice: box centre,
 //random point, or the |L0|-maximal corner.
-inline void AlgorithmNk::startingPoint(LtiSystem * box, QVector<double> & zeros,
-                                                QVector<double> & poles, double & gain){
+inline void AlgorithmNk::startingPoint(LtiSystem * box, std::vector<double> & zeros,
+                                                std::vector<double> & poles, double & gain){
 
     const auto pick = [this](Parameter & var, bool isPole) -> double {
         if (!var.isUncertain()) {
@@ -506,10 +507,10 @@ inline void AlgorithmNk::startingPoint(LtiSystem * box, QVector<double> & zeros,
     poles.clear();
 
     for (Parameter & var : box->numerator()) {
-        zeros.append(pick(var, false));
+        zeros.push_back(pick(var, false));
     }
     for (Parameter & var : box->denominator()) {
-        poles.append(pick(var, true));
+        poles.push_back(pick(var, true));
     }
 
     Parameter & k = box->gain();

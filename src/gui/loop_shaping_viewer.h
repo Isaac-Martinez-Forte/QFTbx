@@ -1,6 +1,7 @@
 #ifndef QFTBX_LOOP_SHAPING_VIEWER_H
 #define QFTBX_LOOP_SHAPING_VIEWER_H
 
+#include <vector>
 #include <memory>
 
 #include <QDialog>
@@ -33,7 +34,7 @@ public:
     ~LoopShapingViewer();
 
 
-    void setData (const qftbx::UnionTraces & unionTraces, QVector<qreal> *omega, LoopShapingResult * loopShapingData, LtiSystem *plant, bool linSpace);
+    void setData (const qftbx::UnionTraces & unionTraces, std::vector<double> *omega, LoopShapingResult * loopShapingData, LtiSystem *plant, bool linSpace);
 
     void showDiagram();
 
@@ -46,7 +47,7 @@ private slots:
 private:
 
     qftbx::UnionTraces unionTraces;
-    QVector <qreal> * omega = nullptr;
+    std::vector<double> * omega = nullptr;
     //Observers on the project's objects, handed in by setData(): the
     //viewer never owns what it draws.
     LtiSystem * plant = nullptr;

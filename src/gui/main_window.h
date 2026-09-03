@@ -1,6 +1,7 @@
 #ifndef QFTBX_MAIN_WINDOW_H
 #define QFTBX_MAIN_WINDOW_H
 
+#include <vector>
 #include <memory>
 
 #include <QMainWindow>
@@ -136,14 +137,14 @@ private:
     void invalidateLoopShaping();
 
     void installContourRecomputer();
-    void recomputeContour(QVector<qreal> epsilon);
+    void recomputeContour(std::vector<double> epsilon);
 
     void createSession();
     void destroySession();
 
     /// The design frequency values of the project, or nullptr when they have
     /// not been entered yet. The dialogs that need them are given them.
-    const QVector<qreal> * frequencyValues() const;
+    const std::vector<double> * frequencyValues() const;
 
     void destroyDialogs();
     void stepBack(bool & paso);

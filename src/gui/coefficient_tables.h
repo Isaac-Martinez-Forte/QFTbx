@@ -2,6 +2,8 @@
 #define QFTBX_GUI_COEFFICIENT_TABLES_H
 
 #include <QString>
+#include <vector>
+
 #include <QVector>
 
 /**
@@ -21,15 +23,15 @@
  */
 
 /// One polynomial slot's coefficients.
-using CoefficientRow = QVector<QString>;
+using CoefficientRow = std::vector<QString>;
 
 /// The slots of one system, in dialog order.
-using CoefficientTable = QVector<CoefficientRow>;
+using CoefficientTable = std::vector<CoefficientRow>;
 
 /// Whether each coefficient of one slot is an uncertain parameter.
-using UncertainRow = QVector<bool>;
+using UncertainRow = std::vector<bool>;
 
 /// The uncertainty flags of one system, aligned with a CoefficientTable.
-using UncertainTable = QVector<UncertainRow>;
+using UncertainTable = std::vector<UncertainRow>;
 
 #endif // QFTBX_GUI_COEFFICIENT_TABLES_H

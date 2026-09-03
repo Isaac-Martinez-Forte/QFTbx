@@ -1,3 +1,4 @@
+#include <vector>
 #include <cstdint>
 #include "template_engine.h"
 
@@ -33,7 +34,7 @@ void TemplateEngine::setGrids(ParameterGrids grids){
     m_grids = std::move(grids);
 }
 
-void TemplateEngine::setEpsilon(QVector<double> epsilon){
+void TemplateEngine::setEpsilon(std::vector<double> epsilon){
     m_epsilon = std::move(epsilon);
 }
 
@@ -41,7 +42,7 @@ void TemplateEngine::setClouds(CloudSet templates){
     m_clouds = std::move(templates);
 }
 
-bool TemplateEngine::compute(LtiSystem *plant, QVector<double> *omega, bool cuda){
+bool TemplateEngine::compute(LtiSystem *plant, std::vector<double> *omega, bool cuda){
     m_useCuda = cuda;
 
     QElapsedTimer timer;
@@ -72,12 +73,12 @@ bool TemplateEngine::compute(LtiSystem *plant, QVector<double> *omega, bool cuda
 
 }
 
-bool TemplateEngine::computeContours(QVector<double> epsilon){
+bool TemplateEngine::computeContours(std::vector<double> epsilon){
 
     if (m_clouds.empty()){
         throw qftbx::InvalidInput("There are no templates to compute contours from.");
     }
-    if (epsilon.size() < static_cast<std::int32_t>(m_clouds.size())){
+    if (epsilon.size() < m_clouds.size()){
         throw qftbx::InvalidInput("Missing epsilon values for the template contours.");
     }
 
@@ -114,12 +115,12 @@ const std::vector<double> & TemplateEngine::gridFor(Parameter & a){
     return found->second;
 }
 
-CloudSet TemplateEngine::computeClouds(LtiSystem *plant, QVector<double> *omega){
+CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *omega){
 
     //Collect the uncertain parameters (the first of each name) and their
     //grids, in numerator, denominator, gain, delay order. The index in
     //'names' is the odometer digit (0 is the fastest), as historically.
-    QVector <QString> names;
+    std::vector <QString> names;
 
     //Pointers INTO the map the engine owns: stable for the whole sweep,
     //because nothing modifies m_grids while it runs.
@@ -128,9 +129,10 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, QVector<double> *omega)
     m_combinationCount = 1;
 
     auto collect = [&](Parameter & var){
-        if (var.isUncertain() && !names.contains(var.name())){
+        if (var.isUncertain() &&
+                std::find(names.begin(), names.end(), var.name()) == names.end()){
             const std::vector<double> & rejilla = gridFor(var);
-            names.append(var.name());
+            names.push_back(var.name());
             grids.push_back(&rejilla);
             m_combinationCount *= static_cast<std::int32_t>(rejilla.size());
         }
@@ -152,7 +154,13 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, QVector<double> *omega)
     //change with the frequency or the combination. A name appearing twice
     //shares its digit, which is what makes it one variable.
     const auto slotOf = [&](Parameter & parameter) -> std::int32_t {
-        return parameter.isUncertain() ? names.indexOf(parameter.name()) : -1;
+        if (!parameter.isUncertain()) {
+            return -1;
+        }
+        const auto found = std::find(names.begin(), names.end(), parameter.name());
+        return found == names.end()
+                ? -1
+                : static_cast<std::int32_t>(std::distance(names.begin(), found));
     };
 
     std::vector<std::int32_t> numeratorSlot, denominatorSlot;
@@ -176,8 +184,8 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, QVector<double> *omega)
 
     //One flag and one error slot per frequency, filled inside the parallel
     //loop below (nothing may be thrown from within it).
-    QVector <bool> nonFiniteFrequencies (frequencyCount, false);
-    QVector <QString> parserErrors (frequencyCount);
+    std::vector <bool> nonFiniteFrequencies (frequencyCount, false);
+    std::vector <QString> parserErrors (frequencyCount);
 
     //Before the threads exist: muParserX's package singletons are built
     //lazily and unsynchronised, and the loop below constructs one parser per
@@ -210,7 +218,7 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, QVector<double> *omega)
         ComplexCloud cloud;
         cloud.reserve(static_cast<std::size_t>(m_combinationCount));
 
-        QVector <std::int32_t> counter (digitCount + 1, 0);
+        std::vector <std::int32_t> counter (digitCount + 1, 0);
 
         //Non-finite plant values: an undamped resonance inside the
         //uncertainty makes |P(jw)| infinite at some frequency (the ACC'90
@@ -251,10 +259,10 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, QVector<double> *omega)
                 value = plant->valueAt(w, numeratorValues, denominatorValues,
                                        gainValue, delayValue);
             } catch (mup::ParserError & error) {
-                parserErrors.replace(u, QString::fromStdString(error.GetMsg()));
+                parserErrors[u] = QString::fromStdString(error.GetMsg());
                 break;
             } catch (const qftbx::Exception & error) {
-                parserErrors.replace(u, QString::fromUtf8(error.what()));
+                parserErrors[u] = QString::fromUtf8(error.what());
                 break;
             }
 
@@ -275,7 +283,7 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, QVector<double> *omega)
         }
 
         if (nonFinite){
-            nonFiniteFrequencies.replace(u, true);
+            nonFiniteFrequencies[u] = true;
         }
 
         //Every frequency writes at its own index: no critical sections,
@@ -297,11 +305,11 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, QVector<double> *omega)
     QStringList affected;
     for (std::int32_t u = 0; u < frequencyCount; u++){
         if (nonFiniteFrequencies.at(u)){
-            affected.append(QString::number(omega->at(u)));
+            affected.push_back(QString::number(omega->at(u)));
         }
     }
 
-    if (!affected.isEmpty()){
+    if (!affected.empty()){
         throw qftbx::InvalidInput(
                 "The plant has infinite magnitude at the design frequencies "
                 + affected.join(QStringLiteral(", ")).toStdString()
@@ -314,11 +322,11 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, QVector<double> *omega)
     return allClouds;
 }
 
-QVector <double> * TemplateEngine::omega(){
+std::vector <double> * TemplateEngine::omega(){
     return m_frequencies;
 }
 
-const QVector <double> & TemplateEngine::epsilon(){
+const std::vector <double> & TemplateEngine::epsilon(){
     return m_epsilon;
 }
 
@@ -364,8 +372,8 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
     //Per-frequency diagnosis of a failure (nothing may be thrown from
     //inside the parallel region), and of the frequencies whose faithful walk
     //did not close.
-    QVector <bool> failed (digitCount, false);
-    QVector <bool> relaxedFrequencies (digitCount, false);
+    std::vector <bool> failed (digitCount, false);
+    std::vector <bool> relaxedFrequencies (digitCount, false);
 
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
@@ -377,13 +385,13 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
                                         m_epsilon.at(i), &fellBack);
 
         if (fellBack){
-            relaxedFrequencies.replace(i, true);
+            relaxedFrequencies[static_cast<std::size_t>(i)] = true;
         }
 
         //Empty means the hull could not be built, the same signal the CUDA
         //path already used. A hull of a non-empty cloud always has points.
         if (cont.empty()){
-            failed.replace(i, true);
+            failed[static_cast<std::size_t>(i)] = true;
 
 #ifdef OpenMP_AVAILABLE
 #pragma omp critical
@@ -402,12 +410,12 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
     //back.
     QStringList relaxed;
     for (std::int32_t i = 0; i < digitCount; i++){
-        if (relaxedFrequencies.at(i) && m_frequencies != nullptr && i < m_frequencies->size()){
-            relaxed.append(QString::number(m_frequencies->at(i)));
+        if (relaxedFrequencies.at(i) && m_frequencies != nullptr && i < static_cast<std::int32_t>(m_frequencies->size())){
+            relaxed.push_back(QString::number(m_frequencies->at(i)));
         }
     }
 
-    if (!relaxed.isEmpty()){
+    if (!relaxed.empty()){
         qWarning("epsilonHull: the faithful walk did not close at w = %s rad/s "
                  "(epsilon-hull limitation on clustered templates); the relaxed "
                  "historical walk was used there, whose coverage is still <= epsilon.",
@@ -432,8 +440,8 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
                 largest = std::max(largest, std::abs(value));
             }
 
-            detail.append(QStringLiteral("%1 rad/s (largest |P| = %2)")
-                              .arg(m_frequencies != nullptr && i < m_frequencies->size()
+            detail.push_back(QStringLiteral("%1 rad/s (largest |P| = %2)")
+                              .arg(m_frequencies != nullptr && i < static_cast<std::int32_t>(m_frequencies->size())
                                        ? QString::number(m_frequencies->at(i))
                                        : QString::number(i))
                               .arg(largest, 0, 'g', 3));
@@ -493,9 +501,9 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsil
     if (b2 < 0)
         return {};
 
-    QVector <std::int32_t> walk;
-    walk.append(b1);
-    walk.append(b2);
+    std::vector <std::int32_t> walk;
+    walk.push_back(b1);
+    walk.push_back(b2);
 
     std::int32_t previousPoint = b1;
     std::int32_t currentPoint = b2;
@@ -511,7 +519,7 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsil
     //the MATLAB, as real geometric information of the contour.
     while (b1 != currentPoint || b2 != nextPoint){
 
-        walk.append(nextPoint);
+        walk.push_back(nextPoint);
         counter++;
 
         if (counter > MAXP){
@@ -542,7 +550,7 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsil
     ComplexCloud result;
     result.reserve(walk.size());
 
-    foreach (const std::int32_t var, walk) {
+    for (const std::int32_t var : walk) {
         result.push_back(cv.at(var));
     }
 
@@ -569,9 +577,9 @@ ComplexCloud TemplateEngine::epsilonHullRelaxed(const ComplexCloud & temp, doubl
     if (b2 < 0)
         return {};
 
-    QVector <std::int32_t> walk;
-    walk.append(b1);
-    walk.append(b2);
+    std::vector <std::int32_t> walk;
+    walk.push_back(b1);
+    walk.push_back(b2);
 
     std::int32_t previousPoint = b1;
     std::int32_t currentPoint = b2;
@@ -584,7 +592,7 @@ ComplexCloud TemplateEngine::epsilonHullRelaxed(const ComplexCloud & temp, doubl
 
     while (b1 != currentPoint || b2 != nextPoint){
 
-        walk.append(nextPoint);
+        walk.push_back(nextPoint);
         counter++;
 
         if (counter > MAXP)
@@ -601,17 +609,17 @@ ComplexCloud TemplateEngine::epsilonHullRelaxed(const ComplexCloud & temp, doubl
     }
 
     //Output deduplication (historical behaviour).
-    QVector <std::int32_t> uniqueIdx;
-    foreach (std::int32_t idx, walk) {
-        if (!uniqueIdx.contains(idx)){
-            uniqueIdx.append(idx);
+    std::vector <std::int32_t> uniqueIdx;
+    for (std::int32_t idx : walk) {
+        if (std::find(uniqueIdx.begin(), uniqueIdx.end(), idx) == uniqueIdx.end()){
+            uniqueIdx.push_back(idx);
         }
     }
 
     ComplexCloud result;
     result.reserve(uniqueIdx.size());
 
-    foreach (const std::int32_t idx, uniqueIdx) {
+    for (const std::int32_t idx : uniqueIdx) {
         result.push_back(temp.at(idx));
     }
 

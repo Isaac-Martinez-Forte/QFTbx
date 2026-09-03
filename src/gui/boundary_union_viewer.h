@@ -1,6 +1,7 @@
 #ifndef QFTBX_BOUNDARY_UNION_VIEWER_H
 #define QFTBX_BOUNDARY_UNION_VIEWER_H
 
+#include <vector>
 #include <memory>
 
 #include <QDialog>
@@ -30,12 +31,12 @@ public:
     ~BoundaryUnionViewer();
 
 
-    void setData (const qftbx::UnionTraces & unionTraces, QVector<qreal> *omega);
-    void setData (const qftbx::UnionTraces & unionTraces, QVector<qreal> *omega, qint32 singleBoundary);
+    void setData (const qftbx::UnionTraces & unionTraces, std::vector<double> *omega);
+    void setData (const qftbx::UnionTraces & unionTraces, std::vector<double> *omega, qint32 singleBoundary);
 
-    void setData (const qftbx::UnionBuckets & unionTraces, QVector<qreal> *omega);
+    void setData (const qftbx::UnionBuckets & unionTraces, std::vector<double> *omega);
 
-    void setData (const qftbx::UnionBuckets & unionTraces, QVector<qreal> *omega, const qftbx::Trace & b);
+    void setData (const qftbx::UnionBuckets & unionTraces, std::vector<double> *omega, const qftbx::Trace & b);
 
     void showDiagram();
 
@@ -51,7 +52,7 @@ private:
 
     qftbx::UnionTraces unionTraces;
     qftbx::UnionBuckets unionBuckets;
-    QVector <qreal> * omega = nullptr;
+    std::vector<double> * omega = nullptr;
     //An extra curve painted on top, empty when there is none. It was a
     //pointer whose nullness was the flag.
     qftbx::Trace b;

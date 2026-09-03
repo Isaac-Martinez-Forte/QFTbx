@@ -1,5 +1,7 @@
+#include <vector>
 #include <algorithm>
 
+#include "qt_containers.h"
 #include "bode_viewer.h"
 #include "ui_bode_viewer.h"
 
@@ -33,7 +35,7 @@ void BodeViewer::drawBode(LtiSystem *plant, Omega *omega){
     //By value, so the sweep is a plain local: this used to be a pointer plus
     //an ownFrequencies flag, because the manual branch borrowed the project's
     //vector while the other two allocated their own.
-    QVector <qreal> frequencies;
+    std::vector<double> frequencies;
 
     //The sweep starts where the DESIGN starts. Both branches used a
     //hardcoded -1: on the logarithmic path that silently replaced the user's
@@ -48,17 +50,17 @@ void BodeViewer::drawBode(LtiSystem *plant, Omega *omega){
         frequencies = *omega->values();
     }
 
-    QVector <qreal> magnitude;
-    QVector <qreal> phase;
+    std::vector<double> magnitude;
+    std::vector<double> phase;
     magnitude.reserve(frequencies.size());
     phase.reserve(frequencies.size());
 
-    foreach (const std::complex<qreal> &comp, plant->evaluate(frequencies)){
-        magnitude.append(20*log10(abs(comp)));
+    for (const std::complex<qreal> &comp : plant->evaluate(frequencies)){
+        magnitude.push_back(20*log10(abs(comp)));
 
         //Degrees: a Bode phase plot is read in degrees, and arg() answers
         //radians (the axis was labelled in Spanish and scaled in radians).
-        phase.append(arg(comp) * 180.0 / M_PI);
+        phase.push_back(arg(comp) * 180.0 / M_PI);
     }
 
     drawAxis(tr("Magnitude (dB)"), magnitude, frequencies, ui->magnitudePlot);
@@ -69,12 +71,12 @@ void BodeViewer::drawBode(LtiSystem *plant, Omega *omega){
 }
 
 
-void BodeViewer::drawAxis(QString yAxisName, const QVector<qreal> & yAxis_values,
-                          const QVector<qreal> & frequencies, QCustomPlot * magnitudePlot){
+void BodeViewer::drawAxis(QString yAxisName, const std::vector<double> & yAxis_values,
+                          const std::vector<double> & frequencies, QCustomPlot * magnitudePlot){
 
     //QCPCurve attaches itself to the plot, which owns it from then on.
     QCPCurve *curva = new QCPCurve(magnitudePlot->xAxis, magnitudePlot->yAxis);
-    curva->setData(frequencies, yAxis_values);
+    curva->setData(tools::toQVector(frequencies), tools::toQVector(yAxis_values));
 
     magnitudePlot->xAxis->setLabel("w");
     magnitudePlot->yAxis->setLabel(yAxisName);

@@ -5,7 +5,7 @@
 #include <vector>
 
 #include <QString>
-#include <QVector>
+#include <vector>
 
 namespace qftbx {
 namespace math {
@@ -32,7 +32,7 @@ namespace math {
  * the parser's bound values, so they may change freely between calls.
  */
 std::complex<double> evaluateCached(const QString & expression,
-                                    const QVector<QString> & names,
+                                    const std::vector<QString> & names,
                                     const std::vector<std::complex<double>> & values);
 
 /**

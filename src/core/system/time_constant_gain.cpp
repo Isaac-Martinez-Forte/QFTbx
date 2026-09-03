@@ -1,3 +1,4 @@
+#include <vector>
 #include <cstdint>
 #include <cmath>
 #include <complex>
@@ -22,7 +23,7 @@ std::unique_ptr<LtiSystem> TimeConstantGain::create (QString name, std::vector <
                                               std::move(k), std::move(delay));
 }
 
-QString TimeConstantGain::expression (QVector <double> * numerator, QVector <double> * denominator,
+QString TimeConstantGain::expression (std::vector <double> * numerator, std::vector <double> * denominator,
                              double k, double delay, double omega){
     std::int32_t sizeDen = denominator->size();
     std::int32_t sizeNum = numerator->size();
@@ -40,7 +41,7 @@ QString TimeConstantGain::expression (QVector <double> * numerator, QVector <dou
     if (sizeNum == 0){
         expr += "(1)) / (";
     } else{
-        expr += "(((" + QString::number(omega) + "*i) / " + QString::number(numerator->last()) + ")+1)) / (";
+        expr += "(((" + QString::number(omega) + "*i) / " + QString::number(numerator->back()) + ")+1)) / (";
     }
 
 
@@ -52,7 +53,7 @@ QString TimeConstantGain::expression (QVector <double> * numerator, QVector <dou
     if (sizeDen == 0){
         expr += "(1))";
     }else {
-        expr += "((("+ QString::number(omega) + "*i) /" + QString::number(denominator->last()) + ")+1))";
+        expr += "((("+ QString::number(omega) + "*i) /" + QString::number(denominator->back()) + ")+1))";
     }
 
 
@@ -197,10 +198,10 @@ LtiSystem::SystemType TimeConstantGain::type(){
 
 
 
-std::complex <double> TimeConstantGain::evaluateNumerator(QVector <double> * nume, double omega){
+std::complex <double> TimeConstantGain::evaluateNumerator(std::vector <double> * nume, double omega){
 
 
-    if (nume->isEmpty()){
+    if (nume->empty()){
         return std::complex <double> (1);
     }
 
@@ -213,7 +214,7 @@ std::complex <double> TimeConstantGain::evaluateNumerator(QVector <double> * num
         expr += "((("+ QString::number(omega) + "*i) /" + QString::number(nume->at(i)) + ")+1) *";
     }
 
-    expr += "(((" + QString::number(omega) + "*i) / " + QString::number(nume->last()) + ")+1))";
+    expr += "(((" + QString::number(omega) + "*i) / " + QString::number(nume->back()) + ")+1))";
 
     mup::ParserX p (mup::pckALL_COMPLEX);
 
@@ -222,9 +223,9 @@ std::complex <double> TimeConstantGain::evaluateNumerator(QVector <double> * num
     return p.Eval().GetComplex();
 }
 
-std::complex <double> TimeConstantGain::evaluateDenominator(QVector <double> * deno, double omega){
+std::complex <double> TimeConstantGain::evaluateDenominator(std::vector <double> * deno, double omega){
 
-    if (deno->isEmpty()){
+    if (deno->empty()){
         return std::complex <double> (1);
     }
 
@@ -236,7 +237,7 @@ std::complex <double> TimeConstantGain::evaluateDenominator(QVector <double> * d
         expr += "((("+ QString::number(omega) + "*i) / " + QString::number(deno->at(i)) + ")+1) *";
     }
 
-    expr += "((("+ QString::number(omega) + "*i) /" + QString::number(deno->last()) + ")+1))";
+    expr += "((("+ QString::number(omega) + "*i) /" + QString::number(deno->back()) + ")+1))";
 
     mup::ParserX p (mup::pckALL_COMPLEX);
 

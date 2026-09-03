@@ -14,6 +14,8 @@
 
 #include <gtest/gtest.h>
 
+#include <vector>
+
 #include "src/core/point.h"
 
 #include "src/core/range.h"
@@ -67,7 +69,7 @@ protected:
     {
         m_previous = tools::setErrorReporter(
             [this](const QString & message, const QString & title) {
-                m_reported.append(title + ": " + message);
+                m_reported.push_back(title + ": " + message);
             });
     }
 
@@ -260,7 +262,7 @@ TEST_F(GuiSmoke, FrequenciesDialogBuildsTheDesignFrequencies)
     std::unique_ptr<Omega> omega(dialog.takeOmega());
     ASSERT_NE(omega, nullptr);
     ASSERT_NE(omega->values(), nullptr);
-    const QVector<qreal> expected{0.1, 1.0, 10.0, 100.0};
+    const std::vector<double> expected{0.1, 1.0, 10.0, 100.0};
     EXPECT_EQ(*omega->values(), expected);
     EXPECT_EQ(omega->pointCount(), 4);
 }
@@ -270,7 +272,7 @@ TEST_F(GuiSmoke, SpecificationsDialogRefusesToLeaveATabItCannotRead)
     //Switching away used to happen anyway and the return value of the read
     //was discarded, so the whole specification was lost - not just the bad
     //field - and coming back showed a blank tab.
-    const QVector<qreal> frequencies{0.1, 1.0, 10.0};
+    const std::vector<double> frequencies{0.1, 1.0, 10.0};
     SpecificationsDialog dialog(&frequencies);
 
     check(&dialog, "stabilityRadio");
@@ -428,7 +430,7 @@ TEST_F(GuiSmoke, SpecificationsDialogNeedsTheFrequenciesFirst)
     //down; it says so now.
     EXPECT_THROW(SpecificationsDialog dialog(nullptr), qftbx::InvalidInput);
 
-    const QVector<qreal> empty;
+    const std::vector<double> empty;
     EXPECT_THROW(SpecificationsDialog dialog(&empty), qftbx::InvalidInput);
 }
 
@@ -436,7 +438,7 @@ TEST_F(GuiSmoke, SpecificationsDialogStoresAConstantStabilitySpecification)
 {
     //Real step order: the frequencies come first, and the window hands them
     //to the dialog.
-    const QVector<qreal> frequencies{0.1, 1.0, 10.0, 100.0};
+    const std::vector<double> frequencies{0.1, 1.0, 10.0, 100.0};
 
     SpecificationsDialog dialog(&frequencies);
 
@@ -474,8 +476,8 @@ TEST_F(GuiSmoke, TemplateViewerAsksItsHandlerToRecomputeTheContour)
 
     const qftbx::CloudSet contour{{{1.0, 0.0}, {0.0, 1.0}}};
     const qftbx::CloudSet templates{{{2.0, 0.0}, {0.0, 2.0}}};
-    QVector<qreal> omega{1.0};
-    QVector<qreal> epsilon{0.05};
+    std::vector<double> omega{1.0};
+    std::vector<double> epsilon{0.05};
 
     //The viewer takes its own copy of the clouds; the frequency and epsilon
     //vectors are still the project's.
@@ -483,8 +485,8 @@ TEST_F(GuiSmoke, TemplateViewerAsksItsHandlerToRecomputeTheContour)
     viewer.plotDiagram(true);
 
     bool called = false;
-    QVector<qreal> asked;
-    viewer.setContourRecomputer([&](QVector<qreal> requested) {
+    std::vector<double> asked;
+    viewer.setContourRecomputer([&](std::vector<double> requested) {
         called = true;
         asked = std::move(requested);
     });
@@ -623,7 +625,7 @@ TEST_F(GuiSmoke, TemplatesDialogBuildsOneEpsilonPerFrequency)
 
     //One epsilon per design frequency: the template computation indexes it
     //by frequency.
-    const QVector<qreal> epsilon = dialog.takeEpsilon();
+    const std::vector<double> epsilon = dialog.takeEpsilon();
     EXPECT_EQ(epsilon.size(), 4);
     for (qreal value : epsilon) {
         EXPECT_DOUBLE_EQ(value, 0.05);
@@ -736,7 +738,7 @@ TEST_F(GuiSmoke, BoundaryViewerDrawsTheBoundariesItIsGiven)
     BoundaryViewer viewer;
 
     const BoundaryData boundaries = oneBoundary();
-    QVector<qreal> omega{1.0};
+    std::vector<double> omega{1.0};
 
     viewer.setData(&boundaries, &omega);
     viewer.showDiagram();
@@ -756,7 +758,7 @@ TEST_F(GuiSmoke, BoundaryUnionViewerDrawsTheUnion)
 
     const qftbx::UnionTraces traces{{qftbx::NicholsPoint(-270.0, 10.0), qftbx::NicholsPoint(-180.0, 4.0),
                                      qftbx::NicholsPoint(-90.0, 10.0)}};
-    QVector<qreal> omega{1.0};
+    std::vector<double> omega{1.0};
 
     viewer.setData(traces, &omega);
     viewer.showDiagram();
@@ -786,7 +788,7 @@ TEST_F(GuiSmoke, LoopShapingViewerDrawsTheShapedLoop)
                              qftbx::Range(0.1, 100.0), 50);
     const qftbx::UnionTraces traces{{qftbx::NicholsPoint(-270.0, 10.0), qftbx::NicholsPoint(-180.0, 4.0),
                                      qftbx::NicholsPoint(-90.0, 10.0)}};
-    QVector<qreal> omega{1.0, 10.0};
+    std::vector<double> omega{1.0, 10.0};
 
     viewer.setData(traces, &omega, &result, &plant, false);
     viewer.showDiagram();
@@ -809,7 +811,7 @@ TEST_F(GuiSmoke, LoopBoundariesViewerDrawsBothDiagrams)
                               Parameter(1.0), Parameter(0.0));
 
     const BoundaryData nichols = oneBoundary();
-    QVector<qreal> omega{1.0};
+    std::vector<double> omega{1.0};
 
     //The Nyquist half is now the curves themselves, converted from the same
     //union: the viewer no longer takes a BoundaryData built to look like

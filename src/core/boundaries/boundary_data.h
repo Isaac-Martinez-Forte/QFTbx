@@ -3,7 +3,7 @@
 
 #include <cstdint>
 #include "src/core/range.h"
-#include <QVector>
+#include <vector>
 
 #include "src/core/boundaries/boundary_types.h"
 #include <QMap>

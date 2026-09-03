@@ -52,12 +52,12 @@ void TemplatesDialog::clearTables(){
     //Qt's own mechanism, and the only reason there is a delete here:
     //destroying the tab page is how the three line edits of a row leave the
     //dialog. The pages used to pile up.
-    foreach (const ParLineEdit & par, numeratorRows){
+    for (const ParLineEdit & par : numeratorRows){
         delete par.getX()->parentWidget();
     }
     numeratorRows.clear();
 
-    foreach (const ParLineEdit & par, denominatorRows){
+    for (const ParLineEdit & par : denominatorRows){
         delete par.getX()->parentWidget();
     }
     denominatorRows.clear();
@@ -70,7 +70,7 @@ void TemplatesDialog::clearTables(){
 
 //The grid map belongs to the dialog (the engine reads it without taking
 //ownership): the old clear() leaked every computation's grids.
-QVector<qreal> TemplatesDialog::takeEpsilon(){
+std::vector<double> TemplatesDialog::takeEpsilon(){
     return std::move(epsilonValues);
 }
 
@@ -191,14 +191,14 @@ void TemplatesDialog::buildRow(QWidget *widget, QVector <ParLineEdit> & par,
     rLog->setText(QApplication::translate("Template", "LogSpace", 0));
     rManual->setText(QApplication::translate("Template", "Manual", 0));
 
-    par.append(ParLineEdit(lin, log, manual));
+    par.push_back(ParLineEdit(lin, log, manual));
 
     struct ThreeRadioButtons radio;
     radio.uno = rLin;
     radio.dos = rLog;
     radio.tres = rManual;
 
-    rowRadios.append(radio);
+    rowRadios.push_back(radio);
 
 }
 
@@ -251,7 +251,7 @@ void TemplatesDialog::on_okButton_clicked()
     }else {
 
         ui->epsilonEdit->setStyleSheet("background : white");
-        const QVector <QString> v = qftbx::text::tokens(ui->epsilonEdit->text());
+        const std::vector<QString> v = qftbx::text::tokens(ui->epsilonEdit->text());
 
         qreal lastEpsilon = 0;
 
@@ -260,10 +260,10 @@ void TemplatesDialog::on_okButton_clicked()
         //User expressions: an invalid epsilon used to throw and bring the
         //application down.
         try {
-            foreach (QString s, v) {
+            for (QString s : v) {
                 parser->SetExpr(s.toStdString());
                 lastEpsilon = parser->Eval().GetFloat();
-                epsilonValues.append(lastEpsilon);
+                epsilonValues.push_back(lastEpsilon);
                 counter++;
             }
         } catch (mup::ParserError &) {
@@ -274,7 +274,7 @@ void TemplatesDialog::on_okButton_clicked()
         }
 
         for (; counter < frequencyCount; counter++){
-            epsilonValues.append(lastEpsilon);
+            epsilonValues.push_back(lastEpsilon);
         }
     }
 
@@ -388,7 +388,7 @@ void TemplatesDialog::on_okButton_clicked()
         return;
     }
 
-    if (!duplicateNames.isEmpty()){
+    if (!duplicateNames.empty()){
         QMessageBox::information(this, tr("Template computation"),
                 tr("The parameter name(s) %1 appear more than once: the first "
                    "grid entered is used for every occurrence.")
@@ -408,7 +408,7 @@ bool TemplatesDialog::readVariable(const ParLineEdit & rowEdits, ThreeRadioButto
     //silently win otherwise).
     if (gridMap.count(parameter.name()) != 0){
         if (!duplicateNames.contains(parameter.name())){
-            duplicateNames.append(parameter.name());
+            duplicateNames.push_back(parameter.name());
         }
         return true;
     }
@@ -439,11 +439,11 @@ bool TemplatesDialog::readVariable(const ParLineEdit & rowEdits, ThreeRadioButto
 
     }else if(rowRadios.tres->isChecked() && !rowEdits.nominal()->text().isEmpty()){
 
-        const QVector <QString> vector = qftbx::text::tokens(rowEdits.nominal()->text());
+        const std::vector<QString> vector = qftbx::text::tokens(rowEdits.nominal()->text());
         std::vector<double> values;
         values.reserve(static_cast<std::size_t>(vector.size()));
 
-        foreach (QString sSymbolCount, vector) {
+        for (QString sSymbolCount : vector) {
             parser->SetExpr(sSymbolCount.toStdString());
             values.push_back(parser->Eval().GetFloat());
         }

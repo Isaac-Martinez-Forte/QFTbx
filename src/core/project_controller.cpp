@@ -1,3 +1,4 @@
+#include <vector>
 #include <cstdint>
 #include "src/core/project_controller.h"
 
@@ -15,7 +16,7 @@ Omega * ProjectController::omega(){
     return data.omega();
 }
 
-QVector <double> * ProjectController::frequencies(){
+std::vector <double> * ProjectController::frequencies(){
     return data.frequencies();
 }
 
@@ -119,7 +120,7 @@ const qftbx::CloudSet & ProjectController::contour(){
     return data.contour();
 }
 
-bool ProjectController::computeTemplates(QVector <double> epsilon, qftbx::ParameterGrids grids, bool cuda){
+bool ProjectController::computeTemplates(std::vector <double> epsilon, qftbx::ParameterGrids grids, bool cuda){
 
     //Preconditions, stated instead of dereferenced. They matter more now that
     //publishing an input DROPS what was computed from the old one: without
@@ -154,12 +155,12 @@ bool ProjectController::computeTemplates(QVector <double> epsilon, qftbx::Parame
     return produced;
 }
 
-QVector <double> * ProjectController::epsilon(){
+std::vector <double> * ProjectController::epsilon(){
     return data.epsilon();
 }
 
 
-const qftbx::CloudSet & ProjectController::recomputeContour(QVector <double> epsilon){
+const qftbx::CloudSet & ProjectController::recomputeContour(std::vector <double> epsilon){
     m_templateEngine->computeContours(epsilon);
 
     setContour(m_templateEngine->contours());

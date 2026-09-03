@@ -1,7 +1,7 @@
 #ifndef QFTBX_NATURAL_INTERVAL_EXTENSION_H
 #define QFTBX_NATURAL_INTERVAL_EXTENSION_H
 
-#include <QVector>
+#include <vector>
 
 #include "src/core/system/parameter.h"
 #include "src/core/system/lti_system.h"

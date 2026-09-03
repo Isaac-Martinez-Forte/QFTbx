@@ -1,5 +1,6 @@
 #include "src/core/loopshaping/nominal_stability_checker.h"
 
+#include <vector>
 #include <algorithm>
 #include <cmath>
 
@@ -26,13 +27,13 @@ double phaseDegrees(const std::complex<double> & value)
 } // namespace
 
 NominalStabilityChecker::NominalStabilityChecker(LtiSystem * nominalPlant,
-                                                 QVector<double> * omega)
+                                                 std::vector<double> * omega)
     : m_plant(nominalPlant)
 {
-    double minOmega = omega->first();
-    double maxOmega = omega->first();
+    double minOmega = omega->front();
+    double maxOmega = omega->front();
 
-    foreach (double o, *omega) {
+    for (double o : *omega) {
         minOmega = std::min(minOmega, o);
         maxOmega = std::max(maxOmega, o);
     }

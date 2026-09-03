@@ -1,3 +1,4 @@
+#include <vector>
 #include <cstdint>
 #include "project_reader.h"
 
@@ -93,15 +94,15 @@ public:
     //Space-separated real vector, the encoding of every numeric list in the
     //format. The historical loader silently kept the prefix before the
     //first garbage token; this one rejects it.
-    QVector <double> realVector(const pugi::xml_node & node) const
+    std::vector <double> realVector(const pugi::xml_node & node) const
     {
-        QVector <double> values;
+        std::vector <double> values;
         const QString text = QString(node.text().get());
         const QStringList tokens = text.split(' ', Qt::SkipEmptyParts);
         values.reserve(tokens.size());
-        foreach (const QString & token, tokens) {
+        for (const QString & token : tokens) {
             bool ok = false;
-            values.append(token.toDouble(&ok));
+            values.push_back(token.toDouble(&ok));
             if (!ok) {
                 fail(node, std::string("<") + node.name() + "> holds a non-numeric token");
             }
@@ -111,7 +112,7 @@ public:
 
     std::vector<bool> boolVector(const pugi::xml_node & node) const
     {
-        const QVector <double> reals = realVector(node);
+        const std::vector <double> reals = realVector(node);
         std::vector<bool> bools;
         bools.reserve(static_cast<std::size_t>(reals.size()));
         for (const double value : reals) {
@@ -123,13 +124,13 @@ public:
     //"x y x y ..." pairs; an unpaired trailing token is rejected.
     qftbx::Trace pointVector(const pugi::xml_node & node) const
     {
-        const QVector <double> reals = realVector(node);
+        const std::vector <double> reals = realVector(node);
         if (reals.size() % 2 != 0) {
             fail(node, std::string("<") + node.name() + "> holds an odd point list");
         }
         qftbx::Trace points;
         points.reserve(static_cast<std::size_t>(reals.size() / 2));
-        for (std::int32_t i = 0; i + 1 < reals.size(); i += 2) {
+        for (std::int32_t i = 0; i + 1 < static_cast<std::int32_t>(reals.size()); i += 2) {
             points.push_back(qftbx::NicholsPoint(reals.at(i), reals.at(i + 1)));
         }
         return points;
@@ -294,15 +295,15 @@ public:
                 fail(child, "a complex vector needs real and imaginary parts");
             }
 
-            const QVector <double> reals = realVector(child);
-            const QVector <double> imaginaries = realVector(imaginaryNode);
+            const std::vector <double> reals = realVector(child);
+            const std::vector <double> imaginaries = realVector(imaginaryNode);
             if (reals.size() != imaginaries.size()) {
                 fail(child, "real and imaginary parts differ in length");
             }
 
             qftbx::ComplexCloud vector;
             vector.reserve(static_cast<std::size_t>(reals.size()));
-            for (std::int32_t i = 0; i < reals.size(); ++i) {
+            for (std::int32_t i = 0; i < static_cast<std::int32_t>(reals.size()); ++i) {
                 vector.push_back(std::complex<double>(reals.at(i), imaginaries.at(i)));
             }
 

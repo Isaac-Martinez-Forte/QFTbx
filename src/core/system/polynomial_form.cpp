@@ -1,3 +1,4 @@
+#include <vector>
 #include <cstdint>
 #include <cmath>
 #include <complex>
@@ -27,7 +28,7 @@ LtiSystem::SystemType PolynomialForm::type(){
     return SystemType::PolynomialForm;
 }
 
-QString PolynomialForm::expression (QVector <double> * numerator, QVector <double> * denominator,
+QString PolynomialForm::expression (std::vector <double> * numerator, std::vector <double> * denominator,
                               double k, double delay, double omega){
 
     std::int32_t sizeDen = denominator->size();
@@ -50,7 +51,7 @@ QString PolynomialForm::expression (QVector <double> * numerator, QVector <doubl
 
 
     if (sizeNum > 0){
-        expr += "(" + QString::number(numerator->last()) + ")) / (";
+        expr += "(" + QString::number(numerator->back()) + ")) / (";
     } else {
         expr += "(1))/(";
     }
@@ -65,7 +66,7 @@ QString PolynomialForm::expression (QVector <double> * numerator, QVector <doubl
     }
 
     if (sizeDen > 0){
-        expr += "(" + QString::number(denominator->last()) + ")))";
+        expr += "(" + QString::number(denominator->back()) + ")))";
     }else {
         expr += "(1)))";
     }
@@ -212,7 +213,7 @@ QString PolynomialForm::expression(){
     return expr;
 }
 
-std::complex <double> PolynomialForm::evaluateNumerator(QVector <double> * nume, double omega){
+std::complex <double> PolynomialForm::evaluateNumerator(std::vector <double> * nume, double omega){
 
     if (nume->size() == 0){
         return std::complex <double> (1, 0);
@@ -227,7 +228,7 @@ std::complex <double> PolynomialForm::evaluateNumerator(QVector <double> * nume,
                 QString::number(sizeNum - i)+ ") +";
     }
 
-    expr += "(" + QString::number(nume->last()) + "))";
+    expr += "(" + QString::number(nume->back()) + "))";
 
     mup::ParserX p (mup::pckALL_COMPLEX);
 
@@ -236,7 +237,7 @@ std::complex <double> PolynomialForm::evaluateNumerator(QVector <double> * nume,
     return p.Eval().GetComplex();
 }
 
-std::complex <double> PolynomialForm::evaluateDenominator(QVector <double> * deno, double omega){
+std::complex <double> PolynomialForm::evaluateDenominator(std::vector <double> * deno, double omega){
 
     if (deno->size() == 0){
         return std::complex <double> (1, 0);
@@ -251,7 +252,7 @@ std::complex <double> PolynomialForm::evaluateDenominator(QVector <double> * den
                 QString::number(sizeDen - i)+ ") +";
     }
 
-    expr += "(" + QString::number(deno->last()) + "))";
+    expr += "(" + QString::number(deno->back()) + "))";
 
     mup::ParserX p (mup::pckALL_COMPLEX);
 

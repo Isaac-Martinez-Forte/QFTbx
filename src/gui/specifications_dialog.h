@@ -36,7 +36,7 @@ public:
      * reopening the dialog starts from them instead of from blanks.
      * @param parent the Qt parent.
      */
-    explicit SpecificationsDialog(const QVector<qreal> * frequencies,
+    explicit SpecificationsDialog(const std::vector<double> * frequencies,
                                   const qftbx::SpecificationRecords * loaded = nullptr,
                                   QWidget *parent = 0);
     ~SpecificationsDialog();
@@ -151,7 +151,7 @@ private:
     QPixmap sensorNoisePixmap;
     QPixmap stabilityPixmap;
 
-    const QVector <qreal> * frequencies;
+    const std::vector<double> * frequencies;
 
     bool accepted;
 };

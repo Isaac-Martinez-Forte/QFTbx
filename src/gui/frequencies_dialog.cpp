@@ -2,6 +2,7 @@
 #include "src/core/text_tokens.h"
 #include "ui_frequencies_dialog.h"
 
+#include <vector>
 #include <cmath>
 
 #include <QMessageBox>
@@ -52,10 +53,10 @@ void FrequenciesDialog::on_okButton_clicked()
     qreal start = 0;
     qreal end = 0;
     Omega::GenerationType type = Omega::Manual;
-    QVector <qreal> frequencies;
+    std::vector<double> frequencies;
 
     if (ui->modeStack->currentIndex() == 0){ //manual
-        const std::optional<QVector<qreal>> parsed =
+        const std::optional<std::vector<double>> parsed =
                 qftbx::text::reals(ui->manualValues->text());
         type = Omega::Manual;
         if (!parsed.has_value()){
@@ -100,7 +101,7 @@ void FrequenciesDialog::on_okButton_clicked()
     //a positive real. Without it the Omega constructor refused the set by
     //throwing, and that exception escaped this slot and ABORTED the
     //application - pressing OK on a freshly opened dialog was enough.
-    if (frequencies.isEmpty()){
+    if (frequencies.empty()){
         errorMessage(tr("Enter at least one design frequency."),
                      tr("Design frequencies input"));
         return;

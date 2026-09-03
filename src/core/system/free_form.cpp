@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <vector>
 #include <cstdint>
 #include "free_form.h"
 
@@ -46,24 +48,24 @@ FreeForm::FreeForm(QString name, std::vector <Parameter> numerator, std::vector 
 //loop-shaping cuts moved to closed forms over zero-pole-gain structures).
 //The historical stubs returned 0 SILENTLY, poisoning any computation that
 //reached them; failing loudly keeps a future caller honest.
-std::complex <double> FreeForm::evaluate (QVector <double> *, QVector <double> *,
+std::complex <double> FreeForm::evaluate (std::vector <double> *, std::vector <double> *,
                                              double, double, double){
     throw ComputationError("FreeForm: evaluation with explicit parameter "
                            "values is not implemented for free-form systems.");
 }
 
-QString FreeForm::expression (QVector <double> *, QVector <double> *,
+QString FreeForm::expression (std::vector <double> *, std::vector <double> *,
                                double, double, double){
     throw ComputationError("FreeForm: the expression with explicit parameter "
                            "values is not implemented for free-form systems.");
 }
 
-std::complex <double> FreeForm::evaluateNumerator(QVector <double> *, double){
+std::complex <double> FreeForm::evaluateNumerator(std::vector <double> *, double){
     throw ComputationError("FreeForm: numerator evaluation with explicit "
                            "values is not implemented for free-form systems.");
 }
 
-std::complex <double> FreeForm::evaluateDenominator(QVector <double> *, double){
+std::complex <double> FreeForm::evaluateDenominator(std::vector <double> *, double){
     throw ComputationError("FreeForm: denominator evaluation with explicit "
                            "values is not implemented for free-form systems.");
 }
@@ -153,19 +155,22 @@ std::complex <double> FreeForm::valueAt(double w, const std::vector<double> & nu
     //same value. A disagreement means the caller built an inconsistent
     //request; picking one of the two would evaluate a plant nobody asked
     //for, so it is reported.
-    QVector<QString> names;
+    std::vector<QString> names;
     std::vector<std::complex<double>> bound;
 
-    names.append(laplaceName());
+    names.push_back(laplaceName());
     bound.push_back(std::complex<double>(0.0, w));
 
     const auto remember = [&](std::vector<Parameter> & parameters, const std::vector<double> & given) {
         for (std::size_t i = 0; i < parameters.size() && i < given.size(); i++) {
             const QString name = parameters[i].name();
-            const std::int32_t at = names.indexOf(name);
+            const auto found = std::find(names.begin(), names.end(), name);
+            const std::int32_t at = found == names.end()
+                    ? -1
+                    : static_cast<std::int32_t>(std::distance(names.begin(), found));
 
             if (at < 0) {
-                names.append(name);
+                names.push_back(name);
                 bound.push_back(std::complex<double>(given[i], 0.0));
                 continue;
             }

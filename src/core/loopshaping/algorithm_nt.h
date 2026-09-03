@@ -2,7 +2,7 @@
 #define QFTBX_LOOPSHAPING_ALGORITHM_NT_H
 
 #include <cstdint>
-#include <QVector>
+#include <vector>
 #include <QHash>
 #include <cmath>
 
@@ -83,7 +83,7 @@ public:
     AlgorithmNt();
     ~AlgorithmNt();
 
-    void setProblem(LtiSystem * plant, LtiSystem * controller, QVector<double> *omega, const BoundaryData * boundaries,
+    void setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> *omega, const BoundaryData * boundaries,
                     double epsilon);
 
     bool solve();
@@ -105,7 +105,7 @@ private:
 
     LtiSystem * plant = nullptr;
     std::unique_ptr<LtiSystem> controller;
-    QVector <double> * omega = nullptr;
+    std::vector <double> * omega = nullptr;
     const BoundaryData * boundaries = nullptr;
     std::unique_ptr<NaturalIntervalExtension> conversion;
     std::unique_ptr<OrderedList> liveList;
@@ -121,7 +121,7 @@ private:
 
     std::unique_ptr<BoundaryViolationDetector> detector;
     std::unique_ptr<NominalStabilityChecker> stability;
-    QVector <complex> nominalPlantValues;
+    std::vector <complex> nominalPlantValues;
 
 };
 

@@ -2,7 +2,7 @@
 #define QFTBX_BOUNDARY_UNION_1D_H
 
 #include <cstdint>
-#include <QVector>
+#include <vector>
 
 #include "src/core/boundaries/boundary_types.h"
 #include "src/core/point.h"

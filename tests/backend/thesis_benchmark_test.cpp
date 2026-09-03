@@ -64,6 +64,8 @@
 
 #include <gtest/gtest.h>
 
+#include <vector>
+
 //A failed comparison of C-XSC values must report, not crash: see the header.
 #include "tests/backend/cxsc_printing.h"
 
@@ -93,7 +95,7 @@ TEST(ThesisBenchmarkFixture, QftToolboxEx2LoadsWithTheFullPipeline)
     ASSERT_EQ(plant->numerator().size(), 1);
     EXPECT_EQ(plant->numerator()[0].range(), Range(1.0, 10.0));
 
-    const QVector<qreal> expectedOmega{0.1, 0.5, 1.0, 2.0, 15.0, 100.0};
+    const std::vector<double> expectedOmega{0.1, 0.5, 1.0, 2.0, 15.0, 100.0};
     ASSERT_NE(controller.omega(), nullptr);
     EXPECT_EQ(*controller.omega()->values(), expectedOmega);
 
@@ -133,7 +135,7 @@ TEST(ThesisBenchmarkFixture, Acc90LoadsWithTheFullPipeline)
     ASSERT_EQ(plant->numerator().size(), 1);
     EXPECT_EQ(plant->numerator()[0].range(), Range(0.5, 2.0));
 
-    const QVector<qreal> expectedOmega{0.1, 0.98, 0.99, 1.0, 2.0, 5.0,
+    const std::vector<double> expectedOmega{0.1, 0.98, 0.99, 1.0, 2.0, 5.0,
                                        7.0, 8.5, 10.0, 15.0, 20.0, 100.0};
     ASSERT_NE(controller.omega(), nullptr);
     EXPECT_EQ(*controller.omega()->values(), expectedOmega);

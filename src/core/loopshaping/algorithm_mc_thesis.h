@@ -6,7 +6,7 @@
 #include <optional>
 
 #include <QHash>
-#include <QVector>
+#include <vector>
 
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/system/lti_system.h"
@@ -104,7 +104,7 @@ public:
 
     void setStrategies(const Strategies & s);
 
-    void setProblem(LtiSystem * plant, LtiSystem * controller, QVector<double> * omega, const BoundaryData * boundaries,
+    void setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> * omega, const BoundaryData * boundaries,
                    double epsilon);
 
     bool solve();
@@ -131,9 +131,9 @@ private:
     //Detection results of one node, one entry per design frequency
     //(empty for frequencies the node is marked feasible at).
     struct NodeAnalysis {
-        QVector<std::optional<BoxClassification>> classification;
-        QVector<Range> boxMag;     //dB edges of the projected box
-        QVector<Range> boxPhase;   //degree edges
+        std::vector<std::optional<BoxClassification>> classification;
+        std::vector<Range> boxMag;     //dB edges of the projected box
+        std::vector<Range> boxPhase;   //degree edges
         tools::BoxFlag flag = tools::feasible;
         std::int32_t mainFrequency = 0;    //largest ambiguous projected area
         bool anyFullPhaseWidth = false;
@@ -141,15 +141,15 @@ private:
 
     inline bool analyse(McSearchNode * node, NodeAnalysis & out);
     inline void improveNode(McSearchNode * node, NodeAnalysis & analysis,
-                            QVector<FeasibleThreshold> & thresholds);
+                            std::vector<FeasibleThreshold> & thresholds);
     inline bool bestGainSearch(McSearchNode * node, const NodeAnalysis & analysis);
     inline void feasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
-                             QVector<FeasibleThreshold> & thresholds, bool & improved);
+                             std::vector<FeasibleThreshold> & thresholds, bool & improved);
     inline void infeasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
                                bool & improved);
 
     inline FC::McBisectionResult bisect(McSearchNode * node, const NodeAnalysis & analysis,
-                                        const QVector<FeasibleThreshold> & thresholds);
+                                        const std::vector<FeasibleThreshold> & thresholds);
     inline FC::McBisectionResult bisectAt(McSearchNode * node, std::int32_t parameter, double point);
     inline std::int32_t widestByMeasure(McSearchNode * node, std::int32_t mainFrequency, int measure);
 
@@ -164,7 +164,7 @@ private:
 
     LtiSystem * plant = nullptr;
     std::unique_ptr<LtiSystem> controller;
-    QVector<double> * omega = nullptr;
+    std::vector<double> * omega = nullptr;
     const BoundaryData * boundaries = nullptr;
     double epsilon = 0;
 
@@ -172,8 +172,8 @@ private:
     std::unique_ptr<BoundaryViolationDetector> detector;
     std::unique_ptr<NominalStabilityChecker> stability;
     std::unique_ptr<OrderedList> liveList;
-    QVector<cxsc::complex> nominalPlantValues;
-    QVector<std::complex<double>> nominalPlantValuesStd;
+    std::vector<cxsc::complex> nominalPlantValues;
+    std::vector<std::complex<double>> nominalPlantValuesStd;
 
     //Prune variable C (thesis 5.4.3): gain and controller of the best
     //certified solution found by MG.

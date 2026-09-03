@@ -71,8 +71,8 @@ Numbers sweep(int threads)
     grids[plant->numerator()[0].name()] = qftbx::math::linspace(1.0, 10.0, 10);
     grids[plant->gain().name()] = qftbx::math::linspace(1.0, 10.0, 10);
 
-    auto * frequencies = new QVector<qreal>(*parser.omega()->values());
-    const QVector<qreal> epsilon(frequencies->size(), 10.0);
+    auto * frequencies = new std::vector<double>(*parser.omega()->values());
+    const std::vector<double> epsilon(frequencies->size(), 10.0);
 
     TemplateEngine engine;
     engine.setEpsilon(epsilon);

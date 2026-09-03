@@ -240,7 +240,7 @@ TEST(BoundaryCriticalPoint, CriticalCellViolatesEverySpecification)
         QStringLiteral(QFTBX_TEST_DATA_DIR "/acc90.qft"));
 
     LtiSystem* plant = controller.plant();
-    QVector<qreal>* omega = controller.omega()->values();
+    std::vector<double>* omega = controller.omega()->values();
     const qftbx::CloudSet & templates = controller.templates();
 
     const std::complex<qreal> L(std::pow(10.0, 0.0 / 20.0) * std::cos(-180.0 * M_PI / 180.0),
@@ -304,11 +304,11 @@ TEST(BoundaryCriticalPoint, UndampedResonanceIsRejectedWithAdvice)
 
     controller.setPlant(std::unique_ptr<LtiSystem>(undamped));
 
-    const QVector<qreal> frequencies{1.0};   // exact resonance of ev = 0.5
+    const std::vector<double> frequencies{1.0};   // exact resonance of ev = 0.5
     controller.setOmega(std::make_unique<Omega>(frequencies.at(0), frequencies.at(0), 1,
                                                frequencies, Omega::Manual));
 
-    const QVector<qreal> epsilon{10.0};
+    const std::vector<double> epsilon{10.0};
     // sqrt(2*0.5) = 1 exactly: |P| = inf at that frequency
     qftbx::ParameterGrids grids{{QStringLiteral("ev"), {0.5}}};
 

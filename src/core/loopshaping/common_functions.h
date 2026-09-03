@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <memory>
 
-#include <QVector>
+#include <vector>
 
 #include "src/core/system/lti_system.h"
 #include "src/core/math/sequence_vectors.h"
@@ -100,12 +100,12 @@ inline std::unique_ptr<LtiSystem> pointFromBox(LtiSystem * controller, bool x) {
  * \f$ |P| \f$, so the same number is far tighter on a plant with a large
  * low-frequency gain than on one without.
  */
-inline bool isEpsilonSmall(LtiSystem * controller, double epsilon, QVector <double> * omega,
+inline bool isEpsilonSmall(LtiSystem * controller, double epsilon, std::vector <double> * omega,
                             NaturalIntervalExtension *conversion,
-                            const QVector <complex> & nominalPlantValues) {
+                            const std::vector <complex> & nominalPlantValues) {
 
     cinterval box;
-    for (std::int32_t i = 0; i < omega->size(); i++){
+    for (std::int32_t i = 0; i < static_cast<std::int32_t>(omega->size()); i++){
         box = conversion->nicholsBox(controller, omega->at(i), nominalPlantValues.at(i));
 
         if ((cxsc::diam(Re(box)) >= epsilon) || (cxsc::diam(Im(box)) >= epsilon)) {
