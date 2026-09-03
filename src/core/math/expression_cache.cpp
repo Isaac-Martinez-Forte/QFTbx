@@ -24,9 +24,9 @@ struct CachedParser
     explicit CachedParser(const QString & expression, const std::vector<QString> & names)
         : parser(mup::pckALL_COMPLEX), values(static_cast<std::size_t>(names.size()))
     {
-        for (std::int32_t i = 0; i < static_cast<std::int32_t>(names.size()); i++) {
+        for (std::size_t i = 0; i < names.size(); ++i) {
             parser.DefineVar(names.at(i).toStdString(),
-                             mup::Variable(&values[static_cast<std::size_t>(i)]));
+                             mup::Variable(&values[i]));
         }
 
         //Parsed once, right here. Every Eval() after the first walks the RPN.

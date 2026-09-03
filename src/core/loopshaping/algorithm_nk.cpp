@@ -247,7 +247,7 @@ inline std::unique_ptr<LtiSystem> AlgorithmNk::quickSolution(std::unique_ptr<Lti
 
     //Steps (5)-(6): every zero, from below.
     if (hasUncertainZeros) {
-        for (std::int32_t j = 0; j < static_cast<std::int32_t>(zeroInfs.size()); ++j) {
+        for (std::size_t j = 0; j < zeroInfs.size(); ++j) {
             if (!v->numerator()[j].isUncertain()) {
                 continue;
             }
@@ -266,7 +266,7 @@ inline std::unique_ptr<LtiSystem> AlgorithmNk::quickSolution(std::unique_ptr<Lti
     //towards the forbidden side; the thesis text says the opposite
     //interval - an erratum, see quick_solution.h).
     if (hasUncertainPoles) {
-        for (std::int32_t j = 0; j < static_cast<std::int32_t>(poleInfs.size()); ++j) {
+        for (std::size_t j = 0; j < poleInfs.size(); ++j) {
             if (!v->denominator()[j].isUncertain()) {
                 continue;
             }
@@ -286,7 +286,7 @@ inline std::unique_ptr<LtiSystem> AlgorithmNk::quickSolution(std::unique_ptr<Lti
     }
 
     std::vector<Parameter> numerador;
-    for (std::int32_t j = 0; j < static_cast<std::int32_t>(zeroInfs.size()); ++j) {
+    for (std::size_t j = 0; j < zeroInfs.size(); ++j) {
         Parameter & old = v->numerator()[j];
         numerador.push_back(old.isUncertain()
                 ? Parameter(old.name(), Range(zeroInfs[j], zeroSups[j]), zeroInfs[j])
@@ -294,7 +294,7 @@ inline std::unique_ptr<LtiSystem> AlgorithmNk::quickSolution(std::unique_ptr<Lti
     }
 
     std::vector<Parameter> denominador;
-    for (std::int32_t j = 0; j < static_cast<std::int32_t>(poleInfs.size()); ++j) {
+    for (std::size_t j = 0; j < poleInfs.size(); ++j) {
         Parameter & old = v->denominator()[j];
         denominador.push_back(old.isUncertain()
                 ? Parameter(old.name(), Range(poleInfs[j], poleSups[j]), poleInfs[j])
@@ -398,7 +398,7 @@ inline void AlgorithmNk::localOptimization(LtiSystem * box){
             }
 
             std::vector<double> trial = values;
-            trial[static_cast<std::size_t>(j)] = candidate;
+            trial[j] = candidate;
 
             const double k = isPole ? minimalFeasibleGain(bestZeros, trial, box, budget)
                                    : minimalFeasibleGain(trial, bestPoles, box, budget);
@@ -475,7 +475,7 @@ inline bool AlgorithmNk::pointIsFeasible(const std::vector<double> & zeros,
 
     const std::unique_ptr<LtiSystem> point = pointSystem(zeros, poles, gain);
 
-    for (std::int32_t i = 0; i < static_cast<std::int32_t>(omega->size()); ++i) {
+    for (std::size_t i = 0; i < omega->size(); ++i) {
         const cinterval projection = conversion->nicholsBox(point.get(), omega->at(i),
                                                       nominalPlantValues.at(i));
         const BoxFlag flag = detector->classifyBox(projection, boundaries, i).flag();

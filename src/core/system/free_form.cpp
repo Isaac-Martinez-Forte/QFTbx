@@ -165,21 +165,23 @@ std::complex <double> FreeForm::valueAt(double w, const std::vector<double> & nu
         for (std::size_t i = 0; i < parameters.size() && i < given.size(); i++) {
             const QString name = parameters[i].name();
             const auto found = std::find(names.begin(), names.end(), name);
-            const std::int32_t at = found == names.end()
-                    ? -1
-                    : static_cast<std::int32_t>(std::distance(names.begin(), found));
 
-            if (at < 0) {
+            //The iterator answers "is it there" and "where" at once, so
+            //there is no index and no -1 to stand for "nowhere".
+            if (found == names.end()) {
                 names.push_back(name);
                 bound.push_back(std::complex<double>(given[i], 0.0));
                 continue;
             }
 
-            if (bound[static_cast<std::size_t>(at)] != std::complex<double>(given[i], 0.0)) {
+            const std::size_t at = static_cast<std::size_t>(
+                        std::distance(names.begin(), found));
+
+            if (bound[at] != std::complex<double>(given[i], 0.0)) {
                 throw qftbx::InvalidInput(
                     QString("the parameter \"%1\" was given two different values "
                             "(%2 and %3): the same name is the same variable")
-                        .arg(name).arg(bound[static_cast<std::size_t>(at)].real()).arg(given[i])
+                        .arg(name).arg(bound[at].real()).arg(given[i])
                         .toStdString());
             }
         }

@@ -35,11 +35,11 @@ public:
 
     /// Classification of one projected box; a plain value (four doubles,
     /// a flag and two corner verdicts), so there is nothing to own.
-    BoxClassification classifyBox(cxsc::cinterval box, const BoundaryData * boundaries, std::int32_t frequencyIndex);
+    BoxClassification classifyBox(cxsc::cinterval box, const BoundaryData * boundaries, std::size_t frequencyIndex);
 
     /// Classifies one Nichols point (phase deg, magnitude dB) against the
     /// boundary union at design frequency 'frequencyIndex' (parity test).
-    tools::BoxFlag classifyPoint(qftbx::NicholsPoint point, const BoundaryData * boundaries, std::int32_t frequencyIndex);
+    tools::BoxFlag classifyPoint(qftbx::NicholsPoint point, const BoundaryData * boundaries, std::size_t frequencyIndex);
 
 private:
 

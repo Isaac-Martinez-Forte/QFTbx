@@ -180,7 +180,7 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
     const double gainNominal = plant->gain().nominal();
     const double delayNominal = plant->delay().nominal();
 
-    CloudSet allClouds (static_cast<std::size_t>(frequencyCount));
+    CloudSet allClouds (frequencyCount);
 
     //One flag and one error slot per frequency, filled inside the parallel
     //loop below (nothing may be thrown from within it).
@@ -212,11 +212,11 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
 
         std::vector <double> digit (digitCount);
         for (std::int32_t j = 0; j < digitCount; j++){
-            digit[j] = (*grids.at(static_cast<std::size_t>(j)))[0];
+            digit[j] = (*grids.at(j))[0];
         }
 
         ComplexCloud cloud;
-        cloud.reserve(static_cast<std::size_t>(m_combinationCount));
+        cloud.reserve(m_combinationCount);
 
         std::vector <std::int32_t> counter (digitCount + 1, 0);
 
@@ -271,12 +271,12 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
 
             counter[0]++;
             for (std::int32_t j = 0; j < digitCount; j++){
-                if (counter.at(j) >= static_cast<std::int32_t>(grids.at(static_cast<std::size_t>(j))->size())){
+                if (counter.at(j) >= static_cast<std::int32_t>(grids.at(j)->size())){
                     counter[j] = 0;
                     counter[j+1]++;
-                    digit[j] = (*grids.at(static_cast<std::size_t>(j)))[0];
+                    digit[j] = (*grids.at(j))[0];
                 }else {
-                    digit[j] = (*grids.at(static_cast<std::size_t>(j)))[static_cast<std::size_t>(counter.at(j))];
+                    digit[j] = (*grids.at(j))[static_cast<std::size_t>(counter.at(j))];
                     break;
                 }
             }
@@ -288,7 +288,7 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
 
         //Every frequency writes at its own index: no critical sections,
         //no permutations.
-        allClouds[static_cast<std::size_t>(u)] = std::move(cloud);
+        allClouds[u] = std::move(cloud);
     }
 
     //Reported after the parallel loop, where throwing is safe again.
@@ -344,7 +344,7 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
         for (std::int32_t i = 0; i < digitCount; i++){
 
             const vector <complex <double> > hull = epsilonHullCuda(
-                m_clouds[static_cast<std::size_t>(i)],
+                m_clouds[i],
                 m_epsilon.at(i));
 
             if (hull.empty()){
@@ -367,7 +367,7 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
     //contours in thread-arrival order (desynchronising them from the
     //clouds), then 'repaired' it by clearing the live vectors of Omega and
     //of the GUI (aliasing). Without the permutation they stay intact.
-    m_contours = CloudSet(static_cast<std::size_t>(digitCount));
+    m_contours = CloudSet(digitCount);
 
     //Per-frequency diagnosis of a failure (nothing may be thrown from
     //inside the parallel region), and of the frequencies whose faithful walk
@@ -381,17 +381,17 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
     for (std::int32_t i = 0; i < digitCount; i++){
 
         bool fellBack = false;
-        ComplexCloud cont = epsilonHull(m_clouds[static_cast<std::size_t>(i)],
+        ComplexCloud cont = epsilonHull(m_clouds[i],
                                         m_epsilon.at(i), &fellBack);
 
         if (fellBack){
-            relaxedFrequencies[static_cast<std::size_t>(i)] = true;
+            relaxedFrequencies[i] = true;
         }
 
         //Empty means the hull could not be built, the same signal the CUDA
         //path already used. A hull of a non-empty cloud always has points.
         if (cont.empty()){
-            failed[static_cast<std::size_t>(i)] = true;
+            failed[i] = true;
 
 #ifdef OpenMP_AVAILABLE
 #pragma omp critical
@@ -401,7 +401,7 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
             }
         }
 
-        m_contours[static_cast<std::size_t>(i)] = std::move(cont);
+        m_contours[i] = std::move(cont);
     }
 
     //Reported HERE, once and outside the parallel region, and naming the
@@ -436,7 +436,7 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
             }
 
             double largest = 0;
-            for (const complex<double> & value : m_clouds[static_cast<std::size_t>(i)]){
+            for (const complex<double> & value : m_clouds[i]){
                 largest = std::max(largest, std::abs(value));
             }
 
@@ -639,7 +639,7 @@ std::int32_t TemplateEngine::findSecond(std::int32_t b1, const ComplexCloud & cv
 
     double fas = 0;
 
-    for (std::int32_t i = 0; i < static_cast<std::int32_t>(cv.size()); i++){    //every point of the cloud.
+    for (std::size_t i = 0; i < cv.size(); ++i){    //every point of the cloud.
 
         candidate = cv.at(i);
         dist = abs(firstPoint - candidate); //distance to the starting point.
@@ -692,7 +692,7 @@ std::int32_t TemplateEngine::findNext(std::int32_t previousPoint, std::int32_t c
     complex <double> candidate;
     double distance;
 
-    for (std::int32_t i = 0; i < static_cast<std::int32_t>(cv.size()); i++){
+    for (std::size_t i = 0; i < cv.size(); ++i){
 
         candidate = cv.at(i);
         distance = abs(candidate - current); //distance to the current point.

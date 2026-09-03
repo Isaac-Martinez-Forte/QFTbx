@@ -268,7 +268,7 @@ inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<L
         }
 
         if (hasUncertainZeros) {
-            for (std::int32_t j = 0; j < static_cast<std::int32_t>(zeroInfs.size()); ++j) {
+            for (std::size_t j = 0; j < zeroInfs.size(); ++j) {
                 if (!v->numerator()[j].isUncertain()) {
                     continue;
                 }
@@ -284,7 +284,7 @@ inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<L
         }
 
         if (hasUncertainPoles) {
-            for (std::int32_t j = 0; j < static_cast<std::int32_t>(poleInfs.size()); ++j) {
+            for (std::size_t j = 0; j < poleInfs.size(); ++j) {
                 if (!v->denominator()[j].isUncertain()) {
                     continue;
                 }
@@ -389,7 +389,7 @@ inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<L
     }
 
     std::vector<Parameter> numerador;
-    for (std::int32_t j = 0; j < static_cast<std::int32_t>(zeroInfs.size()); ++j) {
+    for (std::size_t j = 0; j < zeroInfs.size(); ++j) {
         Parameter & old = v->numerator()[j];
         numerador.push_back(old.isUncertain()
                 ? Parameter(old.name(), Range(zeroInfs[j], zeroSups[j]), zeroInfs[j])
@@ -397,7 +397,7 @@ inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<L
     }
 
     std::vector<Parameter> denominador;
-    for (std::int32_t j = 0; j < static_cast<std::int32_t>(poleInfs.size()); ++j) {
+    for (std::size_t j = 0; j < poleInfs.size(); ++j) {
         Parameter & old = v->denominator()[j];
         denominador.push_back(old.isUncertain()
                 ? Parameter(old.name(), Range(poleInfs[j], poleSups[j]), poleInfs[j])

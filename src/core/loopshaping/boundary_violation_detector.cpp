@@ -93,13 +93,13 @@ inline BoxFlag BoundaryViolationDetector::pointVerdict(qftbx::NicholsPoint point
 //historical version computed B_min and B_max only from the boundary
 //points INSIDE the box: when the boundary left the box within its phase
 //span the cut could remove feasible gains.
-BoxClassification BoundaryViolationDetector::classifyBox(cinterval box, const BoundaryData *boundaries, std::int32_t frequencyIndex) {
+BoxClassification BoundaryViolationDetector::classifyBox(cinterval box, const BoundaryData *boundaries, std::size_t frequencyIndex) {
 
     const qftbx::TraceSet & buckets =
-            boundaries->unionBuckets().at(static_cast<std::size_t>(frequencyIndex));
+            boundaries->unionBuckets().at(frequencyIndex);
     const std::int32_t bucketCount = boundaries->phaseCount() - 1;
-    bool open = boundaries->openFlags().at(static_cast<std::size_t>(frequencyIndex));
-    bool above = boundaries->upperFlags().at(static_cast<std::size_t>(frequencyIndex));
+    bool open = boundaries->openFlags().at(frequencyIndex);
+    bool above = boundaries->upperFlags().at(frequencyIndex);
 
 
     double minPhaseBound = std::numeric_limits<double>::max(), maxPhaseBound = std::numeric_limits<double>::lowest(),
@@ -188,13 +188,13 @@ BoxClassification BoundaryViolationDetector::classifyBox(cinterval box, const Bo
 //dB) against the boundary union at one design frequency, with the same
 //parity test the box classification uses. It certifies the zone gates of
 //the gain cutting and splitting (Tharewal 2005, ch. 5).
-tools::BoxFlag BoundaryViolationDetector::classifyPoint(qftbx::NicholsPoint point, const BoundaryData * boundaries, std::int32_t frequencyIndex) {
+tools::BoxFlag BoundaryViolationDetector::classifyPoint(qftbx::NicholsPoint point, const BoundaryData * boundaries, std::size_t frequencyIndex) {
 
     const qftbx::TraceSet & buckets =
-            boundaries->unionBuckets().at(static_cast<std::size_t>(frequencyIndex));
+            boundaries->unionBuckets().at(frequencyIndex);
     const std::int32_t bucketCount = boundaries->phaseCount() - 1;
-    bool open = boundaries->openFlags().at(static_cast<std::size_t>(frequencyIndex));
-    bool above = boundaries->upperFlags().at(static_cast<std::size_t>(frequencyIndex));
+    bool open = boundaries->openFlags().at(frequencyIndex);
+    bool above = boundaries->upperFlags().at(frequencyIndex);
     const double phaseSpanDegrees = boundaries->phaseRange().width();
 
     return pointVerdict(point, buckets, bucketCount, open, above, phaseSpanDegrees);

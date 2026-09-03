@@ -147,7 +147,7 @@ inline void AlgorithmMr::buildConstraints(){
         constraintTexts.push_back(expression);
     };
 
-    for (std::int32_t i = 0; i < static_cast<std::int32_t>(omega->size()); ++i) {
+    for (std::size_t i = 0; i < omega->size(); ++i) {
 
         const double w = omega->at(i);
         const QString & g = magnitudeExpressions.at(i);
@@ -157,7 +157,7 @@ inline void AlgorithmMr::buildConstraints(){
         //Non-finite or null points (artefacts of a degenerate contour)
         //would embed "nan" into the expression texts: they are skipped.
         std::vector<std::complex<double>> points;
-        const qftbx::ComplexCloud & contour = temp.at(static_cast<std::size_t>(i));
+        const qftbx::ComplexCloud & contour = temp.at(i);
         const std::int32_t take = std::min<std::int32_t>(kTemplateRepresentatives, static_cast<std::int32_t>(contour.size()));
         for (std::int32_t j = 0; j < take; ++j) {
             const std::complex<double> value = contour.at(j * static_cast<std::int32_t>(contour.size()) / take);
@@ -218,8 +218,8 @@ inline void AlgorithmMr::buildConstraints(){
             const double delta2 = std::pow(10.0, deltaDb / 10.0);
             const QString invDelta2 = number(1.0 / delta2);
 
-            for (std::int32_t a = 0; a < static_cast<std::int32_t>(points.size()); ++a) {
-                for (std::int32_t b = 0; b < static_cast<std::int32_t>(points.size()); ++b) {
+            for (std::size_t a = 0; a < points.size(); ++a) {
+                for (std::size_t b = 0; b < points.size(); ++b) {
                     if (a == b) {
                         continue;
                     }

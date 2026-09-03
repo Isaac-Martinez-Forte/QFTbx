@@ -105,7 +105,7 @@ inline bool isEpsilonSmall(LtiSystem * controller, double epsilon, std::vector <
                             const std::vector <complex> & nominalPlantValues) {
 
     cinterval box;
-    for (std::int32_t i = 0; i < static_cast<std::int32_t>(omega->size()); i++){
+    for (std::size_t i = 0; i < omega->size(); ++i){
         box = conversion->nicholsBox(controller, omega->at(i), nominalPlantValues.at(i));
 
         if ((cxsc::diam(Re(box)) >= epsilon) || (cxsc::diam(Im(box)) >= epsilon)) {

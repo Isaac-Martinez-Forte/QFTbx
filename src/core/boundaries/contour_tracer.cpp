@@ -42,7 +42,7 @@ TraceSet ContourTracer::trace(double phaseSpan, double magnitudeSpan,
         for (std::int32_t row = 1; row < height-1; row++)
         {
 
-            if ((m_sheet->at(static_cast<std::size_t>(row)).at(static_cast<std::size_t>(column)) >= threshold) && (!visited.at(row * width + column))){
+            if ((m_sheet->at(row).at(column) >= threshold) && (!visited.at(row * width + column))){
 
                 Trace trace;
 
@@ -63,12 +63,12 @@ TraceSet ContourTracer::trace(double phaseSpan, double magnitudeSpan,
                         x =  currentX + kNeighbourX[i % 8];
                         y =  currentY + kNeighbourY[i % 8];
 
-                        if ((x > 0) && (x < width-1) && (y > 0) && (y < height-1) && (m_sheet->at(static_cast<std::size_t>(y)).at(static_cast<std::size_t>(x)) < threshold))
+                        if ((x > 0) && (x < width-1) && (y > 0) && (y < height-1) && (m_sheet->at(y).at(x) < threshold))
                         {
                             x =  currentX + kNeighbourX[(i - 1) % 8];
                             y =  currentY + kNeighbourY[(i - 1) % 8];
 
-                            if ((m_sheet->at(static_cast<std::size_t>(y)).at(static_cast<std::size_t>(x)) >= threshold) && (!visited.at(y * width + x))){
+                            if ((m_sheet->at(y).at(x) >= threshold) && (!visited.at(y * width + x))){
 
 
                                 trace.push_back(qftbx::NicholsPoint(((currentX * phaseSpan) / phaseCells) + phaseBottom, ((currentY *

@@ -46,10 +46,10 @@ std::vector<TraceSet> BoundaryUnion1D::buildLayerBuckets(const TraceSet & chosen
 
     for (std::int32_t i = 0; i < kLayerCount; i++)
     {
-        TraceSet & row = layerBuckets[static_cast<std::size_t>(i)];
-        row.resize(static_cast<std::size_t>(totalPhase) + 1);
+        TraceSet & row = layerBuckets[i];
+        row.resize(totalPhase + 1);
 
-        for (const qftbx::NicholsPoint & point : chosenCurves.at(static_cast<std::size_t>(i)))
+        for (const qftbx::NicholsPoint & point : chosenCurves.at(i))
         {
             Trace & bucket = row.at(static_cast<std::size_t>(bucketIndex(point.phase, totalPhase)));
 
@@ -280,7 +280,7 @@ inline std::int32_t BoundaryUnion1D::bucketIndex(double x, double totalPhase, st
 
 TraceSet BoundaryUnion1D::buildUnionBuckets(const Trace & unionPoints, double totalPhase, std::int32_t pointCount)
 {
-    TraceSet unionBucketsRow (static_cast<std::size_t>(pointCount));
+    TraceSet unionBucketsRow (pointCount);
 
     //From the first point on (it used to be skipped), inserted sorted by
     //magnitude and deduplicated, like the layer buckets (and like the

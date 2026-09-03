@@ -124,7 +124,7 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
         for (int i = 0; i < omega->size(); i++){
 
             std::complex <double> p0 = plant->evaluate(omega->at(i));
-            const ComplexCloud & valueSet = templates.at(static_cast<std::size_t>(i));
+            const ComplexCloud & valueSet = templates.at(i);
 
             //Sheets come back by value in one struct: the old raw float*
             //vector leaked all five sheets on every frequency.
@@ -343,11 +343,11 @@ TraceSet BoundaryEngine::traceBoundary(double thresholdDb, const BoundarySheet &
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
 #endif
-    for (std::int32_t j = 0; j < static_cast<std::int32_t>(traces.size()); j++) {
+    for (std::size_t j = 0; j < traces.size(); ++j) {
         //The allowed-side label of the trace: the threshold is the same dB
         //cut the contour was traced at.
-        traceMetadata[static_cast<std::size_t>(j)] =
-                allowedZone(traces.at(static_cast<std::size_t>(j)), p0, valueSet, kind, thresholdDb) != 0;
+        traceMetadata[j] =
+                allowedZone(traces.at(j), p0, valueSet, kind, thresholdDb) != 0;
     }
 
     if (traceMetadata.empty()) {
@@ -382,9 +382,9 @@ TraceSet BoundaryEngine::traceBoundary(double thresholdDb, const float *sheet,
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
 #endif
-    for (std::int32_t j = 0; j < static_cast<std::int32_t>(traces.size()); j++) {
-        traceMetadata[static_cast<std::size_t>(j)] =
-                allowedZone(traces.at(static_cast<std::size_t>(j)), p0, valueSet, kind, thresholdDb) != 0;
+    for (std::size_t j = 0; j < traces.size(); ++j) {
+        traceMetadata[j] =
+                allowedZone(traces.at(j), p0, valueSet, kind, thresholdDb) != 0;
     }
 
     return traces;
@@ -426,7 +426,7 @@ std::int32_t BoundaryEngine::allowedZone(const Trace & trace, complex <double> p
     double dControlEffort = -numeric_limits<double>::infinity();
 
 
-    for (std::int32_t h = 0; h < static_cast<std::int32_t>(valueSet.size()); h++) {
+    for (std::size_t h = 0; h < valueSet.size(); ++h) {
 
         p = valueSet.at(h);
 
@@ -522,9 +522,9 @@ void BoundaryEngine::computeFrequencies(std::vector<double> *omega, LtiSystem *p
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
 #endif
-    for (std::int32_t i = 0; i < static_cast<std::int32_t>(omega->size()); i++){
+    for (std::size_t i = 0; i < omega->size(); ++i){
 
-        computeFrequency(omega->at(i), plant, templates.at(static_cast<std::size_t>(i)), phases, magnitudes, i);
+        computeFrequency(omega->at(i), plant, templates.at(i), phases, magnitudes, i);
     }
 
     m_omega = omega;
@@ -606,7 +606,7 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
 
     //Grid sweep (no nested parallelism: the outer per-frequency loop is
     //already parallel, and these loops share function-scope variables).
-    for (std::int32_t k = 0; k < static_cast<std::int32_t>(magnitudes.size()); k++){
+    for (std::size_t k = 0; k < magnitudes.size(); ++k){
 
         std::vector<double> stabilityNoiseRow;
         std::vector<double> trackingRow;
@@ -621,7 +621,7 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
         inputDisturbanceRow.reserve(rowWidth);
         controlEffortRow.reserve(rowWidth);
 
-        for (std::int32_t j = 0; j < static_cast<std::int32_t>(phases.size()); j++){
+        for (std::size_t j = 0; j < phases.size(); ++j){
 
             magnitudeDb = magnitudes.at(k);
             phaseDegrees = phases.at(j);
@@ -706,8 +706,8 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
     //of pointers.
 
     //Every frequency writes at its own index: no criticals, no permutations.
-    m_traceMetadata[static_cast<std::size_t>(index)] = std::move(traceMetadata);
-    m_boundaries[static_cast<std::size_t>(index)] = std::move(bound);
+    m_traceMetadata[index] = std::move(traceMetadata);
+    m_boundaries[index] = std::move(bound);
 }
 
 } // namespace qftbx

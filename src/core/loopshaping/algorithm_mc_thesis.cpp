@@ -316,7 +316,7 @@ inline bool AlgorithmMcThesis::analyse(McSearchNode * node, NodeAnalysis & out)
 
     double largestArea = std::numeric_limits<double>::lowest();
 
-    for (std::int32_t i = 0; i < static_cast<std::int32_t>(omega->size()); ++i) {
+    for (std::size_t i = 0; i < omega->size(); ++i) {
 
         if (node->isFrequencyFeasible(i)) {
             out.classification.push_back(std::nullopt);
@@ -419,7 +419,7 @@ inline bool AlgorithmMcThesis::boxIsFeasibleAt(LtiSystem * box, std::int32_t fre
 
 inline bool AlgorithmMcThesis::boxIsFeasible(LtiSystem * box)
 {
-    for (std::int32_t i = 0; i < static_cast<std::int32_t>(omega->size()); ++i) {
+    for (std::size_t i = 0; i < omega->size(); ++i) {
         if (!boxIsFeasibleAt(box, i)) {
             return false;
         }
@@ -454,10 +454,10 @@ inline bool AlgorithmMcThesis::bestGainSearch(McSearchNode * node, const NodeAna
     double lowNeeded = kInf;    //k must be >= (top-side feasible strips)
     double highAllowed = kSup;  //k must be <= (bottom-side feasible strips)
 
-    for (std::int32_t i = 0; i < static_cast<std::int32_t>(omega->size()); ++i) {
+    for (std::size_t i = 0; i < omega->size(); ++i) {
 
         const std::optional<BoxClassification> & classification =
-                analysis.classification.at(static_cast<std::size_t>(i));
+                analysis.classification.at(i);
 
         if (!classification.has_value() || classification->flag() != ambiguous) {
             continue;   //the whole box, corner included, is feasible here
@@ -618,7 +618,7 @@ inline void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnaly
                 for (std::int32_t i = 0; i < static_cast<std::int32_t>(omega->size()) && allCertified; ++i) {
 
                     const std::optional<BoxClassification> & classification =
-                analysis.classification.at(static_cast<std::size_t>(i));
+                analysis.classification.at(i);
 
                     if (!classification.has_value() || classification->flag() != ambiguous) {
                         continue;   //feasible here for the whole range
@@ -799,10 +799,10 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
 
     bool cut = false;
 
-    for (std::int32_t i = 0; i < static_cast<std::int32_t>(omega->size()); ++i) {
+    for (std::size_t i = 0; i < omega->size(); ++i) {
 
         const std::optional<BoxClassification> & classification =
-                analysis.classification.at(static_cast<std::size_t>(i));
+                analysis.classification.at(i);
 
         if (!classification.has_value() || classification->flag() != ambiguous) {
             continue;
@@ -935,7 +935,7 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
     }
 
     std::vector<Parameter> numerador;
-    for (std::int32_t j = 0; j < static_cast<std::int32_t>(zeroInfs.size()); ++j) {
+    for (std::size_t j = 0; j < zeroInfs.size(); ++j) {
         Parameter & old = v->numerator()[j];
         numerador.push_back(old.isUncertain()
                 ? Parameter(old.name(), Range(zeroInfs[j], zeroSups[j]), zeroInfs[j])
@@ -943,7 +943,7 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
     }
 
     std::vector<Parameter> denominador;
-    for (std::int32_t j = 0; j < static_cast<std::int32_t>(poleInfs.size()); ++j) {
+    for (std::size_t j = 0; j < poleInfs.size(); ++j) {
         Parameter & old = v->denominator()[j];
         denominador.push_back(old.isUncertain()
                 ? Parameter(old.name(), Range(poleInfs[j], poleSups[j]), poleInfs[j])
