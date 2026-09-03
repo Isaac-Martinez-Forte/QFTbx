@@ -5,13 +5,13 @@
 
 #include <gtest/gtest.h>
 
+#include <string>
+
 #include <memory>
 
 #include <cmath>
 #include <complex>
 
-#include <QString>
-#include <QVector>
 
 #include "src/core/specifications/specification_record.h"
 #include "src/core/exception.h"
@@ -23,12 +23,12 @@
 
 namespace {
 
-using Complex = std::complex<qreal>;
+using Complex = std::complex<double>;
 
-qftbx::SpecificationRecord makeConstantStability(qreal linearHeight)
+qftbx::SpecificationRecord makeConstantStability(double linearHeight)
 {
     qftbx::SpecificationRecord spec{};
-    spec.name = QStringLiteral("estabilidad");
+    spec.name = std::string("estabilidad");
     spec.used = true;
     spec.constant = true;
     spec.system = nullptr;
@@ -46,12 +46,12 @@ std::unique_ptr<LtiSystem> makeTrackingPlant()
     std::vector<Parameter> denominator{Parameter(1.0), Parameter(17.0),
                                        Parameter(82.0), Parameter(120.0)};
 
-    return std::make_unique<PolynomialForm>(QStringLiteral("seguimiento"),
+    return std::make_unique<PolynomialForm>(std::string("seguimiento"),
                                             std::move(numerator), std::move(denominator),
                                             Parameter(1.0), Parameter(0.0));
 }
 
-qreal analyticTrackingDb(qreal w)
+double analyticTrackingDb(double w)
 {
     const Complex s(0.0, w);
     const Complex value = 120.0 / (s * s * s + 17.0 * s * s + 82.0 * s + 120.0);
@@ -62,7 +62,7 @@ TEST(Specification, ConstantHeightIsDbAndIgnoresOmega)
 {
     qftbx::SpecificationRecord spec = makeConstantStability(1.2);
 
-    const qreal expected = 20.0 * std::log10(1.2); // 1.5836249...
+    const double expected = 20.0 * std::log10(1.2); // 1.5836249...
     EXPECT_NEAR(spec.heightDb(0.5), expected, 1e-12);
     EXPECT_NEAR(spec.heightDb(50.0), expected, 1e-12); // omega is ignored
 }
@@ -70,7 +70,7 @@ TEST(Specification, ConstantHeightIsDbAndIgnoresOmega)
 TEST(Specification, SystemHeightMatchesTheAnalyticValue)
 {
     qftbx::SpecificationRecord spec{};
-    spec.name = QStringLiteral("seguimiento");
+    spec.name = std::string("seguimiento");
     spec.used = true;
     spec.constant = false;
     spec.system = makeTrackingPlant();
@@ -130,13 +130,13 @@ TEST(SpecificationPersistence, MultivaluadosSpecificationsRoundTrip)
 {
     ProjectReader parser;
     parser.load(
-        QStringLiteral(QFTBX_TEST_DATA_DIR "/multivaluados.qft"));
+        std::string(QFTBX_TEST_DATA_DIR "/multivaluados.qft"));
 
     const qftbx::SpecificationRecords * specs = parser.specifications();
     ASSERT_NE(specs, nullptr);
 
     const qftbx::SpecificationRecord & lower = specs->at(0);
-    EXPECT_EQ(lower.name, QStringLiteral("TrackingLower")); // "seguimiento" in the file, mapped on load
+    EXPECT_EQ(lower.name, std::string("TrackingLower")); // "seguimiento" in the file, mapped on load
     EXPECT_TRUE(lower.used);
     EXPECT_FALSE(lower.constant);
     EXPECT_DOUBLE_EQ(lower.omegaStart, 1.0);
@@ -146,7 +146,7 @@ TEST(SpecificationPersistence, MultivaluadosSpecificationsRoundTrip)
     EXPECT_EQ(lower.system->numerator().size(), 2);
 
     const qftbx::SpecificationRecord & upper = specs->at(1);
-    EXPECT_EQ(upper.name, QStringLiteral("TrackingUpper")); // "seguimiento_1" in the file, mapped on load
+    EXPECT_EQ(upper.name, std::string("TrackingUpper")); // "seguimiento_1" in the file, mapped on load
     EXPECT_TRUE(upper.used);
     ASSERT_NE(upper.system, nullptr);
     EXPECT_EQ(upper.system->numerator().size(), 3);
@@ -160,7 +160,7 @@ TEST(SpecificationPersistence, Planta2RecoversBothTrackingPlants)
 {
     ProjectReader parser;
     parser.load(
-        QStringLiteral(QFTBX_TEST_DATA_DIR "/planta2.qft"));
+        std::string(QFTBX_TEST_DATA_DIR "/planta2.qft"));
 
     const qftbx::SpecificationRecords * specs = parser.specifications();
     ASSERT_NE(specs, nullptr);
@@ -182,7 +182,7 @@ TEST(SpecificationPersistence, Planta1RecoversTheConstantStability)
 {
     ProjectReader parser;
     parser.load(
-        QStringLiteral(QFTBX_TEST_DATA_DIR "/planta1.qft"));
+        std::string(QFTBX_TEST_DATA_DIR "/planta1.qft"));
 
     const qftbx::SpecificationRecords * specs = parser.specifications();
     ASSERT_NE(specs, nullptr);
@@ -203,7 +203,7 @@ TEST(SpecificationPersistence, WrongSpecificationCountThrowsParseError)
     // index blindly; a shorter file used to crash out of range downstream.
     ProjectReader parser;
     EXPECT_THROW(parser.load(
-                     QStringLiteral(QFTBX_TEST_DATA_DIR "/corrupt_specs.qft")),
+                     std::string(QFTBX_TEST_DATA_DIR "/corrupt_specs.qft")),
                  qftbx::ParseError);
 }
 

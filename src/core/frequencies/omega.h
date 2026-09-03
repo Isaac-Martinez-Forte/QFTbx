@@ -1,8 +1,9 @@
 #ifndef QFTBX_FREQUENCIES_OMEGA_H
 #define QFTBX_FREQUENCIES_OMEGA_H
 
-#include <QString>
-#include <QVector>
+#include <cstdint>
+#include <string>
+#include <vector>
 
 /**
  * @class Omega
@@ -22,29 +23,42 @@ public:
     /// serialized in the .qft files: do not reorder.
     enum GenerationType {LinSpace, LogSpace, Manual, File};
 
-    Omega(qreal start, qreal end, qint32 pointCount, QVector<qreal> values, GenerationType type);
+    Omega(double start, double end, std::int32_t pointCount, std::vector<double> values, GenerationType type);
 
     /// Reads a frequency file (values separated by whitespace or newlines).
     /// Throws qftbx::FileError when it cannot be opened or holds no valid
     /// frequency.
-    static QVector<qreal> valuesFromFile(QString path);
+    static std::vector<double> valuesFromFile(std::string path);
 
-    qreal start();
-    qreal end();
-    qint32 pointCount();
+    double start();
+    double end();
+    std::int32_t pointCount();
 
     /// Observer on the frequencies, which the set holds by value.
-    QVector<qreal> * values();
+    std::vector<double> * values();
 
     GenerationType type();
 
-    void setOmega(QVector<qreal> values);
+    void setOmega(std::vector<double> values);
+
+    /**
+     * @brief Value equality: the values, and the description they came from.
+     *
+     * Conservative like LtiSystem::sameAs, and for the same reason - a wrong
+     * "equal" leaves templates computed for a DIFFERENT frequency set in
+     * place. The start, the end and the type are compared as well as the
+     * values, even though the values are what the sweep reads: two sets with
+     * the same values but a different generation type are not
+     * interchangeable, because bode_viewer re-derives its own sweep from the
+     * start, the end and the type.
+     */
+    bool sameAs(const Omega & other) const;
 
 private:
-    qreal m_start;
-    qreal m_end;
-    qint32 m_pointCount;
-    QVector<qreal> m_values;
+    double m_start;
+    double m_end;
+    std::int32_t m_pointCount;
+    std::vector<double> m_values;
     GenerationType m_type;
 };
 

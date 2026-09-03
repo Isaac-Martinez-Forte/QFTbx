@@ -7,9 +7,15 @@
 
 #include <gtest/gtest.h>
 
-#include <QString>
+#include <string>
+
+#include <vector>
+
+#include "src/core/point.h"
+
+#include "src/core/range.h"
+
 #include <QTemporaryDir>
-#include <QVector>
 
 #include "src/core/project_controller.h"
 #include "project_compare.h"
@@ -19,9 +25,9 @@ namespace {
 
 using namespace qftbx_tests;
 
-QString fixture(const char* name)
+std::string fixture(const char* name)
 {
-    return QStringLiteral(QFTBX_TEST_DATA_DIR "/") + QLatin1String(name);
+    return std::string(QFTBX_TEST_DATA_DIR "/") + name;
 }
 
 // Grid-index comparison against the legacy fixture mapping, as in the
@@ -34,16 +40,16 @@ struct GridPoint
     bool operator==(const GridPoint& o) const { return n == o.n && m == o.m; }
 };
 
-GridPoint currentToGrid(QPointF p)
+GridPoint currentToGrid(qftbx::NicholsPoint p)
 {
-    return {static_cast<int>(std::lround(p.x() + 360.0)),
-            static_cast<int>(std::lround(p.y() + 60.0))};
+    return {static_cast<int>(std::lround(p.phase + 360.0)),
+            static_cast<int>(std::lround(p.magnitude + 60.0))};
 }
 
-GridPoint goldenToGrid(QPointF p)
+GridPoint goldenToGrid(qftbx::NicholsPoint p)
 {
-    return {static_cast<int>(std::lround((p.x() + 361.0) * 360.0 / 361.0)),
-            static_cast<int>(std::lround((p.y() + 60.0) * 120.0 / 121.0))};
+    return {static_cast<int>(std::lround((p.phase + 361.0) * 360.0 / 361.0)),
+            static_cast<int>(std::lround((p.magnitude + 60.0) * 120.0 / 121.0))};
 }
 
 TEST(ControllerPipeline, RecomputedBoundariesMatchTheLoadedProject)
@@ -61,22 +67,22 @@ TEST(ControllerPipeline, RecomputedBoundariesMatchTheLoadedProject)
     // Keep the traces of the boundaries as loaded from the file: boundaries()
     // hands a view whose containers are replaced when recomputing.
     BoundaryData* loaded = controller.boundaries();
-    QVector<QVector<QVector<QPointF>>> storedTraces;
+    std::vector<std::vector<std::vector<qftbx::NicholsPoint>>> storedTraces;
     for (const auto & map : loaded->boundaries()) {
-        QVector<QVector<QPointF>> perFrequency;
+        std::vector<std::vector<qftbx::NicholsPoint>> perFrequency;
         for (const auto & entry : map) {
             for (const qftbx::Trace & trace : entry.second) {
-                perFrequency.append(QVector<QPointF>(trace.begin(), trace.end()));
+                perFrequency.push_back(std::vector<qftbx::NicholsPoint>(trace.begin(), trace.end()));
             }
         }
-        storedTraces.append(perFrequency);
+        storedTraces.push_back(perFrequency);
     }
     ASSERT_EQ(storedTraces.size(), 5);
 
     // Recompute through the same call the GUI makes, with the grid the
     // fixture was generated on (contour input, no CUDA).
-    ASSERT_TRUE(controller.computeBoundaries(QPointF(-360.0, 0.0), 361,
-                                              QPointF(-60.0, 60.0), 121,
+    ASSERT_TRUE(controller.computeBoundaries(qftbx::Range(-360.0, 0.0), 361,
+                                              qftbx::Range(-60.0, 60.0), 121,
                                               -1.0, true, false));
 
     BoundaryData* recomputed = controller.boundaries();
@@ -86,13 +92,13 @@ TEST(ControllerPipeline, RecomputedBoundariesMatchTheLoadedProject)
     for (int f = 0; f < 5; ++f) {
         const auto & map = recomputed->boundaries().at(static_cast<std::size_t>(f));
         ASSERT_EQ(map.size(), 1u) << "frequency " << f;
-        const auto foundTraces = map.find(QStringLiteral("Tracking"));
+        const auto foundTraces = map.find(std::string("Tracking"));
         ASSERT_NE(foundTraces, map.end()) << "frequency " << f;
         const qftbx::TraceSet & traces = foundTraces->second;
         ASSERT_EQ(static_cast<int>(traces.size()), storedTraces.at(f).size()) << "frequency " << f;
 
         for (int t = 0; t < static_cast<int>(traces.size()); ++t) {
-            const QVector<QPointF>& gold = storedTraces.at(f).at(t);
+            const std::vector<qftbx::NicholsPoint>& gold = storedTraces.at(f).at(t);
             const qftbx::Trace & got = traces.at(static_cast<std::size_t>(t));
             ASSERT_EQ(static_cast<int>(got.size()), gold.size()) << "frequency " << f << " trace " << t;
 
@@ -112,7 +118,7 @@ TEST(ControllerPipeline, SaveAndReloadRoundTripsTheProject)
 {
     QTemporaryDir temporary;
     ASSERT_TRUE(temporary.isValid());
-    const QString saved = temporary.filePath(QStringLiteral("pipeline.qft"));
+    const std::string saved = temporary.filePath("pipeline.qft").toStdString();
 
     {
         ProjectController controller;
@@ -128,7 +134,7 @@ TEST(ControllerPipeline, SaveAndReloadRoundTripsTheProject)
 
     ASSERT_EQ(originalFlags, rewrittenFlags);
 
-    const QVector<qreal> probes = *original.omega()->values();
+    const std::vector<double> probes = *original.omega()->values();
     expectSameSystem(original.plant(), rewritten.plant(), probes, "plant");
     expectSameSpecifications(original.specifications(), rewritten.specifications());
     EXPECT_EQ(*original.epsilon(), *rewritten.epsilon());

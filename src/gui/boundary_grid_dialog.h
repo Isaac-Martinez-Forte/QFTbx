@@ -5,6 +5,8 @@
 
 #include <QDialog>
 
+#include "src/core/range.h"
+
 #include "QVector"
 #include "QDoubleValidator"
 #include "QIntValidator"
@@ -33,7 +35,7 @@ public:
     
     
     /// Start and end of the phase axis, in degrees.
-    QPointF phaseRangeValue();
+    qftbx::Range phaseRangeValue();
     
     
     /// How many points the phase axis is sampled at.
@@ -41,7 +43,7 @@ public:
     
     
     /// Start and end of the magnitude axis, in dB.
-    QPointF magnitudeRangeValue();
+    qftbx::Range magnitudeRangeValue();
     
     
     /// How many points the magnitude axis is sampled at.
@@ -71,8 +73,8 @@ protected:
 private:
     std::unique_ptr<Ui::BoundaryGridDialog> ui;
 
-    QPointF phaseRange;
-    QPointF magnitudeRange;
+    qftbx::Range phaseRange;
+    qftbx::Range magnitudeRange;
     qint32 phaseCount = 0;
     qint32 magnitudeCount = 0;
     qreal infinityEdit = 0.0;

@@ -4,8 +4,8 @@
 #include <complex>
 #include <vector>
 
-#include <QString>
-#include <QVector>
+#include <string>
+#include <vector>
 
 namespace qftbx {
 namespace math {
@@ -31,8 +31,8 @@ namespace math {
  * @param values one value per name, in the same order. These are copied into
  * the parser's bound values, so they may change freely between calls.
  */
-std::complex<double> evaluateCached(const QString & expression,
-                                    const QVector<QString> & names,
+std::complex<double> evaluateCached(const std::string & expression,
+                                    const std::vector<std::string> & names,
                                     const std::vector<std::complex<double>> & values);
 
 /**
@@ -52,7 +52,7 @@ std::complex<double> evaluateCached(const QString & expression,
  * Checks every category muParserX exposes, so a future package cannot open a
  * new hole silently.
  */
-bool isReservedName(const QString & name);
+bool isReservedName(const std::string & name);
 
 /// The number of parsers this thread has cached. For tests: it is what proves
 /// that repeated evaluation of one expression parses only once.

@@ -1,6 +1,7 @@
 #ifndef QFTBX_BOUNDARY_VIEWER_H
 #define QFTBX_BOUNDARY_VIEWER_H
 
+#include <vector>
 #include <memory>
 
 #include <QDialog>
@@ -41,7 +42,7 @@ public:
     * @param data the computed boundaries.
     * @param omega the design frequencies they were computed at.
     */
-    void setData (const BoundaryData *data, QVector<qreal> *omega);
+    void setData (const BoundaryData *data, std::vector<double> *omega);
     
     
    /// Builds the plot from the data published by setData().
@@ -59,7 +60,7 @@ private:
     void clearDiagram();
 
     const BoundaryData * boundaryData = nullptr;
-    QVector <qreal> * omega = nullptr;
+    std::vector<double> * omega = nullptr;
 
     bool plotted = false;
 

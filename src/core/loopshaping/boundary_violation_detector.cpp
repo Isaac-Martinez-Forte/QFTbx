@@ -1,3 +1,4 @@
+#include <cstdint>
 #include "src/core/loopshaping/boundary_violation_detector.h"
 
 using namespace tools;
@@ -18,29 +19,29 @@ BoundaryViolationDetector::~BoundaryViolationDetector() {
 //dereferenced). The window is free text in the boundaries dialog while every
 //caller normalises phase into (-360, 0], so a window narrower than 360
 //degrees was enough to reach it.
-inline qint32 BoundaryViolationDetector::phaseBucket(qreal phaseDegrees, qint32 bucketCount,
-                                                     qreal phaseSpanDegrees)
+inline std::int32_t BoundaryViolationDetector::phaseBucket(double phaseDegrees, std::int32_t bucketCount,
+                                                     double phaseSpanDegrees)
 {
     //Cells per degree, times the distance from the window's edge. The cast
     //that used to sit on bucketCount was a leftover of the crossed types.
-    qreal res = std::abs(phaseDegrees) * (bucketCount / phaseSpanDegrees);
+    double res = std::abs(phaseDegrees) * (bucketCount / phaseSpanDegrees);
     if(res<0) res=0;
     if(res>bucketCount) res=bucketCount;
-    return (qint32) res;
+    return (std::int32_t) res;
 }
 
-inline BoxFlag BoundaryViolationDetector::pointVerdict(QPointF point,
+inline BoxFlag BoundaryViolationDetector::pointVerdict(qftbx::NicholsPoint point,
                                                        const qftbx::TraceSet & buckets,
-                                                       qint32 bucketCount, bool open,
-                                                       bool above, qreal phaseSpanDegrees) {
+                                                       std::int32_t bucketCount, bool open,
+                                                       bool above, double phaseSpanDegrees) {
     bool violation = false;
 
-    qint32 crossingsAbove = 0, crossingsBelow = 0;
+    std::int32_t crossingsAbove = 0, crossingsBelow = 0;
     const qftbx::Trace & bucket =
-            buckets.at(static_cast<std::size_t>(phaseBucket(point.x(), bucketCount, phaseSpanDegrees)));
+            buckets.at(static_cast<std::size_t>(phaseBucket(point.phase, bucketCount, phaseSpanDegrees)));
 
-    for (const QPointF & bucketPoint : bucket) {
-        if (point.y() > bucketPoint.y()){
+    for (const qftbx::NicholsPoint & bucketPoint : bucket) {
+        if (point.magnitude > bucketPoint.magnitude){
             crossingsAbove++;
         } else {
             crossingsBelow++;
@@ -92,62 +93,62 @@ inline BoxFlag BoundaryViolationDetector::pointVerdict(QPointF point,
 //historical version computed B_min and B_max only from the boundary
 //points INSIDE the box: when the boundary left the box within its phase
 //span the cut could remove feasible gains.
-BoxClassification BoundaryViolationDetector::classifyBox(cinterval box, const BoundaryData *boundaries, qint32 frequencyIndex) {
+BoxClassification BoundaryViolationDetector::classifyBox(cinterval box, const BoundaryData *boundaries, std::size_t frequencyIndex) {
 
     const qftbx::TraceSet & buckets =
-            boundaries->unionBuckets().at(static_cast<std::size_t>(frequencyIndex));
-    const qint32 bucketCount = boundaries->phaseCount() - 1;
-    bool open = boundaries->openFlags().at(static_cast<std::size_t>(frequencyIndex));
-    bool above = boundaries->upperFlags().at(static_cast<std::size_t>(frequencyIndex));
+            boundaries->unionBuckets().at(frequencyIndex);
+    const std::int32_t bucketCount = boundaries->phaseCount() - 1;
+    bool open = boundaries->openFlags().at(frequencyIndex);
+    bool above = boundaries->upperFlags().at(frequencyIndex);
 
 
-    qreal minPhaseBound = std::numeric_limits<qreal>::max(), maxPhaseBound = std::numeric_limits<qreal>::lowest(),
-            minMagBound = std::numeric_limits<qreal>::max(), maxMagBound = std::numeric_limits<qreal>::lowest();
+    double minPhaseBound = std::numeric_limits<double>::max(), maxPhaseBound = std::numeric_limits<double>::lowest(),
+            minMagBound = std::numeric_limits<double>::max(), maxMagBound = std::numeric_limits<double>::lowest();
 
     bool ambiguousVerdict = false;
 
-    const qreal phaseSpanDegrees = boundaries->phaseRange().y() - boundaries->phaseRange().x();
+    const double phaseSpanDegrees = boundaries->phaseRange().width();
 
     //Degrees per bucket of the phase-bucketed union (the historical
     //formula was inverted, which only worked on the standard 1-degree grid).
-    qreal step = phaseSpanDegrees / bucketCount;
+    double step = phaseSpanDegrees / bucketCount;
 
 
-    qreal minPhase = _double(InfIm(box)), maxPhase = _double(SupIm(box)), minMag = _double(InfRe(box)), maxMag = _double(SupRe(box));
+    double minPhase = _double(InfIm(box)), maxPhase = _double(SupIm(box)), minMag = _double(InfRe(box)), maxMag = _double(SupRe(box));
 
-    for (qreal f = minPhase; f <= maxPhase + step; f += step) {
+    for (double f = minPhase; f <= maxPhase + step; f += step) {
 
         //at(), not the old value(): out of range that returned nullptr and
         //was dereferenced. The clamp inside phaseBucket keeps the index in
         //range, and at() would now say so loudly if it ever did not.
-        for (const QPointF & boundaryPoint :
+        for (const qftbx::NicholsPoint & boundaryPoint :
              buckets.at(static_cast<std::size_t>(phaseBucket(std::min(f, maxPhase), bucketCount, phaseSpanDegrees)))) {
 
             //Only boundary points within the box's phase span take part.
-            if (boundaryPoint.x() < minPhase || boundaryPoint.x() > maxPhase) {
+            if (boundaryPoint.phase < minPhase || boundaryPoint.phase > maxPhase) {
                 continue;
             }
 
             //B_min / B_max over the phase interval, regardless of the
             //box's magnitude range.
-            if (boundaryPoint.x() > maxPhaseBound) {
-                maxPhaseBound = boundaryPoint.x();
+            if (boundaryPoint.phase > maxPhaseBound) {
+                maxPhaseBound = boundaryPoint.phase;
             }
 
-            if (boundaryPoint.x() < minPhaseBound) {
-                minPhaseBound = boundaryPoint.x();
+            if (boundaryPoint.phase < minPhaseBound) {
+                minPhaseBound = boundaryPoint.phase;
             }
 
-            if (boundaryPoint.y() > maxMagBound) {
-                maxMagBound = boundaryPoint.y();
+            if (boundaryPoint.magnitude > maxMagBound) {
+                maxMagBound = boundaryPoint.magnitude;
             }
 
-            if (boundaryPoint.y() < minMagBound) {
-                minMagBound = boundaryPoint.y();
+            if (boundaryPoint.magnitude < minMagBound) {
+                minMagBound = boundaryPoint.magnitude;
             }
 
             //A boundary point inside the box makes it ambiguous.
-            if (boundaryPoint.y() >= minMag && boundaryPoint.y() <= maxMag) {
+            if (boundaryPoint.magnitude >= minMag && boundaryPoint.magnitude <= maxMag) {
                 ambiguousVerdict = true;
             }
         }
@@ -166,11 +167,11 @@ BoxClassification BoundaryViolationDetector::classifyBox(cinterval box, const Bo
     //corner they contain. The bottom-left corner drives the gain cutting
     //(NT/NK/MC/thesis-MC, bottom and left strips); the top-right corner
     //drives the top and right strips (MC/thesis-MC).
-    BoxFlag f = pointVerdict(QPointF(minPhase, minMag), buckets, bucketCount,
+    BoxFlag f = pointVerdict(qftbx::NicholsPoint(minPhase, minMag), buckets, bucketCount,
                                      open, above, phaseSpanDegrees);
     classification.setBottomLeftForbidden(f == infeasible);
 
-    BoxFlag f2 = pointVerdict(QPointF(maxPhase, maxMag), buckets, bucketCount,
+    BoxFlag f2 = pointVerdict(qftbx::NicholsPoint(maxPhase, maxMag), buckets, bucketCount,
                                       open, above, phaseSpanDegrees);
     classification.setTopRightForbidden(f2 == infeasible);
 
@@ -187,14 +188,14 @@ BoxClassification BoundaryViolationDetector::classifyBox(cinterval box, const Bo
 //dB) against the boundary union at one design frequency, with the same
 //parity test the box classification uses. It certifies the zone gates of
 //the gain cutting and splitting (Tharewal 2005, ch. 5).
-tools::BoxFlag BoundaryViolationDetector::classifyPoint(QPointF point, const BoundaryData * boundaries, qint32 frequencyIndex) {
+tools::BoxFlag BoundaryViolationDetector::classifyPoint(qftbx::NicholsPoint point, const BoundaryData * boundaries, std::size_t frequencyIndex) {
 
     const qftbx::TraceSet & buckets =
-            boundaries->unionBuckets().at(static_cast<std::size_t>(frequencyIndex));
-    const qint32 bucketCount = boundaries->phaseCount() - 1;
-    bool open = boundaries->openFlags().at(static_cast<std::size_t>(frequencyIndex));
-    bool above = boundaries->upperFlags().at(static_cast<std::size_t>(frequencyIndex));
-    const qreal phaseSpanDegrees = boundaries->phaseRange().y() - boundaries->phaseRange().x();
+            boundaries->unionBuckets().at(frequencyIndex);
+    const std::int32_t bucketCount = boundaries->phaseCount() - 1;
+    bool open = boundaries->openFlags().at(frequencyIndex);
+    bool above = boundaries->upperFlags().at(frequencyIndex);
+    const double phaseSpanDegrees = boundaries->phaseRange().width();
 
     return pointVerdict(point, buckets, bucketCount, open, above, phaseSpanDegrees);
 }

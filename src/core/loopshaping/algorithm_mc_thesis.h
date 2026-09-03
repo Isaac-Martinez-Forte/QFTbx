@@ -1,12 +1,11 @@
 #ifndef QFTBX_LOOPSHAPING_ALGORITHM_MC_THESIS_H
 #define QFTBX_LOOPSHAPING_ALGORITHM_MC_THESIS_H
 
+#include <cstdint>
 #include <complex>
 #include <optional>
 
-#include <QHash>
-#include <QPointF>
-#include <QVector>
+#include <vector>
 
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/system/lti_system.h"
@@ -104,8 +103,8 @@ public:
 
     void setStrategies(const Strategies & s);
 
-    void setProblem(LtiSystem * plant, LtiSystem * controller, QVector<qreal> * omega, const BoundaryData * boundaries,
-                   qreal epsilon);
+    void setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> * omega, const BoundaryData * boundaries,
+                   double epsilon);
 
     bool solve();
 
@@ -121,71 +120,71 @@ private:
     //(thesis MM/MF): cutting the range at 'threshold' leaves the side
     //named by 'upperSide' feasible for frequency 'freqIndex'.
     struct FeasibleThreshold {
-        qint32 parameter;   //0 = gain, 1..nz = zero, nz+1.. = pole
-        qint32 freqIndex;
-        qreal threshold;
+        std::int32_t parameter;   //0 = gain, 1..nz = zero, nz+1.. = pole
+        std::size_t freqIndex;
+        double threshold;
         bool upperSide;     //true: [threshold, sup] is the feasible part
-        qreal fraction;     //|feasible part| / |range|
+        double fraction;     //|feasible part| / |range|
     };
 
     //Detection results of one node, one entry per design frequency
     //(empty for frequencies the node is marked feasible at).
     struct NodeAnalysis {
-        QVector<std::optional<BoxClassification>> classification;
-        QVector<Range> boxMag;     //dB edges of the projected box
-        QVector<Range> boxPhase;   //degree edges
+        std::vector<std::optional<BoxClassification>> classification;
+        std::vector<Range> boxMag;     //dB edges of the projected box
+        std::vector<Range> boxPhase;   //degree edges
         tools::BoxFlag flag = tools::feasible;
-        qint32 mainFrequency = 0;    //largest ambiguous projected area
+        std::size_t mainFrequency = 0;    //largest ambiguous projected area
         bool anyFullPhaseWidth = false;
     };
 
     inline bool analyse(McSearchNode * node, NodeAnalysis & out);
     inline void improveNode(McSearchNode * node, NodeAnalysis & analysis,
-                            QVector<FeasibleThreshold> & thresholds);
+                            std::vector<FeasibleThreshold> & thresholds);
     inline bool bestGainSearch(McSearchNode * node, const NodeAnalysis & analysis);
     inline void feasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
-                             QVector<FeasibleThreshold> & thresholds, bool & improved);
+                             std::vector<FeasibleThreshold> & thresholds, bool & improved);
     inline void infeasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
                                bool & improved);
 
     inline FC::McBisectionResult bisect(McSearchNode * node, const NodeAnalysis & analysis,
-                                        const QVector<FeasibleThreshold> & thresholds);
-    inline FC::McBisectionResult bisectAt(McSearchNode * node, qint32 parameter, qreal point);
-    inline qint32 widestByMeasure(McSearchNode * node, qint32 mainFrequency, int measure);
+                                        const std::vector<FeasibleThreshold> & thresholds);
+    inline FC::McBisectionResult bisectAt(McSearchNode * node, std::int32_t parameter, double point);
+    inline std::int32_t widestByMeasure(McSearchNode * node, std::size_t mainFrequency, int measure);
 
-    inline bool boxIsFeasibleAt(LtiSystem * box, qint32 freqIndex);
+    inline bool boxIsFeasibleAt(LtiSystem * box, std::size_t freqIndex);
     inline bool boxIsFeasible(LtiSystem * box);
     inline void insertFeasibleBox(std::unique_ptr<LtiSystem> box, McSearchNode * parent);
 
-    inline qint32 parameterCount(LtiSystem * box) const;
-    inline Range parameterRange(LtiSystem * box, qint32 parameter) const;
-    inline std::unique_ptr<LtiSystem> replaceParameter(LtiSystem * box, qint32 parameter,
+    inline std::int32_t parameterCount(LtiSystem * box) const;
+    inline Range parameterRange(LtiSystem * box, std::int32_t parameter) const;
+    inline std::unique_ptr<LtiSystem> replaceParameter(LtiSystem * box, std::int32_t parameter,
                                                        Range range) const;
 
     LtiSystem * plant = nullptr;
     std::unique_ptr<LtiSystem> controller;
-    QVector<qreal> * omega = nullptr;
+    std::vector<double> * omega = nullptr;
     const BoundaryData * boundaries = nullptr;
-    qreal epsilon = 0;
+    double epsilon = 0;
 
     std::unique_ptr<NaturalIntervalExtension> conversion;
     std::unique_ptr<BoundaryViolationDetector> detector;
     std::unique_ptr<NominalStabilityChecker> stability;
     std::unique_ptr<OrderedList> liveList;
-    QVector<cxsc::complex> nominalPlantValues;
-    QVector<std::complex<qreal>> nominalPlantValuesStd;
+    std::vector<cxsc::complex> nominalPlantValues;
+    std::vector<std::complex<double>> nominalPlantValuesStd;
 
     //Prune variable C (thesis 5.4.3): gain and controller of the best
     //certified solution found by MG.
-    qreal bestCertifiedGain = 0;
+    double bestCertifiedGain = 0;
     std::unique_ptr<LtiSystem> bestCertifiedController;
 
     std::unique_ptr<LtiSystem> designedController;
 
     Strategies strategies;
 
-    qreal phaseGridStep = 0;
-    qreal phaseSpanWidth = 0;
+    double phaseGridStep = 0;
+    double phaseSpanWidth = 0;
 
     bool hasUncertainZeros = false;
     bool hasUncertainPoles = false;

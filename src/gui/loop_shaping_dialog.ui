@@ -97,7 +97,7 @@
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout">
     <item>
-     <widget class="QLabel" name="label_3">
+     <widget class="QLabel" name="epsilonLabel">
       <property name="text">
        <string>Epsilon:</string>
       </property>

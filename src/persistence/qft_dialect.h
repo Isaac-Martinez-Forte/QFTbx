@@ -7,9 +7,19 @@
 namespace qftbx {
 
 /**
- * @brief Tag names of one .qft dialect. kLegacy is the historical Spanish
- * format (no version attribute); kV2 is the English format written since
- * version 2.
+ * @brief The tag names of the .qft format, shared by the reader and the
+ * writer so the two cannot drift apart.
+ *
+ * There used to be a second table, kLegacy, holding the historical Spanish
+ * names (<Planta>, <especificaciones>, <tamFas>...) for files with no version
+ * attribute. Version 2 is the only format now: every .qft in the repository
+ * and in documentos/plantas was converted, through the reader and the writer
+ * themselves, and the reader refuses anything that is not version 2 rather
+ * than guessing at it.
+ *
+ * The indirection stays even with a single table, because that is not what it
+ * was for: one place names the format, and neither side can rename a tag
+ * without the other following.
  */
 struct Tags {
     const char * plant;
@@ -60,20 +70,6 @@ struct Tags {
     const char * boundaryUnion;
     const char * unionBuckets;
     const char * loopShapingPointCountAttribute;
-};
-
-inline const Tags kLegacy = {
-    "Planta", "Controlador", "LoopShaping",
-    "nombre", "tipo", "tipo", "expresion", "numerador", "denominador",
-    "nominal", "variable", "nombre", "exp", "rango", "inicio", "final",
-    "especificaciones", "especificacion", "utilizado", "inicio-frec",
-    "final-frec", "constante", "altura",
-    "omega", "inicio", "final", "nPuntos", "tipo", "valores",
-    "templates", "meta-datos", "epsilon", "completo", "contorno",
-    "boundaries", "datos", "fases", "tamFas", "magnitudes", "tamMag",
-    "x", "y", "metaDatosABierto", "metaDatosArriba", "bound",
-    "bound-reunidos", "bound-reunidos-hash",
-    "nPuntos",
 };
 
 inline const Tags kV2 = {

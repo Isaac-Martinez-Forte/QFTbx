@@ -36,13 +36,29 @@ public:
      * reopening the dialog starts from them instead of from blanks.
      * @param parent the Qt parent.
      */
-    explicit SpecificationsDialog(const QVector<qreal> * frequencies,
+    explicit SpecificationsDialog(const std::vector<double> * frequencies,
                                   const qftbx::SpecificationRecords * loaded = nullptr,
                                   QWidget *parent = 0);
     ~SpecificationsDialog();
 
 
     bool wasAccepted ();
+
+    /**
+     * @brief Points the dialog at the project's CURRENT design frequencies.
+     *
+     * The dialog outlives the frequency set it was built with. Entering new
+     * frequencies destroys the Omega that owns the values, and this dialog is
+     * not one of the things rebuilt when that happens, so the pointer taken
+     * in the constructor was left dangling: the next accept read freed memory
+     * through it, because an empty band field defaults to the first and last
+     * design frequency. Every other dialog and viewer is handed its data
+     * again right before it is shown, and this one now is too.
+     *
+     * Throws qftbx::InvalidInput when there are no frequencies, like the
+     * constructor.
+     */
+    void setFrequencies(const std::vector<double> * frequencies);
 
     /**
      * @brief The 7 specification records the user described, or nullptr when
@@ -151,7 +167,7 @@ private:
     QPixmap sensorNoisePixmap;
     QPixmap stabilityPixmap;
 
-    const QVector <qreal> * frequencies;
+    const std::vector<double> * frequencies;
 
     bool accepted;
 };

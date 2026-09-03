@@ -1,3 +1,5 @@
+#include <vector>
+#include <cstdint>
 #include "src/core/exception.h"
 #include "src/core/loopshaping/algorithm_mc_thesis.h"
 
@@ -14,7 +16,7 @@ namespace {
 //Prune step of thesis 5.4.3: cap the gain range of a box at the prune
 //variable C. Takes the box over and returns either the capped
 //replacement or the box itself, when the cap does not apply.
-std::unique_ptr<LtiSystem> capGain(std::unique_ptr<LtiSystem> box, qreal cap)
+std::unique_ptr<LtiSystem> capGain(std::unique_ptr<LtiSystem> box, double cap)
 {
     if (!box->gain().isUncertain() ||
             cap <= box->gain().range().min || cap >= box->gain().range().max) {
@@ -29,9 +31,9 @@ std::unique_ptr<LtiSystem> capGain(std::unique_ptr<LtiSystem> box, qreal cap)
 }
 
 //Nominal plant phase on the (-2 pi, 0] branch the Nichols boxes use.
-qreal nominalPhase(std::complex<qreal> p0)
+double nominalPhase(std::complex<double> p0)
 {
-    qreal phi0 = std::arg(p0);
+    double phi0 = std::arg(p0);
 
     if (phi0 > 0.0) {
         phi0 -= 2.0 * M_PI;
@@ -76,8 +78,8 @@ void AlgorithmMcThesis::setStrategies(const Strategies & s)
 }
 
 
-void AlgorithmMcThesis::setProblem(LtiSystem * plant, LtiSystem * controller, QVector<qreal> * omega,
-                                  const BoundaryData * boundaries, qreal epsilon)
+void AlgorithmMcThesis::setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> * omega,
+                                  const BoundaryData * boundaries, double epsilon)
 {
     this->plant = plant;
     this->controller = controller->clone();
@@ -85,7 +87,7 @@ void AlgorithmMcThesis::setProblem(LtiSystem * plant, LtiSystem * controller, QV
     this->boundaries = boundaries;
     this->epsilon = epsilon;
 
-    phaseSpanWidth = boundaries->phaseRange().y() - boundaries->phaseRange().x();
+    phaseSpanWidth = boundaries->phaseRange().width();
     phaseGridStep = phaseSpanWidth / (boundaries->phaseCount() - 1);
 
     hasUncertainZeros = false;
@@ -104,18 +106,19 @@ void AlgorithmMcThesis::setProblem(LtiSystem * plant, LtiSystem * controller, QV
 //Uniform view of the controller parameters: 0 is the gain, then the
 //zeros, then the poles (the thesis' x vector).
 
-inline qint32 AlgorithmMcThesis::parameterCount(LtiSystem * box) const
+inline std::int32_t AlgorithmMcThesis::parameterCount(LtiSystem * box) const
 {
     return 1 + box->numerator().size() + box->denominator().size();
 }
 
-inline Range AlgorithmMcThesis::parameterRange(LtiSystem * box, qint32 parameter) const
+inline Range AlgorithmMcThesis::parameterRange(LtiSystem * box, std::int32_t parameter) const
 {
     Parameter & var = parameter == 0
             ? box->gain()
-            : (parameter <= static_cast<qint32>(box->numerator().size())
-                   ? box->numerator()[parameter - 1]
-                   : box->denominator()[parameter - 1 - box->numerator().size()]);
+            : (parameter <= static_cast<std::int32_t>(box->numerator().size())
+                   ? box->numerator()[static_cast<std::size_t>(parameter - 1)]
+                   : box->denominator()[static_cast<std::size_t>(parameter - 1)
+                                        - box->numerator().size()]);
 
     return var.isUncertain() ? var.range()
                              : Range(var.nominal(), var.nominal());
@@ -123,12 +126,12 @@ inline Range AlgorithmMcThesis::parameterRange(LtiSystem * box, qint32 parameter
 
 //New box with one parameter's range replaced (deep copy, the original is
 //left untouched).
-inline std::unique_ptr<LtiSystem> AlgorithmMcThesis::replaceParameter(LtiSystem * box, qint32 parameter,
+inline std::unique_ptr<LtiSystem> AlgorithmMcThesis::replaceParameter(LtiSystem * box, std::int32_t parameter,
                                                        Range range) const
 {
     std::vector<Parameter> numerador;
     numerador.reserve(box->numerator().size());
-    for (qint32 j = 0; j < static_cast<qint32>(box->numerator().size()); ++j) {
+    for (std::size_t j = 0; j < box->numerator().size(); ++j) {
         Parameter & old = box->numerator()[j];
         numerador.push_back(parameter == j + 1
                 ? Parameter(old.name(), range, range.min)
@@ -137,9 +140,9 @@ inline std::unique_ptr<LtiSystem> AlgorithmMcThesis::replaceParameter(LtiSystem 
 
     std::vector<Parameter> denominador;
     denominador.reserve(box->denominator().size());
-    for (qint32 j = 0; j < static_cast<qint32>(box->denominator().size()); ++j) {
+    for (std::size_t j = 0; j < box->denominator().size(); ++j) {
         Parameter & old = box->denominator()[j];
-        denominador.push_back(parameter == j + 1 + static_cast<qint32>(box->numerator().size())
+        denominador.push_back(static_cast<std::size_t>(parameter) == j + 1 + box->numerator().size()
                 ? Parameter(old.name(), range, range.min)
                 : old);
     }
@@ -164,16 +167,16 @@ bool AlgorithmMcThesis::solve()
     detector = std::make_unique<BoundaryViolationDetector>();
     stability = std::make_unique<NominalStabilityChecker>(plant, omega);
 
-    bestCertifiedGain = std::numeric_limits<qreal>::infinity();
+    bestCertifiedGain = std::numeric_limits<double>::infinity();
     bestCertifiedController.reset();
 
     nominalPlantValues.clear();
     nominalPlantValuesStd.clear();
 
-    foreach (qreal o, *omega) {
-        std::complex<qreal> c = plant->evaluate(o);
-        nominalPlantValuesStd.append(c);
-        nominalPlantValues.append(cxsc::complex(c.real(), c.imag()));
+    for (double o : *omega) {
+        std::complex<double> c = plant->evaluate(o);
+        nominalPlantValuesStd.push_back(c);
+        nominalPlantValues.push_back(cxsc::complex(c.real(), c.imag()));
     }
 
     //A controller with no uncertain parameter offers nothing to search.
@@ -186,7 +189,7 @@ bool AlgorithmMcThesis::solve()
     //happens when it is popped (step D).
     //The index is read BEFORE the box is handed over: as arguments of one
     //call their evaluation order is unspecified.
-    const qreal initialGainInf = controller->gain().range().min;
+    const double initialGainInf = controller->gain().range().min;
 
     auto inicial = std::make_unique<McSearchNode>(initialGainInf, std::move(controller),
                                                  ambiguous);
@@ -260,7 +263,7 @@ bool AlgorithmMcThesis::solve()
         }
 
         //Steps E-F: stage bookkeeping, MG, QSFact, QSInv.
-        QVector<FeasibleThreshold> thresholds;
+        std::vector<FeasibleThreshold> thresholds;
         improveNode(node.get(), analysis, thresholds);
 
         //C may have improved inside F.
@@ -312,14 +315,14 @@ inline bool AlgorithmMcThesis::analyse(McSearchNode * node, NodeAnalysis & out)
     out.mainFrequency = 0;
     out.anyFullPhaseWidth = false;
 
-    qreal largestArea = std::numeric_limits<qreal>::lowest();
+    double largestArea = std::numeric_limits<double>::lowest();
 
-    for (qint32 i = 0; i < omega->size(); ++i) {
+    for (std::size_t i = 0; i < omega->size(); ++i) {
 
         if (node->isFrequencyFeasible(i)) {
-            out.classification.append(std::nullopt);
-            out.boxMag.append(Range());
-            out.boxPhase.append(Range());
+            out.classification.push_back(std::nullopt);
+            out.boxMag.push_back(Range());
+            out.boxPhase.push_back(Range());
             continue;
         }
 
@@ -340,11 +343,11 @@ inline bool AlgorithmMcThesis::analyse(McSearchNode * node, NodeAnalysis & out)
             return false;
         }
 
-        out.classification.append(std::move(classification));
-        out.boxMag.append(Range(_double(Inf(Re(projection))), _double(Sup(Re(projection)))));
-        out.boxPhase.append(Range(_double(Inf(Im(projection))), _double(Sup(Im(projection)))));
+        out.classification.push_back(std::move(classification));
+        out.boxMag.push_back(Range(_double(Inf(Re(projection))), _double(Sup(Re(projection)))));
+        out.boxPhase.push_back(Range(_double(Inf(Im(projection))), _double(Sup(Im(projection)))));
 
-        const qreal phaseWidth = _double(diam(Im(projection)));
+        const double phaseWidth = _double(diam(Im(projection)));
 
         if (phaseWidth >= phaseSpanWidth - phaseGridStep) {
             out.anyFullPhaseWidth = true;
@@ -353,7 +356,7 @@ inline bool AlgorithmMcThesis::analyse(McSearchNode * node, NodeAnalysis & out)
         if (verdict == ambiguous) {
             out.flag = ambiguous;
 
-            const qreal area = _double(diam(Re(projection))) * phaseWidth;
+            const double area = _double(diam(Re(projection))) * phaseWidth;
             if (area > largestArea) {
                 largestArea = area;
                 out.mainFrequency = i;
@@ -367,7 +370,7 @@ inline bool AlgorithmMcThesis::analyse(McSearchNode * node, NodeAnalysis & out)
 
 //--------------------------------------------------------------- steps E-F
 inline void AlgorithmMcThesis::improveNode(McSearchNode * node, NodeAnalysis & analysis,
-                                           QVector<FeasibleThreshold> & thresholds)
+                                           std::vector<FeasibleThreshold> & thresholds)
 {
     //Step E (thesis 4.4): the initial stage ends when no projected box
     //spans the full phase width of the Nichols plane any more.
@@ -408,7 +411,7 @@ inline void AlgorithmMcThesis::improveNode(McSearchNode * node, NodeAnalysis & a
 //certificates produce (MG candidates, UM/UF boxes, tree-bisection
 //marks). An equation slip then costs a missed acceleration, never a
 //wrong verdict.
-inline bool AlgorithmMcThesis::boxIsFeasibleAt(LtiSystem * box, qint32 freqIndex)
+inline bool AlgorithmMcThesis::boxIsFeasibleAt(LtiSystem * box, std::size_t freqIndex)
 {
     const cinterval projection = conversion->nicholsBox(box, omega->at(freqIndex),
                                                   nominalPlantValues.at(freqIndex));
@@ -417,7 +420,7 @@ inline bool AlgorithmMcThesis::boxIsFeasibleAt(LtiSystem * box, qint32 freqIndex
 
 inline bool AlgorithmMcThesis::boxIsFeasible(LtiSystem * box)
 {
-    for (qint32 i = 0; i < omega->size(); ++i) {
+    for (std::size_t i = 0; i < omega->size(); ++i) {
         if (!boxIsFeasibleAt(box, i)) {
             return false;
         }
@@ -446,31 +449,32 @@ inline bool AlgorithmMcThesis::bestGainSearch(McSearchNode * node, const NodeAna
     std::vector<double> zeroSups, poleInfs;
     cornerVectors(box, true, false, zeroSups, poleInfs);
 
-    const qreal kInf = box->gain().range().min;
-    const qreal kSup = box->gain().range().max;
+    const double kInf = box->gain().range().min;
+    const double kSup = box->gain().range().max;
 
-    qreal lowNeeded = kInf;    //k must be >= (top-side feasible strips)
-    qreal highAllowed = kSup;  //k must be <= (bottom-side feasible strips)
+    double lowNeeded = kInf;    //k must be >= (top-side feasible strips)
+    double highAllowed = kSup;  //k must be <= (bottom-side feasible strips)
 
-    for (qint32 i = 0; i < omega->size(); ++i) {
+    for (std::size_t i = 0; i < omega->size(); ++i) {
 
-        const std::optional<BoxClassification> & classification = analysis.classification.value(i);
+        const std::optional<BoxClassification> & classification =
+                analysis.classification.at(i);
 
         if (!classification.has_value() || classification->flag() != ambiguous) {
             continue;   //the whole box, corner included, is feasible here
         }
 
-        const qreal w = omega->at(i);
-        const std::complex<qreal> p0 = nominalPlantValuesStd.at(i);
-        const qreal boundMin = std::pow(10.0, classification->extremes()[0] / 20.0);
-        const qreal boundMax = std::pow(10.0, classification->extremes()[1] / 20.0);
+        const double w = omega->at(i);
+        const std::complex<double> p0 = nominalPlantValuesStd.at(i);
+        const double boundMin = std::pow(10.0, classification->extremes()[0] / 20.0);
+        const double boundMax = std::pow(10.0, classification->extremes()[1] / 20.0);
 
         //Preferring the bottom strip serves the objective (it allows the
         //gain infimum); the top strip is the fallback.
         bool constrained = false;
 
         if (!classification->isBottomLeftForbidden()) {   //strip under B_min certainly feasible
-            const qreal t = quick_solution::gainCut(boundMin, zeroSups, poleInfs, w, p0);
+            const double t = quick_solution::gainCut(boundMin, zeroSups, poleInfs, w, p0);
 
             if (t >= kInf) {
                 highAllowed = std::min(highAllowed, t);
@@ -479,7 +483,7 @@ inline bool AlgorithmMcThesis::bestGainSearch(McSearchNode * node, const NodeAna
         }
 
         if (!constrained && !classification->isTopRightForbidden()) {   //strip over B_max feasible
-            const qreal t = quick_solution::gainCut(boundMax, zeroSups, poleInfs, w, p0);
+            const double t = quick_solution::gainCut(boundMax, zeroSups, poleInfs, w, p0);
 
             if (t <= kSup && t > 0.0) {
                 lowNeeded = std::max(lowNeeded, t);
@@ -512,7 +516,7 @@ inline bool AlgorithmMcThesis::bestGainSearch(McSearchNode * node, const NodeAna
     }
 
     std::unique_ptr<LtiSystem> point = box->create(box->name(), std::move(numerador),
-            std::move(denominador), Parameter(lowNeeded), Parameter(qreal(0)));
+            std::move(denominador), Parameter(lowNeeded), Parameter(double(0)));
 
     if (!boxIsFeasible(point.get()) || !stability->isNominallyStable(point.get())) {
         return false;
@@ -531,7 +535,7 @@ inline bool AlgorithmMcThesis::bestGainSearch(McSearchNode * node, const NodeAna
 inline void AlgorithmMcThesis::insertFeasibleBox(std::unique_ptr<LtiSystem> box,
                                                 McSearchNode * parent)
 {
-    const qreal gainInf = box->gain().range().min;
+    const double gainInf = box->gain().range().min;
 
     if (gainInf > bestCertifiedGain) {
         return;
@@ -568,13 +572,13 @@ inline void AlgorithmMcThesis::insertFeasibleBox(std::unique_ptr<LtiSystem> box,
 //and every valid per-frequency threshold is recorded for the tree
 //bisection (MM/MF).
 inline void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
-                                            QVector<FeasibleThreshold> & thresholds, bool & improved)
+                                            std::vector<FeasibleThreshold> & thresholds, bool & improved)
 {
     LtiSystem * box = node->system();
-    const qint32 total = parameterCount(box);
+    const std::int32_t total = parameterCount(box);
 
     //family 0 = magnitude, 1 = phase; side true = upper subrange.
-    for (qint32 parameter = 0; parameter < total; ++parameter) {
+    for (std::int32_t parameter = 0; parameter < total; ++parameter) {
 
         const Range range = parameterRange(box, parameter);
 
@@ -583,11 +587,13 @@ inline void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnaly
         }
 
         const bool isGain = parameter == 0;
-        const bool isZero = !isGain && parameter <= static_cast<qint32>(box->numerator().size());
-        const qint32 termIndex = isGain ? -1
-                : (isZero ? parameter - 1 : parameter - 1 - box->numerator().size());
+        const bool isZero = !isGain && parameter <= static_cast<std::int32_t>(box->numerator().size());
+            const std::int32_t termIndex = isGain
+            ? -1
+            : (isZero ? parameter - 1
+                      : parameter - 1 - static_cast<std::int32_t>(box->numerator().size()));
 
-        for (qint32 family = 0; family < 2; ++family) {
+        for (std::int32_t family = 0; family < 2; ++family) {
 
             if (family == 0 && !strategies.feasibleMagnitude) {
                 continue;
@@ -604,30 +610,31 @@ inline void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnaly
                 std::vector<double> zeroInfs, zeroSups, poleInfs, poleSups;
                 cornerVectors(box, false, true, zeroInfs, poleSups);
                 cornerVectors(box, true, false, zeroSups, poleInfs);
-                const qreal kInf = box->gain().range().min;
-                const qreal kSup = box->gain().range().max;
+                const double kInf = box->gain().range().min;
+                const double kSup = box->gain().range().max;
 
-                qreal intersection = upperSide
-                        ? std::numeric_limits<qreal>::lowest()
-                        : std::numeric_limits<qreal>::max();
+                double intersection = upperSide
+                        ? std::numeric_limits<double>::lowest()
+                        : std::numeric_limits<double>::max();
                 bool allCertified = true;
 
-                for (qint32 i = 0; i < omega->size() && allCertified; ++i) {
+                for (std::size_t i = 0; i < omega->size() && allCertified; ++i) {
 
-                    const std::optional<BoxClassification> & classification = analysis.classification.value(i);
+                    const std::optional<BoxClassification> & classification =
+                analysis.classification.at(i);
 
                     if (!classification.has_value() || classification->flag() != ambiguous) {
                         continue;   //feasible here for the whole range
                     }
 
-                    const qreal w = omega->at(i);
-                    const std::complex<qreal> p0 = nominalPlantValuesStd.at(i);
+                    const double w = omega->at(i);
+                    const std::complex<double> p0 = nominalPlantValuesStd.at(i);
 
-                    qreal t = -1.0;
+                    double t = -1.0;
 
                     if (family == 0) {
-                        const qreal boundMin = std::pow(10.0, classification->extremes()[0] / 20.0);
-                        const qreal boundMax = std::pow(10.0, classification->extremes()[1] / 20.0);
+                        const double boundMin = std::pow(10.0, classification->extremes()[0] / 20.0);
+                        const double boundMax = std::pow(10.0, classification->extremes()[1] / 20.0);
 
                         //Which boundary side must be feasible follows the
                         //parameter's monotonicity: gain and zeros raise
@@ -663,9 +670,9 @@ inline void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnaly
                             }
                         }
                     } else {
-                        const qreal phi0 = nominalPhase(p0);
-                        const qreal thetaMin = classification->extremes()[2] * M_PI / 180.0;
-                        const qreal thetaMax = classification->extremes()[3] * M_PI / 180.0;
+                        const double phi0 = nominalPhase(p0);
+                        const double thetaMin = classification->extremes()[2] * M_PI / 180.0;
+                        const double thetaMax = classification->extremes()[3] * M_PI / 180.0;
                         const Range boxPhase = analysis.boxPhase.at(i);
 
                         //Zeros lower the phase as they grow, poles raise
@@ -707,11 +714,11 @@ inline void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnaly
                             allCertified = false;
                             break;
                         }
-                        const qreal clamped = std::max(t, range.min);
+                        const double clamped = std::max(t, range.min);
                         intersection = std::max(intersection, clamped);
 
                         if (t > range.min) {
-                            thresholds.append({parameter, i, t, true,
+                            thresholds.push_back({parameter, i, t, true,
                                                (range.max - t) / range.width()});
                         }
                     } else {
@@ -719,11 +726,11 @@ inline void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnaly
                             allCertified = false;
                             break;
                         }
-                        const qreal clamped = std::min(t, range.max);
+                        const double clamped = std::min(t, range.max);
                         intersection = std::min(intersection, clamped);
 
                         if (t < range.max) {
-                            thresholds.append({parameter, i, t, false,
+                            thresholds.push_back({parameter, i, t, false,
                                                (t - range.min) / range.width()});
                         }
                     }
@@ -790,47 +797,48 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
         poleSups.push_back(var.isUncertain() ? var.range().max : var.nominal());
     }
 
-    qreal gainInf = v->gain().range().min;
-    qreal gainSup = v->gain().range().max;
+    double gainInf = v->gain().range().min;
+    double gainSup = v->gain().range().max;
 
     bool cut = false;
 
-    for (qint32 i = 0; i < omega->size(); ++i) {
+    for (std::size_t i = 0; i < omega->size(); ++i) {
 
-        const std::optional<BoxClassification> & classification = analysis.classification.value(i);
+        const std::optional<BoxClassification> & classification =
+                analysis.classification.at(i);
 
         if (!classification.has_value() || classification->flag() != ambiguous) {
             continue;
         }
 
-        const qreal w = omega->at(i);
-        const std::complex<qreal> p0 = nominalPlantValuesStd.at(i);
-        const qreal boundMin = std::pow(10.0, classification->extremes()[0] / 20.0);
-        const qreal boundMax = std::pow(10.0, classification->extremes()[1] / 20.0);
+        const double w = omega->at(i);
+        const std::complex<double> p0 = nominalPlantValuesStd.at(i);
+        const double boundMin = std::pow(10.0, classification->extremes()[0] / 20.0);
+        const double boundMax = std::pow(10.0, classification->extremes()[1] / 20.0);
 
         //Bottom strip certainly forbidden: cuts from below (NK's QS).
         if (strategies.infeasibleMagnitude && classification->isBottomLeftForbidden()) {
 
             if (v->gain().isUncertain()) {
-                const qreal k = quick_solution::gainCut(boundMin, zeroSups, poleInfs, w, p0);
+                const double k = quick_solution::gainCut(boundMin, zeroSups, poleInfs, w, p0);
                 if (k > gainInf && k < gainSup) {
                     gainInf = k;
                     cut = true;
                 }
             }
 
-            for (qint32 j = 0; hasUncertainZeros && j < static_cast<qint32>(zeroInfs.size()); ++j) {
+            for (std::size_t j = 0; hasUncertainZeros && j < zeroInfs.size(); ++j) {
                 if (!v->numerator()[j].isUncertain()) continue;
-                const qreal z = quick_solution::zeroCut(boundMin, gainSup, zeroSups, poleInfs, j, w, p0);
+                const double z = quick_solution::zeroCut(boundMin, gainSup, zeroSups, poleInfs, j, w, p0);
                 if (z > zeroInfs[j] && z < zeroSups[j]) {
                     zeroInfs[j] = z;
                     cut = true;
                 }
             }
 
-            for (qint32 j = 0; hasUncertainPoles && j < static_cast<qint32>(poleInfs.size()); ++j) {
+            for (std::size_t j = 0; hasUncertainPoles && j < poleInfs.size(); ++j) {
                 if (!v->denominator()[j].isUncertain()) continue;
-                const qreal p = quick_solution::poleCut(boundMin, gainSup, zeroSups, poleInfs, j, w, p0);
+                const double p = quick_solution::poleCut(boundMin, gainSup, zeroSups, poleInfs, j, w, p0);
                 if (p > poleInfs[j] && p < poleSups[j]) {
                     poleSups[j] = p;
                     cut = true;
@@ -843,25 +851,25 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
         if (strategies.infeasibleMagnitude && classification->isTopRightForbidden()) {
 
             if (v->gain().isUncertain()) {
-                const qreal k = quick_solution::gainCut(boundMax, zeroInfs, poleSups, w, p0);
+                const double k = quick_solution::gainCut(boundMax, zeroInfs, poleSups, w, p0);
                 if (k > gainInf && k < gainSup) {
                     gainSup = k;
                     cut = true;
                 }
             }
 
-            for (qint32 j = 0; hasUncertainZeros && j < static_cast<qint32>(zeroInfs.size()); ++j) {
+            for (std::size_t j = 0; hasUncertainZeros && j < zeroInfs.size(); ++j) {
                 if (!v->numerator()[j].isUncertain()) continue;
-                const qreal z = quick_solution::zeroCut(boundMax, gainInf, zeroInfs, poleSups, j, w, p0);
+                const double z = quick_solution::zeroCut(boundMax, gainInf, zeroInfs, poleSups, j, w, p0);
                 if (z > zeroInfs[j] && z < zeroSups[j]) {
                     zeroSups[j] = z;
                     cut = true;
                 }
             }
 
-            for (qint32 j = 0; hasUncertainPoles && j < static_cast<qint32>(poleInfs.size()); ++j) {
+            for (std::size_t j = 0; hasUncertainPoles && j < poleInfs.size(); ++j) {
                 if (!v->denominator()[j].isUncertain()) continue;
-                const qreal p = quick_solution::poleCut(boundMax, gainInf, zeroInfs, poleSups, j, w, p0);
+                const double p = quick_solution::poleCut(boundMax, gainInf, zeroInfs, poleSups, j, w, p0);
                 if (p > poleInfs[j] && p < poleSups[j]) {
                     poleInfs[j] = p;
                     cut = true;
@@ -872,27 +880,27 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
         //Phase strips (thesis 4.1.2), when wider than one grid step.
         if (strategies.infeasiblePhase && (hasUncertainZeros || hasUncertainPoles)) {
 
-            const qreal phi0 = nominalPhase(p0);
+            const double phi0 = nominalPhase(p0);
             const Range boxPhase = analysis.boxPhase.at(i);
-            const qreal boundPhaseMin = classification->extremes()[2];
-            const qreal boundPhaseMax = classification->extremes()[3];
+            const double boundPhaseMin = classification->extremes()[2];
+            const double boundPhaseMax = classification->extremes()[3];
 
             if (classification->isTopRightForbidden() && boundPhaseMax < boxPhase.max - phaseGridStep) {
 
-                const qreal thetaMax = boundPhaseMax * M_PI / 180.0;
+                const double thetaMax = boundPhaseMax * M_PI / 180.0;
 
-                for (qint32 j = 0; hasUncertainZeros && j < static_cast<qint32>(zeroInfs.size()); ++j) {
+                for (std::size_t j = 0; hasUncertainZeros && j < zeroInfs.size(); ++j) {
                     if (!v->numerator()[j].isUncertain()) continue;
-                    const qreal z = quick_solution::zeroPhaseCutHigh(thetaMax, phi0, zeroSups, poleInfs, j, w);
+                    const double z = quick_solution::zeroPhaseCutHigh(thetaMax, phi0, zeroSups, poleInfs, j, w);
                     if (z > zeroInfs[j] && z < zeroSups[j]) {
                         zeroInfs[j] = z;
                         cut = true;
                     }
                 }
 
-                for (qint32 j = 0; hasUncertainPoles && j < static_cast<qint32>(poleInfs.size()); ++j) {
+                for (std::size_t j = 0; hasUncertainPoles && j < poleInfs.size(); ++j) {
                     if (!v->denominator()[j].isUncertain()) continue;
-                    const qreal p = quick_solution::polePhaseCutHigh(thetaMax, phi0, zeroSups, poleInfs, j, w);
+                    const double p = quick_solution::polePhaseCutHigh(thetaMax, phi0, zeroSups, poleInfs, j, w);
                     if (p > poleInfs[j] && p < poleSups[j]) {
                         poleSups[j] = p;
                         cut = true;
@@ -902,20 +910,20 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
 
             if (classification->isBottomLeftForbidden() && boundPhaseMin > boxPhase.min + phaseGridStep) {
 
-                const qreal thetaMin = boundPhaseMin * M_PI / 180.0;
+                const double thetaMin = boundPhaseMin * M_PI / 180.0;
 
-                for (qint32 j = 0; hasUncertainZeros && j < static_cast<qint32>(zeroInfs.size()); ++j) {
+                for (std::size_t j = 0; hasUncertainZeros && j < zeroInfs.size(); ++j) {
                     if (!v->numerator()[j].isUncertain()) continue;
-                    const qreal z = quick_solution::zeroPhaseCutLow(thetaMin, phi0, zeroInfs, poleSups, j, w);
+                    const double z = quick_solution::zeroPhaseCutLow(thetaMin, phi0, zeroInfs, poleSups, j, w);
                     if (z > zeroInfs[j] && z < zeroSups[j]) {
                         zeroSups[j] = z;
                         cut = true;
                     }
                 }
 
-                for (qint32 j = 0; hasUncertainPoles && j < static_cast<qint32>(poleInfs.size()); ++j) {
+                for (std::size_t j = 0; hasUncertainPoles && j < poleInfs.size(); ++j) {
                     if (!v->denominator()[j].isUncertain()) continue;
-                    const qreal p = quick_solution::polePhaseCutLow(thetaMin, phi0, zeroInfs, poleSups, j, w);
+                    const double p = quick_solution::polePhaseCutLow(thetaMin, phi0, zeroInfs, poleSups, j, w);
                     if (p > poleInfs[j] && p < poleSups[j]) {
                         poleInfs[j] = p;
                         cut = true;
@@ -930,7 +938,7 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
     }
 
     std::vector<Parameter> numerador;
-    for (qint32 j = 0; j < static_cast<qint32>(zeroInfs.size()); ++j) {
+    for (std::size_t j = 0; j < zeroInfs.size(); ++j) {
         Parameter & old = v->numerator()[j];
         numerador.push_back(old.isUncertain()
                 ? Parameter(old.name(), Range(zeroInfs[j], zeroSups[j]), zeroInfs[j])
@@ -938,7 +946,7 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
     }
 
     std::vector<Parameter> denominador;
-    for (qint32 j = 0; j < static_cast<qint32>(poleInfs.size()); ++j) {
+    for (std::size_t j = 0; j < poleInfs.size(); ++j) {
         Parameter & old = v->denominator()[j];
         denominador.push_back(old.isUncertain()
                 ? Parameter(old.name(), Range(poleInfs[j], poleSups[j]), poleInfs[j])
@@ -957,8 +965,8 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
 //-------------------------------------------------------------- bisection
 //Split one parameter at 'point'; both children inherit the node's stage,
 //cut switch and feasible-frequency history.
-inline FC::McBisectionResult AlgorithmMcThesis::bisectAt(McSearchNode * node, qint32 parameter,
-                                                         qreal point)
+inline FC::McBisectionResult AlgorithmMcThesis::bisectAt(McSearchNode * node, std::int32_t parameter,
+                                                         double point)
 {
     LtiSystem * box = node->system();
     const Range range = parameterRange(box, parameter);
@@ -971,7 +979,7 @@ inline FC::McBisectionResult AlgorithmMcThesis::bisectAt(McSearchNode * node, qi
     const auto makeChild = [&](std::unique_ptr<LtiSystem> system) {
         //The index is read BEFORE the box is handed over: as arguments of
         //one call their evaluation order is unspecified.
-        const qreal gainInf = system->gain().range().min;
+        const double gainInf = system->gain().range().min;
 
         auto t = std::make_unique<McSearchNode>(gainInf, std::move(system), ambiguous);
         t->setStage(node->stage());
@@ -993,17 +1001,17 @@ inline FC::McBisectionResult AlgorithmMcThesis::bisectAt(McSearchNode * node, qi
 //most by the requested measure (0 = area, 1 = magnitude, 2 = phase).
 //The gain has no phase component, so measure 2 skips it and measures 0/1
 //use its magnitude width (its phase width is zero).
-inline qint32 AlgorithmMcThesis::widestByMeasure(McSearchNode * node, qint32 mainFrequency, int measure)
+inline std::int32_t AlgorithmMcThesis::widestByMeasure(McSearchNode * node, std::size_t mainFrequency, int measure)
 {
     LtiSystem * box = node->system();
-    const qreal w = omega->at(mainFrequency);
+    const double w = omega->at(mainFrequency);
     const cxsc::complex p0 = nominalPlantValues.at(mainFrequency);
 
-    qint32 best = -1;
-    qreal bestValue = -1.0;
+    std::int32_t best = -1;
+    double bestValue = -1.0;
 
-    const auto consider = [&](qint32 parameter, const cinterval & term, bool gainTerm) {
-        qreal value;
+    const auto consider = [&](std::int32_t parameter, const cinterval & term, bool gainTerm) {
+        double value;
 
         if (measure == 2) {
             if (gainTerm) {
@@ -1026,13 +1034,13 @@ inline qint32 AlgorithmMcThesis::widestByMeasure(McSearchNode * node, qint32 mai
         consider(0, conversion->gainTermBox(box->gain(), p0), true);
     }
 
-    for (qint32 j = 0; j < static_cast<qint32>(box->numerator().size()); ++j) {
+    for (std::size_t j = 0; j < box->numerator().size(); ++j) {
         if (box->numerator()[j].isUncertain()) {
             consider(j + 1, conversion->numeratorTermBox(box->numerator()[j], w, p0), false);
         }
     }
 
-    for (qint32 j = 0; j < static_cast<qint32>(box->denominator().size()); ++j) {
+    for (std::size_t j = 0; j < box->denominator().size(); ++j) {
         if (box->denominator()[j].isUncertain()) {
             consider(j + 1 + box->numerator().size(),
                      conversion->denominatorTermBox(box->denominator()[j], w, p0), false);
@@ -1045,25 +1053,25 @@ inline qint32 AlgorithmMcThesis::widestByMeasure(McSearchNode * node, qint32 mai
 
 //Step G (thesis 5.4.6): the bisection strategy follows the node's stage.
 inline FC::McBisectionResult AlgorithmMcThesis::bisect(McSearchNode * node, const NodeAnalysis & analysis,
-                                                       const QVector<FeasibleThreshold> & thresholds)
+                                                       const std::vector<FeasibleThreshold> & thresholds)
 {
     //Tree bisection (thesis 5.3): split at the stored feasible threshold
     //covering the largest fraction of its parameter's current range, and
     //mark the feasible child for that frequency.
     if (strategies.treeBisection &&
-            node->stage() == Stage::Intermediate && !thresholds.isEmpty()) {
+            node->stage() == Stage::Intermediate && !thresholds.empty()) {
 
         const FeasibleThreshold * bestThreshold = nullptr;
-        qreal bestFraction = 0.0;
+        double bestFraction = 0.0;
 
-        foreach (const FeasibleThreshold & t, thresholds) {
+        for (const FeasibleThreshold & t : thresholds) {
             const Range range = parameterRange(node->system(), t.parameter);
 
             if (t.threshold <= range.min || t.threshold >= range.max) {
                 continue;   //the range moved since the threshold was recorded
             }
 
-            const qreal fraction = t.upperSide
+            const double fraction = t.upperSide
                     ? (range.max - t.threshold) / range.width()
                     : (t.threshold - range.min) / range.width();
 
@@ -1074,7 +1082,7 @@ inline FC::McBisectionResult AlgorithmMcThesis::bisect(McSearchNode * node, cons
         }
 
         if (bestThreshold != nullptr) {
-            const qint32 freq = bestThreshold->freqIndex;
+            const std::size_t freq = bestThreshold->freqIndex;
             FC::McBisectionResult retur = bisectAt(node, bestThreshold->parameter,
                                                    bestThreshold->threshold);
             McSearchNode * feasibleChild = (bestThreshold->upperSide
@@ -1101,7 +1109,7 @@ inline FC::McBisectionResult AlgorithmMcThesis::bisect(McSearchNode * node, cons
         measure = fas.width() > mag.width() ? 2 : 1;
     }
 
-    qint32 parameter = widestByMeasure(node, analysis.mainFrequency, measure);
+    std::int32_t parameter = widestByMeasure(node, analysis.mainFrequency, measure);
 
     if (parameter < 0) {
         parameter = widestByMeasure(node, analysis.mainFrequency, 0);

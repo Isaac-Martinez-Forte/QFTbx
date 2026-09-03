@@ -3,8 +3,7 @@
 
 #include <complex>
 
-#include <QPointF>
-#include <QVector>
+#include <vector>
 
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/system/lti_system.h"
@@ -58,8 +57,8 @@ public:
     AlgorithmMc1();
     ~AlgorithmMc1();
 
-    void setProblem(LtiSystem * plant, LtiSystem * controller, QVector<qreal> * omega, const BoundaryData * boundaries,
-                   qreal epsilon);
+    void setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> * omega, const BoundaryData * boundaries,
+                   double epsilon);
 
     bool solve();
 
@@ -74,27 +73,27 @@ private:
     inline void check_box_feasibility(std::unique_ptr<LtiSystem> box);
     inline std::unique_ptr<LtiSystem> quickSolution2(std::unique_ptr<LtiSystem> v,
                                                     const BoxClassification & classification,
-                                      const cxsc::cinterval & projection, qreal w,
-                                      std::complex<qreal> p0);
+                                      const cxsc::cinterval & projection, double w,
+                                      std::complex<double> p0);
     inline void certifiedGainSearch(LtiSystem * box);
-    inline bool gainRangeIsFeasible(LtiSystem * box, qreal gainInf, qreal gainSup);
+    inline bool gainRangeIsFeasible(LtiSystem * box, double gainInf, double gainSup);
 
     LtiSystem * plant = nullptr;
     std::unique_ptr<LtiSystem> controller;
-    QVector<qreal> * omega = nullptr;
+    std::vector<double> * omega = nullptr;
     const BoundaryData * boundaries = nullptr;
-    qreal epsilon = 0;
+    double epsilon = 0;
 
     std::unique_ptr<NaturalIntervalExtension> conversion;
     std::unique_ptr<BoundaryViolationDetector> detector;
     std::unique_ptr<NominalStabilityChecker> stability;
     std::unique_ptr<OrderedList> liveList;
-    QVector<cxsc::complex> nominalPlantValues;
-    QVector<std::complex<qreal>> nominalPlantValuesStd;
+    std::vector<cxsc::complex> nominalPlantValues;
+    std::vector<std::complex<double>> nominalPlantValuesStd;
 
     //Prune variable C of the paper's step 3bis: gain and controller of
     //the best certified feasible solution found by QS2 stage 3.
-    qreal bestCertifiedGain = 0;
+    double bestCertifiedGain = 0;
     std::unique_ptr<LtiSystem> bestCertifiedController;
 
     std::unique_ptr<LtiSystem> designedController;

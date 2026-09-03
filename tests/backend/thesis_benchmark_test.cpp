@@ -64,14 +64,15 @@
 
 #include <gtest/gtest.h>
 
+#include <string>
+
+#include <vector>
+
 //A failed comparison of C-XSC values must report, not crash: see the header.
 #include "tests/backend/cxsc_printing.h"
 
-#include <QMap>
-#include <QPointF>
+#include "src/core/point.h"
 #include "src/core/range.h"
-#include <QString>
-#include <QVector>
 
 #include "src/core/project_controller.h"
 
@@ -83,7 +84,7 @@ TEST(ThesisBenchmarkFixture, QftToolboxEx2LoadsWithTheFullPipeline)
 {
     ProjectController controller;
     controller.load(
-        QStringLiteral(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
+        std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
 
     LtiSystem* plant = controller.plant();
     ASSERT_NE(plant, nullptr);
@@ -93,7 +94,7 @@ TEST(ThesisBenchmarkFixture, QftToolboxEx2LoadsWithTheFullPipeline)
     ASSERT_EQ(plant->numerator().size(), 1);
     EXPECT_EQ(plant->numerator()[0].range(), Range(1.0, 10.0));
 
-    const QVector<qreal> expectedOmega{0.1, 0.5, 1.0, 2.0, 15.0, 100.0};
+    const std::vector<double> expectedOmega{0.1, 0.5, 1.0, 2.0, 15.0, 100.0};
     ASSERT_NE(controller.omega(), nullptr);
     EXPECT_EQ(*controller.omega()->values(), expectedOmega);
 
@@ -124,7 +125,7 @@ TEST(ThesisBenchmarkFixture, Acc90LoadsWithTheFullPipeline)
 {
     ProjectController controller;
     controller.load(
-        QStringLiteral(QFTBX_TEST_DATA_DIR "/acc90.qft"));
+        std::string(QFTBX_TEST_DATA_DIR "/acc90.qft"));
 
     LtiSystem* plant = controller.plant();
     ASSERT_NE(plant, nullptr);
@@ -133,7 +134,7 @@ TEST(ThesisBenchmarkFixture, Acc90LoadsWithTheFullPipeline)
     ASSERT_EQ(plant->numerator().size(), 1);
     EXPECT_EQ(plant->numerator()[0].range(), Range(0.5, 2.0));
 
-    const QVector<qreal> expectedOmega{0.1, 0.98, 0.99, 1.0, 2.0, 5.0,
+    const std::vector<double> expectedOmega{0.1, 0.98, 0.99, 1.0, 2.0, 5.0,
                                        7.0, 8.5, 10.0, 15.0, 20.0, 100.0};
     ASSERT_NE(controller.omega(), nullptr);
     EXPECT_EQ(*controller.omega()->values(), expectedOmega);
@@ -161,9 +162,9 @@ struct BenchmarkGolden {
     const char* name;
     const char* file;
     tools::LoopShapingAlgorithm algorithm;
-    qreal gain;
-    qreal zero;
-    qreal pole;
+    double gain;
+    double zero;
+    double pole;
 };
 
 //Readable test names in ctest (instead of a raw byte dump).
@@ -182,10 +183,10 @@ TEST_P(ThesisBenchmarkGolden, ResultIsPinned)
 
     ProjectController controller;
     controller.load(
-        QStringLiteral(QFTBX_TEST_DATA_DIR) + "/" + golden.file);
+        std::string(QFTBX_TEST_DATA_DIR) + "/" + golden.file);
 
     const bool ok = controller.computeLoopShaping(
-        0.5, golden.algorithm, QPointF(1e-9, 10.0), 100);
+        0.5, golden.algorithm, qftbx::Range(1e-9, 10.0), 100);
 
     ASSERT_TRUE(ok) << golden.name;
 
@@ -194,7 +195,7 @@ TEST_P(ThesisBenchmarkGolden, ResultIsPinned)
 
     //Relative tolerance: the exact optimum wobbles with build flags (FP
     //rounding of the bisection), as the planta1 goldens showed.
-    const auto near = [](qreal value, qreal expected) {
+    const auto near = [](double value, double expected) {
         return std::abs(value - expected) <=
                std::abs(expected) * 1e-4 + 1e-12;
     };

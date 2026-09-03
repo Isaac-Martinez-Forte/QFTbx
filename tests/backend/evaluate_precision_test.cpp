@@ -2,7 +2,7 @@
 //
 // TransferFunction::evaluate(w) does not compute the transfer function: it
 // builds a TEXTUAL expression of it and hands that to muParserX. The text is
-// produced with QString::number(), whose default is 'g' with SIX significant
+// produced with qftbx::text::number(), whose default is 'g' with SIX significant
 // digits. Measured loss: ~8e-7 relative, on the coefficients AND on the
 // frequency.
 //
@@ -16,6 +16,9 @@
 
 #include <gtest/gtest.h>
 
+#include <string>
+
+#include "src/core/text_tokens.h"
 #include "src/core/math/sequences.h"
 
 #include <complex>
@@ -27,7 +30,6 @@
 #include "src/core/exception.h"
 #include "src/core/templates/template_engine.h"
 
-#include <QHash>
 #include "src/core/range.h"
 
 namespace {
@@ -39,7 +41,7 @@ TEST(EvaluatePrecision, ACoefficientKeepsAllItsDigits)
 
     std::vector<Parameter> numerator{Parameter(1.0)};
     std::vector<Parameter> denominator{Parameter(a), Parameter(1.0)};
-    PolynomialForm plant(QStringLiteral("precision"), numerator, denominator,
+    PolynomialForm plant(std::string("precision"), numerator, denominator,
                          Parameter(1.0), Parameter(0.0));
 
     const double w = 1.0;
@@ -67,7 +69,7 @@ TEST(EvaluatePrecision, TheFrequencyKeepsAllItsDigits)
     //The frequency goes into the same text, through the same conversion.
     std::vector<Parameter> numerator{Parameter(1.0)};
     std::vector<Parameter> denominator{Parameter(1.0), Parameter(1.0)};
-    PolynomialForm plant(QStringLiteral("precision"), numerator, denominator,
+    PolynomialForm plant(std::string("precision"), numerator, denominator,
                          Parameter(1.0), Parameter(0.0));
 
     const double w = 1.23456789012345;
@@ -88,13 +90,13 @@ TEST(EvaluatePrecision, TheSameNameIsTheSameVariable)
     //an inconsistent request, and evaluating one of them would answer for a
     //plant nobody described.
     std::vector<Parameter> numerator{
-        Parameter(QStringLiteral("a"), qftbx::Range(0.5, 2.0), 2.0)};
+        Parameter(std::string("a"), qftbx::Range(0.5, 2.0), 2.0)};
     std::vector<Parameter> denominator{
-        Parameter(QStringLiteral("a"), qftbx::Range(0.5, 2.0), 2.0)};
+        Parameter(std::string("a"), qftbx::Range(0.5, 2.0), 2.0)};
 
-    FreeForm plant(QStringLiteral("shared"), numerator, denominator,
+    FreeForm plant(std::string("shared"), numerator, denominator,
                    Parameter(1.0), Parameter(0.0),
-                   QStringLiteral("a"), QStringLiteral("(s) + a"));
+                   std::string("a"), std::string("(s) + a"));
 
     //Agreeing values: one variable, evaluated once.
     EXPECT_NO_THROW(plant.valueAt(1.0, {2.0}, {2.0}, 1.0, 0.0));
@@ -106,7 +108,7 @@ TEST(EvaluatePrecision, TheSameNameIsTheSameVariable)
 TEST(EvaluatePrecision, TheTemplateSweepKeepsEveryDigitToo)
 {
     //The sweep does not go through evaluate(): it used to build the plant's
-    //expression per frequency with QString::number() and bind the SWEPT
+    //expression per frequency with qftbx::text::number() and bind the SWEPT
     //parameters as variables. So the swept values were exact while the
     //frequency and the constant coefficients were rounded to six digits.
     //This pins the cloud itself against exact complex arithmetic.
@@ -117,17 +119,17 @@ TEST(EvaluatePrecision, TheTemplateSweepKeepsEveryDigitToo)
     //has exactly one point and can be compared value by value.
     std::vector<Parameter> numerator{Parameter(1.0)};
     std::vector<Parameter> denominator{Parameter(a), Parameter(1.0)};
-    PolynomialForm plant(QStringLiteral("sweep"),
+    PolynomialForm plant(std::string("sweep"),
                          numerator, denominator,
-                         Parameter(QStringLiteral("kv"), qftbx::Range(2.0, 2.0), 2.0),
+                         Parameter(std::string("kv"), qftbx::Range(2.0, 2.0), 2.0),
                          Parameter(0.0));
 
     qftbx::ParameterGrids grids;
-    grids[QStringLiteral("kv")] = {2.0};
+    grids[std::string("kv")] = {2.0};
 
-    auto * frequencies = new QVector<qreal>{w};
+    auto * frequencies = new std::vector<double>{w};
     TemplateEngine engine;
-    engine.setEpsilon(QVector<qreal>(1, 10.0));
+    engine.setEpsilon(std::vector<double>(1, 10.0));
     engine.setGrids(grids);
 
     const qftbx::CloudSet clouds = engine.computeClouds(&plant, frequencies);

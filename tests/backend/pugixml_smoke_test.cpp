@@ -38,17 +38,17 @@ TEST(PugixmlSmoke, SectionsAreReachableByName)
     ASSERT_TRUE(load(doc, "multivaluados.qft"));
 
     const pugi::xml_node root = doc.document_element();
-    EXPECT_TRUE(root.child("Planta"));
-    EXPECT_TRUE(root.child("especificaciones"));
+    EXPECT_TRUE(root.child("plant"));
+    EXPECT_TRUE(root.child("specifications"));
     EXPECT_TRUE(root.child("omega"));
     EXPECT_TRUE(root.child("templates"));
     EXPECT_TRUE(root.child("boundaries"));
-    EXPECT_TRUE(root.child("Controlador"));
+    EXPECT_TRUE(root.child("controller"));
 
     // Numeric conversion straight from the tree.
-    const pugi::xml_node spec = root.child("especificaciones").child("especificacion");
+    const pugi::xml_node spec = root.child("specifications").child("specification");
     ASSERT_TRUE(spec);
-    EXPECT_GT(spec.child("final-frec").text().as_double(), 0.0);
+    EXPECT_GT(spec.child("max-frequency").text().as_double(), 0.0);
 }
 
 TEST(PugixmlSmoke, WrongRootStaysAReaderLevelError)

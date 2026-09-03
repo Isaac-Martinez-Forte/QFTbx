@@ -1,10 +1,14 @@
+#include <chrono>
+#include <iostream>
+#include <vector>
+#include <cstdint>
+#include "src/core/text_tokens.h"
 #include "src/core/loopshaping/loop_shaping.h"
 
 #include <cmath>
 #include <iostream>
 #include <memory>
 
-#include <QElapsedTimer>
 
 #include "src/core/exception.h"
 
@@ -21,10 +25,10 @@ LoopShaping::~LoopShaping()
 //the plant, the controller search box, the design frequencies and the
 //boundaries; NK also takes the local-search starting-point choice, and
 //MR the templates and specifications its constraints are built from.
-bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, QVector<qreal> * omega,
-                          const BoundaryData * boundaries, qreal epsilon, tools::LoopShapingAlgorithm algorithm,
+bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<double> * omega,
+                          const BoundaryData * boundaries, double epsilon, tools::LoopShapingAlgorithm algorithm,
                           const qftbx::CloudSet & contour, const qftbx::SpecificationRecords * specifications,
-                          qint32 initialisation)
+                          std::int32_t initialisation)
 {
     //Precondition, checked ONCE and sequentially, before any algorithm
     //starts: the phase window the boundaries were computed over must cover
@@ -38,33 +42,31 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, QVector<qreal> 
     //Here and not inside the algorithms: a throw escaping an OpenMP region
     //ends the process. A narrow window is still fine for merely LOOKING at
     //boundaries, which is why the boundaries dialog does not forbid it.
-    const qreal phaseSpan = std::abs(boundaries->phaseRange().y() - boundaries->phaseRange().x());
+    const double phaseSpan = std::abs(boundaries->phaseRange().width());
 
     if (phaseSpan < 360.0) {
-        const QString message =
-            QString("The boundaries were computed over a Nichols phase window of "
-                    "%1 degrees ([%2, %3]), which does not cover the full range a "
-                    "loop phase can take (-360 to 0 degrees). Recompute the "
-                    "boundaries over a window of at least 360 degrees.")
-                .arg(phaseSpan)
-                .arg(boundaries->phaseRange().x())
-                .arg(boundaries->phaseRange().y());
-
-        throw qftbx::ComputationError(message.toStdString());
+        throw qftbx::ComputationError(
+            "The boundaries were computed over a Nichols phase window of "
+            + qftbx::text::number(phaseSpan) + " degrees (["
+            + qftbx::text::number(boundaries->phaseRange().min) + ", "
+            + qftbx::text::number(boundaries->phaseRange().max)
+            + "]), which does not cover the full range a loop phase can take "
+              "(-360 to 0 degrees). Recompute the boundaries over a window of "
+              "at least 360 degrees.");
     }
 
     //The algorithms own themselves through unique_ptr: solve()
     //throws on an invalid or infeasible problem, and the raw new/delete
     //pair leaked the whole algorithm (its lists, its detection, its
     //nominal-plant caches) on every such throw.
-    QElapsedTimer timer;
+    auto timer = std::chrono::steady_clock::now();
     bool re = false;
 
     //The peak live-node count is what a run costs in memory, and what the
     //ceiling of kDefaultMaxLiveNodes has to be tuned against: it is reported
     //rather than left to be guessed.
     const auto report = [&](std::unique_ptr<LtiSystem> resultado, std::size_t peakLiveNodes) {
-        std::cout << "LoopShaping: " << timer.elapsed() << " milliseconds" << std::endl;
+        std::cout << "LoopShaping: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timer).count() << " milliseconds" << std::endl;
         std::cout << "k: " << resultado->gain().range().min << std::endl;
         std::cout << "peak live nodes: " << peakLiveNodes << std::endl;
         this->controller = std::move(resultado);
@@ -73,7 +75,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, QVector<qreal> 
     if (algorithm == tools::nt) {
         auto nt = std::make_unique<AlgorithmNt>();
         nt->setProblem(plant, controller, omega, boundaries, epsilon);
-        timer.start();
+        timer = std::chrono::steady_clock::now();
         re = nt->solve();
         if (re) {
             report(nt->controllerStructure(), nt->peakLiveNodes());
@@ -81,7 +83,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, QVector<qreal> 
     } else if (algorithm == tools::nk) {
         auto nk = std::make_unique<AlgorithmNk>();
         nk->setProblem(plant, controller, omega, boundaries, epsilon, initialisation);
-        timer.start();
+        timer = std::chrono::steady_clock::now();
         re = nk->solve();
         if (re) {
             report(nk->controllerStructure(), nk->peakLiveNodes());
@@ -89,7 +91,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, QVector<qreal> 
     } else if (algorithm == tools::mr) {
         auto mr = std::make_unique<AlgorithmMr>();
         mr->setProblem(plant, controller, omega, boundaries, epsilon, contour, specifications);
-        timer.start();
+        timer = std::chrono::steady_clock::now();
         re = mr->solve();
         if (re) {
             report(mr->controllerStructure(), mr->peakLiveNodes());
@@ -97,7 +99,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, QVector<qreal> 
     } else if (algorithm == tools::mc1) {
         auto mc1 = std::make_unique<AlgorithmMc1>();
         mc1->setProblem(plant, controller, omega, boundaries, epsilon);
-        timer.start();
+        timer = std::chrono::steady_clock::now();
         re = mc1->solve();
         if (re) {
             report(mc1->controllerStructure(), mc1->peakLiveNodes());
@@ -105,7 +107,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, QVector<qreal> 
     } else if (algorithm == tools::mc_thesis) {
         auto mc_thesis = std::make_unique<AlgorithmMcThesis>();
         mc_thesis->setProblem(plant, controller, omega, boundaries, epsilon);
-        timer.start();
+        timer = std::chrono::steady_clock::now();
         re = mc_thesis->solve();
         if (re) {
             report(mc_thesis->controllerStructure(), mc_thesis->peakLiveNodes());

@@ -14,7 +14,7 @@ using ComplexCloud = std::vector<std::complex<double>>;
  * @brief One cloud per design frequency: a template set, or a contour set.
  *
  * Held BY VALUE. This travelled as
- * `QVector<QVector<std::complex<qreal>> *> *` - a pointer to a vector of
+ * `std::vector<std::vector<std::complex<double>> *> *` - a pointer to a vector of
  * pointers to vectors - through the engine, the project store, the facade,
  * the persistence and the viewers, and at every hop the question of who
  * frees it had a different answer. The engine computed them and kept a

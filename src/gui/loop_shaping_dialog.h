@@ -5,6 +5,8 @@
 
 #include <QDialog>
 
+#include "src/core/range.h"
+
 #include "mpParser.h"
 #include "src/core/math/sequence_vectors.h"
 #include "src/core/math/sequence_vectors.h"
@@ -38,7 +40,7 @@ public:
 
     tools::LoopShapingAlgorithm algorithmValue();
 
-    QPointF range();
+    qftbx::Range range();
 
     qreal pointCountValue();
 
@@ -47,6 +49,10 @@ public:
     qint32 initialisationValue ();
 
 private slots:
+    /// Says which epsilon the field is asking for, because it is not the
+    /// same quantity for every algorithm.
+    void updateEpsilonLabel();
+
     void on_cancelButton_clicked();
 
     void on_okButton_clicked();
@@ -73,7 +79,7 @@ private:
 
     qreal epsilonEdit = 0.0;
 
-    QPointF plotRange;
+    qftbx::Range plotRange;
 
     qreal pointCountEdit = 0.0;
 

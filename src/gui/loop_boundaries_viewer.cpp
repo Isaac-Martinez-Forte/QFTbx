@@ -1,3 +1,4 @@
+#include "qt_containers.h"
 #include "loop_boundaries_viewer.h"
 #include "ui_loop_boundaries_viewer.h"
 
@@ -43,7 +44,7 @@ void LoopBoundariesViewer::clearDiagram(){
 
     //Qt's own mechanism: destroying the row widget is how a widget leaves
     //a layout, and it takes its checkbox with it.
-    foreach (QCheckBox * che, checkboxes) {
+    for (QCheckBox * che : checkboxes) {
         delete che->parentWidget();
     }
     checkboxes.clear();
@@ -59,10 +60,11 @@ void LoopBoundariesViewer::clearDiagram(){
 }
 
 
-void LoopBoundariesViewer::setData(const BoundaryData *nicholsData, const BoundaryData *nyquistData, QVector<qreal> *omega,
+void LoopBoundariesViewer::setData(const BoundaryData *nicholsData,
+                             const qftbx::NyquistTraces & nyquistTraces, std::vector<double> *omega,
                              LtiSystem *plant, LtiSystem *controller, bool nichols, bool nyquist){
     this->nicholsData = nicholsData;
-    this->nyquistData = nyquistData;
+    this->nyquistTraces = nyquistTraces;
     this->plant = plant;
     this->controller = controller;
     this->omega = omega;
@@ -93,8 +95,8 @@ void LoopBoundariesViewer::showDiagram(){
     qint32 c = 0;
     for (const qftbx::Trace & boundNichols : nicholsData->unionBoundaries()) {
 
-        const qftbx::Trace & boundNyquist =
-                nyquistData->unionBoundaries().at(static_cast<std::size_t>(frequencyIndex));
+        const qftbx::NyquistTrace & boundNyquist =
+                nyquistTraces.at(static_cast<std::size_t>(frequencyIndex));
 
 
         QColor color = randomColor(c);
@@ -102,24 +104,24 @@ void LoopBoundariesViewer::showDiagram(){
         QColor color2 = randomColor(c);
         c++;
 
-        rowColors.append(color);
-        rowColors.append(color2);
+        rowColors.push_back(color);
+        rowColors.push_back(color2);
 
-        QVector <qreal> ejex;
-        QVector <qreal> ejey;
+        std::vector<double> ejex;
+        std::vector<double> ejey;
 
-        QVector <qreal> ejex1;
-        QVector <qreal> ejey1;
+        std::vector<double> ejex1;
+        std::vector<double> ejey1;
 
         qint32 secondIndex = 0;
 
-        for (const QPointF & pNichols : boundNichols) {
-            QPointF pNyquist = boundNyquist.at(static_cast<std::size_t>(secondIndex));
-            ejex.append(pNichols.x());
-            ejey.append(pNichols.y());
+        for (const qftbx::NicholsPoint & pNichols : boundNichols) {
+            const qftbx::NyquistPoint pNyquist = boundNyquist.at(static_cast<std::size_t>(secondIndex));
+            ejex.push_back(pNichols.phase);
+            ejey.push_back(pNichols.magnitude);
 
-            ejex1.append(pNyquist.x());
-            ejey1.append(pNyquist.y());
+            ejex1.push_back(pNyquist.re);
+            ejey1.push_back(pNyquist.im);
 
 
             secondIndex++;
@@ -127,10 +129,10 @@ void LoopBoundariesViewer::showDiagram(){
 
         if (mostrarNichols){
             QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-            curva->setData(ejex, ejey);
+            curva->setData(tools::toQVector(ejex), tools::toQVector(ejey));
             curva->setPen(color);
             addFrequencyRow(color, frequencyIndex, tr("Nichols"));
-            curves.append(curva);
+            curves.push_back(curva);
             k++;
         }
 
@@ -138,10 +140,10 @@ void LoopBoundariesViewer::showDiagram(){
         //mostrarNichols.
         if(mostrarNyquist){
             QCPCurve *curva2 = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-            curva2->setData(ejex1, ejey1);
+            curva2->setData(tools::toQVector(ejex1), tools::toQVector(ejey1));
             curva2->setPen(color2);
             addFrequencyRow(color2, frequencyIndex, tr("Nyquist"));
-            curves.append(curva2);
+            curves.push_back(curva2);
             k++;
         }
 
@@ -168,7 +170,7 @@ void LoopBoundariesViewer::showDiagram(){
 
     frequencyIndex = 0;
 
-    foreach (qreal o, *omega) {
+    for (qreal o : *omega) {
 
         cinterval <qreal> box = conversion->nicholsBox(controller,o, plant->evaluate(o), false);
 
@@ -234,7 +236,7 @@ void LoopBoundariesViewer::addFrequencyRow(QColor color, qint32 pos, QString dia
     checkBox->setStyleSheet("color : " + color.name());
 
     colorsLayout->addWidget(widget);
-    checkboxes.append(checkBox);
+    checkboxes.push_back(checkBox);
     checkBox->setCheckState(Qt::Checked);
 
     connect(checkBox, SIGNAL (clicked()), this, SLOT (applyCheckboxes()));
@@ -243,22 +245,22 @@ void LoopBoundariesViewer::addFrequencyRow(QColor color, qint32 pos, QString dia
 
 void LoopBoundariesViewer::drawBox(QPointF uno, QPointF dos, QPointF tres, QPointF cuatro, QColor color){
 
-    QVector <qreal> ejex;
-    QVector <qreal> ejey;
+    std::vector<double> ejex;
+    std::vector<double> ejey;
 
-    ejex.append(uno.x());
-    ejex.append(dos.x());
-    ejex.append(tres.x());
-    ejex.append(cuatro.x());
+    ejex.push_back(uno.x());
+    ejex.push_back(dos.x());
+    ejex.push_back(tres.x());
+    ejex.push_back(cuatro.x());
 
-    ejey.append(uno.y());
-    ejey.append(dos.y());
-    ejey.append(tres.y());
-    ejey.append(cuatro.y());
+    ejey.push_back(uno.y());
+    ejey.push_back(dos.y());
+    ejey.push_back(tres.y());
+    ejey.push_back(cuatro.y());
 
 
     ui->plot->addGraph();
-    ui->plot->graph(finalCurveIndex)->setData(ejex, ejey);
+    ui->plot->graph(finalCurveIndex)->setData(tools::toQVector(ejex), tools::toQVector(ejey));
 
     ui->plot->graph(finalCurveIndex)->setPen(color);
     ui->plot->graph(finalCurveIndex)->setLineStyle(QCPGraph::lsLine);

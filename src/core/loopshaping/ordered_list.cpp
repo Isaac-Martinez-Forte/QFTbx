@@ -6,12 +6,12 @@
 
 namespace {
 
-bool lowestFirstOrder(qreal uno, qreal dos)
+bool lowestFirstOrder(double uno, double dos)
 {
     return uno < dos;
 }
 
-bool highestFirstOrder(qreal uno, qreal dos)
+bool highestFirstOrder(double uno, double dos)
 {
     return uno > dos;
 }
@@ -33,7 +33,7 @@ void OrderedList::insert(std::unique_ptr<ListNode> node)
                 "narrow the controller search box.");
     }
 
-    const qreal index = node->getIndex();
+    const double index = node->getIndex();
 
     nodes.insert({index, std::move(node)});
 

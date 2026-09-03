@@ -13,8 +13,8 @@ namespace qftbx {
 
 namespace {
 
-const qreal kTwoPi = 2.0 * M_PI;
-const qreal kRadToDeg = 180.0 / M_PI;
+const double kTwoPi = 2.0 * M_PI;
+const double kRadToDeg = 180.0 / M_PI;
 
 interval parameterInterval(Parameter & parameter)
 {
@@ -48,7 +48,7 @@ void ensureSupportedStructure(LtiSystem::SystemType type)
 } // namespace
 
 cinterval NaturalIntervalExtension::factorProduct(std::vector<Parameter> & parameters,
-                                                  qreal w)
+                                                  double w)
 {
     //Neutral element: an empty vector stands for the constant 1 (the
     //historical code left the product UNINITIALIZED for a pure-gain
@@ -65,10 +65,10 @@ cinterval NaturalIntervalExtension::factorProduct(std::vector<Parameter> & param
 
 interval NaturalIntervalExtension::argEnclosure(const cinterval & z)
 {
-    const qreal r0 = cxsc::_double(InfRe(z));
-    const qreal r1 = cxsc::_double(SupRe(z));
-    const qreal i0 = cxsc::_double(InfIm(z));
-    const qreal i1 = cxsc::_double(SupIm(z));
+    const double r0 = cxsc::_double(InfRe(z));
+    const double r1 = cxsc::_double(SupRe(z));
+    const double i0 = cxsc::_double(InfIm(z));
+    const double i1 = cxsc::_double(SupIm(z));
 
     //The rectangle is closed: a corner ON an axis belongs to both
     //neighbouring cases, whose enclosures agree there.
@@ -106,8 +106,8 @@ interval NaturalIntervalExtension::argEnclosure(const cinterval & z)
 
 interval NaturalIntervalExtension::wrapToBranch(const interval & theta)
 {
-    const qreal low = cxsc::_double(Inf(theta));
-    const qreal high = cxsc::_double(Sup(theta));
+    const double low = cxsc::_double(Inf(theta));
+    const double high = cxsc::_double(Sup(theta));
 
     if (high - low >= kTwoPi) {
         return interval(-kTwoPi, 0.0);
@@ -142,7 +142,7 @@ interval NaturalIntervalExtension::toDecibel(interval magnitude)
     return 20.0 * log10(magnitude);
 }
 
-cinterval NaturalIntervalExtension::nicholsBox(LtiSystem * controller, qreal w,
+cinterval NaturalIntervalExtension::nicholsBox(LtiSystem * controller, double w,
                                                complex p0)
 {
     ensureSupportedStructure(controller->type());
@@ -165,7 +165,7 @@ cinterval NaturalIntervalExtension::nicholsBox(LtiSystem * controller, qreal w,
 }
 
 cinterval NaturalIntervalExtension::numeratorBox(std::vector<Parameter> & numerator,
-                                                 qreal w, LtiSystem::SystemType type)
+                                                 double w, LtiSystem::SystemType type)
 {
     ensureSupportedStructure(type);
 
@@ -175,14 +175,14 @@ cinterval NaturalIntervalExtension::numeratorBox(std::vector<Parameter> & numera
 }
 
 cinterval NaturalIntervalExtension::denominatorBox(std::vector<Parameter> & denominator,
-                                                   qreal w, LtiSystem::SystemType type)
+                                                   double w, LtiSystem::SystemType type)
 {
     //The denominator product is enclosed as such (not inverted): the
     //caller combines it, matching the historical contract.
     return numeratorBox(denominator, w, type);
 }
 
-cinterval NaturalIntervalExtension::numeratorTermBox(Parameter & zero, qreal w,
+cinterval NaturalIntervalExtension::numeratorTermBox(Parameter & zero, double w,
                                                      complex p0)
 {
     const cinterval a = (complex(0.0, w) + parameterInterval(zero)) * p0;
@@ -190,7 +190,7 @@ cinterval NaturalIntervalExtension::numeratorTermBox(Parameter & zero, qreal w,
     return cinterval(toDecibel(abs(a)), argEnclosure(a) * kRadToDeg);
 }
 
-cinterval NaturalIntervalExtension::denominatorTermBox(Parameter & pole, qreal w,
+cinterval NaturalIntervalExtension::denominatorTermBox(Parameter & pole, double w,
                                                        complex p0)
 {
     const cinterval a = 1.0 / (complex(0.0, w) + parameterInterval(pole)) * p0;

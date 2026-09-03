@@ -72,7 +72,7 @@ public:
     /// dialog was cancelled or rejected. Ownership passes to the caller:
     /// this used to be a plain getter whose value the project then took,
     /// leaving the dialog holding a dangling pointer between accepts.
-    QVector <qreal> takeEpsilon();
+    std::vector<double> takeEpsilon();
     
     
     /// Which plane the templates and their contour are drawn on: Nichols
@@ -120,6 +120,12 @@ private:
     void buildRow (QWidget *widget, QVector<ParLineEdit> & par,
                    QVector <ThreeRadioButtons> & rowRadios);
     void buildTables(std::vector<Parameter> & numerator, std::vector<Parameter> & denominator);
+    /// Why the last readVariable() refused its input, empty when it has
+    /// nothing to add to the caller's message. It exists so the operator is
+    /// told WHICH rule the entry broke: "invalid" alone left them guessing
+    /// between a syntax error and a count out of range.
+    QString m_readReason;
+
     bool readVariable(const ParLineEdit & rowEdits, ThreeRadioButtons rowRadios, Parameter & parameter,
                          bool useLinspace, bool useLogspace);
 
@@ -145,7 +151,7 @@ private:
 
     bool accepted;
 
-    QVector <qreal> epsilonValues;
+    std::vector<double> epsilonValues;
 
     //Names entered more than once in the current OK pass (numerator and
     //denominator sharing a parameter): reported once to the user.

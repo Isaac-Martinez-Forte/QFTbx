@@ -1,10 +1,11 @@
 #ifndef QFTBX_TRANSFER_FUNCTION_H
 #define QFTBX_TRANSFER_FUNCTION_H
 
+#include <string>
 #include <vector>
 
 #include "lti_system.h"
-#include <QVector>
+#include <vector>
 #include "src/core/system/parameter.h"
 #include "mpParser.h"
 
@@ -20,38 +21,38 @@ namespace qftbx {
 class TransferFunction : public LtiSystem
 {
 public:
-    TransferFunction(QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
+    TransferFunction(std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
                      Parameter k, Parameter delay);
 
-    std::unique_ptr<LtiSystem> create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
-                              Parameter k, Parameter delay = Parameter(qreal(0)),
-                              QString numeratorExpr = QString(), QString denominatorExpr = QString()) override = 0;
+    std::unique_ptr<LtiSystem> create (std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
+                              Parameter k, Parameter delay = Parameter(double(0)),
+                              std::string numeratorExpr = std::string(), std::string denominatorExpr = std::string()) override = 0;
 
-    std::complex <qreal> evaluate (qreal omega) override;
+    std::complex <double> evaluate (double omega) override;
 
-    QVector <std::complex <qreal> > evaluate (const QVector <qreal> & omega) override;
+    std::vector <std::complex <double> > evaluate (const std::vector <double> & omega) override;
 
-    std::complex <qreal> evaluate (QVector <qreal> * numerator, QVector <qreal> * denominator,
-                                           qreal k, qreal delay, qreal omega) override;
+    std::complex <double> evaluate (std::vector <double> * numerator, std::vector <double> * denominator,
+                                           double k, double delay, double omega) override;
 
-    QString expression (QVector <qreal> * numerator, QVector <qreal> * denominator,
-                             qreal k, qreal delay, qreal omega) override = 0;
+    std::string expression (std::vector <double> * numerator, std::vector <double> * denominator,
+                             double k, double delay, double omega) override = 0;
 
-    QString expression(qreal w) override = 0;
+    std::string expression(double w) override = 0;
 
-    QString expression() override = 0;
+    std::string expression() override = 0;
 
-    std::complex <qreal> evaluateNumerator(QVector <qreal> * nume, qreal omega) override = 0;
+    std::complex <double> evaluateNumerator(std::vector <double> * nume, double omega) override = 0;
 
-    std::complex <qreal> evaluateDenominator(QVector <qreal> * deno, qreal omega) override = 0;
+    std::complex <double> evaluateDenominator(std::vector <double> * deno, double omega) override = 0;
 
     std::vector <Parameter> & numerator() override;
 
     std::vector <Parameter> & denominator() override;
 
-    QString numeratorString() override;
+    std::string numeratorString() override;
 
-    QString denominatorString() override;
+    std::string denominatorString() override;
 
     Parameter & gain() override;
 

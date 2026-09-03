@@ -1,3 +1,4 @@
+#include "qt_containers.h"
 #include "loop_shaping_viewer.h"
 #include "ui_loop_shaping_viewer.h"
 
@@ -48,7 +49,7 @@ void LoopShapingViewer::clearDiagram(){
     //Qt's own mechanism: destroying the row widget is how a widget leaves
     //a layout, and it takes its checkbox with it. The row widgets used to
     //pile up on every replot.
-    foreach (QCheckBox * che, checkboxes) {
+    for (QCheckBox * che : checkboxes) {
         delete che->parentWidget();
     }
     checkboxes.clear();
@@ -64,7 +65,7 @@ void LoopShapingViewer::clearDiagram(){
 }
 
 
-void LoopShapingViewer::setData(const qftbx::UnionTraces & unionTraces, QVector<qreal> *omega, LoopShapingResult *loopShapingData,
+void LoopShapingViewer::setData(const qftbx::UnionTraces & unionTraces, std::vector<double> *omega, LoopShapingResult *loopShapingData,
                                LtiSystem* plant, bool linSpace){
     this->unionTraces = unionTraces;
     this->omega = omega;
@@ -121,23 +122,23 @@ void LoopShapingViewer::showDiagram(){
     for (const qftbx::Trace & bound : unionTraces) {
         QColor color = randomColor(frequencyIndex);
         frequencyIndex++;
-        rowColors.append(color);
+        rowColors.push_back(color);
 
-        QVector <qreal> ejex;
-        QVector <qreal> ejey;
+        std::vector<double> ejex;
+        std::vector<double> ejey;
 
-        for (const QPointF & p : bound) {
-            ejex.append(p.x());
-            ejey.append(p.y());
+        for (const qftbx::NicholsPoint & p : bound) {
+            ejex.push_back(p.phase);
+            ejey.push_back(p.magnitude);
         }
 
-        /*curves.append(ui->plot->addGraph());
+        /*curves.push_back(ui->plot->addGraph());
         ui->plot->graph(gainEdit)->setData(*ejex, *ejey);*/
 
         QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-        curva->setData(ejex, ejey);
+        curva->setData(tools::toQVector(ejex), tools::toQVector(ejey));
         curva->setPen(color);
-        curves.append(curva);
+        curves.push_back(curva);
 
         /*ui->plot->graph(gainEdit)->setPen(color);
         ui->plot->graph(gainEdit)->setLineStyle(QCPGraph::lsNone);
@@ -151,7 +152,7 @@ void LoopShapingViewer::showDiagram(){
 
     //Draw the open-loop curve.
 
-    QVector <qreal> frequencies;
+    std::vector<double> frequencies;
 
     /*if(linSpace){
         frequencies = tools::linspace(loopShapingData->range().min, loopShapingData->range().max, loopShapingData->pointCount());
@@ -160,35 +161,40 @@ void LoopShapingViewer::showDiagram(){
         frequencies = tools::logspace(loopShapingData->range().min, loopShapingData->range().max, loopShapingData->pointCount());
     }*/
 
-    //FIXED ON PURPOSE, for now. The dialog asks for a range and a point
-    //count, and nothing reads them but the persistence: three reasons stand
-    //in the way of honouring them.
+    //FIXED ON PURPOSE, for now (decision taken 2026-09-03: leave it, write
+    //down why). The dialog asks for a range and a point count, and nothing
+    //reads them but the persistence. Of the three reasons that stood in the
+    //way of honouring them, one is now gone and two remain.
     //
-    //The units are ambiguous and the two dialogs disagree without saying so
-    //(both labels read "Start:"): tools::logspace takes EXPONENTS, the
-    //frequencies dialog stores exponents in its log mode - bode_viewer
-    //depends on that - and this dialog's own defaults are written as values
-    //("10^-6", "10^1"), which as exponents would sweep 10^(1e-6) to 10^10.
-    //The disabled code above also predates Range becoming a struct, so it
-    //asks a QPointF for .min. And the segmentation below detects the phase
+    //SETTLED: the units. Both dialogs ask for rad/s now and say so on the
+    //label, and each converts with log10 where tools::logspace wants an
+    //exponent. Before, this dialog's defaults were written as values while
+    //the frequencies dialog read its field as an exponent, so the same "0.01"
+    //meant two different frequencies and no label admitted it. Reviving the
+    //code above therefore needs a std::log10 on both ends, exactly like
+    //bode_viewer does.
+    //
+    //STILL IN THE WAY: the disabled code predates Range becoming a struct, so
+    //it asks a QPointF for .min. And the segmentation below detects the phase
     //wrap by |delta| > 100 degrees, which PRESUMES a dense sweep: a small
     //user count would break the curve into spurious pieces.
     //
-    //The answer is not a number of points but a tolerance, and it is already
-    //solved next door for the computation: NominalStabilityChecker derives
-    //its range from the design frequencies (kDecadesBeyond) and refines
-    //until the phase step falls under kMaxPhaseStepDegrees. Doing the same
-    //here would also make the drawing and the check look at the same place,
-    //which they need not do today.
+    //And that last one is why the point count should probably never be
+    //honoured as typed. The answer is not a number of points but a
+    //tolerance, and it is already solved next door for the computation:
+    //NominalStabilityChecker derives its range from the design frequencies
+    //(kDecadesBeyond) and refines until the phase step falls under
+    //kMaxPhaseStepDegrees. Doing the same here would also make the drawing
+    //and the check look at the same place, which they need not do today.
     frequencies = tools::logspace(-5, 5, 10000);
 
     //The open-loop curve, cut into segments wherever the phase wraps: by
     //value, so a replot does not abandon them (they all used to be).
-    QVector<QVector <qreal> > ejex;
-    QVector<QVector <qreal> > ejey;
+    QVector<std::vector<double> > ejex;
+    QVector<std::vector<double> > ejey;
 
-    QVector <qreal> ejexActual;
-    QVector <qreal> ejeyActual;
+    std::vector<double> ejexActual;
+    std::vector<double> ejeyActual;
 
 
     //The first sample only seeds the phase comparison, so it is taken
@@ -198,7 +204,7 @@ void LoopShapingViewer::showDiagram(){
     qreal previousPhase = 0.0;
     bool firstSample = true;
 
-    foreach (qreal a, frequencies) {
+    for (qreal a : frequencies) {
         std::complex <qreal> c = plant->evaluate(a) * loopShapingData->controller()->evaluate(a);
 
         qreal fas = arg(c) *180 / M_PI;
@@ -207,42 +213,42 @@ void LoopShapingViewer::showDiagram(){
             fas -= 360;
 
         if (firstSample || abs(fas - previousPhase) < 100) {
-            ejexActual.append(fas);
-            ejeyActual.append(mag);
+            ejexActual.push_back(fas);
+            ejeyActual.push_back(mag);
         } else {
 
             /*if (previousPhase < -100){
-                ejexActual.append(0);
-                ejeyActual.append(previousY);
+                ejexActual.push_back(0);
+                ejeyActual.push_back(previousY);
             } else {
-                ejexActual.append(-360);
-                ejeyActual.append(previousY);
+                ejexActual.push_back(-360);
+                ejeyActual.push_back(previousY);
             }*/
 
-            ejex.append(std::move(ejexActual));
-            ejey.append(std::move(ejeyActual));
+            ejex.push_back(std::move(ejexActual));
+            ejey.push_back(std::move(ejeyActual));
 
-            ejexActual = QVector <qreal> ();
-            ejeyActual = QVector <qreal> ();
+            ejexActual = std::vector<double> ();
+            ejeyActual = std::vector<double> ();
 
             /*if (fas > -100){
-                ejexActual.append(0);
-                ejeyActual.append(mag);
+                ejexActual.push_back(0);
+                ejeyActual.push_back(mag);
             } else {
-                ejexActual.append(-360);
-                ejeyActual.append(mag);
+                ejexActual.push_back(-360);
+                ejeyActual.push_back(mag);
             }*/
 
-            ejexActual.append(fas);
-            ejeyActual.append(mag);
+            ejexActual.push_back(fas);
+            ejeyActual.push_back(mag);
         }
 
         previousPhase = fas;
         firstSample = false;
     }
 
-    ejex.append(std::move(ejexActual));
-    ejey.append(std::move(ejeyActual));
+    ejex.push_back(std::move(ejexActual));
+    ejey.push_back(std::move(ejeyActual));
 
 
     /*QCPGraph * gra = ui->plot->addGraph();
@@ -254,28 +260,28 @@ void LoopShapingViewer::showDiagram(){
 
     for (qint32 i = 0; i < ejex.size(); i++){
         QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-        curva->setData(ejex.at(i), ejey.at(i));
+        curva->setData(tools::toQVector(ejex.at(i)), tools::toQVector(ejey.at(i)));
         curva->setPen((QColor) Qt::black);
-        curves.append(curva);
+        curves.push_back(curva);
     }
 
 
 
     //Draw the marker for each design frequency.
-    for (qint32 i = 0; i < omega->size(); i++){
+    for (qint32 i = 0; i < static_cast<std::int32_t>(omega->size()); i++){
 
-        QVector <qreal> ejex;
-        QVector <qreal> ejey;
+        std::vector<double> ejex;
+        std::vector<double> ejey;
 
         std::complex <qreal> c = loopShapingData->controller()->evaluate(omega->at(i)) * plant->evaluate(omega->at(i));
-        ejey.append(20*log10(abs(c)));
+        ejey.push_back(20*log10(abs(c)));
         qreal fas = arg(c) *180 / M_PI;
         if (fas > 0)
             fas -= 360;
-        ejex.append(fas);
+        ejex.push_back(fas);
 
         QCPGraph * gra = ui->plot->addGraph();
-        gra->setData(ejex, ejey);
+        gra->setData(tools::toQVector(ejex), tools::toQVector(ejey));
 
         gra->setPen(rowColors.at(i));
         gra->setScatterStyle(QCPScatterStyle::ssCircle);
@@ -322,7 +328,7 @@ void LoopShapingViewer::addFrequencyRow(QColor color, qint32 pos){
     checkBox->setStyleSheet("color : " + color.name());
 
     colorsLayout->addWidget(widget);
-    checkboxes.append(checkBox);
+    checkboxes.push_back(checkBox);
     checkBox->setCheckState(Qt::Checked);
 
     connect(checkBox, SIGNAL (clicked()), this, SLOT (applyCheckboxes()));

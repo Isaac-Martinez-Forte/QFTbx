@@ -7,6 +7,7 @@ Roberto C. Cruz Rodríguez
 
 #include "src/core/loopshaping/expression_tree.h"
 
+#include <string>
 #include <stdexcept>
 
 #define PI1 3.1415926535897936
@@ -37,7 +38,7 @@ ExpressionTree::ExpressionTree(const char *tex)
     build_tree(in_exp);
 }
 
-ExpressionTree::ExpressionTree(const std::string &tex, qreal resultado, com comparacion)
+ExpressionTree::ExpressionTree(const std::string &tex, double resultado, com comparacion)
 {
     root = nullptr;
     std::string in_exp = tex;
@@ -80,7 +81,7 @@ void ExpressionTree::setFunc(const std::string &tex)
     build_tree(in_exp);
 }
 
-void ExpressionTree::setFunc(const std::string &tex, qreal resultado, com comparacion)
+void ExpressionTree::setFunc(const std::string &tex, double resultado, com comparacion)
 {
     std::string in_exp = tex;
 
@@ -113,7 +114,7 @@ void ExpressionTree::setFunc(const char *tex)
 *********************************************************
 * Evaluates the expression.
 */
-qreal ExpressionTree::eval(std::map<std::string, qreal> *variables )
+double ExpressionTree::eval(std::map<std::string, double> *variables )
 {
     this->variables = variables;
 
@@ -260,7 +261,7 @@ interval ExpressionTree::eval(std::map<string, interval> *variables){
     return eval_tree_in(root.get());
 }
 
-/*interval ExpressionTree::eval(std::map<string, interval> *variables, qreal w){
+/*interval ExpressionTree::eval(std::map<string, interval> *variables, double w){
 
     this->w = w;
     this->variables_in = variables;
@@ -287,7 +288,7 @@ ExpressionTree &ExpressionTree::operator=(const ExpressionTree &other)
 * evaluar la expresion usando parentesis
 * de esta forma result = function(78,0,0,1)
 */
-qreal ExpressionTree::operator()(std::map<std::string, qreal> * variables)
+double ExpressionTree::operator()(std::map<std::string, double> * variables)
 {
     return eval (variables);
 }
@@ -299,7 +300,7 @@ interval ExpressionTree::operator ()(std::map<std::string, interval> * variables
 //The core of the class: a recursive walk over the binary expression tree,
 //applying each node's operation and returning the value of the whole
 //expression.
-qreal ExpressionTree::eval_tree(exp_node *nod)
+double ExpressionTree::eval_tree(exp_node *nod)
 {
 
     switch (nod->type)
@@ -779,7 +780,7 @@ interval ExpressionTree::eval_tree_in(exp_node *nod)
 /*interval ExpressionTree::eval_tree_complex_interval(exp_node *nod)
 {
 
-    complex<qreal> emptyComplex(1,0);
+    complex<double> emptyComplex(1,0);
 
 
     switch (nod->type)
@@ -790,7 +791,7 @@ interval ExpressionTree::eval_tree_in(exp_node *nod)
     case VAR  :
 
         if (nod->var == "s")
-            return complex<qreal> (0, w) * interval(1);
+            return complex<double> (0, w) * interval(1);
 
         return  variables_in->at(nod->var) * emptyComplex;
 
@@ -1026,7 +1027,7 @@ void ExpressionTree::build_tree(std::string &in_exp)
                 while ( pos < len && isdigit(in_exp[pos]) ) ++pos;
             } // the whole constant has been read
 
-            node->c_const = QString::fromUtf8(in_exp.substr(i, pos-i).c_str()).toDouble();
+            node->c_const = std::strtod(in_exp.substr(i, pos-i).c_str(), nullptr);
 
             nodeStack.push(std::move(node));
         }
@@ -1050,7 +1051,7 @@ void ExpressionTree::build_tree(std::string &in_exp)
                 while ( pos < len && isdigit(in_exp[pos]) ) ++pos;
             }
 
-            node->c_const = QString::fromUtf8(in_exp.substr(i, pos-i).c_str()).toDouble();
+            node->c_const = std::strtod(in_exp.substr(i, pos-i).c_str(), nullptr);
 
             nodeStack.push(std::move(node));
         }
@@ -1074,7 +1075,7 @@ void ExpressionTree::build_tree(std::string &in_exp)
                 while ( pos < len && isdigit(in_exp[pos]) ) ++pos;
             }
 
-            node->c_const = QString::fromUtf8(in_exp.substr(i, pos-i).c_str()).toDouble();
+            node->c_const = std::strtod(in_exp.substr(i, pos-i).c_str(), nullptr);
 
             nodeStack.push(std::move(node));
         }
@@ -1312,10 +1313,12 @@ void ExpressionTree::build_tree(std::string &in_exp)
 }
 
 bool ExpressionTree::es_letra(char tex){
-    static QRegularExpression rx("^[a-zA-Z]*$");
-    QString s (1, tex);
-
-    return rx.match(s).hasMatch();
+    //This built a regular expression, then a one-character string, to ask
+    //whether a character is a letter. The ranges are what the pattern
+    //"[a-zA-Z]" said, spelled out - and unlike std::isalpha they do not
+    //depend on the locale, which could otherwise start accepting accented
+    //letters the lexer has no rule for.
+    return (tex >= 'a' && tex <= 'z') || (tex >= 'A' && tex <= 'Z');
 }
 
 };

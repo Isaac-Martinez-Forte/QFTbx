@@ -1,3 +1,4 @@
+#include <cmath>
 #include <QDoubleValidator>
 #include "templates_dialog.h"
 #include "src/core/math/sequences.h"
@@ -11,6 +12,33 @@
 
 using namespace tools;
 using namespace mup;
+
+namespace {
+
+//A point count is read from an expression the user typed, so it can be
+//anything muParserX accepts: fractional, negative, enormous, or not finite
+//at all. Casting that straight to a size_t is what turned a "-5" into a
+//request for 1.8e19 doubles: reserve() threw a length_error, which is not
+//the mup::ParserError caught below, so the application went down instead
+//of complaining. A non-finite value was worse - converting an infinity to
+//an integer type is undefined behaviour.
+//The ceiling is generous and arbitrary: a template grid needs hundreds of
+//points, and a million already multiplies out to more plants than a sweep
+//can hold. Truncation of a fractional count is what the implicit
+//conversion did before, and it is kept, so every input that worked before
+//still behaves the same - only the crashing ones changed.
+constexpr double kMaxPointCount = 1.0e6;
+
+bool asPointCount(double value, std::size_t & count)
+{
+    if (!std::isfinite(value) || value < 1.0 || value > kMaxPointCount) {
+        return false;
+    }
+    count = static_cast<std::size_t>(value);
+    return true;
+}
+
+}
 
 TemplatesDialog::TemplatesDialog(QWidget *parent) :
     QDialog(parent),
@@ -52,12 +80,12 @@ void TemplatesDialog::clearTables(){
     //Qt's own mechanism, and the only reason there is a delete here:
     //destroying the tab page is how the three line edits of a row leave the
     //dialog. The pages used to pile up.
-    foreach (const ParLineEdit & par, numeratorRows){
+    for (const ParLineEdit & par : numeratorRows){
         delete par.getX()->parentWidget();
     }
     numeratorRows.clear();
 
-    foreach (const ParLineEdit & par, denominatorRows){
+    for (const ParLineEdit & par : denominatorRows){
         delete par.getX()->parentWidget();
     }
     denominatorRows.clear();
@@ -70,7 +98,7 @@ void TemplatesDialog::clearTables(){
 
 //The grid map belongs to the dialog (the engine reads it without taking
 //ownership): the old clear() leaked every computation's grids.
-QVector<qreal> TemplatesDialog::takeEpsilon(){
+std::vector<double> TemplatesDialog::takeEpsilon(){
     return std::move(epsilonValues);
 }
 
@@ -96,7 +124,7 @@ void TemplatesDialog::buildTables(std::vector<Parameter> & numerator, std::vecto
 
     qint32 tabIndex = 0;
     for (Parameter & variable : numerator){
-        QString name_text = variable.name();
+        QString name_text = QString::fromStdString(variable.name());
         if(variable.isUncertain()){
             QWidget * widget = new QWidget(ui->variablesStack);
             buildRow(widget,numeratorRows, numeratorRadios);
@@ -108,7 +136,7 @@ void TemplatesDialog::buildTables(std::vector<Parameter> & numerator, std::vecto
     }
     tabIndex = 0;
     for (Parameter & variable : denominator){
-        QString name_text = variable.name();
+        QString name_text = QString::fromStdString(variable.name());
         if(variable.isUncertain()){
             QWidget * widget = new QWidget(ui->variablesStack);
             buildRow(widget, denominatorRows, denominatorRadios);
@@ -191,14 +219,14 @@ void TemplatesDialog::buildRow(QWidget *widget, QVector <ParLineEdit> & par,
     rLog->setText(QApplication::translate("Template", "LogSpace", 0));
     rManual->setText(QApplication::translate("Template", "Manual", 0));
 
-    par.append(ParLineEdit(lin, log, manual));
+    par.push_back(ParLineEdit(lin, log, manual));
 
     struct ThreeRadioButtons radio;
     radio.uno = rLin;
     radio.dos = rLog;
     radio.tres = rManual;
 
-    rowRadios.append(radio);
+    rowRadios.push_back(radio);
 
 }
 
@@ -251,7 +279,7 @@ void TemplatesDialog::on_okButton_clicked()
     }else {
 
         ui->epsilonEdit->setStyleSheet("background : white");
-        const QVector <QString> v = qftbx::text::tokens(ui->epsilonEdit->text());
+        const std::vector<std::string> v = qftbx::text::tokens(ui->epsilonEdit->text().toStdString());
 
         qreal lastEpsilon = 0;
 
@@ -260,10 +288,10 @@ void TemplatesDialog::on_okButton_clicked()
         //User expressions: an invalid epsilon used to throw and bring the
         //application down.
         try {
-            foreach (QString s, v) {
-                parser->SetExpr(s.toStdString());
+            for (const std::string & s : v) {
+                parser->SetExpr(s);
                 lastEpsilon = parser->Eval().GetFloat();
-                epsilonValues.append(lastEpsilon);
+                epsilonValues.push_back(lastEpsilon);
                 counter++;
             }
         } catch (mup::ParserError &) {
@@ -274,7 +302,7 @@ void TemplatesDialog::on_okButton_clicked()
         }
 
         for (; counter < frequencyCount; counter++){
-            epsilonValues.append(lastEpsilon);
+            epsilonValues.push_back(lastEpsilon);
         }
     }
 
@@ -306,7 +334,12 @@ void TemplatesDialog::on_okButton_clicked()
             rowRadios = numeratorRadios.at(variableIndex);
             variableIndex++;
             if (!readVariable(rowEdits, rowRadios,parameter,useLinspace,useLogspace)){
-                errorMessage(tr("ERROR: the values entered for parameter \"%1\" are invalid").arg(parameter.name()),
+                errorMessage(m_readReason.isEmpty()
+                                 ? tr("ERROR: the values entered for parameter \"%1\" are invalid")
+                                       .arg(QString::fromStdString(parameter.name()))
+                                 : tr("ERROR: the values entered for parameter \"%1\" are invalid: %2.")
+                                       .arg(QString::fromStdString(parameter.name()))
+                                       .arg(m_readReason),
                          tr("Template computation"));
                 gridMap.clear();
                 epsilonValues.clear();
@@ -326,7 +359,12 @@ void TemplatesDialog::on_okButton_clicked()
             rowRadios = denominatorRadios.at(variableIndex);
             variableIndex++;
             if (!readVariable(rowEdits, rowRadios,parameter,useLinspace,useLogspace)){
-                errorMessage(tr("ERROR: the values entered for parameter \"%1\" are invalid").arg(parameter.name()),
+                errorMessage(m_readReason.isEmpty()
+                                 ? tr("ERROR: the values entered for parameter \"%1\" are invalid")
+                                       .arg(QString::fromStdString(parameter.name()))
+                                 : tr("ERROR: the values entered for parameter \"%1\" are invalid: %2.")
+                                       .arg(QString::fromStdString(parameter.name()))
+                                       .arg(m_readReason),
                          tr("Template computation"));
                 gridMap.clear();
                 epsilonValues.clear();
@@ -340,19 +378,24 @@ void TemplatesDialog::on_okButton_clicked()
     }
     else{
 
-        qreal inicio;
-        qreal final;
-        qint32 pointCount;
-
-        inicio = plant->gain().range().min;
-        final = plant->gain().range().max;
+        const qreal inicio = plant->gain().range().min;
+        const qreal final = plant->gain().range().max;
         parser->SetExpr(ui->globalPointCount->text().toStdString());
-        pointCount = parser->Eval().GetFloat();
+
+        std::size_t pointCount = 0;
+        if (!asPointCount(parser->Eval().GetFloat(), pointCount)){
+            errorMessage(tr("ERROR: the general point count must be a whole "
+                            "number between 1 and %1.").arg(static_cast<qint64>(kMaxPointCount)),
+                         tr("Template computation"));
+            gridMap.clear();
+            epsilonValues.clear();
+            return;
+        }
 
         if (useLinspace){
-            gridMap[plant->gain().name()] = qftbx::math::linspace(inicio, final, static_cast<std::size_t>(pointCount));
+            gridMap[plant->gain().name()] = qftbx::math::linspace(inicio, final, pointCount);
         } else {
-            gridMap[plant->gain().name()] = qftbx::math::logspace(inicio, final, static_cast<std::size_t>(pointCount));
+            gridMap[plant->gain().name()] = qftbx::math::logspace(inicio, final, pointCount);
         }
     }
 
@@ -360,22 +403,27 @@ void TemplatesDialog::on_okButton_clicked()
         gridMap[plant->delay().name()] = std::vector<double>(1, plant->delay().nominal());
     }else {
 
-        qreal inicio;
-        qreal final;
-        qint32 pointCount;
-
-        inicio = plant->delay().range().min;
-        final = plant->delay().range().max;
+        const qreal inicio = plant->delay().range().min;
+        const qreal final = plant->delay().range().max;
         parser->SetExpr(ui->globalPointCount->text().toStdString());
-        pointCount = parser->Eval().GetFloat();
+
+        std::size_t pointCount = 0;
+        if (!asPointCount(parser->Eval().GetFloat(), pointCount)){
+            errorMessage(tr("ERROR: the general point count must be a whole "
+                            "number between 1 and %1.").arg(static_cast<qint64>(kMaxPointCount)),
+                         tr("Template computation"));
+            gridMap.clear();
+            epsilonValues.clear();
+            return;
+        }
 
         //This branch used to insert the delay grid under the GAIN's key:
         //it clobbered the gain's grid and left the delay without an entry
         //(crashing the sweep with an uncertain delay).
         if (useLinspace){
-            gridMap[plant->delay().name()] = qftbx::math::linspace(inicio, final, static_cast<std::size_t>(pointCount));
+            gridMap[plant->delay().name()] = qftbx::math::linspace(inicio, final, pointCount);
         } else {
-            gridMap[plant->delay().name()] = qftbx::math::logspace(inicio, final, static_cast<std::size_t>(pointCount));
+            gridMap[plant->delay().name()] = qftbx::math::logspace(inicio, final, pointCount);
         }
     }
 
@@ -388,7 +436,7 @@ void TemplatesDialog::on_okButton_clicked()
         return;
     }
 
-    if (!duplicateNames.isEmpty()){
+    if (!duplicateNames.empty()){
         QMessageBox::information(this, tr("Template computation"),
                 tr("The parameter name(s) %1 appear more than once: the first "
                    "grid entered is used for every occurrence.")
@@ -402,20 +450,22 @@ void TemplatesDialog::on_okButton_clicked()
 bool TemplatesDialog::readVariable(const ParLineEdit & rowEdits, ThreeRadioButtons rowRadios,
                                     Parameter & parameter, bool useLinspace, bool useLogspace){
 
+    m_readReason.clear();
+
     //Policy for repeated names (e.g. the same 'a' in numerator and
     //denominator): the FIRST entered grid wins and the user is told once
     //which names were unified (with the name key, the last one would
     //silently win otherwise).
     if (gridMap.count(parameter.name()) != 0){
-        if (!duplicateNames.contains(parameter.name())){
-            duplicateNames.append(parameter.name());
+        if (!duplicateNames.contains(QString::fromStdString(parameter.name()))){
+            duplicateNames.push_back(QString::fromStdString(parameter.name()));
         }
         return true;
     }
 
     qreal inicio;
     qreal final;
-    qreal pointCount;
+    std::size_t pointCount = 0;
 
 
     if (rowRadios.uno->isChecked() && !rowEdits.getX()->text().isEmpty()){
@@ -424,28 +474,47 @@ bool TemplatesDialog::readVariable(const ParLineEdit & rowEdits, ThreeRadioButto
         final = parameter.range().max;
 
         parser->SetExpr(rowEdits.getX()->text().toStdString());
-        pointCount = parser->Eval().GetFloat();
+        if (!asPointCount(parser->Eval().GetFloat(), pointCount)){
+            m_readReason = tr("its point count must be a whole number "
+                              "between 1 and %1")
+                    .arg(static_cast<qint64>(kMaxPointCount));
+            return false;
+        }
 
-        gridMap[parameter.name()] = qftbx::math::linspace(inicio, final, static_cast<std::size_t>(pointCount));
+        gridMap[parameter.name()] = qftbx::math::linspace(inicio, final, pointCount);
 
     }else if (rowRadios.dos->isChecked() && !rowEdits.getY()->text().isEmpty()){
 
         inicio = parameter.range().min;
         final = parameter.range().max;
         parser->SetExpr(rowEdits.getY()->text().toStdString());
-        pointCount = parser->Eval().GetFloat();
+        if (!asPointCount(parser->Eval().GetFloat(), pointCount)){
+            m_readReason = tr("its point count must be a whole number "
+                              "between 1 and %1")
+                    .arg(static_cast<qint64>(kMaxPointCount));
+            return false;
+        }
 
-        gridMap[parameter.name()] = qftbx::math::logspace(inicio, final, static_cast<std::size_t>(pointCount));
+        gridMap[parameter.name()] = qftbx::math::logspace(inicio, final, pointCount);
 
     }else if(rowRadios.tres->isChecked() && !rowEdits.nominal()->text().isEmpty()){
 
-        const QVector <QString> vector = qftbx::text::tokens(rowEdits.nominal()->text());
+        const std::vector<std::string> vector = qftbx::text::tokens(rowEdits.nominal()->text().toStdString());
         std::vector<double> values;
         values.reserve(static_cast<std::size_t>(vector.size()));
 
-        foreach (QString sSymbolCount, vector) {
-            parser->SetExpr(sSymbolCount.toStdString());
-            values.push_back(parser->Eval().GetFloat());
+        for (const std::string & sSymbolCount : vector) {
+            parser->SetExpr(sSymbolCount);
+            const double value = parser->Eval().GetFloat();
+            //A manual grid value may be negative - a parameter range can be -
+            //but an infinity or a NaN would spread through every template
+            //computed from it and only surface much later, as an empty plot.
+            if (!std::isfinite(value)){
+                m_readReason = tr("one of its grid values is not a finite "
+                                  "number");
+                return false;
+            }
+            values.push_back(value);
         }
 
         gridMap[parameter.name()] = std::move(values);
@@ -455,12 +524,17 @@ bool TemplatesDialog::readVariable(const ParLineEdit & rowEdits, ThreeRadioButto
         final = parameter.range().max;
 
         parser->SetExpr(ui->globalPointCount->text().toStdString());
-        pointCount = parser->Eval().GetFloat();
+        if (!asPointCount(parser->Eval().GetFloat(), pointCount)){
+            m_readReason = tr("its point count must be a whole number "
+                              "between 1 and %1")
+                    .arg(static_cast<qint64>(kMaxPointCount));
+            return false;
+        }
 
         if(useLinspace){
-            gridMap[parameter.name()] = qftbx::math::linspace(inicio, final, static_cast<std::size_t>(pointCount));
+            gridMap[parameter.name()] = qftbx::math::linspace(inicio, final, pointCount);
         }else {
-            gridMap[parameter.name()] = qftbx::math::logspace(inicio, final, static_cast<std::size_t>(pointCount));
+            gridMap[parameter.name()] = qftbx::math::logspace(inicio, final, pointCount);
         }
     }else{
         return false;

@@ -5,7 +5,7 @@
 #include <memory>
 #include <vector>
 
-#include <QString>
+#include <string>
 
 #include "src/core/system/parameter.h"
 #include "mpParser.h"
@@ -31,7 +31,7 @@ namespace qftbx {
 class LtiSystem
 {
 public:
-    LtiSystem(QString name);
+    LtiSystem(std::string name);
 
     /**
      * @brief Virtual constructor: builds a new instance of the same dynamic
@@ -42,35 +42,35 @@ public:
      * historical factory returned a raw pointer, and every one of its
      * callers had to remember a delete on every path out.
      */
-    virtual std::unique_ptr<LtiSystem> create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
-                              Parameter k, Parameter delay = Parameter(qreal(0)),
-                              QString numeratorExpr = QString(), QString denominatorExpr = QString()) = 0;
+    virtual std::unique_ptr<LtiSystem> create (std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
+                              Parameter k, Parameter delay = Parameter(double(0)),
+                              std::string numeratorExpr = std::string(), std::string denominatorExpr = std::string()) = 0;
 
     virtual ~LtiSystem() {}
 
-    void setName (QString name);
+    void setName (std::string name);
 
-    QString name();
+    const std::string & name() const;
 
     /// Value of the system at s = j*omega using the nominal parameter values.
-    virtual std::complex <qreal> evaluate (qreal omega) = 0;
+    virtual std::complex <double> evaluate (double omega) = 0;
 
     /// One value per frequency.
-    virtual QVector <std::complex <qreal> > evaluate (const QVector <qreal> & omega) = 0;
+    virtual std::vector <std::complex <double> > evaluate (const std::vector <double> & omega) = 0;
 
     /// Value at s = j*omega for explicit numeric parameter values.
-    virtual std::complex <qreal> evaluate (QVector <qreal> * numerator, QVector <qreal> * denominator,
-                                           qreal k, qreal delay, qreal omega) = 0;
+    virtual std::complex <double> evaluate (std::vector <double> * numerator, std::vector <double> * denominator,
+                                           double k, double delay, double omega) = 0;
 
     /// Expression for explicit numeric parameter values at s = j*omega.
-    virtual QString expression (QVector <qreal> * numerator, QVector <qreal> * denominator,
-                             qreal k, qreal delay, qreal omega) = 0;
+    virtual std::string expression (std::vector <double> * numerator, std::vector <double> * denominator,
+                             double k, double delay, double omega) = 0;
 
     /// Expression at s = j*omega; uncertain parameters stay by name.
-    virtual QString expression(qreal w) = 0;
+    virtual std::string expression(double w) = 0;
 
     /// Symbolic expression in 's', for display.
-    virtual QString expression() = 0;
+    virtual std::string expression() = 0;
 
     /**
      * @brief The transfer function at s = j*omega, computed DIRECTLY in
@@ -80,13 +80,13 @@ public:
      * A name appearing more than once is ONE variable: every appearance must
      * be given the same value.
      */
-    virtual std::complex <qreal> valueAt(qreal w, const std::vector<qreal> & numerator,
-                                         const std::vector<qreal> & denominator,
-                                         qreal gain, qreal delay) = 0;
+    virtual std::complex <double> valueAt(double w, const std::vector<double> & numerator,
+                                         const std::vector<double> & denominator,
+                                         double gain, double delay) = 0;
 
-    virtual std::complex <qreal> evaluateNumerator(QVector <qreal> * nume, qreal omega) = 0;
+    virtual std::complex <double> evaluateNumerator(std::vector <double> * nume, double omega) = 0;
 
-    virtual std::complex <qreal> evaluateDenominator(QVector <qreal> * deno, qreal omega) = 0;
+    virtual std::complex <double> evaluateDenominator(std::vector <double> * deno, double omega) = 0;
 
     /// The system's own parameters, by reference (it holds them by value).
     virtual std::vector <Parameter> & denominator() = 0;
@@ -95,10 +95,10 @@ public:
     virtual std::vector <Parameter> & numerator() = 0;
 
     /// Free-text numerator; empty except for FreeForm.
-    virtual QString numeratorString() = 0;
+    virtual std::string numeratorString() = 0;
 
     /// Free-text denominator; empty except for FreeForm.
-    virtual QString denominatorString() = 0;
+    virtual std::string denominatorString() = 0;
 
     virtual Parameter & gain () = 0;
 
@@ -112,11 +112,29 @@ public:
 
     virtual SystemType type () = 0;
 
+    /**
+     * @brief Value equality between two systems, for telling a real change
+     * from a dialog accepted without an edit.
+     *
+     * Not virtual: it compares the dynamic TYPE and then everything a system
+     * is made of - name, the textual numerator and denominator (which is how
+     * a FreeForm's own expressions get compared, since numeratorString() is
+     * virtual), and the four parameter groups. A subclass with state outside
+     * all of that would have to override it.
+     *
+     * Conservative by design: the two answers are not symmetric. A wrong
+     * "equal" keeps the templates computed for the OLD plant, which is the
+     * silent defect this class's own users warn about; a wrong "different"
+     * costs one recomputation. Nothing is left out on the grounds that it
+     * probably does not matter.
+     */
+    bool sameAs(LtiSystem & other);
+
     /// Copy of the whole system, of the same dynamic type, for the caller.
     virtual std::unique_ptr<LtiSystem> clone () = 0;
 
 private:
-    QString m_name;
+    std::string m_name;
 };
 
 } // namespace qftbx

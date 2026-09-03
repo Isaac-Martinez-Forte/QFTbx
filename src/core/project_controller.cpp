@@ -1,3 +1,6 @@
+#include <string>
+#include <vector>
+#include <cstdint>
 #include "src/core/project_controller.h"
 
 ProjectController::ProjectController()
@@ -14,7 +17,7 @@ Omega * ProjectController::omega(){
     return data.omega();
 }
 
-QVector <qreal> * ProjectController::frequencies(){
+std::vector <double> * ProjectController::frequencies(){
     return data.frequencies();
 }
 
@@ -58,14 +61,32 @@ void ProjectController::dropLoopShaping(){
 //throw away a finished design. Taking the ownership makes that comparison
 //not just unnecessary but wrong: returning early would destroy, on the way
 //out, the very object the store is pointing at.
-void ProjectController::setPlant(std::unique_ptr<LtiSystem> plant){
+//Null on either side counts as a change: there is nothing to compare, and
+//of the two possible mistakes only "different" is harmless.
+bool ProjectController::setPlant(std::unique_ptr<LtiSystem> plant){
+    const bool changed = plant == nullptr || data.plant() == nullptr ||
+            !plant->sameAs(*data.plant());
+
     data.setPlant(std::move(plant));
-    dropTemplatesAndBelow();
+
+    if (changed) {
+        dropTemplatesAndBelow();
+    }
+
+    return changed;
 }
 
-void ProjectController::setOmega(std::unique_ptr<Omega> omega){
+bool ProjectController::setOmega(std::unique_ptr<Omega> omega){
+    const bool changed = omega == nullptr || data.omega() == nullptr ||
+            !omega->sameAs(*data.omega());
+
     data.setOmega(std::move(omega));
-    dropTemplatesAndBelow();
+
+    if (changed) {
+        dropTemplatesAndBelow();
+    }
+
+    return changed;
 }
 
 void ProjectController::setSpecifications(std::optional<qftbx::SpecificationRecords> specifications){
@@ -118,7 +139,7 @@ const qftbx::CloudSet & ProjectController::contour(){
     return data.contour();
 }
 
-bool ProjectController::computeTemplates(QVector <qreal> epsilon, qftbx::ParameterGrids grids, bool cuda){
+bool ProjectController::computeTemplates(std::vector <double> epsilon, qftbx::ParameterGrids grids, bool cuda){
 
     //Preconditions, stated instead of dereferenced. They matter more now that
     //publishing an input DROPS what was computed from the old one: without
@@ -153,12 +174,12 @@ bool ProjectController::computeTemplates(QVector <qreal> epsilon, qftbx::Paramet
     return produced;
 }
 
-QVector <qreal> * ProjectController::epsilon(){
+std::vector <double> * ProjectController::epsilon(){
     return data.epsilon();
 }
 
 
-const qftbx::CloudSet & ProjectController::recomputeContour(QVector <qreal> epsilon){
+const qftbx::CloudSet & ProjectController::recomputeContour(std::vector <double> epsilon){
     m_templateEngine->computeContours(epsilon);
 
     setContour(m_templateEngine->contours());
@@ -167,8 +188,8 @@ const qftbx::CloudSet & ProjectController::recomputeContour(QVector <qreal> epsi
     return data.contour();
 }
 
-bool ProjectController::computeBoundaries(QPointF phaseRange, qint32 phaseCount, QPointF magnitudeRange,
-                                     qint32 magnitudeCount, qreal exportInfinity, bool contour, bool cuda){
+bool ProjectController::computeBoundaries(qftbx::Range phaseRange, std::int32_t phaseCount, qftbx::Range magnitudeRange,
+                                     std::int32_t magnitudeCount, double exportInfinity, bool contour, bool cuda){
 
     if (data.plant() == nullptr || data.frequencies() == nullptr){
         throw qftbx::InvalidInput("The boundaries need a plant and a set of "
@@ -215,21 +236,26 @@ const qftbx::UnionBuckets & ProjectController::unionBuckets(){
 }
 
 bool ProjectController::setControllerStructure(std::unique_ptr<LtiSystem> controller){
+    const bool changed = controller == nullptr || data.controller() == nullptr ||
+            !controller->sameAs(*data.controller());
+
     data.setController(std::move(controller));
 
     //A different controller structure means the computed controller answers a
-    //question nobody asked any more.
-    dropLoopShaping();
+    //question nobody asked any more. The same one means it still answers it.
+    if (changed) {
+        dropLoopShaping();
+    }
 
-    return true;
+    return changed;
 }
 
 LtiSystem * ProjectController::controllerStructure(){
     return data.controller();
 }
 
-bool ProjectController::computeLoopShaping(qreal epsilon, tools::LoopShapingAlgorithm algorithm, QPointF plotRange, qreal pointCount,
-                                      qint32 initialisation){
+bool ProjectController::computeLoopShaping(double epsilon, tools::LoopShapingAlgorithm algorithm, qftbx::Range plotRange, double pointCount,
+                                      std::int32_t initialisation){
 
     if (data.plant() == nullptr || data.frequencies() == nullptr){
         throw qftbx::InvalidInput("The loop shaping needs a plant and a set of "
@@ -271,7 +297,7 @@ LoopShapingResult * ProjectController::loopShapingResult(){
     return data.loopShaping();
 }
 
-bool ProjectController::save(QString path){
+bool ProjectController::save(std::string path){
 
     ProjectContent content;
 
@@ -295,7 +321,7 @@ bool ProjectController::save(QString path){
     return true;
 }
 
-std::vector<bool> ProjectController::load(QString path){
+std::vector<bool> ProjectController::load(std::string path){
 
     ProjectReader reader;
 

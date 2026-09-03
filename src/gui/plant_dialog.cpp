@@ -2,6 +2,7 @@
 #include "src/core/text_tokens.h"
 #include "ui_plant_dialog.h"
 
+#include "src/core/exception.h"
 #include "src/gui/error_message.h"
 #include "src/core/math/expression_cache.h"
 #include "src/gui/plot_palette.h"
@@ -125,16 +126,19 @@ bool PlantDialog::parseCoefficients(CoefficientTable & tabla, QLineEdit *linea,
                                     CoefficientTable & expressionTable,
                                     UncertainTable & uncertainTable){
 
-    CoefficientRow vec1 = qftbx::text::tokens(linea->text());
+    CoefficientRow vec1;
+    for (const std::string & token : qftbx::text::tokens(linea->text().toStdString())) {
+        vec1.push_back(QString::fromStdString(token));
+    }
     CoefficientRow vec;
     UncertainRow vec2;
 
     if (linea->text().isEmpty()){
-        vec1.append("1");
-        vec2.append(false);
+        vec1.push_back("1");
+        vec2.push_back(false);
     } else{
 
-        foreach (QString e, vec1) {
+        for (QString e : vec1) {
 
             QRegularExpression re("[a-zA-Z]+");
 
@@ -152,7 +156,7 @@ bool PlantDialog::parseCoefficients(CoefficientTable & tabla, QLineEdit *linea,
                 //the constants (e, pi, i) and the unit operators - "k",
                 //"m", "u" - where "k" is the obvious name for a gain and
                 //would otherwise be read as the multiplier 1e3.
-                if (qftbx::math::isReservedName(capture)){
+                if (qftbx::math::isReservedName(capture.toStdString())){
                     errorMessage(tr("\"%1\" cannot be used as a parameter name: "
                                     "the expression parser already defines it.").arg(capture),
                                  tr("Plant input"));
@@ -160,7 +164,7 @@ bool PlantDialog::parseCoefficients(CoefficientTable & tabla, QLineEdit *linea,
                 }
 
                 if (!p.IsFunDefined(capture.toStdString())){
-                    vec.append(capture);
+                    vec.push_back(capture);
                     capture = QString();
                     isUncertain = true;
                     break;
@@ -170,17 +174,17 @@ bool PlantDialog::parseCoefficients(CoefficientTable & tabla, QLineEdit *linea,
                 e.remove(capture);
             }
 
-            vec2.append(isUncertain);
+            vec2.push_back(isUncertain);
 
             if (!isUncertain){
-                vec.append(e);
+                vec.push_back(e);
             }
         }
     }
 
-    tabla.append(vec);
-    uncertainTable.append(vec2);
-    expressionTable.append(vec1);
+    tabla.push_back(vec);
+    uncertainTable.push_back(vec2);
+    expressionTable.push_back(vec1);
 
     return true;
 }
@@ -207,7 +211,7 @@ bool PlantDialog::parseScalar(CoefficientTable & tabla, QLineEdit *linea,
     while (!capture.isNull()){
 
         if (!p.IsFunDefined(capture.toStdString())){
-            vec.append(capture);
+            vec.push_back(capture);
             capture = QString();
             isUncertain = true;
             break;
@@ -217,15 +221,15 @@ bool PlantDialog::parseScalar(CoefficientTable & tabla, QLineEdit *linea,
         aux.remove(capture);
     }
 
-    vec2.append(isUncertain);
+    vec2.push_back(isUncertain);
 
     if (!isUncertain){
-        vec.append(aux);
+        vec.push_back(aux);
     }
 
-    tabla.append(vec);
-    expressionTable.append(vec1);
-    uncertainTable.append(vec2);
+    tabla.push_back(vec);
+    expressionTable.push_back(vec1);
+    uncertainTable.push_back(vec2);
 
     return true;
 }
@@ -250,9 +254,9 @@ bool PlantDialog::parseFreeForm(QLineEdit * linea, CoefficientTable & tabla,
 
         if (!p.IsFunDefined(capture.toStdString()) && capture != "s"){
 
-            expressions.append(capture);
-            values.append(capture);
-            flags.append(true);
+            expressions.push_back(capture);
+            values.push_back(capture);
+            flags.push_back(true);
 
             capture = QString();
         }
@@ -262,9 +266,9 @@ bool PlantDialog::parseFreeForm(QLineEdit * linea, CoefficientTable & tabla,
     }
 
 
-    tabla.append(values);
-    expressionTable.append(expressions);
-    uncertainTable.append(flags);
+    tabla.push_back(values);
+    expressionTable.push_back(expressions);
+    uncertainTable.push_back(flags);
 
     return true;
 }
@@ -374,6 +378,12 @@ void PlantDialog::on_okButton_clicked()
     } catch (mup::ParserError &) {
         errorMessage(tr("There is an error in the plant data"), tr("Plant input"));
         return;
+    } catch (const qftbx::Exception & e) {
+        //And the same treatment for a value that parses but is not a number
+        //a model can use: muParserX answers "0/0" and "1/0" with a NaN and
+        //an infinity instead of complaining, and Parameter refuses those.
+        errorMessage(e.what(), tr("Plant input"));
+        return;
     }
 
     //A second accept replaces the answer of the first one; whoever took it
@@ -389,14 +399,14 @@ void PlantDialog::on_okButton_clicked()
         std::vector<Parameter> deno = uncertaintyDialog->denominator();
 
         if (ui->zpkRadio->isChecked()){
-            plant = std::make_unique<ZeroPoleGain>(ui->nameEdit->text(),nume, deno,kv,retv);
+            plant = std::make_unique<ZeroPoleGain>(ui->nameEdit->text().toStdString(),nume, deno,kv,retv);
         }else if(ui->tcgRadio->isChecked()){
-            plant = std::make_unique<TimeConstantGain>(ui->nameEdit->text(),nume, deno,kv,retv);
+            plant = std::make_unique<TimeConstantGain>(ui->nameEdit->text().toStdString(),nume, deno,kv,retv);
         }else if (ui->polynomialRadio->isChecked()){
-            plant = std::make_unique<PolynomialForm>(ui->nameEdit->text(), nume, deno,kv,retv);
+            plant = std::make_unique<PolynomialForm>(ui->nameEdit->text().toStdString(), nume, deno,kv,retv);
         }else{
-            plant = std::make_unique<FreeForm>(ui->nameEdit->text(), nume, deno,kv,retv,
-                                      ui->freeNumerator->text(), ui->freeDenominator->text());
+            plant = std::make_unique<FreeForm>(ui->nameEdit->text().toStdString(), nume, deno,kv,retv,
+                                      ui->freeNumerator->text().toStdString(), ui->freeDenominator->text().toStdString());
         }
     }else{
         std::optional<std::vector<Parameter>> nume = buildParameters(valueTable->at(0));
@@ -408,14 +418,14 @@ void PlantDialog::on_okButton_clicked()
         }
 
         if (ui->zpkRadio->isChecked()){
-            plant = std::make_unique<ZeroPoleGain>(ui->nameEdit->text(), *nume, *deno, kv, retv);
+            plant = std::make_unique<ZeroPoleGain>(ui->nameEdit->text().toStdString(), *nume, *deno, kv, retv);
         }else if(ui->tcgRadio->isChecked()){
-            plant = std::make_unique<TimeConstantGain>(ui->nameEdit->text(), *nume, *deno, kv, retv);
+            plant = std::make_unique<TimeConstantGain>(ui->nameEdit->text().toStdString(), *nume, *deno, kv, retv);
         }else if (ui->polynomialRadio->isChecked()){
-            plant = std::make_unique<PolynomialForm>(ui->nameEdit->text(), *nume, *deno, kv, retv);
+            plant = std::make_unique<PolynomialForm>(ui->nameEdit->text().toStdString(), *nume, *deno, kv, retv);
         }else {
-            plant = std::make_unique<FreeForm>(ui->nameEdit->text(), *nume, *deno, kv, retv,
-                                      ui->freeNumerator->text(), ui->freeDenominator->text());
+            plant = std::make_unique<FreeForm>(ui->nameEdit->text().toStdString(), *nume, *deno, kv, retv,
+                                      ui->freeNumerator->text().toStdString(), ui->freeDenominator->text().toStdString());
         }
 
 
@@ -430,16 +440,19 @@ void PlantDialog::on_okButton_clicked()
 std::optional<std::vector<Parameter>> PlantDialog::buildParameters(const CoefficientRow & numbers){
     std::vector<Parameter> var;
 
-    if (numbers.isEmpty()){
+    if (numbers.empty()){
         return var;
     }
 
     var.reserve(numbers.size());
 
-    foreach (const QString &string, numbers) {
+    for (const QString &string : numbers) {
         p.SetExpr(string.toStdString());
         try {
             var.push_back(Parameter(p.Eval().GetFloat()));
+        } catch (const qftbx::Exception &) {
+            //A coefficient that is not a finite number: same answer.
+            return std::nullopt;
         } catch (mup::ParserError &) {
             //An invalid coefficient used to become 0 here, silently: the
             //plant that got designed for was not the one the user typed.

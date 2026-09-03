@@ -1,3 +1,4 @@
+#include "qt_containers.h"
 #include "boundary_viewer.h"
 #include "ui_boundary_viewer.h"
 
@@ -50,7 +51,7 @@ void BoundaryViewer::clearDiagram(){
     //Qt's own mechanism, and the only reason there is a delete left here:
     //destroying the row widget is how a widget leaves a layout, and it
     //takes its checkbox with it.
-    foreach (QCheckBox * che, checkboxes) {
+    for (QCheckBox * che : checkboxes) {
         delete che->parentWidget();
     }
     checkboxes.clear();
@@ -63,7 +64,7 @@ void BoundaryViewer::clearDiagram(){
     plotted = false;
 }
 
-void BoundaryViewer::setData(const BoundaryData *data, QVector <qreal> * omega){
+void BoundaryViewer::setData(const BoundaryData *data, std::vector<double> * omega){
 
     boundaryData = data;
     this->omega = omega;
@@ -94,14 +95,14 @@ void BoundaryViewer::showDiagram(){
             const qftbx::TraceSet & b = entry.second;
             for (const qftbx::Trace & bound : b) {
 
-                QVector <qreal> ejex;
-                QVector <qreal> ejey;
+                std::vector<double> ejex;
+                std::vector<double> ejey;
                 ejex.reserve(static_cast<qsizetype>(bound.size()));
                 ejey.reserve(static_cast<qsizetype>(bound.size()));
 
-                for (const QPointF & p : bound) {
-                   ejex.append(p.x());
-                   ejey.append(p.y());
+                for (const qftbx::NicholsPoint & p : bound) {
+                   ejex.push_back(p.phase);
+                   ejey.push_back(p.magnitude);
                 }
 
                 /*gra->append(ui->plot->addGraph());
@@ -111,15 +112,15 @@ void BoundaryViewer::showDiagram(){
                 ui->plot->graph(k)->setScatterStyle(QCPScatterStyle::ssCircle);*/
 
                 QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-                curva->setData(ejex, ejey);
+                curva->setData(tools::toQVector(ejex), tools::toQVector(ejey));
                 curva->setPen(color);
-                gra.append(curva);
+                gra.push_back(curva);
 
                 k++;
             }
         }
 
-        curves.append(std::move(gra));
+        curves.push_back(std::move(gra));
     }
 
     ui->plot->xAxis2->setVisible(true);
@@ -155,7 +156,7 @@ void BoundaryViewer::addFrequencyRow(QColor color, qint32 pos){
     checkBox->setStyleSheet("color : " + color.name());
 
     colorsLayout->addWidget(widget);
-    checkboxes.append(checkBox);
+    checkboxes.push_back(checkBox);
     checkBox->setCheckState(Qt::Checked);
 
     connect(checkBox, SIGNAL (clicked()), this, SLOT (applyCheckboxes()));

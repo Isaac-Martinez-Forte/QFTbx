@@ -1,6 +1,10 @@
+#include <string>
+#include <vector>
+#include <cstdint>
 #include <cmath>
 #include <complex>
 
+#include "src/core/text_tokens.h"
 #include "zero_pole_gain.h"
 
 using namespace std;
@@ -8,7 +12,7 @@ using namespace mup;
 
 namespace qftbx {
 
-ZeroPoleGain::ZeroPoleGain(QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator, Parameter k, Parameter delay):
+ZeroPoleGain::ZeroPoleGain(std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator, Parameter k, Parameter delay):
     TransferFunction(name, numerator, denominator,k,delay)
 {
 }
@@ -16,85 +20,85 @@ ZeroPoleGain::ZeroPoleGain(QString name, std::vector <Parameter> numerator, std:
 ZeroPoleGain::~ZeroPoleGain(){
 }
 
-std::unique_ptr<LtiSystem> ZeroPoleGain::create (QString name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
-                             Parameter k, Parameter delay, QString numeratorExpr __attribute__((unused)), QString denominatorExpr __attribute__((unused))){
+std::unique_ptr<LtiSystem> ZeroPoleGain::create (std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
+                             Parameter k, Parameter delay, std::string numeratorExpr __attribute__((unused)), std::string denominatorExpr __attribute__((unused))){
     return std::make_unique<ZeroPoleGain>(name, std::move(numerator), std::move(denominator),
                                           std::move(k), std::move(delay));
 }
 
 
 
-QString ZeroPoleGain::expression (QVector <qreal> * numerator, QVector <qreal> * denominator,
-                            qreal k, qreal delay, qreal omega){
-    qint32 sizeDen = denominator->size();
-    qint32 sizeNum = numerator->size();
+std::string ZeroPoleGain::expression (std::vector <double> * numerator, std::vector <double> * denominator,
+                            double k, double delay, double omega){
+    std::size_t sizeDen = denominator->size();
+    std::size_t sizeNum = numerator->size();
 
-    QString expr;
-
-
-    expr += QString::number(k) + "*(";
+    std::string expr;
 
 
-    if (numerator->isEmpty()){
+    expr += qftbx::text::number(k) + "*(";
+
+
+    if (numerator->empty()){
         expr += "1) / (";
     } else {
-        for (qint32 i = 0; i < sizeNum-1; i++){
+        for (std::size_t i = 0; i + 1 < sizeNum; i++){
 
-            expr += "(("+ QString::number(omega) + "*i) +" + QString::number(numerator->at(i)) + ") *";
+            expr += "(("+ qftbx::text::number(omega) + "*i) +" + qftbx::text::number(numerator->at(i)) + ") *";
         }
 
-        expr += "((" + QString::number(omega) + "*i) + " + QString::number(numerator->last()) + ")) / (";
+        expr += "((" + qftbx::text::number(omega) + "*i) + " + qftbx::text::number(numerator->back()) + ")) / (";
     }
 
 
-    if (denominator->isEmpty()){
+    if (denominator->empty()){
         expr += "1)";
     } else {
-        for (qint32 i = 0; i < sizeDen-1; i++){
+        for (std::size_t i = 0; i + 1 < sizeDen; i++){
 
-            expr += "(("+ QString::number(omega) + "*i) + " + QString::number(denominator->at(i)) + ") *";
+            expr += "(("+ qftbx::text::number(omega) + "*i) + " + qftbx::text::number(denominator->at(i)) + ") *";
         }
 
-        expr += "(("+ QString::number(omega) + "*i) + " + QString::number(denominator->last()) + "))";
+        expr += "(("+ qftbx::text::number(omega) + "*i) + " + qftbx::text::number(denominator->back()) + "))";
     }
 
     if (delay != 0){
-        expr += "* e^(-i*" + QString::number(omega) + "*" + QString::number(delay) +")";
+        expr += "* e^(-i*" + qftbx::text::number(omega) + "*" + qftbx::text::number(delay) +")";
     }
 
 
     return expr;
 }
 
-QString ZeroPoleGain::expression(qreal w){
+std::string ZeroPoleGain::expression(double w){
 
-    qint32 sizeDen = m_denominator.size();
-    qint32 sizeNum = m_numerator.size();
+    std::size_t sizeDen = m_denominator.size();
+    std::size_t sizeNum = m_numerator.size();
 
-    QString expr;
+    std::string expr;
 
     if (m_gain.isUncertain()){
         expr += m_gain.name() + "*(";
     }else {
-        expr += QString::number(m_gain.nominal()) + "*(";
+        expr += qftbx::text::number(m_gain.nominal()) + "*(";
     }
 
     if (m_numerator.empty()){
         expr += "1) / (";
     } else {
-        for (qint32 i = 0; i < sizeNum-1; i++){
+        for (std::size_t i = 0; i + 1 < sizeNum; i++){
 
             if (m_numerator[i].isUncertain()){
-                expr += "((" + QString::number(w) + "*i) + " + m_numerator[i].name() + ") *";
+                expr += "((" + qftbx::text::number(w) + "*i) + " + m_numerator[i].name() + ") *";
             } else {
-                expr += "(("+ QString::number(w) + "*i) +" + QString::number(m_numerator[i].nominal()) + ") *";
+                expr += "(("+ qftbx::text::number(w) + "*i) +" + qftbx::text::number(m_numerator[i].nominal()) + ") *";
             }
         }
 
         if(m_numerator.back().isUncertain()){
-            expr += "((" + QString::number(w) + "*i) + " + m_numerator.back().name() + ")) / (";
+            expr += "((" + qftbx::text::number(w) + "*i) + " + m_numerator.back().name() + ")) / (";
         } else {
-            expr += "((" + QString::number(w) + "*i) + " + QString::number(m_numerator.back().nominal()) + ")) / (";
+            expr += "((" + qftbx::text::number(w) + "*i) + " + qftbx::text::number(m_numerator.back().nominal()) + ")) / (";
         }
     }
 
@@ -102,20 +106,20 @@ QString ZeroPoleGain::expression(qreal w){
     if (m_denominator.empty()){
         expr += "1)";
     } else {
-        for (qint32 i = 0; i < sizeDen-1; i++){
+        for (std::size_t i = 0; i + 1 < sizeDen; i++){
 
             if (m_denominator[i].isUncertain()){
-                expr += "((" + QString::number(w) + "*i) + " + m_denominator[i].name() + ") *";
+                expr += "((" + qftbx::text::number(w) + "*i) + " + m_denominator[i].name() + ") *";
             } else {
-                expr += "(("+ QString::number(w) + "*i) + " + QString::number(m_denominator[i].nominal()) + ") *";
+                expr += "(("+ qftbx::text::number(w) + "*i) + " + qftbx::text::number(m_denominator[i].nominal()) + ") *";
             }
         }
 
 
         if (m_denominator.back().isUncertain()){
-            expr += "((" + QString::number(w) + "*i) + " + m_denominator.back().name() + "))";
+            expr += "((" + qftbx::text::number(w) + "*i) + " + m_denominator.back().name() + "))";
         }else{
-            expr += "(("+ QString::number(w) + "*i) + " + QString::number(m_denominator.back().nominal()) + "))";
+            expr += "(("+ qftbx::text::number(w) + "*i) + " + qftbx::text::number(m_denominator.back().nominal()) + "))";
         }
     }
 
@@ -124,9 +128,9 @@ QString ZeroPoleGain::expression(qreal w){
     //uncertain (even with a zero nominal, so the template sweep can drive
     //it) or a non-zero constant.
     if (m_delay.isUncertain()){
-        expr += "* e^(-i*" + QString::number(w) + "*" + m_delay.name() + ")";
+        expr += "* e^(-i*" + qftbx::text::number(w) + "*" + m_delay.name() + ")";
     }else if (m_delay.nominal() != 0){
-        expr += "* e^(-i*" + QString::number(w) + "*" + QString::number(m_delay.nominal()) +")";
+        expr += "* e^(-i*" + qftbx::text::number(w) + "*" + qftbx::text::number(m_delay.nominal()) +")";
     }
 
     return expr;
@@ -138,34 +142,34 @@ LtiSystem::SystemType ZeroPoleGain::type(){
 }
 
 
-QString ZeroPoleGain::expression(){
-    qint32 sizeDen = m_denominator.size();
-    qint32 sizeNum = m_numerator.size();
+std::string ZeroPoleGain::expression(){
+    std::size_t sizeDen = m_denominator.size();
+    std::size_t sizeNum = m_numerator.size();
 
-    QString expr;
+    std::string expr;
 
     if (m_gain.isUncertain()){
         expr += m_gain.name() + "*(";
     }else {
-        expr += QString::number(m_gain.nominal()) + "*(";
+        expr += qftbx::text::number(m_gain.nominal()) + "*(";
     }
 
     if (m_numerator.empty()){
         expr += "1) / (";
     } else {
-        for (qint32 i = 0; i < sizeNum-1; i++){
+        for (std::size_t i = 0; i + 1 < sizeNum; i++){
 
             if (m_numerator[i].isUncertain()){
                 expr += "(s + " + m_numerator[i].name() + ") *";
             } else {
-                expr += "(s +" + QString::number(m_numerator[i].nominal()) + ") *";
+                expr += "(s +" + qftbx::text::number(m_numerator[i].nominal()) + ") *";
             }
         }
 
         if(m_numerator.back().isUncertain()){
             expr += "(s + " + m_numerator.back().name() + ")) / (";
         } else {
-            expr += "(s + " + QString::number(m_numerator.back().nominal()) + ")) / (";
+            expr += "(s + " + qftbx::text::number(m_numerator.back().nominal()) + ")) / (";
         }
     }
 
@@ -173,75 +177,75 @@ QString ZeroPoleGain::expression(){
     if (m_denominator.empty()){
         expr += "1)";
     }else {
-        for (qint32 i = 0; i < sizeDen-1; i++){
+        for (std::size_t i = 0; i + 1 < sizeDen; i++){
 
             if (m_denominator[i].isUncertain()){
                 expr += "(s + " + m_denominator[i].name() + ") *";
             } else {
-                expr += "(s + " + QString::number(m_denominator[i].nominal()) + ") *";
+                expr += "(s + " + qftbx::text::number(m_denominator[i].nominal()) + ") *";
             }
         }
 
         if (m_denominator.back().isUncertain()){
             expr += "(s + " + m_denominator.back().name() + "))";
         }else{
-            expr += "(s + " + QString::number(m_denominator.back().nominal()) + "))";
+            expr += "(s + " + qftbx::text::number(m_denominator.back().nominal()) + "))";
         }
     }
 
     if (m_delay.isUncertain()){
         expr += " * e^(-s*" + m_delay.name() + ")";
     }else if (m_delay.nominal() != 0){
-        expr += " * e^(-s*" + QString::number(m_delay.nominal()) +")";
+        expr += " * e^(-s*" + qftbx::text::number(m_delay.nominal()) +")";
     }
 
     return expr;
 }
 
 
-std::complex <qreal> ZeroPoleGain::evaluateNumerator(QVector <qreal> * nume, qreal omega){
+std::complex <double> ZeroPoleGain::evaluateNumerator(std::vector <double> * nume, double omega){
 
-    if (nume->isEmpty()){
-        return std::complex <qreal>(1);
+    if (nume->empty()){
+        return std::complex <double>(1);
     }
 
-    qint32 sizeNum = nume->size();
-    QString expr = "(";
+    std::size_t sizeNum = nume->size();
+    std::string expr = "(";
 
-    for (qint32 i = 0; i < sizeNum-1; i++){
+    for (std::size_t i = 0; i + 1 < sizeNum; i++){
 
-        expr += "(("+ QString::number(omega) + "*i) +" + QString::number(nume->at(i)) + ") *";
+        expr += "(("+ qftbx::text::number(omega) + "*i) +" + qftbx::text::number(nume->at(i)) + ") *";
     }
 
-    expr += "((" + QString::number(omega) + "*i) + " + QString::number(nume->last()) + "))";
+    expr += "((" + qftbx::text::number(omega) + "*i) + " + qftbx::text::number(nume->back()) + "))";
 
 
     mup::ParserX p (mup::pckALL_COMPLEX);
 
-    p.SetExpr(expr.toStdString());
+    p.SetExpr(expr);
 
     return p.Eval().GetComplex();
 }
 
-std::complex <qreal> ZeroPoleGain::evaluateDenominator(QVector <qreal> * deno, qreal omega){
+std::complex <double> ZeroPoleGain::evaluateDenominator(std::vector <double> * deno, double omega){
 
-    if (deno->isEmpty()){
-        return std::complex <qreal>(1);
+    if (deno->empty()){
+        return std::complex <double>(1);
     }
 
-    qint32 sizeDen = deno->size();
-    QString expr = "(";
+    std::size_t sizeDen = deno->size();
+    std::string expr = "(";
 
-    for (qint32 i = 0; i < sizeDen-1; i++){
+    for (std::size_t i = 0; i + 1 < sizeDen; i++){
 
-        expr += "(("+ QString::number(omega) + "*i) + " + QString::number(deno->at(i)) + ") *";
+        expr += "(("+ qftbx::text::number(omega) + "*i) + " + qftbx::text::number(deno->at(i)) + ") *";
     }
 
-    expr += "(("+ QString::number(omega) + "*i) + " + QString::number(deno->last()) + "))";
+    expr += "(("+ qftbx::text::number(omega) + "*i) + " + qftbx::text::number(deno->back()) + "))";
 
     mup::ParserX p (mup::pckALL_COMPLEX);
 
-    p.SetExpr(expr.toStdString());
+    p.SetExpr(expr);
 
     return p.Eval().GetComplex();
 }
@@ -252,19 +256,19 @@ std::complex <qreal> ZeroPoleGain::evaluateDenominator(QVector <qreal> * deno, q
 //delay. An empty list is the constant 1, as the expression generator writes
 //it. Note the sign: the stored coefficients are the NEGATED roots, which is
 //what the textual form (jw) + z always computed.
-std::complex <qreal> ZeroPoleGain::valueAt(qreal w, const std::vector<qreal> & numerator,
-                                           const std::vector<qreal> & denominator,
-                                           qreal gain, qreal delay)
+std::complex <double> ZeroPoleGain::valueAt(double w, const std::vector<double> & numerator,
+                                           const std::vector<double> & denominator,
+                                           double gain, double delay)
 {
-    const std::complex<qreal> s(0.0, w);
+    const std::complex<double> s(0.0, w);
 
-    std::complex<qreal> num(1.0, 0.0);
-    for (const qreal zero : numerator) {
+    std::complex<double> num(1.0, 0.0);
+    for (const double zero : numerator) {
         num *= s + zero;
     }
 
-    std::complex<qreal> den(1.0, 0.0);
-    for (const qreal pole : denominator) {
+    std::complex<double> den(1.0, 0.0);
+    for (const double pole : denominator) {
         den *= s + pole;
     }
 

@@ -48,11 +48,11 @@ BoundaryGridDialog::~BoundaryGridDialog()
 {
 }
 
-QPointF BoundaryGridDialog::phaseRangeValue(){
+qftbx::Range BoundaryGridDialog::phaseRangeValue(){
     return phaseRange;
 }
 
-QPointF BoundaryGridDialog::magnitudeRangeValue(){
+qftbx::Range BoundaryGridDialog::magnitudeRangeValue(){
     return magnitudeRange;
 }
 
@@ -77,6 +77,12 @@ bool BoundaryGridDialog::contourSelected(){
     return true;
 }
 
+namespace {
+//Ten million cells is far past any sensible Nichols grid and still a
+//comfortable allocation.
+constexpr std::int64_t kMaxGridCells = 10000000;
+}
+
 void BoundaryGridDialog::on_buttonBox_accepted()
 {
     if (ui->infinityEdit->text().isEmpty()){
@@ -85,8 +91,8 @@ void BoundaryGridDialog::on_buttonBox_accepted()
         infinityEdit = ui->infinityEdit->text().toDouble();
     }
 
-    phaseRange = QPointF(ui->phaseStart->text().toDouble(),ui->phaseEnd->text().toDouble());
-    magnitudeRange = QPointF(ui->magnitudeStart->text().toDouble(),ui->magnitudeEnd->text().toDouble());
+    phaseRange = qftbx::Range(ui->phaseStart->text().toDouble(),ui->phaseEnd->text().toDouble());
+    magnitudeRange = qftbx::Range(ui->magnitudeStart->text().toDouble(),ui->magnitudeEnd->text().toDouble());
 
     phaseCount = ui->phasePoints->text().toInt();
     magnitudeCount = ui->magnitudePoints->text().toInt();
@@ -94,9 +100,26 @@ void BoundaryGridDialog::on_buttonBox_accepted()
     //The grid must make sense before launching the computation: increasing
     //ranges and at least two points per axis (any value used to go straight
     //into the engine).
-    if (phaseRange.x() >= phaseRange.y() || magnitudeRange.x() >= magnitudeRange.y() ||
+    if (phaseRange.min >= phaseRange.max || magnitudeRange.min >= magnitudeRange.max ||
             phaseCount < 2 || magnitudeCount < 2){
         tools::errorMessage(tr("The grid ranges must be increasing, with at least 2 points per axis."), tr("Boundary grid input"));
+        accepted = false;
+        return;
+    }
+
+    //And a ceiling. There was none: the counts only had to be >= 2, so an
+    //extra couple of zeros in either field reached tools::linspace, which
+    //reserves that many doubles - a std::bad_alloc, which is not the
+    //qftbx::Exception the computation is wrapped in, so the application went
+    //down on a typo. The budget guards against that typo; it is not a
+    //control-design limit, and it can be raised. For scale, a 1-degree phase
+    //grid over 360 degrees is 360 points per axis.
+    if (static_cast<std::int64_t>(phaseCount) * magnitudeCount > kMaxGridCells){
+        tools::errorMessage(tr("The grid asks for %1 cells, and the limit is "
+                               "%2. Reduce the number of points per axis.")
+                                .arg(static_cast<std::int64_t>(phaseCount) * magnitudeCount)
+                                .arg(kMaxGridCells),
+                            tr("Boundary grid input"));
         accepted = false;
         return;
     }

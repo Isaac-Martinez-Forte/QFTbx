@@ -2,9 +2,11 @@
 #define QFTBX_PROJECT_CONTROLLER_H
 
 
+#include <string>
+#include <vector>
+#include <cstdint>
 #include <memory>
 
-#include <QHash>
 #include <complex>
 
 #include "src/core/system/lti_system.h"
@@ -51,7 +53,20 @@ public:
     // --- step 1: the plant -------------------------------------------------
 
     LtiSystem * plant();
-    void setPlant(std::unique_ptr<LtiSystem> plant);
+
+    /**
+     * @brief Publishes a new plant and drops what was computed from the old one.
+     * @return true when it DID drop something, i.e. when the new plant is not
+     * the same by value as the one it replaced.
+     *
+     * The comparison lives here and not in the interface: it is this class
+     * that decides whether the computed artefacts survive, so anywhere else
+     * would be a second opinion on the same question - and the window used
+     * to hold one, comparing the addresses of a fresh object and a stored
+     * one, which can never match. It always invalidated, and it agreed with
+     * this class only by accident.
+     */
+    bool setPlant(std::unique_ptr<LtiSystem> plant);
 
     // --- step 2: the specifications ---------------------------------------
 
@@ -61,10 +76,23 @@ public:
     // --- step 3: the design frequencies -----------------------------------
 
     Omega * omega();
-    void setOmega(std::unique_ptr<Omega> omega);
+
+    /**
+     * @brief Publishes a new frequency set and drops what was computed from the old one.
+     * @return true when it DID drop something, i.e. when the new set is not
+     * the same by value as the one it replaced.
+     *
+     * The comparison lives here and not in the interface: it is this class
+     * that decides whether the computed artefacts survive, so anywhere else
+     * would be a second opinion on the same question - and the window used
+     * to hold one, comparing the addresses of a fresh object and a stored
+     * one, which can never match. It always invalidated, and it agreed with
+     * this class only by accident.
+     */
+    bool setOmega(std::unique_ptr<Omega> omega);
 
     /// The frequency values alone, the form every engine takes.
-    QVector<qreal> * frequencies();
+    std::vector<double> * frequencies();
 
     // --- step 4: the templates --------------------------------------------
 
@@ -77,14 +105,14 @@ public:
      * @param cuda run the GPU path (requires a CUDA build).
      * @return false when either the clouds or the contours came out empty.
      */
-    bool computeTemplates(QVector<qreal> epsilon, qftbx::ParameterGrids grids, bool cuda);
+    bool computeTemplates(std::vector<double> epsilon, qftbx::ParameterGrids grids, bool cuda);
 
     /// Recomputes only the contours, with a new epsilon.
-    const qftbx::CloudSet & recomputeContour(QVector<qreal> epsilon);
+    const qftbx::CloudSet & recomputeContour(std::vector<double> epsilon);
 
     const qftbx::CloudSet & templates();
     const qftbx::CloudSet & contour();
-    QVector<qreal> * epsilon();
+    std::vector<double> * epsilon();
 
     void setTemplates(qftbx::CloudSet templates, qftbx::CloudSet contour, bool hasContour);
     void setContour(qftbx::CloudSet contour);
@@ -102,8 +130,8 @@ public:
      * full value sets.
      * @param cuda run the GPU path.
      */
-    bool computeBoundaries(QPointF phaseRange, qint32 phaseCount, QPointF magnitudeRange,
-                           qint32 magnitudeCount, qreal exportInfinity, bool useContour, bool cuda);
+    bool computeBoundaries(qftbx::Range phaseRange, std::int32_t phaseCount, qftbx::Range magnitudeRange,
+                           std::int32_t magnitudeCount, double exportInfinity, bool useContour, bool cuda);
 
     BoundaryData * boundaries();
     void setBoundaries(std::optional<qftbx::BoundaryData> boundaries);
@@ -116,6 +144,19 @@ public:
     /// The controller BEING DESIGNED: its structure and the search box of
     /// its parameters.
     LtiSystem * controllerStructure();
+
+    /**
+     * @brief Publishes a new controller structure and drops what was computed from the old one.
+     * @return true when it DID drop something, i.e. when the new structure is not
+     * the same by value as the one it replaced.
+     *
+     * The comparison lives here and not in the interface: it is this class
+     * that decides whether the computed artefacts survive, so anywhere else
+     * would be a second opinion on the same question - and the window used
+     * to hold one, comparing the addresses of a fresh object and a stored
+     * one, which can never match. It always invalidated, and it agreed with
+     * this class only by accident.
+     */
     bool setControllerStructure(std::unique_ptr<LtiSystem> controller);
 
     // --- step 7: the loop shaping -----------------------------------------
@@ -139,8 +180,8 @@ public:
      * @return false when the algorithm found no solution; it throws
      * qftbx::InvalidInput when the problem itself is invalid or infeasible.
      */
-    bool computeLoopShaping(qreal epsilon, tools::LoopShapingAlgorithm algorithm, QPointF plotRange,
-                            qreal pointCount, qint32 initialisation = 0);
+    bool computeLoopShaping(double epsilon, tools::LoopShapingAlgorithm algorithm, qftbx::Range plotRange,
+                            double pointCount, std::int32_t initialisation = 0);
 
     LoopShapingResult * loopShapingResult();
     void setLoopShapingResult(std::unique_ptr<LoopShapingResult> result);
@@ -148,7 +189,7 @@ public:
     // --- persistence ------------------------------------------------------
 
     /// Writes the whole project to a .qft file.
-    bool save(QString path);
+    bool save(std::string path);
 
     /**
      * @brief Reads a .qft file into the project.
@@ -159,7 +200,7 @@ public:
      */
     /// Which sections the file carried, in the historical order. By value:
     /// callers used to have to delete this, and most tests did not.
-    std::vector<bool> load(QString path);
+    std::vector<bool> load(std::string path);
 
 private:
     /// Publishing an input drops whatever was computed from the old one: see

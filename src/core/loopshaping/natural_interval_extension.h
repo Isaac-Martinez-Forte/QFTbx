@@ -1,7 +1,7 @@
 #ifndef QFTBX_NATURAL_INTERVAL_EXTENSION_H
 #define QFTBX_NATURAL_INTERVAL_EXTENSION_H
 
-#include <QVector>
+#include <vector>
 
 #include "src/core/system/parameter.h"
 #include "src/core/system/lti_system.h"
@@ -44,29 +44,29 @@ public:
     /// Nichols-plane enclosure of the controller box times the nominal
     /// plant value p0: Re = magnitude interval (dB), Im = phase interval
     /// (degrees, branch (-360, 0]).
-    cxsc::cinterval nicholsBox(LtiSystem * controller, qreal w,
+    cxsc::cinterval nicholsBox(LtiSystem * controller, double w,
                                cxsc::complex p0);
 
     /// Enclosure of the numerator product alone (no gain, no plant),
     /// dB/degrees.
-    cxsc::cinterval numeratorBox(std::vector<Parameter> & numerator, qreal w,
+    cxsc::cinterval numeratorBox(std::vector<Parameter> & numerator, double w,
                                  LtiSystem::SystemType type);
 
     /// Enclosure of the denominator product alone, dB/degrees.
-    cxsc::cinterval denominatorBox(std::vector<Parameter> & denominator, qreal w,
+    cxsc::cinterval denominatorBox(std::vector<Parameter> & denominator, double w,
                                    LtiSystem::SystemType type);
 
     /// Per-term enclosures (dB/degrees) used by the parameter cutting
     /// equations: one numerator factor (jw + z) p0, one denominator factor
     /// p0 / (jw + p), and the gain k p0.
-    cxsc::cinterval numeratorTermBox(Parameter & zero, qreal w, cxsc::complex p0);
-    cxsc::cinterval denominatorTermBox(Parameter & pole, qreal w, cxsc::complex p0);
+    cxsc::cinterval numeratorTermBox(Parameter & zero, double w, cxsc::complex p0);
+    cxsc::cinterval denominatorTermBox(Parameter & pole, double w, cxsc::complex p0);
     cxsc::cinterval gainTermBox(Parameter & gain, cxsc::complex p0);
 
 private:
     /// Interval product of (jw + parameter) factors; the neutral value 1
     /// for an empty vector (a pure-gain controller).
-    cxsc::cinterval factorProduct(std::vector<Parameter> & parameters, qreal w);
+    cxsc::cinterval factorProduct(std::vector<Parameter> & parameters, double w);
 
     /// Enclosure of arg over a complex rectangle, on the (-2*pi, 0] branch.
     cxsc::interval argEnclosure(const cxsc::cinterval & z);

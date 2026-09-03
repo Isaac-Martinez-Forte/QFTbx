@@ -8,6 +8,7 @@ Roberto C. Cruz Rodríguez
 #ifndef QFTBX_LOOPSHAPING_EXPRESSION_TREE_H
 #define QFTBX_LOOPSHAPING_EXPRESSION_TREE_H
 
+#include <string>
 #include <cstdlib>
 #include <cctype>
 #include <cmath>
@@ -17,7 +18,6 @@ Roberto C. Cruz Rodríguez
 #include <map>
 #include <memory>
 #include <stack>
-#include <QRegularExpression>
 
 #include "interval.hpp"
 
@@ -87,7 +87,7 @@ public :
     ExpressionTree();
 
     /// Parses "tex <comparacion> num" as a constraint (the HC4 use).
-    ExpressionTree(const std::string &tex, qreal num, com comparacion);
+    ExpressionTree(const std::string &tex, double num, com comparacion);
 
     /// Parses a plain expression.
     ExpressionTree(const char *tex);
@@ -99,12 +99,12 @@ public :
     void setFunc(const std::string &tex);
 
     /// Replaces the parsed expression and its constraint comparison.
-    void setFunc(const std::string &tex, qreal resultado, com comparacion);
+    void setFunc(const std::string &tex, double resultado, com comparacion);
 
     void setFunc(const char *tex);
 
     /// Evaluates over reals with the given variable values.
-    qreal eval(std::map<std::string, qreal> * variables = NULL);
+    double eval(std::map<std::string, double> * variables = NULL);
 
     /// Evaluates over intervals with the given variable domains.
     interval eval (std::map<std::string, interval> *variables);
@@ -121,7 +121,7 @@ public :
     ExpressionTree &operator=(const ExpressionTree & other);
 
     /// Alternative spelling of eval().
-    qreal operator()(std::map<std::string, qreal> * variables = NULL);
+    double operator()(std::map<std::string, double> * variables = NULL);
 
     interval operator() (std::map<std::string, interval> *variables);
 
@@ -133,7 +133,7 @@ private :
 
     std::unique_ptr<exp_node> make_cpy(exp_node *nod);
 
-    qreal eval_tree(exp_node *nod);
+    double eval_tree(exp_node *nod);
 
     interval eval_tree_in (exp_node * nod);
 
@@ -160,15 +160,15 @@ private :
     //Set at the entry of eval()/propagate() so the recursion does not have
     //to carry them; initialised because not every constructor passes
     //through one of those.
-    std::map<std::string, qreal> * variables = nullptr;
+    std::map<std::string, double> * variables = nullptr;
     std::map<std::string, interval> * variables_in = nullptr;
 
     //The constraint propagate() tests against. Two of the four constructors
     //do not set them, and propagate() reads both.
-    qreal comparisonValue = 0.0;
+    double comparisonValue = 0.0;
     com comparacion = GREATER_EQUAL;
 
-    qreal w = 0.0;
+    double w = 0.0;
 };
 
 //The parser used to carry two hand-written singly-linked stacks, nodeStack

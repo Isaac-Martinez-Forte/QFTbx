@@ -1,50 +1,50 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<QFT>
-    <Planta nombre="cervera">
-        <tipo tipo="0">
-            <expresion size="2">
-                <numerador>a</numerador>
-                <denominador>(s^2)*((s^2) + a)</denominador>
-            </expresion>
-            <numerador size="1">
-                <variable-0>
+<QFT version="2">
+    <plant name="cervera">
+        <type id="0">
+            <expression size="2">
+                <numerator>a</numerator>
+                <denominator>(s^2)*((s^2) + a)</denominator>
+            </expression>
+            <numerator size="1">
+                <parameter>
                     <nominal>2</nominal>
-                    <variable>true</variable>
-                    <nombre>a</nombre>
-                    <exp>a</exp>
-                    <rango>
-                        <inicio>0.5</inicio>
-                        <final>2</final>
-                    </rango>
-                </variable-0>
-            </numerador>
-            <denominador size="1">
-                <variable-0>
+                    <uncertain>true</uncertain>
+                    <name>a</name>
+                    <expr>a</expr>
+                    <range>
+                        <min>0.5</min>
+                        <max>2</max>
+                    </range>
+                </parameter>
+            </numerator>
+            <denominator size="1">
+                <parameter>
                     <nominal>2</nominal>
-                    <variable>true</variable>
-                    <nombre>a</nombre>
-                    <exp>a</exp>
-                    <rango>
-                        <inicio>0.5</inicio>
-                        <final>2</final>
-                    </rango>
-                </variable-0>
-            </denominador>
-            <variable-k>
+                    <uncertain>true</uncertain>
+                    <name>a</name>
+                    <expr>a</expr>
+                    <range>
+                        <min>0.5</min>
+                        <max>2</max>
+                    </range>
+                </parameter>
+            </denominator>
+            <parameter>
                 <nominal>1</nominal>
-                <variable>false</variable>
-            </variable-k>
-            <variable-ret>
+                <uncertain>false</uncertain>
+            </parameter>
+            <parameter>
                 <nominal>0</nominal>
-                <variable>false</variable>
-            </variable-ret>
-        </tipo>
-    </Planta>
+                <uncertain>false</uncertain>
+            </parameter>
+        </type>
+    </plant>
     <omega>
-        <inicio>0</inicio>
-        <final>0</final>
-        <nPuntos>4</nPuntos>
-        <tipo>2</tipo>
-        <valores>0.1 5 10 100 </valores>
+        <min>0</min>
+        <max>0</max>
+        <point-count>4</point-count>
+        <type>2</type>
+        <values>0.1 5 10 100 </values>
     </omega>
 </QFT>

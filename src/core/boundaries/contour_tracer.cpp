@@ -1,14 +1,18 @@
+#include <limits>
+#include <algorithm>
+#include <vector>
+#include <cstdint>
 #include "contour_tracer.h"
 
 namespace qftbx {
 
-ContourTracer::ContourTracer(qreal thresholdDb, const BoundarySheet & sheet){
+ContourTracer::ContourTracer(double thresholdDb, const BoundarySheet & sheet){
     m_thresholdDb = thresholdDb;
     m_sheet = &sheet;
 }
 
 #ifdef CUDA_AVAILABLE
-ContourTracer::ContourTracer(qreal thresholdDb, const float *sheet){
+ContourTracer::ContourTracer(double thresholdDb, const float *sheet){
     m_thresholdDb = thresholdDb;
     m_cudaSheet = sheet;
 }
@@ -20,59 +24,83 @@ ContourTracer::ContourTracer(qreal thresholdDb, const float *sheet){
 //magnitude TOP (index * span - top) and the phase span, which only equals
 //the bottom on grids symmetric around zero / ending at zero: any other
 //grid produced boundaries shifted by (top - |bottom|).
-TraceSet ContourTracer::trace(qreal phaseSpan, qreal magnitudeSpan,
-                                                     qreal phaseBottom, qreal magnitudeBottom)
+namespace {
+
+//The flat index of a grid cell, multiplied in std::size_t. Every one of
+//these used to read `static_cast<std::size_t>(row * width + column)`, which
+//multiplies in std::int32_t and widens only the result: an overflow would
+//already have happened before the cast could help. The same cast shape
+//sized the visited vector, so a grid large enough to overflow would have
+//produced a vector too small for the indices it is then read with - and one
+//of those reads is an operator[], with no bounds check to catch it.
+inline std::size_t flatIndex(std::int32_t row, std::int32_t column, std::int32_t width)
+{
+    return static_cast<std::size_t>(row) * static_cast<std::size_t>(width) +
+            static_cast<std::size_t>(column);
+}
+
+//Cells of a (width + 1) x (height + 1) grid, likewise widened first.
+inline std::size_t cellCount(std::int32_t width, std::int32_t height)
+{
+    return (static_cast<std::size_t>(width) + 1) *
+            (static_cast<std::size_t>(height) + 1);
+}
+
+}
+
+TraceSet ContourTracer::trace(double phaseSpan, double magnitudeSpan,
+                                                     double phaseBottom, double magnitudeBottom)
 {
 
-    qint32 width = static_cast<qint32>(m_sheet->at(0).size());
-    qint32 height = static_cast<qint32>(m_sheet->size());
-    qreal threshold = m_thresholdDb;
+    std::int32_t width = static_cast<std::int32_t>(m_sheet->at(0).size());
+    std::int32_t height = static_cast<std::int32_t>(m_sheet->size());
+    double threshold = m_thresholdDb;
 
-    qint32 phaseCells = width - 1;
-    qint32 magnitudeCells = height - 1;
+    std::int32_t phaseCells = width - 1;
+    std::int32_t magnitudeCells = height - 1;
 
-    QVector <bool> visited ((width + 1) * (height + 1), false);
+    std::vector <bool> visited (cellCount(width, height), false);
 
     TraceSet traces;
 
     // We look for pixels contained in a connected set (gray-level value >= threshold) in the image
-    for (qint32 column = 1; column < width-1; column++){
-        for (qint32 row = 1; row < height-1; row++)
+    for (std::int32_t column = 1; column < width-1; column++){
+        for (std::int32_t row = 1; row < height-1; row++)
         {
 
-            if ((m_sheet->at(static_cast<std::size_t>(row)).at(static_cast<std::size_t>(column)) >= threshold) && (!visited.at(row * width + column))){
+            if ((m_sheet->at(static_cast<std::size_t>(row)).at(static_cast<std::size_t>(column)) >= threshold) && (!visited.at(flatIndex(row, column, width)))){
 
                 Trace trace;
 
 
-                qint32 currentX = column;
-                qint32 currentY = row;
+                std::int32_t currentX = column;
+                std::int32_t currentY = row;
 
-                qint32 advanced = 0;
+                std::int32_t advanced = 0;
 
-                qint32 x,y;
+                std::int32_t x,y;
 
                 while (true){
 
                     advanced = 0;
 
-                    for (qint32 i = 15; i>7; i--)
+                    for (std::int32_t i = 15; i>7; i--)
                     {
                         x =  currentX + kNeighbourX[i % 8];
                         y =  currentY + kNeighbourY[i % 8];
 
-                        if ((x > 0) && (x < width-1) && (y > 0) && (y < height-1) && (m_sheet->at(static_cast<std::size_t>(y)).at(static_cast<std::size_t>(x)) < threshold))
+                        if ((x > 0) && (x < width - 1) && (y > 0) && (y < height-1) && (m_sheet->at(static_cast<std::size_t>(y)).at(static_cast<std::size_t>(x)) < threshold))
                         {
                             x =  currentX + kNeighbourX[(i - 1) % 8];
                             y =  currentY + kNeighbourY[(i - 1) % 8];
 
-                            if ((m_sheet->at(static_cast<std::size_t>(y)).at(static_cast<std::size_t>(x)) >= threshold) && (!visited.at(y * width + x))){
+                            if ((m_sheet->at(static_cast<std::size_t>(y)).at(static_cast<std::size_t>(x)) >= threshold) && (!visited.at(flatIndex(y, x, width)))){
 
 
-                                trace.push_back(QPointF(((currentX * phaseSpan) / phaseCells) + phaseBottom, ((currentY *
+                                trace.push_back(qftbx::NicholsPoint(((currentX * phaseSpan) / phaseCells) + phaseBottom, ((currentY *
                                                       magnitudeSpan) / magnitudeCells) + magnitudeBottom));
 
-                                visited.replace(currentY * width + currentX, true);
+                                visited[flatIndex(currentY, currentX, width)] = true;
                                 currentX = x;
                                 currentY = y;
                                 advanced++;
@@ -84,7 +112,7 @@ TraceSet ContourTracer::trace(qreal phaseSpan, qreal magnitudeSpan,
 
                     if (advanced == 0){
 
-                        trace.push_back(QPointF(((currentX * phaseSpan) / phaseCells) + phaseBottom, ((currentY *
+                        trace.push_back(qftbx::NicholsPoint(((currentX * phaseSpan) / phaseCells) + phaseBottom, ((currentY *
                                               magnitudeSpan) / magnitudeCells) + magnitudeBottom));
 
                         break;
@@ -95,8 +123,8 @@ TraceSet ContourTracer::trace(qreal phaseSpan, qreal magnitudeSpan,
                 if (trace.size() <= 1){
                 } else {
 
-                    trace.insert(trace.begin(), QPointF(trace.front().x()-(phaseSpan / phaseCells), trace.front().y()));
-                    trace.push_back(QPointF(trace.back().x()+(phaseSpan / phaseCells), trace.back().y()));
+                    trace.insert(trace.begin(), qftbx::NicholsPoint(trace.front().phase-(phaseSpan / phaseCells), trace.front().magnitude));
+                    trace.push_back(qftbx::NicholsPoint(trace.back().phase+(phaseSpan / phaseCells), trace.back().magnitude));
 
                     traces.push_back(std::move(trace));
                 }
@@ -109,55 +137,61 @@ TraceSet ContourTracer::trace(qreal phaseSpan, qreal magnitudeSpan,
 
 
 #ifdef CUDA_AVAILABLE
-TraceSet ContourTracer::trace(qreal phaseSpan, qreal phaseCount, qreal magnitudeSpan,
-                                                     qreal magnitudeCount, qreal phaseBottom, qreal magnitudeBottom){
+TraceSet ContourTracer::trace(double phaseSpan, double phaseCount, double magnitudeSpan,
+                                                     double magnitudeCount, double phaseBottom, double magnitudeBottom){
 
-    qint32 width = phaseCount;
-    qint32 height = magnitudeCount;
-    qreal threshold = m_thresholdDb;
+    //Both arrive as doubles (the CUDA overload's signature) and went into an
+    //std::int32_t with nothing checked, which is undefined behaviour for a
+    //value out of range. No compiler on the development machine sees this
+    //branch, so it is written to be right by inspection.
+    const std::int32_t width = static_cast<std::int32_t>(
+                std::min(phaseCount, static_cast<double>(std::numeric_limits<std::int32_t>::max())));
+    const std::int32_t height = static_cast<std::int32_t>(
+                std::min(magnitudeCount, static_cast<double>(std::numeric_limits<std::int32_t>::max())));
+    double threshold = m_thresholdDb;
     phaseCount--;
     magnitudeCount--;
 
 
-    QVector <bool> visited ((width + 1) * (height + 1), false);
+    std::vector <bool> visited (cellCount(width, height), false);
 
     TraceSet traces;
 
     // We look for pixels contained in a connected set (gray-level value >= threshold) in the image
-    for (qint32 column = 1; column < width-1; column++){
-        for (qint32 row = 1; row < height-1; row++)
+    for (std::int32_t column = 1; column < width-1; column++){
+        for (std::int32_t row = 1; row < height-1; row++)
         {
 
-            if ((m_cudaSheet[column * height + row] >= threshold) && (!visited.at(row * width + column))){
+            if ((m_cudaSheet[column * height + row] >= threshold) && (!visited.at(flatIndex(row, column, width)))){
 
                 Trace trace;
 
 
-                qint32 currentX = column;
-                qint32 currentY = row;
+                std::int32_t currentX = column;
+                std::int32_t currentY = row;
 
-                qint32 advanced = 0;
+                std::int32_t advanced = 0;
 
-                qint32 x,y;
+                std::int32_t x,y;
 
                 while (true){
 
                     advanced = 0;
 
-                    for (qint32 i = 15; i>7; i--)
+                    for (std::int32_t i = 15; i>7; i--)
                     {
                         x =  currentX + kNeighbourX[i % 8];
                         y =  currentY + kNeighbourY[i % 8];
 
-                        if ((x > 0) && (x < width-1) && (y > 0) && (y < height-1) &&
+                        if ((x > 0) && (x < width - 1) && (y > 0) && (y < height-1) &&
                                 (m_cudaSheet[x * height + y] <= threshold))
                         {
                             x =  currentX + kNeighbourX[(i - 1) % 8];
                             y =  currentY + kNeighbourY[(i - 1) % 8];
 
-                            if ((m_cudaSheet[x * height + y] > threshold) && (!visited.at(y * width + x))){
-                                trace.push_back(QPointF(((currentX * phaseSpan) / phaseCount) + phaseBottom, ((currentY * magnitudeSpan) / magnitudeCount) + magnitudeBottom));
-                                visited.replace(currentY * width + currentX, true);
+                            if ((m_cudaSheet[x * height + y] > threshold) && (!visited.at(flatIndex(y, x, width)))){
+                                trace.push_back(qftbx::NicholsPoint(((currentX * phaseSpan) / phaseCount) + phaseBottom, ((currentY * magnitudeSpan) / magnitudeCount) + magnitudeBottom));
+                                visited[flatIndex(currentY, currentX, width)] = true;
                                 currentX = x;
                                 currentY = y;
                                 advanced++;
@@ -168,7 +202,7 @@ TraceSet ContourTracer::trace(qreal phaseSpan, qreal phaseCount, qreal magnitude
 
 
                     if (advanced == 0){
-                        trace.push_back(QPointF(((currentX * phaseSpan) / phaseCount) + phaseBottom, ((currentY * magnitudeSpan) / magnitudeCount) + magnitudeBottom));
+                        trace.push_back(qftbx::NicholsPoint(((currentX * phaseSpan) / phaseCount) + phaseBottom, ((currentY * magnitudeSpan) / magnitudeCount) + magnitudeBottom));
                         break;
                     }
                 }
@@ -181,30 +215,30 @@ TraceSet ContourTracer::trace(qreal phaseSpan, qreal phaseCount, qreal magnitude
                     Trace retrace;
 
 
-                    qint32 retraceX = column;
-                    qint32 retraceY = row;
+                    std::int32_t retraceX = column;
+                    std::int32_t retraceY = row;
 
-                    qint32 readvanced = 0;
+                    std::int32_t readvanced = 0;
 
                     while (true){
 
                         readvanced = 0;
 
-                        for (qint32 i = 0; i<8; i++)
+                        for (std::int32_t i = 0; i<8; i++)
                         {
                             x =  retraceX + kNeighbourX[i];
                             y =  retraceY + kNeighbourY[i];
 
-                            if ((x > 0) && (x < width-1) && (y > 0) && (y < height-1) &&
+                            if ((x > 0) && (x < width - 1) && (y > 0) && (y < height-1) &&
                                     (m_cudaSheet[x * height + y] <= threshold))
                             {
                                 x =  retraceX + kNeighbourX[(i + 1) % 8];
                                 y =  retraceY + kNeighbourY[(i + 1) % 8];
 
-                                if ((m_cudaSheet[x * height + y] > threshold) && (!visited.at(y * width + x))){
-                                    retrace.push_back(QPointF(((retraceX * phaseSpan) / phaseCount) + phaseBottom, ((retraceY *
+                                if ((m_cudaSheet[x * height + y] > threshold) && (!visited.at(flatIndex(y, x, width)))){
+                                    retrace.push_back(qftbx::NicholsPoint(((retraceX * phaseSpan) / phaseCount) + phaseBottom, ((retraceY *
                                                           magnitudeSpan) / magnitudeCount) + magnitudeBottom));
-                                    visited.replace(retraceY * width + retraceX, true);
+                                    visited[flatIndex(retraceY, retraceX, width)] = true;
                                     retraceX = x;
                                     retraceY = y;
                                     readvanced++;
@@ -215,7 +249,7 @@ TraceSet ContourTracer::trace(qreal phaseSpan, qreal phaseCount, qreal magnitude
 
 
                         if (readvanced == 0){
-                            retrace.push_back(QPointF(((retraceX * phaseSpan) / phaseCount) + phaseBottom, ((retraceY *
+                            retrace.push_back(qftbx::NicholsPoint(((retraceX * phaseSpan) / phaseCount) + phaseBottom, ((retraceY *
                                                   magnitudeSpan) / magnitudeCount) + magnitudeBottom));
                             break;
                         }

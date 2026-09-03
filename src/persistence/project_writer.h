@@ -4,8 +4,8 @@
 #include "src/core/templates/cloud_set.h"
 #include <complex>
 
-#include <QString>
-#include <QVector>
+#include <string>
+#include <vector>
 
 #include "src/core/system/lti_system.h"
 #include "src/core/boundaries/boundary_data.h"
@@ -25,7 +25,7 @@ struct ProjectContent {
     Omega * omega = nullptr;
     CloudSet templates;
     CloudSet contour;
-    const QVector <qreal> * epsilon = nullptr;
+    const std::vector <double> * epsilon = nullptr;
     BoundaryData * boundaries = nullptr;
     LtiSystem * controller = nullptr;
     LoopShapingResult * loopShaping = nullptr;
@@ -42,7 +42,7 @@ struct ProjectContent {
 class ProjectWriter
 {
 public:
-    void save(const QString & filePath, const ProjectContent & content);
+    void save(const std::string & filePath, const ProjectContent & content);
 };
 
 } // namespace qftbx

@@ -11,10 +11,13 @@
 
 #include <gtest/gtest.h>
 
-#include <QMap>
-#include <QPointF>
-#include <QString>
-#include <QVector>
+#include <cstdint>
+
+#include <string>
+
+#include "src/core/point.h"
+
+#include "src/core/range.h"
 
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/exception.h"
@@ -28,16 +31,16 @@ namespace {
 //phaseCount buckets, holding a single closed boundary point.
 //By value throughout: fifteen lines of heap allocation and a takeOwnership()
 //call became five, and there is nothing left for the fixture to free.
-BoundaryData narrowWindow(qreal phaseStart, qint32 phaseCount)
+BoundaryData narrowWindow(double phaseStart, std::int32_t phaseCount)
 {
     //One bucket row of phaseCount buckets, with one boundary point in the
     //first bucket.
     qftbx::UnionBuckets buckets{qftbx::TraceSet(static_cast<std::size_t>(phaseCount))};
-    buckets[0][0].push_back(QPointF(phaseStart, 0.0));
+    buckets[0][0].push_back(qftbx::NicholsPoint(phaseStart, 0.0));
 
-    return BoundaryData({{}}, {false}, {true}, phaseCount, QPointF(phaseStart, 0.0),
-                        {{QPointF(phaseStart, 0.0)}}, std::move(buckets),
-                        121, QPointF(-60.0, 60.0));
+    return BoundaryData({{}}, {false}, {true}, phaseCount, qftbx::Range(phaseStart, 0.0),
+                        {{qftbx::NicholsPoint(phaseStart, 0.0)}}, std::move(buckets),
+                        121, qftbx::Range(-60.0, 60.0));
 }
 
 TEST(BoundaryBucketBounds, APhaseOutsideTheNicholsWindowStaysInsideTheBuckets)
@@ -52,11 +55,11 @@ TEST(BoundaryBucketBounds, APhaseOutsideTheNicholsWindowStaysInsideTheBuckets)
     BoundaryViolationDetector detector;
 
     //The verdict itself is not the point here: not reading out of bounds is.
-    tools::BoxFlag verdict = detector.classifyPoint(QPointF(-300.0, 10.0), &boundaries, 0);
+    tools::BoxFlag verdict = detector.classifyPoint(qftbx::NicholsPoint(-300.0, 10.0), &boundaries, 0);
     EXPECT_TRUE(verdict == tools::feasible || verdict == tools::infeasible);
 
     //The far edge of the window is the last valid bucket, not one past it.
-    verdict = detector.classifyPoint(QPointF(-180.0, 10.0), &boundaries, 0);
+    verdict = detector.classifyPoint(qftbx::NicholsPoint(-180.0, 10.0), &boundaries, 0);
     EXPECT_TRUE(verdict == tools::feasible || verdict == tools::infeasible);
 }
 
@@ -68,7 +71,7 @@ TEST(BoundaryBucketBounds, TheFullWindowEdgeIsTheLastBucket)
 
     BoundaryViolationDetector detector;
 
-    tools::BoxFlag verdict = detector.classifyPoint(QPointF(-360.0, 10.0), &boundaries, 0);
+    tools::BoxFlag verdict = detector.classifyPoint(qftbx::NicholsPoint(-360.0, 10.0), &boundaries, 0);
     EXPECT_TRUE(verdict == tools::feasible || verdict == tools::infeasible);
 }
 
@@ -77,14 +80,14 @@ TEST(BoundaryBucketBounds, TheFullWindowEdgeIsTheLastBucket)
 //allowed side is up gives a parity rule the bucket can be read through: one
 //boundary point below the query means feasible, an empty bucket means
 //infeasible.
-BoundaryData fractionalWindow(qreal phaseStart, qint32 phaseCount, std::size_t pointBucket)
+BoundaryData fractionalWindow(double phaseStart, std::int32_t phaseCount, std::size_t pointBucket)
 {
     qftbx::UnionBuckets buckets{qftbx::TraceSet(static_cast<std::size_t>(phaseCount))};
-    buckets[0][pointBucket].push_back(QPointF(phaseStart, 0.0));
+    buckets[0][pointBucket].push_back(qftbx::NicholsPoint(phaseStart, 0.0));
 
-    return BoundaryData({{}}, {true}, {true}, phaseCount, QPointF(phaseStart, 0.0),
-                        {{QPointF(phaseStart, 0.0)}}, std::move(buckets),
-                        121, QPointF(-60.0, 60.0));
+    return BoundaryData({{}}, {true}, {true}, phaseCount, qftbx::Range(phaseStart, 0.0),
+                        {{qftbx::NicholsPoint(phaseStart, 0.0)}}, std::move(buckets),
+                        121, qftbx::Range(-60.0, 60.0));
 }
 
 TEST(BoundaryBucketBounds, AFractionalPhaseWindowScalesTheBucketsCorrectly)
@@ -102,10 +105,10 @@ TEST(BoundaryBucketBounds, AFractionalPhaseWindowScalesTheBucketsCorrectly)
     BoundaryViolationDetector detector;
 
     //Cell 2 holds the boundary point, one below the query: feasible.
-    EXPECT_EQ(detector.classifyPoint(QPointF(-1.0, 10.0), &boundaries, 0), tools::feasible);
+    EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-1.0, 10.0), &boundaries, 0), tools::feasible);
 
     //And a phase that belongs elsewhere still finds its own cell empty.
-    EXPECT_EQ(detector.classifyPoint(QPointF(-0.25, 10.0), &boundaries, 0), tools::infeasible);
+    EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-0.25, 10.0), &boundaries, 0), tools::infeasible);
 }
 
 TEST(BoundaryBucketBounds, ASubDegreeWindowDoesNotDivideByZero)
@@ -119,7 +122,7 @@ TEST(BoundaryBucketBounds, ASubDegreeWindowDoesNotDivideByZero)
 
     //Half the window of 0.5 degrees, with 2 cells over it: 4 cells per
     //degree, so -0.25 belongs to cell 1, which holds the point.
-    EXPECT_EQ(detector.classifyPoint(QPointF(-0.25, 10.0), &boundaries, 0), tools::feasible);
+    EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-0.25, 10.0), &boundaries, 0), tools::feasible);
 }
 
 TEST(BoundaryBucketBounds, LoopShapingRefusesAWindowNarrowerThanTheLoopPhase)

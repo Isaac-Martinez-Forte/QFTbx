@@ -1,3 +1,5 @@
+#include <string>
+#include <cstdint>
 #include <algorithm>
 
 #include "boundary_union_1d.h"
@@ -16,50 +18,50 @@ BoundaryUnion1D::~BoundaryUnion1D()
 
 }
 
-qint32 BoundaryUnion1D::bucketIndex(qreal x, qreal totalPhase)
+std::int32_t BoundaryUnion1D::bucketIndex(double x, double totalPhase)
 {
-    qreal res = totalPhase-(abs(x)*(totalPhase/(qreal)kPhaseDegrees));
+    double res = totalPhase-(abs(x)*(totalPhase/(double)kPhaseDegrees));
     if(res<0) res=0;
-    return (qint32) res;
+    return (std::int32_t) res;
 }
 
-void BoundaryUnion1D::insertSorted(TraceSet & layerBucketsRow, qint32 index, QPointF point, qreal totalPhase)
+void BoundaryUnion1D::insertSorted(TraceSet & layerBucketsRow, std::size_t index, qftbx::NicholsPoint point, double totalPhase)
 {
     //The iterator used to be passed in from the caller, computed BEFORE this
     //function might have grown the same bucket; taking the index alone and
     //resolving the iterator here says the same thing without that trap.
-    Trace & bucket = layerBucketsRow.at(static_cast<std::size_t>(bucketIndex(point.x(), totalPhase)));
+    Trace & bucket = layerBucketsRow.at(static_cast<std::size_t>(bucketIndex(point.phase, totalPhase)));
 
-    for (const QPointF & bucketPoint : bucket) {
-        if (point.y() == bucketPoint.y()) {
+    for (const qftbx::NicholsPoint & bucketPoint : bucket) {
+        if (point.magnitude == bucketPoint.magnitude) {
             return;   //duplicate magnitude at this phase
         }
     }
 
-    bucket.insert(bucket.begin() + index, point);
+    bucket.insert(bucket.begin() + static_cast<std::ptrdiff_t>(index), point);
 }
 
-std::vector<TraceSet> BoundaryUnion1D::buildLayerBuckets(const TraceSet & chosenCurves, qreal totalPhase, bool open, bool upper)
+std::vector<TraceSet> BoundaryUnion1D::buildLayerBuckets(const TraceSet & chosenCurves, double totalPhase, bool open, bool upper)
 {
     std::vector<TraceSet> layerBuckets (kLayerCount);
 
-    for (qint32 i = 0; i < kLayerCount; i++)
+    for (std::size_t i = 0; i < kLayerCount; i++)
     {
-        TraceSet & row = layerBuckets[static_cast<std::size_t>(i)];
-        row.resize(static_cast<std::size_t>(totalPhase) + 1);
+        TraceSet & row = layerBuckets[i];
+        row.resize(totalPhase + 1);
 
-        for (const QPointF & point : chosenCurves.at(static_cast<std::size_t>(i)))
+        for (const qftbx::NicholsPoint & point : chosenCurves.at(i))
         {
-            Trace & bucket = row.at(static_cast<std::size_t>(bucketIndex(point.x(), totalPhase)));
+            Trace & bucket = row.at(static_cast<std::size_t>(bucketIndex(point.phase, totalPhase)));
 
-            qint32 index = 0;
-            for (const QPointF & placed : bucket)
+            std::size_t index = 0;
+            for (const qftbx::NicholsPoint & placed : bucket)
             {
                 if (upper)
                 {
-                    if (point.y() < placed.y()) index++;
+                    if (point.magnitude < placed.magnitude) index++;
                 }
-                else if (point.y() > placed.y()) index++;
+                else if (point.magnitude > placed.magnitude) index++;
             }
 
             //An open boundary keeps only ONE point per phase.
@@ -77,7 +79,7 @@ std::vector<TraceSet> BoundaryUnion1D::buildLayerBuckets(const TraceSet & chosen
 //layerBuckets->at(0)->at(bucketIndex(...)) four times per branch.
 Trace BoundaryUnion1D::drawFirstLayer(const TraceSet & chosenCurves,
                                       const std::vector<TraceSet> & layerBuckets,
-                                      qreal totalPhase, bool open1, bool open2)
+                                      double totalPhase, bool open1, bool open2)
 {
     Trace layer1;
 
@@ -86,28 +88,28 @@ Trace BoundaryUnion1D::drawFirstLayer(const TraceSet & chosenCurves,
 
     if (open1)
     {
-        for (const QPointF & curvePoint : secondCurve)
+        for (const qftbx::NicholsPoint & curvePoint : secondCurve)
         {
             const Trace & bucket =
-                    firstCurveBuckets.at(static_cast<std::size_t>(bucketIndex(curvePoint.x(), totalPhase)));
-            const qint32 bucketSize = static_cast<qint32>(bucket.size());
+                    firstCurveBuckets.at(static_cast<std::size_t>(bucketIndex(curvePoint.phase, totalPhase)));
+            const std::size_t bucketSize = bucket.size();
 
             if (bucketSize == 0) layer1.push_back(curvePoint);
 
             if (bucketSize == 1)
             {
-                if (curvePoint.y() >= bucket[0].y()) layer1.push_back(curvePoint);
+                if (curvePoint.magnitude >= bucket[0].magnitude) layer1.push_back(curvePoint);
             }
             else if (bucketSize == 2)
             {
-                if ((curvePoint.y() >= bucket[0].y()) ||
-                        (curvePoint.y() <= bucket[1].y())) layer1.push_back(curvePoint);
+                if ((curvePoint.magnitude >= bucket[0].magnitude) ||
+                        (curvePoint.magnitude <= bucket[1].magnitude)) layer1.push_back(curvePoint);
             }
             else
             {
-                for (qint32 j = 0; j < bucketSize; j += 2)
+                for (std::size_t j = 0; j < bucketSize; j += 2)
                 {
-                    if (curvePoint.y() >= bucket[0].y()) layer1.push_back(curvePoint);
+                    if (curvePoint.magnitude >= bucket[0].magnitude) layer1.push_back(curvePoint);
 
                     //The guard has to cover the FURTHEST index read, j+2:
                     //`bucketSize-j>1` only promised j+1, so an even bucket of
@@ -118,13 +120,13 @@ Trace BoundaryUnion1D::drawFirstLayer(const TraceSet & chosenCurves,
                     //question for the thesis, noted in the plan.
                     if (j + 2 < bucketSize)
                     {
-                        if ((curvePoint.y() <= bucket[j + 1].y()) &&
-                                (curvePoint.y() >= bucket[j + 2].y())) layer1.push_back(curvePoint);
+                        if ((curvePoint.magnitude <= bucket[j + 1].magnitude) &&
+                                (curvePoint.magnitude >= bucket[j + 2].magnitude)) layer1.push_back(curvePoint);
                     }
                     else
                     {
-                        if ((curvePoint.y() >= bucket[j].y()) &&
-                                (curvePoint.y() <= bucket[j - 1].y())) layer1.push_back(curvePoint);
+                        if ((curvePoint.magnitude >= bucket[j].magnitude) &&
+                                (curvePoint.magnitude <= bucket[j - 1].magnitude)) layer1.push_back(curvePoint);
                     }
                 }
             }
@@ -132,32 +134,32 @@ Trace BoundaryUnion1D::drawFirstLayer(const TraceSet & chosenCurves,
     }
     else
     {
-        for (const QPointF & curvePoint : secondCurve)
+        for (const qftbx::NicholsPoint & curvePoint : secondCurve)
         {
             const Trace & bucket =
-                    firstCurveBuckets.at(static_cast<std::size_t>(bucketIndex(curvePoint.x(), totalPhase)));
-            const qint32 bucketSize = static_cast<qint32>(bucket.size());
+                    firstCurveBuckets.at(static_cast<std::size_t>(bucketIndex(curvePoint.phase, totalPhase)));
+            const std::size_t bucketSize = bucket.size();
 
             if (bucketSize > 1 && bucketSize % 2 == 0)
             {
                 bool outside = true;
 
-                if (open2 && curvePoint.y() <= bucket[0].y())
+                if (open2 && curvePoint.magnitude <= bucket[0].magnitude)
                 {
                     outside = false;
                 }
                 else
                 {
-                    for (qint32 j = 0; j < bucketSize; j += 2)
+                    for (std::size_t j = 0; j < bucketSize; j += 2)
                     {
-                        if ((curvePoint.y() <= bucket[j].y()) &&
-                                (curvePoint.y() >= bucket[j + 1].y())) outside = false;
+                        if ((curvePoint.magnitude <= bucket[j].magnitude) &&
+                                (curvePoint.magnitude >= bucket[j + 1].magnitude)) outside = false;
                     }
                 }
 
                 if (outside) layer1.push_back(curvePoint);
             }
-            else if (bucketSize % 2 == 1 && curvePoint.y() > bucket[0].y())
+            else if (bucketSize % 2 == 1 && curvePoint.magnitude > bucket[0].magnitude)
             {
                 layer1.push_back(curvePoint);
             }
@@ -175,7 +177,7 @@ Trace BoundaryUnion1D::drawFirstLayer(const TraceSet & chosenCurves,
 //closed branch is open1.
 Trace BoundaryUnion1D::drawSecondLayer(const TraceSet & chosenCurves,
                                        const std::vector<TraceSet> & layerBuckets,
-                                       qreal totalPhase, bool open1, bool open2)
+                                       double totalPhase, bool open1, bool open2)
 {
     Trace layer2;
 
@@ -184,28 +186,28 @@ Trace BoundaryUnion1D::drawSecondLayer(const TraceSet & chosenCurves,
 
     if (open2)
     {
-        for (const QPointF & curvePoint : firstCurve)
+        for (const qftbx::NicholsPoint & curvePoint : firstCurve)
         {
             const Trace & bucket =
-                    secondCurveBuckets.at(static_cast<std::size_t>(bucketIndex(curvePoint.x(), totalPhase)));
-            const qint32 bucketSize = static_cast<qint32>(bucket.size());
+                    secondCurveBuckets.at(static_cast<std::size_t>(bucketIndex(curvePoint.phase, totalPhase)));
+            const std::size_t bucketSize = bucket.size();
 
             if (bucketSize == 0) layer2.push_back(curvePoint);
 
             if (bucketSize == 1)
             {
-                if (curvePoint.y() >= bucket[0].y()) layer2.push_back(curvePoint);
+                if (curvePoint.magnitude >= bucket[0].magnitude) layer2.push_back(curvePoint);
             }
             else if (bucketSize == 2)
             {
-                if ((curvePoint.y() >= bucket[0].y()) ||
-                        (curvePoint.y() <= bucket[1].y())) layer2.push_back(curvePoint);
+                if ((curvePoint.magnitude >= bucket[0].magnitude) ||
+                        (curvePoint.magnitude <= bucket[1].magnitude)) layer2.push_back(curvePoint);
             }
             else
             {
-                for (qint32 j = 0; j < bucketSize; j += 2)
+                for (std::size_t j = 0; j < bucketSize; j += 2)
                 {
-                    if (curvePoint.y() >= bucket[0].y()) layer2.push_back(curvePoint);
+                    if (curvePoint.magnitude >= bucket[0].magnitude) layer2.push_back(curvePoint);
 
                     //The same off-by-one drawFirstLayer had, which was fixed
                     //there and NOT here: the guard was `bucketSize-j>1`,
@@ -216,13 +218,13 @@ Trace BoundaryUnion1D::drawSecondLayer(const TraceSet & chosenCurves,
                     //both when either changes.
                     if (j + 2 < bucketSize)
                     {
-                        if ((curvePoint.y() <= bucket[j + 1].y()) &&
-                                (curvePoint.y() >= bucket[j + 2].y())) layer2.push_back(curvePoint);
+                        if ((curvePoint.magnitude <= bucket[j + 1].magnitude) &&
+                                (curvePoint.magnitude >= bucket[j + 2].magnitude)) layer2.push_back(curvePoint);
                     }
                     else
                     {
-                        if ((curvePoint.y() >= bucket[j].y()) &&
-                                (curvePoint.y() <= bucket[j - 1].y())) layer2.push_back(curvePoint);
+                        if ((curvePoint.magnitude >= bucket[j].magnitude) &&
+                                (curvePoint.magnitude <= bucket[j - 1].magnitude)) layer2.push_back(curvePoint);
                     }
                 }
             }
@@ -230,33 +232,33 @@ Trace BoundaryUnion1D::drawSecondLayer(const TraceSet & chosenCurves,
     }
     else
     {
-        for (const QPointF & curvePoint : firstCurve)
+        for (const qftbx::NicholsPoint & curvePoint : firstCurve)
         {
             const Trace & bucket =
-                    secondCurveBuckets.at(static_cast<std::size_t>(bucketIndex(curvePoint.x(), totalPhase)));
-            const qint32 bucketSize = static_cast<qint32>(bucket.size());
+                    secondCurveBuckets.at(static_cast<std::size_t>(bucketIndex(curvePoint.phase, totalPhase)));
+            const std::size_t bucketSize = bucket.size();
 
             if (bucketSize > 1 && bucketSize % 2 == 0)
             {
                 bool outside = true;
 
-                if (open1 && curvePoint.y() <= bucket[0].y())
+                if (open1 && curvePoint.magnitude <= bucket[0].magnitude)
                 {
                     outside = false;
                 }
                 else
                 {
-                    for (qint32 j = 0; j < bucketSize; j += 2)
+                    for (std::size_t j = 0; j < bucketSize; j += 2)
                     {
                         //STRICT here, unlike layer 1.
-                        if ((curvePoint.y() < bucket[j].y()) &&
-                                (curvePoint.y() > bucket[j + 1].y())) outside = false;
+                        if ((curvePoint.magnitude < bucket[j].magnitude) &&
+                                (curvePoint.magnitude > bucket[j + 1].magnitude)) outside = false;
                     }
                 }
 
                 if (outside) layer2.push_back(curvePoint);
             }
-            else if (bucketSize % 2 == 1 && curvePoint.y() > bucket[0].y())
+            else if (bucketSize % 2 == 1 && curvePoint.magnitude > bucket[0].magnitude)
             {
                 layer2.push_back(curvePoint);
             }
@@ -267,35 +269,35 @@ Trace BoundaryUnion1D::drawSecondLayer(const TraceSet & chosenCurves,
     return layer2;
 }
 
-inline qint32 BoundaryUnion1D::bucketIndex(qreal x, qreal totalPhase, qint32 phaseCount)
+inline std::int32_t BoundaryUnion1D::bucketIndex(double x, double totalPhase, std::int32_t phaseCount)
 {
-    double res = (abs(x)*((qreal)phaseCount/totalPhase));
+    double res = (abs(x)*((double)phaseCount/totalPhase));
     if(res<0) res=0;
     //The synthetic border point (|x| == totalPhase) used to yield bucket
     //phaseCount out of phaseCount buckets: out of range.
     if(res > phaseCount - 1) res = phaseCount - 1;
-    return (qint32) res;
+    return (std::int32_t) res;
 }
 
-TraceSet BoundaryUnion1D::buildUnionBuckets(const Trace & unionPoints, qreal totalPhase, qint32 pointCount)
+TraceSet BoundaryUnion1D::buildUnionBuckets(const Trace & unionPoints, double totalPhase, std::size_t pointCount)
 {
-    TraceSet unionBucketsRow (static_cast<std::size_t>(pointCount));
+    TraceSet unionBucketsRow (pointCount);
 
     //From the first point on (it used to be skipped), inserted sorted by
     //magnitude and deduplicated, like the layer buckets (and like the
     //historical file format).
-    for (const QPointF & point : unionPoints) {
+    for (const qftbx::NicholsPoint & point : unionPoints) {
         Trace & bucket =
-                unionBucketsRow.at(static_cast<std::size_t>(bucketIndex(point.x(), totalPhase, pointCount)));
+                unionBucketsRow.at(static_cast<std::size_t>(bucketIndex(point.phase, totalPhase, pointCount)));
 
         std::size_t pos = 0;
         bool duplicated = false;
         for (; pos < bucket.size(); pos++){
-            if (bucket[pos].y() == point.y()){
+            if (bucket[pos].magnitude == point.magnitude){
                 duplicated = true;
                 break;
             }
-            if (bucket[pos].y() > point.y()){
+            if (bucket[pos].magnitude > point.magnitude){
                 break;
             }
         }
@@ -327,13 +329,13 @@ void BoundaryUnion1D::run(const BoundaryData * boundaries, const TraceMetadata &
     //degrees.
     const BoundarySet & boundariesPerFrequency = boundaries->boundaries();
 
-    const qreal totalPhase = -boundaries->phaseRange().x();
-    const qint32 phasePointCount = boundaries->phaseCount();
+    const double totalPhase = -boundaries->phaseRange().min;
+    const std::int32_t phasePointCount = boundaries->phaseCount();
 
     for (std::size_t i = 0; i < boundariesPerFrequency.size(); i++)
     {
-        const std::map<QString, TraceSet> & map = boundariesPerFrequency[i];
-        const std::map<QString, TraceLabels> & metadataMap = traceMetadata.at(i);
+        const std::map<std::string, TraceSet> & map = boundariesPerFrequency[i];
+        const std::map<std::string, TraceLabels> & metadataMap = traceMetadata.at(i);
 
         Trace unionPoints;
 
@@ -359,7 +361,7 @@ void BoundaryUnion1D::run(const BoundaryData * boundaries, const TraceMetadata &
             {
                 //An x of 0 marks the allowed side as above, 1 as below; the
                 //first point suffices, the whole trace shares one label.
-                upper = !foundMetadata->second.front().x();
+                upper = !foundMetadata->second.front();
             }
 
             if (firstSpecification)
@@ -380,8 +382,8 @@ void BoundaryUnion1D::run(const BoundaryData * boundaries, const TraceMetadata &
                 currentCurve.insert(currentCurve.end(), trace.begin(), trace.end());
             }
 
-            if (static_cast<qreal>(unionPoints.size()) >= totalPhase) open1 = true;
-            if (static_cast<qreal>(currentCurve.size()) >= totalPhase) open2 = true;
+            if (static_cast<double>(unionPoints.size()) >= totalPhase) open1 = true;
+            if (static_cast<double>(currentCurve.size()) >= totalPhase) open2 = true;
 
             const TraceSet chosenCurves{unionPoints, currentCurve};
             const std::vector<TraceSet> layerBuckets =
@@ -402,7 +404,7 @@ void BoundaryUnion1D::run(const BoundaryData * boundaries, const TraceMetadata &
             }
         }
 
-        m_unionBuckets.push_back(buildUnionBuckets(unionPoints, totalPhase, phasePointCount));
+        m_unionBuckets.push_back(buildUnionBuckets(unionPoints, totalPhase, static_cast<std::size_t>(phasePointCount)));
 
         //Ordered by proximity only where the boundary is open: a closed one
         //is already a cycle.
@@ -447,15 +449,15 @@ Trace BoundaryUnion1D::sortByProximity(const Trace & points) {
     Trace ordered;
     ordered.reserve(remaining.size());
 
-    QPointF tmp = QPointF(10000, 1);
+    qftbx::NicholsPoint tmp = qftbx::NicholsPoint(10000, 1);
 
-    for (const QPointF & p : remaining) {
-        if (p.x() < tmp.x()){
-            tmp = QPointF (p);
+    for (const qftbx::NicholsPoint & p : remaining) {
+        if (p.phase < tmp.phase){
+            tmp = qftbx::NicholsPoint (p);
         }
     }
 
-    const auto removeOne = [&remaining](const QPointF & value) {
+    const auto removeOne = [&remaining](const qftbx::NicholsPoint & value) {
         const auto found = std::find(remaining.begin(), remaining.end(), value);
         if (found != remaining.end()) {
             remaining.erase(found);
@@ -468,14 +470,14 @@ Trace BoundaryUnion1D::sortByProximity(const Trace & points) {
     const std::size_t lon = remaining.size();
 
     for (std::size_t i = 0; i < lon; i++){
-        const QPointF uno(tmp);
-        qreal dis = 10000;
+        const qftbx::NicholsPoint uno(tmp);
+        double dis = 10000;
 
-        for (const QPointF & dos : remaining){
-            const qreal dis2 = sqrt(pow(uno.x() - dos.x(), 2) + pow(uno.y() - dos.y(), 2));
+        for (const qftbx::NicholsPoint & dos : remaining){
+            const double dis2 = sqrt(pow(uno.phase - dos.phase, 2) + pow(uno.magnitude - dos.magnitude, 2));
             if (dis2 < dis){
                 dis = dis2;
-                tmp = QPointF (dos);
+                tmp = qftbx::NicholsPoint (dos);
             }
         }
 

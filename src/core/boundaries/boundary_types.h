@@ -5,14 +5,13 @@
 #include <map>
 #include <vector>
 
-#include <QPoint>
-#include <QPointF>
-#include <QString>
+#include "src/core/point.h"
+#include <string>
 
 namespace qftbx {
 
 /// One boundary curve in the Nichols plane: phase in degrees, magnitude in dB.
-using Trace = std::vector<QPointF>;
+using Trace = std::vector<NicholsPoint>;
 
 /// The curves of one specification at one design frequency. A boundary is
 /// multivalued in general, hence several curves rather than one.
@@ -23,18 +22,26 @@ using TraceSet = std::vector<Trace>;
  * specification, keyed by its name.
  *
  * Held BY VALUE. This was
- * `QVector<QMap<QString, QVector<QVector<QPointF> *> *> *> *`: a pointer to a
+ * `std::vector<QMap<std::string, std::vector<std::vector<QPointF> *> *> *> *`: a pointer to a
  * vector of pointers to maps of pointers to vectors of pointers to vectors.
  * Four levels of indirection, each with its own answer to who frees it, and
  * the answer lived in comments rather than in the types. BoundaryData even
  * carried an m_owns flag because the same object was sometimes a view over
  * the engine's data and sometimes the owner of a loaded project's.
  */
-using BoundarySet = std::vector<std::map<QString, TraceSet>>;
+using BoundarySet = std::vector<std::map<std::string, TraceSet>>;
 
 /// The 1D union of all specifications at each design frequency: one curve per
 /// frequency, the upper envelope the search tests against.
 using UnionTraces = std::vector<Trace>;
+
+/// One curve of the Nyquist view: the same union read on the complex plane
+/// (see qftbx::toNyquist). Its own type so it cannot be passed where a
+/// Nichols trace is expected.
+using NyquistTrace = std::vector<NyquistPoint>;
+
+/// Per design frequency, one Nyquist curve.
+using NyquistTraces = std::vector<NyquistTrace>;
 
 /**
  * @brief The union again, bucketed by phase: per frequency, one bucket per
@@ -53,7 +60,7 @@ using UnionBuckets = std::vector<std::vector<Trace>>;
  * bound are the boundary.
  *
  * Held BY VALUE, ~1.7 MB per frequency. This was
- * `QVector<QVector<qreal> *> *`, and the five of them travelled together in
+ * `std::vector<std::vector<double> *> *`, and the five of them travelled together in
  * one more level of indirection, freed by a nested loop in the caller.
  */
 using BoundarySheet = std::vector<std::vector<double>>;
@@ -66,11 +73,18 @@ using BoundarySheet = std::vector<std::vector<double>>;
  */
 using BoundarySheets = std::array<BoundarySheet, 5>;
 
-/// The allowed-side label of each curve (see BoundaryEngine::allowedZone).
-using TraceLabels = std::vector<QPoint>;
+/**
+ * @brief The allowed-side label of each curve: true when the allowed side is
+ * up (see BoundaryEngine::allowedZone, which returns 0 or 1).
+ *
+ * It was a vector of QPoint with the flag in x and y always zero and never
+ * read - a boolean stuffed into a 2D integer point. The open and upper
+ * flags beside it were already plain bool vectors.
+ */
+using TraceLabels = std::vector<bool>;
 
 /// Per design frequency, the labels of each specification's curves.
-using TraceMetadata = std::vector<std::map<QString, TraceLabels>>;
+using TraceMetadata = std::vector<std::map<std::string, TraceLabels>>;
 
 } // namespace qftbx
 

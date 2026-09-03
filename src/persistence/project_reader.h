@@ -6,8 +6,8 @@
 #include "src/core/templates/cloud_set.h"
 #include <complex>
 
-#include <QString>
-#include <QVector>
+#include <string>
+#include <vector>
 
 #include "src/core/system/lti_system.h"
 #include "src/core/boundaries/boundary_data.h"
@@ -39,7 +39,7 @@ public:
      * historical order: plant, specifications, omega, templates, boundaries,
      * controller, loop shaping, template contour.
      */
-    std::vector<bool> load(const QString & filePath);
+    std::vector<bool> load(const std::string & filePath);
 
     ~ProjectReader();
 
@@ -58,7 +58,7 @@ public:
     const CloudSet & contour() const { return m_contour; }
     /// The epsilon of the templates section, or nullptr when the file
     /// carried none. Held by value, like the boundaries.
-    const QVector <qreal> * epsilon() const
+    const std::vector <double> * epsilon() const
     {
         return m_epsilon.has_value() ? &m_epsilon.value() : nullptr;
     }
@@ -82,7 +82,7 @@ public:
     /// that could be freed twice.
     CloudSet takeTemplates() { return std::move(m_templates); }
     CloudSet takeContour() { return std::move(m_contour); }
-    std::optional<QVector <qreal>> takeEpsilon() { return std::move(m_epsilon); }
+    std::optional<std::vector <double>> takeEpsilon() { return std::move(m_epsilon); }
     /// The boundaries, or nothing when the file carried none. By value, so
     /// there is no owner to hand over.
     std::optional<BoundaryData> takeBoundaries()
@@ -110,7 +110,7 @@ private:
     std::unique_ptr<Omega> m_omega;
     CloudSet m_templates;
     CloudSet m_contour;
-    std::optional<QVector <qreal>> m_epsilon;
+    std::optional<std::vector <double>> m_epsilon;
     std::optional<BoundaryData> m_boundaries;
     std::unique_ptr<LtiSystem> m_controller;
     std::unique_ptr<LoopShapingResult> m_loopShaping;

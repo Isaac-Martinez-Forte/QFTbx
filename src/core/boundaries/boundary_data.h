@@ -1,12 +1,12 @@
 #ifndef QFTBX_BOUNDARY_DATA_H
 #define QFTBX_BOUNDARY_DATA_H
 
-#include <QVector>
+#include <cstdint>
+#include "src/core/range.h"
+#include <vector>
 
 #include "src/core/boundaries/boundary_types.h"
-#include <QPointF>
-#include <QMap>
-#include <QString>
+#include <string>
 
 namespace qftbx {
 
@@ -32,15 +32,15 @@ class BoundaryData
 {
 public:
     BoundaryData(BoundarySet boundaries, std::vector<bool> openFlags,
-                 std::vector<bool> upperFlags, qint32 phaseCount, QPointF phaseRange,
+                 std::vector<bool> upperFlags, std::int32_t phaseCount, qftbx::Range phaseRange,
                  UnionTraces unionBoundaries, UnionBuckets unionBuckets,
-                 qint32 magnitudeCount, QPointF magnitudeRange);
+                 std::int32_t magnitudeCount, qftbx::Range magnitudeRange);
 
     const BoundarySet & boundaries () const;
-    qint32 phaseCount () const;
-    qint32 magnitudeCount () const;
-    QPointF phaseRange () const;
-    QPointF magnitudeRange () const;
+    std::int32_t phaseCount () const;
+    std::int32_t magnitudeCount () const;
+    qftbx::Range phaseRange () const;
+    qftbx::Range magnitudeRange () const;
     const UnionTraces & unionBoundaries () const;
     const UnionBuckets & unionBuckets () const;
     const std::vector<bool> & openFlags () const;
@@ -58,10 +58,10 @@ private:
     BoundarySet m_boundaries;
     std::vector<bool> m_openFlags;
     std::vector<bool> m_upperFlags;
-    qint32 m_phaseCount = 0;
-    QPointF m_phaseRange;
-    qint32 m_magnitudeCount = 0;
-    QPointF m_magnitudeRange;
+    std::int32_t m_phaseCount = 0;
+    qftbx::Range m_phaseRange;
+    std::int32_t m_magnitudeCount = 0;
+    qftbx::Range m_magnitudeRange;
     UnionTraces m_unionBoundaries;
     UnionBuckets m_unionBuckets;
 };

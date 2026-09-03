@@ -1,5 +1,8 @@
+#include <cmath>
+#include <vector>
 #include <algorithm>
 
+#include "qt_containers.h"
 #include "bode_viewer.h"
 #include "ui_bode_viewer.h"
 
@@ -33,7 +36,7 @@ void BodeViewer::drawBode(LtiSystem *plant, Omega *omega){
     //By value, so the sweep is a plain local: this used to be a pointer plus
     //an ownFrequencies flag, because the manual branch borrowed the project's
     //vector while the other two allocated their own.
-    QVector <qreal> frequencies;
+    std::vector<double> frequencies;
 
     //The sweep starts where the DESIGN starts. Both branches used a
     //hardcoded -1: on the logarithmic path that silently replaced the user's
@@ -42,23 +45,35 @@ void BodeViewer::drawBode(LtiSystem *plant, Omega *omega){
     if (omega->type() == Omega::LinSpace){
         frequencies = linspace(omega->start(), omega->end(), 100);
     }else if (omega->type() == Omega::LogSpace){
-        //start()/end() hold the EXPONENTS on this path, as logspace expects.
-        frequencies = logspace(omega->start(), omega->end(), 100);
+        //start()/end() are in rad/s, like every other frequency in the
+        //toolbox, and tools::logspace takes exponents - so the conversion
+        //happens here, the same way the frequencies dialog does it when it
+        //builds the set. They used to hold the exponents themselves, which
+        //made this line shorter and the unit a secret shared between two
+        //files.
+        if (omega->start() > 0.0 && omega->end() > 0.0){
+            frequencies = logspace(std::log10(omega->start()),
+                                   std::log10(omega->end()), 100);
+        } else {
+            //An older set, or one that cannot be re-derived: its own values
+            //are always there.
+            frequencies = *omega->values();
+        }
     }else {
         frequencies = *omega->values();
     }
 
-    QVector <qreal> magnitude;
-    QVector <qreal> phase;
+    std::vector<double> magnitude;
+    std::vector<double> phase;
     magnitude.reserve(frequencies.size());
     phase.reserve(frequencies.size());
 
-    foreach (const std::complex<qreal> &comp, plant->evaluate(frequencies)){
-        magnitude.append(20*log10(abs(comp)));
+    for (const std::complex<qreal> &comp : plant->evaluate(frequencies)){
+        magnitude.push_back(20*log10(abs(comp)));
 
         //Degrees: a Bode phase plot is read in degrees, and arg() answers
         //radians (the axis was labelled in Spanish and scaled in radians).
-        phase.append(arg(comp) * 180.0 / M_PI);
+        phase.push_back(arg(comp) * 180.0 / M_PI);
     }
 
     drawAxis(tr("Magnitude (dB)"), magnitude, frequencies, ui->magnitudePlot);
@@ -69,12 +84,12 @@ void BodeViewer::drawBode(LtiSystem *plant, Omega *omega){
 }
 
 
-void BodeViewer::drawAxis(QString yAxisName, const QVector<qreal> & yAxis_values,
-                          const QVector<qreal> & frequencies, QCustomPlot * magnitudePlot){
+void BodeViewer::drawAxis(QString yAxisName, const std::vector<double> & yAxis_values,
+                          const std::vector<double> & frequencies, QCustomPlot * magnitudePlot){
 
     //QCPCurve attaches itself to the plot, which owns it from then on.
     QCPCurve *curva = new QCPCurve(magnitudePlot->xAxis, magnitudePlot->yAxis);
-    curva->setData(frequencies, yAxis_values);
+    curva->setData(tools::toQVector(frequencies), tools::toQVector(yAxis_values));
 
     magnitudePlot->xAxis->setLabel("w");
     magnitudePlot->yAxis->setLabel(yAxisName);

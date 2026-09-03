@@ -1,9 +1,9 @@
 #ifndef QFTBX_PARAMETER_H
 #define QFTBX_PARAMETER_H
 
-#include <QString>
+#include <string>
 #include "src/core/range.h"
-#include <QVector>
+#include <vector>
 
 #include "mpParser.h"
 #include "mpValue.h"
@@ -24,33 +24,33 @@ class Parameter
 {
 public:
     /// Uncertain parameter; an empty exp falls back to the name.
-    Parameter(QString name, Range range, qreal nominal, QString exp);
+    Parameter(std::string name, Range range, double nominal, std::string exp);
 
     /// Uncertain parameter without reparametrisation.
-    Parameter(QString name, Range range, qreal nominal);
+    Parameter(std::string name, Range range, double nominal);
 
     Parameter(Range range);
 
     Parameter();
 
     /// Constant, named by its textual value.
-    Parameter (qreal value);
+    Parameter (double value);
 
     /// Named constant.
-    Parameter (QString name, qreal value);
+    Parameter (std::string name, double value);
 
-    void setName(QString name);
+    void setName(std::string name);
 
     void setRange (Range range);
 
-    void setNominal(qreal nominal);
+    void setNominal(double nominal);
 
     /// True for uncertain parameters, false for constants.
     bool isUncertain ();
 
     void setUncertain (bool a);
 
-    QString name();
+    const std::string & name() const;
 
     /// Range with the reparametrisation applied.
     Range range();
@@ -59,16 +59,36 @@ public:
     Range rawRange();
 
     /// Nominal value with the reparametrisation applied.
-    qreal nominal();
+    double nominal();
 
     /// Raw nominal value, without the reparametrisation.
-    qreal rawNominal();
+    double rawNominal();
 
-    QString expression();
+    const std::string & expression() const;
+
+    /**
+     * @brief Value equality, on the RAW state: name, raw range, raw nominal,
+     * reparametrisation expression and the two flags.
+     *
+     * Deliberately conservative and deliberately total - every member is
+     * compared. It exists so the project can tell a real change from a
+     * dialog accepted without an edit, and the two answers are not
+     * symmetric: saying "equal" when something did change leaves the
+     * templates computed for the OLD plant in place, which is the silent
+     * defect ProjectController warns about. Saying "different" when nothing
+     * changed only costs a recomputation. So anything not compared here
+     * would have to be proven irrelevant first, and nothing is.
+     *
+     * The raw values are the ones compared, not the reparametrised ones:
+     * they are the state, and the transformed ones are derived from them.
+     */
+    bool operator==(Parameter & other);
+
+    bool operator!=(Parameter & other) { return !(*this == other); }
 
 private:
     /// The reparametrisation applied to one value, parsed once per thread.
-    qreal realValueOf(qreal value) const;
+    double realValueOf(double value) const;
 
     //Initialised here, not constructor by constructor: the value
     //constructors used to leave m_hasExpression indeterminate, and reading
@@ -77,11 +97,11 @@ private:
     //!m_uncertain, so a single setUncertain(true) - or swapping those two
     //checks - would have turned a stack byte into a muParserX evaluation of
     //an undefined variable.
-    QString m_name;
+    std::string m_name;
     Range m_range;
-    qreal m_nominal = 0.0;
+    double m_nominal = 0.0;
     bool m_uncertain = false;
-    QString m_expression;
+    std::string m_expression;
     bool m_hasExpression = false;
 
 };

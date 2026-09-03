@@ -6,8 +6,10 @@
 
 #include <QMessageBox>
 
+#include "src/core/point.h"
 #include "src/core/exception.h"
 
+#include <vector>
 #include <iostream>
 
 using namespace tools;
@@ -117,12 +119,12 @@ void MainWindow::destroyDialogs(){
 }
 
 void MainWindow::installContourRecomputer(){
-    templateViewer->setContourRecomputer([this](QVector<qreal> epsilon) {
+    templateViewer->setContourRecomputer([this](std::vector<double> epsilon) {
         recomputeContour(std::move(epsilon));
     });
 }
 
-void MainWindow::recomputeContour(QVector<qreal> epsilon){
+void MainWindow::recomputeContour(std::vector<double> epsilon){
     //The viewer asked for a tighter contour: the computation, and the
     //reporting of its failure, belong here.
     try {
@@ -176,7 +178,7 @@ void MainWindow::invalidateLoopShaping(){
     loopShapingViewer = nullptr;
 }
 
-const QVector<qreal> * MainWindow::frequencyValues() const{
+const std::vector<double> * MainWindow::frequencyValues() const{
     Omega * omega = controller->omega();
 
     if (omega == nullptr){
@@ -204,9 +206,14 @@ void MainWindow::on_plantButton_clicked()
         //The dialogs only describe; publishing into the project is the
         //window's job, so a dialog never needs to know the facade.
         std::unique_ptr<LtiSystem> described = plantDialog->takePlant();
-        const bool changed = described.get() != controller->plant();
 
-        controller->setPlant(std::move(described));
+        //The controller answers whether it dropped anything, so the window
+        //resets its own steps exactly when the project dropped the artefacts
+        //behind them. This used to be decided here, by comparing the address
+        //of a freshly built object with the stored one - a test that can
+        //never match, so it always invalidated. It agreed with the project
+        //only by accident.
+        const bool changed = controller->setPlant(std::move(described));
 
         //A different plant voids the templates and everything after them, in
         //the project and therefore in the window too.
@@ -234,11 +241,24 @@ void MainWindow::on_plantButton_clicked()
 void MainWindow::on_specificationsButton_clicked()
 {
 
-    if (!specificationsDone){
-        specificationsDialog = new SpecificationsDialog(frequencyValues(),
-                                                        controller->specifications(),
-                                                        this);
-
+    //Both of these refuse a project with no design frequencies by throwing,
+    //and an exception leaving a slot takes the application down. The button
+    //is only enabled once the frequencies are in, so this is a broken
+    //invariant rather than a user error - which is exactly the kind that
+    //should be reported instead of aborting.
+    try {
+        if (!specificationsDone){
+            specificationsDialog = new SpecificationsDialog(frequencyValues(),
+                                                            controller->specifications(),
+                                                            this);
+        } else {
+            //The frequency set the dialog was built with may be gone:
+            //entering new frequencies destroys the Omega that owns the values.
+            specificationsDialog->setFrequencies(frequencyValues());
+        }
+    } catch (const qftbx::Exception & e) {
+        QMessageBox::critical(this, tr("Specifications input"), e.what());
+        return;
     }
 
     specificationsDialog->exec();
@@ -279,9 +299,14 @@ void MainWindow::on_frequenciesButton_clicked()
 
     if (frequenciesDialog->wasAccepted()){
         std::unique_ptr<Omega> described = frequenciesDialog->takeOmega();
-        const bool changed = described.get() != controller->omega();
 
-        controller->setOmega(std::move(described));
+        //The controller answers whether it dropped anything, so the window
+        //resets its own steps exactly when the project dropped the artefacts
+        //behind them. This used to be decided here, by comparing the address
+        //of a freshly built object with the stored one - a test that can
+        //never match, so it always invalidated. It agreed with the project
+        //only by accident.
+        const bool changed = controller->setOmega(std::move(described));
 
         if (changed && templatesDone){
             invalidateFromTemplates();
@@ -467,9 +492,14 @@ void MainWindow::on_controllerButton_clicked()
 
     if (controllerDialog->wasAccepted()){
         std::unique_ptr<LtiSystem> described = controllerDialog->takeControllerStructure();
-        const bool changed = described.get() != controller->controllerStructure();
 
-        controller->setControllerStructure(std::move(described));
+        //The controller answers whether it dropped anything, so the window
+        //resets its own steps exactly when the project dropped the artefacts
+        //behind them. This used to be decided here, by comparing the address
+        //of a freshly built object with the stored one - a test that can
+        //never match, so it always invalidated. It agreed with the project
+        //only by accident.
+        const bool changed = controller->setControllerStructure(std::move(described));
 
         if (changed && loopDone){
             invalidateLoopShaping();
@@ -574,7 +604,7 @@ void MainWindow::on_actionSaveAs_triggered()
 
 void MainWindow::saveProject(){
     try {
-        controller->save(saveFilePath);
+        controller->save(saveFilePath.toStdString());
     } catch (const qftbx::Exception & e) {
         QMessageBox::critical(this, tr("Save file"), e.what());
     }
@@ -590,7 +620,7 @@ void MainWindow::on_actionOpen_triggered()
         std::vector<bool> leido;
 
         try {
-            leido = controller->load(fileName);
+            leido = controller->load(fileName.toStdString());
         } catch (const qftbx::Exception & e) {
             QMessageBox::critical(this, tr("Open project"), e.what());
             return;
@@ -752,48 +782,28 @@ void MainWindow::showLoopDiagrams(bool nichols, bool nyquistRadio){
         return;
     }
 
-    qreal maglineal = 0;
-
     BoundaryData * boundaries = controller->boundaries();
 
-    //Nichols (phase in degrees, magnitude in dB) to Nyquist (the complex
-    //plane). Six heap containers used to be built here and handed to a
-    //BoundaryData that then had to be told whether it owned them.
-    qftbx::UnionTraces nuevosBoundariesReun;
-    qftbx::UnionBuckets nuevoHash_inter;
+    //The same union read on the complex plane, for the Nyquist half of the
+    //view. This used to fabricate a whole BoundaryData: six heap containers
+    //at first, then an empty bucket row per frequency and two converted
+    //ranges, all to satisfy a constructor - and its points were Nichols
+    //points holding real and imaginary parts. The viewer takes the curves it
+    //draws, and the conversion is qftbx::toNyquist.
+    qftbx::NyquistTraces nyquistTraces;
+    nyquistTraces.reserve(boundaries->unionBoundaries().size());
 
-    for (const qftbx::Trace & vector : boundaries->unionBoundaries()) {
+    for (const qftbx::Trace & trace : boundaries->unionBoundaries()) {
 
-        qftbx::Trace nuevoVector;
+        qftbx::NyquistTrace converted;
+        converted.reserve(trace.size());
 
-        for (const QPointF & p : vector) {
-            maglineal = pow(10,p.y()/20);
-
-            nuevoVector.push_back(QPointF(maglineal * cos (p.x() * M_PI / 180),
-                                          maglineal * sin (p.x() * M_PI / 180)));
+        for (const qftbx::NicholsPoint & point : trace) {
+            converted.push_back(qftbx::toNyquist(point));
         }
 
-        //One empty bucket row per frequency: this view is only drawn, never
-        //classified, so the buckets are not needed.
-        nuevoHash_inter.push_back({});
-
-        nuevosBoundariesReun.push_back(std::move(nuevoVector));
+        nyquistTraces.push_back(std::move(converted));
     }
-
-
-
-
-    QPointF newPhaseData ((boundaries->phaseRange().x() * M_PI) / 180, 0);
-
-    QPointF magnitudeData = boundaries->magnitudeRange();
-
-    QPointF newMagnitudeData (pow(10,magnitudeData.x()/20), pow(10,magnitudeData.y()/20));
-
-    BoundaryData nuevoBoundaries (boundaries->boundaries(), boundaries->openFlags(),
-                                  boundaries->upperFlags(), boundaries->phaseCount(),
-                                  newPhaseData, std::move(nuevosBoundariesReun),
-                                  std::move(nuevoHash_inter),
-                                  boundaries->magnitudeCount(), newMagnitudeData);
 
 
     //Modal and parentless, so it is this scope's: on the stack. The Nyquist
@@ -802,7 +812,7 @@ void MainWindow::showLoopDiagrams(bool nichols, bool nyquistRadio){
     //function, and BoundaryData had to be told it did not own them.
     LoopBoundariesViewer ver;
 
-    ver.setData(boundaries, &nuevoBoundaries, controller->omega()->values(), controller->plant(),
+    ver.setData(boundaries, nyquistTraces, controller->omega()->values(), controller->plant(),
                  controller->controllerStructure(), nichols, nyquistRadio);
 
     ver.showDiagram();

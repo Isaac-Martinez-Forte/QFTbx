@@ -12,13 +12,12 @@
 
 #include <complex>
 
-#include <QVector>
 
 #include "src/core/templates/template_engine.h"
 
 namespace {
 
-using Complex = std::complex<qreal>;
+using Complex = std::complex<double>;
 
 qftbx::ComplexCloud cloud(std::initializer_list<Complex> points)
 {

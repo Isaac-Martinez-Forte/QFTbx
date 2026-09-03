@@ -1,12 +1,13 @@
 #ifndef QFTBX_SPECIFICATION_H
 #define QFTBX_SPECIFICATION_H
 
+#include <vector>
 #include <array>
 #include <cmath>
 #include <memory>
 #include <utility>
 
-#include <QString>
+#include <string>
 
 #include "src/core/exception.h"
 #include "src/core/system/lti_system.h"
@@ -14,10 +15,10 @@
 namespace qftbx {
 
 /// dB -> linear magnitude.
-inline qreal dbToLinear(qreal db) { return std::pow(10.0, db / 20.0); }
+inline double dbToLinear(double db) { return std::pow(10.0, db / 20.0); }
 
 /// Linear magnitude -> dB.
-inline qreal linearToDb(qreal linear) { return 20.0 * std::log10(linear); }
+inline double linearToDb(double linear) { return 20.0 * std::log10(linear); }
 
 /**
  * @brief The seven QFT specification slots, in the order they have always
@@ -36,41 +37,18 @@ enum class SpecificationType {
 inline constexpr int kSpecificationCount = 7;
 
 /// Canonical name, written to the .qft files since the English rename.
-inline QString specificationName(SpecificationType type)
+inline std::string specificationName(SpecificationType type)
 {
     switch (type) {
-    case SpecificationType::TrackingLower:     return QStringLiteral("TrackingLower");
-    case SpecificationType::TrackingUpper:     return QStringLiteral("TrackingUpper");
-    case SpecificationType::Stability:         return QStringLiteral("Stability");
-    case SpecificationType::SensorNoise:       return QStringLiteral("SensorNoise");
-    case SpecificationType::OutputDisturbance: return QStringLiteral("OutputDisturbance");
-    case SpecificationType::InputDisturbance:  return QStringLiteral("InputDisturbance");
-    case SpecificationType::ControlEffort:     return QStringLiteral("ControlEffort");
+    case SpecificationType::TrackingLower:     return ("TrackingLower");
+    case SpecificationType::TrackingUpper:     return ("TrackingUpper");
+    case SpecificationType::Stability:         return ("Stability");
+    case SpecificationType::SensorNoise:       return ("SensorNoise");
+    case SpecificationType::OutputDisturbance: return ("OutputDisturbance");
+    case SpecificationType::InputDisturbance:  return ("InputDisturbance");
+    case SpecificationType::ControlEffort:     return ("ControlEffort");
     }
-    return QString();
-}
-
-/**
- * @brief Maps a historical Spanish name from a legacy .qft file to its
- * canonical English form; unknown names pass through unchanged.
- *
- * Covers both domains that stored them: the specification records
- * ("seguimiento", "seguimiento_1", ...) and the per-frequency boundary map
- * keys ("Seguimiento" is the combined tracking boundary -> "Tracking").
- */
-inline QString modernSpecificationName(const QString& name)
-{
-    if (name == QStringLiteral("seguimiento"))   return QStringLiteral("TrackingLower");
-    if (name == QStringLiteral("seguimiento_1")) return QStringLiteral("TrackingUpper");
-    if (name == QStringLiteral("Seguimiento"))   return QStringLiteral("Tracking");
-    if (name == QStringLiteral("estabilidad") ||
-        name == QStringLiteral("Estabilidad"))   return QStringLiteral("Stability");
-    if (name == QStringLiteral("ruido") ||
-        name == QStringLiteral("Ruido"))         return QStringLiteral("SensorNoise");
-    if (name == QStringLiteral("RPS"))           return QStringLiteral("OutputDisturbance");
-    if (name == QStringLiteral("RPE"))           return QStringLiteral("InputDisturbance");
-    if (name == QStringLiteral("EC"))            return QStringLiteral("ControlEffort");
-    return name;
+    return std::string();
 }
 
 /**
@@ -93,8 +71,8 @@ public:
     }
 
     /// Constant bound; magnitude in linear units (not dB), > 0.
-    static Specification constant(SpecificationType type, qreal magnitude,
-                                  qreal minFrequency, qreal maxFrequency)
+    static Specification constant(SpecificationType type, double magnitude,
+                                  double minFrequency, double maxFrequency)
     {
         if (!(magnitude > 0.0) || !std::isfinite(magnitude)) {
             throw InvalidInput("A constant specification needs a finite magnitude > 0.");
@@ -113,7 +91,7 @@ public:
     /// Bound given by a transfer function, which the specification takes over.
     static Specification fromSystem(SpecificationType type,
                                     std::unique_ptr<LtiSystem> system,
-                                    qreal minFrequency, qreal maxFrequency)
+                                    double minFrequency, double maxFrequency)
     {
         if (system == nullptr) {
             throw InvalidInput("A system specification needs a non-null plant.");
@@ -161,7 +139,7 @@ public:
      * Constant: 20*log10(magnitude), omega is ignored. System:
      * 20*log10(|H(j*omega)|).
      */
-    qreal boundDb(qreal omega) const
+    double boundDb(double omega) const
     {
         if (m_constant) {
             return 20.0 * std::log10(m_magnitude);
@@ -170,7 +148,7 @@ public:
     }
 
     /// used() and minFrequency <= omega <= maxFrequency (closed interval).
-    bool appliesAt(qreal omega) const
+    bool appliesAt(double omega) const
     {
         return m_used && m_minFrequency <= omega && omega <= m_maxFrequency;
     }
@@ -181,20 +159,20 @@ public:
 
     SpecificationType type() const { return m_type; }
 
-    QString name() const { return specificationName(m_type); }
+    std::string name() const { return specificationName(m_type); }
 
     const LtiSystem* system() const { return m_system.get(); }
 
-    qreal magnitude() const { return m_magnitude; }
+    double magnitude() const { return m_magnitude; }
 
-    qreal minFrequency() const { return m_minFrequency; }
+    double minFrequency() const { return m_minFrequency; }
 
-    qreal maxFrequency() const { return m_maxFrequency; }
+    double maxFrequency() const { return m_maxFrequency; }
 
 private:
     explicit Specification(SpecificationType type) : m_type(type) {}
 
-    static void validateBand(qreal minFrequency, qreal maxFrequency)
+    static void validateBand(double minFrequency, double maxFrequency)
     {
         if (!std::isfinite(minFrequency) || !std::isfinite(maxFrequency) ||
             minFrequency < 0.0 || maxFrequency < minFrequency) {
@@ -205,15 +183,15 @@ private:
     SpecificationType m_type = SpecificationType::TrackingLower;
     bool m_used = false;
     bool m_constant = false;
-    qreal m_magnitude = 0.0;
-    qreal m_minFrequency = 0.0;
-    qreal m_maxFrequency = 0.0;
+    double m_magnitude = 0.0;
+    double m_minFrequency = 0.0;
+    double m_maxFrequency = 0.0;
     std::unique_ptr<LtiSystem> m_system;
 };
 
 /**
  * @brief The fixed set of seven specifications, indexed by type (the
- * historical code held a positional QVector of 7 with no size checks and a
+ * historical code held a positional std::vector of 7 with no size checks and a
  * magic "seguimiento" string as the type discriminant).
  */
 class SpecificationSet
@@ -221,19 +199,19 @@ class SpecificationSet
 public:
     SpecificationSet()
     {
-        for (int i = 0; i < kSpecificationCount; ++i) {
+        for (std::size_t i = 0; i < kSpecificationCount; ++i) {
             m_slots[i] = Specification::unused(static_cast<SpecificationType>(i));
         }
     }
 
     const Specification& at(SpecificationType type) const
     {
-        return m_slots[static_cast<int>(type)];
+        return m_slots[static_cast<std::size_t>(type)];
     }
 
     void set(Specification&& specification)
     {
-        const int index = static_cast<int>(specification.type());
+        const std::size_t index = static_cast<std::size_t>(specification.type());
         m_slots[index] = std::move(specification);
     }
 
@@ -242,7 +220,7 @@ public:
      * tracking boundary cuts at. Centralises the sign that three consumers
      * computed as b-a and one, wrongly, as a-b.
      */
-    qreal trackingSpreadDb(qreal omega) const
+    double trackingSpreadDb(double omega) const
     {
         return at(SpecificationType::TrackingUpper).boundDb(omega) -
                at(SpecificationType::TrackingLower).boundDb(omega);

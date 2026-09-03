@@ -1,16 +1,19 @@
+#include <fstream>
+#include <iterator>
+#include <string>
+#include <vector>
+#include <cstdint>
 #include "src/core/frequencies/omega.h"
 #include "src/core/text_tokens.h"
 
-#include <QFile>
-#include <QTextStream>
 
 #include "src/core/exception.h"
 
-Omega::Omega(qreal start, qreal end, qint32 pointCount, QVector<qreal> values, GenerationType type)
+Omega::Omega(double start, double end, std::int32_t pointCount, std::vector<double> values, GenerationType type)
 {
-    Q_UNUSED(pointCount);
+    (void) pointCount;   //old files carry a desynchronised point count
 
-    if (values.isEmpty()){
+    if (values.empty()){
         throw qftbx::InvalidInput("A frequency set needs at least one value.");
     }
 
@@ -23,19 +26,19 @@ Omega::Omega(qreal start, qreal end, qint32 pointCount, QVector<qreal> values, G
     m_type = type;
 }
 
-qreal Omega::start(){
+double Omega::start(){
     return m_start;
 }
 
-qreal Omega::end(){
+double Omega::end(){
     return m_end;
 }
 
-qint32 Omega::pointCount(){
+std::int32_t Omega::pointCount(){
     return m_pointCount;
 }
 
-QVector<qreal> * Omega::values(){
+std::vector<double> * Omega::values(){
     return &m_values;
 }
 
@@ -43,9 +46,9 @@ Omega::GenerationType Omega::type(){
     return m_type;
 }
 
-void Omega::setOmega(QVector<qreal> values){
+void Omega::setOmega(std::vector<double> values){
 
-    if (values.isEmpty()){
+    if (values.empty()){
         throw qftbx::InvalidInput("A frequency set needs at least one value.");
     }
 
@@ -56,21 +59,39 @@ void Omega::setOmega(QVector<qreal> values){
     m_values = std::move(values);
 }
 
-QVector<qreal> Omega::valuesFromFile(QString path){
+std::vector<double> Omega::valuesFromFile(std::string path){
 
-    QFile file (path);
+    //std::ifstream and not QFile: this is the core, and reading a text file
+    //of numbers needs nothing from Qt.
+    std::ifstream file (path);
 
-    if (!file.open(QIODevice::ReadOnly)){
-        throw qftbx::FileError("Cannot open frequencies file: " + path.toStdString());
+    if (!file.is_open()){
+        throw qftbx::FileError("Cannot open frequencies file: " + path);
     }
 
-    QTextStream in (&file);
-    const std::optional<QVector<qreal>> values = qftbx::text::reals(in.readAll());
+    file.seekg(0, std::ios::end);
+    std::string contents;
+    contents.resize(static_cast<std::size_t>(file.tellg()));
+    file.seekg(0, std::ios::beg);
+    file.read(&contents[0], static_cast<std::streamsize>(contents.size()));
+    contents.resize(static_cast<std::size_t>(file.gcount()));
 
-    if (!values.has_value() || values->isEmpty()){
+    const std::optional<std::vector<double>> values = qftbx::text::reals(contents);
+
+    if (!values.has_value() || values->empty()){
         throw qftbx::FileError("The frequencies file contains no valid values: "
-                               + path.toStdString());
+                               + path);
     }
 
     return values.value();
 }
+
+bool Omega::sameAs(const Omega & other) const
+{
+    return m_type == other.m_type &&
+            m_start == other.m_start &&
+            m_end == other.m_end &&
+            m_pointCount == other.m_pointCount &&
+            m_values == other.m_values;
+}
+

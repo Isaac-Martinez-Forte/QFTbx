@@ -9,9 +9,10 @@
 
 #include <gtest/gtest.h>
 
+#include <vector>
+
 #include <complex>
 
-#include <QVector>
 
 #include "src/core/loopshaping/quick_solution.h"
 
@@ -22,11 +23,11 @@ namespace qs = qftbx::quick_solution;
 class QuickSolutionPaperExample : public ::testing::Test
 {
 protected:
-    const qreal w = 0.1;
-    const std::complex<qreal> p0 = 1.0 /
-            (std::complex<qreal>(0.0, 0.1) * std::complex<qreal>(1.0, 0.1));
-    const qreal boundMin = std::pow(10.0, 37.2342 / 20.0);
-    const qreal gainSup = 2010597.38;
+    const double w = 0.1;
+    const std::complex<double> p0 = 1.0 /
+            (std::complex<double>(0.0, 0.1) * std::complex<double>(1.0, 0.1));
+    const double boundMin = std::pow(10.0, 37.2342 / 20.0);
+    const double gainSup = 2010597.38;
     const std::vector<double> zeroSups{3.3};
     const std::vector<double> poleInfs{1025.5, 193.55};
 };
@@ -65,14 +66,14 @@ TEST_F(QuickSolutionPaperExample, NoRealSolutionReturnsNegative)
 // inside the forbidden phase strip (soundness), and just past the cut the
 // closest-to-allowed corner leaves it (tightness).
 
-qreal loopPhase(qreal phi0, const QVector<qreal> & zeros,
-                const QVector<qreal> & poles, qreal w)
+double loopPhase(double phi0, const std::vector<double> & zeros,
+                const std::vector<double> & poles, double w)
 {
-    qreal phase = phi0;
-    foreach (qreal z, zeros) {
+    double phase = phi0;
+    for (double z : zeros) {
         phase += std::atan2(w, z);
     }
-    foreach (qreal p, poles) {
+    for (double p : poles) {
         phase -= std::atan2(w, p);
     }
     return phase;
@@ -81,8 +82,8 @@ qreal loopPhase(qreal phi0, const QVector<qreal> & zeros,
 class QuickSolutionPhaseCuts : public ::testing::Test
 {
 protected:
-    const qreal w = 2.0;
-    const qreal phi0 = -2.0;
+    const double w = 2.0;
+    const double phi0 = -2.0;
     const std::vector<double> zeroInfs{0.5, 1.0};
     const std::vector<double> zeroSups{50.0, 20.0};
     const std::vector<double> poleInfs{0.2};
@@ -93,15 +94,15 @@ TEST_F(QuickSolutionPhaseCuts, HighStripZeroCutIsSoundAndTight)
 {
     //Poles far enough that a positive margin exists for the first zero.
     const std::vector<double> farPoleInfs{20.0};
-    const qreal thetaMax = phi0 + 0.35;
+    const double thetaMax = phi0 + 0.35;
 
-    const qreal cut = qs::zeroPhaseCutHigh(thetaMax, phi0, zeroSups, farPoleInfs, 0, w);
+    const double cut = qs::zeroPhaseCutHigh(thetaMax, phi0, zeroSups, farPoleInfs, 0, w);
     ASSERT_GT(cut, zeroInfs[0]);
     ASSERT_LT(cut, zeroSups[0]);
 
-    for (qreal z0 : {zeroInfs[0], 0.5 * cut, 0.999 * cut}) {
-        for (qreal z1 : {zeroInfs[1], zeroSups[1]}) {
-            for (qreal p : {20.0, 80.0}) {
+    for (double z0 : {zeroInfs[0], 0.5 * cut, 0.999 * cut}) {
+        for (double z1 : {zeroInfs[1], zeroSups[1]}) {
+            for (double p : {20.0, 80.0}) {
                 EXPECT_GT(loopPhase(phi0, {z0, z1}, {p}, w), thetaMax);
             }
         }
@@ -112,15 +113,15 @@ TEST_F(QuickSolutionPhaseCuts, HighStripZeroCutIsSoundAndTight)
 
 TEST_F(QuickSolutionPhaseCuts, HighStripPoleCutIsSoundAndTight)
 {
-    const qreal thetaMax = phi0 - 0.2;
+    const double thetaMax = phi0 - 0.2;
 
-    const qreal cut = qs::polePhaseCutHigh(thetaMax, phi0, zeroSups, poleInfs, 0, w);
+    const double cut = qs::polePhaseCutHigh(thetaMax, phi0, zeroSups, poleInfs, 0, w);
     ASSERT_GT(cut, poleInfs[0]);
     ASSERT_LT(cut, poleSups[0]);
 
-    for (qreal p : {1.001 * cut, 2.0 * cut, poleSups[0]}) {
-        for (qreal z0 : {zeroInfs[0], zeroSups[0]}) {
-            for (qreal z1 : {zeroInfs[1], zeroSups[1]}) {
+    for (double p : {1.001 * cut, 2.0 * cut, poleSups[0]}) {
+        for (double z0 : {zeroInfs[0], zeroSups[0]}) {
+            for (double z1 : {zeroInfs[1], zeroSups[1]}) {
                 EXPECT_GT(loopPhase(phi0, {z0, z1}, {p}, w), thetaMax);
             }
         }
@@ -131,15 +132,15 @@ TEST_F(QuickSolutionPhaseCuts, HighStripPoleCutIsSoundAndTight)
 
 TEST_F(QuickSolutionPhaseCuts, LowStripZeroCutIsSoundAndTight)
 {
-    const qreal thetaMin = phi0 + 1.4;
+    const double thetaMin = phi0 + 1.4;
 
-    const qreal cut = qs::zeroPhaseCutLow(thetaMin, phi0, zeroInfs, poleSups, 0, w);
+    const double cut = qs::zeroPhaseCutLow(thetaMin, phi0, zeroInfs, poleSups, 0, w);
     ASSERT_GT(cut, zeroInfs[0]);
     ASSERT_LT(cut, zeroSups[0]);
 
-    for (qreal z0 : {1.001 * cut, 2.0 * cut, zeroSups[0]}) {
-        for (qreal z1 : {zeroInfs[1], zeroSups[1]}) {
-            for (qreal p : {poleInfs[0], poleSups[0]}) {
+    for (double z0 : {1.001 * cut, 2.0 * cut, zeroSups[0]}) {
+        for (double z1 : {zeroInfs[1], zeroSups[1]}) {
+            for (double p : {poleInfs[0], poleSups[0]}) {
                 EXPECT_LT(loopPhase(phi0, {z0, z1}, {p}, w), thetaMin);
             }
         }
@@ -150,15 +151,15 @@ TEST_F(QuickSolutionPhaseCuts, LowStripZeroCutIsSoundAndTight)
 
 TEST_F(QuickSolutionPhaseCuts, LowStripPoleCutIsSoundAndTight)
 {
-    const qreal thetaMin = phi0 + 2.1;
+    const double thetaMin = phi0 + 2.1;
 
-    const qreal cut = qs::polePhaseCutLow(thetaMin, phi0, zeroInfs, poleSups, 0, w);
+    const double cut = qs::polePhaseCutLow(thetaMin, phi0, zeroInfs, poleSups, 0, w);
     ASSERT_GT(cut, poleInfs[0]);
     ASSERT_LT(cut, poleSups[0]);
 
-    for (qreal p : {poleInfs[0], 0.5 * cut, 0.999 * cut}) {
-        for (qreal z0 : {zeroInfs[0], zeroSups[0]}) {
-            for (qreal z1 : {zeroInfs[1], zeroSups[1]}) {
+    for (double p : {poleInfs[0], 0.5 * cut, 0.999 * cut}) {
+        for (double z0 : {zeroInfs[0], zeroSups[0]}) {
+            for (double z1 : {zeroInfs[1], zeroSups[1]}) {
                 EXPECT_LT(loopPhase(phi0, {z0, z1}, {p}, w), thetaMin);
             }
         }

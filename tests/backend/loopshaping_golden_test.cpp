@@ -28,8 +28,11 @@
 
 #include <gtest/gtest.h>
 
-#include <QPointF>
-#include <QString>
+#include <string>
+
+#include "src/core/range.h"
+
+#include "src/core/point.h"
 
 #include "src/core/project_controller.h"
 #include "src/core/exception.h"
@@ -40,8 +43,8 @@ struct GoldenResult {
     const char* name;
     tools::LoopShapingAlgorithm algorithm;
     bool solutionExists;
-    qreal gain;
-    qreal tolerance;
+    double gain;
+    double tolerance;
 };
 
 //Readable test names in ctest (instead of a raw byte dump).
@@ -60,18 +63,18 @@ TEST_P(LoopShapingGolden, Planta1ResultIsPinned)
 
     ProjectController controller;
     controller.load(
-        QStringLiteral(QFTBX_TEST_DATA_DIR "/planta1.qft"));
+        std::string(QFTBX_TEST_DATA_DIR "/planta1.qft"));
 
     if (!golden.solutionExists) {
         EXPECT_THROW(controller.computeLoopShaping(
-                         0.5, golden.algorithm, QPointF(1e-9, 10.0), 100),
+                         0.5, golden.algorithm, qftbx::Range(1e-9, 10.0), 100),
                      qftbx::InvalidInput)
             << golden.name;
         return;
     }
 
     const bool ok = controller.computeLoopShaping(
-        0.5, golden.algorithm, QPointF(1e-9, 10.0), 100);
+        0.5, golden.algorithm, qftbx::Range(1e-9, 10.0), 100);
 
     ASSERT_TRUE(ok) << golden.name;
 

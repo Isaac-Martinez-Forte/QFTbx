@@ -2,7 +2,7 @@
 
 using namespace tools;
 
-SearchNode::SearchNode(qreal index, std::unique_ptr<LtiSystem> system, BoxFlag flag)
+SearchNode::SearchNode(double index, std::unique_ptr<LtiSystem> system, BoxFlag flag)
     : m_system(std::move(system))
 {
     this->index = index;

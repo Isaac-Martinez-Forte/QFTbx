@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<QFT>
+<QFT version="2">
     <omega>
-        <inicio>0</inicio>
-        <final>0</final>
-        <nPuntos>3</nPuntos>
-        <tipo>2</tipo>
-        <valores>1 garbage 3 </valores>
+        <min>0</min>
+        <max>0</max>
+        <point-count>3</point-count>
+        <type>2</type>
+        <values>1 garbage 3 </values>
     </omega>
 </QFT>

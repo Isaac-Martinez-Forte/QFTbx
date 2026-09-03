@@ -7,8 +7,10 @@
 
 #include <gtest/gtest.h>
 
-#include <QString>
-#include <QVector>
+#include <string>
+
+#include <vector>
+
 
 #include "src/persistence/project_reader.h"
 #include "src/core/system/lti_system.h"
@@ -30,9 +32,9 @@ enum SectionFlag {
     kSectionFlagCount
 };
 
-QString fixturePath(const char *name)
+std::string fixturePath(const char *name)
 {
-    return QString(QFTBX_TEST_DATA_DIR "/") + name;
+    return std::string(QFTBX_TEST_DATA_DIR "/") + name;
 }
 
 std::vector<bool> loadFlags(ProjectReader &parser, const char *fixture)
@@ -64,7 +66,7 @@ TEST(ProjectReaderSmoke, CerveraLoadsPlantAndFrequenciesOnly)
     Omega *omega = parser.omega();
     ASSERT_NE(omega, nullptr);
     ASSERT_NE(omega->values(), nullptr);
-    const QVector<qreal> &values = *omega->values();
+    const std::vector<double> &values = *omega->values();
     ASSERT_EQ(values.size(), 4);
     EXPECT_DOUBLE_EQ(values[0], 0.1);
     EXPECT_DOUBLE_EQ(values[1], 5.0);

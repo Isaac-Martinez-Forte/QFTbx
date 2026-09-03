@@ -1,11 +1,12 @@
 #ifndef QFTBX_SPECIFICATION_RECORD_H
 #define QFTBX_SPECIFICATION_RECORD_H
 
+#include <vector>
 #include <array>
 #include <cmath>
 #include <memory>
 
-#include <QString>
+#include <string>
 
 #include "src/core/system/lti_system.h"
 #include "src/core/specifications/specification.h"
@@ -18,15 +19,15 @@ namespace qftbx {
 //the validated Specification produced by toSpecification(), which is where
 //the invariants are enforced.
 struct SpecificationRecord {
-    QString name;
+    std::string name;
     bool used = false;
     //The record OWNS its plant. It used to be a raw pointer whose owners
     //had to walk the container and delete it, in four different places.
     std::unique_ptr<LtiSystem> system;
-    qreal height = 0.0;    //LINEAR magnitude (heightDb() converts)
+    double height = 0.0;    //LINEAR magnitude (heightDb() converts)
     bool constant = false;
-    qreal omegaStart = 0.0;
-    qreal omegaEnd = 0.0;
+    double omegaStart = 0.0;
+    double omegaEnd = 0.0;
 
     //Deep copy: the copy owns a fresh copy of the embedded plant. Explicit
     //because owning the plant makes the record move-only, which is the
@@ -47,7 +48,7 @@ struct SpecificationRecord {
         return copy;
     }
 
-    qreal heightDb(qreal omega) const {
+    double heightDb(double omega) const {
         if (constant){
             return 20 * std::log10(height);
         }
@@ -61,7 +62,7 @@ struct SpecificationRecord {
  * by SpecificationType, and the persistence writes them in that order.
  *
  * By value, with each record owning its plant. This was a POINTER to a
- * QVector of POINTERS, so four modules carried the same nested deletion
+ * std::vector of POINTERS, so four modules carried the same nested deletion
  * loop and the size was never checked outside the reader.
  */
 using SpecificationRecords = std::array<SpecificationRecord, kSpecificationCount>;
@@ -85,8 +86,8 @@ inline Specification toSpecification(const SpecificationRecord & d, Specificatio
 
 inline SpecificationSet toSpecificationSet(const SpecificationRecords & specs){
     SpecificationSet set;
-    for (int i = 0; i < kSpecificationCount; ++i){
-        set.set(toSpecification(specs.at(static_cast<std::size_t>(i)),
+    for (std::size_t i = 0; i < kSpecificationCount; ++i){
+        set.set(toSpecification(specs.at(i),
                                 static_cast<SpecificationType>(i)));
     }
     return set;

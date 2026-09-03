@@ -4,11 +4,11 @@
 
 #include <gtest/gtest.h>
 
+#include <string>
+
 #include <vector>
 
-#include <QPointF>
-#include <QString>
-#include <QVector>
+#include "src/core/point.h"
 
 #include "src/core/loopshaping/nominal_stability_checker.h"
 #include "src/core/system/zero_pole_gain.h"
@@ -16,22 +16,22 @@
 
 namespace {
 
-LtiSystem* makeZpk(qreal k, std::initializer_list<qreal> zeros,
-                   std::initializer_list<qreal> poles)
+LtiSystem* makeZpk(double k, std::initializer_list<double> zeros,
+                   std::initializer_list<double> poles)
 {
     std::vector<Parameter> nume;
-    for (qreal z : zeros) {
+    for (double z : zeros) {
         nume.push_back(Parameter(z));
     }
     std::vector<Parameter> deno;
-    for (qreal p : poles) {
+    for (double p : poles) {
         deno.push_back(Parameter(p));
     }
-    return new ZeroPoleGain(QStringLiteral("test"), nume, deno,
-                            Parameter(k), Parameter(qreal(0)));
+    return new ZeroPoleGain(std::string("test"), nume, deno,
+                            Parameter(k), Parameter(double(0)));
 }
 
-QVector<qreal> designFrequencies{0.1, 1.0, 10.0};
+std::vector<double> designFrequencies{0.1, 1.0, 10.0};
 
 TEST(NominalStability, LowGainOverAStablePlantIsStable)
 {

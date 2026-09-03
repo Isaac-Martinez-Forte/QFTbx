@@ -2,10 +2,10 @@
 #define QFTBX_CONTOUR_TRACER_H
 
 
-#include <QVector>
+#include <vector>
 
 #include "src/core/boundaries/boundary_types.h"
-#include <QPointF>
+#include "src/core/point.h"
 
 namespace qftbx {
 
@@ -24,22 +24,22 @@ class ContourTracer
 public:
     /// Cut threshold in dB (already resolved by the caller: the tracking
     /// spread T_U - T_L, or the specification's own bound) over the sheet.
-    ContourTracer (qreal thresholdDb, const BoundarySheet & sheet);
+    ContourTracer (double thresholdDb, const BoundarySheet & sheet);
 
-    TraceSet trace (qreal phaseSpan, qreal magnitudeSpan,
-                                           qreal phaseBottom, qreal magnitudeBottom);
+    TraceSet trace (double phaseSpan, double magnitudeSpan,
+                                           double phaseBottom, double magnitudeBottom);
 
 #ifdef CUDA_AVAILABLE
-    ContourTracer (qreal thresholdDb, const float * sheet);
+    ContourTracer (double thresholdDb, const float * sheet);
 
-    TraceSet trace (qreal phaseSpan, qreal phaseCount, qreal magnitudeSpan,
-                                           qreal magnitudeCount, qreal phaseBottom, qreal magnitudeBottom);
+    TraceSet trace (double phaseSpan, double phaseCount, double magnitudeSpan,
+                                           double magnitudeCount, double phaseBottom, double magnitudeBottom);
 #endif
 
 
 private:
 
-    qreal m_thresholdDb;
+    double m_thresholdDb;
     const BoundarySheet * m_sheet = nullptr;
 #ifdef CUDA_AVAILABLE
     const float * m_cudaSheet = nullptr;
