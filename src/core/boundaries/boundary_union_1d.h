@@ -60,7 +60,7 @@ private:
 
     std::int32_t bucketIndex(double x, double totalPhase);
 
-    void insertSorted(TraceSet & layerBuckets, std::int32_t index, qftbx::Point point, double totalPhase);
+    void insertSorted(TraceSet & layerBuckets, std::int32_t index, qftbx::NicholsPoint point, double totalPhase);
 
     std::vector<TraceSet> buildLayerBuckets(const TraceSet & chosenCurves, double totalPhase, bool open, bool upper);
 

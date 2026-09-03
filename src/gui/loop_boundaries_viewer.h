@@ -29,7 +29,21 @@ public:
     ~LoopBoundariesViewer();
 
 
-    void setData (const BoundaryData * nicholsData, const BoundaryData * nyquistData, QVector<qreal> *omega,
+    /**
+     * @brief Publishes what the two diagrams draw.
+     *
+     * @param nicholsData the boundaries, on the chart they were computed on.
+     * @param nyquistTraces the same union read on the complex plane. The
+     * curves themselves, not a BoundaryData: the viewer used to be handed
+     * one fabricated for the occasion, which had to carry empty bucket rows
+     * because this view is only drawn and never classified, and whose
+     * Nichols-typed points were holding real and imaginary parts.
+     * @param omega the design frequencies the curves belong to.
+     * @param plant, controller what the loop is drawn from.
+     * @param nichols, nyquist which of the two diagrams to draw.
+     */
+    void setData (const BoundaryData * nicholsData, const qftbx::NyquistTraces & nyquistTraces,
+                   QVector<qreal> *omega,
                    LtiSystem * plant, LtiSystem * controller, bool nichols, bool nyquist);
 
     void showDiagram();
@@ -44,7 +58,8 @@ private slots:
 private:
 
     const BoundaryData * nicholsData = nullptr;
-    const BoundaryData * nyquistData = nullptr;
+    //By value: the curves are computed for this view and belong to it.
+    qftbx::NyquistTraces nyquistTraces;
     //Observers on the project's objects, handed in by setData(): the
     //viewer never owns what it draws.
     LtiSystem * plant = nullptr;

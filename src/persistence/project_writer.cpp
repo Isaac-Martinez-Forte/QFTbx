@@ -37,11 +37,11 @@ std::string realVectorText(const QVector <double> & values)
     return text;
 }
 
-std::string pointVectorText(const std::vector<qftbx::Point> & points)
+std::string pointVectorText(const std::vector<qftbx::NicholsPoint> & points)
 {
     std::string text;
-    for (const qftbx::Point & point : points) {
-        text += number(point.x) + " " + number(point.y) + " ";
+    for (const qftbx::NicholsPoint & point : points) {
+        text += number(point.phase) + " " + number(point.magnitude) + " ";
     }
     return text;
 }

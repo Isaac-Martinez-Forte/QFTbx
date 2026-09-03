@@ -136,8 +136,8 @@ void BoundaryEngine::compute(QVector<double> *omega, LtiSystem *plant, const Clo
             std::map<QString, TraceLabels> traceMetadata;
 
             traceFrequency(omega->at(i), bound, cudaSheets, traceMetadata, p0, valueSet, i,
-                           phaseRange.y - phaseRange.x, magnitudeRange.y - magnitudeRange.x,
-                           phaseRange.x, magnitudeRange.x);
+                           phaseRange.magnitude - phaseRange.phase, magnitudeRange.magnitude - magnitudeRange.phase,
+                           phaseRange.phase, magnitudeRange.phase);
 
             m_traceMetadata.push_back(std::move(traceMetadata));
             m_boundaries.push_back(std::move(bound));
@@ -357,23 +357,32 @@ TraceSet BoundaryEngine::traceBoundary(double thresholdDb, const BoundarySheet &
 
 
 #ifdef CUDA_AVAILABLE
-QVector<QVector<qftbx::Point> *> * BoundaryEngine::traceBoundary(double thresholdDb, const float *sheet,
-                                                            QVector<qftbx::Point> *traceMetadata, std::complex<double> p0,
-                                                            const ComplexCloud & valueSet, std::int32_t kind,
-                                                            double phaseSpan, double magnitudeSpan, double phaseBottom, double magnitudeBottom){
+//The CUDA-sheet twin of the function above. It had been left behind by the
+//value-semantics work of phase 9: it returned QVector<QVector<Point>*>*
+//while its own declaration said TraceSet, and it called a tracer overload
+//that no longer exists. Neither configuration built it - the sources are
+//behind #ifdef CUDA_AVAILABLE and USE_CUDA is off here - so nothing said
+//so. Brought in line with the current API; it is the one piece of this
+//phase that no compiler on this machine has checked.
+TraceSet BoundaryEngine::traceBoundary(double thresholdDb, const float *sheet,
+                                       TraceLabels & traceMetadata, std::complex<double> p0,
+                                       const ComplexCloud & valueSet, std::int32_t kind,
+                                       double phaseSpan, double magnitudeSpan,
+                                       double phaseBottom, double magnitudeBottom){
 
     ContourTracer tracer (thresholdDb, sheet);
 
-    QVector<QVector<qftbx::Point> *> * traces = tracer.trace(phaseSpan, m_phaseCount, magnitudeSpan, m_magnitudeCount, phaseBottom, magnitudeBottom);
+    TraceSet traces = tracer.trace(phaseSpan, m_phaseCount, magnitudeSpan,
+                                   m_magnitudeCount, phaseBottom, magnitudeBottom);
 
-
-    traceMetadata->resize(traces->size());
+    traceMetadata.resize(traces.size());
 
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
 #endif
-    for (std::int32_t j = 0; j < traces->size(); j++) {
-        traceMetadata->replace(j, allowedZone(traces->at(j), p0, valueSet, kind, thresholdDb) != 0);
+    for (std::int32_t j = 0; j < static_cast<std::int32_t>(traces.size()); j++) {
+        traceMetadata[static_cast<std::size_t>(j)] =
+                allowedZone(traces.at(static_cast<std::size_t>(j)), p0, valueSet, kind, thresholdDb) != 0;
     }
 
     return traces;
@@ -387,10 +396,10 @@ std::int32_t BoundaryEngine::allowedZone(const Trace & trace, complex <double> p
     double probeMagnitude = -numeric_limits<double>::infinity();
     double probePhase = -numeric_limits<double>::infinity();
 
-    for (const qftbx::Point & point : trace) {
-        if(point.y > probeMagnitude){
-            probeMagnitude = point.y;
-            probePhase = point.x;
+    for (const qftbx::NicholsPoint & point : trace) {
+        if(point.magnitude > probeMagnitude){
+            probeMagnitude = point.magnitude;
+            probePhase = point.phase;
         }
     }
 

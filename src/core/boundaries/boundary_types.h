@@ -11,7 +11,7 @@
 namespace qftbx {
 
 /// One boundary curve in the Nichols plane: phase in degrees, magnitude in dB.
-using Trace = std::vector<Point>;
+using Trace = std::vector<NicholsPoint>;
 
 /// The curves of one specification at one design frequency. A boundary is
 /// multivalued in general, hence several curves rather than one.
@@ -34,6 +34,14 @@ using BoundarySet = std::vector<std::map<QString, TraceSet>>;
 /// The 1D union of all specifications at each design frequency: one curve per
 /// frequency, the upper envelope the search tests against.
 using UnionTraces = std::vector<Trace>;
+
+/// One curve of the Nyquist view: the same union read on the complex plane
+/// (see qftbx::toNyquist). Its own type so it cannot be passed where a
+/// Nichols trace is expected.
+using NyquistTrace = std::vector<NyquistPoint>;
+
+/// Per design frequency, one Nyquist curve.
+using NyquistTraces = std::vector<NyquistTrace>;
 
 /**
  * @brief The union again, bucketed by phase: per frequency, one bucket per

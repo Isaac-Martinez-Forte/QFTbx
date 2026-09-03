@@ -131,8 +131,8 @@ BoundaryData oneBoundary()
     //this. The curve is one named boundary of three points over the default
     //Nichols window - enough to drive the drawing code, which is what the
     //viewer tests are after.
-    const qftbx::Trace curve{qftbx::Point(-270.0, 10.0), qftbx::Point(-180.0, 4.0),
-                             qftbx::Point(-90.0, 10.0)};
+    const qftbx::Trace curve{qftbx::NicholsPoint(-270.0, 10.0), qftbx::NicholsPoint(-180.0, 4.0),
+                             qftbx::NicholsPoint(-90.0, 10.0)};
 
     return BoundaryData({{{QStringLiteral("Stability"), {curve}}}},
                         {false}, {true}, 361, qftbx::Range(-360.0, 0.0),
@@ -754,8 +754,8 @@ TEST_F(GuiSmoke, BoundaryUnionViewerDrawsTheUnion)
 {
     BoundaryUnionViewer viewer;
 
-    const qftbx::UnionTraces traces{{qftbx::Point(-270.0, 10.0), qftbx::Point(-180.0, 4.0),
-                                     qftbx::Point(-90.0, 10.0)}};
+    const qftbx::UnionTraces traces{{qftbx::NicholsPoint(-270.0, 10.0), qftbx::NicholsPoint(-180.0, 4.0),
+                                     qftbx::NicholsPoint(-90.0, 10.0)}};
     QVector<qreal> omega{1.0};
 
     viewer.setData(traces, &omega);
@@ -784,8 +784,8 @@ TEST_F(GuiSmoke, LoopShapingViewerDrawsTheShapedLoop)
     LoopShapingResult result(std::make_unique<PolynomialForm>(QStringLiteral("k"), one, one,
                                                               Parameter(1.0), Parameter(0.0)),
                              qftbx::Range(0.1, 100.0), 50);
-    const qftbx::UnionTraces traces{{qftbx::Point(-270.0, 10.0), qftbx::Point(-180.0, 4.0),
-                                     qftbx::Point(-90.0, 10.0)}};
+    const qftbx::UnionTraces traces{{qftbx::NicholsPoint(-270.0, 10.0), qftbx::NicholsPoint(-180.0, 4.0),
+                                     qftbx::NicholsPoint(-90.0, 10.0)}};
     QVector<qreal> omega{1.0, 10.0};
 
     viewer.setData(traces, &omega, &result, &plant, false);
@@ -809,10 +809,21 @@ TEST_F(GuiSmoke, LoopBoundariesViewerDrawsBothDiagrams)
                               Parameter(1.0), Parameter(0.0));
 
     const BoundaryData nichols = oneBoundary();
-    const BoundaryData nyquist = oneBoundary();
     QVector<qreal> omega{1.0};
 
-    viewer.setData(&nichols, &nyquist, &omega, &plant, &controller, true, false);
+    //The Nyquist half is now the curves themselves, converted from the same
+    //union: the viewer no longer takes a BoundaryData built to look like
+    //something it is not.
+    qftbx::NyquistTraces nyquist;
+    for (const qftbx::Trace & trace : nichols.unionBoundaries()) {
+        qftbx::NyquistTrace converted;
+        for (const qftbx::NicholsPoint & point : trace) {
+            converted.push_back(qftbx::toNyquist(point));
+        }
+        nyquist.push_back(std::move(converted));
+    }
+
+    viewer.setData(&nichols, nyquist, &omega, &plant, &controller, true, false);
     viewer.showDiagram();
 
     QCustomPlot * plot = child<QCustomPlot>(&viewer, "plot");

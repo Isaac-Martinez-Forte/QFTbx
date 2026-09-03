@@ -59,10 +59,11 @@ void LoopBoundariesViewer::clearDiagram(){
 }
 
 
-void LoopBoundariesViewer::setData(const BoundaryData *nicholsData, const BoundaryData *nyquistData, QVector<qreal> *omega,
+void LoopBoundariesViewer::setData(const BoundaryData *nicholsData,
+                             const qftbx::NyquistTraces & nyquistTraces, QVector<qreal> *omega,
                              LtiSystem *plant, LtiSystem *controller, bool nichols, bool nyquist){
     this->nicholsData = nicholsData;
-    this->nyquistData = nyquistData;
+    this->nyquistTraces = nyquistTraces;
     this->plant = plant;
     this->controller = controller;
     this->omega = omega;
@@ -93,8 +94,8 @@ void LoopBoundariesViewer::showDiagram(){
     qint32 c = 0;
     for (const qftbx::Trace & boundNichols : nicholsData->unionBoundaries()) {
 
-        const qftbx::Trace & boundNyquist =
-                nyquistData->unionBoundaries().at(static_cast<std::size_t>(frequencyIndex));
+        const qftbx::NyquistTrace & boundNyquist =
+                nyquistTraces.at(static_cast<std::size_t>(frequencyIndex));
 
 
         QColor color = randomColor(c);
@@ -113,13 +114,13 @@ void LoopBoundariesViewer::showDiagram(){
 
         qint32 secondIndex = 0;
 
-        for (const qftbx::Point & pNichols : boundNichols) {
-            const qftbx::Point pNyquist = boundNyquist.at(static_cast<std::size_t>(secondIndex));
-            ejex.append(pNichols.x);
-            ejey.append(pNichols.y);
+        for (const qftbx::NicholsPoint & pNichols : boundNichols) {
+            const qftbx::NyquistPoint pNyquist = boundNyquist.at(static_cast<std::size_t>(secondIndex));
+            ejex.append(pNichols.phase);
+            ejey.append(pNichols.magnitude);
 
-            ejex1.append(pNyquist.x);
-            ejey1.append(pNyquist.y);
+            ejex1.append(pNyquist.re);
+            ejey1.append(pNyquist.im);
 
 
             secondIndex++;

@@ -1,38 +1,34 @@
 #ifndef QFTBX_POINT_H
 #define QFTBX_POINT_H
 
+#include <cmath>
+
 namespace qftbx {
 
 /**
- * @brief A point of a plane, as a pair of named coordinates.
+ * @brief A point of the Nichols chart: an open-loop phase in DEGREES and a
+ * magnitude in DECIBELS.
  *
  * Plain data members rather than accessors, like qftbx::Range: this is an
  * aggregate, and getters over two doubles buy nothing.
  *
- * WHY x AND y AND NOT phase AND magnitude, which is what a boundary trace
- * actually carries. In the core they would be the honest names - the
- * boundary engine computes over a phase x magnitude grid, and the cartesian
- * "Nyquist" projection was dropped from the algorithms (the thesis tried it
- * and discarded it, secs. 4.5-4.6). But MainWindow::showLoopDiagrams
- * reinterprets a Trace as the complex plane for the Nyquist view: it
- * converts each point to (Re, Im) and hands it back inside a fabricated
- * BoundaryData, whose tell is that it also has to pass empty bucket rows
- * because "this view is only drawn, never classified".
- *
- * So phase/magnitude would be a lie at exactly one place. The fix is not a
- * different name here: it is that the loop viewer should take the traces it
- * draws instead of a BoundaryData built to look like something it is not,
- * and then this type can say what it means. Recorded in the plan; not
- * smuggled into a type change.
+ * The names are the point of the type. Every curve the toolbox computes -
+ * the boundaries, their union, the traced contours - lives on this chart,
+ * and code that reads `point.magnitude > threshold` says what it is doing
+ * where `point.y() > threshold` only said what it was made of. The
+ * cartesian projection was dropped from the algorithms themselves (the
+ * thesis tried detection in the complex plane and discarded it, secs.
+ * 4.5-4.6), so in the core there is nothing else a curve point can be.
  */
-struct Point
+struct NicholsPoint
 {
-    double x = 0.0;
-    double y = 0.0;
+    double phase = 0.0;      //degrees
+    double magnitude = 0.0;  //decibels
 
-    Point() = default;
+    NicholsPoint() = default;
 
-    Point(double xCoordinate, double yCoordinate) : x(xCoordinate), y(yCoordinate) {}
+    NicholsPoint(double phaseDegrees, double magnitudeDb)
+        : phase(phaseDegrees), magnitude(magnitudeDb) {}
 
     /**
      * @brief Exact equality, coordinate by coordinate.
@@ -45,16 +41,56 @@ struct Point
      * clustered trace points, erasing a different one. The boundary goldens
      * are what confirm the difference does not show up on real data.
      */
-    bool operator==(const Point & other) const
+    bool operator==(const NicholsPoint & other) const
     {
-        return x == other.x && y == other.y;
+        return phase == other.phase && magnitude == other.magnitude;
     }
 
-    bool operator!=(const Point & other) const
+    bool operator!=(const NicholsPoint & other) const
     {
         return !(*this == other);
     }
 };
+
+
+/**
+ * @brief A point of the complex plane, for the Nyquist view of a loop.
+ *
+ * A separate type from NicholsPoint on purpose. The two are both a pair of
+ * doubles and mean entirely different things, and the loop viewer used to
+ * hold the second in a container of the first: it converted a boundary
+ * union to the complex plane and handed it back inside a BoundaryData
+ * fabricated for the occasion, whose tell was that it also had to pass
+ * empty bucket rows because "this view is only drawn, never classified".
+ * With two types the compiler refuses that, which is the whole reason to
+ * have two.
+ */
+struct NyquistPoint
+{
+    double re = 0.0;
+    double im = 0.0;
+
+    NyquistPoint() = default;
+
+    NyquistPoint(double real, double imaginary) : re(real), im(imaginary) {}
+};
+
+
+/**
+ * @brief The same loop point read on the complex plane: dB back to a linear
+ * magnitude, degrees to radians, then polar to cartesian.
+ *
+ * The one place this conversion lives. It used to sit inline in a menu slot
+ * of the main window, which is neither where the formula belongs nor where
+ * anyone would look for it.
+ */
+inline NyquistPoint toNyquist(const NicholsPoint & point)
+{
+    const double magnitude = std::pow(10.0, point.magnitude / 20.0);
+    const double radians = point.phase * M_PI / 180.0;
+
+    return NyquistPoint(magnitude * std::cos(radians), magnitude * std::sin(radians));
+}
 
 } // namespace qftbx
 

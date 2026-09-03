@@ -753,48 +753,28 @@ void MainWindow::showLoopDiagrams(bool nichols, bool nyquistRadio){
         return;
     }
 
-    qreal maglineal = 0;
-
     BoundaryData * boundaries = controller->boundaries();
 
-    //Nichols (phase in degrees, magnitude in dB) to Nyquist (the complex
-    //plane). Six heap containers used to be built here and handed to a
-    //BoundaryData that then had to be told whether it owned them.
-    qftbx::UnionTraces nuevosBoundariesReun;
-    qftbx::UnionBuckets nuevoHash_inter;
+    //The same union read on the complex plane, for the Nyquist half of the
+    //view. This used to fabricate a whole BoundaryData: six heap containers
+    //at first, then an empty bucket row per frequency and two converted
+    //ranges, all to satisfy a constructor - and its points were Nichols
+    //points holding real and imaginary parts. The viewer takes the curves it
+    //draws, and the conversion is qftbx::toNyquist.
+    qftbx::NyquistTraces nyquistTraces;
+    nyquistTraces.reserve(boundaries->unionBoundaries().size());
 
-    for (const qftbx::Trace & vector : boundaries->unionBoundaries()) {
+    for (const qftbx::Trace & trace : boundaries->unionBoundaries()) {
 
-        qftbx::Trace nuevoVector;
+        qftbx::NyquistTrace converted;
+        converted.reserve(trace.size());
 
-        for (const qftbx::Point & p : vector) {
-            maglineal = pow(10,p.y/20);
-
-            nuevoVector.push_back(qftbx::Point(maglineal * cos (p.x * M_PI / 180),
-                                               maglineal * sin (p.x * M_PI / 180)));
+        for (const qftbx::NicholsPoint & point : trace) {
+            converted.push_back(qftbx::toNyquist(point));
         }
 
-        //One empty bucket row per frequency: this view is only drawn, never
-        //classified, so the buckets are not needed.
-        nuevoHash_inter.push_back({});
-
-        nuevosBoundariesReun.push_back(std::move(nuevoVector));
+        nyquistTraces.push_back(std::move(converted));
     }
-
-
-
-
-    qftbx::Range newPhaseData ((boundaries->phaseRange().min * M_PI) / 180, 0);
-
-    const qftbx::Range magnitudeData = boundaries->magnitudeRange();
-
-    qftbx::Range newMagnitudeData (pow(10,magnitudeData.min/20), pow(10,magnitudeData.max/20));
-
-    BoundaryData nuevoBoundaries (boundaries->boundaries(), boundaries->openFlags(),
-                                  boundaries->upperFlags(), boundaries->phaseCount(),
-                                  newPhaseData, std::move(nuevosBoundariesReun),
-                                  std::move(nuevoHash_inter),
-                                  boundaries->magnitudeCount(), newMagnitudeData);
 
 
     //Modal and parentless, so it is this scope's: on the stack. The Nyquist
@@ -803,7 +783,7 @@ void MainWindow::showLoopDiagrams(bool nichols, bool nyquistRadio){
     //function, and BoundaryData had to be told it did not own them.
     LoopBoundariesViewer ver;
 
-    ver.setData(boundaries, &nuevoBoundaries, controller->omega()->values(), controller->plant(),
+    ver.setData(boundaries, nyquistTraces, controller->omega()->values(), controller->plant(),
                  controller->controllerStructure(), nichols, nyquistRadio);
 
     ver.showDiagram();

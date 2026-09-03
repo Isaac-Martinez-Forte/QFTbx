@@ -130,7 +130,7 @@ public:
         qftbx::Trace points;
         points.reserve(static_cast<std::size_t>(reals.size() / 2));
         for (std::int32_t i = 0; i + 1 < reals.size(); i += 2) {
-            points.push_back(qftbx::Point(reals.at(i), reals.at(i + 1)));
+            points.push_back(qftbx::NicholsPoint(reals.at(i), reals.at(i + 1)));
         }
         return points;
     }

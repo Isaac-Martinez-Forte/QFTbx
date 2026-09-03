@@ -127,9 +127,10 @@ private:
                         double phaseSpan, double magnitudeSpan, double phaseBottom, double magnitudeBottom);
 
     TraceSet traceBoundary(double thresholdDb, const float * sheet,
-                                               QVector<qftbx::Point> *traceMetadata, std::complex<double> p0, const ComplexCloud & valueSet,
-                                               std::int32_t kind, double phaseSpan, double magnitudeSpan,
-                                               double phaseBottom, double magnitudeBottom);
+                           TraceLabels & traceMetadata, std::complex<double> p0,
+                           const ComplexCloud & valueSet, std::int32_t kind,
+                           double phaseSpan, double magnitudeSpan,
+                           double phaseBottom, double magnitudeBottom);
 #endif
 
 

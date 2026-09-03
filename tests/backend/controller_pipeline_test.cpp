@@ -38,16 +38,16 @@ struct GridPoint
     bool operator==(const GridPoint& o) const { return n == o.n && m == o.m; }
 };
 
-GridPoint currentToGrid(qftbx::Point p)
+GridPoint currentToGrid(qftbx::NicholsPoint p)
 {
-    return {static_cast<int>(std::lround(p.x + 360.0)),
-            static_cast<int>(std::lround(p.y + 60.0))};
+    return {static_cast<int>(std::lround(p.phase + 360.0)),
+            static_cast<int>(std::lround(p.magnitude + 60.0))};
 }
 
-GridPoint goldenToGrid(qftbx::Point p)
+GridPoint goldenToGrid(qftbx::NicholsPoint p)
 {
-    return {static_cast<int>(std::lround((p.x + 361.0) * 360.0 / 361.0)),
-            static_cast<int>(std::lround((p.y + 60.0) * 120.0 / 121.0))};
+    return {static_cast<int>(std::lround((p.phase + 361.0) * 360.0 / 361.0)),
+            static_cast<int>(std::lround((p.magnitude + 60.0) * 120.0 / 121.0))};
 }
 
 TEST(ControllerPipeline, RecomputedBoundariesMatchTheLoadedProject)
@@ -65,12 +65,12 @@ TEST(ControllerPipeline, RecomputedBoundariesMatchTheLoadedProject)
     // Keep the traces of the boundaries as loaded from the file: boundaries()
     // hands a view whose containers are replaced when recomputing.
     BoundaryData* loaded = controller.boundaries();
-    QVector<QVector<QVector<qftbx::Point>>> storedTraces;
+    QVector<QVector<QVector<qftbx::NicholsPoint>>> storedTraces;
     for (const auto & map : loaded->boundaries()) {
-        QVector<QVector<qftbx::Point>> perFrequency;
+        QVector<QVector<qftbx::NicholsPoint>> perFrequency;
         for (const auto & entry : map) {
             for (const qftbx::Trace & trace : entry.second) {
-                perFrequency.append(QVector<qftbx::Point>(trace.begin(), trace.end()));
+                perFrequency.append(QVector<qftbx::NicholsPoint>(trace.begin(), trace.end()));
             }
         }
         storedTraces.append(perFrequency);
@@ -96,7 +96,7 @@ TEST(ControllerPipeline, RecomputedBoundariesMatchTheLoadedProject)
         ASSERT_EQ(static_cast<int>(traces.size()), storedTraces.at(f).size()) << "frequency " << f;
 
         for (int t = 0; t < static_cast<int>(traces.size()); ++t) {
-            const QVector<qftbx::Point>& gold = storedTraces.at(f).at(t);
+            const QVector<qftbx::NicholsPoint>& gold = storedTraces.at(f).at(t);
             const qftbx::Trace & got = traces.at(static_cast<std::size_t>(t));
             ASSERT_EQ(static_cast<int>(got.size()), gold.size()) << "frequency " << f << " trace " << t;
 

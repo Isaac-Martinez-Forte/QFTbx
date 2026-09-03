@@ -70,7 +70,7 @@ TraceSet ContourTracer::trace(double phaseSpan, double magnitudeSpan,
                             if ((m_sheet->at(static_cast<std::size_t>(y)).at(static_cast<std::size_t>(x)) >= threshold) && (!visited.at(y * width + x))){
 
 
-                                trace.push_back(qftbx::Point(((currentX * phaseSpan) / phaseCells) + phaseBottom, ((currentY *
+                                trace.push_back(qftbx::NicholsPoint(((currentX * phaseSpan) / phaseCells) + phaseBottom, ((currentY *
                                                       magnitudeSpan) / magnitudeCells) + magnitudeBottom));
 
                                 visited.replace(currentY * width + currentX, true);
@@ -85,7 +85,7 @@ TraceSet ContourTracer::trace(double phaseSpan, double magnitudeSpan,
 
                     if (advanced == 0){
 
-                        trace.push_back(qftbx::Point(((currentX * phaseSpan) / phaseCells) + phaseBottom, ((currentY *
+                        trace.push_back(qftbx::NicholsPoint(((currentX * phaseSpan) / phaseCells) + phaseBottom, ((currentY *
                                               magnitudeSpan) / magnitudeCells) + magnitudeBottom));
 
                         break;
@@ -96,8 +96,8 @@ TraceSet ContourTracer::trace(double phaseSpan, double magnitudeSpan,
                 if (trace.size() <= 1){
                 } else {
 
-                    trace.insert(trace.begin(), qftbx::Point(trace.front().x-(phaseSpan / phaseCells), trace.front().y));
-                    trace.push_back(qftbx::Point(trace.back().x+(phaseSpan / phaseCells), trace.back().y));
+                    trace.insert(trace.begin(), qftbx::NicholsPoint(trace.front().phase-(phaseSpan / phaseCells), trace.front().magnitude));
+                    trace.push_back(qftbx::NicholsPoint(trace.back().phase+(phaseSpan / phaseCells), trace.back().magnitude));
 
                     traces.push_back(std::move(trace));
                 }
@@ -157,7 +157,7 @@ TraceSet ContourTracer::trace(double phaseSpan, double phaseCount, double magnit
                             y =  currentY + kNeighbourY[(i - 1) % 8];
 
                             if ((m_cudaSheet[x * height + y] > threshold) && (!visited.at(y * width + x))){
-                                trace.push_back(qftbx::Point(((currentX * phaseSpan) / phaseCount) + phaseBottom, ((currentY * magnitudeSpan) / magnitudeCount) + magnitudeBottom));
+                                trace.push_back(qftbx::NicholsPoint(((currentX * phaseSpan) / phaseCount) + phaseBottom, ((currentY * magnitudeSpan) / magnitudeCount) + magnitudeBottom));
                                 visited.replace(currentY * width + currentX, true);
                                 currentX = x;
                                 currentY = y;
@@ -169,7 +169,7 @@ TraceSet ContourTracer::trace(double phaseSpan, double phaseCount, double magnit
 
 
                     if (advanced == 0){
-                        trace.push_back(qftbx::Point(((currentX * phaseSpan) / phaseCount) + phaseBottom, ((currentY * magnitudeSpan) / magnitudeCount) + magnitudeBottom));
+                        trace.push_back(qftbx::NicholsPoint(((currentX * phaseSpan) / phaseCount) + phaseBottom, ((currentY * magnitudeSpan) / magnitudeCount) + magnitudeBottom));
                         break;
                     }
                 }
@@ -203,7 +203,7 @@ TraceSet ContourTracer::trace(double phaseSpan, double phaseCount, double magnit
                                 y =  retraceY + kNeighbourY[(i + 1) % 8];
 
                                 if ((m_cudaSheet[x * height + y] > threshold) && (!visited.at(y * width + x))){
-                                    retrace.push_back(qftbx::Point(((retraceX * phaseSpan) / phaseCount) + phaseBottom, ((retraceY *
+                                    retrace.push_back(qftbx::NicholsPoint(((retraceX * phaseSpan) / phaseCount) + phaseBottom, ((retraceY *
                                                           magnitudeSpan) / magnitudeCount) + magnitudeBottom));
                                     visited.replace(retraceY * width + retraceX, true);
                                     retraceX = x;
@@ -216,7 +216,7 @@ TraceSet ContourTracer::trace(double phaseSpan, double phaseCount, double magnit
 
 
                         if (readvanced == 0){
-                            retrace.push_back(qftbx::Point(((retraceX * phaseSpan) / phaseCount) + phaseBottom, ((retraceY *
+                            retrace.push_back(qftbx::NicholsPoint(((retraceX * phaseSpan) / phaseCount) + phaseBottom, ((retraceY *
                                                   magnitudeSpan) / magnitudeCount) + magnitudeBottom));
                             break;
                         }

@@ -99,9 +99,9 @@ void BoundaryViewer::showDiagram(){
                 ejex.reserve(static_cast<qsizetype>(bound.size()));
                 ejey.reserve(static_cast<qsizetype>(bound.size()));
 
-                for (const qftbx::Point & p : bound) {
-                   ejex.append(p.x);
-                   ejey.append(p.y);
+                for (const qftbx::NicholsPoint & p : bound) {
+                   ejex.append(p.phase);
+                   ejey.append(p.magnitude);
                 }
 
                 /*gra->append(ui->plot->addGraph());

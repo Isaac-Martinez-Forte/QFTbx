@@ -298,7 +298,7 @@ inline bool AlgorithmNt::feasibleGainFrom(LtiSystem * v, double maxBoundary,
 
     const double phaseCentre = (_double(InfIm(projection)) + _double(SupIm(projection))) / 2.0;
 
-    if (detector->classifyPoint(qftbx::Point(phaseCentre, maxBoundary + 1.0),
+    if (detector->classifyPoint(qftbx::NicholsPoint(phaseCentre, maxBoundary + 1.0),
                                    boundaries, frequencyIndex) != feasible) {
         return false;
     }
