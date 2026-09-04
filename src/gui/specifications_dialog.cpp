@@ -54,7 +54,8 @@ bool magnitudeIsUsable(double magnitude)
 SpecificationsDialog::SpecificationsDialog(const std::vector<double> * frequencies,
                                            const qftbx::SpecificationRecords * loaded,
                                            QWidget *parent) :
-    StepDialog(parent)
+    StepDialog(parent),
+    m_reader(tr("Specifications input"))
 {
     //The step order of the main window guarantees a frequency set here, but
     //an empty one used to reach first()/last() below and take the whole
@@ -422,76 +423,15 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record, QString nam
         }
     }else {
 
-        if (ui->denominatorEdit->text().isEmpty()){
-            record.used = false;
+        switch (readSystemFields(record, name, {ui->numeratorEdit, ui->denominatorEdit, ui->k, ui->delayEdit,
+                                                ui->freeFormRadio, ui->zpkRadio, ui->tcgRadio, ui->polynomialRadio})) {
+        case SystemRead::Failed:
+            return false;
+        case SystemRead::Unused:
             return true;
+        case SystemRead::Read:
+            break;
         }
-
-        std::optional<std::vector<Parameter>> numeratorEdit;
-        std::optional<std::vector<Parameter>> denominatorEdit;
-
-        //Gain and delay are ALWAYS validated: the free-form branch used to
-        //build the FreeForm from unchecked buildScalar results (nullptr on a
-        //syntax error, crashing later).
-        std::optional<Parameter> k = buildScalar(ui->k->text(), true);
-
-        if (!k.has_value()){
-            errorMessage(tr("Invalid gain."), tr("Specifications input"));
-            ui->k->setStyleSheet("background : red");
-            record.used = false;
-            return false;
-        }
-        ui->k->setStyleSheet("background : white");
-
-        std::optional<Parameter> delayEdit = buildScalar(ui->delayEdit->text(), false);
-
-        if (!delayEdit.has_value()){
-            errorMessage(tr("Invalid delay."), tr("Specifications input"));
-            ui->delayEdit->setStyleSheet("background : red");
-            record.used = false;
-            return false;
-        }
-        ui->delayEdit->setStyleSheet("background : white");
-
-        if (!ui->freeFormRadio->isChecked()){
-
-            numeratorEdit = buildParameters(ui->numeratorEdit->text());
-
-            if (!numeratorEdit.has_value()){
-                errorMessage(tr("Invalid numerator."), tr("Specifications input"));
-                ui->numeratorEdit->setStyleSheet("background : red");
-                record.used = false;
-                return false;
-            }
-            ui->numeratorEdit->setStyleSheet("background : white");
-
-            denominatorEdit = buildParameters(ui->denominatorEdit->text());
-
-            if (!denominatorEdit.has_value()){
-                errorMessage(tr("Invalid denominator."), tr("Specifications input"));
-                ui->denominatorEdit->setStyleSheet("background : red");
-                record.used = false;
-                return false;
-            }
-            ui->denominatorEdit->setStyleSheet("background : white");
-        }
-
-
-        record.constant = false;
-        if(ui->zpkRadio->isChecked()){
-            record.system = std::make_unique<ZeroPoleGain>(name.toStdString(), std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
-        }else if (ui->tcgRadio->isChecked()){
-            record.system = std::make_unique<TimeConstantGain>(name.toStdString(), std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
-        }else if (ui->polynomialRadio->isChecked()) {
-            record.system = std::make_unique<PolynomialForm>(name.toStdString(), std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
-        }else {
-            //No type radio checked: the free-form record carries its
-            //expressions and no coefficient vectors (whatever was parsed
-            //above simply goes out of scope now).
-            record.system = std::make_unique<FreeForm>(name.toStdString(), std::vector<Parameter>{}, std::vector<Parameter>{}, std::move(*k), std::move(*delayEdit),
-                                              ui->numeratorEdit->text().toStdString(), ui->denominatorEdit->text().toStdString());
-        }
-        record.used = true;
     }
 
     record.name = name.toStdString();
@@ -610,75 +550,15 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record,
         }
     }else {
 
-        if (ui->lowerDenominatorEdit->text().isEmpty()){
-            record.used = false;
+        switch (readSystemFields(record, name, {ui->lowerNumeratorEdit, ui->lowerDenominatorEdit, ui->lowerGainEdit, ui->lowerDelayEdit,
+                                                ui->lowerFreeFormRadio, ui->lowerZpkRadio, ui->lowerTcgRadio, ui->lowerPolynomialRadio})) {
+        case SystemRead::Failed:
+            return false;
+        case SystemRead::Unused:
             return true;
+        case SystemRead::Read:
+            break;
         }
-
-        std::optional<std::vector<Parameter>> numeratorEdit;
-        std::optional<std::vector<Parameter>> denominatorEdit;
-
-        //Gain and delay are ALWAYS validated: the free-form branch used to
-        //build the FreeForm from unchecked buildScalar results (nullptr on a
-        //syntax error, crashing later).
-        std::optional<Parameter> k = buildScalar(ui->lowerGainEdit->text(), true);
-
-        if (!k.has_value()){
-            errorMessage(tr("Invalid gain."), tr("Specifications input"));
-            ui->lowerGainEdit->setStyleSheet("background : red");
-            record.used = false;
-            return false;
-        }
-        ui->lowerGainEdit->setStyleSheet("background : white");
-
-        std::optional<Parameter> delayEdit = buildScalar(ui->lowerDelayEdit->text(), false);
-
-        if (!delayEdit.has_value()){
-            errorMessage(tr("Invalid delay."), tr("Specifications input"));
-            ui->lowerDelayEdit->setStyleSheet("background : red");
-            record.used = false;
-            return false;
-        }
-        ui->lowerDelayEdit->setStyleSheet("background : white");
-
-        if (!ui->lowerFreeFormRadio->isChecked()){
-
-            numeratorEdit = buildParameters(ui->lowerNumeratorEdit->text());
-
-            if (!numeratorEdit.has_value()){
-                errorMessage(tr("Invalid numerator."), tr("Specifications input"));
-                ui->lowerNumeratorEdit->setStyleSheet("background : red");
-                record.used = false;
-                return false;
-            }
-            ui->lowerNumeratorEdit->setStyleSheet("background : white");
-
-            denominatorEdit = buildParameters(ui->lowerDenominatorEdit->text());
-
-            if (!denominatorEdit.has_value()){
-                errorMessage(tr("Invalid denominator."), tr("Specifications input"));
-                ui->lowerDenominatorEdit->setStyleSheet("background : red");
-                record.used = false;
-                return false;
-            }
-            ui->lowerDenominatorEdit->setStyleSheet("background : white");
-        }
-
-
-        record.constant = false;
-        if(ui->lowerZpkRadio->isChecked()){
-            record.system = std::make_unique<ZeroPoleGain>(name.toStdString(), std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
-        }else if (ui->lowerTcgRadio->isChecked()){
-            record.system = std::make_unique<TimeConstantGain>(name.toStdString(), std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
-        }else if (ui->lowerPolynomialRadio->isChecked()) {
-            record.system = std::make_unique<PolynomialForm>(name.toStdString(), std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
-        }else {
-            //No type radio checked: the free-form record carries its
-            //expressions and no coefficient vectors.
-            record.system = std::make_unique<FreeForm>(name.toStdString(), std::vector<Parameter>{}, std::vector<Parameter>{}, std::move(*k), std::move(*delayEdit),
-                                              ui->lowerNumeratorEdit->text().toStdString(), ui->lowerDenominatorEdit->text().toStdString());
-        }
-        record.used = true;
     }
 
 
@@ -726,74 +606,15 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record,
         }
     }else {
 
-        if (ui->upperDenominatorEdit->text().isEmpty()){
-            upperRecord.used = false;
+        switch (readSystemFields(upperRecord, name, {ui->upperNumeratorEdit, ui->upperDenominatorEdit, ui->upperGainEdit, ui->upperDelayEdit,
+                                                     ui->upperFreeFormRadio, ui->upperZpkRadio, ui->upperTcgRadio, ui->upperPolynomialRadio})) {
+        case SystemRead::Failed:
+            return false;
+        case SystemRead::Unused:
             return true;
+        case SystemRead::Read:
+            break;
         }
-
-        std::optional<std::vector<Parameter>> numeratorEdit;
-        std::optional<std::vector<Parameter>> denominatorEdit;
-
-        //Gain and delay are ALWAYS validated: the free-form branch used to
-        //build the FreeForm from unchecked buildScalar results (nullptr on a
-        //syntax error, crashing later).
-        std::optional<Parameter> k = buildScalar(ui->upperGainEdit->text(), true);
-
-        if (!k.has_value()){
-            errorMessage(tr("Invalid gain."), tr("Specifications input"));
-            ui->upperGainEdit->setStyleSheet("background : red");
-            upperRecord.used = false;
-            return false;
-        }
-        ui->upperGainEdit->setStyleSheet("background : white");
-
-        std::optional<Parameter> delayEdit = buildScalar(ui->upperDelayEdit->text(), false);
-
-        if (!delayEdit.has_value()){
-            errorMessage(tr("Invalid delay."), tr("Specifications input"));
-            ui->upperDelayEdit->setStyleSheet("background : red");
-            upperRecord.used = false;
-            return false;
-        }
-        ui->upperDelayEdit->setStyleSheet("background : white");
-
-        if (!ui->upperFreeFormRadio->isChecked()){
-
-            numeratorEdit = buildParameters(ui->upperNumeratorEdit->text());
-
-            if (!numeratorEdit.has_value()){
-                errorMessage(tr("Invalid numerator."), tr("Specifications input"));
-                ui->upperNumeratorEdit->setStyleSheet("background : red");
-                upperRecord.used = false;
-                return false;
-            }
-            ui->upperNumeratorEdit->setStyleSheet("background : white");
-
-            denominatorEdit = buildParameters(ui->upperDenominatorEdit->text());
-
-            if (!denominatorEdit.has_value()){
-                errorMessage(tr("Invalid denominator."), tr("Specifications input"));
-                ui->upperDenominatorEdit->setStyleSheet("background : red");
-                upperRecord.used = false;
-                return false;
-            }
-            ui->upperDenominatorEdit->setStyleSheet("background : white");
-        }
-
-        upperRecord.constant = false;
-        if(ui->upperZpkRadio->isChecked()){
-            upperRecord.system = std::make_unique<ZeroPoleGain>(name.toStdString(), std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
-        }else if (ui->upperTcgRadio->isChecked()){
-            upperRecord.system = std::make_unique<TimeConstantGain>(name.toStdString(), std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
-        }else if (ui->upperPolynomialRadio->isChecked()) {
-            upperRecord.system = std::make_unique<PolynomialForm>(name.toStdString(), std::move(*numeratorEdit), std::move(*denominatorEdit), std::move(*k), std::move(*delayEdit));
-        }else {
-            //No type radio checked: the free-form record carries its
-            //expressions and no coefficient vectors.
-            upperRecord.system = std::make_unique<FreeForm>(name.toStdString(), std::vector<Parameter>{}, std::vector<Parameter>{}, std::move(*k), std::move(*delayEdit),
-                                                ui->upperNumeratorEdit->text().toStdString(), ui->upperDenominatorEdit->text().toStdString());
-        }
-        upperRecord.used = true;
     }
 
     record.name = name.toStdString();
@@ -802,56 +623,110 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record,
     return true;
 }
 
-std::optional<Parameter> SpecificationsDialog::buildScalar(QString text, bool isK){
-    ParserX p (pckALL_NON_COMPLEX);
+std::optional<Parameter> SpecificationsDialog::scalarFrom(const QString & text, double fallback)
+{
+    if (text.isEmpty()) {
+        return Parameter(fallback);
+    }
 
-    if (text.isEmpty()){
-        if (isK){
-            return Parameter(1);
-        }else{
-            return Parameter(qreal(0));
-        }
-    }else{
-        qreal res;
-        p.SetExpr(text.toStdString());
-        try {
-            res = p.Eval().GetFloat();
-        }catch (ParserError &){
-            return std::nullopt;
-        }
+    const std::optional<double> value = m_reader.evaluate(text);
+    if (!value.has_value()) {
+        return std::nullopt;
+    }
 
-        return Parameter(res);
+    try {
+        return Parameter(*value);
+    } catch (const qftbx::Exception &) {
+        //Parses, but is not a finite number a model can use.
+        return std::nullopt;
     }
 }
 
-std::optional<std::vector<Parameter>> SpecificationsDialog::buildParameters(QString text){
-
-    ParserX p (pckALL_NON_COMPLEX);
-
-    const std::vector<std::string> numbers = qftbx::text::tokens(text.toStdString());
-
-    std::vector<Parameter> var;
-
-    if (numbers.empty()){
-        return var;
+std::optional<std::vector<Parameter>> SpecificationsDialog::parametersFrom(const QString & text)
+{
+    CoefficientRow numbers;
+    for (const std::string & token : qftbx::text::tokens(text.toStdString())) {
+        numbers.push_back(QString::fromStdString(token));
     }
 
-    var.reserve(numbers.size());
+    return m_reader.buildParameters(numbers);
+}
 
-    for (const std::string & string : numbers) {
-        p.SetExpr(string);
-        qreal res;
-        try {
-            res = p.Eval().GetFloat();
-        }catch (ParserError &){
-            //The already-built Parameters and both vectors used to leak.
-            return std::nullopt;
+//The system a tab describes, read once for the three tabs that take one.
+//Gain and delay are ALWAYS validated: the free-form branch used to build
+//the FreeForm from unchecked results (nullptr on a syntax error, crashing
+//later).
+SpecificationsDialog::SystemRead SpecificationsDialog::readSystemFields(qftbx::SpecificationRecord & record,
+                                                                        const QString & name,
+                                                                        const SystemFields & fields)
+{
+    if (fields.denominator->text().isEmpty()) {
+        record.used = false;
+        return SystemRead::Unused;
+    }
+
+    const auto mark = [](QLineEdit * field, bool valid) {
+        field->setStyleSheet(valid ? "background : white" : "background : red");
+    };
+
+    const auto refuse = [&](QLineEdit * field, const QString & complaint) {
+        errorMessage(complaint, tr("Specifications input"));
+        mark(field, false);
+        record.used = false;
+        return SystemRead::Failed;
+    };
+
+    const std::optional<Parameter> gain = scalarFrom(fields.gain->text(), 1.0);
+    if (!gain.has_value()) {
+        return refuse(fields.gain, tr("Invalid gain."));
+    }
+    mark(fields.gain, true);
+
+    const std::optional<Parameter> delay = scalarFrom(fields.delay->text(), 0.0);
+    if (!delay.has_value()) {
+        return refuse(fields.delay, tr("Invalid delay."));
+    }
+    mark(fields.delay, true);
+
+    LtiSystem::SystemType type = LtiSystem::SystemType::FreeForm;
+    if (fields.zpk->isChecked()) {
+        type = LtiSystem::SystemType::ZeroPoleGain;
+    } else if (fields.tcg->isChecked()) {
+        type = LtiSystem::SystemType::TimeConstantGain;
+    } else if (fields.polynomial->isChecked()) {
+        type = LtiSystem::SystemType::PolynomialForm;
+    }
+
+    //A free-form record carries its expressions and no coefficient vectors.
+    std::vector<Parameter> numerator;
+    std::vector<Parameter> denominator;
+
+    if (type != LtiSystem::SystemType::FreeForm) {
+        std::optional<std::vector<Parameter>> readNumerator = parametersFrom(fields.numerator->text());
+        if (!readNumerator.has_value()) {
+            return refuse(fields.numerator, tr("Invalid numerator."));
         }
+        mark(fields.numerator, true);
 
-        var.push_back(Parameter(res));
+        std::optional<std::vector<Parameter>> readDenominator = parametersFrom(fields.denominator->text());
+        if (!readDenominator.has_value()) {
+            return refuse(fields.denominator, tr("Invalid denominator."));
+        }
+        mark(fields.denominator, true);
+
+        numerator = std::move(*readNumerator);
+        denominator = std::move(*readDenominator);
     }
 
-    return var;
+    record.constant = false;
+    record.system = SystemDescriptionReader::makeSystem(type, name.toStdString(),
+                                                        std::move(numerator), std::move(denominator),
+                                                        *gain, *delay,
+                                                        fields.numerator->text().toStdString(),
+                                                        fields.denominator->text().toStdString());
+    record.used = true;
+
+    return SystemRead::Read;
 }
 
 bool SpecificationsDialog::saveActiveTab()

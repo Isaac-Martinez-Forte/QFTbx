@@ -2,6 +2,10 @@
 #define QFTBX_SPECIFICATIONS_DIALOG_H
 
 #include "src/gui/step_dialog.h"
+#include "src/gui/system_description_reader.h"
+
+#include <QLineEdit>
+#include <QRadioButton>
 #include <memory>
 
 #include <optional>
@@ -152,8 +156,37 @@ private:
     void restoreActiveTabRadio();
     void discardPublished();
 
-    std::optional<std::vector<Parameter>> buildParameters(QString text);
-    std::optional<Parameter> buildScalar(QString text, bool isK);
+    /// The widgets that describe one system on a tab: the three tabs that
+    /// take a system (single, tracking lower, tracking upper) each have a
+    /// set, and one reader serves the three.
+    struct SystemFields {
+        QLineEdit * numerator;
+        QLineEdit * denominator;
+        QLineEdit * gain;
+        QLineEdit * delay;
+        QRadioButton * freeForm;
+        QRadioButton * zpk;
+        QRadioButton * tcg;
+        QRadioButton * polynomial;
+    };
+
+    enum class SystemRead { Failed, Unused, Read };
+
+    /// Reads the system a tab describes into 'record': Unused when the
+    /// denominator is empty (the specification is left unused), Failed when
+    /// a field could not be read (marked red and reported), Read otherwise.
+    SystemRead readSystemFields(qftbx::SpecificationRecord & record, const QString & name,
+                                const SystemFields & fields);
+
+    /// One coefficient line as constants, or nothing when a token is not a
+    /// valid finite expression.
+    std::optional<std::vector<Parameter>> parametersFrom(const QString & text);
+
+    /// A gain or delay field: 'fallback' when empty, nothing when it does not
+    /// evaluate to a finite number.
+    std::optional<Parameter> scalarFrom(const QString & text, double fallback);
+
+    SystemDescriptionReader m_reader;
 
     static QString coefficientsText(std::vector<Parameter> & parameters);
     static QString numeratorText(LtiSystem * system);
