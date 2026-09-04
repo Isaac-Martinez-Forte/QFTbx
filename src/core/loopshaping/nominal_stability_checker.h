@@ -1,6 +1,7 @@
 #ifndef QFTBX_NOMINAL_STABILITY_CHECKER_H
 #define QFTBX_NOMINAL_STABILITY_CHECKER_H
 
+#include "src/core/settings.h"
 #include <complex>
 #include <vector>
 
@@ -46,7 +47,14 @@ namespace qftbx {
 class NominalStabilityChecker
 {
 public:
-    NominalStabilityChecker(LtiSystem * nominalPlant, std::vector<double> * omega);
+    /**
+     * @brief Builds the checker and samples the nominal loop.
+     * @param tolerances the resolution of the sampling, from the settings.
+     *        They trade time against how reliably a verdict is reached; the
+     *        criterion itself is not among them.
+     */
+    NominalStabilityChecker(LtiSystem * nominalPlant, std::vector<double> * omega,
+                            Settings::Stability tolerances = Settings::Stability());
 
     /// Nyquist-on-Nichols verdict for a POINT controller (every parameter
     /// at its nominal value). Returns false when the criterion cannot be
@@ -59,6 +67,9 @@ private:
     static std::complex<double> controllerAt(LtiSystem * controller, double w);
 
     LtiSystem * m_plant;
+
+    /// Grid resolution, from the settings.
+    Settings::Stability m_tolerances;
 
     //Cached nominal plant samples over the base grid.
     std::vector<double> m_frequencies;

@@ -49,8 +49,9 @@ private:
 
 }
 
-MainWindow::MainWindow(QWidget *parent) :
+MainWindow::MainWindow(qftbx::Settings settings, QWidget *parent) :
     QMainWindow(parent),
+    m_settings(std::move(settings)),
     ui(std::make_unique<Ui::MainWindow>())
 {
 
@@ -75,6 +76,10 @@ MainWindow::~MainWindow()
 void MainWindow::createSession(){
 
     controller = std::make_unique<ProjectController>();
+
+    //What the core needs of the settings; the dialogs get theirs when they
+    //are built.
+    controller->applySettings(m_settings);
 
     //An empty project: every step undone, so this switches the buttons off
     //and puts the bar at zero without enumerating either. The seven flags it
@@ -411,6 +416,7 @@ void MainWindow::on_frequenciesButton_clicked()
 {
     if (frequenciesDialog == nullptr){
         frequenciesDialog = new FrequenciesDialog(this);
+        frequenciesDialog->applyFrequencyCountLimit(m_settings.limits.maxFrequencyCount);
     }
 
     runDialog(frequenciesDialog);
@@ -444,6 +450,8 @@ void MainWindow::on_templatesButton_clicked()
 {
     if (templatesDialog == nullptr){
         templatesDialog = new TemplatesDialog(this);
+        templatesDialog->setMaxPointCount(m_settings.limits.maxTemplatePoints);
+        templatesDialog->setDefaultPointCount(m_settings.defaults.templatePointCount);
         templateViewer = new TemplateViewer(this);
         installContourRecomputer();
     }
@@ -507,6 +515,8 @@ void MainWindow::on_boundariesButton_clicked()
 {
     if (boundaryGridDialog == nullptr){
         boundaryGridDialog = new BoundaryGridDialog(this);
+        boundaryGridDialog->setMaxGridCells(m_settings.limits.maxGridCells);
+        boundaryGridDialog->applyDefaults(m_settings.defaults);
         boundaryViewer = new BoundaryViewer(this);
         boundaryUnionViewer = new BoundaryUnionViewer(this);
     }
@@ -604,6 +614,9 @@ void MainWindow::on_loopButton_clicked()
 {
     if (loopShapingDialog == nullptr){
         loopShapingDialog = new LoopShapingDialog(this);
+        loopShapingDialog->setLimits(m_settings.limits.maxMagnitude,
+                                     m_settings.limits.maxTemplatePoints);
+        loopShapingDialog->applyDefaults(m_settings.defaults);
         loopShapingViewer = new LoopShapingViewer(this);
     }
 
@@ -737,16 +750,21 @@ void MainWindow::on_actionOpen_triggered()
 
         if (leido.has(qftbx::Step::Frequencies)) {
             frequenciesDialog = new FrequenciesDialog(this);
+            frequenciesDialog->applyFrequencyCountLimit(m_settings.limits.maxFrequencyCount);
         }
 
         if (leido.has(qftbx::Step::Templates)) {
             templatesDialog = new TemplatesDialog(this);
+            templatesDialog->setMaxPointCount(m_settings.limits.maxTemplatePoints);
+            templatesDialog->setDefaultPointCount(m_settings.defaults.templatePointCount);
             templateViewer = new TemplateViewer(this);
             installContourRecomputer();
         }
 
         if (leido.has(qftbx::Step::Boundaries)) {
             boundaryGridDialog = new BoundaryGridDialog(this);
+            boundaryGridDialog->setMaxGridCells(m_settings.limits.maxGridCells);
+            boundaryGridDialog->applyDefaults(m_settings.defaults);
             boundaryViewer = new BoundaryViewer(this);
             boundaryUnionViewer = new BoundaryUnionViewer(this);
         }
@@ -757,6 +775,9 @@ void MainWindow::on_actionOpen_triggered()
 
         if (leido.has(qftbx::Step::LoopShaping)) {
             loopShapingDialog = new LoopShapingDialog(this);
+            loopShapingDialog->setLimits(m_settings.limits.maxMagnitude,
+                                         m_settings.limits.maxTemplatePoints);
+            loopShapingDialog->applyDefaults(m_settings.defaults);
             loopShapingViewer = new LoopShapingViewer(this);
         }
 

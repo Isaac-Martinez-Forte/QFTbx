@@ -135,6 +135,7 @@ set(QFTbx_CORE_SRC
     src/core/system/time_constant_gain.cpp
     src/core/templates/template_engine.cpp
     src/core/background_run.cpp
+    src/core/settings.cpp
     src/core/stages/template_stage.cpp
     src/core/stages/boundary_stage.cpp
     src/core/stages/loop_shaping_stage.cpp

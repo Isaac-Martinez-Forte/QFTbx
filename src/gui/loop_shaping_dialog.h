@@ -1,6 +1,7 @@
 #ifndef QFTBX_LOOP_SHAPING_DIALOG_H
 #define QFTBX_LOOP_SHAPING_DIALOG_H
 
+#include "src/core/settings.h"
 #include "src/gui/step_dialog.h"
 #include <memory>
 
@@ -30,6 +31,27 @@ class LoopShapingDialog : public StepDialog
     Q_OBJECT
 
 public:
+    /**
+     * @brief The ceilings on what its fields accept, from the settings.
+     *
+     * They exist to keep a typo from reaching a conversion or an allocation,
+     * not to express any control-design limit, so moving them changes no
+     * computed result.
+     */
+    void setLimits(double maxMagnitude, double maxPointCount)
+    { m_maxMagnitude = maxMagnitude; m_maxPointCount = maxPointCount; }
+
+    /**
+     * @brief Prefills the range fields from the settings.
+     *
+     * ONE range, used on opening and on picking either mode. There were three
+     * hardcoded sets before - one per place - and the two mode ones differed
+     * from each other and from the opening one with no reason given anywhere.
+     * Worse, they overwrote whatever the fields held, so a configured default
+     * would have been thrown away the moment a mode was picked.
+     */
+    void applyDefaults(const qftbx::Settings::Defaults & defaults);
+
     explicit LoopShapingDialog(QWidget *parent = 0);
     ~LoopShapingDialog();
 
@@ -87,6 +109,12 @@ private:
     tools::LoopShapingAlgorithm alg = tools::nt;
 
     bool linLogSpace;
+    /// Kept because the mode radios prefill from it too.
+    qftbx::Settings::Defaults m_defaults;
+
+    double m_maxMagnitude = qftbx::Settings().limits.maxMagnitude;
+    double m_maxPointCount = qftbx::Settings().limits.maxTemplatePoints;
+
 };
 
 #endif // QFTBX_LOOP_SHAPING_DIALOG_H

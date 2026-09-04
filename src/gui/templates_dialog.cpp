@@ -22,16 +22,15 @@ namespace {
 //the mup::ParserError caught below, so the application went down instead
 //of complaining. A non-finite value was worse - converting an infinity to
 //an integer type is undefined behaviour.
-//The ceiling is generous and arbitrary: a template grid needs hundreds of
-//points, and a million already multiplies out to more plants than a sweep
+//The ceiling comes from the settings, so it can be moved without a
+//rebuild; the default is generous, a template grid needing hundreds of
+//points and a million already multiplying out to more plants than a sweep
 //can hold. Truncation of a fractional count is what the implicit
 //conversion did before, and it is kept, so every input that worked before
 //still behaves the same - only the crashing ones changed.
-constexpr double kMaxPointCount = 1.0e6;
-
-bool asPointCount(double value, std::size_t & count)
+bool asPointCount(double value, double ceiling, std::size_t & count)
 {
-    if (!std::isfinite(value) || value < 1.0 || value > kMaxPointCount) {
+    if (!std::isfinite(value) || value < 1.0 || value > ceiling) {
         return false;
     }
     count = static_cast<std::size_t>(value);
@@ -49,7 +48,8 @@ TemplatesDialog::TemplatesDialog(QWidget *parent) :
 
     setWindowTitle(tr("Template input"));
 
-    ui->globalPointCount->setText("10");
+    ui->globalPointCount->setText(
+        QString::number(qftbx::Settings().defaults.templatePointCount));
 
     //Wire the cancel button.
     connect(ui->cancelButton, SIGNAL(clicked()), this, SLOT(close()));
@@ -253,6 +253,11 @@ void TemplatesDialog::on_cancelButton_clicked()
 {
     emit (close_ok());
 }
+void TemplatesDialog::setDefaultPointCount(std::int32_t points)
+{
+    ui->globalPointCount->setText(QString::number(points));
+}
+
 void TemplatesDialog::on_okButton_clicked()
 {
     if (ui->nyquistRadio->isChecked())
@@ -382,9 +387,9 @@ void TemplatesDialog::on_okButton_clicked()
         parser->SetExpr(ui->globalPointCount->text().toStdString());
 
         std::size_t pointCount = 0;
-        if (!asPointCount(parser->Eval().GetFloat(), pointCount)){
+        if (!asPointCount(parser->Eval().GetFloat(), m_maxPointCount, pointCount)){
             errorMessage(tr("ERROR: the general point count must be a whole "
-                            "number between 1 and %1.").arg(static_cast<qint64>(kMaxPointCount)),
+                            "number between 1 and %1.").arg(static_cast<qint64>(m_maxPointCount)),
                          tr("Template computation"));
             gridMap.clear();
             epsilonValues.clear();
@@ -407,9 +412,9 @@ void TemplatesDialog::on_okButton_clicked()
         parser->SetExpr(ui->globalPointCount->text().toStdString());
 
         std::size_t pointCount = 0;
-        if (!asPointCount(parser->Eval().GetFloat(), pointCount)){
+        if (!asPointCount(parser->Eval().GetFloat(), m_maxPointCount, pointCount)){
             errorMessage(tr("ERROR: the general point count must be a whole "
-                            "number between 1 and %1.").arg(static_cast<qint64>(kMaxPointCount)),
+                            "number between 1 and %1.").arg(static_cast<qint64>(m_maxPointCount)),
                          tr("Template computation"));
             gridMap.clear();
             epsilonValues.clear();
@@ -473,10 +478,10 @@ bool TemplatesDialog::readVariable(const ParLineEdit & rowEdits, ThreeRadioButto
         final = parameter.range().max;
 
         parser->SetExpr(rowEdits.getX()->text().toStdString());
-        if (!asPointCount(parser->Eval().GetFloat(), pointCount)){
+        if (!asPointCount(parser->Eval().GetFloat(), m_maxPointCount, pointCount)){
             m_readReason = tr("its point count must be a whole number "
                               "between 1 and %1")
-                    .arg(static_cast<qint64>(kMaxPointCount));
+                    .arg(static_cast<qint64>(m_maxPointCount));
             return false;
         }
 
@@ -487,10 +492,10 @@ bool TemplatesDialog::readVariable(const ParLineEdit & rowEdits, ThreeRadioButto
         inicio = parameter.range().min;
         final = parameter.range().max;
         parser->SetExpr(rowEdits.getY()->text().toStdString());
-        if (!asPointCount(parser->Eval().GetFloat(), pointCount)){
+        if (!asPointCount(parser->Eval().GetFloat(), m_maxPointCount, pointCount)){
             m_readReason = tr("its point count must be a whole number "
                               "between 1 and %1")
-                    .arg(static_cast<qint64>(kMaxPointCount));
+                    .arg(static_cast<qint64>(m_maxPointCount));
             return false;
         }
 
@@ -523,10 +528,10 @@ bool TemplatesDialog::readVariable(const ParLineEdit & rowEdits, ThreeRadioButto
         final = parameter.range().max;
 
         parser->SetExpr(ui->globalPointCount->text().toStdString());
-        if (!asPointCount(parser->Eval().GetFloat(), pointCount)){
+        if (!asPointCount(parser->Eval().GetFloat(), m_maxPointCount, pointCount)){
             m_readReason = tr("its point count must be a whole number "
                               "between 1 and %1")
-                    .arg(static_cast<qint64>(kMaxPointCount));
+                    .arg(static_cast<qint64>(m_maxPointCount));
             return false;
         }
 

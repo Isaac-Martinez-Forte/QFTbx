@@ -40,8 +40,10 @@ bool LoopShapingStage::run(ProjectData & data, double epsilon,
 
     LoopShaping & search = engine();
 
-    //Set on every run, so a token from a previous one cannot linger.
+    //Set on every run, so neither a token nor a budget from a previous one
+    //can linger: the engine is kept between runs.
     search.setCancellation(cancellation);
+    search.setSettings(m_settings);
 
     const bool succeeded = search.run(data.plant(), data.controller(),
                                       data.frequencies(), data.boundaries(),

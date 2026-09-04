@@ -25,13 +25,9 @@ BoundaryGridDialog::BoundaryGridDialog(QWidget *parent) :
 
     ui->infinityEdit->setValidator(new QDoubleValidator(this));
 
-    ui->phaseStart->setText("-360");
-    ui->phaseEnd->setText("0");
-    ui->phasePoints->setText("361");
-
-    ui->magnitudeStart->setText("-60");
-    ui->magnitudeEnd->setText("60");
-    ui->magnitudePoints->setText("121");
+    //Prefilled from the settings, which the window applies right after
+    //construction; these are what stands until it does.
+    applyDefaults(qftbx::Settings().defaults);
 
     cudaCheck = false;
 
@@ -76,10 +72,15 @@ bool BoundaryGridDialog::contourSelected(){
     return true;
 }
 
-namespace {
-//Ten million cells is far past any sensible Nichols grid and still a
-//comfortable allocation.
-constexpr std::int64_t kMaxGridCells = 10000000;
+void BoundaryGridDialog::applyDefaults(const qftbx::Settings::Defaults & defaults)
+{
+    ui->phaseStart->setText(QString::number(defaults.phaseStart));
+    ui->phaseEnd->setText(QString::number(defaults.phaseEnd));
+    ui->phasePoints->setText(QString::number(defaults.phasePoints));
+
+    ui->magnitudeStart->setText(QString::number(defaults.magnitudeStart));
+    ui->magnitudeEnd->setText(QString::number(defaults.magnitudeEnd));
+    ui->magnitudePoints->setText(QString::number(defaults.magnitudePoints));
 }
 
 void BoundaryGridDialog::on_buttonBox_accepted()
@@ -111,12 +112,13 @@ void BoundaryGridDialog::on_buttonBox_accepted()
     //qftbx::Exception the computation is wrapped in, so the application went
     //down on a typo. The budget guards against that typo; it is not a
     //control-design limit, and it can be raised. For scale, a 1-degree phase
-    //grid over 360 degrees is 360 points per axis.
-    if (static_cast<std::int64_t>(phaseCount) * magnitudeCount > kMaxGridCells){
+    //grid over 360 degrees is 360 points per axis. It comes from the
+    //settings now, so it can be moved without a rebuild.
+    if (static_cast<std::int64_t>(phaseCount) * magnitudeCount > m_maxGridCells){
         tools::errorMessage(tr("The grid asks for %1 cells, and the limit is "
                                "%2. Reduce the number of points per axis.")
                                 .arg(static_cast<std::int64_t>(phaseCount) * magnitudeCount)
-                                .arg(kMaxGridCells),
+                                .arg(m_maxGridCells),
                             tr("Boundary grid input"));
         return;
     }

@@ -51,11 +51,6 @@ bool readField(ParserX & parser, QLineEdit * field, const QString & complaint,
     return true;
 }
 
-//Generous ceilings: they exist to keep a typo from reaching a conversion or
-//an allocation, not to express any control-design limit.
-constexpr double kMaxPointCount = 1.0e6;
-constexpr double kMaxMagnitude  = 1.0e12;
-
 }
 
 LoopShapingDialog::LoopShapingDialog(QWidget *parent) :
@@ -66,9 +61,9 @@ LoopShapingDialog::LoopShapingDialog(QWidget *parent) :
 
     setWindowTitle(tr("Loop-shaping input"));
 
-    ui->startEdit->setText("10^-9");
-    ui->endEdit->setText("10^1");
-    ui->pointCountEdit->setText("100");
+    //Prefilled from the settings; the window applies them right after
+    //construction, and these are what stands until it does.
+    applyDefaults(qftbx::Settings().defaults);
 
     //The epsilon is one field with one label that read only "Epsilon:", and
     //it is not one quantity: every algorithm follows the stopping criterion
@@ -123,26 +118,26 @@ void LoopShapingDialog::on_okButton_clicked()
 
     if (!readField(p, ui->epsilonEdit,
                    tr("The epsilon must be a positive real number."),
-                   std::numeric_limits<double>::denorm_min(), kMaxMagnitude,
+                   std::numeric_limits<double>::denorm_min(), m_maxMagnitude,
                    epsilonEdit)){
         return;
     }
 
     if (!readField(p, ui->startEdit,
                    tr("The start frequency must be a real number."),
-                   -kMaxMagnitude, kMaxMagnitude, plotRange.min)){
+                   -m_maxMagnitude, m_maxMagnitude, plotRange.min)){
         return;
     }
 
     if (!readField(p, ui->endEdit,
                    tr("The end frequency must be a real number."),
-                   -kMaxMagnitude, kMaxMagnitude, plotRange.max)){
+                   -m_maxMagnitude, m_maxMagnitude, plotRange.max)){
         return;
     }
 
     if (!readField(p, ui->pointCountEdit,
                    tr("The point count must be a whole number of at least 1."),
-                   1.0, kMaxPointCount, pointCountEdit)){
+                   1.0, m_maxPointCount, pointCountEdit)){
         return;
     }
 
@@ -196,18 +191,27 @@ qint32 LoopShapingDialog::initialisationValue(){
     return initialisation;
 }
 
+//Both modes prefill the SAME range, which is the configured one. They used
+//to write two different hardcoded sets, differing from each other and from
+//the one on opening with no reason recorded - and either of them threw away
+//whatever the user had typed.
 void LoopShapingDialog::on_linspaceRadio_clicked()
 {
-    ui->startEdit->setText("10^-4");
-    ui->endEdit->setText("10^4");
-    ui->pointCountEdit->setText("1000");
+    applyDefaults(m_defaults);
 }
 
 void LoopShapingDialog::on_logspaceRadio_clicked()
 {
-    ui->startEdit->setText("10^-6");
-    ui->endEdit->setText("10^1");
-    ui->pointCountEdit->setText("1000");
+    applyDefaults(m_defaults);
+}
+
+void LoopShapingDialog::applyDefaults(const qftbx::Settings::Defaults & defaults)
+{
+    m_defaults = defaults;
+
+    ui->startEdit->setText(QString::number(defaults.loopStart));
+    ui->endEdit->setText(QString::number(defaults.loopEnd));
+    ui->pointCountEdit->setText(QString::number(defaults.loopPointCount));
 }
 
 void LoopShapingDialog::on_ntRadio_clicked()

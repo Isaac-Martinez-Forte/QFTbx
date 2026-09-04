@@ -47,8 +47,14 @@ public:
              double pointCount, std::int32_t initialisation,
              const CancellationToken * cancellation = nullptr);
 
+    /// The values the user may have changed. Applied on every run, so
+    /// nothing can be left over from a previous one.
+    void setSettings(const Settings & settings) { m_settings = settings; }
+
 private:
     LoopShaping & engine();
+
+    Settings m_settings;
 
     std::unique_ptr<LoopShaping> m_engine;
 };

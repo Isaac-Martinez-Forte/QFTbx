@@ -68,11 +68,11 @@ void AlgorithmNt::setProblem(LtiSystem * plant, LtiSystem * controller, std::vec
 
 bool AlgorithmNt::solve() {
 
-    liveList = std::make_unique<OrderedList>();
+    liveList = std::make_unique<OrderedList>(false, m_settings.search.maxLiveNodes);
 
     conversion = std::make_unique<NaturalIntervalExtension>();
     detector = std::make_unique<BoundaryViolationDetector>();
-    stability = std::make_unique<NominalStabilityChecker>(plant, omega);
+    stability = std::make_unique<NominalStabilityChecker>(plant, omega, m_settings.stability);
 
     nominalPlantValues.clear();
 

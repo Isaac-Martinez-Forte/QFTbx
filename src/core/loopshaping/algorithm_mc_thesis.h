@@ -1,6 +1,7 @@
 #ifndef QFTBX_LOOPSHAPING_ALGORITHM_MC_THESIS_H
 #define QFTBX_LOOPSHAPING_ALGORITHM_MC_THESIS_H
 
+#include "src/core/settings.h"
 #include "src/core/loopshaping/cancellation.h"
 #include <cstdint>
 #include <complex>
@@ -117,6 +118,16 @@ public:
     void setCancellation(const qftbx::CancellationToken * token)
     { m_cancellation = token; }
 
+    /**
+     * @brief The values the user may have changed.
+     *
+     * The whole struct rather than one setter per value: what an algorithm
+     * needs from it is copied here, once, before solve() - so the hot path
+     * reads a member and never a configuration lookup. Not calling it leaves
+     * the compiled defaults, which is what every existing caller does.
+     */
+    void setSettings(const qftbx::Settings & settings) { m_settings = settings; }
+
     bool solve();
 
     /// The designed controller, handed over to the caller.
@@ -202,6 +213,9 @@ private:
 
     /// Not owned. Null means this run cannot be cancelled.
     const qftbx::CancellationToken * m_cancellation = nullptr;
+
+    /// Copied whole and read as fields; the defaults are the compiled ones.
+    qftbx::Settings m_settings;
 
 };
 

@@ -1,6 +1,7 @@
 #ifndef QFTBX_FREQUENCIES_DIALOG_H
 #define QFTBX_FREQUENCIES_DIALOG_H
 
+#include "src/core/settings.h"
 #include "src/gui/step_dialog.h"
 #include <memory>
 
@@ -31,6 +32,9 @@ class FrequenciesDialog : public StepDialog
     Q_OBJECT
     
 public:
+    /// Ceiling on the number of design frequencies, from the settings.
+    void applyFrequencyCountLimit(std::int32_t count);
+
   
   /// The dialog knows nothing of the project: it builds a frequency set
   /// and takeOmega() hands it over.
@@ -57,6 +61,8 @@ private:
     QString filePath;
 
     std::unique_ptr<Ui::FrequenciesDialog> ui;
+
+    std::int32_t m_maxFrequencyCount = qftbx::Settings().limits.maxFrequencyCount;
 
 };
 

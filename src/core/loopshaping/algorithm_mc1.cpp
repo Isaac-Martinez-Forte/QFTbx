@@ -16,7 +16,6 @@ namespace {
 //Relative tolerance of the stage-3 gain bisection: 1% locates the
 //certified gain closely enough for pruning without spending the run time
 //it is meant to save.
-const double kCertifiedGainTolerance = 1.01;
 
 //Step 3bis.(b) of the paper: cap the gain range of a box at the prune
 //variable C. Returns the capped replacement (and destroys the original)
@@ -84,10 +83,10 @@ void AlgorithmMc1::setProblem(LtiSystem * plant, LtiSystem * controller, std::ve
 //prune variable C of step 3bis behind bestCertifiedGain.
 bool AlgorithmMc1::solve()
 {
-    liveList = std::make_unique<OrderedList>();
+    liveList = std::make_unique<OrderedList>(false, m_settings.search.maxLiveNodes);
     conversion = std::make_unique<NaturalIntervalExtension>();
     detector = std::make_unique<BoundaryViolationDetector>();
-    stability = std::make_unique<NominalStabilityChecker>(plant, omega);
+    stability = std::make_unique<NominalStabilityChecker>(plant, omega, m_settings.stability);
 
     bestCertifiedGain = std::numeric_limits<double>::infinity();
     bestCertifiedController = nullptr;
@@ -468,7 +467,7 @@ inline void AlgorithmMc1::certifiedGainSearch(LtiSystem * box)
     } else {
         double hi = high;
 
-        while (hi / lo > kCertifiedGainTolerance) {
+        while (hi / lo > m_settings.algorithms.certifiedGainTolerance) {
             const double mid = std::sqrt(lo * hi);
 
             if (gainRangeIsFeasible(box, mid, high)) {

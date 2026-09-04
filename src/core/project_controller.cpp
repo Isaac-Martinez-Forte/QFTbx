@@ -416,6 +416,11 @@ qftbx::StepSet ProjectController::load(std::string path){
 //DERIVED, not stored. Each of these is exactly what a "step done" flag meant,
 //and the flags were duplicate state: state that can be duplicated is state
 //that can go out of sync, and the window kept seven of them by hand.
+void ProjectController::applySettings(const qftbx::Settings & settings)
+{
+    m_loopShaping.setSettings(settings);
+}
+
 qftbx::StepSet ProjectController::completed() const
 {
     qftbx::StepSet done;

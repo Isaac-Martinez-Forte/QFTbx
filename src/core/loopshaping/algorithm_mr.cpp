@@ -42,11 +42,9 @@ namespace {
 //what the algorithm COMPUTES, and it departs from the constraint set the
 //article formulates. It is a modelling decision for the thesis, not a repair
 //of this code, so this stays as the paper has it, with the gap written down.
-const std::int32_t kTemplateRepresentatives = 9;
 
 //Passes of the HC4 fixpoint loop per box (a bound protects against
 //oscillating contractions; convergence is typically immediate).
-const std::int32_t kMaxNarrowingPasses = 8;
 
 std::string number(double value)
 {
@@ -182,7 +180,7 @@ inline void AlgorithmMr::buildConstraints(){
         //would embed "nan" into the expression texts: they are skipped.
         std::vector<std::complex<double>> points;
         const qftbx::ComplexCloud & contour = temp.at(i);
-        const std::size_t take = std::min<std::size_t>(kTemplateRepresentatives, contour.size());
+        const std::size_t take = std::min<std::size_t>(m_settings.algorithms.templateRepresentatives, contour.size());
         for (std::size_t j = 0; j < take; ++j) {
             const std::complex<double> value = contour.at(j * contour.size() / take);
             if (std::isfinite(value.real()) && std::isfinite(value.imag()) &&
@@ -268,8 +266,8 @@ inline void AlgorithmMr::buildConstraints(){
 
 bool AlgorithmMr::solve(){
 
-    liveList = std::make_unique<OrderedList>();
-    stability = std::make_unique<NominalStabilityChecker>(plant, omega);
+    liveList = std::make_unique<OrderedList>(false, m_settings.search.maxLiveNodes);
+    stability = std::make_unique<NominalStabilityChecker>(plant, omega, m_settings.stability);
 
     buildControllerExpressions();
     buildConstraints();
@@ -374,7 +372,7 @@ inline void AlgorithmMr::classifyAndInsert(std::unique_ptr<LtiSystem> box){
 
 inline bool AlgorithmMr::narrowToFixpoint(std::map<std::string, cxsc::interval> & domains){
 
-    for (std::int32_t pass = 0; pass < kMaxNarrowingPasses; ++pass) {
+    for (std::int32_t pass = 0; pass < m_settings.algorithms.maxNarrowingPasses; ++pass) {
 
         const std::map<std::string, cxsc::interval> snapshot = domains;
 

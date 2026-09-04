@@ -1,6 +1,7 @@
 #ifndef QFTBX_MAIN_WINDOW_H
 #define QFTBX_MAIN_WINDOW_H
 
+#include "src/core/settings.h"
 #include <QDialog>
 
 #include "src/gui/step_dialog.h"
@@ -50,7 +51,16 @@ class MainWindow : public QMainWindow
     
 public:
   
-    explicit MainWindow(QWidget *parent = 0);
+    /**
+     * @brief Builds the window with the settings the application read.
+     * @param settings copied and kept: they are immutable, and every dialog
+     *        that has a configurable limit is handed the values it needs when
+     *        it is built. The default is the compiled defaults, which is what
+     *        the GUI tests use - a test must never inherit the developer's
+     *        own settings file.
+     */
+    explicit MainWindow(qftbx::Settings settings = qftbx::Settings(),
+                        QWidget *parent = nullptr);
 
     ~MainWindow();
 
@@ -144,6 +154,9 @@ private:
 
     /// Asks for a file name through the chooser, or QFileDialog when none.
     QString chooseFile(bool forSaving, const QString & title);
+
+    /// Read once by the application, immutable here.
+    qftbx::Settings m_settings;
 
     DialogRunner m_runDialog;
     FileChooser m_chooseFile;

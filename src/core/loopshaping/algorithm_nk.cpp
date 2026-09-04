@@ -48,10 +48,10 @@ void AlgorithmNk::setProblem(LtiSystem *plant, LtiSystem *controller, std::vecto
 //feasibility test of every box (steps 2 and 9).
 bool AlgorithmNk::solve(){
 
-    liveList = std::make_unique<OrderedList>();
+    liveList = std::make_unique<OrderedList>(false, m_settings.search.maxLiveNodes);
     conversion = std::make_unique<NaturalIntervalExtension>();
     detector = std::make_unique<BoundaryViolationDetector>();
-    stability = std::make_unique<NominalStabilityChecker>(plant, omega);
+    stability = std::make_unique<NominalStabilityChecker>(plant, omega, m_settings.stability);
 
     bestLocalGain = std::numeric_limits<double>::infinity();
     bestLocalController.reset();
@@ -333,8 +333,6 @@ inline std::unique_ptr<LtiSystem> AlgorithmNk::quickSolution(std::unique_ptr<Lti
 //kept for compatibility until the phase-8 GUI pass.)
 
 namespace {
-const std::int32_t kLocalSearchBudget = 400;
-const double kGainTolerance = 1.01;      //1% is plenty for a pruning bound
 }
 
 inline double AlgorithmNk::minimalFeasibleGain(const std::vector<double> & zeros,
@@ -354,7 +352,7 @@ inline double AlgorithmNk::minimalFeasibleGain(const std::vector<double> & zeros
         return low;
     }
 
-    while (high / low > kGainTolerance && budget > 0) {
+    while (high / low > m_settings.algorithms.gainTolerance && budget > 0) {
         const double mid = std::sqrt(low * high);
 
         budget--;
@@ -384,7 +382,7 @@ inline void AlgorithmNk::localOptimization(LtiSystem * box){
     double gain;
     startingPoint(box, zeros, poles, gain);
 
-    std::int32_t budget = kLocalSearchBudget;
+    std::int32_t budget = m_settings.algorithms.localSearchBudget;
 
     double bestGain = minimalFeasibleGain(zeros, poles, box, budget);
     std::vector<double> bestZeros = zeros;
@@ -412,7 +410,7 @@ inline void AlgorithmNk::localOptimization(LtiSystem * box){
             const double k = isPole ? minimalFeasibleGain(bestZeros, trial, box, budget)
                                    : minimalFeasibleGain(trial, bestPoles, box, budget);
 
-            if (k < bestGain / kGainTolerance) {
+            if (k < bestGain / m_settings.algorithms.gainTolerance) {
                 values = trial;
                 bestGain = k;
                 return true;
