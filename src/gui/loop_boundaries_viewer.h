@@ -8,6 +8,7 @@
 
 #include "src/core/math/sequence_vectors.h"
 #include "qcustomplot.h"
+#include "src/gui/frequency_legend.h"
 
 #include "src/core/boundaries/boundary_data.h"
 
@@ -70,16 +71,12 @@ private:
     //The curves BELONG TO QCustomPlot, which frees them on
     //clearPlottables(): only the container is the viewer's.
     QVector <QCPCurve *> curves;
-    QGroupBox * frequenciesBox = nullptr;
-    //The checkboxes belong to their row widget: the viewer deletes the
-    //rows, not these.
-    QVector <QCheckBox *> checkboxes;
-    QVBoxLayout * colorsLayout = nullptr;
 
     /// One row per curve, labelled with its frequency and its diagram: in
     /// the both-diagrams mode a frequency gets two rows, and they used to
     /// carry the same text.
     void addFrequencyRow(QColor color, qint32 pos, QString diagram);
+    FrequencyLegend * legend = nullptr;
     void clearDiagram();
 
     bool nichols = false;

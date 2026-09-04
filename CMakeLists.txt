@@ -252,6 +252,7 @@ set(QFTbx_GUI_SRC
     src/gui/templates_dialog.cpp
     src/gui/template_viewer.cpp
     src/gui/plot_export.cpp
+    src/gui/frequency_legend.cpp
     src/gui/loop_boundaries_viewer.cpp
 )
 

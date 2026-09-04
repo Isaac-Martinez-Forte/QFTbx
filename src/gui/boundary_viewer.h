@@ -12,6 +12,7 @@
 #include "src/core/math/sequence_vectors.h"
 #include "src/core/boundaries/boundary_data.h"
 #include "qcustomplot.h"
+#include "src/gui/frequency_legend.h"
 
 
 namespace Ui {
@@ -59,6 +60,7 @@ private slots:
 private:
 
     void addFrequencyRow(QColor color, qint32 pos);
+    FrequencyLegend * legend = nullptr;
     void clearDiagram();
 
     const BoundaryData * boundaryData = nullptr;
@@ -71,11 +73,6 @@ private:
     //used to be a vector of pointers behind a pointer.
     QVector <QVector <QCPCurve *> > curves;
 
-    QGroupBox * frequenciesBox = nullptr;
-    //The checkboxes belong to their row widget, which belongs to the
-    //layout: the viewer deletes the rows, not these.
-    QVector <QCheckBox *> checkboxes;
-    QVBoxLayout * colorsLayout = nullptr;
 
     std::unique_ptr<Ui::BoundaryViewer> ui;
 };

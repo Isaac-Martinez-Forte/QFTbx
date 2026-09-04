@@ -18,9 +18,9 @@ LoopBoundariesViewer::LoopBoundariesViewer(QWidget *parent) :
     setWindowTitle(tr("Boundary union"));
 
 
-    frequenciesBox = new QGroupBox(this);
-    frequenciesBox->setObjectName("frequenciesBox");
-    frequenciesBox->setGeometry(QRect(660, 0, 141, 461));
+    legend = new FrequencyLegend(this);
+    legend->setGeometry(QRect(660, 0, 141, 461));
+    connect(legend, &FrequencyLegend::rowToggled, this, &LoopBoundariesViewer::applyCheckboxes);
 }
 
 LoopBoundariesViewer::~LoopBoundariesViewer()
@@ -41,19 +41,10 @@ void LoopBoundariesViewer::clearDiagram(){
     //QCustomPlot owns the curves: clearPlottables frees them.
     ui->plot->clearPlottables();
 
-    //Qt's own mechanism: destroying the row widget is how a widget leaves
-    //a layout, and it takes its checkbox with it.
-    for (QCheckBox * che : checkboxes) {
-        delete che->parentWidget();
-    }
-    checkboxes.clear();
+    legend->clear();
 
     curves.clear();
 
-    //Also Qt's: a widget holds exactly one layout, so rebuilding the
-    //frequency box means destroying the one it has.
-    delete colorsLayout;
-    colorsLayout = nullptr;
 
     plotted = false;
 }
@@ -76,7 +67,6 @@ void LoopBoundariesViewer::showDiagram(){
 
     clearDiagram();
 
-    colorsLayout = new QVBoxLayout (frequenciesBox);
 
     plotted = true;
 
@@ -151,8 +141,8 @@ void LoopBoundariesViewer::showDiagram(){
 }
 
 void LoopBoundariesViewer::applyCheckboxes(){
-    for (qint32 i = 0; i < checkboxes.size(); i++){
-        if (checkboxes.at(i)->checkState() == Qt::Unchecked){
+    for (qint32 i = 0; i < legend->rowCount(); i++){
+        if (!legend->isRowChecked(i)){
             curves.at(i)->setVisible(false);
         }else {
             curves.at(i)->setVisible(true);
@@ -162,25 +152,7 @@ void LoopBoundariesViewer::applyCheckboxes(){
 }
 
 void LoopBoundariesViewer::addFrequencyRow(QColor color, qint32 pos, QString diagram){
-
-    QWidget *widget;
-    QCheckBox *checkBox;
-
-    widget = new QWidget(frequenciesBox);
-    widget->setObjectName("widget");
-    widget->setGeometry(QRect(10, 10, 111, 23));
-    checkBox = new QCheckBox(widget);
-    checkBox->setObjectName("checkBox");
-
-    checkBox->setText(qftbx::numberText(omega->at(pos)) + " " + diagram);
-
-    checkBox->setStyleSheet("color : " + color.name());
-
-    colorsLayout->addWidget(widget);
-    checkboxes.push_back(checkBox);
-    checkBox->setCheckState(Qt::Checked);
-
-    connect(checkBox, SIGNAL (clicked()), this, SLOT (applyCheckboxes()));
+    legend->addRow(numberText(omega->at(pos)) + " " + diagram, color);
 }
 
 

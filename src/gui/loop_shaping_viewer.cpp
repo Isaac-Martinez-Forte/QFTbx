@@ -22,9 +22,9 @@ LoopShapingViewer::LoopShapingViewer(QWidget *parent) :
     ui->denominatorEdit->setReadOnly(true);
     ui->gainEdit->setReadOnly(true);
 
-    frequenciesBox = new QGroupBox(this);
-    frequenciesBox->setObjectName("frequenciesBox");
-    frequenciesBox->setGeometry(QRect(1060, 0, 120, 581));
+    legend = new FrequencyLegend(this);
+    legend->setGeometry(QRect(1060, 0, 120, 581));
+    connect(legend, &FrequencyLegend::rowToggled, this, &LoopShapingViewer::applyCheckboxes);
 
     //Connected ONCE (every replot used to add a duplicated connection).
     connect(ui->plot->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->xAxis2, SLOT(setRange(QCPRange)));
@@ -49,20 +49,10 @@ void LoopShapingViewer::clearDiagram(){
     //QCustomPlot owns the curves: clearPlottables frees them.
     ui->plot->clearPlottables();
 
-    //Qt's own mechanism: destroying the row widget is how a widget leaves
-    //a layout, and it takes its checkbox with it. The row widgets used to
-    //pile up on every replot.
-    for (QCheckBox * che : checkboxes) {
-        delete che->parentWidget();
-    }
-    checkboxes.clear();
+    legend->clear();
 
     curves.clear();
 
-    //Also Qt's: a widget holds exactly one layout, so rebuilding the
-    //frequency box means destroying the one it has.
-    delete colorsLayout;
-    colorsLayout = nullptr;
 
     plotted = false;
 }
@@ -106,7 +96,6 @@ void LoopShapingViewer::showDiagram(){
 
     clearDiagram();
 
-    colorsLayout = new QVBoxLayout (frequenciesBox);
 
 
     plotted = true;
@@ -268,8 +257,8 @@ void LoopShapingViewer::showDiagram(){
 }
 
 void LoopShapingViewer::applyCheckboxes(){
-    for (qint32 i = 0; i < checkboxes.size(); i++){
-        if (checkboxes.at(i)->checkState() == Qt::Unchecked){
+    for (qint32 i = 0; i < legend->rowCount(); i++){
+        if (!legend->isRowChecked(i)){
             curves.at(i)->setVisible(false);
         }else {
             curves.at(i)->setVisible(true);
@@ -279,25 +268,7 @@ void LoopShapingViewer::applyCheckboxes(){
 }
 
 void LoopShapingViewer::addFrequencyRow(QColor color, qint32 pos){
-
-    QWidget *widget;
-    QCheckBox *checkBox;
-
-    widget = new QWidget(frequenciesBox);
-    widget->setObjectName("widget");
-    widget->setGeometry(QRect(10, 10, 111, 23));
-    checkBox = new QCheckBox(widget);
-    checkBox->setObjectName("checkBox");
-
-    checkBox->setText(qftbx::numberText(omega->at(pos)));
-
-    checkBox->setStyleSheet("color : " + color.name());
-
-    colorsLayout->addWidget(widget);
-    checkboxes.push_back(checkBox);
-    checkBox->setCheckState(Qt::Checked);
-
-    connect(checkBox, SIGNAL (clicked()), this, SLOT (applyCheckboxes()));
+    legend->addRow(numberText(omega->at(pos)), color);
 }
 
 void LoopShapingViewer::on_saveImage_clicked()

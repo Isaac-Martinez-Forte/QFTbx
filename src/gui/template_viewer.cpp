@@ -27,10 +27,9 @@ TemplateViewer::TemplateViewer(QWidget *parent) :
     setWindowTitle(tr("Templates"));
 
 
-    frequenciesBox = new QGroupBox(this);
-    frequenciesBox->setObjectName("frequenciesBox");
-    frequenciesBox->setGeometry(QRect(660, 0, 141, 461));
-    frequenciesBox->setTitle(tr("Frequencies"));
+    legend = new FrequencyLegend(this);
+    legend->setGeometry(QRect(660, 0, 141, 461));
+    connect(legend, &FrequencyLegend::rowToggled, this, &TemplateViewer::applyCheckboxes);
 
     //Connected ONCE (every replot used to add a duplicated connection).
     connect(ui->plot->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->xAxis2, SLOT(setRange(QCPRange)));
@@ -57,25 +56,13 @@ void TemplateViewer::clearDiagram(){
     ui->plot->clearPlottables();
     templatesVisible = false;
 
-    //Qt's own mechanism, and the only reason there is a delete here: every
-    //frequency-box row is freed WHOLE through its container widget, whose
-    //children the checkbox, the slider and the line edit are. The loose
-    //controls used to be deleted while the containers piled up in the
-    //layout on every replot.
-    for (QCheckBox * che : checkboxes) {
-        delete che->parentWidget();
-    }
-    checkboxes.clear();
+    legend->clear();
     epsilonEdits.clear();
     epsilonSliders.clear();
 
     contourGraphs.clear();
     templateGraphs.clear();
 
-    //Also Qt's: a widget holds exactly one layout, so rebuilding the
-    //frequency box means destroying the one it has.
-    delete colorsLayout;
-    colorsLayout = nullptr;
 
     plotted = false;
 }
@@ -132,7 +119,6 @@ void TemplateViewer::plotDiagram(bool plot){
 
     clearDiagram();
 
-    colorsLayout = new QVBoxLayout (frequenciesBox);
 
     plotted = true;
     qint32 i = 0;
@@ -254,60 +240,25 @@ void TemplateViewer::plotLine(qint32 pos, QVector <QCPGraph *> & graphs,
 }
 
 void TemplateViewer::addFrequencyRow(QColor color, qint32 pos){
+    const FrequencyLegend::Row row = legend->addRow(numberText(m_omega.at(pos)), color);
 
-    QWidget *widget;
-    QVBoxLayout *verticalLayout;
-    QHBoxLayout *horizontalLayout;
-    QCheckBox *check;
-    QSlider *slider;
-    QLineEdit *field;
-
-    widget = new QWidget(frequenciesBox);
-    widget->setObjectName(QString::fromUtf8("widget"));
-    widget->setGeometry(QRect(60, 70, 177, 58));
-
-    verticalLayout = new QVBoxLayout(widget);
-    verticalLayout->setSpacing(6);
-    verticalLayout->setObjectName(QString::fromUtf8("verticalLayout"));
-    verticalLayout->setContentsMargins(0, 0, 0, 0);
-    horizontalLayout = new QHBoxLayout();
-    horizontalLayout->setSpacing(6);
-    horizontalLayout->setObjectName(QString::fromUtf8("horizontalLayout"));
-
-    check = new QCheckBox(widget);
-    check->setObjectName(QString::fromUtf8("check"));
-    check->setText(qftbx::numberText(m_omega.at(pos)));
-    check->setStyleSheet("color : " + color.name());
-
-    checkboxes.push_back(check);
-    check->setCheckState(Qt::Checked);
-    horizontalLayout->addWidget(check);
-
-
-    slider = new QSlider(widget);
+    //The epsilon of this frequency: a slider for coarse moves and a field
+    //for the exact value, both in the legend's row.
+    QSlider * slider = new QSlider(row.widget);
     slider->setObjectName(QString::fromUtf8("slider"));
     slider->setOrientation(Qt::Horizontal);
     slider->setMaximum(m_epsilon.at(pos) * 10000);
     slider->setValue(m_epsilon.at(pos) * 1000);
-
     epsilonSliders.push_back(slider);
-    horizontalLayout->addWidget(slider);
+    row.layout->addWidget(slider);
 
-
-    verticalLayout->addLayout(horizontalLayout);
-
-    field = new QLineEdit(widget);
+    QLineEdit * field = new QLineEdit(row.widget);
     field->setObjectName(QString::fromUtf8("field"));
-    field->setText(qftbx::numberText(m_epsilon.at(pos)));
-
+    field->setText(numberText(m_epsilon.at(pos)));
     epsilonEdits.push_back(field);
-    verticalLayout->addWidget(field);
-
-
-    colorsLayout->addWidget(widget);
+    row.layout->addWidget(field);
 
     connect(slider, SIGNAL (sliderMoved (int)), this, SLOT (syncSliders ()));
-    connect(check, SIGNAL (clicked()), this, SLOT (applyCheckboxes()));
 }
 
 void TemplateViewer::on_saveImage_clicked()
@@ -352,8 +303,8 @@ void TemplateViewer::syncSliders(){
 }
 
 void TemplateViewer::applyCheckboxes(){
-    for (qint32 i = 0; i < checkboxes.size(); i++){
-        if (checkboxes.at(i)->checkState() == Qt::Unchecked){
+    for (qint32 i = 0; i < legend->rowCount(); i++){
+        if (!legend->isRowChecked(i)){
             contourGraphs.at(i)->setVisible(false);
         }else {
             contourGraphs.at(i)->setVisible(true);

@@ -7,6 +7,7 @@
 #include <QDialog>
 
 #include "qcustomplot.h"
+#include "src/gui/frequency_legend.h"
 #include "src/core/boundaries/boundary_types.h"
 
 namespace Ui {
@@ -53,13 +54,9 @@ private:
     //The curves BELONG TO QCustomPlot, which frees them on
     //clearPlottables(): only the container is the viewer's.
     QVector <QCPCurve *> curves;
-    QGroupBox * frequenciesBox = nullptr;
-    //The checkboxes belong to their row widget: the viewer deletes the
-    //rows, not these.
-    QVector <QCheckBox *> checkboxes;
-    QVBoxLayout * colorsLayout = nullptr;
 
     void addFrequencyRow(QColor color, qint32 pos);
+    FrequencyLegend * legend = nullptr;
     void clearDiagram();
 
     std::unique_ptr<Ui::BoundaryUnionViewer> ui;

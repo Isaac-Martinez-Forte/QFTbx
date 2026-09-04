@@ -17,9 +17,9 @@ BoundaryViewer::BoundaryViewer(QWidget *parent) :
     ui->setupUi(this);
     setWindowTitle(tr("Boundaries"));
 
-    frequenciesBox = new QGroupBox(this);
-    frequenciesBox->setObjectName("frequenciesBox");
-    frequenciesBox->setGeometry(QRect(660, 0, 141, 461));
+    legend = new FrequencyLegend(this);
+    legend->setGeometry(QRect(660, 0, 141, 461));
+    connect(legend, &FrequencyLegend::rowToggled, this, &BoundaryViewer::applyCheckboxes);
 
     //Mirrored secondary axes, connected ONCE: every repaint used to add a
     //duplicate connection.
@@ -50,18 +50,8 @@ void BoundaryViewer::clearDiagram(){
     //in the layout on every replot.
     curves.clear();
 
-    //Qt's own mechanism, and the only reason there is a delete left here:
-    //destroying the row widget is how a widget leaves a layout, and it
-    //takes its checkbox with it.
-    for (QCheckBox * che : checkboxes) {
-        delete che->parentWidget();
-    }
-    checkboxes.clear();
+    legend->clear();
 
-    //Also Qt's: a widget holds exactly one layout, so rebuilding the
-    //frequency box means destroying the one it has.
-    delete colorsLayout;
-    colorsLayout = nullptr;
 
     plotted = false;
 }
@@ -78,7 +68,6 @@ void BoundaryViewer::showDiagram(){
 
     clearDiagram();
 
-    colorsLayout = new QVBoxLayout (frequenciesBox);
     plotted = true;
 
     const qftbx::BoundarySet & boundarySet = this->boundaryData->boundaries();
@@ -135,30 +124,12 @@ void BoundaryViewer::showDiagram(){
 }
 
 void BoundaryViewer::addFrequencyRow(QColor color, qint32 pos){
-
-    QWidget *widget;
-    QCheckBox *checkBox;
-
-    widget = new QWidget(frequenciesBox);
-    widget->setObjectName("widget");
-    widget->setGeometry(QRect(10, 10, 111, 23));
-    checkBox = new QCheckBox(widget);
-    checkBox->setObjectName("checkBox");
-
-    checkBox->setText(qftbx::numberText(omega->at(pos)));
-
-    checkBox->setStyleSheet("color : " + color.name());
-
-    colorsLayout->addWidget(widget);
-    checkboxes.push_back(checkBox);
-    checkBox->setCheckState(Qt::Checked);
-
-    connect(checkBox, SIGNAL (clicked()), this, SLOT (applyCheckboxes()));
+    legend->addRow(numberText(omega->at(pos)), color);
 }
 
 void BoundaryViewer::applyCheckboxes(){
-    for (qint32 i = 0; i < checkboxes.size(); i++){
-        if (checkboxes.at(i)->checkState() == Qt::Unchecked){
+    for (qint32 i = 0; i < legend->rowCount(); i++){
+        if (!legend->isRowChecked(i)){
 
             for (qint32 j = 0; j < curves.at(i).size(); j++){
                 curves.at(i).at(j)->setVisible(false);

@@ -17,6 +17,7 @@
 #include "src/core/math/sequence_vectors.h"
 #include "src/core/frequencies/omega.h"
 #include "qcustomplot.h"
+#include "src/gui/frequency_legend.h"
 #include "src/core/templates/cloud_set.h"
 
 
@@ -128,6 +129,7 @@ private:
     void plotLine(qint32 pos, QVector <QCPGraph *> & graphs, const std::vector<double> & phases,
                   const std::vector<double> & magnitudes, bool isContour, bool visible, qint32 frequencyIndex);
     void addFrequencyRow (QColor color, qint32 pos);
+    FrequencyLegend * legend = nullptr;
     void clearDiagram();
 
     //Its own copies now: the viewer used to alias the project's vectors,
@@ -141,10 +143,6 @@ private:
     //only these containers are the viewer's.
     QVector <QCPGraph *> templateGraphs;
     QVector <QCPGraph *> contourGraphs;
-    QGroupBox * frequenciesBox = nullptr;
-    //The controls of a frequency row belong to their container widget: the
-    //viewer deletes the rows, not these.
-    QVector <QCheckBox *> checkboxes;
     QMap <qreal, QColor> colorByFrequency;
 
     ContourRecomputer recompute;
@@ -155,7 +153,6 @@ private:
     bool templatesVisible = false;
     bool contourVisible = false;
 
-    QVBoxLayout * colorsLayout = nullptr;
 
     bool plot = false;
 };

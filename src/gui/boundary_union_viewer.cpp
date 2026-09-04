@@ -17,9 +17,9 @@ BoundaryUnionViewer::BoundaryUnionViewer(QWidget *parent) :
     ui->setupUi(this);
     setWindowTitle(tr("Boundary union"));
 
-    frequenciesBox = new QGroupBox(this);
-    frequenciesBox->setObjectName("frequenciesBox");
-    frequenciesBox->setGeometry(QRect(10, 120, 120, 451));
+    legend = new FrequencyLegend(this);
+    legend->setGeometry(QRect(10, 120, 120, 451));
+    connect(legend, &FrequencyLegend::rowToggled, this, &BoundaryUnionViewer::applyCheckboxes);
 
     //Connected ONCE (every replot used to add a duplicated connection).
     connect(ui->plot->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->xAxis2, SLOT(setRange(QCPRange)));
@@ -43,19 +43,10 @@ void BoundaryUnionViewer::clearDiagram(){
     //QCustomPlot owns the curves: clearPlottables frees them.
     ui->plot->clearPlottables();
 
-    //Qt's own mechanism: destroying the row widget is how a widget leaves
-    //a layout, and it takes its checkbox with it.
-    for (QCheckBox * checkbox : checkboxes) {
-        delete checkbox->parentWidget();
-    }
-    checkboxes.clear();
+    legend->clear();
 
     curves.clear();
 
-    //Also Qt's: a widget holds exactly one layout, so rebuilding the
-    //frequency box means destroying the one it has.
-    delete colorsLayout;
-    colorsLayout = nullptr;
 
     plotted = false;
 }
@@ -69,7 +60,6 @@ void BoundaryUnionViewer::showDiagram(){
 
     clearDiagram();
 
-    colorsLayout = new QVBoxLayout (frequenciesBox);
 
     plotted = true;
 
@@ -111,28 +101,14 @@ void BoundaryUnionViewer::showDiagram(){
 }
 
 void BoundaryUnionViewer::applyCheckboxes(){
-    for (qint32 i = 0; i < checkboxes.size(); i++){
-        curves.at(i)->setVisible(checkboxes.at(i)->checkState() != Qt::Unchecked);
+    for (qint32 i = 0; i < legend->rowCount(); i++){
+        curves.at(i)->setVisible(legend->isRowChecked(i));
     }
     ui->plot->replot();
 }
 
 void BoundaryUnionViewer::addFrequencyRow(QColor color, qint32 pos){
-
-    QWidget * widget = new QWidget(frequenciesBox);
-    widget->setObjectName("widget");
-    widget->setGeometry(QRect(10, 10, 111, 23));
-
-    QCheckBox * checkBox = new QCheckBox(widget);
-    checkBox->setObjectName("checkBox");
-    checkBox->setText(qftbx::numberText(omega->at(pos)));
-    checkBox->setStyleSheet("color : " + color.name());
-    checkBox->setCheckState(Qt::Checked);
-
-    colorsLayout->addWidget(widget);
-    checkboxes.push_back(checkBox);
-
-    connect(checkBox, SIGNAL (clicked()), this, SLOT (applyCheckboxes()));
+    legend->addRow(numberText(omega->at(pos)), color);
 }
 
 void BoundaryUnionViewer::on_saveImage_clicked()
