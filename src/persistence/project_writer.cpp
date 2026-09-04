@@ -70,18 +70,26 @@ void addBool(pugi::xml_node parent, const char * name, bool value)
     parent.append_child(name).text().set(value ? "true" : "false");
 }
 
+//The RAW values, because they are the state and the reader takes what it
+//finds as the state. This used to write range() and nominal(), which are the
+//values with the reparametrisation expression already applied, and the reader
+//handed them to Parameter as the raw ones: one save-and-load applied the
+//expression twice, so a parameter mapped by "a*10" from [1, 2] came back
+//raw as [10, 20] and reported [100, 200]. No fixture carries a
+//reparametrisation, which is how it went unnoticed; the round-trip test that
+//found it has one now.
 void writeParameter(pugi::xml_node parent, Parameter & parameter)
 {
     pugi::xml_node node = parent.append_child("parameter");
-    addReal(node, t.nominal, parameter.nominal());
+    addReal(node, t.nominal, parameter.rawNominal());
     addBool(node, t.uncertain, parameter.isUncertain());
 
     if (parameter.isUncertain()) {
         addText(node, t.parameterName, parameter.name());
         addText(node, t.parameterExpression, parameter.expression());
         pugi::xml_node range = node.append_child(t.range);
-        addReal(range, t.rangeMin, parameter.range().min);
-        addReal(range, t.rangeMax, parameter.range().max);
+        addReal(range, t.rangeMin, parameter.rawRange().min);
+        addReal(range, t.rangeMax, parameter.rawRange().max);
     }
 }
 

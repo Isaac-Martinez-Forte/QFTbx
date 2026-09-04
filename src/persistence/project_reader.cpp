@@ -152,20 +152,16 @@ public:
         const bool uncertain = boolChild(node, t.uncertain);
 
         if (!uncertain) {
-            Parameter parameter(nominal);
-            //Historical quirk kept for compatibility: some old controller
-            //records carry a range on a non-uncertain parameter.
-            const pugi::xml_node range = node.child(t.range);
-            if (range) {
-                parameter.setRange(Range(realChild(range, t.rangeMin),
-                                           realChild(range, t.rangeMax)));
-            }
-            return parameter;
+            //A constant is its value. There used to be a branch here that
+            //read a <range> off a non-uncertain parameter, "kept for
+            //compatibility" with old controller records of the Spanish
+            //dialect: that dialect is gone, the writer never emits a range
+            //for a constant, and the branch stored the range through a setter
+            //that skipped every check the constructors make. The one door a
+            //NaN could still come in through, and it led nowhere.
+            return Parameter(nominal);
         }
 
-        //The parameter name shares the tag with the section-name field in
-        //the legacy dialect ("nombre"): resolve it positionally after
-        //'uncertain', which every dialect writes before it.
         const std::string name = std::string(require(node, t.parameterName).text().get());
         const std::string expression = std::string(require(node, t.parameterExpression).text().get());
         const pugi::xml_node range = require(node, t.range);

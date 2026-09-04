@@ -7,7 +7,7 @@
 #include "src/core/text_tokens.h"
 #include "polynomial_form.h"
 
-using namespace std;
+#include "mpParser.h"
 
 namespace qftbx {
 
@@ -17,11 +17,8 @@ PolynomialForm::PolynomialForm(std::string name, std::vector <Parameter> numerat
 
 }
 
-PolynomialForm::~PolynomialForm(){
-}
-
 std::unique_ptr<LtiSystem> PolynomialForm::create (std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
-                               Parameter k, Parameter delay, std::string numeratorExpr __attribute__((unused)), std::string denominatorExpr __attribute__((unused))){
+                               Parameter k, Parameter delay, [[maybe_unused]] std::string numeratorExpr, [[maybe_unused]] std::string denominatorExpr){
     return std::make_unique<PolynomialForm>(name, std::move(numerator), std::move(denominator),
                                             std::move(k), std::move(delay));
 }
@@ -263,7 +260,6 @@ std::complex <double> PolynomialForm::evaluateDenominator(std::vector <double> *
     return p.Eval().GetComplex();
 }
 
-} // namespace qftbx
 
 //P(s) = k * (a[0]*s^(n-1) + ... + a[n-1]) / (b[0]*s^(m-1) + ... + b[m-1]),
 //at s = j*w, times the pure delay. Evaluated by Horner, which is both the
@@ -294,3 +290,5 @@ std::complex <double> PolynomialForm::valueAt(double w, const std::vector<double
     //exp(0) is exactly 1, so a zero delay needs no special case.
     return gain * num / den * std::exp(-s * delay);
 }
+
+} // namespace qftbx

@@ -148,9 +148,11 @@ TEST(Parameter, VectorCopyIsIndependent)
     EXPECT_EQ(copy[0].name(), std::string("a"));
     EXPECT_DOUBLE_EQ(copy[1].nominal(), 3.5);
 
-    //Mutating the copy leaves the source alone.
-    copy[0].setNominal(9.0);
-    EXPECT_DOUBLE_EQ(source[0].rawNominal(), 2.0);
+    //Mutating the copy leaves the source alone. Through setName(), which is
+    //the one mutator left: setNominal() went with the other setters that
+    //skipped the constructors' checks.
+    copy[0].setName(std::string("b"));
+    EXPECT_EQ(source[0].name(), std::string("a"));
 }
 
 } // namespace

@@ -481,3 +481,43 @@ TEST(SystemInvoke, NullDelayBecomesZeroConstant)
 }
 
 } // namespace
+
+TEST(TimeConstantGainValidation, AZeroCornerIsRefusedAtConstruction)
+{
+    // Every factor is s/z + 1, so a corner of zero divides by zero at every
+    // frequency - and zero is finite, so Parameter's own check lets it through.
+    // valueAt() used to acknowledge the division in a comment and nothing
+    // refused it; the family refuses it now, where the system is built.
+    std::vector<Parameter> numerator{Parameter(1.0)};
+
+    std::vector<Parameter> zeroConstant{Parameter(0.0), Parameter(1.0)};
+    EXPECT_THROW(TimeConstantGain(std::string("P"), numerator, zeroConstant,
+                                  Parameter(1.0), Parameter(0.0)),
+                 qftbx::InvalidInput);
+
+    // An uncertain corner whose range straddles zero would meet the division
+    // at some point of the template sweep.
+    std::vector<Parameter> straddling{
+        Parameter(std::string("a"), qftbx::Range(-1.0, 2.0), 1.0)};
+    EXPECT_THROW(TimeConstantGain(std::string("P"), numerator, straddling,
+                                  Parameter(1.0), Parameter(0.0)),
+                 qftbx::InvalidInput);
+
+    // And one clear of zero is fine, either side.
+    std::vector<Parameter> negative{
+        Parameter(std::string("a"), qftbx::Range(-3.0, -1.0), -2.0)};
+    EXPECT_NO_THROW(TimeConstantGain(std::string("P"), numerator, negative,
+                                     Parameter(1.0), Parameter(0.0)));
+}
+
+TEST(FormatoLibreExpr, AMiscountedValueVectorIsRefused)
+{
+    // valueAt() used to walk to the shorter of the parameter list and the value
+    // list and say nothing, while a name given two values one line below was
+    // refused. The same class of caller mistake now gets the same answer.
+    std::unique_ptr<FreeForm> plant(makeCerveraPlant());
+
+    const std::vector<double> tooFew;
+    EXPECT_THROW(plant->valueAt(1.0, tooFew, tooFew, 1.0, 0.0),
+                 qftbx::InvalidInput);
+}

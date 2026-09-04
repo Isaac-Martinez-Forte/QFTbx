@@ -3,6 +3,7 @@
 // be numerically identical (the writer keeps 17 significant digits, so the
 // trip is bit-exact; the historical writer kept 6 and degraded every save).
 
+#include "src/core/system/polynomial_form.h"
 #include <gtest/gtest.h>
 
 #include <string>
@@ -143,3 +144,44 @@ TEST(ProjectWriterErrors, UnwritablePathThrowsFileError)
 }
 
 } // namespace
+
+TEST(RoundTripReparametrised, AReparametrisedParameterSurvivesSaveAndLoad)
+{
+    // A parameter with a reparametrisation expression: its RAW range is
+    // [1, 2] and its expression maps that to [10, 20]. The writer used to
+    // store the TRANSFORMED values while the reader took what it found as the
+    // raw ones, so one save-and-load applied the expression twice and the
+    // parameter came back as [100, 200]. No fixture carries a
+    // reparametrisation, which is how it stayed unnoticed.
+    std::vector<Parameter> numerator{Parameter(1.0)};
+    std::vector<Parameter> denominator{
+        Parameter(std::string("a"), qftbx::Range(1.0, 2.0), 1.5, std::string("a*10")),
+        Parameter(1.0)};
+
+    auto plant = std::make_unique<PolynomialForm>(
+        std::string("P"), numerator, denominator,
+        Parameter(std::string("kv"), qftbx::Range(1.0, 2.0), 1.5),
+        Parameter(0.0));
+
+    QTemporaryDir temporary;
+    ASSERT_TRUE(temporary.isValid());
+    const std::string path = temporary.filePath("reparametrised.qft").toStdString();
+
+    ProjectContent content;
+    content.plant = plant.get();
+    ProjectWriter writer;
+    writer.save(path, content);
+
+    ProjectReader reader;
+    reader.load(path);
+    ASSERT_NE(reader.plant(), nullptr);
+
+    Parameter & reloaded = reader.plant()->denominator().at(0);
+    EXPECT_EQ(reloaded.expression(), "a*10");
+    EXPECT_EQ(reloaded.rawRange().min, 1.0) << "the raw range must come back raw";
+    EXPECT_EQ(reloaded.rawRange().max, 2.0);
+    EXPECT_EQ(reloaded.rawNominal(), 1.5);
+    EXPECT_EQ(reloaded.range().min, 10.0) << "and the expression applied once, not twice";
+    EXPECT_EQ(reloaded.range().max, 20.0);
+    EXPECT_EQ(reloaded.nominal(), 15.0);
+}

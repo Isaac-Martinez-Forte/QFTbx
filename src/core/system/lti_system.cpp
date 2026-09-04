@@ -1,7 +1,5 @@
 #include "lti_system.h"
 
-using namespace std;
-
 namespace qftbx {
 
 LtiSystem::LtiSystem(std::string name)

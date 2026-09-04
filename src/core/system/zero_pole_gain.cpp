@@ -7,8 +7,7 @@
 #include "src/core/text_tokens.h"
 #include "zero_pole_gain.h"
 
-using namespace std;
-using namespace mup;
+#include "mpParser.h"
 
 namespace qftbx {
 
@@ -17,11 +16,8 @@ ZeroPoleGain::ZeroPoleGain(std::string name, std::vector <Parameter> numerator, 
 {
 }
 
-ZeroPoleGain::~ZeroPoleGain(){
-}
-
 std::unique_ptr<LtiSystem> ZeroPoleGain::create (std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
-                             Parameter k, Parameter delay, std::string numeratorExpr __attribute__((unused)), std::string denominatorExpr __attribute__((unused))){
+                             Parameter k, Parameter delay, [[maybe_unused]] std::string numeratorExpr, [[maybe_unused]] std::string denominatorExpr){
     return std::make_unique<ZeroPoleGain>(name, std::move(numerator), std::move(denominator),
                                           std::move(k), std::move(delay));
 }
@@ -250,7 +246,6 @@ std::complex <double> ZeroPoleGain::evaluateDenominator(std::vector <double> * d
     return p.Eval().GetComplex();
 }
 
-} // namespace qftbx
 
 //P(s) = k * prod(s + z[i]) / prod(s + p[i]) at s = j*w, times the pure
 //delay. An empty list is the constant 1, as the expression generator writes
@@ -274,3 +269,5 @@ std::complex <double> ZeroPoleGain::valueAt(double w, const std::vector<double> 
 
     return gain * num / den * std::exp(-s * delay);
 }
+
+} // namespace qftbx

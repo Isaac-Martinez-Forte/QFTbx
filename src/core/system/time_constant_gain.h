@@ -4,7 +4,6 @@
 #include <string>
 
 #include "transfer_function.h"
-#include "mpParser.h"
 
 namespace qftbx {
 
@@ -18,12 +17,16 @@ namespace qftbx {
 class TimeConstantGain : public TransferFunction
 {
 public:
+    /**
+     * @brief Builds the system. Throws InvalidInput when any corner frequency
+     * is zero or its uncertainty range contains zero: every factor is
+     * s/z + 1, so a zero corner divides by zero at every frequency, and 0 is a
+     * finite number that no other check refuses.
+     */
     TimeConstantGain(std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator, Parameter k, Parameter delay);
 
     std::unique_ptr<LtiSystem> create (std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
                               Parameter k, Parameter delay = Parameter(double(0)), std::string numeratorExpr = std::string(), std::string denominatorExpr = std::string()) override;
-
-    ~TimeConstantGain();
 
     SystemType type() override;
 

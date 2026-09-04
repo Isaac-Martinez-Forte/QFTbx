@@ -7,20 +7,42 @@
 #include "src/core/text_tokens.h"
 #include "time_constant_gain.h"
 
-using namespace std;
+#include "mpParser.h"
+#include "src/core/exception.h"
 
 namespace qftbx {
+
+namespace {
+
+//Every factor of this form is s/z + 1, so a corner frequency of zero divides
+//by zero at every frequency - and 0 is finite, so nothing upstream refuses
+//it. For an uncertain corner the whole range has to stay clear of zero, or
+//the template sweep meets the division at some grid point.
+void requireNonZeroCorners(const std::vector<Parameter> & corners, const char * side)
+{
+    for (const Parameter & corner : corners) {
+        const Range range = corner.rawRange();
+        const bool touchesZero = corner.isUncertain()
+                ? (range.min <= 0.0 && 0.0 <= range.max)
+                : corner.rawNominal() == 0.0;
+        if (touchesZero) {
+            throw InvalidInput(std::string("A time constant in the ") + side
+                               + " cannot be zero: every factor is s/z + 1.");
+        }
+    }
+}
+
+} // namespace
 
 TimeConstantGain::TimeConstantGain(std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator, Parameter k, Parameter delay):
     TransferFunction(name, numerator, denominator,k,delay)
 {
-}
-
-TimeConstantGain::~TimeConstantGain(){
+    requireNonZeroCorners(m_numerator, "numerator");
+    requireNonZeroCorners(m_denominator, "denominator");
 }
 
 std::unique_ptr<LtiSystem> TimeConstantGain::create (std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
-                              Parameter k, Parameter delay, std::string numeratorExpr __attribute__((unused)), std::string denominatorExpr __attribute__((unused))){
+                              Parameter k, Parameter delay, [[maybe_unused]] std::string numeratorExpr, [[maybe_unused]] std::string denominatorExpr){
     return std::make_unique<TimeConstantGain>(name, std::move(numerator), std::move(denominator),
                                               std::move(k), std::move(delay));
 }
@@ -248,7 +270,6 @@ std::complex <double> TimeConstantGain::evaluateDenominator(std::vector <double>
     return p.Eval().GetComplex();
 }
 
-} // namespace qftbx
 
 //P(s) = k * prod(s/tau_n[i] + 1) / prod(s/tau_d[i] + 1) at s = j*w, times
 //the pure delay. An empty list is the constant 1, as the expression
@@ -272,3 +293,5 @@ std::complex <double> TimeConstantGain::valueAt(double w, const std::vector<doub
 
     return gain * num / den * std::exp(-s * delay);
 }
+
+} // namespace qftbx

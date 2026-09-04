@@ -5,7 +5,6 @@
 
 #include <string>
 
-#include "mpParser.h"
 
 namespace qftbx {
 
@@ -25,8 +24,6 @@ public:
 
     std::unique_ptr<LtiSystem> create (std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
                               Parameter k, Parameter delay = Parameter(double(0)), std::string numeratorExpr = std::string(), std::string denominatorExpr = std::string()) override;
-
-    ~PolynomialForm();
 
     std::string expression (std::vector <double> * numerator, std::vector <double> * denominator,
                              double k, double delay, double omega) override;

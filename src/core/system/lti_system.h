@@ -8,7 +8,6 @@
 #include <string>
 
 #include "src/core/system/parameter.h"
-#include "mpParser.h"
 
 namespace qftbx {
 
@@ -116,11 +115,12 @@ public:
      * @brief Value equality between two systems, for telling a real change
      * from a dialog accepted without an edit.
      *
-     * Not virtual: it compares the dynamic TYPE and then everything a system
-     * is made of - name, the textual numerator and denominator (which is how
-     * a FreeForm's own expressions get compared, since numeratorString() is
-     * virtual), and the four parameter groups. A subclass with state outside
-     * all of that would have to override it.
+     * Not virtual, so it CANNOT be overridden: it compares the dynamic TYPE
+     * and then everything a system is made of - name, the textual numerator
+     * and denominator, and the four parameter groups. A family with state
+     * beyond the parameters has one way to take part, which is to expose that
+     * state through numeratorString() and denominatorString(): that is how a
+     * FreeForm's two expressions get compared.
      *
      * Conservative by design: the two answers are not symmetric. A wrong
      * "equal" keeps the templates computed for the OLD plant, which is the

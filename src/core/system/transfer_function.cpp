@@ -1,7 +1,6 @@
 #include "transfer_function.h"
 
-using namespace std;
-using namespace mup;
+#include "mpParser.h"
 
 namespace qftbx {
 
@@ -32,7 +31,7 @@ Parameter & TransferFunction::delay() {
 
 std::complex <double> TransferFunction::evaluate(std::vector <double> * numerator, std::vector <double> * denominator,
         double k, double delay, double omega) {
-    ParserX p(pckALL_COMPLEX);
+    mup::ParserX p(mup::pckALL_COMPLEX);
 
     p.SetExpr(expression(numerator, denominator, k, delay, omega));
 
@@ -44,12 +43,12 @@ namespace {
 //The nominal of every parameter, in order. Uncertain ones contribute their
 //nominal here exactly as they did through the parser, which bound each name
 //to its nominal before evaluating.
-std::vector<double> nominalsOf(std::vector<Parameter> & parameters)
+std::vector<double> nominalsOf(const std::vector<Parameter> & parameters)
 {
     std::vector<double> values;
     values.reserve(parameters.size());
 
-    for (Parameter & parameter : parameters) {
+    for (const Parameter & parameter : parameters) {
         values.push_back(parameter.nominal());
     }
 

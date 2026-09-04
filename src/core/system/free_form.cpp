@@ -13,9 +13,6 @@
 #include "src/core/exception.h"
 #include "src/core/math/expression_cache.h"
 
-using namespace std;
-using namespace mup;
-
 namespace qftbx {
 
 FreeForm::FreeForm(std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator, Parameter k,
@@ -164,8 +161,19 @@ std::complex <double> FreeForm::valueAt(double w, const std::vector<double> & nu
     names.push_back(laplaceName());
     bound.push_back(std::complex<double>(0.0, w));
 
-    const auto remember = [&](std::vector<Parameter> & parameters, const std::vector<double> & given) {
-        for (std::size_t i = 0; i < parameters.size() && i < given.size(); i++) {
+    const auto remember = [&](const std::vector<Parameter> & parameters, const std::vector<double> & given) {
+        //One value per parameter, no more and no fewer. This used to walk to
+        //the shorter of the two and say nothing, which made a caller's
+        //miscount into a plant evaluated with some coefficients missing -
+        //while a name given two values, one line below, was refused. The
+        //same mistake deserves the same answer.
+        if (parameters.size() != given.size()) {
+            throw qftbx::InvalidInput("FreeForm::valueAt: " + std::to_string(given.size())
+                                      + " values were given for " + std::to_string(parameters.size())
+                                      + " parameters");
+        }
+
+        for (std::size_t i = 0; i < parameters.size(); i++) {
             const std::string name = parameters[i].name();
             const auto found = std::find(names.begin(), names.end(), name);
 
