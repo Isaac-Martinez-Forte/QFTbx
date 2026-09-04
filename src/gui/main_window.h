@@ -125,18 +125,9 @@ private slots:
 private:
     std::unique_ptr<Ui::MainWindow> ui;
 
-    bool plantDone = false;
-    bool specificationsDone = false;
-    bool frequenciesDone = false;
-    bool templatesDone = false;
-    bool boundariesDone = false;
-    bool controllerDone = false;
-    bool loopDone = false;
-
-    bool bodeCreated = false;
 
 
-    qint32 progressPosition = 0;
+
 
     //The facade is the window's own, and the only thing here that is not a
     //Qt child.
@@ -174,9 +165,10 @@ private:
 
     void saveProject ();
 
-    void invalidateFromTemplates();
-    void invalidateFromBoundaries();
-    void invalidateLoopShaping();
+
+    /// Buttons and progress bar from ProjectController::completed(). See the
+    /// definition for what it replaces.
+    void refreshAvailability();
 
     void installContourRecomputer();
     void recomputeContour(std::vector<double> epsilon);
@@ -189,7 +181,6 @@ private:
     const std::vector<double> * frequencyValues() const;
 
     void destroyDialogs();
-    void stepBack(bool & paso);
 
 };
 
