@@ -1,6 +1,7 @@
 #ifndef QFTBX_LOOP_SHAPING_DIALOG_H
 #define QFTBX_LOOP_SHAPING_DIALOG_H
 
+#include "src/gui/step_dialog.h"
 #include <memory>
 
 #include <QDialog>
@@ -24,7 +25,7 @@ class LoopShapingDialog;
  * ProjectController::computeLoopShaping. The single field does not say so
  * yet.
  */
-class LoopShapingDialog : public QDialog
+class LoopShapingDialog : public StepDialog
 {
     Q_OBJECT
 
@@ -34,7 +35,6 @@ public:
 
     void setEpsilonValue (qreal epsilonEdit);
 
-    bool wasAccepted();
 
     qreal epsilonValue ();
 
@@ -75,7 +75,6 @@ protected:
 private:
     std::unique_ptr<Ui::LoopShapingDialog> ui;
 
-    bool accepted;
 
     qreal epsilonEdit = 0.0;
 

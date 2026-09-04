@@ -53,6 +53,33 @@ std::map<Key, std::unique_ptr<CachedParser>> & cache()
 
 } // namespace
 
+bool isUsableVariableName(const std::string & name)
+{
+    //Building a ParserX is not cheap, and this is asked once per parameter
+    //name when a system is published, so the answer is remembered.
+    static thread_local std::map<std::string, bool> answered;
+
+    const auto found = answered.find(name);
+    if (found != answered.end()) {
+        return found->second;
+    }
+
+    bool usable = false;
+    mup::Value probe;
+    mup::ParserX parser(mup::pckALL_COMPLEX);
+
+    try {
+        parser.DefineVar(name, mup::Variable(&probe));
+        usable = true;
+    } catch (mup::ParserError &) {
+        //Reserved, or not a valid identifier at all.
+        usable = false;
+    }
+
+    answered[name] = usable;
+    return usable;
+}
+
 std::complex<double> evaluateCached(const std::string & expression,
                                     const std::vector<std::string> & names,
                                     const std::vector<std::complex<double>> & values)

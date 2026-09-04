@@ -1,6 +1,10 @@
 #ifndef QFTBX_MAIN_WINDOW_H
 #define QFTBX_MAIN_WINDOW_H
 
+#include <QDialog>
+
+#include "src/gui/step_dialog.h"
+#include <functional>
 #include <vector>
 #include <memory>
 
@@ -50,6 +54,37 @@ public:
 
     ~MainWindow();
 
+public:
+    /**
+     * @brief How a step's dialog gets shown.
+     *
+     * By default it is QDialog::exec(): modal and BLOCKING, which is exactly
+     * what the application wants and exactly what a headless test cannot
+     * survive - a test that presses a step button would hang there for ever.
+     * That is why nothing in this window has ever been tested beyond the fact
+     * that it builds its widget tree.
+     *
+     * With this, a test installs its own: fill the dialog's fields by name and
+     * press its OK button, which is what the dialog smoke tests already do,
+     * and the handler carries on as if a user had done it. Same seam as
+     * tools::ErrorReporter and TemplateViewer's ContourRecomputer - a plain
+     * callback, one caller, one handler, same thread.
+     */
+    using DialogRunner = std::function<void (QDialog * dialog)>;
+
+    void setDialogRunner(DialogRunner run);
+
+    /**
+     * @brief How a file name gets asked for.
+     *
+     * QFileDialog's static helpers are modal too, and they are the reason the
+     * open and save paths cannot be driven either.
+     * @param forSaving true when it is a name to write to, false to read.
+     */
+    using FileChooser = std::function<QString (bool forSaving)>;
+
+    void setFileChooser(FileChooser choose);
+
 private slots:
     void on_plantButton_clicked();
 
@@ -92,18 +127,9 @@ private slots:
 private:
     std::unique_ptr<Ui::MainWindow> ui;
 
-    bool plantDone = false;
-    bool specificationsDone = false;
-    bool frequenciesDone = false;
-    bool templatesDone = false;
-    bool boundariesDone = false;
-    bool controllerDone = false;
-    bool loopDone = false;
-
-    bool bodeCreated = false;
 
 
-    qint32 progressPosition = 0;
+
 
     //The facade is the window's own, and the only thing here that is not a
     //Qt child.
@@ -113,6 +139,15 @@ private:
     //purpose: holding one in a unique_ptr would make two owners and free it
     //twice. destroyDialogs() deletes them to REBUILD them for a new
     //session, which is Qt's own mechanism, not memory management of ours.
+    /// Shows a dialog through the runner, or exec() when there is none.
+    void runDialog(StepDialog * dialog);
+
+    /// Asks for a file name through the chooser, or QFileDialog when none.
+    QString chooseFile(bool forSaving, const QString & title);
+
+    DialogRunner m_runDialog;
+    FileChooser m_chooseFile;
+
     PlantDialog * plantDialog = nullptr;
     FrequenciesDialog * frequenciesDialog = nullptr;
     BodeViewer * bodeViewer = nullptr;
@@ -132,9 +167,10 @@ private:
 
     void saveProject ();
 
-    void invalidateFromTemplates();
-    void invalidateFromBoundaries();
-    void invalidateLoopShaping();
+
+    /// Buttons and progress bar from ProjectController::completed(). See the
+    /// definition for what it replaces.
+    void refreshAvailability();
 
     void installContourRecomputer();
     void recomputeContour(std::vector<double> epsilon);
@@ -147,7 +183,6 @@ private:
     const std::vector<double> * frequencyValues() const;
 
     void destroyDialogs();
-    void stepBack(bool & paso);
 
 };
 

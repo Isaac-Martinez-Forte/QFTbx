@@ -1,6 +1,7 @@
 #ifndef QFTBX_CONTROLLER_DIALOG_H
 #define QFTBX_CONTROLLER_DIALOG_H
 
+#include "src/gui/step_dialog.h"
 #include "src/gui/coefficient_tables.h"
 
 #include <memory>
@@ -23,7 +24,7 @@ namespace Ui {
 class ControllerDialog;
 }
 
-class ControllerDialog : public QDialog
+class ControllerDialog : public StepDialog
 {
     Q_OBJECT
     
@@ -31,7 +32,6 @@ public:
     explicit ControllerDialog(QWidget *parent = 0);
     ~ControllerDialog();
 
-    bool wasAccepted();
 
     /// The controller structure the user described (with the search box of
     /// its parameters), or nullptr when cancelled or rejected. Ownership
@@ -84,7 +84,6 @@ private:
 
     mup::ParserX p;
 
-    bool accepted;
 };
 
 #endif // QFTBX_CONTROLLER_DIALOG_H

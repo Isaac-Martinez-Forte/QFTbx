@@ -8,11 +8,46 @@
 
 #include "src/core/point.h"
 #include "src/core/exception.h"
+#include "src/core/pipeline_step.h"
+
+#include <mpParser.h>
 
 #include <vector>
 #include <iostream>
 
 using namespace tools;
+
+namespace {
+
+//The wait cursor as an object, so it comes back whatever way the scope ends.
+//It was set and unset by hand, and the arrow appeared THREE times in the
+//template handler alone - once per way out - which is a shape where any new
+//return leaves the hourglass spinning over a window that is done working.
+class WaitCursor
+{
+public:
+    explicit WaitCursor(QWidget * widget) : m_widget(widget)
+    {
+        if (m_widget != nullptr) {
+            m_widget->setCursor(Qt::WaitCursor);
+        }
+    }
+
+    ~WaitCursor()
+    {
+        if (m_widget != nullptr) {
+            m_widget->setCursor(Qt::ArrowCursor);
+        }
+    }
+
+    WaitCursor(const WaitCursor &) = delete;
+    WaitCursor & operator=(const WaitCursor &) = delete;
+
+private:
+    QWidget * m_widget;
+};
+
+}
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -41,48 +76,25 @@ void MainWindow::createSession(){
 
     controller = std::make_unique<ProjectController>();
 
-    ui->progressBar->setValue(0);
-    progressPosition = 0;
-
-    plantDone = false;  //plant
-    specificationsDone = false;  //specificationsDialog
-    frequenciesDone = false;  //omega
-    templatesDone = false;  //templates
-    boundariesDone = false;  //estructura del controller
-    controllerDone = false;  //boundaries
-    loopDone = false;  //lazo
-
-    bodeCreated = false;
-
-    ui->specificationsButton->setEnabled(false);
-    ui->templatesButton->setEnabled(false);
-    ui->boundariesButton->setEnabled(false);
-    ui->loopButton->setEnabled(false);
-    ui->bodeAction->setEnabled(false);
+    //An empty project: every step undone, so this switches the buttons off
+    //and puts the bar at zero without enumerating either. The seven flags it
+    //used to reset by hand are gone, and two of their comments were CROSSED -
+    //boundariesDone said "estructura del controller" and controllerDone said
+    //"boundaries" - which is what hand-kept parallel state looks like after a
+    //while.
+    refreshAvailability();
 
     //Without this, Save after New overwrote the last opened file with the
     //empty project.
     saveFilePath.clear();
 }
 
-//Walks one step back: the bar must reflect it (it used to keep counting
-//steps that no longer existed).
-void MainWindow::stepBack(bool & paso){
-    if (paso){
-        progressPosition--;
-        ui->progressBar->setValue(progressPosition);
-    }
-    paso = false;
-}
-
 //Qt's own mechanism: every dialog and viewer here is a child of this
 //window, and destroying one is how a new session gets a fresh one.
 //
-//Each delete used to be guarded by the step's own progress flag. The two
-//agree - every path that abandons a dialog deletes it, nulls it and resets
-//the flag through stepBack(), which takes it by reference - but a
-//destruction path has no business depending on a flag of the interface:
-//deleting a null pointer is a no-op, so the pointer decides.
+//Each delete used to be guarded by the step's own progress flag, which is
+//also how the flag got out of step with the pointer. There is no flag left to
+//consult: deleting a null pointer is a no-op, so the pointer decides.
 void MainWindow::destroyDialogs(){
     delete plantDialog;
     plantDialog = nullptr;
@@ -110,12 +122,145 @@ void MainWindow::destroyDialogs(){
 
     delete bodeViewer;
     bodeViewer = nullptr;
-    bodeCreated = false;
 
     delete loopShapingDialog;
     loopShapingDialog = nullptr;
     delete loopShapingViewer;
     loopShapingViewer = nullptr;
+}
+
+void MainWindow::setDialogRunner(DialogRunner run)
+{
+    m_runDialog = std::move(run);
+}
+
+void MainWindow::setFileChooser(FileChooser choose)
+{
+    m_chooseFile = std::move(choose);
+}
+
+//Without a runner it is exec(), which is what the application does. The
+//indirection exists so a test can be the user.
+void MainWindow::runDialog(StepDialog * dialog)
+{
+    if (dialog == nullptr) {
+        return;
+    }
+
+    //THE dialog is reused between visits, so a previous acceptance has to be
+    //forgotten here. Without this, wasAccepted() answered true for ever after
+    //the first OK - with the payload already handed over - and closing a
+    //reopened dialog published a null one, wiping the step from the project.
+    dialog->clearAcceptance();
+
+    if (m_runDialog != nullptr) {
+        m_runDialog(dialog);
+        return;
+    }
+
+    dialog->exec();
+}
+
+QString MainWindow::chooseFile(bool forSaving, const QString & title)
+{
+    if (m_chooseFile != nullptr) {
+        return m_chooseFile(forSaving);
+    }
+
+    return forSaving
+            ? QFileDialog::getSaveFileName(this, title, "plant",
+                                           tr("QFT Files (*.qft)"))
+            : QFileDialog::getOpenFileName(this, title, "plant",
+                                           tr("QFT Files (*.qft)"));
+}
+
+//Every enable rule, and the progress bar, DERIVED from what the project
+//holds. This is the third of the four hand-written copies of the pipeline's
+//dependency order to go: the facade owns the order, completed() answers it,
+//and this asks rather than remembers.
+//
+//What it replaces: an enable condition inside each of the seven handlers, the
+//same conditions again in the open handler, seven booleans and a counter kept
+//by hand, and a stepBack() that walked the counter backwards.
+//
+//One rule is deliberately tighter than what it replaces. The Bode action used
+//to be enabled by the frequencies alone, while the action itself refuses
+//without a plant as well - so it could be pressed to no effect. It follows the
+//action's own guard now, and nothing that worked stops working.
+void MainWindow::refreshAvailability()
+{
+    if (controller == nullptr) {
+        return;
+    }
+
+    const qftbx::StepSet done = controller->completed();
+
+    //A step the project does not have has no widgets. Deciding that by hand,
+    //once per way out of each handler, is what produced a teardown block
+    //written some fifteen times - and it was decided WRONG in a case nobody
+    //noticed: cancelling the template dialog after the templates had been
+    //computed used to delete their viewer and mark the step undone, while the
+    //project still held the templates. Derived, that case answers itself.
+    //
+    //The Bode viewer is not here because it is not a step: it is a view of
+    //the plant and the frequencies, and it has its own action.
+    if (!done.has(qftbx::Step::Plant)) {
+        delete plantDialog;
+        plantDialog = nullptr;
+    }
+
+    if (!done.has(qftbx::Step::Specifications)) {
+        delete specificationsDialog;
+        specificationsDialog = nullptr;
+    }
+
+    if (!done.has(qftbx::Step::Frequencies)) {
+        delete frequenciesDialog;
+        frequenciesDialog = nullptr;
+    }
+
+    if (!done.has(qftbx::Step::Controller)) {
+        delete controllerDialog;
+        controllerDialog = nullptr;
+    }
+
+    if (!done.has(qftbx::Step::Templates)) {
+        delete templatesDialog;
+        templatesDialog = nullptr;
+        delete templateViewer;
+        templateViewer = nullptr;
+    }
+
+    if (!done.has(qftbx::Step::Boundaries)) {
+        delete boundaryGridDialog;
+        boundaryGridDialog = nullptr;
+        delete boundaryViewer;
+        boundaryViewer = nullptr;
+        delete boundaryUnionViewer;
+        boundaryUnionViewer = nullptr;
+    }
+
+    if (!done.has(qftbx::Step::LoopShaping)) {
+        delete loopShapingDialog;
+        loopShapingDialog = nullptr;
+        delete loopShapingViewer;
+        loopShapingViewer = nullptr;
+    }
+
+    const bool plant          = done.has(qftbx::Step::Plant);
+    const bool specifications = done.has(qftbx::Step::Specifications);
+    const bool frequencies    = done.has(qftbx::Step::Frequencies);
+    const bool templates      = done.has(qftbx::Step::Templates);
+    const bool boundaries     = done.has(qftbx::Step::Boundaries);
+    const bool structure      = done.has(qftbx::Step::Controller);
+
+    ui->specificationsButton->setEnabled(frequencies);
+    ui->templatesButton->setEnabled(plant && frequencies);
+    ui->boundariesButton->setEnabled(templates && specifications);
+    ui->loopButton->setEnabled(boundaries && structure);
+    ui->bodeAction->setEnabled(plant && frequencies);
+
+    ui->progressBar->setValue(static_cast<int>(done.count()));
 }
 
 void MainWindow::installContourRecomputer(){
@@ -128,6 +273,11 @@ void MainWindow::recomputeContour(std::vector<double> epsilon){
     //The viewer asked for a tighter contour: the computation, and the
     //reporting of its failure, belong here.
     try {
+        //It walks the epsilon-hull over every cloud, which is work, and this
+        //was the one computation in the window with no cursor at all: it
+        //froze under a pointer that said nothing was happening.
+        const WaitCursor waiting(this);
+
         controller->recomputeContour(std::move(epsilon));
     } catch (const qftbx::Exception & e) {
         QMessageBox::critical(this, tr("Template computation"), e.what());
@@ -143,41 +293,6 @@ void MainWindow::recomputeContour(std::vector<double> epsilon){
 //window has to stop offering the steps that produced it: otherwise the button
 //is still there and the step now refuses, which reads as a broken program
 //rather than as a step that has to be redone.
-void MainWindow::invalidateFromTemplates(){
-    stepBack(templatesDone);
-    invalidateFromBoundaries();
-
-    ui->boundariesButton->setEnabled(false);
-
-    delete templatesDialog;
-    templatesDialog = nullptr;
-    delete templateViewer;
-    templateViewer = nullptr;
-}
-
-void MainWindow::invalidateFromBoundaries(){
-    stepBack(boundariesDone);
-    invalidateLoopShaping();
-
-    ui->loopButton->setEnabled(false);
-
-    delete boundaryGridDialog;
-    boundaryGridDialog = nullptr;
-    delete boundaryViewer;
-    boundaryViewer = nullptr;
-    delete boundaryUnionViewer;
-    boundaryUnionViewer = nullptr;
-}
-
-void MainWindow::invalidateLoopShaping(){
-    stepBack(loopDone);
-
-    delete loopShapingDialog;
-    loopShapingDialog = nullptr;
-    delete loopShapingViewer;
-    loopShapingViewer = nullptr;
-}
-
 const std::vector<double> * MainWindow::frequencyValues() const{
     Omega * omega = controller->omega();
 
@@ -196,16 +311,31 @@ void MainWindow::destroySession(){
 
 void MainWindow::on_plantButton_clicked()
 {
-    if (!plantDone){
+    //The POINTER says whether the dialog exists, which is the question being
+    //asked. The flag it replaces answered a different one - whether the step
+    //was done - and the two only agreed by being maintained together.
+    if (plantDialog == nullptr){
         plantDialog = new PlantDialog(this);
     }
 
-    plantDialog->exec();
+    runDialog(plantDialog);
 
     if (plantDialog->wasAccepted()){
         //The dialogs only describe; publishing into the project is the
         //window's job, so a dialog never needs to know the facade.
         std::unique_ptr<LtiSystem> described = plantDialog->takePlant();
+        //Publish only what was actually received. The payload is MOVED out of
+        //the dialog, so asking twice gives a null the second time - and
+        //publishing a null wipes the step from the project, and everything
+        //computed from it. That used to be reachable, because a reused dialog
+        //reported an acceptance it had already handed over; StepDialog and
+        //runDialog() closed that path. This stays as the invariant it is:
+        //nothing moved-from goes into the project.
+        if (described == nullptr){
+            refreshAvailability();
+            return;
+        }
+
 
         //The controller answers whether it dropped anything, so the window
         //resets its own steps exactly when the project dropped the artefacts
@@ -215,27 +345,17 @@ void MainWindow::on_plantButton_clicked()
         //only by accident.
         const bool changed = controller->setPlant(std::move(described));
 
-        //A different plant voids the templates and everything after them, in
-        //the project and therefore in the window too.
-        if (changed && templatesDone){
-            invalidateFromTemplates();
-        }
-
-        if (frequenciesDone){
-            ui->templatesButton->setEnabled(true);
-        }
-
-        if (!plantDone){
-            progressPosition++;
-            ui->progressBar->setValue(progressPosition);
-        }
-
-        plantDone = true;
+        //The project has already dropped the templates and everything after
+        //them; what is left for the window is the dialogs and viewers that
+        //were showing them. Unconditional on there being any: discarding a
+        //step never reached costs nothing.
     } else {
         delete plantDialog;
         plantDialog = nullptr;
-        stepBack(plantDone);
     }
+
+    //Buttons and bar from the project, not from flags kept here.
+    refreshAvailability();
 }
 
 void MainWindow::on_specificationsButton_clicked()
@@ -247,7 +367,7 @@ void MainWindow::on_specificationsButton_clicked()
     //invariant rather than a user error - which is exactly the kind that
     //should be reported instead of aborting.
     try {
-        if (!specificationsDone){
+        if (specificationsDialog == nullptr){
             specificationsDialog = new SpecificationsDialog(frequencyValues(),
                                                             controller->specifications(),
                                                             this);
@@ -261,44 +381,48 @@ void MainWindow::on_specificationsButton_clicked()
         return;
     }
 
-    specificationsDialog->exec();
+    runDialog(specificationsDialog);
 
     if (specificationsDialog->wasAccepted()){
-        controller->setSpecifications(specificationsDialog->takeSpecifications());
+        //See on_plantButton_clicked: nothing moved-from goes in, and an empty
+        //answer here would wipe the specifications.
+        std::optional<qftbx::SpecificationRecords> described =
+                specificationsDialog->takeSpecifications();
+
+        if (!described.has_value()){
+            refreshAvailability();
+            return;
+        }
+
+        controller->setSpecifications(std::move(described));
 
         //The templates do not depend on the specifications; the boundaries
-        //do. Publishing is always a change now: the dialog answers with a
-        //fresh set of clones, so there is no identity to compare.
-        if (boundariesDone){
-            invalidateFromBoundaries();
-        }
-
-        if (templatesDone){
-            ui->boundariesButton->setEnabled(true);
-        }
-
-        if (!specificationsDone){
-            progressPosition++;
-            ui->progressBar->setValue(progressPosition);
-        }
-        specificationsDone = true;
+        //do, and the project has already dropped them - the window follows
+        //through refreshAvailability() below.
     } else {
         delete specificationsDialog;
         specificationsDialog = nullptr;
-        stepBack(specificationsDone);
     }
+
+    refreshAvailability();
 }
 
 void MainWindow::on_frequenciesButton_clicked()
 {
-    if (!frequenciesDone){
+    if (frequenciesDialog == nullptr){
         frequenciesDialog = new FrequenciesDialog(this);
     }
 
-    frequenciesDialog->exec();
+    runDialog(frequenciesDialog);
 
     if (frequenciesDialog->wasAccepted()){
         std::unique_ptr<Omega> described = frequenciesDialog->takeOmega();
+        //See on_plantButton_clicked: nothing moved-from goes in.
+        if (described == nullptr){
+            refreshAvailability();
+            return;
+        }
+
 
         //The controller answers whether it dropped anything, so the window
         //resets its own steps exactly when the project dropped the artefacts
@@ -308,35 +432,17 @@ void MainWindow::on_frequenciesButton_clicked()
         //only by accident.
         const bool changed = controller->setOmega(std::move(described));
 
-        if (changed && templatesDone){
-            invalidateFromTemplates();
-        }
-
-        if (plantDone){
-            ui->templatesButton->setEnabled(true);
-        }
-
-        ui->specificationsButton->setEnabled(true);
-        ui->bodeAction->setEnabled(true);
-
-        if (!frequenciesDone){
-            progressPosition++;
-            ui->progressBar->setValue(progressPosition);
-        }
-
-        frequenciesDone = true;
-
     } else {
         delete frequenciesDialog;
         frequenciesDialog = nullptr;
-        stepBack(frequenciesDone);
     }
+
+    refreshAvailability();
 }
 
 void MainWindow::on_templatesButton_clicked()
 {
-
-    if (!templatesDone){
+    if (templatesDialog == nullptr){
         templatesDialog = new TemplatesDialog(this);
         templateViewer = new TemplateViewer(this);
         installContourRecomputer();
@@ -344,154 +450,141 @@ void MainWindow::on_templatesButton_clicked()
 
     templatesDialog->launch(controller->plant(), controller->omega()->values()->size());
 
-    templatesDialog->exec();
+    runDialog(templatesDialog);
 
-    if (templatesDialog->wasAccepted()){
+    if (!templatesDialog->wasAccepted()){
+        refreshAvailability();
+        return;
+    }
 
-        this->setCursor(Qt::WaitCursor);
+    bool templatesOk = false;
 
-        bool templatesOk = false;
+    {
+        //The hourglass for as long as this scope, and no longer. It used to
+        //be put back by hand on each of the three ways out of here.
+        const WaitCursor waiting(this);
 
         try {
-            templatesOk = controller->computeTemplates(templatesDialog->takeEpsilon(), templatesDialog->grids(),
-                                                         templatesDialog->cudaSelected());
+            templatesOk = controller->computeTemplates(templatesDialog->takeEpsilon(),
+                                                       templatesDialog->grids(),
+                                                       templatesDialog->cudaSelected());
+        } catch (mup::ParserError & parserError) {
+            //A muParserX error is neither a qftbx::Exception nor a
+            //std::exception, so it escaped this slot and took the application
+            //down. Parameter names are validated when a system is published,
+            //which is where this class of problem belongs, but a computation
+            //must not be able to kill the window either way.
+            QMessageBox::critical(this, tr("Template computation"),
+                                  tr("The expression parser refused this "
+                                     "computation: %1")
+                                      .arg(QString::fromStdString(parserError.GetMsg())));
+            refreshAvailability();
+            return;
         } catch (const qftbx::Exception & e) {
-            this->setCursor(Qt::ArrowCursor);
             QMessageBox::critical(this, tr("Template computation"), e.what());
-            delete templatesDialog;
-            templatesDialog = nullptr;
-            delete templateViewer;
-            templateViewer = nullptr;
-            stepBack(templatesDone);
+            refreshAvailability();
             return;
         }
-
-        if (templatesOk){
-
-            this->setCursor(Qt::ArrowCursor);
-
-
-            if (specificationsDone){
-                ui->boundariesButton->setEnabled(true);
-            }
-
-            templateViewer->setData(controller->templates(),
-                                     controller->contour(),
-                                     controller->omega()->values(),
-                                     controller->epsilon());
-            templateViewer->plotDiagram(templatesDialog->nicholsSelected());
-
-            templateViewer->show();
-
-            if (!templatesDone){
-                progressPosition++;
-                ui->progressBar->setValue(progressPosition);
-            }
-
-            templatesDone = true;
-        } else {
-            delete templatesDialog;
-            templatesDialog = nullptr;
-            delete templateViewer;
-            templateViewer = nullptr;
-            stepBack(templatesDone);
-        }
-        this->setCursor(Qt::ArrowCursor);
-    } else {
-        delete templatesDialog;
-        templatesDialog = nullptr;
-        delete templateViewer;
-        templateViewer = nullptr;
-        stepBack(templatesDone);
     }
+
+    if (!templatesOk){
+        refreshAvailability();
+        return;
+    }
+
+    templateViewer->setData(controller->templates(),
+                             controller->contour(),
+                             controller->omega()->values(),
+                             controller->epsilon());
+    templateViewer->plotDiagram(templatesDialog->nicholsSelected());
+
+    templateViewer->show();
+
+    refreshAvailability();
 }
 
 void MainWindow::on_boundariesButton_clicked()
 {
-
-    if (!boundariesDone){
+    if (boundaryGridDialog == nullptr){
         boundaryGridDialog = new BoundaryGridDialog(this);
         boundaryViewer = new BoundaryViewer(this);
         boundaryUnionViewer = new BoundaryUnionViewer(this);
     }
 
-    boundaryGridDialog->exec();
+    runDialog(boundaryGridDialog);
 
-    if (boundaryGridDialog->wasAccepted()){
+    if (!boundaryGridDialog->wasAccepted()){
+        refreshAvailability();
+        return;
+    }
 
-        this->setCursor(Qt::WaitCursor);
+    bool boundariesOk = false;
 
-        bool boundariesOk = false;
+    {
+        const WaitCursor waiting(this);
 
         try {
             boundariesOk = controller->computeBoundaries(boundaryGridDialog->phaseRangeValue(),
-                                                           boundaryGridDialog->phaseCountValue(), boundaryGridDialog->magnitudeRangeValue(),
-                                                           boundaryGridDialog->magnitudeCountValue(), boundaryGridDialog->infinityValue(),
-                                                           boundaryGridDialog->contourSelected(), boundaryGridDialog->cudaSelected());
+                                                         boundaryGridDialog->phaseCountValue(),
+                                                         boundaryGridDialog->magnitudeRangeValue(),
+                                                         boundaryGridDialog->magnitudeCountValue(),
+                                                         boundaryGridDialog->infinityValue(),
+                                                         boundaryGridDialog->contourSelected(),
+                                                         boundaryGridDialog->cudaSelected());
+        } catch (mup::ParserError & parserError) {
+            //A muParserX error is neither a qftbx::Exception nor a
+            //std::exception, so it escaped this slot and took the application
+            //down. Parameter names are validated when a system is published,
+            //which is where this class of problem belongs, but a computation
+            //must not be able to kill the window either way.
+            QMessageBox::critical(this, tr("Boundary computation"),
+                                  tr("The expression parser refused this "
+                                     "computation: %1")
+                                      .arg(QString::fromStdString(parserError.GetMsg())));
+            refreshAvailability();
+            return;
         } catch (const qftbx::Exception & e) {
-            this->setCursor(Qt::ArrowCursor);
             QMessageBox::critical(this, tr("Boundary computation"), e.what());
-            delete boundaryGridDialog;
-            boundaryGridDialog = nullptr;
-            delete boundaryViewer;
-            boundaryViewer = nullptr;
-            delete boundaryUnionViewer;
-            boundaryUnionViewer = nullptr;
-            stepBack(boundariesDone);
+            refreshAvailability();
             return;
         }
-
-        if (!boundariesOk){
-            this->setCursor(Qt::ArrowCursor);
-
-            delete boundaryGridDialog;
-            boundaryGridDialog = nullptr;
-            delete boundaryViewer;
-            boundaryViewer = nullptr;
-            delete boundaryUnionViewer;
-            boundaryUnionViewer = nullptr;
-            stepBack(boundariesDone);
-
-            return;
-        }
-
-        this->setCursor(Qt::ArrowCursor);
-
-        boundaryViewer->setData(controller->boundaries(), controller->omega()->values());
-        boundaryViewer->showDiagram();
-        boundaryViewer->show();
-
-        boundaryUnionViewer->setData(controller->unionBoundaries(), controller->omega()->values());
-        boundaryUnionViewer->showDiagram();
-        boundaryUnionViewer->show();
-
-        if (!boundariesDone){
-            progressPosition++;
-            ui->progressBar->setValue(progressPosition);
-        }
-
-        boundariesDone = true;
-
-        if (controllerDone && boundariesDone){
-            ui->loopButton->setEnabled(true);
-        }
-
     }
+
+    if (!boundariesOk){
+        refreshAvailability();
+        return;
+    }
+
+    boundaryViewer->setData(controller->boundaries(), controller->omega()->values());
+    boundaryViewer->showDiagram();
+    boundaryViewer->show();
+
+    boundaryUnionViewer->setData(controller->unionBoundaries(), controller->omega()->values());
+    boundaryUnionViewer->showDiagram();
+    boundaryUnionViewer->show();
+
+    refreshAvailability();
 }
 
 
 void MainWindow::on_controllerButton_clicked()
 {
 
-    if (!controllerDone){
+    if (controllerDialog == nullptr){
         controllerDialog = new ControllerDialog(this);
     }
 
-    controllerDialog->exec();
+    runDialog(controllerDialog);
 
 
     if (controllerDialog->wasAccepted()){
         std::unique_ptr<LtiSystem> described = controllerDialog->takeControllerStructure();
+        //See on_plantButton_clicked: nothing moved-from goes in.
+        if (described == nullptr){
+            refreshAvailability();
+            return;
+        }
+
 
         //The controller answers whether it dropped anything, so the window
         //resets its own steps exactly when the project dropped the artefacts
@@ -499,81 +592,77 @@ void MainWindow::on_controllerButton_clicked()
         //of a freshly built object with the stored one - a test that can
         //never match, so it always invalidated. It agreed with the project
         //only by accident.
-        const bool changed = controller->setControllerStructure(std::move(described));
-
-        if (changed && loopDone){
-            invalidateLoopShaping();
-        }
-
-        if (boundariesDone){
-            ui->loopButton->setEnabled(true);
-        }
-
-        if (!controllerDone){
-            progressPosition++;
-            ui->progressBar->setValue(progressPosition);
-        }
-        controllerDone = true;
-        //ui->menuLoopDiagram->setEnabled(true);
-    } else {
-        delete controllerDialog;
-        controllerDialog = nullptr;
-        stepBack(controllerDone);
+        //A different structure voids the design found for the old one; the
+        //project has dropped it and the window follows below.
+        controller->setControllerStructure(std::move(described));
     }
+
+    refreshAvailability();
 }
 
 void MainWindow::on_loopButton_clicked()
 {
-    if (!loopDone){
+    if (loopShapingDialog == nullptr){
         loopShapingDialog = new LoopShapingDialog(this);
         loopShapingViewer = new LoopShapingViewer(this);
     }
 
+    runDialog(loopShapingDialog);
 
-    loopShapingDialog->exec();
+    if (!loopShapingDialog->wasAccepted()){
+        refreshAvailability();
+        return;
+    }
 
-    if (loopShapingDialog->wasAccepted()){
-        bool re = false;
+    bool designed = false;
+
+    {
+        //The search is the long one - tens of minutes on a real problem - and
+        //it still runs on this thread, so the window is frozen for as long as
+        //it takes. The facade can now run it on a worker and be asked to give
+        //up; wiring that here needs a cancel button, and where that goes is a
+        //decision still open.
+        const WaitCursor waiting(this);
 
         try {
-            re = controller->computeLoopShaping(loopShapingDialog->epsilonValue(), loopShapingDialog->algorithmValue(), loopShapingDialog->range(),
-                                                  loopShapingDialog->pointCountValue(), loopShapingDialog->initialisationValue());
+            designed = controller->computeLoopShaping(loopShapingDialog->epsilonValue(),
+                                                      loopShapingDialog->algorithmValue(),
+                                                      loopShapingDialog->range(),
+                                                      loopShapingDialog->pointCountValue(),
+                                                      loopShapingDialog->initialisationValue());
+        } catch (mup::ParserError & parserError) {
+            //Same treatment as a qftbx::Exception, and the reason it is
+            //needed: a muParserX error is neither that nor a std::exception,
+            //so it escaped this slot and took the application down. Naming a
+            //controller gain "k" was enough - the parser reserves it as its
+            //kilo postfix operator. Names are validated when a system is
+            //published now; this is the net under it.
+            QMessageBox::critical(this, tr("Loop Shaping"),
+                                  tr("The expression parser refused this "
+                                     "computation: %1")
+                                      .arg(QString::fromStdString(parserError.GetMsg())));
+            refreshAvailability();
+            return;
         } catch (const qftbx::Exception & e) {
             QMessageBox::critical(this, tr("Loop Shaping"), e.what());
-            delete loopShapingDialog;
-            loopShapingDialog = nullptr;
-            delete loopShapingViewer;
-            loopShapingViewer = nullptr;
-            stepBack(loopDone);
+            refreshAvailability();
             return;
         }
-
-        if (re){
-            loopShapingViewer->setData(controller->unionBoundaries(),controller->omega()->values(),
-                                      controller->loopShapingResult(), controller->plant(), loopShapingDialog->isLinSpace());
-
-            loopShapingViewer->showDiagram();
-            loopShapingViewer->show();
-
-            if (!loopDone){
-                progressPosition++;
-                ui->progressBar->setValue(progressPosition);
-            }
-            loopDone = true;
-        } else {
-            delete loopShapingDialog;
-            loopShapingDialog = nullptr;
-            delete loopShapingViewer;
-            loopShapingViewer = nullptr;
-            stepBack(loopDone);
-        }
-    } else {
-        delete loopShapingDialog;
-        loopShapingDialog = nullptr;
-        delete loopShapingViewer;
-        loopShapingViewer = nullptr;
-        stepBack(loopDone);
     }
+
+    if (!designed){
+        refreshAvailability();
+        return;
+    }
+
+    loopShapingViewer->setData(controller->unionBoundaries(), controller->omega()->values(),
+                               controller->loopShapingResult(), controller->plant(),
+                               loopShapingDialog->isLinSpace());
+
+    loopShapingViewer->showDiagram();
+    loopShapingViewer->show();
+
+    refreshAvailability();
 }
 
 void MainWindow::on_actionSave_triggered()
@@ -587,8 +676,7 @@ void MainWindow::on_actionSave_triggered()
 
 void MainWindow::on_actionSaveAs_triggered()
 {
-    QString fileName = QFileDialog::getSaveFileName(this, tr("Save file"),"plant",
-                                                    tr("QFT Files (*.qft)"));
+    const QString fileName = chooseFile(true, tr("Save file"));
 
 
     if (!fileName.isEmpty()){
@@ -612,12 +700,11 @@ void MainWindow::saveProject(){
 
 void MainWindow::on_actionOpen_triggered()
 {
-    QString fileName = QFileDialog::getOpenFileName(this, tr("Open project"),"plant",
-                                                    tr("QFT Files (*.qft)"));
+    const QString fileName = chooseFile(false, tr("Open project"));
 
     if (!fileName.isEmpty()){
 
-        std::vector<bool> leido;
+        qftbx::StepSet leido;
 
         try {
             leido = controller->load(fileName.toStdString());
@@ -626,96 +713,54 @@ void MainWindow::on_actionOpen_triggered()
             return;
         }
 
-        //The previous session's dialogs are freed and the bar restarts:
-        //every open used to leak the existing dialogs and the bar kept
-        //accumulating steps across files.
+        //The previous session's dialogs are freed: every open used to leak
+        //the existing ones and the bar kept accumulating steps across files.
         destroyDialogs();
-        progressPosition = 0;
-        ui->progressBar->setValue(0);
-        ui->specificationsButton->setEnabled(false);
-        ui->templatesButton->setEnabled(false);
-        ui->boundariesButton->setEnabled(false);
-        ui->loopButton->setEnabled(false);
-        ui->bodeAction->setEnabled(false);
 
         //Save writes back to the file that was just opened.
         saveFilePath = fileName;
 
-        plantDone = leido.at(0);
-        specificationsDone = leido.at(1);
-        frequenciesDone = leido.at(2);
-        templatesDone = leido.at(3);
-        boundariesDone = leido.at(4);
-        controllerDone = leido.at(5);
-        loopDone = leido.at(6);
-
-
-        if (plantDone){
+        //The widgets of the steps the file carried. A list and not a loop,
+        //because each step's widgets are of a different type - but there are
+        //no flags and no counter here any more: which steps are done is
+        //derived from the project, and the buttons and the bar come from the
+        //one call at the end. This block was ninety-six lines.
+        if (leido.has(qftbx::Step::Plant)) {
             plantDialog = new PlantDialog(this);
-            progressPosition++;
-            ui->progressBar->setValue(progressPosition);
         }
 
-        if (specificationsDone){
+        if (leido.has(qftbx::Step::Specifications)) {
             specificationsDialog = new SpecificationsDialog(frequencyValues(),
                                                             controller->specifications(),
                                                             this);
-            progressPosition++;
-            ui->progressBar->setValue(progressPosition);
         }
 
-        if (frequenciesDone){
+        if (leido.has(qftbx::Step::Frequencies)) {
             frequenciesDialog = new FrequenciesDialog(this);
-            progressPosition++;
-            ui->progressBar->setValue(progressPosition);
-            ui->specificationsButton->setEnabled(true);
-            ui->bodeAction->setEnabled(true);
         }
 
-        if (templatesDone){
+        if (leido.has(qftbx::Step::Templates)) {
             templatesDialog = new TemplatesDialog(this);
             templateViewer = new TemplateViewer(this);
             installContourRecomputer();
-            progressPosition++;
-            ui->progressBar->setValue(progressPosition);
         }
 
-        if (boundariesDone){
+        if (leido.has(qftbx::Step::Boundaries)) {
             boundaryGridDialog = new BoundaryGridDialog(this);
             boundaryViewer = new BoundaryViewer(this);
-            boundaryUnionViewer = new BoundaryUnionViewer (this);
-            progressPosition++;
-            ui->progressBar->setValue(progressPosition);
+            boundaryUnionViewer = new BoundaryUnionViewer(this);
         }
 
-        if (controllerDone){
+        if (leido.has(qftbx::Step::Controller)) {
             controllerDialog = new ControllerDialog(this);
-            progressPosition++;
-            ui->progressBar->setValue(progressPosition);
-            //ui->menuLoopDiagram->setEnabled(true);
         }
 
-        if (loopDone){
+        if (leido.has(qftbx::Step::LoopShaping)) {
             loopShapingDialog = new LoopShapingDialog(this);
             loopShapingViewer = new LoopShapingViewer(this);
-            progressPosition++;
-            ui->progressBar->setValue(progressPosition);
         }
 
-        if (plantDone && frequenciesDone){
-            ui->templatesButton->setEnabled(true);
-        }
-
-        if (templatesDone && specificationsDone){
-            ui->boundariesButton->setEnabled(true);
-
-        }
-
-        if (boundariesDone && controllerDone){
-            ui->loopButton->setEnabled(true);
-        }
-
-        ui->progressBar->setValue(progressPosition);
+        refreshAvailability();
     }
 
 }
@@ -744,12 +789,15 @@ void MainWindow::on_actionNew_triggered()
 //up. Reconnected here; the drawing itself needed fixing (see drawBode).
 void MainWindow::on_bodeAction_triggered()
 {
-    if (plantDone && frequenciesDone){
+    if (controller->completed().has(qftbx::Step::Plant) &&
+            controller->completed().has(qftbx::Step::Frequencies)){
 
-        if(!bodeCreated)
+        //The pointer answers it: bodeCreated was a second copy of
+        //"bodeViewer != nullptr", and destroyDialogs() had to remember to
+        //clear both.
+        if (bodeViewer == nullptr){
             bodeViewer = new BodeViewer(this);
-
-        bodeCreated = true;
+        }
 
         bodeViewer->drawBode(controller->plant(), controller->omega());
         bodeViewer->show();
@@ -777,7 +825,9 @@ void MainWindow::showLoopDiagrams(bool nichols, bool nyquistRadio){
 
     //Without boundaries and a controller structure there is no loop to
     //show (uninitialised DAOs used to be dereferenced).
-    if (!boundariesDone || !controllerDone){
+    const qftbx::StepSet done = controller->completed();
+
+    if (!done.has(qftbx::Step::Boundaries) || !done.has(qftbx::Step::Controller)){
         errorMessage(tr("To show the loop diagram, first compute the boundaries and enter the controller structure."), tr("QFT"));
         return;
     }
@@ -824,7 +874,7 @@ void MainWindow::on_actionTemplates_triggered()
 {
     //View-again action: with no computed templates there is nothing to
     //show (it used to mark the step done without data).
-    if (!templatesDone){
+    if (!controller->completed().has(qftbx::Step::Templates)){
         return;
     }
 
@@ -841,7 +891,7 @@ void MainWindow::on_actionTemplates_triggered()
 
 void MainWindow::on_actionBoundaries_triggered()
 {
-    if (!boundariesDone){
+    if (!controller->completed().has(qftbx::Step::Boundaries)){
         return;
     }
 
@@ -852,7 +902,7 @@ void MainWindow::on_actionBoundaries_triggered()
 
 void MainWindow::on_actionLoop_triggered()
 {
-    if (!loopDone){
+    if (!controller->completed().has(qftbx::Step::LoopShaping)){
         return;
     }
 

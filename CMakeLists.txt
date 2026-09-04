@@ -134,6 +134,10 @@ set(QFTbx_CORE_SRC
     src/core/system/zero_pole_gain.cpp
     src/core/system/time_constant_gain.cpp
     src/core/templates/template_engine.cpp
+    src/core/background_run.cpp
+    src/core/stages/template_stage.cpp
+    src/core/stages/boundary_stage.cpp
+    src/core/stages/loop_shaping_stage.cpp
     src/core/math/sequence_vectors.cpp
     src/core/math/parser_warmup.cpp
     src/core/math/expression_cache.cpp
@@ -265,6 +269,7 @@ set(QFTbx_GUI_HED
     src/gui/plot_palette.h
     src/gui/main_window.h
     src/gui/plant_dialog.h
+    src/gui/step_dialog.h
     src/gui/frequencies_dialog.h
     src/gui/uncertainty_dialog.h
     src/gui/boundary_viewer.h

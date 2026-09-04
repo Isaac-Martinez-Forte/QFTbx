@@ -19,47 +19,33 @@
 
 namespace {
 
-// Indices of the flag vector returned by ProjectReader::load().
-enum SectionFlag {
-    kPlant = 0,
-    kSpecifications,
-    kOmega,
-    kTemplates,
-    kBoundaries,
-    kController,
-    kLoopShaping,
-    kContour,
-    kSectionFlagCount
-};
-
 std::string fixturePath(const char *name)
 {
     return std::string(QFTBX_TEST_DATA_DIR "/") + name;
 }
 
-std::vector<bool> loadFlags(ProjectReader &parser, const char *fixture)
+//ProjectReader::Loaded says what the file carried, by name. It used to be an
+//eight-element std::vector<bool> read through an enum of indices declared
+//here, seven of whose entries were steps and the eighth something else
+//entirely.
+ProjectReader::Loaded loadSections(ProjectReader &parser, const char *fixture)
 {
-    //By value: there is no null to rule out any more, and nothing to free.
-    std::vector<bool> flags = parser.load(fixturePath(fixture));
-    EXPECT_EQ(static_cast<int>(flags.size()), kSectionFlagCount)
-        << "unexpected flag count";
-    return flags;
+    return parser.load(fixturePath(fixture));
 }
 
 TEST(ProjectReaderSmoke, CerveraLoadsPlantAndFrequenciesOnly)
 {
     ProjectReader parser;
-    const std::vector<bool> flags = loadFlags(parser, "cervera.qft");
-    ASSERT_EQ(flags.size(), kSectionFlagCount);
+    const ProjectReader::Loaded loaded = loadSections(parser, "cervera.qft");
 
-    EXPECT_TRUE(flags[kPlant]);
-    EXPECT_TRUE(flags[kOmega]);
-    EXPECT_FALSE(flags[kSpecifications]);
-    EXPECT_FALSE(flags[kTemplates]);
-    EXPECT_FALSE(flags[kBoundaries]);
-    EXPECT_FALSE(flags[kController]);
-    EXPECT_FALSE(flags[kLoopShaping]);
-    EXPECT_FALSE(flags[kContour]);
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Plant));
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Frequencies));
+    EXPECT_FALSE(loaded.steps.has(qftbx::Step::Specifications));
+    EXPECT_FALSE(loaded.steps.has(qftbx::Step::Templates));
+    EXPECT_FALSE(loaded.steps.has(qftbx::Step::Boundaries));
+    EXPECT_FALSE(loaded.steps.has(qftbx::Step::Controller));
+    EXPECT_FALSE(loaded.steps.has(qftbx::Step::LoopShaping));
+    EXPECT_FALSE(loaded.hasContour);
 
     ASSERT_NE(parser.plant(), nullptr);
 
@@ -77,17 +63,16 @@ TEST(ProjectReaderSmoke, CerveraLoadsPlantAndFrequenciesOnly)
 TEST(ProjectReaderSmoke, Planta2LoadsUpToTemplates)
 {
     ProjectReader parser;
-    const std::vector<bool> flags = loadFlags(parser, "planta2.qft");
-    ASSERT_EQ(flags.size(), kSectionFlagCount);
+    const ProjectReader::Loaded loaded = loadSections(parser, "planta2.qft");
 
-    EXPECT_TRUE(flags[kPlant]);
-    EXPECT_TRUE(flags[kSpecifications]);
-    EXPECT_TRUE(flags[kOmega]);
-    EXPECT_TRUE(flags[kTemplates]);
-    EXPECT_TRUE(flags[kContour]);
-    EXPECT_FALSE(flags[kBoundaries]);
-    EXPECT_FALSE(flags[kController]);
-    EXPECT_FALSE(flags[kLoopShaping]);
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Plant));
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Specifications));
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Frequencies));
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Templates));
+    EXPECT_TRUE(loaded.hasContour);
+    EXPECT_FALSE(loaded.steps.has(qftbx::Step::Boundaries));
+    EXPECT_FALSE(loaded.steps.has(qftbx::Step::Controller));
+    EXPECT_FALSE(loaded.steps.has(qftbx::Step::LoopShaping));
 
     // One template (full cloud + contour) per design frequency.
     ASSERT_FALSE(parser.templates().empty());
@@ -99,17 +84,16 @@ TEST(ProjectReaderSmoke, Planta2LoadsUpToTemplates)
 TEST(ProjectReaderSmoke, MultivaluadosLoadsUpToBoundaries)
 {
     ProjectReader parser;
-    const std::vector<bool> flags = loadFlags(parser, "multivaluados.qft");
-    ASSERT_EQ(flags.size(), kSectionFlagCount);
+    const ProjectReader::Loaded loaded = loadSections(parser, "multivaluados.qft");
 
-    EXPECT_TRUE(flags[kPlant]);
-    EXPECT_TRUE(flags[kSpecifications]);
-    EXPECT_TRUE(flags[kOmega]);
-    EXPECT_TRUE(flags[kTemplates]);
-    EXPECT_TRUE(flags[kContour]);
-    EXPECT_TRUE(flags[kBoundaries]);
-    EXPECT_TRUE(flags[kController]);
-    EXPECT_FALSE(flags[kLoopShaping]);
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Plant));
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Specifications));
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Frequencies));
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Templates));
+    EXPECT_TRUE(loaded.hasContour);
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Boundaries));
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Controller));
+    EXPECT_FALSE(loaded.steps.has(qftbx::Step::LoopShaping));
 
     ASSERT_FALSE(parser.templates().empty());
     EXPECT_EQ(static_cast<int>(parser.templates().size()), 5);
@@ -119,12 +103,19 @@ TEST(ProjectReaderSmoke, MultivaluadosLoadsUpToBoundaries)
 TEST(ProjectReaderSmoke, Planta1LoadsFullProject)
 {
     ProjectReader parser;
-    const std::vector<bool> flags = loadFlags(parser, "planta1.qft");
-    ASSERT_EQ(flags.size(), kSectionFlagCount);
+    const ProjectReader::Loaded loaded = loadSections(parser, "planta1.qft");
 
-    for (int i = 0; i < kSectionFlagCount; ++i) {
-        EXPECT_TRUE(flags[i]) << "section flag " << i << " not recovered";
-    }
+    //Every step, and the contour with them: this fixture is a finished
+    //design. Named one by one rather than looped over indices, which is the
+    //point of the steps having names.
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Plant));
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Specifications));
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Frequencies));
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Templates));
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Boundaries));
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Controller));
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::LoopShaping));
+    EXPECT_TRUE(loaded.hasContour);
 
     ASSERT_FALSE(parser.templates().empty());
     EXPECT_EQ(static_cast<int>(parser.templates().size()), 4);

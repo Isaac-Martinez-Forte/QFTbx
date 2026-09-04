@@ -34,7 +34,7 @@ protected:
         ASSERT_TRUE(temporary.isValid());
         rewritten = temporary.filePath("roundtrip.qft").toStdString();
 
-        originalFlags = original.load(fixture(GetParam()));
+        originalSections = original.load(fixture(GetParam()));
 
         ProjectContent content;
         content.plant = original.plant();
@@ -50,15 +50,15 @@ protected:
         ProjectWriter writer;
         writer.save(rewritten, content);
 
-        reloadedFlags = reloaded.load(rewritten);
+        reloadedSections = reloaded.load(rewritten);
     }
 
     QTemporaryDir temporary;
     std::string rewritten;
     ProjectReader original;
     ProjectReader reloaded;
-    std::vector<bool> originalFlags;
-    std::vector<bool> reloadedFlags;
+    ProjectReader::Loaded originalSections;
+    ProjectReader::Loaded reloadedSections;
 };
 
 TEST_P(RoundTrip, WritesTheVersionedEnglishDialect)
@@ -73,26 +73,26 @@ TEST_P(RoundTrip, WritesTheVersionedEnglishDialect)
     // No legacy Spanish tags anywhere in a v2 file.
     EXPECT_FALSE(root.child("Planta"));
     EXPECT_FALSE(root.child("especificaciones"));
-    if (originalFlags.at(0)) {
+    if (originalSections.steps.has(qftbx::Step::Plant)) {
         EXPECT_TRUE(root.child("plant"));
     }
-    if (originalFlags.at(1)) {
+    if (originalSections.steps.has(qftbx::Step::Specifications)) {
         EXPECT_TRUE(root.child("specifications"));
     }
 }
 
 TEST_P(RoundTrip, SectionFlagsSurvive)
 {
-    ASSERT_EQ(static_cast<int>(reloadedFlags.size()), 8);
-    for (int i = 0; i < 8; ++i) {
-        EXPECT_EQ(reloadedFlags.at(i), originalFlags.at(i)) << "flag " << i;
-    }
+    //The set compares as a whole, which is what a typed set buys over eight
+    //positions looped over by index.
+    EXPECT_EQ(reloadedSections.steps, originalSections.steps);
+    EXPECT_EQ(reloadedSections.hasContour, originalSections.hasContour);
 }
 
 TEST_P(RoundTrip, EverySectionSurvivesBitExact)
 {
     std::vector<double> probes{0.5, 1.0, 7.3};
-    if (originalFlags.at(2)) {
+    if (originalSections.steps.has(qftbx::Step::Frequencies)) {
         EXPECT_EQ(*original.omega()->values(), *reloaded.omega()->values());
         EXPECT_EQ(original.omega()->start(), reloaded.omega()->start());
         EXPECT_EQ(original.omega()->end(), reloaded.omega()->end());
@@ -101,26 +101,26 @@ TEST_P(RoundTrip, EverySectionSurvivesBitExact)
         probes = *original.omega()->values();
     }
 
-    if (originalFlags.at(0)) {
+    if (originalSections.steps.has(qftbx::Step::Plant)) {
         expectSameSystem(original.plant(), reloaded.plant(), probes, "plant");
     }
-    if (originalFlags.at(1)) {
+    if (originalSections.steps.has(qftbx::Step::Specifications)) {
         expectSameSpecifications(original.specifications(), reloaded.specifications());
     }
-    if (originalFlags.at(3)) {
+    if (originalSections.steps.has(qftbx::Step::Templates)) {
         EXPECT_EQ(*original.epsilon(), *reloaded.epsilon());
         expectSameComplexVectors(original.templates(), reloaded.templates(), "templates");
     }
-    if (originalFlags.at(7)) {
+    if (originalSections.hasContour) {
         expectSameComplexVectors(original.contour(), reloaded.contour(), "contour");
     }
-    if (originalFlags.at(4)) {
+    if (originalSections.steps.has(qftbx::Step::Boundaries)) {
         expectSameBoundaries(original.boundaries(), reloaded.boundaries());
     }
-    if (originalFlags.at(5)) {
+    if (originalSections.steps.has(qftbx::Step::Controller)) {
         expectSameSystem(original.controller(), reloaded.controller(), probes, "controller");
     }
-    if (originalFlags.at(6)) {
+    if (originalSections.steps.has(qftbx::Step::LoopShaping)) {
         expectSameLoopShaping(original.loopShaping(), reloaded.loopShaping());
     }
 }

@@ -1,6 +1,7 @@
 #ifndef QFTBX_BOUNDARY_GRID_DIALOG_H
 #define QFTBX_BOUNDARY_GRID_DIALOG_H
 
+#include "src/gui/step_dialog.h"
 #include <memory>
 
 #include <QDialog>
@@ -23,7 +24,7 @@ class BoundaryGridDialog;
  *
  * @author Isaac Martínez Forte
  */
-class BoundaryGridDialog : public QDialog
+class BoundaryGridDialog : public StepDialog
 {
     Q_OBJECT
     
@@ -61,7 +62,6 @@ public:
 
     bool cudaSelected();
 
-    bool wasAccepted();
 
     
 private slots:
@@ -81,7 +81,6 @@ private:
     bool accepted_once = false;
     bool cudaCheck = false;
 
-    bool accepted;
 };
 
 #endif // QFTBX_BOUNDARY_GRID_DIALOG_H

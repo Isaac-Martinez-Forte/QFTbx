@@ -51,6 +51,24 @@ public:
 /**
  * @brief Malformed content found while parsing a .qft project file.
  */
+/**
+ * @brief The search stopped because it was asked to, not because anything is
+ * wrong.
+ *
+ * It IS an Exception, because that is how a computation abandons the stack it
+ * is forty minutes deep into, and because every catch site in the application
+ * already handles the family. But it is not a failure, and whoever catches it
+ * should say "cancelled" and not "error": there is no cancel button yet, so it
+ * cannot be raised from the interface today, and the button is the moment to
+ * tell the two apart on screen.
+ */
+class Cancelled : public Exception
+{
+public:
+    Cancelled() : Exception("The search was cancelled.") {}
+    explicit Cancelled(const std::string & what) : Exception(what) {}
+};
+
 class ParseError : public FileError
 {
 public:

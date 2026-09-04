@@ -41,7 +41,7 @@ bool asPointCount(double value, std::size_t & count)
 }
 
 TemplatesDialog::TemplatesDialog(QWidget *parent) :
-    QDialog(parent),
+    StepDialog(parent),
     ui(std::make_unique<Ui::TemplatesDialog>())
 {
     ui->setupUi(this);
@@ -61,7 +61,6 @@ TemplatesDialog::TemplatesDialog(QWidget *parent) :
 
     parser = std::make_unique<ParserX>(pckALL_NON_COMPLEX);
 
-    accepted = false;
 }
 
 TemplatesDialog::~TemplatesDialog()
@@ -443,7 +442,7 @@ void TemplatesDialog::on_okButton_clicked()
                     .arg(duplicateNames.join(QStringLiteral(", "))));
     }
 
-    accepted = true;
+    markAccepted();
     emit (close_ok());
 }
 
@@ -556,6 +555,3 @@ bool TemplatesDialog::cudaSelected(){
     return cudaEnabled;
 }
 
-bool TemplatesDialog::wasAccepted(){
-    return accepted;
-}

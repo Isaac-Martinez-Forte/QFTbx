@@ -16,7 +16,7 @@ using namespace tools;
 using namespace mup;
 
 ControllerDialog::ControllerDialog(QWidget *parent) :
-    QDialog(parent),
+    StepDialog(parent),
     ui(std::make_unique<Ui::ControllerDialog>())
 {
     ui->setupUi(this);
@@ -41,7 +41,6 @@ ControllerDialog::ControllerDialog(QWidget *parent) :
     //The uncertainty dialog is created up front and reused.
     uncertaintyDialog = new UncertaintyDialog (this);
 
-    accepted = false;
 }
 
 ControllerDialog::~ControllerDialog()
@@ -348,7 +347,7 @@ void ControllerDialog::on_okButton_clicked()
 
     }
 
-    accepted = true;
+    markAccepted();
 
     this->close();
 }
@@ -379,10 +378,6 @@ std::optional<std::vector<Parameter>> ControllerDialog::buildParameters(const Co
     }
 
     return var;
-}
-
-bool ControllerDialog::wasAccepted(){
-    return accepted;
 }
 
 std::unique_ptr<LtiSystem> ControllerDialog::takeControllerStructure(){

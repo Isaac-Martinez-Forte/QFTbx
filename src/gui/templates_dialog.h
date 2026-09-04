@@ -1,6 +1,7 @@
 #ifndef QFTBX_TEMPLATES_DIALOG_H
 #define QFTBX_TEMPLATES_DIALOG_H
 
+#include "src/gui/step_dialog.h"
 #include <memory>
 
 #include <vector>
@@ -41,7 +42,7 @@ class TemplatesDialog;
  *
  * @author Isaac Martínez Forte
  */
-class TemplatesDialog : public QDialog
+class TemplatesDialog : public StepDialog
 {
     Q_OBJECT
     
@@ -92,7 +93,6 @@ public:
     };
 
 
-    bool wasAccepted();
     
 private slots:
     void on_allVariablesRadio_clicked();
@@ -149,7 +149,6 @@ private:
 
     std::unique_ptr<mup::ParserX> parser;
 
-    bool accepted;
 
     std::vector<double> epsilonValues;
 

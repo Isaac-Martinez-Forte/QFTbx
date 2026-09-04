@@ -1,6 +1,7 @@
 #ifndef QFTBX_LOOPSHAPING_ALGORITHM_NT_H
 #define QFTBX_LOOPSHAPING_ALGORITHM_NT_H
 
+#include "src/core/loopshaping/cancellation.h"
 #include <cstdint>
 #include <vector>
 #include <cmath>
@@ -85,6 +86,16 @@ public:
     void setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> *omega, const BoundaryData * boundaries,
                     double epsilon);
 
+    /**
+     * @brief Installs the flag the search reads once per node.
+     *
+     * A pointer, and null by default: a caller that never cancels - every
+     * test that drives this algorithm directly - carries on unchanged. The
+     * token has to outlive solve().
+     */
+    void setCancellation(const qftbx::CancellationToken * token)
+    { m_cancellation = token; }
+
     bool solve();
 
     /// The designed controller, handed over to the caller.
@@ -121,6 +132,10 @@ private:
     std::unique_ptr<BoundaryViolationDetector> detector;
     std::unique_ptr<NominalStabilityChecker> stability;
     std::vector <complex> nominalPlantValues;
+
+
+    /// Not owned. Null means this run cannot be cancelled.
+    const qftbx::CancellationToken * m_cancellation = nullptr;
 
 };
 

@@ -1,6 +1,7 @@
 #ifndef QFTBX_PLANT_DIALOG_H
 #define QFTBX_PLANT_DIALOG_H
 
+#include "src/gui/step_dialog.h"
 #include "src/gui/coefficient_tables.h"
 
 #include <memory>
@@ -28,7 +29,7 @@ namespace Ui {
 class PlantDialog;
 }
 
-class PlantDialog : public QDialog
+class PlantDialog : public StepDialog
 {
     Q_OBJECT
 
@@ -37,7 +38,6 @@ public:
     explicit PlantDialog(QWidget *parent = 0);
     ~PlantDialog();
 
-    bool wasAccepted();
 
     /**
      * @brief The plant the user described, or nullptr when the dialog was
@@ -103,7 +103,6 @@ private:
 
     mup::ParserX p;
 
-    bool accepted;
 };
 
 #endif // QFTBX_PLANT_DIALOG_H

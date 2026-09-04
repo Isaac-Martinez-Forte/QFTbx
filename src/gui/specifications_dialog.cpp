@@ -52,7 +52,7 @@ bool magnitudeIsUsable(double magnitude)
 SpecificationsDialog::SpecificationsDialog(const std::vector<double> * frequencies,
                                            const qftbx::SpecificationRecords * loaded,
                                            QWidget *parent) :
-    QDialog(parent)
+    StepDialog(parent)
 {
     //The step order of the main window guarantees a frequency set here, but
     //an empty one used to reach first()/last() below and take the whole
@@ -141,7 +141,6 @@ SpecificationsDialog::SpecificationsDialog(const std::vector<double> * frequenci
     ui->trackingRadio->setChecked(true);
     on_trackingRadio_clicked();
 
-    accepted = false;
 }
 
 SpecificationsDialog::~SpecificationsDialog()
@@ -1044,7 +1043,7 @@ void SpecificationsDialog::on_okButton_clicked()
             stability.clone(), sensorNoise.clone(), outputDisturbance.clone(),
             inputDisturbance.clone(), controlEffort.clone()};
 
-    accepted = true;
+    markAccepted();
 
     emit (close());
 }
@@ -1057,10 +1056,6 @@ void SpecificationsDialog::setFrequencies(const std::vector<double> * frequencie
     }
 
     this->frequencies = frequencies;
-}
-
-bool SpecificationsDialog::wasAccepted(){
-    return accepted;
 }
 
 std::optional<qftbx::SpecificationRecords> SpecificationsDialog::takeSpecifications(){
