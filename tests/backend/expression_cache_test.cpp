@@ -12,10 +12,10 @@
 #include <vector>
 
 
-#include "src/core/exception.h"
+#include "src/core/common/exception.h"
 #include "src/core/math/expression_cache.h"
 #include "src/core/system/parameter.h"
-#include "src/core/range.h"
+#include "src/core/math/range.h"
 #include "mpParser.h"
 
 using namespace qftbx;

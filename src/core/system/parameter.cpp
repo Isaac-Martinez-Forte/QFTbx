@@ -1,10 +1,10 @@
-#include "parameter.h"
+#include "src/core/system/parameter.h"
 
 #include <cmath>
 
-#include "src/core/text_tokens.h"
+#include "src/core/common/text_tokens.h"
 
-#include "src/core/exception.h"
+#include "src/core/common/exception.h"
 #include "src/core/math/expression_cache.h"
 
 namespace qftbx {

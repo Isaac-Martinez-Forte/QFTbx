@@ -6,14 +6,14 @@
 //evaluated in the TFM and discarded for register/memory pressure;
 //revisiting that decision requires measuring on a real GPU.
 
-#include "boundary_sheets_cuda.h"
+#include "src/core/gpu/boundary_sheets_cuda.h"
 
 #include <cmath>
 #include <limits>
 
 #include <cuda_runtime.h>
 
-#include "cuda_utility.cuh"
+#include "src/core/gpu/cuda_utility.cuh"
 
 namespace qftbx {
 

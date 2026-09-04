@@ -2,7 +2,7 @@
 #define QFTBX_BOUNDARY_DATA_H
 
 #include <cstdint>
-#include "src/core/range.h"
+#include "src/core/math/range.h"
 #include <vector>
 
 #include "src/core/boundaries/boundary_types.h"

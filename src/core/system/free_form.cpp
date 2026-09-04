@@ -3,14 +3,14 @@
 #include <algorithm>
 #include <vector>
 #include <cstdint>
-#include "free_form.h"
+#include "src/core/system/free_form.h"
 
 #include <cmath>
 #include <complex>
 
 
-#include "src/core/text_tokens.h"
-#include "src/core/exception.h"
+#include "src/core/common/text_tokens.h"
+#include "src/core/common/exception.h"
 #include "src/core/math/expression_cache.h"
 
 namespace qftbx {

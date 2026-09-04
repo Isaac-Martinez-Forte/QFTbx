@@ -4,8 +4,8 @@
 #include <cmath>
 #include <complex>
 
-#include "src/core/text_tokens.h"
-#include "zero_pole_gain.h"
+#include "src/core/common/text_tokens.h"
+#include "src/core/system/zero_pole_gain.h"
 
 
 namespace qftbx {

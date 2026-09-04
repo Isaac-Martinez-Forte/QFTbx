@@ -30,12 +30,12 @@
 
 #include <string>
 
-#include "src/core/range.h"
+#include "src/core/math/range.h"
 
-#include "src/core/point.h"
+#include "src/core/math/point.h"
 
-#include "src/core/project_controller.h"
-#include "src/core/exception.h"
+#include "src/app/project_controller.h"
+#include "src/core/common/exception.h"
 
 using namespace qftbx;
 

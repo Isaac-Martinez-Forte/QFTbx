@@ -2,8 +2,8 @@
 #define QFTBX_LOOPSHAPING_ALGORITHM_MR_H
 
 #include "src/core/specifications/specification_record.h"
-#include "src/core/settings.h"
-#include "src/core/loopshaping/cancellation.h"
+#include "src/core/project/settings.h"
+#include "src/core/pipeline/cancellation.h"
 #include "src/core/templates/cloud_set.h"
 #include <complex>
 

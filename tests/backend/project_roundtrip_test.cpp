@@ -16,7 +16,7 @@
 
 #include <pugixml.hpp>
 
-#include "project_compare.h"
+#include "tests/backend/project_compare.h"
 #include "src/persistence/project_reader.h"
 #include "src/persistence/project_writer.h"
 

@@ -21,10 +21,10 @@
 #include "src/core/frequencies/omega.h"
 #include "src/core/math/sequence_vectors.h"
 #include "src/core/math/sequences.h"
-#include "src/core/project_controller.h"
+#include "src/app/project_controller.h"
 #include "src/core/system/parameter.h"
 #include "src/core/system/polynomial_form.h"
-#include "src/core/range.h"
+#include "src/core/math/range.h"
 
 using namespace qftbx;
 

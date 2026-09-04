@@ -45,7 +45,7 @@
 #include <cmath>
 
 #include "src/core/loopshaping/algorithm_mc_thesis.h"
-#include "src/core/project_controller.h"
+#include "src/app/project_controller.h"
 
 using namespace qftbx;
 

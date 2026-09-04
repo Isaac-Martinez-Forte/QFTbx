@@ -18,7 +18,7 @@
 
 #include <string>
 
-#include "src/core/text_tokens.h"
+#include "src/core/common/text_tokens.h"
 #include "src/core/math/sequences.h"
 
 #include <complex>
@@ -27,10 +27,10 @@
 #include "src/core/system/parameter.h"
 #include "src/core/system/polynomial_form.h"
 #include "src/core/system/free_form.h"
-#include "src/core/exception.h"
+#include "src/core/common/exception.h"
 #include "src/core/templates/template_engine.h"
 
-#include "src/core/range.h"
+#include "src/core/math/range.h"
 
 using namespace qftbx;
 

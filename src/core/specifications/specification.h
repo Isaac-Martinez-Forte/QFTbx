@@ -10,7 +10,7 @@
 
 #include <string>
 
-#include "src/core/exception.h"
+#include "src/core/common/exception.h"
 #include "src/core/system/lti_system.h"
 
 namespace qftbx {

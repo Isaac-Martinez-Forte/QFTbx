@@ -8,7 +8,7 @@
 
 #include "mpParser.h"
 
-#include "src/core/exception.h"
+#include "src/core/common/exception.h"
 
 namespace qftbx {
 namespace math {

@@ -32,9 +32,9 @@
 #include <vector>
 #include <initializer_list>
 
-#include "src/core/point.h"
+#include "src/core/math/point.h"
 
-#include "src/core/project_controller.h"
+#include "src/app/project_controller.h"
 #include "src/core/loopshaping/natural_interval_extension.h"
 #include "src/core/loopshaping/boundary_violation_detector.h"
 #include "src/core/system/zero_pole_gain.h"

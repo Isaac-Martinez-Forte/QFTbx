@@ -3,12 +3,12 @@
 #include <string>
 #include <vector>
 #include <cstdint>
-#include "template_engine.h"
+#include "src/core/templates/template_engine.h"
 #include "mpParser.h"
 
 
-#include "src/core/text_tokens.h"
-#include "src/core/exception.h"
+#include "src/core/common/text_tokens.h"
+#include "src/core/common/exception.h"
 #include "src/core/math/parser_warmup.h"
 
 #include <algorithm>

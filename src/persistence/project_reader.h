@@ -1,7 +1,7 @@
 #ifndef QFTBX_PROJECT_READER_H
 #define QFTBX_PROJECT_READER_H
 
-#include "src/core/pipeline_step.h"
+#include "src/core/pipeline/pipeline_step.h"
 #include <optional>
 
 #include "src/core/templates/cloud_set.h"

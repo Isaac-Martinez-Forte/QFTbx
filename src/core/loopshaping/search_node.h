@@ -5,7 +5,7 @@
 #include <memory>
 
 #include "src/core/system/lti_system.h"
-#include "list_node.h"
+#include "src/core/loopshaping/list_node.h"
 
 /**
  * @brief Live-list node of the interval branch & bound: a controller

@@ -5,9 +5,9 @@
 #include <vector>
 
 #include "src/core/boundaries/boundary_types.h"
-#include "src/core/point.h"
+#include "src/core/math/point.h"
 
-#include "boundary_data.h"
+#include "src/core/boundaries/boundary_data.h"
 
 namespace qftbx {
 

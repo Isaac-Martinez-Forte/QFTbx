@@ -3,7 +3,7 @@
 
 #include "src/core/loopshaping/loop_shaping_types.h"
 #include <cstdint>
-#include "src/core/point.h"
+#include "src/core/math/point.h"
 #include <limits>
 
 #include "src/core/math/sequence_vectors.h"

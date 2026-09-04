@@ -1,10 +1,10 @@
 #include <string>
 #include <vector>
 #include <cstdint>
-#include "src/core/exception.h"
+#include "src/core/common/exception.h"
 #include "src/core/loopshaping/algorithm_mr.h"
 
-#include "src/core/text_tokens.h"
+#include "src/core/common/text_tokens.h"
 
 #include "src/core/specifications/specification_record.h"
 

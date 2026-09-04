@@ -7,22 +7,22 @@
 #include <string>
 #include <vector>
 #include <cstdint>
-#include "project_reader.h"
+#include "src/persistence/project_reader.h"
 
-#include "src/core/text_tokens.h"
-#include "src/core/point.h"
+#include "src/core/common/text_tokens.h"
+#include "src/core/math/point.h"
 
 #include <pugixml.hpp>
 #include <iterator>
 
-#include "src/core/exception.h"
+#include "src/core/common/exception.h"
 #include "src/core/specifications/specification.h"
 #include "src/core/system/free_form.h"
 #include "src/core/system/parameter.h"
 #include "src/core/system/polynomial_form.h"
 #include "src/core/system/time_constant_gain.h"
 #include "src/core/system/zero_pole_gain.h"
-#include "qft_dialect.h"
+#include "src/persistence/qft_dialect.h"
 
 namespace qftbx {
 

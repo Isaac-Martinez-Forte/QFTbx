@@ -14,7 +14,7 @@
 
 #include "src/persistence/project_reader.h"
 #include "src/core/system/lti_system.h"
-#include "src/core/exception.h"
+#include "src/core/common/exception.h"
 #include "src/core/frequencies/omega.h"
 
 using namespace qftbx;

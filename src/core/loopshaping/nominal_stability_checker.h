@@ -1,7 +1,7 @@
 #ifndef QFTBX_NOMINAL_STABILITY_CHECKER_H
 #define QFTBX_NOMINAL_STABILITY_CHECKER_H
 
-#include "src/core/settings.h"
+#include "src/core/project/settings.h"
 #include <complex>
 #include <vector>
 

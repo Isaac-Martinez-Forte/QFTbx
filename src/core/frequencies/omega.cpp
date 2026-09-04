@@ -6,10 +6,10 @@
 #include <cstdint>
 #include <optional>
 #include "src/core/frequencies/omega.h"
-#include "src/core/text_tokens.h"
+#include "src/core/common/text_tokens.h"
 
 
-#include "src/core/exception.h"
+#include "src/core/common/exception.h"
 
 namespace qftbx {
 
