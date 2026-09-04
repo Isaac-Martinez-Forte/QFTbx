@@ -234,12 +234,12 @@ void AlgorithmNt::check_box_feasibility(std::unique_ptr<LtiSystem> box) {
 
         check_box_feasibility(base->create(base->name(), base->numerator(),
                 base->denominator(),
-                Parameter("kv", Range(feasibleFrom, kSup), feasibleFrom, "kv"),
+                Parameter(base->gain().name(), Range(feasibleFrom, kSup), feasibleFrom),
                 base->delay()));
 
         //The current box keeps the remaining ambiguous gain subrange.
         box = box->create(box->name(), box->numerator(), box->denominator(),
-                Parameter("kv", Range(kInf, feasibleFrom), kInf, "kv"),
+                Parameter(box->gain().name(), Range(kInf, feasibleFrom), kInf),
                 box->delay());
     }
 
@@ -282,7 +282,7 @@ std::unique_ptr<LtiSystem> AlgorithmNt::accelerated(std::unique_ptr<LtiSystem> v
             double cutGainLinear = pow(10, cutGainDb / 20);
 
             v = v->create(v->name(), v->numerator(), v->denominator(),
-                    Parameter("kv", Range(cutGainLinear, v->gain().range().max), cutGainLinear, "kv"),
+                    Parameter(v->gain().name(), Range(cutGainLinear, v->gain().range().max), cutGainLinear),
                     v->delay());
         }
     }

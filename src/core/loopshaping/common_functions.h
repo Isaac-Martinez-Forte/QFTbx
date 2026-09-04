@@ -176,7 +176,7 @@ inline BisectionResult bisectWidestParameter(LtiSystem * box) {
                                       : Range(middle, range.max);
 
         Parameter gain = widest == -1
-                ? Parameter(box->gain().name(), halfRange, halfRange.min, box->gain().name())
+                ? Parameter(box->gain().name(), halfRange, halfRange.min)
                 : box->gain();
 
         std::int32_t index = 0;
@@ -248,8 +248,8 @@ inline ParameterBounds boundsOf(LtiSystem * box) {
 }
 
 /// The box with the bounds written back: every uncertain parameter takes
-/// its new range with the nominal at the infimum, the gain keeps the "kv"
-/// name of the search, and the fixed ones stay as they were.
+/// its new range with the nominal at the infimum and keeps its name, and
+/// the fixed ones stay as they were.
 inline std::unique_ptr<LtiSystem> boxFromBounds(LtiSystem * box, const ParameterBounds & b) {
     std::vector<Parameter> numerator;
     numerator.reserve(b.zeroInfs.size());
@@ -271,7 +271,7 @@ inline std::unique_ptr<LtiSystem> boxFromBounds(LtiSystem * box, const Parameter
 
     return box->create(box->name(), std::move(numerator), std::move(denominator),
             b.gainUncertain
-                ? Parameter("kv", Range(b.gainInf, b.gainSup), b.gainInf, "kv")
+                ? Parameter(box->gain().name(), Range(b.gainInf, b.gainSup), b.gainInf)
                 : Parameter(box->gain().nominal()),
             box->delay());
 }
@@ -414,8 +414,8 @@ inline std::unique_ptr<LtiSystem> capGain(std::unique_ptr<LtiSystem> box, double
     }
 
     return box->create(box->name(), box->numerator(), box->denominator(),
-            Parameter("kv", Range(box->gain().range().min, cap),
-                          box->gain().range().min, "kv"),
+            Parameter(box->gain().name(), Range(box->gain().range().min, cap),
+                      box->gain().range().min),
             box->delay());
 }
 
