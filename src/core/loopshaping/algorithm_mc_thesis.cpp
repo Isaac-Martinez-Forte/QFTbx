@@ -94,7 +94,7 @@ std::unique_ptr<LtiSystem> AlgorithmMcThesis::replaceParameter(LtiSystem * box, 
     numerator.reserve(box->numerator().size());
     for (std::size_t j = 0; j < box->numerator().size(); ++j) {
         Parameter & old = box->numerator()[j];
-        numerator.push_back(parameter == j + 1
+        numerator.push_back(static_cast<std::size_t>(parameter) == j + 1
                 ? Parameter(old.name(), range, range.min)
                 : old);
     }
