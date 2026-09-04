@@ -7,7 +7,6 @@
 #include "src/core/text_tokens.h"
 #include "polynomial_form.h"
 
-#include "mpParser.h"
 
 namespace qftbx {
 
@@ -25,127 +24,6 @@ std::unique_ptr<LtiSystem> PolynomialForm::create (std::string name, std::vector
 
 LtiSystem::SystemType PolynomialForm::type(){
     return SystemType::PolynomialForm;
-}
-
-std::string PolynomialForm::expression (std::vector <double> * numerator, std::vector <double> * denominator,
-                              double k, double delay, double omega){
-
-    std::size_t sizeDen = denominator->size();
-    std::size_t sizeNum = numerator->size();
-
-    std::string expr;
-
-
-    expr +=  "(" +  qftbx::text::number(k) + "*(";
-
-
-
-    for (std::size_t i = 1; i < sizeNum; i++){
-
-
-        expr += "(" + qftbx::text::number(numerator->at(i-1)) + "*(" + qftbx::text::number(omega) + "*i)^" +
-                std::to_string(sizeNum - i)+ ") +";
-
-    }
-
-
-    if (sizeNum > 0){
-        expr += "(" + qftbx::text::number(numerator->back()) + ")) / (";
-    } else {
-        expr += "(1))/(";
-    }
-
-
-    for (std::size_t i = 1; i < sizeDen; i++){
-
-
-        expr += "(" + qftbx::text::number(denominator->at(i-1)) + "*(" + qftbx::text::number(omega) + "*i)^" +
-                std::to_string(sizeDen - i) + ") +";
-
-    }
-
-    if (sizeDen > 0){
-        expr += "(" + qftbx::text::number(denominator->back()) + ")))";
-    }else {
-        expr += "(1)))";
-    }
-
-    if (delay != 0){
-
-        expr += "* e^(-i*" + qftbx::text::number(omega) + "*" + qftbx::text::number(delay) +")";
-    }
-
-
-    return expr;
-}
-
-std::string PolynomialForm::expression(double w){
-
-    std::size_t sizeDen = m_denominator.size();
-    std::size_t sizeNum = m_numerator.size();
-
-    std::string expr;
-
-    if (m_gain.isUncertain()){
-        expr += "(" + m_gain.name() + "*(";
-    }else {
-        expr += "(" + qftbx::text::number(m_gain.nominal()) + "*(";
-    }
-
-
-    for (std::size_t i = 1; i < sizeNum; i++){
-
-        if (m_numerator[i-1].isUncertain()){
-            expr += "(" + m_numerator[i-1].name() + "*(" + qftbx::text::number(w) + "*i)^" +
-                    std::to_string(sizeNum - i) + ") +";
-        } else {
-            expr += "(" + qftbx::text::number(m_numerator[i-1].nominal()) + "*(" + qftbx::text::number(w) + "*i)^" +
-                    std::to_string(sizeNum - i)+ ") +";
-        }
-    }
-
-    if (m_numerator.size() > 0){
-        if (m_numerator.back().isUncertain()){
-            expr += "(" + m_numerator.back().name() + ")) / (";
-        }else{
-            expr += "(" + qftbx::text::number(m_numerator.back().nominal()) + ")) / (";
-        }
-    } else {
-        expr += "(1)) / (";
-    }
-
-    for (std::size_t i = 1; i < sizeDen; i++){
-
-        if (m_denominator[i-1].isUncertain()){
-            expr += "(" + m_denominator[i-1].name() + "*(" + qftbx::text::number(w) + "*i)^" +
-                    std::to_string(sizeDen - i) + ") +";
-        } else {
-            expr += "(" + qftbx::text::number(m_denominator[i-1].nominal()) + "*(" + qftbx::text::number(w) + "*i)^" +
-                    std::to_string(sizeDen - i) + ") +";
-        }
-    }
-
-
-    if (m_denominator.size() > 0){
-        if (m_denominator.back().isUncertain()){
-            expr += "(" + m_denominator.back().name() + ")))";
-        }else{
-            expr += "(" + qftbx::text::number(m_denominator.back().nominal()) + ")))";
-        }
-    } else {
-        expr += "(1)))";
-    }
-
-    //A pure delay is e^(-s*tau) => e^(-i*w*tau). Emitted when the delay is
-    //uncertain (even with a zero nominal) or a non-zero constant, using the
-    //parameter's real name.
-    if (m_delay.isUncertain()){
-        expr += "* e^(-i*" + qftbx::text::number(w) + "*" + m_delay.name() + ")";
-    }else if (m_delay.nominal() != 0){
-        expr += "* e^(-i*" + qftbx::text::number(w) + "*" + qftbx::text::number(m_delay.nominal()) +")";
-    }
-
-    return expr;
 }
 
 std::string PolynomialForm::expression(){
@@ -211,55 +89,6 @@ std::string PolynomialForm::expression(){
 
     return expr;
 }
-
-std::complex <double> PolynomialForm::evaluateNumerator(std::vector <double> * nume, double omega){
-
-    if (nume->size() == 0){
-        return std::complex <double> (1, 0);
-    }
-
-    std::size_t sizeNum = nume->size();
-    std::string expr = "(";
-
-
-    for (std::size_t i = 1; i < sizeNum; i++){
-        expr += "(" + qftbx::text::number(nume->at(i-1)) + "*(" + qftbx::text::number(omega) + "*i)^" +
-                std::to_string(sizeNum - i)+ ") +";
-    }
-
-    expr += "(" + qftbx::text::number(nume->back()) + "))";
-
-    mup::ParserX p (mup::pckALL_COMPLEX);
-
-    p.SetExpr(expr);
-
-    return p.Eval().GetComplex();
-}
-
-std::complex <double> PolynomialForm::evaluateDenominator(std::vector <double> * deno, double omega){
-
-    if (deno->size() == 0){
-        return std::complex <double> (1, 0);
-    }
-
-    std::size_t sizeDen = deno->size();
-    std::string expr = "(";
-
-
-    for (std::size_t i = 1; i < sizeDen; i++){
-        expr += "(" + qftbx::text::number(deno->at(i-1)) + "*(" + qftbx::text::number(omega) + "*i)^" +
-                std::to_string(sizeDen - i)+ ") +";
-    }
-
-    expr += "(" + qftbx::text::number(deno->back()) + "))";
-
-    mup::ParserX p (mup::pckALL_COMPLEX);
-
-    p.SetExpr(expr);
-
-    return p.Eval().GetComplex();
-}
-
 
 //P(s) = k * (a[0]*s^(n-1) + ... + a[n-1]) / (b[0]*s^(m-1) + ... + b[m-1]),
 //at s = j*w, times the pure delay. Evaluated by Horner, which is both the

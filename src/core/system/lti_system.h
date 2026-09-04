@@ -23,9 +23,10 @@ namespace qftbx {
  * releaseOwnership() to disarm deletion, which every consumer had to get
  * right by hand).
  *
- * Evaluation currently works by generating a textual expression that is
- * evaluated with muParserX; expression(w) keeps uncertain parameters by name
- * so the template sweep can drive them through the parser's symbol table.
+ * Evaluation is direct complex arithmetic over the coefficient values
+ * (valueAt); only a free-form system goes through muParserX, with its
+ * coefficients bound as variables. The textual routes that evaluated an
+ * expression per call are gone: nothing outside the tests used them.
  */
 class LtiSystem
 {
@@ -57,17 +58,6 @@ public:
     /// One value per frequency.
     virtual std::vector <std::complex <double> > evaluate (const std::vector <double> & omega) = 0;
 
-    /// Value at s = j*omega for explicit numeric parameter values.
-    virtual std::complex <double> evaluate (std::vector <double> * numerator, std::vector <double> * denominator,
-                                           double k, double delay, double omega) = 0;
-
-    /// Expression for explicit numeric parameter values at s = j*omega.
-    virtual std::string expression (std::vector <double> * numerator, std::vector <double> * denominator,
-                             double k, double delay, double omega) = 0;
-
-    /// Expression at s = j*omega; uncertain parameters stay by name.
-    virtual std::string expression(double w) = 0;
-
     /// Symbolic expression in 's', for display.
     virtual std::string expression() = 0;
 
@@ -82,10 +72,6 @@ public:
     virtual std::complex <double> valueAt(double w, const std::vector<double> & numerator,
                                          const std::vector<double> & denominator,
                                          double gain, double delay) = 0;
-
-    virtual std::complex <double> evaluateNumerator(std::vector <double> * nume, double omega) = 0;
-
-    virtual std::complex <double> evaluateDenominator(std::vector <double> * deno, double omega) = 0;
 
     /// The system's own parameters, by reference (it holds them by value).
     virtual std::vector <Parameter> & denominator() = 0;

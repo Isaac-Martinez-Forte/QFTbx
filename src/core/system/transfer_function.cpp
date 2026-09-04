@@ -1,6 +1,5 @@
 #include "transfer_function.h"
 
-#include "mpParser.h"
 
 namespace qftbx {
 
@@ -27,15 +26,6 @@ Parameter & TransferFunction::gain() {
 
 Parameter & TransferFunction::delay() {
     return m_delay;
-}
-
-std::complex <double> TransferFunction::evaluate(std::vector <double> * numerator, std::vector <double> * denominator,
-        double k, double delay, double omega) {
-    mup::ParserX p(mup::pckALL_COMPLEX);
-
-    p.SetExpr(expression(numerator, denominator, k, delay, omega));
-
-    return p.Eval().GetComplex();
 }
 
 namespace {

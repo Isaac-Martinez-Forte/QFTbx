@@ -84,9 +84,6 @@ TEST(PlantFixture, Planta1RoundTrip)
     EXPECT_EQ(plant->gain().name(), std::string("kv"));
     EXPECT_EQ(plant->gain().rawRange(), Range(1.0, 10.0));
 
-    EXPECT_EQ(plant->expression(0.1),
-              std::string("kv*(1) / (((0.1*i) + a) *((0.1*i) + b))"));
-
     // Nominals kv=1, a=5, b=30 at s = 0.1j.
     const Complex s(0.0, 0.1);
     const Complex expected = 1.0 / ((s + 5.0) * (s + 30.0));

@@ -30,20 +30,11 @@ public:
 
     SystemType type() override;
 
-    std::string expression (std::vector <double> * numerator, std::vector <double> * denominator,
-                             double k, double delay, double omega) override;
-
-    std::string expression(double w) override;
-
     std::string expression() override;
 
     std::complex <double> valueAt(double w, const std::vector<double> & numerator,
                                  const std::vector<double> & denominator,
                                  double gain, double delay) override;
-
-    std::complex <double> evaluateNumerator(std::vector <double> * nume, double omega) override;
-
-    std::complex <double> evaluateDenominator(std::vector <double> * deno, double omega) override;
 
 };
 

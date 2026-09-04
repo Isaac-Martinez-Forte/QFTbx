@@ -67,14 +67,6 @@ TEST(kGainExpr, Class)
     delete plant;
 }
 
-TEST(kGainExpr, NumericExpressionKeepsVariableNames)
-{
-    ZeroPoleGain* plant = makePlanta1();
-    EXPECT_EQ(plant->expression(0.1),
-              std::string("kv*(1) / (((0.1*i) + a) *((0.1*i) + b))"));
-    delete plant;
-}
-
 TEST(kGainExpr, SymbolicExpressionOmitsZeroFixedDelay)
 {
     // Fixed in the delay rework: a zero fixed delay is not emitted (it used
@@ -109,7 +101,6 @@ TEST(kGainExpr, VariableDelayWithZeroNominalStaysInExpression)
         std::string("delayed"), vars({}), vars({Parameter(5.0)}), Parameter(1.0),
         Parameter(std::string("tau"), Range(0.0, 0.5), 0.0, std::string("tau")));
 
-    EXPECT_TRUE(endsWith(plant.expression(0.1), "* e^(-i*0.1*tau)"));
     EXPECT_TRUE(endsWith(plant.expression(), " * e^(-s*tau)"));
 }
 
@@ -176,39 +167,6 @@ TEST(kNumeratorGainExpr, NominalEvaluationMatchesTimeConstantForm)
     delete plant;
 }
 
-TEST(kNumeratorGainExpr, PointDenominatorUsesAllPoles)
-{
-    // Fixed: evaluateDenominator used to loop from i = 1 and repeat the last
-    // element, skipping the first pole (same off-by-one in the all-numeric
-    // expression route). With poles {10, 20} it must be (s/10+1)(s/20+1).
-    TimeConstantGain* plant = makeTimeConstantPlant();
-
-    std::vector<double> poles{10.0, 20.0};
-    const Complex s(0.0, 1.0);
-    const Complex expected = (s / 10.0 + 1.0) * (s / 20.0 + 1.0);
-
-    const Complex value = plant->evaluateDenominator(&poles, 1.0);
-    EXPECT_NEAR(value.real(), expected.real(), kTolerance);
-    EXPECT_NEAR(value.imag(), expected.imag(), kTolerance);
-    delete plant;
-}
-
-TEST(kNumeratorGainExpr, ExplicitValuesRouteMatchesNominalRoute)
-{
-    // The all-numeric expression route (used by loop shaping) must agree with
-    // the nominal evaluation for the same values.
-    TimeConstantGain* plant = makeTimeConstantPlant();
-
-    std::vector<double> nume;
-    std::vector<double> deno{10.0, 20.0};
-    const Complex viaValues = plant->evaluate(&nume, &deno, 5.0, 0.0, 1.0);
-    const Complex viaNominals = plant->evaluate(1.0);
-
-    EXPECT_NEAR(viaValues.real(), viaNominals.real(), kTolerance);
-    EXPECT_NEAR(viaValues.imag(), viaNominals.imag(), kTolerance);
-    delete plant;
-}
-
 TEST(kNumeratorGainExpr, VariableGainUsesItsRealName)
 {
     // Fixed: the expression emitted the hardcoded identifier "kv" for a
@@ -219,7 +177,6 @@ TEST(kNumeratorGainExpr, VariableGainUsesItsRealName)
                               std::string("K1")),
                       Parameter(0.0));
 
-    EXPECT_TRUE(plant.expression(1.0).rfind("K1*(", 0) == 0);
     EXPECT_TRUE(plant.expression().rfind("K1*(", 0) == 0);
 
     const Complex s(0.0, 1.0);
@@ -270,7 +227,6 @@ TEST(CPolinomiosExpr, VariableGainUsesItsRealName)
                                std::string("K1")),
                        Parameter(0.0));
 
-    EXPECT_TRUE(plant.expression(1.0).rfind("(K1*(", 0) == 0);
 
     const Complex s(0.0, 1.0);
     const Complex expected = 2.0 / (s + 2.0);
@@ -349,44 +305,6 @@ TEST(FormatoLibreExpr, SymbolicExpression)
 {
     FreeForm* plant = makeCerveraPlant();
     EXPECT_EQ(plant->expression(), std::string("1*(a)/((s^2)*((s^2) + a))"));
-    delete plant;
-}
-
-TEST(FormatoLibreExpr, NumericExpressionSubstitutesS)
-{
-    FreeForm* plant = makeCerveraPlant();
-    EXPECT_EQ(plant->expression(0.1),
-              std::string("1*(a)/(((0.1*i)^2)*(((0.1*i)^2) + a))"));
-    delete plant;
-}
-
-TEST(FormatoLibreExpr, NumericExpressionOnlyReplacesTheLaplaceVariable)
-{
-    //The historical substring replace mutilated "sin", "sqrt" and any
-    //parameter whose name contains an 's'.
-    FreeForm plant(
-        std::string("tokens"),
-        vars({Parameter(std::string("desp"), Range(0.5, 2.0), 1.0, std::string("desp"))}),
-        vars({}),
-        Parameter(1.0), Parameter(0.0),
-        std::string("sin(s) + sqrt(desp) + s"), std::string("1"));
-
-    EXPECT_EQ(plant.expression(2.0),
-              std::string("1*(sin((2*i)) + sqrt(desp) + (2*i))/(1)"));
-}
-
-TEST(FormatoLibreExpr, ExplicitValueEvaluationThrows)
-{
-    //The historical stubs returned 0 silently.
-    FreeForm* plant = makeCerveraPlant();
-    std::vector<double> values{1.0};
-
-    EXPECT_THROW(plant->evaluate(&values, &values, 1.0, 0.0, 1.0),
-                 qftbx::ComputationError);
-    EXPECT_THROW(plant->evaluateNumerator(&values, 1.0),
-                 qftbx::ComputationError);
-    EXPECT_THROW(plant->evaluateDenominator(&values, 1.0),
-                 qftbx::ComputationError);
     delete plant;
 }
 
