@@ -507,5 +507,5 @@ std::unique_ptr<LtiSystem> AlgorithmMr::boxFromDomains(LtiSystem * box,
     }
 
     return box->create(box->name(), std::move(nume), std::move(deno),
-                       rebuilt(box->gain()), Parameter(double(0)));
+                       rebuilt(box->gain()), box->delay());
 }

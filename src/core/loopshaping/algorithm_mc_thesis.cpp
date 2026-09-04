@@ -487,7 +487,7 @@ bool AlgorithmMcThesis::bestGainSearch(McSearchNode * node, const NodeAnalysis &
     }
 
     std::unique_ptr<LtiSystem> point = box->create(box->name(), std::move(numerator),
-            std::move(denominator), Parameter(lowNeeded), Parameter(double(0)));
+            std::move(denominator), Parameter(lowNeeded), box->delay());
 
     if (!boxIsFeasible(point.get()) || !stability->isNominallyStable(point.get())) {
         return false;

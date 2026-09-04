@@ -79,9 +79,12 @@ inline std::unique_ptr<LtiSystem> pointFromBox(LtiSystem * controller, bool x) {
     const double k = x ? controller->gain().range().min
                       : controller->gain().range().max;
 
+    //The delay is not searched over: the point keeps the box's own, as the
+    //bisection does. It used to be written as zero, which changed the
+    //controller for any structure carrying a delay.
     return controller->create(controller->name(), std::move(numerator),
                                std::move(denominator), Parameter(k),
-                               Parameter(double(0)));
+                               controller->delay());
 }
 
 /**

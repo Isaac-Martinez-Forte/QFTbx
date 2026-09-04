@@ -362,7 +362,7 @@ std::unique_ptr<LtiSystem> AlgorithmNk::pointSystem(const std::vector<double> & 
     }
 
     return prototype->create(prototype->name(), std::move(numerator), std::move(denominator),
-                             Parameter(gain), Parameter(double(0)));
+                             Parameter(gain), prototype->delay());
 }
 
 
