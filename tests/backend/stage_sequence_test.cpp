@@ -166,6 +166,20 @@ TEST(StageSequence, TheSevenStagesWalkedFromNothing)
     EXPECT_FALSE(controller.templates().empty());
 }
 
+TEST(StageSequence, ANullStepIsRefusedInsteadOfWipingTheProject)
+{
+    //There is no "remove the plant" step in the pipeline: a null publish was
+    //taken as a change and wiped the step and everything computed from it,
+    //which a reused dialog once did by accident. The facade refuses it now,
+    //so no interface mistake can reach the project that way.
+    ProjectController controller;
+
+    EXPECT_THROW(controller.setPlant(nullptr), qftbx::InvalidInput);
+    EXPECT_THROW(controller.setOmega(nullptr), qftbx::InvalidInput);
+    EXPECT_THROW(controller.setControllerStructure(nullptr), qftbx::InvalidInput);
+    EXPECT_THROW(controller.setSpecifications(std::nullopt), qftbx::InvalidInput);
+}
+
 TEST(StageSequence, ReservedParameterNamesAreRefusedWhenPublished)
 {
     // Found by writing the walk above: muParserX reserves six single letters

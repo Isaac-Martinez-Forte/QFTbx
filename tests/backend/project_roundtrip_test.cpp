@@ -6,6 +6,8 @@
 #include "src/core/system/polynomial_form.h"
 #include <gtest/gtest.h>
 
+#include <limits>
+
 #include <string>
 
 #include <vector>
@@ -134,6 +136,30 @@ INSTANTIATE_TEST_SUITE_P(Fixtures, RoundTrip,
                              name.resize(name.size() - 4);   //drop the ".qft"
                              return name;
                          });
+
+TEST(ProjectWriterErrors, ANonFiniteValueIsRefusedInsteadOfWritten)
+{
+    //A NaN used to go to the file as "nan" and come back through strtod as a
+    //NaN: a project that had gone wrong in memory reloaded as if it had not.
+    qftbx::SpecificationRecords records;
+    qftbx::SpecificationRecord & stability = records.at(2);
+    stability.name = "Stability";
+    stability.used = true;
+    stability.constant = true;
+    stability.omegaStart = 0.1;
+    stability.omegaEnd = 10.0;
+    stability.height = std::numeric_limits<double>::quiet_NaN();
+
+    ProjectContent content;
+    content.specifications = &records;
+
+    QTemporaryDir temporary;
+    ASSERT_TRUE(temporary.isValid());
+
+    ProjectWriter writer;
+    EXPECT_THROW(writer.save(temporary.filePath("nan.qft").toStdString(), content),
+                 qftbx::InvalidInput);
+}
 
 TEST(ProjectWriterErrors, UnwritablePathThrowsFileError)
 {

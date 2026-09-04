@@ -38,8 +38,10 @@ struct ProjectContent {
  *
  * Numbers are written in the shortest form that reads back to the same
  * double (qftbx::text::number), so a save/load round trip is bit-exact; the
- * historical writer kept 6 digits and silently degraded every stored result. Throws qftbx::FileError when the file cannot be
- * written.
+ * historical writer kept 6 digits and silently degraded every stored result.
+ * Throws qftbx::FileError when the file cannot be written, and
+ * qftbx::InvalidInput when a value to write is not a finite number: the file
+ * never carries a NaN or an infinity.
  */
 class ProjectWriter
 {

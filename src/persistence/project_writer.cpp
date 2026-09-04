@@ -2,6 +2,7 @@
 #include <cstdint>
 #include "project_writer.h"
 
+#include <cmath>
 #include <cstdio>
 #include <string>
 
@@ -26,19 +27,34 @@ using qftbx::text::number;
 
 const Tags & t = kV2;
 
-std::string realVectorText(const std::vector <double> & values)
+//A NaN or an infinity never leaves for the file. The writer used to write
+//them as text ("nan", "inf"), the reader's strtod reads them back, and a
+//project that had gone wrong in memory came back looking like one that had
+//not.
+void requireFinite(double value, const char * what)
+{
+    if (!std::isfinite(value)) {
+        throw InvalidInput(std::string("The project cannot be written: <") + what
+                           + "> holds a value that is not a finite number.");
+    }
+}
+
+std::string realVectorText(const std::vector <double> & values, const char * what)
 {
     std::string text;
     for (double value : values) {
+        requireFinite(value, what);
         text += number(value) + " ";
     }
     return text;
 }
 
-std::string pointVectorText(const std::vector<qftbx::NicholsPoint> & points)
+std::string pointVectorText(const std::vector<qftbx::NicholsPoint> & points, const char * what)
 {
     std::string text;
     for (const qftbx::NicholsPoint & point : points) {
+        requireFinite(point.phase, what);
+        requireFinite(point.magnitude, what);
         text += number(point.phase) + " " + number(point.magnitude) + " ";
     }
     return text;
@@ -60,6 +76,7 @@ void addText(pugi::xml_node parent, const char * name, const std::string & text)
 
 void addReal(pugi::xml_node parent, const char * name, double value)
 {
+    requireFinite(value, name);
     addText(parent, name, number(value));
 }
 
@@ -157,15 +174,17 @@ void writeOmega(pugi::xml_node root, const Omega * omega)
     addReal(section, t.omegaMax, omega->end());
     addText(section, t.pointCount, std::to_string(omega->pointCount()));
     addText(section, t.omegaType, std::to_string(static_cast<std::int32_t>(omega->type())));
-    addText(section, t.values, realVectorText(*omega->values()));
+    addText(section, t.values, realVectorText(*omega->values(), t.values));
 }
 
-void writeComplexVectors(pugi::xml_node section, const qftbx::CloudSet & vectors)
+void writeComplexVectors(pugi::xml_node section, const qftbx::CloudSet & vectors, const char * what)
 {
     for (const qftbx::ComplexCloud & vector : vectors) {
         std::string reals;
         std::string imaginaries;
         for (const std::complex<double> & value : vector) {
+            requireFinite(value.real(), what);
+            requireFinite(value.imag(), what);
             reals += number(value.real()) + " ";
             imaginaries += number(value.imag()) + " ";
         }
@@ -180,23 +199,23 @@ void writeTemplates(pugi::xml_node root, const ProjectContent & content)
 
     pugi::xml_node metadata = section.append_child(t.metadata);
     addText(metadata, t.epsilon,
-            content.epsilon != nullptr ? realVectorText(*content.epsilon) : std::string());
+            content.epsilon != nullptr ? realVectorText(*content.epsilon, t.epsilon) : std::string());
 
     pugi::xml_node full = section.append_child(t.fullTemplates);
     full.append_attribute("size") = static_cast<std::int64_t>(content.templates->size());
-    writeComplexVectors(full, *content.templates);
+    writeComplexVectors(full, *content.templates, t.fullTemplates);
 
     if (content.contour != nullptr && !content.contour->empty()) {
         pugi::xml_node contour = section.append_child(t.templateContour);
         contour.append_attribute("size") = static_cast<std::int64_t>(content.contour->size());
-        writeComplexVectors(contour, *content.contour);
+        writeComplexVectors(contour, *content.contour, t.templateContour);
     }
 }
 
-void writeTraces(pugi::xml_node parent, const qftbx::TraceSet & traces)
+void writeTraces(pugi::xml_node parent, const qftbx::TraceSet & traces, const char * what)
 {
     for (const qftbx::Trace & trace : traces) {
-        addText(parent, "trace", pointVectorText(trace));
+        addText(parent, "trace", pointVectorText(trace, what));
     }
 }
 
@@ -229,20 +248,20 @@ void writeBoundaries(pugi::xml_node root, const BoundaryData * boundaries)
         for (const auto & entry : map) {
             pugi::xml_node keyNode = frequency.append_child(entry.first.c_str());
             keyNode.append_attribute("size") = static_cast<std::int64_t>(entry.second.size());
-            writeTraces(keyNode, entry.second);
+            writeTraces(keyNode, entry.second, t.perFrequency);
         }
     }
 
     pugi::xml_node unionNode = data.append_child(t.boundaryUnion);
     unionNode.append_attribute("size") = static_cast<std::int64_t>(boundaries->unionBoundaries().size());
-    writeTraces(unionNode, boundaries->unionBoundaries());
+    writeTraces(unionNode, boundaries->unionBoundaries(), t.boundaryUnion);
 
     pugi::xml_node buckets = data.append_child(t.unionBuckets);
     buckets.append_attribute("size") = static_cast<std::int64_t>(boundaries->unionBuckets().size());
     for (const qftbx::TraceSet & perFrequencyBuckets : boundaries->unionBuckets()) {
         pugi::xml_node frequency = buckets.append_child("frequency");
         frequency.append_attribute("size") = static_cast<std::int64_t>(perFrequencyBuckets.size());
-        writeTraces(frequency, perFrequencyBuckets);
+        writeTraces(frequency, perFrequencyBuckets, t.unionBuckets);
     }
 }
 

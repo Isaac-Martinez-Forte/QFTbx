@@ -97,17 +97,19 @@ void ProjectController::dropLoopShaping(){
 //throw away a finished design. Taking the ownership makes that comparison
 //not just unnecessary but wrong: returning early would destroy, on the way
 //out, the very object the store is pointing at.
-//Null on either side counts as a change: there is nothing to compare, and
-//of the two possible mistakes only "different" is harmless.
+//A null publish is refused, not taken as "remove the step": there is no such
+//step in the pipeline, and a reused dialog once published a null plant that
+//wiped the plant and everything computed from it. The facade is where that
+//stops, whatever the interface does.
 bool ProjectController::setPlant(std::unique_ptr<LtiSystem> plant){
     requireNotComputing();
 
-    if (plant != nullptr) {
-        requireUsableNames(*plant);
+    if (plant == nullptr) {
+        throw qftbx::InvalidInput("The project cannot take a null plant.");
     }
+    requireUsableNames(*plant);
 
-    const bool changed = plant == nullptr || m_data.plant() == nullptr ||
-            !plant->sameAs(*m_data.plant());
+    const bool changed = m_data.plant() == nullptr || !plant->sameAs(*m_data.plant());
 
     m_data.setPlant(std::move(plant));
 
@@ -121,8 +123,11 @@ bool ProjectController::setPlant(std::unique_ptr<LtiSystem> plant){
 bool ProjectController::setOmega(std::unique_ptr<Omega> omega){
     requireNotComputing();
 
-    const bool changed = omega == nullptr || m_data.omega() == nullptr ||
-            !omega->sameAs(*m_data.omega());
+    if (omega == nullptr) {
+        throw qftbx::InvalidInput("The project cannot take a null set of design frequencies.");
+    }
+
+    const bool changed = m_data.omega() == nullptr || !omega->sameAs(*m_data.omega());
 
     m_data.setOmega(std::move(omega));
 
@@ -135,6 +140,10 @@ bool ProjectController::setOmega(std::unique_ptr<Omega> omega){
 
 void ProjectController::setSpecifications(std::optional<qftbx::SpecificationRecords> specifications){
     requireNotComputing();
+
+    if (!specifications.has_value()) {
+        throw qftbx::InvalidInput("The project cannot take an empty set of specifications.");
+    }
 
     m_data.setSpecifications(std::move(specifications));
 
@@ -243,12 +252,12 @@ const qftbx::UnionBuckets & ProjectController::unionBuckets(){
 bool ProjectController::setControllerStructure(std::unique_ptr<LtiSystem> controller){
     requireNotComputing();
 
-    if (controller != nullptr) {
-        requireUsableNames(*controller);
+    if (controller == nullptr) {
+        throw qftbx::InvalidInput("The project cannot take a null controller structure.");
     }
+    requireUsableNames(*controller);
 
-    const bool changed = controller == nullptr || m_data.controller() == nullptr ||
-            !controller->sameAs(*m_data.controller());
+    const bool changed = m_data.controller() == nullptr || !controller->sameAs(*m_data.controller());
 
     m_data.setController(std::move(controller));
 
@@ -349,7 +358,7 @@ LoopShapingResult * ProjectController::loopShapingResult(){
     return m_data.loopShaping();
 }
 
-bool ProjectController::save(std::string path){
+void ProjectController::save(std::string path){
     //Reading, but reading a project a worker is writing the design into.
     requireNotComputing();
 
@@ -372,8 +381,6 @@ bool ProjectController::save(std::string path){
 
     ProjectWriter writer;
     writer.save(path, content);
-
-    return true;
 }
 
 qftbx::StepSet ProjectController::load(std::string path){

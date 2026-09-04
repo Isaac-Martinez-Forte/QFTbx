@@ -22,7 +22,7 @@ struct SpecificationRecord {
     //The record OWNS its plant. It used to be a raw pointer whose owners
     //had to walk the container and delete it, in four different places.
     std::unique_ptr<LtiSystem> system;
-    double height = 0.0;    //LINEAR magnitude (heightDb() converts)
+    double height = 0.0;    //LINEAR magnitude (Specification::boundDb converts)
     bool constant = false;
     double omegaStart = 0.0;
     double omegaEnd = 0.0;

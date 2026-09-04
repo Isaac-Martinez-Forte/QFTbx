@@ -286,7 +286,7 @@ public:
     // --- persistence ------------------------------------------------------
 
     /// Writes the whole project to a .qft file.
-    bool save(std::string path);
+    void save(std::string path);
 
     /**
      * @brief Reads a .qft file into the project.
