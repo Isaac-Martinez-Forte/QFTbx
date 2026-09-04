@@ -280,11 +280,11 @@ bool UncertaintyDialog::readRanges(){
         if(uncertainTable.at(0).at(i)){
             if (!seenNames.contains(numeratorTokens.at(i))){
 
-                const ParLineEdit aux = numeratorRows.front();
+                const ParLineEdit row = numeratorRows.front();
 
-                startEdit = aux.getX();
-                endEdit = aux.getY();
-                nominal= aux.nominal();
+                startEdit = row.getX();
+                endEdit = row.getY();
+                nominal= row.nominal();
                 if (rangeOnlyMode){
                     nominal->setText(tools::numberText((startEdit->text().toDouble() + endEdit->text().toDouble()) / 2));
                 }
@@ -371,11 +371,11 @@ bool UncertaintyDialog::readRanges(){
         if(uncertainTable.at(1).at(i)){
             if (!seenNames.contains(denominatorTokens.at(i))){
 
-                const ParLineEdit aux = denominatorRows.front();
+                const ParLineEdit row = denominatorRows.front();
 
-                startEdit = aux.getX();
-                endEdit = aux.getY();
-                nominal = aux.nominal();
+                startEdit = row.getX();
+                endEdit = row.getY();
+                nominal = row.nominal();
 
                 if (rangeOnlyMode){
                     nominal->setText(tools::numberText((startEdit->text().toDouble() + endEdit->text().toDouble()) / 2));

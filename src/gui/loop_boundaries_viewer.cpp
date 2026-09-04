@@ -101,42 +101,42 @@ void LoopBoundariesViewer::showDiagram(){
         rowColors.push_back(color);
         rowColors.push_back(color2);
 
-        std::vector<double> ejex;
-        std::vector<double> ejey;
+        std::vector<double> phases;
+        std::vector<double> magnitudes;
 
-        std::vector<double> ejex1;
-        std::vector<double> ejey1;
+        std::vector<double> realParts;
+        std::vector<double> imaginaryParts;
 
         qint32 secondIndex = 0;
 
         for (const qftbx::NicholsPoint & pNichols : boundNichols) {
             const qftbx::NyquistPoint pNyquist = boundNyquist.at(static_cast<std::size_t>(secondIndex));
-            ejex.push_back(pNichols.phase);
-            ejey.push_back(pNichols.magnitude);
+            phases.push_back(pNichols.phase);
+            magnitudes.push_back(pNichols.magnitude);
 
-            ejex1.push_back(pNyquist.re);
-            ejey1.push_back(pNyquist.im);
+            realParts.push_back(pNyquist.re);
+            imaginaryParts.push_back(pNyquist.im);
 
 
             secondIndex++;
         }
 
         if (nichols){
-            QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-            curva->setData(tools::toQVector(ejex), tools::toQVector(ejey));
-            curva->setPen(color);
+            QCPCurve *curve = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
+            curve->setData(tools::toQVector(phases), tools::toQVector(magnitudes));
+            curve->setPen(color);
             addFrequencyRow(color, frequencyIndex, tr("Nichols"));
-            curves.push_back(curva);
+            curves.push_back(curve);
         }
 
         //The Nyquist-only mode drew nothing: the curve also required
         //the Nichols flag.
         if (nyquist){
-            QCPCurve *curva2 = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-            curva2->setData(tools::toQVector(ejex1), tools::toQVector(ejey1));
-            curva2->setPen(color2);
+            QCPCurve *nyquistCurve = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
+            nyquistCurve->setData(tools::toQVector(realParts), tools::toQVector(imaginaryParts));
+            nyquistCurve->setPen(color2);
             addFrequencyRow(color2, frequencyIndex, tr("Nyquist"));
-            curves.push_back(curva2);
+            curves.push_back(nyquistCurve);
         }
 
         frequencyIndex++;

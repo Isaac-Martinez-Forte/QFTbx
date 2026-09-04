@@ -123,18 +123,18 @@ void LoopShapingViewer::showDiagram(){
         frequencyIndex++;
         rowColors.push_back(color);
 
-        std::vector<double> ejex;
-        std::vector<double> ejey;
+        std::vector<double> phases;
+        std::vector<double> magnitudes;
 
         for (const qftbx::NicholsPoint & p : bound) {
-            ejex.push_back(p.phase);
-            ejey.push_back(p.magnitude);
+            phases.push_back(p.phase);
+            magnitudes.push_back(p.magnitude);
         }
 
-        QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-        curva->setData(tools::toQVector(ejex), tools::toQVector(ejey));
-        curva->setPen(color);
-        curves.push_back(curva);
+        QCPCurve *curve = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
+        curve->setData(tools::toQVector(phases), tools::toQVector(magnitudes));
+        curve->setPen(color);
+        curves.push_back(curve);
 
         addFrequencyRow(color, curveIndex);
 
@@ -183,11 +183,11 @@ void LoopShapingViewer::showDiagram(){
 
     //The open-loop curve, cut into segments wherever the phase wraps: by
     //value, so a replot does not abandon them (they all used to be).
-    QVector<std::vector<double> > ejex;
-    QVector<std::vector<double> > ejey;
+    QVector<std::vector<double> > phaseSegments;
+    QVector<std::vector<double> > magnitudeSegments;
 
-    std::vector<double> ejexActual;
-    std::vector<double> ejeyActual;
+    std::vector<double> currentPhases;
+    std::vector<double> currentMagnitudes;
 
 
     //The first sample only seeds the phase comparison, so it is taken
@@ -200,39 +200,39 @@ void LoopShapingViewer::showDiagram(){
     for (qreal a : frequencies) {
         std::complex <qreal> c = plant->evaluate(a) * loopShapingData->controller()->evaluate(a);
 
-        qreal fas = arg(c) *180 / qftbx::math::kPi;
-        qreal mag = 20*log10(abs(c));
-        if (fas > 0)
-            fas -= 360;
+        qreal phase = arg(c) *180 / qftbx::math::kPi;
+        qreal magnitude = 20*log10(abs(c));
+        if (phase > 0)
+            phase -= 360;
 
-        if (firstSample || abs(fas - previousPhase) < 100) {
-            ejexActual.push_back(fas);
-            ejeyActual.push_back(mag);
+        if (firstSample || abs(phase - previousPhase) < 100) {
+            currentPhases.push_back(phase);
+            currentMagnitudes.push_back(magnitude);
         } else {
 
-            ejex.push_back(std::move(ejexActual));
-            ejey.push_back(std::move(ejeyActual));
+            phaseSegments.push_back(std::move(currentPhases));
+            magnitudeSegments.push_back(std::move(currentMagnitudes));
 
-            ejexActual = std::vector<double> ();
-            ejeyActual = std::vector<double> ();
+            currentPhases = std::vector<double> ();
+            currentMagnitudes = std::vector<double> ();
 
-            ejexActual.push_back(fas);
-            ejeyActual.push_back(mag);
+            currentPhases.push_back(phase);
+            currentMagnitudes.push_back(magnitude);
         }
 
-        previousPhase = fas;
+        previousPhase = phase;
         firstSample = false;
     }
 
-    ejex.push_back(std::move(ejexActual));
-    ejey.push_back(std::move(ejeyActual));
+    phaseSegments.push_back(std::move(currentPhases));
+    magnitudeSegments.push_back(std::move(currentMagnitudes));
 
 
-    for (qint32 i = 0; i < ejex.size(); i++){
-        QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-        curva->setData(tools::toQVector(ejex.at(i)), tools::toQVector(ejey.at(i)));
-        curva->setPen((QColor) Qt::black);
-        curves.push_back(curva);
+    for (qint32 i = 0; i < phaseSegments.size(); i++){
+        QCPCurve *curve = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
+        curve->setData(tools::toQVector(phaseSegments.at(i)), tools::toQVector(magnitudeSegments.at(i)));
+        curve->setPen((QColor) Qt::black);
+        curves.push_back(curve);
     }
 
 
@@ -240,22 +240,22 @@ void LoopShapingViewer::showDiagram(){
     //Draw the marker for each design frequency.
     for (qint32 i = 0; i < static_cast<std::int32_t>(omega->size()); i++){
 
-        std::vector<double> ejex;
-        std::vector<double> ejey;
+        std::vector<double> phases;
+        std::vector<double> magnitudes;
 
         std::complex <qreal> c = loopShapingData->controller()->evaluate(omega->at(i)) * plant->evaluate(omega->at(i));
-        ejey.push_back(20*log10(abs(c)));
-        qreal fas = arg(c) *180 / qftbx::math::kPi;
-        if (fas > 0)
-            fas -= 360;
-        ejex.push_back(fas);
+        magnitudes.push_back(20*log10(abs(c)));
+        qreal phase = arg(c) *180 / qftbx::math::kPi;
+        if (phase > 0)
+            phase -= 360;
+        phases.push_back(phase);
 
-        QCPGraph * gra = ui->plot->addGraph();
-        gra->setData(tools::toQVector(ejex), tools::toQVector(ejey));
+        QCPGraph * marker = ui->plot->addGraph();
+        marker->setData(tools::toQVector(phases), tools::toQVector(magnitudes));
 
-        gra->setPen(rowColors.at(i));
-        gra->setScatterStyle(QCPScatterStyle::ssCircle);
-        gra->setLineStyle(QCPGraph::lsNone);
+        marker->setPen(rowColors.at(i));
+        marker->setScatterStyle(QCPScatterStyle::ssCircle);
+        marker->setLineStyle(QCPGraph::lsNone);
     }
 
     ui->plot->xAxis2->setVisible(true);

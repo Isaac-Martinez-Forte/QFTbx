@@ -61,21 +61,21 @@ ExpressionTree::ExpressionTree()
     root = nullptr;
 }
 
-ExpressionTree::ExpressionTree(const char *tex)
+ExpressionTree::ExpressionTree(const char *text)
 {
     root = nullptr;
-    std::string in_exp = withoutSpaces(tex);
+    std::string in_exp = withoutSpaces(text);
 
     build_tree(in_exp);
 }
 
-ExpressionTree::ExpressionTree(const std::string &tex, double resultado, com comparacion)
+ExpressionTree::ExpressionTree(const std::string &text, double result, com comparison)
 {
     root = nullptr;
-    std::string in_exp = withoutSpaces(tex);
+    std::string in_exp = withoutSpaces(text);
 
-    this->comparisonValue = resultado;
-    this->comparacion = comparacion;
+    this->comparisonValue = result;
+    this->comparison = comparison;
 
     build_tree(in_exp);
 }
@@ -83,7 +83,7 @@ ExpressionTree::ExpressionTree(const std::string &tex, double resultado, com com
 ExpressionTree::ExpressionTree(const ExpressionTree &other )
     : root(make_cpy(other.root.get())),
       comparisonValue(other.comparisonValue),
-      comparacion(other.comparacion)
+      comparison(other.comparison)
 {
 }
 
@@ -92,40 +92,40 @@ ExpressionTree::ExpressionTree(const ExpressionTree &other )
 ExpressionTree::~ExpressionTree() = default;
 
 /********************************************************
-* void ExpressionTree::setFunc(const std::string &tex)        *
+* void ExpressionTree::setFunc(const std::string &text)        *
 *********************************************************
 * Discards the current tree and builds a new one from the given
 * expression.
 */
 
-void ExpressionTree::setFunc(const std::string &tex)
+void ExpressionTree::setFunc(const std::string &text)
 {
-    std::string in_exp = withoutSpaces(tex);
+    std::string in_exp = withoutSpaces(text);
 
     comparisonValue = 0;
-    comparacion = GREATER_EQUAL;
+    comparison = GREATER_EQUAL;
 
     build_tree(in_exp);
 }
 
-void ExpressionTree::setFunc(const std::string &tex, double resultado, com comparacion)
+void ExpressionTree::setFunc(const std::string &text, double result, com comparison)
 {
-    std::string in_exp = withoutSpaces(tex);
+    std::string in_exp = withoutSpaces(text);
 
-    this->comparisonValue = resultado;
-    this->comparacion = comparacion;
+    this->comparisonValue = result;
+    this->comparison = comparison;
 
     build_tree(in_exp);
 }
 
 /********************************************************
-* void ExpressionTree::setFunc(const char *tex)               *
+* void ExpressionTree::setFunc(const char *text)               *
 *********************************************************
 * As above, taking a C string.
 */
-void ExpressionTree::setFunc(const char *tex)
+void ExpressionTree::setFunc(const char *text)
 {
-    std::string in_exp = withoutSpaces(tex);
+    std::string in_exp = withoutSpaces(text);
 
     build_tree(in_exp);
 }
@@ -142,15 +142,15 @@ double ExpressionTree::eval(std::map<std::string, double> *variables )
     return eval_tree(root.get());
 }
 
-void ExpressionTree::imprimir (){
+void ExpressionTree::print (){
     alg_exp_node_print(root.get());
 }
 
 
 /*
  * enum type_node { CONST, PI, E, VAR,
-                 PAR,
-                 SUMA, RESTA, MULT, DIV, POT,
+                 PARENTHESIS,
+                 ADD, SUBTRACT, MULTIPLY, DIVIDE, POWER,
                  SIN, COS, TAN, SINH, COSH, ATAN, TANH, ASIN,
                  ACOS, EXP, ABS, LN, LG, SQRT
                };
@@ -161,7 +161,7 @@ void ExpressionTree::alg_exp_node_print(exp_node * node){
 
 
 
-    if (node->type == CONS){
+    if (node->type == CONSTANT){
         cout << node->c_const << endl;
     } else if (node->type == PI){
         cout << " pi " << endl;
@@ -169,104 +169,104 @@ void ExpressionTree::alg_exp_node_print(exp_node * node){
         cout << " e " << endl;
     } else if (node->type == VAR){
         cout << node->var << endl;
-    }else if (node->type == POT){
+    }else if (node->type == POWER){
         alg_exp_node_print(node->left.get());
-        cout << tipo(node->type);
+        cout << symbolOf(node->type);
         cout << "2" << endl;
-    }else if (node->type > POT){
-        cout << tipo(node->type);
+    }else if (node->type > POWER){
+        cout << symbolOf(node->type);
         alg_exp_node_print(node->left.get());
     } else {
         alg_exp_node_print(node->left.get());
-        cout << tipo(node->type);
-        alg_exp_node_print(node->rigth.get());
+        cout << symbolOf(node->type);
+        alg_exp_node_print(node->right.get());
     }
 
 }
 
-string ExpressionTree::tipo(type_node tipo)  {
+string ExpressionTree::symbolOf(type_node type)  {
 
-    if (tipo == PI){
+    if (type == PI){
         return " PI ";
     }
 
-    if(tipo == E){
+    if(type == E){
         return " E ";
     }
 
-    if (tipo == SUMA){
+    if (type == ADD){
         return " + ";
     }
 
-    if (tipo == RESTA){
+    if (type == SUBTRACT){
         return " - ";
     }
 
-    if (tipo == MULT){
+    if (type == MULTIPLY){
         return " * ";
     }
 
-    if (tipo == DIV){
+    if (type == DIVIDE){
         return " / ";
     }
 
-    if (tipo == POT){
+    if (type == POWER){
         return " ^ ";
     }
 
-    if (tipo == SIN){
+    if (type == SIN){
         return " sin ";
     }
 
-    if (tipo == COS){
+    if (type == COS){
         return " cos ";
     }
 
-    if (tipo == TAN){
+    if (type == TAN){
         return " tan ";
     }
 
-    if (tipo == SINH){
+    if (type == SINH){
         return " sinh ";
     }
 
-    if (tipo == COSH){
+    if (type == COSH){
         return " cosh ";
     }
 
-    if (tipo == ATAN){
+    if (type == ATAN){
         return " atan ";
     }
 
-    if (tipo == TANH){
+    if (type == TANH){
         return " tanh ";
     }
 
-    if (tipo == ASIN){
+    if (type == ASIN){
         return " asin ";
     }
 
-    if (tipo == ACOS){
+    if (type == ACOS){
         return " acos ";
     }
 
-    if (tipo == EXP){
+    if (type == EXP){
         return " e ";
     }
 
-    if (tipo == ABS){
+    if (type == ABS){
         return " abs ";
     }
 
-    if (tipo == LN){
+    if (type == LN){
         return " ln ";
     }
 
-    if (tipo == LG){
+    if (type == LG){
         return " log ";
     }
 
-    if (tipo == SQRT){
+    if (type == SQRT){
         return " sqrt ";
     }
 
@@ -287,7 +287,7 @@ ExpressionTree &ExpressionTree::operator=(const ExpressionTree &other)
     if (this != &other) {
         root = make_cpy(other.root.get());
         comparisonValue = other.comparisonValue;
-        comparacion = other.comparacion;
+        comparison = other.comparison;
     }
 
     return *this;
@@ -312,16 +312,16 @@ interval ExpressionTree::operator ()(std::map<std::string, interval> * variables
 //The core of the class: a recursive walk over the binary expression tree,
 //applying each node's operation and returning the value of the whole
 //expression.
-double ExpressionTree::eval_tree(exp_node *nod)
+double ExpressionTree::eval_tree(exp_node *node)
 {
 
-    switch (nod->type)
+    switch (node->type)
     {
-    case CONS :
-        return nod->c_const;
+    case CONSTANT :
+        return node->c_const;
 
     case VAR  :
-        return variables->at(nod->var);
+        return variables->at(node->var);
 
     case E:
         return qftbx::math::kE;
@@ -329,62 +329,62 @@ double ExpressionTree::eval_tree(exp_node *nod)
     case PI:
         return qftbx::math::kPi;
 
-    case SUMA :
-        return eval_tree(nod->left.get()) + eval_tree(nod->rigth.get());
+    case ADD :
+        return eval_tree(node->left.get()) + eval_tree(node->right.get());
 
-    case RESTA :
-        return eval_tree(nod->left.get()) - eval_tree(nod->rigth.get());
+    case SUBTRACT :
+        return eval_tree(node->left.get()) - eval_tree(node->right.get());
 
-    case MULT :
-        return eval_tree(nod->left.get()) * eval_tree(nod->rigth.get());
+    case MULTIPLY :
+        return eval_tree(node->left.get()) * eval_tree(node->right.get());
 
-    case DIV :
-        return eval_tree(nod->left.get()) / eval_tree(nod->rigth.get());
+    case DIVIDE :
+        return eval_tree(node->left.get()) / eval_tree(node->right.get());
 
-    case POT :
-        return pow (eval_tree(nod->left.get()),  eval_tree(nod->rigth.get()) );
+    case POWER :
+        return pow (eval_tree(node->left.get()),  eval_tree(node->right.get()) );
 
     case SIN :
-        return sin ( eval_tree(nod->left.get()) );
+        return sin ( eval_tree(node->left.get()) );
 
     case COS :
-        return cos ( eval_tree(nod->left.get()) );
+        return cos ( eval_tree(node->left.get()) );
 
     case SQRT :
-        return sqrt( eval_tree(nod->left.get()) );
+        return sqrt( eval_tree(node->left.get()) );
 
     case TAN :
-        return tan ( eval_tree(nod->left.get()) );
+        return tan ( eval_tree(node->left.get()) );
 
     case ATAN :
-        return atan ( eval_tree(nod->left.get()) );
+        return atan ( eval_tree(node->left.get()) );
 
     case SINH :
-        return sinh ( eval_tree(nod->left.get()) );
+        return sinh ( eval_tree(node->left.get()) );
 
     case COSH :
-        return cosh ( eval_tree(nod->left.get()) );
+        return cosh ( eval_tree(node->left.get()) );
 
     case TANH :
-        return tanh ( eval_tree(nod->left.get()) );
+        return tanh ( eval_tree(node->left.get()) );
 
     case ASIN :
-        return asin ( eval_tree(nod->left.get()) );
+        return asin ( eval_tree(node->left.get()) );
 
     case ACOS :
-        return acos ( eval_tree(nod->left.get()) );
+        return acos ( eval_tree(node->left.get()) );
 
     case EXP :
-        return exp ( eval_tree(nod->left.get()) );
+        return exp ( eval_tree(node->left.get()) );
 
     case ABS :
-        return fabs ( eval_tree(nod->left.get()) );
+        return fabs ( eval_tree(node->left.get()) );
 
     case LN :
-        return log ( eval_tree(nod->left.get()) );
+        return log ( eval_tree(node->left.get()) );
 
     case LG :
-        return log10 ( eval_tree(nod->left.get()) );
+        return log10 ( eval_tree(node->left.get()) );
 
         /* if another function was added, add its 'case' here with its operation */
 
@@ -398,46 +398,46 @@ bool ExpressionTree::propagate(std::map<string, interval> *variables){
 
     this->variables_in = variables;
 
-    const interval resultado = eval_tree_in(root.get());
+    const interval result = eval_tree_in(root.get());
 
     //The part of the forward value that satisfies the constraint. Empty
     //means the box is infeasible; the whole value means there is nothing
     //to narrow. The comparison used to be stored and ignored: every
     //constraint was treated as ">=", which is the one MR builds.
-    interval nuevo_intervalo;
+    interval narrowed;
 
-    switch (comparacion) {
+    switch (comparison) {
     case GREATER:
     case GREATER_EQUAL:
-        if (Inf(resultado) > comparisonValue) {
+        if (Inf(result) > comparisonValue) {
             return true;
         }
-        if (Sup(resultado) < comparisonValue) {
+        if (Sup(result) < comparisonValue) {
             return false;
         }
-        nuevo_intervalo = interval(comparisonValue, Sup(resultado));
+        narrowed = interval(comparisonValue, Sup(result));
         break;
     case LESS:
     case LESS_EQUAL:
-        if (Sup(resultado) < comparisonValue) {
+        if (Sup(result) < comparisonValue) {
             return true;
         }
-        if (Inf(resultado) > comparisonValue) {
+        if (Inf(result) > comparisonValue) {
             return false;
         }
-        nuevo_intervalo = interval(Inf(resultado), comparisonValue);
+        narrowed = interval(Inf(result), comparisonValue);
         break;
-    case IGUAL:
-        if (Inf(resultado) > comparisonValue || Sup(resultado) < comparisonValue) {
+    case EQUAL:
+        if (Inf(result) > comparisonValue || Sup(result) < comparisonValue) {
             return false;
         }
-        nuevo_intervalo = interval(comparisonValue);
+        narrowed = interval(comparisonValue);
         break;
     }
 
     //A domain emptied during the backward projection proves the box
     //inconsistent with the constraint.
-    return eval_tree_out(root.get(), nuevo_intervalo);
+    return eval_tree_out(root.get(), narrowed);
 }
 
 bool ExpressionTree::safeIntersection(const interval & a, const interval & b, interval & out){
@@ -460,177 +460,177 @@ bool ExpressionTree::safeIntersection(const interval & a, const interval & b, in
 //to pow (ln of a negative aborts inside the noexcept library), called
 //acos/asin outside [-1, 1], divided by intervals straddling zero and
 //treated multi-branch trigonometric inverses as single-branch.
-bool ExpressionTree::eval_tree_out(exp_node *nod, interval intervalo){
+bool ExpressionTree::eval_tree_out(exp_node *node, interval enclosure){
 
-    interval candidato;
+    interval candidate;
 
-    switch (nod->type)
+    switch (node->type)
     {
 
-    case CONS :
+    case CONSTANT :
         return true;
 
     case VAR  :
     {
-        (*variables_in)[nod->var] = intervalo;
+        (*variables_in)[node->var] = enclosure;
         return true;
     }
 
-    case SUMA :
+    case ADD :
     {
         interval a;
-        if (!safeIntersection(nod->left->intervalo, intervalo - nod->rigth->intervalo, a)) {
+        if (!safeIntersection(node->left->enclosure, enclosure - node->right->enclosure, a)) {
             return false;
         }
-        if (!eval_tree_out(nod->left.get(), a)) {
+        if (!eval_tree_out(node->left.get(), a)) {
             return false;
         }
 
         interval b;
-        if (!safeIntersection(nod->rigth->intervalo, intervalo - a, b)) {
+        if (!safeIntersection(node->right->enclosure, enclosure - a, b)) {
             return false;
         }
-        return eval_tree_out(nod->rigth.get(), b);
+        return eval_tree_out(node->right.get(), b);
     }
 
-    case RESTA :
+    case SUBTRACT :
     {
         interval a;
-        if (!safeIntersection(nod->left->intervalo, intervalo + nod->rigth->intervalo, a)) {
+        if (!safeIntersection(node->left->enclosure, enclosure + node->right->enclosure, a)) {
             return false;
         }
-        if (!eval_tree_out(nod->left.get(), a)) {
+        if (!eval_tree_out(node->left.get(), a)) {
             return false;
         }
 
         interval b;
-        if (!safeIntersection(nod->rigth->intervalo, a - intervalo, b)) {
+        if (!safeIntersection(node->right->enclosure, a - enclosure, b)) {
             return false;
         }
-        return eval_tree_out(nod->rigth.get(), b);
+        return eval_tree_out(node->right.get(), b);
     }
 
-    case MULT :
+    case MULTIPLY :
     {
         //Each factor projects as a quotient: only when the divisor does
         //not straddle zero (interval division would abort otherwise).
-        interval a = nod->left->intervalo;
+        interval a = node->left->enclosure;
 
-        if (Inf(nod->rigth->intervalo) > 0.0 || Sup(nod->rigth->intervalo) < 0.0) {
-            if (!safeIntersection(a, intervalo / nod->rigth->intervalo, a)) {
+        if (Inf(node->right->enclosure) > 0.0 || Sup(node->right->enclosure) < 0.0) {
+            if (!safeIntersection(a, enclosure / node->right->enclosure, a)) {
                 return false;
             }
-            if (!eval_tree_out(nod->left.get(), a)) {
+            if (!eval_tree_out(node->left.get(), a)) {
                 return false;
             }
         }
 
         if (Inf(a) > 0.0 || Sup(a) < 0.0) {
             interval b;
-            if (!safeIntersection(nod->rigth->intervalo, intervalo / a, b)) {
+            if (!safeIntersection(node->right->enclosure, enclosure / a, b)) {
                 return false;
             }
-            return eval_tree_out(nod->rigth.get(), b);
+            return eval_tree_out(node->right.get(), b);
         }
 
         return true;
     }
 
-    case DIV :
+    case DIVIDE :
     {
         interval a;
-        if (!safeIntersection(nod->left->intervalo, intervalo * nod->rigth->intervalo, a)) {
+        if (!safeIntersection(node->left->enclosure, enclosure * node->right->enclosure, a)) {
             return false;
         }
-        if (!eval_tree_out(nod->left.get(), a)) {
+        if (!eval_tree_out(node->left.get(), a)) {
             return false;
         }
 
-        if (Inf(intervalo) > 0.0 || Sup(intervalo) < 0.0) {
+        if (Inf(enclosure) > 0.0 || Sup(enclosure) < 0.0) {
             interval b;
-            if (!safeIntersection(nod->rigth->intervalo, a / intervalo, b)) {
+            if (!safeIntersection(node->right->enclosure, a / enclosure, b)) {
                 return false;
             }
-            return eval_tree_out(nod->rigth.get(), b);
+            return eval_tree_out(node->right.get(), b);
         }
 
         return true;
     }
 
-    case POT :
+    case POWER :
     {
         //Only the square is projected (the constraint grammar uses no
         //other exponent): x^2 = I implies x in +-sqrt(I intersect [0,inf)).
-        if (Inf(nod->rigth->intervalo) != 2.0) {
+        if (Inf(node->right->enclosure) != 2.0) {
             return true;
         }
 
-        interval positivo;
-        if (!safeIntersection(intervalo, interval(0.0, MaxReal), positivo)) {
+        interval nonNegative;
+        if (!safeIntersection(enclosure, interval(0.0, MaxReal), nonNegative)) {
             return false;
         }
 
-        const interval raiz = sqrt(positivo);
-        if (!safeIntersection(nod->left->intervalo,
-                                interval(-Sup(raiz), Sup(raiz)), candidato)) {
+        const interval root = sqrt(nonNegative);
+        if (!safeIntersection(node->left->enclosure,
+                                interval(-Sup(root), Sup(root)), candidate)) {
             return false;
         }
-        return eval_tree_out(nod->left.get(), candidato);
+        return eval_tree_out(node->left.get(), candidate);
     }
 
     case SQRT :
     {
         //sqrt(x) = I: the result is never negative.
-        interval positivo;
-        if (!safeIntersection(intervalo, interval(0.0, MaxReal), positivo)) {
+        interval nonNegative;
+        if (!safeIntersection(enclosure, interval(0.0, MaxReal), nonNegative)) {
             return false;
         }
 
-        if (!safeIntersection(nod->left->intervalo, sqr(positivo), candidato)) {
+        if (!safeIntersection(node->left->enclosure, sqr(nonNegative), candidate)) {
             return false;
         }
-        return eval_tree_out(nod->left.get(), candidato);
+        return eval_tree_out(node->left.get(), candidate);
     }
 
     case SIN :
     {
-        interval acotado;
-        if (!safeIntersection(intervalo, interval(-1.0, 1.0), acotado)) {
+        interval bounded;
+        if (!safeIntersection(enclosure, interval(-1.0, 1.0), bounded)) {
             return false;
         }
 
         //Only within the principal monotone branch of the argument.
-        if (Inf(nod->left->intervalo) < -qftbx::math::kPi / 2 || Sup(nod->left->intervalo) > qftbx::math::kPi / 2) {
+        if (Inf(node->left->enclosure) < -qftbx::math::kPi / 2 || Sup(node->left->enclosure) > qftbx::math::kPi / 2) {
             return true;
         }
 
-        if (!safeIntersection(nod->left->intervalo, asin(acotado), candidato)) {
+        if (!safeIntersection(node->left->enclosure, asin(bounded), candidate)) {
             return false;
         }
-        return eval_tree_out(nod->left.get(), candidato);
+        return eval_tree_out(node->left.get(), candidate);
     }
 
     case COS :
     {
-        interval acotado;
-        if (!safeIntersection(intervalo, interval(-1.0, 1.0), acotado)) {
+        interval bounded;
+        if (!safeIntersection(enclosure, interval(-1.0, 1.0), bounded)) {
             return false;
         }
 
         //cos is monotone on [-pi, 0] and on [0, pi]; anything wider is
         //left unprojected.
-        if (Inf(nod->left->intervalo) >= -qftbx::math::kPi && Sup(nod->left->intervalo) <= 0.0) {
-            if (!safeIntersection(nod->left->intervalo, -acos(acotado), candidato)) {
+        if (Inf(node->left->enclosure) >= -qftbx::math::kPi && Sup(node->left->enclosure) <= 0.0) {
+            if (!safeIntersection(node->left->enclosure, -acos(bounded), candidate)) {
                 return false;
             }
-            return eval_tree_out(nod->left.get(), candidato);
+            return eval_tree_out(node->left.get(), candidate);
         }
 
-        if (Inf(nod->left->intervalo) >= 0.0 && Sup(nod->left->intervalo) <= qftbx::math::kPi) {
-            if (!safeIntersection(nod->left->intervalo, acos(acotado), candidato)) {
+        if (Inf(node->left->enclosure) >= 0.0 && Sup(node->left->enclosure) <= qftbx::math::kPi) {
+            if (!safeIntersection(node->left->enclosure, acos(bounded), candidate)) {
                 return false;
             }
-            return eval_tree_out(nod->left.get(), candidato);
+            return eval_tree_out(node->left.get(), candidate);
         }
 
         return true;
@@ -638,81 +638,81 @@ bool ExpressionTree::eval_tree_out(exp_node *nod, interval intervalo){
 
     case TAN :
     {
-        if (Inf(nod->left->intervalo) <= -qftbx::math::kPi / 2 || Sup(nod->left->intervalo) >= qftbx::math::kPi / 2) {
+        if (Inf(node->left->enclosure) <= -qftbx::math::kPi / 2 || Sup(node->left->enclosure) >= qftbx::math::kPi / 2) {
             return true;
         }
 
-        if (!safeIntersection(nod->left->intervalo, atan(intervalo), candidato)) {
+        if (!safeIntersection(node->left->enclosure, atan(enclosure), candidate)) {
             return false;
         }
-        return eval_tree_out(nod->left.get(), candidato);
+        return eval_tree_out(node->left.get(), candidate);
     }
 
     case ATAN :
     {
-        interval acotado;
-        if (!safeIntersection(intervalo, interval(-qftbx::math::kPi / 2, qftbx::math::kPi / 2), acotado)) {
+        interval bounded;
+        if (!safeIntersection(enclosure, interval(-qftbx::math::kPi / 2, qftbx::math::kPi / 2), bounded)) {
             return false;
         }
 
-        if (!safeIntersection(nod->left->intervalo, tan(acotado), candidato)) {
+        if (!safeIntersection(node->left->enclosure, tan(bounded), candidate)) {
             return false;
         }
-        return eval_tree_out(nod->left.get(), candidato);
+        return eval_tree_out(node->left.get(), candidate);
     }
 
     case ASIN :
     {
-        interval acotado;
-        if (!safeIntersection(intervalo, interval(-qftbx::math::kPi / 2, qftbx::math::kPi / 2), acotado)) {
+        interval bounded;
+        if (!safeIntersection(enclosure, interval(-qftbx::math::kPi / 2, qftbx::math::kPi / 2), bounded)) {
             return false;
         }
 
-        if (!safeIntersection(nod->left->intervalo, sin(acotado), candidato)) {
+        if (!safeIntersection(node->left->enclosure, sin(bounded), candidate)) {
             return false;
         }
-        return eval_tree_out(nod->left.get(), candidato);
+        return eval_tree_out(node->left.get(), candidate);
     }
 
     case ACOS :
     {
-        interval acotado;
-        if (!safeIntersection(intervalo, interval(0.0, qftbx::math::kPi), acotado)) {
+        interval bounded;
+        if (!safeIntersection(enclosure, interval(0.0, qftbx::math::kPi), bounded)) {
             return false;
         }
 
-        if (!safeIntersection(nod->left->intervalo, cos(acotado), candidato)) {
+        if (!safeIntersection(node->left->enclosure, cos(bounded), candidate)) {
             return false;
         }
-        return eval_tree_out(nod->left.get(), candidato);
+        return eval_tree_out(node->left.get(), candidate);
     }
 
     case ABS :
     {
         //|x| = I: x in [-Sup(I+), Sup(I+)].
-        interval positivo;
-        if (!safeIntersection(intervalo, interval(0.0, MaxReal), positivo)) {
+        interval nonNegative;
+        if (!safeIntersection(enclosure, interval(0.0, MaxReal), nonNegative)) {
             return false;
         }
 
-        if (!safeIntersection(nod->left->intervalo,
-                                interval(-Sup(positivo), Sup(positivo)), candidato)) {
+        if (!safeIntersection(node->left->enclosure,
+                                interval(-Sup(nonNegative), Sup(nonNegative)), candidate)) {
             return false;
         }
-        return eval_tree_out(nod->left.get(), candidato);
+        return eval_tree_out(node->left.get(), candidate);
     }
 
     case LN :
     {
         //exp overflows past ~709: skip rather than trap.
-        if (Sup(intervalo) > 700.0) {
+        if (Sup(enclosure) > 700.0) {
             return true;
         }
 
-        if (!safeIntersection(nod->left->intervalo, exp(intervalo), candidato)) {
+        if (!safeIntersection(node->left->enclosure, exp(enclosure), candidate)) {
             return false;
         }
-        return eval_tree_out(nod->left.get(), candidato);
+        return eval_tree_out(node->left.get(), candidate);
     }
 
     default:
@@ -720,99 +720,99 @@ bool ExpressionTree::eval_tree_out(exp_node *nod, interval intervalo){
     }
 }
 
-interval ExpressionTree::eval_tree_in(exp_node *nod)
+interval ExpressionTree::eval_tree_in(exp_node *node)
 {
 
-    switch (nod->type)
+    switch (node->type)
     {
-    case CONS :
-        return nod->intervalo = interval (nod->c_const);
+    case CONSTANT :
+        return node->enclosure = interval (node->c_const);
 
     case VAR  :
         //A missing variable used to return a default-constructed cxsc
         //interval, whose bounds are UNINITIALIZED memory.
-        if (variables_in->find(nod->var) == variables_in->end()) {
+        if (variables_in->find(node->var) == variables_in->end()) {
             throw std::invalid_argument(
-                    "ExpressionTree: unknown variable '" + nod->var + "' in the expression.");
+                    "ExpressionTree: unknown variable '" + node->var + "' in the expression.");
         }
-        return nod->intervalo = variables_in->at(nod->var);
+        return node->enclosure = variables_in->at(node->var);
 
     case E:
-        return nod->intervalo = eEnclosure();
+        return node->enclosure = eEnclosure();
 
     case PI:
-        return nod->intervalo = piEnclosure();
+        return node->enclosure = piEnclosure();
 
-    case SUMA :
-        return nod->intervalo = eval_tree_in(nod->left.get()) + eval_tree_in(nod->rigth.get());
+    case ADD :
+        return node->enclosure = eval_tree_in(node->left.get()) + eval_tree_in(node->right.get());
 
-    case RESTA :
-        return nod->intervalo = eval_tree_in(nod->left.get()) - eval_tree_in(nod->rigth.get());
+    case SUBTRACT :
+        return node->enclosure = eval_tree_in(node->left.get()) - eval_tree_in(node->right.get());
 
-    case MULT :
-        return nod->intervalo = eval_tree_in(nod->left.get()) * eval_tree_in(nod->rigth.get());
+    case MULTIPLY :
+        return node->enclosure = eval_tree_in(node->left.get()) * eval_tree_in(node->right.get());
 
-    case DIV :
-        return nod->intervalo = eval_tree_in(nod->left.get()) / eval_tree_in(nod->rigth.get());
+    case DIVIDE :
+        return node->enclosure = eval_tree_in(node->left.get()) / eval_tree_in(node->right.get());
 
-    case POT :
+    case POWER :
     {
         //An integral square must not go through pow (exp of ln: a base
         //touching zero or negative aborts inside the noexcept library).
-        const interval base = eval_tree_in(nod->left.get());
-        const interval exponente = eval_tree_in(nod->rigth.get());
+        const interval base = eval_tree_in(node->left.get());
+        const interval exponent = eval_tree_in(node->right.get());
 
-        if (Inf(exponente) == 2.0 && Sup(exponente) == 2.0) {
-            return nod->intervalo = sqr(base);
+        if (Inf(exponent) == 2.0 && Sup(exponent) == 2.0) {
+            return node->enclosure = sqr(base);
         }
 
-        return nod->intervalo = pow(base, exponente);
+        return node->enclosure = pow(base, exponent);
     }
 
     case SIN :
-        return nod->intervalo = sin ( eval_tree_in(nod->left.get()) );
+        return node->enclosure = sin ( eval_tree_in(node->left.get()) );
 
     case COS :
-        return nod->intervalo = cos ( eval_tree_in(nod->left.get()) );
+        return node->enclosure = cos ( eval_tree_in(node->left.get()) );
 
     case SQRT :
-        return nod->intervalo = sqrt( eval_tree_in(nod->left.get()) );
+        return node->enclosure = sqrt( eval_tree_in(node->left.get()) );
 
     case TAN :
-        return nod->intervalo = tan ( eval_tree_in(nod->left.get()) );
+        return node->enclosure = tan ( eval_tree_in(node->left.get()) );
 
     case ATAN :
-        return nod->intervalo = atan ( eval_tree_in(nod->left.get()) );
+        return node->enclosure = atan ( eval_tree_in(node->left.get()) );
 
     case SINH :
-        return nod->intervalo = sinh ( eval_tree_in(nod->left.get()) );
+        return node->enclosure = sinh ( eval_tree_in(node->left.get()) );
 
     case COSH :
-        return nod->intervalo = cosh ( eval_tree_in(nod->left.get()) );
+        return node->enclosure = cosh ( eval_tree_in(node->left.get()) );
 
     case TANH :
-        return nod->intervalo = tanh ( eval_tree_in(nod->left.get()) );
+        return node->enclosure = tanh ( eval_tree_in(node->left.get()) );
 
     case ASIN :
-        return nod->intervalo = asin ( eval_tree_in(nod->left.get()) );
+        return node->enclosure = asin ( eval_tree_in(node->left.get()) );
 
     case ACOS :
-        return nod->intervalo = acos ( eval_tree_in(nod->left.get()) );
+        return node->enclosure = acos ( eval_tree_in(node->left.get()) );
 
     case EXP :
-        return nod->intervalo = exp ( eval_tree_in(nod->left.get()) );
+        return node->enclosure = exp ( eval_tree_in(node->left.get()) );
 
     case ABS :
-        return nod->intervalo = abs ( eval_tree_in(nod->left.get()) );
+        return node->enclosure = abs ( eval_tree_in(node->left.get()) );
 
     //Both logarithms were missing here and fell through to a default that
     //returned the node's cached interval: for a fresh tree, uninitialised
     //memory.
     case LN :
-        return nod->intervalo = ln ( eval_tree_in(nod->left.get()) );
+        return node->enclosure = ln ( eval_tree_in(node->left.get()) );
 
     case LG :
-        return nod->intervalo = log10 ( eval_tree_in(nod->left.get()) );
+        return node->enclosure = log10 ( eval_tree_in(node->left.get()) );
 
     default:
         throw std::invalid_argument("ExpressionTree: a node the interval evaluator does not know.");
@@ -825,19 +825,19 @@ interval ExpressionTree::eval_tree_in(exp_node *nod)
 //Recursive pre-order walk that copies every node into a new one with the
 //same content, returning a tree identical to the original. Used by the
 //copy constructor and by the assignment operator.
-std::unique_ptr<exp_node> ExpressionTree::make_cpy(exp_node *nod)
+std::unique_ptr<exp_node> ExpressionTree::make_cpy(exp_node *node)
 {
-    if (!nod) return nullptr;
+    if (!node) return nullptr;
 
     auto ptr = std::make_unique<exp_node>();
-    ptr->type  = nod->type;
-    ptr->c_const = nod->c_const;
+    ptr->type  = node->type;
+    ptr->c_const = node->c_const;
     //The variable name was not copied: a copied tree evaluated its
     //variables under an empty name.
-    ptr->var = nod->var;
+    ptr->var = node->var;
 
-    ptr->left = make_cpy(nod->left.get());
-    ptr->rigth = make_cpy(nod->rigth.get());
+    ptr->left = make_cpy(node->left.get());
+    ptr->right = make_cpy(node->right.get());
 
     return ptr;
 }
@@ -879,7 +879,7 @@ void ExpressionTree::build_tree(std::string &in_exp)
         }
 
         if (needed == 2) {
-            reduced->rigth = popNode();
+            reduced->right = popNode();
             reduced->left = popNode();
         } else {
             reduced->left = popNode();
@@ -914,27 +914,27 @@ void ExpressionTree::build_tree(std::string &in_exp)
         }
 
         auto leaf = std::make_unique<exp_node>();
-        leaf->type = CONS;
+        leaf->type = CONSTANT;
         leaf->c_const = std::strtod(in_exp.substr(from, pos - from).c_str(), nullptr);
         nodeStack.push(std::move(leaf));
     };
 
     const auto isIdentifierChar = [this](char c) {
-        return es_letra(c) || isdigit(static_cast<unsigned char>(c)) || c == '_';
+        return isLetter(c) || isdigit(static_cast<unsigned char>(c)) || c == '_';
     };
 
     //A unary minus is read as "-1 *": the -1 goes on the node stack and the
     //product takes the precedence of any other product.
     const auto unaryMinus = [&](std::string::size_type & pos) {
         auto leaf = std::make_unique<exp_node>();
-        leaf->type = CONS;
+        leaf->type = CONSTANT;
         leaf->c_const = -1.0;
         nodeStack.push(std::move(leaf));
 
-        while ( !operatorStack.empty() && operatorStack.top() > RESTA ) {
+        while ( !operatorStack.empty() && operatorStack.top() > SUBTRACT ) {
             reduceTop();
         }
-        operatorStack.push(MULT);
+        operatorStack.push(MULTIPLY);
         ++pos;
     };
 
@@ -976,18 +976,18 @@ void ExpressionTree::build_tree(std::string &in_exp)
 
         if ( c == '(' )  // Ej. "(......" o "....(........"
         {
-            operatorStack.push(PAR); ++pos;    // always pushed
+            operatorStack.push(PARENTHESIS); ++pos;    // always pushed
         }
         else if ( c == ')' )
         {
-            while ( !operatorStack.empty() && operatorStack.top() != PAR )  // pop operators until the opening '(' (PAR) shows up
+            while ( !operatorStack.empty() && operatorStack.top() != PARENTHESIS )  // pop operators until the opening '(' (PARENTHESIS) shows up
             {
                 reduceTop();
             }
             if (operatorStack.empty()) {
                 throw malformed("a closing parenthesis has no opening one");
             }
-            operatorStack.pop(); // pop the PAR itself
+            operatorStack.pop(); // pop the PARENTHESIS itself
             ++pos;
         }
         else if ( c == '-' && (pos == 0 || afterOpening) && digitNext ) // "-34.89..." or "(-34.89...": a negative constant
@@ -1010,7 +1010,7 @@ void ExpressionTree::build_tree(std::string &in_exp)
             pushLeaf(E);
             ++pos;
         }
-        else if ( es_letra(c) ) //Ej. : "......x......." (variable x)
+        else if ( isLetter(c) ) //Ej. : "......x......." (variable x)
         {
             //An identifier is a letter followed by letters, digits or
             //underscores: the historical lexer stopped at the first
@@ -1031,29 +1031,29 @@ void ExpressionTree::build_tree(std::string &in_exp)
         }
         else if ( c == '-' || c == '+' ) // binary '-' and '+': everything pending inside the parentheses binds tighter
         {
-            while ( !operatorStack.empty() && operatorStack.top() != PAR )
+            while ( !operatorStack.empty() && operatorStack.top() != PARENTHESIS )
             {
                 reduceTop();
             }
-            operatorStack.push(c == '-' ? RESTA : SUMA);
+            operatorStack.push(c == '-' ? SUBTRACT : ADD);
             ++pos;
         }
         else if ( c == '/' || c == '*' ) // products and powers pending bind tighter
         {
-            while ( !operatorStack.empty() && operatorStack.top() > RESTA )
+            while ( !operatorStack.empty() && operatorStack.top() > SUBTRACT )
             {
                 reduceTop();
             }
-            operatorStack.push(c == '/' ? DIV : MULT);
+            operatorStack.push(c == '/' ? DIVIDE : MULTIPLY);
             ++pos;
         }
         else if ( c == '^' ) // only powers and functions pending bind tighter
         {
-            while ( !operatorStack.empty() && operatorStack.top() > DIV )
+            while ( !operatorStack.empty() && operatorStack.top() > DIVIDE )
             {
                 reduceTop();
             }
-            operatorStack.push(POT);
+            operatorStack.push(POWER);
             ++pos;
         }
         else
@@ -1064,7 +1064,7 @@ void ExpressionTree::build_tree(std::string &in_exp)
 
     while ( !operatorStack.empty() )
     {
-        if (operatorStack.top() == PAR) {
+        if (operatorStack.top() == PARENTHESIS) {
             throw malformed("an opening parenthesis is never closed");
         }
         reduceTop();
@@ -1077,13 +1077,13 @@ void ExpressionTree::build_tree(std::string &in_exp)
     root = popNode();
 }
 
-bool ExpressionTree::es_letra(char tex){
+bool ExpressionTree::isLetter(char text){
     //This built a regular expression, then a one-character string, to ask
     //whether a character is a letter. The ranges are what the pattern
     //"[a-zA-Z]" said, spelled out - and unlike std::isalpha they do not
     //depend on the locale, which could otherwise start accepting accented
     //letters the lexer has no rule for.
-    return (tex >= 'a' && tex <= 'z') || (tex >= 'A' && tex <= 'Z');
+    return (text >= 'a' && text <= 'z') || (text >= 'A' && text <= 'Z');
 }
 
 };

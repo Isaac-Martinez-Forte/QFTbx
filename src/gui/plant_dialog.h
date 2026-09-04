@@ -88,11 +88,11 @@ private:
     /// which quietly designed for a different plant. Same contract as
     /// SpecificationsDialog::buildParameters.
     std::optional<std::vector<Parameter>> buildParameters(const CoefficientRow & numbers);
-    bool parseCoefficients(CoefficientTable & tabla, QLineEdit * linea,
+    bool parseCoefficients(CoefficientTable & table, QLineEdit * field,
                            CoefficientTable & expressionTable, UncertainTable & uncertainTable);
-    bool parseScalar(CoefficientTable & tabla, QLineEdit *linea,
+    bool parseScalar(CoefficientTable & table, QLineEdit *field,
                      CoefficientTable & expressionTable, UncertainTable & uncertainTable);
-    bool parseFreeForm(QLineEdit * linea, CoefficientTable & tabla,
+    bool parseFreeForm(QLineEdit * field, CoefficientTable & table,
                        CoefficientTable & expressionTable, UncertainTable & uncertainTable);
 
 

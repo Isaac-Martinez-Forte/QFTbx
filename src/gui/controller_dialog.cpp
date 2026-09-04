@@ -24,14 +24,14 @@ ControllerDialog::ControllerDialog(QWidget *parent) :
 
     setWindowTitle(tr("Controller structure input"));
 
-    QPixmap imagen1 (":/figures/kgan.png");
-    ui->zpkImage->setPixmap(imagen1);
+    QPixmap zpkPixmap (":/figures/kgan.png");
+    ui->zpkImage->setPixmap(zpkPixmap);
 
-    QPixmap imagen2 (":/figures/knogan.png");
-    ui->tcgImage->setPixmap(imagen2);
+    QPixmap tcgPixmap (":/figures/knogan.png");
+    ui->tcgImage->setPixmap(tcgPixmap);
 
-    QPixmap imagen3 (":/figures/copol.png");
-    ui->polyImage->setPixmap(imagen3);
+    QPixmap polyPixmap (":/figures/copol.png");
+    ui->polyImage->setPixmap(polyPixmap);
 
     ui->gainStart->setText("1");
     ui->gainEnd->setText("1");
@@ -103,23 +103,23 @@ std::optional<CoefficientTable> ControllerDialog::readTables(CoefficientTable & 
     return tables;
 }
 
-bool ControllerDialog::parseCoefficients(CoefficientTable & tabla, QLineEdit *linea,
+bool ControllerDialog::parseCoefficients(CoefficientTable & table, QLineEdit *field,
                                          CoefficientTable & expressionTable,
                                          UncertainTable & uncertainTable){
 
-    CoefficientRow vec1;
-    for (const std::string & token : qftbx::text::tokens(linea->text().toStdString())) {
-        vec1.push_back(QString::fromStdString(token));
+    CoefficientRow expressions;
+    for (const std::string & token : qftbx::text::tokens(field->text().toStdString())) {
+        expressions.push_back(QString::fromStdString(token));
     }
     CoefficientRow vec;
-    UncertainRow vec2;
+    UncertainRow uncertainFlags;
 
-    if (linea->text().isEmpty()){
-        vec1.push_back("1");
-        vec2.push_back(false);
+    if (field->text().isEmpty()){
+        expressions.push_back("1");
+        uncertainFlags.push_back(false);
     } else{
 
-        for (QString e : vec1) {
+        for (QString e : expressions) {
 
             QRegularExpression re("[a-zA-Z]+");
 
@@ -155,7 +155,7 @@ bool ControllerDialog::parseCoefficients(CoefficientTable & tabla, QLineEdit *li
                 e.remove(capture);
             }
 
-            vec2.push_back(isUncertain);
+            uncertainFlags.push_back(isUncertain);
 
             if (!isUncertain){
                 vec.push_back(e);
@@ -163,40 +163,40 @@ bool ControllerDialog::parseCoefficients(CoefficientTable & tabla, QLineEdit *li
         }
     }
 
-    tabla.push_back(vec);
-    uncertainTable.push_back(vec2);
-    expressionTable.push_back(vec1);
+    table.push_back(vec);
+    uncertainTable.push_back(uncertainFlags);
+    expressionTable.push_back(expressions);
 
     return true;
 }
 
-bool ControllerDialog::parseGainRange(CoefficientTable & tabla, QLineEdit *linea1, QLineEdit * linea2,
+bool ControllerDialog::parseGainRange(CoefficientTable & table, QLineEdit *startField, QLineEdit * endField,
                                       CoefficientTable & expressionTable,
                                       UncertainTable & uncertainTable){
 
 
-    QString aux = linea1->text().trimmed();
-    QString aux1 = linea2->text().trimmed();
+    QString text = startField->text().trimmed();
+    QString endText = endField->text().trimmed();
 
-    CoefficientRow vec1;
+    CoefficientRow expressions;
     CoefficientRow vec;
-    UncertainRow vec2;
-    vec2.push_back(true);
+    UncertainRow uncertainFlags;
+    uncertainFlags.push_back(true);
 
-    vec.push_back(aux);
-    vec.push_back(aux1);
+    vec.push_back(text);
+    vec.push_back(endText);
 
-    vec1.push_back(aux);
-    vec1.push_back(aux1);
+    expressions.push_back(text);
+    expressions.push_back(endText);
 
-    tabla.push_back(vec);
-    expressionTable.push_back(vec1);
-    uncertainTable.push_back(vec2);
+    table.push_back(vec);
+    expressionTable.push_back(expressions);
+    uncertainTable.push_back(uncertainFlags);
 
     return true;
 }
 
-bool ControllerDialog::parseFreeForm(QLineEdit * linea, CoefficientTable & tabla,
+bool ControllerDialog::parseFreeForm(QLineEdit * field, CoefficientTable & table,
                                      CoefficientTable & expressionTable,
                                      UncertainTable & uncertainTable){
 
@@ -204,7 +204,7 @@ bool ControllerDialog::parseFreeForm(QLineEdit * linea, CoefficientTable & tabla
     CoefficientRow values;
     UncertainRow flags;
 
-    QString text = linea->text();
+    QString text = field->text();
 
     QRegularExpression re("[a-zA-Z]+");
     QRegularExpressionMatch match = re.match(text);
@@ -231,7 +231,7 @@ bool ControllerDialog::parseFreeForm(QLineEdit * linea, CoefficientTable & tabla
     }
 
 
-    tabla.push_back(values);
+    table.push_back(values);
     expressionTable.push_back(expressions);
     uncertainTable.push_back(flags);
 
@@ -258,7 +258,7 @@ void ControllerDialog::on_okButton_clicked()
 
 
     Parameter kv;
-    Parameter retv;
+    Parameter delayParameter;
 
     //User expressions: a syntax error used to throw and bring the
     //application down.
@@ -267,24 +267,24 @@ void ControllerDialog::on_okButton_clicked()
             kv = Parameter(1);
         }else{
 
-            Range range_point;
+            Range range;
             p.SetExpr(expressionTable.at(2).at(0).toStdString());
-            range_point.min = p.Eval().GetFloat();
+            range.min = p.Eval().GetFloat();
 
             p.SetExpr(expressionTable.at(2).at(1).toStdString());
-            range_point.max = p.Eval().GetFloat();
+            range.max = p.Eval().GetFloat();
 
-            if (range_point.min == range_point.max){
-                kv = Parameter(range_point.min);
+            if (range.min == range.max){
+                kv = Parameter(range.min);
             }else {
 
-                if (range_point.min > range_point.max){
-                    qreal a = range_point.min;
-                    range_point.min = range_point.max;
-                    range_point.max = a;
+                if (range.min > range.max){
+                    qreal a = range.min;
+                    range.min = range.max;
+                    range.max = a;
                 }
 
-                kv = Parameter("kv", range_point, (range_point.min + range_point.max) / 2);
+                kv = Parameter("kv", range, (range.min + range.max) / 2);
             }
         }
     } catch (mup::ParserError &) {
@@ -298,7 +298,7 @@ void ControllerDialog::on_okButton_clicked()
         return;
     }
 
-    retv = Parameter(0.0);
+    delayParameter = Parameter(0.0);
 
 
     //A second accept replaces the answer of the first one; whoever took it
@@ -313,32 +313,32 @@ void ControllerDialog::on_okButton_clicked()
         std::vector<Parameter> denominatorEdit = uncertaintyDialog->denominator();
 
         if (ui->zpkRadio->isChecked()){
-            controllerSystem = std::make_unique<ZeroPoleGain>("",numeratorEdit, denominatorEdit,kv,retv);
+            controllerSystem = std::make_unique<ZeroPoleGain>("",numeratorEdit, denominatorEdit,kv,delayParameter);
         }else if(ui->tcgRadio->isChecked()){
-            controllerSystem = std::make_unique<TimeConstantGain>("",numeratorEdit, denominatorEdit,kv,retv);
+            controllerSystem = std::make_unique<TimeConstantGain>("",numeratorEdit, denominatorEdit,kv,delayParameter);
         }else if (ui->polynomialRadio->isChecked()){
-            controllerSystem = std::make_unique<PolynomialForm>("", numeratorEdit, denominatorEdit,kv,retv);
+            controllerSystem = std::make_unique<PolynomialForm>("", numeratorEdit, denominatorEdit,kv,delayParameter);
         }else{
-            controllerSystem = std::make_unique<FreeForm>("", numeratorEdit, denominatorEdit,kv,retv,
+            controllerSystem = std::make_unique<FreeForm>("", numeratorEdit, denominatorEdit,kv,delayParameter,
                                       ui->numeratorEdit->text().toStdString(), ui->denominatorEdit->text().toStdString());
         }
     }else{
-        std::optional<std::vector<Parameter>> nume = buildParameters(valueTable->at(0));
-        std::optional<std::vector<Parameter>> deno = buildParameters(valueTable->at(1));
+        std::optional<std::vector<Parameter>> numeratorParameters = buildParameters(valueTable->at(0));
+        std::optional<std::vector<Parameter>> denominatorParameters = buildParameters(valueTable->at(1));
 
-        if (!nume.has_value() || !deno.has_value()){
+        if (!numeratorParameters.has_value() || !denominatorParameters.has_value()){
             errorMessage(tr("There is an error in the controller data"), tr("Controller input"));
             return;
         }
 
         if (ui->zpkRadio->isChecked()){
-            controllerSystem = std::make_unique<ZeroPoleGain>("", *nume, *deno, kv, retv);
+            controllerSystem = std::make_unique<ZeroPoleGain>("", *numeratorParameters, *denominatorParameters, kv, delayParameter);
         }else if(ui->tcgRadio->isChecked()){
-            controllerSystem = std::make_unique<TimeConstantGain>("", *nume, *deno, kv, retv);
+            controllerSystem = std::make_unique<TimeConstantGain>("", *numeratorParameters, *denominatorParameters, kv, delayParameter);
         }else if (ui->polynomialRadio->isChecked()){
-            controllerSystem = std::make_unique<PolynomialForm>("", *nume, *deno, kv, retv);
+            controllerSystem = std::make_unique<PolynomialForm>("", *numeratorParameters, *denominatorParameters, kv, delayParameter);
         }else {
-            controllerSystem = std::make_unique<FreeForm>("", *nume, *deno, kv, retv,
+            controllerSystem = std::make_unique<FreeForm>("", *numeratorParameters, *denominatorParameters, kv, delayParameter,
                                       ui->numeratorEdit->text().toStdString(), ui->denominatorEdit->text().toStdString());
         }
 

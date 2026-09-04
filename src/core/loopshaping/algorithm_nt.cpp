@@ -253,25 +253,25 @@ std::unique_ptr<LtiSystem> AlgorithmNt::accelerated(std::unique_ptr<LtiSystem> v
 
     if (!above){
 
-        const double min_k_lineal = v->gain().range().min;
-        const double min_k_db = 20 * log10(min_k_lineal);
+        const double minGainLinear = v->gain().range().min;
+        const double minGainDb = 20 * log10(minGainLinear);
 
-        const std::unique_ptr<LtiSystem> G_k_min = v->create(v->name(), v->numerator(),
-                v->denominator(), Parameter(min_k_lineal), v->delay());
+        const std::unique_ptr<LtiSystem> lowGainBox = v->create(v->name(), v->numerator(),
+                v->denominator(), Parameter(minGainLinear), v->delay());
 
-        double mag_min_db = _double(SupRe(conversion->nicholsBox(G_k_min.get(), o,
+        double magnitudeAtMinGainDb = _double(SupRe(conversion->nicholsBox(lowGainBox.get(), o,
                 nominalPlantValues.at(frequencyIndex))));
 
 
-        if (mag_min_db < minBoundary) {
+        if (magnitudeAtMinGainDb < minBoundary) {
 
             //k_B = inf(k) + (B_min - sup|L0(inf(k))|), in dB.
-            double Kb_db = min_k_db + (minBoundary - mag_min_db);
+            double cutGainDb = minGainDb + (minBoundary - magnitudeAtMinGainDb);
 
-            double Kb_lineal = pow(10, Kb_db / 20);
+            double cutGainLinear = pow(10, cutGainDb / 20);
 
             v = v->create(v->name(), v->numerator(), v->denominator(),
-                    Parameter("kv", Range(Kb_lineal, v->gain().range().max), Kb_lineal, "kv"),
+                    Parameter("kv", Range(cutGainLinear, v->gain().range().max), cutGainLinear, "kv"),
                     v->delay());
         }
     }
@@ -299,23 +299,23 @@ bool AlgorithmNt::feasibleGainFrom(LtiSystem * v, double maxBoundary,
         return false;
     }
 
-    const double max_k_lineal = v->gain().range().max;
-    const double max_k_db = 20 * log10(max_k_lineal);
+    const double maxGainLinear = v->gain().range().max;
+    const double maxGainDb = 20 * log10(maxGainLinear);
 
-    const std::unique_ptr<LtiSystem> G_k_max = v->create(v->name(), v->numerator(),
-            v->denominator(), Parameter(max_k_lineal), v->delay());
+    const std::unique_ptr<LtiSystem> highGainBox = v->create(v->name(), v->numerator(),
+            v->denominator(), Parameter(maxGainLinear), v->delay());
 
-    double mag_max_db = _double(InfRe(conversion->nicholsBox(G_k_max.get(), o,
+    double magnitudeAtMaxGainDb = _double(InfRe(conversion->nicholsBox(highGainBox.get(), o,
             nominalPlantValues.at(frequencyIndex))));
 
-    if (mag_max_db <= maxBoundary) {
+    if (magnitudeAtMaxGainDb <= maxBoundary) {
         return false;
     }
 
     //k_F = sup(k) - (inf|L0(sup(k))| - B_max), in dB.
-    const double Kf_db = max_k_db - (mag_max_db - maxBoundary);
+    const double feasibleGainDb = maxGainDb - (magnitudeAtMaxGainDb - maxBoundary);
 
-    from = pow(10, Kf_db / 20);
+    from = pow(10, feasibleGainDb / 20);
 
     return true;
 }

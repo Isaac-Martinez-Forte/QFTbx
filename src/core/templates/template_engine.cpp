@@ -569,12 +569,12 @@ ComplexCloud TemplateEngine::epsilonHullRelaxed(const ComplexCloud & temp, doubl
     std::size_t MAXP = 3 * pointCount;
 
     std::int32_t b1 = 0;
-    double numDe = -numeric_limits<double>::infinity();
+    double largestImag = -numeric_limits<double>::infinity();
 
     for(std::size_t i = 0;i < pointCount ; i++){   //first point: largest imaginary part.
-        if (imag(temp.at(i)) > numDe){
+        if (imag(temp.at(i)) > largestImag){
             b1 = i;
-            numDe = imag(temp.at(i));
+            largestImag = imag(temp.at(i));
         }
     }
 
@@ -643,7 +643,7 @@ std::int32_t TemplateEngine::findSecond(std::int32_t b1, const ComplexCloud & cv
 
     complex <double> candidate;
 
-    double fas = 0;
+    double phase = 0;
 
     for (std::size_t i = 0; i < cv.size(); ++i){    //every point of the cloud.
 
@@ -652,20 +652,20 @@ std::int32_t TemplateEngine::findSecond(std::int32_t b1, const ComplexCloud & cv
 
         if (dist > 0 && dist <= epsilon){    //candidates within epsilon.
 
-            fas = arg (candidate - firstPoint); //phase of the difference
+            phase = arg (candidate - firstPoint); //phase of the difference
 
-            if (fas < 0)        //brought into [0, 2*PI)
-                fas += 2 * qftbx::math::kPi;
+            if (phase < 0)        //brought into [0, 2*PI)
+                phase += 2 * qftbx::math::kPi;
 
             //subtract from the phase the arccosine of distance over epsilon.
-            fas -= std::acos(dist / epsilon);
+            phase -= std::acos(dist / epsilon);
 
-            if (fas < fmin){   //keep the minimum phase
-                fmin = fas;
+            if (phase < fmin){   //keep the minimum phase
+                fmin = phase;
                 pmin = i;
                 dmax = dist;
 
-            }else if (fas == fmin && dist > dmax){ //on a tie, keep the farthest.
+            }else if (phase == fmin && dist > dmax){ //on a tie, keep the farthest.
                 pmin = i;
                 dmax = dist;
             }

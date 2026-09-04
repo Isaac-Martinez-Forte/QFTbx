@@ -494,18 +494,18 @@ std::unique_ptr<LtiSystem> AlgorithmMr::boxFromDomains(LtiSystem * box,
                          cxsc::_double(Inf(value)));
     };
 
-    std::vector<Parameter> nume;
-    nume.reserve(box->numerator().size());
+    std::vector<Parameter> numerator;
+    numerator.reserve(box->numerator().size());
     for (Parameter & var : box->numerator()) {
-        nume.push_back(rebuilt(var));
+        numerator.push_back(rebuilt(var));
     }
 
-    std::vector<Parameter> deno;
-    deno.reserve(box->denominator().size());
+    std::vector<Parameter> denominator;
+    denominator.reserve(box->denominator().size());
     for (Parameter & var : box->denominator()) {
-        deno.push_back(rebuilt(var));
+        denominator.push_back(rebuilt(var));
     }
 
-    return box->create(box->name(), std::move(nume), std::move(deno),
+    return box->create(box->name(), std::move(numerator), std::move(denominator),
                        rebuilt(box->gain()), box->delay());
 }

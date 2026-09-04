@@ -127,11 +127,11 @@ private:
 
     qint32 activeTab = 0;
 
-    bool data(qftbx::SpecificationRecord & record_in, QString name_in);
-    bool data(qftbx::SpecificationRecord & record_in, qftbx::SpecificationRecord & upperRecord,
-                  QString name_in);
-    void setData (qftbx::SpecificationRecord & record_in);
-    void setData (qftbx::SpecificationRecord & record_in, qftbx::SpecificationRecord & upperRecord);
+    bool data(qftbx::SpecificationRecord & record, QString name);
+    bool data(qftbx::SpecificationRecord & record, qftbx::SpecificationRecord & upperRecord,
+                  QString name);
+    void setData (qftbx::SpecificationRecord & record);
+    void setData (qftbx::SpecificationRecord & record, qftbx::SpecificationRecord & upperRecord);
     /**
      * @brief Reads the tab being left into its record.
      *
@@ -150,8 +150,8 @@ private:
     void restoreActiveTabRadio();
     void discardPublished();
 
-    std::optional<std::vector<Parameter>> buildParameters(QString linea);
-    std::optional<Parameter> buildScalar(QString linea, bool isK);
+    std::optional<std::vector<Parameter>> buildParameters(QString text);
+    std::optional<Parameter> buildScalar(QString text, bool isK);
 
     static QString coefficientsText(std::vector<Parameter> & parameters);
     static QString numeratorText(LtiSystem * system);

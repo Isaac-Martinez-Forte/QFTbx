@@ -56,14 +56,14 @@ std::complex <double> TransferFunction::evaluate(double w) {
 
 std::vector <std::complex <double> > TransferFunction::evaluate(const std::vector <double> & omega) {
 
-    std::vector <std::complex <double> > resultado;
-    resultado.reserve(omega.size());
+    std::vector <std::complex <double> > values;
+    values.reserve(omega.size());
 
     for (double o : omega) {
-        resultado.push_back(evaluate(o));
+        values.push_back(evaluate(o));
     }
 
-    return resultado;
+    return values;
 }
 
 std::string TransferFunction::numeratorString() {

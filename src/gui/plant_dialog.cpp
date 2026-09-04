@@ -45,14 +45,14 @@ PlantDialog::PlantDialog(QWidget *parent) :
 
     //Plant figure images:
 
-    QPixmap imagen1 (":/figures/kgan.png");
-    ui->zpkImage->setPixmap(imagen1);
+    QPixmap zpkPixmap (":/figures/kgan.png");
+    ui->zpkImage->setPixmap(zpkPixmap);
 
-    QPixmap imagen2 (":/figures/knogan.png");
-    ui->tcgImage->setPixmap(imagen2);
+    QPixmap tcgPixmap (":/figures/knogan.png");
+    ui->tcgImage->setPixmap(tcgPixmap);
 
-    QPixmap imagen3 (":/figures/copol.png");
-    ui->polyImage->setPixmap(imagen3);
+    QPixmap polyPixmap (":/figures/copol.png");
+    ui->polyImage->setPixmap(polyPixmap);
 
     //Wire the cancel button.
     connect(ui->cancelButton, SIGNAL(clicked()), this, SLOT(close()));
@@ -118,23 +118,23 @@ void PlantDialog::on_polynomialRadio_toggled(bool checked)
         ui->formStack->setCurrentIndex(2);
 }
 
-bool PlantDialog::parseCoefficients(CoefficientTable & tabla, QLineEdit *linea,
+bool PlantDialog::parseCoefficients(CoefficientTable & table, QLineEdit *field,
                                     CoefficientTable & expressionTable,
                                     UncertainTable & uncertainTable){
 
-    CoefficientRow vec1;
-    for (const std::string & token : qftbx::text::tokens(linea->text().toStdString())) {
-        vec1.push_back(QString::fromStdString(token));
+    CoefficientRow expressions;
+    for (const std::string & token : qftbx::text::tokens(field->text().toStdString())) {
+        expressions.push_back(QString::fromStdString(token));
     }
     CoefficientRow vec;
-    UncertainRow vec2;
+    UncertainRow uncertainFlags;
 
-    if (linea->text().isEmpty()){
-        vec1.push_back("1");
-        vec2.push_back(false);
+    if (field->text().isEmpty()){
+        expressions.push_back("1");
+        uncertainFlags.push_back(false);
     } else{
 
-        for (QString e : vec1) {
+        for (QString e : expressions) {
 
             QRegularExpression re("[a-zA-Z]+");
 
@@ -170,7 +170,7 @@ bool PlantDialog::parseCoefficients(CoefficientTable & tabla, QLineEdit *linea,
                 e.remove(capture);
             }
 
-            vec2.push_back(isUncertain);
+            uncertainFlags.push_back(isUncertain);
 
             if (!isUncertain){
                 vec.push_back(e);
@@ -178,27 +178,27 @@ bool PlantDialog::parseCoefficients(CoefficientTable & tabla, QLineEdit *linea,
         }
     }
 
-    tabla.push_back(vec);
-    uncertainTable.push_back(vec2);
-    expressionTable.push_back(vec1);
+    table.push_back(vec);
+    uncertainTable.push_back(uncertainFlags);
+    expressionTable.push_back(expressions);
 
     return true;
 }
 
-bool PlantDialog::parseScalar(CoefficientTable & tabla, QLineEdit *linea,
+bool PlantDialog::parseScalar(CoefficientTable & table, QLineEdit *field,
                               CoefficientTable & expressionTable,
                               UncertainTable & uncertainTable){
 
 
-    QString aux = linea->text();
-    aux = aux.trimmed();
+    QString text = field->text();
+    text = text.trimmed();
 
-    CoefficientRow vec1(1, aux);
+    CoefficientRow expressions(1, text);
     CoefficientRow vec;
-    UncertainRow vec2;
+    UncertainRow uncertainFlags;
 
     QRegularExpression re("[a-zA-Z]+");
-    QRegularExpressionMatch match = re.match(aux);
+    QRegularExpressionMatch match = re.match(text);
     qint32 i = 0;
     QString capture = match.captured(i);
 
@@ -212,25 +212,25 @@ bool PlantDialog::parseScalar(CoefficientTable & tabla, QLineEdit *linea,
             isUncertain = true;
             break;
         }
-        match = re.match(aux);
+        match = re.match(text);
         capture = match.captured(0);
-        aux.remove(capture);
+        text.remove(capture);
     }
 
-    vec2.push_back(isUncertain);
+    uncertainFlags.push_back(isUncertain);
 
     if (!isUncertain){
-        vec.push_back(aux);
+        vec.push_back(text);
     }
 
-    tabla.push_back(vec);
-    expressionTable.push_back(vec1);
-    uncertainTable.push_back(vec2);
+    table.push_back(vec);
+    expressionTable.push_back(expressions);
+    uncertainTable.push_back(uncertainFlags);
 
     return true;
 }
 
-bool PlantDialog::parseFreeForm(QLineEdit * linea, CoefficientTable & tabla,
+bool PlantDialog::parseFreeForm(QLineEdit * field, CoefficientTable & table,
                                 CoefficientTable & expressionTable,
                                 UncertainTable & uncertainTable){
 
@@ -238,7 +238,7 @@ bool PlantDialog::parseFreeForm(QLineEdit * linea, CoefficientTable & tabla,
     CoefficientRow values;
     UncertainRow flags;
 
-    QString text = linea->text();
+    QString text = field->text();
 
     QRegularExpression re("[a-zA-Z]+");
     QRegularExpressionMatch match = re.match(text);
@@ -262,7 +262,7 @@ bool PlantDialog::parseFreeForm(QLineEdit * linea, CoefficientTable & tabla,
     }
 
 
-    tabla.push_back(values);
+    table.push_back(values);
     expressionTable.push_back(expressions);
     uncertainTable.push_back(flags);
 
@@ -337,7 +337,7 @@ void PlantDialog::on_okButton_clicked()
     }
 
     Parameter kv;
-    Parameter retv;
+    Parameter delayParameter;
 
     //The expressions come from the user: a muParserX syntax error used to
     //throw and bring the application down.
@@ -346,29 +346,29 @@ void PlantDialog::on_okButton_clicked()
             kv = Parameter(1);
         }else{
 
-            Range range_point = uncertaintyDialog->gain();
+            Range range = uncertaintyDialog->gain();
             p.SetExpr(expressionTable.at(2).at(0).toStdString());
             qreal d = p.Eval().GetFloat();
 
-            if (d == range_point.min && d == range_point.max){
+            if (d == range.min && d == range.max){
                 kv = Parameter(d);
             }else {
-                kv = Parameter("kv", range_point, d, "kv");
+                kv = Parameter("kv", range, d, "kv");
             }
         }
 
         if (valueTable->at(3).size() == 0){
-            retv = Parameter(qreal(0));
+            delayParameter = Parameter(qreal(0));
         }else{
 
-            Range range_point = uncertaintyDialog->delay();
+            Range range = uncertaintyDialog->delay();
             p.SetExpr(expressionTable.at(3).at(0).toStdString());
             qreal d = p.Eval().GetFloat();
 
-            if (d == range_point.min && d == range_point.max){
-                retv = Parameter(d);
+            if (d == range.min && d == range.max){
+                delayParameter = Parameter(d);
             }else {
-                retv = Parameter("ret", range_point, d, "ret");
+                delayParameter = Parameter("ret", range, d, "ret");
             }
         }
     } catch (mup::ParserError &) {
@@ -391,36 +391,36 @@ void PlantDialog::on_okButton_clicked()
     if (uncertaintyEntered && uncertaintyDialog->wasAccepted()){
         //The plant receives COPIES: the uncertainty dialog keeps its own
         //parameters for further editing.
-        std::vector<Parameter> nume = uncertaintyDialog->numerator();
-        std::vector<Parameter> deno = uncertaintyDialog->denominator();
+        std::vector<Parameter> numeratorParameters = uncertaintyDialog->numerator();
+        std::vector<Parameter> denominatorParameters = uncertaintyDialog->denominator();
 
         if (ui->zpkRadio->isChecked()){
-            plant = std::make_unique<ZeroPoleGain>(ui->nameEdit->text().toStdString(),nume, deno,kv,retv);
+            plant = std::make_unique<ZeroPoleGain>(ui->nameEdit->text().toStdString(),numeratorParameters, denominatorParameters,kv,delayParameter);
         }else if(ui->tcgRadio->isChecked()){
-            plant = std::make_unique<TimeConstantGain>(ui->nameEdit->text().toStdString(),nume, deno,kv,retv);
+            plant = std::make_unique<TimeConstantGain>(ui->nameEdit->text().toStdString(),numeratorParameters, denominatorParameters,kv,delayParameter);
         }else if (ui->polynomialRadio->isChecked()){
-            plant = std::make_unique<PolynomialForm>(ui->nameEdit->text().toStdString(), nume, deno,kv,retv);
+            plant = std::make_unique<PolynomialForm>(ui->nameEdit->text().toStdString(), numeratorParameters, denominatorParameters,kv,delayParameter);
         }else{
-            plant = std::make_unique<FreeForm>(ui->nameEdit->text().toStdString(), nume, deno,kv,retv,
+            plant = std::make_unique<FreeForm>(ui->nameEdit->text().toStdString(), numeratorParameters, denominatorParameters,kv,delayParameter,
                                       ui->freeNumerator->text().toStdString(), ui->freeDenominator->text().toStdString());
         }
     }else{
-        std::optional<std::vector<Parameter>> nume = buildParameters(valueTable->at(0));
-        std::optional<std::vector<Parameter>> deno = buildParameters(valueTable->at(1));
+        std::optional<std::vector<Parameter>> numeratorParameters = buildParameters(valueTable->at(0));
+        std::optional<std::vector<Parameter>> denominatorParameters = buildParameters(valueTable->at(1));
 
-        if (!nume.has_value() || !deno.has_value()){
+        if (!numeratorParameters.has_value() || !denominatorParameters.has_value()){
             errorMessage(tr("There is an error in the plant data"), tr("Plant input"));
             return;
         }
 
         if (ui->zpkRadio->isChecked()){
-            plant = std::make_unique<ZeroPoleGain>(ui->nameEdit->text().toStdString(), *nume, *deno, kv, retv);
+            plant = std::make_unique<ZeroPoleGain>(ui->nameEdit->text().toStdString(), *numeratorParameters, *denominatorParameters, kv, delayParameter);
         }else if(ui->tcgRadio->isChecked()){
-            plant = std::make_unique<TimeConstantGain>(ui->nameEdit->text().toStdString(), *nume, *deno, kv, retv);
+            plant = std::make_unique<TimeConstantGain>(ui->nameEdit->text().toStdString(), *numeratorParameters, *denominatorParameters, kv, delayParameter);
         }else if (ui->polynomialRadio->isChecked()){
-            plant = std::make_unique<PolynomialForm>(ui->nameEdit->text().toStdString(), *nume, *deno, kv, retv);
+            plant = std::make_unique<PolynomialForm>(ui->nameEdit->text().toStdString(), *numeratorParameters, *denominatorParameters, kv, delayParameter);
         }else {
-            plant = std::make_unique<FreeForm>(ui->nameEdit->text().toStdString(), *nume, *deno, kv, retv,
+            plant = std::make_unique<FreeForm>(ui->nameEdit->text().toStdString(), *numeratorParameters, *denominatorParameters, kv, delayParameter,
                                       ui->freeNumerator->text().toStdString(), ui->freeDenominator->text().toStdString());
         }
 

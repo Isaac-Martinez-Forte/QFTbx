@@ -21,31 +21,31 @@ namespace alg {
 /**
 * Node kinds of the expression interpreter.
 *
-* CONS, PI, E, VAR are always leaves (they stand for a value);
-* SUMA..POT are the binary operators; SIN..SQRT the unary functions.
+* CONSTANT, PI, E, VAR are always leaves (they stand for a value);
+* ADD..POWER are the binary operators; SIN..SQRT the unary functions.
 */
-enum type_node { CONS, PI, E, VAR,
-                 PAR,
-                 SUMA, RESTA, MULT, DIV, POT,
+enum type_node { CONSTANT, PI, E, VAR,
+                 PARENTHESIS,
+                 ADD, SUBTRACT, MULTIPLY, DIVIDE, POWER,
                  SIN, COS, TAN, SINH, COSH, ATAN, TANH, ASIN,
                  ACOS, EXP, ABS, LN, LG, SQRT };
 
 /// Comparison attached to a constraint expression (expr >= value, ...).
 /// Intervals are closed, so the strict and the inclusive forms narrow the
 /// same way.
-enum com { GREATER, LESS, GREATER_EQUAL, LESS_EQUAL, IGUAL};
+enum com { GREATER, LESS, GREATER_EQUAL, LESS_EQUAL, EQUAL};
 
 /**
 * One node of the binary expression tree: a leaf holds a numeric value
 * (c_const) or a variable identifier (var); an inner node holds the
-* operation applied to its branches. 'intervalo' caches the interval of
+* operation applied to its branches. 'enclosure' caches the interval of
 * the subtree during the forward phase of the HC4 filter, so the backward
 * phase can project through it.
 */
 struct exp_node
 {
     //Initialised here: the 17 construction sites each assign type, left and
-    //rigth by hand (verified), and the tree walkers dereference the children
+    //right by hand (verified), and the tree walkers dereference the children
     //unconditionally - one forgotten assignment is an indeterminate pointer,
     //not a null one.
     double c_const = 0.0;
@@ -54,14 +54,14 @@ struct exp_node
 
     std::string var;
 
-    interval intervalo;
+    interval enclosure;
 
     //A node OWNS its branches, so a tree frees itself. There used to be a
     //recursive delete_tree() post-order walk, and every early return of the
     //parser had to have called it.
     std::unique_ptr<exp_node> left;
 
-    std::unique_ptr<exp_node> rigth;
+    std::unique_ptr<exp_node> right;
 };
 
 /**
@@ -84,24 +84,24 @@ class ExpressionTree
 public :
     ExpressionTree();
 
-    /// Parses "tex <comparacion> num" as a constraint (the HC4 use).
-    ExpressionTree(const std::string &tex, double num, com comparacion);
+    /// Parses "text <comparison> num" as a constraint (the HC4 use).
+    ExpressionTree(const std::string &text, double num, com comparison);
 
     /// Parses a plain expression. A malformed one (unbalanced parentheses,
     /// a missing operand) throws std::invalid_argument, as does an unknown
     /// node kind at evaluation time.
-    ExpressionTree(const char *tex);
+    ExpressionTree(const char *text);
 
     ExpressionTree(const ExpressionTree & other);
     ~ExpressionTree();
 
     /// Replaces the parsed expression.
-    void setFunc(const std::string &tex);
+    void setFunc(const std::string &text);
 
     /// Replaces the parsed expression and its constraint comparison.
-    void setFunc(const std::string &tex, double resultado, com comparacion);
+    void setFunc(const std::string &text, double result, com comparison);
 
-    void setFunc(const char *tex);
+    void setFunc(const char *text);
 
     /// Evaluates over reals with the given variable values.
     double eval(std::map<std::string, double> * variables = nullptr);
@@ -119,7 +119,7 @@ public :
     bool propagate (std::map<std::string, interval> *variables);
 
     /// Prints the tree to stdout (debugging aid).
-    void imprimir ();
+    void print ();
 
     ExpressionTree &operator=(const ExpressionTree & other);
 
@@ -132,21 +132,21 @@ private :
 
     void alg_exp_node_print (alg::exp_node * node);
 
-    std::string tipo(alg::type_node tipo);
+    std::string symbolOf(alg::type_node type);
 
-    std::unique_ptr<exp_node> make_cpy(exp_node *nod);
+    std::unique_ptr<exp_node> make_cpy(exp_node *node);
 
-    double eval_tree(exp_node *nod);
+    double eval_tree(exp_node *node);
 
-    interval eval_tree_in (exp_node * nod);
+    interval eval_tree_in (exp_node * node);
 
     /// Backward (projection) phase of the HC4 filter: narrows the domains
-    /// towards consistency with 'intervalo'. Returns false when a domain
+    /// towards consistency with 'enclosure'. Returns false when a domain
     /// empties (the constraint proves the box inconsistent). Projections
     /// that are unsafe or multi-branch (trigonometric inverses outside a
     /// monotone branch, divisors straddling zero, non-square powers) are
     /// skipped: skipping narrows nothing and stays sound.
-    bool eval_tree_out(exp_node * nod, interval intervalo);
+    bool eval_tree_out(exp_node * node, interval enclosure);
 
     /// Intersection with an empty-signal instead of the historical throw
     /// (the release build compiled the guarding assert out, so an empty
@@ -155,7 +155,7 @@ private :
 
     void build_tree(std::string &in_exp);
 
-    bool es_letra(char tex);
+    bool isLetter(char text);
 
     std::unique_ptr<exp_node> root;
     //Set at the entry of eval()/propagate() so the recursion does not have
@@ -167,7 +167,7 @@ private :
     //The constraint propagate() tests against. Two of the four constructors
     //do not set them, and propagate() reads both.
     double comparisonValue = 0.0;
-    com comparacion = GREATER_EQUAL;
+    com comparison = GREATER_EQUAL;
 };
 
 //The parser used to carry two hand-written singly-linked stacks, nodeStack

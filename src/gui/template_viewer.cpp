@@ -145,29 +145,29 @@ void TemplateViewer::plotDiagram(bool plot){
         contourGraphs.reserve(static_cast<qint32>(m_contour.size()));
         for (const qftbx::ComplexCloud & vector : m_contour) {
 
-            std::vector<double> fas;
-            fas.reserve(static_cast<qint32>(vector.size()));
-            std::vector<double> gan;
-            gan.reserve(static_cast<qint32>(vector.size()));
+            std::vector<double> phases;
+            phases.reserve(static_cast<qint32>(vector.size()));
+            std::vector<double> magnitudes;
+            magnitudes.reserve(static_cast<qint32>(vector.size()));
 
-            for (const std::complex <qreal> & complejo : vector) {
+            for (const std::complex <qreal> & value : vector) {
 
                 if (plot){
-                    qreal phase = arg(complejo)* 180 / qftbx::math::kPi;
+                    qreal phase = arg(value)* 180 / qftbx::math::kPi;
                     if (phase >= 0){
                         phase -= 360;
                     }
-                    fas.push_back(phase);
-                    qreal mag = 20*log10(abs(complejo));
-                    gan.push_back(mag);
+                    phases.push_back(phase);
+                    qreal magnitude = 20*log10(abs(value));
+                    magnitudes.push_back(magnitude);
                 }else {
-                    qreal phase = complejo.real();
-                    fas.push_back(phase);
-                    gan.push_back(complejo.imag());
+                    qreal phase = value.real();
+                    phases.push_back(phase);
+                    magnitudes.push_back(value.imag());
                 }
             }
 
-            plotLine(i,contourGraphs,fas, gan, true, true,counter);
+            plotLine(i,contourGraphs,phases, magnitudes, true, true,counter);
 
             i++;
             counter++;
@@ -179,29 +179,29 @@ void TemplateViewer::plotDiagram(bool plot){
 
     for (const qftbx::ComplexCloud & vector : m_templates) {
 
-        std::vector<double> fas;
-        fas.reserve(static_cast<qint32>(vector.size()));
-        std::vector<double> gan;
-        gan.reserve(static_cast<qint32>(vector.size()));
+        std::vector<double> phases;
+        phases.reserve(static_cast<qint32>(vector.size()));
+        std::vector<double> magnitudes;
+        magnitudes.reserve(static_cast<qint32>(vector.size()));
 
-        for (const std::complex <qreal> & complejo : vector) {
+        for (const std::complex <qreal> & value : vector) {
 
             if (plot){
-                qreal phase = arg(complejo)* 180 / qftbx::math::kPi;
+                qreal phase = arg(value)* 180 / qftbx::math::kPi;
                 if (phase >= 0){
                     phase -= 360;
                 }
-                fas.push_back(phase);
-                gan.push_back(20*log10(abs(complejo)));
+                phases.push_back(phase);
+                magnitudes.push_back(20*log10(abs(value)));
             }else{
-                qreal phase = complejo.real();
-                fas.push_back(phase);
-                gan.push_back(complejo.imag());
+                qreal phase = value.real();
+                phases.push_back(phase);
+                magnitudes.push_back(value.imag());
             }
 
         }
 
-        plotLine(i,templateGraphs, fas, gan, false, false, counter);
+        plotLine(i,templateGraphs, phases, magnitudes, false, false, counter);
         i++;
         counter++;
     }
@@ -259,7 +259,7 @@ void TemplateViewer::addFrequencyRow(QColor color, qint32 pos){
     QHBoxLayout *horizontalLayout;
     QCheckBox *check;
     QSlider *slider;
-    QLineEdit *linea;
+    QLineEdit *field;
 
     widget = new QWidget(frequenciesBox);
     widget->setObjectName(QString::fromUtf8("widget"));
@@ -295,12 +295,12 @@ void TemplateViewer::addFrequencyRow(QColor color, qint32 pos){
 
     verticalLayout->addLayout(horizontalLayout);
 
-    linea = new QLineEdit(widget);
-    linea->setObjectName(QString::fromUtf8("linea"));
-    linea->setText(tools::numberText(m_epsilon.at(pos)));
+    field = new QLineEdit(widget);
+    field->setObjectName(QString::fromUtf8("field"));
+    field->setText(tools::numberText(m_epsilon.at(pos)));
 
-    epsilonEdits.push_back(linea);
-    verticalLayout->addWidget(linea);
+    epsilonEdits.push_back(field);
+    verticalLayout->addWidget(field);
 
 
     colorsLayout->addWidget(widget);

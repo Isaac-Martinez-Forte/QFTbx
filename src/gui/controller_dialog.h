@@ -68,12 +68,12 @@ private:
     /// not a valid expression. The invalid one used to become 0 in silence,
     /// which quietly designed a different controller.
     std::optional<std::vector<Parameter>> buildParameters(const CoefficientRow & numbers);
-    bool parseCoefficients(CoefficientTable & tabla, QLineEdit *linea,
+    bool parseCoefficients(CoefficientTable & table, QLineEdit *field,
                            CoefficientTable & expressionTable, UncertainTable & uncertainTable);
-    bool parseGainRange(CoefficientTable & tabla, QLineEdit *linea1, QLineEdit *linea2,
+    bool parseGainRange(CoefficientTable & table, QLineEdit *startField, QLineEdit *endField,
                         CoefficientTable & expressionTable, UncertainTable & uncertainTable);
 
-    bool parseFreeForm(QLineEdit * linea, CoefficientTable & tabla,
+    bool parseFreeForm(QLineEdit * field, CoefficientTable & table,
                        CoefficientTable & expressionTable, UncertainTable & uncertainTable);
 
     mup::ParserX p;

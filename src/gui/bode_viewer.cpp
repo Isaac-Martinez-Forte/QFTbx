@@ -88,8 +88,8 @@ void BodeViewer::drawAxis(QString yAxisName, const std::vector<double> & yAxis_v
                           const std::vector<double> & frequencies, QCustomPlot * magnitudePlot){
 
     //QCPCurve attaches itself to the plot, which owns it from then on.
-    QCPCurve *curva = new QCPCurve(magnitudePlot->xAxis, magnitudePlot->yAxis);
-    curva->setData(tools::toQVector(frequencies), tools::toQVector(yAxis_values));
+    QCPCurve *curve = new QCPCurve(magnitudePlot->xAxis, magnitudePlot->yAxis);
+    curve->setData(tools::toQVector(frequencies), tools::toQVector(yAxis_values));
 
     magnitudePlot->xAxis->setLabel("w");
     magnitudePlot->yAxis->setLabel(yAxisName);

@@ -85,38 +85,38 @@ void BoundaryViewer::showDiagram(){
     //Sweep the design frequencies.
     for (qint32 i = 0; i < static_cast<qint32>(boundarySet.size()); i++) {
 
-        QVector <QCPCurve *> gra;
+        QVector <QCPCurve *> frequencyCurves;
 
         QColor color = randomColor(i);
 
         addFrequencyRow(color, i);
 
-        const auto & mapa = boundarySet.at(static_cast<std::size_t>(i));
-        for (const auto & entry : mapa) {
+        const auto & map = boundarySet.at(static_cast<std::size_t>(i));
+        for (const auto & entry : map) {
             const qftbx::TraceSet & b = entry.second;
             for (const qftbx::Trace & bound : b) {
 
-                std::vector<double> ejex;
-                std::vector<double> ejey;
-                ejex.reserve(static_cast<qsizetype>(bound.size()));
-                ejey.reserve(static_cast<qsizetype>(bound.size()));
+                std::vector<double> phases;
+                std::vector<double> magnitudes;
+                phases.reserve(static_cast<qsizetype>(bound.size()));
+                magnitudes.reserve(static_cast<qsizetype>(bound.size()));
 
                 for (const qftbx::NicholsPoint & p : bound) {
-                   ejex.push_back(p.phase);
-                   ejey.push_back(p.magnitude);
+                   phases.push_back(p.phase);
+                   magnitudes.push_back(p.magnitude);
                 }
 
 
-                QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-                curva->setData(tools::toQVector(ejex), tools::toQVector(ejey));
-                curva->setPen(color);
-                gra.push_back(curva);
+                QCPCurve *curve = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
+                curve->setData(tools::toQVector(phases), tools::toQVector(magnitudes));
+                curve->setPen(color);
+                frequencyCurves.push_back(curve);
 
                 k++;
             }
         }
 
-        curves.push_back(std::move(gra));
+        curves.push_back(std::move(frequencyCurves));
     }
 
     ui->plot->xAxis2->setVisible(true);
