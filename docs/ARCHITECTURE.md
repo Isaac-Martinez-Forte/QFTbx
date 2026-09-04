@@ -23,13 +23,16 @@ stage has a dialog in the GUI and an engine in the model layer.
 2. **Design frequencies (ω)**: linear/log spacing or manual values.
 3. **Templates**: for each ω, the set of possible plant responses in the Nichols plane
    (brute-force sweep over the uncertain parameters) reduced to its contour with the
-   ε-hull algorithm (Cervera & Baños).
+   ε-hull algorithm (Nordin 1993, in Montoya's implementation).
 4. **Specifications**: robust stability and performance bounds.
 5. **Boundaries**: for each ω and specification, the allowed/forbidden regions for the
    nominal open loop, computed on a phase×magnitude grid and traced with a contour
    follower; per-frequency boundaries are then merged (1D intersection algorithm).
 6. **Loop shaping**: automatic controller synthesis honouring the boundaries (interval
    arithmetic via C-XSC; several algorithms).
+
+Each algorithm, its reference and how the implementation follows it are described
+in [docs/algorithms](algorithms/README.md).
 
 ## Modules
 
