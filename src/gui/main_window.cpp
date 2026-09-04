@@ -267,6 +267,11 @@ void MainWindow::recomputeContour(std::vector<double> epsilon){
     //The viewer asked for a tighter contour: the computation, and the
     //reporting of its failure, belong here.
     try {
+        //It walks the epsilon-hull over every cloud, which is work, and this
+        //was the one computation in the window with no cursor at all: it
+        //froze under a pointer that said nothing was happening.
+        const WaitCursor waiting(this);
+
         controller->recomputeContour(std::move(epsilon));
     } catch (const qftbx::Exception & e) {
         QMessageBox::critical(this, tr("Template computation"), e.what());
@@ -313,6 +318,19 @@ void MainWindow::on_plantButton_clicked()
         //The dialogs only describe; publishing into the project is the
         //window's job, so a dialog never needs to know the facade.
         std::unique_ptr<LtiSystem> described = plantDialog->takePlant();
+        //A dialog reused after acceptance STILL says it was accepted: the flag
+        //is set once, on OK, and never cleared. So reopening this dialog and
+        //closing it with Escape came back here with wasAccepted() true and
+        //the payload already handed over, and published a null one - which
+        //wiped the step from the project, and everything computed from it.
+        //Guarded where the damage was: a step publishes only what it actually
+        //received. The flag's own semantics are the root of it, and that is
+        //recorded as its own item: wasAccepted() should mean "this showing".
+        if (described == nullptr){
+            refreshAvailability();
+            return;
+        }
+
 
         //The controller answers whether it dropped anything, so the window
         //resets its own steps exactly when the project dropped the artefacts
@@ -361,7 +379,17 @@ void MainWindow::on_specificationsButton_clicked()
     runDialog(specificationsDialog);
 
     if (specificationsDialog->wasAccepted()){
-        controller->setSpecifications(specificationsDialog->takeSpecifications());
+        //See on_plantButton_clicked: a reused dialog still reports accepted,
+        //and an empty answer here used to wipe the specifications.
+        std::optional<qftbx::SpecificationRecords> described =
+                specificationsDialog->takeSpecifications();
+
+        if (!described.has_value()){
+            refreshAvailability();
+            return;
+        }
+
+        controller->setSpecifications(std::move(described));
 
         //The templates do not depend on the specifications; the boundaries
         //do, and the project has already dropped them - the window follows
@@ -384,6 +412,12 @@ void MainWindow::on_frequenciesButton_clicked()
 
     if (frequenciesDialog->wasAccepted()){
         std::unique_ptr<Omega> described = frequenciesDialog->takeOmega();
+        //See on_plantButton_clicked: a reused dialog still reports accepted.
+        if (described == nullptr){
+            refreshAvailability();
+            return;
+        }
+
 
         //The controller answers whether it dropped anything, so the window
         //resets its own steps exactly when the project dropped the artefacts
@@ -540,6 +574,12 @@ void MainWindow::on_controllerButton_clicked()
 
     if (controllerDialog->wasAccepted()){
         std::unique_ptr<LtiSystem> described = controllerDialog->takeControllerStructure();
+        //See on_plantButton_clicked: a reused dialog still reports accepted.
+        if (described == nullptr){
+            refreshAvailability();
+            return;
+        }
+
 
         //The controller answers whether it dropped anything, so the window
         //resets its own steps exactly when the project dropped the artefacts

@@ -23,6 +23,8 @@
 #include <complex>
 #include <memory>
 
+#include <QAction>
+#include "src/core/pipeline_step.h"
 #include <QCheckBox>
 #include <QDialog>
 #include <QLineEdit>
@@ -907,6 +909,120 @@ TEST_F(GuiSmoke, ARejectedDialogLeavesTheStepUndone)
     ASSERT_NE(progress, nullptr);
     EXPECT_EQ(progress->value(), 0)
         << "a cancelled step must not count as done";
+}
+
+
+//A runner that knows how to fill whichever dialog the window hands it, so a
+//test can walk several steps in a row. It dispatches on the dynamic type
+//because that is what identifies the step: the handler decides which dialog
+//to build, and the test only has to be the user of it.
+void driveStep(QDialog * dialog)
+{
+    if (auto * plant = qobject_cast<PlantDialog *>(dialog)) {
+        type(plant, "nameEdit", "walked");
+        check(plant, "zpkRadio");
+        type(plant, "zpkNumerator", "2");
+        type(plant, "zpkDenominator", "5 30");
+        type(plant, "zpkGain", "3");
+        type(plant, "zpkDelay", "0");
+        press(plant, "okButton");
+        return;
+    }
+
+    if (auto * frequencies = qobject_cast<FrequenciesDialog *>(dialog)) {
+        QComboBox * mode = child<QComboBox>(frequencies, "modeStack");
+        if (mode != nullptr) {
+            mode->setCurrentIndex(0);
+        }
+        type(frequencies, "manualValues", "0.1 1 10 100");
+        press(frequencies, "okButton");
+        return;
+    }
+
+    //Any other step: opened and closed without accepting, which is a
+    //perfectly good answer for a test that is not walking that far.
+}
+
+TEST_F(GuiSmoke, WalkingTwoStepsOpensTheThirdAndNoFurther)
+{
+    MainWindow window;
+    window.setDialogRunner(&driveStep);
+
+    QPushButton * plantButton = child<QPushButton>(&window, "plantButton");
+    QPushButton * frequenciesButton = child<QPushButton>(&window, "frequenciesButton");
+    ASSERT_NE(plantButton, nullptr);
+    ASSERT_NE(frequenciesButton, nullptr);
+
+    plantButton->click();
+    frequenciesButton->click();
+
+    QProgressBar * progress = child<QProgressBar>(&window, "progressBar");
+    ASSERT_NE(progress, nullptr);
+    EXPECT_EQ(progress->value(), 2);
+
+    //The templates need both, and now have both.
+    QPushButton * templates = child<QPushButton>(&window, "templatesButton");
+    ASSERT_NE(templates, nullptr);
+    EXPECT_TRUE(templates->isEnabled());
+
+    //The specifications need the frequencies, and the Bode view needs both.
+    EXPECT_TRUE(child<QPushButton>(&window, "specificationsButton")->isEnabled());
+
+    //And the boundaries need the templates, which nobody has computed.
+    EXPECT_FALSE(child<QPushButton>(&window, "boundariesButton")->isEnabled());
+}
+
+TEST_F(GuiSmoke, CancellingAStepAlreadyDoneLeavesItDone)
+{
+    //The defect that deriving the state fixed, pinned so it cannot come back.
+    //Cancelling the dialog of a step that was already finished used to delete
+    //its widgets and walk the progress bar backwards, while the project still
+    //held the artefact - the window said the step was undone and the project
+    //said it was done.
+    MainWindow window;
+    window.setDialogRunner(&driveStep);
+
+    QPushButton * plantButton = child<QPushButton>(&window, "plantButton");
+    ASSERT_NE(plantButton, nullptr);
+    plantButton->click();
+
+    QProgressBar * progress = child<QProgressBar>(&window, "progressBar");
+    ASSERT_NE(progress, nullptr);
+    ASSERT_EQ(progress->value(), 1);
+
+    //Now a user who opens it again and closes without accepting.
+    window.setDialogRunner([](QDialog *) { /* closed */ });
+    plantButton->click();
+
+    EXPECT_EQ(progress->value(), 1)
+        << "the plant is still in the project, so the step is still done";
+}
+
+TEST_F(GuiSmoke, OpeningAProjectRebuildsTheStepsItCarried)
+{
+    //The fifty lines that used to be ninety-six: after a load, the window's
+    //state is the project's state, and the widgets of the steps the file
+    //carried are the ones that exist.
+    MainWindow window;
+
+    window.setFileChooser([](bool forSaving) {
+        EXPECT_FALSE(forSaving);
+        return QString(QFTBX_TEST_DATA_DIR "/planta1.qft");
+    });
+
+    QAction * open = window.findChild<QAction *>("actionOpen");
+    ASSERT_NE(open, nullptr) << "the open action is what the test drives";
+    open->trigger();
+
+    //planta1.qft is a finished design: every step done.
+    QProgressBar * progress = child<QProgressBar>(&window, "progressBar");
+    ASSERT_NE(progress, nullptr);
+    EXPECT_EQ(progress->value(), static_cast<int>(qftbx::kStepCount));
+
+    //And every button that a finished design unlocks.
+    EXPECT_TRUE(child<QPushButton>(&window, "templatesButton")->isEnabled());
+    EXPECT_TRUE(child<QPushButton>(&window, "boundariesButton")->isEnabled());
+    EXPECT_TRUE(child<QPushButton>(&window, "loopButton")->isEnabled());
 }
 
 } // namespace
