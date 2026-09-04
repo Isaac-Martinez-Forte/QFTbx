@@ -33,9 +33,8 @@ namespace qftbx {
  * walk (a valid \f$\varepsilon\f$-cover, not the canonical hull) with a
  * warning.
  *
- * The engine keeps its own copies of the grids, the epsilons and the
- * clouds (see the setters). Only the frequency vector is borrowed from
- * the caller of compute(), who must keep it alive while the engine runs.
+ * The engine keeps its own copies of everything it is given: the grids,
+ * the epsilons, the clouds (see the setters) and the frequencies.
  */
 class TemplateEngine
 {
@@ -95,7 +94,7 @@ public:
 
     const CloudSet & contours() const;
 
-    std::vector <double> * omega();
+    const std::vector <double> & omega() const;
 
     const std::vector <double> & epsilon () const;
 
@@ -115,8 +114,11 @@ private:
 
     CloudSet m_clouds;
     CloudSet m_contours;
-    //Borrowed from the caller of compute(); named in the contour messages.
-    std::vector <double> * m_frequencies = nullptr;
+    //A copy of the frequencies compute() was given, named in the contour
+    //messages. The caller's vector used to be aliased here, and the engine
+    //outlives it: it is kept across a project load, which replaces the
+    //project and its frequencies.
+    std::vector <double> m_frequencies;
 
     std::int32_t findSecond(std::int32_t b1, const ComplexCloud & cv, double epsilon);
 

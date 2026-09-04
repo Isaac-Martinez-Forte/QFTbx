@@ -39,7 +39,7 @@ bool TemplateEngine::compute(LtiSystem *plant, std::vector<double> *omega, bool 
     m_useCuda = cuda;
 
     const auto timer = std::chrono::steady_clock::now();
-    m_frequencies = omega;
+    m_frequencies = *omega;
 
     m_clouds = computeClouds(plant, omega);
 
@@ -315,7 +315,7 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
     return allClouds;
 }
 
-std::vector <double> * TemplateEngine::omega(){
+const std::vector <double> & TemplateEngine::omega() const{
     return m_frequencies;
 }
 
@@ -324,6 +324,15 @@ const std::vector <double> & TemplateEngine::epsilon() const{
 }
 
 bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
+
+    //One epsilon per cloud, checked here and not by at() inside the
+    //parallel loop below: an exception escaping an OpenMP region terminates
+    //the process instead of reaching anyone.
+    if (m_epsilon.size() != m_clouds.size()) {
+        throw qftbx::InvalidInput("The contours need one epsilon per design frequency: "
+                                  + std::to_string(m_epsilon.size()) + " given for "
+                                  + std::to_string(m_clouds.size()) + " frequencies.");
+    }
 
     bool succeeded = true;
     const std::size_t digitCount = m_clouds.size();
@@ -404,8 +413,8 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
     //back.
     std::vector<std::string> relaxed;
     for (std::size_t i = 0; i < digitCount; i++){
-        if (relaxedFrequencies.at(i) && m_frequencies != nullptr && i < m_frequencies->size()){
-            relaxed.push_back(qftbx::text::number(m_frequencies->at(i)));
+        if (relaxedFrequencies.at(i) && i < m_frequencies.size()){
+            relaxed.push_back(qftbx::text::number(m_frequencies.at(i)));
         }
     }
 
@@ -435,8 +444,8 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
                 largest = std::max(largest, std::abs(value));
             }
 
-            const std::string where = m_frequencies != nullptr && i < m_frequencies->size()
-                    ? qftbx::text::number(m_frequencies->at(i))
+            const std::string where = i < m_frequencies.size()
+                    ? qftbx::text::number(m_frequencies.at(i))
                     : std::to_string(i);
 
             detail.push_back(where + " rad/s (largest |P| = "

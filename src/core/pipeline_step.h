@@ -25,7 +25,7 @@ enum class Step {
     LoopShaping
 };
 
-inline constexpr std::size_t kStepCount = 7;
+inline constexpr std::size_t kStepCount = static_cast<std::size_t>(Step::LoopShaping) + 1;
 
 /**
  * @brief A set of steps.

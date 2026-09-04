@@ -193,11 +193,10 @@ TEST_F(TemplatesGolden, FrequencyAlignmentPreserved)
     // number of OpenMP threads (the old thread-counter renumbering broke
     // this intermittently).
     const std::vector<double> original{0.1, 0.5, 1.0, 2.0, 15.0, 100.0};
-    auto* omegaOut = templates.omega();
-    ASSERT_NE(omegaOut, nullptr);
-    ASSERT_EQ(omegaOut->size(), original.size());
+    const std::vector<double> & omegaOut = templates.omega();
+    ASSERT_EQ(omegaOut.size(), original.size());
     for (int i = 0; i < original.size(); ++i) {
-        EXPECT_DOUBLE_EQ(omegaOut->at(i), original.at(i)) << "index " << i;
+        EXPECT_DOUBLE_EQ(omegaOut.at(i), original.at(i)) << "index " << i;
     }
 }
 

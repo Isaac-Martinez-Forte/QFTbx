@@ -37,7 +37,13 @@ bool TemplateStage::run(ProjectData & data, std::vector<double> epsilon,
 
     const bool produced = !sweep.clouds().empty() && !sweep.contours().empty();
 
-    adopt(data, sweep.clouds(), sweep.contours(), !sweep.contours().empty());
+    //Published straight from the engine's own copies: adopt() is for
+    //clouds computed elsewhere, and would feed the engine what it already
+    //holds, two copies of the template set later.
+    data.setTemplates(sweep.clouds());
+    if (!sweep.contours().empty()) {
+        data.setContour(sweep.contours());
+    }
 
     //The computation no longer reorders or replaces the frequencies: it is
     //enough to keep the epsilon used, for the persistence.

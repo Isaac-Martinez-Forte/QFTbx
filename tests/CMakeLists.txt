@@ -21,6 +21,7 @@ add_executable(qftbx_tests
   backend/e_hull_test.cpp
   backend/templates_golden_test.cpp
   backend/templates_determinism_test.cpp
+  backend/template_engine_guard_test.cpp
   backend/omega_test.cpp
   backend/plant_fixture_test.cpp
   backend/lti_system_test.cpp
