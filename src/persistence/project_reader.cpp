@@ -85,6 +85,21 @@ public:
         fail(node, std::string("<") + name + "> is not a boolean");
     }
 
+    double realAttribute(const pugi::xml_node & node, const char * name) const
+    {
+        const pugi::xml_attribute attribute = node.attribute(name);
+        if (!attribute) {
+            fail(node, std::string("missing attribute '") + name + "'");
+        }
+        char * end = nullptr;
+        const char * raw = attribute.value();
+        const double value = std::strtod(raw, &end);
+        if (end == nullptr || end == raw || *end != '\0') {
+            fail(node, std::string("attribute '") + name + "' is not a number");
+        }
+        return value;
+    }
+
     std::int32_t intAttribute(const pugi::xml_node & node, const char * name) const
     {
         const pugi::xml_attribute attribute = node.attribute(name);
@@ -394,7 +409,9 @@ public:
     std::unique_ptr<LoopShapingResult> readLoopShaping(const pugi::xml_node & section) const
     {
         const pugi::xml_node data = require(section, t.boundariesData);
-        const std::int32_t pointCount = intAttribute(data, t.loopShapingPointCountAttribute);
+        //A real, as LoopShapingResult holds it and the writer writes it: read
+        //as an integer, a count with a fractional part was refused.
+        const double pointCount = realAttribute(data, t.loopShapingPointCountAttribute);
         const qftbx::Range range(realChild(data, t.axisMin), realChild(data, t.axisMax));
 
         //The embedded controller is the child that carries a <type> element.
