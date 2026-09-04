@@ -11,22 +11,16 @@
 namespace qftbx {
 
 /**
- * @brief View over one boundary computation's results, non-owning by
- * default.
- *
- * The BoundaryEngine keeps its containers as members and hands out views,
- * so destroying such a view never touches them and temporary views can be
- * created and deleted freely. The file parser instead allocates fresh
- * containers with no other owner: it builds its view with
- * takeOwnership(), and then destroying the view deep-deletes everything
- * it holds.
+ * @brief The results of one boundary computation, held by value.
  *
  * Per design frequency, boundaries() maps each specification name (the
  * persisted keys of the .qft files: "Tracking", "Stability", "SensorNoise",
  * "OutputDisturbance", "InputDisturbance", "ControlEffort") to its traced
  * contours, unionBoundaries() holds the
  * 1D union of all specifications and unionBuckets() the same union bucketed
- * by phase, sorted by magnitude.
+ * by phase, sorted by magnitude. openFlags() and upperFlags() say, per
+ * frequency, whether that union is open and whether its allowed side is
+ * above it.
  */
 class BoundaryData
 {

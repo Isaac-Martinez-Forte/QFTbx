@@ -2,6 +2,7 @@
 #define QFTBX_CONTOUR_TRACER_H
 
 
+#include <cstdint>
 #include <vector>
 
 #include "src/core/boundaries/boundary_types.h"
@@ -39,7 +40,7 @@ public:
 
 private:
 
-    double m_thresholdDb;
+    double m_thresholdDb = 0.0;
     const BoundarySheet * m_sheet = nullptr;
 #ifdef CUDA_AVAILABLE
     const float * m_cudaSheet = nullptr;
@@ -52,8 +53,8 @@ private:
     //	SE-5	S-4	SW-3
     // X -->
     //						            N	NW	W	SW	S	SE	E	NE
-    const char	kNeighbourX[8] =	{	0,	 1,	1,	1,	0,	-1,	-1,	-1	};
-    const char	kNeighbourY[8] =	{  -1,	-1,	0,	1,	1,	 1,	 0,	-1	};
+    static constexpr std::int8_t kNeighbourX[8] =	{	0,	 1,	1,	1,	0,	-1,	-1,	-1	};
+    static constexpr std::int8_t kNeighbourY[8] =	{  -1,	-1,	0,	1,	1,	 1,	 0,	-1	};
 
 };
 

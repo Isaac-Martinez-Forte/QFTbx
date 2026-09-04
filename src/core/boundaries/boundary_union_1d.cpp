@@ -1,6 +1,8 @@
 #include <string>
 #include <cstdint>
+#include <cmath>
 #include <algorithm>
+#include <limits>
 
 #include "boundary_union_1d.h"
 
@@ -8,21 +10,11 @@ namespace qftbx {
 
 using std::abs;
 
-BoundaryUnion1D::BoundaryUnion1D()
-{
-
-}
-
-BoundaryUnion1D::~BoundaryUnion1D()
-{
-
-}
-
 std::int32_t BoundaryUnion1D::bucketIndex(double x, double totalPhase)
 {
-    double res = totalPhase-(abs(x)*(totalPhase/(double)kPhaseDegrees));
+    double res = totalPhase-(abs(x)*(totalPhase/kPhaseDegrees));
     if(res<0) res=0;
-    return (std::int32_t) res;
+    return static_cast<std::int32_t>(res);
 }
 
 void BoundaryUnion1D::insertSorted(TraceSet & layerBucketsRow, std::size_t index, qftbx::NicholsPoint point, double totalPhase)
@@ -48,7 +40,7 @@ std::vector<TraceSet> BoundaryUnion1D::buildLayerBuckets(const TraceSet & chosen
     for (std::size_t i = 0; i < kLayerCount; i++)
     {
         TraceSet & row = layerBuckets[i];
-        row.resize(totalPhase + 1);
+        row.resize(static_cast<std::size_t>(totalPhase) + 1);
 
         for (const qftbx::NicholsPoint & point : chosenCurves.at(i))
         {
@@ -271,12 +263,12 @@ Trace BoundaryUnion1D::drawSecondLayer(const TraceSet & chosenCurves,
 
 inline std::int32_t BoundaryUnion1D::bucketIndex(double x, double totalPhase, std::int32_t phaseCount)
 {
-    double res = (abs(x)*((double)phaseCount/totalPhase));
+    double res = (abs(x)*(static_cast<double>(phaseCount)/totalPhase));
     if(res<0) res=0;
     //The synthetic border point (|x| == totalPhase) used to yield bucket
     //phaseCount out of phaseCount buckets: out of range.
     if(res > phaseCount - 1) res = phaseCount - 1;
-    return (std::int32_t) res;
+    return static_cast<std::int32_t>(res);
 }
 
 TraceSet BoundaryUnion1D::buildUnionBuckets(const Trace & unionPoints, double totalPhase, std::size_t pointCount)
@@ -317,7 +309,7 @@ Trace BoundaryUnion1D::mergeLayers(const Trace & layer1, const Trace & layer2)
     return merged;
 }
 
-void BoundaryUnion1D::run(const BoundaryData * boundaries, const TraceMetadata & traceMetadata)
+void BoundaryUnion1D::run(const BoundaryData & boundaries, const TraceMetadata & traceMetadata)
 {
     m_unionBuckets.clear();
     m_unionVectors.clear();
@@ -327,10 +319,10 @@ void BoundaryUnion1D::run(const BoundaryData * boundaries, const TraceMetadata &
     //One map per design frequency; each map holds, per specification, a
     //parametric curve of (phase, magnitude) points spanning -360 to 0
     //degrees.
-    const BoundarySet & boundariesPerFrequency = boundaries->boundaries();
+    const BoundarySet & boundariesPerFrequency = boundaries.boundaries();
 
-    const double totalPhase = -boundaries->phaseRange().min;
-    const std::int32_t phasePointCount = boundaries->phaseCount();
+    const double totalPhase = -boundaries.phaseRange().min;
+    const std::int32_t phasePointCount = boundaries.phaseCount();
 
     for (std::size_t i = 0; i < boundariesPerFrequency.size(); i++)
     {
@@ -359,8 +351,9 @@ void BoundaryUnion1D::run(const BoundaryData * boundaries, const TraceMetadata &
             const auto foundMetadata = metadataMap.find(entry.first);
             if (foundMetadata != metadataMap.end() && !foundMetadata->second.empty())
             {
-                //An x of 0 marks the allowed side as above, 1 as below; the
-                //first point suffices, the whole trace shares one label.
+                //A false label marks the allowed side as above, true as
+                //below (see TraceLabels); the first point suffices, the
+                //whole trace shares one label.
                 upper = !foundMetadata->second.front();
             }
 
@@ -445,17 +438,21 @@ std::vector<bool> BoundaryUnion1D::takeUpperFlags()
 //now and the caller keeps what it passed.
 Trace BoundaryUnion1D::sortByProximity(const Trace & points) {
 
+    if (points.empty()) {
+        return {};
+    }
+
     Trace remaining = points;
     Trace ordered;
     ordered.reserve(remaining.size());
 
-    qftbx::NicholsPoint tmp = qftbx::NicholsPoint(10000, 1);
-
-    for (const qftbx::NicholsPoint & p : remaining) {
-        if (p.phase < tmp.phase){
-            tmp = qftbx::NicholsPoint (p);
-        }
-    }
+    //The leftmost point starts the walk. It used to be found against a
+    //sentinel at phase 10000, which an empty trace returned as a point.
+    qftbx::NicholsPoint current = *std::min_element(
+                remaining.begin(), remaining.end(),
+                [](const qftbx::NicholsPoint & a, const qftbx::NicholsPoint & b) {
+                    return a.phase < b.phase;
+                });
 
     const auto removeOne = [&remaining](const qftbx::NicholsPoint & value) {
         const auto found = std::find(remaining.begin(), remaining.end(), value);
@@ -464,25 +461,25 @@ Trace BoundaryUnion1D::sortByProximity(const Trace & points) {
         }
     };
 
-    ordered.push_back(tmp);
-    removeOne(tmp);
+    ordered.push_back(current);
+    removeOne(current);
 
-    const std::size_t lon = remaining.size();
+    const std::size_t stepCount = remaining.size();
 
-    for (std::size_t i = 0; i < lon; i++){
-        const qftbx::NicholsPoint uno(tmp);
-        double dis = 10000;
+    for (std::size_t i = 0; i < stepCount; i++){
+        const qftbx::NicholsPoint from(current);
+        double nearest = std::numeric_limits<double>::infinity();
 
-        for (const qftbx::NicholsPoint & dos : remaining){
-            const double dis2 = sqrt(pow(uno.phase - dos.phase, 2) + pow(uno.magnitude - dos.magnitude, 2));
-            if (dis2 < dis){
-                dis = dis2;
-                tmp = qftbx::NicholsPoint (dos);
+        for (const qftbx::NicholsPoint & candidate : remaining){
+            const double distance = std::hypot(from.phase - candidate.phase, from.magnitude - candidate.magnitude);
+            if (distance < nearest){
+                nearest = distance;
+                current = candidate;
             }
         }
 
-        ordered.push_back(tmp);
-        removeOne(tmp);
+        ordered.push_back(current);
+        removeOne(current);
     }
 
     return ordered;

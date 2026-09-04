@@ -74,8 +74,10 @@ using BoundarySheet = std::vector<std::vector<double>>;
 using BoundarySheets = std::array<BoundarySheet, 5>;
 
 /**
- * @brief The allowed-side label of each curve: true when the allowed side is
- * up (see BoundaryEngine::allowedZone, which returns 0 or 1).
+ * @brief The allowed-side label of each curve: true when the probe just
+ * under the curve's top is allowed, so the allowed region lies BELOW the
+ * curve; false when it lies above (BoundaryEngine::allowedZone returns 1
+ * or 0). The 1D union reads it as upper = !label.
  *
  * It was a vector of QPoint with the flag in x and y always zero and never
  * read - a boolean stuffed into a 2D integer point. The open and upper

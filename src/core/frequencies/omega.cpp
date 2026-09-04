@@ -71,9 +71,6 @@ Omega::GenerationType Omega::type() const {
 void Omega::setOmega(std::vector<double> values){
     requireUsable(values);
 
-    //Templates/Boundaries sometimes hand back the very frequencies we hold;
-    //by value that is a copy made before the assignment, so the aliasing
-    //guard the pointer version needed has nothing left to guard.
     m_pointCount = static_cast<std::int32_t>(values.size());
     m_values = std::move(values);
 }

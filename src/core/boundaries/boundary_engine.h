@@ -11,9 +11,6 @@
 #include <complex>
 #include <limits>
 #include <cmath>
-#ifdef OpenMP_AVAILABLE
-#include <omp.h>
-#endif
 #ifdef CUDA_AVAILABLE
 #include "src/core/gpu/boundary_sheets_cuda.h"
 #endif
@@ -54,11 +51,7 @@ namespace qftbx {
 class BoundaryEngine
 {
 public:
-
-    BoundaryEngine();
-
-    ~BoundaryEngine();
-
+    BoundaryEngine() = default;
     BoundaryEngine(const BoundaryEngine &) = delete;
     BoundaryEngine & operator=(const BoundaryEngine &) = delete;
 
@@ -83,20 +76,16 @@ public:
                  const qftbx::SpecificationRecords * specifications, qftbx::Range phaseRange,
                  std::int32_t phaseCount, qftbx::Range magnitudeRange, std::int32_t magnitudeCount, double exportInfinity, bool cuda);
 
-    /// A fresh non-owning view over the last computed results.
     /// A snapshot of the results, by value. It used to be a freshly
     /// allocated NON-OWNING view that every caller had to delete and that
     /// nothing in the type said was a view.
     BoundaryData boundaryData();
 
-    std::vector <double> * omega();
-
 
 private:
     SpecificationSet m_specifications;
 
-    //Deep-frees the previous run's results (the engine owns them; the
-    //BoundaryData views handed out never do).
+    //Clears the previous run's results.
     void releaseResults();
 
     void computeFrequencies(std::vector <double> * omega, LtiSystem * plant, const CloudSet & templates,
@@ -153,9 +142,6 @@ private:
 
     std::vector<bool> m_openFlags;
     std::vector<bool> m_upperFlags;
-
-    //Alias of the caller's frequency vector: never freed here.
-    std::vector <double> * m_omega = nullptr;
 
     bool m_cuda = false;
 

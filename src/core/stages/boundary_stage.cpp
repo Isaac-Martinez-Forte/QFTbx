@@ -46,15 +46,6 @@ bool BoundaryStage::run(ProjectData & data, Range phaseRange,
 
     data.setBoundaries(bounds.boundaryData());
 
-    //The engine's frequency vector ALIASES ours, so this only re-syncs the
-    //point count; by value the copy is made before the assignment, which is
-    //what used to need an aliasing guard inside setOmega().
-    //
-    //It goes through the Omega directly and NOT through the facade's
-    //setOmega, which would treat it as a new frequency set and drop the
-    //templates this computation has just read.
-    data.omega()->setOmega(*bounds.omega());
-
     return true;
 }
 

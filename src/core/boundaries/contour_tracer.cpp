@@ -6,15 +6,15 @@
 
 namespace qftbx {
 
-ContourTracer::ContourTracer(double thresholdDb, const BoundarySheet & sheet){
-    m_thresholdDb = thresholdDb;
-    m_sheet = &sheet;
+ContourTracer::ContourTracer(double thresholdDb, const BoundarySheet & sheet)
+    : m_thresholdDb(thresholdDb), m_sheet(&sheet)
+{
 }
 
 #ifdef CUDA_AVAILABLE
-ContourTracer::ContourTracer(double thresholdDb, const float *sheet){
-    m_thresholdDb = thresholdDb;
-    m_cudaSheet = sheet;
+ContourTracer::ContourTracer(double thresholdDb, const float *sheet)
+    : m_thresholdDb(thresholdDb), m_cudaSheet(sheet)
+{
 }
 #endif
 
@@ -120,8 +120,7 @@ TraceSet ContourTracer::trace(double phaseSpan, double magnitudeSpan,
                 }
 
                 //Degenerate traces (<= 1 point) are discarded.
-                if (trace.size() <= 1){
-                } else {
+                if (trace.size() > 1){
 
                     trace.insert(trace.begin(), qftbx::NicholsPoint(trace.front().phase-(phaseSpan / phaseCells), trace.front().magnitude));
                     trace.push_back(qftbx::NicholsPoint(trace.back().phase+(phaseSpan / phaseCells), trace.back().magnitude));
