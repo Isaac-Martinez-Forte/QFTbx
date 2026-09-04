@@ -12,9 +12,9 @@
 
 
 #include "src/core/specifications/specification_record.h"
-#include "src/core/exception.h"
+#include "src/core/common/exception.h"
 #include "src/core/specifications/specification.h"
-#include "src/core/project_data.h"
+#include "src/core/project/project_data.h"
 #include "src/core/system/polynomial_form.h"
 #include "src/core/system/parameter.h"
 #include "src/persistence/project_reader.h"

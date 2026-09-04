@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <limits>
 
-#include "boundary_union_1d.h"
+#include "src/core/boundaries/boundary_union_1d.h"
 
 namespace qftbx {
 

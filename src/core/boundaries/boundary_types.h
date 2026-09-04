@@ -5,7 +5,7 @@
 #include <map>
 #include <vector>
 
-#include "src/core/point.h"
+#include "src/core/math/point.h"
 #include <string>
 
 namespace qftbx {

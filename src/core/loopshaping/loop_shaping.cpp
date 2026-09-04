@@ -2,14 +2,14 @@
 #include <iostream>
 #include <vector>
 #include <cstdint>
-#include "src/core/text_tokens.h"
+#include "src/core/common/text_tokens.h"
 #include "src/core/loopshaping/loop_shaping.h"
 
 #include <cmath>
 #include <memory>
 
 
-#include "src/core/exception.h"
+#include "src/core/common/exception.h"
 
 //Dispatch to the selected loop-shaping algorithm. Every algorithm takes
 //the plant, the controller search box, the design frequencies and the

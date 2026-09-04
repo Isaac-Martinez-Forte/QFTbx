@@ -1,19 +1,19 @@
 #include <vector>
 #include <cstdint>
-#include "project_writer.h"
+#include "src/persistence/project_writer.h"
 
 #include <cmath>
 #include <cstdio>
 #include <string>
 
-#include "src/core/point.h"
+#include "src/core/math/point.h"
 
 #include <pugixml.hpp>
 
-#include "src/core/exception.h"
-#include "qft_dialect.h"
+#include "src/core/common/exception.h"
+#include "src/persistence/qft_dialect.h"
 #include "src/core/system/parameter.h"
-#include "src/core/text_tokens.h"
+#include "src/core/common/text_tokens.h"
 
 namespace qftbx {
 

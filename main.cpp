@@ -1,7 +1,7 @@
-#include "src/core/exception.h"
-#include "src/core/settings.h"
-#include "src/gui/application.h"
-#include "src/gui/main_window.h"
+#include "src/core/common/exception.h"
+#include "src/core/project/settings.h"
+#include "src/gui/application/application.h"
+#include "src/gui/application/main_window.h"
 #include <clocale>
 #include <memory>
 #include <QIcon>

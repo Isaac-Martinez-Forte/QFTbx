@@ -1,7 +1,7 @@
 #include <vector>
 #include "src/core/math/constants.h"
 #include <cstdint>
-#include "src/core/exception.h"
+#include "src/core/common/exception.h"
 #include "src/core/loopshaping/algorithm_mc1.h"
 
 using namespace cxsc;

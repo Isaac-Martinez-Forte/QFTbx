@@ -1,8 +1,8 @@
 #ifndef QFTBX_LOOPSHAPING_ALGORITHM_MC1_H
 #define QFTBX_LOOPSHAPING_ALGORITHM_MC1_H
 
-#include "src/core/settings.h"
-#include "src/core/loopshaping/cancellation.h"
+#include "src/core/project/settings.h"
+#include "src/core/pipeline/cancellation.h"
 #include <complex>
 
 #include <vector>

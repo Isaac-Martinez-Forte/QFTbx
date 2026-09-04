@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "src/core/range.h"
+#include "src/core/math/range.h"
 
 namespace qftbx {
 

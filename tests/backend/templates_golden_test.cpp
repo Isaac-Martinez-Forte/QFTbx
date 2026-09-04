@@ -18,8 +18,8 @@
 #include <complex>
 
 
-#include "src/core/project_controller.h"
-#include "src/core/exception.h"
+#include "src/app/project_controller.h"
+#include "src/core/common/exception.h"
 #include "src/core/templates/template_engine.h"
 #include "src/core/system/lti_system.h"
 #include "src/core/system/parameter.h"

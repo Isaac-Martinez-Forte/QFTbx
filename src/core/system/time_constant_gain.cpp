@@ -4,10 +4,10 @@
 #include <cmath>
 #include <complex>
 
-#include "src/core/text_tokens.h"
-#include "time_constant_gain.h"
+#include "src/core/common/text_tokens.h"
+#include "src/core/system/time_constant_gain.h"
 
-#include "src/core/exception.h"
+#include "src/core/common/exception.h"
 
 namespace qftbx {
 

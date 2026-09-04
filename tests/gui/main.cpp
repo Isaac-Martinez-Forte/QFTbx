@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 
-#include "src/gui/application.h"
+#include "src/gui/application/application.h"
 
 using namespace qftbx;
 

@@ -17,8 +17,8 @@
 #include <optional>
 #include <vector>
 
-#include "src/core/point.h"
-#include "src/core/range.h"
+#include "src/core/math/point.h"
+#include "src/core/math/range.h"
 
 #include "src/core/loopshaping/natural_interval_extension.h"
 #include "src/core/system/zero_pole_gain.h"

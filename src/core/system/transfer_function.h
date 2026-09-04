@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "lti_system.h"
+#include "src/core/system/lti_system.h"
 #include "src/core/system/parameter.h"
 
 namespace qftbx {

@@ -8,8 +8,8 @@
 
 #include <complex>
 
-#include "src/core/point.h"
-#include "src/core/range.h"
+#include "src/core/math/point.h"
+#include "src/core/math/range.h"
 
 #include "src/core/system/lti_system.h"
 #include "src/core/system/parameter.h"

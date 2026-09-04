@@ -1,8 +1,8 @@
 #ifndef QFTBX_LOOPSHAPING_LOOP_SHAPING_H
 #define QFTBX_LOOPSHAPING_LOOP_SHAPING_H
 
-#include "src/core/settings.h"
-#include "src/core/loopshaping/cancellation.h"
+#include "src/core/project/settings.h"
+#include "src/core/pipeline/cancellation.h"
 #include <vector>
 #include <cstdint>
 #include <memory>

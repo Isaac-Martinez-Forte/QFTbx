@@ -8,7 +8,7 @@
 
 #include <vector>
 
-#include "src/core/point.h"
+#include "src/core/math/point.h"
 
 #include "src/core/loopshaping/nominal_stability_checker.h"
 #include "src/core/system/zero_pole_gain.h"

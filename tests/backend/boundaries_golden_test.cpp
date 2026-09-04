@@ -23,16 +23,16 @@
 
 #include <vector>
 
-#include "src/core/point.h"
-#include "src/core/range.h"
+#include "src/core/math/point.h"
+#include "src/core/math/range.h"
 
 #include "src/core/boundaries/boundary_engine.h"
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/frequencies/omega.h"
 #include "src/persistence/project_reader.h"
 #include "src/core/system/free_form.h"
-#include "src/core/exception.h"
-#include "src/core/project_controller.h"
+#include "src/core/common/exception.h"
+#include "src/app/project_controller.h"
 
 using namespace qftbx;
 

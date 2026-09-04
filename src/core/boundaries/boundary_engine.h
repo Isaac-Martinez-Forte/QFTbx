@@ -3,7 +3,7 @@
 
 #include <string>
 #include <cstdint>
-#include "src/core/range.h"
+#include "src/core/math/range.h"
 #include <vector>
 
 #include "src/core/templates/cloud_set.h"
@@ -18,9 +18,9 @@
 #include "src/core/system/lti_system.h"
 #include "src/core/specifications/specification.h"
 #include "src/core/specifications/specification_record.h"
-#include "contour_tracer.h"
-#include "boundary_data.h"
-#include "boundary_union_1d.h"
+#include "src/core/boundaries/contour_tracer.h"
+#include "src/core/boundaries/boundary_data.h"
+#include "src/core/boundaries/boundary_union_1d.h"
 
 namespace qftbx {
 

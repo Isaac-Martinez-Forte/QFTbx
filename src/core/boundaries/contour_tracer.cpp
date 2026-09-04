@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <vector>
 #include <cstdint>
-#include "contour_tracer.h"
+#include "src/core/boundaries/contour_tracer.h"
 
 namespace qftbx {
 

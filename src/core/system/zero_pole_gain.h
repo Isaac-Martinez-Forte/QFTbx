@@ -1,7 +1,7 @@
 #ifndef QFTBX_ZERO_POLE_GAIN_H
 #define QFTBX_ZERO_POLE_GAIN_H
 
-#include "transfer_function.h"
+#include "src/core/system/transfer_function.h"
 
 #include <string>
 

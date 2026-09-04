@@ -1,4 +1,4 @@
-#include "box_classification.h"
+#include "src/core/loopshaping/box_classification.h"
 
 namespace qftbx {
 

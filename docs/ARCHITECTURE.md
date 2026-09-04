@@ -35,25 +35,27 @@ stage has a dialog in the GUI and an engine in the model layer.
 
 | Directory | Contents |
 |---|---|
+| `src/core/common/` | `qftbx::Exception` and its subclasses; number and token text helpers |
+| `src/core/math/` | Numeric helpers (`linspace`/`logspace`), ranges and points, expression cache, constants |
 | `src/core/system/` | Plant/controller representation: `LtiSystem` hierarchy, transfer functions, parameters |
-| `src/core/templates/` | Brute-force template computation and ε-hull contour (`TemplateEngine`) |
-| `src/core/specifications/` | Validated specification set (`qftbx::Specification`) |
-| `src/core/boundaries/` | Boundary computation: sheets (`BoundaryEngine`), contour tracing (`ContourTracer`), 1D union (`BoundaryUnion1D`), results view (`BoundaryData`) |
-| `src/core/math/` | Numeric helpers (`linspace`/`logspace`), expression cache |
 | `src/core/frequencies/` | The design frequency set (`Omega`) |
+| `src/core/specifications/` | Validated specification set (`qftbx::Specification`) |
+| `src/core/templates/` | Brute-force template computation and ε-hull contour (`TemplateEngine`) |
+| `src/core/boundaries/` | Boundary computation: sheets (`BoundaryEngine`), contour tracing (`ContourTracer`), 1D union (`BoundaryUnion1D`), results view (`BoundaryData`) |
 | `src/core/loopshaping/` | The five loop-shaping algorithms and their interval-arithmetic support |
-| `src/core/project_controller.h` | `ProjectController`: the single mediator between GUI and core, one method per design step |
-| `src/core/project_data.h` | What a project holds, owned by value |
-| `src/core/exception.h` | `qftbx::Exception` and its subclasses |
+| `src/core/project/` | What a project holds, owned by value (`ProjectData`); the user settings (`Settings`) |
+| `src/core/pipeline/` | The design steps as data (`Step`), one stage per step, background execution and cancellation |
 | `src/core/gpu/` | Optional CUDA kernels for templates/boundaries (`USE_CUDA`) |
 | `src/persistence/` | Load/save of `.qft` project files (pugixml; versioned English dialect, legacy Spanish files still load) |
-| `src/gui/` | Qt Widgets HMI: one dialog per stage plus plot viewers (QCustomPlot) |
-| `tests/` | GoogleTest suite; golden `.qft` projects in `tests/data/` |
+| `src/app/` | `ProjectController`: the single mediator between GUI and core, one method per design step |
+| `src/gui/` | Qt Widgets HMI: one folder per design step with its dialog and viewers (QCustomPlot), plus `application/` (shell, main window) and `common/` (shared widgets and helpers) |
+| `tests/` | GoogleTest suites in `backend/` and `gui/`; golden `.qft` projects in `tests/data/` |
 
 Build targets: `qftbx_core` (the algorithms and the model), `qftbx_persistence`,
 `qftbx_app` (the mediator), `qftbx_gui`, and the `QFTbx` executable on top of them;
-`qftbx_backend` is an interface target that pulls the non-GUI ones together, which is
-what `qftbx_tests` links against.
+`qftbx_tests` links the facade. Every folder has a `CMakeLists.txt` that adds its own
+files to the target it belongs to (`cmake/QftbxFunctions.cmake`), so no file list is
+kept by hand.
 
 ## Third-party libraries (vendored in `3rd-party/`)
 
@@ -64,7 +66,7 @@ what `qftbx_tests` links against.
 ## Error handling
 
 Backend code never interacts with the user: it throws exceptions derived from
-`qftbx::Exception` (`src/core/exception.h`) and the GUI shows the message. An
+`qftbx::Exception` (`src/core/common/exception.h`) and the GUI shows the message. An
 exception escaping a Qt slot propagates into the event loop and terminates the
 process, so slots reaching backend code catch at their boundary — and, since one
 forgotten slot is enough to lose the application, `qftbx::Application` overrides

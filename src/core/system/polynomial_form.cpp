@@ -4,8 +4,8 @@
 #include <cmath>
 #include <complex>
 
-#include "src/core/text_tokens.h"
-#include "polynomial_form.h"
+#include "src/core/common/text_tokens.h"
+#include "src/core/system/polynomial_form.h"
 
 
 namespace qftbx {

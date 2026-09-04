@@ -71,10 +71,10 @@
 //A failed comparison of C-XSC values must report, not crash: see the header.
 #include "tests/backend/cxsc_printing.h"
 
-#include "src/core/point.h"
-#include "src/core/range.h"
+#include "src/core/math/point.h"
+#include "src/core/math/range.h"
 
-#include "src/core/project_controller.h"
+#include "src/app/project_controller.h"
 
 using namespace qftbx;
 

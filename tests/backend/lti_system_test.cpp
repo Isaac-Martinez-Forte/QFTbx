@@ -14,8 +14,8 @@
 #include <complex>
 #include <vector>
 
-#include "src/core/point.h"
-#include "src/core/range.h"
+#include "src/core/math/point.h"
+#include "src/core/math/range.h"
 
 #include "src/core/system/polynomial_form.h"
 #include "src/core/system/free_form.h"
@@ -23,7 +23,7 @@
 #include "src/core/system/time_constant_gain.h"
 #include "src/core/system/lti_system.h"
 #include "src/core/system/parameter.h"
-#include "src/core/exception.h"
+#include "src/core/common/exception.h"
 
 using namespace qftbx;
 

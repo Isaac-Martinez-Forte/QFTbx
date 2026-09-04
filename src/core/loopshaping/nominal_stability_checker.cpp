@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <cmath>
 
-#include "src/core/exception.h"
+#include "src/core/common/exception.h"
 #include "src/core/system/parameter.h"
 
 namespace qftbx {

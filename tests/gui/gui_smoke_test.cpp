@@ -18,15 +18,15 @@
 
 #include <vector>
 
-#include "src/core/point.h"
+#include "src/core/math/point.h"
 
-#include "src/core/range.h"
+#include "src/core/math/range.h"
 
 #include <complex>
 #include <memory>
 
 #include <QAction>
-#include "src/core/pipeline_step.h"
+#include "src/core/pipeline/pipeline_step.h"
 #include <QCheckBox>
 #include <QDialog>
 #include <QLineEdit>
@@ -39,28 +39,28 @@
 #include <QString>
 #include <QStringList>
 
-#include "src/core/project_controller.h"
-#include "src/gui/plant_dialog.h"
-#include "src/gui/controller_dialog.h"
-#include "src/gui/frequencies_dialog.h"
-#include "src/gui/specifications_dialog.h"
-#include "src/gui/template_viewer.h"
-#include "src/gui/bode_viewer.h"
+#include "src/app/project_controller.h"
+#include "src/gui/plant/plant_dialog.h"
+#include "src/gui/loopshaping/controller_dialog.h"
+#include "src/gui/frequencies/frequencies_dialog.h"
+#include "src/gui/specifications/specifications_dialog.h"
+#include "src/gui/templates/template_viewer.h"
+#include "src/gui/plant/bode_viewer.h"
 #include "src/core/math/sequence_vectors.h"
 #include "src/core/system/polynomial_form.h"
-#include "src/gui/uncertainty_dialog.h"
-#include "src/gui/boundary_viewer.h"
-#include "src/gui/boundary_union_viewer.h"
-#include "src/gui/loop_shaping_viewer.h"
-#include "src/gui/loop_boundaries_viewer.h"
+#include "src/gui/plant/uncertainty_dialog.h"
+#include "src/gui/boundaries/boundary_viewer.h"
+#include "src/gui/boundaries/boundary_union_viewer.h"
+#include "src/gui/loopshaping/loop_shaping_viewer.h"
+#include "src/gui/loopshaping/loop_boundaries_viewer.h"
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/loopshaping/loop_shaping_result.h"
-#include "src/gui/boundary_grid_dialog.h"
-#include "src/gui/templates_dialog.h"
-#include "src/gui/loop_shaping_dialog.h"
-#include "src/gui/main_window.h"
-#include "src/gui/error_message.h"
-#include "src/core/exception.h"
+#include "src/gui/boundaries/boundary_grid_dialog.h"
+#include "src/gui/templates/templates_dialog.h"
+#include "src/gui/loopshaping/loop_shaping_dialog.h"
+#include "src/gui/application/main_window.h"
+#include "src/gui/application/error_message.h"
+#include "src/core/common/exception.h"
 
 using namespace qftbx;
 

@@ -19,7 +19,7 @@
 #include <QFile>
 #include <QTemporaryDir>
 
-#include "src/core/exception.h"
+#include "src/core/common/exception.h"
 #include "src/persistence/project_reader.h"
 
 using namespace qftbx;

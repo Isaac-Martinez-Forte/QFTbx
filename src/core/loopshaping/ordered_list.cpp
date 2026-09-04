@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "src/core/exception.h"
+#include "src/core/common/exception.h"
 
 namespace qftbx {
 

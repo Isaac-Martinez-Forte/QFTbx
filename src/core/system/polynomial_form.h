@@ -1,7 +1,7 @@
 #ifndef QFTBX_POLYNOMIAL_FORM_H
 #define QFTBX_POLYNOMIAL_FORM_H
 
-#include "transfer_function.h"
+#include "src/core/system/transfer_function.h"
 
 #include <string>
 

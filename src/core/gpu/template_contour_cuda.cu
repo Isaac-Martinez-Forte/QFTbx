@@ -12,7 +12,7 @@
 //truncation at MAXP. The faithful EPSHULL.M walk with its documented
 //fallback is CPU-only for now (phase-8 note in REFACTOR_PLAN).
 
-#include "template_contour_cuda.h"
+#include "src/core/gpu/template_contour_cuda.h"
 
 #include <cmath>
 #include <cstddef>
@@ -23,7 +23,7 @@
 #include <thrust/device_ptr.h>
 #include <thrust/extrema.h>
 
-#include "cuda_utility.cuh"
+#include "src/core/gpu/cuda_utility.cuh"
 
 namespace qftbx {
 

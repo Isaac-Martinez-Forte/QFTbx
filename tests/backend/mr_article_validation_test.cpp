@@ -96,8 +96,8 @@
 
 #include "src/core/frequencies/omega.h"
 #include "src/core/loopshaping/algorithm_mr.h"
-#include "src/core/project_controller.h"
-#include "src/core/range.h"
+#include "src/app/project_controller.h"
+#include "src/core/math/range.h"
 #include "src/core/specifications/specification_record.h"
 #include "src/core/system/free_form.h"
 #include "src/core/system/parameter.h"

@@ -11,13 +11,13 @@
 
 #include <vector>
 
-#include "src/core/point.h"
+#include "src/core/math/point.h"
 
-#include "src/core/range.h"
+#include "src/core/math/range.h"
 
 #include <QTemporaryDir>
 
-#include "src/core/project_controller.h"
+#include "src/app/project_controller.h"
 #include "project_compare.h"
 #include "src/persistence/project_reader.h"
 

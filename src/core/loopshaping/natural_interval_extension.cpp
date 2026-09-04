@@ -3,7 +3,7 @@
 
 #include <cmath>
 
-#include "src/core/exception.h"
+#include "src/core/common/exception.h"
 
 using cxsc::cinterval;
 using cxsc::complex;
