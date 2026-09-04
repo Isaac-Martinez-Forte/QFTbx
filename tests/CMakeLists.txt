@@ -35,6 +35,7 @@ add_executable(qftbx_tests
   backend/controller_pipeline_test.cpp
   backend/project_staleness_test.cpp
   backend/stage_sequence_test.cpp
+  backend/settings_test.cpp
   backend/computation_failure_test.cpp
   backend/loopshaping_structures_test.cpp
   backend/interval_extension_test.cpp
@@ -64,6 +65,7 @@ target_compile_options(qftbx_tests PRIVATE -frounding-math)
 
 target_compile_definitions(qftbx_tests
   PRIVATE QFTBX_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data"
+  PRIVATE QFTBX_EXAMPLE_CONFIG="${CMAKE_SOURCE_DIR}/qftbx.conf.example"
 )
 
 # libcxsc.so se construye via ExternalProject; el RPATH del build tree no la

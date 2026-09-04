@@ -1,6 +1,7 @@
 #ifndef QFTBX_BOUNDARY_GRID_DIALOG_H
 #define QFTBX_BOUNDARY_GRID_DIALOG_H
 
+#include "src/core/settings.h"
 #include "src/gui/step_dialog.h"
 #include <memory>
 
@@ -29,6 +30,15 @@ class BoundaryGridDialog : public StepDialog
     Q_OBJECT
     
 public:
+    /**
+     * @brief The ceiling on grid cells, from the settings.
+     *
+     * Handed in rather than compiled in, so it can be changed without a
+     * rebuild. It only ever REFUSES input, so moving it changes no result -
+     * which is why it is the safest kind of setting there is.
+     */
+    void setMaxGridCells(std::int64_t cells) { m_maxGridCells = cells; }
+
   
     explicit BoundaryGridDialog(QWidget *parent = 0);
 
@@ -80,6 +90,9 @@ private:
     qreal infinityEdit = 0.0;
     bool accepted_once = false;
     bool cudaCheck = false;
+
+    /// Default from qftbx::Settings::Limits.
+    std::int64_t m_maxGridCells = qftbx::Settings().limits.maxGridCells;
 
 };
 

@@ -162,7 +162,7 @@ inline std::unique_ptr<LtiSystem> AlgorithmMcThesis::replaceParameter(LtiSystem 
 //and the cutting/bisection strategies wired per the pseudocode.
 bool AlgorithmMcThesis::solve()
 {
-    liveList = std::make_unique<OrderedList>();
+    liveList = std::make_unique<OrderedList>(false, m_maxLiveNodes);
     conversion = std::make_unique<NaturalIntervalExtension>();
     detector = std::make_unique<BoundaryViolationDetector>();
     stability = std::make_unique<NominalStabilityChecker>(plant, omega);

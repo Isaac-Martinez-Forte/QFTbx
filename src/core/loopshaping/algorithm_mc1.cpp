@@ -84,7 +84,7 @@ void AlgorithmMc1::setProblem(LtiSystem * plant, LtiSystem * controller, std::ve
 //prune variable C of step 3bis behind bestCertifiedGain.
 bool AlgorithmMc1::solve()
 {
-    liveList = std::make_unique<OrderedList>();
+    liveList = std::make_unique<OrderedList>(false, m_maxLiveNodes);
     conversion = std::make_unique<NaturalIntervalExtension>();
     detector = std::make_unique<BoundaryViolationDetector>();
     stability = std::make_unique<NominalStabilityChecker>(plant, omega);

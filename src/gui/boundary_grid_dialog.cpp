@@ -76,12 +76,6 @@ bool BoundaryGridDialog::contourSelected(){
     return true;
 }
 
-namespace {
-//Ten million cells is far past any sensible Nichols grid and still a
-//comfortable allocation.
-constexpr std::int64_t kMaxGridCells = 10000000;
-}
-
 void BoundaryGridDialog::on_buttonBox_accepted()
 {
     if (ui->infinityEdit->text().isEmpty()){
@@ -111,12 +105,13 @@ void BoundaryGridDialog::on_buttonBox_accepted()
     //qftbx::Exception the computation is wrapped in, so the application went
     //down on a typo. The budget guards against that typo; it is not a
     //control-design limit, and it can be raised. For scale, a 1-degree phase
-    //grid over 360 degrees is 360 points per axis.
-    if (static_cast<std::int64_t>(phaseCount) * magnitudeCount > kMaxGridCells){
+    //grid over 360 degrees is 360 points per axis. It comes from the
+    //settings now, so it can be moved without a rebuild.
+    if (static_cast<std::int64_t>(phaseCount) * magnitudeCount > m_maxGridCells){
         tools::errorMessage(tr("The grid asks for %1 cells, and the limit is "
                                "%2. Reduce the number of points per axis.")
                                 .arg(static_cast<std::int64_t>(phaseCount) * magnitudeCount)
-                                .arg(kMaxGridCells),
+                                .arg(m_maxGridCells),
                             tr("Boundary grid input"));
         return;
     }

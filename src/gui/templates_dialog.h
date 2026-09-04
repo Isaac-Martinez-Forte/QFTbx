@@ -1,6 +1,7 @@
 #ifndef QFTBX_TEMPLATES_DIALOG_H
 #define QFTBX_TEMPLATES_DIALOG_H
 
+#include "src/core/settings.h"
 #include "src/gui/step_dialog.h"
 #include <memory>
 
@@ -47,6 +48,10 @@ class TemplatesDialog : public StepDialog
     Q_OBJECT
     
 public:
+    /// Ceiling on a parameter grid's point count, from the settings. It only
+    /// ever refuses input, so moving it changes no computed result.
+    void setMaxPointCount(double points) { m_maxPointCount = points; }
+
   
   
     explicit TemplatesDialog(QWidget *parent = 0);
@@ -157,6 +162,8 @@ private:
     QStringList duplicateNames;
 
     qint32 frequencyCount = 0;
+
+    double m_maxPointCount = qftbx::Settings().limits.maxTemplatePoints;
 
 };
 

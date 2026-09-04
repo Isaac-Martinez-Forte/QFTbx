@@ -13,6 +13,7 @@
 #include "src/core/system/lti_system.h"
 #include "src/core/background_run.h"
 #include "src/core/pipeline_step.h"
+#include "src/core/settings.h"
 #include "src/core/loopshaping/loop_shaping_types.h"
 #include "src/core/stages/boundary_stage.h"
 #include "src/core/stages/loop_shaping_stage.h"
@@ -189,6 +190,15 @@ public:
     bool computeLoopShaping(double epsilon, tools::LoopShapingAlgorithm algorithm, qftbx::Range plotRange,
                             double pointCount, std::int32_t initialisation = 0,
                             const qftbx::CancellationToken * cancellation = nullptr);
+
+    /**
+     * @brief Applies the settings the application read.
+     *
+     * Only what the CORE needs: today that is the search's memory budget.
+     * The interface keeps its own copy for its dialogs' ceilings. Called once
+     * after construction; the compiled defaults stand until it is.
+     */
+    void applySettings(const qftbx::Settings & settings);
 
     // --- the pipeline as data ----------------------------------------------
 

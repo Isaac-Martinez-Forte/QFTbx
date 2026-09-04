@@ -1,0 +1,78 @@
+# QFTbx settings.
+#
+# Every value here has a compiled default, and this file only says what to
+# CHANGE: a key you leave out keeps its default, and with no settings file at
+# all the program runs exactly as it does today. Nothing in here is required.
+#
+# Where it is looked for, first one that exists wins:
+#
+#   1. the path in the QFTBX_CONFIG environment variable  (naming a file that
+#      cannot be read IS an error - naming it says you meant it)
+#   2. ./qftbx.conf, next to wherever the program was started
+#   3. $HOME/.config/qftbx/qftbx.conf
+#
+# Comments start with # or ; and run to the end of the line. Sections group
+# the keys, and a key is its whole path: max-grid-cells under [limits] is
+# limits.max-grid-cells, and the same name under another section is a
+# different setting.
+#
+# A value that is not a number is REFUSED, naming the key and the line. It
+# does not quietly become zero: every setting below states its range, and a
+# value outside it stops the program with a message rather than running with
+# something you did not intend.
+#
+# What is NOT here, and will not be: 2*pi, the two layers of the boundary
+# union, the seven specification slots, the 0 dB ray of the stability
+# criterion. Those can be written in a file, and writing them would not
+# configure anything - it would break the program. A setting is a value with
+# a defensible range.
+
+
+# ---------------------------------------------------------------------------
+# [limits] - ceilings that exist to stop a typo, not to express a limit of the
+# method. Every one of these only ever REFUSES input, so moving them changes
+# no computed result. They are the safest thing in this file.
+# ---------------------------------------------------------------------------
+[limits]
+
+# Cells of the Nichols grid for the boundaries: phase points x magnitude
+# points. For scale, a one-degree grid over 360 degrees is 361 points per
+# axis, so 130321 cells. The default is far past anything sensible, and it is
+# here because two extra zeros in a dialog used to reach an allocation of that
+# many doubles and take the application down.
+# Range: 4 to 1e15.
+# max-grid-cells = 10000000
+
+# Points per parameter grid in the template sweep. The count comes from an
+# expression you type, so it can be anything the parser accepts - a negative
+# one used to ask for 1.8e19 doubles.
+# Range: 1 to 1e12.
+# max-template-points = 1000000
+
+# Design frequencies in one set.
+# Range: 1 to 2147483647.
+# max-frequency-count = 1000000
+
+# Largest magnitude accepted in the loop-shaping dialog's fields, which is
+# what keeps an infinity out of an integer conversion.
+# Range: 1 to 1e300.
+# max-magnitude = 1e12
+
+
+# ---------------------------------------------------------------------------
+# [search] - what the interval search is allowed to spend.
+# ---------------------------------------------------------------------------
+[search]
+
+# Live nodes the branch & bound list may hold before it refuses to grow.
+# It is a MEMORY budget, not a time one: a node measures 528 bytes with two
+# uncertain parameters and 1056 with eight, so the default is of the order of
+# 17 to 34 GB.
+#
+# How to set it from your own runs: every loop-shaping run prints "peak live
+# nodes" next to its elapsed time. The peaks of the long benchmarks are the
+# number to size this from - the small fixtures all resolve early, with peaks
+# between 1 and 281 nodes whatever the epsilon, so they say nothing useful
+# about it.
+# Range: 1 to 1e15.
+# max-live-nodes = 32000000

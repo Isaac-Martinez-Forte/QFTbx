@@ -76,6 +76,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
         auto nt = std::make_unique<AlgorithmNt>();
         nt->setProblem(plant, controller, omega, boundaries, epsilon);
         nt->setCancellation(m_cancellation);
+        nt->setMaxLiveNodes(m_maxLiveNodes);
         timer = std::chrono::steady_clock::now();
         re = nt->solve();
         if (re) {
@@ -85,6 +86,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
         auto nk = std::make_unique<AlgorithmNk>();
         nk->setProblem(plant, controller, omega, boundaries, epsilon, initialisation);
         nk->setCancellation(m_cancellation);
+        nk->setMaxLiveNodes(m_maxLiveNodes);
         timer = std::chrono::steady_clock::now();
         re = nk->solve();
         if (re) {
@@ -94,6 +96,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
         auto mr = std::make_unique<AlgorithmMr>();
         mr->setProblem(plant, controller, omega, boundaries, epsilon, contour, specifications);
         mr->setCancellation(m_cancellation);
+        mr->setMaxLiveNodes(m_maxLiveNodes);
         timer = std::chrono::steady_clock::now();
         re = mr->solve();
         if (re) {
@@ -103,6 +106,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
         auto mc1 = std::make_unique<AlgorithmMc1>();
         mc1->setProblem(plant, controller, omega, boundaries, epsilon);
         mc1->setCancellation(m_cancellation);
+        mc1->setMaxLiveNodes(m_maxLiveNodes);
         timer = std::chrono::steady_clock::now();
         re = mc1->solve();
         if (re) {
@@ -112,6 +116,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
         auto mc_thesis = std::make_unique<AlgorithmMcThesis>();
         mc_thesis->setProblem(plant, controller, omega, boundaries, epsilon);
         mc_thesis->setCancellation(m_cancellation);
+        mc_thesis->setMaxLiveNodes(m_maxLiveNodes);
         timer = std::chrono::steady_clock::now();
         re = mc_thesis->solve();
         if (re) {

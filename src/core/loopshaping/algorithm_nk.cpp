@@ -48,7 +48,7 @@ void AlgorithmNk::setProblem(LtiSystem *plant, LtiSystem *controller, std::vecto
 //feasibility test of every box (steps 2 and 9).
 bool AlgorithmNk::solve(){
 
-    liveList = std::make_unique<OrderedList>();
+    liveList = std::make_unique<OrderedList>(false, m_maxLiveNodes);
     conversion = std::make_unique<NaturalIntervalExtension>();
     detector = std::make_unique<BoundaryViolationDetector>();
     stability = std::make_unique<NominalStabilityChecker>(plant, omega);

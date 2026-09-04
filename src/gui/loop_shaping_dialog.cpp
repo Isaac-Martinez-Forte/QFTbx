@@ -51,11 +51,6 @@ bool readField(ParserX & parser, QLineEdit * field, const QString & complaint,
     return true;
 }
 
-//Generous ceilings: they exist to keep a typo from reaching a conversion or
-//an allocation, not to express any control-design limit.
-constexpr double kMaxPointCount = 1.0e6;
-constexpr double kMaxMagnitude  = 1.0e12;
-
 }
 
 LoopShapingDialog::LoopShapingDialog(QWidget *parent) :
@@ -123,26 +118,26 @@ void LoopShapingDialog::on_okButton_clicked()
 
     if (!readField(p, ui->epsilonEdit,
                    tr("The epsilon must be a positive real number."),
-                   std::numeric_limits<double>::denorm_min(), kMaxMagnitude,
+                   std::numeric_limits<double>::denorm_min(), m_maxMagnitude,
                    epsilonEdit)){
         return;
     }
 
     if (!readField(p, ui->startEdit,
                    tr("The start frequency must be a real number."),
-                   -kMaxMagnitude, kMaxMagnitude, plotRange.min)){
+                   -m_maxMagnitude, m_maxMagnitude, plotRange.min)){
         return;
     }
 
     if (!readField(p, ui->endEdit,
                    tr("The end frequency must be a real number."),
-                   -kMaxMagnitude, kMaxMagnitude, plotRange.max)){
+                   -m_maxMagnitude, m_maxMagnitude, plotRange.max)){
         return;
     }
 
     if (!readField(p, ui->pointCountEdit,
                    tr("The point count must be a whole number of at least 1."),
-                   1.0, kMaxPointCount, pointCountEdit)){
+                   1.0, m_maxPointCount, pointCountEdit)){
         return;
     }
 

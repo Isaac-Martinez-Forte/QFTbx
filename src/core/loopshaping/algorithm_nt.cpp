@@ -68,7 +68,7 @@ void AlgorithmNt::setProblem(LtiSystem * plant, LtiSystem * controller, std::vec
 
 bool AlgorithmNt::solve() {
 
-    liveList = std::make_unique<OrderedList>();
+    liveList = std::make_unique<OrderedList>(false, m_maxLiveNodes);
 
     conversion = std::make_unique<NaturalIntervalExtension>();
     detector = std::make_unique<BoundaryViolationDetector>();

@@ -14,12 +14,6 @@
 using namespace tools;
 
 
-namespace {
-//Enough for any design frequency sweep, and small enough that the count
-//cannot overflow the std::int32_t that logspace and linspace take.
-constexpr int kMaxFrequencyCount = 1000000;
-}
-
 FrequenciesDialog::FrequenciesDialog(QWidget *parent) :
     StepDialog(parent),
     ui(std::make_unique<Ui::FrequenciesDialog>())
@@ -35,11 +29,10 @@ FrequenciesDialog::FrequenciesDialog(QWidget *parent) :
     //a "10.5" was accepted and silently truncated, and a "1e12" reached a
     //std::int32_t parameter, where converting a double that far out of range
     //is undefined behaviour. The boundary grid dialog already does this.
-    ui->logCount->setValidator(new QIntValidator(1, kMaxFrequencyCount, this));
+    applyFrequencyCountLimit(qftbx::Settings().limits.maxFrequencyCount);
 
     ui->linEnd->setValidator(new QDoubleValidator(this));
     ui->linStart->setValidator(new QDoubleValidator(this));
-    ui->linCount->setValidator(new QIntValidator(1, kMaxFrequencyCount, this));
 
 
     connect(ui->cancelButton, SIGNAL(clicked()), this, SLOT(close()));
@@ -56,6 +49,22 @@ void FrequenciesDialog::on_fileButton_clicked()
         filePath=fileName;
         ui->filePathLabel->setText(filePath);
     }
+}
+
+//The ceiling on how many design frequencies a set may hold. Applied through
+//the validators, so it has to be re-applied rather than just stored: it comes
+//from the settings, and the default is small enough that the count cannot
+//overflow the std::int32_t that logspace and linspace take.
+void FrequenciesDialog::applyFrequencyCountLimit(std::int32_t count)
+{
+    m_maxFrequencyCount = count;
+
+    //A count of frequencies is a whole number. With a QDoubleValidator here
+    //a "10.5" was accepted and silently truncated, and a "1e12" reached a
+    //std::int32_t parameter, where converting a double that far out of range
+    //is undefined behaviour. The boundary grid dialog already does this.
+    ui->logCount->setValidator(new QIntValidator(1, m_maxFrequencyCount, this));
+    ui->linCount->setValidator(new QIntValidator(1, m_maxFrequencyCount, this));
 }
 
 void FrequenciesDialog::on_okButton_clicked()

@@ -98,6 +98,14 @@ public:
     void setCancellation(const qftbx::CancellationToken * token)
     { m_cancellation = token; }
 
+    /**
+     * @brief The memory budget of the live-node list, from the settings.
+     *
+     * Set before solve(); the default is kDefaultMaxLiveNodes, which is what
+     * every existing caller keeps.
+     */
+    void setMaxLiveNodes(std::size_t nodes) { m_maxLiveNodes = nodes; }
+
     bool solve();
 
     /// The designed controller, handed over to the caller.
@@ -155,6 +163,8 @@ private:
 
     /// Not owned. Null means this run cannot be cancelled.
     const qftbx::CancellationToken * m_cancellation = nullptr;
+
+    std::size_t m_maxLiveNodes = kDefaultMaxLiveNodes;
 
 };
 

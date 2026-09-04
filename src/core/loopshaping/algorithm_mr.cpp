@@ -268,7 +268,7 @@ inline void AlgorithmMr::buildConstraints(){
 
 bool AlgorithmMr::solve(){
 
-    liveList = std::make_unique<OrderedList>();
+    liveList = std::make_unique<OrderedList>(false, m_maxLiveNodes);
     stability = std::make_unique<NominalStabilityChecker>(plant, omega);
 
     buildControllerExpressions();

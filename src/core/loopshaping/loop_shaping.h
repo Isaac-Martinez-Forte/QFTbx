@@ -80,9 +80,22 @@ public:
     void setCancellation(const qftbx::CancellationToken * token)
     { m_cancellation = token; }
 
+    /**
+     * @brief The memory budget of the live-node list, handed to whichever
+     * algorithm run() builds.
+     *
+     * A node measures 528 bytes with two uncertain parameters and 1056 with
+     * eight, so this is of the order of tens of gigabytes at the default. It
+     * is a setting because the number to size it from is the peak that every
+     * run reports, and those come from the long benchmarks.
+     */
+    void setMaxLiveNodes(std::size_t nodes) { m_maxLiveNodes = nodes; }
+
 private:
     /// Not owned; handed to whichever algorithm run() builds.
     const qftbx::CancellationToken * m_cancellation = nullptr;
+
+    std::size_t m_maxLiveNodes = kDefaultMaxLiveNodes;
 
 
     std::unique_ptr<LtiSystem> controller;
