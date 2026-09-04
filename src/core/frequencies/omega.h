@@ -45,6 +45,7 @@ public:
 
     /// Observer on the frequencies, which the set holds by value.
     std::vector<double> * values();
+    const std::vector<double> * values() const;
 
     GenerationType type() const;
 

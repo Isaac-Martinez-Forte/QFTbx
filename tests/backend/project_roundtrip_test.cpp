@@ -41,10 +41,10 @@ protected:
         content.plant = original.plant();
         content.specifications = original.specifications();
         content.omega = original.omega();
-        content.templates = original.templates();
-        content.contour = original.contour();
+        content.templates = &original.templates();
+        content.contour = &original.contour();
         content.epsilon = original.epsilon();
-        content.boundaries = const_cast<BoundaryData *>(original.boundaries());
+        content.boundaries = original.boundaries();
         content.controller = original.controller();
         content.loopShaping = original.loopShaping();
 

@@ -64,6 +64,10 @@ std::vector<double> * Omega::values(){
     return &m_values;
 }
 
+const std::vector<double> * Omega::values() const{
+    return &m_values;
+}
+
 Omega::GenerationType Omega::type() const {
     return m_type;
 }

@@ -38,8 +38,8 @@ public:
     [[noreturn]] void fail(const pugi::xml_node & node, const std::string & what) const
     {
         std::int64_t line = 0;
-        const ptrdiff_t offset = node.offset_debug();
-        if (offset >= 0 && offset <= m_raw.size()) {
+        const std::ptrdiff_t offset = node.offset_debug();
+        if (offset >= 0 && static_cast<std::size_t>(offset) <= m_raw.size()) {
             line = 1 + std::count(m_raw.begin(),
                                   m_raw.begin() + static_cast<std::ptrdiff_t>(offset), '\n');
         }
@@ -197,7 +197,7 @@ public:
         }
 
         //Gain and delay: the two parameter elements that are direct children
-        //of <type> (the legacy dialect names them variable-k/variable-ret).
+        //of <type>.
         std::vector <Parameter> scalars;
         for (const pugi::xml_node & child : typeNode.children()) {
             if (child.child(t.nominal)) {
@@ -235,7 +235,7 @@ public:
         //The set is positional with 7 fixed slots: consumers index blindly,
         //and the type now carries that count.
         const auto slotRange = section.children(t.specification);
-        const std::int32_t count = static_cast<std::int32_t>(std::distance(slotRange.begin(), slotRange.end()));
+        const std::size_t count = static_cast<std::size_t>(std::distance(slotRange.begin(), slotRange.end()));
         if (count != kSpecificationCount) {
             fail(section, "a project needs exactly 7 specification slots");
         }
@@ -259,8 +259,7 @@ public:
                     record.height = realChild(node, t.magnitude);
                 } else {
                     //The embedded plant is the child that carries a <type>
-                    //element (its tag is the plant name in the legacy
-                    //dialect).
+                    //element.
                     pugi::xml_node systemNode;
                     for (const pugi::xml_node & child : node.children()) {
                         if (child.child(t.type)) {
@@ -373,7 +372,6 @@ public:
         for (const pugi::xml_node & frequencyNode : require(data, t.perFrequency).children()) {
             std::map<std::string, qftbx::TraceSet> map;
             for (const pugi::xml_node & keyNode : frequencyNode.children()) {
-                //Legacy files store the historical Spanish keys.
                 map[std::string(keyNode.name())] = readTraces(keyNode);
             }
             boundaries.push_back(std::move(map));
@@ -421,16 +419,24 @@ public:
 
 ProjectReader::ProjectReader() = default;
 
-namespace {
-
-} // namespace
-
 //Whatever no caller claimed through take*() dies with the reader, which no
 //longer needs to be told: every member owns what it holds.
 ProjectReader::~ProjectReader() = default;
 
 ProjectReader::Loaded ProjectReader::load(const std::string & filePath)
 {
+    //An earlier load() must not show through this one: a section absent
+    //from this file used to keep the previous file's object.
+    m_plant.reset();
+    m_specifications.reset();
+    m_omega.reset();
+    m_templates.clear();
+    m_contour.clear();
+    m_epsilon.reset();
+    m_boundaries.reset();
+    m_controller.reset();
+    m_loopShaping.reset();
+
     std::ifstream file(filePath, std::ios::binary);
     if (!file.is_open()) {
         throw FileError("Cannot open project file: " + filePath);

@@ -122,6 +122,27 @@ TEST(ProjectReaderSmoke, Planta1LoadsFullProject)
     EXPECT_NE(parser.boundaries(), nullptr);
 }
 
+TEST(ProjectReaderSmoke, ASecondLoadDropsWhatTheFirstFileCarried)
+{
+    ProjectReader parser;
+    loadSections(parser, "planta1.qft");
+    ASSERT_FALSE(parser.templates().empty());
+
+    //cervera.qft carries a plant and frequencies only: nothing of the
+    //finished design read before it may show through.
+    const ProjectReader::Loaded loaded = loadSections(parser, "cervera.qft");
+
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Plant));
+    EXPECT_FALSE(loaded.steps.has(qftbx::Step::Templates));
+    EXPECT_EQ(parser.specifications(), nullptr);
+    EXPECT_TRUE(parser.templates().empty());
+    EXPECT_TRUE(parser.contour().empty());
+    EXPECT_EQ(parser.epsilon(), nullptr);
+    EXPECT_EQ(parser.boundaries(), nullptr);
+    EXPECT_EQ(parser.controller(), nullptr);
+    EXPECT_EQ(parser.loopShaping(), nullptr);
+}
+
 TEST(ProjectReaderErrors, MissingFileThrowsFileError)
 {
     ProjectReader parser;

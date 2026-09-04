@@ -26,8 +26,6 @@ using qftbx::text::number;
 
 const Tags & t = kV2;
 
-//17 significant digits: enough for an exact double round trip.
-
 std::string realVectorText(const std::vector <double> & values)
 {
     std::string text;
@@ -78,7 +76,7 @@ void addBool(pugi::xml_node parent, const char * name, bool value)
 //raw as [10, 20] and reported [100, 200]. No fixture carries a
 //reparametrisation, which is how it went unnoticed; the round-trip test that
 //found it has one now.
-void writeParameter(pugi::xml_node parent, Parameter & parameter)
+void writeParameter(pugi::xml_node parent, const Parameter & parameter)
 {
     pugi::xml_node node = parent.append_child("parameter");
     addReal(node, t.nominal, parameter.rawNominal());
@@ -152,7 +150,7 @@ void writeSpecifications(pugi::xml_node root, const qftbx::SpecificationRecords 
     }
 }
 
-void writeOmega(pugi::xml_node root, Omega * omega)
+void writeOmega(pugi::xml_node root, const Omega * omega)
 {
     pugi::xml_node section = root.append_child(t.omega);
     addReal(section, t.omegaMin, omega->start());
@@ -185,13 +183,13 @@ void writeTemplates(pugi::xml_node root, const ProjectContent & content)
             content.epsilon != nullptr ? realVectorText(*content.epsilon) : std::string());
 
     pugi::xml_node full = section.append_child(t.fullTemplates);
-    full.append_attribute("size") = static_cast<std::int64_t>(content.templates.size());
-    writeComplexVectors(full, content.templates);
+    full.append_attribute("size") = static_cast<std::int64_t>(content.templates->size());
+    writeComplexVectors(full, *content.templates);
 
-    if (!content.contour.empty()) {
+    if (content.contour != nullptr && !content.contour->empty()) {
         pugi::xml_node contour = section.append_child(t.templateContour);
-        contour.append_attribute("size") = static_cast<std::int64_t>(content.contour.size());
-        writeComplexVectors(contour, content.contour);
+        contour.append_attribute("size") = static_cast<std::int64_t>(content.contour->size());
+        writeComplexVectors(contour, *content.contour);
     }
 }
 
@@ -202,7 +200,7 @@ void writeTraces(pugi::xml_node parent, const qftbx::TraceSet & traces)
     }
 }
 
-void writeBoundaries(pugi::xml_node root, BoundaryData * boundaries)
+void writeBoundaries(pugi::xml_node root, const BoundaryData * boundaries)
 {
     pugi::xml_node section = root.append_child(t.boundaries);
     pugi::xml_node data = section.append_child(t.boundariesData);
@@ -281,7 +279,7 @@ void ProjectWriter::save(const std::string & filePath, const ProjectContent & co
     if (content.omega != nullptr) {
         writeOmega(root, content.omega);
     }
-    if (!content.templates.empty()) {
+    if (content.templates != nullptr && !content.templates->empty()) {
         writeTemplates(root, content);
     }
     if (content.boundaries != nullptr) {

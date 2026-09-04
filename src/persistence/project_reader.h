@@ -19,27 +19,21 @@
 namespace qftbx {
 
 /**
- * @brief Loads a .qft project file (pugixml DOM).
+ * @brief Loads a version-2 .qft project file (pugixml DOM).
  *
- * Reads the legacy dialect (Spanish tags, no version attribute) and, from
- * version 2 on, the English dialect. Sections may appear in any order and
- * any subset; load() reports which ones were found. Malformed content
- * throws qftbx::ParseError with the offending line; a missing or unreadable
- * file throws qftbx::FileError.
+ * Sections may appear in any order and any subset; load() reports which
+ * ones were found. Malformed content throws qftbx::ParseError with the
+ * offending line; a missing or unreadable file throws qftbx::FileError, and
+ * any other version is refused rather than guessed at.
  *
- * Ownership is transitional, mirroring the old parser: the caller takes the
- * loaded objects through the section getters.
+ * The reader owns what it loaded until a caller claims it through the
+ * take*() functions; whatever is left dies with the reader.
  */
 class ProjectReader
 {
 public:
     ProjectReader();
 
-    /**
-     * @brief Parses the file and returns the section-presence flags, in the
-     * historical order: plant, specifications, omega, templates, boundaries,
-     * controller, loop shaping, template contour.
-     */
     /**
      * @brief What the file carried.
      *
@@ -54,6 +48,8 @@ public:
         bool hasContour = false;
     };
 
+    /// Parses the file. Whatever an earlier load() left in this reader is
+    /// dropped first, so the result describes this file alone.
     Loaded load(const std::string & filePath);
 
     ~ProjectReader();
@@ -90,14 +86,23 @@ public:
     std::unique_ptr<LtiSystem> takePlant() { return std::move(m_plant); }
     std::optional<qftbx::SpecificationRecords> takeSpecifications()
     {
-        return std::move(m_specifications);
+        std::optional<qftbx::SpecificationRecords> taken = std::move(m_specifications);
+        m_specifications.reset();
+
+        return taken;
     }
     std::unique_ptr<Omega> takeOmega() { return std::move(m_omega); }
     /// By value, so "take" is now just a move: nothing to null out, nothing
     /// that could be freed twice.
     CloudSet takeTemplates() { return std::move(m_templates); }
     CloudSet takeContour() { return std::move(m_contour); }
-    std::optional<std::vector <double>> takeEpsilon() { return std::move(m_epsilon); }
+    std::optional<std::vector <double>> takeEpsilon()
+    {
+        std::optional<std::vector <double>> taken = std::move(m_epsilon);
+        m_epsilon.reset();
+
+        return taken;
+    }
     /// The boundaries, or nothing when the file carried none. By value, so
     /// there is no owner to hand over.
     std::optional<BoundaryData> takeBoundaries()
@@ -111,15 +116,6 @@ public:
     std::unique_ptr<LoopShapingResult> takeLoopShaping() { return std::move(m_loopShaping); }
 
 private:
-
-    template <typename T>
-    static T * take(T * & member)
-    {
-        T * claimed = member;
-        member = nullptr;
-        return claimed;
-    }
-
     std::unique_ptr<LtiSystem> m_plant;
     std::optional<qftbx::SpecificationRecords> m_specifications;
     std::unique_ptr<Omega> m_omega;

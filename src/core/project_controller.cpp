@@ -359,11 +359,11 @@ bool ProjectController::save(std::string path){
     content.plant = m_data.plant();
     content.specifications = m_data.specifications();
     content.omega = m_data.omega();
-    content.templates = m_data.templates();
+    content.templates = &m_data.templates();
     content.epsilon = m_data.epsilon();
 
     if (m_data.hasContour()){
-        content.contour = m_data.contour();
+        content.contour = &m_data.contour();
     }
 
     content.boundaries = m_data.boundaries();
