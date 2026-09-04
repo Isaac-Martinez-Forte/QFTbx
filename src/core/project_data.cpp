@@ -63,9 +63,9 @@ void ProjectData::setContour(CloudSet contour)
 {
     m_contour = std::move(contour);
 
-    //Set even for an empty contour: "was one ever computed" is a different
-    //question from "is it non-empty", and dropping the templates has to be
-    //able to answer no.
+    //Follows the contour itself: publishing an empty one - which is how the
+    //templates are dropped - clears it, so the writer does not save a contour
+    //section for nothing.
     m_hasContour = !m_contour.empty();
 }
 

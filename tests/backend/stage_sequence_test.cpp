@@ -559,3 +559,58 @@ TEST(PipelineSteps, ALoadedProjectAgreesWithWhatItHolds)
 
     EXPECT_EQ(controller.completed(), read);
 }
+
+TEST(PipelineSteps, OpeningAFileReplacesTheProjectInsteadOfOverlayingIt)
+{
+    // load() used to publish only the steps the file carried, on top of
+    // whatever the project already held. A partial file opened over a finished
+    // design left a hybrid - the new plant under the old controller structure
+    // and the old search result - and completed(), derived from the data,
+    // reported more steps done than the file had. The file replaces the
+    // project now.
+    ProjectController controller;
+
+    const qftbx::StepSet full = controller.load(
+        std::string(QFTBX_TEST_DATA_DIR "/planta1.qft"));
+    ASSERT_EQ(full.count(), qftbx::kStepCount) << "planta1 is a finished design";
+    ASSERT_NE(controller.controllerStructure(), nullptr);
+    ASSERT_NE(controller.loopShapingResult(), nullptr);
+
+    // cervera carries a plant and the frequencies, nothing else.
+    const qftbx::StepSet partial = controller.load(
+        std::string(QFTBX_TEST_DATA_DIR "/cervera.qft"));
+    ASSERT_EQ(partial.count(), 2u);
+
+    EXPECT_EQ(controller.completed(), partial)
+        << "what the project holds has to be what the file carried, no more";
+    EXPECT_EQ(controller.controllerStructure(), nullptr)
+        << "the previous design's controller structure must not survive the open";
+    EXPECT_EQ(controller.loopShapingResult(), nullptr);
+    EXPECT_TRUE(controller.templates().empty());
+    EXPECT_EQ(controller.boundaries(), nullptr);
+}
+
+TEST(PipelineSteps, InvalidatingFromTheSpecificationsKeepsTheTemplates)
+{
+    // The templates do not depend on the specifications, only the boundaries
+    // do. The first invalidateFrom() grouped the specifications with the
+    // plant and dropped the templates too - disagreeing with
+    // setSpecifications(), which had it right.
+    ProjectController controller;
+    ASSERT_NO_FATAL_FAILURE(prepareForSearch(controller));
+
+    controller.invalidateFrom(qftbx::Step::Specifications);
+
+    EXPECT_TRUE(controller.completed().has(qftbx::Step::Templates));
+    EXPECT_FALSE(controller.completed().has(qftbx::Step::Boundaries));
+}
+
+TEST(PipelineSteps, TheUnionGettersRefuseWithoutBoundaries)
+{
+    // Every other getter answers nullptr while its step is not done; these two
+    // return references and cannot, so they used to dereference a null.
+    ProjectController controller;
+
+    EXPECT_THROW(controller.unionBoundaries(), qftbx::InvalidInput);
+    EXPECT_THROW(controller.unionBuckets(), qftbx::InvalidInput);
+}

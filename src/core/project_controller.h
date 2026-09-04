@@ -8,8 +8,6 @@
 #include <cstdint>
 #include <memory>
 
-#include <complex>
-
 #include "src/core/system/lti_system.h"
 #include "src/core/background_run.h"
 #include "src/core/pipeline_step.h"
@@ -21,9 +19,6 @@
 #include "src/core/templates/parameter_grids.h"
 #include "src/core/templates/cloud_set.h"
 #include "src/core/frequencies/omega.h"
-#include "src/persistence/project_reader.h"
-#include "src/persistence/project_writer.h"
-#include "src/core/math/sequence_vectors.h"
 #include <optional>
 
 #include "src/core/project_data.h"
@@ -121,8 +116,6 @@ public:
     const qftbx::CloudSet & contour();
     std::vector<double> * epsilon();
 
-    void setTemplates(qftbx::CloudSet templates, qftbx::CloudSet contour, bool hasContour);
-    void setContour(qftbx::CloudSet contour);
 
     // --- step 5: the boundaries -------------------------------------------
 
@@ -141,7 +134,6 @@ public:
                            std::int32_t magnitudeCount, double exportInfinity, bool useContour, bool cuda);
 
     BoundaryData * boundaries();
-    void setBoundaries(std::optional<qftbx::BoundaryData> boundaries);
 
     const qftbx::UnionTraces & unionBoundaries();
     const qftbx::UnionBuckets & unionBuckets();
@@ -290,7 +282,6 @@ public:
     const std::string & lastComputationError() const;
 
     LoopShapingResult * loopShapingResult();
-    void setLoopShapingResult(std::unique_ptr<LoopShapingResult> result);
 
     // --- persistence ------------------------------------------------------
 
@@ -317,7 +308,14 @@ private:
 
 
     //The project contents, owned (replaces the historical DAO layer).
-    qftbx::ProjectData data;
+    qftbx::ProjectData m_data;
+
+    //The publishers load() uses to put a file's artefacts in place. Private:
+    //publishing a computed artefact from outside would bypass the dependency
+    //graph, and nothing outside ever did.
+    void setTemplates(qftbx::CloudSet templates, qftbx::CloudSet contour, bool hasContour);
+    void setBoundaries(std::optional<qftbx::BoundaryData> boundaries);
+    void setLoopShapingResult(std::unique_ptr<LoopShapingResult> result);
 
     //The three computation engines, created on first use.
     //Built on first use and kept: the template engine holds the clouds a
