@@ -91,6 +91,19 @@ bool AlgorithmNt::solve() {
 
         std::unique_ptr<SearchNode> node = liveList->takeFirstAs<SearchNode>();
 
+        //Nominal closed-loop stability of a bounds-feasible box (Tharewal
+        //2005, sec. 3.3.5, by the Nichols-chart Nyquist criterion):
+        //satisfied stability bounds plus one nominally stable point make
+        //the whole box robustly stable; an unstable point discards it
+        //entirely. The check runs when the box reaches the head of the
+        //list rather than when it entered it: a feasible box takes no part
+        //in the search until it is popped, so the boxes popped after it are
+        //the same either way, and the criterion samples the loop at
+        //thousands of frequencies, which used to be paid for every feasible
+        //box the search inserted and never came back to.
+        if (node->flag() == feasible && !stability->isNominallyStable(cornerOf(node->system(), true))) {
+            continue;
+        }
 
         //Step 3, termination: a feasible leading box (ch. 3, p. 29; its
         //lower gain corner realises the optimum), or a leading box below
@@ -98,18 +111,18 @@ bool AlgorithmNt::solve() {
         //ambiguous, the feasible corner is extracted).
         if (node->flag() == feasible || isEpsilonSmall(node->system(), this->epsilon, omega, conversion.get(), nominalPlantValues)) {
             if (node->flag() == ambiguous) {
-                designedController = pointFromBox(node->system(), false);
-
                 //The anti-blocking corner is a fresh point: it must pass
                 //the nominal stability criterion too. If it does not,
                 //this node yields no solution and the search continues.
-                if (!stability->isNominallyStable(designedController.get())) {
-                    designedController.reset();
+                const PointController corner = cornerOf(node->system(), false);
+
+                if (!stability->isNominallyStable(corner)) {
                     continue;
                 }
+
+                designedController = systemFromPoint(node->system(), corner);
             } else {
-                //The lower corner of a feasible box was already certified
-                //when the box entered the list.
+                //The lower corner of a feasible box was certified above.
                 designedController = pointFromBox(node->system(), true);
             }
 
@@ -163,7 +176,14 @@ void AlgorithmNt::check_box_feasibility(std::unique_ptr<LtiSystem> box) {
 
     for (double o : *omega) {
 
-        projection = conversion->nicholsBox(box.get(), o, nominalPlantValues.at(frequencyIndex));
+        //The zero and pole products of this box at this frequency serve
+        //the projection of the box and the two gain contractors below,
+        //which only change the gain.
+        const NaturalIntervalExtension::Factors factors = conversion->factorsOf(box.get(), o);
+        const cxsc::complex p0 = nominalPlantValues.at(frequencyIndex);
+
+        projection = conversion->nicholsOf(cxsc::interval(box->gain().range().min, box->gain().range().max),
+                                           factors, p0);
 
         classification = detector->classifyBox(projection, boundaries, frequencyIndex);
 
@@ -178,14 +198,14 @@ void AlgorithmNt::check_box_feasibility(std::unique_ptr<LtiSystem> box) {
             const double maxBoundary = classification.extremes()[1];
 
             //C_g- : cut the certainly infeasible low-gain subrange.
-            box = accelerated(std::move(box), minBoundary, o, frequencyIndex,
+            box = accelerated(std::move(box), minBoundary, factors, frequencyIndex,
                              !classification.isBottomLeftForbidden());
 
             //C_g+ : candidate lower limit of the certainly feasible
             //high-gain subrange at this frequency.
             if (feasibleCertified) {
                 double from;
-                if (feasibleGainFrom(box.get(), maxBoundary, projection, o, frequencyIndex, from)) {
+                if (feasibleGainFrom(box.get(), maxBoundary, projection, factors, frequencyIndex, from)) {
                     feasibleFrom = std::max(feasibleFrom, from);
                 } else {
                     feasibleCertified = false;
@@ -203,17 +223,8 @@ void AlgorithmNt::check_box_feasibility(std::unique_ptr<LtiSystem> box) {
     const double kInf = box->gain().range().min;
     const double kSup = box->gain().range().max;
 
-    //Nominal closed-loop stability of bounds-feasible boxes (Tharewal
-    //2005, sec. 3.3.5, by the Nichols-chart Nyquist criterion): satisfied
-    //stability bounds plus one nominally stable point make the whole box
-    //robustly stable; an unstable point discards it entirely.
-    if (flag_final == feasible) {
-        const std::unique_ptr<LtiSystem> point = pointFromBox(box.get(), true);
-
-        if (!stability->isNominallyStable(point.get())) {
-            return;
-        }
-    }
+    //The nominal stability of a feasible box is checked when it is popped
+    //(see solve()).
 
     if (flag_final == ambiguous && feasibleCertified &&
             feasibleFrom > kInf * 1.01 && feasibleFrom < kSup * 0.99) {
@@ -249,17 +260,17 @@ void AlgorithmNt::check_box_feasibility(std::unique_ptr<LtiSystem> box) {
 //classification of the box's lower corner (above == false).
 
 std::unique_ptr<LtiSystem> AlgorithmNt::accelerated(std::unique_ptr<LtiSystem> v,
-        double minBoundary, double o, std::size_t frequencyIndex, bool above) {
+        double minBoundary, const NaturalIntervalExtension::Factors & factors,
+        std::size_t frequencyIndex, bool above) {
 
     if (!above){
 
         const double minGainLinear = v->gain().range().min;
         const double minGainDb = 20 * log10(minGainLinear);
 
-        const std::unique_ptr<LtiSystem> lowGainBox = v->create(v->name(), v->numerator(),
-                v->denominator(), Parameter(minGainLinear), v->delay());
-
-        double magnitudeAtMinGainDb = _double(SupRe(conversion->nicholsBox(lowGainBox.get(), o,
+        //The box at its lowest gain: the same zeros and poles, the gain
+        //interval collapsed to that end.
+        double magnitudeAtMinGainDb = _double(SupRe(conversion->nicholsOf(interval(minGainLinear), factors,
                 nominalPlantValues.at(frequencyIndex))));
 
 
@@ -290,7 +301,8 @@ std::unique_ptr<LtiSystem> AlgorithmNt::accelerated(std::unique_ptr<LtiSystem> v
 //the split box with the full feasibility test).
 
 bool AlgorithmNt::feasibleGainFrom(LtiSystem * v, double maxBoundary,
-                                   cinterval projection, double o, std::size_t frequencyIndex, double & from) {
+                                   cinterval projection, const NaturalIntervalExtension::Factors & factors,
+                                   std::size_t frequencyIndex, double & from) {
 
     const double phaseCentre = (_double(InfIm(projection)) + _double(SupIm(projection))) / 2.0;
 
@@ -302,10 +314,9 @@ bool AlgorithmNt::feasibleGainFrom(LtiSystem * v, double maxBoundary,
     const double maxGainLinear = v->gain().range().max;
     const double maxGainDb = 20 * log10(maxGainLinear);
 
-    const std::unique_ptr<LtiSystem> highGainBox = v->create(v->name(), v->numerator(),
-            v->denominator(), Parameter(maxGainLinear), v->delay());
-
-    double magnitudeAtMaxGainDb = _double(InfRe(conversion->nicholsBox(highGainBox.get(), o,
+    //The box at its highest gain: the same zeros and poles, the gain
+    //interval collapsed to that end.
+    double magnitudeAtMaxGainDb = _double(InfRe(conversion->nicholsOf(interval(maxGainLinear), factors,
             nominalPlantValues.at(frequencyIndex))));
 
     if (magnitudeAtMaxGainDb <= maxBoundary) {

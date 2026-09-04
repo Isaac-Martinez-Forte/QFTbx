@@ -5,6 +5,7 @@
 
 #include "src/core/system/parameter.h"
 #include "src/core/system/lti_system.h"
+#include "src/core/loopshaping/point_controller.h"
 
 #include <interval.hpp>
 #include <cinterval.hpp>
@@ -47,6 +48,39 @@ public:
     cxsc::cinterval nicholsBox(LtiSystem * controller, double w,
                                cxsc::complex p0);
 
+    /// The same enclosure with the controller's gain replaced by 'gain':
+    /// what the gain contractors evaluate at one end of the gain range.
+    /// They used to build a whole controller box with that one parameter
+    /// changed, once per node and frequency, to ask this question.
+    cxsc::cinterval nicholsBox(LtiSystem * controller, double w,
+                               cxsc::complex p0, const cxsc::interval & gain);
+
+    /// The enclosure of a single controller: the same arithmetic over
+    /// degenerate intervals, so it answers exactly what nicholsBox() answers
+    /// for the system built from the point, without building it.
+    cxsc::cinterval nicholsPoint(const PointController & point, double w, cxsc::complex p0);
+    cxsc::cinterval nicholsPoint(double gain, const std::vector<double> & zeros,
+                                 const std::vector<double> & poles, double w, cxsc::complex p0);
+
+    /// The zero and pole products of a box or a point at one frequency: the
+    /// part of the enclosure that does not depend on the gain. The gain
+    /// contractors and the gain bisections project the same zeros and poles
+    /// with one gain interval after another; computing the products once
+    /// and finishing with nicholsOf() gives exactly the enclosures
+    /// nicholsBox() gives, without repeating the interval products, which
+    /// are the dear part.
+    struct Factors {
+        cxsc::cinterval numerator;
+        cxsc::cinterval denominator;
+    };
+
+    Factors factorsOf(LtiSystem * controller, double w);
+    Factors factorsOf(const std::vector<double> & zeros, const std::vector<double> & poles, double w);
+
+    /// Magnitude (dB) and phase (degrees) of gain * numerator * p0 /
+    /// denominator: the enclosure the other projections end with.
+    cxsc::cinterval nicholsOf(const cxsc::interval & gain, const Factors & factors, cxsc::complex p0);
+
     /// Enclosure of the numerator product alone (no gain, no plant),
     /// dB/degrees.
     cxsc::cinterval numeratorBox(std::vector<Parameter> & numerator, double w,
@@ -67,6 +101,10 @@ private:
     /// Interval product of (jw + parameter) factors; the neutral value 1
     /// for an empty vector (a pure-gain controller).
     cxsc::cinterval factorProduct(std::vector<Parameter> & parameters, double w);
+    cxsc::cinterval factorProduct(const std::vector<double> & values, double w);
+
+    cxsc::cinterval nicholsOf(const cxsc::interval & gain, const cxsc::cinterval & numerator,
+                              const cxsc::cinterval & denominator, cxsc::complex p0);
 
     /// Enclosure of arg over a complex rectangle, on the (-2*pi, 0] branch.
     cxsc::interval argEnclosure(const cxsc::cinterval & z);

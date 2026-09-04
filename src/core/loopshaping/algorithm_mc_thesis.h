@@ -153,6 +153,7 @@ private:
     //(empty for frequencies the node is marked feasible at).
     struct NodeAnalysis {
         std::vector<std::optional<BoxClassification>> classification;
+        std::vector<std::optional<cxsc::cinterval>> projection;   //the Nichols box itself
         std::vector<Range> boxMag;     //dB edges of the projected box
         std::vector<Range> boxPhase;   //degree edges
         qftbx::BoxFlag flag = qftbx::feasible;
@@ -161,6 +162,7 @@ private:
     };
 
     bool analyse(McSearchNode * node, NodeAnalysis & out);
+    bool isEpsilonSmall(McSearchNode * node, const NodeAnalysis & analysis);
     void improveNode(McSearchNode * node, NodeAnalysis & analysis,
                             std::vector<FeasibleThreshold> & thresholds);
     bool bestGainSearch(McSearchNode * node, const NodeAnalysis & analysis);
@@ -176,6 +178,7 @@ private:
 
     bool boxIsFeasibleAt(LtiSystem * box, std::size_t freqIndex);
     bool boxIsFeasible(LtiSystem * box);
+    bool pointIsFeasible(const PointController & point);
     void insertFeasibleBox(std::unique_ptr<LtiSystem> box, McSearchNode * parent);
 
     inline std::int32_t parameterCount(LtiSystem * box) const;

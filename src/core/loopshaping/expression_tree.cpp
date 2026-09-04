@@ -471,7 +471,8 @@ bool ExpressionTree::eval_tree_out(exp_node *node, interval enclosure){
 
     case VAR  :
     {
-        (*variables_in)[node->var] = enclosure;
+        //The forward pass of this same propagate() found the variable.
+        *node->slot = enclosure;
         return true;
     }
 
@@ -728,13 +729,21 @@ interval ExpressionTree::eval_tree_in(exp_node *node)
         return node->enclosure = interval (node->c_const);
 
     case VAR  :
+    {
         //A missing variable used to return a default-constructed cxsc
-        //interval, whose bounds are UNINITIALIZED memory.
-        if (variables_in->find(node->var) == variables_in->end()) {
+        //interval, whose bounds are UNINITIALIZED memory. One lookup: the
+        //name is compared against the map's keys here and nowhere else in
+        //this evaluation.
+        const auto found = variables_in->find(node->var);
+
+        if (found == variables_in->end()) {
             throw std::invalid_argument(
                     "ExpressionTree: unknown variable '" + node->var + "' in the expression.");
         }
-        return node->enclosure = variables_in->at(node->var);
+
+        node->slot = &found->second;
+        return node->enclosure = found->second;
+    }
 
     case E:
         return node->enclosure = eEnclosure();

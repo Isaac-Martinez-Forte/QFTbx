@@ -399,17 +399,35 @@ struct WorstCase
     double controlEffort = -std::numeric_limits<double>::infinity();
 };
 
-WorstCase worstCaseAt(std::complex<double> p0, std::complex<double> L, const ComplexCloud & valueSet)
+//The quotients p0 / p of the value set, computed once per frequency: they
+//do not depend on the grid point, and the sweep used to divide them again
+//at every one of its tens of thousands of grid points.
+std::vector<std::complex<double>> nominalOverValueSet(std::complex<double> p0, const ComplexCloud & valueSet)
+{
+    std::vector<std::complex<double>> quotients;
+    quotients.reserve(valueSet.size());
+
+    for (const std::complex<double> & p : valueSet) {
+        quotients.push_back(p0 / p);
+    }
+
+    return quotients;
+}
+
+WorstCase worstCaseAt(std::complex<double> p0, std::complex<double> L, const ComplexCloud & valueSet,
+                      const std::vector<std::complex<double>> & nominalOverP)
 {
     WorstCase worst;
 
-    for (const std::complex<double> & p : valueSet) {
-        const std::complex<double> denominator = (p0 / p) + L;
+    for (std::size_t i = 0; i < valueSet.size(); ++i) {
+        const std::complex<double> & p = valueSet[i];
+        const std::complex<double> & p0OverP = nominalOverP[i];
+        const std::complex<double> denominator = p0OverP + L;
 
         //Stability and sensor noise share the same transfer magnitude.
         const double stabilityNoise = std::abs(L / denominator);
         //Disturbance rejection at the plant output.
-        const double outputDisturbance = std::abs((p0 / p) / denominator);
+        const double outputDisturbance = std::abs(p0OverP / denominator);
         //Disturbance rejection at the plant input.
         const double inputDisturbance = std::abs(p0 / denominator);
         //Control effort.
@@ -453,7 +471,7 @@ std::int32_t BoundaryEngine::allowedZone(const Trace & trace, complex <double> p
     probeMagnitude -= 1;
 
     const complex<double> L = nicholsToComplex(probeMagnitude, probePhase);
-    const WorstCase worst = worstCaseAt(p0, L, valueSet);
+    const WorstCase worst = worstCaseAt(p0, L, valueSet, nominalOverValueSet(p0, valueSet));
 
     //The sheet is in dB: the zone probe compares in dB too (linear
     //magnitudes used to be compared against dB heights, and tracking as a
@@ -579,6 +597,8 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
     }
 
 
+    const std::vector<complex<double>> nominalOverP = nominalOverValueSet(p0, p);
+
     //Grid sweep (no nested parallelism: the outer per-frequency loop is
     //already parallel, and these loops share function-scope variables).
     for (std::size_t k = 0; k < magnitudes.size(); ++k){
@@ -597,10 +617,10 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
         controlEffortRow.reserve(rowWidth);
 
         for (std::size_t j = 0; j < phases.size(); ++j){
-            const complex<double> L = nicholsToComplex(magnitudes.at(k), phases.at(j));
+            const complex<double> L = nicholsToComplex(magnitudes[k], phases[j]);
 
             //Template sweep: worst case over the value set at this L.
-            const WorstCase worst = worstCaseAt(p0, L, p);
+            const WorstCase worst = worstCaseAt(p0, L, p, nominalOverP);
 
             //The sheet is ALWAYS stored in dB (contract validated against
             //the golden; the old OpenMP branch stored linear magnitudes and

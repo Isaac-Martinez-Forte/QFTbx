@@ -81,6 +81,16 @@ bool AlgorithmNk::solve(){
 
         std::unique_ptr<SearchNode> node = liveList->takeFirstAs<SearchNode>();
 
+        //Nominal closed-loop stability of a bounds-feasible box (the paper
+        //demands the zeros of 1 + L0 in the left half-plane; checked on the
+        //Nichols chart), when the box reaches the head of the list rather
+        //than when it entered it: a feasible box takes no part in the
+        //search until it is popped, so everything popped after it is the
+        //same either way, and the criterion is dear (see AlgorithmNt).
+        if (node->flag() == feasible && !stability->isNominallyStable(cornerOf(node->system(), true))) {
+            continue;
+        }
+
         //Pruning by the local solution (step 4 of the paper's outline /
         //G-bis of the thesis): a node whose gain infimum cannot improve
         //the certified local solution is discarded.
@@ -100,12 +110,13 @@ bool AlgorithmNk::solve(){
         //Step 21 and Remark 3.1 termination, as reviewed for NT.
         if (node->flag() == feasible || isEpsilonSmall(node->system(), this->epsilon, omega, conversion.get(), nominalPlantValues)) {
             if (node->flag() == ambiguous) {
-                designedController = pointFromBox(node->system(), false);
+                const PointController corner = cornerOf(node->system(), false);
 
-                if (!stability->isNominallyStable(designedController.get())) {
-                    designedController.reset();
+                if (!stability->isNominallyStable(corner)) {
                     continue;
                 }
+
+                designedController = systemFromPoint(node->system(), corner);
             } else {
                 designedController = pointFromBox(node->system(), true);
             }
@@ -181,16 +192,8 @@ void AlgorithmNk::check_box_feasibility(std::unique_ptr<LtiSystem> box){
         frequencyIndex++;
     }
 
-    //Nominal closed-loop stability of bounds-feasible boxes (the paper
-    //demands the zeros of 1 + L0 in the left half-plane; checked on the
-    //Nichols chart).
-    if (flag_final == feasible) {
-        const std::unique_ptr<LtiSystem> point = pointFromBox(box.get(), true);
-
-        if (!stability->isNominallyStable(point.get())) {
-            return;
-        }
-    }
+    //The nominal stability of a feasible box is checked when it is popped
+    //(see solve()).
 
     //The index is read BEFORE the box is handed over: as arguments of one
     //call their evaluation order is unspecified.
@@ -238,13 +241,21 @@ double AlgorithmNk::minimalFeasibleGain(const std::vector<double> & zeros,
     double high = box->gain().range().max;
     double low = box->gain().range().min;
 
+    //The zeros and poles stay put while the gain is bisected: their
+    //products at every design frequency are computed once here.
+    std::vector<NaturalIntervalExtension::Factors> factors;
+    factors.reserve(omega->size());
+    for (double w : *omega) {
+        factors.push_back(conversion->factorsOf(zeros, poles, w));
+    }
+
     budget--;
-    if (!pointIsFeasible(zeros, poles, high)) {
+    if (!pointIsFeasible(factors, high)) {
         return std::numeric_limits<double>::infinity();
     }
 
     budget--;
-    if (pointIsFeasible(zeros, poles, low)) {
+    if (pointIsFeasible(factors, low)) {
         return low;
     }
 
@@ -252,7 +263,7 @@ double AlgorithmNk::minimalFeasibleGain(const std::vector<double> & zeros,
         const double mid = std::sqrt(low * high);
 
         budget--;
-        if (pointIsFeasible(zeros, poles, mid)) {
+        if (pointIsFeasible(factors, mid)) {
             high = mid;
         } else {
             low = mid;
@@ -337,11 +348,11 @@ void AlgorithmNk::localOptimization(LtiSystem * box){
     }
 
     if (bestGain < bestLocalGain) {
-        std::unique_ptr<LtiSystem> candidate = pointSystem(bestZeros, bestPoles, bestGain);
+        const PointController candidate{bestGain, bestZeros, bestPoles};
 
-        if (stability->isNominallyStable(candidate.get())) {
+        if (stability->isNominallyStable(candidate)) {
             bestLocalGain = bestGain;
-            bestLocalController = std::move(candidate);
+            bestLocalController = pointSystem(bestZeros, bestPoles, bestGain);
         }
     }
 }
@@ -368,19 +379,20 @@ std::unique_ptr<LtiSystem> AlgorithmNk::pointSystem(const std::vector<double> & 
 
 //Point feasibility against the bounds at every design frequency, with the
 //same projection + detection the interval test uses (the historical local
-//search passed the GAIN as the frequency index of the detection).
-bool AlgorithmNk::pointIsFeasible(const std::vector<double> & zeros,
-                                                  const std::vector<double> & poles, double gain){
+//search passed the GAIN as the frequency index of the detection). The
+//zeros and poles come as their products per frequency: the local search
+//asks this hundreds of times per launch, mostly with the same zeros and
+//poles and another gain, and used to build a system each time.
+bool AlgorithmNk::pointIsFeasible(const std::vector<NaturalIntervalExtension::Factors> & factors,
+                                  double gain){
 
     if (gain <= 0.0 || std::isinf(gain)) {
         return false;
     }
 
-    const std::unique_ptr<LtiSystem> point = pointSystem(zeros, poles, gain);
-
     for (std::size_t i = 0; i < omega->size(); ++i) {
-        const cinterval projection = conversion->nicholsBox(point.get(), omega->at(i),
-                                                      nominalPlantValues.at(i));
+        const cinterval projection = conversion->nicholsOf(interval(gain), factors.at(i),
+                                                           nominalPlantValues.at(i));
         const BoxFlag flag = detector->classifyBox(projection, boundaries, i).flag();
 
         if (flag != feasible) {

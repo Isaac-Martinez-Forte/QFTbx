@@ -95,8 +95,7 @@ private:
     void localOptimization(LtiSystem * box);
     double minimalFeasibleGain(const std::vector<double> & zeros, const std::vector<double> & poles,
                                      LtiSystem * box, std::int32_t & budget);
-    bool pointIsFeasible(const std::vector<double> & zeros, const std::vector<double> & poles,
-                                double gain);
+    bool pointIsFeasible(const std::vector<NaturalIntervalExtension::Factors> & factors, double gain);
     std::unique_ptr<LtiSystem> pointSystem(const std::vector<double> & zeros, const std::vector<double> & poles,
                                    double gain);
     void startingPoint(LtiSystem * box, std::vector<double> & zeros,

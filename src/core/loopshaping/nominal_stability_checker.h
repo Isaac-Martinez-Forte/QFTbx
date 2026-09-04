@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "src/core/system/lti_system.h"
+#include "src/core/loopshaping/point_controller.h"
 
 namespace qftbx {
 
@@ -60,9 +61,13 @@ public:
     /// conservatively discards the candidate.
     bool isNominallyStable(LtiSystem * pointController);
 
+    /// The same verdict for a point given as its values, which is how the
+    /// searches hold their candidates before one becomes a result.
+    bool isNominallyStable(const PointController & point);
+
 private:
     std::complex<double> plantAt(double w);
-    static std::complex<double> controllerAt(LtiSystem * controller, double w);
+    static std::complex<double> controllerAt(const PointController & controller, double w);
 
     LtiSystem * m_plant;
 
@@ -72,6 +77,22 @@ private:
     //Cached nominal plant samples over the base grid.
     std::vector<double> m_frequencies;
     std::vector<std::complex<double>> m_plantValues;
+
+    //The working curve of one check: frequency, the loop value and its raw
+    //phase in (-180, 180], unwrapped afterwards. The magnitude is read from
+    //the loop value where the criterion looks at it.
+    struct Sample {
+        double w;
+        std::complex<double> loop;
+        double phase;
+
+        double magnitude() const { return std::abs(loop); }
+    };
+
+    //Kept between calls so a check does not allocate: the searches run
+    //hundreds of thousands of them.
+    std::vector<Sample> m_curve;
+    std::vector<double> m_unwrapped;
 };
 
 } // namespace qftbx

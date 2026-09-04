@@ -71,6 +71,15 @@ bool AlgorithmMc1::solve()
 
         std::unique_ptr<SearchNode> node = liveList->takeFirstAs<SearchNode>();
 
+        //Nominal closed-loop stability of a bounds-feasible box, as
+        //reviewed for NT/NK, when the box reaches the head of the list
+        //rather than when it entered it: a feasible box takes no part in
+        //the search until it is popped, so everything popped after it is
+        //the same either way, and the criterion is dear (see AlgorithmNt).
+        if (node->flag() == feasible && !stability->isNominallyStable(cornerOf(node->system(), true))) {
+            continue;
+        }
+
         //Step 3bis.(a): a node whose gain infimum cannot improve the
         //certified solution is discarded.
         if (node->system()->gain().range().min >= bestCertifiedGain) {
@@ -80,12 +89,13 @@ bool AlgorithmMc1::solve()
         //Step 3 and Remark 3.1 termination, as reviewed for NT.
         if (node->flag() == feasible || isEpsilonSmall(node->system(), this->epsilon, omega, conversion.get(), nominalPlantValues)) {
             if (node->flag() == ambiguous) {
-                designedController = pointFromBox(node->system(), false);
+                const PointController corner = cornerOf(node->system(), false);
 
-                if (!stability->isNominallyStable(designedController.get())) {
-                    designedController.reset();
+                if (!stability->isNominallyStable(corner)) {
                     continue;
                 }
+
+                designedController = systemFromPoint(node->system(), corner);
             } else {
                 designedController = pointFromBox(node->system(), true);
             }
@@ -151,15 +161,8 @@ void AlgorithmMc1::check_box_feasibility(std::unique_ptr<LtiSystem> box)
         frequencyIndex++;
     }
 
-    //Nominal closed-loop stability of bounds-feasible boxes, as reviewed
-    //for NT/NK.
-    if (flag_final == feasible) {
-        const std::unique_ptr<LtiSystem> point = pointFromBox(box.get(), true);
-
-        if (!stability->isNominallyStable(point.get())) {
-            return;
-        }
-    }
+    //The nominal stability of a feasible box is checked when it is popped
+    //(see solve()).
 
     //QS2 stage 3 on the surviving ambiguous box: a certified feasible
     //gain subrange updates the prune variable C.
@@ -229,19 +232,18 @@ std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<LtiSyste
 
 //Feasibility of the box with its gain range replaced by
 //[gainInf, gainSup] at every design frequency.
-bool AlgorithmMc1::gainRangeIsFeasible(LtiSystem * box,
-                                                           double gainInf, double gainSup)
+bool AlgorithmMc1::gainRangeIsFeasible(const std::vector<NaturalIntervalExtension::Factors> & factors,
+                                       double gainInf, double gainSup)
 {
-    const std::unique_ptr<LtiSystem> candidate = box->create(box->name(),
-            box->numerator(), box->denominator(),
-            Parameter("kv", Range(gainInf, gainSup), gainInf, "kv"),
-            box->delay());
+    //The box with its gain replaced, projected from the zero and pole
+    //products of the box: the bisection below asks this many times per
+    //node with the same box and another gain range.
+    const interval gain(gainInf, gainSup);
 
     bool feasibleEverywhere = true;
 
     for (std::size_t i = 0; i < omega->size() && feasibleEverywhere; ++i) {
-        const cinterval projection = conversion->nicholsBox(candidate.get(), omega->at(i),
-                                                      nominalPlantValues.at(i));
+        const cinterval projection = conversion->nicholsOf(gain, factors.at(i), nominalPlantValues.at(i));
         feasibleEverywhere = detector->classifyBox(projection, boundaries, i).flag() == feasible;
     }
 
@@ -263,13 +265,23 @@ void AlgorithmMc1::certifiedGainSearch(LtiSystem * box)
     const double low = box->gain().range().min;
     double high = box->gain().range().max;
 
-    if (low <= 0.0 || !gainRangeIsFeasible(box, high, high)) {
+    if (low <= 0.0) {
+        return;
+    }
+
+    std::vector<NaturalIntervalExtension::Factors> factors;
+    factors.reserve(omega->size());
+    for (double w : *omega) {
+        factors.push_back(conversion->factorsOf(box, w));
+    }
+
+    if (!gainRangeIsFeasible(factors, high, high)) {
         return;
     }
 
     double lo = low;
 
-    if (gainRangeIsFeasible(box, lo, high)) {
+    if (gainRangeIsFeasible(factors, lo, high)) {
         high = lo;
     } else {
         double hi = high;
@@ -277,7 +289,7 @@ void AlgorithmMc1::certifiedGainSearch(LtiSystem * box)
         while (hi / lo > m_settings.algorithms.certifiedGainTolerance) {
             const double mid = std::sqrt(lo * hi);
 
-            if (gainRangeIsFeasible(box, mid, high)) {
+            if (gainRangeIsFeasible(factors, mid, high)) {
                 hi = mid;
             } else {
                 lo = mid;
@@ -291,17 +303,14 @@ void AlgorithmMc1::certifiedGainSearch(LtiSystem * box)
         return;
     }
 
-    //The z' box, and its minimal-gain point as certified solution.
-    const std::unique_ptr<LtiSystem> zPrime = box->create(box->name(),
-            box->numerator(), box->denominator(),
-            Parameter("kv", Range(high, box->gain().range().max), high, "kv"),
-            box->delay());
+    //The minimal-gain point of the z' box as certified solution: the lower
+    //corner of the box with the gain at k_f.
+    PointController point = cornerOf(box, true);
+    point.gain = high;
 
-    std::unique_ptr<LtiSystem> point = pointFromBox(zPrime.get(), true);
-
-    if (stability->isNominallyStable(point.get())) {
+    if (stability->isNominallyStable(point)) {
         bestCertifiedGain = high;
-        bestCertifiedController = std::move(point);
+        bestCertifiedController = systemFromPoint(box, point);
     }
 }
 

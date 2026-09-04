@@ -78,20 +78,22 @@ BoxClassification BoundaryViolationDetector::classifyBox(cinterval box, const Bo
 
     const double phaseSpanDegrees = boundaries->phaseRange().width();
 
-    //Degrees per bucket of the phase-bucketed union (the historical
-    //formula was inverted, which only worked on the standard 1-degree grid).
-    double step = phaseSpanDegrees / bucketCount;
-
-
     double minPhase = _double(InfIm(box)), maxPhase = _double(SupIm(box)), minMag = _double(InfRe(box)), maxMag = _double(SupRe(box));
 
-    for (double f = minPhase; f <= maxPhase + step; f += step) {
+    //The buckets the box's phase span covers. Phases are negative on the
+    //Nichols branch and the buckets are indexed by |phase|, so the span
+    //runs from the bucket of its upper phase to the bucket of its lower
+    //one. The scan used to step a phase variable across the span, one
+    //bucket width at a time, and bucket the clamped value at every step:
+    //the same buckets, each visited once. The clamp inside phaseBucket
+    //keeps both ends in range (the historical value() returned nullptr out
+    //of range and was dereferenced).
+    const std::size_t firstBucket = static_cast<std::size_t>(phaseBucket(maxPhase, bucketCount, phaseSpanDegrees));
+    const std::size_t lastBucket = static_cast<std::size_t>(phaseBucket(minPhase, bucketCount, phaseSpanDegrees));
 
-        //at(), not the old value(): out of range that returned nullptr and
-        //was dereferenced. The clamp inside phaseBucket keeps the index in
-        //range, and at() would now say so loudly if it ever did not.
-        for (const qftbx::NicholsPoint & boundaryPoint :
-             buckets.at(static_cast<std::size_t>(phaseBucket(std::min(f, maxPhase), bucketCount, phaseSpanDegrees)))) {
+    for (std::size_t b = firstBucket; b <= lastBucket; ++b) {
+
+        for (const qftbx::NicholsPoint & boundaryPoint : buckets.at(b)) {
 
             //Only boundary points within the box's phase span take part.
             if (boundaryPoint.phase < minPhase || boundaryPoint.phase > maxPhase) {

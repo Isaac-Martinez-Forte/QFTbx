@@ -29,9 +29,25 @@ endfunction()
 #
 # Tunes the code for the machine that builds it, when USE_NATIVE_ARCH asks
 # for it and the compiler understands the flag.
+#
+# On a machine with AVX-512 the compiler is asked to keep its vectors at
+# 256 bits. Left to itself it reaches for the 512-bit registers, and on the
+# Xeon this was measured on that made the numeric code several times
+# slower rather than faster: the boundary sweep took sixteen times longer,
+# and the constraint propagation of algorithm MR twice as long, for the
+# same results. Whether it is the clock the wide registers cost or the
+# transitions into the libraries built without them, the narrower vectors
+# are the faster ones here, and the flag is harmless where AVX-512 is
+# absent.
 function(qftbx_native_arch target)
   if(USE_NATIVE_ARCH AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(${target} PRIVATE -march=native)
+
+    include(CheckCXXCompilerFlag)
+    check_cxx_compiler_flag(-mprefer-vector-width=256 QFTBX_HAS_PREFER_VECTOR_WIDTH)
+    if(QFTBX_HAS_PREFER_VECTOR_WIDTH)
+      target_compile_options(${target} PRIVATE -mprefer-vector-width=256)
+    endif()
   endif()
 endfunction()
 

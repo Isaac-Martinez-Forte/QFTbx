@@ -23,6 +23,18 @@ double phaseDegrees(const std::complex<double> & value)
     return std::arg(value) * 180.0 / qftbx::math::kPi;
 }
 
+//The product of two complex numbers, written out. The library operator
+//goes through a routine that computes these same four products and two
+//sums and then, only when both parts came out NaN, tries to recover an
+//infinity from them: for the finite values of a loop sample the result is
+//the same, bit for bit, and the call is what this saves - a few million
+//times per search.
+inline std::complex<double> times(const std::complex<double> & a, const std::complex<double> & b)
+{
+    return std::complex<double>(a.real() * b.real() - a.imag() * b.imag(),
+                                a.real() * b.imag() + a.imag() * b.real());
+}
+
 } // namespace
 
 NominalStabilityChecker::NominalStabilityChecker(LtiSystem * nominalPlant,
@@ -61,41 +73,62 @@ std::complex<double> NominalStabilityChecker::plantAt(double w)
 }
 
 //Zero-pole-gain semantics, matching NaturalIntervalExtension::nicholsBox:
-//C(jw) = k prod(jw + z_i) / prod(jw + p_j) over the nominal values.
-std::complex<double> NominalStabilityChecker::controllerAt(LtiSystem * controller, double w)
+//C(jw) = k prod(jw + z_i) / prod(jw + p_j) over the point's values.
+std::complex<double> NominalStabilityChecker::controllerAt(const PointController & controller, double w)
 {
     const std::complex<double> jw(0.0, w);
 
-    std::complex<double> value(controller->gain().nominal(), 0.0);
+    std::complex<double> value(controller.gain, 0.0);
 
-    for (Parameter & zero : controller->numerator()) {
-        value *= jw + std::complex<double>(zero.nominal(), 0.0);
+    for (const double zero : controller.zeros) {
+        value = times(value, jw + std::complex<double>(zero, 0.0));
     }
 
-    for (Parameter & pole : controller->denominator()) {
-        value /= jw + std::complex<double>(pole.nominal(), 0.0);
+    //The division stays the library's: its algorithm scales the operands
+    //and is not the textbook formula.
+    for (const double pole : controller.poles) {
+        value /= jw + std::complex<double>(pole, 0.0);
     }
 
     return value;
 }
 
-bool NominalStabilityChecker::isNominallyStable(LtiSystem * pointController)
+bool NominalStabilityChecker::isNominallyStable(LtiSystem * controller)
 {
-    //The working curve: frequency, |L0| and unwrapped phase, refined where
-    //the phase turns faster than the unwrapping tolerance.
-    struct Sample {
-        double w;
-        double magnitude;
-        double phase; //raw in (-180, 180], unwrapped afterwards
-    };
+    //Every parameter at its nominal value, which is what a point system
+    //holds; the values are read once here instead of once per sample.
+    PointController point;
+    point.gain = controller->gain().nominal();
 
-    std::vector<Sample> curve;
+    point.zeros.reserve(controller->numerator().size());
+    for (Parameter & zero : controller->numerator()) {
+        point.zeros.push_back(zero.nominal());
+    }
+
+    point.poles.reserve(controller->denominator().size());
+    for (Parameter & pole : controller->denominator()) {
+        point.poles.push_back(pole.nominal());
+    }
+
+    return isNominallyStable(point);
+}
+
+bool NominalStabilityChecker::isNominallyStable(const PointController & pointController)
+{
+    //The working curve, refined where the phase turns faster than the
+    //unwrapping tolerance. The magnitude is read from the loop value where
+    //the criterion looks at it - the last sample, a start on a ray, the two
+    //ends of a crossing - rather than computed for every sample: the check
+    //runs on hundreds of thousands of candidates per search, and most
+    //samples never need it.
+    std::vector<Sample> & curve = m_curve;
+    curve.clear();
     curve.reserve(m_frequencies.size());
 
     for (std::size_t i = 0; i < m_frequencies.size(); ++i) {
         const std::complex<double> loop =
-                controllerAt(pointController, m_frequencies[i]) * m_plantValues[i];
-        curve.push_back({m_frequencies[i], std::abs(loop), phaseDegrees(loop)});
+                times(controllerAt(pointController, m_frequencies[i]), m_plantValues[i]);
+        curve.push_back({m_frequencies[i], loop, phaseDegrees(loop)});
     }
 
     //Adaptive refinement: subdivide any interval whose raw phase step
@@ -112,8 +145,8 @@ bool NominalStabilityChecker::isNominallyStable(LtiSystem * pointController)
 
         if (step > m_tolerances.maxPhaseStepDegrees && curve[i + 1].w - curve[i].w > 1e-12 * curve[i].w) {
             const double w = std::sqrt(curve[i].w * curve[i + 1].w);
-            const std::complex<double> loop = controllerAt(pointController, w) * plantAt(w);
-            curve.insert(curve.begin() + static_cast<std::ptrdiff_t>(i) + 1, {w, std::abs(loop), phaseDegrees(loop)});
+            const std::complex<double> loop = times(controllerAt(pointController, w), plantAt(w));
+            curve.insert(curve.begin() + static_cast<std::ptrdiff_t>(i) + 1, {w, loop, phaseDegrees(loop)});
             --budget;
         } else {
             ++i;
@@ -127,12 +160,13 @@ bool NominalStabilityChecker::isNominallyStable(LtiSystem * pointController)
 
     //The loop must be proper: the criterion closes the contour where the
     //magnitude has fallen below the ray magnitude.
-    if (curve.back().magnitude >= kRayMagnitude) {
+    if (curve.back().magnitude() >= kRayMagnitude) {
         return false;
     }
 
     //Unwrap the phase into a continuous curve.
-    std::vector<double> unwrapped(curve.size());
+    std::vector<double> & unwrapped = m_unwrapped;
+    unwrapped.assign(curve.size(), 0.0);
     unwrapped[0] = curve[0].phase;
 
     for (std::size_t i = 1; i < curve.size(); ++i) {
@@ -161,7 +195,7 @@ bool NominalStabilityChecker::isNominallyStable(LtiSystem * pointController)
     //the low-frequency phase exactly at -180) counts half a crossing
     //towards the side it departs to.
     const double startRay = rayBelow(unwrapped[0] + 1e-6);
-    if (std::abs(unwrapped[0] - startRay) < 1e-3 && curve[0].magnitude > kRayMagnitude) {
+    if (std::abs(unwrapped[0] - startRay) < 1e-3 && curve[0].magnitude() > kRayMagnitude) {
         std::size_t next = 1;
         while (next + 1 < curve.size() && std::abs(unwrapped[next] - unwrapped[0]) < 1e-9) {
             ++next;
@@ -189,8 +223,9 @@ bool NominalStabilityChecker::isNominallyStable(LtiSystem * pointController)
 
             //Magnitude at the crossing, log-interpolated in frequency.
             const double t = (level - a) / (b - a);
-            const double magnitude = curve[i].magnitude *
-                    std::pow(curve[i + 1].magnitude / curve[i].magnitude, t);
+            const double from = curve[i].magnitude();
+            const double to = curve[i + 1].magnitude();
+            const double magnitude = from * std::pow(to / from, t);
 
             if (magnitude > kRayMagnitude) {
                 crossings += sign;

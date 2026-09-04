@@ -120,9 +120,11 @@ private:
     //forgot the nominal-plant cache.
     void check_box_feasibility(std::unique_ptr<LtiSystem> box);
     std::unique_ptr<LtiSystem> accelerated(std::unique_ptr<LtiSystem> v, double minBoundary,
-                                          double o, std::size_t frequencyIndex, bool above);
+                                          const NaturalIntervalExtension::Factors & factors,
+                                          std::size_t frequencyIndex, bool above);
     bool feasibleGainFrom(LtiSystem * v, double maxBoundary, cxsc::cinterval projection,
-                                 double o, std::size_t frequencyIndex, double & from);
+                          const NaturalIntervalExtension::Factors & factors,
+                          std::size_t frequencyIndex, double & from);
 
     LtiSystem * plant = nullptr;
     std::unique_ptr<LtiSystem> controller;

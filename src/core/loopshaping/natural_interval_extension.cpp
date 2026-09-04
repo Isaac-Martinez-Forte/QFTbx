@@ -61,6 +61,18 @@ cinterval NaturalIntervalExtension::factorProduct(std::vector<Parameter> & param
     return product;
 }
 
+cinterval NaturalIntervalExtension::factorProduct(const std::vector<double> & values, double w)
+{
+    cinterval product(interval(1.0), interval(0.0));
+    const complex jw(0.0, w);
+
+    for (const double value : values) {
+        product = product * (jw + interval(value));
+    }
+
+    return product;
+}
+
 interval NaturalIntervalExtension::argEnclosure(const cinterval & z)
 {
     const double r0 = cxsc::_double(InfRe(z));
@@ -143,12 +155,54 @@ interval NaturalIntervalExtension::toDecibel(interval magnitude)
 cinterval NaturalIntervalExtension::nicholsBox(LtiSystem * controller, double w,
                                                complex p0)
 {
+    return nicholsBox(controller, w, p0, parameterInterval(controller->gain()));
+}
+
+cinterval NaturalIntervalExtension::nicholsBox(LtiSystem * controller, double w,
+                                               complex p0, const interval & gain)
+{
     ensureSupportedStructure(controller->type());
 
-    const cinterval numerator = factorProduct(controller->numerator(), w);
-    const cinterval denominator = factorProduct(controller->denominator(), w);
+    return nicholsOf(gain, factorProduct(controller->numerator(), w),
+                     factorProduct(controller->denominator(), w), p0);
+}
 
-    const cinterval a = parameterInterval(controller->gain()) * numerator * p0;
+cinterval NaturalIntervalExtension::nicholsPoint(const PointController & point, double w,
+                                                 complex p0)
+{
+    return nicholsPoint(point.gain, point.zeros, point.poles, w, p0);
+}
+
+cinterval NaturalIntervalExtension::nicholsPoint(double gain, const std::vector<double> & zeros,
+                                                 const std::vector<double> & poles, double w,
+                                                 complex p0)
+{
+    return nicholsOf(interval(gain), factorProduct(zeros, w), factorProduct(poles, w), p0);
+}
+
+NaturalIntervalExtension::Factors NaturalIntervalExtension::factorsOf(LtiSystem * controller, double w)
+{
+    ensureSupportedStructure(controller->type());
+
+    return {factorProduct(controller->numerator(), w), factorProduct(controller->denominator(), w)};
+}
+
+NaturalIntervalExtension::Factors NaturalIntervalExtension::factorsOf(const std::vector<double> & zeros,
+                                                                      const std::vector<double> & poles,
+                                                                      double w)
+{
+    return {factorProduct(zeros, w), factorProduct(poles, w)};
+}
+
+cinterval NaturalIntervalExtension::nicholsOf(const interval & gain, const Factors & factors, complex p0)
+{
+    return nicholsOf(gain, factors.numerator, factors.denominator, p0);
+}
+
+cinterval NaturalIntervalExtension::nicholsOf(const interval & gain, const cinterval & numerator,
+                                              const cinterval & denominator, complex p0)
+{
+    const cinterval a = gain * numerator * p0;
 
     //Magnitude and phase by interval arithmetic (thesis section 1.2.5):
     //|a| / |den| and arg(a) - arg(den), the phase mapped back onto the
