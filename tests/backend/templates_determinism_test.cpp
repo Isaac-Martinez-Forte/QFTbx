@@ -29,6 +29,8 @@
 #include "src/core/templates/template_engine.h"
 #include "src/persistence/project_reader.h"
 
+using namespace qftbx;
+
 namespace {
 
 //Every computed number of one run, in order: the clouds first, then the

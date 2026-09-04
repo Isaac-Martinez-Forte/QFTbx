@@ -26,6 +26,8 @@
 #include "src/core/system/polynomial_form.h"
 #include "src/core/range.h"
 
+using namespace qftbx;
+
 namespace {
 
 //P(s) = kv / (a*s + 1), with both coefficients uncertain so the sweep has a
@@ -54,13 +56,13 @@ qftbx::ParameterGrids makeGrids()
 
 std::unique_ptr<Omega> makeOmega()
 {
-    return std::make_unique<Omega>(0.1, 10.0, 3, tools::logspace(-1.0, 1.0, 3), Omega::LogSpace);
+    return std::make_unique<Omega>(0.1, 10.0, 3, qftbx::logspace(-1.0, 1.0, 3), Omega::LogSpace);
 }
 
 //A different frequency set: four values over two more decades.
 std::unique_ptr<Omega> makeOtherOmega()
 {
-    return std::make_unique<Omega>(0.01, 100.0, 4, tools::logspace(-2.0, 2.0, 4), Omega::LogSpace);
+    return std::make_unique<Omega>(0.01, 100.0, 4, qftbx::logspace(-2.0, 2.0, 4), Omega::LogSpace);
 }
 
 //A project with plant, frequencies and computed templates.

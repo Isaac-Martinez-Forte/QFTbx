@@ -1,7 +1,6 @@
 #include <cstdint>
 #include "src/core/loopshaping/boundary_violation_detector.h"
 
-using namespace tools;
 using namespace cxsc;
 
 //Reader of the phase bucketing that BoundaryUnion1D::bucketIndex writes.
@@ -13,6 +12,8 @@ using namespace cxsc;
 //dereferenced). The window is free text in the boundaries dialog while every
 //caller normalises phase into (-360, 0], so a window narrower than 360
 //degrees was enough to reach it.
+namespace qftbx {
+
 std::int32_t BoundaryViolationDetector::phaseBucket(double phaseDegrees, std::int32_t bucketCount,
                                                      double phaseSpanDegrees)
 {
@@ -123,7 +124,6 @@ BoxClassification BoundaryViolationDetector::classifyBox(cinterval box, const Bo
     }
 
 
-
     BoxClassification classification;
 
     classification.setExtremes({minMagBound, maxMagBound, minPhaseBound, maxPhaseBound});
@@ -156,7 +156,7 @@ BoxClassification BoundaryViolationDetector::classifyBox(cinterval box, const Bo
 //dB) against the boundary union at one design frequency, with the same
 //parity test the box classification uses. It certifies the zone gates of
 //the gain cutting and splitting (Tharewal 2005, ch. 5).
-tools::BoxFlag BoundaryViolationDetector::classifyPoint(qftbx::NicholsPoint point, const BoundaryData * boundaries, std::size_t frequencyIndex) {
+qftbx::BoxFlag BoundaryViolationDetector::classifyPoint(qftbx::NicholsPoint point, const BoundaryData * boundaries, std::size_t frequencyIndex) {
 
     const qftbx::TraceSet & buckets =
             boundaries->unionBuckets().at(frequencyIndex);
@@ -166,3 +166,5 @@ tools::BoxFlag BoundaryViolationDetector::classifyPoint(qftbx::NicholsPoint poin
 
     return pointVerdict(point, buckets, bucketCount, above, phaseSpanDegrees);
 }
+
+} // namespace qftbx

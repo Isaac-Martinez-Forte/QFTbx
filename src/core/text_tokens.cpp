@@ -95,4 +95,3 @@ std::optional<std::vector<double>> qftbx::text::reals(const std::string & line){
 }
 
 
-

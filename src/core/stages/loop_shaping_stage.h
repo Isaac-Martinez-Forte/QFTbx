@@ -40,7 +40,7 @@ public:
      *        CancellationToken on why that is not the core's business.
      */
     bool run(ProjectData & data, double epsilon,
-             tools::LoopShapingAlgorithm algorithm, Range plotRange,
+             qftbx::LoopShapingAlgorithm algorithm, Range plotRange,
              double pointCount, std::int32_t initialisation,
              const CancellationToken * cancellation = nullptr);
 

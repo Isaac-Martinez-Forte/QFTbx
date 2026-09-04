@@ -14,9 +14,8 @@ Roberto C. Cruz Rodríguez
 
 #include "interval.hpp"
 
-using namespace cxsc;
 
-namespace alg {
+namespace qftbx {
 
 /**
 * Node kinds of the expression interpreter.
@@ -38,7 +37,7 @@ enum com { GREATER, LESS, GREATER_EQUAL, LESS_EQUAL, EQUAL};
 /**
 * One node of the binary expression tree: a leaf holds a numeric value
 * (c_const) or a variable identifier (var); an inner node holds the
-* operation applied to its branches. 'enclosure' caches the interval of
+* operation applied to its branches. 'enclosure' caches the cxsc::interval of
 * the subtree during the forward phase of the HC4 filter, so the backward
 * phase can project through it.
 */
@@ -54,7 +53,7 @@ struct exp_node
 
     std::string var;
 
-    interval enclosure;
+    cxsc::interval enclosure;
 
     //A node OWNS its branches, so a tree frees itself. There used to be a
     //recursive delete_tree() post-order walk, and every early return of the
@@ -77,7 +76,7 @@ struct exp_node
 * operand, a character the grammar has no rule for) and an unknown
 * variable at evaluation time throw std::invalid_argument; the historical
 * parser read past the end of its stacks on the former and returned an
-* UNINITIALISED interval on the latter.
+* UNINITIALISED cxsc::interval on the latter.
 */
 class ExpressionTree
 {
@@ -107,16 +106,16 @@ public :
     double eval(std::map<std::string, double> * variables = nullptr);
 
     /// Evaluates over intervals with the given variable domains.
-    interval eval (std::map<std::string, interval> *variables);
+    cxsc::interval eval (std::map<std::string, cxsc::interval> *variables);
 
     /// One HC4 pass over the constraint "expression <comparison> value":
-    /// forward interval evaluation, intersection with the constraint set (a
+    /// forward cxsc::interval evaluation, intersection with the constraint set (a
     /// half-line for the inequalities, a point for the equality), backward
     /// projection narrowing 'variables' in place. Returns false when a
     /// domain empties (the constraint proves the box infeasible). The
     /// comparison used to be stored and never read: every constraint was
     /// propagated as >=.
-    bool propagate (std::map<std::string, interval> *variables);
+    bool propagate (std::map<std::string, cxsc::interval> *variables);
 
     /// Prints the tree to stdout (debugging aid).
     void print ();
@@ -126,19 +125,19 @@ public :
     /// Alternative spelling of eval().
     double operator()(std::map<std::string, double> * variables = nullptr);
 
-    interval operator() (std::map<std::string, interval> *variables);
+    cxsc::interval operator() (std::map<std::string, cxsc::interval> *variables);
 
 private :
 
-    void alg_exp_node_print (alg::exp_node * node);
+    void alg_exp_node_print (qftbx::exp_node * node);
 
-    std::string symbolOf(alg::type_node type);
+    std::string symbolOf(qftbx::type_node type);
 
     std::unique_ptr<exp_node> make_cpy(exp_node *node);
 
     double eval_tree(exp_node *node);
 
-    interval eval_tree_in (exp_node * node);
+    cxsc::interval eval_tree_in (exp_node * node);
 
     /// Backward (projection) phase of the HC4 filter: narrows the domains
     /// towards consistency with 'enclosure'. Returns false when a domain
@@ -146,12 +145,12 @@ private :
     /// that are unsafe or multi-branch (trigonometric inverses outside a
     /// monotone branch, divisors straddling zero, non-square powers) are
     /// skipped: skipping narrows nothing and stays sound.
-    bool eval_tree_out(exp_node * node, interval enclosure);
+    bool eval_tree_out(exp_node * node, cxsc::interval enclosure);
 
     /// Intersection with an empty-signal instead of the historical throw
     /// (the release build compiled the guarding assert out, so an empty
-    /// intersection built an invalid interval and aborted the process).
-    bool safeIntersection(const interval & a, const interval & b, interval & out);
+    /// intersection built an invalid cxsc::interval and aborted the process).
+    bool safeIntersection(const cxsc::interval & a, const cxsc::interval & b, cxsc::interval & out);
 
     void build_tree(std::string &in_exp);
 
@@ -162,7 +161,7 @@ private :
     //to carry them; initialised because not every constructor passes
     //through one of those.
     std::map<std::string, double> * variables = nullptr;
-    std::map<std::string, interval> * variables_in = nullptr;
+    std::map<std::string, cxsc::interval> * variables_in = nullptr;
 
     //The constraint propagate() tests against. Two of the four constructors
     //do not set them, and propagate() reads both.

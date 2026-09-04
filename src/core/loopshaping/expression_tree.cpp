@@ -21,7 +21,7 @@ using namespace std;
 using namespace cxsc;
 
 
-namespace alg {
+namespace qftbx {
 
 namespace {
 
@@ -158,7 +158,6 @@ void ExpressionTree::print (){
  */
 
 void ExpressionTree::alg_exp_node_print(exp_node * node){
-
 
 
     if (node->type == CONSTANT){
@@ -1086,4 +1085,4 @@ bool ExpressionTree::isLetter(char text){
     return (text >= 'a' && text <= 'z') || (text >= 'A' && text <= 'Z');
 }
 
-};
+} // namespace qftbx

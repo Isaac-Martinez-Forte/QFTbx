@@ -15,8 +15,10 @@
 //the plant, the controller search box, the design frequencies and the
 //boundaries; NK also takes the local-search starting-point choice, and
 //MR the templates and specifications its constraints are built from.
+namespace qftbx {
+
 bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<double> * omega,
-                          const BoundaryData * boundaries, double epsilon, tools::LoopShapingAlgorithm algorithm,
+                          const BoundaryData * boundaries, double epsilon, qftbx::LoopShapingAlgorithm algorithm,
                           const qftbx::CloudSet & contour, const qftbx::SpecificationRecords * specifications,
                           std::int32_t initialisation)
 {
@@ -62,7 +64,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
         m_controller = std::move(designed);
     };
 
-    if (algorithm == tools::nt) {
+    if (algorithm == qftbx::nt) {
         auto nt = std::make_unique<AlgorithmNt>();
         nt->setProblem(plant, controller, omega, boundaries, epsilon);
         nt->setCancellation(m_cancellation);
@@ -72,7 +74,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
         if (solved) {
             report(nt->controllerStructure(), nt->peakLiveNodes());
         }
-    } else if (algorithm == tools::nk) {
+    } else if (algorithm == qftbx::nk) {
         auto nk = std::make_unique<AlgorithmNk>();
         nk->setProblem(plant, controller, omega, boundaries, epsilon, initialisation);
         nk->setCancellation(m_cancellation);
@@ -82,7 +84,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
         if (solved) {
             report(nk->controllerStructure(), nk->peakLiveNodes());
         }
-    } else if (algorithm == tools::mr) {
+    } else if (algorithm == qftbx::mr) {
         auto mr = std::make_unique<AlgorithmMr>();
         mr->setProblem(plant, controller, omega, boundaries, epsilon, contour, specifications);
         mr->setCancellation(m_cancellation);
@@ -92,7 +94,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
         if (solved) {
             report(mr->controllerStructure(), mr->peakLiveNodes());
         }
-    } else if (algorithm == tools::mc1) {
+    } else if (algorithm == qftbx::mc1) {
         auto mc1 = std::make_unique<AlgorithmMc1>();
         mc1->setProblem(plant, controller, omega, boundaries, epsilon);
         mc1->setCancellation(m_cancellation);
@@ -102,7 +104,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
         if (solved) {
             report(mc1->controllerStructure(), mc1->peakLiveNodes());
         }
-    } else if (algorithm == tools::mc_thesis) {
+    } else if (algorithm == qftbx::mc_thesis) {
         auto mc_thesis = std::make_unique<AlgorithmMcThesis>();
         mc_thesis->setProblem(plant, controller, omega, boundaries, epsilon);
         mc_thesis->setCancellation(m_cancellation);
@@ -121,3 +123,5 @@ std::unique_ptr<LtiSystem> LoopShaping::controllerStructure()
 {
     return std::move(m_controller);
 }
+
+} // namespace qftbx

@@ -6,7 +6,7 @@
 class QCustomPlot;
 class QWidget;
 
-namespace tools {
+namespace qftbx {
 
 /**
  * @brief Asks for a file name and writes the plot to it as PNG, PDF, JPG or
@@ -24,6 +24,6 @@ bool savePlotAs(QCustomPlot & plot, const QString & fileName, const QString & ex
 /// knows.
 QString exportFilter();
 
-} // namespace tools
+} // namespace qftbx
 
 #endif // QFTBX_GUI_PLOT_EXPORT_H

@@ -2,7 +2,7 @@
 
 #include <QMessageBox>
 
-namespace tools {
+namespace qftbx {
 
 namespace {
 
@@ -31,4 +31,4 @@ ErrorReporter setErrorReporter(ErrorReporter newReporter)
     return previous;
 }
 
-} // namespace tools
+} // namespace qftbx

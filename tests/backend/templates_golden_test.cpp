@@ -28,6 +28,8 @@
 #include "src/core/math/sequences.h"
 #include "src/persistence/project_reader.h"
 
+using namespace qftbx;
+
 namespace {
 
 using Complex = std::complex<double>;

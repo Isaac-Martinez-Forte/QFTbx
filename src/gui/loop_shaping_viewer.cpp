@@ -8,7 +8,8 @@
 #include "src/gui/error_message.h"
 #include "src/gui/plot_palette.h"
 
-using namespace tools;
+
+namespace qftbx {
 
 LoopShapingViewer::LoopShapingViewer(QWidget *parent) :
     QDialog(parent),
@@ -82,15 +83,15 @@ void LoopShapingViewer::showDiagram(){
 
     qint32 i = 0;
     for (i = 0; i < static_cast<qint32>(loopShapingData->controller()->numerator().size()); i++){
-        numerator += tools::numberText(loopShapingData->controller()->numerator()[i].nominal()) + " ";
+        numerator += qftbx::numberText(loopShapingData->controller()->numerator()[i].nominal()) + " ";
     }
     for (i = 0; i < static_cast<qint32>(loopShapingData->controller()->denominator().size()); i++){
-        denominator += tools::numberText(loopShapingData->controller()->denominator()[i].nominal()) + " ";
+        denominator += qftbx::numberText(loopShapingData->controller()->denominator()[i].nominal()) + " ";
     }
 
     ui->numeratorEdit->setText(numerator);
     ui->denominatorEdit->setText(denominator);
-    ui->gainEdit->setText(tools::numberText(loopShapingData->controller()->gain().nominal()));
+    ui->gainEdit->setText(qftbx::numberText(loopShapingData->controller()->gain().nominal()));
 
     const LtiSystem::SystemType type = loopShapingData->controller()->type();
 
@@ -101,7 +102,6 @@ void LoopShapingViewer::showDiagram(){
     }else {
         ui->systemTypeImage->setPixmap(QPixmap(":/figures/knogan.png"));
     }
-
 
 
     clearDiagram();
@@ -132,7 +132,7 @@ void LoopShapingViewer::showDiagram(){
         }
 
         QCPCurve *curve = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-        curve->setData(tools::toQVector(phases), tools::toQVector(magnitudes));
+        curve->setData(qftbx::toQVector(phases), qftbx::toQVector(magnitudes));
         curve->setPen(color);
         curves.push_back(curve);
 
@@ -148,10 +148,10 @@ void LoopShapingViewer::showDiagram(){
     std::vector<double> frequencies;
 
     /*if(linSpace){
-        frequencies = tools::linspace(loopShapingData->range().min, loopShapingData->range().max, loopShapingData->pointCount());
+        frequencies = qftbx::linspace(loopShapingData->range().min, loopShapingData->range().max, loopShapingData->pointCount());
 
     } else {
-        frequencies = tools::logspace(loopShapingData->range().min, loopShapingData->range().max, loopShapingData->pointCount());
+        frequencies = qftbx::logspace(loopShapingData->range().min, loopShapingData->range().max, loopShapingData->pointCount());
     }*/
 
     //FIXED ON PURPOSE, for now (decision taken 2026-09-03: leave it, write
@@ -160,7 +160,7 @@ void LoopShapingViewer::showDiagram(){
     //way of honouring them, one is now gone and two remain.
     //
     //SETTLED: the units. Both dialogs ask for rad/s now and say so on the
-    //label, and each converts with log10 where tools::logspace wants an
+    //label, and each converts with log10 where qftbx::logspace wants an
     //exponent. Before, this dialog's defaults were written as values while
     //the frequencies dialog read its field as an exponent, so the same "0.01"
     //meant two different frequencies and no label admitted it. Reviving the
@@ -179,7 +179,7 @@ void LoopShapingViewer::showDiagram(){
     //(kDecadesBeyond) and refines until the phase step falls under
     //kMaxPhaseStepDegrees. Doing the same here would also make the drawing
     //and the check look at the same place, which they need not do today.
-    frequencies = tools::logspace(-5, 5, 10000);
+    frequencies = qftbx::logspace(-5, 5, 10000);
 
     //The open-loop curve, cut into segments wherever the phase wraps: by
     //value, so a replot does not abandon them (they all used to be).
@@ -230,11 +230,10 @@ void LoopShapingViewer::showDiagram(){
 
     for (qint32 i = 0; i < phaseSegments.size(); i++){
         QCPCurve *curve = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-        curve->setData(tools::toQVector(phaseSegments.at(i)), tools::toQVector(magnitudeSegments.at(i)));
+        curve->setData(qftbx::toQVector(phaseSegments.at(i)), qftbx::toQVector(magnitudeSegments.at(i)));
         curve->setPen((QColor) Qt::black);
         curves.push_back(curve);
     }
-
 
 
     //Draw the marker for each design frequency.
@@ -251,7 +250,7 @@ void LoopShapingViewer::showDiagram(){
         phases.push_back(phase);
 
         QCPGraph * marker = ui->plot->addGraph();
-        marker->setData(tools::toQVector(phases), tools::toQVector(magnitudes));
+        marker->setData(qftbx::toQVector(phases), qftbx::toQVector(magnitudes));
 
         marker->setPen(rowColors.at(i));
         marker->setScatterStyle(QCPScatterStyle::ssCircle);
@@ -290,7 +289,7 @@ void LoopShapingViewer::addFrequencyRow(QColor color, qint32 pos){
     checkBox = new QCheckBox(widget);
     checkBox->setObjectName("checkBox");
 
-    checkBox->setText(tools::numberText(omega->at(pos)));
+    checkBox->setText(qftbx::numberText(omega->at(pos)));
 
     checkBox->setStyleSheet("color : " + color.name());
 
@@ -303,5 +302,7 @@ void LoopShapingViewer::addFrequencyRow(QColor color, qint32 pos){
 
 void LoopShapingViewer::on_saveImage_clicked()
 {
-    tools::exportPlot(this, *ui->plot, tr("Loop-shaping plot"));
+    qftbx::exportPlot(this, *ui->plot, tr("Loop-shaping plot"));
 }
+
+} // namespace qftbx

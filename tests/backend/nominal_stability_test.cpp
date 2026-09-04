@@ -14,6 +14,8 @@
 #include "src/core/system/zero_pole_gain.h"
 #include "src/core/system/parameter.h"
 
+using namespace qftbx;
+
 namespace {
 
 LtiSystem* makeZpk(double k, std::initializer_list<double> zeros,

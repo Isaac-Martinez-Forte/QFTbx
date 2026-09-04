@@ -12,6 +12,8 @@
  *
  * It OWNS the controller, and says so in the type.
  */
+namespace qftbx {
+
 class LoopShapingResult
 {
 public:
@@ -38,5 +40,7 @@ private:
     qftbx::Range m_plotRange;
     double m_pointCount = 0;
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_LOOPSHAPING_RESULT_H

@@ -20,10 +20,12 @@
 #include "src/core/templates/cloud_set.h"
 
 
-
 namespace Ui {
 class TemplateViewer;
 }
+
+namespace qftbx {
+
 
 /**
  * @brief Plots the templates of a plant - its value set at every design
@@ -73,7 +75,7 @@ public:
     * refreshContour().
     *
     * A plain callback rather than a Qt signal: one caller, one handler, same
-    * thread. Same seam as tools::ErrorReporter.
+    * thread. Same seam as qftbx::ErrorReporter.
    */
 
     using ContourRecomputer = std::function<void (std::vector<double> epsilon)>;
@@ -157,6 +159,8 @@ private:
 
     bool plot = false;
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_TEMPLATE_VIEWER_H
 

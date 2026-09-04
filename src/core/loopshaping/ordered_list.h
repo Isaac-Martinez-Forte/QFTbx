@@ -39,6 +39,8 @@
  * The ceiling in effect comes from the settings file (search.max-live-nodes,
  * qftbx::Settings::Search) through the algorithm that builds the list.
  */
+namespace qftbx {
+
 inline constexpr std::size_t kDefaultMaxLiveNodes = 32000000;
 
 /**
@@ -118,5 +120,7 @@ private:
     std::size_t m_peakSize = 0;
 
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_LOOPSHAPING_ORDERED_LIST_H

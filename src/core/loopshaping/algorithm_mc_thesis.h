@@ -72,6 +72,8 @@
  *   contribution where the assignments minimise it: the implementations
  *   here follow the sound readings (errata candidates).
  */
+namespace qftbx {
+
 class AlgorithmMcThesis
 {
 public:
@@ -153,7 +155,7 @@ private:
         std::vector<std::optional<BoxClassification>> classification;
         std::vector<Range> boxMag;     //dB edges of the projected box
         std::vector<Range> boxPhase;   //degree edges
-        tools::BoxFlag flag = tools::feasible;
+        qftbx::BoxFlag flag = qftbx::feasible;
         std::size_t mainFrequency = 0;    //largest ambiguous projected area
         bool anyFullPhaseWidth = false;
     };
@@ -167,9 +169,9 @@ private:
     void infeasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
                                bool & improved);
 
-    FC::McBisectionResult bisect(McSearchNode * node, const NodeAnalysis & analysis,
+    qftbx::McBisectionResult bisect(McSearchNode * node, const NodeAnalysis & analysis,
                                         const std::vector<FeasibleThreshold> & thresholds);
-    FC::McBisectionResult bisectAt(McSearchNode * node, std::int32_t parameter, double point);
+    qftbx::McBisectionResult bisectAt(McSearchNode * node, std::int32_t parameter, double point);
     inline std::int32_t widestByMeasure(McSearchNode * node, std::size_t mainFrequency, int measure);
 
     bool boxIsFeasibleAt(LtiSystem * box, std::size_t freqIndex);
@@ -216,5 +218,7 @@ private:
     qftbx::Settings m_settings;
 
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_LOOPSHAPING_ALGORITHM_MC_THESIS_H

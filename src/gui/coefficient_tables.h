@@ -29,6 +29,9 @@
 /// are filled from QLineEdits and read back into them all over the dialogs,
 /// so std::string moved the conversion to a hundred widget calls to save it
 /// at eight core calls. The seam belongs where the core is entered.
+
+namespace qftbx {
+
 using CoefficientRow = std::vector<QString>;
 
 /// The slots of one system, in dialog order.
@@ -39,5 +42,7 @@ using UncertainRow = std::vector<bool>;
 
 /// The uncertainty flags of one system, aligned with a CoefficientTable.
 using UncertainTable = std::vector<UncertainRow>;
+
+} // namespace qftbx
 
 #endif // QFTBX_GUI_COEFFICIENT_TABLES_H

@@ -33,6 +33,9 @@ namespace Ui {
 class TemplatesDialog;
 }
 
+namespace qftbx {
+
+
 /**
  * @brief Step 3 of the design: the sweep grid of every uncertain plant
  * parameter and the epsilon of the contour walk.
@@ -168,5 +171,7 @@ private:
     double m_maxPointCount = qftbx::Settings().limits.maxTemplatePoints;
 
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_TEMPLATES_DIALOG_H

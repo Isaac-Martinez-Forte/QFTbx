@@ -8,7 +8,7 @@
 #include "src/gui/plot_palette.h"
 
 
-using namespace tools;
+namespace qftbx {
 
 LoopBoundariesViewer::LoopBoundariesViewer(QWidget *parent) :
     QDialog(parent),
@@ -123,7 +123,7 @@ void LoopBoundariesViewer::showDiagram(){
 
         if (nichols){
             QCPCurve *curve = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-            curve->setData(tools::toQVector(phases), tools::toQVector(magnitudes));
+            curve->setData(qftbx::toQVector(phases), qftbx::toQVector(magnitudes));
             curve->setPen(color);
             addFrequencyRow(color, frequencyIndex, tr("Nichols"));
             curves.push_back(curve);
@@ -133,7 +133,7 @@ void LoopBoundariesViewer::showDiagram(){
         //the Nichols flag.
         if (nyquist){
             QCPCurve *nyquistCurve = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-            nyquistCurve->setData(tools::toQVector(realParts), tools::toQVector(imaginaryParts));
+            nyquistCurve->setData(qftbx::toQVector(realParts), qftbx::toQVector(imaginaryParts));
             nyquistCurve->setPen(color2);
             addFrequencyRow(color2, frequencyIndex, tr("Nyquist"));
             curves.push_back(nyquistCurve);
@@ -145,7 +145,6 @@ void LoopBoundariesViewer::showDiagram(){
     ui->plot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
     ui->plot->axisRect()->setupFullAxesBox();
     ui->plot->rescaleAxes();
-
 
 
     ui->plot->replot();
@@ -173,7 +172,7 @@ void LoopBoundariesViewer::addFrequencyRow(QColor color, qint32 pos, QString dia
     checkBox = new QCheckBox(widget);
     checkBox->setObjectName("checkBox");
 
-    checkBox->setText(tools::numberText(omega->at(pos)) + " " + diagram);
+    checkBox->setText(qftbx::numberText(omega->at(pos)) + " " + diagram);
 
     checkBox->setStyleSheet("color : " + color.name());
 
@@ -187,5 +186,7 @@ void LoopBoundariesViewer::addFrequencyRow(QColor color, qint32 pos, QString dia
 
 void LoopBoundariesViewer::on_saveImage_clicked()
 {
-    tools::exportPlot(this, *ui->plot, tr("Boundary plot"));
+    qftbx::exportPlot(this, *ui->plot, tr("Boundary plot"));
 }
+
+} // namespace qftbx

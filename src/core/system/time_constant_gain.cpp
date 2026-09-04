@@ -113,7 +113,6 @@ LtiSystem::SystemType TimeConstantGain::type(){
 }
 
 
-
 //P(s) = k * prod(s/tau_n[i] + 1) / prod(s/tau_d[i] + 1) at s = j*w, times
 //the pure delay. An empty list is the constant 1, as the expression
 //generator writes it. A zero time constant divides by zero here exactly as

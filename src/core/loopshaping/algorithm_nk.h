@@ -44,6 +44,8 @@
  * formulation), implemented on the Nichols chart by the Cohen-Chait-Yaniv
  * criterion (NominalStabilityChecker).
  */
+namespace qftbx {
+
 class AlgorithmNk
 {
 public:
@@ -134,5 +136,7 @@ private:
     qftbx::Settings m_settings;
 
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_LOOPSHAPING_ALGORITHM_NK_H

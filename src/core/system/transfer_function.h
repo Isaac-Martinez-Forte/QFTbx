@@ -59,8 +59,5 @@ protected:
 
 } // namespace qftbx
 
-//Transitional: unqualified name for consumers not yet migrated
-//to the qftbx namespace. Remove when the migration is complete.
-using qftbx::TransferFunction;
 
 #endif // QFTBX_TRANSFER_FUNCTION_H

@@ -18,8 +18,9 @@
 #include "src/core/system/zero_pole_gain.h"
 #include "src/core/system/time_constant_gain.h"
 
-using namespace tools;
 using namespace mup;
+
+namespace qftbx {
 
 namespace {
 
@@ -104,8 +105,8 @@ SpecificationsDialog::SpecificationsDialog(const std::vector<double> * frequenci
     sensorNoisePixmap= QPixmap (":/figures/ruidosensor.png");
     stabilityPixmap= QPixmap (":/figures/estabilidad.png");
 
-    ui->startFrequencyEdit->setText(tools::numberText(frequencies->front()));
-    ui->endFrequencyEdit->setText(tools::numberText(frequencies->back()));
+    ui->startFrequencyEdit->setText(qftbx::numberText(frequencies->front()));
+    ui->endFrequencyEdit->setText(qftbx::numberText(frequencies->back()));
 
     ui->trackingImage->setPixmap(trackingImagePixmap);
 
@@ -158,7 +159,7 @@ QString SpecificationsDialog::coefficientsText(std::vector<Parameter> & paramete
 {
     QString text;
     for (Parameter & parameter : parameters) {
-        text += tools::numberText(parameter.nominal()) + " ";
+        text += qftbx::numberText(parameter.nominal()) + " ";
     }
     return text.trimmed();
 }
@@ -183,8 +184,8 @@ void SpecificationsDialog::setData(qftbx::SpecificationRecord & record)
 {
     if (record.used){
 
-        ui->startFrequencyEdit->setText(tools::numberText(record.omegaStart));
-        ui->endFrequencyEdit->setText(tools::numberText(record.omegaEnd));
+        ui->startFrequencyEdit->setText(qftbx::numberText(record.omegaStart));
+        ui->endFrequencyEdit->setText(qftbx::numberText(record.omegaEnd));
 
         if (record.constant){
             ui->constantRadio->setChecked(true);
@@ -192,7 +193,7 @@ void SpecificationsDialog::setData(qftbx::SpecificationRecord & record)
             //The stored magnitude is linear: painted as-is with the linear
             //radio checked so accept does not reread it as dB.
             ui->linearRadio->setChecked(true);
-            ui->magnitudeEdit->setText(tools::numberText(record.height));
+            ui->magnitudeEdit->setText(qftbx::numberText(record.height));
         } else{
             ui->systemRadio->setChecked(true);
             on_systemRadio_clicked();
@@ -218,8 +219,8 @@ void SpecificationsDialog::setData(qftbx::SpecificationRecord & record)
 
             ui->numeratorEdit->setText(numeratorText(record.system.get()));
             ui->denominatorEdit->setText(denominatorText(record.system.get()));
-            ui->k->setText(tools::numberText(record.system->gain().nominal()));
-            ui->delayEdit->setText(tools::numberText(record.system->delay().nominal()));
+            ui->k->setText(qftbx::numberText(record.system->gain().nominal()));
+            ui->delayEdit->setText(qftbx::numberText(record.system->delay().nominal()));
         }
     } else {
         //The band too: it used to keep the PREVIOUS tab's values, and an
@@ -241,17 +242,17 @@ void SpecificationsDialog::setData(qftbx::SpecificationRecord & record,
 
     if (record.used){
 
-        ui->startFrequencyEdit->setText(tools::numberText(record.omegaStart));
-        ui->endFrequencyEdit->setText(tools::numberText(record.omegaEnd));
+        ui->startFrequencyEdit->setText(qftbx::numberText(record.omegaStart));
+        ui->endFrequencyEdit->setText(qftbx::numberText(record.omegaEnd));
 
         if (record.constant){
             ui->constantRadio->setChecked(true);
             on_constantRadio_clicked();
             ui->lowerLinearRadio->setChecked(true);
             ui->upperLinearRadio->setChecked(true);
-            ui->lowerMagnitudeEdit->setText(tools::numberText(record.height));
+            ui->lowerMagnitudeEdit->setText(qftbx::numberText(record.height));
 
-            ui->upperMagnitudeEdit->setText(tools::numberText(upperRecord.height));
+            ui->upperMagnitudeEdit->setText(qftbx::numberText(upperRecord.height));
         }else{
             ui->systemRadio->setChecked(true);
             on_systemRadio_clicked();
@@ -296,13 +297,13 @@ void SpecificationsDialog::setData(qftbx::SpecificationRecord & record,
 
             ui->lowerNumeratorEdit->setText(numeratorText(record.system.get()));
             ui->lowerDenominatorEdit->setText(denominatorText(record.system.get()));
-            ui->lowerGainEdit->setText(tools::numberText(record.system->gain().nominal()));
-            ui->lowerDelayEdit->setText(tools::numberText(record.system->delay().nominal()));
+            ui->lowerGainEdit->setText(qftbx::numberText(record.system->gain().nominal()));
+            ui->lowerDelayEdit->setText(qftbx::numberText(record.system->delay().nominal()));
 
             ui->upperNumeratorEdit->setText(numeratorText(upperRecord.system.get()));
             ui->upperDenominatorEdit->setText(denominatorText(upperRecord.system.get()));
-            ui->upperGainEdit->setText(tools::numberText(upperRecord.system->gain().nominal()));
-            ui->upperDelayEdit->setText(tools::numberText(upperRecord.system->delay().nominal()));
+            ui->upperGainEdit->setText(qftbx::numberText(upperRecord.system->gain().nominal()));
+            ui->upperDelayEdit->setText(qftbx::numberText(upperRecord.system->delay().nominal()));
         }
     } else {
         //The band too, for the same reason as the single specifications: an
@@ -1068,7 +1069,6 @@ void SpecificationsDialog::discardPublished(){
 }
 
 
-
 void SpecificationsDialog::on_lowerPolynomialRadio_clicked()
 {
     ui->lowerFigureStack-> setCurrentIndex(3);
@@ -1129,3 +1129,4 @@ void SpecificationsDialog::on_zpkRadio_clicked()
     ui->figureStack->setCurrentIndex(2);
 }
 
+} // namespace qftbx

@@ -28,6 +28,9 @@ namespace Ui {
 class PlantDialog;
 }
 
+namespace qftbx {
+
+
 class PlantDialog : public StepDialog
 {
     Q_OBJECT
@@ -99,5 +102,7 @@ private:
     mup::ParserX p;
 
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_PLANT_DIALOG_H

@@ -5,7 +5,7 @@
 
 #include <QString>
 
-//GUI-side error reporting, moved out of the backend (tools.h).
+//GUI-side error reporting.
 //
 //By default a message opens a modal dialog, which is right for a user and
 //impossible for an automated run: a headless suite would block forever on
@@ -13,7 +13,7 @@
 //the dialogs report and assert on it.
 //
 //The default dialog has no parent, so it is not modal to the main window.
-namespace tools {
+namespace qftbx {
 
 using ErrorReporter = std::function<void (const QString & message, const QString & title)>;
 
@@ -24,6 +24,6 @@ void errorMessage(QString message, QString title);
 /// dialog. Returns the previous one, so a caller can put it back.
 ErrorReporter setErrorReporter(ErrorReporter reporter);
 
-} // namespace tools
+} // namespace qftbx
 
 #endif // QFTBX_GUI_ERROR_MESSAGE_H

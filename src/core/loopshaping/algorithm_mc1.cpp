@@ -4,9 +4,9 @@
 #include "src/core/exception.h"
 #include "src/core/loopshaping/algorithm_mc1.h"
 
-using namespace tools;
 using namespace cxsc;
-using namespace FC;
+
+namespace qftbx {
 
 void AlgorithmMc1::setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> * omega,
                                           const BoundaryData * boundaries, double epsilon)
@@ -304,3 +304,5 @@ void AlgorithmMc1::certifiedGainSearch(LtiSystem * box)
         bestCertifiedController = std::move(point);
     }
 }
+
+} // namespace qftbx

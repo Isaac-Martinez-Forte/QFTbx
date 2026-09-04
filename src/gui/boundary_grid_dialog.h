@@ -17,6 +17,9 @@ namespace Ui {
 class BoundaryGridDialog;
 }
 
+namespace qftbx {
+
+
 /**
  * @brief Asks the user for the Nichols grid the boundaries are computed
  * over: the phase and magnitude axes, their point counts, the stand-in for
@@ -100,5 +103,7 @@ private:
     std::int64_t m_maxGridCells = qftbx::Settings().limits.maxGridCells;
 
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_BOUNDARY_GRID_DIALOG_H

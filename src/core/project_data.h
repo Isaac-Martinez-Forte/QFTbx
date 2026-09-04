@@ -16,7 +16,6 @@
 #include "src/core/loopshaping/loop_shaping_result.h"
 
 
-
 namespace qftbx {
 
 /**

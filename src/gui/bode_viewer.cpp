@@ -15,7 +15,8 @@
 
 
 using namespace std;
-using namespace tools;
+
+namespace qftbx {
 
 BodeViewer::BodeViewer(QWidget *parent) :
     QDialog(parent),
@@ -46,7 +47,7 @@ void BodeViewer::drawBode(LtiSystem *plant, Omega *omega){
         frequencies = linspace(omega->start(), omega->end(), 100);
     }else if (omega->type() == Omega::LogSpace){
         //start()/end() are in rad/s, like every other frequency in the
-        //toolbox, and tools::logspace takes exponents - so the conversion
+        //toolbox, and qftbx::logspace takes exponents - so the conversion
         //happens here, the same way the frequencies dialog does it when it
         //builds the set. They used to hold the exponents themselves, which
         //made this line shorter and the unit a secret shared between two
@@ -89,7 +90,7 @@ void BodeViewer::drawAxis(QString yAxisName, const std::vector<double> & yAxis_v
 
     //QCPCurve attaches itself to the plot, which owns it from then on.
     QCPCurve *curve = new QCPCurve(magnitudePlot->xAxis, magnitudePlot->yAxis);
-    curve->setData(tools::toQVector(frequencies), tools::toQVector(yAxis_values));
+    curve->setData(qftbx::toQVector(frequencies), qftbx::toQVector(yAxis_values));
 
     magnitudePlot->xAxis->setLabel("w");
     magnitudePlot->yAxis->setLabel(yAxisName);
@@ -110,7 +111,7 @@ void BodeViewer::on_actionExport_triggered()
 {
     QString extension;
     const QString fileName = QFileDialog::getSaveFileName(this, tr("Save file"), "",
-                                                          tools::exportFilter(), &extension);
+                                                          qftbx::exportFilter(), &extension);
     if (fileName.isEmpty()){
         return;
     }
@@ -121,10 +122,12 @@ void BodeViewer::on_actionExport_triggered()
     const QString magnitudeName = info.dir().filePath(info.completeBaseName() + "-mag." + info.suffix());
     const QString phaseName = info.dir().filePath(info.completeBaseName() + "-phase." + info.suffix());
 
-    const bool magnitudeSaved = tools::savePlotAs(*ui->magnitudePlot, magnitudeName, extension);
-    const bool phaseSaved = tools::savePlotAs(*ui->phasePlot, phaseName, extension);
+    const bool magnitudeSaved = qftbx::savePlotAs(*ui->magnitudePlot, magnitudeName, extension);
+    const bool phaseSaved = qftbx::savePlotAs(*ui->phasePlot, phaseName, extension);
 
     if (!magnitudeSaved || !phaseSaved){
         errorMessage(tr("The image could not be saved"), tr("Bode diagram"));
     }
 }
+
+} // namespace qftbx

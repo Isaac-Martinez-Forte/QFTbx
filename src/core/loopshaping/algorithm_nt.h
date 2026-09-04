@@ -75,6 +75,8 @@
  *   It was a hand-made version of the nominal stability rule above, and
  *   it is gone.
  */
+namespace qftbx {
+
 class AlgorithmNt
 {
 public:
@@ -133,11 +135,9 @@ private:
     std::unique_ptr<LtiSystem> designedController;
 
 
-
-
     std::unique_ptr<BoundaryViolationDetector> detector;
     std::unique_ptr<NominalStabilityChecker> stability;
-    std::vector <complex> nominalPlantValues;
+    std::vector <cxsc::complex> nominalPlantValues;
 
 
     /// Not owned. Null means this run cannot be cancelled.
@@ -147,5 +147,7 @@ private:
     qftbx::Settings m_settings;
 
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_LOOPSHAPING_ALGORITHM_NT_H

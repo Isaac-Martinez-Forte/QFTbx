@@ -11,8 +11,9 @@
 #include <QMessageBox>
 #include "src/gui/plot_palette.h"
 
-using namespace tools;
 using namespace mup;
+
+namespace qftbx {
 
 namespace {
 
@@ -50,7 +51,7 @@ TemplatesDialog::TemplatesDialog(QWidget *parent) :
     setWindowTitle(tr("Template input"));
 
     ui->globalPointCount->setText(
-        tools::numberText(qftbx::Settings().defaults.templatePointCount));
+        qftbx::numberText(qftbx::Settings().defaults.templatePointCount));
 
     //Wire the cancel button.
     connect(ui->cancelButton, SIGNAL(clicked()), this, SLOT(close()));
@@ -255,7 +256,7 @@ void TemplatesDialog::on_cancelButton_clicked()
 }
 void TemplatesDialog::setDefaultPointCount(std::int32_t points)
 {
-    ui->globalPointCount->setText(tools::numberText(points));
+    ui->globalPointCount->setText(qftbx::numberText(points));
 }
 
 void TemplatesDialog::on_okButton_clicked()
@@ -569,3 +570,4 @@ bool TemplatesDialog::cudaSelected(){
     return cudaEnabled;
 }
 
+} // namespace qftbx

@@ -47,6 +47,8 @@
 #include "src/core/loopshaping/algorithm_mc_thesis.h"
 #include "src/core/project_controller.h"
 
+using namespace qftbx;
+
 namespace {
 
 //The optimum of acc90, reached independently by NT, NK, MR, MC1 and MC.

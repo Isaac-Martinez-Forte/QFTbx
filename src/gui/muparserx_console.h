@@ -20,6 +20,9 @@
  * (or host a console inside the application, which would be the better
  * answer), and point the two paths below at real files.
  */
+
+namespace qftbx {
+
 class MuParserXConsole
 {
 public:
@@ -38,5 +41,7 @@ public:
     /// muParserX's interactive example, relative to the working directory.
     static QString parserExamplePath();
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_MUPARSERX_CONSOLE_H

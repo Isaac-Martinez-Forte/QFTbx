@@ -34,6 +34,8 @@
 #include "src/core/exception.h"
 #include "src/core/project_controller.h"
 
+using namespace qftbx;
+
 namespace {
 
 struct GridPoint

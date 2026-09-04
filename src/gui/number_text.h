@@ -5,7 +5,7 @@
 
 #include "src/core/text_tokens.h"
 
-namespace tools {
+namespace qftbx {
 
 /**
  * @brief A real as the text of a field or a label.
@@ -21,6 +21,6 @@ inline QString numberText(double value)
     return QString::fromStdString(qftbx::text::number(value));
 }
 
-} // namespace tools
+} // namespace qftbx
 
 #endif // QFTBX_GUI_NUMBER_TEXT_H

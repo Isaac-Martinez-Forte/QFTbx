@@ -31,7 +31,7 @@ void LoopShapingStage::requirePrerequisites(const ProjectData & data) const
 }
 
 bool LoopShapingStage::run(ProjectData & data, double epsilon,
-                           tools::LoopShapingAlgorithm algorithm,
+                           qftbx::LoopShapingAlgorithm algorithm,
                            Range plotRange, double pointCount,
                            std::int32_t initialisation,
                            const CancellationToken * cancellation)

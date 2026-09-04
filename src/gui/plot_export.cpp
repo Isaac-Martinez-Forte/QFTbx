@@ -5,7 +5,7 @@
 #include "qcustomplot.h"
 #include "src/gui/error_message.h"
 
-namespace tools {
+namespace qftbx {
 
 QString exportFilter()
 {
@@ -44,4 +44,4 @@ void exportPlot(QWidget * parent, QCustomPlot & plot, const QString & title)
     }
 }
 
-} // namespace tools
+} // namespace qftbx

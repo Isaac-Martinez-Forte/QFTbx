@@ -16,7 +16,6 @@ const std::string & LtiSystem::name() const {
 }
 
 
-
 bool LtiSystem::sameAs(LtiSystem & other)
 {
     if (type() != other.type() || name() != other.name()) {

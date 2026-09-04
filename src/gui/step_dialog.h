@@ -27,6 +27,9 @@
  * never shows them, so clearing there would behave differently in a test than
  * in the application - which is the one thing a seam for testing must not do.
  */
+
+namespace qftbx {
+
 class StepDialog : public QDialog
 {
     Q_OBJECT
@@ -47,5 +50,7 @@ protected:
 private:
     bool m_accepted = false;
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_STEP_DIALOG_H

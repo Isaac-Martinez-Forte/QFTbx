@@ -17,6 +17,8 @@
 
 #include <interval.hpp>
 
+using namespace qftbx;
+
 namespace {
 
 using cxsc::interval;
@@ -203,7 +205,7 @@ TEST(OrderedList, AnEmptyListRefusesToHandOutANode)
 
 TEST(ExpressionTree, ScalarEvaluationWithVariables)
 {
-    alg::ExpressionTree tree("1");
+    qftbx::ExpressionTree tree("1");
     tree.setFunc(std::string("2*x+3"));
 
     std::map<std::string, double> variables;
@@ -214,7 +216,7 @@ TEST(ExpressionTree, ScalarEvaluationWithVariables)
 
 TEST(ExpressionTree, ScalarEvaluationWithFunctionsAndConstants)
 {
-    alg::ExpressionTree tree("1");
+    qftbx::ExpressionTree tree("1");
     tree.setFunc(std::string("cos(0)+sqrt(9)"));
 
     EXPECT_DOUBLE_EQ(tree.eval(static_cast<std::map<std::string, double> *>(nullptr)), 4.0);
@@ -222,7 +224,7 @@ TEST(ExpressionTree, ScalarEvaluationWithFunctionsAndConstants)
 
 TEST(ExpressionTree, IntervalEvaluationEnclosesTheRange)
 {
-    alg::ExpressionTree tree("1");
+    qftbx::ExpressionTree tree("1");
     tree.setFunc(std::string("2*x+3"));
 
     std::map<std::string, interval> variables;
@@ -238,8 +240,8 @@ TEST(ExpressionTree, ContractionNarrowsAnInconsistentDomain)
     // propagate() is the HC4-style contractor of the MR algorithm: it must
     // shrink the variable domains to the part consistent with the
     // constraint (expression >= threshold by default in the MR usage).
-    alg::ExpressionTree tree("1");
-    tree.setFunc(std::string("x-2"), 0.0, alg::GREATER_EQUAL);
+    qftbx::ExpressionTree tree("1");
+    tree.setFunc(std::string("x-2"), 0.0, qftbx::GREATER_EQUAL);
 
     std::map<std::string, interval> variables;
     variables["x"] = interval(0.0, 10.0);
@@ -253,8 +255,8 @@ TEST(ExpressionTree, ContractionNarrowsAnInconsistentDomain)
 
 TEST(ExpressionTree, ContractionDetectsAnEmptyDomain)
 {
-    alg::ExpressionTree tree("1");
-    tree.setFunc(std::string("x-20"), 0.0, alg::GREATER_EQUAL);
+    qftbx::ExpressionTree tree("1");
+    tree.setFunc(std::string("x-20"), 0.0, qftbx::GREATER_EQUAL);
 
     std::map<std::string, interval> variables;
     variables["x"] = interval(0.0, 10.0);
@@ -264,7 +266,7 @@ TEST(ExpressionTree, ContractionDetectsAnEmptyDomain)
 
 TEST(ExpressionTree, TheConstantsAreEnclosedNotApproximated)
 {
-    alg::ExpressionTree tree("1");
+    qftbx::ExpressionTree tree("1");
     tree.setFunc(std::string("PI+E"));
 
     std::map<std::string, interval> variables;
@@ -282,7 +284,7 @@ TEST(ExpressionTree, TheConstantsAreEnclosedNotApproximated)
 
 TEST(ExpressionTree, TheLogarithmsEvaluateOverIntervals)
 {
-    alg::ExpressionTree tree("1");
+    qftbx::ExpressionTree tree("1");
     tree.setFunc(std::string("ln(x)+lg(x)"));
 
     std::map<std::string, interval> variables;
@@ -295,11 +297,11 @@ TEST(ExpressionTree, TheLogarithmsEvaluateOverIntervals)
 
 TEST(ExpressionTree, ACopyKeepsItsVariables)
 {
-    alg::ExpressionTree original("1");
+    qftbx::ExpressionTree original("1");
     original.setFunc(std::string("2*x+3"));
 
-    alg::ExpressionTree copy(original);
-    alg::ExpressionTree assigned("1");
+    qftbx::ExpressionTree copy(original);
+    qftbx::ExpressionTree assigned("1");
     assigned = original;
 
     std::map<std::string, double> variables;
@@ -311,7 +313,7 @@ TEST(ExpressionTree, ACopyKeepsItsVariables)
 
 TEST(ExpressionTree, AnUpperCaseNameIsAVariableNotAConstant)
 {
-    alg::ExpressionTree tree("1");
+    qftbx::ExpressionTree tree("1");
     tree.setFunc(std::string("P1+E2"));
 
     std::map<std::string, double> variables;
@@ -323,8 +325,8 @@ TEST(ExpressionTree, AnUpperCaseNameIsAVariableNotAConstant)
 
 TEST(ExpressionTree, ContractionHonoursALessThanConstraint)
 {
-    alg::ExpressionTree tree("1");
-    tree.setFunc(std::string("x-2"), 0.0, alg::LESS_EQUAL);
+    qftbx::ExpressionTree tree("1");
+    tree.setFunc(std::string("x-2"), 0.0, qftbx::LESS_EQUAL);
 
     std::map<std::string, interval> variables;
     variables["x"] = interval(0.0, 10.0);
@@ -336,7 +338,7 @@ TEST(ExpressionTree, ContractionHonoursALessThanConstraint)
 
 TEST(ExpressionTree, AMalformedExpressionIsRefused)
 {
-    alg::ExpressionTree tree("1");
+    qftbx::ExpressionTree tree("1");
     EXPECT_THROW(tree.setFunc(std::string("(2*x")), std::invalid_argument);
     EXPECT_THROW(tree.setFunc(std::string("2*x)")), std::invalid_argument);
     EXPECT_THROW(tree.setFunc(std::string("2*")), std::invalid_argument);

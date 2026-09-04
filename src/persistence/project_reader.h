@@ -129,7 +129,5 @@ private:
 
 } // namespace qftbx
 
-//Transitional: consumers still refer to the class unqualified.
-using qftbx::ProjectReader;
 
 #endif // QFTBX_PROJECT_READER_H

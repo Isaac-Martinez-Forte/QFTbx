@@ -26,6 +26,9 @@ namespace Ui {
 class UncertaintyDialog;
 }
 
+namespace qftbx {
+
+
 /**
  * @brief Edits the parametric uncertainty of a plant or a controller: the
  * minimum, maximum and nominal value of every coefficient the user marked
@@ -81,7 +84,6 @@ public:
                 UncertainTable uncertainTable, bool rangeOnly);
 
 
-
     
 private slots:
     void on_numeratorRadio_clicked();
@@ -126,5 +128,7 @@ private:
     bool rangeOnlyMode = false;
     bool accepted_ok = false;
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_UNCERTAINTY_DIALOG_H

@@ -18,6 +18,9 @@ namespace Ui {
 class LoopBoundariesViewer;
 }
 
+namespace qftbx {
+
+
 class LoopBoundariesViewer : public QDialog
 {
     Q_OBJECT
@@ -85,5 +88,7 @@ private:
     std::unique_ptr<Ui::LoopBoundariesViewer> ui;
 
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_LOOP_BOUNDARIES_VIEWER_H

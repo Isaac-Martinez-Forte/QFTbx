@@ -149,7 +149,5 @@ private:
 
 } // namespace qftbx
 
-//Transitional: consumers still refer to the class unqualified.
-using qftbx::BoundaryEngine;
 
 #endif // QFTBX_BOUNDARY_ENGINE_H

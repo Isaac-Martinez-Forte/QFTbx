@@ -17,6 +17,9 @@ namespace Ui {
 class LoopShapingDialog;
 }
 
+namespace qftbx {
+
+
 /**
  * @brief Step 7 of the design: picks one of the five loop-shaping
  * algorithms and the accuracy to run it to.
@@ -57,7 +60,7 @@ public:
 
     qreal epsilonValue ();
 
-    tools::LoopShapingAlgorithm algorithmValue();
+    qftbx::LoopShapingAlgorithm algorithmValue();
 
     qftbx::Range range();
 
@@ -100,7 +103,7 @@ private:
 
     qint32 initialisation = 0;
 
-    tools::LoopShapingAlgorithm alg = tools::nt;
+    qftbx::LoopShapingAlgorithm alg = qftbx::nt;
 
     bool linLogSpace = false;
     /// Kept because the mode radios prefill from it too.
@@ -110,5 +113,7 @@ private:
     double m_maxPointCount = qftbx::Settings().limits.maxTemplatePoints;
 
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_LOOP_SHAPING_DIALOG_H

@@ -51,8 +51,5 @@ public:
 
 } // namespace qftbx
 
-//Transitional: consumers still refer to the class unqualified.
-using qftbx::ProjectWriter;
-using qftbx::ProjectContent;
 
 #endif // QFTBX_PROJECT_WRITER_H

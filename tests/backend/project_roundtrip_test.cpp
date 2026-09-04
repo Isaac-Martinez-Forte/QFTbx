@@ -20,6 +20,8 @@
 #include "src/persistence/project_reader.h"
 #include "src/persistence/project_writer.h"
 
+using namespace qftbx;
+
 namespace {
 
 using namespace qftbx_tests;

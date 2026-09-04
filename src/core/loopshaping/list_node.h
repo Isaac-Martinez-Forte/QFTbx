@@ -4,7 +4,6 @@
 #include <cstdint>
 
 
-
 /**
  * @brief Base of the live-list nodes: everything OrderedList holds is one
  * of these, ordered by the index each node carries.
@@ -13,6 +12,8 @@
  * because the list owns nodes through this base and each algorithm adds
  * its own payload below it (SearchNode, McSearchNode).
  */
+namespace qftbx {
+
 class ListNode {
 
 public:
@@ -42,5 +43,7 @@ protected:
     double index = 0.0;
 
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_LOOPSHAPING_LIST_NODE_H

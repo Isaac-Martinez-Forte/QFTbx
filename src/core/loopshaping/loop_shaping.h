@@ -26,6 +26,8 @@
  * algorithms at all. What their shared epsilon argument measures is NOT
  * shared - see run().
  */
+namespace qftbx {
+
 class LoopShaping
 {
 public:
@@ -96,5 +98,7 @@ private:
 
     std::unique_ptr<LtiSystem> m_controller;
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_LOOPSHAPING_LOOP_SHAPING_H

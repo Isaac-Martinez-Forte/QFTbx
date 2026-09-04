@@ -10,10 +10,9 @@
 
 #include <cmath>
 
-using namespace tools;
 using namespace cxsc;
-using namespace FC;
-using namespace alg;
+
+namespace qftbx {
 
 namespace {
 
@@ -152,7 +151,7 @@ void AlgorithmMr::buildConstraints(){
 
     const auto addConstraint = [&](const std::string & expression) {
         auto tree = std::make_unique<ExpressionTree>("1");
-        tree->setFunc(expression, 0.0, alg::GREATER_EQUAL);
+        tree->setFunc(expression, 0.0, qftbx::GREATER_EQUAL);
         constraints.push_back(std::move(tree));
         constraintTexts.push_back(expression);
     };
@@ -509,3 +508,5 @@ std::unique_ptr<LtiSystem> AlgorithmMr::boxFromDomains(LtiSystem * box,
     return box->create(box->name(), std::move(numerator), std::move(denominator),
                        rebuilt(box->gain()), box->delay());
 }
+
+} // namespace qftbx

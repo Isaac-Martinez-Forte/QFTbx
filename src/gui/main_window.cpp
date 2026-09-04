@@ -15,7 +15,8 @@
 
 #include <vector>
 
-using namespace tools;
+
+namespace qftbx {
 
 namespace {
 
@@ -765,7 +766,7 @@ void MainWindow::on_actionConsole_triggered()
     //MuParserXConsole.
     QString missing;
     if (!MuParserXConsole::launch(&missing)) {
-        tools::errorMessage(tr("The muParserX console could not be started: "
+        qftbx::errorMessage(tr("The muParserX console could not be started: "
                                "%1 is not there.").arg(missing), tr("QFTbx"));
     }
 }
@@ -905,3 +906,5 @@ void MainWindow::on_actionLoop_triggered()
     loopShapingViewer->showDiagram();
     loopShapingViewer->show();
 }
+
+} // namespace qftbx

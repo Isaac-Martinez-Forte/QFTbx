@@ -2,7 +2,8 @@
 
 #include "src/core/loopshaping/mc_search_node.h"
 
-using namespace tools;
+
+namespace qftbx {
 
 McSearchNode::McSearchNode(double index, std::unique_ptr<LtiSystem> system, BoxFlag flags)
     : SearchNode(index, std::move(system), flags)
@@ -48,3 +49,5 @@ const std::map<double, double> & McSearchNode::feasibleFrequencies() const
 {
     return m_feasibleFrequencies;
 }
+
+} // namespace qftbx

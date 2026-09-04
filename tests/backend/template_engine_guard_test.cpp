@@ -9,10 +9,10 @@
 #include "src/core/exception.h"
 #include "src/core/templates/template_engine.h"
 
+using namespace qftbx;
+
 namespace {
 
-using qftbx::CloudSet;
-using qftbx::TemplateEngine;
 
 CloudSet twoCloudsWithinReach()
 {

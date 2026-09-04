@@ -35,8 +35,5 @@ public:
 
 } // namespace qftbx
 
-//Transitional: unqualified name for consumers not yet migrated
-//to the qftbx namespace. Remove when the migration is complete.
-using qftbx::ZeroPoleGain;
 
 #endif // QFTBX_ZERO_POLE_GAIN_H

@@ -13,6 +13,8 @@
 
 using namespace mup;
 
+namespace qftbx {
+
 namespace {
 
 //Evaluating one field, checking the result and painting it green or red was
@@ -43,7 +45,7 @@ bool readField(ParserX & parser, QLineEdit * field, const QString & complaint,
         //The complaint is the caller's words, not a range printed from the
         //bounds: a lower bound of "the smallest positive double" reads as
         //4.94066e-324, which tells a user nothing.
-        tools::errorMessage(complaint, QObject::tr("Loop-shaping input"));
+        qftbx::errorMessage(complaint, QObject::tr("Loop-shaping input"));
         return false;
     }
 
@@ -131,18 +133,18 @@ void LoopShapingDialog::on_okButton_clicked()
 
     if (ui->nkRadio->isChecked()){
 
-        alg = tools::nk;
+        alg = qftbx::nk;
 
         initialisation = ui->upperInit->isChecked() ? 1 : 0;
 
     } else if (ui->mrRadio->isChecked()){
-        alg = tools::mr;
+        alg = qftbx::mr;
     }else if (ui->mc1Radio->isChecked()){
-        alg = tools::mc1;
+        alg = qftbx::mc1;
     } else if (ui->mcThesisRadio->isChecked()){
-        alg = tools::mc_thesis;
+        alg = qftbx::mc_thesis;
     } else {
-        alg = tools::nt;
+        alg = qftbx::nt;
     }
 
     //Direct read: the old latch left linspace selected forever once
@@ -159,7 +161,7 @@ qreal LoopShapingDialog::epsilonValue(){
     return epsilonEdit;
 }
 
-tools::LoopShapingAlgorithm LoopShapingDialog::algorithmValue(){
+qftbx::LoopShapingAlgorithm LoopShapingDialog::algorithmValue(){
     return alg;
 }
 
@@ -197,9 +199,9 @@ void LoopShapingDialog::applyDefaults(const qftbx::Settings::Defaults & defaults
 {
     m_defaults = defaults;
 
-    ui->startEdit->setText(tools::numberText(defaults.loopStart));
-    ui->endEdit->setText(tools::numberText(defaults.loopEnd));
-    ui->pointCountEdit->setText(tools::numberText(defaults.loopPointCount));
+    ui->startEdit->setText(qftbx::numberText(defaults.loopStart));
+    ui->endEdit->setText(qftbx::numberText(defaults.loopEnd));
+    ui->pointCountEdit->setText(qftbx::numberText(defaults.loopPointCount));
 }
 
 void LoopShapingDialog::on_ntRadio_clicked()
@@ -235,3 +237,4 @@ void LoopShapingDialog::on_mcThesisRadio_clicked()
     ui->algorithmStack->setCurrentIndex(0);
 }
 
+} // namespace qftbx

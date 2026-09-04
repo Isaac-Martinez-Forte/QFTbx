@@ -3,12 +3,12 @@
 #include "src/core/exception.h"
 #include "src/core/loopshaping/algorithm_nk.h"
 
-using namespace tools;
 using namespace cxsc;
-using namespace FC;
 
 namespace quick_solution = qftbx::quick_solution;
 
+
+namespace qftbx {
 
 void AlgorithmNk::setProblem(LtiSystem *plant, LtiSystem *controller, std::vector<double> * omega, const BoundaryData *boundaries,
                                      double epsilon, std::int32_t initialisation){
@@ -425,3 +425,5 @@ void AlgorithmNk::startingPoint(LtiSystem * box, std::vector<double> & zeros,
         gain = k.range().max;
     }
 }
+
+} // namespace qftbx

@@ -1,6 +1,7 @@
 #include "search_node.h"
 
-using namespace tools;
+
+namespace qftbx {
 
 SearchNode::SearchNode(double index, std::unique_ptr<LtiSystem> system, BoxFlag flag)
     : m_system(std::move(system))
@@ -33,3 +34,5 @@ std::unique_ptr<LtiSystem> SearchNode::releaseSystem()
 {
     return std::move(m_system);
 }
+
+} // namespace qftbx

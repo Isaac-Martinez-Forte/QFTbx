@@ -9,6 +9,7 @@
 
 #include <pugixml.hpp>
 
+
 namespace {
 
 pugi::xml_parse_result load(pugi::xml_document& doc, const char* name)

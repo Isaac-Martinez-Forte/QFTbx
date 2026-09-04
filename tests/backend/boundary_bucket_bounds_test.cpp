@@ -25,6 +25,8 @@
 #include "src/core/loopshaping/loop_shaping.h"
 #include "src/core/loopshaping/loop_shaping_types.h"
 
+using namespace qftbx;
+
 namespace {
 
 //A one-frequency boundary set over a phase window of [phaseStart, 0] with
@@ -55,12 +57,12 @@ TEST(BoundaryBucketBounds, APhaseOutsideTheNicholsWindowStaysInsideTheBuckets)
     BoundaryViolationDetector detector;
 
     //The verdict itself is not the point here: not reading out of bounds is.
-    tools::BoxFlag verdict = detector.classifyPoint(qftbx::NicholsPoint(-300.0, 10.0), &boundaries, 0);
-    EXPECT_TRUE(verdict == tools::feasible || verdict == tools::infeasible);
+    qftbx::BoxFlag verdict = detector.classifyPoint(qftbx::NicholsPoint(-300.0, 10.0), &boundaries, 0);
+    EXPECT_TRUE(verdict == qftbx::feasible || verdict == qftbx::infeasible);
 
     //The far edge of the window is the last valid bucket, not one past it.
     verdict = detector.classifyPoint(qftbx::NicholsPoint(-180.0, 10.0), &boundaries, 0);
-    EXPECT_TRUE(verdict == tools::feasible || verdict == tools::infeasible);
+    EXPECT_TRUE(verdict == qftbx::feasible || verdict == qftbx::infeasible);
 }
 
 TEST(BoundaryBucketBounds, TheFullWindowEdgeIsTheLastBucket)
@@ -71,8 +73,8 @@ TEST(BoundaryBucketBounds, TheFullWindowEdgeIsTheLastBucket)
 
     BoundaryViolationDetector detector;
 
-    tools::BoxFlag verdict = detector.classifyPoint(qftbx::NicholsPoint(-360.0, 10.0), &boundaries, 0);
-    EXPECT_TRUE(verdict == tools::feasible || verdict == tools::infeasible);
+    qftbx::BoxFlag verdict = detector.classifyPoint(qftbx::NicholsPoint(-360.0, 10.0), &boundaries, 0);
+    EXPECT_TRUE(verdict == qftbx::feasible || verdict == qftbx::infeasible);
 }
 
 //A window whose width is NOT a whole number of degrees, with one boundary
@@ -105,10 +107,10 @@ TEST(BoundaryBucketBounds, AFractionalPhaseWindowScalesTheBucketsCorrectly)
     BoundaryViolationDetector detector;
 
     //Cell 2 holds the boundary point, one below the query: feasible.
-    EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-1.0, 10.0), &boundaries, 0), tools::feasible);
+    EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-1.0, 10.0), &boundaries, 0), qftbx::feasible);
 
     //And a phase that belongs elsewhere still finds its own cell empty.
-    EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-0.25, 10.0), &boundaries, 0), tools::infeasible);
+    EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-0.25, 10.0), &boundaries, 0), qftbx::infeasible);
 }
 
 TEST(BoundaryBucketBounds, ASubDegreeWindowDoesNotDivideByZero)
@@ -122,7 +124,7 @@ TEST(BoundaryBucketBounds, ASubDegreeWindowDoesNotDivideByZero)
 
     //Half the window of 0.5 degrees, with 2 cells over it: 4 cells per
     //degree, so -0.25 belongs to cell 1, which holds the point.
-    EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-0.25, 10.0), &boundaries, 0), tools::feasible);
+    EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-0.25, 10.0), &boundaries, 0), qftbx::feasible);
 }
 
 TEST(BoundaryBucketBounds, LoopShapingRefusesAWindowNarrowerThanTheLoopPhase)
@@ -138,7 +140,7 @@ TEST(BoundaryBucketBounds, LoopShapingRefusesAWindowNarrowerThanTheLoopPhase)
     //The check runs before anything is dereferenced, which is the point of
     //putting it first: the rest of the arguments are never touched.
     EXPECT_THROW(search.run(nullptr, nullptr, nullptr, &narrow, 0.0,
-                            tools::nt, {}, nullptr, 0),
+                            qftbx::nt, {}, nullptr, 0),
                  qftbx::ComputationError);
 
     //That a 360 degree window is ACCEPTED needs no assertion here: every

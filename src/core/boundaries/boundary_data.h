@@ -62,7 +62,5 @@ private:
 
 } // namespace qftbx
 
-//Transitional: consumers still refer to the class unqualified.
-using qftbx::BoundaryData;
 
 #endif // QFTBX_BOUNDARY_DATA_H

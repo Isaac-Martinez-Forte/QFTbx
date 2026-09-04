@@ -7,7 +7,8 @@
 #include "src/gui/plot_export.h"
 #include "src/gui/plot_palette.h"
 
-using namespace tools;
+
+namespace qftbx {
 
 BoundaryUnionViewer::BoundaryUnionViewer(QWidget *parent) :
     QDialog(parent),
@@ -88,7 +89,7 @@ void BoundaryUnionViewer::showDiagram(){
         }
 
         QCPCurve *curve = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-        curve->setData(tools::toQVector(phases), tools::toQVector(magnitudes));
+        curve->setData(qftbx::toQVector(phases), qftbx::toQVector(magnitudes));
         curve->setPen(color);
         curves.push_back(curve);
         addFrequencyRow(color, frequencyIndex);
@@ -124,7 +125,7 @@ void BoundaryUnionViewer::addFrequencyRow(QColor color, qint32 pos){
 
     QCheckBox * checkBox = new QCheckBox(widget);
     checkBox->setObjectName("checkBox");
-    checkBox->setText(tools::numberText(omega->at(pos)));
+    checkBox->setText(qftbx::numberText(omega->at(pos)));
     checkBox->setStyleSheet("color : " + color.name());
     checkBox->setCheckState(Qt::Checked);
 
@@ -136,5 +137,7 @@ void BoundaryUnionViewer::addFrequencyRow(QColor color, qint32 pos){
 
 void BoundaryUnionViewer::on_saveImage_clicked()
 {
-    tools::exportPlot(this, *ui->plot, tr("Boundary plot"));
+    qftbx::exportPlot(this, *ui->plot, tr("Boundary plot"));
 }
+
+} // namespace qftbx

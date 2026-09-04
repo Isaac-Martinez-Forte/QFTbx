@@ -32,6 +32,8 @@
 
 #include "src/core/range.h"
 
+using namespace qftbx;
+
 namespace {
 
 TEST(EvaluatePrecision, ACoefficientKeepsAllItsDigits)

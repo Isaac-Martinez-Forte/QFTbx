@@ -73,7 +73,5 @@ private:
 
 } // namespace qftbx
 
-//Transitional: consumers still refer to the class unqualified.
-using qftbx::BoundaryUnion1D;
 
 #endif // QFTBX_BOUNDARY_UNION_1D_H

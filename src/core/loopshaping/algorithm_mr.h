@@ -60,6 +60,8 @@
  * - The returned point must pass the nominal closed-loop stability
  *   criterion (NominalStabilityChecker).
  */
+namespace qftbx {
+
 class AlgorithmMr
 {
 public:
@@ -152,7 +154,7 @@ private:
     //only reloads the variable domains).
     std::vector<std::string> magnitudeExpressions;
     std::vector<std::string> phaseExpressions;
-    std::vector<std::unique_ptr<alg::ExpressionTree>> constraints;
+    std::vector<std::unique_ptr<qftbx::ExpressionTree>> constraints;
     //The source text of each constraint, for diagnostics.
     std::vector<std::string> constraintTexts;
 
@@ -166,5 +168,7 @@ private:
     qftbx::Settings m_settings;
 
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_LOOPSHAPING_ALGORITHM_MR_H

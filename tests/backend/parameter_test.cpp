@@ -11,6 +11,8 @@
 
 #include "src/core/system/parameter.h"
 
+using namespace qftbx;
+
 namespace {
 
 TEST(Parameter, UncertainVariableBasics)

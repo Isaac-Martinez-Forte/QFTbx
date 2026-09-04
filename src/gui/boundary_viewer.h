@@ -14,10 +14,12 @@
 #include "qcustomplot.h"
 
 
-
 namespace Ui {
 class BoundaryViewer;
 }
+
+namespace qftbx {
+
 
 /**
  * @brief Plots the computed QFT boundaries on the Nichols chart, one curve
@@ -77,5 +79,7 @@ private:
 
     std::unique_ptr<Ui::BoundaryViewer> ui;
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_BOUNDARY_VIEWER_H

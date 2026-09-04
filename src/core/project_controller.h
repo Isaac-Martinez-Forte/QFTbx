@@ -42,6 +42,8 @@
  * @author Isaac Martínez Forte
  */
 
+namespace qftbx {
+
 class ProjectController
 {
 public:
@@ -179,7 +181,7 @@ public:
      * @return false when the algorithm found no solution; it throws
      * qftbx::InvalidInput when the problem itself is invalid or infeasible.
      */
-    bool computeLoopShaping(double epsilon, tools::LoopShapingAlgorithm algorithm, qftbx::Range plotRange,
+    bool computeLoopShaping(double epsilon, qftbx::LoopShapingAlgorithm algorithm, qftbx::Range plotRange,
                             double pointCount, std::int32_t initialisation = 0,
                             const qftbx::CancellationToken * cancellation = nullptr);
 
@@ -251,7 +253,7 @@ public:
      * boundaries is refused on the caller's thread, where the caller can see
      * it, not two lines into a worker.
      */
-    bool startLoopShaping(double epsilon, tools::LoopShapingAlgorithm algorithm,
+    bool startLoopShaping(double epsilon, qftbx::LoopShapingAlgorithm algorithm,
                           qftbx::Range plotRange, double pointCount,
                           std::int32_t initialisation = 0,
                           std::function<void ()> finished = std::function<void ()>());
@@ -335,5 +337,7 @@ private:
     qftbx::BackgroundRun m_background;
     qftbx::CancellationToken m_cancellation;
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_PROJECT_CONTROLLER_H

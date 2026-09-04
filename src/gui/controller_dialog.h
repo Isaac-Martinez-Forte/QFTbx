@@ -24,6 +24,9 @@ namespace Ui {
 class ControllerDialog;
 }
 
+namespace qftbx {
+
+
 class ControllerDialog : public StepDialog
 {
     Q_OBJECT
@@ -79,5 +82,7 @@ private:
     mup::ParserX p;
 
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_CONTROLLER_DIALOG_H

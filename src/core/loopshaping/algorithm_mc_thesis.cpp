@@ -4,11 +4,11 @@
 #include "src/core/exception.h"
 #include "src/core/loopshaping/algorithm_mc_thesis.h"
 
-using namespace tools;
 using namespace cxsc;
-using namespace FC;
 
 namespace quick_solution = qftbx::quick_solution;
+
+namespace qftbx {
 
 namespace {
 
@@ -31,7 +31,6 @@ void cornerVectors(LtiSystem * box, bool zerosAtSup, bool polesAtSup,
 }
 
 } // namespace
-
 
 
 void AlgorithmMcThesis::setStrategies(const Strategies & s)
@@ -243,7 +242,7 @@ bool AlgorithmMcThesis::solve()
         }
 
         //Steps G-H: bisect and insert the children.
-        FC::McBisectionResult children = bisect(node.get(), analysis, thresholds);
+        qftbx::McBisectionResult children = bisect(node.get(), analysis, thresholds);
 
         for (std::unique_ptr<McSearchNode> * slot : {&children.t1, &children.t2}) {
             std::unique_ptr<McSearchNode> child = std::move(*slot);
@@ -817,7 +816,7 @@ void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAnalysis &
 //-------------------------------------------------------------- bisection
 //Split one parameter at 'point'; both children inherit the node's stage,
 //cut switch and feasible-frequency history.
-FC::McBisectionResult AlgorithmMcThesis::bisectAt(McSearchNode * node, std::int32_t parameter,
+qftbx::McBisectionResult AlgorithmMcThesis::bisectAt(McSearchNode * node, std::int32_t parameter,
                                                          double point)
 {
     LtiSystem * box = node->system();
@@ -840,7 +839,7 @@ FC::McBisectionResult AlgorithmMcThesis::bisectAt(McSearchNode * node, std::int3
         return t;
     };
 
-    FC::McBisectionResult children;
+    qftbx::McBisectionResult children;
     children.t1 = makeChild(std::move(lower));
     children.t2 = makeChild(std::move(upper));
 
@@ -904,7 +903,7 @@ inline std::int32_t AlgorithmMcThesis::widestByMeasure(McSearchNode * node, std:
 
 
 //Step G (thesis 5.4.6): the bisection strategy follows the node's stage.
-FC::McBisectionResult AlgorithmMcThesis::bisect(McSearchNode * node, const NodeAnalysis & analysis,
+qftbx::McBisectionResult AlgorithmMcThesis::bisect(McSearchNode * node, const NodeAnalysis & analysis,
                                                        const std::vector<FeasibleThreshold> & thresholds)
 {
     //Tree bisection (thesis 5.3): split at the stored feasible threshold
@@ -935,7 +934,7 @@ FC::McBisectionResult AlgorithmMcThesis::bisect(McSearchNode * node, const NodeA
 
         if (bestThreshold != nullptr) {
             const std::size_t freq = bestThreshold->freqIndex;
-            FC::McBisectionResult children = bisectAt(node, bestThreshold->parameter,
+            qftbx::McBisectionResult children = bisectAt(node, bestThreshold->parameter,
                                                       bestThreshold->threshold);
             McSearchNode * feasibleChild = (bestThreshold->upperSide
                     ? children.t2 : children.t1).get();
@@ -971,3 +970,5 @@ FC::McBisectionResult AlgorithmMcThesis::bisect(McSearchNode * node, const NodeA
 
     return bisectAt(node, parameter, range.middle());
 }
+
+} // namespace qftbx

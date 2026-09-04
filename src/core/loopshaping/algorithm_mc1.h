@@ -53,6 +53,8 @@
  * - The returned point must pass the nominal closed-loop stability
  *   criterion (NominalStabilityChecker), as reviewed for NT/NK.
  */
+namespace qftbx {
+
 class AlgorithmMc1
 {
 public:
@@ -125,5 +127,7 @@ private:
     qftbx::Settings m_settings;
 
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_LOOPSHAPING_ALGORITHM_MC1_H

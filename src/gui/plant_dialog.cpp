@@ -11,7 +11,8 @@
 #include "src/core/system/zero_pole_gain.h"
 #include "src/core/system/time_constant_gain.h"
 
-using namespace tools;
+
+namespace qftbx {
 
 PlantDialog::PlantDialog(QWidget *parent) :
     StepDialog(parent),
@@ -496,3 +497,5 @@ void PlantDialog::on_freeFormRadio_clicked()
 std::unique_ptr<LtiSystem> PlantDialog::takePlant(){
     return std::move(plant);
 }
+
+} // namespace qftbx

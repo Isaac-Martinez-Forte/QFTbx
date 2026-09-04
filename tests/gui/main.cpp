@@ -9,6 +9,8 @@
 
 #include "src/gui/application.h"
 
+using namespace qftbx;
+
 int main(int argc, char ** argv)
 {
     qputenv("QT_QPA_PLATFORM", "offscreen");

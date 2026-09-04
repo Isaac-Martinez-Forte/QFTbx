@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
                   << "\" is not a setting this build knows" << std::endl;
     }
 
-    auto w = std::make_unique<MainWindow>(settings);
+    auto w = std::make_unique<qftbx::MainWindow>(settings);
     w->setWindowIcon(QIcon(":/icons/qftbx_256.png"));
     w->show();
 

@@ -17,6 +17,8 @@
 #include "src/core/exception.h"
 #include "src/core/frequencies/omega.h"
 
+using namespace qftbx;
+
 namespace {
 
 std::string fixturePath(const char *name)

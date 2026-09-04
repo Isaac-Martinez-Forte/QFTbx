@@ -8,7 +8,8 @@
 #include "src/gui/error_message.h"
 #include "src/gui/plot_palette.h"
 
-using namespace tools;
+
+namespace qftbx {
 
 UncertaintyDialog::UncertaintyDialog(QWidget *parent) :
     QDialog(parent),
@@ -73,7 +74,6 @@ void UncertaintyDialog::buildRows(){
     //into it.
     const CoefficientRow & numeratorTokens = valueTable.at(0);
     const CoefficientRow & denominatorTokens = valueTable.at(1);
-
 
 
     if (rowsBuilt == true){
@@ -286,7 +286,7 @@ bool UncertaintyDialog::readRanges(){
                 endEdit = row.getY();
                 nominal= row.nominal();
                 if (rangeOnlyMode){
-                    nominal->setText(tools::numberText((startEdit->text().toDouble() + endEdit->text().toDouble()) / 2));
+                    nominal->setText(qftbx::numberText((startEdit->text().toDouble() + endEdit->text().toDouble()) / 2));
                 }
 
                 if (startEdit->text().isEmpty() || endEdit->text().isEmpty() || nominal->text().isEmpty()){
@@ -378,7 +378,7 @@ bool UncertaintyDialog::readRanges(){
                 nominal = row.nominal();
 
                 if (rangeOnlyMode){
-                    nominal->setText(tools::numberText((startEdit->text().toDouble() + endEdit->text().toDouble()) / 2));
+                    nominal->setText(qftbx::numberText((startEdit->text().toDouble() + endEdit->text().toDouble()) / 2));
                 }
 
                 if (startEdit->text().isEmpty() || endEdit->text().isEmpty() || nominal->text().isEmpty()){
@@ -479,3 +479,5 @@ void UncertaintyDialog::on_okButton_clicked()
 bool UncertaintyDialog::wasAccepted() const{
     return accepted_ok;
 }
+
+} // namespace qftbx

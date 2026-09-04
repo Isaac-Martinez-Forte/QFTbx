@@ -30,6 +30,8 @@
 #include "src/core/system/parameter.h"
 #include "src/core/system/polynomial_form.h"
 
+using namespace qftbx;
+
 namespace {
 
 std::unique_ptr<LtiSystem> makePlant()
@@ -46,7 +48,7 @@ std::unique_ptr<LtiSystem> makePlant()
 
 std::unique_ptr<Omega> makeOmega()
 {
-    return std::make_unique<Omega>(0.1, 10.0, 3, tools::logspace(-1.0, 1.0, 3), Omega::LogSpace);
+    return std::make_unique<Omega>(0.1, 10.0, 3, qftbx::logspace(-1.0, 1.0, 3), Omega::LogSpace);
 }
 
 //Every uncertain parameter needs a sweep grid; leaving one out is the
@@ -126,7 +128,7 @@ TEST_F(FailedComputation, BoundariesRefuseWithoutTheTemplatesInsteadOfCrashing)
 
 TEST_F(FailedComputation, LoopShapingRefusesWithoutItsInputs)
 {
-    EXPECT_THROW(controller.computeLoopShaping(0.01, tools::nt, qftbx::Range(0.1, 100.0), 50, 0),
+    EXPECT_THROW(controller.computeLoopShaping(0.01, qftbx::nt, qftbx::Range(0.1, 100.0), 50, 0),
                  qftbx::InvalidInput);
 
     EXPECT_EQ(controller.loopShapingResult(), nullptr);

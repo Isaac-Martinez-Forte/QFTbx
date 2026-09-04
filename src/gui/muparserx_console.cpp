@@ -4,6 +4,8 @@
 #include <QProcess>
 #include <QStringList>
 
+namespace qftbx {
+
 namespace {
 
 //Where the two pieces were expected to be, relative to the working
@@ -47,3 +49,5 @@ bool MuParserXConsole::launch(QString * error)
     return QProcess::startDetached(terminalPath(),
                                    QStringList{"-e", parserExamplePath()});
 }
+
+} // namespace qftbx

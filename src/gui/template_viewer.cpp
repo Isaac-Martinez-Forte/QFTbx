@@ -14,6 +14,8 @@
 
 using namespace std;
 
+namespace qftbx {
+
 TemplateViewer::TemplateViewer(QWidget *parent) :
     QDialog(parent),
     ui(std::make_unique<Ui::TemplateViewer>())
@@ -96,7 +98,7 @@ void TemplateViewer::setData(const qftbx::CloudSet & templates,
     m_epsilon = *epsilon;
 
     for (qint32 i = 0; i < static_cast<std::int32_t>(m_omega.size()); i++){
-        colorByFrequency.insert(m_omega.at(i), tools::randomColor(i));
+        colorByFrequency.insert(m_omega.at(i), qftbx::randomColor(i));
     }
 }
 
@@ -124,7 +126,6 @@ void TemplateViewer::setContour(const qftbx::CloudSet & contour){
 }
 
 void TemplateViewer::plotDiagram(bool plot){
-
 
 
     this->plot = plot;
@@ -225,7 +226,7 @@ void TemplateViewer::plotLine(qint32 pos, QVector <QCPGraph *> & graphs,
                               const std::vector<double> & phases, const std::vector<double> & magnitudes,
                               bool isContour, bool visible, qint32 counter){
     graphs.push_back(ui->plot->addGraph());
-    ui->plot->graph(pos)->setData(tools::toQVector(phases), tools::toQVector(magnitudes));
+    ui->plot->graph(pos)->setData(qftbx::toQVector(phases), qftbx::toQVector(magnitudes));
 
     if (isContour){
         ui->plot->graph(pos)->setScatterStyle(QCPScatterStyle::ssNone);
@@ -275,7 +276,7 @@ void TemplateViewer::addFrequencyRow(QColor color, qint32 pos){
 
     check = new QCheckBox(widget);
     check->setObjectName(QString::fromUtf8("check"));
-    check->setText(tools::numberText(m_omega.at(pos)));
+    check->setText(qftbx::numberText(m_omega.at(pos)));
     check->setStyleSheet("color : " + color.name());
 
     checkboxes.push_back(check);
@@ -297,7 +298,7 @@ void TemplateViewer::addFrequencyRow(QColor color, qint32 pos){
 
     field = new QLineEdit(widget);
     field->setObjectName(QString::fromUtf8("field"));
-    field->setText(tools::numberText(m_epsilon.at(pos)));
+    field->setText(qftbx::numberText(m_epsilon.at(pos)));
 
     epsilonEdits.push_back(field);
     verticalLayout->addWidget(field);
@@ -311,7 +312,7 @@ void TemplateViewer::addFrequencyRow(QColor color, qint32 pos){
 
 void TemplateViewer::on_saveImage_clicked()
 {
-    tools::exportPlot(this, *ui->plot, tr("Template plot"));
+    qftbx::exportPlot(this, *ui->plot, tr("Template plot"));
 }
 
 void TemplateViewer::on_templatesButton_clicked()
@@ -346,7 +347,7 @@ void TemplateViewer::on_contourButton_clicked()
 
 void TemplateViewer::syncSliders(){
     for (qint32 i = 0; i < epsilonSliders.size(); i++){
-        epsilonEdits.at(i)->setText(tools::numberText(epsilonSliders.at(i)->value() / 1000.0));
+        epsilonEdits.at(i)->setText(qftbx::numberText(epsilonSliders.at(i)->value() / 1000.0));
     }
 }
 
@@ -388,4 +389,4 @@ void TemplateViewer::on_recomputeButton_clicked()
     recompute(std::move(epsilon));
 }
 
-
+} // namespace qftbx

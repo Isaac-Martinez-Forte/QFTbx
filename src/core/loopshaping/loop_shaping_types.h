@@ -1,9 +1,8 @@
 #ifndef QFTBX_LOOP_SHAPING_TYPES_H
 #define QFTBX_LOOP_SHAPING_TYPES_H
 
-//Transitional home for the loop-shaping enums, moved out of tools.h.
-//They will be modernised with the loop-shaping stage (thesis scope).
-namespace tools {
+//The loop-shaping enums shared by the algorithms, the dialog and the file.
+namespace qftbx {
 
 /// Verdict on a parameter box: proved feasible, proved infeasible, or
 /// neither (the only one worth bisecting).
@@ -18,6 +17,6 @@ enum BoxFlag{
 enum LoopShapingAlgorithm {nt, nk, mr,
                        mc1, mc_thesis};
 
-} // namespace tools
+} // namespace qftbx
 
 #endif // QFTBX_LOOP_SHAPING_TYPES_H

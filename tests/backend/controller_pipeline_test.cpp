@@ -21,6 +21,8 @@
 #include "project_compare.h"
 #include "src/persistence/project_reader.h"
 
+using namespace qftbx;
+
 namespace {
 
 using namespace qftbx_tests;

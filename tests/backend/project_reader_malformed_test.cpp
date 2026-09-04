@@ -22,6 +22,8 @@
 #include "src/core/exception.h"
 #include "src/persistence/project_reader.h"
 
+using namespace qftbx;
+
 namespace {
 
 QByteArray fixtureBytes(const char * name)

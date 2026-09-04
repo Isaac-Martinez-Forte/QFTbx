@@ -83,8 +83,5 @@ private:
 
 } // namespace qftbx
 
-//Transitional: unqualified name for consumers not yet migrated
-//to the qftbx namespace. Remove when the migration is complete.
-using qftbx::NaturalIntervalExtension;
 
 #endif // QFTBX_NATURAL_INTERVAL_EXTENSION_H

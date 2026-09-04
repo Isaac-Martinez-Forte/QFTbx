@@ -5,7 +5,7 @@
 #include "src/gui/error_message.h"
 
 
-using namespace tools;
+namespace qftbx {
 
 BoundaryGridDialog::BoundaryGridDialog(QWidget *parent) :
     StepDialog(parent),
@@ -70,13 +70,13 @@ bool BoundaryGridDialog::contourSelected(){
 
 void BoundaryGridDialog::applyDefaults(const qftbx::Settings::Defaults & defaults)
 {
-    ui->phaseStart->setText(tools::numberText(defaults.phaseStart));
-    ui->phaseEnd->setText(tools::numberText(defaults.phaseEnd));
-    ui->phasePoints->setText(tools::numberText(defaults.phasePoints));
+    ui->phaseStart->setText(qftbx::numberText(defaults.phaseStart));
+    ui->phaseEnd->setText(qftbx::numberText(defaults.phaseEnd));
+    ui->phasePoints->setText(qftbx::numberText(defaults.phasePoints));
 
-    ui->magnitudeStart->setText(tools::numberText(defaults.magnitudeStart));
-    ui->magnitudeEnd->setText(tools::numberText(defaults.magnitudeEnd));
-    ui->magnitudePoints->setText(tools::numberText(defaults.magnitudePoints));
+    ui->magnitudeStart->setText(qftbx::numberText(defaults.magnitudeStart));
+    ui->magnitudeEnd->setText(qftbx::numberText(defaults.magnitudeEnd));
+    ui->magnitudePoints->setText(qftbx::numberText(defaults.magnitudePoints));
 }
 
 void BoundaryGridDialog::on_buttonBox_accepted()
@@ -98,12 +98,12 @@ void BoundaryGridDialog::on_buttonBox_accepted()
     //into the engine).
     if (phaseRange.min >= phaseRange.max || magnitudeRange.min >= magnitudeRange.max ||
             phaseCount < 2 || magnitudeCount < 2){
-        tools::errorMessage(tr("The grid ranges must be increasing, with at least 2 points per axis."), tr("Boundary grid input"));
+        qftbx::errorMessage(tr("The grid ranges must be increasing, with at least 2 points per axis."), tr("Boundary grid input"));
         return;
     }
 
     //And a ceiling. There was none: the counts only had to be >= 2, so an
-    //extra couple of zeros in either field reached tools::linspace, which
+    //extra couple of zeros in either field reached qftbx::linspace, which
     //reserves that many doubles - a std::bad_alloc, which is not the
     //qftbx::Exception the computation is wrapped in, so the application went
     //down on a typo. The budget guards against that typo; it is not a
@@ -111,7 +111,7 @@ void BoundaryGridDialog::on_buttonBox_accepted()
     //grid over 360 degrees is 360 points per axis. It comes from the
     //settings now, so it can be moved without a rebuild.
     if (static_cast<std::int64_t>(phaseCount) * magnitudeCount > m_maxGridCells){
-        tools::errorMessage(tr("The grid asks for %1 cells, and the limit is "
+        qftbx::errorMessage(tr("The grid asks for %1 cells, and the limit is "
                                "%2. Reduce the number of points per axis.")
                                 .arg(static_cast<std::int64_t>(phaseCount) * magnitudeCount)
                                 .arg(m_maxGridCells),
@@ -129,3 +129,4 @@ bool BoundaryGridDialog::cudaSelected(){
     return cudaCheck;
 }
 
+} // namespace qftbx

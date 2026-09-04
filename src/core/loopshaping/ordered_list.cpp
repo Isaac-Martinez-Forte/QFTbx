@@ -4,6 +4,8 @@
 
 #include "src/core/exception.h"
 
+namespace qftbx {
+
 namespace {
 
 bool lowestFirstOrder(double a, double b)
@@ -89,3 +91,5 @@ std::size_t OrderedList::peakSize() const
 {
     return m_peakSize;
 }
+
+} // namespace qftbx

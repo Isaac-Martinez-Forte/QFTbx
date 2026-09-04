@@ -7,6 +7,8 @@
 #include "src/persistence/project_reader.h"
 #include "src/persistence/project_writer.h"
 
+namespace qftbx {
+
 ProjectController::ProjectController() = default;
 
 ProjectController::~ProjectController() = default;
@@ -274,7 +276,7 @@ LtiSystem * ProjectController::controllerStructure(){
     return m_data.controller();
 }
 
-bool ProjectController::computeLoopShaping(double epsilon, tools::LoopShapingAlgorithm algorithm, qftbx::Range plotRange, double pointCount,
+bool ProjectController::computeLoopShaping(double epsilon, qftbx::LoopShapingAlgorithm algorithm, qftbx::Range plotRange, double pointCount,
                                       std::int32_t initialisation,
                                       const qftbx::CancellationToken * cancellation){
 
@@ -296,7 +298,7 @@ void ProjectController::requireNotComputing() const
     }
 }
 
-bool ProjectController::startLoopShaping(double epsilon, tools::LoopShapingAlgorithm algorithm,
+bool ProjectController::startLoopShaping(double epsilon, qftbx::LoopShapingAlgorithm algorithm,
                                          qftbx::Range plotRange, double pointCount,
                                          std::int32_t initialisation,
                                          std::function<void ()> finished)
@@ -484,3 +486,5 @@ void ProjectController::invalidateFrom(qftbx::Step step)
         return;
     }
 }
+
+} // namespace qftbx

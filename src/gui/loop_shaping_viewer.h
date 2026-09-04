@@ -17,6 +17,9 @@ namespace Ui {
 class LoopShapingViewer;
 }
 
+namespace qftbx {
+
+
 /**
  * @brief Shows the designed controller and its nominal loop transmission
  * over the Nichols chart, against the boundaries it had to respect.
@@ -71,5 +74,7 @@ private:
 
     std::unique_ptr<Ui::LoopShapingViewer> ui;
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_LOOP_SHAPING_VIEWER_H

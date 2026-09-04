@@ -3,9 +3,7 @@
 #include "src/core/exception.h"
 #include "src/core/loopshaping/algorithm_nt.h"
 
-using namespace tools;
 using namespace cxsc;
-using namespace FC;
 
 /*
  * Algorithm NT (Nataraj-Tharewal): interval branch & bound QFT loop
@@ -37,6 +35,8 @@ using namespace FC;
  * historical code approximated this with a hard-coded ordering penalty
  * at 2 rad/s, retired by this review.
  */
+
+namespace qftbx {
 
 void AlgorithmNt::setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> *omega, const BoundaryData * boundaries,
                                  double epsilon) {
@@ -319,3 +319,5 @@ bool AlgorithmNt::feasibleGainFrom(LtiSystem * v, double maxBoundary,
 
     return true;
 }
+
+} // namespace qftbx

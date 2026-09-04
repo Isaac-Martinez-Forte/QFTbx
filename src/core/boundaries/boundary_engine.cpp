@@ -47,7 +47,6 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
     (void) exportInfinity;
 
 
-
     //The historical records are validated on conversion: a used
     //specification with height <= 0, an inverted band or a null plant
     //throws qftbx::InvalidInput here, at the entry point, instead of
@@ -101,7 +100,6 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
     }
 
 
-
 #ifdef CUDA_AVAILABLE
 
     auto timer = std::chrono::steady_clock::now();
@@ -128,8 +126,8 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
             //vector leaked all five sheets on every frequency.
             const BoundarySheetsCuda cudaSheets = boundarySheetsCuda(
                 valueSet, p0,
-                tools::linspace1(phaseRange.min, phaseRange.max, phaseCount),
-                tools::linspace1(magnitudeRange.min, magnitudeRange.max, magnitudeCount));
+                qftbx::linspace1(phaseRange.min, phaseRange.max, phaseCount),
+                qftbx::linspace1(magnitudeRange.min, magnitudeRange.max, magnitudeCount));
 
             std::map<std::string, TraceSet> bound;
 
@@ -498,8 +496,8 @@ void BoundaryEngine::computeFrequencies(std::vector<double> *omega, LtiSystem *p
                                         qftbx::Range magnitudeRange, std::int32_t magnitudeCount)
 {
     //Base grid of the algorithm.
-    const std::vector <double> phases = tools::linspace(phaseRange.min, phaseRange.max, phaseCount);
-    const std::vector <double> magnitudes = tools::linspace(magnitudeRange.min, magnitudeRange.max,
+    const std::vector <double> phases = qftbx::linspace(phaseRange.min, phaseRange.max, phaseCount);
+    const std::vector <double> magnitudes = qftbx::linspace(magnitudeRange.min, magnitudeRange.max,
                                                       magnitudeCount);
 
     //Pre-sized containers: every frequency writes at ITS index. The old

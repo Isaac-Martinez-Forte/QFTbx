@@ -22,7 +22,6 @@ std::unique_ptr<LtiSystem> ZeroPoleGain::create (std::string name, std::vector <
 }
 
 
-
 LtiSystem::SystemType ZeroPoleGain::type(){
     return SystemType::ZeroPoleGain;
 }

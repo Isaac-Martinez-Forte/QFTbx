@@ -22,10 +22,8 @@
 
 #include "src/core/exception.h"
 
-using namespace tools;
-using namespace cxsc;
 
-namespace FC {
+namespace qftbx {
 
 /// The halves of a bisection belong to whoever receives them: each one is
 /// either classified into the live list or dropped.
@@ -106,13 +104,13 @@ inline std::unique_ptr<LtiSystem> pointFromBox(LtiSystem * controller, bool x) {
  */
 inline bool isEpsilonSmall(LtiSystem * controller, double epsilon, std::vector <double> * omega,
                             NaturalIntervalExtension *conversion,
-                            const std::vector <complex> & nominalPlantValues) {
+                            const std::vector <cxsc::complex> & nominalPlantValues) {
 
-    cinterval box;
+    cxsc::cinterval box;
     for (std::size_t i = 0; i < omega->size(); ++i){
         box = conversion->nicholsBox(controller, omega->at(i), nominalPlantValues.at(i));
 
-        if ((cxsc::diam(Re(box)) >= epsilon) || (cxsc::diam(Im(box)) >= epsilon)) {
+        if ((cxsc::diam(cxsc::Re(box)) >= epsilon) || (cxsc::diam(cxsc::Im(box)) >= epsilon)) {
             return false;
         }
     }
@@ -432,6 +430,6 @@ inline double nominalPhase(std::complex<double> p0) {
     return phi0;
 }
 
-} // fin namespace
+} // namespace qftbx
 
 #endif

@@ -12,8 +12,9 @@
 #include "src/core/system/zero_pole_gain.h"
 #include "src/core/system/time_constant_gain.h"
 
-using namespace tools;
 using namespace mup;
+
+namespace qftbx {
 
 ControllerDialog::ControllerDialog(QWidget *parent) :
     StepDialog(parent),
@@ -381,3 +382,5 @@ std::optional<std::vector<Parameter>> ControllerDialog::buildParameters(const Co
 std::unique_ptr<LtiSystem> ControllerDialog::takeControllerStructure(){
     return std::move(controllerSystem);
 }
+
+} // namespace qftbx

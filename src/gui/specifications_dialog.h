@@ -19,6 +19,9 @@ namespace Ui {
 class SpecificationsDialog;
 }
 
+namespace qftbx {
+
+
 class SpecificationsDialog : public StepDialog
 {
     Q_OBJECT
@@ -39,7 +42,6 @@ public:
                                   const qftbx::SpecificationRecords * loaded = nullptr,
                                   QWidget *parent = 0);
     ~SpecificationsDialog();
-
 
 
     /**
@@ -169,5 +171,7 @@ private:
 
 };
 
+
+} // namespace qftbx
 
 #endif // QFTBX_SPECIFICATIONS_DIALOG_H

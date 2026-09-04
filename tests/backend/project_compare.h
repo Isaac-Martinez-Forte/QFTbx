@@ -19,6 +19,8 @@
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/system/lti_system.h"
 
+using namespace qftbx;
+
 namespace qftbx_tests {
 
 inline void expectSameSystem(LtiSystem* a, LtiSystem* b,

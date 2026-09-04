@@ -15,6 +15,8 @@
  *
  * @author Isaac Martínez Forte
  */
+namespace qftbx {
+
 class Omega
 {
 public:
@@ -71,5 +73,7 @@ private:
     std::vector<double> m_values;
     GenerationType m_type;
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_FREQUENCIES_OMEGA_H

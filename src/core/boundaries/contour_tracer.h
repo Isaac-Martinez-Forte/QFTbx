@@ -53,7 +53,5 @@ private:
 
 } // namespace qftbx
 
-//Transitional: consumers still refer to the class unqualified.
-using qftbx::ContourTracer;
 
 #endif // QFTBX_CONTOUR_TRACER_H

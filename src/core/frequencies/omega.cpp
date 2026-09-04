@@ -11,6 +11,8 @@
 
 #include "src/core/exception.h"
 
+namespace qftbx {
+
 namespace {
 
 //What every design frequency has to be. Parameter got this check for its own
@@ -115,3 +117,4 @@ bool Omega::sameAs(const Omega & other) const
             m_values == other.m_values;
 }
 
+} // namespace qftbx

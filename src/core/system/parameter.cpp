@@ -195,5 +195,4 @@ double Parameter::rawNominal() const {
 }
 
 
-
 } // namespace qftbx

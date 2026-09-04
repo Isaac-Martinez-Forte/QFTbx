@@ -8,7 +8,7 @@
 //loop_shaping_types.h "until each module is migrated"; the eight files that
 //leaned on that include what they use now.
 
-namespace tools{
+namespace qftbx {
 
 //Wrappers over qftbx::math (src/core/math/sequences.h).
 std::vector <double> linspace(double a, double b, std::int32_t N);

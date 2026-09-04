@@ -16,6 +16,8 @@
 
 #include "src/core/loopshaping/quick_solution.h"
 
+using namespace qftbx;
+
 namespace {
 
 namespace qs = qftbx::quick_solution;

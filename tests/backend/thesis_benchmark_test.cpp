@@ -76,6 +76,8 @@
 
 #include "src/core/project_controller.h"
 
+using namespace qftbx;
+
 namespace {
 
 //---------------------------------------------------------------- fixtures
@@ -161,7 +163,7 @@ TEST(ThesisBenchmarkFixture, Acc90LoadsWithTheFullPipeline)
 struct BenchmarkGolden {
     const char* name;
     const char* file;
-    tools::LoopShapingAlgorithm algorithm;
+    qftbx::LoopShapingAlgorithm algorithm;
     double gain;
     double zero;
     double pole;
@@ -213,17 +215,17 @@ TEST_P(ThesisBenchmarkGolden, ResultIsPinned)
 INSTANTIATE_TEST_SUITE_P(
     Algorithms, ThesisBenchmarkGolden,
     ::testing::Values(
-        BenchmarkGolden{"Acc90NT", "acc90.qft", tools::nt,
+        BenchmarkGolden{"Acc90NT", "acc90.qft", qftbx::nt,
                         1000.0, 250.00749999999999, 750.00250000000005},
         //NK's certified local solution realises the same optimal gain as
         //NT's interval descent (the zero/pole sit at the search centre).
-        BenchmarkGolden{"Acc90NK", "acc90.qft", tools::nk,
+        BenchmarkGolden{"Acc90NK", "acc90.qft", qftbx::nk,
                         1000.0, 500.005, 500.005},
-        BenchmarkGolden{"Acc90MR", "acc90.qft", tools::mr,
+        BenchmarkGolden{"Acc90MR", "acc90.qft", qftbx::mr,
                         1000.0, 500.005, 500.005},
-        BenchmarkGolden{"Acc90Mc1", "acc90.qft", tools::mc1,
+        BenchmarkGolden{"Acc90Mc1", "acc90.qft", qftbx::mc1,
                         1000.0, 250.00749999999999, 750.00250000000005},
-        BenchmarkGolden{"Acc90McThesis", "acc90.qft", tools::mc_thesis,
+        BenchmarkGolden{"Acc90McThesis", "acc90.qft", qftbx::mc_thesis,
                         1000.0, 250.00749999999999, 0.01}),
     [](const ::testing::TestParamInfo<BenchmarkGolden>& info) {
         return std::string(info.param.name);

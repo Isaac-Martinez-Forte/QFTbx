@@ -13,6 +13,9 @@ namespace Ui {
 class BoundaryUnionViewer;
 }
 
+namespace qftbx {
+
+
 /**
  * @brief Plots the union of the QFT boundaries of every specification, one
  * curve per design frequency: the single set of bounds the loop shaping
@@ -61,5 +64,7 @@ private:
 
     std::unique_ptr<Ui::BoundaryUnionViewer> ui;
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_BOUNDARY_UNION_VIEWER_H

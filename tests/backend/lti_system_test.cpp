@@ -25,6 +25,8 @@
 #include "src/core/system/parameter.h"
 #include "src/core/exception.h"
 
+using namespace qftbx;
+
 namespace {
 
 //std::string has no endsWith until C++20.

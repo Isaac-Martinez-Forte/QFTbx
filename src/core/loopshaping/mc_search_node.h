@@ -17,6 +17,8 @@
  * The node holds its frequency map by value, so every child of a
  * bisection receives a copy for free.
  */
+namespace qftbx {
+
 class McSearchNode : public SearchNode {
 
 public:
@@ -24,7 +26,7 @@ public:
     McSearchNode() = default;
 
     McSearchNode(double index, std::unique_ptr<LtiSystem> system,
-                 tools::BoxFlag flags = tools::ambiguous);
+                 qftbx::BoxFlag flags = qftbx::ambiguous);
 
     void setCutsEnabled(bool enabled);
     bool cutsEnabled() const;
@@ -44,5 +46,7 @@ protected:
 
     std::map<double, double> m_feasibleFrequencies;
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_LOOPSHAPING_MC_SEARCH_NODE_H
