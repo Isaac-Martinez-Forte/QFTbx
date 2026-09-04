@@ -196,6 +196,17 @@ private:
 
     void destroyDialogs();
 
+    //One per step: the dialog (and viewers) of a step, created on first use
+    //with the settings applied, and reused afterwards. Each of these blocks
+    //was written twice, in the step's handler and in the open handler.
+    void ensurePlantDialog();
+    void ensureSpecificationsDialog();
+    void ensureFrequenciesDialog();
+    void ensureTemplatesWidgets();
+    void ensureBoundariesWidgets();
+    void ensureControllerDialog();
+    void ensureLoopShapingWidgets();
+
 };
 
 } // namespace qftbx

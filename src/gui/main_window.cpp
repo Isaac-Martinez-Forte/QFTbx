@@ -132,6 +132,73 @@ void MainWindow::destroyDialogs(){
     loopShapingViewer = nullptr;
 }
 
+//The POINTER says whether a step's widgets exist, which is the question
+//being asked. The flag it replaced answered a different one - whether the
+//step was done - and the two only agreed by being maintained together.
+void MainWindow::ensurePlantDialog()
+{
+    if (plantDialog == nullptr){
+        plantDialog = new PlantDialog(this);
+    }
+}
+
+void MainWindow::ensureSpecificationsDialog()
+{
+    if (specificationsDialog == nullptr){
+        specificationsDialog = new SpecificationsDialog(frequencyValues(),
+                                                        controller->specifications(),
+                                                        this);
+    }
+}
+
+void MainWindow::ensureFrequenciesDialog()
+{
+    if (frequenciesDialog == nullptr){
+        frequenciesDialog = new FrequenciesDialog(this);
+        frequenciesDialog->applyFrequencyCountLimit(m_settings.limits.maxFrequencyCount);
+    }
+}
+
+void MainWindow::ensureTemplatesWidgets()
+{
+    if (templatesDialog == nullptr){
+        templatesDialog = new TemplatesDialog(this);
+        templatesDialog->setMaxPointCount(m_settings.limits.maxTemplatePoints);
+        templatesDialog->setDefaultPointCount(m_settings.defaults.templatePointCount);
+        templateViewer = new TemplateViewer(this);
+        installContourRecomputer();
+    }
+}
+
+void MainWindow::ensureBoundariesWidgets()
+{
+    if (boundaryGridDialog == nullptr){
+        boundaryGridDialog = new BoundaryGridDialog(this);
+        boundaryGridDialog->setMaxGridCells(m_settings.limits.maxGridCells);
+        boundaryGridDialog->applyDefaults(m_settings.defaults);
+        boundaryViewer = new BoundaryViewer(this);
+        boundaryUnionViewer = new BoundaryUnionViewer(this);
+    }
+}
+
+void MainWindow::ensureControllerDialog()
+{
+    if (controllerDialog == nullptr){
+        controllerDialog = new ControllerDialog(this);
+    }
+}
+
+void MainWindow::ensureLoopShapingWidgets()
+{
+    if (loopShapingDialog == nullptr){
+        loopShapingDialog = new LoopShapingDialog(this);
+        loopShapingDialog->setLimits(m_settings.limits.maxMagnitude,
+                                     m_settings.limits.maxTemplatePoints);
+        loopShapingDialog->applyDefaults(m_settings.defaults);
+        loopShapingViewer = new LoopShapingViewer(this);
+    }
+}
+
 void MainWindow::setDialogRunner(DialogRunner run)
 {
     m_runDialog = std::move(run);
@@ -310,12 +377,7 @@ void MainWindow::destroySession(){
 
 void MainWindow::on_plantButton_clicked()
 {
-    //The POINTER says whether the dialog exists, which is the question being
-    //asked. The flag it replaces answered a different one - whether the step
-    //was done - and the two only agreed by being maintained together.
-    if (plantDialog == nullptr){
-        plantDialog = new PlantDialog(this);
-    }
+    ensurePlantDialog();
 
     runDialog(plantDialog);
 
@@ -358,15 +420,10 @@ void MainWindow::on_specificationsButton_clicked()
     //invariant rather than a user error - which is exactly the kind that
     //should be reported instead of aborting.
     try {
-        if (specificationsDialog == nullptr){
-            specificationsDialog = new SpecificationsDialog(frequencyValues(),
-                                                            controller->specifications(),
-                                                            this);
-        } else {
-            //The frequency set the dialog was built with may be gone:
-            //entering new frequencies destroys the Omega that owns the values.
-            specificationsDialog->setFrequencies(frequencyValues());
-        }
+        ensureSpecificationsDialog();
+        //The frequency set the dialog was built with may be gone: entering
+        //new frequencies destroys the Omega that owns the values.
+        specificationsDialog->setFrequencies(frequencyValues());
     } catch (const qftbx::Exception & e) {
         QMessageBox::critical(this, tr("Specifications input"), e.what());
         return;
@@ -400,10 +457,7 @@ void MainWindow::on_specificationsButton_clicked()
 
 void MainWindow::on_frequenciesButton_clicked()
 {
-    if (frequenciesDialog == nullptr){
-        frequenciesDialog = new FrequenciesDialog(this);
-        frequenciesDialog->applyFrequencyCountLimit(m_settings.limits.maxFrequencyCount);
-    }
+    ensureFrequenciesDialog();
 
     runDialog(frequenciesDialog);
 
@@ -428,13 +482,7 @@ void MainWindow::on_frequenciesButton_clicked()
 
 void MainWindow::on_templatesButton_clicked()
 {
-    if (templatesDialog == nullptr){
-        templatesDialog = new TemplatesDialog(this);
-        templatesDialog->setMaxPointCount(m_settings.limits.maxTemplatePoints);
-        templatesDialog->setDefaultPointCount(m_settings.defaults.templatePointCount);
-        templateViewer = new TemplateViewer(this);
-        installContourRecomputer();
-    }
+    ensureTemplatesWidgets();
 
     templatesDialog->launch(controller->plant(), controller->omega()->values()->size());
 
@@ -493,13 +541,7 @@ void MainWindow::on_templatesButton_clicked()
 
 void MainWindow::on_boundariesButton_clicked()
 {
-    if (boundaryGridDialog == nullptr){
-        boundaryGridDialog = new BoundaryGridDialog(this);
-        boundaryGridDialog->setMaxGridCells(m_settings.limits.maxGridCells);
-        boundaryGridDialog->applyDefaults(m_settings.defaults);
-        boundaryViewer = new BoundaryViewer(this);
-        boundaryUnionViewer = new BoundaryUnionViewer(this);
-    }
+    ensureBoundariesWidgets();
 
     runDialog(boundaryGridDialog);
 
@@ -560,9 +602,7 @@ void MainWindow::on_boundariesButton_clicked()
 void MainWindow::on_controllerButton_clicked()
 {
 
-    if (controllerDialog == nullptr){
-        controllerDialog = new ControllerDialog(this);
-    }
+    ensureControllerDialog();
 
     runDialog(controllerDialog);
 
@@ -585,13 +625,7 @@ void MainWindow::on_controllerButton_clicked()
 
 void MainWindow::on_loopButton_clicked()
 {
-    if (loopShapingDialog == nullptr){
-        loopShapingDialog = new LoopShapingDialog(this);
-        loopShapingDialog->setLimits(m_settings.limits.maxMagnitude,
-                                     m_settings.limits.maxTemplatePoints);
-        loopShapingDialog->applyDefaults(m_settings.defaults);
-        loopShapingViewer = new LoopShapingViewer(this);
-    }
+    ensureLoopShapingWidgets();
 
     runDialog(loopShapingDialog);
 
@@ -706,52 +740,30 @@ void MainWindow::on_actionOpen_triggered()
         //Save writes back to the file that was just opened.
         saveFilePath = fileName;
 
-        //The widgets of the steps the file carried. A list and not a loop,
-        //because each step's widgets are of a different type - but there are
-        //no flags and no counter here any more: which steps are done is
-        //derived from the project, and the buttons and the bar come from the
-        //one call at the end. This block was ninety-six lines.
+        //The widgets of the steps the file carried: the same ensure*() the
+        //handlers use, so a step's widgets are built in one place. Which
+        //steps are done is derived from the project, and the buttons and
+        //the bar come from the one call at the end.
         if (loaded.has(qftbx::Step::Plant)) {
-            plantDialog = new PlantDialog(this);
+            ensurePlantDialog();
         }
-
         if (loaded.has(qftbx::Step::Specifications)) {
-            specificationsDialog = new SpecificationsDialog(frequencyValues(),
-                                                            controller->specifications(),
-                                                            this);
+            ensureSpecificationsDialog();
         }
-
         if (loaded.has(qftbx::Step::Frequencies)) {
-            frequenciesDialog = new FrequenciesDialog(this);
-            frequenciesDialog->applyFrequencyCountLimit(m_settings.limits.maxFrequencyCount);
+            ensureFrequenciesDialog();
         }
-
         if (loaded.has(qftbx::Step::Templates)) {
-            templatesDialog = new TemplatesDialog(this);
-            templatesDialog->setMaxPointCount(m_settings.limits.maxTemplatePoints);
-            templatesDialog->setDefaultPointCount(m_settings.defaults.templatePointCount);
-            templateViewer = new TemplateViewer(this);
-            installContourRecomputer();
+            ensureTemplatesWidgets();
         }
-
         if (loaded.has(qftbx::Step::Boundaries)) {
-            boundaryGridDialog = new BoundaryGridDialog(this);
-            boundaryGridDialog->setMaxGridCells(m_settings.limits.maxGridCells);
-            boundaryGridDialog->applyDefaults(m_settings.defaults);
-            boundaryViewer = new BoundaryViewer(this);
-            boundaryUnionViewer = new BoundaryUnionViewer(this);
+            ensureBoundariesWidgets();
         }
-
         if (loaded.has(qftbx::Step::Controller)) {
-            controllerDialog = new ControllerDialog(this);
+            ensureControllerDialog();
         }
-
         if (loaded.has(qftbx::Step::LoopShaping)) {
-            loopShapingDialog = new LoopShapingDialog(this);
-            loopShapingDialog->setLimits(m_settings.limits.maxMagnitude,
-                                         m_settings.limits.maxTemplatePoints);
-            loopShapingDialog->applyDefaults(m_settings.defaults);
-            loopShapingViewer = new LoopShapingViewer(this);
+            ensureLoopShapingWidgets();
         }
 
         refreshAvailability();
