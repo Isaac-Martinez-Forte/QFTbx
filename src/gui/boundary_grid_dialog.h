@@ -39,6 +39,16 @@ public:
      */
     void setMaxGridCells(std::int64_t cells) { m_maxGridCells = cells; }
 
+    /**
+     * @brief Prefills the grid fields from the settings.
+     *
+     * Prefilling only: the user sees the values and types over them if they
+     * want, so nothing here can change a computed result. It is the setting
+     * that shows most in daily use - whoever always works with the same
+     * Nichols grid should not have to type it again every time.
+     */
+    void applyDefaults(const qftbx::Settings::Defaults & defaults);
+
   
     explicit BoundaryGridDialog(QWidget *parent = 0);
 

@@ -281,6 +281,23 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
     EXPECT_EQ(fromExample.limits.maxMagnitude, defaults.limits.maxMagnitude);
     EXPECT_EQ(fromExample.search.maxLiveNodes, defaults.search.maxLiveNodes);
 
+    EXPECT_EQ(fromExample.defaults.phaseStart, defaults.defaults.phaseStart);
+    EXPECT_EQ(fromExample.defaults.phaseEnd, defaults.defaults.phaseEnd);
+    EXPECT_EQ(fromExample.defaults.phasePoints, defaults.defaults.phasePoints);
+    EXPECT_EQ(fromExample.defaults.magnitudeStart, defaults.defaults.magnitudeStart);
+    EXPECT_EQ(fromExample.defaults.magnitudeEnd, defaults.defaults.magnitudeEnd);
+    EXPECT_EQ(fromExample.defaults.magnitudePoints, defaults.defaults.magnitudePoints);
+    EXPECT_EQ(fromExample.defaults.templatePointCount, defaults.defaults.templatePointCount);
+    EXPECT_EQ(fromExample.defaults.loopStart, defaults.defaults.loopStart);
+    EXPECT_EQ(fromExample.defaults.loopEnd, defaults.defaults.loopEnd);
+    EXPECT_EQ(fromExample.defaults.loopPointCount, defaults.defaults.loopPointCount);
+
+    //Every setting the build knows has to be IN the example, or the example
+    //is not documentation. Fifteen today; the count is asserted so adding one
+    //without documenting it fails here.
+    EXPECT_EQ(settingsFound, 15)
+        << "a setting was added to the code and not to qftbx.conf.example";
+
     EXPECT_TRUE(fromExample.unknownKeys.empty())
         << "the example names a setting this build does not know: "
         << (fromExample.unknownKeys.empty() ? std::string() : fromExample.unknownKeys.front());

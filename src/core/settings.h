@@ -67,6 +67,42 @@ struct Settings {
         std::size_t maxLiveNodes = 32000000;
     } search;
 
+    /**
+     * @brief What the dialogs start with.
+     *
+     * The zero-risk group: these are what a field is PREFILLED with, so
+     * nothing here can change a computed result - the user sees the value and
+     * can still type over it. It is also the group that shows most in daily
+     * use: whoever always works with the same Nichols grid should not have to
+     * type it again every time.
+     */
+    struct Defaults {
+        /// The Nichols grid of the boundary computation: the phase axis in
+        /// degrees, the magnitude axis in decibels, and the points on each.
+        double phaseStart = -360.0;
+        double phaseEnd = 0.0;
+        std::int32_t phasePoints = 361;
+        double magnitudeStart = -60.0;
+        double magnitudeEnd = 60.0;
+        std::int32_t magnitudePoints = 121;
+
+        /// Points per parameter grid in the template sweep.
+        std::int32_t templatePointCount = 10;
+
+        /// The frequency range the loop-shaping plot starts with, in rad/s,
+        /// and how many points over it.
+        ///
+        /// One range and not one per mode. The dialog used to carry THREE
+        /// hardcoded sets - one on opening, one on picking linear, one on
+        /// picking logarithmic - and the last two differed from each other
+        /// and from the first with no reason given anywhere. Worse, they
+        /// overwrote whatever was in the fields, so a configured default
+        /// would have been thrown away the moment a mode was picked.
+        double loopStart = 1.0e-9;
+        double loopEnd = 10.0;
+        std::int32_t loopPointCount = 100;
+    } defaults;
+
     /// The path this was read from, empty when nothing was read and the
     /// compiled defaults stand. Reported rather than guessed at: on a shared
     /// machine the interesting question is usually WHICH file is in effect.

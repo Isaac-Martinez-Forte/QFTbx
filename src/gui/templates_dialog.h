@@ -52,6 +52,9 @@ public:
     /// ever refuses input, so moving it changes no computed result.
     void setMaxPointCount(double points) { m_maxPointCount = points; }
 
+    /// Prefills the general point count from the settings.
+    void setDefaultPointCount(std::int32_t points);
+
   
   
     explicit TemplatesDialog(QWidget *parent = 0);

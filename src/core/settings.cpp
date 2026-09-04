@@ -120,6 +120,64 @@ const std::vector<Binding> & bindings()
              into.limits.maxMagnitude =
                  realIn(text, "limits.max-magnitude", line, 1.0, 1.0e300);
          }},
+        //[defaults.boundary-grid] - the Nichols grid a boundary computation
+        //starts with. Phase in degrees, magnitude in decibels. The ranges are
+        //wide because a phase axis has to span at least 360 degrees for the
+        //union to close, which the computation checks for itself.
+        {"defaults.boundary-grid.phase-start",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.defaults.phaseStart =
+                 realIn(text, "defaults.boundary-grid.phase-start", line, -3600.0, 3600.0);
+         }},
+        {"defaults.boundary-grid.phase-end",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.defaults.phaseEnd =
+                 realIn(text, "defaults.boundary-grid.phase-end", line, -3600.0, 3600.0);
+         }},
+        {"defaults.boundary-grid.phase-points",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.defaults.phasePoints = static_cast<std::int32_t>(
+                 wholeIn(text, "defaults.boundary-grid.phase-points", line, 2.0, 1.0e6));
+         }},
+        {"defaults.boundary-grid.magnitude-start",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.defaults.magnitudeStart =
+                 realIn(text, "defaults.boundary-grid.magnitude-start", line, -1000.0, 1000.0);
+         }},
+        {"defaults.boundary-grid.magnitude-end",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.defaults.magnitudeEnd =
+                 realIn(text, "defaults.boundary-grid.magnitude-end", line, -1000.0, 1000.0);
+         }},
+        {"defaults.boundary-grid.magnitude-points",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.defaults.magnitudePoints = static_cast<std::int32_t>(
+                 wholeIn(text, "defaults.boundary-grid.magnitude-points", line, 2.0, 1.0e6));
+         }},
+
+        {"defaults.templates.point-count",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.defaults.templatePointCount = static_cast<std::int32_t>(
+                 wholeIn(text, "defaults.templates.point-count", line, 1.0, 1.0e6));
+         }},
+
+        //[defaults.loop-shaping] - in rad/s, like every other frequency.
+        {"defaults.loop-shaping.start",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.defaults.loopStart =
+                 realIn(text, "defaults.loop-shaping.start", line, 1.0e-300, 1.0e300);
+         }},
+        {"defaults.loop-shaping.end",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.defaults.loopEnd =
+                 realIn(text, "defaults.loop-shaping.end", line, 1.0e-300, 1.0e300);
+         }},
+        {"defaults.loop-shaping.point-count",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.defaults.loopPointCount = static_cast<std::int32_t>(
+                 wholeIn(text, "defaults.loop-shaping.point-count", line, 2.0, 1.0e6));
+         }},
+
         {"search.max-live-nodes",
          [](const std::string & text, std::int64_t line, Settings & into) {
              into.search.maxLiveNodes = static_cast<std::size_t>(

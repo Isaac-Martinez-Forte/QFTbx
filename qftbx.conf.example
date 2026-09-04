@@ -76,3 +76,50 @@
 # about it.
 # Range: 1 to 1e15.
 # max-live-nodes = 32000000
+
+
+# ---------------------------------------------------------------------------
+# [defaults.*] - what the dialogs start with.
+#
+# The zero-risk group: these are what a field is PREFILLED with, so nothing
+# here can change a computed result - you see the value and can type over it.
+# It is also the group that shows most in daily use: if you always work with
+# the same Nichols grid, this is where you stop typing it.
+# ---------------------------------------------------------------------------
+
+# The Nichols grid of the boundary computation. Phase in degrees, magnitude
+# in decibels, and the number of points on each axis.
+#
+# The phase axis has to span at least 360 degrees or the boundary union
+# cannot close, which the computation checks for itself and refuses. The
+# default 361 points over -360..0 is the classic one-degree grid.
+# Ranges: the ends -3600 to 3600 (phase) and -1000 to 1000 (magnitude);
+# the point counts 2 to 1e6.
+[defaults.boundary-grid]
+# phase-start = -360
+# phase-end = 0
+# phase-points = 361
+# magnitude-start = -60
+# magnitude-end = 60
+# magnitude-points = 121
+
+# Points per parameter grid in the template sweep. Remember this multiplies:
+# with n uncertain parameters the sweep evaluates this many to the power of n
+# plants, so 10 with eight parameters is already 1e8.
+# Range: 1 to 1e6.
+[defaults.templates]
+# point-count = 10
+
+# The frequency range the loop-shaping plot starts with, in rad/s, and how
+# many points over it.
+#
+# ONE range, used on opening and on picking either mode. The dialog carried
+# three hardcoded sets before - one per place - and the two mode ones differed
+# from each other and from the opening one with no reason recorded anywhere;
+# worse, picking a mode overwrote whatever the fields held, so a configured
+# default would have been thrown away.
+# Ranges: the ends 1e-300 to 1e300, the point count 2 to 1e6.
+[defaults.loop-shaping]
+# start = 1e-09
+# end = 10
+# point-count = 100

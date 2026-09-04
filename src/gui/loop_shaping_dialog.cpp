@@ -61,9 +61,9 @@ LoopShapingDialog::LoopShapingDialog(QWidget *parent) :
 
     setWindowTitle(tr("Loop-shaping input"));
 
-    ui->startEdit->setText("10^-9");
-    ui->endEdit->setText("10^1");
-    ui->pointCountEdit->setText("100");
+    //Prefilled from the settings; the window applies them right after
+    //construction, and these are what stands until it does.
+    applyDefaults(qftbx::Settings().defaults);
 
     //The epsilon is one field with one label that read only "Epsilon:", and
     //it is not one quantity: every algorithm follows the stopping criterion
@@ -191,18 +191,27 @@ qint32 LoopShapingDialog::initialisationValue(){
     return initialisation;
 }
 
+//Both modes prefill the SAME range, which is the configured one. They used
+//to write two different hardcoded sets, differing from each other and from
+//the one on opening with no reason recorded - and either of them threw away
+//whatever the user had typed.
 void LoopShapingDialog::on_linspaceRadio_clicked()
 {
-    ui->startEdit->setText("10^-4");
-    ui->endEdit->setText("10^4");
-    ui->pointCountEdit->setText("1000");
+    applyDefaults(m_defaults);
 }
 
 void LoopShapingDialog::on_logspaceRadio_clicked()
 {
-    ui->startEdit->setText("10^-6");
-    ui->endEdit->setText("10^1");
-    ui->pointCountEdit->setText("1000");
+    applyDefaults(m_defaults);
+}
+
+void LoopShapingDialog::applyDefaults(const qftbx::Settings::Defaults & defaults)
+{
+    m_defaults = defaults;
+
+    ui->startEdit->setText(QString::number(defaults.loopStart));
+    ui->endEdit->setText(QString::number(defaults.loopEnd));
+    ui->pointCountEdit->setText(QString::number(defaults.loopPointCount));
 }
 
 void LoopShapingDialog::on_ntRadio_clicked()

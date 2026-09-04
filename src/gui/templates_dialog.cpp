@@ -48,7 +48,8 @@ TemplatesDialog::TemplatesDialog(QWidget *parent) :
 
     setWindowTitle(tr("Template input"));
 
-    ui->globalPointCount->setText("10");
+    ui->globalPointCount->setText(
+        QString::number(qftbx::Settings().defaults.templatePointCount));
 
     //Wire the cancel button.
     connect(ui->cancelButton, SIGNAL(clicked()), this, SLOT(close()));
@@ -252,6 +253,11 @@ void TemplatesDialog::on_cancelButton_clicked()
 {
     emit (close_ok());
 }
+void TemplatesDialog::setDefaultPointCount(std::int32_t points)
+{
+    ui->globalPointCount->setText(QString::number(points));
+}
+
 void TemplatesDialog::on_okButton_clicked()
 {
     if (ui->nyquistRadio->isChecked())

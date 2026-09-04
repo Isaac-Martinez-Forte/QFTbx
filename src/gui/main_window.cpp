@@ -451,6 +451,7 @@ void MainWindow::on_templatesButton_clicked()
     if (templatesDialog == nullptr){
         templatesDialog = new TemplatesDialog(this);
         templatesDialog->setMaxPointCount(m_settings.limits.maxTemplatePoints);
+        templatesDialog->setDefaultPointCount(m_settings.defaults.templatePointCount);
         templateViewer = new TemplateViewer(this);
         installContourRecomputer();
     }
@@ -515,6 +516,7 @@ void MainWindow::on_boundariesButton_clicked()
     if (boundaryGridDialog == nullptr){
         boundaryGridDialog = new BoundaryGridDialog(this);
         boundaryGridDialog->setMaxGridCells(m_settings.limits.maxGridCells);
+        boundaryGridDialog->applyDefaults(m_settings.defaults);
         boundaryViewer = new BoundaryViewer(this);
         boundaryUnionViewer = new BoundaryUnionViewer(this);
     }
@@ -614,6 +616,7 @@ void MainWindow::on_loopButton_clicked()
         loopShapingDialog = new LoopShapingDialog(this);
         loopShapingDialog->setLimits(m_settings.limits.maxMagnitude,
                                      m_settings.limits.maxTemplatePoints);
+        loopShapingDialog->applyDefaults(m_settings.defaults);
         loopShapingViewer = new LoopShapingViewer(this);
     }
 
@@ -753,6 +756,7 @@ void MainWindow::on_actionOpen_triggered()
         if (leido.has(qftbx::Step::Templates)) {
             templatesDialog = new TemplatesDialog(this);
             templatesDialog->setMaxPointCount(m_settings.limits.maxTemplatePoints);
+            templatesDialog->setDefaultPointCount(m_settings.defaults.templatePointCount);
             templateViewer = new TemplateViewer(this);
             installContourRecomputer();
         }
@@ -760,6 +764,7 @@ void MainWindow::on_actionOpen_triggered()
         if (leido.has(qftbx::Step::Boundaries)) {
             boundaryGridDialog = new BoundaryGridDialog(this);
             boundaryGridDialog->setMaxGridCells(m_settings.limits.maxGridCells);
+            boundaryGridDialog->applyDefaults(m_settings.defaults);
             boundaryViewer = new BoundaryViewer(this);
             boundaryUnionViewer = new BoundaryUnionViewer(this);
         }
@@ -772,6 +777,7 @@ void MainWindow::on_actionOpen_triggered()
             loopShapingDialog = new LoopShapingDialog(this);
             loopShapingDialog->setLimits(m_settings.limits.maxMagnitude,
                                          m_settings.limits.maxTemplatePoints);
+            loopShapingDialog->applyDefaults(m_settings.defaults);
             loopShapingViewer = new LoopShapingViewer(this);
         }
 

@@ -25,13 +25,9 @@ BoundaryGridDialog::BoundaryGridDialog(QWidget *parent) :
 
     ui->infinityEdit->setValidator(new QDoubleValidator(this));
 
-    ui->phaseStart->setText("-360");
-    ui->phaseEnd->setText("0");
-    ui->phasePoints->setText("361");
-
-    ui->magnitudeStart->setText("-60");
-    ui->magnitudeEnd->setText("60");
-    ui->magnitudePoints->setText("121");
+    //Prefilled from the settings, which the window applies right after
+    //construction; these are what stands until it does.
+    applyDefaults(qftbx::Settings().defaults);
 
     cudaCheck = false;
 
@@ -74,6 +70,17 @@ bool BoundaryGridDialog::contourSelected(){
     }
 
     return true;
+}
+
+void BoundaryGridDialog::applyDefaults(const qftbx::Settings::Defaults & defaults)
+{
+    ui->phaseStart->setText(QString::number(defaults.phaseStart));
+    ui->phaseEnd->setText(QString::number(defaults.phaseEnd));
+    ui->phasePoints->setText(QString::number(defaults.phasePoints));
+
+    ui->magnitudeStart->setText(QString::number(defaults.magnitudeStart));
+    ui->magnitudeEnd->setText(QString::number(defaults.magnitudeEnd));
+    ui->magnitudePoints->setText(QString::number(defaults.magnitudePoints));
 }
 
 void BoundaryGridDialog::on_buttonBox_accepted()
