@@ -3,6 +3,7 @@
 #include <vector>
 #include <cstdint>
 #include "template_engine.h"
+#include "mpParser.h"
 
 
 #include "src/core/text_tokens.h"
@@ -13,7 +14,6 @@
 #include <iostream>
 
 using namespace std;
-using namespace mup;
 
 #ifdef CUDA_AVAILABLE
 //GPU epsilon-hull (relaxed-walk semantics, see the header).
@@ -22,13 +22,6 @@ using namespace mup;
 
 namespace qftbx {
 
-
-TemplateEngine::TemplateEngine()
-{
-}
-
-TemplateEngine::~TemplateEngine(){
-}
 
 void TemplateEngine::setGrids(ParameterGrids grids){
     m_grids = std::move(grids);
@@ -50,7 +43,7 @@ bool TemplateEngine::compute(LtiSystem *plant, std::vector<double> *omega, bool 
 
     m_clouds = computeClouds(plant, omega);
 
-    std::cout << "Templates: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timer).count() << "milliseconds";
+    std::cout << "Templates: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timer).count() << " milliseconds\n";
 
 
     if (m_clouds.empty()){
@@ -65,7 +58,7 @@ bool TemplateEngine::compute(LtiSystem *plant, std::vector<double> *omega, bool 
     //owned.
     const bool result = computeContourSet(cuda);
 
-    std::cout << "Contours: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timer2).count() << "milliseconds";
+    std::cout << "Contours: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timer2).count() << " milliseconds\n";
 
     return result;
 
@@ -85,7 +78,7 @@ bool TemplateEngine::computeContours(std::vector<double> epsilon){
 
     bool result = computeContourSet(m_useCuda);
 
-    std::cout << "Contours: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timer).count() << "milliseconds";
+    std::cout << "Contours: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timer).count() << " milliseconds\n";
 
     return result;
 }
@@ -98,7 +91,7 @@ const CloudSet & TemplateEngine::contours() const{
     return m_contours;
 }
 
-const std::vector<double> & TemplateEngine::gridFor(Parameter & a){
+const std::vector<double> & TemplateEngine::gridFor(const Parameter & a){
 
     //Keyed by NAME: pointer identity went stale on every clone() or
     //project reload.
@@ -128,10 +121,10 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
     auto collect = [&](Parameter & var){
         if (var.isUncertain() &&
                 std::find(names.begin(), names.end(), var.name()) == names.end()){
-            const std::vector<double> & rejilla = gridFor(var);
+            const std::vector<double> & grid = gridFor(var);
             names.push_back(var.name());
-            grids.push_back(&rejilla);
-            m_combinationCount *= rejilla.size();
+            grids.push_back(&grid);
+            m_combinationCount *= grid.size();
         }
     };
 
@@ -181,7 +174,10 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
 
     //One flag and one error slot per frequency, filled inside the parallel
     //loop below (nothing may be thrown from within it).
-    std::vector <bool> nonFiniteFrequencies (frequencyCount, false);
+    //A byte per flag, not std::vector<bool>: that one packs its elements
+    //into bits, and the parallel iterations below writing neighbouring
+    //flags would race on the same byte.
+    std::vector<char> nonFiniteFrequencies (frequencyCount, 0);
     std::vector <std::string> parserErrors (frequencyCount);
 
     //Before the threads exist: muParserX's package singletons are built
@@ -294,7 +290,7 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
             const std::string message = parserErrors.at(u);
             throw qftbx::InvalidInput(
                     "The plant expression could not be evaluated at "
-                    + std::to_string(omega->at(u)) + " rad/s: " + message);
+                    + qftbx::text::number(omega->at(u)) + " rad/s: " + message);
         }
     }
 
@@ -323,11 +319,11 @@ std::vector <double> * TemplateEngine::omega(){
     return m_frequencies;
 }
 
-const std::vector <double> & TemplateEngine::epsilon(){
+const std::vector <double> & TemplateEngine::epsilon() const{
     return m_epsilon;
 }
 
-bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
+bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
 
     bool succeeded = true;
     const std::size_t digitCount = m_clouds.size();
@@ -340,7 +336,7 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
 
         for (std::size_t i = 0; i < digitCount; i++){
 
-            const vector <complex <double> > hull = epsilonHullCuda(
+            const ComplexCloud hull = epsilonHullCuda(
                 m_clouds[i],
                 m_epsilon.at(i));
 
@@ -369,8 +365,9 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
     //Per-frequency diagnosis of a failure (nothing may be thrown from
     //inside the parallel region), and of the frequencies whose faithful walk
     //did not close.
-    std::vector <bool> failed (digitCount, false);
-    std::vector <bool> relaxedFrequencies (digitCount, false);
+    //Bytes, not std::vector<bool>: see computeClouds().
+    std::vector<char> failed (digitCount, 0);
+    std::vector<char> relaxedFrequencies (digitCount, 0);
 
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
@@ -407,7 +404,7 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
     //back.
     std::vector<std::string> relaxed;
     for (std::size_t i = 0; i < digitCount; i++){
-        if (relaxedFrequencies.at(i) && m_frequencies != nullptr && i < static_cast<std::int32_t>(m_frequencies->size())){
+        if (relaxedFrequencies.at(i) && m_frequencies != nullptr && i < m_frequencies->size()){
             relaxed.push_back(qftbx::text::number(m_frequencies->at(i)));
         }
     }
@@ -438,7 +435,7 @@ bool TemplateEngine::computeContourSet(bool cuda __attribute__((unused))){
                 largest = std::max(largest, std::abs(value));
             }
 
-            const std::string where = m_frequencies != nullptr && i < static_cast<std::int32_t>(m_frequencies->size())
+            const std::string where = m_frequencies != nullptr && i < m_frequencies->size()
                     ? qftbx::text::number(m_frequencies->at(i))
                     : std::to_string(i);
 
@@ -511,7 +508,7 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsil
     if (nextPoint < 0)
         return {};
 
-    std::int32_t counter = 2;
+    std::size_t counter = 2;
 
     //Stops when the walk returns to the initial (b1, b2) pair. Points may
     //repeat (out-and-back over template spikes): they are kept, like in
@@ -587,7 +584,7 @@ ComplexCloud TemplateEngine::epsilonHullRelaxed(const ComplexCloud & temp, doubl
     if (nextPoint < 0)
         return {};
 
-    std::int32_t counter = 2;
+    std::size_t counter = 2;
 
     while (b1 != currentPoint || b2 != nextPoint){
 

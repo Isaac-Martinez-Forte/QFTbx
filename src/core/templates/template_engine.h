@@ -13,12 +13,6 @@
 #include "src/core/templates/cloud_set.h"
 #include "src/core/system/parameter.h"
 
-#include "mpParser.h"
-
-#ifdef OpenMP_AVAILABLE
-    #include <omp.h>
-#endif
-
 namespace qftbx {
 
 /**
@@ -39,18 +33,13 @@ namespace qftbx {
  * walk (a valid \f$\varepsilon\f$-cover, not the canonical hull) with a
  * warning.
  *
- * The engine owns none of the data it is given or produces: grids and
- * epsilon belong to the caller, and clouds/contours become property of the
- * template DAO as soon as the controller hands them over.
+ * The engine keeps its own copies of the grids, the epsilons and the
+ * clouds (see the setters). Only the frequency vector is borrowed from
+ * the caller of compute(), who must keep it alive while the engine runs.
  */
 class TemplateEngine
 {
 public:
-
-    TemplateEngine();
-
-    ~TemplateEngine();
-
     /// Sweeps the plant and extracts every contour. Throws qftbx::Exception
     /// on invalid input or when a computation fails.
     bool compute(LtiSystem *plant, std::vector<double>* frequencies, bool cuda);
@@ -108,15 +97,13 @@ public:
 
     std::vector <double> * omega();
 
-    const std::vector <double> & epsilon ();
+    const std::vector <double> & epsilon () const;
 
 private:
     /// Grid for an uncertain parameter, looked up by name; throws
     /// qftbx::InvalidInput naming the parameter when the grid is missing.
-    const std::vector<double> & gridFor(Parameter & a);
+    const std::vector<double> & gridFor(const Parameter & a);
 
-    //The engine owns NOTHING below: grids and epsilon belong to the caller,
-    //clouds/contours to the template DAO once handed over.
     ParameterGrids m_grids;
     //The cartesian product of the grid sizes, so size_t and not int32:
     //eight uncertain parameters on a 25-point grid is 25^8, about 1.5e11,
@@ -128,7 +115,8 @@ private:
 
     CloudSet m_clouds;
     CloudSet m_contours;
-    std::vector <double> * m_frequencies = NULL;
+    //Borrowed from the caller of compute(); named in the contour messages.
+    std::vector <double> * m_frequencies = nullptr;
 
     std::int32_t findSecond(std::int32_t b1, const ComplexCloud & cv, double epsilon);
 

@@ -338,7 +338,10 @@ TraceSet BoundaryEngine::traceBoundary(double thresholdDb, const BoundarySheet &
 
     //Pre-sized and written at index j: the critical section this replaces
     //permuted the metadata against its traces with the thread order.
-    traceMetadata.resize(traces.size());
+    //A byte per flag, not the std::vector<bool> of TraceLabels: that one
+    //packs its elements into bits, and the parallel iterations writing
+    //neighbouring flags would race on the same byte.
+    std::vector<char> allowed(traces.size(), 0);
 
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
@@ -346,9 +349,9 @@ TraceSet BoundaryEngine::traceBoundary(double thresholdDb, const BoundarySheet &
     for (std::size_t j = 0; j < traces.size(); ++j) {
         //The allowed-side label of the trace: the threshold is the same dB
         //cut the contour was traced at.
-        traceMetadata[j] =
-                allowedZone(traces.at(j), p0, valueSet, kind, thresholdDb) != 0;
+        allowed[j] = allowedZone(traces.at(j), p0, valueSet, kind, thresholdDb) != 0;
     }
+    traceMetadata.assign(allowed.begin(), allowed.end());
 
     if (traceMetadata.empty()) {
         traceMetadata.push_back(false);
@@ -377,15 +380,18 @@ TraceSet BoundaryEngine::traceBoundary(double thresholdDb, const float *sheet,
     TraceSet traces = tracer.trace(phaseSpan, m_phaseCount, magnitudeSpan,
                                    m_magnitudeCount, phaseBottom, magnitudeBottom);
 
-    traceMetadata.resize(traces.size());
+    //A byte per flag, not the std::vector<bool> of TraceLabels: that one
+    //packs its elements into bits, and the parallel iterations writing
+    //neighbouring flags would race on the same byte.
+    std::vector<char> allowed(traces.size(), 0);
 
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
 #endif
     for (std::size_t j = 0; j < traces.size(); ++j) {
-        traceMetadata[j] =
-                allowedZone(traces.at(j), p0, valueSet, kind, thresholdDb) != 0;
+        allowed[j] = allowedZone(traces.at(j), p0, valueSet, kind, thresholdDb) != 0;
     }
+    traceMetadata.assign(allowed.begin(), allowed.end());
 
     return traces;
 }
