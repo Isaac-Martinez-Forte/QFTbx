@@ -1,7 +1,4 @@
-// Characterisation tests for Parameter (src/core/system/parameter.h): they pin
-// the CURRENT behaviour of the class before its modernisation. Behaviours
-// marked with "// BUG:" are known defects kept as-is on purpose; fixing them
-// must flip the expectation in a dedicated commit.
+// Tests for Parameter (src/core/system/parameter.h).
 
 #include <gtest/gtest.h>
 

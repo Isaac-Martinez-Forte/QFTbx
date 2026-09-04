@@ -1,7 +1,5 @@
-// Characterisation tests for the QFT specification record (qftbx::SpecificationRecord, in
-// its transitional home) and its persistence, pinning the current behaviour
-// before the phase-4 move to qftbx::Specification. "// BUG:" cases document
-// known defects and must be flipped by the fix that closes them.
+// Tests for the QFT specification record (qftbx::SpecificationRecord), its
+// conversion to qftbx::Specification and its persistence.
 
 #include <gtest/gtest.h>
 
@@ -83,14 +81,13 @@ TEST(Specification, SystemHeightMatchesTheAnalyticValue)
     EXPECT_NEAR(bound.boundDb(1.0), -0.76398, 1e-4); // hand-checked anchor
 }
 
-TEST(Specification, ZeroHeightYieldsMinusInfinity)
+TEST(Specification, ZeroHeightIsRefused)
 {
-    // BUG: altura == 0 (the default!) gives -inf, and every grid point then
-    // passes the contour threshold: the boundary silently degenerates to
-    // the window frame. Will become an InvalidInput at construction.
+    // A zero height (the record's default) used to give a -inf bound, so
+    // every grid point passed the contour threshold and the boundary
+    // silently degenerated to the window frame. It is refused where it is
+    // validated.
     qftbx::SpecificationRecord spec = makeConstantStability(0.0);
-    //A zero height is refused where it is validated, rather than producing
-    //the -inf that the raw record's own dB conversion used to hand back.
     EXPECT_THROW(qftbx::toSpecification(spec, qftbx::SpecificationType::Stability),
                  qftbx::InvalidInput);
 }

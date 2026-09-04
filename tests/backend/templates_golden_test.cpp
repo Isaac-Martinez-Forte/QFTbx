@@ -55,24 +55,18 @@ protected:
         mapa[plant->numerator()[0].name()] = qftbx::math::linspace(1.0, 10.0, 10);
         mapa[plant->gain().name()] = qftbx::math::linspace(1.0, 10.0, 10);
 
-        omegaCopy = new std::vector<double>(*parser.omega()->values());
+        omegaCopy = *parser.omega()->values();
         epsilon = std::vector<double>(6, 10.0);
 
         templates.setEpsilon(epsilon);
         templates.setGrids(mapa);
-        templates.compute(plant, omegaCopy, false);
-    }
-
-    void TearDown() override
-    {
-        // TemplateEngine owns nothing it was given; free what we created.
-        delete omegaCopy;
+        templates.compute(plant, &omegaCopy, false);
     }
 
     ProjectReader parser;
     LtiSystem* plant = nullptr;
     qftbx::ParameterGrids mapa;
-    std::vector<double>* omegaCopy = nullptr;
+    std::vector<double> omegaCopy;
     std::vector<double> epsilon;
     TemplateEngine templates;
 };
@@ -204,9 +198,9 @@ TEST_F(TemplatesGolden, InputVectorsSurviveTheComputation)
 {
     // Fixed (aliasing): the computation no longer clears or replaces the
     // omega and epsilon vectors it was handed; the caller's data survives.
-    ASSERT_EQ(omegaCopy->size(), 6);
-    EXPECT_DOUBLE_EQ(omegaCopy->at(0), 0.1);
-    EXPECT_DOUBLE_EQ(omegaCopy->at(5), 100.0);
+    ASSERT_EQ(omegaCopy.size(), 6);
+    EXPECT_DOUBLE_EQ(omegaCopy.at(0), 0.1);
+    EXPECT_DOUBLE_EQ(omegaCopy.at(5), 100.0);
     ASSERT_EQ(epsilon.size(), 6);
     EXPECT_DOUBLE_EQ(epsilon.at(0), 10.0);
 }

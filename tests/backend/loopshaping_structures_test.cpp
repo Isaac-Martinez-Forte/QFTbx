@@ -1,8 +1,6 @@
-// Characterisation tests for the loop-shaping support structures (phase
-// 8b.0 safety net): the live-node ordered list that drives every branch &
-// bound, and the expression tree that implements the HC4-style contractor
-// of the MR (Rambabu/ICSP) algorithm. They pin CURRENT behaviour; known
-// defects are marked // BUG: and will be fixed consciously in 8b.1.
+// Tests for the loop-shaping support structures: the live-node ordered list
+// that drives every branch & bound, and the expression tree that implements
+// the HC4-style contractor of the MR (Rambabu/ICSP) algorithm.
 
 #include <gtest/gtest.h>
 

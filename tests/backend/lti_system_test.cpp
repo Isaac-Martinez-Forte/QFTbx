@@ -1,7 +1,5 @@
-// Characterisation tests for the LtiSystem hierarchy: expression generation
-// (expression) and nominal evaluation through muParserX (evaluate). They pin the
-// CURRENT behaviour, including known defects marked "// BUG:"; fixing those
-// must flip the expectation in a dedicated commit.
+// Tests for the LtiSystem hierarchy: expression generation (expression) and
+// nominal evaluation through muParserX (evaluate).
 //
 // Reminder of the plant forms:
 //   SystemType::ZeroPoleGain     P(s) = k * prod(s + z) / prod(s + p)
@@ -366,16 +364,15 @@ TEST(FormatoLibreExpr, NumericExpressionOnlyReplacesTheLaplaceVariable)
 {
     //The historical substring replace mutilated "sin", "sqrt" and any
     //parameter whose name contains an 's'.
-    FreeForm* plant = new FreeForm(
+    FreeForm plant(
         std::string("tokens"),
         vars({Parameter(std::string("desp"), Range(0.5, 2.0), 1.0, std::string("desp"))}),
         vars({}),
         Parameter(1.0), Parameter(0.0),
         std::string("sin(s) + sqrt(desp) + s"), std::string("1"));
 
-    EXPECT_EQ(plant->expression(2.0),
+    EXPECT_EQ(plant.expression(2.0),
               std::string("1*(sin((2*i)) + sqrt(desp) + (2*i))/(1)"));
-    delete plant;
 }
 
 TEST(FormatoLibreExpr, ExplicitValueEvaluationThrows)

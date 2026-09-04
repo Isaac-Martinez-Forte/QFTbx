@@ -1,7 +1,5 @@
-// Characterisation tests for the design-frequency machinery as it stands
-// today: the Omega DTO and the sequence/string helpers in tools that feed it.
-// Behaviours marked "// BUG:" are known defects pinned on purpose; fixing one
-// must flip its expectation in a dedicated commit.
+// Tests for the design-frequency machinery: Omega and the sequence and
+// text helpers that feed it.
 
 #include <gtest/gtest.h>
 
