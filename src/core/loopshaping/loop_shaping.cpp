@@ -6,20 +6,10 @@
 #include "src/core/loopshaping/loop_shaping.h"
 
 #include <cmath>
-#include <iostream>
 #include <memory>
 
 
 #include "src/core/exception.h"
-
-LoopShaping::LoopShaping()
-{
-}
-
-LoopShaping::~LoopShaping()
-{
-}
-
 
 //Dispatch to the selected loop-shaping algorithm. Every algorithm takes
 //the plant, the controller search box, the design frequencies and the
@@ -60,16 +50,16 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
     //pair leaked the whole algorithm (its lists, its detection, its
     //nominal-plant caches) on every such throw.
     auto timer = std::chrono::steady_clock::now();
-    bool re = false;
+    bool solved = false;
 
     //The peak live-node count is what a run costs in memory, and what the
     //ceiling of kDefaultMaxLiveNodes has to be tuned against: it is reported
     //rather than left to be guessed.
-    const auto report = [&](std::unique_ptr<LtiSystem> resultado, std::size_t peakLiveNodes) {
+    const auto report = [&](std::unique_ptr<LtiSystem> designed, std::size_t peakLiveNodes) {
         std::cout << "LoopShaping: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timer).count() << " milliseconds" << std::endl;
-        std::cout << "k: " << resultado->gain().range().min << std::endl;
+        std::cout << "k: " << designed->gain().range().min << std::endl;
         std::cout << "peak live nodes: " << peakLiveNodes << std::endl;
-        this->controller = std::move(resultado);
+        m_controller = std::move(designed);
     };
 
     if (algorithm == tools::nt) {
@@ -78,8 +68,8 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
         nt->setCancellation(m_cancellation);
         nt->setSettings(m_settings);
         timer = std::chrono::steady_clock::now();
-        re = nt->solve();
-        if (re) {
+        solved = nt->solve();
+        if (solved) {
             report(nt->controllerStructure(), nt->peakLiveNodes());
         }
     } else if (algorithm == tools::nk) {
@@ -88,8 +78,8 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
         nk->setCancellation(m_cancellation);
         nk->setSettings(m_settings);
         timer = std::chrono::steady_clock::now();
-        re = nk->solve();
-        if (re) {
+        solved = nk->solve();
+        if (solved) {
             report(nk->controllerStructure(), nk->peakLiveNodes());
         }
     } else if (algorithm == tools::mr) {
@@ -98,8 +88,8 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
         mr->setCancellation(m_cancellation);
         mr->setSettings(m_settings);
         timer = std::chrono::steady_clock::now();
-        re = mr->solve();
-        if (re) {
+        solved = mr->solve();
+        if (solved) {
             report(mr->controllerStructure(), mr->peakLiveNodes());
         }
     } else if (algorithm == tools::mc1) {
@@ -108,8 +98,8 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
         mc1->setCancellation(m_cancellation);
         mc1->setSettings(m_settings);
         timer = std::chrono::steady_clock::now();
-        re = mc1->solve();
-        if (re) {
+        solved = mc1->solve();
+        if (solved) {
             report(mc1->controllerStructure(), mc1->peakLiveNodes());
         }
     } else if (algorithm == tools::mc_thesis) {
@@ -118,16 +108,16 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
         mc_thesis->setCancellation(m_cancellation);
         mc_thesis->setSettings(m_settings);
         timer = std::chrono::steady_clock::now();
-        re = mc_thesis->solve();
-        if (re) {
+        solved = mc_thesis->solve();
+        if (solved) {
             report(mc_thesis->controllerStructure(), mc_thesis->peakLiveNodes());
         }
     }
 
-    return re;
+    return solved;
 }
 
 std::unique_ptr<LtiSystem> LoopShaping::controllerStructure()
 {
-    return std::move(controller);
+    return std::move(m_controller);
 }

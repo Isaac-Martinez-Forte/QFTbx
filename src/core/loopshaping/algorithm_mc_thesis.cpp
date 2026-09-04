@@ -3,8 +3,6 @@
 #include "src/core/exception.h"
 #include "src/core/loopshaping/algorithm_mc_thesis.h"
 
-#include "src/core/loopshaping/quick_solution.h"
-
 using namespace tools;
 using namespace cxsc;
 using namespace FC;
@@ -12,35 +10,6 @@ using namespace FC;
 namespace quick_solution = qftbx::quick_solution;
 
 namespace {
-
-//Prune step of thesis 5.4.3: cap the gain range of a box at the prune
-//variable C. Takes the box over and returns either the capped
-//replacement or the box itself, when the cap does not apply.
-std::unique_ptr<LtiSystem> capGain(std::unique_ptr<LtiSystem> box, double cap)
-{
-    if (!box->gain().isUncertain() ||
-            cap <= box->gain().range().min || cap >= box->gain().range().max) {
-        return box;
-    }
-
-    return std::unique_ptr<LtiSystem>(box->create(box->name(),
-            box->numerator(), box->denominator(),
-            Parameter("kv", Range(box->gain().range().min, cap),
-                          box->gain().range().min, "kv"),
-            box->delay()));
-}
-
-//Nominal plant phase on the (-2 pi, 0] branch the Nichols boxes use.
-double nominalPhase(std::complex<double> p0)
-{
-    double phi0 = std::arg(p0);
-
-    if (phi0 > 0.0) {
-        phi0 -= 2.0 * M_PI;
-    }
-
-    return phi0;
-}
 
 //Corner value vectors of a box (uncertain parameters at the requested
 //extreme, fixed ones at their nominal).
@@ -62,14 +31,6 @@ void cornerVectors(LtiSystem * box, bool zerosAtSup, bool polesAtSup,
 
 } // namespace
 
-
-AlgorithmMcThesis::AlgorithmMcThesis()
-{
-}
-
-AlgorithmMcThesis::~AlgorithmMcThesis()
-{
-}
 
 
 void AlgorithmMcThesis::setStrategies(const Strategies & s)
@@ -108,10 +69,10 @@ void AlgorithmMcThesis::setProblem(LtiSystem * plant, LtiSystem * controller, st
 
 inline std::int32_t AlgorithmMcThesis::parameterCount(LtiSystem * box) const
 {
-    return 1 + box->numerator().size() + box->denominator().size();
+    return static_cast<std::int32_t>(1 + box->numerator().size() + box->denominator().size());
 }
 
-inline Range AlgorithmMcThesis::parameterRange(LtiSystem * box, std::int32_t parameter) const
+Range AlgorithmMcThesis::parameterRange(LtiSystem * box, std::int32_t parameter) const
 {
     Parameter & var = parameter == 0
             ? box->gain()
@@ -126,23 +87,23 @@ inline Range AlgorithmMcThesis::parameterRange(LtiSystem * box, std::int32_t par
 
 //New box with one parameter's range replaced (deep copy, the original is
 //left untouched).
-inline std::unique_ptr<LtiSystem> AlgorithmMcThesis::replaceParameter(LtiSystem * box, std::int32_t parameter,
+std::unique_ptr<LtiSystem> AlgorithmMcThesis::replaceParameter(LtiSystem * box, std::int32_t parameter,
                                                        Range range) const
 {
-    std::vector<Parameter> numerador;
-    numerador.reserve(box->numerator().size());
+    std::vector<Parameter> numerator;
+    numerator.reserve(box->numerator().size());
     for (std::size_t j = 0; j < box->numerator().size(); ++j) {
         Parameter & old = box->numerator()[j];
-        numerador.push_back(parameter == j + 1
+        numerator.push_back(parameter == j + 1
                 ? Parameter(old.name(), range, range.min)
                 : old);
     }
 
-    std::vector<Parameter> denominador;
-    denominador.reserve(box->denominator().size());
+    std::vector<Parameter> denominator;
+    denominator.reserve(box->denominator().size());
     for (std::size_t j = 0; j < box->denominator().size(); ++j) {
         Parameter & old = box->denominator()[j];
-        denominador.push_back(static_cast<std::size_t>(parameter) == j + 1 + box->numerator().size()
+        denominator.push_back(static_cast<std::size_t>(parameter) == j + 1 + box->numerator().size()
                 ? Parameter(old.name(), range, range.min)
                 : old);
     }
@@ -151,7 +112,7 @@ inline std::unique_ptr<LtiSystem> AlgorithmMcThesis::replaceParameter(LtiSystem 
             ? Parameter("kv", range, range.min, "kv")
             : box->gain();
 
-    return box->create(box->name(), std::move(numerador), std::move(denominador),
+    return box->create(box->name(), std::move(numerator), std::move(denominator),
                        std::move(gain), box->delay());
 }
 
@@ -191,11 +152,11 @@ bool AlgorithmMcThesis::solve()
     //call their evaluation order is unspecified.
     const double initialGainInf = controller->gain().range().min;
 
-    auto inicial = std::make_unique<McSearchNode>(initialGainInf, std::move(controller),
+    auto initial = std::make_unique<McSearchNode>(initialGainInf, std::move(controller),
                                                  ambiguous);
-    inicial->setStage(strategies.stages ? Stage::Initial : Stage::Intermediate);
-    inicial->setCutsEnabled(true);
-    liveList->insert(std::move(inicial));
+    initial->setStage(strategies.stages ? Stage::Initial : Stage::Intermediate);
+    initial->setCutsEnabled(true);
+    liveList->insert(std::move(initial));
 
     while (true) {
 
@@ -318,7 +279,7 @@ std::unique_ptr<LtiSystem> AlgorithmMcThesis::controllerStructure()
 //the node history already certifies as feasible), collecting the data
 //the cutting stages and the bisection need. Returns false when some
 //frequency is certainly infeasible; the node is the caller's to drop.
-inline bool AlgorithmMcThesis::analyse(McSearchNode * node, NodeAnalysis & out)
+bool AlgorithmMcThesis::analyse(McSearchNode * node, NodeAnalysis & out)
 {
     out.flag = feasible;
     out.mainFrequency = 0;
@@ -378,7 +339,7 @@ inline bool AlgorithmMcThesis::analyse(McSearchNode * node, NodeAnalysis & out)
 
 
 //--------------------------------------------------------------- steps E-F
-inline void AlgorithmMcThesis::improveNode(McSearchNode * node, NodeAnalysis & analysis,
+void AlgorithmMcThesis::improveNode(McSearchNode * node, NodeAnalysis & analysis,
                                            std::vector<FeasibleThreshold> & thresholds)
 {
     //Step E (thesis 4.4): the initial stage ends when no projected box
@@ -420,14 +381,14 @@ inline void AlgorithmMcThesis::improveNode(McSearchNode * node, NodeAnalysis & a
 //certificates produce (MG candidates, UM/UF boxes, tree-bisection
 //marks). An equation slip then costs a missed acceleration, never a
 //wrong verdict.
-inline bool AlgorithmMcThesis::boxIsFeasibleAt(LtiSystem * box, std::size_t freqIndex)
+bool AlgorithmMcThesis::boxIsFeasibleAt(LtiSystem * box, std::size_t freqIndex)
 {
     const cinterval projection = conversion->nicholsBox(box, omega->at(freqIndex),
                                                   nominalPlantValues.at(freqIndex));
     return detector->classifyBox(projection, boundaries, freqIndex).flag() == feasible;
 }
 
-inline bool AlgorithmMcThesis::boxIsFeasible(LtiSystem * box)
+bool AlgorithmMcThesis::boxIsFeasible(LtiSystem * box)
 {
     for (std::size_t i = 0; i < omega->size(); ++i) {
         if (!boxIsFeasibleAt(box, i)) {
@@ -447,7 +408,7 @@ inline bool AlgorithmMcThesis::boxIsFeasible(LtiSystem * box)
 //box. The candidate is verified against the feasibility test and the
 //stability criterion before it may prune through C (the thesis relies on
 //the strip geometry alone; the extra checks cost |Omega| detections).
-inline bool AlgorithmMcThesis::bestGainSearch(McSearchNode * node, const NodeAnalysis & analysis)
+bool AlgorithmMcThesis::bestGainSearch(McSearchNode * node, const NodeAnalysis & analysis)
 {
     LtiSystem * box = node->system();
 
@@ -512,20 +473,20 @@ inline bool AlgorithmMcThesis::bestGainSearch(McSearchNode * node, const NodeAna
     //The certified point: gain at the intersection infimum, the other
     //parameters at the corner (thesis 4.3: the solution is a POINT; its
     //pseudocode substitutes into the whole box, an erratum).
-    std::vector<Parameter> numerador;
-    numerador.reserve(zeroSups.size());
+    std::vector<Parameter> numerator;
+    numerator.reserve(zeroSups.size());
     for (double z : zeroSups) {
-        numerador.emplace_back(z);
+        numerator.emplace_back(z);
     }
 
-    std::vector<Parameter> denominador;
-    denominador.reserve(poleInfs.size());
+    std::vector<Parameter> denominator;
+    denominator.reserve(poleInfs.size());
     for (double p : poleInfs) {
-        denominador.emplace_back(p);
+        denominator.emplace_back(p);
     }
 
-    std::unique_ptr<LtiSystem> point = box->create(box->name(), std::move(numerador),
-            std::move(denominador), Parameter(lowNeeded), Parameter(double(0)));
+    std::unique_ptr<LtiSystem> point = box->create(box->name(), std::move(numerator),
+            std::move(denominator), Parameter(lowNeeded), Parameter(double(0)));
 
     if (!boxIsFeasible(point.get()) || !stability->isNominallyStable(point.get())) {
         return false;
@@ -541,7 +502,7 @@ inline bool AlgorithmMcThesis::bestGainSearch(McSearchNode * node, const NodeAna
 //------------------------------------------------------------------ QSFact
 //Insertion of a certainly feasible box into the live list, guarded by the
 //prune variable and the stability criterion.
-inline void AlgorithmMcThesis::insertFeasibleBox(std::unique_ptr<LtiSystem> box,
+void AlgorithmMcThesis::insertFeasibleBox(std::unique_ptr<LtiSystem> box,
                                                 McSearchNode * parent)
 {
     const double gainInf = box->gain().range().min;
@@ -580,7 +541,7 @@ inline void AlgorithmMcThesis::insertFeasibleBox(std::unique_ptr<LtiSystem> box,
 //intersection across frequencies (UM/UF) is split off into the live list
 //and every valid per-frequency threshold is recorded for the tree
 //bisection (MM/MF).
-inline void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
+void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
                                             std::vector<FeasibleThreshold> & thresholds, bool & improved)
 {
     LtiSystem * box = node->system();
@@ -791,23 +752,12 @@ inline void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnaly
 //forbidden: the magnitude cuts of NK's Quick Solution (bottom strip, plus
 //their mirror on the top strip) and the phase cuts of thesis 4.1.2. All
 //cuts run sequentially on the latest updated values.
-inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
-                                              bool & improved)
+void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
+                                       bool & improved)
 {
     LtiSystem * v = node->system();
 
-    std::vector<double> zeroInfs, zeroSups, poleInfs, poleSups;
-    for (Parameter & var : v->numerator()) {
-        zeroInfs.push_back(var.isUncertain() ? var.range().min : var.nominal());
-        zeroSups.push_back(var.isUncertain() ? var.range().max : var.nominal());
-    }
-    for (Parameter & var : v->denominator()) {
-        poleInfs.push_back(var.isUncertain() ? var.range().min : var.nominal());
-        poleSups.push_back(var.isUncertain() ? var.range().max : var.nominal());
-    }
-
-    double gainInf = v->gain().range().min;
-    double gainSup = v->gain().range().max;
+    ParameterBounds bounds = boundsOf(v);
 
     bool cut = false;
 
@@ -827,67 +777,17 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
 
         //Bottom strip certainly forbidden: cuts from below (NK's QS).
         if (strategies.infeasibleMagnitude && classification->isBottomLeftForbidden()) {
-
-            if (v->gain().isUncertain()) {
-                const double k = quick_solution::gainCut(boundMin, zeroSups, poleInfs, w, p0);
-                if (k > gainInf && k < gainSup) {
-                    gainInf = k;
-                    cut = true;
-                }
-            }
-
-            for (std::size_t j = 0; hasUncertainZeros && j < zeroInfs.size(); ++j) {
-                if (!v->numerator()[j].isUncertain()) continue;
-                const double z = quick_solution::zeroCut(boundMin, gainSup, zeroSups, poleInfs, j, w, p0);
-                if (z > zeroInfs[j] && z < zeroSups[j]) {
-                    zeroInfs[j] = z;
-                    cut = true;
-                }
-            }
-
-            for (std::size_t j = 0; hasUncertainPoles && j < poleInfs.size(); ++j) {
-                if (!v->denominator()[j].isUncertain()) continue;
-                const double p = quick_solution::poleCut(boundMin, gainSup, zeroSups, poleInfs, j, w, p0);
-                if (p > poleInfs[j] && p < poleSups[j]) {
-                    poleSups[j] = p;
-                    cut = true;
-                }
-            }
+            cut = cutBelowBoundary(bounds, boundMin, w, p0) || cut;
         }
 
         //Top strip certainly forbidden: the mirror cuts from above, with
         //the loop-minimising corner and B_max.
         if (strategies.infeasibleMagnitude && classification->isTopRightForbidden()) {
-
-            if (v->gain().isUncertain()) {
-                const double k = quick_solution::gainCut(boundMax, zeroInfs, poleSups, w, p0);
-                if (k > gainInf && k < gainSup) {
-                    gainSup = k;
-                    cut = true;
-                }
-            }
-
-            for (std::size_t j = 0; hasUncertainZeros && j < zeroInfs.size(); ++j) {
-                if (!v->numerator()[j].isUncertain()) continue;
-                const double z = quick_solution::zeroCut(boundMax, gainInf, zeroInfs, poleSups, j, w, p0);
-                if (z > zeroInfs[j] && z < zeroSups[j]) {
-                    zeroSups[j] = z;
-                    cut = true;
-                }
-            }
-
-            for (std::size_t j = 0; hasUncertainPoles && j < poleInfs.size(); ++j) {
-                if (!v->denominator()[j].isUncertain()) continue;
-                const double p = quick_solution::poleCut(boundMax, gainInf, zeroInfs, poleSups, j, w, p0);
-                if (p > poleInfs[j] && p < poleSups[j]) {
-                    poleInfs[j] = p;
-                    cut = true;
-                }
-            }
+            cut = cutAboveBoundary(bounds, boundMax, w, p0) || cut;
         }
 
         //Phase strips (thesis 4.1.2), when wider than one grid step.
-        if (strategies.infeasiblePhase && (hasUncertainZeros || hasUncertainPoles)) {
+        if (strategies.infeasiblePhase) {
 
             const double phi0 = nominalPhase(p0);
             const Range boxPhase = analysis.boxPhase.at(i);
@@ -895,49 +795,11 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
             const double boundPhaseMax = classification->extremes()[3];
 
             if (classification->isTopRightForbidden() && boundPhaseMax < boxPhase.max - phaseGridStep) {
-
-                const double thetaMax = boundPhaseMax * M_PI / 180.0;
-
-                for (std::size_t j = 0; hasUncertainZeros && j < zeroInfs.size(); ++j) {
-                    if (!v->numerator()[j].isUncertain()) continue;
-                    const double z = quick_solution::zeroPhaseCutHigh(thetaMax, phi0, zeroSups, poleInfs, j, w);
-                    if (z > zeroInfs[j] && z < zeroSups[j]) {
-                        zeroInfs[j] = z;
-                        cut = true;
-                    }
-                }
-
-                for (std::size_t j = 0; hasUncertainPoles && j < poleInfs.size(); ++j) {
-                    if (!v->denominator()[j].isUncertain()) continue;
-                    const double p = quick_solution::polePhaseCutHigh(thetaMax, phi0, zeroSups, poleInfs, j, w);
-                    if (p > poleInfs[j] && p < poleSups[j]) {
-                        poleSups[j] = p;
-                        cut = true;
-                    }
-                }
+                cut = cutRightOfPhase(bounds, boundPhaseMax * M_PI / 180.0, phi0, w) || cut;
             }
 
             if (classification->isBottomLeftForbidden() && boundPhaseMin > boxPhase.min + phaseGridStep) {
-
-                const double thetaMin = boundPhaseMin * M_PI / 180.0;
-
-                for (std::size_t j = 0; hasUncertainZeros && j < zeroInfs.size(); ++j) {
-                    if (!v->numerator()[j].isUncertain()) continue;
-                    const double z = quick_solution::zeroPhaseCutLow(thetaMin, phi0, zeroInfs, poleSups, j, w);
-                    if (z > zeroInfs[j] && z < zeroSups[j]) {
-                        zeroSups[j] = z;
-                        cut = true;
-                    }
-                }
-
-                for (std::size_t j = 0; hasUncertainPoles && j < poleInfs.size(); ++j) {
-                    if (!v->denominator()[j].isUncertain()) continue;
-                    const double p = quick_solution::polePhaseCutLow(thetaMin, phi0, zeroInfs, poleSups, j, w);
-                    if (p > poleInfs[j] && p < poleSups[j]) {
-                        poleInfs[j] = p;
-                        cut = true;
-                    }
-                }
+                cut = cutLeftOfPhase(bounds, boundPhaseMin * M_PI / 180.0, phi0, w) || cut;
             }
         }
     }
@@ -946,27 +808,7 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
         return;
     }
 
-    std::vector<Parameter> numerador;
-    for (std::size_t j = 0; j < zeroInfs.size(); ++j) {
-        Parameter & old = v->numerator()[j];
-        numerador.push_back(old.isUncertain()
-                ? Parameter(old.name(), Range(zeroInfs[j], zeroSups[j]), zeroInfs[j])
-                : Parameter(old.nominal()));
-    }
-
-    std::vector<Parameter> denominador;
-    for (std::size_t j = 0; j < poleInfs.size(); ++j) {
-        Parameter & old = v->denominator()[j];
-        denominador.push_back(old.isUncertain()
-                ? Parameter(old.name(), Range(poleInfs[j], poleSups[j]), poleInfs[j])
-                : Parameter(old.nominal()));
-    }
-
-    node->setSystem(v->create(v->name(), numerador, denominador,
-            v->gain().isUncertain()
-                ? Parameter("kv", Range(gainInf, gainSup), gainInf, "kv")
-                : Parameter(v->gain().nominal()),
-            v->delay()));
+    node->setSystem(boxFromBounds(v, bounds));
     improved = true;
 }
 
@@ -974,7 +816,7 @@ inline void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAna
 //-------------------------------------------------------------- bisection
 //Split one parameter at 'point'; both children inherit the node's stage,
 //cut switch and feasible-frequency history.
-inline FC::McBisectionResult AlgorithmMcThesis::bisectAt(McSearchNode * node, std::int32_t parameter,
+FC::McBisectionResult AlgorithmMcThesis::bisectAt(McSearchNode * node, std::int32_t parameter,
                                                          double point)
 {
     LtiSystem * box = node->system();
@@ -997,12 +839,12 @@ inline FC::McBisectionResult AlgorithmMcThesis::bisectAt(McSearchNode * node, st
         return t;
     };
 
-    FC::McBisectionResult retur;
-    retur.t1 = makeChild(std::move(lower));
-    retur.t2 = makeChild(std::move(upper));
+    FC::McBisectionResult children;
+    children.t1 = makeChild(std::move(lower));
+    children.t2 = makeChild(std::move(upper));
 
     //The bisected node is the caller's: it dies with the loop iteration.
-    return retur;
+    return children;
 }
 
 
@@ -1061,7 +903,7 @@ inline std::int32_t AlgorithmMcThesis::widestByMeasure(McSearchNode * node, std:
 
 
 //Step G (thesis 5.4.6): the bisection strategy follows the node's stage.
-inline FC::McBisectionResult AlgorithmMcThesis::bisect(McSearchNode * node, const NodeAnalysis & analysis,
+FC::McBisectionResult AlgorithmMcThesis::bisect(McSearchNode * node, const NodeAnalysis & analysis,
                                                        const std::vector<FeasibleThreshold> & thresholds)
 {
     //Tree bisection (thesis 5.3): split at the stored feasible threshold
@@ -1092,10 +934,10 @@ inline FC::McBisectionResult AlgorithmMcThesis::bisect(McSearchNode * node, cons
 
         if (bestThreshold != nullptr) {
             const std::size_t freq = bestThreshold->freqIndex;
-            FC::McBisectionResult retur = bisectAt(node, bestThreshold->parameter,
-                                                   bestThreshold->threshold);
+            FC::McBisectionResult children = bisectAt(node, bestThreshold->parameter,
+                                                      bestThreshold->threshold);
             McSearchNode * feasibleChild = (bestThreshold->upperSide
-                    ? retur.t2 : retur.t1).get();
+                    ? children.t2 : children.t1).get();
 
             //Defensive verification of the mark with the real detection:
             //an unverified mark would silently skip this frequency's
@@ -1104,7 +946,7 @@ inline FC::McBisectionResult AlgorithmMcThesis::bisect(McSearchNode * node, cons
                 feasibleChild->markFrequencyFeasible(freq, omega->at(freq));
             }
 
-            return retur;
+            return children;
         }
     }
 
@@ -1113,9 +955,9 @@ inline FC::McBisectionResult AlgorithmMcThesis::bisect(McSearchNode * node, cons
     int measure = 0;
 
     if (node->stage() == Stage::Final) {
-        const Range mag = analysis.boxMag.at(analysis.mainFrequency);
-        const Range fas = analysis.boxPhase.at(analysis.mainFrequency);
-        measure = fas.width() > mag.width() ? 2 : 1;
+        const Range magnitude = analysis.boxMag.at(analysis.mainFrequency);
+        const Range phase = analysis.boxPhase.at(analysis.mainFrequency);
+        measure = phase.width() > magnitude.width() ? 2 : 1;
     }
 
     std::int32_t parameter = widestByMeasure(node, analysis.mainFrequency, measure);

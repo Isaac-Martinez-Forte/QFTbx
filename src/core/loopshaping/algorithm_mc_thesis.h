@@ -100,8 +100,6 @@ public:
         bool stages = true;               //thesis 4.4 (off: always INTERMEDIA)
     };
 
-    AlgorithmMcThesis();
-    ~AlgorithmMcThesis();
 
     void setStrategies(const Strategies & s);
 
@@ -160,27 +158,27 @@ private:
         bool anyFullPhaseWidth = false;
     };
 
-    inline bool analyse(McSearchNode * node, NodeAnalysis & out);
-    inline void improveNode(McSearchNode * node, NodeAnalysis & analysis,
+    bool analyse(McSearchNode * node, NodeAnalysis & out);
+    void improveNode(McSearchNode * node, NodeAnalysis & analysis,
                             std::vector<FeasibleThreshold> & thresholds);
-    inline bool bestGainSearch(McSearchNode * node, const NodeAnalysis & analysis);
-    inline void feasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
+    bool bestGainSearch(McSearchNode * node, const NodeAnalysis & analysis);
+    void feasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
                              std::vector<FeasibleThreshold> & thresholds, bool & improved);
-    inline void infeasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
+    void infeasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
                                bool & improved);
 
-    inline FC::McBisectionResult bisect(McSearchNode * node, const NodeAnalysis & analysis,
+    FC::McBisectionResult bisect(McSearchNode * node, const NodeAnalysis & analysis,
                                         const std::vector<FeasibleThreshold> & thresholds);
-    inline FC::McBisectionResult bisectAt(McSearchNode * node, std::int32_t parameter, double point);
+    FC::McBisectionResult bisectAt(McSearchNode * node, std::int32_t parameter, double point);
     inline std::int32_t widestByMeasure(McSearchNode * node, std::size_t mainFrequency, int measure);
 
-    inline bool boxIsFeasibleAt(LtiSystem * box, std::size_t freqIndex);
-    inline bool boxIsFeasible(LtiSystem * box);
-    inline void insertFeasibleBox(std::unique_ptr<LtiSystem> box, McSearchNode * parent);
+    bool boxIsFeasibleAt(LtiSystem * box, std::size_t freqIndex);
+    bool boxIsFeasible(LtiSystem * box);
+    void insertFeasibleBox(std::unique_ptr<LtiSystem> box, McSearchNode * parent);
 
     inline std::int32_t parameterCount(LtiSystem * box) const;
-    inline Range parameterRange(LtiSystem * box, std::int32_t parameter) const;
-    inline std::unique_ptr<LtiSystem> replaceParameter(LtiSystem * box, std::int32_t parameter,
+    Range parameterRange(LtiSystem * box, std::int32_t parameter) const;
+    std::unique_ptr<LtiSystem> replaceParameter(LtiSystem * box, std::int32_t parameter,
                                                        Range range) const;
 
     LtiSystem * plant = nullptr;

@@ -16,7 +16,7 @@
 class ListNode {
 
 public:
-    ListNode(){}
+    ListNode() = default;
 
     ListNode(double index) {
         this->index = index;
@@ -24,7 +24,7 @@ public:
 
     //Nodes are deleted through this base by their owners (the live list
     //drains its leftovers on destruction).
-    virtual ~ListNode() {}
+    virtual ~ListNode() = default;
 
     double getIndex() const
     {

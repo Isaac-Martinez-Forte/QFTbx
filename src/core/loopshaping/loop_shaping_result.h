@@ -19,11 +19,11 @@ public:
                        double pointCount);
 
     /// Observer on the computed controller; the record keeps ownership.
-    LtiSystem * controller ();
+    LtiSystem * controller () const;
 
-    qftbx::Range range ();
+    qftbx::Range range () const;
 
-    double pointCount();
+    double pointCount() const;
 
     //There was a pair of setData() overloads and an m_set flag: nothing
     //ever called them and nothing ever read the flag. The overloads

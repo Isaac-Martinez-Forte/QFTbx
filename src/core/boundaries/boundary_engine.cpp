@@ -54,6 +54,17 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
     m_specifications = qftbx::toSpecificationSet(*specifications);
     m_cuda = cuda;
 
+    //The dialog checks this too, but the engine is what a script or a test
+    //reaches: a single-point axis is a sheet with no cells for the tracer,
+    //a division by zero in the union's bucketing and a loop that never
+    //ends in the box classification.
+    if (phaseCount < 2 || magnitudeCount < 2) {
+        throw InvalidInput("The Nichols grid needs at least two points on each axis.");
+    }
+    if (!(phaseRange.width() > 0.0) || !(magnitudeRange.width() > 0.0)) {
+        throw InvalidInput("The Nichols grid needs a non-empty phase range and magnitude range.");
+    }
+
     m_phaseCount = phaseCount;
     m_magnitudeCount = magnitudeCount;
     m_phaseRange = phaseRange;

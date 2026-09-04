@@ -190,6 +190,17 @@ TEST(OrderedList, TakeFirstHandsTheNodeOver)
     EXPECT_TRUE(liveList.isEmpty());
 }
 
+TEST(OrderedList, AnEmptyListRefusesToHandOutANode)
+{
+    // first(), last() and takeFirst() used to dereference end() on an empty
+    // list; a search that asks for a node it does not have gets a message.
+    OrderedList liveList;
+
+    EXPECT_THROW(liveList.first(), qftbx::ComputationError);
+    EXPECT_THROW(liveList.last(), qftbx::ComputationError);
+    EXPECT_THROW(liveList.takeFirst(), qftbx::ComputationError);
+}
+
 //---------------------------------------------------------------- ExpressionTree
 
 TEST(ExpressionTree, ScalarEvaluationWithVariables)
@@ -251,6 +262,86 @@ TEST(ExpressionTree, ContractionDetectsAnEmptyDomain)
     variables["x"] = interval(0.0, 10.0);
 
     EXPECT_FALSE(tree.propagate(&variables));
+}
+
+TEST(ExpressionTree, TheConstantsAreEnclosedNotApproximated)
+{
+    alg::ExpressionTree tree("1");
+    tree.setFunc(std::string("PI+E"));
+
+    std::map<std::string, interval> variables;
+    const interval result = tree.eval(&variables);
+
+    // The true pi + e lies strictly inside: the interval version used to
+    // return degenerate intervals of approximate constants.
+    const double truth = 3.14159265358979323846 + 2.71828182845904523536;
+    EXPECT_LE(cxsc::_double(Inf(result)), truth);
+    EXPECT_GE(cxsc::_double(Sup(result)), truth);
+    EXPECT_LT(cxsc::_double(Sup(result)) - cxsc::_double(Inf(result)), 1e-12);
+
+    EXPECT_NEAR(tree.eval(static_cast<std::map<std::string, double> *>(nullptr)), truth, 1e-15);
+}
+
+TEST(ExpressionTree, TheLogarithmsEvaluateOverIntervals)
+{
+    alg::ExpressionTree tree("1");
+    tree.setFunc(std::string("ln(x)+lg(x)"));
+
+    std::map<std::string, interval> variables;
+    variables["x"] = interval(1.0, 10.0);
+
+    const interval result = tree.eval(&variables);
+    EXPECT_NEAR(cxsc::_double(Inf(result)), 0.0, 1e-12);
+    EXPECT_NEAR(cxsc::_double(Sup(result)), std::log(10.0) + 1.0, 1e-12);
+}
+
+TEST(ExpressionTree, ACopyKeepsItsVariables)
+{
+    alg::ExpressionTree original("1");
+    original.setFunc(std::string("2*x+3"));
+
+    alg::ExpressionTree copy(original);
+    alg::ExpressionTree assigned("1");
+    assigned = original;
+
+    std::map<std::string, double> variables;
+    variables["x"] = 5.0;
+
+    EXPECT_DOUBLE_EQ(copy.eval(&variables), 13.0);
+    EXPECT_DOUBLE_EQ(assigned.eval(&variables), 13.0);
+}
+
+TEST(ExpressionTree, AnUpperCaseNameIsAVariableNotAConstant)
+{
+    alg::ExpressionTree tree("1");
+    tree.setFunc(std::string("P1+E2"));
+
+    std::map<std::string, double> variables;
+    variables["P1"] = 1.0;
+    variables["E2"] = 2.0;
+
+    EXPECT_DOUBLE_EQ(tree.eval(&variables), 3.0);
+}
+
+TEST(ExpressionTree, ContractionHonoursALessThanConstraint)
+{
+    alg::ExpressionTree tree("1");
+    tree.setFunc(std::string("x-2"), 0.0, alg::LESS_EQUAL);
+
+    std::map<std::string, interval> variables;
+    variables["x"] = interval(0.0, 10.0);
+
+    ASSERT_TRUE(tree.propagate(&variables));
+    EXPECT_DOUBLE_EQ(cxsc::_double(Inf(variables.at("x"))), 0.0);
+    EXPECT_DOUBLE_EQ(cxsc::_double(Sup(variables.at("x"))), 2.0);
+}
+
+TEST(ExpressionTree, AMalformedExpressionIsRefused)
+{
+    alg::ExpressionTree tree("1");
+    EXPECT_THROW(tree.setFunc(std::string("(2*x")), std::invalid_argument);
+    EXPECT_THROW(tree.setFunc(std::string("2*x)")), std::invalid_argument);
+    EXPECT_THROW(tree.setFunc(std::string("2*")), std::invalid_argument);
 }
 
 } // namespace

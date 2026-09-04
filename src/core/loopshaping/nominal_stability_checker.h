@@ -5,8 +5,6 @@
 #include <complex>
 #include <vector>
 
-#include <vector>
-
 #include "src/core/system/lti_system.h"
 
 namespace qftbx {

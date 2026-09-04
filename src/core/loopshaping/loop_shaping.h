@@ -29,9 +29,6 @@
 class LoopShaping
 {
 public:
-    LoopShaping();
-    ~LoopShaping();
-
     /**
      * @brief Runs one algorithm over the problem.
      *
@@ -73,10 +70,9 @@ public:
      * want to cancel. The token has to outlive run(), and run() throws
      * qftbx::Cancelled when it is raised.
      *
-     * THREADS ARE NOT HERE ON PURPOSE. Whoever wants a search that does not
-     * block them runs it wherever they like and holds the token; a Qt
-     * application has better tools for that than a std::thread inside the
-     * model. What the core owes is a search that can be interrupted.
+     * No thread is started here: the facade runs the search on its worker
+     * (qftbx::BackgroundRun) and holds the token. What this class owes is a
+     * search that can be interrupted.
      */
     void setCancellation(const qftbx::CancellationToken * token)
     { m_cancellation = token; }
@@ -98,8 +94,7 @@ private:
 
     qftbx::Settings m_settings;
 
-
-    std::unique_ptr<LtiSystem> controller;
+    std::unique_ptr<LtiSystem> m_controller;
 };
 
 #endif // QFTBX_LOOPSHAPING_LOOP_SHAPING_H

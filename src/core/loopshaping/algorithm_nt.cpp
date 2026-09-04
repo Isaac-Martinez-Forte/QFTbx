@@ -2,7 +2,6 @@
 #include <cstdint>
 #include "src/core/exception.h"
 #include "src/core/loopshaping/algorithm_nt.h"
-#include <iostream>
 
 using namespace tools;
 using namespace cxsc;
@@ -39,17 +38,6 @@ using namespace FC;
  * at 2 rad/s, retired by this review.
  */
 
-AlgorithmNt::AlgorithmNt() {
-
-}
-
-//Every working structure is a member that owns itself, so an exit through
-//an exception (an infeasible problem throws) frees them just like a normal
-//return. The historical throw paths freed four of the five by hand and
-//forgot the nominal-plant cache.
-AlgorithmNt::~AlgorithmNt() {
-}
-
 void AlgorithmNt::setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> *omega, const BoundaryData * boundaries,
                                  double epsilon) {
 
@@ -59,8 +47,6 @@ void AlgorithmNt::setProblem(LtiSystem * plant, LtiSystem * controller, std::vec
     this->omega = omega;
     this->boundaries = boundaries;
     this->epsilon = epsilon;
-
-    this->tamFas = boundaries->phaseCount() - 1;
 }
 
 
@@ -132,11 +118,11 @@ bool AlgorithmNt::solve() {
         }
 
         //Step 4: bisect along the widest parameter direction.
-        struct BisectionResult retur = bisectWidestParameter(node->system());
+        BisectionResult halves = bisectWidestParameter(node->system());
 
         //Steps 5-6: classify the subboxes and insert them in NL.
-        check_box_feasibility(std::move(retur.v1));
-        check_box_feasibility(std::move(retur.v2));
+        check_box_feasibility(std::move(halves.v1));
+        check_box_feasibility(std::move(halves.v2));
     }
 }
 
@@ -159,7 +145,7 @@ std::unique_ptr<LtiSystem> AlgorithmNt::controllerStructure() {
 //can be split off (C_g+), it is re-certified by this same test and
 //enters NL as its own triple.
 
-inline void AlgorithmNt::check_box_feasibility(std::unique_ptr<LtiSystem> box) {
+void AlgorithmNt::check_box_feasibility(std::unique_ptr<LtiSystem> box) {
 
     BoxClassification classification;
 
@@ -192,7 +178,7 @@ inline void AlgorithmNt::check_box_feasibility(std::unique_ptr<LtiSystem> box) {
             const double maxBoundary = classification.extremes()[1];
 
             //C_g- : cut the certainly infeasible low-gain subrange.
-            box = acelerated(std::move(box), minBoundary, o, frequencyIndex,
+            box = accelerated(std::move(box), minBoundary, o, frequencyIndex,
                              !classification.isBottomLeftForbidden());
 
             //C_g+ : candidate lower limit of the certainly feasible
@@ -262,16 +248,16 @@ inline void AlgorithmNt::check_box_feasibility(std::unique_ptr<LtiSystem> box) {
 //below-everything zone is certainly forbidden, certified by the parity
 //classification of the box's lower corner (above == false).
 
-inline std::unique_ptr<LtiSystem> AlgorithmNt::acelerated(std::unique_ptr<LtiSystem> v,
+std::unique_ptr<LtiSystem> AlgorithmNt::accelerated(std::unique_ptr<LtiSystem> v,
         double minBoundary, double o, std::size_t frequencyIndex, bool above) {
 
     if (!above){
 
-        Parameter min_k_lineal(v->gain().range().min);
-        double min_k_db = 20 * log10(min_k_lineal.range().min);
+        const double min_k_lineal = v->gain().range().min;
+        const double min_k_db = 20 * log10(min_k_lineal);
 
         const std::unique_ptr<LtiSystem> G_k_min = v->create(v->name(), v->numerator(),
-                v->denominator(), min_k_lineal, v->delay());
+                v->denominator(), Parameter(min_k_lineal), v->delay());
 
         double mag_min_db = _double(SupRe(conversion->nicholsBox(G_k_min.get(), o,
                 nominalPlantValues.at(frequencyIndex))));
@@ -303,8 +289,8 @@ inline std::unique_ptr<LtiSystem> AlgorithmNt::acelerated(std::unique_ptr<LtiSys
 //of the box's phase interval (a heuristic gate: the caller re-certifies
 //the split box with the full feasibility test).
 
-inline bool AlgorithmNt::feasibleGainFrom(LtiSystem * v, double maxBoundary,
-                                               cinterval projection, double o, std::size_t frequencyIndex, double & from) {
+bool AlgorithmNt::feasibleGainFrom(LtiSystem * v, double maxBoundary,
+                                   cinterval projection, double o, std::size_t frequencyIndex, double & from) {
 
     const double phaseCentre = (_double(InfIm(projection)) + _double(SupIm(projection))) / 2.0;
 
@@ -313,11 +299,11 @@ inline bool AlgorithmNt::feasibleGainFrom(LtiSystem * v, double maxBoundary,
         return false;
     }
 
-    Parameter max_k_lineal(v->gain().range().max);
-    double max_k_db = 20 * log10(max_k_lineal.range().min);
+    const double max_k_lineal = v->gain().range().max;
+    const double max_k_db = 20 * log10(max_k_lineal);
 
     const std::unique_ptr<LtiSystem> G_k_max = v->create(v->name(), v->numerator(),
-            v->denominator(), max_k_lineal, v->delay());
+            v->denominator(), Parameter(max_k_lineal), v->delay());
 
     double mag_max_db = _double(InfRe(conversion->nicholsBox(G_k_max.get(), o,
             nominalPlantValues.at(frequencyIndex))));

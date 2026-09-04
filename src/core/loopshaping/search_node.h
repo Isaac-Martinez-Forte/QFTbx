@@ -4,7 +4,6 @@
 #include "src/core/loopshaping/loop_shaping_types.h"
 #include <memory>
 
-#include "src/core/math/sequence_vectors.h"
 #include "src/core/system/lti_system.h"
 #include "list_node.h"
 
@@ -23,7 +22,7 @@ class SearchNode : public ListNode {
 
 public:
 
-    SearchNode() {}
+    SearchNode() = default;
 
     SearchNode(double index, std::unique_ptr<LtiSystem> system,
                tools::BoxFlag flag = tools::ambiguous);

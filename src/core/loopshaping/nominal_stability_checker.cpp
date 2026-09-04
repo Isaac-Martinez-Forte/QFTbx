@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 
+#include "src/core/exception.h"
 #include "src/core/system/parameter.h"
 
 namespace qftbx {
@@ -28,6 +29,10 @@ NominalStabilityChecker::NominalStabilityChecker(LtiSystem * nominalPlant,
                                                  Settings::Stability tolerances)
     : m_plant(nominalPlant), m_tolerances(tolerances)
 {
+    if (omega == nullptr || omega->empty()) {
+        throw InvalidInput("The stability check needs at least one design frequency.");
+    }
+
     double minOmega = omega->front();
     double maxOmega = omega->front();
 

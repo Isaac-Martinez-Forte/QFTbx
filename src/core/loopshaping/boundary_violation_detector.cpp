@@ -4,12 +4,6 @@
 using namespace tools;
 using namespace cxsc;
 
-BoundaryViolationDetector::BoundaryViolationDetector() {
-}
-
-BoundaryViolationDetector::~BoundaryViolationDetector() {
-}
-
 //Reader of the phase bucketing that BoundaryUnion1D::bucketIndex writes.
 //Both must agree on the range of valid indices, because this indexes the
 //vector the other one sized: the writer clamps to its last bucket and this
@@ -19,7 +13,7 @@ BoundaryViolationDetector::~BoundaryViolationDetector() {
 //dereferenced). The window is free text in the boundaries dialog while every
 //caller normalises phase into (-360, 0], so a window narrower than 360
 //degrees was enough to reach it.
-inline std::int32_t BoundaryViolationDetector::phaseBucket(double phaseDegrees, std::int32_t bucketCount,
+std::int32_t BoundaryViolationDetector::phaseBucket(double phaseDegrees, std::int32_t bucketCount,
                                                      double phaseSpanDegrees)
 {
     //Cells per degree, times the distance from the window's edge. The cast
@@ -27,59 +21,35 @@ inline std::int32_t BoundaryViolationDetector::phaseBucket(double phaseDegrees, 
     double res = std::abs(phaseDegrees) * (bucketCount / phaseSpanDegrees);
     if(res<0) res=0;
     if(res>bucketCount) res=bucketCount;
-    return (std::int32_t) res;
+    return static_cast<std::int32_t>(res);
 }
 
-inline BoxFlag BoundaryViolationDetector::pointVerdict(qftbx::NicholsPoint point,
-                                                       const qftbx::TraceSet & buckets,
-                                                       std::int32_t bucketCount, bool open,
-                                                       bool above, double phaseSpanDegrees) {
-    bool violation = false;
-
-    std::int32_t crossingsAbove = 0, crossingsBelow = 0;
+BoxFlag BoundaryViolationDetector::pointVerdict(qftbx::NicholsPoint point,
+                                                const qftbx::TraceSet & buckets,
+                                                std::int32_t bucketCount,
+                                                bool above, double phaseSpanDegrees) {
+    std::int32_t crossingsAbove = 0;
     const qftbx::Trace & bucket =
             buckets.at(static_cast<std::size_t>(phaseBucket(point.phase, bucketCount, phaseSpanDegrees)));
 
     for (const qftbx::NicholsPoint & bucketPoint : bucket) {
         if (point.magnitude > bucketPoint.magnitude){
             crossingsAbove++;
-        } else {
-            crossingsBelow++;
         }
     }
 
-    //Open boundary: 'above' comes from the union metadata and means the
+    //Parity test. 'above' comes from the union metadata and means the
     //ALLOWED side is above. An even number of boundary layers below the
     //point leaves it UNDER the union, an odd number over it. The
-    //historical branch had the two verdicts swapped, so every open
-    //boundary (tracking, disturbance rejection) accepted exactly the
-    //loops that violated it and rejected the compliant ones.
-    if (open) {
-        if (crossingsAbove % 2 == 0){
-            violation = above;   //under the union
-        } else {
-            violation = !above;  //over it
-        }
-    } else {
-        if (crossingsAbove % 2 == 0){
-            if (above){
-                violation = true;
-            } else {
-                violation = false;
-            }
-        } else {
-            if (above){
-                violation = false;
-            } else {
-                violation = true;
-            }
-        }
-    }
+    //historical open-boundary branch had the two verdicts swapped, so every
+    //open boundary (tracking, disturbance rejection) accepted exactly the
+    //loops that violated it and rejected the compliant ones; once fixed,
+    //the open and the closed branch computed the same thing, and there is
+    //one test now.
+    const bool underTheUnion = crossingsAbove % 2 == 0;
+    const bool violation = underTheUnion ? above : !above;
 
-
-    if (violation) return infeasible;
-
-    return feasible;
+    return violation ? infeasible : feasible;
 }
 
 //Feasibility of a Nichols box against the boundary union at one design
@@ -98,9 +68,7 @@ BoxClassification BoundaryViolationDetector::classifyBox(cinterval box, const Bo
     const qftbx::TraceSet & buckets =
             boundaries->unionBuckets().at(frequencyIndex);
     const std::int32_t bucketCount = boundaries->phaseCount() - 1;
-    bool open = boundaries->openFlags().at(frequencyIndex);
-    bool above = boundaries->upperFlags().at(frequencyIndex);
-
+    const bool above = boundaries->upperFlags().at(frequencyIndex);
 
     double minPhaseBound = std::numeric_limits<double>::max(), maxPhaseBound = std::numeric_limits<double>::lowest(),
             minMagBound = std::numeric_limits<double>::max(), maxMagBound = std::numeric_limits<double>::lowest();
@@ -168,11 +136,11 @@ BoxClassification BoundaryViolationDetector::classifyBox(cinterval box, const Bo
     //(NT/NK/MC/thesis-MC, bottom and left strips); the top-right corner
     //drives the top and right strips (MC/thesis-MC).
     BoxFlag f = pointVerdict(qftbx::NicholsPoint(minPhase, minMag), buckets, bucketCount,
-                                     open, above, phaseSpanDegrees);
+                             above, phaseSpanDegrees);
     classification.setBottomLeftForbidden(f == infeasible);
 
     BoxFlag f2 = pointVerdict(qftbx::NicholsPoint(maxPhase, maxMag), buckets, bucketCount,
-                                      open, above, phaseSpanDegrees);
+                              above, phaseSpanDegrees);
     classification.setTopRightForbidden(f2 == infeasible);
 
     if (ambiguousVerdict) {
@@ -193,9 +161,8 @@ tools::BoxFlag BoundaryViolationDetector::classifyPoint(qftbx::NicholsPoint poin
     const qftbx::TraceSet & buckets =
             boundaries->unionBuckets().at(frequencyIndex);
     const std::int32_t bucketCount = boundaries->phaseCount() - 1;
-    bool open = boundaries->openFlags().at(frequencyIndex);
-    bool above = boundaries->upperFlags().at(frequencyIndex);
+    const bool above = boundaries->upperFlags().at(frequencyIndex);
     const double phaseSpanDegrees = boundaries->phaseRange().width();
 
-    return pointVerdict(point, buckets, bucketCount, open, above, phaseSpanDegrees);
+    return pointVerdict(point, buckets, bucketCount, above, phaseSpanDegrees);
 }

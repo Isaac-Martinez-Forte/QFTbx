@@ -5,7 +5,6 @@
 #include <memory>
 
 
-#include "src/core/math/sequence_vectors.h"
 #include "src/core/system/lti_system.h"
 #include "src/core/loopshaping/search_node.h"
 #include "src/core/loopshaping/stages.h"
@@ -22,18 +21,18 @@ class McSearchNode : public SearchNode {
 
 public:
 
-    McSearchNode() {}
+    McSearchNode() = default;
 
     McSearchNode(double index, std::unique_ptr<LtiSystem> system,
                  tools::BoxFlag flags = tools::ambiguous);
 
     void setCutsEnabled(bool enabled);
-    bool cutsEnabled();
+    bool cutsEnabled() const;
 
     void setStage(Stage e);
-    Stage stage();
+    Stage stage() const;
 
-    void markFrequencyFeasible(double pos, double frec);
+    void markFrequencyFeasible(double position, double frequency);
     bool isFrequencyFeasible(double key) const;
     void setFeasibleFrequencies(std::map<double, double> frequencies);
     const std::map<double, double> & feasibleFrequencies() const;

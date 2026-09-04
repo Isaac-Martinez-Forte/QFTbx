@@ -12,9 +12,6 @@
 #include "src/core/loopshaping/natural_interval_extension.h"
 #include "src/core/loopshaping/search_node.h"
 #include "src/core/math/sequence_vectors.h"
-#include "src/core/system/polynomial_form.h"
-#include "src/core/system/zero_pole_gain.h"
-#include "src/core/system/time_constant_gain.h"
 #include "src/core/loopshaping/boundary_violation_detector.h"
 #include "src/core/loopshaping/nominal_stability_checker.h"
 #include "src/core/loopshaping/ordered_list.h"
@@ -81,9 +78,6 @@
 class AlgorithmNt
 {
 public:
-    AlgorithmNt();
-    ~AlgorithmNt();
-
     void setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> *omega, const BoundaryData * boundaries,
                     double epsilon);
 
@@ -118,10 +112,14 @@ public:
 
 private:
 
-    inline void check_box_feasibility(std::unique_ptr<LtiSystem> box);
-    inline std::unique_ptr<LtiSystem> acelerated(std::unique_ptr<LtiSystem> v, double minBoundary,
-                                                 double o, std::size_t frequencyIndex, bool above);
-    inline bool feasibleGainFrom(LtiSystem * v, double maxBoundary, cxsc::cinterval projection,
+    //Every working structure below owns itself, so an exit through an
+    //exception (an infeasible problem throws) frees them like a normal
+    //return. The historical throw paths freed four of the five by hand and
+    //forgot the nominal-plant cache.
+    void check_box_feasibility(std::unique_ptr<LtiSystem> box);
+    std::unique_ptr<LtiSystem> accelerated(std::unique_ptr<LtiSystem> v, double minBoundary,
+                                          double o, std::size_t frequencyIndex, bool above);
+    bool feasibleGainFrom(LtiSystem * v, double maxBoundary, cxsc::cinterval projection,
                                  double o, std::size_t frequencyIndex, double & from);
 
     LtiSystem * plant = nullptr;
@@ -133,12 +131,9 @@ private:
     double epsilon = 0.0;
 
     std::unique_ptr<LtiSystem> designedController;
-    double minBoundary = 0.0;
 
 
 
-
-    std::int32_t tamFas = 0;
 
     std::unique_ptr<BoundaryViolationDetector> detector;
     std::unique_ptr<NominalStabilityChecker> stability;

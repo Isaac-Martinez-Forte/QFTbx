@@ -8,16 +8,9 @@ Roberto C. Cruz Rodríguez
 #ifndef QFTBX_LOOPSHAPING_EXPRESSION_TREE_H
 #define QFTBX_LOOPSHAPING_EXPRESSION_TREE_H
 
-#include <string>
-#include <cstdlib>
-#include <cctype>
-#include <cmath>
-#include <cassert>
-#include <iostream>
-
 #include <map>
 #include <memory>
-#include <stack>
+#include <string>
 
 #include "interval.hpp"
 
@@ -38,6 +31,8 @@ enum type_node { CONS, PI, E, VAR,
                  ACOS, EXP, ABS, LN, LG, SQRT };
 
 /// Comparison attached to a constraint expression (expr >= value, ...).
+/// Intervals are closed, so the strict and the inclusive forms narrow the
+/// same way.
 enum com { GREATER, LESS, GREATER_EQUAL, LESS_EQUAL, IGUAL};
 
 /**
@@ -77,9 +72,12 @@ struct exp_node
 *
 * The lexer accepts identifiers [A-Za-z][A-Za-z0-9_]*, numeric constants
 * with scientific notation, the operators + - * / ^ and the unary
-* functions listed in type_node. An unknown variable at evaluation time
-* throws std::invalid_argument (the historical code returned an
-* UNINITIALISED interval).
+* functions listed in type_node; the identifiers E and PI are the
+* constants. A malformed expression (unbalanced parentheses, a missing
+* operand, a character the grammar has no rule for) and an unknown
+* variable at evaluation time throw std::invalid_argument; the historical
+* parser read past the end of its stacks on the former and returned an
+* UNINITIALISED interval on the latter.
 */
 class ExpressionTree
 {
@@ -89,7 +87,9 @@ public :
     /// Parses "tex <comparacion> num" as a constraint (the HC4 use).
     ExpressionTree(const std::string &tex, double num, com comparacion);
 
-    /// Parses a plain expression.
+    /// Parses a plain expression. A malformed one (unbalanced parentheses,
+    /// a missing operand) throws std::invalid_argument, as does an unknown
+    /// node kind at evaluation time.
     ExpressionTree(const char *tex);
 
     ExpressionTree(const ExpressionTree & other);
@@ -104,15 +104,18 @@ public :
     void setFunc(const char *tex);
 
     /// Evaluates over reals with the given variable values.
-    double eval(std::map<std::string, double> * variables = NULL);
+    double eval(std::map<std::string, double> * variables = nullptr);
 
     /// Evaluates over intervals with the given variable domains.
     interval eval (std::map<std::string, interval> *variables);
 
-    /// One HC4 pass over the constraint: forward interval evaluation,
-    /// intersection with the constraint set, backward projection narrowing
-    /// 'variables' in place. Returns false when a domain empties (the
-    /// constraint proves the box infeasible).
+    /// One HC4 pass over the constraint "expression <comparison> value":
+    /// forward interval evaluation, intersection with the constraint set (a
+    /// half-line for the inequalities, a point for the equality), backward
+    /// projection narrowing 'variables' in place. Returns false when a
+    /// domain empties (the constraint proves the box infeasible). The
+    /// comparison used to be stored and never read: every constraint was
+    /// propagated as >=.
     bool propagate (std::map<std::string, interval> *variables);
 
     /// Prints the tree to stdout (debugging aid).
@@ -121,7 +124,7 @@ public :
     ExpressionTree &operator=(const ExpressionTree & other);
 
     /// Alternative spelling of eval().
-    double operator()(std::map<std::string, double> * variables = NULL);
+    double operator()(std::map<std::string, double> * variables = nullptr);
 
     interval operator() (std::map<std::string, interval> *variables);
 
@@ -136,8 +139,6 @@ private :
     double eval_tree(exp_node *nod);
 
     interval eval_tree_in (exp_node * nod);
-
-    interval eval_tree_complex_interval(exp_node *nod);
 
     /// Backward (projection) phase of the HC4 filter: narrows the domains
     /// towards consistency with 'intervalo'. Returns false when a domain
@@ -167,8 +168,6 @@ private :
     //do not set them, and propagate() reads both.
     double comparisonValue = 0.0;
     com comparacion = GREATER_EQUAL;
-
-    double w = 0.0;
 };
 
 //The parser used to carry two hand-written singly-linked stacks, nodeStack

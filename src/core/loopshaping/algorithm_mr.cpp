@@ -43,26 +43,12 @@ namespace {
 //article formulates. It is a modelling decision for the thesis, not a repair
 //of this code, so this stays as the paper has it, with the gap written down.
 
-//Passes of the HC4 fixpoint loop per box (a bound protects against
-//oscillating contractions; convergence is typically immediate).
-
-std::string number(double value)
-{
-    //Through the shared primitive: it round-trips, so the lexer parses back
-    //exactly this double, and it is far shorter than the 'g',17 this used
-    //to ask for - these strings are built by the thousand.
-    return (qftbx::text::number(value));
-}
+//The shared primitive: it round-trips, so the lexer parses back exactly
+//this double, and it is far shorter than the 'g',17 this used to ask for -
+//these strings are built by the thousand.
+using qftbx::text::number;
 
 } // namespace
-
-AlgorithmMr::AlgorithmMr()
-{
-}
-
-AlgorithmMr::~AlgorithmMr()
-{
-}
 
 void AlgorithmMr::setProblem(LtiSystem *plant, LtiSystem *controller, std::vector<double> * omega, const BoundaryData *boundaries,
                                   double epsilon, const qftbx::CloudSet & temp,
@@ -83,7 +69,7 @@ void AlgorithmMr::setProblem(LtiSystem *plant, LtiSystem *controller, std::vecto
 //factor (1 + jw/x) contributes sqrt(1 + w^2/x^2); both contribute
 //atan(w/x) to the phase in radians (the historical builder emitted
 //atan(x/w), the complement of the true phase).
-inline void AlgorithmMr::buildControllerExpressions(){
+void AlgorithmMr::buildControllerExpressions(){
 
     const bool timeConstant =
             controller->type() == LtiSystem::SystemType::TimeConstantGain;
@@ -141,7 +127,7 @@ inline void AlgorithmMr::buildControllerExpressions(){
 //QFTbx quadratics for the remaining specifications), one inequality
 //"expression >= 0" per template representative (pairs for tracking) and
 //design frequency where the specification band applies.
-inline void AlgorithmMr::buildConstraints(){
+void AlgorithmMr::buildConstraints(){
 
     //The constraint set is rebuilt from scratch: the historical version
     //relied on the end-of-run cleanup to empty it, so a second run over
@@ -154,12 +140,14 @@ inline void AlgorithmMr::buildConstraints(){
     //system specifications).
     const qftbx::SpecificationSet specifications = qftbx::toSpecificationSet(*specificationRecords);
 
-    const auto applies = [&](std::int32_t slot, double w) {
-        return specifications.at(static_cast<qftbx::SpecificationType>(slot)).appliesAt(w);
+    using qftbx::SpecificationType;
+
+    const auto applies = [&](SpecificationType slot, double w) {
+        return specifications.at(slot).appliesAt(w);
     };
 
-    const auto boundDb = [&](std::int32_t slot, double w) {
-        return specifications.at(static_cast<qftbx::SpecificationType>(slot)).boundDb(w);
+    const auto boundDb = [&](SpecificationType slot, double w) {
+        return specifications.at(slot).boundDb(w);
     };
 
     const auto addConstraint = [&](const std::string & expression) {
@@ -201,7 +189,7 @@ inline void AlgorithmMr::buildConstraints(){
 
             //Stability margin |T| <= ws (paper eq. (10)); the sensor noise
             //specification shares the same transfer.
-            for (std::int32_t slot : {2, 3}) {
+            for (SpecificationType slot : {SpecificationType::Stability, SpecificationType::SensorNoise}) {
                 if (applies(slot, w)) {
                     const double ws = std::pow(10.0, boundDb(slot, w) / 20.0);
                     addConstraint("((" + g + ")^2)*(" + p2 + ")*(1-" +
@@ -212,31 +200,31 @@ inline void AlgorithmMr::buildConstraints(){
 
             //Output disturbance rejection |1/(1+L)| <= d:
             //|1+L|^2 - 1/d^2 >= 0.
-            if (applies(4, w)) {
-                const double d = std::pow(10.0, boundDb(4, w) / 20.0);
+            if (applies(SpecificationType::OutputDisturbance, w)) {
+                const double d = std::pow(10.0, boundDb(SpecificationType::OutputDisturbance, w) / 20.0);
                 addConstraint("(" + l2 + ")-" + number(1.0 / (d * d)));
             }
 
             //Input disturbance rejection |P/(1+L)| <= d:
             //|1+L|^2 - p^2/d^2 >= 0.
-            if (applies(5, w)) {
-                const double d = std::pow(10.0, boundDb(5, w) / 20.0);
+            if (applies(SpecificationType::InputDisturbance, w)) {
+                const double d = std::pow(10.0, boundDb(SpecificationType::InputDisturbance, w) / 20.0);
                 addConstraint("(" + l2 + ")-(" + p2 + ")*" + number(1.0 / (d * d)));
             }
 
             //Control effort |G/(1+L)| <= d: |1+L|^2 - g^2/d^2 >= 0 (the
             //historical rule dropped the g^2 factor).
-            if (applies(6, w)) {
-                const double d = std::pow(10.0, boundDb(6, w) / 20.0);
+            if (applies(SpecificationType::ControlEffort, w)) {
+                const double d = std::pow(10.0, boundDb(SpecificationType::ControlEffort, w) / 20.0);
                 addConstraint("(" + l2 + ")-((" + g + ")^2)*" + number(1.0 / (d * d)));
             }
         }
 
         //Tracking spread (paper eq. (11)) over ORDERED representative
         //pairs, with delta = |T_U/T_L| at this frequency.
-        if (applies(0, w) && applies(1, w)) {
+        if (applies(SpecificationType::TrackingLower, w) && applies(SpecificationType::TrackingUpper, w)) {
 
-            const double deltaDb = boundDb(1, w) - boundDb(0, w);
+            const double deltaDb = boundDb(SpecificationType::TrackingUpper, w) - boundDb(SpecificationType::TrackingLower, w);
             const double delta2 = std::pow(10.0, deltaDb / 10.0);
             const std::string invDelta2 = number(1.0 / delta2);
 
@@ -326,10 +314,10 @@ bool AlgorithmMr::solve(){
             return true;
         }
 
-        struct BisectionResult retur = bisectWidestParameter(node->system());
+        BisectionResult halves = bisectWidestParameter(node->system());
 
-        classifyAndInsert(std::move(retur.v1));
-        classifyAndInsert(std::move(retur.v2));
+        classifyAndInsert(std::move(halves.v1));
+        classifyAndInsert(std::move(halves.v2));
     }
 }
 
@@ -349,7 +337,7 @@ std::unique_ptr<LtiSystem> AlgorithmMr::controllerStructure(){
 //HC4 filter over the whole constraint set; an emptied domain proves the
 //box infeasible, and non-negative interval evaluations of every
 //constraint prove it feasible.
-inline void AlgorithmMr::classifyAndInsert(std::unique_ptr<LtiSystem> box){
+void AlgorithmMr::classifyAndInsert(std::unique_ptr<LtiSystem> box){
 
     std::map<std::string, cxsc::interval> domains;
     loadDomains(box.get(), domains);
@@ -370,7 +358,7 @@ inline void AlgorithmMr::classifyAndInsert(std::unique_ptr<LtiSystem> box){
 }
 
 
-inline bool AlgorithmMr::narrowToFixpoint(std::map<std::string, cxsc::interval> & domains){
+bool AlgorithmMr::narrowToFixpoint(std::map<std::string, cxsc::interval> & domains){
 
     for (std::int32_t pass = 0; pass < m_settings.algorithms.maxNarrowingPasses; ++pass) {
 
@@ -400,7 +388,7 @@ inline bool AlgorithmMr::narrowToFixpoint(std::map<std::string, cxsc::interval> 
 }
 
 
-inline bool AlgorithmMr::certainlyFeasible(std::map<std::string, cxsc::interval> & domains){
+bool AlgorithmMr::certainlyFeasible(std::map<std::string, cxsc::interval> & domains){
 
     for (const std::unique_ptr<ExpressionTree> & tree : constraints) {
         if (cxsc::_double(Inf(tree->eval(&domains))) < 0.0) {
@@ -412,7 +400,7 @@ inline bool AlgorithmMr::certainlyFeasible(std::map<std::string, cxsc::interval>
 }
 
 
-inline void AlgorithmMr::loadDomains(LtiSystem * box,
+void AlgorithmMr::loadDomains(LtiSystem * box,
                                            std::map<std::string, cxsc::interval> & domains){
 
     domains.clear();
@@ -444,7 +432,7 @@ inline void AlgorithmMr::loadDomains(LtiSystem * box,
 //is four decades tighter than it looks, and the ICSP never comes back.
 //Widths are absolute, as the paper's are: it quotes its answers to four
 //significant figures at eps = 0.001.
-inline bool AlgorithmMr::isParameterBoxSmall(LtiSystem * box) const {
+bool AlgorithmMr::isParameterBoxSmall(LtiSystem * box) const {
 
     const auto small = [&](Parameter & var) {
         return !var.isUncertain() || var.range().width() <= epsilon;
@@ -469,7 +457,7 @@ inline bool AlgorithmMr::isParameterBoxSmall(LtiSystem * box) const {
 //The corner rule of pointFromBox(), as degenerate domains: the same
 //parameter names the constraint expressions are written in, so that the
 //candidate point can be evaluated by the same trees.
-inline void AlgorithmMr::loadPointDomains(LtiSystem * box, bool lowerCorner,
+void AlgorithmMr::loadPointDomains(LtiSystem * box, bool lowerCorner,
                                           std::map<std::string, cxsc::interval> & domains){
 
     domains.clear();
@@ -493,7 +481,7 @@ inline void AlgorithmMr::loadPointDomains(LtiSystem * box, bool lowerCorner,
 }
 
 
-inline std::unique_ptr<LtiSystem> AlgorithmMr::boxFromDomains(LtiSystem * box,
+std::unique_ptr<LtiSystem> AlgorithmMr::boxFromDomains(LtiSystem * box,
                                                      const std::map<std::string, cxsc::interval> & domains){
 
     const auto rebuilt = [&](Parameter & var) -> Parameter {

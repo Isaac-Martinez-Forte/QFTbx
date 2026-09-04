@@ -50,8 +50,8 @@ public:
    /**
     * @brief Builds the plot.
     *
-    * @param plot which plane to draw on: see FC::diagrama - false is
-    * Nichols, true is Nyquist.
+    * @param plot which plane to draw on: false is Nichols, true is
+    * Nyquist.
     */
     void plotDiagram(bool plot);
 

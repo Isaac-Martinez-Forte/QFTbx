@@ -8,14 +8,14 @@ LoopShapingResult::LoopShapingResult(std::unique_ptr<LtiSystem> controller, qftb
 {
 }
 
-LtiSystem * LoopShapingResult::controller(){
+LtiSystem * LoopShapingResult::controller() const{
     return m_controller.get();
 }
 
-qftbx::Range LoopShapingResult::range(){
+qftbx::Range LoopShapingResult::range() const{
     return m_plotRange;
 }
 
-double LoopShapingResult::pointCount(){
+double LoopShapingResult::pointCount() const{
     return m_pointCount;
 }

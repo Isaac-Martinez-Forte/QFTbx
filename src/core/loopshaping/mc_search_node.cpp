@@ -14,7 +14,7 @@ void McSearchNode::setCutsEnabled(bool enabled)
     this->enabled = enabled;
 }
 
-bool McSearchNode::cutsEnabled()
+bool McSearchNode::cutsEnabled() const
 {
     return enabled;
 }
@@ -24,14 +24,14 @@ void McSearchNode::setStage(Stage e)
     value = e;
 }
 
-Stage McSearchNode::stage()
+Stage McSearchNode::stage() const
 {
     return value;
 }
 
-void McSearchNode::markFrequencyFeasible(double pos, double frec)
+void McSearchNode::markFrequencyFeasible(double position, double frequency)
 {
-    m_feasibleFrequencies[pos] = frec;
+    m_feasibleFrequencies[position] = frequency;
 }
 
 bool McSearchNode::isFrequencyFeasible(double key) const

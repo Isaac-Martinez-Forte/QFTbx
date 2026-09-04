@@ -47,11 +47,9 @@
 class AlgorithmNk
 {
 public:
-    AlgorithmNk();
-    ~AlgorithmNk();
 
     void setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> *omega, const BoundaryData * boundaries,
-                   double epsilon, std::int32_t inicializacion);
+                   double epsilon, std::int32_t initialisation);
 
     /**
      * @brief Installs the flag the search reads once per node.
@@ -88,18 +86,18 @@ private:
     //the numeric values are the GUI/orchestrator contract.
     enum StartingPoint {Centre = 0, Extremes = 1};
 
-    inline void check_box_feasibility(std::unique_ptr<LtiSystem> box);
-    inline std::unique_ptr<LtiSystem> quickSolution(std::unique_ptr<LtiSystem> v, double boundMinDb, double w,
+    void check_box_feasibility(std::unique_ptr<LtiSystem> box);
+    std::unique_ptr<LtiSystem> quickSolution(std::unique_ptr<LtiSystem> v, double boundMinDb, double w,
                                      std::complex<double> p0);
 
-    inline void localOptimization(LtiSystem * box);
-    inline double minimalFeasibleGain(const std::vector<double> & zeros, const std::vector<double> & poles,
+    void localOptimization(LtiSystem * box);
+    double minimalFeasibleGain(const std::vector<double> & zeros, const std::vector<double> & poles,
                                      LtiSystem * box, std::int32_t & budget);
-    inline bool pointIsFeasible(const std::vector<double> & zeros, const std::vector<double> & poles,
+    bool pointIsFeasible(const std::vector<double> & zeros, const std::vector<double> & poles,
                                 double gain);
-    inline std::unique_ptr<LtiSystem> pointSystem(const std::vector<double> & zeros, const std::vector<double> & poles,
+    std::unique_ptr<LtiSystem> pointSystem(const std::vector<double> & zeros, const std::vector<double> & poles,
                                    double gain);
-    inline void startingPoint(LtiSystem * box, std::vector<double> & zeros,
+    void startingPoint(LtiSystem * box, std::vector<double> & zeros,
                               std::vector<double> & poles, double & gain);
 
     LtiSystem * plant = nullptr;
@@ -126,12 +124,8 @@ private:
     std::unique_ptr<LtiSystem> bestLocalController;
     std::vector<double> launchGains;
 
-    //Local search configuration from the GUI: coordinate step and
-    //starting-point strategy.
-    StartingPoint ini = Centre;
-
-    bool hasUncertainZeros = false;
-    bool hasUncertainPoles = false;
+    //Starting-point strategy of the local search, from the GUI.
+    StartingPoint m_start = Centre;
 
     /// Not owned. Null means this run cannot be cancelled.
     const qftbx::CancellationToken * m_cancellation = nullptr;
