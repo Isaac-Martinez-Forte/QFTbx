@@ -6,7 +6,6 @@
 #include <cstdint>
 #include "src/core/boundaries/boundary_engine.h"
 
-#include "src/core/math/parser_warmup.h"
 
 #include <iostream>
 
@@ -525,11 +524,6 @@ void BoundaryEngine::computeFrequencies(std::vector<double> *omega, LtiSystem *p
     //build. The caller's frequency vector is no longer touched.
     m_boundaries.assign(static_cast<std::size_t>(omega->size()), {});
     m_traceMetadata.assign(static_cast<std::size_t>(omega->size()), {});
-
-    //Before the threads exist: the loop evaluates the plant, and every
-    //evaluation constructs a muParserX parser whose package singletons are
-    //built lazily and unsynchronised. See warmUpExpressionParser().
-    qftbx::math::warmUpExpressionParser();
 
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for

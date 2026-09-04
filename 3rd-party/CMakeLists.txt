@@ -8,9 +8,7 @@ FetchContent_Declare(pugixml
 )
 FetchContent_MakeAvailable(pugixml)
 
-# muParserX evaluates the free-form transfer-function expressions;
-# QCustomPlot draws the plots of the GUI. Both vendored, built on demand.
-add_subdirectory(muparserx EXCLUDE_FROM_ALL)
+# QCustomPlot draws the plots of the GUI. Vendored, built on demand.
 add_subdirectory(qcustomplot EXCLUDE_FROM_ALL)
 
 # C-XSC: interval arithmetic for loop shaping. Built untouched as an

@@ -1,6 +1,9 @@
 #include <cmath>
 #include "src/gui/common/number_text.h"
 #include "src/gui/specifications/specifications_dialog.h"
+#include "src/gui/common/expression_field.h"
+#include <optional>
+#include <stdexcept>
 
 #include "src/core/common/exception.h"
 #include "src/core/common/text_tokens.h"
@@ -18,9 +21,22 @@
 #include "src/core/system/zero_pole_gain.h"
 #include "src/core/system/time_constant_gain.h"
 
-using namespace mup;
 
 namespace qftbx {
+
+namespace {
+
+//The number of a field, or the invalid_argument the callers below catch
+//when the text is not an expression.
+double requireNumber(const std::optional<double> & parsed)
+{
+    if (!parsed.has_value()) {
+        throw std::invalid_argument("not an expression");
+    }
+    return *parsed;
+}
+
+} // namespace
 
 namespace {
 
@@ -42,8 +58,8 @@ bool bandIsUsable(double start, double end)
 //A bound's magnitude, in linear units by the time it gets here. Same story
 //as the band: Specification::constant refuses a non-finite or non-positive
 //magnitude, but only when the records become specifications, which is when
-//the boundaries are computed. And a NaN gets here easily - muParserX
-//evaluates "0/0" quietly to one.
+//the boundaries are computed. And a NaN gets here easily - "0/0"
+//evaluates quietly to one.
 bool magnitudeIsUsable(double magnitude)
 {
     return std::isfinite(magnitude) && magnitude > 0.0;
@@ -340,13 +356,12 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record, QString nam
     if (ui->startFrequencyEdit->text().isEmpty()){
         record.omegaStart = frequencies->front();
     } else {
-        ParserX p (pckALL_NON_COMPLEX);
-        p.SetExpr(ui->startFrequencyEdit->text().toStdString());
+        const std::optional<double> parsedValue = evaluateNumber(ui->startFrequencyEdit->text());
 
         try {
-            record.omegaStart = p.Eval().GetFloat();
+            record.omegaStart = requireNumber(parsedValue);
             ui->startFrequencyEdit->setStyleSheet("background : white");
-        }catch (ParserError &){
+        }catch (const std::invalid_argument &){
             record.used = false;
             ui->startFrequencyEdit->setStyleSheet("background : red");
             errorMessage(tr("Invalid frequency band."), tr("Specifications input"));
@@ -357,13 +372,12 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record, QString nam
     if (ui->endFrequencyEdit->text().isEmpty()){
         record.omegaEnd = frequencies->back();
     } else {
-        ParserX p (pckALL_NON_COMPLEX);
-        p.SetExpr(ui->endFrequencyEdit->text().toStdString());
+        const std::optional<double> parsedValue = evaluateNumber(ui->endFrequencyEdit->text());
 
         try {
-            record.omegaEnd = p.Eval().GetFloat();
+            record.omegaEnd = requireNumber(parsedValue);
             ui->endFrequencyEdit->setStyleSheet("background : white");
-        }catch (ParserError &){
+        }catch (const std::invalid_argument &){
             record.used = false;
             ui->endFrequencyEdit->setStyleSheet("background : red");
             errorMessage(tr("Invalid frequency band."), tr("Specifications input"));
@@ -384,14 +398,13 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record, QString nam
 
         if (!ui->magnitudeEdit->text().isEmpty()){
 
-            ParserX p (pckALL_NON_COMPLEX);
-            p.SetExpr(ui->magnitudeEdit->text().toStdString());
+            const std::optional<double> parsedValue = evaluateNumber(ui->magnitudeEdit->text());
 
             record.constant = true;
 
             try {
 
-                qreal entered = p.Eval().GetFloat();
+                qreal entered = requireNumber(parsedValue);
 
                 if (ui->decibelsRadio->isChecked()){
                     record.height = qftbx::dbToLinear(entered);
@@ -409,7 +422,7 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record, QString nam
                 }
 
                 ui->magnitudeEdit->setStyleSheet("background : white");
-            }catch (ParserError &){
+            }catch (const std::invalid_argument &){
                 record.used = false;
                 ui->magnitudeEdit->setStyleSheet("background : red");
                 errorMessage(tr("Invalid magnitude value."), tr("Specifications input"));
@@ -458,14 +471,13 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record,
         record.omegaStart = frequencies->front();
         upperRecord.omegaStart = frequencies->front();
     } else {
-        ParserX p (pckALL_NON_COMPLEX);
-        p.SetExpr(ui->startFrequencyEdit->text().toStdString());
+        const std::optional<double> parsedValue = evaluateNumber(ui->startFrequencyEdit->text());
 
         try {
-            record.omegaStart = p.Eval().GetFloat();
+            record.omegaStart = requireNumber(parsedValue);
             upperRecord.omegaStart = record.omegaStart;
             ui->startFrequencyEdit->setStyleSheet("background : white");
-        }catch (ParserError &){
+        }catch (const std::invalid_argument &){
             record.used = false;
             upperRecord.used = false;
             ui->startFrequencyEdit->setStyleSheet("background : red");
@@ -478,14 +490,13 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record,
         record.omegaEnd = frequencies->back();
         upperRecord.omegaEnd = frequencies->back();
     } else {
-        ParserX p (pckALL_NON_COMPLEX);
-        p.SetExpr(ui->endFrequencyEdit->text().toStdString());
+        const std::optional<double> parsedValue = evaluateNumber(ui->endFrequencyEdit->text());
 
         try {
-            record.omegaEnd = p.Eval().GetFloat();
+            record.omegaEnd = requireNumber(parsedValue);
             upperRecord.omegaEnd = record.omegaEnd;
             ui->endFrequencyEdit->setStyleSheet("background : white");
-        }catch (ParserError &){
+        }catch (const std::invalid_argument &){
             record.used = false;
             upperRecord.used = false;
             ui->endFrequencyEdit->setStyleSheet("background : red");
@@ -508,14 +519,13 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record,
 
         if (!ui->lowerMagnitudeEdit->text().isEmpty()){
 
-            ParserX p (pckALL_NON_COMPLEX);
-            p.SetExpr(ui->lowerMagnitudeEdit->text().toStdString());
+            const std::optional<double> parsedValue = evaluateNumber(ui->lowerMagnitudeEdit->text());
 
             record.constant = true;
 
             try {
 
-                qreal entered = p.Eval().GetFloat();
+                qreal entered = requireNumber(parsedValue);
 
                 //The record's height is a LINEAR magnitude: this path used to
                 //have both branches swapped relative to the simple path.
@@ -536,7 +546,7 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record,
                 }
 
                 ui->lowerMagnitudeEdit->setStyleSheet("background : white");
-            }catch (ParserError &){
+            }catch (const std::invalid_argument &){
                 record.used = false;
                 ui->lowerMagnitudeEdit->setStyleSheet("background : red");
                 errorMessage(tr("Invalid magnitude value."), tr("Specifications input"));
@@ -566,14 +576,13 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record,
 
         if (!ui->upperMagnitudeEdit->text().isEmpty()){
 
-            ParserX p (pckALL_NON_COMPLEX);
-            p.SetExpr(ui->upperMagnitudeEdit->text().toStdString());
+            const std::optional<double> parsedValue = evaluateNumber(ui->upperMagnitudeEdit->text());
 
             upperRecord.constant = true;
 
             try {
 
-                qreal entered = p.Eval().GetFloat();
+                qreal entered = requireNumber(parsedValue);
 
                 if (ui->upperDecibelsRadio->isChecked()){
                     upperRecord.height = qftbx::dbToLinear(entered);
@@ -592,7 +601,7 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record,
                 }
 
                 ui->upperMagnitudeEdit->setStyleSheet("background : white");
-            }catch (ParserError &){
+            }catch (const std::invalid_argument &){
                 upperRecord.used = false;
                 ui->upperMagnitudeEdit->setStyleSheet("background : red");
                 errorMessage(tr("Invalid magnitude value."), tr("Specifications input"));

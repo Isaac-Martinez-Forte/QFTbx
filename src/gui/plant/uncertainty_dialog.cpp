@@ -1,4 +1,5 @@
 #include "src/gui/plant/uncertainty_dialog.h"
+#include "src/gui/common/expression_field.h"
 #include "src/gui/common/number_text.h"
 
 #include <optional>
@@ -242,11 +243,18 @@ Range UncertaintyDialog::delay(){
     return Range(parse(ui->delayStart->text()), parse(ui->delayEnd->text()));
 }
 
+//A field's expression as a number; a text that is not an expression is an
+//invalid input like any other, reported through qftbx::InvalidInput so the
+//callers keep one catch.
 qreal UncertaintyDialog::parse(QString text)
 {
-    p.SetExpr(text.toStdString());
+    const std::optional<double> value = evaluateNumber(text);
 
-    return p.Eval().GetFloat();
+    if (!value.has_value()) {
+        throw qftbx::InvalidInput("\"" + text.toStdString() + "\" is not an expression.");
+    }
+
+    return *value;
 }
 
 bool UncertaintyDialog::readRanges(){
@@ -300,22 +308,13 @@ bool UncertaintyDialog::readRanges(){
                         endValue = parse(endEdit->text());
                         nominalValue = parse(nominal->text());
                     } catch (const qftbx::Exception &) {
-                        //A bound or a nominal that is not a finite number:
-                        //muParserX answers "0/0" with a NaN rather than
-                        //complaining, and Parameter refuses it.
+                        //A bound or a nominal that is not an expression or
+                        //not a finite number ("0/0" evaluates to a NaN, and
+                        //Parameter refuses it).
                         startEdit->setStyleSheet("background : red");
                         endEdit->setStyleSheet("background : red");
                         nominal->setStyleSheet("background : red");
                         valid = false;
-                    } catch (mup::ParserError &) {
-                        //Invalid expression: it used to blow the dialog up.
-                        startEdit->setStyleSheet("background : red");
-                        endEdit->setStyleSheet("background : red");
-                        nominal->setStyleSheet("background : red");
-                        valid = false;
-                        startValue = 1;
-                        endValue = 0;
-                        nominalValue = 0;
                     }
 
                     if (valid && (startValue <= nominalValue) && (nominalValue <= endValue)){
@@ -392,11 +391,6 @@ bool UncertaintyDialog::readRanges(){
                         endValue = parse(endEdit->text());
                         nominalValue = parse(nominal->text());
                     } catch (const qftbx::Exception &) {
-                        startEdit->setStyleSheet("background : red");
-                        endEdit->setStyleSheet("background : red");
-                        nominal->setStyleSheet("background : red");
-                        valid = false;
-                    } catch (mup::ParserError &) {
                         startEdit->setStyleSheet("background : red");
                         endEdit->setStyleSheet("background : red");
                         nominal->setStyleSheet("background : red");

@@ -13,7 +13,7 @@
 
 #include "src/core/common/exception.h"
 #include "src/core/loopshaping/ordered_list.h"
-#include "src/core/loopshaping/expression_tree.h"
+#include "src/core/math/expression_tree.h"
 
 #include <interval.hpp>
 

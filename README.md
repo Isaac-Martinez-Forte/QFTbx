@@ -41,8 +41,7 @@ Bundled or fetched automatically (nothing to install by hand)
 - C-XSC, the interval arithmetic library: vendored in `3rd-party/cxsc` and
   built as an isolated ExternalProject. It is the numerical foundation of
   the loop-shaping algorithms.
-- muParserX (expression evaluation) and QCustomPlot (plots): vendored in
-  `3rd-party/`.
+- QCustomPlot (plots): vendored in `3rd-party/`.
 - pugixml (project files): fetched with FetchContent at configure time,
   so the first configuration needs network access.
 

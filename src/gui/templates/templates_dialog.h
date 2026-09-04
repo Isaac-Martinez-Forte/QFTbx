@@ -26,7 +26,6 @@
 #include "src/core/system/parameter.h"
 #include "src/core/math/sequence_vectors.h"
 
-#include "mpParser.h"
 
 
 namespace Ui {
@@ -157,7 +156,6 @@ private:
 
     bool nicholsDiagram  = true;
 
-    std::unique_ptr<mup::ParserX> parser;
 
 
     std::vector<double> epsilonValues;

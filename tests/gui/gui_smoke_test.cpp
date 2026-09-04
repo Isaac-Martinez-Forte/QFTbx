@@ -186,7 +186,7 @@ TEST_F(GuiSmoke, PlantDialogBuildsAZeroPoleGainPlant)
 TEST_F(GuiSmoke, PlantDialogRejectsAnInvalidExpression)
 {
     //A malformed coefficient must be reported, not crash the application
-    //(muParserX throws and the dialog used to let it through).
+    //(the expression parser throws and the dialog used to let it through).
     PlantDialog dialog;
 
     type(&dialog, "nameEdit", "broken");
@@ -228,16 +228,16 @@ TEST_F(GuiSmoke, PlantDialogRejectsAnInvalidCoefficient)
 
 TEST_F(GuiSmoke, PlantDialogRejectsAReservedParameterName)
 {
-    //"k" is the obvious name for a gain, and muParserX owns it as the unit
-    //multiplier 1e3. Naming a parameter after anything the parser defines
-    //used to pass the dialog - only FUNCTION names were checked - and fail
-    //much later as a generic evaluation error, or worse be read as 1e3.
+    //"pi" is a constant of the expression grammar: a parameter under that
+    //name would be read as the constant, never as the parameter. Naming a
+    //parameter after anything the grammar defines used to pass the dialog -
+    //only FUNCTION names were checked - and fail much later.
     PlantDialog dialog;
 
     type(&dialog, "nameEdit", "reserved");
     check(&dialog, "zpkRadio");
     type(&dialog, "zpkNumerator", "1");
-    type(&dialog, "zpkDenominator", "k");
+    type(&dialog, "zpkDenominator", "pi");
     type(&dialog, "zpkGain", "1");
     type(&dialog, "zpkDelay", "0");
 
@@ -245,7 +245,7 @@ TEST_F(GuiSmoke, PlantDialogRejectsAReservedParameterName)
 
     EXPECT_FALSE(dialog.wasAccepted()) << "a reserved parameter name was accepted";
     ASSERT_FALSE(m_reported.empty()) << "the rejection must be reported";
-    EXPECT_TRUE(m_reported.join(QChar(' ')).contains("k"))
+    EXPECT_TRUE(m_reported.join(QChar(' ')).contains("pi"))
         << "the message must name the offending identifier: "
         << m_reported.join(QChar(' ')).toStdString();
 

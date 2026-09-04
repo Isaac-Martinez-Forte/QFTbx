@@ -21,8 +21,8 @@ int main(int argc, char ** argv)
 
     //The same reset the application does in main.cpp, and for the same
     //reason: QApplication adopts the system locale, and with a decimal-comma
-    //one (es_ES, de_DE...) muParserX stops accepting literals like "0.01",
-    //so no expression with decimals evaluates. Without this the suite runs
+    //one (es_ES, de_DE...) the number readers stop accepting literals like
+    //"0.01", so no expression with decimals evaluates. Without this the suite runs
     //under a different numeric locale than the program it is testing, which
     //both invents failures and hides real ones.
     std::setlocale(LC_NUMERIC, "C");

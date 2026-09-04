@@ -16,7 +16,6 @@
 
 #include "src/core/math/sequence_vectors.h"
 #include "src/core/specifications/specification_record.h"
-#include "mpParser.h"
 #include "src/core/frequencies/omega.h"
 
 namespace Ui {

@@ -3,7 +3,7 @@
 #include <cstdint>
 #include "src/app/project_controller.h"
 
-#include "src/core/math/expression_cache.h"
+#include "src/core/math/expression_tree.h"
 #include "src/persistence/project_reader.h"
 #include "src/persistence/project_writer.h"
 
@@ -29,16 +29,12 @@ qftbx::SpecificationRecords * ProjectController::specifications(){
 namespace {
 
 //Every parameter name of a system that is about to be published has to be a
-//name muParserX can bind, because that is what the sweeps and the search do
-//with it. Six single letters are reserved as SI unit postfix operators -
-//n, u, m, k, M, G - and "k" is the canonical name for a gain, so this is not
-//a theoretical collision: naming a controller gain "k" used to throw a
-//mup::ParserError from deep inside the search, which is neither a
-//qftbx::Exception nor a std::exception, so it escaped the window's catch and
-//took the application down.
-//Checked HERE, once per publish, and not in Parameter's constructor: the
-//search deep-copies parameters for every box it bisects, and that is not a
-//place to ask a parser anything.
+//name an expression can bind, because that is what the sweeps and the
+//search do with it: an identifier that is not a function of the grammar,
+//not a constant and not the Laplace variable. Checked HERE, once per
+//publish, and not in Parameter's constructor: the search deep-copies
+//parameters for every box it bisects, and that is not a place to ask a
+//parser anything.
 void requireUsableNames(LtiSystem & system)
 {
     const auto check = [](const Parameter & parameter) {
@@ -47,12 +43,11 @@ void requireUsableNames(LtiSystem & system)
             //often the number itself.
             return;
         }
-        if (!qftbx::math::isUsableVariableName(parameter.name())) {
+        if (!ExpressionTree::isUsableVariableName(parameter.name())) {
             throw qftbx::InvalidInput(
                 "\"" + parameter.name() + "\" cannot be used as a parameter "
-                "name: the expression parser reserves it. The single letters "
-                "n, u, m, k, M and G are its unit multipliers, so a gain has "
-                "to be called something else - kv, for instance.");
+                "name: it is a function, a constant (pi, e) or the Laplace "
+                "variable s of the expression grammar, or not an identifier.");
         }
     };
 

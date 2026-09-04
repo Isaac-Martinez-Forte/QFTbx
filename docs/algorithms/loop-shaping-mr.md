@@ -71,18 +71,19 @@ margin.
 
 ## The expression tree
 
-The HC4 filter works on a small expression language of its own: constants, π and
-e, variables, the four operations and the power, with the usual elementary
-functions, compared with one of ≥, >, ≤, <, =. The parser and the propagation
-live in `expression_tree.h`; the propagation honours the comparison by
-intersecting the root with its allowed interval before the backward pass. The
-tree is the historical work of Roberto C. Cruz Rodríguez, reviewed and completed
-during the port.
+The HC4 filter works on the toolbox's expression tree: constants, π and e,
+variables, the four operations and the power, with the usual elementary
+functions, compared with one of ≥, >, ≤, <, =. The constraints are built in
+memory with the `Expression` builder, not written as text and parsed; the
+propagation honours the comparison by intersecting the root with its allowed
+interval before the backward pass. The tree, which also evaluates the free-form
+plants and every number a dialog reads, is the historical work of Roberto C.
+Cruz Rodríguez, reviewed and completed during the port.
 
 ## Where it lives
 
 `src/core/loopshaping/algorithm_mr.h`, `.cpp`;
-`src/core/loopshaping/expression_tree.h`, `.cpp`.
+`src/core/math/expression_tree.h`, `.cpp`.
 
 Tests: `tests/backend/mr_article_validation_test.cpp`,
 `tests/backend/loopshaping_structures_test.cpp` (the expression tree).

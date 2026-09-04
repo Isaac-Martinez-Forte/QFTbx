@@ -15,9 +15,10 @@ int main(int argc, char *argv[])
     qftbx::Application a(argc, argv);
 
     //QApplication adopts the system locale (LC_ALL); under a decimal-comma
-    //locale (es_ES, de_DE...) muParserX stops accepting literals such as
-    //"0.1" and no expression with decimals evaluates. The numeric side of
-    //the program always works with the decimal point.
+    //locale (es_ES, de_DE...) the number readers of the C library stop
+    //accepting literals such as "0.1" and no expression with decimals
+    //evaluates. The numeric side of the program always works with the
+    //decimal point.
     std::setlocale(LC_NUMERIC, "C");
 
     a.setWindowIcon(QIcon(":/icons/qftbx_256.png"));

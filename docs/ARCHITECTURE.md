@@ -18,8 +18,8 @@ stage has a dialog in the GUI and an engine in the model layer.
 ```
 
 1. **Plant**: transfer function with parametric uncertainty. Several input formats
-   (gain/pole-zero forms, polynomial coefficients, free-format expression evaluated
-   with muParserX).
+   (gain/pole-zero forms, polynomial coefficients, free-format expression in `s`
+   evaluated by the toolbox's own expression tree).
 2. **Design frequencies (ω)**: linear/log spacing or manual values.
 3. **Templates**: for each ω, the set of possible plant responses in the Nichols plane
    (brute-force sweep over the uncertain parameters) reduced to its contour with the
@@ -39,7 +39,7 @@ in [docs/algorithms](algorithms/README.md).
 | Directory | Contents |
 |---|---|
 | `src/core/common/` | `qftbx::Exception` and its subclasses; number and token text helpers |
-| `src/core/math/` | Numeric helpers (`linspace`/`logspace`), ranges and points, expression cache, constants |
+| `src/core/math/` | Numeric helpers (`linspace`/`logspace`), ranges and points, constants, and the expression tree: the one expression engine of the toolbox (see below) |
 | `src/core/system/` | Plant/controller representation: `LtiSystem` hierarchy, transfer functions, parameters |
 | `src/core/frequencies/` | The design frequency set (`Omega`) |
 | `src/core/specifications/` | Validated specification set (`qftbx::Specification`) |
@@ -60,9 +60,25 @@ Build targets: `qftbx_core` (the algorithms and the model), `qftbx_persistence`,
 files to the target it belongs to (`cmake/QftbxFunctions.cmake`), so no file list is
 kept by hand.
 
+## Expressions
+
+Every expression the toolbox reads goes through `ExpressionTree`
+(`src/core/math/expression_tree.h`): the free-form plants a user writes in `s`,
+the reparametrisation of a parameter (`a*10`), the numbers typed into dialog
+fields, and the constraints of algorithm MR, which are built in memory with the
+`Expression` builder instead of formatted and parsed. The grammar: identifiers
+(`[A-Za-z][A-Za-z0-9_]*`), numbers with a decimal point and scientific notation,
+`+ - * / ^` with the power binding to the right, a unary minus, parentheses,
+blanks, the constants `pi` and `e` in either case, and the functions `sin`,
+`cos`, `tan`, `asin`, `acos`, `atan`, `sinh`, `cosh`, `tanh`, `exp`, `sqrt`,
+`abs`, `ln`, `log`, `log10`, `lg`, `log2`. A tree evaluates over reals, over
+complex numbers (a plant at `s = jω`) and over C-XSC intervals, and propagates
+constraints with the HC4 filter. The names a parameter cannot take are the
+functions, the constants and the Laplace variable `s`; `k` is a name like any
+other.
+
 ## Third-party libraries (vendored in `3rd-party/`)
 
-- **muParserX** — evaluation of free-format transfer-function expressions.
 - **QCustomPlot** — plotting inside the Qt GUI.
 - **C-XSC** — validated interval arithmetic, used by loop shaping.
 
@@ -74,8 +90,7 @@ exception escaping a Qt slot propagates into the event loop and terminates the
 process, so slots reaching backend code catch at their boundary — and, since one
 forgotten slot is enough to lose the application, `qftbx::Application` overrides
 `QApplication::notify()` as a last-resort net that turns anything that got through
-into an error dialog. `mup::ParserError` is caught explicitly there because it does
-not derive from `std::exception`.
+into an error dialog.
 
 ## Persistence
 

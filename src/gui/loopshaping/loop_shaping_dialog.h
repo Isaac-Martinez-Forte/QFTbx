@@ -10,7 +10,6 @@
 
 #include "src/core/math/range.h"
 
-#include "mpParser.h"
 #include "src/core/math/sequence_vectors.h"
 
 namespace Ui {

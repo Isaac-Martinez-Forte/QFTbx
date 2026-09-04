@@ -1,4 +1,5 @@
 #include "src/gui/loopshaping/loop_shaping_dialog.h"
+#include "src/gui/common/expression_field.h"
 #include "src/gui/common/number_text.h"
 #include "ui_loop_shaping_dialog.h"
 
@@ -11,7 +12,6 @@
 #include <cmath>
 #include <limits>
 
-using namespace mup;
 
 namespace qftbx {
 
@@ -27,18 +27,12 @@ namespace {
 //in both modes (the logarithmic one takes their logarithms itself), so
 //they only have to be finite here and positive when the sweep is
 //logarithmic, which the caller checks.
-bool readField(ParserX & parser, QLineEdit * field, const QString & complaint,
+bool readField(QLineEdit * field, const QString & complaint,
                double lowest, double highest, double & value)
 {
-    double parsed = std::numeric_limits<double>::quiet_NaN();
-
-    parser.SetExpr(field->text().toStdString());
-    try {
-        parsed = parser.Eval().GetFloat();
-    } catch (const ParserError &) {
-        //Left as a NaN: an expression that does not parse and one that
-        //evaluates to nonsense are the same answer to the caller.
-    }
+    //An expression that does not parse and one that evaluates to nonsense
+    //are the same answer to the caller: a NaN fails the range test below.
+    const double parsed = evaluateNumber(field->text()).value_or(std::numeric_limits<double>::quiet_NaN());
 
     if (!std::isfinite(parsed) || parsed < lowest || parsed > highest) {
         field->setStyleSheet("background : red");
@@ -104,28 +98,26 @@ void LoopShapingDialog::on_cancelButton_clicked()
 
 void LoopShapingDialog::on_okButton_clicked()
 {
-    ParserX p (mup::pckALL_NON_COMPLEX);
-
-    if (!readField(p, ui->epsilonEdit,
+    if (!readField(ui->epsilonEdit,
                    tr("The epsilon must be a positive real number."),
                    std::numeric_limits<double>::denorm_min(), m_maxMagnitude,
                    epsilonEdit)){
         return;
     }
 
-    if (!readField(p, ui->startEdit,
+    if (!readField(ui->startEdit,
                    tr("The start frequency must be a real number."),
                    -m_maxMagnitude, m_maxMagnitude, plotRange.min)){
         return;
     }
 
-    if (!readField(p, ui->endEdit,
+    if (!readField(ui->endEdit,
                    tr("The end frequency must be a real number."),
                    -m_maxMagnitude, m_maxMagnitude, plotRange.max)){
         return;
     }
 
-    if (!readField(p, ui->pointCountEdit,
+    if (!readField(ui->pointCountEdit,
                    tr("The point count must be a whole number of at least 1."),
                    1.0, m_maxPointCount, pointCountEdit)){
         return;

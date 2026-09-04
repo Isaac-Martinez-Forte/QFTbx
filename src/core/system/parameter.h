@@ -1,6 +1,7 @@
 #ifndef QFTBX_PARAMETER_H
 #define QFTBX_PARAMETER_H
 
+#include <memory>
 #include <string>
 
 #include "src/core/math/range.h"
@@ -12,7 +13,7 @@ namespace qftbx {
  * parameter with a name, a nominal value and a range [min, max].
  *
  * An optional expression reparametrises the value: nominal() and range()
- * evaluate it with muParserX substituting the raw value (rawNominal() and
+ * evaluate it with the raw value bound to the name (rawNominal() and
  * rawRange() return the untransformed ones). Ranges given inverted are
  * normalised on construction.
  */
@@ -78,6 +79,9 @@ private:
     /// The reparametrisation applied to one value, parsed once per thread.
     double realValueOf(double value) const;
 
+    /// Parses the reparametrisation when there is one to evaluate.
+    void compileExpression();
+
     /// Whether the expression maps the parameter to itself, in which case
     /// the raw values ARE the real ones and the parser has nothing to add.
     bool identityExpression() const;
@@ -87,14 +91,19 @@ private:
     //it (the copy constructor does) is undefined behaviour. It stayed
     //harmless only because range() and nominal() return early on
     //!m_uncertain, so a single setUncertain(true) - or swapping those two
-    //checks - would have turned a stack byte into a muParserX evaluation of
-    //an undefined variable.
+    //checks - would have turned a stack byte into the evaluation of an
+    //undefined variable.
     std::string m_name;
     Range m_range;
     double m_nominal = 0.0;
     bool m_uncertain = false;
     std::string m_expression;
     bool m_hasExpression = false;
+
+    //The reparametrisation parsed once, bound to the parameter's own name;
+    //shared by the copies, which the searches make by the million. Null
+    //when the raw values are the real ones.
+    std::shared_ptr<const class ExpressionTree> m_compiled;
 
 };
 

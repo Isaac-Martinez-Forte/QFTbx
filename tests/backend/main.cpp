@@ -11,8 +11,8 @@ int main(int argc, char **argv)
     QCoreApplication app(argc, argv);
 
     // Same as the application's main(): QCoreApplication adopts the system
-    // locale, and with a decimal-comma locale (es_ES...) muParserX rejects
-    // literals like "0.1". Numeric code always works with the C locale.
+    // locale, and with a decimal-comma locale (es_ES...) the number readers
+    // reject literals like "0.1". Numeric code always works with the C locale.
     std::setlocale(LC_NUMERIC, "C");
 
     ::testing::InitGoogleTest(&argc, argv);

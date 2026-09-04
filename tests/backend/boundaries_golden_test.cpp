@@ -279,18 +279,17 @@ TEST(BoundaryCriticalPoint, UndampedResonanceIsRejectedWithAdvice)
     // value set blows up at every frequency of that band - no frequency grid
     // can dodge it, which is why the literature damps the poles instead.
     //
-    // The magnitude comes out astronomical rather than infinite (muParserX
-    // evaluates (1i)^2 as -1 + 1.2e-16i, so the resonant denominator never
-    // hits an exact zero), and no epsilon walks a cloud of that span: the
-    // engine reports the frequency, the largest magnitude found and the
-    // likely cause instead of the bare "could not compute" it used to give.
+    // The resonant denominator vanishes exactly at the swept frequency ((j w)^2
+    // is exactly -w^2), so the plant is infinite there and the templates
+    // report the frequency and the likely cause instead of the bare "could
+    // not compute" they used to give.
     ProjectController controller;
     controller.load(
         std::string(QFTBX_TEST_DATA_DIR "/acc90.qft"));
 
     // Undamped version of the fixture's plant, swept exactly at a resonance.
     // The parameter is named 'ev' as in the fixture: 'e' is Euler's number
-    // in muParserX.
+    // in the expression grammar.
     std::vector<Parameter> numerator;
     numerator.push_back(Parameter(std::string("ev"), Range(0.5, 2.0), 1.0,
                                     std::string("ev")));
@@ -316,10 +315,9 @@ TEST(BoundaryCriticalPoint, UndampedResonanceIsRejectedWithAdvice)
     try {
         controller.computeTemplates(epsilon, grids, false);
         FAIL() << "an undamped resonance must be reported, not swept under";
-    } catch (const qftbx::ComputationError & error) {
+    } catch (const qftbx::Exception & error) {
         const std::string message = std::string(error.what());
         EXPECT_TRUE(message.find("1 rad/s") != std::string::npos) << error.what();
-        EXPECT_TRUE(message.find("largest |P|") != std::string::npos) << error.what();
         EXPECT_TRUE(message.find("resonance") != std::string::npos) << error.what();
     }
 

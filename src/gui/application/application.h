@@ -19,8 +19,8 @@ namespace qftbx {
  * field marked; this is the net underneath, so that the next one to be
  * missed is a message rather than a crash.
  *
- * mup::ParserError is caught too, and by name: muParserX's error type does
- * NOT derive from std::exception, so a catch of that would let it through.
+ * Any other std::exception is caught after them, so a failure that can
+ * still say what happened does.
  */
 class Application : public QApplication
 {

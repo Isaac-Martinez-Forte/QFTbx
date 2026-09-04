@@ -4,14 +4,13 @@
 #include <vector>
 #include <cstdint>
 #include "src/core/templates/template_engine.h"
-#include "mpParser.h"
 
 
 #include "src/core/common/text_tokens.h"
 #include "src/core/common/exception.h"
-#include "src/core/math/parser_warmup.h"
 
 #include <algorithm>
+#include <stdexcept>
 #include <cmath>
 #include <limits>
 #include <iostream>
@@ -183,24 +182,17 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
     std::vector<char> nonFiniteFrequencies (frequencyCount, 0);
     std::vector <std::string> parserErrors (frequencyCount);
 
-    //Before the threads exist: muParserX's package singletons are built
-    //lazily and unsynchronised, and the loop below constructs one parser per
-    //frequency. See warmUpExpressionParser().
-    qftbx::math::warmUpExpressionParser();
-
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
 #endif
     for (std::size_t u = 0; u < frequencyCount; u++){
 
-        //No parser and no expression TEXT any more: the transfer function is
-        //computed directly in complex arithmetic by valueAt(). The text route
-        //cost a parse per frequency, constructed a parser inside this loop -
-        //racing on muParserX's unsynchronised package singletons - and, being
-        //written with qftbx::text::number(), evaluated the plant with its
-        //constant coefficients AND ITS FREQUENCY rounded to six significant
-        //digits. The swept coefficients were exact only because they were
-        //bound as variables.
+        //No expression TEXT any more: the transfer function is computed
+        //directly in complex arithmetic by valueAt(), or by the free-form
+        //plant's own parsed tree. The text route cost a parse per frequency
+        //and, being written with qftbx::text::number(), evaluated the plant
+        //with its constant coefficients AND ITS FREQUENCY rounded to six
+        //significant digits.
         const double w = omega->at(u);
 
         std::vector<double> numeratorValues = numeratorNominal;
@@ -247,15 +239,15 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
             const double delayValue = delaySlot >= 0 ? digit[static_cast<std::size_t>(delaySlot)] : delayNominal;
 
             //A free-form plant still evaluates an expression, so it can still
-            //reject one (a name colliding with a muParserX constant, a
-            //malformed plant). Nothing may be thrown from inside the OpenMP
-            //region - that TERMINATES the process - so the message is kept
-            //and rethrown after the loop.
+            //reject one (a value the expression cannot take, an inconsistent
+            //request). Nothing may be thrown from inside the OpenMP region -
+            //that TERMINATES the process - so the message is kept and
+            //rethrown after the loop.
             try {
                 value = plant->valueAt(w, numeratorValues, denominatorValues,
                                        gainValue, delayValue);
-            } catch (mup::ParserError & error) {
-                parserErrors[u] = (error.GetMsg());
+            } catch (const std::invalid_argument & error) {
+                parserErrors[u] = std::string(error.what());
                 break;
             } catch (const qftbx::Exception & error) {
                 parserErrors[u] = std::string(error.what());
