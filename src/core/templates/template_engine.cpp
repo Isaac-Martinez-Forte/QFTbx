@@ -12,6 +12,8 @@
 #include "src/core/math/parser_warmup.h"
 
 #include <algorithm>
+#include <cmath>
+#include <limits>
 #include <iostream>
 
 using namespace std;
@@ -465,6 +467,146 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
 }
 
 
+//The points of a cloud bucketed on a square grid, so that the candidates
+//within epsilon of a point are read from the cells around it instead of by
+//scanning the whole cloud at every step of the walk: the walk visits up to
+//three times the point count, and each visit scanned every point, which
+//made the hull quadratic in the cloud size. The walk still applies its own
+//distance test to every candidate, so the grid only has to hand over a
+//superset of the points within epsilon.
+//
+//The cells measure a quarter of epsilon, and five cells on each side of the
+//centre are gathered: a point within epsilon lies at most four cells away
+//in exact arithmetic, and the fifth absorbs the rounding of the cell
+//coordinates. A cloud the grid cannot index (a non-finite point, a
+//non-positive epsilon, an extent of more than a billion cells) answers every
+//query with the whole cloud, which is the scan this replaces.
+class TemplateEngine::NeighbourGrid
+{
+public:
+    NeighbourGrid(const ComplexCloud & points, double epsilon)
+        : m_pointCount(points.size())
+    {
+        double minRe = numeric_limits<double>::infinity();
+        double minIm = numeric_limits<double>::infinity();
+        double maxRe = -numeric_limits<double>::infinity();
+        double maxIm = -numeric_limits<double>::infinity();
+
+        for (const complex<double> & point : points){
+            minRe = std::min(minRe, point.real());
+            maxRe = std::max(maxRe, point.real());
+            minIm = std::min(minIm, point.imag());
+            maxIm = std::max(maxIm, point.imag());
+        }
+
+        const double side = epsilon / kCellsPerEpsilon;
+        const bool finite = points.empty() ||
+                (std::isfinite(minRe) && std::isfinite(maxRe) && std::isfinite(minIm) && std::isfinite(maxIm));
+        const bool indexable = finite && side > 0 && std::isfinite(side) &&
+                (maxRe - minRe) / side < kMaxCells && (maxIm - minIm) / side < kMaxCells;
+
+        if (!indexable){
+            return;
+        }
+
+        m_indexed = true;
+        m_side = side;
+        m_minRe = minRe;
+        m_minIm = minIm;
+
+        m_cells.reserve(points.size());
+        for (std::size_t i = 0; i < points.size(); ++i){
+            m_cells.push_back({cellOf(points[i]), static_cast<std::int32_t>(i)});
+        }
+
+        //By cell, and by index within a cell: the cells of one column are
+        //contiguous, so a column is one binary search and a walk.
+        std::sort(m_cells.begin(), m_cells.end());
+    }
+
+    //The indices of every point that may lie within epsilon of 'centre'.
+    void candidates(const complex<double> & centre, std::vector<std::int32_t> & out) const
+    {
+        out.clear();
+
+        if (!m_indexed){
+            for (std::size_t i = 0; i < m_pointCount; ++i){
+                out.push_back(static_cast<std::int32_t>(i));
+            }
+            return;
+        }
+
+        const Cell cell = cellOf(centre);
+
+        for (std::int64_t x = cell.x - kReach; x <= cell.x + kReach; ++x){
+            const Cell first{x, cell.y - kReach};
+            const Cell last{x, cell.y + kReach};
+
+            auto entry = std::lower_bound(m_cells.begin(), m_cells.end(), Entry{first, 0});
+
+            for (; entry != m_cells.end() && !(last < entry->cell); ++entry){
+                out.push_back(entry->index);
+            }
+        }
+    }
+
+private:
+    struct Cell {
+        std::int64_t x;
+        std::int64_t y;
+
+        bool operator<(const Cell & other) const { return x != other.x ? x < other.x : y < other.y; }
+    };
+
+    struct Entry {
+        Cell cell;
+        std::int32_t index;
+
+        bool operator<(const Entry & other) const
+        {
+            if (cell < other.cell) return true;
+            if (other.cell < cell) return false;
+            return index < other.index;
+        }
+    };
+
+    static constexpr double kCellsPerEpsilon = 4.0;
+    static constexpr std::int64_t kReach = 5;
+    static constexpr double kMaxCells = 1e9;
+
+    Cell cellOf(const complex<double> & point) const
+    {
+        return {static_cast<std::int64_t>(std::floor((point.real() - m_minRe) / m_side)),
+                static_cast<std::int64_t>(std::floor((point.imag() - m_minIm) / m_side))};
+    }
+
+    std::size_t m_pointCount = 0;
+    bool m_indexed = false;
+    double m_side = 0.0;
+    double m_minRe = 0.0;
+    double m_minIm = 0.0;
+    std::vector<Entry> m_cells;
+};
+
+namespace {
+
+//Whether a candidate can pass the walk's distance test |candidate - centre|
+//<= epsilon at all: the squared distance compared against epsilon squared
+//with a margin wider than the rounding of either side. The candidates the
+//grid hands over fill a square around the centre, and this drops the ones
+//outside the disc before the exact distance is computed for the rest.
+inline bool withinReach(const complex<double> & candidate, const complex<double> & centre,
+                        double epsilon)
+{
+    const double dx = candidate.real() - centre.real();
+    const double dy = candidate.imag() - centre.imag();
+
+    return dx * dx + dy * dy <= epsilon * epsilon * (1.0 + 1e-9);
+}
+
+} // namespace
+
+
 //Faithful port of EPSHULL.M (epsh2, Montoya 1998; the algorithm defined in
 //Nordin 1993). Deliberate divergence: with no initial candidate it returns
 //NULL instead of an empty contour (the caller treats it as an error).
@@ -502,7 +644,9 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsil
         }
     }
 
-    std::int32_t b2 = findSecond(b1, cv, epsilon);
+    const NeighbourGrid neighbours(cv, epsilon);
+
+    std::int32_t b2 = findSecond(b1, cv, epsilon, neighbours);
 
     if (b2 < 0)
         return {};
@@ -514,7 +658,7 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsil
     std::int32_t previousPoint = b1;
     std::int32_t currentPoint = b2;
 
-    std::int32_t nextPoint = findNext(b1, b2, cv, epsilon);
+    std::int32_t nextPoint = findNext(b1, b2, cv, epsilon, neighbours);
     if (nextPoint < 0)
         return {};
 
@@ -546,7 +690,7 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsil
         previousPoint = currentPoint;
         currentPoint = nextPoint;
 
-        nextPoint = findNext(previousPoint, currentPoint, cv, epsilon);
+        nextPoint = findNext(previousPoint, currentPoint, cv, epsilon, neighbours);
 
         if (nextPoint < 0){
             return {};
@@ -578,7 +722,9 @@ ComplexCloud TemplateEngine::epsilonHullRelaxed(const ComplexCloud & temp, doubl
         }
     }
 
-    std::int32_t b2 = findSecond(b1, temp, epsilon);
+    const NeighbourGrid neighbours(temp, epsilon);
+
+    std::int32_t b2 = findSecond(b1, temp, epsilon, neighbours);
 
     if (b2 < 0)
         return {};
@@ -590,7 +736,7 @@ ComplexCloud TemplateEngine::epsilonHullRelaxed(const ComplexCloud & temp, doubl
     std::int32_t previousPoint = b1;
     std::int32_t currentPoint = b2;
 
-    std::int32_t nextPoint = findNext(b1, b2, temp, epsilon, true);
+    std::int32_t nextPoint = findNext(b1, b2, temp, epsilon, neighbours, true);
     if (nextPoint < 0)
         return {};
 
@@ -607,7 +753,7 @@ ComplexCloud TemplateEngine::epsilonHullRelaxed(const ComplexCloud & temp, doubl
         previousPoint = currentPoint;
         currentPoint = nextPoint;
 
-        nextPoint = findNext(previousPoint, currentPoint, temp, epsilon, true);
+        nextPoint = findNext(previousPoint, currentPoint, temp, epsilon, neighbours, true);
 
         if (nextPoint < 0){
             return {};
@@ -632,7 +778,8 @@ ComplexCloud TemplateEngine::epsilonHullRelaxed(const ComplexCloud & temp, doubl
     return result;
 }
 
-std::int32_t TemplateEngine::findSecond(std::int32_t b1, const ComplexCloud & cv, double epsilon){
+std::int32_t TemplateEngine::findSecond(std::int32_t b1, const ComplexCloud & cv, double epsilon,
+                                        const NeighbourGrid & neighbours){
 
     double dist = 0;
     complex <double> firstPoint = cv.at(static_cast<std::size_t>(b1));
@@ -645,9 +792,17 @@ std::int32_t TemplateEngine::findSecond(std::int32_t b1, const ComplexCloud & cv
 
     double phase = 0;
 
-    for (std::size_t i = 0; i < cv.size(); ++i){    //every point of the cloud.
+    std::vector<std::int32_t> nearby;
+    neighbours.candidates(firstPoint, nearby);
 
-        candidate = cv.at(i);
+    for (const std::int32_t i : nearby){    //every point of the cloud within reach.
+
+        candidate = cv[static_cast<std::size_t>(i)];
+
+        if (!withinReach(candidate, firstPoint, epsilon)){
+            continue;
+        }
+
         dist = abs(firstPoint - candidate); //distance to the starting point.
 
         if (dist > 0 && dist <= epsilon){    //candidates within epsilon.
@@ -660,12 +815,16 @@ std::int32_t TemplateEngine::findSecond(std::int32_t b1, const ComplexCloud & cv
             //subtract from the phase the arccosine of distance over epsilon.
             phase -= std::acos(dist / epsilon);
 
-            if (phase < fmin){   //keep the minimum phase
+            //Keep the minimum phase; on a tie, the farthest; on a tie of
+            //both, the lowest index. The scan this came from visited the
+            //points in index order and kept the first, which is the same
+            //choice; the grid visits them in cell order.
+            if (phase < fmin){
                 fmin = phase;
                 pmin = i;
                 dmax = dist;
 
-            }else if (phase == fmin && dist > dmax){ //on a tie, keep the farthest.
+            }else if (phase == fmin && (dist > dmax || (dist == dmax && i < pmin))){
                 pmin = i;
                 dmax = dist;
             }
@@ -677,7 +836,7 @@ std::int32_t TemplateEngine::findSecond(std::int32_t b1, const ComplexCloud & cv
 
 std::int32_t TemplateEngine::findNext(std::int32_t previousPoint, std::int32_t currentPoint,
                                   const ComplexCloud & cv, double epsilon,
-                                  bool excludePrevious){
+                                  const NeighbourGrid & neighbours, bool excludePrevious){
 
     complex <double> current = cv.at(static_cast<std::size_t>(currentPoint));
     complex <double> previous = cv.at(static_cast<std::size_t>(previousPoint));
@@ -698,9 +857,19 @@ std::int32_t TemplateEngine::findNext(std::int32_t previousPoint, std::int32_t c
     complex <double> candidate;
     double distance;
 
-    for (std::size_t i = 0; i < cv.size(); ++i){
+    //The scan used to run over the whole cloud; the grid hands over the
+    //points that can be within epsilon.
+    std::vector<std::int32_t> nearby;
+    neighbours.candidates(current, nearby);
 
-        candidate = cv.at(i);
+    for (const std::int32_t i : nearby){
+
+        candidate = cv[static_cast<std::size_t>(i)];
+
+        if (!withinReach(candidate, current, epsilon)){
+            continue;
+        }
+
         distance = abs(candidate - current); //distance to the current point.
 
 
@@ -740,12 +909,17 @@ std::int32_t TemplateEngine::findNext(std::int32_t previousPoint, std::int32_t c
 
             //------------------------------------------------------------
 
-            if (psi < psiMin) {       //keep the minimum psi, and on a tie
-                psiMin = psi;         //the farthest candidate: ties are
-                bestIndex = i;        //possible and the longer step wins.
+            //Keep the minimum psi; on a tie, the farthest candidate (ties
+            //are possible and the longer step wins); on a tie of both, the
+            //lowest index. The scan this came from visited the points in
+            //index order and kept the first, which is the same choice; the
+            //grid visits them in cell order.
+            if (psi < psiMin) {
+                psiMin = psi;
+                bestIndex = i;
                 dmax = distance;
             }else if (psi == psiMin &&
-                      (distance > dmax)){
+                      (distance > dmax || (distance == dmax && i < bestIndex))){
                 bestIndex = i;
                 dmax = distance;
             }

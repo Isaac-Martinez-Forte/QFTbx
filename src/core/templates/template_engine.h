@@ -120,12 +120,15 @@ private:
     //project and its frequencies.
     std::vector <double> m_frequencies;
 
-    std::int32_t findSecond(std::int32_t b1, const ComplexCloud & cv, double epsilon);
+    class NeighbourGrid;
+
+    std::int32_t findSecond(std::int32_t b1, const ComplexCloud & cv, double epsilon,
+                            const NeighbourGrid & neighbours);
 
     /// excludePrevious = true reproduces the relaxed historical variant;
     /// false is the behaviour faithful to EPSHULL.M.
     std::int32_t findNext(std::int32_t previousPoint, std::int32_t currentPoint, const ComplexCloud & cv, double epsilon,
-                           bool excludePrevious = false);
+                          const NeighbourGrid & neighbours, bool excludePrevious = false);
 
     /// Historical PFC walk (divergent from EPSHULL.M): max-imaginary start,
     /// previous point excluded, silent truncation at MAXP, deduplicated
