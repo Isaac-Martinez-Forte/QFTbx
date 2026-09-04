@@ -12,6 +12,8 @@
 // Run under LeakSanitizer these also pin that a throw frees what it had built:
 // nobody owns the clouds and the contours until the computation returns.
 
+#include "src/core/loopshaping/loop_shaping_types.h"
+#include "src/core/specifications/specification_record.h"
 #include <gtest/gtest.h>
 
 #include <string>

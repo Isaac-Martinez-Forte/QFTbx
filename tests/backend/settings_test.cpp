@@ -9,6 +9,7 @@
 // easiest place yet to reintroduce it, because nobody looks at a file that
 // loads without complaining.
 
+#include "src/core/loopshaping/loop_shaping_types.h"
 #include <gtest/gtest.h>
 
 #include <fstream>

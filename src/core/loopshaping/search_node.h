@@ -1,6 +1,7 @@
 #ifndef QFTBX_LOOPSHAPING_SEARCH_NODE_H
 #define QFTBX_LOOPSHAPING_SEARCH_NODE_H
 
+#include "src/core/loopshaping/loop_shaping_types.h"
 #include <memory>
 
 #include "src/core/math/sequence_vectors.h"

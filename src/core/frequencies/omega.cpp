@@ -2,39 +2,61 @@
 #include <iterator>
 #include <string>
 #include <vector>
+#include <cmath>
 #include <cstdint>
+#include <optional>
 #include "src/core/frequencies/omega.h"
 #include "src/core/text_tokens.h"
 
 
 #include "src/core/exception.h"
 
+namespace {
+
+//What every design frequency has to be. Parameter got this check for its own
+//values; a frequency set did not, and its values come from a file as often as
+//from a dialog - and strtod happily reads "nan", "inf" and "-1".
+void requireUsable(const std::vector<double> & values)
+{
+    if (values.empty()){
+        throw qftbx::InvalidInput("A frequency set needs at least one value.");
+    }
+
+    for (const double value : values) {
+        if (!std::isfinite(value) || value <= 0.0) {
+            throw qftbx::InvalidInput("A design frequency must be a finite positive "
+                                      "real, and " + qftbx::text::number(value)
+                                      + " is not.");
+        }
+    }
+}
+
+} // namespace
+
 Omega::Omega(double start, double end, std::int32_t pointCount, std::vector<double> values, GenerationType type)
 {
     (void) pointCount;   //old files carry a desynchronised point count
 
-    if (values.empty()){
-        throw qftbx::InvalidInput("A frequency set needs at least one value.");
-    }
+    requireUsable(values);
 
     m_start = start;
     m_end = end;
     //Invariant: m_pointCount == m_values.size() always. The parameter is
     //deliberately ignored: old files carry a desynchronised <nPuntos>.
-    m_pointCount = values.size();
+    m_pointCount = static_cast<std::int32_t>(values.size());
     m_values = std::move(values);
     m_type = type;
 }
 
-double Omega::start(){
+double Omega::start() const {
     return m_start;
 }
 
-double Omega::end(){
+double Omega::end() const {
     return m_end;
 }
 
-std::int32_t Omega::pointCount(){
+std::int32_t Omega::pointCount() const {
     return m_pointCount;
 }
 
@@ -42,20 +64,17 @@ std::vector<double> * Omega::values(){
     return &m_values;
 }
 
-Omega::GenerationType Omega::type(){
+Omega::GenerationType Omega::type() const {
     return m_type;
 }
 
 void Omega::setOmega(std::vector<double> values){
-
-    if (values.empty()){
-        throw qftbx::InvalidInput("A frequency set needs at least one value.");
-    }
+    requireUsable(values);
 
     //Templates/Boundaries sometimes hand back the very frequencies we hold;
     //by value that is a copy made before the assignment, so the aliasing
     //guard the pointer version needed has nothing left to guard.
-    m_pointCount = values.size();
+    m_pointCount = static_cast<std::int32_t>(values.size());
     m_values = std::move(values);
 }
 

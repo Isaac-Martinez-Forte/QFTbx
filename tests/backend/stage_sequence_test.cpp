@@ -16,6 +16,7 @@
 // grid, a coarse Nichols grid - because what is under test is the sequence,
 // not the numbers. The numbers have their own golden tests.
 
+#include "src/core/loopshaping/loop_shaping_types.h"
 #include <gtest/gtest.h>
 
 #include <atomic>

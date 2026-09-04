@@ -1,6 +1,7 @@
 #ifndef QFTBX_LOOP_SHAPING_DIALOG_H
 #define QFTBX_LOOP_SHAPING_DIALOG_H
 
+#include "src/core/loopshaping/loop_shaping_types.h"
 #include "src/core/settings.h"
 #include "src/gui/step_dialog.h"
 #include <memory>

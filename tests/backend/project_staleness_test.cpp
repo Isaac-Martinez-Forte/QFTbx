@@ -10,6 +10,7 @@
 // over-invalidating would throw away work the user still has, and would break
 // load(), which assigns in dependency order.
 
+#include "src/core/specifications/specification_record.h"
 #include <gtest/gtest.h>
 
 #include <string>

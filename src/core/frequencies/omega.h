@@ -23,6 +23,15 @@ public:
     /// serialized in the .qft files: do not reorder.
     enum GenerationType {LinSpace, LogSpace, Manual, File};
 
+    /**
+     * @brief Builds the set. Throws InvalidInput when the values are empty or
+     * when any of them is not a finite, strictly positive frequency: a
+     * frequency file is user input arriving through a path nobody checks, and
+     * strtod reads "nan" and "-1" as numbers.
+     *
+     * pointCount is accepted and IGNORED: the count is the size of the
+     * values, and old files carried one that disagreed with them.
+     */
     Omega(double start, double end, std::int32_t pointCount, std::vector<double> values, GenerationType type);
 
     /// Reads a frequency file (values separated by whitespace or newlines).
@@ -30,14 +39,14 @@ public:
     /// frequency.
     static std::vector<double> valuesFromFile(std::string path);
 
-    double start();
-    double end();
-    std::int32_t pointCount();
+    double start() const;
+    double end() const;
+    std::int32_t pointCount() const;
 
     /// Observer on the frequencies, which the set holds by value.
     std::vector<double> * values();
 
-    GenerationType type();
+    GenerationType type() const;
 
     void setOmega(std::vector<double> values);
 

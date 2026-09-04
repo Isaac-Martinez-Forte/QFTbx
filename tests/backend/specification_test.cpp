@@ -63,8 +63,9 @@ TEST(Specification, ConstantHeightIsDbAndIgnoresOmega)
     qftbx::SpecificationRecord spec = makeConstantStability(1.2);
 
     const double expected = 20.0 * std::log10(1.2); // 1.5836249...
-    EXPECT_NEAR(spec.heightDb(0.5), expected, 1e-12);
-    EXPECT_NEAR(spec.heightDb(50.0), expected, 1e-12); // omega is ignored
+    const qftbx::Specification bound = qftbx::toSpecification(spec, qftbx::SpecificationType::Stability);
+    EXPECT_NEAR(bound.boundDb(0.5), expected, 1e-12);
+    EXPECT_NEAR(bound.boundDb(50.0), expected, 1e-12); // omega is ignored
 }
 
 TEST(Specification, SystemHeightMatchesTheAnalyticValue)
@@ -77,8 +78,9 @@ TEST(Specification, SystemHeightMatchesTheAnalyticValue)
     spec.omegaStart = 0.1;
     spec.omegaEnd = 10.0;
 
-    EXPECT_NEAR(spec.heightDb(1.0), analyticTrackingDb(1.0), 1e-9);
-    EXPECT_NEAR(spec.heightDb(1.0), -0.76398, 1e-4); // hand-checked anchor
+    const qftbx::Specification bound = qftbx::toSpecification(spec, qftbx::SpecificationType::TrackingLower);
+    EXPECT_NEAR(bound.boundDb(1.0), analyticTrackingDb(1.0), 1e-9);
+    EXPECT_NEAR(bound.boundDb(1.0), -0.76398, 1e-4); // hand-checked anchor
 }
 
 TEST(Specification, ZeroHeightYieldsMinusInfinity)
@@ -87,14 +89,21 @@ TEST(Specification, ZeroHeightYieldsMinusInfinity)
     // passes the contour threshold: the boundary silently degenerates to
     // the window frame. Will become an InvalidInput at construction.
     qftbx::SpecificationRecord spec = makeConstantStability(0.0);
-    EXPECT_TRUE(std::isinf(spec.heightDb(1.0)));
+    //A zero height is refused where it is validated, rather than producing
+    //the -inf that the raw record's own dB conversion used to hand back.
+    EXPECT_THROW(qftbx::toSpecification(spec, qftbx::SpecificationType::Stability),
+                 qftbx::InvalidInput);
 }
 
-TEST(Specification, NegativeHeightYieldsNaN)
+TEST(Specification, NegativeHeightIsRefused)
 {
-    // BUG: altura < 0 gives NaN and the boundary silently comes out empty.
+    // A negative height used to give a NaN bound and a boundary that silently
+    // came out empty - this test pinned that as a known bug. The raw record's
+    // own dB conversion is gone; the bound is asked of the validated
+    // Specification, and the validation refuses the height.
     qftbx::SpecificationRecord spec = makeConstantStability(-1.0);
-    EXPECT_TRUE(std::isnan(spec.heightDb(1.0)));
+    EXPECT_THROW(qftbx::toSpecification(spec, qftbx::SpecificationType::Stability),
+                 qftbx::InvalidInput);
 }
 
 TEST(SpecificationDao, OwnsReplacesAndToleratesIdentity)
@@ -171,7 +180,8 @@ TEST(SpecificationPersistence, Planta2RecoversBothTrackingPlants)
     EXPECT_DOUBLE_EQ(lower.omegaStart, 0.1);
     EXPECT_DOUBLE_EQ(lower.omegaEnd, 10.0);
     // The recovered plant must evaluate like the analytic reference.
-    EXPECT_NEAR(lower.heightDb(1.0), analyticTrackingDb(1.0), 1e-9);
+    EXPECT_NEAR(qftbx::toSpecification(lower, qftbx::SpecificationType::TrackingLower).boundDb(1.0),
+                analyticTrackingDb(1.0), 1e-9);
 
     const qftbx::SpecificationRecord & upper = specs->at(1);
     ASSERT_NE(upper.system, nullptr);
@@ -191,7 +201,8 @@ TEST(SpecificationPersistence, Planta1RecoversTheConstantStability)
     EXPECT_TRUE(stability.used);
     EXPECT_TRUE(stability.constant);
     EXPECT_DOUBLE_EQ(stability.height, 1.2);
-    EXPECT_NEAR(stability.heightDb(3.0), 20.0 * std::log10(1.2), 1e-12);
+    EXPECT_NEAR(qftbx::toSpecification(stability, qftbx::SpecificationType::Stability).boundDb(3.0),
+                20.0 * std::log10(1.2), 1e-12);
 
     EXPECT_TRUE(specs->at(4).used);   // RPS
     EXPECT_FALSE(specs->at(4).constant);

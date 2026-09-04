@@ -1,3 +1,4 @@
+#include "src/core/specifications/specification_record.h"
 #include <chrono>
 #include <string>
 #include <algorithm>

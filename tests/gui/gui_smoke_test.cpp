@@ -12,6 +12,8 @@
 // They are smoke tests: they answer "does the data path still work end to
 // end", not "is every validation rule right".
 
+#include "src/core/loopshaping/loop_shaping_types.h"
+#include "src/core/specifications/specification_record.h"
 #include <gtest/gtest.h>
 
 #include <vector>

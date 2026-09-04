@@ -4,21 +4,10 @@
 #include <cstdint>
 #include <vector>
 
-#include <string>
-#include <vector>
+//This header used to re-export specification_record.h, text_tokens.h and
+//loop_shaping_types.h "until each module is migrated"; the eight files that
+//leaned on that include what they use now.
 
-//Transitional re-exports: these types moved to their own homes; consumers
-//will include them directly as each module is migrated.
-#include "src/core/specifications/specification_record.h"
-#include "src/core/text_tokens.h"
-#include "src/core/loopshaping/loop_shaping_types.h"
-
-/**
- * @namespace tools
- * @brief std::vector flavours of the numeric sequences, for the consumers that
- * speak Qt containers. They wrap the canonical std implementations in
- * src/core/math/sequences.h.
- */
 namespace tools{
 
 //Wrappers over qftbx::math (src/core/math/sequences.h).

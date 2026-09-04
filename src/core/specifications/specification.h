@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <array>
+#include <cstddef>
 #include <cmath>
 #include <memory>
 #include <utility>
@@ -34,7 +35,7 @@ enum class SpecificationType {
     ControlEffort       // 6: historical "EC"
 };
 
-inline constexpr int kSpecificationCount = 7;
+inline constexpr std::size_t kSpecificationCount = 7;
 
 /// Canonical name, written to the .qft files since the English rename.
 inline std::string specificationName(SpecificationType type)
@@ -141,10 +142,17 @@ public:
      */
     double boundDb(double omega) const
     {
-        if (m_constant) {
-            return 20.0 * std::log10(m_magnitude);
+        //An unused slot has no bound. Its m_system is null, and asking anyway
+        //used to dereference it: every caller today checks appliesAt() first,
+        //which is discipline, and this is the guarantee.
+        if (!m_used) {
+            throw InvalidInput("The " + name() + " specification is not in use, "
+                               "so it has no bound.");
         }
-        return 20.0 * std::log10(std::abs(m_system->evaluate(omega)));
+        if (m_constant) {
+            return linearToDb(m_magnitude);
+        }
+        return linearToDb(std::abs(m_system->evaluate(omega)));
     }
 
     /// used() and minFrequency <= omega <= maxFrequency (closed interval).

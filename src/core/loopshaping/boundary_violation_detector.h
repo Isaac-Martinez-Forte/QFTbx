@@ -1,6 +1,7 @@
 #ifndef QFTBX_LOOPSHAPING_BOUNDARY_VIOLATION_DETECTOR_H
 #define QFTBX_LOOPSHAPING_BOUNDARY_VIOLATION_DETECTOR_H
 
+#include "src/core/loopshaping/loop_shaping_types.h"
 #include <cstdint>
 #include "src/core/point.h"
 #include <limits>

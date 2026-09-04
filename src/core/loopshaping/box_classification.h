@@ -1,6 +1,7 @@
 #ifndef QFTBX_LOOPSHAPING_BOX_CLASSIFICATION_H
 #define QFTBX_LOOPSHAPING_BOX_CLASSIFICATION_H
 
+#include "src/core/loopshaping/loop_shaping_types.h"
 #include <array>
 
 #include "src/core/math/sequence_vectors.h"
