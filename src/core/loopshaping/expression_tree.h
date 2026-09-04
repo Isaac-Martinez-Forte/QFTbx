@@ -55,6 +55,12 @@ struct exp_node
 
     cxsc::interval enclosure;
 
+    //Where the variable of a VAR node lives in the map of the evaluation in
+    //progress: found once by the forward pass and written through by the
+    //backward pass of the same call, instead of looked up by name again.
+    //Valid only inside that call.
+    cxsc::interval * slot = nullptr;
+
     //A node OWNS its branches, so a tree frees itself. There used to be a
     //recursive delete_tree() post-order walk, and every early return of the
     //parser had to have called it.

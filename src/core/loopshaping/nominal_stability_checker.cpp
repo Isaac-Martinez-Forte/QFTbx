@@ -23,6 +23,18 @@ double phaseDegrees(const std::complex<double> & value)
     return std::arg(value) * 180.0 / qftbx::math::kPi;
 }
 
+//The product of two complex numbers, written out. The library operator
+//goes through a routine that computes these same four products and two
+//sums and then, only when both parts came out NaN, tries to recover an
+//infinity from them: for the finite values of a loop sample the result is
+//the same, bit for bit, and the call is what this saves - a few million
+//times per search.
+inline std::complex<double> times(const std::complex<double> & a, const std::complex<double> & b)
+{
+    return std::complex<double>(a.real() * b.real() - a.imag() * b.imag(),
+                                a.real() * b.imag() + a.imag() * b.real());
+}
+
 } // namespace
 
 NominalStabilityChecker::NominalStabilityChecker(LtiSystem * nominalPlant,
@@ -69,9 +81,11 @@ std::complex<double> NominalStabilityChecker::controllerAt(const PointController
     std::complex<double> value(controller.gain, 0.0);
 
     for (const double zero : controller.zeros) {
-        value *= jw + std::complex<double>(zero, 0.0);
+        value = times(value, jw + std::complex<double>(zero, 0.0));
     }
 
+    //The division stays the library's: its algorithm scales the operands
+    //and is not the textbook formula.
     for (const double pole : controller.poles) {
         value /= jw + std::complex<double>(pole, 0.0);
     }
@@ -101,26 +115,19 @@ bool NominalStabilityChecker::isNominallyStable(LtiSystem * controller)
 
 bool NominalStabilityChecker::isNominallyStable(const PointController & pointController)
 {
-    //The working curve: frequency, the loop value and its raw phase,
-    //refined where the phase turns faster than the unwrapping tolerance.
-    //The magnitude is read from the loop value where the criterion looks
-    //at it - the last sample, a start on a ray, the two ends of a crossing
-    //- rather than computed for every sample: the check runs on hundreds of
-    //thousands of candidates per search, and most samples never need it.
-    struct Sample {
-        double w;
-        std::complex<double> loop;
-        double phase; //raw in (-180, 180], unwrapped afterwards
-
-        double magnitude() const { return std::abs(loop); }
-    };
-
-    std::vector<Sample> curve;
+    //The working curve, refined where the phase turns faster than the
+    //unwrapping tolerance. The magnitude is read from the loop value where
+    //the criterion looks at it - the last sample, a start on a ray, the two
+    //ends of a crossing - rather than computed for every sample: the check
+    //runs on hundreds of thousands of candidates per search, and most
+    //samples never need it.
+    std::vector<Sample> & curve = m_curve;
+    curve.clear();
     curve.reserve(m_frequencies.size());
 
     for (std::size_t i = 0; i < m_frequencies.size(); ++i) {
         const std::complex<double> loop =
-                controllerAt(pointController, m_frequencies[i]) * m_plantValues[i];
+                times(controllerAt(pointController, m_frequencies[i]), m_plantValues[i]);
         curve.push_back({m_frequencies[i], loop, phaseDegrees(loop)});
     }
 
@@ -138,7 +145,7 @@ bool NominalStabilityChecker::isNominallyStable(const PointController & pointCon
 
         if (step > m_tolerances.maxPhaseStepDegrees && curve[i + 1].w - curve[i].w > 1e-12 * curve[i].w) {
             const double w = std::sqrt(curve[i].w * curve[i + 1].w);
-            const std::complex<double> loop = controllerAt(pointController, w) * plantAt(w);
+            const std::complex<double> loop = times(controllerAt(pointController, w), plantAt(w));
             curve.insert(curve.begin() + static_cast<std::ptrdiff_t>(i) + 1, {w, loop, phaseDegrees(loop)});
             --budget;
         } else {
@@ -158,7 +165,8 @@ bool NominalStabilityChecker::isNominallyStable(const PointController & pointCon
     }
 
     //Unwrap the phase into a continuous curve.
-    std::vector<double> unwrapped(curve.size());
+    std::vector<double> & unwrapped = m_unwrapped;
+    unwrapped.assign(curve.size(), 0.0);
     unwrapped[0] = curve[0].phase;
 
     for (std::size_t i = 1; i < curve.size(); ++i) {

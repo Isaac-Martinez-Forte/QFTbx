@@ -221,7 +221,7 @@ bool AlgorithmMcThesis::solve()
         //Termination on the epsilon-small leading box (thesis 3.3, the
         //solution function): the returned point is unverified, so it must
         //pass the stability criterion, as reviewed for NT.
-        if (isEpsilonSmall(node->system(), epsilon, omega, conversion.get(), nominalPlantValues)) {
+        if (isEpsilonSmall(node.get(), analysis)) {
             const PointController corner = cornerOf(node->system(), false);
 
             if (!stability->isNominallyStable(corner)) {
@@ -291,6 +291,7 @@ bool AlgorithmMcThesis::analyse(McSearchNode * node, NodeAnalysis & out)
 
         if (node->isFrequencyFeasible(i)) {
             out.classification.push_back(std::nullopt);
+            out.projection.push_back(std::nullopt);
             out.boxMag.push_back(Range());
             out.boxPhase.push_back(Range());
             continue;
@@ -314,6 +315,7 @@ bool AlgorithmMcThesis::analyse(McSearchNode * node, NodeAnalysis & out)
         }
 
         out.classification.push_back(std::move(classification));
+        out.projection.push_back(projection);
         out.boxMag.push_back(Range(_double(Inf(Re(projection))), _double(Sup(Re(projection)))));
         out.boxPhase.push_back(Range(_double(Inf(Im(projection))), _double(Sup(Im(projection)))));
 
@@ -386,6 +388,24 @@ bool AlgorithmMcThesis::boxIsFeasibleAt(LtiSystem * box, std::size_t freqIndex)
     const cinterval projection = conversion->nicholsBox(box, omega->at(freqIndex),
                                                   nominalPlantValues.at(freqIndex));
     return detector->classifyBox(projection, boundaries, freqIndex).flag() == feasible;
+}
+
+//The termination test of qftbx::isEpsilonSmall over the projections the
+//feasibility test has just computed for this node; only the frequencies
+//the node history skipped are projected again. Same boxes, same test.
+bool AlgorithmMcThesis::isEpsilonSmall(McSearchNode * node, const NodeAnalysis & analysis)
+{
+    for (std::size_t i = 0; i < omega->size(); ++i) {
+        const cinterval box = analysis.projection.at(i).has_value()
+                ? *analysis.projection.at(i)
+                : conversion->nicholsBox(node->system(), omega->at(i), nominalPlantValues.at(i));
+
+        if ((diam(Re(box)) >= epsilon) || (diam(Im(box)) >= epsilon)) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 bool AlgorithmMcThesis::boxIsFeasible(LtiSystem * box)
