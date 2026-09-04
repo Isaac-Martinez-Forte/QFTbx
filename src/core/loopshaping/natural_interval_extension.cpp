@@ -26,23 +26,20 @@ interval parameterInterval(Parameter & parameter)
 }
 
 //The projection below multiplies (jw + parameter) factors: the thesis'
-//zero-pole-gain controller structure. TimeConstantGain controllers are
-//accepted and projected THE SAME WAY, as historically.
-// BUG: a TimeConstantGain controller evaluates as k (s/z + 1)/(s/p + 1)
-// everywhere else (GUI, persistence), so for it the optimiser and the
-// viewer disagree by the gain factor prod(p)/prod(z). To resolve in 8b.2:
-// project time-constant factors as such, or restrict the loop-shaping
-// dialog to the zero-pole-gain structure. PolynomialForm and FreeForm
-// parameters are not zeros/poles at all (the historical code projected
-// them as if they were, silently producing noise): they are rejected.
+//zero-pole-gain controller structure, and only that one. A time-constant
+//controller evaluates as k (s/z + 1)/(s/p + 1) everywhere else (evaluation,
+//interface, file), so projecting it as zero-pole-gain, as the historical
+//code did, made the optimiser and the viewer disagree by the factor
+//prod(p)/prod(z); polynomial and free-form parameters are not zeros or poles
+//at all. Until the projection of those structures exists, they are refused
+//with a message for the user (decision 2026-09-04).
 void ensureSupportedStructure(LtiSystem::SystemType type)
 {
-    if (type != LtiSystem::SystemType::ZeroPoleGain &&
-        type != LtiSystem::SystemType::TimeConstantGain) {
-        throw InvalidInput("Loop shaping needs a zero-pole-gain or "
-                           "time-constant controller structure: the interval "
-                           "projection of polynomial or free-form structures "
-                           "is not implemented.");
+    if (type != LtiSystem::SystemType::ZeroPoleGain) {
+        throw InvalidInput("Loop shaping supports zero-pole-gain controller "
+                           "structures only, for now: a time-constant, "
+                           "polynomial or free-form controller structure is "
+                           "not supported yet.");
     }
 }
 
