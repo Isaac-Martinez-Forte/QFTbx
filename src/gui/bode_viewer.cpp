@@ -1,4 +1,5 @@
 #include <cmath>
+#include "src/gui/plot_export.h"
 #include <vector>
 #include <algorithm>
 
@@ -23,9 +24,7 @@ BodeViewer::BodeViewer(QWidget *parent) :
     setWindowTitle(tr("Bode diagram"));
 }
 
-BodeViewer::~BodeViewer()
-{
-}
+BodeViewer::~BodeViewer() = default;
 
 void BodeViewer::drawBode(LtiSystem *plant, Omega *omega){
 
@@ -108,34 +107,23 @@ void BodeViewer::drawAxis(QString yAxisName, const std::vector<double> & yAxis_v
 
 void BodeViewer::on_actionExport_triggered()
 {
-    bool noFallo = true;
     QString extension;
-    QString fileName = QFileDialog::getSaveFileName(this, tr("Save file"),"",
-      tr((".png (*.png);;.pdf(*.pdf);; .jpg(*.jpg);; .bmp(*.bmp)")), &extension);
-    if (!fileName.isEmpty()){
-        //Prefixing the FULL path ("0-/home/...") produced invalid paths:
-        //the suffix goes on the file name.
-        QFileInfo info (fileName);
-        const QString magnitud = info.dir().filePath(info.completeBaseName() + "-mag." + info.suffix());
-        const QString phaseName = info.dir().filePath(info.completeBaseName() + "-phase." + info.suffix());
+    const QString fileName = QFileDialog::getSaveFileName(this, tr("Save file"), "",
+                                                          tools::exportFilter(), &extension);
+    if (fileName.isEmpty()){
+        return;
+    }
 
-        if (extension.contains(".pdf", Qt::CaseInsensitive)){
-            noFallo = ui->magnitudePlot->savePdf(magnitud, true);
-            noFallo = ui->phasePlot->savePdf(phaseName, true) && noFallo;
-        }else if (extension.contains(".png", Qt::CaseInsensitive)){
-            noFallo = ui->magnitudePlot->savePng(magnitud);
-            noFallo = ui->phasePlot->savePng(phaseName) && noFallo;
-        }else if (extension.contains(".jpg", Qt::CaseInsensitive)){
-            noFallo = ui->magnitudePlot->saveJpg(magnitud);
-            noFallo = ui->phasePlot->saveJpg(phaseName) && noFallo;
-        }else if (extension.contains(".bmp", Qt::CaseInsensitive)){
-            noFallo = ui->magnitudePlot->saveBmp(magnitud);
-            noFallo = ui->phasePlot->saveBmp(phaseName) && noFallo;
-        }else{
-            noFallo = false;
-        }
+    //Two plots, one name: the suffix goes on the file name (prefixing the
+    //FULL path, "0-/home/...", produced invalid paths).
+    const QFileInfo info(fileName);
+    const QString magnitudeName = info.dir().filePath(info.completeBaseName() + "-mag." + info.suffix());
+    const QString phaseName = info.dir().filePath(info.completeBaseName() + "-phase." + info.suffix());
 
-        if (!noFallo)
-            errorMessage(tr("The image could not be saved"), tr("Bode diagram"));
+    const bool magnitudeSaved = tools::savePlotAs(*ui->magnitudePlot, magnitudeName, extension);
+    const bool phaseSaved = tools::savePlotAs(*ui->phasePlot, phaseName, extension);
+
+    if (!magnitudeSaved || !phaseSaved){
+        errorMessage(tr("The image could not be saved"), tr("Bode diagram"));
     }
 }

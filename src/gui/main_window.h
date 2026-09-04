@@ -10,8 +10,6 @@
 #include <memory>
 
 #include <QMainWindow>
-#include <QApplication>
-//#include <QQmlApplicationEngine>
 
 #include "frequencies_dialog.h"
 #include "bode_viewer.h"
@@ -21,6 +19,7 @@
 #include "boundary_viewer.h"
 #include "muparserx_console.h"
 #include "controller_dialog.h"
+#include "specifications_dialog.h"
 #include "boundary_union_viewer.h"
 #include "loop_shaping_dialog.h"
 #include "loop_shaping_viewer.h"

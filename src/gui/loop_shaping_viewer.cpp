@@ -1,4 +1,6 @@
 #include "qt_containers.h"
+#include "src/gui/plot_export.h"
+#include "src/gui/number_text.h"
 #include "loop_shaping_viewer.h"
 #include "ui_loop_shaping_viewer.h"
 
@@ -13,7 +15,6 @@ LoopShapingViewer::LoopShapingViewer(QWidget *parent) :
 {
     ui->setupUi(this);
     setWindowTitle(tr("Loop Shaping"));
-    plotted = false;
 
     ui->numeratorEdit->setReadOnly(true);
     ui->denominatorEdit->setReadOnly(true);
@@ -76,31 +77,28 @@ void LoopShapingViewer::setData(const qftbx::UnionTraces & unionTraces, std::vec
 
 void LoopShapingViewer::showDiagram(){
 
-    QString numerador = "", denominador = "";
+    QString numerator = "", denominator = "";
 
     qint32 i = 0;
     for (i = 0; i < static_cast<qint32>(loopShapingData->controller()->numerator().size()); i++){
-        numerador += QString::number(loopShapingData->controller()->numerator()[i].nominal()) + " ";
+        numerator += tools::numberText(loopShapingData->controller()->numerator()[i].nominal()) + " ";
     }
     for (i = 0; i < static_cast<qint32>(loopShapingData->controller()->denominator().size()); i++){
-        denominador += QString::number(loopShapingData->controller()->denominator()[i].nominal()) + " ";
+        denominator += tools::numberText(loopShapingData->controller()->denominator()[i].nominal()) + " ";
     }
 
-    ui->numeratorEdit->setText(numerador);
-    ui->denominatorEdit->setText(denominador);
-    ui->gainEdit->setText(QString::number(loopShapingData->controller()->gain().nominal()));
+    ui->numeratorEdit->setText(numerator);
+    ui->denominatorEdit->setText(denominator);
+    ui->gainEdit->setText(tools::numberText(loopShapingData->controller()->gain().nominal()));
 
-    LtiSystem::SystemType tipo = loopShapingData->controller()->type();
+    const LtiSystem::SystemType type = loopShapingData->controller()->type();
 
-    if (tipo == LtiSystem::SystemType::PolynomialForm){
-        QPixmap imagen (":/figures/copol.png");
-        ui->systemTypeImage->setPixmap(imagen);
-    } else if (tipo == LtiSystem::SystemType::ZeroPoleGain){
-        QPixmap imagen (":/figures/kgan.png");
-        ui->systemTypeImage->setPixmap(imagen);
+    if (type == LtiSystem::SystemType::PolynomialForm){
+        ui->systemTypeImage->setPixmap(QPixmap(":/figures/copol.png"));
+    } else if (type == LtiSystem::SystemType::ZeroPoleGain){
+        ui->systemTypeImage->setPixmap(QPixmap(":/figures/kgan.png"));
     }else {
-        QPixmap imagen (":/figures/knogan.png");
-        ui->systemTypeImage->setPixmap(imagen);
+        ui->systemTypeImage->setPixmap(QPixmap(":/figures/knogan.png"));
     }
 
 
@@ -112,7 +110,7 @@ void LoopShapingViewer::showDiagram(){
 
     plotted = true;
 
-    qint32 gainEdit = 0;
+    qint32 curveIndex = 0;
 
     //Sweep the boundaries.
 
@@ -132,20 +130,14 @@ void LoopShapingViewer::showDiagram(){
             ejey.push_back(p.magnitude);
         }
 
-        /*curves.push_back(ui->plot->addGraph());
-        ui->plot->graph(gainEdit)->setData(*ejex, *ejey);*/
-
         QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
         curva->setData(tools::toQVector(ejex), tools::toQVector(ejey));
         curva->setPen(color);
         curves.push_back(curva);
 
-        /*ui->plot->graph(gainEdit)->setPen(color);
-        ui->plot->graph(gainEdit)->setLineStyle(QCPGraph::lsNone);
-        ui->plot->graph(gainEdit)->setScatterStyle(QCPScatterStyle::ssCircle);*/
-        addFrequencyRow(color, gainEdit);
+        addFrequencyRow(color, curveIndex);
 
-        gainEdit++;
+        curveIndex++;
     }
 
     ui->plot->rescaleAxes();
@@ -217,27 +209,11 @@ void LoopShapingViewer::showDiagram(){
             ejeyActual.push_back(mag);
         } else {
 
-            /*if (previousPhase < -100){
-                ejexActual.push_back(0);
-                ejeyActual.push_back(previousY);
-            } else {
-                ejexActual.push_back(-360);
-                ejeyActual.push_back(previousY);
-            }*/
-
             ejex.push_back(std::move(ejexActual));
             ejey.push_back(std::move(ejeyActual));
 
             ejexActual = std::vector<double> ();
             ejeyActual = std::vector<double> ();
-
-            /*if (fas > -100){
-                ejexActual.push_back(0);
-                ejeyActual.push_back(mag);
-            } else {
-                ejexActual.push_back(-360);
-                ejeyActual.push_back(mag);
-            }*/
 
             ejexActual.push_back(fas);
             ejeyActual.push_back(mag);
@@ -250,13 +226,6 @@ void LoopShapingViewer::showDiagram(){
     ejex.push_back(std::move(ejexActual));
     ejey.push_back(std::move(ejeyActual));
 
-
-    /*QCPGraph * gra = ui->plot->addGraph();
-    gra->setData(*ejex, *ejey);
-
-    gra->setPen(randomColor(frequencyIndex));
-    gra->setScatterStyle(QCPScatterStyle::ssCircle);
-    gra->setLineStyle(QCPGraph::lsNone);*/
 
     for (qint32 i = 0; i < ejex.size(); i++){
         QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
@@ -300,7 +269,7 @@ void LoopShapingViewer::showDiagram(){
 
 void LoopShapingViewer::applyCheckboxes(){
     for (qint32 i = 0; i < checkboxes.size(); i++){
-        if (checkboxes.at(i)->checkState() == 0){
+        if (checkboxes.at(i)->checkState() == Qt::Unchecked){
             curves.at(i)->setVisible(false);
         }else {
             curves.at(i)->setVisible(true);
@@ -320,10 +289,7 @@ void LoopShapingViewer::addFrequencyRow(QColor color, qint32 pos){
     checkBox = new QCheckBox(widget);
     checkBox->setObjectName("checkBox");
 
-    QMetaObject::connectSlotsByName(widget);
-
-
-    checkBox->setText(QString::number(omega->at(pos)));
+    checkBox->setText(tools::numberText(omega->at(pos)));
 
     checkBox->setStyleSheet("color : " + color.name());
 
@@ -336,24 +302,5 @@ void LoopShapingViewer::addFrequencyRow(QColor color, qint32 pos){
 
 void LoopShapingViewer::on_saveImage_clicked()
 {
-    bool noFallo = true;
-    QString extension;
-    QString fileName = QFileDialog::getSaveFileName(this, tr("Save file"),"",
-                                                    tr((".png (*.png);;.pdf(*.pdf);; .jpg(*.jpg);; .bmp(*.bmp)")), &extension);
-    if (!fileName.isEmpty()){
-        if (extension.contains(".pdf", Qt::CaseInsensitive)){
-            noFallo = ui->plot->savePdf(fileName, true);
-        }else if (extension.contains(".png", Qt::CaseInsensitive)){
-            noFallo = ui->plot->savePng(fileName);
-        }else if (extension.contains(".jpg", Qt::CaseInsensitive)){
-            noFallo = ui->plot->saveJpg(fileName);
-        }else if (extension.contains(".bmp", Qt::CaseInsensitive)){
-            noFallo = ui->plot->saveBmp(fileName);
-        }else{
-            noFallo = false;
-        }
-
-        if (!noFallo)
-            errorMessage(tr("The image could not be saved"), tr("Loop-shaping plot"));
-    }
+    tools::exportPlot(this, *ui->plot, tr("Loop-shaping plot"));
 }

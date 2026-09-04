@@ -23,8 +23,7 @@
  * table that might be null.
  */
 
-/// One polynomial slot's coefficients.
-/// The texts of one system's coefficients.
+/// The texts of one polynomial slot's coefficients.
 ///
 /// QString and not std::string, having tried it the other way: these rows
 /// are filled from QLineEdits and read back into them all over the dialogs,

@@ -6,15 +6,12 @@
 
 #include <QDialog>
 
-//#include "cinterval.hpp"
-
 #include "src/core/math/sequence_vectors.h"
 #include "qcustomplot.h"
 
 #include "src/core/boundaries/boundary_data.h"
 
 #include "src/core/system/lti_system.h"
-#include "src/core/loopshaping/natural_interval_extension.h"
 
 
 namespace Ui {
@@ -48,8 +45,6 @@ public:
                    LtiSystem * plant, LtiSystem * controller, bool nichols, bool nyquist);
 
     void showDiagram();
-
-    void drawBox (QPointF uno, QPointF dos, QPointF tres, QPointF cuatro, QColor color);
 
 private slots:
     void applyCheckboxes();
@@ -89,8 +84,6 @@ private:
 
     std::unique_ptr<Ui::LoopBoundariesViewer> ui;
 
-    qint32 finalCurveIndex = 0;
-
 };
 
-#endif // QFTBX_BOUNDARY_UNION_VIEWER_H
+#endif // QFTBX_LOOP_BOUNDARIES_VIEWER_H

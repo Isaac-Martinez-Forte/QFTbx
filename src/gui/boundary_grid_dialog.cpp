@@ -1,19 +1,17 @@
 #include "boundary_grid_dialog.h"
+#include "src/gui/number_text.h"
 #include "ui_boundary_grid_dialog.h"
 
 #include "src/gui/error_message.h"
 
 
 using namespace tools;
-using namespace std;
 
 BoundaryGridDialog::BoundaryGridDialog(QWidget *parent) :
     StepDialog(parent),
     ui(std::make_unique<Ui::BoundaryGridDialog>())
 {
     ui->setupUi(this);
-
-    accepted_once = false;
 
     ui->phaseStart->setValidator(new QDoubleValidator(this));
     ui->phaseEnd->setValidator(new QDoubleValidator(this));
@@ -28,8 +26,6 @@ BoundaryGridDialog::BoundaryGridDialog(QWidget *parent) :
     //Prefilled from the settings, which the window applies right after
     //construction; these are what stands until it does.
     applyDefaults(qftbx::Settings().defaults);
-
-    cudaCheck = false;
 
     setWindowTitle(tr("Boundary grid input"));
 
@@ -74,13 +70,13 @@ bool BoundaryGridDialog::contourSelected(){
 
 void BoundaryGridDialog::applyDefaults(const qftbx::Settings::Defaults & defaults)
 {
-    ui->phaseStart->setText(QString::number(defaults.phaseStart));
-    ui->phaseEnd->setText(QString::number(defaults.phaseEnd));
-    ui->phasePoints->setText(QString::number(defaults.phasePoints));
+    ui->phaseStart->setText(tools::numberText(defaults.phaseStart));
+    ui->phaseEnd->setText(tools::numberText(defaults.phaseEnd));
+    ui->phasePoints->setText(tools::numberText(defaults.phasePoints));
 
-    ui->magnitudeStart->setText(QString::number(defaults.magnitudeStart));
-    ui->magnitudeEnd->setText(QString::number(defaults.magnitudeEnd));
-    ui->magnitudePoints->setText(QString::number(defaults.magnitudePoints));
+    ui->magnitudeStart->setText(tools::numberText(defaults.magnitudeStart));
+    ui->magnitudeEnd->setText(tools::numberText(defaults.magnitudeEnd));
+    ui->magnitudePoints->setText(tools::numberText(defaults.magnitudePoints));
 }
 
 void BoundaryGridDialog::on_buttonBox_accepted()
@@ -123,18 +119,10 @@ void BoundaryGridDialog::on_buttonBox_accepted()
         return;
     }
 
-    accepted_once = true;
-
     //Direct read: the old latch left CUDA enabled forever once checked.
     cudaCheck = ui->cudaCheck->isChecked();
 
     markAccepted();
-}
-
-void BoundaryGridDialog::showEvent(QShowEvent * event)
-{
-    //Reopening and cancelling must not relaunch the computation with the old data.
-    QDialog::showEvent(event);
 }
 
 bool BoundaryGridDialog::cudaSelected(){

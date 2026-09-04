@@ -1,4 +1,5 @@
 #include <cmath>
+#include "src/gui/number_text.h"
 #include "specifications_dialog.h"
 
 #include "src/core/exception.h"
@@ -103,8 +104,8 @@ SpecificationsDialog::SpecificationsDialog(const std::vector<double> * frequenci
     sensorNoisePixmap= QPixmap (":/figures/ruidosensor.png");
     stabilityPixmap= QPixmap (":/figures/estabilidad.png");
 
-    ui->startFrequencyEdit->setText(QString::number(frequencies->front()));
-    ui->endFrequencyEdit->setText(QString::number(frequencies->back()));
+    ui->startFrequencyEdit->setText(tools::numberText(frequencies->front()));
+    ui->endFrequencyEdit->setText(tools::numberText(frequencies->back()));
 
     ui->trackingImage->setPixmap(trackingImagePixmap);
 
@@ -157,7 +158,7 @@ QString SpecificationsDialog::coefficientsText(std::vector<Parameter> & paramete
 {
     QString text;
     for (Parameter & parameter : parameters) {
-        text += QString::number(parameter.nominal()) + " ";
+        text += tools::numberText(parameter.nominal()) + " ";
     }
     return text.trimmed();
 }
@@ -182,8 +183,8 @@ void SpecificationsDialog::setData(qftbx::SpecificationRecord & record_in)
 {
     if (record_in.used){
 
-        ui->startFrequencyEdit->setText(QString::number(record_in.omegaStart));
-        ui->endFrequencyEdit->setText(QString::number(record_in.omegaEnd));
+        ui->startFrequencyEdit->setText(tools::numberText(record_in.omegaStart));
+        ui->endFrequencyEdit->setText(tools::numberText(record_in.omegaEnd));
 
         if (record_in.constant){
             ui->constantRadio->setChecked(true);
@@ -191,7 +192,7 @@ void SpecificationsDialog::setData(qftbx::SpecificationRecord & record_in)
             //The stored magnitude is linear: painted as-is with the linear
             //radio checked so accept does not reread it as dB.
             ui->linearRadio->setChecked(true);
-            ui->magnitudeEdit->setText(QString::number(record_in.height));
+            ui->magnitudeEdit->setText(tools::numberText(record_in.height));
         } else{
             ui->systemRadio->setChecked(true);
             on_systemRadio_clicked();
@@ -217,8 +218,8 @@ void SpecificationsDialog::setData(qftbx::SpecificationRecord & record_in)
 
             ui->numeratorEdit->setText(numeratorText(record_in.system.get()));
             ui->denominatorEdit->setText(denominatorText(record_in.system.get()));
-            ui->k->setText(QString::number(record_in.system->gain().nominal()));
-            ui->delayEdit->setText(QString::number(record_in.system->delay().nominal()));
+            ui->k->setText(tools::numberText(record_in.system->gain().nominal()));
+            ui->delayEdit->setText(tools::numberText(record_in.system->delay().nominal()));
         }
     } else {
         //The band too: it used to keep the PREVIOUS tab's values, and an
@@ -240,17 +241,17 @@ void SpecificationsDialog::setData(qftbx::SpecificationRecord & record_in,
 
     if (record_in.used){
 
-        ui->startFrequencyEdit->setText(QString::number(record_in.omegaStart));
-        ui->endFrequencyEdit->setText(QString::number(record_in.omegaEnd));
+        ui->startFrequencyEdit->setText(tools::numberText(record_in.omegaStart));
+        ui->endFrequencyEdit->setText(tools::numberText(record_in.omegaEnd));
 
         if (record_in.constant){
             ui->constantRadio->setChecked(true);
             on_constantRadio_clicked();
             ui->lowerLinearRadio->setChecked(true);
             ui->upperLinearRadio->setChecked(true);
-            ui->lowerMagnitudeEdit->setText(QString::number(record_in.height));
+            ui->lowerMagnitudeEdit->setText(tools::numberText(record_in.height));
 
-            ui->upperMagnitudeEdit->setText(QString::number(upperRecord.height));
+            ui->upperMagnitudeEdit->setText(tools::numberText(upperRecord.height));
         }else{
             ui->systemRadio->setChecked(true);
             on_systemRadio_clicked();
@@ -295,13 +296,13 @@ void SpecificationsDialog::setData(qftbx::SpecificationRecord & record_in,
 
             ui->lowerNumeratorEdit->setText(numeratorText(record_in.system.get()));
             ui->lowerDenominatorEdit->setText(denominatorText(record_in.system.get()));
-            ui->lowerGainEdit->setText(QString::number(record_in.system->gain().nominal()));
-            ui->lowerDelayEdit->setText(QString::number(record_in.system->delay().nominal()));
+            ui->lowerGainEdit->setText(tools::numberText(record_in.system->gain().nominal()));
+            ui->lowerDelayEdit->setText(tools::numberText(record_in.system->delay().nominal()));
 
             ui->upperNumeratorEdit->setText(numeratorText(upperRecord.system.get()));
             ui->upperDenominatorEdit->setText(denominatorText(upperRecord.system.get()));
-            ui->upperGainEdit->setText(QString::number(upperRecord.system->gain().nominal()));
-            ui->upperDelayEdit->setText(QString::number(upperRecord.system->delay().nominal()));
+            ui->upperGainEdit->setText(tools::numberText(upperRecord.system->gain().nominal()));
+            ui->upperDelayEdit->setText(tools::numberText(upperRecord.system->delay().nominal()));
         }
     } else {
         //The band too, for the same reason as the single specifications: an
@@ -343,7 +344,7 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record_in, QString 
         try {
             record_in.omegaStart = p.Eval().GetFloat();
             ui->startFrequencyEdit->setStyleSheet("background : white");
-        }catch (ParserError &e){
+        }catch (ParserError &){
             record_in.used = false;
             ui->startFrequencyEdit->setStyleSheet("background : red");
             errorMessage(tr("Invalid frequency band."), tr("Specifications input"));
@@ -360,7 +361,7 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record_in, QString 
         try {
             record_in.omegaEnd = p.Eval().GetFloat();
             ui->endFrequencyEdit->setStyleSheet("background : white");
-        }catch (ParserError &e){
+        }catch (ParserError &){
             record_in.used = false;
             ui->endFrequencyEdit->setStyleSheet("background : red");
             errorMessage(tr("Invalid frequency band."), tr("Specifications input"));
@@ -406,7 +407,7 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record_in, QString 
                 }
 
                 ui->magnitudeEdit->setStyleSheet("background : white");
-            }catch (ParserError &e){
+            }catch (ParserError &){
                 record_in.used = false;
                 ui->magnitudeEdit->setStyleSheet("background : red");
                 errorMessage(tr("Invalid magnitude value."), tr("Specifications input"));
@@ -523,7 +524,7 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record_in,
             record_in.omegaStart = p.Eval().GetFloat();
             upperRecord.omegaStart = record_in.omegaStart;
             ui->startFrequencyEdit->setStyleSheet("background : white");
-        }catch (ParserError &e){
+        }catch (ParserError &){
             record_in.used = false;
             upperRecord.used = false;
             ui->startFrequencyEdit->setStyleSheet("background : red");
@@ -543,7 +544,7 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record_in,
             record_in.omegaEnd = p.Eval().GetFloat();
             upperRecord.omegaEnd = record_in.omegaEnd;
             ui->endFrequencyEdit->setStyleSheet("background : white");
-        }catch (ParserError &e){
+        }catch (ParserError &){
             record_in.used = false;
             upperRecord.used = false;
             ui->endFrequencyEdit->setStyleSheet("background : red");
@@ -575,8 +576,8 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record_in,
 
                 qreal alt = p.Eval().GetFloat();
 
-                //qftbx::SpecificationRecord::altura is a LINEAR magnitude: this path used to have
-                //both branches swapped relative to the simple path.
+                //The record's height is a LINEAR magnitude: this path used to
+                //have both branches swapped relative to the simple path.
                 if (ui->lowerDecibelsRadio->isChecked()){
                     record_in.height = qftbx::dbToLinear(alt);
                 }else {
@@ -594,7 +595,7 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record_in,
                 }
 
                 ui->lowerMagnitudeEdit->setStyleSheet("background : white");
-            }catch (ParserError &e){
+            }catch (ParserError &){
                 record_in.used = false;
                 ui->lowerMagnitudeEdit->setStyleSheet("background : red");
                 errorMessage(tr("Invalid magnitude value."), tr("Specifications input"));
@@ -710,7 +711,7 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record_in,
                 }
 
                 ui->upperMagnitudeEdit->setStyleSheet("background : white");
-            }catch (ParserError &e){
+            }catch (ParserError &){
                 upperRecord.used = false;
                 ui->upperMagnitudeEdit->setStyleSheet("background : red");
                 errorMessage(tr("Invalid magnitude value."), tr("Specifications input"));
@@ -814,7 +815,7 @@ std::optional<Parameter> SpecificationsDialog::buildScalar(QString linea, bool i
         p.SetExpr(linea.toStdString());
         try {
             res = p.Eval().GetFloat();
-        }catch (ParserError &e){
+        }catch (ParserError &){
             return std::nullopt;
         }
 
@@ -1008,7 +1009,7 @@ void SpecificationsDialog::on_systemRadio_clicked()
 
 void SpecificationsDialog::on_cancelButton_clicked()
 {
-    emit(close());
+    close();
 }
 
 void SpecificationsDialog::on_okButton_clicked()
@@ -1045,7 +1046,7 @@ void SpecificationsDialog::on_okButton_clicked()
 
     markAccepted();
 
-    emit (close());
+    close();
 }
 
 void SpecificationsDialog::setFrequencies(const std::vector<double> * frequencies)

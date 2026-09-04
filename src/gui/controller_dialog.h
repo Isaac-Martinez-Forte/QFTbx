@@ -54,16 +54,11 @@ private slots:
 private:
     std::unique_ptr<Ui::ControllerDialog> ui;
 
-
-
-
-    QString file;
-
-    UncertaintyDialog * uncertaintyDialog= NULL;
+    UncertaintyDialog * uncertaintyDialog = nullptr;
 
     std::unique_ptr<LtiSystem> controllerSystem;
 
-    bool uncertaintyEntered;
+    bool uncertaintyEntered = false;
 
     /// The coefficients of the described controller, or nothing when the
     /// dialog could not read them (the caller reports it).
@@ -73,7 +68,6 @@ private:
     /// not a valid expression. The invalid one used to become 0 in silence,
     /// which quietly designed a different controller.
     std::optional<std::vector<Parameter>> buildParameters(const CoefficientRow & numbers);
-    bool parse(QString cadena);
     bool parseCoefficients(CoefficientTable & tabla, QLineEdit *linea,
                            CoefficientTable & expressionTable, UncertainTable & uncertainTable);
     bool parseGainRange(CoefficientTable & tabla, QLineEdit *linea1, QLineEdit *linea2,

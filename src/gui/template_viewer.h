@@ -9,10 +9,6 @@
 #include <QDialog>
 #include <complex>
 #include <functional>
-#include <qmath.h>
-#include <QFileDialog>
-#include <QMessageBox>
-#include <math.h>
 #include <QMap>
 #include <QGroupBox>
 #include <QVBoxLayout>
@@ -23,8 +19,6 @@
 #include "qcustomplot.h"
 #include "src/core/templates/cloud_set.h"
 
-#include "cinterval.hpp"
-#include "src/core/loopshaping/natural_interval_extension.h"
 
 
 namespace Ui {
@@ -129,8 +123,8 @@ private slots:
 private:
     std::unique_ptr<Ui::TemplateViewer> ui;
     bool plotted = false;
-    void plotLine(qint32 pos, QVector <QCPGraph *> & saveImage, const std::vector<double> & fas,
-                  const std::vector<double> & gan, bool tipo, bool visible, qint32 frequencyIndex);
+    void plotLine(qint32 pos, QVector <QCPGraph *> & graphs, const std::vector<double> & phases,
+                  const std::vector<double> & magnitudes, bool isContour, bool visible, qint32 frequencyIndex);
     void addFrequencyRow (QColor color, qint32 pos);
     void clearDiagram();
 
@@ -138,8 +132,8 @@ private:
     //which is why a recompute had to be careful about what it freed.
     qftbx::CloudSet m_templates;
     qftbx::CloudSet m_contour;
-    std::vector<double> * omega = nullptr;
-    std::vector<double> * epsilon = nullptr;
+    std::vector<double> m_omega;
+    std::vector<double> m_epsilon;
 
     //The graphs BELONG TO QCustomPlot, which frees them on clearGraphs():
     //only these containers are the viewer's.

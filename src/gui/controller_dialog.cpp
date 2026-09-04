@@ -36,8 +36,6 @@ ControllerDialog::ControllerDialog(QWidget *parent) :
     ui->gainStart->setText("1");
     ui->gainEnd->setText("1");
 
-    uncertaintyEntered = false;
-
     //The uncertainty dialog is created up front and reused.
     uncertaintyDialog = new UncertaintyDialog (this);
 
@@ -243,7 +241,7 @@ bool ControllerDialog::parseFreeForm(QLineEdit * linea, CoefficientTable & tabla
 
 void ControllerDialog::on_cancelButton_clicked()
 {
-    emit(close());
+    close();
 }
 
 void ControllerDialog::on_okButton_clicked()

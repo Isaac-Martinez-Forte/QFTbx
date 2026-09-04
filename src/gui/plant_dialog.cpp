@@ -40,9 +40,6 @@ PlantDialog::PlantDialog(QWidget *parent) :
     ui->freeDelay->setText("0");
 
 
-    uncertaintyEntered = false;
-
-
     //The uncertainty dialog is created up front and reused.
     uncertaintyDialog = new UncertaintyDialog (this);
 

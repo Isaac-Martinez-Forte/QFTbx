@@ -154,7 +154,7 @@ void FrequenciesDialog::on_okButton_clicked()
         }
     }
 
-    const qint32 pointCount = frequencies.size();
+    const qint32 pointCount = static_cast<qint32>(frequencies.size());
 
     m_omega = std::make_unique<Omega>(start, end, pointCount, std::move(frequencies), type);
 

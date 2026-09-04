@@ -1,4 +1,6 @@
 #include "qt_containers.h"
+#include "src/gui/plot_export.h"
+#include "src/gui/number_text.h"
 #include "boundary_viewer.h"
 #include "ui_boundary_viewer.h"
 
@@ -13,7 +15,6 @@ BoundaryViewer::BoundaryViewer(QWidget *parent) :
 {
     ui->setupUi(this);
     setWindowTitle(tr("Boundaries"));
-    plotted = false;
 
     frequenciesBox = new QGroupBox(this);
     frequenciesBox->setObjectName("frequenciesBox");
@@ -105,11 +106,6 @@ void BoundaryViewer::showDiagram(){
                    ejey.push_back(p.magnitude);
                 }
 
-                /*gra->append(ui->plot->addGraph());
-                ui->plot->graph(k)->setData(*ejex, *ejey);
-                ui->plot->graph(k)->setPen(color);
-                ui->plot->graph(k)->setLineStyle(QCPGraph::lsNone);
-                ui->plot->graph(k)->setScatterStyle(QCPScatterStyle::ssCircle);*/
 
                 QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
                 curva->setData(tools::toQVector(ejex), tools::toQVector(ejey));
@@ -148,10 +144,7 @@ void BoundaryViewer::addFrequencyRow(QColor color, qint32 pos){
     checkBox = new QCheckBox(widget);
     checkBox->setObjectName("checkBox");
 
-    QMetaObject::connectSlotsByName(widget);
-
-
-    checkBox->setText(QString::number(omega->at(pos)));
+    checkBox->setText(tools::numberText(omega->at(pos)));
 
     checkBox->setStyleSheet("color : " + color.name());
 
@@ -164,7 +157,7 @@ void BoundaryViewer::addFrequencyRow(QColor color, qint32 pos){
 
 void BoundaryViewer::applyCheckboxes(){
     for (qint32 i = 0; i < checkboxes.size(); i++){
-        if (checkboxes.at(i)->checkState() == 0){
+        if (checkboxes.at(i)->checkState() == Qt::Unchecked){
 
             for (qint32 j = 0; j < curves.at(i).size(); j++){
                 curves.at(i).at(j)->setVisible(false);
@@ -180,24 +173,5 @@ void BoundaryViewer::applyCheckboxes(){
 
 void BoundaryViewer::on_saveImage_clicked()
 {
-    bool noFallo = true;
-    QString extension;
-    QString fileName = QFileDialog::getSaveFileName(this, tr("Save file"),"",
-                                                    tr((".png (*.png);;.pdf(*.pdf);; .jpg(*.jpg);; .bmp(*.bmp)")), &extension);
-    if (!fileName.isEmpty()){
-        if (extension.contains(".pdf", Qt::CaseInsensitive)){
-            noFallo = ui->plot->savePdf(fileName, true);
-        }else if (extension.contains(".png", Qt::CaseInsensitive)){
-            noFallo = ui->plot->savePng(fileName);
-        }else if (extension.contains(".jpg", Qt::CaseInsensitive)){
-            noFallo = ui->plot->saveJpg(fileName);
-        }else if (extension.contains(".bmp", Qt::CaseInsensitive)){
-            noFallo = ui->plot->saveBmp(fileName);
-        }else{
-            noFallo = false;
-        }
-
-        if (!noFallo)
-            errorMessage(tr("The image could not be saved"), tr("Boundary plot"));
-    }
+    tools::exportPlot(this, *ui->plot, tr("Boundary plot"));
 }

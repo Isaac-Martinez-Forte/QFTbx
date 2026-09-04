@@ -15,7 +15,6 @@
 #include <QList>
 #include <QFileDialog>
 #include <QRegularExpression>
-#include <QRegularExpression>
 
 #include "src/core/system/zero_pole_gain.h"
 #include "src/core/system/time_constant_gain.h"
@@ -73,15 +72,12 @@ private slots:
 
 private:
     std::unique_ptr<Ui::PlantDialog> ui;
-    
 
-    QString file;
-
-    UncertaintyDialog * uncertaintyDialog= NULL;
+    UncertaintyDialog * uncertaintyDialog = nullptr;
 
     std::unique_ptr<LtiSystem> plant;
 
-    bool uncertaintyEntered;
+    bool uncertaintyEntered = false;
 
     /// The coefficients of the described system, or nothing when the dialog
     /// could not read them (the caller reports it).
@@ -92,7 +88,6 @@ private:
     /// which quietly designed for a different plant. Same contract as
     /// SpecificationsDialog::buildParameters.
     std::optional<std::vector<Parameter>> buildParameters(const CoefficientRow & numbers);
-    bool parse(QString cadena);
     bool parseCoefficients(CoefficientTable & tabla, QLineEdit * linea,
                            CoefficientTable & expressionTable, UncertainTable & uncertainTable);
     bool parseScalar(CoefficientTable & tabla, QLineEdit *linea,

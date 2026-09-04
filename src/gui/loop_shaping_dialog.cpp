@@ -1,4 +1,5 @@
 #include "loop_shaping_dialog.h"
+#include "src/gui/number_text.h"
 #include "ui_loop_shaping_dialog.h"
 
 #include "src/gui/error_message.h"
@@ -20,10 +21,10 @@ namespace {
 //point count went straight into the std::int32_t that linspace takes, so a
 //"10^30" was undefined behaviour, and an infinity or a NaN travelled into
 //the plot to surface later as an empty diagram.
-//The bounds are the caller's: the start and end frequencies are only
-//required to be finite, because whether they are frequencies or exponents
-//in logarithmic mode is still an open question and this is not the place
-//to settle it.
+//The bounds are the caller's: the start and end frequencies are in rad/s
+//in both modes (the logarithmic one takes their logarithms itself), so
+//they only have to be finite here and positive when the sweep is
+//logarithmic, which the caller checks.
 bool readField(ParserX & parser, QLineEdit * field, const QString & complaint,
                double lowest, double highest, double & value)
 {
@@ -79,23 +80,10 @@ LoopShapingDialog::LoopShapingDialog(QWidget *parent) :
     }
 
     updateEpsilonLabel();
-
-    linLogSpace = false;
-
 }
 
 LoopShapingDialog::~LoopShapingDialog()
 {
-}
-
-void LoopShapingDialog::showEvent(QShowEvent * event)
-{
-    //Reopening and cancelling must not relaunch the computation with the old data.
-    QDialog::showEvent(event);
-}
-
-void LoopShapingDialog::setEpsilonValue(qreal epsilonEdit){
-    ui->epsilonEdit->setText(QString::number(epsilonEdit));
 }
 
 void LoopShapingDialog::updateEpsilonLabel()
@@ -209,9 +197,9 @@ void LoopShapingDialog::applyDefaults(const qftbx::Settings::Defaults & defaults
 {
     m_defaults = defaults;
 
-    ui->startEdit->setText(QString::number(defaults.loopStart));
-    ui->endEdit->setText(QString::number(defaults.loopEnd));
-    ui->pointCountEdit->setText(QString::number(defaults.loopPointCount));
+    ui->startEdit->setText(tools::numberText(defaults.loopStart));
+    ui->endEdit->setText(tools::numberText(defaults.loopEnd));
+    ui->pointCountEdit->setText(tools::numberText(defaults.loopPointCount));
 }
 
 void LoopShapingDialog::on_ntRadio_clicked()

@@ -679,9 +679,9 @@ TEST_F(GuiSmoke, UncertaintyDialogBuildsAnUncertainParameter)
 
     ASSERT_TRUE(dialog.launch(valueTable, expressionTable, uncertainTable, false));
 
-    //One uncertain name, so one generated row: [inicio, fin] with nominal.
-    type(&dialog, "inicio", "1");
-    type(&dialog, "fin", "5");
+    //One uncertain name, so one generated row: [start, end] with nominal.
+    type(&dialog, "start", "1");
+    type(&dialog, "end", "5");
     type(&dialog, "nominal", "3");
 
     type(&dialog, "gainStart", "2");

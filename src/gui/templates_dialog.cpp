@@ -1,4 +1,5 @@
 #include <cmath>
+#include "src/gui/number_text.h"
 #include <QDoubleValidator>
 #include "templates_dialog.h"
 #include "src/core/math/sequences.h"
@@ -49,7 +50,7 @@ TemplatesDialog::TemplatesDialog(QWidget *parent) :
     setWindowTitle(tr("Template input"));
 
     ui->globalPointCount->setText(
-        QString::number(qftbx::Settings().defaults.templatePointCount));
+        tools::numberText(qftbx::Settings().defaults.templatePointCount));
 
     //Wire the cancel button.
     connect(ui->cancelButton, SIGNAL(clicked()), this, SLOT(close()));
@@ -65,8 +66,7 @@ TemplatesDialog::TemplatesDialog(QWidget *parent) :
 
 TemplatesDialog::~TemplatesDialog()
 {
-    clearTables();
-    gridMap.clear();
+    //The rows are Qt children of the dialog and die with it.
 }
 
 //Variable rows: each ParLineEdit and its tab page belong to the dialog;
@@ -214,16 +214,16 @@ void TemplatesDialog::buildRow(QWidget *widget, QVector <ParLineEdit> & par,
 
     verticalLayout->addLayout(horizontalLayout_3);
 
-    rLin->setText(QApplication::translate("Template", "LinSpace", 0));
-    rLog->setText(QApplication::translate("Template", "LogSpace", 0));
-    rManual->setText(QApplication::translate("Template", "Manual", 0));
+    rLin->setText(tr("LinSpace"));
+    rLog->setText(tr("LogSpace"));
+    rManual->setText(tr("Manual"));
 
     par.push_back(ParLineEdit(lin, log, manual));
 
-    struct ThreeRadioButtons radio;
-    radio.uno = rLin;
-    radio.dos = rLog;
-    radio.tres = rManual;
+    ThreeRadioButtons radio;
+    radio.linear = rLin;
+    radio.logarithmic = rLog;
+    radio.manual = rManual;
 
     rowRadios.push_back(radio);
 
@@ -255,7 +255,7 @@ void TemplatesDialog::on_cancelButton_clicked()
 }
 void TemplatesDialog::setDefaultPointCount(std::int32_t points)
 {
-    ui->globalPointCount->setText(QString::number(points));
+    ui->globalPointCount->setText(tools::numberText(points));
 }
 
 void TemplatesDialog::on_okButton_clicked()
@@ -276,7 +276,7 @@ void TemplatesDialog::on_okButton_clicked()
     epsilonValues.clear();
 
     if (ui->epsilonEdit->text().isEmpty()){
-        errorMessage(tr("No epsilonValues value was entered"), tr("Template computation"));
+        errorMessage(tr("No epsilon value was entered."), tr("Template computation"));
         ui->epsilonEdit->setStyleSheet("background : red");
         epsilonValues.clear();
         return;
@@ -295,11 +295,20 @@ void TemplatesDialog::on_okButton_clicked()
             for (const std::string & s : v) {
                 parser->SetExpr(s);
                 lastEpsilon = parser->Eval().GetFloat();
+                //An epsilon that is not a positive finite number has no hull:
+                //the walk would fail much later, per frequency, naming no
+                //field. muParserX answers "0/0" with a NaN, not an error.
+                if (!std::isfinite(lastEpsilon) || lastEpsilon <= 0.0) {
+                    errorMessage(tr("Every epsilon must be a positive finite number."), tr("Template computation"));
+                    ui->epsilonEdit->setStyleSheet("background : red");
+                    epsilonValues.clear();
+                    return;
+                }
                 epsilonValues.push_back(lastEpsilon);
                 counter++;
             }
         } catch (mup::ParserError &) {
-            errorMessage(tr("Invalid epsilonValues expression."), tr("Template computation"));
+            errorMessage(tr("Invalid epsilon expression."), tr("Template computation"));
             ui->epsilonEdit->setStyleSheet("background : red");
             epsilonValues.clear();
             return;
@@ -320,7 +329,7 @@ void TemplatesDialog::on_okButton_clicked()
     }else if (ui->logspaceRadio->isChecked() && !ui->globalPointCount->text().isEmpty()){
         useLogspace = true;
     }else {
-        errorMessage(tr("ERROR: select logspace or linspace in the general section."), tr("Template computation"));
+        errorMessage(tr("Select logspace or linspace in the general section."), tr("Template computation"));
         gridMap.clear();
         epsilonValues.clear();
         return;
@@ -328,7 +337,7 @@ void TemplatesDialog::on_okButton_clicked()
 
     try {
 
-    struct ThreeRadioButtons rowRadios;
+    ThreeRadioButtons rowRadios;
     ParLineEdit rowEdits;
     qint32 variableIndex = 0;
     for (qint32 i = 0; i < static_cast<qint32>(numerator.size()); i++){
@@ -339,9 +348,9 @@ void TemplatesDialog::on_okButton_clicked()
             variableIndex++;
             if (!readVariable(rowEdits, rowRadios,parameter,useLinspace,useLogspace)){
                 errorMessage(m_readReason.isEmpty()
-                                 ? tr("ERROR: the values entered for parameter \"%1\" are invalid")
+                                 ? tr("The values entered for parameter \"%1\" are invalid.")
                                        .arg(QString::fromStdString(parameter.name()))
-                                 : tr("ERROR: the values entered for parameter \"%1\" are invalid: %2.")
+                                 : tr("The values entered for parameter \"%1\" are invalid: %2.")
                                        .arg(QString::fromStdString(parameter.name()))
                                        .arg(m_readReason),
                          tr("Template computation"));
@@ -364,9 +373,9 @@ void TemplatesDialog::on_okButton_clicked()
             variableIndex++;
             if (!readVariable(rowEdits, rowRadios,parameter,useLinspace,useLogspace)){
                 errorMessage(m_readReason.isEmpty()
-                                 ? tr("ERROR: the values entered for parameter \"%1\" are invalid")
+                                 ? tr("The values entered for parameter \"%1\" are invalid.")
                                        .arg(QString::fromStdString(parameter.name()))
-                                 : tr("ERROR: the values entered for parameter \"%1\" are invalid: %2.")
+                                 : tr("The values entered for parameter \"%1\" are invalid: %2.")
                                        .arg(QString::fromStdString(parameter.name()))
                                        .arg(m_readReason),
                          tr("Template computation"));
@@ -382,13 +391,13 @@ void TemplatesDialog::on_okButton_clicked()
     }
     else{
 
-        const qreal inicio = plant->gain().range().min;
-        const qreal final = plant->gain().range().max;
+        const qreal start = plant->gain().range().min;
+        const qreal end = plant->gain().range().max;
         parser->SetExpr(ui->globalPointCount->text().toStdString());
 
         std::size_t pointCount = 0;
         if (!asPointCount(parser->Eval().GetFloat(), m_maxPointCount, pointCount)){
-            errorMessage(tr("ERROR: the general point count must be a whole "
+            errorMessage(tr("The general point count must be a whole "
                             "number between 1 and %1.").arg(static_cast<qint64>(m_maxPointCount)),
                          tr("Template computation"));
             gridMap.clear();
@@ -397,9 +406,9 @@ void TemplatesDialog::on_okButton_clicked()
         }
 
         if (useLinspace){
-            gridMap[plant->gain().name()] = qftbx::math::linspace(inicio, final, pointCount);
+            gridMap[plant->gain().name()] = qftbx::math::linspace(start, end, pointCount);
         } else {
-            gridMap[plant->gain().name()] = qftbx::math::logspace(inicio, final, pointCount);
+            gridMap[plant->gain().name()] = qftbx::math::logspace(start, end, pointCount);
         }
     }
 
@@ -407,13 +416,13 @@ void TemplatesDialog::on_okButton_clicked()
         gridMap[plant->delay().name()] = std::vector<double>(1, plant->delay().nominal());
     }else {
 
-        const qreal inicio = plant->delay().range().min;
-        const qreal final = plant->delay().range().max;
+        const qreal start = plant->delay().range().min;
+        const qreal end = plant->delay().range().max;
         parser->SetExpr(ui->globalPointCount->text().toStdString());
 
         std::size_t pointCount = 0;
         if (!asPointCount(parser->Eval().GetFloat(), m_maxPointCount, pointCount)){
-            errorMessage(tr("ERROR: the general point count must be a whole "
+            errorMessage(tr("The general point count must be a whole "
                             "number between 1 and %1.").arg(static_cast<qint64>(m_maxPointCount)),
                          tr("Template computation"));
             gridMap.clear();
@@ -425,9 +434,9 @@ void TemplatesDialog::on_okButton_clicked()
         //it clobbered the gain's grid and left the delay without an entry
         //(crashing the sweep with an uncertain delay).
         if (useLinspace){
-            gridMap[plant->delay().name()] = qftbx::math::linspace(inicio, final, pointCount);
+            gridMap[plant->delay().name()] = qftbx::math::linspace(start, end, pointCount);
         } else {
-            gridMap[plant->delay().name()] = qftbx::math::logspace(inicio, final, pointCount);
+            gridMap[plant->delay().name()] = qftbx::math::logspace(start, end, pointCount);
         }
     }
 
@@ -467,15 +476,15 @@ bool TemplatesDialog::readVariable(const ParLineEdit & rowEdits, ThreeRadioButto
         return true;
     }
 
-    qreal inicio;
-    qreal final;
+    qreal start;
+    qreal end;
     std::size_t pointCount = 0;
 
 
-    if (rowRadios.uno->isChecked() && !rowEdits.getX()->text().isEmpty()){
+    if (rowRadios.linear->isChecked() && !rowEdits.getX()->text().isEmpty()){
 
-        inicio = parameter.range().min;
-        final = parameter.range().max;
+        start = parameter.range().min;
+        end = parameter.range().max;
 
         parser->SetExpr(rowEdits.getX()->text().toStdString());
         if (!asPointCount(parser->Eval().GetFloat(), m_maxPointCount, pointCount)){
@@ -485,12 +494,12 @@ bool TemplatesDialog::readVariable(const ParLineEdit & rowEdits, ThreeRadioButto
             return false;
         }
 
-        gridMap[parameter.name()] = qftbx::math::linspace(inicio, final, pointCount);
+        gridMap[parameter.name()] = qftbx::math::linspace(start, end, pointCount);
 
-    }else if (rowRadios.dos->isChecked() && !rowEdits.getY()->text().isEmpty()){
+    }else if (rowRadios.logarithmic->isChecked() && !rowEdits.getY()->text().isEmpty()){
 
-        inicio = parameter.range().min;
-        final = parameter.range().max;
+        start = parameter.range().min;
+        end = parameter.range().max;
         parser->SetExpr(rowEdits.getY()->text().toStdString());
         if (!asPointCount(parser->Eval().GetFloat(), m_maxPointCount, pointCount)){
             m_readReason = tr("its point count must be a whole number "
@@ -499,9 +508,9 @@ bool TemplatesDialog::readVariable(const ParLineEdit & rowEdits, ThreeRadioButto
             return false;
         }
 
-        gridMap[parameter.name()] = qftbx::math::logspace(inicio, final, pointCount);
+        gridMap[parameter.name()] = qftbx::math::logspace(start, end, pointCount);
 
-    }else if(rowRadios.tres->isChecked() && !rowEdits.nominal()->text().isEmpty()){
+    }else if(rowRadios.manual->isChecked() && !rowEdits.nominal()->text().isEmpty()){
 
         const std::vector<std::string> vector = qftbx::text::tokens(rowEdits.nominal()->text().toStdString());
         std::vector<double> values;
@@ -524,8 +533,8 @@ bool TemplatesDialog::readVariable(const ParLineEdit & rowEdits, ThreeRadioButto
         gridMap[parameter.name()] = std::move(values);
     }else if (useLinspace || useLogspace){
 
-        inicio = parameter.range().min;
-        final = parameter.range().max;
+        start = parameter.range().min;
+        end = parameter.range().max;
 
         parser->SetExpr(ui->globalPointCount->text().toStdString());
         if (!asPointCount(parser->Eval().GetFloat(), m_maxPointCount, pointCount)){
@@ -536,9 +545,9 @@ bool TemplatesDialog::readVariable(const ParLineEdit & rowEdits, ThreeRadioButto
         }
 
         if(useLinspace){
-            gridMap[parameter.name()] = qftbx::math::linspace(inicio, final, pointCount);
+            gridMap[parameter.name()] = qftbx::math::linspace(start, end, pointCount);
         }else {
-            gridMap[parameter.name()] = qftbx::math::logspace(inicio, final, pointCount);
+            gridMap[parameter.name()] = qftbx::math::logspace(start, end, pointCount);
         }
     }else{
         return false;

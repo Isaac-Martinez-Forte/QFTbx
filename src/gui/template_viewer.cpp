@@ -1,5 +1,7 @@
 
 #include "src/core/exception.h"
+#include "src/gui/plot_export.h"
+#include "src/gui/number_text.h"
 #include <QMessageBox>
 
 #include "qt_containers.h"
@@ -10,7 +12,6 @@
 #include "src/gui/plot_palette.h"
 
 using namespace std;
-//using namespace tools;
 
 TemplateViewer::TemplateViewer(QWidget *parent) :
     QDialog(parent),
@@ -26,7 +27,7 @@ TemplateViewer::TemplateViewer(QWidget *parent) :
     frequenciesBox = new QGroupBox(this);
     frequenciesBox->setObjectName("frequenciesBox");
     frequenciesBox->setGeometry(QRect(660, 0, 141, 461));
-    frequenciesBox->setTitle(QApplication::translate("TemplateViewer", "Frequencies", 0));
+    frequenciesBox->setTitle(tr("Frequencies"));
 
     //Connected ONCE (every replot used to add a duplicated connection).
     connect(ui->plot->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->xAxis2, SLOT(setRange(QCPRange)));
@@ -88,12 +89,13 @@ void TemplateViewer::setData(const qftbx::CloudSet & templates,
     setTemplates(templates);
     setContour(contour);
 
-    this->omega = omega;
+    //Copies: the viewer used to alias the project's vectors, and it outlives
+    //them across a load.
+    m_omega = *omega;
+    m_epsilon = *epsilon;
 
-    this->epsilon = epsilon;
-
-    for (qint32 i = 0; i < static_cast<std::int32_t>(omega->size()); i++){
-        colorByFrequency.insert(omega->at(i), tools::randomColor(i));
+    for (qint32 i = 0; i < static_cast<std::int32_t>(m_omega.size()); i++){
+        colorByFrequency.insert(m_omega.at(i), tools::randomColor(i));
     }
 }
 
@@ -106,11 +108,8 @@ void TemplateViewer::refreshContour(const qftbx::CloudSet & contour,
                                     std::vector<double> * epsilon){
     setContour(contour);
 
-    this->omega = omega;
-
-    //The previous epsilon belongs to the project, which deleted it when it
-    //accepted the new one; touching it here would be a use-after-free.
-    this->epsilon = epsilon;
+    m_omega = *omega;
+    m_epsilon = *epsilon;
 
     plotDiagram(plot);
 }
@@ -214,9 +213,6 @@ void TemplateViewer::plotDiagram(bool plot){
     ui->plot->yAxis2->setVisible(true);
     ui->plot->yAxis2->setTickLabels(false);
 
-    //ui->plot->legend->setVisible(true);
-    //ui->plot->legend->setBrush(QColor(255, 255, 255, 150));
-
     ui->plot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
 
     ui->plot->replot();
@@ -224,13 +220,13 @@ void TemplateViewer::plotDiagram(bool plot){
 
 }
 
-void TemplateViewer::plotLine(qint32 pos, QVector <QCPGraph *> & saveImage,
-                              const std::vector<double> & fas, const std::vector<double> & gan,
-                              bool tipo, bool visible, qint32 counter){
-    saveImage.push_back(ui->plot->addGraph());
-    ui->plot->graph(pos)->setData(tools::toQVector(fas), tools::toQVector(gan));
+void TemplateViewer::plotLine(qint32 pos, QVector <QCPGraph *> & graphs,
+                              const std::vector<double> & phases, const std::vector<double> & magnitudes,
+                              bool isContour, bool visible, qint32 counter){
+    graphs.push_back(ui->plot->addGraph());
+    ui->plot->graph(pos)->setData(tools::toQVector(phases), tools::toQVector(magnitudes));
 
-    if (tipo){
+    if (isContour){
         ui->plot->graph(pos)->setScatterStyle(QCPScatterStyle::ssNone);
         ui->plot->graph(pos)->setLineStyle(QCPGraph::lsLine);
     }else{
@@ -239,11 +235,9 @@ void TemplateViewer::plotLine(qint32 pos, QVector <QCPGraph *> & saveImage,
     }
     QColor color;
 
+    color = colorByFrequency.value(m_omega.at(counter));
     if (visible){
-        color = colorByFrequency.value(omega->at(counter));
         addFrequencyRow(color, pos);
-    }else{
-        color = colorByFrequency.value(omega->at(counter));
     }
 
     ui->plot->graph(pos)->setPen(color);
@@ -270,11 +264,8 @@ void TemplateViewer::addFrequencyRow(QColor color, qint32 pos){
     widget->setObjectName(QString::fromUtf8("widget"));
     widget->setGeometry(QRect(60, 70, 177, 58));
 
-    QMetaObject::connectSlotsByName(widget);
-
     verticalLayout = new QVBoxLayout(widget);
     verticalLayout->setSpacing(6);
-    verticalLayout->setContentsMargins(11, 11, 11, 11);
     verticalLayout->setObjectName(QString::fromUtf8("verticalLayout"));
     verticalLayout->setContentsMargins(0, 0, 0, 0);
     horizontalLayout = new QHBoxLayout();
@@ -283,7 +274,7 @@ void TemplateViewer::addFrequencyRow(QColor color, qint32 pos){
 
     check = new QCheckBox(widget);
     check->setObjectName(QString::fromUtf8("check"));
-    check->setText(QString::number(omega->at(pos)));
+    check->setText(tools::numberText(m_omega.at(pos)));
     check->setStyleSheet("color : " + color.name());
 
     checkboxes.push_back(check);
@@ -294,8 +285,8 @@ void TemplateViewer::addFrequencyRow(QColor color, qint32 pos){
     slider = new QSlider(widget);
     slider->setObjectName(QString::fromUtf8("slider"));
     slider->setOrientation(Qt::Horizontal);
-    slider->setMaximum(epsilon->at(pos) * 10000);
-    slider->setValue(epsilon->at(pos) * 1000);
+    slider->setMaximum(m_epsilon.at(pos) * 10000);
+    slider->setValue(m_epsilon.at(pos) * 1000);
 
     epsilonSliders.push_back(slider);
     horizontalLayout->addWidget(slider);
@@ -305,7 +296,7 @@ void TemplateViewer::addFrequencyRow(QColor color, qint32 pos){
 
     linea = new QLineEdit(widget);
     linea->setObjectName(QString::fromUtf8("linea"));
-    linea->setText(QString::number(epsilon->at(pos)));
+    linea->setText(tools::numberText(m_epsilon.at(pos)));
 
     epsilonEdits.push_back(linea);
     verticalLayout->addWidget(linea);
@@ -319,26 +310,7 @@ void TemplateViewer::addFrequencyRow(QColor color, qint32 pos){
 
 void TemplateViewer::on_saveImage_clicked()
 {
-    bool noFallo = true;
-    QString extension;
-    QString fileName = QFileDialog::getSaveFileName(this, tr("Save file"),"",
-                                                    tr((".png (*.png);;.pdf(*.pdf);; .jpg(*.jpg);; .bmp(*.bmp)")), &extension);
-    if (!fileName.isEmpty()){
-        if (extension.contains(".pdf", Qt::CaseInsensitive)){
-            noFallo = ui->plot->savePdf(fileName, true);
-        }else if (extension.contains(".png", Qt::CaseInsensitive)){
-            noFallo = ui->plot->savePng(fileName);
-        }else if (extension.contains(".jpg", Qt::CaseInsensitive)){
-            noFallo = ui->plot->saveJpg(fileName);
-        }else if (extension.contains(".bmp", Qt::CaseInsensitive)){
-            noFallo = ui->plot->saveBmp(fileName);
-        }else{
-            noFallo = false;
-        }
-
-        if (!noFallo)
-            tools::errorMessage(tr("The image could not be saved"), tr("Template plot"));
-    }
+    tools::exportPlot(this, *ui->plot, tr("Template plot"));
 }
 
 void TemplateViewer::on_templatesButton_clicked()
@@ -373,13 +345,13 @@ void TemplateViewer::on_contourButton_clicked()
 
 void TemplateViewer::syncSliders(){
     for (qint32 i = 0; i < epsilonSliders.size(); i++){
-        epsilonEdits.at(i)->setText(QString::number(epsilonSliders.at(i)->value() / 1000.0));
+        epsilonEdits.at(i)->setText(tools::numberText(epsilonSliders.at(i)->value() / 1000.0));
     }
 }
 
 void TemplateViewer::applyCheckboxes(){
     for (qint32 i = 0; i < checkboxes.size(); i++){
-        if (checkboxes.at(i)->checkState() == 0){
+        if (checkboxes.at(i)->checkState() == Qt::Unchecked){
             contourGraphs.at(i)->setVisible(false);
         }else {
             contourGraphs.at(i)->setVisible(true);

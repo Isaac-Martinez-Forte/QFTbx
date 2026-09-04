@@ -12,8 +12,7 @@
 //it. setReporter() replaces the destination, so a test can collect what
 //the dialogs report and assert on it.
 //
-//Note for the phase-7 review: the dialog has no parent (not modal to the
-//main window) and several call sites still swap message and title.
+//The default dialog has no parent, so it is not modal to the main window.
 namespace tools {
 
 using ErrorReporter = std::function<void (const QString & message, const QString & title)>;

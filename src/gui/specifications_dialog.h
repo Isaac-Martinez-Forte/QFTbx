@@ -15,8 +15,6 @@
 #include "mpParser.h"
 #include "src/core/frequencies/omega.h"
 
-using namespace tools;
-
 namespace Ui {
 class SpecificationsDialog;
 }
@@ -127,7 +125,7 @@ private:
 
     std::optional<qftbx::SpecificationRecords> published;
 
-    qint32 activeTab;
+    qint32 activeTab = 0;
 
     bool data(qftbx::SpecificationRecord & record_in, QString name_in);
     bool data(qftbx::SpecificationRecord & record_in, qftbx::SpecificationRecord & upperRecord,
