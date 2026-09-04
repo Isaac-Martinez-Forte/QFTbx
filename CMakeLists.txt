@@ -269,6 +269,7 @@ set(QFTbx_GUI_HED
     src/gui/plot_palette.h
     src/gui/main_window.h
     src/gui/plant_dialog.h
+    src/gui/step_dialog.h
     src/gui/frequencies_dialog.h
     src/gui/uncertainty_dialog.h
     src/gui/boundary_viewer.h

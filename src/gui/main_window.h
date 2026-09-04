@@ -2,6 +2,8 @@
 #define QFTBX_MAIN_WINDOW_H
 
 #include <QDialog>
+
+#include "src/gui/step_dialog.h"
 #include <functional>
 #include <vector>
 #include <memory>
@@ -138,7 +140,7 @@ private:
     //twice. destroyDialogs() deletes them to REBUILD them for a new
     //session, which is Qt's own mechanism, not memory management of ours.
     /// Shows a dialog through the runner, or exec() when there is none.
-    void runDialog(QDialog * dialog);
+    void runDialog(StepDialog * dialog);
 
     /// Asks for a file name through the chooser, or QFileDialog when none.
     QString chooseFile(bool forSaving, const QString & title);

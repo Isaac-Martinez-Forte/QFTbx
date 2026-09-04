@@ -1,6 +1,7 @@
 #ifndef QFTBX_FREQUENCIES_DIALOG_H
 #define QFTBX_FREQUENCIES_DIALOG_H
 
+#include "src/gui/step_dialog.h"
 #include <memory>
 
 #include <QDialog>
@@ -25,7 +26,7 @@ class FrequenciesDialog;
  *
  * @author Isaac Martínez Forte
  */
-class FrequenciesDialog : public QDialog
+class FrequenciesDialog : public StepDialog
 {
     Q_OBJECT
     
@@ -41,7 +42,6 @@ public:
     ~FrequenciesDialog();
 
 
-    bool wasAccepted();
     
 private slots:
 
@@ -58,7 +58,6 @@ private:
 
     std::unique_ptr<Ui::FrequenciesDialog> ui;
 
-    bool accepted;
 };
 
 #endif // QFTBX_FREQUENCIES_DIALOG_H

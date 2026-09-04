@@ -141,11 +141,17 @@ void MainWindow::setFileChooser(FileChooser choose)
 
 //Without a runner it is exec(), which is what the application does. The
 //indirection exists so a test can be the user.
-void MainWindow::runDialog(QDialog * dialog)
+void MainWindow::runDialog(StepDialog * dialog)
 {
     if (dialog == nullptr) {
         return;
     }
+
+    //THE dialog is reused between visits, so a previous acceptance has to be
+    //forgotten here. Without this, wasAccepted() answered true for ever after
+    //the first OK - with the payload already handed over - and closing a
+    //reopened dialog published a null one, wiping the step from the project.
+    dialog->clearAcceptance();
 
     if (m_runDialog != nullptr) {
         m_runDialog(dialog);
@@ -318,14 +324,13 @@ void MainWindow::on_plantButton_clicked()
         //The dialogs only describe; publishing into the project is the
         //window's job, so a dialog never needs to know the facade.
         std::unique_ptr<LtiSystem> described = plantDialog->takePlant();
-        //A dialog reused after acceptance STILL says it was accepted: the flag
-        //is set once, on OK, and never cleared. So reopening this dialog and
-        //closing it with Escape came back here with wasAccepted() true and
-        //the payload already handed over, and published a null one - which
-        //wiped the step from the project, and everything computed from it.
-        //Guarded where the damage was: a step publishes only what it actually
-        //received. The flag's own semantics are the root of it, and that is
-        //recorded as its own item: wasAccepted() should mean "this showing".
+        //Publish only what was actually received. The payload is MOVED out of
+        //the dialog, so asking twice gives a null the second time - and
+        //publishing a null wipes the step from the project, and everything
+        //computed from it. That used to be reachable, because a reused dialog
+        //reported an acceptance it had already handed over; StepDialog and
+        //runDialog() closed that path. This stays as the invariant it is:
+        //nothing moved-from goes into the project.
         if (described == nullptr){
             refreshAvailability();
             return;
@@ -379,8 +384,8 @@ void MainWindow::on_specificationsButton_clicked()
     runDialog(specificationsDialog);
 
     if (specificationsDialog->wasAccepted()){
-        //See on_plantButton_clicked: a reused dialog still reports accepted,
-        //and an empty answer here used to wipe the specifications.
+        //See on_plantButton_clicked: nothing moved-from goes in, and an empty
+        //answer here would wipe the specifications.
         std::optional<qftbx::SpecificationRecords> described =
                 specificationsDialog->takeSpecifications();
 
@@ -412,7 +417,7 @@ void MainWindow::on_frequenciesButton_clicked()
 
     if (frequenciesDialog->wasAccepted()){
         std::unique_ptr<Omega> described = frequenciesDialog->takeOmega();
-        //See on_plantButton_clicked: a reused dialog still reports accepted.
+        //See on_plantButton_clicked: nothing moved-from goes in.
         if (described == nullptr){
             refreshAvailability();
             return;
@@ -574,7 +579,7 @@ void MainWindow::on_controllerButton_clicked()
 
     if (controllerDialog->wasAccepted()){
         std::unique_ptr<LtiSystem> described = controllerDialog->takeControllerStructure();
-        //See on_plantButton_clicked: a reused dialog still reports accepted.
+        //See on_plantButton_clicked: nothing moved-from goes in.
         if (described == nullptr){
             refreshAvailability();
             return;

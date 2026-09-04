@@ -21,7 +21,7 @@ constexpr int kMaxFrequencyCount = 1000000;
 }
 
 FrequenciesDialog::FrequenciesDialog(QWidget *parent) :
-    QDialog(parent),
+    StepDialog(parent),
     ui(std::make_unique<Ui::FrequenciesDialog>())
 {
 
@@ -41,7 +41,6 @@ FrequenciesDialog::FrequenciesDialog(QWidget *parent) :
     ui->linStart->setValidator(new QDoubleValidator(this));
     ui->linCount->setValidator(new QIntValidator(1, kMaxFrequencyCount, this));
 
-    accepted = false;
 
     connect(ui->cancelButton, SIGNAL(clicked()), this, SLOT(close()));
     connect (this, SIGNAL(close_ok()), this,SLOT(close()));
@@ -150,15 +149,11 @@ void FrequenciesDialog::on_okButton_clicked()
 
     m_omega = std::make_unique<Omega>(start, end, pointCount, std::move(frequencies), type);
 
-    accepted = true;
+    markAccepted();
 
     emit (close_ok());
 }
 
-
-bool FrequenciesDialog::wasAccepted(){
-    return accepted;
-}
 
 std::unique_ptr<Omega> FrequenciesDialog::takeOmega(){
     return std::move(m_omega);

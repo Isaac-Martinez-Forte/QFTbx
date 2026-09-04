@@ -8,7 +8,7 @@ using namespace tools;
 using namespace std;
 
 BoundaryGridDialog::BoundaryGridDialog(QWidget *parent) :
-    QDialog(parent),
+    StepDialog(parent),
     ui(std::make_unique<Ui::BoundaryGridDialog>())
 {
     ui->setupUi(this);
@@ -41,7 +41,6 @@ BoundaryGridDialog::BoundaryGridDialog(QWidget *parent) :
     ui->cudaCheck->setVisible(false);
 #endif
 
-    accepted = false;
 }
 
 BoundaryGridDialog::~BoundaryGridDialog()
@@ -103,7 +102,6 @@ void BoundaryGridDialog::on_buttonBox_accepted()
     if (phaseRange.min >= phaseRange.max || magnitudeRange.min >= magnitudeRange.max ||
             phaseCount < 2 || magnitudeCount < 2){
         tools::errorMessage(tr("The grid ranges must be increasing, with at least 2 points per axis."), tr("Boundary grid input"));
-        accepted = false;
         return;
     }
 
@@ -120,7 +118,6 @@ void BoundaryGridDialog::on_buttonBox_accepted()
                                 .arg(static_cast<std::int64_t>(phaseCount) * magnitudeCount)
                                 .arg(kMaxGridCells),
                             tr("Boundary grid input"));
-        accepted = false;
         return;
     }
 
@@ -129,13 +126,12 @@ void BoundaryGridDialog::on_buttonBox_accepted()
     //Direct read: the old latch left CUDA enabled forever once checked.
     cudaCheck = ui->cudaCheck->isChecked();
 
-    accepted = true;
+    markAccepted();
 }
 
 void BoundaryGridDialog::showEvent(QShowEvent * event)
 {
     //Reopening and cancelling must not relaunch the computation with the old data.
-    accepted = false;
     QDialog::showEvent(event);
 }
 
@@ -143,6 +139,3 @@ bool BoundaryGridDialog::cudaSelected(){
     return cudaCheck;
 }
 
-bool BoundaryGridDialog::wasAccepted(){
-    return accepted;
-}

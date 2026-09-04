@@ -1,6 +1,7 @@
 #ifndef QFTBX_SPECIFICATIONS_DIALOG_H
 #define QFTBX_SPECIFICATIONS_DIALOG_H
 
+#include "src/gui/step_dialog.h"
 #include <memory>
 
 #include <optional>
@@ -20,7 +21,7 @@ namespace Ui {
 class SpecificationsDialog;
 }
 
-class SpecificationsDialog : public QDialog
+class SpecificationsDialog : public StepDialog
 {
     Q_OBJECT
 
@@ -42,7 +43,6 @@ public:
     ~SpecificationsDialog();
 
 
-    bool wasAccepted ();
 
     /**
      * @brief Points the dialog at the project's CURRENT design frequencies.
@@ -169,7 +169,6 @@ private:
 
     const std::vector<double> * frequencies;
 
-    bool accepted;
 };
 
 

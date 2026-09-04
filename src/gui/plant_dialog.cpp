@@ -14,7 +14,7 @@
 using namespace tools;
 
 PlantDialog::PlantDialog(QWidget *parent) :
-    QDialog(parent),
+    StepDialog(parent),
     ui(std::make_unique<Ui::PlantDialog>())
 {
     ui->setupUi(this);
@@ -42,7 +42,6 @@ PlantDialog::PlantDialog(QWidget *parent) :
 
     uncertaintyEntered = false;
 
-    accepted = false;
 
     //The uncertainty dialog is created up front and reused.
     uncertaintyDialog = new UncertaintyDialog (this);
@@ -432,7 +431,7 @@ void PlantDialog::on_okButton_clicked()
     }
 
 
-    accepted = true;
+    markAccepted();
 
     this->close();
 }
@@ -496,10 +495,6 @@ void PlantDialog::on_freeFormRadio_clicked()
     ui->formStack->setCurrentIndex(1);
 }
 
-
-bool PlantDialog::wasAccepted(){
-    return accepted;
-}
 
 std::unique_ptr<LtiSystem> PlantDialog::takePlant(){
     return std::move(plant);

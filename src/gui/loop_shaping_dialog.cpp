@@ -59,7 +59,7 @@ constexpr double kMaxMagnitude  = 1.0e12;
 }
 
 LoopShapingDialog::LoopShapingDialog(QWidget *parent) :
-    QDialog(parent),
+    StepDialog(parent),
     ui(std::make_unique<Ui::LoopShapingDialog>())
 {
     ui->setupUi(this);
@@ -87,7 +87,6 @@ LoopShapingDialog::LoopShapingDialog(QWidget *parent) :
 
     linLogSpace = false;
 
-    accepted = false;
 }
 
 LoopShapingDialog::~LoopShapingDialog()
@@ -97,7 +96,6 @@ LoopShapingDialog::~LoopShapingDialog()
 void LoopShapingDialog::showEvent(QShowEvent * event)
 {
     //Reopening and cancelling must not relaunch the computation with the old data.
-    accepted = false;
     QDialog::showEvent(event);
 }
 
@@ -168,13 +166,9 @@ void LoopShapingDialog::on_okButton_clicked()
     //checked.
     linLogSpace = ui->linspaceRadio->isChecked();
 
-    accepted = true;
+    markAccepted();
 
     this->close();
-}
-
-bool LoopShapingDialog::wasAccepted(){
-    return accepted;
 }
 
 

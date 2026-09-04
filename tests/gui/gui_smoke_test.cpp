@@ -1025,4 +1025,31 @@ TEST_F(GuiSmoke, OpeningAProjectRebuildsTheStepsItCarried)
     EXPECT_TRUE(child<QPushButton>(&window, "loopButton")->isEnabled());
 }
 
+
+TEST_F(GuiSmoke, AReusedDialogForgetsItsPreviousAcceptance)
+{
+    //StepDialog directly: the seven dialogs used to declare this flag each
+    //for themselves, set it on OK and never clear it, so a reused one
+    //reported an acceptance whose payload it had already handed over.
+    PlantDialog dialog;
+
+    EXPECT_FALSE(dialog.wasAccepted()) << "a fresh dialog has accepted nothing";
+
+    type(&dialog, "nameEdit", "reused");
+    check(&dialog, "zpkRadio");
+    type(&dialog, "zpkNumerator", "2");
+    type(&dialog, "zpkDenominator", "5 30");
+    type(&dialog, "zpkGain", "3");
+    type(&dialog, "zpkDelay", "0");
+    press(&dialog, "okButton");
+
+    ASSERT_TRUE(dialog.wasAccepted());
+
+    //Which is what the window does before showing it again.
+    dialog.clearAcceptance();
+
+    EXPECT_FALSE(dialog.wasAccepted())
+        << "an acceptance must not outlive the showing it belongs to";
+}
+
 } // namespace
