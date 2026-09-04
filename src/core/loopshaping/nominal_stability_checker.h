@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "src/core/system/lti_system.h"
+#include "src/core/loopshaping/point_controller.h"
 
 namespace qftbx {
 
@@ -60,9 +61,13 @@ public:
     /// conservatively discards the candidate.
     bool isNominallyStable(LtiSystem * pointController);
 
+    /// The same verdict for a point given as its values, which is how the
+    /// searches hold their candidates before one becomes a result.
+    bool isNominallyStable(const PointController & point);
+
 private:
     std::complex<double> plantAt(double w);
-    static std::complex<double> controllerAt(LtiSystem * controller, double w);
+    static std::complex<double> controllerAt(const PointController & controller, double w);
 
     LtiSystem * m_plant;
 

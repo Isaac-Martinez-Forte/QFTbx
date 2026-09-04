@@ -78,6 +78,10 @@ private:
     /// The reparametrisation applied to one value, parsed once per thread.
     double realValueOf(double value) const;
 
+    /// Whether the expression maps the parameter to itself, in which case
+    /// the raw values ARE the real ones and the parser has nothing to add.
+    bool identityExpression() const;
+
     //Initialised here, not constructor by constructor: the value
     //constructors used to leave m_hasExpression indeterminate, and reading
     //it (the copy constructor does) is undefined behaviour. It stayed

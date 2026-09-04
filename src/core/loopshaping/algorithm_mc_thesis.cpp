@@ -208,13 +208,13 @@ bool AlgorithmMcThesis::solve()
         }
 
         if (analysis.flag == feasible) {
-            designedController = pointFromBox(node->system(), true);
+            const PointController corner = cornerOf(node->system(), true);
 
-            if (!stability->isNominallyStable(designedController.get())) {
-                designedController.reset();
+            if (!stability->isNominallyStable(corner)) {
                 continue;
             }
 
+            designedController = systemFromPoint(node->system(), corner);
             return true;
         }
 
@@ -222,13 +222,13 @@ bool AlgorithmMcThesis::solve()
         //solution function): the returned point is unverified, so it must
         //pass the stability criterion, as reviewed for NT.
         if (isEpsilonSmall(node->system(), epsilon, omega, conversion.get(), nominalPlantValues)) {
-            designedController = pointFromBox(node->system(), false);
+            const PointController corner = cornerOf(node->system(), false);
 
-            if (!stability->isNominallyStable(designedController.get())) {
-                designedController.reset();
+            if (!stability->isNominallyStable(corner)) {
                 continue;
             }
 
+            designedController = systemFromPoint(node->system(), corner);
             return true;
         }
 
@@ -399,6 +399,20 @@ bool AlgorithmMcThesis::boxIsFeasible(LtiSystem * box)
     return true;
 }
 
+bool AlgorithmMcThesis::pointIsFeasible(const PointController & point)
+{
+    for (std::size_t i = 0; i < omega->size(); ++i) {
+        const cinterval projection = conversion->nicholsPoint(point, omega->at(i),
+                                                              nominalPlantValues.at(i));
+
+        if (detector->classifyBox(projection, boundaries, i).flag() != feasible) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 
 //----------------------------------------------------------------- MG
 //Best-gain search (thesis 4.3 and 5.2): with the other parameters fixed
@@ -473,27 +487,14 @@ bool AlgorithmMcThesis::bestGainSearch(McSearchNode * node, const NodeAnalysis &
     //The certified point: gain at the intersection infimum, the other
     //parameters at the corner (thesis 4.3: the solution is a POINT; its
     //pseudocode substitutes into the whole box, an erratum).
-    std::vector<Parameter> numerator;
-    numerator.reserve(zeroSups.size());
-    for (double z : zeroSups) {
-        numerator.emplace_back(z);
-    }
+    const PointController point{lowNeeded, std::move(zeroSups), std::move(poleInfs)};
 
-    std::vector<Parameter> denominator;
-    denominator.reserve(poleInfs.size());
-    for (double p : poleInfs) {
-        denominator.emplace_back(p);
-    }
-
-    std::unique_ptr<LtiSystem> point = box->create(box->name(), std::move(numerator),
-            std::move(denominator), Parameter(lowNeeded), box->delay());
-
-    if (!boxIsFeasible(point.get()) || !stability->isNominallyStable(point.get())) {
+    if (!pointIsFeasible(point) || !stability->isNominallyStable(point)) {
         return false;
     }
 
     bestCertifiedGain = lowNeeded;
-    bestCertifiedController = std::move(point);
+    bestCertifiedController = systemFromPoint(box, point);
 
     return true;
 }
@@ -511,9 +512,9 @@ void AlgorithmMcThesis::insertFeasibleBox(std::unique_ptr<LtiSystem> box,
         return;
     }
 
-    std::unique_ptr<LtiSystem> point = pointFromBox(box.get(), true);
+    const PointController point = cornerOf(box.get(), true);
 
-    if (!stability->isNominallyStable(point.get())) {
+    if (!stability->isNominallyStable(point)) {
         return;
     }
 
@@ -522,7 +523,7 @@ void AlgorithmMcThesis::insertFeasibleBox(std::unique_ptr<LtiSystem> box,
     //one prune variable).
     if (gainInf < bestCertifiedGain) {
         bestCertifiedGain = gainInf;
-        bestCertifiedController = std::move(point);
+        bestCertifiedController = systemFromPoint(box.get(), point);
     }
 
     auto t = std::make_unique<McSearchNode>(gainInf, std::move(box), feasible);

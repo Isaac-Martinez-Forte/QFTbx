@@ -61,32 +61,58 @@ std::complex<double> NominalStabilityChecker::plantAt(double w)
 }
 
 //Zero-pole-gain semantics, matching NaturalIntervalExtension::nicholsBox:
-//C(jw) = k prod(jw + z_i) / prod(jw + p_j) over the nominal values.
-std::complex<double> NominalStabilityChecker::controllerAt(LtiSystem * controller, double w)
+//C(jw) = k prod(jw + z_i) / prod(jw + p_j) over the point's values.
+std::complex<double> NominalStabilityChecker::controllerAt(const PointController & controller, double w)
 {
     const std::complex<double> jw(0.0, w);
 
-    std::complex<double> value(controller->gain().nominal(), 0.0);
+    std::complex<double> value(controller.gain, 0.0);
 
-    for (Parameter & zero : controller->numerator()) {
-        value *= jw + std::complex<double>(zero.nominal(), 0.0);
+    for (const double zero : controller.zeros) {
+        value *= jw + std::complex<double>(zero, 0.0);
     }
 
-    for (Parameter & pole : controller->denominator()) {
-        value /= jw + std::complex<double>(pole.nominal(), 0.0);
+    for (const double pole : controller.poles) {
+        value /= jw + std::complex<double>(pole, 0.0);
     }
 
     return value;
 }
 
-bool NominalStabilityChecker::isNominallyStable(LtiSystem * pointController)
+bool NominalStabilityChecker::isNominallyStable(LtiSystem * controller)
 {
-    //The working curve: frequency, |L0| and unwrapped phase, refined where
-    //the phase turns faster than the unwrapping tolerance.
+    //Every parameter at its nominal value, which is what a point system
+    //holds; the values are read once here instead of once per sample.
+    PointController point;
+    point.gain = controller->gain().nominal();
+
+    point.zeros.reserve(controller->numerator().size());
+    for (Parameter & zero : controller->numerator()) {
+        point.zeros.push_back(zero.nominal());
+    }
+
+    point.poles.reserve(controller->denominator().size());
+    for (Parameter & pole : controller->denominator()) {
+        point.poles.push_back(pole.nominal());
+    }
+
+    return isNominallyStable(point);
+}
+
+bool NominalStabilityChecker::isNominallyStable(const PointController & pointController)
+{
+    //The working curve: frequency, the loop value and its raw phase,
+    //refined where the phase turns faster than the unwrapping tolerance.
+    //The magnitude is read from the loop value where the criterion looks
+    //at it - the last sample, a start on a ray, the two ends of a crossing
+    //- rather than computed for every sample: the check runs on hundreds of
+    //thousands of candidates per search, and most samples never need it.
     struct Sample {
         double w;
-        double magnitude;
+        std::complex<double> loop;
         double phase; //raw in (-180, 180], unwrapped afterwards
+
+        double magnitude() const { return std::abs(loop); }
     };
 
     std::vector<Sample> curve;
@@ -95,7 +121,7 @@ bool NominalStabilityChecker::isNominallyStable(LtiSystem * pointController)
     for (std::size_t i = 0; i < m_frequencies.size(); ++i) {
         const std::complex<double> loop =
                 controllerAt(pointController, m_frequencies[i]) * m_plantValues[i];
-        curve.push_back({m_frequencies[i], std::abs(loop), phaseDegrees(loop)});
+        curve.push_back({m_frequencies[i], loop, phaseDegrees(loop)});
     }
 
     //Adaptive refinement: subdivide any interval whose raw phase step
@@ -113,7 +139,7 @@ bool NominalStabilityChecker::isNominallyStable(LtiSystem * pointController)
         if (step > m_tolerances.maxPhaseStepDegrees && curve[i + 1].w - curve[i].w > 1e-12 * curve[i].w) {
             const double w = std::sqrt(curve[i].w * curve[i + 1].w);
             const std::complex<double> loop = controllerAt(pointController, w) * plantAt(w);
-            curve.insert(curve.begin() + static_cast<std::ptrdiff_t>(i) + 1, {w, std::abs(loop), phaseDegrees(loop)});
+            curve.insert(curve.begin() + static_cast<std::ptrdiff_t>(i) + 1, {w, loop, phaseDegrees(loop)});
             --budget;
         } else {
             ++i;
@@ -127,7 +153,7 @@ bool NominalStabilityChecker::isNominallyStable(LtiSystem * pointController)
 
     //The loop must be proper: the criterion closes the contour where the
     //magnitude has fallen below the ray magnitude.
-    if (curve.back().magnitude >= kRayMagnitude) {
+    if (curve.back().magnitude() >= kRayMagnitude) {
         return false;
     }
 
@@ -161,7 +187,7 @@ bool NominalStabilityChecker::isNominallyStable(LtiSystem * pointController)
     //the low-frequency phase exactly at -180) counts half a crossing
     //towards the side it departs to.
     const double startRay = rayBelow(unwrapped[0] + 1e-6);
-    if (std::abs(unwrapped[0] - startRay) < 1e-3 && curve[0].magnitude > kRayMagnitude) {
+    if (std::abs(unwrapped[0] - startRay) < 1e-3 && curve[0].magnitude() > kRayMagnitude) {
         std::size_t next = 1;
         while (next + 1 < curve.size() && std::abs(unwrapped[next] - unwrapped[0]) < 1e-9) {
             ++next;
@@ -189,8 +215,9 @@ bool NominalStabilityChecker::isNominallyStable(LtiSystem * pointController)
 
             //Magnitude at the crossing, log-interpolated in frequency.
             const double t = (level - a) / (b - a);
-            const double magnitude = curve[i].magnitude *
-                    std::pow(curve[i + 1].magnitude / curve[i].magnitude, t);
+            const double from = curve[i].magnitude();
+            const double to = curve[i + 1].magnitude();
+            const double magnitude = from * std::pow(to / from, t);
 
             if (magnitude > kRayMagnitude) {
                 crossings += sign;

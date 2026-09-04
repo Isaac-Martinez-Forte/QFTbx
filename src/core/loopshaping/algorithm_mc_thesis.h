@@ -176,6 +176,7 @@ private:
 
     bool boxIsFeasibleAt(LtiSystem * box, std::size_t freqIndex);
     bool boxIsFeasible(LtiSystem * box);
+    bool pointIsFeasible(const PointController & point);
     void insertFeasibleBox(std::unique_ptr<LtiSystem> box, McSearchNode * parent);
 
     inline std::int32_t parameterCount(LtiSystem * box) const;

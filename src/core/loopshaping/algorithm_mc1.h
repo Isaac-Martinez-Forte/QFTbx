@@ -98,7 +98,8 @@ private:
                                       const cxsc::cinterval & projection, double w,
                                       std::complex<double> p0);
     void certifiedGainSearch(LtiSystem * box);
-    bool gainRangeIsFeasible(LtiSystem * box, double gainInf, double gainSup);
+    bool gainRangeIsFeasible(const std::vector<NaturalIntervalExtension::Factors> & factors,
+                             double gainInf, double gainSup);
 
     LtiSystem * plant = nullptr;
     std::unique_ptr<LtiSystem> controller;

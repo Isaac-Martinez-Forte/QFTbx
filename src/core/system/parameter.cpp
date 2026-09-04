@@ -126,13 +126,22 @@ const std::string & Parameter::name() const {
     return m_name;
 }
 
+//The search boxes carry their gain as the parameter "kv" mapped by the
+//expression "kv": every read of its range went through the expression
+//parser to get the value it started with. The identity is answered from
+//the raw values, which is the same answer without the parser.
+bool Parameter::identityExpression() const
+{
+    return m_expression == m_name;
+}
+
 Range Parameter::range() const {
 
     if (!m_uncertain){
         return m_range;
     }
 
-    if (!m_hasExpression){
+    if (!m_hasExpression || identityExpression()){
         return m_range;
     }
 
@@ -171,7 +180,7 @@ double Parameter::nominal() const {
         return m_nominal;
     }
 
-    if (!m_hasExpression){
+    if (!m_hasExpression || identityExpression()){
         return m_nominal;
     }
 
