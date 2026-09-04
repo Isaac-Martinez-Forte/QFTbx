@@ -1,6 +1,7 @@
 #ifndef QFTBX_LOOPSHAPING_ALGORITHM_MR_H
 #define QFTBX_LOOPSHAPING_ALGORITHM_MR_H
 
+#include "src/core/settings.h"
 #include "src/core/loopshaping/cancellation.h"
 #include "src/core/templates/cloud_set.h"
 #include <complex>
@@ -99,12 +100,14 @@ public:
     { m_cancellation = token; }
 
     /**
-     * @brief The memory budget of the live-node list, from the settings.
+     * @brief The values the user may have changed.
      *
-     * Set before solve(); the default is kDefaultMaxLiveNodes, which is what
-     * every existing caller keeps.
+     * The whole struct rather than one setter per value: what an algorithm
+     * needs from it is copied here, once, before solve() - so the hot path
+     * reads a member and never a configuration lookup. Not calling it leaves
+     * the compiled defaults, which is what every existing caller does.
      */
-    void setMaxLiveNodes(std::size_t nodes) { m_maxLiveNodes = nodes; }
+    void setSettings(const qftbx::Settings & settings) { m_settings = settings; }
 
     bool solve();
 
@@ -164,7 +167,8 @@ private:
     /// Not owned. Null means this run cannot be cancelled.
     const qftbx::CancellationToken * m_cancellation = nullptr;
 
-    std::size_t m_maxLiveNodes = kDefaultMaxLiveNodes;
+    /// Copied whole and read as fields; the defaults are the compiled ones.
+    qftbx::Settings m_settings;
 
 };
 

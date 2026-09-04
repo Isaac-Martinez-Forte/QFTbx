@@ -292,10 +292,25 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
     EXPECT_EQ(fromExample.defaults.loopEnd, defaults.defaults.loopEnd);
     EXPECT_EQ(fromExample.defaults.loopPointCount, defaults.defaults.loopPointCount);
 
+    EXPECT_EQ(fromExample.stability.baseGridPoints, defaults.stability.baseGridPoints);
+    EXPECT_EQ(fromExample.stability.decadesBeyond, defaults.stability.decadesBeyond);
+    EXPECT_EQ(fromExample.stability.maxPhaseStepDegrees, defaults.stability.maxPhaseStepDegrees);
+    EXPECT_EQ(fromExample.stability.refinementBudget, defaults.stability.refinementBudget);
+
+    EXPECT_EQ(fromExample.algorithms.templateRepresentatives,
+              defaults.algorithms.templateRepresentatives);
+    EXPECT_EQ(fromExample.algorithms.maxNarrowingPasses,
+              defaults.algorithms.maxNarrowingPasses);
+    EXPECT_EQ(fromExample.algorithms.localSearchBudget,
+              defaults.algorithms.localSearchBudget);
+    EXPECT_EQ(fromExample.algorithms.gainTolerance, defaults.algorithms.gainTolerance);
+    EXPECT_EQ(fromExample.algorithms.certifiedGainTolerance,
+              defaults.algorithms.certifiedGainTolerance);
+
     //Every setting the build knows has to be IN the example, or the example
-    //is not documentation. Fifteen today; the count is asserted so adding one
-    //without documenting it fails here.
-    EXPECT_EQ(settingsFound, 15)
+    //is not documentation. Twenty-four today; the count is asserted so adding
+    //one without documenting it fails here.
+    EXPECT_EQ(settingsFound, 24)
         << "a setting was added to the code and not to qftbx.conf.example";
 
     EXPECT_TRUE(fromExample.unknownKeys.empty())

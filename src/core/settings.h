@@ -68,6 +68,79 @@ struct Settings {
     } search;
 
     /**
+     * @brief The resolution of the nominal stability check.
+     *
+     * These trade TIME against how reliably the check decides, and they do
+     * not touch the criterion itself: the Cohen-Chait-Yaniv count and its
+     * 0 dB ray are not settings, they are the method.
+     *
+     * What they govern is the frequency grid the nominal loop is sampled on
+     * before the crossings are counted. Too coarse and a fast phase turn is
+     * missed, and the checker answers "cannot decide", which conservatively
+     * discards a candidate that may have been fine.
+     */
+    struct Stability {
+        /// Points of the base logarithmic grid.
+        std::int32_t baseGridPoints = 3000;
+
+        /// Decades sampled beyond the design frequencies, on both sides.
+        double decadesBeyond = 3.0;
+
+        /// Phase step, in degrees, above which the grid is refined. It is the
+        /// unwrapping tolerance: a turn faster than this between two samples
+        /// cannot be unwrapped safely.
+        double maxPhaseStepDegrees = 30.0;
+
+        /// Refinements one verdict may spend before giving up.
+        std::int32_t refinementBudget = 200000;
+    } stability;
+
+    /**
+     * @brief Numbers that come from the published algorithms.
+     *
+     * THE GROUP TO BE CAREFUL WITH, and the reason it says so here: unlike
+     * everything above, these change WHAT THE ALGORITHM COMPUTES, not how
+     * long it takes to compute it. Each one is a figure from a paper, and the
+     * provenance is written next to it because a value changed here makes the
+     * golden tests and the article validations stop describing the program
+     * that is running.
+     *
+     * They are exposed anyway, deliberately: a doctoral toolbox whose
+     * published parameters can only be explored by recompiling is a worse
+     * tool. What makes it safe is the rule that no test reads the settings
+     * file - every one of them builds its own, so a value here can never
+     * change what a test means.
+     */
+    struct Algorithms {
+        /// MR (Rambabu & Nataraj, FDA-10): template points entering the
+        /// constraint set per frequency, paired quadratically for the
+        /// tracking constraint. The paper uses 9.
+        /// KNOWN LIMIT, measured on Example 5.1: the certified design exceeds
+        /// the true tracking bound by 12 to 19 per cent at two of the five
+        /// frequencies. Raising this to 25 shrinks the excess from 0.456 to
+        /// 0.431 dB at twelve times the cost, without removing it - the way
+        /// out is to bound the spread by intervals instead of sampling it,
+        /// which is a modelling decision and not a setting.
+        std::int32_t templateRepresentatives = 9;
+
+        /// MR: passes of the HC4 narrowing before a box is accepted as
+        /// narrowed no further.
+        std::int32_t maxNarrowingPasses = 8;
+
+        /// NK (Nataraj & Kubal 2007): iterations the local refinement of a
+        /// candidate point may spend.
+        std::int32_t localSearchBudget = 400;
+
+        /// NK: the ratio at which the gain bisection stops, so 1.01 is one
+        /// per cent. It is a PRUNING bound, not the answer's accuracy.
+        double gainTolerance = 1.01;
+
+        /// MC1 (Martinez-Forte & Cervera, IJRNC 2021): the same ratio for the
+        /// certified gain search.
+        double certifiedGainTolerance = 1.01;
+    } algorithms;
+
+    /**
      * @brief What the dialogs start with.
      *
      * The zero-risk group: these are what a field is PREFILLED with, so

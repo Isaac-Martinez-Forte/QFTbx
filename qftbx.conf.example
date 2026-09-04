@@ -123,3 +123,92 @@
 # start = 1e-09
 # end = 10
 # point-count = 100
+
+
+# ---------------------------------------------------------------------------
+# [stability] - the resolution of the nominal stability check.
+#
+# These trade TIME against how reliably the check decides, and they do not
+# touch the criterion: the Cohen-Chait-Yaniv crossing count and its 0 dB ray
+# are the method, not settings.
+#
+# What they govern is the frequency grid the nominal loop is sampled on before
+# the crossings are counted. Too coarse and a fast phase turn is missed, the
+# checker answers "cannot decide", and a candidate that may have been perfectly
+# good is discarded - conservatively, but discarded. Too fine and every
+# candidate costs more, which in a search of millions of candidates is the
+# whole run.
+# ---------------------------------------------------------------------------
+[stability]
+
+# Points of the base logarithmic grid.
+# Range: 10 to 1e7.
+# base-grid-points = 3000
+
+# Decades sampled beyond the design frequencies, on both sides.
+# Range: 0 to 20.
+# decades-beyond = 3
+
+# Phase step, in degrees, above which the grid is refined. It is the
+# unwrapping tolerance: a turn faster than this between two samples cannot be
+# unwrapped safely, so the interval between them is split.
+# Range: 0.1 to 180.
+# max-phase-step-degrees = 30
+
+# Refinements one verdict may spend before giving up and answering "cannot
+# decide".
+# Range: 1 to 1e9.
+# refinement-budget = 200000
+
+
+# ---------------------------------------------------------------------------
+# [algorithms] - figures from the published algorithms.
+#
+# THE GROUP TO BE CAREFUL WITH, and the only one where that is true. Unlike
+# everything above, these change WHAT THE ALGORITHM COMPUTES - not how long it
+# takes to compute it. Every one is a number from a paper, and the provenance
+# is written next to it, because a value changed here makes the golden tests
+# and the article validations stop describing the program that is running.
+#
+# They are here anyway, deliberately: a doctoral toolbox whose published
+# parameters can only be explored by recompiling is a worse tool. What makes
+# it safe is that no test reads this file - the test suite builds its own
+# settings, and only the application itself ever loads one - so a value here
+# can never change what a test means.
+# ---------------------------------------------------------------------------
+[algorithms]
+
+# MR (Rambabu & Nataraj, FDA-10): template points entering the constraint set
+# per design frequency, paired quadratically for the tracking constraint. The
+# paper uses 9.
+#
+# KNOWN LIMIT, measured on the article's Example 5.1 over a 51x51 sweep of the
+# uncertainty: the design MR certifies exceeds the true tracking bound by 12
+# to 19 per cent at two of the five design frequencies. Raising this to 25
+# shrinks the excess from 0.456 to 0.431 dB at twelve times the cost, without
+# removing it. The way out is to BOUND the spread of |T| by intervals over the
+# template instead of sampling it, which would remove the gap entirely - and
+# that is a modelling decision for the thesis, not a setting.
+# Range: 2 to 1000.
+# template-representatives = 9
+
+# MR: passes of the HC4 narrowing before a box is accepted as narrowed no
+# further.
+# Range: 1 to 1000.
+# max-narrowing-passes = 8
+
+# NK (Nataraj & Kubal 2007): iterations the local refinement of a candidate
+# point may spend.
+# Range: 1 to 1e7.
+# local-search-budget = 400
+
+# NK: the ratio at which the gain bisection stops, so 1.01 is one per cent.
+# It is a PRUNING bound and not the accuracy of the answer.
+# Range: strictly above 1, up to 10. Exactly 1 would be a bisection that never
+# ends, which is a hang rather than a tighter result, so it is refused.
+# gain-tolerance = 1.01
+
+# MC1 (Martinez-Forte & Cervera, IJRNC 2021): the same ratio for the certified
+# gain search.
+# Range: strictly above 1, up to 10.
+# certified-gain-tolerance = 1.01

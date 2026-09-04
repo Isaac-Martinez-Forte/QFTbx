@@ -10,12 +10,9 @@ namespace qftbx {
 
 namespace {
 
-const int kBaseGridPoints = 3000;
-const double kDecadesBeyond = 3.0;
-//Maximum phase step between consecutive samples before refining: keeps
-//the unwrapping unambiguous with a wide margin.
-const double kMaxPhaseStepDegrees = 30.0;
-const int kRefinementBudget = 200000;
+//The grid resolution used to live here; it comes from the settings now, so
+//it can be traded for time without a rebuild. What stays is the one number
+//that is NOT a setting:
 //A loop is counted as crossing a ray only above this magnitude (0 dB).
 const double kRayMagnitude = 1.0;
 
@@ -27,8 +24,9 @@ double phaseDegrees(const std::complex<double> & value)
 } // namespace
 
 NominalStabilityChecker::NominalStabilityChecker(LtiSystem * nominalPlant,
-                                                 std::vector<double> * omega)
-    : m_plant(nominalPlant)
+                                                 std::vector<double> * omega,
+                                                 Settings::Stability tolerances)
+    : m_plant(nominalPlant), m_tolerances(tolerances)
 {
     double minOmega = omega->front();
     double maxOmega = omega->front();
@@ -38,14 +36,14 @@ NominalStabilityChecker::NominalStabilityChecker(LtiSystem * nominalPlant,
         maxOmega = std::max(maxOmega, o);
     }
 
-    const double logFrom = std::log10(minOmega) - kDecadesBeyond;
-    const double logTo = std::log10(maxOmega) + kDecadesBeyond;
+    const double logFrom = std::log10(minOmega) - m_tolerances.decadesBeyond;
+    const double logTo = std::log10(maxOmega) + m_tolerances.decadesBeyond;
 
-    m_frequencies.reserve(kBaseGridPoints);
-    m_plantValues.reserve(kBaseGridPoints);
+    m_frequencies.reserve(m_tolerances.baseGridPoints);
+    m_plantValues.reserve(m_tolerances.baseGridPoints);
 
-    for (int i = 0; i < kBaseGridPoints; ++i) {
-        const double w = std::pow(10.0, logFrom + (logTo - logFrom) * i / (kBaseGridPoints - 1));
+    for (int i = 0; i < m_tolerances.baseGridPoints; ++i) {
+        const double w = std::pow(10.0, logFrom + (logTo - logFrom) * i / (m_tolerances.baseGridPoints - 1));
         m_frequencies.push_back(w);
         m_plantValues.push_back(m_plant->evaluate(w));
     }
@@ -98,7 +96,7 @@ bool NominalStabilityChecker::isNominallyStable(LtiSystem * pointController)
     //exceeds the tolerance (resonant plants turn 180 degrees in a very
     //narrow band). The raw step is a valid proxy: the true step can only
     //alias once it exceeds 180 degrees, far above the tolerance.
-    int budget = kRefinementBudget;
+    int budget = m_tolerances.refinementBudget;
 
     for (std::size_t i = 0; i + 1 < curve.size() && budget > 0;) {
         double step = std::abs(curve[i + 1].phase - curve[i].phase);
@@ -106,7 +104,7 @@ bool NominalStabilityChecker::isNominallyStable(LtiSystem * pointController)
             step = 360.0 - step;
         }
 
-        if (step > kMaxPhaseStepDegrees && curve[i + 1].w - curve[i].w > 1e-12 * curve[i].w) {
+        if (step > m_tolerances.maxPhaseStepDegrees && curve[i + 1].w - curve[i].w > 1e-12 * curve[i].w) {
             const double w = std::sqrt(curve[i].w * curve[i + 1].w);
             const std::complex<double> loop = controllerAt(pointController, w) * plantAt(w);
             curve.insert(curve.begin() + static_cast<std::ptrdiff_t>(i) + 1, {w, std::abs(loop), phaseDegrees(loop)});

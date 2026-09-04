@@ -47,14 +47,14 @@ public:
              double pointCount, std::int32_t initialisation,
              const CancellationToken * cancellation = nullptr);
 
-    /// The memory budget of the live-node list, from the settings. Applied on
-    /// every run, so it cannot be left over from a previous one.
-    void setMaxLiveNodes(std::size_t nodes) { m_maxLiveNodes = nodes; }
+    /// The values the user may have changed. Applied on every run, so
+    /// nothing can be left over from a previous one.
+    void setSettings(const Settings & settings) { m_settings = settings; }
 
 private:
     LoopShaping & engine();
 
-    std::size_t m_maxLiveNodes = kDefaultMaxLiveNodes;
+    Settings m_settings;
 
     std::unique_ptr<LoopShaping> m_engine;
 };

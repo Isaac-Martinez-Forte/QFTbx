@@ -1,6 +1,7 @@
 #ifndef QFTBX_LOOPSHAPING_LOOP_SHAPING_H
 #define QFTBX_LOOPSHAPING_LOOP_SHAPING_H
 
+#include "src/core/settings.h"
 #include "src/core/loopshaping/cancellation.h"
 #include <vector>
 #include <cstdint>
@@ -81,21 +82,21 @@ public:
     { m_cancellation = token; }
 
     /**
-     * @brief The memory budget of the live-node list, handed to whichever
+     * @brief The values the user may have changed, handed to whichever
      * algorithm run() builds.
      *
-     * A node measures 528 bytes with two uncertain parameters and 1056 with
-     * eight, so this is of the order of tens of gigabytes at the default. It
-     * is a setting because the number to size it from is the peak that every
-     * run reports, and those come from the long benchmarks.
+     * The whole struct rather than a setter per value, of which there would
+     * be ten by now: the memory budget of the live-node list, the resolution
+     * of the nominal stability check, and the figures the published
+     * algorithms take. Each algorithm copies what it needs.
      */
-    void setMaxLiveNodes(std::size_t nodes) { m_maxLiveNodes = nodes; }
+    void setSettings(const qftbx::Settings & settings) { m_settings = settings; }
 
 private:
     /// Not owned; handed to whichever algorithm run() builds.
     const qftbx::CancellationToken * m_cancellation = nullptr;
 
-    std::size_t m_maxLiveNodes = kDefaultMaxLiveNodes;
+    qftbx::Settings m_settings;
 
 
     std::unique_ptr<LtiSystem> controller;

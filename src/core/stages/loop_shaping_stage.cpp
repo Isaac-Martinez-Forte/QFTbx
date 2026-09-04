@@ -43,7 +43,7 @@ bool LoopShapingStage::run(ProjectData & data, double epsilon,
     //Set on every run, so neither a token nor a budget from a previous one
     //can linger: the engine is kept between runs.
     search.setCancellation(cancellation);
-    search.setMaxLiveNodes(m_maxLiveNodes);
+    search.setSettings(m_settings);
 
     const bool succeeded = search.run(data.plant(), data.controller(),
                                       data.frequencies(), data.boundaries(),

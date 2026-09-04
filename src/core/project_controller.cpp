@@ -418,7 +418,7 @@ qftbx::StepSet ProjectController::load(std::string path){
 //that can go out of sync, and the window kept seven of them by hand.
 void ProjectController::applySettings(const qftbx::Settings & settings)
 {
-    m_loopShaping.setMaxLiveNodes(settings.search.maxLiveNodes);
+    m_loopShaping.setSettings(settings);
 }
 
 qftbx::StepSet ProjectController::completed() const

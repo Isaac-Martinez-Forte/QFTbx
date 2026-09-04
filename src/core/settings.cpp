@@ -120,6 +120,59 @@ const std::vector<Binding> & bindings()
              into.limits.maxMagnitude =
                  realIn(text, "limits.max-magnitude", line, 1.0, 1.0e300);
          }},
+        //[stability] - the resolution of the nominal stability check. Time
+        //against how reliably it decides; the criterion itself is not here.
+        {"stability.base-grid-points",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.stability.baseGridPoints = static_cast<std::int32_t>(
+                 wholeIn(text, "stability.base-grid-points", line, 10.0, 1.0e7));
+         }},
+        {"stability.decades-beyond",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.stability.decadesBeyond =
+                 realIn(text, "stability.decades-beyond", line, 0.0, 20.0);
+         }},
+        {"stability.max-phase-step-degrees",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.stability.maxPhaseStepDegrees =
+                 realIn(text, "stability.max-phase-step-degrees", line, 0.1, 180.0);
+         }},
+        {"stability.refinement-budget",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.stability.refinementBudget = static_cast<std::int32_t>(
+                 wholeIn(text, "stability.refinement-budget", line, 1.0, 1.0e9));
+         }},
+
+        //[algorithms] - figures from the papers. These change WHAT is
+        //computed, which is why the header says so next to each one.
+        {"algorithms.template-representatives",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.algorithms.templateRepresentatives = static_cast<std::int32_t>(
+                 wholeIn(text, "algorithms.template-representatives", line, 2.0, 1000.0));
+         }},
+        {"algorithms.max-narrowing-passes",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.algorithms.maxNarrowingPasses = static_cast<std::int32_t>(
+                 wholeIn(text, "algorithms.max-narrowing-passes", line, 1.0, 1000.0));
+         }},
+        {"algorithms.local-search-budget",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.algorithms.localSearchBudget = static_cast<std::int32_t>(
+                 wholeIn(text, "algorithms.local-search-budget", line, 1.0, 1.0e7));
+         }},
+        //Strictly above 1: a ratio of exactly 1 is a bisection that never
+        //ends, which is a hang and not a tighter answer.
+        {"algorithms.gain-tolerance",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.algorithms.gainTolerance =
+                 realIn(text, "algorithms.gain-tolerance", line, 1.0000001, 10.0);
+         }},
+        {"algorithms.certified-gain-tolerance",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.algorithms.certifiedGainTolerance =
+                 realIn(text, "algorithms.certified-gain-tolerance", line, 1.0000001, 10.0);
+         }},
+
         //[defaults.boundary-grid] - the Nichols grid a boundary computation
         //starts with. Phase in degrees, magnitude in decibels. The ranges are
         //wide because a phase axis has to span at least 360 degrees for the
