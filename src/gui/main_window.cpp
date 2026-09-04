@@ -121,6 +121,45 @@ void MainWindow::destroyDialogs(){
     loopShapingViewer = nullptr;
 }
 
+void MainWindow::setDialogRunner(DialogRunner run)
+{
+    m_runDialog = std::move(run);
+}
+
+void MainWindow::setFileChooser(FileChooser choose)
+{
+    m_chooseFile = std::move(choose);
+}
+
+//Without a runner it is exec(), which is what the application does. The
+//indirection exists so a test can be the user.
+void MainWindow::runDialog(QDialog * dialog)
+{
+    if (dialog == nullptr) {
+        return;
+    }
+
+    if (m_runDialog != nullptr) {
+        m_runDialog(dialog);
+        return;
+    }
+
+    dialog->exec();
+}
+
+QString MainWindow::chooseFile(bool forSaving, const QString & title)
+{
+    if (m_chooseFile != nullptr) {
+        return m_chooseFile(forSaving);
+    }
+
+    return forSaving
+            ? QFileDialog::getSaveFileName(this, title, "plant",
+                                           tr("QFT Files (*.qft)"))
+            : QFileDialog::getOpenFileName(this, title, "plant",
+                                           tr("QFT Files (*.qft)"));
+}
+
 void MainWindow::installContourRecomputer(){
     templateViewer->setContourRecomputer([this](std::vector<double> epsilon) {
         recomputeContour(std::move(epsilon));
@@ -203,7 +242,7 @@ void MainWindow::on_plantButton_clicked()
         plantDialog = new PlantDialog(this);
     }
 
-    plantDialog->exec();
+    runDialog(plantDialog);
 
     if (plantDialog->wasAccepted()){
         //The dialogs only describe; publishing into the project is the
@@ -264,7 +303,7 @@ void MainWindow::on_specificationsButton_clicked()
         return;
     }
 
-    specificationsDialog->exec();
+    runDialog(specificationsDialog);
 
     if (specificationsDialog->wasAccepted()){
         controller->setSpecifications(specificationsDialog->takeSpecifications());
@@ -298,7 +337,7 @@ void MainWindow::on_frequenciesButton_clicked()
         frequenciesDialog = new FrequenciesDialog(this);
     }
 
-    frequenciesDialog->exec();
+    runDialog(frequenciesDialog);
 
     if (frequenciesDialog->wasAccepted()){
         std::unique_ptr<Omega> described = frequenciesDialog->takeOmega();
@@ -347,7 +386,7 @@ void MainWindow::on_templatesButton_clicked()
 
     templatesDialog->launch(controller->plant(), controller->omega()->values()->size());
 
-    templatesDialog->exec();
+    runDialog(templatesDialog);
 
     if (templatesDialog->wasAccepted()){
 
@@ -430,7 +469,7 @@ void MainWindow::on_boundariesButton_clicked()
         boundaryUnionViewer = new BoundaryUnionViewer(this);
     }
 
-    boundaryGridDialog->exec();
+    runDialog(boundaryGridDialog);
 
     if (boundaryGridDialog->wasAccepted()){
 
@@ -514,7 +553,7 @@ void MainWindow::on_controllerButton_clicked()
         controllerDialog = new ControllerDialog(this);
     }
 
-    controllerDialog->exec();
+    runDialog(controllerDialog);
 
 
     if (controllerDialog->wasAccepted()){
@@ -557,7 +596,7 @@ void MainWindow::on_loopButton_clicked()
     }
 
 
-    loopShapingDialog->exec();
+    runDialog(loopShapingDialog);
 
     if (loopShapingDialog->wasAccepted()){
         bool re = false;
@@ -631,8 +670,7 @@ void MainWindow::on_actionSave_triggered()
 
 void MainWindow::on_actionSaveAs_triggered()
 {
-    QString fileName = QFileDialog::getSaveFileName(this, tr("Save file"),"plant",
-                                                    tr("QFT Files (*.qft)"));
+    const QString fileName = chooseFile(true, tr("Save file"));
 
 
     if (!fileName.isEmpty()){
@@ -656,8 +694,7 @@ void MainWindow::saveProject(){
 
 void MainWindow::on_actionOpen_triggered()
 {
-    QString fileName = QFileDialog::getOpenFileName(this, tr("Open project"),"plant",
-                                                    tr("QFT Files (*.qft)"));
+    const QString fileName = chooseFile(false, tr("Open project"));
 
     if (!fileName.isEmpty()){
 

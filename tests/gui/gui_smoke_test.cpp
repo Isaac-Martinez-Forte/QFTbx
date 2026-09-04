@@ -24,7 +24,9 @@
 #include <memory>
 
 #include <QCheckBox>
+#include <QDialog>
 #include <QLineEdit>
+#include <QProgressBar>
 #include <QPushButton>
 #include <QRadioButton>
 #include <QComboBox>
@@ -839,6 +841,72 @@ TEST_F(GuiSmoke, TheMainWindowBuildsItsWholeWidgetTree)
     //reference or a null child shows up as a crash on construction.
     MainWindow window;
     EXPECT_FALSE(window.windowTitle().isEmpty());
+}
+
+// --- the window driven, not just built -------------------------------------
+//
+// Until now this file could construct MainWindow and nothing more: every step
+// handler calls dialog->exec(), which is modal, so a test that pressed a step
+// button hung there for ever. MainWindow::setDialogRunner is the seam that
+// changes it - the test becomes the user, filling the dialog's fields by name
+// and pressing its OK button, exactly as the dialog tests above already do.
+//
+// This is the net the rest of the window work needs: the seven bool flags,
+// the repeated teardown and the invalidation ladder are about to be replaced,
+// and until now there was nothing watching.
+
+TEST_F(GuiSmoke, PressingThePlantStepPublishesAPlantAndOpensTheNextSteps)
+{
+    MainWindow window;
+
+    //The runner is the user. It receives the very dialog the handler built.
+    window.setDialogRunner([](QDialog * dialog) {
+        type(dialog, "nameEdit", "driven");
+        check(dialog, "zpkRadio");
+        type(dialog, "zpkNumerator", "2");
+        type(dialog, "zpkDenominator", "5 30");
+        type(dialog, "zpkGain", "3");
+        type(dialog, "zpkDelay", "0");
+        press(dialog, "okButton");
+    });
+
+    QPushButton * plantButton = child<QPushButton>(&window, "plantButton");
+    ASSERT_NE(plantButton, nullptr);
+    plantButton->click();
+
+    //The step counts as done, which the progress bar is what says out loud.
+    QProgressBar * progress = child<QProgressBar>(&window, "progressBar");
+    ASSERT_NE(progress, nullptr);
+    EXPECT_EQ(progress->value(), 1);
+
+    //A plant on its own opens nothing: the templates need the frequencies as
+    //well, and everything below needs the templates. Written down because it
+    //is the sort of thing the seven flags could get wrong quietly.
+    QPushButton * templates = child<QPushButton>(&window, "templatesButton");
+    ASSERT_NE(templates, nullptr);
+    EXPECT_FALSE(templates->isEnabled());
+
+    QPushButton * boundaries = child<QPushButton>(&window, "boundariesButton");
+    ASSERT_NE(boundaries, nullptr);
+    EXPECT_FALSE(boundaries->isEnabled());
+}
+
+TEST_F(GuiSmoke, ARejectedDialogLeavesTheStepUndone)
+{
+    MainWindow window;
+
+    //A user who opens the dialog and cancels: the handler has to undo the
+    //step rather than leave it half done.
+    window.setDialogRunner([](QDialog *) { /* opened and closed */ });
+
+    QPushButton * plantButton = child<QPushButton>(&window, "plantButton");
+    ASSERT_NE(plantButton, nullptr);
+    plantButton->click();
+
+    QProgressBar * progress = child<QProgressBar>(&window, "progressBar");
+    ASSERT_NE(progress, nullptr);
+    EXPECT_EQ(progress->value(), 0)
+        << "a cancelled step must not count as done";
 }
 
 } // namespace
