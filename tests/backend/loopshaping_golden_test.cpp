@@ -37,11 +37,13 @@
 #include "src/core/project_controller.h"
 #include "src/core/exception.h"
 
+using namespace qftbx;
+
 namespace {
 
 struct GoldenResult {
     const char* name;
-    tools::LoopShapingAlgorithm algorithm;
+    qftbx::LoopShapingAlgorithm algorithm;
     bool solutionExists;
     double gain;
     double tolerance;
@@ -93,11 +95,11 @@ TEST_P(LoopShapingGolden, Planta1ResultIsPinned)
 INSTANTIATE_TEST_SUITE_P(
     Algorithms, LoopShapingGolden,
     ::testing::Values(
-        GoldenResult{"NT", tools::nt, false, 0.0, 0.0},
-        GoldenResult{"NK", tools::nk, false, 0.0, 0.0},
-        GoldenResult{"MR", tools::mr, true, 378.15738155492267, 0.05},
-        GoldenResult{"MC1", tools::mc1, false, 0.0, 0.0},
-        GoldenResult{"McThesis", tools::mc_thesis, false, 0.0, 0.0}),
+        GoldenResult{"NT", qftbx::nt, false, 0.0, 0.0},
+        GoldenResult{"NK", qftbx::nk, false, 0.0, 0.0},
+        GoldenResult{"MR", qftbx::mr, true, 378.15738155492267, 0.05},
+        GoldenResult{"MC1", qftbx::mc1, false, 0.0, 0.0},
+        GoldenResult{"McThesis", qftbx::mc_thesis, false, 0.0, 0.0}),
     [](const ::testing::TestParamInfo<GoldenResult>& info) {
         return std::string(info.param.name);
     });

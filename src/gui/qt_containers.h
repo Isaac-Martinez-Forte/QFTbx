@@ -5,7 +5,7 @@
 
 #include <QVector>
 
-namespace tools {
+namespace qftbx {
 
 /**
  * @brief A std::vector as the QVector a Qt API asks for.
@@ -21,6 +21,6 @@ QVector<T> toQVector(const std::vector<T> & values)
     return QVector<T>(values.begin(), values.end());
 }
 
-} // namespace tools
+} // namespace qftbx
 
 #endif // QFTBX_GUI_QT_CONTAINERS_H

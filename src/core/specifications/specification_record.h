@@ -1,9 +1,7 @@
 #ifndef QFTBX_SPECIFICATION_RECORD_H
 #define QFTBX_SPECIFICATION_RECORD_H
 
-#include <vector>
 #include <array>
-#include <cmath>
 #include <memory>
 
 #include <string>
@@ -24,7 +22,7 @@ struct SpecificationRecord {
     //The record OWNS its plant. It used to be a raw pointer whose owners
     //had to walk the container and delete it, in four different places.
     std::unique_ptr<LtiSystem> system;
-    double height = 0.0;    //LINEAR magnitude (heightDb() converts)
+    double height = 0.0;    //LINEAR magnitude (Specification::boundDb converts)
     bool constant = false;
     double omegaStart = 0.0;
     double omegaEnd = 0.0;
@@ -48,13 +46,11 @@ struct SpecificationRecord {
         return copy;
     }
 
-    double heightDb(double omega) const {
-        if (constant){
-            return 20 * std::log10(height);
-        }
-
-        return 20 * std::log10(std::abs(system->evaluate(omega)));
-    }
+    //heightDb() lived here: the same formula as Specification::boundDb(),
+    //written a second time on the raw record, dereferencing a null system on
+    //a record that had none. Nothing in the program called it; the bound is
+    //asked of the validated Specification, which is what toSpecification()
+    //is for.
 };
 
 /**

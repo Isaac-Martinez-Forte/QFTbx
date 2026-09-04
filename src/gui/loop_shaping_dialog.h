@@ -1,6 +1,7 @@
 #ifndef QFTBX_LOOP_SHAPING_DIALOG_H
 #define QFTBX_LOOP_SHAPING_DIALOG_H
 
+#include "src/core/loopshaping/loop_shaping_types.h"
 #include "src/core/settings.h"
 #include "src/gui/step_dialog.h"
 #include <memory>
@@ -11,11 +12,13 @@
 
 #include "mpParser.h"
 #include "src/core/math/sequence_vectors.h"
-#include "src/core/math/sequence_vectors.h"
 
-namespace Ui {  
+namespace Ui {
 class LoopShapingDialog;
 }
+
+namespace qftbx {
+
 
 /**
  * @brief Step 7 of the design: picks one of the five loop-shaping
@@ -55,12 +58,9 @@ public:
     explicit LoopShapingDialog(QWidget *parent = 0);
     ~LoopShapingDialog();
 
-    void setEpsilonValue (qreal epsilonEdit);
-
-
     qreal epsilonValue ();
 
-    tools::LoopShapingAlgorithm algorithmValue();
+    qftbx::LoopShapingAlgorithm algorithmValue();
 
     qftbx::Range range();
 
@@ -91,9 +91,6 @@ private slots:
     void on_mc1Radio_clicked();
     void on_mcThesisRadio_clicked();
 
-protected:
-    void showEvent(QShowEvent * event) override;
-
 private:
     std::unique_ptr<Ui::LoopShapingDialog> ui;
 
@@ -106,9 +103,9 @@ private:
 
     qint32 initialisation = 0;
 
-    tools::LoopShapingAlgorithm alg = tools::nt;
+    qftbx::LoopShapingAlgorithm alg = qftbx::nt;
 
-    bool linLogSpace;
+    bool linLogSpace = false;
     /// Kept because the mode radios prefill from it too.
     qftbx::Settings::Defaults m_defaults;
 
@@ -116,5 +113,7 @@ private:
     double m_maxPointCount = qftbx::Settings().limits.maxTemplatePoints;
 
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_LOOP_SHAPING_DIALOG_H

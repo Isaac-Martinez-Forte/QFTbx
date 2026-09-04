@@ -12,6 +12,8 @@
 // They are smoke tests: they answer "does the data path still work end to
 // end", not "is every validation rule right".
 
+#include "src/core/loopshaping/loop_shaping_types.h"
+#include "src/core/specifications/specification_record.h"
 #include <gtest/gtest.h>
 
 #include <vector>
@@ -60,9 +62,11 @@
 #include "src/gui/error_message.h"
 #include "src/core/exception.h"
 
+using namespace qftbx;
+
 namespace {
 
-//Every dialog reports invalid input through tools::errorMessage, which
+//Every dialog reports invalid input through qftbx::errorMessage, which
 //opens a MODAL dialog: an automated run would block on it forever. The
 //fixture redirects it and keeps what was reported, so a rejection can be
 //asserted rather than waited on.
@@ -71,7 +75,7 @@ class GuiSmoke : public ::testing::Test
 protected:
     void SetUp() override
     {
-        m_previous = tools::setErrorReporter(
+        m_previous = qftbx::setErrorReporter(
             [this](const QString & message, const QString & title) {
                 m_reported.push_back(title + ": " + message);
             });
@@ -79,13 +83,13 @@ protected:
 
     void TearDown() override
     {
-        tools::setErrorReporter(m_previous);
+        qftbx::setErrorReporter(m_previous);
     }
 
     QStringList m_reported;
 
 private:
-    tools::ErrorReporter m_previous;
+    qftbx::ErrorReporter m_previous;
 };
 
 //The dialogs keep their widgets private; uic gives every one of them an
@@ -536,7 +540,7 @@ TEST_F(GuiSmoke, BodeViewerDrawsBothAxesOfTheDiagram)
                          Parameter(1.0), Parameter(0.0));
 
     //Logarithmic span: start() and end() are EXPONENTS here, 0.01 to 100.
-    Omega omega(-2.0, 2.0, 100, tools::logspace(-2.0, 2.0, 100), Omega::LogSpace);
+    Omega omega(-2.0, 2.0, 100, qftbx::logspace(-2.0, 2.0, 100), Omega::LogSpace);
 
     viewer.drawBode(&plant, &omega);
 
@@ -656,7 +660,7 @@ TEST_F(GuiSmoke, LoopShapingDialogCarriesTheChosenAlgorithm)
 
     ASSERT_TRUE(dialog.wasAccepted()) << "the dialog rejected valid data";
 
-    EXPECT_EQ(dialog.algorithmValue(), tools::mr);
+    EXPECT_EQ(dialog.algorithmValue(), qftbx::mr);
     EXPECT_DOUBLE_EQ(dialog.epsilonValue(), 0.01);
     EXPECT_DOUBLE_EQ(dialog.range().min, 0.1);
     EXPECT_DOUBLE_EQ(dialog.range().max, 100.0);
@@ -677,9 +681,9 @@ TEST_F(GuiSmoke, UncertaintyDialogBuildsAnUncertainParameter)
 
     ASSERT_TRUE(dialog.launch(valueTable, expressionTable, uncertainTable, false));
 
-    //One uncertain name, so one generated row: [inicio, fin] with nominal.
-    type(&dialog, "inicio", "1");
-    type(&dialog, "fin", "5");
+    //One uncertain name, so one generated row: [start, end] with nominal.
+    type(&dialog, "start", "1");
+    type(&dialog, "end", "5");
     type(&dialog, "nominal", "3");
 
     type(&dialog, "gainStart", "2");

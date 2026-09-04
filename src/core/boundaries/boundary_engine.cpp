@@ -1,4 +1,5 @@
 #include <chrono>
+#include "src/core/math/constants.h"
 #include <string>
 #include <algorithm>
 #include <vector>
@@ -21,17 +22,6 @@ namespace qftbx {
 //The CUDA interface lives in src/core/gpu/boundary_sheets_cuda.h (plain
 //C++ header; only the .cu needs nvcc).
 
-BoundaryEngine::BoundaryEngine()
-{
-    m_omega = nullptr;
-    m_cuda = false;
-}
-
-BoundaryEngine::~BoundaryEngine()
-{
-    releaseResults();
-}
-
 void BoundaryEngine::releaseResults()
 {
     //Forty lines of nested hand-written deletion used to live here, five
@@ -44,9 +34,6 @@ void BoundaryEngine::releaseResults()
     m_unionBuckets.clear();
     m_openFlags.clear();
     m_upperFlags.clear();
-
-    //m_omega aliases the caller's vector: never freed here.
-    m_omega = nullptr;
 }
 
 void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const CloudSet & templates,
@@ -60,13 +47,23 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
     (void) exportInfinity;
 
 
-
     //The historical records are validated on conversion: a used
     //specification with height <= 0, an inverted band or a null plant
     //throws qftbx::InvalidInput here, at the entry point, instead of
     //silently degenerating the cut.
     m_specifications = qftbx::toSpecificationSet(*specifications);
     m_cuda = cuda;
+
+    //The dialog checks this too, but the engine is what a script or a test
+    //reaches: a single-point axis is a sheet with no cells for the tracer,
+    //a division by zero in the union's bucketing and a loop that never
+    //ends in the box classification.
+    if (phaseCount < 2 || magnitudeCount < 2) {
+        throw InvalidInput("The Nichols grid needs at least two points on each axis.");
+    }
+    if (!(phaseRange.width() > 0.0) || !(magnitudeRange.width() > 0.0)) {
+        throw InvalidInput("The Nichols grid needs a non-empty phase range and magnitude range.");
+    }
 
     m_phaseCount = phaseCount;
     m_magnitudeCount = magnitudeCount;
@@ -103,10 +100,9 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
     }
 
 
-
 #ifdef CUDA_AVAILABLE
 
-    const auto timer = std::chrono::steady_clock::now();
+    auto timer = std::chrono::steady_clock::now();
 
     if (!cuda){
 
@@ -121,7 +117,7 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
         m_boundaries.clear();
         m_traceMetadata.clear();
 
-        for (int i = 0; i < omega->size(); i++){
+        for (std::size_t i = 0; i < omega->size(); i++){
 
             std::complex <double> p0 = plant->evaluate(omega->at(i));
             const ComplexCloud & valueSet = templates.at(i);
@@ -130,24 +126,20 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
             //vector leaked all five sheets on every frequency.
             const BoundarySheetsCuda cudaSheets = boundarySheetsCuda(
                 valueSet, p0,
-                tools::linspace1(phaseRange.min, phaseRange.max, phaseCount),
-                tools::linspace1(magnitudeRange.min, magnitudeRange.max, magnitudeCount));
+                qftbx::linspace1(phaseRange.min, phaseRange.max, phaseCount),
+                qftbx::linspace1(magnitudeRange.min, magnitudeRange.max, magnitudeCount));
 
             std::map<std::string, TraceSet> bound;
 
             std::map<std::string, TraceLabels> traceMetadata;
 
             traceFrequency(omega->at(i), bound, cudaSheets, traceMetadata, p0, valueSet, i,
-                           phaseRange.magnitude - phaseRange.phase, magnitudeRange.magnitude - magnitudeRange.phase,
-                           phaseRange.phase, magnitudeRange.phase);
+                           phaseRange.width(), magnitudeRange.width(),
+                           phaseRange.min, magnitudeRange.min);
 
             m_traceMetadata.push_back(std::move(traceMetadata));
             m_boundaries.push_back(std::move(bound));
         }
-
-        //Alias of the caller's vector, like the CPU path (the old copy was
-        //the one leak releaseResults could not free).
-        m_omega = omega;
 
         cout << "boundaries CUDA: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timer).count() << " milliseconds" << endl;
 
@@ -170,7 +162,7 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
         //here used to mean a heap allocation and a matching delete, and the
         //view had to be told it did NOT own what it pointed at.
         const BoundaryData view = boundaryData();
-        boundaryUnion.run(&view, m_traceMetadata);
+        boundaryUnion.run(view, m_traceMetadata);
     }
 
     cout << "1D union: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timer).count() << " milliseconds" << endl;
@@ -189,11 +181,6 @@ BoundaryData BoundaryEngine::boundaryData(){
     return BoundaryData(m_boundaries, m_openFlags, m_upperFlags, m_phaseCount, m_phaseRange,
                         m_unionVectors, m_unionBuckets, m_magnitudeCount, m_magnitudeRange);
 }
-
-std::vector <double> * BoundaryEngine::omega(){
-    return m_omega;
-}
-
 
 void BoundaryEngine::traceFrequency(double omega, std::map<std::string, TraceSet> & bound,
                                     const BoundarySheets & sheets,
@@ -337,7 +324,10 @@ TraceSet BoundaryEngine::traceBoundary(double thresholdDb, const BoundarySheet &
 
     //Pre-sized and written at index j: the critical section this replaces
     //permuted the metadata against its traces with the thread order.
-    traceMetadata.resize(traces.size());
+    //A byte per flag, not the std::vector<bool> of TraceLabels: that one
+    //packs its elements into bits, and the parallel iterations writing
+    //neighbouring flags would race on the same byte.
+    std::vector<char> allowed(traces.size(), 0);
 
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
@@ -345,9 +335,9 @@ TraceSet BoundaryEngine::traceBoundary(double thresholdDb, const BoundarySheet &
     for (std::size_t j = 0; j < traces.size(); ++j) {
         //The allowed-side label of the trace: the threshold is the same dB
         //cut the contour was traced at.
-        traceMetadata[j] =
-                allowedZone(traces.at(j), p0, valueSet, kind, thresholdDb) != 0;
+        allowed[j] = allowedZone(traces.at(j), p0, valueSet, kind, thresholdDb) != 0;
     }
+    traceMetadata.assign(allowed.begin(), allowed.end());
 
     if (traceMetadata.empty()) {
         traceMetadata.push_back(false);
@@ -376,19 +366,75 @@ TraceSet BoundaryEngine::traceBoundary(double thresholdDb, const float *sheet,
     TraceSet traces = tracer.trace(phaseSpan, m_phaseCount, magnitudeSpan,
                                    m_magnitudeCount, phaseBottom, magnitudeBottom);
 
-    traceMetadata.resize(traces.size());
+    //A byte per flag, not the std::vector<bool> of TraceLabels: that one
+    //packs its elements into bits, and the parallel iterations writing
+    //neighbouring flags would race on the same byte.
+    std::vector<char> allowed(traces.size(), 0);
 
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
 #endif
     for (std::size_t j = 0; j < traces.size(); ++j) {
-        traceMetadata[j] =
-                allowedZone(traces.at(j), p0, valueSet, kind, thresholdDb) != 0;
+        allowed[j] = allowedZone(traces.at(j), p0, valueSet, kind, thresholdDb) != 0;
     }
+    traceMetadata.assign(allowed.begin(), allowed.end());
 
     return traces;
 }
 #endif
+
+namespace {
+
+//The five closed-loop magnitudes the sheets are built from, at one grid
+//point L, over the whole value set: the worst case of each, and the best
+//case of the tracking magnitude too, since tracking bounds the spread.
+//Shared by the sheet sweep and the zone probe, which used to carry two
+//copies of these formulas.
+struct WorstCase
+{
+    double stabilityNoise = -std::numeric_limits<double>::infinity();
+    double trackingMin = std::numeric_limits<double>::infinity();
+    double outputDisturbance = -std::numeric_limits<double>::infinity();
+    double inputDisturbance = -std::numeric_limits<double>::infinity();
+    double controlEffort = -std::numeric_limits<double>::infinity();
+};
+
+WorstCase worstCaseAt(std::complex<double> p0, std::complex<double> L, const ComplexCloud & valueSet)
+{
+    WorstCase worst;
+
+    for (const std::complex<double> & p : valueSet) {
+        const std::complex<double> denominator = (p0 / p) + L;
+
+        //Stability and sensor noise share the same transfer magnitude.
+        const double stabilityNoise = std::abs(L / denominator);
+        //Disturbance rejection at the plant output.
+        const double outputDisturbance = std::abs((p0 / p) / denominator);
+        //Disturbance rejection at the plant input.
+        const double inputDisturbance = std::abs(p0 / denominator);
+        //Control effort.
+        const double controlEffort = std::abs((L / p) / denominator);
+
+        //A NaN candidate compares false and leaves the running value alone,
+        //as the explicit comparisons this replaces did.
+        worst.stabilityNoise = std::max(worst.stabilityNoise, stabilityNoise);
+        worst.trackingMin = std::min(worst.trackingMin, stabilityNoise);
+        worst.outputDisturbance = std::max(worst.outputDisturbance, outputDisturbance);
+        worst.inputDisturbance = std::max(worst.inputDisturbance, inputDisturbance);
+        worst.controlEffort = std::max(worst.controlEffort, controlEffort);
+    }
+
+    return worst;
+}
+
+//Nichols (dB, degrees) to the complex grid point L.
+std::complex<double> nicholsToComplex(double magnitudeDb, double phaseDegrees)
+{
+    const double linearMagnitude = std::pow(10.0, magnitudeDb / 20.0);
+    return std::polar(linearMagnitude, phaseDegrees * qftbx::math::kPi / 180.0);
+}
+
+} // namespace
 
 std::int32_t BoundaryEngine::allowedZone(const Trace & trace, complex <double> p0, const ComplexCloud & valueSet,
                                    std::int32_t kind, double thresholdDb){
@@ -406,86 +452,35 @@ std::int32_t BoundaryEngine::allowedZone(const Trace & trace, complex <double> p
 
     probeMagnitude -= 1;
 
-    //Nichols (dB, degrees) back to a complex L.
-    double linearMagnitude = pow(10, probeMagnitude/20);
-    complex<double> L = complex<double> (linearMagnitude * cos (probePhase * M_PI / 180),
-                                       linearMagnitude * sin (probePhase * M_PI / 180));
-
-
-    complex <double> p;
-    double dStabilityNoiseCandidate;
-    double dOutputDisturbanceCandidate;
-    double dInputDisturbanceCandidate;
-    double dControlEffortCandidate;
-
-    double dStabilityNoise = -numeric_limits<double>::infinity();
-    double dTrackingMin = numeric_limits<double>::infinity();
-    double dOutputDisturbance = -numeric_limits<double>::infinity();
-    double dInputDisturbance = -numeric_limits<double>::infinity();
-    double dControlEffort = -numeric_limits<double>::infinity();
-
-
-    for (std::size_t h = 0; h < valueSet.size(); ++h) {
-
-        p = valueSet.at(h);
-
-        complex<double> denominator = (p0 / p) + L;
-
-        //Stability and sensor noise share the same transfer magnitude.
-        dStabilityNoiseCandidate = abs (L / denominator);
-
-        //Disturbance rejection at the plant output.
-        dOutputDisturbanceCandidate = abs ((p0 / p) / denominator);
-
-        //Disturbance rejection at the plant input.
-        dInputDisturbanceCandidate = abs (p0 / denominator);
-
-        //Control effort.
-        dControlEffortCandidate = abs ((L / p) / denominator);
-
-        if (dStabilityNoiseCandidate > dStabilityNoise){
-            dStabilityNoise = dStabilityNoiseCandidate;
-        }
-        if (dStabilityNoiseCandidate < dTrackingMin){
-            dTrackingMin = dStabilityNoiseCandidate;
-        }
-        if (dOutputDisturbanceCandidate > dOutputDisturbance){
-            dOutputDisturbance = dOutputDisturbanceCandidate;
-        }
-        if (dInputDisturbanceCandidate > dInputDisturbance){
-            dInputDisturbance = dInputDisturbanceCandidate;
-        }
-        if (dControlEffortCandidate > dControlEffort) {
-            dControlEffort = dControlEffortCandidate;
-        }
-    }
+    const complex<double> L = nicholsToComplex(probeMagnitude, probePhase);
+    const WorstCase worst = worstCaseAt(p0, L, valueSet);
 
     //The sheet is in dB: the zone probe compares in dB too (linear
     //magnitudes used to be compared against dB heights, and tracking as a
     //linear difference against a dB spread).
     switch (kind){
     case 0:
-        if (20 * log10(dStabilityNoise) > thresholdDb){
+        if (20 * log10(worst.stabilityNoise) > thresholdDb){
             return 0;
         }
         break;
     case 1:
-        if ((20 * log10(dStabilityNoise) - 20 * log10(dTrackingMin)) > thresholdDb){
+        if ((20 * log10(worst.stabilityNoise) - 20 * log10(worst.trackingMin)) > thresholdDb){
             return 0;
         }
         break;
     case 2:
-        if(20 * log10(dOutputDisturbance) > thresholdDb){
+        if(20 * log10(worst.outputDisturbance) > thresholdDb){
             return 0;
         }
         break;
     case 3:
-        if (20 * log10(dInputDisturbance) > thresholdDb){
+        if (20 * log10(worst.inputDisturbance) > thresholdDb){
             return 0;
         }
         break;
     case 4:
-        if (20 * log10(dControlEffort) > thresholdDb){
+        if (20 * log10(worst.controlEffort) > thresholdDb){
             return 0;
         }
         break;
@@ -501,8 +496,8 @@ void BoundaryEngine::computeFrequencies(std::vector<double> *omega, LtiSystem *p
                                         qftbx::Range magnitudeRange, std::int32_t magnitudeCount)
 {
     //Base grid of the algorithm.
-    const std::vector <double> phases = tools::linspace(phaseRange.min, phaseRange.max, phaseCount);
-    const std::vector <double> magnitudes = tools::linspace(magnitudeRange.min, magnitudeRange.max,
+    const std::vector <double> phases = qftbx::linspace(phaseRange.min, phaseRange.max, phaseCount);
+    const std::vector <double> magnitudes = qftbx::linspace(magnitudeRange.min, magnitudeRange.max,
                                                       magnitudeCount);
 
     //Pre-sized containers: every frequency writes at ITS index. The old
@@ -526,7 +521,6 @@ void BoundaryEngine::computeFrequencies(std::vector<double> *omega, LtiSystem *p
         computeFrequency(omega->at(i), plant, templates.at(i), phases, magnitudes, i);
     }
 
-    m_omega = omega;
 
 }
 
@@ -584,24 +578,6 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
         sheet->reserve(rowCount);
     }
 
-    //Second loop variables:
-    double magnitudeDb;
-    double phaseDegrees;
-    double linearMagnitude;
-    complex <double> L;
-    double dStabilityNoise;
-    double dOutputDisturbance;
-    double dInputDisturbance;
-    double dControlEffort;
-    double dTrackingMin;
-
-    //Third loop variables:
-    complex <double> pCurrent;
-    double dStabilityNoiseCandidate;
-    double dOutputDisturbanceCandidate;
-    double dInputDisturbanceCandidate;
-    double dControlEffortCandidate;
-    complex<double> denominator;
 
     //Grid sweep (no nested parallelism: the outer per-frequency loop is
     //already parallel, and these loops share function-scope variables).
@@ -621,68 +597,20 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
         controlEffortRow.reserve(rowWidth);
 
         for (std::size_t j = 0; j < phases.size(); ++j){
-
-            magnitudeDb = magnitudes.at(k);
-            phaseDegrees = phases.at(j);
-
-            //Nichols (dB, degrees) to the complex grid point L.
-            linearMagnitude = pow(10, magnitudeDb/20);
-            L = complex<double> (linearMagnitude * cos (phaseDegrees * M_PI / 180),
-                                linearMagnitude * sin (phaseDegrees * M_PI / 180));
-
+            const complex<double> L = nicholsToComplex(magnitudes.at(k), phases.at(j));
 
             //Template sweep: worst case over the value set at this L.
-
-            dStabilityNoise = -numeric_limits<double>::infinity();
-            dTrackingMin = numeric_limits<double>::infinity();
-            dOutputDisturbance = -numeric_limits<double>::infinity();
-            dInputDisturbance = -numeric_limits<double>::infinity();
-            dControlEffort = -numeric_limits<double>::infinity();
-
-            for (std::size_t h = 0; h < p.size(); h++) {
-
-                pCurrent = p[h];
-
-                denominator = (p0 / pCurrent) + L;
-
-                //Stability and sensor noise share the same transfer magnitude.
-                dStabilityNoiseCandidate = abs((L / denominator));
-
-                //Disturbance rejection at the plant output.
-                dOutputDisturbanceCandidate =  abs((p0 / pCurrent) / denominator);
-
-                //Disturbance rejection at the plant input.
-                dInputDisturbanceCandidate = abs((p0 / denominator));
-
-                //Control effort.
-                dControlEffortCandidate = abs((L / pCurrent) / denominator);
-
-                if (dStabilityNoiseCandidate > dStabilityNoise){
-                    dStabilityNoise = dStabilityNoiseCandidate;
-                }
-                if (dStabilityNoiseCandidate < dTrackingMin){
-                    dTrackingMin = dStabilityNoiseCandidate;
-                }
-                if (dOutputDisturbanceCandidate > dOutputDisturbance){
-                    dOutputDisturbance = dOutputDisturbanceCandidate;
-                }
-                if (dInputDisturbanceCandidate > dInputDisturbance){
-                    dInputDisturbance = dInputDisturbanceCandidate;
-                }
-                if (dControlEffortCandidate > dControlEffort) {
-                    dControlEffort = dControlEffortCandidate;
-                }
-            }
+            const WorstCase worst = worstCaseAt(p0, L, p);
 
             //The sheet is ALWAYS stored in dB (contract validated against
             //the golden; the old OpenMP branch stored linear magnitudes and
             //tracking as a linear difference), with the critical point made
             //explicit (see violatingDb).
-            stabilityNoiseRow.push_back(violatingDb(20 * log10(dStabilityNoise)));
-            trackingRow.push_back(violatingDb((20 * log10(dStabilityNoise)) - (20 * log10(dTrackingMin))));
-            outputDisturbanceRow.push_back(violatingDb(20 * log10(dOutputDisturbance)));
-            inputDisturbanceRow.push_back(violatingDb(20 * log10(dInputDisturbance)));
-            controlEffortRow.push_back(violatingDb(20 * log10(dControlEffort)));
+            stabilityNoiseRow.push_back(violatingDb(20 * log10(worst.stabilityNoise)));
+            trackingRow.push_back(violatingDb((20 * log10(worst.stabilityNoise)) - (20 * log10(worst.trackingMin))));
+            outputDisturbanceRow.push_back(violatingDb(20 * log10(worst.outputDisturbance)));
+            inputDisturbanceRow.push_back(violatingDb(20 * log10(worst.inputDisturbance)));
+            controlEffortRow.push_back(violatingDb(20 * log10(worst.controlEffort)));
         }
         stabilityNoiseSheet.push_back(std::move(stabilityNoiseRow));
         trackingSheet.push_back(std::move(trackingRow));

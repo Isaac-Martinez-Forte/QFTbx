@@ -9,6 +9,7 @@
 // easiest place yet to reintroduce it, because nobody looks at a file that
 // loads without complaining.
 
+#include "src/core/loopshaping/loop_shaping_types.h"
 #include <gtest/gtest.h>
 
 #include <fstream>
@@ -26,6 +27,8 @@
 #include "src/core/system/zero_pole_gain.h"
 #include <vector>
 #include "src/core/settings.h"
+
+using namespace qftbx;
 
 namespace {
 
@@ -354,7 +357,7 @@ TEST(Settings, TheSearchBudgetReachesTheAlgorithms)
     controller.setSpecifications(std::move(records));
 
     controller.setOmega(std::make_unique<Omega>(
-        0.1, 10.0, 3, tools::logspace(-1.0, 1.0, 3), Omega::LogSpace));
+        0.1, 10.0, 3, qftbx::logspace(-1.0, 1.0, 3), Omega::LogSpace));
 
     qftbx::ParameterGrids grids;
     grids[std::string("a")] = qftbx::math::linspace(1.0, 2.0, 3);
@@ -374,7 +377,7 @@ TEST(Settings, TheSearchBudgetReachesTheAlgorithms)
 
     // With room for one node the list refuses to grow, and the search says so
     // instead of running out of memory.
-    EXPECT_THROW(controller.computeLoopShaping(0.5, tools::nt,
+    EXPECT_THROW(controller.computeLoopShaping(0.5, qftbx::nt,
                                                qftbx::Range(1e-3, 100.0), 100),
                  qftbx::Exception);
 }

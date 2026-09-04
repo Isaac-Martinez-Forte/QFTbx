@@ -6,20 +6,21 @@
 
 #include <QDialog>
 
-//#include "cinterval.hpp"
-
 #include "src/core/math/sequence_vectors.h"
 #include "qcustomplot.h"
+#include "src/gui/frequency_legend.h"
 
 #include "src/core/boundaries/boundary_data.h"
 
 #include "src/core/system/lti_system.h"
-#include "src/core/loopshaping/natural_interval_extension.h"
 
 
 namespace Ui {
 class LoopBoundariesViewer;
 }
+
+namespace qftbx {
+
 
 class LoopBoundariesViewer : public QDialog
 {
@@ -49,8 +50,6 @@ public:
 
     void showDiagram();
 
-    void drawBox (QPointF uno, QPointF dos, QPointF tres, QPointF cuatro, QColor color);
-
 private slots:
     void applyCheckboxes();
 
@@ -72,16 +71,12 @@ private:
     //The curves BELONG TO QCustomPlot, which frees them on
     //clearPlottables(): only the container is the viewer's.
     QVector <QCPCurve *> curves;
-    QGroupBox * frequenciesBox = nullptr;
-    //The checkboxes belong to their row widget: the viewer deletes the
-    //rows, not these.
-    QVector <QCheckBox *> checkboxes;
-    QVBoxLayout * colorsLayout = nullptr;
 
     /// One row per curve, labelled with its frequency and its diagram: in
     /// the both-diagrams mode a frequency gets two rows, and they used to
     /// carry the same text.
     void addFrequencyRow(QColor color, qint32 pos, QString diagram);
+    FrequencyLegend * legend = nullptr;
     void clearDiagram();
 
     bool nichols = false;
@@ -89,8 +84,8 @@ private:
 
     std::unique_ptr<Ui::LoopBoundariesViewer> ui;
 
-    qint32 finalCurveIndex = 0;
-
 };
 
-#endif // QFTBX_BOUNDARY_UNION_VIEWER_H
+} // namespace qftbx
+
+#endif // QFTBX_LOOP_BOUNDARIES_VIEWER_H

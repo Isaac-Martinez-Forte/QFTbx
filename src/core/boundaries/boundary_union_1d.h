@@ -6,8 +6,6 @@
 
 #include "src/core/boundaries/boundary_types.h"
 #include "src/core/point.h"
-#include "src/core/point.h"
-#include <cmath>
 
 #include "boundary_data.h"
 
@@ -31,10 +29,7 @@ namespace qftbx {
 class BoundaryUnion1D
 {
 public:
-    BoundaryUnion1D();
-    ~BoundaryUnion1D();
-
-    void run(const BoundaryData * boundaries, const TraceMetadata & traceMetadata);
+    void run(const BoundaryData & boundaries, const TraceMetadata & traceMetadata);
 
     UnionBuckets takeUnionBuckets();
 
@@ -49,9 +44,6 @@ private:
     static constexpr std::int32_t kLayerCount = 2;
     static constexpr double kPhaseDegrees = 360.0;
 
-    //Initialised here: the accessors below return these, and an
-    //indeterminate pointer defeats the != nullptr guards of the callers
-    //(nullptr at least fails honestly).
     UnionBuckets m_unionBuckets;
     UnionTraces m_unionVectors;
 
@@ -81,7 +73,5 @@ private:
 
 } // namespace qftbx
 
-//Transitional: consumers still refer to the class unqualified.
-using qftbx::BoundaryUnion1D;
 
 #endif // QFTBX_BOUNDARY_UNION_1D_H

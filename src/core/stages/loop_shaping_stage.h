@@ -17,13 +17,10 @@ namespace qftbx {
  * The last stage of the pipeline, and the only one with nothing downstream to
  * invalidate: its result is what the design IS.
  *
- * It is also where the worker thread and the cancellation are going to live
- * (plan 10.3, P5), and the reason to start with this one is measured rather
- * than assumed. src/core/loopshaping contains no OpenMP at all - the
- * branch-and-bound search is entirely sequential, and it is the one that runs
- * for tens of minutes - so moving it off the calling thread costs one core
- * before and one core after. The templates and the boundaries already fan out
- * with OpenMP, which is a different problem and a later one.
+ * src/core/loopshaping contains no OpenMP at all: the branch-and-bound
+ * search is entirely sequential, and it is the one that runs for tens of
+ * minutes. That is why the facade runs it on a worker thread and hands it
+ * the cancellation token below.
  */
 class LoopShapingStage
 {
@@ -43,7 +40,7 @@ public:
      *        CancellationToken on why that is not the core's business.
      */
     bool run(ProjectData & data, double epsilon,
-             tools::LoopShapingAlgorithm algorithm, Range plotRange,
+             qftbx::LoopShapingAlgorithm algorithm, Range plotRange,
              double pointCount, std::int32_t initialisation,
              const CancellationToken * cancellation = nullptr);
 

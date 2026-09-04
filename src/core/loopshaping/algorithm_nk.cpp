@@ -3,42 +3,22 @@
 #include "src/core/exception.h"
 #include "src/core/loopshaping/algorithm_nk.h"
 
-#include "src/core/loopshaping/quick_solution.h"
-
-using namespace tools;
 using namespace cxsc;
-using namespace FC;
 
 namespace quick_solution = qftbx::quick_solution;
 
-AlgorithmNk::AlgorithmNk()
-{
-}
 
-AlgorithmNk::~AlgorithmNk()
-{
-}
-
+namespace qftbx {
 
 void AlgorithmNk::setProblem(LtiSystem *plant, LtiSystem *controller, std::vector<double> * omega, const BoundaryData *boundaries,
-                                     double epsilon, std::int32_t inicializacion){
+                                     double epsilon, std::int32_t initialisation){
 
     this->plant = plant;
     this->controller = controller->clone();
     this->omega = omega;
     this->boundaries = boundaries;
     this->epsilon = epsilon;
-    this->ini = inicializacion == 1 ? Extremes : Centre;
-
-    hasUncertainZeros = false;
-    for (Parameter & var : this->controller->numerator()) {
-        hasUncertainZeros = hasUncertainZeros || var.isUncertain();
-    }
-
-    hasUncertainPoles = false;
-    for (Parameter & var : this->controller->denominator()) {
-        hasUncertainPoles = hasUncertainPoles || var.isUncertain();
-    }
+    m_start = initialisation == 1 ? Extremes : Centre;
 }
 
 
@@ -134,11 +114,11 @@ bool AlgorithmNk::solve(){
         }
 
         //Step 8: bisect along the widest parameter direction.
-        struct BisectionResult retur = bisectWidestParameter(node->system());
+        BisectionResult halves = bisectWidestParameter(node->system());
 
         //Steps 9-14: Quick Solution + feasibility + insertion.
-        check_box_feasibility(std::move(retur.v1));
-        check_box_feasibility(std::move(retur.v2));
+        check_box_feasibility(std::move(halves.v1));
+        check_box_feasibility(std::move(halves.v2));
     }
 }
 
@@ -158,7 +138,7 @@ std::unique_ptr<LtiSystem> AlgorithmNk::controllerStructure(){
 //cutting applied per frequency with the latest updated box (paper,
 //sec. 3.3: "one always uses the latest updated values"). Certainly
 //infeasible boxes are destroyed; anything else enters the live list.
-inline void AlgorithmNk::check_box_feasibility(std::unique_ptr<LtiSystem> box){
+void AlgorithmNk::check_box_feasibility(std::unique_ptr<LtiSystem> box){
 
     BoxClassification classification;
     BoxFlag flag_final = feasible;
@@ -224,97 +204,18 @@ inline void AlgorithmNk::check_box_feasibility(std::unique_ptr<LtiSystem> box){
 //infeasible subranges of the gain, every zero and every pole with the
 //closed-form monotonicity equations, sequentially, using the latest
 //updated values. boundMinDb is |B_i|min over the box's phase interval.
-inline std::unique_ptr<LtiSystem> AlgorithmNk::quickSolution(std::unique_ptr<LtiSystem> v, double boundMinDb,
+std::unique_ptr<LtiSystem> AlgorithmNk::quickSolution(std::unique_ptr<LtiSystem> v, double boundMinDb,
                                                        double w, std::complex<double> p0){
 
     const double boundMin = std::pow(10.0, boundMinDb / 20.0);
 
-    std::vector<double> zeroInfs, zeroSups, poleInfs, poleSups;
-    for (Parameter & var : v->numerator()) {
-        zeroInfs.push_back(var.isUncertain() ? var.range().min : var.nominal());
-        zeroSups.push_back(var.isUncertain() ? var.range().max : var.nominal());
-    }
-    for (Parameter & var : v->denominator()) {
-        poleInfs.push_back(var.isUncertain() ? var.range().min : var.nominal());
-        poleSups.push_back(var.isUncertain() ? var.range().max : var.nominal());
-    }
+    ParameterBounds bounds = boundsOf(v.get());
 
-    double gainInf = v->gain().range().min;
-    const double gainSup = v->gain().range().max;
-
-    bool cut = false;
-
-    //Steps (3)-(4): the gain, from below.
-    if (v->gain().isUncertain()) {
-        const double k = quick_solution::gainCut(boundMin, zeroSups, poleInfs, w, p0);
-
-        if (k > gainInf && k < gainSup) {
-            gainInf = k;
-            cut = true;
-        }
-    }
-
-    //Steps (5)-(6): every zero, from below.
-    if (hasUncertainZeros) {
-        for (std::size_t j = 0; j < zeroInfs.size(); ++j) {
-            if (!v->numerator()[j].isUncertain()) {
-                continue;
-            }
-
-            const double z = quick_solution::zeroCut(boundMin, gainSup, zeroSups,
-                                                    poleInfs, j, w, p0);
-
-            if (z > zeroInfs[j] && z < zeroSups[j]) {
-                zeroInfs[j] = z;
-                cut = true;
-            }
-        }
-    }
-
-    //Steps (7)-(8): every pole, from ABOVE (a larger pole lowers the loop
-    //towards the forbidden side; the thesis text says the opposite
-    //interval - an erratum, see quick_solution.h).
-    if (hasUncertainPoles) {
-        for (std::size_t j = 0; j < poleInfs.size(); ++j) {
-            if (!v->denominator()[j].isUncertain()) {
-                continue;
-            }
-
-            const double p = quick_solution::poleCut(boundMin, gainSup, zeroSups,
-                                                    poleInfs, j, w, p0);
-
-            if (p > poleInfs[j] && p < poleSups[j]) {
-                poleSups[j] = p;
-                cut = true;
-            }
-        }
-    }
-
-    if (!cut) {
+    if (!cutBelowBoundary(bounds, boundMin, w, p0)) {
         return v;
     }
 
-    std::vector<Parameter> numerador;
-    for (std::size_t j = 0; j < zeroInfs.size(); ++j) {
-        Parameter & old = v->numerator()[j];
-        numerador.push_back(old.isUncertain()
-                ? Parameter(old.name(), Range(zeroInfs[j], zeroSups[j]), zeroInfs[j])
-                : Parameter(old.nominal()));
-    }
-
-    std::vector<Parameter> denominador;
-    for (std::size_t j = 0; j < poleInfs.size(); ++j) {
-        Parameter & old = v->denominator()[j];
-        denominador.push_back(old.isUncertain()
-                ? Parameter(old.name(), Range(poleInfs[j], poleSups[j]), poleInfs[j])
-                : Parameter(old.nominal()));
-    }
-
-    return v->create(v->name(), numerador, denominador,
-            v->gain().isUncertain()
-                ? Parameter("kv", Range(gainInf, gainSup), gainInf, "kv")
-                : Parameter(v->gain().nominal()),
-            v->delay());
+    return boxFromBounds(v.get(), bounds);
 }
 
 
@@ -328,14 +229,9 @@ inline std::unique_ptr<LtiSystem> AlgorithmNk::quickSolution(std::unique_ptr<Lti
 //space with an adaptive, coarsening step. A hard evaluation budget keeps
 //the search cheaper than the pruning it buys, and the candidate must pass
 //the nominal stability criterion once, at the end, before it may prune
-//the global search. Launched under the paper's 10% decision rule. (The
-//GUI 'delta' step no longer applies: the step adapts; the parameter is
-//kept for compatibility until the phase-8 GUI pass.)
+//the global search. Launched under the paper's 10% decision rule.
 
-namespace {
-}
-
-inline double AlgorithmNk::minimalFeasibleGain(const std::vector<double> & zeros,
+double AlgorithmNk::minimalFeasibleGain(const std::vector<double> & zeros,
                                                        const std::vector<double> & poles,
                                                        LtiSystem * box, std::int32_t & budget){
 
@@ -366,7 +262,7 @@ inline double AlgorithmNk::minimalFeasibleGain(const std::vector<double> & zeros
     return high;
 }
 
-inline void AlgorithmNk::localOptimization(LtiSystem * box){
+void AlgorithmNk::localOptimization(LtiSystem * box){
 
     const double launch = box->gain().range().min;
 
@@ -426,13 +322,13 @@ inline void AlgorithmNk::localOptimization(LtiSystem * box){
         while (improved && budget > 0) {
             improved = false;
 
-            for (std::size_t j = 0; j < static_cast<std::int32_t>(bestZeros.size()) && budget > 0; ++j) {
+            for (std::size_t j = 0; j < bestZeros.size() && budget > 0; ++j) {
                 if (box->numerator()[j].isUncertain()) {
                     improved = tryMove(false, j, logRange(box->numerator()[j]) / divisor) || improved;
                 }
             }
 
-            for (std::size_t j = 0; j < static_cast<std::int32_t>(bestPoles.size()) && budget > 0; ++j) {
+            for (std::size_t j = 0; j < bestPoles.size() && budget > 0; ++j) {
                 if (box->denominator()[j].isUncertain()) {
                     improved = tryMove(true, j, logRange(box->denominator()[j]) / divisor) || improved;
                 }
@@ -451,29 +347,29 @@ inline void AlgorithmNk::localOptimization(LtiSystem * box){
 }
 
 
-inline std::unique_ptr<LtiSystem> AlgorithmNk::pointSystem(const std::vector<double> & zeros,
+std::unique_ptr<LtiSystem> AlgorithmNk::pointSystem(const std::vector<double> & zeros,
                                                      const std::vector<double> & poles, double gain){
-    std::vector<Parameter> numerador;
-    numerador.reserve(zeros.size());
+    std::vector<Parameter> numerator;
+    numerator.reserve(zeros.size());
     for (double z : zeros) {
-        numerador.emplace_back(z);
+        numerator.emplace_back(z);
     }
 
-    std::vector<Parameter> denominador;
-    denominador.reserve(poles.size());
+    std::vector<Parameter> denominator;
+    denominator.reserve(poles.size());
     for (double p : poles) {
-        denominador.emplace_back(p);
+        denominator.emplace_back(p);
     }
 
-    return prototype->create(prototype->name(), std::move(numerador), std::move(denominador),
-                             Parameter(gain), Parameter(double(0)));
+    return prototype->create(prototype->name(), std::move(numerator), std::move(denominator),
+                             Parameter(gain), prototype->delay());
 }
 
 
 //Point feasibility against the bounds at every design frequency, with the
 //same projection + detection the interval test uses (the historical local
 //search passed the GAIN as the frequency index of the detection).
-inline bool AlgorithmNk::pointIsFeasible(const std::vector<double> & zeros,
+bool AlgorithmNk::pointIsFeasible(const std::vector<double> & zeros,
                                                   const std::vector<double> & poles, double gain){
 
     if (gain <= 0.0 || std::isinf(gain)) {
@@ -496,9 +392,9 @@ inline bool AlgorithmNk::pointIsFeasible(const std::vector<double> & zeros,
 }
 
 
-//Starting point of the local search, per the GUI choice: box centre,
-//random point, or the |L0|-maximal corner.
-inline void AlgorithmNk::startingPoint(LtiSystem * box, std::vector<double> & zeros,
+//Starting point of the local search, per the GUI choice: the box centre
+//or the |L0|-maximal corner.
+void AlgorithmNk::startingPoint(LtiSystem * box, std::vector<double> & zeros,
                                                 std::vector<double> & poles, double & gain){
 
     const auto pick = [this](Parameter & var, bool isPole) -> double {
@@ -506,7 +402,7 @@ inline void AlgorithmNk::startingPoint(LtiSystem * box, std::vector<double> & ze
             return var.nominal();
         }
         const Range r = var.range();
-        return ini == Centre ? r.middle()
+        return m_start == Centre ? r.middle()
                              : (isPole ? r.max : r.min);
     };
 
@@ -523,9 +419,11 @@ inline void AlgorithmNk::startingPoint(LtiSystem * box, std::vector<double> & ze
     Parameter & k = box->gain();
     if (!k.isUncertain()) {
         gain = k.nominal();
-    } else if (ini == Centre) {
+    } else if (m_start == Centre) {
         gain = (k.range().min + k.range().max) / 2.0;
     } else {
         gain = k.range().max;
     }
 }
+
+} // namespace qftbx

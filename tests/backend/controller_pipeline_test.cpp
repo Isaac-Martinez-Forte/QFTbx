@@ -21,6 +21,8 @@
 #include "project_compare.h"
 #include "src/persistence/project_reader.h"
 
+using namespace qftbx;
+
 namespace {
 
 using namespace qftbx_tests;
@@ -125,7 +127,7 @@ TEST(ControllerPipeline, SaveAndReloadRoundTripsTheProject)
     {
         ProjectController controller;
         controller.load(fixture("planta1.qft"));
-        ASSERT_TRUE(controller.save(saved));
+        controller.save(saved);
     }
 
     // The saved v2 file must carry the same project as the legacy original.

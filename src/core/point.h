@@ -2,6 +2,7 @@
 #define QFTBX_POINT_H
 
 #include <cmath>
+#include "src/core/math/constants.h"
 
 namespace qftbx {
 
@@ -87,7 +88,7 @@ struct NyquistPoint
 inline NyquistPoint toNyquist(const NicholsPoint & point)
 {
     const double magnitude = std::pow(10.0, point.magnitude / 20.0);
-    const double radians = point.phase * M_PI / 180.0;
+    const double radians = point.phase * qftbx::math::kPi / 180.0;
 
     return NyquistPoint(magnitude * std::cos(radians), magnitude * std::sin(radians));
 }

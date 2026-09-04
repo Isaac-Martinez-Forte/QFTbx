@@ -5,6 +5,8 @@
 //constructor created three QLineEdits that leaked immediately, and the
 //destructor deleted widgets it did not own (double delete with the Qt
 //parent).
+namespace qftbx {
+
 ParLineEdit::ParLineEdit(QLineEdit * x, QLineEdit*  y, QLineEdit * nominal){
     this->x = x;
     this->y = y;
@@ -35,3 +37,4 @@ QLineEdit *ParLineEdit::nominal() const {
     return m_nominal;
 }
 
+} // namespace qftbx

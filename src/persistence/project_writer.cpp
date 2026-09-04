@@ -2,6 +2,7 @@
 #include <cstdint>
 #include "project_writer.h"
 
+#include <cmath>
 #include <cstdio>
 #include <string>
 
@@ -26,21 +27,34 @@ using qftbx::text::number;
 
 const Tags & t = kV2;
 
-//17 significant digits: enough for an exact double round trip.
+//A NaN or an infinity never leaves for the file. The writer used to write
+//them as text ("nan", "inf"), the reader's strtod reads them back, and a
+//project that had gone wrong in memory came back looking like one that had
+//not.
+void requireFinite(double value, const char * what)
+{
+    if (!std::isfinite(value)) {
+        throw InvalidInput(std::string("The project cannot be written: <") + what
+                           + "> holds a value that is not a finite number.");
+    }
+}
 
-std::string realVectorText(const std::vector <double> & values)
+std::string realVectorText(const std::vector <double> & values, const char * what)
 {
     std::string text;
     for (double value : values) {
+        requireFinite(value, what);
         text += number(value) + " ";
     }
     return text;
 }
 
-std::string pointVectorText(const std::vector<qftbx::NicholsPoint> & points)
+std::string pointVectorText(const std::vector<qftbx::NicholsPoint> & points, const char * what)
 {
     std::string text;
     for (const qftbx::NicholsPoint & point : points) {
+        requireFinite(point.phase, what);
+        requireFinite(point.magnitude, what);
         text += number(point.phase) + " " + number(point.magnitude) + " ";
     }
     return text;
@@ -62,6 +76,7 @@ void addText(pugi::xml_node parent, const char * name, const std::string & text)
 
 void addReal(pugi::xml_node parent, const char * name, double value)
 {
+    requireFinite(value, name);
     addText(parent, name, number(value));
 }
 
@@ -70,18 +85,26 @@ void addBool(pugi::xml_node parent, const char * name, bool value)
     parent.append_child(name).text().set(value ? "true" : "false");
 }
 
-void writeParameter(pugi::xml_node parent, Parameter & parameter)
+//The RAW values, because they are the state and the reader takes what it
+//finds as the state. This used to write range() and nominal(), which are the
+//values with the reparametrisation expression already applied, and the reader
+//handed them to Parameter as the raw ones: one save-and-load applied the
+//expression twice, so a parameter mapped by "a*10" from [1, 2] came back
+//raw as [10, 20] and reported [100, 200]. No fixture carries a
+//reparametrisation, which is how it went unnoticed; the round-trip test that
+//found it has one now.
+void writeParameter(pugi::xml_node parent, const Parameter & parameter)
 {
     pugi::xml_node node = parent.append_child("parameter");
-    addReal(node, t.nominal, parameter.nominal());
+    addReal(node, t.nominal, parameter.rawNominal());
     addBool(node, t.uncertain, parameter.isUncertain());
 
     if (parameter.isUncertain()) {
         addText(node, t.parameterName, parameter.name());
         addText(node, t.parameterExpression, parameter.expression());
         pugi::xml_node range = node.append_child(t.range);
-        addReal(range, t.rangeMin, parameter.range().min);
-        addReal(range, t.rangeMax, parameter.range().max);
+        addReal(range, t.rangeMin, parameter.rawRange().min);
+        addReal(range, t.rangeMax, parameter.rawRange().max);
     }
 }
 
@@ -144,22 +167,24 @@ void writeSpecifications(pugi::xml_node root, const qftbx::SpecificationRecords 
     }
 }
 
-void writeOmega(pugi::xml_node root, Omega * omega)
+void writeOmega(pugi::xml_node root, const Omega * omega)
 {
     pugi::xml_node section = root.append_child(t.omega);
     addReal(section, t.omegaMin, omega->start());
     addReal(section, t.omegaMax, omega->end());
     addText(section, t.pointCount, std::to_string(omega->pointCount()));
     addText(section, t.omegaType, std::to_string(static_cast<std::int32_t>(omega->type())));
-    addText(section, t.values, realVectorText(*omega->values()));
+    addText(section, t.values, realVectorText(*omega->values(), t.values));
 }
 
-void writeComplexVectors(pugi::xml_node section, const qftbx::CloudSet & vectors)
+void writeComplexVectors(pugi::xml_node section, const qftbx::CloudSet & vectors, const char * what)
 {
     for (const qftbx::ComplexCloud & vector : vectors) {
         std::string reals;
         std::string imaginaries;
         for (const std::complex<double> & value : vector) {
+            requireFinite(value.real(), what);
+            requireFinite(value.imag(), what);
             reals += number(value.real()) + " ";
             imaginaries += number(value.imag()) + " ";
         }
@@ -174,27 +199,27 @@ void writeTemplates(pugi::xml_node root, const ProjectContent & content)
 
     pugi::xml_node metadata = section.append_child(t.metadata);
     addText(metadata, t.epsilon,
-            content.epsilon != nullptr ? realVectorText(*content.epsilon) : std::string());
+            content.epsilon != nullptr ? realVectorText(*content.epsilon, t.epsilon) : std::string());
 
     pugi::xml_node full = section.append_child(t.fullTemplates);
-    full.append_attribute("size") = static_cast<std::int64_t>(content.templates.size());
-    writeComplexVectors(full, content.templates);
+    full.append_attribute("size") = static_cast<std::int64_t>(content.templates->size());
+    writeComplexVectors(full, *content.templates, t.fullTemplates);
 
-    if (!content.contour.empty()) {
+    if (content.contour != nullptr && !content.contour->empty()) {
         pugi::xml_node contour = section.append_child(t.templateContour);
-        contour.append_attribute("size") = static_cast<std::int64_t>(content.contour.size());
-        writeComplexVectors(contour, content.contour);
+        contour.append_attribute("size") = static_cast<std::int64_t>(content.contour->size());
+        writeComplexVectors(contour, *content.contour, t.templateContour);
     }
 }
 
-void writeTraces(pugi::xml_node parent, const qftbx::TraceSet & traces)
+void writeTraces(pugi::xml_node parent, const qftbx::TraceSet & traces, const char * what)
 {
     for (const qftbx::Trace & trace : traces) {
-        addText(parent, "trace", pointVectorText(trace));
+        addText(parent, "trace", pointVectorText(trace, what));
     }
 }
 
-void writeBoundaries(pugi::xml_node root, BoundaryData * boundaries)
+void writeBoundaries(pugi::xml_node root, const BoundaryData * boundaries)
 {
     pugi::xml_node section = root.append_child(t.boundaries);
     pugi::xml_node data = section.append_child(t.boundariesData);
@@ -223,20 +248,20 @@ void writeBoundaries(pugi::xml_node root, BoundaryData * boundaries)
         for (const auto & entry : map) {
             pugi::xml_node keyNode = frequency.append_child(entry.first.c_str());
             keyNode.append_attribute("size") = static_cast<std::int64_t>(entry.second.size());
-            writeTraces(keyNode, entry.second);
+            writeTraces(keyNode, entry.second, t.perFrequency);
         }
     }
 
     pugi::xml_node unionNode = data.append_child(t.boundaryUnion);
     unionNode.append_attribute("size") = static_cast<std::int64_t>(boundaries->unionBoundaries().size());
-    writeTraces(unionNode, boundaries->unionBoundaries());
+    writeTraces(unionNode, boundaries->unionBoundaries(), t.boundaryUnion);
 
     pugi::xml_node buckets = data.append_child(t.unionBuckets);
     buckets.append_attribute("size") = static_cast<std::int64_t>(boundaries->unionBuckets().size());
     for (const qftbx::TraceSet & perFrequencyBuckets : boundaries->unionBuckets()) {
         pugi::xml_node frequency = buckets.append_child("frequency");
         frequency.append_attribute("size") = static_cast<std::int64_t>(perFrequencyBuckets.size());
-        writeTraces(frequency, perFrequencyBuckets);
+        writeTraces(frequency, perFrequencyBuckets, t.unionBuckets);
     }
 }
 
@@ -273,7 +298,7 @@ void ProjectWriter::save(const std::string & filePath, const ProjectContent & co
     if (content.omega != nullptr) {
         writeOmega(root, content.omega);
     }
-    if (!content.templates.empty()) {
+    if (content.templates != nullptr && !content.templates->empty()) {
         writeTemplates(root, content);
     }
     if (content.boundaries != nullptr) {

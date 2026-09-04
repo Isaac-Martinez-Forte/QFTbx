@@ -2,6 +2,7 @@
 #define QFTBX_QUICK_SOLUTION_H
 
 #include <cmath>
+#include "src/core/math/constants.h"
 #include <complex>
 
 #include <vector>
@@ -192,7 +193,7 @@ inline double zeroPhaseCutHigh(double thetaMax, double phi0,
     const double margin = thetaMax - phi0 - termPhaseSum(zeroSups, w, index) +
                          termPhaseSum(poleInfs, w);
 
-    if (margin <= 0.0 || margin >= M_PI_2) {
+    if (margin <= 0.0 || margin >= (qftbx::math::kPi / 2.0)) {
         return -1.0;
     }
 
@@ -209,7 +210,7 @@ inline double polePhaseCutHigh(double thetaMax, double phi0,
     const double margin = phi0 + termPhaseSum(zeroSups, w) -
                          termPhaseSum(poleInfs, w, index) - thetaMax;
 
-    if (margin <= 0.0 || margin >= M_PI_2) {
+    if (margin <= 0.0 || margin >= (qftbx::math::kPi / 2.0)) {
         return -1.0;
     }
 
@@ -227,7 +228,7 @@ inline double zeroPhaseCutLow(double thetaMin, double phi0,
     const double margin = thetaMin - phi0 - termPhaseSum(zeroInfs, w, index) +
                          termPhaseSum(poleSups, w);
 
-    if (margin <= 0.0 || margin >= M_PI_2) {
+    if (margin <= 0.0 || margin >= (qftbx::math::kPi / 2.0)) {
         return -1.0;
     }
 
@@ -244,7 +245,7 @@ inline double polePhaseCutLow(double thetaMin, double phi0,
     const double margin = phi0 + termPhaseSum(zeroInfs, w) -
                          termPhaseSum(poleSups, w, index) - thetaMin;
 
-    if (margin <= 0.0 || margin >= M_PI_2) {
+    if (margin <= 0.0 || margin >= (qftbx::math::kPi / 2.0)) {
         return -1.0;
     }
 

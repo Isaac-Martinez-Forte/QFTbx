@@ -77,8 +77,5 @@ struct Range
 
 } // namespace qftbx
 
-//Transitional: unqualified name for consumers not yet migrated to the
-//qftbx namespace.
-using qftbx::Range;
 
 #endif // QFTBX_RANGE_H

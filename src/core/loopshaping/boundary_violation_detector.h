@@ -1,6 +1,7 @@
 #ifndef QFTBX_LOOPSHAPING_BOUNDARY_VIOLATION_DETECTOR_H
 #define QFTBX_LOOPSHAPING_BOUNDARY_VIOLATION_DETECTOR_H
 
+#include "src/core/loopshaping/loop_shaping_types.h"
 #include <cstdint>
 #include "src/core/point.h"
 #include <limits>
@@ -26,20 +27,18 @@
  * @author Moisés Frutos Plaza
  * @author Isaac Martínez Forte
  */
+namespace qftbx {
+
 class BoundaryViolationDetector
 {
 public:
-
-    BoundaryViolationDetector();
-    ~BoundaryViolationDetector();
-
     /// Classification of one projected box; a plain value (four doubles,
     /// a flag and two corner verdicts), so there is nothing to own.
     BoxClassification classifyBox(cxsc::cinterval box, const BoundaryData * boundaries, std::size_t frequencyIndex);
 
     /// Classifies one Nichols point (phase deg, magnitude dB) against the
     /// boundary union at design frequency 'frequencyIndex' (parity test).
-    tools::BoxFlag classifyPoint(qftbx::NicholsPoint point, const BoundaryData * boundaries, std::size_t frequencyIndex);
+    qftbx::BoxFlag classifyPoint(qftbx::NicholsPoint point, const BoundaryData * boundaries, std::size_t frequencyIndex);
 
 private:
 
@@ -50,10 +49,12 @@ private:
     //the window width. Exact on the default 360-degree window, which is why
     //nothing showed it; wrong on any other, and a division by zero for a
     //window under one degree.
-    inline tools::BoxFlag pointVerdict(qftbx::NicholsPoint point, const qftbx::TraceSet & buckets,
-                                       std::int32_t bucketCount, bool open, bool above,
-                                       double phaseSpanDegrees);
-    inline std::int32_t phaseBucket(double phaseDegrees, std::int32_t bucketCount, double phaseSpanDegrees);
+    qftbx::BoxFlag pointVerdict(qftbx::NicholsPoint point, const qftbx::TraceSet & buckets,
+                                std::int32_t bucketCount, bool above,
+                                double phaseSpanDegrees);
+    std::int32_t phaseBucket(double phaseDegrees, std::int32_t bucketCount, double phaseSpanDegrees);
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_LOOPSHAPING_BOUNDARY_VIOLATION_DETECTOR_H

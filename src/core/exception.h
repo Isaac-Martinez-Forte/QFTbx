@@ -49,9 +49,6 @@ public:
 };
 
 /**
- * @brief Malformed content found while parsing a .qft project file.
- */
-/**
  * @brief The search stopped because it was asked to, not because anything is
  * wrong.
  *
@@ -69,6 +66,9 @@ public:
     explicit Cancelled(const std::string & what) : Exception(what) {}
 };
 
+/**
+ * @brief Malformed content found while parsing a .qft project file.
+ */
 class ParseError : public FileError
 {
 public:

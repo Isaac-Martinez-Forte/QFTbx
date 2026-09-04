@@ -29,6 +29,8 @@
 #include "src/core/templates/template_engine.h"
 #include "src/persistence/project_reader.h"
 
+using namespace qftbx;
+
 namespace {
 
 //Every computed number of one run, in order: the clouds first, then the
@@ -70,19 +72,17 @@ Numbers sweep(int threads)
     grids[plant->numerator()[0].name()] = qftbx::math::linspace(1.0, 10.0, 10);
     grids[plant->gain().name()] = qftbx::math::linspace(1.0, 10.0, 10);
 
-    auto * frequencies = new std::vector<double>(*parser.omega()->values());
-    const std::vector<double> epsilon(frequencies->size(), 10.0);
+    std::vector<double> frequencies(*parser.omega()->values());
+    const std::vector<double> epsilon(frequencies.size(), 10.0);
 
     TemplateEngine engine;
     engine.setEpsilon(epsilon);
     engine.setGrids(grids);
-    engine.compute(plant, frequencies, false);
+    engine.compute(plant, &frequencies, false);
 
     Numbers numbers;
     appendAll(engine.clouds(), numbers);
     appendAll(engine.contours(), numbers);
-
-    delete frequencies;
 
     return numbers;
 }

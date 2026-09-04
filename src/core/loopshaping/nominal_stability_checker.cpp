@@ -1,9 +1,11 @@
 #include "src/core/loopshaping/nominal_stability_checker.h"
+#include "src/core/math/constants.h"
 
 #include <vector>
 #include <algorithm>
 #include <cmath>
 
+#include "src/core/exception.h"
 #include "src/core/system/parameter.h"
 
 namespace qftbx {
@@ -18,7 +20,7 @@ const double kRayMagnitude = 1.0;
 
 double phaseDegrees(const std::complex<double> & value)
 {
-    return std::arg(value) * 180.0 / M_PI;
+    return std::arg(value) * 180.0 / qftbx::math::kPi;
 }
 
 } // namespace
@@ -28,6 +30,10 @@ NominalStabilityChecker::NominalStabilityChecker(LtiSystem * nominalPlant,
                                                  Settings::Stability tolerances)
     : m_plant(nominalPlant), m_tolerances(tolerances)
 {
+    if (omega == nullptr || omega->empty()) {
+        throw InvalidInput("The stability check needs at least one design frequency.");
+    }
+
     double minOmega = omega->front();
     double maxOmega = omega->front();
 

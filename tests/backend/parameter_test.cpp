@@ -1,7 +1,4 @@
-// Characterisation tests for Parameter (src/core/system/parameter.h): they pin
-// the CURRENT behaviour of the class before its modernisation. Behaviours
-// marked with "// BUG:" are known defects kept as-is on purpose; fixing them
-// must flip the expectation in a dedicated commit.
+// Tests for Parameter (src/core/system/parameter.h).
 
 #include <gtest/gtest.h>
 
@@ -13,6 +10,8 @@
 #include "src/core/range.h"
 
 #include "src/core/system/parameter.h"
+
+using namespace qftbx;
 
 namespace {
 
@@ -148,9 +147,11 @@ TEST(Parameter, VectorCopyIsIndependent)
     EXPECT_EQ(copy[0].name(), std::string("a"));
     EXPECT_DOUBLE_EQ(copy[1].nominal(), 3.5);
 
-    //Mutating the copy leaves the source alone.
-    copy[0].setNominal(9.0);
-    EXPECT_DOUBLE_EQ(source[0].rawNominal(), 2.0);
+    //Mutating the copy leaves the source alone. Through setName(), which is
+    //the one mutator left: setNominal() went with the other setters that
+    //skipped the constructors' checks.
+    copy[0].setName(std::string("b"));
+    EXPECT_EQ(source[0].name(), std::string("a"));
 }
 
 } // namespace

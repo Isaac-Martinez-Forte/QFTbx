@@ -2,25 +2,28 @@
 #include <vector>
 #include <cstdint>
 #include "src/core/project_controller.h"
-#include "src/core/math/expression_cache.h"
 
-ProjectController::ProjectController()
-{
-}
+#include "src/core/math/expression_cache.h"
+#include "src/persistence/project_reader.h"
+#include "src/persistence/project_writer.h"
+
+namespace qftbx {
+
+ProjectController::ProjectController() = default;
 
 ProjectController::~ProjectController() = default;
 
 LtiSystem *ProjectController::plant(){
-    return data.plant();
+    return m_data.plant();
 }
 
 Omega * ProjectController::omega(){
-    return data.omega();
+    return m_data.omega();
 }
 
 
 qftbx::SpecificationRecords * ProjectController::specifications(){
-    return data.specifications();
+    return m_data.specifications();
 }
 
 namespace {
@@ -38,9 +41,7 @@ namespace {
 //place to ask a parser anything.
 void requireUsableNames(LtiSystem & system)
 {
-    //Not by const reference: isUncertain() and name() are not const on
-    //Parameter, and widening that is not this change's business.
-    const auto check = [](Parameter & parameter) {
+    const auto check = [](const Parameter & parameter) {
         if (!parameter.isUncertain()) {
             //A constant carries no variable into any expression; its name is
             //often the number itself.
@@ -76,21 +77,21 @@ void requireUsableNames(LtiSystem & system)
 //specifications, omega, templates, boundaries, controller, loop shaping), so
 //each step only ever drops things that have not been set yet.
 void ProjectController::dropTemplatesAndBelow(){
-    data.setTemplates({});
-    data.setContour({});
-    data.setEpsilon(std::nullopt);
+    m_data.setTemplates({});
+    m_data.setContour({});
+    m_data.setEpsilon(std::nullopt);
 
     dropBoundariesAndBelow();
 }
 
 void ProjectController::dropBoundariesAndBelow(){
-    data.setBoundaries(std::nullopt);
+    m_data.setBoundaries(std::nullopt);
 
     dropLoopShaping();
 }
 
 void ProjectController::dropLoopShaping(){
-    data.setLoopShapingResult(nullptr);
+    m_data.setLoopShapingResult(nullptr);
 }
 
 //The three publishers used to compare the incoming pointer with the stored
@@ -98,19 +99,21 @@ void ProjectController::dropLoopShaping(){
 //throw away a finished design. Taking the ownership makes that comparison
 //not just unnecessary but wrong: returning early would destroy, on the way
 //out, the very object the store is pointing at.
-//Null on either side counts as a change: there is nothing to compare, and
-//of the two possible mistakes only "different" is harmless.
+//A null publish is refused, not taken as "remove the step": there is no such
+//step in the pipeline, and a reused dialog once published a null plant that
+//wiped the plant and everything computed from it. The facade is where that
+//stops, whatever the interface does.
 bool ProjectController::setPlant(std::unique_ptr<LtiSystem> plant){
     requireNotComputing();
 
-    if (plant != nullptr) {
-        requireUsableNames(*plant);
+    if (plant == nullptr) {
+        throw qftbx::InvalidInput("The project cannot take a null plant.");
     }
+    requireUsableNames(*plant);
 
-    const bool changed = plant == nullptr || data.plant() == nullptr ||
-            !plant->sameAs(*data.plant());
+    const bool changed = m_data.plant() == nullptr || !plant->sameAs(*m_data.plant());
 
-    data.setPlant(std::move(plant));
+    m_data.setPlant(std::move(plant));
 
     if (changed) {
         dropTemplatesAndBelow();
@@ -122,10 +125,13 @@ bool ProjectController::setPlant(std::unique_ptr<LtiSystem> plant){
 bool ProjectController::setOmega(std::unique_ptr<Omega> omega){
     requireNotComputing();
 
-    const bool changed = omega == nullptr || data.omega() == nullptr ||
-            !omega->sameAs(*data.omega());
+    if (omega == nullptr) {
+        throw qftbx::InvalidInput("The project cannot take a null set of design frequencies.");
+    }
 
-    data.setOmega(std::move(omega));
+    const bool changed = m_data.omega() == nullptr || !omega->sameAs(*m_data.omega());
+
+    m_data.setOmega(std::move(omega));
 
     if (changed) {
         dropTemplatesAndBelow();
@@ -137,7 +143,11 @@ bool ProjectController::setOmega(std::unique_ptr<Omega> omega){
 void ProjectController::setSpecifications(std::optional<qftbx::SpecificationRecords> specifications){
     requireNotComputing();
 
-    data.setSpecifications(std::move(specifications));
+    if (!specifications.has_value()) {
+        throw qftbx::InvalidInput("The project cannot take an empty set of specifications.");
+    }
+
+    m_data.setSpecifications(std::move(specifications));
 
     //The templates do not depend on the specifications; the boundaries do.
     dropBoundariesAndBelow();
@@ -146,32 +156,28 @@ void ProjectController::setSpecifications(std::optional<qftbx::SpecificationReco
 void ProjectController::setTemplates(qftbx::CloudSet clouds, qftbx::CloudSet contour,
                                      bool hasContour){
 
-    m_templates.adopt(data, std::move(clouds), std::move(contour), hasContour);
+    m_templates.adopt(m_data, std::move(clouds), std::move(contour), hasContour);
 
     //New templates make the boundaries built from the old ones meaningless.
     //The stage does not do this: the dependency graph stays here, in the one
-    //class that owns it. Called from computeTemplates() too, which is why the
-    //epsilon is not dropped here - the computation stores it right after.
+    //class that owns it. Only load() comes through here now; computeTemplates()
+    //applies the same drop itself.
     dropBoundariesAndBelow();
 }
 
-void ProjectController::setContour(qftbx::CloudSet contour){
-    data.setContour(std::move(contour));
-}
-
 void ProjectController::setBoundaries(std::optional<qftbx::BoundaryData> boundaries){
-    data.setBoundaries(std::move(boundaries));
+    m_data.setBoundaries(std::move(boundaries));
 
     //The search runs against these boundaries: a new set voids its result.
     dropLoopShaping();
 }
 
 const qftbx::CloudSet & ProjectController::templates(){
-    return data.templates();
+    return m_data.templates();
 }
 
 const qftbx::CloudSet & ProjectController::contour(){
-    return data.contour();
+    return m_data.contour();
 }
 
 bool ProjectController::computeTemplates(std::vector <double> epsilon, qftbx::ParameterGrids grids, bool cuda){
@@ -184,7 +190,7 @@ bool ProjectController::computeTemplates(std::vector <double> epsilon, qftbx::Pa
     //publishing through the stage instead silently stopped dropping the
     //boundaries. Nothing caught it, which is now covered by
     //StageSequence.RecomputingTheTemplatesDropsTheBoundaries.
-    const bool produced = m_templates.run(data, std::move(epsilon),
+    const bool produced = m_templates.run(m_data, std::move(epsilon),
                                           std::move(grids), cuda);
 
     //New templates make the boundaries built from the old ones meaningless.
@@ -194,12 +200,16 @@ bool ProjectController::computeTemplates(std::vector <double> epsilon, qftbx::Pa
 }
 
 std::vector <double> * ProjectController::epsilon(){
-    return data.epsilon();
+    return m_data.epsilon();
 }
 
 
 const qftbx::CloudSet & ProjectController::recomputeContour(std::vector <double> epsilon){
-    return m_templates.recomputeContour(data, std::move(epsilon));
+    //It rewrites the contour and the epsilon, and MR reads the contour: the
+    //one mutating entry point that was missing the guard.
+    requireNotComputing();
+
+    return m_templates.recomputeContour(m_data, std::move(epsilon));
 }
 
 bool ProjectController::computeBoundaries(qftbx::Range phaseRange, std::int32_t phaseCount, qftbx::Range magnitudeRange,
@@ -207,7 +217,7 @@ bool ProjectController::computeBoundaries(qftbx::Range phaseRange, std::int32_t 
 
     requireNotComputing();
 
-    const bool produced = m_boundaries.run(data, phaseRange, phaseCount,
+    const bool produced = m_boundaries.run(m_data, phaseRange, phaseCount,
                                            magnitudeRange, magnitudeCount,
                                            exportInfinity, contour, cuda);
 
@@ -222,28 +232,36 @@ bool ProjectController::computeBoundaries(qftbx::Range phaseRange, std::int32_t 
 }
 
 BoundaryData *ProjectController::boundaries(){
-    return data.boundaries();
+    return m_data.boundaries();
 }
 
+//Every other getter answers nullptr while its step is not done; these two
+//return references and cannot, so they say so instead of dereferencing a null.
 const qftbx::UnionTraces & ProjectController::unionBoundaries(){
-    return data.boundaries()->unionBoundaries();
+    if (m_data.boundaries() == nullptr) {
+        throw qftbx::InvalidInput("There are no boundaries yet.");
+    }
+    return m_data.boundaries()->unionBoundaries();
 }
 
 const qftbx::UnionBuckets & ProjectController::unionBuckets(){
-    return data.boundaries()->unionBuckets();
+    if (m_data.boundaries() == nullptr) {
+        throw qftbx::InvalidInput("There are no boundaries yet.");
+    }
+    return m_data.boundaries()->unionBuckets();
 }
 
 bool ProjectController::setControllerStructure(std::unique_ptr<LtiSystem> controller){
     requireNotComputing();
 
-    if (controller != nullptr) {
-        requireUsableNames(*controller);
+    if (controller == nullptr) {
+        throw qftbx::InvalidInput("The project cannot take a null controller structure.");
     }
+    requireUsableNames(*controller);
 
-    const bool changed = controller == nullptr || data.controller() == nullptr ||
-            !controller->sameAs(*data.controller());
+    const bool changed = m_data.controller() == nullptr || !controller->sameAs(*m_data.controller());
 
-    data.setController(std::move(controller));
+    m_data.setController(std::move(controller));
 
     //A different controller structure means the computed controller answers a
     //question nobody asked any more. The same one means it still answers it.
@@ -255,17 +273,17 @@ bool ProjectController::setControllerStructure(std::unique_ptr<LtiSystem> contro
 }
 
 LtiSystem * ProjectController::controllerStructure(){
-    return data.controller();
+    return m_data.controller();
 }
 
-bool ProjectController::computeLoopShaping(double epsilon, tools::LoopShapingAlgorithm algorithm, qftbx::Range plotRange, double pointCount,
+bool ProjectController::computeLoopShaping(double epsilon, qftbx::LoopShapingAlgorithm algorithm, qftbx::Range plotRange, double pointCount,
                                       std::int32_t initialisation,
                                       const qftbx::CancellationToken * cancellation){
 
     requireNotComputing();
 
     //Nothing downstream to invalidate: this result IS the design.
-    return m_loopShaping.run(data, epsilon, algorithm, plotRange, pointCount,
+    return m_loopShaping.run(m_data, epsilon, algorithm, plotRange, pointCount,
                              initialisation, cancellation);
 }
 
@@ -280,7 +298,7 @@ void ProjectController::requireNotComputing() const
     }
 }
 
-bool ProjectController::startLoopShaping(double epsilon, tools::LoopShapingAlgorithm algorithm,
+bool ProjectController::startLoopShaping(double epsilon, qftbx::LoopShapingAlgorithm algorithm,
                                          qftbx::Range plotRange, double pointCount,
                                          std::int32_t initialisation,
                                          std::function<void ()> finished)
@@ -292,13 +310,13 @@ bool ProjectController::startLoopShaping(double epsilon, tools::LoopShapingAlgor
     //Checked on THIS thread, before anything starts: a search with no
     //boundaries is the caller's mistake and it should surface where the caller
     //made it, not as a message field on a worker that has already returned.
-    m_loopShaping.requirePrerequisites(data);
+    m_loopShaping.requirePrerequisites(m_data);
 
     m_cancellation.reset();
 
     return m_background.start(
         [this, epsilon, algorithm, plotRange, pointCount, initialisation]() {
-            return m_loopShaping.run(data, epsilon, algorithm, plotRange,
+            return m_loopShaping.run(m_data, epsilon, algorithm, plotRange,
                                      pointCount, initialisation, &m_cancellation);
         },
         std::move(finished));
@@ -335,38 +353,36 @@ const std::string & ProjectController::lastComputationError() const
 }
 
 void ProjectController::setLoopShapingResult(std::unique_ptr<LoopShapingResult> result){
-    data.setLoopShapingResult(std::move(result));
+    m_data.setLoopShapingResult(std::move(result));
 }
 
 LoopShapingResult * ProjectController::loopShapingResult(){
-    return data.loopShaping();
+    return m_data.loopShaping();
 }
 
-bool ProjectController::save(std::string path){
+void ProjectController::save(std::string path){
     //Reading, but reading a project a worker is writing the design into.
     requireNotComputing();
 
 
     ProjectContent content;
 
-    content.plant = data.plant();
-    content.specifications = data.specifications();
-    content.omega = data.omega();
-    content.templates = data.templates();
-    content.epsilon = data.epsilon();
+    content.plant = m_data.plant();
+    content.specifications = m_data.specifications();
+    content.omega = m_data.omega();
+    content.templates = &m_data.templates();
+    content.epsilon = m_data.epsilon();
 
-    if (data.hasContour()){
-        content.contour = data.contour();
+    if (m_data.hasContour()){
+        content.contour = &m_data.contour();
     }
 
-    content.boundaries = data.boundaries();
-    content.controller = data.controller();
-    content.loopShaping = data.loopShaping();
+    content.boundaries = m_data.boundaries();
+    content.controller = m_data.controller();
+    content.loopShaping = m_data.loopShaping();
 
     ProjectWriter writer;
     writer.save(path, content);
-
-    return true;
 }
 
 qftbx::StepSet ProjectController::load(std::string path){
@@ -375,6 +391,15 @@ qftbx::StepSet ProjectController::load(std::string path){
     ProjectReader reader;
 
     const ProjectReader::Loaded loaded = reader.load(path);
+
+    //The file REPLACES the project; it does not overlay it. Publishing only the
+    //steps the file carries on top of whatever was here left a hybrid - a
+    //five-step file opened over a finished design kept the old controller
+    //structure and the old search result under the new plant - and the window
+    //then reported seven steps done for a file that had five. Read first, so a
+    //file that fails to parse leaves the current project untouched; then
+    //start clean.
+    m_data = qftbx::ProjectData();
 
     //Assigned in dependency order, which is what keeps the invalidation from
     //undoing the step before: each publisher only ever drops things that have
@@ -395,7 +420,7 @@ qftbx::StepSet ProjectController::load(std::string path){
         setTemplates(reader.takeTemplates(),
                      loaded.hasContour ? reader.takeContour() : qftbx::CloudSet(),
                      loaded.hasContour);
-        data.setEpsilon(reader.takeEpsilon());
+        m_data.setEpsilon(reader.takeEpsilon());
     }
 
     if (loaded.steps.has(qftbx::Step::Boundaries)) {
@@ -425,13 +450,13 @@ qftbx::StepSet ProjectController::completed() const
 {
     qftbx::StepSet done;
 
-    if (data.plant() != nullptr)                { done.add(qftbx::Step::Plant); }
-    if (data.specifications() != nullptr)       { done.add(qftbx::Step::Specifications); }
-    if (data.omega() != nullptr)                { done.add(qftbx::Step::Frequencies); }
-    if (!data.templates().empty())              { done.add(qftbx::Step::Templates); }
-    if (data.boundaries() != nullptr)           { done.add(qftbx::Step::Boundaries); }
-    if (data.controller() != nullptr)           { done.add(qftbx::Step::Controller); }
-    if (data.loopShaping() != nullptr)          { done.add(qftbx::Step::LoopShaping); }
+    if (m_data.plant() != nullptr)                { done.add(qftbx::Step::Plant); }
+    if (m_data.specifications() != nullptr)       { done.add(qftbx::Step::Specifications); }
+    if (m_data.omega() != nullptr)                { done.add(qftbx::Step::Frequencies); }
+    if (!m_data.templates().empty())              { done.add(qftbx::Step::Templates); }
+    if (m_data.boundaries() != nullptr)           { done.add(qftbx::Step::Boundaries); }
+    if (m_data.controller() != nullptr)           { done.add(qftbx::Step::Controller); }
+    if (m_data.loopShaping() != nullptr)          { done.add(qftbx::Step::LoopShaping); }
 
     return done;
 }
@@ -443,11 +468,15 @@ void ProjectController::invalidateFrom(qftbx::Step step)
 {
     switch (step) {
     case qftbx::Step::Plant:
-    case qftbx::Step::Specifications:
     case qftbx::Step::Frequencies:
     case qftbx::Step::Templates:
         dropTemplatesAndBelow();
         return;
+    //The templates do not depend on the specifications; the boundaries do.
+    //Grouping this step with the plant, as the first version did, dropped
+    //the templates for a change that never touches them - and disagreed
+    //with setSpecifications(), which had it right.
+    case qftbx::Step::Specifications:
     case qftbx::Step::Boundaries:
         dropBoundariesAndBelow();
         return;
@@ -457,3 +486,5 @@ void ProjectController::invalidateFrom(qftbx::Step step)
         return;
     }
 }
+
+} // namespace qftbx

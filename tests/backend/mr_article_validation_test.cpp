@@ -104,10 +104,10 @@
 #include "src/core/system/polynomial_form.h"
 #include "src/core/system/zero_pole_gain.h"
 
+using namespace qftbx;
+
 namespace {
 
-using qftbx::Parameter;
-using qftbx::Range;
 
 //The paper's design frequency set.
 const std::vector<double> kOmega{0.001, 0.015, 0.25, 3.84, 60.0};

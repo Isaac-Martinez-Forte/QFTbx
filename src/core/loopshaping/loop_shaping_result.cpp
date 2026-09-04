@@ -1,5 +1,7 @@
 #include "src/core/loopshaping/loop_shaping_result.h"
 
+namespace qftbx {
+
 LoopShapingResult::LoopShapingResult(std::unique_ptr<LtiSystem> controller, qftbx::Range plotRange,
                                      double pointCount)
     : m_controller(std::move(controller)),
@@ -8,14 +10,16 @@ LoopShapingResult::LoopShapingResult(std::unique_ptr<LtiSystem> controller, qftb
 {
 }
 
-LtiSystem * LoopShapingResult::controller(){
+LtiSystem * LoopShapingResult::controller() const{
     return m_controller.get();
 }
 
-qftbx::Range LoopShapingResult::range(){
+qftbx::Range LoopShapingResult::range() const{
     return m_plotRange;
 }
 
-double LoopShapingResult::pointCount(){
+double LoopShapingResult::pointCount() const{
     return m_pointCount;
 }
+
+} // namespace qftbx

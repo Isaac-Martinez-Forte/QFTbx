@@ -1,108 +1,76 @@
 #ifndef QFTBX_PLANT_DIALOG_H
 #define QFTBX_PLANT_DIALOG_H
 
-#include "src/gui/step_dialog.h"
-#include "src/gui/coefficient_tables.h"
-
 #include <memory>
 
-#include <optional>
-#include <vector>
-
 #include <QDialog>
-#include <qvalidator.h>
-#include <QRadioButton>
-#include <QList>
-#include <QFileDialog>
-#include <QRegularExpression>
-#include <QRegularExpression>
+#include <QString>
 
-#include "src/core/system/zero_pole_gain.h"
-#include "src/core/system/time_constant_gain.h"
-#include "src/core/system/polynomial_form.h"
-#include "src/core/system/free_form.h"
+#include "src/core/system/lti_system.h"
+#include "src/gui/coefficient_tables.h"
+#include "src/gui/step_dialog.h"
+#include "src/gui/system_description_reader.h"
 #include "src/gui/uncertainty_dialog.h"
-#include "src/core/math/sequence_vectors.h"
-#include "mpParser.h"
 
 namespace Ui {
 class PlantDialog;
 }
 
+namespace qftbx {
+
+/**
+ * @brief Step 1 of the design: the plant, in one of the four families, with
+ * its uncertain parameters described through the uncertainty dialog.
+ *
+ * The dialog does not know the project: it builds a plant and hands it over
+ * through takePlant(), and the main window publishes it. Reading the fields
+ * is SystemDescriptionReader's job, shared with the controller dialog.
+ */
 class PlantDialog : public StepDialog
 {
     Q_OBJECT
 
 public:
-
-    explicit PlantDialog(QWidget *parent = 0);
+    explicit PlantDialog(QWidget *parent = nullptr);
     ~PlantDialog();
 
-
-    /**
-     * @brief The plant the user described, or nullptr when the dialog was
-     * cancelled or its data rejected. Ownership passes to the caller.
-     *
-     * The dialog does not know the project: it builds a plant and hands it
-     * over, and the main window is what publishes it. (It used to hold the
-     * facade and write into it, which gave every dialog access to the whole
-     * application.)
-     */
+    /// The plant the user described, or nullptr when the dialog was
+    /// cancelled or its data rejected. Ownership passes to the caller.
     std::unique_ptr<LtiSystem> takePlant();
-    
-    
-    
+
 private slots:
-
     void on_zerosPolesRadio_toggled(bool checked);
-
     void on_transferFunctionRadio_toggled(bool checked);
-
     void on_zpkRadio_toggled(bool checked);
-
     void on_tcgRadio_toggled(bool checked);
-
     void on_polynomialRadio_toggled(bool checked);
-
     void on_okButton_clicked();
-
     void on_uncertaintyButton_clicked();
-
     void on_freeFormRadio_clicked();
-    
 
 private:
+    /// The family the radios select.
+    LtiSystem::SystemType selectedType() const;
+
+    /// The coefficients of the described plant, or nothing when the dialog
+    /// could not read them (the reader has already said why).
+    std::optional<CoefficientTable> readTables(CoefficientTable & expressionTable,
+                                               UncertainTable & uncertainTable);
+
+    /// The name field, marked red and reported when empty.
+    bool nameIsPresent();
+
     std::unique_ptr<Ui::PlantDialog> ui;
-    
 
-    QString file;
-
-    UncertaintyDialog * uncertaintyDialog= NULL;
+    UncertaintyDialog * uncertaintyDialog = nullptr;
 
     std::unique_ptr<LtiSystem> plant;
 
-    bool uncertaintyEntered;
+    bool uncertaintyEntered = false;
 
-    /// The coefficients of the described system, or nothing when the dialog
-    /// could not read them (the caller reports it).
-    std::optional<CoefficientTable> readTables(CoefficientTable & expressionTable,
-                                               UncertainTable & uncertainTable);
-    /// The coefficients of one polynomial, or nothing when any of them is
-    /// not a valid expression. The invalid one used to become 0 in silence,
-    /// which quietly designed for a different plant. Same contract as
-    /// SpecificationsDialog::buildParameters.
-    std::optional<std::vector<Parameter>> buildParameters(const CoefficientRow & numbers);
-    bool parse(QString cadena);
-    bool parseCoefficients(CoefficientTable & tabla, QLineEdit * linea,
-                           CoefficientTable & expressionTable, UncertainTable & uncertainTable);
-    bool parseScalar(CoefficientTable & tabla, QLineEdit *linea,
-                     CoefficientTable & expressionTable, UncertainTable & uncertainTable);
-    bool parseFreeForm(QLineEdit * linea, CoefficientTable & tabla,
-                       CoefficientTable & expressionTable, UncertainTable & uncertainTable);
-
-
-    mup::ParserX p;
-
+    SystemDescriptionReader m_reader;
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_PLANT_DIALOG_H

@@ -24,9 +24,7 @@
 #include "src/core/system/lti_system.h"
 #include "src/core/templates/parameter_grids.h"
 #include "src/core/system/parameter.h"
-#include "src/gui/parlineedit.h"
 #include "src/core/math/sequence_vectors.h"
-#include "specifications_dialog.h"
 
 #include "mpParser.h"
 
@@ -34,6 +32,9 @@
 namespace Ui {
 class TemplatesDialog;
 }
+
+namespace qftbx {
+
 
 /**
  * @brief Step 3 of the design: the sweep grid of every uncertain plant
@@ -94,10 +95,11 @@ public:
 
 
     struct ThreeRadioButtons{
-        //Observers on radio buttons owned by their row widget.
-        QRadioButton * uno = nullptr;
-        QRadioButton * dos = nullptr;
-        QRadioButton * tres = nullptr;
+        //Observers on radio buttons owned by their row widget: the three
+        //ways of entering one parameter's grid.
+        QRadioButton * linear = nullptr;
+        QRadioButton * logarithmic = nullptr;
+        QRadioButton * manual = nullptr;
     };
 
 
@@ -169,5 +171,7 @@ private:
     double m_maxPointCount = qftbx::Settings().limits.maxTemplatePoints;
 
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_TEMPLATES_DIALOG_H

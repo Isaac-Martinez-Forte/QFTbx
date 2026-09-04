@@ -11,8 +11,8 @@
 #include "src/gui/error_message.h"
 #include "src/core/exception.h"
 
-using namespace tools;
 
+namespace qftbx {
 
 FrequenciesDialog::FrequenciesDialog(QWidget *parent) :
     StepDialog(parent),
@@ -89,7 +89,7 @@ void FrequenciesDialog::on_okButton_clicked()
 
     } else if (ui->modeStack->currentIndex() == 1) { //logspace
         //Both dialogs that ask for a frequency range now ask for it in rad/s,
-        //and this is where the conversion happens: tools::logspace takes
+        //and this is where the conversion happens: qftbx::logspace takes
         //EXPONENTS. The two used opposite conventions and neither label said
         //which - this one read the field as an exponent while the
         //loop-shaping dialog had its defaults written as values - so the same
@@ -154,7 +154,7 @@ void FrequenciesDialog::on_okButton_clicked()
         }
     }
 
-    const qint32 pointCount = frequencies.size();
+    const qint32 pointCount = static_cast<qint32>(frequencies.size());
 
     m_omega = std::make_unique<Omega>(start, end, pointCount, std::move(frequencies), type);
 
@@ -167,3 +167,5 @@ void FrequenciesDialog::on_okButton_clicked()
 std::unique_ptr<Omega> FrequenciesDialog::takeOmega(){
     return std::move(m_omega);
 }
+
+} // namespace qftbx

@@ -16,7 +16,6 @@
 #include "src/core/loopshaping/loop_shaping_result.h"
 
 
-
 namespace qftbx {
 
 /**
@@ -40,6 +39,12 @@ public:
     ProjectData(const ProjectData &) = delete;
     ProjectData & operator=(const ProjectData &) = delete;
 
+    //Movable: opening a file REPLACES the project, and "start from an empty
+    //one" is a move-assignment. Spelled out because deleting the copy
+    //operations above silences the implicit move as well.
+    ProjectData(ProjectData &&) = default;
+    ProjectData & operator=(ProjectData &&) = default;
+
     LtiSystem * plant() const;
     void setPlant(std::unique_ptr<LtiSystem> plant);
 
@@ -59,8 +64,10 @@ public:
     const CloudSet & contour() const;
     void setContour(CloudSet contour);
 
-    /// Whether a contour was ever computed. Not the same as "the contour is
-    /// non-empty": the epsilon-hull of an empty template set is empty too.
+    /// Whether there is a contour to save or to walk: set when a non-empty
+    /// one is published, cleared when the templates are dropped. (An earlier
+    /// comment here claimed it meant "ever computed, even if empty"; the code
+    /// never did that, and the drop relies on it not doing so.)
     bool hasContour() const;
 
     /// The epsilon used for the contours, or nullptr when none was ever

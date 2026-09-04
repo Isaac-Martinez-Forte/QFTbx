@@ -1,9 +1,9 @@
 #ifndef QFTBX_LOOPSHAPING_SEARCH_NODE_H
 #define QFTBX_LOOPSHAPING_SEARCH_NODE_H
 
+#include "src/core/loopshaping/loop_shaping_types.h"
 #include <memory>
 
-#include "src/core/math/sequence_vectors.h"
 #include "src/core/system/lti_system.h"
 #include "list_node.h"
 
@@ -18,17 +18,19 @@
  * that told its destructor how much of the box to free, because the box
  * shared its parameter vectors with its parent.
  */
+namespace qftbx {
+
 class SearchNode : public ListNode {
 
 public:
 
-    SearchNode() {}
+    SearchNode() = default;
 
     SearchNode(double index, std::unique_ptr<LtiSystem> system,
-               tools::BoxFlag flag = tools::ambiguous);
+               qftbx::BoxFlag flag = qftbx::ambiguous);
 
-    tools::BoxFlag flag() const;
-    void setFlag(const tools::BoxFlag & value);
+    qftbx::BoxFlag flag() const;
+    void setFlag(const qftbx::BoxFlag & value);
 
     /// Observer on the owned box: valid while the node is.
     LtiSystem * system() const;
@@ -42,7 +44,9 @@ public:
 protected:
 
     std::unique_ptr<LtiSystem> m_system;
-    tools::BoxFlag flags = tools::ambiguous;
+    qftbx::BoxFlag flags = qftbx::ambiguous;
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_LOOPSHAPING_SEARCH_NODE_H

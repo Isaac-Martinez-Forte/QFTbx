@@ -2,8 +2,6 @@
 #define QFTBX_EXPRESSION_CACHE_H
 
 #include <complex>
-#include <vector>
-
 #include <string>
 #include <vector>
 
@@ -59,17 +57,13 @@ bool isReservedName(const std::string & name);
 int cachedExpressionCount();
 
 /**
- * @brief Whether muParserX can bind a variable under this name.
+ * @brief Whether a name can serve as a variable: an identifier that the parser
+ * has not already given a meaning to.
  *
- * It refuses any name that collides with something it already defines, and
- * that includes six single letters nobody would suspect: n, u, m, k, M and G
- * are its SI unit postfix operators (kilo, mega, milli...). "k" for a gain is
- * the one that hurts, being the canonical name for one in control.
- *
- * It is asked rather than answered from a list, because a list would drift
- * from whatever muParserX is vendored - and its own enumeration API does not
- * expose the postfix operators, so the only authoritative test is to try.
- * The answer is memoised per thread, so the parser is built once per name.
+ * isReservedName() answers the second half and knows, among others, that
+ * n, u, m, k, M and G are the SI unit postfix operators - "k" for a gain is
+ * the collision that hurts. This adds the first half, so a publish-time check
+ * has one question to ask.
  */
 bool isUsableVariableName(const std::string & name);
 

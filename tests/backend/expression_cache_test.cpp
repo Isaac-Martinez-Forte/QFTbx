@@ -18,6 +18,8 @@
 #include "src/core/range.h"
 #include "mpParser.h"
 
+using namespace qftbx;
+
 namespace {
 
 TEST(ExpressionCache, OneExpressionIsParsedOnceHoweverOftenItIsEvaluated)

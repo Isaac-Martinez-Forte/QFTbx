@@ -11,11 +11,9 @@ namespace qftbx {
  *
  * The search polls it; whoever started the search sets it, from another
  * thread. That is the whole contract, and it is deliberately the whole
- * contract: THREADS ARE NOT THIS CLASS'S BUSINESS, nor the core's. A Qt
- * application has better tools for running work off the interface thread than
- * a std::thread buried in the model, so what the core provides is the thing
- * only the core can provide - a search that can be interrupted - and the
- * caller decides how it gets there.
+ * contract: THREADS ARE NOT THIS CLASS'S BUSINESS, nor the algorithms'.
+ * The facade runs the search on its worker (qftbx::BackgroundRun) and
+ * raises the token from the interface; the algorithms only ever read it.
  *
  * Relaxed ordering on both sides on purpose. There is nothing to synchronise
  * WITH: the flag carries no data, only permission to stop, and it does not

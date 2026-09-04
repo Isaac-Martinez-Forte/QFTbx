@@ -53,32 +53,6 @@ std::map<Key, std::unique_ptr<CachedParser>> & cache()
 
 } // namespace
 
-bool isUsableVariableName(const std::string & name)
-{
-    //Building a ParserX is not cheap, and this is asked once per parameter
-    //name when a system is published, so the answer is remembered.
-    static thread_local std::map<std::string, bool> answered;
-
-    const auto found = answered.find(name);
-    if (found != answered.end()) {
-        return found->second;
-    }
-
-    bool usable = false;
-    mup::Value probe;
-    mup::ParserX parser(mup::pckALL_COMPLEX);
-
-    try {
-        parser.DefineVar(name, mup::Variable(&probe));
-        usable = true;
-    } catch (mup::ParserError &) {
-        //Reserved, or not a valid identifier at all.
-        usable = false;
-    }
-
-    answered[name] = usable;
-    return usable;
-}
 
 std::complex<double> evaluateCached(const std::string & expression,
                                     const std::vector<std::string> & names,
@@ -144,14 +118,49 @@ bool isReservedName(const std::string & name)
     //answer matches what a real binding would do.
     static thread_local mup::ParserX probe(mup::pckALL_COMPLEX);
 
-    const std::string identifier = name;
+    return probe.IsVarDefined(name)
+            || probe.IsConstDefined(name)
+            || probe.IsFunDefined(name)
+            || probe.IsOprtDefined(name)
+            || probe.IsPostfixOprtDefined(name)
+            || probe.IsInfixOprtDefined(name);
+}
 
-    return probe.IsVarDefined(identifier)
-            || probe.IsConstDefined(identifier)
-            || probe.IsFunDefined(identifier)
-            || probe.IsOprtDefined(identifier)
-            || probe.IsPostfixOprtDefined(identifier)
-            || probe.IsInfixOprtDefined(identifier);
+//What muParserX accepts as an identifier: a letter or underscore, then letters,
+//digits and underscores. Spelled out here instead of asked through DefineVar,
+//because asking meant building a parser per name and remembering the answer in
+//a map - when isReservedName(), one screen below, already had a probe parser
+//and answered the other half of the question.
+bool isIdentifier(const std::string & name)
+{
+    if (name.empty()) {
+        return false;
+    }
+
+    const auto letterOrUnderscore = [](char c) {
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
+    };
+    const auto digit = [](char c) { return c >= '0' && c <= '9'; };
+
+    if (!letterOrUnderscore(name.front())) {
+        return false;
+    }
+    for (const char c : name) {
+        if (!letterOrUnderscore(c) && !digit(c)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+//A usable variable name is an identifier the parser has not already given a
+//meaning to. Two functions used to answer this - one probing DefineVar per
+//name with a memo, the other asking the probe parser's six Is*Defined() - and
+//the second had known "k" was reserved all along; only the publish path was
+//missing a check, not the knowledge.
+bool isUsableVariableName(const std::string & name)
+{
+    return isIdentifier(name) && !isReservedName(name);
 }
 
 int cachedExpressionCount()

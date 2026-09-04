@@ -15,6 +15,8 @@
 
 #include "src/core/templates/template_engine.h"
 
+using namespace qftbx;
+
 namespace {
 
 using Complex = std::complex<double>;

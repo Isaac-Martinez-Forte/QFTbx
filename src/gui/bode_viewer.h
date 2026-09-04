@@ -20,6 +20,9 @@ namespace Ui {
 class BodeViewer;
 }
 
+namespace qftbx {
+
+
 /**
  * @brief Plots the Bode diagram of a plant over a set of design
  * frequencies.
@@ -51,5 +54,7 @@ private:
     void drawAxis(QString yAxisName, const std::vector<double> & yAxis_values,
                   const std::vector<double> & frequencies, QCustomPlot * magnitudePlot);
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_BODE_VIEWER_H

@@ -1,4 +1,4 @@
-﻿#include "parameter.h"
+#include "parameter.h"
 
 #include <cmath>
 
@@ -6,9 +6,6 @@
 
 #include "src/core/exception.h"
 #include "src/core/math/expression_cache.h"
-
-using namespace mup;
-using namespace std;
 
 namespace qftbx {
 
@@ -38,7 +35,13 @@ void requireFiniteRange(const Range & range)
 
 }
 
-bool Parameter::operator==(Parameter & other)
+//setRange(), setNominal(), setUncertain() and Parameter(Range) are gone. The
+//last three had no caller at all, and setRange() had exactly one - a branch of
+//the .qft reader for a "historical quirk" of a dialect that no longer exists -
+//and it stored a range without the ordering and the finiteness checks every
+//constructor performs, so it was the one door a NaN or an inverted range could
+//still come in through. A Parameter is built valid and stays valid.
+bool Parameter::operator==(const Parameter & other) const
 {
     return m_name == other.m_name &&
             rawRange() == other.rawRange() &&
@@ -88,16 +91,6 @@ Parameter::Parameter(std::string name, Range range, double nominal){
     m_hasExpression = false;
 }
 
-Parameter::Parameter (Range range){
-    requireFiniteRange(range);
-
-    m_range = range.ordered();
-
-    m_nominal = 0;
-    m_uncertain = false;
-    m_hasExpression = false;
-}
-
 Parameter::Parameter() {
    m_nominal = 0;
    m_uncertain = false;
@@ -125,19 +118,15 @@ Parameter::Parameter (std::string name, double value){
 }
 
 
-bool Parameter::isUncertain(){
+bool Parameter::isUncertain() const {
     return m_uncertain;
-}
-
-void Parameter::setUncertain(bool a) {
-    m_uncertain = a;
 }
 
 const std::string & Parameter::name() const {
     return m_name;
 }
 
-Range Parameter::range(){
+Range Parameter::range() const {
 
     if (!m_uncertain){
         return m_range;
@@ -176,7 +165,7 @@ double Parameter::realValueOf(double value) const
     return evaluated.real();
 }
 
-double Parameter::nominal(){
+double Parameter::nominal() const {
 
     if (!m_uncertain){
         return m_nominal;
@@ -193,26 +182,17 @@ void Parameter::setName(std::string name){
     m_name = name;
 }
 
-void Parameter::setRange(Range range){
-    m_range = range;
-}
-
-void Parameter::setNominal(double nominal){
-    m_nominal = nominal;
-}
-
 const std::string & Parameter::expression() const {
     return m_expression;
 }
 
-Range Parameter::rawRange(){
+Range Parameter::rawRange() const {
     return m_range;
 }
 
-double Parameter::rawNominal(){
+double Parameter::rawNominal() const {
     return m_nominal;
 }
-
 
 
 } // namespace qftbx

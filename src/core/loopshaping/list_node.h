@@ -4,7 +4,6 @@
 #include <cstdint>
 
 
-
 /**
  * @brief Base of the live-list nodes: everything OrderedList holds is one
  * of these, ordered by the index each node carries.
@@ -13,10 +12,12 @@
  * because the list owns nodes through this base and each algorithm adds
  * its own payload below it (SearchNode, McSearchNode).
  */
+namespace qftbx {
+
 class ListNode {
 
 public:
-    ListNode(){}
+    ListNode() = default;
 
     ListNode(double index) {
         this->index = index;
@@ -24,7 +25,7 @@ public:
 
     //Nodes are deleted through this base by their owners (the live list
     //drains its leftovers on destruction).
-    virtual ~ListNode() {}
+    virtual ~ListNode() = default;
 
     double getIndex() const
     {
@@ -42,5 +43,7 @@ protected:
     double index = 0.0;
 
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_LOOPSHAPING_LIST_NODE_H

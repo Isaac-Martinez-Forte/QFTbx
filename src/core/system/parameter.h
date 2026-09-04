@@ -2,12 +2,8 @@
 #define QFTBX_PARAMETER_H
 
 #include <string>
-#include "src/core/range.h"
-#include <vector>
 
-#include "mpParser.h"
-#include "mpValue.h"
-#include "mpVariable.h"
+#include "src/core/range.h"
 
 namespace qftbx {
 
@@ -29,8 +25,6 @@ public:
     /// Uncertain parameter without reparametrisation.
     Parameter(std::string name, Range range, double nominal);
 
-    Parameter(Range range);
-
     Parameter();
 
     /// Constant, named by its textual value.
@@ -41,28 +35,22 @@ public:
 
     void setName(std::string name);
 
-    void setRange (Range range);
-
-    void setNominal(double nominal);
-
     /// True for uncertain parameters, false for constants.
-    bool isUncertain ();
-
-    void setUncertain (bool a);
+    bool isUncertain() const;
 
     const std::string & name() const;
 
     /// Range with the reparametrisation applied.
-    Range range();
+    Range range() const;
 
     /// Raw range, without the reparametrisation.
-    Range rawRange();
+    Range rawRange() const;
 
     /// Nominal value with the reparametrisation applied.
-    double nominal();
+    double nominal() const;
 
     /// Raw nominal value, without the reparametrisation.
-    double rawNominal();
+    double rawNominal() const;
 
     const std::string & expression() const;
 
@@ -82,9 +70,9 @@ public:
      * The raw values are the ones compared, not the reparametrised ones:
      * they are the state, and the transformed ones are derived from them.
      */
-    bool operator==(Parameter & other);
+    bool operator==(const Parameter & other) const;
 
-    bool operator!=(Parameter & other) { return !(*this == other); }
+    bool operator!=(const Parameter & other) const { return !(*this == other); }
 
 private:
     /// The reparametrisation applied to one value, parsed once per thread.
@@ -108,8 +96,5 @@ private:
 
 } // namespace qftbx
 
-//Transitional: unqualified name for consumers not yet migrated
-//to the qftbx namespace. Remove when the migration is complete.
-using qftbx::Parameter;
 
 #endif // QFTBX_PARAMETER_H

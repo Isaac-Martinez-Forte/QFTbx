@@ -1,7 +1,5 @@
-// Characterisation tests for the LtiSystem hierarchy: expression generation
-// (expression) and nominal evaluation through muParserX (evaluate). They pin the
-// CURRENT behaviour, including known defects marked "// BUG:"; fixing those
-// must flip the expectation in a dedicated commit.
+// Tests for the LtiSystem hierarchy: expression generation (expression) and
+// nominal evaluation through muParserX (evaluate).
 //
 // Reminder of the plant forms:
 //   SystemType::ZeroPoleGain     P(s) = k * prod(s + z) / prod(s + p)
@@ -26,6 +24,8 @@
 #include "src/core/system/lti_system.h"
 #include "src/core/system/parameter.h"
 #include "src/core/exception.h"
+
+using namespace qftbx;
 
 namespace {
 
@@ -69,14 +69,6 @@ TEST(kGainExpr, Class)
     delete plant;
 }
 
-TEST(kGainExpr, NumericExpressionKeepsVariableNames)
-{
-    ZeroPoleGain* plant = makePlanta1();
-    EXPECT_EQ(plant->expression(0.1),
-              std::string("kv*(1) / (((0.1*i) + a) *((0.1*i) + b))"));
-    delete plant;
-}
-
 TEST(kGainExpr, SymbolicExpressionOmitsZeroFixedDelay)
 {
     // Fixed in the delay rework: a zero fixed delay is not emitted (it used
@@ -111,7 +103,6 @@ TEST(kGainExpr, VariableDelayWithZeroNominalStaysInExpression)
         std::string("delayed"), vars({}), vars({Parameter(5.0)}), Parameter(1.0),
         Parameter(std::string("tau"), Range(0.0, 0.5), 0.0, std::string("tau")));
 
-    EXPECT_TRUE(endsWith(plant.expression(0.1), "* e^(-i*0.1*tau)"));
     EXPECT_TRUE(endsWith(plant.expression(), " * e^(-s*tau)"));
 }
 
@@ -178,39 +169,6 @@ TEST(kNumeratorGainExpr, NominalEvaluationMatchesTimeConstantForm)
     delete plant;
 }
 
-TEST(kNumeratorGainExpr, PointDenominatorUsesAllPoles)
-{
-    // Fixed: evaluateDenominator used to loop from i = 1 and repeat the last
-    // element, skipping the first pole (same off-by-one in the all-numeric
-    // expression route). With poles {10, 20} it must be (s/10+1)(s/20+1).
-    TimeConstantGain* plant = makeTimeConstantPlant();
-
-    std::vector<double> poles{10.0, 20.0};
-    const Complex s(0.0, 1.0);
-    const Complex expected = (s / 10.0 + 1.0) * (s / 20.0 + 1.0);
-
-    const Complex value = plant->evaluateDenominator(&poles, 1.0);
-    EXPECT_NEAR(value.real(), expected.real(), kTolerance);
-    EXPECT_NEAR(value.imag(), expected.imag(), kTolerance);
-    delete plant;
-}
-
-TEST(kNumeratorGainExpr, ExplicitValuesRouteMatchesNominalRoute)
-{
-    // The all-numeric expression route (used by loop shaping) must agree with
-    // the nominal evaluation for the same values.
-    TimeConstantGain* plant = makeTimeConstantPlant();
-
-    std::vector<double> nume;
-    std::vector<double> deno{10.0, 20.0};
-    const Complex viaValues = plant->evaluate(&nume, &deno, 5.0, 0.0, 1.0);
-    const Complex viaNominals = plant->evaluate(1.0);
-
-    EXPECT_NEAR(viaValues.real(), viaNominals.real(), kTolerance);
-    EXPECT_NEAR(viaValues.imag(), viaNominals.imag(), kTolerance);
-    delete plant;
-}
-
 TEST(kNumeratorGainExpr, VariableGainUsesItsRealName)
 {
     // Fixed: the expression emitted the hardcoded identifier "kv" for a
@@ -221,7 +179,6 @@ TEST(kNumeratorGainExpr, VariableGainUsesItsRealName)
                               std::string("K1")),
                       Parameter(0.0));
 
-    EXPECT_TRUE(plant.expression(1.0).rfind("K1*(", 0) == 0);
     EXPECT_TRUE(plant.expression().rfind("K1*(", 0) == 0);
 
     const Complex s(0.0, 1.0);
@@ -272,7 +229,6 @@ TEST(CPolinomiosExpr, VariableGainUsesItsRealName)
                                std::string("K1")),
                        Parameter(0.0));
 
-    EXPECT_TRUE(plant.expression(1.0).rfind("(K1*(", 0) == 0);
 
     const Complex s(0.0, 1.0);
     const Complex expected = 2.0 / (s + 2.0);
@@ -351,45 +307,6 @@ TEST(FormatoLibreExpr, SymbolicExpression)
 {
     FreeForm* plant = makeCerveraPlant();
     EXPECT_EQ(plant->expression(), std::string("1*(a)/((s^2)*((s^2) + a))"));
-    delete plant;
-}
-
-TEST(FormatoLibreExpr, NumericExpressionSubstitutesS)
-{
-    FreeForm* plant = makeCerveraPlant();
-    EXPECT_EQ(plant->expression(0.1),
-              std::string("1*(a)/(((0.1*i)^2)*(((0.1*i)^2) + a))"));
-    delete plant;
-}
-
-TEST(FormatoLibreExpr, NumericExpressionOnlyReplacesTheLaplaceVariable)
-{
-    //The historical substring replace mutilated "sin", "sqrt" and any
-    //parameter whose name contains an 's'.
-    FreeForm* plant = new FreeForm(
-        std::string("tokens"),
-        vars({Parameter(std::string("desp"), Range(0.5, 2.0), 1.0, std::string("desp"))}),
-        vars({}),
-        Parameter(1.0), Parameter(0.0),
-        std::string("sin(s) + sqrt(desp) + s"), std::string("1"));
-
-    EXPECT_EQ(plant->expression(2.0),
-              std::string("1*(sin((2*i)) + sqrt(desp) + (2*i))/(1)"));
-    delete plant;
-}
-
-TEST(FormatoLibreExpr, ExplicitValueEvaluationThrows)
-{
-    //The historical stubs returned 0 silently.
-    FreeForm* plant = makeCerveraPlant();
-    std::vector<double> values{1.0};
-
-    EXPECT_THROW(plant->evaluate(&values, &values, 1.0, 0.0, 1.0),
-                 qftbx::ComputationError);
-    EXPECT_THROW(plant->evaluateNumerator(&values, 1.0),
-                 qftbx::ComputationError);
-    EXPECT_THROW(plant->evaluateDenominator(&values, 1.0),
-                 qftbx::ComputationError);
     delete plant;
 }
 
@@ -481,3 +398,43 @@ TEST(SystemInvoke, NullDelayBecomesZeroConstant)
 }
 
 } // namespace
+
+TEST(TimeConstantGainValidation, AZeroCornerIsRefusedAtConstruction)
+{
+    // Every factor is s/z + 1, so a corner of zero divides by zero at every
+    // frequency - and zero is finite, so Parameter's own check lets it through.
+    // valueAt() used to acknowledge the division in a comment and nothing
+    // refused it; the family refuses it now, where the system is built.
+    std::vector<Parameter> numerator{Parameter(1.0)};
+
+    std::vector<Parameter> zeroConstant{Parameter(0.0), Parameter(1.0)};
+    EXPECT_THROW(TimeConstantGain(std::string("P"), numerator, zeroConstant,
+                                  Parameter(1.0), Parameter(0.0)),
+                 qftbx::InvalidInput);
+
+    // An uncertain corner whose range straddles zero would meet the division
+    // at some point of the template sweep.
+    std::vector<Parameter> straddling{
+        Parameter(std::string("a"), qftbx::Range(-1.0, 2.0), 1.0)};
+    EXPECT_THROW(TimeConstantGain(std::string("P"), numerator, straddling,
+                                  Parameter(1.0), Parameter(0.0)),
+                 qftbx::InvalidInput);
+
+    // And one clear of zero is fine, either side.
+    std::vector<Parameter> negative{
+        Parameter(std::string("a"), qftbx::Range(-3.0, -1.0), -2.0)};
+    EXPECT_NO_THROW(TimeConstantGain(std::string("P"), numerator, negative,
+                                     Parameter(1.0), Parameter(0.0)));
+}
+
+TEST(FormatoLibreExpr, AMiscountedValueVectorIsRefused)
+{
+    // valueAt() used to walk to the shorter of the parameter list and the value
+    // list and say nothing, while a name given two values one line below was
+    // refused. The same class of caller mistake now gets the same answer.
+    std::unique_ptr<FreeForm> plant(makeCerveraPlant());
+
+    const std::vector<double> tooFew;
+    EXPECT_THROW(plant->valueAt(1.0, tooFew, tooFew, 1.0, 0.0),
+                 qftbx::InvalidInput);
+}

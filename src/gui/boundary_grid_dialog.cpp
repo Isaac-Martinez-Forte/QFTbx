@@ -1,19 +1,17 @@
 #include "boundary_grid_dialog.h"
+#include "src/gui/number_text.h"
 #include "ui_boundary_grid_dialog.h"
 
 #include "src/gui/error_message.h"
 
 
-using namespace tools;
-using namespace std;
+namespace qftbx {
 
 BoundaryGridDialog::BoundaryGridDialog(QWidget *parent) :
     StepDialog(parent),
     ui(std::make_unique<Ui::BoundaryGridDialog>())
 {
     ui->setupUi(this);
-
-    accepted_once = false;
 
     ui->phaseStart->setValidator(new QDoubleValidator(this));
     ui->phaseEnd->setValidator(new QDoubleValidator(this));
@@ -28,8 +26,6 @@ BoundaryGridDialog::BoundaryGridDialog(QWidget *parent) :
     //Prefilled from the settings, which the window applies right after
     //construction; these are what stands until it does.
     applyDefaults(qftbx::Settings().defaults);
-
-    cudaCheck = false;
 
     setWindowTitle(tr("Boundary grid input"));
 
@@ -74,13 +70,13 @@ bool BoundaryGridDialog::contourSelected(){
 
 void BoundaryGridDialog::applyDefaults(const qftbx::Settings::Defaults & defaults)
 {
-    ui->phaseStart->setText(QString::number(defaults.phaseStart));
-    ui->phaseEnd->setText(QString::number(defaults.phaseEnd));
-    ui->phasePoints->setText(QString::number(defaults.phasePoints));
+    ui->phaseStart->setText(qftbx::numberText(defaults.phaseStart));
+    ui->phaseEnd->setText(qftbx::numberText(defaults.phaseEnd));
+    ui->phasePoints->setText(qftbx::numberText(defaults.phasePoints));
 
-    ui->magnitudeStart->setText(QString::number(defaults.magnitudeStart));
-    ui->magnitudeEnd->setText(QString::number(defaults.magnitudeEnd));
-    ui->magnitudePoints->setText(QString::number(defaults.magnitudePoints));
+    ui->magnitudeStart->setText(qftbx::numberText(defaults.magnitudeStart));
+    ui->magnitudeEnd->setText(qftbx::numberText(defaults.magnitudeEnd));
+    ui->magnitudePoints->setText(qftbx::numberText(defaults.magnitudePoints));
 }
 
 void BoundaryGridDialog::on_buttonBox_accepted()
@@ -102,12 +98,12 @@ void BoundaryGridDialog::on_buttonBox_accepted()
     //into the engine).
     if (phaseRange.min >= phaseRange.max || magnitudeRange.min >= magnitudeRange.max ||
             phaseCount < 2 || magnitudeCount < 2){
-        tools::errorMessage(tr("The grid ranges must be increasing, with at least 2 points per axis."), tr("Boundary grid input"));
+        qftbx::errorMessage(tr("The grid ranges must be increasing, with at least 2 points per axis."), tr("Boundary grid input"));
         return;
     }
 
     //And a ceiling. There was none: the counts only had to be >= 2, so an
-    //extra couple of zeros in either field reached tools::linspace, which
+    //extra couple of zeros in either field reached qftbx::linspace, which
     //reserves that many doubles - a std::bad_alloc, which is not the
     //qftbx::Exception the computation is wrapped in, so the application went
     //down on a typo. The budget guards against that typo; it is not a
@@ -115,7 +111,7 @@ void BoundaryGridDialog::on_buttonBox_accepted()
     //grid over 360 degrees is 360 points per axis. It comes from the
     //settings now, so it can be moved without a rebuild.
     if (static_cast<std::int64_t>(phaseCount) * magnitudeCount > m_maxGridCells){
-        tools::errorMessage(tr("The grid asks for %1 cells, and the limit is "
+        qftbx::errorMessage(tr("The grid asks for %1 cells, and the limit is "
                                "%2. Reduce the number of points per axis.")
                                 .arg(static_cast<std::int64_t>(phaseCount) * magnitudeCount)
                                 .arg(m_maxGridCells),
@@ -123,21 +119,14 @@ void BoundaryGridDialog::on_buttonBox_accepted()
         return;
     }
 
-    accepted_once = true;
-
     //Direct read: the old latch left CUDA enabled forever once checked.
     cudaCheck = ui->cudaCheck->isChecked();
 
     markAccepted();
 }
 
-void BoundaryGridDialog::showEvent(QShowEvent * event)
-{
-    //Reopening and cancelling must not relaunch the computation with the old data.
-    QDialog::showEvent(event);
-}
-
 bool BoundaryGridDialog::cudaSelected(){
     return cudaCheck;
 }
 
+} // namespace qftbx

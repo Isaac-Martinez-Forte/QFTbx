@@ -8,8 +8,6 @@
 #include <cstdint>
 #include <memory>
 
-#include <complex>
-
 #include "src/core/system/lti_system.h"
 #include "src/core/background_run.h"
 #include "src/core/pipeline_step.h"
@@ -21,9 +19,6 @@
 #include "src/core/templates/parameter_grids.h"
 #include "src/core/templates/cloud_set.h"
 #include "src/core/frequencies/omega.h"
-#include "src/persistence/project_reader.h"
-#include "src/persistence/project_writer.h"
-#include "src/core/math/sequence_vectors.h"
 #include <optional>
 
 #include "src/core/project_data.h"
@@ -46,6 +41,8 @@
  *
  * @author Isaac Martínez Forte
  */
+
+namespace qftbx {
 
 class ProjectController
 {
@@ -121,8 +118,6 @@ public:
     const qftbx::CloudSet & contour();
     std::vector<double> * epsilon();
 
-    void setTemplates(qftbx::CloudSet templates, qftbx::CloudSet contour, bool hasContour);
-    void setContour(qftbx::CloudSet contour);
 
     // --- step 5: the boundaries -------------------------------------------
 
@@ -141,7 +136,6 @@ public:
                            std::int32_t magnitudeCount, double exportInfinity, bool useContour, bool cuda);
 
     BoundaryData * boundaries();
-    void setBoundaries(std::optional<qftbx::BoundaryData> boundaries);
 
     const qftbx::UnionTraces & unionBoundaries();
     const qftbx::UnionBuckets & unionBuckets();
@@ -187,7 +181,7 @@ public:
      * @return false when the algorithm found no solution; it throws
      * qftbx::InvalidInput when the problem itself is invalid or infeasible.
      */
-    bool computeLoopShaping(double epsilon, tools::LoopShapingAlgorithm algorithm, qftbx::Range plotRange,
+    bool computeLoopShaping(double epsilon, qftbx::LoopShapingAlgorithm algorithm, qftbx::Range plotRange,
                             double pointCount, std::int32_t initialisation = 0,
                             const qftbx::CancellationToken * cancellation = nullptr);
 
@@ -259,7 +253,7 @@ public:
      * boundaries is refused on the caller's thread, where the caller can see
      * it, not two lines into a worker.
      */
-    bool startLoopShaping(double epsilon, tools::LoopShapingAlgorithm algorithm,
+    bool startLoopShaping(double epsilon, qftbx::LoopShapingAlgorithm algorithm,
                           qftbx::Range plotRange, double pointCount,
                           std::int32_t initialisation = 0,
                           std::function<void ()> finished = std::function<void ()>());
@@ -290,12 +284,11 @@ public:
     const std::string & lastComputationError() const;
 
     LoopShapingResult * loopShapingResult();
-    void setLoopShapingResult(std::unique_ptr<LoopShapingResult> result);
 
     // --- persistence ------------------------------------------------------
 
     /// Writes the whole project to a .qft file.
-    bool save(std::string path);
+    void save(std::string path);
 
     /**
      * @brief Reads a .qft file into the project.
@@ -317,7 +310,14 @@ private:
 
 
     //The project contents, owned (replaces the historical DAO layer).
-    qftbx::ProjectData data;
+    qftbx::ProjectData m_data;
+
+    //The publishers load() uses to put a file's artefacts in place. Private:
+    //publishing a computed artefact from outside would bypass the dependency
+    //graph, and nothing outside ever did.
+    void setTemplates(qftbx::CloudSet templates, qftbx::CloudSet contour, bool hasContour);
+    void setBoundaries(std::optional<qftbx::BoundaryData> boundaries);
+    void setLoopShapingResult(std::unique_ptr<LoopShapingResult> result);
 
     //The three computation engines, created on first use.
     //Built on first use and kept: the template engine holds the clouds a
@@ -337,5 +337,7 @@ private:
     qftbx::BackgroundRun m_background;
     qftbx::CancellationToken m_cancellation;
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_PROJECT_CONTROLLER_H

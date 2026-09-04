@@ -9,15 +9,15 @@
 
 #include <iostream>
 
-qint32 main(qint32 argc, char *argv[])
+int main(int argc, char *argv[])
 {
     //Reports a backend error instead of letting it kill the process.
     qftbx::Application a(argc, argv);
 
-    //QApplication adopta el locale del sistema (LC_ALL); con locales de coma
-    //decimal (es_ES, de_DE...) muParserX deja de aceptar literales como
-    //"0.1" y ninguna expresion con decimales evalua. La parte numerica del
-    //programa trabaja siempre con punto decimal.
+    //QApplication adopts the system locale (LC_ALL); under a decimal-comma
+    //locale (es_ES, de_DE...) muParserX stops accepting literals such as
+    //"0.1" and no expression with decimals evaluates. The numeric side of
+    //the program always works with the decimal point.
     std::setlocale(LC_NUMERIC, "C");
 
     a.setWindowIcon(QIcon(":/icons/qftbx_256.png"));
@@ -46,7 +46,7 @@ qint32 main(qint32 argc, char *argv[])
                   << "\" is not a setting this build knows" << std::endl;
     }
 
-    auto w = std::make_shared<MainWindow>(settings);
+    auto w = std::make_unique<qftbx::MainWindow>(settings);
     w->setWindowIcon(QIcon(":/icons/qftbx_256.png"));
     w->show();
 

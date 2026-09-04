@@ -1,8 +1,6 @@
-// Characterisation tests for the loop-shaping support structures (phase
-// 8b.0 safety net): the live-node ordered list that drives every branch &
-// bound, and the expression tree that implements the HC4-style contractor
-// of the MR (Rambabu/ICSP) algorithm. They pin CURRENT behaviour; known
-// defects are marked // BUG: and will be fixed consciously in 8b.1.
+// Tests for the loop-shaping support structures: the live-node ordered list
+// that drives every branch & bound, and the expression tree that implements
+// the HC4-style contractor of the MR (Rambabu/ICSP) algorithm.
 
 #include <gtest/gtest.h>
 
@@ -18,6 +16,8 @@
 #include "src/core/loopshaping/expression_tree.h"
 
 #include <interval.hpp>
+
+using namespace qftbx;
 
 namespace {
 
@@ -190,11 +190,22 @@ TEST(OrderedList, TakeFirstHandsTheNodeOver)
     EXPECT_TRUE(liveList.isEmpty());
 }
 
+TEST(OrderedList, AnEmptyListRefusesToHandOutANode)
+{
+    // first(), last() and takeFirst() used to dereference end() on an empty
+    // list; a search that asks for a node it does not have gets a message.
+    OrderedList liveList;
+
+    EXPECT_THROW(liveList.first(), qftbx::ComputationError);
+    EXPECT_THROW(liveList.last(), qftbx::ComputationError);
+    EXPECT_THROW(liveList.takeFirst(), qftbx::ComputationError);
+}
+
 //---------------------------------------------------------------- ExpressionTree
 
 TEST(ExpressionTree, ScalarEvaluationWithVariables)
 {
-    alg::ExpressionTree tree("1");
+    qftbx::ExpressionTree tree("1");
     tree.setFunc(std::string("2*x+3"));
 
     std::map<std::string, double> variables;
@@ -205,7 +216,7 @@ TEST(ExpressionTree, ScalarEvaluationWithVariables)
 
 TEST(ExpressionTree, ScalarEvaluationWithFunctionsAndConstants)
 {
-    alg::ExpressionTree tree("1");
+    qftbx::ExpressionTree tree("1");
     tree.setFunc(std::string("cos(0)+sqrt(9)"));
 
     EXPECT_DOUBLE_EQ(tree.eval(static_cast<std::map<std::string, double> *>(nullptr)), 4.0);
@@ -213,7 +224,7 @@ TEST(ExpressionTree, ScalarEvaluationWithFunctionsAndConstants)
 
 TEST(ExpressionTree, IntervalEvaluationEnclosesTheRange)
 {
-    alg::ExpressionTree tree("1");
+    qftbx::ExpressionTree tree("1");
     tree.setFunc(std::string("2*x+3"));
 
     std::map<std::string, interval> variables;
@@ -229,8 +240,8 @@ TEST(ExpressionTree, ContractionNarrowsAnInconsistentDomain)
     // propagate() is the HC4-style contractor of the MR algorithm: it must
     // shrink the variable domains to the part consistent with the
     // constraint (expression >= threshold by default in the MR usage).
-    alg::ExpressionTree tree("1");
-    tree.setFunc(std::string("x-2"), 0.0, alg::GREATER_EQUAL);
+    qftbx::ExpressionTree tree("1");
+    tree.setFunc(std::string("x-2"), 0.0, qftbx::GREATER_EQUAL);
 
     std::map<std::string, interval> variables;
     variables["x"] = interval(0.0, 10.0);
@@ -244,13 +255,93 @@ TEST(ExpressionTree, ContractionNarrowsAnInconsistentDomain)
 
 TEST(ExpressionTree, ContractionDetectsAnEmptyDomain)
 {
-    alg::ExpressionTree tree("1");
-    tree.setFunc(std::string("x-20"), 0.0, alg::GREATER_EQUAL);
+    qftbx::ExpressionTree tree("1");
+    tree.setFunc(std::string("x-20"), 0.0, qftbx::GREATER_EQUAL);
 
     std::map<std::string, interval> variables;
     variables["x"] = interval(0.0, 10.0);
 
     EXPECT_FALSE(tree.propagate(&variables));
+}
+
+TEST(ExpressionTree, TheConstantsAreEnclosedNotApproximated)
+{
+    qftbx::ExpressionTree tree("1");
+    tree.setFunc(std::string("PI+E"));
+
+    std::map<std::string, interval> variables;
+    const interval result = tree.eval(&variables);
+
+    // The true pi + e lies strictly inside: the interval version used to
+    // return degenerate intervals of approximate constants.
+    const double truth = 3.14159265358979323846 + 2.71828182845904523536;
+    EXPECT_LE(cxsc::_double(Inf(result)), truth);
+    EXPECT_GE(cxsc::_double(Sup(result)), truth);
+    EXPECT_LT(cxsc::_double(Sup(result)) - cxsc::_double(Inf(result)), 1e-12);
+
+    EXPECT_NEAR(tree.eval(static_cast<std::map<std::string, double> *>(nullptr)), truth, 1e-15);
+}
+
+TEST(ExpressionTree, TheLogarithmsEvaluateOverIntervals)
+{
+    qftbx::ExpressionTree tree("1");
+    tree.setFunc(std::string("ln(x)+lg(x)"));
+
+    std::map<std::string, interval> variables;
+    variables["x"] = interval(1.0, 10.0);
+
+    const interval result = tree.eval(&variables);
+    EXPECT_NEAR(cxsc::_double(Inf(result)), 0.0, 1e-12);
+    EXPECT_NEAR(cxsc::_double(Sup(result)), std::log(10.0) + 1.0, 1e-12);
+}
+
+TEST(ExpressionTree, ACopyKeepsItsVariables)
+{
+    qftbx::ExpressionTree original("1");
+    original.setFunc(std::string("2*x+3"));
+
+    qftbx::ExpressionTree copy(original);
+    qftbx::ExpressionTree assigned("1");
+    assigned = original;
+
+    std::map<std::string, double> variables;
+    variables["x"] = 5.0;
+
+    EXPECT_DOUBLE_EQ(copy.eval(&variables), 13.0);
+    EXPECT_DOUBLE_EQ(assigned.eval(&variables), 13.0);
+}
+
+TEST(ExpressionTree, AnUpperCaseNameIsAVariableNotAConstant)
+{
+    qftbx::ExpressionTree tree("1");
+    tree.setFunc(std::string("P1+E2"));
+
+    std::map<std::string, double> variables;
+    variables["P1"] = 1.0;
+    variables["E2"] = 2.0;
+
+    EXPECT_DOUBLE_EQ(tree.eval(&variables), 3.0);
+}
+
+TEST(ExpressionTree, ContractionHonoursALessThanConstraint)
+{
+    qftbx::ExpressionTree tree("1");
+    tree.setFunc(std::string("x-2"), 0.0, qftbx::LESS_EQUAL);
+
+    std::map<std::string, interval> variables;
+    variables["x"] = interval(0.0, 10.0);
+
+    ASSERT_TRUE(tree.propagate(&variables));
+    EXPECT_DOUBLE_EQ(cxsc::_double(Inf(variables.at("x"))), 0.0);
+    EXPECT_DOUBLE_EQ(cxsc::_double(Sup(variables.at("x"))), 2.0);
+}
+
+TEST(ExpressionTree, AMalformedExpressionIsRefused)
+{
+    qftbx::ExpressionTree tree("1");
+    EXPECT_THROW(tree.setFunc(std::string("(2*x")), std::invalid_argument);
+    EXPECT_THROW(tree.setFunc(std::string("2*x)")), std::invalid_argument);
+    EXPECT_THROW(tree.setFunc(std::string("2*")), std::invalid_argument);
 }
 
 } // namespace

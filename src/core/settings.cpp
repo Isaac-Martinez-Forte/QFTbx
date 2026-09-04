@@ -6,9 +6,9 @@
 #include <fstream>
 #include <functional>
 #include <limits>
-#include <sstream>
 
 #include "src/core/exception.h"
+#include "src/core/text_tokens.h"
 
 namespace qftbx {
 
@@ -73,8 +73,8 @@ double realIn(const std::string & text, const std::string & key,
     }
 
     if (value < lowest || value > highest) {
-        refuse(key, line, "a value between " + std::to_string(lowest) + " and "
-               + std::to_string(highest) + ", not " + text);
+        refuse(key, line, "a value between " + text::number(lowest) + " and "
+               + text::number(highest) + ", not " + text);
     }
 
     return value;

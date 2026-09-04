@@ -9,10 +9,6 @@
 #include <QDialog>
 #include <complex>
 #include <functional>
-#include <qmath.h>
-#include <QFileDialog>
-#include <QMessageBox>
-#include <math.h>
 #include <QMap>
 #include <QGroupBox>
 #include <QVBoxLayout>
@@ -21,15 +17,16 @@
 #include "src/core/math/sequence_vectors.h"
 #include "src/core/frequencies/omega.h"
 #include "qcustomplot.h"
+#include "src/gui/frequency_legend.h"
 #include "src/core/templates/cloud_set.h"
-
-#include "cinterval.hpp"
-#include "src/core/loopshaping/natural_interval_extension.h"
 
 
 namespace Ui {
 class TemplateViewer;
 }
+
+namespace qftbx {
+
 
 /**
  * @brief Plots the templates of a plant - its value set at every design
@@ -50,8 +47,8 @@ public:
    /**
     * @brief Builds the plot.
     *
-    * @param plot which plane to draw on: see FC::diagrama - false is
-    * Nichols, true is Nyquist.
+    * @param plot which plane to draw on: false is Nichols, true is
+    * Nyquist.
     */
     void plotDiagram(bool plot);
 
@@ -79,7 +76,7 @@ public:
     * refreshContour().
     *
     * A plain callback rather than a Qt signal: one caller, one handler, same
-    * thread. Same seam as tools::ErrorReporter.
+    * thread. Same seam as qftbx::ErrorReporter.
    */
 
     using ContourRecomputer = std::function<void (std::vector<double> epsilon)>;
@@ -129,26 +126,23 @@ private slots:
 private:
     std::unique_ptr<Ui::TemplateViewer> ui;
     bool plotted = false;
-    void plotLine(qint32 pos, QVector <QCPGraph *> & saveImage, const std::vector<double> & fas,
-                  const std::vector<double> & gan, bool tipo, bool visible, qint32 frequencyIndex);
+    void plotLine(qint32 pos, QVector <QCPGraph *> & graphs, const std::vector<double> & phases,
+                  const std::vector<double> & magnitudes, bool isContour, bool visible, qint32 frequencyIndex);
     void addFrequencyRow (QColor color, qint32 pos);
+    FrequencyLegend * legend = nullptr;
     void clearDiagram();
 
     //Its own copies now: the viewer used to alias the project's vectors,
     //which is why a recompute had to be careful about what it freed.
     qftbx::CloudSet m_templates;
     qftbx::CloudSet m_contour;
-    std::vector<double> * omega = nullptr;
-    std::vector<double> * epsilon = nullptr;
+    std::vector<double> m_omega;
+    std::vector<double> m_epsilon;
 
     //The graphs BELONG TO QCustomPlot, which frees them on clearGraphs():
     //only these containers are the viewer's.
     QVector <QCPGraph *> templateGraphs;
     QVector <QCPGraph *> contourGraphs;
-    QGroupBox * frequenciesBox = nullptr;
-    //The controls of a frequency row belong to their container widget: the
-    //viewer deletes the rows, not these.
-    QVector <QCheckBox *> checkboxes;
     QMap <qreal, QColor> colorByFrequency;
 
     ContourRecomputer recompute;
@@ -159,10 +153,11 @@ private:
     bool templatesVisible = false;
     bool contourVisible = false;
 
-    QVBoxLayout * colorsLayout = nullptr;
 
     bool plot = false;
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_TEMPLATE_VIEWER_H
 

@@ -1,11 +1,13 @@
 #include "box_classification.h"
 
-void BoxClassification::setFlag(tools::BoxFlag f)
+namespace qftbx {
+
+void BoxClassification::setFlag(qftbx::BoxFlag f)
 {
     m_flag = f;
 }
 
-tools::BoxFlag BoxClassification::flag() const
+qftbx::BoxFlag BoxClassification::flag() const
 {
     return m_flag;
 }
@@ -39,3 +41,5 @@ bool BoxClassification::isTopRightForbidden() const
 {
     return m_topRightForbidden;
 }
+
+} // namespace qftbx

@@ -12,6 +12,7 @@
 
 #include "tests/backend/cxsc_printing.h"
 
+
 namespace {
 
 TEST(CxscPrinting, PrintingARealDoesNotCrashAndSaysTheValue)

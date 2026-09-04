@@ -10,8 +10,6 @@
 #include <memory>
 
 #include <QMainWindow>
-#include <QApplication>
-//#include <QQmlApplicationEngine>
 
 #include "frequencies_dialog.h"
 #include "bode_viewer.h"
@@ -21,6 +19,7 @@
 #include "boundary_viewer.h"
 #include "muparserx_console.h"
 #include "controller_dialog.h"
+#include "specifications_dialog.h"
 #include "boundary_union_viewer.h"
 #include "loop_shaping_dialog.h"
 #include "loop_shaping_viewer.h"
@@ -34,6 +33,9 @@
 namespace Ui {
 class MainWindow;
 }
+
+namespace qftbx {
+
 
 /**
  * @brief The main window: the seven design steps as menu entries, and the
@@ -77,7 +79,7 @@ public:
      * With this, a test installs its own: fill the dialog's fields by name and
      * press its OK button, which is what the dialog smoke tests already do,
      * and the handler carries on as if a user had done it. Same seam as
-     * tools::ErrorReporter and TemplateViewer's ContourRecomputer - a plain
+     * qftbx::ErrorReporter and TemplateViewer's ContourRecomputer - a plain
      * callback, one caller, one handler, same thread.
      */
     using DialogRunner = std::function<void (QDialog * dialog)>;
@@ -138,9 +140,6 @@ private:
     std::unique_ptr<Ui::MainWindow> ui;
 
 
-
-
-
     //The facade is the window's own, and the only thing here that is not a
     //Qt child.
     std::unique_ptr<ProjectController> controller;
@@ -197,6 +196,19 @@ private:
 
     void destroyDialogs();
 
+    //One per step: the dialog (and viewers) of a step, created on first use
+    //with the settings applied, and reused afterwards. Each of these blocks
+    //was written twice, in the step's handler and in the open handler.
+    void ensurePlantDialog();
+    void ensureSpecificationsDialog();
+    void ensureFrequenciesDialog();
+    void ensureTemplatesWidgets();
+    void ensureBoundariesWidgets();
+    void ensureControllerDialog();
+    void ensureLoopShapingWidgets();
+
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_MAIN_WINDOW_H

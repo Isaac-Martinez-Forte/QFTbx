@@ -16,6 +16,7 @@
 // grid, a coarse Nichols grid - because what is under test is the sequence,
 // not the numbers. The numbers have their own golden tests.
 
+#include "src/core/loopshaping/loop_shaping_types.h"
 #include <gtest/gtest.h>
 
 #include <atomic>
@@ -35,6 +36,8 @@
 #include "src/core/system/parameter.h"
 #include "src/core/system/polynomial_form.h"
 #include "src/core/system/zero_pole_gain.h"
+
+using namespace qftbx;
 
 namespace {
 
@@ -74,7 +77,7 @@ std::unique_ptr<LtiSystem> makeControllerStructure()
 
 std::unique_ptr<Omega> makeOmega()
 {
-    return std::make_unique<Omega>(0.1, 10.0, 3, tools::logspace(-1.0, 1.0, 3), Omega::LogSpace);
+    return std::make_unique<Omega>(0.1, 10.0, 3, qftbx::logspace(-1.0, 1.0, 3), Omega::LogSpace);
 }
 
 qftbx::ParameterGrids makeGrids()
@@ -148,7 +151,7 @@ TEST(StageSequence, TheSevenStagesWalkedFromNothing)
     EXPECT_NE(controller.boundaries(), nullptr);
 
     // --- 7: the search.
-    ASSERT_TRUE(controller.computeLoopShaping(0.5, tools::nt,
+    ASSERT_TRUE(controller.computeLoopShaping(0.5, qftbx::nt,
                                               qftbx::Range(1e-3, 100.0), 100));
     ASSERT_NE(controller.loopShapingResult(), nullptr);
 
@@ -163,6 +166,20 @@ TEST(StageSequence, TheSevenStagesWalkedFromNothing)
     EXPECT_NE(controller.plant(), nullptr);
     EXPECT_NE(controller.boundaries(), nullptr);
     EXPECT_FALSE(controller.templates().empty());
+}
+
+TEST(StageSequence, ANullStepIsRefusedInsteadOfWipingTheProject)
+{
+    //There is no "remove the plant" step in the pipeline: a null publish was
+    //taken as a change and wiped the step and everything computed from it,
+    //which a reused dialog once did by accident. The facade refuses it now,
+    //so no interface mistake can reach the project that way.
+    ProjectController controller;
+
+    EXPECT_THROW(controller.setPlant(nullptr), qftbx::InvalidInput);
+    EXPECT_THROW(controller.setOmega(nullptr), qftbx::InvalidInput);
+    EXPECT_THROW(controller.setControllerStructure(nullptr), qftbx::InvalidInput);
+    EXPECT_THROW(controller.setSpecifications(std::nullopt), qftbx::InvalidInput);
 }
 
 TEST(StageSequence, ReservedParameterNamesAreRefusedWhenPublished)
@@ -255,7 +272,7 @@ TEST(StageSequence, RecomputingTheBoundariesDropsTheLoopShaping)
                                              qftbx::Range(-40.0, 40.0), 21,
                                              -1.0, false, false));
     controller.setControllerStructure(makeControllerStructure());
-    ASSERT_TRUE(controller.computeLoopShaping(0.5, tools::nt,
+    ASSERT_TRUE(controller.computeLoopShaping(0.5, qftbx::nt,
                                               qftbx::Range(1e-3, 100.0), 100));
     ASSERT_NE(controller.loopShapingResult(), nullptr);
 
@@ -307,7 +324,7 @@ TEST(Cancellation, ACancelledSearchGivesUpAndPublishesNothing)
     qftbx::CancellationToken token;
     token.cancel();
 
-    EXPECT_THROW(controller.computeLoopShaping(0.5, tools::nt,
+    EXPECT_THROW(controller.computeLoopShaping(0.5, qftbx::nt,
                                                qftbx::Range(1e-3, 100.0), 100,
                                                0, &token),
                  qftbx::Cancelled);
@@ -327,13 +344,13 @@ TEST(Cancellation, ATokenDoesNotLingerIntoTheNextRun)
     qftbx::CancellationToken token;
     token.cancel();
 
-    EXPECT_THROW(controller.computeLoopShaping(0.5, tools::nt,
+    EXPECT_THROW(controller.computeLoopShaping(0.5, qftbx::nt,
                                                qftbx::Range(1e-3, 100.0), 100,
                                                0, &token),
                  qftbx::Cancelled);
 
     // Again, with no token at all: it has to run to the end.
-    EXPECT_TRUE(controller.computeLoopShaping(0.5, tools::nt,
+    EXPECT_TRUE(controller.computeLoopShaping(0.5, qftbx::nt,
                                               qftbx::Range(1e-3, 100.0), 100));
     EXPECT_NE(controller.loopShapingResult(), nullptr);
 }
@@ -350,7 +367,7 @@ TEST(Cancellation, AResetTokenLetsTheSearchRun)
     token.reset();
     EXPECT_FALSE(token.cancelled());
 
-    EXPECT_TRUE(controller.computeLoopShaping(0.5, tools::nt,
+    EXPECT_TRUE(controller.computeLoopShaping(0.5, qftbx::nt,
                                               qftbx::Range(1e-3, 100.0), 100,
                                               0, &token));
     EXPECT_NE(controller.loopShapingResult(), nullptr);
@@ -371,7 +388,7 @@ TEST(BackgroundSearch, ASearchRunsOffTheCallingThreadAndPublishesItsResult)
 
     std::atomic<bool> told{false};
 
-    ASSERT_TRUE(controller.startLoopShaping(0.5, tools::nt,
+    ASSERT_TRUE(controller.startLoopShaping(0.5, qftbx::nt,
                                             qftbx::Range(1e-3, 100.0), 100, 0,
                                             [&told]() { told.store(true); }));
 
@@ -396,7 +413,7 @@ TEST(BackgroundSearch, TheProjectRefusesToChangeWhileASearchRuns)
     // A token cancelled up front keeps the worker alive just long enough to
     // be observed without racing on how fast the search is: the run has to
     // finish, and until it does the project is closed for business.
-    ASSERT_TRUE(controller.startLoopShaping(0.5, tools::nt,
+    ASSERT_TRUE(controller.startLoopShaping(0.5, qftbx::nt,
                                             qftbx::Range(1e-3, 100.0), 100));
 
     // Whether the search is still running by now is a race, so both outcomes
@@ -406,7 +423,7 @@ TEST(BackgroundSearch, TheProjectRefusesToChangeWhileASearchRuns)
         EXPECT_THROW(controller.setPlant(makePlant()), qftbx::InvalidInput);
         EXPECT_THROW(controller.load(std::string("/nonexistent.qft")),
                      qftbx::InvalidInput);
-        EXPECT_FALSE(controller.startLoopShaping(0.5, tools::nt,
+        EXPECT_FALSE(controller.startLoopShaping(0.5, qftbx::nt,
                                                  qftbx::Range(1e-3, 100.0), 100))
             << "two searches at once must not be allowed";
     }
@@ -427,7 +444,7 @@ TEST(BackgroundSearch, CancellingFromAnotherThreadStopsTheSearch)
     ProjectController controller;
     ASSERT_NO_FATAL_FAILURE(prepareForSearch(controller));
 
-    ASSERT_TRUE(controller.startLoopShaping(0.5, tools::nt,
+    ASSERT_TRUE(controller.startLoopShaping(0.5, qftbx::nt,
                                             qftbx::Range(1e-3, 100.0), 100));
     controller.cancelComputation();
     controller.waitForComputation();
@@ -457,7 +474,7 @@ TEST(BackgroundSearch, AFailedSearchIsReportedAndNotThrownFromTheWorker)
     controller.setPlant(makePlant());
     controller.setOmega(makeOmega());
 
-    EXPECT_THROW(controller.startLoopShaping(0.5, tools::nt,
+    EXPECT_THROW(controller.startLoopShaping(0.5, qftbx::nt,
                                              qftbx::Range(1e-3, 100.0), 100),
                  qftbx::InvalidInput)
         << "a search with no boundaries is refused where the caller can see it";
@@ -493,7 +510,7 @@ TEST(PipelineSteps, CompletedGrowsWithTheWalkAndIsDerived)
     EXPECT_TRUE(controller.completed().has(qftbx::Step::Boundaries));
 
     controller.setControllerStructure(makeControllerStructure());
-    ASSERT_TRUE(controller.computeLoopShaping(0.5, tools::nt,
+    ASSERT_TRUE(controller.computeLoopShaping(0.5, qftbx::nt,
                                               qftbx::Range(1e-3, 100.0), 100));
 
     EXPECT_EQ(controller.completed().count(), qftbx::kStepCount)
@@ -558,4 +575,59 @@ TEST(PipelineSteps, ALoadedProjectAgreesWithWhatItHolds)
         std::string(QFTBX_TEST_DATA_DIR "/planta1.qft"));
 
     EXPECT_EQ(controller.completed(), read);
+}
+
+TEST(PipelineSteps, OpeningAFileReplacesTheProjectInsteadOfOverlayingIt)
+{
+    // load() used to publish only the steps the file carried, on top of
+    // whatever the project already held. A partial file opened over a finished
+    // design left a hybrid - the new plant under the old controller structure
+    // and the old search result - and completed(), derived from the data,
+    // reported more steps done than the file had. The file replaces the
+    // project now.
+    ProjectController controller;
+
+    const qftbx::StepSet full = controller.load(
+        std::string(QFTBX_TEST_DATA_DIR "/planta1.qft"));
+    ASSERT_EQ(full.count(), qftbx::kStepCount) << "planta1 is a finished design";
+    ASSERT_NE(controller.controllerStructure(), nullptr);
+    ASSERT_NE(controller.loopShapingResult(), nullptr);
+
+    // cervera carries a plant and the frequencies, nothing else.
+    const qftbx::StepSet partial = controller.load(
+        std::string(QFTBX_TEST_DATA_DIR "/cervera.qft"));
+    ASSERT_EQ(partial.count(), 2u);
+
+    EXPECT_EQ(controller.completed(), partial)
+        << "what the project holds has to be what the file carried, no more";
+    EXPECT_EQ(controller.controllerStructure(), nullptr)
+        << "the previous design's controller structure must not survive the open";
+    EXPECT_EQ(controller.loopShapingResult(), nullptr);
+    EXPECT_TRUE(controller.templates().empty());
+    EXPECT_EQ(controller.boundaries(), nullptr);
+}
+
+TEST(PipelineSteps, InvalidatingFromTheSpecificationsKeepsTheTemplates)
+{
+    // The templates do not depend on the specifications, only the boundaries
+    // do. The first invalidateFrom() grouped the specifications with the
+    // plant and dropped the templates too - disagreeing with
+    // setSpecifications(), which had it right.
+    ProjectController controller;
+    ASSERT_NO_FATAL_FAILURE(prepareForSearch(controller));
+
+    controller.invalidateFrom(qftbx::Step::Specifications);
+
+    EXPECT_TRUE(controller.completed().has(qftbx::Step::Templates));
+    EXPECT_FALSE(controller.completed().has(qftbx::Step::Boundaries));
+}
+
+TEST(PipelineSteps, TheUnionGettersRefuseWithoutBoundaries)
+{
+    // Every other getter answers nullptr while its step is not done; these two
+    // return references and cannot, so they used to dereference a null.
+    ProjectController controller;
+
+    EXPECT_THROW(controller.unionBoundaries(), qftbx::InvalidInput);
+    EXPECT_THROW(controller.unionBuckets(), qftbx::InvalidInput);
 }

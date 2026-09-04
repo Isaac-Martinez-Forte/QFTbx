@@ -8,7 +8,6 @@
 #include <string>
 
 #include "src/core/system/parameter.h"
-#include "mpParser.h"
 
 namespace qftbx {
 
@@ -24,9 +23,10 @@ namespace qftbx {
  * releaseOwnership() to disarm deletion, which every consumer had to get
  * right by hand).
  *
- * Evaluation currently works by generating a textual expression that is
- * evaluated with muParserX; expression(w) keeps uncertain parameters by name
- * so the template sweep can drive them through the parser's symbol table.
+ * Evaluation is direct complex arithmetic over the coefficient values
+ * (valueAt); only a free-form system goes through muParserX, with its
+ * coefficients bound as variables. The textual routes that evaluated an
+ * expression per call are gone: nothing outside the tests used them.
  */
 class LtiSystem
 {
@@ -58,17 +58,6 @@ public:
     /// One value per frequency.
     virtual std::vector <std::complex <double> > evaluate (const std::vector <double> & omega) = 0;
 
-    /// Value at s = j*omega for explicit numeric parameter values.
-    virtual std::complex <double> evaluate (std::vector <double> * numerator, std::vector <double> * denominator,
-                                           double k, double delay, double omega) = 0;
-
-    /// Expression for explicit numeric parameter values at s = j*omega.
-    virtual std::string expression (std::vector <double> * numerator, std::vector <double> * denominator,
-                             double k, double delay, double omega) = 0;
-
-    /// Expression at s = j*omega; uncertain parameters stay by name.
-    virtual std::string expression(double w) = 0;
-
     /// Symbolic expression in 's', for display.
     virtual std::string expression() = 0;
 
@@ -83,10 +72,6 @@ public:
     virtual std::complex <double> valueAt(double w, const std::vector<double> & numerator,
                                          const std::vector<double> & denominator,
                                          double gain, double delay) = 0;
-
-    virtual std::complex <double> evaluateNumerator(std::vector <double> * nume, double omega) = 0;
-
-    virtual std::complex <double> evaluateDenominator(std::vector <double> * deno, double omega) = 0;
 
     /// The system's own parameters, by reference (it holds them by value).
     virtual std::vector <Parameter> & denominator() = 0;
@@ -116,11 +101,12 @@ public:
      * @brief Value equality between two systems, for telling a real change
      * from a dialog accepted without an edit.
      *
-     * Not virtual: it compares the dynamic TYPE and then everything a system
-     * is made of - name, the textual numerator and denominator (which is how
-     * a FreeForm's own expressions get compared, since numeratorString() is
-     * virtual), and the four parameter groups. A subclass with state outside
-     * all of that would have to override it.
+     * Not virtual, so it CANNOT be overridden: it compares the dynamic TYPE
+     * and then everything a system is made of - name, the textual numerator
+     * and denominator, and the four parameter groups. A family with state
+     * beyond the parameters has one way to take part, which is to expose that
+     * state through numeratorString() and denominatorString(): that is how a
+     * FreeForm's two expressions get compared.
      *
      * Conservative by design: the two answers are not symmetric. A wrong
      * "equal" keeps the templates computed for the OLD plant, which is the
@@ -139,8 +125,5 @@ private:
 
 } // namespace qftbx
 
-//Transitional: unqualified name for consumers not yet migrated
-//to the qftbx namespace. Remove when the migration is complete.
-using qftbx::LtiSystem;
 
 #endif // QFTBX_LTI_SYSTEM_H

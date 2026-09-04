@@ -5,9 +5,7 @@
 #include <vector>
 
 #include "lti_system.h"
-#include <vector>
 #include "src/core/system/parameter.h"
-#include "mpParser.h"
 
 namespace qftbx {
 
@@ -32,19 +30,7 @@ public:
 
     std::vector <std::complex <double> > evaluate (const std::vector <double> & omega) override;
 
-    std::complex <double> evaluate (std::vector <double> * numerator, std::vector <double> * denominator,
-                                           double k, double delay, double omega) override;
-
-    std::string expression (std::vector <double> * numerator, std::vector <double> * denominator,
-                             double k, double delay, double omega) override = 0;
-
-    std::string expression(double w) override = 0;
-
     std::string expression() override = 0;
-
-    std::complex <double> evaluateNumerator(std::vector <double> * nume, double omega) override = 0;
-
-    std::complex <double> evaluateDenominator(std::vector <double> * deno, double omega) override = 0;
 
     std::vector <Parameter> & numerator() override;
 
@@ -73,8 +59,5 @@ protected:
 
 } // namespace qftbx
 
-//Transitional: unqualified name for consumers not yet migrated
-//to the qftbx namespace. Remove when the migration is complete.
-using qftbx::TransferFunction;
 
 #endif // QFTBX_TRANSFER_FUNCTION_H

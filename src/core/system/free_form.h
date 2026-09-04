@@ -4,9 +4,9 @@
 #include <string>
 #include <vector>
 
+#include <complex>
+
 #include "transfer_function.h"
-#include "complex"
-#include "mpParser.h"
 
 namespace qftbx {
 
@@ -29,23 +29,11 @@ public:
     FreeForm(std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator, Parameter k, Parameter delay, std::string numeratorExpr,
                  std::string denominatorExpr);
 
-    std::string expression (std::vector <double> * numerator, std::vector <double> * denominator,
-                             double k, double delay, double omega) override;
-
-    std::string expression(double w) override;
-
     std::string expression() override;
 
     std::complex <double> valueAt(double w, const std::vector<double> & numerator,
                                  const std::vector<double> & denominator,
                                  double gain, double delay) override;
-
-    std::complex <double> evaluateNumerator(std::vector <double> * nume, double omega) override;
-
-    std::complex <double> evaluateDenominator(std::vector <double> * deno, double omega) override;
-
-    std::complex <double> evaluate (std::vector <double> * numerator, std::vector <double> * denominator,
-                                           double k, double delay, double omega) override;
 
     //Re-expose the inherited nominal evaluation hidden by the overloads above.
     using TransferFunction::evaluate;
@@ -74,8 +62,5 @@ private:
 
 } // namespace qftbx
 
-//Transitional: unqualified name for consumers not yet migrated
-//to the qftbx namespace. Remove when the migration is complete.
-using qftbx::FreeForm;
 
 #endif // QFTBX_FREE_FORM_H

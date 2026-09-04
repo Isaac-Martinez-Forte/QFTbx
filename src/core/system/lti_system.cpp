@@ -1,7 +1,5 @@
 #include "lti_system.h"
 
-using namespace std;
-
 namespace qftbx {
 
 LtiSystem::LtiSystem(std::string name)
@@ -16,7 +14,6 @@ void LtiSystem:: setName (std::string name){
 const std::string & LtiSystem::name() const {
     return m_name;
 }
-
 
 
 bool LtiSystem::sameAs(LtiSystem & other)

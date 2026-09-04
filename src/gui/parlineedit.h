@@ -18,6 +18,9 @@
  *
  * @author Isaac Martínez Forte
  */
+
+namespace qftbx {
+
 class ParLineEdit
 {
 public:
@@ -58,5 +61,7 @@ private:
     QLineEdit *y = nullptr;
     QLineEdit * m_nominal = nullptr;
 };
+
+} // namespace qftbx
 
 #endif // PARLABEL_H

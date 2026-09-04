@@ -13,9 +13,6 @@
 #include "src/core/exception.h"
 #include "src/core/math/expression_cache.h"
 
-using namespace std;
-using namespace mup;
-
 namespace qftbx {
 
 FreeForm::FreeForm(std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator, Parameter k,
@@ -43,62 +40,6 @@ FreeForm::FreeForm(std::string name, std::vector <Parameter> numerator, std::vec
     denominatorText = std::regex_replace(denominatorText, laplaceVariable, laplaceName());
 
     m_boundExpression = "(" + numeratorText + ")/(" + denominatorText + ")";
-}
-
-//Evaluation with explicit parameter values needs the free-form expression
-//rebuilt around those values, which no consumer requires any more (the
-//loop-shaping cuts moved to closed forms over zero-pole-gain structures).
-//The historical stubs returned 0 SILENTLY, poisoning any computation that
-//reached them; failing loudly keeps a future caller honest.
-std::complex <double> FreeForm::evaluate (std::vector <double> *, std::vector <double> *,
-                                             double, double, double){
-    throw ComputationError("FreeForm: evaluation with explicit parameter "
-                           "values is not implemented for free-form systems.");
-}
-
-std::string FreeForm::expression (std::vector <double> *, std::vector <double> *,
-                               double, double, double){
-    throw ComputationError("FreeForm: the expression with explicit parameter "
-                           "values is not implemented for free-form systems.");
-}
-
-std::complex <double> FreeForm::evaluateNumerator(std::vector <double> *, double){
-    throw ComputationError("FreeForm: numerator evaluation with explicit "
-                           "values is not implemented for free-form systems.");
-}
-
-std::complex <double> FreeForm::evaluateDenominator(std::vector <double> *, double){
-    throw ComputationError("FreeForm: denominator evaluation with explicit "
-                           "values is not implemented for free-form systems.");
-}
-
-std::string FreeForm::expression(double w){
-
-    //Only the standalone Laplace variable becomes jw: a plain substring
-    //replace mutilated "sin", "sqrt", "abs" and any parameter whose name
-    //contains an 's'.
-    static const std::regex laplaceVariable("\\bs\\b");
-    const std::string jw = "(" + qftbx::text::number(w) + "*i)";
-
-    std::string n = m_numeratorExpr;
-    std::string d = m_denominatorExpr;
-
-    std::string expr = m_gain.expression()
-            + "*(" + std::regex_replace(n, laplaceVariable, jw) + ")/("
-            + std::regex_replace(d, laplaceVariable, jw) + ")";
-
-
-    //A pure delay is e^(-s*tau) => e^(-i*w*tau). Emitted when the delay is
-    //uncertain (even with a zero nominal, so the template sweep can drive
-    //it) or a non-zero constant.
-    if (m_delay.isUncertain()){
-        expr += "* e^(-i*" + qftbx::text::number(w) + "*" + m_delay.name() + ")";
-    }else if (m_delay.nominal() != 0){
-        expr += "* e^(-i*" + qftbx::text::number(w) + "*" +
-                qftbx::text::number(m_delay.nominal()) +")";
-    }
-
-    return expr;
 }
 
 std::string FreeForm::expression(){
@@ -164,8 +105,19 @@ std::complex <double> FreeForm::valueAt(double w, const std::vector<double> & nu
     names.push_back(laplaceName());
     bound.push_back(std::complex<double>(0.0, w));
 
-    const auto remember = [&](std::vector<Parameter> & parameters, const std::vector<double> & given) {
-        for (std::size_t i = 0; i < parameters.size() && i < given.size(); i++) {
+    const auto remember = [&](const std::vector<Parameter> & parameters, const std::vector<double> & given) {
+        //One value per parameter, no more and no fewer. This used to walk to
+        //the shorter of the two and say nothing, which made a caller's
+        //miscount into a plant evaluated with some coefficients missing -
+        //while a name given two values, one line below, was refused. The
+        //same mistake deserves the same answer.
+        if (parameters.size() != given.size()) {
+            throw qftbx::InvalidInput("FreeForm::valueAt: " + std::to_string(given.size())
+                                      + " values were given for " + std::to_string(parameters.size())
+                                      + " parameters");
+        }
+
+        for (std::size_t i = 0; i < parameters.size(); i++) {
             const std::string name = parameters[i].name();
             const auto found = std::find(names.begin(), names.end(), name);
 

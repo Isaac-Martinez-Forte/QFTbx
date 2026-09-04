@@ -34,6 +34,8 @@
 #include "src/core/exception.h"
 #include "src/core/project_controller.h"
 
+using namespace qftbx;
+
 namespace {
 
 struct GridPoint
@@ -296,12 +298,12 @@ TEST(BoundaryCriticalPoint, UndampedResonanceIsRejectedWithAdvice)
     denominator.push_back(Parameter(std::string("ev"), Range(0.5, 2.0), 1.0,
                                       std::string("ev")));
 
-    LtiSystem* undamped = new qftbx::FreeForm(
+    auto undamped = std::make_unique<qftbx::FreeForm>(
         std::string("undamped"), numerator, denominator,
         Parameter(1.0), Parameter(0.0),
         std::string("ev"), std::string("s^2*(s^2 + 2*ev)"));
 
-    controller.setPlant(std::unique_ptr<LtiSystem>(undamped));
+    controller.setPlant(std::move(undamped));
 
     const std::vector<double> frequencies{1.0};   // exact resonance of ev = 0.5
     controller.setOmega(std::make_unique<Omega>(frequencies.at(0), frequencies.at(0), 1,

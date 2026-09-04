@@ -1,7 +1,5 @@
 #include "transfer_function.h"
 
-using namespace std;
-using namespace mup;
 
 namespace qftbx {
 
@@ -30,26 +28,17 @@ Parameter & TransferFunction::delay() {
     return m_delay;
 }
 
-std::complex <double> TransferFunction::evaluate(std::vector <double> * numerator, std::vector <double> * denominator,
-        double k, double delay, double omega) {
-    ParserX p(pckALL_COMPLEX);
-
-    p.SetExpr(expression(numerator, denominator, k, delay, omega));
-
-    return p.Eval().GetComplex();
-}
-
 namespace {
 
 //The nominal of every parameter, in order. Uncertain ones contribute their
 //nominal here exactly as they did through the parser, which bound each name
 //to its nominal before evaluating.
-std::vector<double> nominalsOf(std::vector<Parameter> & parameters)
+std::vector<double> nominalsOf(const std::vector<Parameter> & parameters)
 {
     std::vector<double> values;
     values.reserve(parameters.size());
 
-    for (Parameter & parameter : parameters) {
+    for (const Parameter & parameter : parameters) {
         values.push_back(parameter.nominal());
     }
 
@@ -67,14 +56,14 @@ std::complex <double> TransferFunction::evaluate(double w) {
 
 std::vector <std::complex <double> > TransferFunction::evaluate(const std::vector <double> & omega) {
 
-    std::vector <std::complex <double> > resultado;
-    resultado.reserve(omega.size());
+    std::vector <std::complex <double> > values;
+    values.reserve(omega.size());
 
     for (double o : omega) {
-        resultado.push_back(evaluate(o));
+        values.push_back(evaluate(o));
     }
 
-    return resultado;
+    return values;
 }
 
 std::string TransferFunction::numeratorString() {

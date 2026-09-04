@@ -13,7 +13,7 @@ namespace qftbx {
  * @brief The template stage: the sweep of the plant family over the design
  * frequencies, and the epsilon-hull contour of each cloud.
  *
- * One of the classes the pipeline is being split into (plan 10.3). Every
+ * One of the classes the pipeline was split into. Every
  * stage owns the same five things, which used to be written out once per
  * stage inside ProjectController with a different shape each time: the
  * preconditions, the engine, its parameters, its outputs, and the publishing

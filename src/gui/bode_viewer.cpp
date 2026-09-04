@@ -1,4 +1,6 @@
 #include <cmath>
+#include "src/core/math/constants.h"
+#include "src/gui/plot_export.h"
 #include <vector>
 #include <algorithm>
 
@@ -13,7 +15,8 @@
 
 
 using namespace std;
-using namespace tools;
+
+namespace qftbx {
 
 BodeViewer::BodeViewer(QWidget *parent) :
     QDialog(parent),
@@ -23,9 +26,7 @@ BodeViewer::BodeViewer(QWidget *parent) :
     setWindowTitle(tr("Bode diagram"));
 }
 
-BodeViewer::~BodeViewer()
-{
-}
+BodeViewer::~BodeViewer() = default;
 
 void BodeViewer::drawBode(LtiSystem *plant, Omega *omega){
 
@@ -46,7 +47,7 @@ void BodeViewer::drawBode(LtiSystem *plant, Omega *omega){
         frequencies = linspace(omega->start(), omega->end(), 100);
     }else if (omega->type() == Omega::LogSpace){
         //start()/end() are in rad/s, like every other frequency in the
-        //toolbox, and tools::logspace takes exponents - so the conversion
+        //toolbox, and qftbx::logspace takes exponents - so the conversion
         //happens here, the same way the frequencies dialog does it when it
         //builds the set. They used to hold the exponents themselves, which
         //made this line shorter and the unit a secret shared between two
@@ -73,7 +74,7 @@ void BodeViewer::drawBode(LtiSystem *plant, Omega *omega){
 
         //Degrees: a Bode phase plot is read in degrees, and arg() answers
         //radians (the axis was labelled in Spanish and scaled in radians).
-        phase.push_back(arg(comp) * 180.0 / M_PI);
+        phase.push_back(arg(comp) * 180.0 / qftbx::math::kPi);
     }
 
     drawAxis(tr("Magnitude (dB)"), magnitude, frequencies, ui->magnitudePlot);
@@ -88,8 +89,8 @@ void BodeViewer::drawAxis(QString yAxisName, const std::vector<double> & yAxis_v
                           const std::vector<double> & frequencies, QCustomPlot * magnitudePlot){
 
     //QCPCurve attaches itself to the plot, which owns it from then on.
-    QCPCurve *curva = new QCPCurve(magnitudePlot->xAxis, magnitudePlot->yAxis);
-    curva->setData(tools::toQVector(frequencies), tools::toQVector(yAxis_values));
+    QCPCurve *curve = new QCPCurve(magnitudePlot->xAxis, magnitudePlot->yAxis);
+    curve->setData(qftbx::toQVector(frequencies), qftbx::toQVector(yAxis_values));
 
     magnitudePlot->xAxis->setLabel("w");
     magnitudePlot->yAxis->setLabel(yAxisName);
@@ -108,34 +109,25 @@ void BodeViewer::drawAxis(QString yAxisName, const std::vector<double> & yAxis_v
 
 void BodeViewer::on_actionExport_triggered()
 {
-    bool noFallo = true;
     QString extension;
-    QString fileName = QFileDialog::getSaveFileName(this, tr("Save file"),"",
-      tr((".png (*.png);;.pdf(*.pdf);; .jpg(*.jpg);; .bmp(*.bmp)")), &extension);
-    if (!fileName.isEmpty()){
-        //Prefixing the FULL path ("0-/home/...") produced invalid paths:
-        //the suffix goes on the file name.
-        QFileInfo info (fileName);
-        const QString magnitud = info.dir().filePath(info.completeBaseName() + "-mag." + info.suffix());
-        const QString phaseName = info.dir().filePath(info.completeBaseName() + "-phase." + info.suffix());
+    const QString fileName = QFileDialog::getSaveFileName(this, tr("Save file"), "",
+                                                          qftbx::exportFilter(), &extension);
+    if (fileName.isEmpty()){
+        return;
+    }
 
-        if (extension.contains(".pdf", Qt::CaseInsensitive)){
-            noFallo = ui->magnitudePlot->savePdf(magnitud, true);
-            noFallo = ui->phasePlot->savePdf(phaseName, true) && noFallo;
-        }else if (extension.contains(".png", Qt::CaseInsensitive)){
-            noFallo = ui->magnitudePlot->savePng(magnitud);
-            noFallo = ui->phasePlot->savePng(phaseName) && noFallo;
-        }else if (extension.contains(".jpg", Qt::CaseInsensitive)){
-            noFallo = ui->magnitudePlot->saveJpg(magnitud);
-            noFallo = ui->phasePlot->saveJpg(phaseName) && noFallo;
-        }else if (extension.contains(".bmp", Qt::CaseInsensitive)){
-            noFallo = ui->magnitudePlot->saveBmp(magnitud);
-            noFallo = ui->phasePlot->saveBmp(phaseName) && noFallo;
-        }else{
-            noFallo = false;
-        }
+    //Two plots, one name: the suffix goes on the file name (prefixing the
+    //FULL path, "0-/home/...", produced invalid paths).
+    const QFileInfo info(fileName);
+    const QString magnitudeName = info.dir().filePath(info.completeBaseName() + "-mag." + info.suffix());
+    const QString phaseName = info.dir().filePath(info.completeBaseName() + "-phase." + info.suffix());
 
-        if (!noFallo)
-            errorMessage(tr("The image could not be saved"), tr("Bode diagram"));
+    const bool magnitudeSaved = qftbx::savePlotAs(*ui->magnitudePlot, magnitudeName, extension);
+    const bool phaseSaved = qftbx::savePlotAs(*ui->phasePlot, phaseName, extension);
+
+    if (!magnitudeSaved || !phaseSaved){
+        errorMessage(tr("The image could not be saved"), tr("Bode diagram"));
     }
 }
+
+} // namespace qftbx

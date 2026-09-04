@@ -79,14 +79,9 @@ private:
     /// (0, MaxReal] so the conversion stays finite (an overflowing interval
     /// product used to reach log10(+inf), aborting the process in fi_lib).
     cxsc::interval toDecibel(cxsc::interval magnitude);
-
-    //cxsc::cinterval's default constructor leaves the bounds UNINITIALIZED.
 };
 
 } // namespace qftbx
 
-//Transitional: unqualified name for consumers not yet migrated
-//to the qftbx namespace. Remove when the migration is complete.
-using qftbx::NaturalIntervalExtension;
 
 #endif // QFTBX_NATURAL_INTERVAL_EXTENSION_H

@@ -4,6 +4,7 @@
 #include "src/gui/plot_palette.h"
 #include "ui_main_window.h"
 
+#include <QFileDialog>
 #include <QMessageBox>
 
 #include "src/core/point.h"
@@ -13,9 +14,9 @@
 #include <mpParser.h>
 
 #include <vector>
-#include <iostream>
 
-using namespace tools;
+
+namespace qftbx {
 
 namespace {
 
@@ -51,12 +52,9 @@ private:
 
 MainWindow::MainWindow(qftbx::Settings settings, QWidget *parent) :
     QMainWindow(parent),
-    m_settings(std::move(settings)),
-    ui(std::make_unique<Ui::MainWindow>())
+    ui(std::make_unique<Ui::MainWindow>()),
+    m_settings(std::move(settings))
 {
-
-    //QQmlApplicationEngine engine;
-    //engine.load(QUrl(QStringLiteral("windowsgeneral.qml")));
     
     ui->setupUi(this);
     setWindowTitle(tr("QFT: Quantitative feedback theory"));
@@ -132,6 +130,73 @@ void MainWindow::destroyDialogs(){
     loopShapingDialog = nullptr;
     delete loopShapingViewer;
     loopShapingViewer = nullptr;
+}
+
+//The POINTER says whether a step's widgets exist, which is the question
+//being asked. The flag it replaced answered a different one - whether the
+//step was done - and the two only agreed by being maintained together.
+void MainWindow::ensurePlantDialog()
+{
+    if (plantDialog == nullptr){
+        plantDialog = new PlantDialog(this);
+    }
+}
+
+void MainWindow::ensureSpecificationsDialog()
+{
+    if (specificationsDialog == nullptr){
+        specificationsDialog = new SpecificationsDialog(frequencyValues(),
+                                                        controller->specifications(),
+                                                        this);
+    }
+}
+
+void MainWindow::ensureFrequenciesDialog()
+{
+    if (frequenciesDialog == nullptr){
+        frequenciesDialog = new FrequenciesDialog(this);
+        frequenciesDialog->applyFrequencyCountLimit(m_settings.limits.maxFrequencyCount);
+    }
+}
+
+void MainWindow::ensureTemplatesWidgets()
+{
+    if (templatesDialog == nullptr){
+        templatesDialog = new TemplatesDialog(this);
+        templatesDialog->setMaxPointCount(m_settings.limits.maxTemplatePoints);
+        templatesDialog->setDefaultPointCount(m_settings.defaults.templatePointCount);
+        templateViewer = new TemplateViewer(this);
+        installContourRecomputer();
+    }
+}
+
+void MainWindow::ensureBoundariesWidgets()
+{
+    if (boundaryGridDialog == nullptr){
+        boundaryGridDialog = new BoundaryGridDialog(this);
+        boundaryGridDialog->setMaxGridCells(m_settings.limits.maxGridCells);
+        boundaryGridDialog->applyDefaults(m_settings.defaults);
+        boundaryViewer = new BoundaryViewer(this);
+        boundaryUnionViewer = new BoundaryUnionViewer(this);
+    }
+}
+
+void MainWindow::ensureControllerDialog()
+{
+    if (controllerDialog == nullptr){
+        controllerDialog = new ControllerDialog(this);
+    }
+}
+
+void MainWindow::ensureLoopShapingWidgets()
+{
+    if (loopShapingDialog == nullptr){
+        loopShapingDialog = new LoopShapingDialog(this);
+        loopShapingDialog->setLimits(m_settings.limits.maxMagnitude,
+                                     m_settings.limits.maxTemplatePoints);
+        loopShapingDialog->applyDefaults(m_settings.defaults);
+        loopShapingViewer = new LoopShapingViewer(this);
+    }
 }
 
 void MainWindow::setDialogRunner(DialogRunner run)
@@ -294,10 +359,6 @@ void MainWindow::recomputeContour(std::vector<double> epsilon){
                                    controller->epsilon());
 }
 
-//The project drops whatever was computed from an input that changed, so the
-//window has to stop offering the steps that produced it: otherwise the button
-//is still there and the step now refuses, which reads as a broken program
-//rather than as a step that has to be redone.
 const std::vector<double> * MainWindow::frequencyValues() const{
     Omega * omega = controller->omega();
 
@@ -316,12 +377,7 @@ void MainWindow::destroySession(){
 
 void MainWindow::on_plantButton_clicked()
 {
-    //The POINTER says whether the dialog exists, which is the question being
-    //asked. The flag it replaces answered a different one - whether the step
-    //was done - and the two only agreed by being maintained together.
-    if (plantDialog == nullptr){
-        plantDialog = new PlantDialog(this);
-    }
+    ensurePlantDialog();
 
     runDialog(plantDialog);
 
@@ -341,19 +397,11 @@ void MainWindow::on_plantButton_clicked()
             return;
         }
 
-
-        //The controller answers whether it dropped anything, so the window
-        //resets its own steps exactly when the project dropped the artefacts
-        //behind them. This used to be decided here, by comparing the address
-        //of a freshly built object with the stored one - a test that can
-        //never match, so it always invalidated. It agreed with the project
-        //only by accident.
-        const bool changed = controller->setPlant(std::move(described));
-
-        //The project has already dropped the templates and everything after
-        //them; what is left for the window is the dialogs and viewers that
-        //were showing them. Unconditional on there being any: discarding a
-        //step never reached costs nothing.
+        //The project drops the templates and everything after them when the
+        //plant changes; refreshAvailability() below follows it, so nothing
+        //is decided here (it used to compare the address of a freshly built
+        //object with the stored one, which never matched).
+        controller->setPlant(std::move(described));
     } else {
         delete plantDialog;
         plantDialog = nullptr;
@@ -372,15 +420,10 @@ void MainWindow::on_specificationsButton_clicked()
     //invariant rather than a user error - which is exactly the kind that
     //should be reported instead of aborting.
     try {
-        if (specificationsDialog == nullptr){
-            specificationsDialog = new SpecificationsDialog(frequencyValues(),
-                                                            controller->specifications(),
-                                                            this);
-        } else {
-            //The frequency set the dialog was built with may be gone:
-            //entering new frequencies destroys the Omega that owns the values.
-            specificationsDialog->setFrequencies(frequencyValues());
-        }
+        ensureSpecificationsDialog();
+        //The frequency set the dialog was built with may be gone: entering
+        //new frequencies destroys the Omega that owns the values.
+        specificationsDialog->setFrequencies(frequencyValues());
     } catch (const qftbx::Exception & e) {
         QMessageBox::critical(this, tr("Specifications input"), e.what());
         return;
@@ -414,10 +457,7 @@ void MainWindow::on_specificationsButton_clicked()
 
 void MainWindow::on_frequenciesButton_clicked()
 {
-    if (frequenciesDialog == nullptr){
-        frequenciesDialog = new FrequenciesDialog(this);
-        frequenciesDialog->applyFrequencyCountLimit(m_settings.limits.maxFrequencyCount);
-    }
+    ensureFrequenciesDialog();
 
     runDialog(frequenciesDialog);
 
@@ -429,15 +469,9 @@ void MainWindow::on_frequenciesButton_clicked()
             return;
         }
 
-
-        //The controller answers whether it dropped anything, so the window
-        //resets its own steps exactly when the project dropped the artefacts
-        //behind them. This used to be decided here, by comparing the address
-        //of a freshly built object with the stored one - a test that can
-        //never match, so it always invalidated. It agreed with the project
-        //only by accident.
-        const bool changed = controller->setOmega(std::move(described));
-
+        //See on_plantButton_clicked: the project decides what a new set of
+        //frequencies drops, and the window follows below.
+        controller->setOmega(std::move(described));
     } else {
         delete frequenciesDialog;
         frequenciesDialog = nullptr;
@@ -448,13 +482,7 @@ void MainWindow::on_frequenciesButton_clicked()
 
 void MainWindow::on_templatesButton_clicked()
 {
-    if (templatesDialog == nullptr){
-        templatesDialog = new TemplatesDialog(this);
-        templatesDialog->setMaxPointCount(m_settings.limits.maxTemplatePoints);
-        templatesDialog->setDefaultPointCount(m_settings.defaults.templatePointCount);
-        templateViewer = new TemplateViewer(this);
-        installContourRecomputer();
-    }
+    ensureTemplatesWidgets();
 
     templatesDialog->launch(controller->plant(), controller->omega()->values()->size());
 
@@ -513,13 +541,7 @@ void MainWindow::on_templatesButton_clicked()
 
 void MainWindow::on_boundariesButton_clicked()
 {
-    if (boundaryGridDialog == nullptr){
-        boundaryGridDialog = new BoundaryGridDialog(this);
-        boundaryGridDialog->setMaxGridCells(m_settings.limits.maxGridCells);
-        boundaryGridDialog->applyDefaults(m_settings.defaults);
-        boundaryViewer = new BoundaryViewer(this);
-        boundaryUnionViewer = new BoundaryUnionViewer(this);
-    }
+    ensureBoundariesWidgets();
 
     runDialog(boundaryGridDialog);
 
@@ -580,9 +602,7 @@ void MainWindow::on_boundariesButton_clicked()
 void MainWindow::on_controllerButton_clicked()
 {
 
-    if (controllerDialog == nullptr){
-        controllerDialog = new ControllerDialog(this);
-    }
+    ensureControllerDialog();
 
     runDialog(controllerDialog);
 
@@ -595,15 +615,8 @@ void MainWindow::on_controllerButton_clicked()
             return;
         }
 
-
-        //The controller answers whether it dropped anything, so the window
-        //resets its own steps exactly when the project dropped the artefacts
-        //behind them. This used to be decided here, by comparing the address
-        //of a freshly built object with the stored one - a test that can
-        //never match, so it always invalidated. It agreed with the project
-        //only by accident.
         //A different structure voids the design found for the old one; the
-        //project has dropped it and the window follows below.
+        //project drops it and the window follows below.
         controller->setControllerStructure(std::move(described));
     }
 
@@ -612,13 +625,7 @@ void MainWindow::on_controllerButton_clicked()
 
 void MainWindow::on_loopButton_clicked()
 {
-    if (loopShapingDialog == nullptr){
-        loopShapingDialog = new LoopShapingDialog(this);
-        loopShapingDialog->setLimits(m_settings.limits.maxMagnitude,
-                                     m_settings.limits.maxTemplatePoints);
-        loopShapingDialog->applyDefaults(m_settings.defaults);
-        loopShapingViewer = new LoopShapingViewer(this);
-    }
+    ensureLoopShapingWidgets();
 
     runDialog(loopShapingDialog);
 
@@ -717,10 +724,10 @@ void MainWindow::on_actionOpen_triggered()
 
     if (!fileName.isEmpty()){
 
-        qftbx::StepSet leido;
+        qftbx::StepSet loaded;
 
         try {
-            leido = controller->load(fileName.toStdString());
+            loaded = controller->load(fileName.toStdString());
         } catch (const qftbx::Exception & e) {
             QMessageBox::critical(this, tr("Open project"), e.what());
             return;
@@ -733,52 +740,30 @@ void MainWindow::on_actionOpen_triggered()
         //Save writes back to the file that was just opened.
         saveFilePath = fileName;
 
-        //The widgets of the steps the file carried. A list and not a loop,
-        //because each step's widgets are of a different type - but there are
-        //no flags and no counter here any more: which steps are done is
-        //derived from the project, and the buttons and the bar come from the
-        //one call at the end. This block was ninety-six lines.
-        if (leido.has(qftbx::Step::Plant)) {
-            plantDialog = new PlantDialog(this);
+        //The widgets of the steps the file carried: the same ensure*() the
+        //handlers use, so a step's widgets are built in one place. Which
+        //steps are done is derived from the project, and the buttons and
+        //the bar come from the one call at the end.
+        if (loaded.has(qftbx::Step::Plant)) {
+            ensurePlantDialog();
         }
-
-        if (leido.has(qftbx::Step::Specifications)) {
-            specificationsDialog = new SpecificationsDialog(frequencyValues(),
-                                                            controller->specifications(),
-                                                            this);
+        if (loaded.has(qftbx::Step::Specifications)) {
+            ensureSpecificationsDialog();
         }
-
-        if (leido.has(qftbx::Step::Frequencies)) {
-            frequenciesDialog = new FrequenciesDialog(this);
-            frequenciesDialog->applyFrequencyCountLimit(m_settings.limits.maxFrequencyCount);
+        if (loaded.has(qftbx::Step::Frequencies)) {
+            ensureFrequenciesDialog();
         }
-
-        if (leido.has(qftbx::Step::Templates)) {
-            templatesDialog = new TemplatesDialog(this);
-            templatesDialog->setMaxPointCount(m_settings.limits.maxTemplatePoints);
-            templatesDialog->setDefaultPointCount(m_settings.defaults.templatePointCount);
-            templateViewer = new TemplateViewer(this);
-            installContourRecomputer();
+        if (loaded.has(qftbx::Step::Templates)) {
+            ensureTemplatesWidgets();
         }
-
-        if (leido.has(qftbx::Step::Boundaries)) {
-            boundaryGridDialog = new BoundaryGridDialog(this);
-            boundaryGridDialog->setMaxGridCells(m_settings.limits.maxGridCells);
-            boundaryGridDialog->applyDefaults(m_settings.defaults);
-            boundaryViewer = new BoundaryViewer(this);
-            boundaryUnionViewer = new BoundaryUnionViewer(this);
+        if (loaded.has(qftbx::Step::Boundaries)) {
+            ensureBoundariesWidgets();
         }
-
-        if (leido.has(qftbx::Step::Controller)) {
-            controllerDialog = new ControllerDialog(this);
+        if (loaded.has(qftbx::Step::Controller)) {
+            ensureControllerDialog();
         }
-
-        if (leido.has(qftbx::Step::LoopShaping)) {
-            loopShapingDialog = new LoopShapingDialog(this);
-            loopShapingDialog->setLimits(m_settings.limits.maxMagnitude,
-                                         m_settings.limits.maxTemplatePoints);
-            loopShapingDialog->applyDefaults(m_settings.defaults);
-            loopShapingViewer = new LoopShapingViewer(this);
+        if (loaded.has(qftbx::Step::LoopShaping)) {
+            ensureLoopShapingWidgets();
         }
 
         refreshAvailability();
@@ -793,7 +778,7 @@ void MainWindow::on_actionConsole_triggered()
     //MuParserXConsole.
     QString missing;
     if (!MuParserXConsole::launch(&missing)) {
-        tools::errorMessage(tr("The muParserX console could not be started: "
+        qftbx::errorMessage(tr("The muParserX console could not be started: "
                                "%1 is not there.").arg(missing), tr("QFTbx"));
     }
 }
@@ -842,7 +827,7 @@ void MainWindow::on_actionAllLoopDiagrams_triggered()
     showLoopDiagrams(true, true);
 }
 
-void MainWindow::showLoopDiagrams(bool nichols, bool nyquistRadio){
+void MainWindow::showLoopDiagrams(bool nichols, bool nyquist){
 
     //Without boundaries and a controller structure there is no loop to
     //show (uninitialised DAOs used to be dereferenced).
@@ -884,7 +869,7 @@ void MainWindow::showLoopDiagrams(bool nichols, bool nyquistRadio){
     LoopBoundariesViewer ver;
 
     ver.setData(boundaries, nyquistTraces, controller->omega()->values(), controller->plant(),
-                 controller->controllerStructure(), nichols, nyquistRadio);
+                 controller->controllerStructure(), nichols, nyquist);
 
     ver.showDiagram();
 
@@ -933,3 +918,5 @@ void MainWindow::on_actionLoop_triggered()
     loopShapingViewer->showDiagram();
     loopShapingViewer->show();
 }
+
+} // namespace qftbx

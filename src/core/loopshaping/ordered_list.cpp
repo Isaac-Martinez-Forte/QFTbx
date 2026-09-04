@@ -4,29 +4,31 @@
 
 #include "src/core/exception.h"
 
+namespace qftbx {
+
 namespace {
 
-bool lowestFirstOrder(double uno, double dos)
+bool lowestFirstOrder(double a, double b)
 {
-    return uno < dos;
+    return a < b;
 }
 
-bool highestFirstOrder(double uno, double dos)
+bool highestFirstOrder(double a, double b)
 {
-    return uno > dos;
+    return a > b;
 }
 
 } // namespace
 
 OrderedList::OrderedList(bool highestFirst, std::size_t maxNodes)
-    : nodes(highestFirst ? highestFirstOrder : lowestFirstOrder),
+    : m_nodes(highestFirst ? highestFirstOrder : lowestFirstOrder),
       m_maxNodes(maxNodes)
 {
 }
 
 void OrderedList::insert(std::unique_ptr<ListNode> node)
 {
-    if (nodes.size() >= m_maxNodes) {
+    if (m_nodes.size() >= m_maxNodes) {
         throw qftbx::ComputationError(
                 "The search kept " + std::to_string(m_maxNodes) + " boxes alive at once "
                 "without resolving the problem. Ask for a looser epsilon accuracy, or "
@@ -35,44 +37,59 @@ void OrderedList::insert(std::unique_ptr<ListNode> node)
 
     const double index = node->getIndex();
 
-    nodes.insert({index, std::move(node)});
+    m_nodes.insert({index, std::move(node)});
 
-    if (nodes.size() > m_peakSize) {
-        m_peakSize = nodes.size();
+    if (m_nodes.size() > m_peakSize) {
+        m_peakSize = m_nodes.size();
+    }
+}
+
+void OrderedList::requireNodes() const
+{
+    if (m_nodes.empty()) {
+        throw qftbx::ComputationError("The search asked the live list for a node when it holds none.");
     }
 }
 
 ListNode * OrderedList::first()
 {
-    return nodes.begin()->second.get();
+    requireNodes();
+
+    return m_nodes.begin()->second.get();
 }
 
 std::unique_ptr<ListNode> OrderedList::takeFirst()
 {
-    std::unique_ptr<ListNode> n = std::move(nodes.begin()->second);
+    requireNodes();
 
-    nodes.erase(nodes.begin());
+    std::unique_ptr<ListNode> taken = std::move(m_nodes.begin()->second);
 
-    return n;
+    m_nodes.erase(m_nodes.begin());
+
+    return taken;
 }
 
 
 ListNode * OrderedList::last()
 {
-    return std::prev(nodes.end())->second.get();
+    requireNodes();
+
+    return std::prev(m_nodes.end())->second.get();
 }
 
-bool OrderedList::isEmpty()
+bool OrderedList::isEmpty() const
 {
-    return nodes.empty();
+    return m_nodes.empty();
 }
 
 std::size_t OrderedList::size() const
 {
-    return nodes.size();
+    return m_nodes.size();
 }
 
 std::size_t OrderedList::peakSize() const
 {
     return m_peakSize;
 }
+
+} // namespace qftbx

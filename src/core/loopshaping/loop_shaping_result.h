@@ -12,6 +12,8 @@
  *
  * It OWNS the controller, and says so in the type.
  */
+namespace qftbx {
+
 class LoopShapingResult
 {
 public:
@@ -19,11 +21,11 @@ public:
                        double pointCount);
 
     /// Observer on the computed controller; the record keeps ownership.
-    LtiSystem * controller ();
+    LtiSystem * controller () const;
 
-    qftbx::Range range ();
+    qftbx::Range range () const;
 
-    double pointCount();
+    double pointCount() const;
 
     //There was a pair of setData() overloads and an m_set flag: nothing
     //ever called them and nothing ever read the flag. The overloads
@@ -38,5 +40,7 @@ private:
     qftbx::Range m_plotRange;
     double m_pointCount = 0;
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_LOOPSHAPING_RESULT_H

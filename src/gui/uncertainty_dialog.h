@@ -26,6 +26,9 @@ namespace Ui {
 class UncertaintyDialog;
 }
 
+namespace qftbx {
+
+
 /**
  * @brief Edits the parametric uncertainty of a plant or a controller: the
  * minimum, maximum and nominal value of every coefficient the user marked
@@ -63,7 +66,7 @@ public:
     Range delay();
 
     /// True when the user accepted the dialog with valid ranges.
-    bool wasAccepted();
+    bool wasAccepted() const;
 
     
    /**
@@ -73,13 +76,12 @@ public:
     * @param valueTable the numeric value of every coefficient, by row.
     * @param expressionTable the reparametrising expression of each, if any.
     * @param uncertainTable which of them the user marked as uncertain.
-    * @param rowsBuilt whether the rows already exist from a previous edit,
-    * so their contents are kept instead of rebuilt.
+    * @param rangeOnly whether only the ranges are asked for: the nominal
+    * field is hidden and the midpoint stands in for it.
     * @return whether the user accepted with valid ranges.
     */
     bool launch(CoefficientTable valueTable, CoefficientTable expressionTable,
-                UncertainTable uncertainTable, bool rowsBuilt);
-
+                UncertainTable uncertainTable, bool rangeOnly);
 
 
     
@@ -89,9 +91,6 @@ private slots:
     void on_denominatorRadio_clicked();
 
     void on_okButton_clicked();
-
-signals:
-    void close_ok ();
 
 private:
 
@@ -114,14 +113,10 @@ private:
     void buildRows();
 
     bool readRanges();
-    void buildRow(QWidget *widget, QString label, std::list <ParLineEdit> & vector, bool rowsBuilt);
-   // void buildRows (QVector<QString> *numeratorParameters, QVector<QString> *denominatorParameters);
-    qreal parse(QString cadena);
+    void buildRow(QWidget *widget, QString label, std::list <ParLineEdit> & rows, bool rangeOnly);
+    qreal parse(QString text);
 
     std::unique_ptr<Ui::UncertaintyDialog> ui;
-
-    qreal k;
-    qreal ret;
 
     mup::ParserX p;
 
@@ -133,5 +128,7 @@ private:
     bool rangeOnlyMode = false;
     bool accepted_ok = false;
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_UNCERTAINTY_DIALOG_H

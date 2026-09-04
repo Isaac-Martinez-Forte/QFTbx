@@ -5,7 +5,6 @@
 #include <memory>
 
 
-#include "src/core/math/sequence_vectors.h"
 #include "src/core/system/lti_system.h"
 #include "src/core/loopshaping/search_node.h"
 #include "src/core/loopshaping/stages.h"
@@ -18,22 +17,24 @@
  * The node holds its frequency map by value, so every child of a
  * bisection receives a copy for free.
  */
+namespace qftbx {
+
 class McSearchNode : public SearchNode {
 
 public:
 
-    McSearchNode() {}
+    McSearchNode() = default;
 
     McSearchNode(double index, std::unique_ptr<LtiSystem> system,
-                 tools::BoxFlag flags = tools::ambiguous);
+                 qftbx::BoxFlag flags = qftbx::ambiguous);
 
     void setCutsEnabled(bool enabled);
-    bool cutsEnabled();
+    bool cutsEnabled() const;
 
     void setStage(Stage e);
-    Stage stage();
+    Stage stage() const;
 
-    void markFrequencyFeasible(double pos, double frec);
+    void markFrequencyFeasible(double position, double frequency);
     bool isFrequencyFeasible(double key) const;
     void setFeasibleFrequencies(std::map<double, double> frequencies);
     const std::map<double, double> & feasibleFrequencies() const;
@@ -45,5 +46,7 @@ protected:
 
     std::map<double, double> m_feasibleFrequencies;
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_LOOPSHAPING_MC_SEARCH_NODE_H

@@ -4,7 +4,6 @@
 #include <string>
 
 #include "transfer_function.h"
-#include "mpParser.h"
 
 namespace qftbx {
 
@@ -18,19 +17,18 @@ namespace qftbx {
 class TimeConstantGain : public TransferFunction
 {
 public:
+    /**
+     * @brief Builds the system. Throws InvalidInput when any corner frequency
+     * is zero or its uncertainty range contains zero: every factor is
+     * s/z + 1, so a zero corner divides by zero at every frequency, and 0 is a
+     * finite number that no other check refuses.
+     */
     TimeConstantGain(std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator, Parameter k, Parameter delay);
 
     std::unique_ptr<LtiSystem> create (std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
                               Parameter k, Parameter delay = Parameter(double(0)), std::string numeratorExpr = std::string(), std::string denominatorExpr = std::string()) override;
 
-    ~TimeConstantGain();
-
     SystemType type() override;
-
-    std::string expression (std::vector <double> * numerator, std::vector <double> * denominator,
-                             double k, double delay, double omega) override;
-
-    std::string expression(double w) override;
 
     std::string expression() override;
 
@@ -38,16 +36,9 @@ public:
                                  const std::vector<double> & denominator,
                                  double gain, double delay) override;
 
-    std::complex <double> evaluateNumerator(std::vector <double> * nume, double omega) override;
-
-    std::complex <double> evaluateDenominator(std::vector <double> * deno, double omega) override;
-
 };
 
 } // namespace qftbx
 
-//Transitional: unqualified name for consumers not yet migrated
-//to the qftbx namespace. Remove when the migration is complete.
-using qftbx::TimeConstantGain;
 
 #endif // QFTBX_TIME_CONSTANT_GAIN_H

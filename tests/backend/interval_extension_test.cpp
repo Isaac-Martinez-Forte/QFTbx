@@ -24,6 +24,8 @@
 #include "src/core/system/zero_pole_gain.h"
 #include "src/core/system/parameter.h"
 
+using namespace qftbx;
+
 namespace {
 
 using Complex = std::complex<double>;

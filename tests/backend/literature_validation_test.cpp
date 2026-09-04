@@ -40,6 +40,8 @@
 #include "src/core/system/zero_pole_gain.h"
 #include "src/core/system/parameter.h"
 
+using namespace qftbx;
+
 namespace {
 
 LtiSystem* zpk(double k, std::initializer_list<double> zeros,
@@ -68,23 +70,23 @@ protected:
 
     //Overall feasibility of a point controller against the fixture's
     //boundaries, with the same projection + detection the algorithms use.
-    tools::BoxFlag classify(LtiSystem* point)
+    qftbx::BoxFlag classify(LtiSystem* point)
     {
         std::vector<double>* omega = controller.omega()->values();
-        tools::BoxFlag overall = tools::feasible;
+        qftbx::BoxFlag overall = qftbx::feasible;
 
         for (int i = 0; i < omega->size(); ++i) {
             const std::complex<double> pv = controller.plant()->evaluate(omega->at(i));
             const cxsc::cinterval box = conversion.nicholsBox(
                 point, omega->at(i), cxsc::complex(pv.real(), pv.imag()));
-            const tools::BoxFlag flag = detector.classifyBox(
+            const qftbx::BoxFlag flag = detector.classifyBox(
                 box, controller.boundaries(), i).flag();
 
-            if (flag == tools::infeasible) {
-                return tools::infeasible;
+            if (flag == qftbx::infeasible) {
+                return qftbx::infeasible;
             }
-            if (flag == tools::ambiguous) {
-                overall = tools::ambiguous;
+            if (flag == qftbx::ambiguous) {
+                overall = qftbx::ambiguous;
             }
         }
 
@@ -101,8 +103,8 @@ TEST_F(LiteratureValidation, PublishedControllersAreFeasible)
     LtiSystem* tharewal = zpk(3462219.0, {3.85}, {931.27, 946.83});
     LtiSystem* chenBallance = zpk(6753000.0, {2.0}, {2930.0, 553.0});
 
-    EXPECT_EQ(classify(tharewal), tools::feasible);
-    EXPECT_EQ(classify(chenBallance), tools::feasible);
+    EXPECT_EQ(classify(tharewal), qftbx::feasible);
+    EXPECT_EQ(classify(chenBallance), qftbx::feasible);
 
     delete tharewal;
     delete chenBallance;
@@ -115,10 +117,10 @@ TEST_F(LiteratureValidation, LowerGainsAreInfeasible)
     LtiSystem* scaled = zpk(0.8 * 3462219.0, {3.85}, {931.27, 946.83});
     LtiSystem* historical = zpk(1.0, {0.01}, {687.5});
 
-    EXPECT_EQ(classify(scaled), tools::infeasible);
+    EXPECT_EQ(classify(scaled), qftbx::infeasible);
     //The controller the inverted open-boundary parity used to accept
     //violates tracking by +27 dB.
-    EXPECT_EQ(classify(historical), tools::infeasible);
+    EXPECT_EQ(classify(historical), qftbx::infeasible);
 
     delete scaled;
     delete historical;
@@ -135,7 +137,7 @@ TEST_F(LiteratureValidation, MinimalFeasibleGainMatchesTharewal)
     for (int i = 0; i < 40; ++i) {
         const double mid = std::sqrt(low * high);
         LtiSystem* point = zpk(mid, {3.85}, {931.27, 946.83});
-        (classify(point) == tools::infeasible ? low : high) = mid;
+        (classify(point) == qftbx::infeasible ? low : high) = mid;
         delete point;
     }
 

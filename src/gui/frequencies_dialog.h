@@ -20,6 +20,9 @@ namespace Ui {
 class FrequenciesDialog;
 }
 
+namespace qftbx {
+
+
 /**
  * @brief Step 2 of the design: the set of design frequencies (Omega) the
  * whole pipeline is computed at, entered linearly, logarithmically, by
@@ -65,5 +68,7 @@ private:
     std::int32_t m_maxFrequencyCount = qftbx::Settings().limits.maxFrequencyCount;
 
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_FREQUENCIES_DIALOG_H

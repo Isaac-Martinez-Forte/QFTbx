@@ -1,6 +1,7 @@
 #ifndef QFTBX_LOOPSHAPING_ALGORITHM_MR_H
 #define QFTBX_LOOPSHAPING_ALGORITHM_MR_H
 
+#include "src/core/specifications/specification_record.h"
 #include "src/core/settings.h"
 #include "src/core/loopshaping/cancellation.h"
 #include "src/core/templates/cloud_set.h"
@@ -59,11 +60,11 @@
  * - The returned point must pass the nominal closed-loop stability
  *   criterion (NominalStabilityChecker).
  */
+namespace qftbx {
+
 class AlgorithmMr
 {
 public:
-    AlgorithmMr();
-    ~AlgorithmMr();
 
     /**
      * @brief Publishes the problem.
@@ -119,26 +120,22 @@ public:
 
 private:
 
-    struct BoxDomains {
-        std::map<std::string, cxsc::interval> values;
-    };
-
-    inline void buildControllerExpressions();
-    inline void buildConstraints();
-    inline void classifyAndInsert(std::unique_ptr<LtiSystem> box);
-    inline bool narrowToFixpoint(std::map<std::string, cxsc::interval> & domains);
-    inline bool certainlyFeasible(std::map<std::string, cxsc::interval> & domains);
-    inline void loadDomains(LtiSystem * box, std::map<std::string, cxsc::interval> & domains);
+    void buildControllerExpressions();
+    void buildConstraints();
+    void classifyAndInsert(std::unique_ptr<LtiSystem> box);
+    bool narrowToFixpoint(std::map<std::string, cxsc::interval> & domains);
+    bool certainlyFeasible(std::map<std::string, cxsc::interval> & domains);
+    void loadDomains(LtiSystem * box, std::map<std::string, cxsc::interval> & domains);
 
     /// True when every uncertain controller parameter has been narrowed to
     /// an interval no wider than epsilon: the paper's termination criterion.
-    inline bool isParameterBoxSmall(LtiSystem * box) const;
+    bool isParameterBoxSmall(LtiSystem * box) const;
 
     /// Degenerate domains at the corner pointFromBox() would take, so that
     /// the point itself can be run through the constraint set.
-    inline void loadPointDomains(LtiSystem * box, bool lowerCorner,
+    void loadPointDomains(LtiSystem * box, bool lowerCorner,
                                  std::map<std::string, cxsc::interval> & domains);
-    inline std::unique_ptr<LtiSystem> boxFromDomains(LtiSystem * box,
+    std::unique_ptr<LtiSystem> boxFromDomains(LtiSystem * box,
                                       const std::map<std::string, cxsc::interval> & domains);
 
     LtiSystem * plant = nullptr;
@@ -157,7 +154,7 @@ private:
     //only reloads the variable domains).
     std::vector<std::string> magnitudeExpressions;
     std::vector<std::string> phaseExpressions;
-    std::vector<std::unique_ptr<alg::ExpressionTree>> constraints;
+    std::vector<std::unique_ptr<qftbx::ExpressionTree>> constraints;
     //The source text of each constraint, for diagnostics.
     std::vector<std::string> constraintTexts;
 
@@ -171,5 +168,7 @@ private:
     qftbx::Settings m_settings;
 
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_LOOPSHAPING_ALGORITHM_MR_H

@@ -32,6 +32,8 @@
 
 #include "src/core/range.h"
 
+using namespace qftbx;
+
 namespace {
 
 TEST(EvaluatePrecision, ACoefficientKeepsAllItsDigits)
@@ -127,12 +129,12 @@ TEST(EvaluatePrecision, TheTemplateSweepKeepsEveryDigitToo)
     qftbx::ParameterGrids grids;
     grids[std::string("kv")] = {2.0};
 
-    auto * frequencies = new std::vector<double>{w};
+    std::vector<double> frequencies{w};
     TemplateEngine engine;
     engine.setEpsilon(std::vector<double>(1, 10.0));
     engine.setGrids(grids);
 
-    const qftbx::CloudSet clouds = engine.computeClouds(&plant, frequencies);
+    const qftbx::CloudSet clouds = engine.computeClouds(&plant, &frequencies);
 
     ASSERT_EQ(clouds.size(), 1u);
     ASSERT_EQ(clouds.at(0).size(), 1u);
@@ -144,7 +146,6 @@ TEST(EvaluatePrecision, TheTemplateSweepKeepsEveryDigitToo)
     EXPECT_NEAR(got.real(), exact.real(), 1e-15) << "the cloud lost precision";
     EXPECT_NEAR(got.imag(), exact.imag(), 1e-15) << "the cloud lost precision";
 
-    delete frequencies;
 }
 
 } // namespace

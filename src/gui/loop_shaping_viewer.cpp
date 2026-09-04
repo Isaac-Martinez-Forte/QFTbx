@@ -1,11 +1,15 @@
 #include "qt_containers.h"
+#include "src/core/math/constants.h"
+#include "src/gui/plot_export.h"
+#include "src/gui/number_text.h"
 #include "loop_shaping_viewer.h"
 #include "ui_loop_shaping_viewer.h"
 
 #include "src/gui/error_message.h"
 #include "src/gui/plot_palette.h"
 
-using namespace tools;
+
+namespace qftbx {
 
 LoopShapingViewer::LoopShapingViewer(QWidget *parent) :
     QDialog(parent),
@@ -13,15 +17,14 @@ LoopShapingViewer::LoopShapingViewer(QWidget *parent) :
 {
     ui->setupUi(this);
     setWindowTitle(tr("Loop Shaping"));
-    plotted = false;
 
     ui->numeratorEdit->setReadOnly(true);
     ui->denominatorEdit->setReadOnly(true);
     ui->gainEdit->setReadOnly(true);
 
-    frequenciesBox = new QGroupBox(this);
-    frequenciesBox->setObjectName("frequenciesBox");
-    frequenciesBox->setGeometry(QRect(1060, 0, 120, 581));
+    legend = new FrequencyLegend(this);
+    legend->setGeometry(QRect(1060, 0, 120, 581));
+    connect(legend, &FrequencyLegend::rowToggled, this, &LoopShapingViewer::applyCheckboxes);
 
     //Connected ONCE (every replot used to add a duplicated connection).
     connect(ui->plot->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->xAxis2, SLOT(setRange(QCPRange)));
@@ -46,20 +49,10 @@ void LoopShapingViewer::clearDiagram(){
     //QCustomPlot owns the curves: clearPlottables frees them.
     ui->plot->clearPlottables();
 
-    //Qt's own mechanism: destroying the row widget is how a widget leaves
-    //a layout, and it takes its checkbox with it. The row widgets used to
-    //pile up on every replot.
-    for (QCheckBox * che : checkboxes) {
-        delete che->parentWidget();
-    }
-    checkboxes.clear();
+    legend->clear();
 
     curves.clear();
 
-    //Also Qt's: a widget holds exactly one layout, so rebuilding the
-    //frequency box means destroying the one it has.
-    delete colorsLayout;
-    colorsLayout = nullptr;
 
     plotted = false;
 }
@@ -76,43 +69,38 @@ void LoopShapingViewer::setData(const qftbx::UnionTraces & unionTraces, std::vec
 
 void LoopShapingViewer::showDiagram(){
 
-    QString numerador = "", denominador = "";
+    QString numerator = "", denominator = "";
 
     qint32 i = 0;
     for (i = 0; i < static_cast<qint32>(loopShapingData->controller()->numerator().size()); i++){
-        numerador += QString::number(loopShapingData->controller()->numerator()[i].nominal()) + " ";
+        numerator += qftbx::numberText(loopShapingData->controller()->numerator()[i].nominal()) + " ";
     }
     for (i = 0; i < static_cast<qint32>(loopShapingData->controller()->denominator().size()); i++){
-        denominador += QString::number(loopShapingData->controller()->denominator()[i].nominal()) + " ";
+        denominator += qftbx::numberText(loopShapingData->controller()->denominator()[i].nominal()) + " ";
     }
 
-    ui->numeratorEdit->setText(numerador);
-    ui->denominatorEdit->setText(denominador);
-    ui->gainEdit->setText(QString::number(loopShapingData->controller()->gain().nominal()));
+    ui->numeratorEdit->setText(numerator);
+    ui->denominatorEdit->setText(denominator);
+    ui->gainEdit->setText(qftbx::numberText(loopShapingData->controller()->gain().nominal()));
 
-    LtiSystem::SystemType tipo = loopShapingData->controller()->type();
+    const LtiSystem::SystemType type = loopShapingData->controller()->type();
 
-    if (tipo == LtiSystem::SystemType::PolynomialForm){
-        QPixmap imagen (":/figures/copol.png");
-        ui->systemTypeImage->setPixmap(imagen);
-    } else if (tipo == LtiSystem::SystemType::ZeroPoleGain){
-        QPixmap imagen (":/figures/kgan.png");
-        ui->systemTypeImage->setPixmap(imagen);
+    if (type == LtiSystem::SystemType::PolynomialForm){
+        ui->systemTypeImage->setPixmap(QPixmap(":/figures/copol.png"));
+    } else if (type == LtiSystem::SystemType::ZeroPoleGain){
+        ui->systemTypeImage->setPixmap(QPixmap(":/figures/kgan.png"));
     }else {
-        QPixmap imagen (":/figures/knogan.png");
-        ui->systemTypeImage->setPixmap(imagen);
+        ui->systemTypeImage->setPixmap(QPixmap(":/figures/knogan.png"));
     }
-
 
 
     clearDiagram();
 
-    colorsLayout = new QVBoxLayout (frequenciesBox);
 
 
     plotted = true;
 
-    qint32 gainEdit = 0;
+    qint32 curveIndex = 0;
 
     //Sweep the boundaries.
 
@@ -124,28 +112,22 @@ void LoopShapingViewer::showDiagram(){
         frequencyIndex++;
         rowColors.push_back(color);
 
-        std::vector<double> ejex;
-        std::vector<double> ejey;
+        std::vector<double> phases;
+        std::vector<double> magnitudes;
 
         for (const qftbx::NicholsPoint & p : bound) {
-            ejex.push_back(p.phase);
-            ejey.push_back(p.magnitude);
+            phases.push_back(p.phase);
+            magnitudes.push_back(p.magnitude);
         }
 
-        /*curves.push_back(ui->plot->addGraph());
-        ui->plot->graph(gainEdit)->setData(*ejex, *ejey);*/
+        QCPCurve *curve = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
+        curve->setData(qftbx::toQVector(phases), qftbx::toQVector(magnitudes));
+        curve->setPen(color);
+        curves.push_back(curve);
 
-        QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-        curva->setData(tools::toQVector(ejex), tools::toQVector(ejey));
-        curva->setPen(color);
-        curves.push_back(curva);
+        addFrequencyRow(color, curveIndex);
 
-        /*ui->plot->graph(gainEdit)->setPen(color);
-        ui->plot->graph(gainEdit)->setLineStyle(QCPGraph::lsNone);
-        ui->plot->graph(gainEdit)->setScatterStyle(QCPScatterStyle::ssCircle);*/
-        addFrequencyRow(color, gainEdit);
-
-        gainEdit++;
+        curveIndex++;
     }
 
     ui->plot->rescaleAxes();
@@ -155,10 +137,10 @@ void LoopShapingViewer::showDiagram(){
     std::vector<double> frequencies;
 
     /*if(linSpace){
-        frequencies = tools::linspace(loopShapingData->range().min, loopShapingData->range().max, loopShapingData->pointCount());
+        frequencies = qftbx::linspace(loopShapingData->range().min, loopShapingData->range().max, loopShapingData->pointCount());
 
     } else {
-        frequencies = tools::logspace(loopShapingData->range().min, loopShapingData->range().max, loopShapingData->pointCount());
+        frequencies = qftbx::logspace(loopShapingData->range().min, loopShapingData->range().max, loopShapingData->pointCount());
     }*/
 
     //FIXED ON PURPOSE, for now (decision taken 2026-09-03: leave it, write
@@ -167,7 +149,7 @@ void LoopShapingViewer::showDiagram(){
     //way of honouring them, one is now gone and two remain.
     //
     //SETTLED: the units. Both dialogs ask for rad/s now and say so on the
-    //label, and each converts with log10 where tools::logspace wants an
+    //label, and each converts with log10 where qftbx::logspace wants an
     //exponent. Before, this dialog's defaults were written as values while
     //the frequencies dialog read its field as an exponent, so the same "0.01"
     //meant two different frequencies and no label admitted it. Reviving the
@@ -186,15 +168,15 @@ void LoopShapingViewer::showDiagram(){
     //(kDecadesBeyond) and refines until the phase step falls under
     //kMaxPhaseStepDegrees. Doing the same here would also make the drawing
     //and the check look at the same place, which they need not do today.
-    frequencies = tools::logspace(-5, 5, 10000);
+    frequencies = qftbx::logspace(-5, 5, 10000);
 
     //The open-loop curve, cut into segments wherever the phase wraps: by
     //value, so a replot does not abandon them (they all used to be).
-    QVector<std::vector<double> > ejex;
-    QVector<std::vector<double> > ejey;
+    QVector<std::vector<double> > phaseSegments;
+    QVector<std::vector<double> > magnitudeSegments;
 
-    std::vector<double> ejexActual;
-    std::vector<double> ejeyActual;
+    std::vector<double> currentPhases;
+    std::vector<double> currentMagnitudes;
 
 
     //The first sample only seeds the phase comparison, so it is taken
@@ -207,85 +189,61 @@ void LoopShapingViewer::showDiagram(){
     for (qreal a : frequencies) {
         std::complex <qreal> c = plant->evaluate(a) * loopShapingData->controller()->evaluate(a);
 
-        qreal fas = arg(c) *180 / M_PI;
-        qreal mag = 20*log10(abs(c));
-        if (fas > 0)
-            fas -= 360;
+        qreal phase = arg(c) *180 / qftbx::math::kPi;
+        qreal magnitude = 20*log10(abs(c));
+        if (phase > 0)
+            phase -= 360;
 
-        if (firstSample || abs(fas - previousPhase) < 100) {
-            ejexActual.push_back(fas);
-            ejeyActual.push_back(mag);
+        if (firstSample || abs(phase - previousPhase) < 100) {
+            currentPhases.push_back(phase);
+            currentMagnitudes.push_back(magnitude);
         } else {
 
-            /*if (previousPhase < -100){
-                ejexActual.push_back(0);
-                ejeyActual.push_back(previousY);
-            } else {
-                ejexActual.push_back(-360);
-                ejeyActual.push_back(previousY);
-            }*/
+            phaseSegments.push_back(std::move(currentPhases));
+            magnitudeSegments.push_back(std::move(currentMagnitudes));
 
-            ejex.push_back(std::move(ejexActual));
-            ejey.push_back(std::move(ejeyActual));
+            currentPhases = std::vector<double> ();
+            currentMagnitudes = std::vector<double> ();
 
-            ejexActual = std::vector<double> ();
-            ejeyActual = std::vector<double> ();
-
-            /*if (fas > -100){
-                ejexActual.push_back(0);
-                ejeyActual.push_back(mag);
-            } else {
-                ejexActual.push_back(-360);
-                ejeyActual.push_back(mag);
-            }*/
-
-            ejexActual.push_back(fas);
-            ejeyActual.push_back(mag);
+            currentPhases.push_back(phase);
+            currentMagnitudes.push_back(magnitude);
         }
 
-        previousPhase = fas;
+        previousPhase = phase;
         firstSample = false;
     }
 
-    ejex.push_back(std::move(ejexActual));
-    ejey.push_back(std::move(ejeyActual));
+    phaseSegments.push_back(std::move(currentPhases));
+    magnitudeSegments.push_back(std::move(currentMagnitudes));
 
 
-    /*QCPGraph * gra = ui->plot->addGraph();
-    gra->setData(*ejex, *ejey);
-
-    gra->setPen(randomColor(frequencyIndex));
-    gra->setScatterStyle(QCPScatterStyle::ssCircle);
-    gra->setLineStyle(QCPGraph::lsNone);*/
-
-    for (qint32 i = 0; i < ejex.size(); i++){
-        QCPCurve *curva = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-        curva->setData(tools::toQVector(ejex.at(i)), tools::toQVector(ejey.at(i)));
-        curva->setPen((QColor) Qt::black);
-        curves.push_back(curva);
+    for (qint32 i = 0; i < phaseSegments.size(); i++){
+        QCPCurve *curve = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
+        curve->setData(qftbx::toQVector(phaseSegments.at(i)), qftbx::toQVector(magnitudeSegments.at(i)));
+        curve->setPen((QColor) Qt::black);
+        curves.push_back(curve);
     }
-
 
 
     //Draw the marker for each design frequency.
     for (qint32 i = 0; i < static_cast<std::int32_t>(omega->size()); i++){
 
-        std::vector<double> ejex;
-        std::vector<double> ejey;
+        std::vector<double> phases;
+        std::vector<double> magnitudes;
 
         std::complex <qreal> c = loopShapingData->controller()->evaluate(omega->at(i)) * plant->evaluate(omega->at(i));
-        ejey.push_back(20*log10(abs(c)));
-        qreal fas = arg(c) *180 / M_PI;
-        if (fas > 0)
-            fas -= 360;
-        ejex.push_back(fas);
+        magnitudes.push_back(20*log10(abs(c)));
+        qreal phase = arg(c) *180 / qftbx::math::kPi;
+        if (phase > 0)
+            phase -= 360;
+        phases.push_back(phase);
 
-        QCPGraph * gra = ui->plot->addGraph();
-        gra->setData(tools::toQVector(ejex), tools::toQVector(ejey));
+        QCPGraph * marker = ui->plot->addGraph();
+        marker->setData(qftbx::toQVector(phases), qftbx::toQVector(magnitudes));
 
-        gra->setPen(rowColors.at(i));
-        gra->setScatterStyle(QCPScatterStyle::ssCircle);
-        gra->setLineStyle(QCPGraph::lsNone);
+        marker->setPen(rowColors.at(i));
+        marker->setScatterStyle(QCPScatterStyle::ssCircle);
+        marker->setLineStyle(QCPGraph::lsNone);
     }
 
     ui->plot->xAxis2->setVisible(true);
@@ -299,8 +257,8 @@ void LoopShapingViewer::showDiagram(){
 }
 
 void LoopShapingViewer::applyCheckboxes(){
-    for (qint32 i = 0; i < checkboxes.size(); i++){
-        if (checkboxes.at(i)->checkState() == 0){
+    for (qint32 i = 0; i < legend->rowCount(); i++){
+        if (!legend->isRowChecked(i)){
             curves.at(i)->setVisible(false);
         }else {
             curves.at(i)->setVisible(true);
@@ -310,50 +268,12 @@ void LoopShapingViewer::applyCheckboxes(){
 }
 
 void LoopShapingViewer::addFrequencyRow(QColor color, qint32 pos){
-
-    QWidget *widget;
-    QCheckBox *checkBox;
-
-    widget = new QWidget(frequenciesBox);
-    widget->setObjectName("widget");
-    widget->setGeometry(QRect(10, 10, 111, 23));
-    checkBox = new QCheckBox(widget);
-    checkBox->setObjectName("checkBox");
-
-    QMetaObject::connectSlotsByName(widget);
-
-
-    checkBox->setText(QString::number(omega->at(pos)));
-
-    checkBox->setStyleSheet("color : " + color.name());
-
-    colorsLayout->addWidget(widget);
-    checkboxes.push_back(checkBox);
-    checkBox->setCheckState(Qt::Checked);
-
-    connect(checkBox, SIGNAL (clicked()), this, SLOT (applyCheckboxes()));
+    legend->addRow(numberText(omega->at(pos)), color);
 }
 
 void LoopShapingViewer::on_saveImage_clicked()
 {
-    bool noFallo = true;
-    QString extension;
-    QString fileName = QFileDialog::getSaveFileName(this, tr("Save file"),"",
-                                                    tr((".png (*.png);;.pdf(*.pdf);; .jpg(*.jpg);; .bmp(*.bmp)")), &extension);
-    if (!fileName.isEmpty()){
-        if (extension.contains(".pdf", Qt::CaseInsensitive)){
-            noFallo = ui->plot->savePdf(fileName, true);
-        }else if (extension.contains(".png", Qt::CaseInsensitive)){
-            noFallo = ui->plot->savePng(fileName);
-        }else if (extension.contains(".jpg", Qt::CaseInsensitive)){
-            noFallo = ui->plot->saveJpg(fileName);
-        }else if (extension.contains(".bmp", Qt::CaseInsensitive)){
-            noFallo = ui->plot->saveBmp(fileName);
-        }else{
-            noFallo = false;
-        }
-
-        if (!noFallo)
-            errorMessage(tr("The image could not be saved"), tr("Loop-shaping plot"));
-    }
+    qftbx::exportPlot(this, *ui->plot, tr("Loop-shaping plot"));
 }
+
+} // namespace qftbx

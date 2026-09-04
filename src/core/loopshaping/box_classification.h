@@ -1,6 +1,7 @@
 #ifndef QFTBX_LOOPSHAPING_BOX_CLASSIFICATION_H
 #define QFTBX_LOOPSHAPING_BOX_CLASSIFICATION_H
 
+#include "src/core/loopshaping/loop_shaping_types.h"
 #include <array>
 
 #include "src/core/math/sequence_vectors.h"
@@ -15,12 +16,14 @@
  * bottom-left corner for the bottom and left strips, the top-right corner
  * for the top and right ones.
  */
+namespace qftbx {
+
 class BoxClassification
 {
 public:
 
-    void setFlag(tools::BoxFlag f);
-    tools::BoxFlag flag() const;
+    void setFlag(qftbx::BoxFlag f);
+    qftbx::BoxFlag flag() const;
 
     void setExtremes(const std::array<double, 4> & extremes);
     const std::array<double, 4> & extremes() const;
@@ -33,11 +36,13 @@ public:
 
 private:
 
-    tools::BoxFlag m_flag = tools::ambiguous;
+    qftbx::BoxFlag m_flag = qftbx::ambiguous;
     std::array<double, 4> m_extremes{};
 
     bool m_bottomLeftForbidden = false;
     bool m_topRightForbidden = false;
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_LOOPSHAPING_BOX_CLASSIFICATION_H

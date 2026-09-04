@@ -9,14 +9,16 @@
 
 #include "src/core/range.h"
 
-#include "QVector"
-#include "QDoubleValidator"
-#include "QIntValidator"
+#include <QDoubleValidator>
+#include <QIntValidator>
 #include "src/core/math/sequence_vectors.h"
 
 namespace Ui {
 class BoundaryGridDialog;
 }
+
+namespace qftbx {
+
 
 /**
  * @brief Asks the user for the Nichols grid the boundaries are computed
@@ -87,9 +89,6 @@ public:
 private slots:
     void on_buttonBox_accepted();
 
-protected:
-    void showEvent(QShowEvent * event) override;
-
 private:
     std::unique_ptr<Ui::BoundaryGridDialog> ui;
 
@@ -98,12 +97,13 @@ private:
     qint32 phaseCount = 0;
     qint32 magnitudeCount = 0;
     qreal infinityEdit = 0.0;
-    bool accepted_once = false;
     bool cudaCheck = false;
 
     /// Default from qftbx::Settings::Limits.
     std::int64_t m_maxGridCells = qftbx::Settings().limits.maxGridCells;
 
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_BOUNDARY_GRID_DIALOG_H

@@ -53,11 +53,11 @@
  * - The returned point must pass the nominal closed-loop stability
  *   criterion (NominalStabilityChecker), as reviewed for NT/NK.
  */
+namespace qftbx {
+
 class AlgorithmMc1
 {
 public:
-    AlgorithmMc1();
-    ~AlgorithmMc1();
 
     void setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> * omega, const BoundaryData * boundaries,
                    double epsilon);
@@ -92,13 +92,13 @@ public:
 
 private:
 
-    inline void check_box_feasibility(std::unique_ptr<LtiSystem> box);
-    inline std::unique_ptr<LtiSystem> quickSolution2(std::unique_ptr<LtiSystem> v,
+    void check_box_feasibility(std::unique_ptr<LtiSystem> box);
+    std::unique_ptr<LtiSystem> quickSolution2(std::unique_ptr<LtiSystem> v,
                                                     const BoxClassification & classification,
                                       const cxsc::cinterval & projection, double w,
                                       std::complex<double> p0);
-    inline void certifiedGainSearch(LtiSystem * box);
-    inline bool gainRangeIsFeasible(LtiSystem * box, double gainInf, double gainSup);
+    void certifiedGainSearch(LtiSystem * box);
+    bool gainRangeIsFeasible(LtiSystem * box, double gainInf, double gainSup);
 
     LtiSystem * plant = nullptr;
     std::unique_ptr<LtiSystem> controller;
@@ -120,9 +120,6 @@ private:
 
     std::unique_ptr<LtiSystem> designedController;
 
-    bool hasUncertainZeros = false;
-    bool hasUncertainPoles = false;
-
     /// Not owned. Null means this run cannot be cancelled.
     const qftbx::CancellationToken * m_cancellation = nullptr;
 
@@ -130,5 +127,7 @@ private:
     qftbx::Settings m_settings;
 
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_LOOPSHAPING_ALGORITHM_MC1_H

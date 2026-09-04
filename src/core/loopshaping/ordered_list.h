@@ -36,10 +36,11 @@
  * the peaks of the thesis benchmarks (the ones that take tens of minutes)
  * are what to set this against.
  *
- * A caller that needs a different ceiling passes it to the OrderedList
- * constructor; nothing plumbs it to the interface yet, which belongs with
- * the deferred usability work.
+ * The ceiling in effect comes from the settings file (search.max-live-nodes,
+ * qftbx::Settings::Search) through the algorithm that builds the list.
  */
+namespace qftbx {
+
 inline constexpr std::size_t kDefaultMaxLiveNodes = 32000000;
 
 /**
@@ -69,7 +70,9 @@ public:
      */
     void insert (std::unique_ptr<ListNode> node);
 
-    /// Observer on the queued node; the list keeps ownership.
+    /// Observer on the first queued node; the list keeps ownership. Throws
+    /// qftbx::ComputationError on an empty list, as do takeFirst() and
+    /// last(): the alternative is a dereference of end().
     ListNode * first();
 
     /**
@@ -97,7 +100,7 @@ public:
     /// Observer on the last queued node; the list keeps ownership.
     ListNode * last();
 
-    bool isEmpty ();
+    bool isEmpty () const;
 
     /// Nodes currently queued.
     std::size_t size () const;
@@ -109,11 +112,15 @@ public:
 private:
 
     //Ascending or descending by node index; ties keep insertion order.
-    std::multimap <double, std::unique_ptr<ListNode>, bool(*)(double, double)> nodes;
+    std::multimap <double, std::unique_ptr<ListNode>, bool(*)(double, double)> m_nodes;
+
+    void requireNodes() const;
 
     std::size_t m_maxNodes = kDefaultMaxLiveNodes;
     std::size_t m_peakSize = 0;
 
 };
+
+} // namespace qftbx
 
 #endif // QFTBX_LOOPSHAPING_ORDERED_LIST_H

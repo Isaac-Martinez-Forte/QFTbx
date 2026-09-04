@@ -1,61 +1,12 @@
 #include <vector>
+#include "src/core/math/constants.h"
 #include <cstdint>
 #include "src/core/exception.h"
 #include "src/core/loopshaping/algorithm_mc1.h"
 
-#include "src/core/loopshaping/quick_solution.h"
-
-using namespace tools;
 using namespace cxsc;
-using namespace FC;
 
-namespace quick_solution = qftbx::quick_solution;
-
-namespace {
-
-//Relative tolerance of the stage-3 gain bisection: 1% locates the
-//certified gain closely enough for pruning without spending the run time
-//it is meant to save.
-
-//Step 3bis.(b) of the paper: cap the gain range of a box at the prune
-//variable C. Returns the capped replacement (and destroys the original)
-//or the box itself when the cap does not apply.
-std::unique_ptr<LtiSystem> capGain(std::unique_ptr<LtiSystem> box, double cap)
-{
-    if (!box->gain().isUncertain() ||
-            cap <= box->gain().range().min || cap >= box->gain().range().max) {
-        return box;
-    }
-
-    return box->create(box->name(), box->numerator(), box->denominator(),
-            Parameter("kv", Range(box->gain().range().min, cap),
-                          box->gain().range().min, "kv"),
-            box->delay());
-}
-
-//Nominal plant phase on the (-2 pi, 0] branch the Nichols boxes use.
-double nominalPhase(std::complex<double> p0)
-{
-    double phi0 = std::arg(p0);
-
-    if (phi0 > 0.0) {
-        phi0 -= 2.0 * M_PI;
-    }
-
-    return phi0;
-}
-
-} // namespace
-
-
-AlgorithmMc1::AlgorithmMc1()
-{
-}
-
-AlgorithmMc1::~AlgorithmMc1()
-{
-}
-
+namespace qftbx {
 
 void AlgorithmMc1::setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> * omega,
                                           const BoundaryData * boundaries, double epsilon)
@@ -65,16 +16,6 @@ void AlgorithmMc1::setProblem(LtiSystem * plant, LtiSystem * controller, std::ve
     this->omega = omega;
     this->boundaries = boundaries;
     this->epsilon = epsilon;
-
-    hasUncertainZeros = false;
-    for (Parameter & var : this->controller->numerator()) {
-        hasUncertainZeros = hasUncertainZeros || var.isUncertain();
-    }
-
-    hasUncertainPoles = false;
-    for (Parameter & var : this->controller->denominator()) {
-        hasUncertainPoles = hasUncertainPoles || var.isUncertain();
-    }
 }
 
 
@@ -153,11 +94,11 @@ bool AlgorithmMc1::solve()
         }
 
         //Step 4: bisect along the widest parameter direction.
-        struct BisectionResult retur = bisectWidestParameter(node->system());
+        BisectionResult halves = bisectWidestParameter(node->system());
 
         //Steps 4bis-6: QS2 + feasibility + insertion.
-        check_box_feasibility(std::move(retur.v1));
-        check_box_feasibility(std::move(retur.v2));
+        check_box_feasibility(std::move(halves.v1));
+        check_box_feasibility(std::move(halves.v2));
     }
 }
 
@@ -178,7 +119,7 @@ std::unique_ptr<LtiSystem> AlgorithmMc1::controllerStructure()
 //cutting applied per frequency with the latest updated box, and stage 3
 //attempted once on the surviving box. Certainly infeasible boxes are
 //destroyed; anything else enters the live list.
-inline void AlgorithmMc1::check_box_feasibility(std::unique_ptr<LtiSystem> box)
+void AlgorithmMc1::check_box_feasibility(std::unique_ptr<LtiSystem> box)
 {
     BoxClassification classification;
     BoxFlag flag_final = feasible;
@@ -238,23 +179,12 @@ inline void AlgorithmMc1::check_box_feasibility(std::unique_ptr<LtiSystem> box)
 //magnitude cuts of NK's Quick Solution when the strip under the boundary
 //minimum is certainly forbidden, and the phase cuts when a vertical strip
 //is. All cuts run sequentially on the latest updated values.
-inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<LtiSystem> v,
-                                                             const BoxClassification & classification,
-                                                             const cxsc::cinterval & projection,
-                                                             double w, std::complex<double> p0)
+std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<LtiSystem> v,
+                                                      const BoxClassification & classification,
+                                                      const cxsc::cinterval & projection,
+                                                      double w, std::complex<double> p0)
 {
-    std::vector<double> zeroInfs, zeroSups, poleInfs, poleSups;
-    for (Parameter & var : v->numerator()) {
-        zeroInfs.push_back(var.isUncertain() ? var.range().min : var.nominal());
-        zeroSups.push_back(var.isUncertain() ? var.range().max : var.nominal());
-    }
-    for (Parameter & var : v->denominator()) {
-        poleInfs.push_back(var.isUncertain() ? var.range().min : var.nominal());
-        poleSups.push_back(var.isUncertain() ? var.range().max : var.nominal());
-    }
-
-    double gainInf = v->gain().range().min;
-    const double gainSup = v->gain().range().max;
+    ParameterBounds bounds = boundsOf(v.get());
 
     bool cut = false;
 
@@ -263,166 +193,43 @@ inline std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<L
     //forbidden, certified by the parity classification of the box's lower
     //corner (same gate as NK).
     if (classification.isBottomLeftForbidden()) {
-
         const double boundMin = std::pow(10.0, classification.extremes()[0] / 20.0);
-
-        if (v->gain().isUncertain()) {
-            const double k = quick_solution::gainCut(boundMin, zeroSups, poleInfs, w, p0);
-
-            if (k > gainInf && k < gainSup) {
-                gainInf = k;
-                cut = true;
-            }
-        }
-
-        if (hasUncertainZeros) {
-            for (std::size_t j = 0; j < zeroInfs.size(); ++j) {
-                if (!v->numerator()[j].isUncertain()) {
-                    continue;
-                }
-
-                const double z = quick_solution::zeroCut(boundMin, gainSup, zeroSups,
-                                                        poleInfs, j, w, p0);
-
-                if (z > zeroInfs[j] && z < zeroSups[j]) {
-                    zeroInfs[j] = z;
-                    cut = true;
-                }
-            }
-        }
-
-        if (hasUncertainPoles) {
-            for (std::size_t j = 0; j < poleInfs.size(); ++j) {
-                if (!v->denominator()[j].isUncertain()) {
-                    continue;
-                }
-
-                const double p = quick_solution::poleCut(boundMin, gainSup, zeroSups,
-                                                        poleInfs, j, w, p0);
-
-                if (p > poleInfs[j] && p < poleSups[j]) {
-                    poleSups[j] = p;
-                    cut = true;
-                }
-            }
-        }
+        cut = cutBelowBoundary(bounds, boundMin, w, p0) || cut;
     }
 
     //------------------------------------------------------ stage 2, phase
-    if (hasUncertainZeros || hasUncertainPoles) {
+    const double phi0 = nominalPhase(p0);
+    const double phaseStep = boundaries->phaseRange().width() /
+                        (boundaries->phaseCount() - 1);
 
-        const double phi0 = nominalPhase(p0);
-        const double phaseStep = boundaries->phaseRange().width() /
-                            (boundaries->phaseCount() - 1);
+    const double boxPhaseMin = _double(Inf(Im(projection)));
+    const double boxPhaseMax = _double(Sup(Im(projection)));
 
-        const double boxPhaseMin = _double(Inf(Im(projection)));
-        const double boxPhaseMax = _double(Sup(Im(projection)));
+    const double boundPhaseMin = classification.extremes()[2];
+    const double boundPhaseMax = classification.extremes()[3];
 
-        const double boundPhaseMin = classification.extremes()[2];
-        const double boundPhaseMax = classification.extremes()[3];
+    //Right strip (phases above the boundary maximum) certainly forbidden,
+    //and wider than one grid step of the union.
+    if (classification.isTopRightForbidden() && boundPhaseMax < boxPhaseMax - phaseStep) {
+        cut = cutRightOfPhase(bounds, boundPhaseMax * qftbx::math::kPi / 180.0, phi0, w) || cut;
+    }
 
-        //Right strip (phases above the boundary maximum) certainly
-        //forbidden, and wider than one grid step of the union.
-        if (classification.isTopRightForbidden() && boundPhaseMax < boxPhaseMax - phaseStep) {
-
-            const double thetaMax = boundPhaseMax * M_PI / 180.0;
-
-            for (std::size_t j = 0; hasUncertainZeros && j < zeroInfs.size(); ++j) {
-                if (!v->numerator()[j].isUncertain()) {
-                    continue;
-                }
-
-                const double z = quick_solution::zeroPhaseCutHigh(thetaMax, phi0, zeroSups,
-                                                                 poleInfs, j, w);
-
-                if (z > zeroInfs[j] && z < zeroSups[j]) {
-                    zeroInfs[j] = z;
-                    cut = true;
-                }
-            }
-
-            for (std::size_t j = 0; hasUncertainPoles && j < poleInfs.size(); ++j) {
-                if (!v->denominator()[j].isUncertain()) {
-                    continue;
-                }
-
-                const double p = quick_solution::polePhaseCutHigh(thetaMax, phi0, zeroSups,
-                                                                 poleInfs, j, w);
-
-                if (p > poleInfs[j] && p < poleSups[j]) {
-                    poleSups[j] = p;
-                    cut = true;
-                }
-            }
-        }
-
-        //Left strip (phases below the boundary minimum) certainly
-        //forbidden.
-        if (classification.isBottomLeftForbidden() && boundPhaseMin > boxPhaseMin + phaseStep) {
-
-            const double thetaMin = boundPhaseMin * M_PI / 180.0;
-
-            for (std::size_t j = 0; hasUncertainZeros && j < zeroInfs.size(); ++j) {
-                if (!v->numerator()[j].isUncertain()) {
-                    continue;
-                }
-
-                const double z = quick_solution::zeroPhaseCutLow(thetaMin, phi0, zeroInfs,
-                                                                poleSups, j, w);
-
-                if (z > zeroInfs[j] && z < zeroSups[j]) {
-                    zeroSups[j] = z;
-                    cut = true;
-                }
-            }
-
-            for (std::size_t j = 0; hasUncertainPoles && j < poleInfs.size(); ++j) {
-                if (!v->denominator()[j].isUncertain()) {
-                    continue;
-                }
-
-                const double p = quick_solution::polePhaseCutLow(thetaMin, phi0, zeroInfs,
-                                                                poleSups, j, w);
-
-                if (p > poleInfs[j] && p < poleSups[j]) {
-                    poleInfs[j] = p;
-                    cut = true;
-                }
-            }
-        }
+    //Left strip (phases below the boundary minimum) certainly forbidden.
+    if (classification.isBottomLeftForbidden() && boundPhaseMin > boxPhaseMin + phaseStep) {
+        cut = cutLeftOfPhase(bounds, boundPhaseMin * qftbx::math::kPi / 180.0, phi0, w) || cut;
     }
 
     if (!cut) {
         return v;
     }
 
-    std::vector<Parameter> numerador;
-    for (std::size_t j = 0; j < zeroInfs.size(); ++j) {
-        Parameter & old = v->numerator()[j];
-        numerador.push_back(old.isUncertain()
-                ? Parameter(old.name(), Range(zeroInfs[j], zeroSups[j]), zeroInfs[j])
-                : Parameter(old.nominal()));
-    }
-
-    std::vector<Parameter> denominador;
-    for (std::size_t j = 0; j < poleInfs.size(); ++j) {
-        Parameter & old = v->denominator()[j];
-        denominador.push_back(old.isUncertain()
-                ? Parameter(old.name(), Range(poleInfs[j], poleSups[j]), poleInfs[j])
-                : Parameter(old.nominal()));
-    }
-
-    return v->create(v->name(), numerador, denominador,
-            v->gain().isUncertain()
-                ? Parameter("kv", Range(gainInf, gainSup), gainInf, "kv")
-                : Parameter(v->gain().nominal()),
-            v->delay());
+    return boxFromBounds(v.get(), bounds);
 }
 
 
 //Feasibility of the box with its gain range replaced by
 //[gainInf, gainSup] at every design frequency.
-inline bool AlgorithmMc1::gainRangeIsFeasible(LtiSystem * box,
+bool AlgorithmMc1::gainRangeIsFeasible(LtiSystem * box,
                                                            double gainInf, double gainSup)
 {
     const std::unique_ptr<LtiSystem> candidate = box->create(box->name(),
@@ -447,7 +254,7 @@ inline bool AlgorithmMc1::gainRangeIsFeasible(LtiSystem * box,
 //located by logarithmic bisection over the interval feasibility test and
 //the certified point must pass the nominal stability criterion before it
 //may prune the search through C.
-inline void AlgorithmMc1::certifiedGainSearch(LtiSystem * box)
+void AlgorithmMc1::certifiedGainSearch(LtiSystem * box)
 {
     if (!box->gain().isUncertain()) {
         return;
@@ -497,3 +304,5 @@ inline void AlgorithmMc1::certifiedGainSearch(LtiSystem * box)
         bestCertifiedController = std::move(point);
     }
 }
+
+} // namespace qftbx
