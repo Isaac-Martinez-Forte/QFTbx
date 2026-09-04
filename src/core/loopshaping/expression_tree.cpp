@@ -6,6 +6,7 @@ Roberto C. Cruz Rodríguez
 // inner node is an operation and every leaf a value.
 
 #include "src/core/loopshaping/expression_tree.h"
+#include "src/core/math/constants.h"
 
 #include <cctype>
 #include <cmath>
@@ -323,10 +324,10 @@ double ExpressionTree::eval_tree(exp_node *nod)
         return variables->at(nod->var);
 
     case E:
-        return M_E;
+        return qftbx::math::kE;
 
     case PI:
-        return M_PI;
+        return qftbx::math::kPi;
 
     case SUMA :
         return eval_tree(nod->left.get()) + eval_tree(nod->rigth.get());
@@ -599,7 +600,7 @@ bool ExpressionTree::eval_tree_out(exp_node *nod, interval intervalo){
         }
 
         //Only within the principal monotone branch of the argument.
-        if (Inf(nod->left->intervalo) < -M_PI / 2 || Sup(nod->left->intervalo) > M_PI / 2) {
+        if (Inf(nod->left->intervalo) < -qftbx::math::kPi / 2 || Sup(nod->left->intervalo) > qftbx::math::kPi / 2) {
             return true;
         }
 
@@ -618,14 +619,14 @@ bool ExpressionTree::eval_tree_out(exp_node *nod, interval intervalo){
 
         //cos is monotone on [-pi, 0] and on [0, pi]; anything wider is
         //left unprojected.
-        if (Inf(nod->left->intervalo) >= -M_PI && Sup(nod->left->intervalo) <= 0.0) {
+        if (Inf(nod->left->intervalo) >= -qftbx::math::kPi && Sup(nod->left->intervalo) <= 0.0) {
             if (!safeIntersection(nod->left->intervalo, -acos(acotado), candidato)) {
                 return false;
             }
             return eval_tree_out(nod->left.get(), candidato);
         }
 
-        if (Inf(nod->left->intervalo) >= 0.0 && Sup(nod->left->intervalo) <= M_PI) {
+        if (Inf(nod->left->intervalo) >= 0.0 && Sup(nod->left->intervalo) <= qftbx::math::kPi) {
             if (!safeIntersection(nod->left->intervalo, acos(acotado), candidato)) {
                 return false;
             }
@@ -637,7 +638,7 @@ bool ExpressionTree::eval_tree_out(exp_node *nod, interval intervalo){
 
     case TAN :
     {
-        if (Inf(nod->left->intervalo) <= -M_PI / 2 || Sup(nod->left->intervalo) >= M_PI / 2) {
+        if (Inf(nod->left->intervalo) <= -qftbx::math::kPi / 2 || Sup(nod->left->intervalo) >= qftbx::math::kPi / 2) {
             return true;
         }
 
@@ -650,7 +651,7 @@ bool ExpressionTree::eval_tree_out(exp_node *nod, interval intervalo){
     case ATAN :
     {
         interval acotado;
-        if (!safeIntersection(intervalo, interval(-M_PI / 2, M_PI / 2), acotado)) {
+        if (!safeIntersection(intervalo, interval(-qftbx::math::kPi / 2, qftbx::math::kPi / 2), acotado)) {
             return false;
         }
 
@@ -663,7 +664,7 @@ bool ExpressionTree::eval_tree_out(exp_node *nod, interval intervalo){
     case ASIN :
     {
         interval acotado;
-        if (!safeIntersection(intervalo, interval(-M_PI / 2, M_PI / 2), acotado)) {
+        if (!safeIntersection(intervalo, interval(-qftbx::math::kPi / 2, qftbx::math::kPi / 2), acotado)) {
             return false;
         }
 
@@ -676,7 +677,7 @@ bool ExpressionTree::eval_tree_out(exp_node *nod, interval intervalo){
     case ACOS :
     {
         interval acotado;
-        if (!safeIntersection(intervalo, interval(0.0, M_PI), acotado)) {
+        if (!safeIntersection(intervalo, interval(0.0, qftbx::math::kPi), acotado)) {
             return false;
         }
 

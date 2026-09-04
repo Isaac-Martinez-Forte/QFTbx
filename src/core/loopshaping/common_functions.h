@@ -3,6 +3,7 @@
 
 
 #include <cstdint>
+#include "src/core/math/constants.h"
 #include <memory>
 
 #include <vector>
@@ -422,7 +423,7 @@ inline double nominalPhase(std::complex<double> p0) {
     double phi0 = std::arg(p0);
 
     if (phi0 > 0.0) {
-        phi0 -= 2.0 * M_PI;
+        phi0 -= 2.0 * qftbx::math::kPi;
     }
 
     return phi0;

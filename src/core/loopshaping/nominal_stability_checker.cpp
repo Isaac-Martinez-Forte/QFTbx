@@ -1,4 +1,5 @@
 #include "src/core/loopshaping/nominal_stability_checker.h"
+#include "src/core/math/constants.h"
 
 #include <vector>
 #include <algorithm>
@@ -19,7 +20,7 @@ const double kRayMagnitude = 1.0;
 
 double phaseDegrees(const std::complex<double> & value)
 {
-    return std::arg(value) * 180.0 / M_PI;
+    return std::arg(value) * 180.0 / qftbx::math::kPi;
 }
 
 } // namespace

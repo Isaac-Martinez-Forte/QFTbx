@@ -1,4 +1,5 @@
 #include <cmath>
+#include "src/core/math/constants.h"
 #include "src/gui/plot_export.h"
 #include <vector>
 #include <algorithm>
@@ -72,7 +73,7 @@ void BodeViewer::drawBode(LtiSystem *plant, Omega *omega){
 
         //Degrees: a Bode phase plot is read in degrees, and arg() answers
         //radians (the axis was labelled in Spanish and scaled in radians).
-        phase.push_back(arg(comp) * 180.0 / M_PI);
+        phase.push_back(arg(comp) * 180.0 / qftbx::math::kPi);
     }
 
     drawAxis(tr("Magnitude (dB)"), magnitude, frequencies, ui->magnitudePlot);

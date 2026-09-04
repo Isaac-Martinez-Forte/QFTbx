@@ -1,4 +1,5 @@
 #include <vector>
+#include "src/core/math/constants.h"
 #include <cstdint>
 #include "src/core/exception.h"
 #include "src/core/loopshaping/algorithm_mc1.h"
@@ -210,12 +211,12 @@ std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<LtiSyste
     //Right strip (phases above the boundary maximum) certainly forbidden,
     //and wider than one grid step of the union.
     if (classification.isTopRightForbidden() && boundPhaseMax < boxPhaseMax - phaseStep) {
-        cut = cutRightOfPhase(bounds, boundPhaseMax * M_PI / 180.0, phi0, w) || cut;
+        cut = cutRightOfPhase(bounds, boundPhaseMax * qftbx::math::kPi / 180.0, phi0, w) || cut;
     }
 
     //Left strip (phases below the boundary minimum) certainly forbidden.
     if (classification.isBottomLeftForbidden() && boundPhaseMin > boxPhaseMin + phaseStep) {
-        cut = cutLeftOfPhase(bounds, boundPhaseMin * M_PI / 180.0, phi0, w) || cut;
+        cut = cutLeftOfPhase(bounds, boundPhaseMin * qftbx::math::kPi / 180.0, phi0, w) || cut;
     }
 
     if (!cut) {

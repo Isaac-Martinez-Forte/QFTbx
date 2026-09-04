@@ -1,4 +1,5 @@
 #include <chrono>
+#include "src/core/math/constants.h"
 #include <string>
 #include <algorithm>
 #include <vector>
@@ -432,7 +433,7 @@ WorstCase worstCaseAt(std::complex<double> p0, std::complex<double> L, const Com
 std::complex<double> nicholsToComplex(double magnitudeDb, double phaseDegrees)
 {
     const double linearMagnitude = std::pow(10.0, magnitudeDb / 20.0);
-    return std::polar(linearMagnitude, phaseDegrees * M_PI / 180.0);
+    return std::polar(linearMagnitude, phaseDegrees * qftbx::math::kPi / 180.0);
 }
 
 } // namespace

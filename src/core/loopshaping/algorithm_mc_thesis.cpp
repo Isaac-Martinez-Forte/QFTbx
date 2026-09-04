@@ -1,4 +1,5 @@
 #include <vector>
+#include "src/core/math/constants.h"
 #include <cstdint>
 #include "src/core/exception.h"
 #include "src/core/loopshaping/algorithm_mc_thesis.h"
@@ -641,8 +642,8 @@ void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnalysis & a
                         }
                     } else {
                         const double phi0 = nominalPhase(p0);
-                        const double thetaMin = classification->extremes()[2] * M_PI / 180.0;
-                        const double thetaMax = classification->extremes()[3] * M_PI / 180.0;
+                        const double thetaMin = classification->extremes()[2] * qftbx::math::kPi / 180.0;
+                        const double thetaMax = classification->extremes()[3] * qftbx::math::kPi / 180.0;
                         const Range boxPhase = analysis.boxPhase.at(i);
 
                         //Zeros lower the phase as they grow, poles raise
@@ -795,11 +796,11 @@ void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAnalysis &
             const double boundPhaseMax = classification->extremes()[3];
 
             if (classification->isTopRightForbidden() && boundPhaseMax < boxPhase.max - phaseGridStep) {
-                cut = cutRightOfPhase(bounds, boundPhaseMax * M_PI / 180.0, phi0, w) || cut;
+                cut = cutRightOfPhase(bounds, boundPhaseMax * qftbx::math::kPi / 180.0, phi0, w) || cut;
             }
 
             if (classification->isBottomLeftForbidden() && boundPhaseMin > boxPhase.min + phaseGridStep) {
-                cut = cutLeftOfPhase(bounds, boundPhaseMin * M_PI / 180.0, phi0, w) || cut;
+                cut = cutLeftOfPhase(bounds, boundPhaseMin * qftbx::math::kPi / 180.0, phi0, w) || cut;
             }
         }
     }

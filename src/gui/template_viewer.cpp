@@ -1,5 +1,6 @@
 
 #include "src/core/exception.h"
+#include "src/core/math/constants.h"
 #include "src/gui/plot_export.h"
 #include "src/gui/number_text.h"
 #include <QMessageBox>
@@ -152,7 +153,7 @@ void TemplateViewer::plotDiagram(bool plot){
             for (const std::complex <qreal> & complejo : vector) {
 
                 if (plot){
-                    qreal phase = arg(complejo)* 180 / M_PI;
+                    qreal phase = arg(complejo)* 180 / qftbx::math::kPi;
                     if (phase >= 0){
                         phase -= 360;
                     }
@@ -186,7 +187,7 @@ void TemplateViewer::plotDiagram(bool plot){
         for (const std::complex <qreal> & complejo : vector) {
 
             if (plot){
-                qreal phase = arg(complejo)* 180 / M_PI;
+                qreal phase = arg(complejo)* 180 / qftbx::math::kPi;
                 if (phase >= 0){
                     phase -= 360;
                 }

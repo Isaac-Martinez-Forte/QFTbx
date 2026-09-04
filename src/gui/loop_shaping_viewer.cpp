@@ -1,4 +1,5 @@
 #include "qt_containers.h"
+#include "src/core/math/constants.h"
 #include "src/gui/plot_export.h"
 #include "src/gui/number_text.h"
 #include "loop_shaping_viewer.h"
@@ -199,7 +200,7 @@ void LoopShapingViewer::showDiagram(){
     for (qreal a : frequencies) {
         std::complex <qreal> c = plant->evaluate(a) * loopShapingData->controller()->evaluate(a);
 
-        qreal fas = arg(c) *180 / M_PI;
+        qreal fas = arg(c) *180 / qftbx::math::kPi;
         qreal mag = 20*log10(abs(c));
         if (fas > 0)
             fas -= 360;
@@ -244,7 +245,7 @@ void LoopShapingViewer::showDiagram(){
 
         std::complex <qreal> c = loopShapingData->controller()->evaluate(omega->at(i)) * plant->evaluate(omega->at(i));
         ejey.push_back(20*log10(abs(c)));
-        qreal fas = arg(c) *180 / M_PI;
+        qreal fas = arg(c) *180 / qftbx::math::kPi;
         if (fas > 0)
             fas -= 360;
         ejex.push_back(fas);

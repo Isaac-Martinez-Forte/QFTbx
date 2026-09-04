@@ -1,4 +1,5 @@
 #include "src/core/loopshaping/natural_interval_extension.h"
+#include "src/core/math/constants.h"
 
 #include <cmath>
 
@@ -13,8 +14,8 @@ namespace qftbx {
 
 namespace {
 
-const double kTwoPi = 2.0 * M_PI;
-const double kRadToDeg = 180.0 / M_PI;
+const double kTwoPi = 2.0 * qftbx::math::kPi;
+const double kRadToDeg = 180.0 / qftbx::math::kPi;
 
 interval parameterInterval(Parameter & parameter)
 {

@@ -1,4 +1,5 @@
 #include <chrono>
+#include "src/core/math/constants.h"
 #include <string>
 #include <vector>
 #include <cstdint>
@@ -654,7 +655,7 @@ std::int32_t TemplateEngine::findSecond(std::int32_t b1, const ComplexCloud & cv
             fas = arg (candidate - firstPoint); //phase of the difference
 
             if (fas < 0)        //brought into [0, 2*PI)
-                fas += 2 * M_PI;
+                fas += 2 * qftbx::math::kPi;
 
             //subtract from the phase the arccosine of distance over epsilon.
             fas -= std::acos(dist / epsilon);
@@ -718,7 +719,7 @@ std::int32_t TemplateEngine::findNext(std::int32_t previousPoint, std::int32_t c
             phase = arg((candidate - current) / (previous - current));
 
             if(phase < 0) //brought into [0, 2*PI)
-                phase +=  2 * M_PI;
+                phase +=  2 * qftbx::math::kPi;
 
             //------------------------------------------------------------
 
@@ -727,7 +728,7 @@ std::int32_t TemplateEngine::findNext(std::int32_t previousPoint, std::int32_t c
             //------------------------------------------------------------
 
             if(phase == 0){  //psi has three cases, as in EPSHULL.M
-                psi =  2 * M_PI - aco1 - aco2;
+                psi =  2 * qftbx::math::kPi - aco1 - aco2;
             }else if (phase > 0 && phase < aco2){
                 psi = phase + aco1- aco2;
             }else{
@@ -735,7 +736,7 @@ std::int32_t TemplateEngine::findNext(std::int32_t previousPoint, std::int32_t c
             }
 
             if (psi < 0)                   //brought into [0, 2*PI)
-                psi +=  2 * M_PI;
+                psi +=  2 * qftbx::math::kPi;
 
             //------------------------------------------------------------
 
