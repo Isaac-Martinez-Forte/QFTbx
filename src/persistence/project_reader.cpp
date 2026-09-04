@@ -433,7 +433,7 @@ namespace {
 //longer needs to be told: every member owns what it holds.
 ProjectReader::~ProjectReader() = default;
 
-std::vector<bool> ProjectReader::load(const std::string & filePath)
+ProjectReader::Loaded ProjectReader::load(const std::string & filePath)
 {
     std::ifstream file(filePath, std::ios::binary);
     if (!file.is_open()) {
@@ -513,17 +513,19 @@ std::vector<bool> ProjectReader::load(const std::string & filePath)
 
     //Section flags in the historical order (always all 8: the old error
     //paths returned 7 and consumers indexed out of range).
-    std::vector<bool> sections;
-    sections.push_back(m_plant != nullptr);
-    sections.push_back(m_specifications.has_value());
-    sections.push_back(m_omega != nullptr);
-    sections.push_back(!m_templates.empty());
-    sections.push_back(m_boundaries.has_value());
-    sections.push_back(m_controller != nullptr);
-    sections.push_back(m_loopShaping != nullptr);
-    sections.push_back(hasContour);
+    Loaded loaded;
 
-    return sections;
+    if (m_plant != nullptr)                { loaded.steps.add(qftbx::Step::Plant); }
+    if (m_specifications.has_value())      { loaded.steps.add(qftbx::Step::Specifications); }
+    if (m_omega != nullptr)                { loaded.steps.add(qftbx::Step::Frequencies); }
+    if (!m_templates.empty())              { loaded.steps.add(qftbx::Step::Templates); }
+    if (m_boundaries.has_value())          { loaded.steps.add(qftbx::Step::Boundaries); }
+    if (m_controller != nullptr)           { loaded.steps.add(qftbx::Step::Controller); }
+    if (m_loopShaping != nullptr)          { loaded.steps.add(qftbx::Step::LoopShaping); }
+
+    loaded.hasContour = hasContour;
+
+    return loaded;
 }
 
 } // namespace qftbx

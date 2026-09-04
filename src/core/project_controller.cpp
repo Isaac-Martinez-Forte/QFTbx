@@ -369,40 +369,86 @@ bool ProjectController::save(std::string path){
     return true;
 }
 
-std::vector<bool> ProjectController::load(std::string path){
+qftbx::StepSet ProjectController::load(std::string path){
     requireNotComputing();
-
 
     ProjectReader reader;
 
-    const std::vector<bool> flags = reader.load(path);
+    const ProjectReader::Loaded loaded = reader.load(path);
 
-    if (flags.at(0))
+    //Assigned in dependency order, which is what keeps the invalidation from
+    //undoing the step before: each publisher only ever drops things that have
+    //not been set yet.
+    if (loaded.steps.has(qftbx::Step::Plant)) {
         setPlant(reader.takePlant());
+    }
 
-    if (flags.at(1))
+    if (loaded.steps.has(qftbx::Step::Specifications)) {
         setSpecifications(reader.takeSpecifications());
+    }
 
-    if (flags.at(2))
+    if (loaded.steps.has(qftbx::Step::Frequencies)) {
         setOmega(reader.takeOmega());
+    }
 
-    if (flags.at(3)){
+    if (loaded.steps.has(qftbx::Step::Templates)) {
         setTemplates(reader.takeTemplates(),
-                    flags.at(7) ? reader.takeContour() : qftbx::CloudSet(),
-                    flags.at(7));
+                     loaded.hasContour ? reader.takeContour() : qftbx::CloudSet(),
+                     loaded.hasContour);
         data.setEpsilon(reader.takeEpsilon());
     }
 
-    if (flags.at(4))
+    if (loaded.steps.has(qftbx::Step::Boundaries)) {
         setBoundaries(reader.takeBoundaries());
+    }
 
-    if (flags.at(5)){
+    if (loaded.steps.has(qftbx::Step::Controller)) {
         setControllerStructure(reader.takeController());
     }
 
-    if (flags.at(6)){
+    if (loaded.steps.has(qftbx::Step::LoopShaping)) {
         setLoopShapingResult(reader.takeLoopShaping());
     }
 
-    return flags;
+    return loaded.steps;
+}
+
+//DERIVED, not stored. Each of these is exactly what a "step done" flag meant,
+//and the flags were duplicate state: state that can be duplicated is state
+//that can go out of sync, and the window kept seven of them by hand.
+qftbx::StepSet ProjectController::completed() const
+{
+    qftbx::StepSet done;
+
+    if (data.plant() != nullptr)                { done.add(qftbx::Step::Plant); }
+    if (data.specifications() != nullptr)       { done.add(qftbx::Step::Specifications); }
+    if (data.omega() != nullptr)                { done.add(qftbx::Step::Frequencies); }
+    if (!data.templates().empty())              { done.add(qftbx::Step::Templates); }
+    if (data.boundaries() != nullptr)           { done.add(qftbx::Step::Boundaries); }
+    if (data.controller() != nullptr)           { done.add(qftbx::Step::Controller); }
+    if (data.loopShaping() != nullptr)          { done.add(qftbx::Step::LoopShaping); }
+
+    return done;
+}
+
+//One implementation of the cascade instead of three functions calling each
+//other. The three are kept as the names the rest of this class already uses,
+//so nothing else had to change to gain this.
+void ProjectController::invalidateFrom(qftbx::Step step)
+{
+    switch (step) {
+    case qftbx::Step::Plant:
+    case qftbx::Step::Specifications:
+    case qftbx::Step::Frequencies:
+    case qftbx::Step::Templates:
+        dropTemplatesAndBelow();
+        return;
+    case qftbx::Step::Boundaries:
+        dropBoundariesAndBelow();
+        return;
+    case qftbx::Step::Controller:
+    case qftbx::Step::LoopShaping:
+        dropLoopShaping();
+        return;
+    }
 }

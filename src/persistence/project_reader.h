@@ -1,6 +1,7 @@
 #ifndef QFTBX_PROJECT_READER_H
 #define QFTBX_PROJECT_READER_H
 
+#include "src/core/pipeline_step.h"
 #include <optional>
 
 #include "src/core/templates/cloud_set.h"
@@ -39,7 +40,21 @@ public:
      * historical order: plant, specifications, omega, templates, boundaries,
      * controller, loop shaping, template contour.
      */
-    std::vector<bool> load(const std::string & filePath);
+    /**
+     * @brief What the file carried.
+     *
+     * A named pair instead of the eight-element std::vector<bool> this used
+     * to return: seven of those were steps, read positionally as .at(0)
+     * through .at(6), and the eighth was not a step at all - it said whether
+     * the templates came with a contour. Two meanings in one positional
+     * container.
+     */
+    struct Loaded {
+        qftbx::StepSet steps;
+        bool hasContour = false;
+    };
+
+    Loaded load(const std::string & filePath);
 
     ~ProjectReader();
 

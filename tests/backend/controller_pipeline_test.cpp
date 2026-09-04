@@ -56,13 +56,15 @@ TEST(ControllerPipeline, RecomputedBoundariesMatchTheLoadedProject)
 {
     ProjectController controller;
 
-    const std::vector<bool> flags = controller.load(fixture("multivaluados.qft"));
-    ASSERT_EQ(static_cast<int>(flags.size()), 8);
-    EXPECT_TRUE(flags.at(0)); // plant
-    EXPECT_TRUE(flags.at(1)); // specifications
-    EXPECT_TRUE(flags.at(2)); // frequencies
-    EXPECT_TRUE(flags.at(3)); // templates
-    EXPECT_TRUE(flags.at(4)); // boundaries
+    const qftbx::StepSet sections = controller.load(fixture("multivaluados.qft"));
+    EXPECT_TRUE(sections.has(qftbx::Step::Plant));
+    EXPECT_TRUE(sections.has(qftbx::Step::Specifications));
+    EXPECT_TRUE(sections.has(qftbx::Step::Frequencies));
+    EXPECT_TRUE(sections.has(qftbx::Step::Templates));
+    EXPECT_TRUE(sections.has(qftbx::Step::Boundaries));
+
+    //And what a load says it read is what the project says it holds.
+    EXPECT_EQ(controller.completed(), sections);
 
     // Keep the traces of the boundaries as loaded from the file: boundaries()
     // hands a view whose containers are replaced when recomputing.
@@ -128,11 +130,12 @@ TEST(ControllerPipeline, SaveAndReloadRoundTripsTheProject)
 
     // The saved v2 file must carry the same project as the legacy original.
     ProjectReader original;
-    const std::vector<bool> originalFlags = original.load(fixture("planta1.qft"));
+    const ProjectReader::Loaded originalSections = original.load(fixture("planta1.qft"));
     ProjectReader rewritten;
-    const std::vector<bool> rewrittenFlags = rewritten.load(saved);
+    const ProjectReader::Loaded rewrittenSections = rewritten.load(saved);
 
-    ASSERT_EQ(originalFlags, rewrittenFlags);
+    ASSERT_EQ(originalSections.steps, rewrittenSections.steps);
+    ASSERT_EQ(originalSections.hasContour, rewrittenSections.hasContour);
 
     const std::vector<double> probes = *original.omega()->values();
     expectSameSystem(original.plant(), rewritten.plant(), probes, "plant");

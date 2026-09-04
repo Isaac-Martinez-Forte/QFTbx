@@ -12,6 +12,7 @@
 
 #include "src/core/system/lti_system.h"
 #include "src/core/background_run.h"
+#include "src/core/pipeline_step.h"
 #include "src/core/loopshaping/loop_shaping_types.h"
 #include "src/core/stages/boundary_stage.h"
 #include "src/core/stages/loop_shaping_stage.h"
@@ -189,6 +190,27 @@ public:
                             double pointCount, std::int32_t initialisation = 0,
                             const qftbx::CancellationToken * cancellation = nullptr);
 
+    // --- the pipeline as data ----------------------------------------------
+
+    /**
+     * @brief Which steps are done, DERIVED from what the project holds.
+     *
+     * Nothing stores this. Every one of the seven is a question the data
+     * already answer - the templates are done exactly when templates() is not
+     * empty - and the window used to keep seven booleans saying the same
+     * thing by hand. Duplicate state is state that can go out of sync.
+     */
+    qftbx::StepSet completed() const;
+
+    /**
+     * @brief Drops everything computed from the given step downwards.
+     *
+     * The cascade in one place. The dependency order lives in this class and
+     * nowhere else - or rather, that is what this is for: the window mirrors
+     * the same order by hand today, and this is what it can ask instead.
+     */
+    void invalidateFrom(qftbx::Step step);
+
     // --- the search, off the calling thread --------------------------------
     //
     //The same computation as above, started on a worker and left to run. It
@@ -274,7 +296,7 @@ public:
      */
     /// Which sections the file carried, in the historical order. By value:
     /// callers used to have to delete this, and most tests did not.
-    std::vector<bool> load(std::string path);
+    qftbx::StepSet load(std::string path);
 
 private:
     /// Publishing an input drops whatever was computed from the old one: see

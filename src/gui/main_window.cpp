@@ -8,6 +8,7 @@
 
 #include "src/core/point.h"
 #include "src/core/exception.h"
+#include "src/core/pipeline_step.h"
 
 #include <mpParser.h>
 
@@ -660,7 +661,7 @@ void MainWindow::on_actionOpen_triggered()
 
     if (!fileName.isEmpty()){
 
-        std::vector<bool> leido;
+        qftbx::StepSet leido;
 
         try {
             leido = controller->load(fileName.toStdString());
@@ -684,13 +685,15 @@ void MainWindow::on_actionOpen_triggered()
         //Save writes back to the file that was just opened.
         saveFilePath = fileName;
 
-        plantDone = leido.at(0);
-        specificationsDone = leido.at(1);
-        frequenciesDone = leido.at(2);
-        templatesDone = leido.at(3);
-        boundariesDone = leido.at(4);
-        controllerDone = leido.at(5);
-        loopDone = leido.at(6);
+        //By name, from a typed set. It was leido.at(0) through leido.at(6)
+        //against an eight-element vector whose eighth entry was not a step.
+        plantDone = leido.has(qftbx::Step::Plant);
+        specificationsDone = leido.has(qftbx::Step::Specifications);
+        frequenciesDone = leido.has(qftbx::Step::Frequencies);
+        templatesDone = leido.has(qftbx::Step::Templates);
+        boundariesDone = leido.has(qftbx::Step::Boundaries);
+        controllerDone = leido.has(qftbx::Step::Controller);
+        loopDone = leido.has(qftbx::Step::LoopShaping);
 
 
         if (plantDone){

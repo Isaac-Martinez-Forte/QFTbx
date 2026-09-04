@@ -28,6 +28,7 @@
 #include "src/core/math/sequence_vectors.h"
 #include "src/core/math/sequences.h"
 #include "src/core/loopshaping/cancellation.h"
+#include "src/core/pipeline_step.h"
 #include "src/core/project_controller.h"
 #include "src/core/range.h"
 #include "src/core/specifications/specification_record.h"
@@ -462,4 +463,99 @@ TEST(BackgroundSearch, AFailedSearchIsReportedAndNotThrownFromTheWorker)
         << "a search with no boundaries is refused where the caller can see it";
 
     EXPECT_FALSE(controller.isComputing());
+}
+
+// --- the pipeline as data ---------------------------------------------------
+
+TEST(PipelineSteps, CompletedGrowsWithTheWalkAndIsDerived)
+{
+    // completed() is computed from what the project holds, not stored, so it
+    // cannot go stale - which is the whole reason for it. The window keeps
+    // seven booleans saying the same thing by hand today.
+    ProjectController controller;
+
+    EXPECT_TRUE(controller.completed().empty());
+
+    controller.setPlant(makePlant());
+    EXPECT_TRUE(controller.completed().has(qftbx::Step::Plant));
+    EXPECT_FALSE(controller.completed().has(qftbx::Step::Frequencies));
+
+    controller.setSpecifications(makeSpecifications());
+    controller.setOmega(makeOmega());
+    EXPECT_EQ(controller.completed().count(), 3u);
+
+    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), makeGrids(), false));
+    EXPECT_TRUE(controller.completed().has(qftbx::Step::Templates));
+
+    ASSERT_TRUE(controller.computeBoundaries(qftbx::Range(-360.0, 0.0), 37,
+                                             qftbx::Range(-40.0, 40.0), 21,
+                                             -1.0, false, false));
+    EXPECT_TRUE(controller.completed().has(qftbx::Step::Boundaries));
+
+    controller.setControllerStructure(makeControllerStructure());
+    ASSERT_TRUE(controller.computeLoopShaping(0.5, tools::nt,
+                                              qftbx::Range(1e-3, 100.0), 100));
+
+    EXPECT_EQ(controller.completed().count(), qftbx::kStepCount)
+        << "a finished design has every step done";
+}
+
+TEST(PipelineSteps, CompletedShrinksWhenAnInputIsRepublished)
+{
+    // Being derived is what makes this automatic: publishing a new plant
+    // drops the templates and below, and completed() says so without anyone
+    // having to remember to update it.
+    ProjectController controller;
+    ASSERT_NO_FATAL_FAILURE(prepareForSearch(controller));
+
+    ASSERT_TRUE(controller.completed().has(qftbx::Step::Boundaries));
+
+    //A different plant. makePlant() here builds one fixed system, so the
+    //difference is made with the structure, which sameAs() compares whole.
+    std::vector<Parameter> numerator{Parameter(2.0)};
+    std::vector<Parameter> denominator{
+        Parameter(std::string("a"), qftbx::Range(1.0, 2.0), 1.5),
+        Parameter(1.0)};
+    controller.setPlant(std::make_unique<PolynomialForm>(
+        std::string("P"), numerator, denominator,
+        Parameter(std::string("kv"), qftbx::Range(1.0, 2.0), 1.5),
+        Parameter(0.0)));
+
+    EXPECT_TRUE(controller.completed().has(qftbx::Step::Plant));
+    EXPECT_FALSE(controller.completed().has(qftbx::Step::Templates));
+    EXPECT_FALSE(controller.completed().has(qftbx::Step::Boundaries));
+    EXPECT_TRUE(controller.completed().has(qftbx::Step::Controller))
+        << "the controller structure is an input, and inputs do not invalidate inputs";
+}
+
+TEST(PipelineSteps, InvalidateFromDropsExactlyTheCascade)
+{
+    // One implementation of the dependency order, asked for by step instead
+    // of through three functions that call each other.
+    ProjectController controller;
+    ASSERT_NO_FATAL_FAILURE(prepareForSearch(controller));
+
+    controller.invalidateFrom(qftbx::Step::Boundaries);
+
+    EXPECT_FALSE(controller.completed().has(qftbx::Step::Boundaries));
+    EXPECT_TRUE(controller.completed().has(qftbx::Step::Templates))
+        << "the boundaries are computed FROM the templates, not the other way";
+
+    controller.invalidateFrom(qftbx::Step::Templates);
+
+    EXPECT_FALSE(controller.completed().has(qftbx::Step::Templates));
+    EXPECT_TRUE(controller.completed().has(qftbx::Step::Frequencies));
+    EXPECT_TRUE(controller.completed().has(qftbx::Step::Plant));
+}
+
+TEST(PipelineSteps, ALoadedProjectAgreesWithWhatItHolds)
+{
+    // The two answers have to be the same one: what load() says it read, and
+    // what completed() derives from the data it left behind.
+    ProjectController controller;
+
+    const qftbx::StepSet read = controller.load(
+        std::string(QFTBX_TEST_DATA_DIR "/planta1.qft"));
+
+    EXPECT_EQ(controller.completed(), read);
 }
