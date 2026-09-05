@@ -3,9 +3,10 @@
 # Each folder below adds its sources to this one library.
 add_library(qftbx_core STATIC)
 target_include_directories(qftbx_core PUBLIC "${CMAKE_SOURCE_DIR}")
-target_link_libraries(qftbx_core PUBLIC kv::kv)
+target_link_libraries(qftbx_core PUBLIC qftbx_interval)
 qftbx_warnings(qftbx_core)
 qftbx_native_arch(qftbx_core)
+qftbx_interval_arithmetic(qftbx_core)
 
 if(USE_OpenMP AND OpenMP_CXX_FOUND)
   # PUBLIC: OpenMP_AVAILABLE changes declarations in shared headers, so it

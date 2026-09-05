@@ -81,7 +81,7 @@ TEST(IntervalArithmetic, TheFunctionsEncloseTheirValues)
     EXPECT_TRUE(std::isinf(exp(Interval(0.0, 1000.0)).upper()));
     EXPECT_TRUE(encloses(atan(Interval(1.0)), qftbx::math::kPi / 4.0));
     EXPECT_TRUE(encloses(Interval::pi(), qftbx::math::kPi));
-    EXPECT_LT(Interval::pi().width(), 1e-15);
+    EXPECT_LT(Interval::pi().width(), 1e-13) << "a few ulps; C-XSC gives some twenty, kv one";
     EXPECT_TRUE(encloses(abs(Interval(-2.0, -1.0)), 1.5));
     EXPECT_TRUE(encloses(pow(Interval(2.0), 10), 1024.0));
     EXPECT_TRUE(encloses(pow(Interval(2.0), Interval(0.5)), std::sqrt(2.0)));

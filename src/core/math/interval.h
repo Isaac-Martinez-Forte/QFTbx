@@ -11,8 +11,13 @@
 #include <stdexcept>
 #include <string>
 
+#if defined(QFTBX_INTERVAL_CXSC)
+#include <interval.hpp>
+#include <imath.hpp>
+#else
 #include <kv/interval.hpp>
 #include <kv/rdouble.hpp>
+#endif
 
 /**
  * @brief The interval arithmetic of the toolbox.
@@ -33,25 +38,57 @@
  *   of 20 log|.| and sums of atan(w/.), and multiplying rectangles would
  *   inflate the enclosure with every factor.
  *
- * The arithmetic underneath is kv, Masahide Kashiwagi's verified
- * computation library (3rd-party/kv), in its rounding-emulation mode:
- * the directed roundings come from error-free transformations and the
- * floating-point rounding mode is never touched, so no compiler flag and
- * no thread has to care. The logarithms and the trigonometric functions,
- * which the projection of every controller box and the constraint trees
- * call, take the C library's values widened by a few ulps instead of kv's
- * series (see detail::kLibraryUlps).
- * A domain error (the square root of a negative interval, the logarithm of
- * one that is not positive, a division by an interval containing zero)
- * throws std::domain_error.
+ * The arithmetic underneath is one of two libraries, chosen at
+ * configuration time (QFTBX_INTERVAL_BACKEND) and confined to
+ * detail::Backend: kv, Masahide Kashiwagi's verified computation library
+ * (3rd-party/kv), by default, in its rounding-emulation mode, where the
+ * directed roundings come from error-free transformations and the
+ * floating-point rounding mode is never touched; or C-XSC, fetched from
+ * its repository, which switches the rounding mode around each operation
+ * and needs -frounding-math. The backend supplies the four operations,
+ * the square root, the integer power and pi; everything else is written
+ * here over those, so both give the same enclosures up to rounding, and a
+ * disagreement between them beyond that is a bug in one of them.
+ *
+ * The exponential, the logarithms and the trigonometric functions, which
+ * the projection of every controller box and the constraint trees call,
+ * take the C library's values widened by a few ulps instead of either
+ * library's series (see detail::kLibraryUlps). A domain error (the square
+ * root of a negative interval, the logarithm of one that is not positive,
+ * a division by an interval containing zero) throws std::domain_error in
+ * both backends.
  */
 namespace qftbx {
 
 namespace detail {
 
+#if defined(QFTBX_INTERVAL_CXSC)
+
+using Backend = cxsc::interval;
+
+inline Backend backend(double lower, double upper) { return cxsc::interval(lower, upper); }
+inline double lowerOf(const Backend & x) { return cxsc::_double(cxsc::Inf(x)); }
+inline double upperOf(const Backend & x) { return cxsc::_double(cxsc::Sup(x)); }
+inline double widthOf(const Backend & x) { return cxsc::_double(cxsc::diam(x)); }
+inline Backend sqrtOf(const Backend & x) { return cxsc::sqrt(x); }
+inline Backend powerOf(const Backend & x, int n) { return cxsc::power(x, n); }
+inline Backend piOf() { return cxsc::Pi(); }
+
+#else
+
+using Backend = kv::interval<double>;
+
+inline Backend backend(double lower, double upper) { return kv::interval<double>(lower, upper); }
+inline double lowerOf(const Backend & x) { return x.lower(); }
+inline double upperOf(const Backend & x) { return x.upper(); }
 //kv's functions are friends of kv::interval, found by argument-dependent
-//lookup only; from inside Interval the name 'width' would find the member.
-inline double widthOf(const kv::interval<double> & x) { return width(x); }
+//lookup only, hence the wrappers.
+inline double widthOf(const Backend & x) { return width(x); }
+inline Backend sqrtOf(const Backend & x) { return sqrt(x); }
+inline Backend powerOf(const Backend & x, int n) { return pow(x, n); }
+inline Backend piOf() { return kv::constants<kv::interval<double>>::pi(); }
+
+#endif
 
 //The exponential, the logarithms, the trigonometric functions and their
 //inverses come from the C library, widened by this many ulps on each side. The projection of a
@@ -129,60 +166,78 @@ class Interval
 {
 public:
     /// The point interval [0, 0].
-    Interval() : m_value(0.0) {}
+    Interval() : m_value(detail::backend(0.0, 0.0)) {}
 
     /// The point interval [value, value].
-    Interval(double value) : m_value(value) {}
+    Interval(double value) : m_value(detail::backend(value, value)) {}
 
     /// [lower, upper]; the two may come in either order.
     Interval(double lower, double upper)
-        : m_value(lower <= upper ? lower : upper, lower <= upper ? upper : lower) {}
+        : m_value(detail::backend(lower <= upper ? lower : upper, lower <= upper ? upper : lower)) {}
 
-    double lower() const { return m_value.lower(); }
-    double upper() const { return m_value.upper(); }
+    double lower() const { return detail::lowerOf(m_value); }
+    double upper() const { return detail::upperOf(m_value); }
 
     /// upper - lower, rounded upwards.
     double width() const { return detail::widthOf(m_value); }
 
-    double midpoint() const { return mid(m_value); }
+    double midpoint() const { return lower() + (upper() - lower()) / 2.0; }
 
-    bool isPoint() const { return m_value.lower() == m_value.upper(); }
+    bool isPoint() const { return lower() == upper(); }
 
-    bool contains(double value) const { return m_value.lower() <= value && value <= m_value.upper(); }
-    bool contains(const Interval & other) const { return subset(other.m_value, m_value); }
-    bool containsZero() const { return zero_in(m_value); }
-    bool intersects(const Interval & other) const { return overlap(m_value, other.m_value); }
+    bool contains(double value) const { return lower() <= value && value <= upper(); }
+    bool contains(const Interval & other) const { return lower() <= other.lower() && other.upper() <= upper(); }
+    bool containsZero() const { return contains(0.0); }
+    bool intersects(const Interval & other) const { return lower() <= other.upper() && other.lower() <= upper(); }
 
     /// The common part, or nothing when the two do not meet.
     std::optional<Interval> intersection(const Interval & other) const
     {
-        if (!overlap(m_value, other.m_value)) {
+        if (!intersects(other)) {
             return std::nullopt;
         }
-        return Interval(intersect(m_value, other.m_value));
+        return Interval(std::fmax(lower(), other.lower()), std::fmin(upper(), other.upper()));
     }
 
-    static Interval hull(const Interval & a, const Interval & b) { return Interval(kv::interval<double>::hull(a.m_value, b.m_value)); }
+    static Interval hull(const Interval & a, const Interval & b)
+    {
+        return Interval(std::fmin(a.lower(), b.lower()), std::fmax(a.upper(), b.upper()));
+    }
 
     /// Enclosures of the constants, not their nearest doubles.
-    static Interval pi() { return Interval(kv::constants<kv::interval<double>>::pi()); }
-    static Interval e() { return Interval(kv::constants<kv::interval<double>>::e()); }
+    static Interval pi() { return Interval(detail::piOf()); }
+    static Interval e() { return exp(Interval(1.0)); }
 
     friend Interval operator+(const Interval & a, const Interval & b) { return Interval(a.m_value + b.m_value); }
     friend Interval operator-(const Interval & a, const Interval & b) { return Interval(a.m_value - b.m_value); }
     friend Interval operator*(const Interval & a, const Interval & b) { return Interval(a.m_value * b.m_value); }
-    friend Interval operator/(const Interval & a, const Interval & b) { return Interval(a.m_value / b.m_value); }
     friend Interval operator-(const Interval & a) { return Interval(-a.m_value); }
 
-    Interval & operator+=(const Interval & b) { m_value += b.m_value; return *this; }
-    Interval & operator-=(const Interval & b) { m_value -= b.m_value; return *this; }
-    Interval & operator*=(const Interval & b) { m_value *= b.m_value; return *this; }
-    Interval & operator/=(const Interval & b) { m_value /= b.m_value; return *this; }
+    /// Throws std::domain_error when the divisor contains zero.
+    friend Interval operator/(const Interval & a, const Interval & b)
+    {
+        if (b.containsZero()) {
+            throw std::domain_error("Interval: division by an interval containing zero");
+        }
+        return Interval(a.m_value / b.m_value);
+    }
+
+    Interval & operator+=(const Interval & b) { return *this = *this + b; }
+    Interval & operator-=(const Interval & b) { return *this = *this - b; }
+    Interval & operator*=(const Interval & b) { return *this = *this * b; }
+    Interval & operator/=(const Interval & b) { return *this = *this / b; }
 
     friend bool operator==(const Interval & a, const Interval & b) { return a.lower() == b.lower() && a.upper() == b.upper(); }
     friend bool operator!=(const Interval & a, const Interval & b) { return !(a == b); }
 
-    friend Interval sqrt(const Interval & x) { return Interval(sqrt(x.m_value)); }
+    /// Throws std::domain_error when x reaches below zero.
+    friend Interval sqrt(const Interval & x)
+    {
+        if (x.lower() < 0.0) {
+            throw std::domain_error("sqrt: the interval reaches below zero");
+        }
+        return Interval(detail::sqrtOf(x.m_value));
+    }
 
     /// The exponential, monotone: the C library's values at the ends,
     /// widened; an overflowing end is infinite.
@@ -239,9 +294,28 @@ public:
     friend Interval sinh(const Interval & x) { return Interval(sinh(x.m_value)); }
     friend Interval cosh(const Interval & x) { return Interval(cosh(x.m_value)); }
     friend Interval tanh(const Interval & x) { return Interval(tanh(x.m_value)); }
-    friend Interval abs(const Interval & x) { return Interval(abs(x.m_value)); }
-    friend Interval pow(const Interval & x, int n) { return Interval(pow(x.m_value, n)); }
-    friend Interval pow(const Interval & x, const Interval & y) { return Interval(pow(x.m_value, y.m_value)); }
+    friend Interval abs(const Interval & x)
+    {
+        if (x.lower() >= 0.0) {
+            return x;
+        }
+        if (x.upper() <= 0.0) {
+            return -x;
+        }
+        return Interval(0.0, std::fmax(-x.lower(), x.upper()));
+    }
+
+    /// x^n; a negative n with x containing zero throws std::domain_error.
+    friend Interval pow(const Interval & x, int n)
+    {
+        if (n < 0 && x.containsZero()) {
+            throw std::domain_error("pow: a negative power of an interval containing zero");
+        }
+        return Interval(detail::powerOf(x.m_value, n));
+    }
+
+    /// x^y as exp(y log x); x must be strictly positive.
+    friend Interval pow(const Interval & x, const Interval & y) { return exp(y * log(x)); }
 
     /// atan2(y, x): the argument of the point set {x + j y}, a rectangle.
     /// The whole turn [-pi, pi] when the rectangle contains the origin;
@@ -280,15 +354,15 @@ public:
         const double hi = x.upper();
 
         if (lo >= 0.0) {
-            return Interval(kv::interval<double>(lo) * lo).hullWith(Interval(kv::interval<double>(hi) * hi));
+            return hull(Interval(lo) * Interval(lo), Interval(hi) * Interval(hi));
         }
         if (hi <= 0.0) {
-            return Interval(kv::interval<double>(hi) * hi).hullWith(Interval(kv::interval<double>(lo) * lo));
+            return hull(Interval(hi) * Interval(hi), Interval(lo) * Interval(lo));
         }
 
-        const Interval a(kv::interval<double>(lo) * lo);
-        const Interval b(kv::interval<double>(hi) * hi);
-        return Interval(0.0, (a.upper() > b.upper() ? a : b).upper());
+        const Interval a = Interval(lo) * Interval(lo);
+        const Interval b = Interval(hi) * Interval(hi);
+        return Interval(0.0, std::fmax(a.upper(), b.upper()));
     }
 
     friend std::ostream & operator<<(std::ostream & out, const Interval & x)
@@ -297,9 +371,7 @@ public:
     }
 
 private:
-    explicit Interval(const kv::interval<double> & value) : m_value(value) {}
-
-    Interval hullWith(const Interval & other) const { return hull(*this, other); }
+    explicit Interval(const detail::Backend & value) : m_value(value) {}
 
     static Interval whole()
     {
@@ -368,7 +440,7 @@ private:
         return Interval(std::fmax(-1.0, detail::downwards(low)), std::fmin(1.0, detail::upwards(high)));
     }
 
-    kv::interval<double> m_value;
+    detail::Backend m_value;
 };
 
 /**

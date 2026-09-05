@@ -18,6 +18,16 @@ option(USE_CUDA          "Use CUDA"             OFF)
 option(USE_NATIVE_ARCH   "Enable -march=native" ON)
 option(QFTBX_BUILD_TESTS "Build unit tests"     ON)
 
+# The interval arithmetic under the loop shaping: kv (vendored, header-only,
+# the default) or cxsc (C-XSC, fetched from its repository at configure time
+# and built as an external project). Both live behind src/core/math/interval.h
+# and must give the same enclosures up to rounding.
+set(QFTBX_INTERVAL_BACKEND "kv" CACHE STRING "Interval arithmetic library: kv or cxsc")
+set_property(CACHE QFTBX_INTERVAL_BACKEND PROPERTY STRINGS kv cxsc)
+if(NOT QFTBX_INTERVAL_BACKEND MATCHES "^(kv|cxsc)$")
+  message(FATAL_ERROR "QFTBX_INTERVAL_BACKEND must be kv or cxsc, not '${QFTBX_INTERVAL_BACKEND}'")
+endif()
+
 # Development builds with sanitizers, e.g. -DQFTBX_SANITIZERS=address,undefined
 # (needs the libasan/libubsan runtimes installed).
 set(QFTBX_SANITIZERS "" CACHE STRING "Comma-separated sanitizers for dev builds (e.g. address,undefined)")

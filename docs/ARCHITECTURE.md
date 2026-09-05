@@ -82,7 +82,8 @@ other.
 - **QCustomPlot** — plotting inside the Qt GUI.
 - **kv** — verified interval arithmetic (header-only), behind the toolbox's own
   `Interval`, `ComplexInterval` and `PolarInterval` types in `src/core/math/interval.h`;
-  used by loop shaping.
+  used by loop shaping. C-XSC can take its place (`QFTBX_INTERVAL_BACKEND=cxsc`),
+  fetched from its repository rather than vendored.
 
 ## Error handling
 

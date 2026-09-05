@@ -40,7 +40,11 @@ Optional
 Bundled or fetched automatically (nothing to install by hand)
 - kv, Masahide Kashiwagi's verified computation library (header-only, MIT):
   the interval arithmetic under the loop-shaping algorithms, vendored in
-  `3rd-party/kv` (only the headers the toolbox uses).
+  `3rd-party/kv` (only the headers the toolbox uses). C-XSC is the
+  alternative backend (`-DQFTBX_INTERVAL_BACKEND=cxsc`), fetched at
+  configure time from
+  https://github.com/Isaac-Martinez-Forte/cxsc-cpp17 and built as an
+  external project.
 - QCustomPlot (plots): vendored in `3rd-party/`.
 - pugixml (project files): fetched with FetchContent at configure time,
   so the first configuration needs network access.
@@ -57,22 +61,30 @@ OPTION (USE_CUDA        "Use CUDA"              OFF)
 OPTION (USE_Doxygen     "Use Doxygen"           OFF)
 OPTION (USE_NATIVE_ARCH "Enable -march=native"  ON)
 OPTION (QFTBX_BUILD_TESTS "Build unit tests"    ON)
+SET    (QFTBX_INTERVAL_BACKEND "kv")             # or cxsc
 
 Automatic configuration is applied based on the selected options and the available system libraries.
 
 ### A note on the interval arithmetic
 
-kv is used in its rounding-emulation mode (`KV_NOHWROUND`): the directed
-roundings are computed with error-free transformations instead of switching
-the floating-point rounding mode, so the rigour of the interval arithmetic
-does not depend on compiler flags, on the optimisation level or on which
-thread runs it. The logarithms and arc tangents of the projection take the C
+The whole interval arithmetic goes through `src/core/math/interval.h`, and
+the library underneath is chosen with `QFTBX_INTERVAL_BACKEND`. kv, the
+default, is used in its rounding-emulation mode (`KV_NOHWROUND`): the
+directed roundings are computed with error-free transformations instead of
+switching the floating-point rounding mode, so its rigour does not depend
+on compiler flags, on the optimisation level or on which thread runs it.
+C-XSC switches the rounding mode around each operation, and the targets that
+compile interval code are then built with `-frounding-math`, without which
+the optimiser reorders the arithmetic across the switches. The backend
+supplies the four operations, the square root, the integer power and pi;
+the exponential, the logarithms and the trigonometric functions take the C
 library's values widened by four ulps, twice the largest error glibc lists
-for them, because kv's series enclosures are hundreds of times slower and
-the loop-shaping algorithms call them millions of times.
+for them, because the libraries' series enclosures are hundreds of times
+slower and the loop-shaping algorithms call them millions of times. The
+two backends must give the same enclosures up to rounding, which makes the
+second one a cross-check of the first.
 `tests/backend/interval_test.cpp` checks the enclosure properties the
-loop-shaping algorithms rely on, and that the rounding mode is left
-untouched.
+loop-shaping algorithms rely on, whichever backend is configured.
 
 ---
 
