@@ -7,9 +7,6 @@ add_executable(qftbx_tests)
 qftbx_sources_here(qftbx_tests)
 target_link_libraries(qftbx_tests PRIVATE qftbx_app GTest::gtest Qt6::Core pugixml::pugixml)
 
-# The tests compile the C-XSC inline interval operators too.
-qftbx_interval_arithmetic(qftbx_tests)
-
 target_compile_definitions(qftbx_tests
   PRIVATE QFTBX_TEST_DATA_DIR="${CMAKE_SOURCE_DIR}/tests/data"
   PRIVATE QFTBX_EXAMPLE_CONFIG="${CMAKE_SOURCE_DIR}/qftbx.conf.example"

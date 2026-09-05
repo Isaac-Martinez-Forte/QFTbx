@@ -8,7 +8,6 @@
 
 #include <cmath>
 
-using namespace cxsc;
 
 namespace qftbx {
 
@@ -283,7 +282,7 @@ bool AlgorithmMr::solve(){
             //judged by, evaluated on degenerate intervals, so it is
             //rigorous rather than a floating-point opinion. A feasible box
             //passes it by inclusion monotonicity.
-            std::map<std::string, cxsc::interval> point;
+            std::map<std::string, Interval> point;
             loadPointDomains(node->system(), lowerCorner, point);
             if (!certainlyFeasible(point)) {
                 continue;
@@ -325,7 +324,7 @@ std::unique_ptr<LtiSystem> AlgorithmMr::controllerStructure(){
 //constraint prove it feasible.
 void AlgorithmMr::classifyAndInsert(std::unique_ptr<LtiSystem> box){
 
-    std::map<std::string, cxsc::interval> domains;
+    std::map<std::string, Interval> domains;
     loadDomains(box.get(), domains);
 
     if (!narrowToFixpoint(domains)) {
@@ -344,11 +343,11 @@ void AlgorithmMr::classifyAndInsert(std::unique_ptr<LtiSystem> box){
 }
 
 
-bool AlgorithmMr::narrowToFixpoint(std::map<std::string, cxsc::interval> & domains){
+bool AlgorithmMr::narrowToFixpoint(std::map<std::string, Interval> & domains){
 
     for (std::int32_t pass = 0; pass < m_settings.algorithms.maxNarrowingPasses; ++pass) {
 
-        const std::map<std::string, cxsc::interval> snapshot = domains;
+        const std::map<std::string, Interval> snapshot = domains;
 
         for (const std::unique_ptr<ExpressionTree> & tree : constraints) {
             if (!tree->propagate(&domains)) {
@@ -358,8 +357,8 @@ bool AlgorithmMr::narrowToFixpoint(std::map<std::string, cxsc::interval> & domai
 
         bool changed = false;
         for (auto it = domains.begin(); it != domains.end(); ++it) {
-            const cxsc::interval previous = snapshot.at(it->first);
-            if (Inf(it->second) != Inf(previous) || Sup(it->second) != Sup(previous)) {
+            const Interval previous = snapshot.at(it->first);
+            if (it->second.lower() != previous.lower() || it->second.upper() != previous.upper()) {
                 changed = true;
                 break;
             }
@@ -374,10 +373,10 @@ bool AlgorithmMr::narrowToFixpoint(std::map<std::string, cxsc::interval> & domai
 }
 
 
-bool AlgorithmMr::certainlyFeasible(std::map<std::string, cxsc::interval> & domains){
+bool AlgorithmMr::certainlyFeasible(std::map<std::string, Interval> & domains){
 
     for (const std::unique_ptr<ExpressionTree> & tree : constraints) {
-        if (cxsc::_double(Inf(tree->eval(&domains))) < 0.0) {
+        if (tree->eval(&domains).lower() < 0.0) {
             return false;
         }
     }
@@ -387,14 +386,14 @@ bool AlgorithmMr::certainlyFeasible(std::map<std::string, cxsc::interval> & doma
 
 
 void AlgorithmMr::loadDomains(LtiSystem * box,
-                                           std::map<std::string, cxsc::interval> & domains){
+                                           std::map<std::string, Interval> & domains){
 
     domains.clear();
 
     const auto load = [&](Parameter & var) {
         if (var.isUncertain()) {
             domains[var.name()] =
-                    cxsc::interval(var.range().min, var.range().max);
+                    Interval(var.range().min, var.range().max);
         }
     };
 
@@ -444,13 +443,13 @@ bool AlgorithmMr::isParameterBoxSmall(LtiSystem * box) const {
 //parameter names the constraint expressions are written in, so that the
 //candidate point can be evaluated by the same trees.
 void AlgorithmMr::loadPointDomains(LtiSystem * box, bool lowerCorner,
-                                          std::map<std::string, cxsc::interval> & domains){
+                                          std::map<std::string, Interval> & domains){
 
     domains.clear();
 
     const auto at = [&](Parameter & var, double value) {
         if (var.isUncertain()) {
-            domains[var.name()] = cxsc::interval(value, value);
+            domains[var.name()] = Interval(value, value);
         }
     };
 
@@ -468,16 +467,16 @@ void AlgorithmMr::loadPointDomains(LtiSystem * box, bool lowerCorner,
 
 
 std::unique_ptr<LtiSystem> AlgorithmMr::boxFromDomains(LtiSystem * box,
-                                                     const std::map<std::string, cxsc::interval> & domains){
+                                                     const std::map<std::string, Interval> & domains){
 
     const auto rebuilt = [&](Parameter & var) -> Parameter {
         if (!var.isUncertain()) {
             return Parameter(var.nominal());
         }
-        const cxsc::interval value = domains.at(var.name());
+        const Interval value = domains.at(var.name());
         return Parameter(var.name(),
-                         Range(cxsc::_double(Inf(value)), cxsc::_double(Sup(value))),
-                         cxsc::_double(Inf(value)));
+                         Range(value.lower(), value.upper()),
+                         value.lower());
     };
 
     std::vector<Parameter> numerator;

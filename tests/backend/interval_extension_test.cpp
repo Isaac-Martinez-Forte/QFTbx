@@ -9,8 +9,6 @@
 
 #include <string>
 
-//A failed comparison of C-XSC values must report, not crash: see the header.
-#include "tests/backend/cxsc_printing.h"
 
 #include <cmath>
 #include <complex>
@@ -71,15 +69,15 @@ TEST(NaturalIntervalExtension, CertainControllerProjectsToAPoint)
                                      Parameter(5.0));
 
     NaturalIntervalExtension extension;
-    const cxsc::complex nominal(1.0, 0.0);
-    const cxsc::cinterval box = extension.nicholsBox(controller, 1.0, nominal);
+    const std::complex<double> nominal(1.0, 0.0);
+    const NicholsBox box = extension.nicholsBox(controller, 1.0, nominal);
 
     const NicholsPoint expected = zpkAt(2.0, 3.0, 5.0, 1.0, Complex(1.0, 0.0));
 
-    EXPECT_NEAR(cxsc::_double(Inf(Re(box))), expected.magnitudeDb, 1e-9);
-    EXPECT_NEAR(cxsc::_double(Sup(Re(box))), expected.magnitudeDb, 1e-9);
-    EXPECT_NEAR(cxsc::_double(Inf(Im(box))), expected.phaseDegrees, 1e-9);
-    EXPECT_NEAR(cxsc::_double(Sup(Im(box))), expected.phaseDegrees, 1e-9);
+    EXPECT_NEAR(box.magnitudeDb.lower(), expected.magnitudeDb, 1e-9);
+    EXPECT_NEAR(box.magnitudeDb.upper(), expected.magnitudeDb, 1e-9);
+    EXPECT_NEAR(box.phaseDegrees.lower(), expected.phaseDegrees, 1e-9);
+    EXPECT_NEAR(box.phaseDegrees.upper(), expected.phaseDegrees, 1e-9);
 
     delete controller;
 }
@@ -87,34 +85,35 @@ TEST(NaturalIntervalExtension, CertainControllerProjectsToAPoint)
 TEST(NaturalIntervalExtension, UncertainGainBoxContainsTheTrueExtremes)
 {
     //k in [1, 10] with fixed zero/pole: only the gain is uncertain, so the
-    //magnitude interval is exact and the true phase set crosses the 0/-360
-    //branch cut (the true phase is -352.87 deg, i.e. +7.13 deg). The 8b.1
-    //rewrite fixed the branch mapping, which returned the COMPLEMENTARY
-    //arc [-273, -74] here (a containment violation, the historical bug
-    //this test used to pin): a set crossing the cut now degrades to the
-    //whole branch, conservative but correct.
+    //magnitude interval is exact and the phase is a single value, -352.87
+    //deg (i.e. +7.13 deg), which a positive gain does not move. The
+    //historical branch mapping returned the COMPLEMENTARY arc [-273, -74]
+    //here, a containment violation; the rectangle product that replaced it
+    //could only answer with the whole branch; the polar form reads the
+    //phase exactly.
     LtiSystem* controller = makeZpk(Parameter("k", Range(1.0, 10.0), 1.0),
                                      Parameter(3.0), Parameter(5.0));
 
     NaturalIntervalExtension extension;
-    const cxsc::cinterval box = extension.nicholsBox(controller, 1.0,
-                                                  cxsc::complex(1.0, 0.0));
+    const NicholsBox box = extension.nicholsBox(controller, 1.0,
+                                                  std::complex<double>(1.0, 0.0));
 
     const NicholsPoint low = zpkAt(1.0, 3.0, 5.0, 1.0, Complex(1.0, 0.0));
     const NicholsPoint high = zpkAt(10.0, 3.0, 5.0, 1.0, Complex(1.0, 0.0));
 
     //Containment of the true extremes, in magnitude AND phase.
-    EXPECT_LE(cxsc::_double(Inf(Re(box))), low.magnitudeDb);
-    EXPECT_GE(cxsc::_double(Sup(Re(box))), high.magnitudeDb);
-    EXPECT_LE(cxsc::_double(Inf(Im(box))), low.phaseDegrees);
-    EXPECT_GE(cxsc::_double(Sup(Im(box))), low.phaseDegrees);
+    EXPECT_LE(box.magnitudeDb.lower(), low.magnitudeDb);
+    EXPECT_GE(box.magnitudeDb.upper(), high.magnitudeDb);
+    EXPECT_LE(box.phaseDegrees.lower(), low.phaseDegrees);
+    EXPECT_GE(box.phaseDegrees.upper(), low.phaseDegrees);
 
     //Pinned current hull (any tightening or widening should be deliberate):
-    //the magnitude is the exact true range; the phase is the whole branch.
-    EXPECT_NEAR(cxsc::_double(Inf(Re(box))), low.magnitudeDb, 1e-9);
-    EXPECT_NEAR(cxsc::_double(Sup(Re(box))), high.magnitudeDb, 1e-9);
-    EXPECT_NEAR(cxsc::_double(Inf(Im(box))), -360.0, 1e-9);
-    EXPECT_NEAR(cxsc::_double(Sup(Im(box))), 0.0, 1e-9);
+    //the magnitude is the exact true range and the phase the true value,
+    //up to the outward rounding of the arithmetic.
+    EXPECT_NEAR(box.magnitudeDb.lower(), low.magnitudeDb, 1e-9);
+    EXPECT_NEAR(box.magnitudeDb.upper(), high.magnitudeDb, 1e-9);
+    EXPECT_NEAR(box.phaseDegrees.lower(), low.phaseDegrees, 1e-9);
+    EXPECT_NEAR(box.phaseDegrees.upper(), low.phaseDegrees, 1e-9);
 
     delete controller;
 }
@@ -127,14 +126,14 @@ TEST(NaturalIntervalExtension, PureGainControllerProjectsExactly)
     LtiSystem* controller = makeZpk(Parameter(2.0), std::nullopt, std::nullopt);
 
     NaturalIntervalExtension extension;
-    const cxsc::cinterval box = extension.nicholsBox(controller, 1.0,
-                                                     cxsc::complex(1.0, 0.0));
+    const NicholsBox box = extension.nicholsBox(controller, 1.0,
+                                                     std::complex<double>(1.0, 0.0));
 
-    EXPECT_NEAR(cxsc::_double(Inf(Re(box))), 20.0 * std::log10(2.0), 1e-9);
-    EXPECT_NEAR(cxsc::_double(Sup(Re(box))), 20.0 * std::log10(2.0), 1e-9);
+    EXPECT_NEAR(box.magnitudeDb.lower(), 20.0 * std::log10(2.0), 1e-9);
+    EXPECT_NEAR(box.magnitudeDb.upper(), 20.0 * std::log10(2.0), 1e-9);
     //A positive real value sits ON the branch cut: its phase is the branch
     //endpoint pair, enclosed conservatively.
-    EXPECT_GE(cxsc::_double(Sup(Im(box))), -360.0);
+    EXPECT_GE(box.phaseDegrees.upper(), -360.0);
 
     delete controller;
 }
@@ -149,13 +148,13 @@ TEST(NaturalIntervalExtension, HugeBoxesStayFiniteInDecibels)
                                      Parameter("p1", Range(1e-9, 1e4), 1.0));
 
     NaturalIntervalExtension extension;
-    const cxsc::cinterval box = extension.nicholsBox(controller, 100.0,
-                                                     cxsc::complex(1e-8, -1e8));
+    const NicholsBox box = extension.nicholsBox(controller, 100.0,
+                                                     std::complex<double>(1e-8, -1e8));
 
-    EXPECT_TRUE(std::isfinite(cxsc::_double(Inf(Re(box)))));
-    EXPECT_TRUE(std::isfinite(cxsc::_double(Sup(Re(box)))));
-    EXPECT_TRUE(std::isfinite(cxsc::_double(Inf(Im(box)))));
-    EXPECT_TRUE(std::isfinite(cxsc::_double(Sup(Im(box)))));
+    EXPECT_TRUE(std::isfinite(box.magnitudeDb.lower()));
+    EXPECT_TRUE(std::isfinite(box.magnitudeDb.upper()));
+    EXPECT_TRUE(std::isfinite(box.phaseDegrees.lower()));
+    EXPECT_TRUE(std::isfinite(box.phaseDegrees.upper()));
 
     delete controller;
 }
@@ -171,13 +170,13 @@ TEST(NaturalIntervalExtension, SampledInstancesStayInsideTheBox)
     NaturalIntervalExtension extension;
     const double w = 2.0;
     const Complex p0Value(0.8, -0.4);
-    const cxsc::cinterval box =
-        extension.nicholsBox(controller, w, cxsc::complex(0.8, -0.4));
+    const NicholsBox box =
+        extension.nicholsBox(controller, w, std::complex<double>(0.8, -0.4));
 
-    const double magLo = cxsc::_double(Inf(Re(box)));
-    const double magHi = cxsc::_double(Sup(Re(box)));
-    const double phaseLo = cxsc::_double(Inf(Im(box)));
-    const double phaseHi = cxsc::_double(Sup(Im(box)));
+    const double magLo = box.magnitudeDb.lower();
+    const double magHi = box.magnitudeDb.upper();
+    const double phaseLo = box.phaseDegrees.lower();
+    const double phaseHi = box.phaseDegrees.upper();
 
     for (double k : {0.5, 1.7, 4.0}) {
         for (double z : {1.0, 3.3, 6.0}) {

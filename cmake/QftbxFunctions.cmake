@@ -51,21 +51,6 @@ function(qftbx_native_arch target)
   endif()
 endfunction()
 
-# qftbx_interval_arithmetic(<target>)
-#
-# For every target that compiles the C-XSC headers. Their inline interval
-# operators switch the FPU rounding mode around each endpoint; without
-# -frounding-math the optimiser assumes round-to-nearest everywhere and
-# reorders the arithmetic across the switches, producing intervals with the
-# lower end above the upper one (seen live at -O3: the HC4 filter aborted on
-# an empty interval raised by a plain subtraction). The whole interval
-# arithmetic rests on this flag. It cannot be global: it demotes Qt's
-# constexpr floating-point code, so it applies to the interval-computing
-# targets only.
-function(qftbx_interval_arithmetic target)
-  target_compile_options(${target} PRIVATE -frounding-math)
-endfunction()
-
 # qftbx_add_desktop_entry(<target> <icon>)
 #
 # Writes a portable .desktop file next to the executable in the build tree,

@@ -95,7 +95,7 @@ private:
     void check_box_feasibility(std::unique_ptr<LtiSystem> box);
     std::unique_ptr<LtiSystem> quickSolution2(std::unique_ptr<LtiSystem> v,
                                                     const BoxClassification & classification,
-                                      const cxsc::cinterval & projection, double w,
+                                      const NicholsBox & projection, double w,
                                       std::complex<double> p0);
     void certifiedGainSearch(LtiSystem * box);
     bool gainRangeIsFeasible(const std::vector<NaturalIntervalExtension::Factors> & factors,
@@ -111,8 +111,7 @@ private:
     std::unique_ptr<BoundaryViolationDetector> detector;
     std::unique_ptr<NominalStabilityChecker> stability;
     std::unique_ptr<OrderedList> liveList;
-    std::vector<cxsc::complex> nominalPlantValues;
-    std::vector<std::complex<double>> nominalPlantValuesStd;
+    std::vector<std::complex<double>> nominalPlantValues;
 
     //Prune variable C of the paper's step 3bis: gain and controller of
     //the best certified feasible solution found by QS2 stage 3.

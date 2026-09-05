@@ -38,9 +38,9 @@ Optional
 - Doxygen (for documentation generation)
 
 Bundled or fetched automatically (nothing to install by hand)
-- C-XSC, the interval arithmetic library: vendored in `3rd-party/cxsc` and
-  built as an isolated ExternalProject. It is the numerical foundation of
-  the loop-shaping algorithms.
+- kv, Masahide Kashiwagi's verified computation library (header-only, MIT):
+  the interval arithmetic under the loop-shaping algorithms, vendored in
+  `3rd-party/kv` (only the headers the toolbox uses).
 - QCustomPlot (plots): vendored in `3rd-party/`.
 - pugixml (project files): fetched with FetchContent at configure time,
   so the first configuration needs network access.
@@ -60,17 +60,19 @@ OPTION (QFTBX_BUILD_TESTS "Build unit tests"    ON)
 
 Automatic configuration is applied based on the selected options and the available system libraries.
 
-### A note on -frounding-math
+### A note on the interval arithmetic
 
-The backend and the test binary are compiled with `-frounding-math`, and
-this is not optional. C-XSC implements its directed rounding with inline
-assembly in its headers; at -O3 the inliner reorders it and the interval
-arithmetic silently stops being rigorous, which would invalidate the
-global-optimality guarantee of the loop-shaping algorithms. The flag is
-applied per target (the application itself does not use it: it breaks
-Qt's constexpr float code), and `tests/backend/cxsc_rigor_test.cpp`
-fails deterministically if a build change ever breaks the rounding
-again.
+kv is used in its rounding-emulation mode (`KV_NOHWROUND`): the directed
+roundings are computed with error-free transformations instead of switching
+the floating-point rounding mode, so the rigour of the interval arithmetic
+does not depend on compiler flags, on the optimisation level or on which
+thread runs it. The logarithms and arc tangents of the projection take the C
+library's values widened by four ulps, twice the largest error glibc lists
+for them, because kv's series enclosures are hundreds of times slower and
+the loop-shaping algorithms call them millions of times.
+`tests/backend/interval_test.cpp` checks the enclosure properties the
+loop-shaping algorithms rely on, and that the rounding mode is left
+untouched.
 
 ---
 

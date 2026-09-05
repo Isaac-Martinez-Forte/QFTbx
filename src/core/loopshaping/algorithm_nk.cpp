@@ -3,7 +3,6 @@
 #include "src/core/common/exception.h"
 #include "src/core/loopshaping/algorithm_nk.h"
 
-using namespace cxsc;
 
 namespace quick_solution = qftbx::quick_solution;
 
@@ -42,12 +41,10 @@ bool AlgorithmNk::solve(){
     prototype = controller->clone();
 
     nominalPlantValues.clear();
-    nominalPlantValuesStd.clear();
 
     for (double o : *omega) {
         std::complex<double> c = plant->evaluate(o);
-        nominalPlantValuesStd.push_back(c);
-        nominalPlantValues.push_back(cxsc::complex(c.real(), c.imag()));
+        nominalPlantValues.push_back(c);
     }
 
     //Steps 1-3: Quick Solution and feasibility of the initial box happen
@@ -165,7 +162,7 @@ void AlgorithmNk::check_box_feasibility(std::unique_ptr<LtiSystem> box){
     }
 
     std::size_t frequencyIndex = 0;
-    cinterval projection;
+    NicholsBox projection;
 
     for (double o : *omega) {
 
@@ -185,7 +182,7 @@ void AlgorithmNk::check_box_feasibility(std::unique_ptr<LtiSystem> box){
             //by the parity classification of the box's lower corner.
             if (classification.isBottomLeftForbidden()) {
                 box = quickSolution(std::move(box), classification.extremes()[0],
-                                    o, nominalPlantValuesStd.at(frequencyIndex));
+                                    o, nominalPlantValues.at(frequencyIndex));
             }
         }
 
@@ -391,7 +388,7 @@ bool AlgorithmNk::pointIsFeasible(const std::vector<NaturalIntervalExtension::Fa
     }
 
     for (std::size_t i = 0; i < omega->size(); ++i) {
-        const cinterval projection = conversion->nicholsOf(interval(gain), factors.at(i),
+        const NicholsBox projection = conversion->nicholsOf(Interval(gain), factors.at(i),
                                                            nominalPlantValues.at(i));
         const BoxFlag flag = detector->classifyBox(projection, boundaries, i).flag();
 

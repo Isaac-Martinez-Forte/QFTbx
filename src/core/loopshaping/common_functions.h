@@ -17,7 +17,6 @@
 #include "src/core/loopshaping/mc_search_node.h"
 #include "src/core/loopshaping/quick_solution.h"
 
-#include "cinterval.hpp"
 #include <complex>
 
 #include "src/core/common/exception.h"
@@ -104,13 +103,13 @@ inline std::unique_ptr<LtiSystem> pointFromBox(LtiSystem * controller, bool x) {
  */
 inline bool isEpsilonSmall(LtiSystem * controller, double epsilon, std::vector <double> * omega,
                             NaturalIntervalExtension *conversion,
-                            const std::vector <cxsc::complex> & nominalPlantValues) {
+                            const std::vector<std::complex<double>> & nominalPlantValues) {
 
-    cxsc::cinterval box;
+    NicholsBox box;
     for (std::size_t i = 0; i < omega->size(); ++i){
         box = conversion->nicholsBox(controller, omega->at(i), nominalPlantValues.at(i));
 
-        if ((cxsc::diam(cxsc::Re(box)) >= epsilon) || (cxsc::diam(cxsc::Im(box)) >= epsilon)) {
+        if ((box.magnitudeDb.width() >= epsilon) || (box.phaseDegrees.width() >= epsilon)) {
             return false;
         }
     }

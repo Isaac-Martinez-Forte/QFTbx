@@ -11,16 +11,15 @@ Roberto C. Cruz Rodríguez
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <limits>
 #include <complex>
 #include <iostream>
 #include <stack>
 #include <stdexcept>
 #include <string>
 
-#include "imath.hpp"
 
 using namespace std;
-using namespace cxsc;
 
 
 namespace qftbx {
@@ -64,24 +63,18 @@ const std::pair<const char *, type_node> kFunctions[] = {
     {"asin", ASIN}, {"acos", ACOS}, {"sqrt", SQRT},
 };
 
-//The base-2 logarithm, which C-XSC does not provide: ln(x) / ln(2), the
-//divisor enclosed.
-interval log2Enclosure(const interval & x)
-{
-    return ln(x) / ln(interval(2.0));
-}
 
-//Enclosures of the two constants, not the nearest doubles: an interval
+//Enclosures of the two constants, not the nearest doubles: an Interval
 //evaluation that returned a degenerate [3.14159...] did not contain pi,
 //and the e it returned had twelve correct digits.
-interval piEnclosure()
+Interval piEnclosure()
 {
-    return Pi();
+    return Interval::pi();
 }
 
-interval eEnclosure()
+Interval eEnclosure()
 {
-    return exp(interval(1.0));
+    return Interval::e();
 }
 
 } // namespace
@@ -335,7 +328,7 @@ string ExpressionTree::symbolOf(type_node type)  {
     return "";
 }
 
-interval ExpressionTree::eval(std::map<string, interval> *variables){
+Interval ExpressionTree::eval(std::map<std::string, Interval> *variables){
     this->variables_in = variables;
 
     return eval_tree_in(root.get());
@@ -368,7 +361,7 @@ double ExpressionTree::operator()(std::map<std::string, double> * variables)
     return eval (variables);
 }
 
-interval ExpressionTree::operator ()(std::map<std::string, interval> * variables){
+Interval ExpressionTree::operator ()(std::map<std::string, Interval> * variables){
     return eval (variables);
 }
 
@@ -460,44 +453,44 @@ double ExpressionTree::eval_tree(exp_node *node)
 }
 
 
-bool ExpressionTree::propagate(std::map<string, interval> *variables){
+bool ExpressionTree::propagate(std::map<std::string, Interval> *variables){
 
     this->variables_in = variables;
 
-    const interval result = eval_tree_in(root.get());
+    const Interval result = eval_tree_in(root.get());
 
     //The part of the forward value that satisfies the constraint. Empty
     //means the box is infeasible; the whole value means there is nothing
     //to narrow. The comparison used to be stored and ignored: every
     //constraint was treated as ">=", which is the one MR builds.
-    interval narrowed;
+    Interval narrowed;
 
     switch (comparison) {
     case GREATER:
     case GREATER_EQUAL:
-        if (Inf(result) > comparisonValue) {
+        if (result.lower() > comparisonValue) {
             return true;
         }
-        if (Sup(result) < comparisonValue) {
+        if (result.upper() < comparisonValue) {
             return false;
         }
-        narrowed = interval(comparisonValue, Sup(result));
+        narrowed = Interval(comparisonValue, result.upper());
         break;
     case LESS:
     case LESS_EQUAL:
-        if (Sup(result) < comparisonValue) {
+        if (result.upper() < comparisonValue) {
             return true;
         }
-        if (Inf(result) > comparisonValue) {
+        if (result.lower() > comparisonValue) {
             return false;
         }
-        narrowed = interval(Inf(result), comparisonValue);
+        narrowed = Interval(result.lower(), comparisonValue);
         break;
     case EQUAL:
-        if (Inf(result) > comparisonValue || Sup(result) < comparisonValue) {
+        if (result.lower() > comparisonValue || result.upper() < comparisonValue) {
             return false;
         }
-        narrowed = interval(comparisonValue);
+        narrowed = Interval(comparisonValue);
         break;
     }
 
@@ -506,16 +499,16 @@ bool ExpressionTree::propagate(std::map<string, interval> *variables){
     return eval_tree_out(root.get(), narrowed);
 }
 
-bool ExpressionTree::safeIntersection(const interval & a, const interval & b, interval & out){
+bool ExpressionTree::safeIntersection(const Interval & a, const Interval & b, Interval & out){
 
-    const cxsc::real low = (Inf(a) > Inf(b)) ? Inf(a) : Inf(b);
-    const cxsc::real high = (Sup(a) < Sup(b)) ? Sup(a) : Sup(b);
+    const double low = (a.lower() > b.lower()) ? a.lower() : b.lower();
+    const double high = (a.upper() < b.upper()) ? a.upper() : b.upper();
 
     if (low > high) {
         return false;
     }
 
-    out = interval(low, high);
+    out = Interval(low, high);
     return true;
 }
 
@@ -526,9 +519,9 @@ bool ExpressionTree::safeIntersection(const interval & a, const interval & b, in
 //to pow (ln of a negative aborts inside the noexcept library), called
 //acos/asin outside [-1, 1], divided by intervals straddling zero and
 //treated multi-branch trigonometric inverses as single-branch.
-bool ExpressionTree::eval_tree_out(exp_node *node, interval enclosure){
+bool ExpressionTree::eval_tree_out(exp_node *node, Interval enclosure){
 
-    interval candidate;
+    Interval candidate;
 
     switch (node->type)
     {
@@ -545,7 +538,7 @@ bool ExpressionTree::eval_tree_out(exp_node *node, interval enclosure){
 
     case ADD :
     {
-        interval a;
+        Interval a;
         if (!safeIntersection(node->left->enclosure, enclosure - node->right->enclosure, a)) {
             return false;
         }
@@ -553,7 +546,7 @@ bool ExpressionTree::eval_tree_out(exp_node *node, interval enclosure){
             return false;
         }
 
-        interval b;
+        Interval b;
         if (!safeIntersection(node->right->enclosure, enclosure - a, b)) {
             return false;
         }
@@ -562,7 +555,7 @@ bool ExpressionTree::eval_tree_out(exp_node *node, interval enclosure){
 
     case SUBTRACT :
     {
-        interval a;
+        Interval a;
         if (!safeIntersection(node->left->enclosure, enclosure + node->right->enclosure, a)) {
             return false;
         }
@@ -570,7 +563,7 @@ bool ExpressionTree::eval_tree_out(exp_node *node, interval enclosure){
             return false;
         }
 
-        interval b;
+        Interval b;
         if (!safeIntersection(node->right->enclosure, a - enclosure, b)) {
             return false;
         }
@@ -580,10 +573,10 @@ bool ExpressionTree::eval_tree_out(exp_node *node, interval enclosure){
     case MULTIPLY :
     {
         //Each factor projects as a quotient: only when the divisor does
-        //not straddle zero (interval division would abort otherwise).
-        interval a = node->left->enclosure;
+        //not straddle zero (Interval division would abort otherwise).
+        Interval a = node->left->enclosure;
 
-        if (Inf(node->right->enclosure) > 0.0 || Sup(node->right->enclosure) < 0.0) {
+        if (node->right->enclosure.lower() > 0.0 || node->right->enclosure.upper() < 0.0) {
             if (!safeIntersection(a, enclosure / node->right->enclosure, a)) {
                 return false;
             }
@@ -592,8 +585,8 @@ bool ExpressionTree::eval_tree_out(exp_node *node, interval enclosure){
             }
         }
 
-        if (Inf(a) > 0.0 || Sup(a) < 0.0) {
-            interval b;
+        if (a.lower() > 0.0 || a.upper() < 0.0) {
+            Interval b;
             if (!safeIntersection(node->right->enclosure, enclosure / a, b)) {
                 return false;
             }
@@ -605,7 +598,7 @@ bool ExpressionTree::eval_tree_out(exp_node *node, interval enclosure){
 
     case DIVIDE :
     {
-        interval a;
+        Interval a;
         if (!safeIntersection(node->left->enclosure, enclosure * node->right->enclosure, a)) {
             return false;
         }
@@ -613,8 +606,8 @@ bool ExpressionTree::eval_tree_out(exp_node *node, interval enclosure){
             return false;
         }
 
-        if (Inf(enclosure) > 0.0 || Sup(enclosure) < 0.0) {
-            interval b;
+        if (enclosure.lower() > 0.0 || enclosure.upper() < 0.0) {
+            Interval b;
             if (!safeIntersection(node->right->enclosure, a / enclosure, b)) {
                 return false;
             }
@@ -628,18 +621,18 @@ bool ExpressionTree::eval_tree_out(exp_node *node, interval enclosure){
     {
         //Only the square is projected (the constraint grammar uses no
         //other exponent): x^2 = I implies x in +-sqrt(I intersect [0,inf)).
-        if (Inf(node->right->enclosure) != 2.0) {
+        if (node->right->enclosure.lower() != 2.0) {
             return true;
         }
 
-        interval nonNegative;
-        if (!safeIntersection(enclosure, interval(0.0, MaxReal), nonNegative)) {
+        Interval nonNegative;
+        if (!safeIntersection(enclosure, Interval(0.0, std::numeric_limits<double>::max()), nonNegative)) {
             return false;
         }
 
-        const interval root = sqrt(nonNegative);
+        const Interval root = sqrt(nonNegative);
         if (!safeIntersection(node->left->enclosure,
-                                interval(-Sup(root), Sup(root)), candidate)) {
+                                Interval(-root.upper(), root.upper()), candidate)) {
             return false;
         }
         return eval_tree_out(node->left.get(), candidate);
@@ -648,8 +641,8 @@ bool ExpressionTree::eval_tree_out(exp_node *node, interval enclosure){
     case SQRT :
     {
         //sqrt(x) = I: the result is never negative.
-        interval nonNegative;
-        if (!safeIntersection(enclosure, interval(0.0, MaxReal), nonNegative)) {
+        Interval nonNegative;
+        if (!safeIntersection(enclosure, Interval(0.0, std::numeric_limits<double>::max()), nonNegative)) {
             return false;
         }
 
@@ -661,13 +654,13 @@ bool ExpressionTree::eval_tree_out(exp_node *node, interval enclosure){
 
     case SIN :
     {
-        interval bounded;
-        if (!safeIntersection(enclosure, interval(-1.0, 1.0), bounded)) {
+        Interval bounded;
+        if (!safeIntersection(enclosure, Interval(-1.0, 1.0), bounded)) {
             return false;
         }
 
         //Only within the principal monotone branch of the argument.
-        if (Inf(node->left->enclosure) < -qftbx::math::kPi / 2 || Sup(node->left->enclosure) > qftbx::math::kPi / 2) {
+        if (node->left->enclosure.lower() < -qftbx::math::kPi / 2 || node->left->enclosure.upper() > qftbx::math::kPi / 2) {
             return true;
         }
 
@@ -679,21 +672,21 @@ bool ExpressionTree::eval_tree_out(exp_node *node, interval enclosure){
 
     case COS :
     {
-        interval bounded;
-        if (!safeIntersection(enclosure, interval(-1.0, 1.0), bounded)) {
+        Interval bounded;
+        if (!safeIntersection(enclosure, Interval(-1.0, 1.0), bounded)) {
             return false;
         }
 
         //cos is monotone on [-pi, 0] and on [0, pi]; anything wider is
         //left unprojected.
-        if (Inf(node->left->enclosure) >= -qftbx::math::kPi && Sup(node->left->enclosure) <= 0.0) {
+        if (node->left->enclosure.lower() >= -qftbx::math::kPi && node->left->enclosure.upper() <= 0.0) {
             if (!safeIntersection(node->left->enclosure, -acos(bounded), candidate)) {
                 return false;
             }
             return eval_tree_out(node->left.get(), candidate);
         }
 
-        if (Inf(node->left->enclosure) >= 0.0 && Sup(node->left->enclosure) <= qftbx::math::kPi) {
+        if (node->left->enclosure.lower() >= 0.0 && node->left->enclosure.upper() <= qftbx::math::kPi) {
             if (!safeIntersection(node->left->enclosure, acos(bounded), candidate)) {
                 return false;
             }
@@ -705,7 +698,7 @@ bool ExpressionTree::eval_tree_out(exp_node *node, interval enclosure){
 
     case TAN :
     {
-        if (Inf(node->left->enclosure) <= -qftbx::math::kPi / 2 || Sup(node->left->enclosure) >= qftbx::math::kPi / 2) {
+        if (node->left->enclosure.lower() <= -qftbx::math::kPi / 2 || node->left->enclosure.upper() >= qftbx::math::kPi / 2) {
             return true;
         }
 
@@ -717,8 +710,8 @@ bool ExpressionTree::eval_tree_out(exp_node *node, interval enclosure){
 
     case ATAN :
     {
-        interval bounded;
-        if (!safeIntersection(enclosure, interval(-qftbx::math::kPi / 2, qftbx::math::kPi / 2), bounded)) {
+        Interval bounded;
+        if (!safeIntersection(enclosure, Interval(-qftbx::math::kPi / 2, qftbx::math::kPi / 2), bounded)) {
             return false;
         }
 
@@ -730,8 +723,8 @@ bool ExpressionTree::eval_tree_out(exp_node *node, interval enclosure){
 
     case ASIN :
     {
-        interval bounded;
-        if (!safeIntersection(enclosure, interval(-qftbx::math::kPi / 2, qftbx::math::kPi / 2), bounded)) {
+        Interval bounded;
+        if (!safeIntersection(enclosure, Interval(-qftbx::math::kPi / 2, qftbx::math::kPi / 2), bounded)) {
             return false;
         }
 
@@ -743,8 +736,8 @@ bool ExpressionTree::eval_tree_out(exp_node *node, interval enclosure){
 
     case ACOS :
     {
-        interval bounded;
-        if (!safeIntersection(enclosure, interval(0.0, qftbx::math::kPi), bounded)) {
+        Interval bounded;
+        if (!safeIntersection(enclosure, Interval(0.0, qftbx::math::kPi), bounded)) {
             return false;
         }
 
@@ -756,14 +749,14 @@ bool ExpressionTree::eval_tree_out(exp_node *node, interval enclosure){
 
     case ABS :
     {
-        //|x| = I: x in [-Sup(I+), Sup(I+)].
-        interval nonNegative;
-        if (!safeIntersection(enclosure, interval(0.0, MaxReal), nonNegative)) {
+        //|x| = I: x in [-sup(I+), sup(I+)].
+        Interval nonNegative;
+        if (!safeIntersection(enclosure, Interval(0.0, std::numeric_limits<double>::max()), nonNegative)) {
             return false;
         }
 
         if (!safeIntersection(node->left->enclosure,
-                                interval(-Sup(nonNegative), Sup(nonNegative)), candidate)) {
+                                Interval(-nonNegative.upper(), nonNegative.upper()), candidate)) {
             return false;
         }
         return eval_tree_out(node->left.get(), candidate);
@@ -772,7 +765,7 @@ bool ExpressionTree::eval_tree_out(exp_node *node, interval enclosure){
     case LN :
     {
         //exp overflows past ~709: skip rather than trap.
-        if (Sup(enclosure) > 700.0) {
+        if (enclosure.upper() > 700.0) {
             return true;
         }
 
@@ -787,18 +780,18 @@ bool ExpressionTree::eval_tree_out(exp_node *node, interval enclosure){
     }
 }
 
-interval ExpressionTree::eval_tree_in(exp_node *node)
+Interval ExpressionTree::eval_tree_in(exp_node *node)
 {
 
     switch (node->type)
     {
     case CONSTANT :
-        return node->enclosure = interval (node->c_const);
+        return node->enclosure = Interval (node->c_const);
 
     case VAR  :
     {
-        //A missing variable used to return a default-constructed cxsc
-        //interval, whose bounds are UNINITIALIZED memory. One lookup: the
+        //A missing variable used to return a default-constructed
+        //Interval, whose bounds are UNINITIALIZED memory. One lookup: the
         //name is compared against the map's keys here and nowhere else in
         //this evaluation.
         const auto found = variables_in->find(node->var);
@@ -834,10 +827,10 @@ interval ExpressionTree::eval_tree_in(exp_node *node)
     {
         //An integral square must not go through pow (exp of ln: a base
         //touching zero or negative aborts inside the noexcept library).
-        const interval base = eval_tree_in(node->left.get());
-        const interval exponent = eval_tree_in(node->right.get());
+        const Interval base = eval_tree_in(node->left.get());
+        const Interval exponent = eval_tree_in(node->right.get());
 
-        if (Inf(exponent) == 2.0 && Sup(exponent) == 2.0) {
+        if (exponent.lower() == 2.0 && exponent.upper() == 2.0) {
             return node->enclosure = sqr(base);
         }
 
@@ -881,19 +874,19 @@ interval ExpressionTree::eval_tree_in(exp_node *node)
         return node->enclosure = abs ( eval_tree_in(node->left.get()) );
 
     //Both logarithms were missing here and fell through to a default that
-    //returned the node's cached interval: for a fresh tree, uninitialised
+    //returned the node's cached Interval: for a fresh tree, uninitialised
     //memory.
     case LN :
-        return node->enclosure = ln ( eval_tree_in(node->left.get()) );
+        return node->enclosure = log ( eval_tree_in(node->left.get()) );
 
     case LG :
         return node->enclosure = log10 ( eval_tree_in(node->left.get()) );
 
     case LOG2 :
-        return node->enclosure = log2Enclosure( eval_tree_in(node->left.get()) );
+        return node->enclosure = log2( eval_tree_in(node->left.get()) );
 
     default:
-        throw std::invalid_argument("ExpressionTree: a node the interval evaluator does not know.");
+        throw std::invalid_argument("ExpressionTree: a node the Interval evaluator does not know.");
 
         /* if another function was added, add its 'case' here with its operation */
 

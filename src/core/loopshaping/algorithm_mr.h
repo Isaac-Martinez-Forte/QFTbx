@@ -123,9 +123,9 @@ private:
     void buildControllerExpressions();
     void buildConstraints();
     void classifyAndInsert(std::unique_ptr<LtiSystem> box);
-    bool narrowToFixpoint(std::map<std::string, cxsc::interval> & domains);
-    bool certainlyFeasible(std::map<std::string, cxsc::interval> & domains);
-    void loadDomains(LtiSystem * box, std::map<std::string, cxsc::interval> & domains);
+    bool narrowToFixpoint(std::map<std::string, Interval> & domains);
+    bool certainlyFeasible(std::map<std::string, Interval> & domains);
+    void loadDomains(LtiSystem * box, std::map<std::string, Interval> & domains);
 
     /// True when every uncertain controller parameter has been narrowed to
     /// an interval no wider than epsilon: the paper's termination criterion.
@@ -134,9 +134,9 @@ private:
     /// Degenerate domains at the corner pointFromBox() would take, so that
     /// the point itself can be run through the constraint set.
     void loadPointDomains(LtiSystem * box, bool lowerCorner,
-                                 std::map<std::string, cxsc::interval> & domains);
+                                 std::map<std::string, Interval> & domains);
     std::unique_ptr<LtiSystem> boxFromDomains(LtiSystem * box,
-                                      const std::map<std::string, cxsc::interval> & domains);
+                                      const std::map<std::string, Interval> & domains);
 
     LtiSystem * plant = nullptr;
     std::unique_ptr<LtiSystem> controller;

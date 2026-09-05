@@ -4,8 +4,6 @@
 
 #include <gtest/gtest.h>
 
-//A failed comparison of C-XSC values must report, not crash: see the header.
-#include "tests/backend/cxsc_printing.h"
 
 #include <map>
 #include <memory>
@@ -15,13 +13,12 @@
 #include "src/core/loopshaping/ordered_list.h"
 #include "src/core/math/expression_tree.h"
 
-#include <interval.hpp>
+#include "src/core/math/interval.h"
 
 using namespace qftbx;
 
 namespace {
 
-using cxsc::interval;
 
 std::unique_ptr<ListNode> node(double index)
 {
@@ -227,12 +224,12 @@ TEST(ExpressionTree, IntervalEvaluationEnclosesTheRange)
     qftbx::ExpressionTree tree("1");
     tree.setFunc(std::string("2*x+3"));
 
-    std::map<std::string, interval> variables;
-    variables["x"] = interval(1.0, 4.0);
+    std::map<std::string, Interval> variables;
+    variables["x"] = Interval(1.0, 4.0);
 
-    const interval result = tree.eval(&variables);
-    EXPECT_DOUBLE_EQ(cxsc::_double(Inf(result)), 5.0);
-    EXPECT_DOUBLE_EQ(cxsc::_double(Sup(result)), 11.0);
+    const Interval result = tree.eval(&variables);
+    EXPECT_DOUBLE_EQ((result).lower(), 5.0);
+    EXPECT_DOUBLE_EQ((result).upper(), 11.0);
 }
 
 TEST(ExpressionTree, ContractionNarrowsAnInconsistentDomain)
@@ -243,14 +240,14 @@ TEST(ExpressionTree, ContractionNarrowsAnInconsistentDomain)
     qftbx::ExpressionTree tree("1");
     tree.setFunc(std::string("x-2"), 0.0, qftbx::GREATER_EQUAL);
 
-    std::map<std::string, interval> variables;
-    variables["x"] = interval(0.0, 10.0);
+    std::map<std::string, Interval> variables;
+    variables["x"] = Interval(0.0, 10.0);
 
     const bool consistent = tree.propagate(&variables);
 
     EXPECT_TRUE(consistent);
-    EXPECT_DOUBLE_EQ(cxsc::_double(Inf(variables.at("x"))), 2.0);
-    EXPECT_DOUBLE_EQ(cxsc::_double(Sup(variables.at("x"))), 10.0);
+    EXPECT_DOUBLE_EQ(variables.at("x").lower(), 2.0);
+    EXPECT_DOUBLE_EQ(variables.at("x").upper(), 10.0);
 }
 
 TEST(ExpressionTree, ContractionDetectsAnEmptyDomain)
@@ -258,8 +255,8 @@ TEST(ExpressionTree, ContractionDetectsAnEmptyDomain)
     qftbx::ExpressionTree tree("1");
     tree.setFunc(std::string("x-20"), 0.0, qftbx::GREATER_EQUAL);
 
-    std::map<std::string, interval> variables;
-    variables["x"] = interval(0.0, 10.0);
+    std::map<std::string, Interval> variables;
+    variables["x"] = Interval(0.0, 10.0);
 
     EXPECT_FALSE(tree.propagate(&variables));
 }
@@ -269,15 +266,15 @@ TEST(ExpressionTree, TheConstantsAreEnclosedNotApproximated)
     qftbx::ExpressionTree tree("1");
     tree.setFunc(std::string("PI+E"));
 
-    std::map<std::string, interval> variables;
-    const interval result = tree.eval(&variables);
+    std::map<std::string, Interval> variables;
+    const Interval result = tree.eval(&variables);
 
     // The true pi + e lies strictly inside: the interval version used to
     // return degenerate intervals of approximate constants.
     const double truth = 3.14159265358979323846 + 2.71828182845904523536;
-    EXPECT_LE(cxsc::_double(Inf(result)), truth);
-    EXPECT_GE(cxsc::_double(Sup(result)), truth);
-    EXPECT_LT(cxsc::_double(Sup(result)) - cxsc::_double(Inf(result)), 1e-12);
+    EXPECT_LE((result).lower(), truth);
+    EXPECT_GE((result).upper(), truth);
+    EXPECT_LT((result).upper() - (result).lower(), 1e-12);
 
     EXPECT_NEAR(tree.eval(static_cast<std::map<std::string, double> *>(nullptr)), truth, 1e-15);
 }
@@ -287,12 +284,12 @@ TEST(ExpressionTree, TheLogarithmsEvaluateOverIntervals)
     qftbx::ExpressionTree tree("1");
     tree.setFunc(std::string("ln(x)+lg(x)"));
 
-    std::map<std::string, interval> variables;
-    variables["x"] = interval(1.0, 10.0);
+    std::map<std::string, Interval> variables;
+    variables["x"] = Interval(1.0, 10.0);
 
-    const interval result = tree.eval(&variables);
-    EXPECT_NEAR(cxsc::_double(Inf(result)), 0.0, 1e-12);
-    EXPECT_NEAR(cxsc::_double(Sup(result)), std::log(10.0) + 1.0, 1e-12);
+    const Interval result = tree.eval(&variables);
+    EXPECT_NEAR((result).lower(), 0.0, 1e-12);
+    EXPECT_NEAR((result).upper(), std::log(10.0) + 1.0, 1e-12);
 }
 
 TEST(ExpressionTree, ACopyKeepsItsVariables)
@@ -328,12 +325,12 @@ TEST(ExpressionTree, ContractionHonoursALessThanConstraint)
     qftbx::ExpressionTree tree("1");
     tree.setFunc(std::string("x-2"), 0.0, qftbx::LESS_EQUAL);
 
-    std::map<std::string, interval> variables;
-    variables["x"] = interval(0.0, 10.0);
+    std::map<std::string, Interval> variables;
+    variables["x"] = Interval(0.0, 10.0);
 
     ASSERT_TRUE(tree.propagate(&variables));
-    EXPECT_DOUBLE_EQ(cxsc::_double(Inf(variables.at("x"))), 0.0);
-    EXPECT_DOUBLE_EQ(cxsc::_double(Sup(variables.at("x"))), 2.0);
+    EXPECT_DOUBLE_EQ(variables.at("x").lower(), 0.0);
+    EXPECT_DOUBLE_EQ(variables.at("x").upper(), 2.0);
 }
 
 TEST(ExpressionTree, AMalformedExpressionIsRefused)

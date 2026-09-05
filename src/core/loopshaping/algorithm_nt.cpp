@@ -3,7 +3,6 @@
 #include "src/core/common/exception.h"
 #include "src/core/loopshaping/algorithm_nt.h"
 
-using namespace cxsc;
 
 /*
  * Algorithm NT (Nataraj-Tharewal): interval branch & bound QFT loop
@@ -64,7 +63,7 @@ bool AlgorithmNt::solve() {
 
     for (double o : *omega) {
         std::complex <double> c = plant->evaluate(o);
-        nominalPlantValues.push_back(cxsc::complex(c.real(), c.imag()));
+        nominalPlantValues.push_back(c);
     }
 
     //Step 1: feasibility of the initial search box (inserts it into NL
@@ -165,7 +164,7 @@ void AlgorithmNt::check_box_feasibility(std::unique_ptr<LtiSystem> box) {
     BoxFlag flag_final = feasible;
 
     std::size_t frequencyIndex = 0;
-    cinterval projection;
+    NicholsBox projection;
 
     //C_g+ : the certainly feasible gain subrange must satisfy EVERY
     //frequency (intersection), so the candidate is the maximum of the
@@ -180,9 +179,9 @@ void AlgorithmNt::check_box_feasibility(std::unique_ptr<LtiSystem> box) {
         //the projection of the box and the two gain contractors below,
         //which only change the gain.
         const NaturalIntervalExtension::Factors factors = conversion->factorsOf(box.get(), o);
-        const cxsc::complex p0 = nominalPlantValues.at(frequencyIndex);
+        const std::complex<double> p0 = nominalPlantValues.at(frequencyIndex);
 
-        projection = conversion->nicholsOf(cxsc::interval(box->gain().range().min, box->gain().range().max),
+        projection = conversion->nicholsOf(Interval(box->gain().range().min, box->gain().range().max),
                                            factors, p0);
 
         classification = detector->classifyBox(projection, boundaries, frequencyIndex);
@@ -270,8 +269,8 @@ std::unique_ptr<LtiSystem> AlgorithmNt::accelerated(std::unique_ptr<LtiSystem> v
 
         //The box at its lowest gain: the same zeros and poles, the gain
         //interval collapsed to that end.
-        double magnitudeAtMinGainDb = _double(SupRe(conversion->nicholsOf(interval(minGainLinear), factors,
-                nominalPlantValues.at(frequencyIndex))));
+        const double magnitudeAtMinGainDb = conversion->nicholsOf(Interval(minGainLinear), factors,
+                nominalPlantValues.at(frequencyIndex)).magnitudeDb.upper();
 
 
         if (magnitudeAtMinGainDb < minBoundary) {
@@ -301,10 +300,10 @@ std::unique_ptr<LtiSystem> AlgorithmNt::accelerated(std::unique_ptr<LtiSystem> v
 //the split box with the full feasibility test).
 
 bool AlgorithmNt::feasibleGainFrom(LtiSystem * v, double maxBoundary,
-                                   cinterval projection, const NaturalIntervalExtension::Factors & factors,
+                                   NicholsBox projection, const NaturalIntervalExtension::Factors & factors,
                                    std::size_t frequencyIndex, double & from) {
 
-    const double phaseCentre = (_double(InfIm(projection)) + _double(SupIm(projection))) / 2.0;
+    const double phaseCentre = (projection.phaseDegrees.lower() + projection.phaseDegrees.upper()) / 2.0;
 
     if (detector->classifyPoint(qftbx::NicholsPoint(phaseCentre, maxBoundary + 1.0),
                                    boundaries, frequencyIndex) != feasible) {
@@ -316,8 +315,8 @@ bool AlgorithmNt::feasibleGainFrom(LtiSystem * v, double maxBoundary,
 
     //The box at its highest gain: the same zeros and poles, the gain
     //interval collapsed to that end.
-    double magnitudeAtMaxGainDb = _double(InfRe(conversion->nicholsOf(interval(maxGainLinear), factors,
-            nominalPlantValues.at(frequencyIndex))));
+    const double magnitudeAtMaxGainDb = conversion->nicholsOf(Interval(maxGainLinear), factors,
+            nominalPlantValues.at(frequencyIndex)).magnitudeDb.lower();
 
     if (magnitudeAtMaxGainDb <= maxBoundary) {
         return false;
