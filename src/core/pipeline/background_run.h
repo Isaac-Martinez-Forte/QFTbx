@@ -12,13 +12,12 @@ namespace qftbx {
  * @brief One piece of work on a worker thread, with what it threw remembered
  * instead of thrown again.
  *
- * The whole point is the catching. A computation here can throw four
- * unrelated things - qftbx::Exception, qftbx::Cancelled, std::exception and
- * the C-XSC error hierarchy - and the last two derive from neither
- * std::exception nor each other. An exception that escapes the function of an
- * std::thread does not propagate anywhere: it TERMINATES the process. So
- * everything is caught here, at the boundary, and the caller asks afterwards
- * how it went.
+ * The whole point is the catching. A computation here can throw
+ * qftbx::Exception, qftbx::Cancelled or any std::exception (the interval
+ * arithmetic reports its domain errors as std::domain_error), and an
+ * exception that escapes the function of an std::thread does not propagate
+ * anywhere: it TERMINATES the process. So everything is caught here, at the
+ * boundary, and the caller asks afterwards how it went.
  *
  * One run at a time. The pipeline is sequential - every stage consumes the
  * output of the one before it - so there is nothing to gain from two at once

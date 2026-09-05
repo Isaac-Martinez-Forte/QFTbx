@@ -4,7 +4,6 @@
 #include "src/core/common/exception.h"
 #include "src/core/loopshaping/algorithm_mc_thesis.h"
 
-using namespace cxsc;
 
 namespace quick_solution = qftbx::quick_solution;
 
@@ -132,12 +131,10 @@ bool AlgorithmMcThesis::solve()
     bestCertifiedController.reset();
 
     nominalPlantValues.clear();
-    nominalPlantValuesStd.clear();
 
     for (double o : *omega) {
         std::complex<double> c = plant->evaluate(o);
-        nominalPlantValuesStd.push_back(c);
-        nominalPlantValues.push_back(cxsc::complex(c.real(), c.imag()));
+        nominalPlantValues.push_back(c);
     }
 
     //A controller with no uncertain parameter offers nothing to search.
@@ -297,7 +294,7 @@ bool AlgorithmMcThesis::analyse(McSearchNode * node, NodeAnalysis & out)
             continue;
         }
 
-        const cinterval projection = conversion->nicholsBox(node->system(), omega->at(i),
+        const NicholsBox projection = conversion->nicholsBox(node->system(), omega->at(i),
                                                       nominalPlantValues.at(i));
 
         BoxClassification classification = detector->classifyBox(projection, boundaries, i);
@@ -316,10 +313,10 @@ bool AlgorithmMcThesis::analyse(McSearchNode * node, NodeAnalysis & out)
 
         out.classification.push_back(std::move(classification));
         out.projection.push_back(projection);
-        out.boxMag.push_back(Range(_double(Inf(Re(projection))), _double(Sup(Re(projection)))));
-        out.boxPhase.push_back(Range(_double(Inf(Im(projection))), _double(Sup(Im(projection)))));
+        out.boxMag.push_back(Range(projection.magnitudeDb.lower(), projection.magnitudeDb.upper()));
+        out.boxPhase.push_back(Range(projection.phaseDegrees.lower(), projection.phaseDegrees.upper()));
 
-        const double phaseWidth = _double(diam(Im(projection)));
+        const double phaseWidth = projection.phaseDegrees.width();
 
         if (phaseWidth >= phaseSpanWidth - phaseGridStep) {
             out.anyFullPhaseWidth = true;
@@ -328,7 +325,7 @@ bool AlgorithmMcThesis::analyse(McSearchNode * node, NodeAnalysis & out)
         if (verdict == ambiguous) {
             out.flag = ambiguous;
 
-            const double area = _double(diam(Re(projection))) * phaseWidth;
+            const double area = projection.magnitudeDb.width() * phaseWidth;
             if (area > largestArea) {
                 largestArea = area;
                 out.mainFrequency = i;
@@ -385,7 +382,7 @@ void AlgorithmMcThesis::improveNode(McSearchNode * node, NodeAnalysis & analysis
 //wrong verdict.
 bool AlgorithmMcThesis::boxIsFeasibleAt(LtiSystem * box, std::size_t freqIndex)
 {
-    const cinterval projection = conversion->nicholsBox(box, omega->at(freqIndex),
+    const NicholsBox projection = conversion->nicholsBox(box, omega->at(freqIndex),
                                                   nominalPlantValues.at(freqIndex));
     return detector->classifyBox(projection, boundaries, freqIndex).flag() == feasible;
 }
@@ -396,11 +393,11 @@ bool AlgorithmMcThesis::boxIsFeasibleAt(LtiSystem * box, std::size_t freqIndex)
 bool AlgorithmMcThesis::isEpsilonSmall(McSearchNode * node, const NodeAnalysis & analysis)
 {
     for (std::size_t i = 0; i < omega->size(); ++i) {
-        const cinterval box = analysis.projection.at(i).has_value()
+        const NicholsBox box = analysis.projection.at(i).has_value()
                 ? *analysis.projection.at(i)
                 : conversion->nicholsBox(node->system(), omega->at(i), nominalPlantValues.at(i));
 
-        if ((diam(Re(box)) >= epsilon) || (diam(Im(box)) >= epsilon)) {
+        if ((box.magnitudeDb.width() >= epsilon) || (box.phaseDegrees.width() >= epsilon)) {
             return false;
         }
     }
@@ -422,7 +419,7 @@ bool AlgorithmMcThesis::boxIsFeasible(LtiSystem * box)
 bool AlgorithmMcThesis::pointIsFeasible(const PointController & point)
 {
     for (std::size_t i = 0; i < omega->size(); ++i) {
-        const cinterval projection = conversion->nicholsPoint(point, omega->at(i),
+        const NicholsBox projection = conversion->nicholsPoint(point, omega->at(i),
                                                               nominalPlantValues.at(i));
 
         if (detector->classifyBox(projection, boundaries, i).flag() != feasible) {
@@ -469,7 +466,7 @@ bool AlgorithmMcThesis::bestGainSearch(McSearchNode * node, const NodeAnalysis &
         }
 
         const double w = omega->at(i);
-        const std::complex<double> p0 = nominalPlantValuesStd.at(i);
+        const std::complex<double> p0 = nominalPlantValues.at(i);
         const double boundMin = std::pow(10.0, classification->extremes()[0] / 20.0);
         const double boundMax = std::pow(10.0, classification->extremes()[1] / 20.0);
 
@@ -619,7 +616,7 @@ void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnalysis & a
                     }
 
                     const double w = omega->at(i);
-                    const std::complex<double> p0 = nominalPlantValuesStd.at(i);
+                    const std::complex<double> p0 = nominalPlantValues.at(i);
 
                     double t = -1.0;
 
@@ -792,7 +789,7 @@ void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAnalysis &
         }
 
         const double w = omega->at(i);
-        const std::complex<double> p0 = nominalPlantValuesStd.at(i);
+        const std::complex<double> p0 = nominalPlantValues.at(i);
         const double boundMin = std::pow(10.0, classification->extremes()[0] / 20.0);
         const double boundMax = std::pow(10.0, classification->extremes()[1] / 20.0);
 
@@ -877,23 +874,23 @@ inline std::int32_t AlgorithmMcThesis::widestByMeasure(McSearchNode * node, std:
 {
     LtiSystem * box = node->system();
     const double w = omega->at(mainFrequency);
-    const cxsc::complex p0 = nominalPlantValues.at(mainFrequency);
+    const std::complex<double> p0 = nominalPlantValues.at(mainFrequency);
 
     std::int32_t best = -1;
     double bestValue = -1.0;
 
-    const auto consider = [&](std::int32_t parameter, const cinterval & term, bool gainTerm) {
+    const auto consider = [&](std::int32_t parameter, const NicholsBox & term, bool gainTerm) {
         double value;
 
         if (measure == 2) {
             if (gainTerm) {
                 return;
             }
-            value = _double(diam(Im(term)));
+            value = term.phaseDegrees.width();
         } else if (measure == 1 || gainTerm) {
-            value = _double(diam(Re(term)));
+            value = term.magnitudeDb.width();
         } else {
-            value = _double(diam(Re(term))) * _double(diam(Im(term)));
+            value = term.magnitudeDb.width() * term.phaseDegrees.width();
         }
 
         if (value > bestValue) {

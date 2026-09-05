@@ -112,8 +112,7 @@ private:
     std::unique_ptr<NominalStabilityChecker> stability;
     std::unique_ptr<OrderedList> liveList;
 
-    std::vector<cxsc::complex> nominalPlantValues;
-    std::vector<std::complex<double>> nominalPlantValuesStd;
+    std::vector<std::complex<double>> nominalPlantValues;
 
     std::unique_ptr<LtiSystem> designedController;
     std::unique_ptr<LtiSystem> prototype;

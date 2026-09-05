@@ -24,8 +24,6 @@
 
 #include <string>
 
-//A failed comparison of C-XSC values must report, not crash: see the header.
-#include "tests/backend/cxsc_printing.h"
 
 #include <cmath>
 #include <complex>
@@ -77,8 +75,8 @@ protected:
 
         for (int i = 0; i < omega->size(); ++i) {
             const std::complex<double> pv = controller.plant()->evaluate(omega->at(i));
-            const cxsc::cinterval box = conversion.nicholsBox(
-                point, omega->at(i), cxsc::complex(pv.real(), pv.imag()));
+            const NicholsBox box = conversion.nicholsBox(
+                point, omega->at(i), std::complex<double>(pv.real(), pv.imag()));
             const qftbx::BoxFlag flag = detector.classifyBox(
                 box, controller.boundaries(), i).flag();
 

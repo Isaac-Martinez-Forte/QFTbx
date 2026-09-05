@@ -53,17 +53,18 @@ endfunction()
 
 # qftbx_interval_arithmetic(<target>)
 #
-# For every target that compiles the C-XSC headers. Their inline interval
-# operators switch the FPU rounding mode around each endpoint; without
-# -frounding-math the optimiser assumes round-to-nearest everywhere and
-# reorders the arithmetic across the switches, producing intervals with the
-# lower end above the upper one (seen live at -O3: the HC4 filter aborted on
-# an empty interval raised by a plain subtraction). The whole interval
-# arithmetic rests on this flag. It cannot be global: it demotes Qt's
-# constexpr floating-point code, so it applies to the interval-computing
-# targets only.
+# For every target that compiles src/core/math/interval.h with the C-XSC
+# backend. Its inline interval operators switch the FPU rounding mode around
+# each endpoint; without -frounding-math the optimiser assumes
+# round-to-nearest everywhere and reorders the arithmetic across the
+# switches, producing intervals with the lower end above the upper one (seen
+# live at -O3). The flag cannot be global: it demotes Qt's constexpr
+# floating-point code, so it applies to the interval-computing targets only.
+# The kv backend never changes the rounding mode and needs nothing.
 function(qftbx_interval_arithmetic target)
-  target_compile_options(${target} PRIVATE -frounding-math)
+  if(QFTBX_INTERVAL_BACKEND STREQUAL "cxsc")
+    target_compile_options(${target} PRIVATE -frounding-math)
+  endif()
 endfunction()
 
 # qftbx_add_desktop_entry(<target> <icon>)

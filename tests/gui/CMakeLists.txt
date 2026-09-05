@@ -1,9 +1,6 @@
 # The GUI smoke suite drives the dialogs headless (offscreen platform
 # plugin). A separate binary because it needs a QApplication and the GUI
-# library, which the backend suite must stay free of. No -frounding-math
-# here: this binary runs no interval arithmetic of its own, and the flag
-# breaks Qt's constexpr floating-point code, which is why the GUI library
-# does not carry it either.
+# library, which the backend suite must stay free of.
 add_executable(qftbx_gui_tests)
 qftbx_sources_here(qftbx_gui_tests)
 target_link_libraries(qftbx_gui_tests PRIVATE qftbx_gui GTest::gtest)

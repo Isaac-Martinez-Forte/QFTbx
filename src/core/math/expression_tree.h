@@ -16,7 +16,7 @@ Roberto C. Cruz Rodríguez
 #include <string>
 #include <vector>
 
-#include "interval.hpp"
+#include "src/core/math/interval.h"
 
 namespace qftbx {
 
@@ -40,7 +40,7 @@ enum com { GREATER, LESS, GREATER_EQUAL, LESS_EQUAL, EQUAL};
 /**
 * One node of the binary expression tree: a leaf holds a numeric value
 * (c_const) or a variable identifier (var); an inner node holds the
-* operation applied to its branches. 'enclosure' caches the cxsc::interval of
+* operation applied to its branches. 'enclosure' caches the Interval of
 * the subtree during the forward phase of the HC4 filter, so the backward
 * phase can project through it.
 */
@@ -60,13 +60,13 @@ struct exp_node
     //(see ExpressionTree::bind); -1 while unbound.
     int index = -1;
 
-    cxsc::interval enclosure;
+    Interval enclosure;
 
     //Where the variable of a VAR node lives in the map of the evaluation in
     //progress: found once by the forward pass and written through by the
     //backward pass of the same call, instead of looked up by name again.
     //Valid only inside that call.
-    cxsc::interval * slot = nullptr;
+    Interval * slot = nullptr;
 
     //A node OWNS its branches, so a tree frees itself. There used to be a
     //recursive delete_tree() post-order walk, and every early return of the
@@ -184,16 +184,16 @@ public :
     double eval(std::map<std::string, double> * variables = nullptr);
 
     /// Evaluates over intervals with the given variable domains.
-    cxsc::interval eval (std::map<std::string, cxsc::interval> *variables);
+    Interval eval (std::map<std::string, Interval> *variables);
 
     /// One HC4 pass over the constraint "expression <comparison> value":
-    /// forward cxsc::interval evaluation, intersection with the constraint set (a
+    /// forward Interval evaluation, intersection with the constraint set (a
     /// half-line for the inequalities, a point for the equality), backward
     /// projection narrowing 'variables' in place. Returns false when a
     /// domain empties (the constraint proves the box infeasible). The
     /// comparison used to be stored and never read: every constraint was
     /// propagated as >=.
-    bool propagate (std::map<std::string, cxsc::interval> *variables);
+    bool propagate (std::map<std::string, Interval> *variables);
 
     /**
      * @brief Fixes the order of the variables for evaluate().
@@ -221,7 +221,7 @@ public :
 
     /// Alternative spelling of eval().
     double operator()(std::map<std::string, double> * variables = nullptr);
-    cxsc::interval operator() (std::map<std::string, cxsc::interval> *variables);
+    Interval operator() (std::map<std::string, Interval> *variables);
 
     /**
      * @brief Whether a name can be a variable of an expression.
@@ -250,7 +250,7 @@ private :
     std::string symbolOf(qftbx::type_node type);
     std::unique_ptr<exp_node> make_cpy(exp_node *node);
     double eval_tree(exp_node *node);
-    cxsc::interval eval_tree_in (exp_node * node);
+    Interval eval_tree_in (exp_node * node);
 
     /// Backward (projection) phase of the HC4 filter: narrows the domains
     /// towards consistency with 'enclosure'. Returns false when a domain
@@ -258,12 +258,12 @@ private :
     /// that are unsafe or multi-branch (trigonometric inverses outside a
     /// monotone branch, divisors straddling zero, non-square powers) are
     /// skipped: skipping narrows nothing and stays sound.
-    bool eval_tree_out(exp_node * node, cxsc::interval enclosure);
+    bool eval_tree_out(exp_node * node, Interval enclosure);
 
     /// Intersection with an empty-signal instead of the historical throw
     /// (the release build compiled the guarding assert out, so an empty
-    /// intersection built an invalid cxsc::interval and aborted the process).
-    bool safeIntersection(const cxsc::interval & a, const cxsc::interval & b, cxsc::interval & out);
+    /// intersection built an invalid Interval and aborted the process).
+    bool safeIntersection(const Interval & a, const Interval & b, Interval & out);
 
     void build_tree(std::string &in_exp);
     bool isLetter(char text);
@@ -280,7 +280,7 @@ private :
     //to carry them; initialised because not every constructor passes
     //through one of those.
     std::map<std::string, double> * variables = nullptr;
-    std::map<std::string, cxsc::interval> * variables_in = nullptr;
+    std::map<std::string, Interval> * variables_in = nullptr;
 
     //The constraint propagate() tests against. Two of the four constructors
     //do not set them, and propagate() reads both.

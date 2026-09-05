@@ -153,7 +153,7 @@ private:
     //(empty for frequencies the node is marked feasible at).
     struct NodeAnalysis {
         std::vector<std::optional<BoxClassification>> classification;
-        std::vector<std::optional<cxsc::cinterval>> projection;   //the Nichols box itself
+        std::vector<std::optional<NicholsBox>> projection;   //the Nichols box itself
         std::vector<Range> boxMag;     //dB edges of the projected box
         std::vector<Range> boxPhase;   //degree edges
         qftbx::BoxFlag flag = qftbx::feasible;
@@ -196,8 +196,7 @@ private:
     std::unique_ptr<BoundaryViolationDetector> detector;
     std::unique_ptr<NominalStabilityChecker> stability;
     std::unique_ptr<OrderedList> liveList;
-    std::vector<cxsc::complex> nominalPlantValues;
-    std::vector<std::complex<double>> nominalPlantValuesStd;
+    std::vector<std::complex<double>> nominalPlantValues;
 
     //Prune variable C (thesis 5.4.3): gain and controller of the best
     //certified solution found by MG.

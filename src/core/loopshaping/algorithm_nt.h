@@ -122,7 +122,7 @@ private:
     std::unique_ptr<LtiSystem> accelerated(std::unique_ptr<LtiSystem> v, double minBoundary,
                                           const NaturalIntervalExtension::Factors & factors,
                                           std::size_t frequencyIndex, bool above);
-    bool feasibleGainFrom(LtiSystem * v, double maxBoundary, cxsc::cinterval projection,
+    bool feasibleGainFrom(LtiSystem * v, double maxBoundary, NicholsBox projection,
                           const NaturalIntervalExtension::Factors & factors,
                           std::size_t frequencyIndex, double & from);
 
@@ -139,7 +139,7 @@ private:
 
     std::unique_ptr<BoundaryViolationDetector> detector;
     std::unique_ptr<NominalStabilityChecker> stability;
-    std::vector <cxsc::complex> nominalPlantValues;
+    std::vector<std::complex<double>> nominalPlantValues;
 
 
     /// Not owned. Null means this run cannot be cancelled.

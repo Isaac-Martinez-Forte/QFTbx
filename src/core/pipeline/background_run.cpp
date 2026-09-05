@@ -1,7 +1,5 @@
 #include "src/core/pipeline/background_run.h"
 
-#include <except.hpp>
-
 #include <exception>
 #include <utility>
 
@@ -36,10 +34,9 @@ bool BackgroundRun::start(Work work, Done done)
     m_running.store(true, std::memory_order_release);
 
     m_worker = std::thread([this, work = std::move(work), done = std::move(done)]() {
-        //Everything is caught. The families are unrelated - the standard
-        //exceptions, and the interval library's errors, which derive from
-        //nothing at all - and any one of them escaping this lambda would
-        //terminate the process.
+        //Everything is caught: an exception escaping this lambda would
+        //terminate the process. The interval arithmetic reports its domain
+        //errors as std::domain_error, so the standard family covers it.
         try {
             const bool produced = work();
             finish(produced, false, std::string());
@@ -47,9 +44,6 @@ bool BackgroundRun::start(Work work, Done done)
             finish(false, true, std::string());
         } catch (const std::exception & failure) {
             finish(false, false, std::string(failure.what()));
-        } catch (const cxsc::ERROR_ALL & intervalError) {
-            finish(false, false, "the interval arithmetic refused it: "
-                   + intervalError.errtext());
         } catch (...) {
             //Nothing else is expected, and "nothing else is expected" is not
             //a reason to let the process die.

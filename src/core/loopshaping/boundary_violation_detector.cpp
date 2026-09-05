@@ -1,7 +1,6 @@
 #include <cstdint>
 #include "src/core/loopshaping/boundary_violation_detector.h"
 
-using namespace cxsc;
 
 //Reader of the phase bucketing that BoundaryUnion1D::bucketIndex writes.
 //Both must agree on the range of valid indices, because this indexes the
@@ -64,7 +63,7 @@ BoxFlag BoundaryViolationDetector::pointVerdict(qftbx::NicholsPoint point,
 //historical version computed B_min and B_max only from the boundary
 //points INSIDE the box: when the boundary left the box within its phase
 //span the cut could remove feasible gains.
-BoxClassification BoundaryViolationDetector::classifyBox(cinterval box, const BoundaryData *boundaries, std::size_t frequencyIndex) {
+BoxClassification BoundaryViolationDetector::classifyBox(NicholsBox box, const BoundaryData *boundaries, std::size_t frequencyIndex) {
 
     const qftbx::TraceSet & buckets =
             boundaries->unionBuckets().at(frequencyIndex);
@@ -78,7 +77,7 @@ BoxClassification BoundaryViolationDetector::classifyBox(cinterval box, const Bo
 
     const double phaseSpanDegrees = boundaries->phaseRange().width();
 
-    double minPhase = _double(InfIm(box)), maxPhase = _double(SupIm(box)), minMag = _double(InfRe(box)), maxMag = _double(SupRe(box));
+    double minPhase = box.phaseDegrees.lower(), maxPhase = box.phaseDegrees.upper(), minMag = box.magnitudeDb.lower(), maxMag = box.magnitudeDb.upper();
 
     //The buckets the box's phase span covers. Phases are negative on the
     //Nichols branch and the buckets are indexed by |phase|, so the span

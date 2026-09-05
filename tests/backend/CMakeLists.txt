@@ -7,7 +7,7 @@ add_executable(qftbx_tests)
 qftbx_sources_here(qftbx_tests)
 target_link_libraries(qftbx_tests PRIVATE qftbx_app GTest::gtest Qt6::Core pugixml::pugixml)
 
-# The tests compile the C-XSC inline interval operators too.
+# The tests compile the interval layer too.
 qftbx_interval_arithmetic(qftbx_tests)
 
 target_compile_definitions(qftbx_tests

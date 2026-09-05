@@ -41,9 +41,16 @@ analysis guarantees that the rectangle contains the true image of every
 controller of the box; the rectangle may be larger than the image, never smaller.
 The phase is mapped onto the branch (-360°, 0]; a phase set that crosses the
 branch cut degrades to the whole branch, which is conservative and keeps the
-guarantee. Interval arithmetic is provided by the C-XSC library, and the whole
-interval code is compiled with `-frounding-math` so that the compiler honours
-the directed roundings C-XSC switches around each operation.
+guarantee. The product is assembled in polar form, as the thesis writes it:
+each factor jω + x is a segment of the complex plane whose magnitude and phase
+ranges are read rigorously, and the factors multiply their magnitudes and add
+their phases, so the enclosure does not grow with the number of factors as a
+product of rectangles would. The interval arithmetic underneath is the kv
+library in its rounding-emulation mode, which never changes the floating-point
+rounding mode; the logarithms and arc tangents of the projection are the C
+library's values widened by four ulps (see `src/core/math/interval.h`). A
+domain error (a division by an interval containing zero) is reported as an
+exception rather than aborting the process.
 
 Only zero-pole-gain controller structures are supported by the interval
 algorithms for now; other structures are refused with a message.

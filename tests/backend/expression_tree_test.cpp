@@ -175,11 +175,11 @@ TEST(ExpressionBuilder, AnExpressionIsABuildingBlockOfManyTrees)
     ExpressionTree first(g - Expression(2.0), 0.0, qftbx::GREATER_EQUAL);
     ExpressionTree second(Expression(5.0) - g, 0.0, qftbx::GREATER_EQUAL);
 
-    std::map<std::string, cxsc::interval> domains{{"g", cxsc::interval(0.0, 10.0)}};
+    std::map<std::string, Interval> domains{{"g", Interval(0.0, 10.0)}};
     EXPECT_TRUE(first.propagate(&domains));
     EXPECT_TRUE(second.propagate(&domains));
-    EXPECT_DOUBLE_EQ(cxsc::_double(Inf(domains.at("g"))), 2.0);
-    EXPECT_DOUBLE_EQ(cxsc::_double(Sup(domains.at("g"))), 5.0);
+    EXPECT_DOUBLE_EQ(domains.at("g").lower(), 2.0);
+    EXPECT_DOUBLE_EQ(domains.at("g").upper(), 5.0);
 }
 
 TEST(ExpressionBuilder, AnOperatorWithoutAnOperandIsRefused)

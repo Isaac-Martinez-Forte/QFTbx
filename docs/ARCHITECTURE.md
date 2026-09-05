@@ -29,7 +29,7 @@ stage has a dialog in the GUI and an engine in the model layer.
    nominal open loop, computed on a phase×magnitude grid and traced with a contour
    follower; per-frequency boundaries are then merged (1D intersection algorithm).
 6. **Loop shaping**: automatic controller synthesis honouring the boundaries (interval
-   arithmetic via C-XSC; several algorithms).
+   arithmetic; several algorithms).
 
 Each algorithm, its reference and how the implementation follows it are described
 in [docs/algorithms](algorithms/README.md).
@@ -72,7 +72,7 @@ fields, and the constraints of algorithm MR, which are built in memory with the
 blanks, the constants `pi` and `e` in either case, and the functions `sin`,
 `cos`, `tan`, `asin`, `acos`, `atan`, `sinh`, `cosh`, `tanh`, `exp`, `sqrt`,
 `abs`, `ln`, `log`, `log10`, `lg`, `log2`. A tree evaluates over reals, over
-complex numbers (a plant at `s = jω`) and over C-XSC intervals, and propagates
+complex numbers (a plant at `s = jω`) and over intervals, and propagates
 constraints with the HC4 filter. The names a parameter cannot take are the
 functions, the constants and the Laplace variable `s`; `k` is a name like any
 other.
@@ -80,7 +80,10 @@ other.
 ## Third-party libraries (vendored in `3rd-party/`)
 
 - **QCustomPlot** — plotting inside the Qt GUI.
-- **C-XSC** — validated interval arithmetic, used by loop shaping.
+- **kv** — verified interval arithmetic (header-only), behind the toolbox's own
+  `Interval`, `ComplexInterval` and `PolarInterval` types in `src/core/math/interval.h`;
+  used by loop shaping. C-XSC can take its place (`QFTBX_INTERVAL_BACKEND=cxsc`),
+  fetched from its repository rather than vendored.
 
 ## Error handling
 

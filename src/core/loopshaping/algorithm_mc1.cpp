@@ -4,7 +4,6 @@
 #include "src/core/common/exception.h"
 #include "src/core/loopshaping/algorithm_mc1.h"
 
-using namespace cxsc;
 
 namespace qftbx {
 
@@ -33,12 +32,10 @@ bool AlgorithmMc1::solve()
     bestCertifiedController = nullptr;
 
     nominalPlantValues.clear();
-    nominalPlantValuesStd.clear();
 
     for (double o : *omega) {
         std::complex<double> c = plant->evaluate(o);
-        nominalPlantValuesStd.push_back(c);
-        nominalPlantValues.push_back(cxsc::complex(c.real(), c.imag()));
+        nominalPlantValues.push_back(c);
     }
 
     //Steps 1-2: QS2 and feasibility of the initial box happen inside
@@ -139,7 +136,7 @@ void AlgorithmMc1::check_box_feasibility(std::unique_ptr<LtiSystem> box)
     box = capGain(std::move(box), bestCertifiedGain);
 
     std::size_t frequencyIndex = 0;
-    cinterval projection;
+    NicholsBox projection;
 
     for (double o : *omega) {
 
@@ -155,7 +152,7 @@ void AlgorithmMc1::check_box_feasibility(std::unique_ptr<LtiSystem> box)
             flag_final = ambiguous;
 
             box = quickSolution2(std::move(box), classification, projection, o,
-                                 nominalPlantValuesStd.at(frequencyIndex));
+                                 nominalPlantValues.at(frequencyIndex));
         }
 
         frequencyIndex++;
@@ -184,7 +181,7 @@ void AlgorithmMc1::check_box_feasibility(std::unique_ptr<LtiSystem> box)
 //is. All cuts run sequentially on the latest updated values.
 std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<LtiSystem> v,
                                                       const BoxClassification & classification,
-                                                      const cxsc::cinterval & projection,
+                                                      const NicholsBox & projection,
                                                       double w, std::complex<double> p0)
 {
     ParameterBounds bounds = boundsOf(v.get());
@@ -205,8 +202,8 @@ std::unique_ptr<LtiSystem> AlgorithmMc1::quickSolution2(std::unique_ptr<LtiSyste
     const double phaseStep = boundaries->phaseRange().width() /
                         (boundaries->phaseCount() - 1);
 
-    const double boxPhaseMin = _double(Inf(Im(projection)));
-    const double boxPhaseMax = _double(Sup(Im(projection)));
+    const double boxPhaseMin = projection.phaseDegrees.lower();
+    const double boxPhaseMax = projection.phaseDegrees.upper();
 
     const double boundPhaseMin = classification.extremes()[2];
     const double boundPhaseMax = classification.extremes()[3];
@@ -238,12 +235,12 @@ bool AlgorithmMc1::gainRangeIsFeasible(const std::vector<NaturalIntervalExtensio
     //The box with its gain replaced, projected from the zero and pole
     //products of the box: the bisection below asks this many times per
     //node with the same box and another gain range.
-    const interval gain(gainInf, gainSup);
+    const Interval gain(gainInf, gainSup);
 
     bool feasibleEverywhere = true;
 
     for (std::size_t i = 0; i < omega->size() && feasibleEverywhere; ++i) {
-        const cinterval projection = conversion->nicholsOf(gain, factors.at(i), nominalPlantValues.at(i));
+        const NicholsBox projection = conversion->nicholsOf(gain, factors.at(i), nominalPlantValues.at(i));
         feasibleEverywhere = detector->classifyBox(projection, boundaries, i).flag() == feasible;
     }
 

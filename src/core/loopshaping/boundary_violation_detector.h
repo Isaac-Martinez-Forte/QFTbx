@@ -11,7 +11,7 @@
 #include "src/core/boundaries/boundary_types.h"
 #include "src/core/loopshaping/box_classification.h"
 
-#include <cinterval.hpp>
+#include "src/core/loopshaping/natural_interval_extension.h"
 
 /**
  * @class BoundaryViolationDetector
@@ -34,7 +34,7 @@ class BoundaryViolationDetector
 public:
     /// Classification of one projected box; a plain value (four doubles,
     /// a flag and two corner verdicts), so there is nothing to own.
-    BoxClassification classifyBox(cxsc::cinterval box, const BoundaryData * boundaries, std::size_t frequencyIndex);
+    BoxClassification classifyBox(NicholsBox box, const BoundaryData * boundaries, std::size_t frequencyIndex);
 
     /// Classifies one Nichols point (phase deg, magnitude dB) against the
     /// boundary union at design frequency 'frequencyIndex' (parity test).
