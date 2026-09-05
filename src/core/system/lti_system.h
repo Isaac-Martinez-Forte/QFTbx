@@ -24,7 +24,7 @@ namespace qftbx {
  * right by hand).
  *
  * Evaluation is direct complex arithmetic over the coefficient values
- * (valueAt); only a free-form system goes through muParserX, with its
+ * (valueAt); only a free-form system evaluates an expression tree, with its
  * coefficients bound as variables. The textual routes that evaluated an
  * expression per call are gone: nothing outside the tests used them.
  */

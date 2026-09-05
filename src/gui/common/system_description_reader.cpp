@@ -4,7 +4,8 @@
 #include <QRegularExpression>
 
 #include "src/core/common/exception.h"
-#include "src/core/math/expression_cache.h"
+#include "src/core/math/expression_tree.h"
+#include "src/gui/common/expression_field.h"
 #include "src/core/system/free_form.h"
 #include "src/core/system/polynomial_form.h"
 #include "src/core/system/time_constant_gain.h"
@@ -15,7 +16,7 @@
 namespace qftbx {
 
 SystemDescriptionReader::SystemDescriptionReader(QString title)
-    : m_title(std::move(title)), m_parser(mup::pckALL_NON_COMPLEX)
+    : m_title(std::move(title))
 {
 }
 
@@ -29,20 +30,21 @@ QString SystemDescriptionReader::firstParameterName(const QString & text, bool &
     QString capture = name.match(rest).captured(0);
 
     while (!capture.isNull()) {
-        //A name the parser already owns cannot become a parameter: the
-        //binding fails later and the system stops evaluating. The constants
-        //(e, pi, i) and the unit operators - "k", "m", "u" - are reserved
-        //too, where "k" is the obvious name for a gain and would otherwise
-        //be read as the multiplier 1e3.
-        if (math::isReservedName(capture.toStdString())) {
+        //A function of the grammar is not a parameter, and neither is the
+        //Laplace variable s. The constants pi and e cannot be parameter
+        //names: the expression would read the constant, never the
+        //parameter.
+        const std::string identifier = capture.toStdString();
+
+        if (identifier == "pi" || identifier == "PI" || identifier == "e" || identifier == "E") {
             errorMessage(QObject::tr("\"%1\" cannot be used as a parameter name: "
-                                     "the expression parser already defines it.").arg(capture),
+                                     "it is a constant of the expression grammar.").arg(capture),
                          m_title);
             refused = true;
             return QString();
         }
 
-        if (!m_parser.IsFunDefined(capture.toStdString()) && capture != "s") {
+        if (!ExpressionTree::isFunctionName(identifier) && identifier != FreeForm::laplaceName()) {
             return capture;
         }
 
@@ -163,12 +165,7 @@ bool SystemDescriptionReader::readFreeForm(const QString & text, CoefficientTabl
 
 std::optional<double> SystemDescriptionReader::evaluate(const QString & expression)
 {
-    try {
-        m_parser.SetExpr(expression.toStdString());
-        return m_parser.Eval().GetFloat();
-    } catch (mup::ParserError &) {
-        return std::nullopt;
-    }
+    return evaluateNumber(expression);
 }
 
 std::optional<std::vector<Parameter>> SystemDescriptionReader::buildParameters(const CoefficientRow & numbers)

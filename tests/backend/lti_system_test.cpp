@@ -1,5 +1,5 @@
 // Tests for the LtiSystem hierarchy: expression generation (expression) and
-// nominal evaluation through muParserX (evaluate).
+// nominal evaluation (evaluate).
 //
 // Reminder of the plant forms:
 //   SystemType::ZeroPoleGain     P(s) = k * prod(s + z) / prod(s + p)
@@ -172,8 +172,8 @@ TEST(kNumeratorGainExpr, NominalEvaluationMatchesTimeConstantForm)
 TEST(kNumeratorGainExpr, VariableGainUsesItsRealName)
 {
     // Fixed: the expression emitted the hardcoded identifier "kv" for a
-    // variable gain; with any other name muParserX auto-created kv = 0 and
-    // the whole plant silently evaluated to zero.
+    // variable gain; with any other name the expression library auto-created
+    // kv = 0 and the whole plant silently evaluated to zero.
     TimeConstantGain plant(std::string("named"), vars({}), vars({Parameter(10.0)}),
                       Parameter(std::string("K1"), Range(1.0, 10.0), 5.0,
                               std::string("K1")),

@@ -11,7 +11,6 @@
 #include "src/core/common/exception.h"
 #include "src/core/pipeline/pipeline_step.h"
 
-#include <mpParser.h>
 
 #include <vector>
 
@@ -504,18 +503,6 @@ void MainWindow::on_templatesButton_clicked()
             templatesOk = controller->computeTemplates(templatesDialog->takeEpsilon(),
                                                        templatesDialog->grids(),
                                                        templatesDialog->cudaSelected());
-        } catch (mup::ParserError & parserError) {
-            //A muParserX error is neither a qftbx::Exception nor a
-            //std::exception, so it escaped this slot and took the application
-            //down. Parameter names are validated when a system is published,
-            //which is where this class of problem belongs, but a computation
-            //must not be able to kill the window either way.
-            QMessageBox::critical(this, tr("Template computation"),
-                                  tr("The expression parser refused this "
-                                     "computation: %1")
-                                      .arg(QString::fromStdString(parserError.GetMsg())));
-            refreshAvailability();
-            return;
         } catch (const qftbx::Exception & e) {
             QMessageBox::critical(this, tr("Template computation"), e.what());
             refreshAvailability();
@@ -563,18 +550,6 @@ void MainWindow::on_boundariesButton_clicked()
                                                          boundaryGridDialog->infinityValue(),
                                                          boundaryGridDialog->contourSelected(),
                                                          boundaryGridDialog->cudaSelected());
-        } catch (mup::ParserError & parserError) {
-            //A muParserX error is neither a qftbx::Exception nor a
-            //std::exception, so it escaped this slot and took the application
-            //down. Parameter names are validated when a system is published,
-            //which is where this class of problem belongs, but a computation
-            //must not be able to kill the window either way.
-            QMessageBox::critical(this, tr("Boundary computation"),
-                                  tr("The expression parser refused this "
-                                     "computation: %1")
-                                      .arg(QString::fromStdString(parserError.GetMsg())));
-            refreshAvailability();
-            return;
         } catch (const qftbx::Exception & e) {
             QMessageBox::critical(this, tr("Boundary computation"), e.what());
             refreshAvailability();
@@ -650,19 +625,6 @@ void MainWindow::on_loopButton_clicked()
                                                       loopShapingDialog->range(),
                                                       loopShapingDialog->pointCountValue(),
                                                       loopShapingDialog->initialisationValue());
-        } catch (mup::ParserError & parserError) {
-            //Same treatment as a qftbx::Exception, and the reason it is
-            //needed: a muParserX error is neither that nor a std::exception,
-            //so it escaped this slot and took the application down. Naming a
-            //controller gain "k" was enough - the parser reserves it as its
-            //kilo postfix operator. Names are validated when a system is
-            //published now; this is the net under it.
-            QMessageBox::critical(this, tr("Loop Shaping"),
-                                  tr("The expression parser refused this "
-                                     "computation: %1")
-                                      .arg(QString::fromStdString(parserError.GetMsg())));
-            refreshAvailability();
-            return;
         } catch (const qftbx::Exception & e) {
             QMessageBox::critical(this, tr("Loop Shaping"), e.what());
             refreshAvailability();
@@ -769,18 +731,6 @@ void MainWindow::on_actionOpen_triggered()
         refreshAvailability();
     }
 
-}
-
-void MainWindow::on_actionConsole_triggered()
-{
-    //Unreachable while the action is disabled in the .ui; kept so the
-    //parked console has a caller the day its two paths exist. See
-    //MuParserXConsole.
-    QString missing;
-    if (!MuParserXConsole::launch(&missing)) {
-        qftbx::errorMessage(tr("The muParserX console could not be started: "
-                               "%1 is not there.").arg(missing), tr("QFTbx"));
-    }
 }
 
 void MainWindow::on_actionNew_triggered()

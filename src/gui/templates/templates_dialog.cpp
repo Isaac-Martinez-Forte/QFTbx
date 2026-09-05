@@ -1,5 +1,8 @@
 #include <cmath>
 #include "src/gui/common/number_text.h"
+#include "src/gui/common/expression_field.h"
+#include <limits>
+#include <optional>
 #include <QDoubleValidator>
 #include "src/gui/templates/templates_dialog.h"
 #include "src/core/math/sequences.h"
@@ -11,19 +14,18 @@
 #include <QMessageBox>
 #include "src/gui/common/plot_palette.h"
 
-using namespace mup;
 
 namespace qftbx {
 
 namespace {
 
 //A point count is read from an expression the user typed, so it can be
-//anything muParserX accepts: fractional, negative, enormous, or not finite
-//at all. Casting that straight to a size_t is what turned a "-5" into a
-//request for 1.8e19 doubles: reserve() threw a length_error, which is not
-//the mup::ParserError caught below, so the application went down instead
-//of complaining. A non-finite value was worse - converting an infinity to
-//an integer type is undefined behaviour.
+//anything an expression evaluates to: fractional, negative, enormous, or
+//not finite at all. Casting that straight to a size_t is what turned a
+//"-5" into a request for 1.8e19 doubles: reserve() threw a length_error,
+//which was not caught, so the application went down instead of
+//complaining. A non-finite value was worse - converting an infinity to an
+//integer type is undefined behaviour.
 //The ceiling comes from the settings, so it can be moved without a
 //rebuild; the default is generous, a template grid needing hundreds of
 //points and a million already multiplying out to more plants than a sweep
@@ -60,8 +62,6 @@ TemplatesDialog::TemplatesDialog(QWidget *parent) :
 #ifndef CUDA_AVAILABLE
     ui->cudaCheck->setVisible(false);
 #endif
-
-    parser = std::make_unique<ParserX>(pckALL_NON_COMPLEX);
 
 }
 
@@ -292,27 +292,26 @@ void TemplatesDialog::on_okButton_clicked()
 
         //User expressions: an invalid epsilon used to throw and bring the
         //application down.
-        try {
-            for (const std::string & s : v) {
-                parser->SetExpr(s);
-                lastEpsilon = parser->Eval().GetFloat();
-                //An epsilon that is not a positive finite number has no hull:
-                //the walk would fail much later, per frequency, naming no
-                //field. muParserX answers "0/0" with a NaN, not an error.
-                if (!std::isfinite(lastEpsilon) || lastEpsilon <= 0.0) {
-                    errorMessage(tr("Every epsilon must be a positive finite number."), tr("Template computation"));
-                    ui->epsilonEdit->setStyleSheet("background : red");
-                    epsilonValues.clear();
-                    return;
-                }
-                epsilonValues.push_back(lastEpsilon);
-                counter++;
+        for (const std::string & s : v) {
+            const std::optional<double> epsilonValue = evaluateNumber(QString::fromStdString(s));
+            if (!epsilonValue.has_value()) {
+                errorMessage(tr("Invalid epsilon expression."), tr("Template computation"));
+                ui->epsilonEdit->setStyleSheet("background : red");
+                epsilonValues.clear();
+                return;
             }
-        } catch (mup::ParserError &) {
-            errorMessage(tr("Invalid epsilon expression."), tr("Template computation"));
-            ui->epsilonEdit->setStyleSheet("background : red");
-            epsilonValues.clear();
-            return;
+            lastEpsilon = *epsilonValue;
+            //An epsilon that is not a positive finite number has no hull:
+            //the walk would fail much later, per frequency, naming no
+            //field ("0/0" evaluates to a NaN, not an error).
+            if (!std::isfinite(lastEpsilon) || lastEpsilon <= 0.0) {
+                errorMessage(tr("Every epsilon must be a positive finite number."), tr("Template computation"));
+                ui->epsilonEdit->setStyleSheet("background : red");
+                epsilonValues.clear();
+                return;
+            }
+            epsilonValues.push_back(lastEpsilon);
+            counter++;
         }
 
         for (; counter < frequencyCount; counter++){
@@ -394,10 +393,9 @@ void TemplatesDialog::on_okButton_clicked()
 
         const qreal start = plant->gain().range().min;
         const qreal end = plant->gain().range().max;
-        parser->SetExpr(ui->globalPointCount->text().toStdString());
-
         std::size_t pointCount = 0;
-        if (!asPointCount(parser->Eval().GetFloat(), m_maxPointCount, pointCount)){
+        if (!asPointCount(evaluateNumber(ui->globalPointCount->text()).value_or(std::numeric_limits<double>::quiet_NaN()),
+                          m_maxPointCount, pointCount)){
             errorMessage(tr("The general point count must be a whole "
                             "number between 1 and %1.").arg(static_cast<qint64>(m_maxPointCount)),
                          tr("Template computation"));
@@ -419,10 +417,9 @@ void TemplatesDialog::on_okButton_clicked()
 
         const qreal start = plant->delay().range().min;
         const qreal end = plant->delay().range().max;
-        parser->SetExpr(ui->globalPointCount->text().toStdString());
-
         std::size_t pointCount = 0;
-        if (!asPointCount(parser->Eval().GetFloat(), m_maxPointCount, pointCount)){
+        if (!asPointCount(evaluateNumber(ui->globalPointCount->text()).value_or(std::numeric_limits<double>::quiet_NaN()),
+                          m_maxPointCount, pointCount)){
             errorMessage(tr("The general point count must be a whole "
                             "number between 1 and %1.").arg(static_cast<qint64>(m_maxPointCount)),
                          tr("Template computation"));
@@ -441,9 +438,8 @@ void TemplatesDialog::on_okButton_clicked()
         }
     }
 
-    } catch (mup::ParserError &) {
-        //Invalid point count or manual grid: it used to bring the
-        //application down.
+    } catch (const std::invalid_argument &) {
+        //Invalid manual grid: it used to bring the application down.
         errorMessage(tr("Invalid grid expressions."), tr("Template computation"));
         gridMap.clear();
         epsilonValues.clear();
@@ -487,8 +483,8 @@ bool TemplatesDialog::readVariable(const ParLineEdit & rowEdits, ThreeRadioButto
         start = parameter.range().min;
         end = parameter.range().max;
 
-        parser->SetExpr(rowEdits.getX()->text().toStdString());
-        if (!asPointCount(parser->Eval().GetFloat(), m_maxPointCount, pointCount)){
+        if (!asPointCount(evaluateNumber(rowEdits.getX()->text()).value_or(std::numeric_limits<double>::quiet_NaN()),
+                          m_maxPointCount, pointCount)){
             m_readReason = tr("its point count must be a whole number "
                               "between 1 and %1")
                     .arg(static_cast<qint64>(m_maxPointCount));
@@ -501,8 +497,8 @@ bool TemplatesDialog::readVariable(const ParLineEdit & rowEdits, ThreeRadioButto
 
         start = parameter.range().min;
         end = parameter.range().max;
-        parser->SetExpr(rowEdits.getY()->text().toStdString());
-        if (!asPointCount(parser->Eval().GetFloat(), m_maxPointCount, pointCount)){
+        if (!asPointCount(evaluateNumber(rowEdits.getY()->text()).value_or(std::numeric_limits<double>::quiet_NaN()),
+                          m_maxPointCount, pointCount)){
             m_readReason = tr("its point count must be a whole number "
                               "between 1 and %1")
                     .arg(static_cast<qint64>(m_maxPointCount));
@@ -518,11 +514,11 @@ bool TemplatesDialog::readVariable(const ParLineEdit & rowEdits, ThreeRadioButto
         values.reserve(static_cast<std::size_t>(vector.size()));
 
         for (const std::string & sSymbolCount : vector) {
-            parser->SetExpr(sSymbolCount);
-            const double value = parser->Eval().GetFloat();
             //A manual grid value may be negative - a parameter range can be -
-            //but an infinity or a NaN would spread through every template
-            //computed from it and only surface much later, as an empty plot.
+            //but a text that is not an expression, an infinity or a NaN would
+            //spread through every template computed from it and only surface
+            //much later, as an empty plot.
+            const double value = evaluateNumber(QString::fromStdString(sSymbolCount)).value_or(std::numeric_limits<double>::quiet_NaN());
             if (!std::isfinite(value)){
                 m_readReason = tr("one of its grid values is not a finite "
                                   "number");
@@ -537,8 +533,8 @@ bool TemplatesDialog::readVariable(const ParLineEdit & rowEdits, ThreeRadioButto
         start = parameter.range().min;
         end = parameter.range().max;
 
-        parser->SetExpr(ui->globalPointCount->text().toStdString());
-        if (!asPointCount(parser->Eval().GetFloat(), m_maxPointCount, pointCount)){
+        if (!asPointCount(evaluateNumber(ui->globalPointCount->text()).value_or(std::numeric_limits<double>::quiet_NaN()),
+                          m_maxPointCount, pointCount)){
             m_readReason = tr("its point count must be a whole number "
                               "between 1 and %1")
                     .arg(static_cast<qint64>(m_maxPointCount));

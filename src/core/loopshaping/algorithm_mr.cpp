@@ -4,8 +4,6 @@
 #include "src/core/common/exception.h"
 #include "src/core/loopshaping/algorithm_mr.h"
 
-#include "src/core/common/text_tokens.h"
-
 #include "src/core/specifications/specification_record.h"
 
 #include <cmath>
@@ -42,11 +40,6 @@ namespace {
 //article formulates. It is a modelling decision for the thesis, not a repair
 //of this code, so this stays as the paper has it, with the gap written down.
 
-//The shared primitive: it round-trips, so the lexer parses back exactly
-//this double, and it is far shorter than the 'g',17 this used to ask for -
-//these strings are built by the thousand.
-using qftbx::text::number;
-
 } // namespace
 
 void AlgorithmMr::setProblem(LtiSystem *plant, LtiSystem *controller, std::vector<double> * omega, const BoundaryData *boundaries,
@@ -62,12 +55,12 @@ void AlgorithmMr::setProblem(LtiSystem *plant, LtiSystem *controller, std::vecto
 }
 
 
-//Controller magnitude and phase as expression strings over the uncertain
-//parameter names, one pair per design frequency. A zero-pole-gain factor
-//(jw + x) contributes sqrt(x^2 + w^2) to the magnitude; a time-constant
-//factor (1 + jw/x) contributes sqrt(1 + w^2/x^2); both contribute
-//atan(w/x) to the phase in radians (the historical builder emitted
-//atan(x/w), the complement of the true phase).
+//Controller magnitude and phase as expressions over the uncertain parameter
+//names, one pair per design frequency, built in memory. A zero-pole-gain
+//factor (jw + x) contributes sqrt(x^2 + w^2) to the magnitude; a
+//time-constant factor (1 + jw/x) contributes sqrt(1 + w^2/x^2); both
+//contribute atan(w/x) to the phase in radians (the historical builder
+//emitted atan(x/w), the complement of the true phase).
 void AlgorithmMr::buildControllerExpressions(){
 
     const bool timeConstant =
@@ -79,42 +72,40 @@ void AlgorithmMr::buildControllerExpressions(){
                 "time-constant controller structure.");
     }
 
-    const auto term = [&](Parameter & var, double w) -> std::string {
-        const std::string value = var.isUncertain() ? var.name() : number(var.nominal());
+    const auto value = [](Parameter & var) {
+        return var.isUncertain() ? Expression::variable(var.name()) : Expression(var.nominal());
+    };
+
+    const auto term = [&](Parameter & var, double w) {
         if (timeConstant) {
-            return "sqrt(1+(" + number(w * w) + "/(" + value + "^2)))";
+            return sqrt(Expression(1.0) + Expression(w * w) / pow(value(var), Expression(2.0)));
         }
-        return "sqrt((" + value + "^2)+" + number(w * w) + ")";
+        return sqrt(pow(value(var), Expression(2.0)) + Expression(w * w));
     };
 
-    const auto phaseTerm = [&](Parameter & var, double w) -> std::string {
-        const std::string value = var.isUncertain() ? var.name() : number(var.nominal());
-        return "atan(" + number(w) + "/(" + value + "))";
+    const auto phaseTerm = [&](Parameter & var, double w) {
+        return atan(Expression(w) / value(var));
     };
 
-    const std::string gain = controller->gain().isUncertain()
-            ? controller->gain().name()
-            : number(controller->gain().nominal());
+    const Expression gain = value(controller->gain());
 
     magnitudeExpressions.clear();
     phaseExpressions.clear();
 
     for (double w : *omega) {
 
-        std::string magnitude = "(" + gain + ")";
-        std::string phase = "(0";
+        Expression magnitude = gain;
+        Expression phase(0.0);
 
         for (Parameter & var : controller->numerator()) {
-            magnitude += "*" + term(var, w);
-            phase += "+" + phaseTerm(var, w);
+            magnitude = magnitude * term(var, w);
+            phase = phase + phaseTerm(var, w);
         }
 
         for (Parameter & var : controller->denominator()) {
-            magnitude += "/" + term(var, w);
-            phase += "-" + phaseTerm(var, w);
+            magnitude = magnitude / term(var, w);
+            phase = phase - phaseTerm(var, w);
         }
-
-        phase += ")";
 
         magnitudeExpressions.push_back(magnitude);
         phaseExpressions.push_back(phase);
@@ -125,14 +116,15 @@ void AlgorithmMr::buildControllerExpressions(){
 //The constraint set of the ICSP (paper eqs. (10)-(11) plus the analogous
 //QFTbx quadratics for the remaining specifications), one inequality
 //"expression >= 0" per template representative (pairs for tracking) and
-//design frequency where the specification band applies.
+//design frequency where the specification band applies. Every constraint
+//is its own tree: the propagation caches an enclosure per node, so two
+//constraints cannot share one.
 void AlgorithmMr::buildConstraints(){
 
     //The constraint set is rebuilt from scratch: the historical version
     //relied on the end-of-run cleanup to empty it, so a second run over
     //the same algorithm object would have doubled every constraint.
     constraints.clear();
-    constraintTexts.clear();
 
     //The validated specification set, the same accessor the boundary
     //engine cuts at (the raw record heightDb evaluated NaN on some legacy
@@ -149,22 +141,20 @@ void AlgorithmMr::buildConstraints(){
         return specifications.at(slot).boundDb(w);
     };
 
-    const auto addConstraint = [&](const std::string & expression) {
-        auto tree = std::make_unique<ExpressionTree>("1");
-        tree->setFunc(expression, 0.0, qftbx::GREATER_EQUAL);
-        constraints.push_back(std::move(tree));
-        constraintTexts.push_back(expression);
+    const auto addConstraint = [&](const Expression & expression) {
+        constraints.push_back(std::make_unique<ExpressionTree>(expression, 0.0, qftbx::GREATER_EQUAL));
     };
 
     for (std::size_t i = 0; i < omega->size(); ++i) {
 
         const double w = omega->at(i);
-        const std::string & g = magnitudeExpressions.at(i);
-        const std::string & phi = phaseExpressions.at(i);
+        const Expression & g = magnitudeExpressions.at(i);
+        const Expression & phi = phaseExpressions.at(i);
+        const Expression g2 = pow(g, Expression(2.0));
 
         //Template representatives, evenly subsampled along the contour.
         //Non-finite or null points (artefacts of a degenerate contour)
-        //would embed "nan" into the expression texts: they are skipped.
+        //would put a NaN into the constraints: they are skipped.
         std::vector<std::complex<double>> points;
         const qftbx::ComplexCloud & contour = temp.at(i);
         const std::size_t take = std::min<std::size_t>(m_settings.algorithms.templateRepresentatives, contour.size());
@@ -178,22 +168,20 @@ void AlgorithmMr::buildConstraints(){
 
         for (const std::complex<double> & value : points) {
 
-            const std::string p = number(std::abs(value));
-            const std::string p2 = number(std::abs(value) * std::abs(value));
-            const std::string theta = number(std::arg(value));
+            const double p = std::abs(value);
+            const double p2 = p * p;
+            const double theta = std::arg(value);
 
             //|1 + L|^2 expanded: g^2 p^2 + 2 g p cos(phi + theta) + 1.
-            const std::string l2 = "((" + g + ")^2)*(" + p2 + ")+2*(" + g + ")*(" + p +
-                    ")*cos((" + phi + ")+(" + theta + "))+1";
+            const Expression crossTerm = Expression(2.0) * g * Expression(p) * cos(phi + Expression(theta));
+            const Expression l2 = g2 * Expression(p2) + crossTerm + Expression(1.0);
 
             //Stability margin |T| <= ws (paper eq. (10)); the sensor noise
             //specification shares the same transfer.
             for (SpecificationType slot : {SpecificationType::Stability, SpecificationType::SensorNoise}) {
                 if (applies(slot, w)) {
                     const double ws = std::pow(10.0, boundDb(slot, w) / 20.0);
-                    addConstraint("((" + g + ")^2)*(" + p2 + ")*(1-" +
-                                  number(1.0 / (ws * ws)) + ")+2*(" + g + ")*(" + p +
-                                  ")*cos((" + phi + ")+(" + theta + "))+1");
+                    addConstraint(g2 * Expression(p2) * Expression(1.0 - 1.0 / (ws * ws)) + crossTerm + Expression(1.0));
                 }
             }
 
@@ -201,21 +189,21 @@ void AlgorithmMr::buildConstraints(){
             //|1+L|^2 - 1/d^2 >= 0.
             if (applies(SpecificationType::OutputDisturbance, w)) {
                 const double d = std::pow(10.0, boundDb(SpecificationType::OutputDisturbance, w) / 20.0);
-                addConstraint("(" + l2 + ")-" + number(1.0 / (d * d)));
+                addConstraint(l2 - Expression(1.0 / (d * d)));
             }
 
             //Input disturbance rejection |P/(1+L)| <= d:
             //|1+L|^2 - p^2/d^2 >= 0.
             if (applies(SpecificationType::InputDisturbance, w)) {
                 const double d = std::pow(10.0, boundDb(SpecificationType::InputDisturbance, w) / 20.0);
-                addConstraint("(" + l2 + ")-(" + p2 + ")*" + number(1.0 / (d * d)));
+                addConstraint(l2 - Expression(p2) * Expression(1.0 / (d * d)));
             }
 
             //Control effort |G/(1+L)| <= d: |1+L|^2 - g^2/d^2 >= 0 (the
             //historical rule dropped the g^2 factor).
             if (applies(SpecificationType::ControlEffort, w)) {
                 const double d = std::pow(10.0, boundDb(SpecificationType::ControlEffort, w) / 20.0);
-                addConstraint("(" + l2 + ")-((" + g + ")^2)*" + number(1.0 / (d * d)));
+                addConstraint(l2 - g2 * Expression(1.0 / (d * d)));
             }
         }
 
@@ -225,7 +213,7 @@ void AlgorithmMr::buildConstraints(){
 
             const double deltaDb = boundDb(SpecificationType::TrackingUpper, w) - boundDb(SpecificationType::TrackingLower, w);
             const double delta2 = std::pow(10.0, deltaDb / 10.0);
-            const std::string invDelta2 = number(1.0 / delta2);
+            const double invDelta2 = 1.0 / delta2;
 
             for (std::size_t a = 0; a < points.size(); ++a) {
                 for (std::size_t b = 0; b < points.size(); ++b) {
@@ -238,12 +226,11 @@ void AlgorithmMr::buildConstraints(){
                     const double pk = std::abs(points.at(b));
                     const double thetaK = std::arg(points.at(b));
 
-                    addConstraint("((" + g + ")^2)*" + number(pk * pk * pi * pi) +
-                            "*(1-" + invDelta2 + ")+2*(" + g + ")*" + number(pk * pi) +
-                            "*(" + number(pk) + "*cos((" + phi + ")+(" + number(thetaI) +
-                            "))-" + number(pi) + "*" + invDelta2 + "*cos((" + phi +
-                            ")+(" + number(thetaK) + ")))+" +
-                            number(pk * pk) + "-" + number(pi * pi) + "*" + invDelta2);
+                    addConstraint(g2 * Expression(pk * pk * pi * pi) * Expression(1.0 - invDelta2)
+                                  + Expression(2.0) * g * Expression(pk * pi)
+                                    * (Expression(pk) * cos(phi + Expression(thetaI))
+                                       - Expression(pi) * Expression(invDelta2) * cos(phi + Expression(thetaK)))
+                                  + Expression(pk * pk) - Expression(pi * pi) * Expression(invDelta2));
                 }
             }
         }

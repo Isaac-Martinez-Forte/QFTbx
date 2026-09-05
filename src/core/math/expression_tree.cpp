@@ -5,11 +5,13 @@ Roberto C. Cruz Rodríguez
 // This function interpreter builds a binary expression tree in which every
 // inner node is an operation and every leaf a value.
 
-#include "src/core/loopshaping/expression_tree.h"
+#include "src/core/math/expression_tree.h"
 #include "src/core/math/constants.h"
 
+#include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <complex>
 #include <iostream>
 #include <stack>
 #include <stdexcept>
@@ -25,17 +27,48 @@ namespace qftbx {
 
 namespace {
 
-//The lexer reads the expression without blanks.
+//The lexer reads the expression without blanks: spaces, tabs and line
+//breaks alike (only the space used to go). Two operands with nothing but
+//blanks between them ("2 3", "a b") are refused first: stripped, they
+//would read as one token, and the user would get 23 for "2 3".
 std::string withoutSpaces(const std::string & text)
 {
+    const auto tokenChar = [](char c) {
+        return std::isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '.';
+    };
+
     std::string stripped;
     stripped.reserve(text.size());
+
+    bool blankAfterToken = false;
     for (const char c : text) {
-        if (c != ' ') {
-            stripped.push_back(c);
+        if (std::isspace(static_cast<unsigned char>(c))) {
+            blankAfterToken = blankAfterToken || (!stripped.empty() && tokenChar(stripped.back()));
+            continue;
         }
+        if (blankAfterToken && tokenChar(c)) {
+            throw std::invalid_argument("ExpressionTree: two values with nothing between them "
+                                        "in the expression '" + text + "'.");
+        }
+        blankAfterToken = false;
+        stripped.push_back(c);
     }
     return stripped;
+}
+
+//The functions of the grammar, by the name a user writes.
+const std::pair<const char *, type_node> kFunctions[] = {
+    {"sin", SIN}, {"cos", COS}, {"tan", TAN}, {"atan", ATAN}, {"exp", EXP},
+    {"sinh", SINH}, {"cosh", COSH}, {"tanh", TANH}, {"abs", ABS},
+    {"ln", LN}, {"log", LN}, {"lg", LG}, {"log10", LG}, {"log2", LOG2},
+    {"asin", ASIN}, {"acos", ACOS}, {"sqrt", SQRT},
+};
+
+//The base-2 logarithm, which C-XSC does not provide: ln(x) / ln(2), the
+//divisor enclosed.
+interval log2Enclosure(const interval & x)
+{
+    return ln(x) / ln(interval(2.0));
 }
 
 //Enclosures of the two constants, not the nearest doubles: an interval
@@ -80,10 +113,36 @@ ExpressionTree::ExpressionTree(const std::string &text, double result, com compa
     build_tree(in_exp);
 }
 
+ExpressionTree::ExpressionTree(const std::string &text)
+{
+    root = nullptr;
+    std::string in_exp = withoutSpaces(text);
+    build_tree(in_exp);
+}
+
+ExpressionTree::ExpressionTree(const Expression & expression)
+    : root(expression.release())
+{
+    if (root == nullptr) {
+        throw std::invalid_argument("ExpressionTree: an empty expression.");
+    }
+}
+
+ExpressionTree::ExpressionTree(const Expression & expression, double num, com comparison)
+    : root(expression.release()),
+      comparisonValue(num),
+      comparison(comparison)
+{
+    if (root == nullptr) {
+        throw std::invalid_argument("ExpressionTree: an empty expression.");
+    }
+}
+
 ExpressionTree::ExpressionTree(const ExpressionTree &other )
     : root(make_cpy(other.root.get())),
       comparisonValue(other.comparisonValue),
-      comparison(other.comparison)
+      comparison(other.comparison),
+      m_boundNames(other.m_boundNames)
 {
 }
 
@@ -262,7 +321,11 @@ string ExpressionTree::symbolOf(type_node type)  {
     }
 
     if (type == LG){
-        return " log ";
+        return " log10 ";
+    }
+
+    if (type == LOG2){
+        return " log2 ";
     }
 
     if (type == SQRT){
@@ -285,6 +348,7 @@ ExpressionTree &ExpressionTree::operator=(const ExpressionTree &other)
     //behaviour (the historical version did, flagged by every build).
     if (this != &other) {
         root = make_cpy(other.root.get());
+        m_boundNames = other.m_boundNames;
         comparisonValue = other.comparisonValue;
         comparison = other.comparison;
     }
@@ -385,6 +449,9 @@ double ExpressionTree::eval_tree(exp_node *node)
     case LG :
         return log10 ( eval_tree(node->left.get()) );
 
+    case LOG2 :
+        return log2 ( eval_tree(node->left.get()) );
+
         /* if another function was added, add its 'case' here with its operation */
 
     default:
@@ -441,8 +508,8 @@ bool ExpressionTree::propagate(std::map<string, interval> *variables){
 
 bool ExpressionTree::safeIntersection(const interval & a, const interval & b, interval & out){
 
-    const real low = (Inf(a) > Inf(b)) ? Inf(a) : Inf(b);
-    const real high = (Sup(a) < Sup(b)) ? Sup(a) : Sup(b);
+    const cxsc::real low = (Inf(a) > Inf(b)) ? Inf(a) : Inf(b);
+    const cxsc::real high = (Sup(a) < Sup(b)) ? Sup(a) : Sup(b);
 
     if (low > high) {
         return false;
@@ -822,6 +889,9 @@ interval ExpressionTree::eval_tree_in(exp_node *node)
     case LG :
         return node->enclosure = log10 ( eval_tree_in(node->left.get()) );
 
+    case LOG2 :
+        return node->enclosure = log2Enclosure( eval_tree_in(node->left.get()) );
+
     default:
         throw std::invalid_argument("ExpressionTree: a node the interval evaluator does not know.");
 
@@ -843,6 +913,7 @@ std::unique_ptr<exp_node> ExpressionTree::make_cpy(exp_node *node)
     //The variable name was not copied: a copied tree evaluated its
     //variables under an empty name.
     ptr->var = node->var;
+    ptr->index = node->index;
 
     ptr->left = make_cpy(node->left.get());
     ptr->right = make_cpy(node->right.get());
@@ -906,7 +977,8 @@ void ExpressionTree::build_tree(std::string &in_exp)
 
     //A constant, optionally signed, with an optional exponent: the exponent
     //belongs to the constant (the historical lexer stopped at the 'e' and
-    //re-read it as an identifier). Advances pos past it.
+    //re-read it as an identifier). It may start at its decimal point
+    //(".5"). Advances pos past it.
     const auto readConstant = [&](std::string::size_type & pos) {
         const std::string::size_type from = pos;
         if (in_exp[pos] == '-') {
@@ -948,41 +1020,79 @@ void ExpressionTree::build_tree(std::string &in_exp)
 
     std::string::size_type pos = 0;
 
+    //Whether a '-' at pos is a unary minus: at the start, after an opening
+    //parenthesis or after an operator. "2*-3" and "s^-1" used to fail as a
+    //binary minus missing its left operand.
+    const auto isUnaryMinusAt = [&](std::string::size_type at) {
+        if (at == 0) {
+            return true;
+        }
+        const char before = in_exp[at - 1];
+        return before == '(' || before == '+' || before == '-' || before == '*' ||
+               before == '/' || before == '^';
+    };
+
+    //Whether the number starting at 'from' is followed by '^': then a minus
+    //before it is the unary minus of the power, -2^2 = -(2^2), not the sign
+    //of the constant.
+    const auto numberIsRaised = [&](std::string::size_type from) {
+        std::string::size_type i = from;
+        while ( i < len && (isdigit(static_cast<unsigned char>(in_exp[i])) || in_exp[i] == '.') ) ++i;
+        if ( i + 1 < len && (in_exp[i] == 'e' || in_exp[i] == 'E') &&
+             (isdigit(static_cast<unsigned char>(in_exp[i+1])) ||
+              (i + 2 < len && (in_exp[i+1] == '+' || in_exp[i+1] == '-') && isdigit(static_cast<unsigned char>(in_exp[i+2])))) ) {
+            i += 2;
+            while ( i < len && isdigit(static_cast<unsigned char>(in_exp[i])) ) ++i;
+        }
+        return i < len && in_exp[i] == '^';
+    };
+
     while (pos < len)
     {
         const char c = in_exp[pos];
         const bool digitNext = pos + 1 < len && isdigit(static_cast<unsigned char>(in_exp[pos+1]));
-        const bool afterOpening = pos > 0 && in_exp[pos-1] == '(';
 
-        if (c != '('){
-            //A function name runs up to its opening parenthesis.
+        if ( isLetter(c) )
+        {
+            //An identifier is a letter followed by letters, digits or
+            //underscores: the historical lexer stopped at the first
+            //non-letter, so "z1" parsed as the variable "z" and a stray
+            //constant 1. Followed by an opening parenthesis and naming a
+            //function, it is that function; otherwise a whole-token constant
+            //(pi, e, in either case: "P1" and "E2" used to be read as the
+            //constants, swallowing the variable) or a variable.
             std::string::size_type i = pos;
-            while ( i < len && in_exp[i] != '(' ) ++i;
-            const std::string tmp_str = in_exp.substr(pos, i-pos);
+            while ( i < len && isIdentifierChar(in_exp[i]) ) ++i;
+            const std::string token = in_exp.substr(pos, i - pos);
 
-            static const std::pair<const char *, type_node> functions[] = {
-                {"sin", SIN}, {"cos", COS}, {"tan", TAN}, {"atan", ATAN}, {"exp", EXP},
-                {"sinh", SINH}, {"cosh", COSH}, {"abs", ABS}, {"ln", LN}, {"lg", LG},
-                {"asin", ASIN}, {"acos", ACOS}, {"sqrt", SQRT},
-            };
-            /*more functions can be added with another entry here,
-            plus an entry in 'enum type_node' and a case in eval_tree() */
-
-            bool isFunction = false;
-            for (const auto & function : functions) {
-                if (tmp_str == function.first) {
-                    operatorStack.push(function.second);
-                    isFunction = true;
-                    break;
+            if (i < len && in_exp[i] == '(') {
+                bool isFunction = false;
+                for (const auto & function : kFunctions) {
+                    if (token == function.first) {
+                        operatorStack.push(function.second);
+                        isFunction = true;
+                        break;
+                    }
+                }
+                if (isFunction) {
+                    pos = i;
+                    continue;
                 }
             }
-            if (isFunction) {
-                pos = i;
-                continue;
-            }
-        }
 
-        if ( c == '(' )  // Ej. "(......" o "....(........"
+            if (token == "pi" || token == "PI") {
+                pushLeaf(PI);
+            } else if (token == "e" || token == "E") {
+                pushLeaf(E);
+            } else {
+                auto leaf = std::make_unique<exp_node>();
+                leaf->type = VAR;
+                leaf->var = token;
+                nodeStack.push(std::move(leaf));
+            }
+            pos = i;
+        }
+        else if ( c == '(' )  // Ej. "(......" o "....(........"
         {
             operatorStack.push(PARENTHESIS); ++pos;    // always pushed
         }
@@ -998,42 +1108,16 @@ void ExpressionTree::build_tree(std::string &in_exp)
             operatorStack.pop(); // pop the PARENTHESIS itself
             ++pos;
         }
-        else if ( c == '-' && (pos == 0 || afterOpening) && digitNext ) // "-34.89..." or "(-34.89...": a negative constant
+        else if ( c == '-' && isUnaryMinusAt(pos) && (digitNext || (pos + 1 < len && in_exp[pos+1] == '.'))
+                  && !numberIsRaised(pos + 1) ) // "-34.89...", "(-34.89...", "*-.5": a negative constant
         {
             readConstant(pos);
         }
-        else if ( isdigit(static_cast<unsigned char>(c)) )// Ej. : "....67.009.." ( constante positiva )
+        else if ( isdigit(static_cast<unsigned char>(c)) || (c == '.' && digitNext) )// "67.009", ".5": a positive constant
         {
             readConstant(pos);
         }
-        else if ( in_exp.compare(pos, 2, "PI") == 0 && !(pos + 2 < len && isIdentifierChar(in_exp[pos+2])) ) // the constant PI
-        {
-            //A whole token, not a leading letter: "P1" and "E2" used to be
-            //read as the constants, swallowing the variable.
-            pushLeaf(PI);
-            pos += 2;
-        }
-        else if ( c == 'E' && !(pos + 1 < len && isIdentifierChar(in_exp[pos+1])) ) // the constant E
-        {
-            pushLeaf(E);
-            ++pos;
-        }
-        else if ( isLetter(c) ) //Ej. : "......x......." (variable x)
-        {
-            //An identifier is a letter followed by letters, digits or
-            //underscores: the historical lexer stopped at the first
-            //non-letter, so "z1" parsed as the variable "z" and a stray
-            //constant 1.
-            std::string::size_type i = pos;
-            while ( i < len && isIdentifierChar(in_exp[i]) ) ++i;
-
-            auto leaf = std::make_unique<exp_node>();
-            leaf->type = VAR;
-            leaf->var = in_exp.substr(pos, i-pos);
-            nodeStack.push(std::move(leaf));
-            pos = i;
-        }
-        else if ( c == '-' && (pos == 0 || afterOpening) ) // a leading unary minus: "-sin(...", "(-x..."
+        else if ( c == '-' && isUnaryMinusAt(pos) ) // a unary minus: "-sin(...", "(-x...", "2*-x"
         {
             unaryMinus(pos);
         }
@@ -1055,9 +1139,9 @@ void ExpressionTree::build_tree(std::string &in_exp)
             operatorStack.push(c == '/' ? DIVIDE : MULTIPLY);
             ++pos;
         }
-        else if ( c == '^' ) // only powers and functions pending bind tighter
+        else if ( c == '^' ) // only functions pending bind tighter: the power binds to the right (2^3^2 = 2^9)
         {
-            while ( !operatorStack.empty() && operatorStack.top() > DIVIDE )
+            while ( !operatorStack.empty() && operatorStack.top() > POWER )
             {
                 reduceTop();
             }
@@ -1093,5 +1177,338 @@ bool ExpressionTree::isLetter(char text){
     //letters the lexer has no rule for.
     return (text >= 'a' && text <= 'z') || (text >= 'A' && text <= 'Z');
 }
+
+//---------------------------------------------------------- bound evaluation
+
+void ExpressionTree::bind(const std::vector<std::string> & names)
+{
+    m_boundNames = names;
+    bindNode(root.get(), names);
+}
+
+void ExpressionTree::bindNode(exp_node * node, const std::vector<std::string> & names)
+{
+    if (node == nullptr) {
+        return;
+    }
+
+    if (node->type == VAR) {
+        const auto found = std::find(names.begin(), names.end(), node->var);
+        if (found == names.end()) {
+            throw std::invalid_argument("ExpressionTree: the variable '" + node->var
+                                        + "' has no value bound to it.");
+        }
+        node->index = static_cast<int>(std::distance(names.begin(), found));
+    }
+
+    bindNode(node->left.get(), names);
+    bindNode(node->right.get(), names);
+}
+
+std::vector<std::string> ExpressionTree::variableNames() const
+{
+    std::vector<std::string> names;
+    collectNames(root.get(), names);
+    return names;
+}
+
+void ExpressionTree::collectNames(const exp_node * node, std::vector<std::string> & names) const
+{
+    if (node == nullptr) {
+        return;
+    }
+
+    if (node->type == VAR && std::find(names.begin(), names.end(), node->var) == names.end()) {
+        names.push_back(node->var);
+    }
+
+    collectNames(node->left.get(), names);
+    collectNames(node->right.get(), names);
+}
+
+namespace {
+
+void requireBound(const exp_node * node, std::size_t valueCount)
+{
+    if (node->index < 0 || static_cast<std::size_t>(node->index) >= valueCount) {
+        throw std::invalid_argument("ExpressionTree: the variable '" + node->var
+                                    + "' is not bound to a value (bind() first).");
+    }
+}
+
+//An exponent that is a small whole constant is applied as repeated
+//products, which is exact where the general complex power goes through
+//the logarithm: (j w)^2 comes out as exactly -w^2.
+bool isSmallWholeNumber(double value)
+{
+    return value == std::floor(value) && std::abs(value) <= 64.0;
+}
+
+} // namespace
+
+double ExpressionTree::evaluate(const std::vector<double> & values) const
+{
+    if (root == nullptr) {
+        throw std::invalid_argument("ExpressionTree: nothing to evaluate.");
+    }
+    return evaluateReal(root.get(), values);
+}
+
+std::complex<double> ExpressionTree::evaluate(const std::vector<std::complex<double>> & values) const
+{
+    if (root == nullptr) {
+        throw std::invalid_argument("ExpressionTree: nothing to evaluate.");
+    }
+    return evaluateComplex(root.get(), values);
+}
+
+double ExpressionTree::evaluateReal(const exp_node * node, const std::vector<double> & values) const
+{
+    switch (node->type)
+    {
+    case CONSTANT : return node->c_const;
+    case VAR      : requireBound(node, values.size()); return values[static_cast<std::size_t>(node->index)];
+    case E        : return qftbx::math::kE;
+    case PI       : return qftbx::math::kPi;
+    case ADD      : return evaluateReal(node->left.get(), values) + evaluateReal(node->right.get(), values);
+    case SUBTRACT : return evaluateReal(node->left.get(), values) - evaluateReal(node->right.get(), values);
+    case MULTIPLY : return evaluateReal(node->left.get(), values) * evaluateReal(node->right.get(), values);
+    case DIVIDE   : return evaluateReal(node->left.get(), values) / evaluateReal(node->right.get(), values);
+    case POWER    : return std::pow(evaluateReal(node->left.get(), values), evaluateReal(node->right.get(), values));
+    case SIN      : return std::sin(evaluateReal(node->left.get(), values));
+    case COS      : return std::cos(evaluateReal(node->left.get(), values));
+    case TAN      : return std::tan(evaluateReal(node->left.get(), values));
+    case ATAN     : return std::atan(evaluateReal(node->left.get(), values));
+    case SINH     : return std::sinh(evaluateReal(node->left.get(), values));
+    case COSH     : return std::cosh(evaluateReal(node->left.get(), values));
+    case TANH     : return std::tanh(evaluateReal(node->left.get(), values));
+    case ASIN     : return std::asin(evaluateReal(node->left.get(), values));
+    case ACOS     : return std::acos(evaluateReal(node->left.get(), values));
+    case EXP      : return std::exp(evaluateReal(node->left.get(), values));
+    case ABS      : return std::fabs(evaluateReal(node->left.get(), values));
+    case LN       : return std::log(evaluateReal(node->left.get(), values));
+    case LG       : return std::log10(evaluateReal(node->left.get(), values));
+    case LOG2     : return std::log2(evaluateReal(node->left.get(), values));
+    case SQRT     : return std::sqrt(evaluateReal(node->left.get(), values));
+    default:
+        throw std::invalid_argument("ExpressionTree: a node the evaluator does not know.");
+    }
+}
+
+std::complex<double> ExpressionTree::evaluateComplex(const exp_node * node,
+                                                     const std::vector<std::complex<double>> & values) const
+{
+    using Complex = std::complex<double>;
+
+    switch (node->type)
+    {
+    case CONSTANT : return Complex(node->c_const, 0.0);
+    case VAR      : requireBound(node, values.size()); return values[static_cast<std::size_t>(node->index)];
+    case E        : return Complex(qftbx::math::kE, 0.0);
+    case PI       : return Complex(qftbx::math::kPi, 0.0);
+    case ADD      : return evaluateComplex(node->left.get(), values) + evaluateComplex(node->right.get(), values);
+    case SUBTRACT : return evaluateComplex(node->left.get(), values) - evaluateComplex(node->right.get(), values);
+    case MULTIPLY : return evaluateComplex(node->left.get(), values) * evaluateComplex(node->right.get(), values);
+    case DIVIDE   : return evaluateComplex(node->left.get(), values) / evaluateComplex(node->right.get(), values);
+    case POWER :
+    {
+        const Complex base = evaluateComplex(node->left.get(), values);
+        const exp_node * exponent = node->right.get();
+
+        if (exponent->type == CONSTANT && isSmallWholeNumber(exponent->c_const)) {
+            return std::pow(base, static_cast<int>(exponent->c_const));
+        }
+
+        return std::pow(base, evaluateComplex(exponent, values));
+    }
+    case SIN      : return std::sin(evaluateComplex(node->left.get(), values));
+    case COS      : return std::cos(evaluateComplex(node->left.get(), values));
+    case TAN      : return std::tan(evaluateComplex(node->left.get(), values));
+    case ATAN     : return std::atan(evaluateComplex(node->left.get(), values));
+    case SINH     : return std::sinh(evaluateComplex(node->left.get(), values));
+    case COSH     : return std::cosh(evaluateComplex(node->left.get(), values));
+    case TANH     : return std::tanh(evaluateComplex(node->left.get(), values));
+    case ASIN     : return std::asin(evaluateComplex(node->left.get(), values));
+    case ACOS     : return std::acos(evaluateComplex(node->left.get(), values));
+    case EXP      : return std::exp(evaluateComplex(node->left.get(), values));
+    case ABS      : return Complex(std::abs(evaluateComplex(node->left.get(), values)), 0.0);
+    case LN       : return std::log(evaluateComplex(node->left.get(), values));
+    case LG       : return std::log10(evaluateComplex(node->left.get(), values));
+    case LOG2     : return std::log(evaluateComplex(node->left.get(), values)) / std::log(2.0);
+    case SQRT     : return std::sqrt(evaluateComplex(node->left.get(), values));
+    default:
+        throw std::invalid_argument("ExpressionTree: a node the evaluator does not know.");
+    }
+}
+
+//------------------------------------------------------------------- names
+
+bool ExpressionTree::isIdentifier(const std::string & name)
+{
+    if (name.empty()) {
+        return false;
+    }
+
+    const auto letter = [](char c) {
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+    };
+    const auto digit = [](char c) { return c >= '0' && c <= '9'; };
+
+    if (!letter(name.front())) {
+        return false;
+    }
+
+    for (const char c : name) {
+        if (!letter(c) && !digit(c) && c != '_') {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool ExpressionTree::isFunctionName(const std::string & name)
+{
+    for (const auto & function : kFunctions) {
+        if (name == function.first) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool ExpressionTree::isReservedName(const std::string & name)
+{
+    return isFunctionName(name) || name == "pi" || name == "PI" || name == "e" || name == "E" ||
+           name == "s";
+}
+
+bool ExpressionTree::isUsableVariableName(const std::string & name)
+{
+    return isIdentifier(name) && !isReservedName(name);
+}
+
+//-------------------------------------------------------------- Expression
+
+Expression::Expression() = default;
+
+Expression::Expression(double constant)
+    : m_node(std::make_unique<exp_node>())
+{
+    m_node->type = CONSTANT;
+    m_node->c_const = constant;
+}
+
+Expression::Expression(std::unique_ptr<exp_node> node)
+    : m_node(std::move(node))
+{
+}
+
+Expression::Expression(const Expression & other)
+    : m_node(other.release())
+{
+}
+
+Expression::Expression(Expression && other) noexcept = default;
+
+Expression & Expression::operator=(const Expression & other)
+{
+    if (this != &other) {
+        m_node = other.release();
+    }
+    return *this;
+}
+
+Expression & Expression::operator=(Expression && other) noexcept = default;
+
+Expression::~Expression() = default;
+
+Expression Expression::variable(const std::string & name)
+{
+    auto node = std::make_unique<exp_node>();
+    node->type = VAR;
+    node->var = name;
+    return Expression(std::move(node));
+}
+
+Expression Expression::pi()
+{
+    auto node = std::make_unique<exp_node>();
+    node->type = PI;
+    return Expression(std::move(node));
+}
+
+Expression Expression::e()
+{
+    auto node = std::make_unique<exp_node>();
+    node->type = E;
+    return Expression(std::move(node));
+}
+
+namespace {
+
+std::unique_ptr<exp_node> copyNode(const exp_node * node)
+{
+    if (node == nullptr) {
+        return nullptr;
+    }
+
+    auto copy = std::make_unique<exp_node>();
+    copy->type = node->type;
+    copy->c_const = node->c_const;
+    copy->var = node->var;
+    copy->left = copyNode(node->left.get());
+    copy->right = copyNode(node->right.get());
+    return copy;
+}
+
+} // namespace
+
+std::unique_ptr<exp_node> Expression::release() const
+{
+    return copyNode(m_node.get());
+}
+
+Expression Expression::binary(type_node type, const Expression & a, const Expression & b)
+{
+    if (a.m_node == nullptr || b.m_node == nullptr) {
+        throw std::invalid_argument("Expression: an operator is missing an operand.");
+    }
+
+    auto node = std::make_unique<exp_node>();
+    node->type = type;
+    node->left = a.release();
+    node->right = b.release();
+    return Expression(std::move(node));
+}
+
+Expression Expression::unary(type_node type, const Expression & a)
+{
+    if (a.m_node == nullptr) {
+        throw std::invalid_argument("Expression: a function is missing its argument.");
+    }
+
+    auto node = std::make_unique<exp_node>();
+    node->type = type;
+    node->left = a.release();
+    return Expression(std::move(node));
+}
+
+Expression operator+(const Expression & a, const Expression & b) { return Expression::binary(ADD, a, b); }
+Expression operator-(const Expression & a, const Expression & b) { return Expression::binary(SUBTRACT, a, b); }
+Expression operator*(const Expression & a, const Expression & b) { return Expression::binary(MULTIPLY, a, b); }
+Expression operator/(const Expression & a, const Expression & b) { return Expression::binary(DIVIDE, a, b); }
+Expression operator-(const Expression & a) { return Expression::binary(MULTIPLY, Expression(-1.0), a); }
+Expression pow(const Expression & base, const Expression & exponent) { return Expression::binary(POWER, base, exponent); }
+
+Expression sqrt(const Expression & a) { return Expression::unary(SQRT, a); }
+Expression sin(const Expression & a) { return Expression::unary(SIN, a); }
+Expression cos(const Expression & a) { return Expression::unary(COS, a); }
+Expression tan(const Expression & a) { return Expression::unary(TAN, a); }
+Expression atan(const Expression & a) { return Expression::unary(ATAN, a); }
+Expression exp(const Expression & a) { return Expression::unary(EXP, a); }
+Expression abs(const Expression & a) { return Expression::unary(ABS, a); }
+Expression ln(const Expression & a) { return Expression::unary(LN, a); }
 
 } // namespace qftbx

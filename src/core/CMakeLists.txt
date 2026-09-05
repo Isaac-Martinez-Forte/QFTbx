@@ -3,7 +3,7 @@
 # Each folder below adds its sources to this one library.
 add_library(qftbx_core STATIC)
 target_include_directories(qftbx_core PUBLIC "${CMAKE_SOURCE_DIR}")
-target_link_libraries(qftbx_core PUBLIC muparserx::muparserx cxsc::cxsc)
+target_link_libraries(qftbx_core PUBLIC cxsc::cxsc)
 qftbx_warnings(qftbx_core)
 qftbx_native_arch(qftbx_core)
 qftbx_interval_arithmetic(qftbx_core)

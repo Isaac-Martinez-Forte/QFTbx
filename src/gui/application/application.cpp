@@ -1,6 +1,5 @@
 #include "src/gui/application/application.h"
 
-#include "mpParser.h"
 
 #include "src/gui/application/error_message.h"
 #include "src/core/common/exception.h"
@@ -21,10 +20,6 @@ bool Application::notify(QObject * receiver, QEvent * event)
         //a user, and something a headless run can capture instead of
         //blocking on it forever.
         qftbx::errorMessage(QString::fromUtf8(error.what()), tr("QFTbx"));
-    } catch (const mup::ParserError & error) {
-        qftbx::errorMessage(tr("The expression could not be evaluated: %1")
-                            .arg(QString::fromStdString(error.GetMsg())),
-                            tr("QFTbx"));
     } catch (const std::exception & error) {
         //Anything else that can still say what happened.
         qftbx::errorMessage(QString::fromUtf8(error.what()), tr("QFTbx"));

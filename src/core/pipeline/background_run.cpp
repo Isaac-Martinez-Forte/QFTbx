@@ -1,7 +1,6 @@
 #include "src/core/pipeline/background_run.h"
 
 #include <except.hpp>
-#include <mpParser.h>
 
 #include <exception>
 #include <utility>
@@ -37,9 +36,10 @@ bool BackgroundRun::start(Work work, Done done)
     m_running.store(true, std::memory_order_release);
 
     m_worker = std::thread([this, work = std::move(work), done = std::move(done)]() {
-        //Everything is caught. The four families are unrelated - two of them
-        //derive from std::exception and two from nothing at all - and any one
-        //of them escaping this lambda would terminate the process.
+        //Everything is caught. The families are unrelated - the standard
+        //exceptions, and the interval library's errors, which derive from
+        //nothing at all - and any one of them escaping this lambda would
+        //terminate the process.
         try {
             const bool produced = work();
             finish(produced, false, std::string());
@@ -47,9 +47,6 @@ bool BackgroundRun::start(Work work, Done done)
             finish(false, true, std::string());
         } catch (const std::exception & failure) {
             finish(false, false, std::string(failure.what()));
-        } catch (mup::ParserError & parserError) {
-            finish(false, false, "the expression parser refused it: "
-                   + parserError.GetMsg());
         } catch (const cxsc::ERROR_ALL & intervalError) {
             finish(false, false, "the interval arithmetic refused it: "
                    + intervalError.errtext());

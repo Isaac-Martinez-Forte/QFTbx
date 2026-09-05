@@ -61,8 +61,9 @@ std::unique_ptr<LtiSystem> makePlant()
 //Two things this test found by being written, both worth pinning. It is a
 //ZeroPoleGain and not a PolynomialForm because the loop shaping refuses
 //polynomial and free-form structures: the interval projection of those is not
-//implemented. And the gain is "kc" and not "k" because muParserX reserves k
-//as its kilo postfix operator - see StageSequence.ReservedParameterNames.
+//implemented. The gain is "kc": any identifier that is not a function, a
+//constant or the Laplace variable serves - see
+//StageSequence.ReservedParameterNamesAreRefusedWhenPublished.
 std::unique_ptr<LtiSystem> makeControllerStructure()
 {
     std::vector<Parameter> numerator{
@@ -184,18 +185,16 @@ TEST(StageSequence, ANullStepIsRefusedInsteadOfWipingTheProject)
 
 TEST(StageSequence, ReservedParameterNamesAreRefusedWhenPublished)
 {
-    // Found by writing the walk above: muParserX reserves six single letters
-    // as SI unit postfix operators - n, u, m, k, M and G - and it refuses to
-    // bind a variable under any of them. "k" is the one that matters, being
-    // what everybody calls a gain.
-    //
-    // The old failure mode was as bad as it gets: the name was accepted, the
-    // plant and the boundaries computed fine, and then the search threw a
-    // mup::ParserError from deep inside. That is neither a qftbx::Exception
-    // nor a std::exception, and the window catches only the first, so the
-    // application terminated. It is refused at publication now, which is
-    // once per project and nowhere near the search.
-    for (const char * reserved : {"n", "u", "m", "k", "M", "G"}) {
+    // The expression grammar owns its function names, the constants pi and
+    // e in either case, and the Laplace variable s: a parameter under any of
+    // them would be read as the function or the constant, never as the
+    // parameter. The expression library this replaced also owned the single
+    // letters n, u, m, k, M and G as unit multipliers, and the failure was
+    // as bad as it gets: the name was accepted, the plant and the boundaries
+    // computed fine, and then the search threw from deep inside an error the
+    // window did not catch. Names are refused at publication, which is once
+    // per project and nowhere near the search.
+    for (const char * reserved : {"sin", "sqrt", "log", "pi", "PI", "e", "E", "s"}) {
         ProjectController controller;
 
         std::vector<Parameter> numerator{Parameter(1.0)};
@@ -208,6 +207,15 @@ TEST(StageSequence, ReservedParameterNamesAreRefusedWhenPublished)
         EXPECT_THROW(controller.setPlant(std::move(plant)), qftbx::InvalidInput)
             << "a parameter named \"" << reserved << "\" has to be refused";
     }
+
+    //And "k", what everybody calls a gain, is a name like any other now.
+    ProjectController controller;
+    auto plant = std::make_unique<PolynomialForm>(
+                std::string("P"), std::vector<Parameter>{Parameter(1.0)},
+                std::vector<Parameter>{Parameter(1.0)},
+                Parameter(std::string("k"), qftbx::Range(1.0, 2.0), 1.5),
+                Parameter(0.0));
+    EXPECT_NO_THROW(controller.setPlant(std::move(plant)));
 }
 
 TEST(StageSequence, AConstantKeepsItsNumericName)

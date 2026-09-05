@@ -13,7 +13,7 @@ namespace qftbx {
  * instead of thrown again.
  *
  * The whole point is the catching. A computation here can throw four
- * unrelated things - qftbx::Exception, qftbx::Cancelled, mup::ParserError and
+ * unrelated things - qftbx::Exception, qftbx::Cancelled, std::exception and
  * the C-XSC error hierarchy - and the last two derive from neither
  * std::exception nor each other. An exception that escapes the function of an
  * std::thread does not propagate anywhere: it TERMINATES the process. So

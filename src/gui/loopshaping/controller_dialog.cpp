@@ -118,7 +118,7 @@ void ControllerDialog::on_okButton_clicked()
         return;
     }
 
-    //The gain: a constant when both ends agree, the search box "kv" over
+    //The gain: a constant when both ends agree, the search box "k" over
     //them otherwise (in either order).
     std::optional<Parameter> gain;
     try {
@@ -132,12 +132,12 @@ void ControllerDialog::on_okButton_clicked()
             gain = Parameter(*start);
         } else {
             const Range range(std::min(*start, *end), std::max(*start, *end));
-            gain = Parameter("kv", range, range.middle(), "kv");
+            gain = Parameter("k", range, range.middle());
         }
     } catch (const qftbx::Exception & e) {
-        //A value that parses but is not a number a model can use: muParserX
-        //answers "0/0" and "1/0" with a NaN and an infinity, and Parameter
-        //refuses those.
+        //A value that parses but is not a number a model can use: "0/0" and
+        //"1/0" evaluate to a NaN and an infinity, and Parameter refuses
+        //those.
         errorMessage(e.what(), tr("Controller input"));
         return;
     }

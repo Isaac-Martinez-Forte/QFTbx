@@ -197,7 +197,6 @@ std::unique_ptr<ProjectController> articleProblem(bool withTracking)
 {
     auto project = std::make_unique<ProjectController>();
 
-    //The gain is named 'kv' because muparserx predefines 'k' as a constant;
     //'a' appears in numerator and denominator, and the sweep couples the two
     //occurrences by name.
     std::vector<Parameter> numerator{Parameter("a", Range(1.0, 10.0), 1.0)};

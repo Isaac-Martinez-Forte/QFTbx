@@ -17,7 +17,6 @@
 #include "src/gui/templates/template_viewer.h"
 #include "src/gui/boundaries/boundary_grid_dialog.h"
 #include "src/gui/boundaries/boundary_viewer.h"
-#include "src/gui/application/muparserx_console.h"
 #include "src/gui/loopshaping/controller_dialog.h"
 #include "src/gui/specifications/specifications_dialog.h"
 #include "src/gui/boundaries/boundary_union_viewer.h"
@@ -112,7 +111,6 @@ private slots:
 
     void on_actionOpen_triggered();
 
-    void on_actionConsole_triggered();
 
     void on_specificationsButton_clicked();
 

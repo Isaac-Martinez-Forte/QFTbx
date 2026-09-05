@@ -19,7 +19,6 @@
 
 #include "src/core/system/parameter.h"
 #include "src/gui/common/parlineedit.h"
-#include "mpParser.h"
 #include "src/core/math/sequence_vectors.h"
 
 namespace Ui {
@@ -118,7 +117,6 @@ private:
 
     std::unique_ptr<Ui::UncertaintyDialog> ui;
 
-    mup::ParserX p;
 
     CoefficientTable valueTable;
     CoefficientTable expressionTable;

@@ -159,8 +159,8 @@ void AlgorithmNk::check_box_feasibility(std::unique_ptr<LtiSystem> box){
     if (bestLocalGain < box->gain().range().max &&
             bestLocalGain > box->gain().range().min) {
         box = box->create(box->name(), box->numerator(), box->denominator(),
-                Parameter("kv", Range(box->gain().range().min, bestLocalGain),
-                              box->gain().range().min, "kv"),
+                Parameter(box->gain().name(), Range(box->gain().range().min, bestLocalGain),
+                          box->gain().range().min),
                 box->delay());
     }
 

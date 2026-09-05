@@ -3,29 +3,25 @@
 
 #include <string>
 #include <vector>
-
 #include <complex>
+#include <memory>
 
 #include "src/core/system/transfer_function.h"
-
-namespace qftbx {
+#include "src/core/math/expression_tree.h"
 
 /**
- * @brief Transfer function defined by free-text expressions in 's':
- * \f$ P(s) = k \, e^{-s\tau} \, N(s) / D(s) \f$.
+ * @brief A plant written as two expressions in the Laplace variable s.
  *
- * The parameter vectors do not describe the structure (numerator and
- * denominator are text): they only enumerate the uncertain parameters
- * present in the expressions, for the template sweep. Evaluation replaces
- * 's' textually and hands the expression to muParserX.
+ * The numerator and the denominator are texts the user typed, with the
+ * parameters named in them; the expression (numerator)/(denominator) is
+ * parsed once, when the system is built, and evaluated at s = j omega with
+ * the parameter values bound by position. A parameter cannot be called s.
  */
+namespace qftbx {
 
 class FreeForm : public TransferFunction
 {
 public:
-
-    /// The parameter vectors list the uncertain parameters appearing in the
-    /// numerator/denominator expression texts.
     FreeForm(std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator, Parameter k, Parameter delay, std::string numeratorExpr,
                  std::string denominatorExpr);
 
@@ -34,8 +30,6 @@ public:
     std::complex <double> valueAt(double w, const std::vector<double> & numerator,
                                  const std::vector<double> & denominator,
                                  double gain, double delay) override;
-
-    //Re-expose the inherited nominal evaluation hidden by the overloads above.
     using TransferFunction::evaluate;
 
     SystemType type() override;
@@ -48,19 +42,27 @@ public:
 
     std::unique_ptr<LtiSystem> clone() override;
 
+    /// The Laplace variable as the user writes it: "s".
+    static const std::string & laplaceName();
+
 private:
+    void bindNames(ExpressionTree & ratio);
+
     std::string m_numeratorExpr;
     std::string m_denominatorExpr;
 
-    /// The two above with the Laplace variable bound. Built in the
-    /// constructor and const thereafter: valueAt() runs on one plant from
-    /// several threads, so anything it fills in lazily is a data race.
-    std::string m_boundExpression;
+    //(numerator)/(denominator), parsed once and bound to the Laplace
+    //variable and the distinct parameter names. Shared with the clones,
+    //which evaluate the same expression; evaluation reads it only.
+    std::shared_ptr<const ExpressionTree> m_ratio;
 
-    static const std::string & laplaceName();
+    //Slot of every numerator and denominator parameter in the value vector
+    //valueAt() evaluates with: slot 0 is s, a repeated name shares its slot.
+    std::vector<std::size_t> m_numeratorSlots;
+    std::vector<std::size_t> m_denominatorSlots;
+    std::size_t m_valueCount = 0;
 };
 
 } // namespace qftbx
-
 
 #endif // QFTBX_FREE_FORM_H

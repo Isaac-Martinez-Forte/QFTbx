@@ -1,11 +1,15 @@
 // Golden tests for the template computation against tests/data/planta2.qft,
-// which ships the full clouds and epsilon-hull contours computed by the
-// original program (6 frequencies, 10x10 parameter grid, epsilon = 10).
+// which ships the full clouds and epsilon-hull contours (6 frequencies,
+// 10x10 parameter grid, epsilon = 10). The clouds are the ones the original
+// program computed, to the six significant digits it wrote them with; the
+// contours were regenerated with the toolbox's own expression evaluator, since
+// the walk of the hull is sensitive to the last bits of the cloud and the
+// evaluator this replaced left a different residue in them (see the
+// expression tree tests).
 //
-// The fixture serialises with 6 significant digits, so comparisons use a
-// relative tolerance. The tests run multithreaded: every computation writes
-// at the index of its own frequency (the old thread-order permutation and
-// its omega/epsilon aliasing repair are gone).
+// The comparisons use a relative tolerance. The tests run multithreaded:
+// every computation writes at the index of its own frequency (the old
+// thread-order permutation and its omega/epsilon aliasing repair are gone).
 
 #include <gtest/gtest.h>
 
@@ -95,41 +99,46 @@ TEST_F(TemplatesGolden, BruteForceMatchesFixture)
 
 TEST_F(TemplatesGolden, ContourMatchesFixtureAsACycle)
 {
-    // The faithful EPSHULL.M walk returns the same cycle as the historical
-    // golden but closed (last point repeats the first) and rotated (it
-    // starts at max real instead of max imaginary), so the comparison is
-    // cyclic: same sequence, same direction, any starting point. The
-    // fallback frequencies (0 and 2, where the reference walk cycles)
-    // reproduce the historical sequence exactly.
+    // The faithful EPSHULL.M walk returns a closed contour (last point
+    // repeats the first), so the comparison is cyclic: same sequence, same
+    // direction, any starting point. The fallback frequencies (0.1 and 2
+    // rad/s, where the reference walk cycles) return the open historical
+    // sequence instead.
     const qftbx::CloudSet & computed = templates.contours();
     const qftbx::CloudSet & expected = parser.contour();
     ASSERT_EQ(static_cast<int>(computed.size()), static_cast<int>(expected.size()));
 
-    const int expectedSizes[] = {30, 28, 28, 28, 28, 28};
-    for (int f = 0; f < static_cast<int>(computed.size()); ++f) {
-        ASSERT_EQ(expected.at(f).size(), expectedSizes[f]);
-
-        std::vector<Complex> cycle(computed.at(f).begin(), computed.at(f).end());
+    const auto asCycle = [](const qftbx::ComplexCloud & contour) {
+        std::vector<Complex> cycle(contour.begin(), contour.end());
         if (cycle.size() > 1 && cycle.front() == cycle.back()) {
             cycle.pop_back(); // closing duplicate
         }
-        ASSERT_EQ(cycle.size(), expected.at(f).size()) << "frequency " << f;
+        return cycle;
+    };
+
+    const std::size_t expectedSizes[] = {30, 28, 28, 28, 28, 28};
+    for (int f = 0; f < static_cast<int>(computed.size()); ++f) {
+        const std::vector<Complex> golden = asCycle(expected.at(f));
+        ASSERT_EQ(golden.size(), expectedSizes[f]) << "frequency " << f;
+
+        std::vector<Complex> cycle = asCycle(computed.at(f));
+        ASSERT_EQ(cycle.size(), golden.size()) << "frequency " << f;
 
         // Locate the rotation offset: the computed point closest to the
-        // first expected point.
-        int offset = 0;
-        double best = std::abs(cycle.at(0) - expected.at(f).at(0));
-        for (int i = 1; i < cycle.size(); ++i) {
-            const double d = std::abs(cycle.at(i) - expected.at(f).at(0));
+        // first golden point.
+        std::size_t offset = 0;
+        double best = std::abs(cycle.at(0) - golden.at(0));
+        for (std::size_t i = 1; i < cycle.size(); ++i) {
+            const double d = std::abs(cycle.at(i) - golden.at(0));
             if (d < best) {
                 best = d;
                 offset = i;
             }
         }
 
-        for (int p = 0; p < cycle.size(); ++p) {
+        for (std::size_t p = 0; p < cycle.size(); ++p) {
             expectNear(cycle.at((offset + p) % cycle.size()),
-                       expected.at(f).at(p), "contour point");
+                       golden.at(p), "contour point");
         }
     }
 }

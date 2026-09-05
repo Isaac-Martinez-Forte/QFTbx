@@ -1,10 +1,10 @@
 // Does the plant evaluation keep the precision of its own coefficients?
 //
-// TransferFunction::evaluate(w) does not compute the transfer function: it
-// builds a TEXTUAL expression of it and hands that to muParserX. The text is
-// produced with qftbx::text::number(), whose default is 'g' with SIX significant
-// digits. Measured loss: ~8e-7 relative, on the coefficients AND on the
-// frequency.
+// TransferFunction::evaluate(w) used not to compute the transfer function: it
+// built a TEXTUAL expression of it and handed that to an expression library.
+// The text was produced with qftbx::text::number(), whose default was 'g' with
+// SIX significant digits. Measured loss: ~8e-7 relative, on the coefficients
+// AND on the frequency.
 //
 // Both used to fail. valueAt() now computes the transfer function directly in
 // complex arithmetic, so the coefficients and the frequency keep every digit.

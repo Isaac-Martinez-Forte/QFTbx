@@ -8,7 +8,6 @@
 
 #include <QString>
 
-#include "mpParser.h"
 
 #include "src/core/system/lti_system.h"
 #include "src/core/system/parameter.h"
@@ -80,7 +79,6 @@ private:
     QString firstParameterName(const QString & text, bool & refused);
 
     QString m_title;
-    mup::ParserX m_parser;
 };
 
 } // namespace qftbx

@@ -5,15 +5,17 @@
 #include "src/core/common/text_tokens.h"
 
 #include "src/core/common/exception.h"
-#include "src/core/math/expression_cache.h"
+#include "src/core/math/expression_tree.h"
+
+#include <stdexcept>
+#include <vector>
 
 namespace qftbx {
 
 namespace {
 
-//muParserX does not complain about a degenerate expression: "0/0", "1/0",
-//"log(-1)" and "sqrt(-1)" all evaluate quietly to a NaN or an infinity
-//(measured, not assumed). Every one of those values used to sail straight
+//An expression does not complain about being degenerate: "0/0", "1/0",
+//"log(-1)" and "sqrt(-1)" all evaluate quietly to a NaN or an infinity. Every one of those values used to sail straight
 //into the model from a dialog field, and nothing downstream looks: the
 //templates come out non-finite, so do the boundaries, the plot is empty and
 //the search never converges - without one message anywhere saying why.
@@ -72,6 +74,27 @@ Parameter::Parameter(std::string name, Range range, double nominal, std::string 
         m_expression = exp;
         m_hasExpression = true;
     }
+
+    compileExpression();
+}
+
+//The identity ("kv" mapped by "kv") needs no parser, and it is what every
+//search box carries; anything else is parsed here, once, and evaluated
+//from then on with the raw value bound to the parameter's name.
+void Parameter::compileExpression()
+{
+    if (!m_hasExpression || identityExpression()) {
+        m_compiled.reset();
+        return;
+    }
+
+    try {
+        auto compiled = std::make_shared<ExpressionTree>(m_expression);
+        compiled->bind({m_name});
+        m_compiled = std::move(compiled);
+    } catch (const std::invalid_argument & error) {
+        throw InvalidInput("the reparametrisation of \"" + m_name + "\" cannot be read: " + error.what());
+    }
 }
 
 Parameter::Parameter(std::string name, Range range, double nominal){
@@ -126,10 +149,11 @@ const std::string & Parameter::name() const {
     return m_name;
 }
 
-//The search boxes carry their gain as the parameter "kv" mapped by the
-//expression "kv": every read of its range went through the expression
-//parser to get the value it started with. The identity is answered from
-//the raw values, which is the same answer without the parser.
+//A parameter mapped by its own name (the dialogs write the expression
+//as the name when the user gives none): every read of its range went
+//through the expression parser to get the value it started with. The
+//identity is answered from the raw values, which is the same answer
+//without the parser.
 bool Parameter::identityExpression() const
 {
     return m_expression == m_name;
@@ -158,20 +182,11 @@ Range Parameter::range() const {
     return point;
 }
 
-//The reparametrisation applied to one value. It describes a real quantity, so
-//a complex result is a malformed expression rather than something to take the
-//real part of (the historical GetFloat() threw an untyped muParserX error).
+//The reparametrisation applied to one value, over the reals: a domain error
+//("sqrt(-1)") comes out as a NaN, which the constructors refuse.
 double Parameter::realValueOf(double value) const
 {
-    const std::complex<double> evaluated = qftbx::math::evaluateCached(
-            m_expression, {m_name}, {std::complex<double>(value, 0.0)});
-
-    if (evaluated.imag() != 0.0) {
-        throw InvalidInput("the reparametrisation of \"" + m_name
-                           + "\" produced a complex value");
-    }
-
-    return evaluated.real();
+    return m_compiled->evaluate(std::vector<double>{value});
 }
 
 double Parameter::nominal() const {

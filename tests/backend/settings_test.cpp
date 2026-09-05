@@ -5,7 +5,8 @@
 // all others: a value that does not parse never becomes zero. Silently turning
 // bad input into a plausible number is the defect this project has spent the
 // most time removing - QString::number, std::to_string, QLineEdit::toDouble
-// and muParserX all did some version of it - and a settings file would be the
+// and the old expression library all did some version of it - and a settings
+// file would be the
 // easiest place yet to reintroduce it, because nobody looks at a file that
 // loads without complaining.
 

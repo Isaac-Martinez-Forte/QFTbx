@@ -239,7 +239,6 @@ structure</string>
      <string>&amp;View</string>
     </property>
     <addaction name="separator"/>
-    <addaction name="actionConsole"/>
    </widget>
    <widget class="QMenu" name="menuDiagrams">
     <property name="title">
@@ -273,17 +272,6 @@ structure</string>
   <action name="actionSaveAs">
    <property name="text">
     <string>Save &amp;as...</string>
-   </property>
-  </action>
-  <action name="actionConsole">
-   <!-- Parked: the muParserX console launches two paths this project does
-        not ship. Disabled so the entry is not a silent no-op; see
-        MuParserXConsole. -->
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="text">
-    <string>&amp;Console</string>
    </property>
   </action>
   <action name="bodeAction">

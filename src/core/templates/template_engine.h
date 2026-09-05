@@ -19,8 +19,8 @@ namespace qftbx {
  * @brief Computes QFT templates (plant value sets) and their contours.
  *
  * For each design frequency the brute-force sweep evaluates the plant over
- * the cartesian product of the uncertain-parameter grids (one bound
- * muParserX expression per frequency), and the contour is extracted with the
+ * the cartesian product of the uncertain-parameter grids, and the contour is
+ * extracted with the
  * \f$\varepsilon\f$-hull algorithm (Nordin 1993, Montoya's EPSHULL.M
  * implementation): starting from the rightmost point, the walk repeatedly
  * picks the neighbour within \f$\varepsilon\f$ whose circle of radius
@@ -70,8 +70,8 @@ public:
      * not close and the relaxed historical walk was used instead. Reported
      * by the CALLER, after the parallel loop: warning from inside an OpenMP
      * region raced on the message handler (helgrind), and it is the same
-     * non-local action from within a parallel region that once let a
-     * muParserX error terminate the process.
+     * non-local action from within a parallel region that once let an
+     * expression error terminate the process.
      */
     ComplexCloud epsilonHull(const ComplexCloud & cloud, double epsilon,
                              bool * fellBack = nullptr);

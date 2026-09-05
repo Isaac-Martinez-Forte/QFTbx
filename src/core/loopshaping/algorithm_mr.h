@@ -16,7 +16,7 @@
 #include "src/core/system/lti_system.h"
 #include "src/core/loopshaping/ordered_list.h"
 #include "src/core/loopshaping/search_node.h"
-#include "src/core/loopshaping/expression_tree.h"
+#include "src/core/math/expression_tree.h"
 #include "src/core/loopshaping/nominal_stability_checker.h"
 #include "src/core/math/sequence_vectors.h"
 
@@ -152,11 +152,11 @@ private:
     //Controller magnitude/phase expression strings, one per design
     //frequency, and the parsed constraint trees (built once; each box
     //only reloads the variable domains).
-    std::vector<std::string> magnitudeExpressions;
-    std::vector<std::string> phaseExpressions;
+    //The controller magnitude g and phase phi at every design frequency, as
+    //expressions over the uncertain parameter names.
+    std::vector<Expression> magnitudeExpressions;
+    std::vector<Expression> phaseExpressions;
     std::vector<std::unique_ptr<qftbx::ExpressionTree>> constraints;
-    //The source text of each constraint, for diagnostics.
-    std::vector<std::string> constraintTexts;
 
     std::unique_ptr<LtiSystem> designedController;
 

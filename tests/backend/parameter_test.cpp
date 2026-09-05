@@ -59,8 +59,8 @@ TEST(Parameter, NamedConstant)
 
 TEST(Parameter, ReparametrisationThroughExp)
 {
-    // exp is evaluated with muParserX substituting the raw value of the
-    // variable: nominal and range are transformed, raw accessors are not.
+    // exp is evaluated with the raw value of the variable bound to its
+    // name: nominal and range are transformed, raw accessors are not.
     Parameter var(std::string("a"), Range(1.0, 5.0), 3.0, std::string("a*2"));
 
     EXPECT_TRUE(var.isUncertain());

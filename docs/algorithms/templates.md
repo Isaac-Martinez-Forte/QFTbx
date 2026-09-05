@@ -22,9 +22,10 @@ CUDA version is chapter 4 of the master's thesis (2014). See
 Each uncertain parameter of the plant carries a range and a number of grid
 points. The engine evaluates the plant over the cartesian product of those grids,
 one point of the Nichols chart per parameter combination, and does so for every
-design frequency. The plant is compiled once per frequency into a muParserX
-expression with ω bound, so the sweep is an evaluation loop. The result is one
-point cloud per frequency, in dB and degrees.
+design frequency. A plant written as an expression in `s` is parsed once, when
+it is entered, and evaluated at s = jω with its parameters bound by position, so
+the sweep is an evaluation loop. The result is one point cloud per frequency, in
+dB and degrees.
 
 The sweep is limited by `limits.max-template-points` in the settings, because the
 product of the grids grows fast with the number of uncertain parameters. The

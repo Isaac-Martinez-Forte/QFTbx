@@ -209,16 +209,15 @@ void PlantDialog::on_okButton_clicked()
     std::optional<Parameter> gain;
     std::optional<Parameter> delay;
     try {
-        gain = scalar(2, 1.0, uncertaintyDialog->gain(), "kv");
-        delay = scalar(3, 0.0, uncertaintyDialog->delay(), "ret");
-    } catch (mup::ParserError &) {
-        //The ranges come from the uncertainty dialog's own fields.
-        errorMessage(tr("There is an error in the plant data"), tr("Plant input"));
-        return;
+        //The gain is "k" and the delay "delay": the plant has no field for
+        //their names. "kv" and "ret" were the names of the days when the
+        //expression parser owned the letter k as a unit multiplier.
+        gain = scalar(2, 1.0, uncertaintyDialog->gain(), "k");
+        delay = scalar(3, 0.0, uncertaintyDialog->delay(), "delay");
     } catch (const qftbx::Exception & e) {
-        //A value that parses but is not a number a model can use: muParserX
-        //answers "0/0" and "1/0" with a NaN and an infinity, and Parameter
-        //refuses those.
+        //A value that parses but is not a number a model can use ("0/0" and
+        //"1/0" evaluate to a NaN and an infinity, and Parameter refuses
+        //those), or a range field that is not an expression.
         errorMessage(e.what(), tr("Plant input"));
         return;
     }

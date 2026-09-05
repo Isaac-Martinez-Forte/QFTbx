@@ -109,7 +109,7 @@ std::unique_ptr<LtiSystem> AlgorithmMcThesis::replaceParameter(LtiSystem * box, 
     }
 
     Parameter gain = parameter == 0
-            ? Parameter("kv", range, range.min, "kv")
+            ? Parameter(box->gain().name(), range, range.min)
             : box->gain();
 
     return box->create(box->name(), std::move(numerator), std::move(denominator),
