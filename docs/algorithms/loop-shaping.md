@@ -112,6 +112,20 @@ samples the nominal loop on a logarithmic grid extended three decades beyond the
 design frequencies, refined where the phase turns fast. The `stability.*` keys of
 the settings tune that sampling; they do not touch the criterion.
 
+The searches ask for hundreds of thousands of verdicts, so the check is
+organised around two facts of the criterion. The phase of the loop does not
+depend on the controller gain, and the gain scales every magnitude alike:
+everything the criterion reads that is gain-independent (the refined grid, the
+ray crossings with their magnitude at unit gain and their direction, whether the
+curve starts on a ray, the magnitude of the last sample) is computed once per
+set of zeros and poles and cached, and a verdict for a gain is a pass over the
+few crossings. And that profile is computed without a phase per sample: the
+phase-step test of the refinement compares consecutive samples by their dot
+product, and a ray crossing is a change of sign of the imaginary part on the
+negative half-plane, so the arc tangent is only taken where the criterion
+interpolates the phase. A test transcribes the criterion in its direct form and
+checks the two agree.
+
 ## Benchmarks
 
 Two problems from the literature travel with the tests as `.qft` fixtures and are
