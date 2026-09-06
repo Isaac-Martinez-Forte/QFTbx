@@ -59,8 +59,8 @@ from the magnitude side. QS2 adds two stages:
 
 ## Where it lives
 
-`src/core/loopshaping/algorithm_mc1.h`, `.cpp`; the cuts in
-`src/core/loopshaping/quick_solution.h` and `common_functions.h`.
+`src/core/loopshaping/mc1/algorithm_mc1.h`, `.cpp`; the cuts in
+`src/core/loopshaping/common/quick_solution.h` and `common_functions.h`.
 
 Tests: `tests/backend/quick_solution_test.cpp` (the phase cuts are sound and
 tight on both strips), `tests/backend/loopshaping_golden_test.cpp`,

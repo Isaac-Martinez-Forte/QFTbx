@@ -68,8 +68,8 @@ the gain followed by a Hooke–Jeeves pattern search in log space, bounded by
 
 ## Where it lives
 
-`src/core/loopshaping/algorithm_nk.h`, `.cpp`; the cutting equations in
-`src/core/loopshaping/quick_solution.h`.
+`src/core/loopshaping/nk/algorithm_nk.h`, `.cpp`; the cutting equations in
+`src/core/loopshaping/common/quick_solution.h`.
 
 Tests: `tests/backend/quick_solution_test.cpp`,
 `tests/backend/literature_validation_test.cpp`,

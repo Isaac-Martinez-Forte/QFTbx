@@ -1,4 +1,4 @@
-#include "src/core/loopshaping/natural_interval_extension.h"
+#include "src/core/loopshaping/common/natural_interval_extension.h"
 #include "src/core/math/constants.h"
 
 #include <cmath>

@@ -6,8 +6,8 @@
 
 
 #include "src/core/system/lti_system.h"
-#include "src/core/loopshaping/search_node.h"
-#include "src/core/loopshaping/stages.h"
+#include "src/core/loopshaping/common/search_node.h"
+#include "src/core/loopshaping/mc_thesis/stages.h"
 
 /**
  * @brief Live-list node of algorithm MC (thesis): a SearchNode plus the

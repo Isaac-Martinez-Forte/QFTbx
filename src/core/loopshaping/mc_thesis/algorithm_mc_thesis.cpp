@@ -2,7 +2,7 @@
 #include "src/core/math/constants.h"
 #include <cstdint>
 #include "src/core/common/exception.h"
-#include "src/core/loopshaping/algorithm_mc_thesis.h"
+#include "src/core/loopshaping/mc_thesis/algorithm_mc_thesis.h"
 
 
 namespace quick_solution = qftbx::quick_solution;

@@ -8,11 +8,11 @@
 #include <memory>
 
 #include "src/core/templates/cloud_set.h"
-#include "src/core/loopshaping/algorithm_nt.h"
-#include "src/core/loopshaping/algorithm_nk.h"
-#include "src/core/loopshaping/algorithm_mr.h"
-#include "src/core/loopshaping/algorithm_mc1.h"
-#include "src/core/loopshaping/algorithm_mc_thesis.h"
+#include "src/core/loopshaping/nt/algorithm_nt.h"
+#include "src/core/loopshaping/nk/algorithm_nk.h"
+#include "src/core/loopshaping/mr/algorithm_mr.h"
+#include "src/core/loopshaping/mc1/algorithm_mc1.h"
+#include "src/core/loopshaping/mc_thesis/algorithm_mc_thesis.h"
 #include "src/core/system/lti_system.h"
 #include "src/core/boundaries/boundary_data.h"
 

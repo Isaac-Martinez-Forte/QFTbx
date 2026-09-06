@@ -18,7 +18,7 @@
 #include "src/core/math/point.h"
 #include "src/core/math/range.h"
 
-#include "src/core/loopshaping/natural_interval_extension.h"
+#include "src/core/loopshaping/common/natural_interval_extension.h"
 #include "src/core/system/zero_pole_gain.h"
 #include "src/core/system/parameter.h"
 

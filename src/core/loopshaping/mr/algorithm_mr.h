@@ -14,13 +14,13 @@
 
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/system/lti_system.h"
-#include "src/core/loopshaping/ordered_list.h"
-#include "src/core/loopshaping/search_node.h"
+#include "src/core/loopshaping/common/ordered_list.h"
+#include "src/core/loopshaping/common/search_node.h"
 #include "src/core/math/expression_tree.h"
-#include "src/core/loopshaping/nominal_stability_checker.h"
+#include "src/core/loopshaping/common/nominal_stability_checker.h"
 #include "src/core/math/sequence_vectors.h"
 
-#include "src/core/loopshaping/common_functions.h"
+#include "src/core/loopshaping/common/common_functions.h"
 
 /**
  * @brief Algorithm MR: QFT synthesis as an interval constraint

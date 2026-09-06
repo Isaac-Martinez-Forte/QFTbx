@@ -85,7 +85,7 @@ Cruz Rodríguez, reviewed and completed during the port.
 
 ## Where it lives
 
-`src/core/loopshaping/algorithm_mr.h`, `.cpp`;
+`src/core/loopshaping/mr/algorithm_mr.h`, `.cpp`;
 `src/core/math/expression_tree.h`, `.cpp`.
 
 Tests: `tests/backend/mr_article_validation_test.cpp`,

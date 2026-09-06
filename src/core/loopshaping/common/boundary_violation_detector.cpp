@@ -1,5 +1,5 @@
 #include <cstdint>
-#include "src/core/loopshaping/boundary_violation_detector.h"
+#include "src/core/loopshaping/common/boundary_violation_detector.h"
 
 
 //Reader of the phase bucketing that BoundaryUnion1D::bucketIndex writes.
