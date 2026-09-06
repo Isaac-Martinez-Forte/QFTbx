@@ -9,9 +9,9 @@
 #include "src/core/math/sequence_vectors.h"
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/boundaries/boundary_types.h"
-#include "src/core/loopshaping/box_classification.h"
+#include "src/core/loopshaping/common/box_classification.h"
 
-#include "src/core/loopshaping/natural_interval_extension.h"
+#include "src/core/loopshaping/common/natural_interval_extension.h"
 
 /**
  * @class BoundaryViolationDetector

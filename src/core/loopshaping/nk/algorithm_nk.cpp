@@ -1,7 +1,7 @@
 #include <vector>
 #include <cstdint>
 #include "src/core/common/exception.h"
-#include "src/core/loopshaping/algorithm_nk.h"
+#include "src/core/loopshaping/nk/algorithm_nk.h"
 
 
 namespace quick_solution = qftbx::quick_solution;

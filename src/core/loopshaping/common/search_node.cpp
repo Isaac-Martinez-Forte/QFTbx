@@ -1,4 +1,4 @@
-#include "src/core/loopshaping/search_node.h"
+#include "src/core/loopshaping/common/search_node.h"
 
 
 namespace qftbx {

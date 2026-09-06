@@ -14,7 +14,7 @@
 #include <complex>
 
 
-#include "src/core/loopshaping/quick_solution.h"
+#include "src/core/loopshaping/common/quick_solution.h"
 
 using namespace qftbx;
 

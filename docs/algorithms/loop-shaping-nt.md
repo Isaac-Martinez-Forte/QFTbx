@@ -64,8 +64,8 @@ neither relies on a heuristic for correctness.
 
 ## Where it lives
 
-`src/core/loopshaping/algorithm_nt.h`, `.cpp`. The cuts live in
-`src/core/loopshaping/common_functions.h`, shared with the other algorithms.
+`src/core/loopshaping/nt/algorithm_nt.h`, `.cpp`. The cuts live in
+`src/core/loopshaping/common/common_functions.h`, shared with the other algorithms.
 
 Tests: `tests/backend/literature_validation_test.cpp` (the minimal feasible gain
 of the benchmark matches Tharewal's), `tests/backend/loopshaping_golden_test.cpp`.

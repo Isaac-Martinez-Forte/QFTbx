@@ -7,7 +7,7 @@
 #include "src/core/math/interval.h"
 #include "src/core/system/lti_system.h"
 #include "src/core/system/parameter.h"
-#include "src/core/loopshaping/point_controller.h"
+#include "src/core/loopshaping/common/point_controller.h"
 
 /**
  * @brief The Nichols rectangle of a controller box at one frequency:

@@ -2,7 +2,7 @@
 #include "src/core/math/constants.h"
 #include <cstdint>
 #include "src/core/common/exception.h"
-#include "src/core/loopshaping/algorithm_mc1.h"
+#include "src/core/loopshaping/mc1/algorithm_mc1.h"
 
 
 namespace qftbx {

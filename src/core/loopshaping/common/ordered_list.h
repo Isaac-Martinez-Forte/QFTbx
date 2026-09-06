@@ -6,7 +6,7 @@
 #include <type_traits>
 
 
-#include "src/core/loopshaping/search_node.h"
+#include "src/core/loopshaping/common/search_node.h"
 
 /**
  * @brief Ceiling on the number of nodes the branch and bound may keep alive

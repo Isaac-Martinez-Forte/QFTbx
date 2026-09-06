@@ -21,7 +21,7 @@
 
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/common/exception.h"
-#include "src/core/loopshaping/boundary_violation_detector.h"
+#include "src/core/loopshaping/common/boundary_violation_detector.h"
 #include "src/core/loopshaping/loop_shaping.h"
 #include "src/core/loopshaping/loop_shaping_types.h"
 

@@ -1,4 +1,4 @@
-#include "src/core/loopshaping/nominal_stability_checker.h"
+#include "src/core/loopshaping/common/nominal_stability_checker.h"
 #include "src/core/math/constants.h"
 
 #include <algorithm>

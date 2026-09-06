@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "src/core/system/lti_system.h"
-#include "src/core/loopshaping/point_controller.h"
+#include "src/core/loopshaping/common/point_controller.h"
 
 namespace qftbx {
 

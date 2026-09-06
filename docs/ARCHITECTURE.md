@@ -45,7 +45,7 @@ in [docs/algorithms](algorithms/README.md).
 | `src/core/specifications/` | Validated specification set (`qftbx::Specification`) |
 | `src/core/templates/` | Brute-force template computation and ε-hull contour (`TemplateEngine`) |
 | `src/core/boundaries/` | Boundary computation: sheets (`BoundaryEngine`), contour tracing (`ContourTracer`), 1D union (`BoundaryUnion1D`), results view (`BoundaryData`) |
-| `src/core/loopshaping/` | The five loop-shaping algorithms and their interval-arithmetic support |
+| `src/core/loopshaping/` | The loop-shaping entry point and its result; `common/` holds what the algorithms share (the interval projection, the box classification, the nominal stability check, the search list, the Quick Solution cuts) and `nt/`, `nk/`, `mr/`, `mc1/`, `mc_thesis/` one algorithm each |
 | `src/core/project/` | What a project holds, owned by value (`ProjectData`); the user settings (`Settings`) |
 | `src/core/pipeline/` | The design steps as data (`Step`), one stage per step, background execution and cancellation |
 | `src/core/gpu/` | Optional CUDA kernels for templates/boundaries (`USE_CUDA`) |

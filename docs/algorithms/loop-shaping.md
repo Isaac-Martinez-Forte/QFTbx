@@ -139,16 +139,16 @@ because it is hard. Any change to the algorithms should be tried on both.
 
 - `src/core/loopshaping/loop_shaping.h`, `.cpp`: the facade that picks and runs
   an algorithm and hands back the controller.
-- `src/core/loopshaping/natural_interval_extension.h`, `.cpp`: the Nichols
+- `src/core/loopshaping/common/natural_interval_extension.h`, `.cpp`: the Nichols
   rectangle of a box.
-- `src/core/loopshaping/boundary_violation_detector.h`, `.cpp`: the parity
+- `src/core/loopshaping/common/boundary_violation_detector.h`, `.cpp`: the parity
   classification and the boundary extremes.
-- `src/core/loopshaping/box_classification.h`, `.cpp`: the three verdicts.
-- `src/core/loopshaping/nominal_stability_checker.h`, `.cpp`: the Nichols-chart
+- `src/core/loopshaping/common/box_classification.h`, `.cpp`: the three verdicts.
+- `src/core/loopshaping/common/nominal_stability_checker.h`, `.cpp`: the Nichols-chart
   Nyquist criterion.
-- `src/core/loopshaping/ordered_list.h`, `search_node.h`, `mc_search_node.h`:
+- `src/core/loopshaping/common/ordered_list.h`, `search_node.h`, `mc_search_node.h`:
   the live list and its nodes.
-- `src/core/loopshaping/common_functions.h`: the bisection, the point extracted
+- `src/core/loopshaping/common/common_functions.h`: the bisection, the point extracted
   from a box, and the shared Quick Solution cuts.
 
 Tests: `tests/backend/interval_extension_test.cpp`,

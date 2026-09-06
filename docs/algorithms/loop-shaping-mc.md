@@ -91,8 +91,8 @@ implementation follows the sound reading in each case.
 
 ## Where it lives
 
-`src/core/loopshaping/algorithm_mc_thesis.h`, `.cpp`;
-`src/core/loopshaping/mc_search_node.h` (the node with its history and
+`src/core/loopshaping/mc_thesis/algorithm_mc_thesis.h`, `.cpp`;
+`src/core/loopshaping/mc_thesis/mc_search_node.h` (the node with its history and
 thresholds); the cuts in `quick_solution.h` and `common_functions.h`.
 
 Tests: `tests/backend/mc_thesis_strategies_test.cpp` (the accelerations shrink
