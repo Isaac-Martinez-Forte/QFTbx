@@ -244,6 +244,7 @@ bool AlgorithmMr::solve(){
 
     buildControllerExpressions();
     buildConstraints();
+    bindConstraints();
 
     classifyAndInsert(std::move(controller));
 
@@ -282,7 +283,7 @@ bool AlgorithmMr::solve(){
             //judged by, evaluated on degenerate intervals, so it is
             //rigorous rather than a floating-point opinion. A feasible box
             //passes it by inclusion monotonicity.
-            std::map<std::string, Interval> point;
+            std::vector<Interval> point;
             loadPointDomains(node->system(), lowerCorner, point);
             if (!certainlyFeasible(point)) {
                 continue;
@@ -324,7 +325,7 @@ std::unique_ptr<LtiSystem> AlgorithmMr::controllerStructure(){
 //constraint prove it feasible.
 void AlgorithmMr::classifyAndInsert(std::unique_ptr<LtiSystem> box){
 
-    std::map<std::string, Interval> domains;
+    std::vector<Interval> domains;
     loadDomains(box.get(), domains);
 
     if (!narrowToFixpoint(domains)) {
@@ -343,22 +344,23 @@ void AlgorithmMr::classifyAndInsert(std::unique_ptr<LtiSystem> box){
 }
 
 
-bool AlgorithmMr::narrowToFixpoint(std::map<std::string, Interval> & domains){
+bool AlgorithmMr::narrowToFixpoint(std::vector<Interval> & domains){
+
+    std::vector<Interval> snapshot;
 
     for (std::int32_t pass = 0; pass < m_settings.algorithms.maxNarrowingPasses; ++pass) {
 
-        const std::map<std::string, Interval> snapshot = domains;
+        snapshot = domains;
 
         for (const std::unique_ptr<ExpressionTree> & tree : constraints) {
-            if (!tree->propagate(&domains)) {
+            if (!tree->propagate(domains)) {
                 return false;
             }
         }
 
         bool changed = false;
-        for (auto it = domains.begin(); it != domains.end(); ++it) {
-            const Interval previous = snapshot.at(it->first);
-            if (it->second.lower() != previous.lower() || it->second.upper() != previous.upper()) {
+        for (std::size_t i = 0; i < domains.size(); ++i) {
+            if (domains[i].lower() != snapshot[i].lower() || domains[i].upper() != snapshot[i].upper()) {
                 changed = true;
                 break;
             }
@@ -373,10 +375,10 @@ bool AlgorithmMr::narrowToFixpoint(std::map<std::string, Interval> & domains){
 }
 
 
-bool AlgorithmMr::certainlyFeasible(std::map<std::string, Interval> & domains){
+bool AlgorithmMr::certainlyFeasible(std::vector<Interval> & domains){
 
     for (const std::unique_ptr<ExpressionTree> & tree : constraints) {
-        if (tree->eval(&domains).lower() < 0.0) {
+        if (tree->eval(domains).lower() < 0.0) {
             return false;
         }
     }
@@ -385,25 +387,50 @@ bool AlgorithmMr::certainlyFeasible(std::map<std::string, Interval> & domains){
 }
 
 
-void AlgorithmMr::loadDomains(LtiSystem * box,
-                                           std::map<std::string, Interval> & domains){
+namespace {
 
-    domains.clear();
-
-    const auto load = [&](Parameter & var) {
-        if (var.isUncertain()) {
-            domains[var.name()] =
-                    Interval(var.range().min, var.range().max);
-        }
-    };
-
+//The uncertain parameters of a box in the one order the domains are held
+//in: numerator, denominator, gain.
+template <class Visit>
+void forEachUncertain(LtiSystem * box, Visit visit)
+{
     for (Parameter & var : box->numerator()) {
-        load(var);
+        if (var.isUncertain()) {
+            visit(var);
+        }
     }
     for (Parameter & var : box->denominator()) {
-        load(var);
+        if (var.isUncertain()) {
+            visit(var);
+        }
     }
-    load(box->gain());
+    if (box->gain().isUncertain()) {
+        visit(box->gain());
+    }
+}
+
+} // namespace
+
+void AlgorithmMr::bindConstraints(){
+
+    parameterNames.clear();
+    forEachUncertain(controller.get(), [&](Parameter & var) {
+        parameterNames.push_back(var.name());
+    });
+
+    for (const std::unique_ptr<ExpressionTree> & tree : constraints) {
+        tree->bind(parameterNames);
+    }
+}
+
+
+void AlgorithmMr::loadDomains(LtiSystem * box, std::vector<Interval> & domains){
+
+    domains.clear();
+    domains.reserve(parameterNames.size());
+    forEachUncertain(box, [&](Parameter & var) {
+        domains.push_back(Interval(var.range().min, var.range().max));
+    });
 }
 
 
@@ -443,37 +470,39 @@ bool AlgorithmMr::isParameterBoxSmall(LtiSystem * box) const {
 //parameter names the constraint expressions are written in, so that the
 //candidate point can be evaluated by the same trees.
 void AlgorithmMr::loadPointDomains(LtiSystem * box, bool lowerCorner,
-                                          std::map<std::string, Interval> & domains){
+                                          std::vector<Interval> & domains){
 
     domains.clear();
-
-    const auto at = [&](Parameter & var, double value) {
-        if (var.isUncertain()) {
-            domains[var.name()] = Interval(value, value);
-        }
-    };
-
-    for (Parameter & var : box->numerator()) {
-        at(var, lowerCorner ? var.range().min : var.range().max);
-    }
+    domains.reserve(parameterNames.size());
 
     //Poles always take the lower corner: see pointFromBox().
-    for (Parameter & var : box->denominator()) {
-        at(var, var.range().min);
+    for (Parameter & var : box->numerator()) {
+        if (var.isUncertain()) {
+            domains.push_back(Interval(lowerCorner ? var.range().min : var.range().max));
+        }
     }
-
-    at(box->gain(), lowerCorner ? box->gain().range().min : box->gain().range().max);
+    for (Parameter & var : box->denominator()) {
+        if (var.isUncertain()) {
+            domains.push_back(Interval(var.range().min));
+        }
+    }
+    if (box->gain().isUncertain()) {
+        domains.push_back(Interval(lowerCorner ? box->gain().range().min : box->gain().range().max));
+    }
 }
 
 
 std::unique_ptr<LtiSystem> AlgorithmMr::boxFromDomains(LtiSystem * box,
-                                                     const std::map<std::string, Interval> & domains){
+                                                     const std::vector<Interval> & domains){
 
+    //The domains come in the order of forEachUncertain(), which is the
+    //order the parameters are visited here.
+    std::size_t next = 0;
     const auto rebuilt = [&](Parameter & var) -> Parameter {
         if (!var.isUncertain()) {
             return Parameter(var.nominal());
         }
-        const Interval value = domains.at(var.name());
+        const Interval value = domains.at(next++);
         return Parameter(var.name(),
                          Range(value.lower(), value.upper()),
                          value.lower());

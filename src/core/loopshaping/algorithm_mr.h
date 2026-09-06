@@ -123,9 +123,14 @@ private:
     void buildControllerExpressions();
     void buildConstraints();
     void classifyAndInsert(std::unique_ptr<LtiSystem> box);
-    bool narrowToFixpoint(std::map<std::string, Interval> & domains);
-    bool certainlyFeasible(std::map<std::string, Interval> & domains);
-    void loadDomains(LtiSystem * box, std::map<std::string, Interval> & domains);
+    bool narrowToFixpoint(std::vector<Interval> & domains);
+    bool certainlyFeasible(std::vector<Interval> & domains);
+    void loadDomains(LtiSystem * box, std::vector<Interval> & domains);
+
+    /// Fixes the order of the uncertain parameters (numerator, denominator,
+    /// gain) the domains are held in, and binds every constraint tree to
+    /// it, so that a box is loaded and propagated without a name lookup.
+    void bindConstraints();
 
     /// True when every uncertain controller parameter has been narrowed to
     /// an interval no wider than epsilon: the paper's termination criterion.
@@ -134,9 +139,9 @@ private:
     /// Degenerate domains at the corner pointFromBox() would take, so that
     /// the point itself can be run through the constraint set.
     void loadPointDomains(LtiSystem * box, bool lowerCorner,
-                                 std::map<std::string, Interval> & domains);
+                                 std::vector<Interval> & domains);
     std::unique_ptr<LtiSystem> boxFromDomains(LtiSystem * box,
-                                      const std::map<std::string, Interval> & domains);
+                                      const std::vector<Interval> & domains);
 
     LtiSystem * plant = nullptr;
     std::unique_ptr<LtiSystem> controller;
@@ -157,6 +162,9 @@ private:
     std::vector<Expression> magnitudeExpressions;
     std::vector<Expression> phaseExpressions;
     std::vector<std::unique_ptr<qftbx::ExpressionTree>> constraints;
+
+    //The uncertain parameter names in the order the domains are held in.
+    std::vector<std::string> parameterNames;
 
     std::unique_ptr<LtiSystem> designedController;
 

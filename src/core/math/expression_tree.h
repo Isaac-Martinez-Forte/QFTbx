@@ -186,6 +186,11 @@ public :
     /// Evaluates over intervals with the given variable domains.
     Interval eval (std::map<std::string, Interval> *variables);
 
+    /// The same over the domains given in the order of bind(): no name is
+    /// looked up, which is what a constraint propagated for every box of a
+    /// search needs.
+    Interval eval(std::vector<Interval> & values);
+
     /// One HC4 pass over the constraint "expression <comparison> value":
     /// forward Interval evaluation, intersection with the constraint set (a
     /// half-line for the inequalities, a point for the equality), backward
@@ -194,6 +199,10 @@ public :
     /// comparison used to be stored and never read: every constraint was
     /// propagated as >=.
     bool propagate (std::map<std::string, Interval> *variables);
+
+    /// The same pass over the domains given in the order of bind(),
+    /// narrowed in place.
+    bool propagate(std::vector<Interval> & values);
 
     /**
      * @brief Fixes the order of the variables for evaluate().
@@ -281,6 +290,12 @@ private :
     //through one of those.
     std::map<std::string, double> * variables = nullptr;
     std::map<std::string, Interval> * variables_in = nullptr;
+    //The bound alternative to variables_in: exactly one of the two is set
+    //during an interval evaluation.
+    std::vector<Interval> * values_in = nullptr;
+
+    /// The HC4 pass over whichever domains are loaded.
+    bool propagateLoaded();
 
     //The constraint propagate() tests against. Two of the four constructors
     //do not set them, and propagate() reads both.
