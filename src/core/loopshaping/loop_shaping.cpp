@@ -1,5 +1,4 @@
 #include <chrono>
-#include <iostream>
 #include <vector>
 #include <cstdint>
 #include "src/core/common/text_tokens.h"
@@ -54,13 +53,14 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
     auto timer = std::chrono::steady_clock::now();
     bool solved = false;
 
-    //The peak live-node count is what a run costs in memory, and what the
-    //ceiling of kDefaultMaxLiveNodes has to be tuned against: it is reported
-    //rather than left to be guessed.
-    const auto report = [&](std::unique_ptr<LtiSystem> designed, std::size_t peakLiveNodes) {
-        std::cout << "LoopShaping: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timer).count() << " milliseconds" << std::endl;
-        std::cout << "k: " << designed->gain().range().min << std::endl;
-        std::cout << "peak live nodes: " << peakLiveNodes << std::endl;
+    //What the run cost is read from the algorithm's own counters and kept
+    //with the result, where the interface and the benchmarks read it; the
+    //peak live-node count is what the ceiling of kDefaultMaxLiveNodes has
+    //to be tuned against.
+    m_statistics = LoopShapingStatistics();
+    const auto report = [&](std::unique_ptr<LtiSystem> designed, LoopShapingStatistics statistics) {
+        statistics.milliseconds = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - timer).count();
+        m_statistics = statistics;
         m_controller = std::move(designed);
     };
 
@@ -72,7 +72,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
         timer = std::chrono::steady_clock::now();
         solved = nt->solve();
         if (solved) {
-            report(nt->controllerStructure(), nt->peakLiveNodes());
+            report(nt->controllerStructure(), nt->statistics());
         }
     } else if (algorithm == qftbx::nk) {
         auto nk = std::make_unique<AlgorithmNk>();
@@ -82,7 +82,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
         timer = std::chrono::steady_clock::now();
         solved = nk->solve();
         if (solved) {
-            report(nk->controllerStructure(), nk->peakLiveNodes());
+            report(nk->controllerStructure(), nk->statistics());
         }
     } else if (algorithm == qftbx::mr) {
         auto mr = std::make_unique<AlgorithmMr>();
@@ -92,7 +92,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
         timer = std::chrono::steady_clock::now();
         solved = mr->solve();
         if (solved) {
-            report(mr->controllerStructure(), mr->peakLiveNodes());
+            report(mr->controllerStructure(), mr->statistics());
         }
     } else if (algorithm == qftbx::mc1) {
         auto mc1 = std::make_unique<AlgorithmMc1>();
@@ -102,7 +102,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
         timer = std::chrono::steady_clock::now();
         solved = mc1->solve();
         if (solved) {
-            report(mc1->controllerStructure(), mc1->peakLiveNodes());
+            report(mc1->controllerStructure(), mc1->statistics());
         }
     } else if (algorithm == qftbx::mc_thesis) {
         auto mc_thesis = std::make_unique<AlgorithmMcThesis>();
@@ -112,7 +112,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
         timer = std::chrono::steady_clock::now();
         solved = mc_thesis->solve();
         if (solved) {
-            report(mc_thesis->controllerStructure(), mc_thesis->peakLiveNodes());
+            report(mc_thesis->controllerStructure(), mc_thesis->statistics());
         }
     }
 

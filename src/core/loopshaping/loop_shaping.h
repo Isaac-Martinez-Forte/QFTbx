@@ -13,6 +13,7 @@
 #include "src/core/loopshaping/mr/algorithm_mr.h"
 #include "src/core/loopshaping/mc1/algorithm_mc1.h"
 #include "src/core/loopshaping/mc_thesis/algorithm_mc_thesis.h"
+#include "src/core/loopshaping/loop_shaping_statistics.h"
 #include "src/core/system/lti_system.h"
 #include "src/core/boundaries/boundary_data.h"
 
@@ -64,6 +65,9 @@ public:
      */
     std::unique_ptr<LtiSystem> controllerStructure();
 
+    /// What the last run cost; zero before any run.
+    LoopShapingStatistics statistics() const { return m_statistics; }
+
     /**
      * @brief Installs the flag every algorithm reads once per node, so a run
      * can be given up on.
@@ -97,6 +101,7 @@ private:
     qftbx::Settings m_settings;
 
     std::unique_ptr<LtiSystem> m_controller;
+    LoopShapingStatistics m_statistics;
 };
 
 } // namespace qftbx

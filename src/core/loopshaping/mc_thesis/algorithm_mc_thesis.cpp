@@ -264,6 +264,23 @@ std::size_t AlgorithmMcThesis::peakLiveNodes() const
     return liveList != nullptr ? liveList->peakSize() : 0;
 }
 
+LoopShapingStatistics AlgorithmMcThesis::statistics() const
+{
+    LoopShapingStatistics statistics;
+    if (liveList != nullptr) {
+        statistics.peakLiveNodes = liveList->peakSize();
+        statistics.nodesProcessed = liveList->takenCount();
+    }
+    if (detector != nullptr) {
+        statistics.boxesClassified = detector->classifications();
+    }
+    if (stability != nullptr) {
+        statistics.stabilityVerdicts = stability->statistics().verdicts;
+        statistics.stabilityProfiles = stability->statistics().profilesComputed;
+    }
+    return statistics;
+}
+
 
 std::unique_ptr<LtiSystem> AlgorithmMcThesis::controllerStructure()
 {

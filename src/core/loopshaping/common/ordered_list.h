@@ -108,6 +108,8 @@ public:
     /// The most nodes ever queued at once, which is what the run cost in
     /// memory and what the ceiling has to be tuned against.
     std::size_t peakSize () const;
+    /// Nodes taken from the head so far.
+    std::size_t takenCount() const { return m_taken; }
 
 private:
 
@@ -118,6 +120,7 @@ private:
 
     std::size_t m_maxNodes = kDefaultMaxLiveNodes;
     std::size_t m_peakSize = 0;
+    std::size_t m_taken = 0;
 
 };
 

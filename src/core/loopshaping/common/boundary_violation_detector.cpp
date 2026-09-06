@@ -64,6 +64,7 @@ BoxFlag BoundaryViolationDetector::pointVerdict(qftbx::NicholsPoint point,
 //points INSIDE the box: when the boundary left the box within its phase
 //span the cut could remove feasible gains.
 BoxClassification BoundaryViolationDetector::classifyBox(NicholsBox box, const BoundaryData *boundaries, std::size_t frequencyIndex) {
+    ++m_classifications;
 
     const qftbx::TraceSet & buckets =
             boundaries->unionBuckets().at(frequencyIndex);

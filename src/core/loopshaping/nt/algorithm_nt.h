@@ -3,6 +3,7 @@
 
 #include "src/core/project/settings.h"
 #include "src/core/pipeline/cancellation.h"
+#include "src/core/loopshaping/loop_shaping_statistics.h"
 #include <cstdint>
 #include <vector>
 #include <cmath>
@@ -110,6 +111,9 @@ public:
 
     /// The most boxes the search kept alive at once (see kDefaultMaxLiveNodes).
     std::size_t peakLiveNodes() const;
+
+    /// What the run cost, read from the algorithm's own counters.
+    LoopShapingStatistics statistics() const;
 
 
 private:
