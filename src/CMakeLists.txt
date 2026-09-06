@@ -12,6 +12,11 @@ add_subdirectory(persistence)
 add_subdirectory(app)
 add_subdirectory(gui)
 
+# The benchmark tool, over the facade; only when asked for.
+if(QFTBX_BUILD_BENCHMARK)
+  add_subdirectory(bench)
+endif()
+
 # Does the core compile with no Qt at all? A syntax-only target over the
 # same sources with the Qt include paths taken away answers with a yes or a
 # no from the compiler. EXCLUDE_FROM_ALL: ask for it explicitly with

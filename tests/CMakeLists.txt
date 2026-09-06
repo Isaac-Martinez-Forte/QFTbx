@@ -13,3 +13,8 @@ include(GoogleTest)
 
 add_subdirectory(backend)
 add_subdirectory(gui)
+
+# The benchmark library's own tests, with the tool.
+if(QFTBX_BUILD_BENCHMARK)
+  add_subdirectory(bench)
+endif()

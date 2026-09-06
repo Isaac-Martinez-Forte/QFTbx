@@ -77,6 +77,7 @@ the build tree.
 | `USE_CLANG` | `OFF` | Compile with Clang when it is installed. The compiler is chosen before the project is configured and cannot change afterwards, so this takes effect in a fresh build directory; an explicit `-DCMAKE_CXX_COMPILER` always wins |
 | `USE_CUDA` | `OFF` | The CUDA kernels of the templates and boundaries, when a CUDA compiler is found. `CMAKE_CUDA_ARCHITECTURES` names the cards (default 61, 75 and 86) |
 | `QFTBX_BUILD_TESTS` | `ON` | Build the two test binaries and register them with CTest |
+| `QFTBX_BUILD_BENCHMARK` | `OFF` | Build the benchmark tool `qftbx-bench`, its tests and the benchmark planner of the interface. For measuring the algorithms, not for using them; see [BENCHMARKING.md](BENCHMARKING.md) |
 | `QFTBX_INTERVAL_BACKEND` | `kv` | The interval arithmetic library: `kv` or `cxsc`. See [INTERVAL_ARITHMETIC.md](INTERVAL_ARITHMETIC.md) |
 | `QFTBX_SANITIZERS` | empty | Comma-separated sanitizers for a development build, e.g. `address,undefined`; needs the corresponding runtimes |
 | `FETCHCONTENT_SOURCE_DIR_CXSC` | none | A local checkout of the C-XSC fork, for a `cxsc` build without network access |
@@ -96,6 +97,7 @@ a fresh build directory.
 | `qftbx_tests`, `qftbx_gui_tests` | The backend suite and the headless GUI smoke suite |
 | `qftbx_core_noqt` | Not built by default: compiles the core and the persistence with no Qt on the include path, to prove they need none. `cmake --build build --target qftbx_core_noqt` |
 | `docs` | The Doxygen reference; only exists when Doxygen is installed |
+| `qftbx-bench`, `qftbx_bench`, `qftbx_bench_tests` | The benchmark tool, its library and its tests; only with `QFTBX_BUILD_BENCHMARK` |
 
 Each folder of the source tree has a `CMakeLists.txt` that adds its own files
 to the target it belongs to (the helpers are in `cmake/QftbxFunctions.cmake`),

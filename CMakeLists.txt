@@ -34,6 +34,20 @@ option(USE_CUDA          "Use CUDA"             OFF)
 option(USE_NATIVE_ARCH   "Enable -march=native" ON)
 option(QFTBX_BUILD_TESTS "Build unit tests"     ON)
 
+# The benchmark tool and its planner in the interface: for measuring the
+# algorithms, not for using them, so off unless asked for. See
+# docs/BENCHMARKING.md.
+option(QFTBX_BUILD_BENCHMARK "Build the benchmark tool and its planner" OFF)
+if(QFTBX_BUILD_BENCHMARK)
+  execute_process(COMMAND git rev-parse --short HEAD
+                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+                  OUTPUT_VARIABLE QFTBX_GIT_COMMIT OUTPUT_STRIP_TRAILING_WHITESPACE
+                  ERROR_QUIET)
+  if(NOT QFTBX_GIT_COMMIT)
+    set(QFTBX_GIT_COMMIT "unknown")
+  endif()
+endif()
+
 # The interval arithmetic under the loop shaping: kv (vendored, header-only,
 # the default) or cxsc (C-XSC, fetched from its repository at configure time
 # and built as an external project). Both live behind src/core/math/interval.h
