@@ -9,190 +9,108 @@
 </p>
 
 <p align="center">
-Academic-oriented software for QFT-based analysis and automatic loop shaping
+Robust controller design with Quantitative Feedback Theory: templates,
+boundaries and certified automatic loop shaping
 </p>
 
 ---
 
 ## Overview
 
-QFTbx is a graphical and computational toolbox for the design and analysis of robust controllers using Quantitative Feedback Theory (QFT).
+QFTbx is a desktop toolbox for the design and analysis of robust controllers
+with Quantitative Feedback Theory (QFT). It walks a design through the
+standard QFT pipeline, from the uncertain plant to the shaped loop, and
+computes every step:
 
-The software is mainly oriented towards academic and research use, although it can also be useful for control engineers interested in QFT-based methodologies.
-It provides tools for automatic loop shaping, interval analysis, and visualization of QFT constraints.
+- **Templates**: the value sets of an uncertain plant at each design
+  frequency, reduced to their contour with the ε-hull algorithm.
+- **Boundaries**: the regions of the Nichols chart that the nominal loop must
+  respect for each specification (stability, tracking, disturbance rejection,
+  control effort), merged into one boundary per frequency.
+- **Automatic loop shaping**: five interval branch and bound algorithms that
+  find a controller of a given structure with the least high-frequency gain,
+  and certify it (NT, NK, MR and the two accelerated MC algorithms of the
+  author's doctoral work).
+- **Rigorous arithmetic**: the loop shaping runs on verified interval
+  arithmetic, so a controller reported feasible is feasible for every plant
+  of the uncertainty set.
 
-This software is currently under active development. Some features may be incomplete or experimental.
-
----
-
-## Dependencies
-
-Required
-- CMake >= 3.17
-- Qt >= 6.x
-- C++ compiler with C++20 support
-
-Optional
-- OpenMP >= 11
-- CUDA >= 7
-- Doxygen (for documentation generation)
-
-Bundled or fetched automatically (nothing to install by hand)
-- kv, Masahide Kashiwagi's verified computation library (header-only, MIT):
-  the interval arithmetic under the loop-shaping algorithms, vendored in
-  `3rd-party/kv` (only the headers the toolbox uses). C-XSC is the
-  alternative backend (`-DQFTBX_INTERVAL_BACKEND=cxsc`), fetched at
-  configure time from
-  https://github.com/Isaac-Martinez-Forte/cxsc-cpp17 and built as an
-  external project.
-- QCustomPlot (plots): vendored in `3rd-party/`.
-- pugixml (project files): fetched with FetchContent at configure time,
-  so the first configuration needs network access.
+The software comes out of academic work at the University of Murcia and is
+oriented to research and teaching; it is also usable by control engineers
+working with QFT. It is under active development, and some parts are
+experimental.
 
 ---
 
-## Configuration options
+## Requirements
 
-Dependencies and features can be enabled or disabled directly from the main CMakeLists.txt file using the following options:
+| Dependency | Version | Needed for | How it is obtained |
+|---|---|---|---|
+| C++ compiler | C++20: GCC 8 or later, Clang 11 or later, MinGW-w64 | everything | installed by hand |
+| CMake | 3.17 or later | the build | installed by hand |
+| Qt | 6.x (Core, Widgets, PrintSupport, LinguistTools) | the application and the GUI tests | installed by hand |
+| OpenMP | any supported by the compiler | parallel templates and boundaries, optional | comes with the compiler |
+| CUDA | 11 or later | GPU kernels, optional, off by default | installed by hand |
+| Doxygen and Graphviz | recent | the API documentation, optional | installed by hand |
+| kv | 0.4.62 | interval arithmetic (default backend) | vendored in `3rd-party/kv` |
+| C-XSC | 2.5.4, [QFTbx fork](https://github.com/Isaac-Martinez-Forte/cxsc-cpp17) | interval arithmetic (alternative backend), optional | fetched at configure time |
+| QCustomPlot | 2.x | the plots | vendored in `3rd-party/qcustomplot` |
+| pugixml | 1.14 | `.qft` project files | fetched at configure time |
+| GoogleTest | 1.14 | the tests | fetched at configure time |
 
-OPTION (USE_CLANG       "Use CLANG"             OFF)
-OPTION (USE_OpenMP      "Use OpenMP"            ON)
-OPTION (USE_CUDA        "Use CUDA"              OFF)
-OPTION (USE_Doxygen     "Use Doxygen"           OFF)
-OPTION (USE_NATIVE_ARCH "Enable -march=native"  ON)
-OPTION (QFTBX_BUILD_TESTS "Build unit tests"    ON)
-SET    (QFTBX_INTERVAL_BACKEND "kv")             # or cxsc
-
-Automatic configuration is applied based on the selected options and the available system libraries.
-
-### A note on the interval arithmetic
-
-The whole interval arithmetic goes through `src/core/math/interval.h`, and
-the library underneath is chosen with `QFTBX_INTERVAL_BACKEND`. kv, the
-default, is used in its rounding-emulation mode (`KV_NOHWROUND`): the
-directed roundings are computed with error-free transformations instead of
-switching the floating-point rounding mode, so its rigour does not depend
-on compiler flags, on the optimisation level or on which thread runs it.
-C-XSC switches the rounding mode around each operation, and the targets that
-compile interval code are then built with `-frounding-math`, without which
-the optimiser reorders the arithmetic across the switches. The backend
-supplies the four operations, the square root, the integer power and pi;
-the exponential, the logarithms and the trigonometric functions take the C
-library's values widened by four ulps, twice the largest error glibc lists
-for them, because the libraries' series enclosures are hundreds of times
-slower and the loop-shaping algorithms call them millions of times. The
-two backends must give the same enclosures up to rounding, which makes the
-second one a cross-check of the first.
-`tests/backend/interval_test.cpp` checks the enclosure properties the
-loop-shaping algorithms rely on, whichever backend is configured.
+The first configuration downloads pugixml and GoogleTest, so it needs network
+access; after that the build is self-contained.
 
 ---
 
-## Build instructions
+## Quick start
 
-Linux / Windows (MinGW)
+Linux:
 
-mkdir build
-cd build
-cmake ..
-make
+    cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+    cmake --build build -j
+    ./build/QFTbx
 
-If all dependencies are correctly installed, the project can be compiled on Linux (using GCC or Clang) or Windows (using MinGW).
+Windows (MinGW-w64, from a shell where the compiler is on the path):
 
----
+    cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=C:/Qt/6.6.2/mingw_64
+    cmake --build build -j
+    build\QFTbx.exe
 
-## Tests
+If Qt is not found, pass `-DCMAKE_PREFIX_PATH=<Qt installation>`. Every
+option, the compilers, the interval backends and the documentation target are
+described in [docs/BUILDING.md](docs/BUILDING.md).
 
-The project ships a suite of unit, characterisation and golden tests
-(GoogleTest, fetched at configure time). It is built by default; run it
-from the build directory:
+The tests are built with the project and run with `ctest --test-dir build`.
 
-    ctest
-
-or, for the detail of a failure:
-
-    ctest --output-on-failure -R <test name>
-
-The suite covers the plant/uncertainty model, the frequency set, the
-specifications, the templates and their contours, the boundaries, the
-persistence round-trip, the five loop-shaping algorithms (against
-published results where they exist) and the rigour of the interval
-arithmetic. The goldens pin current behaviour; correctness of each
-algorithm is judged against its paper.
-
----
-
-## Execution
-
-From the build directory:
-
-./QFTbx
-
-No installer is currently provided. The application is intended to be run directly from the build directory.
-
----
-
-## Source layout
-
-    src/core/          computational core, free of GUI code
-      system/            plants and controllers (LtiSystem and its forms)
-      frequencies/       the design frequency set
-      specifications/    design specifications
-      templates/         template computation and contours
-      boundaries/        boundary computation, tracing and union
-      loopshaping/       the five algorithms (NT, NK, MR, MC1, MC thesis)
-      gpu/               CUDA kernels (optional)
-      math/              numeric sequences
-      project_controller the application facade (owns the project data)
-    src/persistence/   .qft project reading and writing
-    src/gui/           Qt dialogs, viewers and the main window
-    tests/backend/     the computational test suite
-    tests/gui/         the headless dialog smoke suite
-    3rd-party/         vendored dependencies
+No installer is provided yet; the application runs from the build directory.
 
 ---
 
 ## Documentation
 
-The reference for the classes, the algorithms and their sources is generated with
-Doxygen. Install `doxygen` (and `graphviz`, for the inheritance and include
-diagrams), then either
+| Document | Contents |
+|---|---|
+| [docs/BUILDING.md](docs/BUILDING.md) | Requirements in detail, every CMake option, compilers, Windows, sanitizers, the Doxygen reference |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | The QFT pipeline, the modules and their responsibilities, error handling, persistence |
+| [docs/algorithms/](docs/algorithms/README.md) | Every algorithm: what it solves, the paper it comes from, how the implementation follows it, the files and the tests |
+| [docs/INTERVAL_ARITHMETIC.md](docs/INTERVAL_ARITHMETIC.md) | The interval layer, the kv and C-XSC backends, how they are cross-checked |
+| [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | The `qftbx.conf` settings file: where it is read from, every key and its range |
+| [docs/PROJECT_FORMAT.md](docs/PROJECT_FORMAT.md) | The `.qft` project file |
+| [docs/TESTING.md](docs/TESTING.md) | Running and reading the test suites, the fixtures, the golden policy |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Branches, conventions and how a change gets in |
 
-    cmake --build build --target docs
-
-or, without going through CMake at all, from the root of the repository:
-
-    doxygen
-
-Both read the same `Doxyfile` at the root — the CMake target is only a convenience,
-so there is no generated copy of the configuration that can drift from the one under
-version control. The result is written to `docs/api/html/index.html`, which is not
-committed; its landing page is [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-
-The `docs` target exists only when doxygen is found; CMake says so at configure time
-when it is not, and configuring succeeds either way.
-
-Two things worth knowing about the configuration:
-
-- **Formulas** are rendered by MathJax from a CDN, because there is no LaTeX in the
-  loop. The pages therefore need internet access for the formulas, and for nothing
-  else. To make them fully self-contained, drop a copy of MathJax somewhere and point
-  `MATHJAX_RELPATH` at it.
-- **Warnings fail the run** (`WARN_AS_ERROR`), but only the ones that are documentation
-  bugs: a `@param` naming an argument that does not exist, a half-documented
-  signature, a broken reference. Undocumented trivial accessors are deliberately not
-  warned about — the policy is to explain the algorithms and the API and to leave
-  trivia alone, so warning on it would bury the real findings.
-
-`STRIP_CODE_COMMENTS` is off on purpose: much of the reasoning in this codebase lives
-in ordinary comments beside the code, and the generated source browser is where to
-read it.
+The API reference of the classes is generated with Doxygen (`cmake --build
+build --target docs`, or `doxygen` from the root) into `docs/api/html`.
 
 ---
 
 ## License
 
-This project is distributed under the GNU General Public License, Version 3 (GPLv3).
+QFTbx is distributed under the GNU General Public License, version 3
+([LICENSE](LICENSE)). The vendored and fetched libraries keep their own
+licences: kv (MIT), QCustomPlot (GPLv3), pugixml (MIT), GoogleTest (BSD
+3-clause), C-XSC (LGPL 2.1).
 
 ---
 
@@ -214,7 +132,7 @@ International Journal of Robust and Nonlinear Control, 31(9), 4378–4396.
 https://doi.org/10.1002/rnc.5499
 http://hdl.handle.net/10201/123363
 
-Martínez-Forte, I., & Cervera, J. (2022).
+Martínez-Forte, I. (2022).
 Aceleración de algoritmos intervalares de ajuste automático del lazo en QFT.
 Doctoral Thesis, Universidad de Murcia.
 http://hdl.handle.net/10201/122610
