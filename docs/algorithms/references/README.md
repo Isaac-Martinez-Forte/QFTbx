@@ -1,10 +1,12 @@
 # References
 
 Every algorithm of QFTbx comes from one of the documents below. The author's own
-works are included in this folder as PDF files. The third-party works are cited
-with their DOI or original location and are not redistributed: their copyright
-belongs to their publishers or their authors, and most of them are available
-through a university library.
+works are included in this folder as PDF files: the three academic theses and
+the accepted manuscript of the journal paper, in the open-access version the
+university repository distributes. The third-party works are cited with their
+DOI or original location and are not redistributed: their copyright belongs to
+their publishers or their authors, and most of them are available through a
+university library.
 
 ## The author's documents (included)
 
@@ -35,18 +37,18 @@ Chapters 1 and 3 present interval arithmetic, interval global search and the NT
 and NK algorithms; chapters 4 and 5 the strategies and the MC algorithm; chapter 6
 the benchmarks; chapter 7 the software. Used by every loop-shaping page.
 
-## The author's paper (open access, not included here)
-
+**[martinez-forte-cervera-2021-ijrnc-accepted.pdf](martinez-forte-cervera-2021-ijrnc-accepted.pdf)**
 I. Martínez-Forte and J. Cervera, *Accelerated quantitative feedback theory
 interval automatic loop shaping algorithm*. International Journal of Robust and
 Nonlinear Control 31:4378–4396, 2021. DOI 10.1002/rnc.5499.
-Copyright 2021 John Wiley & Sons Ltd. The published version is Wiley's. The
-accepted manuscript, the version before Wiley's typesetting, is in open access in
-the university repository DIGITUM, handle 10201/123363
-(http://hdl.handle.net/10201/123363), under a CC BY-NC-ND licence, as Wiley's
-self-archiving terms allow. Read it there. The algorithm is the one of
-[loop-shaping-mc1.md](../loop-shaping-mc1.md), and the thesis above covers the
-same material in chapters 4 and 5.
+The file is the accepted manuscript, the authors' version before Wiley's
+typesetting, which the university repository DIGITUM distributes in open access
+under a CC BY-NC-ND licence (handle 10201/123363,
+http://hdl.handle.net/10201/123363) as Wiley's self-archiving terms allow; it is
+included here under that licence. The published version is Wiley's
+(copyright 2021 John Wiley & Sons Ltd) and is not included. The algorithm is the
+one of [loop-shaping-mc1.md](../loop-shaping-mc1.md), and the thesis above
+covers the same material in chapters 4 and 5.
 
 ## Third-party references (not included)
 

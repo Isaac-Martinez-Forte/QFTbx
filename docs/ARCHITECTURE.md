@@ -49,7 +49,7 @@ in [docs/algorithms](algorithms/README.md).
 | `src/core/project/` | What a project holds, owned by value (`ProjectData`); the user settings (`Settings`) |
 | `src/core/pipeline/` | The design steps as data (`Step`), one stage per step, background execution and cancellation |
 | `src/core/gpu/` | Optional CUDA kernels for templates/boundaries (`USE_CUDA`) |
-| `src/persistence/` | Load/save of `.qft` project files (pugixml; versioned English dialect, legacy Spanish files still load) |
+| `src/persistence/` | Load/save of `.qft` project files (pugixml; the version-2 dialect, see [PROJECT_FORMAT.md](PROJECT_FORMAT.md)) |
 | `src/app/` | `ProjectController`: the single mediator between GUI and core, one method per design step |
 | `src/gui/` | Qt Widgets HMI: one folder per design step with its dialog and viewers (QCustomPlot), plus `application/` (shell, main window) and `common/` (shared widgets and helpers) |
 | `tests/` | GoogleTest suites in `backend/` and `gui/`; golden `.qft` projects in `tests/data/` |
@@ -77,13 +77,16 @@ constraints with the HC4 filter. The names a parameter cannot take are the
 functions, the constants and the Laplace variable `s`; `k` is a name like any
 other.
 
-## Third-party libraries (vendored in `3rd-party/`)
+## Third-party libraries
 
-- **QCustomPlot** — plotting inside the Qt GUI.
-- **kv** — verified interval arithmetic (header-only), behind the toolbox's own
-  `Interval`, `ComplexInterval` and `PolarInterval` types in `src/core/math/interval.h`;
-  used by loop shaping. C-XSC can take its place (`QFTBX_INTERVAL_BACKEND=cxsc`),
-  fetched from its repository rather than vendored.
+- **QCustomPlot** (vendored) — plotting inside the Qt GUI.
+- **kv** (vendored) — verified interval arithmetic (header-only), behind the toolbox's
+  own `Interval`, `ComplexInterval` and `PolarInterval` types in
+  `src/core/math/interval.h`; used by loop shaping. C-XSC can take its place
+  (`QFTBX_INTERVAL_BACKEND=cxsc`), fetched from its repository rather than vendored;
+  see [INTERVAL_ARITHMETIC.md](INTERVAL_ARITHMETIC.md).
+- **pugixml** (fetched) — the `.qft` reader and writer.
+- **GoogleTest** (fetched) — the tests.
 
 ## Error handling
 
@@ -99,7 +102,9 @@ into an error dialog.
 
 Projects are saved as `.qft` files (XML): plant, frequencies, specifications,
 computed templates/contours, boundaries, controller structure and loop-shaping
-results. `tests/data/` ships real projects used as golden data by the tests.
+results; the format is described in [PROJECT_FORMAT.md](PROJECT_FORMAT.md).
+`tests/data/` ships real projects used as golden data by the tests. The user
+settings come from an optional `qftbx.conf` ([CONFIGURATION.md](CONFIGURATION.md)).
 
 ## The API documentation
 

@@ -1,5 +1,21 @@
 cmake_minimum_required(VERSION 3.17)
 
+# Compile with Clang when it is installed and asked for. The compiler has to
+# be chosen before project() and cannot change once a build tree exists, so
+# this takes effect in a fresh build directory only; an explicit
+# CMAKE_CXX_COMPILER on the command line always wins.
+option(USE_CLANG "Compile with Clang when available" OFF)
+if(USE_CLANG AND NOT DEFINED CMAKE_CXX_COMPILER)
+  find_program(QFTBX_CLANGXX NAMES clang++)
+  find_program(QFTBX_CLANG NAMES clang)
+  if(QFTBX_CLANGXX AND QFTBX_CLANG)
+    set(CMAKE_CXX_COMPILER "${QFTBX_CLANGXX}" CACHE FILEPATH "C++ compiler")
+    set(CMAKE_C_COMPILER "${QFTBX_CLANG}" CACHE FILEPATH "C compiler")
+  else()
+    message(STATUS "USE_CLANG is on but clang++ was not found: using the default compiler")
+  endif()
+endif()
+
 project(QFTbx LANGUAGES CXX)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
@@ -36,8 +52,10 @@ if(QFTBX_SANITIZERS)
   add_link_options(-fsanitize=${QFTBX_SANITIZERS})
 endif()
 
-if(WIN32)
-  set(CMAKE_PREFIX_PATH "C:\\Qt\\6.6.2\\mingw_64")
+# Where Qt lives on Windows when nothing says otherwise; pass
+# -DCMAKE_PREFIX_PATH=<Qt dir> to point at another installation.
+if(WIN32 AND NOT CMAKE_PREFIX_PATH)
+  set(CMAKE_PREFIX_PATH "C:/Qt/6.6.2/mingw_64" CACHE PATH "Qt installation used on Windows")
 endif()
 
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets PrintSupport LinguistTools)

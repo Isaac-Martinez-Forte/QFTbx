@@ -8,8 +8,10 @@ NK up by one to two orders of magnitude while keeping its guarantee.
 **Reference.** I. Martínez-Forte and J. Cervera, *Accelerated quantitative
 feedback theory interval automatic loop shaping algorithm*, International Journal
 of Robust and Nonlinear Control 31:4378–4396, 2021, DOI 10.1002/rnc.5499. The
-accepted manuscript is in open access in DIGITUM
-(http://hdl.handle.net/10201/123363). The doctoral thesis (2022) contains the
+accepted manuscript, in open access in DIGITUM
+(http://hdl.handle.net/10201/123363), is included in
+[references](references/martinez-forte-cervera-2021-ijrnc-accepted.pdf). The
+doctoral thesis (2022) contains the
 same material in chapters 4 and 5, and extends it (see
 [loop-shaping-mc.md](loop-shaping-mc.md)).
 See [references](references/README.md).

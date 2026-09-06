@@ -1,58 +1,61 @@
 # Contributing to QFTbx
 
-Thanks for your interest in QFTbx! Contributions are welcome.
+Contributions are welcome: a bug report with the project file that shows
+it, a fix, a new algorithm from the literature, a better explanation in the
+documentation.
 
-> **Heads-up:** the codebase is undergoing a deep modernisation (see
-> [REFACTOR_PLAN.md](REFACTOR_PLAN.md)). Parts of the code still use legacy
-> conventions (Spanish identifiers, raw pointers, Qt containers in the
-> backend); new code must follow the conventions below, and legacy code is
-> being migrated module by module.
+## Building and testing
 
-## Building
+The requirements, the options and the compilers are in
+[docs/BUILDING.md](docs/BUILDING.md); the short version:
 
-Requirements: CMake ≥ 3.17, Qt ≥ 6.x, a C++20 compiler. Optional: OpenMP, CUDA, Doxygen.
+    cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+    cmake --build build -j
+    ctest --test-dir build --output-on-failure
 
-```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j
-./build/QFTbx
-```
+The tests are described in [docs/TESTING.md](docs/TESTING.md). Every
+behavioural change needs a test, and a bug fix needs a test that fails
+before the fix. A change that alters a golden result says so in its commit
+and re-pins the golden deliberately.
 
-If Qt is not found automatically, pass `-DCMAKE_PREFIX_PATH=/path/to/Qt/6.x/gcc_64`.
+## Branches
 
-## Tests
+`main` holds releases. Day-to-day work is merged into `Development`. Branch
+from `Development`, keep each commit to one topic, and open a pull request
+back to `Development`; the continuous integration (`.github/workflows/ci.yml`)
+builds the project with Qt 6.5 on Linux and runs the suite, and it must be
+green.
 
-Unit tests use GoogleTest (fetched automatically) and run through CTest:
+## Conventions
 
-```bash
-ctest --test-dir build --output-on-failure
-```
+- **English everywhere**: identifiers, comments, commit messages,
+  documentation.
+- **C++20, value semantics first.** No raw `new` and `delete`; standard
+  containers, `std::unique_ptr` where ownership is needed. The one
+  exception is Qt's parent-child ownership in the GUI, which is Qt's own
+  memory management and must not be doubled with a smart pointer.
+- **Qt only in the GUI.** The core (`src/core/`) and the persistence
+  (`src/persistence/`) use the standard library; the target
+  `qftbx_core_noqt` compiles them without Qt on the include path to prove
+  it.
+- **Errors are exceptions.** The core never talks to the user: it throws
+  `qftbx::Exception` or a subclass (`src/core/common/exception.h`) and the
+  GUI catches at its boundary and shows the message. A slot that reaches
+  the core catches, because an exception escaping a Qt slot terminates the
+  process.
+- **Formatting**: `.clang-format` at the root; `.clang-tidy` is advisory.
+- **Doxygen**: algorithm classes get full headers, with the mathematics and
+  the reference to the paper; the public API gets a `\brief`; trivial
+  internals get nothing. Never restate the signature in words.
+- **Commit messages** explain the change and the reason in prose, in
+  English, so that the history reads as the record of the decisions.
 
-Tests build by default (`QFTBX_BUILD_TESTS=ON`). Every behavioural change needs a test;
-bug fixes need a test that fails before the fix. For memory checking, configure with
-`-DQFTBX_SANITIZERS=address,undefined` (while the refactor lasts, run the tests with
-`ASAN_OPTIONS=detect_leaks=0`).
+## Documentation
 
-## Branches and pull requests
-
-- `main` holds releases; day-to-day work is merged into `Development`.
-- Branch from `Development`, keep commits atomic (one topic per commit), and open a
-  pull request back to `Development`. CI must be green.
-
-## Code conventions
-
-- **Language**: everything in English — identifiers, comments, commit messages, docs.
-- **C++20, value semantics first**: no raw `new`/`delete`; use standard containers and
-  `std::unique_ptr` where ownership is needed.
-- **Qt only in the GUI**: the backend (`Modelo/`, `DAO/`, `src/persistence/`) uses the standard
-  library. Exception: the XML persistence module keeps `QXmlStream` internally.
-- **Errors**: the backend never talks to the user; it throws `qftbx::Exception` (see
-  `Modelo/Herramientas/exception.h`) and GUI slots catch and display.
-- **Formatting**: `.clang-format` at the repo root; `.clang-tidy` is advisory.
-- **Doxygen**: algorithm classes get full headers (math, paper references); public API
-  gets a one-line `\brief`; trivial internals get nothing. Never restate the signature.
-
-## Architecture
-
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for a one-page tour of the modules
-and the QFT design pipeline.
+Each kind of documentation has its place: the build in `docs/BUILDING.md`,
+the modules in `docs/ARCHITECTURE.md`, the algorithms in `docs/algorithms/`
+(one page per algorithm, with the paper it follows and where it departs from
+it), the settings in `docs/CONFIGURATION.md`, the file format in
+`docs/PROJECT_FORMAT.md`, the tests in `docs/TESTING.md`. A change that
+moves a file, adds an option or alters an algorithm updates the page that
+describes it in the same pull request.
