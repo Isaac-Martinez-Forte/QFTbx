@@ -305,6 +305,7 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
               defaults.algorithms.templateRepresentatives);
     EXPECT_EQ(fromExample.algorithms.maxNarrowingPasses,
               defaults.algorithms.maxNarrowingPasses);
+    EXPECT_EQ(fromExample.algorithms.mrNicholsEpsilon, defaults.algorithms.mrNicholsEpsilon);
     EXPECT_EQ(fromExample.algorithms.localSearchBudget,
               defaults.algorithms.localSearchBudget);
     EXPECT_EQ(fromExample.algorithms.gainTolerance, defaults.algorithms.gainTolerance);
@@ -312,9 +313,9 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
               defaults.algorithms.certifiedGainTolerance);
 
     //Every setting the build knows has to be IN the example, or the example
-    //is not documentation. Twenty-four today; the count is asserted so adding
+    //is not documentation. Twenty-five today; the count is asserted so adding
     //one without documenting it fails here.
-    EXPECT_EQ(settingsFound, 24)
+    EXPECT_EQ(settingsFound, 25)
         << "a setting was added to the code and not to qftbx.conf.example";
 
     EXPECT_TRUE(fromExample.unknownKeys.empty())

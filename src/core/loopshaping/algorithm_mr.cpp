@@ -246,6 +246,22 @@ bool AlgorithmMr::solve(){
     buildConstraints();
     bindConstraints();
 
+    //The termination of the other four algorithms, when asked for: the
+    //Nichols box of the leading node below epsilon at every frequency.
+    const bool nicholsEpsilon = m_settings.algorithms.mrNicholsEpsilon;
+    if (nicholsEpsilon) {
+        if (controller->type() != LtiSystem::SystemType::ZeroPoleGain) {
+            throw qftbx::InvalidInput("The Nichols-box termination of algorithm MR "
+                                      "(algorithms.mr-nichols-epsilon) needs a zero-pole-gain "
+                                      "controller structure, as the other algorithms do.");
+        }
+        conversion = std::make_unique<NaturalIntervalExtension>();
+        nominalPlantValues.clear();
+        for (double o : *omega) {
+            nominalPlantValues.push_back(plant->evaluate(o));
+        }
+    }
+
     classifyAndInsert(std::move(controller));
 
     while (true) {
@@ -266,7 +282,11 @@ bool AlgorithmMr::solve(){
 
         std::unique_ptr<SearchNode> node = liveList->takeFirstAs<SearchNode>();
 
-        if (node->flag() == feasible || isParameterBoxSmall(node->system())) {
+        const bool small = nicholsEpsilon
+                ? isEpsilonSmall(node->system(), epsilon, omega, conversion.get(), nominalPlantValues)
+                : isParameterBoxSmall(node->system());
+
+        if (node->flag() == feasible || small) {
 
             const bool lowerCorner = node->flag() != ambiguous;
 

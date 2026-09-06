@@ -197,6 +197,16 @@
 # Range: 1 to 1000.
 # max-narrowing-passes = 8
 
+# MR: what the termination epsilon measures. 0, the paper's criterion: the
+# width of the CONTROLLER PARAMETER box. 1, the criterion of the other four
+# algorithms: the diameter of the NICHOLS box of the leading node, in dB and
+# degrees. The two numbers are not comparable (see docs/algorithms), so
+# with 0 the running time of MR cannot be set against the others'; with 1
+# the five algorithms stop on the same measure. Needs a zero-pole-gain
+# controller structure, as the other four do.
+# Range: 0 or 1.
+# mr-nichols-epsilon = 0
+
 # NK (Nataraj & Kubal 2007): iterations the local refinement of a candidate
 # point may spend.
 # Range: 1 to 1e7.
