@@ -136,6 +136,10 @@ private slots:
 
 private:
     std::unique_ptr<Ui::MainWindow> ui;
+#ifdef QFTBX_BENCHMARK
+    /// The planner, created on first use; a child window of this one.
+    class BenchmarkWindow * m_benchmark = nullptr;
+#endif
 
 
     //The facade is the window's own, and the only thing here that is not a

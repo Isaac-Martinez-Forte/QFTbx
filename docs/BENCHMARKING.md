@@ -118,6 +118,32 @@ A run left to itself on another machine:
 Since every finished case is already on disk, a run interrupted halfway keeps
 what it measured; `summarize` gathers it.
 
+## The planner
+
+With the same build option the application gains a Tools menu with the
+benchmark planner: the plan, the queue and the results in one window.
+
+- **Plan.** The form of everything above: the project (with a summary of
+  what it holds, so a project without boundaries is noticed before the run),
+  the plan name and output directory, the structure sequence as a table of
+  steps to add and reorder with the structures that will run listed under
+  it, the algorithms, the epsilons, the repetitions and the warm-up, the
+  measures with a word on the cost of each, the execution limits, and the
+  settings overrides with the known keys offered as you type. The status bar
+  counts the cases the plan expands to as you edit.
+- **Queue.** One row per case with its state, time, gain and memory as the
+  processes finish, a progress bar and a log. Stop kills the running cases
+  and keeps what finished.
+- **Results.** The summary table and a figure of one measure (wall or CPU
+  time, memory, live nodes) against the controller structure, one curve per
+  algorithm, logarithmic by default, exportable as CSV or Markdown.
+
+The planner saves the plan to its file before it runs, since the worker
+processes read it from there, and it launches `qftbx-bench` from next to the
+application. "Load results" reads the records already on disk for the
+current plan, so a run made unattended elsewhere with the same plan file is
+read here.
+
 ## Reading the results
 
 The `.jsonl` is the source of truth; the summaries are derived from it. The

@@ -52,7 +52,8 @@ in [docs/algorithms](algorithms/README.md).
 | `src/persistence/` | Load/save of `.qft` project files (pugixml; the version-2 dialect, see [PROJECT_FORMAT.md](PROJECT_FORMAT.md)) |
 | `src/app/` | `ProjectController`: the single mediator between GUI and core, one method per design step |
 | `src/gui/` | Qt Widgets HMI: one folder per design step with its dialog and viewers (QCustomPlot), plus `application/` (shell, main window) and `common/` (shared widgets and helpers) |
-| `tests/` | GoogleTest suites in `backend/` and `gui/`; golden `.qft` projects in `tests/data/` |
+| `src/bench/` | The benchmark library and the `qftbx-bench` tool (plans, measured runs in their own processes, summaries), and `src/gui/bench/` its planner; only with `QFTBX_BUILD_BENCHMARK`, see [BENCHMARKING.md](BENCHMARKING.md) |
+| `tests/` | GoogleTest suites in `backend/` and `gui/` (and `bench/` with the benchmark); golden `.qft` projects in `tests/data/` |
 
 Build targets: `qftbx_core` (the algorithms and the model), `qftbx_persistence`,
 `qftbx_app` (the mediator), `qftbx_gui`, and the `QFTbx` executable on top of them;

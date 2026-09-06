@@ -365,6 +365,15 @@ Settings readSettings(const std::string & path)
     return settings;
 }
 
+std::vector<std::string> settingKeys()
+{
+    std::vector<std::string> keys;
+    for (const Binding & binding : bindings()) {
+        keys.emplace_back(binding.key);
+    }
+    return keys;
+}
+
 Settings loadSettings()
 {
     //Named explicitly: naming a file says it is meant to be used, so failing
