@@ -96,6 +96,7 @@ explored by recompiling is a worse tool.
 |---|---|---|---|
 | `template-representatives` | 9 | 2 to 1000 | MR (Rambabu and Nataraj, FDA-10): template points entering the constraint set per design frequency. The paper uses 9; raising it narrows the known excess of the tracking bound only slightly, at a much higher cost |
 | `max-narrowing-passes` | 8 | 1 to 1000 | MR: passes of the HC4 narrowing before a box is accepted as narrowed no further |
+| `mr-nichols-epsilon` | 0 | 0 or 1 | MR: with 1 the termination epsilon measures the Nichols box of the leading node, as in the other four algorithms, instead of the width of the parameter box the paper uses; the only way to compare the running time of MR with the others' |
 | `local-search-budget` | 400 | 1 to 1e7 | NK (Nataraj and Kubal 2007): iterations the local refinement of a candidate may spend |
 | `gain-tolerance` | 1.01 | above 1, up to 10 | NK: the ratio at which the gain bisection stops; a pruning bound, not the accuracy of the answer |
 | `certified-gain-tolerance` | 1.01 | above 1, up to 10 | MC (Martínez-Forte and Cervera 2021): the same ratio for the certified gain search |

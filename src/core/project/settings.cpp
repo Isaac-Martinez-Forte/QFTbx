@@ -155,6 +155,11 @@ const std::vector<Binding> & bindings()
              into.algorithms.maxNarrowingPasses = static_cast<std::int32_t>(
                  wholeIn(text, "algorithms.max-narrowing-passes", line, 1.0, 1000.0));
          }},
+        {"algorithms.mr-nichols-epsilon",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.algorithms.mrNicholsEpsilon =
+                 wholeIn(text, "algorithms.mr-nichols-epsilon", line, 0.0, 1.0) != 0.0;
+         }},
         {"algorithms.local-search-budget",
          [](const std::string & text, std::int64_t line, Settings & into) {
              into.algorithms.localSearchBudget = static_cast<std::int32_t>(

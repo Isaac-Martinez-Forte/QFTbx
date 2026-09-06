@@ -49,9 +49,12 @@
  *   algorithms measure epsilon on the NICHOLS box instead, because that is
  *   the criterion of their own papers, so the same number means different
  *   things depending on the algorithm picked - the note on setProblem says
- *   what. The paper collects all solution boxes of that width and sorts
- *   them afterwards; ordering the live list by gain infimum reaches the
- *   minimum-gain one first, which is the one the sort would pick.
+ *   what. The setting algorithms.mr-nichols-epsilon makes MR stop on the
+ *   Nichols box like the others, so that the five can be timed against one
+ *   another on one meaning of epsilon; it is off by default. The paper
+ *   collects all solution boxes of that width and sorts them afterwards;
+ *   ordering the live list by gain infimum reaches the minimum-gain one
+ *   first, which is the one the sort would pick.
  * - The template contour is subsampled to a handful of representatives
  *   per frequency (the paper uses 9 plants; the full contour would square
  *   into the tracking pairs).
@@ -82,7 +85,8 @@ public:
      * of the Nichols box: on a plant whose |P| reaches 1e4 at the lowest
      * design frequency, a Nichols epsilon of 0.001 would demand a gain
      * interval narrower than 1e-7, and the two numbers are neither
-     * comparable nor interchangeable.
+     * comparable nor interchangeable. With algorithms.mr-nichols-epsilon set
+     * it is the Nichols epsilon of the other algorithms instead.
      * @param boundaries unused: the constraints come from the
      * specifications and the templates, not from Nichols boundaries.
      */
@@ -123,9 +127,14 @@ private:
     void buildControllerExpressions();
     void buildConstraints();
     void classifyAndInsert(std::unique_ptr<LtiSystem> box);
-    bool narrowToFixpoint(std::map<std::string, Interval> & domains);
-    bool certainlyFeasible(std::map<std::string, Interval> & domains);
-    void loadDomains(LtiSystem * box, std::map<std::string, Interval> & domains);
+    bool narrowToFixpoint(std::vector<Interval> & domains);
+    bool certainlyFeasible(std::vector<Interval> & domains);
+    void loadDomains(LtiSystem * box, std::vector<Interval> & domains);
+
+    /// Fixes the order of the uncertain parameters (numerator, denominator,
+    /// gain) the domains are held in, and binds every constraint tree to
+    /// it, so that a box is loaded and propagated without a name lookup.
+    void bindConstraints();
 
     /// True when every uncertain controller parameter has been narrowed to
     /// an interval no wider than epsilon: the paper's termination criterion.
@@ -134,9 +143,9 @@ private:
     /// Degenerate domains at the corner pointFromBox() would take, so that
     /// the point itself can be run through the constraint set.
     void loadPointDomains(LtiSystem * box, bool lowerCorner,
-                                 std::map<std::string, Interval> & domains);
+                                 std::vector<Interval> & domains);
     std::unique_ptr<LtiSystem> boxFromDomains(LtiSystem * box,
-                                      const std::map<std::string, Interval> & domains);
+                                      const std::vector<Interval> & domains);
 
     LtiSystem * plant = nullptr;
     std::unique_ptr<LtiSystem> controller;
@@ -149,6 +158,11 @@ private:
     std::unique_ptr<NominalStabilityChecker> stability;
     std::unique_ptr<OrderedList> liveList;
 
+    //The Nichols-box termination of the other algorithms, built only when
+    //the settings ask for it.
+    std::unique_ptr<NaturalIntervalExtension> conversion;
+    std::vector<std::complex<double>> nominalPlantValues;
+
     //Controller magnitude/phase expression strings, one per design
     //frequency, and the parsed constraint trees (built once; each box
     //only reloads the variable domains).
@@ -157,6 +171,9 @@ private:
     std::vector<Expression> magnitudeExpressions;
     std::vector<Expression> phaseExpressions;
     std::vector<std::unique_ptr<qftbx::ExpressionTree>> constraints;
+
+    //The uncertain parameter names in the order the domains are held in.
+    std::vector<std::string> parameterNames;
 
     std::unique_ptr<LtiSystem> designedController;
 

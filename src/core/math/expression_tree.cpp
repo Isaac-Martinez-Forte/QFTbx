@@ -330,8 +330,19 @@ string ExpressionTree::symbolOf(type_node type)  {
 
 Interval ExpressionTree::eval(std::map<std::string, Interval> *variables){
     this->variables_in = variables;
+    this->values_in = nullptr;
 
     return eval_tree_in(root.get());
+}
+
+Interval ExpressionTree::eval(std::vector<Interval> & values)
+{
+    this->variables_in = nullptr;
+    this->values_in = &values;
+
+    const Interval result = eval_tree_in(root.get());
+    this->values_in = nullptr;
+    return result;
 }
 
 //Assignment: a deep copy, so the two trees own separate nodes.
@@ -456,7 +467,23 @@ double ExpressionTree::eval_tree(exp_node *node)
 bool ExpressionTree::propagate(std::map<std::string, Interval> *variables){
 
     this->variables_in = variables;
+    this->values_in = nullptr;
 
+    return propagateLoaded();
+}
+
+bool ExpressionTree::propagate(std::vector<Interval> & values)
+{
+    this->variables_in = nullptr;
+    this->values_in = &values;
+
+    const bool consistent = propagateLoaded();
+    this->values_in = nullptr;
+    return consistent;
+}
+
+bool ExpressionTree::propagateLoaded()
+{
     const Interval result = eval_tree_in(root.get());
 
     //The part of the forward value that satisfies the constraint. Empty
@@ -790,6 +817,17 @@ Interval ExpressionTree::eval_tree_in(exp_node *node)
 
     case VAR  :
     {
+        //Bound domains: the position was fixed by bind(), nothing is
+        //looked up.
+        if (values_in != nullptr) {
+            if (node->index < 0 || static_cast<std::size_t>(node->index) >= values_in->size()) {
+                throw std::invalid_argument(
+                        "ExpressionTree: the variable '" + node->var + "' is not bound to a domain.");
+            }
+            node->slot = &(*values_in)[static_cast<std::size_t>(node->index)];
+            return node->enclosure = *node->slot;
+        }
+
         //A missing variable used to return a default-constructed
         //Interval, whose bounds are UNINITIALIZED memory. One lookup: the
         //name is compared against the map's keys here and nowhere else in

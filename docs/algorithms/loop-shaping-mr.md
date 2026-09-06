@@ -47,7 +47,10 @@ variable and both halves join the list.
   at the first certainly feasible box (every constraint non-negative over the
   box) or at the epsilon-small head, which is the box the sort would have
   picked. Epsilon here measures the width of the CONTROLLER PARAMETER box, as
-  the paper does, not the Nichols rectangle of the other four algorithms.
+  the paper does, not the Nichols rectangle of the other four algorithms. The
+  setting `algorithms.mr-nichols-epsilon` switches MR to the Nichols rectangle,
+  so that the five algorithms stop on one meaning of epsilon and their running
+  times can be compared; it departs from the paper and is off by default.
 - **Representatives.** The template contour is subsampled to a handful of
   representatives per frequency (`algorithms.template-representatives`; the
   paper uses nine plants), because the tracking constraints square in their

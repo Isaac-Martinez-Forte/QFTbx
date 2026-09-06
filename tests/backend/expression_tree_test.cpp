@@ -259,3 +259,25 @@ TEST(ParameterReparametrisation, IsParsedOnceAndAppliedToNominalAndRange)
     //is made, not where it is first evaluated.
     EXPECT_THROW(Parameter(std::string("a"), Range(1.0, 5.0), 3.0, std::string("a*(")), qftbx::InvalidInput);
 }
+
+TEST(ExpressionTree, BoundDomainsEvaluateAndPropagateLikeNamedOnes)
+{
+    //The constraint propagation of algorithm MR binds its variables once
+    //and hands the domains as a vector; the result must be what the named
+    //map gives.
+    ExpressionTree named("x^2 + y - 3", 0.0, qftbx::GREATER_EQUAL);
+    ExpressionTree bound("x^2 + y - 3", 0.0, qftbx::GREATER_EQUAL);
+    bound.bind({"x", "y"});
+
+    std::map<std::string, Interval> map{{"x", Interval(-2.0, 2.0)}, {"y", Interval(0.0, 1.0)}};
+    std::vector<Interval> vector{Interval(-2.0, 2.0), Interval(0.0, 1.0)};
+
+    EXPECT_EQ(named.eval(&map), bound.eval(vector));
+    EXPECT_EQ(named.propagate(&map), bound.propagate(vector));
+    EXPECT_EQ(map.at("x"), vector.at(0));
+    EXPECT_EQ(map.at("y"), vector.at(1));
+    EXPECT_GT(vector.at(0).width(), 0.0) << "x is narrowed but not emptied";
+
+    std::vector<Interval> tooFew{Interval(1.0)};
+    EXPECT_THROW(bound.eval(tooFew), std::invalid_argument);
+}

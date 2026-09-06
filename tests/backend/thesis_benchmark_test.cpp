@@ -73,6 +73,7 @@
 #include "src/core/math/range.h"
 
 #include "src/app/project_controller.h"
+#include "src/core/project/settings.h"
 
 using namespace qftbx;
 
@@ -208,6 +209,30 @@ TEST_P(ThesisBenchmarkGolden, ResultIsPinned)
         << golden.name << " zero " << result->numerator()[0].range().min;
     EXPECT_TRUE(near(result->denominator()[0].range().min, golden.pole))
         << golden.name << " pole " << result->denominator()[0].range().min;
+}
+
+//MR stopping on the Nichols box like the other four algorithms
+//(algorithms.mr-nichols-epsilon): the departure from the paper that makes
+//the running times comparable. On ACC'90 it must reach the same optimal
+//gain as the paper's termination, and the same box.
+TEST(ThesisBenchmarkFixture, Acc90MrWithTheNicholsEpsilon)
+{
+    ProjectController controller;
+    controller.load(std::string(QFTBX_TEST_DATA_DIR "/acc90.qft"));
+
+    qftbx::Settings settings;
+    settings.algorithms.mrNicholsEpsilon = true;
+    controller.applySettings(settings);
+
+    ASSERT_TRUE(controller.computeLoopShaping(0.5, qftbx::mr, qftbx::Range(1e-9, 10.0), 100));
+
+    LtiSystem * result = controller.loopShapingResult()->controller();
+    ASSERT_NE(result, nullptr);
+    EXPECT_NEAR(result->gain().range().min, 1000.0, 1e-4);
+    ASSERT_EQ(result->numerator().size(), 1);
+    ASSERT_EQ(result->denominator().size(), 1);
+    EXPECT_NEAR(result->numerator()[0].range().min, 500.005, 1e-3);
+    EXPECT_NEAR(result->denominator()[0].range().min, 500.005, 1e-3);
 }
 
 INSTANTIATE_TEST_SUITE_P(
