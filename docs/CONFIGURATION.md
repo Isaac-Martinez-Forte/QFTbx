@@ -27,7 +27,7 @@ Sections group the keys, and a key is its whole path: `max-grid-cells` under
 `[limits]` is `limits.max-grid-cells`, and the same name under another
 section is a different setting.
 
-Every value is a number, and every setting has a stated range. A value that
+Every value but the interface language is a number, and every setting has a stated range. A value that
 is not a number, or lies outside its range, stops the program with a
 message naming the key and the line; it does not quietly become zero or the
 nearest bound.
@@ -36,6 +36,12 @@ Only the application reads the file. The test suite builds its own settings,
 so no value here can change what a test means.
 
 ## The sections
+
+**`[interface]`**: the interface, and the one setting whose value is a text.
+
+| Key | Default | Values | Meaning |
+|---|---|---|---|
+| `language` | `system` | `system` or a language code (`en`, `es`, ...) | The language the interface starts in. Choosing a language in the View menu writes it here, into the settings file in use (the user's own, `$HOME/.config/qftbx/qftbx.conf`, when the application read none). The codes are those of the translations compiled in; see `src/gui/translations/README.md` |
 
 **`[limits]`**: ceilings that exist to stop a typo, not to express a limit of
 the method. They only ever refuse input, so moving them changes no computed

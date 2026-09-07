@@ -107,10 +107,13 @@ configuration.
 ## Translations
 
 The interface is written in English and translated into Spanish; the user
-picks the language under View, and the choice is kept between sessions. The
-source of the translation is `src/gui/translations/qftbx_es.ts`, compiled by
-`lrelease` at build time into a `.qm` that goes into the application's
-resources, so nothing has to be installed next to the executable. A build
+picks the language under View, and the choice is written to the settings
+file (`interface.language`). The sources of the translations are the `.ts`
+files under `src/gui/translations/`, one per language, compiled by
+`lrelease` at build time into `.qm` files that go into the application's
+resources, so nothing has to be installed next to the executable; the View
+menu lists whatever translations were compiled in. How to add a language is
+in [src/gui/translations/README.md](../src/gui/translations/README.md). A build
 never rewrites the `.ts`: after adding or changing a `tr()` string or a text
 in a `.ui` file, run
 

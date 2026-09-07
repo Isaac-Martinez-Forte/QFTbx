@@ -147,7 +147,7 @@ private:
 
     std::unique_ptr<Ui::MainWindow> ui;
     QMenu * m_languageMenu = nullptr;
-    std::vector<std::pair<Language, QAction *>> m_languageActions;
+    std::vector<std::pair<QString, QAction *>> m_languageActions;
 #ifdef QFTBX_BENCHMARK
     /// The planner, created on first use; a child window of this one.
     class BenchmarkWindow * m_benchmark = nullptr;

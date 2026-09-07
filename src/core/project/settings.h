@@ -183,6 +183,18 @@ struct Settings {
         std::int32_t loopPointCount = 100;
     } defaults;
 
+    /**
+     * @brief The interface: the one section whose value is a text.
+     *
+     * The language the interface starts in: "system" for the machine's, or
+     * the code of a translation compiled into the application ("en", "es",
+     * ...). The interface writes the choice made in its View menu back
+     * here, into the settings file in use, so the next start reads it.
+     */
+    struct Interface {
+        std::string language = "system";
+    } interface;
+
     /// The path this was read from, empty when nothing was read and the
     /// compiled defaults stand. Reported rather than guessed at: on a shared
     /// machine the interesting question is usually WHICH file is in effect.
@@ -207,6 +219,23 @@ Settings readSettings(const std::string & path);
 /// Every key the settings file knows, as "section.key", in the order the
 /// reader lists them.
 std::vector<std::string> settingKeys();
+
+/// The user's own settings file, $HOME/.config/qftbx/qftbx.conf, whether or
+/// not it exists: where a choice made in the interface is written when no
+/// other file is in use.
+std::string userSettingsPath();
+
+/**
+ * @brief Writes one setting into a settings file, leaving everything else
+ * in it as it was.
+ *
+ * The file is text a person edits, so it is not regenerated: the key's line
+ * is replaced when it exists, added at the end of its section when the
+ * section exists, and the section is appended otherwise. A missing file, or
+ * a missing directory above it, is created. Throws qftbx::FileError when the
+ * file cannot be written.
+ */
+void writeSetting(const std::string & path, const std::string & key, const std::string & value);
 
 /**
  * @brief Reads the settings from the first file that exists, in order:

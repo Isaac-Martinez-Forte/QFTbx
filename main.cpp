@@ -24,8 +24,6 @@ int main(int argc, char *argv[])
 
     a.setWindowIcon(QIcon(":/icons/qftbx_256.png"));
 
-    //The interface language the user chose last time, or the system's.
-    qftbx::applyLanguage(qftbx::storedLanguage());
 
     //The settings are read ONCE, here, and handed down: immutable afterwards,
     //which is what makes them safe next to OpenMP and the search's worker.
@@ -45,6 +43,10 @@ int main(int argc, char *argv[])
     if (!settings.source.empty()) {
         std::cout << "settings: " << settings.source << std::endl;
     }
+
+    //The interface language, from the settings: the system's unless the
+    //file says otherwise (the View menu writes the choice there).
+    qftbx::applyLanguage(QString::fromStdString(settings.interface.language));
 
     for (const std::string & unknown : settings.unknownKeys) {
         std::cout << "settings: \"" << unknown
