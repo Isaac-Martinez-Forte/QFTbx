@@ -23,9 +23,11 @@
  * Termination follows ch. 3 (p. 29 and Remark 3.1): a feasible leading
  * box, or a leading box whose Nichols projection is smaller than epsilon
  * at every design frequency. In the second case, when the box is still
- * ambiguous, the returned point is the corner of the box that the
- * monotonicity of the projection makes feasible (the anti-blocking rule
- * of the QFTbx thesis, sec. 3.1).
+ * ambiguous, the returned point is a corner of the box (the anti-blocking
+ * rule of the QFTbx thesis, sec. 3.1, first; the lower corner next),
+ * verified against the boundaries before it is accepted (verifiedCorner in
+ * common_functions.h): a box with no certified corner is dropped and the
+ * search goes on.
  *
  * The feasibility test is completed with the nominal closed-loop
  * stability check of sec. 3.3.5, implemented on the Nichols chart by the
@@ -109,16 +111,18 @@ bool AlgorithmNt::solve() {
         //ambiguous, the feasible corner is extracted).
         if (node->flag() == feasible || isEpsilonSmall(node->system(), this->epsilon, omega, conversion.get(), nominalPlantValues)) {
             if (node->flag() == ambiguous) {
-                //The anti-blocking corner is a fresh point: it must pass
-                //the nominal stability criterion too. If it does not,
-                //this node yields no solution and the search continues.
-                const PointController corner = cornerOf(node->system(), false);
+                //The corner is a fresh point: it must satisfy the
+                //boundaries (verifiedCorner) and the nominal stability
+                //criterion. If no corner does, this node yields no solution
+                //and the search continues.
+                const std::optional<PointController> corner = verifiedCorner(node->system(), omega,
+                        conversion.get(), detector.get(), boundaries, nominalPlantValues);
 
-                if (!stability->isNominallyStable(corner)) {
+                if (!corner || !stability->isNominallyStable(*corner)) {
                     continue;
                 }
 
-                designedController = systemFromPoint(node->system(), corner);
+                designedController = systemFromPoint(node->system(), *corner);
             } else {
                 //The lower corner of a feasible box was certified above.
                 designedController = pointFromBox(node->system(), true);

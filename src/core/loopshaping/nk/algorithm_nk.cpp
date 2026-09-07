@@ -106,13 +106,17 @@ bool AlgorithmNk::solve(){
         //Step 21 and Remark 3.1 termination, as reviewed for NT.
         if (node->flag() == feasible || isEpsilonSmall(node->system(), this->epsilon, omega, conversion.get(), nominalPlantValues)) {
             if (node->flag() == ambiguous) {
-                const PointController corner = cornerOf(node->system(), false);
+                //The corner must satisfy the boundaries and the nominal
+                //stability criterion (see verifiedCorner); otherwise the
+                //node yields no solution and the search continues.
+                const std::optional<PointController> corner = verifiedCorner(node->system(), omega,
+                        conversion.get(), detector.get(), boundaries, nominalPlantValues);
 
-                if (!stability->isNominallyStable(corner)) {
+                if (!corner || !stability->isNominallyStable(*corner)) {
                     continue;
                 }
 
-                designedController = systemFromPoint(node->system(), corner);
+                designedController = systemFromPoint(node->system(), *corner);
             } else {
                 designedController = pointFromBox(node->system(), true);
             }

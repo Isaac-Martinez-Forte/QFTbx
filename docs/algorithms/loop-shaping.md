@@ -79,7 +79,13 @@ All five algorithms keep a list of live boxes ordered by the infimum of the gain
 The head of the list is the box that could still hold the best controller; when
 the head is certainly feasible, its lowest-gain corner is the global optimum and
 the search stops. The search also stops when the head is smaller than the
-user's epsilon, and extracts its feasible corner. The list is the memory of the
+user's epsilon: it then returns a corner of the box, the one the anti-blocking
+rule of the thesis points at (maximum gain and zeros, minimum poles, which moves
+the projection up) or else the lower one, but only after classifying that corner
+against every boundary, since a boundary whose allowed side is below can run
+through an epsilon-small box and leave that corner inside the forbidden region.
+A box with no certified corner is dropped and the search goes on, which is what
+a smaller epsilon would also have asked for. The list is the memory of the
 search, and `search.max-live-nodes` in the settings caps its size, because on a
 hard problem the list can grow to tens of millions of boxes before the problem
 resolves: the search then stops with a message asking for a looser epsilon or a
