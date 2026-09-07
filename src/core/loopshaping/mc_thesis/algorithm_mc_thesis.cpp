@@ -215,16 +215,18 @@ bool AlgorithmMcThesis::solve()
         }
 
         //Termination on the epsilon-small leading box (thesis 3.3, the
-        //solution function): the returned point is unverified, so it must
-        //pass the stability criterion, as reviewed for NT.
+        //solution function): the returned point is a corner of an ambiguous
+        //box, so it must satisfy the boundaries (verifiedCorner) and the
+        //stability criterion, as reviewed for NT.
         if (isEpsilonSmall(node.get(), analysis)) {
-            const PointController corner = cornerOf(node->system(), false);
+            const std::optional<PointController> corner = verifiedCorner(node->system(), omega,
+                    conversion.get(), detector.get(), boundaries, nominalPlantValues);
 
-            if (!stability->isNominallyStable(corner)) {
+            if (!corner || !stability->isNominallyStable(*corner)) {
                 continue;
             }
 
-            designedController = systemFromPoint(node->system(), corner);
+            designedController = systemFromPoint(node->system(), *corner);
             return true;
         }
 

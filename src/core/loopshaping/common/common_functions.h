@@ -18,6 +18,7 @@
 #include "src/core/loopshaping/common/quick_solution.h"
 
 #include <complex>
+#include <optional>
 
 #include "src/core/common/exception.h"
 
@@ -82,6 +83,67 @@ inline std::unique_ptr<LtiSystem> pointFromBox(LtiSystem * controller, bool x) {
     return controller->create(controller->name(), std::move(numerator),
                                std::move(denominator), Parameter(k),
                                controller->delay());
+}
+
+/**
+ * @brief Whether one controller satisfies the boundaries at every design
+ * frequency: its degenerate box, projected by the same interval extension
+ * the search uses, classifies as feasible everywhere.
+ */
+inline bool satisfiesBoundaries(const PointController & point, std::vector<double> * omega,
+                                NaturalIntervalExtension * conversion, BoundaryViolationDetector * detector,
+                                const BoundaryData * boundaries,
+                                const std::vector<std::complex<double>> & nominalPlantValues) {
+
+    for (std::size_t i = 0; i < omega->size(); ++i) {
+        const NicholsBox box = conversion->nicholsPoint(point, omega->at(i), nominalPlantValues.at(i));
+
+        if (detector->classifyBox(box, boundaries, i).flag() != feasible) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
+ * @brief The point an epsilon-small ambiguous box yields, verified against
+ * the boundaries.
+ *
+ * The termination on an epsilon-small ambiguous head (Tharewal 2005,
+ * Remark 3.1; QFTbx thesis sec. 3.1) returns a corner of the box. The
+ * anti-blocking rule picks the corner that moves the projection towards
+ * the allowed side when that side is up: maximum gain and zeros, minimum
+ * poles. That is a guess about the boundary, not a certificate: where a
+ * closed boundary crosses the box its allowed side is down, and the
+ * corner lands inside the forbidden region. On the QFT toolbox example 2
+ * every algorithm returned such a point at some frequency.
+ *
+ * So the corner is classified against every boundary before it leaves the
+ * search, and the lower corner is tried when it fails. When neither
+ * corner passes, the box yields no certified point: the caller drops it
+ * and the search goes on, which shrinks the boxes around the boundary until
+ * one side of it is certified. A smaller epsilon asks for the same thing
+ * earlier. The nominal-stability check stays with the caller, which owns
+ * the checker.
+ *
+ * @return the verified corner, or nothing when the box has none.
+ */
+inline std::optional<PointController> verifiedCorner(LtiSystem * box, std::vector<double> * omega,
+                                                     NaturalIntervalExtension * conversion,
+                                                     BoundaryViolationDetector * detector,
+                                                     const BoundaryData * boundaries,
+                                                     const std::vector<std::complex<double>> & nominalPlantValues) {
+
+    for (const bool lower : {false, true}) {
+        PointController corner = cornerOf(box, lower);
+
+        if (satisfiesBoundaries(corner, omega, conversion, detector, boundaries, nominalPlantValues)) {
+            return corner;
+        }
+    }
+
+    return std::nullopt;
 }
 
 /**
