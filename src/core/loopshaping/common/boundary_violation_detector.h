@@ -16,13 +16,17 @@
 /**
  * @class BoundaryViolationDetector
  * @brief Feasibility classification of projected Nichols boxes and points
- * against the boundary union of each design frequency (Tharewal 2005,
+ * against the boundaries of each design frequency (Tharewal 2005,
  * sec. 3.3.4), including the boundary extremes over the box's phase span
  * that drive the cutting equations of NT/NK/MC1/MC (fig. 5.1).
  *
- * The historical Nyquist-plane variants (detection in cartesian
- * coordinates) were tried and discarded by the thesis (secs. 4.5-4.6)
- * and are gone with the algorithms that carried them.
+ * The verdicts are read off the allowed magnitude intervals of the phase
+ * columns (BoundaryColumns), which carry every specification with its own
+ * open or closed semantics. The parity test over the 1D union that used to
+ * stand here misjudged the inside of a closed boundary whenever the union
+ * had dropped an open one running under it, and the historical
+ * Nyquist-plane variants (detection in cartesian coordinates) were tried
+ * and discarded by the thesis (secs. 4.5-4.6); both are gone.
  *
  * @author Moisés Frutos Plaza
  * @author Isaac Martínez Forte
@@ -40,24 +44,11 @@ public:
     std::size_t classifications() const { return m_classifications; }
 
     /// Classifies one Nichols point (phase deg, magnitude dB) against the
-    /// boundary union at design frequency 'frequencyIndex' (parity test).
+    /// boundaries at design frequency 'frequencyIndex'.
     qftbx::BoxFlag classifyPoint(qftbx::NicholsPoint point, const BoundaryData * boundaries, std::size_t frequencyIndex);
 
 private:
     std::size_t m_classifications = 0;
-
-
-    //bucketCount is the number of phase cells of the union (phaseCount - 1)
-    //and phaseSpanDegrees the width of the window in degrees. They used to be
-    //called totalFase and numeroFases and declared with their types CROSSED -
-    //the count as a real and the SPAN AS AN INTEGER - so every call truncated
-    //the window width. Exact on the default 360-degree window, which is why
-    //nothing showed it; wrong on any other, and a division by zero for a
-    //window under one degree.
-    qftbx::BoxFlag pointVerdict(qftbx::NicholsPoint point, const qftbx::TraceSet & buckets,
-                                std::int32_t bucketCount, bool above,
-                                double phaseSpanDegrees);
-    std::int32_t phaseBucket(double phaseDegrees, std::int32_t bucketCount, double phaseSpanDegrees);
 };
 
 } // namespace qftbx

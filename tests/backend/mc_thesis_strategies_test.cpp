@@ -33,10 +33,9 @@
 // box, which is precisely the case where a stage that first pursues a
 // feasible point, and a bound that keeps the best gain so far, buy nothing
 // they do not also cost. The chapter-6 gains for those come from the harder
-// designs; the ex2 fixture is the one to measure them on, and it still runs
-// for minutes here (deferred with the rest of the performance work). What
-// this file does pin, on every fixture it is pointed at, is the invariant:
-// none of the seven changes the answer.
+// designs; the ex2 fixture is the one to measure them on. What this file
+// does pin, on every fixture it is pointed at, is the invariant: none of the
+// seven changes the answer.
 
 #include <gtest/gtest.h>
 
@@ -89,12 +88,14 @@ Variant without(const char * name, void (*disable)(Strategies &))
     return variant;
 }
 
-//Runs MC over acc90 with the given strategies. Returns the gain of the
-//controller it designed, and the peak of its live list through peakNodes.
-double designedGain(const Strategies & strategies, std::size_t * peakNodes = nullptr)
+//Runs MC over a fixture (acc90 unless told otherwise) with the given
+//strategies. Returns the gain of the controller it designed, and the peak
+//of its live list through peakNodes.
+double designedGain(const Strategies & strategies, std::size_t * peakNodes = nullptr,
+                    const char * fixture = "acc90.qft")
 {
     ProjectController project;
-    project.load(std::string(QFTBX_TEST_DATA_DIR "/acc90.qft"));
+    project.load(std::string(QFTBX_TEST_DATA_DIR) + "/" + fixture);
 
     AlgorithmMcThesis mc;
     mc.setStrategies(strategies);
@@ -147,11 +148,13 @@ TEST(McThesisStrategies, TheAccelerationsShrinkTheSearchTree)
 {
     //The point of chapter 6, as something that can be asserted rather than
     //timed: the peak of the live list is deterministic, a wall clock is not.
+    //Measured on ex2, the fixture with tracking bounds: on acc90 the tree
+    //is a dozen boxes with or without the accelerations.
     std::size_t peakWithAll = 0;
     std::size_t peakWithNone = 0;
 
-    designedGain(Strategies(), &peakWithAll);
-    designedGain(everythingOff(), &peakWithNone);
+    designedGain(Strategies(), &peakWithAll, "qft_toolbox_ex2.qft");
+    designedGain(everythingOff(), &peakWithNone, "qft_toolbox_ex2.qft");
 
     EXPECT_LT(peakWithAll, peakWithNone)
         << "all on kept " << peakWithAll << " boxes alive at once, bare "

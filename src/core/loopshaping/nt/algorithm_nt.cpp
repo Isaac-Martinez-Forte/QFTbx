@@ -24,10 +24,10 @@
  * box, or a leading box whose Nichols projection is smaller than epsilon
  * at every design frequency. In the second case, when the box is still
  * ambiguous, the returned point is a corner of the box (the anti-blocking
- * rule of the QFTbx thesis, sec. 3.1, first; the lower corner next),
- * verified against the boundaries before it is accepted (verifiedCorner in
- * common_functions.h): a box with no certified corner is dropped and the
- * search goes on.
+ * rule of the QFTbx thesis, sec. 3.1, first; the lower corner next, then
+ * the centre and the other corners), verified against the boundaries before
+ * it is accepted (verifiedCorner in common_functions.h): a box with no
+ * certified corner is dropped and the search goes on.
  *
  * The feasibility test is completed with the nominal closed-loop
  * stability check of sec. 3.3.5, implemented on the Nichols chart by the
@@ -109,26 +109,29 @@ bool AlgorithmNt::solve() {
         //lower gain corner realises the optimum), or a leading box below
         //the epsilon accuracy at every frequency (Remark 3.1; if still
         //ambiguous, the feasible corner is extracted).
-        if (node->flag() == feasible || isEpsilonSmall(node->system(), this->epsilon, omega, conversion.get(), nominalPlantValues)) {
-            if (node->flag() == ambiguous) {
-                //The corner is a fresh point: it must satisfy the
-                //boundaries (verifiedCorner) and the nominal stability
-                //criterion. If no corner does, this node yields no solution
-                //and the search continues.
-                const std::optional<PointController> corner = verifiedCorner(node->system(), omega,
-                        conversion.get(), detector.get(), boundaries, nominalPlantValues);
-
-                if (!corner || !stability->isNominallyStable(*corner)) {
-                    continue;
-                }
-
-                designedController = systemFromPoint(node->system(), *corner);
-            } else {
-                //The lower corner of a feasible box was certified above.
-                designedController = pointFromBox(node->system(), true);
-            }
+        if (node->flag() == feasible) {
+            //The lower corner of a feasible box was certified above.
+            designedController = pointFromBox(node->system(), true);
 
             //Everything else dies with the algorithm (see the destructor).
+            return true;
+        }
+
+        if (isEpsilonSmall(node->system(), this->epsilon, omega, conversion.get(), nominalPlantValues)) {
+            //The corner is a fresh point: it must satisfy the boundaries
+            //(verifiedCorner) and the nominal stability criterion. A box
+            //with no certified corner, or an unstable one, is dropped and
+            //the search goes on: at epsilon size the box has said what it
+            //can, and bisecting it further would only descend to the
+            //precision of the arithmetic.
+            const std::optional<PointController> corner = verifiedCorner(node->system(), omega,
+                    conversion.get(), detector.get(), boundaries, nominalPlantValues);
+
+            if (!corner || !stability->isNominallyStable(*corner)) {
+                continue;
+            }
+
+            designedController = systemFromPoint(node->system(), *corner);
             return true;
         }
 
@@ -244,6 +247,16 @@ void AlgorithmNt::check_box_feasibility(std::unique_ptr<LtiSystem> box) {
 
     //The nominal stability of a feasible box is checked when it is popped
     //(see solve()).
+
+    //An ambiguous box whose members are all closed-loop unstable dies here
+    //(Tharewal 2005, sec. 3.3.5, over the whole box: see
+    //NominalStabilityChecker::isBoxUnstable). The boundaries at the design
+    //frequencies do not see a loop that crosses -180 degrees above 0 dB
+    //between them; without this, every such box is bisected down to epsilon
+    //and rejected there, corner by corner.
+    if (flag_final == ambiguous && stability->isBoxUnstable(box.get(), *conversion)) {
+        return;
+    }
 
     if (flag_final == ambiguous && feasibleCertified &&
             feasibleFrom > kInf * 1.01 && feasibleFrom < kSup * 0.99) {

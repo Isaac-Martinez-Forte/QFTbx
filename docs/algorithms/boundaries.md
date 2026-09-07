@@ -68,6 +68,45 @@ Multi-valued boundaries, where a phase column meets the allowed region more than
 once, survive the union as they are. The fixture `tests/data/multivaluados.qft`
 exercises that case.
 
+The union is what the viewer draws and what the file stores. It is not what the
+search classifies against, because it keeps only the points it judges binding and
+a count over what is left cannot tell the inside of a closed curve from the region
+above an open one: where the tracking floor of the QFT toolbox example 2 runs under
+the wall of its stability boundary at 100 rad/s, the union drops the floor and the
+count declares the inside of the stability boundary allowed.
+
+## The columns
+
+The search reads the boundaries as `BoundaryColumns`: per design frequency and per
+phase column of the grid, the intervals of magnitude the nominal loop may take.
+They come off the same sheets the curves are cut from. A grid node is allowed when
+its sheet value is under the specification's bound (the tracer walks the border of
+the nodes where it is not), so the allowed intervals of a column are the runs of
+allowed nodes, each end placed where the sheet crosses the bound by linear
+interpolation between the last allowed node and the first violating one. The
+column is therefore a whole cell sharper than the traced curve, which sits on the
+violating node; the state of the top and bottom nodes extends beyond the grid.
+Every specification gives its own columns, the file stores them, and the column
+of the frequency is their intersection. Open and closed curves, multi-valued
+boundaries, pockets, the corridor between an open floor and a closed curve and a
+fragment a cell thick all come out of the sheet with no rule to apply, and the
+finite ends of the intervals are the boundary crossings whose extremes over a
+phase span the cutting equations of the loop-shaping algorithms read as B_min and
+B_max.
+
+A project written before the columns were stored only carries the curves, and the
+columns are rebuilt from them (`BoundaryColumns::fromTraces`): the border cells of
+a column sorted by magnitude, runs of consecutive cells taken as one crossing at
+the end of the run on its allowed side, the state above the topmost curve given by
+its label (from the specification family and whether the curve is open or closed)
+and flipped at every crossing going down, except at a closed curve that has a
+single run in the column, a fragment a cell thick, which is a band with the same
+state on both sides. It is what the curves allow: a cell permissive at every
+crossing.
+
+The intervals of a frequency lie in two flat arrays indexed by a table of column
+starts: a classification touches a few contiguous doubles and allocates nothing.
+
 ## Guards
 
 A sheet value that is not a number would read as "allowed" in the trace; the
@@ -88,9 +127,12 @@ the GPU, one thread per grid cell, as designed in the master's thesis.
 - `src/core/boundaries/boundary_engine.h`, `.cpp`: the sheets and the driver.
 - `src/core/boundaries/contour_tracer.h`, `.cpp`: the level-curve trace.
 - `src/core/boundaries/boundary_union_1d.h`, `.cpp`: the union.
+- `src/core/boundaries/boundary_columns.h`, `.cpp`: the allowed intervals per column.
 - `src/core/boundaries/boundary_data.h`, `boundary_types.h`: the results.
 - `src/core/gpu/boundary_sheets_cuda.cu`: the CUDA sheets.
 
 Tests: `tests/backend/boundaries_golden_test.cpp` (grid metadata, traces and union
 against a golden project, contour input equivalent to the full template, the
-critical-point and resonance guards) and `tests/backend/boundary_bucket_bounds_test.cpp`.
+critical-point and resonance guards), `tests/backend/boundary_bucket_bounds_test.cpp`,
+`tests/backend/boundary_columns_test.cpp` (the intervals on hand-made open, closed,
+stacked, corridor and pocket boundaries) and `tests/backend/ex2_corridor_test.cpp`.

@@ -252,3 +252,50 @@ TEST(NominalStability, AProfileServesEveryGainOfAShape)
 }
 
 } // namespace
+
+//The verdict over a whole box (isBoxUnstable): a box is unstable when its
+//lower corner is and its Nichols enclosure excludes the critical point at
+//every sampled frequency, so no member can change its crossing count. The
+//loop is the QFT toolbox example 2 nominal plant 1/(s(s+1)) with the
+//controller k (s+z)/(s+p), whose characteristic polynomial
+//s^3 + (1+p) s^2 + (p+k) s + k z is stable exactly when (1+p)(p+k) > k z.
+namespace {
+
+LtiSystem* makeBox(Range k, Range z, Range p)
+{
+    std::vector<Parameter> nume{Parameter("z1", z, z.min)};
+    std::vector<Parameter> deno{Parameter("p1", p, p.min)};
+    return new ZeroPoleGain(std::string("box"), nume, deno, Parameter("kc", k, k.min), Parameter(double(0)));
+}
+
+} // namespace
+
+TEST(NominalStability, ALagBoxUnstableThroughoutIsRejectedWhole)
+{
+    LtiSystem* plant = makeZpk(1.0, {}, {0.0, 1.0});
+    std::vector<double> omega{0.1, 0.5, 1.0, 2.0, 15.0, 100.0};
+    NominalStabilityChecker checker(plant, &omega);
+    NaturalIntervalExtension extension;
+
+    //(1+p)(p+k) <= 1.1 * 20.1 = 22 < k z >= 5000 everywhere: every member
+    //is unstable, and the loop crosses -180 degrees far above 0 dB.
+    LtiSystem* lag = makeBox(Range(10.0, 20.0), Range(500.0, 1000.0), Range(0.01, 0.1));
+    EXPECT_TRUE(checker.isBoxUnstable(lag, extension));
+
+    //Around the optimum of the example every member is stable: the corner
+    //verdict alone says no.
+    LtiSystem* good = makeBox(Range(400.0, 700.0), Range(1.5, 2.5), Range(100.0, 200.0));
+    EXPECT_FALSE(checker.isBoxUnstable(good, extension));
+
+    //The corner k = 1, z = 1.5, p = 0.01 is unstable (1.01 * 1.01 < 1.5)
+    //but p = 3 is not (4 * 4 > 1.5): the box straddles the stability
+    //surface, so some member passes through the critical point and the
+    //enclosure cannot exclude it.
+    LtiSystem* straddling = makeBox(Range(1.0, 100.0), Range(1.5, 3.0), Range(0.01, 3.0));
+    EXPECT_FALSE(checker.isBoxUnstable(straddling, extension));
+
+    delete plant;
+    delete lag;
+    delete good;
+    delete straddling;
+}

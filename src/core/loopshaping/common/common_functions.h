@@ -111,7 +111,7 @@ inline bool satisfiesBoundaries(const PointController & point, std::vector<doubl
  * the boundaries.
  *
  * The termination on an epsilon-small ambiguous head (Tharewal 2005,
- * Remark 3.1; QFTbx thesis sec. 3.1) returns a corner of the box. The
+ * Remark 3.1; QFTbx thesis sec. 3.1) returns a point of the box. The
  * anti-blocking rule picks the corner that moves the projection towards
  * the allowed side when that side is up: maximum gain and zeros, minimum
  * poles. That is a guess about the boundary, not a certificate: where a
@@ -119,15 +119,16 @@ inline bool satisfiesBoundaries(const PointController & point, std::vector<doubl
  * corner lands inside the forbidden region. On the QFT toolbox example 2
  * every algorithm returned such a point at some frequency.
  *
- * So the corner is classified against every boundary before it leaves the
- * search, and the lower corner is tried when it fails. When neither
- * corner passes, the box yields no certified point: the caller drops it
- * and the search goes on, which shrinks the boxes around the boundary until
- * one side of it is certified. A smaller epsilon asks for the same thing
- * earlier. The nominal-stability check stays with the caller, which owns
- * the checker.
+ * So the candidates are classified against every boundary before one
+ * leaves the search: the anti-blocking corner first, then the lower corner,
+ * then the centre of the box, then the remaining corners (up to 64 of
+ * them; beyond six uncertain parameters the rest are left out). The first
+ * to pass is returned, at the lowest gain among the candidates tried in
+ * that order. When none passes the box has no certified point at this
+ * size and the caller bisects it on. The nominal-stability check stays
+ * with the caller, which owns the checker.
  *
- * @return the verified corner, or nothing when the box has none.
+ * @return the verified point, or nothing when the box has none.
  */
 inline std::optional<PointController> verifiedCorner(LtiSystem * box, std::vector<double> * omega,
                                                      NaturalIntervalExtension * conversion,
@@ -135,11 +136,64 @@ inline std::optional<PointController> verifiedCorner(LtiSystem * box, std::vecto
                                                      const BoundaryData * boundaries,
                                                      const std::vector<std::complex<double>> & nominalPlantValues) {
 
+    const auto passes = [&](const PointController & point) {
+        return satisfiesBoundaries(point, omega, conversion, detector, boundaries, nominalPlantValues);
+    };
+
+    //The two corners of the rule, then the centre.
     for (const bool lower : {false, true}) {
         PointController corner = cornerOf(box, lower);
-
-        if (satisfiesBoundaries(corner, omega, conversion, detector, boundaries, nominalPlantValues)) {
+        if (passes(corner)) {
             return corner;
+        }
+    }
+
+    //Every uncertain parameter of the box, in the order of cornerOf: zeros,
+    //poles, gain; fixed ones keep their nominal.
+    const std::vector<Parameter> & numerator = box->numerator();
+    const std::vector<Parameter> & denominator = box->denominator();
+    const Parameter & gain = box->gain();
+
+    std::size_t uncertain = 0;
+    for (const Parameter & v : numerator) uncertain += v.isUncertain() ? 1 : 0;
+    for (const Parameter & v : denominator) uncertain += v.isUncertain() ? 1 : 0;
+    uncertain += gain.isUncertain() ? 1 : 0;
+
+    //A point of the box from a choice per uncertain parameter: 0 lower end,
+    //1 upper end, 2 middle.
+    const auto pointAt = [&](auto choose) {
+        PointController point;
+        std::size_t index = 0;
+        const auto pick = [&](const Parameter & v) {
+            if (!v.isUncertain()) {
+                return v.nominal();
+            }
+            const int c = choose(index++);
+            const Range r = v.range();
+            return c == 0 ? r.min : c == 1 ? r.max : 0.5 * (r.min + r.max);
+        };
+        point.zeros.reserve(numerator.size());
+        for (const Parameter & v : numerator) point.zeros.push_back(pick(v));
+        point.poles.reserve(denominator.size());
+        for (const Parameter & v : denominator) point.poles.push_back(pick(v));
+        point.gain = pick(gain);
+        return point;
+    };
+
+    {
+        PointController centre = pointAt([](std::size_t) { return 2; });
+        if (passes(centre)) {
+            return centre;
+        }
+    }
+
+    if (uncertain <= 6) {
+        const unsigned corners = 1u << uncertain;
+        for (unsigned mask = 0; mask < corners; ++mask) {
+            PointController corner = pointAt([mask](std::size_t i) { return static_cast<int>((mask >> i) & 1u); });
+            if (passes(corner)) {
+                return corner;
+            }
         }
     }
 

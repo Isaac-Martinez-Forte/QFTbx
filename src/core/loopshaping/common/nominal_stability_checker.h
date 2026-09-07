@@ -10,6 +10,7 @@
 
 #include "src/core/system/lti_system.h"
 #include "src/core/loopshaping/common/point_controller.h"
+#include "src/core/loopshaping/common/natural_interval_extension.h"
 
 namespace qftbx {
 
@@ -122,6 +123,23 @@ public:
 
     /// The verdict for a profile and a gain magnitude.
     static bool isStable(const Profile & profile, double gainMagnitude);
+
+    /**
+     * @brief Whether the whole box, as a family of nominal loops, is
+     * closed-loop unstable: one member is, and no member can pass through
+     * the critical point.
+     *
+     * The crossing count of a member changes only where its loop passes
+     * through (-180 degrees, 0 dB), so it is one and the same over a box
+     * whose Nichols enclosure excludes the critical point at every
+     * frequency (the boundary crossing principle of Tharewal 2005,
+     * sec. 3.3.5, which the searches otherwise apply at the design
+     * frequencies only). The enclosure is the natural interval extension of
+     * the box over the checker's base frequency grid, one sample in eight
+     * (some forty per decade; the box's own width covers the gaps). A box
+     * whose corner verdict cannot be decided is never called unstable.
+     */
+    bool isBoxUnstable(LtiSystem * box, NaturalIntervalExtension & extension);
 
     /// How many verdicts were asked and how many profiles had to be
     /// computed for them, for the benchmarks.
