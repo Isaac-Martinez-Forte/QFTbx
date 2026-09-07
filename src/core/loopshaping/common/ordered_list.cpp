@@ -65,6 +65,7 @@ std::unique_ptr<ListNode> OrderedList::takeFirst()
     std::unique_ptr<ListNode> taken = std::move(m_nodes.begin()->second);
 
     m_nodes.erase(m_nodes.begin());
+    ++m_taken;
 
     return taken;
 }

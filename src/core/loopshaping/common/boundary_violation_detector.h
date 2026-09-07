@@ -36,11 +36,16 @@ public:
     /// a flag and two corner verdicts), so there is nothing to own.
     BoxClassification classifyBox(NicholsBox box, const BoundaryData * boundaries, std::size_t frequencyIndex);
 
+    /// Boxes classified so far, for the run statistics.
+    std::size_t classifications() const { return m_classifications; }
+
     /// Classifies one Nichols point (phase deg, magnitude dB) against the
     /// boundary union at design frequency 'frequencyIndex' (parity test).
     qftbx::BoxFlag classifyPoint(qftbx::NicholsPoint point, const BoundaryData * boundaries, std::size_t frequencyIndex);
 
 private:
+    std::size_t m_classifications = 0;
+
 
     //bucketCount is the number of phase cells of the union (phaseCount - 1)
     //and phaseSpanDegrees the width of the window in degrees. They used to be

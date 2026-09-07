@@ -54,8 +54,9 @@ bool LoopShapingStage::run(ProjectData & data, double epsilon,
         return false;
     }
 
-    data.setLoopShapingResult(std::make_unique<LoopShapingResult>(
-            search.controllerStructure(), plotRange, pointCount));
+    auto result = std::make_unique<LoopShapingResult>(search.controllerStructure(), plotRange, pointCount);
+    result->setStatistics(search.statistics());
+    data.setLoopShapingResult(std::move(result));
 
     return true;
 }

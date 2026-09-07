@@ -3,6 +3,11 @@
 #include "src/gui/application/error_message.h"
 #include "src/gui/common/plot_palette.h"
 #include "ui_main_window.h"
+#ifdef QFTBX_BENCHMARK
+#include "src/gui/bench/benchmark_window.h"
+#include <QMenu>
+#include <QMenuBar>
+#endif
 
 #include <QFileDialog>
 #include <QMessageBox>
@@ -57,6 +62,23 @@ MainWindow::MainWindow(qftbx::Settings settings, QWidget *parent) :
     
     ui->setupUi(this);
     setWindowTitle(tr("QFT: Quantitative feedback theory"));
+
+#ifdef QFTBX_BENCHMARK
+    //The benchmark planner, when the build carries it: a window of its own,
+    //non-modal, so a plan can run while the project is worked on.
+    QMenu * tools = menuBar()->addMenu(tr("&Tools"));
+    QAction * planner = tools->addAction(tr("Benchmark &planner..."));
+    planner->setObjectName("actionBenchmarkPlanner");
+    connect(planner, &QAction::triggered, this, [this]() {
+        if (m_benchmark == nullptr) {
+            m_benchmark = new BenchmarkWindow(this);
+            m_benchmark->setWindowFlag(Qt::Window);
+        }
+        m_benchmark->show();
+        m_benchmark->raise();
+        m_benchmark->activateWindow();
+    });
+#endif
 
     //7 real steps: with the 0-8 range the bar never reached 100%.
     ui->progressBar->setRange(0,7);

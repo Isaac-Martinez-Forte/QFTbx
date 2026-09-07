@@ -4,6 +4,7 @@
 #include <memory>
 
 
+#include "src/core/loopshaping/loop_shaping_statistics.h"
 #include "src/core/system/lti_system.h"
 
 /**
@@ -27,6 +28,11 @@ public:
 
     double pointCount() const;
 
+    /// What the run that produced this result cost; zero for a result read
+    /// from a file.
+    const LoopShapingStatistics & statistics() const { return m_statistics; }
+    void setStatistics(const LoopShapingStatistics & statistics) { m_statistics = statistics; }
+
     //There was a pair of setData() overloads and an m_set flag: nothing
     //ever called them and nothing ever read the flag. The overloads
     //carried a fixed bug (they used to delete the INCOMING controller
@@ -39,6 +45,7 @@ private:
     std::unique_ptr<LtiSystem> m_controller;
     qftbx::Range m_plotRange;
     double m_pointCount = 0;
+    LoopShapingStatistics m_statistics;
 };
 
 } // namespace qftbx

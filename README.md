@@ -98,6 +98,7 @@ No installer is provided yet; the application runs from the build directory.
 | [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | The `qftbx.conf` settings file: where it is read from, every key and its range |
 | [docs/PROJECT_FORMAT.md](docs/PROJECT_FORMAT.md) | The `.qft` project file |
 | [docs/TESTING.md](docs/TESTING.md) | Running and reading the test suites, the fixtures, the golden policy |
+| [docs/BENCHMARKING.md](docs/BENCHMARKING.md) | Measuring the algorithms: the benchmark tool, its plans, what is measured and how to read it |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Branches, conventions and how a change gets in |
 
 The API reference of the classes is generated with Doxygen (`cmake --build

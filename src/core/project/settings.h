@@ -204,6 +204,10 @@ struct Settings {
  */
 Settings readSettings(const std::string & path);
 
+/// Every key the settings file knows, as "section.key", in the order the
+/// reader lists them.
+std::vector<std::string> settingKeys();
+
 /**
  * @brief Reads the settings from the first file that exists, in order:
  *

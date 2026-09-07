@@ -9,6 +9,10 @@ target_compile_definitions(qftbx_gui_tests
   PRIVATE QFTBX_TEST_DATA_DIR="${CMAKE_SOURCE_DIR}/tests/data"
 )
 
+if(QFTBX_BUILD_BENCHMARK)
+  add_subdirectory(bench)
+endif()
+
 gtest_discover_tests(qftbx_gui_tests
   DISCOVERY_TIMEOUT 60
   PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
