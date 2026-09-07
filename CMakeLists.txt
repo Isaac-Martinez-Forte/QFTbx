@@ -122,7 +122,6 @@ add_subdirectory(src)
 # The application: main() over the GUI library.
 add_executable(QFTbx
   main.cpp
-  QFTbx_es_ES.ts
 )
 target_link_libraries(QFTbx PRIVATE qftbx_gui)
 qftbx_warnings(QFTbx)
@@ -135,8 +134,6 @@ endif()
 if(UNIX AND NOT APPLE)
   qftbx_add_desktop_entry(QFTbx "${CMAKE_SOURCE_DIR}/Resources/Icon/qftbx_256.png")
 endif()
-
-qt6_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} QFTbx_es_ES.ts)
 
 if(QFTBX_BUILD_TESTS)
   enable_testing()

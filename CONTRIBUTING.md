@@ -49,6 +49,9 @@ green.
   internals get nothing. Never restate the signature in words.
 - **Commit messages** explain the change and the reason in prose, in
   English, so that the history reads as the record of the decisions.
+- **Every text the user sees goes through `tr()`** and gets its Spanish
+  translation in the same change: `update_translations`, then the text, see
+  [docs/BUILDING.md](docs/BUILDING.md).
 
 ## Documentation
 

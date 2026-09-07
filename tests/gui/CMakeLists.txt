@@ -7,6 +7,7 @@ target_link_libraries(qftbx_gui_tests PRIVATE qftbx_gui GTest::gtest)
 
 target_compile_definitions(qftbx_gui_tests
   PRIVATE QFTBX_TEST_DATA_DIR="${CMAKE_SOURCE_DIR}/tests/data"
+  PRIVATE QFTBX_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
 )
 
 if(QFTBX_BUILD_BENCHMARK)
