@@ -1,5 +1,6 @@
 #include "src/gui/loopshaping/loop_boundaries_viewer.h"
 #include "src/gui/application/main_window.h"
+#include "src/gui/application/about.h"
 #include "src/gui/application/error_message.h"
 #include "src/gui/common/plot_palette.h"
 #include "ui_main_window.h"
@@ -10,6 +11,7 @@
 #include <QMenu>
 
 #include <QActionGroup>
+#include <QApplication>
 #include <QEvent>
 #include <QFileDialog>
 #include <QMessageBox>
@@ -106,6 +108,17 @@ MainWindow::MainWindow(qftbx::Settings settings, QWidget *parent) :
     });
 #endif
 
+    //Help, last as menus go: what the toolbox is and who wrote it, and
+    //Qt's own box (its text is Qt's, in whatever languages Qt ships).
+    m_helpMenu = menuBar()->addMenu(QString());
+    m_aboutAction = m_helpMenu->addAction(QString());
+    m_aboutAction->setObjectName("actionAbout");
+    connect(m_aboutAction, &QAction::triggered, this, [this]() { showAbout(this); });
+    m_aboutQtAction = m_helpMenu->addAction(QString());
+    m_aboutQtAction->setObjectName("actionAboutQt");
+    connect(m_aboutQtAction, &QAction::triggered, this, []() { QApplication::aboutQt(); });
+    retranslate();
+
     //7 real steps: with the 0-8 range the bar never reached 100%.
     ui->progressBar->setRange(0,7);
 
@@ -132,6 +145,11 @@ void MainWindow::retranslate()
     m_languageMenu->setTitle(tr("&Language"));
     for (auto & [code, action] : m_languageActions) {
         action->setText(languageName(code));
+    }
+    if (m_helpMenu != nullptr) {
+        m_helpMenu->setTitle(tr("&Help"));
+        m_aboutAction->setText(tr("&About QFTbx..."));
+        m_aboutQtAction->setText(tr("About &Qt..."));
     }
 #ifdef QFTBX_BENCHMARK
     if (m_toolsMenu != nullptr) {
