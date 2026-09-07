@@ -6,6 +6,8 @@
 #include <QMenu>
 #include <QTranslator>
 
+#include "src/core/common/exception.h"
+#include "src/gui/application/error_message.h"
 #include "src/gui/application/language.h"
 #include "src/gui/application/main_window.h"
 
@@ -58,4 +60,26 @@ TEST(Language, TheMainWindowRetranslatesWhenTheLanguageChanges)
     applyLanguage(Language::English);
     EXPECT_EQ(file->title(), QStringLiteral("&File"));
     EXPECT_EQ(window.windowTitle(), QStringLiteral("QFT: Quantitative feedback theory"));
+}
+
+TEST(Language, TheCoreMessagesAreTranslatedAtTheBoundary)
+{
+    //A message thrown by the core in English, with its arguments apart,
+    //reaches the user in the language of the interface with the same
+    //arguments in place; a parse error keeps its file and line around it.
+    const InvalidInput cells(QFTBX_TR("Core", "The contours need one epsilon per design frequency: %1 given for %2 frequencies.").arg(3).arg(5));
+    const ParseError malformed(QFTBX_TR("Core", "missing <%1> element").arg("plant"), 12, "project.qft");
+    const FileError plain("a text nobody translates");
+
+    applyLanguage(Language::English);
+    EXPECT_EQ(translated(cells), QStringLiteral("The contours need one epsilon per design frequency: 3 given for 5 frequencies."));
+    EXPECT_EQ(translated(malformed), QStringLiteral("project.qft: missing <plant> element (line 12)"));
+
+    applyLanguage(Language::Spanish);
+    EXPECT_EQ(translated(cells), QString::fromUtf8("Los contornos necesitan un épsilon por frecuencia de diseño: se dieron 3 para 5 frecuencias."));
+    EXPECT_EQ(translated(malformed), QString::fromUtf8("project.qft: falta el elemento <plant> (línea 12)"));
+    EXPECT_EQ(translated(plain), QStringLiteral("a text nobody translates")) << "a plain text has no translation to give";
+    EXPECT_EQ(translated(std::runtime_error("elsewhere")), QStringLiteral("elsewhere"));
+
+    applyLanguage(Language::English);
 }

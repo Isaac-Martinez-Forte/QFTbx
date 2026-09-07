@@ -29,10 +29,7 @@ OrderedList::OrderedList(bool highestFirst, std::size_t maxNodes)
 void OrderedList::insert(std::unique_ptr<ListNode> node)
 {
     if (m_nodes.size() >= m_maxNodes) {
-        throw qftbx::ComputationError(
-                "The search kept " + std::to_string(m_maxNodes) + " boxes alive at once "
-                "without resolving the problem. Ask for a looser epsilon accuracy, or "
-                "narrow the controller search box.");
+        throw qftbx::ComputationError(QFTBX_TR("Core", "The search kept %1 boxes alive at once without resolving the problem. Ask for a looser epsilon accuracy, or narrow the controller search box.").arg(m_maxNodes));
     }
 
     const double index = node->getIndex();
@@ -47,7 +44,7 @@ void OrderedList::insert(std::unique_ptr<ListNode> node)
 void OrderedList::requireNodes() const
 {
     if (m_nodes.empty()) {
-        throw qftbx::ComputationError("The search asked the live list for a node when it holds none.");
+        throw qftbx::ComputationError(QFTBX_TR("Core", "The search asked the live list for a node when it holds none."));
     }
 }
 

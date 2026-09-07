@@ -1,3 +1,4 @@
+#include "src/gui/application/error_message.h"
 #include "src/gui/bench/plan_editor.h"
 
 #include <exception>
@@ -353,7 +354,7 @@ QString PlanEditor::describeProject(const QString & path)
         }
         return parts.join(", ");
     } catch (const std::exception & failure) {
-        return QObject::tr("Cannot load it: %1").arg(QString::fromUtf8(failure.what()));
+        return QObject::tr("Cannot load it: %1").arg(translated(failure));
     }
 }
 

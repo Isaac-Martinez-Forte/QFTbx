@@ -17,16 +17,16 @@ void BoundaryStage::requirePrerequisites(const ProjectData & data,
                                          bool fromContour) const
 {
     if (data.plant() == nullptr || data.frequencies() == nullptr) {
-        throw InvalidInput("The boundaries need a plant and a set of "
-                           "design frequencies.");
+        throw InvalidInput(QFTBX_TR("Core", "The boundaries need a plant and a set of "
+                           "design frequencies."));
     }
     if (data.specifications() == nullptr) {
-        throw InvalidInput("The boundaries need the specifications.");
+        throw InvalidInput(QFTBX_TR("Core", "The boundaries need the specifications."));
     }
     if ((fromContour ? data.contour() : data.templates()).empty()) {
-        throw InvalidInput("The boundaries need the templates, which "
+        throw InvalidInput(QFTBX_TR("Core", "The boundaries need the templates, which "
                            "have to be recomputed after the plant or "
-                           "the design frequencies change.");
+                           "the design frequencies change."));
     }
 }
 

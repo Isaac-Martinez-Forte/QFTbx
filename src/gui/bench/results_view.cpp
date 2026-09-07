@@ -248,7 +248,7 @@ void ResultsView::exportCsv()
     try {
         bench::writeCsv(m_aggregates, path.toStdString());
     } catch (const std::exception & failure) {
-        errorMessage(QString::fromUtf8(failure.what()), tr("Export"));
+        errorMessage(translated(failure), tr("Export"));
     }
 }
 
@@ -261,7 +261,7 @@ void ResultsView::exportMarkdown()
     try {
         bench::writeMarkdown(m_aggregates, path.toStdString());
     } catch (const std::exception & failure) {
-        errorMessage(QString::fromUtf8(failure.what()), tr("Export"));
+        errorMessage(translated(failure), tr("Export"));
     }
 }
 

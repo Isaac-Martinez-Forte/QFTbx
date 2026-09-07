@@ -4,84 +4,91 @@
 #include <stdexcept>
 #include <string>
 
-namespace qftbx {
+#include "src/core/common/message.h"
 
 /**
- * @brief Base class for every error reported by the backend.
+ * @brief The exceptions of the core, and the one way it talks to the user.
  *
- * Backend code must not interact with the user directly: it throws
- * exceptions derived from this class, and the GUI layer catches them at
- * its boundary (the slots) and decides how to present them. Qt aborts if
- * an exception escapes the event loop, so every slot that reaches backend
- * code must catch qftbx::Exception.
+ * The core never shows anything: it throws, and the interface catches at
+ * its boundary and shows the message. An exception carries a Message, the
+ * text with its arguments kept apart, so the interface can translate it;
+ * what() is the English sentence, for the logs, the tests and whoever has
+ * no translator. The plain-string constructors remain for texts that are
+ * not for the user or come from elsewhere already composed.
  */
+namespace qftbx {
+
 class Exception : public std::runtime_error
 {
 public:
-    using std::runtime_error::runtime_error;
+    explicit Exception(const Message & message)
+        : std::runtime_error(message.rendered()), m_message(message) {}
+    explicit Exception(const std::string & what)
+        : std::runtime_error(what), m_message(Message::plain(what)) {}
+    explicit Exception(const char * what)
+        : std::runtime_error(what), m_message(Message::plain(what)) {}
+
+    const Message & message() const noexcept { return m_message; }
+
+private:
+    Message m_message;
 };
 
-/**
- * @brief Failure opening, reading or writing a project file.
- */
 class FileError : public Exception
 {
 public:
     using Exception::Exception;
 };
 
-/**
- * @brief A computation could not produce a result.
- */
 class ComputationError : public Exception
 {
 public:
     using Exception::Exception;
 };
 
-/**
- * @brief User-provided data is not valid for the requested operation.
- */
 class InvalidInput : public Exception
 {
 public:
     using Exception::Exception;
 };
 
-/**
- * @brief The search stopped because it was asked to, not because anything is
- * wrong.
- *
- * It IS an Exception, because that is how a computation abandons the stack it
- * is forty minutes deep into, and because every catch site in the application
- * already handles the family. But it is not a failure, and whoever catches it
- * should say "cancelled" and not "error": there is no cancel button yet, so it
- * cannot be raised from the interface today, and the button is the moment to
- * tell the two apart on screen.
- */
 class Cancelled : public Exception
 {
 public:
-    Cancelled() : Exception("The search was cancelled.") {}
-    explicit Cancelled(const std::string & what) : Exception(what) {}
+    Cancelled() : Exception(QFTBX_TR("Core", "The search was cancelled.")) {}
+    using Exception::Exception;
 };
 
-/**
- * @brief Malformed content found while parsing a .qft project file.
- */
+/// A malformed file: the message, the file and the line it was found
+/// on. what() composes the three in English; the interface translates the
+/// message on its own and composes them again (see frame()).
 class ParseError : public FileError
 {
 public:
-    ParseError(const std::string &message, long long line)
-        : FileError(message + " (line " + std::to_string(line) + ")"),
-          m_line(line)
+    ParseError(const Message & message, long long line, const std::string & file = std::string())
+        : FileError(frame(file, message.rendered(), line)), m_inner(message), m_file(file), m_line(line) {}
+    ParseError(const std::string & message, long long line, const std::string & file = std::string())
+        : ParseError(Message::plain(message), line, file) {}
+
+    long long line() const noexcept { return m_line; }
+    const std::string & file() const noexcept { return m_file; }
+
+    /// The message without the file and the line.
+    const Message & innerMessage() const noexcept { return m_inner; }
+
+    /// How the file and the line are put around a message, for whoever
+    /// composes it in another language.
+    static Message frame(const std::string & file, const std::string & renderedMessage, long long line)
     {
+        if (file.empty()) {
+            return QFTBX_TR("Core", "%1 (line %2)").arg(renderedMessage).arg(line);
+        }
+        return QFTBX_TR("Core", "%1: %2 (line %3)").arg(file).arg(renderedMessage).arg(line);
     }
 
-    /// 1-based line of the project file where parsing failed.
-    long long line() const noexcept { return m_line; }
-
 private:
+    Message m_inner;
+    std::string m_file;
     long long m_line;
 };
 

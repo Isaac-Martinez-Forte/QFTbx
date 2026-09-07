@@ -138,7 +138,7 @@ void ControllerDialog::on_okButton_clicked()
         //A value that parses but is not a number a model can use: "0/0" and
         //"1/0" evaluate to a NaN and an infinity, and Parameter refuses
         //those.
-        errorMessage(e.what(), tr("Controller input"));
+        errorMessage(translated(e), tr("Controller input"));
         return;
     }
 

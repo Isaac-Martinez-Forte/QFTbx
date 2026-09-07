@@ -34,8 +34,7 @@ const Tags & t = kV2;
 void requireFinite(double value, const char * what)
 {
     if (!std::isfinite(value)) {
-        throw InvalidInput(std::string("The project cannot be written: <") + what
-                           + "> holds a value that is not a finite number.");
+        throw InvalidInput(QFTBX_TR("Core", "The project cannot be written: <%1> holds a value that is not a finite number.").arg(what));
     }
 }
 
@@ -313,7 +312,7 @@ void ProjectWriter::save(const std::string & filePath, const ProjectContent & co
 
     if (!document.save_file(filePath.c_str(), "    ",
                             pugi::format_default, pugi::encoding_utf8)) {
-        throw FileError("Cannot write project file: " + filePath);
+        throw FileError(QFTBX_TR("Core", "Cannot write project file: %1").arg(filePath));
     }
 }
 

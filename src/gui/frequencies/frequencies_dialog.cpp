@@ -128,7 +128,7 @@ void FrequenciesDialog::on_okButton_clicked()
         try {
             frequencies = Omega::valuesFromFile(filePath.toStdString());
         } catch (const qftbx::Exception & e) {
-            QMessageBox::critical(this, tr("Design frequencies input"), e.what());
+            QMessageBox::critical(this, tr("Design frequencies input"), translated(e));
             return;
         }
         type = Omega::File;

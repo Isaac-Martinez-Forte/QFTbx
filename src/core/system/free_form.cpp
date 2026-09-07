@@ -32,7 +32,7 @@ FreeForm::FreeForm(std::string name, std::vector <Parameter> numerator, std::vec
         ratio = std::make_unique<ExpressionTree>(
                     "(" + m_numeratorExpr + ")/(" + m_denominatorExpr + ")");
     } catch (const std::invalid_argument & error) {
-        throw InvalidInput(std::string("The plant expression cannot be read: ") + error.what());
+        throw InvalidInput(QFTBX_TR("Core", "The plant expression cannot be read: %1").arg(error.what()));
     }
 
     bindNames(*ratio);
@@ -51,8 +51,7 @@ void FreeForm::bindNames(ExpressionTree & ratio)
 
     const auto slotOf = [&](const Parameter & parameter) {
         if (parameter.name() == laplaceName()) {
-            throw InvalidInput("A plant parameter cannot be called \"" + laplaceName()
-                               + "\": that is the Laplace variable.");
+            throw InvalidInput(QFTBX_TR("Core", "A plant parameter cannot be called \"%1\": that is the Laplace variable.").arg(laplaceName()));
         }
 
         const auto found = std::find(names.begin(), names.end(), parameter.name());
@@ -79,7 +78,7 @@ void FreeForm::bindNames(ExpressionTree & ratio)
     try {
         ratio.bind(names);
     } catch (const std::invalid_argument & error) {
-        throw InvalidInput(std::string("The plant expression cannot be evaluated: ") + error.what());
+        throw InvalidInput(QFTBX_TR("Core", "The plant expression cannot be evaluated: %1").arg(error.what()));
     }
 
     m_valueCount = names.size();
@@ -139,10 +138,8 @@ std::complex <double> FreeForm::valueAt(double w, const std::vector<double> & nu
     //the shorter of the two and say nothing, which made a caller's miscount
     //into a plant evaluated with some coefficients missing.
     if (numerator.size() != m_numeratorSlots.size() || denominator.size() != m_denominatorSlots.size()) {
-        throw qftbx::InvalidInput("FreeForm::valueAt: " + std::to_string(numerator.size()) + " and "
-                                  + std::to_string(denominator.size()) + " values were given for "
-                                  + std::to_string(m_numeratorSlots.size()) + " and "
-                                  + std::to_string(m_denominatorSlots.size()) + " parameters");
+        throw qftbx::InvalidInput(QFTBX_TR("Core", "FreeForm::valueAt: %1 and %2 values were given for %3 and %4 parameters")
+                                  .arg(numerator.size()).arg(denominator.size()).arg(m_numeratorSlots.size()).arg(m_denominatorSlots.size()));
     }
 
     std::vector<std::complex<double>> values(m_valueCount);
@@ -161,11 +158,8 @@ std::complex <double> FreeForm::valueAt(double w, const std::vector<double> & nu
             const std::complex<double> value(given[i], 0.0);
 
             if (filled[slot] && values[slot] != value) {
-                throw qftbx::InvalidInput(
-                    "the parameter \"" + parameters[i].name() + "\" was given two different values ("
-                    + qftbx::text::number(values[slot].real()) + " and "
-                    + qftbx::text::number(given[i])
-                    + "): the same name is the same variable");
+                throw qftbx::InvalidInput(QFTBX_TR("Core", "the parameter \"%1\" was given two different values (%2 and %3): the same name is the same variable")
+                    .arg(parameters[i].name()).arg(values[slot].real()).arg(given[i]));
             }
 
             values[slot] = value;

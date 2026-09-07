@@ -84,8 +84,7 @@ bool AlgorithmNt::solve() {
 
         //Steps 2/6c: an empty list proves there is no feasible solution.
         if (liveList->isEmpty()) {
-            throw qftbx::InvalidInput(
-                    "No feasible solution exists in the given search box.");
+            throw qftbx::InvalidInput(QFTBX_TR("Core", "No feasible solution exists in the given search box."));
         }
 
         std::unique_ptr<SearchNode> node = liveList->takeFirstAs<SearchNode>();

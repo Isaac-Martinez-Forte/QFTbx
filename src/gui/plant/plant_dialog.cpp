@@ -218,7 +218,7 @@ void PlantDialog::on_okButton_clicked()
         //A value that parses but is not a number a model can use ("0/0" and
         //"1/0" evaluate to a NaN and an infinity, and Parameter refuses
         //those), or a range field that is not an expression.
-        errorMessage(e.what(), tr("Plant input"));
+        errorMessage(translated(e), tr("Plant input"));
         return;
     }
 

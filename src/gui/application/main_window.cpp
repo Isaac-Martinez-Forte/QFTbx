@@ -414,7 +414,7 @@ void MainWindow::recomputeContour(std::vector<double> epsilon){
 
         controller->recomputeContour(std::move(epsilon));
     } catch (const qftbx::Exception & e) {
-        QMessageBox::critical(this, tr("Template computation"), e.what());
+        QMessageBox::critical(this, tr("Template computation"), translated(e));
         return;
     }
 
@@ -489,7 +489,7 @@ void MainWindow::on_specificationsButton_clicked()
         //new frequencies destroys the Omega that owns the values.
         specificationsDialog->setFrequencies(frequencyValues());
     } catch (const qftbx::Exception & e) {
-        QMessageBox::critical(this, tr("Specifications input"), e.what());
+        QMessageBox::critical(this, tr("Specifications input"), translated(e));
         return;
     }
 
@@ -569,7 +569,7 @@ void MainWindow::on_templatesButton_clicked()
                                                        templatesDialog->grids(),
                                                        templatesDialog->cudaSelected());
         } catch (const qftbx::Exception & e) {
-            QMessageBox::critical(this, tr("Template computation"), e.what());
+            QMessageBox::critical(this, tr("Template computation"), translated(e));
             refreshAvailability();
             return;
         }
@@ -616,7 +616,7 @@ void MainWindow::on_boundariesButton_clicked()
                                                          boundaryGridDialog->contourSelected(),
                                                          boundaryGridDialog->cudaSelected());
         } catch (const qftbx::Exception & e) {
-            QMessageBox::critical(this, tr("Boundary computation"), e.what());
+            QMessageBox::critical(this, tr("Boundary computation"), translated(e));
             refreshAvailability();
             return;
         }
@@ -691,7 +691,7 @@ void MainWindow::on_loopButton_clicked()
                                                       loopShapingDialog->pointCountValue(),
                                                       loopShapingDialog->initialisationValue());
         } catch (const qftbx::Exception & e) {
-            QMessageBox::critical(this, tr("Loop Shaping"), e.what());
+            QMessageBox::critical(this, tr("Loop Shaping"), translated(e));
             refreshAvailability();
             return;
         }
@@ -741,7 +741,7 @@ void MainWindow::saveProject(){
     try {
         controller->save(saveFilePath.toStdString());
     } catch (const qftbx::Exception & e) {
-        QMessageBox::critical(this, tr("Save file"), e.what());
+        QMessageBox::critical(this, tr("Save file"), translated(e));
     }
 }
 
@@ -756,7 +756,7 @@ void MainWindow::on_actionOpen_triggered()
         try {
             loaded = controller->load(fileName.toStdString());
         } catch (const qftbx::Exception & e) {
-            QMessageBox::critical(this, tr("Open project"), e.what());
+            QMessageBox::critical(this, tr("Open project"), translated(e));
             return;
         }
 

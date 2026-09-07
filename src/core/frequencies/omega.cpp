@@ -21,14 +21,12 @@ namespace {
 void requireUsable(const std::vector<double> & values)
 {
     if (values.empty()){
-        throw qftbx::InvalidInput("A frequency set needs at least one value.");
+        throw qftbx::InvalidInput(QFTBX_TR("Core", "A frequency set needs at least one value."));
     }
 
     for (const double value : values) {
         if (!std::isfinite(value) || value <= 0.0) {
-            throw qftbx::InvalidInput("A design frequency must be a finite positive "
-                                      "real, and " + qftbx::text::number(value)
-                                      + " is not.");
+            throw qftbx::InvalidInput(QFTBX_TR("Core", "A design frequency must be a finite positive real, and %1 is not.").arg(value));
         }
     }
 }
@@ -88,7 +86,7 @@ std::vector<double> Omega::valuesFromFile(std::string path){
     std::ifstream file (path);
 
     if (!file.is_open()){
-        throw qftbx::FileError("Cannot open frequencies file: " + path);
+        throw qftbx::FileError(QFTBX_TR("Core", "Cannot open frequencies file: %1").arg(path));
     }
 
     file.seekg(0, std::ios::end);
@@ -101,8 +99,7 @@ std::vector<double> Omega::valuesFromFile(std::string path){
     const std::optional<std::vector<double>> values = qftbx::text::reals(contents);
 
     if (!values.has_value() || values->empty()){
-        throw qftbx::FileError("The frequencies file contains no valid values: "
-                               + path);
+        throw qftbx::FileError(QFTBX_TR("Core", "The frequencies file contains no valid values: %1").arg(path));
     }
 
     return values.value();

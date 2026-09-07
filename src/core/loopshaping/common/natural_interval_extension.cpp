@@ -38,10 +38,10 @@ PolarInterval factor(const Interval & x, double w)
 void ensureSupportedStructure(LtiSystem::SystemType type)
 {
     if (type != LtiSystem::SystemType::ZeroPoleGain) {
-        throw InvalidInput("Loop shaping supports zero-pole-gain controller "
+        throw InvalidInput(QFTBX_TR("Core", "Loop shaping supports zero-pole-gain controller "
                            "structures only, for now: a time-constant, "
                            "polynomial or free-form controller structure is "
-                           "not supported yet.");
+                           "not supported yet."));
     }
 }
 

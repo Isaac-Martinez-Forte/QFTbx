@@ -35,7 +35,7 @@ public:
     ProjectFileParser(const std::string & filePath, const std::string & raw, const Tags & tags)
         : m_filePath(filePath), m_raw(raw), t(tags) {}
 
-    [[noreturn]] void fail(const pugi::xml_node & node, const std::string & what) const
+    [[noreturn]] void fail(const pugi::xml_node & node, const Message & what) const
     {
         std::int64_t line = 0;
         const std::ptrdiff_t offset = node.offset_debug();
@@ -43,14 +43,14 @@ public:
             line = 1 + std::count(m_raw.begin(),
                                   m_raw.begin() + static_cast<std::ptrdiff_t>(offset), '\n');
         }
-        throw ParseError(m_filePath + ": " + what, line);
+        throw ParseError(what, line, m_filePath);
     }
 
     pugi::xml_node require(const pugi::xml_node & parent, const char * name) const
     {
         const pugi::xml_node node = parent.child(name);
         if (!node) {
-            fail(parent, std::string("missing <") + name + "> element");
+            fail(parent, QFTBX_TR("Core", "missing <%1> element").arg(name));
         }
         return node;
     }
@@ -62,7 +62,7 @@ public:
         const double value = std::strtod(raw, &end);
         const bool ok = end != nullptr && end != raw && *end == '\0';
         if (!ok) {
-            fail(node, std::string("<") + node.name() + "> is not a number");
+            fail(node, QFTBX_TR("Core", "<%1> is not a number").arg(node.name()));
         }
         return value;
     }
@@ -82,20 +82,20 @@ public:
         if (text == ("false")) {
             return false;
         }
-        fail(node, std::string("<") + name + "> is not a boolean");
+        fail(node, QFTBX_TR("Core", "<%1> is not a boolean").arg(name));
     }
 
     double realAttribute(const pugi::xml_node & node, const char * name) const
     {
         const pugi::xml_attribute attribute = node.attribute(name);
         if (!attribute) {
-            fail(node, std::string("missing attribute '") + name + "'");
+            fail(node, QFTBX_TR("Core", "missing attribute '%1'").arg(name));
         }
         char * end = nullptr;
         const char * raw = attribute.value();
         const double value = std::strtod(raw, &end);
         if (end == nullptr || end == raw || *end != '\0') {
-            fail(node, std::string("attribute '") + name + "' is not a number");
+            fail(node, QFTBX_TR("Core", "attribute '%1' is not a number").arg(name));
         }
         return value;
     }
@@ -104,7 +104,7 @@ public:
     {
         const pugi::xml_attribute attribute = node.attribute(name);
         if (!attribute) {
-            fail(node, std::string("missing attribute '") + name + "'");
+            fail(node, QFTBX_TR("Core", "missing attribute '%1'").arg(name));
         }
         char * end = nullptr;
         const char * raw = attribute.value();
@@ -113,7 +113,7 @@ public:
         const bool ok = end != nullptr && end != raw && *end == '\0'
                 && parsed >= INT32_MIN && parsed <= INT32_MAX;
         if (!ok) {
-            fail(node, std::string("attribute '") + name + "' is not an integer");
+            fail(node, QFTBX_TR("Core", "attribute '%1' is not an integer").arg(name));
         }
         return value;
     }
@@ -129,7 +129,7 @@ public:
                 qftbx::text::reals(node.text().get());
 
         if (!values.has_value()) {
-            fail(node, std::string("<") + node.name() + "> holds a non-numeric token");
+            fail(node, QFTBX_TR("Core", "<%1> holds a non-numeric token").arg(node.name()));
         }
 
         return values.value();
@@ -151,7 +151,7 @@ public:
     {
         const std::vector <double> reals = realVector(node);
         if (reals.size() % 2 != 0) {
-            fail(node, std::string("<") + node.name() + "> holds an odd point list");
+            fail(node, QFTBX_TR("Core", "<%1> holds an odd point list").arg(node.name()));
         }
         qftbx::Trace points;
         points.reserve(static_cast<std::size_t>(reals.size() / 2));
@@ -220,7 +220,7 @@ public:
             }
         }
         if (scalars.size() != 2) {
-            fail(typeNode, "expected exactly a gain and a delay parameter");
+            fail(typeNode, QFTBX_TR("Core", "expected exactly a gain and a delay parameter"));
         }
         Parameter gain = scalars.at(0);
         Parameter delay = scalars.at(1);
@@ -242,7 +242,7 @@ public:
         default:
             break;
         }
-        fail(typeNode, "unknown system type");
+        fail(typeNode, QFTBX_TR("Core", "unknown system type"));
     }
 
     qftbx::SpecificationRecords readSpecifications(const pugi::xml_node & section) const
@@ -252,7 +252,7 @@ public:
         const auto slotRange = section.children(t.specification);
         const std::size_t count = static_cast<std::size_t>(std::distance(slotRange.begin(), slotRange.end()));
         if (count != kSpecificationCount) {
-            fail(section, "a project needs exactly 7 specification slots");
+            fail(section, QFTBX_TR("Core", "a project needs exactly 7 specification slots"));
         }
 
         qftbx::SpecificationRecords specifications;
@@ -283,7 +283,7 @@ public:
                         }
                     }
                     if (!systemNode) {
-                        fail(node, "a non-constant specification needs its plant");
+                        fail(node, QFTBX_TR("Core", "a non-constant specification needs its plant"));
                     }
                     record.system = readSystem(systemNode);
                 }
@@ -316,7 +316,7 @@ public:
                 storedType != static_cast<double>(Omega::LogSpace) &&
                 storedType != static_cast<double>(Omega::Manual) &&
                 storedType != static_cast<double>(Omega::File)) {
-            fail(section, "the frequency set has an unknown generation type");
+            fail(section, QFTBX_TR("Core", "the frequency set has an unknown generation type"));
         }
         const auto type = static_cast<Omega::GenerationType>(
             static_cast<std::int32_t>(storedType));
@@ -335,13 +335,13 @@ public:
         while (child) {
             const pugi::xml_node imaginaryNode = child.next_sibling();
             if (!imaginaryNode) {
-                fail(child, "a complex vector needs real and imaginary parts");
+                fail(child, QFTBX_TR("Core", "a complex vector needs real and imaginary parts"));
             }
 
             const std::vector <double> reals = realVector(child);
             const std::vector <double> imaginaries = realVector(imaginaryNode);
             if (reals.size() != imaginaries.size()) {
-                fail(child, "real and imaginary parts differ in length");
+                fail(child, QFTBX_TR("Core", "real and imaginary parts differ in length"));
             }
 
             qftbx::ComplexCloud vector;
@@ -423,7 +423,7 @@ public:
             }
         }
         if (!systemNode) {
-            fail(section, "the loop-shaping section needs its controller");
+            fail(section, QFTBX_TR("Core", "the loop-shaping section needs its controller"));
         }
 
         return std::make_unique<LoopShapingResult>(readSystem(systemNode), range, pointCount);
@@ -456,7 +456,7 @@ ProjectReader::Loaded ProjectReader::load(const std::string & filePath)
 
     std::ifstream file(filePath, std::ios::binary);
     if (!file.is_open()) {
-        throw FileError("Cannot open project file: " + filePath);
+        throw FileError(QFTBX_TR("Core", "Cannot open project file: %1").arg(filePath));
     }
     file.seekg(0, std::ios::end);
     std::string raw;
@@ -473,13 +473,12 @@ ProjectReader::Loaded ProjectReader::load(const std::string & filePath)
         const std::size_t upTo = std::min(static_cast<std::size_t>(result.offset), raw.size());
         const std::int64_t line = 1 + std::count(raw.begin(), raw.begin()
                                                  + static_cast<std::ptrdiff_t>(upTo), '\n');
-        throw ParseError(filePath + ": " + result.description(), line);
+        throw ParseError(Message::plain(result.description()), line, filePath);
     }
 
     const pugi::xml_node root = document.document_element();
     if (std::string(root.name()) != ("QFT")) {
-        throw ParseError(filePath + ": not a QFT project file (root <"
-                         + root.name() + ">)", 1);
+        throw ParseError(QFTBX_TR("Core", "not a QFT project file (root <%1>)").arg(root.name()), 1, filePath);
     }
 
     //Version 2 is the only format. A file without the attribute used to be
@@ -490,10 +489,10 @@ ProjectReader::Loaded ProjectReader::load(const std::string & filePath)
     //wrong guess does not fail, it reads the wrong numbers.
     const int version = root.attribute("version").as_int(0);
     if (version != 2) {
-        throw ParseError(filePath + ": unsupported .qft version (found " +
-                         (version == 0 ? std::string("no version attribute")
-                                       : std::to_string(version)) +
-                         ", this build reads version 2)", 1);
+        throw ParseError(version == 0
+                         ? QFTBX_TR("Core", "unsupported .qft version (no version attribute; this build reads version 2)")
+                         : QFTBX_TR("Core", "unsupported .qft version (found %1, this build reads version 2)").arg(version),
+                         1, filePath);
     }
 
     ProjectFileParser parser(filePath, raw, kV2);

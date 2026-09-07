@@ -93,6 +93,12 @@ other.
 
 Backend code never interacts with the user: it throws exceptions derived from
 `qftbx::Exception` (`src/core/common/exception.h`) and the GUI shows the message. An
+exception carries a `qftbx::Message` (`src/core/common/message.h`): the English text
+with `%1`, `%2` placeholders, written where it is thrown inside `QFTBX_TR("Core", ...)`,
+and its arguments apart. `what()` is the English sentence; the GUI translates the text
+and puts the arguments back at its boundary (`translated()` in
+`src/gui/application/error_message.h`), with the same translation file as its own
+strings. An
 exception escaping a Qt slot propagates into the event loop and terminates the
 process, so slots reaching backend code catch at their boundary — and, since one
 forgotten slot is enough to lose the application, `qftbx::Application` overrides

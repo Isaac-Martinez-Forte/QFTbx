@@ -1,6 +1,7 @@
 #ifndef QFTBX_BACKGROUND_RUN_H
 #define QFTBX_BACKGROUND_RUN_H
 
+#include "src/core/common/message.h"
 #include <atomic>
 #include <functional>
 #include <string>
@@ -78,8 +79,11 @@ public:
      */
     const std::string & error() const { return m_error; }
 
+    /// The same, with its text and arguments apart, for a translation.
+    const Message & errorMessage() const { return m_errorMessage; }
+
 private:
-    void finish(bool produced, bool cancelled, std::string error);
+    void finish(bool produced, bool cancelled, const Message & error);
 
     std::thread m_worker;
     std::atomic<bool> m_running{false};
@@ -91,6 +95,7 @@ private:
     bool m_produced = false;
     bool m_cancelled = false;
     std::string m_error;
+    Message m_errorMessage;
 };
 
 } // namespace qftbx

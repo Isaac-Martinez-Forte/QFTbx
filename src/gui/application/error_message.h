@@ -5,6 +5,10 @@
 
 #include <QString>
 
+#include <exception>
+
+#include "src/core/common/message.h"
+
 //GUI-side error reporting.
 //
 //By default a message opens a modal dialog, which is right for a user and
@@ -23,6 +27,16 @@ void errorMessage(QString message, QString title);
 /// Replaces the destination; a default-constructed reporter restores the
 /// dialog. Returns the previous one, so a caller can put it back.
 ErrorReporter setErrorReporter(ErrorReporter reporter);
+
+/// What an exception says, in the language of the interface. A
+/// qftbx::Exception carries its text and its arguments apart, so the text
+/// is translated (context "Core" of the translation file) and the
+/// arguments put back; a parse error gets its file and line around the
+/// translated message; any other exception is shown as it is.
+QString translated(const std::exception & failure);
+
+/// A core message in the language of the interface.
+QString translated(const Message & message);
 
 } // namespace qftbx
 

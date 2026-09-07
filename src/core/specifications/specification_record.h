@@ -74,7 +74,7 @@ inline Specification toSpecification(const SpecificationRecord & d, Specificatio
         return Specification::constant(type, d.height, d.omegaStart, d.omegaEnd);
     }
     if (d.system == nullptr){
-        throw InvalidInput("A used specification needs a plant or a constant height.");
+        throw InvalidInput(QFTBX_TR("Core", "A used specification needs a plant or a constant height."));
     }
     return Specification::fromSystem(type, d.system->clone(),
                                      d.omegaStart, d.omegaEnd);
