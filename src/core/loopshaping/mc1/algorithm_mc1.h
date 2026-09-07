@@ -52,7 +52,9 @@
  *   boundaries feasibility is not monotonic in k_f, so the bisection may
  *   miss a certificate (never accepts a false one).
  * - The returned point must pass the nominal closed-loop stability
- *   criterion (NominalStabilityChecker), as reviewed for NT/NK.
+ *   criterion (NominalStabilityChecker), as reviewed for NT/NK, and an
+ *   ambiguous box whose members are all unstable is discarded at
+ *   classification (isBoxUnstable, as in NT).
  */
 namespace qftbx {
 

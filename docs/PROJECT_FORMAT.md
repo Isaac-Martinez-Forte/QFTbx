@@ -63,8 +63,12 @@ frequency range (`<min-frequency>`, `<max-frequency>`), whether it is
 
 **`<boundaries>`**: `<data>` with the Nichols grid (`<phases>` and
 `<magnitudes>` with their `count`, `<min>` and `<max>`), the sheets as
-`<open-flags>` and `<upper-flags>`, the `<per-frequency>` boundaries and
-their `<union>` in `<union-buckets>`.
+`<open-flags>` and `<upper-flags>`, the `<columns>` of each specification
+(per frequency and phase column, the count of allowed magnitude intervals
+and then their ends, `inf` and `-inf` included), the `<per-frequency>`
+boundaries and their `<union>` in `<union-buckets>`. A file without
+`<columns>` is read all the same: they are rebuilt from the boundaries, a
+cell coarser.
 
 **`<controller>`**: the controller structure the loop shaping searches, in
 the same form and parameter syntax as the plant; the ranges are the search

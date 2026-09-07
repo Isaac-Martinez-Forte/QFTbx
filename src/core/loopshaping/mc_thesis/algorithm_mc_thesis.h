@@ -62,7 +62,8 @@
  *   closed-loop stability criterion (NominalStabilityChecker), as in the
  *   reviewed NT/NK/MR/MC1; MG's candidate is verified against the
  *   feasibility test before it may prune (the closed form alone relies
- *   on strip geometry).
+ *   on strip geometry). An ambiguous box whose members are all unstable
+ *   is discarded when popped (isBoxUnstable, as in NT).
  * - When the live list empties with a certified MG solution standing,
  *   that solution is returned (the thesis pseudocode would report "no
  *   solution" while holding one in C).

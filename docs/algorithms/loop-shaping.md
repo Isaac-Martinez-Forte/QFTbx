@@ -67,11 +67,20 @@ verdicts, all of them certificates:
   the box sits at its lowest gain.
 - **ambiguous**: neither. The box is bisected and its halves classified again.
 
-The test is a parity test of the rectangle's corners against the boundary union
-of each frequency, and while it runs it also records the extremes of the boundary
-magnitude over the rectangle's phase span (B_min and B_max in the papers); those
-extremes drive the cutting equations of NT, NK and the MC algorithms. Multi-valued
-boundaries are handled by the same test.
+The test reads the allowed magnitude intervals of every phase column the
+rectangle spans (`BoundaryColumns`, see [boundaries.md](boundaries.md)): the
+rectangle is feasible when its magnitude range sits inside an allowed interval in
+every column, infeasible when it sits inside a forbidden gap in every column, and
+ambiguous when a boundary crossing falls inside it or its columns disagree. While
+it runs it also records the extremes of the boundary crossings over the
+rectangle's phase span (B_min and B_max in the papers), which the cutting
+equations of NT, NK and the MC algorithms read as the limits of a strip of one
+state under and over the rectangle: on a single-valued open boundary they are the
+minimum and the maximum of the curve over the span; in general they are taken
+over every column of the span and are infinite where the columns do not share the
+state, so that no cut applies (a closed curve alone cuts no gain, as its geometry
+says). Multi-valued boundaries, closed curves over open floors and pockets are
+handled by the same test.
 
 ## The search
 
@@ -113,6 +122,21 @@ principle (Tharewal 2005, section 3.3.5), satisfied stability bounds plus one
 nominally stable controller of a bounds-feasible box make the whole box, and the
 whole plant family, robustly stable; an unstable controller discards the box.
 
+The same principle is applied to ambiguous boxes over the whole frequency range,
+not only at the design frequencies. A loop that crosses -180° above 0 dB between
+two design frequencies satisfies every boundary and is unstable; the lag designs
+of the toolbox example 2 (a zero in the hundreds over a pole near zero) are a
+whole region of them, and the boundaries alone would have the search bisect that
+region down to epsilon and reject it one corner at a time, which is minutes of
+work for nothing. The crossing count of a controller changes only where its loop
+passes through the critical point, so it is one and the same over a box whose
+Nichols enclosure (the natural interval extension of the box) excludes
+(-180°, 0 dB) at every frequency of the checker's grid: when one corner of such a
+box is unstable, every member is, and the box is discarded on classification
+(`NominalStabilityChecker::isBoxUnstable`). A box whose enclosure reaches the
+critical point somewhere is left to the bisection, as before. On example 2 this
+takes the four boundary-driven searches from minutes to tens of milliseconds.
+
 The criterion presumes a nominal plant without right-half-plane poles, and it
 samples the nominal loop on a logarithmic grid extended three decades beyond the
 design frequencies, refined where the phase turns fast. The `stability.*` keys of
@@ -147,8 +171,8 @@ because it is hard. Any change to the algorithms should be tried on both.
   an algorithm and hands back the controller.
 - `src/core/loopshaping/common/natural_interval_extension.h`, `.cpp`: the Nichols
   rectangle of a box.
-- `src/core/loopshaping/common/boundary_violation_detector.h`, `.cpp`: the parity
-  classification and the boundary extremes.
+- `src/core/loopshaping/common/boundary_violation_detector.h`, `.cpp`: the
+  classification against the columns and the boundary extremes.
 - `src/core/loopshaping/common/box_classification.h`, `.cpp`: the three verdicts.
 - `src/core/loopshaping/common/nominal_stability_checker.h`, `.cpp`: the Nichols-chart
   Nyquist criterion.

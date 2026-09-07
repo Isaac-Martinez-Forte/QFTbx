@@ -25,9 +25,16 @@
 //   allowed tracking band empty and the boundary impossible), a taller
 //   magnitude grid so the low-frequency tracking bound fits, and search
 //   boxes sized to keep the honest branch & bound tractable.
-// - Ex2 NT is NOT pinned: with real tracking bounds the search takes
-//   minutes on this box. Performance work is the core of phase 8b and
-//   will revisit it with measurements.
+// - Ex2 is pinned for NT, NK, MC1 and MC (thesis) since the boundary
+//   columns and the box-level stability test (2026-09): the searches that
+//   took minutes on this box, bisecting the closed-loop unstable lag
+//   designs the boundaries cannot see down to epsilon, run in tens of
+//   milliseconds. NT, NK and MC1 agree on k = 557 within a per mille; MC
+//   (thesis) stops at the same epsilon on a box wider in k (its bisection
+//   splits by Nichols magnitude or phase and it has no gain contractor),
+//   and the anti-blocking corner returns that box's top gain: 567.7 at
+//   epsilon 0.5, 0.17 dB above, 557.0 at epsilon 0.02. MR is not pinned
+//   on ex2.
 // - Acc90 NT returns the bottom gain corner (k = 1000): the benchmark
 //   only has the stability specification and the lightly damped plant
 //   keeps low-gain loops stable, so the floor of the gain box is the
@@ -37,22 +44,19 @@
 //   constraints from specs and template representatives, HC4 branch &
 //   prune, no boundaries). On ACC'90 it reproduces the same optimum as
 //   NT and NK through a third independent route. On ex2 the honest
-//   constraint search takes minutes on this box, like NT: not pinned
-//   (performance work deferred).
+//   constraint search takes minutes on this box: not pinned.
 // - MC1 was rebuilt in 8b.5 as the MC of its paper
 //   (Martinez-Forte and Cervera, IJRNC 2021): NT/NK branch & bound + QS2
 //   (magnitude, phase and feasible-boxes cuts) + the prune variable C.
 //   On ACC'90 it reproduces the same optimum as NT, NK and MR through a
-//   fourth independent route. On ex2 the honest search takes minutes on
-//   this box, like NT/NK/MR: not pinned (performance work deferred). The
+//   fourth independent route. On ex2 it is pinned above. The
 //   historical implementation discarded the low-gain feasible strip
 //   instead of keeping it as the paper's feasible box z', which is why
 //   the old pinned values were far above the true optimum.
 // - NK was reviewed against its paper in 8b.3 (Quick Solution rebuilt on
 //   the closed-form linear equations, local optimisation reconnected with
 //   the 10% rule, stability check wired): the process abort disappeared
-//   with the dimensionally broken cutting equations. Its ex2 run still
-//   takes minutes on this box (performance work deferred); ACC'90 is
+//   with the dimensionally broken cutting equations. Both fixtures are
 //   pinned below.
 // - MC (thesis) was rebuilt in 8b.6 against thesis chapters 4-5 (QSInv,
 //   QSFact with the feasible boxes UM/UF, MG, tree bisection, execution
@@ -244,15 +248,27 @@ INSTANTIATE_TEST_SUITE_P(
         //zero and pole pinned here are bisection points of the domain
         //[0.01, 1000] that move whenever the enclosures change tightness.
         BenchmarkGolden{"Acc90NT", "acc90.qft", qftbx::nt,
-                        1000.0, 250.00749999999999, 500.005},
+                        1000.0, 500.005, 0.01},
         BenchmarkGolden{"Acc90NK", "acc90.qft", qftbx::nk,
                         1000.0, 500.005, 500.005},
         BenchmarkGolden{"Acc90MR", "acc90.qft", qftbx::mr,
                         1000.0, 500.005, 500.005},
         BenchmarkGolden{"Acc90Mc1", "acc90.qft", qftbx::mc1,
-                        1000.0, 250.00749999999999, 500.005},
+                        1000.0, 500.005, 0.01},
         BenchmarkGolden{"Acc90McThesis", "acc90.qft", qftbx::mc_thesis,
-                        1000.0, 250.00749999999999, 500.005}),
+                        1000.0, 500.005, 0.01},
+        //Example 2 with its tracking and stability bounds: the four
+        //boundary-driven searches, the first three within a per mille of
+        //one another and MC (thesis) 0.17 dB above on its wider terminal
+        //box (see the header).
+        BenchmarkGolden{"Ex2NT", "qft_toolbox_ex2.qft", qftbx::nt,
+                        556.9433291, 1.87155365, 137.642901},
+        BenchmarkGolden{"Ex2NK", "qft_toolbox_ex2.qft", qftbx::nk,
+                        556.9619629, 1.869239822, 137.642901},
+        BenchmarkGolden{"Ex2Mc1", "qft_toolbox_ex2.qft", qftbx::mc1,
+                        556.9603483, 1.868936823, 137.642901},
+        BenchmarkGolden{"Ex2McThesis", "qft_toolbox_ex2.qft", qftbx::mc_thesis,
+                        567.6912501, 3.305865479, 142.5866992}),
     [](const ::testing::TestParamInfo<BenchmarkGolden>& info) {
         return std::string(info.param.name);
     });

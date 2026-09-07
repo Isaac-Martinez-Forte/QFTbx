@@ -222,12 +222,20 @@ bool AlgorithmMcThesis::solve()
             const std::optional<PointController> corner = verifiedCorner(node->system(), omega,
                     conversion.get(), detector.get(), boundaries, nominalPlantValues);
 
+            //A box with no certified corner, or an unstable one, is
+            //dropped, as in NT.
             if (!corner || !stability->isNominallyStable(*corner)) {
                 continue;
             }
 
             designedController = systemFromPoint(node->system(), *corner);
             return true;
+        }
+
+        //An ambiguous box whose members are all closed-loop unstable dies
+        //here (NominalStabilityChecker::isBoxUnstable, as in NT).
+        if (stability->isBoxUnstable(node->system(), *conversion)) {
+            continue;
         }
 
         //Steps E-F: stage bookkeeping, MG, QSFact, QSInv.

@@ -68,6 +68,29 @@ std::string boolVectorText(const std::vector<bool> & values)
     return text;
 }
 
+//An interval end: a real, or an infinity, which is legitimate here (the
+//side of an open boundary) and which strtod reads back.
+std::string endText(double value)
+{
+    if (std::isinf(value)) {
+        return value > 0 ? "inf" : "-inf";
+    }
+    return number(value);
+}
+
+std::string columnsText(const BoundaryColumns & columns)
+{
+    std::string text;
+    for (std::int32_t c = 0; c < columns.columnCount(); ++c) {
+        const std::vector<BoundaryColumns::Span> spans = columns.spans(c);
+        text += std::to_string(spans.size()) + " ";
+        for (const BoundaryColumns::Span & span : spans) {
+            text += endText(span.lo) + " " + endText(span.hi) + " ";
+        }
+    }
+    return text;
+}
+
 void addText(pugi::xml_node parent, const char * name, const std::string & text)
 {
     parent.append_child(name).text().set(text.c_str());
@@ -236,6 +259,18 @@ void writeBoundaries(pugi::xml_node root, const BoundaryData * boundaries)
     pugi::xml_node metadata = data.append_child(t.metadata);
     addText(metadata, t.openFlags, boolVectorText(boundaries->openFlags()));
     addText(metadata, t.upperFlags, boolVectorText(boundaries->upperFlags()));
+
+    //The allowed magnitude intervals per phase column of every
+    //specification, per frequency: for each column its interval count and
+    //then the ends of each interval, which may be infinite. A reader
+    //without them rebuilds them from the traces, a cell coarser.
+    pugi::xml_node columns = metadata.append_child(t.boundaryColumns);
+    for (const auto & map : boundaries->specificationColumns()) {
+        pugi::xml_node frequency = columns.append_child("frequency");
+        for (const auto & entry : map) {
+            addText(frequency, entry.first.c_str(), columnsText(entry.second));
+        }
+    }
 
     pugi::xml_node perFrequency = data.append_child(t.perFrequency);
     perFrequency.append_attribute("size") = static_cast<std::int64_t>(boundaries->boundaries().size());

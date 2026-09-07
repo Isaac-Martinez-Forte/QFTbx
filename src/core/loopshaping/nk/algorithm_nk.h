@@ -43,7 +43,9 @@
  * The feasibility test is completed with the nominal closed-loop
  * stability check (zeros of 1 + L0, demanded by the paper's problem
  * formulation), implemented on the Nichols chart by the Cohen-Chait-Yaniv
- * criterion (NominalStabilityChecker).
+ * criterion (NominalStabilityChecker), on the returned point and, over a
+ * whole ambiguous box whose enclosure excludes the critical point, at
+ * classification (isBoxUnstable, as in NT).
  */
 namespace qftbx {
 
