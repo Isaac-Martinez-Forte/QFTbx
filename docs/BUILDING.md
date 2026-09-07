@@ -104,6 +104,25 @@ to the target it belongs to (the helpers are in `cmake/QftbxFunctions.cmake`),
 so no file list is kept by hand: a new source file is picked up at the next
 configuration.
 
+## Translations
+
+The interface is written in English and translated into Spanish; the user
+picks the language under View, and the choice is kept between sessions. The
+source of the translation is `src/gui/translations/qftbx_es.ts`, compiled by
+`lrelease` at build time into a `.qm` that goes into the application's
+resources, so nothing has to be installed next to the executable. A build
+never rewrites the `.ts`: after adding or changing a `tr()` string or a text
+in a `.ui` file, run
+
+    cmake --build build --target update_translations
+
+which runs `lupdate` over the GUI sources and adds the new strings to the
+file marked as unfinished, then give them their Spanish text (Qt Linguist or
+a text editor) and rebuild. A test of the GUI suite fails while a string is
+left untranslated or an obsolete one is left in the file. Run the target from
+a tree configured with `QFTBX_BUILD_BENCHMARK` so the planner's strings are
+included too.
+
 ## The API reference
 
     cmake --build build --target docs

@@ -1,6 +1,7 @@
 #include "src/core/common/exception.h"
 #include "src/core/project/settings.h"
 #include "src/gui/application/application.h"
+#include "src/gui/application/language.h"
 #include "src/gui/application/main_window.h"
 #include <clocale>
 #include <memory>
@@ -22,6 +23,9 @@ int main(int argc, char *argv[])
     std::setlocale(LC_NUMERIC, "C");
 
     a.setWindowIcon(QIcon(":/icons/qftbx_256.png"));
+
+    //The interface language the user chose last time, or the system's.
+    qftbx::applyLanguage(qftbx::storedLanguage());
 
     //The settings are read ONCE, here, and handed down: immutable afterwards,
     //which is what makes them safe next to OpenMP and the search's worker.

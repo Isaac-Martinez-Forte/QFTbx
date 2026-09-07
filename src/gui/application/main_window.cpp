@@ -5,10 +5,12 @@
 #include "ui_main_window.h"
 #ifdef QFTBX_BENCHMARK
 #include "src/gui/bench/benchmark_window.h"
-#include <QMenu>
 #include <QMenuBar>
 #endif
+#include <QMenu>
 
+#include <QActionGroup>
+#include <QEvent>
 #include <QFileDialog>
 #include <QMessageBox>
 
@@ -61,15 +63,33 @@ MainWindow::MainWindow(qftbx::Settings settings, QWidget *parent) :
 {
     
     ui->setupUi(this);
-    setWindowTitle(tr("QFT: Quantitative feedback theory"));
+
+    //The interface language, under View: the system's, English or Spanish.
+    //Choosing one installs the translators and retranslates this window on
+    //the spot; the dialogs are built when they open.
+    m_languageMenu = ui->menuView->addMenu(QString());
+    auto * group = new QActionGroup(this);
+    for (const Language language : {Language::System, Language::English, Language::Spanish}) {
+        QAction * action = m_languageMenu->addAction(languageName(language));
+        action->setObjectName(QStringLiteral("actionLanguage_%1").arg(languageCode(language)));
+        action->setCheckable(true);
+        action->setChecked(language == storedLanguage());
+        group->addAction(action);
+        m_languageActions.emplace_back(language, action);
+        connect(action, &QAction::triggered, this, [language]() {
+            storeLanguage(language);
+            applyLanguage(language);
+        });
+    }
+    retranslate();
 
 #ifdef QFTBX_BENCHMARK
     //The benchmark planner, when the build carries it: a window of its own,
     //non-modal, so a plan can run while the project is worked on.
-    QMenu * tools = menuBar()->addMenu(tr("&Tools"));
-    QAction * planner = tools->addAction(tr("Benchmark &planner..."));
-    planner->setObjectName("actionBenchmarkPlanner");
-    connect(planner, &QAction::triggered, this, [this]() {
+    m_toolsMenu = menuBar()->addMenu(tr("&Tools"));
+    m_plannerAction = m_toolsMenu->addAction(tr("Benchmark &planner..."));
+    m_plannerAction->setObjectName("actionBenchmarkPlanner");
+    connect(m_plannerAction, &QAction::triggered, this, [this]() {
         if (m_benchmark == nullptr) {
             m_benchmark = new BenchmarkWindow(this);
             m_benchmark->setWindowFlag(Qt::Window);
@@ -89,7 +109,30 @@ MainWindow::MainWindow(qftbx::Settings settings, QWidget *parent) :
 MainWindow::~MainWindow()
 {
     destroySession();
+}
 
+void MainWindow::changeEvent(QEvent * event)
+{
+    if (event->type() == QEvent::LanguageChange) {
+        ui->retranslateUi(this);
+        retranslate();
+    }
+    QMainWindow::changeEvent(event);
+}
+
+void MainWindow::retranslate()
+{
+    setWindowTitle(tr("QFT: Quantitative feedback theory"));
+    m_languageMenu->setTitle(tr("&Language"));
+    for (auto & [language, action] : m_languageActions) {
+        action->setText(languageName(language));
+    }
+#ifdef QFTBX_BENCHMARK
+    if (m_toolsMenu != nullptr) {
+        m_toolsMenu->setTitle(tr("&Tools"));
+        m_plannerAction->setText(tr("Benchmark &planner..."));
+    }
+#endif
 }
 
 void MainWindow::createSession(){

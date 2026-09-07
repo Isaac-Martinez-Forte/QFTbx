@@ -29,6 +29,10 @@
 #include "src/app/project_controller.h"
 
 
+#include "src/gui/application/language.h"
+
+class QMenu;
+
 namespace Ui {
 class MainWindow;
 }
@@ -135,10 +139,20 @@ private slots:
     void on_actionLoop_triggered();
 
 private:
+    /// Retranslates the window when the interface language changes.
+    void changeEvent(QEvent * event) override;
+
+    /// The texts this class sets itself, outside the form.
+    void retranslate();
+
     std::unique_ptr<Ui::MainWindow> ui;
+    QMenu * m_languageMenu = nullptr;
+    std::vector<std::pair<Language, QAction *>> m_languageActions;
 #ifdef QFTBX_BENCHMARK
     /// The planner, created on first use; a child window of this one.
     class BenchmarkWindow * m_benchmark = nullptr;
+    QMenu * m_toolsMenu = nullptr;
+    QAction * m_plannerAction = nullptr;
 #endif
 
 
