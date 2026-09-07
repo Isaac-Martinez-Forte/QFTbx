@@ -1,4 +1,5 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
 <TS version="2.1" language="es_ES">
 <context>
     <name>BodeViewer</name>
@@ -276,8 +277,8 @@ del controlador</translation>
         <translation>No hay templates sobre los que recorrer un contorno.</translation>
     </message>
     <message>
-        <source>settings, line %1: "%2" needs %3</source>
-        <translation>ajustes, línea %1: "%2" necesita %3</translation>
+        <source>settings, line %1: &quot;%2&quot; needs %3</source>
+        <translation>ajustes, línea %1: &quot;%2&quot; necesita %3</translation>
     </message>
     <message>
         <source>the settings file cannot be read: %1</source>
@@ -292,16 +293,16 @@ del controlador</translation>
         <translation>ajustes, línea %1: una sección necesita un nombre</translation>
     </message>
     <message>
-        <source>settings, line %1: expected "key = value", found "%2"</source>
-        <translation>ajustes, línea %1: se esperaba "clave = valor" y se encontró "%2"</translation>
+        <source>settings, line %1: expected &quot;key = value&quot;, found &quot;%2&quot;</source>
+        <translation>ajustes, línea %1: se esperaba &quot;clave = valor&quot; y se encontró &quot;%2&quot;</translation>
     </message>
     <message>
         <source>settings, line %1: the key is missing</source>
         <translation>ajustes, línea %1: falta la clave</translation>
     </message>
     <message>
-        <source>settings, line %1: "%2" is set more than once</source>
-        <translation>ajustes, línea %1: "%2" se establece más de una vez</translation>
+        <source>settings, line %1: &quot;%2&quot; is set more than once</source>
+        <translation>ajustes, línea %1: &quot;%2&quot; se establece más de una vez</translation>
     </message>
     <message>
         <source>A constant specification needs a finite magnitude &gt; 0.</source>
@@ -328,8 +329,8 @@ del controlador</translation>
         <translation>No se puede leer la expresión de la planta: %1</translation>
     </message>
     <message>
-        <source>A plant parameter cannot be called "%1": that is the Laplace variable.</source>
-        <translation>Un parámetro de la planta no puede llamarse "%1": es la variable de Laplace.</translation>
+        <source>A plant parameter cannot be called &quot;%1&quot;: that is the Laplace variable.</source>
+        <translation>Un parámetro de la planta no puede llamarse &quot;%1&quot;: es la variable de Laplace.</translation>
     </message>
     <message>
         <source>The plant expression cannot be evaluated: %1</source>
@@ -340,16 +341,16 @@ del controlador</translation>
         <translation>FreeForm::valueAt: se dieron %1 y %2 valores para %3 y %4 parámetros</translation>
     </message>
     <message>
-        <source>the parameter "%1" was given two different values (%2 and %3): the same name is the same variable</source>
-        <translation>al parámetro "%1" se le dieron dos valores distintos (%2 y %3): el mismo nombre es la misma variable</translation>
+        <source>the parameter &quot;%1&quot; was given two different values (%2 and %3): the same name is the same variable</source>
+        <translation>al parámetro &quot;%1&quot; se le dieron dos valores distintos (%2 y %3): el mismo nombre es la misma variable</translation>
     </message>
     <message>
-        <source>A parameter's %1 must be a finite number.</source>
+        <source>A parameter&apos;s %1 must be a finite number.</source>
         <translation>El %1 de un parámetro debe ser un número finito.</translation>
     </message>
     <message>
-        <source>the reparametrisation of "%1" cannot be read: %2</source>
-        <translation>no se puede leer la reparametrización de "%1": %2</translation>
+        <source>the reparametrisation of &quot;%1&quot; cannot be read: %2</source>
+        <translation>no se puede leer la reparametrización de &quot;%1&quot;: %2</translation>
     </message>
     <message>
         <source>A time constant in the %1 cannot be zero: every factor is s/z + 1.</source>
@@ -368,16 +369,16 @@ del controlador</translation>
         <translation>Faltan los valores de épsilon para los contornos de los templates.</translation>
     </message>
     <message>
-        <source>Missing sweep grid for the uncertain parameter '%1'.</source>
-        <translation>Falta la rejilla de barrido del parámetro incierto '%1'.</translation>
+        <source>Missing sweep grid for the uncertain parameter &apos;%1&apos;.</source>
+        <translation>Falta la rejilla de barrido del parámetro incierto &apos;%1&apos;.</translation>
     </message>
     <message>
         <source>The plant expression could not be evaluated at %1 rad/s: %2</source>
         <translation>No se ha podido evaluar la expresión de la planta en %1 rad/s: %2</translation>
     </message>
     <message>
-        <source>The plant has infinite magnitude at the design frequencies %1 rad/s: an undamped resonance inside the uncertainty. Its template cannot be bounded or contoured. Add light damping to the resonant poles (the usual answer for the ACC'90 benchmark) or move those frequencies out of the set.</source>
-        <translation>La planta tiene magnitud infinita en las frecuencias de diseño %1 rad/s: una resonancia sin amortiguar dentro de la incertidumbre. Su template no se puede acotar ni contornear. Añada un amortiguamiento ligero a los polos resonantes (la solución habitual para el problema ACC'90) o saque esas frecuencias del conjunto.</translation>
+        <source>The plant has infinite magnitude at the design frequencies %1 rad/s: an undamped resonance inside the uncertainty. Its template cannot be bounded or contoured. Add light damping to the resonant poles (the usual answer for the ACC&apos;90 benchmark) or move those frequencies out of the set.</source>
+        <translation>La planta tiene magnitud infinita en las frecuencias de diseño %1 rad/s: una resonancia sin amortiguar dentro de la incertidumbre. Su template no se puede acotar ni contornear. Añada un amortiguamiento ligero a los polos resonantes (la solución habitual para el problema ACC&apos;90) o saque esas frecuencias del conjunto.</translation>
     </message>
     <message>
         <source>The contours need one epsilon per design frequency: %1 given for %2 frequencies.</source>
@@ -404,16 +405,16 @@ del controlador</translation>
         <translation>&lt;%1&gt; no es un booleano</translation>
     </message>
     <message>
-        <source>missing attribute '%1'</source>
-        <translation>falta el atributo '%1'</translation>
+        <source>missing attribute &apos;%1&apos;</source>
+        <translation>falta el atributo &apos;%1&apos;</translation>
     </message>
     <message>
-        <source>attribute '%1' is not a number</source>
-        <translation>el atributo '%1' no es un número</translation>
+        <source>attribute &apos;%1&apos; is not a number</source>
+        <translation>el atributo &apos;%1&apos; no es un número</translation>
     </message>
     <message>
-        <source>attribute '%1' is not an integer</source>
-        <translation>el atributo '%1' no es un entero</translation>
+        <source>attribute &apos;%1&apos; is not an integer</source>
+        <translation>el atributo &apos;%1&apos; no es un entero</translation>
     </message>
     <message>
         <source>&lt;%1&gt; holds a non-numeric token</source>
@@ -480,8 +481,8 @@ del controlador</translation>
         <translation>No se puede escribir el fichero de proyecto: %1</translation>
     </message>
     <message>
-        <source>"%1" cannot be used as a parameter name: it is a function, a constant (pi, e) or the Laplace variable s of the expression grammar, or not an identifier.</source>
-        <translation>"%1" no puede ser el nombre de un parámetro: es una función, una constante (pi, e) o la variable de Laplace s de la gramática de expresiones, o no es un identificador.</translation>
+        <source>&quot;%1&quot; cannot be used as a parameter name: it is a function, a constant (pi, e) or the Laplace variable s of the expression grammar, or not an identifier.</source>
+        <translation>&quot;%1&quot; no puede ser el nombre de un parámetro: es una función, una constante (pi, e) o la variable de Laplace s de la gramática de expresiones, o no es un identificador.</translation>
     </message>
     <message>
         <source>The project cannot take a null plant.</source>
@@ -506,6 +507,14 @@ del controlador</translation>
     <message>
         <source>A computation is running: cancel it or wait for it before changing the project.</source>
         <translation>Hay un cálculo en marcha: cancélelo o espere a que termine antes de cambiar el proyecto.</translation>
+    </message>
+    <message>
+        <source>a setting key needs its section, as in &apos;interface.language&apos;: &apos;%1&apos;</source>
+        <translation>una clave de ajuste necesita su sección, como en &apos;interface.language&apos;: &apos;%1&apos;</translation>
+    </message>
+    <message>
+        <source>the settings file cannot be written: %1</source>
+        <translation>no se puede escribir el fichero de ajustes: %1</translation>
     </message>
 </context>
 <context>
@@ -568,6 +577,10 @@ del controlador</translation>
     <message>
         <source>System language</source>
         <translation>Idioma del sistema</translation>
+    </message>
+    <message>
+        <source>English</source>
+        <translation>Español</translation>
     </message>
 </context>
 <context>
@@ -886,16 +899,16 @@ del controlador</translation>
         <translation>No se ha podido guardar la imagen</translation>
     </message>
     <message>
-        <source>"%1" cannot be used as a parameter name: it is a constant of the expression grammar.</source>
-        <translation>"%1" no puede ser el nombre de un parámetro: es una constante de la gramática de expresiones.</translation>
+        <source>&quot;%1&quot; cannot be used as a parameter name: it is a constant of the expression grammar.</source>
+        <translation>&quot;%1&quot; no puede ser el nombre de un parámetro: es una constante de la gramática de expresiones.</translation>
     </message>
     <message>
         <source>Loop-shaping input</source>
         <translation>Ajuste del lazo</translation>
     </message>
     <message>
-        <source>plant '%1'</source>
-        <translation>planta '%1'</translation>
+        <source>plant &apos;%1&apos;</source>
+        <translation>planta &apos;%1&apos;</translation>
     </message>
     <message>
         <source>NO plant</source>
@@ -1544,6 +1557,10 @@ contorno</translation>
         <source>To show the loop diagram, first compute the boundaries and enter the controller structure.</source>
         <translation>Para mostrar el diagrama del lazo, calcule antes los boundaries e introduzca la estructura del controlador.</translation>
     </message>
+    <message>
+        <source>Language</source>
+        <translation>Idioma</translation>
+    </message>
 </context>
 <context>
     <name>qftbx::PlanEditor</name>
@@ -1576,7 +1593,7 @@ contorno</translation>
         <translation>Estructuras del controlador</translation>
     </message>
     <message>
-        <source>The project's controller structure is the base. Each step adds a zero or a pole with its search range; the cases run after every step marked to run.</source>
+        <source>The project&apos;s controller structure is the base. Each step adds a zero or a pole with its search range; the cases run after every step marked to run.</source>
         <translation>La estructura del controlador del proyecto es la base. Cada paso añade un cero o un polo con su rango de búsqueda; los casos se ejecutan tras cada paso marcado.</translation>
     </message>
     <message>
@@ -1676,7 +1693,7 @@ contorno</translation>
         <translation>Memoria a lo largo del tiempo (un hilo de muestreo: desactívelo al medir tiempos)</translation>
     </message>
     <message>
-        <source>The algorithm's counters: live nodes, boxes, stability verdicts</source>
+        <source>The algorithm&apos;s counters: live nodes, boxes, stability verdicts</source>
         <translation>Los contadores del algoritmo: nodos vivos, cajas, veredictos de estabilidad</translation>
     </message>
     <message>
@@ -1788,8 +1805,8 @@ contorno</translation>
         <translation>el máximo</translation>
     </message>
     <message>
-        <source>Epsilons: '%1' is not a positive number</source>
-        <translation>Épsilons: '%1' no es un número positivo</translation>
+        <source>Epsilons: &apos;%1&apos; is not a positive number</source>
+        <translation>Épsilons: &apos;%1&apos; no es un número positivo</translation>
     </message>
     <message>
         <source>Setting %1 needs both a key and a value</source>
@@ -2142,12 +2159,12 @@ contorno</translation>
         <translation>Seleccione logspace o linspace en la sección general.</translation>
     </message>
     <message>
-        <source>The values entered for parameter "%1" are invalid.</source>
-        <translation>Los valores introducidos para el parámetro "%1" no son válidos.</translation>
+        <source>The values entered for parameter &quot;%1&quot; are invalid.</source>
+        <translation>Los valores introducidos para el parámetro &quot;%1&quot; no son válidos.</translation>
     </message>
     <message>
-        <source>The values entered for parameter "%1" are invalid: %2.</source>
-        <translation>Los valores introducidos para el parámetro "%1" no son válidos: %2.</translation>
+        <source>The values entered for parameter &quot;%1&quot; are invalid: %2.</source>
+        <translation>Los valores introducidos para el parámetro &quot;%1&quot; no son válidos: %2.</translation>
     </message>
     <message>
         <source>The general point count must be a whole number between 1 and %1.</source>

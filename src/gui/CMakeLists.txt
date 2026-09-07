@@ -24,13 +24,14 @@ if(QFTBX_BUILD_BENCHMARK)
   add_subdirectory(bench)
 endif()
 
-# The Spanish translation: the .ts under translations/ is the source, lrelease
-# compiles it into a .qm at build time and the .qm goes into the resources as
-# :/i18n/qftbx_es.qm. `cmake --build build --target update_translations` runs
+# The translations: one .ts per language under translations/ (see the README
+# there), each compiled by lrelease at build time into a .qm that goes into
+# the resources as :/i18n/qftbx_<code>.qm, where the View menu finds them. `cmake --build build --target update_translations` runs
 # lupdate over this library's sources to bring the .ts up to date; nothing
 # runs lupdate on its own, so a build never rewrites a file of the tree.
+file(GLOB qftbx_translation_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/translations/*.ts")
 qt_add_lrelease(qftbx_gui
-  TS_FILES translations/qftbx_es.ts
+  TS_FILES ${qftbx_translation_sources}
   QM_FILES_OUTPUT_VARIABLE qftbx_qm_files
 )
 qt_add_resources(qftbx_gui "translations"
@@ -46,7 +47,7 @@ get_target_property(qftbx_persistence_sources qftbx_persistence SOURCES)
 get_target_property(qftbx_app_sources qftbx_app SOURCES)
 get_target_property(qftbx_gui_sources qftbx_gui SOURCES)
 qt_add_lupdate(qftbx_gui
-  TS_FILES translations/qftbx_es.ts
+  TS_FILES ${qftbx_translation_sources}
   SOURCES ${qftbx_gui_sources} ${qftbx_core_sources} ${qftbx_persistence_sources} ${qftbx_app_sources}
   OPTIONS -locations none -no-obsolete -tr-function-alias QT_TRANSLATE_NOOP+=QFTBX_TR
 )

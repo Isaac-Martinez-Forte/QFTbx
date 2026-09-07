@@ -29,6 +29,19 @@
 
 
 # ---------------------------------------------------------------------------
+# [interface] - the interface, and the one setting here that is a text.
+# ---------------------------------------------------------------------------
+[interface]
+
+# The language the interface starts in: "system" for the machine's language,
+# or the code of a translation compiled into the application ("en", "es"; the
+# View menu lists them). Choosing a language in the View menu writes it here,
+# into the settings file in use, so the next start comes up in it.
+# Values: "system" or a language code.
+# language = system
+
+
+# ---------------------------------------------------------------------------
 # [limits] - ceilings that exist to stop a typo, not to express a limit of the
 # method. Every one of these only ever REFUSES input, so moving them changes
 # no computed result. They are the safest thing in this file.

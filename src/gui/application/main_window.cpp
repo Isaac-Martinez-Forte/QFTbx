@@ -69,16 +69,22 @@ MainWindow::MainWindow(qftbx::Settings settings, QWidget *parent) :
     //the spot; the dialogs are built when they open.
     m_languageMenu = ui->menuView->addMenu(QString());
     auto * group = new QActionGroup(this);
-    for (const Language language : {Language::System, Language::English, Language::Spanish}) {
-        QAction * action = m_languageMenu->addAction(languageName(language));
-        action->setObjectName(QStringLiteral("actionLanguage_%1").arg(languageCode(language)));
+    const QString chosen = QString::fromStdString(m_settings.interface.language);
+    for (const QString & code : availableLanguages()) {
+        QAction * action = m_languageMenu->addAction(languageName(code));
+        action->setObjectName(QStringLiteral("actionLanguage_%1").arg(code));
         action->setCheckable(true);
-        action->setChecked(language == storedLanguage());
+        action->setChecked(code == chosen || (code == kSystemLanguage && !isAvailableLanguage(chosen)));
         group->addAction(action);
-        m_languageActions.emplace_back(language, action);
-        connect(action, &QAction::triggered, this, [language]() {
-            storeLanguage(language);
-            applyLanguage(language);
+        m_languageActions.emplace_back(code, action);
+        connect(action, &QAction::triggered, this, [this, code]() {
+            applyLanguage(code);
+            m_settings.interface.language = code.toStdString();
+            try {
+                storeLanguage(code, m_settings.source);
+            } catch (const qftbx::Exception & failure) {
+                errorMessage(translated(failure), tr("Language"));
+            }
         });
     }
     retranslate();
@@ -124,8 +130,8 @@ void MainWindow::retranslate()
 {
     setWindowTitle(tr("QFT: Quantitative feedback theory"));
     m_languageMenu->setTitle(tr("&Language"));
-    for (auto & [language, action] : m_languageActions) {
-        action->setText(languageName(language));
+    for (auto & [code, action] : m_languageActions) {
+        action->setText(languageName(code));
     }
 #ifdef QFTBX_BENCHMARK
     if (m_toolsMenu != nullptr) {

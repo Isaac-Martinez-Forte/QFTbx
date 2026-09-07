@@ -14,6 +14,8 @@
 #include <gtest/gtest.h>
 
 #include <fstream>
+#include <sstream>
+#include <QDir>
 #include <string>
 
 #include "src/core/common/exception.h"
@@ -128,6 +130,66 @@ TEST_F(SettingsFile, AValueOutOfRangeIsRefused)
     EXPECT_THROW(qftbx::readSettings(written("[limits]\n"
                                              "max-grid-cells = 1\n")),
                  qftbx::InvalidInput);
+}
+
+TEST_F(SettingsFile, TheLanguageIsATextWithTheShapeOfACode)
+{
+    EXPECT_EQ(qftbx::readSettings(written("[interface]\nlanguage = es\n")).interface.language, "es");
+    EXPECT_EQ(qftbx::readSettings(written("[interface]\nlanguage = pt_BR\n")).interface.language, "pt_BR");
+    EXPECT_EQ(qftbx::readSettings(written("[interface]\nlanguage = system\n")).interface.language, "system");
+    EXPECT_THROW(qftbx::readSettings(written("[interface]\nlanguage = Spanish\n")), qftbx::InvalidInput);
+    EXPECT_THROW(qftbx::readSettings(written("[interface]\nlanguage = 3\n")), qftbx::InvalidInput);
+}
+
+TEST_F(SettingsFile, WritingASettingLeavesTheRestOfTheFileAlone)
+{
+    const std::string path = written("# my settings\n"
+                                     "[limits]\n"
+                                     "max-grid-cells = 500 ; a comment\n"
+                                     "\n"
+                                     "[interface]\n"
+                                     "# the language\n"
+                                     "language = en\n"
+                                     "\n"
+                                     "[stability]\n"
+                                     "decades-beyond = 2\n");
+    qftbx::writeSetting(path, "interface.language", "es");
+    qftbx::writeSetting(path, "limits.max-magnitude", "1e9");
+    qftbx::writeSetting(path, "search.max-live-nodes", "1000");
+
+    std::ifstream in(path);
+    std::stringstream content;
+    content << in.rdbuf();
+    EXPECT_EQ(content.str(),
+              "# my settings\n"
+              "[limits]\n"
+              "max-grid-cells = 500 ; a comment\n"
+              "max-magnitude = 1e9\n"
+              "\n"
+              "[interface]\n"
+              "# the language\n"
+              "language = es\n"
+              "\n"
+              "[stability]\n"
+              "decades-beyond = 2\n"
+              "\n"
+              "[search]\n"
+              "max-live-nodes = 1000\n");
+
+    const qftbx::Settings back = qftbx::readSettings(path);
+    EXPECT_EQ(back.interface.language, "es");
+    EXPECT_DOUBLE_EQ(back.limits.maxMagnitude, 1e9);
+    EXPECT_EQ(back.search.maxLiveNodes, 1000u);
+}
+
+TEST_F(SettingsFile, WritingASettingCreatesTheFileAndItsDirectory)
+{
+    const std::string directory = std::string(QFTBX_TEST_DATA_DIR "/../settings_written_dir");
+    const std::string path = directory + "/deeper/qftbx.conf";
+    QDir(QString::fromStdString(directory)).removeRecursively();
+    qftbx::writeSetting(path, "interface.language", "es");
+    EXPECT_EQ(qftbx::readSettings(path).interface.language, "es");
+    QDir(QString::fromStdString(directory)).removeRecursively();
 }
 
 TEST_F(SettingsFile, AFractionWhereAWholeNumberBelongsIsRefused)
@@ -301,6 +363,7 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
     EXPECT_EQ(fromExample.stability.maxPhaseStepDegrees, defaults.stability.maxPhaseStepDegrees);
     EXPECT_EQ(fromExample.stability.refinementBudget, defaults.stability.refinementBudget);
 
+    EXPECT_EQ(fromExample.interface.language, defaults.interface.language);
     EXPECT_EQ(fromExample.algorithms.templateRepresentatives,
               defaults.algorithms.templateRepresentatives);
     EXPECT_EQ(fromExample.algorithms.maxNarrowingPasses,
@@ -315,7 +378,7 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
     //Every setting the build knows has to be IN the example, or the example
     //is not documentation. Twenty-five today; the count is asserted so adding
     //one without documenting it fails here.
-    EXPECT_EQ(settingsFound, 25)
+    EXPECT_EQ(settingsFound, 26)
         << "a setting was added to the code and not to qftbx.conf.example";
 
     EXPECT_TRUE(fromExample.unknownKeys.empty())

@@ -4,6 +4,11 @@
 #include <cmath>
 #include <cstdlib>
 #include <fstream>
+#ifdef _WIN32
+#include <direct.h>
+#else
+#include <sys/stat.h>
+#endif
 #include <functional>
 #include <limits>
 
@@ -93,6 +98,28 @@ double wholeIn(const std::string & text, const std::string & key,
     return value;
 }
 
+//A language: "system" or a code like "es", "en", "pt_BR".
+std::string languageIn(const std::string & text, const std::string & key, std::int64_t line)
+{
+    if (text == "system") {
+        return text;
+    }
+    const std::size_t underscore = text.find('_');
+    const std::string language = text.substr(0, underscore);
+    const std::string region = underscore == std::string::npos ? std::string() : text.substr(underscore + 1);
+    const auto lower = [](const std::string & s) {
+        return !s.empty() && std::all_of(s.begin(), s.end(), [](char c) { return c >= 'a' && c <= 'z'; });
+    };
+    const auto upper = [](const std::string & s) {
+        return !s.empty() && std::all_of(s.begin(), s.end(), [](char c) { return c >= 'A' && c <= 'Z'; });
+    };
+    if (!(language.size() >= 2 && language.size() <= 3 && lower(language))
+            || (underscore != std::string::npos && !(region.size() == 2 && upper(region)))) {
+        refuse(key, line, "\"system\" or a language code such as \"es\" or \"pt_BR\", not " + text);
+    }
+    return text;
+}
+
 const std::vector<Binding> & bindings()
 {
     static const std::vector<Binding> table = {
@@ -140,6 +167,14 @@ const std::vector<Binding> & bindings()
          [](const std::string & text, std::int64_t line, Settings & into) {
              into.stability.refinementBudget = static_cast<std::int32_t>(
                  wholeIn(text, "stability.refinement-budget", line, 1.0, 1.0e9));
+         }},
+
+        //[interface] - the language, the one text among the numbers: "system"
+        //or a language code, which is checked for its shape here and for the
+        //translation it names by the interface.
+        {"interface.language",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.interface.language = languageIn(text, "interface.language", line);
          }},
 
         //[algorithms] - figures from the papers. These change WHAT is
@@ -356,6 +391,114 @@ Settings readSettings(const std::string & path)
     }
 
     return settings;
+}
+
+namespace {
+
+//Every directory above a file, made when missing; GCC 8's std::filesystem
+//would ask for a library of its own for this.
+void createDirectoriesAbove(const std::string & path)
+{
+    std::size_t at = 0;
+    while ((at = path.find_first_of("/\\", at + 1)) != std::string::npos) {
+        const std::string directory = path.substr(0, at);
+        if (!directory.empty()) {
+#ifdef _WIN32
+            _mkdir(directory.c_str());
+#else
+            mkdir(directory.c_str(), 0755);
+#endif
+        }
+    }
+}
+
+} // namespace
+
+std::string userSettingsPath()
+{
+    return homePath();
+}
+
+void writeSetting(const std::string & path, const std::string & key, const std::string & value)
+{
+    const std::size_t dot = key.rfind('.');
+    if (dot == std::string::npos) {
+        throw InvalidInput(QFTBX_TR("Core", "a setting key needs its section, as in 'interface.language': '%1'").arg(key));
+    }
+    const std::string section = key.substr(0, dot);
+    const std::string name = key.substr(dot + 1);
+
+    std::vector<std::string> lines;
+    {
+        std::ifstream in(path);
+        std::string line;
+        while (std::getline(in, line)) {
+            lines.push_back(line);
+        }
+    }
+
+    //Walk the file as the reader does, remembering where the section starts
+    //and ends and whether the key is already there.
+    std::string current;
+    std::ptrdiff_t sectionStart = -1;
+    std::ptrdiff_t sectionEnd = -1;
+    std::ptrdiff_t keyLine = -1;
+    for (std::size_t i = 0; i < lines.size(); ++i) {
+        std::string content = lines[i];
+        const std::size_t comment = content.find_first_of("#;");
+        if (comment != std::string::npos) {
+            content = content.substr(0, comment);
+        }
+        content = trimmed(content);
+        if (content.empty()) {
+            continue;
+        }
+        if (content.front() == '[' && content.back() == ']') {
+            if (current == section && sectionStart >= 0 && sectionEnd < 0) {
+                sectionEnd = static_cast<std::ptrdiff_t>(i);
+            }
+            current = trimmed(content.substr(1, content.size() - 2));
+            if (current == section && sectionStart < 0) {
+                sectionStart = static_cast<std::ptrdiff_t>(i);
+            }
+            continue;
+        }
+        const std::size_t equals = content.find('=');
+        if (equals != std::string::npos && current == section && trimmed(content.substr(0, equals)) == name) {
+            keyLine = static_cast<std::ptrdiff_t>(i);
+        }
+    }
+    if (sectionStart >= 0 && sectionEnd < 0) {
+        sectionEnd = static_cast<std::ptrdiff_t>(lines.size());
+    }
+
+    const std::string entry = name + " = " + value;
+    if (keyLine >= 0) {
+        lines[static_cast<std::size_t>(keyLine)] = entry;
+    } else if (sectionStart >= 0) {
+        //After the last non-blank line of the section, so trailing blank
+        //lines stay where they separate it from the next.
+        std::ptrdiff_t at = sectionEnd;
+        while (at > sectionStart + 1 && trimmed(lines[static_cast<std::size_t>(at - 1)]).empty()) {
+            --at;
+        }
+        lines.insert(lines.begin() + at, entry);
+    } else {
+        if (!lines.empty() && !trimmed(lines.back()).empty()) {
+            lines.emplace_back();
+        }
+        lines.push_back("[" + section + "]");
+        lines.push_back(entry);
+    }
+
+    createDirectoriesAbove(path);
+    std::ofstream out(path, std::ios::trunc);
+    if (!out) {
+        throw FileError(QFTBX_TR("Core", "the settings file cannot be written: %1").arg(path));
+    }
+    for (const std::string & line : lines) {
+        out << line << "\n";
+    }
 }
 
 std::vector<std::string> settingKeys()
