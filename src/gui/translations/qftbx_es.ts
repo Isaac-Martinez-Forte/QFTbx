@@ -2,6 +2,41 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="es_ES">
 <context>
+    <name>About</name>
+    <message>
+        <source>About QFTbx</source>
+        <translation>Acerca de QFTbx</translation>
+    </message>
+    <message>
+        <source>A toolbox for the design and analysis of robust controllers with Quantitative Feedback Theory (QFT).</source>
+        <translation>Una herramienta para el diseño y el análisis de controladores robustos con la teoría de la realimentación cuantitativa (QFT).</translation>
+    </message>
+    <message>
+        <source>It walks a design through the QFT pipeline: the plant with its parametric uncertainty and the design frequencies; the templates, the value sets of the plant at each frequency; the specifications of stability and performance; the boundaries they impose on the nominal loop in the Nichols chart; and the automatic loop shaping, which finds a controller of a given structure with the least high-frequency gain and certifies it with interval arithmetic.</source>
+        <translation>Recorre un diseño por las etapas de QFT: la planta con su incertidumbre paramétrica y las frecuencias de diseño; los templates, los conjuntos de valores de la planta en cada frecuencia; las especificaciones de estabilidad y de comportamiento; los boundaries que imponen al lazo nominal en el diagrama de Nichols; y el ajuste automático del lazo, que encuentra un controlador de una estructura dada con la menor ganancia de alta frecuencia y lo certifica con aritmética de intervalos.</translation>
+    </message>
+    <message>
+        <source>Authors</source>
+        <translation>Autores</translation>
+    </message>
+    <message>
+        <source>The algorithms come from the authors&apos; work at the University of Murcia: the degree project of 2013, the master&apos;s thesis of 2014 and the doctoral thesis of 2022, with the article in the International Journal of Robust and Nonlinear Control (2021).</source>
+        <translation>Los algoritmos proceden del trabajo de los autores en la Universidad de Murcia: el proyecto fin de carrera de 2013, el trabajo fin de máster de 2014 y la tesis doctoral de 2022, con el artículo en el International Journal of Robust and Nonlinear Control (2021).</translation>
+    </message>
+    <message>
+        <source>QFTbx is software under development: some parts are incomplete or experimental, and its results should be checked before they are relied on.</source>
+        <translation>QFTbx es software en desarrollo: algunas partes están incompletas o son experimentales, y sus resultados deben comprobarse antes de confiar en ellos.</translation>
+    </message>
+    <message>
+        <source>Source code and documentation: &lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;. The guides to building, configuring and measuring the toolbox, and the description of every algorithm with the work it comes from, are in &lt;a href=&quot;%2&quot;&gt;docs&lt;/a&gt;.</source>
+        <translation>Código fuente y documentación: &lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;. Las guías para compilar, configurar y medir la herramienta, y la descripción de cada algoritmo con el trabajo del que procede, están en &lt;a href=&quot;%2&quot;&gt;docs&lt;/a&gt;.</translation>
+    </message>
+    <message>
+        <source>Free software under the GNU General Public License, version 3. Built with Qt, QCustomPlot, kv and pugixml.</source>
+        <translation>Software libre bajo la GNU General Public License, versión 3. Construido con Qt, QCustomPlot, kv y pugixml.</translation>
+    </message>
+</context>
+<context>
     <name>BodeViewer</name>
     <message>
         <source>MainWindow</source>
@@ -1560,6 +1595,18 @@ contorno</translation>
     <message>
         <source>Language</source>
         <translation>Idioma</translation>
+    </message>
+    <message>
+        <source>&amp;Help</source>
+        <translation>Ay&amp;uda</translation>
+    </message>
+    <message>
+        <source>&amp;About QFTbx...</source>
+        <translation>&amp;Acerca de QFTbx...</translation>
+    </message>
+    <message>
+        <source>About &amp;Qt...</source>
+        <translation>Acerca de &amp;Qt...</translation>
     </message>
 </context>
 <context>

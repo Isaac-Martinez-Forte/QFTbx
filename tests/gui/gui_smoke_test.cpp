@@ -40,6 +40,9 @@
 #include <QStringList>
 
 #include "src/app/project_controller.h"
+#include "src/gui/application/about.h"
+#include "src/gui/application/language.h"
+#include "src/gui/application/main_window.h"
 #include "src/gui/plant/plant_dialog.h"
 #include "src/gui/loopshaping/controller_dialog.h"
 #include "src/gui/frequencies/frequencies_dialog.h"
@@ -58,7 +61,6 @@
 #include "src/gui/boundaries/boundary_grid_dialog.h"
 #include "src/gui/templates/templates_dialog.h"
 #include "src/gui/loopshaping/loop_shaping_dialog.h"
-#include "src/gui/application/main_window.h"
 #include "src/gui/application/error_message.h"
 #include "src/core/common/exception.h"
 
@@ -1057,3 +1059,27 @@ TEST_F(GuiSmoke, AReusedDialogForgetsItsPreviousAcceptance)
 }
 
 } // namespace
+
+TEST_F(GuiSmoke, TheHelpMenuSaysWhatTheToolboxIsAndWhoWroteIt)
+{
+    MainWindow window;
+    auto * about = window.findChild<QAction *>("actionAbout");
+    ASSERT_NE(about, nullptr);
+    EXPECT_EQ(about->text(), QStringLiteral("&About QFTbx..."));
+    ASSERT_NE(window.findChild<QAction *>("actionAboutQt"), nullptr);
+
+    applyLanguage(kSourceLanguage);
+    const QString text = aboutText();
+    EXPECT_TRUE(text.contains("isaac.martinez@upct.es"));
+    EXPECT_TRUE(text.contains("jcervera@um.es"));
+    EXPECT_TRUE(text.contains("Quantitative Feedback Theory"));
+    EXPECT_TRUE(text.contains("under development"));
+    EXPECT_TRUE(text.contains("https://github.com/Isaac-Martinez-Forte/QFTbx"));
+    EXPECT_TRUE(text.contains("GNU General Public License"));
+
+    //In Spanish too: the texts are filed under the context the box looks in.
+    applyLanguage("es");
+    EXPECT_TRUE(aboutText().contains("Autores")) << aboutText().toStdString();
+    EXPECT_TRUE(aboutText().contains(QString::fromUtf8("en desarrollo")));
+    applyLanguage(kSourceLanguage);
+}

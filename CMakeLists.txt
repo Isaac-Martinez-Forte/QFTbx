@@ -38,14 +38,15 @@ option(QFTBX_BUILD_TESTS "Build unit tests"     ON)
 # algorithms, not for using them, so off unless asked for. See
 # docs/BENCHMARKING.md.
 option(QFTBX_BUILD_BENCHMARK "Build the benchmark tool and its planner" OFF)
-if(QFTBX_BUILD_BENCHMARK)
-  execute_process(COMMAND git rev-parse --short HEAD
-                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-                  OUTPUT_VARIABLE QFTBX_GIT_COMMIT OUTPUT_STRIP_TRAILING_WHITESPACE
-                  ERROR_QUIET)
-  if(NOT QFTBX_GIT_COMMIT)
-    set(QFTBX_GIT_COMMIT "unknown")
-  endif()
+
+# The commit the build is made from, for the benchmark records; "unknown"
+# outside a repository.
+execute_process(COMMAND git rev-parse --short HEAD
+                WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+                OUTPUT_VARIABLE QFTBX_GIT_COMMIT OUTPUT_STRIP_TRAILING_WHITESPACE
+                ERROR_QUIET)
+if(NOT QFTBX_GIT_COMMIT)
+  set(QFTBX_GIT_COMMIT "unknown")
 endif()
 
 # The interval arithmetic under the loop shaping: kv (vendored, header-only,
