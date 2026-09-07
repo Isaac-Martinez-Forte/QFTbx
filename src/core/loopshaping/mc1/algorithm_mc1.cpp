@@ -62,8 +62,7 @@ bool AlgorithmMc1::solve()
                 return true;
             }
 
-            throw qftbx::InvalidInput(
-                    "No feasible solution exists in the given search box.");
+            throw qftbx::InvalidInput(QFTBX_TR("Core", "No feasible solution exists in the given search box."));
         }
 
         std::unique_ptr<SearchNode> node = liveList->takeFirstAs<SearchNode>();

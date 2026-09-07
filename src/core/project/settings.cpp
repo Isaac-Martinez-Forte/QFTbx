@@ -58,8 +58,7 @@ struct Binding {
 [[noreturn]] void refuse(const std::string & key, std::int64_t line,
                          const std::string & wanted)
 {
-    throw InvalidInput("settings, line " + std::to_string(line) + ": \"" + key
-                       + "\" needs " + wanted);
+    throw InvalidInput(QFTBX_TR("Core", "settings, line %1: \"%2\" needs %3").arg(line).arg(key).arg(wanted));
 }
 
 //Reads a real in [lowest, highest], both included.
@@ -278,7 +277,7 @@ Settings readSettings(const std::string & path)
 {
     std::ifstream file(path);
     if (!file.good()) {
-        throw FileError("the settings file cannot be read: " + path);
+        throw FileError(QFTBX_TR("Core", "the settings file cannot be read: %1").arg(path));
     }
 
     Settings settings;
@@ -306,31 +305,26 @@ Settings readSettings(const std::string & path)
 
         if (content.front() == '[') {
             if (content.back() != ']') {
-                throw InvalidInput("settings, line " + std::to_string(number)
-                                   + ": a section needs its closing bracket");
+                throw InvalidInput(QFTBX_TR("Core", "settings, line %1: a section needs its closing bracket").arg(number));
             }
 
             section = trimmed(content.substr(1, content.size() - 2));
             if (section.empty()) {
-                throw InvalidInput("settings, line " + std::to_string(number)
-                                   + ": a section needs a name");
+                throw InvalidInput(QFTBX_TR("Core", "settings, line %1: a section needs a name").arg(number));
             }
             continue;
         }
 
         const std::size_t equals = content.find('=');
         if (equals == std::string::npos) {
-            throw InvalidInput("settings, line " + std::to_string(number)
-                               + ": expected \"key = value\", found \""
-                               + content + "\"");
+            throw InvalidInput(QFTBX_TR("Core", "settings, line %1: expected \"key = value\", found \"%2\"").arg(number).arg(content));
         }
 
         const std::string name = trimmed(content.substr(0, equals));
         const std::string value = trimmed(content.substr(equals + 1));
 
         if (name.empty()) {
-            throw InvalidInput("settings, line " + std::to_string(number)
-                               + ": the key is missing");
+            throw InvalidInput(QFTBX_TR("Core", "settings, line %1: the key is missing").arg(number));
         }
 
         //A key outside any section would be ambiguous with a nested one.
@@ -339,8 +333,7 @@ Settings readSettings(const std::string & path)
         //Twice in one file is a mistake, and a silent last-one-wins is how
         //someone spends an afternoon wondering why their edit does nothing.
         if (std::find(seen.begin(), seen.end(), key) != seen.end()) {
-            throw InvalidInput("settings, line " + std::to_string(number)
-                               + ": \"" + key + "\" is set more than once");
+            throw InvalidInput(QFTBX_TR("Core", "settings, line %1: \"%2\" is set more than once").arg(number).arg(key));
         }
         seen.push_back(key);
 

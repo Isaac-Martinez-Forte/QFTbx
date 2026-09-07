@@ -79,7 +79,7 @@ NominalStabilityChecker::NominalStabilityChecker(LtiSystem * nominalPlant,
     : m_plant(nominalPlant), m_tolerances(tolerances)
 {
     if (omega == nullptr || omega->empty()) {
-        throw InvalidInput("The stability check needs at least one design frequency.");
+        throw InvalidInput(QFTBX_TR("Core", "The stability check needs at least one design frequency."));
     }
 
     double minOmega = omega->front();

@@ -58,10 +58,10 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
     //a division by zero in the union's bucketing and a loop that never
     //ends in the box classification.
     if (phaseCount < 2 || magnitudeCount < 2) {
-        throw InvalidInput("The Nichols grid needs at least two points on each axis.");
+        throw InvalidInput(QFTBX_TR("Core", "The Nichols grid needs at least two points on each axis."));
     }
     if (!(phaseRange.width() > 0.0) || !(magnitudeRange.width() > 0.0)) {
-        throw InvalidInput("The Nichols grid needs a non-empty phase range and magnitude range.");
+        throw InvalidInput(QFTBX_TR("Core", "The Nichols grid needs a non-empty phase range and magnitude range."));
     }
 
     m_phaseCount = phaseCount;
@@ -94,8 +94,8 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
     if (std::find(m_trackingMask.begin(), m_trackingMask.end(), true) != m_trackingMask.end() &&
             !m_specifications.at(SpecificationType::TrackingUpper).used()){
         //The historical code dereferenced T_U's null plant.
-        throw InvalidInput("The tracking boundary needs both tracking "
-                           "specifications (T_L and T_U).");
+        throw InvalidInput(QFTBX_TR("Core", "The tracking boundary needs both tracking "
+                           "specifications (T_L and T_U)."));
     }
 
 

@@ -177,7 +177,7 @@ void BenchmarkWindow::updateCaseCount()
                                  .arg(plan.epsilons.size()).arg(plan.repetitions)
                                  .arg(plan.warmUp ? tr(" plus a warm-up") : QString()));
     } catch (const std::exception & incomplete) {
-        statusBar()->showMessage(QString::fromUtf8(incomplete.what()));
+        statusBar()->showMessage(translated(incomplete));
     }
 }
 
@@ -203,7 +203,7 @@ void BenchmarkWindow::openPlan(const QString & path)
         updateCaseCount();
         loadResults();
     } catch (const std::exception & failure) {
-        errorMessage(QString::fromUtf8(failure.what()), tr("Open a plan"));
+        errorMessage(translated(failure), tr("Open a plan"));
     }
 }
 
@@ -233,7 +233,7 @@ bool BenchmarkWindow::savePlan()
         statusBar()->showMessage(tr("Plan saved to %1").arg(m_planPath));
         return true;
     } catch (const std::exception & failure) {
-        errorMessage(QString::fromUtf8(failure.what()), tr("Save the plan"));
+        errorMessage(translated(failure), tr("Save the plan"));
         return false;
     }
 }
@@ -247,7 +247,7 @@ void BenchmarkWindow::run()
     try {
         plan = currentPlanAbsolute();
     } catch (const std::exception & incomplete) {
-        errorMessage(QString::fromUtf8(incomplete.what()), tr("Run"));
+        errorMessage(translated(incomplete), tr("Run"));
         return;
     }
 
@@ -269,7 +269,7 @@ void BenchmarkWindow::run()
         m_tabs->setCurrentWidget(m_queue);
         statusBar()->showMessage(tr("Running %1 cases").arg(cases.size()));
     } catch (const std::exception & failure) {
-        errorMessage(QString::fromUtf8(failure.what()), tr("Run"));
+        errorMessage(translated(failure), tr("Run"));
     }
 }
 
@@ -295,7 +295,7 @@ void BenchmarkWindow::loadResults()
         }
         m_results->show(bench::summarize(bench::readRecords(records)));
     } catch (const std::exception & failure) {
-        errorMessage(QString::fromUtf8(failure.what()), tr("Results"));
+        errorMessage(translated(failure), tr("Results"));
     }
 }
 

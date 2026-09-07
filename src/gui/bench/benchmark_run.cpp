@@ -1,3 +1,4 @@
+#include "src/gui/application/error_message.h"
 #include "src/gui/bench/benchmark_run.h"
 
 #include <exception>
@@ -92,7 +93,7 @@ void BenchmarkRun::start(const bench::Plan & plan, const QString & planPath, int
                 }
             });
         } catch (const std::exception & failure) {
-            error = QString::fromUtf8(failure.what());
+            error = translated(failure);
         }
         QMetaObject::invokeMethod(this, [this, failures, error]() {
             m_running.store(false);

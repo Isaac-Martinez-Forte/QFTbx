@@ -44,10 +44,7 @@ void requireUsableNames(LtiSystem & system)
             return;
         }
         if (!ExpressionTree::isUsableVariableName(parameter.name())) {
-            throw qftbx::InvalidInput(
-                "\"" + parameter.name() + "\" cannot be used as a parameter "
-                "name: it is a function, a constant (pi, e) or the Laplace "
-                "variable s of the expression grammar, or not an identifier.");
+            throw qftbx::InvalidInput(QFTBX_TR("Core", "\"%1\" cannot be used as a parameter name: it is a function, a constant (pi, e) or the Laplace variable s of the expression grammar, or not an identifier.").arg(parameter.name()));
         }
     };
 
@@ -102,7 +99,7 @@ bool ProjectController::setPlant(std::unique_ptr<LtiSystem> plant){
     requireNotComputing();
 
     if (plant == nullptr) {
-        throw qftbx::InvalidInput("The project cannot take a null plant.");
+        throw qftbx::InvalidInput(QFTBX_TR("Core", "The project cannot take a null plant."));
     }
     requireUsableNames(*plant);
 
@@ -121,7 +118,7 @@ bool ProjectController::setOmega(std::unique_ptr<Omega> omega){
     requireNotComputing();
 
     if (omega == nullptr) {
-        throw qftbx::InvalidInput("The project cannot take a null set of design frequencies.");
+        throw qftbx::InvalidInput(QFTBX_TR("Core", "The project cannot take a null set of design frequencies."));
     }
 
     const bool changed = m_data.omega() == nullptr || !omega->sameAs(*m_data.omega());
@@ -139,7 +136,7 @@ void ProjectController::setSpecifications(std::optional<qftbx::SpecificationReco
     requireNotComputing();
 
     if (!specifications.has_value()) {
-        throw qftbx::InvalidInput("The project cannot take an empty set of specifications.");
+        throw qftbx::InvalidInput(QFTBX_TR("Core", "The project cannot take an empty set of specifications."));
     }
 
     m_data.setSpecifications(std::move(specifications));
@@ -234,14 +231,14 @@ BoundaryData *ProjectController::boundaries(){
 //return references and cannot, so they say so instead of dereferencing a null.
 const qftbx::UnionTraces & ProjectController::unionBoundaries(){
     if (m_data.boundaries() == nullptr) {
-        throw qftbx::InvalidInput("There are no boundaries yet.");
+        throw qftbx::InvalidInput(QFTBX_TR("Core", "There are no boundaries yet."));
     }
     return m_data.boundaries()->unionBoundaries();
 }
 
 const qftbx::UnionBuckets & ProjectController::unionBuckets(){
     if (m_data.boundaries() == nullptr) {
-        throw qftbx::InvalidInput("There are no boundaries yet.");
+        throw qftbx::InvalidInput(QFTBX_TR("Core", "There are no boundaries yet."));
     }
     return m_data.boundaries()->unionBuckets();
 }
@@ -250,7 +247,7 @@ bool ProjectController::setControllerStructure(std::unique_ptr<LtiSystem> contro
     requireNotComputing();
 
     if (controller == nullptr) {
-        throw qftbx::InvalidInput("The project cannot take a null controller structure.");
+        throw qftbx::InvalidInput(QFTBX_TR("Core", "The project cannot take a null controller structure."));
     }
     requireUsableNames(*controller);
 
@@ -288,8 +285,8 @@ bool ProjectController::computeLoopShaping(double epsilon, qftbx::LoopShapingAlg
 void ProjectController::requireNotComputing() const
 {
     if (m_background.running()) {
-        throw qftbx::InvalidInput("A computation is running: cancel it or wait "
-                                  "for it before changing the project.");
+        throw qftbx::InvalidInput(QFTBX_TR("Core", "A computation is running: cancel it or wait "
+                                  "for it before changing the project."));
     }
 }
 

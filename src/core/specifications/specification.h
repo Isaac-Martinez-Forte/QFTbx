@@ -76,7 +76,7 @@ public:
                                   double minFrequency, double maxFrequency)
     {
         if (!(magnitude > 0.0) || !std::isfinite(magnitude)) {
-            throw InvalidInput("A constant specification needs a finite magnitude > 0.");
+            throw InvalidInput(QFTBX_TR("Core", "A constant specification needs a finite magnitude > 0."));
         }
         validateBand(minFrequency, maxFrequency);
 
@@ -95,7 +95,7 @@ public:
                                     double minFrequency, double maxFrequency)
     {
         if (system == nullptr) {
-            throw InvalidInput("A system specification needs a non-null plant.");
+            throw InvalidInput(QFTBX_TR("Core", "A system specification needs a non-null plant."));
         }
 
         //A throw from here frees the plant on its way out, which the
@@ -146,8 +146,7 @@ public:
         //used to dereference it: every caller today checks appliesAt() first,
         //which is discipline, and this is the guarantee.
         if (!m_used) {
-            throw InvalidInput("The " + name() + " specification is not in use, "
-                               "so it has no bound.");
+            throw InvalidInput(QFTBX_TR("Core", "The %1 specification is not in use, so it has no bound.").arg(name()));
         }
         if (m_constant) {
             return linearToDb(m_magnitude);
@@ -184,7 +183,7 @@ private:
     {
         if (!std::isfinite(minFrequency) || !std::isfinite(maxFrequency) ||
             minFrequency < 0.0 || maxFrequency < minFrequency) {
-            throw InvalidInput("A specification band needs 0 <= min <= max, finite.");
+            throw InvalidInput(QFTBX_TR("Core", "A specification band needs 0 <= min <= max, finite."));
         }
     }
 

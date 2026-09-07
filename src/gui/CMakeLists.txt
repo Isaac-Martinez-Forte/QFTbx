@@ -12,6 +12,18 @@ qt6_add_resources(resources
 )
 target_sources(qftbx_gui PRIVATE ${resources})
 
+add_subdirectory(application)
+add_subdirectory(common)
+add_subdirectory(plant)
+add_subdirectory(frequencies)
+add_subdirectory(specifications)
+add_subdirectory(templates)
+add_subdirectory(boundaries)
+add_subdirectory(loopshaping)
+if(QFTBX_BUILD_BENCHMARK)
+  add_subdirectory(bench)
+endif()
+
 # The Spanish translation: the .ts under translations/ is the source, lrelease
 # compiles it into a .qm at build time and the .qm goes into the resources as
 # :/i18n/qftbx_es.qm. `cmake --build build --target update_translations` runs
@@ -26,19 +38,15 @@ qt_add_resources(qftbx_gui "translations"
   BASE "${CMAKE_CURRENT_BINARY_DIR}"
   FILES ${qftbx_qm_files}
 )
+# The core's messages too: they are English texts marked with QFTBX_TR
+# (src/core/common/message.h), which lupdate reads as QT_TRANSLATE_NOOP, and
+# the interface translates them at its boundary (error_message.h).
+get_target_property(qftbx_core_sources qftbx_core SOURCES)
+get_target_property(qftbx_persistence_sources qftbx_persistence SOURCES)
+get_target_property(qftbx_app_sources qftbx_app SOURCES)
+get_target_property(qftbx_gui_sources qftbx_gui SOURCES)
 qt_add_lupdate(qftbx_gui
   TS_FILES translations/qftbx_es.ts
-  OPTIONS -locations none -no-obsolete
+  SOURCES ${qftbx_gui_sources} ${qftbx_core_sources} ${qftbx_persistence_sources} ${qftbx_app_sources}
+  OPTIONS -locations none -no-obsolete -tr-function-alias QT_TRANSLATE_NOOP+=QFTBX_TR
 )
-
-add_subdirectory(application)
-add_subdirectory(common)
-add_subdirectory(plant)
-add_subdirectory(frequencies)
-add_subdirectory(specifications)
-add_subdirectory(templates)
-add_subdirectory(boundaries)
-add_subdirectory(loopshaping)
-if(QFTBX_BUILD_BENCHMARK)
-  add_subdirectory(bench)
-endif()

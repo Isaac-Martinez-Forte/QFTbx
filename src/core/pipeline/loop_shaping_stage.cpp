@@ -16,17 +16,17 @@ LoopShaping & LoopShapingStage::engine()
 void LoopShapingStage::requirePrerequisites(const ProjectData & data) const
 {
     if (data.plant() == nullptr || data.frequencies() == nullptr) {
-        throw InvalidInput("The loop shaping needs a plant and a set of "
-                           "design frequencies.");
+        throw InvalidInput(QFTBX_TR("Core", "The loop shaping needs a plant and a set of "
+                           "design frequencies."));
     }
     if (data.controller() == nullptr) {
-        throw InvalidInput("The loop shaping needs a controller structure.");
+        throw InvalidInput(QFTBX_TR("Core", "The loop shaping needs a controller structure."));
     }
     if (data.boundaries() == nullptr) {
-        throw InvalidInput("The loop shaping needs the boundaries, which "
+        throw InvalidInput(QFTBX_TR("Core", "The loop shaping needs the boundaries, which "
                            "have to be recomputed after the plant, the "
                            "design frequencies, the specifications or "
-                           "the templates change.");
+                           "the templates change."));
     }
 }
 

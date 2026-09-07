@@ -24,8 +24,7 @@ namespace {
 void requireFinite(double value, const char * what)
 {
     if (!std::isfinite(value)) {
-        throw InvalidInput(std::string("A parameter's ") + what +
-                           " must be a finite number.");
+        throw InvalidInput(QFTBX_TR("Core", "A parameter's %1 must be a finite number.").arg(what));
     }
 }
 
@@ -93,7 +92,7 @@ void Parameter::compileExpression()
         compiled->bind({m_name});
         m_compiled = std::move(compiled);
     } catch (const std::invalid_argument & error) {
-        throw InvalidInput("the reparametrisation of \"" + m_name + "\" cannot be read: " + error.what());
+        throw InvalidInput(QFTBX_TR("Core", "the reparametrisation of \"%1\" cannot be read: %2").arg(m_name).arg(error.what()));
     }
 }
 

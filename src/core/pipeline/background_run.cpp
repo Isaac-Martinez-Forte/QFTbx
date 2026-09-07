@@ -15,7 +15,7 @@ BackgroundRun::~BackgroundRun()
 bool BackgroundRun::start(Work work, Done done)
 {
     if (work == nullptr) {
-        throw InvalidInput("A background run needs something to run.");
+        throw InvalidInput(QFTBX_TR("Core", "A background run needs something to run."));
     }
 
     if (running()) {
@@ -39,15 +39,17 @@ bool BackgroundRun::start(Work work, Done done)
         //errors as std::domain_error, so the standard family covers it.
         try {
             const bool produced = work();
-            finish(produced, false, std::string());
+            finish(produced, false, Message());
         } catch (const Cancelled &) {
-            finish(false, true, std::string());
+            finish(false, true, Message());
+        } catch (const Exception & failure) {
+            finish(false, false, failure.message());
         } catch (const std::exception & failure) {
-            finish(false, false, std::string(failure.what()));
+            finish(false, false, Message::plain(failure.what()));
         } catch (...) {
             //Nothing else is expected, and "nothing else is expected" is not
             //a reason to let the process die.
-            finish(false, false, "the computation failed for an unknown reason");
+            finish(false, false, QFTBX_TR("Core", "the computation failed for an unknown reason"));
         }
 
         if (done != nullptr) {
@@ -58,11 +60,12 @@ bool BackgroundRun::start(Work work, Done done)
     return true;
 }
 
-void BackgroundRun::finish(bool produced, bool cancelled, std::string error)
+void BackgroundRun::finish(bool produced, bool cancelled, const Message & error)
 {
     m_produced = produced;
     m_cancelled = cancelled;
-    m_error = std::move(error);
+    m_errorMessage = error;
+    m_error = error.text().empty() ? std::string() : error.rendered();
 
     //Released last, so anyone who sees running() == false also sees the three
     //fields above.

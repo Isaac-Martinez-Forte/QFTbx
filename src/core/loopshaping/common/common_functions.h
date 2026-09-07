@@ -160,7 +160,7 @@ inline BisectionResult bisectWidestParameter(LtiSystem * box) {
     //A box with nothing uncertain cannot be halved: the two "halves" would
     //be the box itself, and a search that bisects it never gets smaller.
     if (widest == -2) {
-        throw qftbx::ComputationError("The search asked to bisect a controller box with no uncertain parameter.");
+        throw qftbx::ComputationError(QFTBX_TR("Core", "The search asked to bisect a controller box with no uncertain parameter."));
     }
 
     const double middle = range.middle();

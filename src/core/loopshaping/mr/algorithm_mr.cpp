@@ -66,9 +66,8 @@ void AlgorithmMr::buildControllerExpressions(){
             controller->type() == LtiSystem::SystemType::TimeConstantGain;
 
     if (!timeConstant && controller->type() != LtiSystem::SystemType::ZeroPoleGain) {
-        throw qftbx::InvalidInput(
-                "The ICSP loop-shaping algorithm needs a zero-pole-gain or "
-                "time-constant controller structure.");
+        throw qftbx::InvalidInput(QFTBX_TR("Core", "The ICSP loop-shaping algorithm needs a zero-pole-gain or "
+                "time-constant controller structure."));
     }
 
     const auto value = [](Parameter & var) {
@@ -251,9 +250,9 @@ bool AlgorithmMr::solve(){
     const bool nicholsEpsilon = m_settings.algorithms.mrNicholsEpsilon;
     if (nicholsEpsilon) {
         if (controller->type() != LtiSystem::SystemType::ZeroPoleGain) {
-            throw qftbx::InvalidInput("The Nichols-box termination of algorithm MR "
+            throw qftbx::InvalidInput(QFTBX_TR("Core", "The Nichols-box termination of algorithm MR "
                                       "(algorithms.mr-nichols-epsilon) needs a zero-pole-gain "
-                                      "controller structure, as the other algorithms do.");
+                                      "controller structure, as the other algorithms do."));
         }
         conversion = std::make_unique<NaturalIntervalExtension>();
         nominalPlantValues.clear();
@@ -276,8 +275,7 @@ bool AlgorithmMr::solve(){
         }
 
         if (liveList->isEmpty()) {
-            throw qftbx::InvalidInput(
-                    "No feasible solution exists in the given search box.");
+            throw qftbx::InvalidInput(QFTBX_TR("Core", "No feasible solution exists in the given search box."));
         }
 
         std::unique_ptr<SearchNode> node = liveList->takeFirstAs<SearchNode>();

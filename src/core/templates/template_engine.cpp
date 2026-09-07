@@ -49,7 +49,7 @@ bool TemplateEngine::compute(LtiSystem *plant, std::vector<double> *omega, bool 
 
 
     if (m_clouds.empty()){
-        throw qftbx::ComputationError("Could not compute the templates.");
+        throw qftbx::ComputationError(QFTBX_TR("Core", "Could not compute the templates."));
     }
 
     const auto timer2 = std::chrono::steady_clock::now();
@@ -69,10 +69,10 @@ bool TemplateEngine::compute(LtiSystem *plant, std::vector<double> *omega, bool 
 bool TemplateEngine::computeContours(std::vector<double> epsilon){
 
     if (m_clouds.empty()){
-        throw qftbx::InvalidInput("There are no templates to compute contours from.");
+        throw qftbx::InvalidInput(QFTBX_TR("Core", "There are no templates to compute contours from."));
     }
     if (epsilon.size() < m_clouds.size()){
-        throw qftbx::InvalidInput("Missing epsilon values for the template contours.");
+        throw qftbx::InvalidInput(QFTBX_TR("Core", "Missing epsilon values for the template contours."));
     }
 
     m_epsilon = std::move(epsilon);
@@ -100,8 +100,7 @@ const std::vector<double> & TemplateEngine::gridFor(const Parameter & a){
     const auto found = m_grids.find(a.name());
 
     if (found == m_grids.end()){
-        throw qftbx::InvalidInput("Missing sweep grid for the uncertain parameter '"
-                                  + a.name() + "'.");
+        throw qftbx::InvalidInput(QFTBX_TR("Core", "Missing sweep grid for the uncertain parameter '%1'.").arg(a.name()));
     }
 
     return found->second;
@@ -283,9 +282,7 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
     for (std::size_t u = 0; u < frequencyCount; u++){
         if (!parserErrors.at(u).empty()){
             const std::string message = parserErrors.at(u);
-            throw qftbx::InvalidInput(
-                    "The plant expression could not be evaluated at "
-                    + qftbx::text::number(omega->at(u)) + " rad/s: " + message);
+            throw qftbx::InvalidInput(QFTBX_TR("Core", "The plant expression could not be evaluated at %1 rad/s: %2").arg(omega->at(u)).arg(message));
         }
     }
 
@@ -298,13 +295,8 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
     }
 
     if (!affected.empty()){
-        throw qftbx::InvalidInput(
-                "The plant has infinite magnitude at the design frequencies "
-                + qftbx::text::join(affected, ", ")
-                + " rad/s: an undamped resonance inside the uncertainty. Its "
-                  "template cannot be bounded or contoured. Add light damping "
-                  "to the resonant poles (the usual answer for the ACC'90 "
-                  "benchmark) or move those frequencies out of the set.");
+        throw qftbx::InvalidInput(QFTBX_TR("Core", "The plant has infinite magnitude at the design frequencies %1 rad/s: an undamped resonance inside the uncertainty. Its template cannot be bounded or contoured. Add light damping to the resonant poles (the usual answer for the ACC'90 benchmark) or move those frequencies out of the set.")
+                .arg(qftbx::text::join(affected, ", ")));
     }
 
     return allClouds;
@@ -324,9 +316,7 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
     //parallel loop below: an exception escaping an OpenMP region terminates
     //the process instead of reaching anyone.
     if (m_epsilon.size() != m_clouds.size()) {
-        throw qftbx::InvalidInput("The contours need one epsilon per design frequency: "
-                                  + std::to_string(m_epsilon.size()) + " given for "
-                                  + std::to_string(m_clouds.size()) + " frequencies.");
+        throw qftbx::InvalidInput(QFTBX_TR("Core", "The contours need one epsilon per design frequency: %1 given for %2 frequencies.").arg(m_epsilon.size()).arg(m_clouds.size()));
     }
 
     bool succeeded = true;
@@ -352,7 +342,7 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
 
         if (!succeeded){
 
-            throw ComputationError("Could not compute the template contours.");
+            throw ComputationError(QFTBX_TR("Core", "Could not compute the template contours."));
         }
 
         return true;
@@ -447,12 +437,8 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
                              + qftbx::text::number(largest) + ")");
         }
 
-        throw qftbx::ComputationError(
-                "Could not compute the template contour at "
-                + qftbx::text::join(detail, "; ")
-                + ". A cloud spanning extreme magnitudes has no epsilon-hull: "
-                  "check for a resonance inside the plant uncertainty and damp "
-                  "it lightly if so.");
+        throw qftbx::ComputationError(QFTBX_TR("Core", "Could not compute the template contour at %1. A cloud spanning extreme magnitudes has no epsilon-hull: check for a resonance inside the plant uncertainty and damp it lightly if so.")
+                .arg(qftbx::text::join(detail, "; ")));
     }
 
     return true;

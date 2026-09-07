@@ -19,10 +19,10 @@ bool Application::notify(QObject * receiver, QEvent * event)
         //Through the GUI's own reporter, like every dialog: a modal box for
         //a user, and something a headless run can capture instead of
         //blocking on it forever.
-        qftbx::errorMessage(QString::fromUtf8(error.what()), tr("QFTbx"));
+        qftbx::errorMessage(translated(error), tr("QFTbx"));
     } catch (const std::exception & error) {
         //Anything else that can still say what happened.
-        qftbx::errorMessage(QString::fromUtf8(error.what()), tr("QFTbx"));
+        qftbx::errorMessage(translated(error), tr("QFTbx"));
     }
 
     //The event is spent either way: reporting it is the handling.

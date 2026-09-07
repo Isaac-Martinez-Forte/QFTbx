@@ -116,9 +116,11 @@ in a `.ui` file, run
 
     cmake --build build --target update_translations
 
-which runs `lupdate` over the GUI sources and adds the new strings to the
-file marked as unfinished, then give them their Spanish text (Qt Linguist or
-a text editor) and rebuild. A test of the GUI suite fails while a string is
+which runs `lupdate` over the GUI sources and over the core, the persistence
+and the facade, whose user-facing messages are written inside
+`QFTBX_TR("Core", "...")` (see `src/core/common/message.h`), and adds the new
+strings to the file marked as unfinished, then give them their Spanish text
+(Qt Linguist or a text editor) and rebuild. A test of the GUI suite fails while a string is
 left untranslated or an obsolete one is left in the file. Run the target from
 a tree configured with `QFTBX_BUILD_BENCHMARK` so the planner's strings are
 included too.

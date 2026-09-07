@@ -36,14 +36,8 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
     const double phaseSpan = std::abs(boundaries->phaseRange().width());
 
     if (phaseSpan < 360.0) {
-        throw qftbx::ComputationError(
-            "The boundaries were computed over a Nichols phase window of "
-            + qftbx::text::number(phaseSpan) + " degrees (["
-            + qftbx::text::number(boundaries->phaseRange().min) + ", "
-            + qftbx::text::number(boundaries->phaseRange().max)
-            + "]), which does not cover the full range a loop phase can take "
-              "(-360 to 0 degrees). Recompute the boundaries over a window of "
-              "at least 360 degrees.");
+        throw qftbx::ComputationError(QFTBX_TR("Core", "The boundaries were computed over a Nichols phase window of %1 degrees ([%2, %3]), which does not cover the full range a loop phase can take (-360 to 0 degrees). Recompute the boundaries over a window of at least 360 degrees.")
+            .arg(phaseSpan).arg(boundaries->phaseRange().min).arg(boundaries->phaseRange().max));
     }
 
     //The algorithms own themselves through unique_ptr: solve()

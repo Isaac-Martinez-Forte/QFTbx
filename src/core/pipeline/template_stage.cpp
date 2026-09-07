@@ -16,10 +16,10 @@ TemplateEngine & TemplateStage::engine()
 void TemplateStage::requirePrerequisites(const ProjectData & data) const
 {
     if (data.plant() == nullptr) {
-        throw InvalidInput("The templates need a plant.");
+        throw InvalidInput(QFTBX_TR("Core", "The templates need a plant."));
     }
     if (data.omega() == nullptr) {
-        throw InvalidInput("The templates need a set of design frequencies.");
+        throw InvalidInput(QFTBX_TR("Core", "The templates need a set of design frequencies."));
     }
 }
 
@@ -56,7 +56,7 @@ const CloudSet & TemplateStage::recomputeContour(ProjectData & data,
                                                  std::vector<double> epsilon)
 {
     if (m_engine == nullptr || data.templates().empty()) {
-        throw InvalidInput("There are no templates to walk a contour over.");
+        throw InvalidInput(QFTBX_TR("Core", "There are no templates to walk a contour over."));
     }
 
     m_engine->computeContours(epsilon);

@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE TS>
+<?xml version='1.0' encoding='utf-8'?>
 <TS version="2.1" language="es_ES">
 <context>
     <name>BodeViewer</name>
@@ -152,6 +151,361 @@ del controlador</translation>
     <message>
         <source>]</source>
         <translation>]</translation>
+    </message>
+</context>
+<context>
+    <name>Core</name>
+    <message>
+        <source>The Nichols grid needs at least two points on each axis.</source>
+        <translation>La rejilla de Nichols necesita al menos dos puntos en cada eje.</translation>
+    </message>
+    <message>
+        <source>The Nichols grid needs a non-empty phase range and magnitude range.</source>
+        <translation>La rejilla de Nichols necesita un rango de fase y otro de magnitud no vacíos.</translation>
+    </message>
+    <message>
+        <source>The tracking boundary needs both tracking specifications (T_L and T_U).</source>
+        <translation>El boundary de seguimiento necesita las dos especificaciones de seguimiento (T_L y T_U).</translation>
+    </message>
+    <message>
+        <source>The search was cancelled.</source>
+        <translation>La búsqueda se canceló.</translation>
+    </message>
+    <message>
+        <source>%1 (line %2)</source>
+        <translation>%1 (línea %2)</translation>
+    </message>
+    <message>
+        <source>%1: %2 (line %3)</source>
+        <translation>%1: %2 (línea %3)</translation>
+    </message>
+    <message>
+        <source>A frequency set needs at least one value.</source>
+        <translation>Un conjunto de frecuencias necesita al menos un valor.</translation>
+    </message>
+    <message>
+        <source>A design frequency must be a finite positive real, and %1 is not.</source>
+        <translation>Una frecuencia de diseño debe ser un real positivo finito, y %1 no lo es.</translation>
+    </message>
+    <message>
+        <source>Cannot open frequencies file: %1</source>
+        <translation>No se puede abrir el fichero de frecuencias: %1</translation>
+    </message>
+    <message>
+        <source>The frequencies file contains no valid values: %1</source>
+        <translation>El fichero de frecuencias no contiene valores válidos: %1</translation>
+    </message>
+    <message>
+        <source>The boundaries were computed over a Nichols phase window of %1 degrees ([%2, %3]), which does not cover the full range a loop phase can take (-360 to 0 degrees). Recompute the boundaries over a window of at least 360 degrees.</source>
+        <translation>Los boundaries se calcularon sobre una ventana de fase de Nichols de %1 grados ([%2, %3]), que no cubre todo el rango que puede tomar la fase de un lazo (de -360 a 0 grados). Recalcule los boundaries sobre una ventana de al menos 360 grados.</translation>
+    </message>
+    <message>
+        <source>The search asked to bisect a controller box with no uncertain parameter.</source>
+        <translation>La búsqueda pidió bisecar una caja de controlador sin ningún parámetro incierto.</translation>
+    </message>
+    <message>
+        <source>Loop shaping supports zero-pole-gain controller structures only, for now: a time-constant, polynomial or free-form controller structure is not supported yet.</source>
+        <translation>El ajuste del lazo solo admite, por ahora, estructuras de controlador de ceros, polos y ganancia: una estructura de constantes de tiempo, de polinomios o de formato libre todavía no está soportada.</translation>
+    </message>
+    <message>
+        <source>The stability check needs at least one design frequency.</source>
+        <translation>La comprobación de estabilidad necesita al menos una frecuencia de diseño.</translation>
+    </message>
+    <message>
+        <source>The search kept %1 boxes alive at once without resolving the problem. Ask for a looser epsilon accuracy, or narrow the controller search box.</source>
+        <translation>La búsqueda mantuvo %1 cajas vivas a la vez sin resolver el problema. Pida una precisión épsilon menos exigente o estreche la caja de búsqueda del controlador.</translation>
+    </message>
+    <message>
+        <source>The search asked the live list for a node when it holds none.</source>
+        <translation>La búsqueda pidió un nodo a la lista viva cuando no tiene ninguno.</translation>
+    </message>
+    <message>
+        <source>No feasible solution exists in the given search box.</source>
+        <translation>No existe ninguna solución factible en la caja de búsqueda dada.</translation>
+    </message>
+    <message>
+        <source>The ICSP loop-shaping algorithm needs a zero-pole-gain or time-constant controller structure.</source>
+        <translation>El algoritmo de ajuste del lazo ICSP necesita una estructura de controlador de ceros, polos y ganancia o de constantes de tiempo.</translation>
+    </message>
+    <message>
+        <source>The Nichols-box termination of algorithm MR (algorithms.mr-nichols-epsilon) needs a zero-pole-gain controller structure, as the other algorithms do.</source>
+        <translation>La terminación por caja de Nichols del algoritmo MR (algorithms.mr-nichols-epsilon) necesita una estructura de controlador de ceros, polos y ganancia, como los demás algoritmos.</translation>
+    </message>
+    <message>
+        <source>A background run needs something to run.</source>
+        <translation>Una ejecución en segundo plano necesita algo que ejecutar.</translation>
+    </message>
+    <message>
+        <source>the computation failed for an unknown reason</source>
+        <translation>el cálculo falló por una razón desconocida</translation>
+    </message>
+    <message>
+        <source>The boundaries need a plant and a set of design frequencies.</source>
+        <translation>Los boundaries necesitan una planta y un conjunto de frecuencias de diseño.</translation>
+    </message>
+    <message>
+        <source>The boundaries need the specifications.</source>
+        <translation>Los boundaries necesitan las especificaciones.</translation>
+    </message>
+    <message>
+        <source>The boundaries need the templates, which have to be recomputed after the plant or the design frequencies change.</source>
+        <translation>Los boundaries necesitan los templates, que hay que recalcular cuando cambian la planta o las frecuencias de diseño.</translation>
+    </message>
+    <message>
+        <source>The loop shaping needs a plant and a set of design frequencies.</source>
+        <translation>El ajuste del lazo necesita una planta y un conjunto de frecuencias de diseño.</translation>
+    </message>
+    <message>
+        <source>The loop shaping needs a controller structure.</source>
+        <translation>El ajuste del lazo necesita una estructura de controlador.</translation>
+    </message>
+    <message>
+        <source>The loop shaping needs the boundaries, which have to be recomputed after the plant, the design frequencies, the specifications or the templates change.</source>
+        <translation>El ajuste del lazo necesita los boundaries, que hay que recalcular cuando cambian la planta, las frecuencias de diseño, las especificaciones o los templates.</translation>
+    </message>
+    <message>
+        <source>The templates need a plant.</source>
+        <translation>Los templates necesitan una planta.</translation>
+    </message>
+    <message>
+        <source>The templates need a set of design frequencies.</source>
+        <translation>Los templates necesitan un conjunto de frecuencias de diseño.</translation>
+    </message>
+    <message>
+        <source>There are no templates to walk a contour over.</source>
+        <translation>No hay templates sobre los que recorrer un contorno.</translation>
+    </message>
+    <message>
+        <source>settings, line %1: "%2" needs %3</source>
+        <translation>ajustes, línea %1: "%2" necesita %3</translation>
+    </message>
+    <message>
+        <source>the settings file cannot be read: %1</source>
+        <translation>no se puede leer el fichero de ajustes: %1</translation>
+    </message>
+    <message>
+        <source>settings, line %1: a section needs its closing bracket</source>
+        <translation>ajustes, línea %1: a una sección le falta el corchete de cierre</translation>
+    </message>
+    <message>
+        <source>settings, line %1: a section needs a name</source>
+        <translation>ajustes, línea %1: una sección necesita un nombre</translation>
+    </message>
+    <message>
+        <source>settings, line %1: expected "key = value", found "%2"</source>
+        <translation>ajustes, línea %1: se esperaba "clave = valor" y se encontró "%2"</translation>
+    </message>
+    <message>
+        <source>settings, line %1: the key is missing</source>
+        <translation>ajustes, línea %1: falta la clave</translation>
+    </message>
+    <message>
+        <source>settings, line %1: "%2" is set more than once</source>
+        <translation>ajustes, línea %1: "%2" se establece más de una vez</translation>
+    </message>
+    <message>
+        <source>A constant specification needs a finite magnitude &gt; 0.</source>
+        <translation>Una especificación constante necesita una magnitud finita &gt; 0.</translation>
+    </message>
+    <message>
+        <source>A system specification needs a non-null plant.</source>
+        <translation>Una especificación de tipo sistema necesita una planta no nula.</translation>
+    </message>
+    <message>
+        <source>The %1 specification is not in use, so it has no bound.</source>
+        <translation>La especificación %1 no está en uso, así que no tiene cota.</translation>
+    </message>
+    <message>
+        <source>A specification band needs 0 &lt;= min &lt;= max, finite.</source>
+        <translation>Una banda de especificación necesita 0 &lt;= mín &lt;= máx, finitos.</translation>
+    </message>
+    <message>
+        <source>A used specification needs a plant or a constant height.</source>
+        <translation>Una especificación en uso necesita una planta o una altura constante.</translation>
+    </message>
+    <message>
+        <source>The plant expression cannot be read: %1</source>
+        <translation>No se puede leer la expresión de la planta: %1</translation>
+    </message>
+    <message>
+        <source>A plant parameter cannot be called "%1": that is the Laplace variable.</source>
+        <translation>Un parámetro de la planta no puede llamarse "%1": es la variable de Laplace.</translation>
+    </message>
+    <message>
+        <source>The plant expression cannot be evaluated: %1</source>
+        <translation>No se puede evaluar la expresión de la planta: %1</translation>
+    </message>
+    <message>
+        <source>FreeForm::valueAt: %1 and %2 values were given for %3 and %4 parameters</source>
+        <translation>FreeForm::valueAt: se dieron %1 y %2 valores para %3 y %4 parámetros</translation>
+    </message>
+    <message>
+        <source>the parameter "%1" was given two different values (%2 and %3): the same name is the same variable</source>
+        <translation>al parámetro "%1" se le dieron dos valores distintos (%2 y %3): el mismo nombre es la misma variable</translation>
+    </message>
+    <message>
+        <source>A parameter's %1 must be a finite number.</source>
+        <translation>El %1 de un parámetro debe ser un número finito.</translation>
+    </message>
+    <message>
+        <source>the reparametrisation of "%1" cannot be read: %2</source>
+        <translation>no se puede leer la reparametrización de "%1": %2</translation>
+    </message>
+    <message>
+        <source>A time constant in the %1 cannot be zero: every factor is s/z + 1.</source>
+        <translation>Una constante de tiempo del %1 no puede ser cero: cada factor es s/z + 1.</translation>
+    </message>
+    <message>
+        <source>Could not compute the templates.</source>
+        <translation>No se han podido calcular los templates.</translation>
+    </message>
+    <message>
+        <source>There are no templates to compute contours from.</source>
+        <translation>No hay templates de los que calcular contornos.</translation>
+    </message>
+    <message>
+        <source>Missing epsilon values for the template contours.</source>
+        <translation>Faltan los valores de épsilon para los contornos de los templates.</translation>
+    </message>
+    <message>
+        <source>Missing sweep grid for the uncertain parameter '%1'.</source>
+        <translation>Falta la rejilla de barrido del parámetro incierto '%1'.</translation>
+    </message>
+    <message>
+        <source>The plant expression could not be evaluated at %1 rad/s: %2</source>
+        <translation>No se ha podido evaluar la expresión de la planta en %1 rad/s: %2</translation>
+    </message>
+    <message>
+        <source>The plant has infinite magnitude at the design frequencies %1 rad/s: an undamped resonance inside the uncertainty. Its template cannot be bounded or contoured. Add light damping to the resonant poles (the usual answer for the ACC'90 benchmark) or move those frequencies out of the set.</source>
+        <translation>La planta tiene magnitud infinita en las frecuencias de diseño %1 rad/s: una resonancia sin amortiguar dentro de la incertidumbre. Su template no se puede acotar ni contornear. Añada un amortiguamiento ligero a los polos resonantes (la solución habitual para el problema ACC'90) o saque esas frecuencias del conjunto.</translation>
+    </message>
+    <message>
+        <source>The contours need one epsilon per design frequency: %1 given for %2 frequencies.</source>
+        <translation>Los contornos necesitan un épsilon por frecuencia de diseño: se dieron %1 para %2 frecuencias.</translation>
+    </message>
+    <message>
+        <source>Could not compute the template contours.</source>
+        <translation>No se han podido calcular los contornos de los templates.</translation>
+    </message>
+    <message>
+        <source>Could not compute the template contour at %1. A cloud spanning extreme magnitudes has no epsilon-hull: check for a resonance inside the plant uncertainty and damp it lightly if so.</source>
+        <translation>No se ha podido calcular el contorno del template en %1. Una nube que abarca magnitudes extremas no tiene ε-hull: compruebe si hay una resonancia dentro de la incertidumbre de la planta y, si es así, amortígüela ligeramente.</translation>
+    </message>
+    <message>
+        <source>missing &lt;%1&gt; element</source>
+        <translation>falta el elemento &lt;%1&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;%1&gt; is not a number</source>
+        <translation>&lt;%1&gt; no es un número</translation>
+    </message>
+    <message>
+        <source>&lt;%1&gt; is not a boolean</source>
+        <translation>&lt;%1&gt; no es un booleano</translation>
+    </message>
+    <message>
+        <source>missing attribute '%1'</source>
+        <translation>falta el atributo '%1'</translation>
+    </message>
+    <message>
+        <source>attribute '%1' is not a number</source>
+        <translation>el atributo '%1' no es un número</translation>
+    </message>
+    <message>
+        <source>attribute '%1' is not an integer</source>
+        <translation>el atributo '%1' no es un entero</translation>
+    </message>
+    <message>
+        <source>&lt;%1&gt; holds a non-numeric token</source>
+        <translation>&lt;%1&gt; contiene un elemento no numérico</translation>
+    </message>
+    <message>
+        <source>&lt;%1&gt; holds an odd point list</source>
+        <translation>&lt;%1&gt; contiene una lista de puntos impar</translation>
+    </message>
+    <message>
+        <source>expected exactly a gain and a delay parameter</source>
+        <translation>se esperaban exactamente un parámetro de ganancia y otro de retardo</translation>
+    </message>
+    <message>
+        <source>unknown system type</source>
+        <translation>tipo de sistema desconocido</translation>
+    </message>
+    <message>
+        <source>a project needs exactly 7 specification slots</source>
+        <translation>un proyecto necesita exactamente 7 huecos de especificación</translation>
+    </message>
+    <message>
+        <source>a non-constant specification needs its plant</source>
+        <translation>una especificación no constante necesita su planta</translation>
+    </message>
+    <message>
+        <source>the frequency set has an unknown generation type</source>
+        <translation>el conjunto de frecuencias tiene un tipo de generación desconocido</translation>
+    </message>
+    <message>
+        <source>a complex vector needs real and imaginary parts</source>
+        <translation>un vector complejo necesita parte real y parte imaginaria</translation>
+    </message>
+    <message>
+        <source>real and imaginary parts differ in length</source>
+        <translation>la parte real y la imaginaria tienen longitudes distintas</translation>
+    </message>
+    <message>
+        <source>the loop-shaping section needs its controller</source>
+        <translation>la sección de ajuste del lazo necesita su controlador</translation>
+    </message>
+    <message>
+        <source>Cannot open project file: %1</source>
+        <translation>No se puede abrir el fichero de proyecto: %1</translation>
+    </message>
+    <message>
+        <source>not a QFT project file (root &lt;%1&gt;)</source>
+        <translation>no es un fichero de proyecto QFT (raíz &lt;%1&gt;)</translation>
+    </message>
+    <message>
+        <source>unsupported .qft version (no version attribute; this build reads version 2)</source>
+        <translation>versión de .qft no soportada (sin atributo de versión; esta compilación lee la versión 2)</translation>
+    </message>
+    <message>
+        <source>unsupported .qft version (found %1, this build reads version 2)</source>
+        <translation>versión de .qft no soportada (se encontró %1; esta compilación lee la versión 2)</translation>
+    </message>
+    <message>
+        <source>The project cannot be written: &lt;%1&gt; holds a value that is not a finite number.</source>
+        <translation>No se puede escribir el proyecto: &lt;%1&gt; contiene un valor que no es un número finito.</translation>
+    </message>
+    <message>
+        <source>Cannot write project file: %1</source>
+        <translation>No se puede escribir el fichero de proyecto: %1</translation>
+    </message>
+    <message>
+        <source>"%1" cannot be used as a parameter name: it is a function, a constant (pi, e) or the Laplace variable s of the expression grammar, or not an identifier.</source>
+        <translation>"%1" no puede ser el nombre de un parámetro: es una función, una constante (pi, e) o la variable de Laplace s de la gramática de expresiones, o no es un identificador.</translation>
+    </message>
+    <message>
+        <source>The project cannot take a null plant.</source>
+        <translation>El proyecto no puede recibir una planta nula.</translation>
+    </message>
+    <message>
+        <source>The project cannot take a null set of design frequencies.</source>
+        <translation>El proyecto no puede recibir un conjunto nulo de frecuencias de diseño.</translation>
+    </message>
+    <message>
+        <source>The project cannot take an empty set of specifications.</source>
+        <translation>El proyecto no puede recibir un conjunto vacío de especificaciones.</translation>
+    </message>
+    <message>
+        <source>There are no boundaries yet.</source>
+        <translation>Todavía no hay boundaries.</translation>
+    </message>
+    <message>
+        <source>The project cannot take a null controller structure.</source>
+        <translation>El proyecto no puede recibir una estructura de controlador nula.</translation>
+    </message>
+    <message>
+        <source>A computation is running: cancel it or wait for it before changing the project.</source>
+        <translation>Hay un cálculo en marcha: cancélelo o espere a que termine antes de cambiar el proyecto.</translation>
     </message>
 </context>
 <context>
@@ -532,16 +886,16 @@ del controlador</translation>
         <translation>No se ha podido guardar la imagen</translation>
     </message>
     <message>
-        <source>&quot;%1&quot; cannot be used as a parameter name: it is a constant of the expression grammar.</source>
-        <translation>&quot;%1&quot; no puede ser el nombre de un parámetro: es una constante de la gramática de expresiones.</translation>
+        <source>"%1" cannot be used as a parameter name: it is a constant of the expression grammar.</source>
+        <translation>"%1" no puede ser el nombre de un parámetro: es una constante de la gramática de expresiones.</translation>
     </message>
     <message>
         <source>Loop-shaping input</source>
         <translation>Ajuste del lazo</translation>
     </message>
     <message>
-        <source>plant &apos;%1&apos;</source>
-        <translation>planta &apos;%1&apos;</translation>
+        <source>plant '%1'</source>
+        <translation>planta '%1'</translation>
     </message>
     <message>
         <source>NO plant</source>
@@ -1222,7 +1576,7 @@ contorno</translation>
         <translation>Estructuras del controlador</translation>
     </message>
     <message>
-        <source>The project&apos;s controller structure is the base. Each step adds a zero or a pole with its search range; the cases run after every step marked to run.</source>
+        <source>The project's controller structure is the base. Each step adds a zero or a pole with its search range; the cases run after every step marked to run.</source>
         <translation>La estructura del controlador del proyecto es la base. Cada paso añade un cero o un polo con su rango de búsqueda; los casos se ejecutan tras cada paso marcado.</translation>
     </message>
     <message>
@@ -1322,7 +1676,7 @@ contorno</translation>
         <translation>Memoria a lo largo del tiempo (un hilo de muestreo: desactívelo al medir tiempos)</translation>
     </message>
     <message>
-        <source>The algorithm&apos;s counters: live nodes, boxes, stability verdicts</source>
+        <source>The algorithm's counters: live nodes, boxes, stability verdicts</source>
         <translation>Los contadores del algoritmo: nodos vivos, cajas, veredictos de estabilidad</translation>
     </message>
     <message>
@@ -1434,8 +1788,8 @@ contorno</translation>
         <translation>el máximo</translation>
     </message>
     <message>
-        <source>Epsilons: &apos;%1&apos; is not a positive number</source>
-        <translation>Épsilons: &apos;%1&apos; no es un número positivo</translation>
+        <source>Epsilons: '%1' is not a positive number</source>
+        <translation>Épsilons: '%1' no es un número positivo</translation>
     </message>
     <message>
         <source>Setting %1 needs both a key and a value</source>
@@ -1788,12 +2142,12 @@ contorno</translation>
         <translation>Seleccione logspace o linspace en la sección general.</translation>
     </message>
     <message>
-        <source>The values entered for parameter &quot;%1&quot; are invalid.</source>
-        <translation>Los valores introducidos para el parámetro &quot;%1&quot; no son válidos.</translation>
+        <source>The values entered for parameter "%1" are invalid.</source>
+        <translation>Los valores introducidos para el parámetro "%1" no son válidos.</translation>
     </message>
     <message>
-        <source>The values entered for parameter &quot;%1&quot; are invalid: %2.</source>
-        <translation>Los valores introducidos para el parámetro &quot;%1&quot; no son válidos: %2.</translation>
+        <source>The values entered for parameter "%1" are invalid: %2.</source>
+        <translation>Los valores introducidos para el parámetro "%1" no son válidos: %2.</translation>
     </message>
     <message>
         <source>The general point count must be a whole number between 1 and %1.</source>

@@ -25,8 +25,7 @@ void requireNonZeroCorners(const std::vector<Parameter> & corners, const char * 
                 ? (range.min <= 0.0 && 0.0 <= range.max)
                 : corner.rawNominal() == 0.0;
         if (touchesZero) {
-            throw InvalidInput(std::string("A time constant in the ") + side
-                               + " cannot be zero: every factor is s/z + 1.");
+            throw InvalidInput(QFTBX_TR("Core", "A time constant in the %1 cannot be zero: every factor is s/z + 1.").arg(side));
         }
     }
 }
