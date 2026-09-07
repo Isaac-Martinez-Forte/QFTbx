@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="840" height="210"
+     role="img" aria-label="QFTbx — Quantitative Feedback Theory, robust control design toolbox">
+  <title>QFTbx</title>
+
+  <!--
+    The application icon, widened into a header. Same tile gradient, same
+    graph paper, same three overlapping plant templates with the nominal
+    loop transmission shaped through them, same two-weight wordmark.
+
+    The wordmark is two separate <text> elements at explicit x, not one
+    element with tspans: with text-anchor="end" a tspan lands off-canvas in
+    some renderers, and dropping the "bx" is exactly the kind of failure
+    nobody notices until the page is published. The x of the second part
+    comes from the measured advance width of the first at this size.
+  -->
+
+  <defs>
+    <linearGradient id="sky" x1="1" y1="0" x2="0.15" y2="1">
+      <stop offset="0"    stop-color="#d3e9ee"/>
+      <stop offset="0.32" stop-color="#8cbdd1"/>
+      <stop offset="0.70" stop-color="#5d90ba"/>
+      <stop offset="1"    stop-color="#3e739b"/>
+    </linearGradient>
+
+    <clipPath id="tile">
+      <rect x="0" y="0" width="1200" height="300" rx="26" ry="26"/>
+    </clipPath>
+
+    <filter id="soft" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+
+  <g clip-path="url(#tile)">
+
+    <rect x="0" y="0" width="1200" height="300" fill="url(#sky)"/>
+
+    <!-- Graph paper. -->
+    <g stroke="#ffffff" stroke-opacity="0.13" stroke-width="1">
+      <path d="M60 0V300M120 0V300M180 0V300M240 0V300M300 0V300M360 0V300M420 0V300
+               M480 0V300M540 0V300M600 0V300M660 0V300M720 0V300M780 0V300M840 0V300
+               M900 0V300M960 0V300M1020 0V300M1080 0V300M1140 0V300"/>
+      <path d="M0 60H1200M0 120H1200M0 180H1200M0 240H1200"/>
+    </g>
+
+    <!-- The plant value set at three design frequencies: leaf-shaped, the
+         way a real template comes out, not ellipses. -->
+    <g filter="url(#soft)">
+      <path d="M112,214 C138,150 226,96 330,102 C424,108 470,146 452,190
+               C432,238 300,272 202,254 C142,243 100,238 112,214 Z"
+            fill="#8fe3f2" fill-opacity="0.36"/>
+      <path d="M258,110 C316,72 430,66 522,96 C606,124 640,166 606,196
+               C568,230 424,232 340,204 C268,180 222,136 258,110 Z"
+            fill="#b7e878" fill-opacity="0.34"/>
+      <path d="M448,196 C466,144 566,110 664,120 C752,129 784,166 762,200
+               C738,238 616,258 526,242 C462,231 434,232 448,196 Z"
+            fill="#f4ea90" fill-opacity="0.32"/>
+    </g>
+
+    <!-- The nominal loop transmission being shaped through them. -->
+    <path d="M104,250 C170,246 200,239 250,229 C310,217 350,197 400,171
+             C455,143 500,133 560,121 C622,109 664,90 706,60"
+          fill="none" stroke="#182231" stroke-opacity="0.88"
+          stroke-width="6" stroke-linecap="round"/>
+
+    <!-- The design points the interval search settles on. -->
+    <g stroke="#ffffff" stroke-opacity="0.95" stroke-width="3">
+      <circle cx="250" cy="229" r="12" fill="#2f5f96"/>
+      <circle cx="400" cy="171" r="12" fill="#ecc23f"/>
+      <circle cx="560" cy="121" r="12" fill="#74bd3c"/>
+    </g>
+
+    <!-- Wordmark. -->
+    <text x="814" y="172" fill="#ffffff" font-weight="bold" font-size="96"
+          font-family="'DejaVu Sans','Helvetica Neue',Helvetica,Arial,sans-serif">QFT</text>
+    <text x="1030" y="172" fill="#ffffff" fill-opacity="0.95" font-size="96"
+          font-family="'DejaVu Sans','Helvetica Neue',Helvetica,Arial,sans-serif">bx</text>
+
+    <text x="1146" y="216" text-anchor="end" fill="#ffffff" fill-opacity="0.88" font-size="21"
+          font-family="'DejaVu Sans','Helvetica Neue',Helvetica,Arial,sans-serif"
+          letter-spacing="1.5">Quantitative Feedback Theory</text>
+    <text x="1146" y="246" text-anchor="end" fill="#ffffff" fill-opacity="0.74" font-size="18"
+          font-family="'DejaVu Sans','Helvetica Neue',Helvetica,Arial,sans-serif"
+          letter-spacing="1.3">robust control design toolbox</text>
+
+  </g>
+</svg>

@@ -1,0 +1,22 @@
+# Target style for refactored code. Legacy files are reformatted as they
+# are modernised, module by module — do not reformat the whole tree at once.
+BasedOnStyle: LLVM
+Language: Cpp
+Standard: c++20
+
+IndentWidth: 4
+ColumnLimit: 100
+PointerAlignment: Left
+DerivePointerAlignment: false
+
+AllowShortFunctionsOnASingleLine: InlineOnly
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AlwaysBreakTemplateDeclarations: Yes
+BreakBeforeBraces: Attach
+IndentCaseLabels: false
+KeepEmptyLinesAtTheStartOfBlocks: false
+MaxEmptyLinesToKeep: 1
+SeparateDefinitionBlocks: Always
+SortIncludes: CaseSensitive
+IncludeBlocks: Preserve

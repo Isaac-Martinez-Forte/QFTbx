@@ -1,0 +1,55 @@
+#ifndef QFTBX_PROJECT_WRITER_H
+#define QFTBX_PROJECT_WRITER_H
+
+#include "src/core/templates/cloud_set.h"
+#include <complex>
+
+#include <string>
+#include <vector>
+
+#include "src/core/system/lti_system.h"
+#include "src/core/boundaries/boundary_data.h"
+#include "src/core/specifications/specification_record.h"
+#include "src/core/loopshaping/loop_shaping_result.h"
+#include "src/core/frequencies/omega.h"
+
+namespace qftbx {
+
+/**
+ * @brief The sections of a project to be written; a null pointer skips the
+ * section. None of the pointers is owned, and nothing is copied: the
+ * template set used to travel here by value, which copied every cloud
+ * to write it.
+ */
+struct ProjectContent {
+    LtiSystem * plant = nullptr;
+    const qftbx::SpecificationRecords * specifications = nullptr;
+    const Omega * omega = nullptr;
+    const CloudSet * templates = nullptr;
+    const CloudSet * contour = nullptr;
+    const std::vector <double> * epsilon = nullptr;
+    const BoundaryData * boundaries = nullptr;
+    LtiSystem * controller = nullptr;
+    LoopShapingResult * loopShaping = nullptr;
+};
+
+/**
+ * @brief Writes a .qft project file in the version-2 English dialect.
+ *
+ * Numbers are written in the shortest form that reads back to the same
+ * double (qftbx::text::number), so a save/load round trip is bit-exact; the
+ * historical writer kept 6 digits and silently degraded every stored result.
+ * Throws qftbx::FileError when the file cannot be written, and
+ * qftbx::InvalidInput when a value to write is not a finite number: the file
+ * never carries a NaN or an infinity.
+ */
+class ProjectWriter
+{
+public:
+    void save(const std::string & filePath, const ProjectContent & content);
+};
+
+} // namespace qftbx
+
+
+#endif // QFTBX_PROJECT_WRITER_H

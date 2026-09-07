@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<QFT version="2">
+    <specifications count="3">
+        <specification name="TrackingLower">
+            <used>false</used>
+        </specification>
+        <specification name="TrackingUpper">
+            <used>false</used>
+        </specification>
+        <specification name="Stability">
+            <used>false</used>
+        </specification>
+    </specifications>
+</QFT>

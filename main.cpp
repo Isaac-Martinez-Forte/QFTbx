@@ -1,15 +1,59 @@
-#include "GUI/windowsgeneral.h"
-#include <QApplication>
+#include "src/core/common/exception.h"
+#include "src/core/project/settings.h"
+#include "src/gui/application/application.h"
+#include "src/gui/application/language.h"
+#include "src/gui/application/main_window.h"
+#include <clocale>
 #include <memory>
 #include <QIcon>
+#include <QMessageBox>
 
-qint32 main(qint32 argc, char *argv[])
+#include <iostream>
+
+int main(int argc, char *argv[])
 {
-    QApplication a(argc, argv);
+    //Reports a backend error instead of letting it kill the process.
+    qftbx::Application a(argc, argv);
+
+    //QApplication adopts the system locale (LC_ALL); under a decimal-comma
+    //locale (es_ES, de_DE...) the number readers of the C library stop
+    //accepting literals such as "0.1" and no expression with decimals
+    //evaluates. The numeric side of the program always works with the
+    //decimal point.
+    std::setlocale(LC_NUMERIC, "C");
 
     a.setWindowIcon(QIcon(":/icons/qftbx_256.png"));
 
-    auto w = std::make_shared<WindowsGeneral>();
+
+    //The settings are read ONCE, here, and handed down: immutable afterwards,
+    //which is what makes them safe next to OpenMP and the search's worker.
+    //With no settings file anywhere this succeeds with the compiled defaults,
+    //so the program starts as it always has; a file named in QFTBX_CONFIG
+    //that cannot be read is an error, and it is worth failing loudly on
+    //because naming it says it was meant to be used.
+    qftbx::Settings settings;
+
+    try {
+        settings = qftbx::loadSettings();
+    } catch (const qftbx::Exception & e) {
+        QMessageBox::critical(nullptr, QObject::tr("QFTbx settings"), e.what());
+        return 1;
+    }
+
+    if (!settings.source.empty()) {
+        std::cout << "settings: " << settings.source << std::endl;
+    }
+
+    //The interface language, from the settings: the system's unless the
+    //file says otherwise (the View menu writes the choice there).
+    qftbx::applyLanguage(QString::fromStdString(settings.interface.language));
+
+    for (const std::string & unknown : settings.unknownKeys) {
+        std::cout << "settings: \"" << unknown
+                  << "\" is not a setting this build knows" << std::endl;
+    }
+
+    auto w = std::make_unique<qftbx::MainWindow>(settings);
     w->setWindowIcon(QIcon(":/icons/qftbx_256.png"));
     w->show();
 
