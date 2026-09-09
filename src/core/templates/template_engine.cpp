@@ -388,6 +388,18 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
             truncatedFrequencies[i] = true;
         }
 
+        if (truncated){
+            //Neither walk closed. The relaxed walk used to hand on the
+            //partial contour it had, silently, and the boundaries were then
+            //computed over a value set with a piece missing: the shipped
+            //ACC'90 fixture carries contours of 3 points out of 80 at three
+            //frequencies from exactly this. The full cloud stands in for
+            //the contour at this frequency instead - nothing is dropped, the
+            //boundaries only cost more there - and the report says so.
+            cont = m_clouds[i];
+            starts.assign(1, 0);
+        }
+
         //Every frequency writes its own report: no critical section.
         m_reports[i].contourPoints = cont.size();
         m_reports[i].relaxed = fellBack;
@@ -422,10 +434,18 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
         }
     }
 
+    //The frequency when the engine knows it (compute() ran), the index
+    //otherwise: a contour recomputed over loaded clouds has no frequencies.
+    const auto label = [this](std::size_t i){
+        return i < m_frequencies.size()
+                ? "w = " + qftbx::text::number(m_frequencies.at(i)) + " rad/s"
+                : "frequency index " + std::to_string(i);
+    };
+
     std::vector<std::string> truncatedAt;
     for (std::size_t i = 0; i < digitCount; i++){
-        if (truncatedFrequencies.at(i) && i < m_frequencies.size()){
-            truncatedAt.push_back(qftbx::text::number(m_frequencies.at(i)));
+        if (truncatedFrequencies.at(i)){
+            truncatedAt.push_back(label(i));
         }
     }
 
@@ -450,9 +470,9 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
     }
 
     if (!truncatedAt.empty()){
-        std::cerr << "epsilonHull: the relaxed walk hit its step limit at w = "
-                  << qftbx::text::join(truncatedAt, ", ")
-                  << " rad/s: the contour there is PARTIAL." << std::endl;
+        std::cerr << "epsilonHull: neither walk closed at " << qftbx::text::join(truncatedAt, ", ")
+                  << " (the relaxed walk hit its step limit): the full cloud stands in for the "
+                     "contour there. A larger epsilon, or a denser template, would close it." << std::endl;
     }
 
     if (!succeeded){
@@ -697,6 +717,21 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsil
         bool partTruncated = false;
         ComplexCloud contour = walkComponent(points, points, epsilon, own, &partFellBack, &partTruncated);
 
+        if (fellBack != nullptr && partFellBack){
+            *fellBack = true;
+        }
+        if (partTruncated){
+            //Neither walk closed on this component: the same failure as on
+            //a single-component cloud, and the same answer - no contour.
+            if (truncated != nullptr){
+                *truncated = true;
+            }
+            if (componentStarts != nullptr){
+                componentStarts->clear();
+            }
+            return {};
+        }
+
         if (contour.empty()){
             //A component that cannot be walked (a single isolated point has
             //no second point within epsilon) is still part of the value set:
@@ -704,13 +739,6 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsil
             contour = points;
         } else {
             anyWalked = true;
-        }
-
-        if (fellBack != nullptr && partFellBack){
-            *fellBack = true;
-        }
-        if (truncated != nullptr && partTruncated){
-            *truncated = true;
         }
         if (componentStarts != nullptr){
             componentStarts->push_back(result.size());
@@ -916,12 +944,15 @@ ComplexCloud TemplateEngine::epsilonHullRelaxed(const ComplexCloud & temp, doubl
         counter++;
 
         if (counter > MAXP){
-            //Truncation: a PARTIAL contour (historical behaviour). It used
-            //to be silent; the caller now gets the fact.
+            //The step limit: the walk did not close either. It used to
+            //break here and return what it had - a PARTIAL contour, handed
+            //on as if it were whole, and the boundaries then computed over a
+            //value set with a piece missing. Now it is a failure like the
+            //others: empty, which the caller reports naming the frequency.
             if (truncated != nullptr){
                 *truncated = true;
             }
-            break;
+            return {};
         }
 
         previousPoint = currentPoint;

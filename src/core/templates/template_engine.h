@@ -94,7 +94,9 @@ public:
         std::size_t contourPoints = 0;
         /// The faithful walk did not close; the relaxed walk was used.
         bool relaxed = false;
-        /// The relaxed walk hit its step limit: the contour is PARTIAL.
+        /// The relaxed walk hit its step limit too, so neither walk closed:
+        /// the FULL CLOUD stands in for the contour at this frequency (the
+        /// relaxed walk used to hand on the partial contour it had).
         bool truncated = false;
         /// The epsilon-connected components of the cloud, and where each
         /// one's contour begins in the returned vector (the first at 0). The
@@ -177,9 +179,9 @@ private:
                           const NeighbourGrid & neighbours, bool excludePrevious = false);
 
     /// Historical PFC walk (divergent from EPSHULL.M): max-imaginary start,
-    /// previous point excluded, silent truncation at MAXP, deduplicated
-    /// output. Used as the fallback when the reference walk cycles: it
-    /// always yields a contour with coverage <= epsilon.
+    /// previous point excluded, deduplicated output. Used as the fallback
+    /// when the reference walk cycles. Empty when it hits its own step
+    /// limit: it used to return the partial contour it had, silently.
     ComplexCloud epsilonHullRelaxed(const ComplexCloud & cloud, double epsilon,
                                     bool * truncated = nullptr);
 

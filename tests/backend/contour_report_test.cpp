@@ -58,3 +58,45 @@ TEST(ContourReport, OneReportPerFrequencyAndTheSizesAdd)
     EXPECT_EQ(relaxed, 5u) << "five of six frequencies fell back to the relaxed walk";
     EXPECT_EQ(truncated, 0u) << "none of them truncated";
 }
+
+//The same facts on the other fixtures that carry templates and a usable
+//epsilon. ACC'90 is the one that truncates: its template is a curve (one
+//uncertain parameter, 80 points) and the walk of a curve with this epsilon
+//either traces it out and back or fails to close; at three of its twelve
+//frequencies neither walk closes, and the fixture's own stored contours show
+//what that used to produce - 3 points out of 80. The full cloud now stands
+//in at those frequencies. multivaluados.qft is left out: it stores an
+//epsilon of zero at one frequency, on which no walk was ever possible.
+TEST(ContourReport, WhichFixturesTruncateIsPinned)
+{
+    struct Fixture { const char * file; std::size_t truncated; };
+    for (const Fixture f : {Fixture{"planta1.qft", 0}, Fixture{"planta2.qft", 0}, Fixture{"acc90.qft", 3}}) {
+        const char * file = f.file;
+        ProjectController controller;
+        controller.load(std::string(QFTBX_TEST_DATA_DIR) + "/" + file);
+        const std::size_t frequencies = controller.omega()->values()->size();
+        ASSERT_GT(frequencies, 0u) << file;
+        ASSERT_EQ(controller.templates().size(), frequencies) << file;
+
+        TemplateEngine engine;
+        engine.setClouds(controller.templates());
+        ASSERT_TRUE(engine.computeContours(std::vector<double>(frequencies, 10.0))) << file;
+
+        std::size_t relaxed = 0, truncated = 0, split = 0;
+        for (std::size_t i = 0; i < frequencies; ++i) {
+            const TemplateEngine::ContourReport & r = engine.contourReports()[i];
+            relaxed += r.relaxed ? 1 : 0;
+            truncated += r.truncated ? 1 : 0;
+            split += r.components > 1 ? 1 : 0;
+            if (r.truncated) {
+                //The cloud stands in: the contour IS the cloud there.
+                EXPECT_EQ(r.contourPoints, r.cloudPoints) << file << " index " << i;
+                EXPECT_EQ(engine.contours()[i].size(), controller.templates()[i].size()) << file << " index " << i;
+            }
+        }
+        std::printf("CONTOUR %-14s frequencies=%zu relaxed=%zu truncated=%zu split=%zu\n",
+                    file, frequencies, relaxed, truncated, split);
+        EXPECT_EQ(truncated, f.truncated) << file;
+    }
+    std::fflush(stdout);
+}
