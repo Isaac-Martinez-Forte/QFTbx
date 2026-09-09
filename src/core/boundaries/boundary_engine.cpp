@@ -5,6 +5,7 @@
 #include <vector>
 #include <cstdint>
 #include "src/core/boundaries/boundary_engine.h"
+#include "src/core/boundaries/closed_loop_worst_case.h"
 
 
 #include <iostream>
@@ -424,66 +425,6 @@ TraceSet BoundaryEngine::traceBoundary(double thresholdDb, const float *sheet,
 #endif
 
 namespace {
-
-//The five closed-loop magnitudes the sheets are built from, at one grid
-//point L, over the whole value set: the worst case of each, and the best
-//case of the tracking magnitude too, since tracking bounds the spread.
-//Shared by the sheet sweep and the zone probe, which used to carry two
-//copies of these formulas.
-struct WorstCase
-{
-    double stabilityNoise = -std::numeric_limits<double>::infinity();
-    double trackingMin = std::numeric_limits<double>::infinity();
-    double outputDisturbance = -std::numeric_limits<double>::infinity();
-    double inputDisturbance = -std::numeric_limits<double>::infinity();
-    double controlEffort = -std::numeric_limits<double>::infinity();
-};
-
-//The quotients p0 / p of the value set, computed once per frequency: they
-//do not depend on the grid point, and the sweep used to divide them again
-//at every one of its tens of thousands of grid points.
-std::vector<std::complex<double>> nominalOverValueSet(std::complex<double> p0, const ComplexCloud & valueSet)
-{
-    std::vector<std::complex<double>> quotients;
-    quotients.reserve(valueSet.size());
-
-    for (const std::complex<double> & p : valueSet) {
-        quotients.push_back(p0 / p);
-    }
-
-    return quotients;
-}
-
-WorstCase worstCaseAt(std::complex<double> p0, std::complex<double> L, const ComplexCloud & valueSet,
-                      const std::vector<std::complex<double>> & nominalOverP)
-{
-    WorstCase worst;
-
-    for (std::size_t i = 0; i < valueSet.size(); ++i) {
-        const std::complex<double> & p = valueSet[i];
-        const std::complex<double> & p0OverP = nominalOverP[i];
-        const std::complex<double> denominator = p0OverP + L;
-
-        //Stability and sensor noise share the same transfer magnitude.
-        const double stabilityNoise = std::abs(L / denominator);
-        //Disturbance rejection at the plant output.
-        const double outputDisturbance = std::abs(p0OverP / denominator);
-        //Disturbance rejection at the plant input.
-        const double inputDisturbance = std::abs(p0 / denominator);
-        //Control effort.
-        const double controlEffort = std::abs((L / p) / denominator);
-
-        //A NaN candidate compares false and leaves the running value alone,
-        //as the explicit comparisons this replaces did.
-        worst.stabilityNoise = std::max(worst.stabilityNoise, stabilityNoise);
-        worst.trackingMin = std::min(worst.trackingMin, stabilityNoise);
-        worst.outputDisturbance = std::max(worst.outputDisturbance, outputDisturbance);
-        worst.inputDisturbance = std::max(worst.inputDisturbance, inputDisturbance);
-        worst.controlEffort = std::max(worst.controlEffort, controlEffort);
-    }
-
-    return worst;
-}
 
 //Nichols (dB, degrees) to the complex grid point L.
 std::complex<double> nicholsToComplex(double magnitudeDb, double phaseDegrees)
