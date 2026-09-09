@@ -88,7 +88,7 @@ private slots:
 
     void on_mrRadio_clicked();
     void on_mc1Radio_clicked();
-    void on_mcThesisRadio_clicked();
+    void on_mc2Radio_clicked();
 
 private:
     std::unique_ptr<Ui::LoopShapingDialog> ui;

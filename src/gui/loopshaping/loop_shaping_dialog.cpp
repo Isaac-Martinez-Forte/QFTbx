@@ -64,13 +64,13 @@ LoopShapingDialog::LoopShapingDialog(QWidget *parent) :
 
     //The epsilon is one field with one label that read only "Epsilon:", and
     //it is not one quantity: every algorithm follows the stopping criterion
-    //of ITS paper, which is correct, but for NT/NK/MC1/MC that criterion is
+    //of ITS paper, which is correct, but for NT/NK/MC1/MC2 that criterion is
     //the diameter of the NICHOLS box and for MR it is the width of the
     //CONTROLLER's parameter box. With the same figure entered, the Nichols
     //reading is four decades tighter on a plant with |P| = 1e4, and nothing
     //on screen said which one was being asked for.
     for (QRadioButton * radio : {ui->ntRadio, ui->nkRadio, ui->mc1Radio,
-                                 ui->mcThesisRadio, ui->mrRadio}) {
+                                 ui->mc2Radio, ui->mrRadio}) {
         connect(radio, &QRadioButton::toggled,
                 this, &LoopShapingDialog::updateEpsilonLabel);
     }
@@ -133,8 +133,8 @@ void LoopShapingDialog::on_okButton_clicked()
         alg = qftbx::mr;
     }else if (ui->mc1Radio->isChecked()){
         alg = qftbx::mc1;
-    } else if (ui->mcThesisRadio->isChecked()){
-        alg = qftbx::mc_thesis;
+    } else if (ui->mc2Radio->isChecked()){
+        alg = qftbx::mc2;
     } else {
         alg = qftbx::nt;
     }
@@ -216,15 +216,15 @@ void LoopShapingDialog::on_mrRadio_clicked()
     ui->algorithmStack->setCurrentIndex(0);
 }
 
-//MC1 and MC (thesis) have no options of their own yet: page 0 is the empty
-//one. Without these two the panel kept whatever the previous algorithm had
-//put there.
+//MC1 and MC2 have no options of their own yet: page 0 is the empty one.
+//Without these two the panel kept whatever the previous algorithm had put
+//there.
 void LoopShapingDialog::on_mc1Radio_clicked()
 {
     ui->algorithmStack->setCurrentIndex(0);
 }
 
-void LoopShapingDialog::on_mcThesisRadio_clicked()
+void LoopShapingDialog::on_mc2Radio_clicked()
 {
     ui->algorithmStack->setCurrentIndex(0);
 }
