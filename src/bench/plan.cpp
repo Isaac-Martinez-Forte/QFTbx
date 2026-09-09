@@ -62,13 +62,14 @@ const char * algorithmName(LoopShapingAlgorithm algorithm)
     case mr: return "mr";
     case mc1: return "mc1";
     case mc_thesis: return "mc_thesis";
+    case mc2: return "mc2";
     }
     return "unknown";
 }
 
 std::optional<LoopShapingAlgorithm> algorithmFromName(const std::string & name)
 {
-    for (const LoopShapingAlgorithm algorithm : {nt, nk, mr, mc1, mc_thesis}) {
+    for (const LoopShapingAlgorithm algorithm : {nt, nk, mr, mc1, mc_thesis, mc2}) {
         if (name == algorithmName(algorithm)) {
             return algorithm;
         }
@@ -133,7 +134,7 @@ Plan readPlan(const std::string & path)
         const std::string name = node.attribute("name").as_string("");
         const std::optional<LoopShapingAlgorithm> algorithm = algorithmFromName(name);
         if (!algorithm) {
-            throw InvalidInput(path + ": unknown algorithm '" + name + "' (nt, nk, mr, mc1, mc_thesis)");
+            throw InvalidInput(path + ": unknown algorithm '" + name + "' (nt, nk, mr, mc1, mc_thesis, mc2)");
         }
         plan.algorithms.push_back(*algorithm);
     }
@@ -271,7 +272,7 @@ Plan examplePlan()
     plan.timeoutSeconds = 3600.0;
     plan.repetitions = 5;
     plan.warmUp = true;
-    plan.algorithms = {nt, nk, mc1, mc_thesis};
+    plan.algorithms = {nt, nk, mc1, mc_thesis, mc2};
     plan.epsilons = {2.0};
     plan.runBase = true;
     plan.steps = {

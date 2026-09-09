@@ -13,6 +13,7 @@
 #include "src/core/loopshaping/mr/algorithm_mr.h"
 #include "src/core/loopshaping/mc1/algorithm_mc1.h"
 #include "src/core/loopshaping/mc_thesis/algorithm_mc_thesis.h"
+#include "src/core/loopshaping/mc2/algorithm_mc2.h"
 #include "src/core/loopshaping/loop_shaping_statistics.h"
 #include "src/core/system/lti_system.h"
 #include "src/core/boundaries/boundary_data.h"
