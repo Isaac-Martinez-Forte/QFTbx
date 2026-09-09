@@ -71,9 +71,9 @@
      </widget>
     </item>
     <item>
-     <widget class="QRadioButton" name="mcThesisRadio">
+     <widget class="QRadioButton" name="mc2Radio">
       <property name="text">
-       <string>Algorithm MC (thesis)</string>
+       <string>Algorithm MC&amp;2</string>
       </property>
      </widget>
     </item>

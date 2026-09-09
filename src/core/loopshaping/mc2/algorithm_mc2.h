@@ -1,5 +1,5 @@
-#ifndef QFTBX_LOOPSHAPING_ALGORITHM_MC_THESIS_H
-#define QFTBX_LOOPSHAPING_ALGORITHM_MC_THESIS_H
+#ifndef QFTBX_LOOPSHAPING_ALGORITHM_MC2_H
+#define QFTBX_LOOPSHAPING_ALGORITHM_MC2_H
 
 #include "src/core/project/settings.h"
 #include "src/core/pipeline/cancellation.h"
@@ -18,65 +18,69 @@
 #include "src/core/loopshaping/common/mc_search_node.h"
 #include "src/core/loopshaping/common/stages.h"
 #include "src/core/loopshaping/common/nominal_stability_checker.h"
+#include "src/core/math/range_union.h"
 #include "src/core/math/sequence_vectors.h"
 
 #include "src/core/loopshaping/common/common_functions.h"
 
 /**
- * @brief Algorithm MC of the QFTbx thesis: the NT/NK branch & bound with
- * every strategy of chapter 4.
+ * @brief Algorithm MC2: the strategies of the QFTbx thesis with the errors
+ * of their formulation corrected.
  *
- * Thesis chapters 4 and 5: the NT/NK interval
- * branch & bound extended with every strategy of chapter 4, assembled as
- * the pseudocode of chapter 5 prescribes:
+ * The thesis (Martinez-Forte 2022, chapters 4 and 5) extends the NT/NK
+ * interval branch & bound with four cutting strategies, a best-gain search,
+ * a tree bisection and the execution stages. The strategies are sound but
+ * their published formulation is not: the equations of sec. 4.1.1 compare
+ * against B_min where the text prescribes B_max, which makes the cut wrong
+ * rather than conservative; the pseudocode of QSInv fixes the phase cut at
+ * the vertex that minimises the phase where it needs the one that maximises
+ * it; QSFact asks a single vertex to minimise magnitude and phase at once,
+ * which no vertex can do; and the best-gain search compares against a
+ * boundary extreme over the box's phase span instead of the allowed set at
+ * the phase of the point it certifies, so it can return a gain that
+ * violates the boundaries. Algorithm MC of the thesis (algorithm_mc_thesis)
+ * reproduces the chapters with those readings repaired one by one, as its
+ * own header documents; MC2 is where the formulation is rebuilt instead of
+ * patched.
  *
- * - QSInv (thesis 5.1.1): the certainly infeasible subranges of every
- *   controller parameter are cut away with the closed-form magnitude
- *   equations of NK's Quick Solution and the phase equations of thesis
- *   sec. 4.1.2 (quick_solution.h), on whichever sides of the projected
- *   box the boundary certifies as forbidden.
- * - QSFact (thesis 5.1.2): the certainly FEASIBLE subranges of every
- *   parameter, per design frequency, with the same equations evaluated at
- *   the opposite corner and the opposite boundary extreme (B_max/C_min/
- *   C_max). The subrange feasible at EVERY frequency is split off the box
- *   and enters the live list as a feasible node (UM/UF); the per-frequency
- *   thresholds (MM/MF) feed the tree bisection.
- * - MG (thesis 5.2): the best-gain search fixes the other parameters at
- *   the corner that maximises the controller magnitude (zeros sup, poles
- *   inf) and intersects the per-frequency feasible gain thresholds,
- *   yielding a point solution with a potentially much lower gain than the
- *   box-certified one. It feeds the prune variable C. QSFact runs only
- *   when MG finds nothing (thesis 5.1.2, they overlap in purpose).
- * - Tree bisection (thesis 5.3): in the intermediate stage the box is
- *   split at the stored per-frequency feasible threshold covering the
- *   largest fraction of its variable's range; the feasible child is
- *   marked feasible for that frequency, and the mark (node history)
- *   skips its feasibility test from then on.
- * - Execution stages (thesis 4.4): INICIAL (area bisection) until no
- *   projected box spans the full phase width; INTERMEDIA (tree bisection)
- *   until a full pass of MG/QSFact/QSInv produces nothing; FINAL (cuts
- *   disabled, bisection by the wider of magnitude/phase).
+ * The corrections MC2 carries, each proved in the formalisation of
+ * documentos/Tesis (03-validez-de-las-mejoras, sec. 1bis):
  *
- * QFTbx deviations and fixes, documented:
- * - MG's certified gain and the feasible nodes must pass the nominal
- *   closed-loop stability criterion (NominalStabilityChecker), as in the
- *   reviewed NT/NK/MR/MC1; MG's candidate is verified against the
- *   feasibility test before it may prune (the closed form alone relies
- *   on strip geometry). An ambiguous box whose members are all unstable
- *   is discarded when popped (isBoxUnstable, as in NT).
- * - When the live list empties with a certified MG solution standing,
- *   that solution is returned (the thesis pseudocode would report "no
- *   solution" while holding one in C).
- * - The thesis writes |B_min| in the equations of sec. 4.1.1 where its
- *   text prescribes B_max, states in MG (algorithm 5.3) k_f as the
- *   subs(z,...) box where only the corner point is certified, and the
- *   QSInv comment says the fixed corner "maximises" the phase
- *   contribution where the assignments minimise it: the implementations
- *   here follow the sound readings (errata candidates).
+ * - T1, the correct-vertex theorem: the four cuts are valid if and only if
+ *   the other parameters sit at one particular vertex, and the four use only
+ *   two vertices, cross-paired - infeasible-magnitude shares its vertex with
+ *   feasible-phase, and feasible-magnitude with infeasible-phase. The
+ *   pairing is neither {feasible, infeasible} nor {magnitude, phase}, which
+ *   is what both publications get wrong.
+ * - T2, the slab decomposition: the certified subrange of one parameter is
+ *   extracted as a slab, not as the corner of the box, so what is left is
+ *   again a box and the 2^n-1 subboxes the article fears never appear.
+ * - T3, the exact best gain: with the zeros and poles fixed the phase does
+ *   not depend on the gain, so the admissible gains at that point are the
+ *   allowed set of one phase column carried to the gain's frame - a finite
+ *   union of intervals (RangeUnion), intersected over the design
+ *   frequencies. No equation is solved, the empty set propagates on its own
+ *   without a sentinel, and the smallest admissible gain can be found in the
+ *   lower branch of a closed boundary, which a single-crossing formula never
+ *   reaches.
+ * - P2, the precondition of the phase equation: with the vertex of T1 and
+ *   C_min inside the projected phase span, the angle solved for is below 90
+ *   degrees on its own, so the check is an invariant that catches a
+ *   phase-branch mistake, not a recovery path.
+ *
+ * Everything else - the stages of sec. 4.4, the tree bisection of sec. 5.3,
+ * the node history, the nominal stability of every certified point and the
+ * box-level instability prune - MC2 keeps as MC of the thesis has it, and
+ * the two share their search node and stages (common/mc_search_node.h).
+ *
+ * At this revision MC2 is a faithful copy of MC of the thesis and returns
+ * the same result on every fixture, which is the checkpoint the corrections
+ * are measured against: each one lands on top, alone, with its own
+ * measurement.
  */
 namespace qftbx {
 
-class AlgorithmMcThesis
+class AlgorithmMc2
 {
 public:
 
@@ -90,7 +94,7 @@ public:
      * rebuilding. All enabled is the thesis MC; everything disabled is the
      * bare branch & bound with area bisection. None of them changes the
      * answer - each only discards boxes it has certified cannot hold a
-     * better one - which is what mc_thesis_strategies_test asserts. By
+     * better one - which is what the strategies test asserts. By
      * decision they are not exposed in the interface: a user has no reason
      * to disable a proof.
      */
@@ -170,7 +174,51 @@ private:
     bool isEpsilonSmall(McSearchNode * node, const NodeAnalysis & analysis);
     void improveNode(McSearchNode * node, NodeAnalysis & analysis,
                             std::vector<FeasibleThreshold> & thresholds);
-    bool bestGainSearch(McSearchNode * node, const NodeAnalysis & analysis);
+    /**
+     * @brief The exact set of gains admissible with these zeros and poles,
+     * in decibels of gain (T3).
+     *
+     * With the zeros and poles fixed the phase does not depend on the gain,
+     * so along the gain the loop travels a vertical line of the Nichols
+     * plane and only ONE phase column of each design frequency can ever
+     * bind it. The admissible gains are therefore the allowed set of that
+     * column, carried to the gain's frame by -mu, intersected over the
+     * frequencies and with 'gainRange': a finite union of intervals,
+     * computed without solving any equation. A frequency that admits
+     * nothing empties the intersection on its own, so no sentinel value is
+     * needed for "no solution".
+     */
+    RangeUnion admissibleGains(const std::vector<double> & zeros,
+                               const std::vector<double> & poles, Range gainRange);
+
+    /**
+     * @brief The exact best gain of one vertex (T3): the smallest gain that
+     * clears every design frequency there, or nothing.
+     *
+     * The vertex is the one of the largest magnitude, which by
+     * anti-monotonicity is the one of the smallest phase, and of the two it
+     * is the one that needs the least gain to clear a lower boundary.
+     * admissibleGains() does the work; this decides whether what comes out
+     * is worth keeping.
+     *
+     * That is what makes it exact where the published formulation is not.
+     * The thesis compares against B_min, the smallest magnitude the
+     * boundary takes over the WHOLE phase span of the box, which is at or
+     * below the boundary at the vertex's own phase, so the gain it returns
+     * can violate the boundaries. And a pair of numbers cannot hold two
+     * branches: with a closed boundary the smallest admissible gain often
+     * lies in the LOWER one, under the forbidden band, which a
+     * single-crossing formula never reaches.
+     *
+     * The empty set needs no sentinel either: a frequency that admits no
+     * gain empties the intersection on its own, where the thesis' max over
+     * -infinity silently dropped that frequency instead.
+     *
+     * What leaves is a POINT, and only the point is claimed: it is verified
+     * against the real detection and the nominal stability before it may
+     * lower the prune bound.
+     */
+    bool bestGainSearch(McSearchNode * node);
     void feasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
                              std::vector<FeasibleThreshold> & thresholds, bool & improved);
     void infeasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
@@ -228,4 +276,4 @@ private:
 
 } // namespace qftbx
 
-#endif // QFTBX_LOOPSHAPING_ALGORITHM_MC_THESIS_H
+#endif // QFTBX_LOOPSHAPING_ALGORITHM_MC2_H
