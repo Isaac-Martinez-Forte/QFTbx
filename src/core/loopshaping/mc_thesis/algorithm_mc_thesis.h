@@ -15,8 +15,8 @@
 #include "src/core/loopshaping/common/natural_interval_extension.h"
 #include "src/core/loopshaping/common/boundary_violation_detector.h"
 #include "src/core/loopshaping/common/ordered_list.h"
-#include "src/core/loopshaping/mc_thesis/mc_search_node.h"
-#include "src/core/loopshaping/mc_thesis/stages.h"
+#include "src/core/loopshaping/common/mc_search_node.h"
+#include "src/core/loopshaping/common/stages.h"
 #include "src/core/loopshaping/common/nominal_stability_checker.h"
 #include "src/core/math/sequence_vectors.h"
 

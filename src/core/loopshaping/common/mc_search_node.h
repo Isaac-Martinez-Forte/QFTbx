@@ -7,12 +7,14 @@
 
 #include "src/core/system/lti_system.h"
 #include "src/core/loopshaping/common/search_node.h"
-#include "src/core/loopshaping/mc_thesis/stages.h"
+#include "src/core/loopshaping/common/stages.h"
 
 /**
- * @brief Live-list node of algorithm MC (thesis): a SearchNode plus the
- * node history of thesis sec. 4.4.4 - the execution stage, the cut switch
- * and the design frequencies the node is certified feasible at.
+ * @brief Live-list node of the MC family: a SearchNode plus the node
+ * history of thesis sec. 4.4.4 - the execution stage, the cut switch and
+ * the design frequencies the node is certified feasible at.
+ *
+ * Shared by MC of the thesis and by MC2, which carry the same history.
  *
  * The node holds its frequency map by value, so every child of a
  * bisection receives a copy for free.
