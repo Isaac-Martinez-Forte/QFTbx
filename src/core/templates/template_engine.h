@@ -74,7 +74,8 @@ public:
      * expression error terminate the process.
      */
     ComplexCloud epsilonHull(const ComplexCloud & cloud, double epsilon,
-                             bool * fellBack = nullptr, bool * truncated = nullptr);
+                             bool * fellBack = nullptr, bool * truncated = nullptr,
+                             std::vector<std::size_t> * componentStarts = nullptr);
 
     /**
      * @brief What the contour of one frequency went through, as data.
@@ -95,6 +96,14 @@ public:
         bool relaxed = false;
         /// The relaxed walk hit its step limit: the contour is PARTIAL.
         bool truncated = false;
+        /// The epsilon-connected components of the cloud, and where each
+        /// one's contour begins in the returned vector (the first at 0). The
+        /// walk of Prune is defined for an epsilon-connected set (Gutman,
+        /// Nordin and Cohen 2007, section 3); a cloud with more than one
+        /// component is walked once per component, and the contours are
+        /// concatenated in this order.
+        std::size_t components = 1;
+        std::vector<std::size_t> componentStarts;
     };
 
     /// One report per frequency of the last contour computation.
@@ -146,6 +155,18 @@ private:
     std::vector <double> m_frequencies;
 
     class NeighbourGrid;
+
+    /// The epsilon-connected components of 'cv' (sorted, deduplicated), as
+    /// index lists, each ordered as in 'cv' and the components ordered by
+    /// their rightmost point, so the first one holds the walk's usual seed.
+    std::vector<std::vector<std::int32_t>> components(const ComplexCloud & cv, double epsilon,
+                                                      const NeighbourGrid & neighbours);
+
+    /// The faithful walk over one epsilon-connected set of points, with the
+    /// relaxed fallback over 'fallback' (the same points, in the order the
+    /// fallback has always received them) when it does not close.
+    ComplexCloud walkComponent(const ComplexCloud & cv, const ComplexCloud & fallback, double epsilon,
+                               const NeighbourGrid & neighbours, bool * fellBack, bool * truncated);
 
     std::int32_t findSecond(std::int32_t b1, const ComplexCloud & cv, double epsilon,
                             const NeighbourGrid & neighbours);

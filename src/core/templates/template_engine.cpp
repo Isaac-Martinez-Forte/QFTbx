@@ -377,8 +377,9 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
 
         bool fellBack = false;
         bool truncated = false;
+        std::vector<std::size_t> starts;
         ComplexCloud cont = epsilonHull(m_clouds[i],
-                                        m_epsilon.at(i), &fellBack, &truncated);
+                                        m_epsilon.at(i), &fellBack, &truncated, &starts);
 
         if (fellBack){
             relaxedFrequencies[i] = true;
@@ -391,6 +392,8 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
         m_reports[i].contourPoints = cont.size();
         m_reports[i].relaxed = fellBack;
         m_reports[i].truncated = truncated;
+        m_reports[i].components = std::max<std::size_t>(starts.size(), 1);
+        m_reports[i].componentStarts = std::move(starts);
 
         //Empty means the hull could not be built, the same signal the CUDA
         //path already used. A hull of a non-empty cloud always has points.
@@ -432,6 +435,20 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
                   << " rad/s (epsilon-hull limitation on clustered templates); "
                      "the relaxed historical walk was used there." << std::endl;
     }
+    std::vector<std::string> split;
+    for (std::size_t i = 0; i < digitCount; i++){
+        if (m_reports[i].components > 1 && i < m_frequencies.size()){
+            split.push_back(qftbx::text::number(m_frequencies.at(i)) + " (" +
+                            std::to_string(m_reports[i].components) + ")");
+        }
+    }
+    if (!split.empty()){
+        std::cerr << "epsilonHull: the cloud is not epsilon-connected at w = "
+                  << qftbx::text::join(split, ", ")
+                  << " rad/s (components in brackets); every component was walked. "
+                     "A larger epsilon, or a denser template, joins them." << std::endl;
+    }
+
     if (!truncatedAt.empty()){
         std::cerr << "epsilonHull: the relaxed walk hit its step limit at w = "
                   << qftbx::text::join(truncatedAt, ", ")
@@ -615,8 +632,21 @@ inline bool withinReach(const complex<double> & candidate, const complex<double>
 //Faithful port of EPSHULL.M (epsh2, Montoya 1998; the algorithm defined in
 //Nordin 1993). Deliberate divergence: with no initial candidate it returns
 //NULL instead of an empty contour (the caller treats it as an error).
+//
+//The walk is Prune (Gutman, Nordin and Cohen 2007, section 3), and Prune is
+//defined for an EPSILON-CONNECTED set: every step looks only within epsilon
+//of the current point, so a walk can never leave the component it started
+//in, and a cloud with more than one component used to return the contour of
+//the seed's component alone, with nothing to say the rest was dropped. The
+//components are found first and each one is walked; a cloud with a single
+//component takes exactly the path it always took.
 ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsilon,
-                                                         bool * fellBack, bool * truncated){
+                                                         bool * fellBack, bool * truncated,
+                                                         std::vector<std::size_t> * componentStarts){
+
+    if (componentStarts != nullptr){
+        componentStarts->clear();
+    }
 
     if (temp.empty()){
         return {};
@@ -637,6 +667,140 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsil
               });
     cv.erase(std::unique(cv.begin(), cv.end()), cv.end());
 
+    const NeighbourGrid neighbours(cv, epsilon);
+    const std::vector<std::vector<std::int32_t>> parts = components(cv, epsilon, neighbours);
+
+    if (parts.size() == 1){
+        //One component: the historical path, on the whole cloud, with the
+        //relaxed fallback on the ORIGINAL cloud as it has always been.
+        if (componentStarts != nullptr){
+            componentStarts->push_back(0);
+        }
+        return walkComponent(cv, temp, epsilon, neighbours, fellBack, truncated);
+    }
+
+    ComplexCloud result;
+    bool anyWalked = false;
+
+    for (const std::vector<std::int32_t> & part : parts){
+        ComplexCloud points;
+        points.reserve(part.size());
+        for (const std::int32_t index : part){
+            points.push_back(cv.at(static_cast<std::size_t>(index)));
+        }
+
+        //A grid over the component alone: the walk's candidate queries are
+        //by position, and the indices must be the component's own.
+        const NeighbourGrid own(points, epsilon);
+
+        bool partFellBack = false;
+        bool partTruncated = false;
+        ComplexCloud contour = walkComponent(points, points, epsilon, own, &partFellBack, &partTruncated);
+
+        if (contour.empty()){
+            //A component that cannot be walked (a single isolated point has
+            //no second point within epsilon) is still part of the value set:
+            //it enters as it is, so nothing is dropped.
+            contour = points;
+        } else {
+            anyWalked = true;
+        }
+
+        if (fellBack != nullptr && partFellBack){
+            *fellBack = true;
+        }
+        if (truncated != nullptr && partTruncated){
+            *truncated = true;
+        }
+        if (componentStarts != nullptr){
+            componentStarts->push_back(result.size());
+        }
+
+        result.insert(result.end(), contour.begin(), contour.end());
+    }
+
+    if (!anyWalked){
+        //Epsilon below the spacing everywhere: no component has a second
+        //point within reach. That is the historical failure and it stays
+        //loud - empty, which the caller reports as an error - instead of
+        //handing back the cloud as a contour of isolated points.
+        if (componentStarts != nullptr){
+            componentStarts->clear();
+        }
+        return {};
+    }
+
+    return result;
+}
+
+std::vector<std::vector<std::int32_t>> TemplateEngine::components(const ComplexCloud & cv, double epsilon,
+                                                                  const NeighbourGrid & neighbours){
+    const std::size_t n = cv.size();
+
+    //Union-find over the points within epsilon of one another: two points
+    //are in the same component when a chain of steps of at most epsilon
+    //joins them (Gutman, Nordin and Cohen 2007, definition 1).
+    std::vector<std::int32_t> parent(n);
+    for (std::size_t i = 0; i < n; ++i){
+        parent[i] = static_cast<std::int32_t>(i);
+    }
+
+    const auto find = [&parent](std::int32_t x){
+        while (parent[static_cast<std::size_t>(x)] != x){
+            parent[static_cast<std::size_t>(x)] = parent[static_cast<std::size_t>(parent[static_cast<std::size_t>(x)])];
+            x = parent[static_cast<std::size_t>(x)];
+        }
+        return x;
+    };
+
+    std::vector<std::int32_t> nearby;
+    for (std::size_t i = 0; i < n; ++i){
+        neighbours.candidates(cv[i], nearby);
+        const std::int32_t ri = find(static_cast<std::int32_t>(i));
+        for (const std::int32_t j : nearby){
+            if (static_cast<std::size_t>(j) <= i || !withinReach(cv[static_cast<std::size_t>(j)], cv[i], epsilon)){
+                continue;
+            }
+            const std::int32_t rj = find(j);
+            if (rj != ri){
+                parent[static_cast<std::size_t>(rj)] = ri;
+            }
+        }
+    }
+
+    //Members by root, each list in cv order.
+    std::vector<std::vector<std::int32_t>> byRoot(n);
+    for (std::size_t i = 0; i < n; ++i){
+        byRoot[static_cast<std::size_t>(find(static_cast<std::int32_t>(i)))].push_back(static_cast<std::int32_t>(i));
+    }
+
+    std::vector<std::vector<std::int32_t>> parts;
+    for (std::vector<std::int32_t> & members : byRoot){
+        if (!members.empty()){
+            parts.push_back(std::move(members));
+        }
+    }
+
+    //Ordered by the rightmost point of each, largest real part first: the
+    //first component is the one the historical seed lies in.
+    const auto rightmost = [&cv](const std::vector<std::int32_t> & part){
+        double best = -numeric_limits<double>::infinity();
+        for (const std::int32_t index : part){
+            best = std::max(best, cv[static_cast<std::size_t>(index)].real());
+        }
+        return best;
+    };
+    std::stable_sort(parts.begin(), parts.end(),
+                     [&rightmost](const std::vector<std::int32_t> & a, const std::vector<std::int32_t> & b){
+                         return rightmost(a) > rightmost(b);
+                     });
+
+    return parts;
+}
+
+ComplexCloud TemplateEngine::walkComponent(const ComplexCloud & cv, const ComplexCloud & fallback, double epsilon,
+                                           const NeighbourGrid & neighbours, bool * fellBack, bool * truncated){
+
     const std::size_t pointCount = cv.size();
     const std::size_t MAXP = 3 * pointCount;
 
@@ -648,8 +812,6 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsil
             b1 = i;
         }
     }
-
-    const NeighbourGrid neighbours(cv, epsilon);
 
     std::int32_t b2 = findSecond(b1, cv, epsilon, neighbours);
 
@@ -689,7 +851,7 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsil
                 *fellBack = true;
             }
 
-            return epsilonHullRelaxed(temp, epsilon, truncated);
+            return epsilonHullRelaxed(fallback, epsilon, truncated);
         }
 
         previousPoint = currentPoint;
