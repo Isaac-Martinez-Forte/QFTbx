@@ -322,6 +322,11 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
     bool succeeded = true;
     const std::size_t digitCount = m_clouds.size();
 
+    m_reports.assign(digitCount, ContourReport{});
+    for (std::size_t i = 0; i < digitCount; i++){
+        m_reports[i].cloudPoints = m_clouds[i].size();
+    }
+
 #ifdef CUDA_AVAILABLE
     if (cuda){
         //GPU path (relaxed-walk semantics: the parity reference is
@@ -338,6 +343,7 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
                 succeeded = false;
             }
             m_contours.push_back(ComplexCloud(hull.begin(), hull.end()));
+            m_reports[i].contourPoints = hull.size();
         }
 
         if (!succeeded){
@@ -362,6 +368,7 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
     //Bytes, not std::vector<bool>: see computeClouds().
     std::vector<char> failed (digitCount, 0);
     std::vector<char> relaxedFrequencies (digitCount, 0);
+    std::vector<char> truncatedFrequencies (digitCount, 0);
 
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
@@ -369,12 +376,21 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
     for (std::size_t i = 0; i < digitCount; i++){
 
         bool fellBack = false;
+        bool truncated = false;
         ComplexCloud cont = epsilonHull(m_clouds[i],
-                                        m_epsilon.at(i), &fellBack);
+                                        m_epsilon.at(i), &fellBack, &truncated);
 
         if (fellBack){
             relaxedFrequencies[i] = true;
         }
+        if (truncated){
+            truncatedFrequencies[i] = true;
+        }
+
+        //Every frequency writes its own report: no critical section.
+        m_reports[i].contourPoints = cont.size();
+        m_reports[i].relaxed = fellBack;
+        m_reports[i].truncated = truncated;
 
         //Empty means the hull could not be built, the same signal the CUDA
         //path already used. A hull of a non-empty cloud always has points.
@@ -403,12 +419,23 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
         }
     }
 
+    std::vector<std::string> truncatedAt;
+    for (std::size_t i = 0; i < digitCount; i++){
+        if (truncatedFrequencies.at(i) && i < m_frequencies.size()){
+            truncatedAt.push_back(qftbx::text::number(m_frequencies.at(i)));
+        }
+    }
+
     if (!relaxed.empty()){
         std::cerr << "epsilonHull: the faithful walk did not close at w = "
                   << qftbx::text::join(relaxed, ", ")
                   << " rad/s (epsilon-hull limitation on clustered templates); "
-                     "the relaxed historical walk was used there, whose coverage "
-                     "is still <= epsilon." << std::endl;
+                     "the relaxed historical walk was used there." << std::endl;
+    }
+    if (!truncatedAt.empty()){
+        std::cerr << "epsilonHull: the relaxed walk hit its step limit at w = "
+                  << qftbx::text::join(truncatedAt, ", ")
+                  << " rad/s: the contour there is PARTIAL." << std::endl;
     }
 
     if (!succeeded){
@@ -589,7 +616,7 @@ inline bool withinReach(const complex<double> & candidate, const complex<double>
 //Nordin 1993). Deliberate divergence: with no initial candidate it returns
 //NULL instead of an empty contour (the caller treats it as an error).
 ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsilon,
-                                                         bool * fellBack){
+                                                         bool * fellBack, bool * truncated){
 
     if (temp.empty()){
         return {};
@@ -662,7 +689,7 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsil
                 *fellBack = true;
             }
 
-            return epsilonHullRelaxed(temp, epsilon);
+            return epsilonHullRelaxed(temp, epsilon, truncated);
         }
 
         previousPoint = currentPoint;
@@ -685,7 +712,8 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsil
     return result;
 }
 
-ComplexCloud TemplateEngine::epsilonHullRelaxed(const ComplexCloud & temp, double epsilon){
+ComplexCloud TemplateEngine::epsilonHullRelaxed(const ComplexCloud & temp, double epsilon,
+                                                bool * truncated){
 
     std::size_t pointCount = temp.size();
     std::size_t MAXP = 3 * pointCount;
@@ -725,8 +753,14 @@ ComplexCloud TemplateEngine::epsilonHullRelaxed(const ComplexCloud & temp, doubl
         walk.push_back(nextPoint);
         counter++;
 
-        if (counter > MAXP)
-            break;      //silent truncation: partial contour (historical behaviour).
+        if (counter > MAXP){
+            //Truncation: a PARTIAL contour (historical behaviour). It used
+            //to be silent; the caller now gets the fact.
+            if (truncated != nullptr){
+                *truncated = true;
+            }
+            break;
+        }
 
         previousPoint = currentPoint;
         currentPoint = nextPoint;

@@ -74,7 +74,31 @@ public:
      * expression error terminate the process.
      */
     ComplexCloud epsilonHull(const ComplexCloud & cloud, double epsilon,
-                             bool * fellBack = nullptr);
+                             bool * fellBack = nullptr, bool * truncated = nullptr);
+
+    /**
+     * @brief What the contour of one frequency went through, as data.
+     *
+     * The walk has two ways of not being the canonical epsilon-hull, and
+     * both used to be a line on the error stream at best: falling back to
+     * the relaxed historical walk when the faithful one does not close, and
+     * that walk then stopping at its step limit with a partial contour. A
+     * benchmark, a test or a script has no error stream to read, so the
+     * facts are kept here, one report per design frequency, in the order of
+     * the clouds.
+     */
+    struct ContourReport
+    {
+        std::size_t cloudPoints = 0;
+        std::size_t contourPoints = 0;
+        /// The faithful walk did not close; the relaxed walk was used.
+        bool relaxed = false;
+        /// The relaxed walk hit its step limit: the contour is PARTIAL.
+        bool truncated = false;
+    };
+
+    /// One report per frequency of the last contour computation.
+    const std::vector<ContourReport> & contourReports() const { return m_reports; }
 
     /// Sweep grids keyed by parameter NAME; the caller keeps ownership.
     /// Takes the grids BY VALUE: the engine owns its copy and nobody has to
@@ -114,6 +138,7 @@ private:
 
     CloudSet m_clouds;
     CloudSet m_contours;
+    std::vector<ContourReport> m_reports;
     //A copy of the frequencies compute() was given, named in the contour
     //messages. The caller's vector used to be aliased here, and the engine
     //outlives it: it is kept across a project load, which replaces the
@@ -134,7 +159,8 @@ private:
     /// previous point excluded, silent truncation at MAXP, deduplicated
     /// output. Used as the fallback when the reference walk cycles: it
     /// always yields a contour with coverage <= epsilon.
-    ComplexCloud epsilonHullRelaxed(const ComplexCloud & cloud, double epsilon);
+    ComplexCloud epsilonHullRelaxed(const ComplexCloud & cloud, double epsilon,
+                                    bool * truncated = nullptr);
 
 };
 
