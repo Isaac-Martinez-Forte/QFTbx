@@ -576,6 +576,20 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
 
     const std::vector<complex<double>> nominalOverP = nominalOverValueSet(p0, p);
 
+    //Only the sheets the specifications in use at this frequency will read.
+    //All five used to be computed at every grid point for every plant, and
+    //traceFrequency then read the two or three the masks selected: on
+    //example 2 that was three fifths of the sweep thrown away. Stability
+    //and sensor noise share sheet 0 and tracking shares its magnitude.
+    WorstCaseMask mask;
+    mask.stabilityNoiseTracking = m_stabilityMask.at(index) || m_noiseMask.at(index) || m_trackingMask.at(index);
+    mask.outputDisturbance = m_outputDisturbanceMask.at(index);
+    mask.inputDisturbance = m_inputDisturbanceMask.at(index);
+    mask.controlEffort = m_controlEffortMask.at(index);
+
+    const bool needStabilityNoise = m_stabilityMask.at(index) || m_noiseMask.at(index);
+    const bool needTracking = m_trackingMask.at(index);
+
     //Grid sweep (no nested parallelism: the outer per-frequency loop is
     //already parallel, and these loops share function-scope variables).
     for (std::size_t k = 0; k < magnitudes.size(); ++k){
@@ -596,24 +610,36 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
         for (std::size_t j = 0; j < phases.size(); ++j){
             const complex<double> L = nicholsToComplex(magnitudes[k], phases[j]);
 
-            //Template sweep: worst case over the value set at this L.
-            const WorstCase worst = worstCaseAt(p0, L, p, nominalOverP);
+            //Template sweep: worst case over the value set at this L, of
+            //the magnitudes the sheets in use need.
+            const WorstCase worst = worstCaseAt(p0, L, p, nominalOverP, mask);
 
             //The sheet is ALWAYS stored in dB (contract validated against
             //the golden; the old OpenMP branch stored linear magnitudes and
             //tracking as a linear difference), with the critical point made
-            //explicit (see violatingDb).
-            stabilityNoiseRow.push_back(violatingDb(20 * log10(worst.stabilityNoise)));
-            trackingRow.push_back(violatingDb((20 * log10(worst.stabilityNoise)) - (20 * log10(worst.trackingMin))));
-            outputDisturbanceRow.push_back(violatingDb(20 * log10(worst.outputDisturbance)));
-            inputDisturbanceRow.push_back(violatingDb(20 * log10(worst.inputDisturbance)));
-            controlEffortRow.push_back(violatingDb(20 * log10(worst.controlEffort)));
+            //explicit (see violatingDb). A sheet no specification reads
+            //stays empty.
+            if (needStabilityNoise) {
+                stabilityNoiseRow.push_back(violatingDb(20 * log10(worst.stabilityNoise)));
+            }
+            if (needTracking) {
+                trackingRow.push_back(violatingDb((20 * log10(worst.stabilityNoise)) - (20 * log10(worst.trackingMin))));
+            }
+            if (mask.outputDisturbance) {
+                outputDisturbanceRow.push_back(violatingDb(20 * log10(worst.outputDisturbance)));
+            }
+            if (mask.inputDisturbance) {
+                inputDisturbanceRow.push_back(violatingDb(20 * log10(worst.inputDisturbance)));
+            }
+            if (mask.controlEffort) {
+                controlEffortRow.push_back(violatingDb(20 * log10(worst.controlEffort)));
+            }
         }
-        stabilityNoiseSheet.push_back(std::move(stabilityNoiseRow));
-        trackingSheet.push_back(std::move(trackingRow));
-        outputDisturbanceSheet.push_back(std::move(outputDisturbanceRow));
-        inputDisturbanceSheet.push_back(std::move(inputDisturbanceRow));
-        controlEffortSheet.push_back(std::move(controlEffortRow));
+        if (needStabilityNoise) stabilityNoiseSheet.push_back(std::move(stabilityNoiseRow));
+        if (needTracking) trackingSheet.push_back(std::move(trackingRow));
+        if (mask.outputDisturbance) outputDisturbanceSheet.push_back(std::move(outputDisturbanceRow));
+        if (mask.inputDisturbance) inputDisturbanceSheet.push_back(std::move(inputDisturbanceRow));
+        if (mask.controlEffort) controlEffortSheet.push_back(std::move(controlEffortRow));
     }
 
     std::map<std::string, TraceSet> bound;

@@ -62,11 +62,27 @@ inline std::vector<std::complex<double>> nominalOverValueSet(std::complex<double
     return quotients;
 }
 
-/// The five magnitudes at the loop value L over the value set, given the
-/// nominal plant value and the quotients nominalOverValueSet() returns.
+/// Which of the magnitudes a caller wants. The sheet sweep asks for the
+/// ones the specifications in use at that frequency need - on example 2,
+/// two of the five - and used to compute all five at every grid point for
+/// every plant. Stability, sensor noise and tracking share one magnitude.
+struct WorstCaseMask
+{
+    bool stabilityNoiseTracking = true;
+    bool outputDisturbance = true;
+    bool inputDisturbance = true;
+    bool controlEffort = true;
+
+    static WorstCaseMask all() { return WorstCaseMask{}; }
+};
+
+/// The magnitudes the mask asks for, at the loop value L over the value set,
+/// given the nominal plant value and the quotients nominalOverValueSet()
+/// returns. A magnitude not asked for keeps its initial value.
 inline WorstCase worstCaseAt(std::complex<double> p0, std::complex<double> L,
                              const ComplexCloud & valueSet,
-                             const std::vector<std::complex<double>> & nominalOverP)
+                             const std::vector<std::complex<double>> & nominalOverP,
+                             const WorstCaseMask & mask)
 {
     WorstCase worst;
 
@@ -75,25 +91,38 @@ inline WorstCase worstCaseAt(std::complex<double> p0, std::complex<double> L,
         const std::complex<double> & p0OverP = nominalOverP[i];
         const std::complex<double> denominator = p0OverP + L;
 
-        //Stability and sensor noise share the same transfer magnitude.
-        const double stabilityNoise = std::abs(L / denominator);
-        //Disturbance rejection at the plant output.
-        const double outputDisturbance = std::abs(p0OverP / denominator);
-        //Disturbance rejection at the plant input.
-        const double inputDisturbance = std::abs(p0 / denominator);
-        //Control effort.
-        const double controlEffort = std::abs((L / p) / denominator);
-
         //A NaN candidate compares false and leaves the running value alone,
         //as the explicit comparisons this replaces did.
-        worst.stabilityNoise = std::max(worst.stabilityNoise, stabilityNoise);
-        worst.trackingMin = std::min(worst.trackingMin, stabilityNoise);
-        worst.outputDisturbance = std::max(worst.outputDisturbance, outputDisturbance);
-        worst.inputDisturbance = std::max(worst.inputDisturbance, inputDisturbance);
-        worst.controlEffort = std::max(worst.controlEffort, controlEffort);
+        if (mask.stabilityNoiseTracking) {
+            //Stability and sensor noise share the same transfer magnitude,
+            //and tracking bounds its spread.
+            const double stabilityNoise = std::abs(L / denominator);
+            worst.stabilityNoise = std::max(worst.stabilityNoise, stabilityNoise);
+            worst.trackingMin = std::min(worst.trackingMin, stabilityNoise);
+        }
+        if (mask.outputDisturbance) {
+            //Disturbance rejection at the plant output.
+            worst.outputDisturbance = std::max(worst.outputDisturbance, std::abs(p0OverP / denominator));
+        }
+        if (mask.inputDisturbance) {
+            //Disturbance rejection at the plant input.
+            worst.inputDisturbance = std::max(worst.inputDisturbance, std::abs(p0 / denominator));
+        }
+        if (mask.controlEffort) {
+            //Control effort.
+            worst.controlEffort = std::max(worst.controlEffort, std::abs((L / p) / denominator));
+        }
     }
 
     return worst;
+}
+
+/// All five magnitudes.
+inline WorstCase worstCaseAt(std::complex<double> p0, std::complex<double> L,
+                             const ComplexCloud & valueSet,
+                             const std::vector<std::complex<double>> & nominalOverP)
+{
+    return worstCaseAt(p0, L, valueSet, nominalOverP, WorstCaseMask::all());
 }
 
 } // namespace qftbx
