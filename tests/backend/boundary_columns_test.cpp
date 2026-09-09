@@ -17,6 +17,8 @@
 
 #include <gtest/gtest.h>
 
+#include "src/core/common/exception.h"
+
 #include <cmath>
 #include <functional>
 #include <limits>
@@ -384,4 +386,19 @@ TEST(BoundaryColumns, DerivedLabelsFollowShapeAndFamily)
     EXPECT_EQ(BoundaryColumns::deriveLabels("ControlEffort", open, kPhaseRange, kPhases), TraceLabels{true});
     EXPECT_EQ(BoundaryColumns::deriveLabels("Stability", closed, kPhaseRange, kPhases), TraceLabels{false});
     EXPECT_EQ(BoundaryColumns::deriveLabels("Tracking", closed, kPhaseRange, kPhases), TraceLabels{false});
+}
+
+//Two sets over different phase grids cannot be intersected column for
+//column: the index used to be clamped to the other's last column, which
+//intersected unrelated phases silently past the shorter grid's end.
+TEST(BoundaryColumnsGrid, IntersectionRefusesADifferentPhaseGrid)
+{
+    qftbx::BoundaryColumns fine(361, qftbx::Range(-360.0, 0.0));
+    qftbx::BoundaryColumns coarse(181, qftbx::Range(-360.0, 0.0));
+    qftbx::BoundaryColumns shifted(361, qftbx::Range(-350.0, 10.0));
+    qftbx::BoundaryColumns same(361, qftbx::Range(-360.0, 0.0));
+
+    EXPECT_THROW(fine.intersectWith(coarse), qftbx::InvalidInput);
+    EXPECT_THROW(fine.intersectWith(shifted), qftbx::InvalidInput);
+    EXPECT_NO_THROW(fine.intersectWith(same));
 }
