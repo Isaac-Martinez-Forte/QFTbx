@@ -159,6 +159,9 @@ LoopShapingStatistics AlgorithmNt::statistics() const
     }
     if (detector != nullptr) {
         statistics.boxesClassified = detector->classifications();
+        statistics.boxesFeasible = detector->feasibleBoxes();
+        statistics.boxesInfeasible = detector->infeasibleBoxes();
+        statistics.boxesAmbiguous = detector->ambiguousBoxes();
     }
     if (stability != nullptr) {
         statistics.stabilityVerdicts = stability->statistics().verdicts;

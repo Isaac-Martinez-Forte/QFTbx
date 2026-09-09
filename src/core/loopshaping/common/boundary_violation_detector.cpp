@@ -157,10 +157,13 @@ BoxClassification BoundaryViolationDetector::classifyBox(NicholsBox box, const B
 
     if (ambiguousVerdict || (anyAllowed && anyForbidden)) {
         classification.setFlag(ambiguous);
+        ++m_ambiguous;
     } else if (anyAllowed) {
         classification.setFlag(feasible);
+        ++m_feasible;
     } else {
         classification.setFlag(infeasible);
+        ++m_infeasible;
     }
 
     return classification;

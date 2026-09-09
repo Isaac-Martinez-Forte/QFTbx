@@ -111,6 +111,9 @@ QJsonObject toJson(const Record & r)
     s["peak_live_nodes"] = static_cast<qint64>(r.statistics.peakLiveNodes);
     s["nodes_processed"] = static_cast<qint64>(r.statistics.nodesProcessed);
     s["boxes_classified"] = static_cast<qint64>(r.statistics.boxesClassified);
+    s["boxes_feasible"] = static_cast<qint64>(r.statistics.boxesFeasible);
+    s["boxes_infeasible"] = static_cast<qint64>(r.statistics.boxesInfeasible);
+    s["boxes_ambiguous"] = static_cast<qint64>(r.statistics.boxesAmbiguous);
     s["stability_verdicts"] = static_cast<qint64>(r.statistics.stabilityVerdicts);
     s["stability_profiles"] = static_cast<qint64>(r.statistics.stabilityProfiles);
     o["statistics"] = s;
@@ -164,6 +167,10 @@ Record recordFromJson(const QJsonObject & o)
     r.statistics.peakLiveNodes = static_cast<std::size_t>(s["peak_live_nodes"].toInteger());
     r.statistics.nodesProcessed = static_cast<std::size_t>(s["nodes_processed"].toInteger());
     r.statistics.boxesClassified = static_cast<std::size_t>(s["boxes_classified"].toInteger());
+    //Absent in records written before the split: they read as zero.
+    r.statistics.boxesFeasible = static_cast<std::size_t>(s["boxes_feasible"].toInteger());
+    r.statistics.boxesInfeasible = static_cast<std::size_t>(s["boxes_infeasible"].toInteger());
+    r.statistics.boxesAmbiguous = static_cast<std::size_t>(s["boxes_ambiguous"].toInteger());
     r.statistics.stabilityVerdicts = static_cast<std::size_t>(s["stability_verdicts"].toInteger());
     r.statistics.stabilityProfiles = static_cast<std::size_t>(s["stability_profiles"].toInteger());
     const QJsonObject result = o["result"].toObject();

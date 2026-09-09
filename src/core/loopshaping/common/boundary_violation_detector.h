@@ -40,8 +40,12 @@ public:
     /// a flag and two corner verdicts), so there is nothing to own.
     BoxClassification classifyBox(NicholsBox box, const BoundaryData * boundaries, std::size_t frequencyIndex);
 
-    /// Boxes classified so far, for the run statistics.
+    /// Boxes classified so far, for the run statistics, and how the
+    /// verdicts split: the three always add up to classifications().
     std::size_t classifications() const { return m_classifications; }
+    std::size_t feasibleBoxes() const { return m_feasible; }
+    std::size_t infeasibleBoxes() const { return m_infeasible; }
+    std::size_t ambiguousBoxes() const { return m_ambiguous; }
 
     /// Classifies one Nichols point (phase deg, magnitude dB) against the
     /// boundaries at design frequency 'frequencyIndex'.
@@ -49,6 +53,9 @@ public:
 
 private:
     std::size_t m_classifications = 0;
+    std::size_t m_feasible = 0;
+    std::size_t m_infeasible = 0;
+    std::size_t m_ambiguous = 0;
 };
 
 } // namespace qftbx

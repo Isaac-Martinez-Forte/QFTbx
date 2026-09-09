@@ -25,6 +25,12 @@ struct LoopShapingStatistics
     /// Boxes classified against the boundaries (zero for MR, which works on
     /// constraints rather than boundaries).
     std::size_t boxesClassified = 0;
+    /// How those verdicts split. They add up to boxesClassified; the
+    /// ambiguous ones are the boxes the search had to keep bisecting, which
+    /// is where a permissive or a conservative boundary shows first.
+    std::size_t boxesFeasible = 0;
+    std::size_t boxesInfeasible = 0;
+    std::size_t boxesAmbiguous = 0;
     /// Nominal stability verdicts asked, and how many needed a new profile.
     std::size_t stabilityVerdicts = 0;
     std::size_t stabilityProfiles = 0;
