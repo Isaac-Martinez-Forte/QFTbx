@@ -18,6 +18,7 @@
 #include "src/core/loopshaping/common/mc_search_node.h"
 #include "src/core/loopshaping/common/stages.h"
 #include "src/core/loopshaping/common/nominal_stability_checker.h"
+#include "src/core/math/range_union.h"
 #include "src/core/math/sequence_vectors.h"
 
 #include "src/core/loopshaping/common/common_functions.h"
@@ -173,7 +174,51 @@ private:
     bool isEpsilonSmall(McSearchNode * node, const NodeAnalysis & analysis);
     void improveNode(McSearchNode * node, NodeAnalysis & analysis,
                             std::vector<FeasibleThreshold> & thresholds);
-    bool bestGainSearch(McSearchNode * node, const NodeAnalysis & analysis);
+    /**
+     * @brief The exact set of gains admissible with these zeros and poles,
+     * in decibels of gain (T3).
+     *
+     * With the zeros and poles fixed the phase does not depend on the gain,
+     * so along the gain the loop travels a vertical line of the Nichols
+     * plane and only ONE phase column of each design frequency can ever
+     * bind it. The admissible gains are therefore the allowed set of that
+     * column, carried to the gain's frame by -mu, intersected over the
+     * frequencies and with 'gainRange': a finite union of intervals,
+     * computed without solving any equation. A frequency that admits
+     * nothing empties the intersection on its own, so no sentinel value is
+     * needed for "no solution".
+     */
+    RangeUnion admissibleGains(const std::vector<double> & zeros,
+                               const std::vector<double> & poles, Range gainRange);
+
+    /**
+     * @brief The exact best gain of one vertex (T3): the smallest gain that
+     * clears every design frequency there, or nothing.
+     *
+     * The vertex is the one of the largest magnitude, which by
+     * anti-monotonicity is the one of the smallest phase, and of the two it
+     * is the one that needs the least gain to clear a lower boundary.
+     * admissibleGains() does the work; this decides whether what comes out
+     * is worth keeping.
+     *
+     * That is what makes it exact where the published formulation is not.
+     * The thesis compares against B_min, the smallest magnitude the
+     * boundary takes over the WHOLE phase span of the box, which is at or
+     * below the boundary at the vertex's own phase, so the gain it returns
+     * can violate the boundaries. And a pair of numbers cannot hold two
+     * branches: with a closed boundary the smallest admissible gain often
+     * lies in the LOWER one, under the forbidden band, which a
+     * single-crossing formula never reaches.
+     *
+     * The empty set needs no sentinel either: a frequency that admits no
+     * gain empties the intersection on its own, where the thesis' max over
+     * -infinity silently dropped that frequency instead.
+     *
+     * What leaves is a POINT, and only the point is claimed: it is verified
+     * against the real detection and the nominal stability before it may
+     * lower the prune bound.
+     */
+    bool bestGainSearch(McSearchNode * node);
     void feasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
                              std::vector<FeasibleThreshold> & thresholds, bool & improved);
     void infeasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,

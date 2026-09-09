@@ -273,8 +273,11 @@ INSTANTIATE_TEST_SUITE_P(
                         556.9603483, 1.868936823, 137.642901},
         BenchmarkGolden{"Ex2McThesis", "qft_toolbox_ex2.qft", qftbx::mc_thesis,
                         567.6912501, 3.305865479, 142.5866992},
+        //MC2 with the exact best gain (T3) and the gain contractor on the
+        //terminal box: 0.11 dB under MC (thesis) at the same zero and pole,
+        //the width in gain the corner used to inherit from the box.
         BenchmarkGolden{"Ex2Mc2", "qft_toolbox_ex2.qft", qftbx::mc2,
-                        567.6912501, 3.305865479, 142.5866992}),
+                        567.5822829, 3.305865479, 142.5866992}),
     [](const ::testing::TestParamInfo<BenchmarkGolden>& info) {
         return std::string(info.param.name);
     });

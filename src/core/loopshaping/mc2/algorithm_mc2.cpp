@@ -4,6 +4,8 @@
 #include "src/core/common/exception.h"
 #include "src/core/loopshaping/mc2/algorithm_mc2.h"
 
+#include "src/core/math/range_union.h"
+
 
 namespace quick_solution = qftbx::quick_solution;
 
@@ -228,7 +230,37 @@ bool AlgorithmMc2::solve()
                 continue;
             }
 
-            designedController = systemFromPoint(node->system(), *corner);
+            //The gain of that corner is whatever the anti-blocking rule
+            //picked, which is the box's MAXIMUM: the rule moves the
+            //projection towards the allowed side assuming that side is up,
+            //and it knows nothing about how much gain the point actually
+            //needs. So the terminal box is as wide in gain as it is, and
+            //the answer inherits that width - on example 2 the box spanned
+            //[555.91, 567.69] and the corner returned the top of it while
+            //the optimum sat inside.
+            //
+            //T3 closes it exactly: with the corner's zeros and poles fixed
+            //the admissible gains are a set, and its infimum is the least
+            //gain that clears every frequency at that point. Verified like
+            //any other candidate, since the boundaries can allow a gain the
+            //nominal loop is unstable at.
+            PointController best = *corner;
+            const RangeUnion gains = admissibleGains(best.zeros, best.poles,
+                                                     node->system()->gain().range());
+
+            if (!gains.isEmpty()) {
+                const double contracted = std::pow(10.0, gains.minimum() / 20.0);
+
+                if (contracted < best.gain) {
+                    PointController candidate{contracted, best.zeros, best.poles};
+
+                    if (pointIsFeasible(candidate) && stability->isNominallyStable(candidate)) {
+                        best = std::move(candidate);
+                    }
+                }
+            }
+
+            designedController = systemFromPoint(node->system(), best);
             return true;
         }
 
@@ -382,7 +414,7 @@ void AlgorithmMc2::improveNode(McSearchNode * node, NodeAnalysis & analysis,
     //they overlap in purpose); QSInv always.
     bool improved = false;
 
-    if (strategies.bestGain && bestGainSearch(node, analysis)) {
+    if (strategies.bestGain && bestGainSearch(node)) {
         improved = true;
     } else if (strategies.feasibleMagnitude || strategies.feasiblePhase) {
         feasibleCuts(node, analysis, thresholds, improved);
@@ -465,7 +497,37 @@ bool AlgorithmMc2::pointIsFeasible(const PointController & point)
 //box. The candidate is verified against the feasibility test and the
 //stability criterion before it may prune through C (the thesis relies on
 //the strip geometry alone; the extra checks cost |Omega| detections).
-bool AlgorithmMc2::bestGainSearch(McSearchNode * node, const NodeAnalysis & analysis)
+RangeUnion AlgorithmMc2::admissibleGains(const std::vector<double> & zeros,
+                                        const std::vector<double> & poles, Range gainRange)
+{
+    //Everything in decibels of gain: a column allows magnitudes, and
+    //20log(k) is what carries them to the gain's frame.
+    RangeUnion gains = RangeUnion::of(20.0 * std::log10(gainRange.min),
+                                      20.0 * std::log10(gainRange.max));
+
+    for (std::size_t i = 0; i < omega->size() && !gains.isEmpty(); ++i) {
+
+        //Gain one, so the magnitude of the projection is mu(z, p, w) alone;
+        //the phase is the same whatever the gain.
+        const NicholsBox at = conversion->nicholsPoint(1.0, zeros, poles,
+                                                       omega->at(i), nominalPlantValues.at(i));
+        const double mu = at.magnitudeDb.lower();
+
+        const BoundaryColumns & columns = boundaries->columns(i);
+        const BoundaryColumns::Intervals allowed =
+                columns.intervals(columns.columnOf(at.phaseDegrees.lower()));
+
+        RangeUnion column = RangeUnion::of(allowed.lo, allowed.hi,
+                                           static_cast<std::size_t>(allowed.count));
+        column.shiftBy(-mu);
+        gains.intersectWith(column);
+    }
+
+    return gains;
+}
+
+
+bool AlgorithmMc2::bestGainSearch(McSearchNode * node)
 {
     LtiSystem * box = node->system();
 
@@ -473,70 +535,37 @@ bool AlgorithmMc2::bestGainSearch(McSearchNode * node, const NodeAnalysis & anal
         return false;
     }
 
+    //The vertex of the largest magnitude, which by anti-monotonicity is the
+    //one of the smallest phase: zeros at their supremum, poles at their
+    //infimum. Of the two it is the one that needs the least gain to clear a
+    //lower boundary, which is what the objective wants.
     std::vector<double> zeroSups, poleInfs;
     cornerVectors(box, true, false, zeroSups, poleInfs);
 
-    const double kInf = box->gain().range().min;
-    const double kSup = box->gain().range().max;
+    const RangeUnion gains = admissibleGains(zeroSups, poleInfs, box->gain().range());
 
-    double lowNeeded = kInf;    //k must be >= (top-side feasible strips)
-    double highAllowed = kSup;  //k must be <= (bottom-side feasible strips)
-
-    for (std::size_t i = 0; i < omega->size(); ++i) {
-
-        const std::optional<BoxClassification> & classification =
-                analysis.classification.at(i);
-
-        if (!classification.has_value() || classification->flag() != ambiguous) {
-            continue;   //the whole box, corner included, is feasible here
-        }
-
-        const double w = omega->at(i);
-        const std::complex<double> p0 = nominalPlantValues.at(i);
-        const double boundMin = std::pow(10.0, classification->extremes()[0] / 20.0);
-        const double boundMax = std::pow(10.0, classification->extremes()[1] / 20.0);
-
-        //Preferring the bottom strip serves the objective (it allows the
-        //gain infimum); the top strip is the fallback.
-        bool constrained = false;
-
-        if (!classification->isBottomLeftForbidden()) {   //strip under B_min certainly feasible
-            const double t = quick_solution::gainCut(boundMin, zeroSups, poleInfs, w, p0);
-
-            if (t >= kInf) {
-                highAllowed = std::min(highAllowed, t);
-                constrained = true;
-            }
-        }
-
-        if (!constrained && !classification->isTopRightForbidden()) {   //strip over B_max feasible
-            const double t = quick_solution::gainCut(boundMax, zeroSups, poleInfs, w, p0);
-
-            if (t <= kSup && t > 0.0) {
-                lowNeeded = std::max(lowNeeded, t);
-                constrained = true;
-            }
-        }
-
-        if (!constrained) {
-            return false;   //this frequency cannot be certified at the corner
-        }
+    if (gains.isEmpty()) {
+        return false;   //no gain clears every frequency at this vertex
     }
 
-    if (lowNeeded > highAllowed || lowNeeded >= bestCertifiedGain) {
-        return false;
+    const double gain = std::pow(10.0, gains.minimum() / 20.0);
+
+    if (gain >= bestCertifiedGain) {
+        return false;   //no better than the bound already standing
     }
 
-    //The certified point: gain at the intersection infimum, the other
-    //parameters at the corner (thesis 4.3: the solution is a POINT; its
-    //pseudocode substitutes into the whole box, an erratum).
-    const PointController point{lowNeeded, std::move(zeroSups), std::move(poleInfs)};
+    //A point, and only the point is claimed (thesis 4.3; its pseudocode
+    //substitutes into the whole box, an erratum). The closed form rests on
+    //the column being read at the right phase, so it is verified against
+    //the real detection and the stability criterion before it prunes: the
+    //boundaries can well allow a gain the nominal loop is unstable at.
+    const PointController point{gain, std::move(zeroSups), std::move(poleInfs)};
 
     if (!pointIsFeasible(point) || !stability->isNominallyStable(point)) {
         return false;
     }
 
-    bestCertifiedGain = lowNeeded;
+    bestCertifiedGain = gain;
     bestCertifiedController = systemFromPoint(box, point);
 
     return true;
