@@ -157,6 +157,14 @@ struct Settings {
         /// interior grid stay as they are. The templates dialog offers it.
         bool borderSweep = false;
 
+        /// Boundaries: read the columns of the five magnitude specifications
+        /// in closed form - a quadratic in the gain per plant and phase,
+        /// intersected exactly - instead of off the sampled sheet: exact in
+        /// magnitude, no magnitude window (ClosedFormColumns). Tracking
+        /// keeps its sheet. Off by default: the sheet is the published
+        /// method and the fixtures were computed with it.
+        bool closedFormColumns = false;
+
         /// NT, NK, MC1, MC (thesis), MC2: read the boundary columns
         /// CONSERVATIVELY - a point or a box is judged by both column nodes
         /// that bracket its phase, not by the nearest one. Off by default,

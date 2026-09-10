@@ -227,6 +227,14 @@ bool ProjectController::borderSweep() const{
     return m_templates.borderSweep();
 }
 
+void ProjectController::setClosedFormColumns(bool on){
+    m_boundaries.setClosedFormColumns(on);
+}
+
+bool ProjectController::closedFormColumns() const{
+    return m_boundaries.closedFormColumns();
+}
+
 const std::vector<TemplateEngine::ContourReport> & ProjectController::contourReports() const{
     return m_templates.contourReports();
 }
@@ -483,6 +491,7 @@ void ProjectController::applySettings(const qftbx::Settings & settings)
     m_templates.setWholeCloudStandsIn(settings.algorithms.wholeTemplateIfNoContour);
     m_templates.setAlphaShapeContour(settings.algorithms.alphaShapeContour);
     m_templates.setBorderSweep(settings.algorithms.borderSweep);
+    m_boundaries.setClosedFormColumns(settings.algorithms.closedFormColumns);
 }
 
 qftbx::StepSet ProjectController::completed() const

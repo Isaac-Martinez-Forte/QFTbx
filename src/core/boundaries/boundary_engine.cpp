@@ -5,6 +5,7 @@
 #include <vector>
 #include <cstdint>
 #include "src/core/boundaries/boundary_engine.h"
+#include "src/core/boundaries/closed_form_columns.h"
 #include "src/core/boundaries/closed_loop_worst_case.h"
 #include "src/core/boundaries/singular_locus.h"
 
@@ -666,6 +667,23 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
     traceFrequency(omega, bound, sheets, traceMetadata, columns, p0, p, index,
                    m_phaseRange.width(), m_magnitudeRange.width(),
                    m_phaseRange.min, m_magnitudeRange.min);
+
+    //The five magnitude specifications in closed form, replacing what the
+    //sheet said about them; the curves keep being traced from the sheet.
+    if (m_closedFormColumns) {
+        const SingularLocus * guard = m_guardSingularLocus ? &locus : nullptr;
+        const auto replace = [&](const char * name, SpecificationType type, bool used) {
+            if (used) {
+                columns[name] = ClosedFormColumns::columns(type, m_specifications.at(type).boundDb(omega),
+                                                          p0, p, nominalOverP, phases, m_phaseRange, guard);
+            }
+        };
+        replace("Stability", SpecificationType::Stability, m_stabilityMask.at(index));
+        replace("SensorNoise", SpecificationType::SensorNoise, m_noiseMask.at(index));
+        replace("OutputDisturbance", SpecificationType::OutputDisturbance, m_outputDisturbanceMask.at(index));
+        replace("InputDisturbance", SpecificationType::InputDisturbance, m_inputDisturbanceMask.at(index));
+        replace("ControlEffort", SpecificationType::ControlEffort, m_controlEffortMask.at(index));
+    }
 
     //The sheets (~1.7 MB per frequency) die here, which is where they stop
     //being needed: the contours and the zones are extracted. They used to be

@@ -378,6 +378,7 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
     EXPECT_EQ(fromExample.algorithms.alphaShapeContour,
               defaults.algorithms.alphaShapeContour);
     EXPECT_EQ(fromExample.algorithms.borderSweep, defaults.algorithms.borderSweep);
+    EXPECT_EQ(fromExample.algorithms.closedFormColumns, defaults.algorithms.closedFormColumns);
     EXPECT_EQ(fromExample.algorithms.localSearchBudget,
               defaults.algorithms.localSearchBudget);
     EXPECT_EQ(fromExample.algorithms.gainTolerance, defaults.algorithms.gainTolerance);
@@ -387,7 +388,7 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
     //Every setting the build knows has to be IN the example, or the example
     //is not documentation. Twenty-nine today; the count is asserted so
     //adding one without documenting it fails here.
-    EXPECT_EQ(settingsFound, 32)
+    EXPECT_EQ(settingsFound, 33)
         << "a setting was added to the code and not to qftbx.conf.example";
 
     EXPECT_TRUE(fromExample.unknownKeys.empty())
