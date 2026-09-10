@@ -33,6 +33,7 @@ bool TemplateStage::run(ProjectData & data, std::vector<double> epsilon,
     sweep.setHullMetric(data.epsilonMetric().metric, data.epsilonMetric().dbPerDegree);
     sweep.setWholeCloudStandsIn(m_wholeCloudStandsIn);
     sweep.setAlphaShapeContour(m_alphaShape);
+    sweep.setBorderSweep(m_borderSweep);
     sweep.setEpsilon(epsilon);
     sweep.setGrids(std::move(grids));
 
@@ -94,6 +95,7 @@ std::vector<TemplateEngine::EpsilonProposal> TemplateStage::proposeEpsilon(const
     sweep.setClouds(sweep.computeClouds(data.plant(), data.omega()->values()));
     sweep.setHullMetric(metric.metric, metric.dbPerDegree);
     sweep.setAlphaShapeContour(m_alphaShape);
+    sweep.setBorderSweep(m_borderSweep);
 
     return sweep.proposeEpsilon();
 }

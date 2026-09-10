@@ -272,6 +272,17 @@
 # Range: 0 or 1.
 # alpha-shape-contour = 0
 
+# Templates: with exactly TWO uncertain parameters, 1 sweeps only the border
+# of the parameter box - as many evaluations as the interior grid would have
+# cost, spent on the four edges, each along the user's own grid - because
+# the worst case of every specification over a template lies on its border
+# (the closed-loop magnitudes are Mobius functions of the plant). The
+# template is then a closed curve, its contour is taken by the alpha-shape,
+# and the gap between neighbouring points shrinks by the grid size. With one
+# or with three or more uncertain parameters the interior is swept as usual.
+# Range: 0 or 1.
+# border-sweep = 0
+
 # NK (Nataraj & Kubal 2007): iterations the local refinement of a candidate
 # point may spend.
 # Range: 1 to 1e7.

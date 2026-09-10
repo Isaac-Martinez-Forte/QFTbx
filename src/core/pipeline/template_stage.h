@@ -83,6 +83,10 @@ public:
     void setAlphaShapeContour(bool alphaShape) { m_alphaShape = alphaShape; }
     bool alphaShapeContour() const { return m_alphaShape; }
 
+    /// Sweep only the border of a two-parameter box (TemplateEngine::setBorderSweep).
+    void setBorderSweep(bool border) { m_borderSweep = border; }
+    bool borderSweep() const { return m_borderSweep; }
+
     /// What the last contour computation reported, per frequency; empty when
     /// nothing has been computed.
     const std::vector<TemplateEngine::ContourReport> & contourReports() const;
@@ -107,6 +111,7 @@ private:
     std::unique_ptr<TemplateEngine> m_engine;
     bool m_wholeCloudStandsIn = true;
     bool m_alphaShape = false;
+    bool m_borderSweep = false;
 };
 
 } // namespace qftbx

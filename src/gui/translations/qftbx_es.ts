@@ -1322,6 +1322,14 @@ contorno</translation>
         <source>Alpha-shape (always closes)</source>
         <translation>α-shape (siempre cierra)</translation>
     </message>
+    <message>
+        <source>With exactly two uncertain parameters, sweep only the border of the parameter box: as many evaluations as the interior grid would cost, spent on the four edges, since the worst case of every specification over a template lies on its border. The template is then a closed curve and its contour is taken by the alpha-shape. Unavailable with one or with three or more uncertain parameters.</source>
+        <translation>Con exactamente dos parámetros inciertos, barrer sólo el borde de la caja de parámetros: tantas evaluaciones como costaría la malla interior, gastadas en las cuatro aristas, porque el peor caso de toda especificación sobre una plantilla está en su borde. La plantilla es entonces una curva cerrada y su contorno lo toma el α-shape. No disponible con uno o con tres o más parámetros inciertos.</translation>
+    </message>
+    <message>
+        <source>Sweep only the border of the parameter box (two parameters)</source>
+        <translation>Barrer sólo el borde de la caja de parámetros (dos parámetros)</translation>
+    </message>
 </context>
 <context>
     <name>UncertaintyDialog</name>

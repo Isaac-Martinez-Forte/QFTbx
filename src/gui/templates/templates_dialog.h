@@ -109,6 +109,11 @@ public:
     bool alphaShapeContour() const;
     void setAlphaShapeContour(bool alphaShape);
 
+    /// Sweep only the border of the parameter box. Offered only when the
+    /// plant has exactly two uncertain parameters; false otherwise.
+    bool borderSweep() const;
+    void setBorderSweep(bool border);
+
     /// What the epsilon field is filled with: the least epsilon at which the
     /// contour of each template closes, for the family swept over the grids
     /// the dialog holds and in its plane. Called on launch, with the grids as

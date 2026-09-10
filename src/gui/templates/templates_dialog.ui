@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>395</width>
-    <height>455</height>
+    <height>485</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -157,7 +157,7 @@
    <property name="geometry">
     <rect>
      <x>200</x>
-     <y>405</y>
+     <y>435</y>
      <width>168</width>
      <height>28</height>
     </rect>
@@ -295,6 +295,22 @@
    </property>
    <property name="checked">
     <bool>true</bool>
+   </property>
+  </widget>
+  <widget class="QCheckBox" name="borderSweepCheck">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>405</y>
+     <width>361</width>
+     <height>24</height>
+    </rect>
+   </property>
+   <property name="toolTip">
+    <string>With exactly two uncertain parameters, sweep only the border of the parameter box: as many evaluations as the interior grid would cost, spent on the four edges, since the worst case of every specification over a template lies on its border. The template is then a closed curve and its contour is taken by the alpha-shape. Unavailable with one or with three or more uncertain parameters.</string>
+   </property>
+   <property name="text">
+    <string>Sweep only the border of the parameter box (two parameters)</string>
    </property>
   </widget>
   <widget class="QWidget" name="contourRow">

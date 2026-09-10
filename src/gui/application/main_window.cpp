@@ -262,6 +262,7 @@ void MainWindow::ensureTemplatesWidgets()
         templatesDialog->setDefaultPointCount(m_settings.defaults.templatePointCount);
         templatesDialog->setWholeTemplateIfNoContour(m_settings.algorithms.wholeTemplateIfNoContour);
         templatesDialog->setAlphaShapeContour(m_settings.algorithms.alphaShapeContour);
+        templatesDialog->setBorderSweep(m_settings.algorithms.borderSweep);
         //The field opens with the epsilon the family asks for: a sweep over
         //the grids as entered, the same one OK runs next.
         templatesDialog->setEpsilonProposer([this](const qftbx::ParameterGrids & grids,
@@ -269,6 +270,7 @@ void MainWindow::ensureTemplatesWidgets()
             const WaitCursor waiting(this);
             //The proposal depends on how the contour is extracted.
             controller->setAlphaShapeContour(templatesDialog->alphaShapeContour());
+            controller->setBorderSweep(templatesDialog->borderSweep());
             return controller->proposeEpsilon(grids, metric);
         });
         templateViewer = new TemplateViewer(this);
@@ -618,6 +620,7 @@ void MainWindow::on_templatesButton_clicked()
             controller->setEpsilonMetric(templatesDialog->epsilonMetric());
             controller->setWholeCloudStandsIn(templatesDialog->wholeTemplateIfNoContour());
             controller->setAlphaShapeContour(templatesDialog->alphaShapeContour());
+            controller->setBorderSweep(templatesDialog->borderSweep());
             templatesOk = controller->computeTemplates(templatesDialog->takeEpsilon(),
                                                        templatesDialog->grids(),
                                                        templatesDialog->cudaSelected());

@@ -149,6 +149,14 @@ struct Settings {
         /// the choice.
         bool alphaShapeContour = false;
 
+        /// Templates: with exactly two uncertain parameters, sweep only the
+        /// border of the parameter box, as densely as the interior grid
+        /// would have cost, since the worst case over a template is attained
+        /// on its border (TemplateEngine::setBorderSweep). Off by default:
+        /// it changes the template, so the fixtures computed with the
+        /// interior grid stay as they are. The templates dialog offers it.
+        bool borderSweep = false;
+
         /// NT, NK, MC1, MC (thesis), MC2: read the boundary columns
         /// CONSERVATIVELY - a point or a box is judged by both column nodes
         /// that bracket its phase, not by the nearest one. Off by default,

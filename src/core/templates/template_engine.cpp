@@ -11,6 +11,7 @@
 #include "src/core/common/exception.h"
 
 #include <algorithm>
+#include <array>
 #include <cstdlib>
 #include <cstdio>
 #include <stdexcept>
@@ -142,6 +143,46 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
     const std::size_t digitCount = names.size();
     const std::size_t frequencyCount = omega->size();
 
+    //The border sweep: with exactly two uncertain parameters whose grids
+    //span a real box, the same number of evaluations goes round the four
+    //edges instead of over the interior (see setBorderSweep).
+    std::vector<std::array<double, 2>> border;
+    m_borderSweepApplied = false;
+    if (m_borderSweep && digitCount == 2 && grids[0]->size() > 1 && grids[1]->size() > 1){
+        std::vector<std::vector<double>> sorted{*grids[0], *grids[1]};
+        std::sort(sorted[0].begin(), sorted[0].end());
+        std::sort(sorted[1].begin(), sorted[1].end());
+        if (sorted[0].front() < sorted[0].back() && sorted[1].front() < sorted[1].back()){
+            //A point along a grid at a fraction t of its length, following
+            //the grid's own spacing.
+            const auto along = [](const std::vector<double> & g, double t) {
+                const double x = t * static_cast<double>(g.size() - 1);
+                const std::size_t k = std::min(static_cast<std::size_t>(x), g.size() - 2);
+                return g[k] + (x - static_cast<double>(k)) * (g[k + 1] - g[k]);
+            };
+            const std::size_t perEdge = std::max<std::size_t>(2, m_combinationCount / 4);
+            border.reserve(4 * perEdge);
+            for (std::size_t i = 0; i < perEdge; ++i){
+                const double t = static_cast<double>(i) / static_cast<double>(perEdge);
+                border.push_back({along(sorted[0], t), sorted[1].front()});          //bottom, left to right
+            }
+            for (std::size_t i = 0; i < perEdge; ++i){
+                const double t = static_cast<double>(i) / static_cast<double>(perEdge);
+                border.push_back({sorted[0].back(), along(sorted[1], t)});           //right, bottom to top
+            }
+            for (std::size_t i = 0; i < perEdge; ++i){
+                const double t = static_cast<double>(i) / static_cast<double>(perEdge);
+                border.push_back({along(sorted[0], 1.0 - t), sorted[1].back()});     //top, right to left
+            }
+            for (std::size_t i = 0; i < perEdge; ++i){
+                const double t = static_cast<double>(i) / static_cast<double>(perEdge);
+                border.push_back({sorted[0].front(), along(sorted[1], 1.0 - t)});    //left, top to bottom
+            }
+            m_combinationCount = border.size();
+            m_borderSweepApplied = true;
+        }
+    }
+
     //Which odometer digit drives each coefficient, and the nominals of the
     //ones no digit drives. Built ONCE and sequentially: Parameter::nominal()
     //can evaluate a reparametrisation, and a coefficient's plan does not
@@ -226,6 +267,11 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
 
             complex<double> value;
 
+            if (m_borderSweepApplied){
+                digit[0] = border[i][0];
+                digit[1] = border[i][1];
+            }
+
             for (std::size_t c = 0; c < numeratorSlot.size(); c++){
                 if (numeratorSlot[c] >= 0){
                     numeratorValues[c] = digit[static_cast<std::size_t>(numeratorSlot[c])];
@@ -259,6 +305,9 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
             nonFinite = nonFinite || !std::isfinite(value.real()) || !std::isfinite(value.imag());
             cloud.push_back(value);
 
+            if (m_borderSweepApplied){
+                continue;
+            }
             counter[0]++;
             for (std::size_t j = 0; j < digitCount; j++){
                 if (counter.at(j) >= grids.at(j)->size()){
@@ -381,7 +430,9 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
         bool fellBack = false;
         bool truncated = false;
         std::vector<std::size_t> starts;
-        ComplexCloud cont = m_alphaShape
+        //A border cloud is a curve: the alpha-shape takes its contour, the
+        //walk would collapse or run round it twice.
+        ComplexCloud cont = (m_alphaShape || m_borderSweepApplied)
                 ? alphaShapeContour(m_clouds[i], m_epsilon.at(i), &starts)
                 : epsilonHull(m_clouds[i], m_epsilon.at(i), &fellBack, &truncated, &starts);
 
@@ -784,7 +835,7 @@ std::vector<TemplateEngine::EpsilonProposal> TemplateEngine::proposeEpsilon(){
 
             //The alpha-shape closes at the connecting epsilon itself: the
             //ladder below is only for the walk.
-            if (m_alphaShape){
+            if (m_alphaShape || m_borderSweepApplied){
                 proposal.epsilon = roundedUpToThreeFigures(longest);
                 proposal.closes = true;
                 proposals.push_back(proposal);

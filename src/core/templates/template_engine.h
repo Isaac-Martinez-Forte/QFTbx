@@ -113,6 +113,31 @@ public:
     void setAlphaShapeContour(bool alphaShape) { m_alphaShape = alphaShape; }
     bool alphaShapeContour() const { return m_alphaShape; }
 
+    /**
+     * @brief Sweep only the BORDER of the parameter box when the plant has
+     * exactly two uncertain parameters, instead of its interior grid.
+     *
+     * The template is the image of the box; the border of an image lies in
+     * the image of the border plus the critical values, which for a map of
+     * a rectangle into the plane are isolated points. And every closed-loop
+     * magnitude a specification bounds is a Mobius function of the plant, so
+     * its worst case over the template is attained on the template's border
+     * whenever the pole lies outside (the case the singular-locus guard
+     * tells apart). So with two parameters the interior samples add nothing,
+     * and the same budget of evaluations - the product of the two grid sizes
+     * - is spent on the four edges: as many points per edge as a quarter of
+     * it, each edge sampled along the user's own grid (so a logarithmic grid
+     * stays logarithmic), in order round the box, a closed curve. Its
+     * contour is taken by the alpha-shape, which walks a curve; the
+     * historical walk does not.
+     *
+     * With one or with three or more uncertain parameters the request is
+     * ignored and the interior grid is swept (borderSweepApplied() says).
+     */
+    void setBorderSweep(bool border) { m_borderSweep = border; }
+    bool borderSweep() const { return m_borderSweep; }
+    bool borderSweepApplied() const { return m_borderSweepApplied; }
+
     /// The alpha-shape contour of one cloud at this epsilon, in the current
     /// metric: its loops concatenated, each closed by repeating its first
     /// point, and where each begins in componentStarts.
@@ -253,6 +278,8 @@ private:
     bool m_useCuda = false;
     bool m_wholeCloudStandsIn = true;
     bool m_alphaShape = false;
+    bool m_borderSweep = false;
+    bool m_borderSweepApplied = false;
 
     CloudSet m_clouds;
     CloudSet m_contours;
