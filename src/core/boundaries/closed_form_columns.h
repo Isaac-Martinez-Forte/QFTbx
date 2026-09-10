@@ -49,8 +49,10 @@ class SingularLocus;
  *   bounded over the segment's ends, its denominator by the distance from
  *   -L to the segment, which for the point g e^{j phi} moving along a ray
  *   is a linear inequality in g. And the gains at which -L falls inside the
- *   polygon are forbidden outright. With a cloud there is no polygon and
- *   the columns are the sampled ones.
+ *   polygon are forbidden outright. A CLOUD has no polygon, and its guard
+ *   on the sheet (a first-order factor from the nearest sample's spacing)
+ *   has no clean closed form, so the engine keeps the sheet's columns for a
+ *   cloud and uses these only when the boundaries come from a contour.
  * - Roots are taken with the stable form of the quadratic formula; a
  *   leading coefficient at zero degenerates to the linear case.
  */

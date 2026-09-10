@@ -95,7 +95,8 @@ public:
     /// Read the columns of the five magnitude specifications in closed form
     /// (ClosedFormColumns) instead of off their sheets: exact in magnitude,
     /// no window. Tracking keeps its sheet; the sheets are still computed
-    /// for the traced curves. Off by default.
+    /// for the traced curves; and a cloud keeps the sheet's columns, since
+    /// its guard has no closed form. Off by default.
     void setClosedFormColumns(bool on) { m_closedFormColumns = on; }
     bool closedFormColumns() const { return m_closedFormColumns; }
 

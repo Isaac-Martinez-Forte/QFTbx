@@ -670,7 +670,9 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
 
     //The five magnitude specifications in closed form, replacing what the
     //sheet said about them; the curves keep being traced from the sheet.
-    if (m_closedFormColumns) {
+    //Only with a contour: a cloud's guard has no closed form
+    //(ClosedFormColumns), and its columns stay the sheet's.
+    if (m_closedFormColumns && m_templatesAreContours) {
         const SingularLocus * guard = m_guardSingularLocus ? &locus : nullptr;
         const auto replace = [&](const char * name, SpecificationType type, bool used) {
             if (used) {
