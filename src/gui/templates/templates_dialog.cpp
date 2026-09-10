@@ -144,6 +144,16 @@ void TemplatesDialog::setWholeTemplateIfNoContour(bool standsIn)
     ui->wholeTemplateCheck->setChecked(standsIn);
 }
 
+bool TemplatesDialog::alphaShapeContour() const
+{
+    return ui->contourCombo->currentIndex() == 1;
+}
+
+void TemplatesDialog::setAlphaShapeContour(bool alphaShape)
+{
+    ui->contourCombo->setCurrentIndex(alphaShape ? 1 : 0);
+}
+
 void TemplatesDialog::setEpsilonProposer(EpsilonProposer propose)
 {
     m_propose = std::move(propose);

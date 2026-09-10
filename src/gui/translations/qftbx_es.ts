@@ -1306,6 +1306,22 @@ contorno</translation>
         <source>dB per degree:</source>
         <translation>dB por grado:</translation>
     </message>
+    <message>
+        <source>Contour:</source>
+        <translation>Contorno:</translation>
+    </message>
+    <message>
+        <source>How the contour of each template is extracted. The walk of Nordin is the historical epsilon-hull and can fail to close. The alpha-shape is the same boundary by its definition, edge by edge: it always closes and returns every component and hole, and the proposed epsilon is then the least that keeps the template connected.</source>
+        <translation>Cómo se extrae el contorno de cada plantilla. El recorrido de Nordin es el ε-hull histórico y puede no cerrar. El α-shape es la misma frontera por su definición, arista a arista: siempre cierra y devuelve todas las componentes, y el épsilon propuesto es entonces el menor que mantiene conectada la plantilla.</translation>
+    </message>
+    <message>
+        <source>Epsilon-hull walk (Nordin)</source>
+        <translation>Recorrido ε-hull (Nordin)</translation>
+    </message>
+    <message>
+        <source>Alpha-shape (always closes)</source>
+        <translation>α-shape (siempre cierra)</translation>
+    </message>
 </context>
 <context>
     <name>UncertaintyDialog</name>

@@ -262,6 +262,16 @@
 # Range: 0 or 1.
 # whole-template-if-no-contour = 1
 
+# Templates: how the contour of a template is extracted. 0, the walk of
+# Nordin (the historical epsilon-hull, the published algorithm), which can
+# fail to close and then falls back as the setting above says. 1, the
+# alpha-shape: the same boundary by its definition, edge by edge - an edge is
+# on the contour when a disc of diameter epsilon through its ends holds no
+# other point - which always closes and returns every component and hole.
+# The proposed epsilon is then the least that keeps the template connected.
+# Range: 0 or 1.
+# alpha-shape-contour = 0
+
 # NK (Nataraj & Kubal 2007): iterations the local refinement of a candidate
 # point may spend.
 # Range: 1 to 1e7.

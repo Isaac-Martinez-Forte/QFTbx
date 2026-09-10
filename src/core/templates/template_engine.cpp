@@ -4,6 +4,7 @@
 #include <vector>
 #include <cstdint>
 #include "src/core/templates/template_engine.h"
+#include "src/core/templates/alpha_shape.h"
 
 
 #include "src/core/common/text_tokens.h"
@@ -380,8 +381,9 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
         bool fellBack = false;
         bool truncated = false;
         std::vector<std::size_t> starts;
-        ComplexCloud cont = epsilonHull(m_clouds[i],
-                                        m_epsilon.at(i), &fellBack, &truncated, &starts);
+        ComplexCloud cont = m_alphaShape
+                ? alphaShapeContour(m_clouds[i], m_epsilon.at(i), &starts)
+                : epsilonHull(m_clouds[i], m_epsilon.at(i), &fellBack, &truncated, &starts);
 
         if (fellBack){
             relaxedFrequencies[i] = true;
@@ -780,6 +782,15 @@ std::vector<TemplateEngine::EpsilonProposal> TemplateEngine::proposeEpsilon(){
             proposal.diameter = diameter;
             proposal.epsilon = longest;
 
+            //The alpha-shape closes at the connecting epsilon itself: the
+            //ladder below is only for the walk.
+            if (m_alphaShape){
+                proposal.epsilon = roundedUpToThreeFigures(longest);
+                proposal.closes = true;
+                proposals.push_back(proposal);
+                continue;
+            }
+
             //The ladder: from the connecting epsilon up to the diameter, one
             //per cent at a time, each candidate rounded up to three figures
             //and tried once. At the diameter every point reaches every other,
@@ -808,6 +819,45 @@ std::vector<TemplateEngine::EpsilonProposal> TemplateEngine::proposeEpsilon(){
     }
 
     return proposals;
+}
+
+ComplexCloud TemplateEngine::alphaShapeContour(const ComplexCloud & cloud, double epsilon,
+                                               std::vector<std::size_t> * componentStarts) const{
+    if (componentStarts != nullptr){
+        componentStarts->clear();
+    }
+    if (cloud.empty()){
+        return {};
+    }
+
+    //Distinct points, in the order the walk uses, measured in the plane of
+    //the metric; the points returned are the cloud's own.
+    ComplexCloud cv = cloud;
+    std::sort(cv.begin(), cv.end(),
+              [](const complex<double> & a, const complex<double> & b){
+                  const double absA = abs(a);
+                  const double absB = abs(b);
+                  return absA != absB ? absA < absB : arg(a) < arg(b);
+              });
+    cv.erase(std::unique(cv.begin(), cv.end()), cv.end());
+
+    const AlphaShape shape = alphaShape(projected(cv), epsilon);
+
+    ComplexCloud result;
+    for (const std::vector<std::int32_t> & loop : shape.loops){
+        if (componentStarts != nullptr){
+            componentStarts->push_back(result.size());
+        }
+        for (const std::int32_t idx : loop){
+            result.push_back(cv[static_cast<std::size_t>(idx)]);
+        }
+        //Closed by its first point, which is how the loops of a contour are
+        //told apart downstream (SingularLocus).
+        if (loop.size() > 1){
+            result.push_back(cv[static_cast<std::size_t>(loop.front())]);
+        }
+    }
+    return result;
 }
 
 //Faithful port of EPSHULL.M (epsh2, Montoya 1998; the algorithm defined in

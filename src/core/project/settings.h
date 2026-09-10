@@ -141,6 +141,14 @@ struct Settings {
         /// frequency. On by default; the templates dialog offers the choice.
         bool wholeTemplateIfNoContour = true;
 
+        /// Templates: extract the contour as the alpha-shape of the cloud
+        /// (the epsilon-hull by its definition, edge by edge: always closes,
+        /// every component and hole) instead of by the historical walk of
+        /// Nordin. Off by default: the walk is the published algorithm and
+        /// the fixtures were computed with it. The templates dialog offers
+        /// the choice.
+        bool alphaShapeContour = false;
+
         /// NT, NK, MC1, MC (thesis), MC2: read the boundary columns
         /// CONSERVATIVELY - a point or a box is judged by both column nodes
         /// that bracket its phase, not by the nearest one. Off by default,

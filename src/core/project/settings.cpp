@@ -204,6 +204,11 @@ const std::vector<Binding> & bindings()
              into.algorithms.wholeTemplateIfNoContour =
                  wholeIn(text, "algorithms.whole-template-if-no-contour", line, 0.0, 1.0) != 0.0;
          }},
+        {"algorithms.alpha-shape-contour",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.algorithms.alphaShapeContour =
+                 wholeIn(text, "algorithms.alpha-shape-contour", line, 0.0, 1.0) != 0.0;
+         }},
         {"algorithms.local-search-budget",
          [](const std::string & text, std::int64_t line, Settings & into) {
              into.algorithms.localSearchBudget = static_cast<std::int32_t>(

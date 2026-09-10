@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>395</width>
-    <height>425</height>
+    <height>455</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -157,7 +157,7 @@
    <property name="geometry">
     <rect>
      <x>200</x>
-     <y>375</y>
+     <y>405</y>
      <width>168</width>
      <height>28</height>
     </rect>
@@ -296,6 +296,42 @@
    <property name="checked">
     <bool>true</bool>
    </property>
+  </widget>
+  <widget class="QWidget" name="contourRow">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>375</y>
+     <width>361</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <layout class="QHBoxLayout" name="horizontalLayout_10">
+    <item>
+     <widget class="QLabel" name="contourLabel">
+      <property name="text">
+       <string>Contour:</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QComboBox" name="contourCombo">
+      <property name="toolTip">
+       <string>How the contour of each template is extracted. The walk of Nordin is the historical epsilon-hull and can fail to close. The alpha-shape is the same boundary by its definition, edge by edge: it always closes and returns every component and hole, and the proposed epsilon is then the least that keeps the template connected.</string>
+      </property>
+      <item>
+       <property name="text">
+        <string>Epsilon-hull walk (Nordin)</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Alpha-shape (always closes)</string>
+       </property>
+      </item>
+     </widget>
+    </item>
+   </layout>
   </widget>
   <widget class="QWidget" name="epsilonMetricRow">
    <property name="geometry">
