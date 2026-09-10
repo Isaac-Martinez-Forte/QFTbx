@@ -283,6 +283,7 @@ void MainWindow::ensureLoopShapingWidgets()
         loopShapingDialog->setLimits(m_settings.limits.maxMagnitude,
                                      m_settings.limits.maxTemplatePoints);
         loopShapingDialog->applyDefaults(m_settings.defaults);
+        loopShapingDialog->setConservativeColumns(m_settings.algorithms.conservativeBoundaryColumns);
         loopShapingViewer = new LoopShapingViewer(this);
     }
 }
@@ -707,6 +708,11 @@ void MainWindow::on_loopButton_clicked()
         //up; wiring that here needs a cancel button, and where that goes is a
         //decision still open.
         const WaitCursor waiting(this);
+
+        //The reading of the boundary columns is a setting the dialog exposes
+        //for this run; the core gets it the way it gets every setting.
+        m_settings.algorithms.conservativeBoundaryColumns = loopShapingDialog->conservativeColumns();
+        controller->applySettings(m_settings);
 
         try {
             designed = controller->computeLoopShaping(loopShapingDialog->epsilonValue(),

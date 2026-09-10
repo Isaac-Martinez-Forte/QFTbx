@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cmath>
 
+#include "src/core/common/exception.h"
+
 namespace qftbx {
 
 namespace {
@@ -194,9 +196,19 @@ bool BoundaryColumns::operator==(const BoundaryColumns & other) const
 
 void BoundaryColumns::intersectWith(const BoundaryColumns & other)
 {
+    //Column c of one set and column c of the other must be the same phase.
+    //The index used to be clamped to the other's last column instead, so
+    //two sets over different grids intersected column-for-column, silently
+    //and wrongly, past the shorter one's end.
+    if (m_columns != other.m_columns || m_phaseMin != other.m_phaseMin || m_step != other.m_step) {
+        throw InvalidInput(QFTBX_TR("Core", "Boundary columns over different phase grids cannot be intersected: %1 columns from %2 step %3 against %4 columns from %5 step %6.")
+                           .arg(m_columns).arg(m_phaseMin).arg(m_step)
+                           .arg(other.m_columns).arg(other.m_phaseMin).arg(other.m_step));
+    }
+
     std::vector<std::vector<Span>> columns(static_cast<std::size_t>(m_columns));
     for (std::int32_t c = 0; c < m_columns; ++c) {
-        columns[static_cast<std::size_t>(c)] = intersect(spans(c), other.spans(std::min(c, other.m_columns - 1)));
+        columns[static_cast<std::size_t>(c)] = intersect(spans(c), other.spans(c));
     }
     flatten(columns);
 }

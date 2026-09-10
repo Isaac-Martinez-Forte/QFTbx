@@ -220,6 +220,19 @@
 # Range: 0 or 1.
 # mr-nichols-epsilon = 0
 
+# NT, NK, MC1, MC (thesis), MC2: how a phase is read off the boundary
+# columns. 0, the published reading: the column whose node is NEAREST the
+# phase. 1, the conservative reading: BOTH columns whose nodes bracket the
+# phase, so a point or a box must be allowed by the two. The nearest node
+# admits, up to half a grid step away, what the boundary at the point's own
+# phase forbids - 0.05 dB on the toolbox example 2 with a 1-degree grid - and
+# 1 removes that; but the strip cuts of the searches need every column of a
+# span to agree and apply far less often, so NT, NK and MC1 slow down by
+# orders of magnitude on that example. The returned controller is checked
+# against the specifications either way (see the loop-shaping result).
+# Range: 0 or 1.
+# conservative-boundary-columns = 0
+
 # NK (Nataraj & Kubal 2007): iterations the local refinement of a candidate
 # point may spend.
 # Range: 1 to 1e7.

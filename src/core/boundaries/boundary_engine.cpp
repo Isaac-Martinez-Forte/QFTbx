@@ -5,6 +5,8 @@
 #include <vector>
 #include <cstdint>
 #include "src/core/boundaries/boundary_engine.h"
+#include "src/core/boundaries/closed_loop_worst_case.h"
+#include "src/core/boundaries/singular_locus.h"
 
 
 #include <iostream>
@@ -37,8 +39,11 @@ void BoundaryEngine::releaseResults()
 }
 
 void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const CloudSet & templates,
+                             bool templatesAreContours,
                              const qftbx::SpecificationRecords * specifications, qftbx::Range phaseRange, std::int32_t phaseCount, qftbx::Range magnitudeRange,
                              std::int32_t magnitudeCount, double exportInfinity, bool cuda){
+
+    m_templatesAreContours = templatesAreContours;
 
     //The export stand-in for infinity is not part of the computation
     //(thesis ch. 7: it exists so exported data can carry a finite value in
@@ -425,66 +430,6 @@ TraceSet BoundaryEngine::traceBoundary(double thresholdDb, const float *sheet,
 
 namespace {
 
-//The five closed-loop magnitudes the sheets are built from, at one grid
-//point L, over the whole value set: the worst case of each, and the best
-//case of the tracking magnitude too, since tracking bounds the spread.
-//Shared by the sheet sweep and the zone probe, which used to carry two
-//copies of these formulas.
-struct WorstCase
-{
-    double stabilityNoise = -std::numeric_limits<double>::infinity();
-    double trackingMin = std::numeric_limits<double>::infinity();
-    double outputDisturbance = -std::numeric_limits<double>::infinity();
-    double inputDisturbance = -std::numeric_limits<double>::infinity();
-    double controlEffort = -std::numeric_limits<double>::infinity();
-};
-
-//The quotients p0 / p of the value set, computed once per frequency: they
-//do not depend on the grid point, and the sweep used to divide them again
-//at every one of its tens of thousands of grid points.
-std::vector<std::complex<double>> nominalOverValueSet(std::complex<double> p0, const ComplexCloud & valueSet)
-{
-    std::vector<std::complex<double>> quotients;
-    quotients.reserve(valueSet.size());
-
-    for (const std::complex<double> & p : valueSet) {
-        quotients.push_back(p0 / p);
-    }
-
-    return quotients;
-}
-
-WorstCase worstCaseAt(std::complex<double> p0, std::complex<double> L, const ComplexCloud & valueSet,
-                      const std::vector<std::complex<double>> & nominalOverP)
-{
-    WorstCase worst;
-
-    for (std::size_t i = 0; i < valueSet.size(); ++i) {
-        const std::complex<double> & p = valueSet[i];
-        const std::complex<double> & p0OverP = nominalOverP[i];
-        const std::complex<double> denominator = p0OverP + L;
-
-        //Stability and sensor noise share the same transfer magnitude.
-        const double stabilityNoise = std::abs(L / denominator);
-        //Disturbance rejection at the plant output.
-        const double outputDisturbance = std::abs(p0OverP / denominator);
-        //Disturbance rejection at the plant input.
-        const double inputDisturbance = std::abs(p0 / denominator);
-        //Control effort.
-        const double controlEffort = std::abs((L / p) / denominator);
-
-        //A NaN candidate compares false and leaves the running value alone,
-        //as the explicit comparisons this replaces did.
-        worst.stabilityNoise = std::max(worst.stabilityNoise, stabilityNoise);
-        worst.trackingMin = std::min(worst.trackingMin, stabilityNoise);
-        worst.outputDisturbance = std::max(worst.outputDisturbance, outputDisturbance);
-        worst.inputDisturbance = std::max(worst.inputDisturbance, inputDisturbance);
-        worst.controlEffort = std::max(worst.controlEffort, controlEffort);
-    }
-
-    return worst;
-}
-
 //Nichols (dB, degrees) to the complex grid point L.
 std::complex<double> nicholsToComplex(double magnitudeDb, double phaseDegrees)
 {
@@ -635,6 +580,29 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
 
     const std::vector<complex<double>> nominalOverP = nominalOverValueSet(p0, p);
 
+    //Only the sheets the specifications in use at this frequency will read.
+    //All five used to be computed at every grid point for every plant, and
+    //traceFrequency then read the two or three the masks selected: on
+    //example 2 that was three fifths of the sweep thrown away. Stability
+    //and sensor noise share sheet 0 and tracking shares its magnitude.
+    WorstCaseMask mask;
+    mask.stabilityNoiseTracking = m_stabilityMask.at(index) || m_noiseMask.at(index) || m_trackingMask.at(index);
+    mask.outputDisturbance = m_outputDisturbanceMask.at(index);
+    mask.inputDisturbance = m_inputDisturbanceMask.at(index);
+    mask.controlEffort = m_controlEffortMask.at(index);
+
+    const bool needStabilityNoise = m_stabilityMask.at(index) || m_noiseMask.at(index);
+    const bool needTracking = m_trackingMask.at(index);
+
+    //The singular locus of this frequency, {-P0/P}: where the closed loop of
+    //some plant is singular. The sweep takes the worst case over a finite
+    //sample, and near the locus the sample understates the family - to
+    //infinity when -L0 falls inside the template, and by a bounded excess
+    //when it falls close outside. Both are covered here: the inside test is
+    //step 2 of Moreno, Banos and Berenguel's algorithm 2.1, the excess is a
+    //Lipschitz bound with no free parameter (see SingularLocus).
+    const SingularLocus locus(nominalOverP, m_templatesAreContours);
+
     //Grid sweep (no nested parallelism: the outer per-frequency loop is
     //already parallel, and these loops share function-scope variables).
     for (std::size_t k = 0; k < magnitudes.size(); ++k){
@@ -655,24 +623,39 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
         for (std::size_t j = 0; j < phases.size(); ++j){
             const complex<double> L = nicholsToComplex(magnitudes[k], phases[j]);
 
-            //Template sweep: worst case over the value set at this L.
-            const WorstCase worst = worstCaseAt(p0, L, p, nominalOverP);
+            //Template sweep: worst case over the SAMPLE at this L, of the
+            //magnitudes the sheets in use need; then over the FAMILY, by the
+            //border between the samples (see SingularLocus). Infinite when
+            //-L0 is inside the template.
+            const WorstCase sampled = worstCaseAt(p0, L, p, nominalOverP, mask);
+            const WorstCase worst = m_guardSingularLocus ? locus.guard(sampled, L, p0) : sampled;
 
             //The sheet is ALWAYS stored in dB (contract validated against
             //the golden; the old OpenMP branch stored linear magnitudes and
             //tracking as a linear difference), with the critical point made
-            //explicit (see violatingDb).
-            stabilityNoiseRow.push_back(violatingDb(20 * log10(worst.stabilityNoise)));
-            trackingRow.push_back(violatingDb((20 * log10(worst.stabilityNoise)) - (20 * log10(worst.trackingMin))));
-            outputDisturbanceRow.push_back(violatingDb(20 * log10(worst.outputDisturbance)));
-            inputDisturbanceRow.push_back(violatingDb(20 * log10(worst.inputDisturbance)));
-            controlEffortRow.push_back(violatingDb(20 * log10(worst.controlEffort)));
+            //explicit (see violatingDb). A sheet no specification reads
+            //stays empty.
+            if (needStabilityNoise) {
+                stabilityNoiseRow.push_back(violatingDb(20 * log10(worst.stabilityNoise)));
+            }
+            if (needTracking) {
+                trackingRow.push_back(violatingDb((20 * log10(worst.stabilityNoise)) - (20 * log10(worst.trackingMin))));
+            }
+            if (mask.outputDisturbance) {
+                outputDisturbanceRow.push_back(violatingDb(20 * log10(worst.outputDisturbance)));
+            }
+            if (mask.inputDisturbance) {
+                inputDisturbanceRow.push_back(violatingDb(20 * log10(worst.inputDisturbance)));
+            }
+            if (mask.controlEffort) {
+                controlEffortRow.push_back(violatingDb(20 * log10(worst.controlEffort)));
+            }
         }
-        stabilityNoiseSheet.push_back(std::move(stabilityNoiseRow));
-        trackingSheet.push_back(std::move(trackingRow));
-        outputDisturbanceSheet.push_back(std::move(outputDisturbanceRow));
-        inputDisturbanceSheet.push_back(std::move(inputDisturbanceRow));
-        controlEffortSheet.push_back(std::move(controlEffortRow));
+        if (needStabilityNoise) stabilityNoiseSheet.push_back(std::move(stabilityNoiseRow));
+        if (needTracking) trackingSheet.push_back(std::move(trackingRow));
+        if (mask.outputDisturbance) outputDisturbanceSheet.push_back(std::move(outputDisturbanceRow));
+        if (mask.inputDisturbance) inputDisturbanceSheet.push_back(std::move(inputDisturbanceRow));
+        if (mask.controlEffort) controlEffortSheet.push_back(std::move(controlEffortRow));
     }
 
     std::map<std::string, TraceSet> bound;

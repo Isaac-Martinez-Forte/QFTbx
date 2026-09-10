@@ -2,6 +2,7 @@
 #define QFTBX_BOUNDARY_COLUMNS_H
 
 #include <cstdint>
+#include <cmath>
 #include <limits>
 #include <map>
 #include <string>
@@ -114,8 +115,13 @@ public:
 
     std::int32_t columnCount() const noexcept { return m_columns; }
 
-    /// The column whose cell holds the phase; the end columns take what
-    /// falls outside the window.
+    /// The column whose node is NEAREST the phase; the end columns take
+    /// what falls outside the window. This is the reading the traces are
+    /// binned with (fromTraces). It is not the reading the search may use:
+    /// a point half a cell from a node is judged by a column up to half a
+    /// step away, and where the boundary is steep in phase that is a
+    /// magnitude error of the first order in the step - permissive when the
+    /// boundary rises towards the point. See firstColumnCovering().
     std::int32_t columnOf(double phaseDegrees) const noexcept
     {
         const double x = (phaseDegrees - m_phaseMin) * m_inverseStep + 0.5;
@@ -123,6 +129,38 @@ public:
             return 0;
         }
         if (x >= static_cast<double>(m_columns)) {
+            return m_columns - 1;
+        }
+        return static_cast<std::int32_t>(x);
+    }
+
+    /// The columns whose nodes bracket the phase: the last node at or below
+    /// it and the first node at or above it, the same column when the phase
+    /// sits on a node. A phase interval is covered by the columns from
+    /// firstColumnCovering(its lower end) to lastColumnCovering(its upper
+    /// end), and a verdict that every one of those columns agrees on holds
+    /// wherever the boundary between the nodes lies (the columns bound it
+    /// from both sides), which the nearest-node reading cannot claim. The
+    /// end columns take what falls outside the window.
+    std::int32_t firstColumnCovering(double phaseDegrees) const noexcept
+    {
+        const double x = std::floor((phaseDegrees - m_phaseMin) * m_inverseStep);
+        if (x <= 0.0) {
+            return 0;
+        }
+        if (x >= static_cast<double>(m_columns - 1)) {
+            return m_columns - 1;
+        }
+        return static_cast<std::int32_t>(x);
+    }
+
+    std::int32_t lastColumnCovering(double phaseDegrees) const noexcept
+    {
+        const double x = std::ceil((phaseDegrees - m_phaseMin) * m_inverseStep);
+        if (x <= 0.0) {
+            return 0;
+        }
+        if (x >= static_cast<double>(m_columns - 1)) {
             return m_columns - 1;
         }
         return static_cast<std::int32_t>(x);

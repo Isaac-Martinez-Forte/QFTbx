@@ -194,6 +194,11 @@ const std::vector<Binding> & bindings()
              into.algorithms.mrNicholsEpsilon =
                  wholeIn(text, "algorithms.mr-nichols-epsilon", line, 0.0, 1.0) != 0.0;
          }},
+        {"algorithms.conservative-boundary-columns",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.algorithms.conservativeBoundaryColumns =
+                 wholeIn(text, "algorithms.conservative-boundary-columns", line, 0.0, 1.0) != 0.0;
+         }},
         {"algorithms.local-search-budget",
          [](const std::string & text, std::int64_t line, Settings & into) {
              into.algorithms.localSearchBudget = static_cast<std::int32_t>(

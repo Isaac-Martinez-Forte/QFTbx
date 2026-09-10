@@ -36,19 +36,34 @@ namespace qftbx {
 class BoundaryViolationDetector
 {
 public:
+    /// How a phase is read off the columns: the nearest node (the published
+    /// algorithms' reading, the default) or both nodes that bracket it (the
+    /// conservative reading; see Settings::algorithms).
+    explicit BoundaryViolationDetector(bool conservative = false) : m_conservative(conservative) {}
+
+    bool conservative() const { return m_conservative; }
+
     /// Classification of one projected box; a plain value (four doubles,
     /// a flag and two corner verdicts), so there is nothing to own.
     BoxClassification classifyBox(NicholsBox box, const BoundaryData * boundaries, std::size_t frequencyIndex);
 
-    /// Boxes classified so far, for the run statistics.
+    /// Boxes classified so far, for the run statistics, and how the
+    /// verdicts split: the three always add up to classifications().
     std::size_t classifications() const { return m_classifications; }
+    std::size_t feasibleBoxes() const { return m_feasible; }
+    std::size_t infeasibleBoxes() const { return m_infeasible; }
+    std::size_t ambiguousBoxes() const { return m_ambiguous; }
 
     /// Classifies one Nichols point (phase deg, magnitude dB) against the
     /// boundaries at design frequency 'frequencyIndex'.
     qftbx::BoxFlag classifyPoint(qftbx::NicholsPoint point, const BoundaryData * boundaries, std::size_t frequencyIndex);
 
 private:
+    bool m_conservative = false;
     std::size_t m_classifications = 0;
+    std::size_t m_feasible = 0;
+    std::size_t m_infeasible = 0;
+    std::size_t m_ambiguous = 0;
 };
 
 } // namespace qftbx

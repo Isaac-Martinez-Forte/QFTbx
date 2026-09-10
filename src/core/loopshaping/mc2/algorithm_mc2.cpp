@@ -126,7 +126,7 @@ bool AlgorithmMc2::solve()
 {
     liveList = std::make_unique<OrderedList>(false, m_settings.search.maxLiveNodes);
     conversion = std::make_unique<NaturalIntervalExtension>();
-    detector = std::make_unique<BoundaryViolationDetector>();
+    detector = std::make_unique<BoundaryViolationDetector>(m_settings.algorithms.conservativeBoundaryColumns);
     stability = std::make_unique<NominalStabilityChecker>(plant, omega, m_settings.stability);
 
     bestCertifiedGain = std::numeric_limits<double>::infinity();
@@ -314,6 +314,9 @@ LoopShapingStatistics AlgorithmMc2::statistics() const
     }
     if (detector != nullptr) {
         statistics.boxesClassified = detector->classifications();
+        statistics.boxesFeasible = detector->feasibleBoxes();
+        statistics.boxesInfeasible = detector->infeasibleBoxes();
+        statistics.boxesAmbiguous = detector->ambiguousBoxes();
     }
     if (stability != nullptr) {
         statistics.stabilityVerdicts = stability->statistics().verdicts;
@@ -513,12 +516,19 @@ RangeUnion AlgorithmMc2::admissibleGains(const std::vector<double> & zeros,
                                                        omega->at(i), nominalPlantValues.at(i));
         const double mu = at.magnitudeDb.lower();
 
+        //The column of the phase, read as the detector reads it: the nearest
+        //node, or conservatively what both bracketing columns allow (the
+        //boundary at the point's own phase lies between their readings).
         const BoundaryColumns & columns = boundaries->columns(i);
-        const BoundaryColumns::Intervals allowed =
-                columns.intervals(columns.columnOf(at.phaseDegrees.lower()));
+        const double phase = at.phaseDegrees.lower();
+        const BoundaryColumns::Intervals below = columns.intervals(
+                    detector->conservative() ? columns.firstColumnCovering(phase) : columns.columnOf(phase));
 
-        RangeUnion column = RangeUnion::of(allowed.lo, allowed.hi,
-                                           static_cast<std::size_t>(allowed.count));
+        RangeUnion column = RangeUnion::of(below.lo, below.hi, static_cast<std::size_t>(below.count));
+        if (detector->conservative()) {
+            const BoundaryColumns::Intervals above = columns.intervals(columns.lastColumnCovering(phase));
+            column.intersectWith(RangeUnion::of(above.lo, above.hi, static_cast<std::size_t>(above.count)));
+        }
         column.shiftBy(-mu);
         gains.intersectWith(column);
     }

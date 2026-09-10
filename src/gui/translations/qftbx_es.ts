@@ -1507,6 +1507,56 @@ contorno</translation>
         <translation>Épsilon (diámetro de la caja de Nichols):</translation>
     </message>
     <message>
+        <source>Not checked against the specifications (no templates to check over).</source>
+        <translation>Sin comprobar contra las especificaciones (no hay plantillas sobre las que comprobar).</translation>
+    </message>
+    <message>
+        <source>Satisfies every specification over the template: tightest at w = %1 rad/s, %2, %3 dB of margin.</source>
+        <translation>Cumple todas las especificaciones sobre la plantilla: la más ajustada en w = %1 rad/s, %2, %3 dB de margen.</translation>
+    </message>
+    <message>
+        <source>EXCEEDS a specification over the template: w = %1 rad/s, %2, by %3 dB.</source>
+        <translation>INCUMPLE una especificación sobre la plantilla: w = %1 rad/s, %2, por %3 dB.</translation>
+    </message>
+    <message>
+        <source>w = %1: %2 = %3 dB, bound %4 dB, excess %5 dB
+</source>
+        <translation>w = %1: %2 = %3 dB, cota %4 dB, exceso %5 dB
+</translation>
+    </message>
+    <message>
+        <source>tracking</source>
+        <translation>seguimiento</translation>
+    </message>
+    <message>
+        <source>stability</source>
+        <translation>estabilidad</translation>
+    </message>
+    <message>
+        <source>sensor noise</source>
+        <translation>ruido del sensor</translation>
+    </message>
+    <message>
+        <source>output disturbance</source>
+        <translation>perturbación a la salida</translation>
+    </message>
+    <message>
+        <source>input disturbance</source>
+        <translation>perturbación a la entrada</translation>
+    </message>
+    <message>
+        <source>control effort</source>
+        <translation>esfuerzo de control</translation>
+    </message>
+    <message>
+        <source>Conservative boundary reading</source>
+        <translation>Lectura conservadora de las fronteras</translation>
+    </message>
+    <message>
+        <source>Judge every point and box by both boundary columns around its phase instead of the nearest one. Removes the small permissive error of the phase grid; the searches without a best-gain bound become much slower.</source>
+        <translation>Juzgar cada punto y cada caja por las dos columnas de frontera que rodean su fase, en vez de por la más cercana. Elimina el pequeño error permisivo de la rejilla de fase; las búsquedas sin cota de mejor ganancia se vuelven mucho más lentas.</translation>
+    </message>
+    <message>
         <source>The epsilon must be a positive real number.</source>
         <translation>Épsilon debe ser un número real positivo.</translation>
     </message>

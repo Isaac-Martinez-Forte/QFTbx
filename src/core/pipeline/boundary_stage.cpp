@@ -40,7 +40,7 @@ bool BoundaryStage::run(ProjectData & data, Range phaseRange,
     BoundaryEngine & bounds = engine();
 
     bounds.compute(data.frequencies(), data.plant(),
-                   fromContour ? data.contour() : data.templates(),
+                   fromContour ? data.contour() : data.templates(), fromContour,
                    data.specifications(), phaseRange, phaseCount,
                    magnitudeRange, magnitudeCount, exportInfinity, cuda);
 
