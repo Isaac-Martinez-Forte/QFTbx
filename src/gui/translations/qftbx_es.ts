@@ -1549,6 +1549,46 @@ contorno</translation>
         <translation>esfuerzo de control</translation>
     </message>
     <message>
+        <source>Epsilon in:</source>
+        <translation>Épsilon en:</translation>
+    </message>
+    <message>
+        <source>The plane the epsilon of the contour is measured in. Nichols: degrees and decibels, one epsilon serves every template. Complex plane: the historical reading, in the units of the plant's response.</source>
+        <translation>El plano en que se mide el épsilon del contorno. Nichols: grados y decibelios, un solo épsilon sirve para todas las plantillas. Plano complejo: la lectura histórica, en las unidades de la respuesta de la planta.</translation>
+    </message>
+    <message>
+        <source>Nichols (degrees, dB)</source>
+        <translation>Nichols (grados, dB)</translation>
+    </message>
+    <message>
+        <source>Complex plane</source>
+        <translation>Plano complejo</translation>
+    </message>
+    <message>
+        <source>dB per degree:</source>
+        <translation>dB por grado:</translation>
+    </message>
+    <message>
+        <source>The decibels per degree must be a positive number.</source>
+        <translation>Los decibelios por grado deben ser un número positivo.</translation>
+    </message>
+    <message>
+        <source>Set every epsilon to the least value that keeps its template connected - the longest edge of the minimum spanning tree - and recompute the contours.</source>
+        <translation>Poner en cada épsilon el menor valor que mantiene conexa su plantilla, el arco más largo del árbol de recubrimiento mínimo, y recalcular los contornos.</translation>
+    </message>
+    <message>
+        <source>Propose epsilon</source>
+        <translation>Proponer épsilon</translation>
+    </message>
+    <message>
+        <source>needs %1 (gap %2%)</source>
+        <translation>pide %1 (hueco %2 %)</translation>
+    </message>
+    <message>
+        <source>The least epsilon that keeps this template connected is %1; the largest gap between its points is %2% of its size. Above a few per cent the sweep is coarse: more points per parameter, not a larger epsilon.</source>
+        <translation>El menor épsilon que mantiene conexa esta plantilla es %1; el hueco mayor entre sus puntos es el %2 % de su tamaño. Por encima de unos pocos por ciento el barrido es basto: más puntos por parámetro, no un épsilon mayor.</translation>
+    </message>
+    <message>
         <source>Conservative boundary reading</source>
         <translation>Lectura conservadora de las fronteras</translation>
     </message>

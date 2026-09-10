@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>395</width>
-    <height>385</height>
+    <height>425</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -157,7 +157,7 @@
    <property name="geometry">
     <rect>
      <x>200</x>
-     <y>330</y>
+     <y>375</y>
      <width>168</width>
      <height>28</height>
     </rect>
@@ -261,6 +261,62 @@
        <widget class="QLineEdit" name="epsilonEdit"/>
       </item>
      </layout>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QWidget" name="epsilonMetricRow">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>315</y>
+     <width>361</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <layout class="QHBoxLayout" name="horizontalLayout_9">
+    <item>
+     <widget class="QLabel" name="metricLabel">
+      <property name="text">
+       <string>Epsilon in:</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QComboBox" name="metricCombo">
+      <property name="toolTip">
+       <string>The plane the epsilon of the contour is measured in. Nichols: degrees and decibels, one epsilon serves every template. Complex plane: the historical reading, in the units of the plant's response.</string>
+      </property>
+      <item>
+       <property name="text">
+        <string>Nichols (degrees, dB)</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Complex plane</string>
+       </property>
+      </item>
+     </widget>
+    </item>
+    <item>
+     <widget class="QLabel" name="dbPerDegreeLabel">
+      <property name="text">
+       <string>dB per degree:</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QLineEdit" name="dbPerDegreeEdit">
+      <property name="text">
+       <string>1</string>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>60</width>
+        <height>16777215</height>
+       </size>
+      </property>
+     </widget>
     </item>
    </layout>
   </widget>

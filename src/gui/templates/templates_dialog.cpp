@@ -102,6 +102,22 @@ std::vector<double> TemplatesDialog::takeEpsilon(){
     return std::move(epsilonValues);
 }
 
+qftbx::EpsilonMetric TemplatesDialog::epsilonMetric() const {
+    qftbx::EpsilonMetric metric;
+    metric.metric = ui->metricCombo->currentIndex() == 1 ? qftbx::HullMetric::ComplexPlane
+                                                         : qftbx::HullMetric::Nichols;
+    const double weight = ui->dbPerDegreeEdit->text().toDouble();
+    metric.dbPerDegree = weight > 0.0 ? weight : 1.0;
+    return metric;
+}
+
+void TemplatesDialog::setEpsilonMetric(qftbx::EpsilonMetric metric) {
+    ui->metricCombo->setCurrentIndex(metric.metric == qftbx::HullMetric::ComplexPlane ? 1 : 0);
+    ui->dbPerDegreeEdit->setText(qftbx::numberText(metric.dbPerDegree));
+    ui->dbPerDegreeEdit->setEnabled(metric.metric == qftbx::HullMetric::Nichols);
+    ui->dbPerDegreeLabel->setEnabled(metric.metric == qftbx::HullMetric::Nichols);
+}
+
 void TemplatesDialog::launch(LtiSystem *plant, qint32 frequencyCount){
 
     this->plant = plant;
@@ -235,6 +251,12 @@ void TemplatesDialog::on_allVariablesRadio_clicked()
     ui->modeStack->setCurrentIndex(0);
 }
 
+void TemplatesDialog::on_metricCombo_currentIndexChanged(int index)
+{
+    ui->dbPerDegreeEdit->setEnabled(index == 0);
+    ui->dbPerDegreeLabel->setEnabled(index == 0);
+}
+
 void TemplatesDialog::on_oneByOneRadio_clicked()
 {
     ui->modeStack->setCurrentIndex(2);
@@ -275,6 +297,14 @@ void TemplatesDialog::on_okButton_clicked()
     duplicateNames.clear();
 
     epsilonValues.clear();
+
+    //The weighting of the Nichols plane has to be a positive number.
+    if (ui->metricCombo->currentIndex() == 0 && !(ui->dbPerDegreeEdit->text().toDouble() > 0.0)){
+        errorMessage(tr("The decibels per degree must be a positive number."), tr("Template computation"));
+        ui->dbPerDegreeEdit->setStyleSheet("background : red");
+        return;
+    }
+    ui->dbPerDegreeEdit->setStyleSheet("background : white");
 
     if (ui->epsilonEdit->text().isEmpty()){
         errorMessage(tr("No epsilon value was entered."), tr("Template computation"));

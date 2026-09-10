@@ -167,6 +167,13 @@ void MainWindow::createSession(){
     //are built.
     controller->applySettings(m_settings);
 
+    //A new project measures its contour epsilon in the plane the settings
+    //say (the Nichols plane unless told otherwise); a loaded one keeps the
+    //plane its file says.
+    controller->setEpsilonMetric({m_settings.defaults.epsilonInNichols ? qftbx::HullMetric::Nichols
+                                                                        : qftbx::HullMetric::ComplexPlane,
+                                  m_settings.defaults.dbPerDegree});
+
     //An empty project: every step undone, so this switches the buttons off
     //and puts the bar at zero without enumerating either. The seven flags it
     //used to reset by hand are gone, and two of their comments were CROSSED -
@@ -426,6 +433,9 @@ void MainWindow::installContourRecomputer(){
     templateViewer->setContourRecomputer([this](std::vector<double> epsilon) {
         recomputeContour(std::move(epsilon));
     });
+    templateViewer->setEpsilonProposer([this]() {
+        return controller->proposeEpsilon();
+    });
 }
 
 void MainWindow::recomputeContour(std::vector<double> epsilon){
@@ -573,6 +583,7 @@ void MainWindow::on_templatesButton_clicked()
 {
     ensureTemplatesWidgets();
 
+    templatesDialog->setEpsilonMetric(controller->epsilonMetric());
     templatesDialog->launch(controller->plant(), controller->omega()->values()->size());
 
     runDialog(templatesDialog);
@@ -590,6 +601,7 @@ void MainWindow::on_templatesButton_clicked()
         const WaitCursor waiting(this);
 
         try {
+            controller->setEpsilonMetric(templatesDialog->epsilonMetric());
             templatesOk = controller->computeTemplates(templatesDialog->takeEpsilon(),
                                                        templatesDialog->grids(),
                                                        templatesDialog->cudaSelected());
