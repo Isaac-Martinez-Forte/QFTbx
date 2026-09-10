@@ -92,6 +92,13 @@ public:
     void setSingularLocusGuard(bool on) { m_guardSingularLocus = on; }
     bool singularLocusGuard() const { return m_guardSingularLocus; }
 
+    /// Read the columns of the five magnitude specifications in closed form
+    /// (ClosedFormColumns) instead of off their sheets: exact in magnitude,
+    /// no window. Tracking keeps its sheet; the sheets are still computed
+    /// for the traced curves. Off by default.
+    void setClosedFormColumns(bool on) { m_closedFormColumns = on; }
+    bool closedFormColumns() const { return m_closedFormColumns; }
+
     /// A snapshot of the results, by value. It used to be a freshly
     /// allocated NON-OWNING view that every caller had to delete and that
     /// nothing in the type said was a view.
@@ -105,6 +112,7 @@ private:
     //them differently (see SingularLocus).
     bool m_templatesAreContours = false;
     bool m_guardSingularLocus = true;
+    bool m_closedFormColumns = false;
 
     //Clears the previous run's results.
     void releaseResults();

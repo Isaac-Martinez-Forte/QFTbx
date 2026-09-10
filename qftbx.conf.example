@@ -283,6 +283,17 @@
 # Range: 0 or 1.
 # border-sweep = 0
 
+# Boundaries: how the columns of the five magnitude specifications
+# (stability, sensor noise, the two disturbance rejections, control effort)
+# are read. 0, off the sampled sheet, cut at the bound with linear
+# interpolation between magnitude nodes. 1, in closed form: at each phase the
+# specification is a quadratic in the gain for every plant of the template
+# (Chait and Yaniv 1993), the allowed gains are intersected exactly over the
+# template, and the column comes out exact in magnitude, multivalued where
+# it is, and unbounded by the magnitude window. Tracking keeps its sheet.
+# Range: 0 or 1.
+# closed-form-columns = 0
+
 # NK (Nataraj & Kubal 2007): iterations the local refinement of a candidate
 # point may spend.
 # Range: 1 to 1e7.

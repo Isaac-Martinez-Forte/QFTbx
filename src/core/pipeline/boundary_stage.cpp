@@ -38,6 +38,7 @@ bool BoundaryStage::run(ProjectData & data, Range phaseRange,
     requirePrerequisites(data, fromContour);
 
     BoundaryEngine & bounds = engine();
+    bounds.setClosedFormColumns(m_closedForm);
 
     bounds.compute(data.frequencies(), data.plant(),
                    fromContour ? data.contour() : data.templates(), fromContour,

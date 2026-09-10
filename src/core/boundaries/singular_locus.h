@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "src/core/boundaries/closed_loop_worst_case.h"
+#include "src/core/math/range.h"
 
 /**
  * @file
@@ -93,6 +94,11 @@ public:
     /// when the point is inside it. Exposed for the tests.
     double borderDistance(std::complex<double> minusL0) const;
 
+    /// For a contour: the intervals of g > 0 at which the point g * direction
+    /// (a unit vector) lies inside one of the template's polygon loops, by
+    /// the parity of the ray's crossings of each loop. Empty for a cloud.
+    std::vector<Range> rayInside(std::complex<double> direction) const;
+
     bool isContour() const { return m_isContour; }
     std::size_t loopCount() const { return m_loops.size(); }
     /// Cloud mode: the nearest-neighbour distance of each sample, and the
@@ -100,7 +106,6 @@ public:
     const std::vector<double> & spacings() const { return m_spacing; }
     double largestSpacing() const;
 
-private:
     struct Segment {
         std::complex<double> a;
         std::complex<double> b;
@@ -109,8 +114,12 @@ private:
         double largestR;
     };
 
-    //Contour mode: the closed loops of the walk, each a run of segments
-    //(the last one closing back to the loop's first point).
+    /// The polygon of a contour, loop by loop, in the plane of P0/P: the
+    /// closed loops of the walk, each a run of segments (the last one
+    /// closing back to the loop's first point). Empty for a cloud.
+    const std::vector<std::vector<Segment>> & loops() const { return m_loops; }
+
+private:
     std::vector<std::vector<Segment>> m_loops;
     //Cloud mode: per sample.
     std::vector<double> m_spacing;

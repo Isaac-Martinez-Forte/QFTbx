@@ -143,6 +143,11 @@ public:
     void setBorderSweep(bool border);
     bool borderSweep() const;
 
+    /// Columns of the magnitude specifications in closed form (see
+    /// ClosedFormColumns); the setting gives the default.
+    void setClosedFormColumns(bool on);
+    bool closedFormColumns() const;
+
     /// What the last contour computation reported, per frequency
     /// (TemplateEngine::ContourReport); empty when nothing was computed.
     const std::vector<TemplateEngine::ContourReport> & contourReports() const;

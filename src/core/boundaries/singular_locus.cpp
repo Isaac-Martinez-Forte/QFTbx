@@ -71,6 +71,40 @@ SingularLocus::SingularLocus(const std::vector<std::complex<double>> & nominalOv
     }
 }
 
+std::vector<Range> SingularLocus::rayInside(std::complex<double> direction) const
+{
+    std::vector<Range> inside;
+    if (!m_isContour) {
+        return inside;
+    }
+    //Crossings of the ray {g * direction, g > 0} with each loop: a segment
+    //a + t (b - a), t in [0, 1), meets the ray at g = cross(a, d) / cross(d, b - a)
+    //... solved as a 2x2 system; the parity of the sorted crossings says
+    //where the ray is inside.
+    const double dx = direction.real(), dy = direction.imag();
+    for (const std::vector<Segment> & loop : m_loops) {
+        std::vector<double> crossings;
+        for (const Segment & s : loop) {
+            const double ex = s.b.real() - s.a.real(), ey = s.b.imag() - s.a.imag();
+            const double det = dx * (-ey) - dy * (-ex);   // [d, -(b-a)] [g, t]^T = a
+            if (det == 0.0) {
+                continue;
+            }
+            const double ax = s.a.real(), ay = s.a.imag();
+            const double g = (ax * (-ey) - ay * (-ex)) / det;
+            const double t = (dx * ay - dy * ax) / det;
+            if (g > 0.0 && t >= 0.0 && t < 1.0) {
+                crossings.push_back(g);
+            }
+        }
+        std::sort(crossings.begin(), crossings.end());
+        for (std::size_t k = 0; k + 1 < crossings.size(); k += 2) {
+            inside.push_back(Range(crossings[k], crossings[k + 1]));
+        }
+    }
+    return inside;
+}
+
 int SingularLocus::windingNumber(const std::vector<Segment> & loop, std::complex<double> z)
 {
     //The turning of the loop around z, in whole turns: the sum of the

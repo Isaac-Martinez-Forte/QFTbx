@@ -214,6 +214,11 @@ const std::vector<Binding> & bindings()
              into.algorithms.borderSweep =
                  wholeIn(text, "algorithms.border-sweep", line, 0.0, 1.0) != 0.0;
          }},
+        {"algorithms.closed-form-columns",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.algorithms.closedFormColumns =
+                 wholeIn(text, "algorithms.closed-form-columns", line, 0.0, 1.0) != 0.0;
+         }},
         {"algorithms.local-search-budget",
          [](const std::string & text, std::int64_t line, Settings & into) {
              into.algorithms.localSearchBudget = static_cast<std::int32_t>(
