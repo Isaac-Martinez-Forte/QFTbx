@@ -5,36 +5,8 @@
 
 namespace qftbx {
 
-//Feasibility of a Nichols box against the boundaries of one design frequency
-//(Tharewal 2005, sec. 3.3.4): feasible when the box lies entirely on the
-//allowed side at every phase column it spans, infeasible when entirely on
-//the forbidden side at every column, ambiguous otherwise - a boundary
-//crossing inside the box, or columns that disagree. The verdict is read off
-//the allowed intervals of the columns (BoundaryColumns); every specification
-//is in them with its own semantics, so an open boundary running under a
-//closed one, or a corridor between the two, classifies as the
-//specifications say. The parity count over the union's bucket that used to
-//stand here called the inside of a closed curve allowed whenever the union
-//had dropped the curve below it.
-//
-//The extremes returned with the verdict are B_min and B_max, the lowest and
-//highest boundary crossing over the box's PHASE interval regardless of its
-//magnitude (Tharewal 2005, fig. 5.1), and the boundary's phase extremes over
-//the same span; they drive the gain and phase cutting of the algorithms,
-//which read them as the limits of a strip of uniform state: below B_min the
-//whole span is forbidden (the cuts C_g- and QS raise the gain to it) or
-//allowed (the thesis's feasible bottom strip), as the bottom-left corner
-//says; above B_max likewise, as the top-right corner says. On a
-//single-valued open boundary that is exactly the minimum and the maximum of
-//the curve over the span. On boundaries in general the strip is taken over
-//every column of the span - the lowest end of the bottom interval of each
-//column when every column is forbidden at the bottom, the lowest top of
-//the bottom interval when every column is allowed there, and their mirror
-//images at the top - and is infinite when the columns do not agree, so no
-//cut applies: a closed curve alone cuts no gain, which is what its
-//geometry says. The corner verdicts certify the cutting strips: the
-//bottom-left corner the bottom and left strips, the top-right corner the
-//top and right ones.
+//Tharewal 2005, sec. 3.3.4 for the verdict, fig. 5.1 for the extremes; the
+//semantics are in the class comment.
 BoxClassification BoundaryViolationDetector::classifyBox(NicholsBox box, const BoundaryData *boundaries, std::size_t frequencyIndex) {
     ++m_classifications;
 
@@ -45,25 +17,13 @@ BoxClassification BoundaryViolationDetector::classifyBox(NicholsBox box, const B
     const double minPhase = box.phaseDegrees.lower(), maxPhase = box.phaseDegrees.upper();
     const double minMag = box.magnitudeDb.lower(), maxMag = box.magnitudeDb.upper();
 
-    //The columns the box's phase span covers. The published reading takes
-    //the nearest node at each end, so a span narrower than a cell is judged
-    //by ONE column - which is what lets the strip cuts apply, since they
-    //need every column of the span to agree - and a span that straddles a
-    //cell by a column up to half a step away, which where the boundary is
-    //steep in phase lets a violating box through (+0.051 dB on example 2
-    //with the 1-degree grid, halving with the step). The conservative
-    //reading runs from the node at or below the lower end to the node at or
-    //above the upper end, so that a verdict every column agrees on holds
-    //wherever the boundary runs between the nodes; an epsilon-small box
-    //then spans two columns, they disagree where the boundary is steep, and
-    //the cuts apply far less often. The end columns take what falls
-    //outside the window either way.
+    //The columns the span covers, in the reading chosen (class comment).
     const std::int32_t first = m_conservative ? columns.firstColumnCovering(minPhase) : columns.columnOf(minPhase);
     const std::int32_t last = m_conservative ? columns.lastColumnCovering(maxPhase) : columns.columnOf(maxPhase);
 
     double minPhaseBound = std::numeric_limits<double>::max(), maxPhaseBound = std::numeric_limits<double>::lowest();
 
-    //The strips of uniform state under and over the span (see above).
+    //The strips of uniform state under and over the span.
     double forbiddenBelow = kInfinity, allowedBelow = kInfinity;
     double forbiddenAbove = -kInfinity, allowedAbove = -kInfinity;
     bool everyBottomForbidden = true, everyBottomAllowed = true;
@@ -97,8 +57,7 @@ BoxClassification BoundaryViolationDetector::classifyBox(NicholsBox box, const B
             }
         }
 
-        //The column's verdict on [minMag, maxMag]: inside one allowed
-        //interval, inside one forbidden gap, or across an end.
+        //This column's verdict on [minMag, maxMag].
         bool allowed = false, forbidden = false;
         double previousHi = -kInfinity;
         bool decided = false;
@@ -107,9 +66,7 @@ BoxClassification BoundaryViolationDetector::classifyBox(NicholsBox box, const B
             const double lo = spans.lo[i];
             const double hi = spans.hi[i];
 
-            //Finite ends are boundary crossings: the phase extremes of the
-            //boundary over the span, and an end inside the box makes it
-            //ambiguous.
+            //A finite end is a boundary crossing; inside the box it makes it ambiguous.
             if (lo > -kInfinity) {
                 if (phase < minPhaseBound) minPhaseBound = phase;
                 if (phase > maxPhaseBound) maxPhaseBound = phase;
@@ -156,9 +113,7 @@ BoxClassification BoundaryViolationDetector::classifyBox(NicholsBox box, const B
     classification.setBottomLeftForbidden(bottomLeftForbidden);
     classification.setTopRightForbidden(topRightForbidden);
 
-    //B_min: the top of the strip under the span whose state the bottom-left
-    //corner has; B_max: the bottom of the strip over it whose state the
-    //top-right corner has. Infinite when the columns do not share it.
+    //B_min and B_max: infinite when the columns do not share the strip.
     const double minMagBound = bottomLeftForbidden ? (everyBottomForbidden ? forbiddenBelow : -kInfinity)
                                                    : (everyBottomAllowed ? allowedBelow : -kInfinity);
     const double maxMagBound = topRightForbidden ? (everyTopForbidden ? forbiddenAbove : kInfinity)
@@ -180,10 +135,6 @@ BoxClassification BoundaryViolationDetector::classifyBox(NicholsBox box, const B
     return classification;
 }
 
-//Classification of a single Nichols point (phase in degrees, magnitude in
-//dB) against the boundaries of one design frequency: the allowed intervals
-//of its phase column. It certifies the zone gates of the gain cutting and
-//splitting (Tharewal 2005, ch. 5) and the corner a terminating box returns.
 qftbx::BoxFlag BoundaryViolationDetector::classifyPoint(qftbx::NicholsPoint point, const BoundaryData * boundaries, std::size_t frequencyIndex) {
 
     const BoundaryColumns & columns = boundaries->columns(frequencyIndex);
@@ -192,10 +143,7 @@ qftbx::BoxFlag BoundaryViolationDetector::classifyPoint(qftbx::NicholsPoint poin
         return columns.allows(columns.columnOf(point.phase), point.magnitude) ? feasible : infeasible;
     }
 
-    //Both columns that bracket the phase must allow the magnitude: the
-    //boundary between the two nodes lies between their readings, and the
-    //nearest node alone admits, half a step away, what the boundary at the
-    //point's own phase forbids.
+    //Conservative: both bracketing nodes must allow it.
     const std::int32_t first = columns.firstColumnCovering(point.phase);
     const std::int32_t last = columns.lastColumnCovering(point.phase);
 

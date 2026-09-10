@@ -15,18 +15,28 @@
 
 /**
  * @class BoundaryViolationDetector
- * @brief Feasibility classification of projected Nichols boxes and points
- * against the boundaries of each design frequency (Tharewal 2005,
- * sec. 3.3.4), including the boundary extremes over the box's phase span
- * that drive the cutting equations of NT/NK/MC1/MC (fig. 5.1).
+ * @brief Classifies a Nichols box, or a point, as feasible, infeasible or
+ * ambiguous against the boundaries of one design frequency, and returns the
+ * boundary extremes over the box's phase span that drive the cutting
+ * equations of NT, NK, MC1 and MC (Tharewal 2005, sec. 3.3.4 and fig. 5.1).
  *
- * The verdicts are read off the allowed magnitude intervals of the phase
- * columns (BoundaryColumns), which carry every specification with its own
- * open or closed semantics. The parity test over the 1D union that used to
- * stand here misjudged the inside of a closed boundary whenever the union
- * had dropped an open one running under it, and the historical
- * Nyquist-plane variants (detection in cartesian coordinates) were tried
- * and discarded by the thesis (secs. 4.5-4.6); both are gone.
+ * Things to keep in mind:
+ * - The verdicts are read off the allowed magnitude intervals of the phase
+ *   columns (BoundaryColumns), which carry every specification with its own
+ *   open or closed semantics. Nothing here knows what a boundary "is".
+ * - Feasible means every column the box spans allows the whole magnitude
+ *   range; infeasible, every column forbids it; anything else is ambiguous,
+ *   including columns that disagree.
+ * - B_min and B_max are the limits of the strips of uniform state under and
+ *   over the span, taken over EVERY column of the span, and infinite when
+ *   the columns do not agree: then no cut applies. The bottom-left and
+ *   top-right corner verdicts certify those strips.
+ * - Two readings of a phase that falls between nodes: the nearest node (the
+ *   published algorithms' reading, the default) and both bracketing nodes
+ *   (the conservative one, a setting). The first lets a violating box
+ *   through where the boundary is steep, +0.051 dB on example 2 with a
+ *   1-degree grid; the second makes the strip cuts apply far less often and
+ *   NT, NK and MC1 about a thousand times slower.
  *
  * @author Moisés Frutos Plaza
  * @author Isaac Martínez Forte
@@ -36,26 +46,20 @@ namespace qftbx {
 class BoundaryViolationDetector
 {
 public:
-    /// How a phase is read off the columns: the nearest node (the published
-    /// algorithms' reading, the default) or both nodes that bracket it (the
-    /// conservative reading; see Settings::algorithms).
+    /// Nearest-node reading by default; conservative reads both bracketing
+    /// nodes (see Settings::algorithms).
     explicit BoundaryViolationDetector(bool conservative = false) : m_conservative(conservative) {}
 
     bool conservative() const { return m_conservative; }
 
-    /// Classification of one projected box; a plain value (four doubles,
-    /// a flag and two corner verdicts), so there is nothing to own.
     BoxClassification classifyBox(NicholsBox box, const BoundaryData * boundaries, std::size_t frequencyIndex);
 
-    /// Boxes classified so far, for the run statistics, and how the
-    /// verdicts split: the three always add up to classifications().
+    /// Run statistics; the three verdict counts add up to classifications().
     std::size_t classifications() const { return m_classifications; }
     std::size_t feasibleBoxes() const { return m_feasible; }
     std::size_t infeasibleBoxes() const { return m_infeasible; }
     std::size_t ambiguousBoxes() const { return m_ambiguous; }
 
-    /// Classifies one Nichols point (phase deg, magnitude dB) against the
-    /// boundaries at design frequency 'frequencyIndex'.
     qftbx::BoxFlag classifyPoint(qftbx::NicholsPoint point, const BoundaryData * boundaries, std::size_t frequencyIndex);
 
 private:
