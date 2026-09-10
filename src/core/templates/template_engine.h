@@ -78,6 +78,61 @@ public:
                              std::vector<std::size_t> * componentStarts = nullptr);
 
     /**
+     * @brief The plane the epsilon of the hull is measured in.
+     *
+     * The walk of the hull only ever asks how far apart two points are, so
+     * the plane those distances are taken in is a choice - and it decides
+     * whether one epsilon can serve a whole template. In the COMPLEX plane
+     * (the historical reading, and what EPSHULL.M did) an epsilon is a
+     * distance in the units of the plant's response, so it means one thing
+     * where the template sits at 40 dB and another where it sits at -40 dB;
+     * measured on example 2 the epsilon a template needs varies by a factor
+     * of ten thousand across its six frequencies, and the spacing of the
+     * points by a factor of seven hundred within one template. In the
+     * NICHOLS plane the distance is taken in degrees and decibels, one
+     * decibel weighed against so many degrees, which is how the reference
+     * implementation of the walk measures (Nordin's prune.m: an accuracy in
+     * degrees and one in dB); there the epsilon a template needs varies by
+     * a factor of three across those same frequencies, and the spacing by
+     * a factor of thirteen. The plane is a property of the project, kept
+     * with its epsilon, since the two are meaningless apart.
+     */
+    enum class HullMetric { ComplexPlane, Nichols };
+
+    /// The metric and, for the Nichols plane, how many decibels weigh as
+    /// much as one degree. Complex plane by default: the historical
+    /// reading, and what every stored project predating the choice used.
+    void setHullMetric(HullMetric metric, double dbPerDegree = 1.0);
+    HullMetric hullMetric() const { return m_metric; }
+    double dbPerDegree() const { return m_dbPerDegree; }
+
+    /**
+     * @brief The epsilon a cloud asks for, and how coarse the cloud is.
+     *
+     * The smallest epsilon that keeps a cloud connected is the longest edge
+     * of its Euclidean minimum spanning tree (the last merge of single
+     * linkage), in the plane of the metric. It is the least epsilon that
+     * loses no point of the cloud, and being the least it is also the one
+     * that rolls over the fewest concavities, so it answers both halves of
+     * "which epsilon?" at once. Alongside it, the cloud's diameter in the
+     * same plane: their ratio is how large the biggest gap in the sample is
+     * against the size of the template, a dimensionless measure of how
+     * coarse the sweep is - on example 2 with 25 points per parameter it is
+     * a fifth of the template at one frequency.
+     */
+    struct EpsilonProposal
+    {
+        double epsilon = 0.0;    ///< the longest edge of the minimum spanning tree
+        double diameter = 0.0;   ///< the largest distance between two points
+        /// The gap as a fraction of the template: epsilon over diameter.
+        double coarseness() const { return diameter > 0.0 ? epsilon / diameter : 0.0; }
+    };
+
+    /// One proposal per frequency of the clouds held, in the current metric.
+    /// Quadratic in the cloud size (Prim), which is nothing next to the sweep.
+    std::vector<EpsilonProposal> proposeEpsilon() const;
+
+    /**
      * @brief What the contour of one frequency went through, as data.
      *
      * The walk has two ways of not being the canonical epsilon-hull, and
@@ -145,6 +200,8 @@ private:
     //the sweep slow, it makes it silently wrong.
     std::size_t m_combinationCount = 0;
     std::vector <double> m_epsilon;
+    HullMetric m_metric = HullMetric::ComplexPlane;
+    double m_dbPerDegree = 1.0;
     bool m_useCuda = false;
 
     CloudSet m_clouds;
@@ -164,11 +221,23 @@ private:
     std::vector<std::vector<std::int32_t>> components(const ComplexCloud & cv, double epsilon,
                                                       const NeighbourGrid & neighbours);
 
-    /// The faithful walk over one epsilon-connected set of points, with the
-    /// relaxed fallback over 'fallback' (the same points, in the order the
-    /// fallback has always received them) when it does not close.
-    ComplexCloud walkComponent(const ComplexCloud & cv, const ComplexCloud & fallback, double epsilon,
-                               const NeighbourGrid & neighbours, bool * fellBack, bool * truncated);
+    /// The points the walk measures its distances in: the points themselves
+    /// in the complex plane, their phase in degrees and magnitude in
+    /// decibels over dbPerDegree in the Nichols plane, the branch cut of
+    /// the phase placed in the widest angular gap of the cloud so that no
+    /// template is torn at -360/0.
+    ComplexCloud projected(const ComplexCloud & points) const;
+
+    /// The faithful walk over one epsilon-connected set of points. The walk
+    /// measures on 'walk' and returns points of 'source', which run parallel
+    /// (the same points, in the same order, in two planes); when the walk
+    /// does not close the relaxed fallback runs over 'fallbackWalk' and
+    /// returns points of 'fallbackSource' (the same points in the order the
+    /// fallback has always received them).
+    ComplexCloud walkComponent(const ComplexCloud & source, const ComplexCloud & walk,
+                               const ComplexCloud & fallbackSource, const ComplexCloud & fallbackWalk,
+                               double epsilon, const NeighbourGrid & neighbours,
+                               bool * fellBack, bool * truncated);
 
     std::int32_t findSecond(std::int32_t b1, const ComplexCloud & cv, double epsilon,
                             const NeighbourGrid & neighbours);
@@ -182,8 +251,8 @@ private:
     /// previous point excluded, deduplicated output. Used as the fallback
     /// when the reference walk cycles. Empty when it hits its own step
     /// limit: it used to return the partial contour it had, silently.
-    ComplexCloud epsilonHullRelaxed(const ComplexCloud & cloud, double epsilon,
-                                    bool * truncated = nullptr);
+    ComplexCloud epsilonHullRelaxed(const ComplexCloud & source, const ComplexCloud & walk,
+                                    double epsilon, bool * truncated = nullptr);
 
 };
 

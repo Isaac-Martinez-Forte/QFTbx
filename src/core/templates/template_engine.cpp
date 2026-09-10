@@ -649,6 +649,122 @@ inline bool withinReach(const complex<double> & candidate, const complex<double>
 } // namespace
 
 
+void TemplateEngine::setHullMetric(HullMetric metric, double dbPerDegree){
+    if (!(dbPerDegree > 0.0) || !std::isfinite(dbPerDegree)){
+        throw qftbx::InvalidInput(QFTBX_TR("Core", "The decibels per degree of the Nichols metric must be a finite positive number."));
+    }
+    m_metric = metric;
+    m_dbPerDegree = dbPerDegree;
+}
+
+ComplexCloud TemplateEngine::projected(const ComplexCloud & points) const{
+
+    if (m_metric == HullMetric::ComplexPlane || points.empty()){
+        return points;
+    }
+
+    //Phases in degrees, on any branch for now.
+    std::vector<double> phases;
+    phases.reserve(points.size());
+    for (const complex<double> & z : points){
+        phases.push_back(std::arg(z) * 180.0 / qftbx::math::kPi);   //(-180, 180]
+    }
+
+    //The branch cut goes in the widest angular gap of the cloud: sorted
+    //phases, the largest jump between neighbours (the wrap-around jump
+    //included), and every phase is then read on the side of that jump, so
+    //a template straddling -360/0 is not torn in two.
+    std::vector<double> sorted = phases;
+    std::sort(sorted.begin(), sorted.end());
+    //The gap that wraps from the largest phase round to the smallest is the
+    //one the (-180, 180] branch already cuts in: if it is the widest, the
+    //cloud is contiguous as read and nothing moves. Otherwise the widest
+    //gap lies between two of the sorted phases, and everything at or below
+    //its lower side moves up a turn to sit after the rest.
+    double widest = sorted.front() + 360.0 - sorted.back();
+    bool shiftBelow = false;
+    double cut = 0.0;
+    for (std::size_t i = 1; i < sorted.size(); ++i){
+        const double gap = sorted[i] - sorted[i - 1];
+        if (gap > widest){
+            widest = gap;
+            cut = sorted[i - 1];
+            shiftBelow = true;
+        }
+    }
+
+    ComplexCloud out;
+    out.reserve(points.size());
+    for (std::size_t i = 0; i < points.size(); ++i){
+        double phase = phases[i];
+        if (shiftBelow && phase <= cut){
+            phase += 360.0;
+        }
+        const double magnitude = std::abs(points[i]);
+        //A zero response has no decibels: far below anything else.
+        const double db = magnitude > 0.0 ? 20.0 * std::log10(magnitude) : -400.0;
+        out.emplace_back(phase, db / m_dbPerDegree);
+    }
+    return out;
+}
+
+std::vector<TemplateEngine::EpsilonProposal> TemplateEngine::proposeEpsilon() const{
+
+    std::vector<EpsilonProposal> proposals;
+    proposals.reserve(m_clouds.size());
+
+    for (const ComplexCloud & cloud : m_clouds){
+        EpsilonProposal proposal;
+
+        //Distinct points only: a repeated point is a zero-length edge.
+        ComplexCloud pts = projected(cloud);
+        std::sort(pts.begin(), pts.end(), [](const complex<double> & a, const complex<double> & b){
+            return a.real() != b.real() ? a.real() < b.real() : a.imag() < b.imag();
+        });
+        pts.erase(std::unique(pts.begin(), pts.end()), pts.end());
+        const std::size_t n = pts.size();
+
+        if (n >= 2){
+            //Prim, dense: the longest edge added is the connectivity
+            //threshold; the diameter falls out of the same distances.
+            std::vector<double> best(n, numeric_limits<double>::infinity());
+            std::vector<char> inTree(n, 0);
+            inTree[0] = 1;
+            for (std::size_t j = 1; j < n; ++j){
+                best[j] = std::abs(pts[j] - pts[0]);
+            }
+            double longest = 0.0;
+            double diameter = 0.0;
+            for (std::size_t added = 1; added < n; ++added){
+                std::size_t next = n;
+                for (std::size_t j = 0; j < n; ++j){
+                    if (!inTree[j] && (next == n || best[j] < best[next])){
+                        next = j;
+                    }
+                }
+                longest = std::max(longest, best[next]);
+                inTree[next] = 1;
+                for (std::size_t j = 0; j < n; ++j){
+                    if (!inTree[j]){
+                        best[j] = std::min(best[j], std::abs(pts[j] - pts[next]));
+                    }
+                }
+            }
+            for (std::size_t i = 0; i < n; ++i){
+                for (std::size_t j = i + 1; j < n; ++j){
+                    diameter = std::max(diameter, std::abs(pts[i] - pts[j]));
+                }
+            }
+            proposal.epsilon = longest;
+            proposal.diameter = diameter;
+        }
+
+        proposals.push_back(proposal);
+    }
+
+    return proposals;
+}
+
 //Faithful port of EPSHULL.M (epsh2, Montoya 1998; the algorithm defined in
 //Nordin 1993). Deliberate divergence: with no initial candidate it returns
 //NULL instead of an empty contour (the caller treats it as an error).
@@ -687,8 +803,13 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsil
               });
     cv.erase(std::unique(cv.begin(), cv.end()), cv.end());
 
-    const NeighbourGrid neighbours(cv, epsilon);
-    const std::vector<std::vector<std::int32_t>> parts = components(cv, epsilon, neighbours);
+    //The walk measures in the plane of the metric; the points it returns
+    //are the cloud's own. In the complex plane the two are the same.
+    const ComplexCloud cvWalk = projected(cv);
+    const ComplexCloud tempWalk = projected(temp);
+
+    const NeighbourGrid neighbours(cvWalk, epsilon);
+    const std::vector<std::vector<std::int32_t>> parts = components(cvWalk, epsilon, neighbours);
 
     if (parts.size() == 1){
         //One component: the historical path, on the whole cloud, with the
@@ -696,26 +817,29 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsil
         if (componentStarts != nullptr){
             componentStarts->push_back(0);
         }
-        return walkComponent(cv, temp, epsilon, neighbours, fellBack, truncated);
+        return walkComponent(cv, cvWalk, temp, tempWalk, epsilon, neighbours, fellBack, truncated);
     }
 
     ComplexCloud result;
     bool anyWalked = false;
 
     for (const std::vector<std::int32_t> & part : parts){
-        ComplexCloud points;
+        ComplexCloud points, walkPoints;
         points.reserve(part.size());
+        walkPoints.reserve(part.size());
         for (const std::int32_t index : part){
             points.push_back(cv.at(static_cast<std::size_t>(index)));
+            walkPoints.push_back(cvWalk.at(static_cast<std::size_t>(index)));
         }
 
         //A grid over the component alone: the walk's candidate queries are
         //by position, and the indices must be the component's own.
-        const NeighbourGrid own(points, epsilon);
+        const NeighbourGrid own(walkPoints, epsilon);
 
         bool partFellBack = false;
         bool partTruncated = false;
-        ComplexCloud contour = walkComponent(points, points, epsilon, own, &partFellBack, &partTruncated);
+        ComplexCloud contour = walkComponent(points, walkPoints, points, walkPoints, epsilon, own,
+                                             &partFellBack, &partTruncated);
 
         if (fellBack != nullptr && partFellBack){
             *fellBack = true;
@@ -826,9 +950,12 @@ std::vector<std::vector<std::int32_t>> TemplateEngine::components(const ComplexC
     return parts;
 }
 
-ComplexCloud TemplateEngine::walkComponent(const ComplexCloud & cv, const ComplexCloud & fallback, double epsilon,
-                                           const NeighbourGrid & neighbours, bool * fellBack, bool * truncated){
+ComplexCloud TemplateEngine::walkComponent(const ComplexCloud & source, const ComplexCloud & walk,
+                                           const ComplexCloud & fallbackSource, const ComplexCloud & fallbackWalk,
+                                           double epsilon, const NeighbourGrid & neighbours,
+                                           bool * fellBack, bool * truncated){
 
+    const ComplexCloud & cv = walk;   //measured here, returned from 'source'
     const std::size_t pointCount = cv.size();
     const std::size_t MAXP = 3 * pointCount;
 
@@ -846,9 +973,9 @@ ComplexCloud TemplateEngine::walkComponent(const ComplexCloud & cv, const Comple
     if (b2 < 0)
         return {};
 
-    std::vector <std::int32_t> walk;
-    walk.push_back(b1);
-    walk.push_back(b2);
+    std::vector <std::int32_t> steps;
+    steps.push_back(b1);
+    steps.push_back(b2);
 
     std::int32_t previousPoint = b1;
     std::int32_t currentPoint = b2;
@@ -864,7 +991,7 @@ ComplexCloud TemplateEngine::walkComponent(const ComplexCloud & cv, const Comple
     //the MATLAB, as real geometric information of the contour.
     while (b1 != currentPoint || b2 != nextPoint){
 
-        walk.push_back(nextPoint);
+        steps.push_back(nextPoint);
         counter++;
 
         if (counter > MAXP){
@@ -879,7 +1006,7 @@ ComplexCloud TemplateEngine::walkComponent(const ComplexCloud & cv, const Comple
                 *fellBack = true;
             }
 
-            return epsilonHullRelaxed(fallback, epsilon, truncated);
+            return epsilonHullRelaxed(fallbackSource, fallbackWalk, epsilon, truncated);
         }
 
         previousPoint = currentPoint;
@@ -893,18 +1020,19 @@ ComplexCloud TemplateEngine::walkComponent(const ComplexCloud & cv, const Comple
     }
 
     ComplexCloud result;
-    result.reserve(walk.size());
+    result.reserve(steps.size());
 
-    for (const std::int32_t var : walk) {
-        result.push_back(cv.at(static_cast<std::size_t>(var)));
+    for (const std::int32_t var : steps) {
+        result.push_back(source.at(static_cast<std::size_t>(var)));
     }
 
     return result;
 }
 
-ComplexCloud TemplateEngine::epsilonHullRelaxed(const ComplexCloud & temp, double epsilon,
-                                                bool * truncated){
+ComplexCloud TemplateEngine::epsilonHullRelaxed(const ComplexCloud & source, const ComplexCloud & walkPoints,
+                                                double epsilon, bool * truncated){
 
+    const ComplexCloud & temp = walkPoints;
     std::size_t pointCount = temp.size();
     std::size_t MAXP = 3 * pointCount;
 
@@ -977,7 +1105,7 @@ ComplexCloud TemplateEngine::epsilonHullRelaxed(const ComplexCloud & temp, doubl
     result.reserve(uniqueIdx.size());
 
     for (const std::int32_t idx : uniqueIdx) {
-        result.push_back(temp.at(static_cast<std::size_t>(idx)));
+        result.push_back(source.at(static_cast<std::size_t>(idx)));
     }
 
     return result;
