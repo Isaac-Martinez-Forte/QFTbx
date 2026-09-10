@@ -117,8 +117,15 @@ TEST(BoundaryBucketBounds, AFractionalPhaseWindowScalesTheBucketsCorrectly)
     EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-1.0, 10.0), &boundaries, 0), qftbx::feasible);
     EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-1.1, -10.0), &boundaries, 0), qftbx::infeasible);
 
-    //The column without a cell finds no crossing.
-    EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-0.6, -10.0), &boundaries, 0), qftbx::feasible);
+    //A point is judged by BOTH nodes that bracket its phase. The floor has
+    //a cell at every node but node 2 (-0.5): -0.6 lies between node 1 (cell)
+    //and node 2, -0.4 between node 2 and node 3 (cell), and either cell
+    //forbids -10 dB. The nearest node alone used to admit both, which is
+    //the permissive reading the search no longer makes. Exactly on the
+    //node without a cell nothing forbids.
+    EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-0.6, -10.0), &boundaries, 0), qftbx::infeasible);
+    EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-0.4, -10.0), &boundaries, 0), qftbx::infeasible);
+    EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-0.5, -10.0), &boundaries, 0), qftbx::feasible);
 }
 
 TEST(BoundaryBucketBounds, ASubDegreeWindowDoesNotDivideByZero)
@@ -135,7 +142,10 @@ TEST(BoundaryBucketBounds, ASubDegreeWindowDoesNotDivideByZero)
     //-0.5 holds none.
     EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-0.25, 10.0), &boundaries, 0), qftbx::feasible);
     EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-0.25, -10.0), &boundaries, 0), qftbx::infeasible);
-    EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-0.45, -10.0), &boundaries, 0), qftbx::feasible);
+    //-0.45 lies between node 0 (no cell) and node 1 (the cell): both nodes
+    //are consulted and the cell's forbids it. On node 0 itself nothing does.
+    EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-0.45, -10.0), &boundaries, 0), qftbx::infeasible);
+    EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-0.5, -10.0), &boundaries, 0), qftbx::feasible);
 }
 
 TEST(BoundaryBucketBounds, LoopShapingRefusesAWindowNarrowerThanTheLoopPhase)

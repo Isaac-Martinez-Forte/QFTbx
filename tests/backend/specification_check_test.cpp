@@ -92,6 +92,10 @@ TEST_P(ReturnedControllerAgainstSpecifications, WorstExcessIsPinned)
         return;   //observed, not pinned yet
     }
 
+    //The point of the chain: what the search returns satisfies the
+    //specifications it was given.
+    EXPECT_TRUE(check.satisfied()) << c.name << " exceeds a bound by " << check.worstExcessDb << " dB";
+
     //Absolute tolerance in dB: the excess is a small difference of two
     //magnitudes and a relative tolerance on it would be meaningless.
     EXPECT_NEAR(check.worstExcessDb, c.knownWorstExcessDb, 2e-3) << c.name;
@@ -99,21 +103,23 @@ TEST_P(ReturnedControllerAgainstSpecifications, WorstExcessIsPinned)
 
 constexpr double kUnpinned = std::numeric_limits<double>::quiet_NaN();
 
-//The state of the chain on 2026-09-09, before any fix to it. Example 2: every
-//algorithm violates the stability bound at w = 100 (the phase grid reads a
-//point's phase at its nearest 1-degree node, permissively), and the three
-//boundary-driven searches also exceed the tracking spread at w = 15 by
-//+0.0031 dB. MC (thesis) and MC2 violate less because their gain is higher,
-//i.e. closer to the true optimum of the structure. ACC'90 is satisfied with
-//margin: its optimum sits at the top of the gain range, far from any bound.
+//With the boundary columns read conservatively (both nodes bracketing a
+//phase) every returned controller satisfies its specifications: the excess
+//is at or below zero everywhere, which is what these pins now assert. Before
+//that reading, on 2026-09-09, every algorithm exceeded the stability bound
+//at w = 100 on example 2 - NT by +0.0510 dB, NK and MC1 by +0.0508, MC
+//(thesis) and MC2 by +0.0351 - and the three boundary-driven searches the
+//tracking spread at w = 15 by +0.0031 dB: the nearest 1-degree node admitted
+//what the boundary at the point's own phase forbade. ACC'90 is satisfied
+//with margin either way: its optimum sits at the top of the gain range.
 INSTANTIATE_TEST_SUITE_P(
     Algorithms, ReturnedControllerAgainstSpecifications,
     ::testing::Values(
-        CheckCase{"Ex2NT", "qft_toolbox_ex2.qft", qftbx::nt, +0.0510},
-        CheckCase{"Ex2NK", "qft_toolbox_ex2.qft", qftbx::nk, +0.0508},
-        CheckCase{"Ex2Mc1", "qft_toolbox_ex2.qft", qftbx::mc1, +0.0508},
-        CheckCase{"Ex2McThesis", "qft_toolbox_ex2.qft", qftbx::mc_thesis, +0.0351},
-        CheckCase{"Ex2Mc2", "qft_toolbox_ex2.qft", qftbx::mc2, +0.0351},
+        CheckCase{"Ex2NT", "qft_toolbox_ex2.qft", qftbx::nt, -0.0000},
+        CheckCase{"Ex2NK", "qft_toolbox_ex2.qft", qftbx::nk, -0.0002},
+        CheckCase{"Ex2Mc1", "qft_toolbox_ex2.qft", qftbx::mc1, -0.0002},
+        CheckCase{"Ex2McThesis", "qft_toolbox_ex2.qft", qftbx::mc_thesis, -0.0045},
+        CheckCase{"Ex2Mc2", "qft_toolbox_ex2.qft", qftbx::mc2, -0.0032},
         CheckCase{"Acc90NT", "acc90.qft", qftbx::nt, -4.8608},
         CheckCase{"Acc90Mc2", "acc90.qft", qftbx::mc2, -4.8608}),
     [](const ::testing::TestParamInfo<CheckCase> & info) {

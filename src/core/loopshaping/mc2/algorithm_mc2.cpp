@@ -516,12 +516,16 @@ RangeUnion AlgorithmMc2::admissibleGains(const std::vector<double> & zeros,
                                                        omega->at(i), nominalPlantValues.at(i));
         const double mu = at.magnitudeDb.lower();
 
+        //The two columns that bracket the phase, read conservatively: what
+        //both allow. The boundary at the point's own phase lies between
+        //their readings.
         const BoundaryColumns & columns = boundaries->columns(i);
-        const BoundaryColumns::Intervals allowed =
-                columns.intervals(columns.columnOf(at.phaseDegrees.lower()));
+        const double phase = at.phaseDegrees.lower();
+        const BoundaryColumns::Intervals below = columns.intervals(columns.firstColumnCovering(phase));
+        const BoundaryColumns::Intervals above = columns.intervals(columns.lastColumnCovering(phase));
 
-        RangeUnion column = RangeUnion::of(allowed.lo, allowed.hi,
-                                           static_cast<std::size_t>(allowed.count));
+        RangeUnion column = RangeUnion::of(below.lo, below.hi, static_cast<std::size_t>(below.count));
+        column.intersectWith(RangeUnion::of(above.lo, above.hi, static_cast<std::size_t>(above.count)));
         column.shiftBy(-mu);
         gains.intersectWith(column);
     }

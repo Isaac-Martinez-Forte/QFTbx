@@ -402,3 +402,23 @@ TEST(BoundaryColumnsGrid, IntersectionRefusesADifferentPhaseGrid)
     EXPECT_THROW(fine.intersectWith(shifted), qftbx::InvalidInput);
     EXPECT_NO_THROW(fine.intersectWith(same));
 }
+
+//The two columns that bracket a phase: the same one on a node, the
+//neighbours inside a cell, the end columns outside the window.
+TEST(BoundaryColumnsGrid, TheColumnsCoveringAPhaseBracketIt)
+{
+    qftbx::BoundaryColumns columns(361, qftbx::Range(-360.0, 0.0));   //1-degree nodes
+
+    EXPECT_EQ(columns.firstColumnCovering(-126.0), 234);
+    EXPECT_EQ(columns.lastColumnCovering(-126.0), 234);
+    EXPECT_EQ(columns.columnOf(-126.0), 234);
+
+    EXPECT_EQ(columns.firstColumnCovering(-126.4983), 233);   //-127 is at or below
+    EXPECT_EQ(columns.lastColumnCovering(-126.4983), 234);    //-126 is at or above
+    EXPECT_EQ(columns.columnOf(-126.4983), 234);              //the nearest node alone
+
+    EXPECT_EQ(columns.firstColumnCovering(-400.0), 0);
+    EXPECT_EQ(columns.lastColumnCovering(-400.0), 0);
+    EXPECT_EQ(columns.firstColumnCovering(40.0), 360);
+    EXPECT_EQ(columns.lastColumnCovering(40.0), 360);
+}
