@@ -70,6 +70,7 @@ struct Tags {
     const char * boundaryUnion;
     const char * unionBuckets;
     const char * loopShapingPointCountAttribute;
+    const char * boundaryColumns;
 };
 
 inline const Tags kV2 = {
@@ -84,6 +85,7 @@ inline const Tags kV2 = {
     "min", "max", "open-flags", "upper-flags", "per-frequency",
     "union", "union-buckets",
     "point-count",
+    "columns",
 };
 
 } // namespace qftbx

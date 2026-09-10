@@ -29,6 +29,7 @@ void BoundaryEngine::releaseResults()
     //of it now.
     m_boundaries.clear();
     m_traceMetadata.clear();
+    m_columns.clear();
     m_unionVectors.clear();
     m_unionBuckets.clear();
     m_openFlags.clear();
@@ -115,6 +116,7 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
 
         m_boundaries.clear();
         m_traceMetadata.clear();
+        m_columns.clear();
 
         for (std::size_t i = 0; i < omega->size(); i++){
 
@@ -131,12 +133,14 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
             std::map<std::string, TraceSet> bound;
 
             std::map<std::string, TraceLabels> traceMetadata;
+            std::map<std::string, BoundaryColumns> columns;
 
-            traceFrequency(omega->at(i), bound, cudaSheets, traceMetadata, p0, valueSet, i,
+            traceFrequency(omega->at(i), bound, cudaSheets, traceMetadata, columns, p0, valueSet, i,
                            phaseRange.width(), magnitudeRange.width(),
                            phaseRange.min, magnitudeRange.min);
 
             m_traceMetadata.push_back(std::move(traceMetadata));
+            m_columns.push_back(std::move(columns));
             m_boundaries.push_back(std::move(bound));
         }
 
@@ -178,12 +182,14 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
 
 BoundaryData BoundaryEngine::boundaryData(){
     return BoundaryData(m_boundaries, m_openFlags, m_upperFlags, m_phaseCount, m_phaseRange,
-                        m_unionVectors, m_unionBuckets, m_magnitudeCount, m_magnitudeRange);
+                        m_unionVectors, m_unionBuckets, m_magnitudeCount, m_magnitudeRange,
+                        m_columns);
 }
 
 void BoundaryEngine::traceFrequency(double omega, std::map<std::string, TraceSet> & bound,
                                     const BoundarySheets & sheets,
                                     std::map<std::string, TraceLabels> & traceMetadata,
+                                    std::map<std::string, BoundaryColumns> & columns,
                                     complex <double> p0, const ComplexCloud & valueSet, std::size_t index,
                                     double phaseSpan, double magnitudeSpan, double phaseBottom, double magnitudeBottom){
 
@@ -197,6 +203,7 @@ void BoundaryEngine::traceFrequency(double omega, std::map<std::string, TraceSet
         bound["Tracking"] =
                       traceBoundary(m_specifications.trackingSpreadDb(omega), sheets.at(1),
                                     metadata, p0, valueSet, 1, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
+        columns["Tracking"] = sheetColumns(sheets.at(1), m_specifications.trackingSpreadDb(omega));
     }
 
     if (m_stabilityMask.at(index)){
@@ -206,6 +213,7 @@ void BoundaryEngine::traceFrequency(double omega, std::map<std::string, TraceSet
         bound["Stability"] =
                       traceBoundary(m_specifications.at(SpecificationType::Stability).boundDb(omega), sheets.at(0),
                                     metadata, p0, valueSet, 0, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
+        columns["Stability"] = sheetColumns(sheets.at(0), m_specifications.at(SpecificationType::Stability).boundDb(omega));
     }
 
     if (m_noiseMask.at(index)){
@@ -215,6 +223,7 @@ void BoundaryEngine::traceFrequency(double omega, std::map<std::string, TraceSet
         bound["SensorNoise"] =
                       traceBoundary(m_specifications.at(SpecificationType::SensorNoise).boundDb(omega), sheets.at(0),
                                     metadata, p0, valueSet, 0, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
+        columns["SensorNoise"] = sheetColumns(sheets.at(0), m_specifications.at(SpecificationType::SensorNoise).boundDb(omega));
     }
 
     if (m_outputDisturbanceMask.at(index)){
@@ -224,6 +233,7 @@ void BoundaryEngine::traceFrequency(double omega, std::map<std::string, TraceSet
         bound["OutputDisturbance"] =
                       traceBoundary(m_specifications.at(SpecificationType::OutputDisturbance).boundDb(omega), sheets.at(2),
                                     metadata, p0, valueSet, 2, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
+        columns["OutputDisturbance"] = sheetColumns(sheets.at(2), m_specifications.at(SpecificationType::OutputDisturbance).boundDb(omega));
     }
 
     if (m_inputDisturbanceMask.at(index)){
@@ -233,6 +243,7 @@ void BoundaryEngine::traceFrequency(double omega, std::map<std::string, TraceSet
         bound["InputDisturbance"] =
                       traceBoundary(m_specifications.at(SpecificationType::InputDisturbance).boundDb(omega), sheets.at(3),
                                     metadata, p0, valueSet, 3, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
+        columns["InputDisturbance"] = sheetColumns(sheets.at(3), m_specifications.at(SpecificationType::InputDisturbance).boundDb(omega));
     }
 
     if (m_controlEffortMask.at(index)){
@@ -242,6 +253,7 @@ void BoundaryEngine::traceFrequency(double omega, std::map<std::string, TraceSet
         bound["ControlEffort"] =
                       traceBoundary(m_specifications.at(SpecificationType::ControlEffort).boundDb(omega), sheets.at(4),
                                     metadata, p0, valueSet, 4, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
+        columns["ControlEffort"] = sheetColumns(sheets.at(4), m_specifications.at(SpecificationType::ControlEffort).boundDb(omega));
     }
 }
 
@@ -249,6 +261,7 @@ void BoundaryEngine::traceFrequency(double omega, std::map<std::string, TraceSet
 void BoundaryEngine::traceFrequency(double omega, std::map<std::string, TraceSet> & bound,
                                     const BoundarySheetsCuda & cudaSheets,
                                     std::map<std::string, TraceLabels> & traceMetadata,
+                                    std::map<std::string, BoundaryColumns> & columns,
                                     complex <double> p0, const ComplexCloud & valueSet, std::size_t index,
                                     double phaseSpan, double magnitudeSpan, double phaseBottom, double magnitudeBottom){
 
@@ -259,6 +272,7 @@ void BoundaryEngine::traceFrequency(double omega, std::map<std::string, TraceSet
         bound["Tracking"] =
                       traceBoundary(m_specifications.trackingSpreadDb(omega), cudaSheets.tracking.data(),
                                     metadata, p0, valueSet, 1, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
+        columns["Tracking"] = sheetColumns(cudaSheets.tracking.data(), m_specifications.trackingSpreadDb(omega));
     }
 
     if (m_stabilityMask.at(index)){
@@ -268,6 +282,7 @@ void BoundaryEngine::traceFrequency(double omega, std::map<std::string, TraceSet
         bound["Stability"] =
                       traceBoundary(m_specifications.at(SpecificationType::Stability).boundDb(omega), cudaSheets.stabilityNoise.data(),
                                     metadata, p0, valueSet, 0, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
+        columns["Stability"] = sheetColumns(cudaSheets.stabilityNoise.data(), m_specifications.at(SpecificationType::Stability).boundDb(omega));
     }
 
     if (m_noiseMask.at(index)){
@@ -277,6 +292,7 @@ void BoundaryEngine::traceFrequency(double omega, std::map<std::string, TraceSet
         bound["SensorNoise"] =
                       traceBoundary(m_specifications.at(SpecificationType::SensorNoise).boundDb(omega), cudaSheets.stabilityNoise.data(),
                                     metadata, p0, valueSet, 0, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
+        columns["SensorNoise"] = sheetColumns(cudaSheets.stabilityNoise.data(), m_specifications.at(SpecificationType::SensorNoise).boundDb(omega));
     }
 
     if (m_outputDisturbanceMask.at(index)){
@@ -286,6 +302,7 @@ void BoundaryEngine::traceFrequency(double omega, std::map<std::string, TraceSet
         bound["OutputDisturbance"] =
                       traceBoundary(m_specifications.at(SpecificationType::OutputDisturbance).boundDb(omega), cudaSheets.outputDisturbance.data(),
                                     metadata, p0, valueSet, 2, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
+        columns["OutputDisturbance"] = sheetColumns(cudaSheets.outputDisturbance.data(), m_specifications.at(SpecificationType::OutputDisturbance).boundDb(omega));
     }
 
     if (m_inputDisturbanceMask.at(index)){
@@ -295,6 +312,7 @@ void BoundaryEngine::traceFrequency(double omega, std::map<std::string, TraceSet
         bound["InputDisturbance"] =
                       traceBoundary(m_specifications.at(SpecificationType::InputDisturbance).boundDb(omega), cudaSheets.inputDisturbance.data(),
                                     metadata, p0, valueSet, 3, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
+        columns["InputDisturbance"] = sheetColumns(cudaSheets.inputDisturbance.data(), m_specifications.at(SpecificationType::InputDisturbance).boundDb(omega));
     }
 
     if (m_controlEffortMask.at(index)){
@@ -304,8 +322,31 @@ void BoundaryEngine::traceFrequency(double omega, std::map<std::string, TraceSet
         bound["ControlEffort"] =
                       traceBoundary(m_specifications.at(SpecificationType::ControlEffort).boundDb(omega), cudaSheets.controlEffort.data(),
                                     metadata, p0, valueSet, 4, phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
+        columns["ControlEffort"] = sheetColumns(cudaSheets.controlEffort.data(), m_specifications.at(SpecificationType::ControlEffort).boundDb(omega));
     }
 
+}
+#endif
+
+BoundaryColumns BoundaryEngine::sheetColumns(const BoundarySheet & sheet, double thresholdDb) const
+{
+    //One row per magnitude, one column per phase.
+    const auto cell = [&sheet](std::int32_t phase, std::int32_t magnitude) {
+        return sheet[static_cast<std::size_t>(magnitude)][static_cast<std::size_t>(phase)];
+    };
+    return BoundaryColumns::fromSheet(cell, thresholdDb, m_phaseCount, m_phaseRange, m_magnitudeCount, m_magnitudeRange);
+}
+
+#ifdef CUDA_AVAILABLE
+BoundaryColumns BoundaryEngine::sheetColumns(const float * sheet, double thresholdDb) const
+{
+    //Column-major: the phase index times the magnitude count, plus the
+    //magnitude index (see ContourTracer).
+    const std::size_t height = static_cast<std::size_t>(m_magnitudeCount);
+    const auto cell = [sheet, height](std::int32_t phase, std::int32_t magnitude) {
+        return sheet[static_cast<std::size_t>(phase) * height + static_cast<std::size_t>(magnitude)];
+    };
+    return BoundaryColumns::fromSheet(cell, thresholdDb, m_phaseCount, m_phaseRange, m_magnitudeCount, m_magnitudeRange);
 }
 #endif
 
@@ -524,6 +565,7 @@ void BoundaryEngine::computeFrequencies(std::vector<double> *omega, LtiSystem *p
     //build. The caller's frequency vector is no longer touched.
     m_boundaries.assign(static_cast<std::size_t>(omega->size()), {});
     m_traceMetadata.assign(static_cast<std::size_t>(omega->size()), {});
+    m_columns.assign(static_cast<std::size_t>(omega->size()), {});
 
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
@@ -636,8 +678,9 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
     std::map<std::string, TraceSet> bound;
 
     std::map<std::string, TraceLabels> traceMetadata;
+    std::map<std::string, BoundaryColumns> columns;
 
-    traceFrequency(omega, bound, sheets, traceMetadata, p0, p, index,
+    traceFrequency(omega, bound, sheets, traceMetadata, columns, p0, p, index,
                    m_phaseRange.width(), m_magnitudeRange.width(),
                    m_phaseRange.min, m_magnitudeRange.min);
 
@@ -648,6 +691,7 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
 
     //Every frequency writes at its own index: no criticals, no permutations.
     m_traceMetadata[index] = std::move(traceMetadata);
+    m_columns[index] = std::move(columns);
     m_boundaries[index] = std::move(bound);
 }
 

@@ -146,6 +146,34 @@ public:
         return bools;
     }
 
+    //The columns of one specification: per column, the interval count and
+    //then the ends of each interval ("inf" and "-inf" are ends too). The
+    //list must cover exactly the grid's columns.
+    qftbx::BoundaryColumns columnsOf(const pugi::xml_node & node, std::int32_t phaseCount, qftbx::Range phaseRange) const
+    {
+        const std::vector<double> reals = realVector(node);
+        std::vector<std::vector<qftbx::BoundaryColumns::Span>> columns;
+        std::size_t i = 0;
+        while (i < reals.size()) {
+            const double count = reals.at(i++);
+            if (!(count >= 0.0) || count != std::floor(count) || i + 2 * static_cast<std::size_t>(count) > reals.size()) {
+                fail(node, QFTBX_TR("Core", "<%1> holds a malformed column list").arg(node.name()));
+            }
+            std::vector<qftbx::BoundaryColumns::Span> spans;
+            for (std::size_t k = 0; k < static_cast<std::size_t>(count); ++k, i += 2) {
+                if (std::isnan(reals.at(i)) || std::isnan(reals.at(i + 1)) || reals.at(i) > reals.at(i + 1)) {
+                    fail(node, QFTBX_TR("Core", "<%1> holds a malformed column list").arg(node.name()));
+                }
+                spans.push_back({reals.at(i), reals.at(i + 1)});
+            }
+            columns.push_back(std::move(spans));
+        }
+        if (columns.size() != static_cast<std::size_t>(phaseCount)) {
+            fail(node, QFTBX_TR("Core", "<%1> does not cover the phase grid").arg(node.name()));
+        }
+        return qftbx::BoundaryColumns(std::move(columns), phaseCount, phaseRange);
+    }
+
     //"x y x y ..." pairs; an unpaired trailing token is rejected.
     qftbx::Trace pointVector(const pugi::xml_node & node) const
     {
@@ -392,6 +420,17 @@ public:
             boundaries.push_back(std::move(map));
         }
 
+        //The columns are optional: files written before they were stored
+        //have none, and BoundaryData rebuilds them from the traces.
+        qftbx::ColumnSet columns;
+        for (const pugi::xml_node & frequencyNode : metadata.child(t.boundaryColumns).children()) {
+            std::map<std::string, qftbx::BoundaryColumns> map;
+            for (const pugi::xml_node & keyNode : frequencyNode.children()) {
+                map[std::string(keyNode.name())] = columnsOf(keyNode, phaseCount, phaseRange);
+            }
+            columns.push_back(std::move(map));
+        }
+
         qftbx::UnionTraces unionBoundaries = readTraces(require(data, t.boundaryUnion));
 
         qftbx::UnionBuckets unionBuckets;
@@ -403,7 +442,8 @@ public:
         //value, so there is one owner and it is the object itself.
         return BoundaryData(std::move(boundaries), std::move(openFlags), std::move(upperFlags),
                             phaseCount, phaseRange, std::move(unionBoundaries),
-                            std::move(unionBuckets), magnitudeCount, magnitudeRange);
+                            std::move(unionBuckets), magnitudeCount, magnitudeRange,
+                            std::move(columns));
     }
 
     std::unique_ptr<LoopShapingResult> readLoopShaping(const pugi::xml_node & section) const

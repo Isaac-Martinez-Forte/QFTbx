@@ -31,7 +31,8 @@ struct PointController
 /// The corner of a box that pointFromBox() takes: the lower corner of every
 /// parameter when 'lower' is true, otherwise the maximum gain and zeros with
 /// the poles at their minimum (the anti-blocking rule). Fixed parameters
-/// contribute their nominal value.
+/// contribute their nominal value. Neither corner is certified feasible by
+/// itself: verifiedCorner() (common_functions.h) is what the searches use.
 inline PointController cornerOf(LtiSystem * box, bool lower)
 {
     PointController point;

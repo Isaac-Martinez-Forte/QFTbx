@@ -2,7 +2,9 @@
 #include "src/core/math/constants.h"
 #include <cstdint>
 #include "src/core/common/exception.h"
-#include "src/core/loopshaping/mc_thesis/algorithm_mc_thesis.h"
+#include "src/core/loopshaping/mc2/algorithm_mc2.h"
+
+#include "src/core/math/range_union.h"
 
 
 namespace quick_solution = qftbx::quick_solution;
@@ -32,13 +34,13 @@ void cornerVectors(LtiSystem * box, bool zerosAtSup, bool polesAtSup,
 } // namespace
 
 
-void AlgorithmMcThesis::setStrategies(const Strategies & s)
+void AlgorithmMc2::setStrategies(const Strategies & s)
 {
     strategies = s;
 }
 
 
-void AlgorithmMcThesis::setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> * omega,
+void AlgorithmMc2::setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> * omega,
                                   const BoundaryData * boundaries, double epsilon)
 {
     this->plant = plant;
@@ -66,12 +68,12 @@ void AlgorithmMcThesis::setProblem(LtiSystem * plant, LtiSystem * controller, st
 //Uniform view of the controller parameters: 0 is the gain, then the
 //zeros, then the poles (the thesis' x vector).
 
-inline std::int32_t AlgorithmMcThesis::parameterCount(LtiSystem * box) const
+inline std::int32_t AlgorithmMc2::parameterCount(LtiSystem * box) const
 {
     return static_cast<std::int32_t>(1 + box->numerator().size() + box->denominator().size());
 }
 
-Range AlgorithmMcThesis::parameterRange(LtiSystem * box, std::int32_t parameter) const
+Range AlgorithmMc2::parameterRange(LtiSystem * box, std::int32_t parameter) const
 {
     Parameter & var = parameter == 0
             ? box->gain()
@@ -86,7 +88,7 @@ Range AlgorithmMcThesis::parameterRange(LtiSystem * box, std::int32_t parameter)
 
 //New box with one parameter's range replaced (deep copy, the original is
 //left untouched).
-std::unique_ptr<LtiSystem> AlgorithmMcThesis::replaceParameter(LtiSystem * box, std::int32_t parameter,
+std::unique_ptr<LtiSystem> AlgorithmMc2::replaceParameter(LtiSystem * box, std::int32_t parameter,
                                                        Range range) const
 {
     std::vector<Parameter> numerator;
@@ -120,7 +122,7 @@ std::unique_ptr<LtiSystem> AlgorithmMcThesis::replaceParameter(LtiSystem * box, 
 //Thesis 5.4, algorithm MC: branch & bound over the live list ordered by
 //ascending gain infimum, with the prune variable C, the execution stages
 //and the cutting/bisection strategies wired per the pseudocode.
-bool AlgorithmMcThesis::solve()
+bool AlgorithmMc2::solve()
 {
     liveList = std::make_unique<OrderedList>(false, m_settings.search.maxLiveNodes);
     conversion = std::make_unique<NaturalIntervalExtension>();
@@ -228,7 +230,37 @@ bool AlgorithmMcThesis::solve()
                 continue;
             }
 
-            designedController = systemFromPoint(node->system(), *corner);
+            //The gain of that corner is whatever the anti-blocking rule
+            //picked, which is the box's MAXIMUM: the rule moves the
+            //projection towards the allowed side assuming that side is up,
+            //and it knows nothing about how much gain the point actually
+            //needs. So the terminal box is as wide in gain as it is, and
+            //the answer inherits that width - on example 2 the box spanned
+            //[555.91, 567.69] and the corner returned the top of it while
+            //the optimum sat inside.
+            //
+            //T3 closes it exactly: with the corner's zeros and poles fixed
+            //the admissible gains are a set, and its infimum is the least
+            //gain that clears every frequency at that point. Verified like
+            //any other candidate, since the boundaries can allow a gain the
+            //nominal loop is unstable at.
+            PointController best = *corner;
+            const RangeUnion gains = admissibleGains(best.zeros, best.poles,
+                                                     node->system()->gain().range());
+
+            if (!gains.isEmpty()) {
+                const double contracted = std::pow(10.0, gains.minimum() / 20.0);
+
+                if (contracted < best.gain) {
+                    PointController candidate{contracted, best.zeros, best.poles};
+
+                    if (pointIsFeasible(candidate) && stability->isNominallyStable(candidate)) {
+                        best = std::move(candidate);
+                    }
+                }
+            }
+
+            designedController = systemFromPoint(node->system(), best);
             return true;
         }
 
@@ -268,12 +300,12 @@ bool AlgorithmMcThesis::solve()
 }
 
 
-std::size_t AlgorithmMcThesis::peakLiveNodes() const
+std::size_t AlgorithmMc2::peakLiveNodes() const
 {
     return liveList != nullptr ? liveList->peakSize() : 0;
 }
 
-LoopShapingStatistics AlgorithmMcThesis::statistics() const
+LoopShapingStatistics AlgorithmMc2::statistics() const
 {
     LoopShapingStatistics statistics;
     if (liveList != nullptr) {
@@ -291,7 +323,7 @@ LoopShapingStatistics AlgorithmMcThesis::statistics() const
 }
 
 
-std::unique_ptr<LtiSystem> AlgorithmMcThesis::controllerStructure()
+std::unique_ptr<LtiSystem> AlgorithmMc2::controllerStructure()
 {
     return std::move(designedController);
 }
@@ -302,7 +334,7 @@ std::unique_ptr<LtiSystem> AlgorithmMcThesis::controllerStructure()
 //the node history already certifies as feasible), collecting the data
 //the cutting stages and the bisection need. Returns false when some
 //frequency is certainly infeasible; the node is the caller's to drop.
-bool AlgorithmMcThesis::analyse(McSearchNode * node, NodeAnalysis & out)
+bool AlgorithmMc2::analyse(McSearchNode * node, NodeAnalysis & out)
 {
     out.flag = feasible;
     out.mainFrequency = 0;
@@ -364,7 +396,7 @@ bool AlgorithmMcThesis::analyse(McSearchNode * node, NodeAnalysis & out)
 
 
 //--------------------------------------------------------------- steps E-F
-void AlgorithmMcThesis::improveNode(McSearchNode * node, NodeAnalysis & analysis,
+void AlgorithmMc2::improveNode(McSearchNode * node, NodeAnalysis & analysis,
                                            std::vector<FeasibleThreshold> & thresholds)
 {
     //Step E (thesis 4.4): the initial stage ends when no projected box
@@ -382,7 +414,7 @@ void AlgorithmMcThesis::improveNode(McSearchNode * node, NodeAnalysis & analysis
     //they overlap in purpose); QSInv always.
     bool improved = false;
 
-    if (strategies.bestGain && bestGainSearch(node, analysis)) {
+    if (strategies.bestGain && bestGainSearch(node)) {
         improved = true;
     } else if (strategies.feasibleMagnitude || strategies.feasiblePhase) {
         feasibleCuts(node, analysis, thresholds, improved);
@@ -406,7 +438,7 @@ void AlgorithmMcThesis::improveNode(McSearchNode * node, NodeAnalysis & analysis
 //certificates produce (MG candidates, UM/UF boxes, tree-bisection
 //marks). An equation slip then costs a missed acceleration, never a
 //wrong verdict.
-bool AlgorithmMcThesis::boxIsFeasibleAt(LtiSystem * box, std::size_t freqIndex)
+bool AlgorithmMc2::boxIsFeasibleAt(LtiSystem * box, std::size_t freqIndex)
 {
     const NicholsBox projection = conversion->nicholsBox(box, omega->at(freqIndex),
                                                   nominalPlantValues.at(freqIndex));
@@ -416,7 +448,7 @@ bool AlgorithmMcThesis::boxIsFeasibleAt(LtiSystem * box, std::size_t freqIndex)
 //The termination test of qftbx::isEpsilonSmall over the projections the
 //feasibility test has just computed for this node; only the frequencies
 //the node history skipped are projected again. Same boxes, same test.
-bool AlgorithmMcThesis::isEpsilonSmall(McSearchNode * node, const NodeAnalysis & analysis)
+bool AlgorithmMc2::isEpsilonSmall(McSearchNode * node, const NodeAnalysis & analysis)
 {
     for (std::size_t i = 0; i < omega->size(); ++i) {
         const NicholsBox box = analysis.projection.at(i).has_value()
@@ -431,7 +463,7 @@ bool AlgorithmMcThesis::isEpsilonSmall(McSearchNode * node, const NodeAnalysis &
     return true;
 }
 
-bool AlgorithmMcThesis::boxIsFeasible(LtiSystem * box)
+bool AlgorithmMc2::boxIsFeasible(LtiSystem * box)
 {
     for (std::size_t i = 0; i < omega->size(); ++i) {
         if (!boxIsFeasibleAt(box, i)) {
@@ -442,7 +474,7 @@ bool AlgorithmMcThesis::boxIsFeasible(LtiSystem * box)
     return true;
 }
 
-bool AlgorithmMcThesis::pointIsFeasible(const PointController & point)
+bool AlgorithmMc2::pointIsFeasible(const PointController & point)
 {
     for (std::size_t i = 0; i < omega->size(); ++i) {
         const NicholsBox projection = conversion->nicholsPoint(point, omega->at(i),
@@ -465,7 +497,37 @@ bool AlgorithmMcThesis::pointIsFeasible(const PointController & point)
 //box. The candidate is verified against the feasibility test and the
 //stability criterion before it may prune through C (the thesis relies on
 //the strip geometry alone; the extra checks cost |Omega| detections).
-bool AlgorithmMcThesis::bestGainSearch(McSearchNode * node, const NodeAnalysis & analysis)
+RangeUnion AlgorithmMc2::admissibleGains(const std::vector<double> & zeros,
+                                        const std::vector<double> & poles, Range gainRange)
+{
+    //Everything in decibels of gain: a column allows magnitudes, and
+    //20log(k) is what carries them to the gain's frame.
+    RangeUnion gains = RangeUnion::of(20.0 * std::log10(gainRange.min),
+                                      20.0 * std::log10(gainRange.max));
+
+    for (std::size_t i = 0; i < omega->size() && !gains.isEmpty(); ++i) {
+
+        //Gain one, so the magnitude of the projection is mu(z, p, w) alone;
+        //the phase is the same whatever the gain.
+        const NicholsBox at = conversion->nicholsPoint(1.0, zeros, poles,
+                                                       omega->at(i), nominalPlantValues.at(i));
+        const double mu = at.magnitudeDb.lower();
+
+        const BoundaryColumns & columns = boundaries->columns(i);
+        const BoundaryColumns::Intervals allowed =
+                columns.intervals(columns.columnOf(at.phaseDegrees.lower()));
+
+        RangeUnion column = RangeUnion::of(allowed.lo, allowed.hi,
+                                           static_cast<std::size_t>(allowed.count));
+        column.shiftBy(-mu);
+        gains.intersectWith(column);
+    }
+
+    return gains;
+}
+
+
+bool AlgorithmMc2::bestGainSearch(McSearchNode * node)
 {
     LtiSystem * box = node->system();
 
@@ -473,70 +535,37 @@ bool AlgorithmMcThesis::bestGainSearch(McSearchNode * node, const NodeAnalysis &
         return false;
     }
 
+    //The vertex of the largest magnitude, which by anti-monotonicity is the
+    //one of the smallest phase: zeros at their supremum, poles at their
+    //infimum. Of the two it is the one that needs the least gain to clear a
+    //lower boundary, which is what the objective wants.
     std::vector<double> zeroSups, poleInfs;
     cornerVectors(box, true, false, zeroSups, poleInfs);
 
-    const double kInf = box->gain().range().min;
-    const double kSup = box->gain().range().max;
+    const RangeUnion gains = admissibleGains(zeroSups, poleInfs, box->gain().range());
 
-    double lowNeeded = kInf;    //k must be >= (top-side feasible strips)
-    double highAllowed = kSup;  //k must be <= (bottom-side feasible strips)
-
-    for (std::size_t i = 0; i < omega->size(); ++i) {
-
-        const std::optional<BoxClassification> & classification =
-                analysis.classification.at(i);
-
-        if (!classification.has_value() || classification->flag() != ambiguous) {
-            continue;   //the whole box, corner included, is feasible here
-        }
-
-        const double w = omega->at(i);
-        const std::complex<double> p0 = nominalPlantValues.at(i);
-        const double boundMin = std::pow(10.0, classification->extremes()[0] / 20.0);
-        const double boundMax = std::pow(10.0, classification->extremes()[1] / 20.0);
-
-        //Preferring the bottom strip serves the objective (it allows the
-        //gain infimum); the top strip is the fallback.
-        bool constrained = false;
-
-        if (!classification->isBottomLeftForbidden()) {   //strip under B_min certainly feasible
-            const double t = quick_solution::gainCut(boundMin, zeroSups, poleInfs, w, p0);
-
-            if (t >= kInf) {
-                highAllowed = std::min(highAllowed, t);
-                constrained = true;
-            }
-        }
-
-        if (!constrained && !classification->isTopRightForbidden()) {   //strip over B_max feasible
-            const double t = quick_solution::gainCut(boundMax, zeroSups, poleInfs, w, p0);
-
-            if (t <= kSup && t > 0.0) {
-                lowNeeded = std::max(lowNeeded, t);
-                constrained = true;
-            }
-        }
-
-        if (!constrained) {
-            return false;   //this frequency cannot be certified at the corner
-        }
+    if (gains.isEmpty()) {
+        return false;   //no gain clears every frequency at this vertex
     }
 
-    if (lowNeeded > highAllowed || lowNeeded >= bestCertifiedGain) {
-        return false;
+    const double gain = std::pow(10.0, gains.minimum() / 20.0);
+
+    if (gain >= bestCertifiedGain) {
+        return false;   //no better than the bound already standing
     }
 
-    //The certified point: gain at the intersection infimum, the other
-    //parameters at the corner (thesis 4.3: the solution is a POINT; its
-    //pseudocode substitutes into the whole box, an erratum).
-    const PointController point{lowNeeded, std::move(zeroSups), std::move(poleInfs)};
+    //A point, and only the point is claimed (thesis 4.3; its pseudocode
+    //substitutes into the whole box, an erratum). The closed form rests on
+    //the column being read at the right phase, so it is verified against
+    //the real detection and the stability criterion before it prunes: the
+    //boundaries can well allow a gain the nominal loop is unstable at.
+    const PointController point{gain, std::move(zeroSups), std::move(poleInfs)};
 
     if (!pointIsFeasible(point) || !stability->isNominallyStable(point)) {
         return false;
     }
 
-    bestCertifiedGain = lowNeeded;
+    bestCertifiedGain = gain;
     bestCertifiedController = systemFromPoint(box, point);
 
     return true;
@@ -546,7 +575,7 @@ bool AlgorithmMcThesis::bestGainSearch(McSearchNode * node, const NodeAnalysis &
 //------------------------------------------------------------------ QSFact
 //Insertion of a certainly feasible box into the live list, guarded by the
 //prune variable and the stability criterion.
-void AlgorithmMcThesis::insertFeasibleBox(std::unique_ptr<LtiSystem> box,
+void AlgorithmMc2::insertFeasibleBox(std::unique_ptr<LtiSystem> box,
                                                 McSearchNode * parent)
 {
     const double gainInf = box->gain().range().min;
@@ -585,7 +614,7 @@ void AlgorithmMcThesis::insertFeasibleBox(std::unique_ptr<LtiSystem> box,
 //intersection across frequencies (UM/UF) is split off into the live list
 //and every valid per-frequency threshold is recorded for the tree
 //bisection (MM/MF).
-void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
+void AlgorithmMc2::feasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
                                             std::vector<FeasibleThreshold> & thresholds, bool & improved)
 {
     LtiSystem * box = node->system();
@@ -796,7 +825,7 @@ void AlgorithmMcThesis::feasibleCuts(McSearchNode * node, const NodeAnalysis & a
 //forbidden: the magnitude cuts of NK's Quick Solution (bottom strip, plus
 //their mirror on the top strip) and the phase cuts of thesis 4.1.2. All
 //cuts run sequentially on the latest updated values.
-void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
+void AlgorithmMc2::infeasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
                                        bool & improved)
 {
     LtiSystem * v = node->system();
@@ -860,7 +889,7 @@ void AlgorithmMcThesis::infeasibleCuts(McSearchNode * node, const NodeAnalysis &
 //-------------------------------------------------------------- bisection
 //Split one parameter at 'point'; both children inherit the node's stage,
 //cut switch and feasible-frequency history.
-qftbx::McBisectionResult AlgorithmMcThesis::bisectAt(McSearchNode * node, std::int32_t parameter,
+qftbx::McBisectionResult AlgorithmMc2::bisectAt(McSearchNode * node, std::int32_t parameter,
                                                          double point)
 {
     LtiSystem * box = node->system();
@@ -896,7 +925,7 @@ qftbx::McBisectionResult AlgorithmMcThesis::bisectAt(McSearchNode * node, std::i
 //most by the requested measure (0 = area, 1 = magnitude, 2 = phase).
 //The gain has no phase component, so measure 2 skips it and measures 0/1
 //use its magnitude width (its phase width is zero).
-inline std::int32_t AlgorithmMcThesis::widestByMeasure(McSearchNode * node, std::size_t mainFrequency, int measure)
+inline std::int32_t AlgorithmMc2::widestByMeasure(McSearchNode * node, std::size_t mainFrequency, int measure)
 {
     LtiSystem * box = node->system();
     const double w = omega->at(mainFrequency);
@@ -947,7 +976,7 @@ inline std::int32_t AlgorithmMcThesis::widestByMeasure(McSearchNode * node, std:
 
 
 //Step G (thesis 5.4.6): the bisection strategy follows the node's stage.
-qftbx::McBisectionResult AlgorithmMcThesis::bisect(McSearchNode * node, const NodeAnalysis & analysis,
+qftbx::McBisectionResult AlgorithmMc2::bisect(McSearchNode * node, const NodeAnalysis & analysis,
                                                        const std::vector<FeasibleThreshold> & thresholds)
 {
     //Tree bisection (thesis 5.3): split at the stored feasible threshold

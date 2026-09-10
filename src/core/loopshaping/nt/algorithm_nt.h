@@ -67,6 +67,13 @@
  *   marginally unstable plant drives the honest search to the bottom of
  *   the gain box, which the QFT boundaries alone do not exclude. The
  *   criterion presumes a nominal plant with no right-half-plane poles.
+ *   The same principle discards a whole ambiguous box when one member is
+ *   unstable and the box's Nichols enclosure excludes the critical point
+ *   at every frequency of the checker's grid
+ *   (NominalStabilityChecker::isBoxUnstable): the loops the boundaries
+ *   cannot reject between the design frequencies, such as the lag
+ *   designs of example 2, would otherwise be bisected down to epsilon
+ *   before the point criterion rejects them one by one.
  * - The C_g+ split is re-certified by the same box test it came from, so
  *   its heuristic gate cannot compromise the result; degenerate slivers
  *   are skipped because they would only bloat the list.

@@ -43,7 +43,9 @@ namespace qftbx {
  * its specification bound (ContourTracer): the level curves are the
  * boundaries, each labelled with the side of the allowed region, and the 1D
  * union (BoundaryUnion1D) merges all specifications into the worst-case
- * boundary per frequency.
+ * boundary per frequency. The same cut read column by column gives the
+ * allowed magnitude intervals the search classifies against
+ * (BoundaryColumns).
  *
  * Reference: I. Martinez Forte, PFC (documentos/pfc), boundary computation
  * chapter (sheet construction, contour cut and 1D union).
@@ -97,8 +99,14 @@ private:
 
     void traceFrequency(double omega, std::map<std::string, TraceSet> & bound,
                         const BoundarySheets & sheets,
-                        std::map<std::string, TraceLabels> & traceMetadata, std::complex<double> p0, const ComplexCloud & valueSet,
+                        std::map<std::string, TraceLabels> & traceMetadata,
+                        std::map<std::string, BoundaryColumns> & columns,
+                        std::complex<double> p0, const ComplexCloud & valueSet,
                         std::size_t index, double phaseSpan, double magnitudeSpan, double phaseBottom, double magnitudeBottom);
+
+    //The allowed magnitude intervals per phase column of one specification,
+    //read off its sheet at the cut height (BoundaryColumns::fromSheet).
+    BoundaryColumns sheetColumns(const BoundarySheet & sheet, double thresholdDb) const;
 
     TraceSet traceBoundary(double thresholdDb, const BoundarySheet & sheet,
                                                TraceLabels & traceMetadata, std::complex<double> p0, const ComplexCloud & valueSet,
@@ -111,8 +119,11 @@ private:
     void traceFrequency(double omega, std::map<std::string, TraceSet> & bound,
                         const BoundarySheetsCuda & cudaSheets,
                         std::map<std::string, TraceLabels> & traceMetadata,
+                        std::map<std::string, BoundaryColumns> & columns,
                         std::complex <double> p0, const ComplexCloud & valueSet, std::size_t index,
                         double phaseSpan, double magnitudeSpan, double phaseBottom, double magnitudeBottom);
+
+    BoundaryColumns sheetColumns(const float * sheet, double thresholdDb) const;
 
     TraceSet traceBoundary(double thresholdDb, const float * sheet,
                            TraceLabels & traceMetadata, std::complex<double> p0,
@@ -130,6 +141,7 @@ private:
 
     BoundarySet m_boundaries;
     TraceMetadata m_traceMetadata;
+    ColumnSet m_columns;
     UnionTraces m_unionVectors;
     UnionBuckets m_unionBuckets;
 

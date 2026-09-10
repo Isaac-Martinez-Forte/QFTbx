@@ -12,7 +12,7 @@
 #include <gtest/gtest.h>
 
 #include <cstdint>
-
+#include <map>
 #include <string>
 
 #include "src/core/math/point.h"
@@ -77,18 +77,24 @@ TEST(BoundaryBucketBounds, TheFullWindowEdgeIsTheLastBucket)
     EXPECT_TRUE(verdict == qftbx::feasible || verdict == qftbx::infeasible);
 }
 
-//A window whose width is NOT a whole number of degrees, with one boundary
-//point in a chosen bucket and nothing anywhere else. An open boundary whose
-//allowed side is up gives a parity rule the bucket can be read through: one
-//boundary point below the query means feasible, an empty bucket means
-//infeasible.
-BoundaryData fractionalWindow(double phaseStart, std::int32_t phaseCount, std::size_t pointBucket)
+//A window whose width is NOT a whole number of degrees, with an open floor
+//of one cell at 0 dB on every grid node but one: the columns that hold a
+//cell forbid everything under it; the column without one constrains
+//nothing. Traced cells only, no stored columns: the rebuild from the traces.
+BoundaryData fractionalWindow(double phaseStart, std::int32_t phaseCount, double skippedPhase)
 {
-    qftbx::UnionBuckets buckets{qftbx::TraceSet(static_cast<std::size_t>(phaseCount))};
-    buckets[0][pointBucket].push_back(qftbx::NicholsPoint(phaseStart, 0.0));
+    qftbx::Trace floor;
+    const double step = -phaseStart / (phaseCount - 1);
+    for (std::int32_t i = 0; i < phaseCount; ++i) {
+        const double phase = phaseStart + i * step;
+        if (phase != skippedPhase) {
+            floor.push_back(qftbx::NicholsPoint(phase, 0.0));
+        }
+    }
+    std::map<std::string, qftbx::TraceSet> specifications{{"Tracking", {floor}}};
 
-    return BoundaryData({{}}, {true}, {true}, phaseCount, qftbx::Range(phaseStart, 0.0),
-                        {{qftbx::NicholsPoint(phaseStart, 0.0)}}, std::move(buckets),
+    return BoundaryData({std::move(specifications)}, {true}, {true}, phaseCount, qftbx::Range(phaseStart, 0.0),
+                        {floor}, {qftbx::TraceSet(static_cast<std::size_t>(phaseCount))},
                         121, qftbx::Range(-60.0, 60.0));
 }
 
@@ -99,18 +105,20 @@ TEST(BoundaryBucketBounds, AFractionalPhaseWindowScalesTheBucketsCorrectly)
     //window of 1.5 degrees was scaled as if it were 1: exact on the default
     //360-degree window, wrong on any other.
     //
-    //Window [-1.5, 0] with 4 cells: 3 intervals over 1.5 degrees is 2 cells
-    //per degree, so -1.0 degrees belongs to cell 2. Truncating the width to
-    //1 gives 3 cells per degree and sends it to cell 3.
-    const BoundaryData boundaries = fractionalWindow(-1.5, 4, 2);
+    //Window [-1.5, 0] with 4 nodes: 3 intervals over 1.5 degrees is a node
+    //every 0.5 degrees, so the cell at -1.0 sits on node 1 and its column
+    //spans [-1.25, -0.75], and node 2 at -0.5 holds no cell. Truncating the
+    //width to 1 would have moved them.
+    const BoundaryData boundaries = fractionalWindow(-1.5, 4, -0.5);
 
     BoundaryViolationDetector detector;
 
-    //Cell 2 holds the boundary point, one below the query: feasible.
+    //The column of a cell: above it feasible, under it not.
     EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-1.0, 10.0), &boundaries, 0), qftbx::feasible);
+    EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-1.1, -10.0), &boundaries, 0), qftbx::infeasible);
 
-    //And a phase that belongs elsewhere still finds its own cell empty.
-    EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-0.25, 10.0), &boundaries, 0), qftbx::infeasible);
+    //The column without a cell finds no crossing.
+    EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-0.6, -10.0), &boundaries, 0), qftbx::feasible);
 }
 
 TEST(BoundaryBucketBounds, ASubDegreeWindowDoesNotDivideByZero)
@@ -118,13 +126,16 @@ TEST(BoundaryBucketBounds, ASubDegreeWindowDoesNotDivideByZero)
     //Under one degree the truncated width was ZERO: the scale divided by it,
     //the index came out infinite and the clamp sent every phase to the last
     //cell, whatever it was asked.
-    const BoundaryData boundaries = fractionalWindow(-0.5, 3, 1);
+    const BoundaryData boundaries = fractionalWindow(-0.5, 3, -0.5);
 
     BoundaryViolationDetector detector;
 
-    //Half the window of 0.5 degrees, with 2 cells over it: 4 cells per
-    //degree, so -0.25 belongs to cell 1, which holds the point.
+    //Half the window of 0.5 degrees, with 2 intervals over it: a node every
+    //0.25 degrees, so -0.25 is node 1, which holds a cell, and node 0 at
+    //-0.5 holds none.
     EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-0.25, 10.0), &boundaries, 0), qftbx::feasible);
+    EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-0.25, -10.0), &boundaries, 0), qftbx::infeasible);
+    EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-0.45, -10.0), &boundaries, 0), qftbx::feasible);
 }
 
 TEST(BoundaryBucketBounds, LoopShapingRefusesAWindowNarrowerThanTheLoopPhase)

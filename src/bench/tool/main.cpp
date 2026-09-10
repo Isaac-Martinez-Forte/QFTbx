@@ -18,6 +18,8 @@
 #include <string>
 #include <vector>
 
+#include <clocale>
+
 #include <QCoreApplication>
 #include <QDir>
 #include <QFileInfo>
@@ -132,6 +134,14 @@ int printExample()
 int main(int argc, char ** argv)
 {
     QCoreApplication application(argc, argv);
+
+    //Same as the application's main() and the other test mains:
+    //QCoreApplication adopts the system locale, and under a decimal-comma
+    //locale (es_ES...) the number readers reject literals like "0.1", so
+    //neither a plan nor a project would load. The numeric side of the
+    //program always works with the decimal point.
+    std::setlocale(LC_NUMERIC, "C");
+
     const std::vector<std::string> args(argv + 1, argv + argc);
     if (args.empty()) {
         return usage();

@@ -344,4 +344,27 @@ bool NominalStabilityChecker::isNominallyStable(const PointController & point)
     return isStable(profileOf(point), std::abs(point.gain));
 }
 
+bool NominalStabilityChecker::isBoxUnstable(LtiSystem * box, NaturalIntervalExtension & extension)
+{
+    constexpr std::size_t kStride = 8;
+
+    const PointController corner = cornerOf(box, true);
+    const Profile & profile = profileOf(corner);
+    ++m_statistics.verdicts;
+    if (!profile.decided || isStable(profile, std::abs(corner.gain))) {
+        return false;
+    }
+
+    const std::size_t n = m_frequencies.size();
+    for (std::size_t i = 0; i < n; i += kStride) {
+        const NicholsBox enclosure = extension.nicholsBox(box, m_frequencies[i],
+                                                          std::complex<double>(m_plantRe[i], m_plantIm[i]));
+        if (enclosure.magnitudeDb.lower() <= 0.0 && enclosure.magnitudeDb.upper() >= 0.0 &&
+                enclosure.phaseDegrees.lower() <= -180.0 && enclosure.phaseDegrees.upper() >= -180.0) {
+            return false;
+        }
+    }
+    return true;
+}
+
 } // namespace qftbx

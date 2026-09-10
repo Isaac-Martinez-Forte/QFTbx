@@ -83,22 +83,25 @@ bool AlgorithmMc1::solve()
         }
 
         //Step 3 and Remark 3.1 termination, as reviewed for NT.
-        if (node->flag() == feasible || isEpsilonSmall(node->system(), this->epsilon, omega, conversion.get(), nominalPlantValues)) {
-            if (node->flag() == ambiguous) {
-                const PointController corner = cornerOf(node->system(), false);
-
-                if (!stability->isNominallyStable(corner)) {
-                    continue;
-                }
-
-                designedController = systemFromPoint(node->system(), corner);
-            } else {
-                designedController = pointFromBox(node->system(), true);
-            }
-
+        if (node->flag() == feasible) {
+            designedController = pointFromBox(node->system(), true);
             return true;
         }
 
+        if (isEpsilonSmall(node->system(), this->epsilon, omega, conversion.get(), nominalPlantValues)) {
+            //The corner must satisfy the boundaries and the nominal
+            //stability criterion (see verifiedCorner). A box with no
+            //certified corner, or an unstable one, is dropped, as in NT.
+            const std::optional<PointController> corner = verifiedCorner(node->system(), omega,
+                    conversion.get(), detector.get(), boundaries, nominalPlantValues);
+
+            if (!corner || !stability->isNominallyStable(*corner)) {
+                continue;
+            }
+
+            designedController = systemFromPoint(node->system(), *corner);
+            return true;
+        }
         //Step 4: bisect along the widest parameter direction.
         BisectionResult halves = bisectWidestParameter(node->system());
 
@@ -175,7 +178,11 @@ void AlgorithmMc1::check_box_feasibility(std::unique_ptr<LtiSystem> box)
     }
 
     //The nominal stability of a feasible box is checked when it is popped
-    //(see solve()).
+    //(see solve()). An ambiguous box whose members are all unstable dies
+    //here (NominalStabilityChecker::isBoxUnstable, as in NT).
+    if (flag_final == ambiguous && stability->isBoxUnstable(box.get(), *conversion)) {
+        return;
+    }
 
     //QS2 stage 3 on the surviving ambiguous box: a certified feasible
     //gain subrange updates the prune variable C.

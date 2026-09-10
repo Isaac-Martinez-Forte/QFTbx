@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "src/core/boundaries/boundary_types.h"
+#include "src/core/boundaries/boundary_columns.h"
 #include <string>
 
 namespace qftbx {
@@ -20,7 +21,11 @@ namespace qftbx {
  * 1D union of all specifications and unionBuckets() the same union bucketed
  * by phase, sorted by magnitude. openFlags() and upperFlags() say, per
  * frequency, whether that union is open and whether its allowed side is
- * above it.
+ * above it. The union is what the viewer draws and the file stores; the
+ * search classifies against columns(), the allowed magnitude intervals per
+ * phase column (BoundaryColumns): the engine reads each specification's off
+ * its sheet, the file stores them, and a file from before they were stored
+ * gets them rebuilt from the traces (BoundaryColumns::fromTraces).
  */
 class BoundaryData
 {
@@ -28,9 +33,17 @@ public:
     BoundaryData(BoundarySet boundaries, std::vector<bool> openFlags,
                  std::vector<bool> upperFlags, std::int32_t phaseCount, qftbx::Range phaseRange,
                  UnionTraces unionBoundaries, UnionBuckets unionBuckets,
-                 std::int32_t magnitudeCount, qftbx::Range magnitudeRange);
+                 std::int32_t magnitudeCount, qftbx::Range magnitudeRange,
+                 ColumnSet columns = {});
 
     const BoundarySet & boundaries () const;
+
+    /// The columns of every specification, per frequency: the given ones,
+    /// rebuilt from the traces where a specification had none.
+    const ColumnSet & specificationColumns () const { return m_specificationColumns; }
+
+    /// The allowed magnitude intervals per phase column at a design frequency.
+    const BoundaryColumns & columns (std::size_t frequencyIndex) const { return m_columns[frequencyIndex]; }
     std::int32_t phaseCount () const;
     std::int32_t magnitudeCount () const;
     qftbx::Range phaseRange () const;
@@ -58,6 +71,8 @@ private:
     qftbx::Range m_magnitudeRange;
     UnionTraces m_unionBoundaries;
     UnionBuckets m_unionBuckets;
+    ColumnSet m_specificationColumns;
+    std::vector<BoundaryColumns> m_columns;
 };
 
 } // namespace qftbx

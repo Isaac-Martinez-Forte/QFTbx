@@ -93,6 +93,11 @@ inline void expectSameBoundaries(const BoundaryData* a, const BoundaryData* b)
         EXPECT_EQ(a->boundaries()[f], b->boundaries()[f]) << "frequency " << f;
     }
 
+    ASSERT_EQ(a->specificationColumns().size(), b->specificationColumns().size());
+    for (std::size_t f = 0; f < a->specificationColumns().size(); ++f) {
+        EXPECT_EQ(a->specificationColumns()[f], b->specificationColumns()[f]) << "columns " << f;
+    }
+
     ASSERT_EQ(a->unionBoundaries().size(), b->unionBoundaries().size());
     for (std::size_t f = 0; f < a->unionBoundaries().size(); ++f) {
         EXPECT_EQ(a->unionBoundaries()[f], b->unionBoundaries()[f]) << "union " << f;

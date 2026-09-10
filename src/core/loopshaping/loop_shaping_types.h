@@ -12,10 +12,11 @@ enum BoxFlag{
     ambiguous
 };
 
-/// Which of the five algorithms to run. Positional: the persistence and
-/// the dialog both index them in this order.
+/// Which of the six algorithms to run. Positional: the persistence and
+/// the dialog both index them in this order, so a new one goes at the end
+/// or the projects already written change meaning.
 enum LoopShapingAlgorithm {nt, nk, mr,
-                       mc1, mc_thesis};
+                       mc1, mc_thesis, mc2};
 
 } // namespace qftbx
 

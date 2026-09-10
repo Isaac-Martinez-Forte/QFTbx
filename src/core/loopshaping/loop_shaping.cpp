@@ -108,6 +108,16 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
         if (solved) {
             report(mc_thesis->controllerStructure(), mc_thesis->statistics());
         }
+    } else if (algorithm == qftbx::mc2) {
+        auto mc2 = std::make_unique<AlgorithmMc2>();
+        mc2->setProblem(plant, controller, omega, boundaries, epsilon);
+        mc2->setCancellation(m_cancellation);
+        mc2->setSettings(m_settings);
+        timer = std::chrono::steady_clock::now();
+        solved = mc2->solve();
+        if (solved) {
+            report(mc2->controllerStructure(), mc2->statistics());
+        }
     }
 
     return solved;

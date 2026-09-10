@@ -1,172 +1,180 @@
 #include <cstdint>
+#include <limits>
+
 #include "src/core/loopshaping/common/boundary_violation_detector.h"
 
-
-//Reader of the phase bucketing that BoundaryUnion1D::bucketIndex writes.
-//Both must agree on the range of valid indices, because this indexes the
-//vector the other one sized: the writer clamps to its last bucket and this
-//one did not, so a phase beyond the Nichols window walked off the end of the
-//row (at() out of range is undefined behaviour, and the box classification
-//reaches the same row through value(), which answers nullptr and was then
-//dereferenced). The window is free text in the boundaries dialog while every
-//caller normalises phase into (-360, 0], so a window narrower than 360
-//degrees was enough to reach it.
 namespace qftbx {
 
-std::int32_t BoundaryViolationDetector::phaseBucket(double phaseDegrees, std::int32_t bucketCount,
-                                                     double phaseSpanDegrees)
-{
-    //Cells per degree, times the distance from the window's edge. The cast
-    //that used to sit on bucketCount was a leftover of the crossed types.
-    double res = std::abs(phaseDegrees) * (bucketCount / phaseSpanDegrees);
-    if(res<0) res=0;
-    if(res>bucketCount) res=bucketCount;
-    return static_cast<std::int32_t>(res);
-}
-
-BoxFlag BoundaryViolationDetector::pointVerdict(qftbx::NicholsPoint point,
-                                                const qftbx::TraceSet & buckets,
-                                                std::int32_t bucketCount,
-                                                bool above, double phaseSpanDegrees) {
-    std::int32_t crossingsAbove = 0;
-    const qftbx::Trace & bucket =
-            buckets.at(static_cast<std::size_t>(phaseBucket(point.phase, bucketCount, phaseSpanDegrees)));
-
-    for (const qftbx::NicholsPoint & bucketPoint : bucket) {
-        if (point.magnitude > bucketPoint.magnitude){
-            crossingsAbove++;
-        }
-    }
-
-    //Parity test. 'above' comes from the union metadata and means the
-    //ALLOWED side is above. An even number of boundary layers below the
-    //point leaves it UNDER the union, an odd number over it. The
-    //historical open-boundary branch had the two verdicts swapped, so every
-    //open boundary (tracking, disturbance rejection) accepted exactly the
-    //loops that violated it and rejected the compliant ones; once fixed,
-    //the open and the closed branch computed the same thing, and there is
-    //one test now.
-    const bool underTheUnion = crossingsAbove % 2 == 0;
-    const bool violation = underTheUnion ? above : !above;
-
-    return violation ? infeasible : feasible;
-}
-
-//Feasibility of a Nichols box against the boundary union at one design
-//frequency (Tharewal 2005, sec. 3.3.4): feasible when the box lies
-//entirely on the allowed side, infeasible when entirely on the forbidden
-//side, ambiguous when boundary points fall inside it. The returned
-//minimums/maximums are B_min and B_max, the extreme boundary magnitudes
-//over the box's PHASE interval (Tharewal 2005, fig. 5.1), in dB/degrees,
-//which drive the gain cutting, plus the boundary's phase extremes over
-//the same span, which drive the phase cutting of algorithm MC. The
-//historical version computed B_min and B_max only from the boundary
-//points INSIDE the box: when the boundary left the box within its phase
-//span the cut could remove feasible gains.
+//Feasibility of a Nichols box against the boundaries of one design frequency
+//(Tharewal 2005, sec. 3.3.4): feasible when the box lies entirely on the
+//allowed side at every phase column it spans, infeasible when entirely on
+//the forbidden side at every column, ambiguous otherwise - a boundary
+//crossing inside the box, or columns that disagree. The verdict is read off
+//the allowed intervals of the columns (BoundaryColumns); every specification
+//is in them with its own semantics, so an open boundary running under a
+//closed one, or a corridor between the two, classifies as the
+//specifications say. The parity count over the union's bucket that used to
+//stand here called the inside of a closed curve allowed whenever the union
+//had dropped the curve below it.
+//
+//The extremes returned with the verdict are B_min and B_max, the lowest and
+//highest boundary crossing over the box's PHASE interval regardless of its
+//magnitude (Tharewal 2005, fig. 5.1), and the boundary's phase extremes over
+//the same span; they drive the gain and phase cutting of the algorithms,
+//which read them as the limits of a strip of uniform state: below B_min the
+//whole span is forbidden (the cuts C_g- and QS raise the gain to it) or
+//allowed (the thesis's feasible bottom strip), as the bottom-left corner
+//says; above B_max likewise, as the top-right corner says. On a
+//single-valued open boundary that is exactly the minimum and the maximum of
+//the curve over the span. On boundaries in general the strip is taken over
+//every column of the span - the lowest end of the bottom interval of each
+//column when every column is forbidden at the bottom, the lowest top of
+//the bottom interval when every column is allowed there, and their mirror
+//images at the top - and is infinite when the columns do not agree, so no
+//cut applies: a closed curve alone cuts no gain, which is what its
+//geometry says. The corner verdicts certify the cutting strips: the
+//bottom-left corner the bottom and left strips, the top-right corner the
+//top and right ones.
 BoxClassification BoundaryViolationDetector::classifyBox(NicholsBox box, const BoundaryData *boundaries, std::size_t frequencyIndex) {
     ++m_classifications;
 
-    const qftbx::TraceSet & buckets =
-            boundaries->unionBuckets().at(frequencyIndex);
-    const std::int32_t bucketCount = boundaries->phaseCount() - 1;
-    const bool above = boundaries->upperFlags().at(frequencyIndex);
+    constexpr double kInfinity = std::numeric_limits<double>::infinity();
 
-    double minPhaseBound = std::numeric_limits<double>::max(), maxPhaseBound = std::numeric_limits<double>::lowest(),
-            minMagBound = std::numeric_limits<double>::max(), maxMagBound = std::numeric_limits<double>::lowest();
+    const BoundaryColumns & columns = boundaries->columns(frequencyIndex);
 
-    bool ambiguousVerdict = false;
+    const double minPhase = box.phaseDegrees.lower(), maxPhase = box.phaseDegrees.upper();
+    const double minMag = box.magnitudeDb.lower(), maxMag = box.magnitudeDb.upper();
 
-    const double phaseSpanDegrees = boundaries->phaseRange().width();
+    //The columns the box's phase span covers; the end columns take what
+    //falls outside the window.
+    const std::int32_t first = columns.columnOf(minPhase);
+    const std::int32_t last = columns.columnOf(maxPhase);
 
-    double minPhase = box.phaseDegrees.lower(), maxPhase = box.phaseDegrees.upper(), minMag = box.magnitudeDb.lower(), maxMag = box.magnitudeDb.upper();
+    double minPhaseBound = std::numeric_limits<double>::max(), maxPhaseBound = std::numeric_limits<double>::lowest();
 
-    //The buckets the box's phase span covers. Phases are negative on the
-    //Nichols branch and the buckets are indexed by |phase|, so the span
-    //runs from the bucket of its upper phase to the bucket of its lower
-    //one. The scan used to step a phase variable across the span, one
-    //bucket width at a time, and bucket the clamped value at every step:
-    //the same buckets, each visited once. The clamp inside phaseBucket
-    //keeps both ends in range (the historical value() returned nullptr out
-    //of range and was dereferenced).
-    const std::size_t firstBucket = static_cast<std::size_t>(phaseBucket(maxPhase, bucketCount, phaseSpanDegrees));
-    const std::size_t lastBucket = static_cast<std::size_t>(phaseBucket(minPhase, bucketCount, phaseSpanDegrees));
+    //The strips of uniform state under and over the span (see above).
+    double forbiddenBelow = kInfinity, allowedBelow = kInfinity;
+    double forbiddenAbove = -kInfinity, allowedAbove = -kInfinity;
+    bool everyBottomForbidden = true, everyBottomAllowed = true;
+    bool everyTopForbidden = true, everyTopAllowed = true;
 
-    for (std::size_t b = firstBucket; b <= lastBucket; ++b) {
+    bool anyAllowed = false, anyForbidden = false, ambiguousVerdict = false;
 
-        for (const qftbx::NicholsPoint & boundaryPoint : buckets.at(b)) {
+    for (std::int32_t c = first; c <= last; ++c) {
+        const BoundaryColumns::Intervals spans = columns.intervals(c);
+        const double phase = columns.phaseOf(c);
 
-            //Only boundary points within the box's phase span take part.
-            if (boundaryPoint.phase < minPhase || boundaryPoint.phase > maxPhase) {
-                continue;
+        if (spans.count == 0) {
+            //Nothing allowed here: forbidden at every magnitude.
+            everyBottomAllowed = false;
+            everyTopAllowed = false;
+        } else {
+            if (spans.lo[0] > -kInfinity) {
+                everyBottomAllowed = false;
+                if (spans.lo[0] < forbiddenBelow) forbiddenBelow = spans.lo[0];
+            } else {
+                everyBottomForbidden = false;
+                if (spans.hi[0] < allowedBelow) allowedBelow = spans.hi[0];
+            }
+            const std::int32_t top = spans.count - 1;
+            if (spans.hi[top] < kInfinity) {
+                everyTopAllowed = false;
+                if (spans.hi[top] > forbiddenAbove) forbiddenAbove = spans.hi[top];
+            } else {
+                everyTopForbidden = false;
+                if (spans.lo[top] > allowedAbove) allowedAbove = spans.lo[top];
+            }
+        }
+
+        //The column's verdict on [minMag, maxMag]: inside one allowed
+        //interval, inside one forbidden gap, or across an end.
+        bool allowed = false, forbidden = false;
+        double previousHi = -kInfinity;
+        bool decided = false;
+
+        for (std::int32_t i = 0; i < spans.count; ++i) {
+            const double lo = spans.lo[i];
+            const double hi = spans.hi[i];
+
+            //Finite ends are boundary crossings: the phase extremes of the
+            //boundary over the span, and an end inside the box makes it
+            //ambiguous.
+            if (lo > -kInfinity) {
+                if (phase < minPhaseBound) minPhaseBound = phase;
+                if (phase > maxPhaseBound) maxPhaseBound = phase;
+                if (lo >= minMag && lo <= maxMag) ambiguousVerdict = true;
+            }
+            if (hi < kInfinity) {
+                if (phase < minPhaseBound) minPhaseBound = phase;
+                if (phase > maxPhaseBound) maxPhaseBound = phase;
+                if (hi >= minMag && hi <= maxMag) ambiguousVerdict = true;
             }
 
-            //B_min / B_max over the phase interval, regardless of the
-            //box's magnitude range.
-            if (boundaryPoint.phase > maxPhaseBound) {
-                maxPhaseBound = boundaryPoint.phase;
+            if (!decided) {
+                if (maxMag < lo) {
+                    //Wholly in the gap below this interval.
+                    forbidden = minMag > previousHi;
+                    decided = true;
+                } else if (minMag >= lo && maxMag <= hi) {
+                    allowed = true;
+                    decided = true;
+                } else if (minMag <= hi) {
+                    //Straddles an end of this interval.
+                    decided = true;
+                }
             }
+            previousHi = hi;
+        }
 
-            if (boundaryPoint.phase < minPhaseBound) {
-                minPhaseBound = boundaryPoint.phase;
-            }
+        if (!decided) {
+            //Above the last interval, or a column with no allowed interval.
+            forbidden = minMag > previousHi;
+        }
 
-            if (boundaryPoint.magnitude > maxMagBound) {
-                maxMagBound = boundaryPoint.magnitude;
-            }
-
-            if (boundaryPoint.magnitude < minMagBound) {
-                minMagBound = boundaryPoint.magnitude;
-            }
-
-            //A boundary point inside the box makes it ambiguous.
-            if (boundaryPoint.magnitude >= minMag && boundaryPoint.magnitude <= maxMag) {
-                ambiguousVerdict = true;
-            }
+        anyAllowed = anyAllowed || allowed;
+        anyForbidden = anyForbidden || forbidden;
+        if (!allowed && !forbidden) {
+            ambiguousVerdict = true;
         }
     }
 
-
     BoxClassification classification;
+
+    const bool bottomLeftForbidden = !columns.allows(first, minMag);
+    const bool topRightForbidden = !columns.allows(last, maxMag);
+    classification.setBottomLeftForbidden(bottomLeftForbidden);
+    classification.setTopRightForbidden(topRightForbidden);
+
+    //B_min: the top of the strip under the span whose state the bottom-left
+    //corner has; B_max: the bottom of the strip over it whose state the
+    //top-right corner has. Infinite when the columns do not share it.
+    const double minMagBound = bottomLeftForbidden ? (everyBottomForbidden ? forbiddenBelow : -kInfinity)
+                                                   : (everyBottomAllowed ? allowedBelow : -kInfinity);
+    const double maxMagBound = topRightForbidden ? (everyTopForbidden ? forbiddenAbove : kInfinity)
+                                                 : (everyTopAllowed ? allowedAbove : kInfinity);
 
     classification.setExtremes({minMagBound, maxMagBound, minPhaseBound, maxPhaseBound});
 
-    //Corner classifications for the cutting strips: every boundary point
-    //whose phase lies in the box's span was scanned above, so the box
-    //regions below/left of (B_min, phase_min) and above/right of
-    //(B_max, phase_max) are boundary-free and uniformly classified by the
-    //corner they contain. The bottom-left corner drives the gain cutting
-    //(NT/NK/MC/thesis-MC, bottom and left strips); the top-right corner
-    //drives the top and right strips (MC/thesis-MC).
-    BoxFlag f = pointVerdict(qftbx::NicholsPoint(minPhase, minMag), buckets, bucketCount,
-                             above, phaseSpanDegrees);
-    classification.setBottomLeftForbidden(f == infeasible);
-
-    BoxFlag f2 = pointVerdict(qftbx::NicholsPoint(maxPhase, maxMag), buckets, bucketCount,
-                              above, phaseSpanDegrees);
-    classification.setTopRightForbidden(f2 == infeasible);
-
-    if (ambiguousVerdict) {
+    if (ambiguousVerdict || (anyAllowed && anyForbidden)) {
         classification.setFlag(ambiguous);
+    } else if (anyAllowed) {
+        classification.setFlag(feasible);
     } else {
-        classification.setFlag(f);
+        classification.setFlag(infeasible);
     }
 
     return classification;
 }
 
 //Classification of a single Nichols point (phase in degrees, magnitude in
-//dB) against the boundary union at one design frequency, with the same
-//parity test the box classification uses. It certifies the zone gates of
-//the gain cutting and splitting (Tharewal 2005, ch. 5).
+//dB) against the boundaries of one design frequency: the allowed intervals
+//of its phase column. It certifies the zone gates of the gain cutting and
+//splitting (Tharewal 2005, ch. 5) and the corner a terminating box returns.
 qftbx::BoxFlag BoundaryViolationDetector::classifyPoint(qftbx::NicholsPoint point, const BoundaryData * boundaries, std::size_t frequencyIndex) {
 
-    const qftbx::TraceSet & buckets =
-            boundaries->unionBuckets().at(frequencyIndex);
-    const std::int32_t bucketCount = boundaries->phaseCount() - 1;
-    const bool above = boundaries->upperFlags().at(frequencyIndex);
-    const double phaseSpanDegrees = boundaries->phaseRange().width();
+    const BoundaryColumns & columns = boundaries->columns(frequencyIndex);
 
-    return pointVerdict(point, buckets, bucketCount, above, phaseSpanDegrees);
+    return columns.allows(columns.columnOf(point.phase), point.magnitude) ? feasible : infeasible;
 }
 
 } // namespace qftbx
