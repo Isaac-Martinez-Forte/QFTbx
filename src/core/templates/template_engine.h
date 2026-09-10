@@ -11,6 +11,7 @@
 #include "src/core/system/lti_system.h"
 #include "src/core/templates/parameter_grids.h"
 #include "src/core/templates/cloud_set.h"
+#include "src/core/templates/hull_metric.h"
 #include "src/core/system/parameter.h"
 
 namespace qftbx {
@@ -97,7 +98,7 @@ public:
      * a factor of thirteen. The plane is a property of the project, kept
      * with its epsilon, since the two are meaningless apart.
      */
-    enum class HullMetric { ComplexPlane, Nichols };
+    using HullMetric = qftbx::HullMetric;
 
     /// The metric and, for the Nichols plane, how many decibels weigh as
     /// much as one degree. Complex plane by default: the historical

@@ -490,6 +490,7 @@ ProjectReader::Loaded ProjectReader::load(const std::string & filePath)
     m_templates.clear();
     m_contour.clear();
     m_epsilon.reset();
+    m_epsilonMetric = EpsilonMetric{};
     m_boundaries.reset();
     m_controller.reset();
     m_loopShaping.reset();
@@ -527,11 +528,14 @@ ProjectReader::Loaded ProjectReader::load(const std::string & filePath)
     //DIFFERENT meanings (<inicio> is a range start and also an omega start,
     //<tipo> is an element in one place and an attribute in another), so a
     //wrong guess does not fail, it reads the wrong numbers.
+    //Version 3 adds to version 2 only the plane the templates' epsilon is
+    //measured in, as attributes of <epsilon>; a version-2 file is read as
+    //what it is, an epsilon in the complex plane.
     const int version = root.attribute("version").as_int(0);
-    if (version != 2) {
+    if (version != 2 && version != 3) {
         throw ParseError(version == 0
-                         ? QFTBX_TR("Core", "unsupported .qft version (no version attribute; this build reads version 2)")
-                         : QFTBX_TR("Core", "unsupported .qft version (found %1, this build reads version 2)").arg(version),
+                         ? QFTBX_TR("Core", "unsupported .qft version (no version attribute; this build reads versions 2 and 3)")
+                         : QFTBX_TR("Core", "unsupported .qft version (found %1, this build reads versions 2 and 3)").arg(version),
                          1, filePath);
     }
 
@@ -550,7 +554,24 @@ ProjectReader::Loaded ProjectReader::load(const std::string & filePath)
         m_omega = parser.readOmega(section);
     }
     if (const pugi::xml_node section = root.child(t.templates)) {
-        m_epsilon = parser.realVector(parser.require(parser.require(section, t.metadata), t.epsilon));
+        const pugi::xml_node epsilonNode = parser.require(parser.require(section, t.metadata), t.epsilon);
+        m_epsilon = parser.realVector(epsilonNode);
+        m_epsilonMetric = EpsilonMetric{};
+        if (version >= 3) {
+            const std::string metric = epsilonNode.attribute("metric").value();
+            if (metric == "nichols") {
+                m_epsilonMetric.metric = HullMetric::Nichols;
+            } else if (!metric.empty() && metric != "complex") {
+                throw ParseError(QFTBX_TR("Core", "unknown epsilon metric '%1' (complex or nichols)").arg(metric), 1, filePath);
+            }
+            if (const pugi::xml_attribute weight = epsilonNode.attribute("db-per-degree")) {
+                const double value = weight.as_double(0.0);
+                if (!(value > 0.0) || !std::isfinite(value)) {
+                    throw ParseError(QFTBX_TR("Core", "the decibels per degree of the epsilon metric must be a finite positive number"), 1, filePath);
+                }
+                m_epsilonMetric.dbPerDegree = value;
+            }
+        }
         m_templates = parser.readComplexVectors(parser.require(section, t.fullTemplates));
         if (const pugi::xml_node contourNode = section.child(t.templateContour)) {
             m_contour = parser.readComplexVectors(contourNode);

@@ -5,6 +5,7 @@
 #include <optional>
 
 #include "src/core/templates/cloud_set.h"
+#include "src/core/templates/hull_metric.h"
 #include <complex>
 
 #include <vector>
@@ -74,6 +75,10 @@ public:
     /// set. Held BY VALUE in an optional, like the boundaries.
     std::vector<double> * epsilon();
     void setEpsilon(std::optional<std::vector<double>> epsilon);
+    /// The plane that epsilon is measured in (see HullMetric): complex by
+    /// default, which is what every file predating the choice used.
+    EpsilonMetric epsilonMetric() const { return m_epsilonMetric; }
+    void setEpsilonMetric(EpsilonMetric metric) { m_epsilonMetric = metric; }
 
     /// The boundaries, or nullptr when none have been computed. The store
     /// holds them BY VALUE in an optional; the pointer is only how callers
@@ -96,6 +101,7 @@ private:
     CloudSet m_contour;
     bool m_hasContour = false;
     std::optional<std::vector<double>> m_epsilon;
+    EpsilonMetric m_epsilonMetric;
     std::optional<BoundaryData> m_boundaries;
     std::unique_ptr<LtiSystem> m_controller;
     std::unique_ptr<LoopShapingResult> m_loopShaping;

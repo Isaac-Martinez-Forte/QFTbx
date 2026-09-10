@@ -182,6 +182,16 @@ struct Settings {
         /// Points per parameter grid in the template sweep.
         std::int32_t templatePointCount = 10;
 
+        /// The plane a NEW project measures its contour epsilon in (see
+        /// HullMetric), and the weighting of the Nichols plane. The Nichols
+        /// plane, at one decibel per degree, is what a new project starts
+        /// with: there one epsilon serves every template, where in the
+        /// complex plane the epsilon a template needs changes by orders of
+        /// magnitude from one frequency to the next. A loaded project keeps
+        /// the plane its file says.
+        bool epsilonInNichols = true;
+        double dbPerDegree = 1.0;
+
         /// The frequency range the loop-shaping plot starts with, in rad/s,
         /// and how many points over it.
         ///

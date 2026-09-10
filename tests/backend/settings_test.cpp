@@ -354,6 +354,8 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
     EXPECT_EQ(fromExample.defaults.magnitudeEnd, defaults.defaults.magnitudeEnd);
     EXPECT_EQ(fromExample.defaults.magnitudePoints, defaults.defaults.magnitudePoints);
     EXPECT_EQ(fromExample.defaults.templatePointCount, defaults.defaults.templatePointCount);
+    EXPECT_EQ(fromExample.defaults.epsilonInNichols, defaults.defaults.epsilonInNichols);
+    EXPECT_EQ(fromExample.defaults.dbPerDegree, defaults.defaults.dbPerDegree);
     EXPECT_EQ(fromExample.defaults.loopStart, defaults.defaults.loopStart);
     EXPECT_EQ(fromExample.defaults.loopEnd, defaults.defaults.loopEnd);
     EXPECT_EQ(fromExample.defaults.loopPointCount, defaults.defaults.loopPointCount);
@@ -378,9 +380,9 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
               defaults.algorithms.certifiedGainTolerance);
 
     //Every setting the build knows has to be IN the example, or the example
-    //is not documentation. Twenty-seven today; the count is asserted so
+    //is not documentation. Twenty-nine today; the count is asserted so
     //adding one without documenting it fails here.
-    EXPECT_EQ(settingsFound, 27)
+    EXPECT_EQ(settingsFound, 29)
         << "a setting was added to the code and not to qftbx.conf.example";
 
     EXPECT_TRUE(fromExample.unknownKeys.empty())
