@@ -179,8 +179,11 @@ struct Settings {
         double magnitudeEnd = 60.0;
         std::int32_t magnitudePoints = 121;
 
-        /// Points per parameter grid in the template sweep.
-        std::int32_t templatePointCount = 10;
+        /// Points per parameter grid in the template sweep. Twenty-five keeps
+        /// the largest gap in a two-parameter template under a few per cent
+        /// of its size, where ten leaves gaps of a fifth; with many
+        /// parameters the user has to lower it, since it multiplies.
+        std::int32_t templatePointCount = 25;
 
         /// The plane a NEW project measures its contour epsilon in (see
         /// HullMetric), and the weighting of the Nichols plane. The Nichols

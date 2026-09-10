@@ -116,12 +116,15 @@
 # magnitude-end = 60
 # magnitude-points = 121
 
-# Points per parameter grid in the template sweep. Remember this multiplies:
-# with n uncertain parameters the sweep evaluates this many to the power of n
-# plants, so 10 with eight parameters is already 1e8.
+# Points per parameter grid in the template sweep. With ten points the
+# largest gap in a template can reach a fifth of its size, and the contour
+# then follows the sweep rather than the template; twenty-five keeps it
+# under a few per cent. Remember this multiplies: with n uncertain
+# parameters the sweep evaluates this many to the power of n plants, so 25
+# with five parameters is already 1e7 and with eight it is out of reach.
 # Range: 1 to 1e6.
 [defaults.templates]
-# point-count = 10
+# point-count = 25
 
 # The plane a NEW project measures its contour epsilon in. 1, the Nichols
 # plane: distances in degrees and decibels, one decibel weighing as much as
