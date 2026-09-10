@@ -12,6 +12,7 @@
 #include "src/core/boundaries/boundary_types.h"
 #include "src/core/system/lti_system.h"
 #include "src/core/loopshaping/loop_shaping_result.h"
+#include "src/core/specifications/specification.h"
 
 
 namespace Ui {
@@ -49,6 +50,8 @@ private slots:
     void on_saveImage_clicked();
 
 private:
+    void showCheck();
+    QString specificationTitle(qftbx::SpecificationType type);
 
     qftbx::UnionTraces unionTraces;
     std::vector<double> * omega = nullptr;

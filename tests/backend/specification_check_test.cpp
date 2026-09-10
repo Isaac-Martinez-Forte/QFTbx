@@ -139,3 +139,30 @@ INSTANTIATE_TEST_SUITE_P(
     });
 
 } // namespace
+
+//The run attaches the check to its result, and it is the same check the
+//function computes on the returned controller; a result read from a file
+//carries none.
+TEST(SpecificationCheckOnTheResult, TheRunAttachesItAndAFileDoesNot)
+{
+    ProjectController controller;
+    controller.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
+    ASSERT_TRUE(controller.computeLoopShaping(0.5, qftbx::mc2, Range(1e-9, 10.0), 100));
+
+    LoopShapingResult * result = controller.loopShapingResult();
+    ASSERT_NE(result, nullptr);
+    ASSERT_TRUE(result->check().has_value()) << "the run checks its controller as its last step";
+
+    const SpecificationCheck direct = checkAgainstSpecifications(
+                *result->controller(), *controller.plant(), *controller.omega()->values(),
+                controller.templates(), toSpecificationSet(*controller.specifications()));
+    EXPECT_DOUBLE_EQ(result->check()->worstExcessDb, direct.worstExcessDb);
+    EXPECT_EQ(result->check()->entries.size(), direct.entries.size());
+
+    //A project that ships a loop-shaping result has no check for it.
+    ProjectController loaded;
+    loaded.load(std::string(QFTBX_TEST_DATA_DIR "/planta2.qft"));
+    if (loaded.loopShapingResult() != nullptr) {
+        EXPECT_FALSE(loaded.loopShapingResult()->check().has_value());
+    }
+}

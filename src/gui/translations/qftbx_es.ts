@@ -1507,6 +1507,48 @@ contorno</translation>
         <translation>Épsilon (diámetro de la caja de Nichols):</translation>
     </message>
     <message>
+        <source>Not checked against the specifications (no templates to check over).</source>
+        <translation>Sin comprobar contra las especificaciones (no hay plantillas sobre las que comprobar).</translation>
+    </message>
+    <message>
+        <source>Satisfies every specification over the template: tightest at w = %1 rad/s, %2, %3 dB of margin.</source>
+        <translation>Cumple todas las especificaciones sobre la plantilla: la más ajustada en w = %1 rad/s, %2, %3 dB de margen.</translation>
+    </message>
+    <message>
+        <source>EXCEEDS a specification over the template: w = %1 rad/s, %2, by %3 dB.</source>
+        <translation>INCUMPLE una especificación sobre la plantilla: w = %1 rad/s, %2, por %3 dB.</translation>
+    </message>
+    <message>
+        <source>w = %1: %2 = %3 dB, bound %4 dB, excess %5 dB
+</source>
+        <translation>w = %1: %2 = %3 dB, cota %4 dB, exceso %5 dB
+</translation>
+    </message>
+    <message>
+        <source>tracking</source>
+        <translation>seguimiento</translation>
+    </message>
+    <message>
+        <source>stability</source>
+        <translation>estabilidad</translation>
+    </message>
+    <message>
+        <source>sensor noise</source>
+        <translation>ruido del sensor</translation>
+    </message>
+    <message>
+        <source>output disturbance</source>
+        <translation>perturbación a la salida</translation>
+    </message>
+    <message>
+        <source>input disturbance</source>
+        <translation>perturbación a la entrada</translation>
+    </message>
+    <message>
+        <source>control effort</source>
+        <translation>esfuerzo de control</translation>
+    </message>
+    <message>
         <source>Conservative boundary reading</source>
         <translation>Lectura conservadora de las fronteras</translation>
     </message>

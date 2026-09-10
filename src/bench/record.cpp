@@ -1,5 +1,8 @@
 #include "src/bench/record.h"
 
+#include <cmath>
+#include <limits>
+
 #include <cstring>
 #include <sstream>
 
@@ -120,6 +123,9 @@ QJsonObject toJson(const Record & r)
 
     QJsonObject result;
     result["gain"] = r.gain;
+    if (std::isfinite(r.worstExcessDb)) {
+        result["worst_excess_db"] = r.worstExcessDb;
+    }
     result["zeros"] = toArray(r.zeros);
     result["poles"] = toArray(r.poles);
     result["digest"] = QString::fromStdString(r.digest);
@@ -175,6 +181,8 @@ Record recordFromJson(const QJsonObject & o)
     r.statistics.stabilityProfiles = static_cast<std::size_t>(s["stability_profiles"].toInteger());
     const QJsonObject result = o["result"].toObject();
     r.gain = result["gain"].toDouble();
+    r.worstExcessDb = result.contains("worst_excess_db") ? result["worst_excess_db"].toDouble()
+                                                         : std::numeric_limits<double>::quiet_NaN();
     r.zeros = fromArray(result["zeros"].toArray());
     r.poles = fromArray(result["poles"].toArray());
     r.digest = result["digest"].toString().toStdString();

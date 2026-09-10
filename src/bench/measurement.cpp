@@ -265,6 +265,9 @@ Record runCase(const Plan & plan, const Case & c)
             record.poles.push_back(pole.range().min);
         }
         record.digest = digestOf(record.gain, record.zeros, record.poles);
+        if (result->check().has_value()) {
+            record.worstExcessDb = result->check()->worstExcessDb;
+        }
         record.status = "solved";
     } catch (const std::exception & failure) {
         record.status = "error";

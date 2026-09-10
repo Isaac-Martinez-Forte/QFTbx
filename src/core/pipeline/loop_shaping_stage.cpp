@@ -1,6 +1,7 @@
 #include "src/core/pipeline/loop_shaping_stage.h"
 
 #include "src/core/common/exception.h"
+#include "src/core/specifications/specification_record.h"
 
 namespace qftbx {
 
@@ -56,6 +57,20 @@ bool LoopShapingStage::run(ProjectData & data, double epsilon,
 
     auto result = std::make_unique<LoopShapingResult>(search.controllerStructure(), plotRange, pointCount);
     result->setStatistics(search.statistics());
+
+    //The last step of a run: the controller the search certified against
+    //the boundaries, checked against the specifications themselves over the
+    //full template and at its own loop value. The boundaries are a
+    //discretisation and do not all err on the safe side; this is what says
+    //whether the answer actually satisfies what it was asked, and by how
+    //much it misses when it does not. A project whose templates are not
+    //there to check against (boundaries loaded without them) gets no check.
+    if (data.templates().size() == data.frequencies()->size()) {
+        result->setCheck(checkAgainstSpecifications(*result->controller(), *data.plant(),
+                                                    *data.frequencies(), data.templates(),
+                                                    toSpecificationSet(*data.specifications())));
+    }
+
     data.setLoopShapingResult(std::move(result));
 
     return true;
