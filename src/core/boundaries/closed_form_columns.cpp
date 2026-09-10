@@ -159,26 +159,34 @@ RangeUnion ClosedFormColumns::allowedGains(SpecificationType type, double W,
                                            std::complex<double> p0, std::complex<double> p,
                                            std::complex<double> q, double phaseDegrees)
 {
+    //The inequality is |q + L| >= N/W, with N the magnitude's numerator: g
+    //for stability and sensor noise, |q| for the output disturbance, |P0|
+    //for the input disturbance, g/|P| for the control effort. Writing
+    //N/W = s g + t, and |q + L|^2 = g^2 + 2 c g + |q|^2, the allowed gains
+    //are where (1 - s^2) g^2 + 2 (c - s t) g + |q|^2 - t^2 >= 0, valid
+    //where s g + t >= 0, which holds for every g > 0.
     const std::complex<double> direction = std::polar(1.0, phaseDegrees * qftbx::math::kPi / 180.0);
     const double c = std::real(std::conj(q) * direction);
     const double q2 = std::norm(q);
-    const double W2 = W * W;
 
+    double s = 0.0, t = 0.0;
     switch (type) {
     case SpecificationType::Stability:
     case SpecificationType::SensorNoise:
-        return nonNegative(W2 - 1.0, 2.0 * W2 * c, W2 * q2);
+        s = 1.0 / W; break;
     case SpecificationType::OutputDisturbance:
-        return nonNegative(W2, 2.0 * W2 * c, (W2 - 1.0) * q2);
+        t += std::sqrt(q2) / W; break;
     case SpecificationType::InputDisturbance:
-        return nonNegative(W2, 2.0 * W2 * c, W2 * q2 - std::norm(p0));
+        t += std::abs(p0) / W; break;
     case SpecificationType::ControlEffort: {
-        const double p2 = std::norm(p);
-        return nonNegative(W2 - (p2 > 0.0 ? 1.0 / p2 : kInfinity), 2.0 * W2 * c, W2 * q2);
+        const double pAbs = std::abs(p);
+        if (!(pAbs > 0.0)) return RangeUnion();
+        s = 1.0 / (W * pAbs); break;
     }
     default:
         return RangeUnion::of(0.0, kInfinity);
     }
+    return nonNegative(1.0 - s * s, 2.0 * (c - s * t), q2 - t * t);
 }
 
 BoundaryColumns ClosedFormColumns::columns(SpecificationType type, double boundDb,

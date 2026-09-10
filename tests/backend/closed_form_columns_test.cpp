@@ -201,3 +201,19 @@ TEST(ClosedFormColumns, TheSearchOnExampleTwoLandsWithinTheInterpolationError)
     std::fflush(stdout);
     EXPECT_NEAR(closed, sheet, 1e-3 * sheet);
 }
+
+TEST(ClosedFormColumns, ACloudKeepsTheSheetsColumns)
+{
+    //A cloud has no polygon, and its guard on the sheet has no closed form:
+    //with the option on, boundaries from the cloud are the sheet's, and the
+    //search lands where it always did (example 2, NT from the cloud).
+    const auto solve = [](bool closedForm) {
+        ProjectController controller;
+        controller.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
+        controller.setClosedFormColumns(closedForm);
+        EXPECT_TRUE(controller.computeBoundaries(Range(-360.0, 0.0), 361, Range(-60.0, 160.0), 441, 1.0e6, false, false));
+        EXPECT_TRUE(controller.computeLoopShaping(0.5, qftbx::nt, Range(1e-9, 10.0), 100));
+        return controller.loopShapingResult()->controller()->gain().nominal();
+    };
+    EXPECT_DOUBLE_EQ(solve(true), solve(false));
+}
