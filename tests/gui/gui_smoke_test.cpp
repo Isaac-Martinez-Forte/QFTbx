@@ -697,6 +697,12 @@ TEST_F(GuiSmoke, TemplatesDialogOpensWithTheProposedEpsilon)
     EXPECT_EQ(calls, 2);
     EXPECT_EQ(lastMetric.metric, qftbx::HullMetric::Nichols);
 
+    //The border sweep needs two uncertain parameters; this plant has one,
+    //so the box is offered disabled and reads as off whatever it holds.
+    EXPECT_FALSE(child<QCheckBox>(&dialog, "borderSweepCheck")->isEnabled());
+    child<QCheckBox>(&dialog, "borderSweepCheck")->setChecked(true);
+    EXPECT_FALSE(dialog.borderSweep());
+
     //The contour is the walk by default; the alpha-shape on request.
     EXPECT_FALSE(dialog.alphaShapeContour());
     child<QComboBox>(&dialog, "contourCombo")->setCurrentIndex(1);

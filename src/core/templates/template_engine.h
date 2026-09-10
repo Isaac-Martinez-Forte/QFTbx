@@ -113,11 +113,48 @@ public:
     void setAlphaShapeContour(bool alphaShape) { m_alphaShape = alphaShape; }
     bool alphaShapeContour() const { return m_alphaShape; }
 
+    /**
+     * @brief Sweep only the BORDER of the parameter box when the plant has
+     * exactly two uncertain parameters, instead of its interior grid.
+     *
+     * The template is the image of the box; the border of an image lies in
+     * the image of the border plus the critical values, which for a map of
+     * a rectangle into the plane are isolated points. And every closed-loop
+     * magnitude a specification bounds is a Mobius function of the plant, so
+     * its worst case over the template is attained on the template's border
+     * whenever the pole lies outside (the case the singular-locus guard
+     * tells apart). So with two parameters the interior samples add nothing,
+     * and the same budget of evaluations - the product of the two grid sizes
+     * - is spent on the four edges: as many points per edge as a quarter of
+     * it, each edge sampled along the user's own grid (so a logarithmic grid
+     * stays logarithmic), in order round the box, a closed curve.
+     *
+     * The contour of that curve is its alpha-shape at the CONNECTING epsilon,
+     * whatever epsilon the caller gives: a curve is already a border, and
+     * the alpha-shape at the epsilon of its own sampling step only resolves
+     * where it folds or crosses itself, taking the outer loop. At a larger
+     * epsilon the exposed chords of a curve multiply and the outer loop
+     * degenerates into thousands of spikes (measured: 14 000 points from a
+     * border of 624 at the epsilon of the fixture), which the boundaries
+     * then pay for. The historical walk is not used on a curve at all.
+     *
+     * With one or with three or more uncertain parameters the request is
+     * ignored and the interior grid is swept (borderSweepApplied() says).
+     */
+    void setBorderSweep(bool border) { m_borderSweep = border; }
+    bool borderSweep() const { return m_borderSweep; }
+    bool borderSweepApplied() const { return m_borderSweepApplied; }
+
     /// The alpha-shape contour of one cloud at this epsilon, in the current
     /// metric: its loops concatenated, each closed by repeating its first
     /// point, and where each begins in componentStarts.
     ComplexCloud alphaShapeContour(const ComplexCloud & cloud, double epsilon,
                                    std::vector<std::size_t> * componentStarts) const;
+
+    /// The least epsilon that keeps the cloud connected, in the current
+    /// metric: the longest edge of its minimum spanning tree (0 for fewer
+    /// than two distinct points).
+    double connectingEpsilon(const ComplexCloud & cloud) const;
     double dbPerDegree() const { return m_dbPerDegree; }
 
     /**
@@ -253,6 +290,8 @@ private:
     bool m_useCuda = false;
     bool m_wholeCloudStandsIn = true;
     bool m_alphaShape = false;
+    bool m_borderSweep = false;
+    bool m_borderSweepApplied = false;
 
     CloudSet m_clouds;
     CloudSet m_contours;

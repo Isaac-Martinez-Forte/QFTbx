@@ -11,6 +11,7 @@
 #include "src/core/common/exception.h"
 
 #include <algorithm>
+#include <array>
 #include <cstdlib>
 #include <cstdio>
 #include <stdexcept>
@@ -142,6 +143,46 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
     const std::size_t digitCount = names.size();
     const std::size_t frequencyCount = omega->size();
 
+    //The border sweep: with exactly two uncertain parameters whose grids
+    //span a real box, the same number of evaluations goes round the four
+    //edges instead of over the interior (see setBorderSweep).
+    std::vector<std::array<double, 2>> border;
+    m_borderSweepApplied = false;
+    if (m_borderSweep && digitCount == 2 && grids[0]->size() > 1 && grids[1]->size() > 1){
+        std::vector<std::vector<double>> sorted{*grids[0], *grids[1]};
+        std::sort(sorted[0].begin(), sorted[0].end());
+        std::sort(sorted[1].begin(), sorted[1].end());
+        if (sorted[0].front() < sorted[0].back() && sorted[1].front() < sorted[1].back()){
+            //A point along a grid at a fraction t of its length, following
+            //the grid's own spacing.
+            const auto along = [](const std::vector<double> & g, double t) {
+                const double x = t * static_cast<double>(g.size() - 1);
+                const std::size_t k = std::min(static_cast<std::size_t>(x), g.size() - 2);
+                return g[k] + (x - static_cast<double>(k)) * (g[k + 1] - g[k]);
+            };
+            const std::size_t perEdge = std::max<std::size_t>(2, m_combinationCount / 4);
+            border.reserve(4 * perEdge);
+            for (std::size_t i = 0; i < perEdge; ++i){
+                const double t = static_cast<double>(i) / static_cast<double>(perEdge);
+                border.push_back({along(sorted[0], t), sorted[1].front()});          //bottom, left to right
+            }
+            for (std::size_t i = 0; i < perEdge; ++i){
+                const double t = static_cast<double>(i) / static_cast<double>(perEdge);
+                border.push_back({sorted[0].back(), along(sorted[1], t)});           //right, bottom to top
+            }
+            for (std::size_t i = 0; i < perEdge; ++i){
+                const double t = static_cast<double>(i) / static_cast<double>(perEdge);
+                border.push_back({along(sorted[0], 1.0 - t), sorted[1].back()});     //top, right to left
+            }
+            for (std::size_t i = 0; i < perEdge; ++i){
+                const double t = static_cast<double>(i) / static_cast<double>(perEdge);
+                border.push_back({sorted[0].front(), along(sorted[1], 1.0 - t)});    //left, top to bottom
+            }
+            m_combinationCount = border.size();
+            m_borderSweepApplied = true;
+        }
+    }
+
     //Which odometer digit drives each coefficient, and the nominals of the
     //ones no digit drives. Built ONCE and sequentially: Parameter::nominal()
     //can evaluate a reparametrisation, and a coefficient's plan does not
@@ -226,6 +267,11 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
 
             complex<double> value;
 
+            if (m_borderSweepApplied){
+                digit[0] = border[i][0];
+                digit[1] = border[i][1];
+            }
+
             for (std::size_t c = 0; c < numeratorSlot.size(); c++){
                 if (numeratorSlot[c] >= 0){
                     numeratorValues[c] = digit[static_cast<std::size_t>(numeratorSlot[c])];
@@ -259,6 +305,9 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
             nonFinite = nonFinite || !std::isfinite(value.real()) || !std::isfinite(value.imag());
             cloud.push_back(value);
 
+            if (m_borderSweepApplied){
+                continue;
+            }
             counter[0]++;
             for (std::size_t j = 0; j < digitCount; j++){
                 if (counter.at(j) >= grids.at(j)->size()){
@@ -312,6 +361,23 @@ const std::vector <double> & TemplateEngine::omega() const{
 const std::vector <double> & TemplateEngine::epsilon() const{
     return m_epsilon;
 }
+
+namespace {
+
+//A positive value rounded UP to three significant figures: the form a
+//proposed epsilon takes in a field a person reads and types back.
+double roundedUpToThreeFigures(double value)
+{
+    if (!(value > 0.0) || !std::isfinite(value)){
+        return value;
+    }
+    const double scale = std::pow(10.0, std::floor(std::log10(value)) - 2.0);
+    char text[32];
+    std::snprintf(text, sizeof text, "%.3g", std::ceil(value / scale) * scale);
+    return std::strtod(text, nullptr);
+}
+
+} // namespace
 
 bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
 
@@ -381,7 +447,12 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
         bool fellBack = false;
         bool truncated = false;
         std::vector<std::size_t> starts;
-        ComplexCloud cont = m_alphaShape
+        //A border cloud is a curve: its contour is the alpha-shape at the
+        //epsilon of its own sampling step (see setBorderSweep); otherwise
+        //the alpha-shape or the walk at the epsilon given.
+        ComplexCloud cont = m_borderSweepApplied
+                ? alphaShapeContour(m_clouds[i], roundedUpToThreeFigures(connectingEpsilon(m_clouds[i])), &starts)
+                : m_alphaShape
                 ? alphaShapeContour(m_clouds[i], m_epsilon.at(i), &starts)
                 : epsilonHull(m_clouds[i], m_epsilon.at(i), &fellBack, &truncated, &starts);
 
@@ -714,22 +785,59 @@ ComplexCloud TemplateEngine::projected(const ComplexCloud & points) const{
     return out;
 }
 
+
 namespace {
 
-//A positive value rounded UP to three significant figures: the form a
-//proposed epsilon takes in a field a person reads and types back.
-double roundedUpToThreeFigures(double value)
+//Prim, dense, over distinct points: the longest edge added is the
+//connectivity threshold; the diameter falls out of the same distances.
+void spanningExtremes(const ComplexCloud & pts, double & longest, double & diameter)
 {
-    if (!(value > 0.0) || !std::isfinite(value)){
-        return value;
+    const std::size_t n = pts.size();
+    longest = 0.0;
+    diameter = 0.0;
+    if (n < 2){
+        return;
     }
-    const double scale = std::pow(10.0, std::floor(std::log10(value)) - 2.0);
-    char text[32];
-    std::snprintf(text, sizeof text, "%.3g", std::ceil(value / scale) * scale);
-    return std::strtod(text, nullptr);
+    std::vector<double> best(n, std::numeric_limits<double>::infinity());
+    std::vector<char> inTree(n, 0);
+    inTree[0] = 1;
+    for (std::size_t j = 1; j < n; ++j){
+        best[j] = std::abs(pts[j] - pts[0]);
+    }
+    for (std::size_t added = 1; added < n; ++added){
+        std::size_t next = n;
+        for (std::size_t j = 0; j < n; ++j){
+            if (!inTree[j] && (next == n || best[j] < best[next])){
+                next = j;
+            }
+        }
+        longest = std::max(longest, best[next]);
+        inTree[next] = 1;
+        for (std::size_t j = 0; j < n; ++j){
+            if (!inTree[j]){
+                best[j] = std::min(best[j], std::abs(pts[j] - pts[next]));
+            }
+        }
+    }
+    for (std::size_t i = 0; i < n; ++i){
+        for (std::size_t j = i + 1; j < n; ++j){
+            diameter = std::max(diameter, std::abs(pts[i] - pts[j]));
+        }
+    }
 }
 
 } // namespace
+
+double TemplateEngine::connectingEpsilon(const ComplexCloud & cloud) const{
+    ComplexCloud pts = projected(cloud);
+    std::sort(pts.begin(), pts.end(), [](const complex<double> & a, const complex<double> & b){
+        return a.real() != b.real() ? a.real() < b.real() : a.imag() < b.imag();
+    });
+    pts.erase(std::unique(pts.begin(), pts.end()), pts.end());
+    double longest = 0.0, diameter = 0.0;
+    spanningExtremes(pts, longest, diameter);
+    return longest;
+}
 
 std::vector<TemplateEngine::EpsilonProposal> TemplateEngine::proposeEpsilon(){
 
@@ -748,43 +856,16 @@ std::vector<TemplateEngine::EpsilonProposal> TemplateEngine::proposeEpsilon(){
         const std::size_t n = pts.size();
 
         if (n >= 2){
-            //Prim, dense: the longest edge added is the connectivity
-            //threshold; the diameter falls out of the same distances.
-            std::vector<double> best(n, numeric_limits<double>::infinity());
-            std::vector<char> inTree(n, 0);
-            inTree[0] = 1;
-            for (std::size_t j = 1; j < n; ++j){
-                best[j] = std::abs(pts[j] - pts[0]);
-            }
             double longest = 0.0;
             double diameter = 0.0;
-            for (std::size_t added = 1; added < n; ++added){
-                std::size_t next = n;
-                for (std::size_t j = 0; j < n; ++j){
-                    if (!inTree[j] && (next == n || best[j] < best[next])){
-                        next = j;
-                    }
-                }
-                longest = std::max(longest, best[next]);
-                inTree[next] = 1;
-                for (std::size_t j = 0; j < n; ++j){
-                    if (!inTree[j]){
-                        best[j] = std::min(best[j], std::abs(pts[j] - pts[next]));
-                    }
-                }
-            }
-            for (std::size_t i = 0; i < n; ++i){
-                for (std::size_t j = i + 1; j < n; ++j){
-                    diameter = std::max(diameter, std::abs(pts[i] - pts[j]));
-                }
-            }
+            spanningExtremes(pts, longest, diameter);
             proposal.connected = longest;
             proposal.diameter = diameter;
             proposal.epsilon = longest;
 
             //The alpha-shape closes at the connecting epsilon itself: the
             //ladder below is only for the walk.
-            if (m_alphaShape){
+            if (m_alphaShape || m_borderSweepApplied){
                 proposal.epsilon = roundedUpToThreeFigures(longest);
                 proposal.closes = true;
                 proposals.push_back(proposal);
@@ -844,12 +925,22 @@ ComplexCloud TemplateEngine::alphaShapeContour(const ComplexCloud & cloud, doubl
     const AlphaShape shape = alphaShape(projected(cv), epsilon);
 
     ComplexCloud result;
+    std::vector<char> emitted(cv.size(), 0);
     for (const std::vector<std::int32_t> & loop : shape.loops){
         if (componentStarts != nullptr){
             componentStarts->push_back(result.size());
         }
+        //Each point once, at its first visit, as the walk's output always
+        //was: a spike is walked out and back, and a curve that folds on
+        //itself exposes chords across the fold, and either would list a
+        //point twice and the boundaries would pay for it twice. The value
+        //set keeps every point; the polygon only loses zero-area detours.
+        std::fill(emitted.begin(), emitted.end(), 0);
         for (const std::int32_t idx : loop){
-            result.push_back(cv[static_cast<std::size_t>(idx)]);
+            if (!emitted[static_cast<std::size_t>(idx)]){
+                emitted[static_cast<std::size_t>(idx)] = 1;
+                result.push_back(cv[static_cast<std::size_t>(idx)]);
+            }
         }
         //Closed by its first point, which is how the loops of a contour are
         //told apart downstream (SingularLocus).

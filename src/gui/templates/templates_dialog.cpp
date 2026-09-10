@@ -128,6 +128,19 @@ void TemplatesDialog::launch(LtiSystem *plant, qint32 frequencyCount){
 
     buildTables(plant->numerator(), plant->denominator());
 
+    //The border sweep needs exactly two uncertain parameters (distinct names).
+    std::vector<std::string> uncertain;
+    const auto count = [&uncertain](const Parameter & p) {
+        if (p.isUncertain() && std::find(uncertain.begin(), uncertain.end(), p.name()) == uncertain.end()) {
+            uncertain.push_back(p.name());
+        }
+    };
+    for (Parameter & p : plant->numerator()) count(p);
+    for (Parameter & p : plant->denominator()) count(p);
+    count(plant->gain());
+    count(plant->delay());
+    ui->borderSweepCheck->setEnabled(uncertain.size() == 2);
+
     //The field opens with the epsilon the family asks for over the grids as
     //they stand, so that OK is a complete answer and changing it a choice.
     selectDefaultsWhereEmpty();
@@ -142,6 +155,16 @@ bool TemplatesDialog::wholeTemplateIfNoContour() const
 void TemplatesDialog::setWholeTemplateIfNoContour(bool standsIn)
 {
     ui->wholeTemplateCheck->setChecked(standsIn);
+}
+
+bool TemplatesDialog::borderSweep() const
+{
+    return ui->borderSweepCheck->isEnabled() && ui->borderSweepCheck->isChecked();
+}
+
+void TemplatesDialog::setBorderSweep(bool border)
+{
+    ui->borderSweepCheck->setChecked(border);
 }
 
 bool TemplatesDialog::alphaShapeContour() const

@@ -139,6 +139,10 @@ public:
     void setAlphaShapeContour(bool alphaShape);
     bool alphaShapeContour() const;
 
+    /// Sweep only the border of a two-parameter box (see TemplateEngine).
+    void setBorderSweep(bool border);
+    bool borderSweep() const;
+
     /// What the last contour computation reported, per frequency
     /// (TemplateEngine::ContourReport); empty when nothing was computed.
     const std::vector<TemplateEngine::ContourReport> & contourReports() const;
