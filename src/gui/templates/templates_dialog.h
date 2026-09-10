@@ -22,6 +22,7 @@
 
 #include "src/gui/common/parlineedit.h"
 #include "src/core/system/lti_system.h"
+#include "src/core/templates/hull_metric.h"
 #include "src/core/templates/parameter_grids.h"
 #include "src/core/system/parameter.h"
 #include "src/core/math/sequence_vectors.h"
@@ -92,6 +93,11 @@ public:
     /// Whether the user asked for the GPU path (requires a CUDA build).
     bool cudaSelected();
 
+    /// The plane the epsilon is measured in, as the dialog shows it and as
+    /// the user left it (HullMetric). Preset from the project before launch.
+    qftbx::EpsilonMetric epsilonMetric() const;
+    void setEpsilonMetric(qftbx::EpsilonMetric metric);
+
 
     struct ThreeRadioButtons{
         //Observers on radio buttons owned by their row widget: the three
@@ -107,6 +113,7 @@ private slots:
     void on_allVariablesRadio_clicked();
 
     void on_oneByOneRadio_clicked();
+    void on_metricCombo_currentIndexChanged(int index);
 
     void on_numeratorRadio_clicked();
 

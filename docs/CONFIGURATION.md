@@ -71,7 +71,7 @@ over; it is the group that shows most in daily use.
 | `boundary-grid.phase-points` | 361 | 2 to 1e6 | Points on the phase axis; 361 over -360..0 is the classic one-degree grid |
 | `boundary-grid.magnitude-start`, `magnitude-end` | -60, 60 | -1000 to 1000 | The magnitude axis, in decibels |
 | `boundary-grid.magnitude-points` | 121 | 2 to 1e6 | Points on the magnitude axis |
-| `templates.point-count` | 10 | 1 to 1e6 | Points per parameter grid in the template sweep. It multiplies: with n uncertain parameters the sweep evaluates this many to the power of n plants |
+| `templates.point-count` | 25 | 1 to 1e6 | Points per parameter grid in the template sweep. Ten leaves gaps of up to a fifth of a template; twenty-five keeps them under a few per cent. It multiplies: with n uncertain parameters the sweep evaluates this many to the power of n plants, so lower it for many parameters |
 | `loop-shaping.start`, `end` | 1e-9, 10 | 1e-300 to 1e300 | The frequency range the loop-shaping plot starts with, in rad/s |
 | `loop-shaping.point-count` | 100 | 2 to 1e6 | Points over that range |
 

@@ -5,6 +5,7 @@
 #include <optional>
 
 #include "src/core/templates/cloud_set.h"
+#include "src/core/templates/hull_metric.h"
 #include <complex>
 
 #include <string>
@@ -73,6 +74,9 @@ public:
     {
         return m_epsilon.has_value() ? &m_epsilon.value() : nullptr;
     }
+    /// The plane that epsilon is measured in: from the file's attributes in
+    /// version 3, the complex plane for a version-2 file.
+    EpsilonMetric epsilonMetric() const { return m_epsilonMetric; }
     const BoundaryData * boundaries() const
     {
         return m_boundaries.has_value() ? &m_boundaries.value() : nullptr;
@@ -122,6 +126,7 @@ private:
     CloudSet m_templates;
     CloudSet m_contour;
     std::optional<std::vector <double>> m_epsilon;
+    EpsilonMetric m_epsilonMetric;
     std::optional<BoundaryData> m_boundaries;
     std::unique_ptr<LtiSystem> m_controller;
     std::unique_ptr<LoopShapingResult> m_loopShaping;

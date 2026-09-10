@@ -5,6 +5,8 @@
 #include "src/gui/common/number_text.h"
 #include <QMessageBox>
 
+#include <algorithm>
+
 #include "src/gui/common/qt_containers.h"
 #include "src/gui/templates/template_viewer.h"
 #include "ui_template_viewer.h"
@@ -59,6 +61,7 @@ void TemplateViewer::clearDiagram(){
     legend->clear();
     epsilonEdits.clear();
     epsilonSliders.clear();
+    gapLabels.clear();
 
     contourGraphs.clear();
     templateGraphs.clear();
@@ -93,6 +96,31 @@ void TemplateViewer::setContourRecomputer(ContourRecomputer recompute){
     this->recompute = std::move(recompute);
 }
 
+void TemplateViewer::setEpsilonProposer(EpsilonProposer propose){
+    this->propose = std::move(propose);
+}
+
+//The epsilon each template asks for, next to the epsilon it has: the least
+//that keeps the cloud connected, and how big that gap is against the
+//template, so that the user sees at once where the epsilon is too small to
+//close or too large to follow the shape, and where the sweep itself is too
+//coarse to say (a gap of a fifth of the template is a sweep to densify,
+//not an epsilon to tune).
+void TemplateViewer::showProposals(){
+    if (!propose || gapLabels.empty()){
+        return;
+    }
+    m_proposals = propose();
+    for (std::size_t i = 0; i < gapLabels.size() && i < m_proposals.size(); ++i){
+        const qftbx::TemplateEngine::EpsilonProposal & p = m_proposals[i];
+        const QString gap = QString::number(100.0 * p.coarseness(), 'f', 1);
+        gapLabels[i]->setText(tr("needs %1 (gap %2%)").arg(numberText(p.epsilon), gap));
+        gapLabels[i]->setToolTip(tr("The least epsilon that keeps this template connected is %1; the largest gap between its points is %2% of its size. Above a few per cent the sweep is coarse: more points per parameter, not a larger epsilon.")
+                                 .arg(numberText(p.epsilon), gap));
+        gapLabels[i]->setStyleSheet(p.coarseness() > 0.05 ? "color: #b45309;" : QString());
+    }
+}
+
 void TemplateViewer::refreshContour(const qftbx::CloudSet & contour,
                                     std::vector<double> * omega,
                                     std::vector<double> * epsilon){
@@ -121,6 +149,7 @@ void TemplateViewer::plotDiagram(bool plot){
 
 
     plotted = true;
+    showProposals();
     qint32 i = 0;
     qint32 counter = 0;
 
@@ -258,6 +287,12 @@ void TemplateViewer::addFrequencyRow(QColor color, qint32 pos){
     epsilonEdits.push_back(field);
     row.layout->addWidget(field);
 
+    //What this template asks for, filled in by showProposals().
+    QLabel * gap = new QLabel(row.widget);
+    gap->setObjectName(QString::fromUtf8("gap"));
+    gapLabels.push_back(gap);
+    row.layout->addWidget(gap);
+
     connect(slider, SIGNAL (sliderMoved (int)), this, SLOT (syncSliders ()));
 }
 
@@ -311,6 +346,22 @@ void TemplateViewer::applyCheckboxes(){
         }
     }
     ui->plot->replot();
+}
+
+void TemplateViewer::on_proposeButton_clicked()
+{
+    if (!plotted || !propose){
+        return;
+    }
+    m_proposals = propose();
+    for (qint32 i = 0; i < epsilonEdits.size() && i < static_cast<qint32>(m_proposals.size()); i++) {
+        //Just above the threshold, so rounding never lands under it.
+        const double value = m_proposals[static_cast<std::size_t>(i)].epsilon * 1.01;
+        epsilonEdits.at(i)->setText(numberText(value));
+        epsilonSliders.at(i)->setMaximum(std::max(epsilonSliders.at(i)->maximum(), static_cast<int>(value * 10000)));
+        epsilonSliders.at(i)->setValue(static_cast<int>(value * 1000));
+    }
+    on_recomputeButton_clicked();
 }
 
 void TemplateViewer::on_recomputeButton_clicked()

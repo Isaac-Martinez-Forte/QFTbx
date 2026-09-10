@@ -195,6 +195,18 @@ std::vector <double> * ProjectController::epsilon(){
     return m_data.epsilon();
 }
 
+qftbx::EpsilonMetric ProjectController::epsilonMetric() const{
+    return m_data.epsilonMetric();
+}
+
+void ProjectController::setEpsilonMetric(qftbx::EpsilonMetric metric){
+    m_data.setEpsilonMetric(metric);
+}
+
+std::vector<TemplateEngine::EpsilonProposal> ProjectController::proposeEpsilon(){
+    return m_templates.proposeEpsilon(m_data);
+}
+
 
 const qftbx::CloudSet & ProjectController::recomputeContour(std::vector <double> epsilon){
     //It rewrites the contour and the epsilon, and MR reads the contour: the
@@ -364,6 +376,7 @@ void ProjectController::save(std::string path){
     content.omega = m_data.omega();
     content.templates = &m_data.templates();
     content.epsilon = m_data.epsilon();
+    content.epsilonMetric = m_data.epsilonMetric();
 
     if (m_data.hasContour()){
         content.contour = &m_data.contour();
@@ -413,6 +426,7 @@ qftbx::StepSet ProjectController::load(std::string path){
                      loaded.hasContour ? reader.takeContour() : qftbx::CloudSet(),
                      loaded.hasContour);
         m_data.setEpsilon(reader.takeEpsilon());
+        m_data.setEpsilonMetric(reader.epsilonMetric());
     }
 
     if (loaded.steps.has(qftbx::Step::Boundaries)) {

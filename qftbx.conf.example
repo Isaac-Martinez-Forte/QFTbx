@@ -116,12 +116,29 @@
 # magnitude-end = 60
 # magnitude-points = 121
 
-# Points per parameter grid in the template sweep. Remember this multiplies:
-# with n uncertain parameters the sweep evaluates this many to the power of n
-# plants, so 10 with eight parameters is already 1e8.
+# Points per parameter grid in the template sweep. With ten points the
+# largest gap in a template can reach a fifth of its size, and the contour
+# then follows the sweep rather than the template; twenty-five keeps it
+# under a few per cent. Remember this multiplies: with n uncertain
+# parameters the sweep evaluates this many to the power of n plants, so 25
+# with five parameters is already 1e7 and with eight it is out of reach.
 # Range: 1 to 1e6.
 [defaults.templates]
-# point-count = 10
+# point-count = 25
+
+# The plane a NEW project measures its contour epsilon in. 1, the Nichols
+# plane: distances in degrees and decibels, one decibel weighing as much as
+# db-per-degree degrees; there one epsilon serves every template of a
+# project. 0, the complex plane: the historical reading, a distance in the
+# units of the plant's response, which on the toolbox example 2 needs an
+# epsilon ten thousand times smaller at 100 rad/s than at 0.1. A loaded
+# project keeps the plane its file says.
+# Range: 0 or 1.
+# epsilon-in-nichols = 1
+
+# How many decibels weigh as much as one degree in the Nichols plane.
+# Range: 1e-6 to 1e6.
+# db-per-degree = 1
 
 # The frequency range the loop-shaping plot starts with, in rad/s, and how
 # many points over it.

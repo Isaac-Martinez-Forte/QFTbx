@@ -30,6 +30,7 @@ bool TemplateStage::run(ProjectData & data, std::vector<double> epsilon,
 
     TemplateEngine & sweep = engine();
 
+    sweep.setHullMetric(data.epsilonMetric().metric, data.epsilonMetric().dbPerDegree);
     sweep.setEpsilon(epsilon);
     sweep.setGrids(std::move(grids));
 
@@ -59,12 +60,22 @@ const CloudSet & TemplateStage::recomputeContour(ProjectData & data,
         throw InvalidInput(QFTBX_TR("Core", "There are no templates to walk a contour over."));
     }
 
+    m_engine->setHullMetric(data.epsilonMetric().metric, data.epsilonMetric().dbPerDegree);
     m_engine->computeContours(epsilon);
 
     data.setContour(m_engine->contours());
     data.setEpsilon(std::move(epsilon));
 
     return data.contour();
+}
+
+std::vector<TemplateEngine::EpsilonProposal> TemplateStage::proposeEpsilon(const ProjectData & data)
+{
+    if (m_engine == nullptr || data.templates().empty()) {
+        throw InvalidInput(QFTBX_TR("Core", "There are no templates to propose an epsilon for."));
+    }
+    m_engine->setHullMetric(data.epsilonMetric().metric, data.epsilonMetric().dbPerDegree);
+    return m_engine->proposeEpsilon();
 }
 
 void TemplateStage::adopt(ProjectData & data, CloudSet clouds,

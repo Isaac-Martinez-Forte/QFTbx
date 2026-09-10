@@ -73,9 +73,9 @@ TEST_P(RoundTrip, WritesTheVersionedEnglishDialect)
 
     const pugi::xml_node root = document.document_element();
     EXPECT_STREQ(root.name(), "QFT");
-    EXPECT_EQ(root.attribute("version").as_int(), 2);
+    EXPECT_EQ(root.attribute("version").as_int(), 3);
 
-    // No legacy Spanish tags anywhere in a v2 file.
+    // No legacy Spanish tags anywhere in a written file.
     EXPECT_FALSE(root.child("Planta"));
     EXPECT_FALSE(root.child("especificaciones"));
     if (originalSections.steps.has(qftbx::Step::Plant)) {

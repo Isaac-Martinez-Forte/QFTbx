@@ -56,6 +56,11 @@ public:
     const CloudSet & recomputeContour(ProjectData & data,
                                       std::vector<double> epsilon);
 
+    /// The epsilon each cloud asks for, in the project's plane, and how
+    /// coarse the sweep is (TemplateEngine::proposeEpsilon). Throws
+    /// InvalidInput when there are no templates.
+    std::vector<TemplateEngine::EpsilonProposal> proposeEpsilon(const ProjectData & data);
+
     /**
      * @brief Takes templates computed elsewhere - by the persistence, on load
      * - and publishes them, feeding the engine as well.

@@ -2,6 +2,7 @@
 #define QFTBX_PROJECT_WRITER_H
 
 #include "src/core/templates/cloud_set.h"
+#include "src/core/templates/hull_metric.h"
 #include <complex>
 
 #include <string>
@@ -28,13 +29,15 @@ struct ProjectContent {
     const CloudSet * templates = nullptr;
     const CloudSet * contour = nullptr;
     const std::vector <double> * epsilon = nullptr;
+    EpsilonMetric epsilonMetric;
     const BoundaryData * boundaries = nullptr;
     LtiSystem * controller = nullptr;
     LoopShapingResult * loopShaping = nullptr;
 };
 
 /**
- * @brief Writes a .qft project file in the version-2 English dialect.
+ * @brief Writes a .qft project file in the version-3 English dialect (version 2
+ * plus the plane the templates' epsilon is measured in).
  *
  * Numbers are written in the shortest form that reads back to the same
  * double (qftbx::text::number), so a save/load round trip is bit-exact; the

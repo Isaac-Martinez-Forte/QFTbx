@@ -258,6 +258,16 @@ const std::vector<Binding> & bindings()
                  wholeIn(text, "defaults.templates.point-count", line, 1.0, 1.0e6));
          }},
 
+        {"defaults.templates.epsilon-in-nichols",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.defaults.epsilonInNichols =
+                 wholeIn(text, "defaults.templates.epsilon-in-nichols", line, 0.0, 1.0) != 0.0;
+         }},
+        {"defaults.templates.db-per-degree",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.defaults.dbPerDegree =
+                 realIn(text, "defaults.templates.db-per-degree", line, 1.0e-6, 1.0e6);
+         }},
         //[defaults.loop-shaping] - in rad/s, like every other frequency.
         {"defaults.loop-shaping.start",
          [](const std::string & text, std::int64_t line, Settings & into) {

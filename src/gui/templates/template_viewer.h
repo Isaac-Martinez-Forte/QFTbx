@@ -7,6 +7,8 @@
 #include <memory>
 
 #include <QDialog>
+#include <QLabel>
+#include "src/core/templates/template_engine.h"
 #include <complex>
 #include <functional>
 #include <QMap>
@@ -89,6 +91,12 @@ public:
 
     void setContourRecomputer(ContourRecomputer recompute);
 
+    /// What answers the "propose epsilon" button and fills the coarseness
+    /// of each template: the epsilon each cloud asks for, in the project's
+    /// plane, and its diameter (TemplateEngine::EpsilonProposal).
+    using EpsilonProposer = std::function<std::vector<qftbx::TemplateEngine::EpsilonProposal> ()>;
+    void setEpsilonProposer(EpsilonProposer propose);
+
    /**
     * @fn refreshContour
     * @brief Answer to recomputeRequested: the new contour and the epsilon
@@ -121,10 +129,15 @@ private slots:
     void syncSliders();
 
     void on_recomputeButton_clicked();
+    void on_proposeButton_clicked();
 
 
 private:
     std::unique_ptr<Ui::TemplateViewer> ui;
+    EpsilonProposer propose;
+    std::vector<QLabel *> gapLabels;
+    std::vector<qftbx::TemplateEngine::EpsilonProposal> m_proposals;
+    void showProposals();
     bool plotted = false;
     void plotLine(qint32 pos, QVector <QCPGraph *> & graphs, const std::vector<double> & phases,
                   const std::vector<double> & magnitudes, bool isContour, bool visible, qint32 frequencyIndex);
