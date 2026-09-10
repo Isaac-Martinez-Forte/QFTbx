@@ -236,7 +236,7 @@
     <rect>
      <x>20</x>
      <y>280</y>
-     <width>301</width>
+     <width>361</width>
      <height>27</height>
     </rect>
    </property>
@@ -258,7 +258,21 @@
        </widget>
       </item>
       <item>
-       <widget class="QLineEdit" name="epsilonEdit"/>
+       <widget class="QLineEdit" name="epsilonEdit">
+        <property name="toolTip">
+         <string>One value, or one per design frequency. Filled in with the least epsilon at which the contour of each template closes, over the grids as they are entered above.</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="proposeButton">
+        <property name="toolTip">
+         <string>Sweep the family over the grids entered above and fill in the least epsilon at which the contour of each template closes, in the plane chosen below.</string>
+        </property>
+        <property name="text">
+         <string>Propose</string>
+        </property>
+       </widget>
       </item>
      </layout>
     </item>

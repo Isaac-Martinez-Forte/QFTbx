@@ -129,6 +129,12 @@ public:
     /// the project's plane (TemplateEngine::EpsilonProposal).
     std::vector<TemplateEngine::EpsilonProposal> proposeEpsilon();
 
+    /// The same, for templates NOT computed yet: what the family swept over
+    /// these grids would ask for in this plane. Publishes nothing; it is the
+    /// figure the templates dialog offers before the user presses OK.
+    std::vector<TemplateEngine::EpsilonProposal> proposeEpsilon(qftbx::ParameterGrids grids,
+                                                                qftbx::EpsilonMetric metric);
+
 
     // --- step 5: the boundaries -------------------------------------------
 

@@ -10,6 +10,8 @@
 #include "src/core/common/exception.h"
 
 #include <algorithm>
+#include <cstdlib>
+#include <cstdio>
 #include <stdexcept>
 #include <cmath>
 #include <limits>
@@ -708,7 +710,24 @@ ComplexCloud TemplateEngine::projected(const ComplexCloud & points) const{
     return out;
 }
 
-std::vector<TemplateEngine::EpsilonProposal> TemplateEngine::proposeEpsilon() const{
+namespace {
+
+//A positive value rounded UP to three significant figures: the form a
+//proposed epsilon takes in a field a person reads and types back.
+double roundedUpToThreeFigures(double value)
+{
+    if (!(value > 0.0) || !std::isfinite(value)){
+        return value;
+    }
+    const double scale = std::pow(10.0, std::floor(std::log10(value)) - 2.0);
+    char text[32];
+    std::snprintf(text, sizeof text, "%.3g", std::ceil(value / scale) * scale);
+    return std::strtod(text, nullptr);
+}
+
+} // namespace
+
+std::vector<TemplateEngine::EpsilonProposal> TemplateEngine::proposeEpsilon(){
 
     std::vector<EpsilonProposal> proposals;
     proposals.reserve(m_clouds.size());
@@ -755,8 +774,32 @@ std::vector<TemplateEngine::EpsilonProposal> TemplateEngine::proposeEpsilon() co
                     diameter = std::max(diameter, std::abs(pts[i] - pts[j]));
                 }
             }
-            proposal.epsilon = longest;
+            proposal.connected = longest;
             proposal.diameter = diameter;
+            proposal.epsilon = longest;
+
+            //The ladder: from the connecting epsilon up to the diameter, one
+            //per cent at a time, each candidate rounded up to three figures
+            //and tried once. At the diameter every point reaches every other,
+            //so the ladder has a natural top.
+            double previous = 0.0;
+            for (double raw = longest; ; raw *= 1.01){
+                const bool last = raw >= diameter;
+                const double candidate = roundedUpToThreeFigures(last ? diameter : raw);
+                if (candidate > previous){
+                    previous = candidate;
+                    bool truncated = false;
+                    const ComplexCloud walked = epsilonHull(cloud, candidate, nullptr, &truncated, nullptr);
+                    if (!walked.empty() && !truncated){
+                        proposal.epsilon = candidate;
+                        proposal.closes = true;
+                        break;
+                    }
+                }
+                if (last){
+                    break;
+                }
+            }
         }
 
         proposals.push_back(proposal);

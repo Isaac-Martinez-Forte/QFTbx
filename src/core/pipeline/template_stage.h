@@ -62,6 +62,19 @@ public:
     std::vector<TemplateEngine::EpsilonProposal> proposeEpsilon(const ProjectData & data);
 
     /**
+     * @brief The epsilon each template WOULD ask for if the family were swept
+     * over these grids, measured in this plane: the proposal the templates
+     * dialog fills its field with before anything has been computed.
+     *
+     * Sweeps on an engine of its own, so the clouds a later recomputeContour
+     * walks are untouched and nothing is published. It costs one sweep, the
+     * same one run() will do next.
+     */
+    std::vector<TemplateEngine::EpsilonProposal> proposeEpsilon(const ProjectData & data,
+                                                                ParameterGrids grids,
+                                                                EpsilonMetric metric) const;
+
+    /**
      * @brief Takes templates computed elsewhere - by the persistence, on load
      * - and publishes them, feeding the engine as well.
      *

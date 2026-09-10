@@ -648,6 +648,81 @@ TEST_F(GuiSmoke, TemplatesDialogBuildsOneEpsilonPerFrequency)
         << "the uncertain parameter got no grid";
 }
 
+TEST_F(GuiSmoke, TemplatesDialogOpensWithTheProposedEpsilon)
+{
+    //The field opens filled with the least epsilon each template asks for,
+    //computed from the grids as the dialog holds them on launch, so that OK
+    //alone is a complete answer, shown as the engine gives it; the Propose
+    //button asks again with the plane as chosen.
+    TemplatesDialog dialog;
+
+    std::vector<Parameter> numerator{Parameter(1.0)};
+    std::vector<Parameter> denominator{
+        Parameter("a", qftbx::Range(1.0, 5.0), 5.0)};
+    PolynomialForm plant("templates", numerator, denominator,
+                         Parameter(1.0), Parameter(0.0));
+
+    int calls = 0;
+    qftbx::EpsilonMetric lastMetric;
+    qftbx::ParameterGrids lastGrids;
+    dialog.setEpsilonProposer([&](const qftbx::ParameterGrids & grids, qftbx::EpsilonMetric metric) {
+        ++calls;
+        lastGrids = grids;
+        lastMetric = metric;
+        std::vector<qftbx::TemplateEngine::EpsilonProposal> proposals(2);
+        proposals[0].connected = 2.7731;
+        proposals[0].epsilon = 2.78;
+        proposals[0].diameter = 100.0;
+        proposals[0].closes = true;
+        proposals[1].connected = 0.012345;
+        proposals[1].epsilon = 0.0124;
+        proposals[1].diameter = 1.0;
+        proposals[1].closes = true;
+        return proposals;
+    });
+    dialog.setDefaultPointCount(3);
+    dialog.setEpsilonMetric(qftbx::EpsilonMetric{});
+
+    dialog.launch(&plant, 2);
+
+    EXPECT_EQ(calls, 1) << "launching did not ask for a proposal";
+    EXPECT_EQ(lastGrids.count("a"), 1u) << "the proposal was not made over the dialog's grids";
+    EXPECT_EQ(lastGrids.at("a").size(), 3u) << "the default point count was not used";
+    EXPECT_EQ(lastMetric.metric, qftbx::HullMetric::ComplexPlane);
+    EXPECT_EQ(child<QLineEdit>(&dialog, "epsilonEdit")->text(), QString("2.78 0.0124"));
+
+    //Propose again in the other plane.
+    child<QComboBox>(&dialog, "metricCombo")->setCurrentIndex(0);
+    press(&dialog, "proposeButton");
+    EXPECT_EQ(calls, 2);
+    EXPECT_EQ(lastMetric.metric, qftbx::HullMetric::Nichols);
+
+    //And OK accepts the filled-in field as it stands.
+    check(&dialog, "nicholsRadio");
+    press(&dialog, "okButton");
+    ASSERT_TRUE(dialog.wasAccepted()) << "the dialog rejected its own proposal";
+    const std::vector<double> epsilon = dialog.takeEpsilon();
+    ASSERT_EQ(epsilon.size(), 2u);
+    EXPECT_DOUBLE_EQ(epsilon[0], 2.78);
+    EXPECT_DOUBLE_EQ(epsilon[1], 0.0124);
+}
+
+TEST_F(GuiSmoke, TemplatesDialogWithoutAProposerOpensEmpty)
+{
+    TemplatesDialog dialog;
+
+    std::vector<Parameter> numerator{Parameter(1.0)};
+    std::vector<Parameter> denominator{
+        Parameter("a", qftbx::Range(1.0, 5.0), 5.0)};
+    PolynomialForm plant("templates", numerator, denominator,
+                         Parameter(1.0), Parameter(0.0));
+
+    dialog.launch(&plant, 2);
+
+    EXPECT_TRUE(child<QLineEdit>(&dialog, "epsilonEdit")->text().isEmpty());
+    EXPECT_TRUE(dialog.proposals().empty());
+}
+
 TEST_F(GuiSmoke, LoopShapingDialogCarriesTheChosenAlgorithm)
 {
     LoopShapingDialog dialog;

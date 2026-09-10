@@ -260,6 +260,13 @@ void MainWindow::ensureTemplatesWidgets()
         templatesDialog = new TemplatesDialog(this);
         templatesDialog->setMaxPointCount(m_settings.limits.maxTemplatePoints);
         templatesDialog->setDefaultPointCount(m_settings.defaults.templatePointCount);
+        //The field opens with the epsilon the family asks for: a sweep over
+        //the grids as entered, the same one OK runs next.
+        templatesDialog->setEpsilonProposer([this](const qftbx::ParameterGrids & grids,
+                                                   qftbx::EpsilonMetric metric) {
+            const WaitCursor waiting(this);
+            return controller->proposeEpsilon(grids, metric);
+        });
         templateViewer = new TemplateViewer(this);
         installContourRecomputer();
     }

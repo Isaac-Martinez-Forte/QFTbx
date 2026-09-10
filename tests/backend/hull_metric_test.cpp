@@ -95,15 +95,21 @@ TEST(HullMetric, TheProposedEpsilonIsTheLongestSpanningEdge)
     engine.setClouds({block});
     const std::vector<TemplateEngine::EpsilonProposal> p = engine.proposeEpsilon();
     ASSERT_EQ(p.size(), 1u);
-    EXPECT_NEAR(p[0].epsilon, 1.0, 1e-12);
+    EXPECT_NEAR(p[0].connected, 1.0, 1e-12);
     EXPECT_NEAR(p[0].diameter, 8.0 * std::sqrt(2.0), 1e-12);
     EXPECT_NEAR(p[0].coarseness(), 1.0 / (8.0 * std::sqrt(2.0)), 1e-12);
+    //On a regular block the walk closes at the connecting epsilon itself.
+    EXPECT_TRUE(p[0].closes);
+    EXPECT_DOUBLE_EQ(p[0].epsilon, 1.0);
 
     //Two blocks 40 apart: the longest edge is the bridge between them.
     ComplexCloud two = block;
     for (const Complex & z : block) two.push_back(z + Complex(40.0, 0.0));
     engine.setClouds({two});
-    EXPECT_NEAR(engine.proposeEpsilon()[0].epsilon, 32.0, 1e-12);
+    const TemplateEngine::EpsilonProposal bridge = engine.proposeEpsilon()[0];
+    EXPECT_NEAR(bridge.connected, 32.0, 1e-12);
+    EXPECT_TRUE(bridge.closes);
+    EXPECT_GE(bridge.epsilon, bridge.connected);
 
     //And with that epsilon the walk finds one component; with less, two.
     std::vector<std::size_t> starts;
@@ -137,19 +143,19 @@ TEST(HullMetric, Example2AsksForOneEpsilonInNicholsAndTenThousandInTheComplexPla
     double cMin = 1e300, cMax = 0.0, nMin = 1e300, nMax = 0.0;
     for (std::size_t i = 0; i < 6; ++i) {
         std::printf("PROPOSE w=%-6g complex eps*=%.4g (%.1f%% of diameter)   nichols eps*=%.3f (%.1f%%)\n",
-                    w[i], complexPlane[i].epsilon, 100.0 * complexPlane[i].coarseness(),
-                    nichols[i].epsilon, 100.0 * nichols[i].coarseness());
-        cMin = std::min(cMin, complexPlane[i].epsilon); cMax = std::max(cMax, complexPlane[i].epsilon);
-        nMin = std::min(nMin, nichols[i].epsilon); nMax = std::max(nMax, nichols[i].epsilon);
+                    w[i], complexPlane[i].connected, 100.0 * complexPlane[i].coarseness(),
+                    nichols[i].connected, 100.0 * nichols[i].coarseness());
+        cMin = std::min(cMin, complexPlane[i].connected); cMax = std::max(cMax, complexPlane[i].connected);
+        nMin = std::min(nMin, nichols[i].connected); nMax = std::max(nMax, nichols[i].connected);
     }
     std::fflush(stdout);
 
     EXPECT_GT(cMax / cMin, 5000.0) << "complex plane: a different epsilon at every frequency";
     EXPECT_LT(nMax / nMin, 4.0) << "Nichols plane: one epsilon serves them all";
-    EXPECT_NEAR(complexPlane[0].epsilon, 3.731, 0.04);
-    EXPECT_NEAR(complexPlane[5].epsilon, 3.714e-4, 4e-6);
-    EXPECT_NEAR(nichols[2].epsilon, 8.973, 0.09);
-    EXPECT_NEAR(nichols[5].epsilon, 2.766, 0.03);
+    EXPECT_NEAR(complexPlane[0].connected, 3.731, 0.04);
+    EXPECT_NEAR(complexPlane[5].connected, 3.714e-4, 4e-6);
+    EXPECT_NEAR(nichols[2].connected, 8.973, 0.09);
+    EXPECT_NEAR(nichols[5].connected, 2.766, 0.03);
     //The stored epsilon, 10, is 27 000 times what w = 100 needs.
     EXPECT_GT(10.0 / complexPlane[5].epsilon, 20000.0);
 }

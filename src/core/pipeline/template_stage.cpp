@@ -78,6 +78,20 @@ std::vector<TemplateEngine::EpsilonProposal> TemplateStage::proposeEpsilon(const
     return m_engine->proposeEpsilon();
 }
 
+std::vector<TemplateEngine::EpsilonProposal> TemplateStage::proposeEpsilon(const ProjectData & data,
+                                                                           ParameterGrids grids,
+                                                                           EpsilonMetric metric) const
+{
+    requirePrerequisites(data);
+
+    TemplateEngine sweep;
+    sweep.setGrids(std::move(grids));
+    sweep.setClouds(sweep.computeClouds(data.plant(), data.omega()->values()));
+    sweep.setHullMetric(metric.metric, metric.dbPerDegree);
+
+    return sweep.proposeEpsilon();
+}
+
 void TemplateStage::adopt(ProjectData & data, CloudSet clouds,
                           CloudSet contour, bool hasContour)
 {

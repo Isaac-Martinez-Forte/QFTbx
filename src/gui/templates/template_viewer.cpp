@@ -355,8 +355,7 @@ void TemplateViewer::on_proposeButton_clicked()
     }
     m_proposals = propose();
     for (qint32 i = 0; i < epsilonEdits.size() && i < static_cast<qint32>(m_proposals.size()); i++) {
-        //Just above the threshold, so rounding never lands under it.
-        const double value = m_proposals[static_cast<std::size_t>(i)].epsilon * 1.01;
+        const double value = m_proposals[static_cast<std::size_t>(i)].epsilon;
         epsilonEdits.at(i)->setText(numberText(value));
         epsilonSliders.at(i)->setMaximum(std::max(epsilonSliders.at(i)->maximum(), static_cast<int>(value * 10000)));
         epsilonSliders.at(i)->setValue(static_cast<int>(value * 1000));

@@ -3,6 +3,7 @@
 
 #include "src/core/project/settings.h"
 #include "src/gui/application/step_dialog.h"
+#include <functional>
 #include <memory>
 
 #include <vector>
@@ -24,6 +25,7 @@
 #include "src/core/system/lti_system.h"
 #include "src/core/templates/hull_metric.h"
 #include "src/core/templates/parameter_grids.h"
+#include "src/core/templates/template_engine.h"
 #include "src/core/system/parameter.h"
 #include "src/core/math/sequence_vectors.h"
 
@@ -98,6 +100,20 @@ public:
     qftbx::EpsilonMetric epsilonMetric() const;
     void setEpsilonMetric(qftbx::EpsilonMetric metric);
 
+    /// What the epsilon field is filled with: the least epsilon at which the
+    /// contour of each template closes, for the family swept over the grids
+    /// the dialog holds and in its plane. Called on launch, with the grids as
+    /// they open, and again from the Propose button. Without one the field
+    /// opens empty, as it always did.
+    using EpsilonProposer = std::function<std::vector<qftbx::TemplateEngine::EpsilonProposal>(
+        const qftbx::ParameterGrids &, qftbx::EpsilonMetric)>;
+    void setEpsilonProposer(EpsilonProposer propose);
+
+    /// The proposals behind the field's current text, empty when none
+    /// were made (no proposer, grids the dialog could not read, or the
+    /// sweep failed).
+    const std::vector<qftbx::TemplateEngine::EpsilonProposal> & proposals() const { return m_proposals; }
+
 
     struct ThreeRadioButtons{
         //Observers on radio buttons owned by their row widget: the three
@@ -123,12 +139,30 @@ private slots:
 
     void on_okButton_clicked();
 
+    void on_proposeButton_clicked();
+
 signals:
     void close_ok ();
 
 
 private:
     void clearTables();
+
+    /// Reads every grid from the fields into gridMap. False, with the
+    /// message the user should see in reason, when a field is not usable;
+    /// the caller decides whether to show it (OK does, the proposal on
+    /// launch does not).
+    bool readGrids(QString & reason);
+
+    /// Where the general section has nothing selected, selects what the
+    /// proposal and a plain OK need: linear spacing, every variable alike.
+    void selectDefaultsWhereEmpty();
+
+    /// Sweeps over the grids as entered and fills the epsilon field.
+    void proposeEpsilon();
+
+    EpsilonProposer m_propose;
+    std::vector<qftbx::TemplateEngine::EpsilonProposal> m_proposals;
 
     std::unique_ptr<Ui::TemplatesDialog> ui;
 

@@ -207,6 +207,12 @@ std::vector<TemplateEngine::EpsilonProposal> ProjectController::proposeEpsilon()
     return m_templates.proposeEpsilon(m_data);
 }
 
+std::vector<TemplateEngine::EpsilonProposal> ProjectController::proposeEpsilon(qftbx::ParameterGrids grids,
+                                                                               qftbx::EpsilonMetric metric){
+    requireNotComputing();
+    return m_templates.proposeEpsilon(m_data, std::move(grids), metric);
+}
+
 
 const qftbx::CloudSet & ProjectController::recomputeContour(std::vector <double> epsilon){
     //It rewrites the contour and the epsilon, and MR reads the contour: the

@@ -123,15 +123,40 @@ public:
      */
     struct EpsilonProposal
     {
-        double epsilon = 0.0;    ///< the longest edge of the minimum spanning tree
+        /// The longest edge of the minimum spanning tree: below it the cloud
+        /// splits into more than one component, so no smaller epsilon can
+        /// keep every point in reach of the contour.
+        double connected = 0.0;
+        /// The epsilon to use: the least value, on the ladder of three-figure
+        /// numbers rising one per cent at a time from `connected`, at which
+        /// the contour walk closes. Equal to `connected` when nothing up to
+        /// the diameter closes (then `closes` is false).
+        double epsilon = 0.0;
         double diameter = 0.0;   ///< the largest distance between two points
-        /// The gap as a fraction of the template: epsilon over diameter.
-        double coarseness() const { return diameter > 0.0 ? epsilon / diameter : 0.0; }
+        bool closes = false;     ///< whether the walk closes at `epsilon`
+        /// The gap as a fraction of the template: the connecting epsilon
+        /// over the diameter. A property of the sweep, not of the walk.
+        double coarseness() const { return diameter > 0.0 ? connected / diameter : 0.0; }
     };
 
-    /// One proposal per frequency of the clouds held, in the current metric.
-    /// Quadratic in the cloud size (Prim), which is nothing next to the sweep.
-    std::vector<EpsilonProposal> proposeEpsilon() const;
+    /**
+     * @brief One proposal per frequency of the clouds held, in the current
+     * metric.
+     *
+     * Connectivity is necessary for the walk to close but not sufficient: the
+     * walk (Prune) steps from a point to a neighbour within epsilon in a
+     * given angular order, and a template whose points are just connected
+     * can still leave it with no admissible next step, or send it round in
+     * circles. Measured on example 2, the walk closes anywhere from exactly
+     * the connecting epsilon to twice it, and not monotonically. So the
+     * epsilon proposed is found by walking: candidates rise from the
+     * connecting epsilon one per cent at a time, each rounded up to the three
+     * significant figures a person types, and the first at which the walk
+     * closes is proposed. Every candidate is tried as the user would type it,
+     * so what the field shows is what has been verified. Quadratic in the
+     * cloud size (Prim) plus one walk per candidate.
+     */
+    std::vector<EpsilonProposal> proposeEpsilon();
 
     /**
      * @brief What the contour of one frequency went through, as data.

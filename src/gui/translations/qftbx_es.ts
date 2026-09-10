@@ -1553,6 +1553,32 @@ contorno</translation>
         <translation>Épsilon en:</translation>
     </message>
     <message>
+        <source>Propose</source>
+        <translation>Proponer</translation>
+    </message>
+    <message>
+        <source>One value, or one per design frequency. Filled in with the least epsilon at which the contour of each template closes, over the grids as they are entered above.</source>
+        <translation>Un valor, o uno por frecuencia de diseño. Se rellena con el menor épsilon con el que cierra el contorno de cada plantilla, sobre las mallas tal como están arriba.</translation>
+    </message>
+    <message>
+        <source>Sweep the family over the grids entered above and fill in the least epsilon at which the contour of each template closes, in the plane chosen below.</source>
+        <translation>Barre la familia sobre las mallas de arriba y rellena el menor épsilon con el que cierra el contorno de cada plantilla, en el plano elegido abajo.</translation>
+    </message>
+    <message>
+        <source>frequency %1: %2 (connected from %3, gap %4%)</source>
+        <translation>frecuencia %1: %2 (conectada desde %3, hueco %4 %)</translation>
+    </message>
+    <message>
+        <source>frequency %1: %2 (connected, but no epsilon up to the diameter closes the walk; gap %3%)</source>
+        <translation>frecuencia %1: %2 (conectada, pero ningún épsilon hasta el diámetro cierra el recorrido; hueco %3 %)</translation>
+    </message>
+    <message>
+        <source>The least epsilon at which the contour of each template closes, over the grids as entered; below the connecting value the template splits. The gap is the largest distance between neighbouring points of the template as a share of its size: above a few per cent the sweep is coarse and asks for more points, not a larger epsilon.
+%1</source>
+        <translation>El menor épsilon con el que cierra el contorno de cada plantilla, sobre las mallas tal como están; por debajo del valor de conexión la plantilla se parte. El hueco es la mayor distancia entre puntos vecinos de la plantilla como fracción de su tamaño: por encima de unos pocos por ciento el barrido es escaso y pide más puntos, no un épsilon mayor.
+%1</translation>
+    </message>
+    <message>
         <source>The plane the epsilon of the contour is measured in. Nichols: degrees and decibels, one epsilon serves every template. Complex plane: the historical reading, in the units of the plant's response.</source>
         <translation>El plano en que se mide el épsilon del contorno. Nichols: grados y decibelios, un solo épsilon sirve para todas las plantillas. Plano complejo: la lectura histórica, en las unidades de la respuesta de la planta.</translation>
     </message>
