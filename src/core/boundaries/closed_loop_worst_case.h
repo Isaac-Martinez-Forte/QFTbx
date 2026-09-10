@@ -44,6 +44,12 @@ struct WorstCase
     double outputDisturbance = -std::numeric_limits<double>::infinity();
     double inputDisturbance = -std::numeric_limits<double>::infinity();
     double controlEffort = -std::numeric_limits<double>::infinity();
+    /// The distance from \f$ -L_0 \f$ to the nearest sample point of the
+    /// value set: the smallest \f$ |R + L_0| \f$ met, which is what the
+    /// guard near the singular locus needs (see SingularLocus).
+    double nearestSample = std::numeric_limits<double>::infinity();
+    /// The index in the value set of that nearest sample.
+    std::size_t nearestIndex = 0;
 };
 
 /// The quotients \f$ P_0 / P \f$ of the value set, computed once per
@@ -90,6 +96,12 @@ inline WorstCase worstCaseAt(std::complex<double> p0, std::complex<double> L,
         const std::complex<double> & p = valueSet[i];
         const std::complex<double> & p0OverP = nominalOverP[i];
         const std::complex<double> denominator = p0OverP + L;
+
+        const double distance = std::abs(denominator);
+        if (distance < worst.nearestSample) {
+            worst.nearestSample = distance;
+            worst.nearestIndex = i;
+        }
 
         //A NaN candidate compares false and leaves the running value alone,
         //as the explicit comparisons this replaces did.

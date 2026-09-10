@@ -6,6 +6,7 @@
 #include <cstdint>
 #include "src/core/boundaries/boundary_engine.h"
 #include "src/core/boundaries/closed_loop_worst_case.h"
+#include "src/core/boundaries/singular_locus.h"
 
 
 #include <iostream>
@@ -38,8 +39,11 @@ void BoundaryEngine::releaseResults()
 }
 
 void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const CloudSet & templates,
+                             bool templatesAreContours,
                              const qftbx::SpecificationRecords * specifications, qftbx::Range phaseRange, std::int32_t phaseCount, qftbx::Range magnitudeRange,
                              std::int32_t magnitudeCount, double exportInfinity, bool cuda){
+
+    m_templatesAreContours = templatesAreContours;
 
     //The export stand-in for infinity is not part of the computation
     //(thesis ch. 7: it exists so exported data can carry a finite value in
@@ -590,6 +594,15 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
     const bool needStabilityNoise = m_stabilityMask.at(index) || m_noiseMask.at(index);
     const bool needTracking = m_trackingMask.at(index);
 
+    //The singular locus of this frequency, {-P0/P}: where the closed loop of
+    //some plant is singular. The sweep takes the worst case over a finite
+    //sample, and near the locus the sample understates the family - to
+    //infinity when -L0 falls inside the template, and by a bounded excess
+    //when it falls close outside. Both are covered here: the inside test is
+    //step 2 of Moreno, Banos and Berenguel's algorithm 2.1, the excess is a
+    //Lipschitz bound with no free parameter (see SingularLocus).
+    const SingularLocus locus(nominalOverP, m_templatesAreContours);
+
     //Grid sweep (no nested parallelism: the outer per-frequency loop is
     //already parallel, and these loops share function-scope variables).
     for (std::size_t k = 0; k < magnitudes.size(); ++k){
@@ -610,9 +623,12 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
         for (std::size_t j = 0; j < phases.size(); ++j){
             const complex<double> L = nicholsToComplex(magnitudes[k], phases[j]);
 
-            //Template sweep: worst case over the value set at this L, of
-            //the magnitudes the sheets in use need.
-            const WorstCase worst = worstCaseAt(p0, L, p, nominalOverP, mask);
+            //Template sweep: worst case over the SAMPLE at this L, of the
+            //magnitudes the sheets in use need; then over the FAMILY, by the
+            //border between the samples (see SingularLocus). Infinite when
+            //-L0 is inside the template.
+            const WorstCase sampled = worstCaseAt(p0, L, p, nominalOverP, mask);
+            const WorstCase worst = m_guardSingularLocus ? locus.guard(sampled, L, p0) : sampled;
 
             //The sheet is ALWAYS stored in dB (contract validated against
             //the golden; the old OpenMP branch stored linear magnitudes and

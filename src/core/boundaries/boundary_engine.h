@@ -63,6 +63,11 @@ public:
     * @param omega design frequencies (rad/s); the vector stays owned by the caller.
     * @param plant nominal plant \f$P_0\f$.
     * @param templates one value set per design frequency (full cloud or contour).
+    * @param templatesAreContours whether 'templates' are the epsilon-hull
+    *        contours (ordered closed walks, one per frequency) or the full
+    *        clouds. Near the singular locus the sweep guards its sample
+    *        differently for each; see SingularLocus. The CUDA path does not
+    *        apply that guard yet.
     * @param specifications the seven historical specification records; validated
     *        on entry (throws qftbx::InvalidInput on invalid used records).
     * @param phaseRange, phaseCount Nichols window phase axis (degrees).
@@ -75,8 +80,17 @@ public:
     * @param cuda compute the sheets on the GPU (CUDA builds only).
     */
     void compute(std::vector <double> * omega, LtiSystem * plant, const CloudSet & templates,
+                 bool templatesAreContours,
                  const qftbx::SpecificationRecords * specifications, qftbx::Range phaseRange,
                  std::int32_t phaseCount, qftbx::Range magnitudeRange, std::int32_t magnitudeCount, double exportInfinity, bool cuda);
+
+    /// Whether the sweep guards its sample near the singular locus (see
+    /// SingularLocus): on by default, which is step 2 of Moreno, Banos and
+    /// Berenguel's algorithm 2.1 with the border between samples covered as
+    /// well. Off reproduces the raw sweep over the sample, which is what the
+    /// legacy boundaries were computed with.
+    void setSingularLocusGuard(bool on) { m_guardSingularLocus = on; }
+    bool singularLocusGuard() const { return m_guardSingularLocus; }
 
     /// A snapshot of the results, by value. It used to be a freshly
     /// allocated NON-OWNING view that every caller had to delete and that
@@ -86,6 +100,11 @@ public:
 
 private:
     SpecificationSet m_specifications;
+    //Whether the value sets swept are the epsilon-hull contours (ordered
+    //walks) or the full clouds: the guard near the singular locus reads
+    //them differently (see SingularLocus).
+    bool m_templatesAreContours = false;
+    bool m_guardSingularLocus = true;
 
     //Clears the previous run's results.
     void releaseResults();
