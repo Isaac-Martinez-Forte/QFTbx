@@ -103,6 +103,7 @@ explored by recompiling is a worse tool.
 | `template-representatives` | 9 | 2 to 1000 | MR (Rambabu and Nataraj, FDA-10): template points entering the constraint set per design frequency. The paper uses 9; raising it narrows the known excess of the tracking bound only slightly, at a much higher cost |
 | `max-narrowing-passes` | 8 | 1 to 1000 | MR: passes of the HC4 narrowing before a box is accepted as narrowed no further |
 | `mr-nichols-epsilon` | 0 | 0 or 1 | MR: with 1 the termination epsilon measures the Nichols box of the leading node, as in the other four algorithms, instead of the width of the parameter box the paper uses; the only way to compare the running time of MR with the others' |
+| `conservative-boundary-columns` | 0 | 0 or 1 | NT, NK, MC1, MC (thesis), MC2: how a phase between two nodes of the boundary grid is read. 0, the published reading: the nearest node. 1, the conservative reading: both bracketing nodes must allow the point or box. See the note below |
 | `local-search-budget` | 400 | 1 to 1e7 | NK (Nataraj and Kubal 2007): iterations the local refinement of a candidate may spend |
 | `gain-tolerance` | 1.01 | above 1, up to 10 | NK: the ratio at which the gain bisection stops; a pruning bound, not the accuracy of the answer |
 | `certified-gain-tolerance` | 1.01 | above 1, up to 10 | MC (Martínez-Forte and Cervera 2021): the same ratio for the certified gain search |
@@ -111,3 +112,26 @@ What is not in the file, and will not be: 2π, the two layers of the boundary
 union, the seven specification slots, the 0 dB ray of the stability
 criterion. Writing those in a file would not configure anything; it would
 break the program. A setting is a value with a defensible range.
+
+**The two readings, measured on the toolbox example 2.** The nearest-node
+reading is what the published algorithms do, and it is permissive: between two
+nodes the boundary can run higher than at the nearer one, so a box up to half
+a grid step away is admitted that the boundary at its own phase forbids. With
+a 1-degree phase grid the returned controller violates the stability
+specification by 0.05 dB; the error halves every time the grid step halves
+and never reaches zero (0.005 dB at 0.125 degrees). The conservative reading
+removes it at every grid, but its cost depends on the grid: the strip cuts of
+the searches need every column of a span to agree, and at 1 degree the two
+bracketing columns disagree so often that NT, NK and MC1 take about a thousand
+times longer (70 to 130 s instead of 0.05 s). Each halving of the step divides
+that by about five: at 0.25 degrees NT takes 2.4 s, at 0.125 degrees 0.5 s,
+less than computing the boundaries themselves (3 and 7 s). So there are two
+sensible ways to run the loop shaping:
+
+| | phase grid | reading | result on example 2 | total time |
+|---|---|---|---|---|
+| as published | 361 points (1 degree) | nearest node | k = 557.1, violates by +0.05 dB | about 1 s |
+| certified | 1441 or 2881 points (0.25 or 0.125 degrees) | conservative | k = 567.3, satisfies every specification | 3 to 8 s |
+
+The controller returned is checked against the specifications on the full
+templates either way, and the loop-shaping viewer shows the verdict.

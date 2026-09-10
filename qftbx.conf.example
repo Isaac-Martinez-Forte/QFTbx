@@ -244,9 +244,12 @@
 # admits, up to half a grid step away, what the boundary at the point's own
 # phase forbids - 0.05 dB on the toolbox example 2 with a 1-degree grid - and
 # 1 removes that; but the strip cuts of the searches need every column of a
-# span to agree and apply far less often, so NT, NK and MC1 slow down by
-# orders of magnitude on that example. The returned controller is checked
-# against the specifications either way (see the loop-shaping result).
+# span to agree, and how often the two columns agree depends on the grid:
+# with 1 degree NT, NK and MC1 take about a thousand times longer on that
+# example, with 0.25 degrees a few seconds, with 0.125 degrees under a
+# second, less than the boundaries cost. For a certified result use 1 with a
+# fine phase grid (see docs/CONFIGURATION.md). The returned controller is
+# checked against the specifications either way (see the loop-shaping result).
 # Range: 0 or 1.
 # conservative-boundary-columns = 0
 
