@@ -697,6 +697,11 @@ TEST_F(GuiSmoke, TemplatesDialogOpensWithTheProposedEpsilon)
     EXPECT_EQ(calls, 2);
     EXPECT_EQ(lastMetric.metric, qftbx::HullMetric::Nichols);
 
+    //The contour is the walk by default; the alpha-shape on request.
+    EXPECT_FALSE(dialog.alphaShapeContour());
+    child<QComboBox>(&dialog, "contourCombo")->setCurrentIndex(1);
+    EXPECT_TRUE(dialog.alphaShapeContour());
+
     //Where a contour does not close, the whole template stands in by default;
     //the user can ask for an error instead.
     EXPECT_TRUE(dialog.wholeTemplateIfNoContour());

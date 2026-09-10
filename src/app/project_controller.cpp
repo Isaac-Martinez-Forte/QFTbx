@@ -211,6 +211,14 @@ void ProjectController::setWholeCloudStandsIn(bool standsIn){
     m_templates.setWholeCloudStandsIn(standsIn);
 }
 
+void ProjectController::setAlphaShapeContour(bool alphaShape){
+    m_templates.setAlphaShapeContour(alphaShape);
+}
+
+bool ProjectController::alphaShapeContour() const{
+    return m_templates.alphaShapeContour();
+}
+
 const std::vector<TemplateEngine::ContourReport> & ProjectController::contourReports() const{
     return m_templates.contourReports();
 }
@@ -465,6 +473,7 @@ void ProjectController::applySettings(const qftbx::Settings & settings)
 {
     m_loopShaping.setSettings(settings);
     m_templates.setWholeCloudStandsIn(settings.algorithms.wholeTemplateIfNoContour);
+    m_templates.setAlphaShapeContour(settings.algorithms.alphaShapeContour);
 }
 
 qftbx::StepSet ProjectController::completed() const

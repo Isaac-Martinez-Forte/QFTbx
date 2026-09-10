@@ -134,6 +134,11 @@ public:
     /// templates dialog; the setting gives the default.
     void setWholeCloudStandsIn(bool standsIn);
 
+    /// How the contour is extracted: the walk (default) or the alpha-shape.
+    /// Chosen in the templates dialog; the setting gives the default.
+    void setAlphaShapeContour(bool alphaShape);
+    bool alphaShapeContour() const;
+
     /// What the last contour computation reported, per frequency
     /// (TemplateEngine::ContourReport); empty when nothing was computed.
     const std::vector<TemplateEngine::ContourReport> & contourReports() const;

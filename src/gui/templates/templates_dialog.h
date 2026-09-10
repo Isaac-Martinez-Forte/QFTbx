@@ -105,6 +105,10 @@ public:
     bool wholeTemplateIfNoContour() const;
     void setWholeTemplateIfNoContour(bool standsIn);
 
+    /// How the contour is extracted: the walk (index 0) or the alpha-shape.
+    bool alphaShapeContour() const;
+    void setAlphaShapeContour(bool alphaShape);
+
     /// What the epsilon field is filled with: the least epsilon at which the
     /// contour of each template closes, for the family swept over the grids
     /// the dialog holds and in its plane. Called on launch, with the grids as

@@ -105,6 +105,19 @@ public:
     /// reading, and what every stored project predating the choice used.
     void setHullMetric(HullMetric metric, double dbPerDegree = 1.0);
     HullMetric hullMetric() const { return m_metric; }
+
+    /// How the contour of a cloud is extracted: the walk of Nordin (the
+    /// historical epsilon-hull, which can fail to close) or the alpha-shape,
+    /// the same boundary by its definition, edge by edge, which always
+    /// closes and returns every component and hole (see alphaShape()).
+    void setAlphaShapeContour(bool alphaShape) { m_alphaShape = alphaShape; }
+    bool alphaShapeContour() const { return m_alphaShape; }
+
+    /// The alpha-shape contour of one cloud at this epsilon, in the current
+    /// metric: its loops concatenated, each closed by repeating its first
+    /// point, and where each begins in componentStarts.
+    ComplexCloud alphaShapeContour(const ComplexCloud & cloud, double epsilon,
+                                   std::vector<std::size_t> * componentStarts) const;
     double dbPerDegree() const { return m_dbPerDegree; }
 
     /**
@@ -239,6 +252,7 @@ private:
     double m_dbPerDegree = 1.0;
     bool m_useCuda = false;
     bool m_wholeCloudStandsIn = true;
+    bool m_alphaShape = false;
 
     CloudSet m_clouds;
     CloudSet m_contours;

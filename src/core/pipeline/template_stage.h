@@ -79,6 +79,10 @@ public:
     /// computation from now on.
     void setWholeCloudStandsIn(bool standsIn) { m_wholeCloudStandsIn = standsIn; }
 
+    /// How the contour is extracted (TemplateEngine::setAlphaShapeContour).
+    void setAlphaShapeContour(bool alphaShape) { m_alphaShape = alphaShape; }
+    bool alphaShapeContour() const { return m_alphaShape; }
+
     /// What the last contour computation reported, per frequency; empty when
     /// nothing has been computed.
     const std::vector<TemplateEngine::ContourReport> & contourReports() const;
@@ -102,6 +106,7 @@ private:
 
     std::unique_ptr<TemplateEngine> m_engine;
     bool m_wholeCloudStandsIn = true;
+    bool m_alphaShape = false;
 };
 
 } // namespace qftbx
