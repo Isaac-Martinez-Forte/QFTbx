@@ -175,10 +175,13 @@ public:
         std::size_t contourPoints = 0;
         /// The faithful walk did not close; the relaxed walk was used.
         bool relaxed = false;
-        /// The relaxed walk hit its step limit too, so neither walk closed:
-        /// the FULL CLOUD stands in for the contour at this frequency (the
-        /// relaxed walk used to hand on the partial contour it had).
+        /// The relaxed walk hit its step limit too (it used to hand on the
+        /// partial contour it had).
         bool truncated = false;
+        /// No walk closed, and the WHOLE CLOUD stands in for the contour at
+        /// this frequency (setWholeCloudStandsIn). With that off, a walk
+        /// that does not close is an error naming the frequency.
+        bool wholeCloud = false;
         /// The epsilon-connected components of the cloud, and where each
         /// one's contour begins in the returned vector (the first at 0). The
         /// walk of Prune is defined for an epsilon-connected set (Gutman,
@@ -191,6 +194,12 @@ public:
 
     /// One report per frequency of the last contour computation.
     const std::vector<ContourReport> & contourReports() const { return m_reports; }
+
+    /// What a contour that does not close becomes: the whole cloud at that
+    /// frequency (the default, always safe and only slower) or an error
+    /// naming the frequency, for the user to change the epsilon or the sweep.
+    void setWholeCloudStandsIn(bool standsIn) { m_wholeCloudStandsIn = standsIn; }
+    bool wholeCloudStandsIn() const { return m_wholeCloudStandsIn; }
 
     /// Sweep grids keyed by parameter NAME; the caller keeps ownership.
     /// Takes the grids BY VALUE: the engine owns its copy and nobody has to
@@ -229,6 +238,7 @@ private:
     HullMetric m_metric = HullMetric::ComplexPlane;
     double m_dbPerDegree = 1.0;
     bool m_useCuda = false;
+    bool m_wholeCloudStandsIn = true;
 
     CloudSet m_clouds;
     CloudSet m_contours;

@@ -97,6 +97,12 @@ public:
     using EpsilonProposer = std::function<std::vector<qftbx::TemplateEngine::EpsilonProposal> ()>;
     void setEpsilonProposer(EpsilonProposer propose);
 
+    /// Where the viewer reads what the last contour computation reported
+    /// (TemplateEngine::ContourReport), to mark the frequencies where the
+    /// whole template stands in for a contour that did not close.
+    using ContourReporter = std::function<std::vector<qftbx::TemplateEngine::ContourReport> ()>;
+    void setContourReporter(ContourReporter report);
+
    /**
     * @fn refreshContour
     * @brief Answer to recomputeRequested: the new contour and the epsilon
@@ -135,7 +141,10 @@ private slots:
 private:
     std::unique_ptr<Ui::TemplateViewer> ui;
     EpsilonProposer propose;
+    ContourReporter report;
     std::vector<QLabel *> gapLabels;
+    std::vector<QLabel *> stateLabels;
+    void showContourState();
     std::vector<qftbx::TemplateEngine::EpsilonProposal> m_proposals;
     void showProposals();
     bool plotted = false;

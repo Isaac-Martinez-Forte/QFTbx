@@ -278,6 +278,25 @@
     </item>
    </layout>
   </widget>
+  <widget class="QCheckBox" name="wholeTemplateCheck">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>345</y>
+     <width>361</width>
+     <height>24</height>
+    </rect>
+   </property>
+   <property name="toolTip">
+    <string>Where the contour walk does not close with the epsilon given, use the whole template as its contour at that frequency: always safe, only slower, and marked in the viewer. Unchecked, the computation stops and names the frequency instead.</string>
+   </property>
+   <property name="text">
+    <string>Use the whole template where the contour does not close</string>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+  </widget>
   <widget class="QWidget" name="epsilonMetricRow">
    <property name="geometry">
     <rect>
@@ -322,7 +341,7 @@
     <item>
      <widget class="QLineEdit" name="dbPerDegreeEdit">
       <property name="text">
-       <string>1</string>
+       <string notr="true">1</string>
       </property>
       <property name="maximumSize">
        <size>

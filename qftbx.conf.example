@@ -253,6 +253,15 @@
 # Range: 0 or 1.
 # conservative-boundary-columns = 0
 
+# Templates: what to do when the contour walk does not close at a design
+# frequency with the epsilon given. 1: the WHOLE template stands in for its
+# contour there, which is always safe (the boundaries read every point) and
+# only slower, and the viewer marks the frequency. 0: stop with an error
+# naming the frequency, for the user to change the epsilon or the sweep.
+# The templates dialog offers the same choice per computation.
+# Range: 0 or 1.
+# whole-template-if-no-contour = 1
+
 # NK (Nataraj & Kubal 2007): iterations the local refinement of a candidate
 # point may spend.
 # Range: 1 to 1e7.

@@ -390,22 +390,24 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
             truncatedFrequencies[i] = true;
         }
 
-        if (truncated){
-            //Neither walk closed. The relaxed walk used to hand on the
-            //partial contour it had, silently, and the boundaries were then
-            //computed over a value set with a piece missing: the shipped
-            //ACC'90 fixture carries contours of 3 points out of 80 at three
-            //frequencies from exactly this. The full cloud stands in for
-            //the contour at this frequency instead - nothing is dropped, the
-            //boundaries only cost more there - and the report says so.
+        //A walk that did not close, either way (the relaxed walk used to hand
+        //on the partial contour it had, silently: the shipped ACC'90 fixture
+        //carries contours of 3 points out of 80 at three frequencies from
+        //exactly this). The whole cloud stands in when asked to - nothing is
+        //dropped, the boundaries only cost more there - and the report says
+        //so; otherwise the frequency fails below, naming itself.
+        bool wholeCloud = false;
+        if ((truncated || cont.empty()) && m_wholeCloudStandsIn){
             cont = m_clouds[i];
             starts.assign(1, 0);
+            wholeCloud = true;
         }
 
         //Every frequency writes its own report: no critical section.
         m_reports[i].contourPoints = cont.size();
         m_reports[i].relaxed = fellBack;
         m_reports[i].truncated = truncated;
+        m_reports[i].wholeCloud = wholeCloud;
         m_reports[i].components = std::max<std::size_t>(starts.size(), 1);
         m_reports[i].componentStarts = std::move(starts);
 
@@ -446,7 +448,7 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
 
     std::vector<std::string> truncatedAt;
     for (std::size_t i = 0; i < digitCount; i++){
-        if (truncatedFrequencies.at(i)){
+        if (m_reports[i].wholeCloud){
             truncatedAt.push_back(label(i));
         }
     }
@@ -472,9 +474,9 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
     }
 
     if (!truncatedAt.empty()){
-        std::cerr << "epsilonHull: neither walk closed at " << qftbx::text::join(truncatedAt, ", ")
-                  << " (the relaxed walk hit its step limit): the full cloud stands in for the "
-                     "contour there. A larger epsilon, or a denser template, would close it." << std::endl;
+        std::cerr << "epsilonHull: no walk closed at " << qftbx::text::join(truncatedAt, ", ")
+                  << ": the whole cloud stands in for the contour there. A larger epsilon, or a "
+                     "denser template, would close it." << std::endl;
     }
 
     if (!succeeded){
@@ -503,7 +505,7 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
                              + qftbx::text::number(largest) + ")");
         }
 
-        throw qftbx::ComputationError(QFTBX_TR("Core", "Could not compute the template contour at %1. A cloud spanning extreme magnitudes has no epsilon-hull: check for a resonance inside the plant uncertainty and damp it lightly if so.")
+        throw qftbx::ComputationError(QFTBX_TR("Core", "The contour did not close at %1 with the epsilon given. A larger epsilon or a denser template closes it; or let the whole template stand in for the contour (templates dialog, or the setting algorithms.whole-template-if-no-contour).")
                 .arg(qftbx::text::join(detail, "; ")));
     }
 

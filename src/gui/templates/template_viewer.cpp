@@ -62,6 +62,7 @@ void TemplateViewer::clearDiagram(){
     epsilonEdits.clear();
     epsilonSliders.clear();
     gapLabels.clear();
+    stateLabels.clear();
 
     contourGraphs.clear();
     templateGraphs.clear();
@@ -100,6 +101,26 @@ void TemplateViewer::setEpsilonProposer(EpsilonProposer propose){
     this->propose = std::move(propose);
 }
 
+void TemplateViewer::setContourReporter(ContourReporter report){
+    this->report = std::move(report);
+}
+
+//The frequencies where no contour closed and the whole template stands in
+//for it: marked next to the epsilon, never as a dialog, since trying an
+//epsilon and looking is how the contour is tuned.
+void TemplateViewer::showContourState(){
+    if (!report || stateLabels.empty()){
+        return;
+    }
+    const std::vector<qftbx::TemplateEngine::ContourReport> reports = report();
+    for (std::size_t i = 0; i < stateLabels.size(); ++i){
+        const bool whole = i < reports.size() && reports[i].wholeCloud;
+        stateLabels[i]->setText(whole ? tr("no contour: whole template shown") : QString());
+        stateLabels[i]->setToolTip(whole ? tr("No contour closed at this epsilon, so the whole template stands in for it here. A larger epsilon, or a denser sweep, closes it.") : QString());
+        stateLabels[i]->setStyleSheet(whole ? "color: #b91c1c;" : QString());
+    }
+}
+
 //The epsilon each template asks for, next to the epsilon it has: the least
 //that keeps the cloud connected, and how big that gap is against the
 //template, so that the user sees at once where the epsilon is too small to
@@ -115,8 +136,8 @@ void TemplateViewer::showProposals(){
         const qftbx::TemplateEngine::EpsilonProposal & p = m_proposals[i];
         const QString gap = QString::number(100.0 * p.coarseness(), 'f', 1);
         gapLabels[i]->setText(tr("needs %1 (gap %2%)").arg(numberText(p.epsilon), gap));
-        gapLabels[i]->setToolTip(tr("The least epsilon that keeps this template connected is %1; the largest gap between its points is %2% of its size. Above a few per cent the sweep is coarse: more points per parameter, not a larger epsilon.")
-                                 .arg(numberText(p.epsilon), gap));
+        gapLabels[i]->setToolTip(tr("The least epsilon at which this template's contour closes is %1 (it is connected from %2); the largest gap between its points is %3% of its size. Above a few per cent the sweep is coarse: more points per parameter, not a larger epsilon.")
+                                 .arg(numberText(p.epsilon), numberText(p.connected), gap));
         gapLabels[i]->setStyleSheet(p.coarseness() > 0.05 ? "color: #b45309;" : QString());
     }
 }
@@ -150,6 +171,7 @@ void TemplateViewer::plotDiagram(bool plot){
 
     plotted = true;
     showProposals();
+    showContourState();
     qint32 i = 0;
     qint32 counter = 0;
 
@@ -292,6 +314,12 @@ void TemplateViewer::addFrequencyRow(QColor color, qint32 pos){
     gap->setObjectName(QString::fromUtf8("gap"));
     gapLabels.push_back(gap);
     row.layout->addWidget(gap);
+
+    //Whether the whole template stands in for this contour, by showContourState().
+    QLabel * state = new QLabel(row.widget);
+    state->setObjectName(QString::fromUtf8("contourState"));
+    stateLabels.push_back(state);
+    row.layout->addWidget(state);
 
     connect(slider, SIGNAL (sliderMoved (int)), this, SLOT (syncSliders ()));
 }

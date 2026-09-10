@@ -134,6 +134,16 @@ void TemplatesDialog::launch(LtiSystem *plant, qint32 frequencyCount){
     proposeEpsilon();
 }
 
+bool TemplatesDialog::wholeTemplateIfNoContour() const
+{
+    return ui->wholeTemplateCheck->isChecked();
+}
+
+void TemplatesDialog::setWholeTemplateIfNoContour(bool standsIn)
+{
+    ui->wholeTemplateCheck->setChecked(standsIn);
+}
+
 void TemplatesDialog::setEpsilonProposer(EpsilonProposer propose)
 {
     m_propose = std::move(propose);

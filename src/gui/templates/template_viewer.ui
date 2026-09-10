@@ -118,7 +118,7 @@ contour</string>
     </rect>
    </property>
    <property name="toolTip">
-    <string>Set every epsilon to the least value that keeps its template connected - the longest edge of the minimum spanning tree - and recompute the contours.</string>
+    <string>Set every epsilon to the least value at which the contour of its template closes, and recompute the contours.</string>
    </property>
    <property name="text">
     <string>Propose epsilon</string>

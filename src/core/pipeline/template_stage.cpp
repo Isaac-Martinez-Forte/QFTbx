@@ -31,6 +31,7 @@ bool TemplateStage::run(ProjectData & data, std::vector<double> epsilon,
     TemplateEngine & sweep = engine();
 
     sweep.setHullMetric(data.epsilonMetric().metric, data.epsilonMetric().dbPerDegree);
+    sweep.setWholeCloudStandsIn(m_wholeCloudStandsIn);
     sweep.setEpsilon(epsilon);
     sweep.setGrids(std::move(grids));
 
@@ -61,6 +62,7 @@ const CloudSet & TemplateStage::recomputeContour(ProjectData & data,
     }
 
     m_engine->setHullMetric(data.epsilonMetric().metric, data.epsilonMetric().dbPerDegree);
+    m_engine->setWholeCloudStandsIn(m_wholeCloudStandsIn);
     m_engine->computeContours(epsilon);
 
     data.setContour(m_engine->contours());
@@ -90,6 +92,12 @@ std::vector<TemplateEngine::EpsilonProposal> TemplateStage::proposeEpsilon(const
     sweep.setHullMetric(metric.metric, metric.dbPerDegree);
 
     return sweep.proposeEpsilon();
+}
+
+const std::vector<TemplateEngine::ContourReport> & TemplateStage::contourReports() const
+{
+    static const std::vector<TemplateEngine::ContourReport> none;
+    return m_engine != nullptr ? m_engine->contourReports() : none;
 }
 
 void TemplateStage::adopt(ProjectData & data, CloudSet clouds,

@@ -129,6 +129,15 @@ public:
     /// the project's plane (TemplateEngine::EpsilonProposal).
     std::vector<TemplateEngine::EpsilonProposal> proposeEpsilon();
 
+    /// What a contour that does not close becomes: the whole template at
+    /// that frequency (default) or an error naming it. Chosen in the
+    /// templates dialog; the setting gives the default.
+    void setWholeCloudStandsIn(bool standsIn);
+
+    /// What the last contour computation reported, per frequency
+    /// (TemplateEngine::ContourReport); empty when nothing was computed.
+    const std::vector<TemplateEngine::ContourReport> & contourReports() const;
+
     /// The same, for templates NOT computed yet: what the family swept over
     /// these grids would ask for in this plane. Publishes nothing; it is the
     /// figure the templates dialog offers before the user presses OK.

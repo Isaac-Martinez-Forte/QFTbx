@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "src/app/project_controller.h"
+#include "src/core/common/exception.h"
 #include "src/core/templates/template_engine.h"
 
 using namespace qftbx;
@@ -99,4 +100,31 @@ TEST(ContourReport, WhichFixturesTruncateIsPinned)
         EXPECT_EQ(truncated, f.truncated) << file;
     }
     std::fflush(stdout);
+}
+
+//A contour that does not close is the user's decision, not the engine's: by
+//default the whole cloud stands in for it at that frequency and the report
+//says so; asked not to, the engine stops with an error naming the frequency.
+//The cloud is the one whose hull is null at this epsilon (EHull.TinyEpsilon).
+TEST(ContourReport, AContourThatDoesNotCloseIsTheWholeCloudOrAnError)
+{
+    ComplexCloud square{{0.0, 0.0}, {2.0, 0.0}, {2.0, 1.0}, {0.0, 1.0}};
+
+    TemplateEngine engine;
+    engine.setClouds({square});
+
+    ASSERT_TRUE(engine.wholeCloudStandsIn()) << "the safe choice is the default";
+    ASSERT_TRUE(engine.computeContours(std::vector<double>(1, 0.1)));
+    ASSERT_EQ(engine.contourReports().size(), 1u);
+    EXPECT_TRUE(engine.contourReports()[0].wholeCloud);
+    EXPECT_EQ(engine.contours()[0].size(), square.size()) << "the whole cloud stands in";
+
+    engine.setWholeCloudStandsIn(false);
+    EXPECT_THROW(engine.computeContours(std::vector<double>(1, 0.1)), ComputationError);
+
+    //And with an epsilon that closes, neither path marks anything.
+    engine.setWholeCloudStandsIn(true);
+    ASSERT_TRUE(engine.computeContours(std::vector<double>(1, 2.5)));
+    EXPECT_FALSE(engine.contourReports()[0].wholeCloud);
+    EXPECT_LE(engine.contours()[0].size(), 8u);
 }

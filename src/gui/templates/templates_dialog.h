@@ -100,6 +100,11 @@ public:
     qftbx::EpsilonMetric epsilonMetric() const;
     void setEpsilonMetric(qftbx::EpsilonMetric metric);
 
+    /// Where the contour does not close: the whole template stands in
+    /// (checked, the default from the settings) or the computation stops.
+    bool wholeTemplateIfNoContour() const;
+    void setWholeTemplateIfNoContour(bool standsIn);
+
     /// What the epsilon field is filled with: the least epsilon at which the
     /// contour of each template closes, for the family swept over the grids
     /// the dialog holds and in its plane. Called on launch, with the grids as

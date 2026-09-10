@@ -207,6 +207,14 @@ std::vector<TemplateEngine::EpsilonProposal> ProjectController::proposeEpsilon()
     return m_templates.proposeEpsilon(m_data);
 }
 
+void ProjectController::setWholeCloudStandsIn(bool standsIn){
+    m_templates.setWholeCloudStandsIn(standsIn);
+}
+
+const std::vector<TemplateEngine::ContourReport> & ProjectController::contourReports() const{
+    return m_templates.contourReports();
+}
+
 std::vector<TemplateEngine::EpsilonProposal> ProjectController::proposeEpsilon(qftbx::ParameterGrids grids,
                                                                                qftbx::EpsilonMetric metric){
     requireNotComputing();
@@ -456,6 +464,7 @@ qftbx::StepSet ProjectController::load(std::string path){
 void ProjectController::applySettings(const qftbx::Settings & settings)
 {
     m_loopShaping.setSettings(settings);
+    m_templates.setWholeCloudStandsIn(settings.algorithms.wholeTemplateIfNoContour);
 }
 
 qftbx::StepSet ProjectController::completed() const

@@ -134,6 +134,13 @@ struct Settings {
         /// and their running times can be compared.
         bool mrNicholsEpsilon = false;
 
+        /// Templates: when the contour walk does not close at a frequency,
+        /// let the WHOLE template stand in for its contour there (the
+        /// boundaries then read every point, which is always safe and only
+        /// slower), instead of stopping with an error that names the
+        /// frequency. On by default; the templates dialog offers the choice.
+        bool wholeTemplateIfNoContour = true;
+
         /// NT, NK, MC1, MC (thesis), MC2: read the boundary columns
         /// CONSERVATIVELY - a point or a box is judged by both column nodes
         /// that bracket its phase, not by the nearest one. Off by default,

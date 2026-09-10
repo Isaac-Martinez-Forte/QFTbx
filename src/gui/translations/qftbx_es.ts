@@ -424,10 +424,6 @@ del controlador</translation>
         <translation>No se han podido calcular los contornos de los templates.</translation>
     </message>
     <message>
-        <source>Could not compute the template contour at %1. A cloud spanning extreme magnitudes has no epsilon-hull: check for a resonance inside the plant uncertainty and damp it lightly if so.</source>
-        <translation>No se ha podido calcular el contorno del template en %1. Una nube que abarca magnitudes extremas no tiene ε-hull: compruebe si hay una resonancia dentro de la incertidumbre de la planta y, si es así, amortígüela ligeramente.</translation>
-    </message>
-    <message>
         <source>missing &lt;%1&gt; element</source>
         <translation>falta el elemento &lt;%1&gt;</translation>
     </message>
@@ -500,14 +496,6 @@ del controlador</translation>
         <translation>no es un fichero de proyecto QFT (raíz &lt;%1&gt;)</translation>
     </message>
     <message>
-        <source>unsupported .qft version (no version attribute; this build reads version 2)</source>
-        <translation>versión de .qft no soportada (sin atributo de versión; esta compilación lee la versión 2)</translation>
-    </message>
-    <message>
-        <source>unsupported .qft version (found %1, this build reads version 2)</source>
-        <translation>versión de .qft no soportada (se encontró %1; esta compilación lee la versión 2)</translation>
-    </message>
-    <message>
         <source>The project cannot be written: &lt;%1&gt; holds a value that is not a finite number.</source>
         <translation>No se puede escribir el proyecto: &lt;%1&gt; contiene un valor que no es un número finito.</translation>
     </message>
@@ -550,6 +538,54 @@ del controlador</translation>
     <message>
         <source>the settings file cannot be written: %1</source>
         <translation>no se puede escribir el fichero de ajustes: %1</translation>
+    </message>
+    <message>
+        <source>Boundary columns over different phase grids cannot be intersected: %1 columns from %2 step %3 against %4 columns from %5 step %6.</source>
+        <translation>No se pueden intersectar columnas de fronteras sobre rejillas de fase distintas: %1 columnas desde %2 con paso %3 frente a %4 columnas desde %5 con paso %6.</translation>
+    </message>
+    <message>
+        <source>The specification check needs a value set for every design frequency: %1 given for %2 frequencies.</source>
+        <translation>La comprobación de las especificaciones necesita una plantilla por cada frecuencia de diseño: se dan %1 para %2 frecuencias.</translation>
+    </message>
+    <message>
+        <source>The tracking check needs both tracking specifications (T_L and T_U).</source>
+        <translation>La comprobación del seguimiento necesita las dos especificaciones de seguimiento (T_L y T_U).</translation>
+    </message>
+    <message>
+        <source>There are no templates to propose an epsilon for.</source>
+        <translation>No hay plantillas para las que proponer un épsilon.</translation>
+    </message>
+    <message>
+        <source>The contour did not close at %1 with the epsilon given. A larger epsilon or a denser template closes it; or let the whole template stand in for the contour (templates dialog, or the setting algorithms.whole-template-if-no-contour).</source>
+        <translation>El contorno no cerró en %1 con el épsilon dado. Un épsilon mayor o una plantilla más densa lo cierran; o deje que la plantilla entera haga de contorno (diálogo de plantillas, o el ajuste algorithms.whole-template-if-no-contour).</translation>
+    </message>
+    <message>
+        <source>The decibels per degree of the Nichols metric must be a finite positive number.</source>
+        <translation>Los decibelios por grado de la métrica de Nichols deben ser un número positivo finito.</translation>
+    </message>
+    <message>
+        <source>&lt;%1&gt; holds a malformed column list</source>
+        <translation>&lt;%1&gt; contiene una lista de columnas mal formada</translation>
+    </message>
+    <message>
+        <source>&lt;%1&gt; does not cover the phase grid</source>
+        <translation>&lt;%1&gt; no cubre la rejilla de fase</translation>
+    </message>
+    <message>
+        <source>unsupported .qft version (no version attribute; this build reads versions 2 and 3)</source>
+        <translation>versión de .qft no admitida (sin atributo de versión; esta compilación lee las versiones 2 y 3)</translation>
+    </message>
+    <message>
+        <source>unsupported .qft version (found %1, this build reads versions 2 and 3)</source>
+        <translation>versión de .qft no admitida (se encontró %1; esta compilación lee las versiones 2 y 3)</translation>
+    </message>
+    <message>
+        <source>unknown epsilon metric &apos;%1&apos; (complex or nichols)</source>
+        <translation>métrica del épsilon desconocida «%1» (complex o nichols)</translation>
+    </message>
+    <message>
+        <source>the decibels per degree of the epsilon metric must be a finite positive number</source>
+        <translation>los decibelios por grado de la métrica del épsilon deben ser un número positivo finito</translation>
     </message>
 </context>
 <context>
@@ -664,10 +700,6 @@ del controlador</translation>
         <translation>Algorit&amp;mo MC1</translation>
     </message>
     <message>
-        <source>Algorithm MC (thesis)</source>
-        <translation>Algoritmo MC (tesis)</translation>
-    </message>
-    <message>
         <source>Al&amp;gorithm MR</source>
         <translation>Al&amp;goritmo MR</translation>
     </message>
@@ -718,6 +750,18 @@ del controlador</translation>
     <message>
         <source>Initialisation type:</source>
         <translation>Tipo de inicialización:</translation>
+    </message>
+    <message>
+        <source>Algorithm MC&amp;2</source>
+        <translation>Algoritmo MC&amp;2</translation>
+    </message>
+    <message>
+        <source>Judge every point and box by both boundary columns around its phase instead of the nearest one. Removes the small permissive error of the phase grid; the searches without a best-gain bound become much slower.</source>
+        <translation>Juzgar cada punto y cada caja por las dos columnas de frontera que rodean su fase, en vez de por la más cercana. Elimina el pequeño error permisivo de la rejilla de fase; las búsquedas sin cota de mejor ganancia se vuelven mucho más lentas.</translation>
+    </message>
+    <message>
+        <source>Conservative boundary reading</source>
+        <translation>Lectura conservadora de las fronteras</translation>
     </message>
 </context>
 <context>
@@ -1147,6 +1191,14 @@ contorno</translation>
         <source>Recompute</source>
         <translation>Recalcular</translation>
     </message>
+    <message>
+        <source>Propose epsilon</source>
+        <translation>Proponer épsilon</translation>
+    </message>
+    <message>
+        <source>Set every epsilon to the least value at which the contour of its template closes, and recompute the contours.</source>
+        <translation>Pone en cada épsilon el menor valor con el que cierra el contorno de su plantilla, y recalcula los contornos.</translation>
+    </message>
 </context>
 <context>
     <name>TemplatesDialog</name>
@@ -1213,6 +1265,46 @@ contorno</translation>
     <message>
         <source>Epsilon:</source>
         <translation>Épsilon:</translation>
+    </message>
+    <message>
+        <source>One value, or one per design frequency. Filled in with the least epsilon at which the contour of each template closes, over the grids as they are entered above.</source>
+        <translation>Un valor, o uno por frecuencia de diseño. Se rellena con el menor épsilon con el que cierra el contorno de cada plantilla, sobre las mallas tal como están arriba.</translation>
+    </message>
+    <message>
+        <source>Sweep the family over the grids entered above and fill in the least epsilon at which the contour of each template closes, in the plane chosen below.</source>
+        <translation>Barre la familia sobre las mallas de arriba y rellena el menor épsilon con el que cierra el contorno de cada plantilla, en el plano elegido abajo.</translation>
+    </message>
+    <message>
+        <source>Propose</source>
+        <translation>Proponer</translation>
+    </message>
+    <message>
+        <source>Where the contour walk does not close with the epsilon given, use the whole template as its contour at that frequency: always safe, only slower, and marked in the viewer. Unchecked, the computation stops and names the frequency instead.</source>
+        <translation>Donde el recorrido del contorno no cierre con el épsilon dado, usar la plantilla entera como su contorno en esa frecuencia: siempre seguro, sólo más lento, y marcado en el visor. Sin marcar, el cálculo se detiene y nombra la frecuencia.</translation>
+    </message>
+    <message>
+        <source>Use the whole template where the contour does not close</source>
+        <translation>Usar la plantilla entera donde el contorno no cierra</translation>
+    </message>
+    <message>
+        <source>Epsilon in:</source>
+        <translation>Épsilon en:</translation>
+    </message>
+    <message>
+        <source>The plane the epsilon of the contour is measured in. Nichols: degrees and decibels, one epsilon serves every template. Complex plane: the historical reading, in the units of the plant&apos;s response.</source>
+        <translation>El plano en que se mide el épsilon del contorno. Nichols: grados y decibelios, un solo épsilon sirve para todas las plantillas. Plano complejo: la lectura histórica, en las unidades de la respuesta de la planta.</translation>
+    </message>
+    <message>
+        <source>Nichols (degrees, dB)</source>
+        <translation>Nichols (grados, dB)</translation>
+    </message>
+    <message>
+        <source>Complex plane</source>
+        <translation>Plano complejo</translation>
+    </message>
+    <message>
+        <source>dB per degree:</source>
+        <translation>dB por grado:</translation>
     </message>
 </context>
 <context>
@@ -1507,6 +1599,33 @@ contorno</translation>
         <translation>Épsilon (diámetro de la caja de Nichols):</translation>
     </message>
     <message>
+        <source>The epsilon must be a positive real number.</source>
+        <translation>Épsilon debe ser un número real positivo.</translation>
+    </message>
+    <message>
+        <source>The start frequency must be a real number.</source>
+        <translation>La frecuencia inicial debe ser un número real.</translation>
+    </message>
+    <message>
+        <source>The end frequency must be a real number.</source>
+        <translation>La frecuencia final debe ser un número real.</translation>
+    </message>
+    <message>
+        <source>The point count must be a whole number of at least 1.</source>
+        <translation>El número de puntos debe ser un entero de al menos 1.</translation>
+    </message>
+</context>
+<context>
+    <name>qftbx::LoopShapingViewer</name>
+    <message>
+        <source>Loop Shaping</source>
+        <translation>Ajuste del lazo</translation>
+    </message>
+    <message>
+        <source>Loop-shaping plot</source>
+        <translation>Gráfica del ajuste del lazo</translation>
+    </message>
+    <message>
         <source>Not checked against the specifications (no templates to check over).</source>
         <translation>Sin comprobar contra las especificaciones (no hay plantillas sobre las que comprobar).</translation>
     </message>
@@ -1547,107 +1666,6 @@ contorno</translation>
     <message>
         <source>control effort</source>
         <translation>esfuerzo de control</translation>
-    </message>
-    <message>
-        <source>Epsilon in:</source>
-        <translation>Épsilon en:</translation>
-    </message>
-    <message>
-        <source>Propose</source>
-        <translation>Proponer</translation>
-    </message>
-    <message>
-        <source>One value, or one per design frequency. Filled in with the least epsilon at which the contour of each template closes, over the grids as they are entered above.</source>
-        <translation>Un valor, o uno por frecuencia de diseño. Se rellena con el menor épsilon con el que cierra el contorno de cada plantilla, sobre las mallas tal como están arriba.</translation>
-    </message>
-    <message>
-        <source>Sweep the family over the grids entered above and fill in the least epsilon at which the contour of each template closes, in the plane chosen below.</source>
-        <translation>Barre la familia sobre las mallas de arriba y rellena el menor épsilon con el que cierra el contorno de cada plantilla, en el plano elegido abajo.</translation>
-    </message>
-    <message>
-        <source>frequency %1: %2 (connected from %3, gap %4%)</source>
-        <translation>frecuencia %1: %2 (conectada desde %3, hueco %4 %)</translation>
-    </message>
-    <message>
-        <source>frequency %1: %2 (connected, but no epsilon up to the diameter closes the walk; gap %3%)</source>
-        <translation>frecuencia %1: %2 (conectada, pero ningún épsilon hasta el diámetro cierra el recorrido; hueco %3 %)</translation>
-    </message>
-    <message>
-        <source>The least epsilon at which the contour of each template closes, over the grids as entered; below the connecting value the template splits. The gap is the largest distance between neighbouring points of the template as a share of its size: above a few per cent the sweep is coarse and asks for more points, not a larger epsilon.
-%1</source>
-        <translation>El menor épsilon con el que cierra el contorno de cada plantilla, sobre las mallas tal como están; por debajo del valor de conexión la plantilla se parte. El hueco es la mayor distancia entre puntos vecinos de la plantilla como fracción de su tamaño: por encima de unos pocos por ciento el barrido es escaso y pide más puntos, no un épsilon mayor.
-%1</translation>
-    </message>
-    <message>
-        <source>The plane the epsilon of the contour is measured in. Nichols: degrees and decibels, one epsilon serves every template. Complex plane: the historical reading, in the units of the plant's response.</source>
-        <translation>El plano en que se mide el épsilon del contorno. Nichols: grados y decibelios, un solo épsilon sirve para todas las plantillas. Plano complejo: la lectura histórica, en las unidades de la respuesta de la planta.</translation>
-    </message>
-    <message>
-        <source>Nichols (degrees, dB)</source>
-        <translation>Nichols (grados, dB)</translation>
-    </message>
-    <message>
-        <source>Complex plane</source>
-        <translation>Plano complejo</translation>
-    </message>
-    <message>
-        <source>dB per degree:</source>
-        <translation>dB por grado:</translation>
-    </message>
-    <message>
-        <source>The decibels per degree must be a positive number.</source>
-        <translation>Los decibelios por grado deben ser un número positivo.</translation>
-    </message>
-    <message>
-        <source>Set every epsilon to the least value that keeps its template connected - the longest edge of the minimum spanning tree - and recompute the contours.</source>
-        <translation>Poner en cada épsilon el menor valor que mantiene conexa su plantilla, el arco más largo del árbol de recubrimiento mínimo, y recalcular los contornos.</translation>
-    </message>
-    <message>
-        <source>Propose epsilon</source>
-        <translation>Proponer épsilon</translation>
-    </message>
-    <message>
-        <source>needs %1 (gap %2%)</source>
-        <translation>pide %1 (hueco %2 %)</translation>
-    </message>
-    <message>
-        <source>The least epsilon that keeps this template connected is %1; the largest gap between its points is %2% of its size. Above a few per cent the sweep is coarse: more points per parameter, not a larger epsilon.</source>
-        <translation>El menor épsilon que mantiene conexa esta plantilla es %1; el hueco mayor entre sus puntos es el %2 % de su tamaño. Por encima de unos pocos por ciento el barrido es basto: más puntos por parámetro, no un épsilon mayor.</translation>
-    </message>
-    <message>
-        <source>Conservative boundary reading</source>
-        <translation>Lectura conservadora de las fronteras</translation>
-    </message>
-    <message>
-        <source>Judge every point and box by both boundary columns around its phase instead of the nearest one. Removes the small permissive error of the phase grid; the searches without a best-gain bound become much slower.</source>
-        <translation>Juzgar cada punto y cada caja por las dos columnas de frontera que rodean su fase, en vez de por la más cercana. Elimina el pequeño error permisivo de la rejilla de fase; las búsquedas sin cota de mejor ganancia se vuelven mucho más lentas.</translation>
-    </message>
-    <message>
-        <source>The epsilon must be a positive real number.</source>
-        <translation>Épsilon debe ser un número real positivo.</translation>
-    </message>
-    <message>
-        <source>The start frequency must be a real number.</source>
-        <translation>La frecuencia inicial debe ser un número real.</translation>
-    </message>
-    <message>
-        <source>The end frequency must be a real number.</source>
-        <translation>La frecuencia final debe ser un número real.</translation>
-    </message>
-    <message>
-        <source>The point count must be a whole number of at least 1.</source>
-        <translation>El número de puntos debe ser un entero de al menos 1.</translation>
-    </message>
-</context>
-<context>
-    <name>qftbx::LoopShapingViewer</name>
-    <message>
-        <source>Loop Shaping</source>
-        <translation>Ajuste del lazo</translation>
-    </message>
-    <message>
-        <source>Loop-shaping plot</source>
-        <translation>Gráfica del ajuste del lazo</translation>
     </message>
 </context>
 <context>
@@ -2282,6 +2300,22 @@ contour</source>
         <translation>Mostrar
 contorno</translation>
     </message>
+    <message>
+        <source>no contour: whole template shown</source>
+        <translation>sin contorno: se muestra la plantilla entera</translation>
+    </message>
+    <message>
+        <source>No contour closed at this epsilon, so the whole template stands in for it here. A larger epsilon, or a denser sweep, closes it.</source>
+        <translation>Ningún contorno cerró con este épsilon, así que aquí la plantilla entera hace de contorno. Un épsilon mayor, o un barrido más denso, lo cierra.</translation>
+    </message>
+    <message>
+        <source>needs %1 (gap %2%)</source>
+        <translation>pide %1 (hueco %2 %)</translation>
+    </message>
+    <message>
+        <source>The least epsilon at which this template&apos;s contour closes is %1 (it is connected from %2); the largest gap between its points is %3% of its size. Above a few per cent the sweep is coarse: more points per parameter, not a larger epsilon.</source>
+        <translation>El menor épsilon con el que cierra el contorno de esta plantilla es %1 (está conectada desde %2); el hueco mayor entre sus puntos es el %3 % de su tamaño. Por encima de unos pocos por ciento el barrido es escaso: más puntos por parámetro, no un épsilon mayor.</translation>
+    </message>
 </context>
 <context>
     <name>qftbx::TemplatesDialog</name>
@@ -2348,6 +2382,24 @@ contorno</translation>
     <message>
         <source>one of its grid values is not a finite number</source>
         <translation>uno de los valores de su rejilla no es un número finito</translation>
+    </message>
+    <message>
+        <source>frequency %1: %2 (connected from %3, gap %4%)</source>
+        <translation>frecuencia %1: %2 (conectada desde %3, hueco %4 %)</translation>
+    </message>
+    <message>
+        <source>frequency %1: %2 (connected, but no epsilon up to the diameter closes the walk; gap %3%)</source>
+        <translation>frecuencia %1: %2 (conectada, pero ningún épsilon hasta el diámetro cierra el recorrido; hueco %3 %)</translation>
+    </message>
+    <message>
+        <source>The least epsilon at which the contour of each template closes, over the grids as entered; below the connecting value the template splits. The gap is the largest distance between neighbouring points of the template as a share of its size: above a few per cent the sweep is coarse and asks for more points, not a larger epsilon.
+%1</source>
+        <translation>El menor épsilon con el que cierra el contorno de cada plantilla, sobre las mallas tal como están; por debajo del valor de conexión la plantilla se parte. El hueco es la mayor distancia entre puntos vecinos de la plantilla como fracción de su tamaño: por encima de unos pocos por ciento el barrido es escaso y pide más puntos, no un épsilon mayor.
+%1</translation>
+    </message>
+    <message>
+        <source>The decibels per degree must be a positive number.</source>
+        <translation>Los decibelios por grado deben ser un número positivo.</translation>
     </message>
 </context>
 <context>

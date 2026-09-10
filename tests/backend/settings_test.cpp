@@ -373,6 +373,8 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
     EXPECT_EQ(fromExample.algorithms.mrNicholsEpsilon, defaults.algorithms.mrNicholsEpsilon);
     EXPECT_EQ(fromExample.algorithms.conservativeBoundaryColumns,
               defaults.algorithms.conservativeBoundaryColumns);
+    EXPECT_EQ(fromExample.algorithms.wholeTemplateIfNoContour,
+              defaults.algorithms.wholeTemplateIfNoContour);
     EXPECT_EQ(fromExample.algorithms.localSearchBudget,
               defaults.algorithms.localSearchBudget);
     EXPECT_EQ(fromExample.algorithms.gainTolerance, defaults.algorithms.gainTolerance);
@@ -382,7 +384,7 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
     //Every setting the build knows has to be IN the example, or the example
     //is not documentation. Twenty-nine today; the count is asserted so
     //adding one without documenting it fails here.
-    EXPECT_EQ(settingsFound, 29)
+    EXPECT_EQ(settingsFound, 30)
         << "a setting was added to the code and not to qftbx.conf.example";
 
     EXPECT_TRUE(fromExample.unknownKeys.empty())

@@ -74,6 +74,15 @@ public:
                                                                 ParameterGrids grids,
                                                                 EpsilonMetric metric) const;
 
+    /// What a contour that does not close becomes (TemplateEngine::
+    /// setWholeCloudStandsIn): the whole cloud, or an error. Applied to every
+    /// computation from now on.
+    void setWholeCloudStandsIn(bool standsIn) { m_wholeCloudStandsIn = standsIn; }
+
+    /// What the last contour computation reported, per frequency; empty when
+    /// nothing has been computed.
+    const std::vector<TemplateEngine::ContourReport> & contourReports() const;
+
     /**
      * @brief Takes templates computed elsewhere - by the persistence, on load
      * - and publishes them, feeding the engine as well.
@@ -92,6 +101,7 @@ private:
     TemplateEngine & engine();
 
     std::unique_ptr<TemplateEngine> m_engine;
+    bool m_wholeCloudStandsIn = true;
 };
 
 } // namespace qftbx

@@ -697,6 +697,12 @@ TEST_F(GuiSmoke, TemplatesDialogOpensWithTheProposedEpsilon)
     EXPECT_EQ(calls, 2);
     EXPECT_EQ(lastMetric.metric, qftbx::HullMetric::Nichols);
 
+    //Where a contour does not close, the whole template stands in by default;
+    //the user can ask for an error instead.
+    EXPECT_TRUE(dialog.wholeTemplateIfNoContour());
+    child<QCheckBox>(&dialog, "wholeTemplateCheck")->setChecked(false);
+    EXPECT_FALSE(dialog.wholeTemplateIfNoContour());
+
     //And OK accepts the filled-in field as it stands.
     check(&dialog, "nicholsRadio");
     press(&dialog, "okButton");
