@@ -45,17 +45,21 @@ BoxClassification BoundaryViolationDetector::classifyBox(NicholsBox box, const B
     const double minPhase = box.phaseDegrees.lower(), maxPhase = box.phaseDegrees.upper();
     const double minMag = box.magnitudeDb.lower(), maxMag = box.magnitudeDb.upper();
 
-    //The columns the box's phase span covers: from the node at or below its
-    //lower end to the node at or above its upper end, so that the verdict
-    //the strips demand of EVERY column holds wherever the boundary runs
-    //between the nodes. Reading the nearest node at each end judged a span
-    //that straddles a cell by one column, up to half a step away, which
-    //where the boundary is steep in phase let a violating box through: on
-    //example 2 the controller returned exceeded the stability bound by
-    //+0.051 dB with the 1-degree grid, an error of the first order in the
-    //step that halved every time the step did.
-    const std::int32_t first = columns.firstColumnCovering(minPhase);
-    const std::int32_t last = columns.lastColumnCovering(maxPhase);
+    //The columns the box's phase span covers. The published reading takes
+    //the nearest node at each end, so a span narrower than a cell is judged
+    //by ONE column - which is what lets the strip cuts apply, since they
+    //need every column of the span to agree - and a span that straddles a
+    //cell by a column up to half a step away, which where the boundary is
+    //steep in phase lets a violating box through (+0.051 dB on example 2
+    //with the 1-degree grid, halving with the step). The conservative
+    //reading runs from the node at or below the lower end to the node at or
+    //above the upper end, so that a verdict every column agrees on holds
+    //wherever the boundary runs between the nodes; an epsilon-small box
+    //then spans two columns, they disagree where the boundary is steep, and
+    //the cuts apply far less often. The end columns take what falls
+    //outside the window either way.
+    const std::int32_t first = m_conservative ? columns.firstColumnCovering(minPhase) : columns.columnOf(minPhase);
+    const std::int32_t last = m_conservative ? columns.lastColumnCovering(maxPhase) : columns.columnOf(maxPhase);
 
     double minPhaseBound = std::numeric_limits<double>::max(), maxPhaseBound = std::numeric_limits<double>::lowest();
 
@@ -184,10 +188,14 @@ qftbx::BoxFlag BoundaryViolationDetector::classifyPoint(qftbx::NicholsPoint poin
 
     const BoundaryColumns & columns = boundaries->columns(frequencyIndex);
 
+    if (!m_conservative) {
+        return columns.allows(columns.columnOf(point.phase), point.magnitude) ? feasible : infeasible;
+    }
+
     //Both columns that bracket the phase must allow the magnitude: the
     //boundary between the two nodes lies between their readings, and the
-    //nearest node alone admitted, half a step away, what the boundary at
-    //the point's own phase forbids.
+    //nearest node alone admits, half a step away, what the boundary at the
+    //point's own phase forbids.
     const std::int32_t first = columns.firstColumnCovering(point.phase);
     const std::int32_t last = columns.lastColumnCovering(point.phase);
 

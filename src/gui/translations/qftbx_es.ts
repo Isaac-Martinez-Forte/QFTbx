@@ -1507,6 +1507,14 @@ contorno</translation>
         <translation>Épsilon (diámetro de la caja de Nichols):</translation>
     </message>
     <message>
+        <source>Conservative boundary reading</source>
+        <translation>Lectura conservadora de las fronteras</translation>
+    </message>
+    <message>
+        <source>Judge every point and box by both boundary columns around its phase instead of the nearest one. Removes the small permissive error of the phase grid; the searches without a best-gain bound become much slower.</source>
+        <translation>Juzgar cada punto y cada caja por las dos columnas de frontera que rodean su fase, en vez de por la más cercana. Elimina el pequeño error permisivo de la rejilla de fase; las búsquedas sin cota de mejor ganancia se vuelven mucho más lentas.</translation>
+    </message>
+    <message>
         <source>The epsilon must be a positive real number.</source>
         <translation>Épsilon debe ser un número real positivo.</translation>
     </message>

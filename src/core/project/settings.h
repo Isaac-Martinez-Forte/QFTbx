@@ -134,6 +134,19 @@ struct Settings {
         /// and their running times can be compared.
         bool mrNicholsEpsilon = false;
 
+        /// NT, NK, MC1, MC (thesis), MC2: read the boundary columns
+        /// CONSERVATIVELY - a point or a box is judged by both column nodes
+        /// that bracket its phase, not by the nearest one. Off by default,
+        /// which is the published algorithms' reading: the nearest node
+        /// admits, up to half a step away, what the boundary at the point's
+        /// own phase forbids (0.05 dB on example 2 with the 1-degree grid),
+        /// and the conservative reading removes that at the cost of the
+        /// strip cuts, which need every column of a span to agree and apply
+        /// far less often: the searches without a best-gain bound slow down
+        /// by orders of magnitude. The direct check of the returned
+        /// controller against the specifications is the other way to know.
+        bool conservativeBoundaryColumns = false;
+
         /// NK (Nataraj & Kubal 2007): iterations the local refinement of a
         /// candidate point may spend.
         std::int32_t localSearchBudget = 400;

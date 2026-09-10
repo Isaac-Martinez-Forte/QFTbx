@@ -153,6 +153,14 @@ qreal LoopShapingDialog::epsilonValue(){
     return epsilonEdit;
 }
 
+bool LoopShapingDialog::conservativeColumns() const {
+    return ui->conservativeColumnsCheck->isChecked();
+}
+
+void LoopShapingDialog::setConservativeColumns(bool on) {
+    ui->conservativeColumnsCheck->setChecked(on);
+}
+
 qftbx::LoopShapingAlgorithm LoopShapingDialog::algorithmValue(){
     return alg;
 }

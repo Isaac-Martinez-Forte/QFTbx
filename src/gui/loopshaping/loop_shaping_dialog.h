@@ -59,6 +59,11 @@ public:
 
     qreal epsilonValue ();
 
+    /// Whether the boundary columns are to be read conservatively (both
+    /// nodes around a phase) for this run; see Settings::algorithms.
+    bool conservativeColumns() const;
+    void setConservativeColumns(bool on);
+
     qftbx::LoopShapingAlgorithm algorithmValue();
 
     qftbx::Range range();
