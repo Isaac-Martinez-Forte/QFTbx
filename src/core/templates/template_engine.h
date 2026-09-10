@@ -127,9 +127,16 @@ public:
      * and the same budget of evaluations - the product of the two grid sizes
      * - is spent on the four edges: as many points per edge as a quarter of
      * it, each edge sampled along the user's own grid (so a logarithmic grid
-     * stays logarithmic), in order round the box, a closed curve. Its
-     * contour is taken by the alpha-shape, which walks a curve; the
-     * historical walk does not.
+     * stays logarithmic), in order round the box, a closed curve.
+     *
+     * The contour of that curve is its alpha-shape at the CONNECTING epsilon,
+     * whatever epsilon the caller gives: a curve is already a border, and
+     * the alpha-shape at the epsilon of its own sampling step only resolves
+     * where it folds or crosses itself, taking the outer loop. At a larger
+     * epsilon the exposed chords of a curve multiply and the outer loop
+     * degenerates into thousands of spikes (measured: 14 000 points from a
+     * border of 624 at the epsilon of the fixture), which the boundaries
+     * then pay for. The historical walk is not used on a curve at all.
      *
      * With one or with three or more uncertain parameters the request is
      * ignored and the interior grid is swept (borderSweepApplied() says).
@@ -143,6 +150,11 @@ public:
     /// point, and where each begins in componentStarts.
     ComplexCloud alphaShapeContour(const ComplexCloud & cloud, double epsilon,
                                    std::vector<std::size_t> * componentStarts) const;
+
+    /// The least epsilon that keeps the cloud connected, in the current
+    /// metric: the longest edge of its minimum spanning tree (0 for fewer
+    /// than two distinct points).
+    double connectingEpsilon(const ComplexCloud & cloud) const;
     double dbPerDegree() const { return m_dbPerDegree; }
 
     /**

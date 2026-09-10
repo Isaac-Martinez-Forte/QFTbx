@@ -148,3 +148,25 @@ TEST(BorderSweep, OnExampleTwoTheBorderIsDenserAndTheBoundariesAgree)
     EXPECT_LE(k, 568.911);
     EXPECT_GT(excess, 0.0514) << "the denser border finds a slightly worse plant";
 }
+
+TEST(BorderSweep, TheContourOfABorderCloudIgnoresAnOversizedEpsilon)
+{
+    //The fixture's epsilon, 10 in the complex plane, is thousands of times
+    //the sampling step of the border at 100 rad/s. Taken literally on a
+    //curve it exposes almost every chord and the outer loop degenerates into
+    //thousands of spikes (14 000 points from a border of 624, measured); the
+    //border cloud's contour is its alpha-shape at its own connecting epsilon
+    //instead, each point once: never more than the cloud.
+    ProjectController controller;
+    controller.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
+    const std::size_t f = controller.omega()->values()->size();
+
+    controller.setBorderSweep(true);
+    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(f, 10.0), gridsOf(controller.plant(), 25), false));
+    for (std::size_t i = 0; i < f; ++i) {
+        //A curve is its own border: every point at most once, plus the
+        //closing repeat of the first.
+        EXPECT_LE(controller.contour()[i].size(), controller.templates()[i].size() + 1) << "frequency " << i;
+        EXPECT_GT(controller.contour()[i].size(), 4u) << "frequency " << i;
+    }
+}
