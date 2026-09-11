@@ -13,9 +13,9 @@
 #include "src/core/loopshaping/loop_shaping_types.h"
 #include <gtest/gtest.h>
 
+#include <filesystem>
 #include <fstream>
 #include <sstream>
-#include <QDir>
 #include <string>
 
 #include "src/core/common/exception.h"
@@ -186,10 +186,10 @@ TEST_F(SettingsFile, WritingASettingCreatesTheFileAndItsDirectory)
 {
     const std::string directory = std::string(QFTBX_TEST_DATA_DIR "/../settings_written_dir");
     const std::string path = directory + "/deeper/qftbx.conf";
-    QDir(QString::fromStdString(directory)).removeRecursively();
+    std::filesystem::remove_all(directory);
     qftbx::writeSetting(path, "interface.language", "es");
     EXPECT_EQ(qftbx::readSettings(path).interface.language, "es");
-    QDir(QString::fromStdString(directory)).removeRecursively();
+    std::filesystem::remove_all(directory);
 }
 
 TEST_F(SettingsFile, AFractionWhereAWholeNumberBelongsIsRefused)

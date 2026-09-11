@@ -3,12 +3,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
-#ifdef _WIN32
-#include <direct.h>
-#else
-#include <sys/stat.h>
-#endif
 #include <functional>
 #include <limits>
 
@@ -428,26 +424,6 @@ Settings readSettings(const std::string & path)
     return settings;
 }
 
-namespace {
-
-//Every directory above a file, made when missing; GCC 8's std::filesystem
-//would ask for a library of its own for this.
-void createDirectoriesAbove(const std::string & path)
-{
-    std::size_t at = 0;
-    while ((at = path.find_first_of("/\\", at + 1)) != std::string::npos) {
-        const std::string directory = path.substr(0, at);
-        if (!directory.empty()) {
-#ifdef _WIN32
-            _mkdir(directory.c_str());
-#else
-            mkdir(directory.c_str(), 0755);
-#endif
-        }
-    }
-}
-
-} // namespace
 
 std::string userSettingsPath()
 {
@@ -526,7 +502,7 @@ void writeSetting(const std::string & path, const std::string & key, const std::
         lines.push_back(entry);
     }
 
-    createDirectoriesAbove(path);
+    std::filesystem::create_directories(std::filesystem::path(path).parent_path());
     std::ofstream out(path, std::ios::trunc);
     if (!out) {
         throw FileError(QFTBX_TR("Core", "the settings file cannot be written: %1").arg(path));
