@@ -43,10 +43,15 @@ function(qftbx_native_arch target)
   if(USE_NATIVE_ARCH AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(${target} PRIVATE -march=native)
 
-    include(CheckCXXCompilerFlag)
-    check_cxx_compiler_flag(-mprefer-vector-width=256 QFTBX_HAS_PREFER_VECTOR_WIDTH)
-    if(QFTBX_HAS_PREFER_VECTOR_WIDTH)
-      target_compile_options(${target} PRIVATE -mprefer-vector-width=256)
+    # GCC before 11 vectorises to 512 bits wherever it can; from 11 on its
+    # own heuristic prefers 256 on the microarchitectures where that is
+    # faster, and the flag would only override it.
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 11)
+      include(CheckCXXCompilerFlag)
+      check_cxx_compiler_flag(-mprefer-vector-width=256 QFTBX_HAS_PREFER_VECTOR_WIDTH)
+      if(QFTBX_HAS_PREFER_VECTOR_WIDTH)
+        target_compile_options(${target} PRIVATE -mprefer-vector-width=256)
+      endif()
     endif()
   endif()
 endfunction()
