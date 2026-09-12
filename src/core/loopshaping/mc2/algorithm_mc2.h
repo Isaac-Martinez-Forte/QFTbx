@@ -132,7 +132,9 @@ public:
      * reads a member and never a configuration lookup. Not calling it leaves
      * the compiled defaults, which is what every existing caller does.
      */
-    void setSettings(const qftbx::Settings & settings) { m_settings = settings; }
+    /// Keeps the settings and takes the strategy switches from them
+    /// (Settings::Algorithms::mc); a later setStrategies() overrides.
+    void setSettings(const qftbx::Settings & settings);
 
     bool solve();
 

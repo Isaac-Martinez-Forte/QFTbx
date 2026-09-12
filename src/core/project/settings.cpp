@@ -215,6 +215,34 @@ const std::vector<Binding> & bindings()
              into.algorithms.closedFormColumns =
                  wholeIn(text, "algorithms.closed-form-columns", line, 0.0, 1.0) != 0.0;
          }},
+        {"algorithms.mc.infeasible-magnitude",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.algorithms.mc.infeasibleMagnitude = wholeIn(text, "algorithms.mc.infeasible-magnitude", line, 0.0, 1.0) != 0.0;
+         }},
+        {"algorithms.mc.infeasible-phase",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.algorithms.mc.infeasiblePhase = wholeIn(text, "algorithms.mc.infeasible-phase", line, 0.0, 1.0) != 0.0;
+         }},
+        {"algorithms.mc.feasible-magnitude",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.algorithms.mc.feasibleMagnitude = wholeIn(text, "algorithms.mc.feasible-magnitude", line, 0.0, 1.0) != 0.0;
+         }},
+        {"algorithms.mc.feasible-phase",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.algorithms.mc.feasiblePhase = wholeIn(text, "algorithms.mc.feasible-phase", line, 0.0, 1.0) != 0.0;
+         }},
+        {"algorithms.mc.best-gain",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.algorithms.mc.bestGain = wholeIn(text, "algorithms.mc.best-gain", line, 0.0, 1.0) != 0.0;
+         }},
+        {"algorithms.mc.tree-bisection",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.algorithms.mc.treeBisection = wholeIn(text, "algorithms.mc.tree-bisection", line, 0.0, 1.0) != 0.0;
+         }},
+        {"algorithms.mc.stages",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.algorithms.mc.stages = wholeIn(text, "algorithms.mc.stages", line, 0.0, 1.0) != 0.0;
+         }},
         {"algorithms.local-search-budget",
          [](const std::string & text, std::int64_t line, Settings & into) {
              into.algorithms.localSearchBudget = static_cast<std::int32_t>(
