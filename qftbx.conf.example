@@ -309,3 +309,17 @@
 # gain search.
 # Range: strictly above 1, up to 10.
 # certified-gain-tolerance = 1.01
+
+# MC (thesis) and MC2: the strategies of chapter 4 of the thesis, one switch
+# each, all on by default (the algorithm as published). None of them changes
+# the answer - each only discards boxes it has certified cannot hold a better
+# one - so they are here for measuring what each one buys, as chapter 6 does
+# with sixteen combinations, not for tuning a design. Range: 0 or 1 each.
+[algorithms.mc]
+# infeasible-magnitude = 1
+# infeasible-phase = 1
+# feasible-magnitude = 1
+# feasible-phase = 1
+# best-gain = 1
+# tree-bisection = 1
+# stages = 1

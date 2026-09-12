@@ -165,6 +165,22 @@ struct Settings {
         /// method and the fixtures were computed with it.
         bool closedFormColumns = false;
 
+        /// MC (thesis) and MC2: the strategies of chapter 4, each one a
+        /// switch. All on is the algorithm as published; none of them changes
+        /// the answer, each only discards boxes it has certified cannot hold
+        /// a better one. Here so that a benchmark plan can measure what each
+        /// one buys (the thesis' chapter 6 does that with sixteen
+        /// combinations); the interface does not expose them.
+        struct McStrategies {
+            bool infeasibleMagnitude = true;  ///< QSInv, magnitude cuts (NK's QS)
+            bool infeasiblePhase = true;      ///< QSInv, phase cuts (thesis 4.1.2)
+            bool feasibleMagnitude = true;    ///< QSFact, magnitude (thesis 4.1.1)
+            bool feasiblePhase = true;        ///< QSFact, phase
+            bool bestGain = true;             ///< MG (thesis 4.3)
+            bool treeBisection = true;        ///< thesis 4.2.4
+            bool stages = true;               ///< thesis 4.4
+        } mc;
+
         /// NT, NK, MC1, MC (thesis), MC2: read the boundary columns
         /// CONSERVATIVELY - a point or a box is judged by both column nodes
         /// that bracket its phase, not by the nearest one. Off by default,

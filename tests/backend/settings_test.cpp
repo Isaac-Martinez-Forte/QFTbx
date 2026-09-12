@@ -379,6 +379,13 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
               defaults.algorithms.alphaShapeContour);
     EXPECT_EQ(fromExample.algorithms.borderSweep, defaults.algorithms.borderSweep);
     EXPECT_EQ(fromExample.algorithms.closedFormColumns, defaults.algorithms.closedFormColumns);
+    EXPECT_EQ(fromExample.algorithms.mc.infeasibleMagnitude, defaults.algorithms.mc.infeasibleMagnitude);
+    EXPECT_EQ(fromExample.algorithms.mc.infeasiblePhase, defaults.algorithms.mc.infeasiblePhase);
+    EXPECT_EQ(fromExample.algorithms.mc.feasibleMagnitude, defaults.algorithms.mc.feasibleMagnitude);
+    EXPECT_EQ(fromExample.algorithms.mc.feasiblePhase, defaults.algorithms.mc.feasiblePhase);
+    EXPECT_EQ(fromExample.algorithms.mc.bestGain, defaults.algorithms.mc.bestGain);
+    EXPECT_EQ(fromExample.algorithms.mc.treeBisection, defaults.algorithms.mc.treeBisection);
+    EXPECT_EQ(fromExample.algorithms.mc.stages, defaults.algorithms.mc.stages);
     EXPECT_EQ(fromExample.algorithms.localSearchBudget,
               defaults.algorithms.localSearchBudget);
     EXPECT_EQ(fromExample.algorithms.gainTolerance, defaults.algorithms.gainTolerance);
@@ -388,7 +395,7 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
     //Every setting the build knows has to be IN the example, or the example
     //is not documentation. Twenty-nine today; the count is asserted so
     //adding one without documenting it fails here.
-    EXPECT_EQ(settingsFound, 33)
+    EXPECT_EQ(settingsFound, 40)
         << "a setting was added to the code and not to qftbx.conf.example";
 
     EXPECT_TRUE(fromExample.unknownKeys.empty())

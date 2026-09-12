@@ -34,6 +34,19 @@ void cornerVectors(LtiSystem * box, bool zerosAtSup, bool polesAtSup,
 } // namespace
 
 
+void AlgorithmMc2::setSettings(const qftbx::Settings & settings)
+{
+    m_settings = settings;
+    const Settings::Algorithms::McStrategies & mc = settings.algorithms.mc;
+    strategies.infeasibleMagnitude = mc.infeasibleMagnitude;
+    strategies.infeasiblePhase = mc.infeasiblePhase;
+    strategies.feasibleMagnitude = mc.feasibleMagnitude;
+    strategies.feasiblePhase = mc.feasiblePhase;
+    strategies.bestGain = mc.bestGain;
+    strategies.treeBisection = mc.treeBisection;
+    strategies.stages = mc.stages;
+}
+
 void AlgorithmMc2::setStrategies(const Strategies & s)
 {
     strategies = s;
