@@ -14,6 +14,7 @@
 #include "src/core/system/lti_system.h"
 #include "src/core/loopshaping/common/natural_interval_extension.h"
 #include "src/core/loopshaping/common/boundary_violation_detector.h"
+#include "src/core/loopshaping/common/depth_accounting.h"
 #include "src/core/loopshaping/common/ordered_list.h"
 #include "src/core/loopshaping/common/mc_search_node.h"
 #include "src/core/loopshaping/common/stages.h"
@@ -213,6 +214,7 @@ private:
     std::unique_ptr<LtiSystem> designedController;
 
     Strategies strategies;
+    DepthAccounting depthAccounting;
 
     double phaseGridStep = 0;
     double phaseSpanWidth = 0;

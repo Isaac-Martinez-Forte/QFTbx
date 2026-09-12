@@ -58,6 +58,7 @@ void AlgorithmMc2::setProblem(LtiSystem * plant, LtiSystem * controller, std::ve
 {
     this->plant = plant;
     this->controller = controller->clone();
+    depthAccounting.start(*this->controller);
     this->omega = omega;
     this->boundaries = boundaries;
     this->epsilon = epsilon;
@@ -215,7 +216,14 @@ bool AlgorithmMc2::solve()
         //Step D: feasibility test of the current box.
         NodeAnalysis analysis;
         if (!analyse(node.get(), analysis)) {
+            depthAccounting.record(*node->system(), infeasible);
             continue;   //certainly infeasible: the node dies with the scope
+        }
+        depthAccounting.record(*node->system(), analysis.flag == feasible ? feasible : ambiguous);
+        for (std::size_t i = 0; i < analysis.classification.size(); ++i) {
+            if (analysis.classification[i].has_value() && analysis.classification[i]->flag() == ambiguous) {
+                depthAccounting.ambiguousAt(i);
+            }
         }
 
         if (analysis.flag == feasible) {
@@ -331,6 +339,7 @@ LoopShapingStatistics AlgorithmMc2::statistics() const
         statistics.boxesInfeasible = detector->infeasibleBoxes();
         statistics.boxesAmbiguous = detector->ambiguousBoxes();
     }
+    depthAccounting.fill(statistics);
     if (stability != nullptr) {
         statistics.stabilityVerdicts = stability->statistics().verdicts;
         statistics.stabilityProfiles = stability->statistics().profilesComputed;

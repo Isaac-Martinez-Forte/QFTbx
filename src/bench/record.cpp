@@ -119,6 +119,23 @@ QJsonObject toJson(const Record & r)
     s["boxes_ambiguous"] = static_cast<qint64>(r.statistics.boxesAmbiguous);
     s["stability_verdicts"] = static_cast<qint64>(r.statistics.stabilityVerdicts);
     s["stability_profiles"] = static_cast<qint64>(r.statistics.stabilityProfiles);
+    if (!r.statistics.byDepth.empty()) {
+        QJsonArray depth;
+        for (std::size_t d = 0; d < r.statistics.byDepth.size(); ++d) {
+            const auto & row = r.statistics.byDepth[d];
+            QJsonObject entry;
+            entry["depth"] = static_cast<qint64>(d);
+            entry["nodes"] = static_cast<qint64>(row.nodes);
+            entry["feasible"] = static_cast<qint64>(row.feasible);
+            entry["infeasible"] = static_cast<qint64>(row.infeasible);
+            entry["ambiguous"] = static_cast<qint64>(row.ambiguous);
+            depth.append(entry);
+        }
+        s["by_depth"] = depth;
+        QJsonArray ambiguous;
+        for (std::size_t count : r.statistics.ambiguousByFrequency) ambiguous.append(static_cast<qint64>(count));
+        s["ambiguous_by_frequency"] = ambiguous;
+    }
     o["statistics"] = s;
 
     QJsonObject result;
@@ -179,6 +196,18 @@ Record recordFromJson(const QJsonObject & o)
     r.statistics.boxesAmbiguous = static_cast<std::size_t>(s["boxes_ambiguous"].toInteger());
     r.statistics.stabilityVerdicts = static_cast<std::size_t>(s["stability_verdicts"].toInteger());
     r.statistics.stabilityProfiles = static_cast<std::size_t>(s["stability_profiles"].toInteger());
+    for (const QJsonValue & v : s["by_depth"].toArray()) {
+        const QJsonObject entry = v.toObject();
+        LoopShapingStatistics::DepthRow row;
+        row.nodes = static_cast<std::size_t>(entry["nodes"].toInteger());
+        row.feasible = static_cast<std::size_t>(entry["feasible"].toInteger());
+        row.infeasible = static_cast<std::size_t>(entry["infeasible"].toInteger());
+        row.ambiguous = static_cast<std::size_t>(entry["ambiguous"].toInteger());
+        r.statistics.byDepth.push_back(row);
+    }
+    for (const QJsonValue & v : s["ambiguous_by_frequency"].toArray()) {
+        r.statistics.ambiguousByFrequency.push_back(static_cast<std::size_t>(v.toInteger()));
+    }
     const QJsonObject result = o["result"].toObject();
     r.gain = result["gain"].toDouble();
     r.worstExcessDb = result.contains("worst_excess_db") ? result["worst_excess_db"].toDouble()
