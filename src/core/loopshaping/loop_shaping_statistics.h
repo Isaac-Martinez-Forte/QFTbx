@@ -2,6 +2,7 @@
 #define QFTBX_LOOPSHAPING_STATISTICS_H
 
 #include <cstddef>
+#include <vector>
 
 namespace qftbx {
 
@@ -34,6 +35,18 @@ struct LoopShapingStatistics
     /// Nominal stability verdicts asked, and how many needed a new profile.
     std::size_t stabilityVerdicts = 0;
     std::size_t stabilityProfiles = 0;
+
+    /// Nodes by depth of the search tree and what each was found to be
+    /// (DepthAccounting); empty for an algorithm that does not account.
+    struct DepthRow {
+        std::size_t nodes = 0;
+        std::size_t feasible = 0;
+        std::size_t infeasible = 0;
+        std::size_t ambiguous = 0;
+    };
+    std::vector<DepthRow> byDepth;
+    /// How many times each design frequency made a box ambiguous.
+    std::vector<std::size_t> ambiguousByFrequency;
 };
 
 } // namespace qftbx
