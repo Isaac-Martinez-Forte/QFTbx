@@ -39,13 +39,13 @@ in [docs/algorithms](algorithms/README.md).
 | Directory | Contents |
 |---|---|
 | `src/core/common/` | `qftbx::Exception` and its subclasses; number and token text helpers |
-| `src/core/math/` | Numeric helpers (`linspace`/`logspace`), ranges and points, constants, and the expression tree: the one expression engine of the toolbox (see below) |
-| `src/core/system/` | Plant/controller representation: `LtiSystem` hierarchy, transfer functions, parameters |
+| `src/core/math/` | Numeric helpers (`linspace`/`logspace`), ranges and points, constants, the roots of a real polynomial and the polynomial behind a function that can only be evaluated (`polynomial.h`), and the expression tree: the one expression engine of the toolbox (see below) |
+| `src/core/system/` | Plant/controller representation: `LtiSystem` hierarchy, transfer functions, parameters. A system also places its own poles (`polesAt`), which is what the stability criterion asks of a plant |
 | `src/core/frequencies/` | The design frequency set (`Omega`) |
 | `src/core/specifications/` | Validated specification set (`qftbx::Specification`) |
 | `src/core/templates/` | Brute-force template computation and ε-hull contour (`TemplateEngine`) |
 | `src/core/boundaries/` | Boundary computation: sheets (`BoundaryEngine`), contour tracing (`ContourTracer`), 1D union (`BoundaryUnion1D`), results view (`BoundaryData`) |
-| `src/core/loopshaping/` | The loop-shaping entry point and its result; `common/` holds what the algorithms share (the interval projection, the box classification, the nominal stability check, the search list, the Quick Solution cuts) and `nt/`, `nk/`, `mr/`, `mc1/`, `mc_thesis/` one algorithm each |
+| `src/core/loopshaping/` | The loop-shaping entry point and its result; `common/` holds what the algorithms share (the interval projection, the box classification, the nominal stability check, the search list, the Quick Solution cuts) and `nt/`, `nk/`, `mr/`, `mc1/`, `mc_thesis/`, `mc2/`, `mc3/` one algorithm each |
 | `src/core/project/` | What a project holds, owned by value (`ProjectData`); the user settings (`Settings`) |
 | `src/core/pipeline/` | The design steps as data (`Step`), one stage per step, background execution and cancellation |
 | `src/core/gpu/` | Optional CUDA kernels for templates/boundaries (`USE_CUDA`) |
