@@ -86,12 +86,9 @@ private:
     /// the raw values ARE the real ones and the parser has nothing to add.
     bool identityExpression() const;
 
-    //Initialised here, not constructor by constructor: the value
-    //constructors used to leave m_hasExpression indeterminate, and reading
-    //it (the copy constructor does) is undefined behaviour. It stayed
-    //harmless only because range() and nominal() return early on
-    //!m_uncertain, so a single setUncertain(true) - or swapping those two
-    //checks - would have turned a stack byte into the evaluation of an
+    //Initialised HERE and not constructor by constructor: the copy
+    //constructor reads m_hasExpression, so a constructor that left it
+    //indeterminate would turn a stack byte into the evaluation of an
     //undefined variable.
     std::string m_name;
     Range m_range;

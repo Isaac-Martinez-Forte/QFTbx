@@ -15,12 +15,12 @@ namespace qftbx {
 namespace {
 
 //An expression does not complain about being degenerate: "0/0", "1/0",
-//"log(-1)" and "sqrt(-1)" all evaluate quietly to a NaN or an infinity. Every one of those values used to sail straight
-//into the model from a dialog field, and nothing downstream looks: the
-//templates come out non-finite, so do the boundaries, the plot is empty and
-//the search never converges - without one message anywhere saying why.
-//A parameter is the choke point every uncertainty bound and nominal value
-//goes through, so the check belongs here.
+//"log(-1)" and "sqrt(-1)" all evaluate quietly to a NaN or an infinity, and
+//nothing downstream looks - the templates come out non-finite, so do the
+//boundaries, the plot is empty and the search never converges, without one
+//message anywhere saying why. A parameter is the choke point every
+//uncertainty bound and nominal value goes through, so the check belongs
+//here.
 void requireFinite(double value, const char * what)
 {
     if (!std::isfinite(value)) {
@@ -36,12 +36,9 @@ void requireFiniteRange(const Range & range)
 
 }
 
-//setRange(), setNominal(), setUncertain() and Parameter(Range) are gone. The
-//last three had no caller at all, and setRange() had exactly one - a branch of
-//the .qft reader for a "historical quirk" of a dialect that no longer exists -
-//and it stored a range without the ordering and the finiteness checks every
-//constructor performs, so it was the one door a NaN or an inverted range could
-//still come in through. A Parameter is built valid and stays valid.
+//No setters: every constructor validates, and a setter would be the one
+//door a NaN or an inverted range could come in through afterwards.
+
 bool Parameter::operator==(const Parameter & other) const
 {
     return m_name == other.m_name &&
@@ -168,11 +165,9 @@ Range Parameter::range() const {
         return m_range;
     }
 
-    //The two ends go through the SAME parsed expression: the reparametrisation
-    //is parsed once per thread and only the bound value changes. This used to
-    //build a parser, SetExpr it, evaluate, then RemoveVar/DefineVar and
-    //evaluate again - and changing the variable set throws the RPN away, so
-    //it parsed twice per call.
+    //The two ends go through the SAME parsed expression: it is parsed once
+    //per thread and only the bound value changes. Changing the variable set
+    //instead would throw the parse away and cost one per end.
     Range point;
 
     point.min = realValueOf(m_range.min);

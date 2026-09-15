@@ -13,11 +13,9 @@ namespace qftbx {
  * @brief The template stage: the sweep of the plant family over the design
  * frequencies, and the epsilon-hull contour of each cloud.
  *
- * One of the classes the pipeline was split into. Every
- * stage owns the same five things, which used to be written out once per
- * stage inside ProjectController with a different shape each time: the
- * preconditions, the engine, its parameters, its outputs, and the publishing
- * of those outputs into the project.
+ * Every stage of the pipeline owns the same five things: the preconditions,
+ * the engine, its parameters, its outputs, and the publishing of those
+ * outputs into the project.
  *
  * What a stage does NOT own is the dependency graph. Publishing templates
  * makes the boundaries built from the old ones meaningless, but deciding that
@@ -49,9 +47,8 @@ public:
      * @brief Walks the contour again over the clouds already computed, with a
      * new epsilon, and publishes it.
      *
-     * Throws InvalidInput when there is nothing to walk. That used to be a
-     * null dereference: the engine is created lazily, so asking for a contour
-     * before any templates existed went straight through a null pointer.
+     * Throws InvalidInput when there is nothing to walk: the engine is
+     * created lazily, so asking before any templates exist finds no engine.
      */
     const CloudSet & recomputeContour(ProjectData & data,
                                       std::vector<double> epsilon);

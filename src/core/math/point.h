@@ -57,14 +57,9 @@ struct NicholsPoint
 /**
  * @brief A point of the complex plane, for the Nyquist view of a loop.
  *
- * A separate type from NicholsPoint on purpose. The two are both a pair of
- * doubles and mean entirely different things, and the loop viewer used to
- * hold the second in a container of the first: it converted a boundary
- * union to the complex plane and handed it back inside a BoundaryData
- * fabricated for the occasion, whose tell was that it also had to pass
- * empty bucket rows because "this view is only drawn, never classified".
- * With two types the compiler refuses that, which is the whole reason to
- * have two.
+ * A separate type from NicholsPoint on purpose: both are a pair of doubles
+ * and they mean entirely different things, so only the type stops a
+ * container of one being filled with the other.
  */
 struct NyquistPoint
 {
@@ -81,9 +76,7 @@ struct NyquistPoint
  * @brief The same loop point read on the complex plane: dB back to a linear
  * magnitude, degrees to radians, then polar to cartesian.
  *
- * The one place this conversion lives. It used to sit inline in a menu slot
- * of the main window, which is neither where the formula belongs nor where
- * anyone would look for it.
+ * The one place this conversion lives.
  */
 inline NyquistPoint toNyquist(const NicholsPoint & point)
 {

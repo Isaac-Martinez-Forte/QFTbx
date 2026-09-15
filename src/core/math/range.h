@@ -10,10 +10,8 @@ namespace qftbx {
  *
  * The toolbox is full of intervals: the uncertainty of a parameter, the
  * phase and magnitude spans of the Nichols grid, a plot's frequency
- * window. They all used to travel as a QPointF whose x was the minimum
- * and whose y was the maximum, which reads as a point and says nothing
- * about which member is which; ordered() also had to be open-coded at
- * every construction site.
+ * window. A pair of doubles would not say which member is which, and
+ * ordered() would be open-coded at every construction site.
  */
 struct Range
 {

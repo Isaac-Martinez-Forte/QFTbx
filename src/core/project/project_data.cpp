@@ -42,8 +42,7 @@ void ProjectData::setSpecifications(std::optional<SpecificationRecords> specific
     m_specifications = std::move(specifications);
 }
 
-//By value: the assignment frees the previous set, so the "delete what you
-//replace" rule these setters used to spell out is now the language's job.
+//By value: the assignment frees the previous set.
 const CloudSet & ProjectData::templates() const
 {
     return m_templates;

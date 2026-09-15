@@ -4,10 +4,6 @@
 #include <cstdint>
 #include <vector>
 
-//This header used to re-export specification_record.h, text_tokens.h and
-//loop_shaping_types.h "until each module is migrated"; the eight files that
-//leaned on that include what they use now.
-
 namespace qftbx {
 
 //Wrappers over qftbx::math (src/core/math/sequences.h).

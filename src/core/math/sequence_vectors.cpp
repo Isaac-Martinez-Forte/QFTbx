@@ -9,8 +9,6 @@
 //Wrapper over the canonical implementation in src/core/math/ (no
 //accumulation drift, exact final endpoint).
 std::vector <double> qftbx::linspace(double a, double b, std::int32_t N) {
-    //Returned as computed: this used to copy the result into a second vector
-    //for no reason.
     return qftbx::math::linspace(a, b, static_cast<std::size_t>(N > 0 ? N : 0));
 }
 
