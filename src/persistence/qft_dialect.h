@@ -10,16 +10,9 @@ namespace qftbx {
  * @brief The tag names of the .qft format, shared by the reader and the
  * writer so the two cannot drift apart.
  *
- * There used to be a second table, kLegacy, holding the historical Spanish
- * names (<Planta>, <especificaciones>, <tamFas>...) for files with no version
- * attribute. Version 2 is the only format now: every .qft in the repository
- * and in documentos/plantas was converted, through the reader and the writer
- * themselves, and the reader refuses anything that is not version 2 rather
- * than guessing at it.
- *
- * The indirection stays even with a single table, because that is not what it
- * was for: one place names the format, and neither side can rename a tag
- * without the other following.
+ * One table even though there is one dialect: that is what it is for. One
+ * place names the format, and neither side can rename a tag without the
+ * other following.
  */
 struct Tags {
     const char * plant;

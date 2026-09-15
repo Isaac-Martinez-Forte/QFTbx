@@ -18,9 +18,8 @@ namespace qftbx {
 
 /**
  * @brief The sections of a project to be written; a null pointer skips the
- * section. None of the pointers is owned, and nothing is copied: the
- * template set used to travel here by value, which copied every cloud
- * to write it.
+ * section. None of the pointers is owned, and nothing is copied: a set of
+ * templates by value is a copy of every cloud, to write it once.
  */
 struct ProjectContent {
     LtiSystem * plant = nullptr;
@@ -40,8 +39,8 @@ struct ProjectContent {
  * plus the plane the templates' epsilon is measured in).
  *
  * Numbers are written in the shortest form that reads back to the same
- * double (qftbx::text::number), so a save/load round trip is bit-exact; the
- * historical writer kept 6 digits and silently degraded every stored result.
+ * double (qftbx::text::number), so a save/load round trip is bit-exact and
+ * a fixed number of digits cannot silently degrade a stored result.
  * Throws qftbx::FileError when the file cannot be written, and
  * qftbx::InvalidInput when a value to write is not a finite number: the file
  * never carries a NaN or an infinity.

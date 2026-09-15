@@ -86,7 +86,7 @@ public:
 
     //Claim: the caller becomes the owner and the reader forgets it. Used
     //by the facade, which hands everything to the project store; anything
-    //left unclaimed dies with the reader (it used to leak).
+    //left unclaimed dies with the reader.
     std::unique_ptr<LtiSystem> takePlant() { return std::move(m_plant); }
     std::optional<qftbx::SpecificationRecords> takeSpecifications()
     {

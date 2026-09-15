@@ -249,8 +249,7 @@ public:
      *
      * Nothing stores this. Every one of the seven is a question the data
      * already answer - the templates are done exactly when templates() is not
-     * empty - and the window used to keep seven booleans saying the same
-     * thing by hand. Duplicate state is state that can go out of sync.
+     * empty - rather than a flag per step kept by hand. Duplicate state is state that can go out of sync.
      */
     qftbx::StepSet completed() const;
 
@@ -341,12 +340,11 @@ public:
     /**
      * @brief Reads a .qft file into the project.
      *
-     * @return per-section presence flags, in the historical order: plant,
+     * @return per-section presence flags, in this order: plant,
      * specifications, omega, templates, boundaries, controller, loop
      * shaping, template contour. The caller owns the returned vector.
      */
-    /// Which sections the file carried, in the historical order. By value:
-    /// callers used to have to delete this, and most tests did not.
+    /// Which sections the file carried, in the order above.
     qftbx::StepSet load(std::string path);
 
 private:
@@ -357,7 +355,7 @@ private:
     void dropLoopShaping();
 
 
-    //The project contents, owned (replaces the historical DAO layer).
+    //The project contents, owned.
     qftbx::ProjectData m_data;
 
     //The publishers load() uses to put a file's artefacts in place. Private:
