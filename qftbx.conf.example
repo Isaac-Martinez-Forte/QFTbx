@@ -116,6 +116,20 @@
 # magnitude-end = 60
 # magnitude-points = 121
 
+# Boundaries: read the whole template cloud instead of its contour. The contour
+# assumes the worst case of every specification over a template lies on its
+# border: true on eleven of the twelve problems of our battery, and it saves the
+# boundary computation most of its work. On the twelfth (the motor of Horowitz
+# and Sidi, twenty-three design frequencies) it is not, and the controller comes
+# out 0.0012 dB permissive even under the conservative column reading; reading
+# the whole cloud is always safe, and there it was the faster of the two. It is
+# not free: the cloud's guard of the singular locus is a bound per sample where
+# the contour's is exact over its polygon, so the boundaries and the gain with
+# them come out more conservative. Turn it on to certify an answer, or when the
+# contour of a template comes out wrong.
+# Range: 0 or 1.
+# from-cloud = 0
+
 # Points per parameter grid in the template sweep. With ten points the
 # largest gap in a template can reach a fifth of its size, and the contour
 # then follows the sweep rather than the template; twenty-five keeps it

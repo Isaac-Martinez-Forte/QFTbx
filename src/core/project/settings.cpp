@@ -296,6 +296,12 @@ const std::vector<Binding> & bindings()
                  wholeIn(text, "defaults.boundary-grid.magnitude-points", line, 2.0, 1.0e6));
          }},
 
+        {"defaults.boundary-grid.from-cloud",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.defaults.boundariesFromCloud =
+                 wholeIn(text, "defaults.boundary-grid.from-cloud", line, 0.0, 1.0) != 0.0;
+         }},
+
         {"defaults.templates.point-count",
          [](const std::string & text, std::int64_t line, Settings & into) {
              into.defaults.templatePointCount = static_cast<std::int32_t>(

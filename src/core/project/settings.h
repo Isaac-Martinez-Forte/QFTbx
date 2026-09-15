@@ -226,6 +226,33 @@ struct Settings {
         double magnitudeEnd = 60.0;
         std::int32_t magnitudePoints = 121;
 
+        /**
+         * @brief Whether the boundaries read the template CONTOUR (the
+         * default, and what the literature does) or the whole cloud.
+         *
+         * The contour is an approximation: it assumes the worst case of
+         * every specification over a template lies on its border. That
+         * holds on eleven of the twelve problems of the battery and saves
+         * the boundary computation most of its work; on the twelfth
+         * (Horowitz and Sidi's motor, twenty-three design frequencies) it
+         * does not, and the controller comes out 0.0012 dB permissive even
+         * under the conservative column reading - refining the phase grid
+         * does not help, and neither does taking the contour as the
+         * alpha-shape. Reading the whole cloud is always safe, and there it
+         * was also the faster of the two, since that contour held more than
+         * half of the cloud's points. It is not free: the cloud's guard of
+         * the singular locus is a first-order bound per sample where the
+         * contour's is exact over its polygon, so the boundaries come out
+         * more conservative and the gain with them, by two to eleven per
+         * cent over the battery and by more where the optimum sits against
+         * a closed boundary.
+         *
+         * So: leave it alone for a design, and turn it on when the answer
+         * has to be certified, or when the contour of a template comes out
+         * wrong. The boundary dialog offers the same choice per run.
+         */
+        bool boundariesFromCloud = false;
+
         /// Points per parameter grid in the template sweep. Twenty-five keeps
         /// the largest gap in a two-parameter template under a few per cent
         /// of its size, where ten leaves gaps of a fifth; with many

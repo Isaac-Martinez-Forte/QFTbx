@@ -77,6 +77,13 @@ void BoundaryGridDialog::applyDefaults(const qftbx::Settings::Defaults & default
     ui->magnitudeStart->setText(qftbx::numberText(defaults.magnitudeStart));
     ui->magnitudeEnd->setText(qftbx::numberText(defaults.magnitudeEnd));
     ui->magnitudePoints->setText(qftbx::numberText(defaults.magnitudePoints));
+
+    //Which of the two the run starts on; the user still chooses per run.
+    if (defaults.boundariesFromCloud) {
+        ui->fullTemplateRadio->setChecked(true);
+    } else {
+        ui->contorno->setChecked(true);
+    }
 }
 
 void BoundaryGridDialog::on_buttonBox_accepted()
