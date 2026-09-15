@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cmath>
 #include "src/gui/common/number_text.h"
 #include "src/gui/common/expression_field.h"
@@ -7,6 +8,7 @@
 #include "src/gui/templates/templates_dialog.h"
 #include "src/core/math/sequences.h"
 #include "src/core/common/text_tokens.h"
+#include "src/core/common/exception.h"
 #include "ui_templates_dialog.h"
 
 #include "src/gui/application/error_message.h"
@@ -102,6 +104,22 @@ std::vector<double> TemplatesDialog::takeEpsilon(){
     return std::move(epsilonValues);
 }
 
+qftbx::EpsilonMetric TemplatesDialog::epsilonMetric() const {
+    qftbx::EpsilonMetric metric;
+    metric.metric = ui->metricCombo->currentIndex() == 1 ? qftbx::HullMetric::ComplexPlane
+                                                         : qftbx::HullMetric::Nichols;
+    const double weight = ui->dbPerDegreeEdit->text().toDouble();
+    metric.dbPerDegree = weight > 0.0 ? weight : 1.0;
+    return metric;
+}
+
+void TemplatesDialog::setEpsilonMetric(qftbx::EpsilonMetric metric) {
+    ui->metricCombo->setCurrentIndex(metric.metric == qftbx::HullMetric::ComplexPlane ? 1 : 0);
+    ui->dbPerDegreeEdit->setText(qftbx::numberText(metric.dbPerDegree));
+    ui->dbPerDegreeEdit->setEnabled(metric.metric == qftbx::HullMetric::Nichols);
+    ui->dbPerDegreeLabel->setEnabled(metric.metric == qftbx::HullMetric::Nichols);
+}
+
 void TemplatesDialog::launch(LtiSystem *plant, qint32 frequencyCount){
 
     this->plant = plant;
@@ -109,6 +127,130 @@ void TemplatesDialog::launch(LtiSystem *plant, qint32 frequencyCount){
 
 
     buildTables(plant->numerator(), plant->denominator());
+
+    //The border sweep needs exactly two uncertain parameters (distinct names).
+    std::vector<std::string> uncertain;
+    const auto count = [&uncertain](const Parameter & p) {
+        if (p.isUncertain() && std::find(uncertain.begin(), uncertain.end(), p.name()) == uncertain.end()) {
+            uncertain.push_back(p.name());
+        }
+    };
+    for (Parameter & p : plant->numerator()) count(p);
+    for (Parameter & p : plant->denominator()) count(p);
+    count(plant->gain());
+    count(plant->delay());
+    ui->borderSweepCheck->setEnabled(uncertain.size() == 2);
+
+    //The field opens with the epsilon the family asks for over the grids as
+    //they stand, so that OK is a complete answer and changing it a choice.
+    selectDefaultsWhereEmpty();
+    proposeEpsilon();
+}
+
+bool TemplatesDialog::wholeTemplateIfNoContour() const
+{
+    return ui->wholeTemplateCheck->isChecked();
+}
+
+void TemplatesDialog::setWholeTemplateIfNoContour(bool standsIn)
+{
+    ui->wholeTemplateCheck->setChecked(standsIn);
+}
+
+bool TemplatesDialog::borderSweep() const
+{
+    return ui->borderSweepCheck->isEnabled() && ui->borderSweepCheck->isChecked();
+}
+
+void TemplatesDialog::setBorderSweep(bool border)
+{
+    ui->borderSweepCheck->setChecked(border);
+}
+
+bool TemplatesDialog::alphaShapeContour() const
+{
+    return ui->contourCombo->currentIndex() == 1;
+}
+
+void TemplatesDialog::setAlphaShapeContour(bool alphaShape)
+{
+    ui->contourCombo->setCurrentIndex(alphaShape ? 1 : 0);
+}
+
+void TemplatesDialog::setEpsilonProposer(EpsilonProposer propose)
+{
+    m_propose = std::move(propose);
+}
+
+void TemplatesDialog::selectDefaultsWhereEmpty()
+{
+    if (!ui->linspaceRadio->isChecked() && !ui->logspaceRadio->isChecked()){
+        ui->linspaceRadio->setChecked(true);
+    }
+    if (!ui->allVariablesRadio->isChecked() && !ui->oneByOneRadio->isChecked()){
+        ui->allVariablesRadio->setChecked(true);
+        on_allVariablesRadio_clicked();
+    }
+    if (!ui->nicholsRadio->isChecked() && !ui->nyquistRadio->isChecked()){
+        ui->nicholsRadio->setChecked(true);
+    }
+}
+
+//The least epsilon that keeps each template connected, one per frequency,
+//rounded up to three figures; the tooltip carries the exact figures and the
+//gap each leaves against its template. Nothing is reported when the grids
+//cannot be read or the sweep fails: OK will say what is wrong, with the
+//user's attention on it.
+void TemplatesDialog::proposeEpsilon()
+{
+    m_proposals.clear();
+    if (!m_propose || plant == nullptr){
+        return;
+    }
+
+    QString reason;
+    if (!readGrids(reason)){
+        return;
+    }
+    try {
+        m_proposals = m_propose(gridMap, epsilonMetric());
+    } catch (const qftbx::Exception &) {
+        m_proposals.clear();
+        return;
+    }
+    if (m_proposals.empty()){
+        return;
+    }
+
+    QStringList values;
+    QStringList detail;
+    double worstGap = 0.0;
+    for (std::size_t i = 0; i < m_proposals.size(); ++i){
+        const qftbx::TemplateEngine::EpsilonProposal & p = m_proposals[i];
+        values.push_back(numberText(p.epsilon));
+        detail.push_back(p.closes
+                             ? tr("frequency %1: %2 (connected from %3, gap %4%)")
+                                   .arg(static_cast<int>(i) + 1)
+                                   .arg(numberText(p.epsilon), numberText(p.connected))
+                                   .arg(QString::number(100.0 * p.coarseness(), 'f', 1))
+                             : tr("frequency %1: %2 (connected, but no epsilon up to the diameter closes the walk; gap %3%)")
+                                   .arg(static_cast<int>(i) + 1)
+                                   .arg(numberText(p.connected))
+                                   .arg(QString::number(100.0 * p.coarseness(), 'f', 1)));
+        worstGap = std::max(worstGap, p.coarseness());
+    }
+    ui->epsilonEdit->setText(values.join(QStringLiteral(" ")));
+    ui->epsilonEdit->setStyleSheet("background : white");
+    ui->epsilonEdit->setToolTip(tr("The least epsilon at which the contour of each template closes, over the grids "
+                                   "as entered; below the connecting value the template splits. The gap is the "
+                                   "largest distance between neighbouring points of the template as a share of its "
+                                   "size: above a few per cent the sweep is coarse and asks for more points, not a "
+                                   "larger epsilon.\n%1").arg(detail.join(QStringLiteral("\n"))));
+}
+
+void TemplatesDialog::on_proposeButton_clicked()
+{
+    proposeEpsilon();
 }
 
 void TemplatesDialog::buildTables(std::vector<Parameter> & numerator, std::vector<Parameter> & denominator){
@@ -235,6 +377,12 @@ void TemplatesDialog::on_allVariablesRadio_clicked()
     ui->modeStack->setCurrentIndex(0);
 }
 
+void TemplatesDialog::on_metricCombo_currentIndexChanged(int index)
+{
+    ui->dbPerDegreeEdit->setEnabled(index == 0);
+    ui->dbPerDegreeLabel->setEnabled(index == 0);
+}
+
 void TemplatesDialog::on_oneByOneRadio_clicked()
 {
     ui->modeStack->setCurrentIndex(2);
@@ -275,6 +423,14 @@ void TemplatesDialog::on_okButton_clicked()
     duplicateNames.clear();
 
     epsilonValues.clear();
+
+    //The weighting of the Nichols plane has to be a positive number.
+    if (ui->metricCombo->currentIndex() == 0 && !(ui->dbPerDegreeEdit->text().toDouble() > 0.0)){
+        errorMessage(tr("The decibels per degree must be a positive number."), tr("Template computation"));
+        ui->dbPerDegreeEdit->setStyleSheet("background : red");
+        return;
+    }
+    ui->dbPerDegreeEdit->setStyleSheet("background : white");
 
     if (ui->epsilonEdit->text().isEmpty()){
         errorMessage(tr("No epsilon value was entered."), tr("Template computation"));
@@ -319,6 +475,30 @@ void TemplatesDialog::on_okButton_clicked()
         }
     }
 
+    QString reason;
+    if (!readGrids(reason)){
+        errorMessage(reason, tr("Template computation"));
+        gridMap.clear();
+        epsilonValues.clear();
+        return;
+    }
+
+    if (!duplicateNames.empty()){
+        QMessageBox::information(this, tr("Template computation"),
+                tr("The parameter name(s) %1 appear more than once: the first "
+                   "grid entered is used for every occurrence.")
+                    .arg(duplicateNames.join(QStringLiteral(", "))));
+    }
+
+    markAccepted();
+    emit (close_ok());
+}
+
+bool TemplatesDialog::readGrids(QString & reason)
+{
+    reason.clear();
+    duplicateNames.clear();
+
     bool useLinspace = false;
     bool useLogspace = false;
 
@@ -329,10 +509,8 @@ void TemplatesDialog::on_okButton_clicked()
     }else if (ui->logspaceRadio->isChecked() && !ui->globalPointCount->text().isEmpty()){
         useLogspace = true;
     }else {
-        errorMessage(tr("Select logspace or linspace in the general section."), tr("Template computation"));
-        gridMap.clear();
-        epsilonValues.clear();
-        return;
+        reason = tr("Select logspace or linspace in the general section.");
+        return false;
     }
 
     try {
@@ -347,16 +525,13 @@ void TemplatesDialog::on_okButton_clicked()
             rowRadios = numeratorRadios.at(variableIndex);
             variableIndex++;
             if (!readVariable(rowEdits, rowRadios,parameter,useLinspace,useLogspace)){
-                errorMessage(m_readReason.isEmpty()
-                                 ? tr("The values entered for parameter \"%1\" are invalid.")
-                                       .arg(QString::fromStdString(parameter.name()))
-                                 : tr("The values entered for parameter \"%1\" are invalid: %2.")
-                                       .arg(QString::fromStdString(parameter.name()))
-                                       .arg(m_readReason),
-                         tr("Template computation"));
-                gridMap.clear();
-                epsilonValues.clear();
-                return;
+                reason = m_readReason.isEmpty()
+                             ? tr("The values entered for parameter \"%1\" are invalid.")
+                                   .arg(QString::fromStdString(parameter.name()))
+                             : tr("The values entered for parameter \"%1\" are invalid: %2.")
+                                   .arg(QString::fromStdString(parameter.name()))
+                                   .arg(m_readReason);
+                return false;
             }
         }
     }
@@ -372,16 +547,13 @@ void TemplatesDialog::on_okButton_clicked()
             rowRadios = denominatorRadios.at(variableIndex);
             variableIndex++;
             if (!readVariable(rowEdits, rowRadios,parameter,useLinspace,useLogspace)){
-                errorMessage(m_readReason.isEmpty()
-                                 ? tr("The values entered for parameter \"%1\" are invalid.")
-                                       .arg(QString::fromStdString(parameter.name()))
-                                 : tr("The values entered for parameter \"%1\" are invalid: %2.")
-                                       .arg(QString::fromStdString(parameter.name()))
-                                       .arg(m_readReason),
-                         tr("Template computation"));
-                gridMap.clear();
-                epsilonValues.clear();
-                return;
+                reason = m_readReason.isEmpty()
+                             ? tr("The values entered for parameter \"%1\" are invalid.")
+                                   .arg(QString::fromStdString(parameter.name()))
+                             : tr("The values entered for parameter \"%1\" are invalid: %2.")
+                                   .arg(QString::fromStdString(parameter.name()))
+                                   .arg(m_readReason);
+                return false;
             }
         }
     }
@@ -396,12 +568,9 @@ void TemplatesDialog::on_okButton_clicked()
         std::size_t pointCount = 0;
         if (!asPointCount(evaluateNumber(ui->globalPointCount->text()).value_or(std::numeric_limits<double>::quiet_NaN()),
                           m_maxPointCount, pointCount)){
-            errorMessage(tr("The general point count must be a whole "
-                            "number between 1 and %1.").arg(static_cast<qint64>(m_maxPointCount)),
-                         tr("Template computation"));
-            gridMap.clear();
-            epsilonValues.clear();
-            return;
+            reason = tr("The general point count must be a whole "
+                        "number between 1 and %1.").arg(static_cast<qint64>(m_maxPointCount));
+            return false;
         }
 
         if (useLinspace){
@@ -420,12 +589,9 @@ void TemplatesDialog::on_okButton_clicked()
         std::size_t pointCount = 0;
         if (!asPointCount(evaluateNumber(ui->globalPointCount->text()).value_or(std::numeric_limits<double>::quiet_NaN()),
                           m_maxPointCount, pointCount)){
-            errorMessage(tr("The general point count must be a whole "
-                            "number between 1 and %1.").arg(static_cast<qint64>(m_maxPointCount)),
-                         tr("Template computation"));
-            gridMap.clear();
-            epsilonValues.clear();
-            return;
+            reason = tr("The general point count must be a whole "
+                        "number between 1 and %1.").arg(static_cast<qint64>(m_maxPointCount));
+            return false;
         }
 
         //This branch used to insert the delay grid under the GAIN's key:
@@ -440,21 +606,11 @@ void TemplatesDialog::on_okButton_clicked()
 
     } catch (const std::invalid_argument &) {
         //Invalid manual grid: it used to bring the application down.
-        errorMessage(tr("Invalid grid expressions."), tr("Template computation"));
-        gridMap.clear();
-        epsilonValues.clear();
-        return;
+        reason = tr("Invalid grid expressions.");
+        return false;
     }
 
-    if (!duplicateNames.empty()){
-        QMessageBox::information(this, tr("Template computation"),
-                tr("The parameter name(s) %1 appear more than once: the first "
-                   "grid entered is used for every occurrence.")
-                    .arg(duplicateNames.join(QStringLiteral(", "))));
-    }
-
-    markAccepted();
-    emit (close_ok());
+    return true;
 }
 
 bool TemplatesDialog::readVariable(const ParLineEdit & rowEdits, ThreeRadioButtons rowRadios,

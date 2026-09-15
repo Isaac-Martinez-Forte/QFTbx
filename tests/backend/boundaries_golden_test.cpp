@@ -66,8 +66,12 @@ protected:
         parser.load(
             std::string(QFTBX_TEST_DATA_DIR "/multivaluados.qft"));
 
+        //The fixture's boundaries are the raw sweep over the sample, without
+        //the guard near the singular locus the engine applies today (see
+        //GuardedSweepDeviatesOnlyNextToTheSingularLocus for what that adds).
+        engine.setSingularLocusGuard(false);
         engine.compute(parser.omega()->values(), parser.plant(),
-                             parser.contour(), parser.specifications(),
+                             parser.contour(), true, parser.specifications(),
                              qftbx::Range(-360.0, 0.0), 361, qftbx::Range(-60.0, 60.0), 121,
                              -1.0, false);
 
@@ -169,15 +173,20 @@ TEST_F(BoundariesGolden, ReunionIsTheConcatenationOfTheTraces)
 
 TEST_F(BoundariesGolden, ContourInputIsEquivalentToFullTemplates)
 {
-    // The sheet is a max/min over the cloud, so feeding the full clouds
-    // instead of the contours must give the same boundaries.
+    // The RAW sheet is a max/min over the sample, so feeding the full clouds
+    // instead of the contours must give the same boundaries - with the guard
+    // off. With it on the two differ next to the singular locus: the contour
+    // is a border and its extremes over the family are exact on the polygon,
+    // the cloud has no border and is widened by a first-order bound, so the
+    // cloud path is the more conservative of the two (see BoundarySource).
     ProjectReader parser2;
     parser2.load(
         std::string(QFTBX_TEST_DATA_DIR "/multivaluados.qft"));
 
     BoundaryEngine engine2;
+    engine2.setSingularLocusGuard(false);
     engine2.compute(parser2.omega()->values(), parser2.plant(),
-                          parser2.templates(), parser2.specifications(),
+                          parser2.templates(), false, parser2.specifications(),
                           qftbx::Range(-360.0, 0.0), 361, qftbx::Range(-60.0, 60.0), 121,
                           -1.0, false);
     const BoundaryData other = engine2.boundaryData();
@@ -221,6 +230,46 @@ TEST_F(BoundariesGolden, ReunionHashIsSortedDeduplicatedAndInRange)
         EXPECT_GT(total, 0u) << "frequency " << f;
         EXPECT_LE(total, reun.at(f).size()) << "frequency " << f;
     }
+}
+
+//What the guard near the singular locus changes on this fixture: with the
+//contour as the sample, the exact extremes over the polygonal border differ
+//from the sampled ones only where a chord passes closer to the pole than its
+//endpoints, and a loop value inside the template becomes infinite. Here that
+//is a handful of cells next to the locus, phases -199 to -172 degrees around
+//0 dB (measured cell by cell), and at 5 rad/s it turns one cell next to the
+//locus forbidden, which shortens the boundary there by ONE trace point;
+//nothing moves at the other four frequencies. (The legacy golden is the raw
+//sweep and stays what it was.)
+TEST(BoundariesGuard, GuardedSweepDeviatesOnlyNextToTheSingularLocus)
+{
+    ProjectReader parser;
+    parser.load(std::string(QFTBX_TEST_DATA_DIR "/multivaluados.qft"));
+
+    BoundaryEngine raw, guarded;
+    raw.setSingularLocusGuard(false);
+    for (BoundaryEngine * engine : {&raw, &guarded}) {
+        engine->compute(parser.omega()->values(), parser.plant(), parser.contour(), true,
+                        parser.specifications(), qftbx::Range(-360.0, 0.0), 361,
+                        qftbx::Range(-60.0, 60.0), 121, -1.0, false);
+    }
+    const BoundaryData a = raw.boundaryData();
+    const BoundaryData b = guarded.boundaryData();
+
+    std::size_t differing = 0;
+    for (std::size_t f = 0; f < 5; ++f) {
+        const qftbx::TraceSet & ta = a.boundaries().at(f).at(std::string("Tracking"));
+        const qftbx::TraceSet & tb = b.boundaries().at(f).at(std::string("Tracking"));
+        std::size_t pa = 0, pb = 0;
+        for (const qftbx::Trace & t : ta) pa += t.size();
+        for (const qftbx::Trace & t : tb) pb += t.size();
+        if (ta != tb) {
+            ++differing;
+            EXPECT_EQ(f, 2u) << "only the boundary at 5 rad/s is expected to move";
+            EXPECT_EQ(pb + 1, pa) << "by one trace point fewer";
+        }
+    }
+    EXPECT_EQ(differing, 1u);
 }
 
 // ---------------------------------------------------------------------------

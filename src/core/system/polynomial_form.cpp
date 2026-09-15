@@ -7,6 +7,8 @@
 #include "src/core/common/text_tokens.h"
 #include "src/core/system/polynomial_form.h"
 
+#include "src/core/math/polynomial.h"
+
 
 namespace qftbx {
 
@@ -118,6 +120,14 @@ std::complex <double> PolynomialForm::valueAt(double w, const std::vector<double
 
     //exp(0) is exactly 1, so a zero delay needs no special case.
     return gain * num / den * std::exp(-s * delay);
+}
+
+//The denominator coefficients are stored highest degree first, as valueAt()
+//reads them; an empty denominator is the constant 1.
+std::optional<std::vector<std::complex<double>>> PolynomialForm::polesAt(const std::vector<double> &,
+                                                                         const std::vector<double> & denominator)
+{
+    return qftbx::math::polynomialRoots(denominator);
 }
 
 } // namespace qftbx

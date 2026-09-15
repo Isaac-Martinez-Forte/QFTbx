@@ -32,6 +32,19 @@ void cornerVectors(LtiSystem * box, bool zerosAtSup, bool polesAtSup,
 } // namespace
 
 
+void AlgorithmMcThesis::setSettings(const qftbx::Settings & settings)
+{
+    m_settings = settings;
+    const Settings::Algorithms::McStrategies & mc = settings.algorithms.mc;
+    strategies.infeasibleMagnitude = mc.infeasibleMagnitude;
+    strategies.infeasiblePhase = mc.infeasiblePhase;
+    strategies.feasibleMagnitude = mc.feasibleMagnitude;
+    strategies.feasiblePhase = mc.feasiblePhase;
+    strategies.bestGain = mc.bestGain;
+    strategies.treeBisection = mc.treeBisection;
+    strategies.stages = mc.stages;
+}
+
 void AlgorithmMcThesis::setStrategies(const Strategies & s)
 {
     strategies = s;
@@ -43,6 +56,7 @@ void AlgorithmMcThesis::setProblem(LtiSystem * plant, LtiSystem * controller, st
 {
     this->plant = plant;
     this->controller = controller->clone();
+    depthAccounting.start(*this->controller);
     this->omega = omega;
     this->boundaries = boundaries;
     this->epsilon = epsilon;
@@ -124,7 +138,7 @@ bool AlgorithmMcThesis::solve()
 {
     liveList = std::make_unique<OrderedList>(false, m_settings.search.maxLiveNodes);
     conversion = std::make_unique<NaturalIntervalExtension>();
-    detector = std::make_unique<BoundaryViolationDetector>();
+    detector = std::make_unique<BoundaryViolationDetector>(m_settings.algorithms.conservativeBoundaryColumns);
     stability = std::make_unique<NominalStabilityChecker>(plant, omega, m_settings.stability);
 
     bestCertifiedGain = std::numeric_limits<double>::infinity();
@@ -200,7 +214,14 @@ bool AlgorithmMcThesis::solve()
         //Step D: feasibility test of the current box.
         NodeAnalysis analysis;
         if (!analyse(node.get(), analysis)) {
+            depthAccounting.record(*node->system(), infeasible);
             continue;   //certainly infeasible: the node dies with the scope
+        }
+        depthAccounting.record(*node->system(), analysis.flag == feasible ? feasible : ambiguous);
+        for (std::size_t i = 0; i < analysis.classification.size(); ++i) {
+            if (analysis.classification[i].has_value() && analysis.classification[i]->flag() == ambiguous) {
+                depthAccounting.ambiguousAt(i);
+            }
         }
 
         if (analysis.flag == feasible) {
@@ -282,7 +303,11 @@ LoopShapingStatistics AlgorithmMcThesis::statistics() const
     }
     if (detector != nullptr) {
         statistics.boxesClassified = detector->classifications();
+        statistics.boxesFeasible = detector->feasibleBoxes();
+        statistics.boxesInfeasible = detector->infeasibleBoxes();
+        statistics.boxesAmbiguous = detector->ambiguousBoxes();
     }
+    depthAccounting.fill(statistics);
     if (stability != nullptr) {
         statistics.stabilityVerdicts = stability->statistics().verdicts;
         statistics.stabilityProfiles = stability->statistics().profilesComputed;

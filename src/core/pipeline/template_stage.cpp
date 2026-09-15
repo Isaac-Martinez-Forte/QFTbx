@@ -30,6 +30,10 @@ bool TemplateStage::run(ProjectData & data, std::vector<double> epsilon,
 
     TemplateEngine & sweep = engine();
 
+    sweep.setHullMetric(data.epsilonMetric().metric, data.epsilonMetric().dbPerDegree);
+    sweep.setWholeCloudStandsIn(m_wholeCloudStandsIn);
+    sweep.setAlphaShapeContour(m_alphaShape);
+    sweep.setBorderSweep(m_borderSweep);
     sweep.setEpsilon(epsilon);
     sweep.setGrids(std::move(grids));
 
@@ -59,12 +63,47 @@ const CloudSet & TemplateStage::recomputeContour(ProjectData & data,
         throw InvalidInput(QFTBX_TR("Core", "There are no templates to walk a contour over."));
     }
 
+    m_engine->setHullMetric(data.epsilonMetric().metric, data.epsilonMetric().dbPerDegree);
+    m_engine->setWholeCloudStandsIn(m_wholeCloudStandsIn);
+    m_engine->setAlphaShapeContour(m_alphaShape);
     m_engine->computeContours(epsilon);
 
     data.setContour(m_engine->contours());
     data.setEpsilon(std::move(epsilon));
 
     return data.contour();
+}
+
+std::vector<TemplateEngine::EpsilonProposal> TemplateStage::proposeEpsilon(const ProjectData & data)
+{
+    if (m_engine == nullptr || data.templates().empty()) {
+        throw InvalidInput(QFTBX_TR("Core", "There are no templates to propose an epsilon for."));
+    }
+    m_engine->setHullMetric(data.epsilonMetric().metric, data.epsilonMetric().dbPerDegree);
+    m_engine->setAlphaShapeContour(m_alphaShape);
+    return m_engine->proposeEpsilon();
+}
+
+std::vector<TemplateEngine::EpsilonProposal> TemplateStage::proposeEpsilon(const ProjectData & data,
+                                                                           ParameterGrids grids,
+                                                                           EpsilonMetric metric) const
+{
+    requirePrerequisites(data);
+
+    TemplateEngine sweep;
+    sweep.setGrids(std::move(grids));
+    sweep.setClouds(sweep.computeClouds(data.plant(), data.omega()->values()));
+    sweep.setHullMetric(metric.metric, metric.dbPerDegree);
+    sweep.setAlphaShapeContour(m_alphaShape);
+    sweep.setBorderSweep(m_borderSweep);
+
+    return sweep.proposeEpsilon();
+}
+
+const std::vector<TemplateEngine::ContourReport> & TemplateStage::contourReports() const
+{
+    static const std::vector<TemplateEngine::ContourReport> none;
+    return m_engine != nullptr ? m_engine->contourReports() : none;
 }
 
 void TemplateStage::adopt(ProjectData & data, CloudSet clouds,

@@ -56,6 +56,41 @@ public:
     const CloudSet & recomputeContour(ProjectData & data,
                                       std::vector<double> epsilon);
 
+    /// The epsilon each cloud asks for, in the project's plane, and how
+    /// coarse the sweep is (TemplateEngine::proposeEpsilon). Throws
+    /// InvalidInput when there are no templates.
+    std::vector<TemplateEngine::EpsilonProposal> proposeEpsilon(const ProjectData & data);
+
+    /**
+     * @brief The epsilon each template WOULD ask for if the family were swept
+     * over these grids, measured in this plane: the proposal the templates
+     * dialog fills its field with before anything has been computed.
+     *
+     * Sweeps on an engine of its own, so the clouds a later recomputeContour
+     * walks are untouched and nothing is published. It costs one sweep, the
+     * same one run() will do next.
+     */
+    std::vector<TemplateEngine::EpsilonProposal> proposeEpsilon(const ProjectData & data,
+                                                                ParameterGrids grids,
+                                                                EpsilonMetric metric) const;
+
+    /// What a contour that does not close becomes (TemplateEngine::
+    /// setWholeCloudStandsIn): the whole cloud, or an error. Applied to every
+    /// computation from now on.
+    void setWholeCloudStandsIn(bool standsIn) { m_wholeCloudStandsIn = standsIn; }
+
+    /// How the contour is extracted (TemplateEngine::setAlphaShapeContour).
+    void setAlphaShapeContour(bool alphaShape) { m_alphaShape = alphaShape; }
+    bool alphaShapeContour() const { return m_alphaShape; }
+
+    /// Sweep only the border of a two-parameter box (TemplateEngine::setBorderSweep).
+    void setBorderSweep(bool border) { m_borderSweep = border; }
+    bool borderSweep() const { return m_borderSweep; }
+
+    /// What the last contour computation reported, per frequency; empty when
+    /// nothing has been computed.
+    const std::vector<TemplateEngine::ContourReport> & contourReports() const;
+
     /**
      * @brief Takes templates computed elsewhere - by the persistence, on load
      * - and publishes them, feeding the engine as well.
@@ -74,6 +109,9 @@ private:
     TemplateEngine & engine();
 
     std::unique_ptr<TemplateEngine> m_engine;
+    bool m_wholeCloudStandsIn = true;
+    bool m_alphaShape = false;
+    bool m_borderSweep = false;
 };
 
 } // namespace qftbx

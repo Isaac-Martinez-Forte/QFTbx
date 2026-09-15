@@ -170,6 +170,7 @@ struct BenchmarkGolden {
     double gain;
     double zero;
     double pole;
+    bool conservativeColumns = false;
 };
 
 //Readable test names in ctest (instead of a raw byte dump).
@@ -189,6 +190,10 @@ TEST_P(ThesisBenchmarkGolden, ResultIsPinned)
     ProjectController controller;
     controller.load(
         std::string(QFTBX_TEST_DATA_DIR) + "/" + golden.file);
+
+    qftbx::Settings settings;
+    settings.algorithms.conservativeBoundaryColumns = golden.conservativeColumns;
+    controller.applySettings(settings);
 
     const bool ok = controller.computeLoopShaping(
         0.5, golden.algorithm, qftbx::Range(1e-9, 10.0), 100);
@@ -257,14 +262,19 @@ INSTANTIATE_TEST_SUITE_P(
                         1000.0, 500.005, 0.01},
         BenchmarkGolden{"Acc90McThesis", "acc90.qft", qftbx::mc_thesis,
                         1000.0, 500.005, 0.01},
-        //MC2 starts as a faithful copy of MC (thesis), so its goldens are
-        //the same ones; each correction that lands moves them on purpose.
+        //MC2 keeps the gain at the top of the range, as every other search
+        //does on this fixture, and reaches it through a different zero: it
+        //bisects the parameter that narrows the wider side of the
+        //projection, not the one that shrinks its area.
         BenchmarkGolden{"Acc90Mc2", "acc90.qft", qftbx::mc2,
-                        1000.0, 500.005, 0.01},
-        //Example 2 with its tracking and stability bounds: the four
-        //boundary-driven searches, the first three within a per mille of
-        //one another and MC (thesis) 0.17 dB above on its wider terminal
-        //box (see the header).
+                        1000.0, 28.006664282179663, 0.01},
+        //Example 2 with its tracking and stability bounds, the columns read
+        //at the nearest node as the published algorithms read them: the four
+        //boundary-driven searches, the first three within a per mille of one
+        //another and MC (thesis) 0.17 dB above on its wider terminal box (see
+        //the header). These points exceed the stability bound at w = 100 by
+        //0.05 dB, which the specification check records; the optimum of the
+        //structure by brute force is 568.911.
         BenchmarkGolden{"Ex2NT", "qft_toolbox_ex2.qft", qftbx::nt,
                         556.9433291, 1.87155365, 137.642901},
         BenchmarkGolden{"Ex2NK", "qft_toolbox_ex2.qft", qftbx::nk,
@@ -273,11 +283,27 @@ INSTANTIATE_TEST_SUITE_P(
                         556.9603483, 1.868936823, 137.642901},
         BenchmarkGolden{"Ex2McThesis", "qft_toolbox_ex2.qft", qftbx::mc_thesis,
                         567.6912501, 3.305865479, 142.5866992},
-        //MC2 with the exact best gain (T3) and the gain contractor on the
-        //terminal box: 0.11 dB under MC (thesis) at the same zero and pole,
-        //the width in gain the corner used to inherit from the box.
+        //MC2 with the exact best gain (T3), the gain contractor on the
+        //terminal box, no execution stages and the bisection by the wider
+        //side of the projection: it lands on the same optimum as NT, NK and
+        //MC1 (557.0) instead of stopping 1.9 % above it, and on a third of
+        //the nodes MC (thesis) needs.
         BenchmarkGolden{"Ex2Mc2", "qft_toolbox_ex2.qft", qftbx::mc2,
-                        567.5822829, 3.305865479, 142.5866992}),
+                        557.0240549, 1.88739668, 137.6822785},
+        //The same two with the columns read conservatively (both nodes
+        //bracketing a phase): the returned controller then satisfies the
+        //specifications, and the gain rises. Only the two searches with a
+        //best-gain bound are pinned this way; NT, NK and MC1 under the
+        //conservative reading take one to two minutes each on this fixture
+        //(the strip cuts stop applying) and were measured once at
+        //567.2976504, 567.4241360 and 567.4219156.
+        BenchmarkGolden{"Ex2McThesisConservative", "qft_toolbox_ex2.qft", qftbx::mc_thesis,
+                        579.4719402, 3.183796387, 144.5398047, true},
+        //Under the conservative reading MC2 now returns what NT, NK and MC1
+        //return (567.30, 567.42, 567.42), in 0.15 s against their 69, 78 and
+        //131 s: the same answer, two to three orders of magnitude faster.
+        BenchmarkGolden{"Ex2Mc2Conservative", "qft_toolbox_ex2.qft", qftbx::mc2,
+                        567.3175312, 1.819430571, 140.0436795, true}),
     [](const ::testing::TestParamInfo<BenchmarkGolden>& info) {
         return std::string(info.param.name);
     });

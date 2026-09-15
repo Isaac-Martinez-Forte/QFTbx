@@ -108,6 +108,22 @@
     </item>
    </layout>
   </widget>
+  <widget class="QCheckBox" name="conservativeColumnsCheck">
+   <property name="geometry">
+    <rect>
+     <x>40</x>
+     <y>360</y>
+     <width>300</width>
+     <height>24</height>
+    </rect>
+   </property>
+   <property name="toolTip">
+    <string>Judge every point and box by both boundary columns around its phase instead of the nearest one. Removes the small permissive error of the phase grid; the searches without a best-gain bound become much slower.</string>
+   </property>
+   <property name="text">
+    <string>Conservative boundary reading</string>
+   </property>
+  </widget>
   <widget class="QWidget" name="layoutWidget2">
    <property name="geometry">
     <rect>

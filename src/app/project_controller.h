@@ -16,6 +16,7 @@
 #include "src/core/pipeline/boundary_stage.h"
 #include "src/core/pipeline/loop_shaping_stage.h"
 #include "src/core/pipeline/template_stage.h"
+#include "src/core/templates/template_engine.h"
 #include "src/core/templates/parameter_grids.h"
 #include "src/core/templates/cloud_set.h"
 #include "src/core/frequencies/omega.h"
@@ -117,6 +118,45 @@ public:
     const qftbx::CloudSet & templates();
     const qftbx::CloudSet & contour();
     std::vector<double> * epsilon();
+
+    /// The plane the epsilon is measured in (HullMetric): a property of the
+    /// project, saved with it. Changing it does not recompute anything; the
+    /// next template or contour computation measures in the new plane.
+    qftbx::EpsilonMetric epsilonMetric() const;
+    void setEpsilonMetric(qftbx::EpsilonMetric metric);
+
+    /// The epsilon each template asks for, and how coarse the sweep is, in
+    /// the project's plane (TemplateEngine::EpsilonProposal).
+    std::vector<TemplateEngine::EpsilonProposal> proposeEpsilon();
+
+    /// What a contour that does not close becomes: the whole template at
+    /// that frequency (default) or an error naming it. Chosen in the
+    /// templates dialog; the setting gives the default.
+    void setWholeCloudStandsIn(bool standsIn);
+
+    /// How the contour is extracted: the walk (default) or the alpha-shape.
+    /// Chosen in the templates dialog; the setting gives the default.
+    void setAlphaShapeContour(bool alphaShape);
+    bool alphaShapeContour() const;
+
+    /// Sweep only the border of a two-parameter box (see TemplateEngine).
+    void setBorderSweep(bool border);
+    bool borderSweep() const;
+
+    /// Columns of the magnitude specifications in closed form (see
+    /// ClosedFormColumns); the setting gives the default.
+    void setClosedFormColumns(bool on);
+    bool closedFormColumns() const;
+
+    /// What the last contour computation reported, per frequency
+    /// (TemplateEngine::ContourReport); empty when nothing was computed.
+    const std::vector<TemplateEngine::ContourReport> & contourReports() const;
+
+    /// The same, for templates NOT computed yet: what the family swept over
+    /// these grids would ask for in this plane. Publishes nothing; it is the
+    /// figure the templates dialog offers before the user presses OK.
+    std::vector<TemplateEngine::EpsilonProposal> proposeEpsilon(qftbx::ParameterGrids grids,
+                                                                qftbx::EpsilonMetric metric);
 
 
     // --- step 5: the boundaries -------------------------------------------

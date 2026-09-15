@@ -39,8 +39,14 @@ public:
              Range magnitudeRange, std::int32_t magnitudeCount,
              double exportInfinity, bool fromContour, bool cuda);
 
+    /// Columns of the magnitude specifications in closed form
+    /// (BoundaryEngine::setClosedFormColumns). Applied to every computation.
+    void setClosedFormColumns(bool on) { m_closedForm = on; }
+    bool closedFormColumns() const { return m_closedForm; }
+
 private:
     BoundaryEngine & engine();
+    bool m_closedForm = false;
 
     std::unique_ptr<BoundaryEngine> m_engine;
 };

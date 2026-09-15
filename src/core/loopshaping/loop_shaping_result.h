@@ -2,9 +2,11 @@
 #define QFTBX_LOOPSHAPING_RESULT_H
 
 #include <memory>
+#include <optional>
 
 
 #include "src/core/loopshaping/loop_shaping_statistics.h"
+#include "src/core/loopshaping/common/specification_checker.h"
 #include "src/core/system/lti_system.h"
 
 /**
@@ -33,6 +35,14 @@ public:
     const LoopShapingStatistics & statistics() const { return m_statistics; }
     void setStatistics(const LoopShapingStatistics & statistics) { m_statistics = statistics; }
 
+    /// The controller checked against the specifications themselves, over
+    /// the full template, at every design frequency: the last thing a run
+    /// does before it hands the result over, and what the interface shows
+    /// next to the controller. Absent for a result read from a file, and
+    /// for a run whose project carried no templates to check against.
+    const std::optional<SpecificationCheck> & check() const { return m_check; }
+    void setCheck(SpecificationCheck check) { m_check = std::move(check); }
+
     //There was a pair of setData() overloads and an m_set flag: nothing
     //ever called them and nothing ever read the flag. The overloads
     //carried a fixed bug (they used to delete the INCOMING controller
@@ -46,6 +56,7 @@ private:
     qftbx::Range m_plotRange;
     double m_pointCount = 0;
     LoopShapingStatistics m_statistics;
+    std::optional<SpecificationCheck> m_check;
 };
 
 } // namespace qftbx

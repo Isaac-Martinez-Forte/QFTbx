@@ -195,6 +195,56 @@ std::vector <double> * ProjectController::epsilon(){
     return m_data.epsilon();
 }
 
+qftbx::EpsilonMetric ProjectController::epsilonMetric() const{
+    return m_data.epsilonMetric();
+}
+
+void ProjectController::setEpsilonMetric(qftbx::EpsilonMetric metric){
+    m_data.setEpsilonMetric(metric);
+}
+
+std::vector<TemplateEngine::EpsilonProposal> ProjectController::proposeEpsilon(){
+    return m_templates.proposeEpsilon(m_data);
+}
+
+void ProjectController::setWholeCloudStandsIn(bool standsIn){
+    m_templates.setWholeCloudStandsIn(standsIn);
+}
+
+void ProjectController::setAlphaShapeContour(bool alphaShape){
+    m_templates.setAlphaShapeContour(alphaShape);
+}
+
+bool ProjectController::alphaShapeContour() const{
+    return m_templates.alphaShapeContour();
+}
+
+void ProjectController::setBorderSweep(bool border){
+    m_templates.setBorderSweep(border);
+}
+
+bool ProjectController::borderSweep() const{
+    return m_templates.borderSweep();
+}
+
+void ProjectController::setClosedFormColumns(bool on){
+    m_boundaries.setClosedFormColumns(on);
+}
+
+bool ProjectController::closedFormColumns() const{
+    return m_boundaries.closedFormColumns();
+}
+
+const std::vector<TemplateEngine::ContourReport> & ProjectController::contourReports() const{
+    return m_templates.contourReports();
+}
+
+std::vector<TemplateEngine::EpsilonProposal> ProjectController::proposeEpsilon(qftbx::ParameterGrids grids,
+                                                                               qftbx::EpsilonMetric metric){
+    requireNotComputing();
+    return m_templates.proposeEpsilon(m_data, std::move(grids), metric);
+}
+
 
 const qftbx::CloudSet & ProjectController::recomputeContour(std::vector <double> epsilon){
     //It rewrites the contour and the epsilon, and MR reads the contour: the
@@ -364,6 +414,7 @@ void ProjectController::save(std::string path){
     content.omega = m_data.omega();
     content.templates = &m_data.templates();
     content.epsilon = m_data.epsilon();
+    content.epsilonMetric = m_data.epsilonMetric();
 
     if (m_data.hasContour()){
         content.contour = &m_data.contour();
@@ -413,6 +464,7 @@ qftbx::StepSet ProjectController::load(std::string path){
                      loaded.hasContour ? reader.takeContour() : qftbx::CloudSet(),
                      loaded.hasContour);
         m_data.setEpsilon(reader.takeEpsilon());
+        m_data.setEpsilonMetric(reader.epsilonMetric());
     }
 
     if (loaded.steps.has(qftbx::Step::Boundaries)) {
@@ -436,6 +488,10 @@ qftbx::StepSet ProjectController::load(std::string path){
 void ProjectController::applySettings(const qftbx::Settings & settings)
 {
     m_loopShaping.setSettings(settings);
+    m_templates.setWholeCloudStandsIn(settings.algorithms.wholeTemplateIfNoContour);
+    m_templates.setAlphaShapeContour(settings.algorithms.alphaShapeContour);
+    m_templates.setBorderSweep(settings.algorithms.borderSweep);
+    m_boundaries.setClosedFormColumns(settings.algorithms.closedFormColumns);
 }
 
 qftbx::StepSet ProjectController::completed() const

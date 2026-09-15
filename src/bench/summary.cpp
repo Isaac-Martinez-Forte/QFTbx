@@ -91,6 +91,9 @@ std::vector<Aggregate> summarize(const std::vector<Record> & records)
                 const LoopShapingStatistics & s = r->statistics;
                 if (s.peakLiveNodes != a.statistics.peakLiveNodes || s.nodesProcessed != a.statistics.nodesProcessed
                         || s.boxesClassified != a.statistics.boxesClassified
+                        || s.boxesFeasible != a.statistics.boxesFeasible
+                        || s.boxesInfeasible != a.statistics.boxesInfeasible
+                        || s.boxesAmbiguous != a.statistics.boxesAmbiguous
                         || s.stabilityVerdicts != a.statistics.stabilityVerdicts) {
                     a.countersAgree = false;
                 }
@@ -126,7 +129,7 @@ void writeCsv(const std::vector<Aggregate> & aggregates, const std::string & pat
            "wall_ms_median,wall_ms_mean,wall_ms_std,wall_ms_min,wall_ms_max,wall_ms_cv,"
            "cpu_ms_median,cpu_ms_mean,cpu_ms_std,"
            "peak_memory_mb_median,peak_memory_mb_max,algorithm_memory_mb_median,"
-           "peak_live_nodes,nodes_processed,boxes_classified,stability_verdicts,stability_profiles,"
+           "peak_live_nodes,nodes_processed,boxes_classified,boxes_feasible,boxes_infeasible,boxes_ambiguous,stability_verdicts,stability_profiles,"
            "counters_agree,gain,digest,results_agree\n";
     out.precision(17);
     for (const Aggregate & a : aggregates) {
@@ -137,6 +140,7 @@ void writeCsv(const std::vector<Aggregate> & aggregates, const std::string & pat
             << a.cpuMilliseconds.median << "," << a.cpuMilliseconds.mean << "," << a.cpuMilliseconds.standardDeviation << ","
             << a.peakMemoryMegabytes.median << "," << a.peakMemoryMegabytes.max << "," << a.algorithmMemoryMegabytes.median << ","
             << a.statistics.peakLiveNodes << "," << a.statistics.nodesProcessed << "," << a.statistics.boxesClassified << ","
+            << a.statistics.boxesFeasible << "," << a.statistics.boxesInfeasible << "," << a.statistics.boxesAmbiguous << ","
             << a.statistics.stabilityVerdicts << "," << a.statistics.stabilityProfiles << ","
             << (a.countersAgree ? 1 : 0) << "," << a.gain << "," << a.digest << "," << (a.resultsAgree ? 1 : 0) << "\n";
     }

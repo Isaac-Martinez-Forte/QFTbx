@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>395</width>
-    <height>385</height>
+    <height>485</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -157,7 +157,7 @@
    <property name="geometry">
     <rect>
      <x>200</x>
-     <y>330</y>
+     <y>435</y>
      <width>168</width>
      <height>28</height>
     </rect>
@@ -236,7 +236,7 @@
     <rect>
      <x>20</x>
      <y>280</y>
-     <width>301</width>
+     <width>361</width>
      <height>27</height>
     </rect>
    </property>
@@ -258,9 +258,150 @@
        </widget>
       </item>
       <item>
-       <widget class="QLineEdit" name="epsilonEdit"/>
+       <widget class="QLineEdit" name="epsilonEdit">
+        <property name="toolTip">
+         <string>One value, or one per design frequency. Filled in with the least epsilon at which the contour of each template closes, over the grids as they are entered above.</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="proposeButton">
+        <property name="toolTip">
+         <string>Sweep the family over the grids entered above and fill in the least epsilon at which the contour of each template closes, in the plane chosen below.</string>
+        </property>
+        <property name="text">
+         <string>Propose</string>
+        </property>
+       </widget>
       </item>
      </layout>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QCheckBox" name="wholeTemplateCheck">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>345</y>
+     <width>361</width>
+     <height>24</height>
+    </rect>
+   </property>
+   <property name="toolTip">
+    <string>Where the contour walk does not close with the epsilon given, use the whole template as its contour at that frequency: always safe, only slower, and marked in the viewer. Unchecked, the computation stops and names the frequency instead.</string>
+   </property>
+   <property name="text">
+    <string>Use the whole template where the contour does not close</string>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+  </widget>
+  <widget class="QCheckBox" name="borderSweepCheck">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>405</y>
+     <width>361</width>
+     <height>24</height>
+    </rect>
+   </property>
+   <property name="toolTip">
+    <string>With exactly two uncertain parameters, sweep only the border of the parameter box: as many evaluations as the interior grid would cost, spent on the four edges, since the worst case of every specification over a template lies on its border. The template is then a closed curve and its contour is taken by the alpha-shape. Unavailable with one or with three or more uncertain parameters.</string>
+   </property>
+   <property name="text">
+    <string>Sweep only the border of the parameter box (two parameters)</string>
+   </property>
+  </widget>
+  <widget class="QWidget" name="contourRow">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>375</y>
+     <width>361</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <layout class="QHBoxLayout" name="horizontalLayout_10">
+    <item>
+     <widget class="QLabel" name="contourLabel">
+      <property name="text">
+       <string>Contour:</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QComboBox" name="contourCombo">
+      <property name="toolTip">
+       <string>How the contour of each template is extracted. The walk of Nordin is the historical epsilon-hull and can fail to close. The alpha-shape is the same boundary by its definition, edge by edge: it always closes and returns every component and hole, and the proposed epsilon is then the least that keeps the template connected.</string>
+      </property>
+      <item>
+       <property name="text">
+        <string>Epsilon-hull walk (Nordin)</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Alpha-shape (always closes)</string>
+       </property>
+      </item>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QWidget" name="epsilonMetricRow">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>315</y>
+     <width>361</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <layout class="QHBoxLayout" name="horizontalLayout_9">
+    <item>
+     <widget class="QLabel" name="metricLabel">
+      <property name="text">
+       <string>Epsilon in:</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QComboBox" name="metricCombo">
+      <property name="toolTip">
+       <string>The plane the epsilon of the contour is measured in. Nichols: degrees and decibels, one epsilon serves every template. Complex plane: the historical reading, in the units of the plant's response.</string>
+      </property>
+      <item>
+       <property name="text">
+        <string>Nichols (degrees, dB)</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Complex plane</string>
+       </property>
+      </item>
+     </widget>
+    </item>
+    <item>
+     <widget class="QLabel" name="dbPerDegreeLabel">
+      <property name="text">
+       <string>dB per degree:</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QLineEdit" name="dbPerDegreeEdit">
+      <property name="text">
+       <string notr="true">1</string>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>60</width>
+        <height>16777215</height>
+       </size>
+      </property>
+     </widget>
     </item>
    </layout>
   </widget>

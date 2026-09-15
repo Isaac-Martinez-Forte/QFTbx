@@ -45,6 +45,7 @@ void AlgorithmNt::setProblem(LtiSystem * plant, LtiSystem * controller, std::vec
 
     this->plant = plant;
     this->controller = controller->clone();
+    depthAccounting.start(*this->controller);
     this->omega = omega;
     this->boundaries = boundaries;
     this->epsilon = epsilon;
@@ -58,7 +59,7 @@ bool AlgorithmNt::solve() {
     liveList = std::make_unique<OrderedList>(false, m_settings.search.maxLiveNodes);
 
     conversion = std::make_unique<NaturalIntervalExtension>();
-    detector = std::make_unique<BoundaryViolationDetector>();
+    detector = std::make_unique<BoundaryViolationDetector>(m_settings.algorithms.conservativeBoundaryColumns);
     stability = std::make_unique<NominalStabilityChecker>(plant, omega, m_settings.stability);
 
     nominalPlantValues.clear();
@@ -159,7 +160,11 @@ LoopShapingStatistics AlgorithmNt::statistics() const
     }
     if (detector != nullptr) {
         statistics.boxesClassified = detector->classifications();
+        statistics.boxesFeasible = detector->feasibleBoxes();
+        statistics.boxesInfeasible = detector->infeasibleBoxes();
+        statistics.boxesAmbiguous = detector->ambiguousBoxes();
     }
+    depthAccounting.fill(statistics);
     if (stability != nullptr) {
         statistics.stabilityVerdicts = stability->statistics().verdicts;
         statistics.stabilityProfiles = stability->statistics().profilesComputed;
@@ -210,11 +215,13 @@ void AlgorithmNt::check_box_feasibility(std::unique_ptr<LtiSystem> box) {
         classification = detector->classifyBox(projection, boundaries, frequencyIndex);
 
         if (classification.flag() == infeasible) {
+            depthAccounting.record(*box, infeasible);
             return;
         }
 
         if (classification.flag() == ambiguous) {
             flag_final = ambiguous;
+            depthAccounting.ambiguousAt(frequencyIndex);
 
             const double minBoundary = classification.extremes()[0];
             const double maxBoundary = classification.extremes()[1];
@@ -279,6 +286,7 @@ void AlgorithmNt::check_box_feasibility(std::unique_ptr<LtiSystem> box) {
     //call their evaluation order is unspecified.
     const double gainInf = box->gain().range().min;
 
+    depthAccounting.record(*box, flag_final);
     liveList->insert(std::make_unique<SearchNode>(gainInf, std::move(box), flag_final));
 
 }

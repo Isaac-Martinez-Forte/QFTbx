@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <string>
 #include <utility>
 #include <vector>
@@ -65,6 +66,10 @@ struct Record
     double gain = 0.0;
     std::vector<double> zeros;
     std::vector<double> poles;
+    /// The controller checked against the specifications over the full
+    /// template: the largest excess over any active bound, in dB, positive
+    /// when it violates. NaN when the run made no check.
+    double worstExcessDb = std::numeric_limits<double>::quiet_NaN();
     /// A hash of the result's numbers: repetitions must agree on it.
     std::string digest;
 

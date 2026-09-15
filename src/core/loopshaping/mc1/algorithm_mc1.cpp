@@ -25,7 +25,7 @@ bool AlgorithmMc1::solve()
 {
     liveList = std::make_unique<OrderedList>(false, m_settings.search.maxLiveNodes);
     conversion = std::make_unique<NaturalIntervalExtension>();
-    detector = std::make_unique<BoundaryViolationDetector>();
+    detector = std::make_unique<BoundaryViolationDetector>(m_settings.algorithms.conservativeBoundaryColumns);
     stability = std::make_unique<NominalStabilityChecker>(plant, omega, m_settings.stability);
 
     bestCertifiedGain = std::numeric_limits<double>::infinity();
@@ -126,6 +126,9 @@ LoopShapingStatistics AlgorithmMc1::statistics() const
     }
     if (detector != nullptr) {
         statistics.boxesClassified = detector->classifications();
+        statistics.boxesFeasible = detector->feasibleBoxes();
+        statistics.boxesInfeasible = detector->infeasibleBoxes();
+        statistics.boxesAmbiguous = detector->ambiguousBoxes();
     }
     if (stability != nullptr) {
         statistics.stabilityVerdicts = stability->statistics().verdicts;

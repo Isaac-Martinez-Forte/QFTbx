@@ -67,6 +67,65 @@ void LoopShapingViewer::setData(const qftbx::UnionTraces & unionTraces, std::vec
     this->linSpace = linSpace;
 }
 
+//The controller checked against the specifications themselves, as the run
+//left it: one line saying whether it satisfies them and by how much it
+//misses when it does not, with the frequency and the specification of the
+//worst case, and the whole table as the tooltip. The boundaries the search
+//worked against are a discretisation; this is the answer to the question
+//the user actually asked.
+void LoopShapingViewer::showCheck(){
+
+    const std::optional<qftbx::SpecificationCheck> & check = loopShapingData->check();
+
+    if (!check.has_value() || check->entries.empty()) {
+        ui->checkLabel->setText(tr("Not checked against the specifications (no templates to check over)."));
+        ui->checkLabel->setToolTip(QString());
+        ui->checkLabel->setStyleSheet(QString());
+        return;
+    }
+
+    const qftbx::SpecificationExcess * worst = nullptr;
+    for (const qftbx::SpecificationExcess & e : check->entries) {
+        if (worst == nullptr || e.excessDb > worst->excessDb) {
+            worst = &e;
+        }
+    }
+
+    const QString name = specificationTitle(worst->type);
+
+    if (check->satisfied()) {
+        ui->checkLabel->setText(tr("Satisfies every specification over the template: tightest at w = %1 rad/s, %2, %3 dB of margin.")
+                                .arg(qftbx::numberText(worst->omega), name, qftbx::numberText(-worst->excessDb)));
+        ui->checkLabel->setStyleSheet("color: #1a7f37;");
+    } else {
+        ui->checkLabel->setText(tr("EXCEEDS a specification over the template: w = %1 rad/s, %2, by %3 dB.")
+                                .arg(qftbx::numberText(worst->omega), name, qftbx::numberText(worst->excessDb)));
+        ui->checkLabel->setStyleSheet("color: #b42318; font-weight: bold;");
+    }
+
+    QString table;
+    for (const qftbx::SpecificationExcess & e : check->entries) {
+        table += tr("w = %1: %2 = %3 dB, bound %4 dB, excess %5 dB\n")
+                 .arg(qftbx::numberText(e.omega), specificationTitle(e.type),
+                      qftbx::numberText(e.valueDb), qftbx::numberText(e.boundDb),
+                      qftbx::numberText(e.excessDb));
+    }
+    ui->checkLabel->setToolTip(table.trimmed());
+}
+
+QString LoopShapingViewer::specificationTitle(qftbx::SpecificationType type){
+    switch (type) {
+    case qftbx::SpecificationType::TrackingLower:
+    case qftbx::SpecificationType::TrackingUpper:     return tr("tracking");
+    case qftbx::SpecificationType::Stability:         return tr("stability");
+    case qftbx::SpecificationType::SensorNoise:       return tr("sensor noise");
+    case qftbx::SpecificationType::OutputDisturbance: return tr("output disturbance");
+    case qftbx::SpecificationType::InputDisturbance:  return tr("input disturbance");
+    case qftbx::SpecificationType::ControlEffort:     return tr("control effort");
+    }
+    return QString();
+}
+
 void LoopShapingViewer::showDiagram(){
 
     QString numerator = "", denominator = "";
@@ -82,6 +141,7 @@ void LoopShapingViewer::showDiagram(){
     ui->numeratorEdit->setText(numerator);
     ui->denominatorEdit->setText(denominator);
     ui->gainEdit->setText(qftbx::numberText(loopShapingData->controller()->gain().nominal()));
+    showCheck();
 
     const LtiSystem::SystemType type = loopShapingData->controller()->type();
 

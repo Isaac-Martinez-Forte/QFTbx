@@ -134,6 +134,73 @@ struct Settings {
         /// and their running times can be compared.
         bool mrNicholsEpsilon = false;
 
+        /// Templates: when the contour walk does not close at a frequency,
+        /// let the WHOLE template stand in for its contour there (the
+        /// boundaries then read every point, which is always safe and only
+        /// slower), instead of stopping with an error that names the
+        /// frequency. On by default; the templates dialog offers the choice.
+        bool wholeTemplateIfNoContour = true;
+
+        /// Templates: extract the contour as the alpha-shape of the cloud
+        /// (the epsilon-hull by its definition, edge by edge: always closes,
+        /// every component and hole) instead of by the historical walk of
+        /// Nordin. Off by default: the walk is the published algorithm and
+        /// the fixtures were computed with it. The templates dialog offers
+        /// the choice.
+        bool alphaShapeContour = false;
+
+        /// Templates: with exactly two uncertain parameters, sweep only the
+        /// border of the parameter box, as densely as the interior grid
+        /// would have cost, since the worst case over a template is attained
+        /// on its border (TemplateEngine::setBorderSweep). Off by default:
+        /// it changes the template, so the fixtures computed with the
+        /// interior grid stay as they are. The templates dialog offers it.
+        bool borderSweep = false;
+
+        /// Boundaries: read the columns of the five magnitude specifications
+        /// in closed form - a quadratic in the gain per plant and phase,
+        /// intersected exactly - instead of off the sampled sheet: exact in
+        /// magnitude, no magnitude window (ClosedFormColumns). Tracking
+        /// keeps its sheet. Off by default: the sheet is the published
+        /// method and the fixtures were computed with it.
+        bool closedFormColumns = false;
+
+        /// MC (thesis) and MC2: the strategies of chapter 4, each one a
+        /// switch. All on is the algorithm as published; none of them changes
+        /// the answer, each only discards boxes it has certified cannot hold
+        /// a better one. Here so that a benchmark plan can measure what each
+        /// one buys (the thesis' chapter 6 does that with sixteen
+        /// combinations); the interface does not expose them.
+        struct McStrategies {
+            bool infeasibleMagnitude = true;  ///< QSInv, magnitude cuts (NK's QS)
+            bool infeasiblePhase = true;      ///< QSInv, phase cuts (thesis 4.1.2)
+            bool feasibleMagnitude = true;    ///< QSFact, magnitude (thesis 4.1.1)
+            bool feasiblePhase = true;        ///< QSFact, phase
+            bool bestGain = true;             ///< MG (thesis 4.3)
+            bool treeBisection = true;        ///< thesis 4.2.4
+            bool stages = true;               ///< thesis 4.4 (MC of the thesis only; MC2 has no stages)
+        } mc;
+
+        /// NT, NK, MC1, MC (thesis), MC2: read the boundary columns
+        /// CONSERVATIVELY - a point or a box is judged by both column nodes
+        /// that bracket its phase, not by the nearest one. On by default.
+        /// The nearest node is the published algorithms' reading, and it
+        /// admits, up to half a step away, what the boundary at the point's
+        /// own phase forbids: on example 2 with the 1-degree grid every
+        /// algorithm then returns a controller that exceeds a specification
+        /// by 0.05 dB, and over twelve problems most answers exceed one.
+        /// The conservative reading removes that, at the cost of the strip
+        /// cuts, which need every column of a span to agree and so apply far
+        /// less often: what that costs depends on the algorithm, and only on
+        /// the algorithm. The searches by contraction alone slow down by two
+        /// to three orders of magnitude, where MC2 answers in about the time
+        /// it did (0.15 s against 0.01 s on example 2 with the 1-degree
+        /// grid, 0.012 s with a 0.125-degree one). Set it off to reproduce a
+        /// published algorithm as published. The direct check of the
+        /// returned controller against the specifications is the other way
+        /// to know.
+        bool conservativeBoundaryColumns = true;
+
         /// NK (Nataraj & Kubal 2007): iterations the local refinement of a
         /// candidate point may spend.
         std::int32_t localSearchBudget = 400;
@@ -166,8 +233,48 @@ struct Settings {
         double magnitudeEnd = 60.0;
         std::int32_t magnitudePoints = 121;
 
-        /// Points per parameter grid in the template sweep.
-        std::int32_t templatePointCount = 10;
+        /**
+         * @brief Whether the boundaries read the template CONTOUR (the
+         * default, and what the literature does) or the whole cloud.
+         *
+         * The contour is an approximation: it assumes the worst case of
+         * every specification over a template lies on its border. That
+         * holds on eleven of the twelve problems of the battery and saves
+         * the boundary computation most of its work; on the twelfth
+         * (Horowitz and Sidi's motor, twenty-three design frequencies) it
+         * does not, and the controller comes out 0.0012 dB permissive even
+         * under the conservative column reading - refining the phase grid
+         * does not help, and neither does taking the contour as the
+         * alpha-shape. Reading the whole cloud is always safe, and there it
+         * was also the faster of the two, since that contour held more than
+         * half of the cloud's points. It is not free: the cloud's guard of
+         * the singular locus is a first-order bound per sample where the
+         * contour's is exact over its polygon, so the boundaries come out
+         * more conservative and the gain with them, by two to eleven per
+         * cent over the battery and by more where the optimum sits against
+         * a closed boundary.
+         *
+         * So: leave it alone for a design, and turn it on when the answer
+         * has to be certified, or when the contour of a template comes out
+         * wrong. The boundary dialog offers the same choice per run.
+         */
+        bool boundariesFromCloud = false;
+
+        /// Points per parameter grid in the template sweep. Twenty-five keeps
+        /// the largest gap in a two-parameter template under a few per cent
+        /// of its size, where ten leaves gaps of a fifth; with many
+        /// parameters the user has to lower it, since it multiplies.
+        std::int32_t templatePointCount = 25;
+
+        /// The plane a NEW project measures its contour epsilon in (see
+        /// HullMetric), and the weighting of the Nichols plane. The Nichols
+        /// plane, at one decibel per degree, is what a new project starts
+        /// with: there one epsilon serves every template, where in the
+        /// complex plane the epsilon a template needs changes by orders of
+        /// magnitude from one frequency to the next. A loaded project keeps
+        /// the plane its file says.
+        bool epsilonInNichols = true;
+        double dbPerDegree = 1.0;
 
         /// The frequency range the loop-shaping plot starts with, in rad/s,
         /// and how many points over it.

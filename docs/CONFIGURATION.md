@@ -71,7 +71,7 @@ over; it is the group that shows most in daily use.
 | `boundary-grid.phase-points` | 361 | 2 to 1e6 | Points on the phase axis; 361 over -360..0 is the classic one-degree grid |
 | `boundary-grid.magnitude-start`, `magnitude-end` | -60, 60 | -1000 to 1000 | The magnitude axis, in decibels |
 | `boundary-grid.magnitude-points` | 121 | 2 to 1e6 | Points on the magnitude axis |
-| `templates.point-count` | 10 | 1 to 1e6 | Points per parameter grid in the template sweep. It multiplies: with n uncertain parameters the sweep evaluates this many to the power of n plants |
+| `templates.point-count` | 25 | 1 to 1e6 | Points per parameter grid in the template sweep. Ten leaves gaps of up to a fifth of a template; twenty-five keeps them under a few per cent. It multiplies: with n uncertain parameters the sweep evaluates this many to the power of n plants, so lower it for many parameters |
 | `loop-shaping.start`, `end` | 1e-9, 10 | 1e-300 to 1e300 | The frequency range the loop-shaping plot starts with, in rad/s |
 | `loop-shaping.point-count` | 100 | 2 to 1e6 | Points over that range |
 
@@ -103,6 +103,14 @@ explored by recompiling is a worse tool.
 | `template-representatives` | 9 | 2 to 1000 | MR (Rambabu and Nataraj, FDA-10): template points entering the constraint set per design frequency. The paper uses 9; raising it narrows the known excess of the tracking bound only slightly, at a much higher cost |
 | `max-narrowing-passes` | 8 | 1 to 1000 | MR: passes of the HC4 narrowing before a box is accepted as narrowed no further |
 | `mr-nichols-epsilon` | 0 | 0 or 1 | MR: with 1 the termination epsilon measures the Nichols box of the leading node, as in the other four algorithms, instead of the width of the parameter box the paper uses; the only way to compare the running time of MR with the others' |
+| `whole-template-if-no-contour` | 1 | 0 or 1 | Templates: when the contour walk does not close at a frequency, 1 lets the whole template stand in for its contour there (safe, slower, marked in the viewer); 0 stops with an error naming the frequency. The templates dialog offers the same choice |
+| `alpha-shape-contour` | 0 | 0 or 1 | Templates: extract the contour as the alpha-shape (the epsilon-hull by its definition, edge by edge: always closes, every component and hole) instead of by the historical walk of Nordin. The templates dialog offers the same choice |
+| `border-sweep` | 0 | 0 or 1 | Templates: with exactly two uncertain parameters, sweep only the border of the parameter box, as many evaluations as the interior grid would cost, since the worst case of every specification over a template lies on its border. The templates dialog offers the same choice |
+| `defaults.boundary-grid.from-cloud` | 0 | 0 or 1 | Boundaries: read the whole template cloud instead of its contour. The contour assumes the worst case of every specification lies on the template's border, which holds on eleven of the twelve battery problems and saves most of the work; on the twelfth it leaves the answer 0.0012 dB permissive even under the conservative reading. Reading the cloud is always safe and costs gain, since its guard of the singular locus is a bound per sample where the contour's is exact. Turn it on to certify, or when a contour comes out wrong. The boundary dialog offers the same choice per run |
+| `closed-form-columns` | 0 | 0 or 1 | Boundaries: read the columns of the five magnitude specifications in closed form (a quadratic in the gain per plant and phase, intersected exactly) instead of off the sampled sheet: exact in magnitude, no magnitude window. Tracking keeps its sheet |
+| `mc.infeasible-magnitude`, `mc.infeasible-phase`, `mc.feasible-magnitude`, `mc.feasible-phase`, `mc.best-gain`, `mc.tree-bisection` | 1 | 0 or 1 | MC (thesis) and MC2: the strategies of chapter 4 of the thesis, one switch each. They exist so that a benchmark plan can measure what each one buys. They do move the answer: the search stops at the first box small enough, and which box that is depends on how the tree was cut and split |
+| `mc.stages` | 1 | 0 or 1 | **MC (thesis) only**: the execution stages of sec. 4.4, which switch the cuts off for a node and its children the first time a full pass improves nothing. MC2 does not have them: what they contributed is their bisection rule, which MC2 applies everywhere |
+| `conservative-boundary-columns` | 1 | 0 or 1 | NT, NK, MC1, MC (thesis), MC2: how a phase between two nodes of the boundary grid is read. 1, the default and the conservative reading: both bracketing nodes must allow the point or box, so the answer respects the boundary at the point's own phase. 0, the published reading: the nearest node, which admits up to half a step of what the boundary forbids (0.05 dB on example 2 with the 1-degree grid). What 1 costs depends on the algorithm: the searches by contraction alone slow down by orders of magnitude while MC2 does not. Set 0 to reproduce a published algorithm as published. See the note below
 | `local-search-budget` | 400 | 1 to 1e7 | NK (Nataraj and Kubal 2007): iterations the local refinement of a candidate may spend |
 | `gain-tolerance` | 1.01 | above 1, up to 10 | NK: the ratio at which the gain bisection stops; a pruning bound, not the accuracy of the answer |
 | `certified-gain-tolerance` | 1.01 | above 1, up to 10 | MC (Martínez-Forte and Cervera 2021): the same ratio for the certified gain search |
@@ -111,3 +119,26 @@ What is not in the file, and will not be: 2π, the two layers of the boundary
 union, the seven specification slots, the 0 dB ray of the stability
 criterion. Writing those in a file would not configure anything; it would
 break the program. A setting is a value with a defensible range.
+
+**The two readings, measured on the toolbox example 2.** The nearest-node
+reading is what the published algorithms do, and it is permissive: between two
+nodes the boundary can run higher than at the nearer one, so a box up to half
+a grid step away is admitted that the boundary at its own phase forbids. With
+a 1-degree phase grid the returned controller violates the stability
+specification by 0.05 dB; the error halves every time the grid step halves
+and never reaches zero (0.005 dB at 0.125 degrees). The conservative reading
+removes it at every grid, but its cost depends on the grid: the strip cuts of
+the searches need every column of a span to agree, and at 1 degree the two
+bracketing columns disagree so often that NT, NK and MC1 take about a thousand
+times longer (70 to 130 s instead of 0.05 s). Each halving of the step divides
+that by about five: at 0.25 degrees NT takes 2.4 s, at 0.125 degrees 0.5 s,
+less than computing the boundaries themselves (3 and 7 s). So there are two
+sensible ways to run the loop shaping:
+
+| | phase grid | reading | result on example 2 | total time |
+|---|---|---|---|---|
+| as published | 361 points (1 degree) | nearest node | k = 557.1, violates by +0.05 dB | about 1 s |
+| certified | 1441 or 2881 points (0.25 or 0.125 degrees) | conservative | k = 567.3, satisfies every specification | 3 to 8 s |
+
+The controller returned is checked against the specifications on the full
+templates either way, and the loop-shaping viewer shows the verdict.

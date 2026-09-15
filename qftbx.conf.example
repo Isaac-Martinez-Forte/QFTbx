@@ -116,12 +116,43 @@
 # magnitude-end = 60
 # magnitude-points = 121
 
-# Points per parameter grid in the template sweep. Remember this multiplies:
-# with n uncertain parameters the sweep evaluates this many to the power of n
-# plants, so 10 with eight parameters is already 1e8.
+# Boundaries: read the whole template cloud instead of its contour. The contour
+# assumes the worst case of every specification over a template lies on its
+# border: true on eleven of the twelve problems of our battery, and it saves the
+# boundary computation most of its work. On the twelfth (the motor of Horowitz
+# and Sidi, twenty-three design frequencies) it is not, and the controller comes
+# out 0.0012 dB permissive even under the conservative column reading; reading
+# the whole cloud is always safe, and there it was the faster of the two. It is
+# not free: the cloud's guard of the singular locus is a bound per sample where
+# the contour's is exact over its polygon, so the boundaries and the gain with
+# them come out more conservative. Turn it on to certify an answer, or when the
+# contour of a template comes out wrong.
+# Range: 0 or 1.
+# from-cloud = 0
+
+# Points per parameter grid in the template sweep. With ten points the
+# largest gap in a template can reach a fifth of its size, and the contour
+# then follows the sweep rather than the template; twenty-five keeps it
+# under a few per cent. Remember this multiplies: with n uncertain
+# parameters the sweep evaluates this many to the power of n plants, so 25
+# with five parameters is already 1e7 and with eight it is out of reach.
 # Range: 1 to 1e6.
 [defaults.templates]
-# point-count = 10
+# point-count = 25
+
+# The plane a NEW project measures its contour epsilon in. 1, the Nichols
+# plane: distances in degrees and decibels, one decibel weighing as much as
+# db-per-degree degrees; there one epsilon serves every template of a
+# project. 0, the complex plane: the historical reading, a distance in the
+# units of the plant's response, which on the toolbox example 2 needs an
+# epsilon ten thousand times smaller at 100 rad/s than at 0.1. A loaded
+# project keeps the plane its file says.
+# Range: 0 or 1.
+# epsilon-in-nichols = 1
+
+# How many decibels weigh as much as one degree in the Nichols plane.
+# Range: 1e-6 to 1e6.
+# db-per-degree = 1
 
 # The frequency range the loop-shaping plot starts with, in rad/s, and how
 # many points over it.
@@ -220,6 +251,64 @@
 # Range: 0 or 1.
 # mr-nichols-epsilon = 0
 
+# How a phase between two nodes of the boundary grid is read. 1, the default:
+# both bracketing nodes must allow the point or box (the conservative
+# reading), so the answer respects the boundary at the point's own phase. 0:
+# the nearest node, which is how the published algorithms read it and which
+# admits, up to half a grid step away, what the boundary at the point's own
+# phase forbids - 0.05 dB on the toolbox example 2 with a 1-degree grid, and
+# over our twelve-problem battery most answers exceed some specification.
+# What 1 costs depends on the algorithm, and only on the algorithm: the strip
+# cuts need every column of a span to agree, so NT, NK and MC1 take about a
+# thousand times longer on that example with the 1-degree grid (seconds with
+# 0.25 degrees, under a second with 0.125), where MC2 answers in about the
+# time it did either way. Set 0 to reproduce a published algorithm as
+# published. The returned controller is checked against the specifications
+# either way (see the loop-shaping result).
+# Range: 0 or 1.
+# conservative-boundary-columns = 1
+
+# Templates: what to do when the contour walk does not close at a design
+# frequency with the epsilon given. 1: the WHOLE template stands in for its
+# contour there, which is always safe (the boundaries read every point) and
+# only slower, and the viewer marks the frequency. 0: stop with an error
+# naming the frequency, for the user to change the epsilon or the sweep.
+# The templates dialog offers the same choice per computation.
+# Range: 0 or 1.
+# whole-template-if-no-contour = 1
+
+# Templates: how the contour of a template is extracted. 0, the walk of
+# Nordin (the historical epsilon-hull, the published algorithm), which can
+# fail to close and then falls back as the setting above says. 1, the
+# alpha-shape: the same boundary by its definition, edge by edge - an edge is
+# on the contour when a disc of diameter epsilon through its ends holds no
+# other point - which always closes and returns every component and hole.
+# The proposed epsilon is then the least that keeps the template connected.
+# Range: 0 or 1.
+# alpha-shape-contour = 0
+
+# Templates: with exactly TWO uncertain parameters, 1 sweeps only the border
+# of the parameter box - as many evaluations as the interior grid would have
+# cost, spent on the four edges, each along the user's own grid - because
+# the worst case of every specification over a template lies on its border
+# (the closed-loop magnitudes are Mobius functions of the plant). The
+# template is then a closed curve, its contour is taken by the alpha-shape,
+# and the gap between neighbouring points shrinks by the grid size. With one
+# or with three or more uncertain parameters the interior is swept as usual.
+# Range: 0 or 1.
+# border-sweep = 0
+
+# Boundaries: how the columns of the five magnitude specifications
+# (stability, sensor noise, the two disturbance rejections, control effort)
+# are read. 0, off the sampled sheet, cut at the bound with linear
+# interpolation between magnitude nodes. 1, in closed form: at each phase the
+# specification is a quadratic in the gain for every plant of the template
+# (Chait and Yaniv 1993), the allowed gains are intersected exactly over the
+# template, and the column comes out exact in magnitude, multivalued where
+# it is, and unbounded by the magnitude window. Tracking keeps its sheet.
+# Range: 0 or 1.
+# closed-form-columns = 0
+
 # NK (Nataraj & Kubal 2007): iterations the local refinement of a candidate
 # point may spend.
 # Range: 1 to 1e7.
@@ -235,3 +324,23 @@
 # gain search.
 # Range: strictly above 1, up to 10.
 # certified-gain-tolerance = 1.01
+
+# MC (thesis) and MC2: the strategies of chapter 4 of the thesis, one switch
+# each, all on by default (the algorithm as published). They are here for
+# measuring what each one buys, as chapter 6 does with sixteen combinations,
+# not for tuning a design. Each only discards boxes it has certified cannot
+# hold a better one, but they do move the answer: the search stops at the
+# first box small enough, and which box that is depends on how the tree was
+# cut and split. Range: 0 or 1 each.
+[algorithms.mc]
+# infeasible-magnitude = 1
+# infeasible-phase = 1
+# feasible-magnitude = 1
+# feasible-phase = 1
+# best-gain = 1
+# tree-bisection = 1
+# The execution stages of sec. 4.4 belong to MC of the thesis alone: they
+# switch the cuts off for a node and all its children the first time a full
+# pass improves nothing. MC2 does not have them; what they were contributing
+# is their bisection rule, which MC2 applies everywhere.
+# stages = 1

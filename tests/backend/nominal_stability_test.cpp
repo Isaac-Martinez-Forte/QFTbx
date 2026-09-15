@@ -16,6 +16,8 @@
 
 #include "src/core/loopshaping/common/nominal_stability_checker.h"
 #include "src/core/system/zero_pole_gain.h"
+#include "src/core/system/free_form.h"
+#include "src/core/common/exception.h"
 #include "src/core/system/parameter.h"
 
 using namespace qftbx;
@@ -240,7 +242,7 @@ TEST(NominalStability, AProfileServesEveryGainOfAShape)
     std::vector<bool> verdicts;
     for (double k : {0.5, 2.0, 8.0, 30.0, 120.0, 500.0}) {
         shape.gain = k;
-        EXPECT_EQ(checker.isNominallyStable(shape), NominalStabilityChecker::isStable(profile, k));
+        EXPECT_EQ(checker.isNominallyStable(shape), checker.isStable(profile, k));
         verdicts.push_back(checker.isNominallyStable(shape));
     }
     EXPECT_TRUE(verdicts.front()) << "a low gain over a triple pole is stable";
@@ -298,4 +300,85 @@ TEST(NominalStability, ALagBoxUnstableThroughoutIsRejectedWhole)
     delete lag;
     delete good;
     delete straddling;
+}
+
+//------------------------------------------------------------ unstable plants
+//Nyquist for a plant with P poles in the right half-plane: the loop has to
+//encircle the critical point P times the other way, N = -P, and on positive
+//frequencies alone the ray crossings add up to P/2. The verdicts below are
+//fixed by Routh on the characteristic polynomial, not by the criterion.
+
+TEST(NominalStability, OneUnstablePoleNeedsTheGainAboveOne)
+{
+    //P(s) = 1 / (s - 1), C = k: closed loop s - 1 + k, stable iff k > 1.
+    LtiSystem* plant = makeZpk(1.0, {}, {-1.0});
+    NominalStabilityChecker checker(plant, &designFrequencies);
+    EXPECT_EQ(checker.rightHalfPlanePoles(), 1);
+
+    LtiSystem* low = makeZpk(0.5, {}, {});
+    LtiSystem* high = makeZpk(2.0, {}, {});
+    EXPECT_FALSE(checker.isNominallyStable(low));
+    EXPECT_TRUE(checker.isNominallyStable(high));
+
+    delete plant;
+    delete low;
+    delete high;
+}
+
+TEST(NominalStability, AnUnstablePoleOfAFreeFormPlant)
+{
+    //P(s) = 1 / (s^2 - 2.5) (Tharewal's unstable plant: one pole on each
+    //side), C = k (s + 1) / (s + 10): s^3 + 10 s^2 + (k - 2.5) s + (k - 25),
+    //stable iff k > 25 by Routh.
+    std::vector<Parameter> none;
+    std::vector<Parameter> denominator{Parameter(std::string("a"), 2.5)};
+    FreeForm plant(std::string("P"), none, denominator, Parameter(1.0), Parameter(0.0),
+                   std::string("1"), std::string("s^2-a"));
+
+    NominalStabilityChecker checker(&plant, &designFrequencies);
+    EXPECT_EQ(checker.rightHalfPlanePoles(), 1);
+
+    LtiSystem* below = makeZpk(20.0, {1.0}, {10.0});
+    LtiSystem* above = makeZpk(30.0, {1.0}, {10.0});
+    EXPECT_FALSE(checker.isNominallyStable(below));
+    EXPECT_TRUE(checker.isNominallyStable(above));
+
+    delete below;
+    delete above;
+}
+
+TEST(NominalStability, PolesOnTheAxisAreIndentedFromTheExactRoots)
+{
+    //The maglev benchmark, P(s) = 877.5 / (s^2 + 430.25): poles at +-j 20.74.
+    //Two controllers the sampled criterion once approved have two closed-loop
+    //poles each in the right half-plane; the third stabilises. All three
+    //checked on the roots of the characteristic polynomial.
+    std::vector<Parameter> none;
+    std::vector<Parameter> denominator{Parameter(std::string("a"), 430.25)};
+    FreeForm plant(std::string("P"), none, denominator, Parameter(877.5), Parameter(0.0),
+                   std::string("1"), std::string("s^2+a"));
+
+    NominalStabilityChecker checker(&plant, &designFrequencies);
+    EXPECT_EQ(checker.rightHalfPlanePoles(), 0);
+
+    LtiSystem* fromNk = makeZpk(0.5574, {500.005}, {0.08891485964165118, 1.5811546414724906});
+    LtiSystem* fromMc2 = makeZpk(2.2659, {0.06007}, {0.01095, 0.04099});
+    LtiSystem* stabilising = makeZpk(10000.0, {23.3}, {228.5, 554.1});
+    EXPECT_FALSE(checker.isNominallyStable(fromNk));
+    EXPECT_FALSE(checker.isNominallyStable(fromMc2));
+    EXPECT_TRUE(checker.isNominallyStable(stabilising));
+
+    delete fromNk;
+    delete fromMc2;
+    delete stabilising;
+}
+
+TEST(NominalStability, ADenominatorThatIsNotAPolynomialGetsNoVerdict)
+{
+    //A delay written into the denominator: the poles cannot be placed, and
+    //the criterion says so instead of assuming there are none unstable.
+    std::vector<Parameter> none;
+    FreeForm plant(std::string("P"), none, none, Parameter(1.0), Parameter(0.0),
+                   std::string("1"), std::string("s+exp(-s)"));
+    EXPECT_THROW(NominalStabilityChecker checker(&plant, &designFrequencies), qftbx::InvalidInput);
 }

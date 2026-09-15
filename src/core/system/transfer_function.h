@@ -29,6 +29,7 @@ public:
     std::complex <double> evaluate (double omega) override;
 
     std::vector <std::complex <double> > evaluate (const std::vector <double> & omega) override;
+    std::optional<std::vector<std::complex<double>>> nominalPoles() override;
 
     std::string expression() override = 0;
 

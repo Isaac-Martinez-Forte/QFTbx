@@ -220,8 +220,11 @@ void writeTemplates(pugi::xml_node root, const ProjectContent & content)
     pugi::xml_node section = root.append_child(t.templates);
 
     pugi::xml_node metadata = section.append_child(t.metadata);
-    addText(metadata, t.epsilon,
-            content.epsilon != nullptr ? realVectorText(*content.epsilon, t.epsilon) : std::string());
+    pugi::xml_node epsilonNode = metadata.append_child(t.epsilon);
+    epsilonNode.text().set((content.epsilon != nullptr ? realVectorText(*content.epsilon, t.epsilon) : std::string()).c_str());
+    //The plane the epsilon is measured in travels with it (version 3).
+    epsilonNode.append_attribute("metric") = hullMetricName(content.epsilonMetric.metric);
+    epsilonNode.append_attribute("db-per-degree") = number(content.epsilonMetric.dbPerDegree).c_str();
 
     pugi::xml_node full = section.append_child(t.fullTemplates);
     full.append_attribute("size") = static_cast<std::int64_t>(content.templates->size());
@@ -321,7 +324,7 @@ void ProjectWriter::save(const std::string & filePath, const ProjectContent & co
     declaration.append_attribute("encoding") = "UTF-8";
 
     pugi::xml_node root = document.append_child("QFT");
-    root.append_attribute("version") = 2;
+    root.append_attribute("version") = 3;
 
     if (content.plant != nullptr) {
         writeSystem(root, t.plant, content.plant);

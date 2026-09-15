@@ -13,9 +13,9 @@
 #include "src/core/loopshaping/loop_shaping_types.h"
 #include <gtest/gtest.h>
 
+#include <filesystem>
 #include <fstream>
 #include <sstream>
-#include <QDir>
 #include <string>
 
 #include "src/core/common/exception.h"
@@ -186,10 +186,10 @@ TEST_F(SettingsFile, WritingASettingCreatesTheFileAndItsDirectory)
 {
     const std::string directory = std::string(QFTBX_TEST_DATA_DIR "/../settings_written_dir");
     const std::string path = directory + "/deeper/qftbx.conf";
-    QDir(QString::fromStdString(directory)).removeRecursively();
+    std::filesystem::remove_all(directory);
     qftbx::writeSetting(path, "interface.language", "es");
     EXPECT_EQ(qftbx::readSettings(path).interface.language, "es");
-    QDir(QString::fromStdString(directory)).removeRecursively();
+    std::filesystem::remove_all(directory);
 }
 
 TEST_F(SettingsFile, AFractionWhereAWholeNumberBelongsIsRefused)
@@ -354,6 +354,8 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
     EXPECT_EQ(fromExample.defaults.magnitudeEnd, defaults.defaults.magnitudeEnd);
     EXPECT_EQ(fromExample.defaults.magnitudePoints, defaults.defaults.magnitudePoints);
     EXPECT_EQ(fromExample.defaults.templatePointCount, defaults.defaults.templatePointCount);
+    EXPECT_EQ(fromExample.defaults.epsilonInNichols, defaults.defaults.epsilonInNichols);
+    EXPECT_EQ(fromExample.defaults.dbPerDegree, defaults.defaults.dbPerDegree);
     EXPECT_EQ(fromExample.defaults.loopStart, defaults.defaults.loopStart);
     EXPECT_EQ(fromExample.defaults.loopEnd, defaults.defaults.loopEnd);
     EXPECT_EQ(fromExample.defaults.loopPointCount, defaults.defaults.loopPointCount);
@@ -369,16 +371,32 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
     EXPECT_EQ(fromExample.algorithms.maxNarrowingPasses,
               defaults.algorithms.maxNarrowingPasses);
     EXPECT_EQ(fromExample.algorithms.mrNicholsEpsilon, defaults.algorithms.mrNicholsEpsilon);
+    EXPECT_EQ(fromExample.algorithms.conservativeBoundaryColumns,
+              defaults.algorithms.conservativeBoundaryColumns);
+    EXPECT_EQ(fromExample.algorithms.wholeTemplateIfNoContour,
+              defaults.algorithms.wholeTemplateIfNoContour);
+    EXPECT_EQ(fromExample.algorithms.alphaShapeContour,
+              defaults.algorithms.alphaShapeContour);
+    EXPECT_EQ(fromExample.algorithms.borderSweep, defaults.algorithms.borderSweep);
+    EXPECT_EQ(fromExample.algorithms.closedFormColumns, defaults.algorithms.closedFormColumns);
+    EXPECT_EQ(fromExample.algorithms.mc.infeasibleMagnitude, defaults.algorithms.mc.infeasibleMagnitude);
+    EXPECT_EQ(fromExample.algorithms.mc.infeasiblePhase, defaults.algorithms.mc.infeasiblePhase);
+    EXPECT_EQ(fromExample.algorithms.mc.feasibleMagnitude, defaults.algorithms.mc.feasibleMagnitude);
+    EXPECT_EQ(fromExample.algorithms.mc.feasiblePhase, defaults.algorithms.mc.feasiblePhase);
+    EXPECT_EQ(fromExample.algorithms.mc.bestGain, defaults.algorithms.mc.bestGain);
+    EXPECT_EQ(fromExample.algorithms.mc.treeBisection, defaults.algorithms.mc.treeBisection);
+    EXPECT_EQ(fromExample.algorithms.mc.stages, defaults.algorithms.mc.stages);
     EXPECT_EQ(fromExample.algorithms.localSearchBudget,
               defaults.algorithms.localSearchBudget);
     EXPECT_EQ(fromExample.algorithms.gainTolerance, defaults.algorithms.gainTolerance);
     EXPECT_EQ(fromExample.algorithms.certifiedGainTolerance,
               defaults.algorithms.certifiedGainTolerance);
+    EXPECT_EQ(fromExample.defaults.boundariesFromCloud, defaults.defaults.boundariesFromCloud);
 
     //Every setting the build knows has to be IN the example, or the example
-    //is not documentation. Twenty-five today; the count is asserted so adding
-    //one without documenting it fails here.
-    EXPECT_EQ(settingsFound, 26)
+    //is not documentation. Forty-one today; the count is asserted so
+    //adding one without documenting it fails here.
+    EXPECT_EQ(settingsFound, 41)
         << "a setting was added to the code and not to qftbx.conf.example";
 
     EXPECT_TRUE(fromExample.unknownKeys.empty())

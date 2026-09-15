@@ -15,15 +15,18 @@ reader and the writer so the two cannot drift apart.
 The root element carries the format version:
 
     <?xml version="1.0" encoding="UTF-8"?>
-    <QFT version="2">
+    <QFT version="3">
       ...
     </QFT>
 
-Version 2 is the only format this build reads and writes. Files from the
-earlier releases of QFTbx, which used Spanish tag names and no version
-attribute, are refused with a message rather than guessed at; they can be
-converted by opening and saving them with the last release that read them.
-Every project shipped in `tests/data/` is version 2.
+This build writes version 3 and reads versions 2 and 3. The only
+difference is the plane the contour epsilon is measured in (see
+`<templates>` below): a version 2 file has no such declaration and is read
+as measuring in the complex plane, which is what those files meant.
+Files from the earlier releases of QFTbx, which used Spanish tag names and
+no version attribute, are refused with a message rather than guessed at;
+they can be converted by opening and saving them with the last release that
+read them. Every project shipped in `tests/data/` is version 2.
 
 ## Structure
 
@@ -59,7 +62,12 @@ frequency range (`<min-frequency>`, `<max-frequency>`), whether it is
 `<constant>`, and its `<magnitude>` or model.
 
 **`<templates>`**: `<metadata>` with the `<epsilon>` of the contour, the
-`<full>` value sets and the `<contour>` of each frequency.
+`<full>` value sets and the `<contour>` of each frequency. Since version 3
+the `<epsilon>` element carries the plane its values are measured in:
+`metric="nichols"` (degrees of phase and decibels of magnitude, the latter
+divided by `db-per-degree`) or `metric="complex"` (the modulus of the
+difference of two complex values). A version 2 file is read as
+`metric="complex"`.
 
 **`<boundaries>`**: `<data>` with the Nichols grid (`<phases>` and
 `<magnitudes>` with their `count`, `<min>` and `<max>`), the sheets as

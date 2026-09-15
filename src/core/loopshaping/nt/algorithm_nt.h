@@ -14,6 +14,7 @@
 #include "src/core/loopshaping/common/search_node.h"
 #include "src/core/math/sequence_vectors.h"
 #include "src/core/loopshaping/common/boundary_violation_detector.h"
+#include "src/core/loopshaping/common/depth_accounting.h"
 #include "src/core/loopshaping/common/nominal_stability_checker.h"
 #include "src/core/loopshaping/common/ordered_list.h"
 
@@ -149,6 +150,9 @@ private:
 
 
     std::unique_ptr<BoundaryViolationDetector> detector;
+
+
+    DepthAccounting depthAccounting;
     std::unique_ptr<NominalStabilityChecker> stability;
     std::vector<std::complex<double>> nominalPlantValues;
 

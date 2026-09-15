@@ -3,12 +3,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
-#ifdef _WIN32
-#include <direct.h>
-#else
-#include <sys/stat.h>
-#endif
 #include <functional>
 #include <limits>
 
@@ -194,6 +190,59 @@ const std::vector<Binding> & bindings()
              into.algorithms.mrNicholsEpsilon =
                  wholeIn(text, "algorithms.mr-nichols-epsilon", line, 0.0, 1.0) != 0.0;
          }},
+        {"algorithms.conservative-boundary-columns",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.algorithms.conservativeBoundaryColumns =
+                 wholeIn(text, "algorithms.conservative-boundary-columns", line, 0.0, 1.0) != 0.0;
+         }},
+        {"algorithms.whole-template-if-no-contour",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.algorithms.wholeTemplateIfNoContour =
+                 wholeIn(text, "algorithms.whole-template-if-no-contour", line, 0.0, 1.0) != 0.0;
+         }},
+        {"algorithms.alpha-shape-contour",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.algorithms.alphaShapeContour =
+                 wholeIn(text, "algorithms.alpha-shape-contour", line, 0.0, 1.0) != 0.0;
+         }},
+        {"algorithms.border-sweep",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.algorithms.borderSweep =
+                 wholeIn(text, "algorithms.border-sweep", line, 0.0, 1.0) != 0.0;
+         }},
+        {"algorithms.closed-form-columns",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.algorithms.closedFormColumns =
+                 wholeIn(text, "algorithms.closed-form-columns", line, 0.0, 1.0) != 0.0;
+         }},
+        {"algorithms.mc.infeasible-magnitude",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.algorithms.mc.infeasibleMagnitude = wholeIn(text, "algorithms.mc.infeasible-magnitude", line, 0.0, 1.0) != 0.0;
+         }},
+        {"algorithms.mc.infeasible-phase",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.algorithms.mc.infeasiblePhase = wholeIn(text, "algorithms.mc.infeasible-phase", line, 0.0, 1.0) != 0.0;
+         }},
+        {"algorithms.mc.feasible-magnitude",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.algorithms.mc.feasibleMagnitude = wholeIn(text, "algorithms.mc.feasible-magnitude", line, 0.0, 1.0) != 0.0;
+         }},
+        {"algorithms.mc.feasible-phase",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.algorithms.mc.feasiblePhase = wholeIn(text, "algorithms.mc.feasible-phase", line, 0.0, 1.0) != 0.0;
+         }},
+        {"algorithms.mc.best-gain",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.algorithms.mc.bestGain = wholeIn(text, "algorithms.mc.best-gain", line, 0.0, 1.0) != 0.0;
+         }},
+        {"algorithms.mc.tree-bisection",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.algorithms.mc.treeBisection = wholeIn(text, "algorithms.mc.tree-bisection", line, 0.0, 1.0) != 0.0;
+         }},
+        {"algorithms.mc.stages",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.algorithms.mc.stages = wholeIn(text, "algorithms.mc.stages", line, 0.0, 1.0) != 0.0;
+         }},
         {"algorithms.local-search-budget",
          [](const std::string & text, std::int64_t line, Settings & into) {
              into.algorithms.localSearchBudget = static_cast<std::int32_t>(
@@ -247,12 +296,28 @@ const std::vector<Binding> & bindings()
                  wholeIn(text, "defaults.boundary-grid.magnitude-points", line, 2.0, 1.0e6));
          }},
 
+        {"defaults.boundary-grid.from-cloud",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.defaults.boundariesFromCloud =
+                 wholeIn(text, "defaults.boundary-grid.from-cloud", line, 0.0, 1.0) != 0.0;
+         }},
+
         {"defaults.templates.point-count",
          [](const std::string & text, std::int64_t line, Settings & into) {
              into.defaults.templatePointCount = static_cast<std::int32_t>(
                  wholeIn(text, "defaults.templates.point-count", line, 1.0, 1.0e6));
          }},
 
+        {"defaults.templates.epsilon-in-nichols",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.defaults.epsilonInNichols =
+                 wholeIn(text, "defaults.templates.epsilon-in-nichols", line, 0.0, 1.0) != 0.0;
+         }},
+        {"defaults.templates.db-per-degree",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.defaults.dbPerDegree =
+                 realIn(text, "defaults.templates.db-per-degree", line, 1.0e-6, 1.0e6);
+         }},
         //[defaults.loop-shaping] - in rad/s, like every other frequency.
         {"defaults.loop-shaping.start",
          [](const std::string & text, std::int64_t line, Settings & into) {
@@ -393,26 +458,6 @@ Settings readSettings(const std::string & path)
     return settings;
 }
 
-namespace {
-
-//Every directory above a file, made when missing; GCC 8's std::filesystem
-//would ask for a library of its own for this.
-void createDirectoriesAbove(const std::string & path)
-{
-    std::size_t at = 0;
-    while ((at = path.find_first_of("/\\", at + 1)) != std::string::npos) {
-        const std::string directory = path.substr(0, at);
-        if (!directory.empty()) {
-#ifdef _WIN32
-            _mkdir(directory.c_str());
-#else
-            mkdir(directory.c_str(), 0755);
-#endif
-        }
-    }
-}
-
-} // namespace
 
 std::string userSettingsPath()
 {
@@ -491,7 +536,7 @@ void writeSetting(const std::string & path, const std::string & key, const std::
         lines.push_back(entry);
     }
 
-    createDirectoriesAbove(path);
+    std::filesystem::create_directories(std::filesystem::path(path).parent_path());
     std::ofstream out(path, std::ios::trunc);
     if (!out) {
         throw FileError(QFTBX_TR("Core", "the settings file cannot be written: %1").arg(path));

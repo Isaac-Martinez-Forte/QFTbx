@@ -147,11 +147,11 @@ TEST_F(MalformedProject, AFileWithNoVersionIsRefused)
 TEST_F(MalformedProject, AFutureVersionIsRefused)
 {
     //And a version this build does not know is refused too, instead of being
-    //read as if it were 2.
+    //read as if it were one it knows (2 and 3 today).
     qftbx::ProjectReader parser;
 
     const std::string path = mutated("planta1.qft", "<QFT version=\"2\">",
-                                     "<QFT version=\"3\">");
+                                     "<QFT version=\"4\">");
     ASSERT_FALSE(path.empty());
 
     EXPECT_THROW(parser.load(path), qftbx::ParseError);

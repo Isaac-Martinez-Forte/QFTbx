@@ -125,7 +125,7 @@
       <x>290</x>
       <y>30</y>
       <width>541</width>
-      <height>116</height>
+      <height>170</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout">
@@ -170,6 +170,19 @@
         <widget class="QLineEdit" name="gainEdit"/>
        </item>
       </layout>
+     </item>
+     <item>
+      <widget class="QLabel" name="checkLabel">
+       <property name="text">
+        <string/>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::TextSelectableByMouse</set>
+       </property>
+      </widget>
      </item>
     </layout>
    </widget>

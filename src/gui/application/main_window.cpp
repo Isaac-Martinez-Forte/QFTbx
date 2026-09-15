@@ -167,6 +167,13 @@ void MainWindow::createSession(){
     //are built.
     controller->applySettings(m_settings);
 
+    //A new project measures its contour epsilon in the plane the settings
+    //say (the Nichols plane unless told otherwise); a loaded one keeps the
+    //plane its file says.
+    controller->setEpsilonMetric({m_settings.defaults.epsilonInNichols ? qftbx::HullMetric::Nichols
+                                                                        : qftbx::HullMetric::ComplexPlane,
+                                  m_settings.defaults.dbPerDegree});
+
     //An empty project: every step undone, so this switches the buttons off
     //and puts the bar at zero without enumerating either. The seven flags it
     //used to reset by hand are gone, and two of their comments were CROSSED -
@@ -253,6 +260,19 @@ void MainWindow::ensureTemplatesWidgets()
         templatesDialog = new TemplatesDialog(this);
         templatesDialog->setMaxPointCount(m_settings.limits.maxTemplatePoints);
         templatesDialog->setDefaultPointCount(m_settings.defaults.templatePointCount);
+        templatesDialog->setWholeTemplateIfNoContour(m_settings.algorithms.wholeTemplateIfNoContour);
+        templatesDialog->setAlphaShapeContour(m_settings.algorithms.alphaShapeContour);
+        templatesDialog->setBorderSweep(m_settings.algorithms.borderSweep);
+        //The field opens with the epsilon the family asks for: a sweep over
+        //the grids as entered, the same one OK runs next.
+        templatesDialog->setEpsilonProposer([this](const qftbx::ParameterGrids & grids,
+                                                   qftbx::EpsilonMetric metric) {
+            const WaitCursor waiting(this);
+            //The proposal depends on how the contour is extracted.
+            controller->setAlphaShapeContour(templatesDialog->alphaShapeContour());
+            controller->setBorderSweep(templatesDialog->borderSweep());
+            return controller->proposeEpsilon(grids, metric);
+        });
         templateViewer = new TemplateViewer(this);
         installContourRecomputer();
     }
@@ -283,6 +303,7 @@ void MainWindow::ensureLoopShapingWidgets()
         loopShapingDialog->setLimits(m_settings.limits.maxMagnitude,
                                      m_settings.limits.maxTemplatePoints);
         loopShapingDialog->applyDefaults(m_settings.defaults);
+        loopShapingDialog->setConservativeColumns(m_settings.algorithms.conservativeBoundaryColumns);
         loopShapingViewer = new LoopShapingViewer(this);
     }
 }
@@ -424,6 +445,12 @@ void MainWindow::refreshAvailability()
 void MainWindow::installContourRecomputer(){
     templateViewer->setContourRecomputer([this](std::vector<double> epsilon) {
         recomputeContour(std::move(epsilon));
+    });
+    templateViewer->setEpsilonProposer([this]() {
+        return controller->proposeEpsilon();
+    });
+    templateViewer->setContourReporter([this]() {
+        return controller->contourReports();
     });
 }
 
@@ -572,6 +599,7 @@ void MainWindow::on_templatesButton_clicked()
 {
     ensureTemplatesWidgets();
 
+    templatesDialog->setEpsilonMetric(controller->epsilonMetric());
     templatesDialog->launch(controller->plant(), controller->omega()->values()->size());
 
     runDialog(templatesDialog);
@@ -589,6 +617,10 @@ void MainWindow::on_templatesButton_clicked()
         const WaitCursor waiting(this);
 
         try {
+            controller->setEpsilonMetric(templatesDialog->epsilonMetric());
+            controller->setWholeCloudStandsIn(templatesDialog->wholeTemplateIfNoContour());
+            controller->setAlphaShapeContour(templatesDialog->alphaShapeContour());
+            controller->setBorderSweep(templatesDialog->borderSweep());
             templatesOk = controller->computeTemplates(templatesDialog->takeEpsilon(),
                                                        templatesDialog->grids(),
                                                        templatesDialog->cudaSelected());
@@ -707,6 +739,11 @@ void MainWindow::on_loopButton_clicked()
         //up; wiring that here needs a cancel button, and where that goes is a
         //decision still open.
         const WaitCursor waiting(this);
+
+        //The reading of the boundary columns is a setting the dialog exposes
+        //for this run; the core gets it the way it gets every setting.
+        m_settings.algorithms.conservativeBoundaryColumns = loopShapingDialog->conservativeColumns();
+        controller->applySettings(m_settings);
 
         try {
             designed = controller->computeLoopShaping(loopShapingDialog->epsilonValue(),

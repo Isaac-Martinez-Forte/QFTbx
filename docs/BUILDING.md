@@ -5,7 +5,7 @@ application and the tests come out of the same tree.
 
 ## Requirements
 
-**A C++20 compiler.** GCC 8 or later (the toolbox is developed with GCC 8.5
+**A C++20 compiler.** GCC 9 or later (the toolbox is developed with GCC 9.4
 and built by the continuous integration with the current Ubuntu's), Clang 11
 or later, or MinGW-w64 on Windows. The code uses no
 extension of any of them. Clang uses the standard library of the GCC it

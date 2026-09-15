@@ -30,6 +30,8 @@ public:
     std::complex <double> valueAt(double w, const std::vector<double> & numerator,
                                  const std::vector<double> & denominator,
                                  double gain, double delay) override;
+    std::optional<std::vector<std::complex<double>>> polesAt(const std::vector<double> & numerator,
+                                                             const std::vector<double> & denominator) override;
     using TransferFunction::evaluate;
 
     SystemType type() override;
@@ -46,7 +48,12 @@ public:
     static const std::string & laplaceName();
 
 private:
-    void bindNames(ExpressionTree & ratio);
+    void bindNames(ExpressionTree & ratio, ExpressionTree & denominator);
+    /// The value vector valueAt() and polesAt() evaluate with, every
+    /// parameter in its slot and slot 0 (the Laplace variable) left for the
+    /// caller; the same checks on the values given.
+    std::vector<std::complex<double>> boundValues(const std::vector<double> & numerator,
+                                                  const std::vector<double> & denominator) const;
 
     std::string m_numeratorExpr;
     std::string m_denominatorExpr;
@@ -55,6 +62,9 @@ private:
     //variable and the distinct parameter names. Shared with the clones,
     //which evaluate the same expression; evaluation reads it only.
     std::shared_ptr<const ExpressionTree> m_ratio;
+    //The denominator on its own, bound to the same slots: what polesAt()
+    //evaluates to recover the polynomial it is.
+    std::shared_ptr<const ExpressionTree> m_denominatorTree;
 
     //Slot of every numerator and denominator parameter in the value vector
     //valueAt() evaluates with: slot 0 is s, a repeated name shares its slot.
