@@ -17,7 +17,6 @@
 #include "src/core/loopshaping/common/depth_accounting.h"
 #include "src/core/loopshaping/common/ordered_list.h"
 #include "src/core/loopshaping/common/mc_search_node.h"
-#include "src/core/loopshaping/common/stages.h"
 #include "src/core/loopshaping/common/nominal_stability_checker.h"
 #include "src/core/math/range_union.h"
 #include "src/core/math/sequence_vectors.h"
@@ -69,10 +68,29 @@
  *   degrees on its own, so the check is an invariant that catches a
  *   phase-branch mistake, not a recovery path.
  *
- * Everything else - the stages of sec. 4.4, the tree bisection of sec. 5.3,
- * the node history, the nominal stability of every certified point and the
- * box-level instability prune - MC2 keeps as MC of the thesis has it, and
- * the two share their search node and stages (common/mc_search_node.h).
+ * - The execution stages of sec. 4.4 are NOT here. They disable the cuts of
+ *   a node, and of all its children, the first time a full pass improves
+ *   nothing, which is a decision taken on a box far larger than the ones
+ *   where the cuts bite. Measured over fourteen problems, sixteen strategy
+ *   combinations and two structure orders, dropping them leaves the search
+ *   at 1.19 times the best combination of each case, against 2.30 with them
+ *   on, and it returns an equal or lower gain. MC of the thesis keeps them,
+ *   under its own setting, as the published algorithm.
+ * - What the stages were really contributing is their bisection rule, not
+ *   the cuts they switched off: their final stage splits the parameter that
+ *   most narrows the WIDER side of the projection, which is the side the
+ *   termination test reads, while the rest of the search splits by the AREA
+ *   of the projection. MC2 uses the first rule everywhere. Under the
+ *   conservative column reading the area rule does not terminate at all on
+ *   four of five problems, and where both terminate this one returns an
+ *   equal or better gain, up to thirty times faster. (The published
+ *   algorithms bisect at the middle of the widest parameter RANGE, which is
+ *   a third rule; see common/common_functions.h.)
+ *
+ * Everything else - the tree bisection of sec. 5.3, the node history, the
+ * nominal stability of every certified point and the box-level instability
+ * prune - MC2 keeps as MC of the thesis has it, and the two share their
+ * search node (common/mc_search_node.h).
  *
  * At this revision MC2 is a faithful copy of MC of the thesis and returns
  * the same result on every fixture, which is the checkpoint the corrections
@@ -106,7 +124,6 @@ public:
         bool feasiblePhase = true;        //QSFact, phase
         bool bestGain = true;             //MG (thesis 4.3)
         bool treeBisection = true;        //thesis 4.2.4
-        bool stages = true;               //thesis 4.4 (off: always INTERMEDIA)
     };
 
 
@@ -170,7 +187,6 @@ private:
         std::vector<Range> boxPhase;   //degree edges
         qftbx::BoxFlag flag = qftbx::feasible;
         std::size_t mainFrequency = 0;    //largest ambiguous projected area
-        bool anyFullPhaseWidth = false;
     };
 
     bool analyse(McSearchNode * node, NodeAnalysis & out);
@@ -235,7 +251,7 @@ private:
     bool boxIsFeasibleAt(LtiSystem * box, std::size_t freqIndex);
     bool boxIsFeasible(LtiSystem * box);
     bool pointIsFeasible(const PointController & point);
-    void insertFeasibleBox(std::unique_ptr<LtiSystem> box, McSearchNode * parent);
+    void insertFeasibleBox(std::unique_ptr<LtiSystem> box);
 
     inline std::int32_t parameterCount(LtiSystem * box) const;
     Range parameterRange(LtiSystem * box, std::int32_t parameter) const;
