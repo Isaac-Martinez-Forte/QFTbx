@@ -47,6 +47,13 @@ green.
 - **Doxygen**: algorithm classes get full headers, with the mathematics and
   the reference to the paper; the public API gets a `\brief`; trivial
   internals get nothing. Never restate the signature in words.
+- **Comments say what the code cannot**: why this bound and not the obvious
+  one, what breaks if a guard that looks redundant is taken out, what the
+  inherited program got wrong here. Not what the line does, and not how the
+  file came to its present shape - that is what the commit message is for.
+  A claim carries its number ("about a thousand times slower on example 2
+  with the 1-degree grid", not "slower"), and a comment whose code changes
+  changes with it or goes.
 - **Commit messages** explain the change and the reason in prose, in
   English, so that the history reads as the record of the decisions.
 - **Every text the user sees goes through `tr()`** in the GUI and through

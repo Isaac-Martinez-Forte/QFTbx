@@ -214,7 +214,7 @@ public:
      * parameters). The same number is therefore not comparable across
      * algorithms - on a plant whose |P| reaches 1e4, the Nichols reading is
      * four decades tighter than the parameter one.
-     * @param algorithm which of the five algorithms to run.
+     * @param algorithm which algorithm to run.
      * @param plotRange, pointCount frequency window the result is plotted
      * over (stored with the result, not used by the search).
      * @param initialisation starting point of NK's local search.

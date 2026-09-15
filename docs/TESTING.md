@@ -42,7 +42,7 @@ bucket bounds of the union, the golden boundaries (`BoundariesGolden`).
 **Loop shaping.** The interval arithmetic and the natural interval extension
 (`IntervalArithmetic`, `ComplexIntervalArithmetic`, `PolarIntervalArithmetic`,
 `NaturalIntervalExtension`), the nominal stability check, the ordered list
-and the pipeline stages, and the five algorithms: against the published
+and the pipeline stages, and every algorithm: against the published
 results where they exist (`LiteratureValidation`, `MrArticleValidation`,
 `QuickSolutionPaperExample`), against the thesis benchmarks
 (`ThesisBenchmarkGolden`), and against pinned results on the small fixtures

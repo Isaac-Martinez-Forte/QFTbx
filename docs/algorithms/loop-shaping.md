@@ -4,7 +4,7 @@ Loop shaping is the last step of a QFT design: choosing the controller C so that
 the nominal open loop L0 = P0 C satisfies every boundary at every design
 frequency. Doing it by hand on the Nichols chart is the classic QFT skill;
 *automatic* loop shaping turns it into an optimisation problem. QFTbx implements
-five algorithms of one family, the interval branch & bound algorithms, and this
+seven algorithms of one family, the interval branch & bound algorithms, and this
 page describes what they share. Each algorithm then has a page of its own.
 
 **References.** S. Tharewal, *Automated synthesis of QFT controllers and
@@ -84,7 +84,7 @@ handled by the same test.
 
 ## The search
 
-All five algorithms keep a list of live boxes ordered by the infimum of the gain.
+Every algorithm keeps a list of live boxes ordered by the infimum of the gain.
 The head of the list is the box that could still hold the best controller; when
 the head is certainly feasible, its lowest-gain corner is the global optimum and
 the search stops. The search also stops when the head is smaller than the
@@ -115,12 +115,24 @@ stability requirement, and the historical implementation approximated it with a
 hand-made penalty at 2 rad/s that biased the search. QFTbx now completes the
 feasibility test with a proper criterion: the Nyquist criterion on the Nichols
 chart of Cohen, Chait and Yaniv (1994), the one the MATLAB QFT Toolbox applies.
-For a nominal loop with no poles in the open right half-plane, the closed loop is
-stable if and only if the signed crossings of the rays
-{∠L0 ≡ -180° (mod 360°), |L0| > 0 dB} cancel out. By the boundary crossing
+The closed loop is stable if and only if the signed crossings of the rays
+{∠L0 ≡ -180° (mod 360°), |L0| > 0 dB} over positive frequencies add up to P/2,
+half the number of poles the nominal plant has in the open right half-plane. That
+is Nyquist's N = -P read on the Nichols chart, where the count over the whole
+contour is twice the one over positive frequencies; for the usual plant, P = 0,
+it is the crossings cancelling out. P is asked of the plant once, from the roots
+of its denominator, and a plant whose poles cannot be placed is refused rather
+than assumed stable. Poles of the plant ON the imaginary axis are read from the
+same roots: there the loop passes through infinity and its phase falls by 180°
+per pole, the indentation of the Nyquist contour, which a sampled curve unwrapped
+between neighbours would take the short way round and count wrong. By the
+boundary crossing
 principle (Tharewal 2005, section 3.3.5), satisfied stability bounds plus one
 nominally stable controller of a bounds-feasible box make the whole box, and the
 whole plant family, robustly stable; an unstable controller discards the box.
+That argument reaches the family only while every member has the same P, so the
+template sweep counts it over the plants it evaluates and refuses a family whose
+uncertainty crosses the imaginary axis.
 
 The same principle is applied to ambiguous boxes over the whole frequency range,
 not only at the design frequencies. A loop that crosses -180° above 0 dB between

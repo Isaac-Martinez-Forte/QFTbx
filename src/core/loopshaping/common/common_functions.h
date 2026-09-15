@@ -237,9 +237,18 @@ inline bool isEpsilonSmall(LtiSystem * controller, double epsilon, std::vector <
  * @brief Bisects the box at the middle of its widest uncertain parameter.
  *
  * The direction that halves the largest remaining uncertainty is the one
- * that makes the interval enclosure tightest fastest, which is why every
- * one of the five algorithms branches this way by default (MC's tree
- * bisection is the documented exception).
+ * that makes the interval enclosure tightest fastest, and it is how the
+ * published algorithms branch: "along its maximum width coordinate
+ * direction", in the words of the 2021 paper's step 4. NT, NK, MR and MC
+ * (2021) use it as it stands.
+ *
+ * The MC family does not, and the difference is not a detail of
+ * implementation. MC (thesis) and MC2 measure the widest parameter on the
+ * PROJECTION of the box onto the Nichols chart instead of on the parameter
+ * ranges - by its area, or, in MC2 and in the final stage of MC (thesis),
+ * by its wider side, which is the side the termination test reads - and MC3
+ * splits the widest uncertain zero or pole on a logarithmic scale. See each
+ * algorithm's own bisect().
  */
 inline BisectionResult bisectWidestParameter(LtiSystem * box) {
 

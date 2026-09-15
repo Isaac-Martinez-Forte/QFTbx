@@ -128,10 +128,10 @@ struct Settings {
         std::int32_t maxNarrowingPasses = 8;
 
         /// MR: measure the termination epsilon on the NICHOLS box of the
-        /// leading node, as the other four algorithms do, instead of on the
-        /// width of the controller parameter box, as the paper does. Off by
-        /// default; on, the five algorithms share one meaning of epsilon
-        /// and their running times can be compared.
+        /// leading node, as every other algorithm here does, instead of on
+        /// the width of the controller parameter box, as the paper does. Off
+        /// by default; on, they all share one meaning of epsilon and their
+        /// running times can be compared.
         bool mrNicholsEpsilon = false;
 
         /// Templates: when the contour walk does not close at a frequency,
