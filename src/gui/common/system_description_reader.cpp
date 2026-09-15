@@ -176,8 +176,8 @@ std::optional<std::vector<Parameter>> SystemDescriptionReader::buildParameters(c
     for (const QString & number : numbers) {
         const std::optional<double> value = evaluate(number);
         if (!value.has_value()) {
-            //An invalid coefficient used to become 0 here, silently: the
-            //system that got designed was not the one the user typed.
+            //An invalid coefficient is refused, not read as 0: the system
+            //designed would not be the one the user typed.
             return std::nullopt;
         }
         try {

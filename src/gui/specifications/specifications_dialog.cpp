@@ -74,8 +74,7 @@ SpecificationsDialog::SpecificationsDialog(const std::vector<double> * frequenci
     m_reader(tr("Specifications input"))
 {
     //The step order of the main window guarantees a frequency set here, but
-    //an empty one used to reach first()/last() below and take the whole
-    //application down instead of saying anything.
+    //an empty one reaches first()/last() below.
     //
     //This runs BEFORE the widget tree is built on purpose: a constructor
     //that throws gets no destructor, so anything allocated before the throw
@@ -128,8 +127,8 @@ SpecificationsDialog::SpecificationsDialog(const std::vector<double> * frequenci
     ui->trackingImage->setPixmap(trackingImagePixmap);
 
     //Default radio states (the .ui checks none): constant, polynomial form
-    //and linear units. With no type checked, the reading cascade used to
-    //fall into an accidental FreeForm.
+    //and linear units. With no type checked the reading cascade falls into
+    //an accidental FreeForm.
     ui->constantRadio->setChecked(true);
     on_constantRadio_clicked();
     ui->linearRadio->setChecked(true);
@@ -143,8 +142,8 @@ SpecificationsDialog::SpecificationsDialog(const std::vector<double> * frequenci
     on_upperPolynomialRadio_clicked();
 
     //If the project carries specifications (a loaded file), the dialog
-    //starts from THEM: it used to start from 7 empty records and the first
-    //accept silently wiped whatever was loaded.
+    //starts from THEM: starting from seven empty records means the first
+    //accept wipes whatever was loaded.
     if (loaded != nullptr){
         tracking = loaded->at(0).clone();
         trackingUpper = loaded->at(1).clone();
@@ -170,8 +169,8 @@ SpecificationsDialog::~SpecificationsDialog()
 
 //Nominal coefficients in the format buildParameters expects (space
 //separated). The non-FreeForm types have no textual representation of
-//their own: numeratorString()=="" used to be painted and the
-//specification silently vanished on reopen.
+//their own, and painting numeratorString()=="" makes the specification
+//vanish on reopen.
 QString SpecificationsDialog::coefficientsText(std::vector<Parameter> & parameters)
 {
     QString text;
@@ -240,9 +239,9 @@ void SpecificationsDialog::setData(qftbx::SpecificationRecord & record)
             ui->delayEdit->setText(qftbx::numberText(record.system->delay().nominal()));
         }
     } else {
-        //The band too: it used to keep the PREVIOUS tab's values, and an
-        //empty band means the whole design range, so the user could save a
-        //band they never chose for this specification.
+        //The band too: an empty band means the whole design range, so
+        //keeping the previous tab's values saves a band the user never
+        //chose for this specification.
         ui->startFrequencyEdit->setText("");
         ui->endFrequencyEdit->setText("");
         ui->magnitudeEdit->setText("");
@@ -346,8 +345,8 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record, QString nam
 {
 
     if (record.used && !record.constant){
-        //The record's system must end up null: when this read finishes as not-used,
-        //the clone() on accept used to clone a dangling pointer.
+        //The record's system must end up null: a read that finishes as
+        //not-used leaves the clone() on accept with a dangling pointer.
         record.system.reset();
         record.constant = false;
         record.used = false;
@@ -527,8 +526,8 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record,
 
                 qreal entered = requireNumber(parsedValue);
 
-                //The record's height is a LINEAR magnitude: this path used to
-                //have both branches swapped relative to the simple path.
+                //The record's height is a LINEAR magnitude here as well as
+                //on the simple path.
                 if (ui->lowerDecibelsRadio->isChecked()){
                     record.height = qftbx::dbToLinear(entered);
                 }else {
@@ -662,9 +661,8 @@ std::optional<std::vector<Parameter>> SpecificationsDialog::parametersFrom(const
 }
 
 //The system a tab describes, read once for the three tabs that take one.
-//Gain and delay are ALWAYS validated: the free-form branch used to build
-//the FreeForm from unchecked results (nullptr on a syntax error, crashing
-//later).
+//Gain and delay are ALWAYS validated, the free-form branch included: an
+//unchecked result is a nullptr on a syntax error.
 SpecificationsDialog::SystemRead SpecificationsDialog::readSystemFields(qftbx::SpecificationRecord & record,
                                                                         const QString & name,
                                                                         const SystemFields & fields)
@@ -777,11 +775,10 @@ bool SpecificationsDialog::leaveActiveTab()
         return true;
     }
 
-    //The switch used to happen anyway, and the return value was discarded.
-    //data() empties the record before rebuilding it, so leaving now
-    //lost the whole specification - not just the bad field - and coming
-    //back showed a blank tab, because setData() repaints from the record.
-    //Staying put keeps the user's text on screen where it can be fixed.
+    //The return value decides whether the tab switches. data() empties the
+    //record before rebuilding it, so leaving on an invalid field loses the
+    //whole specification, not just that field, and setData() then repaints
+    //a blank tab. Staying put keeps the user's text where it can be fixed.
     restoreActiveTabRadio();
 
     errorMessage(tr("This specification could not be read, so it has not been "
@@ -899,8 +896,7 @@ void SpecificationsDialog::on_cancelButton_clicked()
 
 void SpecificationsDialog::on_okButton_clicked()
 {
-    //A rejected accept must not leave the previous answer behind, and the
-    //vector used to leak on every accept.
+    //A rejected accept must not leave the previous answer behind.
     discardPublished();
 
     bool ok = true;

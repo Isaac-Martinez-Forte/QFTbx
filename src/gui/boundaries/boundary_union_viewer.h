@@ -22,9 +22,6 @@ namespace qftbx {
  * curve per design frequency: the single set of bounds the loop shaping
  * actually has to respect.
  *
- * It used to carry three more modes (a single frequency, the bucketed union,
- * the bucketed union plus one extra trace) and two box-drawing routines,
- * none of which anything called.
  */
 class BoundaryUnionViewer : public QDialog
 {

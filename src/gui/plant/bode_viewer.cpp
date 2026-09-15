@@ -34,24 +34,21 @@ void BodeViewer::drawBode(LtiSystem *plant, Omega *omega){
     ui->magnitudePlot->clearPlottables();
     ui->phasePlot->clearPlottables();
 
-    //By value, so the sweep is a plain local: this used to be a pointer plus
-    //an ownFrequencies flag, because the manual branch borrowed the project's
-    //vector while the other two allocated their own.
+    //By value, so the sweep is a plain local whether the frequencies are
+    //the project's or this viewer's own.
     std::vector<double> frequencies;
 
-    //The sweep starts where the DESIGN starts. Both branches used a
-    //hardcoded -1: on the logarithmic path that silently replaced the user's
-    //first exponent, and on the linear one it asked for frequencies from
-    //-1 rad/s - negative frequencies, on an axis that is logarithmic below.
+    //The sweep starts where the DESIGN starts, not at a fixed exponent: on
+    //the linear path a fixed -1 asks for negative frequencies, on an axis
+    //that is logarithmic below.
     if (omega->type() == Omega::LinSpace){
         frequencies = linspace(omega->start(), omega->end(), 100);
     }else if (omega->type() == Omega::LogSpace){
         //start()/end() are in rad/s, like every other frequency in the
         //toolbox, and qftbx::logspace takes exponents - so the conversion
         //happens here, the same way the frequencies dialog does it when it
-        //builds the set. They used to hold the exponents themselves, which
-        //made this line shorter and the unit a secret shared between two
-        //files.
+        //builds the set. Holding the exponents instead makes the unit a
+        //secret shared between two files.
         if (omega->start() > 0.0 && omega->end() > 0.0){
             frequencies = logspace(std::log10(omega->start()),
                                    std::log10(omega->end()), 100);
@@ -97,9 +94,9 @@ void BodeViewer::drawAxis(QString yAxisName, const std::vector<double> & yAxis_v
 
     magnitudePlot->xAxis->setScaleType(QCPAxis::ScaleType::stLogarithmic);
 
-    //Both axes span the EXTREMES of the data. They used to span first to
-    //last, which only frames the curve when it happens to be monotonic and
-    //the frequencies happen to be sorted (a manual set need not be).
+    //Both axes span the EXTREMES of the data: first to last frames the
+    //curve only when it is monotonic and the frequencies are sorted, and a
+    //manual set need not be.
     const auto frequencyEnds = std::minmax_element(frequencies.begin(), frequencies.end());
     const auto valueEnds = std::minmax_element(yAxis_values.begin(), yAxis_values.end());
 

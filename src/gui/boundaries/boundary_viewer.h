@@ -69,8 +69,7 @@ private:
     bool plotted = false;
 
     //The curves BELONG TO QCustomPlot, which frees them on
-    //clearPlottables(): only these containers are the viewer's, and they
-    //used to be a vector of pointers behind a pointer.
+    //clearPlottables(): only these containers are the viewer's.
     QVector <QVector <QCPCurve *> > curves;
 
 

@@ -57,7 +57,7 @@ public:
                       CoefficientTable & expressionTable, UncertainTable & uncertainTable);
 
     /// The coefficients of one row as constants, or nothing when one of them
-    /// is not a valid finite expression (it used to become 0 in silence).
+    /// is not a valid finite expression, rather than becoming 0 in silence.
     std::optional<std::vector<Parameter>> buildParameters(const CoefficientRow & numbers);
 
     /// The value of one expression, or nothing when it does not parse.

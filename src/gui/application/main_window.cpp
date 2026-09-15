@@ -175,11 +175,7 @@ void MainWindow::createSession(){
                                   m_settings.defaults.dbPerDegree});
 
     //An empty project: every step undone, so this switches the buttons off
-    //and puts the bar at zero without enumerating either. The seven flags it
-    //used to reset by hand are gone, and two of their comments were CROSSED -
-    //boundariesDone said "estructura del controller" and controllerDone said
-    //"boundaries" - which is what hand-kept parallel state looks like after a
-    //while.
+    //and puts the bar at zero without enumerating either.
     refreshAvailability();
 
     //Without this, Save after New overwrote the last opened file with the
@@ -188,11 +184,9 @@ void MainWindow::createSession(){
 }
 
 //Qt's own mechanism: every dialog and viewer here is a child of this
-//window, and destroying one is how a new session gets a fresh one.
-//
-//Each delete used to be guarded by the step's own progress flag, which is
-//also how the flag got out of step with the pointer. There is no flag left to
-//consult: deleting a null pointer is a no-op, so the pointer decides.
+//window, and destroying one is how a new session gets a fresh one. The
+//POINTER decides, with no progress flag to consult: a flag beside it is a
+//second answer to the same question and the two drift apart.
 void MainWindow::destroyDialogs(){
     delete plantDialog;
     plantDialog = nullptr;
@@ -374,12 +368,9 @@ void MainWindow::refreshAvailability()
 
     const qftbx::StepSet done = controller->completed();
 
-    //A step the project does not have has no widgets. Deciding that by hand,
-    //once per way out of each handler, is what produced a teardown block
-    //written some fifteen times - and it was decided WRONG in a case nobody
-    //noticed: cancelling the template dialog after the templates had been
-    //computed used to delete their viewer and mark the step undone, while the
-    //project still held the templates. Derived, that case answers itself.
+    //A step the project does not have has no widgets. Derived from the
+    //project rather than decided at each way out of each handler, which is
+    //how cancelling a dialog comes to undo a step the project still holds.
     //
     //The Bode viewer is not here because it is not a step: it is a view of
     //the plant and the frequencies, and it has its own action.
@@ -503,10 +494,8 @@ void MainWindow::on_plantButton_clicked()
         //Publish only what was actually received. The payload is MOVED out of
         //the dialog, so asking twice gives a null the second time - and
         //publishing a null wipes the step from the project, and everything
-        //computed from it. That used to be reachable, because a reused dialog
-        //reported an acceptance it had already handed over; StepDialog and
-        //runDialog() closed that path. This stays as the invariant it is:
-        //nothing moved-from goes into the project.
+        //computed from it. The invariant: nothing moved-from goes into the
+        //project.
         if (described == nullptr){
             refreshAvailability();
             return;
@@ -514,8 +503,7 @@ void MainWindow::on_plantButton_clicked()
 
         //The project drops the templates and everything after them when the
         //plant changes; refreshAvailability() below follows it, so nothing
-        //is decided here (it used to compare the address of a freshly built
-        //object with the stored one, which never matched).
+        //is decided here.
         controller->setPlant(std::move(described));
     } else {
         delete plantDialog;
@@ -612,8 +600,7 @@ void MainWindow::on_templatesButton_clicked()
     bool templatesOk = false;
 
     {
-        //The hourglass for as long as this scope, and no longer. It used to
-        //be put back by hand on each of the three ways out of here.
+        //The hourglass for as long as this scope, whichever way it leaves.
         const WaitCursor waiting(this);
 
         try {
@@ -821,8 +808,8 @@ void MainWindow::on_actionOpen_triggered()
             return;
         }
 
-        //The previous session's dialogs are freed: every open used to leak
-        //the existing ones and the bar kept accumulating steps across files.
+        //The previous session's dialogs are freed, so the bar does not
+        //accumulate steps across files.
         destroyDialogs();
 
         //Save writes back to the file that was just opened.
@@ -906,7 +893,7 @@ void MainWindow::on_actionAllLoopDiagrams_triggered()
 void MainWindow::showLoopDiagrams(bool nichols, bool nyquist){
 
     //Without boundaries and a controller structure there is no loop to
-    //show (uninitialised DAOs used to be dereferenced).
+    //show.
     const qftbx::StepSet done = controller->completed();
 
     if (!done.has(qftbx::Step::Boundaries) || !done.has(qftbx::Step::Controller)){
@@ -917,11 +904,8 @@ void MainWindow::showLoopDiagrams(bool nichols, bool nyquist){
     BoundaryData * boundaries = controller->boundaries();
 
     //The same union read on the complex plane, for the Nyquist half of the
-    //view. This used to fabricate a whole BoundaryData: six heap containers
-    //at first, then an empty bucket row per frequency and two converted
-    //ranges, all to satisfy a constructor - and its points were Nichols
-    //points holding real and imaginary parts. The viewer takes the curves it
-    //draws, and the conversion is qftbx::toNyquist.
+    //view: the viewer takes the curves it draws, and the conversion is
+    //qftbx::toNyquist.
     qftbx::NyquistTraces nyquistTraces;
     nyquistTraces.reserve(boundaries->unionBoundaries().size());
 
@@ -939,9 +923,7 @@ void MainWindow::showLoopDiagrams(bool nichols, bool nyquist){
 
 
     //Modal and parentless, so it is this scope's: on the stack. The Nyquist
-    //boundaries and their buckets are held by value and die here too -
-    //twenty lines of nested deletion used to stand at the end of this
-    //function, and BoundaryData had to be told it did not own them.
+    //boundaries and their buckets are held by value and die here too.
     LoopBoundariesViewer ver;
 
     ver.setData(boundaries, nyquistTraces, controller->omega()->values(), controller->plant(),
@@ -955,7 +937,7 @@ void MainWindow::showLoopDiagrams(bool nichols, bool nyquist){
 void MainWindow::on_actionTemplates_triggered()
 {
     //View-again action: with no computed templates there is nothing to
-    //show (it used to mark the step done without data).
+    //show.
     if (!controller->completed().has(qftbx::Step::Templates)){
         return;
     }

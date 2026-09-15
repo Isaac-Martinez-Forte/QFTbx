@@ -21,7 +21,7 @@ BoundaryUnionViewer::BoundaryUnionViewer(QWidget *parent) :
     legend->setGeometry(QRect(10, 120, 120, 451));
     connect(legend, &FrequencyLegend::rowToggled, this, &BoundaryUnionViewer::applyCheckboxes);
 
-    //Connected ONCE (every replot used to add a duplicated connection).
+    //Connected ONCE: a connection per replot duplicates the handler.
     connect(ui->plot->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->xAxis2, SLOT(setRange(QCPRange)));
     connect(ui->plot->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->yAxis2, SLOT(setRange(QCPRange)));
 }

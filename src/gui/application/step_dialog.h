@@ -6,11 +6,9 @@
 /**
  * @brief Base of the seven dialogs that describe one step of a design.
  *
- * It exists for one member. Each dialog used to declare its own `accepted`
- * flag - uninitialised in the header, set to false in the constructor and to
- * true on OK - and its own wasAccepted(). Seven copies of one boolean is not
- * the problem; the problem is that none of them ever CLEARED it, and the
- * window reuses a dialog between visits.
+ * It exists for one member: the accepted flag, which has to be CLEARED on
+ * every run, since the window reuses a dialog between visits. Seven copies
+ * of one boolean are seven chances to forget that.
  *
  * So from the first acceptance onwards wasAccepted() answered true for ever,
  * while takePlant() and its siblings had already handed the payload over.

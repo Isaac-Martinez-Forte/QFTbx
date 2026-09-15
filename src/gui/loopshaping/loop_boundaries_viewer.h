@@ -36,10 +36,8 @@ public:
      *
      * @param nicholsData the boundaries, on the chart they were computed on.
      * @param nyquistTraces the same union read on the complex plane. The
-     * curves themselves, not a BoundaryData: the viewer used to be handed
-     * one fabricated for the occasion, which had to carry empty bucket rows
-     * because this view is only drawn and never classified, and whose
-     * Nichols-typed points were holding real and imaginary parts.
+     * curves themselves, not a BoundaryData: this view is only drawn, never
+     * classified, and its points are complex, not Nichols points.
      * @param omega the design frequencies the curves belong to.
      * @param plant, controller what the loop is drawn from.
      * @param nichols, nyquist which of the two diagrams to draw.
@@ -72,9 +70,8 @@ private:
     //clearPlottables(): only the container is the viewer's.
     QVector <QCPCurve *> curves;
 
-    /// One row per curve, labelled with its frequency and its diagram: in
-    /// the both-diagrams mode a frequency gets two rows, and they used to
-    /// carry the same text.
+    /// One row per curve, labelled with its frequency AND its diagram: in
+    /// the both-diagrams mode a frequency gets two rows.
     void addFrequencyRow(QColor color, qint32 pos, QString diagram);
     FrequencyLegend * legend = nullptr;
     void clearDiagram();

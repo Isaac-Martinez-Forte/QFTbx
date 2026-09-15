@@ -14,7 +14,7 @@ namespace qftbx {
  * shortest text that reads back to the same double. QString::number(double)
  * keeps six significant digits, and the dialogs paint stored values into
  * fields they read back on accept, so reopening a specification or a
- * template epsilon used to round what the file held.
+ * template epsilon must not round what the file holds.
  */
 inline QString numberText(double value)
 {

@@ -12,9 +12,9 @@
  * A plain aggregate of OBSERVERS. The widgets belong to their Qt parent -
  * the dialog that created them - and this row only remembers where they
  * are, so that the dialog can read a parameter back without walking the
- * layout. The setters used to delete the previous widget "so as not to
- * leak", which was wrong twice over: the widget was never this class's to
- * free, and doing it left the layout holding a dangling child.
+ * layout. A setter here must NOT delete the widget it replaces: it is not
+ * this class's to free, and freeing it leaves the layout with a dangling
+ * child.
  *
  * @author Isaac Martínez Forte
  */

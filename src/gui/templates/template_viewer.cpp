@@ -33,7 +33,7 @@ TemplateViewer::TemplateViewer(QWidget *parent) :
     legend->setGeometry(QRect(660, 0, 141, 461));
     connect(legend, &FrequencyLegend::rowToggled, this, &TemplateViewer::applyCheckboxes);
 
-    //Connected ONCE (every replot used to add a duplicated connection).
+    //Connected ONCE: a connection per replot duplicates the handler.
     connect(ui->plot->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->xAxis2, SLOT(setRange(QCPRange)));
     connect(ui->plot->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->yAxis2, SLOT(setRange(QCPRange)));
 }
@@ -76,15 +76,12 @@ void TemplateViewer::setData(const qftbx::CloudSet & templates,
                               std::vector<double> * omega,
                               std::vector<double> * epsilon){
 
-    //The map used to be replaced with a new/delete pair, and leaked on
-    //every recompute when the delete was forgotten.
     colorByFrequency.clear();
 
     setTemplates(templates);
     setContour(contour);
 
-    //Copies: the viewer used to alias the project's vectors, and it outlives
-    //them across a load.
+    //COPIES: the viewer outlives the project's vectors across a load.
     m_omega = *omega;
     m_epsilon = *epsilon;
 

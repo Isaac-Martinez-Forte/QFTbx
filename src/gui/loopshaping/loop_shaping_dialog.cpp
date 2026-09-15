@@ -139,7 +139,7 @@ void LoopShapingDialog::on_okButton_clicked()
         alg = qftbx::nt;
     }
 
-    //Direct read: the old latch left linspace selected forever once
+    //Read directly, not latched, so the choice can be changed once
     //checked.
     linLogSpace = ui->linspaceRadio->isChecked();
 

@@ -26,7 +26,7 @@ LoopShapingViewer::LoopShapingViewer(QWidget *parent) :
     legend->setGeometry(QRect(1060, 0, 120, 581));
     connect(legend, &FrequencyLegend::rowToggled, this, &LoopShapingViewer::applyCheckboxes);
 
-    //Connected ONCE (every replot used to add a duplicated connection).
+    //Connected ONCE: a connection per replot duplicates the handler.
     connect(ui->plot->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->xAxis2, SLOT(setRange(QCPRange)));
     connect(ui->plot->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->yAxis2, SLOT(setRange(QCPRange)));
 }
@@ -231,7 +231,7 @@ void LoopShapingViewer::showDiagram(){
     frequencies = qftbx::logspace(-5, 5, 10000);
 
     //The open-loop curve, cut into segments wherever the phase wraps: by
-    //value, so a replot does not abandon them (they all used to be).
+    //value, so a replot does not abandon them.
     QVector<std::vector<double> > phaseSegments;
     QVector<std::vector<double> > magnitudeSegments;
 
@@ -240,9 +240,9 @@ void LoopShapingViewer::showDiagram(){
 
 
     //The first sample only seeds the phase comparison, so it is taken
-    //inside the loop: it used to be computed before it as well, which put
-    //the first frequency in the curve TWICE, and read frequencies.at(0)
-    //without knowing there was one.
+    //inside the loop: computing it before as well puts the first frequency
+    //in the curve twice, and reads frequencies.at(0) without knowing there
+    //is one.
     qreal previousPhase = 0.0;
     bool firstSample = true;
 
