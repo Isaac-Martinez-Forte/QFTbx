@@ -22,8 +22,8 @@ LoopShapingViewer::LoopShapingViewer(QWidget *parent) :
     ui->denominatorEdit->setReadOnly(true);
     ui->gainEdit->setReadOnly(true);
 
-    legend = new FrequencyLegend(this);
-    legend->setGeometry(QRect(1060, 0, 120, 581));
+    legend = new FrequencyLegend(ui->legendHolder);
+    ui->legendHolder->layout()->addWidget(legend);
     connect(legend, &FrequencyLegend::rowToggled, this, &LoopShapingViewer::applyCheckboxes);
 
     //Connected ONCE: a connection per replot duplicates the handler.

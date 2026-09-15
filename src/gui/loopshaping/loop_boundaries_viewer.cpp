@@ -18,8 +18,8 @@ LoopBoundariesViewer::LoopBoundariesViewer(QWidget *parent) :
     setWindowTitle(tr("Boundary union"));
 
 
-    legend = new FrequencyLegend(this);
-    legend->setGeometry(QRect(660, 0, 141, 461));
+    legend = new FrequencyLegend(ui->legendHolder);
+    ui->legendHolder->layout()->addWidget(legend);
     connect(legend, &FrequencyLegend::rowToggled, this, &LoopBoundariesViewer::applyCheckboxes);
 }
 

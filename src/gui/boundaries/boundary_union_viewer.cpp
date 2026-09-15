@@ -17,8 +17,8 @@ BoundaryUnionViewer::BoundaryUnionViewer(QWidget *parent) :
     ui->setupUi(this);
     setWindowTitle(tr("Boundary union"));
 
-    legend = new FrequencyLegend(this);
-    legend->setGeometry(QRect(10, 120, 120, 451));
+    legend = new FrequencyLegend(ui->legendHolder);
+    ui->legendHolder->layout()->addWidget(legend);
     connect(legend, &FrequencyLegend::rowToggled, this, &BoundaryUnionViewer::applyCheckboxes);
 
     //Connected ONCE: a connection per replot duplicates the handler.

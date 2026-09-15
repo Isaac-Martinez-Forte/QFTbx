@@ -27,6 +27,7 @@
 
 #include <QAction>
 #include "src/core/pipeline/pipeline_step.h"
+#include <QCoreApplication>
 #include <QCheckBox>
 #include <QDialog>
 #include <QLineEdit>
@@ -852,6 +853,62 @@ TEST_F(GuiSmoke, BoundaryViewerDrawsTheBoundariesItIsGiven)
 
     viewer.showDiagram();
     EXPECT_EQ(plot->plottableCount(), drawn) << "a redraw piled up curves";
+}
+
+//A viewer has to grow with its window: a form whose widgets are placed at
+//absolute coordinates keeps them where they were put, whatever the user does
+//to the window, and the plot then stays the size it was drawn at in
+//Designer. The check is the behaviour and not the mechanism - resize the
+//viewer and see whether the canvas followed - so it holds however the form
+//is laid out.
+template <typename Viewer>
+void expectThePlotGrowsWithTheWindow(const char * what)
+{
+    Viewer viewer;
+    viewer.resize(700, 500);
+    viewer.show();
+    QCoreApplication::processEvents();
+
+    QCustomPlot * plot = viewer.template findChild<QCustomPlot *>("plot");
+    ASSERT_NE(plot, nullptr) << what << ": no plot named \"plot\"";
+    const QSize before = plot->size();
+
+    viewer.resize(1300, 900);
+    QCoreApplication::processEvents();
+
+    EXPECT_GT(plot->width(), before.width())
+        << what << ": the window grew by 600 px and the plot stayed at "
+        << plot->width() << " (the form has no layout)";
+    EXPECT_GT(plot->height(), before.height())
+        << what << ": the window grew by 400 px and the plot stayed at " << plot->height();
+}
+
+TEST_F(GuiSmoke, EveryViewerGrowsWithItsWindow)
+{
+    expectThePlotGrowsWithTheWindow<TemplateViewer>("template viewer");
+    expectThePlotGrowsWithTheWindow<BoundaryViewer>("boundary viewer");
+    expectThePlotGrowsWithTheWindow<BoundaryUnionViewer>("boundary union viewer");
+    expectThePlotGrowsWithTheWindow<LoopBoundariesViewer>("loop boundaries viewer");
+    expectThePlotGrowsWithTheWindow<LoopShapingViewer>("loop shaping viewer");
+
+    //Bode draws two canvases, one over the other, and both have to follow.
+    BodeViewer bode;
+    bode.resize(700, 500);
+    bode.show();
+    QCoreApplication::processEvents();
+
+    QCustomPlot * magnitude = bode.findChild<QCustomPlot *>("magnitudePlot");
+    QCustomPlot * phase = bode.findChild<QCustomPlot *>("phasePlot");
+    ASSERT_NE(magnitude, nullptr);
+    ASSERT_NE(phase, nullptr);
+    const int wasWide = magnitude->width();
+    const int wasTall = magnitude->height() + phase->height();
+
+    bode.resize(1300, 900);
+    QCoreApplication::processEvents();
+
+    EXPECT_GT(magnitude->width(), wasWide) << "the Bode magnitude did not widen";
+    EXPECT_GT(magnitude->height() + phase->height(), wasTall) << "the Bode canvases did not grow";
 }
 
 TEST_F(GuiSmoke, BoundaryUnionViewerDrawsTheUnion)

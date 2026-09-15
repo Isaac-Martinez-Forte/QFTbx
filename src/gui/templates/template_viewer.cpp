@@ -29,8 +29,8 @@ TemplateViewer::TemplateViewer(QWidget *parent) :
     setWindowTitle(tr("Templates"));
 
 
-    legend = new FrequencyLegend(this);
-    legend->setGeometry(QRect(660, 0, 141, 461));
+    legend = new FrequencyLegend(ui->legendHolder);
+    ui->legendHolder->layout()->addWidget(legend);
     connect(legend, &FrequencyLegend::rowToggled, this, &TemplateViewer::applyCheckboxes);
 
     //Connected ONCE: a connection per replot duplicates the handler.
