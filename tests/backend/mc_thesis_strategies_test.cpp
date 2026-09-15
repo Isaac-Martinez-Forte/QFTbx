@@ -45,6 +45,7 @@
 
 #include "src/core/loopshaping/mc_thesis/algorithm_mc_thesis.h"
 #include "src/app/project_controller.h"
+#include "src/core/project/settings.h"
 
 using namespace qftbx;
 
@@ -98,6 +99,14 @@ double designedGain(const Strategies & strategies, std::size_t * peakNodes = nul
     project.load(std::string(QFTBX_TEST_DATA_DIR) + "/" + fixture);
 
     AlgorithmMcThesis mc;
+    //The published reading of the columns: these tests measure what the
+    //strategies do to the tree, and under the conservative reading MC of
+    //the thesis without its strategies does not terminate on example 2.
+    {
+        Settings published;
+        published.algorithms.conservativeBoundaryColumns = false;
+        mc.setSettings(published);
+    }
     mc.setStrategies(strategies);
     mc.setProblem(project.plant(), project.controllerStructure(),
                  project.omega()->values(), project.boundaries(), kEpsilon);

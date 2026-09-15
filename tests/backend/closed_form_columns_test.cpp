@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "src/app/project_controller.h"
+#include "src/core/project/settings.h"
 #include "src/core/boundaries/boundary_columns.h"
 #include "src/core/boundaries/closed_form_columns.h"
 #include "src/core/boundaries/closed_loop_worst_case.h"
@@ -102,6 +103,14 @@ TEST(ClosedFormColumns, OnExampleTwoTheColumnsMatchTheSheetToItsInterpolationErr
     //a cell, which is what the sheet cannot see. The largest deviation is
     //printed.
     ProjectController controller;
+    //Boundary-chain test: it compares boundaries, not readings, and the
+    //published reading keeps its goldens where the history left them and
+    //NT in the seconds; the conservative one takes NT to a minute here.
+    {
+        qftbx::Settings published;
+        published.algorithms.conservativeBoundaryColumns = false;
+        controller.applySettings(published);
+    }
     controller.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
     const std::vector<double> & omega = *controller.omega()->values();
     const std::vector<double> phases = qftbx::math::linspace(-360.0, 0.0, 361);
@@ -189,6 +198,22 @@ TEST(ClosedFormColumns, TheSearchOnExampleTwoLandsWithinTheInterpolationError)
     //test), NT on each: gains within a tenth of a per cent, printed.
     const auto solve = [](bool closedForm) {
         ProjectController controller;
+        //Boundary-chain test: it compares boundaries, not readings, and the
+        //published reading keeps its goldens where the history left them and
+        //NT in the seconds; the conservative one takes NT to a minute here.
+        {
+            qftbx::Settings published;
+            published.algorithms.conservativeBoundaryColumns = false;
+            controller.applySettings(published);
+        }
+    //Boundary-chain test: it compares boundaries, not readings, and the
+    //published reading keeps its goldens where the history left them and
+    //NT in the seconds; the conservative one takes NT to a minute here.
+    {
+        qftbx::Settings published;
+        published.algorithms.conservativeBoundaryColumns = false;
+        controller.applySettings(published);
+    }
         controller.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
         controller.setClosedFormColumns(closedForm);
         EXPECT_TRUE(controller.computeBoundaries(Range(-360.0, 0.0), 361, Range(-60.0, 160.0), 441, 1.0e6, true, false));
@@ -209,6 +234,22 @@ TEST(ClosedFormColumns, ACloudKeepsTheSheetsColumns)
     //search lands where it always did (example 2, NT from the cloud).
     const auto solve = [](bool closedForm) {
         ProjectController controller;
+        //Boundary-chain test: it compares boundaries, not readings, and the
+        //published reading keeps its goldens where the history left them and
+        //NT in the seconds; the conservative one takes NT to a minute here.
+        {
+            qftbx::Settings published;
+            published.algorithms.conservativeBoundaryColumns = false;
+            controller.applySettings(published);
+        }
+    //Boundary-chain test: it compares boundaries, not readings, and the
+    //published reading keeps its goldens where the history left them and
+    //NT in the seconds; the conservative one takes NT to a minute here.
+    {
+        qftbx::Settings published;
+        published.algorithms.conservativeBoundaryColumns = false;
+        controller.applySettings(published);
+    }
         controller.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
         controller.setClosedFormColumns(closedForm);
         EXPECT_TRUE(controller.computeBoundaries(Range(-360.0, 0.0), 361, Range(-60.0, 160.0), 441, 1.0e6, false, false));
