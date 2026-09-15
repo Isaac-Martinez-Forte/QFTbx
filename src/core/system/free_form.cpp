@@ -10,6 +10,7 @@
 
 #include "src/core/common/text_tokens.h"
 #include "src/core/common/exception.h"
+#include "src/core/math/polynomial.h"
 
 namespace qftbx {
 
@@ -28,15 +29,18 @@ FreeForm::FreeForm(std::string name, std::vector <Parameter> numerator, std::vec
     //renamed by a regular expression to keep it out of the way of the
     //library's own names.
     std::unique_ptr<ExpressionTree> ratio;
+    std::unique_ptr<ExpressionTree> denominatorTree;
     try {
         ratio = std::make_unique<ExpressionTree>(
                     "(" + m_numeratorExpr + ")/(" + m_denominatorExpr + ")");
+        denominatorTree = std::make_unique<ExpressionTree>("(" + m_denominatorExpr + ")");
     } catch (const std::invalid_argument & error) {
         throw InvalidInput(QFTBX_TR("Core", "The plant expression cannot be read: %1").arg(error.what()));
     }
 
-    bindNames(*ratio);
+    bindNames(*ratio, *denominatorTree);
     m_ratio = std::move(ratio);
+    m_denominatorTree = std::move(denominatorTree);
 }
 
 //The order of the values valueAt() is given: the Laplace variable first,
@@ -44,7 +48,7 @@ FreeForm::FreeForm(std::string name, std::vector <Parameter> numerator, std::vec
 //denominator. A name appearing more than once is ONE variable, not several
 //(the cervera plant carries its "a" in both), so it takes one slot and
 //every appearance points at it.
-void FreeForm::bindNames(ExpressionTree & ratio)
+void FreeForm::bindNames(ExpressionTree & ratio, ExpressionTree & denominator)
 {
     std::vector<std::string> names;
     names.push_back(laplaceName());
@@ -77,6 +81,7 @@ void FreeForm::bindNames(ExpressionTree & ratio)
     //name the plant does not declare would evaluate to nothing.
     try {
         ratio.bind(names);
+        denominator.bind(names);
     } catch (const std::invalid_argument & error) {
         throw InvalidInput(QFTBX_TR("Core", "The plant expression cannot be evaluated: %1").arg(error.what()));
     }
@@ -123,16 +128,8 @@ std::unique_ptr<LtiSystem> FreeForm::clone(){
                         m_numeratorExpr, m_denominatorExpr);
 }
 
-//A free-form plant is written by the user, so its numerator and denominator
-//are evaluated as an expression - but neither the frequency nor the
-//coefficients travel as text: the Laplace variable and the named
-//coefficients are bound to their values. The gain and the delay arrive
-//already reduced to values (Parameter::nominal() has applied any
-//reparametrisation), so their own expressions are not re-evaluated here
-//either.
-std::complex <double> FreeForm::valueAt(double w, const std::vector<double> & numerator,
-                                       const std::vector<double> & denominator,
-                                       double gain, double delay)
+std::vector<std::complex<double>> FreeForm::boundValues(const std::vector<double> & numerator,
+                                                        const std::vector<double> & denominator) const
 {
     //One value per parameter, no more and no fewer. This used to walk to
     //the shorter of the two and say nothing, which made a caller's miscount
@@ -145,8 +142,7 @@ std::complex <double> FreeForm::valueAt(double w, const std::vector<double> & nu
     std::vector<std::complex<double>> values(m_valueCount);
     std::vector<char> filled(m_valueCount, 0);
 
-    values[0] = std::complex<double>(0.0, w);
-    filled[0] = 1;
+    filled[0] = 1;   //slot 0 is the caller's
 
     //A name given two different values means the caller built an
     //inconsistent request; picking one of the two would evaluate a plant
@@ -169,6 +165,44 @@ std::complex <double> FreeForm::valueAt(double w, const std::vector<double> & nu
 
     place(m_numerator, m_numeratorSlots, numerator);
     place(m_denominator, m_denominatorSlots, denominator);
+
+    return values;
+}
+
+//The denominator expression evaluated on its own gives the polynomial whose
+//roots are the poles - when it is one. A delay or a transcendental written
+//into the denominator is not, and then there is no answer to give.
+std::optional<std::vector<std::complex<double>>> FreeForm::polesAt(const std::vector<double> & numerator,
+                                                                   const std::vector<double> & denominator)
+{
+    std::vector<std::complex<double>> values = boundValues(numerator, denominator);
+
+    const auto denominatorAt = [&](std::complex<double> s) {
+        values[0] = s;
+        return m_denominatorTree->evaluate(values);
+    };
+
+    const std::optional<std::vector<double>> coefficients = math::polynomialCoefficients(denominatorAt);
+    if (!coefficients.has_value()) {
+        return std::nullopt;
+    }
+
+    return math::polynomialRoots(*coefficients);
+}
+
+//A free-form plant is written by the user, so its numerator and denominator
+//are evaluated as an expression - but neither the frequency nor the
+//coefficients travel as text: the Laplace variable and the named
+//coefficients are bound to their values. The gain and the delay arrive
+//already reduced to values (Parameter::nominal() has applied any
+//reparametrisation), so their own expressions are not re-evaluated here
+//either.
+std::complex <double> FreeForm::valueAt(double w, const std::vector<double> & numerator,
+                                       const std::vector<double> & denominator,
+                                       double gain, double delay)
+{
+    std::vector<std::complex<double>> values = boundValues(numerator, denominator);
+    values[0] = std::complex<double>(0.0, w);
 
     const std::complex<double> ratio = m_ratio->evaluate(values);
 

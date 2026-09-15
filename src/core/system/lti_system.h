@@ -2,6 +2,7 @@
 #define QFTBX_LTI_SYSTEM_H
 
 #include <complex>
+#include <optional>
 #include <memory>
 #include <vector>
 
@@ -72,6 +73,24 @@ public:
     virtual std::complex <double> valueAt(double w, const std::vector<double> & numerator,
                                          const std::vector<double> & denominator,
                                          double gain, double delay) = 0;
+
+    /**
+     * @brief The poles of the system for the coefficient values given, in the
+     * order of the parameter vectors, or nothing when they cannot be known.
+     *
+     * What the stability criterion needs of a plant, once: how many poles lie
+     * in the right half-plane and where the ones on the imaginary axis are.
+     * The forms that name their poles answer directly; the polynomial form
+     * finds the roots of its denominator; a free-form plant recovers the
+     * polynomial its denominator expression evaluates to, and answers
+     * nothing when that expression is not a polynomial in s (a delay written
+     * into it, a transcendental), which the criterion then refuses to guess.
+     */
+    virtual std::optional<std::vector<std::complex<double>>> polesAt(const std::vector<double> & numerator,
+                                                                     const std::vector<double> & denominator) = 0;
+
+    /// polesAt() at the nominal values of the parameters.
+    virtual std::optional<std::vector<std::complex<double>>> nominalPoles() = 0;
 
     /// The system's own parameters, by reference (it holds them by value).
     virtual std::vector <Parameter> & denominator() = 0;

@@ -54,6 +54,10 @@ std::complex <double> TransferFunction::evaluate(double w) {
                    m_gain.nominal(), m_delay.nominal());
 }
 
+std::optional<std::vector<std::complex<double>>> TransferFunction::nominalPoles() {
+    return polesAt(nominalsOf(m_numerator), nominalsOf(m_denominator));
+}
+
 std::vector <std::complex <double> > TransferFunction::evaluate(const std::vector <double> & omega) {
 
     std::vector <std::complex <double> > values;
