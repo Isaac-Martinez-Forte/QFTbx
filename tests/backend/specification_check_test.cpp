@@ -129,9 +129,9 @@ INSTANTIATE_TEST_SUITE_P(
         CheckCase{"Ex2NK", "qft_toolbox_ex2.qft", qftbx::nk, +0.0508},
         CheckCase{"Ex2Mc1", "qft_toolbox_ex2.qft", qftbx::mc1, +0.0508},
         CheckCase{"Ex2McThesis", "qft_toolbox_ex2.qft", qftbx::mc_thesis, +0.0351},
-        CheckCase{"Ex2Mc2", "qft_toolbox_ex2.qft", qftbx::mc2, +0.0351},
+        CheckCase{"Ex2Mc2", "qft_toolbox_ex2.qft", qftbx::mc2, +0.0511},
         CheckCase{"Ex2McThesisConservative", "qft_toolbox_ex2.qft", qftbx::mc_thesis, -0.0045, true},
-        CheckCase{"Ex2Mc2Conservative", "qft_toolbox_ex2.qft", qftbx::mc2, -0.0032, true},
+        CheckCase{"Ex2Mc2Conservative", "qft_toolbox_ex2.qft", qftbx::mc2, -0.0001, true},
         CheckCase{"Acc90NT", "acc90.qft", qftbx::nt, -4.8608},
         CheckCase{"Acc90Mc2", "acc90.qft", qftbx::mc2, -4.8608}),
     [](const ::testing::TestParamInfo<CheckCase> & info) {

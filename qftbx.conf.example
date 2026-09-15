@@ -311,10 +311,12 @@
 # certified-gain-tolerance = 1.01
 
 # MC (thesis) and MC2: the strategies of chapter 4 of the thesis, one switch
-# each, all on by default (the algorithm as published). None of them changes
-# the answer - each only discards boxes it has certified cannot hold a better
-# one - so they are here for measuring what each one buys, as chapter 6 does
-# with sixteen combinations, not for tuning a design. Range: 0 or 1 each.
+# each, all on by default (the algorithm as published). They are here for
+# measuring what each one buys, as chapter 6 does with sixteen combinations,
+# not for tuning a design. Each only discards boxes it has certified cannot
+# hold a better one, but they do move the answer: the search stops at the
+# first box small enough, and which box that is depends on how the tree was
+# cut and split. Range: 0 or 1 each.
 [algorithms.mc]
 # infeasible-magnitude = 1
 # infeasible-phase = 1
@@ -322,4 +324,8 @@
 # feasible-phase = 1
 # best-gain = 1
 # tree-bisection = 1
+# The execution stages of sec. 4.4 belong to MC of the thesis alone: they
+# switch the cuts off for a node and all its children the first time a full
+# pass improves nothing. MC2 does not have them; what they were contributing
+# is their bisection rule, which MC2 applies everywhere.
 # stages = 1

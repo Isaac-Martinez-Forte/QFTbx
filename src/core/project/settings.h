@@ -178,7 +178,7 @@ struct Settings {
             bool feasiblePhase = true;        ///< QSFact, phase
             bool bestGain = true;             ///< MG (thesis 4.3)
             bool treeBisection = true;        ///< thesis 4.2.4
-            bool stages = true;               ///< thesis 4.4
+            bool stages = true;               ///< thesis 4.4 (MC of the thesis only; MC2 has no stages)
         } mc;
 
         /// NT, NK, MC1, MC (thesis), MC2: read the boundary columns

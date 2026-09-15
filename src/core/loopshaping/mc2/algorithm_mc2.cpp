@@ -44,7 +44,6 @@ void AlgorithmMc2::setSettings(const qftbx::Settings & settings)
     strategies.feasiblePhase = mc.feasiblePhase;
     strategies.bestGain = mc.bestGain;
     strategies.treeBisection = mc.treeBisection;
-    strategies.stages = mc.stages;
 }
 
 void AlgorithmMc2::setStrategies(const Strategies & s)
@@ -134,7 +133,7 @@ std::unique_ptr<LtiSystem> AlgorithmMc2::replaceParameter(LtiSystem * box, std::
 
 //------------------------------------------------------------ main loop
 //Thesis 5.4, algorithm MC: branch & bound over the live list ordered by
-//ascending gain infimum, with the prune variable C, the execution stages
+//ascending gain infimum, with the prune variable C
 //and the cutting/bisection strategies wired per the pseudocode.
 bool AlgorithmMc2::solve()
 {
@@ -167,7 +166,6 @@ bool AlgorithmMc2::solve()
 
     auto initial = std::make_unique<McSearchNode>(initialGainInf, std::move(controller),
                                                  ambiguous);
-    initial->setStage(strategies.stages ? Stage::Initial : Stage::Intermediate);
     initial->setCutsEnabled(true);
     liveList->insert(std::move(initial));
 
@@ -357,13 +355,12 @@ std::unique_ptr<LtiSystem> AlgorithmMc2::controllerStructure()
 //------------------------------------------------------- feasibility test
 //Step D: one detection per design frequency (skipping the frequencies
 //the node history already certifies as feasible), collecting the data
-//the cutting stages and the bisection need. Returns false when some
+//the cuts and the bisection need. Returns false when some
 //frequency is certainly infeasible; the node is the caller's to drop.
 bool AlgorithmMc2::analyse(McSearchNode * node, NodeAnalysis & out)
 {
     out.flag = feasible;
     out.mainFrequency = 0;
-    out.anyFullPhaseWidth = false;
 
     double largestArea = std::numeric_limits<double>::lowest();
 
@@ -401,10 +398,6 @@ bool AlgorithmMc2::analyse(McSearchNode * node, NodeAnalysis & out)
 
         const double phaseWidth = projection.phaseDegrees.width();
 
-        if (phaseWidth >= phaseSpanWidth - phaseGridStep) {
-            out.anyFullPhaseWidth = true;
-        }
-
         if (verdict == ambiguous) {
             out.flag = ambiguous;
 
@@ -424,13 +417,6 @@ bool AlgorithmMc2::analyse(McSearchNode * node, NodeAnalysis & out)
 void AlgorithmMc2::improveNode(McSearchNode * node, NodeAnalysis & analysis,
                                            std::vector<FeasibleThreshold> & thresholds)
 {
-    //Step E (thesis 4.4): the initial stage ends when no projected box
-    //spans the full phase width of the Nichols plane any more.
-    if (strategies.stages &&
-            node->stage() == Stage::Initial && !analysis.anyFullPhaseWidth) {
-        node->setStage(Stage::Intermediate);
-    }
-
     if (!node->cutsEnabled()) {
         return;
     }
@@ -447,13 +433,6 @@ void AlgorithmMc2::improveNode(McSearchNode * node, NodeAnalysis & analysis,
 
     if (strategies.infeasibleMagnitude || strategies.infeasiblePhase) {
         infeasibleCuts(node, analysis, improved);
-    }
-
-    //The final stage begins when a full pass yields nothing (thesis 4.4):
-    //the cuts are disabled from here on for this node and its children.
-    if (strategies.stages && !improved && node->stage() == Stage::Intermediate) {
-        node->setStage(Stage::Final);
-        node->setCutsEnabled(false);
     }
 }
 
@@ -607,8 +586,7 @@ bool AlgorithmMc2::bestGainSearch(McSearchNode * node)
 //------------------------------------------------------------------ QSFact
 //Insertion of a certainly feasible box into the live list, guarded by the
 //prune variable and the stability criterion.
-void AlgorithmMc2::insertFeasibleBox(std::unique_ptr<LtiSystem> box,
-                                                McSearchNode * parent)
+void AlgorithmMc2::insertFeasibleBox(std::unique_ptr<LtiSystem> box)
 {
     const double gainInf = box->gain().range().min;
 
@@ -631,7 +609,6 @@ void AlgorithmMc2::insertFeasibleBox(std::unique_ptr<LtiSystem> box,
     }
 
     auto t = std::make_unique<McSearchNode>(gainInf, std::move(box), feasible);
-    t->setStage(parent->stage());
     t->setCutsEnabled(false);
     liveList->insert(std::move(t));
 }
@@ -837,7 +814,7 @@ void AlgorithmMc2::feasibleCuts(McSearchNode * node, const NodeAnalysis & analys
                     continue;
                 }
 
-                insertFeasibleBox(std::move(um), node);
+                insertFeasibleBox(std::move(um));
 
                 std::unique_ptr<LtiSystem> remainder = replaceParameter(box, parameter,
                                                                        ambiguousPart);
@@ -938,7 +915,6 @@ qftbx::McBisectionResult AlgorithmMc2::bisectAt(McSearchNode * node, std::int32_
         const double gainInf = system->gain().range().min;
 
         auto t = std::make_unique<McSearchNode>(gainInf, std::move(system), ambiguous);
-        t->setStage(node->stage());
         t->setCutsEnabled(node->cutsEnabled());
         t->setFeasibleFrequencies(node->feasibleFrequencies());
         return t;
@@ -1014,8 +990,7 @@ qftbx::McBisectionResult AlgorithmMc2::bisect(McSearchNode * node, const NodeAna
     //Tree bisection (thesis 5.3): split at the stored feasible threshold
     //covering the largest fraction of its parameter's current range, and
     //mark the feasible child for that frequency.
-    if (strategies.treeBisection &&
-            node->stage() == Stage::Intermediate && !thresholds.empty()) {
+    if (strategies.treeBisection && !thresholds.empty()) {
 
         const FeasibleThreshold * bestThreshold = nullptr;
         double bestFraction = 0.0;
@@ -1055,15 +1030,18 @@ qftbx::McBisectionResult AlgorithmMc2::bisect(McSearchNode * node, const NodeAna
         }
     }
 
-    //Stage-driven measure: area in the initial stage (and as the general
-    //fallback), the wider of magnitude/phase in the final stage.
-    int measure = 0;
-
-    if (node->stage() == Stage::Final) {
-        const Range magnitude = analysis.boxMag.at(analysis.mainFrequency);
-        const Range phase = analysis.boxPhase.at(analysis.mainFrequency);
-        measure = phase.width() > magnitude.width() ? 2 : 1;
-    }
+    //The parameter that most narrows the wider side of the projection,
+    //which is the side the termination test reads. Bisecting by the AREA
+    //of the projection instead - what MC of the thesis does outside its
+    //final stage, and what this algorithm did while it had the stages -
+    //can shrink the area without ever narrowing the side that decides, and
+    //under the conservative column reading the search then does not close
+    //at all: measured on four problems, the area rule does not terminate in
+    //ten minutes on any of them while this one answers in milliseconds and
+    //returns an equal or better gain (documentos/Tesis, para-leer 5).
+    const Range magnitude = analysis.boxMag.at(analysis.mainFrequency);
+    const Range phase = analysis.boxPhase.at(analysis.mainFrequency);
+    const int measure = phase.width() > magnitude.width() ? 2 : 1;
 
     std::int32_t parameter = widestByMeasure(node, analysis.mainFrequency, measure);
 
