@@ -28,13 +28,10 @@ qftbx::SpecificationRecords * ProjectController::specifications(){
 
 namespace {
 
-//Every parameter name of a system that is about to be published has to be a
-//name an expression can bind, because that is what the sweeps and the
-//search do with it: an identifier that is not a function of the grammar,
-//not a constant and not the Laplace variable. Checked HERE, once per
-//publish, and not in Parameter's constructor: the search deep-copies
-//parameters for every box it bisects, and that is not a place to ask a
-//parser anything.
+//A parameter name has to be one an expression can bind, since the sweeps
+//and the search bind it. Checked once per publish and not in Parameter's
+//constructor, because the search deep-copies parameters for every box it
+//bisects and that is no place to ask a parser anything.
 void requireUsableNames(LtiSystem & system)
 {
     const auto check = [](const Parameter & parameter) {
@@ -56,18 +53,9 @@ void requireUsableNames(LtiSystem & system)
 
 }
 
-//Everything the sweeps and the search COMPUTE is a function of the inputs
-//below it, so publishing a new input has to drop what was computed from the
-//old one. Nothing invalidated anything before this: entering a new plant on
-//top of a finished design left the old templates in place, and
-//computeBoundaries() then combined the NEW plant with the OLD templates and
-//produced boundaries for a system that never existed - silently, because
-//every pointer was valid.
-//
-//Inputs never invalidate other inputs, only computed artefacts. That also
-//keeps load() working: it assigns in dependency order (plant,
-//specifications, omega, templates, boundaries, controller, loop shaping), so
-//each step only ever drops things that have not been set yet.
+//The dependency graph of the class comment. Inputs never invalidate other
+//inputs, only computed artefacts, which is what lets load() assign in
+//dependency order and drop only what has not been set yet.
 void ProjectController::dropTemplatesAndBelow(){
     m_data.setTemplates({});
     m_data.setContour({});
@@ -86,15 +74,6 @@ void ProjectController::dropLoopShaping(){
     m_data.setLoopShapingResult(nullptr);
 }
 
-//The three publishers used to compare the incoming pointer with the stored
-//one and return early, so that handing the same object over twice would not
-//throw away a finished design. Taking the ownership makes that comparison
-//not just unnecessary but wrong: returning early would destroy, on the way
-//out, the very object the store is pointing at.
-//A null publish is refused, not taken as "remove the step": there is no such
-//step in the pipeline, and a reused dialog once published a null plant that
-//wiped the plant and everything computed from it. The facade is where that
-//stops, whatever the interface does.
 bool ProjectController::setPlant(std::unique_ptr<LtiSystem> plant){
     requireNotComputing();
 
@@ -150,17 +129,12 @@ void ProjectController::setTemplates(qftbx::CloudSet clouds, qftbx::CloudSet con
 
     m_templates.adopt(m_data, std::move(clouds), std::move(contour), hasContour);
 
-    //New templates make the boundaries built from the old ones meaningless.
-    //The stage does not do this: the dependency graph stays here, in the one
-    //class that owns it. Only load() comes through here now; computeTemplates()
-    //applies the same drop itself.
     dropBoundariesAndBelow();
 }
 
 void ProjectController::setBoundaries(std::optional<qftbx::BoundaryData> boundaries){
     m_data.setBoundaries(std::move(boundaries));
 
-    //The search runs against these boundaries: a new set voids its result.
     dropLoopShaping();
 }
 
@@ -176,16 +150,11 @@ bool ProjectController::computeTemplates(std::vector <double> epsilon, qftbx::Pa
 
     requireNotComputing();
 
-    //The preconditions, the engine and the publishing live in the stage now.
-    //What stays here is the dependency graph, and it has to be applied
-    //EXPLICITLY: this used to reach it through setTemplates, and routing the
-    //publishing through the stage instead silently stopped dropping the
-    //boundaries. Nothing caught it, which is now covered by
-    //StageSequence.RecomputingTheTemplatesDropsTheBoundaries.
+    //The drop is applied here and not reached through setTemplates(), which
+    //the stage does not call (StageSequence.RecomputingTheTemplatesDropsTheBoundaries).
     const bool produced = m_templates.run(m_data, std::move(epsilon),
                                           std::move(grids), cuda);
 
-    //New templates make the boundaries built from the old ones meaningless.
     dropBoundariesAndBelow();
 
     return produced;
@@ -247,8 +216,7 @@ std::vector<TemplateEngine::EpsilonProposal> ProjectController::proposeEpsilon(q
 
 
 const qftbx::CloudSet & ProjectController::recomputeContour(std::vector <double> epsilon){
-    //It rewrites the contour and the epsilon, and MR reads the contour: the
-    //one mutating entry point that was missing the guard.
+    //It rewrites the contour and the epsilon, which MR reads.
     requireNotComputing();
 
     return m_templates.recomputeContour(m_data, std::move(epsilon));
@@ -263,11 +231,6 @@ bool ProjectController::computeBoundaries(qftbx::Range phaseRange, std::int32_t 
                                            magnitudeRange, magnitudeCount,
                                            exportInfinity, contour, cuda);
 
-    //The search runs against these boundaries: a new set voids its result.
-    //Applied here and not in the stage, for the same reason as the
-    //templates - the dependency graph lives in one place. And stated
-    //explicitly, because reaching it through setBoundaries() is exactly what
-    //stopped happening when the templates moved into their own stage.
     dropLoopShaping();
 
     return produced;
@@ -277,8 +240,8 @@ BoundaryData *ProjectController::boundaries(){
     return m_data.boundaries();
 }
 
-//Every other getter answers nullptr while its step is not done; these two
-//return references and cannot, so they say so instead of dereferencing a null.
+//These two return references, so they cannot answer nullptr like the other
+//getters and throw instead.
 const qftbx::UnionTraces & ProjectController::unionBoundaries(){
     if (m_data.boundaries() == nullptr) {
         throw qftbx::InvalidInput(QFTBX_TR("Core", "There are no boundaries yet."));
@@ -305,8 +268,6 @@ bool ProjectController::setControllerStructure(std::unique_ptr<LtiSystem> contro
 
     m_data.setController(std::move(controller));
 
-    //A different controller structure means the computed controller answers a
-    //question nobody asked any more. The same one means it still answers it.
     if (changed) {
         dropLoopShaping();
     }
@@ -324,14 +285,10 @@ bool ProjectController::computeLoopShaping(double epsilon, qftbx::LoopShapingAlg
 
     requireNotComputing();
 
-    //Nothing downstream to invalidate: this result IS the design.
     return m_loopShaping.run(m_data, epsilon, algorithm, plotRange, pointCount,
                              initialisation, cancellation);
 }
 
-//A computation in flight has the project data to itself. Refusing is the
-//point of the worker living here: the alternative is documenting that callers
-//must not touch anything and hoping, which is how data races are written.
 void ProjectController::requireNotComputing() const
 {
     if (m_background.running()) {
@@ -349,9 +306,8 @@ bool ProjectController::startLoopShaping(double epsilon, qftbx::LoopShapingAlgor
         return false;
     }
 
-    //Checked on THIS thread, before anything starts: a search with no
-    //boundaries is the caller's mistake and it should surface where the caller
-    //made it, not as a message field on a worker that has already returned.
+    //On THIS thread: a missing prerequisite is the caller's mistake and has
+    //to surface where it was made, not as a field on a worker that returned.
     m_loopShaping.requirePrerequisites(m_data);
 
     m_cancellation.reset();
@@ -403,7 +359,7 @@ LoopShapingResult * ProjectController::loopShapingResult(){
 }
 
 void ProjectController::save(std::string path){
-    //Reading, but reading a project a worker is writing the design into.
+    //Reading, but reading what a worker may be writing the design into.
     requireNotComputing();
 
 
@@ -435,18 +391,12 @@ qftbx::StepSet ProjectController::load(std::string path){
 
     const ProjectReader::Loaded loaded = reader.load(path);
 
-    //The file REPLACES the project; it does not overlay it. Publishing only the
-    //steps the file carries on top of whatever was here left a hybrid - a
-    //five-step file opened over a finished design kept the old controller
-    //structure and the old search result under the new plant - and the window
-    //then reported seven steps done for a file that had five. Read first, so a
-    //file that fails to parse leaves the current project untouched; then
-    //start clean.
+    //The file REPLACES the project, it does not overlay it. Read first, so
+    //that a file which fails to parse leaves the current project untouched,
+    //and only then start clean.
     m_data = qftbx::ProjectData();
 
-    //Assigned in dependency order, which is what keeps the invalidation from
-    //undoing the step before: each publisher only ever drops things that have
-    //not been set yet.
+    //In dependency order, so each publisher only drops what is not set yet.
     if (loaded.steps.has(qftbx::Step::Plant)) {
         setPlant(reader.takePlant());
     }
@@ -482,9 +432,7 @@ qftbx::StepSet ProjectController::load(std::string path){
     return loaded.steps;
 }
 
-//DERIVED, not stored. Each of these is exactly what a "step done" flag meant,
-//and the flags were duplicate state: state that can be duplicated is state
-//that can go out of sync, and the window kept seven of them by hand.
+//Derived, not stored: a "step done" flag would be duplicate state.
 void ProjectController::applySettings(const qftbx::Settings & settings)
 {
     m_loopShaping.setSettings(settings);
@@ -509,9 +457,6 @@ qftbx::StepSet ProjectController::completed() const
     return done;
 }
 
-//One implementation of the cascade instead of three functions calling each
-//other. The three are kept as the names the rest of this class already uses,
-//so nothing else had to change to gain this.
 void ProjectController::invalidateFrom(qftbx::Step step)
 {
     switch (step) {
@@ -521,9 +466,6 @@ void ProjectController::invalidateFrom(qftbx::Step step)
         dropTemplatesAndBelow();
         return;
     //The templates do not depend on the specifications; the boundaries do.
-    //Grouping this step with the plant, as the first version did, dropped
-    //the templates for a change that never touches them - and disagreed
-    //with setSpecifications(), which had it right.
     case qftbx::Step::Specifications:
     case qftbx::Step::Boundaries:
         dropBoundariesAndBelow();

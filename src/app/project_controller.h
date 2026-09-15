@@ -36,9 +36,17 @@
  * the boundaries, enter the controller structure, and run the loop shaping.
  * A getter returns nullptr while its step has not been completed.
  *
- * Naming note: controllerStructure() is the CONTROLLER BEING DESIGNED (an
- * LtiSystem), not this class - the historical name of both was
- * "Controlador".
+ * Things to keep in mind:
+ * - Everything the engines COMPUTE is a function of the inputs above it, so
+ *   publishing an input drops what was computed from the old one. That
+ *   dependency graph lives here, in this one class, and every compute and
+ *   publish method applies it explicitly; the stages do not.
+ * - Publishing null is refused rather than taken as "remove this step":
+ *   there is no such step in the pipeline.
+ * - A computation in flight has the project data to itself, and anything
+ *   that would change it throws while it runs.
+ * - controllerStructure() is the CONTROLLER BEING DESIGNED (an LtiSystem),
+ *   not this class.
  *
  * @author Isaac Martínez Forte
  */
