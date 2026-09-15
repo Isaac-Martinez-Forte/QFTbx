@@ -2,8 +2,12 @@
 #include "src/core/math/constants.h"
 #include <string>
 #include <vector>
+#include <optional>
+#include <map>
 #include <cstdint>
 #include "src/core/templates/template_engine.h"
+
+#include "src/core/math/polynomial.h"
 #include "src/core/templates/alpha_shape.h"
 
 
@@ -222,6 +226,82 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
     //A byte per flag, not std::vector<bool>: that one packs its elements
     //into bits, and the parallel iterations below writing neighbouring
     //flags would race on the same byte.
+    //One number of right half-plane poles for the whole family, checked
+    //over the plants the sweep is about to evaluate (once, not per
+    //frequency: the poles do not depend on it) and once per distinct
+    //denominator, which is what they depend on. A family that crosses the
+    //imaginary axis has no single P for the criterion, and QFT's robust
+    //stability argument does not hold for it: it is refused, naming the
+    //two denominators that disagree.
+    m_familyRhpPoles.reset();
+    {
+        std::vector<double> numeratorValues = numeratorNominal;
+        std::vector<double> denominatorValues = denominatorNominal;
+        std::vector<double> digit(digitCount);
+        std::map<std::vector<double>, int> countByDenominator;
+        std::optional<int> familyCount;
+        std::vector<double> firstDenominator;
+        bool placeable = true;
+
+        for (std::size_t i = 0; i < m_combinationCount && placeable; i++){
+            if (m_borderSweepApplied){
+                digit[0] = border[i][0];
+                digit[1] = border[i][1];
+            } else {
+                std::size_t rest = i;
+                for (std::size_t j = 0; j < digitCount; j++){
+                    const std::vector<double> & grid = *grids.at(j);
+                    digit[j] = grid[rest % grid.size()];
+                    rest /= grid.size();
+                }
+            }
+            for (std::size_t c = 0; c < numeratorSlot.size(); c++){
+                if (numeratorSlot[c] >= 0){
+                    numeratorValues[c] = digit[static_cast<std::size_t>(numeratorSlot[c])];
+                }
+            }
+            for (std::size_t c = 0; c < denominatorSlot.size(); c++){
+                if (denominatorSlot[c] >= 0){
+                    denominatorValues[c] = digit[static_cast<std::size_t>(denominatorSlot[c])];
+                }
+            }
+
+            const auto known = countByDenominator.find(denominatorValues);
+            int count = 0;
+            if (known != countByDenominator.end()){
+                count = known->second;
+            } else {
+                const std::optional<std::vector<std::complex<double>>> poles =
+                        plant->polesAt(numeratorValues, denominatorValues);
+                if (!poles.has_value()){
+                    placeable = false;
+                    break;
+                }
+                count = qftbx::math::rightHalfPlaneCount(*poles);
+                countByDenominator[denominatorValues] = count;
+            }
+
+            if (!familyCount.has_value()){
+                familyCount = count;
+                firstDenominator = denominatorValues;
+            } else if (count != *familyCount){
+                const auto listed = [](const std::vector<double> & values) {
+                    std::string text;
+                    for (std::size_t k = 0; k < values.size(); k++){
+                        text += (k ? ", " : "") + qftbx::text::number(values[k]);
+                    }
+                    return text;
+                };
+                throw qftbx::InvalidInput(QFTBX_TR("Core", "The plant family changes its number of right half-plane poles: %1 with the denominator values (%2) and %3 with (%4). The stability of the nominal loop only carries to a family whose members all have the same number; split the uncertainty at the crossing.")
+                                          .arg(*familyCount).arg(listed(firstDenominator)).arg(count).arg(listed(denominatorValues)));
+            }
+        }
+
+        if (placeable){
+            m_familyRhpPoles = familyCount;
+        }
+    }
+
     std::vector<char> nonFiniteFrequencies (frequencyCount, 0);
     std::vector <std::string> parserErrors (frequencyCount);
 
