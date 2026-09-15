@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "src/app/project_controller.h"
+#include "src/core/project/settings.h"
 #include "src/core/math/range.h"
 #include "src/core/math/sequences.h"
 #include "src/core/system/polynomial_form.h"
@@ -117,6 +118,15 @@ TEST(BorderSweep, OnExampleTwoTheBorderIsDenserAndTheBoundariesAgree)
     //made visible. The gain is pinned between the interior sweep's and the
     //true optimum of the structure (568.911).
     ProjectController controller;
+    //These tests compare boundary SOURCES, not readings: the published
+    //reading of the columns keeps NT on this fixture in the tens of
+    //milliseconds and its goldens where the fixture's history left them,
+    //where the conservative one takes it to a minute.
+    {
+        Settings published;
+        published.algorithms.conservativeBoundaryColumns = false;
+        controller.applySettings(published);
+    }
     controller.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
     const std::size_t f = controller.omega()->values()->size();
 
@@ -158,6 +168,15 @@ TEST(BorderSweep, TheContourOfABorderCloudIgnoresAnOversizedEpsilon)
     //border cloud's contour is its alpha-shape at its own connecting epsilon
     //instead, each point once: never more than the cloud.
     ProjectController controller;
+    //These tests compare boundary SOURCES, not readings: the published
+    //reading of the columns keeps NT on this fixture in the tens of
+    //milliseconds and its goldens where the fixture's history left them,
+    //where the conservative one takes it to a minute.
+    {
+        Settings published;
+        published.algorithms.conservativeBoundaryColumns = false;
+        controller.applySettings(published);
+    }
     controller.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
     const std::size_t f = controller.omega()->values()->size();
 

@@ -20,6 +20,7 @@
 #include <string>
 
 #include "src/app/project_controller.h"
+#include "src/core/project/settings.h"
 #include "src/core/math/range.h"
 
 using namespace qftbx;
@@ -34,6 +35,15 @@ struct Solution {
 Solution solveFrom(bool fromContour)
 {
     ProjectController controller;
+    //This test compares boundary SOURCES, not readings: the published
+    //reading of the columns keeps NT on this fixture in the tens of
+    //milliseconds and its goldens where the fixture's history left them,
+    //where the conservative one takes it to a minute.
+    {
+        Settings published;
+        published.algorithms.conservativeBoundaryColumns = false;
+        controller.applySettings(published);
+    }
     controller.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
 
     const auto t0 = std::chrono::steady_clock::now();

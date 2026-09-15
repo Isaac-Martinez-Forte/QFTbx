@@ -16,6 +16,7 @@
 #include <string>
 
 #include "src/app/project_controller.h"
+#include "src/core/project/settings.h"
 #include "src/core/templates/alpha_shape.h"
 #include "src/core/templates/template_engine.h"
 
@@ -111,6 +112,14 @@ TEST(AlphaShape, TheEngineClosesAtTheConnectingEpsilonAndMarksNothing)
     //close; the alpha-shape closes at it, at every frequency, and the
     //proposal says so without walking a ladder.
     ProjectController controller;
+    //Boundary-chain test: it compares boundaries, not readings, and the
+    //published reading keeps its goldens where the history left them and
+    //NT in the seconds; the conservative one takes NT to a minute here.
+    {
+        qftbx::Settings published;
+        published.algorithms.conservativeBoundaryColumns = false;
+        controller.applySettings(published);
+    }
     controller.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
 
     TemplateEngine engine;
@@ -149,6 +158,22 @@ TEST(AlphaShape, TheBoundariesFromTheAlphaShapeMatchTheWalksOnExampleTwo)
     //lead NT to the same gain to the precision the search stops at.
     const auto solve = [](bool alpha) {
         ProjectController controller;
+        //Boundary-chain test: it compares boundaries, not readings, and the
+        //published reading keeps its goldens where the history left them and
+        //NT in the seconds; the conservative one takes NT to a minute here.
+        {
+            qftbx::Settings published;
+            published.algorithms.conservativeBoundaryColumns = false;
+            controller.applySettings(published);
+        }
+    //Boundary-chain test: it compares boundaries, not readings, and the
+    //published reading keeps its goldens where the history left them and
+    //NT in the seconds; the conservative one takes NT to a minute here.
+    {
+        qftbx::Settings published;
+        published.algorithms.conservativeBoundaryColumns = false;
+        controller.applySettings(published);
+    }
         controller.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
         controller.setAlphaShapeContour(alpha);
         const std::size_t f = controller.omega()->values()->size();
