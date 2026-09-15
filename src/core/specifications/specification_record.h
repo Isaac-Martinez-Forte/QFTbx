@@ -19,8 +19,7 @@ namespace qftbx {
 struct SpecificationRecord {
     std::string name;
     bool used = false;
-    //The record OWNS its plant. It used to be a raw pointer whose owners
-    //had to walk the container and delete it, in four different places.
+    //The record OWNS its plant.
     std::unique_ptr<LtiSystem> system;
     double height = 0.0;    //LINEAR magnitude (Specification::boundDb converts)
     bool constant = false;

@@ -42,9 +42,9 @@ namespace qftbx {
  *
  * - \f$ P \f$ is asked of the plant once, when the checker is built, and a
  *   plant that cannot place its poles is REFUSED. Assuming \f$ P = 0 \f$ for
- *   it is what this class used to do, and it is the one thing a test that
- *   certifies must not do: a plant with one unstable pole then got the
- *   verdict of a stable one, in both directions.
+ *   it is the one thing a test that certifies must not do: a plant with one
+ *   unstable pole then gets the verdict of a stable one, in both
+ *   directions.
  * - The robust stability argument above carries the nominal verdict to the
  *   family only while every member has the same \f$ P \f$. That is not
  *   checked here - the family is not in hand here - but at the template

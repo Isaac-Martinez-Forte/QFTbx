@@ -118,7 +118,7 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
 
     //Collect the uncertain parameters (the first of each name) and their
     //grids, in numerator, denominator, gain, delay order. The index in
-    //'names' is the odometer digit (0 is the fastest), as historically.
+    //'names' is the odometer digit; 0 is the fastest.
     std::vector <std::string> names;
 
     //Pointers INTO the map the engine owns: stable for the whole sweep,
@@ -1351,7 +1351,7 @@ ComplexCloud TemplateEngine::epsilonHullRelaxed(const ComplexCloud & source, con
         }
     }
 
-    //Output deduplication (historical behaviour).
+    //Output deduplication, as the relaxed variant specifies.
     std::vector <std::int32_t> uniqueIdx;
     for (std::int32_t idx : walk) {
         if (std::find(uniqueIdx.begin(), uniqueIdx.end(), idx) == uniqueIdx.end()){

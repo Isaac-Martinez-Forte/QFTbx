@@ -59,8 +59,8 @@ inline std::string specificationName(SpecificationType type)
  * construction: a constant bound has a finite magnitude > 0 (in linear
  * units), a system bound owns a non-null plant, and the band satisfies
  * 0 <= min <= max. boundDb() therefore never returns -inf or NaN for
- * constant bounds (the historical record accepted magnitude 0 - its
- * default! - and the boundary silently degenerated to the window frame).
+ * constant bounds: a magnitude of 0 degenerates the boundary to the window
+ * frame, silently.
  */
 class Specification
 {
@@ -142,9 +142,9 @@ public:
      */
     double boundDb(double omega) const
     {
-        //An unused slot has no bound. Its m_system is null, and asking anyway
-        //used to dereference it: every caller today checks appliesAt() first,
-        //which is discipline, and this is the guarantee.
+        //An unused slot has no bound: its m_system is null. Every caller
+        //checks appliesAt() first, which is discipline; this is the
+        //guarantee.
         if (!m_used) {
             throw InvalidInput(QFTBX_TR("Core", "The %1 specification is not in use, so it has no bound.").arg(name()));
         }
@@ -197,9 +197,7 @@ private:
 };
 
 /**
- * @brief The fixed set of seven specifications, indexed by type (the
- * historical code held a positional std::vector of 7 with no size checks and a
- * magic "seguimiento" string as the type discriminant).
+ * @brief The fixed set of seven specifications, indexed BY TYPE.
  */
 class SpecificationSet
 {
