@@ -28,9 +28,8 @@
  * The boundary sweep evaluates these at every grid point of the Nichols
  * chart to build its sheets (Moreno, Banos and Berenguel 2006, equation
  * (10)); the specification checker evaluates them once, at the loop value of
- * a returned controller, to verify it against the specifications themselves.
- * The two used to carry separate copies of the formulas; this is the one
- * definition.
+ * a returned controller, to verify it against the specifications
+ * themselves. One definition for both.
  */
 namespace qftbx {
 
@@ -53,8 +52,8 @@ struct WorstCase
 };
 
 /// The quotients \f$ P_0 / P \f$ of the value set, computed once per
-/// frequency: they do not depend on the loop value, and the sweep used to
-/// divide them again at every one of its tens of thousands of grid points.
+/// frequency: they do not depend on the loop value, and the sweep asks for
+/// them at tens of thousands of grid points.
 inline std::vector<std::complex<double>> nominalOverValueSet(std::complex<double> p0,
                                                              const ComplexCloud & valueSet)
 {
@@ -68,10 +67,9 @@ inline std::vector<std::complex<double>> nominalOverValueSet(std::complex<double
     return quotients;
 }
 
-/// Which of the magnitudes a caller wants. The sheet sweep asks for the
-/// ones the specifications in use at that frequency need - on example 2,
-/// two of the five - and used to compute all five at every grid point for
-/// every plant. Stability, sensor noise and tracking share one magnitude.
+/// Which of the magnitudes a caller wants: the sheet sweep asks only for
+/// the ones the specifications in use at that frequency need, two of the
+/// five on example 2. Stability, sensor noise and tracking share one.
 struct WorstCaseMask
 {
     bool stabilityNoiseTracking = true;

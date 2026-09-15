@@ -19,9 +19,6 @@ std::int32_t BoundaryUnion1D::bucketIndex(double x, double totalPhase)
 
 void BoundaryUnion1D::insertSorted(TraceSet & layerBucketsRow, std::size_t index, qftbx::NicholsPoint point, double totalPhase)
 {
-    //The iterator used to be passed in from the caller, computed BEFORE this
-    //function might have grown the same bucket; taking the index alone and
-    //resolving the iterator here says the same thing without that trap.
     Trace & bucket = layerBucketsRow.at(static_cast<std::size_t>(bucketIndex(point.phase, totalPhase)));
 
     for (const qftbx::NicholsPoint & bucketPoint : bucket) {
@@ -265,8 +262,8 @@ inline std::int32_t BoundaryUnion1D::bucketIndex(double x, double totalPhase, st
 {
     double res = (abs(x)*(static_cast<double>(phaseCount)/totalPhase));
     if(res<0) res=0;
-    //The synthetic border point (|x| == totalPhase) used to yield bucket
-    //phaseCount out of phaseCount buckets: out of range.
+    //The synthetic border point sits at |x| == totalPhase, one bucket past
+    //the last.
     if(res > phaseCount - 1) res = phaseCount - 1;
     return static_cast<std::int32_t>(res);
 }
@@ -275,9 +272,8 @@ TraceSet BoundaryUnion1D::buildUnionBuckets(const Trace & unionPoints, double to
 {
     TraceSet unionBucketsRow (pointCount);
 
-    //From the first point on (it used to be skipped), inserted sorted by
-    //magnitude and deduplicated, like the layer buckets (and like the
-    //historical file format).
+    //Sorted by magnitude and deduplicated, like the layer buckets and like
+    //the file format.
     for (const qftbx::NicholsPoint & point : unionPoints) {
         Trace & bucket =
                 unionBucketsRow.at(static_cast<std::size_t>(bucketIndex(point.phase, totalPhase, pointCount)));
@@ -346,8 +342,7 @@ void BoundaryUnion1D::run(const BoundaryData & boundaries, const TraceMetadata &
         {
             const TraceSet & specificationTraces = entry.second;
 
-            //Metadata of THE SAME specification (a fresh iterator used to
-            //be opened here, always reading the first key of the map).
+            //The metadata of THE SAME specification, by key.
             const auto foundMetadata = metadataMap.find(entry.first);
             if (foundMetadata != metadataMap.end() && !foundMetadata->second.empty())
             {
@@ -385,9 +380,6 @@ void BoundaryUnion1D::run(const BoundaryData & boundaries, const TraceMetadata &
             const Trace layer1 = drawFirstLayer(chosenCurves, layerBuckets, totalPhase, open1, open2);
             const Trace layer2 = drawSecondLayer(chosenCurves, layerBuckets, totalPhase, open1, open2);
 
-            //The running union becomes the two layers merged. Every scratch
-            //container here used to be heap-allocated and hand-freed, and an
-            //extra specification abandoned the layer buckets whole.
             unionPoints = mergeLayers(layer1, layer2);
 
             if ((open1 || open2) && !m_openFlags.at(i))
@@ -432,10 +424,8 @@ std::vector<bool> BoundaryUnion1D::takeUpperFlags()
 }
 
 
-//Greedy nearest-neighbour ordering, starting from the leftmost point. The
-//caller's vector used to be consumed (removeOne per step, then clear()),
-//which is why it was taken by non-const pointer; it works on its own copy
-//now and the caller keeps what it passed.
+//Greedy nearest-neighbour ordering, starting from the leftmost point, on a
+//copy: the caller keeps what it passed.
 Trace BoundaryUnion1D::sortByProximity(const Trace & points) {
 
     if (points.empty()) {
@@ -446,8 +436,7 @@ Trace BoundaryUnion1D::sortByProximity(const Trace & points) {
     Trace ordered;
     ordered.reserve(remaining.size());
 
-    //The leftmost point starts the walk. It used to be found against a
-    //sentinel at phase 10000, which an empty trace returned as a point.
+    //The leftmost point starts the walk.
     qftbx::NicholsPoint current = *std::min_element(
                 remaining.begin(), remaining.end(),
                 [](const qftbx::NicholsPoint & a, const qftbx::NicholsPoint & b) {

@@ -30,13 +30,10 @@ namespace {
 constexpr std::int8_t kNeighbourX[8] = {  0,   1,  1,   1,  0,  -1, -1,  -1 };
 constexpr std::int8_t kNeighbourY[8] = { -1,  -1,  0,   1,  1,   1,  0,  -1 };
 
-//The flat index of a grid cell, multiplied in std::size_t. Every one of
-//these used to read `static_cast<std::size_t>(row * width + column)`, which
-//multiplies in std::int32_t and widens only the result: an overflow would
-//already have happened before the cast could help. The same cast shape
-//sized the visited vector, so a grid large enough to overflow would have
-//produced a vector too small for the indices it is then read with - and one
-//of those reads is an operator[], with no bounds check to catch it.
+//The flat index of a grid cell, multiplied in std::size_t: multiplying in
+//std::int32_t and widening the result would overflow before the widening
+//could help, and the same shape sizes the visited vector, which is then
+//read with operator[] and no bounds check.
 inline std::size_t flatIndex(std::int32_t row, std::int32_t column, std::int32_t width)
 {
     return static_cast<std::size_t>(row) * static_cast<std::size_t>(width) +
@@ -51,10 +48,8 @@ inline std::size_t cellCount(std::int32_t width, std::int32_t height)
 }
 
 //Grid-index to Nichols-coordinate conversion: each axis maps index ->
-//bottom + index * span / cells. The historical formulas subtracted the
-//magnitude TOP (index * span - top) and the phase span, which only equals
-//the bottom on grids symmetric around zero / ending at zero: any other
-//grid produced boundaries shifted by (top - |bottom|).
+//bottom + index * span / cells, from the BOTTOM of the axis, which is not
+//the same as the top except on a grid symmetric around zero.
 //
 //The walk itself, over any sheet that answers cellAt(x, y): every pixel of a
 //connected region at or above the threshold that has not been visited starts

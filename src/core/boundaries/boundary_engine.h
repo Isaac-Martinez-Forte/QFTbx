@@ -68,7 +68,7 @@ public:
     *        clouds. Near the singular locus the sweep guards its sample
     *        differently for each; see SingularLocus. The CUDA path does not
     *        apply that guard yet.
-    * @param specifications the seven historical specification records; validated
+    * @param specifications the seven specification records; validated
     *        on entry (throws qftbx::InvalidInput on invalid used records).
     * @param phaseRange, phaseCount Nichols window phase axis (degrees).
     * @param magnitudeRange, magnitudeCount Nichols window magnitude axis (dB).
@@ -100,9 +100,7 @@ public:
     void setClosedFormColumns(bool on) { m_closedFormColumns = on; }
     bool closedFormColumns() const { return m_closedFormColumns; }
 
-    /// A snapshot of the results, by value. It used to be a freshly
-    /// allocated NON-OWNING view that every caller had to delete and that
-    /// nothing in the type said was a view.
+    /// A snapshot of the results, by value.
     BoundaryData boundaryData();
 
 
