@@ -27,6 +27,8 @@
 
 #include <QAction>
 #include "src/core/pipeline/pipeline_step.h"
+#include <QScrollArea>
+#include "src/gui/common/frequency_legend.h"
 #include <QSet>
 #include <QCoreApplication>
 #include "src/gui/common/plot_setup.h"
@@ -1300,4 +1302,63 @@ TEST_F(GuiSmoke, EveryCanvasIsSetUpBeforeItHasData)
     BodeViewer bode;
     expectReady(bode.findChild<QCustomPlot *>("magnitudePlot"), "Bode magnitude");
     expectReady(bode.findChild<QCustomPlot *>("phasePlot"), "Bode phase");
+}
+
+//A legend has one row per design frequency, and a problem has as many as it
+//has frequencies: twenty-three on the Horowitz-Sidi motor, twice that in the
+//loop viewer's both-diagrams mode. Without a scroll area the last rows
+//cannot be reached at all, and twenty checkboxes are not worked one at a
+//time either.
+TEST_F(GuiSmoke, TheLegendScrollsAndCanBeWorkedInOneGo)
+{
+    qftbx::FrequencyLegend legend;
+    legend.resize(160, 200);
+
+    for (int i = 0; i < 23; ++i) {
+        legend.addRow(QString::number(i < 10 ? 0.1 * (i + 1) : i), qftbx::frequencyColour(i, 23));
+    }
+    ASSERT_EQ(legend.rowCount(), 23);
+
+    //The rows are inside a scroll area, so the box being shorter than they
+    //are does not put any of them out of reach.
+    QScrollArea * scroll = legend.findChild<QScrollArea *>("legendScroll");
+    ASSERT_NE(scroll, nullptr) << "the rows are not in a scroll area";
+    EXPECT_TRUE(scroll->widgetResizable());
+
+    QPushButton * none = child<QPushButton>(&legend, "legendNone");
+    QPushButton * all = child<QPushButton>(&legend, "legendAll");
+    ASSERT_NE(none, nullptr);
+    ASSERT_NE(all, nullptr);
+
+    int toggles = 0;
+    QObject::connect(&legend, &qftbx::FrequencyLegend::rowToggled, [&toggles]() { ++toggles; });
+
+    none->click();
+    for (int i = 0; i < legend.rowCount(); ++i) {
+        EXPECT_FALSE(legend.isRowChecked(i)) << "row " << i << " survived None";
+    }
+    EXPECT_EQ(toggles, 1) << "the owner is told once, not once per row";
+
+    all->click();
+    for (int i = 0; i < legend.rowCount(); ++i) {
+        EXPECT_TRUE(legend.isRowChecked(i)) << "row " << i << " missed All";
+    }
+
+    //The filter hides rows, and All then means all of what is in front of
+    //the user: that is what makes the filter worth having.
+    legend.show();
+    QCoreApplication::processEvents();
+    QLineEdit * filter = child<QLineEdit>(&legend, "legendFilter");
+    ASSERT_NE(filter, nullptr);
+    filter->setText("0.1");
+    QCoreApplication::processEvents();
+
+    none->click();
+    int hiddenAndStillChecked = 0;
+    for (int i = 0; i < legend.rowCount(); ++i) {
+        if (legend.isRowChecked(i)) {
+            ++hiddenAndStillChecked;
+        }
+    }
+    EXPECT_GT(hiddenAndStillChecked, 0) << "None cleared rows the filter was hiding";
 }
