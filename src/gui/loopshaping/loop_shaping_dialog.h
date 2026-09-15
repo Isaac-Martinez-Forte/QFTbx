@@ -20,7 +20,7 @@ namespace qftbx {
 
 
 /**
- * @brief Step 7 of the design: picks one of the five loop-shaping
+ * @brief Step 7 of the design: picks one of the loop-shaping
  * algorithms and the accuracy to run it to.
  *
  * What the accuracy measures depends on the algorithm chosen, because each

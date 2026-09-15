@@ -43,12 +43,6 @@ public:
     const std::optional<SpecificationCheck> & check() const { return m_check; }
     void setCheck(SpecificationCheck check) { m_check = std::move(check); }
 
-    //There was a pair of setData() overloads and an m_set flag: nothing
-    //ever called them and nothing ever read the flag. The overloads
-    //carried a fixed bug (they used to delete the INCOMING controller
-    //instead of the stored one, so a recomputation freed the new result
-    //and kept the dangling pointer), which is reason enough not to leave
-    //them lying around unused.
 
 private:
 

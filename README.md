@@ -27,13 +27,19 @@ computes every step:
 - **Boundaries**: the regions of the Nichols chart that the nominal loop must
   respect for each specification (stability, tracking, disturbance rejection,
   control effort), merged into one boundary per frequency.
-- **Automatic loop shaping**: five interval branch and bound algorithms that
+- **Automatic loop shaping**: seven interval branch and bound algorithms that
   find a controller of a given structure with the least high-frequency gain,
-  and certify it (NT, NK, MR and the two accelerated MC algorithms of the
-  author's doctoral work).
+  and certify it: NT, NK, MR and the accelerated MC algorithms of the
+  author's doctoral work, plus MC2, those same strategies with their
+  published formulation corrected, and MC3, which keeps the gain out of the
+  search tree.
 - **Rigorous arithmetic**: the loop shaping runs on verified interval
   arithmetic, so a controller reported feasible is feasible for every plant
   of the uncertainty set.
+- **An answer that is checked**: every run ends by evaluating the controller
+  it returns against the specifications themselves, over the whole plant
+  family, rather than against the boundaries computed from them, and says
+  whether it satisfies them and by what margin.
 
 The software comes out of academic work at the University of Murcia and is
 oriented to research and teaching; it is also usable by control engineers

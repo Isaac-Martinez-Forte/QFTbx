@@ -25,12 +25,10 @@ namespace qftbx {
  * and their epsilon), the boundaries, the controller search box and the
  * loop-shaping result.
  *
- * It replaces the historical DAO layer (seven interface/adapter pairs and
- * a factory whose polymorphism was never used) with one class and one
- * rule, which is now the language's: every member owns what it holds, so
- * a setter frees what it replaces and the store frees the rest when it
- * dies. What a setter takes says whether it takes ownership, and the
- * accessors hand out observers.
+ * One rule throughout: every member owns what it holds, so a setter frees
+ * what it replaces and the store frees the rest when it dies. What a setter
+ * takes says whether it takes ownership, and the accessors hand out
+ * observers.
  */
 class ProjectData
 {

@@ -13,9 +13,9 @@ namespace qftbx {
 //the allowed intervals of the columns (BoundaryColumns); every specification
 //is in them with its own semantics, so an open boundary running under a
 //closed one, or a corridor between the two, classifies as the
-//specifications say. The parity count over the union's bucket that used to
-//stand here called the inside of a closed curve allowed whenever the union
-//had dropped the curve below it.
+//specifications say. A parity count over the union's bucket cannot: it
+//calls the inside of a closed curve allowed whenever the union has dropped
+//the curve below it.
 //
 //The extremes returned with the verdict are B_min and B_max, the lowest and
 //highest boundary crossing over the box's PHASE interval regardless of its

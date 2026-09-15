@@ -7,8 +7,7 @@
 /**
  * @brief Series palette for the plots.
  *
- * Fixed while moving: index 3 used to fall through to the default colour,
- * and darkYellow appeared twice, so two series were painted alike.
+ * Every index a distinct colour: a repeated one paints two series alike.
  */
 namespace qftbx {
 

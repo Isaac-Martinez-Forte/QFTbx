@@ -27,9 +27,9 @@ namespace qftbx {
 namespace {
 
 //The lexer reads the expression without blanks: spaces, tabs and line
-//breaks alike (only the space used to go). Two operands with nothing but
-//blanks between them ("2 3", "a b") are refused first: stripped, they
-//would read as one token, and the user would get 23 for "2 3".
+//breaks alike. Two operands with nothing but blanks between them ("2 3",
+//"a b") are refused FIRST: stripped, they would read as one token and the
+//user would get 23 for "2 3".
 std::string withoutSpaces(const std::string & text)
 {
     const auto tokenChar = [](char c) {
@@ -139,8 +139,7 @@ ExpressionTree::ExpressionTree(const ExpressionTree &other )
 {
 }
 
-//The root owns the tree, and every node owns its branches: the recursive
-//post-order delete_tree() this used to call has nothing left to do.
+//The root owns the tree and every node owns its branches.
 ExpressionTree::~ExpressionTree() = default;
 
 /********************************************************
@@ -348,8 +347,7 @@ Interval ExpressionTree::eval(std::vector<Interval> & values)
 //Assignment: a deep copy, so the two trees own separate nodes.
 ExpressionTree &ExpressionTree::operator=(const ExpressionTree &other)
 {
-    //Falling off the end of a value-returning function is undefined
-    //behaviour (the historical version did, flagged by every build).
+    //Not falling off the end of a value-returning function.
     if (this != &other) {
         root = make_cpy(other.root.get());
         m_boundNames = other.m_boundNames;
@@ -488,8 +486,8 @@ bool ExpressionTree::propagateLoaded()
 
     //The part of the forward value that satisfies the constraint. Empty
     //means the box is infeasible; the whole value means there is nothing
-    //to narrow. The comparison used to be stored and ignored: every
-    //constraint was treated as ">=", which is the one MR builds.
+    //to narrow. The comparison is read here: treating every constraint as
+    //">=", the one MR builds, is the easy mistake.
     Interval narrowed;
 
     switch (comparison) {
@@ -542,9 +540,9 @@ bool ExpressionTree::safeIntersection(const Interval & a, const Interval & b, In
 //Backward (projection) phase of the HC4 filter. Every child projection is
 //intersected with the child's forward value; an empty intersection proves
 //the whole box inconsistent (return false). Unsafe projections are
-//skipped rather than risked: the historical version fed negative ranges
-//to pow (ln of a negative aborts inside the noexcept library), called
-//acos/asin outside [-1, 1], divided by intervals straddling zero and
+//skipped rather than risked: a negative range into pow aborts inside the
+//noexcept library, and so do acos/asin outside [-1, 1], division by an
+//interval straddling zero and
 //treated multi-branch trigonometric inverses as single-branch.
 bool ExpressionTree::eval_tree_out(exp_node *node, Interval enclosure){
 
@@ -828,10 +826,9 @@ Interval ExpressionTree::eval_tree_in(exp_node *node)
             return node->enclosure = *node->slot;
         }
 
-        //A missing variable used to return a default-constructed
-        //Interval, whose bounds are UNINITIALIZED memory. One lookup: the
-        //name is compared against the map's keys here and nowhere else in
-        //this evaluation.
+        //A missing variable is an error, not a default-constructed
+        //Interval with uninitialised bounds. One lookup: the name is
+        //compared against the map's keys here and nowhere else.
         const auto found = variables_in->find(node->var);
 
         if (found == variables_in->end()) {
@@ -974,10 +971,8 @@ void ExpressionTree::build_tree(std::string &in_exp)
         return top;
     };
 
-    //Turns the operator on top of the stack into a node over its operands.
-    //The nine copies of this block the parser used to carry differed only
-    //in which operators they were asked to reduce; the loops below decide
-    //that, and this does the reducing.
+    //Turns the operator on top of the stack into a node over its operands;
+    //which operators to reduce is the callers' business, below.
     const auto reduceTop = [&]() {
         auto reduced = std::make_unique<exp_node>();
         reduced->type = operatorStack.top();
@@ -1006,10 +1001,9 @@ void ExpressionTree::build_tree(std::string &in_exp)
 
     const std::string::size_type len = in_exp.length();
 
-    //A constant, optionally signed, with an optional exponent: the exponent
-    //belongs to the constant (the historical lexer stopped at the 'e' and
-    //re-read it as an identifier). It may start at its decimal point
-    //(".5"). Advances pos past it.
+    //A constant, optionally signed, with an optional exponent: the 'e'
+    //belongs to the constant and is not the start of an identifier. It may
+    //start at its decimal point (".5"). Advances pos past it.
     const auto readConstant = [&](std::string::size_type & pos) {
         const std::string::size_type from = pos;
         if (in_exp[pos] == '-') {
@@ -1052,8 +1046,8 @@ void ExpressionTree::build_tree(std::string &in_exp)
     std::string::size_type pos = 0;
 
     //Whether a '-' at pos is a unary minus: at the start, after an opening
-    //parenthesis or after an operator. "2*-3" and "s^-1" used to fail as a
-    //binary minus missing its left operand.
+    //parenthesis or after an operator. Without this, "2*-3" and "s^-1" are
+    //a binary minus missing its left operand.
     const auto isUnaryMinusAt = [&](std::string::size_type at) {
         if (at == 0) {
             return true;
@@ -1086,12 +1080,11 @@ void ExpressionTree::build_tree(std::string &in_exp)
         if ( isLetter(c) )
         {
             //An identifier is a letter followed by letters, digits or
-            //underscores: the historical lexer stopped at the first
-            //non-letter, so "z1" parsed as the variable "z" and a stray
-            //constant 1. Followed by an opening parenthesis and naming a
-            //function, it is that function; otherwise a whole-token constant
-            //(pi, e, in either case: "P1" and "E2" used to be read as the
-            //constants, swallowing the variable) or a variable.
+            //underscores, all of it: stopping at the first non-letter reads
+            //"z1" as the variable "z" and a stray constant 1. Followed by an
+            //opening parenthesis and naming a function, it is that function;
+            //otherwise a WHOLE-token constant (pi, e, in either case, so
+            //that "P1" and "E2" stay variables) or a variable.
             std::string::size_type i = pos;
             while ( i < len && isIdentifierChar(in_exp[i]) ) ++i;
             const std::string token = in_exp.substr(pos, i - pos);

@@ -17,10 +17,7 @@
  * coefficient: the values, the expressions the user typed, and whether each
  * coefficient is an uncertain parameter.
  *
- * By value. They used to be `QVector<QVector<QString> *> *`, a pointer to a
- * vector of pointers, and three different files carried the same
- * releaseTables() helper to walk and free them - one of which had to skip a
- * table that might be null.
+ * By value, so that no caller carries a helper to walk and free them.
  */
 
 /// The texts of one polynomial slot's coefficients.

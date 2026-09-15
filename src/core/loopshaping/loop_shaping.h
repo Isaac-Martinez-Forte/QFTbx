@@ -21,12 +21,12 @@
 
 
 /**
- * @brief Facade over the five loop-shaping algorithms: picks one, runs it
- * over the current problem, and hands back the controller it designed.
+ * @brief Facade over the loop-shaping algorithms: picks one, runs it over
+ * the current problem, and hands back the controller it designed.
  *
  * The single point where the ownership of a designed system leaves the
- * engine, and the only thing above it that knows there are five
- * algorithms at all. What their shared epsilon argument measures is NOT
+ * engine, and the only thing above it that knows how many algorithms there
+ * are (LoopShapingAlgorithm lists them). What their shared epsilon argument measures is NOT
  * shared - see run().
  */
 namespace qftbx {
@@ -47,7 +47,7 @@ public:
      * picked: the Nichols box diameter for NT/NK/MC1/MC, the controller
      * parameter width for MR. See
      * ProjectController::computeLoopShaping.
-     * @param algorithm which of the five to run.
+     * @param algorithm which one to run.
      * @param contour the plant template contours.
      * @param specifications the design specifications.
      * @param initialisation starting point of NK's local search.

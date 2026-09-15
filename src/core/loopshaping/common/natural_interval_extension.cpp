@@ -30,11 +30,11 @@ PolarInterval factor(const Interval & x, double w)
 //The projection below multiplies (jw + parameter) factors: the thesis'
 //zero-pole-gain controller structure, and only that one. A time-constant
 //controller evaluates as k (s/z + 1)/(s/p + 1) everywhere else (evaluation,
-//interface, file), so projecting it as zero-pole-gain, as the historical
-//code did, made the optimiser and the viewer disagree by the factor
-//prod(p)/prod(z); polynomial and free-form parameters are not zeros or poles
-//at all. Until the projection of those structures exists, they are refused
-//with a message for the user (decision 2026-09-04).
+//interface, file), so projecting it as zero-pole-gain would make the
+//optimiser and the viewer disagree by the factor prod(p)/prod(z);
+//polynomial and free-form parameters are not zeros or poles at all. Until
+//the projection of those structures exists, they are refused with a message
+//for the user.
 void ensureSupportedStructure(LtiSystem::SystemType type)
 {
     if (type != LtiSystem::SystemType::ZeroPoleGain) {
@@ -49,9 +49,8 @@ void ensureSupportedStructure(LtiSystem::SystemType type)
 
 PolarInterval NaturalIntervalExtension::factorProduct(std::vector<Parameter> & parameters, double w)
 {
-    //Neutral element: an empty vector stands for the constant 1 (the
-    //historical code left the product UNINITIALIZED for a pure-gain
-    //controller and read garbage).
+    //Neutral element: an empty vector stands for the constant 1, which is
+    //what a pure-gain controller has.
     PolarInterval product(Interval(1.0), Interval(0.0));
 
     for (Parameter & parameter : parameters) {

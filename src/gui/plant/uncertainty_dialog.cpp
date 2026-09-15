@@ -36,9 +36,7 @@ UncertaintyDialog::~UncertaintyDialog(){
 }
 
 //The input tables arrive from PlantDialog or ControllerDialog and become
-//the dialog's. They used to be three pointers to vectors of pointers, with
-//a releaseTables() to walk them: every launch had to call it first or the
-//previous tables leaked.
+//the dialog's.
 bool UncertaintyDialog::launch(CoefficientTable valueTable, CoefficientTable expressionTable,
                                UncertainTable uncertainTable, bool rangeOnly){
 
@@ -71,8 +69,7 @@ bool UncertaintyDialog::launch(CoefficientTable valueTable, CoefficientTable exp
 
 void UncertaintyDialog::buildRows(){
 
-    //Rows of the value table, by name: they used to be two members aliasing
-    //into it.
+    //Rows of the value table, by name.
     const CoefficientRow & numeratorTokens = valueTable.at(0);
     const CoefficientRow & denominatorTokens = valueTable.at(1);
 
@@ -93,11 +90,10 @@ void UncertaintyDialog::buildRows(){
     rowWidgets.clear();
 
     //On the scroll AREA's inner widget, which is what holds the content of
-    //a QScrollArea. This used to build the layouts on the scroll areas
-    //themselves and then setLayout() them onto the inner widgets, which
-    //works only because Qt STEALS a layout from its old widget parent and
-    //reparents the widgets it manages: the widget named here was not the
-    //one that ended up owning them.
+    //a QScrollArea. Building the layout on the scroll area itself and then
+    //setting it on the inner widget appears to work, because Qt steals a
+    //layout from its old parent and reparents what it manages, but the
+    //widget named is then not the one that owns them.
     numeratorLayout = new QVBoxLayout(ui->numeratorArea);
     denominatorLayout = new QVBoxLayout(ui->denominatorArea);
 
@@ -281,8 +277,7 @@ bool UncertaintyDialog::readRanges(){
     QVector <QString> seenNames;
 
     for (std::size_t i = 0; i < numeratorTokens.size(); i++){
-        //Optional: an invalid row leaves it empty (it used to be a null
-        //pointer used as the validity sentinel).
+        //Optional: an invalid row leaves it empty.
         std::optional<Parameter> parameter;
         valid = true;
         if(uncertainTable.at(0).at(i)){
@@ -363,8 +358,7 @@ bool UncertaintyDialog::readRanges(){
     allValid = true;
 
     for (std::size_t i = 0; i < denominatorTokens.size(); i++){
-        //Optional: an invalid row leaves it empty (it used to be a null
-        //pointer used as the validity sentinel).
+        //Optional: an invalid row leaves it empty.
         std::optional<Parameter> parameter;
         valid = true;
         if(uncertainTable.at(1).at(i)){

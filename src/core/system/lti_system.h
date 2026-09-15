@@ -19,15 +19,11 @@ namespace qftbx {
  * hierarchy. A system is defined by a numerator, a denominator, a gain and a
  * pure delay, each of which may be an uncertain Parameter; concrete
  * subclasses fix the mathematical form (see SystemType). A system HOLDS its
- * parameters by value: there is no ownership to transfer, disarm or share
- * (the historical interface handed over raw pointers and offered
- * releaseOwnership() to disarm deletion, which every consumer had to get
- * right by hand).
+ * parameters by value: there is no ownership to transfer, disarm or share.
  *
  * Evaluation is direct complex arithmetic over the coefficient values
  * (valueAt); only a free-form system evaluates an expression tree, with its
- * coefficients bound as variables. The textual routes that evaluated an
- * expression per call are gone: nothing outside the tests used them.
+ * coefficients bound as variables.
  */
 class LtiSystem
 {
@@ -39,9 +35,7 @@ public:
      * type from parameter VALUES (copied or moved in, no ownership to hand
      * over). The expression strings are only used by FreeForm.
      *
-     * The new system belongs to the caller, and the type says so: the
-     * historical factory returned a raw pointer, and every one of its
-     * callers had to remember a delete on every path out.
+     * The new system belongs to the caller, and the type says so.
      */
     virtual std::unique_ptr<LtiSystem> create (std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,
                               Parameter k, Parameter delay = Parameter(double(0)),

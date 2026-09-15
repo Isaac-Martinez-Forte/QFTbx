@@ -196,10 +196,8 @@ bool BoundaryColumns::operator==(const BoundaryColumns & other) const
 
 void BoundaryColumns::intersectWith(const BoundaryColumns & other)
 {
-    //Column c of one set and column c of the other must be the same phase.
-    //The index used to be clamped to the other's last column instead, so
-    //two sets over different grids intersected column-for-column, silently
-    //and wrongly, past the shorter one's end.
+    //Column c of one set and column c of the other must be the same phase,
+    //or the intersection is column-for-column over different grids.
     if (m_columns != other.m_columns || m_phaseMin != other.m_phaseMin || m_step != other.m_step) {
         throw InvalidInput(QFTBX_TR("Core", "Boundary columns over different phase grids cannot be intersected: %1 columns from %2 step %3 against %4 columns from %5 step %6.")
                            .arg(m_columns).arg(m_phaseMin).arg(m_step)

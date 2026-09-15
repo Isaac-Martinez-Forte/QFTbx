@@ -106,6 +106,6 @@ enclosing the product set of sampled factors.
 The second backend is the cross-check of the first. The loop-shaping
 results are deterministic, so a build with each backend can run the same
 project and the two controllers can be compared: on the thesis benchmarks
-(the ACC'90 problem with the five algorithms, and Matlab QFT Toolbox
+(the ACC'90 problem with every algorithm, and Matlab QFT Toolbox
 example 2 with NT and MR) kv and C-XSC return the same controllers to the
 last bit.

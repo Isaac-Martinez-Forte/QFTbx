@@ -19,10 +19,8 @@ namespace qftbx {
  * with one synthetic point before its first and after its last sample so the
  * later 1D union closes open contours against the window frame.
  *
- * The CPU sheet and the GPU sheet differ only in how a cell is read: one
- * walk serves both. The GPU overload used to carry its own copy of the walk,
- * with the threshold tests the other way round and a retrace of two-point
- * regions the CPU never did, so the two paths traced different boundaries.
+ * The CPU sheet and the GPU sheet differ only in how a cell is read, so one
+ * walk serves both and the two cannot trace different boundaries.
  */
 class ContourTracer
 {

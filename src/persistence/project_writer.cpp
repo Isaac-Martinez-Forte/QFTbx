@@ -19,18 +19,16 @@ namespace qftbx {
 
 namespace {
 
-//The one place a real becomes text: see qftbx::text::number. This used to
-//be a local "%.17g", which wrote noise digits by the thousand
-//(0.00010155800000000001 for a value whose exact short form is
-//0.000101558) - 17669 of them in the shipped fixtures alone.
+//The one place a real becomes text: see qftbx::text::number. Not "%.17g",
+//which writes noise digits (0.00010155800000000001 for a value whose exact
+//short form is 0.000101558).
 using qftbx::text::number;
 
 const Tags & t = kV2;
 
-//A NaN or an infinity never leaves for the file. The writer used to write
-//them as text ("nan", "inf"), the reader's strtod reads them back, and a
-//project that had gone wrong in memory came back looking like one that had
-//not.
+//A NaN or an infinity never leaves for the file: written as text they read
+//back through strtod, and a project that had gone wrong in memory would
+//come back looking like one that had not.
 void requireFinite(double value, const char * what)
 {
     if (!std::isfinite(value)) {
@@ -108,13 +106,10 @@ void addBool(pugi::xml_node parent, const char * name, bool value)
 }
 
 //The RAW values, because they are the state and the reader takes what it
-//finds as the state. This used to write range() and nominal(), which are the
-//values with the reparametrisation expression already applied, and the reader
-//handed them to Parameter as the raw ones: one save-and-load applied the
-//expression twice, so a parameter mapped by "a*10" from [1, 2] came back
-//raw as [10, 20] and reported [100, 200]. No fixture carries a
-//reparametrisation, which is how it went unnoticed; the round-trip test that
-//found it has one now.
+//finds as the state. range() and nominal() are those values with the
+//reparametrisation already applied, so writing them applies the expression
+//once more on every save and load: "a*10" over [1, 2] comes back raw as
+//[10, 20] and reports [100, 200].
 void writeParameter(pugi::xml_node parent, const Parameter & parameter)
 {
     pugi::xml_node node = parent.append_child("parameter");

@@ -55,6 +55,8 @@ their baselines.
 | Loop shaping | [loop-shaping-mr.md](loop-shaping-mr.md) | **MR**, synthesis as an interval constraint satisfaction problem | Kalla and Nataraj 2010 |
 | Loop shaping | [loop-shaping-mc1.md](loop-shaping-mc1.md) | **MC (2021)**, NT/NK accelerated with phase and feasible-box information | Martínez-Forte and Cervera 2021 |
 | Loop shaping | [loop-shaping-mc.md](loop-shaping-mc.md) | **MC (thesis)**, every strategy of the thesis assembled | Martínez-Forte 2022, ch. 4 and 5 |
+| Loop shaping | [loop-shaping-mc2.md](loop-shaping-mc2.md) | **MC2**, those strategies with their formulation corrected | this repository, over Martínez-Forte 2022 |
+| Loop shaping | [loop-shaping-mc3.md](loop-shaping-mc3.md) | **MC3**, the gain treated exactly and kept out of the tree | this repository |
 
 The genealogy of the loop-shaping algorithms, which the pages follow:
 
@@ -64,6 +66,8 @@ NT  Nataraj and Tharewal (2002-2005)      interval branch & bound, gain cuts
      ├─ MR  Kalla and Nataraj (2010)      constraint satisfaction: HC4 filtering instead of feasibility tests
      └─ MC  Martínez-Forte and Cervera (2021)   + phase information, feasible-box information
          └─ MC  Martínez-Forte (2022)     + feasible subranges, best-gain search, tree bisection, stages
+             └─ MC2  this repository      the same strategies, their formulation corrected, no stages
+                 └─ MC3  this repository  the gain out of the tree: a set of admissible gains per node
 ```
 
 ## The documents

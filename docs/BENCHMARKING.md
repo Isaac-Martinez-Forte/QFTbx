@@ -1,7 +1,7 @@
 # Benchmarking the loop-shaping algorithms
 
 QFTbx ships a benchmark tool, `qftbx-bench`, and a planner in the interface
-for measuring the five loop-shaping algorithms on one problem: the same
+for measuring the loop-shaping algorithms on one problem: the same
 project, its templates and boundaries already computed, a sequence of
 controller structures of growing order, every algorithm and epsilon you
 choose, repeated as many times as the statistics need. Neither is part of

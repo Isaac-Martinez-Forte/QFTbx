@@ -78,11 +78,10 @@
  * - The C_g+ split is re-certified by the same box test it came from, so
  *   its heuristic gate cannot compromise the result; degenerate slivers
  *   are skipped because they would only bloat the list.
- * - The historical implementation carried a penalty outside the paper
- *   (at \f$ \omega = 2 \f$ with \f$ \sup(\Im) < -180 \f$, the list key
- *   became \f$ \inf(k) + 100 \f$), which broke the optimality guarantee.
- *   It was a hand-made version of the nominal stability rule above, and
- *   it is gone.
+ * - Nothing biases the list key. A penalty added to it - the obvious way
+ *   to push suspect boxes back - breaks the guarantee that makes the first
+ *   solution the global optimum. Nominal stability is a verdict, above,
+ *   not a weight.
  */
 namespace qftbx {
 
@@ -127,9 +126,8 @@ public:
 private:
 
     //Every working structure below owns itself, so an exit through an
-    //exception (an infeasible problem throws) frees them like a normal
-    //return. The historical throw paths freed four of the five by hand and
-    //forgot the nominal-plant cache.
+    //exception - an infeasible problem throws - frees them like a normal
+    //return would.
     void check_box_feasibility(std::unique_ptr<LtiSystem> box);
     std::unique_ptr<LtiSystem> accelerated(std::unique_ptr<LtiSystem> v, double minBoundary,
                                           const NaturalIntervalExtension::Factors & factors,

@@ -42,7 +42,6 @@ namespace qftbx {
  * @brief Step 3 of the design: the sweep grid of every uncertain plant
  * parameter and the epsilon of the contour walk.
  *
- * The class block used to name TemplateViewer, which is a different class.
  *
  * @author Isaac Martínez Forte
  */
@@ -81,9 +80,8 @@ public:
     
     
     /// The per-frequency epsilon the user described, or nullptr when the
-    /// dialog was cancelled or rejected. Ownership passes to the caller:
-    /// this used to be a plain getter whose value the project then took,
-    /// leaving the dialog holding a dangling pointer between accepts.
+    /// dialog was cancelled or rejected. Ownership PASSES to the caller,
+    /// so the dialog holds nothing between accepts.
     std::vector<double> takeEpsilon();
     
     

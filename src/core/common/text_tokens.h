@@ -26,11 +26,10 @@ namespace text {
  * whole point. Without the floor the shortest form of 1000 is "1e+03",
  * shorter and worse.
  *
- * Two traps this exists to close. Six significant digits silently truncated
- * anything needing more: 1234567.89 was written "1.23457e+06". And
- * std::to_string(double) - the obvious replacement when Qt goes - is six
- * DECIMALS, which turns 1e-16 into "0.000000", a zero where a coefficient
- * used to be.
+ * Two traps this exists to close. Six significant digits truncate anything
+ * needing more: 1234567.89 becomes "1.23457e+06". And std::to_string(double),
+ * the obvious replacement, is six DECIMALS, which turns 1e-16 into
+ * "0.000000" - a zero where a coefficient was.
  *
  * Implemented by asking for one more digit until the text round-trips,
  * because std::to_chars for floating point arrived in gcc 11 and this

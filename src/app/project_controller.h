@@ -36,9 +36,17 @@
  * the boundaries, enter the controller structure, and run the loop shaping.
  * A getter returns nullptr while its step has not been completed.
  *
- * Naming note: controllerStructure() is the CONTROLLER BEING DESIGNED (an
- * LtiSystem), not this class - the historical name of both was
- * "Controlador".
+ * Things to keep in mind:
+ * - Everything the engines COMPUTE is a function of the inputs above it, so
+ *   publishing an input drops what was computed from the old one. That
+ *   dependency graph lives here, in this one class, and every compute and
+ *   publish method applies it explicitly; the stages do not.
+ * - Publishing null is refused rather than taken as "remove this step":
+ *   there is no such step in the pipeline.
+ * - A computation in flight has the project data to itself, and anything
+ *   that would change it throws while it runs.
+ * - controllerStructure() is the CONTROLLER BEING DESIGNED (an LtiSystem),
+ *   not this class.
  *
  * @author Isaac Martínez Forte
  */
@@ -214,7 +222,7 @@ public:
      * parameters). The same number is therefore not comparable across
      * algorithms - on a plant whose |P| reaches 1e4, the Nichols reading is
      * four decades tighter than the parameter one.
-     * @param algorithm which of the five algorithms to run.
+     * @param algorithm which algorithm to run.
      * @param plotRange, pointCount frequency window the result is plotted
      * over (stored with the result, not used by the search).
      * @param initialisation starting point of NK's local search.
@@ -241,8 +249,7 @@ public:
      *
      * Nothing stores this. Every one of the seven is a question the data
      * already answer - the templates are done exactly when templates() is not
-     * empty - and the window used to keep seven booleans saying the same
-     * thing by hand. Duplicate state is state that can go out of sync.
+     * empty - rather than a flag per step kept by hand. Duplicate state is state that can go out of sync.
      */
     qftbx::StepSet completed() const;
 
@@ -333,12 +340,11 @@ public:
     /**
      * @brief Reads a .qft file into the project.
      *
-     * @return per-section presence flags, in the historical order: plant,
+     * @return per-section presence flags, in this order: plant,
      * specifications, omega, templates, boundaries, controller, loop
      * shaping, template contour. The caller owns the returned vector.
      */
-    /// Which sections the file carried, in the historical order. By value:
-    /// callers used to have to delete this, and most tests did not.
+    /// Which sections the file carried, in the order above.
     qftbx::StepSet load(std::string path);
 
 private:
@@ -349,7 +355,7 @@ private:
     void dropLoopShaping();
 
 
-    //The project contents, owned (replaces the historical DAO layer).
+    //The project contents, owned.
     qftbx::ProjectData m_data;
 
     //The publishers load() uses to put a file's artefacts in place. Private:

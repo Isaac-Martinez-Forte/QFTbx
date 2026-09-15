@@ -101,8 +101,8 @@ void BoundaryGridDialog::on_buttonBox_accepted()
     magnitudeCount = ui->magnitudePoints->text().toInt();
 
     //The grid must make sense before launching the computation: increasing
-    //ranges and at least two points per axis (any value used to go straight
-    //into the engine).
+    //ranges and at least two points per axis: what is here goes straight
+    //into the engine.
     if (phaseRange.min >= phaseRange.max || magnitudeRange.min >= magnitudeRange.max ||
             phaseCount < 2 || magnitudeCount < 2){
         qftbx::errorMessage(tr("The grid ranges must be increasing, with at least 2 points per axis."), tr("Boundary grid input"));
@@ -126,7 +126,7 @@ void BoundaryGridDialog::on_buttonBox_accepted()
         return;
     }
 
-    //Direct read: the old latch left CUDA enabled forever once checked.
+    //Read directly, not latched, so unchecking it takes effect.
     cudaCheck = ui->cudaCheck->isChecked();
 
     markAccepted();

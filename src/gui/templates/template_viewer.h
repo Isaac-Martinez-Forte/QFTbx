@@ -154,7 +154,7 @@ private:
     FrequencyLegend * legend = nullptr;
     void clearDiagram();
 
-    //Its own copies now: the viewer used to alias the project's vectors,
+    //Its OWN copies, not aliases of the project's vectors,
     //which is why a recompute had to be careful about what it freed.
     qftbx::CloudSet m_templates;
     qftbx::CloudSet m_contour;

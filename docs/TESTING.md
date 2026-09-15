@@ -28,6 +28,8 @@ print their elapsed time and their peak number of live nodes.
 
 **The model.** Plants and controllers in their four forms and their
 evaluation (`SystemInvoke`, `FreeFormPlant`, `TimeConstantGainValidation`),
+the roots of a polynomial and the recovery of the polynomial behind a
+function that can only be evaluated (`Polynomial`),
 parameters and their reparametrisation, the expression tree from the grammar
 to the builder (`ExpressionGrammar`, `ExpressionBinding`, `ComplexEvaluation`,
 `ExpressionBuilder`, `ExpressionNames`), the frequency set (`Omega`, the
@@ -41,12 +43,23 @@ bucket bounds of the union, the golden boundaries (`BoundariesGolden`).
 
 **Loop shaping.** The interval arithmetic and the natural interval extension
 (`IntervalArithmetic`, `ComplexIntervalArithmetic`, `PolarIntervalArithmetic`,
-`NaturalIntervalExtension`), the nominal stability check, the ordered list
-and the pipeline stages, and the five algorithms: against the published
-results where they exist (`LiteratureValidation`, `MrArticleValidation`,
-`QuickSolutionPaperExample`), against the thesis benchmarks
-(`ThesisBenchmarkGolden`), and against pinned results on the small fixtures
-(`LoopShapingGolden`).
+`NaturalIntervalExtension`), the nominal stability check (`NominalStability`,
+including plants with unstable poles and with poles on the imaginary axis,
+whose verdicts are fixed by the roots of the closed-loop polynomial and not
+by the criterion itself), the plant family that must not change its number
+of unstable poles (`UnstableFamily`), the ordered list and the pipeline
+stages, and every algorithm: against the published results where they exist
+(`LiteratureValidation`, `MrArticleValidation`, `QuickSolutionPaperExample`),
+against the thesis benchmarks (`ThesisBenchmarkGolden`), against pinned
+results on the small fixtures (`LoopShapingGolden`) and, for the two
+algorithms of this repository, `Mc3` and the MC2 rows of the benchmark
+goldens.
+
+**What the answer is worth.** The returned controller is checked against the
+specifications themselves rather than against the boundaries computed from
+them (`ReturnedControllerAgainstSpecifications`), and that check is repeated
+over a template four times denser to pin that the density of the sample is
+not what decides (`TemplateDensity`).
 
 **Persistence.** The `.qft` reader and writer, their error paths on
 malformed files, round trips through the fixtures, the staleness of results

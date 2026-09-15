@@ -21,11 +21,13 @@ namespace qftbx {
  * Control, 1994 - the criterion the Matlab QFT Toolbox applies).
  *
  * For a nominal open loop \f$ L_0(j\omega) = C(j\omega) P_0(j\omega) \f$
- * with NO poles in the open right half-plane, the closed loop is stable
- * if and only if the net number of signed crossings of the rays
+ * the closed loop is stable if and only if the net number of signed
+ * crossings of the rays
  * \f$ \{\angle L_0 \equiv -180^\circ \ (mod\ 360^\circ),\ |L_0| > 0\ dB\} \f$
- * is zero. A curve starting on a ray (two or more integrators) counts a
- * half crossing towards its departure side.
+ * over positive frequencies is \f$ P/2 \f$, half the number of poles the
+ * NOMINAL PLANT has in the open right half-plane. That is Nyquist's
+ * \f$ N = -P \f$ read on the Nichols chart, where the whole contour's count
+ * is twice the one over positive frequencies.
  *
  * The QFT bound constraints alone do not exclude loops that encircle the
  * critical point: a loop with \f$ |L_0| \gg 1 \f$ beyond \f$ -180^\circ \f$
@@ -33,13 +35,31 @@ namespace qftbx {
  * interval algorithms therefore complete their feasibility test with this
  * check on one point controller of each bounds-feasible box: by the
  * boundary crossing principle (Tharewal 2005, sec. 3.3.5), satisfied
- * stability bounds plus one nominally stable point make the whole box,
- * and the whole plant family, robustly stable. (This replaces a
- * historical hard-coded penalty at 2 rad/s that only biased the search.)
+ * stability bounds plus one nominally stable point make the whole box, and
+ * the whole plant family, robustly stable.
  *
- * PRECONDITION (documented, not verifiable here): the nominal plant has
- * no poles in the open right half-plane, and marginal poles on the
- * imaginary axis are lightly damped, as the thesis benchmarks do.
+ * Things to keep in mind:
+ *
+ * - \f$ P \f$ is asked of the plant once, when the checker is built, and a
+ *   plant that cannot place its poles is REFUSED. Assuming \f$ P = 0 \f$ for
+ *   it is the one thing a test that certifies must not do: a plant with one
+ *   unstable pole then gets the verdict of a stable one, in both
+ *   directions.
+ * - The robust stability argument above carries the nominal verdict to the
+ *   family only while every member has the same \f$ P \f$. That is not
+ *   checked here - the family is not in hand here - but at the template
+ *   sweep, which refuses a family whose uncertainty crosses the axis.
+ * - Poles of the plant ON the imaginary axis are not a precondition any
+ *   more, they are an input: at one the loop passes through infinity and
+ *   its phase falls by 180 degrees per pole, the indentation of the Nyquist
+ *   contour, where a sampled curve unwrapped between neighbours would take
+ *   the short way round and count the crossing wrong. Their frequencies
+ *   come from the plant's own poles, and the refinement leaves those
+ *   intervals alone, since the step there is not a sampling artefact.
+ * - A loop that starts on a ray at \f$ \omega = 0 \f$ counts half a crossing
+ *   towards its departure side. Two or more integrators put it there, and
+ *   so does an odd number of real unstable poles, which is why the value at
+ *   zero is read and not the first sample of the grid.
  *
  * The nominal plant response is sampled once on a logarithmic frequency
  * grid three decades beyond the design frequencies on both sides, refined

@@ -24,9 +24,8 @@ FreeForm::FreeForm(std::string name, std::vector <Parameter> numerator, std::vec
     //Parsed HERE, once, and bound to the Laplace variable and the distinct
     //parameter names: valueAt() then evaluates the tree from a vector of
     //values, which reads the tree and writes nothing, so the template sweep
-    //may call it from every thread at once. The text used to be handed to an
-    //expression library on every evaluation, with the Laplace variable
-    //renamed by a regular expression to keep it out of the way of the
+    //may call it from every thread at once. Nothing parses per evaluation,
+    //and nothing renames the Laplace variable to keep it clear of a
     //library's own names.
     std::unique_ptr<ExpressionTree> ratio;
     std::unique_ptr<ExpressionTree> denominatorTree;
@@ -131,9 +130,9 @@ std::unique_ptr<LtiSystem> FreeForm::clone(){
 std::vector<std::complex<double>> FreeForm::boundValues(const std::vector<double> & numerator,
                                                         const std::vector<double> & denominator) const
 {
-    //One value per parameter, no more and no fewer. This used to walk to
-    //the shorter of the two and say nothing, which made a caller's miscount
-    //into a plant evaluated with some coefficients missing.
+    //One value per parameter, no more and no fewer: walking to the shorter
+    //of the two turns a caller's miscount into a plant evaluated with some
+    //coefficients missing, and says nothing.
     if (numerator.size() != m_numeratorSlots.size() || denominator.size() != m_denominatorSlots.size()) {
         throw qftbx::InvalidInput(QFTBX_TR("Core", "FreeForm::valueAt: %1 and %2 values were given for %3 and %4 parameters")
                                   .arg(numerator.size()).arg(denominator.size()).arg(m_numeratorSlots.size()).arg(m_denominatorSlots.size()));

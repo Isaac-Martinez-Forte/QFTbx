@@ -43,7 +43,7 @@ struct Settings {
         std::int64_t maxGridCells = 10000000;
 
         /// Points per parameter grid in the template sweep. The count comes
-        /// from an expression the user types, and a negative one used to ask
+        /// from an expression the user types, so a negative one would ask
         /// for 1.8e19 doubles.
         double maxTemplatePoints = 1.0e6;
 
@@ -128,10 +128,10 @@ struct Settings {
         std::int32_t maxNarrowingPasses = 8;
 
         /// MR: measure the termination epsilon on the NICHOLS box of the
-        /// leading node, as the other four algorithms do, instead of on the
-        /// width of the controller parameter box, as the paper does. Off by
-        /// default; on, the five algorithms share one meaning of epsilon
-        /// and their running times can be compared.
+        /// leading node, as every other algorithm here does, instead of on
+        /// the width of the controller parameter box, as the paper does. Off
+        /// by default; on, they all share one meaning of epsilon and their
+        /// running times can be compared.
         bool mrNicholsEpsilon = false;
 
         /// Templates: when the contour walk does not close at a frequency,
@@ -279,12 +279,9 @@ struct Settings {
         /// The frequency range the loop-shaping plot starts with, in rad/s,
         /// and how many points over it.
         ///
-        /// One range and not one per mode. The dialog used to carry THREE
-        /// hardcoded sets - one on opening, one on picking linear, one on
-        /// picking logarithmic - and the last two differed from each other
-        /// and from the first with no reason given anywhere. Worse, they
-        /// overwrote whatever was in the fields, so a configured default
-        /// would have been thrown away the moment a mode was picked.
+        /// ONE range, not one per plot mode: a set per mode overwrites
+        /// whatever is in the fields the moment a mode is picked, and a
+        /// configured default with it.
         double loopStart = 1.0e-9;
         double loopEnd = 10.0;
         std::int32_t loopPointCount = 100;

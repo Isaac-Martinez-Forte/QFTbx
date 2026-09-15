@@ -68,9 +68,8 @@ struct exp_node
     //Valid only inside that call.
     Interval * slot = nullptr;
 
-    //A node OWNS its branches, so a tree frees itself. There used to be a
-    //recursive delete_tree() post-order walk, and every early return of the
-    //parser had to have called it.
+    //A node OWNS its branches, so a tree frees itself and no early return
+    //of the parser has to remember to walk it.
     std::unique_ptr<exp_node> left;
     std::unique_ptr<exp_node> right;
 };
@@ -196,8 +195,8 @@ public :
     /// half-line for the inequalities, a point for the equality), backward
     /// projection narrowing 'variables' in place. Returns false when a
     /// domain empties (the constraint proves the box infeasible). The
-    /// comparison used to be stored and never read: every constraint was
-    /// propagated as >=.
+    /// comparison is READ here: propagating every constraint as >= is the
+    /// easy mistake.
     bool propagate (std::map<std::string, Interval> *variables);
 
     /// The same pass over the domains given in the order of bind(),
@@ -269,9 +268,9 @@ private :
     /// skipped: skipping narrows nothing and stays sound.
     bool eval_tree_out(exp_node * node, Interval enclosure);
 
-    /// Intersection with an empty-signal instead of the historical throw
-    /// (the release build compiled the guarding assert out, so an empty
-    /// intersection built an invalid Interval and aborted the process).
+    /// Intersection that SIGNALS empty instead of throwing: an empty
+    /// intersection is the ordinary outcome of a narrowing that proves a
+    /// box infeasible, not an error.
     bool safeIntersection(const Interval & a, const Interval & b, Interval & out);
 
     void build_tree(std::string &in_exp);
@@ -305,10 +304,6 @@ private :
     //The names bind() was given, in order; empty while unbound.
     std::vector<std::string> m_boundNames;
 };
-
-//The parser used to carry two hand-written singly-linked stacks, nodeStack
-//and operatorStack, a hundred lines with the same interface std::stack has
-//(top/pop/push/empty) and four deletes of their own.
 
 } // namespace qftbx
 

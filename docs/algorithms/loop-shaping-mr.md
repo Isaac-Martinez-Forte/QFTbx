@@ -49,7 +49,7 @@ variable and both halves join the list.
   picked. Epsilon here measures the width of the CONTROLLER PARAMETER box, as
   the paper does, not the Nichols rectangle of the other four algorithms. The
   setting `algorithms.mr-nichols-epsilon` switches MR to the Nichols rectangle,
-  so that the five algorithms stop on one meaning of epsilon and their running
+  so that they all stop on one meaning of epsilon and their running
   times can be compared; it departs from the paper and is off by default.
 - **Representatives.** The template contour is subsampled to a handful of
   representatives per frequency (`algorithms.template-representatives`; the

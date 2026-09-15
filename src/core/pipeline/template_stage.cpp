@@ -49,8 +49,8 @@ bool TemplateStage::run(ProjectData & data, std::vector<double> epsilon,
         data.setContour(sweep.contours());
     }
 
-    //The computation no longer reorders or replaces the frequencies: it is
-    //enough to keep the epsilon used, for the persistence.
+    //The computation does not reorder or replace the frequencies, so only
+    //the epsilon used has to be kept, for the persistence.
     data.setEpsilon(std::move(epsilon));
 
     return produced;

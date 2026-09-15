@@ -1,10 +1,8 @@
 #include "src/gui/common/parlineedit.h"
 
 //Groups three QLineEdits WITHOUT taking ownership: the line edits are Qt
-//children of their row widget and die with it. The old delegating
-//constructor created three QLineEdits that leaked immediately, and the
-//destructor deleted widgets it did not own (double delete with the Qt
-//parent).
+//children of their row widget and die with it, so a destructor here would
+//be a double delete.
 namespace qftbx {
 
 ParLineEdit::ParLineEdit(QLineEdit * x, QLineEdit*  y, QLineEdit * nominal){

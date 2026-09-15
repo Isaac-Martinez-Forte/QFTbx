@@ -21,13 +21,7 @@ using TraceSet = std::vector<Trace>;
  * @brief Every boundary of a project: per design frequency, the curves of each
  * specification, keyed by its name.
  *
- * Held BY VALUE. This was
- * `std::vector<QMap<std::string, std::vector<std::vector<QPointF> *> *> *> *`: a pointer to a
- * vector of pointers to maps of pointers to vectors of pointers to vectors.
- * Four levels of indirection, each with its own answer to who frees it, and
- * the answer lived in comments rather than in the types. BoundaryData even
- * carried an m_owns flag because the same object was sometimes a view over
- * the engine's data and sometimes the owner of a loaded project's.
+ * Held by value: one owner, always.
  */
 using BoundarySet = std::vector<std::map<std::string, TraceSet>>;
 
@@ -59,9 +53,7 @@ using UnionBuckets = std::vector<std::vector<Trace>>;
  * column per phase. The level curves of this surface at the specification's
  * bound are the boundary.
  *
- * Held BY VALUE, ~1.7 MB per frequency. This was
- * `std::vector<std::vector<double> *> *`, and the five of them travelled together in
- * one more level of indirection, freed by a nested loop in the caller.
+ * Held by value, about 1.7 MB per frequency.
  */
 using BoundarySheet = std::vector<std::vector<double>>;
 
@@ -78,10 +70,6 @@ using BoundarySheets = std::array<BoundarySheet, 5>;
  * under the curve's top is allowed, so the allowed region lies BELOW the
  * curve; false when it lies above (BoundaryEngine::allowedZone returns 1
  * or 0). The 1D union reads it as upper = !label.
- *
- * It was a vector of QPoint with the flag in x and y always zero and never
- * read - a boolean stuffed into a 2D integer point. The open and upper
- * flags beside it were already plain bool vectors.
  */
 using TraceLabels = std::vector<bool>;
 

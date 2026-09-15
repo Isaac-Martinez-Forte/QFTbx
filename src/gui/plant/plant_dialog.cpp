@@ -163,8 +163,8 @@ std::optional<CoefficientTable> PlantDialog::readTables(CoefficientTable & expre
 
 bool PlantDialog::nameIsPresent()
 {
-    //The name is required on both paths: only the uncertainty path used to
-    //validate it, and nameless plants could be saved.
+    //The name is required on BOTH paths, or a nameless plant can be saved
+    //through the other one.
     if (ui->nameEdit->text().isEmpty()) {
         errorMessage(tr("The plant name is missing."), tr("Plant input"));
         ui->nameEdit->setStyleSheet("background : red");

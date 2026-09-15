@@ -72,8 +72,8 @@ TemplatesDialog::~TemplatesDialog()
     //The rows are Qt children of the dialog and die with it.
 }
 
-//Variable rows: each ParLineEdit and its tab page belong to the dialog;
-//they used to be abandoned with clear() and the pages piled up.
+//Variable rows: each ParLineEdit and its tab page belong to the dialog, so
+//a clear() alone would leave the pages piling up.
 void TemplatesDialog::clearTables(){
     if (!rowsBuilt){
         return;
@@ -81,7 +81,7 @@ void TemplatesDialog::clearTables(){
 
     //Qt's own mechanism, and the only reason there is a delete here:
     //destroying the tab page is how the three line edits of a row leave the
-    //dialog. The pages used to pile up.
+    //dialog.
     for (const ParLineEdit & par : numeratorRows){
         delete par.getX()->parentWidget();
     }
@@ -98,8 +98,8 @@ void TemplatesDialog::clearTables(){
     rowsBuilt = false;
 }
 
-//The grid map belongs to the dialog (the engine reads it without taking
-//ownership): the old clear() leaked every computation's grids.
+//The grid map belongs to the dialog; the engine reads it without taking
+//ownership.
 std::vector<double> TemplatesDialog::takeEpsilon(){
     return std::move(epsilonValues);
 }
@@ -414,11 +414,10 @@ void TemplatesDialog::on_okButton_clicked()
     else if (ui->nicholsRadio->isChecked())
         nicholsDiagram = true;
 
-    //Direct read: the old latch left CUDA enabled forever once checked.
+    //Read directly, not latched, so unchecking it takes effect.
     cudaEnabled = ui->cudaCheck->isChecked();
 
-    //The previous epsilon already belongs to the DAO; the previous grid
-    //map is still the dialog's and is freed here.
+    //The previous grid map is still the dialog's and is freed here.
     gridMap.clear();
     duplicateNames.clear();
 
@@ -446,8 +445,8 @@ void TemplatesDialog::on_okButton_clicked()
 
         qint32 counter = 0;
 
-        //User expressions: an invalid epsilon used to throw and bring the
-        //application down.
+        //User expressions: an invalid epsilon must not escape this slot,
+        //since an exception out of a Qt slot terminates the process.
         for (const std::string & s : v) {
             const std::optional<double> epsilonValue = evaluateNumber(QString::fromStdString(s));
             if (!epsilonValue.has_value()) {
@@ -594,9 +593,8 @@ bool TemplatesDialog::readGrids(QString & reason)
             return false;
         }
 
-        //This branch used to insert the delay grid under the GAIN's key:
-        //it clobbered the gain's grid and left the delay without an entry
-        //(crashing the sweep with an uncertain delay).
+        //The DELAY's key, not the gain's: under the gain's it clobbers the
+        //gain's grid and leaves the delay without an entry.
         if (useLinspace){
             gridMap[plant->delay().name()] = qftbx::math::linspace(start, end, pointCount);
         } else {
@@ -605,7 +603,7 @@ bool TemplatesDialog::readGrids(QString & reason)
     }
 
     } catch (const std::invalid_argument &) {
-        //Invalid manual grid: it used to bring the application down.
+        //Invalid manual grid: caught here, for the same reason.
         reason = tr("Invalid grid expressions.");
         return false;
     }

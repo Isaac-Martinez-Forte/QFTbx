@@ -119,8 +119,8 @@ public:
     }
 
     //Space-separated real vector, the encoding of every numeric list in the
-    //format. The historical loader silently kept the prefix before the
-    //first garbage token; this one rejects it.
+    //format. A list with a garbage token is rejected whole, not truncated
+    //at the token.
     std::vector <double> realVector(const pugi::xml_node & node) const
     {
         //text::reals answers exactly this, whole-token validation and all:
@@ -195,13 +195,8 @@ public:
         const bool uncertain = boolChild(node, t.uncertain);
 
         if (!uncertain) {
-            //A constant is its value. There used to be a branch here that
-            //read a <range> off a non-uncertain parameter, "kept for
-            //compatibility" with old controller records of the Spanish
-            //dialect: that dialect is gone, the writer never emits a range
-            //for a constant, and the branch stored the range through a setter
-            //that skipped every check the constructors make. The one door a
-            //NaN could still come in through, and it led nowhere.
+            //A constant is its value: no <range> is read for one, and the
+            //writer emits none.
             return Parameter(nominal);
         }
 
@@ -336,9 +331,9 @@ public:
                           static_cast<double>(std::numeric_limits<std::int32_t>::max())))
                 : 0;
 
-        //An unknown generation type used to travel in as-is and then behave
-        //as linear wherever it was compared, which hid a corrupt file
-        //instead of reporting it.
+        //An unknown generation type is refused: travelling in as-is, it
+        //behaves as linear wherever it is compared and hides a corrupt
+        //file instead of reporting it.
         const double storedType = realChild(section, t.omegaType);
         if (storedType != static_cast<double>(Omega::LinSpace) &&
                 storedType != static_cast<double>(Omega::LogSpace) &&
@@ -483,7 +478,7 @@ ProjectReader::~ProjectReader() = default;
 ProjectReader::Loaded ProjectReader::load(const std::string & filePath)
 {
     //An earlier load() must not show through this one: a section absent
-    //from this file used to keep the previous file's object.
+    //from this file leaves nothing of the previous file's behind.
     m_plant.reset();
     m_specifications.reset();
     m_omega.reset();
@@ -522,12 +517,11 @@ ProjectReader::Loaded ProjectReader::load(const std::string & filePath)
         throw ParseError(QFTBX_TR("Core", "not a QFT project file (root <%1>)").arg(root.name()), 1, filePath);
     }
 
-    //Version 2 is the only format. A file without the attribute used to be
-    //read as the historical Spanish dialect; that path is gone, and guessing
-    //is worse than refusing - the two dialects share tag names with
-    //DIFFERENT meanings (<inicio> is a range start and also an omega start,
-    //<tipo> is an element in one place and an attribute in another), so a
-    //wrong guess does not fail, it reads the wrong numbers.
+    //A file without the attribute is refused, not guessed at: the older
+    //Spanish dialect shares tag names with DIFFERENT meanings (<inicio> is
+    //a range start and also an omega start, <tipo> is an element in one
+    //place and an attribute in another), so a wrong guess does not fail,
+    //it reads the wrong numbers.
     //Version 3 adds to version 2 only the plane the templates' epsilon is
     //measured in, as attributes of <epsilon>; a version-2 file is read as
     //what it is, an epsilon in the complex plane.
@@ -582,16 +576,14 @@ ProjectReader::Loaded ProjectReader::load(const std::string & filePath)
         m_boundaries = parser.readBoundaries(section);
     }
     if (const pugi::xml_node section = root.child(t.controller)) {
-        //The historical loader stored a free-form CONTROLLER in the plant
-        //slot; here every type lands in the controller.
+        //Every type lands in the controller, free-form included.
         m_controller = parser.readSystem(section);
     }
     if (const pugi::xml_node section = root.child(t.loopShaping)) {
         m_loopShaping = parser.readLoopShaping(section);
     }
 
-    //Section flags in the historical order (always all 8: the old error
-    //paths returned 7 and consumers indexed out of range).
+    //Section flags, ALWAYS all 8: consumers index into them.
     Loaded loaded;
 
     if (m_plant != nullptr)                { loaded.steps.add(qftbx::Step::Plant); }

@@ -32,9 +32,7 @@
  * The feasibility test is completed with the nominal closed-loop
  * stability check of sec. 3.3.5, implemented on the Nichols chart by the
  * Cohen-Chait-Yaniv criterion (NominalStabilityChecker): the QFT bounds
- * alone do not exclude loops that encircle the critical point. The
- * historical code approximated this with a hard-coded ordering penalty
- * at 2 rad/s, retired by this review.
+ * alone do not exclude loops that encircle the critical point.
  */
 
 namespace qftbx {
@@ -100,8 +98,8 @@ bool AlgorithmNt::solve() {
         //list rather than when it entered it: a feasible box takes no part
         //in the search until it is popped, so the boxes popped after it are
         //the same either way, and the criterion samples the loop at
-        //thousands of frequencies, which used to be paid for every feasible
-        //box the search inserted and never came back to.
+        //thousands of frequencies, which is not worth paying for a box the
+        //search may never come back to.
         if (node->flag() == feasible && !stability->isNominallyStable(cornerOf(node->system(), true))) {
             continue;
         }

@@ -51,11 +51,10 @@ inline constexpr std::size_t kDefaultMaxLiveNodes = 32000000;
  * live-node lists grow to millions of nodes - and ties keep insertion
  * order, so the exploration is deterministic. The list OWNS the nodes it
  * holds: whatever is still queued when the search ends dies with the
- * list, and takeFirst() hands one node's ownership over. The historical
- * hand-made implementation inserted every middle element one slot too
- * early, breaking the ordering that makes the first solution of the
- * branch & bound the global optimum, and crashed inserting at the front
- * of a descending list.
+ * list, and takeFirst() hands one node's ownership over. The ordering is
+ * what makes the first solution of the branch and bound the global one, so
+ * an insertion off by one slot does not misorder the list, it changes the
+ * answer.
  */
 class OrderedList
 {
@@ -78,12 +77,9 @@ public:
     /**
      * @brief Unlinks the first node and hands its ownership over.
      *
-     * Removing and obtaining used to be two calls - first() then
-     * removeFirst() - and removeFirst() did NOT delete: forgetting the first()
-     * grab leaked the node silently, inside a branch and bound loop that
-     * visits millions of them. The algorithms all did it right; the test did
-     * not, which is how it was noticed. One call that returns the ownership
-     * cannot be got wrong.
+     * One call rather than an observer plus a removal: inside a loop that
+     * visits millions of nodes, a caller that forgets one of the two leaks
+     * every node it takes.
      */
     std::unique_ptr<ListNode> takeFirst();
 

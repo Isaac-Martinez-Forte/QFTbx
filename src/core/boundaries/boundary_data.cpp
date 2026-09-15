@@ -19,14 +19,9 @@ BoundaryData::BoundaryData(BoundarySet boundaries, std::vector<bool> openFlags,
       m_unionBuckets(std::move(unionBuckets)),
       m_specificationColumns(std::move(columns))
 {
-    //No destructor: what used to be a hand-written deep delete over five
-    //levels of pointers - guarded by an m_owns flag, because the same class
-    //was sometimes a view and sometimes the owner - is now what the members
-    //do for themselves.
 
-    //Columns for every specification with traces: the given ones, rebuilt
-    //from the traces where a frequency or a specification lacks them (a
-    //file from before they were stored).
+    //Rebuilt from the traces where a frequency or a specification lacks
+    //them: a file written before the columns were stored.
     m_specificationColumns.resize(m_boundaries.size());
     for (std::size_t f = 0; f < m_boundaries.size(); ++f) {
         for (const auto & entry : m_boundaries[f]) {
@@ -41,8 +36,7 @@ BoundaryData::BoundaryData(BoundarySet boundaries, std::vector<bool> openFlags,
         }
     }
 
-    //The columns of the frequency: the intersection over its
-    //specifications.
+    //The frequency's columns are the intersection over its specifications.
     m_columns.reserve(m_boundaries.size());
     for (std::size_t f = 0; f < m_boundaries.size(); ++f) {
         BoundaryColumns all(m_phaseCount, m_phaseRange);

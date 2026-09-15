@@ -51,7 +51,7 @@
  *   the criterion of their own papers, so the same number means different
  *   things depending on the algorithm picked - the note on setProblem says
  *   what. The setting algorithms.mr-nichols-epsilon makes MR stop on the
- *   Nichols box like the others, so that the five can be timed against one
+ *   Nichols box like the others, so that they can be timed against one
  *   another on one meaning of epsilon; it is off by default. The paper
  *   collects all solution boxes of that width and sorts them afterwards;
  *   ordering the live list by gain infimum reaches the minimum-gain one

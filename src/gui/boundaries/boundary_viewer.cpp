@@ -21,7 +21,7 @@ BoundaryViewer::BoundaryViewer(QWidget *parent) :
     legend->setGeometry(QRect(660, 0, 141, 461));
     connect(legend, &FrequencyLegend::rowToggled, this, &BoundaryViewer::applyCheckboxes);
 
-    //Mirrored secondary axes, connected ONCE: every repaint used to add a
+    //Mirrored secondary axes, connected ONCE: a connection per repaint adds a
     //duplicate connection.
     connect(ui->plot->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->xAxis2, SLOT(setRange(QCPRange)));
     connect(ui->plot->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->yAxis2, SLOT(setRange(QCPRange)));

@@ -79,8 +79,8 @@ void FrequenciesDialog::on_okButton_clicked()
                 qftbx::text::reals(ui->manualValues->text().toStdString());
         type = Omega::Manual;
         if (!parsed.has_value()){
-            //Invalid input: it used to carry on and dereference the null
-            //pointer a few lines below.
+            //Invalid input: the null pointer is dereferenced a few lines
+            //below.
             ui->manualValues->setStyleSheet("background : red");
             return;
         }
@@ -119,8 +119,8 @@ void FrequenciesDialog::on_okButton_clicked()
                                ui->linCount->text().toInt());
 
         start = ui->linStart->text().toDouble();
-        //linStart used to be re-read: every linear Omega was stored with
-        //end == start (and travelled like that into the .qft and Bode).
+        //linEnd, not linStart: re-reading the start stores every linear
+        //Omega with end == start, and it travels like that into the .qft.
         end = ui->linEnd->text().toDouble();
         type = Omega::LinSpace;
 
