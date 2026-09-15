@@ -1,8 +1,12 @@
 #include "src/core/loopshaping/common/nominal_stability_checker.h"
+
+#include "src/core/math/polynomial.h"
 #include "src/core/math/constants.h"
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
+#include <cstdlib>
 #include <cstdint>
 #include <cstring>
 
@@ -104,6 +108,31 @@ NominalStabilityChecker::NominalStabilityChecker(LtiSystem * nominalPlant,
     }
 
     m_cosMaxPhaseStep = std::cos(m_tolerances.maxPhaseStepDegrees * qftbx::math::kPi / 180.0);
+
+    //The plant's poles, once: how many lie in the right half-plane (the P
+    //of the criterion) and where the ones on the imaginary axis are (where
+    //the loop passes through infinity). A plant that cannot say - a
+    //free-form denominator that is not a polynomial in s - gets no verdict
+    //at all rather than one that assumes P = 0.
+    const std::optional<std::vector<std::complex<double>>> poles = m_plant->nominalPoles();
+    if (!poles.has_value()) {
+        throw InvalidInput(QFTBX_TR("Core", "The stability criterion cannot place the poles of the nominal plant: its denominator is not a polynomial in s."));
+    }
+    m_rhpPoles = math::rightHalfPlaneCount(*poles);
+    m_axisPoles = math::imaginaryAxisFrequencies(*poles);
+
+    m_plantAtZero = m_plant->evaluate(0.0);
+}
+
+std::size_t NominalStabilityChecker::axisPolesBetween(double lo, double hi) const
+{
+    std::size_t count = 0;
+    for (const double pole : m_axisPoles) {
+        if (pole > lo && pole < hi) {
+            ++count;
+        }
+    }
+    return count;
 }
 
 std::complex<double> NominalStabilityChecker::plantAt(double w)
@@ -204,7 +233,8 @@ NominalStabilityChecker::Profile NominalStabilityChecker::computeProfile(const P
     //frequencies is inserted between them, within a budget.
     int budget = m_tolerances.refinementBudget;
     for (std::size_t i = 0; i + 1 < m_w.size() && budget > 0;) {
-        if (phaseStepExceeded(i) && m_w[i + 1] - m_w[i] > 1e-12 * m_w[i]) {
+        if (phaseStepExceeded(i) && m_w[i + 1] - m_w[i] > 1e-12 * m_w[i]
+                && (m_axisPoles.empty() || axisPolesBetween(m_w[i], m_w[i + 1]) == 0)) {
             const double w = std::sqrt(m_w[i] * m_w[i + 1]);
             const std::complex<double> loop = loopAt(shape, sign, w);
             const auto at = static_cast<std::ptrdiff_t>(i) + 1;
@@ -226,16 +256,35 @@ NominalStabilityChecker::Profile NominalStabilityChecker::computeProfile(const P
     profile.lastMagnitudeAtUnitGain = std::hypot(m_re[count - 1], m_im[count - 1]);
 
     //A curve that starts on a ray: half a crossing towards where it
-    //departs, when its magnitude is above the ray's.
-    const double startPhase = phaseDegrees(m_re[0], m_im[0]);
+    //departs, when its magnitude is above the ray's. The start is the loop
+    //at w = 0 itself when that is finite - a plant with an odd number of
+    //real right half-plane poles, or a negative static gain, sits exactly
+    //on the ray there, where the first sample of the grid is already a few
+    //thousandths of a degree off it - and the first sample otherwise, which
+    //is the loop of a plant with integrators, on the ray asymptotically.
+    //The loop at w = 0 without evaluating anything: a real factor, the
+    //controller's static gain, times the plant's own value there, which was
+    //sampled once when the checker was built.
+    double atZeroFactor = sign;
+    for (const double zero : shape.zeros) {
+        atZeroFactor *= zero;
+    }
+    for (const double pole : shape.poles) {
+        atZeroFactor /= pole;
+    }
+    const std::complex<double> atZero = atZeroFactor * m_plantAtZero;
+    const bool finiteAtZero = std::isfinite(atZero.real()) && std::isfinite(atZero.imag())
+            && (atZero.real() != 0.0 || atZero.imag() != 0.0);
+    const double startPhase = finiteAtZero ? phaseDegrees(atZero.real(), atZero.imag())
+                                           : phaseDegrees(m_re[0], m_im[0]);
     const double startRay = rayBelow(startPhase + 1e-6);
     if (std::abs(startPhase - startRay) < 1e-3) {
         profile.startsOnRay = true;
-        profile.startMagnitudeAtUnitGain = std::hypot(m_re[0], m_im[0]);
+        profile.startMagnitudeAtUnitGain = finiteAtZero ? std::abs(atZero) : std::hypot(m_re[0], m_im[0]);
 
         double accumulated = 0.0;
         double previous = startPhase;
-        for (std::size_t next = 1; next + 1 < count; ++next) {
+        for (std::size_t next = finiteAtZero ? 0 : 1; next + 1 < count; ++next) {
             const double phase = phaseDegrees(m_re[next], m_im[next]);
             accumulated += wrappedDelta(previous, phase);
             previous = phase;
@@ -253,12 +302,33 @@ NominalStabilityChecker::Profile NominalStabilityChecker::computeProfile(const P
     //geometrically, and the crossing counts with the direction of the
     //turn. Samples exactly on the axis are not a crossing, as the
     //criterion reads a ray strictly between two phases.
+    //Read once per profile, not once per interval: a plant with poles on
+    //the axis is the exception, and the usual one must not pay for it.
+    const bool anyAxisPole = !m_axisPoles.empty();
+
     for (std::size_t i = 0; i + 1 < count; ++i) {
-        if (side(m_im[i]) * side(m_im[i + 1]) >= 0) {
+        const std::size_t poles = anyAxisPole ? axisPolesBetween(m_w[i], m_w[i + 1]) : 0;
+
+        if (poles == 0 && side(m_im[i]) * side(m_im[i + 1]) >= 0) {
             continue;
         }
         const double a = phaseDegrees(m_re[i], m_im[i]);
-        const double delta = wrappedDelta(a, phaseDegrees(m_re[i + 1], m_im[i + 1]));
+        double delta = wrappedDelta(a, phaseDegrees(m_re[i + 1], m_im[i + 1]));
+
+        //Over a pole of the nominal plant on the imaginary axis the loop
+        //leaves through infinity and comes back with its phase 180 degrees
+        //LOWER per pole: that is the indentation of the Nyquist contour,
+        //traversed clockwise. Two samples only give the turn modulo 360, and
+        //the unwrapping picks the representative nearest zero, which half
+        //the time is the rise of 180 instead of the fall. Here the
+        //representative nearest the fall is taken instead. Without it the
+        //criterion misses the crossing the indentation makes and calls
+        //unstable loops stable.
+        if (poles > 0) {
+            const double expected = -180.0 * static_cast<double>(poles);
+            delta -= 360.0 * std::round((delta - expected) / 360.0);
+        }
+
         if (delta == 0.0) {
             continue;
         }
@@ -298,7 +368,7 @@ const NominalStabilityChecker::Profile & NominalStabilityChecker::profileOf(cons
     return m_profiles.emplace(m_key, computeProfile(shape)).first->second;
 }
 
-bool NominalStabilityChecker::isStable(const Profile & profile, double gainMagnitude)
+bool NominalStabilityChecker::isStable(const Profile & profile, double gainMagnitude) const
 {
     if (!profile.decided) {
         return false;
@@ -320,7 +390,9 @@ bool NominalStabilityChecker::isStable(const Profile & profile, double gainMagni
         }
     }
 
-    return std::abs(crossings) < 0.25;
+    //N = -P on the whole Nyquist contour; on positive frequencies alone
+    //the count is half of it.
+    return std::abs(crossings - 0.5 * m_rhpPoles) < 0.25;
 }
 
 bool NominalStabilityChecker::isNominallyStable(LtiSystem * controller)
@@ -355,12 +427,23 @@ bool NominalStabilityChecker::isBoxUnstable(LtiSystem * box, NaturalIntervalExte
         return false;
     }
 
+    //Two passes over the same grid, coarse then fine: a box whose enclosure
+    //reaches the critical point somewhere is usually caught by the coarse
+    //pass, and the fine pass then only runs for the boxes it proves.
     const std::size_t n = m_frequencies.size();
-    for (std::size_t i = 0; i < n; i += kStride) {
+    const auto reachesCriticalPoint = [&](std::size_t i) {
         const NicholsBox enclosure = extension.nicholsBox(box, m_frequencies[i],
                                                           std::complex<double>(m_plantRe[i], m_plantIm[i]));
-        if (enclosure.magnitudeDb.lower() <= 0.0 && enclosure.magnitudeDb.upper() >= 0.0 &&
-                enclosure.phaseDegrees.lower() <= -180.0 && enclosure.phaseDegrees.upper() >= -180.0) {
+        return enclosure.magnitudeDb.lower() <= 0.0 && enclosure.magnitudeDb.upper() >= 0.0 &&
+               enclosure.phaseDegrees.lower() <= -180.0 && enclosure.phaseDegrees.upper() >= -180.0;
+    };
+    for (std::size_t i = 0; i < n; i += 64) {
+        if (reachesCriticalPoint(i)) {
+            return false;
+        }
+    }
+    for (std::size_t i = 0; i < n; i += kStride) {
+        if (i % 64 != 0 && reachesCriticalPoint(i)) {
             return false;
         }
     }

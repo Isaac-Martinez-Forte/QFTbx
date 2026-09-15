@@ -6,6 +6,7 @@
 #include <limits>
 
 #include <string>
+#include <optional>
 #include <vector>
 
 #include "src/core/system/lti_system.h"
@@ -142,6 +143,18 @@ public:
      * ignored and the interior grid is swept (borderSweepApplied() says).
      */
     void setBorderSweep(bool border) { m_borderSweep = border; }
+
+    /**
+     * @brief How many right half-plane poles every plant of the family has,
+     * after a sweep; nothing when the plant cannot place its poles.
+     *
+     * QFT's robust stability argument - the stability margin boundary, the
+     * nominal loop stable, the templates connected - carries the nominal
+     * verdict to the whole family only if every member has the same number
+     * of unstable poles. The sweep checks it over the plants it evaluates
+     * and refuses a family that crosses the axis.
+     */
+    std::optional<int> familyRightHalfPlanePoles() const { return m_familyRhpPoles; }
     bool borderSweep() const { return m_borderSweep; }
     bool borderSweepApplied() const { return m_borderSweepApplied; }
 
@@ -292,6 +305,9 @@ private:
     bool m_alphaShape = false;
     bool m_borderSweep = false;
     bool m_borderSweepApplied = false;
+    /// Right half-plane poles of every plant of the family, one number
+    /// (see the sweep); nothing when the plant cannot place its poles.
+    std::optional<int> m_familyRhpPoles;
 
     CloudSet m_clouds;
     CloudSet m_contours;

@@ -107,9 +107,11 @@ public:
         /// |L| of the last sample at unit gain; the loop is not proper
         /// when the gain brings it to 0 dB or above.
         double lastMagnitudeAtUnitGain = 0.0;
-        /// The first sample sits on a ray (two or more integrators): a half
-        /// crossing towards the departure side when its magnitude exceeds
-        /// 0 dB.
+        /// The curve starts on a ray - the loop at w = 0 is real and
+        /// negative (an odd number of real unstable poles, a negative
+        /// static gain), or the first sample sits on one (two or more
+        /// integrators): a half crossing towards the departure side when
+        /// its magnitude exceeds 0 dB.
         bool startsOnRay = false;
         double startMagnitudeAtUnitGain = 0.0;
         double startDirection = 0.0;
@@ -122,7 +124,16 @@ public:
     const Profile & profileOf(const PointController & shape);
 
     /// The verdict for a profile and a gain magnitude.
-    static bool isStable(const Profile & profile, double gainMagnitude);
+    /// The verdict for one gain from a profile: the signed crossings of the
+    /// rays at magnitudes the gain lifts above 0 dB must add up to P/2, half
+    /// the number of right half-plane poles of the nominal plant (Cohen,
+    /// Chait and Yaniv 1994: the count on positive frequencies is half of
+    /// the whole contour's). For the usual plant, P = 0, that is no net
+    /// crossing.
+    bool isStable(const Profile & profile, double gainMagnitude) const;
+
+    /// The P the verdicts use: right half-plane poles of the nominal plant.
+    int rightHalfPlanePoles() const { return m_rhpPoles; }
 
     /**
      * @brief Whether the whole box, as a family of nominal loops, is
@@ -166,6 +177,23 @@ private:
     /// two consecutive samples.
     bool phaseStepExceeded(std::size_t i) const;
 
+    /**
+     * @brief How many plant poles on the imaginary axis lie inside (lo, hi).
+     *
+     * The criterion counts the crossings of the rays along the finite curve,
+     * which is the whole story only while the loop is continuous. A plant
+     * pole on the axis breaks that: at it the loop passes through infinity
+     * and its phase falls by 180 degrees per pole - the indentation of the
+     * Nyquist contour - and a sampled curve unwrapped between neighbours
+     * takes the short way round instead, +180. Half the time that changes
+     * the crossing count and the verdict comes out STABLE for a loop that
+     * is not (measured on the maglev benchmark, k/(s^2+a): three controllers
+     * approved with two closed-loop poles each in the right half-plane).
+     * The callers test m_axisPoles.empty() first, once per profile, so a
+     * plant without such poles pays nothing.
+     */
+    std::size_t axisPolesBetween(double lo, double hi) const;
+
     LtiSystem * m_plant;
 
     /// Grid resolution, from the settings.
@@ -174,6 +202,20 @@ private:
     /// The cosine of the unwrapping tolerance, what the phase-step test
     /// compares against.
     double m_cosMaxPhaseStep = 0.0;
+
+    /// Frequencies of the nominal plant's poles on the imaginary axis,
+    /// ascending; empty for the usual plant. From the plant's own poles, once.
+    std::vector<double> m_axisPoles;
+
+    /// Poles of the nominal plant in the open right half-plane: the P of
+    /// Nyquist's N = -P. Zero for the usual plant.
+    int m_rhpPoles = 0;
+
+    /// The nominal plant at w = 0, sampled once: the loop's own value there
+    /// is this times the controller's static gain, and no profile needs to
+    /// evaluate the plant again to know whether it starts on a ray. Not
+    /// finite for a plant with integrators, which is the usual case.
+    std::complex<double> m_plantAtZero;
 
     //Cached nominal plant samples over the base grid.
     std::vector<double> m_frequencies;
