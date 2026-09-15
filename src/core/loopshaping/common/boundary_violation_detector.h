@@ -22,11 +22,9 @@
  *
  * The verdicts are read off the allowed magnitude intervals of the phase
  * columns (BoundaryColumns), which carry every specification with its own
- * open or closed semantics. The parity test over the 1D union that used to
- * stand here misjudged the inside of a closed boundary whenever the union
- * had dropped an open one running under it, and the historical
- * Nyquist-plane variants (detection in cartesian coordinates) were tried
- * and discarded by the thesis (secs. 4.5-4.6); both are gone.
+ * open or closed semantics. A parity count over the 1D union cannot do
+ * this: the union drops an open boundary running under a closed one, and
+ * the parity then puts the inside of the closed one on the wrong side.
  *
  * @author Moisés Frutos Plaza
  * @author Isaac Martínez Forte

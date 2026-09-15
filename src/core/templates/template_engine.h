@@ -224,13 +224,11 @@ public:
     /**
      * @brief What the contour of one frequency went through, as data.
      *
-     * The walk has two ways of not being the canonical epsilon-hull, and
-     * both used to be a line on the error stream at best: falling back to
-     * the relaxed historical walk when the faithful one does not close, and
-     * that walk then stopping at its step limit with a partial contour. A
-     * benchmark, a test or a script has no error stream to read, so the
-     * facts are kept here, one report per design frequency, in the order of
-     * the clouds.
+     * The walk has two ways of not being the canonical epsilon-hull:
+     * falling back to the relaxed historical walk when the faithful one does
+     * not close, and that walk then stopping at its step limit. A benchmark,
+     * a test or a script has no error stream to read, so the facts are kept
+     * here, one report per design frequency, in the order of the clouds.
      */
     struct ContourReport
     {
@@ -238,8 +236,7 @@ public:
         std::size_t contourPoints = 0;
         /// The faithful walk did not close; the relaxed walk was used.
         bool relaxed = false;
-        /// The relaxed walk hit its step limit too (it used to hand on the
-        /// partial contour it had).
+        /// The relaxed walk hit its step limit too.
         bool truncated = false;
         /// No walk closed, and the WHOLE CLOUD stands in for the contour at
         /// this frequency (setWholeCloudStandsIn). With that off, a walk
@@ -312,10 +309,9 @@ private:
     CloudSet m_clouds;
     CloudSet m_contours;
     std::vector<ContourReport> m_reports;
-    //A copy of the frequencies compute() was given, named in the contour
-    //messages. The caller's vector used to be aliased here, and the engine
-    //outlives it: it is kept across a project load, which replaces the
-    //project and its frequencies.
+    //A COPY of the frequencies compute() was given, named in the contour
+    //messages: the engine outlives them, since it is kept across a project
+    //load and that replaces the project's own.
     std::vector <double> m_frequencies;
 
     class NeighbourGrid;
@@ -355,7 +351,7 @@ private:
     /// Historical PFC walk (divergent from EPSHULL.M): max-imaginary start,
     /// previous point excluded, deduplicated output. Used as the fallback
     /// when the reference walk cycles. Empty when it hits its own step
-    /// limit: it used to return the partial contour it had, silently.
+    /// limit, since a partial contour must never pass for a whole one.
     ComplexCloud epsilonHullRelaxed(const ComplexCloud & source, const ComplexCloud & walk,
                                     double epsilon, bool * truncated = nullptr);
 

@@ -58,8 +58,8 @@ void AlgorithmMr::setProblem(LtiSystem *plant, LtiSystem *controller, std::vecto
 //names, one pair per design frequency, built in memory. A zero-pole-gain
 //factor (jw + x) contributes sqrt(x^2 + w^2) to the magnitude; a
 //time-constant factor (1 + jw/x) contributes sqrt(1 + w^2/x^2); both
-//contribute atan(w/x) to the phase in radians (the historical builder
-//emitted atan(x/w), the complement of the true phase).
+//contribute atan(w/x) to the phase, in radians: atan(x/w) is its
+//complement, not the phase.
 void AlgorithmMr::buildControllerExpressions(){
 
     const bool timeConstant =
@@ -119,9 +119,8 @@ void AlgorithmMr::buildControllerExpressions(){
 //constraints cannot share one.
 void AlgorithmMr::buildConstraints(){
 
-    //The constraint set is rebuilt from scratch: the historical version
-    //relied on the end-of-run cleanup to empty it, so a second run over
-    //the same algorithm object would have doubled every constraint.
+    //Rebuilt from scratch, so a second run over the same object does not
+    //double every constraint.
     constraints.clear();
 
     //The validated specification set, the same accessor the boundary
@@ -197,8 +196,8 @@ void AlgorithmMr::buildConstraints(){
                 addConstraint(l2 - Expression(p2) * Expression(1.0 / (d * d)));
             }
 
-            //Control effort |G/(1+L)| <= d: |1+L|^2 - g^2/d^2 >= 0 (the
-            //historical rule dropped the g^2 factor).
+            //Control effort |G/(1+L)| <= d: |1+L|^2 - g^2/d^2 >= 0. The
+            //g^2 factor is part of it.
             if (applies(SpecificationType::ControlEffort, w)) {
                 const double d = std::pow(10.0, boundDb(SpecificationType::ControlEffort, w) / 20.0);
                 addConstraint(l2 - g2 * Expression(1.0 / (d * d)));

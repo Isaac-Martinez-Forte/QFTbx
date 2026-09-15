@@ -27,9 +27,9 @@
  *   \f$ p'_j = \sqrt{ (\bar k |N| / (|B|_{min} |D_{-j}|) |p_0|)^2
  *            - \omega^2 } \f$                    (cut p_j to [inf p, p'])
  *
- * All quantities are LINEAR magnitudes (the historical implementation
- * mixed decibels into the quotients and subtracted the logarithm of
- * omega^2, producing dimensionless noise). The pole reduces its UPPER end:
+ * All quantities are LINEAR magnitudes: a decibel anywhere in the
+ * quotients makes the subtraction of omega^2 dimensionless. The pole
+ * reduces its UPPER end:
  * a larger pole lowers the loop towards the forbidden side (the QFTbx
  * thesis text, sec. 3.2, states the opposite interval - an erratum; the
  * paper's worked example reduces p1 = [1025.5, 4834.5] to

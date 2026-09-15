@@ -12,12 +12,12 @@
  *
  * The searches ask questions about single controllers all the time: is this
  * corner of the box feasible, is it nominally stable, what is its loop at
- * this frequency. Every such question used to build a whole LtiSystem for
- * the point (a name, two parameter vectors, a formatted name per value) and
- * throw it away a moment later. The projection and the stability check
- * accept this record directly and compute exactly what they compute for the
- * equivalent system; pointFromBox() still builds the system when a point
- * leaves the search as a result.
+ * this frequency - and a whole LtiSystem for each one (a name, two
+ * parameter vectors, a formatted name per value) is thrown away a moment
+ * later. The projection and the stability check accept this record
+ * directly and compute exactly what they compute for the equivalent
+ * system; pointFromBox() still builds the system when a point leaves the
+ * search as a result.
  */
 namespace qftbx {
 

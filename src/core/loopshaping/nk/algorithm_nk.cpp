@@ -401,11 +401,10 @@ std::unique_ptr<LtiSystem> AlgorithmNk::pointSystem(const std::vector<double> & 
 
 
 //Point feasibility against the bounds at every design frequency, with the
-//same projection + detection the interval test uses (the historical local
-//search passed the GAIN as the frequency index of the detection). The
-//zeros and poles come as their products per frequency: the local search
-//asks this hundreds of times per launch, mostly with the same zeros and
-//poles and another gain, and used to build a system each time.
+//same projection and detection the interval test uses. The zeros and poles
+//come as their products per frequency: the local search asks this hundreds
+//of times per launch, mostly with the same zeros and poles and another
+//gain, so neither the products nor a system are rebuilt for each.
 bool AlgorithmNk::pointIsFeasible(const std::vector<NaturalIntervalExtension::Factors> & factors,
                                   double gain){
 

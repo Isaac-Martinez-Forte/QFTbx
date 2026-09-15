@@ -13,10 +13,8 @@
  * ListNode) and its feasibility flag.
  *
  * The node OWNS its box, and says so in the type: the children of a
- * bisection are always deep copies, so no two nodes ever share one. The
- * historical node held a raw pointer plus two flags (noBorrar/noBorrar2)
- * that told its destructor how much of the box to free, because the box
- * shared its parameter vectors with its parent.
+ * bisection are always deep copies, so no two nodes ever share one and no
+ * node has to be told how much of its box it may free.
  */
 namespace qftbx {
 

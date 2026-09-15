@@ -49,8 +49,8 @@ struct McBisectionResult {
  * epsilon-small ambiguous box sitting on a boundary whose allowed side is
  * up (the anti-blocking rule, QFTbx thesis sec. 3.1): maximum gain and
  * zeros push the box up, but poles push it DOWN, so poles take their
- * minimum. The historical code took every maximum, stepping AWAY from the
- * allowed side in the pole directions.
+ * minimum: taking every maximum steps AWAY from the allowed side in the
+ * pole directions.
  */
 inline std::unique_ptr<LtiSystem> pointFromBox(LtiSystem * controller, bool x) {
 
@@ -78,8 +78,8 @@ inline std::unique_ptr<LtiSystem> pointFromBox(LtiSystem * controller, bool x) {
                       : controller->gain().range().max;
 
     //The delay is not searched over: the point keeps the box's own, as the
-    //bisection does. It used to be written as zero, which changed the
-    //controller for any structure carrying a delay.
+    //bisection does. Writing zero here would change the controller for any
+    //structure that carries one.
     return controller->create(controller->name(), std::move(numerator),
                                std::move(denominator), Parameter(k),
                                controller->delay());
@@ -290,11 +290,9 @@ inline BisectionResult bisectWidestParameter(LtiSystem * box) {
 
     const double middle = range.middle();
 
-    //Both children are DEEP copies and the parent stays untouched: its
-    //node keeps sole ownership of it (the historical version handed the
-    //parent's vectors to the second child, forcing every caller to leak
-    //the parent shell to stay safe). The halves keep the parameter's
-    //NAME: the ICSP constraint trees address the variables by name.
+    //Both children are DEEP copies and the parent stays untouched, so its
+    //node keeps sole ownership of it. The halves keep the parameter's NAME:
+    //the ICSP constraint trees address the variables by name.
     const auto half = [&](bool lower) -> std::unique_ptr<LtiSystem> {
         const Range halfRange = lower ? Range(range.min, middle)
                                       : Range(middle, range.max);
@@ -336,11 +334,10 @@ inline BisectionResult bisectWidestParameter(LtiSystem * box) {
  * @brief The parameter bounds of a controller box as plain vectors: what
  * the Quick Solution equations read and write.
  *
- * Fixed parameters carry their nominal at both ends and are never cut. NK,
- * MC1 and the thesis MC each used to extract these vectors, run the same
- * cutting loops over them and rebuild the box from them, in three copies
- * that had to agree on every detail (which end a pole cuts, which corner
- * the other parameters sit at).
+ * Fixed parameters carry their nominal at both ends and are never cut. One
+ * definition for NK, MC (2021) and the MC family, which would otherwise
+ * have to agree on every detail of it: which end a pole cuts, which corner
+ * the other parameters sit at.
  */
 struct ParameterBounds {
     std::vector<double> zeroInfs, zeroSups, poleInfs, poleSups;

@@ -39,19 +39,16 @@ struct NicholsBox
  * The product is assembled in polar form, as the thesis writes it: each
  * factor \f$ j\omega + \mathbf{z} \f$ is a horizontal segment of the
  * complex plane whose magnitude and phase ranges are read exactly, and the
- * factors then multiply their magnitudes and add their phases. The
- * enclosure used to be computed as a product of rectangles, whose shape
- * grows with every factor, and its phase read off the corners of the final
- * rectangle in plain double arithmetic; both the magnitude and the phase
- * are rigorous intervals now.
+ * factors then multiply their magnitudes and add their phases. A product
+ * of rectangles instead would grow its shape with every factor, and its
+ * phase would have to be read off the corners of the result.
  *
  * A phase set that crosses the branch cut (0/-360 degrees) is not a single
  * interval inside the branch: the enclosure degrades to the whole branch,
  * which is conservative but keeps the containment guarantee.
  *
  * Only ZeroPoleGain controller structures are supported; other structures
- * throw qftbx::InvalidInput (the historical code silently computed a
- * zero-pole projection for them).
+ * throw qftbx::InvalidInput rather than be projected as if they were.
  */
 class NaturalIntervalExtension
 {

@@ -89,9 +89,8 @@ public:
 
 private:
 
-    //Starting point of the local search. The historical 'random' option
-    //made the result non-deterministic and is gone (decision 2026-09-01);
-    //the numeric values are the GUI/orchestrator contract.
+    //Starting point of the local search. No random option: the result has
+    //to be reproducible. The numeric values are the GUI contract.
     enum StartingPoint {Centre = 0, Extremes = 1};
 
     void check_box_feasibility(std::unique_ptr<LtiSystem> box);

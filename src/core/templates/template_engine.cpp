@@ -312,10 +312,8 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
 
         //No expression TEXT any more: the transfer function is computed
         //directly in complex arithmetic by valueAt(), or by the free-form
-        //plant's own parsed tree. The text route cost a parse per frequency
-        //and, being written with qftbx::text::number(), evaluated the plant
-        //with its constant coefficients AND ITS FREQUENCY rounded to six
-        //significant digits.
+        //plant's own parsed tree: no expression TEXT, so neither the
+        //coefficients nor the frequency are rounded to pass through it.
         const double w = omega->at(u);
 
         std::vector<double> numeratorValues = numeratorNominal;
@@ -505,10 +503,8 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
 #endif
 
     //CPU path, shared with and without OpenMP. Every iteration writes at
-    //the index of ITS frequency: a shared counter used to permute the
-    //contours in thread-arrival order (desynchronising them from the
-    //clouds), then 'repaired' it by clearing the live vectors of Omega and
-    //of the GUI (aliasing). Without the permutation they stay intact.
+    //the index of ITS frequency, so the contours stay aligned with the
+    //clouds whatever order the threads finish in.
     m_contours = CloudSet(digitCount);
 
     //Per-frequency diagnosis of a failure (nothing may be thrown from
@@ -543,12 +539,12 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
             truncatedFrequencies[i] = true;
         }
 
-        //A walk that did not close, either way (the relaxed walk used to hand
-        //on the partial contour it had, silently: the shipped ACC'90 fixture
-        //carries contours of 3 points out of 80 at three frequencies from
-        //exactly this). The whole cloud stands in when asked to - nothing is
-        //dropped, the boundaries only cost more there - and the report says
-        //so; otherwise the frequency fails below, naming itself.
+        //A walk that did not close, either way. The whole cloud stands in
+        //when asked to - nothing is dropped, the boundaries only cost more
+        //there - and the report says so; otherwise the frequency fails
+        //below, naming itself. A partial contour is never handed on: the
+        //boundaries would then be computed over a value set with a piece
+        //missing, which nothing downstream can detect.
         bool wholeCloud = false;
         if ((truncated || cont.empty()) && m_wholeCloudStandsIn){
             cont = m_clouds[i];
@@ -1038,10 +1034,8 @@ ComplexCloud TemplateEngine::alphaShapeContour(const ComplexCloud & cloud, doubl
 //The walk is Prune (Gutman, Nordin and Cohen 2007, section 3), and Prune is
 //defined for an EPSILON-CONNECTED set: every step looks only within epsilon
 //of the current point, so a walk can never leave the component it started
-//in, and a cloud with more than one component used to return the contour of
-//the seed's component alone, with nothing to say the rest was dropped. The
-//components are found first and each one is walked; a cloud with a single
-//component takes exactly the path it always took.
+//in. So the components are found first and each one is walked: walking from
+//one seed would return that component's contour alone and drop the rest.
 ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsilon,
                                                          bool * fellBack, bool * truncated,
                                                          std::vector<std::size_t> * componentStarts){
@@ -1338,11 +1332,9 @@ ComplexCloud TemplateEngine::epsilonHullRelaxed(const ComplexCloud & source, con
         counter++;
 
         if (counter > MAXP){
-            //The step limit: the walk did not close either. It used to
-            //break here and return what it had - a PARTIAL contour, handed
-            //on as if it were whole, and the boundaries then computed over a
-            //value set with a piece missing. Now it is a failure like the
-            //others: empty, which the caller reports naming the frequency.
+            //The step limit: the walk did not close either. A failure like
+            //the others, empty, which the caller reports naming the
+            //frequency - never a partial contour handed on as a whole one.
             if (truncated != nullptr){
                 *truncated = true;
             }
@@ -1456,8 +1448,8 @@ std::int32_t TemplateEngine::findNext(std::int32_t previousPoint, std::int32_t c
     complex <double> candidate;
     double distance;
 
-    //The scan used to run over the whole cloud; the grid hands over the
-    //points that can be within epsilon.
+    //The grid hands over the points that can be within epsilon, so the scan
+    //does not run over the whole cloud.
     std::vector<std::int32_t> nearby;
     neighbours.candidates(current, nearby);
 

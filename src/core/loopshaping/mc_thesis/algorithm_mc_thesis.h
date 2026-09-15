@@ -82,9 +82,7 @@ class AlgorithmMcThesis
 public:
 
     /**
-     * @brief Runtime switches for the thesis strategies, replacing the
-     * historical compile-time defines
-     * (SACHIN, NAND, the REC_ family, MEJOR_K, BI_ARBOL, ETAPAS).
+     * @brief Runtime switches for the thesis strategies, one each.
      *
      * The chapter-6 case studies exercise every improvement alone and in
      * combination, so each one can be disabled independently without
