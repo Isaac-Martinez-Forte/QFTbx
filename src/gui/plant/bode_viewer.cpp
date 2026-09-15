@@ -110,24 +110,39 @@ void BodeViewer::drawAxis(QString yAxisName, const std::vector<double> & yAxis_v
 
 void BodeViewer::on_actionExport_triggered()
 {
-    QString extension;
-    const QString fileName = QFileDialog::getSaveFileName(this, tr("Save file"), "",
-                                                          qftbx::exportFilter(), &extension);
+    QString selected;
+    QString fileName = QFileDialog::getSaveFileName(this, tr("Save figure"), QString(),
+                                                    qftbx::exportFilter(), &selected);
     if (fileName.isEmpty()){
         return;
     }
 
-    //Two plots, one name: the suffix goes on the file name (prefixing the
-    //FULL path, "0-/home/...", produced invalid paths).
+    if (QFileInfo(fileName).suffix().isEmpty()) {
+        for (const QString & known : {"pdf", "svg", "png"}) {
+            if (selected.contains("." + known, Qt::CaseInsensitive)) {
+                fileName += "." + known;
+                break;
+            }
+        }
+    }
+
+    //Two canvases, two files: the suffix goes on the file NAME, since
+    //prefixing the full path produces something that is not a path.
     const QFileInfo info(fileName);
-    const QString magnitudeName = info.dir().filePath(info.completeBaseName() + "-mag." + info.suffix());
-    const QString phaseName = info.dir().filePath(info.completeBaseName() + "-phase." + info.suffix());
+    const auto named = [&info](const QString & part) {
+        return info.dir().filePath(info.completeBaseName() + "-" + part + "." + info.suffix());
+    };
 
-    const bool magnitudeSaved = qftbx::savePlotAs(*ui->magnitudePlot, magnitudeName, extension);
-    const bool phaseSaved = qftbx::savePlotAs(*ui->phasePlot, phaseName, extension);
+    const auto write = [](QCustomPlot & plot, const QString & name) {
+        qftbx::ExportRequest request;
+        request.fileName = name;
+        request.size = plot.size() * 2;
+        request.profile = qftbx::ExportProfile::ForPublishing;
+        return qftbx::savePlot(plot, request);
+    };
 
-    if (!magnitudeSaved || !phaseSaved){
-        errorMessage(tr("The image could not be saved"), tr("Bode diagram"));
+    if (!write(*ui->magnitudePlot, named("mag")) || !write(*ui->phasePlot, named("phase"))){
+        errorMessage(tr("The figure could not be saved"), tr("Bode diagram"));
     }
 }
 

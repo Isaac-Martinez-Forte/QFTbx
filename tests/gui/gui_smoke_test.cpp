@@ -29,6 +29,10 @@
 #include "src/core/pipeline/pipeline_step.h"
 #include <QScrollArea>
 #include "src/gui/common/frequency_legend.h"
+#include <QTemporaryDir>
+#include <QImage>
+#include <QFile>
+#include "src/gui/common/plot_export.h"
 #include <QSet>
 #include <QCoreApplication>
 #include "src/gui/common/plot_setup.h"
@@ -1361,4 +1365,63 @@ TEST_F(GuiSmoke, TheLegendScrollsAndCanBeWorkedInOneGo)
         }
     }
     EXPECT_GT(hiddenAndStillChecked, 0) << "None cleared rows the filter was hiding";
+}
+
+//A figure for a paper has to be vector, has to be the size it was asked for
+//and not the size the window happened to be, and has to be on white however
+//the interface is themed.
+TEST_F(GuiSmoke, AFigureIsExportedAsVectorAtTheSizeAskedFor)
+{
+    QTemporaryDir directory;
+    ASSERT_TRUE(directory.isValid());
+
+    BoundaryUnionViewer viewer;
+    const qftbx::UnionTraces traces{{qftbx::NicholsPoint(-270.0, 10.0), qftbx::NicholsPoint(-180.0, 0.0),
+                                     qftbx::NicholsPoint(-90.0, 10.0)}};
+    std::vector<double> omega{1.0};
+    viewer.setData(traces, &omega);
+    viewer.showDiagram();
+
+    QCustomPlot * plot = child<QCustomPlot>(&viewer, "plot");
+    ASSERT_NE(plot, nullptr);
+
+    //SVG: vector, and it carries the curve as a path rather than as pixels.
+    qftbx::ExportRequest svg;
+    svg.fileName = directory.filePath("figure.svg");
+    svg.size = QSize(1200, 900);
+    svg.profile = qftbx::ExportProfile::ForPublishing;
+    EXPECT_TRUE(qftbx::savePlot(*plot, svg)) << "the SVG was not written";
+
+    QFile written(svg.fileName);
+    ASSERT_TRUE(written.open(QIODevice::ReadOnly));
+    const QString content = QString::fromUtf8(written.readAll());
+    EXPECT_TRUE(content.contains("<svg")) << "what came out is not an SVG";
+    EXPECT_TRUE(content.contains("width=\"1200\"")) << "the size asked for was ignored";
+    EXPECT_TRUE(content.contains("<path") || content.contains("<polyline"))
+        << "the curve is not in the file as a path";
+
+    //PDF, the other vector format.
+    qftbx::ExportRequest pdf;
+    pdf.fileName = directory.filePath("figure.pdf");
+    pdf.size = QSize(1200, 900);
+    EXPECT_TRUE(qftbx::savePlot(*plot, pdf));
+    EXPECT_GT(QFileInfo(pdf.fileName).size(), 0);
+
+    //PNG at the size asked for, not at the window's.
+    qftbx::ExportRequest png;
+    png.fileName = directory.filePath("figure.png");
+    png.size = QSize(1600, 1200);
+    EXPECT_TRUE(qftbx::savePlot(*plot, png));
+    const QImage image(png.fileName);
+    EXPECT_EQ(image.width(), 1600) << "the PNG came out at the window's size";
+
+    //And the publishing profile leaves the viewer as it found it: it is a
+    //way of writing the figure, not a change to what is on screen.
+    const QColor axisBefore = plot->xAxis->labelColor();
+    const double penBefore = plot->plottable(0)->pen().widthF();
+    qftbx::ExportRequest again = svg;
+    again.fileName = directory.filePath("twice.svg");
+    EXPECT_TRUE(qftbx::savePlot(*plot, again));
+    EXPECT_EQ(plot->xAxis->labelColor(), axisBefore) << "the export changed the screen";
+    EXPECT_DOUBLE_EQ(plot->plottable(0)->pen().widthF(), penBefore) << "the export changed the screen";
 }

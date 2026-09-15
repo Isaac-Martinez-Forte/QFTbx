@@ -3,7 +3,7 @@
 # application shell and the pieces the dialogs share.
 add_library(qftbx_gui STATIC)
 target_include_directories(qftbx_gui PUBLIC "${CMAKE_SOURCE_DIR}")
-target_link_libraries(qftbx_gui PUBLIC qftbx_app Qt6::Widgets Qt6::PrintSupport qcustomplot::qcustomplot)
+target_link_libraries(qftbx_gui PUBLIC qftbx_app Qt6::Widgets Qt6::PrintSupport Qt6::Svg qcustomplot::qcustomplot)
 qftbx_warnings(qftbx_gui)
 
 qt6_add_resources(resources
