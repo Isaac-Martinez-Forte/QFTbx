@@ -16,7 +16,7 @@ enum BoxFlag{
 /// the dialog both index them in this order, so a new one goes at the end
 /// or the projects already written change meaning.
 enum LoopShapingAlgorithm {nt, nk, mr,
-                       mc1, mc_thesis, mc2};
+                       mc1, mc_thesis, mc2, mc3};
 
 } // namespace qftbx
 
