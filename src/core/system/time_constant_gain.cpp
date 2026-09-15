@@ -135,4 +135,20 @@ std::complex <double> TimeConstantGain::valueAt(double w, const std::vector<doub
     return gain * num / den * std::exp(-s * delay);
 }
 
+//Every factor (s / c + 1) is a pole at -c; a zero constant is not a factor
+//the form can evaluate, so it is not one it can place either.
+std::optional<std::vector<std::complex<double>>> TimeConstantGain::polesAt(const std::vector<double> &,
+                                                                           const std::vector<double> & denominator)
+{
+    std::vector<std::complex<double>> poles;
+    poles.reserve(denominator.size());
+    for (const double constant : denominator) {
+        if (constant == 0.0) {
+            return std::nullopt;
+        }
+        poles.emplace_back(-constant, 0.0);
+    }
+    return poles;
+}
+
 } // namespace qftbx

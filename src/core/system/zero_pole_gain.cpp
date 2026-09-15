@@ -111,4 +111,16 @@ std::complex <double> ZeroPoleGain::valueAt(double w, const std::vector<double> 
     return gain * num / den * std::exp(-s * delay);
 }
 
+//The stored denominator coefficients are the negated poles.
+std::optional<std::vector<std::complex<double>>> ZeroPoleGain::polesAt(const std::vector<double> &,
+                                                                       const std::vector<double> & denominator)
+{
+    std::vector<std::complex<double>> poles;
+    poles.reserve(denominator.size());
+    for (const double p : denominator) {
+        poles.emplace_back(-p, 0.0);
+    }
+    return poles;
+}
+
 } // namespace qftbx
