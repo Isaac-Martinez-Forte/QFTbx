@@ -6,7 +6,7 @@
 #include "ui_loop_shaping_viewer.h"
 
 #include "src/gui/application/error_message.h"
-#include "src/gui/common/plot_palette.h"
+#include "src/gui/common/plot_setup.h"
 
 
 namespace qftbx {
@@ -16,6 +16,7 @@ LoopShapingViewer::LoopShapingViewer(QWidget *parent) :
     ui(std::make_unique<Ui::LoopShapingViewer>())
 {
     ui->setupUi(this);
+    qftbx::setUpPlot(*ui->plot, tr("phase (degrees)"), tr("magnitude (dB)"));
     setWindowTitle(tr("Loop Shaping"));
 
     ui->numeratorEdit->setReadOnly(true);
@@ -168,7 +169,7 @@ void LoopShapingViewer::showDiagram(){
 
     qint32 frequencyIndex = 0;
     for (const qftbx::Trace & bound : unionTraces) {
-        QColor color = randomColor(frequencyIndex);
+        QColor color = frequencyColour(frequencyIndex, static_cast<int>(unionTraces.size()));
         frequencyIndex++;
         rowColors.push_back(color);
 
@@ -182,7 +183,7 @@ void LoopShapingViewer::showDiagram(){
 
         QCPCurve *curve = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
         curve->setData(qftbx::toQVector(phases), qftbx::toQVector(magnitudes));
-        curve->setPen(color);
+        curve->setPen(QPen(color, kCurveWidth));
         curves.push_back(curve);
 
         addFrequencyRow(color, curveIndex);
@@ -306,12 +307,7 @@ void LoopShapingViewer::showDiagram(){
         marker->setLineStyle(QCPGraph::lsNone);
     }
 
-    ui->plot->xAxis2->setVisible(true);
-    ui->plot->xAxis2->setTickLabels(false);
-    ui->plot->yAxis2->setVisible(true);
-    ui->plot->yAxis2->setTickLabels(false);
 
-    ui->plot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
 
     ui->plot->replot();
 }

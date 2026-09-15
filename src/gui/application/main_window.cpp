@@ -2,7 +2,6 @@
 #include "src/gui/application/main_window.h"
 #include "src/gui/application/about.h"
 #include "src/gui/application/error_message.h"
-#include "src/gui/common/plot_palette.h"
 #include "ui_main_window.h"
 #ifdef QFTBX_BENCHMARK
 #include "src/gui/bench/benchmark_window.h"

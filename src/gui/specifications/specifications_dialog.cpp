@@ -15,7 +15,6 @@
 #include "ui_specifications_dialog.h"
 
 #include "src/gui/application/error_message.h"
-#include "src/gui/common/plot_palette.h"
 #include "src/core/system/free_form.h"
 #include "src/core/system/polynomial_form.h"
 #include "src/core/system/zero_pole_gain.h"

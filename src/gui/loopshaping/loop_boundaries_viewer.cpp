@@ -5,7 +5,7 @@
 #include "ui_loop_boundaries_viewer.h"
 
 #include "src/gui/application/error_message.h"
-#include "src/gui/common/plot_palette.h"
+#include "src/gui/common/plot_setup.h"
 
 
 namespace qftbx {
@@ -15,6 +15,7 @@ LoopBoundariesViewer::LoopBoundariesViewer(QWidget *parent) :
     ui(std::make_unique<Ui::LoopBoundariesViewer>())
 {
     ui->setupUi(this);
+    qftbx::setUpPlot(*ui->plot, tr("phase (degrees)"), tr("magnitude (dB)"));
     setWindowTitle(tr("Boundary union"));
 
 
@@ -83,10 +84,13 @@ void LoopBoundariesViewer::showDiagram(){
                 nyquistTraces.at(static_cast<std::size_t>(frequencyIndex));
 
 
-        QColor color = randomColor(c);
-        c++;
-        QColor color2 = randomColor(c);
-        c++;
+        //Two rows per frequency, one per diagram: the pair shares the
+        //frequency's place in the sweep and differs in shade, so the Nichols
+        //and the Nyquist curve of one frequency read as a pair.
+        const int frequencies = static_cast<int>(nicholsData->unionBoundaries().size());
+        QColor color = frequencyColour(c / 2, frequencies);
+        QColor color2 = color.lighter(145);
+        c += 2;
 
         rowColors.push_back(color);
         rowColors.push_back(color2);
@@ -114,7 +118,7 @@ void LoopBoundariesViewer::showDiagram(){
         if (nichols){
             QCPCurve *curve = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
             curve->setData(qftbx::toQVector(phases), qftbx::toQVector(magnitudes));
-            curve->setPen(color);
+            curve->setPen(QPen(color, kCurveWidth));
             addFrequencyRow(color, frequencyIndex, tr("Nichols"));
             curves.push_back(curve);
         }
@@ -124,7 +128,7 @@ void LoopBoundariesViewer::showDiagram(){
         if (nyquist){
             QCPCurve *nyquistCurve = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
             nyquistCurve->setData(qftbx::toQVector(realParts), qftbx::toQVector(imaginaryParts));
-            nyquistCurve->setPen(color2);
+            nyquistCurve->setPen(QPen(color2, kCurveWidth));
             addFrequencyRow(color2, frequencyIndex, tr("Nyquist"));
             curves.push_back(nyquistCurve);
         }
@@ -132,8 +136,6 @@ void LoopBoundariesViewer::showDiagram(){
         frequencyIndex++;
     }
 
-    ui->plot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
-    ui->plot->axisRect()->setupFullAxesBox();
     ui->plot->rescaleAxes();
 
 

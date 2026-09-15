@@ -1,6 +1,7 @@
 #include <cmath>
 #include "src/core/math/constants.h"
 #include "src/gui/common/plot_export.h"
+#include "src/gui/common/plot_setup.h"
 #include <vector>
 #include <algorithm>
 
@@ -11,7 +12,6 @@
 #include "src/gui/application/error_message.h"
 
 #include <QFileInfo>
-#include "src/gui/common/plot_palette.h"
 
 
 using namespace std;
@@ -24,6 +24,11 @@ BodeViewer::BodeViewer(QWidget *parent) :
 {
     ui->setupUi(this);
     setWindowTitle(tr("Bode diagram"));
+
+    //Both canvases, once: the magnitude carries the label the caller chooses
+    //(the plant's or the controller's), which drawBode() sets.
+    qftbx::setUpPlot(*ui->magnitudePlot, tr("frequency (rad/s)"), tr("magnitude (dB)"));
+    qftbx::setUpPlot(*ui->phasePlot, tr("frequency (rad/s)"), tr("phase (degrees)"));
 }
 
 BodeViewer::~BodeViewer() = default;
@@ -89,7 +94,6 @@ void BodeViewer::drawAxis(QString yAxisName, const std::vector<double> & yAxis_v
     QCPCurve *curve = new QCPCurve(magnitudePlot->xAxis, magnitudePlot->yAxis);
     curve->setData(qftbx::toQVector(frequencies), qftbx::toQVector(yAxis_values));
 
-    magnitudePlot->xAxis->setLabel("w");
     magnitudePlot->yAxis->setLabel(yAxisName);
 
     magnitudePlot->xAxis->setScaleType(QCPAxis::ScaleType::stLogarithmic);

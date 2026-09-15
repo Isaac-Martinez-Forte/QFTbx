@@ -14,7 +14,6 @@
 #include "src/gui/application/error_message.h"
 
 #include <QMessageBox>
-#include "src/gui/common/plot_palette.h"
 
 
 namespace qftbx {

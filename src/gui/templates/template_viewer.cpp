@@ -12,7 +12,7 @@
 #include "ui_template_viewer.h"
 
 #include "src/gui/application/error_message.h"
-#include "src/gui/common/plot_palette.h"
+#include "src/gui/common/plot_setup.h"
 
 using namespace std;
 
@@ -23,6 +23,7 @@ TemplateViewer::TemplateViewer(QWidget *parent) :
     ui(std::make_unique<Ui::TemplateViewer>())
 {
     ui->setupUi(this);
+    qftbx::setUpPlot(*ui->plot, tr("phase (degrees)"), tr("magnitude (dB)"));
 
     templatesVisible = false;
     contourVisible = true;
@@ -86,7 +87,7 @@ void TemplateViewer::setData(const qftbx::CloudSet & templates,
     m_epsilon = *epsilon;
 
     for (qint32 i = 0; i < static_cast<std::int32_t>(m_omega.size()); i++){
-        colorByFrequency.insert(m_omega.at(i), qftbx::randomColor(i));
+        colorByFrequency.insert(m_omega.at(i), qftbx::frequencyColour(i, static_cast<int>(m_omega.size())));
     }
 }
 
@@ -244,12 +245,7 @@ void TemplateViewer::plotDiagram(bool plot){
     //No setLayout here: the layout above was built with the frequency box
     //as its parent, which already installs it.
 
-    ui->plot->xAxis2->setVisible(true);
-    ui->plot->xAxis2->setTickLabels(false);
-    ui->plot->yAxis2->setVisible(true);
-    ui->plot->yAxis2->setTickLabels(false);
 
-    ui->plot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
 
     ui->plot->replot();
 
@@ -276,7 +272,7 @@ void TemplateViewer::plotLine(qint32 pos, QVector <QCPGraph *> & graphs,
         addFrequencyRow(color, pos);
     }
 
-    ui->plot->graph(pos)->setPen(color);
+    ui->plot->graph(pos)->setPen(QPen(color, kCurveWidth));
     ui->plot->graph(pos)->setVisible(visible);
 
     if (pos == 0){

@@ -27,7 +27,9 @@
 
 #include <QAction>
 #include "src/core/pipeline/pipeline_step.h"
+#include <QSet>
 #include <QCoreApplication>
+#include "src/gui/common/plot_setup.h"
 #include <QCheckBox>
 #include <QDialog>
 #include <QLineEdit>
@@ -1231,4 +1233,71 @@ TEST_F(GuiSmoke, TheHelpMenuSaysWhatTheToolboxIsAndWhoWroteIt)
     EXPECT_TRUE(aboutText().contains("Autores")) << aboutText().toStdString();
     EXPECT_TRUE(aboutText().contains(QString::fromUtf8("en desarrollo")));
     applyLanguage(kSourceLanguage);
+}
+
+//The colour of a curve says which frequency it is, so it has to be distinct
+//for as many frequencies as a problem has. The named-colour palette this
+//replaces ran out at fourteen and painted every one after that the same
+//cyan, which on the twenty-three frequencies of the Horowitz-Sidi motor was
+//eleven curves nobody could tell apart.
+TEST_F(GuiSmoke, TheFrequencyColoursDoNotRepeatOrFadeOut)
+{
+    for (const int count : {5, 14, 23, 40}) {
+        QSet<QRgb> seen;
+        for (int i = 0; i < count; ++i) {
+            const QColor colour = qftbx::frequencyColour(i, count);
+            EXPECT_TRUE(colour.isValid()) << count << " frequencies, index " << i;
+            seen.insert(colour.rgb());
+
+            //Readable on white: the top of viridis is a light yellow and the
+            //walk has to stop short of it.
+            EXPECT_LT(colour.lightness(), 225)
+                << count << " frequencies, index " << i << " is too light to see on white";
+        }
+        EXPECT_EQ(seen.size(), count) << count << " frequencies gave " << seen.size() << " colours";
+    }
+
+    //Ordered: the map walks from dark blue to green, so the first and the
+    //last of a sweep are never neighbours.
+    const QColor first = qftbx::frequencyColour(0, 20);
+    const QColor last = qftbx::frequencyColour(19, 20);
+    const int distance = std::abs(first.red() - last.red())
+                       + std::abs(first.green() - last.green())
+                       + std::abs(first.blue() - last.blue());
+    EXPECT_GT(distance, 150) << "the ends of the sweep are too close to tell apart";
+}
+
+//Every canvas is set up once, when its viewer is built, and not from the
+//drawing routine: a plot configured while drawing has no interactions until
+//it has data. So an untouched viewer already answers for its axes and its
+//mouse.
+TEST_F(GuiSmoke, EveryCanvasIsSetUpBeforeItHasData)
+{
+    const auto expectReady = [](QCustomPlot * plot, const char * what) {
+        ASSERT_NE(plot, nullptr) << what;
+        EXPECT_FALSE(plot->xAxis->label().isEmpty()) << what << ": the x axis has no label";
+        EXPECT_FALSE(plot->yAxis->label().isEmpty()) << what << ": the y axis has no label";
+        EXPECT_TRUE(plot->interactions().testFlag(QCP::iRangeDrag)) << what << ": cannot be dragged";
+        EXPECT_TRUE(plot->interactions().testFlag(QCP::iRangeZoom)) << what << ": cannot be zoomed";
+    };
+
+    TemplateViewer templates;
+    expectReady(templates.findChild<QCustomPlot *>("plot"), "template viewer");
+
+    BoundaryViewer boundaries;
+    expectReady(boundaries.findChild<QCustomPlot *>("plot"), "boundary viewer");
+
+    BoundaryUnionViewer unionViewer;
+    expectReady(unionViewer.findChild<QCustomPlot *>("plot"), "boundary union viewer");
+
+    LoopBoundariesViewer loopBoundaries;
+    expectReady(loopBoundaries.findChild<QCustomPlot *>("plot"), "loop boundaries viewer");
+
+    LoopShapingViewer loop;
+    expectReady(loop.findChild<QCustomPlot *>("plot"), "loop shaping viewer");
+
+    //Bode had no interactions at all: its canvases were never set up.
+    BodeViewer bode;
+    expectReady(bode.findChild<QCustomPlot *>("magnitudePlot"), "Bode magnitude");
+    expectReady(bode.findChild<QCustomPlot *>("phasePlot"), "Bode phase");
 }

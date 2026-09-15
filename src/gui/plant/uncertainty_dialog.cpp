@@ -7,7 +7,6 @@
 
 #include "src/core/common/exception.h"
 #include "src/gui/application/error_message.h"
-#include "src/gui/common/plot_palette.h"
 
 
 namespace qftbx {

@@ -4,7 +4,6 @@
 #include "ui_loop_shaping_dialog.h"
 
 #include "src/gui/application/error_message.h"
-#include "src/gui/common/plot_palette.h"
 
 #include <QLineEdit>
 #include <QRadioButton>
