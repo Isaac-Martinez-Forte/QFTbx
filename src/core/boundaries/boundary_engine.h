@@ -2,6 +2,7 @@
 #define QFTBX_BOUNDARY_ENGINE_H
 
 #include <string>
+#include "src/core/pipeline/cancellation.h"
 #include <cstdint>
 #include "src/core/math/range.h"
 #include <vector>
@@ -88,6 +89,16 @@ public:
     /// SingularLocus): on by default, which is step 2 of Moreno, Banos and
     /// Berenguel's algorithm 2.1 with the border between samples covered as
     /// well. Off reproduces the raw sweep over the sample, which is what the
+    /**
+     * @brief Installs the flag that asks the computation to stop.
+     *
+     * Read once per design frequency, which is what the outer loop works
+     * at: a frequency that has not started is skipped and what has been
+     * computed is thrown away with a qftbx::Cancelled. Null - the default -
+     * means a computation nobody can give up on.
+     */
+    void setCancellation(const qftbx::CancellationToken * token) { m_cancellation = token; }
+
     /// legacy boundaries were computed with.
     void setSingularLocusGuard(bool on) { m_guardSingularLocus = on; }
     bool singularLocusGuard() const { return m_guardSingularLocus; }
@@ -105,6 +116,9 @@ public:
 
 
 private:
+    /// The flag the computation reads once per frequency.
+    const qftbx::CancellationToken * m_cancellation = nullptr;
+
     SpecificationSet m_specifications;
     //Whether the value sets swept are the epsilon-hull contours (ordered
     //walks) or the full clouds: the guard near the singular locus reads

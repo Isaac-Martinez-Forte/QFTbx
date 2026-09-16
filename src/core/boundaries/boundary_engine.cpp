@@ -496,7 +496,22 @@ void BoundaryEngine::computeFrequencies(std::vector<double> *omega, LtiSystem *p
 #endif
     for (std::size_t i = 0; i < omega->size(); ++i){
 
+        //Once per frequency: an OpenMP loop cannot be broken out of, and
+        //what is left after a cancellation costs a load each.
+        if (cancellationAsked(m_cancellation)) {
+            continue;
+        }
+
         computeFrequency(omega->at(i), plant, templates.at(i), phases, magnitudes, i);
+    }
+
+    //Given up on: half the frequencies are not a set of boundaries, so
+    //nothing is left behind looking like one.
+    if (cancellationAsked(m_cancellation)) {
+        m_boundaries.clear();
+        m_traceMetadata.clear();
+        m_columns.clear();
+        throw qftbx::Cancelled();
     }
 
 

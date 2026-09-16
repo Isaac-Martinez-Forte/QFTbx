@@ -53,6 +53,13 @@ bool TemplateEngine::compute(LtiSystem *plant, std::vector<double> *omega, bool 
 
     m_clouds = computeClouds(plant, omega);
 
+    //Given up on: what was swept is half a sweep and means nothing, so it
+    //is thrown away rather than left behind looking like a result.
+    if (cancellationAsked(m_cancellation)) {
+        m_clouds.clear();
+        throw qftbx::Cancelled();
+    }
+
     std::cout << "Templates: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timer).count() << " milliseconds\n";
 
 
@@ -67,6 +74,12 @@ bool TemplateEngine::compute(LtiSystem *plant, std::vector<double> *omega, bool 
     //rescue was only needed because the clouds were a raw pointer nobody
     //owned.
     const bool result = computeContourSet(cuda);
+
+    if (cancellationAsked(m_cancellation)) {
+        m_clouds.clear();
+        m_contours.clear();
+        throw qftbx::Cancelled();
+    }
 
     std::cout << "Contours: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timer2).count() << " milliseconds\n";
 
@@ -309,6 +322,14 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
 #pragma omp parallel for
 #endif
     for (std::size_t u = 0; u < frequencyCount; u++){
+
+        //Once per frequency, which is the grain this loop works at: a
+        //frequency that has not started is skipped, and the sweep ends as
+        //soon as the ones in flight do. An OpenMP loop cannot be broken out
+        //of, and it does not need to be - what is left costs a load each.
+        if (cancellationAsked(m_cancellation)) {
+            continue;
+        }
 
         //No expression TEXT any more: the transfer function is computed
         //directly in complex arithmetic by valueAt(), or by the free-form

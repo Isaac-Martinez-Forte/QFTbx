@@ -2,6 +2,7 @@
 #define QFTBX_TEMPLATE_ENGINE_H
 
 #include <cstdint>
+#include "src/core/pipeline/cancellation.h"
 #include <complex>
 #include <limits>
 
@@ -44,6 +45,17 @@ public:
     /// Sweeps the plant and extracts every contour. Throws qftbx::Exception
     /// on invalid input or when a computation fails.
     bool compute(LtiSystem *plant, std::vector<double>* frequencies, bool cuda);
+
+    /**
+     * @brief Installs the flag that asks the sweep to stop.
+     *
+     * Read once per design frequency, which is the grain the sweep works
+     * at: a frequency that has not started is skipped, and what has been
+     * computed is thrown away with a qftbx::Cancelled. Null - the default -
+     * means a sweep that cannot be given up on, which is what every test
+     * that drives the engine directly wants.
+     */
+    void setCancellation(const qftbx::CancellationToken * token) { m_cancellation = token; }
 
     /// Recomputes only the contours (one epsilon per frequency) over the
     /// current clouds.
@@ -284,6 +296,10 @@ public:
     const std::vector <double> & epsilon () const;
 
 private:
+    /// The flag the sweep reads once per frequency; null when nobody can
+    /// ask it to stop.
+    const qftbx::CancellationToken * m_cancellation = nullptr;
+
     /// Grid for an uncertain parameter, looked up by name; throws
     /// qftbx::InvalidInput naming the parameter when the grid is missing.
     const std::vector<double> & gridFor(const Parameter & a);

@@ -2,6 +2,7 @@
 #define QFTBX_TEMPLATE_STAGE_H
 
 #include <memory>
+#include "src/core/pipeline/cancellation.h"
 #include <vector>
 
 #include "src/core/project/project_data.h"
@@ -41,7 +42,8 @@ public:
      * @return true when it produced both clouds and contours.
      */
     bool run(ProjectData & data, std::vector<double> epsilon,
-             ParameterGrids grids, bool cuda);
+             ParameterGrids grids, bool cuda,
+             const CancellationToken * cancellation = nullptr);
 
     /**
      * @brief Walks the contour again over the clouds already computed, with a
