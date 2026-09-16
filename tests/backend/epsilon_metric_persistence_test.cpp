@@ -77,9 +77,11 @@ TEST(EpsilonMetric, AnUnknownMetricOrVersionIsRefused)
     };
 
     ProjectReader reader;
-    //A version-4 file with no <inputs> is refused: the section is where
-    //everything the reader needs lives.
-    EXPECT_THROW(reader.load(write("empty.qft", "<?xml version=\"1.0\"?><QFT version=\"4\"></QFT>")), qftbx::ParseError);
+    //A version-4 file with nothing in it is a project with nothing in it,
+    //not a broken file: it loads, and carries no step.
+    const ProjectReader::Loaded empty =
+            reader.load(write("empty.qft", "<?xml version=\"1.0\"?><QFT version=\"4\"></QFT>"));
+    EXPECT_EQ(empty.steps.count(), 0u);
 
     const std::string badMetric =
         "<?xml version=\"1.0\"?><QFT version=\"4\"><inputs/><settings><templates>"
@@ -94,6 +96,33 @@ TEST(EpsilonMetric, AnUnknownMetricOrVersionIsRefused)
         "<results><templates><full size=\"1\"><re>1 </re><im>0 </im></full>"
         "</templates></results></QFT>";
     EXPECT_THROW(reader.load(write("weight.qft", badWeight)), qftbx::ParseError);
+}
+
+TEST(EpsilonMetric, AFileThatKeptItsEpsilonAmongTheResultsIsStillRead)
+{
+    //The first version-4 files wrote the epsilon under the templates, among
+    //the results, before it moved to the settings where it belongs. A
+    //project that carries its clouds and loses the tolerance they were
+    //walked with is a project that cannot tighten its contour again, so it
+    //is read from the old place rather than dropped.
+    QTemporaryDir temporary;
+    ASSERT_TRUE(temporary.isValid());
+    const std::string path = temporary.filePath("among_results.qft").toStdString();
+
+    std::ofstream out(path);
+    out << "<?xml version=\"1.0\"?><QFT version=\"4\"><inputs/><results><templates><metadata>"
+           "<epsilon metric=\"nichols\" db-per-degree=\"2\">3 4 </epsilon></metadata>"
+           "<full size=\"1\"><re>1 </re><im>0 </im></full></templates></results></QFT>";
+    out.close();
+
+    ProjectReader reader;
+    reader.load(path);
+
+    ASSERT_NE(reader.epsilon(), nullptr);
+    ASSERT_EQ(reader.epsilon()->size(), 2u);
+    EXPECT_DOUBLE_EQ(reader.epsilon()->at(0), 3.0);
+    EXPECT_EQ(reader.epsilonMetric().metric, HullMetric::Nichols);
+    EXPECT_DOUBLE_EQ(reader.epsilonMetric().dbPerDegree, 2.0);
 }
 
 //The contour is walked in the project's plane. On example 2 an epsilon in the

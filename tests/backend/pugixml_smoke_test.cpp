@@ -21,7 +21,7 @@ pugi::xml_parse_result load(pugi::xml_document& doc, const char* name)
 TEST(PugixmlSmoke, EveryFixtureParsesWithTheQftRoot)
 {
     const char* fixtures[] = {"cervera.qft", "planta2.qft", "multivaluados.qft",
-                              "planta1.qft", "corrupt_omega.qft", "corrupt_specs.qft"};
+                              "planta1.qft", "corrupt_omega.qft", "short_specs.qft"};
 
     for (const char* name : fixtures) {
         pugi::xml_document doc;

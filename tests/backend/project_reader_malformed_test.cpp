@@ -215,15 +215,70 @@ TEST_F(MalformedProject, ANonBooleanFlagIsAParseError)
     EXPECT_THROW(parser.load(path), qftbx::ParseError);
 }
 
-TEST_F(MalformedProject, AMissingRequiredElementIsAParseError)
+TEST_F(MalformedProject, AnUnfinishedProjectLoadsWhateverItHas)
 {
+    //The rule, written down once: a .qft is saved at whatever point of the
+    //design it has reached, and every part of it may be missing. What is
+    //there is read, what is not is left for the user to enter; nothing is
+    //reported, because there is nothing wrong with an unfinished project.
+    //
+    //Here: a plant that is whole, a specification section with one slot, a
+    //template section with no clouds in it, and a loop-shaping section with
+    //no controller - which is a run that was interrupted.
+    const std::string path = write(QByteArray(
+        "<?xml version=\"1.0\"?><QFT version=\"4\">"
+        "<inputs>"
+        "<plant name=\"half\"><type id=\"3\">"
+        "<expression size=\"0\"/>"
+        "<numerator size=\"1\"><parameter><nominal>1</nominal><uncertain>false</uncertain></parameter></numerator>"
+        "<denominator size=\"1\"><parameter><nominal>2</nominal><uncertain>false</uncertain></parameter></denominator>"
+        "<parameter><nominal>1</nominal><uncertain>false</uncertain></parameter>"
+        "<parameter><nominal>0</nominal><uncertain>false</uncertain></parameter>"
+        "</type></plant>"
+        "<specifications count=\"1\"><specification name=\"Stability\"><used>false</used></specification></specifications>"
+        "</inputs>"
+        "<results>"
+        "<templates/>"
+        "<loop-shaping><data point-count=\"10\"><min>1</min><max>10</max></data></loop-shaping>"
+        "</results>"
+        "</QFT>"));
+    ASSERT_FALSE(path.empty());
+
+    qftbx::ProjectReader parser;
+    qftbx::ProjectReader::Loaded loaded;
+    ASSERT_NO_THROW(loaded = parser.load(path));
+
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Plant)) << "the plant is whole and must come in";
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Specifications));
+    EXPECT_FALSE(loaded.steps.has(qftbx::Step::Frequencies)) << "there are none in the file";
+    EXPECT_FALSE(loaded.steps.has(qftbx::Step::Templates)) << "the section carries no clouds";
+    EXPECT_FALSE(loaded.steps.has(qftbx::Step::LoopShaping)) << "a design with no controller is none";
+}
+
+TEST_F(MalformedProject, AMissingElementLeavesItsSectionUnreadAndTheRestLoads)
+{
+    //A project is saved at whatever point of the design it has reached, so
+    //what is NOT in the file is not an error: that section is not read and
+    //the rest of the file comes in. The user finishes what he left
+    //unfinished, which is what he would have to do anyway.
     qftbx::ProjectReader parser;
 
-    //The range of a parameter, removed whole.
+    //The range of a parameter of the plant, removed whole.
     const std::string path = without("planta1.qft", "range");
     ASSERT_FALSE(path.empty());
 
-    EXPECT_THROW(parser.load(path), qftbx::ParseError);
+    qftbx::ProjectReader::Loaded loaded;
+    ASSERT_NO_THROW(loaded = parser.load(path));
+
+    EXPECT_FALSE(loaded.steps.has(qftbx::Step::Plant))
+        << "a plant whose parameter has no range is not a plant";
+    EXPECT_EQ(parser.plant(), nullptr);
+
+    //And everything else the file carries is there to be worked on.
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Frequencies));
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Specifications));
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Templates));
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Boundaries));
 }
 
 TEST_F(MalformedProject, TheSizeOfACoefficientListIsRedundantAndIgnored)

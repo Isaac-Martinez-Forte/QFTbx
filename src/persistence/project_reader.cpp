@@ -35,22 +35,37 @@ public:
     ProjectFileParser(const std::string & filePath, const std::string & raw, const Tags & tags)
         : m_filePath(filePath), m_raw(raw), t(tags) {}
 
+    std::int64_t lineOf(const pugi::xml_node & node) const
+    {
+        const std::ptrdiff_t offset = node.offset_debug();
+        if (offset < 0 || static_cast<std::size_t>(offset) > m_raw.size()) {
+            return 0;
+        }
+
+        return 1 + std::count(m_raw.begin(),
+                              m_raw.begin() + static_cast<std::ptrdiff_t>(offset), '\n');
+    }
+
+    /// The file says something this reader cannot make sense of: broken,
+    /// not unfinished.
     [[noreturn]] void fail(const pugi::xml_node & node, const Message & what) const
     {
-        std::int64_t line = 0;
-        const std::ptrdiff_t offset = node.offset_debug();
-        if (offset >= 0 && static_cast<std::size_t>(offset) <= m_raw.size()) {
-            line = 1 + std::count(m_raw.begin(),
-                                  m_raw.begin() + static_cast<std::ptrdiff_t>(offset), '\n');
-        }
-        throw ParseError(what, line, m_filePath);
+        throw ParseError(what, lineOf(node), m_filePath);
+    }
+
+    /// Something is not in the file. Its own exception, because a project
+    /// may be saved half way through a design and what is missing is then
+    /// simply not read: see load().
+    [[noreturn]] void absent(const pugi::xml_node & node, const Message & what) const
+    {
+        throw MissingPart(what, lineOf(node), m_filePath);
     }
 
     pugi::xml_node require(const pugi::xml_node & parent, const char * name) const
     {
         const pugi::xml_node node = parent.child(name);
         if (!node) {
-            fail(parent, QFTBX_TR("Core", "missing <%1> element").arg(name));
+            absent(parent, QFTBX_TR("Core", "missing <%1> element").arg(name));
         }
         return node;
     }
@@ -89,7 +104,7 @@ public:
     {
         const pugi::xml_attribute attribute = node.attribute(name);
         if (!attribute) {
-            fail(node, QFTBX_TR("Core", "missing attribute '%1'").arg(name));
+            absent(node, QFTBX_TR("Core", "missing attribute '%1'").arg(name));
         }
         char * end = nullptr;
         const char * raw = attribute.value();
@@ -104,7 +119,7 @@ public:
     {
         const pugi::xml_attribute attribute = node.attribute(name);
         if (!attribute) {
-            fail(node, QFTBX_TR("Core", "missing attribute '%1'").arg(name));
+            absent(node, QFTBX_TR("Core", "missing attribute '%1'").arg(name));
         }
         char * end = nullptr;
         const char * raw = attribute.value();
@@ -243,7 +258,7 @@ public:
             }
         }
         if (scalars.size() != 2) {
-            fail(typeNode, QFTBX_TR("Core", "expected exactly a gain and a delay parameter"));
+            absent(typeNode, QFTBX_TR("Core", "expected exactly a gain and a delay parameter"));
         }
         Parameter gain = scalars.at(0);
         Parameter delay = scalars.at(1);
@@ -271,45 +286,52 @@ public:
     qftbx::SpecificationRecords readSpecifications(const pugi::xml_node & section) const
     {
         //The set is positional with 7 fixed slots: consumers index blindly,
-        //and the type now carries that count.
-        const auto slotRange = section.children(t.specification);
-        const std::size_t count = static_cast<std::size_t>(std::distance(slotRange.begin(), slotRange.end()));
-        if (count != kSpecificationCount) {
-            fail(section, QFTBX_TR("Core", "a project needs exactly 7 specification slots"));
-        }
-
+        //and the type carries that count. A file with fewer fills the ones
+        //it has and leaves the rest unused - a specification nobody entered
+        //is exactly an unused slot - and one with more is read up to seven.
         qftbx::SpecificationRecords specifications;
         std::size_t slot = 0;
 
         for (const pugi::xml_node & node : section.children(t.specification)) {
+            if (slot >= kSpecificationCount) {
+                break;
+            }
+
             qftbx::SpecificationRecord & record = specifications.at(slot++);
-            //Canonical as stored: version 2 writes the English names, and
-            //the translation from the Spanish ones went with the dialect.
-            record.name = std::string(node.attribute(t.nameAttribute).value());
-            record.used = boolChild(node, t.used);
 
-            if (record.used) {
-                record.omegaStart = realChild(node, t.minFrequency);
-                record.omegaEnd = realChild(node, t.maxFrequency);
-                record.constant = boolChild(node, t.constant);
+            //And a slot that cannot be read whole stays unused, instead of
+            //taking the other six down with it.
+            try {
+                //Canonical as stored: the English names, since the
+                //translation from the Spanish ones went with the dialect.
+                record.name = std::string(node.attribute(t.nameAttribute).value());
+                record.used = boolChild(node, t.used);
 
-                if (record.constant) {
-                    record.height = realChild(node, t.magnitude);
-                } else {
-                    //The embedded plant is the child that carries a <type>
-                    //element.
-                    pugi::xml_node systemNode;
-                    for (const pugi::xml_node & child : node.children()) {
-                        if (child.child(t.type)) {
-                            systemNode = child;
-                            break;
+                if (record.used) {
+                    record.omegaStart = realChild(node, t.minFrequency);
+                    record.omegaEnd = realChild(node, t.maxFrequency);
+                    record.constant = boolChild(node, t.constant);
+
+                    if (record.constant) {
+                        record.height = realChild(node, t.magnitude);
+                    } else {
+                        //The embedded plant is the child that carries a
+                        //<type> element.
+                        pugi::xml_node systemNode;
+                        for (const pugi::xml_node & child : node.children()) {
+                            if (child.child(t.type)) {
+                                systemNode = child;
+                                break;
+                            }
                         }
+                        if (!systemNode) {
+                            absent(node, QFTBX_TR("Core", "a non-constant specification needs its plant"));
+                        }
+                        record.system = readSystem(systemNode);
                     }
-                    if (!systemNode) {
-                        fail(node, QFTBX_TR("Core", "a non-constant specification needs its plant"));
-                    }
-                    record.system = readSystem(systemNode);
                 }
+            } catch (const MissingPart &) {
+                record = qftbx::SpecificationRecord{};
             }
         }
 
@@ -458,7 +480,7 @@ public:
             }
         }
         if (!systemNode) {
-            fail(section, QFTBX_TR("Core", "the loop-shaping section needs its controller"));
+            absent(section, QFTBX_TR("Core", "the loop-shaping section needs its controller"));
         }
 
         auto result = std::make_unique<LoopShapingResult>(readSystem(systemNode), range, pointCount);
@@ -549,76 +571,117 @@ ProjectReader::Loaded ProjectReader::load(const std::string & filePath)
     ProjectFileParser parser(filePath, raw, kV4);
     const Tags & t = kV4;
 
-    //The three parts of the file. A project with nothing computed still has
-    //its inputs, and one that has never been saved by this build has
-    //neither, which the version check above has already refused.
-    const pugi::xml_node inputs = parser.require(root, t.inputs);
+    //The three parts of the file, any of which may be missing: a project is
+    //saved at whatever point of the design it has reached.
+    const pugi::xml_node inputs = root.child(t.inputs);
     const pugi::xml_node settings = root.child(t.settings);
     const pugi::xml_node results = root.child(t.results);
 
+    //And so may any part of any of them. A plant whose uncertainty was
+    //never entered, a boundary section written by a run that was stopped -
+    //what is not there is simply not read, and the rest of the file comes
+    //in: the user finishes what he left unfinished, which is what he would
+    //have to do anyway. Only content that IS there and is broken - a number
+    //that is not a number - refuses the file.
+    const auto part = [](auto && read) {
+        try {
+            read();
+        } catch (const MissingPart &) {
+            //Not there. The step stays undone.
+        }
+    };
+
     bool hasContour = false;
 
-    if (const pugi::xml_node section = inputs.child(t.plant)) {
-        m_plant = parser.readSystem(section);
-    }
-    if (const pugi::xml_node section = inputs.child(t.specifications)) {
-        m_specifications = parser.readSpecifications(section);
-    }
-    if (const pugi::xml_node section = inputs.child(t.omega)) {
-        m_omega = parser.readOmega(section);
-    }
-    if (const pugi::xml_node section = settings.child(t.templates)) {
-        const pugi::xml_node epsilonNode = parser.require(section, t.epsilon);
-        m_epsilon = parser.realVector(epsilonNode);
-        m_epsilonMetric = EpsilonMetric{};
+    part([&] {
+        if (const pugi::xml_node section = inputs.child(t.plant)) {
+            m_plant = parser.readSystem(section);
+        }
+    });
+    part([&] {
+        if (const pugi::xml_node section = inputs.child(t.specifications)) {
+            m_specifications = parser.readSpecifications(section);
+        }
+    });
+    part([&] {
+        if (const pugi::xml_node section = inputs.child(t.omega)) {
+            m_omega = parser.readOmega(section);
+        }
+    });
+    //The epsilon of the templates. It lives in the settings, which is what
+    //it is - the tolerance the hull walk was asked for - but the first
+    //files of version 4 carried it among the results, under the templates
+    //themselves. Read from there when the settings do not have it, rather
+    //than leaving a project with clouds and no tolerance behind them.
+    pugi::xml_node epsilonHolder = settings.child(t.templates);
 
-        const std::string metric = epsilonNode.attribute("metric").value();
-        if (metric == "nichols") {
-            m_epsilonMetric.metric = HullMetric::Nichols;
-        } else if (!metric.empty() && metric != "complex") {
-            throw ParseError(QFTBX_TR("Core", "unknown epsilon metric '%1' (complex or nichols)").arg(metric), 1, filePath);
-        }
-        if (const pugi::xml_attribute weight = epsilonNode.attribute("db-per-degree")) {
-            const double value = weight.as_double(0.0);
-            if (!(value > 0.0) || !std::isfinite(value)) {
-                throw ParseError(QFTBX_TR("Core", "the decibels per degree of the epsilon metric must be a finite positive number"), 1, filePath);
-            }
-            m_epsilonMetric.dbPerDegree = value;
-        }
+    if (!epsilonHolder) {
+        epsilonHolder = results.child(t.templates).child(t.metadata);
     }
-    if (const pugi::xml_node section = results.child(t.templates)) {
-        m_templates = parser.readComplexVectors(parser.require(section, t.fullTemplates));
-        if (const pugi::xml_node contourNode = section.child(t.templateContour)) {
-            m_contour = parser.readComplexVectors(contourNode);
-            hasContour = true;
-        }
-    }
-    if (const pugi::xml_node section = results.child(t.boundaries)) {
-        m_boundaries = parser.readBoundaries(section);
-    }
-    if (const pugi::xml_node section = inputs.child(t.controller)) {
-        //Every type lands in the controller, free-form included.
-        m_controller = parser.readSystem(section);
-    }
-    if (const pugi::xml_node section = results.child(t.loopShaping)) {
-        m_loopShaping = parser.readLoopShaping(section);
 
-        //What the search was run with. A file that does not say keeps the
-        //defaults of the Run, and the interface shows a design whose
-        //settings it cannot vouch for as such rather than inventing them.
-        if (const pugi::xml_node runNode = settings.child(t.loopShaping)) {
-            LoopShapingResult::Run run;
-            const std::string name = runNode.attribute("algorithm").value();
-            if (const std::optional<LoopShapingAlgorithm> algorithm = algorithmFromName(name)) {
-                run.algorithm = *algorithm;
-            } else if (!name.empty()) {
-                throw ParseError(QFTBX_TR("Core", "unknown loop-shaping algorithm '%1'").arg(name), 1, filePath);
+    part([&] {
+        if (const pugi::xml_node section = epsilonHolder) {
+            const pugi::xml_node epsilonNode = parser.require(section, t.epsilon);
+            m_epsilon = parser.realVector(epsilonNode);
+            m_epsilonMetric = EpsilonMetric{};
+
+            const std::string metric = epsilonNode.attribute("metric").value();
+            if (metric == "nichols") {
+                m_epsilonMetric.metric = HullMetric::Nichols;
+            } else if (!metric.empty() && metric != "complex") {
+                throw ParseError(QFTBX_TR("Core", "unknown epsilon metric '%1' (complex or nichols)").arg(metric), 1, filePath);
             }
-            run.epsilon = runNode.attribute("tolerance").as_double(0.0);
-            run.conservativeColumns = std::string(runNode.attribute("columns").value()) == "conservative";
-            m_loopShaping->setRun(run);
+            if (const pugi::xml_attribute weight = epsilonNode.attribute("db-per-degree")) {
+                const double value = weight.as_double(0.0);
+                if (!(value > 0.0) || !std::isfinite(value)) {
+                    throw ParseError(QFTBX_TR("Core", "the decibels per degree of the epsilon metric must be a finite positive number"), 1, filePath);
+                }
+                m_epsilonMetric.dbPerDegree = value;
+            }
         }
-    }
+    });
+    part([&] {
+        if (const pugi::xml_node section = results.child(t.templates)) {
+            m_templates = parser.readComplexVectors(parser.require(section, t.fullTemplates));
+            if (const pugi::xml_node contourNode = section.child(t.templateContour)) {
+                m_contour = parser.readComplexVectors(contourNode);
+                hasContour = true;
+            }
+        }
+    });
+    part([&] {
+        if (const pugi::xml_node section = results.child(t.boundaries)) {
+            m_boundaries = parser.readBoundaries(section);
+        }
+    });
+    part([&] {
+        if (const pugi::xml_node section = inputs.child(t.controller)) {
+            //Every type lands in the controller, free-form included.
+            m_controller = parser.readSystem(section);
+        }
+    });
+    part([&] {
+        if (const pugi::xml_node section = results.child(t.loopShaping)) {
+            m_loopShaping = parser.readLoopShaping(section);
+
+            //What the search was run with. A file that does not say keeps
+            //the defaults of the Run, and the interface shows a design whose
+            //settings it cannot vouch for as such rather than inventing
+            //them.
+            if (const pugi::xml_node runNode = settings.child(t.loopShaping)) {
+                LoopShapingResult::Run run;
+                const std::string name = runNode.attribute("algorithm").value();
+                if (const std::optional<LoopShapingAlgorithm> algorithm = algorithmFromName(name)) {
+                    run.algorithm = *algorithm;
+                } else if (!name.empty()) {
+                    throw ParseError(QFTBX_TR("Core", "unknown loop-shaping algorithm '%1'").arg(name), 1, filePath);
+                }
+                run.epsilon = runNode.attribute("tolerance").as_double(0.0);
+                run.conservativeColumns = std::string(runNode.attribute("columns").value()) == "conservative";
+                m_loopShaping->setRun(run);
+            }
+        }
+    });
 
     //Section flags, ALWAYS all 8: consumers index into them.
     Loaded loaded;

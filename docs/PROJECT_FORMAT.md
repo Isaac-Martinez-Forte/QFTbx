@@ -28,6 +28,21 @@ so reading one as another would not fail, it would return wrong numbers.
 The only .qft files that exist are the ones in this repository, and they
 are at version 4.
 
+## An unfinished project is a project
+
+A .qft is saved at whatever point of the design it has reached, so any part
+of it may be missing: a plant with no uncertainty entered, no design
+frequencies, a specification section with three slots, a loop-shaping
+section from a run that was interrupted. The reader takes what is there and
+leaves what is not - that step simply stays undone, for the user to enter -
+and says nothing about it, because there is nothing wrong with an
+unfinished project.
+
+Content that IS there and is broken is a different matter, and is refused
+with the line it is on: a number that is not a number, a boolean that says
+"perhaps", a list of complex values whose real and imaginary parts differ
+in length. That is a damaged file, not an unfinished one.
+
 ## Structure
 
 Three parts, in the order a reader meets them: **`<inputs>`** is what the
