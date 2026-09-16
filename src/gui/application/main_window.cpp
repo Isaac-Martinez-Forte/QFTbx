@@ -162,6 +162,12 @@ void MainWindow::createSession(){
 
     controller = std::make_unique<ProjectController>();
 
+    //Told by the project rather than remembered at every way out: what is on
+    //screen is derived from what the project holds, so the one place that
+    //knows it moved is the project itself. A session outlives no window, so
+    //the captured this is always alive when the handler runs.
+    controller->setChangeHandler([this]() { refreshAvailability(); });
+
     //What the core needs of the settings; the dialogs get theirs when they
     //are built.
     controller->applySettings(m_settings);
@@ -496,13 +502,12 @@ void MainWindow::on_plantButton_clicked()
         //computed from it. The invariant: nothing moved-from goes into the
         //project.
         if (described == nullptr){
-            refreshAvailability();
             return;
         }
 
         //The project drops the templates and everything after them when the
-        //plant changes; refreshAvailability() below follows it, so nothing
-        //is decided here.
+        //plant changes, and the window follows when the project says so:
+        //nothing is decided here.
         controller->setPlant(std::move(described));
     } else {
         delete plantDialog;
@@ -510,7 +515,6 @@ void MainWindow::on_plantButton_clicked()
     }
 
     //Buttons and bar from the project, not from flags kept here.
-    refreshAvailability();
 }
 
 void MainWindow::on_specificationsButton_clicked()
@@ -540,21 +544,17 @@ void MainWindow::on_specificationsButton_clicked()
                 specificationsDialog->takeSpecifications();
 
         if (!described.has_value()){
-            refreshAvailability();
             return;
         }
 
         controller->setSpecifications(std::move(described));
 
         //The templates do not depend on the specifications; the boundaries
-        //do, and the project has already dropped them - the window follows
-        //through refreshAvailability() below.
+        //do, and the project drops them and says so.
     } else {
         delete specificationsDialog;
         specificationsDialog = nullptr;
     }
-
-    refreshAvailability();
 }
 
 void MainWindow::on_frequenciesButton_clicked()
@@ -570,7 +570,6 @@ void MainWindow::on_frequenciesButton_clicked()
         std::unique_ptr<Omega> described = frequenciesDialog->takeOmega();
         //See on_plantButton_clicked: nothing moved-from goes in.
         if (described == nullptr){
-            refreshAvailability();
             return;
         }
 
@@ -581,8 +580,6 @@ void MainWindow::on_frequenciesButton_clicked()
         delete frequenciesDialog;
         frequenciesDialog = nullptr;
     }
-
-    refreshAvailability();
 }
 
 void MainWindow::on_templatesButton_clicked()
@@ -595,7 +592,6 @@ void MainWindow::on_templatesButton_clicked()
     runDialog(templatesDialog);
 
     if (!templatesDialog->wasAccepted()){
-        refreshAvailability();
         return;
     }
 
@@ -615,13 +611,11 @@ void MainWindow::on_templatesButton_clicked()
                                                        templatesDialog->cudaSelected());
         } catch (const qftbx::Exception & e) {
             QMessageBox::critical(this, tr("Template computation"), translated(e));
-            refreshAvailability();
             return;
         }
     }
 
     if (!templatesOk){
-        refreshAvailability();
         return;
     }
 
@@ -632,8 +626,6 @@ void MainWindow::on_templatesButton_clicked()
     templateViewer->plotDiagram(templatesDialog->nicholsSelected());
 
     templateViewer->show();
-
-    refreshAvailability();
 }
 
 void MainWindow::on_boundariesButton_clicked()
@@ -644,7 +636,6 @@ void MainWindow::on_boundariesButton_clicked()
     runDialog(boundaryGridDialog);
 
     if (!boundaryGridDialog->wasAccepted()){
-        refreshAvailability();
         return;
     }
 
@@ -663,13 +654,11 @@ void MainWindow::on_boundariesButton_clicked()
                                                          boundaryGridDialog->cudaSelected());
         } catch (const qftbx::Exception & e) {
             QMessageBox::critical(this, tr("Boundary computation"), translated(e));
-            refreshAvailability();
             return;
         }
     }
 
     if (!boundariesOk){
-        refreshAvailability();
         return;
     }
 
@@ -680,8 +669,6 @@ void MainWindow::on_boundariesButton_clicked()
     boundaryUnionViewer->setData(controller->unionBoundaries(), controller->omega()->values());
     boundaryUnionViewer->showDiagram();
     boundaryUnionViewer->show();
-
-    refreshAvailability();
 }
 
 
@@ -697,7 +684,6 @@ void MainWindow::on_controllerButton_clicked()
         std::unique_ptr<LtiSystem> described = controllerDialog->takeControllerStructure();
         //See on_plantButton_clicked: nothing moved-from goes in.
         if (described == nullptr){
-            refreshAvailability();
             return;
         }
 
@@ -705,8 +691,6 @@ void MainWindow::on_controllerButton_clicked()
         //project drops it and the window follows below.
         controller->setControllerStructure(std::move(described));
     }
-
-    refreshAvailability();
 }
 
 void MainWindow::on_loopButton_clicked()
@@ -718,7 +702,6 @@ void MainWindow::on_loopButton_clicked()
     runDialog(loopShapingDialog);
 
     if (!loopShapingDialog->wasAccepted()){
-        refreshAvailability();
         return;
     }
 
@@ -745,13 +728,11 @@ void MainWindow::on_loopButton_clicked()
                                                       loopShapingDialog->initialisationValue());
         } catch (const qftbx::Exception & e) {
             QMessageBox::critical(this, tr("Loop Shaping"), translated(e));
-            refreshAvailability();
             return;
         }
     }
 
     if (!designed){
-        refreshAvailability();
         return;
     }
 
@@ -761,8 +742,6 @@ void MainWindow::on_loopButton_clicked()
 
     loopShapingViewer->showDiagram();
     loopShapingViewer->show();
-
-    refreshAvailability();
 }
 
 void MainWindow::on_actionSave_triggered()
@@ -848,8 +827,6 @@ void MainWindow::on_actionOpen_triggered()
             ensureLoopShapingWidgets();
             loopShapingDialog->setFromProject(controller->loopShapingResult());
         }
-
-        refreshAvailability();
     }
 
 }

@@ -639,3 +639,57 @@ TEST(PipelineSteps, TheUnionGettersRefuseWithoutBoundaries)
     EXPECT_THROW(controller.unionBoundaries(), qftbx::InvalidInput);
     EXPECT_THROW(controller.unionBuckets(), qftbx::InvalidInput);
 }
+
+//The interface derives everything it shows from the project, so it has to be
+//told when the project moves. Asking it to remember at every way out of
+//every handler is how it comes to show something the project does not hold:
+//there were twenty-five such places in the window, and one forgotten is a
+//wrong answer on screen.
+TEST(ChangeHandler, EveryPublishAndEveryComputationAnnouncesOnce)
+{
+    ProjectController controller;
+
+    int announced = 0;
+    controller.setChangeHandler([&announced]() { ++announced; });
+
+    controller.setOmega(makeOmega());
+    EXPECT_EQ(announced, 1) << "publishing the frequencies said nothing";
+
+    controller.setPlant(makePlant());
+    EXPECT_EQ(announced, 2) << "publishing the plant said nothing";
+
+    controller.setSpecifications(makeSpecifications());
+    EXPECT_EQ(announced, 3);
+
+    controller.setControllerStructure(makeControllerStructure());
+    EXPECT_EQ(announced, 4);
+
+    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), makeGrids(), false));
+    EXPECT_EQ(announced, 5) << "a computation is a change too";
+}
+
+//A whole file is ONE change, however many sections it carries: load()
+//publishes seven of them through the same guarded methods, and an interface
+//told seven times would also be told first about a project half read.
+TEST(ChangeHandler, LoadingAFileAnnouncesOnce)
+{
+    ProjectController controller;
+
+    int announced = 0;
+    controller.setChangeHandler([&announced]() { ++announced; });
+
+    controller.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
+    EXPECT_EQ(announced, 1) << "a file with seven sections announced " << announced << " changes";
+}
+
+//Nothing is announced to a project nobody is listening to, and setting a
+//handler does not announce by itself.
+TEST(ChangeHandler, SettingTheHandlerIsNotItselfAChange)
+{
+    ProjectController controller;
+    controller.setOmega(makeOmega());
+
+    int announced = 0;
+    controller.setChangeHandler([&announced]() { ++announced; });
+    EXPECT_EQ(announced, 0);
+}
