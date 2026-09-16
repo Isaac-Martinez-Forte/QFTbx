@@ -797,12 +797,6 @@ void SpecificationsForm::on_trackingRadio_clicked()
     ui->pageStack->setCurrentIndex(1);
     activeTab = 1;
     setData(tracking, trackingUpper);
-    //The tracking tab is the wide one - two models side by side - and its
-    //buttons sit further right. A minimum and not a resize: the panel lives
-    //in a dock now, which decides how much room it has, and says what it
-    //needs to show this tab whole.
-    setMinimumSize(867, 363);
-    ui->buttonsWidget->move(670, 320);
 }
 
 void SpecificationsForm::on_stabilityRadio_clicked()
@@ -815,8 +809,6 @@ void SpecificationsForm::on_stabilityRadio_clicked()
     activeTab = 2;
     setData(stability);
     ui->specificationImage->setPixmap(stabilityPixmap);
-    setMinimumSize(647, 363);
-    ui->buttonsWidget->move(450, 320);
 }
 
 void SpecificationsForm::on_noiseRadio_clicked()
@@ -829,8 +821,6 @@ void SpecificationsForm::on_noiseRadio_clicked()
     activeTab = 3;
     setData(sensorNoise);
     ui->specificationImage->setPixmap(sensorNoisePixmap);
-    setMinimumSize(647, 363);
-    ui->buttonsWidget->move(450, 320);
 }
 
 void SpecificationsForm::on_outputDisturbanceRadio_clicked()
@@ -843,11 +833,9 @@ void SpecificationsForm::on_outputDisturbanceRadio_clicked()
     activeTab = 4;
     setData(outputDisturbance);
     ui->specificationImage->setPixmap(outputDisturbancePixmap);
-    setMinimumSize(647, 363);
     //The only one of the six that did not move the buttons back: coming from
     //the tracking tab, which widens the window and puts them at x = 670,
     //they landed outside the 647 this resize leaves.
-    ui->buttonsWidget->move(450, 320);
 }
 
 void SpecificationsForm::on_inputDisturbanceRadio_clicked()
@@ -860,8 +848,6 @@ void SpecificationsForm::on_inputDisturbanceRadio_clicked()
     activeTab = 5;
     setData(inputDisturbance);
     ui->specificationImage->setPixmap(inputDisturbancePixmap);
-    setMinimumSize(647, 363);
-    ui->buttonsWidget->move(450, 320);
 }
 
 void SpecificationsForm::on_controlEffortRadio_clicked()
@@ -874,8 +860,6 @@ void SpecificationsForm::on_controlEffortRadio_clicked()
     activeTab = 6;
     setData(controlEffort);
     ui->specificationImage->setPixmap(controlEffortPixmap);
-    setMinimumSize(647, 363);
-    ui->buttonsWidget->move(450, 320);
 }
 
 void SpecificationsForm::on_constantRadio_clicked()

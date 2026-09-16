@@ -10,946 +10,822 @@
     <height>363</height>
    </rect>
   </property>
-  <property name="windowTitle">
-   <string>Dialog</string>
-  </property>
-  <widget class="QLabel" name="label">
-   <property name="geometry">
-    <rect>
-     <x>20</x>
-     <y>60</y>
-     <width>161</width>
-     <height>16</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Specification types:</string>
-   </property>
-  </widget>
-  <widget class="QWidget" name="layoutWidget4">
-   <property name="geometry">
-    <rect>
-     <x>40</x>
-     <y>90</y>
-     <width>106</width>
-     <height>170</height>
-    </rect>
-   </property>
-   <layout class="QVBoxLayout" name="verticalLayout">
-    <item>
-     <widget class="QRadioButton" name="trackingRadio">
-      <property name="text">
-       <string>Tracking</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QRadioButton" name="stabilityRadio">
-      <property name="text">
-       <string>Stability</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QRadioButton" name="noiseRadio">
-      <property name="text">
-       <string>Sensor noise</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QRadioButton" name="outputDisturbanceRadio">
-      <property name="text">
-       <string>Output disturbance</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QRadioButton" name="inputDisturbanceRadio">
-      <property name="text">
-       <string>Input disturbance</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QRadioButton" name="controlEffortRadio">
-      <property name="text">
-       <string>Control effort</string>
-      </property>
-     </widget>
-    </item>
-   </layout>
-  </widget>
-  <widget class="QWidget" name="layoutWidget5">
-   <property name="geometry">
-    <rect>
-     <x>200</x>
-     <y>20</y>
-     <width>253</width>
-     <height>25</height>
-    </rect>
-   </property>
-   <layout class="QHBoxLayout" name="horizontalLayout">
-    <item>
-     <widget class="QRadioButton" name="constantRadio">
-      <property name="text">
-       <string>Constant</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QRadioButton" name="systemRadio">
-      <property name="text">
-       <string>Transfer function</string>
-      </property>
-     </widget>
-    </item>
-   </layout>
-  </widget>
-  <widget class="QWidget" name="buttonsWidget">
-   <property name="geometry">
-    <rect>
-     <x>450</x>
-     <y>320</y>
-     <width>168</width>
-     <height>27</height>
-    </rect>
-   </property>
-   <layout class="QHBoxLayout" name="horizontalLayout_8">
-    <item>
-     <widget class="QPushButton" name="okButton">
-      <property name="text">
-       <string>Apply</string>
-      </property>
-     </widget>
-    </item>
-   </layout>
-  </widget>
-  <widget class="QWidget" name="layoutWidget2">
-   <property name="geometry">
-    <rect>
-     <x>50</x>
-     <y>300</y>
-     <width>271</width>
-     <height>27</height>
-    </rect>
-   </property>
-   <layout class="QHBoxLayout" name="horizontalLayout_10">
-    <item>
-     <widget class="QLabel" name="label_7">
-      <property name="text">
-       <string>Frequencies: [</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QLineEdit" name="startFrequencyEdit"/>
-    </item>
-    <item>
-     <widget class="QLabel" name="label_8">
-      <property name="text">
-       <string>,</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QLineEdit" name="endFrequencyEdit"/>
-    </item>
-    <item>
-     <widget class="QLabel" name="label_9">
-      <property name="text">
-       <string>]</string>
-      </property>
-     </widget>
-    </item>
-   </layout>
-  </widget>
-  <widget class="QStackedWidget" name="pageStack">
-   <property name="geometry">
-    <rect>
-     <x>170</x>
-     <y>50</y>
-     <width>631</width>
-     <height>241</height>
-    </rect>
-   </property>
-   <widget class="QWidget" name="principal_todos">
-    <widget class="QStackedWidget" name="modeStack">
-     <property name="geometry">
-      <rect>
-       <x>150</x>
-       <y>0</y>
-       <width>321</width>
-       <height>231</height>
-      </rect>
-     </property>
-     <widget class="QWidget" name="emptyPage"/>
-     <widget class="QWidget" name="constante">
-      <widget class="QWidget" name="layoutWidget1">
-       <property name="geometry">
-        <rect>
-         <x>60</x>
-         <y>90</y>
-         <width>174</width>
-         <height>27</height>
-        </rect>
+  <layout class="QVBoxLayout" name="formLayout">
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QRadioButton" name="constantRadio">
+       <property name="text">
+        <string>Constant</string>
        </property>
-       <layout class="QHBoxLayout" name="horizontalLayout_2">
-        <item>
-         <widget class="QLabel" name="label_2">
-          <property name="text">
-           <string>Magnitude:</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="magnitudeEdit"/>
-        </item>
-       </layout>
       </widget>
-      <widget class="QWidget" name="layoutWidget">
-       <property name="geometry">
-        <rect>
-         <x>60</x>
-         <y>140</y>
-         <width>153</width>
-         <height>25</height>
-        </rect>
+     </item>
+     <item>
+      <widget class="QRadioButton" name="systemRadio">
+       <property name="text">
+        <string>Transfer function</string>
        </property>
-       <layout class="QHBoxLayout" name="horizontalLayout_9">
-        <item>
-         <widget class="QRadioButton" name="linearRadio">
-          <property name="text">
-           <string>Linear</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QRadioButton" name="decibelsRadio">
-          <property name="text">
-           <string>Decibels</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
       </widget>
-     </widget>
-     <widget class="QWidget" name="FT">
-      <widget class="QStackedWidget" name="figureStack">
-       <property name="geometry">
-        <rect>
-         <x>180</x>
-         <y>150</y>
-         <width>141</width>
-         <height>80</height>
-        </rect>
+     </item>
+     <item>
+      <spacer name="modeSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
        </property>
-       <widget class="QWidget" name="page_9"/>
-       <widget class="QWidget" name="page_3">
-        <widget class="QLabel" name="polyImage">
-         <property name="geometry">
-          <rect>
-           <x>10</x>
-           <y>10</y>
-           <width>121</width>
-           <height>61</height>
-          </rect>
-         </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="bodyLayout">
+     <item>
+      <layout class="QVBoxLayout" name="typesLayout">
+       <item>
+        <widget class="QLabel" name="label">
          <property name="text">
-          <string/>
+          <string>Specification types:</string>
          </property>
         </widget>
-       </widget>
-       <widget class="QWidget" name="page_5">
-        <widget class="QLabel" name="tcgImage">
-         <property name="geometry">
-          <rect>
-           <x>10</x>
-           <y>10</y>
-           <width>121</width>
-           <height>61</height>
-          </rect>
+       </item>
+       <item>
+        <layout class="QVBoxLayout" name="verticalLayout">
+         <item>
+          <widget class="QRadioButton" name="trackingRadio">
+           <property name="text">
+            <string>Tracking</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QRadioButton" name="stabilityRadio">
+           <property name="text">
+            <string>Stability</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QRadioButton" name="noiseRadio">
+           <property name="text">
+            <string>Sensor noise</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QRadioButton" name="outputDisturbanceRadio">
+           <property name="text">
+            <string>Output disturbance</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QRadioButton" name="inputDisturbanceRadio">
+           <property name="text">
+            <string>Input disturbance</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QRadioButton" name="controlEffortRadio">
+           <property name="text">
+            <string>Control effort</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <spacer name="typesSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
          </property>
-         <property name="text">
-          <string/>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>20</height>
+          </size>
          </property>
-        </widget>
-       </widget>
-       <widget class="QWidget" name="page_4">
-        <widget class="QLabel" name="zpkImage">
-         <property name="geometry">
-          <rect>
-           <x>10</x>
-           <y>10</y>
-           <width>121</width>
-           <height>61</height>
-          </rect>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-        </widget>
-       </widget>
-      </widget>
-      <widget class="QWidget" name="layoutWidget21">
-       <property name="geometry">
-        <rect>
-         <x>20</x>
-         <y>90</y>
-         <width>219</width>
-         <height>62</height>
-        </rect>
-       </property>
-       <layout class="QVBoxLayout" name="verticalLayout_2">
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_4">
-          <item>
-           <widget class="QLabel" name="label_3">
-            <property name="text">
-             <string>Numerator:</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLineEdit" name="numeratorEdit"/>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_5">
-          <item>
-           <widget class="QLabel" name="label_4">
-            <property name="text">
-             <string>Denominator:</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLineEdit" name="denominatorEdit"/>
-          </item>
-         </layout>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="layoutWidget3">
-       <property name="geometry">
-        <rect>
-         <x>20</x>
-         <y>160</y>
-         <width>157</width>
-         <height>62</height>
-        </rect>
-       </property>
-       <layout class="QVBoxLayout" name="verticalLayout_3">
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_6">
-          <item>
-           <widget class="QLabel" name="label_5">
-            <property name="text">
-             <string>K:</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLineEdit" name="k"/>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_7">
-          <item>
-           <widget class="QLabel" name="label_6">
-            <property name="text">
-             <string>delayEdit:</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLineEdit" name="delayEdit"/>
-          </item>
-         </layout>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="layoutWidget11">
-       <property name="geometry">
-        <rect>
-         <x>30</x>
-         <y>20</y>
-         <width>216</width>
-         <height>56</height>
-        </rect>
-       </property>
-       <layout class="QHBoxLayout" name="horizontalLayout_3">
-        <item>
-         <layout class="QVBoxLayout" name="verticalLayout_4">
-          <item>
-           <widget class="QRadioButton" name="polynomialRadio">
-            <property name="text">
-             <string>Polynomial form</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QRadioButton" name="freeFormRadio">
-            <property name="text">
-             <string>Free form</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <layout class="QVBoxLayout" name="verticalLayout_5">
-          <item>
-           <widget class="QRadioButton" name="tcgRadio">
-            <property name="text">
-             <string>K = tcgRadio</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QRadioButton" name="zpkRadio">
-            <property name="text">
-             <string>k = zpkRadio</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-       </layout>
-      </widget>
-     </widget>
-     <widget class="QWidget" name="page_6"/>
-    </widget>
-    <widget class="QLabel" name="specificationImage">
-     <property name="geometry">
-      <rect>
-       <x>30</x>
-       <y>90</y>
-       <width>111</width>
-       <height>61</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string/>
-     </property>
-    </widget>
-   </widget>
-   <widget class="QWidget" name="principal_se">
-    <widget class="QLabel" name="trackingImage">
-     <property name="geometry">
-      <rect>
-       <x>280</x>
-       <y>100</y>
-       <width>91</width>
-       <height>51</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string/>
-     </property>
-    </widget>
-    <widget class="QStackedWidget" name="lowerModeStack">
-     <property name="geometry">
-      <rect>
-       <x>0</x>
-       <y>0</y>
-       <width>271</width>
-       <height>241</height>
-      </rect>
-     </property>
-     <widget class="QWidget" name="vacia_se1"/>
-     <widget class="QWidget" name="constante_se1">
-      <widget class="QWidget" name="layoutWidget7">
-       <property name="geometry">
-        <rect>
-         <x>50</x>
-         <y>90</y>
-         <width>175</width>
-         <height>60</height>
-        </rect>
-       </property>
-       <layout class="QVBoxLayout" name="verticalLayout_14">
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_21">
-          <item>
-           <widget class="QLabel" name="label_18">
-            <property name="text">
-             <string>Magnitude:</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLineEdit" name="lowerMagnitudeEdit"/>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_22">
-          <item>
-           <widget class="QRadioButton" name="lowerLinearRadio">
-            <property name="text">
-             <string>Linear</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QRadioButton" name="lowerDecibelsRadio">
-            <property name="text">
-             <string>Decibels</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-       </layout>
-      </widget>
-     </widget>
-     <widget class="QWidget" name="ft_se1">
-      <widget class="QWidget" name="layoutWidget8">
-       <property name="geometry">
-        <rect>
-         <x>40</x>
-         <y>20</y>
-         <width>191</width>
-         <height>56</height>
-        </rect>
-       </property>
-       <layout class="QHBoxLayout" name="horizontalLayout_11">
-        <item>
-         <layout class="QVBoxLayout" name="verticalLayout_6">
-          <item>
-           <widget class="QRadioButton" name="lowerPolynomialRadio">
-            <property name="text">
-             <string>Polynomial form</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QRadioButton" name="lowerFreeFormRadio">
-            <property name="text">
-             <string>Free form</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <layout class="QVBoxLayout" name="verticalLayout_7">
-          <item>
-           <widget class="QRadioButton" name="lowerZpkRadio">
-            <property name="text">
-             <string>k=tcgRadio</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QRadioButton" name="lowerTcgRadio">
-            <property name="text">
-             <string>k=zpkRadio</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="layoutWidget9">
-       <property name="geometry">
-        <rect>
-         <x>30</x>
-         <y>90</y>
-         <width>220</width>
-         <height>62</height>
-        </rect>
-       </property>
-       <layout class="QVBoxLayout" name="verticalLayout_10">
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_13">
-          <item>
-           <widget class="QLabel" name="label_10">
-            <property name="text">
-             <string>Numerator: </string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLineEdit" name="lowerNumeratorEdit"/>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_14">
-          <item>
-           <widget class="QLabel" name="label_11">
-            <property name="text">
-             <string>Denominator: </string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLineEdit" name="lowerDenominatorEdit"/>
-          </item>
-         </layout>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="layoutWidget10">
-       <property name="geometry">
-        <rect>
-         <x>30</x>
-         <y>160</y>
-         <width>111</width>
-         <height>62</height>
-        </rect>
-       </property>
-       <layout class="QVBoxLayout" name="verticalLayout_11">
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_15">
-          <item>
-           <widget class="QLabel" name="label_12">
-            <property name="text">
-             <string>K: </string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLineEdit" name="lowerGainEdit"/>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_16">
-          <item>
-           <widget class="QLabel" name="label_13">
-            <property name="text">
-             <string>Ret:</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLineEdit" name="lowerDelayEdit"/>
-          </item>
-         </layout>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QStackedWidget" name="lowerFigureStack">
-       <property name="geometry">
-        <rect>
-         <x>150</x>
-         <y>159</y>
-         <width>111</width>
-         <height>71</height>
-        </rect>
-       </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <widget class="QStackedWidget" name="pageStack">
        <property name="currentIndex">
         <number>0</number>
        </property>
-       <widget class="QWidget" name="page"/>
-       <widget class="QWidget" name="page_7">
-        <widget class="QLabel" name="lowerZpkImage">
-         <property name="geometry">
-          <rect>
-           <x>0</x>
-           <y>10</y>
-           <width>111</width>
-           <height>61</height>
-          </rect>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-        </widget>
+       <widget class="QWidget" name="principal_todos">
+        <layout class="QHBoxLayout" name="principalLayout">
+         <property name="leftMargin"><number>0</number></property>
+         <property name="topMargin"><number>0</number></property>
+         <property name="rightMargin"><number>0</number></property>
+         <property name="bottomMargin"><number>0</number></property>
+         <item>
+          <widget class="QLabel" name="specificationImage">
+           <property name="alignment"><set>Qt::AlignCenter</set></property>
+           <property name="text"><string/></property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QStackedWidget" name="modeStack">
+           <property name="currentIndex"><number>0</number></property>
+           <widget class="QWidget" name="emptyPage"/>
+       <widget class="QWidget" name="constante">
+        <layout class="QVBoxLayout" name="constanteLayout">
+         <property name="leftMargin"><number>0</number></property>
+         <property name="topMargin"><number>0</number></property>
+         <property name="rightMargin"><number>0</number></property>
+         <property name="bottomMargin"><number>0</number></property>
+         <item>
+                 <layout class="QFormLayout" name="singleMagnitudeLayout">
+                  <item row="0" column="0">
+                   <widget class="QLabel" name="label_2">
+                    <property name="text">
+                     <string>Magnitude:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QLineEdit" name="magnitudeEdit"/>
+                  </item>
+                 </layout>
+         </item>
+         <item>
+                 <layout class="QHBoxLayout" name="singleUnitsLayout">
+                  <item>
+                   <widget class="QRadioButton" name="linearRadio">
+                    <property name="text">
+                     <string>Linear</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QRadioButton" name="decibelsRadio">
+                    <property name="text">
+                     <string>Decibels</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+         </item>
+         <item>
+                 <spacer name="singleConstantSpacer">
+                  <property name="orientation">
+                   <enum>Qt::Vertical</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>20</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+         </item>
+        </layout>
        </widget>
-       <widget class="QWidget" name="page_8">
-        <widget class="QLabel" name="lowerTcgImage">
-         <property name="geometry">
-          <rect>
-           <x>10</x>
-           <y>10</y>
-           <width>101</width>
-           <height>61</height>
-          </rect>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-        </widget>
+       <widget class="QWidget" name="FT">
+        <layout class="QVBoxLayout" name="FTLayout">
+         <property name="leftMargin"><number>0</number></property>
+         <property name="topMargin"><number>0</number></property>
+         <property name="rightMargin"><number>0</number></property>
+         <property name="bottomMargin"><number>0</number></property>
+         <item>
+                 <layout class="QHBoxLayout" name="singleFamilyLayout">
+                  <item>
+                   <widget class="QRadioButton" name="polynomialRadio">
+                    <property name="text">
+                     <string>Polynomial form</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QRadioButton" name="freeFormRadio">
+                    <property name="text">
+                     <string>Free form</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QRadioButton" name="tcgRadio">
+                    <property name="text">
+                     <string>K = tcgRadio</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QRadioButton" name="zpkRadio">
+                    <property name="text">
+                     <string>k = zpkRadio</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+         </item>
+         <item>
+                 <layout class="QFormLayout" name="singleFieldsLayout">
+                  <item row="0" column="0">
+                   <widget class="QLabel" name="label_3">
+                    <property name="text">
+                     <string>Numerator:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QLineEdit" name="numeratorEdit"/>
+                  </item>
+                  <item row="1" column="0">
+                   <widget class="QLabel" name="label_4">
+                    <property name="text">
+                     <string>Denominator:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="1">
+                   <widget class="QLineEdit" name="denominatorEdit"/>
+                  </item>
+                  <item row="2" column="0">
+                   <widget class="QLabel" name="label_5">
+                    <property name="text">
+                     <string>K:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="1">
+                   <widget class="QLineEdit" name="k"/>
+                  </item>
+                  <item row="3" column="0">
+                   <widget class="QLabel" name="label_6">
+                    <property name="text">
+                     <string>delayEdit:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="3" column="1">
+                   <widget class="QLineEdit" name="delayEdit"/>
+                  </item>
+                 </layout>
+         </item>
+         <item>
+                 <widget class="QStackedWidget" name="figureStack">
+                  <property name="currentIndex"><number>0</number></property>
+                  <widget class="QWidget" name="page_9"/>
+                  <widget class="QWidget" name="page_3">
+                   <layout class="QVBoxLayout" name="page_3Layout">
+                    <property name="leftMargin"><number>0</number></property>
+                    <property name="topMargin"><number>0</number></property>
+                    <property name="rightMargin"><number>0</number></property>
+                    <property name="bottomMargin"><number>0</number></property>
+                    <item>
+                     <widget class="QLabel" name="polyImage">
+                      <property name="alignment"><set>Qt::AlignCenter</set></property>
+                      <property name="text"><string/></property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                  <widget class="QWidget" name="page_5">
+                   <layout class="QVBoxLayout" name="page_5Layout">
+                    <property name="leftMargin"><number>0</number></property>
+                    <property name="topMargin"><number>0</number></property>
+                    <property name="rightMargin"><number>0</number></property>
+                    <property name="bottomMargin"><number>0</number></property>
+                    <item>
+                     <widget class="QLabel" name="tcgImage">
+                      <property name="alignment"><set>Qt::AlignCenter</set></property>
+                      <property name="text"><string/></property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                  <widget class="QWidget" name="page_4">
+                   <layout class="QVBoxLayout" name="page_4Layout">
+                    <property name="leftMargin"><number>0</number></property>
+                    <property name="topMargin"><number>0</number></property>
+                    <property name="rightMargin"><number>0</number></property>
+                    <property name="bottomMargin"><number>0</number></property>
+                    <item>
+                     <widget class="QLabel" name="zpkImage">
+                      <property name="alignment"><set>Qt::AlignCenter</set></property>
+                      <property name="text"><string/></property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </widget>
+         </item>
+         <item>
+                 <spacer name="singleSpacer">
+                  <property name="orientation">
+                   <enum>Qt::Vertical</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>20</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+         </item>
+        </layout>
        </widget>
-       <widget class="QWidget" name="page_2">
-        <widget class="QLabel" name="lowerPolyImage">
-         <property name="geometry">
-          <rect>
-           <x>0</x>
-           <y>10</y>
-           <width>111</width>
-           <height>61</height>
-          </rect>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-        </widget>
+           <widget class="QWidget" name="page_6"/>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="principal_se">
+        <layout class="QHBoxLayout" name="trackingLayout">
+         <property name="leftMargin"><number>0</number></property>
+         <property name="topMargin"><number>0</number></property>
+         <property name="rightMargin"><number>0</number></property>
+         <property name="bottomMargin"><number>0</number></property>
+         <item>
+          <widget class="QLabel" name="trackingImage">
+           <property name="alignment"><set>Qt::AlignCenter</set></property>
+           <property name="text"><string/></property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QStackedWidget" name="lowerModeStack">
+           <property name="currentIndex"><number>0</number></property>
+           <widget class="QWidget" name="vacia_se1"/>
+       <widget class="QWidget" name="constante_se1">
+        <layout class="QVBoxLayout" name="constante_se1Layout">
+         <property name="leftMargin"><number>0</number></property>
+         <property name="topMargin"><number>0</number></property>
+         <property name="rightMargin"><number>0</number></property>
+         <property name="bottomMargin"><number>0</number></property>
+         <item>
+                 <layout class="QFormLayout" name="lowerMagnitudeLayout">
+                  <item row="0" column="0">
+                   <widget class="QLabel" name="label_18">
+                    <property name="text">
+                     <string>Magnitude:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QLineEdit" name="lowerMagnitudeEdit"/>
+                  </item>
+                 </layout>
+         </item>
+         <item>
+                 <layout class="QHBoxLayout" name="lowerUnitsLayout">
+                  <item>
+                   <widget class="QRadioButton" name="lowerLinearRadio">
+                    <property name="text">
+                     <string>Linear</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QRadioButton" name="lowerDecibelsRadio">
+                    <property name="text">
+                     <string>Decibels</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+         </item>
+         <item>
+                 <spacer name="lowerConstantSpacer">
+                  <property name="orientation">
+                   <enum>Qt::Vertical</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>20</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="ft_se1">
+        <layout class="QVBoxLayout" name="ft_se1Layout">
+         <property name="leftMargin"><number>0</number></property>
+         <property name="topMargin"><number>0</number></property>
+         <property name="rightMargin"><number>0</number></property>
+         <property name="bottomMargin"><number>0</number></property>
+         <item>
+                 <layout class="QHBoxLayout" name="lowerFamilyLayout">
+                  <item>
+                   <widget class="QRadioButton" name="lowerPolynomialRadio">
+                    <property name="text">
+                     <string>Polynomial form</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QRadioButton" name="lowerFreeFormRadio">
+                    <property name="text">
+                     <string>Free form</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QRadioButton" name="lowerZpkRadio">
+                    <property name="text">
+                     <string>k=tcgRadio</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QRadioButton" name="lowerTcgRadio">
+                    <property name="text">
+                     <string>k=zpkRadio</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+         </item>
+         <item>
+                 <layout class="QFormLayout" name="lowerFieldsLayout">
+                  <item row="0" column="0">
+                   <widget class="QLabel" name="label_10">
+                    <property name="text">
+                     <string>Numerator: </string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QLineEdit" name="lowerNumeratorEdit"/>
+                  </item>
+                  <item row="1" column="0">
+                   <widget class="QLabel" name="label_11">
+                    <property name="text">
+                     <string>Denominator: </string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="1">
+                   <widget class="QLineEdit" name="lowerDenominatorEdit"/>
+                  </item>
+                  <item row="2" column="0">
+                   <widget class="QLabel" name="label_12">
+                    <property name="text">
+                     <string>K: </string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="1">
+                   <widget class="QLineEdit" name="lowerGainEdit"/>
+                  </item>
+                  <item row="3" column="0">
+                   <widget class="QLabel" name="label_13">
+                    <property name="text">
+                     <string>Ret:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="3" column="1">
+                   <widget class="QLineEdit" name="lowerDelayEdit"/>
+                  </item>
+                 </layout>
+         </item>
+         <item>
+                 <widget class="QStackedWidget" name="lowerFigureStack">
+                  <property name="currentIndex"><number>0</number></property>
+                  <widget class="QWidget" name="page"/>
+                  <widget class="QWidget" name="page_7">
+                   <layout class="QVBoxLayout" name="page_7Layout">
+                    <property name="leftMargin"><number>0</number></property>
+                    <property name="topMargin"><number>0</number></property>
+                    <property name="rightMargin"><number>0</number></property>
+                    <property name="bottomMargin"><number>0</number></property>
+                    <item>
+                     <widget class="QLabel" name="lowerZpkImage">
+                      <property name="alignment"><set>Qt::AlignCenter</set></property>
+                      <property name="text"><string/></property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                  <widget class="QWidget" name="page_8">
+                   <layout class="QVBoxLayout" name="page_8Layout">
+                    <property name="leftMargin"><number>0</number></property>
+                    <property name="topMargin"><number>0</number></property>
+                    <property name="rightMargin"><number>0</number></property>
+                    <property name="bottomMargin"><number>0</number></property>
+                    <item>
+                     <widget class="QLabel" name="lowerTcgImage">
+                      <property name="alignment"><set>Qt::AlignCenter</set></property>
+                      <property name="text"><string/></property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                  <widget class="QWidget" name="page_2">
+                   <layout class="QVBoxLayout" name="page_2Layout">
+                    <property name="leftMargin"><number>0</number></property>
+                    <property name="topMargin"><number>0</number></property>
+                    <property name="rightMargin"><number>0</number></property>
+                    <property name="bottomMargin"><number>0</number></property>
+                    <item>
+                     <widget class="QLabel" name="lowerPolyImage">
+                      <property name="alignment"><set>Qt::AlignCenter</set></property>
+                      <property name="text"><string/></property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </widget>
+         </item>
+         <item>
+                 <spacer name="lowerSpacer">
+                  <property name="orientation">
+                   <enum>Qt::Vertical</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>20</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+         </item>
+        </layout>
+       </widget>
+          </widget>
+         </item>
+         <item>
+          <widget class="QStackedWidget" name="upperModeStack">
+           <property name="currentIndex"><number>0</number></property>
+           <widget class="QWidget" name="vacia_se2"/>
+       <widget class="QWidget" name="constante_se2">
+        <layout class="QVBoxLayout" name="constante_se2Layout">
+         <property name="leftMargin"><number>0</number></property>
+         <property name="topMargin"><number>0</number></property>
+         <property name="rightMargin"><number>0</number></property>
+         <property name="bottomMargin"><number>0</number></property>
+         <item>
+                 <layout class="QFormLayout" name="upperMagnitudeLayout">
+                  <item row="0" column="0">
+                   <widget class="QLabel" name="label_19">
+                    <property name="text">
+                     <string>Magnitude:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QLineEdit" name="upperMagnitudeEdit"/>
+                  </item>
+                 </layout>
+         </item>
+         <item>
+                 <layout class="QHBoxLayout" name="upperUnitsLayout">
+                  <item>
+                   <widget class="QRadioButton" name="upperLinearRadio">
+                    <property name="text">
+                     <string>Linear</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QRadioButton" name="upperDecibelsRadio">
+                    <property name="text">
+                     <string>Decibels</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+         </item>
+         <item>
+                 <spacer name="upperConstantSpacer">
+                  <property name="orientation">
+                   <enum>Qt::Vertical</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>20</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="ft_se2">
+        <layout class="QVBoxLayout" name="ft_se2Layout">
+         <property name="leftMargin"><number>0</number></property>
+         <property name="topMargin"><number>0</number></property>
+         <property name="rightMargin"><number>0</number></property>
+         <property name="bottomMargin"><number>0</number></property>
+         <item>
+                 <layout class="QHBoxLayout" name="upperFamilyLayout">
+                  <item>
+                   <widget class="QRadioButton" name="upperPolynomialRadio">
+                    <property name="text">
+                     <string>Polynomial form</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QRadioButton" name="upperFreeFormRadio">
+                    <property name="text">
+                     <string>Free form</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QRadioButton" name="upperZpkRadio">
+                    <property name="text">
+                     <string>k=tcgRadio</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QRadioButton" name="upperTcgRadio">
+                    <property name="text">
+                     <string>k=zpkRadio</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+         </item>
+         <item>
+                 <layout class="QFormLayout" name="upperFieldsLayout">
+                  <item row="0" column="0">
+                   <widget class="QLabel" name="label_14">
+                    <property name="text">
+                     <string>Numerator: </string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QLineEdit" name="upperNumeratorEdit"/>
+                  </item>
+                  <item row="1" column="0">
+                   <widget class="QLabel" name="label_15">
+                    <property name="text">
+                     <string>Denominator: </string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="1">
+                   <widget class="QLineEdit" name="upperDenominatorEdit"/>
+                  </item>
+                  <item row="2" column="0">
+                   <widget class="QLabel" name="label_16">
+                    <property name="text">
+                     <string>K: </string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="1">
+                   <widget class="QLineEdit" name="upperGainEdit"/>
+                  </item>
+                  <item row="3" column="0">
+                   <widget class="QLabel" name="label_17">
+                    <property name="text">
+                     <string>Ret:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="3" column="1">
+                   <widget class="QLineEdit" name="upperDelayEdit"/>
+                  </item>
+                 </layout>
+         </item>
+         <item>
+                 <widget class="QStackedWidget" name="upperFigureStack">
+                  <property name="currentIndex"><number>0</number></property>
+                  <widget class="QWidget" name="page_10"/>
+                  <widget class="QWidget" name="page_11">
+                   <layout class="QVBoxLayout" name="page_11Layout">
+                    <property name="leftMargin"><number>0</number></property>
+                    <property name="topMargin"><number>0</number></property>
+                    <property name="rightMargin"><number>0</number></property>
+                    <property name="bottomMargin"><number>0</number></property>
+                    <item>
+                     <widget class="QLabel" name="upperZpkImage">
+                      <property name="alignment"><set>Qt::AlignCenter</set></property>
+                      <property name="text"><string/></property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                  <widget class="QWidget" name="page_12">
+                   <layout class="QVBoxLayout" name="page_12Layout">
+                    <property name="leftMargin"><number>0</number></property>
+                    <property name="topMargin"><number>0</number></property>
+                    <property name="rightMargin"><number>0</number></property>
+                    <property name="bottomMargin"><number>0</number></property>
+                    <item>
+                     <widget class="QLabel" name="upperTcgImage">
+                      <property name="alignment"><set>Qt::AlignCenter</set></property>
+                      <property name="text"><string/></property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                  <widget class="QWidget" name="page_13">
+                   <layout class="QVBoxLayout" name="page_13Layout">
+                    <property name="leftMargin"><number>0</number></property>
+                    <property name="topMargin"><number>0</number></property>
+                    <property name="rightMargin"><number>0</number></property>
+                    <property name="bottomMargin"><number>0</number></property>
+                    <item>
+                     <widget class="QLabel" name="upperPolyImage">
+                      <property name="alignment"><set>Qt::AlignCenter</set></property>
+                      <property name="text"><string/></property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </widget>
+         </item>
+         <item>
+                 <spacer name="upperSpacer">
+                  <property name="orientation">
+                   <enum>Qt::Vertical</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>20</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+         </item>
+        </layout>
+       </widget>
+          </widget>
+         </item>
+        </layout>
        </widget>
       </widget>
-     </widget>
-    </widget>
-    <widget class="QStackedWidget" name="upperModeStack">
-     <property name="geometry">
-      <rect>
-       <x>390</x>
-       <y>10</y>
-       <width>281</width>
-       <height>231</height>
-      </rect>
-     </property>
-     <widget class="QWidget" name="vacia_se2"/>
-     <widget class="QWidget" name="constante_se2">
-      <widget class="QWidget" name="layoutWidget_5">
-       <property name="geometry">
-        <rect>
-         <x>60</x>
-         <y>80</y>
-         <width>175</width>
-         <height>60</height>
-        </rect>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_10">
+     <item>
+      <widget class="QLabel" name="label_7">
+       <property name="text">
+        <string>Frequencies: [</string>
        </property>
-       <layout class="QVBoxLayout" name="verticalLayout_15">
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="startFrequencyEdit"/>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_8">
+       <property name="text">
+        <string>,</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="endFrequencyEdit"/>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_9">
+       <property name="text">
+        <string>]</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="frequenciesSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QWidget" name="buttonsWidget" native="true">
+       <layout class="QHBoxLayout" name="horizontalLayout_8">
+        <property name="leftMargin"><number>0</number></property>
+        <property name="topMargin"><number>0</number></property>
+        <property name="rightMargin"><number>0</number></property>
+        <property name="bottomMargin"><number>0</number></property>
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_23">
-          <item>
-           <widget class="QLabel" name="label_19">
-            <property name="text">
-             <string>Magnitude:</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLineEdit" name="upperMagnitudeEdit"/>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_24">
-          <item>
-           <widget class="QRadioButton" name="upperLinearRadio">
-            <property name="text">
-             <string>Linear</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QRadioButton" name="upperDecibelsRadio">
-            <property name="text">
-             <string>Decibels</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
+         <widget class="QPushButton" name="okButton">
+          <property name="text">
+           <string>Apply</string>
+          </property>
+         </widget>
         </item>
        </layout>
       </widget>
-     </widget>
-     <widget class="QWidget" name="ft_se2">
-      <widget class="QWidget" name="layoutWidget_2">
-       <property name="geometry">
-        <rect>
-         <x>20</x>
-         <y>10</y>
-         <width>191</width>
-         <height>56</height>
-        </rect>
-       </property>
-       <layout class="QHBoxLayout" name="horizontalLayout_12">
-        <item>
-         <layout class="QVBoxLayout" name="verticalLayout_8">
-          <item>
-           <widget class="QRadioButton" name="upperPolynomialRadio">
-            <property name="text">
-             <string>Polynomial form</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QRadioButton" name="upperFreeFormRadio">
-            <property name="text">
-             <string>Free form</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <layout class="QVBoxLayout" name="verticalLayout_9">
-          <item>
-           <widget class="QRadioButton" name="upperZpkRadio">
-            <property name="text">
-             <string>k=tcgRadio</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QRadioButton" name="upperTcgRadio">
-            <property name="text">
-             <string>k=zpkRadio</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="layoutWidget_3">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>80</y>
-         <width>220</width>
-         <height>62</height>
-        </rect>
-       </property>
-       <layout class="QVBoxLayout" name="verticalLayout_12">
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_17">
-          <item>
-           <widget class="QLabel" name="label_14">
-            <property name="text">
-             <string>Numerator: </string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLineEdit" name="upperNumeratorEdit"/>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_18">
-          <item>
-           <widget class="QLabel" name="label_15">
-            <property name="text">
-             <string>Denominator: </string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLineEdit" name="upperDenominatorEdit"/>
-          </item>
-         </layout>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="layoutWidget_4">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>160</y>
-         <width>101</width>
-         <height>62</height>
-        </rect>
-       </property>
-       <layout class="QVBoxLayout" name="verticalLayout_13">
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_19">
-          <item>
-           <widget class="QLabel" name="label_16">
-            <property name="text">
-             <string>K: </string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLineEdit" name="upperGainEdit"/>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_20">
-          <item>
-           <widget class="QLabel" name="label_17">
-            <property name="text">
-             <string>Ret:</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLineEdit" name="upperDelayEdit"/>
-          </item>
-         </layout>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QStackedWidget" name="upperFigureStack">
-       <property name="geometry">
-        <rect>
-         <x>120</x>
-         <y>150</y>
-         <width>111</width>
-         <height>71</height>
-        </rect>
-       </property>
-       <property name="currentIndex">
-        <number>0</number>
-       </property>
-       <widget class="QWidget" name="page_10"/>
-       <widget class="QWidget" name="page_11">
-        <widget class="QLabel" name="upperZpkImage">
-         <property name="geometry">
-          <rect>
-           <x>0</x>
-           <y>10</y>
-           <width>111</width>
-           <height>61</height>
-          </rect>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-        </widget>
-       </widget>
-       <widget class="QWidget" name="page_12">
-        <widget class="QLabel" name="upperTcgImage">
-         <property name="geometry">
-          <rect>
-           <x>10</x>
-           <y>10</y>
-           <width>101</width>
-           <height>61</height>
-          </rect>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-        </widget>
-       </widget>
-       <widget class="QWidget" name="page_13">
-        <widget class="QLabel" name="upperPolyImage">
-         <property name="geometry">
-          <rect>
-           <x>0</x>
-           <y>10</y>
-           <width>111</width>
-           <height>61</height>
-          </rect>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-        </widget>
-       </widget>
-      </widget>
-     </widget>
-    </widget>
-   </widget>
-  </widget>
-  <zorder>layoutWidget4</zorder>
-  <zorder>layoutWidget5</zorder>
-  <zorder>buttonsWidget</zorder>
-  <zorder>layoutWidget</zorder>
-  <zorder>pageStack</zorder>
-  <zorder>label</zorder>
+     </item>
+    </layout>
+   </item>
+  </layout>
  </widget>
  <resources/>
  <connections/>

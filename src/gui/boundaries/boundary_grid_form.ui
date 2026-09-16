@@ -2,9 +2,6 @@
 <ui version="4.0">
  <class>BoundaryGridForm</class>
  <widget class="QWidget" name="BoundaryGridForm">
-  <property name="windowModality">
-   <enum>Qt::WindowModal</enum>
-  </property>
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -13,175 +10,188 @@
     <height>319</height>
    </rect>
   </property>
-  <property name="windowTitle">
-   <string>Dialog</string>
-  </property>
-  <widget class="QPushButton" name="okButton">
-   <property name="geometry">
-    <rect>
-     <x>290</x>
-     <y>280</y>
-     <width>91</width>
-     <height>32</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Compute</string>
-   </property>
-  </widget>
-  <widget class="QGroupBox" name="groupBox">
-   <property name="geometry">
-    <rect>
-     <x>10</x>
-     <y>30</y>
-     <width>381</width>
-     <height>101</height>
-    </rect>
-   </property>
-   <property name="title">
-    <string>Grid data</string>
-   </property>
-   <widget class="QWidget" name="layoutWidget">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>30</y>
-      <width>361</width>
-      <height>62</height>
-     </rect>
-    </property>
-    <layout class="QVBoxLayout" name="verticalLayout">
+  <layout class="QVBoxLayout" name="formLayout">
+   <item>
+    <widget class="QGroupBox" name="groupBox">
+     <property name="title">
+      <string>Grid data</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout">
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <item>
+         <widget class="QLabel" name="label">
+          <property name="text">
+           <string>phases:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="phaseStart"/>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="phaseEnd"/>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_2">
+          <property name="text">
+           <string>Number of points:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="phasePoints"/>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <item>
+         <widget class="QLabel" name="label_4">
+          <property name="text">
+           <string>Magnitude:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="magnitudeStart"/>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="magnitudeEnd"/>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_3">
+          <property name="text">
+           <string>Number of points:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="magnitudePoints"/>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="sourceLayout">
      <item>
-      <layout class="QHBoxLayout" name="horizontalLayout">
+      <layout class="QVBoxLayout" name="verticalLayout_3">
        <item>
-        <widget class="QLabel" name="label">
+        <widget class="QRadioButton" name="contorno">
          <property name="text">
-          <string>phases:</string>
+          <string>Contour</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="phaseStart"/>
-       </item>
-       <item>
-        <widget class="QLineEdit" name="phaseEnd"/>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_2">
+        <widget class="QRadioButton" name="fullTemplateRadio">
          <property name="text">
-          <string>Number of points:</string>
+          <string>Full template</string>
          </property>
         </widget>
-       </item>
-       <item>
-        <widget class="QLineEdit" name="phasePoints"/>
        </item>
       </layout>
      </item>
      <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_2">
+      <spacer name="sourceSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <layout class="QVBoxLayout" name="verticalLayout_2">
        <item>
-        <widget class="QLabel" name="label_4">
+        <widget class="QRadioButton" name="cudaCheck">
          <property name="text">
-          <string>Magnitude:</string>
+          <string>CUDA</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="magnitudeStart"/>
-       </item>
-       <item>
-        <widget class="QLineEdit" name="magnitudeEnd"/>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_3">
+        <widget class="QRadioButton" name="cpu">
          <property name="text">
-          <string>Number of points:</string>
+          <string>CPU</string>
          </property>
         </widget>
-       </item>
-       <item>
-        <widget class="QLineEdit" name="magnitudePoints"/>
        </item>
       </layout>
      </item>
     </layout>
-   </widget>
-  </widget>
-  <widget class="QWidget" name="layoutWidget2">
-   <property name="geometry">
-    <rect>
-     <x>30</x>
-     <y>230</y>
-     <width>141</width>
-     <height>31</height>
-    </rect>
-   </property>
-   <layout class="QHBoxLayout" name="horizontalLayout_5">
-    <item>
-     <widget class="QLabel" name="label_6">
-      <property name="text">
-       <string>Infinity = </string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QLineEdit" name="infinityEdit"/>
-    </item>
-   </layout>
-  </widget>
-  <widget class="QWidget" name="layoutWidget3">
-   <property name="geometry">
-    <rect>
-     <x>40</x>
-     <y>150</y>
-     <width>162</width>
-     <height>54</height>
-    </rect>
-   </property>
-   <layout class="QVBoxLayout" name="verticalLayout_3">
-    <item>
-     <widget class="QRadioButton" name="contorno">
-      <property name="text">
-       <string>Contour</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QRadioButton" name="fullTemplateRadio">
-      <property name="text">
-       <string>Full template</string>
-      </property>
-     </widget>
-    </item>
-   </layout>
-  </widget>
-  <widget class="QWidget" name="layoutWidget4">
-   <property name="geometry">
-    <rect>
-     <x>290</x>
-     <y>150</y>
-     <width>64</width>
-     <height>52</height>
-    </rect>
-   </property>
-   <layout class="QVBoxLayout" name="verticalLayout_2">
-    <item>
-     <widget class="QRadioButton" name="cudaCheck">
-      <property name="text">
-       <string>CUDA</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QRadioButton" name="cpu">
-      <property name="text">
-       <string>CPU</string>
-      </property>
-     </widget>
-    </item>
-   </layout>
-  </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_5">
+     <item>
+      <widget class="QLabel" name="label_6">
+       <property name="text">
+        <string>Infinity = </string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="infinityEdit"/>
+     </item>
+     <item>
+      <spacer name="infinitySpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <spacer name="bottomSpacer">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="buttonsLayout">
+     <item>
+      <spacer name="buttonsSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="okButton">
+       <property name="text">
+        <string>Compute</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
  </widget>
  <resources/>
 </ui>
