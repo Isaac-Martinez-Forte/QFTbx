@@ -1461,3 +1461,39 @@ TEST_F(GuiSmoke, OpeningAProjectFillsTheFormsWithWhatItHolds)
     EXPECT_FALSE(phasePoints->text().isEmpty()) << "the phase count came out empty";
     EXPECT_GT(phasePoints->text().toInt(), 1) << "the phase count is not a grid";
 }
+
+//The window destroys a viewer from refreshAvailability(), which the project
+//calls when it changes - and a project changes from inside a widget's own
+//slot: the template viewer's Recompute button asks for a contour and the
+//window computes it. Freeing the widget whose slot is still on the stack is
+//a use after free, so they go through deleteLater() and Qt destroys them
+//when control is back at the event loop.
+TEST_F(GuiSmoke, RecomputingFromTheViewerDoesNotFreeItUnderItsOwnSlot)
+{
+    MainWindow window;
+    window.setFileChooser([](bool) {
+        return QString(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft");
+    });
+
+    QAction * open = child<QAction>(&window, "actionOpen");
+    ASSERT_NE(open, nullptr);
+    open->trigger();
+
+    TemplateViewer * viewer = window.findChild<TemplateViewer *>();
+    ASSERT_NE(viewer, nullptr) << "the template viewer was not built";
+
+    //Its own button, as the user presses it: the handler reaches the project,
+    //the project announces, and the window re-derives its widgets while this
+    //slot is still running.
+    QPushButton * recompute = child<QPushButton>(viewer, "recomputeButton");
+    ASSERT_NE(recompute, nullptr);
+    recompute->click();
+
+    //Still here, and still answering: nothing was freed underneath it.
+    EXPECT_NE(window.findChild<TemplateViewer *>(), nullptr)
+        << "the viewer was destroyed while its own slot was on the stack";
+
+    //And the event loop can run without tripping over what was queued.
+    QCoreApplication::processEvents();
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+}

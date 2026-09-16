@@ -170,6 +170,28 @@ private:
     /// Shows a dialog through the runner, or exec() when there is none.
     void runDialog(StepDialog * dialog);
 
+    /**
+     * @brief Destroys a dialog or a viewer and forgets it.
+     *
+     * deleteLater() and not delete: these are destroyed from
+     * refreshAvailability(), which the project calls when it changes, and a
+     * project changes from inside a widget's own slot - the template
+     * viewer's Recompute button asks for a contour and the window computes
+     * it. A plain delete there would free the widget whose slot is still on
+     * the stack. Qt destroys it when control is back at the event loop
+     * instead, and hiding it first is what makes that invisible.
+     */
+    template <typename Widget>
+    static void destroyLater(Widget *& widget)
+    {
+        if (widget == nullptr) {
+            return;
+        }
+        widget->hide();
+        widget->deleteLater();
+        widget = nullptr;
+    }
+
     /// Asks for a file name through the chooser, or QFileDialog when none.
     QString chooseFile(bool forSaving, const QString & title);
 

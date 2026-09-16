@@ -188,42 +188,31 @@ void MainWindow::createSession(){
     saveFilePath.clear();
 }
 
-//Qt's own mechanism: every dialog and viewer here is a child of this
-//window, and destroying one is how a new session gets a fresh one. The
-//POINTER decides, with no progress flag to consult: a flag beside it is a
-//second answer to the same question and the two drift apart.
+//Qt's own mechanism: every dialog and viewer here is a child of this window,
+//and destroying one is how a new session gets a fresh one. The POINTER
+//decides, with no progress flag to consult: a flag beside it is a second
+//answer to the same question and the two drift apart. See destroyLater() for
+//why they are not deleted outright.
 void MainWindow::destroyDialogs(){
-    delete plantDialog;
-    plantDialog = nullptr;
+    destroyLater(plantDialog);
 
-    delete specificationsDialog;
-    specificationsDialog = nullptr;
+    destroyLater(specificationsDialog);
 
-    delete frequenciesDialog;
-    frequenciesDialog = nullptr;
+    destroyLater(frequenciesDialog);
 
-    delete templatesDialog;
-    templatesDialog = nullptr;
-    delete templateViewer;
-    templateViewer = nullptr;
+    destroyLater(templatesDialog);
+    destroyLater(templateViewer);
 
-    delete boundaryGridDialog;
-    boundaryGridDialog = nullptr;
-    delete boundaryViewer;
-    boundaryViewer = nullptr;
-    delete boundaryUnionViewer;
-    boundaryUnionViewer = nullptr;
+    destroyLater(boundaryGridDialog);
+    destroyLater(boundaryViewer);
+    destroyLater(boundaryUnionViewer);
 
-    delete controllerDialog;
-    controllerDialog = nullptr;
+    destroyLater(controllerDialog);
 
-    delete bodeViewer;
-    bodeViewer = nullptr;
+    destroyLater(bodeViewer);
 
-    delete loopShapingDialog;
-    loopShapingDialog = nullptr;
-    delete loopShapingViewer;
-    loopShapingViewer = nullptr;
+    destroyLater(loopShapingDialog);
+    destroyLater(loopShapingViewer);
 }
 
 //The POINTER says whether a step's widgets exist, which is the question
@@ -380,46 +369,35 @@ void MainWindow::refreshAvailability()
     //The Bode viewer is not here because it is not a step: it is a view of
     //the plant and the frequencies, and it has its own action.
     if (!done.has(qftbx::Step::Plant)) {
-        delete plantDialog;
-        plantDialog = nullptr;
+        destroyLater(plantDialog);
     }
 
     if (!done.has(qftbx::Step::Specifications)) {
-        delete specificationsDialog;
-        specificationsDialog = nullptr;
+        destroyLater(specificationsDialog);
     }
 
     if (!done.has(qftbx::Step::Frequencies)) {
-        delete frequenciesDialog;
-        frequenciesDialog = nullptr;
+        destroyLater(frequenciesDialog);
     }
 
     if (!done.has(qftbx::Step::Controller)) {
-        delete controllerDialog;
-        controllerDialog = nullptr;
+        destroyLater(controllerDialog);
     }
 
     if (!done.has(qftbx::Step::Templates)) {
-        delete templatesDialog;
-        templatesDialog = nullptr;
-        delete templateViewer;
-        templateViewer = nullptr;
+        destroyLater(templatesDialog);
+        destroyLater(templateViewer);
     }
 
     if (!done.has(qftbx::Step::Boundaries)) {
-        delete boundaryGridDialog;
-        boundaryGridDialog = nullptr;
-        delete boundaryViewer;
-        boundaryViewer = nullptr;
-        delete boundaryUnionViewer;
-        boundaryUnionViewer = nullptr;
+        destroyLater(boundaryGridDialog);
+        destroyLater(boundaryViewer);
+        destroyLater(boundaryUnionViewer);
     }
 
     if (!done.has(qftbx::Step::LoopShaping)) {
-        delete loopShapingDialog;
-        loopShapingDialog = nullptr;
-        delete loopShapingViewer;
-        loopShapingViewer = nullptr;
+        destroyLater(loopShapingDialog);
+        destroyLater(loopShapingViewer);
     }
 
     const bool plant          = done.has(qftbx::Step::Plant);
@@ -510,8 +488,7 @@ void MainWindow::on_plantButton_clicked()
         //nothing is decided here.
         controller->setPlant(std::move(described));
     } else {
-        delete plantDialog;
-        plantDialog = nullptr;
+        destroyLater(plantDialog);
     }
 
     //Buttons and bar from the project, not from flags kept here.
@@ -552,8 +529,7 @@ void MainWindow::on_specificationsButton_clicked()
         //The templates do not depend on the specifications; the boundaries
         //do, and the project drops them and says so.
     } else {
-        delete specificationsDialog;
-        specificationsDialog = nullptr;
+        destroyLater(specificationsDialog);
     }
 }
 
@@ -577,8 +553,7 @@ void MainWindow::on_frequenciesButton_clicked()
         //frequencies drops, and the window follows below.
         controller->setOmega(std::move(described));
     } else {
-        delete frequenciesDialog;
-        frequenciesDialog = nullptr;
+        destroyLater(frequenciesDialog);
     }
 }
 
