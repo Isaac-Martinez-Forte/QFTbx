@@ -47,6 +47,11 @@
 # Values: a list of "phase:size", or empty.
 # canvas =
 
+# And how big the window was when it closed, so it comes up the same size.
+# Written by the window itself, like the canvas above.
+# Values: "width height", "maximized", or empty.
+# window =
+
 
 # ---------------------------------------------------------------------------
 # [limits] - ceilings that exist to stop a typo, not to express a limit of the

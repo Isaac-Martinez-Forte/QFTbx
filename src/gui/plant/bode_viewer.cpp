@@ -59,7 +59,7 @@ void BodeViewer::drawBode(LtiSystem *plant, Omega *omega){
     }else if (omega->type() == Omega::LogSpace){
         //start()/end() are in rad/s, like every other frequency in the
         //toolbox, and qftbx::logspace takes exponents - so the conversion
-        //happens here, the same way the frequencies dialog does it when it
+        //happens here, the same way the frequencies form does it when it
         //builds the set. Holding the exponents instead makes the unit a
         //secret shared between two files.
         if (omega->start() > 0.0 && omega->end() > 0.0){

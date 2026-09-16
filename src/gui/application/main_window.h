@@ -13,18 +13,18 @@
 #include <QByteArray>
 #include <QMainWindow>
 
-#include "src/gui/frequencies/frequencies_dialog.h"
+#include "src/gui/frequencies/frequencies_form.h"
 #include "src/gui/plant/bode_viewer.h"
-#include "src/gui/templates/templates_dialog.h"
+#include "src/gui/templates/templates_form.h"
 #include "src/gui/templates/template_viewer.h"
-#include "src/gui/boundaries/boundary_grid_dialog.h"
+#include "src/gui/boundaries/boundary_grid_form.h"
 #include "src/gui/boundaries/boundary_viewer.h"
-#include "src/gui/loopshaping/controller_dialog.h"
-#include "src/gui/specifications/specifications_dialog.h"
+#include "src/gui/loopshaping/controller_form.h"
+#include "src/gui/specifications/specifications_form.h"
 #include "src/gui/boundaries/boundary_union_viewer.h"
-#include "src/gui/loopshaping/loop_shaping_dialog.h"
+#include "src/gui/loopshaping/loop_shaping_form.h"
 #include "src/gui/loopshaping/loop_shaping_viewer.h"
-#include "src/gui/plant/plant_dialog.h"
+#include "src/gui/plant/plant_form.h"
 
 //The window is the only GUI class that talks to the project: the dialogs
 //and viewers are handed what they need and give back what they built.
@@ -166,7 +166,7 @@ private:
     //Every dialog and viewer below is created with THIS as its Qt parent,
     //so Qt owns it and frees it with the window. They are raw pointers on
     //purpose: holding one in a unique_ptr would make two owners and free it
-    //twice. destroyDialogs() deletes them to REBUILD them for a new
+    //twice. destroyPhases() deletes them to REBUILD them for a new
     //session, which is Qt's own mechanism, not memory management of ours.
     /**
      * @brief Builds the card of one phase - its form and its diagrams
@@ -257,17 +257,17 @@ private:
 
     FileChooser m_chooseFile;
 
-    PlantDialog * plantDialog = nullptr;
-    FrequenciesDialog * frequenciesDialog = nullptr;
+    PlantForm * plantForm = nullptr;
+    FrequenciesForm * frequenciesForm = nullptr;
     BodeViewer * bodeViewer = nullptr;
-    TemplatesDialog * templatesDialog = nullptr;
+    TemplatesForm * templatesForm = nullptr;
     TemplateViewer * templateViewer = nullptr;
-    BoundaryGridDialog * boundaryGridDialog = nullptr;
+    BoundaryGridForm * boundaryGridForm = nullptr;
     BoundaryViewer * boundaryViewer = nullptr;
     BoundaryUnionViewer * boundaryUnionViewer = nullptr;
-    SpecificationsDialog * specificationsDialog = nullptr;
-    ControllerDialog * controllerDialog = nullptr;
-    LoopShapingDialog * loopShapingDialog = nullptr;
+    SpecificationsForm * specificationsForm = nullptr;
+    ControllerForm * controllerForm = nullptr;
+    LoopShapingForm * loopShapingForm = nullptr;
     LoopShapingViewer * loopShapingViewer = nullptr;
 
     //The card of each phase, created with the widgets it holds. Destroying
@@ -307,18 +307,18 @@ private:
     /// not been entered yet. The dialogs that need them are given them.
     const std::vector<double> * frequencyValues() const;
 
-    void destroyDialogs();
+    void destroyPhases();
 
     //One per step: the dialog (and viewers) of a step, created on first use
     //with the settings applied, and reused afterwards. Each of these blocks
     //was written twice, in the step's handler and in the open handler.
-    void ensurePlantDialog();
-    void ensureSpecificationsDialog();
-    void ensureFrequenciesDialog();
-    void ensureTemplatesWidgets();
-    void ensureBoundariesWidgets();
-    void ensureControllerDialog();
-    void ensureLoopShapingWidgets();
+    void ensurePlantPhase();
+    void ensureSpecificationsPhase();
+    void ensureFrequenciesPhase();
+    void ensureTemplatesPhase();
+    void ensureBoundariesPhase();
+    void ensureControllerPhase();
+    void ensureLoopShapingPhase();
 
 };
 

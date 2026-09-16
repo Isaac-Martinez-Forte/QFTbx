@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>SpecificationsDialog</class>
- <widget class="QWidget" name="SpecificationsDialog">
+ <class>SpecificationsForm</class>
+ <widget class="QWidget" name="SpecificationsForm">
   <property name="geometry">
    <rect>
     <x>0</x>

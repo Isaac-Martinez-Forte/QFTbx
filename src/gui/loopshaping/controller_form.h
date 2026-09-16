@@ -1,5 +1,5 @@
-#ifndef QFTBX_CONTROLLER_DIALOG_H
-#define QFTBX_CONTROLLER_DIALOG_H
+#ifndef QFTBX_CONTROLLER_FORM_H
+#define QFTBX_CONTROLLER_FORM_H
 
 #include <memory>
 #include <optional>
@@ -13,7 +13,7 @@
 #include "src/gui/plant/uncertainty_dialog.h"
 
 namespace Ui {
-class ControllerDialog;
+class ControllerForm;
 }
 
 namespace qftbx {
@@ -22,16 +22,16 @@ namespace qftbx {
  * @brief Step 6 of the design: the controller structure, with the search box
  * of every parameter and of the gain.
  *
- * Like the plant dialog, it builds a system and hands it over; the fields
+ * Like the plant form, it builds a system and hands it over; the fields
  * are read by SystemDescriptionReader, shared between the two.
  */
-class ControllerDialog : public StepPanel
+class ControllerForm : public StepPanel
 {
     Q_OBJECT
 
 public:
-    explicit ControllerDialog(QWidget *parent = nullptr);
-    ~ControllerDialog();
+    explicit ControllerForm(QWidget *parent = nullptr);
+    ~ControllerForm();
 
     /// The controller structure the user described (with the search box of
     /// its parameters), or nullptr when cancelled or rejected. Ownership
@@ -42,7 +42,7 @@ public:
      * @brief Shows the structure the project holds: the family, the
      * coefficients and the search box of the gain.
      *
-     * As in the plant dialog, the structure's own parameters answer for the
+     * As in the plant form, the structure's own parameters answer for the
      * search box while the fields still describe them.
      */
     void setFromProject(LtiSystem * structure);
@@ -59,7 +59,7 @@ private:
     LtiSystem::SystemType selectedType() const;
 
     /// The coefficients of the described controller, or nothing when the
-    /// dialog could not read them (the reader has already said why).
+    /// form could not read them (the reader has already said why).
     std::optional<CoefficientTable> readTables(CoefficientTable & expressionTable,
                                                UncertainTable & uncertainTable);
 
@@ -70,7 +70,7 @@ private:
     QString currentCoefficients() const;
     QString currentGain() const;
 
-    std::unique_ptr<Ui::ControllerDialog> ui;
+    std::unique_ptr<Ui::ControllerForm> ui;
 
     UncertaintyDialog * uncertaintyDialog = nullptr;
 
@@ -94,4 +94,4 @@ private:
 
 } // namespace qftbx
 
-#endif // QFTBX_CONTROLLER_DIALOG_H
+#endif // QFTBX_CONTROLLER_FORM_H

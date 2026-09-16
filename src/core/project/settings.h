@@ -303,6 +303,10 @@ struct Settings {
         /// closes and read back when it opens; empty means the order of
         /// the design and one square each.
         std::string canvas;
+
+        /// And how big the window was: "1280 860", or "maximized". Written
+        /// by the window on the way out, like the canvas.
+        std::string window;
     } interface;
 
     /// The path this was read from, empty when nothing was read and the

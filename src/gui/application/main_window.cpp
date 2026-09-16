@@ -154,6 +154,20 @@ MainWindow::MainWindow(qftbx::Settings settings, QWidget *parent) :
         }
     }
 
+    //And how big it was when it closed, so it comes up the same size. A
+    //size this build cannot read is no reason to refuse to start: the
+    //window opens at the size its form was drawn at.
+    const QString window = QString::fromStdString(m_settings.interface.window).trimmed();
+
+    if (window == "maximized") {
+        setWindowState(windowState() | Qt::WindowMaximized);
+    } else {
+        const QStringList size = window.split(' ', Qt::SkipEmptyParts);
+        if (size.size() == 2 && size.at(0).toInt() > 0 && size.at(1).toInt() > 0) {
+            resize(size.at(0).toInt(), size.at(1).toInt());
+        }
+    }
+
     //7 real steps: with the 0-8 range the bar never reached 100%.
     ui->progressBar->setRange(0,7);
 
@@ -215,8 +229,13 @@ void MainWindow::rememberCanvas()
         }
     }
 
+    const QString window = isMaximized()
+            ? QString("maximized")
+            : QString("%1 %2").arg(width()).arg(height());
+
     try {
         qftbx::writeSetting(m_settings.source, "interface.canvas", entries.join(' ').toStdString());
+        qftbx::writeSetting(m_settings.source, "interface.window", window.toStdString());
     } catch (const qftbx::Exception & failure) {
         //The layout is not worth a complaint on the way out.
         (void) failure;
@@ -300,7 +319,7 @@ void MainWindow::destroyCard(PhaseCard *& card)
     card = nullptr;
 }
 
-void MainWindow::destroyDialogs(){
+void MainWindow::destroyPhases(){
     //The dock owns the form and the diagrams of its phase, so destroying it
     //destroys them: what is left here is forgetting the pointers, which are
     //about to dangle.
@@ -312,17 +331,17 @@ void MainWindow::destroyDialogs(){
     destroyCard(controllerCard);
     destroyCard(loopShapingCard);
 
-    plantDialog = nullptr;
+    plantForm = nullptr;
     bodeViewer = nullptr;
-    frequenciesDialog = nullptr;
-    specificationsDialog = nullptr;
-    templatesDialog = nullptr;
+    frequenciesForm = nullptr;
+    specificationsForm = nullptr;
+    templatesForm = nullptr;
     templateViewer = nullptr;
-    boundaryGridDialog = nullptr;
+    boundaryGridForm = nullptr;
     boundaryViewer = nullptr;
     boundaryUnionViewer = nullptr;
-    controllerDialog = nullptr;
-    loopShapingDialog = nullptr;
+    controllerForm = nullptr;
+    loopShapingForm = nullptr;
     loopShapingViewer = nullptr;
 
 }
@@ -429,103 +448,103 @@ void MainWindow::showPhase(PhaseCard * card)
 //The POINTER says whether a step's widgets exist, which is the question
 //being asked. The flag it replaced answered a different one - whether the
 //step was done - and the two only agreed by being maintained together.
-void MainWindow::ensurePlantDialog()
+void MainWindow::ensurePlantPhase()
 {
-    if (plantDialog == nullptr){
-        plantDialog = new PlantDialog(this);
+    if (plantForm == nullptr){
+        plantForm = new PlantForm(this);
         bodeViewer = new BodeViewer(this);
-        connect(plantDialog, &StepPanel::accepted, this, &MainWindow::applyPlant);
-        plantCard = addPhaseCard(tr("Plant"), "plantCard", plantDialog,
+        connect(plantForm, &StepPanel::accepted, this, &MainWindow::applyPlant);
+        plantCard = addPhaseCard(tr("Plant"), "plantCard", plantForm,
                                  {{tr("Bode"), bodeViewer}});
     }
 }
 
-void MainWindow::ensureSpecificationsDialog()
+void MainWindow::ensureSpecificationsPhase()
 {
-    if (specificationsDialog == nullptr){
-        specificationsDialog = new SpecificationsDialog(frequencyValues(),
+    if (specificationsForm == nullptr){
+        specificationsForm = new SpecificationsForm(frequencyValues(),
                                                         controller->specifications(),
                                                         this);
-        connect(specificationsDialog, &StepPanel::accepted, this, &MainWindow::applySpecifications);
+        connect(specificationsForm, &StepPanel::accepted, this, &MainWindow::applySpecifications);
         specificationsCard = addPhaseCard(tr("Specifications"), "specificationsCard",
-                                          specificationsDialog, {});
+                                          specificationsForm, {});
     }
 }
 
-void MainWindow::ensureFrequenciesDialog()
+void MainWindow::ensureFrequenciesPhase()
 {
-    if (frequenciesDialog == nullptr){
-        frequenciesDialog = new FrequenciesDialog(this);
-        frequenciesDialog->applyFrequencyCountLimit(m_settings.limits.maxFrequencyCount);
-        connect(frequenciesDialog, &StepPanel::accepted, this, &MainWindow::applyFrequencies);
+    if (frequenciesForm == nullptr){
+        frequenciesForm = new FrequenciesForm(this);
+        frequenciesForm->applyFrequencyCountLimit(m_settings.limits.maxFrequencyCount);
+        connect(frequenciesForm, &StepPanel::accepted, this, &MainWindow::applyFrequencies);
         frequenciesCard = addPhaseCard(tr("Design frequencies"), "frequenciesCard",
-                                       frequenciesDialog, {});
+                                       frequenciesForm, {});
     }
 }
 
-void MainWindow::ensureTemplatesWidgets()
+void MainWindow::ensureTemplatesPhase()
 {
-    if (templatesDialog == nullptr){
-        templatesDialog = new TemplatesDialog(this);
-        templatesDialog->setMaxPointCount(m_settings.limits.maxTemplatePoints);
-        templatesDialog->setDefaultPointCount(m_settings.defaults.templatePointCount);
-        templatesDialog->setWholeTemplateIfNoContour(m_settings.algorithms.wholeTemplateIfNoContour);
-        templatesDialog->setAlphaShapeContour(m_settings.algorithms.alphaShapeContour);
-        templatesDialog->setBorderSweep(m_settings.algorithms.borderSweep);
+    if (templatesForm == nullptr){
+        templatesForm = new TemplatesForm(this);
+        templatesForm->setMaxPointCount(m_settings.limits.maxTemplatePoints);
+        templatesForm->setDefaultPointCount(m_settings.defaults.templatePointCount);
+        templatesForm->setWholeTemplateIfNoContour(m_settings.algorithms.wholeTemplateIfNoContour);
+        templatesForm->setAlphaShapeContour(m_settings.algorithms.alphaShapeContour);
+        templatesForm->setBorderSweep(m_settings.algorithms.borderSweep);
         //The field opens with the epsilon the family asks for: a sweep over
         //the grids as entered, the same one OK runs next.
-        templatesDialog->setEpsilonProposer([this](const qftbx::ParameterGrids & grids,
+        templatesForm->setEpsilonProposer([this](const qftbx::ParameterGrids & grids,
                                                    qftbx::EpsilonMetric metric) {
             const WaitCursor waiting(this);
             //The proposal depends on how the contour is extracted.
-            controller->setAlphaShapeContour(templatesDialog->alphaShapeContour());
-            controller->setBorderSweep(templatesDialog->borderSweep());
+            controller->setAlphaShapeContour(templatesForm->alphaShapeContour());
+            controller->setBorderSweep(templatesForm->borderSweep());
             return controller->proposeEpsilon(grids, metric);
         });
         templateViewer = new TemplateViewer(this);
         installContourRecomputer();
-        connect(templatesDialog, &StepPanel::accepted, this, &MainWindow::applyTemplates);
-        templatesCard = addPhaseCard(tr("Templates"), "templatesCard", templatesDialog,
+        connect(templatesForm, &StepPanel::accepted, this, &MainWindow::applyTemplates);
+        templatesCard = addPhaseCard(tr("Templates"), "templatesCard", templatesForm,
                                      {{tr("Templates"), templateViewer}});
     }
 }
 
-void MainWindow::ensureBoundariesWidgets()
+void MainWindow::ensureBoundariesPhase()
 {
-    if (boundaryGridDialog == nullptr){
-        boundaryGridDialog = new BoundaryGridDialog(this);
-        boundaryGridDialog->setMaxGridCells(m_settings.limits.maxGridCells);
-        boundaryGridDialog->applyDefaults(m_settings.defaults);
+    if (boundaryGridForm == nullptr){
+        boundaryGridForm = new BoundaryGridForm(this);
+        boundaryGridForm->setMaxGridCells(m_settings.limits.maxGridCells);
+        boundaryGridForm->applyDefaults(m_settings.defaults);
         boundaryViewer = new BoundaryViewer(this);
         boundaryUnionViewer = new BoundaryUnionViewer(this);
-        connect(boundaryGridDialog, &StepPanel::accepted, this, &MainWindow::applyBoundaries);
-        boundariesCard = addPhaseCard(tr("Boundaries"), "boundariesCard", boundaryGridDialog,
+        connect(boundaryGridForm, &StepPanel::accepted, this, &MainWindow::applyBoundaries);
+        boundariesCard = addPhaseCard(tr("Boundaries"), "boundariesCard", boundaryGridForm,
                                       {{tr("Per frequency"), boundaryViewer},
                                        {tr("Union"), boundaryUnionViewer}});
     }
 }
 
-void MainWindow::ensureControllerDialog()
+void MainWindow::ensureControllerPhase()
 {
-    if (controllerDialog == nullptr){
-        controllerDialog = new ControllerDialog(this);
-        connect(controllerDialog, &StepPanel::accepted, this, &MainWindow::applyController);
+    if (controllerForm == nullptr){
+        controllerForm = new ControllerForm(this);
+        connect(controllerForm, &StepPanel::accepted, this, &MainWindow::applyController);
         controllerCard = addPhaseCard(tr("Controller structure"), "controllerCard",
-                                      controllerDialog, {});
+                                      controllerForm, {});
     }
 }
 
-void MainWindow::ensureLoopShapingWidgets()
+void MainWindow::ensureLoopShapingPhase()
 {
-    if (loopShapingDialog == nullptr){
-        loopShapingDialog = new LoopShapingDialog(this);
-        loopShapingDialog->setLimits(m_settings.limits.maxMagnitude,
+    if (loopShapingForm == nullptr){
+        loopShapingForm = new LoopShapingForm(this);
+        loopShapingForm->setLimits(m_settings.limits.maxMagnitude,
                                      m_settings.limits.maxTemplatePoints);
-        loopShapingDialog->applyDefaults(m_settings.defaults);
-        loopShapingDialog->setConservativeColumns(m_settings.algorithms.conservativeBoundaryColumns);
+        loopShapingForm->applyDefaults(m_settings.defaults);
+        loopShapingForm->setConservativeColumns(m_settings.algorithms.conservativeBoundaryColumns);
         loopShapingViewer = new LoopShapingViewer(this);
-        connect(loopShapingDialog, &StepPanel::accepted, this, &MainWindow::applyLoopShaping);
-        loopShapingCard = addPhaseCard(tr("Loop shaping"), "loopShapingCard", loopShapingDialog,
+        connect(loopShapingForm, &StepPanel::accepted, this, &MainWindow::applyLoopShaping);
+        loopShapingCard = addPhaseCard(tr("Loop shaping"), "loopShapingCard", loopShapingForm,
                                        {{tr("Loop"), loopShapingViewer}});
     }
 }
@@ -594,8 +613,8 @@ void MainWindow::refreshAvailability()
 
     //The specifications panel holds the project's frequency values, and a
     //new set destroys the ones it was given. It stays open, so it is told.
-    if (specificationsDialog != nullptr) {
-        specificationsDialog->setFrequencies(frequencyValues());
+    if (specificationsForm != nullptr) {
+        specificationsForm->setFrequencies(frequencyValues());
     }
 
     //And the templates panel holds the plant its grids were built for, so a
@@ -603,12 +622,12 @@ void MainWindow::refreshAvailability()
     //nothing until the step is opened again, which is where they are built.
     //
     //Taken from it, NOT rebuilt here. Rebuilding them is
-    //TemplatesDialog::launch, which ends by proposing an epsilon - a sweep
+    //TemplatesForm::launch, which ends by proposing an epsilon - a sweep
     //of the whole plant family over the grids - and this runs on every
     //change the project reports, the one at the end of loading a file
     //included. Opening a project ran a sweep nobody had asked for.
-    if (templatesDialog != nullptr && templatesDialog->shownPlant() != controller->plant()) {
-        templatesDialog->forgetPlant();
+    if (templatesForm != nullptr && templatesForm->shownPlant() != controller->plant()) {
+        templatesForm->forgetPlant();
     }
 
     const bool plant          = done.has(qftbx::Step::Plant);
@@ -670,7 +689,7 @@ const std::vector<double> * MainWindow::frequencyValues() const{
 }
 
 void MainWindow::destroySession(){
-    destroyDialogs();
+    destroyPhases();
 
     controller.reset();
 }
@@ -681,11 +700,11 @@ void MainWindow::destroySession(){
 //its button.
 void MainWindow::on_plantButton_clicked()
 {
-    ensurePlantDialog();
+    ensurePlantPhase();
     //Shown on what the project holds, so a plant already entered shows
     //itself instead of an empty form.
-    plantDialog->setFromProject(controller->plant());
-    plantDialog->clearAcceptance();
+    plantForm->setFromProject(controller->plant());
+    plantForm->clearAcceptance();
     showPhase(plantCard);
 }
 
@@ -693,7 +712,7 @@ void MainWindow::applyPlant()
 {
     //The panels only describe; publishing into the project is the window's
     //job, so a panel never needs to know the facade.
-    std::unique_ptr<LtiSystem> described = plantDialog->takePlant();
+    std::unique_ptr<LtiSystem> described = plantForm->takePlant();
     //Publish only what was actually received. The payload is MOVED out of
     //the panel, so asking twice gives a null the second time - and
     //publishing a null wipes the step from the project, and everything
@@ -720,13 +739,13 @@ void MainWindow::on_specificationsButton_clicked()
     //invariant rather than a user error - which is exactly the kind that
     //should be reported instead of aborting.
     try {
-        ensureSpecificationsDialog();
+        ensureSpecificationsPhase();
     } catch (const qftbx::Exception & e) {
         QMessageBox::critical(this, tr("Specifications input"), translated(e));
         return;
     }
 
-    specificationsDialog->clearAcceptance();
+    specificationsForm->clearAcceptance();
     showPhase(specificationsCard);
 }
 
@@ -735,7 +754,7 @@ void MainWindow::applySpecifications()
     //See applyPlant: nothing moved-from goes in, and an empty answer here
     //would wipe the specifications.
     std::optional<qftbx::SpecificationRecords> described =
-            specificationsDialog->takeSpecifications();
+            specificationsForm->takeSpecifications();
 
     if (!described.has_value()){
         return;
@@ -748,17 +767,17 @@ void MainWindow::applySpecifications()
 
 void MainWindow::on_frequenciesButton_clicked()
 {
-    ensureFrequenciesDialog();
+    ensureFrequenciesPhase();
     //Shown on what the project holds, so a step already taken shows what it
     //was taken with instead of an empty form.
-    frequenciesDialog->setFromProject(controller->omega());
-    frequenciesDialog->clearAcceptance();
+    frequenciesForm->setFromProject(controller->omega());
+    frequenciesForm->clearAcceptance();
     showPhase(frequenciesCard);
 }
 
 void MainWindow::applyFrequencies()
 {
-    std::unique_ptr<Omega> described = frequenciesDialog->takeOmega();
+    std::unique_ptr<Omega> described = frequenciesForm->takeOmega();
     //See applyPlant: nothing moved-from goes in.
     if (described == nullptr){
         return;
@@ -773,11 +792,11 @@ void MainWindow::applyFrequencies()
 
 void MainWindow::on_templatesButton_clicked()
 {
-    ensureTemplatesWidgets();
+    ensureTemplatesPhase();
 
-    templatesDialog->setEpsilonMetric(controller->epsilonMetric());
-    templatesDialog->launch(controller->plant(), controller->omega()->values()->size());
-    templatesDialog->clearAcceptance();
+    templatesForm->setEpsilonMetric(controller->epsilonMetric());
+    templatesForm->launch(controller->plant(), controller->omega()->values()->size());
+    templatesForm->clearAcceptance();
     showPhase(templatesCard);
 }
 
@@ -790,13 +809,13 @@ void MainWindow::applyTemplates()
         const WaitCursor waiting(this);
 
         try {
-            controller->setEpsilonMetric(templatesDialog->epsilonMetric());
-            controller->setWholeCloudStandsIn(templatesDialog->wholeTemplateIfNoContour());
-            controller->setAlphaShapeContour(templatesDialog->alphaShapeContour());
-            controller->setBorderSweep(templatesDialog->borderSweep());
-            templatesOk = controller->computeTemplates(templatesDialog->takeEpsilon(),
-                                                       templatesDialog->grids(),
-                                                       templatesDialog->cudaSelected());
+            controller->setEpsilonMetric(templatesForm->epsilonMetric());
+            controller->setWholeCloudStandsIn(templatesForm->wholeTemplateIfNoContour());
+            controller->setAlphaShapeContour(templatesForm->alphaShapeContour());
+            controller->setBorderSweep(templatesForm->borderSweep());
+            templatesOk = controller->computeTemplates(templatesForm->takeEpsilon(),
+                                                       templatesForm->grids(),
+                                                       templatesForm->cudaSelected());
         } catch (const qftbx::Exception & e) {
             QMessageBox::critical(this, tr("Template computation"), translated(e));
             return;
@@ -811,14 +830,14 @@ void MainWindow::applyTemplates()
                              controller->contour(),
                              controller->omega()->values(),
                              controller->epsilon());
-    templateViewer->plotDiagram(templatesDialog->nicholsSelected());
+    templateViewer->plotDiagram(templatesForm->nicholsSelected());
 }
 
 void MainWindow::on_boundariesButton_clicked()
 {
-    ensureBoundariesWidgets();
-    boundaryGridDialog->setFromProject(controller->boundaries());
-    boundaryGridDialog->clearAcceptance();
+    ensureBoundariesPhase();
+    boundaryGridForm->setFromProject(controller->boundaries());
+    boundaryGridForm->clearAcceptance();
     showPhase(boundariesCard);
 }
 
@@ -830,13 +849,13 @@ void MainWindow::applyBoundaries()
         const WaitCursor waiting(this);
 
         try {
-            boundariesOk = controller->computeBoundaries(boundaryGridDialog->phaseRangeValue(),
-                                                         boundaryGridDialog->phaseCountValue(),
-                                                         boundaryGridDialog->magnitudeRangeValue(),
-                                                         boundaryGridDialog->magnitudeCountValue(),
-                                                         boundaryGridDialog->infinityValue(),
-                                                         boundaryGridDialog->contourSelected(),
-                                                         boundaryGridDialog->cudaSelected());
+            boundariesOk = controller->computeBoundaries(boundaryGridForm->phaseRangeValue(),
+                                                         boundaryGridForm->phaseCountValue(),
+                                                         boundaryGridForm->magnitudeRangeValue(),
+                                                         boundaryGridForm->magnitudeCountValue(),
+                                                         boundaryGridForm->infinityValue(),
+                                                         boundaryGridForm->contourSelected(),
+                                                         boundaryGridForm->cudaSelected());
         } catch (const qftbx::Exception & e) {
             QMessageBox::critical(this, tr("Boundary computation"), translated(e));
             return;
@@ -857,15 +876,15 @@ void MainWindow::applyBoundaries()
 
 void MainWindow::on_controllerButton_clicked()
 {
-    ensureControllerDialog();
-    controllerDialog->setFromProject(controller->controllerStructure());
-    controllerDialog->clearAcceptance();
+    ensureControllerPhase();
+    controllerForm->setFromProject(controller->controllerStructure());
+    controllerForm->clearAcceptance();
     showPhase(controllerCard);
 }
 
 void MainWindow::applyController()
 {
-    std::unique_ptr<LtiSystem> described = controllerDialog->takeControllerStructure();
+    std::unique_ptr<LtiSystem> described = controllerForm->takeControllerStructure();
     //See applyPlant: nothing moved-from goes in.
     if (described == nullptr){
         return;
@@ -878,10 +897,10 @@ void MainWindow::applyController()
 
 void MainWindow::on_loopButton_clicked()
 {
-    ensureLoopShapingWidgets();
+    ensureLoopShapingPhase();
 
-    loopShapingDialog->setFromProject(controller->loopShapingResult());
-    loopShapingDialog->clearAcceptance();
+    loopShapingForm->setFromProject(controller->loopShapingResult());
+    loopShapingForm->clearAcceptance();
     showPhase(loopShapingCard);
 }
 
@@ -899,15 +918,15 @@ void MainWindow::applyLoopShaping()
 
         //The reading of the boundary columns is a setting the dialog exposes
         //for this run; the core gets it the way it gets every setting.
-        m_settings.algorithms.conservativeBoundaryColumns = loopShapingDialog->conservativeColumns();
+        m_settings.algorithms.conservativeBoundaryColumns = loopShapingForm->conservativeColumns();
         controller->applySettings(m_settings);
 
         try {
-            designed = controller->computeLoopShaping(loopShapingDialog->epsilonValue(),
-                                                      loopShapingDialog->algorithmValue(),
-                                                      loopShapingDialog->range(),
-                                                      loopShapingDialog->pointCountValue(),
-                                                      loopShapingDialog->initialisationValue());
+            designed = controller->computeLoopShaping(loopShapingForm->epsilonValue(),
+                                                      loopShapingForm->algorithmValue(),
+                                                      loopShapingForm->range(),
+                                                      loopShapingForm->pointCountValue(),
+                                                      loopShapingForm->initialisationValue());
         } catch (const qftbx::Exception & e) {
             QMessageBox::critical(this, tr("Loop Shaping"), translated(e));
             return;
@@ -920,7 +939,7 @@ void MainWindow::applyLoopShaping()
 
     loopShapingViewer->setData(controller->unionBoundaries(), controller->omega()->values(),
                                controller->loopShapingResult(), controller->plant(),
-                               loopShapingDialog->isLinSpace());
+                               loopShapingForm->isLinSpace());
 
     loopShapingViewer->showDiagram();
 }
@@ -975,7 +994,7 @@ void MainWindow::on_actionOpen_triggered()
 
         //The previous session's widgets are freed, so the bar does not
         //accumulate steps across files.
-        destroyDialogs();
+        destroyPhases();
 
         //Save writes back to the file that was just opened.
         saveFilePath = fileName;
@@ -987,30 +1006,30 @@ void MainWindow::on_actionOpen_triggered()
         //In the order of the pipeline, which is the order the cards then
         //appear in on the canvas.
         if (loaded.has(qftbx::Step::Plant)) {
-            ensurePlantDialog();
-            plantDialog->setFromProject(controller->plant());
+            ensurePlantPhase();
+            plantForm->setFromProject(controller->plant());
         }
         if (loaded.has(qftbx::Step::Frequencies)) {
-            ensureFrequenciesDialog();
-            frequenciesDialog->setFromProject(controller->omega());
+            ensureFrequenciesPhase();
+            frequenciesForm->setFromProject(controller->omega());
         }
         if (loaded.has(qftbx::Step::Specifications)) {
-            ensureSpecificationsDialog();
+            ensureSpecificationsPhase();
         }
         if (loaded.has(qftbx::Step::Templates)) {
-            ensureTemplatesWidgets();
+            ensureTemplatesPhase();
         }
         if (loaded.has(qftbx::Step::Boundaries)) {
-            ensureBoundariesWidgets();
-            boundaryGridDialog->setFromProject(controller->boundaries());
+            ensureBoundariesPhase();
+            boundaryGridForm->setFromProject(controller->boundaries());
         }
         if (loaded.has(qftbx::Step::Controller)) {
-            ensureControllerDialog();
-            controllerDialog->setFromProject(controller->controllerStructure());
+            ensureControllerPhase();
+            controllerForm->setFromProject(controller->controllerStructure());
         }
         if (loaded.has(qftbx::Step::LoopShaping)) {
-            ensureLoopShapingWidgets();
-            loopShapingDialog->setFromProject(controller->loopShapingResult());
+            ensureLoopShapingPhase();
+            loopShapingForm->setFromProject(controller->loopShapingResult());
         }
 
         //A file that carries results has them on screen the moment it is
@@ -1069,7 +1088,7 @@ void MainWindow::drawResults()
             && done.has(qftbx::Step::Frequencies) && loopShapingViewer != nullptr) {
         loopShapingViewer->setData(controller->unionBoundaries(), controller->omega()->values(),
                                    controller->loopShapingResult(), controller->plant(),
-                                   loopShapingDialog->isLinSpace());
+                                   loopShapingForm->isLinSpace());
         loopShapingViewer->showDiagram();
     }
 }
@@ -1105,7 +1124,7 @@ bool MainWindow::drawBodeIfPossible()
         return false;
     }
 
-    ensurePlantDialog();
+    ensurePlantPhase();
 
     //The drawing evaluates the plant, which is a model the user wrote and
     //can refuse to be evaluated. It runs by itself now, from wherever the
@@ -1190,7 +1209,7 @@ void MainWindow::on_actionTemplates_triggered()
     }
 
     if (!controller->templates().empty() && !controller->contour().empty()){
-        ensureTemplatesWidgets();
+        ensureTemplatesPhase();
         templateViewer->setData(controller->templates(),
                                  controller->contour(),
                                  controller->omega()->values(),
@@ -1207,7 +1226,7 @@ void MainWindow::on_actionBoundaries_triggered()
         return;
     }
 
-    ensureBoundariesWidgets();
+    ensureBoundariesPhase();
     boundaryUnionViewer->setData(controller->unionBoundaries(), controller->omega()->values());
     boundaryUnionViewer->showDiagram();
 
@@ -1220,9 +1239,9 @@ void MainWindow::on_actionLoop_triggered()
         return;
     }
 
-    ensureLoopShapingWidgets();
+    ensureLoopShapingPhase();
     loopShapingViewer->setData(controller->unionBoundaries(),controller->omega()->values(),
-                              controller->loopShapingResult(), controller->plant(), loopShapingDialog->isLinSpace());
+                              controller->loopShapingResult(), controller->plant(), loopShapingForm->isLinSpace());
 
     loopShapingViewer->showDiagram();
 

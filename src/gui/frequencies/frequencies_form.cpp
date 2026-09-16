@@ -1,8 +1,8 @@
 #include <QIntValidator>
-#include "src/gui/frequencies/frequencies_dialog.h"
+#include "src/gui/frequencies/frequencies_form.h"
 #include "src/gui/common/number_text.h"
 #include "src/core/common/text_tokens.h"
-#include "ui_frequencies_dialog.h"
+#include "ui_frequencies_form.h"
 
 #include <vector>
 #include <cmath>
@@ -15,9 +15,9 @@
 
 namespace qftbx {
 
-FrequenciesDialog::FrequenciesDialog(QWidget *parent) :
+FrequenciesForm::FrequenciesForm(QWidget *parent) :
     StepPanel(parent),
-    ui(std::make_unique<Ui::FrequenciesDialog>())
+    ui(std::make_unique<Ui::FrequenciesForm>())
 {
 
     ui->setupUi(this);
@@ -38,10 +38,10 @@ FrequenciesDialog::FrequenciesDialog(QWidget *parent) :
 
 }
 
-FrequenciesDialog::~FrequenciesDialog()
+FrequenciesForm::~FrequenciesForm()
 {
 }
-void FrequenciesDialog::on_fileButton_clicked()
+void FrequenciesForm::on_fileButton_clicked()
 {
     QString fileName = QFileDialog::getOpenFileName(this);
     if (!fileName.isEmpty()){
@@ -54,7 +54,7 @@ void FrequenciesDialog::on_fileButton_clicked()
 //the validators, so it has to be re-applied rather than just stored: it comes
 //from the settings, and the default is small enough that the count cannot
 //overflow the std::int32_t that logspace and linspace take.
-void FrequenciesDialog::applyFrequencyCountLimit(std::int32_t count)
+void FrequenciesForm::applyFrequencyCountLimit(std::int32_t count)
 {
     m_maxFrequencyCount = count;
 
@@ -66,7 +66,7 @@ void FrequenciesDialog::applyFrequencyCountLimit(std::int32_t count)
     ui->linCount->setValidator(new QIntValidator(1, m_maxFrequencyCount, this));
 }
 
-void FrequenciesDialog::on_okButton_clicked()
+void FrequenciesForm::on_okButton_clicked()
 {
     qreal start = 0;
     qreal end = 0;
@@ -161,7 +161,7 @@ void FrequenciesDialog::on_okButton_clicked()
 }
 
 
-void FrequenciesDialog::setFromProject(const Omega * omega)
+void FrequenciesForm::setFromProject(const Omega * omega)
 {
     if (omega == nullptr || omega->values() == nullptr || omega->values()->empty()) {
         return;
@@ -201,7 +201,7 @@ void FrequenciesDialog::setFromProject(const Omega * omega)
     }
 }
 
-std::unique_ptr<Omega> FrequenciesDialog::takeOmega(){
+std::unique_ptr<Omega> FrequenciesForm::takeOmega(){
     return std::move(m_omega);
 }
 

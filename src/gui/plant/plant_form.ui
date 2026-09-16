@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>PlantDialog</class>
- <widget class="QWidget" name="PlantDialog">
+ <class>PlantForm</class>
+ <widget class="QWidget" name="PlantForm">
   <property name="windowModality">
    <enum>Qt::NonModal</enum>
   </property>
@@ -14,7 +14,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>PlantDialog</string>
+   <string>PlantForm</string>
   </property>
   <widget class="QWidget" name="centralWidget" native="true">
    <property name="geometry">

@@ -1,5 +1,5 @@
-#ifndef QFTBX_BOUNDARY_GRID_DIALOG_H
-#define QFTBX_BOUNDARY_GRID_DIALOG_H
+#ifndef QFTBX_BOUNDARY_GRID_FORM_H
+#define QFTBX_BOUNDARY_GRID_FORM_H
 
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/project/settings.h"
@@ -15,7 +15,7 @@
 #include "src/core/math/sequence_vectors.h"
 
 namespace Ui {
-class BoundaryGridDialog;
+class BoundaryGridForm;
 }
 
 namespace qftbx {
@@ -28,7 +28,7 @@ namespace qftbx {
  *
  * @author Isaac Martínez Forte
  */
-class BoundaryGridDialog : public StepPanel
+class BoundaryGridForm : public StepPanel
 {
     Q_OBJECT
     
@@ -62,9 +62,9 @@ public:
     void setFromProject(const qftbx::BoundaryData * boundaries);
 
   
-    explicit BoundaryGridDialog(QWidget *parent = 0);
+    explicit BoundaryGridForm(QWidget *parent = 0);
 
-    ~BoundaryGridDialog();
+    ~BoundaryGridForm();
     
     
     /// Start and end of the phase axis, in degrees.
@@ -100,7 +100,7 @@ private slots:
     void on_okButton_clicked();
 
 private:
-    std::unique_ptr<Ui::BoundaryGridDialog> ui;
+    std::unique_ptr<Ui::BoundaryGridForm> ui;
 
     qftbx::Range phaseRange;
     qftbx::Range magnitudeRange;
@@ -116,4 +116,4 @@ private:
 
 } // namespace qftbx
 
-#endif // QFTBX_BOUNDARY_GRID_DIALOG_H
+#endif // QFTBX_BOUNDARY_GRID_FORM_H

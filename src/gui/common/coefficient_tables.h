@@ -9,11 +9,11 @@
 
 /**
  * @file
- * @brief The coefficient tables the plant and controller dialogs read out of
+ * @brief The coefficient tables the plant and controller forms read out of
  * their line edits and the uncertainty dialog edits.
  *
  * Three parallel tables with one ROW per polynomial slot, in the order the
- * dialogs fill them (numerator, denominator, gain, delay) and one entry per
+ * forms fill them (numerator, denominator, gain, delay) and one entry per
  * coefficient: the values, the expressions the user typed, and whether each
  * coefficient is an uncertain parameter.
  *
@@ -23,7 +23,7 @@
 /// The texts of one polynomial slot's coefficients.
 ///
 /// QString and not std::string, having tried it the other way: these rows
-/// are filled from QLineEdits and read back into them all over the dialogs,
+/// are filled from QLineEdits and read back into them all over the forms,
 /// so std::string moved the conversion to a hundred widget calls to save it
 /// at eight core calls. The seam belongs where the core is entered.
 
@@ -31,7 +31,7 @@ namespace qftbx {
 
 using CoefficientRow = std::vector<QString>;
 
-/// The slots of one system, in dialog order.
+/// The slots of one system, in form order.
 using CoefficientTable = std::vector<CoefficientRow>;
 
 /// Whether each coefficient of one slot is an uncertain parameter.

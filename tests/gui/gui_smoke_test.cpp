@@ -57,10 +57,10 @@
 #include "src/gui/application/language.h"
 #include "src/gui/application/main_window.h"
 #include "src/gui/application/phase_card.h"
-#include "src/gui/plant/plant_dialog.h"
-#include "src/gui/loopshaping/controller_dialog.h"
-#include "src/gui/frequencies/frequencies_dialog.h"
-#include "src/gui/specifications/specifications_dialog.h"
+#include "src/gui/plant/plant_form.h"
+#include "src/gui/loopshaping/controller_form.h"
+#include "src/gui/frequencies/frequencies_form.h"
+#include "src/gui/specifications/specifications_form.h"
 #include "src/gui/templates/template_viewer.h"
 #include "src/gui/plant/bode_viewer.h"
 #include "src/core/math/sequence_vectors.h"
@@ -72,9 +72,9 @@
 #include "src/gui/loopshaping/loop_boundaries_viewer.h"
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/loopshaping/loop_shaping_result.h"
-#include "src/gui/boundaries/boundary_grid_dialog.h"
-#include "src/gui/templates/templates_dialog.h"
-#include "src/gui/loopshaping/loop_shaping_dialog.h"
+#include "src/gui/boundaries/boundary_grid_form.h"
+#include "src/gui/templates/templates_form.h"
+#include "src/gui/loopshaping/loop_shaping_form.h"
 #include "src/gui/application/error_message.h"
 #include "src/core/common/exception.h"
 
@@ -170,7 +170,7 @@ BoundaryData oneBoundary()
 
 TEST_F(GuiSmoke, PlantDialogBuildsAZeroPoleGainPlant)
 {
-    PlantDialog dialog;
+    PlantForm dialog;
 
     type(&dialog, "nameEdit", "smoke");
     check(&dialog, "zpkRadio");
@@ -203,7 +203,7 @@ TEST_F(GuiSmoke, PlantDialogRejectsAnInvalidExpression)
 {
     //A malformed coefficient must be reported, not crash the application
     //(the expression parser throws and the dialog used to let it through).
-    PlantDialog dialog;
+    PlantForm dialog;
 
     type(&dialog, "nameEdit", "broken");
     check(&dialog, "zpkRadio");
@@ -224,7 +224,7 @@ TEST_F(GuiSmoke, PlantDialogRejectsAnInvalidCoefficient)
     //The gain path reports a malformed expression, but buildParameters
     //catches the parser error per COEFFICIENT and substitutes 0, so a
     //numerator of "1*/" became the polynomial 0 with nothing said.
-    PlantDialog dialog;
+    PlantForm dialog;
 
     type(&dialog, "nameEdit", "broken-numerator");
     check(&dialog, "zpkRadio");
@@ -248,7 +248,7 @@ TEST_F(GuiSmoke, PlantDialogRejectsAReservedParameterName)
     //name would be read as the constant, never as the parameter. Naming a
     //parameter after anything the grammar defines used to pass the dialog -
     //only FUNCTION names were checked - and fail much later.
-    PlantDialog dialog;
+    PlantForm dialog;
 
     type(&dialog, "nameEdit", "reserved");
     check(&dialog, "zpkRadio");
@@ -270,7 +270,7 @@ TEST_F(GuiSmoke, PlantDialogRejectsAReservedParameterName)
 
 TEST_F(GuiSmoke, FrequenciesDialogBuildsTheDesignFrequencies)
 {
-    FrequenciesDialog dialog;
+    FrequenciesForm dialog;
 
     //modeStack is the generation-mode combo (manual is entry 0); the pages
     //of values live in the selecVector stack, which follows it.
@@ -297,7 +297,7 @@ TEST_F(GuiSmoke, SpecificationsDialogRefusesToLeaveATabItCannotRead)
     //was discarded, so the whole specification was lost - not just the bad
     //field - and coming back showed a blank tab.
     const std::vector<double> frequencies{0.1, 1.0, 10.0};
-    SpecificationsDialog dialog(&frequencies);
+    SpecificationsForm dialog(&frequencies);
 
     check(&dialog, "stabilityRadio");
     dialog.findChild<QRadioButton *>("stabilityRadio")->click();
@@ -328,7 +328,7 @@ TEST_F(GuiSmoke, FrequenciesDialogRefusesAnEmptySetInsteadOfDying)
     //Pressing OK on a freshly opened dialog ABORTED the application: the
     //Omega constructor refuses an empty frequency set by throwing, and that
     //exception escaped this slot into Qt's event loop.
-    FrequenciesDialog dialog;
+    FrequenciesForm dialog;
 
     child<QComboBox>(&dialog, "modeStack")->setCurrentIndex(0);
 
@@ -344,7 +344,7 @@ TEST_F(GuiSmoke, FrequenciesDialogRefusesNonPositiveFrequencies)
     //A design frequency is evaluated on the imaginary axis at s = jw and
     //plotted on a logarithmic axis: zero and negative values are not a
     //frequency set, and the manual mode used to accept them.
-    FrequenciesDialog dialog;
+    FrequenciesForm dialog;
 
     child<QComboBox>(&dialog, "modeStack")->setCurrentIndex(0);
     type(&dialog, "manualValues", "0.1 0 10");
@@ -361,7 +361,7 @@ TEST_F(GuiSmoke, FrequenciesDialogRefusesAnEmptyPointCount)
 {
     //An empty count reads as zero, linspace answers an empty set, and the
     //same throw followed.
-    FrequenciesDialog dialog;
+    FrequenciesForm dialog;
 
     child<QComboBox>(&dialog, "modeStack")->setCurrentIndex(2);
     type(&dialog, "linStart", "1");
@@ -402,7 +402,7 @@ TEST_F(GuiSmoke, TheApplicationReportsABackendErrorInsteadOfDyingOfIt)
 
 TEST_F(GuiSmoke, ControllerDialogBuildsTheControllerStructure)
 {
-    ControllerDialog dialog;
+    ControllerForm dialog;
 
     check(&dialog, "zpkRadio");
     type(&dialog, "numeratorEdit", "1");
@@ -431,7 +431,7 @@ TEST_F(GuiSmoke, ControllerDialogRejectsAnInvalidNumerator)
     //readTables() keeps only the LAST of its three parse results, so a
     //malformed numerator or denominator was overwritten by a gain range that
     //parsed. The plant dialog rejects the same input.
-    ControllerDialog dialog;
+    ControllerForm dialog;
 
     check(&dialog, "zpkRadio");
     type(&dialog, "numeratorEdit", "1*/");
@@ -452,10 +452,10 @@ TEST_F(GuiSmoke, SpecificationsDialogNeedsTheFrequenciesFirst)
     //The main window gates the step order, but the dialog used to reach
     //first()/last() on a null frequency vector and take the application
     //down; it says so now.
-    EXPECT_THROW(SpecificationsDialog dialog(nullptr), qftbx::InvalidInput);
+    EXPECT_THROW(SpecificationsForm dialog(nullptr), qftbx::InvalidInput);
 
     const std::vector<double> empty;
-    EXPECT_THROW(SpecificationsDialog dialog(&empty), qftbx::InvalidInput);
+    EXPECT_THROW(SpecificationsForm dialog(&empty), qftbx::InvalidInput);
 }
 
 TEST_F(GuiSmoke, SpecificationsDialogStoresAConstantStabilitySpecification)
@@ -464,7 +464,7 @@ TEST_F(GuiSmoke, SpecificationsDialogStoresAConstantStabilitySpecification)
     //to the dialog.
     const std::vector<double> frequencies{0.1, 1.0, 10.0, 100.0};
 
-    SpecificationsDialog dialog(&frequencies);
+    SpecificationsForm dialog(&frequencies);
 
     //Stability with a constant magnitude: the simplest complete slot.
     check(&dialog, "stabilityRadio");
@@ -585,7 +585,7 @@ TEST_F(GuiSmoke, BodeViewerDrawsBothAxesOfTheDiagram)
 
 TEST_F(GuiSmoke, BoundaryGridDialogBuildsTheNicholsGrid)
 {
-    BoundaryGridDialog dialog;
+    BoundaryGridForm dialog;
 
     //The DEFAULT window must be the full [-360, 0]: loop shaping refuses a
     //narrower one, and the reader of the phase buckets is scaled by it.
@@ -611,7 +611,7 @@ TEST_F(GuiSmoke, BoundaryGridDialogBuildsTheNicholsGrid)
 
 TEST_F(GuiSmoke, BoundaryGridDialogRejectsAnInvertedRange)
 {
-    BoundaryGridDialog dialog;
+    BoundaryGridForm dialog;
 
     type(&dialog, "phaseStart", "0");
     type(&dialog, "phaseEnd", "-360");
@@ -623,7 +623,7 @@ TEST_F(GuiSmoke, BoundaryGridDialogRejectsAnInvertedRange)
 
 TEST_F(GuiSmoke, TemplatesDialogBuildsOneEpsilonPerFrequency)
 {
-    TemplatesDialog dialog;
+    TemplatesForm dialog;
 
     std::vector<Parameter> numerator{Parameter(1.0)};
     std::vector<Parameter> denominator{
@@ -667,7 +667,7 @@ TEST_F(GuiSmoke, TemplatesDialogOpensWithTheProposedEpsilon)
     //computed from the grids as the dialog holds them on launch, so that OK
     //alone is a complete answer, shown as the engine gives it; the Propose
     //button asks again with the plane as chosen.
-    TemplatesDialog dialog;
+    TemplatesForm dialog;
 
     std::vector<Parameter> numerator{Parameter(1.0)};
     std::vector<Parameter> denominator{
@@ -739,7 +739,7 @@ TEST_F(GuiSmoke, TemplatesDialogOpensWithTheProposedEpsilon)
 
 TEST_F(GuiSmoke, TemplatesDialogWithoutAProposerOpensEmpty)
 {
-    TemplatesDialog dialog;
+    TemplatesForm dialog;
 
     std::vector<Parameter> numerator{Parameter(1.0)};
     std::vector<Parameter> denominator{
@@ -755,7 +755,7 @@ TEST_F(GuiSmoke, TemplatesDialogWithoutAProposerOpensEmpty)
 
 TEST_F(GuiSmoke, LoopShapingDialogCarriesTheChosenAlgorithm)
 {
-    LoopShapingDialog dialog;
+    LoopShapingForm dialog;
 
     type(&dialog, "epsilonEdit", "0.01");
     type(&dialog, "startEdit", "0.1");
@@ -1032,7 +1032,7 @@ Panel * panelIn(QWidget * window)
 }
 
 //The user of the plant panel: a plant that needs no uncertainty.
-void fillPlant(PlantDialog * plant, const QString & name)
+void fillPlant(PlantForm * plant, const QString & name)
 {
     type(plant, "nameEdit", name);
     check(plant, "zpkRadio");
@@ -1051,7 +1051,7 @@ TEST_F(GuiSmoke, PressingThePlantStepPublishesAPlantAndOpensTheNextSteps)
     ASSERT_NE(plantButton, nullptr);
     plantButton->click();
 
-    PlantDialog * plant = panelIn<PlantDialog>(&window);
+    PlantForm * plant = panelIn<PlantForm>(&window);
     ASSERT_NE(plant, nullptr) << "pressing the step must bring its panel up";
     fillPlant(plant, "driven");
 
@@ -1082,7 +1082,7 @@ TEST_F(GuiSmoke, APanelNobodyAcceptsLeavesTheStepUndone)
     ASSERT_NE(plantButton, nullptr);
     plantButton->click();
 
-    ASSERT_NE(panelIn<PlantDialog>(&window), nullptr);
+    ASSERT_NE(panelIn<PlantForm>(&window), nullptr);
 
     QProgressBar * progress = child<QProgressBar>(&window, "progressBar");
     ASSERT_NE(progress, nullptr);
@@ -1092,7 +1092,7 @@ TEST_F(GuiSmoke, APanelNobodyAcceptsLeavesTheStepUndone)
 
 
 //The user of the frequency panel: four frequencies, typed.
-void fillFrequencies(FrequenciesDialog * frequencies)
+void fillFrequencies(FrequenciesForm * frequencies)
 {
     QComboBox * mode = child<QComboBox>(frequencies, "modeStack");
     if (mode != nullptr) {
@@ -1112,10 +1112,10 @@ TEST_F(GuiSmoke, WalkingTwoStepsOpensTheThirdAndNoFurther)
     ASSERT_NE(frequenciesButton, nullptr);
 
     plantButton->click();
-    fillPlant(panelIn<PlantDialog>(&window), "walked");
+    fillPlant(panelIn<PlantForm>(&window), "walked");
 
     frequenciesButton->click();
-    fillFrequencies(panelIn<FrequenciesDialog>(&window));
+    fillFrequencies(panelIn<FrequenciesForm>(&window));
 
     QProgressBar * progress = child<QProgressBar>(&window, "progressBar");
     ASSERT_NE(progress, nullptr);
@@ -1141,7 +1141,7 @@ TEST_F(GuiSmoke, APanelRefusesToPublishWhatTheProjectHasTakenAwayFromIt)
     //hands them the new one, and a panel with none refuses rather than
     //reading a vector that is gone.
     const std::vector<double> frequencies{0.1, 1.0, 10.0};
-    SpecificationsDialog specifications(&frequencies);
+    SpecificationsForm specifications(&frequencies);
 
     specifications.setFrequencies(nullptr);
     check(&specifications, "stabilityRadio");
@@ -1153,7 +1153,7 @@ TEST_F(GuiSmoke, APanelRefusesToPublishWhatTheProjectHasTakenAwayFromIt)
 
     //The same for the grids of the templates, which describe the parameters
     //of a plant the project owns.
-    TemplatesDialog templates;
+    TemplatesForm templates;
 
     std::vector<Parameter> numerator{Parameter(1.0)};
     std::vector<Parameter> denominator{Parameter("a", qftbx::Range(1.0, 5.0), 5.0)};
@@ -1360,6 +1360,21 @@ TEST_F(GuiSmoke, TheCanvasComesBackAsTheLastSessionLeftIt)
     EXPECT_EQ(plant->span(), 1);
 }
 
+TEST_F(GuiSmoke, TheWindowOpensAtTheSizeItWasLeft)
+{
+    qftbx::Settings settings;
+    settings.interface.window = "1100 700";
+
+    MainWindow window(settings);
+    EXPECT_EQ(window.size(), QSize(1100, 700));
+
+    //And a line this build cannot read is no reason to refuse to start.
+    qftbx::Settings broken;
+    broken.interface.window = "as wide as you like";
+    MainWindow other(broken);
+    EXPECT_GT(other.width(), 0);
+}
+
 TEST_F(GuiSmoke, TheSquareOfTheCanvasFollowsTheScreenItIsGiven)
 {
     //The cards fill the width they are given instead of being a fixed size:
@@ -1440,18 +1455,18 @@ TEST_F(GuiSmoke, EachPhaseIsOneCardWithItsFormAndItsDiagramsInside)
 
     PhaseCard * plant = window.findChild<PhaseCard *>("plantCard");
     ASSERT_NE(plant, nullptr) << "the plant phase has no card";
-    EXPECT_NE(plant->findChild<PlantDialog *>(), nullptr);
+    EXPECT_NE(plant->findChild<PlantForm *>(), nullptr);
     EXPECT_NE(plant->findChild<BodeViewer *>(), nullptr)
         << "the Bode diagram belongs in the card of the plant it draws";
     EXPECT_TRUE(plant->isFormShown()) << "pressing the step opens the form";
 
     //A phase that is only a form is a card too, and has nothing to fold.
-    fillPlant(panelIn<PlantDialog>(&window), "carded");
+    fillPlant(panelIn<PlantForm>(&window), "carded");
     child<QPushButton>(&window, "frequenciesButton")->click();
 
     PhaseCard * frequencies = window.findChild<PhaseCard *>("frequenciesCard");
     ASSERT_NE(frequencies, nullptr);
-    EXPECT_NE(frequencies->findChild<FrequenciesDialog *>(), nullptr);
+    EXPECT_NE(frequencies->findChild<FrequenciesForm *>(), nullptr);
     EXPECT_TRUE(frequencies->isFormShown());
 }
 
@@ -1463,7 +1478,7 @@ TEST_F(GuiSmoke, TheBodeDiagramIsDrawnAsSoonAsThereIsSomethingToDraw)
     MainWindow window;
 
     child<QPushButton>(&window, "plantButton")->click();
-    fillPlant(panelIn<PlantDialog>(&window), "drawn");
+    fillPlant(panelIn<PlantForm>(&window), "drawn");
 
     BodeViewer * bode = panelIn<BodeViewer>(&window);
     ASSERT_NE(bode, nullptr);
@@ -1473,7 +1488,7 @@ TEST_F(GuiSmoke, TheBodeDiagramIsDrawnAsSoonAsThereIsSomethingToDraw)
         << "a plant with no design frequencies has no Bode diagram yet";
 
     child<QPushButton>(&window, "frequenciesButton")->click();
-    fillFrequencies(panelIn<FrequenciesDialog>(&window));
+    fillFrequencies(panelIn<FrequenciesForm>(&window));
 
     EXPECT_GT(magnitude->plottableCount(), 0)
         << "with a plant and its frequencies the diagram draws itself";
@@ -1491,7 +1506,7 @@ TEST_F(GuiSmoke, LookingAgainAtAStepAlreadyDoneLeavesItDone)
     QPushButton * plantButton = child<QPushButton>(&window, "plantButton");
     ASSERT_NE(plantButton, nullptr);
     plantButton->click();
-    fillPlant(panelIn<PlantDialog>(&window), "walked");
+    fillPlant(panelIn<PlantForm>(&window), "walked");
 
     QProgressBar * progress = child<QProgressBar>(&window, "progressBar");
     ASSERT_NE(progress, nullptr);
@@ -1543,7 +1558,7 @@ TEST_F(GuiSmoke, ThePlantFormShowsThePlantOfTheProject)
     project.load(std::string(QFTBX_TEST_DATA_DIR "/planta1.qft"));
     ASSERT_NE(project.plant(), nullptr);
 
-    PlantDialog dialog;
+    PlantForm dialog;
     dialog.setFromProject(project.plant());
 
     EXPECT_EQ(child<QLineEdit>(&dialog, "nameEdit")->text(), QString("aa"));
@@ -1569,7 +1584,7 @@ TEST_F(GuiSmoke, EditingThePlantFormLeavesTheProjectsParametersBehind)
     project.load(std::string(QFTBX_TEST_DATA_DIR "/planta1.qft"));
     ASSERT_NE(project.plant(), nullptr);
 
-    PlantDialog dialog;
+    PlantForm dialog;
     dialog.setFromProject(project.plant());
     type(&dialog, "zpkDenominator", "2 7");
 
@@ -1598,7 +1613,7 @@ TEST_F(GuiSmoke, TheControllerFormShowsTheStructureOfTheProject)
     project.load(std::string(QFTBX_TEST_DATA_DIR "/planta1.qft"));
     ASSERT_NE(project.controllerStructure(), nullptr);
 
-    ControllerDialog dialog;
+    ControllerForm dialog;
     dialog.setFromProject(project.controllerStructure());
 
     press(&dialog, "okButton");
@@ -1620,7 +1635,7 @@ TEST_F(GuiSmoke, TheLoopFormShowsWhatProducedTheDesign)
     ASSERT_NE(project.loopShapingResult(), nullptr);
     project.loopShapingResult()->setRun({qftbx::mc2, 0.02, true});
 
-    LoopShapingDialog dialog;
+    LoopShapingForm dialog;
     dialog.setFromProject(project.loopShapingResult());
 
     EXPECT_TRUE(child<QRadioButton>(&dialog, "mc2Radio")->isChecked());
@@ -1670,7 +1685,7 @@ TEST_F(GuiSmoke, OpeningAProjectOverPhasesAlreadyOpenSurvives)
     window.show();
 
     child<QPushButton>(&window, "plantButton")->click();
-    fillPlant(panelIn<PlantDialog>(&window), "before");
+    fillPlant(panelIn<PlantForm>(&window), "before");
     child<QPushButton>(&window, "frequenciesButton")->click();
     QCoreApplication::processEvents();
 
@@ -1752,7 +1767,7 @@ TEST_F(GuiSmoke, AReusedDialogForgetsItsPreviousAcceptance)
     //StepDialog directly: the seven dialogs used to declare this flag each
     //for themselves, set it on OK and never clear it, so a reused one
     //reported an acceptance whose payload it had already handed over.
-    PlantDialog dialog;
+    PlantForm dialog;
 
     EXPECT_FALSE(dialog.wasAccepted()) << "a fresh dialog has accepted nothing";
 
@@ -2002,7 +2017,7 @@ TEST_F(GuiSmoke, OpeningAProjectFillsTheFormsWithWhatItHolds)
     //The frequencies: the fixture carries twenty of them, and the manual
     //page lists the values whatever the mode, since that is what the project
     //has rather than a rule that regenerates them.
-    FrequenciesDialog * frequencies = window.findChild<FrequenciesDialog *>();
+    FrequenciesForm * frequencies = window.findChild<FrequenciesForm *>();
     ASSERT_NE(frequencies, nullptr) << "the frequencies dialog was not built";
     QLineEdit * values = child<QLineEdit>(frequencies, "manualValues");
     ASSERT_NE(values, nullptr);
@@ -2012,7 +2027,7 @@ TEST_F(GuiSmoke, OpeningAProjectFillsTheFormsWithWhatItHolds)
 
     //The boundary grid: the one the boundaries in the file were computed on,
     //not the default the dialog opens with.
-    BoundaryGridDialog * grid = window.findChild<BoundaryGridDialog *>();
+    BoundaryGridForm * grid = window.findChild<BoundaryGridForm *>();
     ASSERT_NE(grid, nullptr) << "the boundary dialog was not built";
     QLineEdit * phasePoints = child<QLineEdit>(grid, "phasePoints");
     ASSERT_NE(phasePoints, nullptr);

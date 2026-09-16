@@ -34,7 +34,7 @@ UncertaintyDialog::~UncertaintyDialog(){
     //the scroll areas, which are children of this dialog.
 }
 
-//The input tables arrive from PlantDialog or ControllerDialog and become
+//The input tables arrive from PlantForm or ControllerForm and become
 //the dialog's.
 bool UncertaintyDialog::launch(CoefficientTable valueTable, CoefficientTable expressionTable,
                                UncertainTable uncertainTable, bool rangeOnly){

@@ -237,14 +237,14 @@ void LoopShapingViewer::showDiagram(){
     }*/
 
     //FIXED ON PURPOSE, for now (decision taken 2026-09-03: leave it, write
-    //down why). The dialog asks for a range and a point count, and nothing
+    //down why). The form asks for a range and a point count, and nothing
     //reads them but the persistence. Of the three reasons that stood in the
     //way of honouring them, one is now gone and two remain.
     //
-    //SETTLED: the units. Both dialogs ask for rad/s now and say so on the
+    //SETTLED: the units. Both forms ask for rad/s now and say so on the
     //label, and each converts with log10 where qftbx::logspace wants an
-    //exponent. Before, this dialog's defaults were written as values while
-    //the frequencies dialog read its field as an exponent, so the same "0.01"
+    //exponent. Before, this form's defaults were written as values while
+    //the frequencies form read its field as an exponent, so the same "0.01"
     //meant two different frequencies and no label admitted it. Reviving the
     //code above therefore needs a std::log10 on both ends, exactly like
     //bode_viewer does.

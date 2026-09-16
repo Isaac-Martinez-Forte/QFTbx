@@ -182,6 +182,13 @@ const std::vector<Binding> & bindings()
              into.interface.canvas = text;
          }},
 
+        //And the size of the window, from the same place and for the same
+        //reason: it comes up as it was left.
+        {"interface.window",
+         [](const std::string & text, std::int64_t, Settings & into) {
+             into.interface.window = text;
+         }},
+
         //[algorithms] - figures from the papers. These change WHAT is
         //computed, which is why the header says so next to each one.
         {"algorithms.template-representatives",

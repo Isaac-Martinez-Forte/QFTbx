@@ -1,5 +1,5 @@
-#ifndef QFTBX_SPECIFICATIONS_DIALOG_H
-#define QFTBX_SPECIFICATIONS_DIALOG_H
+#ifndef QFTBX_SPECIFICATIONS_FORM_H
+#define QFTBX_SPECIFICATIONS_FORM_H
 
 #include "src/gui/application/step_panel.h"
 #include "src/gui/common/system_description_reader.h"
@@ -19,13 +19,13 @@
 #include "src/core/frequencies/omega.h"
 
 namespace Ui {
-class SpecificationsDialog;
+class SpecificationsForm;
 }
 
 namespace qftbx {
 
 
-class SpecificationsDialog : public StepPanel
+class SpecificationsForm : public StepPanel
 {
     Q_OBJECT
 
@@ -41,10 +41,10 @@ public:
      * reopening the dialog starts from them instead of from blanks.
      * @param parent the Qt parent.
      */
-    explicit SpecificationsDialog(const std::vector<double> * frequencies,
+    explicit SpecificationsForm(const std::vector<double> * frequencies,
                                   const qftbx::SpecificationRecords * loaded = nullptr,
                                   QWidget *parent = 0);
-    ~SpecificationsDialog();
+    ~SpecificationsForm();
 
 
     /**
@@ -118,7 +118,7 @@ private slots:
     void on_upperFreeFormRadio_clicked();
 
 private:
-    std::unique_ptr<Ui::SpecificationsDialog> ui;
+    std::unique_ptr<Ui::SpecificationsForm> ui;
 
     //The seven working records, by value: the dialog edits them and
     //publishes deep clones.
@@ -208,4 +208,4 @@ private:
 
 } // namespace qftbx
 
-#endif // QFTBX_SPECIFICATIONS_DIALOG_H
+#endif // QFTBX_SPECIFICATIONS_FORM_H

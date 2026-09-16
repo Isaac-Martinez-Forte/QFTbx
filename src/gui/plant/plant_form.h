@@ -1,5 +1,5 @@
-#ifndef QFTBX_PLANT_DIALOG_H
-#define QFTBX_PLANT_DIALOG_H
+#ifndef QFTBX_PLANT_FORM_H
+#define QFTBX_PLANT_FORM_H
 
 #include <memory>
 #include <optional>
@@ -14,7 +14,7 @@
 #include "src/gui/plant/uncertainty_dialog.h"
 
 namespace Ui {
-class PlantDialog;
+class PlantForm;
 }
 
 namespace qftbx {
@@ -27,13 +27,13 @@ namespace qftbx {
  * through takePlant(), and the main window publishes it. Reading the fields
  * is SystemDescriptionReader's job, shared with the controller dialog.
  */
-class PlantDialog : public StepPanel
+class PlantForm : public StepPanel
 {
     Q_OBJECT
 
 public:
-    explicit PlantDialog(QWidget *parent = nullptr);
-    ~PlantDialog();
+    explicit PlantForm(QWidget *parent = nullptr);
+    ~PlantForm();
 
     /// The plant the user described, or nullptr when the dialog was
     /// cancelled or its data rejected. Ownership passes to the caller.
@@ -82,7 +82,7 @@ private:
     QString currentCoefficients() const;
     QString currentScalars() const;
 
-    std::unique_ptr<Ui::PlantDialog> ui;
+    std::unique_ptr<Ui::PlantForm> ui;
 
     UncertaintyDialog * uncertaintyDialog = nullptr;
 
@@ -107,4 +107,4 @@ private:
 
 } // namespace qftbx
 
-#endif // QFTBX_PLANT_DIALOG_H
+#endif // QFTBX_PLANT_FORM_H

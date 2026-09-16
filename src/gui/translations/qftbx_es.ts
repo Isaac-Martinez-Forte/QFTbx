@@ -39,20 +39,12 @@
 <context>
     <name>BodeViewer</name>
     <message>
-        <source>MainWindow</source>
-        <translation>MainWindow</translation>
-    </message>
-    <message>
-        <source>File</source>
-        <translation>Archivo</translation>
-    </message>
-    <message>
-        <source>Export...</source>
-        <translation>Exportar...</translation>
+        <source>Save</source>
+        <translation>Guardar</translation>
     </message>
 </context>
 <context>
-    <name>BoundaryGridDialog</name>
+    <name>BoundaryGridForm</name>
     <message>
         <source>Dialog</source>
         <translation>Diálogo</translation>
@@ -129,7 +121,7 @@
     </message>
 </context>
 <context>
-    <name>ControllerDialog</name>
+    <name>ControllerForm</name>
     <message>
         <source>Dialog</source>
         <translation>Diálogo</translation>
@@ -593,7 +585,7 @@ del controlador</translation>
     </message>
 </context>
 <context>
-    <name>FrequenciesDialog</name>
+    <name>FrequenciesForm</name>
     <message>
         <source>Dialog</source>
         <translation>Diálogo</translation>
@@ -670,7 +662,7 @@ del controlador</translation>
     </message>
 </context>
 <context>
-    <name>LoopShapingDialog</name>
+    <name>LoopShapingForm</name>
     <message>
         <source>Dialog</source>
         <translation>Diálogo</translation>
@@ -889,9 +881,9 @@ del controlador</translation>
     </message>
 </context>
 <context>
-    <name>PlantDialog</name>
+    <name>PlantForm</name>
     <message>
-        <source>PlantDialog</source>
+        <source>PlantForm</source>
         <translation>Planta</translation>
     </message>
     <message>
@@ -1019,7 +1011,7 @@ del controlador</translation>
     </message>
 </context>
 <context>
-    <name>SpecificationsDialog</name>
+    <name>SpecificationsForm</name>
     <message>
         <source>Dialog</source>
         <translation>Diálogo</translation>
@@ -1185,7 +1177,7 @@ contorno</translation>
     </message>
 </context>
 <context>
-    <name>TemplatesDialog</name>
+    <name>TemplatesForm</name>
     <message>
         <source>Dialog</source>
         <translation>Diálogo</translation>
@@ -1504,7 +1496,7 @@ contorno</translation>
     </message>
 </context>
 <context>
-    <name>qftbx::BoundaryGridDialog</name>
+    <name>qftbx::BoundaryGridForm</name>
     <message>
         <source>Boundary grid input</source>
         <translation>Rejilla de los boundaries</translation>
@@ -1557,7 +1549,7 @@ contorno</translation>
     </message>
 </context>
 <context>
-    <name>qftbx::ControllerDialog</name>
+    <name>qftbx::ControllerForm</name>
     <message>
         <source>Controller input</source>
         <translation>Controlador</translation>
@@ -1572,7 +1564,7 @@ contorno</translation>
     </message>
 </context>
 <context>
-    <name>qftbx::FrequenciesDialog</name>
+    <name>qftbx::FrequenciesForm</name>
     <message>
         <source>Design frequencies input</source>
         <translation>Frecuencias de diseño</translation>
@@ -1637,7 +1629,7 @@ contorno</translation>
     </message>
 </context>
 <context>
-    <name>qftbx::LoopShapingDialog</name>
+    <name>qftbx::LoopShapingForm</name>
     <message>
         <source>Loop-shaping input</source>
         <translation>Ajuste del lazo</translation>
@@ -2134,7 +2126,7 @@ contorno</translation>
     </message>
 </context>
 <context>
-    <name>qftbx::PlantDialog</name>
+    <name>qftbx::PlantForm</name>
     <message>
         <source>Plant input</source>
         <translation>Planta</translation>
@@ -2355,7 +2347,7 @@ contorno</translation>
     </message>
 </context>
 <context>
-    <name>qftbx::SpecificationsDialog</name>
+    <name>qftbx::SpecificationsForm</name>
     <message>
         <source>Specifications input</source>
         <translation>Especificaciones</translation>
@@ -2469,7 +2461,7 @@ contorno</translation>
     </message>
 </context>
 <context>
-    <name>qftbx::TemplatesDialog</name>
+    <name>qftbx::TemplatesForm</name>
     <message>
         <source>Template input</source>
         <translation>Templates</translation>

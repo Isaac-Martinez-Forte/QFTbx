@@ -1,5 +1,5 @@
-#ifndef QFTBX_FREQUENCIES_DIALOG_H
-#define QFTBX_FREQUENCIES_DIALOG_H
+#ifndef QFTBX_FREQUENCIES_FORM_H
+#define QFTBX_FREQUENCIES_FORM_H
 
 #include "src/core/project/settings.h"
 #include "src/gui/application/step_panel.h"
@@ -17,7 +17,7 @@
 #include "src/core/frequencies/omega.h"
 
 namespace Ui {
-class FrequenciesDialog;
+class FrequenciesForm;
 }
 
 namespace qftbx {
@@ -30,7 +30,7 @@ namespace qftbx {
  *
  * @author Isaac Martínez Forte
  */
-class FrequenciesDialog : public StepPanel
+class FrequenciesForm : public StepPanel
 {
     Q_OBJECT
     
@@ -41,7 +41,7 @@ public:
   
   /// The dialog knows nothing of the project: it builds a frequency set
   /// and takeOmega() hands it over.
-    explicit FrequenciesDialog(QWidget *parent = 0);
+    explicit FrequenciesForm(QWidget *parent = 0);
 
     /// The design frequencies the user described, or nullptr when cancelled
     /// or rejected. Ownership passes to the caller.
@@ -57,7 +57,7 @@ public:
      * typed by hand has instead of a rule.
      */
     void setFromProject(const Omega * omega);
-    ~FrequenciesDialog();
+    ~FrequenciesForm();
 
 
     
@@ -71,7 +71,7 @@ private:
     std::unique_ptr<Omega> m_omega;
     QString filePath;
 
-    std::unique_ptr<Ui::FrequenciesDialog> ui;
+    std::unique_ptr<Ui::FrequenciesForm> ui;
 
     std::int32_t m_maxFrequencyCount = qftbx::Settings().limits.maxFrequencyCount;
 
@@ -79,4 +79,4 @@ private:
 
 } // namespace qftbx
 
-#endif // QFTBX_FREQUENCIES_DIALOG_H
+#endif // QFTBX_FREQUENCIES_FORM_H

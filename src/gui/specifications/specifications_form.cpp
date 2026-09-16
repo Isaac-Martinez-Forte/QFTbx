@@ -1,6 +1,6 @@
 #include <cmath>
 #include "src/gui/common/number_text.h"
-#include "src/gui/specifications/specifications_dialog.h"
+#include "src/gui/specifications/specifications_form.h"
 #include "src/gui/common/expression_field.h"
 #include <optional>
 #include <stdexcept>
@@ -12,7 +12,7 @@
 #include <optional>
 
 #include "src/core/specifications/specification.h"
-#include "ui_specifications_dialog.h"
+#include "ui_specifications_form.h"
 
 #include "src/gui/application/error_message.h"
 #include "src/core/system/free_form.h"
@@ -66,7 +66,7 @@ bool magnitudeIsUsable(double magnitude)
 
 }
 
-SpecificationsDialog::SpecificationsDialog(const std::vector<double> * frequencies,
+SpecificationsForm::SpecificationsForm(const std::vector<double> * frequencies,
                                            const qftbx::SpecificationRecords * loaded,
                                            QWidget *parent) :
     StepPanel(parent),
@@ -85,7 +85,7 @@ SpecificationsDialog::SpecificationsDialog(const std::vector<double> * frequenci
 
     this->frequencies = frequencies;
 
-    ui = std::make_unique<Ui::SpecificationsDialog>();
+    ui = std::make_unique<Ui::SpecificationsForm>();
     ui->setupUi(this);
 
     setWindowTitle(tr("Specifications input"));
@@ -160,7 +160,7 @@ SpecificationsDialog::SpecificationsDialog(const std::vector<double> * frequenci
 
 }
 
-SpecificationsDialog::~SpecificationsDialog()
+SpecificationsForm::~SpecificationsForm()
 {
     //The 7 working records (and their plants) are members, and so is
     //anything published but never taken: nothing to free by hand.
@@ -170,7 +170,7 @@ SpecificationsDialog::~SpecificationsDialog()
 //separated). The non-FreeForm types have no textual representation of
 //their own, and painting numeratorString()=="" makes the specification
 //vanish on reopen.
-QString SpecificationsDialog::coefficientsText(std::vector<Parameter> & parameters)
+QString SpecificationsForm::coefficientsText(std::vector<Parameter> & parameters)
 {
     QString text;
     for (Parameter & parameter : parameters) {
@@ -179,7 +179,7 @@ QString SpecificationsDialog::coefficientsText(std::vector<Parameter> & paramete
     return text.trimmed();
 }
 
-QString SpecificationsDialog::numeratorText(LtiSystem * system)
+QString SpecificationsForm::numeratorText(LtiSystem * system)
 {
     if (system->type() == LtiSystem::SystemType::FreeForm){
         return QString::fromStdString(system->numeratorString());
@@ -187,7 +187,7 @@ QString SpecificationsDialog::numeratorText(LtiSystem * system)
     return coefficientsText(system->numerator());
 }
 
-QString SpecificationsDialog::denominatorText(LtiSystem * system)
+QString SpecificationsForm::denominatorText(LtiSystem * system)
 {
     if (system->type() == LtiSystem::SystemType::FreeForm){
         return QString::fromStdString(system->denominatorString());
@@ -195,7 +195,7 @@ QString SpecificationsDialog::denominatorText(LtiSystem * system)
     return coefficientsText(system->denominator());
 }
 
-void SpecificationsDialog::setData(qftbx::SpecificationRecord & record)
+void SpecificationsForm::setData(qftbx::SpecificationRecord & record)
 {
     if (record.used){
 
@@ -252,7 +252,7 @@ void SpecificationsDialog::setData(qftbx::SpecificationRecord & record)
 }
 
 
-void SpecificationsDialog::setData(qftbx::SpecificationRecord & record,
+void SpecificationsForm::setData(qftbx::SpecificationRecord & record,
                                     qftbx::SpecificationRecord & upperRecord){
 
     if (record.used){
@@ -340,7 +340,7 @@ void SpecificationsDialog::setData(qftbx::SpecificationRecord & record,
     }
 }
 
-bool SpecificationsDialog::data(qftbx::SpecificationRecord & record, QString name)
+bool SpecificationsForm::data(qftbx::SpecificationRecord & record, QString name)
 {
 
     if (record.used && !record.constant){
@@ -450,7 +450,7 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record, QString nam
     return true;
 }
 
-bool SpecificationsDialog::data(qftbx::SpecificationRecord & record,
+bool SpecificationsForm::data(qftbx::SpecificationRecord & record,
                                     qftbx::SpecificationRecord & upperRecord, QString name){
 
     if (record.used && !record.constant){
@@ -630,7 +630,7 @@ bool SpecificationsDialog::data(qftbx::SpecificationRecord & record,
     return true;
 }
 
-std::optional<Parameter> SpecificationsDialog::scalarFrom(const QString & text, double fallback)
+std::optional<Parameter> SpecificationsForm::scalarFrom(const QString & text, double fallback)
 {
     if (text.isEmpty()) {
         return Parameter(fallback);
@@ -649,7 +649,7 @@ std::optional<Parameter> SpecificationsDialog::scalarFrom(const QString & text, 
     }
 }
 
-std::optional<std::vector<Parameter>> SpecificationsDialog::parametersFrom(const QString & text)
+std::optional<std::vector<Parameter>> SpecificationsForm::parametersFrom(const QString & text)
 {
     CoefficientRow numbers;
     for (const std::string & token : qftbx::text::tokens(text.toStdString())) {
@@ -662,7 +662,7 @@ std::optional<std::vector<Parameter>> SpecificationsDialog::parametersFrom(const
 //The system a tab describes, read once for the three tabs that take one.
 //Gain and delay are ALWAYS validated, the free-form branch included: an
 //unchecked result is a nullptr on a syntax error.
-SpecificationsDialog::SystemRead SpecificationsDialog::readSystemFields(qftbx::SpecificationRecord & record,
+SpecificationsForm::SystemRead SpecificationsForm::readSystemFields(qftbx::SpecificationRecord & record,
                                                                         const QString & name,
                                                                         const SystemFields & fields)
 {
@@ -735,7 +735,7 @@ SpecificationsDialog::SystemRead SpecificationsDialog::readSystemFields(qftbx::S
     return SystemRead::Read;
 }
 
-bool SpecificationsDialog::saveActiveTab()
+bool SpecificationsForm::saveActiveTab()
 {
     if (activeTab == 1){
         return data(tracking, trackingUpper, "TrackingLower");
@@ -755,7 +755,7 @@ bool SpecificationsDialog::saveActiveTab()
     return true;
 }
 
-void SpecificationsDialog::restoreActiveTabRadio()
+void SpecificationsForm::restoreActiveTabRadio()
 {
     switch (activeTab){
     case 1: ui->trackingRadio->setChecked(true); break;
@@ -768,7 +768,7 @@ void SpecificationsDialog::restoreActiveTabRadio()
     }
 }
 
-bool SpecificationsDialog::leaveActiveTab()
+bool SpecificationsForm::leaveActiveTab()
 {
     if (saveActiveTab()){
         return true;
@@ -788,7 +788,7 @@ bool SpecificationsDialog::leaveActiveTab()
     return false;
 }
 
-void SpecificationsDialog::on_trackingRadio_clicked()
+void SpecificationsForm::on_trackingRadio_clicked()
 {
     if (!leaveActiveTab()){
         return;
@@ -805,7 +805,7 @@ void SpecificationsDialog::on_trackingRadio_clicked()
     ui->buttonsWidget->move(670, 320);
 }
 
-void SpecificationsDialog::on_stabilityRadio_clicked()
+void SpecificationsForm::on_stabilityRadio_clicked()
 {
     if (!leaveActiveTab()){
         return;
@@ -819,7 +819,7 @@ void SpecificationsDialog::on_stabilityRadio_clicked()
     ui->buttonsWidget->move(450, 320);
 }
 
-void SpecificationsDialog::on_noiseRadio_clicked()
+void SpecificationsForm::on_noiseRadio_clicked()
 {
     if (!leaveActiveTab()){
         return;
@@ -833,7 +833,7 @@ void SpecificationsDialog::on_noiseRadio_clicked()
     ui->buttonsWidget->move(450, 320);
 }
 
-void SpecificationsDialog::on_outputDisturbanceRadio_clicked()
+void SpecificationsForm::on_outputDisturbanceRadio_clicked()
 {
     if (!leaveActiveTab()){
         return;
@@ -850,7 +850,7 @@ void SpecificationsDialog::on_outputDisturbanceRadio_clicked()
     ui->buttonsWidget->move(450, 320);
 }
 
-void SpecificationsDialog::on_inputDisturbanceRadio_clicked()
+void SpecificationsForm::on_inputDisturbanceRadio_clicked()
 {
     if (!leaveActiveTab()){
         return;
@@ -864,7 +864,7 @@ void SpecificationsDialog::on_inputDisturbanceRadio_clicked()
     ui->buttonsWidget->move(450, 320);
 }
 
-void SpecificationsDialog::on_controlEffortRadio_clicked()
+void SpecificationsForm::on_controlEffortRadio_clicked()
 {
     if (!leaveActiveTab()){
         return;
@@ -878,21 +878,21 @@ void SpecificationsDialog::on_controlEffortRadio_clicked()
     ui->buttonsWidget->move(450, 320);
 }
 
-void SpecificationsDialog::on_constantRadio_clicked()
+void SpecificationsForm::on_constantRadio_clicked()
 {
     ui->modeStack->setCurrentIndex(1);
     ui->lowerModeStack->setCurrentIndex(1);
     ui->upperModeStack->setCurrentIndex(1);
 }
 
-void SpecificationsDialog::on_systemRadio_clicked()
+void SpecificationsForm::on_systemRadio_clicked()
 {
     ui->modeStack->setCurrentIndex(2);
     ui->lowerModeStack->setCurrentIndex(2);
     ui->upperModeStack->setCurrentIndex(2);
 }
 
-void SpecificationsDialog::on_okButton_clicked()
+void SpecificationsForm::on_okButton_clicked()
 {
     //A rejected accept must not leave the previous answer behind.
     discardPublished();
@@ -937,7 +937,7 @@ void SpecificationsDialog::on_okButton_clicked()
     close();
 }
 
-void SpecificationsDialog::setFrequencies(const std::vector<double> * frequencies)
+void SpecificationsForm::setFrequencies(const std::vector<double> * frequencies)
 {
     this->frequencies = frequencies;
 
@@ -949,71 +949,71 @@ void SpecificationsDialog::setFrequencies(const std::vector<double> * frequencie
     ui->endFrequencyEdit->setText(qftbx::numberText(frequencies->back()));
 }
 
-std::optional<qftbx::SpecificationRecords> SpecificationsDialog::takeSpecifications(){
+std::optional<qftbx::SpecificationRecords> SpecificationsForm::takeSpecifications(){
     return std::move(published);
 }
 
-void SpecificationsDialog::discardPublished(){
+void SpecificationsForm::discardPublished(){
     published.reset();
 }
 
 
-void SpecificationsDialog::on_lowerPolynomialRadio_clicked()
+void SpecificationsForm::on_lowerPolynomialRadio_clicked()
 {
     ui->lowerFigureStack-> setCurrentIndex(3);
 }
 
-void SpecificationsDialog::on_lowerFreeFormRadio_clicked()
+void SpecificationsForm::on_lowerFreeFormRadio_clicked()
 {
     ui->lowerFigureStack-> setCurrentIndex(0);
 }
 
-void SpecificationsDialog::on_lowerZpkRadio_clicked()
+void SpecificationsForm::on_lowerZpkRadio_clicked()
 {
     ui->lowerFigureStack-> setCurrentIndex(1);
 }
 
-void SpecificationsDialog::on_lowerTcgRadio_clicked()
+void SpecificationsForm::on_lowerTcgRadio_clicked()
 {
     ui->lowerFigureStack-> setCurrentIndex(2);
 }
 
-void SpecificationsDialog::on_upperPolynomialRadio_clicked()
+void SpecificationsForm::on_upperPolynomialRadio_clicked()
 {
     ui->upperFigureStack-> setCurrentIndex(3);
 }
 
-void SpecificationsDialog::on_upperZpkRadio_clicked()
+void SpecificationsForm::on_upperZpkRadio_clicked()
 {
     ui->upperFigureStack-> setCurrentIndex(1);
 }
 
-void SpecificationsDialog::on_upperTcgRadio_clicked()
+void SpecificationsForm::on_upperTcgRadio_clicked()
 {
     ui->upperFigureStack-> setCurrentIndex(2);
 }
 
-void SpecificationsDialog::on_upperFreeFormRadio_clicked()
+void SpecificationsForm::on_upperFreeFormRadio_clicked()
 {
     ui->upperFigureStack-> setCurrentIndex(0);
 }
 
-void SpecificationsDialog::on_polynomialRadio_clicked()
+void SpecificationsForm::on_polynomialRadio_clicked()
 {
     ui->figureStack->setCurrentIndex(1);
 }
 
-void SpecificationsDialog::on_tcgRadio_clicked()
+void SpecificationsForm::on_tcgRadio_clicked()
 {
     ui->figureStack->setCurrentIndex(3);
 }
 
-void SpecificationsDialog::on_freeFormRadio_clicked()
+void SpecificationsForm::on_freeFormRadio_clicked()
 {
     ui->figureStack->setCurrentIndex(0);
 }
 
-void SpecificationsDialog::on_zpkRadio_clicked()
+void SpecificationsForm::on_zpkRadio_clicked()
 {
     ui->figureStack->setCurrentIndex(2);
 }

@@ -1,5 +1,5 @@
-#include "src/gui/plant/plant_dialog.h"
-#include "ui_plant_dialog.h"
+#include "src/gui/plant/plant_form.h"
+#include "ui_plant_form.h"
 
 #include "src/core/common/exception.h"
 #include "src/gui/application/error_message.h"
@@ -7,9 +7,9 @@
 
 namespace qftbx {
 
-PlantDialog::PlantDialog(QWidget *parent) :
+PlantForm::PlantForm(QWidget *parent) :
     StepPanel(parent),
-    ui(std::make_unique<Ui::PlantDialog>()),
+    ui(std::make_unique<Ui::PlantForm>()),
     m_reader(tr("Plant input"))
 {
     ui->setupUi(this);
@@ -39,12 +39,12 @@ PlantDialog::PlantDialog(QWidget *parent) :
 
 }
 
-PlantDialog::~PlantDialog()
+PlantForm::~PlantForm()
 {
     //The uncertainty dialog is a Qt child of this one, so Qt frees it.
 }
 
-void PlantDialog::on_zerosPolesRadio_toggled(bool checked)
+void PlantForm::on_zerosPolesRadio_toggled(bool checked)
 {
     ui->zpkRadio->setVisible(checked);
     ui->tcgRadio->setVisible(checked);
@@ -55,7 +55,7 @@ void PlantDialog::on_zerosPolesRadio_toggled(bool checked)
         ui->formStack->setCurrentIndex(0);
 }
 
-void PlantDialog::on_transferFunctionRadio_toggled(bool checked)
+void PlantForm::on_transferFunctionRadio_toggled(bool checked)
 {
     ui->zerosPolesRadio->setVisible(checked);
     ui->polynomialRadio->setVisible(checked);
@@ -64,7 +64,7 @@ void PlantDialog::on_transferFunctionRadio_toggled(bool checked)
         ui->formStack->setCurrentIndex(0);
 }
 
-void PlantDialog::on_zpkRadio_toggled(bool checked)
+void PlantForm::on_zpkRadio_toggled(bool checked)
 {
     ui->zerosPolesRadio->setVisible(checked);
     ui->polynomialRadio->setVisible(checked);
@@ -75,7 +75,7 @@ void PlantDialog::on_zpkRadio_toggled(bool checked)
         ui->formStack->setCurrentIndex(3);
 }
 
-void PlantDialog::on_tcgRadio_toggled(bool checked)
+void PlantForm::on_tcgRadio_toggled(bool checked)
 {
     ui->zerosPolesRadio->setVisible(checked);
     ui->polynomialRadio->setVisible(checked);
@@ -86,7 +86,7 @@ void PlantDialog::on_tcgRadio_toggled(bool checked)
         ui->formStack->setCurrentIndex(4);
 }
 
-void PlantDialog::on_polynomialRadio_toggled(bool checked)
+void PlantForm::on_polynomialRadio_toggled(bool checked)
 {
     ui->zerosPolesRadio->setVisible(checked);
     ui->polynomialRadio->setVisible(checked);
@@ -95,12 +95,12 @@ void PlantDialog::on_polynomialRadio_toggled(bool checked)
         ui->formStack->setCurrentIndex(2);
 }
 
-void PlantDialog::on_freeFormRadio_clicked()
+void PlantForm::on_freeFormRadio_clicked()
 {
     ui->formStack->setCurrentIndex(1);
 }
 
-LtiSystem::SystemType PlantDialog::selectedType() const
+LtiSystem::SystemType PlantForm::selectedType() const
 {
     if (ui->zpkRadio->isChecked()) {
         return LtiSystem::SystemType::ZeroPoleGain;
@@ -114,7 +114,7 @@ LtiSystem::SystemType PlantDialog::selectedType() const
     return LtiSystem::SystemType::FreeForm;
 }
 
-std::optional<CoefficientTable> PlantDialog::readTables(CoefficientTable & expressionTable,
+std::optional<CoefficientTable> PlantForm::readTables(CoefficientTable & expressionTable,
                                                         UncertainTable & uncertainTable)
 {
     //Rows in the order the uncertainty dialog expects: numerator,
@@ -161,7 +161,7 @@ std::optional<CoefficientTable> PlantDialog::readTables(CoefficientTable & expre
     return tables;
 }
 
-QString PlantDialog::currentCoefficients() const
+QString PlantForm::currentCoefficients() const
 {
     const auto joined = [](QLineEdit * numerator, QLineEdit * denominator) {
         return numerator->text() + QLatin1Char('\n') + denominator->text();
@@ -181,7 +181,7 @@ QString PlantDialog::currentCoefficients() const
     return QString();
 }
 
-QString PlantDialog::currentScalars() const
+QString PlantForm::currentScalars() const
 {
     const auto joined = [](QLineEdit * gain, QLineEdit * delay) {
         return gain->text() + QLatin1Char('\n') + delay->text();
@@ -201,7 +201,7 @@ QString PlantDialog::currentScalars() const
     return QString();
 }
 
-void PlantDialog::setFromProject(LtiSystem * plant)
+void PlantForm::setFromProject(LtiSystem * plant)
 {
     if (plant == nullptr) {
         return;
@@ -257,7 +257,7 @@ void PlantDialog::setFromProject(LtiSystem * plant)
     m_describedScalars = currentScalars();
 }
 
-bool PlantDialog::nameIsPresent()
+bool PlantForm::nameIsPresent()
 {
     //The name is required on BOTH paths, or a nameless plant can be saved
     //through the other one.
@@ -270,7 +270,7 @@ bool PlantDialog::nameIsPresent()
     return true;
 }
 
-void PlantDialog::on_okButton_clicked()
+void PlantForm::on_okButton_clicked()
 {
     if (!nameIsPresent()) {
         return;
@@ -369,7 +369,7 @@ void PlantDialog::on_okButton_clicked()
     markAccepted();
 }
 
-void PlantDialog::on_uncertaintyButton_clicked()
+void PlantForm::on_uncertaintyButton_clicked()
 {
     CoefficientTable expressionTable;
     UncertainTable uncertainTable;
@@ -390,7 +390,7 @@ void PlantDialog::on_uncertaintyButton_clicked()
     uncertaintyEntered = true;
 }
 
-std::unique_ptr<LtiSystem> PlantDialog::takePlant()
+std::unique_ptr<LtiSystem> PlantForm::takePlant()
 {
     return std::move(plant);
 }

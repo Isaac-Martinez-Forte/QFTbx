@@ -1,7 +1,7 @@
-#include "src/gui/loopshaping/loop_shaping_dialog.h"
+#include "src/gui/loopshaping/loop_shaping_form.h"
 #include "src/gui/common/expression_field.h"
 #include "src/gui/common/number_text.h"
-#include "ui_loop_shaping_dialog.h"
+#include "ui_loop_shaping_form.h"
 
 #include "src/gui/application/error_message.h"
 
@@ -49,9 +49,9 @@ bool readField(QLineEdit * field, const QString & complaint,
 
 }
 
-LoopShapingDialog::LoopShapingDialog(QWidget *parent) :
+LoopShapingForm::LoopShapingForm(QWidget *parent) :
     StepPanel(parent),
-    ui(std::make_unique<Ui::LoopShapingDialog>())
+    ui(std::make_unique<Ui::LoopShapingForm>())
 {
     ui->setupUi(this);
 
@@ -71,17 +71,17 @@ LoopShapingDialog::LoopShapingDialog(QWidget *parent) :
     for (QRadioButton * radio : {ui->ntRadio, ui->nkRadio, ui->mc1Radio,
                                  ui->mc2Radio, ui->mrRadio}) {
         connect(radio, &QRadioButton::toggled,
-                this, &LoopShapingDialog::updateEpsilonLabel);
+                this, &LoopShapingForm::updateEpsilonLabel);
     }
 
     updateEpsilonLabel();
 }
 
-LoopShapingDialog::~LoopShapingDialog()
+LoopShapingForm::~LoopShapingForm()
 {
 }
 
-void LoopShapingDialog::updateEpsilonLabel()
+void LoopShapingForm::updateEpsilonLabel()
 {
     //MR bisects the controller's parameter box (Rambabu & Nataraj, FDA-10);
     //the other four bisect the Nichols box.
@@ -90,7 +90,7 @@ void LoopShapingDialog::updateEpsilonLabel()
                                   : tr("Epsilon (Nichols box diameter):"));
 }
 
-void LoopShapingDialog::on_okButton_clicked()
+void LoopShapingForm::on_okButton_clicked()
 {
     if (!readField(ui->epsilonEdit,
                    tr("The epsilon must be a positive real number."),
@@ -141,35 +141,35 @@ void LoopShapingDialog::on_okButton_clicked()
 }
 
 
-qreal LoopShapingDialog::epsilonValue(){
+qreal LoopShapingForm::epsilonValue(){
     return epsilonEdit;
 }
 
-bool LoopShapingDialog::conservativeColumns() const {
+bool LoopShapingForm::conservativeColumns() const {
     return ui->conservativeColumnsCheck->isChecked();
 }
 
-void LoopShapingDialog::setConservativeColumns(bool on) {
+void LoopShapingForm::setConservativeColumns(bool on) {
     ui->conservativeColumnsCheck->setChecked(on);
 }
 
-qftbx::LoopShapingAlgorithm LoopShapingDialog::algorithmValue(){
+qftbx::LoopShapingAlgorithm LoopShapingForm::algorithmValue(){
     return alg;
 }
 
-qftbx::Range LoopShapingDialog::range(){
+qftbx::Range LoopShapingForm::range(){
     return plotRange;
 }
 
-qreal LoopShapingDialog::pointCountValue(){
+qreal LoopShapingForm::pointCountValue(){
     return pointCountEdit;
 }
 
-bool LoopShapingDialog::isLinSpace(){
+bool LoopShapingForm::isLinSpace(){
     return linLogSpace;
 }
 
-qint32 LoopShapingDialog::initialisationValue(){
+qint32 LoopShapingForm::initialisationValue(){
     return initialisation;
 }
 
@@ -177,17 +177,17 @@ qint32 LoopShapingDialog::initialisationValue(){
 //to write two different hardcoded sets, differing from each other and from
 //the one on opening with no reason recorded - and either of them threw away
 //whatever the user had typed.
-void LoopShapingDialog::on_linspaceRadio_clicked()
+void LoopShapingForm::on_linspaceRadio_clicked()
 {
     applyDefaults(m_defaults);
 }
 
-void LoopShapingDialog::on_logspaceRadio_clicked()
+void LoopShapingForm::on_logspaceRadio_clicked()
 {
     applyDefaults(m_defaults);
 }
 
-void LoopShapingDialog::setFromProject(const qftbx::LoopShapingResult * result)
+void LoopShapingForm::setFromProject(const qftbx::LoopShapingResult * result)
 {
     if (result == nullptr) {
         return;
@@ -218,7 +218,7 @@ void LoopShapingDialog::setFromProject(const qftbx::LoopShapingResult * result)
     }
 }
 
-void LoopShapingDialog::applyDefaults(const qftbx::Settings::Defaults & defaults)
+void LoopShapingForm::applyDefaults(const qftbx::Settings::Defaults & defaults)
 {
     m_defaults = defaults;
 
@@ -227,12 +227,12 @@ void LoopShapingDialog::applyDefaults(const qftbx::Settings::Defaults & defaults
     ui->pointCountEdit->setText(qftbx::numberText(defaults.loopPointCount));
 }
 
-void LoopShapingDialog::on_ntRadio_clicked()
+void LoopShapingForm::on_ntRadio_clicked()
 {
     ui->algorithmStack->setCurrentIndex(0);
 }
 
-void LoopShapingDialog::on_nkRadio_clicked()
+void LoopShapingForm::on_nkRadio_clicked()
 {
     //Page 1 is page_nand, which holds NK's starting-point choice. This
     //asked for page 2 and there are only two pages: Qt ignores an
@@ -242,7 +242,7 @@ void LoopShapingDialog::on_nkRadio_clicked()
     ui->algorithmStack->setCurrentIndex(1);
 }
 
-void LoopShapingDialog::on_mrRadio_clicked()
+void LoopShapingForm::on_mrRadio_clicked()
 {
     ui->algorithmStack->setCurrentIndex(0);
 }
@@ -250,12 +250,12 @@ void LoopShapingDialog::on_mrRadio_clicked()
 //MC1 and MC2 have no options of their own yet: page 0 is the empty one.
 //Without these two the panel kept whatever the previous algorithm had put
 //there.
-void LoopShapingDialog::on_mc1Radio_clicked()
+void LoopShapingForm::on_mc1Radio_clicked()
 {
     ui->algorithmStack->setCurrentIndex(0);
 }
 
-void LoopShapingDialog::on_mc2Radio_clicked()
+void LoopShapingForm::on_mc2Radio_clicked()
 {
     ui->algorithmStack->setCurrentIndex(0);
 }

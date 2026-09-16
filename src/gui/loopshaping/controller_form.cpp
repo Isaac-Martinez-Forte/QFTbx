@@ -1,5 +1,5 @@
-#include "src/gui/loopshaping/controller_dialog.h"
-#include "ui_controller_dialog.h"
+#include "src/gui/loopshaping/controller_form.h"
+#include "ui_controller_form.h"
 
 #include <algorithm>
 
@@ -10,9 +10,9 @@
 
 namespace qftbx {
 
-ControllerDialog::ControllerDialog(QWidget *parent) :
+ControllerForm::ControllerForm(QWidget *parent) :
     StepPanel(parent),
-    ui(std::make_unique<Ui::ControllerDialog>()),
+    ui(std::make_unique<Ui::ControllerForm>()),
     m_reader(tr("Controller input"))
 {
     ui->setupUi(this);
@@ -29,26 +29,26 @@ ControllerDialog::ControllerDialog(QWidget *parent) :
     uncertaintyDialog = new UncertaintyDialog (this);
 }
 
-ControllerDialog::~ControllerDialog()
+ControllerForm::~ControllerForm()
 {
 }
 
-void ControllerDialog::on_polynomialRadio_clicked()
+void ControllerForm::on_polynomialRadio_clicked()
 {
     ui->figureStack->setCurrentIndex(1);
 }
 
-void ControllerDialog::on_zpkRadio_clicked()
+void ControllerForm::on_zpkRadio_clicked()
 {
     ui->figureStack->setCurrentIndex(2);
 }
 
-void ControllerDialog::on_tcgRadio_clicked()
+void ControllerForm::on_tcgRadio_clicked()
 {
     ui->figureStack->setCurrentIndex(3);
 }
 
-LtiSystem::SystemType ControllerDialog::selectedType() const
+LtiSystem::SystemType ControllerForm::selectedType() const
 {
     if (ui->zpkRadio->isChecked()) {
         return LtiSystem::SystemType::ZeroPoleGain;
@@ -62,17 +62,17 @@ LtiSystem::SystemType ControllerDialog::selectedType() const
     return LtiSystem::SystemType::FreeForm;
 }
 
-QString ControllerDialog::currentCoefficients() const
+QString ControllerForm::currentCoefficients() const
 {
     return ui->numeratorEdit->text() + QLatin1Char('\n') + ui->denominatorEdit->text();
 }
 
-QString ControllerDialog::currentGain() const
+QString ControllerForm::currentGain() const
 {
     return ui->gainStart->text() + QLatin1Char('\n') + ui->gainEnd->text();
 }
 
-void ControllerDialog::setFromProject(LtiSystem * structure)
+void ControllerForm::setFromProject(LtiSystem * structure)
 {
     if (structure == nullptr) {
         return;
@@ -114,7 +114,7 @@ void ControllerDialog::setFromProject(LtiSystem * structure)
     m_describedGain = currentGain();
 }
 
-std::optional<CoefficientTable> ControllerDialog::readTables(CoefficientTable & expressionTable,
+std::optional<CoefficientTable> ControllerForm::readTables(CoefficientTable & expressionTable,
                                                              UncertainTable & uncertainTable)
 {
     //Rows in the order the uncertainty dialog expects: numerator,
@@ -139,7 +139,7 @@ std::optional<CoefficientTable> ControllerDialog::readTables(CoefficientTable & 
     return tables;
 }
 
-void ControllerDialog::on_uncertaintyButton_clicked()
+void ControllerForm::on_uncertaintyButton_clicked()
 {
     CoefficientTable expressionTable;
     UncertainTable uncertainTable;
@@ -156,7 +156,7 @@ void ControllerDialog::on_uncertaintyButton_clicked()
     uncertaintyEntered = true;
 }
 
-void ControllerDialog::on_okButton_clicked()
+void ControllerForm::on_okButton_clicked()
 {
     CoefficientTable expressionTable;
     UncertainTable uncertainTable;
@@ -234,7 +234,7 @@ void ControllerDialog::on_okButton_clicked()
     markAccepted();
 }
 
-std::unique_ptr<LtiSystem> ControllerDialog::takeControllerStructure()
+std::unique_ptr<LtiSystem> ControllerForm::takeControllerStructure()
 {
     return std::move(controllerSystem);
 }

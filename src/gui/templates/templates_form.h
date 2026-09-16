@@ -1,5 +1,5 @@
-#ifndef QFTBX_TEMPLATES_DIALOG_H
-#define QFTBX_TEMPLATES_DIALOG_H
+#ifndef QFTBX_TEMPLATES_FORM_H
+#define QFTBX_TEMPLATES_FORM_H
 
 #include "src/core/project/settings.h"
 #include "src/gui/application/step_panel.h"
@@ -32,7 +32,7 @@
 
 
 namespace Ui {
-class TemplatesDialog;
+class TemplatesForm;
 }
 
 namespace qftbx {
@@ -45,7 +45,7 @@ namespace qftbx {
  *
  * @author Isaac Martínez Forte
  */
-class TemplatesDialog : public StepPanel
+class TemplatesForm : public StepPanel
 {
     Q_OBJECT
     
@@ -59,9 +59,9 @@ public:
 
   
   
-    explicit TemplatesDialog(QWidget *parent = 0);
+    explicit TemplatesForm(QWidget *parent = 0);
 
-    ~TemplatesDialog();
+    ~TemplatesForm();
 
     
    /**
@@ -181,7 +181,7 @@ private:
     EpsilonProposer m_propose;
     std::vector<qftbx::TemplateEngine::EpsilonProposal> m_proposals;
 
-    std::unique_ptr<Ui::TemplatesDialog> ui;
+    std::unique_ptr<Ui::TemplatesForm> ui;
 
 
     void buildRow (QWidget *widget, QVector<ParLineEdit> & par,
@@ -230,4 +230,4 @@ private:
 
 } // namespace qftbx
 
-#endif // QFTBX_TEMPLATES_DIALOG_H
+#endif // QFTBX_TEMPLATES_FORM_H
