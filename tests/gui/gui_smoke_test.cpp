@@ -14,6 +14,7 @@
 
 #include "src/core/loopshaping/loop_shaping_types.h"
 #include "src/core/specifications/specification_record.h"
+#include <cstdio>
 #include <gtest/gtest.h>
 
 #include <vector>
@@ -40,14 +41,15 @@
 #include "src/gui/common/plot_setup.h"
 #include <QCheckBox>
 #include <QDialog>
-#include <QLineEdit>
 #include <QLabel>
+#include <QLineEdit>
 #include <QMouseEvent>
 #include <QProgressBar>
 #include <QPushButton>
 #include <QRadioButton>
 #include <QComboBox>
 #include <QDialogButtonBox>
+#include <QIcon>
 #include <QDockWidget>
 #include <QToolButton>
 #include <QStackedWidget>
@@ -59,6 +61,7 @@
 #include "src/gui/application/language.h"
 #include "src/gui/application/main_window.h"
 #include "src/gui/application/phase_card.h"
+#include "src/gui/application/theme.h"
 #include "src/gui/plant/plant_form.h"
 #include "src/gui/loopshaping/controller_form.h"
 #include "src/gui/frequencies/frequencies_form.h"
@@ -1332,6 +1335,16 @@ TEST_F(GuiSmoke, ACardDraggedByItsBarChangesPlaces)
 
     EXPECT_EQ(layout->indexOf(last), 0) << "the card did not move to where it was dropped";
     EXPECT_EQ(layout->indexOf(first), 1) << "the one it was dropped on did not move over";
+
+    //The bar is the handle and says so with the hand; the buttons on it are
+    //not, and a hand over something you only press says the wrong thing.
+    EXPECT_EQ(bar->cursor().shape(), Qt::OpenHandCursor);
+    for (const char * button : {"loopShapingCardFold", "loopShapingCardNarrower",
+                                "loopShapingCardWider"}) {
+        QWidget * pressed = last->findChild<QWidget *>(button);
+        ASSERT_NE(pressed, nullptr) << button;
+        EXPECT_EQ(pressed->cursor().shape(), Qt::ArrowCursor) << button;
+    }
 }
 
 TEST_F(GuiSmoke, TheCanvasComesBackAsTheLastSessionLeftIt)
@@ -1375,6 +1388,46 @@ TEST_F(GuiSmoke, TheWindowOpensAtTheSizeItWasLeft)
     broken.interface.window = "as wide as you like";
     MainWindow other(broken);
     EXPECT_GT(other.width(), 0);
+}
+
+TEST_F(GuiSmoke, TheThemeDressesTheWindowAndItsDiagrams)
+{
+    //The look is flat and square, and it is one style sheet over three
+    //palettes: the light one, the dark one and the machine's own. What has
+    //to be checked is that choosing one reaches everything - including the
+    //diagrams, which are drawn by QCustomPlot and not by the style sheet.
+    qftbx::Settings settings;
+    settings.interface.theme = "light";
+
+    MainWindow window(settings);
+    window.setFileChooser([](bool) {
+        return QString(QFTBX_TEST_DATA_DIR "/planta1.qft");
+    });
+    window.findChild<QAction *>("actionOpen")->trigger();
+
+    QCustomPlot * plot = window.findChild<QCustomPlot *>();
+    ASSERT_NE(plot, nullptr);
+
+    QAction * dark = window.findChild<QAction *>("actionTheme_dark");
+    ASSERT_NE(dark, nullptr) << "the View menu has no dark theme";
+    dark->trigger();
+
+    EXPECT_LT(QApplication::palette().color(QPalette::Window).lightness(), 100)
+        << "the dark theme did not reach the application";
+    EXPECT_GT(plot->xAxis->tickLabelColor().lightness(), 150)
+        << "the diagram kept its black axes in the middle of a dark window";
+
+    QAction * light = window.findChild<QAction *>("actionTheme_light");
+    ASSERT_NE(light, nullptr);
+    light->trigger();
+
+    EXPECT_GT(QApplication::palette().color(QPalette::Window).lightness(), 200);
+    EXPECT_LT(plot->xAxis->tickLabelColor().lightness(), 100);
+
+    //And the accent is the blue of the icon, in both.
+    EXPECT_NEAR(QApplication::palette().color(QPalette::Highlight).hue(), 204, 12);
+
+    qftbx::applyTheme(qftbx::kSystemTheme);
 }
 
 TEST_F(GuiSmoke, TheFiguresAndTheIconAreInTheBuild)

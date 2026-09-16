@@ -182,6 +182,17 @@ const std::vector<Binding> & bindings()
              into.interface.canvas = text;
          }},
 
+        //The look of the interface, chosen from the View menu like the
+        //language: the system's, light or dark.
+        {"interface.theme",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             if (text != "system" && text != "light" && text != "dark") {
+                 throw ParseError(QFTBX_TR("Core", "interface.theme must be system, light or dark: '%1'").arg(text),
+                                  line);
+             }
+             into.interface.theme = text;
+         }},
+
         //And the size of the window, from the same place and for the same
         //reason: it comes up as it was left.
         {"interface.window",

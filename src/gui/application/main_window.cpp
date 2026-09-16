@@ -2,6 +2,9 @@
 #include "src/gui/application/main_window.h"
 #include "src/gui/common/flow_layout.h"
 #include "src/gui/application/about.h"
+#include "src/gui/application/theme.h"
+#include "src/gui/common/plot_setup.h"
+#include "qcustomplot.h"
 #include "src/gui/application/error_message.h"
 #include "ui_main_window.h"
 #ifdef QFTBX_BENCHMARK
@@ -69,6 +72,38 @@ MainWindow::MainWindow(qftbx::Settings settings, QWidget *parent) :
 {
     
     ui->setupUi(this);
+
+    //The look, under View: the machine's own, or the toolbox's light and
+    //dark. Choosing one dresses every window on the spot and writes the
+    //choice into the settings file in use, like the language below.
+    m_themeMenu = ui->menuView->addMenu(QString());
+    auto * themes = new QActionGroup(this);
+    const QString wearing = QString::fromStdString(m_settings.interface.theme);
+
+    for (const QString & code : availableThemes()) {
+        QAction * action = m_themeMenu->addAction(themeName(code));
+        action->setObjectName(QStringLiteral("actionTheme_%1").arg(code));
+        action->setCheckable(true);
+        action->setChecked(code == wearing || (code == kSystemTheme && !isAvailableTheme(wearing)));
+        themes->addAction(action);
+        m_themeActions.emplace_back(code, action);
+        connect(action, &QAction::triggered, this, [this, code]() {
+            applyTheme(code);
+            //The diagrams that already exist take the new colours too: the
+            //style sheet does not reach inside a QCustomPlot. The
+            //application's palette and not this window's, which Qt has not
+            //updated yet while this runs.
+            for (QCustomPlot * plot : findChildren<QCustomPlot *>()) {
+                applyPlotPalette(*plot, QApplication::palette());
+            }
+            m_settings.interface.theme = code.toStdString();
+            try {
+                storeTheme(code, m_settings.source);
+            } catch (const qftbx::Exception & failure) {
+                errorMessage(translated(failure), tr("Appearance"));
+            }
+        });
+    }
 
     //The interface language, under View: the system's, English or Spanish.
     //Choosing one installs the translators and retranslates this window on
@@ -255,6 +290,12 @@ void MainWindow::retranslate()
 {
     setWindowTitle(tr("QFT: Quantitative feedback theory"));
     m_languageMenu->setTitle(tr("&Language"));
+    if (m_themeMenu != nullptr) {
+        m_themeMenu->setTitle(tr("&Appearance"));
+        for (auto & [code, action] : m_themeActions) {
+            action->setText(themeName(code));
+        }
+    }
     for (auto & [code, action] : m_languageActions) {
         action->setText(languageName(code));
     }

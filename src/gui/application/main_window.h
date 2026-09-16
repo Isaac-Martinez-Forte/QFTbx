@@ -148,6 +148,8 @@ private:
 
     std::unique_ptr<Ui::MainWindow> ui;
     QMenu * m_languageMenu = nullptr;
+    QMenu * m_themeMenu = nullptr;
+    std::vector<std::pair<QString, QAction *>> m_themeActions;
     QMenu * m_helpMenu = nullptr;
     QAction * m_aboutAction = nullptr;
     QAction * m_aboutQtAction = nullptr;

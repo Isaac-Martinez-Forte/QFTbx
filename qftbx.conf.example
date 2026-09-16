@@ -47,6 +47,12 @@
 # Values: a list of "phase:size", or empty.
 # canvas =
 
+# The look of the interface: "system" takes the machine's colours, "light"
+# and "dark" the toolbox's own. The shapes are the same in the three - flat,
+# square, one-pixel borders - and the accent is the blue of the icon.
+# Values: "system", "light" or "dark".
+# theme = system
+
 # And how big the window was when it closed, so it comes up the same size.
 # Written by the window itself, like the canvas above.
 # Values: "width height", "maximized", or empty.

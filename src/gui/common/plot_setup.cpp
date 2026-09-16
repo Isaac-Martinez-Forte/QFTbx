@@ -43,6 +43,28 @@ QColor frequencyColour(int index, int count)
     return QColor(mix(0), mix(1), mix(2));
 }
 
+void applyPlotPalette(QCustomPlot & plot, const QPalette & palette)
+{
+    const QColor ground = palette.color(QPalette::Base);
+    const QColor ink = palette.color(QPalette::Text);
+    const QColor grid = palette.color(QPalette::Mid);
+
+    plot.setBackground(QBrush(ground));
+    plot.axisRect()->setBackground(QBrush(ground));
+
+    for (QCPAxis * axis : {plot.xAxis, plot.yAxis, plot.xAxis2, plot.yAxis2}) {
+        axis->setBasePen(QPen(ink));
+        axis->setTickPen(QPen(ink));
+        axis->setSubTickPen(QPen(ink));
+        axis->setTickLabelColor(ink);
+        axis->setLabelColor(ink);
+        axis->grid()->setPen(QPen(grid, 1, Qt::DotLine));
+        axis->grid()->setSubGridPen(QPen(grid, 1, Qt::DotLine));
+    }
+
+    plot.replot();
+}
+
 void setUpPlot(QCustomPlot & plot, const QString & xLabel, const QString & yLabel)
 {
     plot.xAxis->setLabel(xLabel);
@@ -76,6 +98,10 @@ void setUpPlot(QCustomPlot & plot, const QString & xLabel, const QString & yLabe
             plot.axisRect()->setRangeDragAxes(plot.xAxis, plot.yAxis);
         }
     });
+
+    //The colours of the interface, so the diagram belongs to the window
+    //around it.
+    applyPlotPalette(plot, plot.palette());
 
     //A double click frames the data again.
     QObject::connect(&plot, &QCustomPlot::mouseDoubleClick, &plot, [&plot](QMouseEvent *) {

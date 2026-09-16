@@ -307,6 +307,10 @@ struct Settings {
         /// And how big the window was: "1280 860", or "maximized". Written
         /// by the window on the way out, like the canvas.
         std::string window;
+
+        /// The look: "system", "light" or "dark". Chosen from the View
+        /// menu, which writes it here.
+        std::string theme = "system";
     } interface;
 
     /// The path this was read from, empty when nothing was read and the

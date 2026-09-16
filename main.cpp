@@ -3,6 +3,7 @@
 #include "src/gui/application/application.h"
 #include "src/gui/application/language.h"
 #include "src/gui/application/main_window.h"
+#include "src/gui/application/theme.h"
 #include <clocale>
 #include <memory>
 #include <QIcon>
@@ -50,6 +51,12 @@ int main(int argc, char *argv[])
     if (!settings.source.empty()) {
         std::cout << "settings: " << settings.source << std::endl;
     }
+
+    //The look, from the settings, BEFORE any window is built: flat, square
+    //and quiet, with the blue of the icon as its accent. Without this the
+    //application took whatever style each machine had - on Linux, the grey
+    //relief of a decade ago.
+    qftbx::applyTheme(QString::fromStdString(settings.interface.theme));
 
     //The interface language, from the settings: the system's unless the
     //file says otherwise (the View menu writes the choice there).

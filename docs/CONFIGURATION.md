@@ -43,6 +43,7 @@ so no value here can change what a test means.
 |---|---|---|---|
 | `language` | `system` | `system` or a language code (`en`, `es`, ...) | The language the interface starts in. Choosing a language in the View menu writes it here, into the settings file in use (the user's own, `$HOME/.config/qftbx/qftbx.conf`, when the application read none). The codes are those of the translations compiled in; see `src/gui/translations/README.md` |
 | `canvas` | empty | a list of `phase:size` | How the canvas was left when the application last closed: the phases in the order the user put them, each with the size he gave it. The window writes it itself; deleting the line loses nothing, and the canvas comes up in the order of the design |
+| `theme` | `system` | `system`, `light`, `dark` | The look of the interface. The three share their shapes - flat, square, one-pixel borders, the blue of the icon as the accent - and differ in the palette: `system` takes the machine's. Choosing one in the View menu writes it here |
 | `window` | empty | `width height`, `maximized` | How big the window was when it last closed. Written by the window itself; deleting the line loses nothing |
 
 **`[limits]`**: ceilings that exist to stop a typo, not to express a limit of

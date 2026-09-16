@@ -46,10 +46,6 @@
 <context>
     <name>BoundaryGridForm</name>
     <message>
-        <source>Dialog</source>
-        <translation>Diálogo</translation>
-    </message>
-    <message>
         <source>Grid data</source>
         <translation>Datos de la rejilla</translation>
     </message>
@@ -122,10 +118,6 @@
 </context>
 <context>
     <name>ControllerForm</name>
-    <message>
-        <source>Dialog</source>
-        <translation>Diálogo</translation>
-    </message>
     <message>
         <source>Controller
 freedom</source>
@@ -583,13 +575,13 @@ del controlador</translation>
         <source>unknown loop-shaping algorithm &apos;%1&apos;</source>
         <translation>algoritmo de ajuste del lazo desconocido «%1»</translation>
     </message>
+    <message>
+        <source>interface.theme must be system, light or dark: &apos;%1&apos;</source>
+        <translation>interface.theme debe ser system, light o dark: «%1»</translation>
+    </message>
 </context>
 <context>
     <name>FrequenciesForm</name>
-    <message>
-        <source>Dialog</source>
-        <translation>Diálogo</translation>
-    </message>
     <message>
         <source>Enter vector manually</source>
         <translation>Introducir el vector manualmente</translation>
@@ -663,10 +655,6 @@ del controlador</translation>
 </context>
 <context>
     <name>LoopShapingForm</name>
-    <message>
-        <source>Dialog</source>
-        <translation>Diálogo</translation>
-    </message>
     <message>
         <source>Choose the algorithm:</source>
         <translation>Seleccione el algoritmo:</translation>
@@ -883,10 +871,6 @@ del controlador</translation>
 <context>
     <name>PlantForm</name>
     <message>
-        <source>PlantForm</source>
-        <translation>Planta</translation>
-    </message>
-    <message>
         <source>Tra&amp;nsfer function</source>
         <translation>Fu&amp;nción de transferencia</translation>
     </message>
@@ -1012,10 +996,6 @@ del controlador</translation>
 </context>
 <context>
     <name>SpecificationsForm</name>
-    <message>
-        <source>Dialog</source>
-        <translation>Diálogo</translation>
-    </message>
     <message>
         <source>Specification types:</source>
         <translation>Tipos de especificación:</translation>
@@ -1178,10 +1158,6 @@ contorno</translation>
 </context>
 <context>
     <name>TemplatesForm</name>
-    <message>
-        <source>Dialog</source>
-        <translation>Diálogo</translation>
-    </message>
     <message>
         <source>LinSpace</source>
         <translation>LinSpace</translation>
@@ -1853,6 +1829,14 @@ contorno</translation>
     <message>
         <source>Bode diagram</source>
         <translation>Diagrama de Bode</translation>
+    </message>
+    <message>
+        <source>Appearance</source>
+        <translation>Aspecto</translation>
+    </message>
+    <message>
+        <source>&amp;Appearance</source>
+        <translation>&amp;Aspecto</translation>
     </message>
 </context>
 <context>
@@ -2547,6 +2531,21 @@ contorno</translation>
     <message>
         <source>The plant must be entered before the templates.</source>
         <translation>Hay que introducir la planta antes que los templates.</translation>
+    </message>
+</context>
+<context>
+    <name>qftbx::Theme</name>
+    <message>
+        <source>Light</source>
+        <translation>Claro</translation>
+    </message>
+    <message>
+        <source>Dark</source>
+        <translation>Oscuro</translation>
+    </message>
+    <message>
+        <source>System theme</source>
+        <translation>Tema del sistema</translation>
     </message>
 </context>
 <context>

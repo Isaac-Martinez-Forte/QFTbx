@@ -398,9 +398,9 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
     EXPECT_EQ(fromExample.defaults.boundariesFromCloud, defaults.defaults.boundariesFromCloud);
 
     //Every setting the build knows has to be IN the example, or the example
-    //is not documentation. Forty-one today; the count is asserted so
+    //is not documentation. Forty-two today; the count is asserted so
     //adding one without documenting it fails here.
-    EXPECT_EQ(settingsFound, 41)
+    EXPECT_EQ(settingsFound, 42)
         << "a setting was added to the code and not to qftbx.conf.example";
 
     EXPECT_TRUE(fromExample.unknownKeys.empty())

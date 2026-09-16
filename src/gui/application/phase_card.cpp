@@ -70,8 +70,10 @@ PhaseCard::PhaseCard(const QString & title, const QString & name, QWidget * form
     bar->setObjectName(name + "Bar");
     bar->setCursor(Qt::OpenHandCursor);
     bar->installEventFilter(this);
+    //What the style sheet dresses: every card bar, without naming each one.
+    bar->setProperty("cardBar", true);
     bar->setAutoFillBackground(true);
-    bar->setBackgroundRole(QPalette::Mid);
+    bar->setBackgroundRole(QPalette::AlternateBase);
     auto * barLayout = new QHBoxLayout(bar);
     barLayout->setContentsMargins(8, 4, 4, 4);
 
@@ -104,6 +106,15 @@ PhaseCard::PhaseCard(const QString & title, const QString & name, QWidget * form
     m_wider->setText(QString::fromUtf8("+"));
     m_wider->setToolTip(tr("Wider"));
     barLayout->addWidget(m_wider);
+
+    //The bar is the handle and shows the hand for it; its buttons are not,
+    //and a hand over something you only press says the wrong thing. A
+    //cursor is inherited by every child unless the child says otherwise.
+    for (QWidget * pressed : {static_cast<QWidget *>(m_fold),
+                              static_cast<QWidget *>(m_narrower),
+                              static_cast<QWidget *>(m_wider)}) {
+        pressed->setCursor(Qt::ArrowCursor);
+    }
 
     connect(m_narrower, &QToolButton::clicked, this, [this]() {
         m_spanChosen = true;

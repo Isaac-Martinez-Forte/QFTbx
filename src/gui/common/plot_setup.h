@@ -2,6 +2,7 @@
 #define QFTBX_GUI_PLOT_SETUP_H
 
 #include <QColor>
+#include <QPalette>
 #include <QString>
 
 class QCustomPlot;
@@ -23,6 +24,22 @@ namespace qftbx {
  *   too far has no way back.
  */
 void setUpPlot(QCustomPlot & plot, const QString & xLabel, const QString & yLabel);
+
+/**
+ * @brief Colours a plot from the palette of the interface: the ground, the
+ * four axes, their labels and the grid.
+ *
+ * So that a diagram belongs to the theme around it instead of being a white
+ * rectangle in the middle of a dark window. What it does NOT touch is the
+ * curves: those carry the frequency they belong to (frequencyColour) and
+ * mean the same in either theme.
+ *
+ * Called by setUpPlot, and again by the window when the theme changes, for
+ * the plots that already exist. The figures a user EXPORTS are not affected:
+ * qftbx::savePlot draws them on white with black axes whatever the screen
+ * wears, because that is what a paper wants.
+ */
+void applyPlotPalette(QCustomPlot & plot, const QPalette & palette);
 
 /**
  * @brief The colour of a curve that is the i-th of n over an ORDERED
