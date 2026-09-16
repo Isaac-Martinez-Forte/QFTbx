@@ -38,6 +38,15 @@ public:
     /// passes to the caller.
     std::unique_ptr<LtiSystem> takeControllerStructure();
 
+    /**
+     * @brief Shows the structure the project holds: the family, the
+     * coefficients and the search box of the gain.
+     *
+     * As in the plant dialog, the structure's own parameters answer for the
+     * search box while the fields still describe them.
+     */
+    void setFromProject(LtiSystem * structure);
+
 private slots:
     void on_polynomialRadio_clicked();
     void on_zpkRadio_clicked();
@@ -55,6 +64,13 @@ private:
     std::optional<CoefficientTable> readTables(CoefficientTable & expressionTable,
                                                UncertainTable & uncertainTable);
 
+    /// The coefficient fields as one text, and the two ends of the gain box
+    /// as another: what tells a form still showing the project's structure
+    /// from one the user has edited. Separate, because editing a
+    /// coefficient says nothing about the gain.
+    QString currentCoefficients() const;
+    QString currentGain() const;
+
     std::unique_ptr<Ui::ControllerDialog> ui;
 
     UncertaintyDialog * uncertaintyDialog = nullptr;
@@ -62,6 +78,17 @@ private:
     std::unique_ptr<LtiSystem> controllerSystem;
 
     bool uncertaintyEntered = false;
+
+    /// The two of them as setFromProject left them, empty when the form was
+    /// not filled from a project.
+    QString m_describedCoefficients;
+    QString m_describedGain;
+
+    /// The gain of the structure the form was filled from. The two fields
+    /// are the ends of its search box and nothing else - not its name, not
+    /// where inside the box it sits - so it only survives a trip through
+    /// the form by being kept.
+    std::optional<Parameter> m_projectGain;
 
     SystemDescriptionReader m_reader;
 };

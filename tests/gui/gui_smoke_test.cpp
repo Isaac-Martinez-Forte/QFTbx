@@ -1189,6 +1189,84 @@ TEST_F(GuiSmoke, OpeningAProjectRebuildsTheStepsItCarried)
 }
 
 
+TEST_F(GuiSmoke, ThePlantFormShowsThePlantOfTheProject)
+{
+    //Opening a project used to leave the plant form empty: the project
+    //carries a system, not the text it was typed as, so the form is written
+    //back from it. Accepting without editing must give back the same plant,
+    //uncertainty included - the intervals come with the parameters and not
+    //from the fields.
+    ProjectController project;
+    project.load(std::string(QFTBX_TEST_DATA_DIR "/planta1.qft"));
+    ASSERT_NE(project.plant(), nullptr);
+
+    PlantDialog dialog;
+    dialog.setFromProject(project.plant());
+
+    EXPECT_EQ(child<QLineEdit>(&dialog, "nameEdit")->text(), QString("aa"));
+    EXPECT_TRUE(child<QRadioButton>(&dialog, "zpkRadio")->isChecked());
+    EXPECT_EQ(child<QLineEdit>(&dialog, "zpkDenominator")->text(), QString("a b"))
+        << "an uncertain coefficient shows its name, which is what the field holds";
+
+    press(&dialog, "okButton");
+    ASSERT_TRUE(dialog.wasAccepted()) << "the form rejected the plant it was given";
+
+    const std::unique_ptr<LtiSystem> described = dialog.takePlant();
+    ASSERT_NE(described, nullptr);
+    EXPECT_TRUE(described->sameAs(*project.plant()))
+        << "the form gave back a different plant from the one it was shown";
+}
+
+TEST_F(GuiSmoke, EditingThePlantFormLeavesTheProjectsParametersBehind)
+{
+    //The other half: the parameters of the loaded plant describe the text
+    //the form was filled with and nothing else, so an edited field is read
+    //as what it says.
+    ProjectController project;
+    project.load(std::string(QFTBX_TEST_DATA_DIR "/planta1.qft"));
+    ASSERT_NE(project.plant(), nullptr);
+
+    PlantDialog dialog;
+    dialog.setFromProject(project.plant());
+    type(&dialog, "zpkDenominator", "2 7");
+
+    press(&dialog, "okButton");
+    ASSERT_TRUE(dialog.wasAccepted());
+
+    const std::unique_ptr<LtiSystem> described = dialog.takePlant();
+    ASSERT_NE(described, nullptr);
+    EXPECT_FALSE(described->sameAs(*project.plant()));
+    ASSERT_EQ(described->denominator().size(), 2u);
+    EXPECT_FALSE(described->denominator().at(0).isUncertain())
+        << "the edited coefficient is the number typed, not the old interval";
+    EXPECT_DOUBLE_EQ(described->denominator().at(0).nominal(), 2.0);
+
+    //And only that: the gain field was not touched, so the gain is still
+    //the plant's own, name included - a form has no field for that name.
+    EXPECT_EQ(described->gain().name(), project.plant()->gain().name());
+    EXPECT_DOUBLE_EQ(described->gain().nominal(), project.plant()->gain().nominal());
+    EXPECT_DOUBLE_EQ(described->gain().range().min, project.plant()->gain().range().min);
+    EXPECT_DOUBLE_EQ(described->gain().range().max, project.plant()->gain().range().max);
+}
+
+TEST_F(GuiSmoke, TheControllerFormShowsTheStructureOfTheProject)
+{
+    ProjectController project;
+    project.load(std::string(QFTBX_TEST_DATA_DIR "/planta1.qft"));
+    ASSERT_NE(project.controllerStructure(), nullptr);
+
+    ControllerDialog dialog;
+    dialog.setFromProject(project.controllerStructure());
+
+    press(&dialog, "okButton");
+    ASSERT_TRUE(dialog.wasAccepted()) << "the form rejected the structure it was given";
+
+    const std::unique_ptr<LtiSystem> described = dialog.takeControllerStructure();
+    ASSERT_NE(described, nullptr);
+    EXPECT_TRUE(described->sameAs(*project.controllerStructure()))
+        << "the form gave back a different structure from the one it was shown";
+}
+
 TEST_F(GuiSmoke, TheLoopFormShowsWhatProducedTheDesign)
 {
     //A design is a number that depends on the algorithm, the tolerance and

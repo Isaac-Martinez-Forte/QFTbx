@@ -467,6 +467,9 @@ void MainWindow::destroySession(){
 void MainWindow::on_plantButton_clicked()
 {
     ensurePlantDialog();
+    //Opened on what the project holds, so a plant already entered shows
+    //itself instead of an empty form.
+    plantDialog->setFromProject(controller->plant());
 
     runDialog(plantDialog);
 
@@ -651,6 +654,7 @@ void MainWindow::on_controllerButton_clicked()
 {
 
     ensureControllerDialog();
+    controllerDialog->setFromProject(controller->controllerStructure());
 
     runDialog(controllerDialog);
 
@@ -780,6 +784,7 @@ void MainWindow::on_actionOpen_triggered()
         //the bar come from the one call at the end.
         if (loaded.has(qftbx::Step::Plant)) {
             ensurePlantDialog();
+            plantDialog->setFromProject(controller->plant());
         }
         if (loaded.has(qftbx::Step::Specifications)) {
             ensureSpecificationsDialog();
@@ -797,6 +802,7 @@ void MainWindow::on_actionOpen_triggered()
         }
         if (loaded.has(qftbx::Step::Controller)) {
             ensureControllerDialog();
+            controllerDialog->setFromProject(controller->controllerStructure());
         }
         if (loaded.has(qftbx::Step::LoopShaping)) {
             ensureLoopShapingWidgets();

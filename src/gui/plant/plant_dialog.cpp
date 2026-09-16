@@ -3,6 +3,7 @@
 
 #include "src/core/common/exception.h"
 #include "src/gui/application/error_message.h"
+#include "src/gui/common/system_description_writer.h"
 
 namespace qftbx {
 
@@ -161,6 +162,102 @@ std::optional<CoefficientTable> PlantDialog::readTables(CoefficientTable & expre
     return tables;
 }
 
+QString PlantDialog::currentCoefficients() const
+{
+    const auto joined = [](QLineEdit * numerator, QLineEdit * denominator) {
+        return numerator->text() + QLatin1Char('\n') + denominator->text();
+    };
+
+    switch (selectedType()) {
+    case LtiSystem::SystemType::PolynomialForm:
+        return joined(ui->polyNumerator, ui->polyDenominator);
+    case LtiSystem::SystemType::ZeroPoleGain:
+        return joined(ui->zpkNumerator, ui->zpkDenominator);
+    case LtiSystem::SystemType::TimeConstantGain:
+        return joined(ui->tcgNumerator, ui->tcgDenominator);
+    case LtiSystem::SystemType::FreeForm:
+        return joined(ui->freeNumerator, ui->freeDenominator);
+    }
+
+    return QString();
+}
+
+QString PlantDialog::currentScalars() const
+{
+    const auto joined = [](QLineEdit * gain, QLineEdit * delay) {
+        return gain->text() + QLatin1Char('\n') + delay->text();
+    };
+
+    switch (selectedType()) {
+    case LtiSystem::SystemType::PolynomialForm:
+        return joined(ui->polyGain, ui->polyDelay);
+    case LtiSystem::SystemType::ZeroPoleGain:
+        return joined(ui->zpkGain, ui->zpkDelay);
+    case LtiSystem::SystemType::TimeConstantGain:
+        return joined(ui->tcgGain, ui->tcgDelay);
+    case LtiSystem::SystemType::FreeForm:
+        return joined(ui->freeGain, ui->freeDelay);
+    }
+
+    return QString();
+}
+
+void PlantDialog::setFromProject(LtiSystem * plant)
+{
+    if (plant == nullptr) {
+        return;
+    }
+
+    const SystemDescription described = describeSystem(*plant);
+
+    ui->nameEdit->setText(described.name);
+
+    switch (described.type) {
+    case LtiSystem::SystemType::PolynomialForm:
+        ui->polynomialRadio->setChecked(true);
+        ui->polyNumerator->setText(described.numerator);
+        ui->polyDenominator->setText(described.denominator);
+        ui->polyGain->setText(described.gain);
+        ui->polyDelay->setText(described.delay);
+        break;
+    case LtiSystem::SystemType::ZeroPoleGain:
+        ui->zpkRadio->setChecked(true);
+        ui->zpkNumerator->setText(described.numerator);
+        ui->zpkDenominator->setText(described.denominator);
+        ui->zpkGain->setText(described.gain);
+        ui->zpkDelay->setText(described.delay);
+        break;
+    case LtiSystem::SystemType::TimeConstantGain:
+        ui->tcgRadio->setChecked(true);
+        ui->tcgNumerator->setText(described.numerator);
+        ui->tcgDenominator->setText(described.denominator);
+        ui->tcgGain->setText(described.gain);
+        ui->tcgDelay->setText(described.delay);
+        break;
+    case LtiSystem::SystemType::FreeForm:
+        //Checking a radio fires toggled(), which is what moves the stack for
+        //the other three; the free form is on clicked(), so the page is set
+        //here.
+        ui->freeFormRadio->setChecked(true);
+        ui->formStack->setCurrentIndex(1);
+        ui->freeNumerator->setText(described.numerator);
+        ui->freeDenominator->setText(described.denominator);
+        ui->freeGain->setText(described.gain);
+        ui->freeDelay->setText(described.delay);
+        break;
+    }
+
+    //The intervals travel with the plant, so the uncertainty does not have
+    //to be typed again over a project that was just opened.
+    uncertaintyDialog->setParameters(plant->numerator(), plant->denominator(),
+                                     plant->gain().rawRange(), plant->delay().rawRange());
+
+    m_projectGain = plant->gain();
+    m_projectDelay = plant->delay();
+    m_describedCoefficients = currentCoefficients();
+    m_describedScalars = currentScalars();
+}
+
 bool PlantDialog::nameIsPresent()
 {
     //The name is required on BOTH paths, or a nameless plant can be saved
@@ -206,14 +303,27 @@ void PlantDialog::on_okButton_clicked()
         return Parameter(name, range, *value, name);
     };
 
+    //A form filled from the project answers from the plant's own parameters
+    //while its fields still describe them - the first edit and they do not.
+    //Field by field: editing a coefficient says nothing about the gain.
+    const bool coefficientsFromProject = !m_describedCoefficients.isEmpty()
+            && currentCoefficients() == m_describedCoefficients;
+    const bool scalarsFromProject = !m_describedScalars.isEmpty()
+            && currentScalars() == m_describedScalars;
+
     std::optional<Parameter> gain;
     std::optional<Parameter> delay;
     try {
         //The gain is "k" and the delay "delay": the plant has no field for
         //their names. "kv" and "ret" were the names of the days when the
         //expression parser owned the letter k as a unit multiplier.
-        gain = scalar(2, 1.0, uncertaintyDialog->gain(), "k");
-        delay = scalar(3, 0.0, uncertaintyDialog->delay(), "delay");
+        if (scalarsFromProject) {
+            gain = m_projectGain;
+            delay = m_projectDelay;
+        } else {
+            gain = scalar(2, 1.0, uncertaintyDialog->gain(), "k");
+            delay = scalar(3, 0.0, uncertaintyDialog->delay(), "delay");
+        }
     } catch (const qftbx::Exception & e) {
         //A value that parses but is not a number a model can use ("0/0" and
         //"1/0" evaluate to a NaN and an infinity, and Parameter refuses
@@ -236,7 +346,7 @@ void PlantDialog::on_okButton_clicked()
 
     //The uncertainty only counts if its dialog was ACCEPTED; the plant
     //receives COPIES, the dialog keeps its own for further editing.
-    if (uncertaintyEntered && uncertaintyDialog->wasAccepted()) {
+    if ((uncertaintyEntered || coefficientsFromProject) && uncertaintyDialog->wasAccepted()) {
         numerator = uncertaintyDialog->numerator();
         denominator = uncertaintyDialog->denominator();
     } else {

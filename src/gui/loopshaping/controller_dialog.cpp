@@ -5,6 +5,8 @@
 
 #include "src/core/common/exception.h"
 #include "src/gui/application/error_message.h"
+#include "src/gui/common/number_text.h"
+#include "src/gui/common/system_description_writer.h"
 
 namespace qftbx {
 
@@ -65,6 +67,58 @@ LtiSystem::SystemType ControllerDialog::selectedType() const
     return LtiSystem::SystemType::FreeForm;
 }
 
+QString ControllerDialog::currentCoefficients() const
+{
+    return ui->numeratorEdit->text() + QLatin1Char('\n') + ui->denominatorEdit->text();
+}
+
+QString ControllerDialog::currentGain() const
+{
+    return ui->gainStart->text() + QLatin1Char('\n') + ui->gainEnd->text();
+}
+
+void ControllerDialog::setFromProject(LtiSystem * structure)
+{
+    if (structure == nullptr) {
+        return;
+    }
+
+    const SystemDescription described = describeSystem(*structure);
+
+    switch (described.type) {
+    case LtiSystem::SystemType::PolynomialForm:
+        ui->polynomialRadio->setChecked(true);
+        ui->figureStack->setCurrentIndex(1);
+        break;
+    case LtiSystem::SystemType::ZeroPoleGain:
+        ui->zpkRadio->setChecked(true);
+        ui->figureStack->setCurrentIndex(2);
+        break;
+    case LtiSystem::SystemType::TimeConstantGain:
+        ui->tcgRadio->setChecked(true);
+        ui->figureStack->setCurrentIndex(3);
+        break;
+    case LtiSystem::SystemType::FreeForm:
+        ui->freeFormRadio->setChecked(true);
+        break;
+    }
+
+    ui->numeratorEdit->setText(described.numerator);
+    ui->denominatorEdit->setText(described.denominator);
+
+    //The gain is a search box, not a value: its two ends are the fields.
+    const Range gain = structure->gain().rawRange();
+    ui->gainStart->setText(numberText(gain.min));
+    ui->gainEnd->setText(numberText(gain.max));
+
+    uncertaintyDialog->setParameters(structure->numerator(), structure->denominator(),
+                                     gain, structure->delay().rawRange());
+
+    m_projectGain = structure->gain();
+    m_describedCoefficients = currentCoefficients();
+    m_describedGain = currentGain();
+}
+
 std::optional<CoefficientTable> ControllerDialog::readTables(CoefficientTable & expressionTable,
                                                              UncertainTable & uncertainTable)
 {
@@ -118,21 +172,31 @@ void ControllerDialog::on_okButton_clicked()
         return;
     }
 
+    //A form filled from the project answers from the structure's own
+    //parameters while its fields still describe them, field by field.
+    const bool coefficientsFromProject = !m_describedCoefficients.isEmpty()
+            && currentCoefficients() == m_describedCoefficients;
+    const bool gainFromProject = !m_describedGain.isEmpty() && currentGain() == m_describedGain;
+
     //The gain: a constant when both ends agree, the search box "k" over
     //them otherwise (in either order).
     std::optional<Parameter> gain;
     try {
-        const std::optional<double> start = m_reader.evaluate(expressionTable.at(2).at(0));
-        const std::optional<double> end = m_reader.evaluate(expressionTable.at(2).at(1));
-        if (!start.has_value() || !end.has_value()) {
-            errorMessage(tr("There is an error in the controller data"), tr("Controller input"));
-            return;
-        }
-        if (*start == *end) {
-            gain = Parameter(*start);
+        if (gainFromProject) {
+            gain = m_projectGain;
         } else {
-            const Range range(std::min(*start, *end), std::max(*start, *end));
-            gain = Parameter("k", range, range.middle());
+            const std::optional<double> start = m_reader.evaluate(expressionTable.at(2).at(0));
+            const std::optional<double> end = m_reader.evaluate(expressionTable.at(2).at(1));
+            if (!start.has_value() || !end.has_value()) {
+                errorMessage(tr("There is an error in the controller data"), tr("Controller input"));
+                return;
+            }
+            if (*start == *end) {
+                gain = Parameter(*start);
+            } else {
+                const Range range(std::min(*start, *end), std::max(*start, *end));
+                gain = Parameter("k", range, range.middle());
+            }
         }
     } catch (const qftbx::Exception & e) {
         //A value that parses but is not a number a model can use: "0/0" and
@@ -151,7 +215,7 @@ void ControllerDialog::on_okButton_clicked()
 
     //The uncertainty only counts if its dialog was ACCEPTED; the controller
     //receives COPIES, the dialog keeps its own for further editing.
-    if (uncertaintyEntered && uncertaintyDialog->wasAccepted()) {
+    if ((uncertaintyEntered || coefficientsFromProject) && uncertaintyDialog->wasAccepted()) {
         numerator = uncertaintyDialog->numerator();
         denominator = uncertaintyDialog->denominator();
     } else {
