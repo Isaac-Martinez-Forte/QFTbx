@@ -4,12 +4,12 @@
 #include <memory>
 #include <optional>
 
-#include <QDialog>
+#include <QWidget>
 #include <QString>
 
 #include "src/core/system/lti_system.h"
 #include "src/gui/common/coefficient_tables.h"
-#include "src/gui/application/step_dialog.h"
+#include "src/gui/application/step_panel.h"
 #include "src/gui/common/system_description_reader.h"
 #include "src/gui/plant/uncertainty_dialog.h"
 
@@ -27,7 +27,7 @@ namespace qftbx {
  * through takePlant(), and the main window publishes it. Reading the fields
  * is SystemDescriptionReader's job, shared with the controller dialog.
  */
-class PlantDialog : public StepDialog
+class PlantDialog : public StepPanel
 {
     Q_OBJECT
 

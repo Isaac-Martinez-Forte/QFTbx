@@ -4,7 +4,7 @@
 #include <vector>
 #include <memory>
 
-#include <QDialog>
+#include <QWidget>
 
 #include "qcustomplot.h"
 #include "src/gui/common/frequency_legend.h"
@@ -23,7 +23,7 @@ namespace qftbx {
  * actually has to respect.
  *
  */
-class BoundaryUnionViewer : public QDialog
+class BoundaryUnionViewer : public QWidget
 {
     Q_OBJECT
 
@@ -34,6 +34,16 @@ public:
     /// Publishes what the plot draws: the union curves and the design
     /// frequencies they belong to (an observer on the latter).
     void setData (const qftbx::UnionTraces & unionTraces, std::vector<double> *omega);
+
+    /**
+     * @brief Forgets what it was drawing and empties the plot.
+     *
+     * A viewer lives in its phase's dock for as long as the window does,
+     * and what it holds are observers on the project: when the project
+     * drops a step, the pointers behind them go with it. This is what is
+     * called then, instead of destroying the viewer.
+     */
+    void clear();
 
     void showDiagram();
 

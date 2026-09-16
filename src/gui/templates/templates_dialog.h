@@ -2,13 +2,13 @@
 #define QFTBX_TEMPLATES_DIALOG_H
 
 #include "src/core/project/settings.h"
-#include "src/gui/application/step_dialog.h"
+#include "src/gui/application/step_panel.h"
 #include <functional>
 #include <memory>
 
 #include <vector>
 
-#include <QDialog>
+#include <QWidget>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
@@ -45,7 +45,7 @@ namespace qftbx {
  *
  * @author Isaac Martínez Forte
  */
-class TemplatesDialog : public StepDialog
+class TemplatesDialog : public StepPanel
 {
     Q_OBJECT
     
@@ -72,6 +72,16 @@ public:
     * design frequency.
     */
     void launch(LtiSystem * plant, qint32 frequencyCount);
+
+    /// The plant the grids on screen were built for, or nullptr when there
+    /// is none. The window asks so it can tell a panel still showing the
+    /// project's plant from one whose plant has been replaced under it.
+    LtiSystem * shownPlant() const { return plant; }
+
+    /// Forgets the plant: the grids no longer describe anything, and the
+    /// panel refuses to publish until it is given one again. The project
+    /// owns the plant and can drop it while this stays open.
+    void forgetPlant();
     
     
     /// The grids BY VALUE: nobody has to free them, and the dialog keeps its
@@ -147,15 +157,10 @@ private slots:
 
     void on_denominatorRadio_clicked();
 
-    void on_cancelButton_clicked();
 
     void on_okButton_clicked();
 
     void on_proposeButton_clicked();
-
-signals:
-    void close_ok ();
-
 
 private:
     void clearTables();

@@ -4,7 +4,7 @@
 #include <vector>
 #include <memory>
 
-#include <QDialog>
+#include <QWidget>
 #include <QVector>
 #include <QFileDialog>
 
@@ -28,7 +28,7 @@ namespace qftbx {
  *
  * @author Isaac Martínez Forte
  */
-class BoundaryViewer : public QDialog
+class BoundaryViewer : public QWidget
 {
     Q_OBJECT
     
@@ -48,6 +48,16 @@ public:
     void setData (const BoundaryData *data, std::vector<double> *omega);
     
     
+    /**
+     * @brief Forgets what it was drawing and empties the plot.
+     *
+     * A viewer lives in its phase's dock for as long as the window does,
+     * and what it holds are observers on the project: when the project
+     * drops a step, the pointers behind them go with it. This is what is
+     * called then, instead of destroying the viewer.
+     */
+    void clear();
+
    /// Builds the plot from the data published by setData().
     void showDiagram();
 

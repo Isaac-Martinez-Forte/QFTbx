@@ -19,7 +19,7 @@ using namespace std;
 namespace qftbx {
 
 TemplateViewer::TemplateViewer(QWidget *parent) :
-    QDialog(parent),
+    QWidget(parent),
     ui(std::make_unique<Ui::TemplateViewer>())
 {
     ui->setupUi(this);
@@ -72,6 +72,16 @@ void TemplateViewer::clearDiagram(){
     plotted = false;
 }
 
+void TemplateViewer::clear(){
+
+    clearDiagram();
+    m_templates.clear();
+    m_contour.clear();
+    m_omega.clear();
+    m_epsilon.clear();
+    ui->plot->replot();
+}
+
 void TemplateViewer::setData(const qftbx::CloudSet & templates,
                               const qftbx::CloudSet & contour,
                               std::vector<double> * omega,
@@ -82,9 +92,12 @@ void TemplateViewer::setData(const qftbx::CloudSet & templates,
     setTemplates(templates);
     setContour(contour);
 
-    //COPIES: the viewer outlives the project's vectors across a load.
-    m_omega = *omega;
-    m_epsilon = *epsilon;
+    //COPIES: the viewer outlives the project's vectors across a load. A
+    //project may hold templates and no epsilon - a file that carries the
+    //clouds and not the tolerance they were walked with - and asking for
+    //the diagram must not be a way of reading a null.
+    m_omega = omega != nullptr ? *omega : std::vector<double>();
+    m_epsilon = epsilon != nullptr ? *epsilon : std::vector<double>();
 
     for (qint32 i = 0; i < static_cast<std::int32_t>(m_omega.size()); i++){
         colorByFrequency.insert(m_omega.at(i), qftbx::frequencyColour(i, static_cast<int>(m_omega.size())));
@@ -145,8 +158,8 @@ void TemplateViewer::refreshContour(const qftbx::CloudSet & contour,
                                     std::vector<double> * epsilon){
     setContour(contour);
 
-    m_omega = *omega;
-    m_epsilon = *epsilon;
+    m_omega = omega != nullptr ? *omega : std::vector<double>();
+    m_epsilon = epsilon != nullptr ? *epsilon : std::vector<double>();
 
     plotDiagram(plot);
 }
@@ -286,19 +299,26 @@ void TemplateViewer::plotLine(qint32 pos, QVector <QCPGraph *> & graphs,
 void TemplateViewer::addFrequencyRow(QColor color, qint32 pos){
     const FrequencyLegend::Row row = legend->addRow(numberText(m_omega.at(pos)), color);
 
-    //The epsilon of this frequency: a slider for coarse moves and a field
-    //for the exact value, both in the legend's row.
+    //The epsilon of this frequency, when the project has one: a project can
+    //hold the clouds and not the tolerance they were walked with, and a
+    //row that asks a vector for an element it does not have takes the
+    //toolbox down with a message about vector ranges.
+    const bool known = pos < static_cast<qint32>(m_epsilon.size());
+    const double epsilon = known ? m_epsilon.at(pos) : 0.0;
+
+    //A slider for coarse moves and a field for the exact value, both in the
+    //legend's row.
     QSlider * slider = new QSlider(row.widget);
     slider->setObjectName(QString::fromUtf8("slider"));
     slider->setOrientation(Qt::Horizontal);
-    slider->setMaximum(m_epsilon.at(pos) * 10000);
-    slider->setValue(m_epsilon.at(pos) * 1000);
+    slider->setMaximum(epsilon * 10000);
+    slider->setValue(epsilon * 1000);
     epsilonSliders.push_back(slider);
     row.layout->addWidget(slider);
 
     QLineEdit * field = new QLineEdit(row.widget);
     field->setObjectName(QString::fromUtf8("field"));
-    field->setText(numberText(m_epsilon.at(pos)));
+    field->setText(known ? numberText(epsilon) : QString());
     epsilonEdits.push_back(field);
     row.layout->addWidget(field);
 

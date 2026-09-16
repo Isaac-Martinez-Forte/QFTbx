@@ -40,6 +40,13 @@
 # Values: "system" or a language code.
 # language = system
 
+# How the canvas was left the last time the application closed: the phases in
+# the order they were put in, each with the size it was given. The window
+# writes this one itself when it closes; nothing is lost by deleting the line,
+# and the canvas comes up in the order of the design.
+# Values: a list of "phase:size", or empty.
+# canvas =
+
 
 # ---------------------------------------------------------------------------
 # [limits] - ceilings that exist to stop a typo, not to express a limit of the

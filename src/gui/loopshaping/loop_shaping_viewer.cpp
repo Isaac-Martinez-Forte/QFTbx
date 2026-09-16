@@ -14,7 +14,7 @@
 namespace qftbx {
 
 LoopShapingViewer::LoopShapingViewer(QWidget *parent) :
-    QDialog(parent),
+    QWidget(parent),
     ui(std::make_unique<Ui::LoopShapingViewer>())
 {
     ui->setupUi(this);
@@ -60,6 +60,16 @@ void LoopShapingViewer::clearDiagram(){
     plotted = false;
 }
 
+
+void LoopShapingViewer::clear(){
+
+    clearDiagram();
+    unionTraces.clear();
+    omega = nullptr;
+    plant = nullptr;
+    loopShapingData = nullptr;
+    ui->plot->replot();
+}
 
 void LoopShapingViewer::setData(const qftbx::UnionTraces & unionTraces, std::vector<double> *omega, LoopShapingResult *loopShapingData,
                                LtiSystem* plant, bool linSpace){

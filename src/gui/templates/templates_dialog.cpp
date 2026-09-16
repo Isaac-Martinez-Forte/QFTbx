@@ -45,7 +45,7 @@ bool asPointCount(double value, double ceiling, std::size_t & count)
 }
 
 TemplatesDialog::TemplatesDialog(QWidget *parent) :
-    StepDialog(parent),
+    StepPanel(parent),
     ui(std::make_unique<Ui::TemplatesDialog>())
 {
     ui->setupUi(this);
@@ -56,9 +56,6 @@ TemplatesDialog::TemplatesDialog(QWidget *parent) :
     ui->globalPointCount->setText(
         qftbx::numberText(qftbx::Settings().defaults.templatePointCount));
 
-    //Wire the cancel button.
-    connect(ui->cancelButton, SIGNAL(clicked()), this, SLOT(close()));
-    connect (this, SIGNAL(close_ok()), this,SLOT(close()));
 
 #ifndef CUDA_AVAILABLE
     ui->cudaCheck->setVisible(false);
@@ -117,6 +114,12 @@ void TemplatesDialog::setEpsilonMetric(qftbx::EpsilonMetric metric) {
     ui->dbPerDegreeEdit->setText(qftbx::numberText(metric.dbPerDegree));
     ui->dbPerDegreeEdit->setEnabled(metric.metric == qftbx::HullMetric::Nichols);
     ui->dbPerDegreeLabel->setEnabled(metric.metric == qftbx::HullMetric::Nichols);
+}
+
+void TemplatesDialog::forgetPlant(){
+
+    plant = nullptr;
+    frequencyCount = 0;
 }
 
 void TemplatesDialog::launch(LtiSystem *plant, qint32 frequencyCount){
@@ -397,10 +400,6 @@ void TemplatesDialog::on_denominatorRadio_clicked()
     ui->variablesStack->setCurrentIndex(2);
 }
 
-void TemplatesDialog::on_cancelButton_clicked()
-{
-    emit (close_ok());
-}
 void TemplatesDialog::setDefaultPointCount(std::int32_t points)
 {
     ui->globalPointCount->setText(qftbx::numberText(points));
@@ -408,6 +407,14 @@ void TemplatesDialog::setDefaultPointCount(std::int32_t points)
 
 void TemplatesDialog::on_okButton_clicked()
 {
+    //The grids describe the parameters of a plant the project owns, and it
+    //can replace or drop that plant while this panel is open.
+    if (plant == nullptr) {
+        errorMessage(tr("The plant must be entered before the templates."),
+                     tr("Template computation"));
+        return;
+    }
+
     if (ui->nyquistRadio->isChecked())
         nicholsDiagram = false;
     else if (ui->nicholsRadio->isChecked())
@@ -489,7 +496,6 @@ void TemplatesDialog::on_okButton_clicked()
     }
 
     markAccepted();
-    emit (close_ok());
 }
 
 bool TemplatesDialog::readGrids(QString & reason)

@@ -3,10 +3,10 @@
 
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/project/settings.h"
-#include "src/gui/application/step_dialog.h"
+#include "src/gui/application/step_panel.h"
 #include <memory>
 
-#include <QDialog>
+#include <QWidget>
 
 #include "src/core/math/range.h"
 
@@ -28,7 +28,7 @@ namespace qftbx {
  *
  * @author Isaac Martínez Forte
  */
-class BoundaryGridDialog : public StepDialog
+class BoundaryGridDialog : public StepPanel
 {
     Q_OBJECT
     
@@ -97,7 +97,7 @@ public:
 
     
 private slots:
-    void on_buttonBox_accepted();
+    void on_okButton_clicked();
 
 private:
     std::unique_ptr<Ui::BoundaryGridDialog> ui;

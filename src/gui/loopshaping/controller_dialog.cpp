@@ -11,7 +11,7 @@
 namespace qftbx {
 
 ControllerDialog::ControllerDialog(QWidget *parent) :
-    StepDialog(parent),
+    StepPanel(parent),
     ui(std::make_unique<Ui::ControllerDialog>()),
     m_reader(tr("Controller input"))
 {
@@ -46,11 +46,6 @@ void ControllerDialog::on_zpkRadio_clicked()
 void ControllerDialog::on_tcgRadio_clicked()
 {
     ui->figureStack->setCurrentIndex(3);
-}
-
-void ControllerDialog::on_cancelButton_clicked()
-{
-    close();
 }
 
 LtiSystem::SystemType ControllerDialog::selectedType() const
@@ -237,7 +232,6 @@ void ControllerDialog::on_okButton_clicked()
                                                            ui->denominatorEdit->text().toStdString());
 
     markAccepted();
-    close();
 }
 
 std::unique_ptr<LtiSystem> ControllerDialog::takeControllerStructure()

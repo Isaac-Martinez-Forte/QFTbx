@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>TemplatesDialog</class>
- <widget class="QDialog" name="TemplatesDialog">
+ <widget class="QWidget" name="TemplatesDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -164,16 +164,9 @@
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout">
     <item>
-     <widget class="QPushButton" name="cancelButton">
-      <property name="text">
-       <string>Cancel</string>
-      </property>
-     </widget>
-    </item>
-    <item>
      <widget class="QPushButton" name="okButton">
       <property name="text">
-       <string>ok</string>
+       <string>Compute</string>
       </property>
      </widget>
     </item>

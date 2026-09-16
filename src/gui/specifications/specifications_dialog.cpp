@@ -69,7 +69,7 @@ bool magnitudeIsUsable(double magnitude)
 SpecificationsDialog::SpecificationsDialog(const std::vector<double> * frequencies,
                                            const qftbx::SpecificationRecords * loaded,
                                            QWidget *parent) :
-    StepDialog(parent),
+    StepPanel(parent),
     m_reader(tr("Specifications input"))
 {
     //The step order of the main window guarantees a frequency set here, but
@@ -797,7 +797,11 @@ void SpecificationsDialog::on_trackingRadio_clicked()
     ui->pageStack->setCurrentIndex(1);
     activeTab = 1;
     setData(tracking, trackingUpper);
-    this->resize(867, 363);
+    //The tracking tab is the wide one - two models side by side - and its
+    //buttons sit further right. A minimum and not a resize: the panel lives
+    //in a dock now, which decides how much room it has, and says what it
+    //needs to show this tab whole.
+    setMinimumSize(867, 363);
     ui->buttonsWidget->move(670, 320);
 }
 
@@ -811,7 +815,7 @@ void SpecificationsDialog::on_stabilityRadio_clicked()
     activeTab = 2;
     setData(stability);
     ui->specificationImage->setPixmap(stabilityPixmap);
-    this->resize(647, 363);
+    setMinimumSize(647, 363);
     ui->buttonsWidget->move(450, 320);
 }
 
@@ -825,7 +829,7 @@ void SpecificationsDialog::on_noiseRadio_clicked()
     activeTab = 3;
     setData(sensorNoise);
     ui->specificationImage->setPixmap(sensorNoisePixmap);
-    this->resize(647, 363);
+    setMinimumSize(647, 363);
     ui->buttonsWidget->move(450, 320);
 }
 
@@ -839,7 +843,7 @@ void SpecificationsDialog::on_outputDisturbanceRadio_clicked()
     activeTab = 4;
     setData(outputDisturbance);
     ui->specificationImage->setPixmap(outputDisturbancePixmap);
-    this->resize(647, 363);
+    setMinimumSize(647, 363);
     //The only one of the six that did not move the buttons back: coming from
     //the tracking tab, which widens the window and puts them at x = 670,
     //they landed outside the 647 this resize leaves.
@@ -856,7 +860,7 @@ void SpecificationsDialog::on_inputDisturbanceRadio_clicked()
     activeTab = 5;
     setData(inputDisturbance);
     ui->specificationImage->setPixmap(inputDisturbancePixmap);
-    this->resize(647, 363);
+    setMinimumSize(647, 363);
     ui->buttonsWidget->move(450, 320);
 }
 
@@ -870,7 +874,7 @@ void SpecificationsDialog::on_controlEffortRadio_clicked()
     activeTab = 6;
     setData(controlEffort);
     ui->specificationImage->setPixmap(controlEffortPixmap);
-    this->resize(647, 363);
+    setMinimumSize(647, 363);
     ui->buttonsWidget->move(450, 320);
 }
 
@@ -888,15 +892,19 @@ void SpecificationsDialog::on_systemRadio_clicked()
     ui->upperModeStack->setCurrentIndex(2);
 }
 
-void SpecificationsDialog::on_cancelButton_clicked()
-{
-    close();
-}
-
 void SpecificationsDialog::on_okButton_clicked()
 {
     //A rejected accept must not leave the previous answer behind.
     discardPublished();
+
+    //The frequencies belong to the project's Omega, and entering a new set
+    //destroys the old one under this panel, which stays open. Every band
+    //below is read from them.
+    if (frequencies == nullptr || frequencies->empty()) {
+        errorMessage(tr("The design frequencies must be entered before the specifications."),
+                     tr("Specifications input"));
+        return;
+    }
 
     bool ok = true;
 
@@ -931,12 +939,14 @@ void SpecificationsDialog::on_okButton_clicked()
 
 void SpecificationsDialog::setFrequencies(const std::vector<double> * frequencies)
 {
+    this->frequencies = frequencies;
+
     if (frequencies == nullptr || frequencies->empty()) {
-        throw qftbx::InvalidInput("The design frequencies must be entered "
-                                  "before the specifications.");
+        return;
     }
 
-    this->frequencies = frequencies;
+    ui->startFrequencyEdit->setText(qftbx::numberText(frequencies->front()));
+    ui->endFrequencyEdit->setText(qftbx::numberText(frequencies->back()));
 }
 
 std::optional<qftbx::SpecificationRecords> SpecificationsDialog::takeSpecifications(){

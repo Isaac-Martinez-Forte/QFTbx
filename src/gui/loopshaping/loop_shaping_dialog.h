@@ -4,10 +4,10 @@
 #include "src/core/loopshaping/loop_shaping_types.h"
 #include "src/core/loopshaping/loop_shaping_result.h"
 #include "src/core/project/settings.h"
-#include "src/gui/application/step_dialog.h"
+#include "src/gui/application/step_panel.h"
 #include <memory>
 
-#include <QDialog>
+#include <QWidget>
 
 #include "src/core/math/range.h"
 
@@ -29,7 +29,7 @@ namespace qftbx {
  * ProjectController::computeLoopShaping. The single field does not say so
  * yet.
  */
-class LoopShapingDialog : public StepDialog
+class LoopShapingDialog : public StepPanel
 {
     Q_OBJECT
 
@@ -90,7 +90,6 @@ private slots:
     /// same quantity for every algorithm.
     void updateEpsilonLabel();
 
-    void on_cancelButton_clicked();
 
     void on_okButton_clicked();
 

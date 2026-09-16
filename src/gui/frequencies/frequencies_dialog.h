@@ -2,10 +2,10 @@
 #define QFTBX_FREQUENCIES_DIALOG_H
 
 #include "src/core/project/settings.h"
-#include "src/gui/application/step_dialog.h"
+#include "src/gui/application/step_panel.h"
 #include <memory>
 
-#include <QDialog>
+#include <QWidget>
 #include <QString>
 #include <QFileDialog>
 #include <QDoubleValidator>
@@ -30,7 +30,7 @@ namespace qftbx {
  *
  * @author Isaac Martínez Forte
  */
-class FrequenciesDialog : public StepDialog
+class FrequenciesDialog : public StepPanel
 {
     Q_OBJECT
     
@@ -66,9 +66,6 @@ private slots:
     void on_fileButton_clicked();
 
     void on_okButton_clicked();
-
-signals:
-    void close_ok ();
 
 private:
     std::unique_ptr<Omega> m_omega;

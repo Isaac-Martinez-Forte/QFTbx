@@ -1,5 +1,6 @@
 #include "src/gui/loopshaping/loop_boundaries_viewer.h"
 #include "src/gui/application/main_window.h"
+#include "src/gui/common/flow_layout.h"
 #include "src/gui/application/about.h"
 #include "src/gui/application/error_message.h"
 #include "ui_main_window.h"
@@ -10,7 +11,10 @@
 #include <QMenu>
 
 #include <QActionGroup>
+#include <QCloseEvent>
 #include <QApplication>
+#include <QScrollArea>
+#include <QVBoxLayout>
 #include <QEvent>
 #include <QFileDialog>
 #include <QMessageBox>
@@ -20,6 +24,7 @@
 #include "src/core/pipeline/pipeline_step.h"
 
 
+#include <algorithm>
 #include <vector>
 
 
@@ -118,6 +123,37 @@ MainWindow::MainWindow(qftbx::Settings settings, QWidget *parent) :
     connect(m_aboutQtAction, &QAction::triggered, this, []() { QApplication::aboutQt(); });
     retranslate();
 
+    //The canvas the phases live on: a row of cards that wraps to the next
+    //row when the window is too narrow for one more, and scrolls
+    //downwards. The steps used to be modal dialogs, then docks that divided
+    //the window between them; a project with six phases came back as six
+    //slivers of 300 pixels because a dock area shares out what it has.
+    m_canvasContent = new QWidget;
+    m_canvasContent->setObjectName("canvasContent");
+    m_canvasLayout = new FlowLayout(m_canvasContent);
+
+    m_canvas = new QScrollArea(this);
+    m_canvas->setObjectName("canvas");
+    m_canvas->setWidget(m_canvasContent);
+    m_canvas->setWidgetResizable(true);
+    m_canvas->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    m_canvas->setFrameShape(QFrame::NoFrame);
+    m_canvas->viewport()->installEventFilter(this);
+
+    //Under the strip of steps, which keeps its own height.
+    ui->centralwidget->layout()->addWidget(m_canvas);
+
+    //How the canvas was left the last time: which phase where, and how big
+    //each one was. A line nobody types by hand, so anything in it that this
+    //build does not recognise is ignored rather than refused.
+    for (const QString & entry : QString::fromStdString(m_settings.interface.canvas)
+                                     .split(' ', Qt::SkipEmptyParts)) {
+        const QStringList parts = entry.split(':');
+        if (parts.size() == 2) {
+            m_rememberedCanvas.emplace_back(parts.at(0), parts.at(1).toInt());
+        }
+    }
+
     //7 real steps: with the 0-8 range the bar never reached 100%.
     ui->progressBar->setRange(0,7);
 
@@ -127,6 +163,64 @@ MainWindow::MainWindow(qftbx::Settings settings, QWidget *parent) :
 MainWindow::~MainWindow()
 {
     destroySession();
+}
+
+//The canvas decides how big a card is, from how wide it is itself: three
+//cards across a wide screen, one across a narrow one, and always filling
+//the width instead of leaving a ragged margin.
+bool MainWindow::eventFilter(QObject * watched, QEvent * event)
+{
+    if (m_canvas != nullptr && watched == m_canvas->viewport() && event->type() == QEvent::Resize) {
+        resizeCards();
+    }
+
+    return QMainWindow::eventFilter(watched, event);
+}
+
+void MainWindow::resizeCards()
+{
+    if (m_canvasContent == nullptr) {
+        return;
+    }
+
+    const QMargins margins = m_canvasLayout->contentsMargins();
+    const QSize unit = PhaseCard::unitFor(m_canvas->viewport()->width()
+                                          - margins.left() - margins.right());
+
+    for (PhaseCard * card : m_canvasContent->findChildren<PhaseCard *>()) {
+        card->setUnit(unit);
+    }
+}
+
+//On the way out: the canvas as the user left it, into the settings file in
+//use. Without one to write to - a build run with no settings at all, which
+//is what the tests do - there is nowhere to put it and nothing to do.
+void MainWindow::closeEvent(QCloseEvent * event)
+{
+    rememberCanvas();
+    QMainWindow::closeEvent(event);
+}
+
+void MainWindow::rememberCanvas()
+{
+    if (m_settings.source.empty() || m_canvasLayout == nullptr) {
+        return;
+    }
+
+    QStringList entries;
+    for (int i = 0; i < m_canvasLayout->count(); ++i) {
+        const QLayoutItem * item = m_canvasLayout->itemAt(i);
+        if (auto * card = qobject_cast<PhaseCard *>(item->widget())) {
+            entries << card->objectName() + ":" + QString::number(card->span());
+        }
+    }
+
+    try {
+        qftbx::writeSetting(m_settings.source, "interface.canvas", entries.join(' ').toStdString());
+    } catch (const qftbx::Exception & failure) {
+        //The layout is not worth a complaint on the way out.
+        (void) failure;
+    }
 }
 
 void MainWindow::changeEvent(QEvent * event)
@@ -193,26 +287,143 @@ void MainWindow::createSession(){
 //decides, with no progress flag to consult: a flag beside it is a second
 //answer to the same question and the two drift apart. See destroyLater() for
 //why they are not deleted outright.
+void MainWindow::destroyCard(PhaseCard *& card)
+{
+    if (card == nullptr) {
+        return;
+    }
+
+    card->hide();
+    m_canvasLayout->removeWidget(card);
+    card->setParent(nullptr);
+    card->deleteLater();
+    card = nullptr;
+}
+
 void MainWindow::destroyDialogs(){
-    destroyLater(plantDialog);
+    //The dock owns the form and the diagrams of its phase, so destroying it
+    //destroys them: what is left here is forgetting the pointers, which are
+    //about to dangle.
+    destroyCard(plantCard);
+    destroyCard(frequenciesCard);
+    destroyCard(specificationsCard);
+    destroyCard(templatesCard);
+    destroyCard(boundariesCard);
+    destroyCard(controllerCard);
+    destroyCard(loopShapingCard);
 
-    destroyLater(specificationsDialog);
+    plantDialog = nullptr;
+    bodeViewer = nullptr;
+    frequenciesDialog = nullptr;
+    specificationsDialog = nullptr;
+    templatesDialog = nullptr;
+    templateViewer = nullptr;
+    boundaryGridDialog = nullptr;
+    boundaryViewer = nullptr;
+    boundaryUnionViewer = nullptr;
+    controllerDialog = nullptr;
+    loopShapingDialog = nullptr;
+    loopShapingViewer = nullptr;
 
-    destroyLater(frequenciesDialog);
+}
 
-    destroyLater(templatesDialog);
-    destroyLater(templateViewer);
+//One phase, one card: what it was asked for and what came out of it, on
+//the canvas with the others.
+PhaseCard * MainWindow::addPhaseCard(const QString & title, const QString & name,
+                                     QWidget * form,
+                                     const std::vector<std::pair<QString, QWidget *>> & views)
+{
+    auto * card = new PhaseCard(title, name, form, views, m_canvasContent);
 
-    destroyLater(boundaryGridDialog);
-    destroyLater(boundaryViewer);
-    destroyLater(boundaryUnionViewer);
+    //Unfolding a form makes its card bigger, and the canvas moves the rest
+    //out of the way instead of squeezing anybody.
+    connect(card, &PhaseCard::sizeChanged, this, [this]() {
+        m_canvasLayout->invalidate();
+        m_canvasContent->updateGeometry();
+    });
 
-    destroyLater(controllerDialog);
+    //Dragged by its bar, a card changes places with the one the cursor is
+    //over, while the drag is still going on.
+    connect(card, &PhaseCard::draggedTo, this, [this, card](QPoint where) {
+        dragCardTo(card, where);
+    });
 
-    destroyLater(bodeViewer);
+    m_canvasLayout->addWidget(card);
+    applyRememberedPlace(card);
 
-    destroyLater(loopShapingDialog);
-    destroyLater(loopShapingViewer);
+    //Built after the canvas has a width of its own: it is told the square
+    //it counts in right away, and not at the next resize.
+    resizeCards();
+
+    return card;
+}
+
+//A card built now goes where the last session left it, at the size it had
+//there. The cards appear in the order of the design, so a card whose place
+//is further back waits for the ones in front of it to be built: the order
+//is applied against the names, not against how many there are yet.
+void MainWindow::applyRememberedPlace(PhaseCard * card)
+{
+    const auto remembered = std::find_if(m_rememberedCanvas.begin(), m_rememberedCanvas.end(),
+                                         [card](const auto & entry) {
+                                             return entry.first == card->objectName();
+                                         });
+
+    if (remembered == m_rememberedCanvas.end()) {
+        return;
+    }
+
+    card->setSpan(remembered->second);
+
+    //Its place among the cards that ARE there: how many of the ones before
+    //it in the remembered order have been built.
+    int place = 0;
+    for (auto entry = m_rememberedCanvas.begin(); entry != remembered; ++entry) {
+        if (m_canvasContent->findChild<PhaseCard *>(entry->first) != nullptr) {
+            ++place;
+        }
+    }
+
+    m_canvasLayout->move(m_canvasLayout->indexOf(card), place);
+}
+
+//Where the cursor is, in the canvas: the card under it changes places with
+//the one being dragged, and the layout opens the hole by itself.
+void MainWindow::dragCardTo(PhaseCard * card, QPoint where)
+{
+    const int from = m_canvasLayout->indexOf(card);
+    const QPoint inside = m_canvasContent->mapFromGlobal(where);
+
+    int to = m_canvasLayout->indexAt(inside);
+
+    if (from < 0 || to < 0) {
+        return;
+    }
+
+    //The index was read with the card still in its old place, so anything
+    //past it has to come back one.
+    if (to > from) {
+        --to;
+    }
+
+    if (to == from) {
+        return;
+    }
+
+    m_canvasLayout->move(from, to);
+    m_canvasContent->updateGeometry();
+}
+
+//Pressing a step is going to that phase to enter something: its card
+//unfolds its form and the canvas scrolls to it.
+void MainWindow::showPhase(PhaseCard * card)
+{
+    if (card == nullptr) {
+        return;
+    }
+
+    card->showForm(true);
+    m_canvas->ensureWidgetVisible(card);
 }
 
 //The POINTER says whether a step's widgets exist, which is the question
@@ -222,6 +433,10 @@ void MainWindow::ensurePlantDialog()
 {
     if (plantDialog == nullptr){
         plantDialog = new PlantDialog(this);
+        bodeViewer = new BodeViewer(this);
+        connect(plantDialog, &StepPanel::accepted, this, &MainWindow::applyPlant);
+        plantCard = addPhaseCard(tr("Plant"), "plantCard", plantDialog,
+                                 {{tr("Bode"), bodeViewer}});
     }
 }
 
@@ -231,6 +446,9 @@ void MainWindow::ensureSpecificationsDialog()
         specificationsDialog = new SpecificationsDialog(frequencyValues(),
                                                         controller->specifications(),
                                                         this);
+        connect(specificationsDialog, &StepPanel::accepted, this, &MainWindow::applySpecifications);
+        specificationsCard = addPhaseCard(tr("Specifications"), "specificationsCard",
+                                          specificationsDialog, {});
     }
 }
 
@@ -239,6 +457,9 @@ void MainWindow::ensureFrequenciesDialog()
     if (frequenciesDialog == nullptr){
         frequenciesDialog = new FrequenciesDialog(this);
         frequenciesDialog->applyFrequencyCountLimit(m_settings.limits.maxFrequencyCount);
+        connect(frequenciesDialog, &StepPanel::accepted, this, &MainWindow::applyFrequencies);
+        frequenciesCard = addPhaseCard(tr("Design frequencies"), "frequenciesCard",
+                                       frequenciesDialog, {});
     }
 }
 
@@ -263,6 +484,9 @@ void MainWindow::ensureTemplatesWidgets()
         });
         templateViewer = new TemplateViewer(this);
         installContourRecomputer();
+        connect(templatesDialog, &StepPanel::accepted, this, &MainWindow::applyTemplates);
+        templatesCard = addPhaseCard(tr("Templates"), "templatesCard", templatesDialog,
+                                     {{tr("Templates"), templateViewer}});
     }
 }
 
@@ -274,6 +498,10 @@ void MainWindow::ensureBoundariesWidgets()
         boundaryGridDialog->applyDefaults(m_settings.defaults);
         boundaryViewer = new BoundaryViewer(this);
         boundaryUnionViewer = new BoundaryUnionViewer(this);
+        connect(boundaryGridDialog, &StepPanel::accepted, this, &MainWindow::applyBoundaries);
+        boundariesCard = addPhaseCard(tr("Boundaries"), "boundariesCard", boundaryGridDialog,
+                                      {{tr("Per frequency"), boundaryViewer},
+                                       {tr("Union"), boundaryUnionViewer}});
     }
 }
 
@@ -281,6 +509,9 @@ void MainWindow::ensureControllerDialog()
 {
     if (controllerDialog == nullptr){
         controllerDialog = new ControllerDialog(this);
+        connect(controllerDialog, &StepPanel::accepted, this, &MainWindow::applyController);
+        controllerCard = addPhaseCard(tr("Controller structure"), "controllerCard",
+                                      controllerDialog, {});
     }
 }
 
@@ -293,39 +524,15 @@ void MainWindow::ensureLoopShapingWidgets()
         loopShapingDialog->applyDefaults(m_settings.defaults);
         loopShapingDialog->setConservativeColumns(m_settings.algorithms.conservativeBoundaryColumns);
         loopShapingViewer = new LoopShapingViewer(this);
+        connect(loopShapingDialog, &StepPanel::accepted, this, &MainWindow::applyLoopShaping);
+        loopShapingCard = addPhaseCard(tr("Loop shaping"), "loopShapingCard", loopShapingDialog,
+                                       {{tr("Loop"), loopShapingViewer}});
     }
-}
-
-void MainWindow::setDialogRunner(DialogRunner run)
-{
-    m_runDialog = std::move(run);
 }
 
 void MainWindow::setFileChooser(FileChooser choose)
 {
     m_chooseFile = std::move(choose);
-}
-
-//Without a runner it is exec(), which is what the application does. The
-//indirection exists so a test can be the user.
-void MainWindow::runDialog(StepDialog * dialog)
-{
-    if (dialog == nullptr) {
-        return;
-    }
-
-    //THE dialog is reused between visits, so a previous acceptance has to be
-    //forgotten here. Without this, wasAccepted() answered true for ever after
-    //the first OK - with the payload already handed over - and closing a
-    //reopened dialog published a null one, wiping the step from the project.
-    dialog->clearAcceptance();
-
-    if (m_runDialog != nullptr) {
-        m_runDialog(dialog);
-        return;
-    }
-
-    dialog->exec();
 }
 
 QString MainWindow::chooseFile(bool forSaving, const QString & title)
@@ -362,42 +569,46 @@ void MainWindow::refreshAvailability()
 
     const qftbx::StepSet done = controller->completed();
 
-    //A step the project does not have has no widgets. Derived from the
-    //project rather than decided at each way out of each handler, which is
-    //how cancelling a dialog comes to undo a step the project still holds.
+    //A step the project has lost takes its diagram with it. The panels stay
+    //- they are filled from the project every time they are shown, so they
+    //cannot show a step that is gone - but what a viewer holds are
+    //OBSERVERS on what the project dropped, and those pointers dangle.
+    //Destroying the widgets is what this used to do, and it is what made
+    //cancelling a dialog undo a step the project still held.
+    if (!done.has(qftbx::Step::Plant) && bodeViewer != nullptr) {
+        bodeViewer->clear();
+    }
+
+    if (!done.has(qftbx::Step::Templates) && templateViewer != nullptr) {
+        templateViewer->clear();
+    }
+
+    if (!done.has(qftbx::Step::Boundaries) && boundaryViewer != nullptr) {
+        boundaryViewer->clear();
+        boundaryUnionViewer->clear();
+    }
+
+    if (!done.has(qftbx::Step::LoopShaping) && loopShapingViewer != nullptr) {
+        loopShapingViewer->clear();
+    }
+
+    //The specifications panel holds the project's frequency values, and a
+    //new set destroys the ones it was given. It stays open, so it is told.
+    if (specificationsDialog != nullptr) {
+        specificationsDialog->setFrequencies(frequencyValues());
+    }
+
+    //And the templates panel holds the plant its grids were built for, so a
+    //plant that is replaced or dropped is taken from it: the grids describe
+    //nothing until the step is opened again, which is where they are built.
     //
-    //The Bode viewer is not here because it is not a step: it is a view of
-    //the plant and the frequencies, and it has its own action.
-    if (!done.has(qftbx::Step::Plant)) {
-        destroyLater(plantDialog);
-    }
-
-    if (!done.has(qftbx::Step::Specifications)) {
-        destroyLater(specificationsDialog);
-    }
-
-    if (!done.has(qftbx::Step::Frequencies)) {
-        destroyLater(frequenciesDialog);
-    }
-
-    if (!done.has(qftbx::Step::Controller)) {
-        destroyLater(controllerDialog);
-    }
-
-    if (!done.has(qftbx::Step::Templates)) {
-        destroyLater(templatesDialog);
-        destroyLater(templateViewer);
-    }
-
-    if (!done.has(qftbx::Step::Boundaries)) {
-        destroyLater(boundaryGridDialog);
-        destroyLater(boundaryViewer);
-        destroyLater(boundaryUnionViewer);
-    }
-
-    if (!done.has(qftbx::Step::LoopShaping)) {
-        destroyLater(loopShapingDialog);
-        destroyLater(loopShapingViewer);
+    //Taken from it, NOT rebuilt here. Rebuilding them is
+    //TemplatesDialog::launch, which ends by proposing an epsilon - a sweep
+    //of the whole plant family over the grids - and this runs on every
+    //change the project reports, the one at the end of loading a file
+    //included. Opening a project ran a sweep nobody had asked for.
+    if (templatesDialog != nullptr && templatesDialog->shownPlant() != controller->plant()) {
+        templatesDialog->forgetPlant();
     }
 
     const bool plant          = done.has(qftbx::Step::Plant);
@@ -464,37 +675,40 @@ void MainWindow::destroySession(){
     controller.reset();
 }
 
+//The step buttons no longer run anything: they bring their phase to the
+//front, filled with what the project holds. What used to follow the modal
+//dialog is the apply* below, which the panel asks for when the user presses
+//its button.
 void MainWindow::on_plantButton_clicked()
 {
     ensurePlantDialog();
-    //Opened on what the project holds, so a plant already entered shows
+    //Shown on what the project holds, so a plant already entered shows
     //itself instead of an empty form.
     plantDialog->setFromProject(controller->plant());
+    plantDialog->clearAcceptance();
+    showPhase(plantCard);
+}
 
-    runDialog(plantDialog);
-
-    if (plantDialog->wasAccepted()){
-        //The dialogs only describe; publishing into the project is the
-        //window's job, so a dialog never needs to know the facade.
-        std::unique_ptr<LtiSystem> described = plantDialog->takePlant();
-        //Publish only what was actually received. The payload is MOVED out of
-        //the dialog, so asking twice gives a null the second time - and
-        //publishing a null wipes the step from the project, and everything
-        //computed from it. The invariant: nothing moved-from goes into the
-        //project.
-        if (described == nullptr){
-            return;
-        }
-
-        //The project drops the templates and everything after them when the
-        //plant changes, and the window follows when the project says so:
-        //nothing is decided here.
-        controller->setPlant(std::move(described));
-    } else {
-        destroyLater(plantDialog);
+void MainWindow::applyPlant()
+{
+    //The panels only describe; publishing into the project is the window's
+    //job, so a panel never needs to know the facade.
+    std::unique_ptr<LtiSystem> described = plantDialog->takePlant();
+    //Publish only what was actually received. The payload is MOVED out of
+    //the panel, so asking twice gives a null the second time - and
+    //publishing a null wipes the step from the project, and everything
+    //computed from it. The invariant: nothing moved-from goes into the
+    //project.
+    if (described == nullptr){
+        return;
     }
 
-    //Buttons and bar from the project, not from flags kept here.
+    //The project drops the templates and everything after them when the
+    //plant changes, and the window follows when the project says so:
+    //nothing is decided here.
+    controller->setPlant(std::move(described));
+
+    drawBodeIfPossible();
 }
 
 void MainWindow::on_specificationsButton_clicked()
@@ -507,57 +721,54 @@ void MainWindow::on_specificationsButton_clicked()
     //should be reported instead of aborting.
     try {
         ensureSpecificationsDialog();
-        //The frequency set the dialog was built with may be gone: entering
-        //new frequencies destroys the Omega that owns the values.
-        specificationsDialog->setFrequencies(frequencyValues());
     } catch (const qftbx::Exception & e) {
         QMessageBox::critical(this, tr("Specifications input"), translated(e));
         return;
     }
 
-    runDialog(specificationsDialog);
+    specificationsDialog->clearAcceptance();
+    showPhase(specificationsCard);
+}
 
-    if (specificationsDialog->wasAccepted()){
-        //See on_plantButton_clicked: nothing moved-from goes in, and an empty
-        //answer here would wipe the specifications.
-        std::optional<qftbx::SpecificationRecords> described =
-                specificationsDialog->takeSpecifications();
+void MainWindow::applySpecifications()
+{
+    //See applyPlant: nothing moved-from goes in, and an empty answer here
+    //would wipe the specifications.
+    std::optional<qftbx::SpecificationRecords> described =
+            specificationsDialog->takeSpecifications();
 
-        if (!described.has_value()){
-            return;
-        }
-
-        controller->setSpecifications(std::move(described));
-
-        //The templates do not depend on the specifications; the boundaries
-        //do, and the project drops them and says so.
-    } else {
-        destroyLater(specificationsDialog);
+    if (!described.has_value()){
+        return;
     }
+
+    //The templates do not depend on the specifications; the boundaries do,
+    //and the project drops them and says so.
+    controller->setSpecifications(std::move(described));
 }
 
 void MainWindow::on_frequenciesButton_clicked()
 {
     ensureFrequenciesDialog();
-    //Opened on what the project holds, so a step already taken shows what it
+    //Shown on what the project holds, so a step already taken shows what it
     //was taken with instead of an empty form.
     frequenciesDialog->setFromProject(controller->omega());
+    frequenciesDialog->clearAcceptance();
+    showPhase(frequenciesCard);
+}
 
-    runDialog(frequenciesDialog);
-
-    if (frequenciesDialog->wasAccepted()){
-        std::unique_ptr<Omega> described = frequenciesDialog->takeOmega();
-        //See on_plantButton_clicked: nothing moved-from goes in.
-        if (described == nullptr){
-            return;
-        }
-
-        //See on_plantButton_clicked: the project decides what a new set of
-        //frequencies drops, and the window follows below.
-        controller->setOmega(std::move(described));
-    } else {
-        destroyLater(frequenciesDialog);
+void MainWindow::applyFrequencies()
+{
+    std::unique_ptr<Omega> described = frequenciesDialog->takeOmega();
+    //See applyPlant: nothing moved-from goes in.
+    if (described == nullptr){
+        return;
     }
+
+    //See applyPlant: the project decides what a new set of frequencies
+    //drops, and the window follows.
+    controller->setOmega(std::move(described));
+
+    drawBodeIfPossible();
 }
 
 void MainWindow::on_templatesButton_clicked()
@@ -566,13 +777,12 @@ void MainWindow::on_templatesButton_clicked()
 
     templatesDialog->setEpsilonMetric(controller->epsilonMetric());
     templatesDialog->launch(controller->plant(), controller->omega()->values()->size());
+    templatesDialog->clearAcceptance();
+    showPhase(templatesCard);
+}
 
-    runDialog(templatesDialog);
-
-    if (!templatesDialog->wasAccepted()){
-        return;
-    }
-
+void MainWindow::applyTemplates()
+{
     bool templatesOk = false;
 
     {
@@ -602,21 +812,18 @@ void MainWindow::on_templatesButton_clicked()
                              controller->omega()->values(),
                              controller->epsilon());
     templateViewer->plotDiagram(templatesDialog->nicholsSelected());
-
-    templateViewer->show();
 }
 
 void MainWindow::on_boundariesButton_clicked()
 {
     ensureBoundariesWidgets();
     boundaryGridDialog->setFromProject(controller->boundaries());
+    boundaryGridDialog->clearAcceptance();
+    showPhase(boundariesCard);
+}
 
-    runDialog(boundaryGridDialog);
-
-    if (!boundaryGridDialog->wasAccepted()){
-        return;
-    }
-
+void MainWindow::applyBoundaries()
+{
     bool boundariesOk = false;
 
     {
@@ -642,34 +849,31 @@ void MainWindow::on_boundariesButton_clicked()
 
     boundaryViewer->setData(controller->boundaries(), controller->omega()->values());
     boundaryViewer->showDiagram();
-    boundaryViewer->show();
 
     boundaryUnionViewer->setData(controller->unionBoundaries(), controller->omega()->values());
     boundaryUnionViewer->showDiagram();
-    boundaryUnionViewer->show();
 }
 
 
 void MainWindow::on_controllerButton_clicked()
 {
-
     ensureControllerDialog();
     controllerDialog->setFromProject(controller->controllerStructure());
+    controllerDialog->clearAcceptance();
+    showPhase(controllerCard);
+}
 
-    runDialog(controllerDialog);
-
-
-    if (controllerDialog->wasAccepted()){
-        std::unique_ptr<LtiSystem> described = controllerDialog->takeControllerStructure();
-        //See on_plantButton_clicked: nothing moved-from goes in.
-        if (described == nullptr){
-            return;
-        }
-
-        //A different structure voids the design found for the old one; the
-        //project drops it and the window follows below.
-        controller->setControllerStructure(std::move(described));
+void MainWindow::applyController()
+{
+    std::unique_ptr<LtiSystem> described = controllerDialog->takeControllerStructure();
+    //See applyPlant: nothing moved-from goes in.
+    if (described == nullptr){
+        return;
     }
+
+    //A different structure voids the design found for the old one; the
+    //project drops it and the window follows.
+    controller->setControllerStructure(std::move(described));
 }
 
 void MainWindow::on_loopButton_clicked()
@@ -677,13 +881,12 @@ void MainWindow::on_loopButton_clicked()
     ensureLoopShapingWidgets();
 
     loopShapingDialog->setFromProject(controller->loopShapingResult());
+    loopShapingDialog->clearAcceptance();
+    showPhase(loopShapingCard);
+}
 
-    runDialog(loopShapingDialog);
-
-    if (!loopShapingDialog->wasAccepted()){
-        return;
-    }
-
+void MainWindow::applyLoopShaping()
+{
     bool designed = false;
 
     {
@@ -720,7 +923,6 @@ void MainWindow::on_loopButton_clicked()
                                loopShapingDialog->isLinSpace());
 
     loopShapingViewer->showDiagram();
-    loopShapingViewer->show();
 }
 
 void MainWindow::on_actionSave_triggered()
@@ -771,7 +973,7 @@ void MainWindow::on_actionOpen_triggered()
             return;
         }
 
-        //The previous session's dialogs are freed, so the bar does not
+        //The previous session's widgets are freed, so the bar does not
         //accumulate steps across files.
         destroyDialogs();
 
@@ -782,16 +984,18 @@ void MainWindow::on_actionOpen_triggered()
         //handlers use, so a step's widgets are built in one place. Which
         //steps are done is derived from the project, and the buttons and
         //the bar come from the one call at the end.
+        //In the order of the pipeline, which is the order the cards then
+        //appear in on the canvas.
         if (loaded.has(qftbx::Step::Plant)) {
             ensurePlantDialog();
             plantDialog->setFromProject(controller->plant());
         }
-        if (loaded.has(qftbx::Step::Specifications)) {
-            ensureSpecificationsDialog();
-        }
         if (loaded.has(qftbx::Step::Frequencies)) {
             ensureFrequenciesDialog();
             frequenciesDialog->setFromProject(controller->omega());
+        }
+        if (loaded.has(qftbx::Step::Specifications)) {
+            ensureSpecificationsDialog();
         }
         if (loaded.has(qftbx::Step::Templates)) {
             ensureTemplatesWidgets();
@@ -808,8 +1012,66 @@ void MainWindow::on_actionOpen_triggered()
             ensureLoopShapingWidgets();
             loopShapingDialog->setFromProject(controller->loopShapingResult());
         }
+
+        //A file that carries results has them on screen the moment it is
+        //opened: the diagram is beside the data that produced it now, and
+        //an empty plot next to a full form says the project lost something.
+        showResults();
+
+        //And every card comes up folded: the diagrams of a finished project
+        //share the canvas, and what the user came to look at is the
+        //diagrams. His own step button unfolds the form of a phase.
+        for (PhaseCard * card : {plantCard, templatesCard, boundariesCard, loopShapingCard}) {
+            if (card != nullptr) {
+                card->showForm(false);
+            }
+        }
     }
 
+}
+
+//Everything a loaded project has to show, in one place and behind one
+//report: this runs from the open handler, which is a slot, and an exception
+//leaving a slot takes the application down. Drawing is not worth that - a
+//project whose diagram cannot be built still has its numbers.
+void MainWindow::showResults()
+{
+    try {
+        drawResults();
+    } catch (const qftbx::Exception & e) {
+        QMessageBox::critical(this, tr("Open project"), translated(e));
+    }
+}
+
+void MainWindow::drawResults()
+{
+    const qftbx::StepSet done = controller->completed();
+
+    drawBodeIfPossible();
+
+    if (done.has(qftbx::Step::Templates) && done.has(qftbx::Step::Frequencies)
+            && templateViewer != nullptr) {
+        templateViewer->setData(controller->templates(), controller->contour(),
+                                controller->omega()->values(), controller->epsilon());
+        templateViewer->plotDiagram(true);
+    }
+
+    if (done.has(qftbx::Step::Boundaries) && done.has(qftbx::Step::Frequencies)
+            && boundaryViewer != nullptr) {
+        boundaryViewer->setData(controller->boundaries(), controller->omega()->values());
+        boundaryViewer->showDiagram();
+
+        boundaryUnionViewer->setData(controller->unionBoundaries(), controller->omega()->values());
+        boundaryUnionViewer->showDiagram();
+    }
+
+    if (done.has(qftbx::Step::LoopShaping) && done.has(qftbx::Step::Boundaries)
+            && done.has(qftbx::Step::Frequencies) && loopShapingViewer != nullptr) {
+        loopShapingViewer->setData(controller->unionBoundaries(), controller->omega()->values(),
+                                   controller->loopShapingResult(), controller->plant(),
+                                   loopShapingDialog->isLinSpace());
+        loopShapingViewer->showDiagram();
+    }
 }
 
 void MainWindow::on_actionNew_triggered()
@@ -824,21 +1086,39 @@ void MainWindow::on_actionNew_triggered()
 //up. Reconnected here; the drawing itself needed fixing (see drawBode).
 void MainWindow::on_bodeAction_triggered()
 {
-    if (controller->completed().has(qftbx::Step::Plant) &&
-            controller->completed().has(qftbx::Step::Frequencies)){
-
-        //The pointer answers it: bodeCreated was a second copy of
-        //"bodeViewer != nullptr", and destroyDialogs() had to remember to
-        //clear both.
-        if (bodeViewer == nullptr){
-            bodeViewer = new BodeViewer(this);
-        }
-
-        bodeViewer->drawBode(controller->plant(), controller->omega());
-        bodeViewer->show();
-    }else{
+    if (!drawBodeIfPossible()){
         errorMessage(tr("To show the Bode diagram, first enter a valid plant and a set of design frequencies"), tr("QFT"));
+        return;
     }
+
+    showPhase(plantCard);
+}
+
+//The Bode diagram lives in the plant's dock, beside the plant it draws, and
+//is redrawn whenever the plant or the frequencies change - it used to be a
+//window of its own that had to be asked for and went stale in silence.
+bool MainWindow::drawBodeIfPossible()
+{
+    const qftbx::StepSet done = controller->completed();
+
+    if (!done.has(qftbx::Step::Plant) || !done.has(qftbx::Step::Frequencies)){
+        return false;
+    }
+
+    ensurePlantDialog();
+
+    //The drawing evaluates the plant, which is a model the user wrote and
+    //can refuse to be evaluated. It runs by itself now, from wherever the
+    //plant or the frequencies change, and a slot that lets an exception
+    //out takes the application down with it.
+    try {
+        bodeViewer->drawBode(controller->plant(), controller->omega());
+    } catch (const qftbx::Exception & e) {
+        bodeViewer->clear();
+        QMessageBox::critical(this, tr("Bode diagram"), translated(e));
+    }
+
+    return true;
 }
 
 void MainWindow::on_actionNicholsLoop_triggered()
@@ -900,22 +1180,24 @@ void MainWindow::showLoopDiagrams(bool nichols, bool nyquist){
     ver.exec();
 }
 
+//The three view-again actions: each brings its phase to the front, drawn
+//from what the project holds. A step nobody has computed has nothing to
+//show and the action does nothing, which is what its guard says.
 void MainWindow::on_actionTemplates_triggered()
 {
-    //View-again action: with no computed templates there is nothing to
-    //show.
     if (!controller->completed().has(qftbx::Step::Templates)){
         return;
     }
 
     if (!controller->templates().empty() && !controller->contour().empty()){
+        ensureTemplatesWidgets();
         templateViewer->setData(controller->templates(),
                                  controller->contour(),
                                  controller->omega()->values(),
                                  controller->epsilon());
         templateViewer->plotDiagram(true);
 
-        templateViewer->show();
+        showPhase(templatesCard);
     }
 }
 
@@ -925,9 +1207,11 @@ void MainWindow::on_actionBoundaries_triggered()
         return;
     }
 
+    ensureBoundariesWidgets();
     boundaryUnionViewer->setData(controller->unionBoundaries(), controller->omega()->values());
     boundaryUnionViewer->showDiagram();
-    boundaryUnionViewer->show();
+
+    showPhase(boundariesCard);
 }
 
 void MainWindow::on_actionLoop_triggered()
@@ -936,11 +1220,13 @@ void MainWindow::on_actionLoop_triggered()
         return;
     }
 
+    ensureLoopShapingWidgets();
     loopShapingViewer->setData(controller->unionBoundaries(),controller->omega()->values(),
                               controller->loopShapingResult(), controller->plant(), loopShapingDialog->isLinSpace());
 
     loopShapingViewer->showDiagram();
-    loopShapingViewer->show();
+
+    showPhase(loopShapingCard);
 }
 
 } // namespace qftbx

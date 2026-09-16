@@ -93,6 +93,10 @@
         <source>CPU</source>
         <translation>CPU</translation>
     </message>
+    <message>
+        <source>Compute</source>
+        <translation>Calcular</translation>
+    </message>
 </context>
 <context>
     <name>BoundaryUnionViewer</name>
@@ -108,10 +112,6 @@
         <source>Save</source>
         <translation>Guardar</translation>
     </message>
-    <message>
-        <source>Frequencies</source>
-        <translation>Frecuencias</translation>
-    </message>
 </context>
 <context>
     <name>BoundaryViewer</name>
@@ -126,10 +126,6 @@
     <message>
         <source>Save</source>
         <translation>Guardar</translation>
-    </message>
-    <message>
-        <source>Frequencies</source>
-        <translation>Frecuencias</translation>
     </message>
 </context>
 <context>
@@ -151,14 +147,6 @@ del controlador</translation>
     <message>
         <source>Denominator:</source>
         <translation>Denominador:</translation>
-    </message>
-    <message>
-        <source>Cancel</source>
-        <translation>Cancelar</translation>
-    </message>
-    <message>
-        <source>OK</source>
-        <translation>Aceptar</translation>
     </message>
     <message>
         <source>Polynomial form</source>
@@ -187,6 +175,10 @@ del controlador</translation>
     <message>
         <source>]</source>
         <translation>]</translation>
+    </message>
+    <message>
+        <source>Apply</source>
+        <translation>Aplicar</translation>
     </message>
 </context>
 <context>
@@ -464,10 +456,6 @@ del controlador</translation>
         <translation>tipo de sistema desconocido</translation>
     </message>
     <message>
-        <source>a project needs exactly 7 specification slots</source>
-        <translation>un proyecto necesita exactamente 7 huecos de especificación</translation>
-    </message>
-    <message>
         <source>a non-constant specification needs its plant</source>
         <translation>una especificación no constante necesita su planta</translation>
     </message>
@@ -572,20 +560,36 @@ del controlador</translation>
         <translation>&lt;%1&gt; no cubre la rejilla de fase</translation>
     </message>
     <message>
-        <source>unsupported .qft version (no version attribute; this build reads versions 2 and 3)</source>
-        <translation>versión de .qft no admitida (sin atributo de versión; esta compilación lee las versiones 2 y 3)</translation>
-    </message>
-    <message>
-        <source>unsupported .qft version (found %1, this build reads versions 2 and 3)</source>
-        <translation>versión de .qft no admitida (se encontró %1; esta compilación lee las versiones 2 y 3)</translation>
-    </message>
-    <message>
         <source>unknown epsilon metric &apos;%1&apos; (complex or nichols)</source>
         <translation>métrica del épsilon desconocida «%1» (complex o nichols)</translation>
     </message>
     <message>
         <source>the decibels per degree of the epsilon metric must be a finite positive number</source>
         <translation>los decibelios por grado de la métrica del épsilon deben ser un número positivo finito</translation>
+    </message>
+    <message>
+        <source>The stability criterion cannot place the poles of the nominal plant: its denominator is not a polynomial in s.</source>
+        <translation>El criterio de estabilidad no puede situar los polos de la planta nominal: su denominador no es un polinomio en s.</translation>
+    </message>
+    <message>
+        <source>The gain search range must be positive.</source>
+        <translation>El rango de búsqueda de la ganancia debe ser positivo.</translation>
+    </message>
+    <message>
+        <source>The plant family changes its number of right half-plane poles: %1 with the denominator values (%2) and %3 with (%4). The stability of the nominal loop only carries to a family whose members all have the same number; split the uncertainty at the crossing.</source>
+        <translation>La familia de plantas cambia su número de polos en el semiplano derecho: %1 con los valores del denominador (%2) y %3 con (%4). La estabilidad del lazo nominal sólo se traslada a una familia cuyos miembros tengan todos el mismo número; divida la incertidumbre por el cruce.</translation>
+    </message>
+    <message>
+        <source>unsupported .qft version (no version attribute; this build reads version %1)</source>
+        <translation>versión de .qft no admitida (no tiene atributo de versión; esta compilación lee la versión %1)</translation>
+    </message>
+    <message>
+        <source>unsupported .qft version (found %1, this build reads version %2)</source>
+        <translation>versión de .qft no admitida (encontrada la %1; esta compilación lee la versión %2)</translation>
+    </message>
+    <message>
+        <source>unknown loop-shaping algorithm &apos;%1&apos;</source>
+        <translation>algoritmo de ajuste del lazo desconocido «%1»</translation>
     </message>
 </context>
 <context>
@@ -635,12 +639,8 @@ del controlador</translation>
         <translation>Fichero de entrada:</translation>
     </message>
     <message>
-        <source>Cancel</source>
-        <translation>Cancelar</translation>
-    </message>
-    <message>
-        <source>OK</source>
-        <translation>Aceptar</translation>
+        <source>Apply</source>
+        <translation>Aplicar</translation>
     </message>
 </context>
 <context>
@@ -667,10 +667,6 @@ del controlador</translation>
     <message>
         <source>Save</source>
         <translation>Guardar</translation>
-    </message>
-    <message>
-        <source>Frequencies</source>
-        <translation>Frecuencias</translation>
     </message>
 </context>
 <context>
@@ -706,14 +702,6 @@ del controlador</translation>
     <message>
         <source>Epsilon:</source>
         <translation>Épsilon:</translation>
-    </message>
-    <message>
-        <source>Cancel</source>
-        <translation>Cancelar</translation>
-    </message>
-    <message>
-        <source>OK</source>
-        <translation>Aceptar</translation>
     </message>
     <message>
         <source>Plot range:</source>
@@ -763,6 +751,10 @@ del controlador</translation>
         <source>Conservative boundary reading</source>
         <translation>Lectura conservadora de las fronteras</translation>
     </message>
+    <message>
+        <source>Compute</source>
+        <translation>Calcular</translation>
+    </message>
 </context>
 <context>
     <name>LoopShapingViewer</name>
@@ -777,10 +769,6 @@ del controlador</translation>
     <message>
         <source>Save</source>
         <translation>Guardar</translation>
-    </message>
-    <message>
-        <source>Frequencies</source>
-        <translation>Frecuencias</translation>
     </message>
     <message>
         <source>Resulting controller</source>
@@ -907,14 +895,6 @@ del controlador</translation>
         <translation>Planta</translation>
     </message>
     <message>
-        <source>OK</source>
-        <translation>Aceptar</translation>
-    </message>
-    <message>
-        <source>Cancel</source>
-        <translation>Cancelar</translation>
-    </message>
-    <message>
         <source>Tra&amp;nsfer function</source>
         <translation>Fu&amp;nción de transferencia</translation>
     </message>
@@ -962,21 +942,13 @@ del controlador</translation>
         <source>Uncertainty</source>
         <translation>Incertidumbre</translation>
     </message>
+    <message>
+        <source>Apply</source>
+        <translation>Aplicar</translation>
+    </message>
 </context>
 <context>
     <name>QObject</name>
-    <message>
-        <source>.png (*.png);;.pdf(*.pdf);; .jpg(*.jpg);; .bmp(*.bmp)</source>
-        <translation>.png (*.png);;.pdf(*.pdf);; .jpg(*.jpg);; .bmp(*.bmp)</translation>
-    </message>
-    <message>
-        <source>Save file</source>
-        <translation>Guardar fichero</translation>
-    </message>
-    <message>
-        <source>The image could not be saved</source>
-        <translation>No se ha podido guardar la imagen</translation>
-    </message>
     <message>
         <source>&quot;%1&quot; cannot be used as a parameter name: it is a constant of the expression grammar.</source>
         <translation>&quot;%1&quot; no puede ser el nombre de un parámetro: es una constante de la gramática de expresiones.</translation>
@@ -1029,6 +1001,22 @@ del controlador</translation>
         <source>Cannot load it: %1</source>
         <translation>No se puede cargar: %1</translation>
     </message>
+    <message>
+        <source>QFTbx</source>
+        <translation>QFTbx</translation>
+    </message>
+    <message>
+        <source>Vector (*.pdf);;Vector (*.svg);;Image (*.png)</source>
+        <translation>Vectorial (*.pdf);;Vectorial (*.svg);;Imagen (*.png)</translation>
+    </message>
+    <message>
+        <source>Save figure</source>
+        <translation>Guardar figura</translation>
+    </message>
+    <message>
+        <source>The figure could not be saved</source>
+        <translation>No se ha podido guardar la figura</translation>
+    </message>
 </context>
 <context>
     <name>SpecificationsDialog</name>
@@ -1071,14 +1059,6 @@ del controlador</translation>
     <message>
         <source>Transfer function</source>
         <translation>Función de transferencia</translation>
-    </message>
-    <message>
-        <source>cancelButton</source>
-        <translation>Cancelar</translation>
-    </message>
-    <message>
-        <source>okButton</source>
-        <translation>Aceptar</translation>
     </message>
     <message>
         <source>Frequencies: [</source>
@@ -1160,6 +1140,10 @@ del controlador</translation>
         <source>Ret:</source>
         <translation>Ret:</translation>
     </message>
+    <message>
+        <source>Apply</source>
+        <translation>Aplicar</translation>
+    </message>
 </context>
 <context>
     <name>TemplateViewer</name>
@@ -1233,14 +1217,6 @@ contorno</translation>
     <message>
         <source>Denominator</source>
         <translation>Denominador</translation>
-    </message>
-    <message>
-        <source>Cancel</source>
-        <translation>Cancelar</translation>
-    </message>
-    <message>
-        <source>ok</source>
-        <translation>Aceptar</translation>
     </message>
     <message>
         <source>All variables</source>
@@ -1329,6 +1305,10 @@ contorno</translation>
     <message>
         <source>Sweep only the border of the parameter box (two parameters)</source>
         <translation>Barrer sólo el borde de la caja de parámetros (dos parámetros)</translation>
+    </message>
+    <message>
+        <source>Compute</source>
+        <translation>Calcular</translation>
     </message>
 </context>
 <context>
@@ -1503,12 +1483,24 @@ contorno</translation>
         <translation>Fase (grados)</translation>
     </message>
     <message>
-        <source>Save file</source>
-        <translation>Guardar fichero</translation>
+        <source>frequency (rad/s)</source>
+        <translation>frecuencia (rad/s)</translation>
     </message>
     <message>
-        <source>The image could not be saved</source>
-        <translation>No se ha podido guardar la imagen</translation>
+        <source>magnitude (dB)</source>
+        <translation>magnitud (dB)</translation>
+    </message>
+    <message>
+        <source>phase (degrees)</source>
+        <translation>fase (grados)</translation>
+    </message>
+    <message>
+        <source>Save figure</source>
+        <translation>Guardar figura</translation>
+    </message>
+    <message>
+        <source>The figure could not be saved</source>
+        <translation>No se ha podido guardar la figura</translation>
     </message>
 </context>
 <context>
@@ -1536,6 +1528,14 @@ contorno</translation>
         <source>Boundary plot</source>
         <translation>Gráfica de boundaries</translation>
     </message>
+    <message>
+        <source>phase (degrees)</source>
+        <translation>fase (grados)</translation>
+    </message>
+    <message>
+        <source>magnitude (dB)</source>
+        <translation>magnitud (dB)</translation>
+    </message>
 </context>
 <context>
     <name>qftbx::BoundaryViewer</name>
@@ -1546,6 +1546,14 @@ contorno</translation>
     <message>
         <source>Boundary plot</source>
         <translation>Gráfica de boundaries</translation>
+    </message>
+    <message>
+        <source>phase (degrees)</source>
+        <translation>fase (grados)</translation>
+    </message>
+    <message>
+        <source>magnitude (dB)</source>
+        <translation>magnitud (dB)</translation>
     </message>
 </context>
 <context>
@@ -1588,6 +1596,18 @@ contorno</translation>
         <source>Frequencies</source>
         <translation>Frecuencias</translation>
     </message>
+    <message>
+        <source>filter</source>
+        <translation>filtro</translation>
+    </message>
+    <message>
+        <source>All</source>
+        <translation>Todas</translation>
+    </message>
+    <message>
+        <source>None</source>
+        <translation>Ninguna</translation>
+    </message>
 </context>
 <context>
     <name>qftbx::LoopBoundariesViewer</name>
@@ -1606,6 +1626,14 @@ contorno</translation>
     <message>
         <source>Boundary plot</source>
         <translation>Gráfica de boundaries</translation>
+    </message>
+    <message>
+        <source>phase (degrees)</source>
+        <translation>fase (grados)</translation>
+    </message>
+    <message>
+        <source>magnitude (dB)</source>
+        <translation>magnitud (dB)</translation>
     </message>
 </context>
 <context>
@@ -1691,6 +1719,26 @@ contorno</translation>
         <source>control effort</source>
         <translation>esfuerzo de control</translation>
     </message>
+    <message>
+        <source>phase (degrees)</source>
+        <translation>fase (grados)</translation>
+    </message>
+    <message>
+        <source>magnitude (dB)</source>
+        <translation>magnitud (dB)</translation>
+    </message>
+    <message>
+        <source>No specification was active at any design frequency.</source>
+        <translation>No había ninguna especificación activa en ninguna frecuencia de diseño.</translation>
+    </message>
+    <message>
+        <source>Satisfies every specification over the template, by %1 dB (as saved with the project).</source>
+        <translation>Cumple todas las especificaciones sobre la plantilla, por %1 dB (según se guardó con el proyecto).</translation>
+    </message>
+    <message>
+        <source>EXCEEDS a specification over the template by %1 dB (as saved with the project).</source>
+        <translation>INCUMPLE una especificación sobre la plantilla por %1 dB (según se guardó con el proyecto).</translation>
+    </message>
 </context>
 <context>
     <name>qftbx::MainWindow</name>
@@ -1765,6 +1813,73 @@ contorno</translation>
     <message>
         <source>About &amp;Qt...</source>
         <translation>Acerca de &amp;Qt...</translation>
+    </message>
+    <message>
+        <source>Plant</source>
+        <translation>Planta</translation>
+    </message>
+    <message>
+        <source>Bode</source>
+        <translation>Bode</translation>
+    </message>
+    <message>
+        <source>Specifications</source>
+        <translation>Especificaciones</translation>
+    </message>
+    <message>
+        <source>Design frequencies</source>
+        <translation>Frecuencias de diseño</translation>
+    </message>
+    <message>
+        <source>Templates</source>
+        <translation>Templates</translation>
+    </message>
+    <message>
+        <source>Boundaries</source>
+        <translation>Boundaries</translation>
+    </message>
+    <message>
+        <source>Per frequency</source>
+        <translation>Por frecuencia</translation>
+    </message>
+    <message>
+        <source>Union</source>
+        <translation>Unión</translation>
+    </message>
+    <message>
+        <source>Controller structure</source>
+        <translation>Estructura del controlador</translation>
+    </message>
+    <message>
+        <source>Loop shaping</source>
+        <translation>Ajuste del lazo</translation>
+    </message>
+    <message>
+        <source>Loop</source>
+        <translation>Lazo</translation>
+    </message>
+    <message>
+        <source>Bode diagram</source>
+        <translation>Diagrama de Bode</translation>
+    </message>
+</context>
+<context>
+    <name>qftbx::PhaseCard</name>
+    <message>
+        <source>Data</source>
+        <translation>Datos</translation>
+    </message>
+    <message>
+        <source>Show or hide what this phase was asked for</source>
+        <translation>Mostrar u ocultar lo que se le pidió a esta fase</translation>
+    </message>
+    <message>
+        <source>Narrower</source>
+        <translation>Más estrecho</translation>
+    </message>
+    <message>
+        <source>Wider</source>
+        <translation>Más ancho</translation>
     </message>
 </context>
 <context>
@@ -2289,6 +2404,10 @@ contorno</translation>
         <source>This specification could not be read, so it has not been saved. Correct the field marked in red, or empty it to leave the specification unused.</source>
         <translation>No se ha podido leer esta especificación, así que no se ha guardado. Corrija el campo marcado en rojo, o vacíelo para dejar la especificación sin usar.</translation>
     </message>
+    <message>
+        <source>The design frequencies must be entered before the specifications.</source>
+        <translation>Hay que introducir las frecuencias de diseño antes que las especificaciones.</translation>
+    </message>
 </context>
 <context>
     <name>qftbx::TemplateViewer</name>
@@ -2339,6 +2458,14 @@ contorno</translation>
     <message>
         <source>The least epsilon at which this template&apos;s contour closes is %1 (it is connected from %2); the largest gap between its points is %3% of its size. Above a few per cent the sweep is coarse: more points per parameter, not a larger epsilon.</source>
         <translation>El menor épsilon con el que cierra el contorno de esta plantilla es %1 (está conectada desde %2); el hueco mayor entre sus puntos es el %3 % de su tamaño. Por encima de unos pocos por ciento el barrido es escaso: más puntos por parámetro, no un épsilon mayor.</translation>
+    </message>
+    <message>
+        <source>phase (degrees)</source>
+        <translation>fase (grados)</translation>
+    </message>
+    <message>
+        <source>magnitude (dB)</source>
+        <translation>magnitud (dB)</translation>
     </message>
 </context>
 <context>
@@ -2424,6 +2551,10 @@ contorno</translation>
     <message>
         <source>The decibels per degree must be a positive number.</source>
         <translation>Los decibelios por grado deben ser un número positivo.</translation>
+    </message>
+    <message>
+        <source>The plant must be entered before the templates.</source>
+        <translation>Hay que introducir la planta antes que los templates.</translation>
     </message>
 </context>
 <context>

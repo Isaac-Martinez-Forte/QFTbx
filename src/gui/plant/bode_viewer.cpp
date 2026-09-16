@@ -19,7 +19,7 @@ using namespace std;
 namespace qftbx {
 
 BodeViewer::BodeViewer(QWidget *parent) :
-    QDialog(parent),
+    QWidget(parent),
     ui(std::make_unique<Ui::BodeViewer>())
 {
     ui->setupUi(this);
@@ -32,6 +32,14 @@ BodeViewer::BodeViewer(QWidget *parent) :
 }
 
 BodeViewer::~BodeViewer() = default;
+
+void BodeViewer::clear(){
+
+    ui->magnitudePlot->clearPlottables();
+    ui->phasePlot->clearPlottables();
+    ui->magnitudePlot->replot();
+    ui->phasePlot->replot();
+}
 
 void BodeViewer::drawBode(LtiSystem *plant, Omega *omega){
 
@@ -108,7 +116,7 @@ void BodeViewer::drawAxis(QString yAxisName, const std::vector<double> & yAxis_v
     magnitudePlot->yAxis->setRange(*valueEnds.first, *valueEnds.second);
 }
 
-void BodeViewer::on_actionExport_triggered()
+void BodeViewer::on_saveImage_clicked()
 {
     QString selected;
     QString fileName = QFileDialog::getSaveFileName(this, tr("Save figure"), QString(),

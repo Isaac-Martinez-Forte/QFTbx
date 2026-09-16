@@ -173,6 +173,15 @@ const std::vector<Binding> & bindings()
              into.interface.language = languageIn(text, "interface.language", line);
          }},
 
+        //The canvas of the interface, written by the window itself when it
+        //closes: a list of phases with their sizes, which nobody types by
+        //hand. Anything it does not recognise is ignored when it is
+        //applied, so an old line cannot stop the program starting.
+        {"interface.canvas",
+         [](const std::string & text, std::int64_t, Settings & into) {
+             into.interface.canvas = text;
+         }},
+
         //[algorithms] - figures from the papers. These change WHAT is
         //computed, which is why the header says so next to each one.
         {"algorithms.template-representatives",

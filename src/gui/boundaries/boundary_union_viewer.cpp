@@ -11,7 +11,7 @@
 namespace qftbx {
 
 BoundaryUnionViewer::BoundaryUnionViewer(QWidget *parent) :
-    QDialog(parent),
+    QWidget(parent),
     ui(std::make_unique<Ui::BoundaryUnionViewer>())
 {
     ui->setupUi(this);
@@ -50,6 +50,14 @@ void BoundaryUnionViewer::clearDiagram(){
 
 
     plotted = false;
+}
+
+void BoundaryUnionViewer::clear(){
+
+    clearDiagram();
+    unionTraces.clear();
+    omega = nullptr;
+    ui->plot->replot();
 }
 
 void BoundaryUnionViewer::setData(const qftbx::UnionTraces & unionTraces, std::vector<double> *omega){

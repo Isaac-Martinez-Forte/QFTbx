@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>SpecificationsDialog</class>
- <widget class="QDialog" name="SpecificationsDialog">
+ <widget class="QWidget" name="SpecificationsDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -117,16 +117,9 @@
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout_8">
     <item>
-     <widget class="QPushButton" name="cancelButton">
-      <property name="text">
-       <string>cancelButton</string>
-      </property>
-     </widget>
-    </item>
-    <item>
      <widget class="QPushButton" name="okButton">
       <property name="text">
-       <string>okButton</string>
+       <string>Apply</string>
       </property>
      </widget>
     </item>

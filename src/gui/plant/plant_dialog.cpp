@@ -8,7 +8,7 @@
 namespace qftbx {
 
 PlantDialog::PlantDialog(QWidget *parent) :
-    StepDialog(parent),
+    StepPanel(parent),
     ui(std::make_unique<Ui::PlantDialog>()),
     m_reader(tr("Plant input"))
 {
@@ -37,7 +37,6 @@ PlantDialog::PlantDialog(QWidget *parent) :
     ui->tcgImage->setPixmap(QPixmap(":/figures/knogan.png"));
     ui->polyImage->setPixmap(QPixmap(":/figures/copol.png"));
 
-    connect(ui->cancelButton, SIGNAL(clicked()), this, SLOT(close()));
 }
 
 PlantDialog::~PlantDialog()
@@ -368,7 +367,6 @@ void PlantDialog::on_okButton_clicked()
                                                 ui->freeDenominator->text().toStdString());
 
     markAccepted();
-    close();
 }
 
 void PlantDialog::on_uncertaintyButton_clicked()

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>PlantDialog</class>
- <widget class="QDialog" name="PlantDialog">
+ <widget class="QWidget" name="PlantDialog">
   <property name="windowModality">
    <enum>Qt::NonModal</enum>
   </property>
@@ -48,20 +48,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>OK</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="cancelButton">
-    <property name="geometry">
-     <rect>
-      <x>350</x>
-      <y>250</y>
-      <width>89</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Cancel</string>
+     <string>Apply</string>
     </property>
    </widget>
    <widget class="QWidget" name="layoutWidget">

@@ -1,0 +1,136 @@
+#include "src/gui/common/flow_layout.h"
+
+#include <QWidget>
+
+namespace qftbx {
+
+FlowLayout::FlowLayout(QWidget * parent, int margin, int spacing)
+    : QLayout(parent), m_spacing(spacing)
+{
+    setContentsMargins(margin, margin, margin, margin);
+}
+
+FlowLayout::~FlowLayout()
+{
+    while (QLayoutItem * item = takeAt(0)) {
+        delete item;
+    }
+}
+
+void FlowLayout::addItem(QLayoutItem * item)
+{
+    m_items.append(item);
+}
+
+int FlowLayout::count() const
+{
+    return static_cast<int>(m_items.size());
+}
+
+QLayoutItem * FlowLayout::itemAt(int index) const
+{
+    return m_items.value(index);
+}
+
+QLayoutItem * FlowLayout::takeAt(int index)
+{
+    if (index < 0 || index >= m_items.size()) {
+        return nullptr;
+    }
+
+    return m_items.takeAt(index);
+}
+
+void FlowLayout::move(int from, int to)
+{
+    if (from == to || from < 0 || from >= m_items.size() || to < 0 || to >= m_items.size()) {
+        return;
+    }
+
+    m_items.move(from, to);
+    invalidate();
+}
+
+int FlowLayout::heightForWidth(int width) const
+{
+    return place(QRect(0, 0, width, 0), false);
+}
+
+void FlowLayout::setGeometry(const QRect & rect)
+{
+    QLayout::setGeometry(rect);
+    place(rect, true);
+}
+
+QSize FlowLayout::sizeHint() const
+{
+    return minimumSize();
+}
+
+QSize FlowLayout::minimumSize() const
+{
+    QSize size;
+    for (const QLayoutItem * item : m_items) {
+        size = size.expandedTo(item->minimumSize());
+    }
+
+    const QMargins margins = contentsMargins();
+
+    return size + QSize(margins.left() + margins.right(), margins.top() + margins.bottom());
+}
+
+int FlowLayout::indexAt(const QPoint & position) const
+{
+    for (int i = 0; i < m_items.size(); ++i) {
+        const QRect where = m_items.at(i)->geometry();
+
+        //The half of an item the cursor is on decides whether the dragged
+        //one goes before or after it: dropping on the left half of a card
+        //means "in front of this one".
+        if (where.contains(position)) {
+            return position.x() < where.center().x() ? i : i + 1;
+        }
+
+        //Past the end of a row, or below everything: the item it follows.
+        if (position.y() < where.bottom() && position.x() < where.left()) {
+            return i;
+        }
+    }
+
+    return static_cast<int>(m_items.size());
+}
+
+int FlowLayout::place(const QRect & rect, bool apply) const
+{
+    const QMargins margins = contentsMargins();
+    const QRect inside = rect.adjusted(margins.left(), margins.top(), -margins.right(), -margins.bottom());
+
+    int x = inside.x();
+    int y = inside.y();
+    int rowHeight = 0;
+
+    for (QLayoutItem * item : m_items) {
+        //Every item at the size it asks for, never at the size that is
+        //left: that is the whole point of wrapping.
+        QSize size = item->sizeHint();
+        size.setWidth(std::min(size.width(), inside.width()));
+
+        if (x > inside.x() && x + size.width() > inside.right() + 1) {
+            //It does not fit in what is left of this row: down to the next.
+            x = inside.x();
+            y += rowHeight + m_spacing;
+            rowHeight = 0;
+        }
+
+        if (apply) {
+            item->setGeometry(QRect(QPoint(x, y), size));
+        }
+
+        x += size.width() + m_spacing;
+        rowHeight = std::max(rowHeight, size.height());
+    }
+
+    return y + rowHeight - rect.y() + margins.bottom();
+}
+
+} // namespace qftbx

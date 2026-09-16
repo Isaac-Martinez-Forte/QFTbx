@@ -8,7 +8,7 @@
 namespace qftbx {
 
 BoundaryGridDialog::BoundaryGridDialog(QWidget *parent) :
-    StepDialog(parent),
+    StepPanel(parent),
     ui(std::make_unique<Ui::BoundaryGridDialog>())
 {
     ui->setupUi(this);
@@ -101,7 +101,7 @@ void BoundaryGridDialog::setFromProject(const qftbx::BoundaryData * boundaries)
     ui->magnitudePoints->setText(QString::number(boundaries->magnitudeCount()));
 }
 
-void BoundaryGridDialog::on_buttonBox_accepted()
+void BoundaryGridDialog::on_okButton_clicked()
 {
     if (ui->infinityEdit->text().isEmpty()){
         infinityEdit = -1;

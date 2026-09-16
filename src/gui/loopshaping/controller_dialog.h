@@ -4,11 +4,11 @@
 #include <memory>
 #include <optional>
 
-#include <QDialog>
+#include <QWidget>
 
 #include "src/core/system/lti_system.h"
 #include "src/gui/common/coefficient_tables.h"
-#include "src/gui/application/step_dialog.h"
+#include "src/gui/application/step_panel.h"
 #include "src/gui/common/system_description_reader.h"
 #include "src/gui/plant/uncertainty_dialog.h"
 
@@ -25,7 +25,7 @@ namespace qftbx {
  * Like the plant dialog, it builds a system and hands it over; the fields
  * are read by SystemDescriptionReader, shared between the two.
  */
-class ControllerDialog : public StepDialog
+class ControllerDialog : public StepPanel
 {
     Q_OBJECT
 
@@ -52,7 +52,6 @@ private slots:
     void on_zpkRadio_clicked();
     void on_tcgRadio_clicked();
     void on_uncertaintyButton_clicked();
-    void on_cancelButton_clicked();
     void on_okButton_clicked();
 
 private:

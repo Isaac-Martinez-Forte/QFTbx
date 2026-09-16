@@ -11,7 +11,7 @@
 namespace qftbx {
 
 BoundaryViewer::BoundaryViewer(QWidget *parent) :
-    QDialog(parent),
+    QWidget(parent),
     ui(std::make_unique<Ui::BoundaryViewer>())
 {
     ui->setupUi(this);
@@ -55,6 +55,14 @@ void BoundaryViewer::clearDiagram(){
 
 
     plotted = false;
+}
+
+void BoundaryViewer::clear(){
+
+    clearDiagram();
+    boundaryData = nullptr;
+    omega = nullptr;
+    ui->plot->replot();
 }
 
 void BoundaryViewer::setData(const BoundaryData *data, std::vector<double> * omega){

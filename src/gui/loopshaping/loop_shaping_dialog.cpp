@@ -50,7 +50,7 @@ bool readField(QLineEdit * field, const QString & complaint,
 }
 
 LoopShapingDialog::LoopShapingDialog(QWidget *parent) :
-    StepDialog(parent),
+    StepPanel(parent),
     ui(std::make_unique<Ui::LoopShapingDialog>())
 {
     ui->setupUi(this);
@@ -88,11 +88,6 @@ void LoopShapingDialog::updateEpsilonLabel()
     ui->epsilonLabel->setText(ui->mrRadio->isChecked()
                                   ? tr("Epsilon (controller parameter box width):")
                                   : tr("Epsilon (Nichols box diameter):"));
-}
-
-void LoopShapingDialog::on_cancelButton_clicked()
-{
-    this->close();
 }
 
 void LoopShapingDialog::on_okButton_clicked()
@@ -143,8 +138,6 @@ void LoopShapingDialog::on_okButton_clicked()
     linLogSpace = ui->linspaceRadio->isChecked();
 
     markAccepted();
-
-    this->close();
 }
 
 

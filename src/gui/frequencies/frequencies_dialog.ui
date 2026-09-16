@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>FrequenciesDialog</class>
- <widget class="QDialog" name="FrequenciesDialog">
+ <widget class="QWidget" name="FrequenciesDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -234,16 +234,9 @@
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout_3">
     <item>
-     <widget class="QPushButton" name="cancelButton">
-      <property name="text">
-       <string>Cancel</string>
-      </property>
-     </widget>
-    </item>
-    <item>
      <widget class="QPushButton" name="okButton">
       <property name="text">
-       <string>OK</string>
+       <string>Apply</string>
       </property>
      </widget>
     </item>

@@ -1,7 +1,7 @@
 #ifndef QFTBX_SPECIFICATIONS_DIALOG_H
 #define QFTBX_SPECIFICATIONS_DIALOG_H
 
-#include "src/gui/application/step_dialog.h"
+#include "src/gui/application/step_panel.h"
 #include "src/gui/common/system_description_reader.h"
 
 #include <QLineEdit>
@@ -11,7 +11,7 @@
 #include <optional>
 #include <vector>
 
-#include <QDialog>
+#include <QWidget>
 #include <QPixmap>
 
 #include "src/core/math/sequence_vectors.h"
@@ -25,7 +25,7 @@ class SpecificationsDialog;
 namespace qftbx {
 
 
-class SpecificationsDialog : public StepDialog
+class SpecificationsDialog : public StepPanel
 {
     Q_OBJECT
 
@@ -58,8 +58,11 @@ public:
      * design frequency. Every other dialog and viewer is handed its data
      * again right before it is shown, and this one now is too.
      *
-     * Throws qftbx::InvalidInput when there are no frequencies, like the
-     * constructor.
+     * A null or empty set is accepted here, unlike in the constructor: the
+     * panel stays open while the project changes, and the frequencies it
+     * was built on can be taken away under it. It refuses to publish until
+     * there are frequencies again, rather than reading a vector that has
+     * been freed.
      */
     void setFrequencies(const std::vector<double> * frequencies);
 
@@ -93,7 +96,6 @@ private slots:
 
     void on_systemRadio_clicked();
 
-    void on_cancelButton_clicked();
 
     void on_okButton_clicked();
 

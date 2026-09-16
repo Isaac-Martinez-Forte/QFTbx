@@ -16,7 +16,7 @@
 namespace qftbx {
 
 FrequenciesDialog::FrequenciesDialog(QWidget *parent) :
-    StepDialog(parent),
+    StepPanel(parent),
     ui(std::make_unique<Ui::FrequenciesDialog>())
 {
 
@@ -36,8 +36,6 @@ FrequenciesDialog::FrequenciesDialog(QWidget *parent) :
     ui->linStart->setValidator(new QDoubleValidator(this));
 
 
-    connect(ui->cancelButton, SIGNAL(clicked()), this, SLOT(close()));
-    connect (this, SIGNAL(close_ok()), this,SLOT(close()));
 }
 
 FrequenciesDialog::~FrequenciesDialog()
@@ -160,8 +158,6 @@ void FrequenciesDialog::on_okButton_clicked()
     m_omega = std::make_unique<Omega>(start, end, pointCount, std::move(frequencies), type);
 
     markAccepted();
-
-    emit (close_ok());
 }
 
 

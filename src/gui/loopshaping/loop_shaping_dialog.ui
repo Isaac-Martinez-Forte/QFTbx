@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>LoopShapingDialog</class>
- <widget class="QDialog" name="LoopShapingDialog">
+ <widget class="QWidget" name="LoopShapingDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -135,16 +135,9 @@
    </property>
    <layout class="QVBoxLayout" name="verticalLayout_2">
     <item>
-     <widget class="QPushButton" name="cancelButton">
-      <property name="text">
-       <string>Cancel</string>
-      </property>
-     </widget>
-    </item>
-    <item>
      <widget class="QPushButton" name="okButton">
       <property name="text">
-       <string>OK</string>
+       <string>Compute</string>
       </property>
      </widget>
     </item>
