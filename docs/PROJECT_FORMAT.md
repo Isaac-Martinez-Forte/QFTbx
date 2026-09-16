@@ -16,23 +16,25 @@ The root element carries the format version:
 
     <?xml version="1.0" encoding="UTF-8"?>
     <QFT version="4">
-      <inputs>  … </inputs>
-      <results> … </results>
+      <inputs>   … </inputs>
+      <settings> … </settings>
+      <results>  … </results>
     </QFT>
 
 This build writes and reads version 4, and refuses anything else rather
 than guessing at it: the dialects this format has had share tag names with
 DIFFERENT meanings - `<inicio>` is both a range start and an omega start -
 so reading one as another would not fail, it would return wrong numbers.
-Version 3 files are converted by `tools/port_qft_to_v4.py`, which moves the
-sections and changes nothing else.
+The only .qft files that exist are the ones in this repository, and they
+are at version 4.
 
 ## Structure
 
-Two parts, in the order a reader meets them. **`<inputs>`** is what the
-user described and **`<results>`** what came out of it, so that a file
-reads down the page: the problem is legible in its first lines and the bulk
-of the numbers is at the bottom.
+Three parts, in the order a reader meets them: **`<inputs>`** is what the
+user described, **`<settings>`** what each computation was run with, and
+**`<results>`** what came out of it, so that a file reads down the page: the
+problem is legible in its first lines and the bulk of the numbers is at the
+bottom.
 
 The controller is an INPUT. It is the structure the search is asked to look
 in - the zeros, the poles and the gain, each with the interval it may take -
@@ -41,7 +43,9 @@ and not what the search found, which is inside `<results>` under
 boundaries, which is what made the file hard to read.
 
 A project saved early simply lacks the later sections, and one with nothing
-computed has no `<results>` at all.
+computed has neither `<settings>` nor `<results>`.
+
+### The inputs
 
 **`<plant>`**, with a `name` attribute. Its `<type id="…">` says which of
 the four forms the plant is written in (zero-pole-gain, time-constant,
@@ -71,13 +75,38 @@ except the functions, the constants `pi` and `e` and the Laplace variable
 frequency range (`<min-frequency>`, `<max-frequency>`), whether it is
 `<constant>`, and its `<magnitude>` or model.
 
-**`<templates>`**: `<metadata>` with the `<epsilon>` of the contour, the
-`<full>` value sets and the `<contour>` of each frequency. Since version 3
-the `<epsilon>` element carries the plane its values are measured in:
+**`<controller>`**: the controller structure the loop shaping searches, in
+the same form and parameter syntax as the plant; the ranges are the search
+box.
+
+### The settings
+
+**`<templates>`**: the `<epsilon>` the contour was walked with, one value
+per frequency, and the plane those values are measured in:
 `metric="nichols"` (degrees of phase and decibels of magnitude, the latter
 divided by `db-per-degree`) or `metric="complex"` (the modulus of the
-difference of two complex values). A version 2 file is read as
+difference of two complex values). A file ported from version 2 is read as
 `metric="complex"`.
+
+**`<loop-shaping>`**: what the search was asked for, as three attributes.
+
+    <loop-shaping algorithm="mc2" tolerance="0.05" columns="conservative"/>
+
+`algorithm` is the name of one of `nt`, `nk`, `mr`, `mc1`, `mc-thesis`,
+`mc2`, `mc3` - a name and not the position of the enumeration, so a file
+still says what produced it after one more algorithm is added. `tolerance`
+is the epsilon the algorithm stops at, which is the diameter of the Nichols
+box for every algorithm but MR, where it is the width of the controller's
+parameter box. `columns` is how a phase between two boundary nodes was
+read: `nearest` takes the node it falls closest to, `conservative` takes
+both, which is the reading that cannot return an infeasible design. The
+same problem answers a different gain under each, so a design without these
+three cannot be reproduced or compared.
+
+### The results
+
+**`<templates>`**: the `<full>` value sets and the `<contour>` of each
+frequency.
 
 **`<boundaries>`**: `<data>` with the Nichols grid (`<phases>` and
 `<magnitudes>` with their `count`, `<min>` and `<max>`), the sheets as
@@ -88,12 +117,17 @@ boundaries and their `<union>` in `<union-buckets>`. A file without
 `<columns>` is read all the same: they are rebuilt from the boundaries, a
 cell coarser.
 
-**`<controller>`**: the controller structure the loop shaping searches, in
-the same form and parameter syntax as the plant; the ranges are the search
-box.
-
 **`<loop-shaping>`**: the shaped controller and the plotted loop, with its
-`point-count`.
+`point-count`, and the verifier's verdict on the design:
+
+    <check satisfied="true" worst-excess-db="-1.25"/>
+
+The worst excess over any active specification, in decibels, measured over
+the full value sets and not over the boundaries the search worked against;
+negative means satisfied and says by how much. The itemised table behind it
+is not stored - it is derivable from what the file already carries - and
+`worst-excess-db` is absent when no specification was active at any design
+frequency.
 
 ## Reading a file by hand
 

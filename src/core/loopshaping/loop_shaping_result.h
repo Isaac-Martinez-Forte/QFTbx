@@ -6,6 +6,7 @@
 
 
 #include "src/core/loopshaping/loop_shaping_statistics.h"
+#include "src/core/loopshaping/loop_shaping_types.h"
 #include "src/core/loopshaping/common/specification_checker.h"
 #include "src/core/system/lti_system.h"
 
@@ -43,6 +44,24 @@ public:
     const std::optional<SpecificationCheck> & check() const { return m_check; }
     void setCheck(SpecificationCheck check) { m_check = std::move(check); }
 
+    /**
+     * @brief What the run was asked for: the algorithm, the termination
+     * tolerance, and how it was told to read a phase between two boundary
+     * nodes.
+     *
+     * A result does not mean much without them - the same problem answers
+     * 557.02 or 567.32 depending on the reading alone - so they travel with
+     * it into the file and back, and the interface shows what produced a
+     * design instead of the defaults.
+     */
+    struct Run {
+        LoopShapingAlgorithm algorithm = qftbx::nt;
+        double epsilon = 0.0;
+        bool conservativeColumns = false;
+    };
+
+    const Run & run() const { return m_run; }
+    void setRun(const Run & run) { m_run = run; }
 
 private:
 
@@ -51,6 +70,7 @@ private:
     double m_pointCount = 0;
     LoopShapingStatistics m_statistics;
     std::optional<SpecificationCheck> m_check;
+    Run m_run;
 };
 
 } // namespace qftbx

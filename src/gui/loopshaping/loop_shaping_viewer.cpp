@@ -8,6 +8,8 @@
 #include "src/gui/application/error_message.h"
 #include "src/gui/common/plot_setup.h"
 
+#include <cmath>
+
 
 namespace qftbx {
 
@@ -78,10 +80,30 @@ void LoopShapingViewer::showCheck(){
 
     const std::optional<qftbx::SpecificationCheck> & check = loopShapingData->check();
 
-    if (!check.has_value() || check->entries.empty()) {
+    if (!check.has_value()) {
         ui->checkLabel->setText(tr("Not checked against the specifications (no templates to check over)."));
         ui->checkLabel->setToolTip(QString());
         ui->checkLabel->setStyleSheet(QString());
+        return;
+    }
+
+    //A design read from a project file brings the verdict but not the table
+    //behind it: the file stores the worst excess, which is what the verdict
+    //is, and not the itemised list, which the project can recompute.
+    if (check->entries.empty()) {
+        ui->checkLabel->setToolTip(QString());
+        if (!std::isfinite(check->worstExcessDb)) {
+            ui->checkLabel->setText(tr("No specification was active at any design frequency."));
+            ui->checkLabel->setStyleSheet(QString());
+        } else if (check->satisfied()) {
+            ui->checkLabel->setText(tr("Satisfies every specification over the template, by %1 dB (as saved with the project).")
+                                    .arg(qftbx::numberText(-check->worstExcessDb)));
+            ui->checkLabel->setStyleSheet("color: #1a7f37;");
+        } else {
+            ui->checkLabel->setText(tr("EXCEEDS a specification over the template by %1 dB (as saved with the project).")
+                                    .arg(qftbx::numberText(check->worstExcessDb)));
+            ui->checkLabel->setStyleSheet("color: #b42318; font-weight: bold;");
+        }
         return;
     }
 

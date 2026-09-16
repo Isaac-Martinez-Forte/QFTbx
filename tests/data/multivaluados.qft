@@ -186,11 +186,13 @@
             </type>
         </controller>
     </inputs>
+    <settings>
+        <templates>
+            <epsilon metric="complex">10 10 0 10 10 </epsilon>
+        </templates>
+    </settings>
     <results>
         <templates>
-            <metadata>
-                <epsilon metric="complex">10 10 0 10 10 </epsilon>
-            </metadata>
             <full size="5">
                 <re>1.58705 1.51996 1.45512 1.39326 1.33472 1.27959 1.22784 1.17934 1.13392 1.09139 </re>
                 <im>-1.02356 -0.915471 -0.823375 -0.744459 -0.67644 -0.617479 -0.566087 -0.521054 -0.48139 -0.446288 </im>

@@ -45,10 +45,14 @@ protected:
         }
     }
 
-    //Writes a settings file and answers with its path.
+    //Writes a settings file and answers with its path. The name carries the
+    //test's own: one shared name meant that two of these running at once
+    //read each other's file, and the suite failed a different test each run.
     std::string written(const std::string & content)
     {
-        m_path = std::string(QFTBX_TEST_DATA_DIR "/../settings_under_test.conf");
+        m_path = std::string(QFTBX_TEST_DATA_DIR "/../settings_under_test_")
+                 + ::testing::UnitTest::GetInstance()->current_test_info()->name()
+                 + ".conf";
 
         std::ofstream file(m_path);
         file << content;

@@ -1189,6 +1189,24 @@ TEST_F(GuiSmoke, OpeningAProjectRebuildsTheStepsItCarried)
 }
 
 
+TEST_F(GuiSmoke, TheLoopFormShowsWhatProducedTheDesign)
+{
+    //A design is a number that depends on the algorithm, the tolerance and
+    //the reading of the phase grid; the form used to open on the defaults
+    //over a project that had been solved with something else.
+    ProjectController project;
+    project.load(std::string(QFTBX_TEST_DATA_DIR "/planta1.qft"));
+    ASSERT_NE(project.loopShapingResult(), nullptr);
+    project.loopShapingResult()->setRun({qftbx::mc2, 0.02, true});
+
+    LoopShapingDialog dialog;
+    dialog.setFromProject(project.loopShapingResult());
+
+    EXPECT_TRUE(child<QRadioButton>(&dialog, "mc2Radio")->isChecked());
+    EXPECT_EQ(child<QLineEdit>(&dialog, "epsilonEdit")->text(), QString("0.02"));
+    EXPECT_TRUE(child<QCheckBox>(&dialog, "conservativeColumnsCheck")->isChecked());
+}
+
 TEST_F(GuiSmoke, AReusedDialogForgetsItsPreviousAcceptance)
 {
     //StepDialog directly: the seven dialogs used to declare this flag each

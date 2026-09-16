@@ -57,6 +57,7 @@ bool LoopShapingStage::run(ProjectData & data, double epsilon,
 
     auto result = std::make_unique<LoopShapingResult>(search.controllerStructure(), plotRange, pointCount);
     result->setStatistics(search.statistics());
+    result->setRun({algorithm, epsilon, m_settings.algorithms.conservativeBoundaryColumns});
 
     //The last step of a run: the controller the search certified against
     //the boundaries, checked against the specifications themselves over the

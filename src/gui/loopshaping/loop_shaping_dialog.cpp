@@ -203,6 +203,26 @@ void LoopShapingDialog::setFromProject(const qftbx::LoopShapingResult * result)
     ui->startEdit->setText(qftbx::numberText(result->range().min));
     ui->endEdit->setText(qftbx::numberText(result->range().max));
     ui->pointCountEdit->setText(qftbx::numberText(result->pointCount()));
+
+    //What produced the design, so that the form shown over a loaded project
+    //is the one that was run and not the defaults. A file written before the
+    //settings were stored says NT with a zero tolerance; the fields keep
+    //what they had rather than showing a zero nobody asked for.
+    const qftbx::LoopShapingResult::Run & run = result->run();
+    if (run.epsilon > 0.0) {
+        ui->epsilonEdit->setText(qftbx::numberText(run.epsilon));
+    }
+    ui->conservativeColumnsCheck->setChecked(run.conservativeColumns);
+
+    switch (run.algorithm) {
+    case qftbx::nk:  ui->nkRadio->setChecked(true);  break;
+    case qftbx::mr:  ui->mrRadio->setChecked(true);  break;
+    case qftbx::mc1: ui->mc1Radio->setChecked(true); break;
+    case qftbx::mc2: ui->mc2Radio->setChecked(true); break;
+    //MC thesis and MC3 have no button of their own: they are run from the
+    //benchmark, not from here, and a project that carries one keeps it.
+    default:         ui->ntRadio->setChecked(true);  break;
+    }
 }
 
 void LoopShapingDialog::applyDefaults(const qftbx::Settings::Defaults & defaults)
