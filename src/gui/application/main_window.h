@@ -84,6 +84,10 @@ public:
 
     void setFileChooser(FileChooser choose);
 
+    /// Whether a phase is computing on the worker. The window shows it on
+    /// the card; this is what a test waits on.
+    bool isComputing() const { return m_computing != nullptr; }
+
 private slots:
     //One per phase: what used to follow the modal dialog, now run when the
     //panel of that phase says the user accepted what it holds.
@@ -202,6 +206,26 @@ private:
     /// settings, so the next start comes up as this one was left.
     void rememberCanvas();
 
+
+    /**
+     * @brief Starts a computation on the worker and dresses its card for
+     * it, or reports why it cannot start.
+     *
+     * @param card the phase that is computing: it says so and offers to
+     *        give up on it.
+     * @param what the line its bar shows while it runs.
+     * @param start what actually starts it; it returns false when a run is
+     *        already in flight.
+     * @param collected what to do on THIS thread once it has finished and
+     *        produced a result: draw it.
+     */
+    void runInBackground(PhaseCard * card, const QString & what, const QString & title,
+                         const std::function<bool (std::function<void ()>)> & start,
+                         const std::function<void ()> & collected);
+
+    /// The phase that is computing, or nullptr: one at a time, because the
+    /// pipeline is sequential.
+    PhaseCard * m_computing = nullptr;
 
     /// Draws in every viewer what the project holds for its step: what a
     /// file that carries results has to show the moment it is opened.

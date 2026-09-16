@@ -36,6 +36,7 @@
 #include <QFile>
 #include "src/gui/common/plot_export.h"
 #include <QSet>
+#include <QThread>
 #include <QCoreApplication>
 #include <QEvent>
 #include "src/gui/common/plot_setup.h"
@@ -1453,6 +1454,107 @@ TEST_F(GuiSmoke, TheFiguresAndTheIconAreInTheBuild)
     QLabel * image = child<QLabel>(&plant, "zpkImage");
     ASSERT_NE(image, nullptr);
     EXPECT_FALSE(image->pixmap().isNull()) << "the plant form has no figure in it";
+}
+
+//Waits for the phase that is computing, spinning the loop as the
+//application does: the result arrives through a queued call.
+void waitForComputation(MainWindow & window)
+{
+    for (int spin = 0; spin < 2000 && window.isComputing(); ++spin) {
+        QCoreApplication::processEvents();
+        QThread::msleep(5);
+    }
+    QCoreApplication::processEvents();
+}
+
+TEST_F(GuiSmoke, AComputationRunsOnAWorkerAndTheWindowStaysAlive)
+{
+    //The window used to freeze for as long as a computation took - tens of
+    //minutes on a real problem - with an hourglass over it and no way out
+    //but killing the process. Now the phase says it is working, its form is
+    //not to be touched while its numbers are in use, and the rest of the
+    //window answers.
+    MainWindow window;
+
+    child<QPushButton>(&window, "plantButton")->click();
+    fillPlant(panelIn<PlantForm>(&window), "worked");
+    child<QPushButton>(&window, "frequenciesButton")->click();
+    fillFrequencies(panelIn<FrequenciesForm>(&window));
+
+    child<QPushButton>(&window, "templatesButton")->click();
+    TemplatesForm * templates = panelIn<TemplatesForm>(&window);
+    ASSERT_NE(templates, nullptr);
+
+    type(templates, "epsilonEdit", "0.5");
+    check(templates, "linspaceRadio");
+    type(templates, "globalPointCount", "3");
+    check(templates, "allVariablesRadio");
+    check(templates, "nicholsRadio");
+    press(templates, "okButton");
+
+    PhaseCard * card = window.findChild<PhaseCard *>("templatesCard");
+    ASSERT_NE(card, nullptr);
+
+    //It says so while it runs - and the form is disabled, because its
+    //numbers are what is being computed.
+    if (window.isComputing()) {
+        EXPECT_TRUE(card->isBusy());
+        EXPECT_NE(window.findChild<QToolButton *>("templatesCardCancel"), nullptr);
+    }
+
+    waitForComputation(window);
+
+    EXPECT_FALSE(card->isBusy()) << "the card stayed busy after the run finished";
+
+    QProgressBar * progress = child<QProgressBar>(&window, "progressBar");
+    ASSERT_NE(progress, nullptr);
+    //Plant, frequencies and templates: three of the seven steps.
+    EXPECT_EQ(progress->value(), 3) << "the templates did not reach the project: "
+                                    << m_reported.join(" | ").toStdString();
+
+    //And what it computed is on the screen.
+    TemplateViewer * viewer = window.findChild<TemplateViewer *>();
+    ASSERT_NE(viewer, nullptr);
+    QCustomPlot * plot = child<QCustomPlot>(viewer, "plot");
+    ASSERT_NE(plot, nullptr);
+    EXPECT_GT(plot->graphCount(), 0) << "the templates were computed and not drawn";
+}
+
+TEST_F(GuiSmoke, ACancelledComputationLeavesTheProjectAsItWas)
+{
+    //Giving up has to leave nothing behind: half a sweep is not a set of
+    //templates, and a project that kept one would carry a result nobody
+    //computed.
+    MainWindow window;
+
+    child<QPushButton>(&window, "plantButton")->click();
+    fillPlant(panelIn<PlantForm>(&window), "cancelled");
+    child<QPushButton>(&window, "frequenciesButton")->click();
+    fillFrequencies(panelIn<FrequenciesForm>(&window));
+
+    child<QPushButton>(&window, "templatesButton")->click();
+    TemplatesForm * templates = panelIn<TemplatesForm>(&window);
+    ASSERT_NE(templates, nullptr);
+
+    //A sweep big enough to still be running when the cancel arrives.
+    type(templates, "epsilonEdit", "0.5");
+    check(templates, "linspaceRadio");
+    type(templates, "globalPointCount", "400");
+    check(templates, "allVariablesRadio");
+    check(templates, "nicholsRadio");
+    press(templates, "okButton");
+
+    QToolButton * cancel = window.findChild<QToolButton *>("templatesCardCancel");
+    ASSERT_NE(cancel, nullptr);
+    cancel->click();
+
+    waitForComputation(window);
+
+    QProgressBar * progress = child<QProgressBar>(&window, "progressBar");
+    ASSERT_NE(progress, nullptr);
+    EXPECT_EQ(progress->value(), 2) << "a cancelled sweep left templates behind";
+    EXPECT_TRUE(m_reported.isEmpty())
+        << "giving up is not an error: " << m_reported.join(" | ").toStdString();
 }
 
 TEST_F(GuiSmoke, TheSquareOfTheCanvasFollowsTheScreenItIsGiven)

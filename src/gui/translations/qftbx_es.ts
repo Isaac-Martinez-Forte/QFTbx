@@ -579,6 +579,10 @@ del controlador</translation>
         <source>interface.theme must be system, light or dark: &apos;%1&apos;</source>
         <translation>interface.theme debe ser system, light o dark: «%1»</translation>
     </message>
+    <message>
+        <source>The computation has not finished yet.</source>
+        <translation>El cálculo todavía no ha terminado.</translation>
+    </message>
 </context>
 <context>
     <name>FrequenciesForm</name>
@@ -1838,6 +1842,26 @@ contorno</translation>
         <source>&amp;Appearance</source>
         <translation>&amp;Aspecto</translation>
     </message>
+    <message>
+        <source>Templates: sweeping...</source>
+        <translation>Templates: barriendo…</translation>
+    </message>
+    <message>
+        <source>Boundaries: computing...</source>
+        <translation>Boundaries: calculando…</translation>
+    </message>
+    <message>
+        <source>Loop: searching...</source>
+        <translation>Lazo: buscando…</translation>
+    </message>
+    <message>
+        <source>Another phase is computing. Wait for it or cancel it.</source>
+        <translation>Hay otra fase calculando. Espere a que termine o cancélela.</translation>
+    </message>
+    <message>
+        <source>A computation is already running.</source>
+        <translation>Ya hay un cálculo en marcha.</translation>
+    </message>
 </context>
 <context>
     <name>qftbx::PhaseCard</name>
@@ -1856,6 +1880,14 @@ contorno</translation>
     <message>
         <source>Wider</source>
         <translation>Más ancho</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Cancelar</translation>
+    </message>
+    <message>
+        <source>Give up on the computation of this phase</source>
+        <translation>Abandonar el cálculo de esta fase</translation>
     </message>
 </context>
 <context>

@@ -9,6 +9,7 @@
 #include <vector>
 
 class QLabel;
+class QProgressBar;
 class QScrollArea;
 class QToolButton;
 class QVBoxLayout;
@@ -51,6 +52,19 @@ public:
     /// business: a card made wide stays wide with its form open or closed.
     void showForm(bool shown);
 
+    /**
+     * @brief Says that the computation of this phase is running, or that it
+     * is not.
+     *
+     * A card that is working says so on its bar and puts a bar of its own
+     * across it; the form below is not to be touched while its numbers are
+     * being used, so it is disabled. What the user can still do is scroll,
+     * look at the other phases - and press Cancel, which is what the button
+     * on the bar becomes.
+     */
+    void setBusy(bool busy, const QString & what = QString());
+    bool isBusy() const { return m_busy; }
+
     /// How many squares of the canvas the card takes on a side, 1 to 3: a
     /// card of 2 is two columns across and two rows down, which is what
     /// makes its diagram bigger rather than wider.
@@ -74,6 +88,9 @@ public:
     QSize minimumSizeHint() const override;
 
 signals:
+    /// The user pressed Cancel on the bar of a card that is working.
+    void cancelAsked();
+
     /// The card wants a different size - its form was folded or unfolded,
     /// or it was made wider or narrower. The canvas lays itself out again.
     void sizeChanged();
@@ -97,9 +114,13 @@ private:
     QScrollArea * m_formArea = nullptr;
     QWidget * m_views = nullptr;
     QToolButton * m_fold = nullptr;
+    QToolButton * m_cancel = nullptr;
+    QProgressBar * m_progress = nullptr;
+    bool m_busy = false;
     QToolButton * m_narrower = nullptr;
     QToolButton * m_wider = nullptr;
     QLabel * m_caption = nullptr;
+    QString m_title;
     int m_span = 1;
     /// Whether the user has said how big this card should be. Until he
     /// does, a phase that is only a form sizes itself to its form.

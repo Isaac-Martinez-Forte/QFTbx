@@ -246,6 +246,14 @@ void MainWindow::resizeCards()
 //is what the tests do - there is nowhere to put it and nothing to do.
 void MainWindow::closeEvent(QCloseEvent * event)
 {
+    //A run in flight is given up on before the window goes: the project
+    //joins its worker when it dies, and a search that had forty minutes
+    //left would hold the whole application closing for them.
+    if (controller != nullptr && controller->isComputing()) {
+        controller->cancelComputation();
+        controller->waitForComputation();
+    }
+
     rememberCanvas();
     QMainWindow::closeEvent(event);
 }
@@ -400,6 +408,12 @@ PhaseCard * MainWindow::addPhaseCard(const QString & title, const QString & name
     connect(card, &PhaseCard::sizeChanged, this, [this]() {
         m_canvasLayout->invalidate();
         m_canvasContent->updateGeometry();
+    });
+
+    //And the button that gives up on the computation of this phase, which
+    //is the only thing its bar offers while one is running.
+    connect(card, &PhaseCard::cancelAsked, this, [this]() {
+        controller->cancelComputation();
     });
 
     //Dragged by its bar, a card changes places with the one the cursor is
@@ -843,35 +857,29 @@ void MainWindow::on_templatesButton_clicked()
 
 void MainWindow::applyTemplates()
 {
-    bool templatesOk = false;
+    //Read on this thread, while the form still says what the user asked
+    //for: the worker gets values, not widgets.
+    controller->setEpsilonMetric(templatesForm->epsilonMetric());
+    controller->setWholeCloudStandsIn(templatesForm->wholeTemplateIfNoContour());
+    controller->setAlphaShapeContour(templatesForm->alphaShapeContour());
+    controller->setBorderSweep(templatesForm->borderSweep());
 
-    {
-        //The hourglass for as long as this scope, whichever way it leaves.
-        const WaitCursor waiting(this);
+    const bool nichols = templatesForm->nicholsSelected();
 
-        try {
-            controller->setEpsilonMetric(templatesForm->epsilonMetric());
-            controller->setWholeCloudStandsIn(templatesForm->wholeTemplateIfNoContour());
-            controller->setAlphaShapeContour(templatesForm->alphaShapeContour());
-            controller->setBorderSweep(templatesForm->borderSweep());
-            templatesOk = controller->computeTemplates(templatesForm->takeEpsilon(),
-                                                       templatesForm->grids(),
-                                                       templatesForm->cudaSelected());
-        } catch (const qftbx::Exception & e) {
-            QMessageBox::critical(this, tr("Template computation"), translated(e));
-            return;
-        }
-    }
-
-    if (!templatesOk){
-        return;
-    }
-
-    templateViewer->setData(controller->templates(),
-                             controller->contour(),
-                             controller->omega()->values(),
-                             controller->epsilon());
-    templateViewer->plotDiagram(templatesForm->nicholsSelected());
+    runInBackground(templatesCard, tr("Templates: sweeping..."), tr("Template computation"),
+                    [this](std::function<void ()> done) {
+                        return controller->startTemplates(templatesForm->takeEpsilon(),
+                                                          templatesForm->grids(),
+                                                          templatesForm->cudaSelected(),
+                                                          std::move(done));
+                    },
+                    [this, nichols]() {
+                        templateViewer->setData(controller->templates(),
+                                                controller->contour(),
+                                                controller->omega()->values(),
+                                                controller->epsilon());
+                        templateViewer->plotDiagram(nichols);
+                    });
 }
 
 void MainWindow::on_boundariesButton_clicked()
@@ -884,34 +892,25 @@ void MainWindow::on_boundariesButton_clicked()
 
 void MainWindow::applyBoundaries()
 {
-    bool boundariesOk = false;
+    runInBackground(boundariesCard, tr("Boundaries: computing..."), tr("Boundary computation"),
+                    [this](std::function<void ()> done) {
+                        return controller->startBoundaries(boundaryGridForm->phaseRangeValue(),
+                                                           boundaryGridForm->phaseCountValue(),
+                                                           boundaryGridForm->magnitudeRangeValue(),
+                                                           boundaryGridForm->magnitudeCountValue(),
+                                                           boundaryGridForm->infinityValue(),
+                                                           boundaryGridForm->contourSelected(),
+                                                           boundaryGridForm->cudaSelected(),
+                                                           std::move(done));
+                    },
+                    [this]() {
+                        boundaryViewer->setData(controller->boundaries(), controller->omega()->values());
+                        boundaryViewer->showDiagram();
 
-    {
-        const WaitCursor waiting(this);
-
-        try {
-            boundariesOk = controller->computeBoundaries(boundaryGridForm->phaseRangeValue(),
-                                                         boundaryGridForm->phaseCountValue(),
-                                                         boundaryGridForm->magnitudeRangeValue(),
-                                                         boundaryGridForm->magnitudeCountValue(),
-                                                         boundaryGridForm->infinityValue(),
-                                                         boundaryGridForm->contourSelected(),
-                                                         boundaryGridForm->cudaSelected());
-        } catch (const qftbx::Exception & e) {
-            QMessageBox::critical(this, tr("Boundary computation"), translated(e));
-            return;
-        }
-    }
-
-    if (!boundariesOk){
-        return;
-    }
-
-    boundaryViewer->setData(controller->boundaries(), controller->omega()->values());
-    boundaryViewer->showDiagram();
-
-    boundaryUnionViewer->setData(controller->unionBoundaries(), controller->omega()->values());
-    boundaryUnionViewer->showDiagram();
+                        boundaryUnionViewer->setData(controller->unionBoundaries(),
+                                                     controller->omega()->values());
+                        boundaryUnionViewer->showDiagram();
+                    });
 }
 
 
@@ -947,42 +946,29 @@ void MainWindow::on_loopButton_clicked()
 
 void MainWindow::applyLoopShaping()
 {
-    bool designed = false;
+    //The reading of the boundary columns is a setting the form exposes for
+    //this run; the core gets it the way it gets every setting.
+    m_settings.algorithms.conservativeBoundaryColumns = loopShapingForm->conservativeColumns();
+    controller->applySettings(m_settings);
 
-    {
-        //The search is the long one - tens of minutes on a real problem - and
-        //it still runs on this thread, so the window is frozen for as long as
-        //it takes. The facade can now run it on a worker and be asked to give
-        //up; wiring that here needs a cancel button, and where that goes is a
-        //decision still open.
-        const WaitCursor waiting(this);
+    const bool linSpace = loopShapingForm->isLinSpace();
 
-        //The reading of the boundary columns is a setting the dialog exposes
-        //for this run; the core gets it the way it gets every setting.
-        m_settings.algorithms.conservativeBoundaryColumns = loopShapingForm->conservativeColumns();
-        controller->applySettings(m_settings);
-
-        try {
-            designed = controller->computeLoopShaping(loopShapingForm->epsilonValue(),
-                                                      loopShapingForm->algorithmValue(),
-                                                      loopShapingForm->range(),
-                                                      loopShapingForm->pointCountValue(),
-                                                      loopShapingForm->initialisationValue());
-        } catch (const qftbx::Exception & e) {
-            QMessageBox::critical(this, tr("Loop Shaping"), translated(e));
-            return;
-        }
-    }
-
-    if (!designed){
-        return;
-    }
-
-    loopShapingViewer->setData(controller->unionBoundaries(), controller->omega()->values(),
-                               controller->loopShapingResult(), controller->plant(),
-                               loopShapingForm->isLinSpace());
-
-    loopShapingViewer->showDiagram();
+    runInBackground(loopShapingCard, tr("Loop: searching..."), tr("Loop Shaping"),
+                    [this](std::function<void ()> done) {
+                        return controller->startLoopShaping(loopShapingForm->epsilonValue(),
+                                                            loopShapingForm->algorithmValue(),
+                                                            loopShapingForm->range(),
+                                                            loopShapingForm->pointCountValue(),
+                                                            loopShapingForm->initialisationValue(),
+                                                            std::move(done));
+                    },
+                    [this, linSpace]() {
+                        loopShapingViewer->setData(controller->unionBoundaries(),
+                                                   controller->omega()->values(),
+                                                   controller->loopShapingResult(),
+                                                   controller->plant(), linSpace);
+                        loopShapingViewer->showDiagram();
+                    });
 }
 
 void MainWindow::on_actionSave_triggered()
@@ -1094,6 +1080,59 @@ void MainWindow::on_actionOpen_triggered()
 //report: this runs from the open handler, which is a slot, and an exception
 //leaving a slot takes the application down. Drawing is not worth that - a
 //project whose diagram cannot be built still has its numbers.
+//One computation at a time, on the worker, with the card of its phase
+//saying so and offering to give up on it. What used to happen here was that
+//the whole window froze for as long as the search took - tens of minutes on
+//a real problem - with an hourglass over it and no way out but killing the
+//process.
+void MainWindow::runInBackground(PhaseCard * card, const QString & what, const QString & title,
+                                 const std::function<bool (std::function<void ()>)> & start,
+                                 const std::function<void ()> & collected)
+{
+    if (m_computing != nullptr) {
+        errorMessage(tr("Another phase is computing. Wait for it or cancel it."), title);
+        return;
+    }
+
+    //The finished handler runs ON THE WORKER, so all it does is hop back
+    //here: everything below touches widgets and the project.
+    const auto whenDone = [this, card, title, collected]() {
+        QMetaObject::invokeMethod(this, [this, card, title, collected]() {
+            card->setBusy(false);
+            m_computing = nullptr;
+
+            //What the run means for the rest of the project, applied here
+            //and not on the worker, and announced once.
+            controller->collectComputation();
+
+            if (!controller->lastComputationError().empty()) {
+                errorMessage(QString::fromStdString(controller->lastComputationError()), title);
+                return;
+            }
+            if (controller->lastComputationCancelled() || !controller->lastComputationProduced()) {
+                return;
+            }
+
+            collected();
+        }, Qt::QueuedConnection);
+    };
+
+    try {
+        if (!start(whenDone)) {
+            errorMessage(tr("A computation is already running."), title);
+            return;
+        }
+    } catch (const qftbx::Exception & e) {
+        //The prerequisites are checked on this thread, so a project that
+        //cannot start says so here.
+        errorMessage(translated(e), title);
+        return;
+    }
+
+    m_computing = card;
+    card->setBusy(true, what);
+}
+
 void MainWindow::showResults()
 {
     try {

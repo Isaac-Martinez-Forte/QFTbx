@@ -322,6 +322,37 @@ public:
                           std::int32_t initialisation = 0,
                           std::function<void ()> finished = std::function<void ()>());
 
+    /**
+     * @brief The sweep of the templates, on a worker thread.
+     *
+     * Same contract as startLoopShaping: the prerequisites are checked on
+     * the caller's thread, @p finished runs on the WORKER, and how it went
+     * is read afterwards through lastComputation*(). Returns false when a
+     * run is already in flight.
+     */
+    bool startTemplates(std::vector<double> epsilon, qftbx::ParameterGrids grids, bool cuda,
+                        std::function<void ()> finished = std::function<void ()>());
+
+    /// The boundaries, on a worker thread. Same contract.
+    bool startBoundaries(qftbx::Range phaseRange, std::int32_t phaseCount,
+                         qftbx::Range magnitudeRange, std::int32_t magnitudeCount,
+                         double exportInfinity, bool contour, bool cuda,
+                         std::function<void ()> finished = std::function<void ()>());
+
+    /// Which computation the last run was.
+    enum class Computation { None, Templates, Boundaries, LoopShaping };
+
+    /**
+     * @brief Applies what the finished run means for the rest of the
+     * project, and announces the change.
+     *
+     * Called by the interface ON ITS OWN THREAD once the run has finished:
+     * new templates invalidate the boundaries under them, and dropping
+     * those from the worker would free, in the middle of a repaint, the
+     * data a viewer is drawing. Throws when the run has not finished.
+     */
+    void collectComputation();
+
     /// Asks the search in flight to stop. Safe at any time, from any thread;
     /// does nothing when there is no run.
     void cancelComputation();
@@ -438,6 +469,10 @@ private:
     //token cannot outlive the search that reads it.
     qftbx::BackgroundRun m_background;
     qftbx::CancellationToken m_cancellation;
+
+    /// What the run in flight - or the last one - computes: what it
+    /// invalidates depends on it, and that is applied when it is collected.
+    Computation m_lastComputation = Computation::None;
 };
 
 } // namespace qftbx

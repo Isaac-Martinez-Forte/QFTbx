@@ -327,6 +327,7 @@ bool ProjectController::startLoopShaping(double epsilon, qftbx::LoopShapingAlgor
     m_loopShaping.requirePrerequisites(m_data);
 
     m_cancellation.reset();
+    m_lastComputation = Computation::LoopShaping;
 
     return m_background.start(
         [this, epsilon, algorithm, plotRange, pointCount, initialisation]() {
@@ -334,6 +335,81 @@ bool ProjectController::startLoopShaping(double epsilon, qftbx::LoopShapingAlgor
                                      pointCount, initialisation, &m_cancellation);
         },
         std::move(finished));
+}
+
+bool ProjectController::startTemplates(std::vector<double> epsilon, qftbx::ParameterGrids grids,
+                                      bool cuda, std::function<void ()> finished)
+{
+    if (m_background.running()) {
+        return false;
+    }
+
+    //On THIS thread, like the loop shaping: a missing plant is the caller's
+    //mistake and has to surface where it was made.
+    m_templates.requirePrerequisites(m_data);
+
+    m_cancellation.reset();
+
+    m_lastComputation = Computation::Templates;
+
+    return m_background.start(
+        [this, epsilon = std::move(epsilon), grids = std::move(grids), cuda]() mutable {
+            return m_templates.run(m_data, std::move(epsilon), std::move(grids),
+                                   cuda, &m_cancellation);
+        },
+        std::move(finished));
+}
+
+bool ProjectController::startBoundaries(qftbx::Range phaseRange, std::int32_t phaseCount,
+                                        qftbx::Range magnitudeRange, std::int32_t magnitudeCount,
+                                        double exportInfinity, bool contour, bool cuda,
+                                        std::function<void ()> finished)
+{
+    if (m_background.running()) {
+        return false;
+    }
+
+    m_boundaries.requirePrerequisites(m_data, contour);
+
+    m_cancellation.reset();
+
+    m_lastComputation = Computation::Boundaries;
+
+    return m_background.start(
+        [this, phaseRange, phaseCount, magnitudeRange, magnitudeCount, exportInfinity,
+         contour, cuda]() {
+            return m_boundaries.run(m_data, phaseRange, phaseCount,
+                                    magnitudeRange, magnitudeCount,
+                                    exportInfinity, contour, cuda, &m_cancellation);
+        },
+        std::move(finished));
+}
+
+//What a finished run means for the rest of the project, applied where the
+//interface lives and not on the worker: a run that computes new templates
+//invalidates the boundaries under them, and dropping those from the worker
+//would free, mid-repaint, the very data a viewer is drawing.
+void ProjectController::collectComputation()
+{
+    if (m_background.running()) {
+        throw qftbx::InvalidInput(QFTBX_TR("Core", "The computation has not finished yet."));
+    }
+
+    const Announce announce(*this);
+
+    switch (m_lastComputation) {
+    case Computation::Templates:
+        dropBoundariesAndBelow();
+        break;
+    case Computation::Boundaries:
+        dropLoopShaping();
+        break;
+    case Computation::LoopShaping:
+    case Computation::None:
+        break;
+    }
+
+    m_lastComputation = Computation::None;
 }
 
 void ProjectController::cancelComputation()

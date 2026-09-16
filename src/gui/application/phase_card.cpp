@@ -8,6 +8,7 @@
 #include <QTabWidget>
 #include <QToolButton>
 #include <QMouseEvent>
+#include <QProgressBar>
 #include <QVBoxLayout>
 
 namespace qftbx {
@@ -77,12 +78,31 @@ PhaseCard::PhaseCard(const QString & title, const QString & name, QWidget * form
     auto * barLayout = new QHBoxLayout(bar);
     barLayout->setContentsMargins(8, 4, 4, 4);
 
+    m_title = title;
     m_caption = new QLabel(title, bar);
     QFont bold = m_caption->font();
     bold.setBold(true);
     m_caption->setFont(bold);
     barLayout->addWidget(m_caption);
     barLayout->addStretch();
+
+    //Only while the phase is computing: a bar that says it is working and
+    //the button that gives up on it.
+    m_progress = new QProgressBar(bar);
+    m_progress->setObjectName(name + "Progress");
+    m_progress->setRange(0, 0);
+    m_progress->setTextVisible(false);
+    m_progress->setMaximumSize(120, 12);
+    m_progress->setVisible(false);
+    barLayout->addWidget(m_progress);
+
+    m_cancel = new QToolButton(bar);
+    m_cancel->setObjectName(name + "Cancel");
+    m_cancel->setText(tr("Cancel"));
+    m_cancel->setToolTip(tr("Give up on the computation of this phase"));
+    m_cancel->setVisible(false);
+    connect(m_cancel, &QToolButton::clicked, this, &PhaseCard::cancelAsked);
+    barLayout->addWidget(m_cancel);
 
     m_fold = new QToolButton(bar);
     m_fold->setObjectName(name + "Fold");
@@ -111,6 +131,7 @@ PhaseCard::PhaseCard(const QString & title, const QString & name, QWidget * form
     //and a hand over something you only press says the wrong thing. A
     //cursor is inherited by every child unless the child says otherwise.
     for (QWidget * pressed : {static_cast<QWidget *>(m_fold),
+                              static_cast<QWidget *>(m_cancel),
                               static_cast<QWidget *>(m_narrower),
                               static_cast<QWidget *>(m_wider)}) {
         pressed->setCursor(Qt::ArrowCursor);
@@ -213,6 +234,21 @@ bool PhaseCard::eventFilter(QObject * watched, QEvent * event)
     }
 
     return QFrame::eventFilter(watched, event);
+}
+
+void PhaseCard::setBusy(bool busy, const QString & what)
+{
+    m_busy = busy;
+
+    m_progress->setVisible(busy);
+    m_cancel->setVisible(busy);
+    m_fold->setEnabled(!busy);
+
+    //The form is the input of the computation that is running: touching it
+    //while it runs would describe something else.
+    m_formArea->setEnabled(!busy);
+
+    m_caption->setText(busy && !what.isEmpty() ? what : m_title);
 }
 
 bool PhaseCard::isFormShown() const
