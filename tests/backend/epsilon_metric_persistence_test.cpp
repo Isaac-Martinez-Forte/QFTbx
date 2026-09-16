@@ -59,7 +59,7 @@ TEST(EpsilonMetric, TheMetricRoundTripsThroughTheFile)
     //The written file says version 3 and names the plane on the epsilon.
     std::ifstream in(path);
     std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-    EXPECT_NE(text.find("version=\"3\""), std::string::npos);
+    EXPECT_NE(text.find("version=\"4\""), std::string::npos);
     EXPECT_NE(text.find("metric=\"nichols\""), std::string::npos);
     EXPECT_NE(text.find("db-per-degree=\"0.5\""), std::string::npos);
 }
@@ -77,18 +77,20 @@ TEST(EpsilonMetric, AnUnknownMetricOrVersionIsRefused)
     };
 
     ProjectReader reader;
-    EXPECT_THROW(reader.load(write("v4.qft", "<?xml version=\"1.0\"?><QFT version=\"4\"></QFT>")), qftbx::ParseError);
+    //A version-4 file with no <inputs> is refused: the section is where
+    //everything the reader needs lives.
+    EXPECT_THROW(reader.load(write("empty.qft", "<?xml version=\"1.0\"?><QFT version=\"4\"></QFT>")), qftbx::ParseError);
 
     const std::string badMetric =
-        "<?xml version=\"1.0\"?><QFT version=\"3\"><templates><metadata>"
+        "<?xml version=\"1.0\"?><QFT version=\"4\"><inputs/><results><templates><metadata>"
         "<epsilon metric=\"polar\">1 </epsilon></metadata><full size=\"1\"><re>1 </re><im>0 </im></full>"
-        "</templates></QFT>";
+        "</templates></results></QFT>";
     EXPECT_THROW(reader.load(write("metric.qft", badMetric)), qftbx::ParseError);
 
     const std::string badWeight =
-        "<?xml version=\"1.0\"?><QFT version=\"3\"><templates><metadata>"
+        "<?xml version=\"1.0\"?><QFT version=\"4\"><inputs/><results><templates><metadata>"
         "<epsilon metric=\"nichols\" db-per-degree=\"0\">1 </epsilon></metadata><full size=\"1\"><re>1 </re><im>0 </im></full>"
-        "</templates></QFT>";
+        "</templates></results></QFT>";
     EXPECT_THROW(reader.load(write("weight.qft", badWeight)), qftbx::ParseError);
 }
 

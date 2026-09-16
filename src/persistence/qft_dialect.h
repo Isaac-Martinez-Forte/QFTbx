@@ -15,6 +15,15 @@ namespace qftbx {
  * other following.
  */
 struct Tags {
+    /// The three parts of a project file, in the order a reader meets them:
+    /// what the user described, what each computation was run with, and what
+    /// came out of it. Before version 4 they were mixed - the controller
+    /// STRUCTURE, which is an input, sat after the templates and the
+    /// boundaries - and a file could not be read down the page.
+    const char * inputs;
+    const char * settings;
+    const char * results;
+
     const char * plant;
     const char * controller;
     const char * loopShaping;
@@ -66,7 +75,13 @@ struct Tags {
     const char * boundaryColumns;
 };
 
-inline const Tags kV2 = {
+/// The version this build writes. A file that says anything else is refused:
+/// the sections moved in 4, and reading a 3 as a 4 finds the inputs missing
+/// rather than misplaced.
+inline constexpr int kVersion = 4;
+
+inline const Tags kV4 = {
+    "inputs", "settings", "results",
     "plant", "controller", "loop-shaping",
     "name", "type", "id", "expression", "numerator", "denominator",
     "nominal", "uncertain", "name", "expr", "range", "min", "max",

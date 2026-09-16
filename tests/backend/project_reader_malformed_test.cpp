@@ -71,6 +71,29 @@ protected:
         return write(bytes);
     }
 
+    //A fixture with the FIRST element of that name removed, whatever its
+    //indentation: matching the literal text of one is a test that breaks
+    //whenever the file is re-indented, and says nothing when it does.
+    std::string without(const char * fixture, const char * element)
+    {
+        QByteArray bytes = fixtureBytes(fixture);
+        EXPECT_FALSE(bytes.isEmpty()) << "fixture " << fixture << " unreadable";
+
+        const QByteArray open = QByteArray("<") + element + ">";
+        const QByteArray close = QByteArray("</") + element + ">";
+
+        const int from = bytes.indexOf(open);
+        const int to = bytes.indexOf(close, from);
+        EXPECT_NE(from, -1) << "the fixture has no <" << element << ">";
+        EXPECT_NE(to, -1) << "the fixture has no </" << element << ">";
+        if (from == -1 || to == -1) {
+            return {};
+        }
+
+        bytes.remove(from, to + close.size() - from);
+        return write(bytes);
+    }
+
     QTemporaryDir m_dir;
 };
 
@@ -122,7 +145,7 @@ TEST_F(MalformedProject, AForeignRootElementIsAParseError)
 {
     qftbx::ProjectReader parser;
 
-    const std::string path = mutated("planta1.qft", "<QFT version=\"2\">", "<NotQFT version=\"2\">");
+    const std::string path = mutated("planta1.qft", "<QFT version=\"4\">", "<NotQFT version=\"4\">");
     ASSERT_FALSE(path.empty());
 
     EXPECT_THROW(parser.load(path), qftbx::ParseError);
@@ -130,28 +153,39 @@ TEST_F(MalformedProject, AForeignRootElementIsAParseError)
 
 TEST_F(MalformedProject, AFileWithNoVersionIsRefused)
 {
-    //Version 2 is the only format. A file with no version attribute was the
-    //historical Spanish dialect, and it used to be read as such; every .qft
-    //has been converted and that path is gone. It has to be REFUSED rather
-    //than attempted, because the two dialects share tag names with different
-    //meanings - <inicio> is both a range start and an omega start - so
-    //reading one as the other would not fail, it would return wrong numbers.
+    //A file with no version attribute is refused rather than guessed at: the
+    //dialects this format has had share tag names with DIFFERENT meanings -
+    //<inicio> is both a range start and an omega start - so reading one as
+    //another would not fail, it would return wrong numbers.
     qftbx::ProjectReader parser;
 
-    const std::string path = mutated("planta1.qft", "<QFT version=\"2\">", "<QFT>");
+    const std::string path = mutated("planta1.qft", "<QFT version=\"4\">", "<QFT>");
     ASSERT_FALSE(path.empty());
 
     EXPECT_THROW(parser.load(path), qftbx::ParseError);
 }
 
-TEST_F(MalformedProject, AFutureVersionIsRefused)
+TEST_F(MalformedProject, AVersionThisBuildDoesNotKnowIsRefused)
 {
-    //And a version this build does not know is refused too, instead of being
-    //read as if it were one it knows (2 and 3 today).
+    //Either side of the one it reads: an older file whose sections are not
+    //where version 4 puts them, and a newer one whose meaning it cannot
+    //know. Reading a 3 as a 4 finds the inputs missing rather than
+    //misplaced, which is a confusing way to fail.
     qftbx::ProjectReader parser;
 
-    const std::string path = mutated("planta1.qft", "<QFT version=\"2\">",
-                                     "<QFT version=\"4\">");
+    for (const char * version : {"<QFT version=\"3\">", "<QFT version=\"5\">"}) {
+        const std::string path = mutated("planta1.qft", "<QFT version=\"4\">", version);
+        ASSERT_FALSE(path.empty());
+        EXPECT_THROW(parser.load(path), qftbx::ParseError) << version;
+    }
+}
+
+TEST_F(MalformedProject, DISABLED_placeholderForTheOldFutureVersionCase)
+{
+    qftbx::ProjectReader parser;
+
+    const std::string path = mutated("planta1.qft", "<QFT version=\"4\">",
+                                     "<QFT version=\"5\">");
     ASSERT_FALSE(path.empty());
 
     EXPECT_THROW(parser.load(path), qftbx::ParseError);
@@ -186,10 +220,7 @@ TEST_F(MalformedProject, AMissingRequiredElementIsAParseError)
     qftbx::ProjectReader parser;
 
     //The range of a parameter, removed whole.
-    const std::string path = mutated("planta1.qft",
-                                 "<range>\n                        <min>1</min>\n"
-                                 "                        <max>5</max>\n                    </range>",
-                                 "");
+    const std::string path = without("planta1.qft", "range");
     ASSERT_FALSE(path.empty());
 
     EXPECT_THROW(parser.load(path), qftbx::ParseError);

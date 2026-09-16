@@ -522,36 +522,39 @@ ProjectReader::Loaded ProjectReader::load(const std::string & filePath)
     //a range start and also an omega start, <tipo> is an element in one
     //place and an attribute in another), so a wrong guess does not fail,
     //it reads the wrong numbers.
-    //Version 3 adds to version 2 only the plane the templates' epsilon is
-    //measured in, as attributes of <epsilon>; a version-2 file is read as
-    //what it is, an epsilon in the complex plane.
     const int version = root.attribute("version").as_int(0);
-    if (version != 2 && version != 3) {
+    if (version != kVersion) {
         throw ParseError(version == 0
-                         ? QFTBX_TR("Core", "unsupported .qft version (no version attribute; this build reads versions 2 and 3)")
-                         : QFTBX_TR("Core", "unsupported .qft version (found %1, this build reads versions 2 and 3)").arg(version),
-                         1, filePath);
+                         ? QFTBX_TR("Core", "unsupported .qft version (no version attribute; this build reads version %1)")
+                         : QFTBX_TR("Core", "unsupported .qft version (found %1, this build reads version %2)"),
+                         version, filePath);
     }
 
-    ProjectFileParser parser(filePath, raw, kV2);
-    const Tags & t = kV2;
+    ProjectFileParser parser(filePath, raw, kV4);
+    const Tags & t = kV4;
+
+    //The three parts of the file. A project with nothing computed still has
+    //its inputs, and one that has never been saved by this build has
+    //neither, which the version check above has already refused.
+    const pugi::xml_node inputs = parser.require(root, t.inputs);
+    const pugi::xml_node results = root.child(t.results);
 
     bool hasContour = false;
 
-    if (const pugi::xml_node section = root.child(t.plant)) {
+    if (const pugi::xml_node section = inputs.child(t.plant)) {
         m_plant = parser.readSystem(section);
     }
-    if (const pugi::xml_node section = root.child(t.specifications)) {
+    if (const pugi::xml_node section = inputs.child(t.specifications)) {
         m_specifications = parser.readSpecifications(section);
     }
-    if (const pugi::xml_node section = root.child(t.omega)) {
+    if (const pugi::xml_node section = inputs.child(t.omega)) {
         m_omega = parser.readOmega(section);
     }
-    if (const pugi::xml_node section = root.child(t.templates)) {
+    if (const pugi::xml_node section = results.child(t.templates)) {
         const pugi::xml_node epsilonNode = parser.require(parser.require(section, t.metadata), t.epsilon);
         m_epsilon = parser.realVector(epsilonNode);
         m_epsilonMetric = EpsilonMetric{};
-        if (version >= 3) {
+        if (true) {
             const std::string metric = epsilonNode.attribute("metric").value();
             if (metric == "nichols") {
                 m_epsilonMetric.metric = HullMetric::Nichols;
@@ -572,14 +575,14 @@ ProjectReader::Loaded ProjectReader::load(const std::string & filePath)
             hasContour = true;
         }
     }
-    if (const pugi::xml_node section = root.child(t.boundaries)) {
+    if (const pugi::xml_node section = results.child(t.boundaries)) {
         m_boundaries = parser.readBoundaries(section);
     }
-    if (const pugi::xml_node section = root.child(t.controller)) {
+    if (const pugi::xml_node section = inputs.child(t.controller)) {
         //Every type lands in the controller, free-form included.
         m_controller = parser.readSystem(section);
     }
-    if (const pugi::xml_node section = root.child(t.loopShaping)) {
+    if (const pugi::xml_node section = results.child(t.loopShaping)) {
         m_loopShaping = parser.readLoopShaping(section);
     }
 

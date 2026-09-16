@@ -73,16 +73,32 @@ TEST_P(RoundTrip, WritesTheVersionedEnglishDialect)
 
     const pugi::xml_node root = document.document_element();
     EXPECT_STREQ(root.name(), "QFT");
-    EXPECT_EQ(root.attribute("version").as_int(), 3);
+    EXPECT_EQ(root.attribute("version").as_int(), 4);
 
     // No legacy Spanish tags anywhere in a written file.
     EXPECT_FALSE(root.child("Planta"));
     EXPECT_FALSE(root.child("especificaciones"));
+
+    //What the user described is under <inputs> and what came out under
+    //<results>, so that the file reads down the page. The controller
+    //STRUCTURE is an input: it is the box the search is asked to look in.
+    const pugi::xml_node inputs = root.child("inputs");
+    ASSERT_TRUE(inputs) << "a written file has no <inputs>";
     if (originalSections.steps.has(qftbx::Step::Plant)) {
-        EXPECT_TRUE(root.child("plant"));
+        EXPECT_TRUE(inputs.child("plant"));
+        EXPECT_FALSE(root.child("plant")) << "the plant is still at the root";
     }
     if (originalSections.steps.has(qftbx::Step::Specifications)) {
-        EXPECT_TRUE(root.child("specifications"));
+        EXPECT_TRUE(inputs.child("specifications"));
+    }
+    if (originalSections.steps.has(qftbx::Step::Controller)) {
+        EXPECT_TRUE(inputs.child("controller")) << "the structure to search is an input";
+    }
+
+    if (originalSections.steps.has(qftbx::Step::Templates)) {
+        const pugi::xml_node results = root.child("results");
+        ASSERT_TRUE(results) << "a file with templates has no <results>";
+        EXPECT_TRUE(results.child("templates"));
     }
 }
 

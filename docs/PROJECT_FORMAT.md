@@ -15,23 +15,33 @@ reader and the writer so the two cannot drift apart.
 The root element carries the format version:
 
     <?xml version="1.0" encoding="UTF-8"?>
-    <QFT version="3">
-      ...
+    <QFT version="4">
+      <inputs>  … </inputs>
+      <results> … </results>
     </QFT>
 
-This build writes version 3 and reads versions 2 and 3. The only
-difference is the plane the contour epsilon is measured in (see
-`<templates>` below): a version 2 file has no such declaration and is read
-as measuring in the complex plane, which is what those files meant.
-Files from the earlier releases of QFTbx, which used Spanish tag names and
-no version attribute, are refused with a message rather than guessed at;
-they can be converted by opening and saving them with the last release that
-read them. Every project shipped in `tests/data/` is version 2.
+This build writes and reads version 4, and refuses anything else rather
+than guessing at it: the dialects this format has had share tag names with
+DIFFERENT meanings - `<inicio>` is both a range start and an omega start -
+so reading one as another would not fail, it would return wrong numbers.
+Version 3 files are converted by `tools/port_qft_to_v4.py`, which moves the
+sections and changes nothing else.
 
 ## Structure
 
-The sections appear in pipeline order. A project saved early simply lacks
-the later ones.
+Two parts, in the order a reader meets them. **`<inputs>`** is what the
+user described and **`<results>`** what came out of it, so that a file
+reads down the page: the problem is legible in its first lines and the bulk
+of the numbers is at the bottom.
+
+The controller is an INPUT. It is the structure the search is asked to look
+in - the zeros, the poles and the gain, each with the interval it may take -
+and not what the search found, which is inside `<results>` under
+`<loop-shaping>`. Before version 4 it sat after the templates and the
+boundaries, which is what made the file hard to read.
+
+A project saved early simply lacks the later sections, and one with nothing
+computed has no `<results>` at all.
 
 **`<plant>`**, with a `name` attribute. Its `<type id="…">` says which of
 the four forms the plant is written in (zero-pole-gain, time-constant,

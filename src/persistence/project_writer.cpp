@@ -24,7 +24,7 @@ namespace {
 //short form is 0.000101558).
 using qftbx::text::number;
 
-const Tags & t = kV2;
+const Tags & t = kV4;
 
 //A NaN or an infinity never leaves for the file: written as text they read
 //back through strtod, and a project that had gone wrong in memory would
@@ -319,28 +319,39 @@ void ProjectWriter::save(const std::string & filePath, const ProjectContent & co
     declaration.append_attribute("encoding") = "UTF-8";
 
     pugi::xml_node root = document.append_child("QFT");
-    root.append_attribute("version") = 3;
+    root.append_attribute("version") = kVersion;
+
+    //Three parts, in the order a reader meets them: what the user described,
+    //then what each computation was run with, then what came out. The
+    //problem is legible in the first page of the file and the bulk is at the
+    //bottom, which is the point of the arrangement.
+    pugi::xml_node inputs = root.append_child(t.inputs);
 
     if (content.plant != nullptr) {
-        writeSystem(root, t.plant, content.plant);
+        writeSystem(inputs, t.plant, content.plant);
     }
     if (content.specifications != nullptr) {
-        writeSpecifications(root, content.specifications);
+        writeSpecifications(inputs, content.specifications);
     }
     if (content.omega != nullptr) {
-        writeOmega(root, content.omega);
+        writeOmega(inputs, content.omega);
     }
+    //The controller STRUCTURE is an input: it is the box the search is asked
+    //to look in, not what the search found.
+    if (content.controller != nullptr) {
+        writeSystem(inputs, t.controller, content.controller);
+    }
+
+    pugi::xml_node results = root.append_child(t.results);
+
     if (content.templates != nullptr && !content.templates->empty()) {
-        writeTemplates(root, content);
+        writeTemplates(results, content);
     }
     if (content.boundaries != nullptr) {
-        writeBoundaries(root, content.boundaries);
-    }
-    if (content.controller != nullptr) {
-        writeSystem(root, t.controller, content.controller);
+        writeBoundaries(results, content.boundaries);
     }
     if (content.loopShaping != nullptr) {
-        writeLoopShaping(root, content.loopShaping);
+        writeLoopShaping(results, content.loopShaping);
     }
 
     if (!document.save_file(filePath.c_str(), "    ",
