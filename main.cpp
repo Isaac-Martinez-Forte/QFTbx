@@ -22,7 +22,14 @@ int main(int argc, char *argv[])
     //decimal point.
     std::setlocale(LC_NUMERIC, "C");
 
-    a.setWindowIcon(QIcon(":/icons/qftbx_256.png"));
+    //Every size the window manager may ask for, in one icon: the title bar
+    //takes a small one and the task switcher a large one, and an icon with
+    //a single 256-pixel image is scaled down for both.
+    QIcon icon;
+    for (const char * size : {"16", "32", "64", "128", "256"}) {
+        icon.addFile(QString(":/icons/qftbx_%1.png").arg(size));
+    }
+    a.setWindowIcon(icon);
 
 
     //The settings are read ONCE, here, and handed down: immutable afterwards,
@@ -53,8 +60,9 @@ int main(int argc, char *argv[])
                   << "\" is not a setting this build knows" << std::endl;
     }
 
+    //The window takes the application's icon by itself; setting it again
+    //here was the same picture twice.
     auto w = std::make_unique<qftbx::MainWindow>(settings);
-    w->setWindowIcon(QIcon(":/icons/qftbx_256.png"));
     w->show();
 
     return a.exec();

@@ -31,6 +31,7 @@
 #include "src/gui/common/frequency_legend.h"
 #include <QTemporaryDir>
 #include <QImage>
+#include <QPixmap>
 #include <QFile>
 #include "src/gui/common/plot_export.h"
 #include <QSet>
@@ -40,6 +41,7 @@
 #include <QCheckBox>
 #include <QDialog>
 #include <QLineEdit>
+#include <QLabel>
 #include <QMouseEvent>
 #include <QProgressBar>
 #include <QPushButton>
@@ -1373,6 +1375,31 @@ TEST_F(GuiSmoke, TheWindowOpensAtTheSizeItWasLeft)
     broken.interface.window = "as wide as you like";
     MainWindow other(broken);
     EXPECT_GT(other.width(), 0);
+}
+
+TEST_F(GuiSmoke, TheFiguresAndTheIconAreInTheBuild)
+{
+    //Resources compiled into a STATIC library are dropped by the linker
+    //unless the target owns them: the figures of the plant and the
+    //specifications came up blank and the application had no icon, and
+    //nothing said so - a missing resource is an empty pixmap.
+    for (const char * size : {"16", "32", "64", "128", "256"}) {
+        const QPixmap icon(QString(":/icons/qftbx_%1.png").arg(size));
+        EXPECT_FALSE(icon.isNull()) << "the icon of " << size << " pixels is not in the build";
+    }
+
+    for (const char * figure : {"copol", "kgan", "knogan", "EC", "estabilidad",
+                                "RPE", "RPS", "ruidosensor", "seguimiento"}) {
+        const QPixmap picture(QString(":/figures/%1.png").arg(figure));
+        EXPECT_FALSE(picture.isNull()) << "the figure " << figure << " is not in the build";
+    }
+
+    //And a form shows the one it was given.
+    PlantForm plant;
+    check(&plant, "zpkRadio");
+    QLabel * image = child<QLabel>(&plant, "zpkImage");
+    ASSERT_NE(image, nullptr);
+    EXPECT_FALSE(image->pixmap().isNull()) << "the plant form has no figure in it";
 }
 
 TEST_F(GuiSmoke, TheSquareOfTheCanvasFollowsTheScreenItIsGiven)
