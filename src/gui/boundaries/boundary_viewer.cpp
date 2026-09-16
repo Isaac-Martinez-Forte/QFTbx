@@ -5,20 +5,21 @@
 #include "ui_boundary_viewer.h"
 
 #include "src/gui/application/error_message.h"
-#include "src/gui/common/plot_palette.h"
+#include "src/gui/common/plot_setup.h"
 
 
 namespace qftbx {
 
 BoundaryViewer::BoundaryViewer(QWidget *parent) :
-    QDialog(parent),
+    QWidget(parent),
     ui(std::make_unique<Ui::BoundaryViewer>())
 {
     ui->setupUi(this);
+    qftbx::setUpPlot(*ui->plot, tr("phase (degrees)"), tr("magnitude (dB)"));
     setWindowTitle(tr("Boundaries"));
 
-    legend = new FrequencyLegend(this);
-    legend->setGeometry(QRect(660, 0, 141, 461));
+    legend = new FrequencyLegend(ui->legendHolder);
+    ui->legendHolder->layout()->addWidget(legend);
     connect(legend, &FrequencyLegend::rowToggled, this, &BoundaryViewer::applyCheckboxes);
 
     //Mirrored secondary axes, connected ONCE: a connection per repaint adds a
@@ -56,6 +57,14 @@ void BoundaryViewer::clearDiagram(){
     plotted = false;
 }
 
+void BoundaryViewer::clear(){
+
+    clearDiagram();
+    boundaryData = nullptr;
+    omega = nullptr;
+    ui->plot->replot();
+}
+
 void BoundaryViewer::setData(const BoundaryData *data, std::vector<double> * omega){
 
     boundaryData = data;
@@ -77,7 +86,7 @@ void BoundaryViewer::showDiagram(){
 
         QVector <QCPCurve *> frequencyCurves;
 
-        QColor color = randomColor(i);
+        QColor color = frequencyColour(i, static_cast<int>(boundarySet.size()));
 
         addFrequencyRow(color, i);
 
@@ -99,7 +108,7 @@ void BoundaryViewer::showDiagram(){
 
                 QCPCurve *curve = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
                 curve->setData(qftbx::toQVector(phases), qftbx::toQVector(magnitudes));
-                curve->setPen(color);
+                curve->setPen(QPen(color, kCurveWidth));
                 frequencyCurves.push_back(curve);
 
                 k++;
@@ -109,15 +118,9 @@ void BoundaryViewer::showDiagram(){
         curves.push_back(std::move(frequencyCurves));
     }
 
-    ui->plot->xAxis2->setVisible(true);
-    ui->plot->xAxis2->setTickLabels(false);
-    ui->plot->yAxis2->setVisible(true);
-    ui->plot->yAxis2->setTickLabels(false);
 
-    ui->plot->axisRect()->setupFullAxesBox();
     ui->plot->rescaleAxes();
 
-    ui->plot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
 
     ui->plot->replot();
 

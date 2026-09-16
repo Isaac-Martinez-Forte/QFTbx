@@ -1,15 +1,15 @@
-#include "src/gui/boundaries/boundary_grid_dialog.h"
+#include "src/gui/boundaries/boundary_grid_form.h"
 #include "src/gui/common/number_text.h"
-#include "ui_boundary_grid_dialog.h"
+#include "ui_boundary_grid_form.h"
 
 #include "src/gui/application/error_message.h"
 
 
 namespace qftbx {
 
-BoundaryGridDialog::BoundaryGridDialog(QWidget *parent) :
-    StepDialog(parent),
-    ui(std::make_unique<Ui::BoundaryGridDialog>())
+BoundaryGridForm::BoundaryGridForm(QWidget *parent) :
+    StepPanel(parent),
+    ui(std::make_unique<Ui::BoundaryGridForm>())
 {
     ui->setupUi(this);
 
@@ -35,31 +35,31 @@ BoundaryGridDialog::BoundaryGridDialog(QWidget *parent) :
 
 }
 
-BoundaryGridDialog::~BoundaryGridDialog()
+BoundaryGridForm::~BoundaryGridForm()
 {
 }
 
-qftbx::Range BoundaryGridDialog::phaseRangeValue(){
+qftbx::Range BoundaryGridForm::phaseRangeValue(){
     return phaseRange;
 }
 
-qftbx::Range BoundaryGridDialog::magnitudeRangeValue(){
+qftbx::Range BoundaryGridForm::magnitudeRangeValue(){
     return magnitudeRange;
 }
 
-qint32 BoundaryGridDialog::phaseCountValue(){
+qint32 BoundaryGridForm::phaseCountValue(){
     return phaseCount;
 }
 
-qint32 BoundaryGridDialog::magnitudeCountValue(){
+qint32 BoundaryGridForm::magnitudeCountValue(){
     return magnitudeCount;
 }
 
-qreal BoundaryGridDialog::infinityValue(){
+qreal BoundaryGridForm::infinityValue(){
     return infinityEdit;
 }
 
-bool BoundaryGridDialog::contourSelected(){
+bool BoundaryGridForm::contourSelected(){
 
     if (ui->fullTemplateRadio->isChecked()){
         return false;
@@ -68,7 +68,7 @@ bool BoundaryGridDialog::contourSelected(){
     return true;
 }
 
-void BoundaryGridDialog::applyDefaults(const qftbx::Settings::Defaults & defaults)
+void BoundaryGridForm::applyDefaults(const qftbx::Settings::Defaults & defaults)
 {
     ui->phaseStart->setText(qftbx::numberText(defaults.phaseStart));
     ui->phaseEnd->setText(qftbx::numberText(defaults.phaseEnd));
@@ -86,7 +86,22 @@ void BoundaryGridDialog::applyDefaults(const qftbx::Settings::Defaults & default
     }
 }
 
-void BoundaryGridDialog::on_buttonBox_accepted()
+void BoundaryGridForm::setFromProject(const qftbx::BoundaryData * boundaries)
+{
+    if (boundaries == nullptr) {
+        return;
+    }
+
+    ui->phaseStart->setText(qftbx::numberText(boundaries->phaseRange().min));
+    ui->phaseEnd->setText(qftbx::numberText(boundaries->phaseRange().max));
+    ui->phasePoints->setText(QString::number(boundaries->phaseCount()));
+
+    ui->magnitudeStart->setText(qftbx::numberText(boundaries->magnitudeRange().min));
+    ui->magnitudeEnd->setText(qftbx::numberText(boundaries->magnitudeRange().max));
+    ui->magnitudePoints->setText(QString::number(boundaries->magnitudeCount()));
+}
+
+void BoundaryGridForm::on_okButton_clicked()
 {
     if (ui->infinityEdit->text().isEmpty()){
         infinityEdit = -1;
@@ -132,7 +147,7 @@ void BoundaryGridDialog::on_buttonBox_accepted()
     markAccepted();
 }
 
-bool BoundaryGridDialog::cudaSelected(){
+bool BoundaryGridForm::cudaSelected(){
     return cudaCheck;
 }
 

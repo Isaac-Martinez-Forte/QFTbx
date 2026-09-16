@@ -1,7 +1,8 @@
 #include <QIntValidator>
-#include "src/gui/frequencies/frequencies_dialog.h"
+#include "src/gui/frequencies/frequencies_form.h"
+#include "src/gui/common/number_text.h"
 #include "src/core/common/text_tokens.h"
-#include "ui_frequencies_dialog.h"
+#include "ui_frequencies_form.h"
 
 #include <vector>
 #include <cmath>
@@ -14,9 +15,9 @@
 
 namespace qftbx {
 
-FrequenciesDialog::FrequenciesDialog(QWidget *parent) :
-    StepDialog(parent),
-    ui(std::make_unique<Ui::FrequenciesDialog>())
+FrequenciesForm::FrequenciesForm(QWidget *parent) :
+    StepPanel(parent),
+    ui(std::make_unique<Ui::FrequenciesForm>())
 {
 
     ui->setupUi(this);
@@ -35,14 +36,12 @@ FrequenciesDialog::FrequenciesDialog(QWidget *parent) :
     ui->linStart->setValidator(new QDoubleValidator(this));
 
 
-    connect(ui->cancelButton, SIGNAL(clicked()), this, SLOT(close()));
-    connect (this, SIGNAL(close_ok()), this,SLOT(close()));
 }
 
-FrequenciesDialog::~FrequenciesDialog()
+FrequenciesForm::~FrequenciesForm()
 {
 }
-void FrequenciesDialog::on_fileButton_clicked()
+void FrequenciesForm::on_fileButton_clicked()
 {
     QString fileName = QFileDialog::getOpenFileName(this);
     if (!fileName.isEmpty()){
@@ -55,7 +54,7 @@ void FrequenciesDialog::on_fileButton_clicked()
 //the validators, so it has to be re-applied rather than just stored: it comes
 //from the settings, and the default is small enough that the count cannot
 //overflow the std::int32_t that logspace and linspace take.
-void FrequenciesDialog::applyFrequencyCountLimit(std::int32_t count)
+void FrequenciesForm::applyFrequencyCountLimit(std::int32_t count)
 {
     m_maxFrequencyCount = count;
 
@@ -67,7 +66,7 @@ void FrequenciesDialog::applyFrequencyCountLimit(std::int32_t count)
     ui->linCount->setValidator(new QIntValidator(1, m_maxFrequencyCount, this));
 }
 
-void FrequenciesDialog::on_okButton_clicked()
+void FrequenciesForm::on_okButton_clicked()
 {
     qreal start = 0;
     qreal end = 0;
@@ -159,12 +158,50 @@ void FrequenciesDialog::on_okButton_clicked()
     m_omega = std::make_unique<Omega>(start, end, pointCount, std::move(frequencies), type);
 
     markAccepted();
-
-    emit (close_ok());
 }
 
 
-std::unique_ptr<Omega> FrequenciesDialog::takeOmega(){
+void FrequenciesForm::setFromProject(const Omega * omega)
+{
+    if (omega == nullptr || omega->values() == nullptr || omega->values()->empty()) {
+        return;
+    }
+
+    const std::vector<double> & values = *omega->values();
+
+    //The values, always: whatever the mode, they are what the project has,
+    //and the manual page is where a set that answers to no rule is shown.
+    QStringList listed;
+    listed.reserve(static_cast<int>(values.size()));
+    for (const double w : values) {
+        listed << numberText(w);
+    }
+    ui->manualValues->setText(listed.join(" "));
+
+    switch (omega->type()) {
+    case Omega::LogSpace:
+        ui->logStart->setText(numberText(omega->start()));
+        ui->logEnd->setText(numberText(omega->end()));
+        ui->logCount->setText(QString::number(omega->pointCount()));
+        ui->modeStack->setCurrentIndex(1);
+        break;
+    case Omega::LinSpace:
+        ui->linStart->setText(numberText(omega->start()));
+        ui->linEnd->setText(numberText(omega->end()));
+        ui->linCount->setText(QString::number(omega->pointCount()));
+        ui->modeStack->setCurrentIndex(2);
+        break;
+    case Omega::File:
+    case Omega::Manual:
+    default:
+        //A set from a file is shown as the values it holds and not as the
+        //path: the file may be gone, and the project carries the numbers.
+        ui->modeStack->setCurrentIndex(0);
+        break;
+    }
+}
+
+std::unique_ptr<Omega> FrequenciesForm::takeOmega(){
     return std::move(m_omega);
 }
 

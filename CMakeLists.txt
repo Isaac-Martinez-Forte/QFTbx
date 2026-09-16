@@ -73,7 +73,7 @@ if(WIN32 AND NOT CMAKE_PREFIX_PATH)
   set(CMAKE_PREFIX_PATH "C:/Qt/6.6.2/mingw_64" CACHE PATH "Qt installation used on Windows")
 endif()
 
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets PrintSupport LinguistTools)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets PrintSupport Svg LinguistTools)
 message(STATUS "Found Qt ${Qt6_VERSION}")
 
 if(USE_OpenMP)

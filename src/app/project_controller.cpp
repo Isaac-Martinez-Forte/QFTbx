@@ -75,6 +75,7 @@ void ProjectController::dropLoopShaping(){
 }
 
 bool ProjectController::setPlant(std::unique_ptr<LtiSystem> plant){
+    const Announce announce(*this);
     requireNotComputing();
 
     if (plant == nullptr) {
@@ -94,6 +95,7 @@ bool ProjectController::setPlant(std::unique_ptr<LtiSystem> plant){
 }
 
 bool ProjectController::setOmega(std::unique_ptr<Omega> omega){
+    const Announce announce(*this);
     requireNotComputing();
 
     if (omega == nullptr) {
@@ -112,6 +114,7 @@ bool ProjectController::setOmega(std::unique_ptr<Omega> omega){
 }
 
 void ProjectController::setSpecifications(std::optional<qftbx::SpecificationRecords> specifications){
+    const Announce announce(*this);
     requireNotComputing();
 
     if (!specifications.has_value()) {
@@ -126,6 +129,8 @@ void ProjectController::setSpecifications(std::optional<qftbx::SpecificationReco
 
 void ProjectController::setTemplates(qftbx::CloudSet clouds, qftbx::CloudSet contour,
                                      bool hasContour){
+    const Announce announce(*this);
+
 
     m_templates.adopt(m_data, std::move(clouds), std::move(contour), hasContour);
 
@@ -133,6 +138,8 @@ void ProjectController::setTemplates(qftbx::CloudSet clouds, qftbx::CloudSet con
 }
 
 void ProjectController::setBoundaries(std::optional<qftbx::BoundaryData> boundaries){
+    const Announce announce(*this);
+
     m_data.setBoundaries(std::move(boundaries));
 
     dropLoopShaping();
@@ -149,6 +156,8 @@ const qftbx::CloudSet & ProjectController::contour(){
 bool ProjectController::computeTemplates(std::vector <double> epsilon, qftbx::ParameterGrids grids, bool cuda){
 
     requireNotComputing();
+
+    const Announce announce(*this);
 
     //The drop is applied here and not reached through setTemplates(), which
     //the stage does not call (StageSequence.RecomputingTheTemplatesDropsTheBoundaries).
@@ -219,6 +228,8 @@ const qftbx::CloudSet & ProjectController::recomputeContour(std::vector <double>
     //It rewrites the contour and the epsilon, which MR reads.
     requireNotComputing();
 
+    const Announce announce(*this);
+
     return m_templates.recomputeContour(m_data, std::move(epsilon));
 }
 
@@ -226,6 +237,8 @@ bool ProjectController::computeBoundaries(qftbx::Range phaseRange, std::int32_t 
                                      std::int32_t magnitudeCount, double exportInfinity, bool contour, bool cuda){
 
     requireNotComputing();
+
+    const Announce announce(*this);
 
     const bool produced = m_boundaries.run(m_data, phaseRange, phaseCount,
                                            magnitudeRange, magnitudeCount,
@@ -257,6 +270,7 @@ const qftbx::UnionBuckets & ProjectController::unionBuckets(){
 }
 
 bool ProjectController::setControllerStructure(std::unique_ptr<LtiSystem> controller){
+    const Announce announce(*this);
     requireNotComputing();
 
     if (controller == nullptr) {
@@ -285,6 +299,8 @@ bool ProjectController::computeLoopShaping(double epsilon, qftbx::LoopShapingAlg
 
     requireNotComputing();
 
+    const Announce announce(*this);
+
     return m_loopShaping.run(m_data, epsilon, algorithm, plotRange, pointCount,
                              initialisation, cancellation);
 }
@@ -311,6 +327,7 @@ bool ProjectController::startLoopShaping(double epsilon, qftbx::LoopShapingAlgor
     m_loopShaping.requirePrerequisites(m_data);
 
     m_cancellation.reset();
+    m_lastComputation = Computation::LoopShaping;
 
     return m_background.start(
         [this, epsilon, algorithm, plotRange, pointCount, initialisation]() {
@@ -318,6 +335,81 @@ bool ProjectController::startLoopShaping(double epsilon, qftbx::LoopShapingAlgor
                                      pointCount, initialisation, &m_cancellation);
         },
         std::move(finished));
+}
+
+bool ProjectController::startTemplates(std::vector<double> epsilon, qftbx::ParameterGrids grids,
+                                      bool cuda, std::function<void ()> finished)
+{
+    if (m_background.running()) {
+        return false;
+    }
+
+    //On THIS thread, like the loop shaping: a missing plant is the caller's
+    //mistake and has to surface where it was made.
+    m_templates.requirePrerequisites(m_data);
+
+    m_cancellation.reset();
+
+    m_lastComputation = Computation::Templates;
+
+    return m_background.start(
+        [this, epsilon = std::move(epsilon), grids = std::move(grids), cuda]() mutable {
+            return m_templates.run(m_data, std::move(epsilon), std::move(grids),
+                                   cuda, &m_cancellation);
+        },
+        std::move(finished));
+}
+
+bool ProjectController::startBoundaries(qftbx::Range phaseRange, std::int32_t phaseCount,
+                                        qftbx::Range magnitudeRange, std::int32_t magnitudeCount,
+                                        double exportInfinity, bool contour, bool cuda,
+                                        std::function<void ()> finished)
+{
+    if (m_background.running()) {
+        return false;
+    }
+
+    m_boundaries.requirePrerequisites(m_data, contour);
+
+    m_cancellation.reset();
+
+    m_lastComputation = Computation::Boundaries;
+
+    return m_background.start(
+        [this, phaseRange, phaseCount, magnitudeRange, magnitudeCount, exportInfinity,
+         contour, cuda]() {
+            return m_boundaries.run(m_data, phaseRange, phaseCount,
+                                    magnitudeRange, magnitudeCount,
+                                    exportInfinity, contour, cuda, &m_cancellation);
+        },
+        std::move(finished));
+}
+
+//What a finished run means for the rest of the project, applied where the
+//interface lives and not on the worker: a run that computes new templates
+//invalidates the boundaries under them, and dropping those from the worker
+//would free, mid-repaint, the very data a viewer is drawing.
+void ProjectController::collectComputation()
+{
+    if (m_background.running()) {
+        throw qftbx::InvalidInput(QFTBX_TR("Core", "The computation has not finished yet."));
+    }
+
+    const Announce announce(*this);
+
+    switch (m_lastComputation) {
+    case Computation::Templates:
+        dropBoundariesAndBelow();
+        break;
+    case Computation::Boundaries:
+        dropLoopShaping();
+        break;
+    case Computation::LoopShaping:
+    case Computation::None:
+        break;
+    }
+
+    m_lastComputation = Computation::None;
 }
 
 void ProjectController::cancelComputation()
@@ -351,6 +443,8 @@ const std::string & ProjectController::lastComputationError() const
 }
 
 void ProjectController::setLoopShapingResult(std::unique_ptr<LoopShapingResult> result){
+    const Announce announce(*this);
+
     m_data.setLoopShapingResult(std::move(result));
 }
 
@@ -385,6 +479,8 @@ void ProjectController::save(std::string path){
 }
 
 qftbx::StepSet ProjectController::load(std::string path){
+    const Announce announce(*this);
+
     requireNotComputing();
 
     ProjectReader reader;

@@ -7,7 +7,6 @@
 
 #include "src/core/common/exception.h"
 #include "src/gui/application/error_message.h"
-#include "src/gui/common/plot_palette.h"
 
 
 namespace qftbx {
@@ -35,7 +34,7 @@ UncertaintyDialog::~UncertaintyDialog(){
     //the scroll areas, which are children of this dialog.
 }
 
-//The input tables arrive from PlantDialog or ControllerDialog and become
+//The input tables arrive from PlantForm or ControllerForm and become
 //the dialog's.
 bool UncertaintyDialog::launch(CoefficientTable valueTable, CoefficientTable expressionTable,
                                UncertainTable uncertainTable, bool rangeOnly){
@@ -65,6 +64,34 @@ bool UncertaintyDialog::launch(CoefficientTable valueTable, CoefficientTable exp
     buildRows();
 
     return true;
+}
+
+//The intervals of a system that came from a file, so the rows of the next
+//launch() open on them: the file has them, and asking the user to type them
+//again over a project he just opened is the reason the form used to come up
+//empty.
+void UncertaintyDialog::setParameters(const std::vector<Parameter> & numerator,
+                                      const std::vector<Parameter> & denominator,
+                                      const Range & gain, const Range & delay)
+{
+    numeratorParameters = numerator;
+    denominatorParameters = denominator;
+
+    knownParameters.clear();
+    for (const std::vector<Parameter> * polynomial : {&numerator, &denominator}) {
+        for (const Parameter & parameter : *polynomial) {
+            if (parameter.isUncertain()) {
+                knownParameters.push_back(parameter);
+            }
+        }
+    }
+
+    ui->gainStart->setText(numberText(gain.min));
+    ui->gainEnd->setText(numberText(gain.max));
+    ui->delayStart->setText(numberText(delay.min));
+    ui->delayEnd->setText(numberText(delay.max));
+
+    accepted_ok = true;
 }
 
 void UncertaintyDialog::buildRows(){
@@ -111,6 +138,7 @@ void UncertaintyDialog::buildRows(){
             if (!seenNames.contains(value)){
                 QWidget * widget = new QWidget(ui->numeratorArea);
                 buildRow(widget, value, numeratorRows, rangeOnlyMode);
+                prefillRow(numeratorRows.back(), value);
                 numeratorLayout->addWidget(widget);
                 rowWidgets.push_back(widget);
                 seenNames.push_back(value);
@@ -125,6 +153,7 @@ void UncertaintyDialog::buildRows(){
             if (!seenNames.contains(value)){
                 QWidget * widget = new QWidget(ui->denominatorArea);
                 buildRow(widget, value, denominatorRows, rangeOnlyMode);
+                prefillRow(denominatorRows.back(), value);
                 denominatorLayout->addWidget(widget);
                 rowWidgets.push_back(widget);
                 seenNames.push_back(value);
@@ -195,6 +224,18 @@ void UncertaintyDialog::buildRow(QWidget *widget, QString parameter,
     label_3->setText(rangeOnly ? tr("]") : tr("] Nominal:"));
 
     rows.push_back(ParLineEdit(start, end, nominal));
+}
+
+void UncertaintyDialog::prefillRow(const ParLineEdit & row, const QString & name)
+{
+    for (const Parameter & parameter : knownParameters) {
+        if (parameter.name() == name.toStdString()) {
+            row.getX()->setText(numberText(parameter.rawRange().min));
+            row.getY()->setText(numberText(parameter.rawRange().max));
+            row.nominal()->setText(numberText(parameter.rawNominal()));
+            return;
+        }
+    }
 }
 
 void UncertaintyDialog::on_numeratorRadio_clicked()

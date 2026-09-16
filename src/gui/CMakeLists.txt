@@ -3,14 +3,40 @@
 # application shell and the pieces the dialogs share.
 add_library(qftbx_gui STATIC)
 target_include_directories(qftbx_gui PUBLIC "${CMAKE_SOURCE_DIR}")
-target_link_libraries(qftbx_gui PUBLIC qftbx_app Qt6::Widgets Qt6::PrintSupport qcustomplot::qcustomplot)
+target_link_libraries(qftbx_gui PUBLIC qftbx_app Qt6::Widgets Qt6::PrintSupport Qt6::Svg qcustomplot::qcustomplot)
 qftbx_warnings(qftbx_gui)
 
-qt6_add_resources(resources
-  "${CMAKE_SOURCE_DIR}/Resources/Images/imagenesPlanta.qrc"
-  "${CMAKE_SOURCE_DIR}/Resources/Icon/icons.qrc"
+# The figures of the forms and the icon of the application, as resources OF
+# THIS TARGET. The file-based qt6_add_resources() compiles a .qrc into an
+# object file and nothing else: in a STATIC library the linker drops that
+# object, since nothing refers to a symbol in it, and the resources are not
+# there at run time - the figures of the plant and the specifications came
+# up blank and the window had no icon. The target form generates the
+# initialiser that keeps them.
+qt_add_resources(qftbx_gui "figures"
+  PREFIX "/"
+  BASE "${CMAKE_SOURCE_DIR}/Resources/Images"
+  FILES
+    "${CMAKE_SOURCE_DIR}/Resources/Images/figures/copol.png"
+    "${CMAKE_SOURCE_DIR}/Resources/Images/figures/kgan.png"
+    "${CMAKE_SOURCE_DIR}/Resources/Images/figures/knogan.png"
+    "${CMAKE_SOURCE_DIR}/Resources/Images/figures/EC.png"
+    "${CMAKE_SOURCE_DIR}/Resources/Images/figures/estabilidad.png"
+    "${CMAKE_SOURCE_DIR}/Resources/Images/figures/RPE.png"
+    "${CMAKE_SOURCE_DIR}/Resources/Images/figures/RPS.png"
+    "${CMAKE_SOURCE_DIR}/Resources/Images/figures/ruidosensor.png"
+    "${CMAKE_SOURCE_DIR}/Resources/Images/figures/seguimiento.png"
 )
-target_sources(qftbx_gui PRIVATE ${resources})
+qt_add_resources(qftbx_gui "icons"
+  PREFIX "/icons"
+  BASE "${CMAKE_SOURCE_DIR}/Resources/Icon"
+  FILES
+    "${CMAKE_SOURCE_DIR}/Resources/Icon/qftbx_256.png"
+    "${CMAKE_SOURCE_DIR}/Resources/Icon/qftbx_128.png"
+    "${CMAKE_SOURCE_DIR}/Resources/Icon/qftbx_64.png"
+    "${CMAKE_SOURCE_DIR}/Resources/Icon/qftbx_32.png"
+    "${CMAKE_SOURCE_DIR}/Resources/Icon/qftbx_16.png"
+)
 
 add_subdirectory(application)
 add_subdirectory(common)

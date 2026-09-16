@@ -71,6 +71,29 @@ protected:
         return write(bytes);
     }
 
+    //A fixture with the FIRST element of that name removed, whatever its
+    //indentation: matching the literal text of one is a test that breaks
+    //whenever the file is re-indented, and says nothing when it does.
+    std::string without(const char * fixture, const char * element)
+    {
+        QByteArray bytes = fixtureBytes(fixture);
+        EXPECT_FALSE(bytes.isEmpty()) << "fixture " << fixture << " unreadable";
+
+        const QByteArray open = QByteArray("<") + element + ">";
+        const QByteArray close = QByteArray("</") + element + ">";
+
+        const int from = bytes.indexOf(open);
+        const int to = bytes.indexOf(close, from);
+        EXPECT_NE(from, -1) << "the fixture has no <" << element << ">";
+        EXPECT_NE(to, -1) << "the fixture has no </" << element << ">";
+        if (from == -1 || to == -1) {
+            return {};
+        }
+
+        bytes.remove(from, to + close.size() - from);
+        return write(bytes);
+    }
+
     QTemporaryDir m_dir;
 };
 
@@ -122,7 +145,7 @@ TEST_F(MalformedProject, AForeignRootElementIsAParseError)
 {
     qftbx::ProjectReader parser;
 
-    const std::string path = mutated("planta1.qft", "<QFT version=\"2\">", "<NotQFT version=\"2\">");
+    const std::string path = mutated("planta1.qft", "<QFT version=\"4\">", "<NotQFT version=\"4\">");
     ASSERT_FALSE(path.empty());
 
     EXPECT_THROW(parser.load(path), qftbx::ParseError);
@@ -130,28 +153,39 @@ TEST_F(MalformedProject, AForeignRootElementIsAParseError)
 
 TEST_F(MalformedProject, AFileWithNoVersionIsRefused)
 {
-    //Version 2 is the only format. A file with no version attribute was the
-    //historical Spanish dialect, and it used to be read as such; every .qft
-    //has been converted and that path is gone. It has to be REFUSED rather
-    //than attempted, because the two dialects share tag names with different
-    //meanings - <inicio> is both a range start and an omega start - so
-    //reading one as the other would not fail, it would return wrong numbers.
+    //A file with no version attribute is refused rather than guessed at: the
+    //dialects this format has had share tag names with DIFFERENT meanings -
+    //<inicio> is both a range start and an omega start - so reading one as
+    //another would not fail, it would return wrong numbers.
     qftbx::ProjectReader parser;
 
-    const std::string path = mutated("planta1.qft", "<QFT version=\"2\">", "<QFT>");
+    const std::string path = mutated("planta1.qft", "<QFT version=\"4\">", "<QFT>");
     ASSERT_FALSE(path.empty());
 
     EXPECT_THROW(parser.load(path), qftbx::ParseError);
 }
 
-TEST_F(MalformedProject, AFutureVersionIsRefused)
+TEST_F(MalformedProject, AVersionThisBuildDoesNotKnowIsRefused)
 {
-    //And a version this build does not know is refused too, instead of being
-    //read as if it were one it knows (2 and 3 today).
+    //Either side of the one it reads: an older file whose sections are not
+    //where version 4 puts them, and a newer one whose meaning it cannot
+    //know. Reading a 3 as a 4 finds the inputs missing rather than
+    //misplaced, which is a confusing way to fail.
     qftbx::ProjectReader parser;
 
-    const std::string path = mutated("planta1.qft", "<QFT version=\"2\">",
-                                     "<QFT version=\"4\">");
+    for (const char * version : {"<QFT version=\"3\">", "<QFT version=\"5\">"}) {
+        const std::string path = mutated("planta1.qft", "<QFT version=\"4\">", version);
+        ASSERT_FALSE(path.empty());
+        EXPECT_THROW(parser.load(path), qftbx::ParseError) << version;
+    }
+}
+
+TEST_F(MalformedProject, DISABLED_placeholderForTheOldFutureVersionCase)
+{
+    qftbx::ProjectReader parser;
+
+    const std::string path = mutated("planta1.qft", "<QFT version=\"4\">",
+                                     "<QFT version=\"5\">");
     ASSERT_FALSE(path.empty());
 
     EXPECT_THROW(parser.load(path), qftbx::ParseError);
@@ -181,18 +215,70 @@ TEST_F(MalformedProject, ANonBooleanFlagIsAParseError)
     EXPECT_THROW(parser.load(path), qftbx::ParseError);
 }
 
-TEST_F(MalformedProject, AMissingRequiredElementIsAParseError)
+TEST_F(MalformedProject, AnUnfinishedProjectLoadsWhateverItHas)
 {
-    qftbx::ProjectReader parser;
-
-    //The range of a parameter, removed whole.
-    const std::string path = mutated("planta1.qft",
-                                 "<range>\n                        <min>1</min>\n"
-                                 "                        <max>5</max>\n                    </range>",
-                                 "");
+    //The rule, written down once: a .qft is saved at whatever point of the
+    //design it has reached, and every part of it may be missing. What is
+    //there is read, what is not is left for the user to enter; nothing is
+    //reported, because there is nothing wrong with an unfinished project.
+    //
+    //Here: a plant that is whole, a specification section with one slot, a
+    //template section with no clouds in it, and a loop-shaping section with
+    //no controller - which is a run that was interrupted.
+    const std::string path = write(QByteArray(
+        "<?xml version=\"1.0\"?><QFT version=\"4\">"
+        "<inputs>"
+        "<plant name=\"half\"><type id=\"3\">"
+        "<expression size=\"0\"/>"
+        "<numerator size=\"1\"><parameter><nominal>1</nominal><uncertain>false</uncertain></parameter></numerator>"
+        "<denominator size=\"1\"><parameter><nominal>2</nominal><uncertain>false</uncertain></parameter></denominator>"
+        "<parameter><nominal>1</nominal><uncertain>false</uncertain></parameter>"
+        "<parameter><nominal>0</nominal><uncertain>false</uncertain></parameter>"
+        "</type></plant>"
+        "<specifications count=\"1\"><specification name=\"Stability\"><used>false</used></specification></specifications>"
+        "</inputs>"
+        "<results>"
+        "<templates/>"
+        "<loop-shaping><data point-count=\"10\"><min>1</min><max>10</max></data></loop-shaping>"
+        "</results>"
+        "</QFT>"));
     ASSERT_FALSE(path.empty());
 
-    EXPECT_THROW(parser.load(path), qftbx::ParseError);
+    qftbx::ProjectReader parser;
+    qftbx::ProjectReader::Loaded loaded;
+    ASSERT_NO_THROW(loaded = parser.load(path));
+
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Plant)) << "the plant is whole and must come in";
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Specifications));
+    EXPECT_FALSE(loaded.steps.has(qftbx::Step::Frequencies)) << "there are none in the file";
+    EXPECT_FALSE(loaded.steps.has(qftbx::Step::Templates)) << "the section carries no clouds";
+    EXPECT_FALSE(loaded.steps.has(qftbx::Step::LoopShaping)) << "a design with no controller is none";
+}
+
+TEST_F(MalformedProject, AMissingElementLeavesItsSectionUnreadAndTheRestLoads)
+{
+    //A project is saved at whatever point of the design it has reached, so
+    //what is NOT in the file is not an error: that section is not read and
+    //the rest of the file comes in. The user finishes what he left
+    //unfinished, which is what he would have to do anyway.
+    qftbx::ProjectReader parser;
+
+    //The range of a parameter of the plant, removed whole.
+    const std::string path = without("planta1.qft", "range");
+    ASSERT_FALSE(path.empty());
+
+    qftbx::ProjectReader::Loaded loaded;
+    ASSERT_NO_THROW(loaded = parser.load(path));
+
+    EXPECT_FALSE(loaded.steps.has(qftbx::Step::Plant))
+        << "a plant whose parameter has no range is not a plant";
+    EXPECT_EQ(parser.plant(), nullptr);
+
+    //And everything else the file carries is there to be worked on.
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Frequencies));
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Specifications));
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Templates));
+    EXPECT_TRUE(loaded.steps.has(qftbx::Step::Boundaries));
 }
 
 TEST_F(MalformedProject, TheSizeOfACoefficientListIsRedundantAndIgnored)

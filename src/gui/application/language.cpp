@@ -7,6 +7,8 @@
 #include <QLocale>
 #include <QTranslator>
 
+#include <memory>
+
 #include "src/core/project/settings.h"
 
 namespace qftbx {
@@ -20,17 +22,16 @@ const char * const kSourceLanguageName = QT_TRANSLATE_NOOP("Language", "English"
 const QString kFilePrefix = QStringLiteral("qftbx_");
 
 //Owned by the application object; replaced when the language changes.
-QTranslator * g_application = nullptr;
-QTranslator * g_qt = nullptr;
+std::unique_ptr<QTranslator> g_application;
+std::unique_ptr<QTranslator> g_qt;
 QString g_current = kSourceLanguage;
 
 void dropTranslators()
 {
-    for (QTranslator ** translator : {&g_application, &g_qt}) {
+    for (std::unique_ptr<QTranslator> * translator : {&g_application, &g_qt}) {
         if (*translator != nullptr) {
-            QCoreApplication::removeTranslator(*translator);
-            delete *translator;
-            *translator = nullptr;
+            QCoreApplication::removeTranslator(translator->get());
+            translator->reset();
         }
     }
 }
@@ -113,19 +114,20 @@ QString applyLanguage(const QString & code)
     if (shown != kSourceLanguage) {
         //Qt's own first, so the application's takes precedence where both
         //have a text (the last installed is consulted first).
-        auto * qt = new QTranslator(QCoreApplication::instance());
+        //Owned HERE and not parented to the application: a translator that
+        //fails to load is dropped at once, and one replaced on a language
+        //change is removed from Qt and freed in the same step. Parenting it
+        //would put a second owner on the same object.
+        auto qt = std::make_unique<QTranslator>();
         if (qt->load(QStringLiteral("qtbase_") + shown, QLibraryInfo::path(QLibraryInfo::TranslationsPath))) {
-            QCoreApplication::installTranslator(qt);
-            g_qt = qt;
-        } else {
-            delete qt;
+            QCoreApplication::installTranslator(qt.get());
+            g_qt = std::move(qt);
         }
-        auto * application = new QTranslator(QCoreApplication::instance());
+
+        auto application = std::make_unique<QTranslator>();
         if (application->load(kResourceDirectory + "/" + kFilePrefix + shown + ".qm")) {
-            QCoreApplication::installTranslator(application);
-            g_application = application;
-        } else {
-            delete application;
+            QCoreApplication::installTranslator(application.get());
+            g_application = std::move(application);
         }
     }
 

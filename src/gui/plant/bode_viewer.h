@@ -4,7 +4,7 @@
 #include <vector>
 #include <memory>
 
-#include <QDialog>
+#include <QWidget>
 #include <QVector>
 #include <complex>
 #include <qmath.h>
@@ -29,7 +29,7 @@ namespace qftbx {
  *
  * @author Isaac Martínez Forte
  */
-class BodeViewer : public QDialog
+class BodeViewer : public QWidget
 {
     Q_OBJECT
 
@@ -46,8 +46,17 @@ public:
      */
     void drawBode(LtiSystem * plant, Omega * omega);
 
+    /**
+     * @brief Empties both plots.
+     *
+     * The viewer lives in the plant's dock for as long as the window does,
+     * so when the project loses its plant this is what is called, instead
+     * of destroying it.
+     */
+    void clear();
+
 private slots:
-    void on_actionExport_triggered();
+    void on_saveImage_clicked();
 
 private:
     std::unique_ptr<Ui::BodeViewer> ui;

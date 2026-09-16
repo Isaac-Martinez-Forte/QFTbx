@@ -2,27 +2,29 @@
 #define QFTBX_MAIN_WINDOW_H
 
 #include "src/core/project/settings.h"
-#include <QDialog>
 
-#include "src/gui/application/step_dialog.h"
+#include "src/gui/application/phase_card.h"
+#include "src/gui/application/step_panel.h"
 #include <functional>
 #include <vector>
+#include <map>
 #include <memory>
 
+#include <QByteArray>
 #include <QMainWindow>
 
-#include "src/gui/frequencies/frequencies_dialog.h"
+#include "src/gui/frequencies/frequencies_form.h"
 #include "src/gui/plant/bode_viewer.h"
-#include "src/gui/templates/templates_dialog.h"
+#include "src/gui/templates/templates_form.h"
 #include "src/gui/templates/template_viewer.h"
-#include "src/gui/boundaries/boundary_grid_dialog.h"
+#include "src/gui/boundaries/boundary_grid_form.h"
 #include "src/gui/boundaries/boundary_viewer.h"
-#include "src/gui/loopshaping/controller_dialog.h"
-#include "src/gui/specifications/specifications_dialog.h"
+#include "src/gui/loopshaping/controller_form.h"
+#include "src/gui/specifications/specifications_form.h"
 #include "src/gui/boundaries/boundary_union_viewer.h"
-#include "src/gui/loopshaping/loop_shaping_dialog.h"
+#include "src/gui/loopshaping/loop_shaping_form.h"
 #include "src/gui/loopshaping/loop_shaping_viewer.h"
-#include "src/gui/plant/plant_dialog.h"
+#include "src/gui/plant/plant_form.h"
 
 //The window is the only GUI class that talks to the project: the dialogs
 //and viewers are handed what they need and give back what they built.
@@ -32,6 +34,7 @@
 #include "src/gui/application/language.h"
 
 class QMenu;
+class QScrollArea;
 
 namespace Ui {
 class MainWindow;
@@ -71,25 +74,6 @@ public:
 
 public:
     /**
-     * @brief How a step's dialog gets shown.
-     *
-     * By default it is QDialog::exec(): modal and BLOCKING, which is exactly
-     * what the application wants and exactly what a headless test cannot
-     * survive - a test that presses a step button would hang there for ever.
-     * That is why nothing in this window has ever been tested beyond the fact
-     * that it builds its widget tree.
-     *
-     * With this, a test installs its own: fill the dialog's fields by name and
-     * press its OK button, which is what the dialog smoke tests already do,
-     * and the handler carries on as if a user had done it. Same seam as
-     * qftbx::ErrorReporter and TemplateViewer's ContourRecomputer - a plain
-     * callback, one caller, one handler, same thread.
-     */
-    using DialogRunner = std::function<void (QDialog * dialog)>;
-
-    void setDialogRunner(DialogRunner run);
-
-    /**
      * @brief How a file name gets asked for.
      *
      * QFileDialog's static helpers are modal too, and they are the reason the
@@ -100,7 +84,21 @@ public:
 
     void setFileChooser(FileChooser choose);
 
+    /// Whether a phase is computing on the worker. The window shows it on
+    /// the card; this is what a test waits on.
+    bool isComputing() const { return m_computing != nullptr; }
+
 private slots:
+    //One per phase: what used to follow the modal dialog, now run when the
+    //panel of that phase says the user accepted what it holds.
+    void applyPlant();
+    void applySpecifications();
+    void applyFrequencies();
+    void applyTemplates();
+    void applyBoundaries();
+    void applyController();
+    void applyLoopShaping();
+
     void on_plantButton_clicked();
 
     void on_frequenciesButton_clicked();
@@ -142,11 +140,20 @@ private:
     /// Retranslates the window when the interface language changes.
     void changeEvent(QEvent * event) override;
 
+    /// Writes the canvas into the settings on the way out.
+    void closeEvent(QCloseEvent * event) override;
+
+    /// Watches the canvas for a change of width, which changes the size of
+    /// every card on it.
+    bool eventFilter(QObject * watched, QEvent * event) override;
+
     /// The texts this class sets itself, outside the form.
     void retranslate();
 
     std::unique_ptr<Ui::MainWindow> ui;
     QMenu * m_languageMenu = nullptr;
+    QMenu * m_themeMenu = nullptr;
+    std::vector<std::pair<QString, QAction *>> m_themeActions;
     QMenu * m_helpMenu = nullptr;
     QAction * m_aboutAction = nullptr;
     QAction * m_aboutQtAction = nullptr;
@@ -165,10 +172,104 @@ private:
     //Every dialog and viewer below is created with THIS as its Qt parent,
     //so Qt owns it and frees it with the window. They are raw pointers on
     //purpose: holding one in a unique_ptr would make two owners and free it
-    //twice. destroyDialogs() deletes them to REBUILD them for a new
+    //twice. destroyPhases() deletes them to REBUILD them for a new
     //session, which is Qt's own mechanism, not memory management of ours.
-    /// Shows a dialog through the runner, or exec() when there is none.
-    void runDialog(StepDialog * dialog);
+    /**
+     * @brief Builds the card of one phase - its form and its diagrams
+     * together - and puts it on the canvas.
+     *
+     * The canvas lays the cards out in rows and wraps what does not fit to
+     * the row below, so the phases of a project are on the screen at once
+     * and none of them is squeezed to make room for the others.
+     */
+    PhaseCard * addPhaseCard(const QString & title, const QString & name,
+                             QWidget * form,
+                             const std::vector<std::pair<QString, QWidget *>> & views);
+
+    /// Scrolls the canvas to a phase and unfolds its form: what pressing a
+    /// step does.
+    void showPhase(PhaseCard * card);
+
+    /// Works out the square of the canvas from its width and hands it to
+    /// every card: how many cards fit across, and how big each one is.
+    void resizeCards();
+
+    /// Moves a card being dragged to where the cursor is, if that is not
+    /// where it already is: the hole opens under the cursor while the drag
+    /// goes on, and the drop is only the end of it.
+    void dragCardTo(PhaseCard * card, QPoint where);
+
+    /// Puts a card where the last session left it, at the size it had.
+    void applyRememberedPlace(PhaseCard * card);
+
+    /// Writes the canvas - which phase where, and how big - into the
+    /// settings, so the next start comes up as this one was left.
+    void rememberCanvas();
+
+
+    /**
+     * @brief Starts a computation on the worker and dresses its card for
+     * it, or reports why it cannot start.
+     *
+     * @param card the phase that is computing: it says so and offers to
+     *        give up on it.
+     * @param what the line its bar shows while it runs.
+     * @param start what actually starts it; it returns false when a run is
+     *        already in flight.
+     * @param collected what to do on THIS thread once it has finished and
+     *        produced a result: draw it.
+     */
+    void runInBackground(PhaseCard * card, const QString & what, const QString & title,
+                         const std::function<bool (std::function<void ()>)> & start,
+                         const std::function<void ()> & collected);
+
+    /// The phase that is computing, or nullptr: one at a time, because the
+    /// pipeline is sequential.
+    PhaseCard * m_computing = nullptr;
+
+    /// Draws in every viewer what the project holds for its step: what a
+    /// file that carries results has to show the moment it is opened.
+    /// Reports what it cannot draw instead of letting it out of the slot.
+    void showResults();
+    void drawResults();
+
+    /// Draws the Bode diagram of the plant when there is one to draw, and
+    /// says whether there was. Called wherever the plant or the frequencies
+    /// change: the diagram is beside them now, not behind a menu.
+    bool drawBodeIfPossible();
+
+    /**
+     * @brief Destroys a dialog or a viewer and forgets it.
+     *
+     * deleteLater() and not delete: these are destroyed from
+     * refreshAvailability(), which the project calls when it changes, and a
+     * project changes from inside a widget's own slot - the template
+     * viewer's Recompute button asks for a contour and the window computes
+     * it. A plain delete there would free the widget whose slot is still on
+     * the stack. Qt destroys it when control is back at the event loop
+     * instead, and hiding it first is what makes that invisible.
+     */
+    template <typename Widget>
+    static void destroyLater(Widget *& widget)
+    {
+        if (widget == nullptr) {
+            return;
+        }
+        widget->hide();
+        widget->deleteLater();
+        widget = nullptr;
+    }
+
+    /**
+     * @brief Destroys the card of a phase and forgets it.
+     *
+     * Like destroyLater(), and one thing more: the card leaves the canvas
+     * BEFORE it is queued for deletion. Deferred deletion happens when
+     * control is back at the event loop, so between destroying the phases
+     * and rebuilding them the canvas would otherwise be laying out cards
+     * that are on their way to being freed.
+     */
+    void destroyCard(PhaseCard *& card);
 
     /// Asks for a file name through the chooser, or QFileDialog when none.
     QString chooseFile(bool forSaving, const QString & title);
@@ -176,21 +277,40 @@ private:
     /// Read once by the application, immutable here.
     qftbx::Settings m_settings;
 
-    DialogRunner m_runDialog;
+    /// The canvas of the last session: the name of each phase in the order
+    /// it was in, with the size it had.
+    std::vector<std::pair<QString, int>> m_rememberedCanvas;
+
     FileChooser m_chooseFile;
 
-    PlantDialog * plantDialog = nullptr;
-    FrequenciesDialog * frequenciesDialog = nullptr;
+    PlantForm * plantForm = nullptr;
+    FrequenciesForm * frequenciesForm = nullptr;
     BodeViewer * bodeViewer = nullptr;
-    TemplatesDialog * templatesDialog = nullptr;
+    TemplatesForm * templatesForm = nullptr;
     TemplateViewer * templateViewer = nullptr;
-    BoundaryGridDialog * boundaryGridDialog = nullptr;
+    BoundaryGridForm * boundaryGridForm = nullptr;
     BoundaryViewer * boundaryViewer = nullptr;
     BoundaryUnionViewer * boundaryUnionViewer = nullptr;
-    SpecificationsDialog * specificationsDialog = nullptr;
-    ControllerDialog * controllerDialog = nullptr;
-    LoopShapingDialog * loopShapingDialog = nullptr;
+    SpecificationsForm * specificationsForm = nullptr;
+    ControllerForm * controllerForm = nullptr;
+    LoopShapingForm * loopShapingForm = nullptr;
     LoopShapingViewer * loopShapingViewer = nullptr;
+
+    //The card of each phase, created with the widgets it holds. Destroying
+    //one destroys them: they are its children once it has them.
+    PhaseCard * plantCard = nullptr;
+    PhaseCard * frequenciesCard = nullptr;
+    PhaseCard * specificationsCard = nullptr;
+    PhaseCard * templatesCard = nullptr;
+    PhaseCard * boundariesCard = nullptr;
+    PhaseCard * controllerCard = nullptr;
+    PhaseCard * loopShapingCard = nullptr;
+
+    /// The canvas the cards live on: rows that wrap, and a scrollbar for
+    /// what does not fit downwards.
+    QScrollArea * m_canvas = nullptr;
+    QWidget * m_canvasContent = nullptr;
+    class FlowLayout * m_canvasLayout = nullptr;
 
     QString saveFilePath;
 
@@ -213,18 +333,18 @@ private:
     /// not been entered yet. The dialogs that need them are given them.
     const std::vector<double> * frequencyValues() const;
 
-    void destroyDialogs();
+    void destroyPhases();
 
     //One per step: the dialog (and viewers) of a step, created on first use
     //with the settings applied, and reused afterwards. Each of these blocks
     //was written twice, in the step's handler and in the open handler.
-    void ensurePlantDialog();
-    void ensureSpecificationsDialog();
-    void ensureFrequenciesDialog();
-    void ensureTemplatesWidgets();
-    void ensureBoundariesWidgets();
-    void ensureControllerDialog();
-    void ensureLoopShapingWidgets();
+    void ensurePlantPhase();
+    void ensureSpecificationsPhase();
+    void ensureFrequenciesPhase();
+    void ensureTemplatesPhase();
+    void ensureBoundariesPhase();
+    void ensureControllerPhase();
+    void ensureLoopShapingPhase();
 
 };
 

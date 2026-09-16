@@ -173,6 +173,33 @@ const std::vector<Binding> & bindings()
              into.interface.language = languageIn(text, "interface.language", line);
          }},
 
+        //The canvas of the interface, written by the window itself when it
+        //closes: a list of phases with their sizes, which nobody types by
+        //hand. Anything it does not recognise is ignored when it is
+        //applied, so an old line cannot stop the program starting.
+        {"interface.canvas",
+         [](const std::string & text, std::int64_t, Settings & into) {
+             into.interface.canvas = text;
+         }},
+
+        //The look of the interface, chosen from the View menu like the
+        //language: the system's, light or dark.
+        {"interface.theme",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             if (text != "system" && text != "light" && text != "dark") {
+                 throw ParseError(QFTBX_TR("Core", "interface.theme must be system, light or dark: '%1'").arg(text),
+                                  line);
+             }
+             into.interface.theme = text;
+         }},
+
+        //And the size of the window, from the same place and for the same
+        //reason: it comes up as it was left.
+        {"interface.window",
+         [](const std::string & text, std::int64_t, Settings & into) {
+             into.interface.window = text;
+         }},
+
         //[algorithms] - figures from the papers. These change WHAT is
         //computed, which is why the header says so next to each one.
         {"algorithms.template-representatives",

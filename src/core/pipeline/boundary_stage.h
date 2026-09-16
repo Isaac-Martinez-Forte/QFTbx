@@ -2,6 +2,7 @@
 #define QFTBX_BOUNDARY_STAGE_H
 
 #include <cstdint>
+#include "src/core/pipeline/cancellation.h"
 #include <memory>
 
 #include "src/core/boundaries/boundary_engine.h"
@@ -37,7 +38,8 @@ public:
      */
     bool run(ProjectData & data, Range phaseRange, std::int32_t phaseCount,
              Range magnitudeRange, std::int32_t magnitudeCount,
-             double exportInfinity, bool fromContour, bool cuda);
+             double exportInfinity, bool fromContour, bool cuda,
+             const CancellationToken * cancellation = nullptr);
 
     /// Columns of the magnitude specifications in closed form
     /// (BoundaryEngine::setClosedFormColumns). Applied to every computation.

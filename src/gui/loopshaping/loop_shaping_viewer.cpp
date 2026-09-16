@@ -6,24 +6,27 @@
 #include "ui_loop_shaping_viewer.h"
 
 #include "src/gui/application/error_message.h"
-#include "src/gui/common/plot_palette.h"
+#include "src/gui/common/plot_setup.h"
+
+#include <cmath>
 
 
 namespace qftbx {
 
 LoopShapingViewer::LoopShapingViewer(QWidget *parent) :
-    QDialog(parent),
+    QWidget(parent),
     ui(std::make_unique<Ui::LoopShapingViewer>())
 {
     ui->setupUi(this);
+    qftbx::setUpPlot(*ui->plot, tr("phase (degrees)"), tr("magnitude (dB)"));
     setWindowTitle(tr("Loop Shaping"));
 
     ui->numeratorEdit->setReadOnly(true);
     ui->denominatorEdit->setReadOnly(true);
     ui->gainEdit->setReadOnly(true);
 
-    legend = new FrequencyLegend(this);
-    legend->setGeometry(QRect(1060, 0, 120, 581));
+    legend = new FrequencyLegend(ui->legendHolder);
+    ui->legendHolder->layout()->addWidget(legend);
     connect(legend, &FrequencyLegend::rowToggled, this, &LoopShapingViewer::applyCheckboxes);
 
     //Connected ONCE: a connection per replot duplicates the handler.
@@ -58,6 +61,16 @@ void LoopShapingViewer::clearDiagram(){
 }
 
 
+void LoopShapingViewer::clear(){
+
+    clearDiagram();
+    unionTraces.clear();
+    omega = nullptr;
+    plant = nullptr;
+    loopShapingData = nullptr;
+    ui->plot->replot();
+}
+
 void LoopShapingViewer::setData(const qftbx::UnionTraces & unionTraces, std::vector<double> *omega, LoopShapingResult *loopShapingData,
                                LtiSystem* plant, bool linSpace){
     this->unionTraces = unionTraces;
@@ -77,10 +90,30 @@ void LoopShapingViewer::showCheck(){
 
     const std::optional<qftbx::SpecificationCheck> & check = loopShapingData->check();
 
-    if (!check.has_value() || check->entries.empty()) {
+    if (!check.has_value()) {
         ui->checkLabel->setText(tr("Not checked against the specifications (no templates to check over)."));
         ui->checkLabel->setToolTip(QString());
         ui->checkLabel->setStyleSheet(QString());
+        return;
+    }
+
+    //A design read from a project file brings the verdict but not the table
+    //behind it: the file stores the worst excess, which is what the verdict
+    //is, and not the itemised list, which the project can recompute.
+    if (check->entries.empty()) {
+        ui->checkLabel->setToolTip(QString());
+        if (!std::isfinite(check->worstExcessDb)) {
+            ui->checkLabel->setText(tr("No specification was active at any design frequency."));
+            ui->checkLabel->setStyleSheet(QString());
+        } else if (check->satisfied()) {
+            ui->checkLabel->setText(tr("Satisfies every specification over the template, by %1 dB (as saved with the project).")
+                                    .arg(qftbx::numberText(-check->worstExcessDb)));
+            ui->checkLabel->setStyleSheet("color: #1a7f37;");
+        } else {
+            ui->checkLabel->setText(tr("EXCEEDS a specification over the template by %1 dB (as saved with the project).")
+                                    .arg(qftbx::numberText(check->worstExcessDb)));
+            ui->checkLabel->setStyleSheet("color: #b42318; font-weight: bold;");
+        }
         return;
     }
 
@@ -168,7 +201,7 @@ void LoopShapingViewer::showDiagram(){
 
     qint32 frequencyIndex = 0;
     for (const qftbx::Trace & bound : unionTraces) {
-        QColor color = randomColor(frequencyIndex);
+        QColor color = frequencyColour(frequencyIndex, static_cast<int>(unionTraces.size()));
         frequencyIndex++;
         rowColors.push_back(color);
 
@@ -182,7 +215,7 @@ void LoopShapingViewer::showDiagram(){
 
         QCPCurve *curve = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
         curve->setData(qftbx::toQVector(phases), qftbx::toQVector(magnitudes));
-        curve->setPen(color);
+        curve->setPen(QPen(color, kCurveWidth));
         curves.push_back(curve);
 
         addFrequencyRow(color, curveIndex);
@@ -204,14 +237,14 @@ void LoopShapingViewer::showDiagram(){
     }*/
 
     //FIXED ON PURPOSE, for now (decision taken 2026-09-03: leave it, write
-    //down why). The dialog asks for a range and a point count, and nothing
+    //down why). The form asks for a range and a point count, and nothing
     //reads them but the persistence. Of the three reasons that stood in the
     //way of honouring them, one is now gone and two remain.
     //
-    //SETTLED: the units. Both dialogs ask for rad/s now and say so on the
+    //SETTLED: the units. Both forms ask for rad/s now and say so on the
     //label, and each converts with log10 where qftbx::logspace wants an
-    //exponent. Before, this dialog's defaults were written as values while
-    //the frequencies dialog read its field as an exponent, so the same "0.01"
+    //exponent. Before, this form's defaults were written as values while
+    //the frequencies form read its field as an exponent, so the same "0.01"
     //meant two different frequencies and no label admitted it. Reviving the
     //code above therefore needs a std::log10 on both ends, exactly like
     //bode_viewer does.
@@ -306,12 +339,7 @@ void LoopShapingViewer::showDiagram(){
         marker->setLineStyle(QCPGraph::lsNone);
     }
 
-    ui->plot->xAxis2->setVisible(true);
-    ui->plot->xAxis2->setTickLabels(false);
-    ui->plot->yAxis2->setVisible(true);
-    ui->plot->yAxis2->setTickLabels(false);
 
-    ui->plot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
 
     ui->plot->replot();
 }

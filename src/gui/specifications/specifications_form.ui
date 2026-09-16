@@ -1,0 +1,832 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>SpecificationsForm</class>
+ <widget class="QWidget" name="SpecificationsForm">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>647</width>
+    <height>363</height>
+   </rect>
+  </property>
+  <layout class="QVBoxLayout" name="formLayout">
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QRadioButton" name="constantRadio">
+       <property name="text">
+        <string>Constant</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QRadioButton" name="systemRadio">
+       <property name="text">
+        <string>Transfer function</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="modeSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="bodyLayout">
+     <item>
+      <layout class="QVBoxLayout" name="typesLayout">
+       <item>
+        <widget class="QLabel" name="label">
+         <property name="text">
+          <string>Specification types:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QVBoxLayout" name="verticalLayout">
+         <item>
+          <widget class="QRadioButton" name="trackingRadio">
+           <property name="text">
+            <string>Tracking</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QRadioButton" name="stabilityRadio">
+           <property name="text">
+            <string>Stability</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QRadioButton" name="noiseRadio">
+           <property name="text">
+            <string>Sensor noise</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QRadioButton" name="outputDisturbanceRadio">
+           <property name="text">
+            <string>Output disturbance</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QRadioButton" name="inputDisturbanceRadio">
+           <property name="text">
+            <string>Input disturbance</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QRadioButton" name="controlEffortRadio">
+           <property name="text">
+            <string>Control effort</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <spacer name="typesSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <widget class="QStackedWidget" name="pageStack">
+       <property name="currentIndex">
+        <number>0</number>
+       </property>
+       <widget class="QWidget" name="principal_todos">
+        <layout class="QHBoxLayout" name="principalLayout">
+         <property name="leftMargin"><number>0</number></property>
+         <property name="topMargin"><number>0</number></property>
+         <property name="rightMargin"><number>0</number></property>
+         <property name="bottomMargin"><number>0</number></property>
+         <item>
+          <widget class="QLabel" name="specificationImage">
+           <property name="alignment"><set>Qt::AlignCenter</set></property>
+           <property name="text"><string/></property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QStackedWidget" name="modeStack">
+           <property name="currentIndex"><number>0</number></property>
+           <widget class="QWidget" name="emptyPage"/>
+       <widget class="QWidget" name="constante">
+        <layout class="QVBoxLayout" name="constanteLayout">
+         <property name="leftMargin"><number>0</number></property>
+         <property name="topMargin"><number>0</number></property>
+         <property name="rightMargin"><number>0</number></property>
+         <property name="bottomMargin"><number>0</number></property>
+         <item>
+                 <layout class="QFormLayout" name="singleMagnitudeLayout">
+                  <item row="0" column="0">
+                   <widget class="QLabel" name="label_2">
+                    <property name="text">
+                     <string>Magnitude:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QLineEdit" name="magnitudeEdit"/>
+                  </item>
+                 </layout>
+         </item>
+         <item>
+                 <layout class="QHBoxLayout" name="singleUnitsLayout">
+                  <item>
+                   <widget class="QRadioButton" name="linearRadio">
+                    <property name="text">
+                     <string>Linear</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QRadioButton" name="decibelsRadio">
+                    <property name="text">
+                     <string>Decibels</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+         </item>
+         <item>
+                 <spacer name="singleConstantSpacer">
+                  <property name="orientation">
+                   <enum>Qt::Vertical</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>20</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="FT">
+        <layout class="QVBoxLayout" name="FTLayout">
+         <property name="leftMargin"><number>0</number></property>
+         <property name="topMargin"><number>0</number></property>
+         <property name="rightMargin"><number>0</number></property>
+         <property name="bottomMargin"><number>0</number></property>
+         <item>
+                 <layout class="QHBoxLayout" name="singleFamilyLayout">
+                  <item>
+                   <widget class="QRadioButton" name="polynomialRadio">
+                    <property name="text">
+                     <string>Polynomial form</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QRadioButton" name="freeFormRadio">
+                    <property name="text">
+                     <string>Free form</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QRadioButton" name="tcgRadio">
+                    <property name="text">
+                     <string>K = tcgRadio</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QRadioButton" name="zpkRadio">
+                    <property name="text">
+                     <string>k = zpkRadio</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+         </item>
+         <item>
+                 <layout class="QFormLayout" name="singleFieldsLayout">
+                  <item row="0" column="0">
+                   <widget class="QLabel" name="label_3">
+                    <property name="text">
+                     <string>Numerator:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QLineEdit" name="numeratorEdit"/>
+                  </item>
+                  <item row="1" column="0">
+                   <widget class="QLabel" name="label_4">
+                    <property name="text">
+                     <string>Denominator:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="1">
+                   <widget class="QLineEdit" name="denominatorEdit"/>
+                  </item>
+                  <item row="2" column="0">
+                   <widget class="QLabel" name="label_5">
+                    <property name="text">
+                     <string>K:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="1">
+                   <widget class="QLineEdit" name="k"/>
+                  </item>
+                  <item row="3" column="0">
+                   <widget class="QLabel" name="label_6">
+                    <property name="text">
+                     <string>delayEdit:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="3" column="1">
+                   <widget class="QLineEdit" name="delayEdit"/>
+                  </item>
+                 </layout>
+         </item>
+         <item>
+                 <widget class="QStackedWidget" name="figureStack">
+                  <property name="currentIndex"><number>0</number></property>
+                  <widget class="QWidget" name="page_9"/>
+                  <widget class="QWidget" name="page_3">
+                   <layout class="QVBoxLayout" name="page_3Layout">
+                    <property name="leftMargin"><number>0</number></property>
+                    <property name="topMargin"><number>0</number></property>
+                    <property name="rightMargin"><number>0</number></property>
+                    <property name="bottomMargin"><number>0</number></property>
+                    <item>
+                     <widget class="QLabel" name="polyImage">
+                      <property name="alignment"><set>Qt::AlignCenter</set></property>
+                      <property name="text"><string/></property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                  <widget class="QWidget" name="page_5">
+                   <layout class="QVBoxLayout" name="page_5Layout">
+                    <property name="leftMargin"><number>0</number></property>
+                    <property name="topMargin"><number>0</number></property>
+                    <property name="rightMargin"><number>0</number></property>
+                    <property name="bottomMargin"><number>0</number></property>
+                    <item>
+                     <widget class="QLabel" name="tcgImage">
+                      <property name="alignment"><set>Qt::AlignCenter</set></property>
+                      <property name="text"><string/></property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                  <widget class="QWidget" name="page_4">
+                   <layout class="QVBoxLayout" name="page_4Layout">
+                    <property name="leftMargin"><number>0</number></property>
+                    <property name="topMargin"><number>0</number></property>
+                    <property name="rightMargin"><number>0</number></property>
+                    <property name="bottomMargin"><number>0</number></property>
+                    <item>
+                     <widget class="QLabel" name="zpkImage">
+                      <property name="alignment"><set>Qt::AlignCenter</set></property>
+                      <property name="text"><string/></property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </widget>
+         </item>
+         <item>
+                 <spacer name="singleSpacer">
+                  <property name="orientation">
+                   <enum>Qt::Vertical</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>20</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+         </item>
+        </layout>
+       </widget>
+           <widget class="QWidget" name="page_6"/>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="principal_se">
+        <layout class="QHBoxLayout" name="trackingLayout">
+         <property name="leftMargin"><number>0</number></property>
+         <property name="topMargin"><number>0</number></property>
+         <property name="rightMargin"><number>0</number></property>
+         <property name="bottomMargin"><number>0</number></property>
+         <item>
+          <widget class="QLabel" name="trackingImage">
+           <property name="alignment"><set>Qt::AlignCenter</set></property>
+           <property name="text"><string/></property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QStackedWidget" name="lowerModeStack">
+           <property name="currentIndex"><number>0</number></property>
+           <widget class="QWidget" name="vacia_se1"/>
+       <widget class="QWidget" name="constante_se1">
+        <layout class="QVBoxLayout" name="constante_se1Layout">
+         <property name="leftMargin"><number>0</number></property>
+         <property name="topMargin"><number>0</number></property>
+         <property name="rightMargin"><number>0</number></property>
+         <property name="bottomMargin"><number>0</number></property>
+         <item>
+                 <layout class="QFormLayout" name="lowerMagnitudeLayout">
+                  <item row="0" column="0">
+                   <widget class="QLabel" name="label_18">
+                    <property name="text">
+                     <string>Magnitude:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QLineEdit" name="lowerMagnitudeEdit"/>
+                  </item>
+                 </layout>
+         </item>
+         <item>
+                 <layout class="QHBoxLayout" name="lowerUnitsLayout">
+                  <item>
+                   <widget class="QRadioButton" name="lowerLinearRadio">
+                    <property name="text">
+                     <string>Linear</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QRadioButton" name="lowerDecibelsRadio">
+                    <property name="text">
+                     <string>Decibels</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+         </item>
+         <item>
+                 <spacer name="lowerConstantSpacer">
+                  <property name="orientation">
+                   <enum>Qt::Vertical</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>20</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="ft_se1">
+        <layout class="QVBoxLayout" name="ft_se1Layout">
+         <property name="leftMargin"><number>0</number></property>
+         <property name="topMargin"><number>0</number></property>
+         <property name="rightMargin"><number>0</number></property>
+         <property name="bottomMargin"><number>0</number></property>
+         <item>
+                 <layout class="QHBoxLayout" name="lowerFamilyLayout">
+                  <item>
+                   <widget class="QRadioButton" name="lowerPolynomialRadio">
+                    <property name="text">
+                     <string>Polynomial form</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QRadioButton" name="lowerFreeFormRadio">
+                    <property name="text">
+                     <string>Free form</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QRadioButton" name="lowerZpkRadio">
+                    <property name="text">
+                     <string>k=tcgRadio</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QRadioButton" name="lowerTcgRadio">
+                    <property name="text">
+                     <string>k=zpkRadio</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+         </item>
+         <item>
+                 <layout class="QFormLayout" name="lowerFieldsLayout">
+                  <item row="0" column="0">
+                   <widget class="QLabel" name="label_10">
+                    <property name="text">
+                     <string>Numerator: </string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QLineEdit" name="lowerNumeratorEdit"/>
+                  </item>
+                  <item row="1" column="0">
+                   <widget class="QLabel" name="label_11">
+                    <property name="text">
+                     <string>Denominator: </string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="1">
+                   <widget class="QLineEdit" name="lowerDenominatorEdit"/>
+                  </item>
+                  <item row="2" column="0">
+                   <widget class="QLabel" name="label_12">
+                    <property name="text">
+                     <string>K: </string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="1">
+                   <widget class="QLineEdit" name="lowerGainEdit"/>
+                  </item>
+                  <item row="3" column="0">
+                   <widget class="QLabel" name="label_13">
+                    <property name="text">
+                     <string>Ret:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="3" column="1">
+                   <widget class="QLineEdit" name="lowerDelayEdit"/>
+                  </item>
+                 </layout>
+         </item>
+         <item>
+                 <widget class="QStackedWidget" name="lowerFigureStack">
+                  <property name="currentIndex"><number>0</number></property>
+                  <widget class="QWidget" name="page"/>
+                  <widget class="QWidget" name="page_7">
+                   <layout class="QVBoxLayout" name="page_7Layout">
+                    <property name="leftMargin"><number>0</number></property>
+                    <property name="topMargin"><number>0</number></property>
+                    <property name="rightMargin"><number>0</number></property>
+                    <property name="bottomMargin"><number>0</number></property>
+                    <item>
+                     <widget class="QLabel" name="lowerZpkImage">
+                      <property name="alignment"><set>Qt::AlignCenter</set></property>
+                      <property name="text"><string/></property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                  <widget class="QWidget" name="page_8">
+                   <layout class="QVBoxLayout" name="page_8Layout">
+                    <property name="leftMargin"><number>0</number></property>
+                    <property name="topMargin"><number>0</number></property>
+                    <property name="rightMargin"><number>0</number></property>
+                    <property name="bottomMargin"><number>0</number></property>
+                    <item>
+                     <widget class="QLabel" name="lowerTcgImage">
+                      <property name="alignment"><set>Qt::AlignCenter</set></property>
+                      <property name="text"><string/></property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                  <widget class="QWidget" name="page_2">
+                   <layout class="QVBoxLayout" name="page_2Layout">
+                    <property name="leftMargin"><number>0</number></property>
+                    <property name="topMargin"><number>0</number></property>
+                    <property name="rightMargin"><number>0</number></property>
+                    <property name="bottomMargin"><number>0</number></property>
+                    <item>
+                     <widget class="QLabel" name="lowerPolyImage">
+                      <property name="alignment"><set>Qt::AlignCenter</set></property>
+                      <property name="text"><string/></property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </widget>
+         </item>
+         <item>
+                 <spacer name="lowerSpacer">
+                  <property name="orientation">
+                   <enum>Qt::Vertical</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>20</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+         </item>
+        </layout>
+       </widget>
+          </widget>
+         </item>
+         <item>
+          <widget class="QStackedWidget" name="upperModeStack">
+           <property name="currentIndex"><number>0</number></property>
+           <widget class="QWidget" name="vacia_se2"/>
+       <widget class="QWidget" name="constante_se2">
+        <layout class="QVBoxLayout" name="constante_se2Layout">
+         <property name="leftMargin"><number>0</number></property>
+         <property name="topMargin"><number>0</number></property>
+         <property name="rightMargin"><number>0</number></property>
+         <property name="bottomMargin"><number>0</number></property>
+         <item>
+                 <layout class="QFormLayout" name="upperMagnitudeLayout">
+                  <item row="0" column="0">
+                   <widget class="QLabel" name="label_19">
+                    <property name="text">
+                     <string>Magnitude:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QLineEdit" name="upperMagnitudeEdit"/>
+                  </item>
+                 </layout>
+         </item>
+         <item>
+                 <layout class="QHBoxLayout" name="upperUnitsLayout">
+                  <item>
+                   <widget class="QRadioButton" name="upperLinearRadio">
+                    <property name="text">
+                     <string>Linear</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QRadioButton" name="upperDecibelsRadio">
+                    <property name="text">
+                     <string>Decibels</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+         </item>
+         <item>
+                 <spacer name="upperConstantSpacer">
+                  <property name="orientation">
+                   <enum>Qt::Vertical</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>20</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="ft_se2">
+        <layout class="QVBoxLayout" name="ft_se2Layout">
+         <property name="leftMargin"><number>0</number></property>
+         <property name="topMargin"><number>0</number></property>
+         <property name="rightMargin"><number>0</number></property>
+         <property name="bottomMargin"><number>0</number></property>
+         <item>
+                 <layout class="QHBoxLayout" name="upperFamilyLayout">
+                  <item>
+                   <widget class="QRadioButton" name="upperPolynomialRadio">
+                    <property name="text">
+                     <string>Polynomial form</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QRadioButton" name="upperFreeFormRadio">
+                    <property name="text">
+                     <string>Free form</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QRadioButton" name="upperZpkRadio">
+                    <property name="text">
+                     <string>k=tcgRadio</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QRadioButton" name="upperTcgRadio">
+                    <property name="text">
+                     <string>k=zpkRadio</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+         </item>
+         <item>
+                 <layout class="QFormLayout" name="upperFieldsLayout">
+                  <item row="0" column="0">
+                   <widget class="QLabel" name="label_14">
+                    <property name="text">
+                     <string>Numerator: </string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QLineEdit" name="upperNumeratorEdit"/>
+                  </item>
+                  <item row="1" column="0">
+                   <widget class="QLabel" name="label_15">
+                    <property name="text">
+                     <string>Denominator: </string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="1">
+                   <widget class="QLineEdit" name="upperDenominatorEdit"/>
+                  </item>
+                  <item row="2" column="0">
+                   <widget class="QLabel" name="label_16">
+                    <property name="text">
+                     <string>K: </string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="1">
+                   <widget class="QLineEdit" name="upperGainEdit"/>
+                  </item>
+                  <item row="3" column="0">
+                   <widget class="QLabel" name="label_17">
+                    <property name="text">
+                     <string>Ret:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="3" column="1">
+                   <widget class="QLineEdit" name="upperDelayEdit"/>
+                  </item>
+                 </layout>
+         </item>
+         <item>
+                 <widget class="QStackedWidget" name="upperFigureStack">
+                  <property name="currentIndex"><number>0</number></property>
+                  <widget class="QWidget" name="page_10"/>
+                  <widget class="QWidget" name="page_11">
+                   <layout class="QVBoxLayout" name="page_11Layout">
+                    <property name="leftMargin"><number>0</number></property>
+                    <property name="topMargin"><number>0</number></property>
+                    <property name="rightMargin"><number>0</number></property>
+                    <property name="bottomMargin"><number>0</number></property>
+                    <item>
+                     <widget class="QLabel" name="upperZpkImage">
+                      <property name="alignment"><set>Qt::AlignCenter</set></property>
+                      <property name="text"><string/></property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                  <widget class="QWidget" name="page_12">
+                   <layout class="QVBoxLayout" name="page_12Layout">
+                    <property name="leftMargin"><number>0</number></property>
+                    <property name="topMargin"><number>0</number></property>
+                    <property name="rightMargin"><number>0</number></property>
+                    <property name="bottomMargin"><number>0</number></property>
+                    <item>
+                     <widget class="QLabel" name="upperTcgImage">
+                      <property name="alignment"><set>Qt::AlignCenter</set></property>
+                      <property name="text"><string/></property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                  <widget class="QWidget" name="page_13">
+                   <layout class="QVBoxLayout" name="page_13Layout">
+                    <property name="leftMargin"><number>0</number></property>
+                    <property name="topMargin"><number>0</number></property>
+                    <property name="rightMargin"><number>0</number></property>
+                    <property name="bottomMargin"><number>0</number></property>
+                    <item>
+                     <widget class="QLabel" name="upperPolyImage">
+                      <property name="alignment"><set>Qt::AlignCenter</set></property>
+                      <property name="text"><string/></property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </widget>
+         </item>
+         <item>
+                 <spacer name="upperSpacer">
+                  <property name="orientation">
+                   <enum>Qt::Vertical</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>20</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+         </item>
+        </layout>
+       </widget>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_10">
+     <item>
+      <widget class="QLabel" name="label_7">
+       <property name="text">
+        <string>Frequencies: [</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="startFrequencyEdit"/>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_8">
+       <property name="text">
+        <string>,</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="endFrequencyEdit"/>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_9">
+       <property name="text">
+        <string>]</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="frequenciesSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QWidget" name="buttonsWidget" native="true">
+       <layout class="QHBoxLayout" name="horizontalLayout_8">
+        <property name="leftMargin"><number>0</number></property>
+        <property name="topMargin"><number>0</number></property>
+        <property name="rightMargin"><number>0</number></property>
+        <property name="bottomMargin"><number>0</number></property>
+        <item>
+         <widget class="QPushButton" name="okButton">
+          <property name="text">
+           <string>Apply</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

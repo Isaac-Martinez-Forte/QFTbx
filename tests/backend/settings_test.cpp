@@ -45,10 +45,14 @@ protected:
         }
     }
 
-    //Writes a settings file and answers with its path.
+    //Writes a settings file and answers with its path. The name carries the
+    //test's own: one shared name meant that two of these running at once
+    //read each other's file, and the suite failed a different test each run.
     std::string written(const std::string & content)
     {
-        m_path = std::string(QFTBX_TEST_DATA_DIR "/../settings_under_test.conf");
+        m_path = std::string(QFTBX_TEST_DATA_DIR "/../settings_under_test_")
+                 + ::testing::UnitTest::GetInstance()->current_test_info()->name()
+                 + ".conf";
 
         std::ofstream file(m_path);
         file << content;
@@ -394,9 +398,9 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
     EXPECT_EQ(fromExample.defaults.boundariesFromCloud, defaults.defaults.boundariesFromCloud);
 
     //Every setting the build knows has to be IN the example, or the example
-    //is not documentation. Forty-one today; the count is asserted so
+    //is not documentation. Forty-two today; the count is asserted so
     //adding one without documenting it fails here.
-    EXPECT_EQ(settingsFound, 41)
+    EXPECT_EQ(settingsFound, 42)
         << "a setting was added to the code and not to qftbx.conf.example";
 
     EXPECT_TRUE(fromExample.unknownKeys.empty())

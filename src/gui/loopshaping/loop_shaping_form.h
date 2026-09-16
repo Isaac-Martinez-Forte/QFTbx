@@ -1,19 +1,20 @@
-#ifndef QFTBX_LOOP_SHAPING_DIALOG_H
-#define QFTBX_LOOP_SHAPING_DIALOG_H
+#ifndef QFTBX_LOOP_SHAPING_FORM_H
+#define QFTBX_LOOP_SHAPING_FORM_H
 
 #include "src/core/loopshaping/loop_shaping_types.h"
+#include "src/core/loopshaping/loop_shaping_result.h"
 #include "src/core/project/settings.h"
-#include "src/gui/application/step_dialog.h"
+#include "src/gui/application/step_panel.h"
 #include <memory>
 
-#include <QDialog>
+#include <QWidget>
 
 #include "src/core/math/range.h"
 
 #include "src/core/math/sequence_vectors.h"
 
 namespace Ui {
-class LoopShapingDialog;
+class LoopShapingForm;
 }
 
 namespace qftbx {
@@ -28,7 +29,7 @@ namespace qftbx {
  * ProjectController::computeLoopShaping. The single field does not say so
  * yet.
  */
-class LoopShapingDialog : public StepDialog
+class LoopShapingForm : public StepPanel
 {
     Q_OBJECT
 
@@ -54,8 +55,8 @@ public:
      */
     void applyDefaults(const qftbx::Settings::Defaults & defaults);
 
-    explicit LoopShapingDialog(QWidget *parent = 0);
-    ~LoopShapingDialog();
+    explicit LoopShapingForm(QWidget *parent = 0);
+    ~LoopShapingForm();
 
     qreal epsilonValue ();
 
@@ -72,6 +73,16 @@ public:
 
     bool isLinSpace();
 
+    /**
+     * @brief Fills the plot range and the point count with those of the
+     * design the project holds.
+     *
+     * The algorithm and the tolerance are NOT among them: the result does
+     * not record which algorithm produced it, so the form would be
+     * inventing an answer. That is the gap the file format has to close.
+     */
+    void setFromProject(const qftbx::LoopShapingResult * result);
+
     qint32 initialisationValue ();
 
 private slots:
@@ -79,7 +90,6 @@ private slots:
     /// same quantity for every algorithm.
     void updateEpsilonLabel();
 
-    void on_cancelButton_clicked();
 
     void on_okButton_clicked();
 
@@ -96,7 +106,7 @@ private slots:
     void on_mc2Radio_clicked();
 
 private:
-    std::unique_ptr<Ui::LoopShapingDialog> ui;
+    std::unique_ptr<Ui::LoopShapingForm> ui;
 
 
     qreal epsilonEdit = 0.0;
@@ -120,4 +130,4 @@ private:
 
 } // namespace qftbx
 
-#endif // QFTBX_LOOP_SHAPING_DIALOG_H
+#endif // QFTBX_LOOP_SHAPING_FORM_H

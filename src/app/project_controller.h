@@ -242,6 +242,23 @@ public:
      */
     void applySettings(const qftbx::Settings & settings);
 
+    /**
+     * @brief Called after anything the project holds has changed.
+     *
+     * The interface derives everything it shows from completed() and from
+     * what the getters answer, so it has to be told when those answers move.
+     * Asking it to remember at every way out of every handler is how an
+     * interface comes to say something the project does not hold: there were
+     * twenty-five such places here, and one forgotten is a wrong answer on
+     * screen.
+     *
+     * A std::function and not a signal because the core carries no Qt. It is
+     * called ONCE per operation, after it: loading a file publishes seven
+     * sections and announces one change.
+     */
+    using ChangeHandler = std::function<void ()>;
+    void setChangeHandler(ChangeHandler handler) { m_onChanged = std::move(handler); }
+
     // --- the pipeline as data ----------------------------------------------
 
     /**
@@ -305,6 +322,37 @@ public:
                           std::int32_t initialisation = 0,
                           std::function<void ()> finished = std::function<void ()>());
 
+    /**
+     * @brief The sweep of the templates, on a worker thread.
+     *
+     * Same contract as startLoopShaping: the prerequisites are checked on
+     * the caller's thread, @p finished runs on the WORKER, and how it went
+     * is read afterwards through lastComputation*(). Returns false when a
+     * run is already in flight.
+     */
+    bool startTemplates(std::vector<double> epsilon, qftbx::ParameterGrids grids, bool cuda,
+                        std::function<void ()> finished = std::function<void ()>());
+
+    /// The boundaries, on a worker thread. Same contract.
+    bool startBoundaries(qftbx::Range phaseRange, std::int32_t phaseCount,
+                         qftbx::Range magnitudeRange, std::int32_t magnitudeCount,
+                         double exportInfinity, bool contour, bool cuda,
+                         std::function<void ()> finished = std::function<void ()>());
+
+    /// Which computation the last run was.
+    enum class Computation { None, Templates, Boundaries, LoopShaping };
+
+    /**
+     * @brief Applies what the finished run means for the rest of the
+     * project, and announces the change.
+     *
+     * Called by the interface ON ITS OWN THREAD once the run has finished:
+     * new templates invalidate the boundaries under them, and dropping
+     * those from the worker would free, in the middle of a repaint, the
+     * data a viewer is drawing. Throws when the run has not finished.
+     */
+    void collectComputation();
+
     /// Asks the search in flight to stop. Safe at any time, from any thread;
     /// does nothing when there is no run.
     void cancelComputation();
@@ -355,6 +403,45 @@ private:
     void dropLoopShaping();
 
 
+    /**
+     * @brief Announces a change on the way out of the scope it is built in.
+     *
+     * One line at the top of every method that publishes or computes, rather
+     * than a call before each return: a method with four ways out is four
+     * chances to forget, which is exactly the shape of the defect this
+     * replaces in the interface. It fires on the exception paths too, and
+     * deliberately - a run that threw may have dropped what depended on it.
+     */
+    class Announce
+    {
+    public:
+        explicit Announce(ProjectController & owner) : m_owner(owner)
+        {
+            ++m_owner.m_announcing;
+        }
+
+        ~Announce()
+        {
+            //The OUTERMOST one announces. load() publishes seven sections
+            //through the same guarded methods, and the interface would then
+            //be told seven times about one operation - and told first about
+            //a project half read, which it would have to be written to
+            //tolerate.
+            if (--m_owner.m_announcing == 0 && m_owner.m_onChanged) {
+                m_owner.m_onChanged();
+            }
+        }
+
+        Announce(const Announce &) = delete;
+        Announce & operator=(const Announce &) = delete;
+
+    private:
+        ProjectController & m_owner;
+    };
+
+    ChangeHandler m_onChanged;
+    int m_announcing = 0;
+
     //The project contents, owned.
     qftbx::ProjectData m_data;
 
@@ -382,6 +469,10 @@ private:
     //token cannot outlive the search that reads it.
     qftbx::BackgroundRun m_background;
     qftbx::CancellationToken m_cancellation;
+
+    /// What the run in flight - or the last one - computes: what it
+    /// invalidates depends on it, and that is applied when it is collected.
+    Computation m_lastComputation = Computation::None;
 };
 
 } // namespace qftbx

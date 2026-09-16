@@ -73,16 +73,32 @@ TEST_P(RoundTrip, WritesTheVersionedEnglishDialect)
 
     const pugi::xml_node root = document.document_element();
     EXPECT_STREQ(root.name(), "QFT");
-    EXPECT_EQ(root.attribute("version").as_int(), 3);
+    EXPECT_EQ(root.attribute("version").as_int(), 4);
 
     // No legacy Spanish tags anywhere in a written file.
     EXPECT_FALSE(root.child("Planta"));
     EXPECT_FALSE(root.child("especificaciones"));
+
+    //What the user described is under <inputs> and what came out under
+    //<results>, so that the file reads down the page. The controller
+    //STRUCTURE is an input: it is the box the search is asked to look in.
+    const pugi::xml_node inputs = root.child("inputs");
+    ASSERT_TRUE(inputs) << "a written file has no <inputs>";
     if (originalSections.steps.has(qftbx::Step::Plant)) {
-        EXPECT_TRUE(root.child("plant"));
+        EXPECT_TRUE(inputs.child("plant"));
+        EXPECT_FALSE(root.child("plant")) << "the plant is still at the root";
     }
     if (originalSections.steps.has(qftbx::Step::Specifications)) {
-        EXPECT_TRUE(root.child("specifications"));
+        EXPECT_TRUE(inputs.child("specifications"));
+    }
+    if (originalSections.steps.has(qftbx::Step::Controller)) {
+        EXPECT_TRUE(inputs.child("controller")) << "the structure to search is an input";
+    }
+
+    if (originalSections.steps.has(qftbx::Step::Templates)) {
+        const pugi::xml_node results = root.child("results");
+        ASSERT_TRUE(results) << "a file with templates has no <results>";
+        EXPECT_TRUE(results.child("templates"));
     }
 }
 
@@ -212,4 +228,75 @@ TEST(RoundTripReparametrised, AReparametrisedParameterSurvivesSaveAndLoad)
     EXPECT_EQ(reloaded.range().min, 10.0) << "and the expression applied once, not twice";
     EXPECT_EQ(reloaded.range().max, 20.0);
     EXPECT_EQ(reloaded.nominal(), 15.0);
+}
+
+// What the search was run with, and what the verifier said about what came
+// out of it. Two designs for the same problem differ by hundreds of units of
+// gain depending on how the phase grid was read, so a file that keeps the
+// controller and forgets the reading keeps a number nobody can reproduce.
+TEST(RoundTripSettings, TheRunAndTheVerdictSurviveSaveAndLoad)
+{
+    QTemporaryDir temporary;
+    ASSERT_TRUE(temporary.isValid());
+    const std::string path = temporary.filePath("settings.qft").toStdString();
+
+    ProjectReader original;
+    original.load(std::string(QFTBX_TEST_DATA_DIR "/planta1.qft"));
+    ASSERT_NE(original.loopShaping(), nullptr);
+
+    original.loopShaping()->setRun({qftbx::mc2, 0.05, true});
+    SpecificationCheck check;
+    check.worstExcessDb = -1.25;
+    original.loopShaping()->setCheck(check);
+
+    ProjectContent content;
+    content.plant = original.plant();
+    content.omega = original.omega();
+    content.templates = &original.templates();
+    content.epsilon = original.epsilon();
+    content.controller = original.controller();
+    content.loopShaping = original.loopShaping();
+
+    ProjectWriter writer;
+    writer.save(path, content);
+
+    ProjectReader reloaded;
+    reloaded.load(path);
+    ASSERT_NE(reloaded.loopShaping(), nullptr);
+
+    EXPECT_EQ(reloaded.loopShaping()->run().algorithm, qftbx::mc2);
+    EXPECT_DOUBLE_EQ(reloaded.loopShaping()->run().epsilon, 0.05);
+    EXPECT_TRUE(reloaded.loopShaping()->run().conservativeColumns);
+
+    ASSERT_TRUE(reloaded.loopShaping()->check().has_value());
+    EXPECT_TRUE(reloaded.loopShaping()->check()->satisfied());
+    EXPECT_DOUBLE_EQ(reloaded.loopShaping()->check()->worstExcessDb, -1.25);
+}
+
+// A verdict with nothing active to exceed is minus infinity, and the file
+// carries no infinities: the verdict survives without the number.
+TEST(RoundTripSettings, AVerdictWithNoActiveSpecificationIsStillWritten)
+{
+    QTemporaryDir temporary;
+    ASSERT_TRUE(temporary.isValid());
+    const std::string path = temporary.filePath("verdict.qft").toStdString();
+
+    ProjectReader original;
+    original.load(std::string(QFTBX_TEST_DATA_DIR "/planta1.qft"));
+    ASSERT_NE(original.loopShaping(), nullptr);
+    original.loopShaping()->setCheck(SpecificationCheck{});
+
+    ProjectContent content;
+    content.controller = original.controller();
+    content.loopShaping = original.loopShaping();
+
+    ProjectWriter writer;
+    writer.save(path, content);
+
+    ProjectReader reloaded;
+    reloaded.load(path);
+    ASSERT_NE(reloaded.loopShaping(), nullptr);
+    ASSERT_TRUE(reloaded.loopShaping()->check().has_value());
+    EXPECT_TRUE(reloaded.loopShaping()->check()->satisfied());
+    EXPECT_FALSE(std::isfinite(reloaded.loopShaping()->check()->worstExcessDb));
 }

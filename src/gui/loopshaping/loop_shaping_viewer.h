@@ -4,7 +4,7 @@
 #include <vector>
 #include <memory>
 
-#include <QDialog>
+#include <QWidget>
 
 #include "src/core/math/sequence_vectors.h"
 #include "qcustomplot.h"
@@ -30,7 +30,7 @@ namespace qftbx {
  * user; the reasons, and where the answer lies, are recorded at the
  * commented-out block in the implementation.
  */
-class LoopShapingViewer : public QDialog
+class LoopShapingViewer : public QWidget
 {
     Q_OBJECT
 
@@ -40,6 +40,16 @@ public:
 
 
     void setData (const qftbx::UnionTraces & unionTraces, std::vector<double> *omega, LoopShapingResult * loopShapingData, LtiSystem *plant, bool linSpace);
+
+    /**
+     * @brief Forgets what it was drawing and empties the plot.
+     *
+     * A viewer lives in its phase's dock for as long as the window does,
+     * and what it holds are observers on the project: when the project
+     * drops a step, the pointers behind them go with it. This is what is
+     * called then, instead of destroying the viewer.
+     */
+    void clear();
 
     void showDiagram();
 

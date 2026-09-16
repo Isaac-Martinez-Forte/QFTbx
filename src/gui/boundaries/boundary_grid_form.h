@@ -1,11 +1,12 @@
-#ifndef QFTBX_BOUNDARY_GRID_DIALOG_H
-#define QFTBX_BOUNDARY_GRID_DIALOG_H
+#ifndef QFTBX_BOUNDARY_GRID_FORM_H
+#define QFTBX_BOUNDARY_GRID_FORM_H
 
+#include "src/core/boundaries/boundary_data.h"
 #include "src/core/project/settings.h"
-#include "src/gui/application/step_dialog.h"
+#include "src/gui/application/step_panel.h"
 #include <memory>
 
-#include <QDialog>
+#include <QWidget>
 
 #include "src/core/math/range.h"
 
@@ -14,7 +15,7 @@
 #include "src/core/math/sequence_vectors.h"
 
 namespace Ui {
-class BoundaryGridDialog;
+class BoundaryGridForm;
 }
 
 namespace qftbx {
@@ -27,7 +28,7 @@ namespace qftbx {
  *
  * @author Isaac Martínez Forte
  */
-class BoundaryGridDialog : public StepDialog
+class BoundaryGridForm : public StepPanel
 {
     Q_OBJECT
     
@@ -51,10 +52,19 @@ public:
      */
     void applyDefaults(const qftbx::Settings::Defaults & defaults);
 
-  
-    explicit BoundaryGridDialog(QWidget *parent = 0);
+    /**
+     * @brief Fills the grid with the one the project's boundaries were
+     * computed on, so that reopening the step shows what produced them
+     * instead of the defaults.
+     *
+     * Null boundaries leave the defaults in place: there is nothing to show.
+     */
+    void setFromProject(const qftbx::BoundaryData * boundaries);
 
-    ~BoundaryGridDialog();
+  
+    explicit BoundaryGridForm(QWidget *parent = 0);
+
+    ~BoundaryGridForm();
     
     
     /// Start and end of the phase axis, in degrees.
@@ -87,10 +97,10 @@ public:
 
     
 private slots:
-    void on_buttonBox_accepted();
+    void on_okButton_clicked();
 
 private:
-    std::unique_ptr<Ui::BoundaryGridDialog> ui;
+    std::unique_ptr<Ui::BoundaryGridForm> ui;
 
     qftbx::Range phaseRange;
     qftbx::Range magnitudeRange;
@@ -106,4 +116,4 @@ private:
 
 } // namespace qftbx
 
-#endif // QFTBX_BOUNDARY_GRID_DIALOG_H
+#endif // QFTBX_BOUNDARY_GRID_FORM_H

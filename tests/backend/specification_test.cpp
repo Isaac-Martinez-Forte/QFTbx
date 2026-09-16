@@ -207,14 +207,27 @@ TEST(SpecificationPersistence, Planta1RecoversTheConstantStability)
     EXPECT_FALSE(specs->at(4).constant);
 }
 
-TEST(SpecificationPersistence, WrongSpecificationCountThrowsParseError)
+TEST(SpecificationPersistence, AShorterSpecificationListFillsTheSlotsItHas)
 {
-    // Hardened: the set is positional with exactly 7 slots and consumers
-    // index blindly; a shorter file used to crash out of range downstream.
+    // The set is positional with exactly 7 slots and consumers index
+    // blindly, so a shorter file used to crash out of range downstream. It
+    // does not refuse the file: a project is saved at whatever point of the
+    // design it has reached, and a specification nobody entered is exactly
+    // an unused slot. The three that are there are read, the other four
+    // stay unused.
     ProjectReader parser;
-    EXPECT_THROW(parser.load(
-                     std::string(QFTBX_TEST_DATA_DIR "/corrupt_specs.qft")),
-                 qftbx::ParseError);
+    ASSERT_NO_THROW(parser.load(std::string(QFTBX_TEST_DATA_DIR "/short_specs.qft")));
+
+    const qftbx::SpecificationRecords * specs = parser.specifications();
+    ASSERT_NE(specs, nullptr);
+    EXPECT_EQ(specs->size(), qftbx::kSpecificationCount);
+
+    EXPECT_EQ(specs->at(0).name, "TrackingLower");
+    EXPECT_EQ(specs->at(2).name, "Stability");
+    for (const qftbx::SpecificationRecord & record : *specs) {
+        EXPECT_FALSE(record.used);
+    }
+    EXPECT_TRUE(specs->at(6).name.empty()) << "a slot the file does not have is untouched";
 }
 
 TEST(QftbxUnits, DbLinearConversionsRoundTrip)

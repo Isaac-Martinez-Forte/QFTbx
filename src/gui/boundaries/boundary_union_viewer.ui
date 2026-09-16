@@ -1,7 +1,7 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version='1.0' encoding='UTF-8'?>
 <ui version="4.0">
  <class>BoundaryUnionViewer</class>
- <widget class="QDialog" name="BoundaryUnionViewer">
+ <widget class="QWidget" name="BoundaryUnionViewer">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -13,55 +13,68 @@
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
-  <widget class="QCustomPlot" name="plot" native="true">
-   <property name="geometry">
-    <rect>
-     <x>140</x>
-     <y>10</y>
-     <width>961</width>
-     <height>691</height>
-    </rect>
-   </property>
-  </widget>
-  <widget class="QGroupBox" name="opciones">
-   <property name="geometry">
-    <rect>
-     <x>10</x>
-     <y>20</y>
-     <width>121</width>
-     <height>91</height>
-    </rect>
-   </property>
-   <property name="title">
-    <string>Options</string>
-   </property>
-   <widget class="QPushButton" name="saveImage">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>40</y>
-      <width>84</width>
-      <height>33</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Save</string>
-    </property>
-   </widget>
-  </widget>
-  <widget class="QGroupBox" name="frecuencias">
-   <property name="geometry">
-    <rect>
-     <x>10</x>
-     <y>120</y>
-     <width>120</width>
-     <height>451</height>
-    </rect>
-   </property>
-   <property name="title">
-    <string>Frequencies</string>
-   </property>
-  </widget>
+  <layout class="QHBoxLayout" name="outerLayout">
+   <item>
+    <layout class="QVBoxLayout" name="sideLayout">
+     <item>
+      <widget class="QGroupBox" name="opciones">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="title">
+        <string>Options</string>
+       </property>
+       <layout class="QVBoxLayout" name="opcionesLayout">
+        <item>
+         <widget class="QPushButton" name="saveImage">
+          <property name="text">
+           <string>Save</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item>
+      <widget class="QWidget" name="legendHolder">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <layout class="QVBoxLayout" name="legendLayout">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+       </layout>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QCustomPlot" name="plot" native="true">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+    </widget>
+   </item>
+  </layout>
  </widget>
  <customwidgets>
   <customwidget>
@@ -71,6 +84,6 @@
    <container>1</container>
   </customwidget>
  </customwidgets>
- <resources/>
- <connections/>
+ <resources />
+ <connections />
 </ui>

@@ -5,16 +5,15 @@
 #include <limits>
 #include <optional>
 #include <QDoubleValidator>
-#include "src/gui/templates/templates_dialog.h"
+#include "src/gui/templates/templates_form.h"
 #include "src/core/math/sequences.h"
 #include "src/core/common/text_tokens.h"
 #include "src/core/common/exception.h"
-#include "ui_templates_dialog.h"
+#include "ui_templates_form.h"
 
 #include "src/gui/application/error_message.h"
 
 #include <QMessageBox>
-#include "src/gui/common/plot_palette.h"
 
 
 namespace qftbx {
@@ -45,9 +44,9 @@ bool asPointCount(double value, double ceiling, std::size_t & count)
 
 }
 
-TemplatesDialog::TemplatesDialog(QWidget *parent) :
-    StepDialog(parent),
-    ui(std::make_unique<Ui::TemplatesDialog>())
+TemplatesForm::TemplatesForm(QWidget *parent) :
+    StepPanel(parent),
+    ui(std::make_unique<Ui::TemplatesForm>())
 {
     ui->setupUi(this);
     ui->globalPointCount->setValidator(new QDoubleValidator(this));
@@ -57,9 +56,6 @@ TemplatesDialog::TemplatesDialog(QWidget *parent) :
     ui->globalPointCount->setText(
         qftbx::numberText(qftbx::Settings().defaults.templatePointCount));
 
-    //Wire the cancel button.
-    connect(ui->cancelButton, SIGNAL(clicked()), this, SLOT(close()));
-    connect (this, SIGNAL(close_ok()), this,SLOT(close()));
 
 #ifndef CUDA_AVAILABLE
     ui->cudaCheck->setVisible(false);
@@ -67,21 +63,21 @@ TemplatesDialog::TemplatesDialog(QWidget *parent) :
 
 }
 
-TemplatesDialog::~TemplatesDialog()
+TemplatesForm::~TemplatesForm()
 {
-    //The rows are Qt children of the dialog and die with it.
+    //The rows are Qt children of the form and die with it.
 }
 
-//Variable rows: each ParLineEdit and its tab page belong to the dialog, so
+//Variable rows: each ParLineEdit and its tab page belong to the form, so
 //a clear() alone would leave the pages piling up.
-void TemplatesDialog::clearTables(){
+void TemplatesForm::clearTables(){
     if (!rowsBuilt){
         return;
     }
 
     //Qt's own mechanism, and the only reason there is a delete here:
     //destroying the tab page is how the three line edits of a row leave the
-    //dialog.
+    //form.
     for (const ParLineEdit & par : numeratorRows){
         delete par.getX()->parentWidget();
     }
@@ -98,13 +94,13 @@ void TemplatesDialog::clearTables(){
     rowsBuilt = false;
 }
 
-//The grid map belongs to the dialog; the engine reads it without taking
+//The grid map belongs to the form; the engine reads it without taking
 //ownership.
-std::vector<double> TemplatesDialog::takeEpsilon(){
+std::vector<double> TemplatesForm::takeEpsilon(){
     return std::move(epsilonValues);
 }
 
-qftbx::EpsilonMetric TemplatesDialog::epsilonMetric() const {
+qftbx::EpsilonMetric TemplatesForm::epsilonMetric() const {
     qftbx::EpsilonMetric metric;
     metric.metric = ui->metricCombo->currentIndex() == 1 ? qftbx::HullMetric::ComplexPlane
                                                          : qftbx::HullMetric::Nichols;
@@ -113,14 +109,20 @@ qftbx::EpsilonMetric TemplatesDialog::epsilonMetric() const {
     return metric;
 }
 
-void TemplatesDialog::setEpsilonMetric(qftbx::EpsilonMetric metric) {
+void TemplatesForm::setEpsilonMetric(qftbx::EpsilonMetric metric) {
     ui->metricCombo->setCurrentIndex(metric.metric == qftbx::HullMetric::ComplexPlane ? 1 : 0);
     ui->dbPerDegreeEdit->setText(qftbx::numberText(metric.dbPerDegree));
     ui->dbPerDegreeEdit->setEnabled(metric.metric == qftbx::HullMetric::Nichols);
     ui->dbPerDegreeLabel->setEnabled(metric.metric == qftbx::HullMetric::Nichols);
 }
 
-void TemplatesDialog::launch(LtiSystem *plant, qint32 frequencyCount){
+void TemplatesForm::forgetPlant(){
+
+    plant = nullptr;
+    frequencyCount = 0;
+}
+
+void TemplatesForm::launch(LtiSystem *plant, qint32 frequencyCount){
 
     this->plant = plant;
     this->frequencyCount = frequencyCount;
@@ -147,42 +149,42 @@ void TemplatesDialog::launch(LtiSystem *plant, qint32 frequencyCount){
     proposeEpsilon();
 }
 
-bool TemplatesDialog::wholeTemplateIfNoContour() const
+bool TemplatesForm::wholeTemplateIfNoContour() const
 {
     return ui->wholeTemplateCheck->isChecked();
 }
 
-void TemplatesDialog::setWholeTemplateIfNoContour(bool standsIn)
+void TemplatesForm::setWholeTemplateIfNoContour(bool standsIn)
 {
     ui->wholeTemplateCheck->setChecked(standsIn);
 }
 
-bool TemplatesDialog::borderSweep() const
+bool TemplatesForm::borderSweep() const
 {
     return ui->borderSweepCheck->isEnabled() && ui->borderSweepCheck->isChecked();
 }
 
-void TemplatesDialog::setBorderSweep(bool border)
+void TemplatesForm::setBorderSweep(bool border)
 {
     ui->borderSweepCheck->setChecked(border);
 }
 
-bool TemplatesDialog::alphaShapeContour() const
+bool TemplatesForm::alphaShapeContour() const
 {
     return ui->contourCombo->currentIndex() == 1;
 }
 
-void TemplatesDialog::setAlphaShapeContour(bool alphaShape)
+void TemplatesForm::setAlphaShapeContour(bool alphaShape)
 {
     ui->contourCombo->setCurrentIndex(alphaShape ? 1 : 0);
 }
 
-void TemplatesDialog::setEpsilonProposer(EpsilonProposer propose)
+void TemplatesForm::setEpsilonProposer(EpsilonProposer propose)
 {
     m_propose = std::move(propose);
 }
 
-void TemplatesDialog::selectDefaultsWhereEmpty()
+void TemplatesForm::selectDefaultsWhereEmpty()
 {
     if (!ui->linspaceRadio->isChecked() && !ui->logspaceRadio->isChecked()){
         ui->linspaceRadio->setChecked(true);
@@ -201,7 +203,7 @@ void TemplatesDialog::selectDefaultsWhereEmpty()
 //gap each leaves against its template. Nothing is reported when the grids
 //cannot be read or the sweep fails: OK will say what is wrong, with the
 //user's attention on it.
-void TemplatesDialog::proposeEpsilon()
+void TemplatesForm::proposeEpsilon()
 {
     m_proposals.clear();
     if (!m_propose || plant == nullptr){
@@ -248,12 +250,12 @@ void TemplatesDialog::proposeEpsilon()
                                    "larger epsilon.\n%1").arg(detail.join(QStringLiteral("\n"))));
 }
 
-void TemplatesDialog::on_proposeButton_clicked()
+void TemplatesForm::on_proposeButton_clicked()
 {
     proposeEpsilon();
 }
 
-void TemplatesDialog::buildTables(std::vector<Parameter> & numerator, std::vector<Parameter> & denominator){
+void TemplatesForm::buildTables(std::vector<Parameter> & numerator, std::vector<Parameter> & denominator){
 
     this->numerator = numerator;
     this->denominator = denominator;
@@ -290,7 +292,7 @@ void TemplatesDialog::buildTables(std::vector<Parameter> & numerator, std::vecto
     }
 }
 
-void TemplatesDialog::buildRow(QWidget *widget, QVector <ParLineEdit> & par,
+void TemplatesForm::buildRow(QWidget *widget, QVector <ParLineEdit> & par,
                                QVector <ThreeRadioButtons> & rowRadios){
 
     QVBoxLayout *verticalLayout;
@@ -372,43 +374,47 @@ void TemplatesDialog::buildRow(QWidget *widget, QVector <ParLineEdit> & par,
 
 }
 
-void TemplatesDialog::on_allVariablesRadio_clicked()
+void TemplatesForm::on_allVariablesRadio_clicked()
 {
     ui->modeStack->setCurrentIndex(0);
 }
 
-void TemplatesDialog::on_metricCombo_currentIndexChanged(int index)
+void TemplatesForm::on_metricCombo_currentIndexChanged(int index)
 {
     ui->dbPerDegreeEdit->setEnabled(index == 0);
     ui->dbPerDegreeLabel->setEnabled(index == 0);
 }
 
-void TemplatesDialog::on_oneByOneRadio_clicked()
+void TemplatesForm::on_oneByOneRadio_clicked()
 {
     ui->modeStack->setCurrentIndex(2);
 }
 
-void TemplatesDialog::on_numeratorRadio_clicked()
+void TemplatesForm::on_numeratorRadio_clicked()
 {
     ui->variablesStack->setCurrentIndex(1);
 }
 
-void TemplatesDialog::on_denominatorRadio_clicked()
+void TemplatesForm::on_denominatorRadio_clicked()
 {
     ui->variablesStack->setCurrentIndex(2);
 }
 
-void TemplatesDialog::on_cancelButton_clicked()
-{
-    emit (close_ok());
-}
-void TemplatesDialog::setDefaultPointCount(std::int32_t points)
+void TemplatesForm::setDefaultPointCount(std::int32_t points)
 {
     ui->globalPointCount->setText(qftbx::numberText(points));
 }
 
-void TemplatesDialog::on_okButton_clicked()
+void TemplatesForm::on_okButton_clicked()
 {
+    //The grids describe the parameters of a plant the project owns, and it
+    //can replace or drop that plant while this panel is open.
+    if (plant == nullptr) {
+        errorMessage(tr("The plant must be entered before the templates."),
+                     tr("Template computation"));
+        return;
+    }
+
     if (ui->nyquistRadio->isChecked())
         nicholsDiagram = false;
     else if (ui->nicholsRadio->isChecked())
@@ -417,7 +423,7 @@ void TemplatesDialog::on_okButton_clicked()
     //Read directly, not latched, so unchecking it takes effect.
     cudaEnabled = ui->cudaCheck->isChecked();
 
-    //The previous grid map is still the dialog's and is freed here.
+    //The previous grid map is still the form's and is freed here.
     gridMap.clear();
     duplicateNames.clear();
 
@@ -490,10 +496,9 @@ void TemplatesDialog::on_okButton_clicked()
     }
 
     markAccepted();
-    emit (close_ok());
 }
 
-bool TemplatesDialog::readGrids(QString & reason)
+bool TemplatesForm::readGrids(QString & reason)
 {
     reason.clear();
     duplicateNames.clear();
@@ -611,7 +616,7 @@ bool TemplatesDialog::readGrids(QString & reason)
     return true;
 }
 
-bool TemplatesDialog::readVariable(const ParLineEdit & rowEdits, ThreeRadioButtons rowRadios,
+bool TemplatesForm::readVariable(const ParLineEdit & rowEdits, ThreeRadioButtons rowRadios,
                                     Parameter & parameter, bool useLinspace, bool useLogspace){
 
     m_readReason.clear();
@@ -707,16 +712,16 @@ bool TemplatesDialog::readVariable(const ParLineEdit & rowEdits, ThreeRadioButto
     return true;
 }
 
-qftbx::ParameterGrids TemplatesDialog::grids() const{
+qftbx::ParameterGrids TemplatesForm::grids() const{
     return gridMap;
 }
 
 
-bool TemplatesDialog::nicholsSelected(){
+bool TemplatesForm::nicholsSelected(){
     return nicholsDiagram;
 }
 
-bool TemplatesDialog::cudaSelected(){
+bool TemplatesForm::cudaSelected(){
     return cudaEnabled;
 }
 

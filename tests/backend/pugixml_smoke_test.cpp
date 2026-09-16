@@ -21,7 +21,7 @@ pugi::xml_parse_result load(pugi::xml_document& doc, const char* name)
 TEST(PugixmlSmoke, EveryFixtureParsesWithTheQftRoot)
 {
     const char* fixtures[] = {"cervera.qft", "planta2.qft", "multivaluados.qft",
-                              "planta1.qft", "corrupt_omega.qft", "corrupt_specs.qft"};
+                              "planta1.qft", "corrupt_omega.qft", "short_specs.qft"};
 
     for (const char* name : fixtures) {
         pugi::xml_document doc;
@@ -39,15 +39,20 @@ TEST(PugixmlSmoke, SectionsAreReachableByName)
     ASSERT_TRUE(load(doc, "multivaluados.qft"));
 
     const pugi::xml_node root = doc.document_element();
-    EXPECT_TRUE(root.child("plant"));
-    EXPECT_TRUE(root.child("specifications"));
-    EXPECT_TRUE(root.child("omega"));
-    EXPECT_TRUE(root.child("templates"));
-    EXPECT_TRUE(root.child("boundaries"));
-    EXPECT_TRUE(root.child("controller"));
+    const pugi::xml_node inputs = root.child("inputs");
+    const pugi::xml_node results = root.child("results");
+    ASSERT_TRUE(inputs);
+    ASSERT_TRUE(results);
+
+    EXPECT_TRUE(inputs.child("plant"));
+    EXPECT_TRUE(inputs.child("specifications"));
+    EXPECT_TRUE(inputs.child("omega"));
+    EXPECT_TRUE(inputs.child("controller"));
+    EXPECT_TRUE(results.child("templates"));
+    EXPECT_TRUE(results.child("boundaries"));
 
     // Numeric conversion straight from the tree.
-    const pugi::xml_node spec = root.child("specifications").child("specification");
+    const pugi::xml_node spec = inputs.child("specifications").child("specification");
     ASSERT_TRUE(spec);
     EXPECT_GT(spec.child("max-frequency").text().as_double(), 0.0);
 }

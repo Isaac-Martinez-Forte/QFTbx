@@ -40,6 +40,24 @@
 # Values: "system" or a language code.
 # language = system
 
+# How the canvas was left the last time the application closed: the phases in
+# the order they were put in, each with the size it was given. The window
+# writes this one itself when it closes; nothing is lost by deleting the line,
+# and the canvas comes up in the order of the design.
+# Values: a list of "phase:size", or empty.
+# canvas =
+
+# The look of the interface: "system" takes the machine's colours, "light"
+# and "dark" the toolbox's own. The shapes are the same in the three - flat,
+# square, one-pixel borders - and the accent is the blue of the icon.
+# Values: "system", "light" or "dark".
+# theme = system
+
+# And how big the window was when it closed, so it comes up the same size.
+# Written by the window itself, like the canvas above.
+# Values: "width height", "maximized", or empty.
+# window =
+
 
 # ---------------------------------------------------------------------------
 # [limits] - ceilings that exist to stop a typo, not to express a limit of the

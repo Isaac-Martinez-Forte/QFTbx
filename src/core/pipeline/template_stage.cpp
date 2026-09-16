@@ -24,11 +24,16 @@ void TemplateStage::requirePrerequisites(const ProjectData & data) const
 }
 
 bool TemplateStage::run(ProjectData & data, std::vector<double> epsilon,
-                        ParameterGrids grids, bool cuda)
+                        ParameterGrids grids, bool cuda,
+                        const CancellationToken * cancellation)
 {
     requirePrerequisites(data);
 
     TemplateEngine & sweep = engine();
+
+    //Set on every run, so a token from a previous one cannot linger: the
+    //engine is kept between runs.
+    sweep.setCancellation(cancellation);
 
     sweep.setHullMetric(data.epsilonMetric().metric, data.epsilonMetric().dbPerDegree);
     sweep.setWholeCloudStandsIn(m_wholeCloudStandsIn);

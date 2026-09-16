@@ -92,6 +92,23 @@ private:
     long long m_line;
 };
 
+/**
+ * @brief A piece of a file that is not there: an element or an attribute
+ * the reader looked for and did not find.
+ *
+ * A file can be INCOMPLETE without being broken - a project saved half way
+ * through a design is the normal case - so a reader answers an absence by
+ * leaving that part unread, and only a reader that cannot go on says so.
+ * Malformed content is a ParseError and stays one: a number that is not a
+ * number is a broken file, not an unfinished one.
+ */
+class MissingPart : public ParseError
+{
+public:
+    using ParseError::ParseError;
+};
+
+
 } // namespace qftbx
 
 #endif // QFTBX_EXCEPTION_H

@@ -297,6 +297,20 @@ struct Settings {
      */
     struct Interface {
         std::string language = "system";
+        /// How the canvas of the interface was left: the phases in the
+        /// order the user put them, each with the size he gave it, as
+        /// "plantCard:1 templatesCard:2". Written by the window when it
+        /// closes and read back when it opens; empty means the order of
+        /// the design and one square each.
+        std::string canvas;
+
+        /// And how big the window was: "1280 860", or "maximized". Written
+        /// by the window on the way out, like the canvas.
+        std::string window;
+
+        /// The look: "system", "light" or "dark". Chosen from the View
+        /// menu, which writes it here.
+        std::string theme = "system";
     } interface;
 
     /// The path this was read from, empty when nothing was read and the

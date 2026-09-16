@@ -82,6 +82,19 @@ public:
     bool launch(CoefficientTable valueTable, CoefficientTable expressionTable,
                 UncertainTable uncertainTable, bool rangeOnly);
 
+    /**
+     * @brief The parameters a system arrived with, so that a form opened
+     * over a loaded project can answer for its uncertainty without the user
+     * entering it again.
+     *
+     * The rows open on the interval each name already has, and the dialog
+     * counts as accepted: its numerator() and denominator() are the ones
+     * given here until the user edits them.
+     */
+    void setParameters(const std::vector<Parameter> & numerator,
+                       const std::vector<Parameter> & denominator,
+                       const Range & gain, const Range & delay);
+
 
     
 private slots:
@@ -94,6 +107,9 @@ private slots:
 private:
 
     bool rowsBuilt = false;
+    //The intervals a loaded system brought, by name: what a row opens on
+    //when the text names a parameter the project already knows.
+    std::vector<Parameter> knownParameters;
     std::vector<Parameter> numeratorParameters;
     std::vector<Parameter> denominatorParameters;
     //A ParLineEdit is three QLineEdit POINTERS, and Qt owns those through
@@ -113,6 +129,9 @@ private:
 
     bool readRanges();
     void buildRow(QWidget *widget, QString label, std::list <ParLineEdit> & rows, bool rangeOnly);
+
+    /// Writes the interval of a known parameter into the row just built.
+    void prefillRow(const ParLineEdit & row, const QString & name);
     qreal parse(QString text);
 
     std::unique_ptr<Ui::UncertaintyDialog> ui;

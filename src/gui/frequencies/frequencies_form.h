@@ -1,11 +1,11 @@
-#ifndef QFTBX_FREQUENCIES_DIALOG_H
-#define QFTBX_FREQUENCIES_DIALOG_H
+#ifndef QFTBX_FREQUENCIES_FORM_H
+#define QFTBX_FREQUENCIES_FORM_H
 
 #include "src/core/project/settings.h"
-#include "src/gui/application/step_dialog.h"
+#include "src/gui/application/step_panel.h"
 #include <memory>
 
-#include <QDialog>
+#include <QWidget>
 #include <QString>
 #include <QFileDialog>
 #include <QDoubleValidator>
@@ -17,7 +17,7 @@
 #include "src/core/frequencies/omega.h"
 
 namespace Ui {
-class FrequenciesDialog;
+class FrequenciesForm;
 }
 
 namespace qftbx {
@@ -30,7 +30,7 @@ namespace qftbx {
  *
  * @author Isaac Martínez Forte
  */
-class FrequenciesDialog : public StepDialog
+class FrequenciesForm : public StepPanel
 {
     Q_OBJECT
     
@@ -41,12 +41,23 @@ public:
   
   /// The dialog knows nothing of the project: it builds a frequency set
   /// and takeOmega() hands it over.
-    explicit FrequenciesDialog(QWidget *parent = 0);
+    explicit FrequenciesForm(QWidget *parent = 0);
 
     /// The design frequencies the user described, or nullptr when cancelled
     /// or rejected. Ownership passes to the caller.
     std::unique_ptr<Omega> takeOmega();
-    ~FrequenciesDialog();
+
+    /**
+     * @brief Fills the fields with the frequency set the project holds, so
+     * that opening a design shows what it was designed with.
+     *
+     * A null set leaves the dialog as it is: there is nothing to show yet.
+     * The mode comes from how the set was generated, and the manual page
+     * lists the values themselves, which is what a set read from a file or
+     * typed by hand has instead of a rule.
+     */
+    void setFromProject(const Omega * omega);
+    ~FrequenciesForm();
 
 
     
@@ -56,14 +67,11 @@ private slots:
 
     void on_okButton_clicked();
 
-signals:
-    void close_ok ();
-
 private:
     std::unique_ptr<Omega> m_omega;
     QString filePath;
 
-    std::unique_ptr<Ui::FrequenciesDialog> ui;
+    std::unique_ptr<Ui::FrequenciesForm> ui;
 
     std::int32_t m_maxFrequencyCount = qftbx::Settings().limits.maxFrequencyCount;
 
@@ -71,4 +79,4 @@ private:
 
 } // namespace qftbx
 
-#endif // QFTBX_FREQUENCIES_DIALOG_H
+#endif // QFTBX_FREQUENCIES_FORM_H

@@ -4,6 +4,11 @@
 //Internal to src/persistence: the tag names of the .qft dialects, shared by
 //the reader and the writer.
 
+#include "src/core/loopshaping/loop_shaping_types.h"
+
+#include <optional>
+#include <string>
+
 namespace qftbx {
 
 /**
@@ -15,9 +20,19 @@ namespace qftbx {
  * other following.
  */
 struct Tags {
+    /// The three parts of a project file, in the order a reader meets them:
+    /// what the user described, what each computation was run with, and what
+    /// came out of it. Before version 4 they were mixed - the controller
+    /// STRUCTURE, which is an input, sat after the templates and the
+    /// boundaries - and a file could not be read down the page.
+    const char * inputs;
+    const char * settings;
+    const char * results;
+
     const char * plant;
     const char * controller;
     const char * loopShaping;
+    const char * check;
     const char * nameAttribute;
     const char * type;
     const char * typeAttribute;
@@ -66,8 +81,14 @@ struct Tags {
     const char * boundaryColumns;
 };
 
-inline const Tags kV2 = {
-    "plant", "controller", "loop-shaping",
+/// The version this build writes. A file that says anything else is refused:
+/// the sections moved in 4, and reading a 3 as a 4 finds the inputs missing
+/// rather than misplaced.
+inline constexpr int kVersion = 4;
+
+inline const Tags kV4 = {
+    "inputs", "settings", "results",
+    "plant", "controller", "loop-shaping", "check",
     "name", "type", "id", "expression", "numerator", "denominator",
     "nominal", "uncertain", "name", "expr", "range", "min", "max",
     "specifications", "specification", "used", "min-frequency",
@@ -80,6 +101,37 @@ inline const Tags kV2 = {
     "point-count",
     "columns",
 };
+
+/// The name the file gives each algorithm. The enum is positional and a
+/// name is not: a project written today still says which algorithm produced
+/// it after one more is added to the list.
+inline const char * algorithmName(LoopShapingAlgorithm algorithm)
+{
+    switch (algorithm) {
+    case nt:        return "nt";
+    case nk:        return "nk";
+    case mr:        return "mr";
+    case mc1:       return "mc1";
+    case mc_thesis: return "mc-thesis";
+    case mc2:       return "mc2";
+    case mc3:       return "mc3";
+    }
+
+    return "nt";
+}
+
+/// The algorithm a name stands for, or nothing when the file names one this
+/// build does not have.
+inline std::optional<LoopShapingAlgorithm> algorithmFromName(const std::string & name)
+{
+    for (const LoopShapingAlgorithm algorithm : {nt, nk, mr, mc1, mc_thesis, mc2, mc3}) {
+        if (name == algorithmName(algorithm)) {
+            return algorithm;
+        }
+    }
+
+    return std::nullopt;
+}
 
 } // namespace qftbx
 

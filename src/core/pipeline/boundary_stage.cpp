@@ -33,12 +33,15 @@ void BoundaryStage::requirePrerequisites(const ProjectData & data,
 bool BoundaryStage::run(ProjectData & data, Range phaseRange,
                         std::int32_t phaseCount, Range magnitudeRange,
                         std::int32_t magnitudeCount, double exportInfinity,
-                        bool fromContour, bool cuda)
+                        bool fromContour, bool cuda,
+                        const CancellationToken * cancellation)
 {
     requirePrerequisites(data, fromContour);
 
     BoundaryEngine & bounds = engine();
     bounds.setClosedFormColumns(m_closedForm);
+    //Set on every run, like the settings above.
+    bounds.setCancellation(cancellation);
 
     bounds.compute(data.frequencies(), data.plant(),
                    fromContour ? data.contour() : data.templates(), fromContour,

@@ -209,7 +209,7 @@ void ResultsView::draw()
         }
         QCPGraph * graph = m_plot->addGraph();
         graph->setName(QString::fromStdString(algorithm));
-        graph->setPen(QPen(randomColor(colour), 2));
+        graph->setPen(QPen(seriesColour(colour), 2));
         graph->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, 7));
         graph->setData(xs, ys);
         ++colour;

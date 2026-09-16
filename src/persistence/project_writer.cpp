@@ -24,7 +24,7 @@ namespace {
 //short form is 0.000101558).
 using qftbx::text::number;
 
-const Tags & t = kV2;
+const Tags & t = kV4;
 
 //A NaN or an infinity never leaves for the file: written as text they read
 //back through strtod, and a project that had gone wrong in memory would
@@ -210,16 +210,31 @@ void writeComplexVectors(pugi::xml_node section, const qftbx::CloudSet & vectors
     }
 }
 
+/// What the templates were computed with: the tolerance of the hull walk,
+/// per frequency, and the plane it is measured in.
+void writeTemplateSettings(pugi::xml_node settings, const ProjectContent & content)
+{
+    pugi::xml_node section = settings.append_child(t.templates);
+    pugi::xml_node epsilonNode = section.append_child(t.epsilon);
+    epsilonNode.text().set((content.epsilon != nullptr ? realVectorText(*content.epsilon, t.epsilon) : std::string()).c_str());
+    epsilonNode.append_attribute("metric") = hullMetricName(content.epsilonMetric.metric);
+    epsilonNode.append_attribute("db-per-degree") = number(content.epsilonMetric.dbPerDegree).c_str();
+}
+
+/// What the search was asked for. The same problem answers a different gain
+/// under a different reading of the phase grid, so a design without these
+/// three numbers cannot be compared with another.
+void writeLoopShapingSettings(pugi::xml_node settings, const LoopShapingResult::Run & run)
+{
+    pugi::xml_node section = settings.append_child(t.loopShaping);
+    section.append_attribute("algorithm") = algorithmName(run.algorithm);
+    section.append_attribute("tolerance") = number(run.epsilon).c_str();
+    section.append_attribute("columns") = run.conservativeColumns ? "conservative" : "nearest";
+}
+
 void writeTemplates(pugi::xml_node root, const ProjectContent & content)
 {
     pugi::xml_node section = root.append_child(t.templates);
-
-    pugi::xml_node metadata = section.append_child(t.metadata);
-    pugi::xml_node epsilonNode = metadata.append_child(t.epsilon);
-    epsilonNode.text().set((content.epsilon != nullptr ? realVectorText(*content.epsilon, t.epsilon) : std::string()).c_str());
-    //The plane the epsilon is measured in travels with it (version 3).
-    epsilonNode.append_attribute("metric") = hullMetricName(content.epsilonMetric.metric);
-    epsilonNode.append_attribute("db-per-degree") = number(content.epsilonMetric.dbPerDegree).c_str();
 
     pugi::xml_node full = section.append_child(t.fullTemplates);
     full.append_attribute("size") = static_cast<std::int64_t>(content.templates->size());
@@ -307,6 +322,22 @@ void writeLoopShaping(pugi::xml_node root, LoopShapingResult * loopShaping)
     addReal(data, t.axisMax, loopShaping->range().max);
 
     writeSystem(section, t.controller, loopShaping->controller());
+
+    //The verifier's verdict: the worst excess over any active specification,
+    //in decibels, over the full templates. Negative means satisfied, and by
+    //how much. The itemised list behind it is not written - it is derived
+    //from data the file already has - but the verdict is not derivable
+    //without recomputing it, and it is what the design is worth.
+    if (loopShaping->check().has_value()) {
+        pugi::xml_node check = section.append_child(t.check);
+        check.append_attribute("satisfied") = loopShaping->check()->satisfied();
+        //Minus infinity when no specification was active at any frequency:
+        //there is nothing to have exceeded, and the file carries no
+        //infinities. The verdict stands on its own.
+        if (std::isfinite(loopShaping->check()->worstExcessDb)) {
+            check.append_attribute("worst-excess-db") = number(loopShaping->check()->worstExcessDb).c_str();
+        }
+    }
 }
 
 } // namespace
@@ -319,28 +350,51 @@ void ProjectWriter::save(const std::string & filePath, const ProjectContent & co
     declaration.append_attribute("encoding") = "UTF-8";
 
     pugi::xml_node root = document.append_child("QFT");
-    root.append_attribute("version") = 3;
+    root.append_attribute("version") = kVersion;
+
+    //Three parts, in the order a reader meets them: what the user described,
+    //then what each computation was run with, then what came out. The
+    //problem is legible in the first page of the file and the bulk is at the
+    //bottom, which is the point of the arrangement.
+    pugi::xml_node inputs = root.append_child(t.inputs);
 
     if (content.plant != nullptr) {
-        writeSystem(root, t.plant, content.plant);
+        writeSystem(inputs, t.plant, content.plant);
     }
     if (content.specifications != nullptr) {
-        writeSpecifications(root, content.specifications);
+        writeSpecifications(inputs, content.specifications);
     }
     if (content.omega != nullptr) {
-        writeOmega(root, content.omega);
+        writeOmega(inputs, content.omega);
     }
-    if (content.templates != nullptr && !content.templates->empty()) {
-        writeTemplates(root, content);
+    //The controller STRUCTURE is an input: it is the box the search is asked
+    //to look in, not what the search found.
+    if (content.controller != nullptr) {
+        writeSystem(inputs, t.controller, content.controller);
+    }
+
+    const bool hasTemplates = content.templates != nullptr && !content.templates->empty();
+
+    if (hasTemplates || content.loopShaping != nullptr) {
+        pugi::xml_node settings = root.append_child(t.settings);
+        if (hasTemplates) {
+            writeTemplateSettings(settings, content);
+        }
+        if (content.loopShaping != nullptr) {
+            writeLoopShapingSettings(settings, content.loopShaping->run());
+        }
+    }
+
+    pugi::xml_node results = root.append_child(t.results);
+
+    if (hasTemplates) {
+        writeTemplates(results, content);
     }
     if (content.boundaries != nullptr) {
-        writeBoundaries(root, content.boundaries);
-    }
-    if (content.controller != nullptr) {
-        writeSystem(root, t.controller, content.controller);
+        writeBoundaries(results, content.boundaries);
     }
     if (content.loopShaping != nullptr) {
-        writeLoopShaping(root, content.loopShaping);
+        writeLoopShaping(results, content.loopShaping);
     }
 
     if (!document.save_file(filePath.c_str(), "    ",

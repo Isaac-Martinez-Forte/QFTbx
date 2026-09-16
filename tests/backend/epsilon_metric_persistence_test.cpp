@@ -1,9 +1,9 @@
 // The plane the templates' epsilon is measured in, as a property of the
-// project: kept with the epsilon, saved with it (format version 3), read back
+// project: kept with the epsilon, saved with it among the settings, read back
 // from it, and the plane every contour computation measures in.
 //
-// A version-2 file carries no plane and is read as what it is: an epsilon in
-// the complex plane. A file the build does not know is refused, as before.
+// A file ported from version 2 carries no plane and is read as what it is: an
+// epsilon in the complex plane. A file the build does not know is refused.
 
 #include <gtest/gtest.h>
 
@@ -32,7 +32,7 @@ TEST(EpsilonMetric, AFreshProjectIsInTheComplexPlaneAndALoadedVersionTwoFileToo)
     ProjectController loaded;
     loaded.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
     EXPECT_EQ(loaded.epsilonMetric().metric, HullMetric::ComplexPlane)
-            << "a version-2 file predates the choice: the complex plane";
+            << "a file ported from version 2 predates the choice: the complex plane";
 }
 
 TEST(EpsilonMetric, TheMetricRoundTripsThroughTheFile)
@@ -56,10 +56,10 @@ TEST(EpsilonMetric, TheMetricRoundTripsThroughTheFile)
     EXPECT_EQ(reloaded.epsilonMetric().metric, HullMetric::Nichols);
     EXPECT_DOUBLE_EQ(reloaded.epsilonMetric().dbPerDegree, 0.5);
 
-    //The written file says version 3 and names the plane on the epsilon.
+    //The written file says version 4 and names the plane on the epsilon.
     std::ifstream in(path);
     std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-    EXPECT_NE(text.find("version=\"3\""), std::string::npos);
+    EXPECT_NE(text.find("version=\"4\""), std::string::npos);
     EXPECT_NE(text.find("metric=\"nichols\""), std::string::npos);
     EXPECT_NE(text.find("db-per-degree=\"0.5\""), std::string::npos);
 }
@@ -77,19 +77,52 @@ TEST(EpsilonMetric, AnUnknownMetricOrVersionIsRefused)
     };
 
     ProjectReader reader;
-    EXPECT_THROW(reader.load(write("v4.qft", "<?xml version=\"1.0\"?><QFT version=\"4\"></QFT>")), qftbx::ParseError);
+    //A version-4 file with nothing in it is a project with nothing in it,
+    //not a broken file: it loads, and carries no step.
+    const ProjectReader::Loaded empty =
+            reader.load(write("empty.qft", "<?xml version=\"1.0\"?><QFT version=\"4\"></QFT>"));
+    EXPECT_EQ(empty.steps.count(), 0u);
 
     const std::string badMetric =
-        "<?xml version=\"1.0\"?><QFT version=\"3\"><templates><metadata>"
-        "<epsilon metric=\"polar\">1 </epsilon></metadata><full size=\"1\"><re>1 </re><im>0 </im></full>"
-        "</templates></QFT>";
+        "<?xml version=\"1.0\"?><QFT version=\"4\"><inputs/><settings><templates>"
+        "<epsilon metric=\"polar\">1 </epsilon></templates></settings>"
+        "<results><templates><full size=\"1\"><re>1 </re><im>0 </im></full>"
+        "</templates></results></QFT>";
     EXPECT_THROW(reader.load(write("metric.qft", badMetric)), qftbx::ParseError);
 
     const std::string badWeight =
-        "<?xml version=\"1.0\"?><QFT version=\"3\"><templates><metadata>"
-        "<epsilon metric=\"nichols\" db-per-degree=\"0\">1 </epsilon></metadata><full size=\"1\"><re>1 </re><im>0 </im></full>"
-        "</templates></QFT>";
+        "<?xml version=\"1.0\"?><QFT version=\"4\"><inputs/><settings><templates>"
+        "<epsilon metric=\"nichols\" db-per-degree=\"0\">1 </epsilon></templates></settings>"
+        "<results><templates><full size=\"1\"><re>1 </re><im>0 </im></full>"
+        "</templates></results></QFT>";
     EXPECT_THROW(reader.load(write("weight.qft", badWeight)), qftbx::ParseError);
+}
+
+TEST(EpsilonMetric, AFileThatKeptItsEpsilonAmongTheResultsIsStillRead)
+{
+    //The first version-4 files wrote the epsilon under the templates, among
+    //the results, before it moved to the settings where it belongs. A
+    //project that carries its clouds and loses the tolerance they were
+    //walked with is a project that cannot tighten its contour again, so it
+    //is read from the old place rather than dropped.
+    QTemporaryDir temporary;
+    ASSERT_TRUE(temporary.isValid());
+    const std::string path = temporary.filePath("among_results.qft").toStdString();
+
+    std::ofstream out(path);
+    out << "<?xml version=\"1.0\"?><QFT version=\"4\"><inputs/><results><templates><metadata>"
+           "<epsilon metric=\"nichols\" db-per-degree=\"2\">3 4 </epsilon></metadata>"
+           "<full size=\"1\"><re>1 </re><im>0 </im></full></templates></results></QFT>";
+    out.close();
+
+    ProjectReader reader;
+    reader.load(path);
+
+    ASSERT_NE(reader.epsilon(), nullptr);
+    ASSERT_EQ(reader.epsilon()->size(), 2u);
+    EXPECT_DOUBLE_EQ(reader.epsilon()->at(0), 3.0);
+    EXPECT_EQ(reader.epsilonMetric().metric, HullMetric::Nichols);
+    EXPECT_DOUBLE_EQ(reader.epsilonMetric().dbPerDegree, 2.0);
 }
 
 //The contour is walked in the project's plane. On example 2 an epsilon in the
