@@ -560,6 +560,9 @@ void MainWindow::on_specificationsButton_clicked()
 void MainWindow::on_frequenciesButton_clicked()
 {
     ensureFrequenciesDialog();
+    //Opened on what the project holds, so a step already taken shows what it
+    //was taken with instead of an empty form.
+    frequenciesDialog->setFromProject(controller->omega());
 
     runDialog(frequenciesDialog);
 
@@ -636,6 +639,7 @@ void MainWindow::on_templatesButton_clicked()
 void MainWindow::on_boundariesButton_clicked()
 {
     ensureBoundariesWidgets();
+    boundaryGridDialog->setFromProject(controller->boundaries());
 
     runDialog(boundaryGridDialog);
 
@@ -708,6 +712,8 @@ void MainWindow::on_controllerButton_clicked()
 void MainWindow::on_loopButton_clicked()
 {
     ensureLoopShapingWidgets();
+
+    loopShapingDialog->setFromProject(controller->loopShapingResult());
 
     runDialog(loopShapingDialog);
 
@@ -826,18 +832,21 @@ void MainWindow::on_actionOpen_triggered()
         }
         if (loaded.has(qftbx::Step::Frequencies)) {
             ensureFrequenciesDialog();
+            frequenciesDialog->setFromProject(controller->omega());
         }
         if (loaded.has(qftbx::Step::Templates)) {
             ensureTemplatesWidgets();
         }
         if (loaded.has(qftbx::Step::Boundaries)) {
             ensureBoundariesWidgets();
+            boundaryGridDialog->setFromProject(controller->boundaries());
         }
         if (loaded.has(qftbx::Step::Controller)) {
             ensureControllerDialog();
         }
         if (loaded.has(qftbx::Step::LoopShaping)) {
             ensureLoopShapingWidgets();
+            loopShapingDialog->setFromProject(controller->loopShapingResult());
         }
 
         refreshAvailability();

@@ -86,6 +86,21 @@ void BoundaryGridDialog::applyDefaults(const qftbx::Settings::Defaults & default
     }
 }
 
+void BoundaryGridDialog::setFromProject(const qftbx::BoundaryData * boundaries)
+{
+    if (boundaries == nullptr) {
+        return;
+    }
+
+    ui->phaseStart->setText(qftbx::numberText(boundaries->phaseRange().min));
+    ui->phaseEnd->setText(qftbx::numberText(boundaries->phaseRange().max));
+    ui->phasePoints->setText(QString::number(boundaries->phaseCount()));
+
+    ui->magnitudeStart->setText(qftbx::numberText(boundaries->magnitudeRange().min));
+    ui->magnitudeEnd->setText(qftbx::numberText(boundaries->magnitudeRange().max));
+    ui->magnitudePoints->setText(QString::number(boundaries->magnitudeCount()));
+}
+
 void BoundaryGridDialog::on_buttonBox_accepted()
 {
     if (ui->infinityEdit->text().isEmpty()){

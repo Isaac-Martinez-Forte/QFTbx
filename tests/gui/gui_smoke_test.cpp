@@ -1425,3 +1425,39 @@ TEST_F(GuiSmoke, AFigureIsExportedAsVectorAtTheSizeAskedFor)
     EXPECT_EQ(plot->xAxis->labelColor(), axisBefore) << "the export changed the screen";
     EXPECT_DOUBLE_EQ(plot->plottable(0)->pen().widthF(), penBefore) << "the export changed the screen";
 }
+
+//Opening a project has to SHOW it. The dialogs kept their own copy of what
+//the user had typed and nothing ever flowed the other way, so a design read
+//from a file left every form empty: the plant was in the project and the
+//dialog did not know it.
+TEST_F(GuiSmoke, OpeningAProjectFillsTheFormsWithWhatItHolds)
+{
+    MainWindow window;
+    window.setFileChooser([](bool) {
+        return QString(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft");
+    });
+
+    QAction * open = child<QAction>(&window, "actionOpen");
+    ASSERT_NE(open, nullptr);
+    open->trigger();
+
+    //The frequencies: the fixture carries twenty of them, and the manual
+    //page lists the values whatever the mode, since that is what the project
+    //has rather than a rule that regenerates them.
+    FrequenciesDialog * frequencies = window.findChild<FrequenciesDialog *>();
+    ASSERT_NE(frequencies, nullptr) << "the frequencies dialog was not built";
+    QLineEdit * values = child<QLineEdit>(frequencies, "manualValues");
+    ASSERT_NE(values, nullptr);
+    EXPECT_FALSE(values->text().isEmpty()) << "the frequencies came out empty";
+    EXPECT_GE(values->text().split(' ', Qt::SkipEmptyParts).size(), 2)
+        << "only one frequency was filled in";
+
+    //The boundary grid: the one the boundaries in the file were computed on,
+    //not the default the dialog opens with.
+    BoundaryGridDialog * grid = window.findChild<BoundaryGridDialog *>();
+    ASSERT_NE(grid, nullptr) << "the boundary dialog was not built";
+    QLineEdit * phasePoints = child<QLineEdit>(grid, "phasePoints");
+    ASSERT_NE(phasePoints, nullptr);
+    EXPECT_FALSE(phasePoints->text().isEmpty()) << "the phase count came out empty";
+    EXPECT_GT(phasePoints->text().toInt(), 1) << "the phase count is not a grid";
+}

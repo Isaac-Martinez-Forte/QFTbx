@@ -46,6 +46,17 @@ public:
     /// The design frequencies the user described, or nullptr when cancelled
     /// or rejected. Ownership passes to the caller.
     std::unique_ptr<Omega> takeOmega();
+
+    /**
+     * @brief Fills the fields with the frequency set the project holds, so
+     * that opening a design shows what it was designed with.
+     *
+     * A null set leaves the dialog as it is: there is nothing to show yet.
+     * The mode comes from how the set was generated, and the manual page
+     * lists the values themselves, which is what a set read from a file or
+     * typed by hand has instead of a rule.
+     */
+    void setFromProject(const Omega * omega);
     ~FrequenciesDialog();
 
 

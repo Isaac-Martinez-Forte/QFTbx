@@ -194,6 +194,17 @@ void LoopShapingDialog::on_logspaceRadio_clicked()
     applyDefaults(m_defaults);
 }
 
+void LoopShapingDialog::setFromProject(const qftbx::LoopShapingResult * result)
+{
+    if (result == nullptr) {
+        return;
+    }
+
+    ui->startEdit->setText(qftbx::numberText(result->range().min));
+    ui->endEdit->setText(qftbx::numberText(result->range().max));
+    ui->pointCountEdit->setText(qftbx::numberText(result->pointCount()));
+}
+
 void LoopShapingDialog::applyDefaults(const qftbx::Settings::Defaults & defaults)
 {
     m_defaults = defaults;

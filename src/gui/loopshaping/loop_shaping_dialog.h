@@ -2,6 +2,7 @@
 #define QFTBX_LOOP_SHAPING_DIALOG_H
 
 #include "src/core/loopshaping/loop_shaping_types.h"
+#include "src/core/loopshaping/loop_shaping_result.h"
 #include "src/core/project/settings.h"
 #include "src/gui/application/step_dialog.h"
 #include <memory>
@@ -71,6 +72,16 @@ public:
     qreal pointCountValue();
 
     bool isLinSpace();
+
+    /**
+     * @brief Fills the plot range and the point count with those of the
+     * design the project holds.
+     *
+     * The algorithm and the tolerance are NOT among them: the result does
+     * not record which algorithm produced it, so the dialog would be
+     * inventing an answer. That is the gap the file format has to close.
+     */
+    void setFromProject(const qftbx::LoopShapingResult * result);
 
     qint32 initialisationValue ();
 

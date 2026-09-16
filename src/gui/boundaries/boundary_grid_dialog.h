@@ -1,6 +1,7 @@
 #ifndef QFTBX_BOUNDARY_GRID_DIALOG_H
 #define QFTBX_BOUNDARY_GRID_DIALOG_H
 
+#include "src/core/boundaries/boundary_data.h"
 #include "src/core/project/settings.h"
 #include "src/gui/application/step_dialog.h"
 #include <memory>
@@ -50,6 +51,15 @@ public:
      * Nichols grid should not have to type it again every time.
      */
     void applyDefaults(const qftbx::Settings::Defaults & defaults);
+
+    /**
+     * @brief Fills the grid with the one the project's boundaries were
+     * computed on, so that reopening the step shows what produced them
+     * instead of the defaults.
+     *
+     * Null boundaries leave the defaults in place: there is nothing to show.
+     */
+    void setFromProject(const qftbx::BoundaryData * boundaries);
 
   
     explicit BoundaryGridDialog(QWidget *parent = 0);
