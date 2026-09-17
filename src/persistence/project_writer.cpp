@@ -180,6 +180,14 @@ void writeSpecifications(pugi::xml_node root, const qftbx::SpecificationRecords 
 
         addReal(node, t.minFrequency, record.omegaStart);
         addReal(node, t.maxFrequency, record.omegaEnd);
+
+        //The frequencies of that band this one was taken out of, if any:
+        //written only when there are, so a file says nothing about an
+        //exception list nobody made.
+        if (!record.skipped.empty()) {
+            addText(node, t.skipped, realVectorText(record.skipped, t.skipped));
+        }
+
         addBool(node, t.constant, record.constant);
 
         if (record.constant) {

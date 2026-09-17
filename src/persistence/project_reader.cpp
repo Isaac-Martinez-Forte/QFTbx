@@ -320,6 +320,14 @@ public:
                 if (record.used) {
                     record.omegaStart = realChild(node, t.minFrequency);
                     record.omegaEnd = realChild(node, t.maxFrequency);
+
+                    //The frequencies of the band this one was taken out of.
+                    //A file that names none - every file written before
+                    //they existed - leaves the whole band.
+                    if (const pugi::xml_node skipped = node.child(t.skipped)) {
+                        record.skipped = realVector(skipped);
+                    }
+
                     record.constant = boolChild(node, t.constant);
 
                     if (record.constant) {

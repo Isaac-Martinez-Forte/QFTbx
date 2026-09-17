@@ -6,7 +6,10 @@
 #include <QString>
 #include <QVector>
 
+#include "src/gui/common/flow_layout.h"
+
 class QCheckBox;
+class QHBoxLayout;
 class QLineEdit;
 class QVBoxLayout;
 class QWidget;
@@ -27,19 +30,31 @@ namespace qftbx {
  *   Horowitz-Sidi motor, and twice that in the both-diagrams mode of the
  *   loop viewer - so without one the last rows are simply unreachable.
  * - All, none and a text filter are there because twenty checkboxes are not
- *   worked one at a time.
+ *   worked one at a time. They share one line: the box is a legend beside a
+ *   diagram, and every pixel it takes is a pixel the diagram does not have.
+ * - The rows FLOW into as many columns as the width allows. A frequency is
+ *   four characters and a tick, and in one column five of them filled the
+ *   height of a card while the diagram beside them was squeezed into
+ *   nothing.
  */
 class FrequencyLegend : public QGroupBox
 {
     Q_OBJECT
 
 public:
-    /// One row: its container, its checkbox and the layout more controls
-    /// can be added to.
+    /// One row: its container, its checkbox, the LINE the checkbox is on -
+    /// where a caller puts what fits beside it - and the column under that
+    /// line, for what does not.
+    ///
+    /// The line matters: the templates hang a slider and a field off every
+    /// frequency, and stacked under it each row was three lines tall, so
+    /// five frequencies filled a card while the diagram beside them had no
+    /// room left.
     struct Row {
         QWidget * widget = nullptr;
         QCheckBox * check = nullptr;
-        QVBoxLayout * layout = nullptr;
+        QHBoxLayout * layout = nullptr;
+        QVBoxLayout * column = nullptr;
     };
 
     explicit FrequencyLegend(QWidget * parent = nullptr);
@@ -47,27 +62,52 @@ public:
     /// Appends a checked row labelled 'text' in 'color'.
     Row addRow(const QString & text, const QColor & color);
 
+    /**
+     * @brief Just the ticks: no frame, no title, and none of the three
+     * controls above them.
+     *
+     * For where the legend is not a legend but a question with the design
+     * frequencies as its answers - which of them a specification applies at
+     * - and the filter, All and None would be furniture around six tick
+     * boxes.
+     */
+    void setBare(bool bare);
+
     /// Destroys every row, ready for a replot.
     void clear();
 
     int rowCount() const { return m_checks.size(); }
     bool isRowChecked(int index) const;
 
+    /// Ticks or unticks a row without saying so: the caller is writing the
+    /// legend, not answering it, and rowToggled is for what the user does.
+    void setRowChecked(int index, bool checked);
+
 signals:
     /// A row's checkbox was clicked, or all of them were: the owner
     /// re-applies the visibilities.
     void rowToggled();
 
+protected:
+    /// The rows are given one width, the widest of them, so that the
+    /// columns line up. Here and not in addRow, because a caller that adds
+    /// its own controls to a row does it after addRow has returned.
+    void showEvent(QShowEvent * event) override;
+
 private:
     void setAll(bool checked);
+    void tidyWidths();
     /// Whether the row would be shown with the filter as it stands. Asked of
     /// the filter, not of the widget: a legend that is not on screen yet has
     /// no visible rows.
     bool passesFilter(int index) const;
     void applyFilter(const QString & text);
 
+    //The filter and the two buttons above the rows, hidden by setBare().
+    QHBoxLayout * m_controls = nullptr;
+
     QWidget * m_rowHolder = nullptr;
-    QVBoxLayout * m_layout = nullptr;
+    FlowLayout * m_layout = nullptr;
     QLineEdit * m_filter = nullptr;
 
     //Observers: the rows are Qt children of the holder.

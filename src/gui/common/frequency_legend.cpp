@@ -1,11 +1,15 @@
 #include "src/gui/common/frequency_legend.h"
 
+#include <algorithm>
+
 #include <QCheckBox>
 #include <QHBoxLayout>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QScrollArea>
 #include <QVBoxLayout>
+
+#include "src/gui/common/field_mark.h"
 
 namespace qftbx {
 
@@ -16,24 +20,32 @@ FrequencyLegend::FrequencyLegend(QWidget * parent)
     setTitle(tr("Frequencies"));
 
     QVBoxLayout * outer = new QVBoxLayout(this);
+    outer->setSpacing(4);
+
+    //One line for the three controls: a legend beside a diagram is worth
+    //the width of a number, and two lines of buttons over it were a third
+    //of its height.
+    QHBoxLayout * controls = new QHBoxLayout();
+    controls->setSpacing(4);
 
     m_filter = new QLineEdit(this);
     m_filter->setObjectName("legendFilter");
     m_filter->setPlaceholderText(tr("filter"));
     m_filter->setClearButtonEnabled(true);
     connect(m_filter, &QLineEdit::textChanged, this, &FrequencyLegend::applyFilter);
-    outer->addWidget(m_filter);
+    controls->addWidget(m_filter, 1);
 
-    QHBoxLayout * buttons = new QHBoxLayout();
     QPushButton * all = new QPushButton(tr("All"), this);
     all->setObjectName("legendAll");
     QPushButton * none = new QPushButton(tr("None"), this);
     none->setObjectName("legendNone");
     connect(all, &QPushButton::clicked, this, [this]() { setAll(true); });
     connect(none, &QPushButton::clicked, this, [this]() { setAll(false); });
-    buttons->addWidget(all);
-    buttons->addWidget(none);
-    outer->addLayout(buttons);
+    controls->addWidget(all);
+    controls->addWidget(none);
+    outer->addLayout(controls);
+
+    m_controls = controls;
 
     //The rows scroll: there are as many as the problem has frequencies, and
     //the box is as tall as the window leaves it.
@@ -44,11 +56,24 @@ FrequencyLegend::FrequencyLegend(QWidget * parent)
     scroll->setFrameShape(QFrame::NoFrame);
 
     m_rowHolder = new QWidget(scroll);
-    m_layout = new QVBoxLayout(m_rowHolder);
-    m_layout->setContentsMargins(0, 0, 0, 0);
-    m_layout->addStretch();
+    m_layout = new FlowLayout(m_rowHolder, 0, 4);
     scroll->setWidget(m_rowHolder);
     outer->addWidget(scroll);
+}
+
+void FrequencyLegend::setBare(bool bare)
+{
+    setTitle(bare ? QString() : tr("Frequencies"));
+
+    //What the sheet dresses: a box with no frame and no room reserved for
+    //a title it does not have.
+    markAs(this, "bare", bare);
+
+    for (int i = 0; i < m_controls->count(); ++i) {
+        if (QWidget * control = m_controls->itemAt(i)->widget()) {
+            control->setVisible(!bare);
+        }
+    }
 }
 
 FrequencyLegend::Row FrequencyLegend::addRow(const QString & text, const QColor & color)
@@ -56,8 +81,15 @@ FrequencyLegend::Row FrequencyLegend::addRow(const QString & text, const QColor 
     Row row;
     row.widget = new QWidget(m_rowHolder);
     row.widget->setObjectName("row");
-    row.layout = new QVBoxLayout(row.widget);
+
+    row.column = new QVBoxLayout(row.widget);
+    row.column->setContentsMargins(0, 0, 0, 0);
+    row.column->setSpacing(1);
+
+    row.layout = new QHBoxLayout();
     row.layout->setContentsMargins(0, 0, 0, 0);
+    row.layout->setSpacing(4);
+    row.column->addLayout(row.layout);
 
     row.check = new QCheckBox(row.widget);
     row.check->setObjectName("check");
@@ -66,8 +98,7 @@ FrequencyLegend::Row FrequencyLegend::addRow(const QString & text, const QColor 
     row.check->setCheckState(Qt::Checked);
     row.layout->addWidget(row.check);
 
-    //Before the stretch that keeps the rows at the top.
-    m_layout->insertWidget(m_layout->count() - 1, row.widget);
+    m_layout->addWidget(row.widget);
     m_rows.push_back(row.widget);
     m_checks.push_back(row.check);
 
@@ -87,6 +118,24 @@ void FrequencyLegend::clear()
     m_checks.clear();
     if (m_filter != nullptr) {
         m_filter->clear();
+    }
+}
+
+void FrequencyLegend::showEvent(QShowEvent * event)
+{
+    QGroupBox::showEvent(event);
+    tidyWidths();
+}
+
+void FrequencyLegend::tidyWidths()
+{
+    int widest = 0;
+    for (QWidget * row : m_rows) {
+        widest = std::max(widest, row->sizeHint().width());
+    }
+
+    for (QWidget * row : m_rows) {
+        row->setMinimumWidth(widest);
     }
 }
 
@@ -120,6 +169,15 @@ void FrequencyLegend::applyFilter(const QString & text)
     for (int i = 0; i < m_rows.size(); ++i) {
         m_rows.at(i)->setVisible(wanted.isEmpty() ||
                                  m_checks.at(i)->text().contains(wanted, Qt::CaseInsensitive));
+    }
+}
+
+void FrequencyLegend::setRowChecked(int index, bool checked)
+{
+    if (index >= 0 && index < m_checks.size()) {
+        //setChecked does not emit clicked(), which is what rowToggled is
+        //connected to: writing the legend does not look like using it.
+        m_checks.at(index)->setChecked(checked);
     }
 }
 

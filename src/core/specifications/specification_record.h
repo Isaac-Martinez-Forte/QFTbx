@@ -3,6 +3,7 @@
 
 #include <array>
 #include <memory>
+#include <vector>
 
 #include <string>
 
@@ -25,6 +26,10 @@ struct SpecificationRecord {
     bool constant = false;
     double omegaStart = 0.0;
     double omegaEnd = 0.0;
+    //The design frequencies inside that band the user took out of this
+    //specification, one by one. Empty is the whole band, which is what
+    //every project written before this has.
+    std::vector<double> skipped;
 
     //Deep copy: the copy owns a fresh copy of the embedded plant. Explicit
     //because owning the plant makes the record move-only, which is the
@@ -37,6 +42,7 @@ struct SpecificationRecord {
         copy.constant = constant;
         copy.omegaStart = omegaStart;
         copy.omegaEnd = omegaEnd;
+        copy.skipped = skipped;
 
         if (system != nullptr){
             copy.system = system->clone();
@@ -70,13 +76,13 @@ inline Specification toSpecification(const SpecificationRecord & d, Specificatio
         return Specification::unused(type);
     }
     if (d.constant){
-        return Specification::constant(type, d.height, d.omegaStart, d.omegaEnd);
+        return Specification::constant(type, d.height, d.omegaStart, d.omegaEnd, d.skipped);
     }
     if (d.system == nullptr){
         throw InvalidInput(QFTBX_TR("Core", "A used specification needs a plant or a constant height."));
     }
     return Specification::fromSystem(type, d.system->clone(),
-                                     d.omegaStart, d.omegaEnd);
+                                     d.omegaStart, d.omegaEnd, d.skipped);
 }
 
 inline SpecificationSet toSpecificationSet(const SpecificationRecords & specs){

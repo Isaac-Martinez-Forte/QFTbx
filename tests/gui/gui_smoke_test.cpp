@@ -55,10 +55,12 @@
 #include <QDockWidget>
 #include <QToolButton>
 #include <QStackedWidget>
+#include <QTableWidget>
 #include <QString>
 #include <QStringList>
 
 #include "src/app/project_controller.h"
+#include "src/gui/common/formula_delegate.h"
 #include "src/gui/common/formula_view.h"
 #include "src/core/system/system_formula.h"
 #include "src/gui/application/about.h"
@@ -452,69 +454,201 @@ TEST_F(GuiSmoke, FrequenciesDialogBuildsTheDesignFrequencies)
     EXPECT_EQ(omega->pointCount(), 4);
 }
 
-TEST_F(GuiSmoke, SpecificationsDialogRefusesToLeaveATabItCannotRead)
+TEST_F(GuiSmoke, ASpecificationThatCannotBeReadIsNotAddedToTheList)
 {
-    //Switching away used to happen anyway and the return value of the read
-    //was discarded, so the whole specification was lost - not just the bad
-    //field - and coming back showed a blank tab.
+    //What the seven tabs used to get wrong: a field that could not be read
+    //lost the whole specification and showed a blank tab. Here nothing
+    //leaves the form until it has been verified, the field that is wrong is
+    //marked, and what was typed stays where it can be corrected.
     const std::vector<double> frequencies{0.1, 1.0, 10.0};
-    SpecificationsForm dialog(&frequencies);
+    SpecificationsForm form(&frequencies);
 
-    check(&dialog, "stabilityRadio");
-    dialog.findChild<QRadioButton *>("stabilityRadio")->click();
+    QComboBox * typeCombo = child<QComboBox>(&form, "typeCombo");
+    ASSERT_NE(typeCombo, nullptr);
+    typeCombo->setCurrentIndex(int(qftbx::SpecificationType::Stability));
 
-    //A valid constant stability specification.
-    check(&dialog, "constantRadio");
-    check(&dialog, "linearRadio");
-    type(&dialog, "magnitudeEdit", "1.2");
+    check(&form, "constantRadio");
+    check(&form, "linearRadio");
+    type(&form, "magnitudeEdit", "1.2*/");
 
-    //Now break the band and try to leave.
-    type(&dialog, "startFrequencyEdit", "not a number");
-    m_reported.clear();
+    press(&form, "addButton");
 
-    dialog.findChild<QRadioButton *>("noiseRadio")->click();
-
-    EXPECT_FALSE(m_reported.empty()) << "the refusal must be reported";
-    EXPECT_TRUE(dialog.findChild<QRadioButton *>("stabilityRadio")->isChecked())
-        << "the tab that could not be read must stay selected";
-    EXPECT_FALSE(dialog.findChild<QRadioButton *>("noiseRadio")->isChecked());
+    EXPECT_FALSE(complaintOf(&form).isEmpty()) << "the refusal must be said";
+    EXPECT_TRUE(isMarked(&form, "magnitudeEdit"));
+    EXPECT_EQ(child<QTableWidget>(&form, "specificationsTable")->rowCount(), 0)
+        << "a specification that could not be read was added anyway";
 
     //The user's text is still on screen, where it can be corrected.
-    EXPECT_EQ(dialog.findChild<QLineEdit *>("magnitudeEdit")->text(),
-              "1.2");
+    EXPECT_EQ(child<QLineEdit>(&form, "magnitudeEdit")->text(), "1.2*/");
 }
 
-TEST_F(GuiSmoke, SpecificationsDialogStoresAConstantStabilitySpecification)
+TEST_F(GuiSmoke, TheSpecificationsEnteredAreListedWithTheirBound)
 {
-    //Real step order: the frequencies come first, and the window hands them
-    //to the dialog.
+    //The list is the design: every specification entered is on it, with the
+    //band it holds over and the bound drawn as the formula it is.
     const std::vector<double> frequencies{0.1, 1.0, 10.0, 100.0};
+    SpecificationsForm form(&frequencies);
 
-    SpecificationsForm dialog(&frequencies);
+    QComboBox * typeCombo = child<QComboBox>(&form, "typeCombo");
+    QTableWidget * table = child<QTableWidget>(&form, "specificationsTable");
+    ASSERT_NE(typeCombo, nullptr);
+    ASSERT_NE(table, nullptr);
 
-    //Stability with a constant magnitude: the simplest complete slot.
-    check(&dialog, "stabilityRadio");
-    check(&dialog, "constantRadio");
-    check(&dialog, "linearRadio");
-    type(&dialog, "magnitudeEdit", "1.2");
+    //A constant stability bound, verified and added.
+    typeCombo->setCurrentIndex(int(qftbx::SpecificationType::Stability));
+    check(&form, "constantRadio");
+    check(&form, "decibelsRadio");
+    type(&form, "magnitudeEdit", "3.5");
 
-    press(&dialog, "okButton");
+    press(&form, "addButton");
+    EXPECT_EQ(child<QPushButton>(&form, "addButton")->text(), QString("Add"))
+        << "verifying offers to add: " << complaintOf(&form).toStdString();
+    press(&form, "addButton");
 
-    const std::optional<qftbx::SpecificationRecords> records = dialog.takeSpecifications();
+    ASSERT_EQ(table->rowCount(), 1);
 
-    if (!records.has_value()) {
-        //The dialog declined the combination; the smoke value here is that
-        //it said so instead of crashing or storing a half-built record.
-        EXPECT_FALSE(dialog.wasAccepted());
-        return;
+    //And a tracking upper bound as a transfer function.
+    typeCombo->setCurrentIndex(int(qftbx::SpecificationType::TrackingUpper));
+    check(&form, "systemRadio");
+    check(&form, "polynomialRadio");
+    type(&form, "numeratorEdit", "0.6584");
+    type(&form, "denominatorEdit", "1 4 19.752");
+    type(&form, "k", "1");
+
+    press(&form, "addButton");
+    press(&form, "addButton");
+
+    ASSERT_EQ(table->rowCount(), 2);
+
+    //And the stability row, which is the same closed loop without the
+    //prefilter: the six requirements are the literature's, one per slot.
+    const QVariant stability = table->item(1, 2)->data(qftbx::FormulaDelegate::formulaRole);
+    ASSERT_TRUE(stability.canConvert<qftbx::Formula>());
+    EXPECT_EQ(qftbx::latexOf(stability.value<qftbx::Formula>()),
+              std::string("\\left|\\frac{L}{1 + L}\\right| \\leq 3.5 dB"));
+
+    //The list is in the order of the slots, not of the typing: the tracking
+    //bound comes before the stability one wherever they were entered.
+    EXPECT_EQ(table->item(0, 0)->text(), QString("Tracking, upper bound"));
+    EXPECT_EQ(table->item(1, 0)->text(), QString("Stability"));
+
+    //The bound of the row carries its formula, which is what the list is
+    //for: a quotient read as "1 4 19.752" says nothing.
+    const QVariant held = table->item(0, 2)->data(qftbx::FormulaDelegate::formulaRole);
+    ASSERT_TRUE(held.canConvert<qftbx::Formula>());
+    //The whole requirement: what the program checks of the loop, the sign,
+    //and the bound that was typed.
+    EXPECT_EQ(qftbx::latexOf(held.value<qftbx::Formula>()),
+              std::string("\\left|F\\frac{L}{1 + L}\\right| \\leq "
+                          "\\frac{0.6584}{s^{2} + 4s + 19.75}"));
+
+    //And the lower bound of the tracking band is the one that reads the
+    //other way.
+    typeCombo->setCurrentIndex(int(qftbx::SpecificationType::TrackingLower));
+    check(&form, "constantRadio");
+    check(&form, "decibelsRadio");
+    type(&form, "magnitudeEdit", "-3");
+    press(&form, "addButton");
+    press(&form, "addButton");
+
+    const QVariant lower = table->item(0, 2)->data(qftbx::FormulaDelegate::formulaRole);
+    ASSERT_TRUE(lower.canConvert<qftbx::Formula>());
+    EXPECT_EQ(qftbx::latexOf(lower.value<qftbx::Formula>()),
+              std::string("\\left|F\\frac{L}{1 + L}\\right| \\geq -3 dB"));
+
+    //Applying publishes the seven slots with the two that are used.
+    press(&form, "okButton");
+    ASSERT_TRUE(form.wasAccepted());
+
+    const std::optional<qftbx::SpecificationRecords> records = form.takeSpecifications();
+    ASSERT_TRUE(records.has_value());
+    EXPECT_TRUE(records->at(int(qftbx::SpecificationType::Stability)).used);
+    EXPECT_TRUE(records->at(int(qftbx::SpecificationType::TrackingUpper)).used);
+    EXPECT_FALSE(records->at(int(qftbx::SpecificationType::SensorNoise)).used);
+
+    //3.5 dB is what was typed, and linear is what the record keeps.
+    EXPECT_NEAR(records->at(int(qftbx::SpecificationType::Stability)).height,
+                qftbx::dbToLinear(3.5), 1e-12);
+}
+
+TEST_F(GuiSmoke, ASpecificationAppliesAtTheFrequenciesThatAreTicked)
+{
+    //The band is not typed: it is the design frequencies, ticked. And a
+    //frequency in the middle can be taken out, which a pair of numbers
+    //cannot say.
+    const std::vector<double> frequencies{0.1, 1.0, 10.0, 100.0};
+    SpecificationsForm form(&frequencies);
+
+    QComboBox * typeCombo = child<QComboBox>(&form, "typeCombo");
+    typeCombo->setCurrentIndex(int(qftbx::SpecificationType::ControlEffort));
+
+    qftbx::FrequencyLegend * ticks = form.findChild<qftbx::FrequencyLegend *>();
+    ASSERT_NE(ticks, nullptr);
+    ASSERT_EQ(ticks->rowCount(), 4) << "one tick per design frequency";
+    for (int i = 0; i < ticks->rowCount(); ++i) {
+        EXPECT_TRUE(ticks->isRowChecked(i)) << "a new specification applies everywhere";
     }
 
-    for (const qftbx::SpecificationRecord & record : *records) {
-        if (record.used && record.constant) {
-            EXPECT_GT(record.height, 0.0) << "a used constant specification "
-                                             "must carry a positive magnitude";
-        }
-    }
+    //Out with the second one, and with the last.
+    ticks->setRowChecked(1, false);
+    ticks->setRowChecked(3, false);
+
+    check(&form, "constantRadio");
+    check(&form, "linearRadio");
+    type(&form, "magnitudeEdit", "2");
+
+    press(&form, "addButton");
+    press(&form, "addButton");
+    press(&form, "okButton");
+
+    ASSERT_TRUE(form.wasAccepted()) << complaintOf(&form).toStdString();
+
+    const std::optional<qftbx::SpecificationRecords> records = form.takeSpecifications();
+    ASSERT_TRUE(records.has_value());
+
+    const qftbx::SpecificationRecord & effort =
+            records->at(int(qftbx::SpecificationType::ControlEffort));
+
+    //The band runs from the first tick to the last, and the hole in the
+    //middle travels as an exception.
+    EXPECT_DOUBLE_EQ(effort.omegaStart, 0.1);
+    EXPECT_DOUBLE_EQ(effort.omegaEnd, 10.0);
+    ASSERT_EQ(effort.skipped.size(), 1u);
+    EXPECT_DOUBLE_EQ(effort.skipped.front(), 1.0);
+
+    //Which is what the specification the engines see answers.
+    const qftbx::Specification specification =
+            qftbx::toSpecification(effort, qftbx::SpecificationType::ControlEffort);
+    EXPECT_TRUE(specification.appliesAt(0.1));
+    EXPECT_FALSE(specification.appliesAt(1.0)) << "the frequency taken out is out";
+    EXPECT_TRUE(specification.appliesAt(10.0));
+    EXPECT_FALSE(specification.appliesAt(100.0)) << "and so is everything past the band";
+}
+
+TEST_F(GuiSmoke, ASpecificationIsRemovedFromTheListItIsOn)
+{
+    const std::vector<double> frequencies{0.1, 1.0, 10.0};
+    SpecificationsForm form(&frequencies);
+
+    QComboBox * typeCombo = child<QComboBox>(&form, "typeCombo");
+    QTableWidget * table = child<QTableWidget>(&form, "specificationsTable");
+
+    typeCombo->setCurrentIndex(int(qftbx::SpecificationType::ControlEffort));
+    check(&form, "constantRadio");
+    check(&form, "linearRadio");
+    type(&form, "magnitudeEdit", "2");
+    press(&form, "addButton");
+    press(&form, "addButton");
+
+    ASSERT_EQ(table->rowCount(), 1);
+
+    table->setCurrentCell(0, 0);
+    press(&form, "removeButton");
+
+    EXPECT_EQ(table->rowCount(), 0);
+
+    press(&form, "okButton");
+    EXPECT_FALSE(form.wasAccepted()) << "there is nothing to apply";
 }
 
 TEST_F(GuiSmoke, FrequenciesDialogRefusesAnEmptySetInsteadOfDying)
@@ -1311,8 +1445,11 @@ TEST_F(GuiSmoke, APanelRefusesToPublishWhatTheProjectHasTakenAwayFromIt)
     SpecificationsForm specifications(&frequencies);
 
     specifications.setFrequencies(nullptr);
-    check(&specifications, "stabilityRadio");
+    child<QComboBox>(&specifications, "typeCombo")
+        ->setCurrentIndex(int(qftbx::SpecificationType::Stability));
+    check(&specifications, "constantRadio");
     type(&specifications, "magnitudeEdit", "1.2");
+    press(&specifications, "addButton");
     press(&specifications, "okButton");
 
     EXPECT_FALSE(specifications.wasAccepted())
@@ -1603,8 +1740,12 @@ TEST_F(GuiSmoke, TheFiguresAndTheIconAreInTheBuild)
         EXPECT_FALSE(icon.isNull()) << "the icon of " << size << " pixels is not in the build";
     }
 
-    for (const char * figure : {"copol", "kgan", "knogan", "EC", "estabilidad",
-                                "RPE", "RPS", "ruidosensor", "seguimiento"}) {
+    //The three that are still shown: the families a plant or a controller
+    //can be written in. The six of the specifications are gone - what a
+    //specification requires is DRAWN now, from the definition the program
+    //computes, so it says the bound that was typed and not a W with a
+    //subscript.
+    for (const char * figure : {"copol", "kgan", "knogan"}) {
         const QPixmap picture(QString(":/figures/%1.png").arg(figure));
         EXPECT_FALSE(picture.isNull()) << "the figure " << figure << " is not in the build";
     }

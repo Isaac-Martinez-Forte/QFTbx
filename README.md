@@ -102,6 +102,7 @@ No installer is provided yet; the application runs from the build directory.
 | [docs/algorithms/](docs/algorithms/README.md) | Every algorithm: what it solves, the paper it comes from, how the implementation follows it, the files and the tests |
 | [docs/INTERVAL_ARITHMETIC.md](docs/INTERVAL_ARITHMETIC.md) | The interval layer, the kv and C-XSC backends, how they are cross-checked |
 | [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | The `qftbx.conf` settings file: where it is read from, every key and its range |
+| [docs/SPECIFICATIONS.md](docs/SPECIFICATIONS.md) | The seven specifications: what each one bounds, where it applies, and the figure that disagrees |
 | [docs/PROJECT_FORMAT.md](docs/PROJECT_FORMAT.md) | The `.qft` project file |
 | [docs/TESTING.md](docs/TESTING.md) | Running and reading the test suites, the fixtures, the golden policy |
 | [docs/BENCHMARKING.md](docs/BENCHMARKING.md) | Measuring the algorithms: the benchmark tool, its plans, what is measured and how to read it |

@@ -50,6 +50,7 @@ struct Tags {
     const char * specifications;
     const char * specification;
     const char * used;
+    const char * skipped;
     const char * minFrequency;
     const char * maxFrequency;
     const char * constant;
@@ -92,7 +93,7 @@ inline const Tags kV4 = {
     "plant", "controller", "loop-shaping", "check",
     "name", "description", "type", "id", "expression", "numerator", "denominator",
     "nominal", "uncertain", "name", "expr", "range", "min", "max",
-    "specifications", "specification", "used", "min-frequency",
+    "specifications", "specification", "used", "skipped", "min-frequency",
     "max-frequency", "constant", "magnitude",
     "omega", "min", "max", "point-count", "type", "values",
     "templates", "metadata", "epsilon", "full", "contour",

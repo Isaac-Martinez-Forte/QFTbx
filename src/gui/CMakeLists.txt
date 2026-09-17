@@ -6,13 +6,17 @@ target_include_directories(qftbx_gui PUBLIC "${CMAKE_SOURCE_DIR}")
 target_link_libraries(qftbx_gui PUBLIC qftbx_app Qt6::Widgets Qt6::PrintSupport Qt6::Svg qcustomplot::qcustomplot)
 qftbx_warnings(qftbx_gui)
 
-# The figures of the forms and the icon of the application, as resources OF
-# THIS TARGET. The file-based qt6_add_resources() compiles a .qrc into an
-# object file and nothing else: in a STATIC library the linker drops that
-# object, since nothing refers to a symbol in it, and the resources are not
-# there at run time - the figures of the plant and the specifications came
-# up blank and the window had no icon. The target form generates the
+# The figures of the families a plant or a controller can be written in, and
+# the icon of the application, as resources OF THIS TARGET. The file-based
+# qt6_add_resources() compiles a .qrc into an object file and nothing else:
+# in a STATIC library the linker drops that object, since nothing refers to
+# a symbol in it, and the resources are not there at run time - the figures
+# came up blank and the window had no icon. The target form generates the
 # initialiser that keeps them.
+#
+# The six figures of the specifications are no longer among them: what a
+# specification requires is drawn from the definition the program computes
+# (see docs/SPECIFICATIONS.md), so it can say the bound that was typed.
 qt_add_resources(qftbx_gui "figures"
   PREFIX "/"
   BASE "${CMAKE_SOURCE_DIR}/Resources/Images"
@@ -20,12 +24,6 @@ qt_add_resources(qftbx_gui "figures"
     "${CMAKE_SOURCE_DIR}/Resources/Images/figures/copol.png"
     "${CMAKE_SOURCE_DIR}/Resources/Images/figures/kgan.png"
     "${CMAKE_SOURCE_DIR}/Resources/Images/figures/knogan.png"
-    "${CMAKE_SOURCE_DIR}/Resources/Images/figures/EC.png"
-    "${CMAKE_SOURCE_DIR}/Resources/Images/figures/estabilidad.png"
-    "${CMAKE_SOURCE_DIR}/Resources/Images/figures/RPE.png"
-    "${CMAKE_SOURCE_DIR}/Resources/Images/figures/RPS.png"
-    "${CMAKE_SOURCE_DIR}/Resources/Images/figures/ruidosensor.png"
-    "${CMAKE_SOURCE_DIR}/Resources/Images/figures/seguimiento.png"
 )
 qt_add_resources(qftbx_gui "icons"
   PREFIX "/icons"
