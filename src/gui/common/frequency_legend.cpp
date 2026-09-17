@@ -31,14 +31,17 @@ FrequencyLegend::FrequencyLegend(QWidget * parent)
     m_filter = new QLineEdit(this);
     m_filter->setObjectName("legendFilter");
     m_filter->setPlaceholderText(tr("filter"));
+    m_filter->setToolTip(tr("Shows only the frequencies whose number contains this text."));
     m_filter->setClearButtonEnabled(true);
     connect(m_filter, &QLineEdit::textChanged, this, &FrequencyLegend::applyFilter);
     controls->addWidget(m_filter, 1);
 
     QPushButton * all = new QPushButton(tr("All"), this);
     all->setObjectName("legendAll");
+    all->setToolTip(tr("Ticks every frequency the filter is showing."));
     QPushButton * none = new QPushButton(tr("None"), this);
     none->setObjectName("legendNone");
+    none->setToolTip(tr("Unticks them."));
     connect(all, &QPushButton::clicked, this, [this]() { setAll(true); });
     connect(none, &QPushButton::clicked, this, [this]() { setAll(false); });
     controls->addWidget(all);
@@ -63,6 +66,8 @@ FrequencyLegend::FrequencyLegend(QWidget * parent)
 
 void FrequencyLegend::setBare(bool bare)
 {
+    m_bare = bare;
+
     setTitle(bare ? QString() : tr("Frequencies"));
 
     //What the sheet dresses: a box with no frame and no room reserved for
@@ -96,6 +101,12 @@ FrequencyLegend::Row FrequencyLegend::addRow(const QString & text, const QColor 
     row.check->setText(text);
     row.check->setStyleSheet("color : " + color.name());
     row.check->setCheckState(Qt::Checked);
+    //Only where the box is a legend: where it is the question of which
+    //frequencies a specification applies at, the label beside it says so
+    //and a tooltip on every tick would be six copies of the same sentence.
+    if (!m_bare) {
+        row.check->setToolTip(tr("Shows or hides what belongs to this frequency, in rad/s."));
+    }
     row.layout->addWidget(row.check);
 
     m_layout->addWidget(row.widget);

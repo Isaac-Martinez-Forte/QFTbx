@@ -33,7 +33,11 @@
         </widget>
        </item>
        <item>
-        <widget class="QComboBox" name="digitsCombo"/>
+        <widget class="QComboBox" name="digitsCombo">
+         <property name="toolTip">
+           <string>How many significant digits the numbers are shown at. The project file keeps every digit whatever this says.</string>
+          </property>
+        </widget>
        </item>
       </layout>
      </item>
@@ -52,7 +56,11 @@
         </widget>
        </item>
        <item row="0" column="1">
-        <widget class="QLineEdit" name="numeratorEdit"/>
+        <widget class="QLineEdit" name="numeratorEdit">
+         <property name="toolTip">
+           <string>The numerator of the controller the search returned.</string>
+          </property>
+        </widget>
        </item>
        <item row="1" column="0">
         <widget class="QLabel" name="denominatorLabel">
@@ -60,7 +68,11 @@
         </widget>
        </item>
        <item row="1" column="1">
-        <widget class="QLineEdit" name="denominatorEdit"/>
+        <widget class="QLineEdit" name="denominatorEdit">
+         <property name="toolTip">
+           <string>Its denominator.</string>
+          </property>
+        </widget>
        </item>
        <item row="2" column="0">
         <widget class="QLabel" name="gainLabel">
@@ -68,7 +80,11 @@
         </widget>
        </item>
        <item row="2" column="1">
-        <widget class="QLineEdit" name="gainEdit"/>
+        <widget class="QLineEdit" name="gainEdit">
+         <property name="toolTip">
+           <string>Its gain.</string>
+          </property>
+        </widget>
        </item>
       </layout>
      </item>
@@ -90,6 +106,9 @@
      </item>
      <item>
       <widget class="QPushButton" name="saveImage">
+       <property name="toolTip">
+         <string>Writes the diagram to an image file.</string>
+        </property>
        <property name="text"><string>Save the diagram</string></property>
       </widget>
      </item>

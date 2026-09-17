@@ -315,6 +315,8 @@ void TemplateViewer::addFrequencyRow(QColor color, qint32 pos){
     //line it takes is a line the diagram does not have.
     QSlider * slider = new QSlider(row.widget);
     slider->setObjectName(QString::fromUtf8("slider"));
+    slider->setToolTip(tr("The epsilon of this frequency, by hand. Recompute walks the contours "
+                          "again with it."));
     slider->setOrientation(Qt::Horizontal);
     slider->setMaximum(epsilon * 10000);
     slider->setValue(epsilon * 1000);
@@ -323,6 +325,8 @@ void TemplateViewer::addFrequencyRow(QColor color, qint32 pos){
 
     QLineEdit * field = new QLineEdit(row.widget);
     field->setObjectName(QString::fromUtf8("field"));
+    field->setToolTip(tr("The same epsilon, exactly: the diameter of the hull the contour of "
+                         "this template is walked with."));
     field->setText(known ? numberText(epsilon) : QString());
     epsilonEdits.push_back(field);
     row.layout->addWidget(field);

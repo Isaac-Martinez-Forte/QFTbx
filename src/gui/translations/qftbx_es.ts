@@ -20,7 +20,7 @@
         <translation>Autores</translation>
     </message>
     <message>
-        <source>The algorithms come from the authors' work at the University of Murcia: the degree project of 2013, the master's thesis of 2014 and the doctoral thesis of 2022, with the article in the International Journal of Robust and Nonlinear Control (2021).</source>
+        <source>The algorithms come from the authors&apos; work at the University of Murcia: the degree project of 2013, the master&apos;s thesis of 2014 and the doctoral thesis of 2022, with the article in the International Journal of Robust and Nonlinear Control (2021).</source>
         <translation>Los algoritmos proceden del trabajo de los autores en la Universidad de Murcia: el proyecto fin de carrera de 2013, el trabajo fin de máster de 2014 y la tesis doctoral de 2022, con el artículo en el International Journal of Robust and Nonlinear Control (2021).</translation>
     </message>
     <message>
@@ -28,8 +28,8 @@
         <translation>QFTbx es software en desarrollo: algunas partes están incompletas o son experimentales, y sus resultados deben comprobarse antes de confiar en ellos.</translation>
     </message>
     <message>
-        <source>Source code and documentation: &lt;a href="%1"&gt;%1&lt;/a&gt;. The guides to building, configuring and measuring the toolbox, and the description of every algorithm with the work it comes from, are in &lt;a href="%2"&gt;docs&lt;/a&gt;.</source>
-        <translation>Código fuente y documentación: &lt;a href="%1"&gt;%1&lt;/a&gt;. Las guías para compilar, configurar y medir la herramienta, y la descripción de cada algoritmo con el trabajo del que procede, están en &lt;a href="%2"&gt;docs&lt;/a&gt;.</translation>
+        <source>Source code and documentation: &lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;. The guides to building, configuring and measuring the toolbox, and the description of every algorithm with the work it comes from, are in &lt;a href=&quot;%2&quot;&gt;docs&lt;/a&gt;.</source>
+        <translation>Código fuente y documentación: &lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;. Las guías para compilar, configurar y medir la herramienta, y la descripción de cada algoritmo con el trabajo del que procede, están en &lt;a href=&quot;%2&quot;&gt;docs&lt;/a&gt;.</translation>
     </message>
     <message>
         <source>Free software under the GNU General Public License, version 3. Built with Qt, QCustomPlot, kv and pugixml.</source>
@@ -41,6 +41,10 @@
     <message>
         <source>Save</source>
         <translation>Guardar</translation>
+    </message>
+    <message>
+        <source>Writes the diagram to an image file.</source>
+        <translation>Guarda el diagrama en un fichero de imagen.</translation>
     </message>
 </context>
 <context>
@@ -85,6 +89,54 @@
         <source>Compute</source>
         <translation>Calcular</translation>
     </message>
+    <message>
+        <source>The left edge of the Nichols grid, in degrees. A boundary is only computed inside the window.</source>
+        <translation>El borde izquierdo de la rejilla de Nichols, en grados. Una frontera sólo se calcula dentro de la ventana.</translation>
+    </message>
+    <message>
+        <source>The right edge of the Nichols grid, in degrees.</source>
+        <translation>El borde derecho de la rejilla de Nichols, en grados.</translation>
+    </message>
+    <message>
+        <source>How many phases the grid is cut at. More points give a finer boundary and cost proportionally more.</source>
+        <translation>En cuántas fases se corta la rejilla. Más puntos dan una frontera más fina y cuestan proporcionalmente más.</translation>
+    </message>
+    <message>
+        <source>The bottom of the Nichols grid, in dB.</source>
+        <translation>El borde inferior de la rejilla de Nichols, en dB.</translation>
+    </message>
+    <message>
+        <source>The top of the Nichols grid, in dB.</source>
+        <translation>El borde superior de la rejilla de Nichols, en dB.</translation>
+    </message>
+    <message>
+        <source>How many magnitudes the grid is cut at.</source>
+        <translation>En cuántas magnitudes se corta la rejilla.</translation>
+    </message>
+    <message>
+        <source>Sweep the CONTOUR of each template: far fewer points, and the same boundary wherever the contour closed.</source>
+        <translation>Barrer el CONTORNO de cada plantilla: muchísimos menos puntos, y la misma frontera allí donde el contorno cerró.</translation>
+    </message>
+    <message>
+        <source>Sweep the whole template. Slower, and what to use where no contour closed.</source>
+        <translation>Barrer la plantilla entera. Más lento, y lo que hay que usar donde ningún contorno cerró.</translation>
+    </message>
+    <message>
+        <source>Sweep the grid on the GPU.</source>
+        <translation>Barrer la rejilla en la GPU.</translation>
+    </message>
+    <message>
+        <source>Sweep the grid on the processor.</source>
+        <translation>Barrer la rejilla en el procesador.</translation>
+    </message>
+    <message>
+        <source>A finite number to write in place of infinity when the boundaries are exported. It takes no part in the computation; empty means none.</source>
+        <translation>Un número finito que escribir en lugar del infinito al exportar las fronteras. No interviene en el cálculo; vacío significa ninguno.</translation>
+    </message>
+    <message>
+        <source>Computes one boundary per design frequency over this grid.</source>
+        <translation>Calcula una frontera por cada frecuencia de diseño sobre esta rejilla.</translation>
+    </message>
 </context>
 <context>
     <name>BoundaryUnionViewer</name>
@@ -100,6 +152,10 @@
         <source>Save</source>
         <translation>Guardar</translation>
     </message>
+    <message>
+        <source>Writes the diagram to an image file.</source>
+        <translation>Guarda el diagrama en un fichero de imagen.</translation>
+    </message>
 </context>
 <context>
     <name>BoundaryViewer</name>
@@ -114,6 +170,10 @@
     <message>
         <source>Save</source>
         <translation>Guardar</translation>
+    </message>
+    <message>
+        <source>Writes the diagram to an image file.</source>
+        <translation>Guarda el diagrama en un fichero de imagen.</translation>
     </message>
 </context>
 <context>
@@ -169,6 +229,46 @@
     <message>
         <source>k= &amp;lfgain</source>
         <translation>k = ganancia de &amp;baja frecuencia</translation>
+    </message>
+    <message>
+        <source>A quotient of polynomials in s, written in one of the forms beside this.</source>
+        <translation>Un cociente de polinomios en s, escrito en una de las formas de al lado.</translation>
+    </message>
+    <message>
+        <source>An expression in s. Every name in it that is not s is a parameter for the search to find.</source>
+        <translation>Una expresión en s. Cualquier nombre que aparezca y no sea s es un parámetro que la búsqueda tiene que encontrar.</translation>
+    </message>
+    <message>
+        <source>Written as its roots: one factor (s + a) per zero and per pole.</source>
+        <translation>Escrita por sus raíces: un factor (s + a) por cada cero y cada polo.</translation>
+    </message>
+    <message>
+        <source>Written as the coefficients of its two polynomials, by descending power.</source>
+        <translation>Escrita por los coeficientes de sus dos polinomios, en potencias decrecientes.</translation>
+    </message>
+    <message>
+        <source>The gain multiplies the factors (s + a), so it is the gain at high frequency.</source>
+        <translation>La ganancia multiplica a los factores (s + a), así que es la ganancia a alta frecuencia.</translation>
+    </message>
+    <message>
+        <source>The gain multiplies the factors (1 + s/T), so it is the gain at low frequency, and the values entered are time constants.</source>
+        <translation>La ganancia multiplica a los factores (1 + s/T), así que es la ganancia a baja frecuencia, y los valores que se escriben son constantes de tiempo.</translation>
+    </message>
+    <message>
+        <source>The smallest gain the search may choose.</source>
+        <translation>La menor ganancia que la búsqueda puede elegir.</translation>
+    </message>
+    <message>
+        <source>The largest. A wider box is more freedom for the search and a longer search.</source>
+        <translation>La mayor. Una caja más ancha es más libertad para la búsqueda y una búsqueda más larga.</translation>
+    </message>
+    <message>
+        <source>The interval each named zero and pole may be searched in.</source>
+        <translation>El intervalo en el que se busca cada cero y cada polo con nombre.</translation>
+    </message>
+    <message>
+        <source>Reads what is written and draws the structure it understood. Pressing it again applies it to the project.</source>
+        <translation>Lee lo escrito y dibuja la estructura que ha entendido. Al pulsarlo otra vez, la aplica al proyecto.</translation>
     </message>
 </context>
 <context>
@@ -294,8 +394,8 @@
         <translation>No hay templates sobre los que recorrer un contorno.</translation>
     </message>
     <message>
-        <source>settings, line %1: "%2" needs %3</source>
-        <translation>ajustes, línea %1: "%2" necesita %3</translation>
+        <source>settings, line %1: &quot;%2&quot; needs %3</source>
+        <translation>ajustes, línea %1: &quot;%2&quot; necesita %3</translation>
     </message>
     <message>
         <source>the settings file cannot be read: %1</source>
@@ -310,16 +410,16 @@
         <translation>ajustes, línea %1: una sección necesita un nombre</translation>
     </message>
     <message>
-        <source>settings, line %1: expected "key = value", found "%2"</source>
-        <translation>ajustes, línea %1: se esperaba "clave = valor" y se encontró "%2"</translation>
+        <source>settings, line %1: expected &quot;key = value&quot;, found &quot;%2&quot;</source>
+        <translation>ajustes, línea %1: se esperaba &quot;clave = valor&quot; y se encontró &quot;%2&quot;</translation>
     </message>
     <message>
         <source>settings, line %1: the key is missing</source>
         <translation>ajustes, línea %1: falta la clave</translation>
     </message>
     <message>
-        <source>settings, line %1: "%2" is set more than once</source>
-        <translation>ajustes, línea %1: "%2" se establece más de una vez</translation>
+        <source>settings, line %1: &quot;%2&quot; is set more than once</source>
+        <translation>ajustes, línea %1: &quot;%2&quot; se establece más de una vez</translation>
     </message>
     <message>
         <source>A constant specification needs a finite magnitude &gt; 0.</source>
@@ -346,8 +446,8 @@
         <translation>No se puede leer la expresión de la planta: %1</translation>
     </message>
     <message>
-        <source>A plant parameter cannot be called "%1": that is the Laplace variable.</source>
-        <translation>Un parámetro de la planta no puede llamarse "%1": es la variable de Laplace.</translation>
+        <source>A plant parameter cannot be called &quot;%1&quot;: that is the Laplace variable.</source>
+        <translation>Un parámetro de la planta no puede llamarse &quot;%1&quot;: es la variable de Laplace.</translation>
     </message>
     <message>
         <source>The plant expression cannot be evaluated: %1</source>
@@ -358,16 +458,16 @@
         <translation>FreeForm::valueAt: se dieron %1 y %2 valores para %3 y %4 parámetros</translation>
     </message>
     <message>
-        <source>the parameter "%1" was given two different values (%2 and %3): the same name is the same variable</source>
-        <translation>al parámetro "%1" se le dieron dos valores distintos (%2 y %3): el mismo nombre es la misma variable</translation>
+        <source>the parameter &quot;%1&quot; was given two different values (%2 and %3): the same name is the same variable</source>
+        <translation>al parámetro &quot;%1&quot; se le dieron dos valores distintos (%2 y %3): el mismo nombre es la misma variable</translation>
     </message>
     <message>
-        <source>A parameter's %1 must be a finite number.</source>
+        <source>A parameter&apos;s %1 must be a finite number.</source>
         <translation>El %1 de un parámetro debe ser un número finito.</translation>
     </message>
     <message>
-        <source>the reparametrisation of "%1" cannot be read: %2</source>
-        <translation>no se puede leer la reparametrización de "%1": %2</translation>
+        <source>the reparametrisation of &quot;%1&quot; cannot be read: %2</source>
+        <translation>no se puede leer la reparametrización de &quot;%1&quot;: %2</translation>
     </message>
     <message>
         <source>A time constant in the %1 cannot be zero: every factor is s/z + 1.</source>
@@ -386,16 +486,16 @@
         <translation>Faltan los valores de épsilon para los contornos de los templates.</translation>
     </message>
     <message>
-        <source>Missing sweep grid for the uncertain parameter '%1'.</source>
-        <translation>Falta la rejilla de barrido del parámetro incierto '%1'.</translation>
+        <source>Missing sweep grid for the uncertain parameter &apos;%1&apos;.</source>
+        <translation>Falta la rejilla de barrido del parámetro incierto &apos;%1&apos;.</translation>
     </message>
     <message>
         <source>The plant expression could not be evaluated at %1 rad/s: %2</source>
         <translation>No se ha podido evaluar la expresión de la planta en %1 rad/s: %2</translation>
     </message>
     <message>
-        <source>The plant has infinite magnitude at the design frequencies %1 rad/s: an undamped resonance inside the uncertainty. Its template cannot be bounded or contoured. Add light damping to the resonant poles (the usual answer for the ACC'90 benchmark) or move those frequencies out of the set.</source>
-        <translation>La planta tiene magnitud infinita en las frecuencias de diseño %1 rad/s: una resonancia sin amortiguar dentro de la incertidumbre. Su template no se puede acotar ni contornear. Añada un amortiguamiento ligero a los polos resonantes (la solución habitual para el problema ACC'90) o saque esas frecuencias del conjunto.</translation>
+        <source>The plant has infinite magnitude at the design frequencies %1 rad/s: an undamped resonance inside the uncertainty. Its template cannot be bounded or contoured. Add light damping to the resonant poles (the usual answer for the ACC&apos;90 benchmark) or move those frequencies out of the set.</source>
+        <translation>La planta tiene magnitud infinita en las frecuencias de diseño %1 rad/s: una resonancia sin amortiguar dentro de la incertidumbre. Su template no se puede acotar ni contornear. Añada un amortiguamiento ligero a los polos resonantes (la solución habitual para el problema ACC&apos;90) o saque esas frecuencias del conjunto.</translation>
     </message>
     <message>
         <source>The contours need one epsilon per design frequency: %1 given for %2 frequencies.</source>
@@ -418,16 +518,16 @@
         <translation>&lt;%1&gt; no es un booleano</translation>
     </message>
     <message>
-        <source>missing attribute '%1'</source>
-        <translation>falta el atributo '%1'</translation>
+        <source>missing attribute &apos;%1&apos;</source>
+        <translation>falta el atributo &apos;%1&apos;</translation>
     </message>
     <message>
-        <source>attribute '%1' is not a number</source>
-        <translation>el atributo '%1' no es un número</translation>
+        <source>attribute &apos;%1&apos; is not a number</source>
+        <translation>el atributo &apos;%1&apos; no es un número</translation>
     </message>
     <message>
-        <source>attribute '%1' is not an integer</source>
-        <translation>el atributo '%1' no es un entero</translation>
+        <source>attribute &apos;%1&apos; is not an integer</source>
+        <translation>el atributo &apos;%1&apos; no es un entero</translation>
     </message>
     <message>
         <source>&lt;%1&gt; holds a non-numeric token</source>
@@ -482,8 +582,8 @@
         <translation>No se puede escribir el fichero de proyecto: %1</translation>
     </message>
     <message>
-        <source>"%1" cannot be used as a parameter name: it is a function, a constant (pi, e) or the Laplace variable s of the expression grammar, or not an identifier.</source>
-        <translation>"%1" no puede ser el nombre de un parámetro: es una función, una constante (pi, e) o la variable de Laplace s de la gramática de expresiones, o no es un identificador.</translation>
+        <source>&quot;%1&quot; cannot be used as a parameter name: it is a function, a constant (pi, e) or the Laplace variable s of the expression grammar, or not an identifier.</source>
+        <translation>&quot;%1&quot; no puede ser el nombre de un parámetro: es una función, una constante (pi, e) o la variable de Laplace s de la gramática de expresiones, o no es un identificador.</translation>
     </message>
     <message>
         <source>The project cannot take a null plant.</source>
@@ -510,8 +610,8 @@
         <translation>Hay un cálculo en marcha: cancélelo o espere a que termine antes de cambiar el proyecto.</translation>
     </message>
     <message>
-        <source>a setting key needs its section, as in 'interface.language': '%1'</source>
-        <translation>una clave de ajuste necesita su sección, como en 'interface.language': '%1'</translation>
+        <source>a setting key needs its section, as in &apos;interface.language&apos;: &apos;%1&apos;</source>
+        <translation>una clave de ajuste necesita su sección, como en &apos;interface.language&apos;: &apos;%1&apos;</translation>
     </message>
     <message>
         <source>the settings file cannot be written: %1</source>
@@ -550,7 +650,7 @@
         <translation>&lt;%1&gt; no cubre la rejilla de fase</translation>
     </message>
     <message>
-        <source>unknown epsilon metric '%1' (complex or nichols)</source>
+        <source>unknown epsilon metric &apos;%1&apos; (complex or nichols)</source>
         <translation>métrica del épsilon desconocida «%1» (complex o nichols)</translation>
     </message>
     <message>
@@ -578,11 +678,11 @@
         <translation>versión de .qft no admitida (encontrada la %1; esta compilación lee la versión %2)</translation>
     </message>
     <message>
-        <source>unknown loop-shaping algorithm '%1'</source>
+        <source>unknown loop-shaping algorithm &apos;%1&apos;</source>
         <translation>algoritmo de ajuste del lazo desconocido «%1»</translation>
     </message>
     <message>
-        <source>interface.theme must be system, light or dark: '%1'</source>
+        <source>interface.theme must be system, light or dark: &apos;%1&apos;</source>
         <translation>interface.theme debe ser system, light o dark: «%1»</translation>
     </message>
     <message>
@@ -636,6 +736,34 @@
         <source>Apply</source>
         <translation>Aplicar</translation>
     </message>
+    <message>
+        <source>How the design frequencies are given: typed one by one, spaced between two ends, or read from a file.</source>
+        <translation>Cómo se dan las frecuencias de diseño: escritas una a una, repartidas entre dos extremos, o leídas de un fichero.</translation>
+    </message>
+    <message>
+        <source>The frequencies themselves, in rad/s, separated by spaces. Everything downstream is computed AT them, so a handful chosen where the design is decided is worth more than a dense sweep.</source>
+        <translation>Las frecuencias, en rad/s, separadas por espacios. Todo lo que viene después se calcula EN ellas, así que un puñado bien elegido donde se decide el diseño vale más que un barrido denso.</translation>
+    </message>
+    <message>
+        <source>The first design frequency, in rad/s.</source>
+        <translation>La primera frecuencia de diseño, en rad/s.</translation>
+    </message>
+    <message>
+        <source>The last design frequency, in rad/s.</source>
+        <translation>La última frecuencia de diseño, en rad/s.</translation>
+    </message>
+    <message>
+        <source>How many frequencies between the two ends, the ends included.</source>
+        <translation>Cuántas frecuencias entre los dos extremos, extremos incluidos.</translation>
+    </message>
+    <message>
+        <source>Reads the frequencies from a text file: the numbers in it, separated by spaces or line breaks.</source>
+        <translation>Lee las frecuencias de un fichero de texto: los números que haya, separados por espacios o saltos de línea.</translation>
+    </message>
+    <message>
+        <source>Applies the frequencies. Changing them throws away the templates and everything computed from them.</source>
+        <translation>Aplica las frecuencias. Cambiarlas tira las plantillas y todo lo calculado a partir de ellas.</translation>
+    </message>
 </context>
 <context>
     <name>Language</name>
@@ -661,6 +789,10 @@
     <message>
         <source>Save</source>
         <translation>Guardar</translation>
+    </message>
+    <message>
+        <source>Writes the diagram to an image file.</source>
+        <translation>Guarda el diagrama en un fichero de imagen.</translation>
     </message>
 </context>
 <context>
@@ -745,6 +877,62 @@
         <source>Compute</source>
         <translation>Calcular</translation>
     </message>
+    <message>
+        <source>Nataraj and Tharewal: the base algorithm, a branch and bound over the box of controller parameters that PROVES its answer instead of searching for it. The slowest, and the one the other four extend.</source>
+        <translation>Nataraj y Tharewal: el algoritmo base, un ramificación y poda sobre la caja de parámetros del controlador que DEMUESTRA su respuesta en vez de buscarla. El más lento, y del que salen los otros cuatro.</translation>
+    </message>
+    <message>
+        <source>Nataraj and Kubal: NT with closed-form cuts on every parameter and a local search whose feasible results prune the tree.</source>
+        <translation>Nataraj y Kubal: NT con cortes en forma cerrada sobre todos los parámetros y una búsqueda local cuyos resultados factibles podan el árbol.</translation>
+    </message>
+    <message>
+        <source>The 2021 paper: NK with the phase and the feasible-box information added to its cuts. One to two orders of magnitude faster than NK on the published benchmarks, with the same guarantee.</source>
+        <translation>El artículo de 2021: NK con la información de fase y la de caja factible añadidas a sus cortes. De uno a dos órdenes de magnitud más rápido que NK en los ejemplos publicados, con la misma garantía.</translation>
+    </message>
+    <message>
+        <source>The strategies of the thesis with their published equations corrected, an exact best gain and a contraction of the box before it is returned.</source>
+        <translation>Las estrategias de la tesis con sus ecuaciones publicadas corregidas, una mejor ganancia exacta y una contracción de la caja antes de devolverla.</translation>
+    </message>
+    <message>
+        <source>Kalla and Nataraj: the specifications written as interval constraints on the controller parameters and solved by branch and prune. It needs no boundaries at all.</source>
+        <translation>Kalla y Nataraj: las especificaciones escritas como restricciones intervalares sobre los parámetros del controlador y resueltas por ramificación y poda. No necesita fronteras.</translation>
+    </message>
+    <message>
+        <source>The local search of NK starts at the centre of the box.</source>
+        <translation>La búsqueda local de NK empieza en el centro de la caja.</translation>
+    </message>
+    <message>
+        <source>It starts at the corner of the box: the zeros at their smallest, the poles and the gain at their largest.</source>
+        <translation>Empieza en la esquina de la caja: los ceros en su valor menor, los polos y la ganancia en el mayor.</translation>
+    </message>
+    <message>
+        <source>The first frequency the loop is DRAWN at, in rad/s. It does not change the design, which is done at the design frequencies.</source>
+        <translation>La primera frecuencia a la que se DIBUJA el lazo, en rad/s. No cambia el diseño, que se hace en las frecuencias de diseño.</translation>
+    </message>
+    <message>
+        <source>The last frequency the loop is drawn at, in rad/s.</source>
+        <translation>La última frecuencia a la que se dibuja el lazo, en rad/s.</translation>
+    </message>
+    <message>
+        <source>How many points that drawing has.</source>
+        <translation>Cuántos puntos tiene ese dibujo.</translation>
+    </message>
+    <message>
+        <source>Those points evenly spaced.</source>
+        <translation>Esos puntos repartidos por igual.</translation>
+    </message>
+    <message>
+        <source>Spaced by decades, which is how a loop is read.</source>
+        <translation>Repartidos por décadas, que es como se lee un lazo.</translation>
+    </message>
+    <message>
+        <source>The tolerance the search stops at. It is not the same quantity for every algorithm, and the label above says which one is being asked for: the diameter of the Nichols box for NT, NK, MC1 and MC2, the width of the box of controller parameters for MR.</source>
+        <translation>La tolerancia con la que la búsqueda se detiene. No es la misma magnitud para todos los algoritmos, y la etiqueta de arriba dice cuál se está pidiendo: el diámetro de la caja de Nichols para NT, NK, MC1 y MC2, y la anchura de la caja de parámetros del controlador para MR.</translation>
+    </message>
+    <message>
+        <source>Runs the search. It can take minutes: the card says so while it runs and the search can be given up on.</source>
+        <translation>Lanza la búsqueda. Puede tardar minutos: la tarjeta lo dice mientras corre y se puede abandonar.</translation>
+    </message>
 </context>
 <context>
     <name>LoopShapingViewer</name>
@@ -775,6 +963,26 @@
     <message>
         <source>Digits:</source>
         <translation>Cifras:</translation>
+    </message>
+    <message>
+        <source>How many significant digits the numbers are shown at. The project file keeps every digit whatever this says.</source>
+        <translation>Con cuántas cifras significativas se enseñan los números. El fichero del proyecto guarda todas las cifras diga lo que diga esto.</translation>
+    </message>
+    <message>
+        <source>The numerator of the controller the search returned.</source>
+        <translation>El numerador del controlador que ha devuelto la búsqueda.</translation>
+    </message>
+    <message>
+        <source>Its denominator.</source>
+        <translation>Su denominador.</translation>
+    </message>
+    <message>
+        <source>Its gain.</source>
+        <translation>Su ganancia.</translation>
+    </message>
+    <message>
+        <source>Writes the diagram to an image file.</source>
+        <translation>Guarda el diagrama en un fichero de imagen.</translation>
     </message>
 </context>
 <context>
@@ -873,6 +1081,38 @@ del controlador</translation>
         <source>Loop</source>
         <translation>Lazo</translation>
     </message>
+    <message>
+        <source>The plant and its uncertainty. Everything else follows from it.</source>
+        <translation>La planta y su incertidumbre. Todo lo demás sale de ella.</translation>
+    </message>
+    <message>
+        <source>The frequencies the design is done at.</source>
+        <translation>Las frecuencias en las que se hace el diseño.</translation>
+    </message>
+    <message>
+        <source>What the closed loop has to do, and between which frequencies. Needs the design frequencies.</source>
+        <translation>Lo que el lazo cerrado tiene que cumplir, y entre qué frecuencias. Necesita las frecuencias de diseño.</translation>
+    </message>
+    <message>
+        <source>The value set of the plant family at each design frequency. Needs the plant and the frequencies.</source>
+        <translation>El conjunto de valores de la familia de plantas en cada frecuencia de diseño. Necesita la planta y las frecuencias.</translation>
+    </message>
+    <message>
+        <source>What the specifications and the templates leave the nominal loop, on the Nichols plane. Needs both.</source>
+        <translation>Lo que las especificaciones y las plantillas le dejan al lazo nominal, en el plano de Nichols. Necesita las dos.</translation>
+    </message>
+    <message>
+        <source>The shape of the controller and the freedom the search is given. Needs the boundaries.</source>
+        <translation>La forma del controlador y la libertad que se le da a la búsqueda. Necesita los boundaries.</translation>
+    </message>
+    <message>
+        <source>The search itself: the controller that clears every boundary. Needs the structure.</source>
+        <translation>La búsqueda en sí: el controlador que respeta todas las fronteras. Necesita la estructura.</translation>
+    </message>
+    <message>
+        <source>How far down the seven phases the project has got.</source>
+        <translation>Por dónde va el proyecto en las siete fases.</translation>
+    </message>
 </context>
 <context>
     <name>PlantForm</name>
@@ -940,12 +1180,56 @@ del controlador</translation>
         <source>Verify</source>
         <translation>Verificar</translation>
     </message>
+    <message>
+        <source>A quotient of polynomials in s, written in one of the forms beside this.</source>
+        <translation>Un cociente de polinomios en s, escrito en una de las formas de al lado.</translation>
+    </message>
+    <message>
+        <source>An expression in s, whatever it is: a delay, a root, anything the grammar of the toolbox reads. Every name in it that is not s is an uncertain parameter.</source>
+        <translation>Una expresión en s, la que sea: un retardo, una raíz, cualquier cosa que la gramática del programa sepa leer. Cualquier nombre que aparezca y no sea s es un parámetro incierto.</translation>
+    </message>
+    <message>
+        <source>Written as its roots: one factor (s + a) per zero and per pole.</source>
+        <translation>Escrita por sus raíces: un factor (s + a) por cada cero y cada polo.</translation>
+    </message>
+    <message>
+        <source>Written as the coefficients of its two polynomials, by descending power.</source>
+        <translation>Escrita por los coeficientes de sus dos polinomios, en potencias decrecientes.</translation>
+    </message>
+    <message>
+        <source>The gain multiplies the factors (s + a), so it is the gain at high frequency.</source>
+        <translation>La ganancia multiplica a los factores (s + a), así que es la ganancia a alta frecuencia.</translation>
+    </message>
+    <message>
+        <source>The gain multiplies the factors (1 + s/T), so it is the gain at low frequency, and the values entered are time constants.</source>
+        <translation>La ganancia multiplica a los factores (1 + s/T), así que es la ganancia a baja frecuencia, y los valores que se escriben son constantes de tiempo.</translation>
+    </message>
+    <message>
+        <source>The name the plant is saved and listed under.</source>
+        <translation>El nombre con el que la planta se guarda y aparece en las listas.</translation>
+    </message>
+    <message>
+        <source>The gain, as a value. What makes it uncertain is the interval given under Uncertainty, not a name typed here.</source>
+        <translation>La ganancia, como valor. Lo que la hace incierta es el intervalo que se le dé en Incertidumbre, no un nombre escrito aquí.</translation>
+    </message>
+    <message>
+        <source>The transport delay in seconds: the plant is multiplied by e^(-delay*s). Zero if it has none.</source>
+        <translation>El retardo de transporte en segundos: la planta se multiplica por e^(-retardo*s). Cero si no tiene.</translation>
+    </message>
+    <message>
+        <source>The interval and the nominal value of every coefficient that was given a name instead of a number.</source>
+        <translation>El intervalo y el valor nominal de cada coeficiente al que se le dio un nombre en vez de un número.</translation>
+    </message>
+    <message>
+        <source>Reads what is written and draws the plant it understood. Pressing it again applies that plant to the project.</source>
+        <translation>Lee lo escrito y dibuja la planta que ha entendido. Al pulsarlo otra vez, la aplica al proyecto.</translation>
+    </message>
 </context>
 <context>
     <name>QObject</name>
     <message>
-        <source>"%1" cannot be used as a parameter name: it is a constant of the expression grammar.</source>
-        <translation>"%1" no puede ser el nombre de un parámetro: es una constante de la gramática de expresiones.</translation>
+        <source>&quot;%1&quot; cannot be used as a parameter name: it is a constant of the expression grammar.</source>
+        <translation>&quot;%1&quot; no puede ser el nombre de un parámetro: es una constante de la gramática de expresiones.</translation>
     </message>
     <message>
         <source>Loop-shaping input</source>
@@ -1062,6 +1346,78 @@ del controlador</translation>
         <source>Applies at:</source>
         <translation>Se aplica en:</translation>
     </message>
+    <message>
+        <source>Which of the seven requirements this is. Each one bounds a different closed-loop magnitude, and the formula below says which.</source>
+        <translation>Cuál de las siete restricciones es ésta. Cada una acota una magnitud distinta del lazo cerrado, y la fórmula de abajo dice cuál.</translation>
+    </message>
+    <message>
+        <source>One magnitude for the whole band.</source>
+        <translation>Una sola magnitud para toda la banda.</translation>
+    </message>
+    <message>
+        <source>A transfer function, evaluated at each frequency of the band.</source>
+        <translation>Una función de transferencia, evaluada en cada frecuencia de la banda.</translation>
+    </message>
+    <message>
+        <source>The bound itself.</source>
+        <translation>La cota en sí.</translation>
+    </message>
+    <message>
+        <source>The magnitude above is in decibels.</source>
+        <translation>La magnitud de arriba está en decibelios.</translation>
+    </message>
+    <message>
+        <source>It is a linear magnitude, where 1 is 0 dB.</source>
+        <translation>Es una magnitud lineal, donde 1 son 0 dB.</translation>
+    </message>
+    <message>
+        <source>The bound is given by the coefficients of its two polynomials, by descending power.</source>
+        <translation>La cota se da por los coeficientes de sus dos polinomios, en potencias decrecientes.</translation>
+    </message>
+    <message>
+        <source>By its zeros and poles, as factors (s + a).</source>
+        <translation>Por sus ceros y polos, como factores (s + a).</translation>
+    </message>
+    <message>
+        <source>By its time constants, as factors (1 + s/T).</source>
+        <translation>Por sus constantes de tiempo, como factores (1 + s/T).</translation>
+    </message>
+    <message>
+        <source>By an expression in s.</source>
+        <translation>Por una expresión en s.</translation>
+    </message>
+    <message>
+        <source>Separated by spaces, in the form the family above asks for.</source>
+        <translation>Separados por espacios, en la forma que pide la familia de arriba.</translation>
+    </message>
+    <message>
+        <source>The gain of the bound.</source>
+        <translation>La ganancia de la cota.</translation>
+    </message>
+    <message>
+        <source>Its delay in seconds; zero if it has none.</source>
+        <translation>Su retardo en segundos; cero si no tiene.</translation>
+    </message>
+    <message>
+        <source>Empties the fields, ready for the next specification.</source>
+        <translation>Vacía los campos, listos para la siguiente especificación.</translation>
+    </message>
+    <message>
+        <source>Reads the specification and draws it. Pressing it again puts it on the list.</source>
+        <translation>Lee la especificación y la dibuja. Al pulsarlo otra vez, la pone en la lista.</translation>
+    </message>
+    <message>
+        <source>Brings the specification chosen in the list back into the form.</source>
+        <translation>Trae al formulario la especificación elegida en la lista.</translation>
+    </message>
+    <message>
+        <source>Takes the specification chosen in the list out of the design.</source>
+        <translation>Saca del diseño la especificación elegida en la lista.</translation>
+    </message>
+    <message>
+        <source>Applies the list. The boundaries are computed from it.</source>
+        <translation>Aplica la lista. Las fronteras se calculan a partir de ella.</translation>
+    </message>
 </context>
 <context>
     <name>TemplateViewer</name>
@@ -1092,6 +1448,22 @@ del controlador</translation>
     <message>
         <source>Save the diagram</source>
         <translation>Guardar el diagrama</translation>
+    </message>
+    <message>
+        <source>Shows or hides the templates themselves, behind their contours.</source>
+        <translation>Enseña u oculta las plantillas, detrás de sus contornos.</translation>
+    </message>
+    <message>
+        <source>Shows or hides the contour of each template.</source>
+        <translation>Enseña u oculta el contorno de cada plantilla.</translation>
+    </message>
+    <message>
+        <source>Walks the contours again with the epsilon each frequency has in the list.</source>
+        <translation>Recorre otra vez los contornos con el épsilon que cada frecuencia tiene en la lista.</translation>
+    </message>
+    <message>
+        <source>Writes the diagram to an image file.</source>
+        <translation>Guarda el diagrama en un fichero de imagen.</translation>
     </message>
 </context>
 <context>
@@ -1169,7 +1541,7 @@ del controlador</translation>
         <translation>Épsilon en:</translation>
     </message>
     <message>
-        <source>The plane the epsilon of the contour is measured in. Nichols: degrees and decibels, one epsilon serves every template. Complex plane: the historical reading, in the units of the plant's response.</source>
+        <source>The plane the epsilon of the contour is measured in. Nichols: degrees and decibels, one epsilon serves every template. Complex plane: the historical reading, in the units of the plant&apos;s response.</source>
         <translation>El plano en que se mide el épsilon del contorno. Nichols: grados y decibelios, un solo épsilon sirve para todas las plantillas. Plano complejo: la lectura histórica, en las unidades de la respuesta de la planta.</translation>
     </message>
     <message>
@@ -1216,6 +1588,54 @@ del controlador</translation>
         <source>On the GPU</source>
         <translation>En la GPU</translation>
     </message>
+    <message>
+        <source>One grid for every uncertain parameter, with the same number of values for all of them.</source>
+        <translation>Una rejilla para todos los parámetros inciertos, con el mismo número de valores para todos.</translation>
+    </message>
+    <message>
+        <source>A grid of its own for each parameter.</source>
+        <translation>Una rejilla propia para cada parámetro.</translation>
+    </message>
+    <message>
+        <source>The values of each parameter evenly spaced between its ends.</source>
+        <translation>Los valores de cada parámetro repartidos por igual entre sus extremos.</translation>
+    </message>
+    <message>
+        <source>Spaced by decades, which is what a parameter that spans orders of magnitude asks for.</source>
+        <translation>Repartidos por décadas, que es lo que pide un parámetro que abarca órdenes de magnitud.</translation>
+    </message>
+    <message>
+        <source>How many values each uncertain parameter takes. A template has one point per COMBINATION of them, so this multiplies: five parameters at ten values each are a hundred thousand points per frequency.</source>
+        <translation>Cuántos valores toma cada parámetro incierto. Una plantilla tiene un punto por cada COMBINACIÓN de ellos, así que esto multiplica: cinco parámetros a diez valores cada uno son cien mil puntos por frecuencia.</translation>
+    </message>
+    <message>
+        <source>The parameters of the numerator.</source>
+        <translation>Los parámetros del numerador.</translation>
+    </message>
+    <message>
+        <source>The parameters of the denominator.</source>
+        <translation>Los parámetros del denominador.</translation>
+    </message>
+    <message>
+        <source>Draw the templates on the Nichols plane, phase against magnitude.</source>
+        <translation>Dibujar las plantillas en el plano de Nichols, fase contra magnitud.</translation>
+    </message>
+    <message>
+        <source>Draw them on the complex plane.</source>
+        <translation>Dibujarlas en el plano complejo.</translation>
+    </message>
+    <message>
+        <source>Sweep the family on the GPU.</source>
+        <translation>Barrer la familia en la GPU.</translation>
+    </message>
+    <message>
+        <source>How many decibels one degree is worth when the epsilon is measured on the Nichols plane, which has two units on its axes.</source>
+        <translation>Cuántos decibelios vale un grado cuando el épsilon se mide en el plano de Nichols, que tiene dos unidades distintas en sus ejes.</translation>
+    </message>
+    <message>
+        <source>Sweeps the family at every design frequency: the templates and the contour of each one.</source>
+        <translation>Barre la familia en cada frecuencia de diseño: las plantillas y el contorno de cada una.</translation>
+    </message>
 </context>
 <context>
     <name>UncertaintyPanel</name>
@@ -1250,6 +1670,26 @@ del controlador</translation>
     <message>
         <source>Apply</source>
         <translation>Aplicar</translation>
+    </message>
+    <message>
+        <source>The smallest value the gain takes.</source>
+        <translation>El menor valor que toma la ganancia.</translation>
+    </message>
+    <message>
+        <source>The largest.</source>
+        <translation>El mayor.</translation>
+    </message>
+    <message>
+        <source>The smallest value the delay takes, in seconds.</source>
+        <translation>El menor valor que toma el retardo, en segundos.</translation>
+    </message>
+    <message>
+        <source>Back to the form, leaving these ranges as they were.</source>
+        <translation>Volver al formulario, dejando estos intervalos como estaban.</translation>
+    </message>
+    <message>
+        <source>Applies the ranges to the coefficients that were named.</source>
+        <translation>Aplica los intervalos a los coeficientes que llevan nombre.</translation>
     </message>
 </context>
 <context>
@@ -1469,6 +1909,22 @@ del controlador</translation>
     <message>
         <source>None</source>
         <translation>Ninguna</translation>
+    </message>
+    <message>
+        <source>Shows only the frequencies whose number contains this text.</source>
+        <translation>Enseña sólo las frecuencias cuyo número contiene este texto.</translation>
+    </message>
+    <message>
+        <source>Ticks every frequency the filter is showing.</source>
+        <translation>Marca todas las frecuencias que el filtro esté enseñando.</translation>
+    </message>
+    <message>
+        <source>Unticks them.</source>
+        <translation>Las desmarca.</translation>
+    </message>
+    <message>
+        <source>Shows or hides what belongs to this frequency, in rad/s.</source>
+        <translation>Enseña u oculta lo que pertenece a esta frecuencia, en rad/s.</translation>
     </message>
 </context>
 <context>
@@ -2076,7 +2532,7 @@ contorno</translation>
         <translation>pide %1 (hueco %2 %)</translation>
     </message>
     <message>
-        <source>The least epsilon at which this template's contour closes is %1 (it is connected from %2); the largest gap between its points is %3% of its size. Above a few per cent the sweep is coarse: more points per parameter, not a larger epsilon.</source>
+        <source>The least epsilon at which this template&apos;s contour closes is %1 (it is connected from %2); the largest gap between its points is %3% of its size. Above a few per cent the sweep is coarse: more points per parameter, not a larger epsilon.</source>
         <translation>El menor épsilon con el que cierra el contorno de esta plantilla es %1 (está conectada desde %2); el hueco mayor entre sus puntos es el %3 % de su tamaño. Por encima de unos pocos por ciento el barrido es escaso: más puntos por parámetro, no un épsilon mayor.</translation>
     </message>
     <message>
@@ -2086,6 +2542,14 @@ contorno</translation>
     <message>
         <source>magnitude (dB)</source>
         <translation>magnitud (dB)</translation>
+    </message>
+    <message>
+        <source>The epsilon of this frequency, by hand. Recompute walks the contours again with it.</source>
+        <translation>El épsilon de esta frecuencia, a mano. Recalcular recorre otra vez los contornos con él.</translation>
+    </message>
+    <message>
+        <source>The same epsilon, exactly: the diameter of the hull the contour of this template is walked with.</source>
+        <translation>El mismo épsilon, exacto: el diámetro de la envoltura con la que se recorre el contorno de esta plantilla.</translation>
     </message>
 </context>
 <context>
@@ -2127,12 +2591,12 @@ contorno</translation>
         <translation>Seleccione logspace o linspace en la sección general.</translation>
     </message>
     <message>
-        <source>The values entered for parameter "%1" are invalid.</source>
-        <translation>Los valores introducidos para el parámetro "%1" no son válidos.</translation>
+        <source>The values entered for parameter &quot;%1&quot; are invalid.</source>
+        <translation>Los valores introducidos para el parámetro &quot;%1&quot; no son válidos.</translation>
     </message>
     <message>
-        <source>The values entered for parameter "%1" are invalid: %2.</source>
-        <translation>Los valores introducidos para el parámetro "%1" no son válidos: %2.</translation>
+        <source>The values entered for parameter &quot;%1&quot; are invalid: %2.</source>
+        <translation>Los valores introducidos para el parámetro &quot;%1&quot; no son válidos: %2.</translation>
     </message>
     <message>
         <source>The general point count must be a whole number between 1 and %1.</source>
@@ -2211,12 +2675,24 @@ contorno</translation>
         <translation>Máximo</translation>
     </message>
     <message>
-        <source>The range of "%1" is not a pair of numbers with the nominal value between them.</source>
-        <translation>El intervalo de "%1" no es un par de números con el valor nominal entre ellos.</translation>
+        <source>The range of &quot;%1&quot; is not a pair of numbers with the nominal value between them.</source>
+        <translation>El intervalo de &quot;%1&quot; no es un par de números con el valor nominal entre ellos.</translation>
     </message>
     <message>
         <source>A coefficient that is not uncertain is not a number either.</source>
         <translation>Un coeficiente que no es incierto tampoco es un número.</translation>
+    </message>
+    <message>
+        <source>The smallest value &quot;%1&quot; takes. The templates are swept over the whole interval.</source>
+        <translation>El menor valor que toma &quot;%1&quot;. Las plantillas se barren sobre todo el intervalo.</translation>
+    </message>
+    <message>
+        <source>The largest value &quot;%1&quot; takes.</source>
+        <translation>El mayor valor que toma &quot;%1&quot;.</translation>
+    </message>
+    <message>
+        <source>The value &quot;%1&quot; has in the NOMINAL plant, the one the loop is shaped on. It has to lie inside the interval.</source>
+        <translation>El valor que &quot;%1&quot; tiene en la planta NOMINAL, sobre la que se ajusta el lazo. Tiene que estar dentro del intervalo.</translation>
     </message>
 </context>
 </TS>

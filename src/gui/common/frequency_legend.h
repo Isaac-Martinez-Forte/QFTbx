@@ -106,6 +106,8 @@ private:
     //The filter and the two buttons above the rows, hidden by setBare().
     QHBoxLayout * m_controls = nullptr;
 
+    bool m_bare = false;
+
     QWidget * m_rowHolder = nullptr;
     FlowLayout * m_layout = nullptr;
     QLineEdit * m_filter = nullptr;

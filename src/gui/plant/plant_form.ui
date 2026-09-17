@@ -25,12 +25,18 @@
           <layout class="QVBoxLayout" name="firstLevelLayout">
            <item>
             <widget class="QRadioButton" name="transferFunctionRadio">
+             <property name="toolTip">
+               <string>A quotient of polynomials in s, written in one of the forms beside this.</string>
+              </property>
              <property name="text"><string>Tra&amp;nsfer function</string></property>
              <attribute name="buttonGroup"><string notr="true">firstLevel</string></attribute>
             </widget>
            </item>
            <item>
             <widget class="QRadioButton" name="freeFormRadio">
+             <property name="toolTip">
+               <string>An expression in s, whatever it is: a delay, a root, anything the grammar of the toolbox reads. Every name in it that is not s is an uncertain parameter.</string>
+              </property>
              <property name="text"><string>Free form</string></property>
              <attribute name="buttonGroup"><string notr="true">firstLevel</string></attribute>
             </widget>
@@ -46,12 +52,18 @@
           <layout class="QVBoxLayout" name="secondLevelLayout">
            <item>
             <widget class="QRadioButton" name="zerosPolesRadio">
+             <property name="toolTip">
+               <string>Written as its roots: one factor (s + a) per zero and per pole.</string>
+              </property>
              <property name="text"><string>Zeros &amp;and poles</string></property>
              <attribute name="buttonGroup"><string notr="true">secondLevel</string></attribute>
             </widget>
            </item>
            <item>
             <widget class="QRadioButton" name="polynomialRadio">
+             <property name="toolTip">
+               <string>Written as the coefficients of its two polynomials, by descending power.</string>
+              </property>
              <property name="text"><string>Polynomial form</string></property>
              <attribute name="buttonGroup"><string notr="true">secondLevel</string></attribute>
             </widget>
@@ -67,12 +79,18 @@
           <layout class="QVBoxLayout" name="thirdLevelLayout">
            <item>
             <widget class="QRadioButton" name="zpkRadio">
+             <property name="toolTip">
+               <string>The gain multiplies the factors (s + a), so it is the gain at high frequency.</string>
+              </property>
              <property name="text"><string>&amp;k = hfgain</string></property>
              <attribute name="buttonGroup"><string notr="true">thirdLevel</string></attribute>
             </widget>
            </item>
            <item>
             <widget class="QRadioButton" name="tcgRadio">
+             <property name="toolTip">
+               <string>The gain multiplies the factors (1 + s/T), so it is the gain at low frequency, and the values entered are time constants.</string>
+              </property>
              <property name="text"><string>k= &amp;lfgain</string></property>
              <attribute name="buttonGroup"><string notr="true">thirdLevel</string></attribute>
             </widget>
@@ -106,7 +124,11 @@
               </widget>
              </item>
              <item row="0" column="1">
-              <widget class="QLineEdit" name="nameEdit"/>
+              <widget class="QLineEdit" name="nameEdit">
+               <property name="toolTip">
+                 <string>The name the plant is saved and listed under.</string>
+                </property>
+              </widget>
              </item>
              <item row="1" column="0">
               <widget class="QLabel" name="descriptionLabel">
@@ -142,7 +164,11 @@
               </widget>
              </item>
              <item row="4" column="1">
-              <widget class="QLineEdit" name="gainEdit"/>
+              <widget class="QLineEdit" name="gainEdit">
+               <property name="toolTip">
+                 <string>The gain, as a value. What makes it uncertain is the interval given under Uncertainty, not a name typed here.</string>
+                </property>
+              </widget>
              </item>
              <item row="5" column="0">
               <widget class="QLabel" name="delayLabel">
@@ -150,7 +176,11 @@
               </widget>
              </item>
              <item row="5" column="1">
-              <widget class="QLineEdit" name="delayEdit"/>
+              <widget class="QLineEdit" name="delayEdit">
+               <property name="toolTip">
+                 <string>The transport delay in seconds: the plant is multiplied by e^(-delay*s). Zero if it has none.</string>
+                </property>
+              </widget>
              </item>
             </layout>
            </item>
@@ -162,6 +192,9 @@
            </item>
            <item>
             <widget class="QPushButton" name="uncertaintyButton">
+             <property name="toolTip">
+               <string>The interval and the nominal value of every coefficient that was given a name instead of a number.</string>
+              </property>
              <property name="text"><string>Uncertainty</string></property>
             </widget>
            </item>
@@ -231,6 +264,9 @@
          </item>
          <item>
           <widget class="QPushButton" name="okButton">
+           <property name="toolTip">
+             <string>Reads what is written and draws the plant it understood. Pressing it again applies that plant to the project.</string>
+            </property>
            <property name="text"><string>Verify</string></property>
           </widget>
          </item>

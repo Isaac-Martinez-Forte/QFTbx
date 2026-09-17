@@ -25,12 +25,18 @@
           <layout class="QVBoxLayout" name="firstLevelLayout">
            <item>
             <widget class="QRadioButton" name="transferFunctionRadio">
+             <property name="toolTip">
+               <string>A quotient of polynomials in s, written in one of the forms beside this.</string>
+              </property>
              <property name="text"><string>Tra&amp;nsfer function</string></property>
              <attribute name="buttonGroup"><string notr="true">firstLevel</string></attribute>
             </widget>
            </item>
            <item>
             <widget class="QRadioButton" name="freeFormRadio">
+             <property name="toolTip">
+               <string>An expression in s. Every name in it that is not s is a parameter for the search to find.</string>
+              </property>
              <property name="text"><string>Free form</string></property>
              <attribute name="buttonGroup"><string notr="true">firstLevel</string></attribute>
             </widget>
@@ -46,12 +52,18 @@
           <layout class="QVBoxLayout" name="secondLevelLayout">
            <item>
             <widget class="QRadioButton" name="zerosPolesRadio">
+             <property name="toolTip">
+               <string>Written as its roots: one factor (s + a) per zero and per pole.</string>
+              </property>
              <property name="text"><string>Zeros &amp;and poles</string></property>
              <attribute name="buttonGroup"><string notr="true">secondLevel</string></attribute>
             </widget>
            </item>
            <item>
             <widget class="QRadioButton" name="polynomialRadio">
+             <property name="toolTip">
+               <string>Written as the coefficients of its two polynomials, by descending power.</string>
+              </property>
              <property name="text"><string>Polynomial form</string></property>
              <attribute name="buttonGroup"><string notr="true">secondLevel</string></attribute>
             </widget>
@@ -67,12 +79,18 @@
           <layout class="QVBoxLayout" name="thirdLevelLayout">
            <item>
             <widget class="QRadioButton" name="zpkRadio">
+             <property name="toolTip">
+               <string>The gain multiplies the factors (s + a), so it is the gain at high frequency.</string>
+              </property>
              <property name="text"><string>&amp;k = hfgain</string></property>
              <attribute name="buttonGroup"><string notr="true">thirdLevel</string></attribute>
             </widget>
            </item>
            <item>
             <widget class="QRadioButton" name="tcgRadio">
+             <property name="toolTip">
+               <string>The gain multiplies the factors (1 + s/T), so it is the gain at low frequency, and the values entered are time constants.</string>
+              </property>
              <property name="text"><string>k= &amp;lfgain</string></property>
              <attribute name="buttonGroup"><string notr="true">thirdLevel</string></attribute>
             </widget>
@@ -124,7 +142,11 @@
              <item row="2" column="1">
               <layout class="QHBoxLayout" name="gainLayout">
                <item>
-                <widget class="QLineEdit" name="gainStart"/>
+                <widget class="QLineEdit" name="gainStart">
+                 <property name="toolTip">
+                   <string>The smallest gain the search may choose.</string>
+                  </property>
+                </widget>
                </item>
                <item>
                 <widget class="QLabel" name="gainSeparator">
@@ -132,7 +154,11 @@
                 </widget>
                </item>
                <item>
-                <widget class="QLineEdit" name="gainEnd"/>
+                <widget class="QLineEdit" name="gainEnd">
+                 <property name="toolTip">
+                   <string>The largest. A wider box is more freedom for the search and a longer search.</string>
+                  </property>
+                </widget>
                </item>
               </layout>
              </item>
@@ -146,6 +172,9 @@
            </item>
            <item>
             <widget class="QPushButton" name="uncertaintyButton">
+             <property name="toolTip">
+               <string>The interval each named zero and pole may be searched in.</string>
+              </property>
              <property name="text"><string>Controller freedom</string></property>
             </widget>
            </item>
@@ -215,6 +244,9 @@
          </item>
          <item>
           <widget class="QPushButton" name="okButton">
+           <property name="toolTip">
+             <string>Reads what is written and draws the structure it understood. Pressing it again applies it to the project.</string>
+            </property>
            <property name="text"><string>Verify</string></property>
           </widget>
          </item>

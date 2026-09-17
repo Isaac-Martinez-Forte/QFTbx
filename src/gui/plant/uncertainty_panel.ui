@@ -67,7 +67,11 @@
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="QLineEdit" name="rangeGainStart"/>
+       <widget class="QLineEdit" name="rangeGainStart">
+        <property name="toolTip">
+          <string>The smallest value the gain takes.</string>
+         </property>
+       </widget>
       </item>
       <item row="0" column="2">
        <widget class="QLabel" name="rangeGainSeparator">
@@ -75,7 +79,11 @@
        </widget>
       </item>
       <item row="0" column="3">
-       <widget class="QLineEdit" name="rangeGainEnd"/>
+       <widget class="QLineEdit" name="rangeGainEnd">
+        <property name="toolTip">
+          <string>The largest.</string>
+         </property>
+       </widget>
       </item>
       <item row="1" column="0">
        <widget class="QLabel" name="rangeDelayLabel">
@@ -83,7 +91,11 @@
        </widget>
       </item>
       <item row="1" column="1">
-       <widget class="QLineEdit" name="rangeDelayStart"/>
+       <widget class="QLineEdit" name="rangeDelayStart">
+        <property name="toolTip">
+          <string>The smallest value the delay takes, in seconds.</string>
+         </property>
+       </widget>
       </item>
       <item row="1" column="2">
        <widget class="QLabel" name="rangeDelaySeparator">
@@ -91,7 +103,11 @@
        </widget>
       </item>
       <item row="1" column="3">
-       <widget class="QLineEdit" name="rangeDelayEnd"/>
+       <widget class="QLineEdit" name="rangeDelayEnd">
+        <property name="toolTip">
+          <string>The largest.</string>
+         </property>
+       </widget>
       </item>
      </layout>
     </widget>
@@ -114,11 +130,17 @@
      </item>
      <item>
       <widget class="QPushButton" name="backButton">
+       <property name="toolTip">
+         <string>Back to the form, leaving these ranges as they were.</string>
+        </property>
        <property name="text"><string>Back</string></property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="applyButton">
+       <property name="toolTip">
+         <string>Applies the ranges to the coefficients that were named.</string>
+        </property>
        <property name="text"><string>Apply</string></property>
       </widget>
      </item>

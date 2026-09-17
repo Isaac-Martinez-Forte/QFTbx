@@ -15,6 +15,9 @@
     <layout class="QHBoxLayout" name="horizontalLayout_2">
      <item>
       <widget class="QRadioButton" name="allVariablesRadio">
+       <property name="toolTip">
+         <string>One grid for every uncertain parameter, with the same number of values for all of them.</string>
+        </property>
        <property name="text">
         <string>All variables</string>
        </property>
@@ -23,6 +26,9 @@
      </item>
      <item>
       <widget class="QRadioButton" name="oneByOneRadio">
+       <property name="toolTip">
+         <string>A grid of its own for each parameter.</string>
+        </property>
        <property name="text">
         <string>One by one</string>
        </property>
@@ -67,6 +73,9 @@
         <layout class="QVBoxLayout" name="verticalLayout">
          <item>
           <widget class="QRadioButton" name="linspaceRadio">
+           <property name="toolTip">
+             <string>The values of each parameter evenly spaced between its ends.</string>
+            </property>
            <property name="text">
             <string>LinSpace</string>
            </property>
@@ -74,6 +83,9 @@
          </item>
          <item>
           <widget class="QRadioButton" name="logspaceRadio">
+           <property name="toolTip">
+             <string>Spaced by decades, which is what a parameter that spans orders of magnitude asks for.</string>
+            </property>
            <property name="text">
             <string>LogSpace</string>
            </property>
@@ -91,7 +103,11 @@
           </widget>
          </item>
          <item>
-          <widget class="QLineEdit" name="globalPointCount"/>
+          <widget class="QLineEdit" name="globalPointCount">
+           <property name="toolTip">
+             <string>How many values each uncertain parameter takes. A template has one point per COMBINATION of them, so this multiplies: five parameters at ten values each are a hundred thousand points per frequency.</string>
+            </property>
+          </widget>
          </item>
         </layout>
        </item>
@@ -129,6 +145,9 @@
         <layout class="QHBoxLayout" name="horizontalLayout_6">
          <item>
           <widget class="QRadioButton" name="numeratorRadio">
+           <property name="toolTip">
+             <string>The parameters of the numerator.</string>
+            </property>
            <property name="text">
             <string>Numerator</string>
            </property>
@@ -136,6 +155,9 @@
          </item>
          <item>
           <widget class="QRadioButton" name="denominatorRadio">
+           <property name="toolTip">
+             <string>The parameters of the denominator.</string>
+            </property>
            <property name="text">
             <string>Denominator</string>
            </property>
@@ -232,6 +254,9 @@
     <layout class="QHBoxLayout" name="horizontalLayout_7">
      <item>
       <widget class="QRadioButton" name="nicholsRadio">
+       <property name="toolTip">
+         <string>Draw the templates on the Nichols plane, phase against magnitude.</string>
+        </property>
        <property name="text">
         <string>Nichols diagram</string>
        </property>
@@ -240,6 +265,9 @@
      </item>
      <item>
       <widget class="QRadioButton" name="nyquistRadio">
+       <property name="toolTip">
+         <string>Draw them on the complex plane.</string>
+        </property>
        <property name="text">
         <string>Nyquist diagram</string>
        </property>
@@ -248,6 +276,9 @@
      </item>
      <item>
       <widget class="QCheckBox" name="cudaCheck">
+       <property name="toolTip">
+         <string>Sweep the family on the GPU.</string>
+        </property>
        <property name="text">
         <string>On the GPU</string>
        </property>
@@ -344,6 +375,9 @@
       </item>
       <item>
        <widget class="QLineEdit" name="dbPerDegreeEdit">
+        <property name="toolTip">
+          <string>How many decibels one degree is worth when the epsilon is measured on the Nichols plane, which has two units on its axes.</string>
+         </property>
         <property name="maximumSize">
          <size>
           <width>60</width>
@@ -479,6 +513,9 @@
      </item>
      <item>
       <widget class="QPushButton" name="okButton">
+       <property name="toolTip">
+         <string>Sweeps the family at every design frequency: the templates and the contour of each one.</string>
+        </property>
        <property name="text">
         <string>Compute</string>
        </property>

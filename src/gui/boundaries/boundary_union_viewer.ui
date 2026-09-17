@@ -30,6 +30,9 @@
        <layout class="QVBoxLayout" name="opcionesLayout">
         <item>
          <widget class="QPushButton" name="saveImage">
+          <property name="toolTip">
+            <string>Writes the diagram to an image file.</string>
+           </property>
           <property name="text">
            <string>Save</string>
           </property>

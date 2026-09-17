@@ -61,6 +61,7 @@
 
 #include "src/app/project_controller.h"
 #include "src/gui/common/formula_delegate.h"
+#include "src/gui/common/field_mark.h"
 #include "src/gui/common/formula_view.h"
 #include "src/core/system/system_formula.h"
 #include "src/gui/application/about.h"
@@ -1782,6 +1783,74 @@ TEST_F(GuiSmoke, TheThemeDressesTheWindowAndItsDiagrams)
     EXPECT_NEAR(QApplication::palette().color(QPalette::Highlight).hue(), 204, 12);
 
     qftbx::applyTheme(qftbx::kSystemTheme);
+}
+
+TEST_F(GuiSmoke, EveryFieldSaysWhatItIsFor)
+{
+    //A tooltip on everything the user fills in or presses, because the
+    //label of a field has room for its name and nothing else: the units it
+    //is in, the format it expects and what the program does with it are
+    //what the user cannot guess. The exceptions are listed by name, and
+    //each one is a field that is already explained where it stands.
+    MainWindow window;
+    window.setFileChooser([](bool) {
+        return QString(QFTBX_TEST_DATA_DIR "/planta1.qft");
+    });
+    window.findChild<QAction *>("actionOpen")->trigger();
+    QCoreApplication::processEvents();
+
+    //The two coefficient fields of the plant and of the controller: the
+    //line under them says what they take, and it changes with the family,
+    //which a tooltip written once could not. The description of a plant
+    //carries its own placeholder. And a tick of the specifications is one
+    //design frequency, with the label "Applies at" beside it.
+    const QStringList explained{"numeratorEdit", "denominatorEdit", "descriptionEdit", "check"};
+
+    QStringList silent;
+
+    for (QWidget * form : window.findChildren<QWidget *>()) {
+        const QString kind = QString::fromLatin1(form->metaObject()->className());
+        if (!kind.startsWith("qftbx::") || !kind.endsWith("Form")) {
+            continue;
+        }
+
+        for (QWidget * field : form->findChildren<QWidget *>()) {
+            const QString widget = QString::fromLatin1(field->metaObject()->className());
+            const bool asks = widget == "QLineEdit" || widget == "QComboBox"
+                    || widget == "QRadioButton" || widget == "QCheckBox"
+                    || widget == "QPushButton";
+
+            if (!asks || field->objectName().isEmpty()
+                    || field->objectName().startsWith("qt_")
+                    || explained.contains(field->objectName())) {
+                continue;
+            }
+
+            if (field->toolTip().isEmpty()) {
+                silent << kind + "::" + field->objectName();
+            }
+        }
+    }
+
+    EXPECT_TRUE(silent.isEmpty()) << "fields with nothing to say: "
+                                  << silent.join(", ").toStdString();
+
+    //And marking a field as wrong does not cost it what it says: the reason
+    //takes the place of its tooltip while it is wrong, and its own comes
+    //back afterwards. It went missing the first time round, because every
+    //keystroke marks every field of a form as not-wrong.
+    PlantForm plant;
+    QLineEdit * gain = child<QLineEdit>(&plant, "gainEdit");
+    ASSERT_NE(gain, nullptr);
+
+    const QString own = gain->toolTip();
+    ASSERT_FALSE(own.isEmpty());
+
+    qftbx::markWrong(gain, true, QStringLiteral("this is the mistake"));
+    EXPECT_EQ(gain->toolTip(), QStringLiteral("this is the mistake"));
+
+    qftbx::markWrong(gain, false);
+    EXPECT_EQ(gain->toolTip(), own) << "the field forgot what it is for";
 }
 
 TEST_F(GuiSmoke, TheFiguresAndTheIconAreInTheBuild)

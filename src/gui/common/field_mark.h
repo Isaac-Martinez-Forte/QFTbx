@@ -42,7 +42,18 @@ inline void markWrong(QWidget * field, bool wrong, const QString & reason = QStr
         return;
     }
 
-    field->setToolTip(wrong ? reason : QString());
+    //The reason takes the place of the tooltip while the field is wrong,
+    //and the field's OWN tooltip comes back when it stops being wrong: it
+    //says what the field is for, and that is not this function's to throw
+    //away. Put aside the first time, because from then on the tooltip on
+    //the widget may be a reason of ours.
+    const char * const kept = "fieldTooltip";
+
+    if (!field->property(kept).isValid()) {
+        field->setProperty(kept, field->toolTip());
+    }
+
+    field->setToolTip(wrong ? reason : field->property(kept).toString());
 
     //Repolishing a widget that is already marked repaints it for nothing,
     //and this is called on every keystroke: markAs answers that.

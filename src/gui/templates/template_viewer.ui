@@ -14,16 +14,25 @@
     <layout class="QVBoxLayout" name="sideLayout">
      <item>
       <widget class="QPushButton" name="templatesButton">
+       <property name="toolTip">
+         <string>Shows or hides the templates themselves, behind their contours.</string>
+        </property>
        <property name="text"><string>Show templates</string></property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="contourButton">
+       <property name="toolTip">
+         <string>Shows or hides the contour of each template.</string>
+        </property>
        <property name="text"><string>Hide contour</string></property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="recomputeButton">
+       <property name="toolTip">
+         <string>Walks the contours again with the epsilon each frequency has in the list.</string>
+        </property>
        <property name="text"><string>Recompute</string></property>
       </widget>
      </item>
@@ -37,6 +46,9 @@
      </item>
      <item>
       <widget class="QPushButton" name="saveImage">
+       <property name="toolTip">
+         <string>Writes the diagram to an image file.</string>
+        </property>
        <property name="text"><string>Save the diagram</string></property>
       </widget>
      </item>

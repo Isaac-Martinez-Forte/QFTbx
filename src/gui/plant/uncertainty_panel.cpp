@@ -175,6 +175,13 @@ void UncertaintyPanel::buildRows()
         entry.nominal->setObjectName("rangeNominal");
         entry.maximum->setObjectName("rangeMaximum");
 
+        entry.minimum->setToolTip(tr("The smallest value \"%1\" takes. The templates are swept "
+                                     "over the whole interval.").arg(name));
+        entry.maximum->setToolTip(tr("The largest value \"%1\" takes.").arg(name));
+        entry.nominal->setToolTip(tr("The value \"%1\" has in the NOMINAL plant, the one the "
+                                     "loop is shaped on. It has to lie inside the interval.")
+                                  .arg(name));
+
         for (QLineEdit * field : {entry.minimum, entry.nominal, entry.maximum}) {
             field->setMaximumWidth(kFieldWidth);
         }

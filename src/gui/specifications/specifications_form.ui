@@ -28,7 +28,11 @@
           </widget>
          </item>
          <item row="0" column="1">
-          <widget class="QComboBox" name="typeCombo"/>
+          <widget class="QComboBox" name="typeCombo">
+           <property name="toolTip">
+             <string>Which of the seven requirements this is. Each one bounds a different closed-loop magnitude, and the formula below says which.</string>
+            </property>
+          </widget>
          </item>
          <item row="1" column="0">
           <widget class="QLabel" name="bandLabel">
@@ -54,12 +58,18 @@
           <layout class="QHBoxLayout" name="boundRow">
            <item>
             <widget class="QRadioButton" name="constantRadio">
+             <property name="toolTip">
+               <string>One magnitude for the whole band.</string>
+              </property>
              <property name="text"><string>A constant</string></property>
              <attribute name="buttonGroup"><string notr="true">boundKind</string></attribute>
             </widget>
            </item>
            <item>
             <widget class="QRadioButton" name="systemRadio">
+             <property name="toolTip">
+               <string>A transfer function, evaluated at each frequency of the band.</string>
+              </property>
              <property name="text"><string>A transfer function</string></property>
              <attribute name="buttonGroup"><string notr="true">boundKind</string></attribute>
             </widget>
@@ -93,16 +103,26 @@
            <item row="0" column="1">
             <layout class="QHBoxLayout" name="magnitudeRow">
              <item>
-              <widget class="QLineEdit" name="magnitudeEdit"/>
+              <widget class="QLineEdit" name="magnitudeEdit">
+               <property name="toolTip">
+                 <string>The bound itself.</string>
+                </property>
+              </widget>
              </item>
              <item>
               <widget class="QRadioButton" name="decibelsRadio">
+               <property name="toolTip">
+                 <string>The magnitude above is in decibels.</string>
+                </property>
                <property name="text"><string>dB</string></property>
                <attribute name="buttonGroup"><string notr="true">magnitudeUnits</string></attribute>
               </widget>
              </item>
              <item>
               <widget class="QRadioButton" name="linearRadio">
+               <property name="toolTip">
+                 <string>It is a linear magnitude, where 1 is 0 dB.</string>
+                </property>
                <property name="text"><string>linear</string></property>
                <attribute name="buttonGroup"><string notr="true">magnitudeUnits</string></attribute>
               </widget>
@@ -121,24 +141,36 @@
             <layout class="QHBoxLayout" name="familyRow">
              <item>
               <widget class="QRadioButton" name="polynomialRadio">
+               <property name="toolTip">
+                 <string>The bound is given by the coefficients of its two polynomials, by descending power.</string>
+                </property>
                <property name="text"><string>Polynomial</string></property>
                <attribute name="buttonGroup"><string notr="true">boundFamily</string></attribute>
               </widget>
              </item>
              <item>
               <widget class="QRadioButton" name="zpkRadio">
+               <property name="toolTip">
+                 <string>By its zeros and poles, as factors (s + a).</string>
+                </property>
                <property name="text"><string>Zeros and poles</string></property>
                <attribute name="buttonGroup"><string notr="true">boundFamily</string></attribute>
               </widget>
              </item>
              <item>
               <widget class="QRadioButton" name="tcgRadio">
+               <property name="toolTip">
+                 <string>By its time constants, as factors (1 + s/T).</string>
+                </property>
                <property name="text"><string>Time constants</string></property>
                <attribute name="buttonGroup"><string notr="true">boundFamily</string></attribute>
               </widget>
              </item>
              <item>
               <widget class="QRadioButton" name="freeFormRadio">
+               <property name="toolTip">
+                 <string>By an expression in s.</string>
+                </property>
                <property name="text"><string>Free form</string></property>
                <attribute name="buttonGroup"><string notr="true">boundFamily</string></attribute>
               </widget>
@@ -161,7 +193,11 @@
               </widget>
              </item>
              <item row="0" column="1">
-              <widget class="QLineEdit" name="numeratorEdit"/>
+              <widget class="QLineEdit" name="numeratorEdit">
+               <property name="toolTip">
+                 <string>Separated by spaces, in the form the family above asks for.</string>
+                </property>
+              </widget>
              </item>
              <item row="1" column="0">
               <widget class="QLabel" name="denominatorLabel">
@@ -169,7 +205,11 @@
               </widget>
              </item>
              <item row="1" column="1">
-              <widget class="QLineEdit" name="denominatorEdit"/>
+              <widget class="QLineEdit" name="denominatorEdit">
+               <property name="toolTip">
+                 <string>Separated by spaces, in the form the family above asks for.</string>
+                </property>
+              </widget>
              </item>
              <item row="2" column="0">
               <widget class="QLabel" name="gainLabel">
@@ -177,7 +217,11 @@
               </widget>
              </item>
              <item row="2" column="1">
-              <widget class="QLineEdit" name="k"/>
+              <widget class="QLineEdit" name="k">
+               <property name="toolTip">
+                 <string>The gain of the bound.</string>
+                </property>
+              </widget>
              </item>
              <item row="3" column="0">
               <widget class="QLabel" name="delayLabel">
@@ -185,7 +229,11 @@
               </widget>
              </item>
              <item row="3" column="1">
-              <widget class="QLineEdit" name="delayEdit"/>
+              <widget class="QLineEdit" name="delayEdit">
+               <property name="toolTip">
+                 <string>Its delay in seconds; zero if it has none.</string>
+                </property>
+              </widget>
              </item>
             </layout>
            </item>
@@ -224,11 +272,17 @@
          </item>
          <item>
           <widget class="QPushButton" name="clearButton">
+           <property name="toolTip">
+             <string>Empties the fields, ready for the next specification.</string>
+            </property>
            <property name="text"><string>Clear</string></property>
           </widget>
          </item>
          <item>
           <widget class="QPushButton" name="addButton">
+           <property name="toolTip">
+             <string>Reads the specification and draws it. Pressing it again puts it on the list.</string>
+            </property>
            <property name="text"><string>Verify</string></property>
           </widget>
          </item>
@@ -263,16 +317,25 @@
          </item>
          <item>
           <widget class="QPushButton" name="editButton">
+           <property name="toolTip">
+             <string>Brings the specification chosen in the list back into the form.</string>
+            </property>
            <property name="text"><string>Edit</string></property>
           </widget>
          </item>
          <item>
           <widget class="QPushButton" name="removeButton">
+           <property name="toolTip">
+             <string>Takes the specification chosen in the list out of the design.</string>
+            </property>
            <property name="text"><string>Remove</string></property>
           </widget>
          </item>
          <item>
           <widget class="QPushButton" name="okButton">
+           <property name="toolTip">
+             <string>Applies the list. The boundaries are computed from it.</string>
+            </property>
            <property name="text"><string>Apply</string></property>
           </widget>
          </item>
