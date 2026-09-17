@@ -53,14 +53,24 @@ public:
 
     void showDiagram();
 
+signals:
+    /// The user chose how many digits the numbers are worth showing at. The
+    /// window writes it into the settings; the global itself is set here,
+    /// because everything drawn after this reads it.
+    void digitsChanged(int digits);
+
 private slots:
     void applyCheckboxes();
+
+    /// The controller, its formula and the verdict, at the digits chosen.
+    void showController();
 
 
     void on_saveImage_clicked();
 
 private:
     void showCheck();
+    void fillDigitsCombo();
     QString specificationTitle(qftbx::SpecificationType type);
 
     qftbx::UnionTraces unionTraces;

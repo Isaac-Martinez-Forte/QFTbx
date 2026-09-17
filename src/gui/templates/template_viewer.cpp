@@ -128,6 +128,7 @@ void TemplateViewer::showContourState(){
     for (std::size_t i = 0; i < stateLabels.size(); ++i){
         const bool whole = i < reports.size() && reports[i].wholeCloud;
         stateLabels[i]->setText(whole ? tr("no contour: whole template shown") : QString());
+        stateLabels[i]->setVisible(whole);
         stateLabels[i]->setToolTip(whole ? tr("No contour closed at this epsilon, so the whole template stands in for it here. A larger epsilon, or a denser sweep, closes it.") : QString());
         markAs(stateLabels[i], "notice", whole ? QStringLiteral("closed") : QString());
     }
@@ -147,7 +148,8 @@ void TemplateViewer::showProposals(){
     for (std::size_t i = 0; i < gapLabels.size() && i < m_proposals.size(); ++i){
         const qftbx::TemplateEngine::EpsilonProposal & p = m_proposals[i];
         const QString gap = QString::number(100.0 * p.coarseness(), 'f', 1);
-        gapLabels[i]->setText(tr("needs %1 (gap %2%)").arg(numberText(p.epsilon), gap));
+        gapLabels[i]->setText(tr("needs %1 (gap %2%)").arg(shownText(p.epsilon), gap));
+        gapLabels[i]->setVisible(true);
         gapLabels[i]->setToolTip(tr("The least epsilon at which this template's contour closes is %1 (it is connected from %2); the largest gap between its points is %3% of its size. Above a few per cent the sweep is coarse: more points per parameter, not a larger epsilon.")
                                  .arg(numberText(p.epsilon), numberText(p.connected), gap));
         markAs(gapLabels[i], "notice",
@@ -308,8 +310,9 @@ void TemplateViewer::addFrequencyRow(QColor color, qint32 pos){
     const bool known = pos < static_cast<qint32>(m_epsilon.size());
     const double epsilon = known ? m_epsilon.at(pos) : 0.0;
 
-    //A slider for coarse moves and a field for the exact value, both in the
-    //legend's row.
+    //A slider for coarse moves and a field for the exact value, BESIDE the
+    //frequency and not under it: a legend is a column of its own and every
+    //line it takes is a line the diagram does not have.
     QSlider * slider = new QSlider(row.widget);
     slider->setObjectName(QString::fromUtf8("slider"));
     slider->setOrientation(Qt::Horizontal);
@@ -324,17 +327,20 @@ void TemplateViewer::addFrequencyRow(QColor color, qint32 pos){
     epsilonEdits.push_back(field);
     row.layout->addWidget(field);
 
-    //What this template asks for, filled in by showProposals().
+    //What this template asks for, filled in by showProposals(): under the
+    //line, and hidden until it has something to say.
     QLabel * gap = new QLabel(row.widget);
     gap->setObjectName(QString::fromUtf8("gap"));
+    gap->setVisible(false);
     gapLabels.push_back(gap);
-    row.layout->addWidget(gap);
+    row.column->addWidget(gap);
 
     //Whether the whole template stands in for this contour, by showContourState().
     QLabel * state = new QLabel(row.widget);
     state->setObjectName(QString::fromUtf8("contourState"));
+    state->setVisible(false);
     stateLabels.push_back(state);
-    row.layout->addWidget(state);
+    row.column->addWidget(state);
 
     connect(slider, SIGNAL (sliderMoved (int)), this, SLOT (syncSliders ()));
 }

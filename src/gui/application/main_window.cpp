@@ -195,6 +195,22 @@ MainWindow::MainWindow(qftbx::Settings settings, QWidget *parent) :
         }
     }
 
+    //Nothing remembered - a first run, or a settings file that is not
+    //being written - and the canvas opens in the order that packs: the
+    //specifications are worth two squares, so they follow the templates
+    //instead of leaving a hole beside them on a screen three columns wide.
+    //The order of the DESIGN is the strip of steps above; this is the order
+    //of the wall, and one drag of the user's replaces it.
+    m_canvasRemembered = !m_rememberedCanvas.empty();
+
+    if (m_rememberedCanvas.empty()) {
+        for (const char * name : {"plantCard", "frequenciesCard", "templatesCard",
+                                  "specificationsCard", "boundariesCard", "controllerCard",
+                                  "loopShapingCard"}) {
+            m_rememberedCanvas.emplace_back(QString::fromLatin1(name), 1);
+        }
+    }
+
     //And how big it was when it closed, so it comes up the same size. A
     //size this build cannot read is no reason to refuse to start: the
     //window opens at the size its form was drawn at.
@@ -239,11 +255,68 @@ void MainWindow::resizeCards()
     }
 
     const QMargins margins = m_canvasLayout->contentsMargins();
-    const QSize unit = PhaseCard::unitFor(m_canvas->viewport()->width()
-                                          - margins.left() - margins.right());
+    const int room = m_canvas->viewport()->width() - margins.left() - margins.right();
+    const QSize unit = PhaseCard::unitFor(room);
 
     for (PhaseCard * card : m_canvasContent->findChildren<PhaseCard *>()) {
         card->setUnit(unit);
+    }
+
+    packTemplatesAndSpecifications(PhaseCard::columnsFor(room));
+}
+
+/**
+ * @brief Which of the templates and the specifications comes first, so that
+ * neither leaves a hole beside it.
+ *
+ * The specifications are the one phase worth two squares, so they are the
+ * one phase that can fall off the end of a row. The templates are the one
+ * phase that can change places with them without lying about the design:
+ * the two do not depend on each other, and everything else does - the
+ * boundaries are computed FROM the specifications, and a wall that showed
+ * them first would be telling the user the wrong story about the order of
+ * the work.
+ *
+ * So: the specifications go first when they fit in what is left of the row
+ * they would start in, and the templates go first when they do not, filling
+ * that last square themselves and leaving the specifications a row of their
+ * own. On three columns that is plant, frequencies, templates / two squares
+ * of specifications and the boundaries; on two, plant and frequencies / the
+ * specifications whole / templates and boundaries. Neither leaves a hole.
+ *
+ * Only while the user has not ordered the canvas himself: from the first
+ * drag on, the order is his.
+ */
+void MainWindow::packTemplatesAndSpecifications(int columns)
+{
+    if (m_canvasOrdered || m_canvasLayout == nullptr || columns < 1) {
+        return;
+    }
+
+    const int templates = m_canvasLayout->indexOf(templatesCard);
+    const int specifications = m_canvasLayout->indexOf(specificationsCard);
+
+    if (templates < 0 || specifications < 0) {
+        return;
+    }
+
+    //How many squares the phases in front of the pair take, so that we know
+    //where in its row the first of the two would land.
+    const int first = std::min(templates, specifications);
+    int used = 0;
+    for (int i = 0; i < first; ++i) {
+        if (auto * card = qobject_cast<PhaseCard *>(m_canvasLayout->itemAt(i)->widget())) {
+            used += card->span();
+        }
+    }
+
+    const int left = columns - used % columns;
+    const bool specificationsFirst = left >= specificationsCard->span();
+
+    const int wanted = specificationsFirst ? specifications : templates;
+    if (wanted != first) {
+        m_canvasLayout->move(wanted, first);
+        m_canvasContent->updateGeometry();
     }
 }
 
@@ -453,7 +526,10 @@ void MainWindow::applyRememberedPlace(PhaseCard * card)
         return;
     }
 
-    card->setSpan(remembered->second);
+    //A size restored from the last session is the user's and stays; the one
+    //a first run starts from leaves the card free to ask for two squares
+    //when its form does not fit in one.
+    card->setSpan(remembered->second, m_canvasRemembered);
 
     //Its place among the cards that ARE there: how many of the ones before
     //it in the remembered order have been built.
@@ -489,6 +565,10 @@ void MainWindow::dragCardTo(PhaseCard * card, QPoint where)
     if (to == from) {
         return;
     }
+
+    //From here on the order of the wall is the user's, and nothing rearranges
+    //it behind him.
+    m_canvasOrdered = true;
 
     m_canvasLayout->move(from, to);
     m_canvasContent->updateGeometry();
@@ -579,9 +659,12 @@ void MainWindow::ensureBoundariesPhase()
         boundaryViewer = new BoundaryViewer(this);
         boundaryUnionViewer = new BoundaryUnionViewer(this);
         connect(boundaryGridForm, &StepPanel::accepted, this, &MainWindow::applyBoundaries);
+        //The union first: it is the answer - what the loop has to clear at
+        //every frequency at once - and the per-frequency view is where you
+        //go to see which boundary came from where.
         boundariesCard = addPhaseCard(tr("Boundaries"), "boundariesCard", boundaryGridForm,
-                                      {{tr("Per frequency"), boundaryViewer},
-                                       {tr("Union"), boundaryUnionViewer}});
+                                      {{tr("Union"), boundaryUnionViewer},
+                                       {tr("Per frequency"), boundaryViewer}});
     }
 }
 
@@ -605,6 +688,24 @@ void MainWindow::ensureLoopShapingPhase()
         loopShapingForm->setConservativeColumns(m_settings.algorithms.conservativeBoundaryColumns);
         loopShapingViewer = new LoopShapingViewer(this);
         connect(loopShapingForm, &StepPanel::accepted, this, &MainWindow::applyLoopShaping);
+
+        //How many digits the numbers are shown at is chosen where they are
+        //read, and kept for the next session like the theme and the canvas.
+        connect(loopShapingViewer, &LoopShapingViewer::digitsChanged, this,
+                [this](int digits) {
+                    m_settings.interface.digits = digits;
+                    if (m_settings.source.empty()) {
+                        return;
+                    }
+                    try {
+                        qftbx::writeSetting(m_settings.source, "interface.digits",
+                                            std::to_string(digits));
+                    } catch (const qftbx::Exception & failure) {
+                        //A preference that could not be written is not worth
+                        //stopping the user over.
+                        (void) failure;
+                    }
+                });
         loopShapingCard = addPhaseCard(tr("Loop shaping"), "loopShapingCard", loopShapingForm,
                                        {{tr("Loop"), loopShapingViewer}});
     }

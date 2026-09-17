@@ -1,107 +1,60 @@
-<?xml version='1.0' encoding='UTF-8'?>
+<?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>TemplateViewer</class>
  <widget class="QWidget" name="TemplateViewer">
-  <property name="geometry">
-   <rect>
-    <x>0</x>
-    <y>0</y>
-    <width>809</width>
-    <height>469</height>
-   </rect>
-  </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Templates</string>
   </property>
   <layout class="QHBoxLayout" name="outerLayout">
+   <property name="leftMargin"><number>0</number></property>
+   <property name="topMargin"><number>0</number></property>
+   <property name="rightMargin"><number>0</number></property>
+   <property name="bottomMargin"><number>0</number></property>
    <item>
     <layout class="QVBoxLayout" name="sideLayout">
      <item>
-      <widget class="Line" name="line">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
+      <widget class="QPushButton" name="templatesButton">
+       <property name="text"><string>Show templates</string></property>
       </widget>
      </item>
      <item>
-      <widget class="QGroupBox" name="boxGroup">
+      <widget class="QPushButton" name="contourButton">
+       <property name="text"><string>Hide contour</string></property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="recomputeButton">
+       <property name="text"><string>Recompute</string></property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="proposeButton">
+       <property name="toolTip">
+        <string>Set every epsilon to the least value at which the contour of its template closes, and recompute the contours.</string>
+       </property>
+       <property name="text"><string>Propose epsilon</string></property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="saveImage">
+       <property name="text"><string>Save the diagram</string></property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QWidget" name="legendHolder" native="true">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+        <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
          <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
+         <verstretch>1</verstretch>
         </sizepolicy>
        </property>
-       <property name="title">
-        <string>Templates</string>
-       </property>
-       <layout class="QVBoxLayout" name="boxGroupLayout">
-        <item>
-         <widget class="QWidget" name="layoutWidget">
-          <layout class="QVBoxLayout" name="verticalLayout">
-           <item>
-            <widget class="QPushButton" name="templatesButton">
-             <property name="text">
-              <string>Show
-templatesButton</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QPushButton" name="contourButton">
-             <property name="text">
-              <string>Hide
-contour</string>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item>
-         <widget class="QWidget" name="layoutWidget1">
-          <layout class="QVBoxLayout" name="verticalLayout_2">
-           <item>
-            <widget class="QPushButton" name="saveImage">
-             <property name="text">
-              <string>Save</string>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="recomputeButton">
-          <property name="text">
-           <string>Recompute</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="proposeButton">
-          <property name="toolTip">
-           <string>Set every epsilon to the least value at which the contour of its template closes, and recompute the contours.</string>
-          </property>
-          <property name="text">
-           <string>Propose epsilon</string>
-          </property>
-         </widget>
-        </item>
+       <layout class="QVBoxLayout" name="legendLayout">
+        <property name="leftMargin"><number>0</number></property>
+        <property name="topMargin"><number>0</number></property>
+        <property name="rightMargin"><number>0</number></property>
+        <property name="bottomMargin"><number>0</number></property>
        </layout>
       </widget>
-     </item>
-     <item>
-      <spacer name="sideSpacer">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-      </spacer>
      </item>
     </layout>
    </item>
@@ -109,34 +62,10 @@ contour</string>
     <widget class="QCustomPlot" name="plot" native="true">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
+       <horstretch>1</horstretch>
+       <verstretch>1</verstretch>
       </sizepolicy>
      </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QWidget" name="legendHolder">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <layout class="QVBoxLayout" name="legendLayout">
-      <property name="leftMargin">
-       <number>0</number>
-      </property>
-      <property name="topMargin">
-       <number>0</number>
-      </property>
-      <property name="rightMargin">
-       <number>0</number>
-      </property>
-      <property name="bottomMargin">
-       <number>0</number>
-      </property>
-     </layout>
     </widget>
    </item>
   </layout>
@@ -149,6 +78,6 @@ contour</string>
    <container>1</container>
   </customwidget>
  </customwidgets>
- <resources />
- <connections />
+ <resources/>
+ <connections/>
 </ui>

@@ -69,7 +69,11 @@ public:
     /// card of 2 is two columns across and two rows down, which is what
     /// makes its diagram bigger rather than wider.
     int span() const { return m_span; }
-    void setSpan(int columns);
+
+    /// @param chosen whether this is the USER's size, which the automatic
+    /// rule below must not overrule afterwards: a size restored from the
+    /// last session is the user's, the one a first run starts from is not.
+    void setSpan(int columns, bool chosen = false);
 
     /// The square of the canvas this card counts in, which the canvas
     /// works out from its own width: the cards fill the screen they are

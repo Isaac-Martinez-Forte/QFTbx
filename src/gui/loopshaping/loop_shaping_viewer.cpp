@@ -6,7 +6,11 @@
 #include "ui_loop_shaping_viewer.h"
 
 #include "src/gui/application/error_message.h"
+#include <QComboBox>
+
+#include "src/gui/common/field_mark.h"
 #include "src/gui/common/plot_setup.h"
+#include "src/core/system/system_formula.h"
 
 #include <cmath>
 
@@ -29,6 +33,9 @@ LoopShapingViewer::LoopShapingViewer(QWidget *parent) :
     ui->legendHolder->layout()->addWidget(legend);
     connect(legend, &FrequencyLegend::rowToggled, this, &LoopShapingViewer::applyCheckboxes);
 
+    //How many digits the numbers are read at, where they are read.
+    fillDigitsCombo();
+
     //Connected ONCE: a connection per replot duplicates the handler.
     connect(ui->plot->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->xAxis2, SLOT(setRange(QCPRange)));
     connect(ui->plot->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->yAxis2, SLOT(setRange(QCPRange)));
@@ -38,6 +45,32 @@ LoopShapingViewer::~LoopShapingViewer()
 {
     clearDiagram();
 
+}
+
+//Two to eight significant digits, and the whole number a double holds.
+//Four is what a gain or a margin is read at; the rest is for when a
+//coefficient has to be copied out by hand.
+void LoopShapingViewer::fillDigitsCombo()
+{
+    for (int digits : {2, 3, 4, 5, 6, 8}) {
+        ui->digitsCombo->addItem(QString::number(digits), digits);
+    }
+    ui->digitsCombo->addItem(tr("all"), 17);
+
+    const int current = ui->digitsCombo->findData(shownDigits());
+    ui->digitsCombo->setCurrentIndex(current >= 0 ? current : 2);
+
+    connect(ui->digitsCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+            [this](int index) {
+                const int digits = ui->digitsCombo->itemData(index).toInt();
+                setShownDigits(digits);
+                //What is on screen, again, at the new count. The legend
+                //carries frequencies too, so the chart is redrawn with it.
+                if (loopShapingData != nullptr) {
+                    showDiagram();
+                }
+                emit digitsChanged(digits);
+            });
 }
 
 void LoopShapingViewer::clearDiagram(){
@@ -93,7 +126,7 @@ void LoopShapingViewer::showCheck(){
     if (!check.has_value()) {
         ui->checkLabel->setText(tr("Not checked against the specifications (no templates to check over)."));
         ui->checkLabel->setToolTip(QString());
-        ui->checkLabel->setStyleSheet(QString());
+        markAs(ui->checkLabel, "verdict", QString());
         return;
     }
 
@@ -104,15 +137,15 @@ void LoopShapingViewer::showCheck(){
         ui->checkLabel->setToolTip(QString());
         if (!std::isfinite(check->worstExcessDb)) {
             ui->checkLabel->setText(tr("No specification was active at any design frequency."));
-            ui->checkLabel->setStyleSheet(QString());
+            markAs(ui->checkLabel, "verdict", QString());
         } else if (check->satisfied()) {
-            ui->checkLabel->setText(tr("Satisfies every specification over the template, by %1 dB (as saved with the project).")
-                                    .arg(qftbx::numberText(-check->worstExcessDb)));
-            ui->checkLabel->setStyleSheet("color: #1a7f37;");
+            ui->checkLabel->setText(tr("Satisfies every specification over the template, by %1 dB.")
+                                    .arg(qftbx::shownText(-check->worstExcessDb)));
+            markAs(ui->checkLabel, "verdict", QStringLiteral("met"));
         } else {
-            ui->checkLabel->setText(tr("EXCEEDS a specification over the template by %1 dB (as saved with the project).")
-                                    .arg(qftbx::numberText(check->worstExcessDb)));
-            ui->checkLabel->setStyleSheet("color: #b42318; font-weight: bold;");
+            ui->checkLabel->setText(tr("EXCEEDS a specification over the template by %1 dB.")
+                                    .arg(qftbx::shownText(check->worstExcessDb)));
+            markAs(ui->checkLabel, "verdict", QStringLiteral("exceeded"));
         }
         return;
     }
@@ -128,20 +161,20 @@ void LoopShapingViewer::showCheck(){
 
     if (check->satisfied()) {
         ui->checkLabel->setText(tr("Satisfies every specification over the template: tightest at w = %1 rad/s, %2, %3 dB of margin.")
-                                .arg(qftbx::numberText(worst->omega), name, qftbx::numberText(-worst->excessDb)));
-        ui->checkLabel->setStyleSheet("color: #1a7f37;");
+                                .arg(qftbx::shownText(worst->omega), name, qftbx::shownText(-worst->excessDb)));
+        markAs(ui->checkLabel, "verdict", QStringLiteral("met"));
     } else {
         ui->checkLabel->setText(tr("EXCEEDS a specification over the template: w = %1 rad/s, %2, by %3 dB.")
-                                .arg(qftbx::numberText(worst->omega), name, qftbx::numberText(worst->excessDb)));
-        ui->checkLabel->setStyleSheet("color: #b42318; font-weight: bold;");
+                                .arg(qftbx::shownText(worst->omega), name, qftbx::shownText(worst->excessDb)));
+        markAs(ui->checkLabel, "verdict", QStringLiteral("exceeded"));
     }
 
     QString table;
     for (const qftbx::SpecificationExcess & e : check->entries) {
         table += tr("w = %1: %2 = %3 dB, bound %4 dB, excess %5 dB\n")
-                 .arg(qftbx::numberText(e.omega), specificationTitle(e.type),
-                      qftbx::numberText(e.valueDb), qftbx::numberText(e.boundDb),
-                      qftbx::numberText(e.excessDb));
+                 .arg(qftbx::shownText(e.omega), specificationTitle(e.type),
+                      qftbx::shownText(e.valueDb), qftbx::shownText(e.boundDb),
+                      qftbx::shownText(e.excessDb));
     }
     ui->checkLabel->setToolTip(table.trimmed());
 }
@@ -159,32 +192,41 @@ QString LoopShapingViewer::specificationTitle(qftbx::SpecificationType type){
     return QString();
 }
 
-void LoopShapingViewer::showDiagram(){
+//The controller the search found, at the digits that are worth reading: a
+//coefficient of 1.8194305709013996 is a coefficient of 1.819, and the file
+//keeps the rest. Apart from the drawing, so that choosing how many digits
+//to read does not redraw the chart.
+void LoopShapingViewer::showController(){
+
+    if (loopShapingData == nullptr || loopShapingData->controller() == nullptr) {
+        return;
+    }
 
     QString numerator = "", denominator = "";
 
     qint32 i = 0;
     for (i = 0; i < static_cast<qint32>(loopShapingData->controller()->numerator().size()); i++){
-        numerator += qftbx::numberText(loopShapingData->controller()->numerator()[i].nominal()) + " ";
+        numerator += qftbx::shownText(loopShapingData->controller()->numerator()[i].nominal()) + " ";
     }
     for (i = 0; i < static_cast<qint32>(loopShapingData->controller()->denominator().size()); i++){
-        denominator += qftbx::numberText(loopShapingData->controller()->denominator()[i].nominal()) + " ";
+        denominator += qftbx::shownText(loopShapingData->controller()->denominator()[i].nominal()) + " ";
     }
 
-    ui->numeratorEdit->setText(numerator);
-    ui->denominatorEdit->setText(denominator);
-    ui->gainEdit->setText(qftbx::numberText(loopShapingData->controller()->gain().nominal()));
+    ui->numeratorEdit->setText(numerator.trimmed());
+    ui->denominatorEdit->setText(denominator.trimmed());
+    ui->gainEdit->setText(qftbx::shownText(loopShapingData->controller()->gain().nominal()));
+
+    //And the same controller as the formula it is, which is what the figure
+    //of its family could never say: that one drew "k(s+z1)/(s+p1)(s+p2)"
+    //whatever the numbers were.
+    ui->controllerFormula->setFormula(formulaOf(*loopShapingData->controller(), shownDigits()));
+
     showCheck();
+}
 
-    const LtiSystem::SystemType type = loopShapingData->controller()->type();
+void LoopShapingViewer::showDiagram(){
 
-    if (type == LtiSystem::SystemType::PolynomialForm){
-        ui->systemTypeImage->setPixmap(QPixmap(":/figures/copol.png"));
-    } else if (type == LtiSystem::SystemType::ZeroPoleGain){
-        ui->systemTypeImage->setPixmap(QPixmap(":/figures/kgan.png"));
-    }else {
-        ui->systemTypeImage->setPixmap(QPixmap(":/figures/knogan.png"));
-    }
+    showController();
 
 
     clearDiagram();
@@ -356,7 +398,7 @@ void LoopShapingViewer::applyCheckboxes(){
 }
 
 void LoopShapingViewer::addFrequencyRow(QColor color, qint32 pos){
-    legend->addRow(numberText(omega->at(pos)), color);
+    legend->addRow(shownText(omega->at(pos)), color);
 }
 
 void LoopShapingViewer::on_saveImage_clicked()

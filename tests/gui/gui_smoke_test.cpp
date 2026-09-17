@@ -1588,6 +1588,61 @@ TEST_F(GuiSmoke, ACardGrowsWhenItsFormIsUnfolded)
     EXPECT_GT(specifications->sizeHint().width(), folded.width());
 }
 
+TEST_F(GuiSmoke, TheTwoPhasesThatMayChangePlacesDoSoAndNoOthers)
+{
+    //The specifications are worth two squares and are the one phase that
+    //can fall off the end of a row; the templates are the one phase that
+    //can take that square without lying about the design. Everything else
+    //keeps the order of the work: the boundaries are computed FROM the
+    //specifications and never come before them.
+    MainWindow window;
+    window.setFileChooser([](bool) {
+        return QString(QFTBX_TEST_DATA_DIR "/planta1.qft");
+    });
+    window.findChild<QAction *>("actionOpen")->trigger();
+    QCoreApplication::processEvents();
+
+    const auto orderOf = [&window]() {
+        QStringList names;
+        for (PhaseCard * card : window.findChildren<PhaseCard *>()) {
+            names << card->objectName();
+        }
+        return names;
+    };
+
+    const auto placeOf = [&window](const char * name) {
+        PhaseCard * card = window.findChild<PhaseCard *>(name);
+        return card == nullptr ? QPoint() : card->geometry().topLeft();
+    };
+
+    //Two columns: the specifications fit in a row of their own from the
+    //start, so they go first and the templates follow.
+    window.resize(PhaseCard::unitFor(1280).width() * 2 + 64, 900);
+    window.show();
+    QCoreApplication::processEvents();
+
+    ASSERT_EQ(PhaseCard::columnsFor(window.width() - 64), 2);
+    EXPECT_LT(placeOf("specificationsCard").y(), placeOf("templatesCard").y())
+        << "on two columns the specifications go first, whole";
+
+    //Three columns: the specifications would start at the last square of
+    //the first row, so the templates take it and the specifications open
+    //the next row.
+    window.resize(PhaseCard::unitFor(1900).width() * 3 + 64, 900);
+    QCoreApplication::processEvents();
+
+    ASSERT_EQ(PhaseCard::columnsFor(window.width() - 64), 3);
+    EXPECT_LT(placeOf("templatesCard").y(), placeOf("specificationsCard").y())
+        << "on three columns the templates fill the square that was left";
+
+    //And the phases that must not change places did not.
+    const QStringList names = orderOf();
+    EXPECT_LT(names.indexOf("plantCard"), names.indexOf("frequenciesCard"));
+    EXPECT_LT(names.indexOf("specificationsCard"), names.indexOf("boundariesCard"))
+        << "the boundaries are computed from the specifications and never come first";
+    EXPECT_LT(names.indexOf("boundariesCard"), names.indexOf("controllerCard"));
+}
+
 TEST_F(GuiSmoke, ACardDraggedByItsBarChangesPlaces)
 {
     //The order of the canvas is the user's: a card taken by its bar and
@@ -2037,7 +2092,8 @@ TEST_F(GuiSmoke, ZZGaleria)
         GTEST_SKIP();
     }
 
-    qftbx::applyTheme(qftbx::kLightTheme);
+    qftbx::applyTheme(qEnvironmentVariable("QFTBX_RENDER_THEME", qftbx::kLightTheme));
+    qftbx::applyLanguage(qEnvironmentVariable("QFTBX_RENDER_LANG", "en"));
 
     MainWindow window;
     window.setFileChooser([&out](bool) { return out + "/ejemplo-completo.qft"; });
@@ -2064,6 +2120,12 @@ TEST_F(GuiSmoke, ZZGaleria)
     }
 
     window.grab().save(out + "/ventana.png");
+
+    //And the same wall three columns wide, which is where the phase worth
+    //two squares has to find its place.
+    window.resize(1980, 1100);
+    QCoreApplication::processEvents();
+    window.grab().save(out + "/ventana-tres-columnas.png");
 }
 
 TEST_F(GuiSmoke, TheSquareOfTheCanvasFollowsTheScreenItIsGiven)

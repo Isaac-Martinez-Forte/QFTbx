@@ -194,6 +194,10 @@ private:
     /// every card: how many cards fit across, and how big each one is.
     void resizeCards();
 
+    /// Which of the two phases that may change places goes first, so that
+    /// neither leaves a hole in its row. See the implementation.
+    void packTemplatesAndSpecifications(int columns);
+
     /// Moves a card being dragged to where the cursor is, if that is not
     /// where it already is: the hole opens under the cursor while the drag
     /// goes on, and the drop is only the end of it.
@@ -280,6 +284,14 @@ private:
     /// The canvas of the last session: the name of each phase in the order
     /// it was in, with the size it had.
     std::vector<std::pair<QString, int>> m_rememberedCanvas;
+
+    //Whether that order came from the settings (the user's) or from the
+    //default this build starts a canvas with.
+    bool m_canvasRemembered = false;
+
+    //And whether the user has moved a card himself, after which nothing
+    //reorders the canvas behind his back.
+    bool m_canvasOrdered = false;
 
     FileChooser m_chooseFile;
 

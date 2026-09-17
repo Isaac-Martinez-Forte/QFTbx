@@ -20,7 +20,7 @@
         <translation>Autores</translation>
     </message>
     <message>
-        <source>The algorithms come from the authors&apos; work at the University of Murcia: the degree project of 2013, the master&apos;s thesis of 2014 and the doctoral thesis of 2022, with the article in the International Journal of Robust and Nonlinear Control (2021).</source>
+        <source>The algorithms come from the authors' work at the University of Murcia: the degree project of 2013, the master's thesis of 2014 and the doctoral thesis of 2022, with the article in the International Journal of Robust and Nonlinear Control (2021).</source>
         <translation>Los algoritmos proceden del trabajo de los autores en la Universidad de Murcia: el proyecto fin de carrera de 2013, el trabajo fin de máster de 2014 y la tesis doctoral de 2022, con el artículo en el International Journal of Robust and Nonlinear Control (2021).</translation>
     </message>
     <message>
@@ -28,8 +28,8 @@
         <translation>QFTbx es software en desarrollo: algunas partes están incompletas o son experimentales, y sus resultados deben comprobarse antes de confiar en ellos.</translation>
     </message>
     <message>
-        <source>Source code and documentation: &lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;. The guides to building, configuring and measuring the toolbox, and the description of every algorithm with the work it comes from, are in &lt;a href=&quot;%2&quot;&gt;docs&lt;/a&gt;.</source>
-        <translation>Código fuente y documentación: &lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;. Las guías para compilar, configurar y medir la herramienta, y la descripción de cada algoritmo con el trabajo del que procede, están en &lt;a href=&quot;%2&quot;&gt;docs&lt;/a&gt;.</translation>
+        <source>Source code and documentation: &lt;a href="%1"&gt;%1&lt;/a&gt;. The guides to building, configuring and measuring the toolbox, and the description of every algorithm with the work it comes from, are in &lt;a href="%2"&gt;docs&lt;/a&gt;.</source>
+        <translation>Código fuente y documentación: &lt;a href="%1"&gt;%1&lt;/a&gt;. Las guías para compilar, configurar y medir la herramienta, y la descripción de cada algoritmo con el trabajo del que procede, están en &lt;a href="%2"&gt;docs&lt;/a&gt;.</translation>
     </message>
     <message>
         <source>Free software under the GNU General Public License, version 3. Built with Qt, QCustomPlot, kv and pugixml.</source>
@@ -119,12 +119,6 @@
 <context>
     <name>ControllerForm</name>
     <message>
-        <source>Controller
-freedom</source>
-        <translation>Grados de libertad
-del controlador</translation>
-    </message>
-    <message>
         <source>Numerator:</source>
         <translation>Numerador:</translation>
     </message>
@@ -141,28 +135,40 @@ del controlador</translation>
         <translation>Formato libre</translation>
     </message>
     <message>
-        <source>k = hfgain</source>
-        <translation>k = ganancia de alta frecuencia</translation>
+        <source>Controller structure</source>
+        <translation>Estructura del controlador</translation>
     </message>
     <message>
-        <source>k = hlgain</source>
-        <translation>k = ganancia de baja frecuencia</translation>
+        <source>Gain k, from:</source>
+        <translation>Ganancia k, de:</translation>
     </message>
     <message>
-        <source>K: [</source>
-        <translation>K: [</translation>
+        <source>to</source>
+        <translation>a</translation>
     </message>
     <message>
-        <source>,</source>
-        <translation>,</translation>
+        <source>Controller freedom</source>
+        <translation>Libertad del controlador</translation>
     </message>
     <message>
-        <source>]</source>
-        <translation>]</translation>
+        <source>Verify</source>
+        <translation>Verificar</translation>
     </message>
     <message>
-        <source>Apply</source>
-        <translation>Aplicar</translation>
+        <source>Tra&amp;nsfer function</source>
+        <translation>Fu&amp;nción de transferencia</translation>
+    </message>
+    <message>
+        <source>Zeros &amp;and poles</source>
+        <translation>Ceros &amp;y polos</translation>
+    </message>
+    <message>
+        <source>&amp;k = hfgain</source>
+        <translation>&amp;k = ganancia de alta frecuencia</translation>
+    </message>
+    <message>
+        <source>k= &amp;lfgain</source>
+        <translation>k = ganancia de &amp;baja frecuencia</translation>
     </message>
 </context>
 <context>
@@ -288,8 +294,8 @@ del controlador</translation>
         <translation>No hay templates sobre los que recorrer un contorno.</translation>
     </message>
     <message>
-        <source>settings, line %1: &quot;%2&quot; needs %3</source>
-        <translation>ajustes, línea %1: &quot;%2&quot; necesita %3</translation>
+        <source>settings, line %1: "%2" needs %3</source>
+        <translation>ajustes, línea %1: "%2" necesita %3</translation>
     </message>
     <message>
         <source>the settings file cannot be read: %1</source>
@@ -304,16 +310,16 @@ del controlador</translation>
         <translation>ajustes, línea %1: una sección necesita un nombre</translation>
     </message>
     <message>
-        <source>settings, line %1: expected &quot;key = value&quot;, found &quot;%2&quot;</source>
-        <translation>ajustes, línea %1: se esperaba &quot;clave = valor&quot; y se encontró &quot;%2&quot;</translation>
+        <source>settings, line %1: expected "key = value", found "%2"</source>
+        <translation>ajustes, línea %1: se esperaba "clave = valor" y se encontró "%2"</translation>
     </message>
     <message>
         <source>settings, line %1: the key is missing</source>
         <translation>ajustes, línea %1: falta la clave</translation>
     </message>
     <message>
-        <source>settings, line %1: &quot;%2&quot; is set more than once</source>
-        <translation>ajustes, línea %1: &quot;%2&quot; se establece más de una vez</translation>
+        <source>settings, line %1: "%2" is set more than once</source>
+        <translation>ajustes, línea %1: "%2" se establece más de una vez</translation>
     </message>
     <message>
         <source>A constant specification needs a finite magnitude &gt; 0.</source>
@@ -340,8 +346,8 @@ del controlador</translation>
         <translation>No se puede leer la expresión de la planta: %1</translation>
     </message>
     <message>
-        <source>A plant parameter cannot be called &quot;%1&quot;: that is the Laplace variable.</source>
-        <translation>Un parámetro de la planta no puede llamarse &quot;%1&quot;: es la variable de Laplace.</translation>
+        <source>A plant parameter cannot be called "%1": that is the Laplace variable.</source>
+        <translation>Un parámetro de la planta no puede llamarse "%1": es la variable de Laplace.</translation>
     </message>
     <message>
         <source>The plant expression cannot be evaluated: %1</source>
@@ -352,16 +358,16 @@ del controlador</translation>
         <translation>FreeForm::valueAt: se dieron %1 y %2 valores para %3 y %4 parámetros</translation>
     </message>
     <message>
-        <source>the parameter &quot;%1&quot; was given two different values (%2 and %3): the same name is the same variable</source>
-        <translation>al parámetro &quot;%1&quot; se le dieron dos valores distintos (%2 y %3): el mismo nombre es la misma variable</translation>
+        <source>the parameter "%1" was given two different values (%2 and %3): the same name is the same variable</source>
+        <translation>al parámetro "%1" se le dieron dos valores distintos (%2 y %3): el mismo nombre es la misma variable</translation>
     </message>
     <message>
-        <source>A parameter&apos;s %1 must be a finite number.</source>
+        <source>A parameter's %1 must be a finite number.</source>
         <translation>El %1 de un parámetro debe ser un número finito.</translation>
     </message>
     <message>
-        <source>the reparametrisation of &quot;%1&quot; cannot be read: %2</source>
-        <translation>no se puede leer la reparametrización de &quot;%1&quot;: %2</translation>
+        <source>the reparametrisation of "%1" cannot be read: %2</source>
+        <translation>no se puede leer la reparametrización de "%1": %2</translation>
     </message>
     <message>
         <source>A time constant in the %1 cannot be zero: every factor is s/z + 1.</source>
@@ -380,16 +386,16 @@ del controlador</translation>
         <translation>Faltan los valores de épsilon para los contornos de los templates.</translation>
     </message>
     <message>
-        <source>Missing sweep grid for the uncertain parameter &apos;%1&apos;.</source>
-        <translation>Falta la rejilla de barrido del parámetro incierto &apos;%1&apos;.</translation>
+        <source>Missing sweep grid for the uncertain parameter '%1'.</source>
+        <translation>Falta la rejilla de barrido del parámetro incierto '%1'.</translation>
     </message>
     <message>
         <source>The plant expression could not be evaluated at %1 rad/s: %2</source>
         <translation>No se ha podido evaluar la expresión de la planta en %1 rad/s: %2</translation>
     </message>
     <message>
-        <source>The plant has infinite magnitude at the design frequencies %1 rad/s: an undamped resonance inside the uncertainty. Its template cannot be bounded or contoured. Add light damping to the resonant poles (the usual answer for the ACC&apos;90 benchmark) or move those frequencies out of the set.</source>
-        <translation>La planta tiene magnitud infinita en las frecuencias de diseño %1 rad/s: una resonancia sin amortiguar dentro de la incertidumbre. Su template no se puede acotar ni contornear. Añada un amortiguamiento ligero a los polos resonantes (la solución habitual para el problema ACC&apos;90) o saque esas frecuencias del conjunto.</translation>
+        <source>The plant has infinite magnitude at the design frequencies %1 rad/s: an undamped resonance inside the uncertainty. Its template cannot be bounded or contoured. Add light damping to the resonant poles (the usual answer for the ACC'90 benchmark) or move those frequencies out of the set.</source>
+        <translation>La planta tiene magnitud infinita en las frecuencias de diseño %1 rad/s: una resonancia sin amortiguar dentro de la incertidumbre. Su template no se puede acotar ni contornear. Añada un amortiguamiento ligero a los polos resonantes (la solución habitual para el problema ACC'90) o saque esas frecuencias del conjunto.</translation>
     </message>
     <message>
         <source>The contours need one epsilon per design frequency: %1 given for %2 frequencies.</source>
@@ -412,16 +418,16 @@ del controlador</translation>
         <translation>&lt;%1&gt; no es un booleano</translation>
     </message>
     <message>
-        <source>missing attribute &apos;%1&apos;</source>
-        <translation>falta el atributo &apos;%1&apos;</translation>
+        <source>missing attribute '%1'</source>
+        <translation>falta el atributo '%1'</translation>
     </message>
     <message>
-        <source>attribute &apos;%1&apos; is not a number</source>
-        <translation>el atributo &apos;%1&apos; no es un número</translation>
+        <source>attribute '%1' is not a number</source>
+        <translation>el atributo '%1' no es un número</translation>
     </message>
     <message>
-        <source>attribute &apos;%1&apos; is not an integer</source>
-        <translation>el atributo &apos;%1&apos; no es un entero</translation>
+        <source>attribute '%1' is not an integer</source>
+        <translation>el atributo '%1' no es un entero</translation>
     </message>
     <message>
         <source>&lt;%1&gt; holds a non-numeric token</source>
@@ -476,8 +482,8 @@ del controlador</translation>
         <translation>No se puede escribir el fichero de proyecto: %1</translation>
     </message>
     <message>
-        <source>&quot;%1&quot; cannot be used as a parameter name: it is a function, a constant (pi, e) or the Laplace variable s of the expression grammar, or not an identifier.</source>
-        <translation>&quot;%1&quot; no puede ser el nombre de un parámetro: es una función, una constante (pi, e) o la variable de Laplace s de la gramática de expresiones, o no es un identificador.</translation>
+        <source>"%1" cannot be used as a parameter name: it is a function, a constant (pi, e) or the Laplace variable s of the expression grammar, or not an identifier.</source>
+        <translation>"%1" no puede ser el nombre de un parámetro: es una función, una constante (pi, e) o la variable de Laplace s de la gramática de expresiones, o no es un identificador.</translation>
     </message>
     <message>
         <source>The project cannot take a null plant.</source>
@@ -504,8 +510,8 @@ del controlador</translation>
         <translation>Hay un cálculo en marcha: cancélelo o espere a que termine antes de cambiar el proyecto.</translation>
     </message>
     <message>
-        <source>a setting key needs its section, as in &apos;interface.language&apos;: &apos;%1&apos;</source>
-        <translation>una clave de ajuste necesita su sección, como en &apos;interface.language&apos;: &apos;%1&apos;</translation>
+        <source>a setting key needs its section, as in 'interface.language': '%1'</source>
+        <translation>una clave de ajuste necesita su sección, como en 'interface.language': '%1'</translation>
     </message>
     <message>
         <source>the settings file cannot be written: %1</source>
@@ -544,7 +550,7 @@ del controlador</translation>
         <translation>&lt;%1&gt; no cubre la rejilla de fase</translation>
     </message>
     <message>
-        <source>unknown epsilon metric &apos;%1&apos; (complex or nichols)</source>
+        <source>unknown epsilon metric '%1' (complex or nichols)</source>
         <translation>métrica del épsilon desconocida «%1» (complex o nichols)</translation>
     </message>
     <message>
@@ -572,11 +578,11 @@ del controlador</translation>
         <translation>versión de .qft no admitida (encontrada la %1; esta compilación lee la versión %2)</translation>
     </message>
     <message>
-        <source>unknown loop-shaping algorithm &apos;%1&apos;</source>
+        <source>unknown loop-shaping algorithm '%1'</source>
         <translation>algoritmo de ajuste del lazo desconocido «%1»</translation>
     </message>
     <message>
-        <source>interface.theme must be system, light or dark: &apos;%1&apos;</source>
+        <source>interface.theme must be system, light or dark: '%1'</source>
         <translation>interface.theme debe ser system, light o dark: «%1»</translation>
     </message>
     <message>
@@ -743,24 +749,8 @@ del controlador</translation>
 <context>
     <name>LoopShapingViewer</name>
     <message>
-        <source>Dialog</source>
-        <translation>Diálogo</translation>
-    </message>
-    <message>
-        <source>Options</source>
-        <translation>Opciones</translation>
-    </message>
-    <message>
-        <source>Save</source>
-        <translation>Guardar</translation>
-    </message>
-    <message>
         <source>Resulting controller</source>
         <translation>Controlador resultante</translation>
-    </message>
-    <message>
-        <source>System type:</source>
-        <translation>Tipo de sistema:</translation>
     </message>
     <message>
         <source>Numerator:</source>
@@ -773,6 +763,18 @@ del controlador</translation>
     <message>
         <source>K:</source>
         <translation>K:</translation>
+    </message>
+    <message>
+        <source>Loop shaping</source>
+        <translation>Ajuste del lazo</translation>
+    </message>
+    <message>
+        <source>Save the diagram</source>
+        <translation>Guardar el diagrama</translation>
+    </message>
+    <message>
+        <source>Digits:</source>
+        <translation>Cifras:</translation>
     </message>
 </context>
 <context>
@@ -824,7 +826,7 @@ del controlador</translation>
         <translation>&amp;Ver</translation>
     </message>
     <message>
-        <source>Dia&amp;gramas</source>
+        <source>Dia&amp;grams</source>
         <translation>Dia&amp;gramas</translation>
     </message>
     <message>
@@ -923,63 +925,31 @@ del controlador</translation>
         <translation>Incertidumbre</translation>
     </message>
     <message>
-        <source>Apply</source>
-        <translation>Aplicar</translation>
+        <source>Plant</source>
+        <translation>Planta</translation>
+    </message>
+    <message>
+        <source>Description:</source>
+        <translation>Descripción:</translation>
+    </message>
+    <message>
+        <source>What this plant is (optional)</source>
+        <translation>Qué es esta planta (opcional)</translation>
+    </message>
+    <message>
+        <source>Verify</source>
+        <translation>Verificar</translation>
     </message>
 </context>
 <context>
     <name>QObject</name>
     <message>
-        <source>&quot;%1&quot; cannot be used as a parameter name: it is a constant of the expression grammar.</source>
-        <translation>&quot;%1&quot; no puede ser el nombre de un parámetro: es una constante de la gramática de expresiones.</translation>
+        <source>"%1" cannot be used as a parameter name: it is a constant of the expression grammar.</source>
+        <translation>"%1" no puede ser el nombre de un parámetro: es una constante de la gramática de expresiones.</translation>
     </message>
     <message>
         <source>Loop-shaping input</source>
         <translation>Ajuste del lazo</translation>
-    </message>
-    <message>
-        <source>plant &apos;%1&apos;</source>
-        <translation>planta &apos;%1&apos;</translation>
-    </message>
-    <message>
-        <source>NO plant</source>
-        <translation>SIN planta</translation>
-    </message>
-    <message>
-        <source>%1 design frequencies</source>
-        <translation>%1 frecuencias de diseño</translation>
-    </message>
-    <message>
-        <source>NO design frequencies</source>
-        <translation>SIN frecuencias de diseño</translation>
-    </message>
-    <message>
-        <source>templates</source>
-        <translation>templates</translation>
-    </message>
-    <message>
-        <source>NO templates</source>
-        <translation>SIN templates</translation>
-    </message>
-    <message>
-        <source>boundaries</source>
-        <translation>boundaries</translation>
-    </message>
-    <message>
-        <source>NO boundaries</source>
-        <translation>SIN boundaries</translation>
-    </message>
-    <message>
-        <source>NO controller structure</source>
-        <translation>SIN estructura del controlador</translation>
-    </message>
-    <message>
-        <source>controller with %1 zeros and %2 poles, gain %3 to %4</source>
-        <translation>controlador con %1 ceros y %2 polos, ganancia de %3 a %4</translation>
-    </message>
-    <message>
-        <source>Cannot load it: %1</source>
-        <translation>No se puede cargar: %1</translation>
     </message>
     <message>
         <source>QFTbx</source>
@@ -1001,64 +971,8 @@ del controlador</translation>
 <context>
     <name>SpecificationsForm</name>
     <message>
-        <source>Specification types:</source>
-        <translation>Tipos de especificación:</translation>
-    </message>
-    <message>
-        <source>Tracking</source>
-        <translation>Seguimiento</translation>
-    </message>
-    <message>
-        <source>Stability</source>
-        <translation>Estabilidad</translation>
-    </message>
-    <message>
-        <source>Sensor noise</source>
-        <translation>Ruido del sensor</translation>
-    </message>
-    <message>
-        <source>Output disturbance</source>
-        <translation>Perturbación a la salida</translation>
-    </message>
-    <message>
-        <source>Input disturbance</source>
-        <translation>Perturbación a la entrada</translation>
-    </message>
-    <message>
-        <source>Control effort</source>
-        <translation>Esfuerzo de control</translation>
-    </message>
-    <message>
-        <source>Constant</source>
-        <translation>Constante</translation>
-    </message>
-    <message>
-        <source>Transfer function</source>
-        <translation>Función de transferencia</translation>
-    </message>
-    <message>
-        <source>Frequencies: [</source>
-        <translation>Frecuencias: [</translation>
-    </message>
-    <message>
-        <source>,</source>
-        <translation>,</translation>
-    </message>
-    <message>
-        <source>]</source>
-        <translation>]</translation>
-    </message>
-    <message>
         <source>Magnitude:</source>
         <translation>Magnitud:</translation>
-    </message>
-    <message>
-        <source>Linear</source>
-        <translation>Lineal</translation>
-    </message>
-    <message>
-        <source>Decibels</source>
-        <translation>Decibelios</translation>
     </message>
     <message>
         <source>Numerator:</source>
@@ -1069,83 +983,91 @@ del controlador</translation>
         <translation>Denominador:</translation>
     </message>
     <message>
-        <source>K:</source>
-        <translation>K:</translation>
-    </message>
-    <message>
-        <source>delayEdit:</source>
-        <translation>Retardo:</translation>
-    </message>
-    <message>
-        <source>Polynomial form</source>
-        <translation>Coeficientes de polinomios</translation>
-    </message>
-    <message>
         <source>Free form</source>
         <translation>Formato libre</translation>
-    </message>
-    <message>
-        <source>K = tcgRadio</source>
-        <translation>K = constantes de tiempo</translation>
-    </message>
-    <message>
-        <source>k = zpkRadio</source>
-        <translation>k = ceros, polos y ganancia</translation>
-    </message>
-    <message>
-        <source>k=tcgRadio</source>
-        <translation>K = constantes de tiempo</translation>
-    </message>
-    <message>
-        <source>k=zpkRadio</source>
-        <translation>k = ceros, polos y ganancia</translation>
-    </message>
-    <message>
-        <source>Numerator: </source>
-        <translation>Numerador: </translation>
-    </message>
-    <message>
-        <source>Denominator: </source>
-        <translation>Denominador: </translation>
-    </message>
-    <message>
-        <source>K: </source>
-        <translation>K: </translation>
-    </message>
-    <message>
-        <source>Ret:</source>
-        <translation>Ret:</translation>
     </message>
     <message>
         <source>Apply</source>
         <translation>Aplicar</translation>
     </message>
+    <message>
+        <source>Specifications</source>
+        <translation>Especificaciones</translation>
+    </message>
+    <message>
+        <source>Specification:</source>
+        <translation>Especificación:</translation>
+    </message>
+    <message>
+        <source>Bound:</source>
+        <translation>Cota:</translation>
+    </message>
+    <message>
+        <source>A constant</source>
+        <translation>Una constante</translation>
+    </message>
+    <message>
+        <source>A transfer function</source>
+        <translation>Una función de transferencia</translation>
+    </message>
+    <message>
+        <source>dB</source>
+        <translation>dB</translation>
+    </message>
+    <message>
+        <source>linear</source>
+        <translation>lineal</translation>
+    </message>
+    <message>
+        <source>Polynomial</source>
+        <translation>Polinomios</translation>
+    </message>
+    <message>
+        <source>Zeros and poles</source>
+        <translation>Ceros y polos</translation>
+    </message>
+    <message>
+        <source>Time constants</source>
+        <translation>Constantes de tiempo</translation>
+    </message>
+    <message>
+        <source>Gain:</source>
+        <translation>Ganancia:</translation>
+    </message>
+    <message>
+        <source>Delay:</source>
+        <translation>Retardo:</translation>
+    </message>
+    <message>
+        <source>Clear</source>
+        <translation>Limpiar</translation>
+    </message>
+    <message>
+        <source>Verify</source>
+        <translation>Verificar</translation>
+    </message>
+    <message>
+        <source>Specifications of the design</source>
+        <translation>Especificaciones del diseño</translation>
+    </message>
+    <message>
+        <source>Edit</source>
+        <translation>Editar</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>Quitar</translation>
+    </message>
+    <message>
+        <source>Applies at:</source>
+        <translation>Se aplica en:</translation>
+    </message>
 </context>
 <context>
     <name>TemplateViewer</name>
     <message>
-        <source>Dialog</source>
-        <translation>Diálogo</translation>
-    </message>
-    <message>
         <source>Templates</source>
         <translation>Templates</translation>
-    </message>
-    <message>
-        <source>Show
-templatesButton</source>
-        <translation>Mostrar
-templates</translation>
-    </message>
-    <message>
-        <source>Hide
-contour</source>
-        <translation>Ocultar
-contorno</translation>
-    </message>
-    <message>
-        <source>Save</source>
-        <translation>Guardar</translation>
     </message>
     <message>
         <source>Recompute</source>
@@ -1158,6 +1080,18 @@ contorno</translation>
     <message>
         <source>Set every epsilon to the least value at which the contour of its template closes, and recompute the contours.</source>
         <translation>Pone en cada épsilon el menor valor con el que cierra el contorno de su plantilla, y recalcula los contornos.</translation>
+    </message>
+    <message>
+        <source>Show templates</source>
+        <translation>Ver las plantillas</translation>
+    </message>
+    <message>
+        <source>Hide contour</source>
+        <translation>Ocultar el contorno</translation>
+    </message>
+    <message>
+        <source>Save the diagram</source>
+        <translation>Guardar el diagrama</translation>
     </message>
 </context>
 <context>
@@ -1207,10 +1141,6 @@ contorno</translation>
         <translation>Diagrama de Nyquist</translation>
     </message>
     <message>
-        <source>cudaCheck</source>
-        <translation>CUDA</translation>
-    </message>
-    <message>
         <source>Epsilon:</source>
         <translation>Épsilon:</translation>
     </message>
@@ -1239,7 +1169,7 @@ contorno</translation>
         <translation>Épsilon en:</translation>
     </message>
     <message>
-        <source>The plane the epsilon of the contour is measured in. Nichols: degrees and decibels, one epsilon serves every template. Complex plane: the historical reading, in the units of the plant&apos;s response.</source>
+        <source>The plane the epsilon of the contour is measured in. Nichols: degrees and decibels, one epsilon serves every template. Complex plane: the historical reading, in the units of the plant's response.</source>
         <translation>El plano en que se mide el épsilon del contorno. Nichols: grados y decibelios, un solo épsilon sirve para todas las plantillas. Plano complejo: la lectura histórica, en las unidades de la respuesta de la planta.</translation>
     </message>
     <message>
@@ -1282,48 +1212,44 @@ contorno</translation>
         <source>Compute</source>
         <translation>Calcular</translation>
     </message>
+    <message>
+        <source>On the GPU</source>
+        <translation>En la GPU</translation>
+    </message>
 </context>
 <context>
-    <name>UncertaintyDialog</name>
+    <name>UncertaintyPanel</name>
     <message>
-        <source>Dialog</source>
-        <translation>Diálogo</translation>
+        <source>Uncertainty</source>
+        <translation>Incertidumbre</translation>
     </message>
     <message>
-        <source>Enter range manually</source>
-        <translation>Introducir el rango manualmente</translation>
+        <source>Range of every uncertain coefficient</source>
+        <translation>Intervalo de cada coeficiente incierto</translation>
     </message>
     <message>
-        <source>Numerator</source>
-        <translation>Numerador</translation>
+        <source>No coefficient of this system is uncertain: a coefficient becomes uncertain by being given a name instead of a value.</source>
+        <translation>Ningún coeficiente de este sistema es incierto: un coeficiente se vuelve incierto al darle un nombre en vez de un valor.</translation>
     </message>
     <message>
-        <source>Denominator</source>
-        <translation>Denominador</translation>
+        <source>Gain:</source>
+        <translation>Ganancia:</translation>
     </message>
     <message>
-        <source>k: [</source>
-        <translation>k: [</translation>
+        <source>to</source>
+        <translation>a</translation>
     </message>
     <message>
-        <source>,</source>
-        <translation>,</translation>
+        <source>Delay:</source>
+        <translation>Retardo:</translation>
     </message>
     <message>
-        <source>]</source>
-        <translation>]</translation>
+        <source>Back</source>
+        <translation>Volver</translation>
     </message>
     <message>
-        <source>ret: [</source>
-        <translation>ret: [</translation>
-    </message>
-    <message>
-        <source>Cancel</source>
-        <translation>Cancelar</translation>
-    </message>
-    <message>
-        <source>OK</source>
-        <translation>Aceptar</translation>
+        <source>Apply</source>
+        <translation>Aplicar</translation>
     </message>
 </context>
 <context>
@@ -1331,113 +1257,6 @@ contorno</translation>
     <message>
         <source>QFTbx</source>
         <translation>QFTbx</translation>
-    </message>
-</context>
-<context>
-    <name>qftbx::BenchmarkWindow</name>
-    <message>
-        <source>Benchmark planner</source>
-        <translation>Planificador de pruebas</translation>
-    </message>
-    <message>
-        <source>Plan</source>
-        <translation>Plan</translation>
-    </message>
-    <message>
-        <source>Queue</source>
-        <translation>Cola</translation>
-    </message>
-    <message>
-        <source>Results</source>
-        <translation>Resultados</translation>
-    </message>
-    <message>
-        <source>New</source>
-        <translation>Nuevo</translation>
-    </message>
-    <message>
-        <source>Open...</source>
-        <translation>Abrir...</translation>
-    </message>
-    <message>
-        <source>Save</source>
-        <translation>Guardar</translation>
-    </message>
-    <message>
-        <source>Save as...</source>
-        <translation>Guardar como...</translation>
-    </message>
-    <message>
-        <source>Run</source>
-        <translation>Ejecutar</translation>
-    </message>
-    <message>
-        <source>Stop</source>
-        <translation>Parar</translation>
-    </message>
-    <message>
-        <source>Load results</source>
-        <translation>Cargar resultados</translation>
-    </message>
-    <message>
-        <source>Read the records already on disk for this plan: a run made with qftbx-bench elsewhere</source>
-        <translation>Leer los registros que ya hay en disco para este plan: una ejecución hecha con qftbx-bench en otro sitio</translation>
-    </message>
-    <message>
-        <source>Benchmark</source>
-        <translation>Pruebas de rendimiento</translation>
-    </message>
-    <message>
-        <source>Run finished</source>
-        <translation>Ejecución terminada</translation>
-    </message>
-    <message>
-        <source>Run stopped</source>
-        <translation>Ejecución detenida</translation>
-    </message>
-    <message>
-        <source>Output directory</source>
-        <translation>Directorio de salida</translation>
-    </message>
-    <message>
-        <source>Save the plan</source>
-        <translation>Guardar el plan</translation>
-    </message>
-    <message>
-        <source>Open a plan</source>
-        <translation>Abrir un plan</translation>
-    </message>
-    <message>
-        <source>Benchmark planner - %1</source>
-        <translation>Planificador de pruebas - %1</translation>
-    </message>
-    <message>
-        <source>%1 cases: %2 structures x %3 algorithms x %4 epsilons x %5 repetitions%6</source>
-        <translation>%1 casos: %2 estructuras x %3 algoritmos x %4 épsilons x %5 repeticiones%6</translation>
-    </message>
-    <message>
-        <source> plus a warm-up</source>
-        <translation> más un calentamiento</translation>
-    </message>
-    <message>
-        <source>A run is in progress; stop it first.</source>
-        <translation>Hay una ejecución en marcha; párela primero.</translation>
-    </message>
-    <message>
-        <source>Plan saved to %1</source>
-        <translation>Plan guardado en %1</translation>
-    </message>
-    <message>
-        <source>The plan has to be saved before it runs. Save it now?</source>
-        <translation>El plan tiene que guardarse antes de ejecutarse. ¿Guardarlo ahora?</translation>
-    </message>
-    <message>
-        <source>Running %1 cases</source>
-        <translation>Ejecutando %1 casos</translation>
-    </message>
-    <message>
-        <source>Stopping: the running cases are being killed</source>
-        <translation>Parando: se están matando los casos en marcha</translation>
     </message>
 </context>
 <context>
@@ -1531,16 +1350,83 @@ contorno</translation>
 <context>
     <name>qftbx::ControllerForm</name>
     <message>
-        <source>Controller input</source>
-        <translation>Controlador</translation>
-    </message>
-    <message>
-        <source>Controller structure input</source>
+        <source>Controller structure</source>
         <translation>Estructura del controlador</translation>
     </message>
     <message>
-        <source>There is an error in the controller data</source>
-        <translation>Hay un error en los datos del controlador</translation>
+        <source>Search range of every parameter of the structure</source>
+        <translation>Intervalo de búsqueda de cada parámetro de la estructura</translation>
+    </message>
+    <message>
+        <source>Zeros:</source>
+        <translation>Ceros:</translation>
+    </message>
+    <message>
+        <source>Numerator:</source>
+        <translation>Numerador:</translation>
+    </message>
+    <message>
+        <source>Poles:</source>
+        <translation>Polos:</translation>
+    </message>
+    <message>
+        <source>Denominator:</source>
+        <translation>Denominador:</translation>
+    </message>
+    <message>
+        <source>One name per zero and per pole: each of them is searched for over the range given under Controller freedom.</source>
+        <translation>Un nombre por cada cero y cada polo: cada uno se busca dentro del intervalo que se le dé en Libertad del controlador.</translation>
+    </message>
+    <message>
+        <source>The coefficients by descending power. A name is searched for over the range given under Controller freedom.</source>
+        <translation>Los coeficientes en potencias decrecientes. Un nombre se busca dentro del intervalo que se le dé en Libertad del controlador.</translation>
+    </message>
+    <message>
+        <source>An expression in s. Every other name in it is searched for over its range.</source>
+        <translation>Una expresión en s. Cualquier otro nombre que aparezca se busca dentro de su intervalo.</translation>
+    </message>
+    <message>
+        <source>The structure appears here once verified.</source>
+        <translation>La estructura aparece aquí en cuanto se verifique.</translation>
+    </message>
+    <message>
+        <source>Verify</source>
+        <translation>Verificar</translation>
+    </message>
+    <message>
+        <source>Apply</source>
+        <translation>Aplicar</translation>
+    </message>
+    <message>
+        <source>The ends of the gain range are numbers.</source>
+        <translation>Los extremos del intervalo de ganancia son números.</translation>
+    </message>
+    <message>
+        <source>This is not an expression the toolbox can read.</source>
+        <translation>Esto no es una expresión que el programa sepa leer.</translation>
+    </message>
+    <message>
+        <source>The parameters of the structure need a range: open Controller freedom.</source>
+        <translation>Los parámetros de la estructura necesitan un intervalo: abra Libertad del controlador.</translation>
+    </message>
+    <message>
+        <source>The parameters of the structure need a range.</source>
+        <translation>Los parámetros de la estructura necesitan un intervalo.</translation>
+    </message>
+    <message>
+        <source>A coefficient is not a number.</source>
+        <translation>Un coeficiente no es un número.</translation>
+    </message>
+    <message>
+        <source>Choose how the structure is written.</source>
+        <translation>Elija cómo se escribe la estructura.</translation>
+    </message>
+</context>
+<context>
+    <name>qftbx::FormulaView</name>
+    <message>
+        <source>Copy as LaTeX</source>
+        <translation>Copiar en LaTeX</translation>
     </message>
 </context>
 <context>
@@ -1560,6 +1446,10 @@ contorno</translation>
     <message>
         <source>A design frequency must be a positive real, and %1 is not.</source>
         <translation>Una frecuencia de diseño debe ser un real positivo, y %1 no lo es.</translation>
+    </message>
+    <message>
+        <source>These are not numbers separated by spaces.</source>
+        <translation>Esto no son números separados por espacios.</translation>
     </message>
 </context>
 <context>
@@ -1704,12 +1594,16 @@ contorno</translation>
         <translation>No había ninguna especificación activa en ninguna frecuencia de diseño.</translation>
     </message>
     <message>
-        <source>Satisfies every specification over the template, by %1 dB (as saved with the project).</source>
-        <translation>Cumple todas las especificaciones sobre la plantilla, por %1 dB (según se guardó con el proyecto).</translation>
+        <source>Satisfies every specification over the template, by %1 dB.</source>
+        <translation>Cumple todas las especificaciones sobre la plantilla, por %1 dB.</translation>
     </message>
     <message>
-        <source>EXCEEDS a specification over the template by %1 dB (as saved with the project).</source>
-        <translation>INCUMPLE una especificación sobre la plantilla por %1 dB (según se guardó con el proyecto).</translation>
+        <source>EXCEEDS a specification over the template by %1 dB.</source>
+        <translation>INCUMPLE una especificación sobre la plantilla por %1 dB.</translation>
+    </message>
+    <message>
+        <source>all</source>
+        <translation>todas</translation>
     </message>
 </context>
 <context>
@@ -1891,530 +1785,248 @@ contorno</translation>
     </message>
 </context>
 <context>
-    <name>qftbx::PlanEditor</name>
+    <name>qftbx::PlantForm</name>
     <message>
-        <source>Project</source>
-        <translation>Proyecto</translation>
+        <source>Plant</source>
+        <translation>Planta</translation>
     </message>
     <message>
-        <source>a .qft with its templates and boundaries computed</source>
-        <translation>un .qft con sus templates y boundaries calculados</translation>
+        <source>Uncertainty of the plant</source>
+        <translation>Incertidumbre de la planta</translation>
     </message>
     <message>
-        <source>Browse...</source>
-        <translation>Examinar...</translation>
+        <source>Choose how the plant is written.</source>
+        <translation>Elija cómo se escribe la planta.</translation>
     </message>
     <message>
-        <source>Project file</source>
-        <translation>Fichero del proyecto</translation>
+        <source>Zeros:</source>
+        <translation>Ceros:</translation>
     </message>
     <message>
-        <source>Plan name</source>
-        <translation>Nombre del plan</translation>
+        <source>Numerator:</source>
+        <translation>Numerador:</translation>
     </message>
     <message>
-        <source>Output directory</source>
-        <translation>Directorio de salida</translation>
+        <source>Poles:</source>
+        <translation>Polos:</translation>
     </message>
     <message>
-        <source>Controller structures</source>
-        <translation>Estructuras del controlador</translation>
+        <source>Denominator:</source>
+        <translation>Denominador:</translation>
     </message>
     <message>
-        <source>The project&apos;s controller structure is the base. Each step adds a zero or a pole with its search range; the cases run after every step marked to run.</source>
-        <translation>La estructura del controlador del proyecto es la base. Cada paso añade un cero o un polo con su rango de búsqueda; los casos se ejecutan tras cada paso marcado.</translation>
+        <source>One zero and one pole per value, separated by spaces: the factors are (s + a). A name instead of a number makes that root uncertain.</source>
+        <translation>Un cero y un polo por valor, separados por espacios: los factores son (s + a). Un nombre en vez de un número hace esa raíz incierta.</translation>
     </message>
     <message>
-        <source>Run the base structure as it is</source>
-        <translation>Ejecutar la estructura base tal cual</translation>
+        <source>One time constant per value, separated by spaces: the factors are (1 + s/T). A name instead of a number makes that constant uncertain.</source>
+        <translation>Una constante de tiempo por valor, separadas por espacios: los factores son (1 + s/T). Un nombre en vez de un número hace esa constante incierta.</translation>
     </message>
     <message>
-        <source>Replace the gain range:</source>
-        <translation>Sustituir el rango de la ganancia:</translation>
+        <source>The coefficients by descending power, separated by spaces. A name instead of a number makes that coefficient uncertain.</source>
+        <translation>Los coeficientes en potencias decrecientes, separados por espacios. Un nombre en vez de un número hace ese coeficiente incierto.</translation>
     </message>
     <message>
-        <source>from</source>
-        <translation>de</translation>
+        <source>An expression in s. Every other name in it is an uncertain parameter.</source>
+        <translation>Una expresión en s. Cualquier otro nombre que aparezca es un parámetro incierto.</translation>
     </message>
     <message>
-        <source>to</source>
-        <translation>a</translation>
+        <source>The formula appears here once verified.</source>
+        <translation>La fórmula aparece aquí en cuanto se verifique.</translation>
     </message>
     <message>
-        <source>Adds</source>
-        <translation>Añade</translation>
+        <source>Verify</source>
+        <translation>Verificar</translation>
     </message>
     <message>
-        <source>Minimum</source>
-        <translation>Mínimo</translation>
+        <source>Apply</source>
+        <translation>Aplicar</translation>
     </message>
     <message>
-        <source>Maximum</source>
-        <translation>Máximo</translation>
+        <source>The plant needs a name.</source>
+        <translation>La planta necesita un nombre.</translation>
     </message>
     <message>
-        <source>Run after it</source>
-        <translation>Ejecutar tras él</translation>
+        <source>%1 is a value; its range is given under Uncertainty.</source>
+        <translation>%1 es un valor; su intervalo se da en Incertidumbre.</translation>
     </message>
     <message>
-        <source>Add a zero</source>
-        <translation>Añadir un cero</translation>
+        <source>%1 is not a number.</source>
+        <translation>%1 no es un número.</translation>
     </message>
     <message>
-        <source>Add a pole</source>
-        <translation>Añadir un polo</translation>
+        <source>The gain</source>
+        <translation>La ganancia</translation>
     </message>
     <message>
-        <source>Remove</source>
-        <translation>Quitar</translation>
+        <source>The delay</source>
+        <translation>El retardo</translation>
     </message>
     <message>
-        <source>Move up</source>
-        <translation>Subir</translation>
+        <source>This is not an expression the toolbox can read.</source>
+        <translation>Esto no es una expresión que el programa sepa leer.</translation>
     </message>
     <message>
-        <source>Move down</source>
-        <translation>Bajar</translation>
+        <source>The coefficients that were given a name need a range: open Uncertainty.</source>
+        <translation>Los coeficientes a los que se dio un nombre necesitan un intervalo: abra Incertidumbre.</translation>
     </message>
     <message>
-        <source>Runs</source>
-        <translation>Ejecuciones</translation>
+        <source>The coefficients that were given a name need a range.</source>
+        <translation>Los coeficientes a los que se dio un nombre necesitan un intervalo.</translation>
     </message>
     <message>
-        <source>Algorithms</source>
-        <translation>Algoritmos</translation>
+        <source>The gain is not a number.</source>
+        <translation>La ganancia no es un número.</translation>
     </message>
     <message>
-        <source>one or more, separated by commas: 2, 5</source>
-        <translation>uno o varios, separados por comas: 2, 5</translation>
+        <source>The delay is not a number.</source>
+        <translation>El retardo no es un número.</translation>
     </message>
     <message>
-        <source>Epsilons (dB)</source>
-        <translation>Épsilons (dB)</translation>
+        <source>A coefficient is not a number.</source>
+        <translation>Un coeficiente no es un número.</translation>
+    </message>
+</context>
+<context>
+    <name>qftbx::SpecificationsForm</name>
+    <message>
+        <source>The magnitude must be a finite number, and positive in linear units.</source>
+        <translation>La magnitud debe ser un número finito, y positivo en unidades lineales.</translation>
     </message>
     <message>
-        <source>plus a warm-up run left out of the statistics</source>
-        <translation>más una ejecución de calentamiento fuera de la estadística</translation>
+        <source>The design frequencies must be entered before the specifications.</source>
+        <translation>Hay que introducir las frecuencias de diseño antes que las especificaciones.</translation>
     </message>
     <message>
-        <source>Repetitions</source>
-        <translation>Repeticiones</translation>
+        <source>Specifications</source>
+        <translation>Especificaciones</translation>
     </message>
     <message>
-        <source>Measure</source>
-        <translation>Medir</translation>
+        <source>Tracking, lower bound</source>
+        <translation>Seguimiento, cota inferior</translation>
     </message>
     <message>
-        <source>Wall-clock time</source>
-        <translation>Tiempo de reloj</translation>
+        <source>Tracking, upper bound</source>
+        <translation>Seguimiento, cota superior</translation>
     </message>
     <message>
-        <source>CPU time</source>
-        <translation>Tiempo de CPU</translation>
+        <source>Stability</source>
+        <translation>Estabilidad</translation>
     </message>
     <message>
-        <source>Peak memory (read at the end, costs nothing)</source>
-        <translation>Memoria pico (se lee al final, no cuesta nada)</translation>
+        <source>Sensor noise</source>
+        <translation>Ruido del sensor</translation>
     </message>
     <message>
-        <source>Memory over time (a sampling thread: leave it off when timing)</source>
-        <translation>Memoria a lo largo del tiempo (un hilo de muestreo: desactívelo al medir tiempos)</translation>
+        <source>Output disturbance</source>
+        <translation>Perturbación a la salida</translation>
     </message>
     <message>
-        <source>The algorithm&apos;s counters: live nodes, boxes, stability verdicts</source>
-        <translation>Los contadores del algoritmo: nodos vivos, cajas, veredictos de estabilidad</translation>
+        <source>Input disturbance</source>
+        <translation>Perturbación a la entrada</translation>
     </message>
     <message>
-        <source>Execution</source>
-        <translation>Ejecución</translation>
+        <source>Control effort</source>
+        <translation>Esfuerzo de control</translation>
     </message>
     <message>
-        <source>Cases at once</source>
-        <translation>Casos a la vez</translation>
+        <source>Specification</source>
+        <translation>Especificación</translation>
     </message>
     <message>
-        <source>none</source>
-        <translation>ninguno</translation>
+        <source>Band (rad/s)</source>
+        <translation>Banda (rad/s)</translation>
     </message>
     <message>
-        <source> s</source>
-        <translation> s</translation>
+        <source>Bound</source>
+        <translation>Cota</translation>
     </message>
     <message>
-        <source>Time limit per case</source>
-        <translation>Tiempo límite por caso</translation>
+        <source>Zeros:</source>
+        <translation>Ceros:</translation>
     </message>
     <message>
-        <source> MB</source>
-        <translation> MB</translation>
+        <source>Numerator:</source>
+        <translation>Numerador:</translation>
     </message>
     <message>
-        <source>Memory limit per case</source>
-        <translation>Límite de memoria por caso</translation>
+        <source>Poles:</source>
+        <translation>Polos:</translation>
     </message>
     <message>
-        <source>Settings for the runs</source>
-        <translation>Ajustes para las ejecuciones</translation>
+        <source>Denominator:</source>
+        <translation>Denominador:</translation>
     </message>
     <message>
-        <source>Values of qftbx.conf that the runs use instead of the defaults, by key.</source>
-        <translation>Valores de qftbx.conf que las ejecuciones usan en lugar de los predeterminados, por clave.</translation>
+        <source>Verify</source>
+        <translation>Verificar</translation>
     </message>
     <message>
-        <source>Key</source>
-        <translation>Clave</translation>
-    </message>
-    <message>
-        <source>Value</source>
-        <translation>Valor</translation>
+        <source>Update</source>
+        <translation>Actualizar</translation>
     </message>
     <message>
         <source>Add</source>
         <translation>Añadir</translation>
     </message>
     <message>
-        <source>QFT projects (*.qft)</source>
-        <translation>Proyectos QFT (*.qft)</translation>
+        <source>%1 to %2</source>
+        <translation>%1 a %2</translation>
     </message>
     <message>
-        <source>Save</source>
-        <translation>Guardar</translation>
+        <source>The band needs 0 &lt;= start &lt;= end.</source>
+        <translation>La banda necesita 0 &lt;= inicio &lt;= fin.</translation>
     </message>
     <message>
-        <source>Open</source>
-        <translation>Abrir</translation>
+        <source>The bound is a magnitude.</source>
+        <translation>La cota es una magnitud.</translation>
     </message>
     <message>
-        <source>base</source>
-        <translation>base</translation>
+        <source>The gain is not a number.</source>
+        <translation>La ganancia no es un número.</translation>
     </message>
     <message>
-        <source>No structure runs: mark the base or a step.</source>
-        <translation>No se ejecuta ninguna estructura: marque la base o un paso.</translation>
+        <source>The delay is not a number.</source>
+        <translation>El retardo no es un número.</translation>
     </message>
     <message>
-        <source>Structures to run (%1): %2</source>
-        <translation>Estructuras a ejecutar (%1): %2</translation>
+        <source>A free-form bound needs both expressions.</source>
+        <translation>Una cota en formato libre necesita las dos expresiones.</translation>
     </message>
     <message>
-        <source>0 means one less than the cores: %1</source>
-        <translation>0 significa uno menos que los núcleos: %1</translation>
+        <source>This is not an expression the toolbox can read.</source>
+        <translation>Esto no es una expresión que el programa sepa leer.</translation>
     </message>
     <message>
-        <source>of %1 cores</source>
-        <translation>de %1 núcleos</translation>
+        <source>The bound needs a denominator.</source>
+        <translation>La cota necesita un denominador.</translation>
     </message>
     <message>
-        <source>zero</source>
-        <translation>cero</translation>
+        <source>A coefficient is not a number.</source>
+        <translation>Un coeficiente no es un número.</translation>
     </message>
     <message>
-        <source>pole</source>
-        <translation>polo</translation>
+        <source>Added: %1.</source>
+        <translation>Añadida: %1.</translation>
     </message>
     <message>
-        <source>Gain minimum</source>
-        <translation>Mínimo de la ganancia</translation>
+        <source>Choose a specification in the list first.</source>
+        <translation>Elija antes una especificación de la lista.</translation>
     </message>
-    <message>
-        <source>Gain maximum</source>
-        <translation>Máximo de la ganancia</translation>
-    </message>
-    <message>
-        <source>Step %1: %2 is not a number</source>
-        <translation>Paso %1: %2 no es un número</translation>
-    </message>
-    <message>
-        <source>the minimum</source>
-        <translation>el mínimo</translation>
-    </message>
-    <message>
-        <source>the maximum</source>
-        <translation>el máximo</translation>
-    </message>
-    <message>
-        <source>Epsilons: &apos;%1&apos; is not a positive number</source>
-        <translation>Épsilons: &apos;%1&apos; no es un número positivo</translation>
-    </message>
-    <message>
-        <source>Setting %1 needs both a key and a value</source>
-        <translation>El ajuste %1 necesita clave y valor</translation>
-    </message>
-</context>
-<context>
-    <name>qftbx::PlantForm</name>
-    <message>
-        <source>Plant input</source>
-        <translation>Planta</translation>
-    </message>
-    <message>
-        <source>The plant name is missing.</source>
-        <translation>Falta el nombre de la planta.</translation>
-    </message>
-    <message>
-        <source>There is an error in the plant data</source>
-        <translation>Hay un error en los datos de la planta</translation>
-    </message>
-</context>
-<context>
-    <name>qftbx::QueueView</name>
-    <message>
-        <source>#</source>
-        <translation>#</translation>
-    </message>
-    <message>
-        <source>Case</source>
-        <translation>Caso</translation>
-    </message>
-    <message>
-        <source>Structure</source>
-        <translation>Estructura</translation>
-    </message>
-    <message>
-        <source>Algorithm</source>
-        <translation>Algoritmo</translation>
-    </message>
-    <message>
-        <source>Epsilon</source>
-        <translation>Épsilon</translation>
-    </message>
-    <message>
-        <source>Repetition</source>
-        <translation>Repetición</translation>
-    </message>
-    <message>
-        <source>Status</source>
-        <translation>Estado</translation>
-    </message>
-    <message>
-        <source>Time (s)</source>
-        <translation>Tiempo (s)</translation>
-    </message>
-    <message>
-        <source>k</source>
-        <translation>k</translation>
-    </message>
-    <message>
-        <source>Memory (MB)</source>
-        <translation>Memoria (MB)</translation>
-    </message>
-    <message>
-        <source>warm-up</source>
-        <translation>calentamiento</translation>
-    </message>
-    <message>
-        <source>queued</source>
-        <translation>en cola</translation>
-    </message>
-    <message>
-        <source>%1 cases queued</source>
-        <translation>%1 casos en cola</translation>
-    </message>
-    <message>
-        <source>running</source>
-        <translation>en marcha</translation>
-    </message>
-    <message>
-        <source>%1 of %2 cases done</source>
-        <translation>%1 de %2 casos hechos</translation>
-    </message>
-    <message>
-        <source>The run stopped: %1</source>
-        <translation>La ejecución se detuvo: %1</translation>
-    </message>
-    <message>
-        <source>stopped: %1</source>
-        <translation>detenida: %1</translation>
-    </message>
-    <message>
-        <source>Done: %1 cases, all solved or infeasible</source>
-        <translation>Hecho: %1 casos, todos resueltos o sin solución</translation>
-    </message>
-    <message>
-        <source>Done: %1 cases, %2 failed</source>
-        <translation>Hecho: %1 casos, %2 fallidos</translation>
-    </message>
-    <message>
-        <source>done</source>
-        <translation>hecho</translation>
-    </message>
-</context>
-<context>
-    <name>qftbx::ResultsView</name>
-    <message>
-        <source>Structure</source>
-        <translation>Estructura</translation>
-    </message>
-    <message>
-        <source>Algorithm</source>
-        <translation>Algoritmo</translation>
-    </message>
-    <message>
-        <source>Epsilon</source>
-        <translation>Épsilon</translation>
-    </message>
-    <message>
-        <source>Runs</source>
-        <translation>Ejecuciones</translation>
-    </message>
-    <message>
-        <source>Wall median (s)</source>
-        <translation>Mediana de reloj (s)</translation>
-    </message>
-    <message>
-        <source>Wall CV</source>
-        <translation>CV de reloj</translation>
-    </message>
-    <message>
-        <source>CPU median (s)</source>
-        <translation>Mediana de CPU (s)</translation>
-    </message>
-    <message>
-        <source>Peak memory (MB)</source>
-        <translation>Memoria pico (MB)</translation>
-    </message>
-    <message>
-        <source>Algorithm memory (MB)</source>
-        <translation>Memoria del algoritmo (MB)</translation>
-    </message>
-    <message>
-        <source>Peak live nodes</source>
-        <translation>Nodos vivos pico</translation>
-    </message>
-    <message>
-        <source>Nodes</source>
-        <translation>Nodos</translation>
-    </message>
-    <message>
-        <source>Stability verdicts</source>
-        <translation>Veredictos de estabilidad</translation>
-    </message>
-    <message>
-        <source>k</source>
-        <translation>k</translation>
-    </message>
-    <message>
-        <source>Agree</source>
-        <translation>Coinciden</translation>
-    </message>
-    <message>
-        <source>Figure:</source>
-        <translation>Figura:</translation>
-    </message>
-    <message>
-        <source>Wall time, median (s)</source>
-        <translation>Tiempo de reloj, mediana (s)</translation>
-    </message>
-    <message>
-        <source>CPU time, median (s)</source>
-        <translation>Tiempo de CPU, mediana (s)</translation>
-    </message>
-    <message>
-        <source>Nodes processed</source>
-        <translation>Nodos procesados</translation>
-    </message>
-    <message>
-        <source>logarithmic axis</source>
-        <translation>eje logarítmico</translation>
-    </message>
-    <message>
-        <source>Export CSV...</source>
-        <translation>Exportar CSV...</translation>
-    </message>
-    <message>
-        <source>Export Markdown...</source>
-        <translation>Exportar Markdown...</translation>
-    </message>
-    <message>
-        <source>controller structure</source>
-        <translation>estructura del controlador</translation>
-    </message>
-    <message>
-        <source> (%1 infeasible)</source>
-        <translation> (%1 sin solución)</translation>
-    </message>
-    <message>
-        <source> (%1 failed)</source>
-        <translation> (%1 fallidos)</translation>
-    </message>
-    <message>
-        <source>yes</source>
-        <translation>sí</translation>
-    </message>
-    <message>
-        <source>NO</source>
-        <translation>NO</translation>
-    </message>
-    <message>
-        <source>Median over the repetitions, epsilon %1. A structure an algorithm did not solve is left out.</source>
-        <translation>Mediana sobre las repeticiones, épsilon %1. Una estructura que un algoritmo no resolvió queda fuera.</translation>
-    </message>
-    <message>
-        <source>Export</source>
-        <translation>Exportar</translation>
-    </message>
-    <message>
-        <source>CSV (*.csv)</source>
-        <translation>CSV (*.csv)</translation>
-    </message>
-    <message>
-        <source>Markdown (*.md)</source>
-        <translation>Markdown (*.md)</translation>
-    </message>
-</context>
-<context>
-    <name>qftbx::SpecificationsForm</name>
-    <message>
-        <source>Specifications input</source>
-        <translation>Especificaciones</translation>
-    </message>
-    <message>
-        <source>Invalid frequency band.</source>
-        <translation>Banda de frecuencias no válida.</translation>
-    </message>
-    <message>
-        <source>The frequency band needs 0 &lt;= start &lt;= end.</source>
-        <translation>La banda de frecuencias necesita 0 &lt;= inicio &lt;= fin.</translation>
-    </message>
-    <message>
-        <source>The magnitude must be a finite number, and positive in linear units.</source>
-        <translation>La magnitud debe ser un número finito, y positivo en unidades lineales.</translation>
-    </message>
-    <message>
-        <source>Invalid magnitude value.</source>
-        <translation>Valor de magnitud no válido.</translation>
-    </message>
-    <message>
-        <source>The lower magnitude must be a finite number, and positive in linear units.</source>
-        <translation>La magnitud inferior debe ser un número finito, y positivo en unidades lineales.</translation>
-    </message>
-    <message>
-        <source>The upper magnitude must be a finite number, and positive in linear units.</source>
-        <translation>La magnitud superior debe ser un número finito, y positivo en unidades lineales.</translation>
-    </message>
-    <message>
-        <source>Invalid gain.</source>
-        <translation>Ganancia no válida.</translation>
-    </message>
-    <message>
-        <source>Invalid delay.</source>
-        <translation>Retardo no válido.</translation>
-    </message>
-    <message>
-        <source>Invalid numerator.</source>
-        <translation>Numerador no válido.</translation>
-    </message>
-    <message>
-        <source>Invalid denominator.</source>
-        <translation>Denominador no válido.</translation>
+    <message numerus="yes">
+        <source> (%n out)</source>
+        <translation>
+            <numerusform> (%n fuera)</numerusform>
+            <numerusform> (%n fuera)</numerusform>
+        </translation>
     </message>
     <message>
-        <source>This specification could not be read, so it has not been saved. Correct the field marked in red, or empty it to leave the specification unused.</source>
-        <translation>No se ha podido leer esta especificación, así que no se ha guardado. Corrija el campo marcado en rojo, o vacíelo para dejar la especificación sin usar.</translation>
+        <source>A specification applies at least at one frequency.</source>
+        <translation>Una especificación se aplica al menos en una frecuencia.</translation>
     </message>
     <message>
-        <source>The design frequencies must be entered before the specifications.</source>
-        <translation>Hay que introducir las frecuencias de diseño antes que las especificaciones.</translation>
+        <source>The loop shaping bounds the spread of the closed loop over the plant family against the difference between the two tracking bounds: the prefilter F shifts the band and cannot narrow it, and it is designed afterwards.</source>
+        <translation>El ajuste del lazo acota la dispersión del lazo cerrado sobre la familia de plantas contra la diferencia entre las dos cotas de seguimiento: el prefiltro F desplaza la banda pero no la estrecha, y se diseña después.</translation>
     </message>
 </context>
 <context>
@@ -2464,7 +2076,7 @@ contorno</translation>
         <translation>pide %1 (hueco %2 %)</translation>
     </message>
     <message>
-        <source>The least epsilon at which this template&apos;s contour closes is %1 (it is connected from %2); the largest gap between its points is %3% of its size. Above a few per cent the sweep is coarse: more points per parameter, not a larger epsilon.</source>
+        <source>The least epsilon at which this template's contour closes is %1 (it is connected from %2); the largest gap between its points is %3% of its size. Above a few per cent the sweep is coarse: more points per parameter, not a larger epsilon.</source>
         <translation>El menor épsilon con el que cierra el contorno de esta plantilla es %1 (está conectada desde %2); el hueco mayor entre sus puntos es el %3 % de su tamaño. Por encima de unos pocos por ciento el barrido es escaso: más puntos por parámetro, no un épsilon mayor.</translation>
     </message>
     <message>
@@ -2515,12 +2127,12 @@ contorno</translation>
         <translation>Seleccione logspace o linspace en la sección general.</translation>
     </message>
     <message>
-        <source>The values entered for parameter &quot;%1&quot; are invalid.</source>
-        <translation>Los valores introducidos para el parámetro &quot;%1&quot; no son válidos.</translation>
+        <source>The values entered for parameter "%1" are invalid.</source>
+        <translation>Los valores introducidos para el parámetro "%1" no son válidos.</translation>
     </message>
     <message>
-        <source>The values entered for parameter &quot;%1&quot; are invalid: %2.</source>
-        <translation>Los valores introducidos para el parámetro &quot;%1&quot; no son válidos: %2.</translation>
+        <source>The values entered for parameter "%1" are invalid: %2.</source>
+        <translation>Los valores introducidos para el parámetro "%1" no son válidos: %2.</translation>
     </message>
     <message>
         <source>The general point count must be a whole number between 1 and %1.</source>
@@ -2581,30 +2193,30 @@ contorno</translation>
     </message>
 </context>
 <context>
-    <name>qftbx::UncertaintyDialog</name>
+    <name>qftbx::UncertaintyPanel</name>
     <message>
-        <source>Plant uncertainty input</source>
-        <translation>Incertidumbre de la planta</translation>
+        <source>Parameter</source>
+        <translation>Parámetro</translation>
     </message>
     <message>
-        <source>,</source>
-        <translation>,</translation>
+        <source>Minimum</source>
+        <translation>Mínimo</translation>
     </message>
     <message>
-        <source>]</source>
-        <translation>]</translation>
+        <source>Nominal</source>
+        <translation>Nominal</translation>
     </message>
     <message>
-        <source>] Nominal:</source>
-        <translation>] Nominal:</translation>
+        <source>Maximum</source>
+        <translation>Máximo</translation>
     </message>
     <message>
-        <source>There are errors in the parameter ranges</source>
-        <translation>Hay errores en los rangos de los parámetros</translation>
+        <source>The range of "%1" is not a pair of numbers with the nominal value between them.</source>
+        <translation>El intervalo de "%1" no es un par de números con el valor nominal entre ellos.</translation>
     </message>
     <message>
-        <source>Uncertainty input</source>
-        <translation>Incertidumbre</translation>
+        <source>A coefficient that is not uncertain is not a number either.</source>
+        <translation>Un coeficiente que no es incierto tampoco es un número.</translation>
     </message>
 </context>
 </TS>
