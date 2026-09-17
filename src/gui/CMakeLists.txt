@@ -36,6 +36,8 @@ qt_add_resources(qftbx_gui "icons"
     "${CMAKE_SOURCE_DIR}/Resources/Icon/qftbx_64.png"
     "${CMAKE_SOURCE_DIR}/Resources/Icon/qftbx_32.png"
     "${CMAKE_SOURCE_DIR}/Resources/Icon/qftbx_16.png"
+    "${CMAKE_SOURCE_DIR}/Resources/Icon/arrow-down-dark.svg"
+    "${CMAKE_SOURCE_DIR}/Resources/Icon/arrow-down-light.svg"
 )
 
 add_subdirectory(application)

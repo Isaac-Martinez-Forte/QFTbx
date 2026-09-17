@@ -163,9 +163,16 @@ QLineEdit, QComboBox, QTextBrowser, QPlainTextEdit, QAbstractSpinBox {
 QLineEdit:focus, QComboBox:focus, QPlainTextEdit:focus, QAbstractSpinBox:focus {
     border-color: palette(highlight);
 }
+/* The arrow of a drop-down is the only thing that tells it from a field you
+   type in, and a styled combo box loses the one the style drew. Its size is
+   here; the image itself is added below, where the theme in use is known. */
 QComboBox::drop-down {
     border: none;
     width: 18px;
+}
+QComboBox::down-arrow {
+    width: 10px;
+    height: 10px;
 }
 
 QProgressBar {
@@ -193,6 +200,12 @@ QTabBar::tab:selected {
 QGroupBox {
     border: 1px solid palette(mid);
     margin-top: 14px;
+}
+/* Except one asked to be bare: no frame, and no room kept for a title it
+   does not have. */
+QGroupBox[bare="true"] {
+    border: none;
+    margin-top: 0px;
 }
 QGroupBox::title {
     subcontrol-origin: margin;
@@ -256,6 +269,56 @@ QWidget[cardBar="true"] {
 }
 )";
 
+//What is added on top of the shapes: the two things that cannot be said in
+//palette roles. The arrow of a drop-down is an image, and it has to be
+//legible against the background of the theme in use; the mark of a field
+//that is wrong is red, and red is not a role - QPalette has no colour for
+//"this is the mistake".
+QString sheetOf(const QPalette & palette)
+{
+    const bool dark = palette.color(QPalette::Window).lightness() < 128;
+
+    const QString arrow = dark ? ":/icons/arrow-down-light.svg" : ":/icons/arrow-down-dark.svg";
+    const QString wrong = dark ? "#e06c6c" : "#c0392b";
+    const QString met = dark ? "#5fbf7a" : "#1a7f37";
+    const QString coarse = dark ? "#e0a860" : "#b45309";
+
+    return QString::fromUtf8(kSheet) + QStringLiteral(R"(
+QComboBox::down-arrow {
+    image: url(%1);
+}
+
+QLineEdit[wrong="true"], QComboBox[wrong="true"], QPlainTextEdit[wrong="true"],
+QAbstractSpinBox[wrong="true"] {
+    border: 1px solid %2;
+}
+QLabel[wrong="true"] {
+    color: %2;
+}
+
+/* And the verdict of the checker, which is the other thing a palette has no
+   colour for: a design meets its specifications or it does not. */
+QLabel[verdict="met"] {
+    color: %3;
+}
+QLabel[verdict="exceeded"] {
+    color: %2;
+    font-weight: bold;
+}
+
+/* The two notices beside a template: one says its contour did not close,
+   the other that the sweep behind it is too coarse to tell. Neither is an
+   error - both are things to look at - so they are the colour of a warning
+   and not of a refusal. */
+QLabel[notice="closed"] {
+    color: %2;
+}
+QLabel[notice="coarse"] {
+    color: %4;
+}
+)").arg(arrow, wrong, met, coarse);
+}
+
 }
 
 QStringList availableThemes()
@@ -299,7 +362,7 @@ void applyTheme(const QString & code)
         QApplication::setPalette(QApplication::style()->standardPalette());
     }
 
-    qApp->setStyleSheet(QString::fromUtf8(kSheet));
+    qApp->setStyleSheet(sheetOf(QApplication::palette()));
 }
 
 void storeTheme(const QString & code, const std::string & settingsPath)

@@ -29,35 +29,40 @@
            <property name="text">
             <string>A&amp;lgorithm NT</string>
            </property>
-          </widget>
+            <attribute name="buttonGroup"><string notr="true">algorithm</string></attribute>
+        </widget>
          </item>
          <item>
           <widget class="QRadioButton" name="nkRadio">
            <property name="text">
             <string>Algorithm &amp;NK</string>
            </property>
-          </widget>
+            <attribute name="buttonGroup"><string notr="true">algorithm</string></attribute>
+        </widget>
          </item>
          <item>
           <widget class="QRadioButton" name="mc1Radio">
            <property name="text">
             <string>Algorith&amp;m MC1</string>
            </property>
-          </widget>
+            <attribute name="buttonGroup"><string notr="true">algorithm</string></attribute>
+        </widget>
          </item>
          <item>
           <widget class="QRadioButton" name="mc2Radio">
            <property name="text">
             <string>Algorithm MC&amp;2</string>
            </property>
-          </widget>
+            <attribute name="buttonGroup"><string notr="true">algorithm</string></attribute>
+        </widget>
          </item>
          <item>
           <widget class="QRadioButton" name="mrRadio">
            <property name="text">
             <string>Al&amp;gorithm MR</string>
            </property>
-          </widget>
+            <attribute name="buttonGroup"><string notr="true">algorithm</string></attribute>
+        </widget>
          </item>
         </layout>
        </item>
@@ -165,14 +170,16 @@
            <property name="text">
             <string>LinSpace</string>
            </property>
-          </widget>
+            <attribute name="buttonGroup"><string notr="true">spacing</string></attribute>
+        </widget>
          </item>
          <item>
           <widget class="QRadioButton" name="logspaceRadio">
            <property name="text">
             <string>LogSpace</string>
            </property>
-          </widget>
+            <attribute name="buttonGroup"><string notr="true">spacing</string></attribute>
+        </widget>
          </item>
         </layout>
        </item>
@@ -263,5 +270,9 @@
    </item>
   </layout>
  </widget>
+ <buttongroups>
+  <buttongroup name="algorithm"/>
+  <buttongroup name="spacing"/>
+ </buttongroups>
  <resources/>
 </ui>

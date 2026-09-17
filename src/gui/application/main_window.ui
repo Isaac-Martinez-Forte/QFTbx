@@ -119,7 +119,7 @@ design</string>
    </widget>
    <widget class="QMenu" name="menuDiagrams">
     <property name="title">
-     <string>Dia&amp;gramas</string>
+     <string>Dia&amp;grams</string>
     </property>
     <addaction name="bodeAction"/>
     <addaction name="actionTemplates"/>

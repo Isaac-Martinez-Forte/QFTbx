@@ -34,6 +34,7 @@ struct Tags {
     const char * loopShaping;
     const char * check;
     const char * nameAttribute;
+    const char * descriptionAttribute;
     const char * type;
     const char * typeAttribute;
     const char * expression;
@@ -89,7 +90,7 @@ inline constexpr int kVersion = 4;
 inline const Tags kV4 = {
     "inputs", "settings", "results",
     "plant", "controller", "loop-shaping", "check",
-    "name", "type", "id", "expression", "numerator", "denominator",
+    "name", "description", "type", "id", "expression", "numerator", "denominator",
     "nominal", "uncertain", "name", "expr", "range", "min", "max",
     "specifications", "specification", "used", "min-frequency",
     "max-frequency", "constant", "magnitude",

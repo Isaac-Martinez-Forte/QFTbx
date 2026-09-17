@@ -11,7 +11,6 @@
 #include "src/core/system/time_constant_gain.h"
 #include "src/core/system/zero_pole_gain.h"
 #include "src/core/common/text_tokens.h"
-#include "src/gui/application/error_message.h"
 
 namespace qftbx {
 
@@ -20,44 +19,77 @@ SystemDescriptionReader::SystemDescriptionReader(QString title)
 {
 }
 
-QString SystemDescriptionReader::firstParameterName(const QString & text, bool & refused)
+const QString & SystemDescriptionReader::complaint() const
+{
+    return m_complaint;
+}
+
+QStringList SystemDescriptionReader::parameterNames(const QString & text, bool & refused)
 {
     refused = false;
+    m_complaint.clear();
 
-    static const QRegularExpression name("[a-zA-Z]+");
+    //A whole identifier, the way the grammar defines one: a letter and then
+    //letters, digits or underscores. Letters alone was the rule here, and
+    //it cut every name that carries a number - "z1" was read as a parameter
+    //called "z", so the ranges of a controller written with z1 and p1
+    //belonged to names nothing else in the program had ever heard of.
+    static const QRegularExpression identifier("[A-Za-z][A-Za-z0-9_]*");
 
-    QString rest = text;
-    QString capture = name.match(rest).captured(0);
+    QStringList names;
 
-    while (!capture.isNull()) {
+    QRegularExpressionMatchIterator found = identifier.globalMatch(text);
+    while (found.hasNext()) {
+        const QRegularExpressionMatch match = found.next();
+        const QString capture = match.captured(0);
+
+        //The e of 1e3 is not a name: it is the exponent of a number, and
+        //reading it as one refused every coefficient written in scientific
+        //notation with a complaint about the constant e.
+        const int before = match.capturedStart(0) - 1;
+        if (before >= 0) {
+            const QChar previous = text.at(before);
+            if (previous.isDigit() || previous == QLatin1Char('.')) {
+                continue;
+            }
+        }
+
         //A function of the grammar is not a parameter, and neither is the
         //Laplace variable s. The constants pi and e cannot be parameter
         //names: the expression would read the constant, never the
         //parameter.
-        const std::string identifier = capture.toStdString();
+        const std::string name = capture.toStdString();
 
-        if (identifier == "pi" || identifier == "PI" || identifier == "e" || identifier == "E") {
-            errorMessage(QObject::tr("\"%1\" cannot be used as a parameter name: "
-                                     "it is a constant of the expression grammar.").arg(capture),
-                         m_title);
+        if (name == "pi" || name == "PI" || name == "e" || name == "E") {
+            m_complaint = QObject::tr("\"%1\" cannot be used as a parameter name: "
+                                      "it is a constant of the expression grammar.").arg(capture);
             refused = true;
-            return QString();
+            return QStringList();
         }
 
-        if (!ExpressionTree::isFunctionName(identifier) && identifier != FreeForm::laplaceName()) {
-            return capture;
+        if (ExpressionTree::isFunctionName(name) || name == FreeForm::laplaceName()) {
+            continue;
         }
 
-        rest.remove(capture);
-        capture = name.match(rest).captured(0);
+        if (!names.contains(capture)) {
+            names.push_back(capture);
+        }
     }
 
-    return QString();
+    return names;
+}
+
+QString SystemDescriptionReader::firstParameterName(const QString & text, bool & refused)
+{
+    const QStringList names = parameterNames(text, refused);
+
+    return names.isEmpty() ? QString() : names.front();
 }
 
 bool SystemDescriptionReader::readCoefficients(const QString & text, CoefficientTable & table,
                                                CoefficientTable & expressionTable,
-                                               UncertainTable & uncertainTable)
+                                               UncertainTable & uncertainTable,
+                                               bool emptyIsOne)
 {
     CoefficientRow expressions;
     for (const std::string & token : text::tokens(text.toStdString())) {
@@ -67,12 +99,12 @@ bool SystemDescriptionReader::readCoefficients(const QString & text, Coefficient
     CoefficientRow values;
     UncertainRow uncertainFlags;
 
-    if (text.isEmpty()) {
+    if (text.trimmed().isEmpty() && emptyIsOne) {
         //An empty polynomial is the constant 1.
         expressions.push_back("1");
         values.push_back("1");
         uncertainFlags.push_back(false);
-    } else {
+    } else if (!text.trimmed().isEmpty()) {
         for (const QString & expression : expressions) {
             bool refused = false;
             const QString parameter = firstParameterName(expression, refused);
@@ -132,28 +164,23 @@ bool SystemDescriptionReader::readFreeForm(const QString & text, CoefficientTabl
                                            CoefficientTable & expressionTable,
                                            UncertainTable & uncertainTable)
 {
+    //Every name in the expression that is neither a parser function nor the
+    //Laplace variable is a parameter, recorded once. In ONE pass: the walk
+    //this replaces took the first name, cut it out of the text and looked
+    //again, which cut it out of the middle of longer names too.
+    bool refused = false;
+    const QStringList found = parameterNames(text, refused);
+
+    if (refused) {
+        return false;
+    }
+
     CoefficientRow names;
     UncertainRow flags;
 
-    //Every name in the expression that is neither a parser function nor the
-    //Laplace variable is a parameter, recorded once.
-    QString rest = text;
-    while (true) {
-        bool refused = false;
-        const QString parameter = firstParameterName(rest, refused);
-        if (refused) {
-            return false;
-        }
-        if (parameter.isEmpty()) {
-            break;
-        }
-        if (!names.empty() && std::find(names.begin(), names.end(), parameter) != names.end()) {
-            rest.remove(parameter);
-            continue;
-        }
-        names.push_back(parameter);
+    for (const QString & name : found) {
+        names.push_back(name);
         flags.push_back(true);
-        rest.remove(parameter);
     }
 
     table.push_back(names);

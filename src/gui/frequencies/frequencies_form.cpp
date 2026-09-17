@@ -3,6 +3,7 @@
 #include "src/gui/common/number_text.h"
 #include "src/core/common/text_tokens.h"
 #include "ui_frequencies_form.h"
+#include "src/gui/common/field_mark.h"
 
 #include <vector>
 #include <cmath>
@@ -80,11 +81,12 @@ void FrequenciesForm::on_okButton_clicked()
         if (!parsed.has_value()){
             //Invalid input: the null pointer is dereferenced a few lines
             //below.
-            ui->manualValues->setStyleSheet("background : red");
+            markWrong(ui->manualValues, true,
+                      tr("These are not numbers separated by spaces."));
             return;
         }
         frequencies = parsed.value();
-        ui->manualValues->setStyleSheet("background : white");
+        markWrong(ui->manualValues, false);
 
     } else if (ui->modeStack->currentIndex() == 1) { //logspace
         //Both dialogs that ask for a frequency range now ask for it in rad/s,

@@ -234,6 +234,44 @@ TEST(RoundTripReparametrised, AReparametrisedParameterSurvivesSaveAndLoad)
 // out of it. Two designs for the same problem differ by hundreds of units of
 // gain depending on how the phase grid was read, so a file that keeps the
 // controller and forgets the reading keeps a number nobody can reproduce.
+// The description of a plant is text the user wrote and nothing derives it:
+// if the file does not carry it, it is gone. A file written before it
+// existed simply has none, which is what an empty description is.
+TEST(RoundTripSettings, TheDescriptionOfThePlantSurvivesSaveAndLoad)
+{
+    QTemporaryDir temporary;
+    ASSERT_TRUE(temporary.isValid());
+    const std::string path = temporary.filePath("described.qft").toStdString();
+
+    ProjectReader original;
+    original.load(std::string(QFTBX_TEST_DATA_DIR "/planta1.qft"));
+    ASSERT_NE(original.plant(), nullptr);
+
+    EXPECT_TRUE(original.plant()->description().empty())
+        << "a file written before the description existed has none";
+
+    original.plant()->setDescription("The one of the 2007 paper, inertia uncertain");
+
+    ProjectContent content;
+    content.plant = original.plant();
+
+    ProjectWriter writer;
+    writer.save(path, content);
+
+    ProjectReader reloaded;
+    reloaded.load(path);
+    ASSERT_NE(reloaded.plant(), nullptr);
+    EXPECT_EQ(reloaded.plant()->description(),
+              "The one of the 2007 paper, inertia uncertain");
+
+    //And it is not part of what tells one plant from another: a project
+    //whose description changed keeps its templates.
+    EXPECT_TRUE(reloaded.plant()->sameAs(*original.plant()));
+    reloaded.plant()->setDescription("something else entirely");
+    EXPECT_TRUE(reloaded.plant()->sameAs(*original.plant()))
+        << "a description is not what makes a plant a different plant";
+}
+
 TEST(RoundTripSettings, TheRunAndTheVerdictSurviveSaveAndLoad)
 {
     QTemporaryDir temporary;

@@ -2,6 +2,7 @@
 #include "src/core/common/exception.h"
 #include "src/core/math/constants.h"
 #include "src/gui/common/plot_export.h"
+#include "src/gui/common/field_mark.h"
 #include "src/gui/common/number_text.h"
 #include <QMessageBox>
 
@@ -128,7 +129,7 @@ void TemplateViewer::showContourState(){
         const bool whole = i < reports.size() && reports[i].wholeCloud;
         stateLabels[i]->setText(whole ? tr("no contour: whole template shown") : QString());
         stateLabels[i]->setToolTip(whole ? tr("No contour closed at this epsilon, so the whole template stands in for it here. A larger epsilon, or a denser sweep, closes it.") : QString());
-        stateLabels[i]->setStyleSheet(whole ? "color: #b91c1c;" : QString());
+        markAs(stateLabels[i], "notice", whole ? QStringLiteral("closed") : QString());
     }
 }
 
@@ -149,7 +150,8 @@ void TemplateViewer::showProposals(){
         gapLabels[i]->setText(tr("needs %1 (gap %2%)").arg(numberText(p.epsilon), gap));
         gapLabels[i]->setToolTip(tr("The least epsilon at which this template's contour closes is %1 (it is connected from %2); the largest gap between its points is %3% of its size. Above a few per cent the sweep is coarse: more points per parameter, not a larger epsilon.")
                                  .arg(numberText(p.epsilon), numberText(p.connected), gap));
-        gapLabels[i]->setStyleSheet(p.coarseness() > 0.05 ? "color: #b45309;" : QString());
+        markAs(gapLabels[i], "notice",
+               p.coarseness() > 0.05 ? QStringLiteral("coarse") : QString());
     }
 }
 

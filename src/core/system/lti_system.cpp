@@ -16,6 +16,17 @@ const std::string & LtiSystem::name() const {
 }
 
 
+void LtiSystem::setDescription(std::string description)
+{
+    m_description = std::move(description);
+}
+
+const std::string & LtiSystem::description() const
+{
+    return m_description;
+}
+
+
 bool LtiSystem::sameAs(LtiSystem & other)
 {
     if (type() != other.type() || name() != other.name()) {

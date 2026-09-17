@@ -47,6 +47,20 @@ public:
 
     const std::string & name() const;
 
+    /**
+     * @brief What the plant IS, in the user's words: where it comes from,
+     * what it models, why its uncertainty is what it is.
+     *
+     * A name fits in a list and nothing more, and a plant that is worth
+     * saving is worth a line saying what it was. Free text, saved with the
+     * project, and deliberately NOT part of sameAs(): rewriting the
+     * description of a plant does not change the plant, and throwing away
+     * an hour of templates over a typo in a comment would be absurd.
+     */
+    void setDescription(std::string description);
+
+    const std::string & description() const;
+
     /// Value of the system at s = j*omega using the nominal parameter values.
     virtual std::complex <double> evaluate (double omega) = 0;
 
@@ -134,6 +148,7 @@ public:
 
 private:
     std::string m_name;
+    std::string m_description;
 };
 
 } // namespace qftbx

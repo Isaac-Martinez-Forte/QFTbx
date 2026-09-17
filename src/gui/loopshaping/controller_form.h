@@ -10,7 +10,7 @@
 #include "src/gui/common/coefficient_tables.h"
 #include "src/gui/application/step_panel.h"
 #include "src/gui/common/system_description_reader.h"
-#include "src/gui/plant/uncertainty_dialog.h"
+#include "src/gui/plant/uncertainty_panel.h"
 
 namespace Ui {
 class ControllerForm;
@@ -22,8 +22,12 @@ namespace qftbx {
  * @brief Step 6 of the design: the controller structure, with the search box
  * of every parameter and of the gain.
  *
- * Like the plant form, it builds a system and hands it over; the fields
- * are read by SystemDescriptionReader, shared between the two.
+ * Like the plant form in everything: what is typed is read as it is typed
+ * and marked where it is wrong, the freedom of the structure is a page of
+ * this form and not a window over it, and the one button verifies before it
+ * applies - what verifying shows is the structure drawn as the formula it
+ * is. The fields are read by SystemDescriptionReader, shared between the
+ * two forms.
  */
 class ControllerForm : public StepPanel
 {
@@ -48,15 +52,35 @@ public:
     void setFromProject(LtiSystem * structure);
 
 private slots:
-    void on_polynomialRadio_clicked();
-    void on_zpkRadio_clicked();
-    void on_tcgRadio_clicked();
     void on_uncertaintyButton_clicked();
     void on_okButton_clicked();
 
+    /// A radio: the family being described has changed.
+    void familyChosen();
+
+    /// Any field: what was verified no longer describes what is on screen.
+    void fieldEdited();
+
 private:
-    /// The family the radios select.
-    LtiSystem::SystemType selectedType() const;
+    /// The family the path of radios selects, or nothing while the path is
+    /// unfinished.
+    std::optional<LtiSystem::SystemType> selectedType() const;
+
+    /// The labels, the hint and the figure of the family in use.
+    void showFamily();
+
+    /// The structure the fields describe, or nullptr when they do not
+    /// describe one; the reason is already on screen.
+    std::unique_ptr<LtiSystem> build();
+
+    /// Whether the freedom panel answers for the coefficients now on screen.
+    bool freedomIsCurrent() const;
+
+    /// The verified structure, its formula and the button that applies it -
+    /// or none of the three.
+    void setVerified(std::unique_ptr<LtiSystem> structure);
+
+    void say(const QString & complaint);
 
     /// The coefficients of the described controller, or nothing when the
     /// form could not read them (the reader has already said why).
@@ -72,11 +96,19 @@ private:
 
     std::unique_ptr<Ui::ControllerForm> ui;
 
-    UncertaintyDialog * uncertaintyDialog = nullptr;
+    UncertaintyPanel * m_freedom = nullptr;
 
-    std::unique_ptr<LtiSystem> controllerSystem;
+    /// What Verify built and Apply hands over.
+    std::unique_ptr<LtiSystem> m_verified;
+    std::unique_ptr<LtiSystem> m_applied;
 
-    bool uncertaintyEntered = false;
+    /// The coefficients the freedom panel was last applied over: an edit
+    /// since makes its ranges answer for something else.
+    QString m_freedomCoefficients;
+
+    //True while setFromProject is writing the fields: what it writes is not
+    //an edit.
+    bool m_filling = false;
 
     /// The two of them as setFromProject left them, empty when the form was
     /// not filled from a project.

@@ -263,24 +263,34 @@ public:
         Parameter gain = scalars.at(0);
         Parameter delay = scalars.at(1);
 
+        std::unique_ptr<LtiSystem> system;
+
         switch (type) {
         case LtiSystem::SystemType::PolynomialForm:
-            return std::make_unique<PolynomialForm>(name, std::move(numerator),
+            system = std::make_unique<PolynomialForm>(name, std::move(numerator),
                     std::move(denominator), std::move(gain), std::move(delay));
+            break;
         case LtiSystem::SystemType::ZeroPoleGain:
-            return std::make_unique<ZeroPoleGain>(name, std::move(numerator),
+            system = std::make_unique<ZeroPoleGain>(name, std::move(numerator),
                     std::move(denominator), std::move(gain), std::move(delay));
+            break;
         case LtiSystem::SystemType::TimeConstantGain:
-            return std::make_unique<TimeConstantGain>(name, std::move(numerator),
+            system = std::make_unique<TimeConstantGain>(name, std::move(numerator),
                     std::move(denominator), std::move(gain), std::move(delay));
+            break;
         case LtiSystem::SystemType::FreeForm:
-            return std::make_unique<FreeForm>(name, std::move(numerator),
+            system = std::make_unique<FreeForm>(name, std::move(numerator),
                     std::move(denominator), std::move(gain), std::move(delay),
                     numeratorExpression, denominatorExpression);
-        default:
             break;
+        default:
+            fail(typeNode, QFTBX_TR("Core", "unknown system type"));
         }
-        fail(typeNode, QFTBX_TR("Core", "unknown system type"));
+
+        //A file written before the description existed simply has none.
+        system->setDescription(std::string(systemNode.attribute(t.descriptionAttribute).value()));
+
+        return system;
     }
 
     qftbx::SpecificationRecords readSpecifications(const pugi::xml_node & section) const

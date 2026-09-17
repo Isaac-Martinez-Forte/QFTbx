@@ -123,8 +123,12 @@ std::string FreeForm::denominatorString(){
 
 std::unique_ptr<LtiSystem> FreeForm::clone(){
 
-    return this->create(this->name(), m_numerator, m_denominator, m_gain, m_delay,
-                        m_numeratorExpr, m_denominatorExpr);
+    std::unique_ptr<LtiSystem> copy = this->create(this->name(), m_numerator, m_denominator,
+                                                   m_gain, m_delay,
+                                                   m_numeratorExpr, m_denominatorExpr);
+    copy->setDescription(this->description());
+
+    return copy;
 }
 
 std::vector<std::complex<double>> FreeForm::boundValues(const std::vector<double> & numerator,

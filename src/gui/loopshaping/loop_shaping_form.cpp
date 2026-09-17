@@ -1,5 +1,6 @@
 #include "src/gui/loopshaping/loop_shaping_form.h"
 #include "src/gui/common/expression_field.h"
+#include "src/gui/common/field_mark.h"
 #include "src/gui/common/number_text.h"
 #include "ui_loop_shaping_form.h"
 
@@ -34,15 +35,17 @@ bool readField(QLineEdit * field, const QString & complaint,
     const double parsed = evaluateNumber(field->text()).value_or(std::numeric_limits<double>::quiet_NaN());
 
     if (!std::isfinite(parsed) || parsed < lowest || parsed > highest) {
-        field->setStyleSheet("background : red");
         //The complaint is the caller's words, not a range printed from the
         //bounds: a lower bound of "the smallest positive double" reads as
-        //4.94066e-324, which tells a user nothing.
+        //4.94066e-324, which tells a user nothing. It goes on the field
+        //that is wrong, and in a message box because this one stops a
+        //computation the user has just asked for.
+        qftbx::markWrong(field, true, complaint);
         qftbx::errorMessage(complaint, QObject::tr("Loop-shaping input"));
         return false;
     }
 
-    field->setStyleSheet("background : white");
+    qftbx::markWrong(field, false);
     value = parsed;
     return true;
 }
@@ -54,6 +57,12 @@ LoopShapingForm::LoopShapingForm(QWidget *parent) :
     ui(std::make_unique<Ui::LoopShapingForm>())
 {
     ui->setupUi(this);
+
+    //The sweep the loop is drawn over: logarithmic, which is what the
+    //program has always done and what nothing on screen used to say - the
+    //two buttons came up unchecked, and the answer was read off the one
+    //that was not checked.
+    ui->logspaceRadio->setChecked(true);
 
     setWindowTitle(tr("Loop-shaping input"));
 

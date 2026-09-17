@@ -18,6 +18,7 @@
        <property name="text">
         <string>All variables</string>
        </property>
+        <attribute name="buttonGroup"><string notr="true">variablesMode</string></attribute>
       </widget>
      </item>
      <item>
@@ -25,6 +26,7 @@
        <property name="text">
         <string>One by one</string>
        </property>
+        <attribute name="buttonGroup"><string notr="true">variablesMode</string></attribute>
       </widget>
      </item>
      <item>
@@ -233,6 +235,7 @@
        <property name="text">
         <string>Nichols diagram</string>
        </property>
+        <attribute name="buttonGroup"><string notr="true">diagramKind</string></attribute>
       </widget>
      </item>
      <item>
@@ -240,12 +243,13 @@
        <property name="text">
         <string>Nyquist diagram</string>
        </property>
+        <attribute name="buttonGroup"><string notr="true">diagramKind</string></attribute>
       </widget>
      </item>
      <item>
-      <widget class="QRadioButton" name="cudaCheck">
+      <widget class="QCheckBox" name="cudaCheck">
        <property name="text">
-        <string>cudaCheck</string>
+        <string>On the GPU</string>
        </property>
       </widget>
      </item>
@@ -484,6 +488,10 @@
    </item>
   </layout>
  </widget>
+ <buttongroups>
+  <buttongroup name="variablesMode"/>
+  <buttongroup name="diagramKind"/>
+ </buttongroups>
  <resources/>
  <connections/>
 </ui>

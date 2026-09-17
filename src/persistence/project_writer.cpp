@@ -130,6 +130,12 @@ void writeSystem(pugi::xml_node parent, const char * sectionName, LtiSystem * sy
     pugi::xml_node node = parent.append_child(sectionName);
     node.append_attribute(t.nameAttribute) = system->name().c_str();
 
+    //Written only when there is one: a file full of empty attributes says
+    //nothing, and an absent description reads back as an empty one.
+    if (!system->description().empty()) {
+        node.append_attribute(t.descriptionAttribute) = system->description().c_str();
+    }
+
     pugi::xml_node typeNode = node.append_child(t.type);
     typeNode.append_attribute(t.typeAttribute) = static_cast<std::int32_t>(system->type());
 

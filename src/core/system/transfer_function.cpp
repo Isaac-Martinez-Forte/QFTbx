@@ -82,7 +82,13 @@ std::unique_ptr<LtiSystem> TransferFunction::clone() {
 
     //Values copy themselves: no per-parameter cloning any more. FreeForm
     //overrides this to carry its expression strings too.
-    return this->create(this->name(), m_numerator, m_denominator, m_gain, m_delay);
+    std::unique_ptr<LtiSystem> copy = this->create(this->name(), m_numerator, m_denominator,
+                                                   m_gain, m_delay);
+    //create() takes the name and not the description: a copy that lost it
+    //would be a different plant on screen.
+    copy->setDescription(this->description());
+
+    return copy;
 }
 
 } // namespace qftbx
