@@ -21,6 +21,10 @@ LoopBoundariesViewer::LoopBoundariesViewer(QWidget *parent) :
 
     legend = new FrequencyLegend(ui->legendHolder);
     ui->legendHolder->layout()->addWidget(legend);
+
+    //The column of controls does not take half the card: the chart needs
+    //the width more than the buttons do.
+    narrowSideColumn(ui->sideLayout);
     connect(legend, &FrequencyLegend::rowToggled, this, &LoopBoundariesViewer::applyCheckboxes);
 }
 

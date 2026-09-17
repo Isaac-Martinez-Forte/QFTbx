@@ -2,6 +2,7 @@
 #define QFTBX_GUI_PLOT_SETUP_H
 
 #include <QColor>
+#include <QLayout>
 #include <QPalette>
 #include <QString>
 
@@ -57,6 +58,34 @@ QColor frequencyColour(int index, int count);
 /// The pen width of a drawn curve: one pixel is a hairline in an exported
 /// figure, where the resolution is not the screen's.
 inline constexpr double kCurveWidth = 1.6;
+
+/**
+ * @brief The colour and the width of the loop transmission drawn over the
+ * boundaries.
+ *
+ * Every other curve on that chart is something the loop has to respect;
+ * this one is the ANSWER, the thing the whole design was for. In black it
+ * read as one more line among the boundaries, so it is red and a little
+ * heavier: on a chart of a dozen curves the eye has to find it without
+ * looking for it.
+ */
+inline const QColor kLoopColour = QColor(0xe1, 0x06, 0x00);
+inline constexpr double kLoopWidth = 2.4;
+
+/**
+ * @brief Caps the width of the column of controls beside a diagram.
+ *
+ * The four viewers put their buttons and their legend in a column to the
+ * left of the chart, and that column took whatever its widest button asked
+ * for - half a card, on a phase with a slider per frequency - while the
+ * chart, which already spends a fair part of its width on the labels of its
+ * axes, lived on what was left. Every widget of the layout given is capped,
+ * including those of the layouts inside it.
+ */
+void narrowSideColumn(QLayout * side);
+
+/// How wide that column is worth being.
+inline constexpr int kSideColumn = 210;
 
 } // namespace qftbx
 

@@ -33,6 +33,10 @@ LoopShapingViewer::LoopShapingViewer(QWidget *parent) :
     ui->legendHolder->layout()->addWidget(legend);
     connect(legend, &FrequencyLegend::rowToggled, this, &LoopShapingViewer::applyCheckboxes);
 
+    //The column of controls does not take half the card: the chart needs
+    //the width more than the buttons do.
+    narrowSideColumn(ui->sideLayout);
+
     //How many digits the numbers are read at, where they are read.
     fillDigitsCombo();
 
@@ -355,7 +359,9 @@ void LoopShapingViewer::showDiagram(){
     for (qint32 i = 0; i < phaseSegments.size(); i++){
         QCPCurve *curve = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
         curve->setData(qftbx::toQVector(phaseSegments.at(i)), qftbx::toQVector(magnitudeSegments.at(i)));
-        curve->setPen((QColor) Qt::black);
+        //The one curve on this chart that is not a limit to respect but the
+        //answer to the whole design.
+        curve->setPen(QPen(kLoopColour, kLoopWidth));
         curves.push_back(curve);
     }
 

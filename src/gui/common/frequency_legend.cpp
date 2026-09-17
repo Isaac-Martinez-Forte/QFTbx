@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include <QCheckBox>
+#include <QGridLayout>
 #include <QHBoxLayout>
 #include <QLineEdit>
 #include <QPushButton>
@@ -22,10 +23,11 @@ FrequencyLegend::FrequencyLegend(QWidget * parent)
     QVBoxLayout * outer = new QVBoxLayout(this);
     outer->setSpacing(4);
 
-    //One line for the three controls: a legend beside a diagram is worth
-    //the width of a number, and two lines of buttons over it were a third
-    //of its height.
-    QHBoxLayout * controls = new QHBoxLayout();
+    //The filter over the two buttons, and not beside them: the legend is a
+    //column as wide as a number beside a diagram, and the three of them in
+    //one line left the filter too narrow to read its own placeholder once
+    //the buttons were translated.
+    QGridLayout * controls = new QGridLayout();
     controls->setSpacing(4);
 
     m_filter = new QLineEdit(this);
@@ -34,7 +36,7 @@ FrequencyLegend::FrequencyLegend(QWidget * parent)
     m_filter->setToolTip(tr("Shows only the frequencies whose number contains this text."));
     m_filter->setClearButtonEnabled(true);
     connect(m_filter, &QLineEdit::textChanged, this, &FrequencyLegend::applyFilter);
-    controls->addWidget(m_filter, 1);
+    controls->addWidget(m_filter, 0, 0, 1, 2);
 
     QPushButton * all = new QPushButton(tr("All"), this);
     all->setObjectName("legendAll");
@@ -44,8 +46,8 @@ FrequencyLegend::FrequencyLegend(QWidget * parent)
     none->setToolTip(tr("Unticks them."));
     connect(all, &QPushButton::clicked, this, [this]() { setAll(true); });
     connect(none, &QPushButton::clicked, this, [this]() { setAll(false); });
-    controls->addWidget(all);
-    controls->addWidget(none);
+    controls->addWidget(all, 1, 0);
+    controls->addWidget(none, 1, 1);
     outer->addLayout(controls);
 
     m_controls = controls;

@@ -9,6 +9,7 @@
 #include "src/gui/common/flow_layout.h"
 
 class QCheckBox;
+class QGridLayout;
 class QHBoxLayout;
 class QLineEdit;
 class QVBoxLayout;
@@ -104,7 +105,7 @@ private:
     void applyFilter(const QString & text);
 
     //The filter and the two buttons above the rows, hidden by setBare().
-    QHBoxLayout * m_controls = nullptr;
+    QGridLayout * m_controls = nullptr;
 
     bool m_bare = false;
 
