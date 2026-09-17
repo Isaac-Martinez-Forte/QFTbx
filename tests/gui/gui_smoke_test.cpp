@@ -33,6 +33,7 @@
 #include <QTemporaryDir>
 #include <QImage>
 #include <QPixmap>
+#include <QPainter>
 #include <QFile>
 #include "src/gui/common/plot_export.h"
 #include <QSet>
@@ -58,6 +59,8 @@
 #include <QStringList>
 
 #include "src/app/project_controller.h"
+#include "src/gui/common/formula_view.h"
+#include "src/core/system/system_formula.h"
 #include "src/gui/application/about.h"
 #include "src/gui/application/language.h"
 #include "src/gui/application/main_window.h"
@@ -1968,6 +1971,54 @@ TEST_F(GuiSmoke, AReusedDialogForgetsItsPreviousAcceptance)
 
     EXPECT_FALSE(dialog.wasAccepted())
         << "an acceptance must not outlive the showing it belongs to";
+}
+
+TEST_F(GuiSmoke, ZZFormulas)
+{
+    const QString out = qEnvironmentVariable("QFTBX_RENDER_DIR");
+    if (out.isEmpty()) {
+        GTEST_SKIP();
+    }
+
+    //One sheet with the shapes that have to come out right: fractions,
+    //exponents, roots, tall parentheses, subscripts, and the plant of a
+    //real project. Not a test: it is how the drawing is LOOKED at, and it
+    //is skipped unless a directory is given to write it into.
+    struct Case { const char * title; qftbx::Formula formula; };
+
+    ProjectController project;
+    project.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
+
+    std::vector<Case> cases;
+    cases.push_back({"plant of ex2", qftbx::formulaOf(*project.plant(), 4)});
+    cases.push_back({"typed", qftbx::formulaOfText("k*(s+a1)/(s*(s^2+2*z*w*s+w^2))", 4)});
+    cases.push_back({"roots", qftbx::formulaOfText("sqrt(1+(s/10)^2)/abs(s+1)", 4)});
+    cases.push_back({"functions", qftbx::formulaOfText("exp(-0.05*s)*sin(pi*s)/ln(1+s)", 4)});
+    cases.push_back({"nested", qftbx::formulaOfText("1/(1+1/(1+1/s))", 4)});
+
+    QImage sheet(900, 190 * int(cases.size()), QImage::Format_ARGB32);
+    sheet.fill(Qt::white);
+
+    for (std::size_t i = 0; i < cases.size(); ++i) {
+        FormulaView view;
+        view.resize(880, 170);
+        view.setFormula(cases[i].formula);
+
+        QPixmap drawn = view.grab();
+
+        QPainter painter(&sheet);
+        painter.drawPixmap(10, 190 * int(i) + 10, drawn);
+        painter.setPen(Qt::gray);
+        painter.drawText(14, 190 * int(i) + 22, QString::fromLatin1(cases[i].title));
+        painter.drawRect(10, 190 * int(i) + 10, 880, 170);
+        painter.end();
+
+        std::printf("%-12s %s\n", cases[i].title,
+                    qftbx::latexOf(cases[i].formula).c_str());
+    }
+
+    std::fflush(stdout);
+    sheet.save(out + "/formulas.png");
 }
 
 } // namespace

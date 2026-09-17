@@ -193,6 +193,12 @@ double ExpressionTree::eval(std::map<std::string, double> *variables )
     return eval_tree(root.get());
 }
 
+const exp_node * ExpressionTree::tree() const
+{
+    return root.get();
+}
+
+
 void ExpressionTree::print (){
     alg_exp_node_print(root.get());
 }

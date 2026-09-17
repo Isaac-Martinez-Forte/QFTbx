@@ -396,11 +396,12 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
     EXPECT_EQ(fromExample.algorithms.certifiedGainTolerance,
               defaults.algorithms.certifiedGainTolerance);
     EXPECT_EQ(fromExample.defaults.boundariesFromCloud, defaults.defaults.boundariesFromCloud);
+    EXPECT_EQ(fromExample.interface.digits, defaults.interface.digits);
 
     //Every setting the build knows has to be IN the example, or the example
-    //is not documentation. Forty-two today; the count is asserted so
+    //is not documentation. Forty-three today; the count is asserted so
     //adding one without documenting it fails here.
-    EXPECT_EQ(settingsFound, 42)
+    EXPECT_EQ(settingsFound, 43)
         << "a setting was added to the code and not to qftbx.conf.example";
 
     EXPECT_TRUE(fromExample.unknownKeys.empty())

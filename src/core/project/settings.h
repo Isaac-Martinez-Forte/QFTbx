@@ -311,6 +311,12 @@ struct Settings {
         /// The look: "system", "light" or "dark". Chosen from the View
         /// menu, which writes it here.
         std::string theme = "system";
+
+        /// How many significant digits the forms SHOW. The file keeps every
+        /// digit a double has, always: this is about reading a gain of
+        /// 567.3175312139062 off a screen, where four digits are the answer
+        /// and thirteen are noise.
+        std::int32_t digits = 4;
     } interface;
 
     /// The path this was read from, empty when nothing was read and the

@@ -193,6 +193,15 @@ const std::vector<Binding> & bindings()
              into.interface.theme = text;
          }},
 
+        //How many digits of a result the forms show. Between one and the
+        //seventeen that a double round-trips in: past that the setting
+        //would be asking for digits that do not exist.
+        {"interface.digits",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.interface.digits = static_cast<std::int32_t>(
+                 wholeIn(text, "interface.digits", line, 1.0, 17.0));
+         }},
+
         //And the size of the window, from the same place and for the same
         //reason: it comes up as it was left.
         {"interface.window",

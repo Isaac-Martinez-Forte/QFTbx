@@ -3,6 +3,7 @@
 #include "src/gui/common/flow_layout.h"
 #include "src/gui/application/about.h"
 #include "src/gui/application/theme.h"
+#include "src/gui/common/number_text.h"
 #include "src/gui/common/plot_setup.h"
 #include "qcustomplot.h"
 #include "src/gui/application/error_message.h"
@@ -72,6 +73,11 @@ MainWindow::MainWindow(qftbx::Settings settings, QWidget *parent) :
 {
     
     ui->setupUi(this);
+
+    //How many digits of a number the forms show. One answer for the whole
+    //interface, taken from the settings once: the files keep every digit
+    //whatever this says.
+    setShownDigits(m_settings.interface.digits);
 
     //The look, under View: the machine's own, or the toolbox's light and
     //dark. Choosing one dresses every window on the spot and writes the
