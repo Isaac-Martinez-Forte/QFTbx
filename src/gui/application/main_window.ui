@@ -19,6 +19,9 @@
      <layout class="QHBoxLayout" name="stepsLayout">
      <item>
       <widget class="QPushButton" name="plantButton">
+       <property name="toolTip">
+         <string>The plant and its uncertainty. Everything else follows from it.</string>
+        </property>
        <property name="text">
         <string>Plant
 definition</string>
@@ -27,6 +30,9 @@ definition</string>
      </item>
      <item>
       <widget class="QPushButton" name="frequenciesButton">
+       <property name="toolTip">
+         <string>The frequencies the design is done at.</string>
+        </property>
        <property name="text">
         <string>Frequencies</string>
        </property>
@@ -34,6 +40,9 @@ definition</string>
      </item>
      <item>
       <widget class="QPushButton" name="specificationsButton">
+       <property name="toolTip">
+         <string>What the closed loop has to do, and between which frequencies. Needs the design frequencies.</string>
+        </property>
        <property name="enabled">
         <bool>false</bool>
        </property>
@@ -44,6 +53,9 @@ definition</string>
      </item>
      <item>
       <widget class="QPushButton" name="templatesButton">
+       <property name="toolTip">
+         <string>The value set of the plant family at each design frequency. Needs the plant and the frequencies.</string>
+        </property>
        <property name="enabled">
         <bool>false</bool>
        </property>
@@ -54,6 +66,9 @@ definition</string>
      </item>
      <item>
       <widget class="QPushButton" name="boundariesButton">
+       <property name="toolTip">
+         <string>What the specifications and the templates leave the nominal loop, on the Nichols plane. Needs both.</string>
+        </property>
        <property name="enabled">
         <bool>false</bool>
        </property>
@@ -64,6 +79,9 @@ definition</string>
      </item>
      <item>
       <widget class="QPushButton" name="controllerButton">
+       <property name="toolTip">
+         <string>The shape of the controller and the freedom the search is given. Needs the boundaries.</string>
+        </property>
        <property name="text">
         <string>Controller
 structure</string>
@@ -72,6 +90,9 @@ structure</string>
      </item>
      <item>
       <widget class="QPushButton" name="loopButton">
+       <property name="toolTip">
+         <string>The search itself: the controller that clears every boundary. Needs the structure.</string>
+        </property>
        <property name="enabled">
         <bool>false</bool>
        </property>
@@ -85,6 +106,9 @@ design</string>
     </item>
     <item>
      <widget class="QProgressBar" name="progressBar">
+      <property name="toolTip">
+        <string>How far down the seven phases the project has got.</string>
+       </property>
       <property name="value">
        <number>0</number>
       </property>
@@ -119,7 +143,7 @@ design</string>
    </widget>
    <widget class="QMenu" name="menuDiagrams">
     <property name="title">
-     <string>Dia&amp;gramas</string>
+     <string>Dia&amp;grams</string>
     </property>
     <addaction name="bodeAction"/>
     <addaction name="actionTemplates"/>

@@ -1,6 +1,7 @@
 #ifndef QFTBX_SPECIFICATION_H
 #define QFTBX_SPECIFICATION_H
 
+#include <algorithm>
 #include <vector>
 #include <array>
 #include <cstddef>
@@ -53,7 +54,8 @@ inline std::string specificationName(SpecificationType type)
 }
 
 /**
- * @brief One QFT specification: a magnitude bound over a frequency band.
+ * @brief One QFT specification: a magnitude bound over a frequency band,
+ * minus the frequencies of that band it is told to skip.
  *
  * Built only through the validating factories, so its invariants hold by
  * construction: a constant bound has a finite magnitude > 0 (in linear
@@ -61,6 +63,13 @@ inline std::string specificationName(SpecificationType type)
  * 0 <= min <= max. boundDb() therefore never returns -inf or NaN for
  * constant bounds: a magnitude of 0 degenerates the boundary to the window
  * frame, silently.
+ *
+ * The skipped frequencies are what makes a band expressive enough: a design
+ * is done at a discrete set of frequencies, and a requirement that holds
+ * everywhere but at one of them is an ordinary thing to ask for. They are
+ * an exception list and not the list of frequencies that DO count, so a
+ * design frequency added later falls inside the band and counts, which is
+ * the answer that does not surprise anybody.
  */
 class Specification
 {
@@ -73,7 +82,8 @@ public:
 
     /// Constant bound; magnitude in linear units (not dB), > 0.
     static Specification constant(SpecificationType type, double magnitude,
-                                  double minFrequency, double maxFrequency)
+                                  double minFrequency, double maxFrequency,
+                                  std::vector<double> skipped = {})
     {
         if (!(magnitude > 0.0) || !std::isfinite(magnitude)) {
             throw InvalidInput(QFTBX_TR("Core", "A constant specification needs a finite magnitude > 0."));
@@ -86,13 +96,15 @@ public:
         spec.m_magnitude = magnitude;
         spec.m_minFrequency = minFrequency;
         spec.m_maxFrequency = maxFrequency;
+        spec.m_skipped = std::move(skipped);
         return spec;
     }
 
     /// Bound given by a transfer function, which the specification takes over.
     static Specification fromSystem(SpecificationType type,
                                     std::unique_ptr<LtiSystem> system,
-                                    double minFrequency, double maxFrequency)
+                                    double minFrequency, double maxFrequency,
+                                    std::vector<double> skipped = {})
     {
         if (system == nullptr) {
             throw InvalidInput(QFTBX_TR("Core", "A system specification needs a non-null plant."));
@@ -108,6 +120,7 @@ public:
         spec.m_system = std::move(system);
         spec.m_minFrequency = minFrequency;
         spec.m_maxFrequency = maxFrequency;
+        spec.m_skipped = std::move(skipped);
         return spec;
     }
 
@@ -126,6 +139,7 @@ public:
             m_magnitude = other.m_magnitude;
             m_minFrequency = other.m_minFrequency;
             m_maxFrequency = other.m_maxFrequency;
+            m_skipped = std::move(other.m_skipped);
             m_system = std::move(other.m_system);
             other.m_used = false;
         }
@@ -154,10 +168,20 @@ public:
         return linearToDb(std::abs(m_system->evaluate(omega)));
     }
 
-    /// used() and minFrequency <= omega <= maxFrequency (closed interval).
+    /// used(), minFrequency <= omega <= maxFrequency (closed interval), and
+    /// omega not one of the frequencies this specification skips.
+    ///
+    /// The comparison with the skipped ones is EXACT, and rightly so: they
+    /// are design frequencies, chosen from the very vector every consumer
+    /// walks, and written to the file at every digit a double has. A
+    /// frequency that is not one of those is not one of those.
     bool appliesAt(double omega) const
     {
-        return m_used && m_minFrequency <= omega && omega <= m_maxFrequency;
+        if (!m_used || omega < m_minFrequency || omega > m_maxFrequency) {
+            return false;
+        }
+
+        return std::find(m_skipped.begin(), m_skipped.end(), omega) == m_skipped.end();
     }
 
     bool used() const { return m_used; }
@@ -171,6 +195,9 @@ public:
     const LtiSystem* system() const { return m_system.get(); }
 
     double magnitude() const { return m_magnitude; }
+
+    /// The frequencies of the band this specification does NOT apply at.
+    const std::vector<double> & skipped() const { return m_skipped; }
 
     double minFrequency() const { return m_minFrequency; }
 
@@ -193,6 +220,11 @@ private:
     double m_magnitude = 0.0;
     double m_minFrequency = 0.0;
     double m_maxFrequency = 0.0;
+
+    //The frequencies of the band this one does not apply at, as an
+    //exception list: empty is the ordinary case and the one every file
+    //written before this existed has.
+    std::vector<double> m_skipped;
     std::unique_ptr<LtiSystem> m_system;
 };
 

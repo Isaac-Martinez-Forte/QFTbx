@@ -150,6 +150,10 @@ private:
     /// The texts this class sets itself, outside the form.
     void retranslate();
 
+    /// Gives the seven step buttons the height of the tallest, so that a
+    /// caption on two lines does not make one button taller than the rest.
+    void levelStepButtons();
+
     std::unique_ptr<Ui::MainWindow> ui;
     QMenu * m_languageMenu = nullptr;
     QMenu * m_themeMenu = nullptr;
@@ -193,6 +197,10 @@ private:
     /// Works out the square of the canvas from its width and hands it to
     /// every card: how many cards fit across, and how big each one is.
     void resizeCards();
+
+    /// Which of the two phases that may change places goes first, so that
+    /// neither leaves a hole in its row. See the implementation.
+    void packTemplatesAndSpecifications(int columns);
 
     /// Moves a card being dragged to where the cursor is, if that is not
     /// where it already is: the hole opens under the cursor while the drag
@@ -281,6 +289,18 @@ private:
     /// it was in, with the size it had.
     std::vector<std::pair<QString, int>> m_rememberedCanvas;
 
+    //Whether that order came from the settings (the user's) or from the
+    //default this build starts a canvas with.
+    bool m_canvasRemembered = false;
+
+    //And whether the user has moved a card himself, after which nothing
+    //reorders the canvas behind his back.
+    bool m_canvasOrdered = false;
+
+    /// Whether the plant or the design frequencies have been applied since
+    /// the templates form was last built over them.
+    bool m_templatesStale = true;
+
     FileChooser m_chooseFile;
 
     PlantForm * plantForm = nullptr;
@@ -342,6 +362,16 @@ private:
     void ensureSpecificationsPhase();
     void ensureFrequenciesPhase();
     void ensureTemplatesPhase();
+
+    /// Builds the templates form over the plant and the design frequencies as
+    /// they stand now, which throws away what was typed into it. The
+    /// templates are made FROM those two - which parameters there are, the
+    /// grids over them, the epsilon proposed on those grids - so this is the
+    /// one phase whose form cannot simply be left as the user wrote it: what
+    /// he wrote may be about a plant that is no longer there. Called when
+    /// the phase is built and when either of the two has been applied since
+    /// (m_templatesStale), and at no other time.
+    void relaunchTemplates();
     void ensureBoundariesPhase();
     void ensureControllerPhase();
     void ensureLoopShapingPhase();

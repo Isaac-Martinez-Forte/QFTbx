@@ -1,48 +1,38 @@
-#include <cmath>
-#include "src/gui/common/number_text.h"
 #include "src/gui/specifications/specifications_form.h"
-#include "src/gui/common/expression_field.h"
-#include <optional>
+#include "ui_specifications_form.h"
+
+#include <cmath>
 #include <stdexcept>
+
+#include <QHeaderView>
+#include <QRadioButton>
+#include <QTableWidgetItem>
+
+#include <algorithm>
 
 #include "src/core/common/exception.h"
 #include "src/core/common/text_tokens.h"
-
-#include <vector>
-#include <optional>
-
+#include "src/core/math/constants.h"
 #include "src/core/specifications/specification.h"
-#include "ui_specifications_form.h"
-
-#include "src/gui/application/error_message.h"
-#include "src/core/system/free_form.h"
-#include "src/core/system/polynomial_form.h"
-#include "src/core/system/zero_pole_gain.h"
-#include "src/core/system/time_constant_gain.h"
-
+#include "src/core/specifications/specification_formula.h"
+#include "src/core/system/system_formula.h"
+#include "src/gui/common/expression_field.h"
+#include "src/gui/common/field_mark.h"
+#include "src/gui/common/formula_delegate.h"
+#include "src/gui/common/number_text.h"
 
 namespace qftbx {
 
 namespace {
 
-//The number of a field, or the invalid_argument the callers below catch
-//when the text is not an expression.
-double requireNumber(const std::optional<double> & parsed)
-{
-    if (!parsed.has_value()) {
-        throw std::invalid_argument("not an expression");
-    }
-    return *parsed;
-}
-
-} // namespace
-
-namespace {
+//How much of the form the tick boxes are worth: enough for three rows of
+//them, and a scroll bar for a design with thirty frequencies.
+const int kFrequencyHeight = 110;
 
 //The band is checked here, where it was typed. Specification::constant and
 //fromSystem both refuse an inverted or non-finite band, but that throw only
 //happens when the records are turned into specifications, which is when the
-//BOUNDARIES are computed: the dialog accepted "start 10, end 1" without a
+//BOUNDARIES are computed: the form accepted "start 10, end 1" without a
 //word and the complaint arrived several steps later, naming no
 //specification. Worse than the message was the silence when it did not
 //throw at all - a band is only used through appliesAt(), which answers
@@ -56,24 +46,61 @@ bool bandIsUsable(double start, double end)
 
 //A bound's magnitude, in linear units by the time it gets here. Same story
 //as the band: Specification::constant refuses a non-finite or non-positive
-//magnitude, but only when the records become specifications, which is when
-//the boundaries are computed. And a NaN gets here easily - "0/0"
-//evaluates quietly to one.
+//magnitude, but only when the records become specifications. And a NaN gets
+//here easily - "0/0" evaluates quietly to one.
 bool magnitudeIsUsable(double magnitude)
 {
     return std::isfinite(magnitude) && magnitude > 0.0;
 }
 
+//Nominal coefficients in the format the reader expects (space separated).
+//The families other than the free form have no textual representation of
+//their own, and painting numeratorString()=="" makes the specification
+//vanish when it is opened again.
+QString coefficientsText(std::vector<Parameter> & parameters)
+{
+    QString text;
+    for (Parameter & parameter : parameters) {
+        text += qftbx::numberText(parameter.nominal()) + " ";
+    }
+    return text.trimmed();
 }
 
+bool isFactored(LtiSystem * system)
+{
+    return system->type() == LtiSystem::SystemType::ZeroPoleGain
+            || system->type() == LtiSystem::SystemType::TimeConstantGain;
+}
+
+QString numeratorText(LtiSystem * system)
+{
+    if (system->type() == LtiSystem::SystemType::FreeForm) {
+        return QString::fromStdString(system->numeratorString());
+    }
+    if (system->numerator().empty() && !isFactored(system)) {
+        return QStringLiteral("1");
+    }
+    return coefficientsText(system->numerator());
+}
+
+QString denominatorText(LtiSystem * system)
+{
+    if (system->type() == LtiSystem::SystemType::FreeForm) {
+        return QString::fromStdString(system->denominatorString());
+    }
+    return coefficientsText(system->denominator());
+}
+
+} // namespace
+
 SpecificationsForm::SpecificationsForm(const std::vector<double> * frequencies,
-                                           const qftbx::SpecificationRecords * loaded,
-                                           QWidget *parent) :
+                                       const qftbx::SpecificationRecords * loaded,
+                                       QWidget * parent) :
     StepPanel(parent),
-    m_reader(tr("Specifications input"))
+    m_reader(tr("Specifications"))
 {
     //The step order of the main window guarantees a frequency set here, but
-    //an empty one reaches first()/last() below.
+    //an empty one reaches front()/back() below.
     //
     //This runs BEFORE the widget tree is built on purpose: a constructor
     //that throws gets no destructor, so anything allocated before the throw
@@ -83,556 +110,380 @@ SpecificationsForm::SpecificationsForm(const std::vector<double> * frequencies,
                                   "before the specifications.");
     }
 
-    this->frequencies = frequencies;
+    m_design = frequencies;
 
     ui = std::make_unique<Ui::SpecificationsForm>();
     ui->setupUi(this);
 
-    setWindowTitle(tr("Specifications input"));
+    setWindowTitle(tr("Specifications"));
 
-    //Plant figure images:
+    //The seven, in the order of the slots they index.
+    ui->typeCombo->addItem(tr("Tracking, lower bound"));
+    ui->typeCombo->addItem(tr("Tracking, upper bound"));
+    ui->typeCombo->addItem(tr("Stability"));
+    ui->typeCombo->addItem(tr("Sensor noise"));
+    ui->typeCombo->addItem(tr("Output disturbance"));
+    ui->typeCombo->addItem(tr("Input disturbance"));
+    ui->typeCombo->addItem(tr("Control effort"));
 
-    QPixmap zpkPixmap (":/figures/kgan.png");
-    ui->zpkImage->setPixmap(zpkPixmap);
-    ui->lowerZpkImage->setPixmap(zpkPixmap);
-    ui->upperZpkImage->setPixmap(zpkPixmap);
+    ui->specificationsTable->setColumnCount(3);
+    ui->specificationsTable->setHorizontalHeaderLabels(
+        {tr("Specification"), tr("Band (rad/s)"), tr("Bound")});
+    ui->specificationsTable->verticalHeader()->setVisible(false);
+    ui->specificationsTable->horizontalHeader()->setStretchLastSection(true);
+    ui->specificationsTable->setItemDelegateForColumn(2, new FormulaDelegate(this));
 
-    QPixmap trackingImage (":/figures/knogan.png");
-    ui->tcgImage->setPixmap(trackingImage);
-    ui->lowerTcgImage->setPixmap(trackingImage);
-    ui->upperTcgImage->setPixmap(trackingImage);
-
-    QPixmap polyPixmap (":/figures/copol.png");
-    ui->polyImage->setPixmap(polyPixmap);
-    ui->lowerPolyImage->setPixmap(polyPixmap);
-    ui->upperPolyImage->setPixmap(polyPixmap);
-
-    activeTab = 0;
-
-    ui->k->setText("1");
-    ui->delayEdit->setText("0");
-
-    //figureStack
-    trackingImagePixmap = QPixmap (":/figures/seguimiento.png");
-    controlEffortPixmap = QPixmap (":/figures/EC.png");
-    outputDisturbancePixmap= QPixmap (":/figures/RPS.png");
-    inputDisturbancePixmap= QPixmap (":/figures/RPE.png");
-    sensorNoisePixmap= QPixmap (":/figures/ruidosensor.png");
-    stabilityPixmap= QPixmap (":/figures/estabilidad.png");
-
-    ui->startFrequencyEdit->setText(qftbx::numberText(frequencies->front()));
-    ui->endFrequencyEdit->setText(qftbx::numberText(frequencies->back()));
-
-    ui->trackingImage->setPixmap(trackingImagePixmap);
-
-    //Default radio states (the .ui checks none): constant, polynomial form
-    //and linear units. With no type checked the reading cascade falls into
-    //an accidental FreeForm.
-    ui->constantRadio->setChecked(true);
-    on_constantRadio_clicked();
-    ui->linearRadio->setChecked(true);
-    ui->lowerLinearRadio->setChecked(true);
-    ui->upperLinearRadio->setChecked(true);
-    ui->polynomialRadio->setChecked(true);
-    on_polynomialRadio_clicked();
-    ui->lowerPolynomialRadio->setChecked(true);
-    on_lowerPolynomialRadio_clicked();
-    ui->upperPolynomialRadio->setChecked(true);
-    on_upperPolynomialRadio_clicked();
-
-    //If the project carries specifications (a loaded file), the dialog
-    //starts from THEM: starting from seven empty records means the first
-    //accept wipes whatever was loaded.
-    if (loaded != nullptr){
-        tracking = loaded->at(0).clone();
-        trackingUpper = loaded->at(1).clone();
-        stability = loaded->at(2).clone();
-        sensorNoise = loaded->at(3).clone();
-        outputDisturbance = loaded->at(4).clone();
-        inputDisturbance = loaded->at(5).clone();
-        controlEffort = loaded->at(6).clone();
+    //If the project carries specifications (a loaded file), the form starts
+    //from THEM: starting from seven empty records means the first apply
+    //wipes whatever was loaded.
+    if (loaded != nullptr) {
+        for (std::size_t i = 0; i < kSpecificationCount; ++i) {
+            m_records.at(i) = loaded->at(i).clone();
+        }
     }
 
-    //Tracking tab selected and restored from startup: without this no
-    //radio was checked and accept published the 7 empty records.
-    ui->trackingRadio->setChecked(true);
-    on_trackingRadio_clicked();
+    connect(ui->typeCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(typeChosen()));
 
+    for (QRadioButton * radio : findChildren<QRadioButton *>()) {
+        connect(radio, &QRadioButton::toggled, this, &SpecificationsForm::showBound);
+    }
+
+    for (QLineEdit * field : {ui->magnitudeEdit, ui->numeratorEdit, ui->denominatorEdit,
+                              ui->k, ui->delayEdit}) {
+        connect(field, &QLineEdit::textChanged, this, &SpecificationsForm::fieldEdited);
+    }
+
+    //The frequencies a specification applies at are chosen, not typed.
+    m_frequencies = new FrequencyLegend(ui->frequencyHolder);
+    //Just the ticks: the label beside them already says what they are, and
+    //a filter over six numbers is furniture.
+    m_frequencies->setBare(true);
+    //Three rows of them and then it scrolls: this is a band, not the main
+    //event of the form.
+    m_frequencies->setMaximumHeight(kFrequencyHeight);
+    ui->frequencyLayout->addWidget(m_frequencies);
+    connect(m_frequencies, &FrequencyLegend::rowToggled, this, &SpecificationsForm::fieldEdited);
+
+    buildFrequencyRows();
+
+    ui->constantRadio->setChecked(true);
+    ui->decibelsRadio->setChecked(true);
+    ui->polynomialRadio->setChecked(true);
+
+    showRecord(SpecificationType::TrackingLower);
+    showTable();
 }
 
 SpecificationsForm::~SpecificationsForm()
 {
-    //The 7 working records (and their plants) are members, and so is
+    //The seven working records (and their systems) are members, and so is
     //anything published but never taken: nothing to free by hand.
 }
 
-//Nominal coefficients in the format buildParameters expects (space
-//separated). The non-FreeForm types have no textual representation of
-//their own, and painting numeratorString()=="" makes the specification
-//vanish on reopen.
-QString SpecificationsForm::coefficientsText(std::vector<Parameter> & parameters)
+void SpecificationsForm::setFrequencies(const std::vector<double> * frequencies)
 {
-    QString text;
-    for (Parameter & parameter : parameters) {
-        text += qftbx::numberText(parameter.nominal()) + " ";
-    }
-    return text.trimmed();
+    m_design = frequencies;
+
+    //The ticks are the design frequencies themselves, so a new set of them
+    //is a new set of ticks. What the record being edited applies at is put
+    //back on the ones that are still there.
+    buildFrequencyRows();
+    showFrequenciesOf(m_records.at(std::size_t(selectedType())));
 }
 
-QString SpecificationsForm::numeratorText(LtiSystem * system)
+void SpecificationsForm::buildFrequencyRows()
 {
-    if (system->type() == LtiSystem::SystemType::FreeForm){
-        return QString::fromStdString(system->numeratorString());
+    m_frequencies->clear();
+
+    if (m_design == nullptr) {
+        return;
     }
-    return coefficientsText(system->numerator());
-}
 
-QString SpecificationsForm::denominatorText(LtiSystem * system)
-{
-    if (system->type() == LtiSystem::SystemType::FreeForm){
-        return QString::fromStdString(system->denominatorString());
-    }
-    return coefficientsText(system->denominator());
-}
+    //The colour of the text: these are not curves in a diagram, they are
+    //the frequencies the design works at.
+    const QColor ink = palette().color(QPalette::WindowText);
 
-void SpecificationsForm::setData(qftbx::SpecificationRecord & record)
-{
-    if (record.used){
-
-        ui->startFrequencyEdit->setText(qftbx::numberText(record.omegaStart));
-        ui->endFrequencyEdit->setText(qftbx::numberText(record.omegaEnd));
-
-        if (record.constant){
-            ui->constantRadio->setChecked(true);
-            on_constantRadio_clicked();
-            //The stored magnitude is linear: painted as-is with the linear
-            //radio checked so accept does not reread it as dB.
-            ui->linearRadio->setChecked(true);
-            ui->magnitudeEdit->setText(qftbx::numberText(record.height));
-        } else{
-            ui->systemRadio->setChecked(true);
-            on_systemRadio_clicked();
-
-            switch (record.system->type()){
-            case LtiSystem::SystemType::ZeroPoleGain:
-                ui->zpkRadio->setChecked(true);
-                on_zpkRadio_clicked();
-                break;
-            case LtiSystem::SystemType::TimeConstantGain:
-                ui->tcgRadio->setChecked(true);
-                on_tcgRadio_clicked();
-                break;
-            case LtiSystem::SystemType::PolynomialForm:
-                ui->polynomialRadio->setChecked(true);
-                on_polynomialRadio_clicked();
-                break;
-            default:
-                ui->freeFormRadio->setChecked(true);
-                on_freeFormRadio_clicked();
-                break;
-            }
-
-            ui->numeratorEdit->setText(numeratorText(record.system.get()));
-            ui->denominatorEdit->setText(denominatorText(record.system.get()));
-            ui->k->setText(qftbx::numberText(record.system->gain().nominal()));
-            ui->delayEdit->setText(qftbx::numberText(record.system->delay().nominal()));
-        }
-    } else {
-        //The band too: an empty band means the whole design range, so
-        //keeping the previous tab's values saves a band the user never
-        //chose for this specification.
-        ui->startFrequencyEdit->setText("");
-        ui->endFrequencyEdit->setText("");
-        ui->magnitudeEdit->setText("");
-        ui->numeratorEdit->setText("");
-        ui->denominatorEdit->setText("");
-        ui->k->setText("1");
-        ui->delayEdit->setText("0");
+    for (double frequency : *m_design) {
+        m_frequencies->addRow(qftbx::shownText(frequency), ink);
     }
 }
 
+void SpecificationsForm::showFrequenciesOf(const qftbx::SpecificationRecord & record)
+{
+    if (m_design == nullptr) {
+        return;
+    }
 
-void SpecificationsForm::setData(qftbx::SpecificationRecord & record,
-                                    qftbx::SpecificationRecord & upperRecord){
+    for (int i = 0; i < m_frequencies->rowCount() && i < int(m_design->size()); ++i) {
+        const double frequency = m_design->at(std::size_t(i));
 
-    if (record.used){
+        //A specification nobody has entered yet applies everywhere: that is
+        //the answer that needs no thinking about, and the user takes out
+        //what does not belong.
+        const bool applies = !record.used
+                || (record.omegaStart <= frequency && frequency <= record.omegaEnd
+                    && std::find(record.skipped.begin(), record.skipped.end(), frequency)
+                       == record.skipped.end());
 
-        ui->startFrequencyEdit->setText(qftbx::numberText(record.omegaStart));
-        ui->endFrequencyEdit->setText(qftbx::numberText(record.omegaEnd));
-
-        if (record.constant){
-            ui->constantRadio->setChecked(true);
-            on_constantRadio_clicked();
-            ui->lowerLinearRadio->setChecked(true);
-            ui->upperLinearRadio->setChecked(true);
-            ui->lowerMagnitudeEdit->setText(qftbx::numberText(record.height));
-
-            ui->upperMagnitudeEdit->setText(qftbx::numberText(upperRecord.height));
-        }else{
-            ui->systemRadio->setChecked(true);
-            on_systemRadio_clicked();
-
-            switch (record.system->type()){
-            case LtiSystem::SystemType::ZeroPoleGain:
-                ui->lowerZpkRadio->setChecked(true);
-                on_lowerZpkRadio_clicked();
-                break;
-            case LtiSystem::SystemType::TimeConstantGain:
-                ui->lowerTcgRadio->setChecked(true);
-                on_lowerTcgRadio_clicked();
-                break;
-            case LtiSystem::SystemType::PolynomialForm:
-                ui->lowerPolynomialRadio->setChecked(true);
-                on_lowerPolynomialRadio_clicked();
-                break;
-            default:
-                ui->lowerFreeFormRadio->setChecked(true);
-                on_lowerFreeFormRadio_clicked();
-                break;
-            }
-
-            switch (upperRecord.system->type()){
-            case LtiSystem::SystemType::ZeroPoleGain:
-                ui->upperZpkRadio->setChecked(true);
-                on_upperZpkRadio_clicked();
-                break;
-            case LtiSystem::SystemType::TimeConstantGain:
-                ui->upperTcgRadio->setChecked(true);
-                on_upperTcgRadio_clicked();
-                break;
-            case LtiSystem::SystemType::PolynomialForm:
-                ui->upperPolynomialRadio->setChecked(true);
-                on_upperPolynomialRadio_clicked();
-                break;
-            default:
-                ui->upperFreeFormRadio->setChecked(true);
-                on_upperFreeFormRadio_clicked();
-                break;
-            }
-
-            ui->lowerNumeratorEdit->setText(numeratorText(record.system.get()));
-            ui->lowerDenominatorEdit->setText(denominatorText(record.system.get()));
-            ui->lowerGainEdit->setText(qftbx::numberText(record.system->gain().nominal()));
-            ui->lowerDelayEdit->setText(qftbx::numberText(record.system->delay().nominal()));
-
-            ui->upperNumeratorEdit->setText(numeratorText(upperRecord.system.get()));
-            ui->upperDenominatorEdit->setText(denominatorText(upperRecord.system.get()));
-            ui->upperGainEdit->setText(qftbx::numberText(upperRecord.system->gain().nominal()));
-            ui->upperDelayEdit->setText(qftbx::numberText(upperRecord.system->delay().nominal()));
-        }
-    } else {
-        //The band too, for the same reason as the single specifications: an
-        //empty band means the whole design range.
-        ui->startFrequencyEdit->setText("");
-        ui->endFrequencyEdit->setText("");
-
-        ui->lowerMagnitudeEdit->setText("");
-        ui->lowerNumeratorEdit->setText("");
-        ui->lowerDenominatorEdit->setText("");
-        ui->lowerGainEdit->setText("1");
-        ui->lowerDelayEdit->setText("0");
-
-        ui->upperMagnitudeEdit->setText("");
-        ui->upperNumeratorEdit->setText("");
-        ui->upperDenominatorEdit->setText("");
-        ui->upperGainEdit->setText("1");
-        ui->upperDelayEdit->setText("0");
+        m_frequencies->setRowChecked(i, applies);
     }
 }
 
-bool SpecificationsForm::data(qftbx::SpecificationRecord & record, QString name)
+bool SpecificationsForm::readFrequencies(qftbx::SpecificationRecord & record)
 {
-
-    if (record.used && !record.constant){
-        //The record's system must end up null: a read that finishes as
-        //not-used leaves the clone() on accept with a dangling pointer.
-        record.system.reset();
-        record.constant = false;
-        record.used = false;
-    }
-
-    if (ui->startFrequencyEdit->text().isEmpty()){
-        record.omegaStart = frequencies->front();
-    } else {
-        const std::optional<double> parsedValue = evaluateNumber(ui->startFrequencyEdit->text());
-
-        try {
-            record.omegaStart = requireNumber(parsedValue);
-            ui->startFrequencyEdit->setStyleSheet("background : white");
-        }catch (const std::invalid_argument &){
-            record.used = false;
-            ui->startFrequencyEdit->setStyleSheet("background : red");
-            errorMessage(tr("Invalid frequency band."), tr("Specifications input"));
-            return false;
-        }
-    }
-
-    if (ui->endFrequencyEdit->text().isEmpty()){
-        record.omegaEnd = frequencies->back();
-    } else {
-        const std::optional<double> parsedValue = evaluateNumber(ui->endFrequencyEdit->text());
-
-        try {
-            record.omegaEnd = requireNumber(parsedValue);
-            ui->endFrequencyEdit->setStyleSheet("background : white");
-        }catch (const std::invalid_argument &){
-            record.used = false;
-            ui->endFrequencyEdit->setStyleSheet("background : red");
-            errorMessage(tr("Invalid frequency band."), tr("Specifications input"));
-            return false;
-        }
-    }
-
-    if (!bandIsUsable(record.omegaStart, record.omegaEnd)){
-        ui->startFrequencyEdit->setStyleSheet("background : red");
-        ui->endFrequencyEdit->setStyleSheet("background : red");
-        record.used = false;
-        errorMessage(tr("The frequency band needs 0 <= start <= end."),
-                     tr("Specifications input"));
+    if (m_design == nullptr || m_design->empty()) {
         return false;
     }
 
-    if (ui->constantRadio->isChecked()){
-
-        if (!ui->magnitudeEdit->text().isEmpty()){
-
-            const std::optional<double> parsedValue = evaluateNumber(ui->magnitudeEdit->text());
-
-            record.constant = true;
-
-            try {
-
-                qreal entered = requireNumber(parsedValue);
-
-                if (ui->decibelsRadio->isChecked()){
-                    record.height = qftbx::dbToLinear(entered);
-                }else {
-                    record.height = entered;
-                }
-
-                if (!magnitudeIsUsable(record.height)){
-                    record.used = false;
-                    ui->magnitudeEdit->setStyleSheet("background : red");
-                    errorMessage(tr("The magnitude must be a finite number, "
-                                    "and positive in linear units."),
-                                 tr("Specifications input"));
-                    return false;
-                }
-
-                ui->magnitudeEdit->setStyleSheet("background : white");
-            }catch (const std::invalid_argument &){
-                record.used = false;
-                ui->magnitudeEdit->setStyleSheet("background : red");
-                errorMessage(tr("Invalid magnitude value."), tr("Specifications input"));
-                return false;
-            }
-
-            ui->magnitudeEdit->setStyleSheet("background : white");
-            record.used = true;
-        } else {
-            record.used = false;
-        }
-    }else {
-
-        switch (readSystemFields(record, name, {ui->numeratorEdit, ui->denominatorEdit, ui->k, ui->delayEdit,
-                                                ui->freeFormRadio, ui->zpkRadio, ui->tcgRadio, ui->polynomialRadio})) {
-        case SystemRead::Failed:
-            return false;
-        case SystemRead::Unused:
-            return true;
-        case SystemRead::Read:
-            break;
+    int first = -1;
+    int last = -1;
+    for (int i = 0; i < m_frequencies->rowCount() && i < int(m_design->size()); ++i) {
+        if (m_frequencies->isRowChecked(i)) {
+            first = first < 0 ? i : first;
+            last = i;
         }
     }
 
-    record.name = name.toStdString();
+    if (first < 0) {
+        return false;
+    }
+
+    record.omegaStart = m_design->at(std::size_t(first));
+    record.omegaEnd = m_design->at(std::size_t(last));
+
+    //The band is from the first tick to the last, and what is unticked
+    //between them is the exception list: a band with a hole in it is an
+    //ordinary thing to ask for, and there is no other way to say it.
+    record.skipped.clear();
+    for (int i = first + 1; i < last; ++i) {
+        if (!m_frequencies->isRowChecked(i)) {
+            record.skipped.push_back(m_design->at(std::size_t(i)));
+        }
+    }
 
     return true;
 }
 
-bool SpecificationsForm::data(qftbx::SpecificationRecord & record,
-                                    qftbx::SpecificationRecord & upperRecord, QString name){
+SpecificationType SpecificationsForm::selectedType() const
+{
+    return static_cast<SpecificationType>(ui->typeCombo->currentIndex());
+}
 
-    if (record.used && !record.constant){
-        record.system.reset();
-        record.constant = false;
-        record.used = false;
+void SpecificationsForm::say(const QString & complaint)
+{
+    ui->statusLabel->setText(complaint);
+    markWrong(ui->statusLabel, !complaint.isEmpty());
+}
+
+void SpecificationsForm::showBound()
+{
+    ui->boundStack->setCurrentWidget(ui->constantRadio->isChecked() ? ui->constantPage
+                                                                    : ui->systemPage);
+
+    const bool factored = ui->zpkRadio->isChecked() || ui->tcgRadio->isChecked();
+    ui->numeratorLabel->setText(factored ? tr("Zeros:") : tr("Numerator:"));
+    ui->denominatorLabel->setText(factored ? tr("Poles:") : tr("Denominator:"));
+
+    if (m_filling) {
+        return;
     }
 
-    if (upperRecord.used && !upperRecord.constant){
-        upperRecord.system.reset();
-        upperRecord.constant = false;
-        upperRecord.used = false;
+    setVerified(std::nullopt);
+}
+
+void SpecificationsForm::fieldEdited()
+{
+    if (m_filling) {
+        return;
     }
 
-    if (ui->startFrequencyEdit->text().isEmpty()){
-        record.omegaStart = frequencies->front();
-        upperRecord.omegaStart = frequencies->front();
-    } else {
-        const std::optional<double> parsedValue = evaluateNumber(ui->startFrequencyEdit->text());
+    setVerified(std::nullopt);
+}
 
-        try {
-            record.omegaStart = requireNumber(parsedValue);
-            upperRecord.omegaStart = record.omegaStart;
-            ui->startFrequencyEdit->setStyleSheet("background : white");
-        }catch (const std::invalid_argument &){
-            record.used = false;
-            upperRecord.used = false;
-            ui->startFrequencyEdit->setStyleSheet("background : red");
-            errorMessage(tr("Invalid frequency band."), tr("Specifications input"));
-            return false;
+void SpecificationsForm::typeChosen()
+{
+    if (m_filling) {
+        return;
+    }
+
+    //The specification chosen is shown as it stands: the one already
+    //entered, or an empty form for a new one.
+    showRecord(selectedType());
+}
+
+Formula SpecificationsForm::boundOf(const qftbx::SpecificationRecord & record) const
+{
+    if (record.constant) {
+        //In decibels, which is the unit a bound is read in. One upright
+        //literal, units included: a constant bound is a number, not an
+        //expression with a unit multiplied into it.
+        return formula::number(qftbx::shownText(qftbx::linearToDb(record.height)).toStdString()
+                               + " dB");
+    }
+
+    if (record.system == nullptr) {
+        return Formula();
+    }
+
+    return formulaOf(*record.system, shownDigits());
+}
+
+//The whole requirement: what the program checks on the left, the bound the
+//user gave on the right. Drawn and not photographed, so it says the bound
+//it was given and not a W with a subscript.
+Formula SpecificationsForm::formulaOfRecord(SpecificationType type,
+                                            const qftbx::SpecificationRecord & record) const
+{
+    return requirementOf(type, boundOf(record));
+}
+
+void SpecificationsForm::setVerified(std::optional<qftbx::SpecificationRecord> record)
+{
+    m_verified = std::move(record);
+
+    if (!m_verified.has_value()) {
+        //Not the empty view: what this specification requires of the loop is
+        //worth showing before there is a bound to put on the other side of
+        //the sign, and it is what the figure of the old screens said.
+        ui->boundFormula->setFormula(requirementOf(selectedType()));
+        ui->addButton->setText(tr("Verify"));
+        return;
+    }
+
+    ui->boundFormula->setFormula(formulaOfRecord(selectedType(), *m_verified));
+
+    //A slot that already holds a specification is replaced, not added to:
+    //there is one of each.
+    ui->addButton->setText(m_records.at(std::size_t(ui->typeCombo->currentIndex())).used
+                           ? tr("Update") : tr("Add"));
+}
+
+void SpecificationsForm::showRecord(SpecificationType type)
+{
+    m_filling = true;
+
+    ui->typeCombo->setCurrentIndex(int(type));
+
+    const SpecificationRecord & record = m_records.at(std::size_t(type));
+
+    showFrequenciesOf(record);
+
+    ui->magnitudeEdit->clear();
+    ui->numeratorEdit->clear();
+    ui->denominatorEdit->clear();
+    ui->k->setText("1");
+    ui->delayEdit->setText("0");
+
+    if (record.used && record.constant) {
+        ui->constantRadio->setChecked(true);
+        //Written in the unit it is read in, which is the one the field
+        //offers: a bound of 0.5 linear is -6.02 dB.
+        ui->decibelsRadio->setChecked(true);
+        ui->magnitudeEdit->setText(qftbx::numberText(qftbx::linearToDb(record.height)));
+    } else if (record.used && record.system != nullptr) {
+        ui->systemRadio->setChecked(true);
+
+        switch (record.system->type()) {
+        case LtiSystem::SystemType::PolynomialForm: ui->polynomialRadio->setChecked(true); break;
+        case LtiSystem::SystemType::ZeroPoleGain:   ui->zpkRadio->setChecked(true); break;
+        case LtiSystem::SystemType::TimeConstantGain: ui->tcgRadio->setChecked(true); break;
+        case LtiSystem::SystemType::FreeForm:       ui->freeFormRadio->setChecked(true); break;
         }
+
+        ui->numeratorEdit->setText(numeratorText(record.system.get()));
+        ui->denominatorEdit->setText(denominatorText(record.system.get()));
+        ui->k->setText(qftbx::numberText(record.system->gain().nominal()));
+        ui->delayEdit->setText(qftbx::numberText(record.system->delay().nominal()));
     }
 
-    if (ui->endFrequencyEdit->text().isEmpty()){
-        record.omegaEnd = frequencies->back();
-        upperRecord.omegaEnd = frequencies->back();
-    } else {
-        const std::optional<double> parsedValue = evaluateNumber(ui->endFrequencyEdit->text());
-
-        try {
-            record.omegaEnd = requireNumber(parsedValue);
-            upperRecord.omegaEnd = record.omegaEnd;
-            ui->endFrequencyEdit->setStyleSheet("background : white");
-        }catch (const std::invalid_argument &){
-            record.used = false;
-            upperRecord.used = false;
-            ui->endFrequencyEdit->setStyleSheet("background : red");
-            errorMessage(tr("Invalid frequency band."), tr("Specifications input"));
-            return false;
-        }
+    for (QWidget * field : {static_cast<QWidget *>(ui->magnitudeEdit),
+                            static_cast<QWidget *>(ui->numeratorEdit),
+                            static_cast<QWidget *>(ui->denominatorEdit),
+                            static_cast<QWidget *>(ui->k),
+                            static_cast<QWidget *>(ui->delayEdit)}) {
+        markWrong(field, false);
     }
 
-    if (!bandIsUsable(record.omegaStart, record.omegaEnd)){
-        ui->startFrequencyEdit->setStyleSheet("background : red");
-        ui->endFrequencyEdit->setStyleSheet("background : red");
-        record.used = false;
-        upperRecord.used = false;
-        errorMessage(tr("The frequency band needs 0 <= start <= end."),
-                     tr("Specifications input"));
-        return false;
+    m_filling = false;
+
+    showBound();
+    say(QString());
+
+    //One already entered is shown verified: it is what it says it is.
+    setVerified(record.used ? std::optional<SpecificationRecord>(record.clone())
+                            : std::nullopt);
+}
+
+void SpecificationsForm::showTable()
+{
+    ui->specificationsTable->setRowCount(0);
+
+    for (std::size_t i = 0; i < kSpecificationCount; ++i) {
+        const SpecificationRecord & record = m_records.at(i);
+        if (!record.used) {
+            continue;
+        }
+
+        const int row = ui->specificationsTable->rowCount();
+        ui->specificationsTable->insertRow(row);
+
+        QTableWidgetItem * name = new QTableWidgetItem(ui->typeCombo->itemText(int(i)));
+        //Which slot the row stands for: the table only lists the used ones,
+        //so the row number is not the type.
+        name->setData(Qt::UserRole, int(i));
+        ui->specificationsTable->setItem(row, 0, name);
+
+        //The band, and how many of its frequencies it was taken out of.
+        QString band = tr("%1 to %2").arg(qftbx::shownText(record.omegaStart),
+                                          qftbx::shownText(record.omegaEnd));
+        if (!record.skipped.empty()) {
+            band += tr(" (%n out)", "", int(record.skipped.size()));
+        }
+        ui->specificationsTable->setItem(row, 1, new QTableWidgetItem(band));
+
+        QTableWidgetItem * bound = new QTableWidgetItem();
+        bound->setData(FormulaDelegate::formulaRole,
+                       QVariant::fromValue(formulaOfRecord(static_cast<SpecificationType>(i),
+                                                           record)));
+
+        //The one requirement the screen cannot state on its own line: the
+        //prefilter multiplies the whole closed loop, so it cannot change
+        //the SPREAD of it over the plant family, and the spread against the
+        //two bounds is what the loop shaping works with. The prefilter is a
+        //later design, which the toolbox does not do yet.
+        if (i == std::size_t(SpecificationType::TrackingLower)
+                || i == std::size_t(SpecificationType::TrackingUpper)) {
+            bound->setToolTip(tr("The loop shaping bounds the spread of the closed loop over "
+                                 "the plant family against the difference between the two "
+                                 "tracking bounds: the prefilter F shifts the band and cannot "
+                                 "narrow it, and it is designed afterwards."));
+        }
+
+        ui->specificationsTable->setItem(row, 2, bound);
     }
 
-    if (ui->constantRadio->isChecked()){
+    ui->specificationsTable->resizeColumnsToContents();
+    ui->specificationsTable->resizeRowsToContents();
 
-        if (!ui->lowerMagnitudeEdit->text().isEmpty()){
+    const bool anything = ui->specificationsTable->rowCount() > 0;
+    ui->editButton->setEnabled(anything);
+    ui->removeButton->setEnabled(anything);
+    ui->okButton->setEnabled(anything);
+}
 
-            const std::optional<double> parsedValue = evaluateNumber(ui->lowerMagnitudeEdit->text());
-
-            record.constant = true;
-
-            try {
-
-                qreal entered = requireNumber(parsedValue);
-
-                //The record's height is a LINEAR magnitude here as well as
-                //on the simple path.
-                if (ui->lowerDecibelsRadio->isChecked()){
-                    record.height = qftbx::dbToLinear(entered);
-                }else {
-                    record.height = entered;
-                }
-
-                if (!magnitudeIsUsable(record.height)){
-                    record.used = false;
-                    upperRecord.used = false;
-                    ui->lowerMagnitudeEdit->setStyleSheet("background : red");
-                    errorMessage(tr("The lower magnitude must be a finite "
-                                    "number, and positive in linear units."),
-                                 tr("Specifications input"));
-                    return false;
-                }
-
-                ui->lowerMagnitudeEdit->setStyleSheet("background : white");
-            }catch (const std::invalid_argument &){
-                record.used = false;
-                ui->lowerMagnitudeEdit->setStyleSheet("background : red");
-                errorMessage(tr("Invalid magnitude value."), tr("Specifications input"));
-                return false;
-            }
-
-            ui->lowerMagnitudeEdit->setStyleSheet("background : white");
-            record.used = true;
-        } else {
-            record.used = false;
-        }
-    }else {
-
-        switch (readSystemFields(record, name, {ui->lowerNumeratorEdit, ui->lowerDenominatorEdit, ui->lowerGainEdit, ui->lowerDelayEdit,
-                                                ui->lowerFreeFormRadio, ui->lowerZpkRadio, ui->lowerTcgRadio, ui->lowerPolynomialRadio})) {
-        case SystemRead::Failed:
-            return false;
-        case SystemRead::Unused:
-            return true;
-        case SystemRead::Read:
-            break;
-        }
+std::optional<std::vector<Parameter>> SpecificationsForm::parametersFrom(const QString & text)
+{
+    CoefficientRow numbers;
+    for (const std::string & token : qftbx::text::tokens(text.toStdString())) {
+        numbers.push_back(QString::fromStdString(token));
     }
 
-
-    if (ui->constantRadio->isChecked()){
-
-        if (!ui->upperMagnitudeEdit->text().isEmpty()){
-
-            const std::optional<double> parsedValue = evaluateNumber(ui->upperMagnitudeEdit->text());
-
-            upperRecord.constant = true;
-
-            try {
-
-                qreal entered = requireNumber(parsedValue);
-
-                if (ui->upperDecibelsRadio->isChecked()){
-                    upperRecord.height = qftbx::dbToLinear(entered);
-                }else {
-                    upperRecord.height = entered;
-                }
-
-                if (!magnitudeIsUsable(upperRecord.height)){
-                    record.used = false;
-                    upperRecord.used = false;
-                    ui->upperMagnitudeEdit->setStyleSheet("background : red");
-                    errorMessage(tr("The upper magnitude must be a finite "
-                                    "number, and positive in linear units."),
-                                 tr("Specifications input"));
-                    return false;
-                }
-
-                ui->upperMagnitudeEdit->setStyleSheet("background : white");
-            }catch (const std::invalid_argument &){
-                upperRecord.used = false;
-                ui->upperMagnitudeEdit->setStyleSheet("background : red");
-                errorMessage(tr("Invalid magnitude value."), tr("Specifications input"));
-                return false;
-            }
-
-            ui->upperMagnitudeEdit->setStyleSheet("background : white");
-            upperRecord.used = true;
-        } else {
-            upperRecord.used = false;
-        }
-    }else {
-
-        switch (readSystemFields(upperRecord, name, {ui->upperNumeratorEdit, ui->upperDenominatorEdit, ui->upperGainEdit, ui->upperDelayEdit,
-                                                     ui->upperFreeFormRadio, ui->upperZpkRadio, ui->upperTcgRadio, ui->upperPolynomialRadio})) {
-        case SystemRead::Failed:
-            return false;
-        case SystemRead::Unused:
-            return true;
-        case SystemRead::Read:
-            break;
-        }
-    }
-
-    record.name = name.toStdString();
-    upperRecord.name = "TrackingUpper";
-
-    return true;
+    return m_reader.buildParameters(numbers);
 }
 
 std::optional<Parameter> SpecificationsForm::scalarFrom(const QString & text, double fallback)
 {
-    if (text.isEmpty()) {
+    if (text.trimmed().isEmpty()) {
         return Parameter(fallback);
     }
 
@@ -649,357 +500,211 @@ std::optional<Parameter> SpecificationsForm::scalarFrom(const QString & text, do
     }
 }
 
-std::optional<std::vector<Parameter>> SpecificationsForm::parametersFrom(const QString & text)
+std::optional<qftbx::SpecificationRecord> SpecificationsForm::build()
 {
-    CoefficientRow numbers;
-    for (const std::string & token : qftbx::text::tokens(text.toStdString())) {
-        numbers.push_back(QString::fromStdString(token));
-    }
-
-    return m_reader.buildParameters(numbers);
-}
-
-//The system a tab describes, read once for the three tabs that take one.
-//Gain and delay are ALWAYS validated, the free-form branch included: an
-//unchecked result is a nullptr on a syntax error.
-SpecificationsForm::SystemRead SpecificationsForm::readSystemFields(qftbx::SpecificationRecord & record,
-                                                                        const QString & name,
-                                                                        const SystemFields & fields)
-{
-    if (fields.denominator->text().isEmpty()) {
-        record.used = false;
-        return SystemRead::Unused;
-    }
-
-    const auto mark = [](QLineEdit * field, bool valid) {
-        field->setStyleSheet(valid ? "background : white" : "background : red");
+    const auto refuse = [this](QWidget * field, const QString & complaint) {
+        markWrong(field, true, complaint);
+        say(complaint);
+        return std::optional<SpecificationRecord>();
     };
 
-    const auto refuse = [&](QLineEdit * field, const QString & complaint) {
-        errorMessage(complaint, tr("Specifications input"));
-        mark(field, false);
-        record.used = false;
-        return SystemRead::Failed;
-    };
-
-    const std::optional<Parameter> gain = scalarFrom(fields.gain->text(), 1.0);
-    if (!gain.has_value()) {
-        return refuse(fields.gain, tr("Invalid gain."));
+    for (QWidget * field : {static_cast<QWidget *>(ui->magnitudeEdit),
+                            static_cast<QWidget *>(ui->numeratorEdit),
+                            static_cast<QWidget *>(ui->denominatorEdit),
+                            static_cast<QWidget *>(ui->k),
+                            static_cast<QWidget *>(ui->delayEdit)}) {
+        markWrong(field, false);
     }
-    mark(fields.gain, true);
 
-    const std::optional<Parameter> delay = scalarFrom(fields.delay->text(), 0.0);
-    if (!delay.has_value()) {
-        return refuse(fields.delay, tr("Invalid delay."));
+    if (m_design == nullptr || m_design->empty()) {
+        say(tr("The design frequencies must be entered before the specifications."));
+        return std::nullopt;
     }
-    mark(fields.delay, true);
+
+    SpecificationRecord record;
+    record.name = specificationName(selectedType());
+
+    if (!readFrequencies(record)) {
+        return refuse(m_frequencies, tr("A specification applies at least at one frequency."));
+    }
+    markWrong(m_frequencies, false);
+
+    if (!bandIsUsable(record.omegaStart, record.omegaEnd)) {
+        return refuse(m_frequencies, tr("The band needs 0 <= start <= end."));
+    }
+
+    if (ui->constantRadio->isChecked()) {
+        const std::optional<double> magnitude = evaluateNumber(ui->magnitudeEdit->text());
+        if (!magnitude.has_value()) {
+            return refuse(ui->magnitudeEdit, tr("The bound is a magnitude."));
+        }
+
+        record.constant = true;
+        record.height = ui->decibelsRadio->isChecked() ? qftbx::dbToLinear(*magnitude)
+                                                       : *magnitude;
+
+        if (!magnitudeIsUsable(record.height)) {
+            return refuse(ui->magnitudeEdit, tr("The magnitude must be a finite number, "
+                                                "and positive in linear units."));
+        }
+
+        record.used = true;
+        say(QString());
+
+        return record;
+    }
 
     LtiSystem::SystemType type = LtiSystem::SystemType::FreeForm;
-    if (fields.zpk->isChecked()) {
+    if (ui->zpkRadio->isChecked()) {
         type = LtiSystem::SystemType::ZeroPoleGain;
-    } else if (fields.tcg->isChecked()) {
+    } else if (ui->tcgRadio->isChecked()) {
         type = LtiSystem::SystemType::TimeConstantGain;
-    } else if (fields.polynomial->isChecked()) {
+    } else if (ui->polynomialRadio->isChecked()) {
         type = LtiSystem::SystemType::PolynomialForm;
     }
 
-    //A free-form record carries its expressions and no coefficient vectors.
+    const std::optional<Parameter> gain = scalarFrom(ui->k->text(), 1.0);
+    if (!gain.has_value()) {
+        return refuse(ui->k, tr("The gain is not a number."));
+    }
+
+    const std::optional<Parameter> delay = scalarFrom(ui->delayEdit->text(), 0.0);
+    if (!delay.has_value()) {
+        return refuse(ui->delayEdit, tr("The delay is not a number."));
+    }
+
+    //A free-form bound carries its expressions and no coefficient vectors.
     std::vector<Parameter> numerator;
     std::vector<Parameter> denominator;
 
-    if (type != LtiSystem::SystemType::FreeForm) {
-        std::optional<std::vector<Parameter>> readNumerator = parametersFrom(fields.numerator->text());
-        if (!readNumerator.has_value()) {
-            return refuse(fields.numerator, tr("Invalid numerator."));
+    if (type == LtiSystem::SystemType::FreeForm) {
+        for (QLineEdit * field : {ui->numeratorEdit, ui->denominatorEdit}) {
+            if (field->text().trimmed().isEmpty()) {
+                return refuse(field, tr("A free-form bound needs both expressions."));
+            }
+            try {
+                ExpressionTree parsed(field->text().toStdString());
+            } catch (const std::invalid_argument &) {
+                return refuse(field, tr("This is not an expression the toolbox can read."));
+            }
         }
-        mark(fields.numerator, true);
+    } else {
+        if (ui->denominatorEdit->text().trimmed().isEmpty()) {
+            return refuse(ui->denominatorEdit, tr("The bound needs a denominator."));
+        }
 
-        std::optional<std::vector<Parameter>> readDenominator = parametersFrom(fields.denominator->text());
-        if (!readDenominator.has_value()) {
-            return refuse(fields.denominator, tr("Invalid denominator."));
+        std::optional<std::vector<Parameter>> readNumerator =
+                parametersFrom(ui->numeratorEdit->text());
+        if (!readNumerator.has_value()) {
+            return refuse(ui->numeratorEdit, tr("A coefficient is not a number."));
         }
-        mark(fields.denominator, true);
+
+        std::optional<std::vector<Parameter>> readDenominator =
+                parametersFrom(ui->denominatorEdit->text());
+        if (!readDenominator.has_value()) {
+            return refuse(ui->denominatorEdit, tr("A coefficient is not a number."));
+        }
 
         numerator = std::move(*readNumerator);
         denominator = std::move(*readDenominator);
     }
 
     record.constant = false;
-    record.system = SystemDescriptionReader::makeSystem(type, name.toStdString(),
-                                                        std::move(numerator), std::move(denominator),
-                                                        *gain, *delay,
-                                                        fields.numerator->text().toStdString(),
-                                                        fields.denominator->text().toStdString());
+    record.system = SystemDescriptionReader::makeSystem(
+        type, record.name, std::move(numerator), std::move(denominator), *gain, *delay,
+        ui->numeratorEdit->text().toStdString(), ui->denominatorEdit->text().toStdString());
     record.used = true;
 
-    return SystemRead::Read;
+    say(QString());
+
+    return record;
 }
 
-bool SpecificationsForm::saveActiveTab()
+void SpecificationsForm::on_addButton_clicked()
 {
-    if (activeTab == 1){
-        return data(tracking, trackingUpper, "TrackingLower");
-    }else if (activeTab == 2){
-        return data(stability, "Stability");
-    }else if (activeTab == 3){
-        return data(sensorNoise, "SensorNoise");
-    }else if (activeTab == 4){
-        return data(outputDisturbance, "OutputDisturbance");
-    }else if (activeTab == 5){
-        return data(inputDisturbance, "InputDisturbance");
-    }else if (activeTab == 6){
-        return data(controlEffort, "ControlEffort");
-    }
-
-    //No tab selected yet: the constructor's first switch has nothing to save.
-    return true;
-}
-
-void SpecificationsForm::restoreActiveTabRadio()
-{
-    switch (activeTab){
-    case 1: ui->trackingRadio->setChecked(true); break;
-    case 2: ui->stabilityRadio->setChecked(true); break;
-    case 3: ui->noiseRadio->setChecked(true); break;
-    case 4: ui->outputDisturbanceRadio->setChecked(true); break;
-    case 5: ui->inputDisturbanceRadio->setChecked(true); break;
-    case 6: ui->controlEffortRadio->setChecked(true); break;
-    default: break;
-    }
-}
-
-bool SpecificationsForm::leaveActiveTab()
-{
-    if (saveActiveTab()){
-        return true;
-    }
-
-    //The return value decides whether the tab switches. data() empties the
-    //record before rebuilding it, so leaving on an invalid field loses the
-    //whole specification, not just that field, and setData() then repaints
-    //a blank tab. Staying put keeps the user's text where it can be fixed.
-    restoreActiveTabRadio();
-
-    errorMessage(tr("This specification could not be read, so it has not been "
-                    "saved. Correct the field marked in red, or empty it to "
-                    "leave the specification unused."),
-                 tr("Specifications input"));
-
-    return false;
-}
-
-void SpecificationsForm::on_trackingRadio_clicked()
-{
-    if (!leaveActiveTab()){
+    //One button and two steps: what is added has been seen first, drawn as
+    //the bound it is.
+    if (!m_verified.has_value()) {
+        setVerified(build());
         return;
     }
 
-    ui->pageStack->setCurrentIndex(1);
-    activeTab = 1;
-    setData(tracking, trackingUpper);
+    m_records.at(std::size_t(selectedType())) = m_verified->clone();
+
+    showTable();
+
+    //And the form is left ready for the next one.
+    setVerified(std::nullopt);
+    say(tr("Added: %1.").arg(ui->typeCombo->currentText()));
+    markWrong(ui->statusLabel, false);
 }
 
-void SpecificationsForm::on_stabilityRadio_clicked()
+void SpecificationsForm::on_clearButton_clicked()
 {
-    if (!leaveActiveTab()){
+    m_filling = true;
+    ui->magnitudeEdit->clear();
+    ui->numeratorEdit->clear();
+    ui->denominatorEdit->clear();
+    ui->k->setText("1");
+    ui->delayEdit->setText("0");
+    m_filling = false;
+
+    setVerified(std::nullopt);
+    say(QString());
+}
+
+void SpecificationsForm::on_editButton_clicked()
+{
+    const int row = ui->specificationsTable->currentRow();
+    if (row < 0) {
+        say(tr("Choose a specification in the list first."));
         return;
     }
 
-    ui->pageStack->setCurrentIndex(0);
-    activeTab = 2;
-    setData(stability);
-    ui->specificationImage->setPixmap(stabilityPixmap);
+    const int slot = ui->specificationsTable->item(row, 0)->data(Qt::UserRole).toInt();
+
+    showRecord(static_cast<SpecificationType>(slot));
 }
 
-void SpecificationsForm::on_noiseRadio_clicked()
+void SpecificationsForm::on_removeButton_clicked()
 {
-    if (!leaveActiveTab()){
+    const int row = ui->specificationsTable->currentRow();
+    if (row < 0) {
+        say(tr("Choose a specification in the list first."));
         return;
     }
 
-    ui->pageStack->setCurrentIndex(0);
-    activeTab = 3;
-    setData(sensorNoise);
-    ui->specificationImage->setPixmap(sensorNoisePixmap);
-}
+    const int slot = ui->specificationsTable->item(row, 0)->data(Qt::UserRole).toInt();
 
-void SpecificationsForm::on_outputDisturbanceRadio_clicked()
-{
-    if (!leaveActiveTab()){
-        return;
+    //A slot that is not used is a specification that does not exist: the
+    //record is emptied, system included.
+    m_records.at(std::size_t(slot)) = SpecificationRecord();
+
+    showTable();
+
+    if (int(selectedType()) == slot) {
+        showRecord(static_cast<SpecificationType>(slot));
     }
-
-    ui->pageStack->setCurrentIndex(0);
-    activeTab = 4;
-    setData(outputDisturbance);
-    ui->specificationImage->setPixmap(outputDisturbancePixmap);
-    //The only one of the six that did not move the buttons back: coming from
-    //the tracking tab, which widens the window and puts them at x = 670,
-    //they landed outside the 647 this resize leaves.
-}
-
-void SpecificationsForm::on_inputDisturbanceRadio_clicked()
-{
-    if (!leaveActiveTab()){
-        return;
-    }
-
-    ui->pageStack->setCurrentIndex(0);
-    activeTab = 5;
-    setData(inputDisturbance);
-    ui->specificationImage->setPixmap(inputDisturbancePixmap);
-}
-
-void SpecificationsForm::on_controlEffortRadio_clicked()
-{
-    if (!leaveActiveTab()){
-        return;
-    }
-
-    ui->pageStack->setCurrentIndex(0);
-    activeTab = 6;
-    setData(controlEffort);
-    ui->specificationImage->setPixmap(controlEffortPixmap);
-}
-
-void SpecificationsForm::on_constantRadio_clicked()
-{
-    ui->modeStack->setCurrentIndex(1);
-    ui->lowerModeStack->setCurrentIndex(1);
-    ui->upperModeStack->setCurrentIndex(1);
-}
-
-void SpecificationsForm::on_systemRadio_clicked()
-{
-    ui->modeStack->setCurrentIndex(2);
-    ui->lowerModeStack->setCurrentIndex(2);
-    ui->upperModeStack->setCurrentIndex(2);
 }
 
 void SpecificationsForm::on_okButton_clicked()
 {
-    //A rejected accept must not leave the previous answer behind.
-    discardPublished();
-
-    //The frequencies belong to the project's Omega, and entering a new set
-    //destroys the old one under this panel, which stays open. Every band
-    //below is read from them.
-    if (frequencies == nullptr || frequencies->empty()) {
-        errorMessage(tr("The design frequencies must be entered before the specifications."),
-                     tr("Specifications input"));
-        return;
+    qftbx::SpecificationRecords published;
+    for (std::size_t i = 0; i < kSpecificationCount; ++i) {
+        published.at(i) = m_records.at(i).clone();
     }
 
-    bool ok = true;
-
-    if (ui->trackingRadio->isChecked()){
-        ok = data(tracking, trackingUpper, "TrackingLower");
-    }else if (ui->stabilityRadio->isChecked()){
-        ok = data(stability, "Stability");
-    }else if (ui->noiseRadio->isChecked()){
-        ok = data(sensorNoise, "SensorNoise");
-    }else if (ui->outputDisturbanceRadio->isChecked()){
-        ok = data(outputDisturbance, "OutputDisturbance");
-    }else if (ui->inputDisturbanceRadio->isChecked()){
-        ok = data(inputDisturbance, "InputDisturbance");
-    }else if (ui->controlEffortRadio->isChecked()){
-        ok =  data(controlEffort, "ControlEffort");
-    }
-
-    if (!ok){
-        return;
-    }
-
-    //The project takes ownership: it receives deep clones and the dialog
-    //keeps its originals for further editing.
-    published = qftbx::SpecificationRecords{tracking.clone(), trackingUpper.clone(),
-            stability.clone(), sensorNoise.clone(), outputDisturbance.clone(),
-            inputDisturbance.clone(), controlEffort.clone()};
+    m_published = std::move(published);
 
     markAccepted();
-
-    close();
 }
 
-void SpecificationsForm::setFrequencies(const std::vector<double> * frequencies)
+std::optional<qftbx::SpecificationRecords> SpecificationsForm::takeSpecifications()
 {
-    this->frequencies = frequencies;
+    std::optional<qftbx::SpecificationRecords> published = std::move(m_published);
+    m_published.reset();
 
-    if (frequencies == nullptr || frequencies->empty()) {
-        return;
-    }
-
-    ui->startFrequencyEdit->setText(qftbx::numberText(frequencies->front()));
-    ui->endFrequencyEdit->setText(qftbx::numberText(frequencies->back()));
-}
-
-std::optional<qftbx::SpecificationRecords> SpecificationsForm::takeSpecifications(){
-    return std::move(published);
-}
-
-void SpecificationsForm::discardPublished(){
-    published.reset();
-}
-
-
-void SpecificationsForm::on_lowerPolynomialRadio_clicked()
-{
-    ui->lowerFigureStack-> setCurrentIndex(3);
-}
-
-void SpecificationsForm::on_lowerFreeFormRadio_clicked()
-{
-    ui->lowerFigureStack-> setCurrentIndex(0);
-}
-
-void SpecificationsForm::on_lowerZpkRadio_clicked()
-{
-    ui->lowerFigureStack-> setCurrentIndex(1);
-}
-
-void SpecificationsForm::on_lowerTcgRadio_clicked()
-{
-    ui->lowerFigureStack-> setCurrentIndex(2);
-}
-
-void SpecificationsForm::on_upperPolynomialRadio_clicked()
-{
-    ui->upperFigureStack-> setCurrentIndex(3);
-}
-
-void SpecificationsForm::on_upperZpkRadio_clicked()
-{
-    ui->upperFigureStack-> setCurrentIndex(1);
-}
-
-void SpecificationsForm::on_upperTcgRadio_clicked()
-{
-    ui->upperFigureStack-> setCurrentIndex(2);
-}
-
-void SpecificationsForm::on_upperFreeFormRadio_clicked()
-{
-    ui->upperFigureStack-> setCurrentIndex(0);
-}
-
-void SpecificationsForm::on_polynomialRadio_clicked()
-{
-    ui->figureStack->setCurrentIndex(1);
-}
-
-void SpecificationsForm::on_tcgRadio_clicked()
-{
-    ui->figureStack->setCurrentIndex(3);
-}
-
-void SpecificationsForm::on_freeFormRadio_clicked()
-{
-    ui->figureStack->setCurrentIndex(0);
-}
-
-void SpecificationsForm::on_zpkRadio_clicked()
-{
-    ui->figureStack->setCurrentIndex(2);
+    return published;
 }
 
 } // namespace qftbx

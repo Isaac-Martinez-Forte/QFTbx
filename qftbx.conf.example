@@ -53,6 +53,14 @@
 # Values: "system", "light" or "dark".
 # theme = system
 
+# How many significant digits the forms show. The project file always keeps
+# every digit of every number: this only says how many of them are worth
+# reading on screen, where a gain of 567.3175312139062 is better read as
+# 567.3. Significant digits and not decimals, so that the small numbers
+# survive: four decimals of 6.988e-05 would be a zero.
+# Values: 1 to 17.
+# digits = 4
+
 # And how big the window was when it closed, so it comes up the same size.
 # Written by the window itself, like the canvas above.
 # Values: "width height", "maximized", or empty.

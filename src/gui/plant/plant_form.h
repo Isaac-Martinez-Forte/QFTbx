@@ -4,14 +4,14 @@
 #include <memory>
 #include <optional>
 
-#include <QWidget>
 #include <QString>
+#include <QWidget>
 
 #include "src/core/system/lti_system.h"
-#include "src/gui/common/coefficient_tables.h"
 #include "src/gui/application/step_panel.h"
+#include "src/gui/common/coefficient_tables.h"
 #include "src/gui/common/system_description_reader.h"
-#include "src/gui/plant/uncertainty_dialog.h"
+#include "src/gui/plant/uncertainty_panel.h"
 
 namespace Ui {
 class PlantForm;
@@ -21,22 +21,30 @@ namespace qftbx {
 
 /**
  * @brief Step 1 of the design: the plant, in one of the four families, with
- * its uncertain parameters described through the uncertainty dialog.
+ * its uncertain parameters.
  *
- * The dialog does not know the project: it builds a plant and hands it over
+ * Two things happen here before a plant leaves the form. What the user
+ * types is READ as it is typed, and the field that cannot be read is marked
+ * with the reason; and nothing is applied that has not been verified first,
+ * which is why there is one button and it says Verify until it has anything
+ * to apply. What verifying produces is the formula, drawn where the figure
+ * of the family was: the answer to the only question a line of coefficients
+ * raises, which is whether it means what it was meant to mean.
+ *
+ * The form does not know the project: it builds a plant and hands it over
  * through takePlant(), and the main window publishes it. Reading the fields
- * is SystemDescriptionReader's job, shared with the controller dialog.
+ * is SystemDescriptionReader's job, shared with the controller form.
  */
 class PlantForm : public StepPanel
 {
     Q_OBJECT
 
 public:
-    explicit PlantForm(QWidget *parent = nullptr);
+    explicit PlantForm(QWidget * parent = nullptr);
     ~PlantForm();
 
-    /// The plant the user described, or nullptr when the dialog was
-    /// cancelled or its data rejected. Ownership passes to the caller.
+    /// The plant the user applied, or nullptr when none was. Ownership
+    /// passes to the caller.
     std::unique_ptr<LtiSystem> takePlant();
 
     /**
@@ -52,43 +60,62 @@ public:
     void setFromProject(LtiSystem * plant);
 
 private slots:
-    void on_zerosPolesRadio_toggled(bool checked);
-    void on_transferFunctionRadio_toggled(bool checked);
-    void on_zpkRadio_toggled(bool checked);
-    void on_tcgRadio_toggled(bool checked);
-    void on_polynomialRadio_toggled(bool checked);
     void on_okButton_clicked();
     void on_uncertaintyButton_clicked();
-    void on_freeFormRadio_clicked();
+
+    /// A radio of any of the three levels: the path decides which levels
+    /// are worth showing and which family is being described.
+    void familyChosen();
+
+    /// Any field: what was verified no longer describes what is on screen.
+    void fieldEdited();
 
 private:
-    /// The family the radios select.
-    LtiSystem::SystemType selectedType() const;
+    /// The family the path of radios selects, or nothing while the path is
+    /// unfinished.
+    std::optional<LtiSystem::SystemType> selectedType() const;
 
-    /// The coefficients of the described plant, or nothing when the dialog
-    /// could not read them (the reader has already said why).
+    /// The labels, the hint and the figure of the family in use.
+    void showFamily();
+
+    /// Reads the fields into the three tables, marking every field that
+    /// cannot be read. Nothing when one of them could not.
     std::optional<CoefficientTable> readTables(CoefficientTable & expressionTable,
                                                UncertainTable & uncertainTable);
 
-    /// The name field, marked red and reported when empty.
-    bool nameIsPresent();
+    /// The plant the fields describe, or nullptr when they do not describe
+    /// one; the reason is already on screen.
+    std::unique_ptr<LtiSystem> build();
 
-    /// The two coefficient fields of the chosen family, as one text, and
-    /// the gain and delay fields as another: what tells a form still
-    /// showing the project's plant from one the user has edited. They are
-    /// separate because they answer for different things - the
-    /// coefficients for the polynomials, these two for the gain and the
-    /// delay - and editing one must not throw the other away.
+    /// Whether the panel answers for the coefficients now on screen.
+    bool uncertaintyIsCurrent() const;
+
+    /// The verified plant, its formula and the button that applies it - or
+    /// none of the three.
+    void setVerified(std::unique_ptr<LtiSystem> plant);
+
+    void say(const QString & complaint);
+
+    /// The two coefficient fields as one text, and the gain and delay
+    /// fields as another: what tells a form still showing the project's
+    /// plant from one the user has edited. They are separate because they
+    /// answer for different things - the coefficients for the polynomials,
+    /// these two for the gain and the delay - and editing one must not
+    /// throw the other away.
     QString currentCoefficients() const;
     QString currentScalars() const;
 
     std::unique_ptr<Ui::PlantForm> ui;
 
-    UncertaintyDialog * uncertaintyDialog = nullptr;
+    UncertaintyPanel * m_uncertainty = nullptr;
 
-    std::unique_ptr<LtiSystem> plant;
+    /// What Verify built and Apply hands over.
+    std::unique_ptr<LtiSystem> m_verified;
+    std::unique_ptr<LtiSystem> m_applied;
 
-    bool uncertaintyEntered = false;
+    /// The coefficients the uncertainty panel was last applied over: an
+    /// edit since makes its ranges answer for something else.
+    QString m_uncertaintyCoefficients;
 
     /// The two of them as setFromProject left them, empty when the form was
     /// not filled from a project.
@@ -101,6 +128,11 @@ private:
     /// through the form by being kept.
     std::optional<Parameter> m_projectGain;
     std::optional<Parameter> m_projectDelay;
+
+    //True while setFromProject is writing the fields: what it writes is not
+    //an edit, and reading it back as one would throw away the parameters of
+    //the plant it is showing.
+    bool m_filling = false;
 
     SystemDescriptionReader m_reader;
 };

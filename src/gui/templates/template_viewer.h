@@ -143,8 +143,6 @@ private slots:
 
     void applyCheckboxes ();
 
-    void syncSliders();
-
     void on_recomputeButton_clicked();
     void on_proposeButton_clicked();
 
@@ -159,8 +157,18 @@ private:
     std::vector<qftbx::TemplateEngine::EpsilonProposal> m_proposals;
     void showProposals();
     bool plotted = false;
-    void plotLine(qint32 pos, QVector <QCPGraph *> & graphs, const std::vector<double> & phases,
-                  const std::vector<double> & magnitudes, bool isContour, bool visible, qint32 frequencyIndex);
+    /// The cloud of a frequency, as the points it is: a value set has no
+    /// order, so there is no line to draw through it.
+    void plotCloud(const std::vector<double> & phases, const std::vector<double> & magnitudes,
+                   qint32 frequency);
+
+    /// And its contour, as the closed curve it is. A QCPCurve and not a
+    /// QCPGraph: a graph is a function of its x, and it SORTS its points by
+    /// phase, which is what made the line cross the cloud instead of
+    /// walking its border - a contour is multivalued in phase by nature.
+    void plotContour(const std::vector<double> & phases, const std::vector<double> & magnitudes,
+                     qint32 frequency);
+
     void addFrequencyRow (QColor color, qint32 pos);
     FrequencyLegend * legend = nullptr;
     void clearDiagram();
@@ -174,17 +182,25 @@ private:
 
     //The graphs BELONG TO QCustomPlot, which frees them on clearGraphs():
     //only these containers are the viewer's.
+    //The clouds are scatters, where the order of the points does not
+    //matter; the contours are curves, where it is everything.
     QVector <QCPGraph *> templateGraphs;
-    QVector <QCPGraph *> contourGraphs;
+    //One entry per frequency, and inside it one curve per piece of its
+    //contour: a cloud with more than one component is walked once per
+    //component, so the row of the legend and the curve are not one to one.
+    QVector <QVector <QCPCurve *>> contourCurves;
     QMap <qreal, QColor> colorByFrequency;
 
     ContourRecomputer recompute;
 
     QVector <QLineEdit *> epsilonEdits;
-    QVector <QSlider *> epsilonSliders;
 
+    //What the buttons say when the card opens: the contour is drawn and the
+    //cloud behind it is not. The second flag said the opposite while the
+    //drawing hardcoded the truth, so the first press of "Hide contour" only
+    //set the text it already had.
     bool templatesVisible = false;
-    bool contourVisible = false;
+    bool contourVisible = true;
 
 
     bool plot = false;

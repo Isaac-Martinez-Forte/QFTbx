@@ -10,6 +10,7 @@
 #include "src/core/common/text_tokens.h"
 #include "src/core/common/exception.h"
 #include "ui_templates_form.h"
+#include "src/gui/common/field_mark.h"
 
 #include "src/gui/application/error_message.h"
 
@@ -61,6 +62,9 @@ TemplatesForm::TemplatesForm(QWidget *parent) :
     ui->cudaCheck->setVisible(false);
 #endif
 
+    //The defaults from the start, and not only when a plant arrives: a form
+    //whose radios are all unchecked says nothing about what it will do.
+    selectDefaultsWhereEmpty();
 }
 
 TemplatesForm::~TemplatesForm()
@@ -242,7 +246,7 @@ void TemplatesForm::proposeEpsilon()
         worstGap = std::max(worstGap, p.coarseness());
     }
     ui->epsilonEdit->setText(values.join(QStringLiteral(" ")));
-    ui->epsilonEdit->setStyleSheet("background : white");
+    markWrong(ui->epsilonEdit, false);
     ui->epsilonEdit->setToolTip(tr("The least epsilon at which the contour of each template closes, over the grids "
                                    "as entered; below the connecting value the template splits. The gap is the "
                                    "largest distance between neighbouring points of the template as a share of its "
@@ -363,6 +367,18 @@ void TemplatesForm::buildRow(QWidget *widget, QVector <ParLineEdit> & par,
     rLog->setText(tr("LogSpace"));
     rManual->setText(tr("Manual"));
 
+    rLin->setToolTip(tr("Sweep this parameter at evenly spaced values over its range."));
+    lin->setToolTip(tr("How many values, evenly spaced, from the lower end of the range to "
+                       "the upper one."));
+    rLog->setToolTip(tr("Sweep this parameter at values evenly spaced in the logarithm of "
+                        "its range, which is what a parameter spanning decades asks for."));
+    log->setToolTip(tr("How many values, evenly spaced in the logarithm, from the lower end "
+                       "of the range to the upper one."));
+    rManual->setToolTip(tr("Sweep this parameter at the values written here, and at no "
+                           "others."));
+    manual->setToolTip(tr("The values themselves, separated by spaces. They need not lie in "
+                          "the range and they need not be evenly spaced."));
+
     par.push_back(ParLineEdit(lin, log, manual));
 
     ThreeRadioButtons radio;
@@ -432,19 +448,19 @@ void TemplatesForm::on_okButton_clicked()
     //The weighting of the Nichols plane has to be a positive number.
     if (ui->metricCombo->currentIndex() == 0 && !(ui->dbPerDegreeEdit->text().toDouble() > 0.0)){
         errorMessage(tr("The decibels per degree must be a positive number."), tr("Template computation"));
-        ui->dbPerDegreeEdit->setStyleSheet("background : red");
+        markWrong(ui->dbPerDegreeEdit, true, tr("The decibels per degree must be a positive number."));
         return;
     }
-    ui->dbPerDegreeEdit->setStyleSheet("background : white");
+    markWrong(ui->dbPerDegreeEdit, false);
 
     if (ui->epsilonEdit->text().isEmpty()){
         errorMessage(tr("No epsilon value was entered."), tr("Template computation"));
-        ui->epsilonEdit->setStyleSheet("background : red");
+        markWrong(ui->epsilonEdit, true, tr("No epsilon value was entered."));
         epsilonValues.clear();
         return;
     }else {
 
-        ui->epsilonEdit->setStyleSheet("background : white");
+        markWrong(ui->epsilonEdit, false);
         const std::vector<std::string> v = qftbx::text::tokens(ui->epsilonEdit->text().toStdString());
 
         qreal lastEpsilon = 0;
@@ -457,7 +473,7 @@ void TemplatesForm::on_okButton_clicked()
             const std::optional<double> epsilonValue = evaluateNumber(QString::fromStdString(s));
             if (!epsilonValue.has_value()) {
                 errorMessage(tr("Invalid epsilon expression."), tr("Template computation"));
-                ui->epsilonEdit->setStyleSheet("background : red");
+                markWrong(ui->epsilonEdit, true, tr("Invalid epsilon expression."));
                 epsilonValues.clear();
                 return;
             }
@@ -467,7 +483,8 @@ void TemplatesForm::on_okButton_clicked()
             //field ("0/0" evaluates to a NaN, not an error).
             if (!std::isfinite(lastEpsilon) || lastEpsilon <= 0.0) {
                 errorMessage(tr("Every epsilon must be a positive finite number."), tr("Template computation"));
-                ui->epsilonEdit->setStyleSheet("background : red");
+                markWrong(ui->epsilonEdit, true,
+                          tr("Every epsilon must be a positive finite number."));
                 epsilonValues.clear();
                 return;
             }

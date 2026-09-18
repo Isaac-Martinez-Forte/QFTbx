@@ -13,6 +13,9 @@
   <layout class="QVBoxLayout" name="formLayout">
    <item>
     <widget class="QComboBox" name="modeStack">
+     <property name="toolTip">
+      <string>How the design frequencies are given: typed one by one, spaced between two ends, or read from a file.</string>
+     </property>
      <item>
       <property name="text">
        <string>Enter vector manually</string>
@@ -50,7 +53,11 @@
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="manualValues"/>
+        <widget class="QLineEdit" name="manualValues">
+         <property name="toolTip">
+           <string>The frequencies themselves, in rad/s, separated by spaces. Everything downstream is computed AT them, so a handful chosen where the design is decided is worth more than a dense sweep.</string>
+          </property>
+        </widget>
        </item>
        <item>
         <spacer name="manualSpacer">
@@ -79,7 +86,11 @@
           </widget>
          </item>
          <item row="0" column="1">
-          <widget class="QLineEdit" name="logStart"/>
+          <widget class="QLineEdit" name="logStart">
+           <property name="toolTip">
+             <string>The first design frequency, in rad/s.</string>
+            </property>
+          </widget>
          </item>
          <item row="1" column="0">
           <widget class="QLabel" name="label_7">
@@ -89,7 +100,11 @@
           </widget>
          </item>
          <item row="1" column="1">
-          <widget class="QLineEdit" name="logEnd"/>
+          <widget class="QLineEdit" name="logEnd">
+           <property name="toolTip">
+             <string>The last design frequency, in rad/s.</string>
+            </property>
+          </widget>
          </item>
          <item row="2" column="0">
           <widget class="QLabel" name="label_8">
@@ -99,7 +114,11 @@
           </widget>
          </item>
          <item row="2" column="1">
-          <widget class="QLineEdit" name="logCount"/>
+          <widget class="QLineEdit" name="logCount">
+           <property name="toolTip">
+             <string>How many frequencies between the two ends, the ends included.</string>
+            </property>
+          </widget>
          </item>
         </layout>
        </item>
@@ -130,7 +149,11 @@
           </widget>
          </item>
          <item row="0" column="1">
-          <widget class="QLineEdit" name="linStart"/>
+          <widget class="QLineEdit" name="linStart">
+           <property name="toolTip">
+             <string>The first design frequency, in rad/s.</string>
+            </property>
+          </widget>
          </item>
          <item row="1" column="0">
           <widget class="QLabel" name="label_4">
@@ -140,7 +163,11 @@
           </widget>
          </item>
          <item row="1" column="1">
-          <widget class="QLineEdit" name="linEnd"/>
+          <widget class="QLineEdit" name="linEnd">
+           <property name="toolTip">
+             <string>The last design frequency, in rad/s.</string>
+            </property>
+          </widget>
          </item>
          <item row="2" column="0">
           <widget class="QLabel" name="label_5">
@@ -150,7 +177,11 @@
           </widget>
          </item>
          <item row="2" column="1">
-          <widget class="QLineEdit" name="linCount"/>
+          <widget class="QLineEdit" name="linCount">
+           <property name="toolTip">
+             <string>How many frequencies between the two ends, the ends included.</string>
+            </property>
+          </widget>
          </item>
         </layout>
        </item>
@@ -180,6 +211,9 @@
        </item>
        <item>
         <widget class="QPushButton" name="fileButton">
+         <property name="toolTip">
+          <string>Reads the frequencies from a text file: the numbers in it, separated by spaces or line breaks.</string>
+         </property>
          <property name="text">
           <string>Choose filePath</string>
          </property>
@@ -209,6 +243,9 @@
      </item>
      <item>
       <widget class="QPushButton" name="okButton">
+       <property name="toolTip">
+        <string>Applies the frequencies. Changing them throws away the templates and everything computed from them.</string>
+       </property>
        <property name="text">
         <string>Apply</string>
        </property>

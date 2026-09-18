@@ -6,6 +6,7 @@
 
 #include "src/gui/application/error_message.h"
 #include "src/gui/common/plot_setup.h"
+#include "src/gui/common/trace_segments.h"
 
 
 namespace qftbx {
@@ -21,6 +22,10 @@ LoopBoundariesViewer::LoopBoundariesViewer(QWidget *parent) :
 
     legend = new FrequencyLegend(ui->legendHolder);
     ui->legendHolder->layout()->addWidget(legend);
+
+    //The column of controls does not take half the card: the chart needs
+    //the width more than the buttons do.
+    narrowSideColumn(ui->sideLayout);
     connect(legend, &FrequencyLegend::rowToggled, this, &LoopBoundariesViewer::applyCheckboxes);
 }
 
@@ -115,22 +120,21 @@ void LoopBoundariesViewer::showDiagram(){
             secondIndex++;
         }
 
+        //Where the boundary of a frequency is more than one curve, the two
+        //diagrams are cut at the same places: the Nyquist points are the
+        //Nichols ones read in polar form, one for one.
+        const std::vector<std::size_t> cuts = qftbx::segmentEnds(boundNichols);
+
         if (nichols){
-            QCPCurve *curve = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-            curve->setData(qftbx::toQVector(phases), qftbx::toQVector(magnitudes));
-            curve->setPen(QPen(color, kCurveWidth));
+            curves.push_back(piecesOf(phases, magnitudes, cuts, color));
             addFrequencyRow(color, frequencyIndex, tr("Nichols"));
-            curves.push_back(curve);
         }
 
         //The Nyquist-only mode drew nothing: the curve also required
         //the Nichols flag.
         if (nyquist){
-            QCPCurve *nyquistCurve = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-            nyquistCurve->setData(qftbx::toQVector(realParts), qftbx::toQVector(imaginaryParts));
-            nyquistCurve->setPen(QPen(color2, kCurveWidth));
+            curves.push_back(piecesOf(realParts, imaginaryParts, cuts, color2));
             addFrequencyRow(color2, frequencyIndex, tr("Nyquist"));
-            curves.push_back(nyquistCurve);
         }
 
         frequencyIndex++;
@@ -142,12 +146,42 @@ void LoopBoundariesViewer::showDiagram(){
     ui->plot->replot();
 }
 
+//One curve per piece, all of them one row of the legend.
+QVector<QCPCurve *> LoopBoundariesViewer::piecesOf(const std::vector<double> & x,
+                                                  const std::vector<double> & y,
+                                                  const std::vector<std::size_t> & cuts,
+                                                  const QColor & color)
+{
+    QVector<QCPCurve *> pieces;
+
+    std::size_t from = 0;
+    for (const std::size_t to : cuts) {
+        std::vector<double> partX(x.begin() + std::ptrdiff_t(from), x.begin() + std::ptrdiff_t(to));
+        std::vector<double> partY(y.begin() + std::ptrdiff_t(from), y.begin() + std::ptrdiff_t(to));
+        from = to;
+
+        if (partX.empty()) {
+            continue;
+        }
+
+        QCPCurve * curve = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
+        curve->setData(qftbx::toQVector(partX), qftbx::toQVector(partY));
+        curve->setPen(QPen(color, kCurveWidth));
+
+        if (partX.size() == 1) {
+            curve->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc, 4));
+        }
+
+        pieces.push_back(curve);
+    }
+
+    return pieces;
+}
+
 void LoopBoundariesViewer::applyCheckboxes(){
-    for (qint32 i = 0; i < legend->rowCount(); i++){
-        if (!legend->isRowChecked(i)){
-            curves.at(i)->setVisible(false);
-        }else {
-            curves.at(i)->setVisible(true);
+    for (qint32 i = 0; i < legend->rowCount() && i < curves.size(); i++){
+        for (QCPCurve * piece : curves.at(i)) {
+            piece->setVisible(legend->isRowChecked(i));
         }
     }
     ui->plot->replot();

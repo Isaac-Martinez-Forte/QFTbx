@@ -1,8 +1,6 @@
 \documentclass[a4paper,10pt]{article}
 \usepackage[utf8]{inputenc}
 
-
-%opening
 \title{Especificaciones soportadas en el QFTbx}
 \author{Isaac Martínez Forte}
 
@@ -10,30 +8,45 @@
 
 \maketitle
 
+Con $P$ una planta cualquiera de la familia, $C$ el controlador,
+$L = PC$ el lazo de esa planta y $F$ el prefiltro, las seis restricciones
+que QFTbx admite son las que recoge la literatura (tesis, 2022,
+ecuaciones 1.6 a 1.11). Todas son cotas sobre la magnitud de una función de
+transferencia en lazo cerrado, y todas han de cumplirse para toda la familia
+de plantas.
+
+Seguimiento:
+
+$$\alpha(\omega) \leq \left| F\frac{L}{1+L} \right| \leq \beta(\omega)$$
+
 Estabilidad robusta:
 
- 
- $$\left| F\frac{PGH}{1+PGH} \right| \leq W_s$$
- 
+$$\left| \frac{L}{1+L} \right| \leq \lambda$$
 
- Ruido del sensor:
- 
- $$\left| F\frac{1}{1+PGH} \right| \leq W_s$$
+Eliminación de ruido del sensor:
 
- Rechazo de perturbaciones a la entrada de la planta (PPE):
- 
- $$\left| F\frac{P}{1+PGH} \right| \leq W_s$$
- 
- Rechazo de perturbaciones a la salida de la planta (RPS):
- 
- $$\left| F\frac{H}{1+PGH} \right| \leq W_s$$
- 
- Esfuerzo de contro:
- 
- $$\left| F\frac{G}{1+PGH} \right| \leq W_s$$
- 
- Seguimiento:
- 
- $$W_{s_{a}}\leq \left| F\frac{PG}{1+PGH} \right| \leq W_{s_{b}}$$
+$$\left| \frac{L}{1+L} \right| \leq \delta_n(\omega)$$
+
+Rechazo de perturbaciones a la salida de la planta (RPS):
+
+$$\left| \frac{1}{1+L} \right| \leq \delta_{po}(\omega)$$
+
+Rechazo de perturbaciones a la entrada de la planta (RPE):
+
+$$\left| \frac{P}{1+L} \right| \leq \delta_{pi}(\omega)$$
+
+Esfuerzo de control:
+
+$$\left| \frac{C}{1+L} \right| \leq \delta_{ce}(\omega)$$
+
+\bigskip
+
+Dos observaciones sobre lo que el programa hace con ellas. El prefiltro $F$
+multiplica el lazo cerrado entero en cada frecuencia, de modo que desplaza la
+banda de $|FL/(1+L)|$ pero no la estrecha: lo que el ajuste del lazo tiene que
+conseguir es que la DISPERSIÓN de $|L/(1+L)|$ sobre la familia quepa dentro de
+$\beta - \alpha$, y el prefiltro se diseña después para deslizarla a su sitio.
+QFTbx calcula la frontera de seguimiento contra esa diferencia y todavía no
+diseña $F$. Y no hay sensor $H$: un sensor distinto de 1 forma parte de $P$.
 
 \end{document}

@@ -27,10 +27,18 @@
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="phaseStart"/>
+         <widget class="QLineEdit" name="phaseStart">
+          <property name="toolTip">
+            <string>The left edge of the Nichols grid, in degrees. A boundary is only computed inside the window.</string>
+           </property>
+         </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="phaseEnd"/>
+         <widget class="QLineEdit" name="phaseEnd">
+          <property name="toolTip">
+            <string>The right edge of the Nichols grid, in degrees.</string>
+           </property>
+         </widget>
         </item>
         <item>
          <widget class="QLabel" name="label_2">
@@ -40,7 +48,11 @@
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="phasePoints"/>
+         <widget class="QLineEdit" name="phasePoints">
+          <property name="toolTip">
+            <string>How many phases the grid is cut at. More points give a finer boundary and cost proportionally more.</string>
+           </property>
+         </widget>
         </item>
        </layout>
       </item>
@@ -54,10 +66,18 @@
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="magnitudeStart"/>
+         <widget class="QLineEdit" name="magnitudeStart">
+          <property name="toolTip">
+            <string>The bottom of the Nichols grid, in dB.</string>
+           </property>
+         </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="magnitudeEnd"/>
+         <widget class="QLineEdit" name="magnitudeEnd">
+          <property name="toolTip">
+            <string>The top of the Nichols grid, in dB.</string>
+           </property>
+         </widget>
         </item>
         <item>
          <widget class="QLabel" name="label_3">
@@ -67,7 +87,11 @@
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="magnitudePoints"/>
+         <widget class="QLineEdit" name="magnitudePoints">
+          <property name="toolTip">
+            <string>How many magnitudes the grid is cut at.</string>
+           </property>
+         </widget>
         </item>
        </layout>
       </item>
@@ -80,16 +104,24 @@
       <layout class="QVBoxLayout" name="verticalLayout_3">
        <item>
         <widget class="QRadioButton" name="contorno">
+         <property name="toolTip">
+          <string>Sweep the CONTOUR of each template: far fewer points, and the same boundary wherever the contour closed.</string>
+         </property>
          <property name="text">
           <string>Contour</string>
          </property>
+          <attribute name="buttonGroup"><string notr="true">boundarySource</string></attribute>
         </widget>
        </item>
        <item>
         <widget class="QRadioButton" name="fullTemplateRadio">
+         <property name="toolTip">
+          <string>Sweep the whole template. Slower, and what to use where no contour closed.</string>
+         </property>
          <property name="text">
           <string>Full template</string>
          </property>
+          <attribute name="buttonGroup"><string notr="true">boundarySource</string></attribute>
         </widget>
        </item>
       </layout>
@@ -111,16 +143,24 @@
       <layout class="QVBoxLayout" name="verticalLayout_2">
        <item>
         <widget class="QRadioButton" name="cudaCheck">
+         <property name="toolTip">
+          <string>Sweep the grid on the GPU.</string>
+         </property>
          <property name="text">
           <string>CUDA</string>
          </property>
+          <attribute name="buttonGroup"><string notr="true">processor</string></attribute>
         </widget>
        </item>
        <item>
         <widget class="QRadioButton" name="cpu">
+         <property name="toolTip">
+          <string>Sweep the grid on the processor.</string>
+         </property>
          <property name="text">
           <string>CPU</string>
          </property>
+          <attribute name="buttonGroup"><string notr="true">processor</string></attribute>
         </widget>
        </item>
       </layout>
@@ -137,7 +177,11 @@
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="infinityEdit"/>
+      <widget class="QLineEdit" name="infinityEdit">
+       <property name="toolTip">
+         <string>A finite number to write in place of infinity when the boundaries are exported. It takes no part in the computation; empty means none.</string>
+        </property>
+      </widget>
      </item>
      <item>
       <spacer name="infinitySpacer">
@@ -184,6 +228,9 @@
      </item>
      <item>
       <widget class="QPushButton" name="okButton">
+       <property name="toolTip">
+        <string>Computes one boundary per design frequency over this grid.</string>
+       </property>
        <property name="text">
         <string>Compute</string>
        </property>
@@ -193,5 +240,9 @@
    </item>
   </layout>
  </widget>
+ <buttongroups>
+  <buttongroup name="boundarySource"/>
+  <buttongroup name="processor"/>
+ </buttongroups>
  <resources/>
 </ui>

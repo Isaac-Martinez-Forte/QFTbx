@@ -234,6 +234,93 @@ TEST(RoundTripReparametrised, AReparametrisedParameterSurvivesSaveAndLoad)
 // out of it. Two designs for the same problem differ by hundreds of units of
 // gain depending on how the phase grid was read, so a file that keeps the
 // controller and forgets the reading keeps a number nobody can reproduce.
+// A specification that skips a frequency of its band can only say so
+// through the exception list, so the file has to carry it.
+TEST(RoundTripSettings, TheFrequenciesASpecificationSkipsSurviveSaveAndLoad)
+{
+    QTemporaryDir temporary;
+    ASSERT_TRUE(temporary.isValid());
+    const std::string path = temporary.filePath("skipped.qft").toStdString();
+
+    ProjectReader original;
+    original.load(std::string(QFTBX_TEST_DATA_DIR "/planta1.qft"));
+    ASSERT_NE(original.specifications(), nullptr);
+
+    //The first slot the file uses, taken out of one frequency. The records
+    //are read-only through the reader, so they are copied, edited and
+    //written from the copy - which is what the window does too.
+    qftbx::SpecificationRecords edited;
+    std::size_t slot = qftbx::kSpecificationCount;
+    for (std::size_t i = 0; i < qftbx::kSpecificationCount; ++i) {
+        edited.at(i) = original.specifications()->at(i).clone();
+        if (slot == qftbx::kSpecificationCount && edited.at(i).used) {
+            slot = i;
+        }
+    }
+    ASSERT_LT(slot, qftbx::kSpecificationCount);
+
+    const double hole = (edited.at(slot).omegaStart + edited.at(slot).omegaEnd) / 2.0;
+    edited.at(slot).skipped.push_back(hole);
+
+    ProjectContent content;
+    content.specifications = &edited;
+
+    ProjectWriter writer;
+    writer.save(path, content);
+
+    ProjectReader reloaded;
+    reloaded.load(path);
+    ASSERT_NE(reloaded.specifications(), nullptr);
+
+    const qftbx::SpecificationRecord & back = reloaded.specifications()->at(slot);
+    ASSERT_EQ(back.skipped.size(), 1u);
+    EXPECT_DOUBLE_EQ(back.skipped.front(), hole);
+
+    //And the specification the engines see skips it.
+    const qftbx::Specification specification =
+            qftbx::toSpecification(back, qftbx::SpecificationType::TrackingLower);
+    EXPECT_FALSE(specification.appliesAt(hole));
+    EXPECT_TRUE(specification.appliesAt(back.omegaStart));
+}
+
+// The description of a plant is text the user wrote and nothing derives it:
+// if the file does not carry it, it is gone. A file written before it
+// existed simply has none, which is what an empty description is.
+TEST(RoundTripSettings, TheDescriptionOfThePlantSurvivesSaveAndLoad)
+{
+    QTemporaryDir temporary;
+    ASSERT_TRUE(temporary.isValid());
+    const std::string path = temporary.filePath("described.qft").toStdString();
+
+    ProjectReader original;
+    original.load(std::string(QFTBX_TEST_DATA_DIR "/planta1.qft"));
+    ASSERT_NE(original.plant(), nullptr);
+
+    EXPECT_TRUE(original.plant()->description().empty())
+        << "a file written before the description existed has none";
+
+    original.plant()->setDescription("The one of the 2007 paper, inertia uncertain");
+
+    ProjectContent content;
+    content.plant = original.plant();
+
+    ProjectWriter writer;
+    writer.save(path, content);
+
+    ProjectReader reloaded;
+    reloaded.load(path);
+    ASSERT_NE(reloaded.plant(), nullptr);
+    EXPECT_EQ(reloaded.plant()->description(),
+              "The one of the 2007 paper, inertia uncertain");
+
+    //And it is not part of what tells one plant from another: a project
+    //whose description changed keeps its templates.
+    EXPECT_TRUE(reloaded.plant()->sameAs(*original.plant()));
+    reloaded.plant()->setDescription("something else entirely");
+    EXPECT_TRUE(reloaded.plant()->sameAs(*original.plant()))
+        << "a description is not what makes a plant a different plant";
+}
+
 TEST(RoundTripSettings, TheRunAndTheVerdictSurviveSaveAndLoad)
 {
     QTemporaryDir temporary;

@@ -33,6 +33,7 @@
 #include <QTemporaryDir>
 #include <QImage>
 #include <QPixmap>
+#include <QPainter>
 #include <QFile>
 #include "src/gui/common/plot_export.h"
 #include <QSet>
@@ -44,6 +45,8 @@
 #include <QDialog>
 #include <QLabel>
 #include <QLineEdit>
+#include <QSlider>
+#include <QSplitter>
 #include <QMouseEvent>
 #include <QProgressBar>
 #include <QPushButton>
@@ -52,12 +55,19 @@
 #include <QDialogButtonBox>
 #include <QIcon>
 #include <QDockWidget>
+#include <limits>
 #include <QToolButton>
 #include <QStackedWidget>
+#include <QTableWidget>
 #include <QString>
 #include <QStringList>
 
 #include "src/app/project_controller.h"
+#include "src/gui/common/formula_delegate.h"
+#include "src/gui/common/field_mark.h"
+#include "src/gui/common/trace_segments.h"
+#include "src/gui/common/formula_view.h"
+#include "src/core/system/system_formula.h"
 #include "src/gui/application/about.h"
 #include "src/gui/application/language.h"
 #include "src/gui/application/main_window.h"
@@ -71,7 +81,7 @@
 #include "src/gui/plant/bode_viewer.h"
 #include "src/core/math/sequence_vectors.h"
 #include "src/core/system/polynomial_form.h"
-#include "src/gui/plant/uncertainty_dialog.h"
+#include "src/gui/plant/uncertainty_panel.h"
 #include "src/gui/boundaries/boundary_viewer.h"
 #include "src/gui/boundaries/boundary_union_viewer.h"
 #include "src/gui/loopshaping/loop_shaping_viewer.h"
@@ -154,6 +164,28 @@ void press(QWidget * dialog, const char * name)
     }
 }
 
+//The forms mark what is wrong WHERE it is wrong and say it in their status
+//line, instead of stopping everything with a message box.
+QString complaintOf(QWidget * form)
+{
+    QLabel * status = form->findChild<QLabel *>(QStringLiteral("statusLabel"));
+    return status != nullptr ? status->text() : QString();
+}
+
+bool isMarked(QWidget * form, const char * name)
+{
+    QWidget * field = form->findChild<QWidget *>(QString::fromUtf8(name));
+    return field != nullptr && field->property("wrong").toBool();
+}
+
+//One button and two steps: nothing is applied that has not been verified,
+//and verifying is what draws the formula.
+void verifyAndApply(QWidget * form)
+{
+    press(form, "okButton");
+    press(form, "okButton");
+}
+
 //A minimal one-frequency boundary set: one named boundary of three points
 //over the default Nichols window. Enough to drive the drawing code, which
 //is what the viewer tests are after.
@@ -174,26 +206,37 @@ BoundaryData oneBoundary()
 
 // ---------------------------------------------------------------------------
 
-TEST_F(GuiSmoke, PlantDialogBuildsAZeroPoleGainPlant)
+TEST_F(GuiSmoke, PlantFormBuildsAZeroPoleGainPlant)
 {
-    PlantForm dialog;
+    PlantForm form;
 
-    type(&dialog, "nameEdit", "smoke");
-    check(&dialog, "zpkRadio");
-    type(&dialog, "zpkNumerator", "2");
-    type(&dialog, "zpkDenominator", "5 30");
-    type(&dialog, "zpkGain", "3");
-    type(&dialog, "zpkDelay", "0");
+    type(&form, "nameEdit", "smoke");
+    type(&form, "descriptionEdit", "the one of the smoke test");
+    check(&form, "transferFunctionRadio");
+    check(&form, "zerosPolesRadio");
+    check(&form, "zpkRadio");
+    type(&form, "numeratorEdit", "2");
+    type(&form, "denominatorEdit", "5 30");
+    type(&form, "gainEdit", "3");
+    type(&form, "delayEdit", "0");
 
-    press(&dialog, "okButton");
+    //Verifying draws the formula and offers to apply; nothing is applied
+    //before that.
+    press(&form, "okButton");
+    EXPECT_FALSE(form.wasAccepted()) << "verifying is not applying";
+    EXPECT_EQ(child<QPushButton>(&form, "okButton")->text(), QString("Apply"));
 
-    ASSERT_TRUE(dialog.wasAccepted()) << "the dialog rejected valid data";
+    press(&form, "okButton");
+
+    ASSERT_TRUE(form.wasAccepted()) << "the form rejected valid data: "
+                                    << complaintOf(&form).toStdString();
 
     //Ownership comes with it: the window would hand it to the project.
-    std::unique_ptr<LtiSystem> plant(dialog.takePlant());
+    std::unique_ptr<LtiSystem> plant(form.takePlant());
     ASSERT_NE(plant, nullptr);
     EXPECT_EQ(plant->type(), LtiSystem::SystemType::ZeroPoleGain);
     EXPECT_EQ(plant->name(), "smoke");
+    EXPECT_EQ(plant->description(), "the one of the smoke test");
 
     //The numbers must have travelled into parameter VALUES.
     ASSERT_EQ(plant->numerator().size(), 1u);
@@ -205,73 +248,192 @@ TEST_F(GuiSmoke, PlantDialogBuildsAZeroPoleGainPlant)
     EXPECT_DOUBLE_EQ(plant->delay().nominal(), 0.0);
 }
 
-TEST_F(GuiSmoke, PlantDialogRejectsAnInvalidExpression)
+TEST_F(GuiSmoke, ThePathOfTheFamilyStaysMarkedWholeAndTheFormulaFollowsIt)
 {
-    //A malformed coefficient must be reported, not crash the application
-    //(the expression parser throws and the dialog used to let it through).
-    PlantForm dialog;
+    //Every level of the path is a group of its own, so choosing the leaf
+    //does not unmark the branch it hangs from - a plant written as zeros
+    //and poles is a transfer function first.
+    PlantForm form;
 
-    type(&dialog, "nameEdit", "broken");
-    check(&dialog, "zpkRadio");
-    type(&dialog, "zpkNumerator", "2");
-    type(&dialog, "zpkDenominator", "5");
-    type(&dialog, "zpkGain", "3*/");
-    type(&dialog, "zpkDelay", "0");
+    type(&form, "nameEdit", "path");
+    check(&form, "transferFunctionRadio");
+    check(&form, "zerosPolesRadio");
+    check(&form, "tcgRadio");
 
-    press(&dialog, "okButton");
+    EXPECT_TRUE(child<QRadioButton>(&form, "transferFunctionRadio")->isChecked());
+    EXPECT_TRUE(child<QRadioButton>(&form, "zerosPolesRadio")->isChecked());
+    EXPECT_TRUE(child<QRadioButton>(&form, "tcgRadio")->isChecked());
 
-    EXPECT_FALSE(dialog.wasAccepted());
-    EXPECT_EQ(dialog.takePlant(), nullptr);
-    EXPECT_FALSE(m_reported.empty()) << "the rejection must be reported";
+    //And the fields are named for the family in use.
+    EXPECT_EQ(child<QLabel>(&form, "numeratorLabel")->text(), QString("Zeros:"));
+    EXPECT_EQ(child<QLabel>(&form, "denominatorLabel")->text(), QString("Poles:"));
+
+    type(&form, "numeratorEdit", "");
+    type(&form, "denominatorEdit", "2");
+    type(&form, "gainEdit", "5");
+
+    QStackedWidget * figures = child<QStackedWidget>(&form, "figureStack");
+    ASSERT_NE(figures, nullptr);
+    EXPECT_EQ(figures->currentIndex(), 0) << "the figure of the family until it is verified";
+
+    press(&form, "okButton");
+
+    EXPECT_EQ(figures->currentIndex(), 1) << "verified, the formula takes its place";
+
+    FormulaView * formula = child<FormulaView>(&form, "formulaView");
+    ASSERT_NE(formula, nullptr);
+    EXPECT_EQ(formula->latex().toStdString(),
+              "5 \\cdot \\frac{1}{\\left(1 + \\frac{s}{2}\\right)}");
+
+    //Changing the family takes the formula away again: it described the
+    //other one.
+    check(&form, "zpkRadio");
+    EXPECT_EQ(figures->currentIndex(), 0);
+    EXPECT_EQ(child<QPushButton>(&form, "okButton")->text(), QString("Verify"));
 }
 
-TEST_F(GuiSmoke, PlantDialogRejectsAnInvalidCoefficient)
+TEST_F(GuiSmoke, PlantFormRejectsAnInvalidExpression)
+{
+    //A malformed coefficient must be reported, not crash the application
+    //(the expression parser throws and the form used to let it through).
+    PlantForm form;
+
+    type(&form, "nameEdit", "broken");
+    check(&form, "zpkRadio");
+    type(&form, "numeratorEdit", "2");
+    type(&form, "denominatorEdit", "5");
+    type(&form, "gainEdit", "3*/");
+    type(&form, "delayEdit", "0");
+
+    verifyAndApply(&form);
+
+    EXPECT_FALSE(form.wasAccepted());
+    EXPECT_EQ(form.takePlant(), nullptr);
+    EXPECT_FALSE(complaintOf(&form).isEmpty()) << "the rejection must be said";
+    EXPECT_TRUE(isMarked(&form, "gainEdit")) << "the field that is wrong must be marked";
+}
+
+TEST_F(GuiSmoke, PlantFormRejectsAnInvalidCoefficient)
 {
     //The gain path reports a malformed expression, but buildParameters
     //catches the parser error per COEFFICIENT and substitutes 0, so a
     //numerator of "1*/" became the polynomial 0 with nothing said.
-    PlantForm dialog;
+    PlantForm form;
 
-    type(&dialog, "nameEdit", "broken-numerator");
-    check(&dialog, "zpkRadio");
-    type(&dialog, "zpkNumerator", "1*/");
-    type(&dialog, "zpkDenominator", "5 30");
-    type(&dialog, "zpkGain", "3");
-    type(&dialog, "zpkDelay", "0");
+    type(&form, "nameEdit", "broken-numerator");
+    check(&form, "zpkRadio");
+    type(&form, "numeratorEdit", "1*/");
+    type(&form, "denominatorEdit", "5 30");
+    type(&form, "gainEdit", "3");
+    type(&form, "delayEdit", "0");
 
-    press(&dialog, "okButton");
+    verifyAndApply(&form);
 
-    EXPECT_FALSE(dialog.wasAccepted())
-        << "a malformed coefficient was accepted";
-    EXPECT_FALSE(m_reported.empty()) << "the rejection must be reported";
+    EXPECT_FALSE(form.wasAccepted()) << "a malformed coefficient was accepted";
+    EXPECT_FALSE(complaintOf(&form).isEmpty()) << "the rejection must be said";
+    EXPECT_TRUE(isMarked(&form, "numeratorEdit"));
 
-    dialog.takePlant();
+    form.takePlant();
 }
 
-TEST_F(GuiSmoke, PlantDialogRejectsAReservedParameterName)
+TEST_F(GuiSmoke, PlantFormRejectsAReservedParameterName)
 {
     //"pi" is a constant of the expression grammar: a parameter under that
     //name would be read as the constant, never as the parameter. Naming a
-    //parameter after anything the grammar defines used to pass the dialog -
+    //parameter after anything the grammar defines used to pass the form -
     //only FUNCTION names were checked - and fail much later.
-    PlantForm dialog;
+    PlantForm form;
 
-    type(&dialog, "nameEdit", "reserved");
-    check(&dialog, "zpkRadio");
-    type(&dialog, "zpkNumerator", "1");
-    type(&dialog, "zpkDenominator", "pi");
-    type(&dialog, "zpkGain", "1");
-    type(&dialog, "zpkDelay", "0");
+    type(&form, "nameEdit", "reserved");
+    check(&form, "zpkRadio");
+    type(&form, "numeratorEdit", "1");
+    type(&form, "denominatorEdit", "pi");
+    type(&form, "gainEdit", "1");
+    type(&form, "delayEdit", "0");
 
-    press(&dialog, "okButton");
+    verifyAndApply(&form);
 
-    EXPECT_FALSE(dialog.wasAccepted()) << "a reserved parameter name was accepted";
-    ASSERT_FALSE(m_reported.empty()) << "the rejection must be reported";
-    EXPECT_TRUE(m_reported.join(QChar(' ')).contains("pi"))
-        << "the message must name the offending identifier: "
-        << m_reported.join(QChar(' ')).toStdString();
+    EXPECT_FALSE(form.wasAccepted()) << "a reserved parameter name was accepted";
+    EXPECT_TRUE(complaintOf(&form).contains("pi"))
+        << "the complaint must name the offending identifier: "
+        << complaintOf(&form).toStdString();
+    EXPECT_TRUE(isMarked(&form, "denominatorEdit"));
 
-    dialog.takePlant();
+    form.takePlant();
+}
+
+TEST_F(GuiSmoke, ANameWithADigitInItIsTheWholeName)
+{
+    //The reader took the LETTERS of a coefficient as its name, so "z1" was
+    //a parameter called "z": the ranges of a controller written with z1 and
+    //p1 were filed under names nothing else in the program had heard of,
+    //and the uncertainty page came up empty over a project that had them.
+    ControllerForm form;
+
+    check(&form, "zpkRadio");
+    type(&form, "numeratorEdit", "z1");
+    type(&form, "denominatorEdit", "p1 p2");
+    type(&form, "gainStart", "1");
+    type(&form, "gainEnd", "1000");
+
+    press(&form, "uncertaintyButton");
+
+    //One row per NAME, and the names are whole.
+    qftbx::UncertaintyPanel * freedom = form.findChild<qftbx::UncertaintyPanel *>();
+    ASSERT_NE(freedom, nullptr);
+
+    QStringList named;
+    for (QLabel * label : freedom->findChildren<QLabel *>()) {
+        if (label->objectName().isEmpty() && !label->text().isEmpty()) {
+            named << label->text();
+        }
+    }
+
+    EXPECT_TRUE(named.contains("z1")) << named.join(" ").toStdString();
+    EXPECT_TRUE(named.contains("p1")) << named.join(" ").toStdString();
+    EXPECT_TRUE(named.contains("p2")) << named.join(" ").toStdString();
+    EXPECT_FALSE(named.contains("z")) << "a name was cut at its first digit";
+}
+
+TEST_F(GuiSmoke, ACoefficientInScientificNotationIsANumberAndNotAParameter)
+{
+    //The e of 1e3 was read as the constant e, and the whole plant was
+    //refused with a complaint about a name nobody had typed.
+    PlantForm form;
+
+    type(&form, "nameEdit", "scientific");
+    check(&form, "transferFunctionRadio");
+    check(&form, "polynomialRadio");
+    type(&form, "numeratorEdit", "1e3");
+    type(&form, "denominatorEdit", "1 2.5E-4");
+    type(&form, "gainEdit", "1");
+    type(&form, "delayEdit", "0");
+
+    verifyAndApply(&form);
+
+    ASSERT_TRUE(form.wasAccepted()) << complaintOf(&form).toStdString();
+
+    const std::unique_ptr<LtiSystem> plant = form.takePlant();
+    ASSERT_NE(plant, nullptr);
+    ASSERT_EQ(plant->numerator().size(), 1u);
+    EXPECT_FALSE(plant->numerator()[0].isUncertain());
+    EXPECT_DOUBLE_EQ(plant->numerator()[0].nominal(), 1000.0);
+    ASSERT_EQ(plant->denominator().size(), 2u);
+    EXPECT_DOUBLE_EQ(plant->denominator()[1].nominal(), 2.5e-4);
+}
+
+TEST_F(GuiSmoke, APlantWithoutANameIsNotVerified)
+{
+    PlantForm form;
+
+    check(&form, "zpkRadio");
+    type(&form, "numeratorEdit", "1");
+    type(&form, "denominatorEdit", "2");
+
+    verifyAndApply(&form);
+
+    EXPECT_FALSE(form.wasAccepted());
+    EXPECT_TRUE(isMarked(&form, "nameEdit"));
 }
 
 TEST_F(GuiSmoke, FrequenciesDialogBuildsTheDesignFrequencies)
@@ -287,7 +449,7 @@ TEST_F(GuiSmoke, FrequenciesDialogBuildsTheDesignFrequencies)
 
     press(&dialog, "okButton");
 
-    ASSERT_TRUE(dialog.wasAccepted()) << "the dialog rejected valid data";
+    ASSERT_TRUE(dialog.wasAccepted()) << "the form rejected valid data";
 
     std::unique_ptr<Omega> omega(dialog.takeOmega());
     ASSERT_NE(omega, nullptr);
@@ -297,36 +459,230 @@ TEST_F(GuiSmoke, FrequenciesDialogBuildsTheDesignFrequencies)
     EXPECT_EQ(omega->pointCount(), 4);
 }
 
-TEST_F(GuiSmoke, SpecificationsDialogRefusesToLeaveATabItCannotRead)
+TEST_F(GuiSmoke, ASpecificationThatCannotBeReadIsNotAddedToTheList)
 {
-    //Switching away used to happen anyway and the return value of the read
-    //was discarded, so the whole specification was lost - not just the bad
-    //field - and coming back showed a blank tab.
+    //What the seven tabs used to get wrong: a field that could not be read
+    //lost the whole specification and showed a blank tab. Here nothing
+    //leaves the form until it has been verified, the field that is wrong is
+    //marked, and what was typed stays where it can be corrected.
     const std::vector<double> frequencies{0.1, 1.0, 10.0};
-    SpecificationsForm dialog(&frequencies);
+    SpecificationsForm form(&frequencies);
 
-    check(&dialog, "stabilityRadio");
-    dialog.findChild<QRadioButton *>("stabilityRadio")->click();
+    QComboBox * typeCombo = child<QComboBox>(&form, "typeCombo");
+    ASSERT_NE(typeCombo, nullptr);
+    typeCombo->setCurrentIndex(int(qftbx::SpecificationType::Stability));
 
-    //A valid constant stability specification.
-    check(&dialog, "constantRadio");
-    check(&dialog, "linearRadio");
-    type(&dialog, "magnitudeEdit", "1.2");
+    check(&form, "constantRadio");
+    check(&form, "linearRadio");
+    type(&form, "magnitudeEdit", "1.2*/");
 
-    //Now break the band and try to leave.
-    type(&dialog, "startFrequencyEdit", "not a number");
-    m_reported.clear();
+    press(&form, "addButton");
 
-    dialog.findChild<QRadioButton *>("noiseRadio")->click();
-
-    EXPECT_FALSE(m_reported.empty()) << "the refusal must be reported";
-    EXPECT_TRUE(dialog.findChild<QRadioButton *>("stabilityRadio")->isChecked())
-        << "the tab that could not be read must stay selected";
-    EXPECT_FALSE(dialog.findChild<QRadioButton *>("noiseRadio")->isChecked());
+    EXPECT_FALSE(complaintOf(&form).isEmpty()) << "the refusal must be said";
+    EXPECT_TRUE(isMarked(&form, "magnitudeEdit"));
+    EXPECT_EQ(child<QTableWidget>(&form, "specificationsTable")->rowCount(), 0)
+        << "a specification that could not be read was added anyway";
 
     //The user's text is still on screen, where it can be corrected.
-    EXPECT_EQ(dialog.findChild<QLineEdit *>("magnitudeEdit")->text(),
-              "1.2");
+    EXPECT_EQ(child<QLineEdit>(&form, "magnitudeEdit")->text(), "1.2*/");
+}
+
+TEST_F(GuiSmoke, TheSpecificationsEnteredAreListedWithTheirBound)
+{
+    //The list is the design: every specification entered is on it, with the
+    //band it holds over and the bound drawn as the formula it is.
+    const std::vector<double> frequencies{0.1, 1.0, 10.0, 100.0};
+    SpecificationsForm form(&frequencies);
+
+    QComboBox * typeCombo = child<QComboBox>(&form, "typeCombo");
+    QTableWidget * table = child<QTableWidget>(&form, "specificationsTable");
+    ASSERT_NE(typeCombo, nullptr);
+    ASSERT_NE(table, nullptr);
+
+    //A constant stability bound, verified and added.
+    typeCombo->setCurrentIndex(int(qftbx::SpecificationType::Stability));
+    check(&form, "constantRadio");
+    check(&form, "decibelsRadio");
+    type(&form, "magnitudeEdit", "3.5");
+
+    press(&form, "addButton");
+    EXPECT_EQ(child<QPushButton>(&form, "addButton")->text(), QString("Add"))
+        << "verifying offers to add: " << complaintOf(&form).toStdString();
+    press(&form, "addButton");
+
+    ASSERT_EQ(table->rowCount(), 1);
+
+    //And a tracking upper bound as a transfer function.
+    typeCombo->setCurrentIndex(int(qftbx::SpecificationType::TrackingUpper));
+    check(&form, "systemRadio");
+    check(&form, "polynomialRadio");
+    type(&form, "numeratorEdit", "0.6584");
+    type(&form, "denominatorEdit", "1 4 19.752");
+    type(&form, "k", "1");
+
+    press(&form, "addButton");
+    press(&form, "addButton");
+
+    ASSERT_EQ(table->rowCount(), 2);
+
+    //And the stability row, which is the same closed loop without the
+    //prefilter: the six requirements are the literature's, one per slot.
+    const QVariant stability = table->item(1, 2)->data(qftbx::FormulaDelegate::formulaRole);
+    ASSERT_TRUE(stability.canConvert<qftbx::Formula>());
+    EXPECT_EQ(qftbx::latexOf(stability.value<qftbx::Formula>()),
+              std::string("\\left|\\frac{L}{1 + L}\\right| \\leq 3.5 dB"));
+
+    //The list is in the order of the slots, not of the typing: the tracking
+    //bound comes before the stability one wherever they were entered.
+    EXPECT_EQ(table->item(0, 0)->text(), QString("Tracking, upper bound"));
+    EXPECT_EQ(table->item(1, 0)->text(), QString("Stability"));
+
+    //The bound of the row carries its formula, which is what the list is
+    //for: a quotient read as "1 4 19.752" says nothing.
+    const QVariant held = table->item(0, 2)->data(qftbx::FormulaDelegate::formulaRole);
+    ASSERT_TRUE(held.canConvert<qftbx::Formula>());
+    //The whole requirement: what the program checks of the loop, the sign,
+    //and the bound that was typed.
+    EXPECT_EQ(qftbx::latexOf(held.value<qftbx::Formula>()),
+              std::string("\\left|F\\frac{L}{1 + L}\\right| \\leq "
+                          "\\frac{0.6584}{s^{2} + 4s + 19.75}"));
+
+    //And the lower bound of the tracking band is the one that reads the
+    //other way.
+    typeCombo->setCurrentIndex(int(qftbx::SpecificationType::TrackingLower));
+    check(&form, "constantRadio");
+    check(&form, "decibelsRadio");
+    type(&form, "magnitudeEdit", "-3");
+    press(&form, "addButton");
+    press(&form, "addButton");
+
+    const QVariant lower = table->item(0, 2)->data(qftbx::FormulaDelegate::formulaRole);
+    ASSERT_TRUE(lower.canConvert<qftbx::Formula>());
+    EXPECT_EQ(qftbx::latexOf(lower.value<qftbx::Formula>()),
+              std::string("\\left|F\\frac{L}{1 + L}\\right| \\geq -3 dB"));
+
+    //Applying publishes the seven slots with the two that are used.
+    press(&form, "okButton");
+    ASSERT_TRUE(form.wasAccepted());
+
+    const std::optional<qftbx::SpecificationRecords> records = form.takeSpecifications();
+    ASSERT_TRUE(records.has_value());
+    EXPECT_TRUE(records->at(int(qftbx::SpecificationType::Stability)).used);
+    EXPECT_TRUE(records->at(int(qftbx::SpecificationType::TrackingUpper)).used);
+    EXPECT_FALSE(records->at(int(qftbx::SpecificationType::SensorNoise)).used);
+
+    //3.5 dB is what was typed, and linear is what the record keeps.
+    EXPECT_NEAR(records->at(int(qftbx::SpecificationType::Stability)).height,
+                qftbx::dbToLinear(3.5), 1e-12);
+}
+
+TEST_F(GuiSmoke, ASpecificationAppliesAtTheFrequenciesThatAreTicked)
+{
+    //The band is not typed: it is the design frequencies, ticked. And a
+    //frequency in the middle can be taken out, which a pair of numbers
+    //cannot say.
+    const std::vector<double> frequencies{0.1, 1.0, 10.0, 100.0};
+    SpecificationsForm form(&frequencies);
+
+    QComboBox * typeCombo = child<QComboBox>(&form, "typeCombo");
+    typeCombo->setCurrentIndex(int(qftbx::SpecificationType::ControlEffort));
+
+    qftbx::FrequencyLegend * ticks = form.findChild<qftbx::FrequencyLegend *>();
+    ASSERT_NE(ticks, nullptr);
+    ASSERT_EQ(ticks->rowCount(), 4) << "one tick per design frequency";
+    for (int i = 0; i < ticks->rowCount(); ++i) {
+        EXPECT_TRUE(ticks->isRowChecked(i)) << "a new specification applies everywhere";
+    }
+
+    //Out with the second one, and with the last.
+    ticks->setRowChecked(1, false);
+    ticks->setRowChecked(3, false);
+
+    check(&form, "constantRadio");
+    check(&form, "linearRadio");
+    type(&form, "magnitudeEdit", "2");
+
+    press(&form, "addButton");
+    press(&form, "addButton");
+    press(&form, "okButton");
+
+    ASSERT_TRUE(form.wasAccepted()) << complaintOf(&form).toStdString();
+
+    const std::optional<qftbx::SpecificationRecords> records = form.takeSpecifications();
+    ASSERT_TRUE(records.has_value());
+
+    const qftbx::SpecificationRecord & effort =
+            records->at(int(qftbx::SpecificationType::ControlEffort));
+
+    //The band runs from the first tick to the last, and the hole in the
+    //middle travels as an exception.
+    EXPECT_DOUBLE_EQ(effort.omegaStart, 0.1);
+    EXPECT_DOUBLE_EQ(effort.omegaEnd, 10.0);
+    ASSERT_EQ(effort.skipped.size(), 1u);
+    EXPECT_DOUBLE_EQ(effort.skipped.front(), 1.0);
+
+    //Which is what the specification the engines see answers.
+    const qftbx::Specification specification =
+            qftbx::toSpecification(effort, qftbx::SpecificationType::ControlEffort);
+    EXPECT_TRUE(specification.appliesAt(0.1));
+    EXPECT_FALSE(specification.appliesAt(1.0)) << "the frequency taken out is out";
+    EXPECT_TRUE(specification.appliesAt(10.0));
+    EXPECT_FALSE(specification.appliesAt(100.0)) << "and so is everything past the band";
+}
+
+TEST_F(GuiSmoke, ABoundWhoseNumeratorIsOneSaysSoWhenItIsOpenedAgain)
+{
+    const std::vector<double> frequencies{0.1, 1.0, 10.0};
+    SpecificationsForm form(&frequencies);
+
+    QComboBox * typeCombo = child<QComboBox>(&form, "typeCombo");
+    typeCombo->setCurrentIndex(int(qftbx::SpecificationType::TrackingLower));
+
+    check(&form, "systemRadio");
+    check(&form, "polynomialRadio");
+    type(&form, "numeratorEdit", "");
+    type(&form, "denominatorEdit", "1 17 82 120");
+    type(&form, "k", "120");
+    type(&form, "delayEdit", "0");
+    press(&form, "addButton");
+    press(&form, "addButton");
+
+    ASSERT_EQ(child<QTableWidget>(&form, "specificationsTable")->rowCount(), 1)
+        << complaintOf(&form).toStdString();
+
+    typeCombo->setCurrentIndex(int(qftbx::SpecificationType::ControlEffort));
+    typeCombo->setCurrentIndex(int(qftbx::SpecificationType::TrackingLower));
+
+    EXPECT_EQ(child<QLineEdit>(&form, "numeratorEdit")->text(), QString("1"))
+        << "the numerator the formula draws as 1 came back as an empty field";
+    EXPECT_EQ(child<QLineEdit>(&form, "denominatorEdit")->text(), QString("1 17 82 120"));
+    EXPECT_EQ(child<QLineEdit>(&form, "k")->text(), QString("120"));
+}
+
+TEST_F(GuiSmoke, ASpecificationIsRemovedFromTheListItIsOn)
+{
+    const std::vector<double> frequencies{0.1, 1.0, 10.0};
+    SpecificationsForm form(&frequencies);
+
+    QComboBox * typeCombo = child<QComboBox>(&form, "typeCombo");
+    QTableWidget * table = child<QTableWidget>(&form, "specificationsTable");
+
+    typeCombo->setCurrentIndex(int(qftbx::SpecificationType::ControlEffort));
+    check(&form, "constantRadio");
+    check(&form, "linearRadio");
+    type(&form, "magnitudeEdit", "2");
+    press(&form, "addButton");
+    press(&form, "addButton");
+
+    ASSERT_EQ(table->rowCount(), 1);
+
+    table->setCurrentCell(0, 0);
+    press(&form, "removeButton");
+
+    EXPECT_EQ(table->rowCount(), 0);
+
+    press(&form, "okButton");
+    EXPECT_FALSE(form.wasAccepted()) << "there is nothing to apply";
 }
 
 TEST_F(GuiSmoke, FrequenciesDialogRefusesAnEmptySetInsteadOfDying)
@@ -406,7 +762,7 @@ TEST_F(GuiSmoke, TheApplicationReportsABackendErrorInsteadOfDyingOfIt)
         << m_reported.join(QChar(' ')).toStdString();
 }
 
-TEST_F(GuiSmoke, ControllerDialogBuildsTheControllerStructure)
+TEST_F(GuiSmoke, ControllerFormBuildsTheControllerStructure)
 {
     ControllerForm dialog;
 
@@ -418,8 +774,11 @@ TEST_F(GuiSmoke, ControllerDialogBuildsTheControllerStructure)
     type(&dialog, "gainEnd", "1000");
 
     press(&dialog, "okButton");
+    EXPECT_FALSE(dialog.wasAccepted()) << "verifying is not applying";
+    press(&dialog, "okButton");
 
-    ASSERT_TRUE(dialog.wasAccepted()) << "the dialog rejected valid data";
+    ASSERT_TRUE(dialog.wasAccepted()) << "the form rejected valid data: "
+                                      << complaintOf(&dialog).toStdString();
 
     std::unique_ptr<LtiSystem> structure(dialog.takeControllerStructure());
     ASSERT_NE(structure, nullptr);
@@ -432,7 +791,7 @@ TEST_F(GuiSmoke, ControllerDialogBuildsTheControllerStructure)
     EXPECT_DOUBLE_EQ(structure->gain().range().max, 1000.0);
 }
 
-TEST_F(GuiSmoke, ControllerDialogRejectsAnInvalidNumerator)
+TEST_F(GuiSmoke, ControllerFormRejectsAnInvalidNumerator)
 {
     //readTables() keeps only the LAST of its three parse results, so a
     //malformed numerator or denominator was overwritten by a gain range that
@@ -445,12 +804,13 @@ TEST_F(GuiSmoke, ControllerDialogRejectsAnInvalidNumerator)
     type(&dialog, "gainStart", "1");
     type(&dialog, "gainEnd", "1000");
 
-    press(&dialog, "okButton");
+    verifyAndApply(&dialog);
 
     EXPECT_FALSE(dialog.wasAccepted())
         << "a malformed numerator was accepted";
     EXPECT_EQ(dialog.takeControllerStructure(), nullptr);
-    EXPECT_FALSE(m_reported.empty()) << "the rejection must be reported";
+    EXPECT_FALSE(complaintOf(&dialog).isEmpty()) << "the rejection must be said";
+    EXPECT_TRUE(isMarked(&dialog, "numeratorEdit"));
 }
 
 TEST_F(GuiSmoke, SpecificationsDialogNeedsTheFrequenciesFirst)
@@ -462,39 +822,6 @@ TEST_F(GuiSmoke, SpecificationsDialogNeedsTheFrequenciesFirst)
 
     const std::vector<double> empty;
     EXPECT_THROW(SpecificationsForm dialog(&empty), qftbx::InvalidInput);
-}
-
-TEST_F(GuiSmoke, SpecificationsDialogStoresAConstantStabilitySpecification)
-{
-    //Real step order: the frequencies come first, and the window hands them
-    //to the dialog.
-    const std::vector<double> frequencies{0.1, 1.0, 10.0, 100.0};
-
-    SpecificationsForm dialog(&frequencies);
-
-    //Stability with a constant magnitude: the simplest complete slot.
-    check(&dialog, "stabilityRadio");
-    check(&dialog, "constantRadio");
-    check(&dialog, "linearRadio");
-    type(&dialog, "magnitudeEdit", "1.2");
-
-    press(&dialog, "okButton");
-
-    const std::optional<qftbx::SpecificationRecords> records = dialog.takeSpecifications();
-
-    if (!records.has_value()) {
-        //The dialog declined the combination; the smoke value here is that
-        //it said so instead of crashing or storing a half-built record.
-        EXPECT_FALSE(dialog.wasAccepted());
-        return;
-    }
-
-    for (const qftbx::SpecificationRecord & record : *records) {
-        if (record.used && record.constant) {
-            EXPECT_GT(record.height, 0.0) << "a used constant specification "
-                                             "must carry a positive magnitude";
-        }
-    }
 }
 
 TEST_F(GuiSmoke, TemplateViewerAsksItsHandlerToRecomputeTheContour)
@@ -650,7 +977,7 @@ TEST_F(GuiSmoke, TemplatesDialogBuildsOneEpsilonPerFrequency)
 
     press(&dialog, "okButton");
 
-    ASSERT_TRUE(dialog.wasAccepted()) << "the dialog rejected valid data";
+    ASSERT_TRUE(dialog.wasAccepted()) << "the form rejected valid data";
 
     //One epsilon per design frequency: the template computation indexes it
     //by frequency.
@@ -771,7 +1098,7 @@ TEST_F(GuiSmoke, LoopShapingDialogCarriesTheChosenAlgorithm)
 
     press(&dialog, "okButton");
 
-    ASSERT_TRUE(dialog.wasAccepted()) << "the dialog rejected valid data";
+    ASSERT_TRUE(dialog.wasAccepted()) << "the form rejected valid data";
 
     EXPECT_EQ(dialog.algorithmValue(), qftbx::mr);
     EXPECT_DOUBLE_EQ(dialog.epsilonValue(), 0.01);
@@ -780,13 +1107,13 @@ TEST_F(GuiSmoke, LoopShapingDialogCarriesTheChosenAlgorithm)
     EXPECT_DOUBLE_EQ(dialog.pointCountValue(), 200.0);
 }
 
-TEST_F(GuiSmoke, UncertaintyDialogBuildsAnUncertainParameter)
+TEST_F(GuiSmoke, UncertaintyPanelBuildsAnUncertainParameter)
 {
     //This is what turns a named coefficient into an uncertain Parameter, so
     //it feeds the uncertainty of every plant and controller. It is driven
     //the way the plant dialog drives it: the three parallel tables, one row
     //per uncertain name.
-    UncertaintyDialog dialog;
+    UncertaintyPanel dialog;
 
     const CoefficientTable valueTable{{"1"}, {"a"}};
     const CoefficientTable expressionTable{{"1"}, {"a"}};
@@ -794,19 +1121,19 @@ TEST_F(GuiSmoke, UncertaintyDialogBuildsAnUncertainParameter)
 
     ASSERT_TRUE(dialog.launch(valueTable, expressionTable, uncertainTable, false));
 
-    //One uncertain name, so one generated row: [start, end] with nominal.
-    type(&dialog, "start", "1");
-    type(&dialog, "end", "5");
-    type(&dialog, "nominal", "3");
+    //One uncertain name, so one generated row: minimum, nominal, maximum.
+    type(&dialog, "rangeMinimum", "1");
+    type(&dialog, "rangeMaximum", "5");
+    type(&dialog, "rangeNominal", "3");
 
-    type(&dialog, "gainStart", "2");
-    type(&dialog, "gainEnd", "8");
-    type(&dialog, "delayStart", "0");
-    type(&dialog, "delayEnd", "0");
+    type(&dialog, "rangeGainStart", "2");
+    type(&dialog, "rangeGainEnd", "8");
+    type(&dialog, "rangeDelayStart", "0");
+    type(&dialog, "rangeDelayEnd", "0");
 
-    press(&dialog, "okButton");
+    press(&dialog, "applyButton");
 
-    ASSERT_TRUE(dialog.wasAccepted()) << "the dialog rejected valid data";
+    ASSERT_TRUE(dialog.wasAccepted()) << "the panel rejected valid data";
 
     //The constant numerator coefficient must travel as a constant, and the
     //named denominator one as uncertain with its range and nominal.
@@ -828,11 +1155,11 @@ TEST_F(GuiSmoke, UncertaintyDialogBuildsAnUncertainParameter)
     EXPECT_DOUBLE_EQ(dialog.delay().max, 0.0);
 }
 
-TEST_F(GuiSmoke, UncertaintyDialogRejectsAnEmptyRange)
+TEST_F(GuiSmoke, UncertaintyPanelRejectsAnEmptyRange)
 {
     //An empty range used to be read as a null sentinel; it must be reported
     //and refused, not turned into a parameter.
-    UncertaintyDialog dialog;
+    UncertaintyPanel dialog;
 
     const CoefficientTable valueTable{{"1"}, {"a"}};
     const CoefficientTable expressionTable{{"1"}, {"a"}};
@@ -841,12 +1168,12 @@ TEST_F(GuiSmoke, UncertaintyDialogRejectsAnEmptyRange)
     ASSERT_TRUE(dialog.launch(valueTable, expressionTable, uncertainTable, false));
 
     //The row is left blank on purpose.
-    type(&dialog, "gainStart", "2");
-    type(&dialog, "gainEnd", "8");
-    type(&dialog, "delayStart", "0");
-    type(&dialog, "delayEnd", "0");
+    type(&dialog, "rangeGainStart", "2");
+    type(&dialog, "rangeGainEnd", "8");
+    type(&dialog, "rangeDelayStart", "0");
+    type(&dialog, "rangeDelayEnd", "0");
 
-    press(&dialog, "okButton");
+    press(&dialog, "applyButton");
 
     EXPECT_FALSE(dialog.wasAccepted()) << "a blank range was accepted";
 }
@@ -927,6 +1254,101 @@ TEST_F(GuiSmoke, EveryViewerGrowsWithItsWindow)
 
     EXPECT_GT(magnitude->width(), wasWide) << "the Bode magnitude did not widen";
     EXPECT_GT(magnitude->height() + phase->height(), wasTall) << "the Bode canvases did not grow";
+}
+
+TEST_F(GuiSmoke, TheFrequencyPanelGrowsWithTheTemplateViewer)
+{
+    //The card growing used to widen the diagram alone: the frequency column
+    //was pinned to the width of the buttons, so a row that did not fit could
+    //not be read, and there was no way of trading one for the other by hand
+    //either. The two share the width now, and the separation is a handle.
+    TemplateViewer viewer;
+    viewer.resize(700, 500);
+    viewer.show();
+    QCoreApplication::processEvents();
+
+    QWidget * panel = viewer.findChild<QWidget *>("sidePanel");
+    QCustomPlot * plot = viewer.findChild<QCustomPlot *>("plot");
+    ASSERT_NE(panel, nullptr) << "the side column is not a widget that can be resized";
+    ASSERT_NE(plot, nullptr);
+
+    const int panelBefore = panel->width();
+    const int plotBefore = plot->width();
+
+    viewer.resize(1300, 500);
+    QCoreApplication::processEvents();
+
+    EXPECT_GT(panel->width(), panelBefore)
+        << "the viewer grew by 600 px and the frequencies stayed at " << panel->width();
+    EXPECT_GT(plot->width(), plotBefore) << "and the diagram has to grow as well";
+
+    //Of what is opened up the diagram still takes the larger share: the
+    //panel growing is not the panel taking over the card.
+    EXPECT_GT(plot->width() - plotBefore, panel->width() - panelBefore);
+
+    QSplitter * splitter = viewer.findChild<QSplitter *>();
+    ASSERT_NE(splitter, nullptr) << "the two sides cannot be traded by hand";
+    EXPECT_FALSE(splitter->childrenCollapsible()) << "either side can be dragged out of sight";
+}
+
+TEST_F(GuiSmoke, ProposingAnEpsilonFillsTheFieldsAndComputesNothing)
+{
+    TemplateViewer viewer;
+
+    const qftbx::CloudSet contour{{{1.0, 0.0}, {0.0, 1.0}}, {{1.0, 0.0}, {0.0, 1.0}}};
+    const qftbx::CloudSet templates{{{2.0, 0.0}, {0.0, 2.0}}, {{2.0, 0.0}, {0.0, 2.0}}};
+    std::vector<double> omega{1.0, 10.0};
+    std::vector<double> epsilon{0.05, 0.05};
+
+    int walked = 0;
+    std::vector<double> walkedWith;
+    viewer.setContourRecomputer([&](std::vector<double> eps){ ++walked; walkedWith = eps; });
+    viewer.setEpsilonProposer([]{
+        std::vector<qftbx::TemplateEngine::EpsilonProposal> proposals(2);
+        proposals[0].epsilon = 0.25;
+        proposals[0].closes = true;
+        proposals[1].epsilon = 0.75;
+        proposals[1].closes = true;
+        return proposals;
+    });
+
+    viewer.setData(templates, contour, &omega, &epsilon);
+    viewer.plotDiagram(true);
+
+    press(&viewer, "proposeButton");
+
+    const QList<QLineEdit *> fields = viewer.findChildren<QLineEdit *>("field");
+    ASSERT_EQ(fields.size(), 2);
+    EXPECT_EQ(fields.at(0)->text().toDouble(), 0.25) << "the proposal did not reach the field";
+    EXPECT_EQ(fields.at(1)->text().toDouble(), 0.75);
+    EXPECT_EQ(walked, 0) << "proposing walked the contours again by itself";
+
+    press(&viewer, "recomputeButton");
+    EXPECT_EQ(walked, 1);
+    ASSERT_EQ(walkedWith.size(), 2u);
+    EXPECT_EQ(walkedWith.at(0), 0.25);
+    EXPECT_EQ(walkedWith.at(1), 0.75);
+}
+
+TEST_F(GuiSmoke, TheEpsilonOfAFrequencyIsAFieldAndNothingElse)
+{
+    //Each row carried a slider beside the field for the same number. Two
+    //controls for one value is a row that does not fit and a pair to keep in
+    //step; the field alone says it exactly, which is what it is read for.
+    TemplateViewer viewer;
+
+    const qftbx::CloudSet contour{{{1.0, 0.0}, {0.0, 1.0}}};
+    const qftbx::CloudSet templates{{{2.0, 0.0}, {0.0, 2.0}}};
+    std::vector<double> omega{1.0};
+    std::vector<double> epsilon{0.05};
+
+    viewer.setData(templates, contour, &omega, &epsilon);
+    viewer.plotDiagram(true);
+
+    QLineEdit * field = child<QLineEdit>(&viewer, "field");
+    ASSERT_NE(field, nullptr) << "the row lost the field with the epsilon";
+    EXPECT_EQ(field->text().toDouble(), 0.05);
+    EXPECT_EQ(viewer.findChild<QSlider *>(), nullptr) << "the row still carries a slider";
 }
 
 TEST_F(GuiSmoke, BoundaryUnionViewerDrawsTheUnion)
@@ -1041,12 +1463,14 @@ Panel * panelIn(QWidget * window)
 void fillPlant(PlantForm * plant, const QString & name)
 {
     type(plant, "nameEdit", name);
+    check(plant, "transferFunctionRadio");
+    check(plant, "zerosPolesRadio");
     check(plant, "zpkRadio");
-    type(plant, "zpkNumerator", "2");
-    type(plant, "zpkDenominator", "5 30");
-    type(plant, "zpkGain", "3");
-    type(plant, "zpkDelay", "0");
-    press(plant, "okButton");
+    type(plant, "numeratorEdit", "2");
+    type(plant, "denominatorEdit", "5 30");
+    type(plant, "gainEdit", "3");
+    type(plant, "delayEdit", "0");
+    verifyAndApply(plant);
 }
 
 TEST_F(GuiSmoke, PressingThePlantStepPublishesAPlantAndOpensTheNextSteps)
@@ -1150,8 +1574,11 @@ TEST_F(GuiSmoke, APanelRefusesToPublishWhatTheProjectHasTakenAwayFromIt)
     SpecificationsForm specifications(&frequencies);
 
     specifications.setFrequencies(nullptr);
-    check(&specifications, "stabilityRadio");
+    child<QComboBox>(&specifications, "typeCombo")
+        ->setCurrentIndex(int(qftbx::SpecificationType::Stability));
+    check(&specifications, "constantRadio");
     type(&specifications, "magnitudeEdit", "1.2");
+    press(&specifications, "addButton");
     press(&specifications, "okButton");
 
     EXPECT_FALSE(specifications.wasAccepted())
@@ -1177,6 +1604,126 @@ TEST_F(GuiSmoke, APanelRefusesToPublishWhatTheProjectHasTakenAwayFromIt)
 
     EXPECT_FALSE(templates.wasAccepted())
         << "grids with no plant behind them must not be published";
+}
+
+TEST_F(GuiSmoke, TheStepButtonsAreAllTheSameHeight)
+{
+    MainWindow window;
+    window.show();
+    QCoreApplication::processEvents();
+
+    int tallest = 0;
+    int shortest = std::numeric_limits<int>::max();
+    for (const char * name : {"plantButton", "frequenciesButton", "specificationsButton",
+                              "templatesButton", "boundariesButton", "controllerButton",
+                              "loopButton"}) {
+        QPushButton * step = child<QPushButton>(&window, name);
+        ASSERT_NE(step, nullptr) << name;
+        tallest = std::max(tallest, step->height());
+        shortest = std::min(shortest, step->height());
+    }
+
+    EXPECT_EQ(tallest, shortest)
+        << "a caption on two lines makes its button taller than the rest";
+}
+
+TEST_F(GuiSmoke, EveryFormFitsTheBandItsCardGivesIt)
+{
+    MainWindow window;
+    window.setFileChooser([](bool) {
+        return QString(QFTBX_TEST_DATA_DIR "/planta1.qft");
+    });
+    window.findChild<QAction *>("actionOpen")->trigger();
+    window.resize(1280, 900);
+    window.show();
+    QCoreApplication::processEvents();
+
+    for (const char * step : {"plantButton", "frequenciesButton", "specificationsButton",
+                              "templatesButton", "boundariesButton", "controllerButton",
+                              "loopButton"}) {
+        child<QPushButton>(&window, step)->click();
+    }
+    QCoreApplication::processEvents();
+
+    for (const char * name : {"plantCard", "frequenciesCard", "templatesCard",
+                              "boundariesCard", "controllerCard", "loopShapingCard"}) {
+        QScrollArea * area = window.findChild<QScrollArea *>(QString(name) + "FormArea");
+        ASSERT_NE(area, nullptr) << name;
+        QWidget * form = area->widget();
+        ASSERT_NE(form, nullptr) << name;
+
+        EXPECT_LE(form->sizeHint().height(), area->viewport()->height())
+            << name << ": the form asks for " << form->sizeHint().height()
+            << " px in a band of " << area->viewport()->height()
+            << ", so its button has to be scrolled to";
+    }
+}
+
+TEST_F(GuiSmoke, ClosingAPhaseDoesNotThrowAwayWhatWasTypedIntoIt)
+{
+    MainWindow window;
+    window.setFileChooser([](bool) {
+        return QString(QFTBX_TEST_DATA_DIR "/planta1.qft");
+    });
+    window.findChild<QAction *>("actionOpen")->trigger();
+
+    child<QPushButton>(&window, "boundariesButton")->click();
+
+    QLineEdit * points = window.findChild<QLineEdit *>("phasePoints");
+    ASSERT_NE(points, nullptr);
+    const QString asStored = points->text();
+
+    points->setText("37");
+
+    window.findChild<QToolButton *>("boundariesCardClose")->click();
+    ASSERT_TRUE(window.findChild<PhaseCard *>("boundariesCard")->isHidden());
+
+    child<QPushButton>(&window, "boundariesButton")->click();
+
+    EXPECT_EQ(window.findChild<QLineEdit *>("phasePoints")->text(), QString("37"))
+        << "tidying the screen threw away what was written and had not been applied";
+    EXPECT_NE(asStored, QString("37")) << "the test types what the project already held";
+}
+
+TEST_F(GuiSmoke, APhaseIsClosedFromItsBarAndOpenedFromItsStepButton)
+{
+    MainWindow window;
+    window.setFileChooser([](bool) {
+        return QString(QFTBX_TEST_DATA_DIR "/planta1.qft");
+    });
+    window.findChild<QAction *>("actionOpen")->trigger();
+    window.resize(1280, 900);
+    QCoreApplication::processEvents();
+
+    QWidget * canvas = window.findChild<QWidget *>("canvasContent");
+    ASSERT_NE(canvas, nullptr);
+
+    for (const char * name : {"plantCard", "specificationsCard", "templatesCard",
+                              "boundariesCard", "loopShapingCard"}) {
+        PhaseCard * card = window.findChild<PhaseCard *>(name);
+        ASSERT_NE(card, nullptr) << name;
+        QToolButton * close = window.findChild<QToolButton *>(QString(name) + "Close");
+        ASSERT_NE(close, nullptr) << name << " cannot be closed";
+    }
+
+    const int wholeCanvas = canvas->layout()->heightForWidth(canvas->width());
+
+    for (const char * name : {"plantCard", "specificationsCard", "boundariesCard",
+                              "loopShapingCard"}) {
+        window.findChild<QToolButton *>(QString(name) + "Close")->click();
+        EXPECT_TRUE(window.findChild<PhaseCard *>(name)->isHidden()) << name << " did not close";
+    }
+    QCoreApplication::processEvents();
+
+    EXPECT_LT(canvas->layout()->heightForWidth(canvas->width()), wholeCanvas)
+        << "the cards that were closed still take their room on the canvas";
+
+    child<QPushButton>(&window, "plantButton")->click();
+    PhaseCard * plant = window.findChild<PhaseCard *>("plantCard");
+    EXPECT_FALSE(plant->isHidden()) << "its step button did not bring it back";
+    EXPECT_TRUE(plant->isFormShown()) << "it came back folded";
+    EXPECT_TRUE(window.findChild<PhaseCard *>("boundariesCard")->isHidden())
+        << "opening one phase brought back the rest";
 }
 
 TEST_F(GuiSmoke, OpeningAProjectPutsItsCardsOnTheCanvasFolded)
@@ -1288,6 +1835,61 @@ TEST_F(GuiSmoke, ACardGrowsWhenItsFormIsUnfolded)
     ASSERT_NE(specifications, nullptr);
     EXPECT_EQ(specifications->sizeHint().height(), folded.height());
     EXPECT_GT(specifications->sizeHint().width(), folded.width());
+}
+
+TEST_F(GuiSmoke, TheTwoPhasesThatMayChangePlacesDoSoAndNoOthers)
+{
+    //The specifications are worth two squares and are the one phase that
+    //can fall off the end of a row; the templates are the one phase that
+    //can take that square without lying about the design. Everything else
+    //keeps the order of the work: the boundaries are computed FROM the
+    //specifications and never come before them.
+    MainWindow window;
+    window.setFileChooser([](bool) {
+        return QString(QFTBX_TEST_DATA_DIR "/planta1.qft");
+    });
+    window.findChild<QAction *>("actionOpen")->trigger();
+    QCoreApplication::processEvents();
+
+    const auto orderOf = [&window]() {
+        QStringList names;
+        for (PhaseCard * card : window.findChildren<PhaseCard *>()) {
+            names << card->objectName();
+        }
+        return names;
+    };
+
+    const auto placeOf = [&window](const char * name) {
+        PhaseCard * card = window.findChild<PhaseCard *>(name);
+        return card == nullptr ? QPoint() : card->geometry().topLeft();
+    };
+
+    //Two columns: the specifications fit in a row of their own from the
+    //start, so they go first and the templates follow.
+    window.resize(PhaseCard::unitFor(1280).width() * 2 + 64, 900);
+    window.show();
+    QCoreApplication::processEvents();
+
+    ASSERT_EQ(PhaseCard::columnsFor(window.width() - 64), 2);
+    EXPECT_LT(placeOf("specificationsCard").y(), placeOf("templatesCard").y())
+        << "on two columns the specifications go first, whole";
+
+    //Three columns: the specifications would start at the last square of
+    //the first row, so the templates take it and the specifications open
+    //the next row.
+    window.resize(PhaseCard::unitFor(1900).width() * 3 + 64, 900);
+    QCoreApplication::processEvents();
+
+    ASSERT_EQ(PhaseCard::columnsFor(window.width() - 64), 3);
+    EXPECT_LT(placeOf("templatesCard").y(), placeOf("specificationsCard").y())
+        << "on three columns the templates fill the square that was left";
+
+    //And the phases that must not change places did not.
+    const QStringList names = orderOf();
+    EXPECT_LT(names.indexOf("plantCard"), names.indexOf("frequenciesCard"));
+    EXPECT_LT(names.indexOf("specificationsCard"), names.indexOf("boundariesCard"))
+        << "the boundaries are computed from the specifications and never come first";
+    EXPECT_LT(names.indexOf("boundariesCard"), names.indexOf("controllerCard"));
 }
 
 TEST_F(GuiSmoke, ACardDraggedByItsBarChangesPlaces)
@@ -1431,6 +2033,114 @@ TEST_F(GuiSmoke, TheThemeDressesTheWindowAndItsDiagrams)
     qftbx::applyTheme(qftbx::kSystemTheme);
 }
 
+TEST_F(GuiSmoke, ATraceIsCutWhereItJumpsAndNotWhereItStandsUp)
+{
+    //A boundary drawn as one polyline reached across the chart for a point
+    //that has nothing to do with its neighbours: the union of a frequency
+    //can hold more than one curve, and the walk that orders its points is a
+    //nearest-neighbour one, which comes back at the end for whatever it
+    //left behind. The cut is made where the PHASE jumps, measured in
+    //columns of the grid the trace was traced on.
+    const auto at = [](double phase, double magnitude) {
+        return qftbx::NicholsPoint(phase, magnitude);
+    };
+
+    //One curve: a column at a time, and a vertical run in the middle, which
+    //is a boundary standing up and not a jump.
+    qftbx::Trace one{at(-10, 0), at(-9, 1), at(-8, 2), at(-8, 30), at(-8, 60), at(-7, 61)};
+    EXPECT_EQ(qftbx::continuousSegments(one).size(), 1u)
+        << "a steep boundary was cut in two";
+
+    //Two curves, and the jump between them.
+    qftbx::Trace two{at(-10, 0), at(-9, 0), at(-8, 0), at(-100, 5), at(-99, 5)};
+    const std::vector<qftbx::Trace> cut = qftbx::continuousSegments(two);
+    ASSERT_EQ(cut.size(), 2u);
+    EXPECT_EQ(cut.front().size(), 3u);
+    EXPECT_EQ(cut.back().size(), 2u);
+
+    //And the point the ordering left for the end: its own piece of one,
+    //which the viewers draw as the point it is.
+    qftbx::Trace orphan{at(-10, 0), at(-9, 0), at(-8, 0), at(-125, -16.5)};
+    const std::vector<qftbx::Trace> alone = qftbx::continuousSegments(orphan);
+    ASSERT_EQ(alone.size(), 2u);
+    EXPECT_EQ(alone.back().size(), 1u);
+
+    //The same cuts by index, which is what a caller holding two readings of
+    //the same points needs.
+    const std::vector<std::size_t> ends = qftbx::segmentEnds(orphan);
+    ASSERT_EQ(ends.size(), 2u);
+    EXPECT_EQ(ends.front(), 3u);
+    EXPECT_EQ(ends.back(), 4u);
+}
+
+TEST_F(GuiSmoke, EveryFieldSaysWhatItIsFor)
+{
+    //A tooltip on everything the user fills in or presses, because the
+    //label of a field has room for its name and nothing else: the units it
+    //is in, the format it expects and what the program does with it are
+    //what the user cannot guess. The exceptions are listed by name, and
+    //each one is a field that is already explained where it stands.
+    MainWindow window;
+    window.setFileChooser([](bool) {
+        return QString(QFTBX_TEST_DATA_DIR "/planta1.qft");
+    });
+    window.findChild<QAction *>("actionOpen")->trigger();
+    QCoreApplication::processEvents();
+
+    //The two coefficient fields of the plant and of the controller: the
+    //line under them says what they take, and it changes with the family,
+    //which a tooltip written once could not. The description of a plant
+    //carries its own placeholder. And a tick of the specifications is one
+    //design frequency, with the label "Applies at" beside it.
+    const QStringList explained{"numeratorEdit", "denominatorEdit", "descriptionEdit", "check"};
+
+    QStringList silent;
+
+    for (QWidget * form : window.findChildren<QWidget *>()) {
+        const QString kind = QString::fromLatin1(form->metaObject()->className());
+        if (!kind.startsWith("qftbx::") || !kind.endsWith("Form")) {
+            continue;
+        }
+
+        for (QWidget * field : form->findChildren<QWidget *>()) {
+            const QString widget = QString::fromLatin1(field->metaObject()->className());
+            const bool asks = widget == "QLineEdit" || widget == "QComboBox"
+                    || widget == "QRadioButton" || widget == "QCheckBox"
+                    || widget == "QPushButton";
+
+            if (!asks || field->objectName().isEmpty()
+                    || field->objectName().startsWith("qt_")
+                    || explained.contains(field->objectName())) {
+                continue;
+            }
+
+            if (field->toolTip().isEmpty()) {
+                silent << kind + "::" + field->objectName();
+            }
+        }
+    }
+
+    EXPECT_TRUE(silent.isEmpty()) << "fields with nothing to say: "
+                                  << silent.join(", ").toStdString();
+
+    //And marking a field as wrong does not cost it what it says: the reason
+    //takes the place of its tooltip while it is wrong, and its own comes
+    //back afterwards. It went missing the first time round, because every
+    //keystroke marks every field of a form as not-wrong.
+    PlantForm plant;
+    QLineEdit * gain = child<QLineEdit>(&plant, "gainEdit");
+    ASSERT_NE(gain, nullptr);
+
+    const QString own = gain->toolTip();
+    ASSERT_FALSE(own.isEmpty());
+
+    qftbx::markWrong(gain, true, QStringLiteral("this is the mistake"));
+    EXPECT_EQ(gain->toolTip(), QStringLiteral("this is the mistake"));
+
+    qftbx::markWrong(gain, false);
+    EXPECT_EQ(gain->toolTip(), own) << "the field forgot what it is for";
+}
+
 TEST_F(GuiSmoke, TheFiguresAndTheIconAreInTheBuild)
 {
     //Resources compiled into a STATIC library are dropped by the linker
@@ -1442,16 +2152,22 @@ TEST_F(GuiSmoke, TheFiguresAndTheIconAreInTheBuild)
         EXPECT_FALSE(icon.isNull()) << "the icon of " << size << " pixels is not in the build";
     }
 
-    for (const char * figure : {"copol", "kgan", "knogan", "EC", "estabilidad",
-                                "RPE", "RPS", "ruidosensor", "seguimiento"}) {
+    //The three that are still shown: the families a plant or a controller
+    //can be written in. The six of the specifications are gone - what a
+    //specification requires is DRAWN now, from the definition the program
+    //computes, so it says the bound that was typed and not a W with a
+    //subscript.
+    for (const char * figure : {"copol", "kgan", "knogan"}) {
         const QPixmap picture(QString(":/figures/%1.png").arg(figure));
         EXPECT_FALSE(picture.isNull()) << "the figure " << figure << " is not in the build";
     }
 
-    //And a form shows the one it was given.
+    //And a form shows the one of the family chosen.
     PlantForm plant;
+    check(&plant, "transferFunctionRadio");
+    check(&plant, "zerosPolesRadio");
     check(&plant, "zpkRadio");
-    QLabel * image = child<QLabel>(&plant, "zpkImage");
+    QLabel * image = child<QLabel>(&plant, "familyImage");
     ASSERT_NE(image, nullptr);
     EXPECT_FALSE(image->pixmap().isNull()) << "the plant form has no figure in it";
 }
@@ -1555,6 +2271,313 @@ TEST_F(GuiSmoke, ACancelledComputationLeavesTheProjectAsItWas)
     EXPECT_EQ(progress->value(), 2) << "a cancelled sweep left templates behind";
     EXPECT_TRUE(m_reported.isEmpty())
         << "giving up is not an error: " << m_reported.join(" | ").toStdString();
+}
+
+TEST_F(GuiSmoke, ZZPlantForm)
+{
+    const QString out = qEnvironmentVariable("QFTBX_RENDER_DIR");
+    if (out.isEmpty()) {
+        GTEST_SKIP();
+    }
+
+    qftbx::applyTheme(qftbx::kLightTheme);
+
+    const QSize card(660, 360);
+
+    PlantForm fresh;
+    fresh.resize(card);
+    fresh.grab().save(out + "/planta-vacia.png");
+
+    PlantForm typed;
+    typed.resize(card);
+    type(&typed, "nameEdit", "Motor de continua");
+    type(&typed, "descriptionEdit", "El del articulo de 2007, con la inercia incierta");
+    check(&typed, "transferFunctionRadio");
+    check(&typed, "zerosPolesRadio");
+    check(&typed, "zpkRadio");
+    type(&typed, "numeratorEdit", "");
+    type(&typed, "denominatorEdit", "0 a");
+    type(&typed, "gainEdit", "3");
+    type(&typed, "delayEdit", "0");
+    typed.grab().save(out + "/planta-escrita.png");
+
+    press(&typed, "uncertaintyButton");
+    QCoreApplication::processEvents();
+    typed.grab().save(out + "/planta-incertidumbre.png");
+
+    type(&typed, "rangeMinimum", "1");
+    type(&typed, "rangeNominal", "3");
+    type(&typed, "rangeMaximum", "10");
+    type(&typed, "rangeGainStart", "1");
+    type(&typed, "rangeGainEnd", "20");
+    press(&typed, "applyButton");
+    QCoreApplication::processEvents();
+
+    press(&typed, "okButton");
+    QCoreApplication::processEvents();
+    typed.grab().save(out + "/planta-verificada.png");
+
+    //And what a wrong field looks like.
+    PlantForm wrong;
+    wrong.resize(card);
+    type(&wrong, "nameEdit", "rota");
+    check(&wrong, "transferFunctionRadio");
+    check(&wrong, "polynomialRadio");
+    type(&wrong, "numeratorEdit", "1");
+    type(&wrong, "denominatorEdit", "1 2*/");
+    type(&wrong, "gainEdit", "1");
+    press(&wrong, "okButton");
+    QCoreApplication::processEvents();
+    wrong.grab().save(out + "/planta-error.png");
+}
+
+TEST_F(GuiSmoke, ZZControllerFreedom)
+{
+    const QString out = qEnvironmentVariable("QFTBX_RENDER_DIR");
+    if (out.isEmpty()) {
+        GTEST_SKIP();
+    }
+
+    qftbx::applyTheme(qftbx::kLightTheme);
+
+    ProjectController project;
+    project.load((out + "/ejemplo-completo.qft").toStdString());
+
+    ControllerForm form;
+    form.resize(660, 360);
+    form.setFromProject(project.controllerStructure());
+    form.grab().save(out + "/controlador-datos.png");
+
+    press(&form, "uncertaintyButton");
+    QCoreApplication::processEvents();
+    form.grab().save(out + "/controlador-libertad.png");
+
+    for (QLineEdit * field : form.findChildren<QLineEdit *>()) {
+        std::printf("%-16s = %s\n", field->objectName().toStdString().c_str(),
+                    field->text().toStdString().c_str());
+    }
+    std::fflush(stdout);
+}
+
+TEST_F(GuiSmoke, ZZContours)
+{
+    if (qEnvironmentVariable("QFTBX_RENDER_DIR").isEmpty()) {
+        GTEST_SKIP();
+    }
+
+    //What each contour of a real project is: closed by the faithful walk,
+    //open because the relaxed one had to stand in, or several components
+    //concatenated into one vector.
+    ProjectController project;
+    project.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
+
+    //The contours the file was computed with, walked again over the clouds
+    //it carries.
+    project.recomputeContour(*project.epsilon());
+
+    const std::vector<qftbx::TemplateEngine::ContourReport> & reports = project.contourReports();
+    const qftbx::CloudSet & contour = project.contour();
+
+    for (std::size_t i = 0; i < reports.size(); ++i) {
+        const std::complex<double> first = contour.at(i).front();
+        const std::complex<double> last = contour.at(i).back();
+
+        std::printf("w[%zu]: %zu points, relaxed %d, truncated %d, wholeCloud %d, "
+                    "components %zu, closed %d\n",
+                    i, reports[i].contourPoints, (int) reports[i].relaxed,
+                    (int) reports[i].truncated, (int) reports[i].wholeCloud,
+                    reports[i].components, (int) (std::abs(first - last) < 1e-12));
+    }
+
+    //And what each one would need to close.
+    const std::vector<qftbx::TemplateEngine::EpsilonProposal> asked = project.proposeEpsilon();
+    std::vector<double> proposed;
+    for (std::size_t i = 0; i < asked.size(); ++i) {
+        std::printf("   w[%zu] needs epsilon %g (connected from %g, diameter %g), closes %d\n",
+                    i, asked[i].epsilon, asked[i].connected, asked[i].diameter,
+                    (int) asked[i].closes);
+        proposed.push_back(asked[i].epsilon);
+    }
+
+    //And what the contour is once it has been walked with that.
+    project.recomputeContour(proposed);
+
+    const std::vector<qftbx::TemplateEngine::ContourReport> & after = project.contourReports();
+    for (std::size_t i = 0; i < after.size(); ++i) {
+        const std::complex<double> first = project.contour().at(i).front();
+        const std::complex<double> last = project.contour().at(i).back();
+        std::printf("   after: w[%zu] %zu of %zu points, relaxed %d, components %zu, closed %d\n",
+                    i, after[i].contourPoints, after[i].cloudPoints, (int) after[i].relaxed,
+                    after[i].components, (int) (std::abs(first - last) < 1e-12));
+    }
+    std::fflush(stdout);
+
+    //And the other way of extracting the same boundary: the alpha-shape,
+    //which closes by construction.
+    project.setAlphaShapeContour(true);
+
+    const std::vector<qftbx::TemplateEngine::EpsilonProposal> alpha = project.proposeEpsilon();
+    std::vector<double> alphaEpsilon;
+    for (const qftbx::TemplateEngine::EpsilonProposal & one : alpha) {
+        alphaEpsilon.push_back(one.epsilon);
+    }
+
+    project.recomputeContour(alphaEpsilon);
+
+    const std::vector<qftbx::TemplateEngine::ContourReport> & shapes = project.contourReports();
+    for (std::size_t i = 0; i < shapes.size(); ++i) {
+        std::printf("   alpha: w[%zu] epsilon %g, %zu of %zu points, components %zu\n",
+                    i, alphaEpsilon[i], shapes[i].contourPoints, shapes[i].cloudPoints,
+                    shapes[i].components);
+    }
+
+    //And the same clouds at a hand-given radius, which is how much of the
+    //cloud each one keeps: the contour is one component throughout, so the
+    //number to read is how many of the points survive.
+    for (const double radius : {1.0, 10.0, 100.0}) {
+        const std::vector<double> same(alphaEpsilon.size(), radius);
+        project.recomputeContour(same);
+
+        const std::vector<qftbx::TemplateEngine::ContourReport> & at = project.contourReports();
+        for (std::size_t i = 0; i < at.size(); ++i) {
+            std::printf("   alpha e=%g: w[%zu] %zu of %zu points, components %zu\n",
+                        radius, i, at[i].contourPoints, at[i].cloudPoints, at[i].components);
+        }
+    }
+    std::fflush(stdout);
+
+    TemplateViewer viewer;
+    viewer.resize(900, 700);
+    viewer.setData(project.templates(), project.contour(),
+                   project.omega()->values(), project.epsilon());
+    viewer.plotDiagram(true);
+    viewer.grab().save(qEnvironmentVariable("QFTBX_RENDER_DIR") + "/contornos-alpha.png");
+}
+
+TEST_F(GuiSmoke, ZZFormulas)
+{
+    const QString out = qEnvironmentVariable("QFTBX_RENDER_DIR");
+    if (out.isEmpty()) {
+        GTEST_SKIP();
+    }
+
+    //One sheet with the shapes that have to come out right: fractions,
+    //exponents, roots, tall parentheses, subscripts, and the four families
+    //of a real plant.
+    struct Case { const char * title; qftbx::Formula formula; };
+
+    ProjectController project;
+    project.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
+
+    std::vector<Case> cases;
+    cases.push_back({"plant of ex2", qftbx::formulaOf(*project.plant(), 4)});
+    cases.push_back({"typed", qftbx::formulaOfText("k*(s+a1)/(s*(s^2+2*z*w*s+w^2))", 4)});
+    cases.push_back({"roots", qftbx::formulaOfText("sqrt(1+(s/10)^2)/abs(s+1)", 4)});
+    cases.push_back({"functions", qftbx::formulaOfText("exp(-0.05*s)*sin(pi*s)/ln(1+s)", 4)});
+    cases.push_back({"nested", qftbx::formulaOfText("1/(1+1/(1+1/s))", 4)});
+
+    QImage sheet(900, 190 * int(cases.size()), QImage::Format_ARGB32);
+    sheet.fill(Qt::white);
+
+    for (std::size_t i = 0; i < cases.size(); ++i) {
+        FormulaView view;
+        view.resize(880, 170);
+        view.setFormula(cases[i].formula);
+
+        QPixmap drawn = view.grab();
+
+        QPainter painter(&sheet);
+        painter.drawPixmap(10, 190 * int(i) + 10, drawn);
+        painter.setPen(Qt::gray);
+        painter.drawText(14, 190 * int(i) + 22, QString::fromLatin1(cases[i].title));
+        painter.drawRect(10, 190 * int(i) + 10, 880, 170);
+        painter.end();
+
+        std::printf("%-12s %s\n", cases[i].title,
+                    qftbx::latexOf(cases[i].formula).c_str());
+    }
+
+    std::fflush(stdout);
+    sheet.save(out + "/formulas.png");
+}
+
+//The three probes below are not tests: they are how the forms are LOOKED
+//at. Each writes what it makes into QFTBX_RENDER_DIR and is skipped when
+//that variable is not set, so an ordinary run never sees them. They are
+//kept because a layout is reviewed by looking at it, and looking at it by
+//hand means building the whole application, opening a project and pressing
+//seven buttons.
+TEST_F(GuiSmoke, ZZEjemploCompleto)
+{
+    const QString out = qEnvironmentVariable("QFTBX_RENDER_DIR");
+    if (out.isEmpty()) {
+        GTEST_SKIP();
+    }
+
+    //A project solved FOR REAL by this binary: the file it saves carries
+    //the settings it was computed with and the verdict of the checker,
+    //which is what the older .qft files do not have.
+    ProjectController project;
+    project.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
+
+    qftbx::Settings settings;
+    settings.algorithms.conservativeBoundaryColumns = true;
+    project.applySettings(settings);
+
+    const bool designed = project.computeLoopShaping(0.5, qftbx::mc2,
+                                                     qftbx::Range(0.01, 1000.0), 500);
+    std::printf("designed: %d\n", (int) designed);
+    if (project.loopShapingResult() != nullptr && project.loopShapingResult()->check().has_value()) {
+        std::printf("verdict: %s by %.4f dB\n",
+                    project.loopShapingResult()->check()->satisfied() ? "satisfied" : "EXCEEDED",
+                    project.loopShapingResult()->check()->worstExcessDb);
+    }
+    std::fflush(stdout);
+
+    project.save((out + "/ejemplo-completo.qft").toStdString());
+}
+
+TEST_F(GuiSmoke, ZZGaleria)
+{
+    const QString out = qEnvironmentVariable("QFTBX_RENDER_DIR");
+    if (out.isEmpty()) {
+        GTEST_SKIP();
+    }
+
+    qftbx::applyTheme(qEnvironmentVariable("QFTBX_RENDER_THEME", qftbx::kLightTheme));
+    qftbx::applyLanguage(qEnvironmentVariable("QFTBX_RENDER_LANG", "en"));
+
+    MainWindow window;
+    window.setFileChooser([&out](bool) { return out + "/ejemplo-completo.qft"; });
+    window.findChild<QAction *>("actionOpen")->trigger();
+    window.resize(1400, 900);
+    window.show();
+    QCoreApplication::processEvents();
+
+    //Every card, folded and open, at the size the canvas gives it.
+    for (const char * nombre : {"plantCard", "frequenciesCard", "specificationsCard",
+                                "templatesCard", "boundariesCard", "controllerCard",
+                                "loopShapingCard"}) {
+        PhaseCard * card = window.findChild<PhaseCard *>(nombre);
+        if (card == nullptr) { continue; }
+
+        card->showForm(false);
+        QCoreApplication::processEvents();
+        card->grab().save(out + "/" + nombre + "-plegada.png");
+
+        card->showForm(true);
+        QCoreApplication::processEvents();
+        card->grab().save(out + "/" + nombre + "-abierta.png");
+        card->showForm(false);
+    }
+
+    window.grab().save(out + "/ventana.png");
+
+    //And the same wall three columns wide, which is where the phase worth
+    //two squares has to find its place.
+    window.resize(1980, 1100);
+    QCoreApplication::processEvents();
+    window.grab().save(out + "/ventana-tres-columnas.png");
 }
 
 TEST_F(GuiSmoke, TheSquareOfTheCanvasFollowsTheScreenItIsGiven)
@@ -1745,7 +2768,7 @@ TEST_F(GuiSmoke, ThePlantFormShowsThePlantOfTheProject)
 
     EXPECT_EQ(child<QLineEdit>(&dialog, "nameEdit")->text(), QString("aa"));
     EXPECT_TRUE(child<QRadioButton>(&dialog, "zpkRadio")->isChecked());
-    EXPECT_EQ(child<QLineEdit>(&dialog, "zpkDenominator")->text(), QString("a b"))
+    EXPECT_EQ(child<QLineEdit>(&dialog, "denominatorEdit")->text(), QString("a b"))
         << "an uncertain coefficient shows its name, which is what the field holds";
 
     press(&dialog, "okButton");
@@ -1768,9 +2791,12 @@ TEST_F(GuiSmoke, EditingThePlantFormLeavesTheProjectsParametersBehind)
 
     PlantForm dialog;
     dialog.setFromProject(project.plant());
-    type(&dialog, "zpkDenominator", "2 7");
+    type(&dialog, "denominatorEdit", "2 7");
 
-    press(&dialog, "okButton");
+    //An edit undoes the verification the file came with: what is on screen
+    //is no longer what was checked.
+    EXPECT_EQ(child<QPushButton>(&dialog, "okButton")->text(), QString("Verify"));
+    verifyAndApply(&dialog);
     ASSERT_TRUE(dialog.wasAccepted());
 
     const std::unique_ptr<LtiSystem> described = dialog.takePlant();
@@ -1955,11 +2981,11 @@ TEST_F(GuiSmoke, AReusedDialogForgetsItsPreviousAcceptance)
 
     type(&dialog, "nameEdit", "reused");
     check(&dialog, "zpkRadio");
-    type(&dialog, "zpkNumerator", "2");
-    type(&dialog, "zpkDenominator", "5 30");
-    type(&dialog, "zpkGain", "3");
-    type(&dialog, "zpkDelay", "0");
-    press(&dialog, "okButton");
+    type(&dialog, "numeratorEdit", "2");
+    type(&dialog, "denominatorEdit", "5 30");
+    type(&dialog, "gainEdit", "3");
+    type(&dialog, "delayEdit", "0");
+    verifyAndApply(&dialog);
 
     ASSERT_TRUE(dialog.wasAccepted());
 

@@ -980,8 +980,9 @@ std::vector<TemplateEngine::EpsilonProposal> TemplateEngine::proposeEpsilon(){
                 if (candidate > previous){
                     previous = candidate;
                     bool truncated = false;
-                    const ComplexCloud walked = epsilonHull(cloud, candidate, nullptr, &truncated, nullptr);
-                    if (!walked.empty() && !truncated){
+                    bool fellBack = false;
+                    const ComplexCloud walked = epsilonHull(cloud, candidate, &fellBack, &truncated, nullptr);
+                    if (!walked.empty() && !truncated && !fellBack){
                         proposal.epsilon = candidate;
                         proposal.closes = true;
                         break;
@@ -1276,13 +1277,6 @@ ComplexCloud TemplateEngine::walkComponent(const ComplexCloud & source, const Co
         counter++;
 
         if (counter > MAXP){
-            //The reference (EPSHULL.M) cycles without closing on clouds of
-            //clusters spaced about epsilon apart ('max_puntos_excedido').
-            //Documented fallback to the historical walk, which always
-            //yields a contour with coverage <= epsilon even if it is not
-            //the canonical epsilon-hull.
-            //Recorded, not warned: see the declaration. The caller names
-            //the frequencies once the loop is over.
             if (fellBack != nullptr){
                 *fellBack = true;
             }
@@ -1446,6 +1440,12 @@ std::int32_t TemplateEngine::findSecond(std::int32_t b1, const ComplexCloud & cv
     return pmin;
 }
 
+namespace {
+
+constexpr double kStraightBack = 1e-9;
+
+} // namespace
+
 std::int32_t TemplateEngine::findNext(std::int32_t previousPoint, std::int32_t currentPoint,
                                   const ComplexCloud & cv, double epsilon,
                                   const NeighbourGrid & neighbours, bool excludePrevious){
@@ -1496,10 +1496,9 @@ std::int32_t TemplateEngine::findNext(std::int32_t previousPoint, std::int32_t c
 
             //--------------------------------------------
 
-            //phase between the two points, normalised by the incoming leg.
-            phase = arg((candidate - current) / (previous - current));
+            phase = arg(candidate - current) - arg(previous - current);
 
-            if(phase < 0) //brought into [0, 2*PI)
+            if(phase < 0)
                 phase +=  2 * qftbx::math::kPi;
 
             //------------------------------------------------------------
@@ -1508,7 +1507,7 @@ std::int32_t TemplateEngine::findNext(std::int32_t previousPoint, std::int32_t c
 
             //------------------------------------------------------------
 
-            if(phase == 0){  //psi has three cases, as in EPSHULL.M
+            if(phase < kStraightBack || phase > 2 * qftbx::math::kPi - kStraightBack){
                 psi =  2 * qftbx::math::kPi - aco1 - aco2;
             }else if (phase > 0 && phase < aco2){
                 psi = phase + aco1- aco2;

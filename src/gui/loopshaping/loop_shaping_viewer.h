@@ -53,14 +53,24 @@ public:
 
     void showDiagram();
 
+signals:
+    /// The user chose how many digits the numbers are worth showing at. The
+    /// window writes it into the settings; the global itself is set here,
+    /// because everything drawn after this reads it.
+    void digitsChanged(int digits);
+
 private slots:
     void applyCheckboxes();
+
+    /// The controller, its formula and the verdict, at the digits chosen.
+    void showController();
 
 
     void on_saveImage_clicked();
 
 private:
     void showCheck();
+    void fillDigitsCombo();
     QString specificationTitle(qftbx::SpecificationType type);
 
     qftbx::UnionTraces unionTraces;
@@ -75,6 +85,12 @@ private:
     //The curves BELONG TO QCustomPlot, which frees them on
     //clearPlottables(): only the container is the viewer's.
     QVector <QCPCurve *> curves;
+
+    //The pieces of each frequency's boundary, by frequency: what the legend
+    //shows or hides. The boundary of a frequency is not always one curve,
+    //so the row of the legend and the curve are no longer one to one.
+    //Observers: the curves above own nothing either, QCustomPlot does.
+    QVector <QVector <QCPCurve *>> boundaryCurves;
 
     void addFrequencyRow(QColor color, qint32 pos);
     FrequencyLegend * legend = nullptr;

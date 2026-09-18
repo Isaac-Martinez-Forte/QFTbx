@@ -52,6 +52,23 @@ std::string qftbx::text::number(double value)
 }
 
 
+std::string qftbx::text::number(double value, int digits)
+{
+    if (digits < 1 || digits >= kMaxSignificantDigits) {
+        return number(value);
+    }
+
+    char buffer[64];
+    std::snprintf(buffer, sizeof buffer, "%.*g", digits, value);
+
+    //%g leaves the zeros it was asked for when the value needs fewer:
+    //asking four digits of 1.5 gives "1.5000". Reading the rounded text
+    //back and printing it at its own length drops them, and leaves the
+    //exponent alone.
+    return number(std::strtod(buffer, nullptr));
+}
+
+
 std::vector<std::string> qftbx::text::tokens(const std::string & line){
 
     std::vector<std::string> result;

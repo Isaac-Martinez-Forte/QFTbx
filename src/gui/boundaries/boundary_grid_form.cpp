@@ -30,7 +30,11 @@ BoundaryGridForm::BoundaryGridForm(QWidget *parent) :
     setWindowTitle(tr("Boundary grid input"));
 
 #ifndef CUDA_AVAILABLE
+    //Without a GPU build there is nothing to choose between, so neither
+    //half of the choice is shown: a lone "CPU" that cannot be unselected
+    //asks a question with one answer.
     ui->cudaCheck->setVisible(false);
+    ui->cpu->setVisible(false);
 #endif
 
 }

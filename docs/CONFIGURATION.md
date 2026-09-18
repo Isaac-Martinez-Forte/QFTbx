@@ -45,6 +45,7 @@ so no value here can change what a test means.
 | `canvas` | empty | a list of `phase:size` | How the canvas was left when the application last closed: the phases in the order the user put them, each with the size he gave it. The window writes it itself; deleting the line loses nothing, and the canvas comes up in the order of the design |
 | `theme` | `system` | `system`, `light`, `dark` | The look of the interface. The three share their shapes - flat, square, one-pixel borders, the blue of the icon as the accent - and differ in the palette: `system` takes the machine's. Choosing one in the View menu writes it here |
 | `window` | empty | `width height`, `maximized` | How big the window was when it last closed. Written by the window itself; deleting the line loses nothing |
+| `digits` | `4` | 1 to 17 | How many significant digits the forms SHOW. The project file always keeps every digit of every number; this is about reading them. Significant digits and not decimals, so that the small ones survive: four decimals of `6.988e-05` would be a zero |
 
 **`[limits]`**: ceilings that exist to stop a typo, not to express a limit of
 the method. They only ever refuse input, so moving them changes no computed

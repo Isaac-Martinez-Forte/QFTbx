@@ -36,7 +36,19 @@ constexpr double kAspect = 0.72;
 constexpr int kMinRow = 360;
 constexpr int kMaxRow = 560;
 
-constexpr int kFormHeight = 340;
+constexpr int kFormHeight = 380;
+
+//The air between the border of a card and what is written inside it.
+constexpr int kPadding = 8;
+
+//Given to the widget's own layout, which is where a form decides how far
+//from its edge its first label sits.
+void pad(QWidget * inside)
+{
+    if (inside != nullptr && inside->layout() != nullptr) {
+        inside->layout()->setContentsMargins(kPadding, kPadding, kPadding, kPadding);
+    }
+}
 
 int widthOf(QSize unit, int columns)
 {
@@ -127,13 +139,22 @@ PhaseCard::PhaseCard(const QString & title, const QString & name, QWidget * form
     m_wider->setToolTip(tr("Wider"));
     barLayout->addWidget(m_wider);
 
+    m_close = new QToolButton(bar);
+    m_close->setObjectName(name + "Close");
+    m_close->setText(QString::fromUtf8("\u2715"));
+    m_close->setToolTip(tr("Close this phase. Its button at the top of the window opens it "
+                           "again, with everything it holds."));
+    connect(m_close, &QToolButton::clicked, this, &PhaseCard::closeAsked);
+    barLayout->addWidget(m_close);
+
     //The bar is the handle and shows the hand for it; its buttons are not,
     //and a hand over something you only press says the wrong thing. A
     //cursor is inherited by every child unless the child says otherwise.
     for (QWidget * pressed : {static_cast<QWidget *>(m_fold),
                               static_cast<QWidget *>(m_cancel),
                               static_cast<QWidget *>(m_narrower),
-                              static_cast<QWidget *>(m_wider)}) {
+                              static_cast<QWidget *>(m_wider),
+                              static_cast<QWidget *>(m_close)}) {
         pressed->setCursor(Qt::ArrowCursor);
     }
 
@@ -157,6 +178,13 @@ PhaseCard::PhaseCard(const QString & title, const QString & name, QWidget * form
     m_formArea->setWidget(m_form);
     m_formArea->setWidgetResizable(true);
     m_formArea->setVisible(false);
+    //Air between the border of the card and what is written inside it: the
+    //forms lay their fields out from their own edge, and against the frame
+    //the labels read as if they were glued to it. Given to the form's own
+    //layout, and here rather than in seven .ui files, so that every phase
+    //gets the same and a form drawn in Designer needs no margins of its own.
+    pad(m_form);
+
     layout->addWidget(m_formArea);
 
     if (views.size() == 1) {
@@ -173,6 +201,10 @@ PhaseCard::PhaseCard(const QString & title, const QString & name, QWidget * form
 
     if (m_views != nullptr) {
         m_views->setMinimumSize(kMinColumn / 2, 200);
+        for (const auto & [tabTitle, view] : views) {
+            (void) tabTitle;
+            pad(view);
+        }
         layout->addWidget(m_views, 1);
 
         //The band the form gets when it is unfolded, and not a pixel more:
@@ -243,6 +275,7 @@ void PhaseCard::setBusy(bool busy, const QString & what)
     m_progress->setVisible(busy);
     m_cancel->setVisible(busy);
     m_fold->setEnabled(!busy);
+    m_close->setEnabled(!busy);
 
     //The form is the input of the computation that is running: touching it
     //while it runs would describe something else.
@@ -305,9 +338,11 @@ void PhaseCard::setUnit(QSize unit)
     updateGeometry();
 }
 
-void PhaseCard::setSpan(int columns)
+void PhaseCard::setSpan(int columns, bool chosen)
 {
     const int wanted = std::clamp(columns, 1, kMaxSpan);
+
+    m_spanChosen = m_spanChosen || chosen;
 
     m_narrower->setEnabled(wanted > 1);
     m_wider->setEnabled(wanted < kMaxSpan);

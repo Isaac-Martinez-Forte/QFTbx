@@ -39,6 +39,22 @@ namespace text {
 std::string number(double value);
 
 /**
+ * @brief A real as text, rounded to the significant digits asked for.
+ *
+ * What a form SHOWS, as against what a file keeps. A gain read off an
+ * optimisation is 567.3175312139062 and is stored that way; on screen it is
+ * 567.3, because thirteen digits of a number the user is going to compare
+ * by eye are noise. Significant digits and not decimals, so that the small
+ * numbers survive: an excess of 6.988e-05 dB rounded to four DECIMALS is
+ * "0.0000", a zero where a margin was.
+ *
+ * Trailing zeros of the rounding are dropped ("1.5000" is "1.5"), and
+ * 'digits' below one, or above the seventeen that round-trip a double, is
+ * the full number(double).
+ */
+std::string number(double value, int digits);
+
+/**
  * @brief The pieces joined by a separator, as QStringList::join() did.
  *
  * Needed because std::string has no join and the alternative at every call

@@ -145,12 +145,6 @@ TEST_F(TemplatesGolden, ContourMatchesFixtureAsACycle)
 
 TEST_F(TemplatesGolden, ContourStartHonoursTheHybridRule)
 {
-    // Faithful walks return CLOSED contours (last == first) starting at the
-    // max-real point (EPSHULL.M and the PFC text); when the reference walk
-    // cycles, the fallback returns the historical open, deduplicated
-    // contour starting at the max-imaginary point. WHICH frequencies fall
-    // back depends on last-digit noise of the cloud (the reference walk is
-    // that sensitive), so the rule is detected per frequency, not fixed.
     const qftbx::CloudSet & temps = templates.clouds();
     const qftbx::CloudSet & conts = templates.contours();
 
@@ -173,9 +167,7 @@ TEST_F(TemplatesGolden, ContourStartHonoursTheHybridRule)
             << "frequency " << f << (faithful ? " (faithful)" : " (fallback)");
     }
 
-    // The clustered clouds of this fixture make some frequencies fall back.
-    EXPECT_GT(fallbacks, 0);
-    EXPECT_LT(fallbacks, static_cast<int>(conts.size()));
+    EXPECT_EQ(fallbacks, 0);
 }
 
 TEST_F(TemplatesGolden, ContourIsSubsetOfTemplate)

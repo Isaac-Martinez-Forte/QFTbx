@@ -26,38 +26,58 @@
         <layout class="QVBoxLayout" name="verticalLayout">
          <item>
           <widget class="QRadioButton" name="ntRadio">
+           <property name="toolTip">
+             <string>Nataraj and Tharewal: the base algorithm, a branch and bound over the box of controller parameters that PROVES its answer instead of searching for it. The slowest, and the one the other four extend.</string>
+            </property>
            <property name="text">
             <string>A&amp;lgorithm NT</string>
            </property>
-          </widget>
+            <attribute name="buttonGroup"><string notr="true">algorithm</string></attribute>
+        </widget>
          </item>
          <item>
           <widget class="QRadioButton" name="nkRadio">
+           <property name="toolTip">
+             <string>Nataraj and Kubal: NT with closed-form cuts on every parameter and a local search whose feasible results prune the tree.</string>
+            </property>
            <property name="text">
             <string>Algorithm &amp;NK</string>
            </property>
-          </widget>
+            <attribute name="buttonGroup"><string notr="true">algorithm</string></attribute>
+        </widget>
          </item>
          <item>
           <widget class="QRadioButton" name="mc1Radio">
+           <property name="toolTip">
+             <string>The 2021 paper: NK with the phase and the feasible-box information added to its cuts. One to two orders of magnitude faster than NK on the published benchmarks, with the same guarantee.</string>
+            </property>
            <property name="text">
             <string>Algorith&amp;m MC1</string>
            </property>
-          </widget>
+            <attribute name="buttonGroup"><string notr="true">algorithm</string></attribute>
+        </widget>
          </item>
          <item>
           <widget class="QRadioButton" name="mc2Radio">
+           <property name="toolTip">
+             <string>The strategies of the thesis with their published equations corrected, an exact best gain and a contraction of the box before it is returned.</string>
+            </property>
            <property name="text">
             <string>Algorithm MC&amp;2</string>
            </property>
-          </widget>
+            <attribute name="buttonGroup"><string notr="true">algorithm</string></attribute>
+        </widget>
          </item>
          <item>
           <widget class="QRadioButton" name="mrRadio">
+           <property name="toolTip">
+             <string>Kalla and Nataraj: the specifications written as interval constraints on the controller parameters and solved by branch and prune. It needs no boundaries at all.</string>
+            </property>
            <property name="text">
             <string>Al&amp;gorithm MR</string>
            </property>
-          </widget>
+            <attribute name="buttonGroup"><string notr="true">algorithm</string></attribute>
+        </widget>
          </item>
         </layout>
        </item>
@@ -92,6 +112,9 @@
             <layout class="QVBoxLayout" name="verticalLayout_5">
              <item>
               <widget class="QRadioButton" name="centro">
+               <property name="toolTip">
+                 <string>The local search of NK starts at the centre of the box.</string>
+                </property>
                <property name="text">
                 <string>Cen&amp;tre</string>
                </property>
@@ -102,6 +125,9 @@
              </item>
              <item>
               <widget class="QRadioButton" name="upperInit">
+               <property name="toolTip">
+                 <string>It starts at the corner of the box: the zeros at their smallest, the poles and the gain at their largest.</string>
+                </property>
                <property name="text">
                 <string>Upper bo&amp;x</string>
                </property>
@@ -134,7 +160,11 @@
           </widget>
          </item>
          <item row="0" column="1">
-          <widget class="QLineEdit" name="startEdit"/>
+          <widget class="QLineEdit" name="startEdit">
+           <property name="toolTip">
+             <string>The first frequency the loop is DRAWN at, in rad/s. It does not change the design, which is done at the design frequencies.</string>
+            </property>
+          </widget>
          </item>
          <item row="1" column="0">
           <widget class="QLabel" name="label_6">
@@ -144,7 +174,11 @@
           </widget>
          </item>
          <item row="1" column="1">
-          <widget class="QLineEdit" name="endEdit"/>
+          <widget class="QLineEdit" name="endEdit">
+           <property name="toolTip">
+             <string>The last frequency the loop is drawn at, in rad/s.</string>
+            </property>
+          </widget>
          </item>
          <item row="2" column="0">
           <widget class="QLabel" name="label_7">
@@ -154,7 +188,11 @@
           </widget>
          </item>
          <item row="2" column="1">
-          <widget class="QLineEdit" name="pointCountEdit"/>
+          <widget class="QLineEdit" name="pointCountEdit">
+           <property name="toolTip">
+             <string>How many points that drawing has.</string>
+            </property>
+          </widget>
          </item>
         </layout>
        </item>
@@ -162,17 +200,25 @@
         <layout class="QVBoxLayout" name="verticalLayout_4">
          <item>
           <widget class="QRadioButton" name="linspaceRadio">
+           <property name="toolTip">
+             <string>Those points evenly spaced.</string>
+            </property>
            <property name="text">
             <string>LinSpace</string>
            </property>
-          </widget>
+            <attribute name="buttonGroup"><string notr="true">spacing</string></attribute>
+        </widget>
          </item>
          <item>
           <widget class="QRadioButton" name="logspaceRadio">
+           <property name="toolTip">
+             <string>Spaced by decades, which is how a loop is read.</string>
+            </property>
            <property name="text">
             <string>LogSpace</string>
            </property>
-          </widget>
+            <attribute name="buttonGroup"><string notr="true">spacing</string></attribute>
+        </widget>
          </item>
         </layout>
        </item>
@@ -191,77 +237,92 @@
        </item>
       </layout>
      </item>
-    </layout>
-   </item>
-   <item>
-    <widget class="QLabel" name="label_2">
-     <property name="text">
-      <string>Enter epsilon:</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
-      <widget class="QLabel" name="epsilonLabel">
+      <layout class="QVBoxLayout" name="runLayout">
+     <item>
+      <widget class="QLabel" name="label_2">
        <property name="text">
-        <string>Epsilon:</string>
+        <string>Enter epsilon:</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="epsilonEdit"/>
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <item>
+        <widget class="QLabel" name="epsilonLabel">
+         <property name="text">
+          <string>Epsilon:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="epsilonEdit">
+         <property name="toolTip">
+           <string>The tolerance the search stops at. It is not the same quantity for every algorithm, and the label above says which one is being asked for: the diameter of the Nichols box for NT, NK, MC1 and MC2, the width of the box of controller parameters for MR.</string>
+          </property>
+        </widget>
+       </item>
+      </layout>
      </item>
-    </layout>
-   </item>
-   <item>
-    <widget class="QCheckBox" name="conservativeColumnsCheck">
-     <property name="toolTip">
-      <string>Judge every point and box by both boundary columns around its phase instead of the nearest one. Removes the small permissive error of the phase grid; the searches without a best-gain bound become much slower.</string>
-     </property>
-     <property name="text">
-      <string>Conservative boundary reading</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <spacer name="bottomSpacer">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>20</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item>
-    <layout class="QHBoxLayout" name="verticalLayout_2">
      <item>
-      <spacer name="buttonsSpacer">
+      <widget class="QCheckBox" name="conservativeColumnsCheck">
+       <property name="toolTip">
+        <string>Judge every point and box by both boundary columns around its phase instead of the nearest one. Removes the small permissive error of the phase grid; the searches without a best-gain bound become much slower.</string>
+       </property>
+       <property name="text">
+        <string>Conservative boundary reading</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="bottomSpacer">
        <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+        <enum>Qt::Vertical</enum>
        </property>
        <property name="sizeHint" stdset="0">
         <size>
-         <width>40</width>
+         <width>20</width>
          <height>20</height>
         </size>
        </property>
       </spacer>
      </item>
      <item>
-      <widget class="QPushButton" name="okButton">
-       <property name="text">
-        <string>Compute</string>
-       </property>
-      </widget>
+      <layout class="QHBoxLayout" name="verticalLayout_2">
+       <item>
+        <spacer name="buttonsSpacer">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QPushButton" name="okButton">
+         <property name="toolTip">
+           <string>Runs the search. It can take minutes: the card says so while it runs and the search can be given up on.</string>
+          </property>
+         <property name="text">
+          <string>Compute</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+      </layout>
      </item>
     </layout>
    </item>
   </layout>
  </widget>
+ <buttongroups>
+  <buttongroup name="algorithm"/>
+  <buttongroup name="spacing"/>
+ </buttongroups>
  <resources/>
 </ui>

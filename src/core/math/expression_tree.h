@@ -222,6 +222,11 @@ public :
     double evaluate(const std::vector<double> & values) const;
     std::complex<double> evaluate(const std::vector<std::complex<double>> & values) const;
 
+    /// The parsed tree, to be READ by whoever walks it for something other
+    /// than a value - the formula view draws from here - or null while
+    /// nothing has been parsed.
+    const exp_node * tree() const;
+
     /// Prints the tree to stdout (debugging aid).
     void print ();
 

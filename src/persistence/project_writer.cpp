@@ -130,6 +130,12 @@ void writeSystem(pugi::xml_node parent, const char * sectionName, LtiSystem * sy
     pugi::xml_node node = parent.append_child(sectionName);
     node.append_attribute(t.nameAttribute) = system->name().c_str();
 
+    //Written only when there is one: a file full of empty attributes says
+    //nothing, and an absent description reads back as an empty one.
+    if (!system->description().empty()) {
+        node.append_attribute(t.descriptionAttribute) = system->description().c_str();
+    }
+
     pugi::xml_node typeNode = node.append_child(t.type);
     typeNode.append_attribute(t.typeAttribute) = static_cast<std::int32_t>(system->type());
 
@@ -174,6 +180,14 @@ void writeSpecifications(pugi::xml_node root, const qftbx::SpecificationRecords 
 
         addReal(node, t.minFrequency, record.omegaStart);
         addReal(node, t.maxFrequency, record.omegaEnd);
+
+        //The frequencies of that band this one was taken out of, if any:
+        //written only when there are, so a file says nothing about an
+        //exception list nobody made.
+        if (!record.skipped.empty()) {
+            addText(node, t.skipped, realVectorText(record.skipped, t.skipped));
+        }
+
         addBool(node, t.constant, record.constant);
 
         if (record.constant) {

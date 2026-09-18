@@ -110,4 +110,21 @@ void setUpPlot(QCustomPlot & plot, const QString & xLabel, const QString & yLabe
     });
 }
 
+void narrowSideColumn(QLayout * side)
+{
+    if (side == nullptr) {
+        return;
+    }
+
+    for (int i = 0; i < side->count(); ++i) {
+        QLayoutItem * item = side->itemAt(i);
+
+        if (QWidget * widget = item->widget()) {
+            widget->setMaximumWidth(kSideColumn);
+        } else if (QLayout * inside = item->layout()) {
+            narrowSideColumn(inside);
+        }
+    }
+}
+
 } // namespace qftbx
