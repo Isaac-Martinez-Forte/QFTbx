@@ -36,7 +36,7 @@ constexpr double kAspect = 0.72;
 constexpr int kMinRow = 360;
 constexpr int kMaxRow = 560;
 
-constexpr int kFormHeight = 340;
+constexpr int kFormHeight = 380;
 
 //The air between the border of a card and what is written inside it.
 constexpr int kPadding = 8;

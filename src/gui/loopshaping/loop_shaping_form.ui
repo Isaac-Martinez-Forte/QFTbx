@@ -237,80 +237,84 @@
        </item>
       </layout>
      </item>
-    </layout>
-   </item>
-   <item>
-    <widget class="QLabel" name="label_2">
-     <property name="text">
-      <string>Enter epsilon:</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
-      <widget class="QLabel" name="epsilonLabel">
+      <layout class="QVBoxLayout" name="runLayout">
+     <item>
+      <widget class="QLabel" name="label_2">
        <property name="text">
-        <string>Epsilon:</string>
+        <string>Enter epsilon:</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="epsilonEdit">
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <item>
+        <widget class="QLabel" name="epsilonLabel">
+         <property name="text">
+          <string>Epsilon:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="epsilonEdit">
+         <property name="toolTip">
+           <string>The tolerance the search stops at. It is not the same quantity for every algorithm, and the label above says which one is being asked for: the diameter of the Nichols box for NT, NK, MC1 and MC2, the width of the box of controller parameters for MR.</string>
+          </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="conservativeColumnsCheck">
        <property name="toolTip">
-         <string>The tolerance the search stops at. It is not the same quantity for every algorithm, and the label above says which one is being asked for: the diameter of the Nichols box for NT, NK, MC1 and MC2, the width of the box of controller parameters for MR.</string>
-        </property>
+        <string>Judge every point and box by both boundary columns around its phase instead of the nearest one. Removes the small permissive error of the phase grid; the searches without a best-gain bound become much slower.</string>
+       </property>
+       <property name="text">
+        <string>Conservative boundary reading</string>
+       </property>
       </widget>
      </item>
-    </layout>
-   </item>
-   <item>
-    <widget class="QCheckBox" name="conservativeColumnsCheck">
-     <property name="toolTip">
-      <string>Judge every point and box by both boundary columns around its phase instead of the nearest one. Removes the small permissive error of the phase grid; the searches without a best-gain bound become much slower.</string>
-     </property>
-     <property name="text">
-      <string>Conservative boundary reading</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <spacer name="bottomSpacer">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>20</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item>
-    <layout class="QHBoxLayout" name="verticalLayout_2">
      <item>
-      <spacer name="buttonsSpacer">
+      <spacer name="bottomSpacer">
        <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+        <enum>Qt::Vertical</enum>
        </property>
        <property name="sizeHint" stdset="0">
         <size>
-         <width>40</width>
+         <width>20</width>
          <height>20</height>
         </size>
        </property>
       </spacer>
      </item>
      <item>
-      <widget class="QPushButton" name="okButton">
-       <property name="toolTip">
-         <string>Runs the search. It can take minutes: the card says so while it runs and the search can be given up on.</string>
-        </property>
-       <property name="text">
-        <string>Compute</string>
-       </property>
-      </widget>
+      <layout class="QHBoxLayout" name="verticalLayout_2">
+       <item>
+        <spacer name="buttonsSpacer">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QPushButton" name="okButton">
+         <property name="toolTip">
+           <string>Runs the search. It can take minutes: the card says so while it runs and the search can be given up on.</string>
+          </property>
+         <property name="text">
+          <string>Compute</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+      </layout>
      </item>
     </layout>
    </item>

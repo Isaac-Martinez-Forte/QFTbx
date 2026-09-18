@@ -55,6 +55,7 @@
 #include <QDialogButtonBox>
 #include <QIcon>
 #include <QDockWidget>
+#include <limits>
 #include <QToolButton>
 #include <QStackedWidget>
 #include <QTableWidget>
@@ -1624,6 +1625,38 @@ TEST_F(GuiSmoke, TheStepButtonsAreAllTheSameHeight)
 
     EXPECT_EQ(tallest, shortest)
         << "a caption on two lines makes its button taller than the rest";
+}
+
+TEST_F(GuiSmoke, EveryFormFitsTheBandItsCardGivesIt)
+{
+    MainWindow window;
+    window.setFileChooser([](bool) {
+        return QString(QFTBX_TEST_DATA_DIR "/planta1.qft");
+    });
+    window.findChild<QAction *>("actionOpen")->trigger();
+    window.resize(1280, 900);
+    window.show();
+    QCoreApplication::processEvents();
+
+    for (const char * step : {"plantButton", "frequenciesButton", "specificationsButton",
+                              "templatesButton", "boundariesButton", "controllerButton",
+                              "loopButton"}) {
+        child<QPushButton>(&window, step)->click();
+    }
+    QCoreApplication::processEvents();
+
+    for (const char * name : {"plantCard", "frequenciesCard", "templatesCard",
+                              "boundariesCard", "controllerCard", "loopShapingCard"}) {
+        QScrollArea * area = window.findChild<QScrollArea *>(QString(name) + "FormArea");
+        ASSERT_NE(area, nullptr) << name;
+        QWidget * form = area->widget();
+        ASSERT_NE(form, nullptr) << name;
+
+        EXPECT_LE(form->sizeHint().height(), area->viewport()->height())
+            << name << ": the form asks for " << form->sizeHint().height()
+            << " px in a band of " << area->viewport()->height()
+            << ", so its button has to be scrolled to";
+    }
 }
 
 TEST_F(GuiSmoke, ClosingAPhaseDoesNotThrowAwayWhatWasTypedIntoIt)
