@@ -154,8 +154,8 @@ void PlanEditor::build()
     auto * runsForm = new QFormLayout(runsBox);
     auto * algorithmsRow = new QHBoxLayout();
     for (const LoopShapingAlgorithm algorithm : {nt, nk, mr, mc1, mc_thesis}) {
-        auto * box = new QCheckBox(QString::fromLatin1(bench::algorithmName(algorithm)), runsBox);
-        box->setObjectName(QStringLiteral("algorithm_%1").arg(bench::algorithmName(algorithm)));
+        auto * box = new QCheckBox(QString::fromLatin1(algorithmName(algorithm)), runsBox);
+        box->setObjectName(QStringLiteral("algorithm_%1").arg(algorithmName(algorithm)));
         algorithmsRow->addWidget(box);
         m_algorithms.emplace_back(algorithm, box);
     }

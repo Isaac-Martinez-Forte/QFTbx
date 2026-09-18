@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include "src/core/loopshaping/algorithm_name.h"
 #include "src/core/loopshaping/loop_shaping_types.h"
 #include "src/core/math/range.h"
 #include "src/core/system/lti_system.h"
@@ -125,9 +126,6 @@ std::string structureLabel(const Plan & plan, std::size_t stepsApplied);
 /// the ones it has) and the gain range replaced when the plan says so.
 /// Zero-pole-gain structures only.
 std::unique_ptr<LtiSystem> structureAfter(const Plan & plan, LtiSystem & base, std::size_t stepsApplied);
-
-const char * algorithmName(LoopShapingAlgorithm algorithm);
-std::optional<LoopShapingAlgorithm> algorithmFromName(const std::string & name);
 
 } // namespace qftbx::bench
 

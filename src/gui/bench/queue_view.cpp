@@ -66,7 +66,7 @@ void QueueView::setCases(const bench::Plan & plan, const std::vector<bench::Case
         m_table->setItem(row, Index, readOnly(QString::number(c.index)));
         m_table->setItem(row, CaseId, readOnly(QString::fromStdString(bench::caseId(c))));
         m_table->setItem(row, Structure, readOnly(QString::fromStdString(bench::structureLabel(plan, c.stepsApplied))));
-        m_table->setItem(row, Algorithm, readOnly(QString::fromLatin1(bench::algorithmName(c.algorithm))));
+        m_table->setItem(row, Algorithm, readOnly(QString::fromLatin1(algorithmName(c.algorithm))));
         m_table->setItem(row, Epsilon, readOnly(QString::number(c.epsilon)));
         m_table->setItem(row, Repetition, readOnly(c.warmUp ? tr("warm-up") : QString::number(c.repetition)));
         m_table->setItem(row, Status, readOnly(tr("queued")));
