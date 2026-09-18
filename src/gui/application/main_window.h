@@ -150,6 +150,10 @@ private:
     /// The texts this class sets itself, outside the form.
     void retranslate();
 
+    /// Gives the seven step buttons the height of the tallest, so that a
+    /// caption on two lines does not make one button taller than the rest.
+    void levelStepButtons();
+
     std::unique_ptr<Ui::MainWindow> ui;
     QMenu * m_languageMenu = nullptr;
     QMenu * m_themeMenu = nullptr;

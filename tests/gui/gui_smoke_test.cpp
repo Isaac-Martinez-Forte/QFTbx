@@ -1605,6 +1605,27 @@ TEST_F(GuiSmoke, APanelRefusesToPublishWhatTheProjectHasTakenAwayFromIt)
         << "grids with no plant behind them must not be published";
 }
 
+TEST_F(GuiSmoke, TheStepButtonsAreAllTheSameHeight)
+{
+    MainWindow window;
+    window.show();
+    QCoreApplication::processEvents();
+
+    int tallest = 0;
+    int shortest = std::numeric_limits<int>::max();
+    for (const char * name : {"plantButton", "frequenciesButton", "specificationsButton",
+                              "templatesButton", "boundariesButton", "controllerButton",
+                              "loopButton"}) {
+        QPushButton * step = child<QPushButton>(&window, name);
+        ASSERT_NE(step, nullptr) << name;
+        tallest = std::max(tallest, step->height());
+        shortest = std::min(shortest, step->height());
+    }
+
+    EXPECT_EQ(tallest, shortest)
+        << "a caption on two lines makes its button taller than the rest";
+}
+
 TEST_F(GuiSmoke, ClosingAPhaseDoesNotThrowAwayWhatWasTypedIntoIt)
 {
     MainWindow window;

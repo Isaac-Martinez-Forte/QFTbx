@@ -28,6 +28,7 @@
 #include "src/core/pipeline/pipeline_step.h"
 
 
+#include <QPushButton>
 #include <algorithm>
 #include <vector>
 
@@ -404,12 +405,29 @@ void MainWindow::retranslate()
         m_aboutAction->setText(tr("&About QFTbx..."));
         m_aboutQtAction->setText(tr("About &Qt..."));
     }
+    levelStepButtons();
 #ifdef QFTBX_BENCHMARK
     if (m_toolsMenu != nullptr) {
         m_toolsMenu->setTitle(tr("&Tools"));
         m_plannerAction->setText(tr("Benchmark &planner..."));
     }
 #endif
+}
+
+void MainWindow::levelStepButtons()
+{
+    int tallest = 0;
+    for (QPushButton * step : ui->stepsLayout->parentWidget()->findChildren<QPushButton *>()) {
+        if (ui->stepsLayout->indexOf(step) >= 0) {
+            step->setMinimumHeight(0);
+            tallest = std::max(tallest, step->sizeHint().height());
+        }
+    }
+    for (QPushButton * step : ui->stepsLayout->parentWidget()->findChildren<QPushButton *>()) {
+        if (ui->stepsLayout->indexOf(step) >= 0) {
+            step->setMinimumHeight(tallest);
+        }
+    }
 }
 
 void MainWindow::createSession(){
