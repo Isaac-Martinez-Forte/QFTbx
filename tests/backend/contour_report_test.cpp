@@ -6,6 +6,13 @@
 // engine keeps both as data, one report per frequency, and this file pins
 // what they say on the fixtures.
 //
+// And what the button that proposes an epsilon proposes: not the least one
+// that closes - at that one the walk threads into every notch of the lattice
+// the cloud is sampled on and comes back out, and the contour ends up with
+// more points than the cloud - but the least one at or above it whose walk
+// goes over no point twice. Where there is no such epsilon, which is what a
+// template that is a curve looks like, the least one that closes stands.
+//
 // On the QFT toolbox example 2 with the epsilon its file carries (10 at
 // every frequency) the faithful walk closes at all six frequencies and none
 // of them truncates. planta1, planta2 and acc90 do not truncate either.
@@ -16,6 +23,8 @@
 
 #include <cstdio>
 #include <string>
+#include <algorithm>
+#include <complex>
 #include <vector>
 
 #include "src/app/project_controller.h"
@@ -56,6 +65,66 @@ TEST(ContourReport, OneReportPerFrequencyAndTheSizesAdd)
 
     EXPECT_EQ(relaxed, 0u) << "a frequency fell back to the relaxed walk";
     EXPECT_EQ(truncated, 0u) << "none of them truncated";
+}
+
+TEST(ContourReport, TheProposedEpsilonIsTheOneThatDoesNotWalkAPointTwice)
+{
+    for (const char * file : {"qft_toolbox_ex2.qft", "planta1.qft", "acc90.qft"}) {
+        ProjectController controller;
+        controller.load(std::string(QFTBX_TEST_DATA_DIR) + "/" + file);
+
+        const std::vector<TemplateEngine::EpsilonProposal> asked = controller.proposeEpsilon();
+        ASSERT_FALSE(asked.empty()) << file;
+
+        std::vector<double> proposed, connecting;
+        for (const TemplateEngine::EpsilonProposal & one : asked) {
+            EXPECT_TRUE(one.closes) << file;
+            EXPECT_GE(one.epsilon, one.connected) << file;
+            proposed.push_back(one.epsilon);
+            connecting.push_back(one.connected);
+        }
+
+        ASSERT_FALSE(controller.recomputeContour(connecting).empty()) << file;
+        std::vector<std::size_t> before;
+        for (const qftbx::ComplexCloud & c : controller.contour()) before.push_back(c.size());
+
+        ASSERT_FALSE(controller.recomputeContour(proposed).empty()) << file;
+
+        for (std::size_t i = 0; i < controller.contour().size(); ++i) {
+            EXPECT_LE(controller.contour().at(i).size(), before[i])
+                << file << " frequency " << i << ": the proposal walks more points than the"
+                   " least epsilon that closes";
+        }
+    }
+}
+
+TEST(ContourReport, TheContourOfExampleTwoIsSmallerThanItsCloud)
+{
+    ProjectController controller;
+    controller.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
+
+    std::vector<double> epsilon;
+    for (const TemplateEngine::EpsilonProposal & one : controller.proposeEpsilon()) {
+        epsilon.push_back(one.epsilon);
+    }
+    ASSERT_FALSE(controller.recomputeContour(epsilon).empty());
+
+    for (std::size_t i = 0; i < controller.contour().size(); ++i) {
+        const qftbx::ComplexCloud & walked = controller.contour().at(i);
+
+        std::vector<std::complex<double>> seen (walked.begin(), walked.end());
+        std::sort(seen.begin(), seen.end(),
+                  [](const std::complex<double> & a, const std::complex<double> & b){
+                      return a.real() != b.real() ? a.real() < b.real() : a.imag() < b.imag();
+                  });
+        seen.erase(std::unique(seen.begin(), seen.end()), seen.end());
+
+        EXPECT_LE(walked.size(), seen.size() + 1)
+            << "frequency " << i << ": the contour goes over "
+            << walked.size() - seen.size() << " points twice";
+        EXPECT_LT(walked.size(), controller.templates().at(i).size())
+            << "frequency " << i << ": the contour is not smaller than its cloud";
+    }
 }
 
 TEST(ContourReport, WhichFixturesTruncateIsPinned)

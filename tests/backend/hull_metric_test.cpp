@@ -156,6 +156,9 @@ TEST(HullMetric, Example2AsksForOneEpsilonInNicholsAndTenThousandInTheComplexPla
     EXPECT_NEAR(complexPlane[5].connected, 3.714e-4, 4e-6);
     EXPECT_NEAR(nichols[2].connected, 8.973, 0.09);
     EXPECT_NEAR(nichols[5].connected, 2.766, 0.03);
-    //The stored epsilon, 10, is 27 000 times what w = 100 needs.
-    EXPECT_GT(10.0 / complexPlane[5].epsilon, 20000.0);
+    //The stored epsilon, 10, is 27 000 times what w = 100 needs. What the
+    //cloud needs is what connects it, which is not what the button proposes:
+    //the proposal climbs above it to where the walk stops going over its own
+    //points (TemplateEngine::withoutRetracing).
+    EXPECT_GT(10.0 / complexPlane[5].connected, 20000.0);
 }

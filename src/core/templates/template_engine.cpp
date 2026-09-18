@@ -936,6 +936,47 @@ double TemplateEngine::connectingEpsilon(const ComplexCloud & cloud) const{
     return longest;
 }
 
+bool TemplateEngine::retraces(const ComplexCloud & walked)
+{
+    std::vector<complex<double>> seen (walked.begin(), walked.end());
+    std::sort(seen.begin(), seen.end(),
+              [](const complex<double> & a, const complex<double> & b){
+                  return a.real() != b.real() ? a.real() < b.real() : a.imag() < b.imag();
+              });
+    seen.erase(std::unique(seen.begin(), seen.end()), seen.end());
+
+    //A closed walk ends where it began, and that is the one repeat a
+    //contour is allowed.
+    return walked.size() > seen.size() + 1;
+}
+
+double TemplateEngine::withoutRetracing(const ComplexCloud & cloud, double closing,
+                                        double diameter)
+{
+    constexpr int kRungs = 4;
+    constexpr double kStep = 1.5;
+
+    double raw = closing;
+    for (int rung = 0; rung < kRungs; ++rung){
+        raw *= kStep;
+        if (raw > diameter){
+            break;
+        }
+
+        const double candidate = roundedUpToThreeFigures(raw);
+
+        bool truncated = false;
+        bool fellBack = false;
+        const ComplexCloud walked = epsilonHull(cloud, candidate, &fellBack, &truncated, nullptr);
+
+        if (!walked.empty() && !truncated && !fellBack && !retraces(walked)){
+            return candidate;
+        }
+    }
+
+    return closing;
+}
+
 std::vector<TemplateEngine::EpsilonProposal> TemplateEngine::proposeEpsilon(){
 
     std::vector<EpsilonProposal> proposals;
@@ -983,7 +1024,9 @@ std::vector<TemplateEngine::EpsilonProposal> TemplateEngine::proposeEpsilon(){
                     bool fellBack = false;
                     const ComplexCloud walked = epsilonHull(cloud, candidate, &fellBack, &truncated, nullptr);
                     if (!walked.empty() && !truncated && !fellBack){
-                        proposal.epsilon = candidate;
+                        proposal.epsilon = retraces(walked)
+                                               ? withoutRetracing(cloud, candidate, diameter)
+                                               : candidate;
                         proposal.closes = true;
                         break;
                     }

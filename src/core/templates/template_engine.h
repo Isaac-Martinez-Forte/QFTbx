@@ -92,6 +92,40 @@ public:
                              std::vector<std::size_t> * componentStarts = nullptr);
 
     /**
+     * @brief The epsilon to propose once one is known that closes: the first
+     * at or above it whose walk passes through no point twice.
+     *
+     * The least epsilon that closes is not a good epsilon. At it the disc
+     * that is rolled barely spans the lattice the cloud is sampled on, so
+     * the walk goes into every notch between neighbouring points and back
+     * out, and the contour comes out with MORE points than the cloud it was
+     * extracted from - which costs the boundaries and the loop shaping
+     * several times over and draws as a line over itself. Measured on a
+     * six-frequency project: 4508 points and 29.5 s of boundaries against
+     * 705 points and 4.7 s, for boundaries identical over all 955206 cells
+     * of the grid.
+     *
+     * Going in and out is not always the lattice, though: the template of a
+     * plant with one uncertain parameter is a CURVE, and a curve can only be
+     * walked out and back. Nothing passes that test there, and what comes
+     * back is the epsilon that was given - the least one that closes.
+     *
+     * Four candidates, each half as big again as the one before, and no
+     * more. This answers a button somebody is waiting on, over clouds of
+     * tens of thousands of points where one walk is seconds, and it is only
+     * reached at all by a frequency whose walk retraces - the walk that says
+     * so is the one the ladder above had already done. The epsilons that
+     * pass the test are a little above the one that closes, between 1.1 and
+     * 3.2 times it over the projects measured, so five times it is where the
+     * ladder stops and answers that there is none.
+     */
+    double withoutRetracing(const ComplexCloud & cloud, double closing, double diameter);
+
+    /// Whether a walk goes over a point of the cloud more than once, past
+    /// the one repeat that closing it costs.
+    static bool retraces(const ComplexCloud & walked);
+
+    /**
      * @brief The plane the epsilon of the hull is measured in.
      *
      * The walk of the hull only ever asks how far apart two points are, so
