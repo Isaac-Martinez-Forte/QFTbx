@@ -30,11 +30,11 @@ namespace qftbx {
  * \f$\varepsilon/2\f$ sticks out of the covered region (minimum
  * \f$\psi\f$ angle), closing when it returns to the initial pair.
  *
- * Known limitation of the reference algorithm, found while porting: on
- * clouds of clusters spaced about \f$\varepsilon\f$ apart the walk cycles
- * without closing; epsilonHull() then falls back to the relaxed historical
- * walk (a valid \f$\varepsilon\f$-cover, not the canonical hull) with a
- * warning.
+ * A walk that does not close within its step limit falls back to the
+ * relaxed historical walk, a valid \f$\varepsilon\f$-cover and not the
+ * canonical hull, which epsilonHull() records. It is the net under the
+ * clouds no walk can close: one in two pieces, or an \f$\varepsilon\f$
+ * below what the cloud needs.
  *
  * The engine keeps its own copies of everything it is given: the grids,
  * the epsilons, the clouds (see the setters) and the frequencies.

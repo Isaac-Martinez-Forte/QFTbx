@@ -2,16 +2,15 @@
 //
 // The walk has two ways of not being the canonical epsilon-hull. When the
 // faithful walk does not close it falls back to the relaxed historical walk,
-// and that walk can stop at its step limit with a PARTIAL contour. Both used
-// to be a line on the error stream, which a benchmark, a test or a script
-// never reads. The engine now keeps them as data, one report per frequency.
+// and that walk can stop at its step limit with a PARTIAL contour. The
+// engine keeps both as data, one report per frequency, and this file pins
+// what they say on the fixtures.
 //
 // On the QFT toolbox example 2 with the epsilon its file carries (10 at
-// every frequency) the faithful walk fails to close at five of the six
-// frequencies: the epsilon is far above what the clouds need (at w = 100 it
-// is a thousand times the cloud's own diameter), and the walk degenerates.
-// None of the six truncates. Those two facts are pinned here, as the state
-// of the chain before the epsilon is measured in the right units.
+// every frequency) the faithful walk closes at all six frequencies and none
+// of them truncates. planta1, planta2 and acc90 do not truncate either.
+// multivaluados.qft is left out of the second test: it stores an epsilon of
+// zero at one frequency, on which no walk is possible.
 
 #include <gtest/gtest.h>
 
@@ -55,23 +54,14 @@ TEST(ContourReport, OneReportPerFrequencyAndTheSizesAdd)
     }
     std::fflush(stdout);
 
-    //The state of the chain with this epsilon (see the header).
-    EXPECT_EQ(relaxed, 5u) << "five of six frequencies fell back to the relaxed walk";
+    EXPECT_EQ(relaxed, 0u) << "a frequency fell back to the relaxed walk";
     EXPECT_EQ(truncated, 0u) << "none of them truncated";
 }
 
-//The same facts on the other fixtures that carry templates and a usable
-//epsilon. ACC'90 is the one that truncates: its template is a curve (one
-//uncertain parameter, 80 points) and the walk of a curve with this epsilon
-//either traces it out and back or fails to close; at three of its twelve
-//frequencies neither walk closes, and the fixture's own stored contours show
-//what that used to produce - 3 points out of 80. The full cloud now stands
-//in at those frequencies. multivaluados.qft is left out: it stores an
-//epsilon of zero at one frequency, on which no walk was ever possible.
 TEST(ContourReport, WhichFixturesTruncateIsPinned)
 {
     struct Fixture { const char * file; std::size_t truncated; };
-    for (const Fixture f : {Fixture{"planta1.qft", 0}, Fixture{"planta2.qft", 0}, Fixture{"acc90.qft", 3}}) {
+    for (const Fixture f : {Fixture{"planta1.qft", 0}, Fixture{"planta2.qft", 0}, Fixture{"acc90.qft", 0}}) {
         const char * file = f.file;
         ProjectController controller;
         controller.load(std::string(QFTBX_TEST_DATA_DIR) + "/" + file);
@@ -90,7 +80,6 @@ TEST(ContourReport, WhichFixturesTruncateIsPinned)
             truncated += r.truncated ? 1 : 0;
             split += r.components > 1 ? 1 : 0;
             if (r.truncated) {
-                //The cloud stands in: the contour IS the cloud there.
                 EXPECT_EQ(r.contourPoints, r.cloudPoints) << file << " index " << i;
                 EXPECT_EQ(engine.contours()[i].size(), controller.templates()[i].size()) << file << " index " << i;
             }
