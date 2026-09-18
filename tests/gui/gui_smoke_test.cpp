@@ -629,6 +629,35 @@ TEST_F(GuiSmoke, ASpecificationAppliesAtTheFrequenciesThatAreTicked)
     EXPECT_FALSE(specification.appliesAt(100.0)) << "and so is everything past the band";
 }
 
+TEST_F(GuiSmoke, ABoundWhoseNumeratorIsOneSaysSoWhenItIsOpenedAgain)
+{
+    const std::vector<double> frequencies{0.1, 1.0, 10.0};
+    SpecificationsForm form(&frequencies);
+
+    QComboBox * typeCombo = child<QComboBox>(&form, "typeCombo");
+    typeCombo->setCurrentIndex(int(qftbx::SpecificationType::TrackingLower));
+
+    check(&form, "systemRadio");
+    check(&form, "polynomialRadio");
+    type(&form, "numeratorEdit", "");
+    type(&form, "denominatorEdit", "1 17 82 120");
+    type(&form, "k", "120");
+    type(&form, "delayEdit", "0");
+    press(&form, "addButton");
+    press(&form, "addButton");
+
+    ASSERT_EQ(child<QTableWidget>(&form, "specificationsTable")->rowCount(), 1)
+        << complaintOf(&form).toStdString();
+
+    typeCombo->setCurrentIndex(int(qftbx::SpecificationType::ControlEffort));
+    typeCombo->setCurrentIndex(int(qftbx::SpecificationType::TrackingLower));
+
+    EXPECT_EQ(child<QLineEdit>(&form, "numeratorEdit")->text(), QString("1"))
+        << "the numerator the formula draws as 1 came back as an empty field";
+    EXPECT_EQ(child<QLineEdit>(&form, "denominatorEdit")->text(), QString("1 17 82 120"));
+    EXPECT_EQ(child<QLineEdit>(&form, "k")->text(), QString("120"));
+}
+
 TEST_F(GuiSmoke, ASpecificationIsRemovedFromTheListItIsOn)
 {
     const std::vector<double> frequencies{0.1, 1.0, 10.0};

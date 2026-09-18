@@ -66,10 +66,19 @@ QString coefficientsText(std::vector<Parameter> & parameters)
     return text.trimmed();
 }
 
+bool isFactored(LtiSystem * system)
+{
+    return system->type() == LtiSystem::SystemType::ZeroPoleGain
+            || system->type() == LtiSystem::SystemType::TimeConstantGain;
+}
+
 QString numeratorText(LtiSystem * system)
 {
     if (system->type() == LtiSystem::SystemType::FreeForm) {
         return QString::fromStdString(system->numeratorString());
+    }
+    if (system->numerator().empty() && !isFactored(system)) {
+        return QStringLiteral("1");
     }
     return coefficientsText(system->numerator());
 }
