@@ -367,6 +367,18 @@ void TemplatesForm::buildRow(QWidget *widget, QVector <ParLineEdit> & par,
     rLog->setText(tr("LogSpace"));
     rManual->setText(tr("Manual"));
 
+    rLin->setToolTip(tr("Sweep this parameter at evenly spaced values over its range."));
+    lin->setToolTip(tr("How many values, evenly spaced, from the lower end of the range to "
+                       "the upper one."));
+    rLog->setToolTip(tr("Sweep this parameter at values evenly spaced in the logarithm of "
+                        "its range, which is what a parameter spanning decades asks for."));
+    log->setToolTip(tr("How many values, evenly spaced in the logarithm, from the lower end "
+                       "of the range to the upper one."));
+    rManual->setToolTip(tr("Sweep this parameter at the values written here, and at no "
+                           "others."));
+    manual->setToolTip(tr("The values themselves, separated by spaces. They need not lie in "
+                          "the range and they need not be evenly spaced."));
+
     par.push_back(ParLineEdit(lin, log, manual));
 
     ThreeRadioButtons radio;

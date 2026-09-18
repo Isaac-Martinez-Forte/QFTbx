@@ -1605,6 +1605,32 @@ TEST_F(GuiSmoke, APanelRefusesToPublishWhatTheProjectHasTakenAwayFromIt)
         << "grids with no plant behind them must not be published";
 }
 
+TEST_F(GuiSmoke, ClosingAPhaseDoesNotThrowAwayWhatWasTypedIntoIt)
+{
+    MainWindow window;
+    window.setFileChooser([](bool) {
+        return QString(QFTBX_TEST_DATA_DIR "/planta1.qft");
+    });
+    window.findChild<QAction *>("actionOpen")->trigger();
+
+    child<QPushButton>(&window, "boundariesButton")->click();
+
+    QLineEdit * points = window.findChild<QLineEdit *>("phasePoints");
+    ASSERT_NE(points, nullptr);
+    const QString asStored = points->text();
+
+    points->setText("37");
+
+    window.findChild<QToolButton *>("boundariesCardClose")->click();
+    ASSERT_TRUE(window.findChild<PhaseCard *>("boundariesCard")->isHidden());
+
+    child<QPushButton>(&window, "boundariesButton")->click();
+
+    EXPECT_EQ(window.findChild<QLineEdit *>("phasePoints")->text(), QString("37"))
+        << "tidying the screen threw away what was written and had not been applied";
+    EXPECT_NE(asStored, QString("37")) << "the test types what the project already held";
+}
+
 TEST_F(GuiSmoke, APhaseIsClosedFromItsBarAndOpenedFromItsStepButton)
 {
     MainWindow window;

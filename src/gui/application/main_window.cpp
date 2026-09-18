@@ -373,6 +373,19 @@ void MainWindow::changeEvent(QEvent * event)
     QMainWindow::changeEvent(event);
 }
 
+void MainWindow::relaunchTemplates()
+{
+    if (templatesForm == nullptr || controller->plant() == nullptr
+            || controller->omega() == nullptr) {
+        return;
+    }
+
+    templatesForm->setEpsilonMetric(controller->epsilonMetric());
+    templatesForm->launch(controller->plant(),
+                          qint32(controller->omega()->values()->size()));
+    m_templatesStale = false;
+}
+
 void MainWindow::retranslate()
 {
     setWindowTitle(tr("QFT: Quantitative feedback theory"));
@@ -606,6 +619,7 @@ void MainWindow::ensurePlantPhase()
         connect(plantForm, &StepPanel::accepted, this, &MainWindow::applyPlant);
         plantCard = addPhaseCard(tr("Plant"), "plantCard", plantForm,
                                  {{tr("Bode"), bodeViewer}});
+        plantForm->setFromProject(controller->plant());
     }
 }
 
@@ -629,6 +643,7 @@ void MainWindow::ensureFrequenciesPhase()
         connect(frequenciesForm, &StepPanel::accepted, this, &MainWindow::applyFrequencies);
         frequenciesCard = addPhaseCard(tr("Design frequencies"), "frequenciesCard",
                                        frequenciesForm, {});
+        frequenciesForm->setFromProject(controller->omega());
     }
 }
 
@@ -656,6 +671,7 @@ void MainWindow::ensureTemplatesPhase()
         connect(templatesForm, &StepPanel::accepted, this, &MainWindow::applyTemplates);
         templatesCard = addPhaseCard(tr("Templates"), "templatesCard", templatesForm,
                                      {{tr("Templates"), templateViewer}});
+        relaunchTemplates();
     }
 }
 
@@ -674,6 +690,7 @@ void MainWindow::ensureBoundariesPhase()
         boundariesCard = addPhaseCard(tr("Boundaries"), "boundariesCard", boundaryGridForm,
                                       {{tr("Union"), boundaryUnionViewer},
                                        {tr("Per frequency"), boundaryViewer}});
+        boundaryGridForm->setFromProject(controller->boundaries());
     }
 }
 
@@ -684,6 +701,7 @@ void MainWindow::ensureControllerPhase()
         connect(controllerForm, &StepPanel::accepted, this, &MainWindow::applyController);
         controllerCard = addPhaseCard(tr("Controller structure"), "controllerCard",
                                       controllerForm, {});
+        controllerForm->setFromProject(controller->controllerStructure());
     }
 }
 
@@ -717,6 +735,7 @@ void MainWindow::ensureLoopShapingPhase()
                 });
         loopShapingCard = addPhaseCard(tr("Loop shaping"), "loopShapingCard", loopShapingForm,
                                        {{tr("Loop"), loopShapingViewer}});
+        loopShapingForm->setFromProject(controller->loopShapingResult());
     }
 }
 
@@ -872,9 +891,6 @@ void MainWindow::destroySession(){
 void MainWindow::on_plantButton_clicked()
 {
     ensurePlantPhase();
-    //Shown on what the project holds, so a plant already entered shows
-    //itself instead of an empty form.
-    plantForm->setFromProject(controller->plant());
     plantForm->clearAcceptance();
     showPhase(plantCard);
 }
@@ -897,6 +913,7 @@ void MainWindow::applyPlant()
     //plant changes, and the window follows when the project says so:
     //nothing is decided here.
     controller->setPlant(std::move(described));
+    m_templatesStale = true;
 
     drawBodeIfPossible();
 }
@@ -939,9 +956,6 @@ void MainWindow::applySpecifications()
 void MainWindow::on_frequenciesButton_clicked()
 {
     ensureFrequenciesPhase();
-    //Shown on what the project holds, so a step already taken shows what it
-    //was taken with instead of an empty form.
-    frequenciesForm->setFromProject(controller->omega());
     frequenciesForm->clearAcceptance();
     showPhase(frequenciesCard);
 }
@@ -957,6 +971,7 @@ void MainWindow::applyFrequencies()
     //See applyPlant: the project decides what a new set of frequencies
     //drops, and the window follows.
     controller->setOmega(std::move(described));
+    m_templatesStale = true;
 
     drawBodeIfPossible();
 }
@@ -965,8 +980,9 @@ void MainWindow::on_templatesButton_clicked()
 {
     ensureTemplatesPhase();
 
-    templatesForm->setEpsilonMetric(controller->epsilonMetric());
-    templatesForm->launch(controller->plant(), controller->omega()->values()->size());
+    if (m_templatesStale) {
+        relaunchTemplates();
+    }
     templatesForm->clearAcceptance();
     showPhase(templatesCard);
 }
@@ -1001,7 +1017,6 @@ void MainWindow::applyTemplates()
 void MainWindow::on_boundariesButton_clicked()
 {
     ensureBoundariesPhase();
-    boundaryGridForm->setFromProject(controller->boundaries());
     boundaryGridForm->clearAcceptance();
     showPhase(boundariesCard);
 }
@@ -1033,7 +1048,6 @@ void MainWindow::applyBoundaries()
 void MainWindow::on_controllerButton_clicked()
 {
     ensureControllerPhase();
-    controllerForm->setFromProject(controller->controllerStructure());
     controllerForm->clearAcceptance();
     showPhase(controllerCard);
 }
@@ -1055,7 +1069,6 @@ void MainWindow::on_loopButton_clicked()
 {
     ensureLoopShapingPhase();
 
-    loopShapingForm->setFromProject(controller->loopShapingResult());
     loopShapingForm->clearAcceptance();
     showPhase(loopShapingCard);
 }
@@ -1150,11 +1163,9 @@ void MainWindow::on_actionOpen_triggered()
         //appear in on the canvas.
         if (loaded.has(qftbx::Step::Plant)) {
             ensurePlantPhase();
-            plantForm->setFromProject(controller->plant());
         }
         if (loaded.has(qftbx::Step::Frequencies)) {
             ensureFrequenciesPhase();
-            frequenciesForm->setFromProject(controller->omega());
         }
         if (loaded.has(qftbx::Step::Specifications)) {
             ensureSpecificationsPhase();
@@ -1164,15 +1175,12 @@ void MainWindow::on_actionOpen_triggered()
         }
         if (loaded.has(qftbx::Step::Boundaries)) {
             ensureBoundariesPhase();
-            boundaryGridForm->setFromProject(controller->boundaries());
         }
         if (loaded.has(qftbx::Step::Controller)) {
             ensureControllerPhase();
-            controllerForm->setFromProject(controller->controllerStructure());
         }
         if (loaded.has(qftbx::Step::LoopShaping)) {
             ensureLoopShapingPhase();
-            loopShapingForm->setFromProject(controller->loopShapingResult());
         }
 
         //A file that carries results has them on screen the moment it is

@@ -2648,6 +2648,30 @@ contorno</translation>
         <source>The plant must be entered before the templates.</source>
         <translation>Hay que introducir la planta antes que los templates.</translation>
     </message>
+    <message>
+        <source>Sweep this parameter at evenly spaced values over its range.</source>
+        <translation>Barrer este parámetro en valores igualmente espaciados dentro de su rango.</translation>
+    </message>
+    <message>
+        <source>How many values, evenly spaced, from the lower end of the range to the upper one.</source>
+        <translation>Cuántos valores, igualmente espaciados, desde el extremo inferior del rango hasta el superior.</translation>
+    </message>
+    <message>
+        <source>Sweep this parameter at values evenly spaced in the logarithm of its range, which is what a parameter spanning decades asks for.</source>
+        <translation>Barrer este parámetro en valores igualmente espaciados en el logaritmo de su rango, que es lo que pide un parámetro que abarca décadas.</translation>
+    </message>
+    <message>
+        <source>How many values, evenly spaced in the logarithm, from the lower end of the range to the upper one.</source>
+        <translation>Cuántos valores, igualmente espaciados en el logaritmo, desde el extremo inferior del rango hasta el superior.</translation>
+    </message>
+    <message>
+        <source>Sweep this parameter at the values written here, and at no others.</source>
+        <translation>Barrer este parámetro en los valores escritos aquí, y en ninguno más.</translation>
+    </message>
+    <message>
+        <source>The values themselves, separated by spaces. They need not lie in the range and they need not be evenly spaced.</source>
+        <translation>Los valores mismos, separados por espacios. No tienen por qué estar dentro del rango ni igualmente espaciados.</translation>
+    </message>
 </context>
 <context>
     <name>qftbx::Theme</name>
