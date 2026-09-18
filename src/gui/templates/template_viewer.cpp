@@ -5,6 +5,7 @@
 #include "src/gui/common/field_mark.h"
 #include "src/gui/common/number_text.h"
 #include <QMessageBox>
+#include <QSplitter>
 
 #include <algorithm>
 
@@ -18,6 +19,14 @@
 using namespace std;
 
 namespace qftbx {
+
+namespace {
+
+//The diagram does not give away all its width: below this it stops being
+//readable, and it is the panel beside it that has to give way.
+constexpr int kMinimumPlot = 320;
+
+} // namespace
 
 TemplateViewer::TemplateViewer(QWidget *parent) :
     QWidget(parent),
@@ -37,6 +46,28 @@ TemplateViewer::TemplateViewer(QWidget *parent) :
     //The column of controls does not take half the card: the chart needs
     //the width more than the buttons do.
     narrowSideColumn(ui->sideLayout);
+
+    //The frequencies are the exception: they are what the panel is opened
+    //for, and a row that does not fit is a row that cannot be read.
+    ui->legendHolder->setMaximumWidth(QWIDGETSIZE_MAX);
+
+    //The two of them share the width and the separation belongs to the
+    //user: the card growing widens the frequencies as well as the diagram,
+    //and whoever needs to read a long row drags the handle across.
+    QSplitter * splitter = new QSplitter(Qt::Horizontal, this);
+    ui->sidePanel->setMinimumWidth(kSideColumn);
+    ui->plot->setMinimumWidth(kMinimumPlot);
+    splitter->addWidget(ui->sidePanel);
+    splitter->addWidget(ui->plot);
+    //Neither of the two is dragged out of sight.
+    splitter->setChildrenCollapsible(false);
+    splitter->setStretchFactor(0, 1);
+    splitter->setStretchFactor(1, 3);
+    //The card opens as it did before: the diagram takes the width, and the
+    //panel is widened by whoever wants it wider.
+    splitter->setSizes({kSideColumn, 3 * kSideColumn});
+    ui->outerLayout->addWidget(splitter);
+
     connect(legend, &FrequencyLegend::rowToggled, this, &TemplateViewer::applyCheckboxes);
 
     //Connected ONCE: a connection per replot duplicates the handler.
@@ -66,7 +97,6 @@ void TemplateViewer::clearDiagram(){
 
     legend->clear();
     epsilonEdits.clear();
-    epsilonSliders.clear();
     gapLabels.clear();
     stateLabels.clear();
 
@@ -381,23 +411,14 @@ void TemplateViewer::addFrequencyRow(QColor color, qint32 pos){
     const bool known = pos < static_cast<qint32>(m_epsilon.size());
     const double epsilon = known ? m_epsilon.at(pos) : 0.0;
 
-    //A slider for coarse moves and a field for the exact value, BESIDE the
-    //frequency and not under it: a legend is a column of its own and every
-    //line it takes is a line the diagram does not have.
-    QSlider * slider = new QSlider(row.widget);
-    slider->setObjectName(QString::fromUtf8("slider"));
-    slider->setToolTip(tr("The epsilon of this frequency, by hand. Recompute walks the contours "
-                          "again with it."));
-    slider->setOrientation(Qt::Horizontal);
-    slider->setMaximum(epsilon * 10000);
-    slider->setValue(epsilon * 1000);
-    epsilonSliders.push_back(slider);
-    row.layout->addWidget(slider);
-
+    //The field for the value, BESIDE the frequency and not under it: a
+    //legend is a column of its own and every line it takes is a line the
+    //diagram does not have.
     QLineEdit * field = new QLineEdit(row.widget);
     field->setObjectName(QString::fromUtf8("field"));
-    field->setToolTip(tr("The same epsilon, exactly: the diameter of the hull the contour of "
-                         "this template is walked with."));
+    field->setToolTip(tr("The epsilon of this frequency: the diameter of the hull the contour "
+                         "of this template is walked with. Recompute walks the contours again "
+                         "with it."));
     field->setText(known ? numberText(epsilon) : QString());
     epsilonEdits.push_back(field);
     row.layout->addWidget(field);
@@ -416,8 +437,6 @@ void TemplateViewer::addFrequencyRow(QColor color, qint32 pos){
     state->setVisible(false);
     stateLabels.push_back(state);
     row.column->addWidget(state);
-
-    connect(slider, SIGNAL (sliderMoved (int)), this, SLOT (syncSliders ()));
 }
 
 void TemplateViewer::on_saveImage_clicked()
@@ -457,12 +476,6 @@ void TemplateViewer::on_contourButton_clicked()
     ui->plot->replot();
 }
 
-void TemplateViewer::syncSliders(){
-    for (qint32 i = 0; i < epsilonSliders.size(); i++){
-        epsilonEdits.at(i)->setText(qftbx::numberText(epsilonSliders.at(i)->value() / 1000.0));
-    }
-}
-
 void TemplateViewer::applyCheckboxes(){
     for (qint32 i = 0; i < legend->rowCount(); i++){
         //A frequency unticked takes its contour and its cloud with it.
@@ -489,8 +502,6 @@ void TemplateViewer::on_proposeButton_clicked()
     for (qint32 i = 0; i < epsilonEdits.size() && i < static_cast<qint32>(m_proposals.size()); i++) {
         const double value = m_proposals[static_cast<std::size_t>(i)].epsilon;
         epsilonEdits.at(i)->setText(numberText(value));
-        epsilonSliders.at(i)->setMaximum(std::max(epsilonSliders.at(i)->maximum(), static_cast<int>(value * 10000)));
-        epsilonSliders.at(i)->setValue(static_cast<int>(value * 1000));
     }
     on_recomputeButton_clicked();
 }
@@ -509,7 +520,6 @@ void TemplateViewer::on_recomputeButton_clicked()
 
     for (qint32 i = 0; i < epsilonEdits.size(); i++) {
         qreal pos = epsilonEdits.at(i)->text().toDouble();
-        epsilonSliders.at(i)->setValue(pos * 1000);
         epsilon.push_back(pos);
     }
 

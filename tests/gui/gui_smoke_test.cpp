@@ -45,6 +45,8 @@
 #include <QDialog>
 #include <QLabel>
 #include <QLineEdit>
+#include <QSlider>
+#include <QSplitter>
 #include <QMouseEvent>
 #include <QProgressBar>
 #include <QPushButton>
@@ -1224,6 +1226,62 @@ TEST_F(GuiSmoke, EveryViewerGrowsWithItsWindow)
     EXPECT_GT(magnitude->height() + phase->height(), wasTall) << "the Bode canvases did not grow";
 }
 
+TEST_F(GuiSmoke, TheFrequencyPanelGrowsWithTheTemplateViewer)
+{
+    //The card growing used to widen the diagram alone: the frequency column
+    //was pinned to the width of the buttons, so a row that did not fit could
+    //not be read, and there was no way of trading one for the other by hand
+    //either. The two share the width now, and the separation is a handle.
+    TemplateViewer viewer;
+    viewer.resize(700, 500);
+    viewer.show();
+    QCoreApplication::processEvents();
+
+    QWidget * panel = viewer.findChild<QWidget *>("sidePanel");
+    QCustomPlot * plot = viewer.findChild<QCustomPlot *>("plot");
+    ASSERT_NE(panel, nullptr) << "the side column is not a widget that can be resized";
+    ASSERT_NE(plot, nullptr);
+
+    const int panelBefore = panel->width();
+    const int plotBefore = plot->width();
+
+    viewer.resize(1300, 500);
+    QCoreApplication::processEvents();
+
+    EXPECT_GT(panel->width(), panelBefore)
+        << "the viewer grew by 600 px and the frequencies stayed at " << panel->width();
+    EXPECT_GT(plot->width(), plotBefore) << "and the diagram has to grow as well";
+
+    //Of what is opened up the diagram still takes the larger share: the
+    //panel growing is not the panel taking over the card.
+    EXPECT_GT(plot->width() - plotBefore, panel->width() - panelBefore);
+
+    QSplitter * splitter = viewer.findChild<QSplitter *>();
+    ASSERT_NE(splitter, nullptr) << "the two sides cannot be traded by hand";
+    EXPECT_FALSE(splitter->childrenCollapsible()) << "either side can be dragged out of sight";
+}
+
+TEST_F(GuiSmoke, TheEpsilonOfAFrequencyIsAFieldAndNothingElse)
+{
+    //Each row carried a slider beside the field for the same number. Two
+    //controls for one value is a row that does not fit and a pair to keep in
+    //step; the field alone says it exactly, which is what it is read for.
+    TemplateViewer viewer;
+
+    const qftbx::CloudSet contour{{{1.0, 0.0}, {0.0, 1.0}}};
+    const qftbx::CloudSet templates{{{2.0, 0.0}, {0.0, 2.0}}};
+    std::vector<double> omega{1.0};
+    std::vector<double> epsilon{0.05};
+
+    viewer.setData(templates, contour, &omega, &epsilon);
+    viewer.plotDiagram(true);
+
+    QLineEdit * field = child<QLineEdit>(&viewer, "field");
+    ASSERT_NE(field, nullptr) << "the row lost the field with the epsilon";
+    EXPECT_EQ(field->text().toDouble(), 0.05);
+    EXPECT_EQ(viewer.findChild<QSlider *>(), nullptr) << "the row still carries a slider";
+}
+
 TEST_F(GuiSmoke, BoundaryUnionViewerDrawsTheUnion)
 {
     BoundaryUnionViewer viewer;
@@ -2144,12 +2202,67 @@ TEST_F(GuiSmoke, ZZContours)
 
     //And what each one would need to close.
     const std::vector<qftbx::TemplateEngine::EpsilonProposal> asked = project.proposeEpsilon();
+    std::vector<double> proposed;
     for (std::size_t i = 0; i < asked.size(); ++i) {
         std::printf("   w[%zu] needs epsilon %g (connected from %g, diameter %g), closes %d\n",
                     i, asked[i].epsilon, asked[i].connected, asked[i].diameter,
                     (int) asked[i].closes);
+        proposed.push_back(asked[i].epsilon);
+    }
+
+    //And what the contour is once it has been walked with that.
+    project.recomputeContour(proposed);
+
+    const std::vector<qftbx::TemplateEngine::ContourReport> & after = project.contourReports();
+    for (std::size_t i = 0; i < after.size(); ++i) {
+        const std::complex<double> first = project.contour().at(i).front();
+        const std::complex<double> last = project.contour().at(i).back();
+        std::printf("   after: w[%zu] %zu of %zu points, relaxed %d, components %zu, closed %d\n",
+                    i, after[i].contourPoints, after[i].cloudPoints, (int) after[i].relaxed,
+                    after[i].components, (int) (std::abs(first - last) < 1e-12));
     }
     std::fflush(stdout);
+
+    //And the other way of extracting the same boundary: the alpha-shape,
+    //which closes by construction.
+    project.setAlphaShapeContour(true);
+
+    const std::vector<qftbx::TemplateEngine::EpsilonProposal> alpha = project.proposeEpsilon();
+    std::vector<double> alphaEpsilon;
+    for (const qftbx::TemplateEngine::EpsilonProposal & one : alpha) {
+        alphaEpsilon.push_back(one.epsilon);
+    }
+
+    project.recomputeContour(alphaEpsilon);
+
+    const std::vector<qftbx::TemplateEngine::ContourReport> & shapes = project.contourReports();
+    for (std::size_t i = 0; i < shapes.size(); ++i) {
+        std::printf("   alpha: w[%zu] epsilon %g, %zu of %zu points, components %zu\n",
+                    i, alphaEpsilon[i], shapes[i].contourPoints, shapes[i].cloudPoints,
+                    shapes[i].components);
+    }
+
+    //And the same clouds at a hand-given radius, which is how much of the
+    //cloud each one keeps: the contour is one component throughout, so the
+    //number to read is how many of the points survive.
+    for (const double radius : {1.0, 10.0, 100.0}) {
+        const std::vector<double> same(alphaEpsilon.size(), radius);
+        project.recomputeContour(same);
+
+        const std::vector<qftbx::TemplateEngine::ContourReport> & at = project.contourReports();
+        for (std::size_t i = 0; i < at.size(); ++i) {
+            std::printf("   alpha e=%g: w[%zu] %zu of %zu points, components %zu\n",
+                        radius, i, at[i].contourPoints, at[i].cloudPoints, at[i].components);
+        }
+    }
+    std::fflush(stdout);
+
+    TemplateViewer viewer;
+    viewer.resize(900, 700);
+    viewer.setData(project.templates(), project.contour(),
+                   project.omega()->values(), project.epsilon());
+    viewer.plotDiagram(true);
+    viewer.grab().save(qEnvironmentVariable("QFTBX_RENDER_DIR") + "/contornos-alpha.png");
 }
 
 TEST_F(GuiSmoke, ZZFormulas)

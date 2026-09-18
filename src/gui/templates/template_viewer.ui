@@ -11,7 +11,12 @@
    <property name="rightMargin"><number>0</number></property>
    <property name="bottomMargin"><number>0</number></property>
    <item>
-    <layout class="QVBoxLayout" name="sideLayout">
+    <widget class="QWidget" name="sidePanel" native="true">
+     <layout class="QVBoxLayout" name="sideLayout">
+      <property name="leftMargin"><number>0</number></property>
+      <property name="topMargin"><number>0</number></property>
+      <property name="rightMargin"><number>0</number></property>
+      <property name="bottomMargin"><number>0</number></property>
      <item>
       <widget class="QPushButton" name="templatesButton">
        <property name="toolTip">
@@ -68,7 +73,8 @@
        </layout>
       </widget>
      </item>
-    </layout>
+     </layout>
+    </widget>
    </item>
    <item>
     <widget class="QCustomPlot" name="plot" native="true">

@@ -20,7 +20,7 @@
         <translation>Autores</translation>
     </message>
     <message>
-        <source>The algorithms come from the authors' work at the University of Murcia: the degree project of 2013, the master's thesis of 2014 and the doctoral thesis of 2022, with the article in the International Journal of Robust and Nonlinear Control (2021).</source>
+        <source>The algorithms come from the authors&apos; work at the University of Murcia: the degree project of 2013, the master&apos;s thesis of 2014 and the doctoral thesis of 2022, with the article in the International Journal of Robust and Nonlinear Control (2021).</source>
         <translation>Los algoritmos proceden del trabajo de los autores en la Universidad de Murcia: el proyecto fin de carrera de 2013, el trabajo fin de máster de 2014 y la tesis doctoral de 2022, con el artículo en el International Journal of Robust and Nonlinear Control (2021).</translation>
     </message>
     <message>
@@ -28,8 +28,8 @@
         <translation>QFTbx es software en desarrollo: algunas partes están incompletas o son experimentales, y sus resultados deben comprobarse antes de confiar en ellos.</translation>
     </message>
     <message>
-        <source>Source code and documentation: &lt;a href="%1"&gt;%1&lt;/a&gt;. The guides to building, configuring and measuring the toolbox, and the description of every algorithm with the work it comes from, are in &lt;a href="%2"&gt;docs&lt;/a&gt;.</source>
-        <translation>Código fuente y documentación: &lt;a href="%1"&gt;%1&lt;/a&gt;. Las guías para compilar, configurar y medir la herramienta, y la descripción de cada algoritmo con el trabajo del que procede, están en &lt;a href="%2"&gt;docs&lt;/a&gt;.</translation>
+        <source>Source code and documentation: &lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;. The guides to building, configuring and measuring the toolbox, and the description of every algorithm with the work it comes from, are in &lt;a href=&quot;%2&quot;&gt;docs&lt;/a&gt;.</source>
+        <translation>Código fuente y documentación: &lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;. Las guías para compilar, configurar y medir la herramienta, y la descripción de cada algoritmo con el trabajo del que procede, están en &lt;a href=&quot;%2&quot;&gt;docs&lt;/a&gt;.</translation>
     </message>
     <message>
         <source>Free software under the GNU General Public License, version 3. Built with Qt, QCustomPlot, kv and pugixml.</source>
@@ -394,8 +394,8 @@
         <translation>No hay templates sobre los que recorrer un contorno.</translation>
     </message>
     <message>
-        <source>settings, line %1: "%2" needs %3</source>
-        <translation>ajustes, línea %1: "%2" necesita %3</translation>
+        <source>settings, line %1: &quot;%2&quot; needs %3</source>
+        <translation>ajustes, línea %1: &quot;%2&quot; necesita %3</translation>
     </message>
     <message>
         <source>the settings file cannot be read: %1</source>
@@ -410,16 +410,16 @@
         <translation>ajustes, línea %1: una sección necesita un nombre</translation>
     </message>
     <message>
-        <source>settings, line %1: expected "key = value", found "%2"</source>
-        <translation>ajustes, línea %1: se esperaba "clave = valor" y se encontró "%2"</translation>
+        <source>settings, line %1: expected &quot;key = value&quot;, found &quot;%2&quot;</source>
+        <translation>ajustes, línea %1: se esperaba &quot;clave = valor&quot; y se encontró &quot;%2&quot;</translation>
     </message>
     <message>
         <source>settings, line %1: the key is missing</source>
         <translation>ajustes, línea %1: falta la clave</translation>
     </message>
     <message>
-        <source>settings, line %1: "%2" is set more than once</source>
-        <translation>ajustes, línea %1: "%2" se establece más de una vez</translation>
+        <source>settings, line %1: &quot;%2&quot; is set more than once</source>
+        <translation>ajustes, línea %1: &quot;%2&quot; se establece más de una vez</translation>
     </message>
     <message>
         <source>A constant specification needs a finite magnitude &gt; 0.</source>
@@ -446,8 +446,8 @@
         <translation>No se puede leer la expresión de la planta: %1</translation>
     </message>
     <message>
-        <source>A plant parameter cannot be called "%1": that is the Laplace variable.</source>
-        <translation>Un parámetro de la planta no puede llamarse "%1": es la variable de Laplace.</translation>
+        <source>A plant parameter cannot be called &quot;%1&quot;: that is the Laplace variable.</source>
+        <translation>Un parámetro de la planta no puede llamarse &quot;%1&quot;: es la variable de Laplace.</translation>
     </message>
     <message>
         <source>The plant expression cannot be evaluated: %1</source>
@@ -458,16 +458,16 @@
         <translation>FreeForm::valueAt: se dieron %1 y %2 valores para %3 y %4 parámetros</translation>
     </message>
     <message>
-        <source>the parameter "%1" was given two different values (%2 and %3): the same name is the same variable</source>
-        <translation>al parámetro "%1" se le dieron dos valores distintos (%2 y %3): el mismo nombre es la misma variable</translation>
+        <source>the parameter &quot;%1&quot; was given two different values (%2 and %3): the same name is the same variable</source>
+        <translation>al parámetro &quot;%1&quot; se le dieron dos valores distintos (%2 y %3): el mismo nombre es la misma variable</translation>
     </message>
     <message>
-        <source>A parameter's %1 must be a finite number.</source>
+        <source>A parameter&apos;s %1 must be a finite number.</source>
         <translation>El %1 de un parámetro debe ser un número finito.</translation>
     </message>
     <message>
-        <source>the reparametrisation of "%1" cannot be read: %2</source>
-        <translation>no se puede leer la reparametrización de "%1": %2</translation>
+        <source>the reparametrisation of &quot;%1&quot; cannot be read: %2</source>
+        <translation>no se puede leer la reparametrización de &quot;%1&quot;: %2</translation>
     </message>
     <message>
         <source>A time constant in the %1 cannot be zero: every factor is s/z + 1.</source>
@@ -486,16 +486,16 @@
         <translation>Faltan los valores de épsilon para los contornos de los templates.</translation>
     </message>
     <message>
-        <source>Missing sweep grid for the uncertain parameter '%1'.</source>
-        <translation>Falta la rejilla de barrido del parámetro incierto '%1'.</translation>
+        <source>Missing sweep grid for the uncertain parameter &apos;%1&apos;.</source>
+        <translation>Falta la rejilla de barrido del parámetro incierto &apos;%1&apos;.</translation>
     </message>
     <message>
         <source>The plant expression could not be evaluated at %1 rad/s: %2</source>
         <translation>No se ha podido evaluar la expresión de la planta en %1 rad/s: %2</translation>
     </message>
     <message>
-        <source>The plant has infinite magnitude at the design frequencies %1 rad/s: an undamped resonance inside the uncertainty. Its template cannot be bounded or contoured. Add light damping to the resonant poles (the usual answer for the ACC'90 benchmark) or move those frequencies out of the set.</source>
-        <translation>La planta tiene magnitud infinita en las frecuencias de diseño %1 rad/s: una resonancia sin amortiguar dentro de la incertidumbre. Su template no se puede acotar ni contornear. Añada un amortiguamiento ligero a los polos resonantes (la solución habitual para el problema ACC'90) o saque esas frecuencias del conjunto.</translation>
+        <source>The plant has infinite magnitude at the design frequencies %1 rad/s: an undamped resonance inside the uncertainty. Its template cannot be bounded or contoured. Add light damping to the resonant poles (the usual answer for the ACC&apos;90 benchmark) or move those frequencies out of the set.</source>
+        <translation>La planta tiene magnitud infinita en las frecuencias de diseño %1 rad/s: una resonancia sin amortiguar dentro de la incertidumbre. Su template no se puede acotar ni contornear. Añada un amortiguamiento ligero a los polos resonantes (la solución habitual para el problema ACC&apos;90) o saque esas frecuencias del conjunto.</translation>
     </message>
     <message>
         <source>The contours need one epsilon per design frequency: %1 given for %2 frequencies.</source>
@@ -518,16 +518,16 @@
         <translation>&lt;%1&gt; no es un booleano</translation>
     </message>
     <message>
-        <source>missing attribute '%1'</source>
-        <translation>falta el atributo '%1'</translation>
+        <source>missing attribute &apos;%1&apos;</source>
+        <translation>falta el atributo &apos;%1&apos;</translation>
     </message>
     <message>
-        <source>attribute '%1' is not a number</source>
-        <translation>el atributo '%1' no es un número</translation>
+        <source>attribute &apos;%1&apos; is not a number</source>
+        <translation>el atributo &apos;%1&apos; no es un número</translation>
     </message>
     <message>
-        <source>attribute '%1' is not an integer</source>
-        <translation>el atributo '%1' no es un entero</translation>
+        <source>attribute &apos;%1&apos; is not an integer</source>
+        <translation>el atributo &apos;%1&apos; no es un entero</translation>
     </message>
     <message>
         <source>&lt;%1&gt; holds a non-numeric token</source>
@@ -582,8 +582,8 @@
         <translation>No se puede escribir el fichero de proyecto: %1</translation>
     </message>
     <message>
-        <source>"%1" cannot be used as a parameter name: it is a function, a constant (pi, e) or the Laplace variable s of the expression grammar, or not an identifier.</source>
-        <translation>"%1" no puede ser el nombre de un parámetro: es una función, una constante (pi, e) o la variable de Laplace s de la gramática de expresiones, o no es un identificador.</translation>
+        <source>&quot;%1&quot; cannot be used as a parameter name: it is a function, a constant (pi, e) or the Laplace variable s of the expression grammar, or not an identifier.</source>
+        <translation>&quot;%1&quot; no puede ser el nombre de un parámetro: es una función, una constante (pi, e) o la variable de Laplace s de la gramática de expresiones, o no es un identificador.</translation>
     </message>
     <message>
         <source>The project cannot take a null plant.</source>
@@ -610,8 +610,8 @@
         <translation>Hay un cálculo en marcha: cancélelo o espere a que termine antes de cambiar el proyecto.</translation>
     </message>
     <message>
-        <source>a setting key needs its section, as in 'interface.language': '%1'</source>
-        <translation>una clave de ajuste necesita su sección, como en 'interface.language': '%1'</translation>
+        <source>a setting key needs its section, as in &apos;interface.language&apos;: &apos;%1&apos;</source>
+        <translation>una clave de ajuste necesita su sección, como en &apos;interface.language&apos;: &apos;%1&apos;</translation>
     </message>
     <message>
         <source>the settings file cannot be written: %1</source>
@@ -650,7 +650,7 @@
         <translation>&lt;%1&gt; no cubre la rejilla de fase</translation>
     </message>
     <message>
-        <source>unknown epsilon metric '%1' (complex or nichols)</source>
+        <source>unknown epsilon metric &apos;%1&apos; (complex or nichols)</source>
         <translation>métrica del épsilon desconocida «%1» (complex o nichols)</translation>
     </message>
     <message>
@@ -678,11 +678,11 @@
         <translation>versión de .qft no admitida (encontrada la %1; esta compilación lee la versión %2)</translation>
     </message>
     <message>
-        <source>unknown loop-shaping algorithm '%1'</source>
+        <source>unknown loop-shaping algorithm &apos;%1&apos;</source>
         <translation>algoritmo de ajuste del lazo desconocido «%1»</translation>
     </message>
     <message>
-        <source>interface.theme must be system, light or dark: '%1'</source>
+        <source>interface.theme must be system, light or dark: &apos;%1&apos;</source>
         <translation>interface.theme debe ser system, light o dark: «%1»</translation>
     </message>
     <message>
@@ -1228,8 +1228,8 @@ del controlador</translation>
 <context>
     <name>QObject</name>
     <message>
-        <source>"%1" cannot be used as a parameter name: it is a constant of the expression grammar.</source>
-        <translation>"%1" no puede ser el nombre de un parámetro: es una constante de la gramática de expresiones.</translation>
+        <source>&quot;%1&quot; cannot be used as a parameter name: it is a constant of the expression grammar.</source>
+        <translation>&quot;%1&quot; no puede ser el nombre de un parámetro: es una constante de la gramática de expresiones.</translation>
     </message>
     <message>
         <source>Loop-shaping input</source>
@@ -1541,7 +1541,7 @@ del controlador</translation>
         <translation>Épsilon en:</translation>
     </message>
     <message>
-        <source>The plane the epsilon of the contour is measured in. Nichols: degrees and decibels, one epsilon serves every template. Complex plane: the historical reading, in the units of the plant's response.</source>
+        <source>The plane the epsilon of the contour is measured in. Nichols: degrees and decibels, one epsilon serves every template. Complex plane: the historical reading, in the units of the plant&apos;s response.</source>
         <translation>El plano en que se mide el épsilon del contorno. Nichols: grados y decibelios, un solo épsilon sirve para todas las plantillas. Plano complejo: la lectura histórica, en las unidades de la respuesta de la planta.</translation>
     </message>
     <message>
@@ -2532,7 +2532,7 @@ contorno</translation>
         <translation>pide %1 (hueco %2 %)</translation>
     </message>
     <message>
-        <source>The least epsilon at which this template's contour closes is %1 (it is connected from %2); the largest gap between its points is %3% of its size. Above a few per cent the sweep is coarse: more points per parameter, not a larger epsilon.</source>
+        <source>The least epsilon at which this template&apos;s contour closes is %1 (it is connected from %2); the largest gap between its points is %3% of its size. Above a few per cent the sweep is coarse: more points per parameter, not a larger epsilon.</source>
         <translation>El menor épsilon con el que cierra el contorno de esta plantilla es %1 (está conectada desde %2); el hueco mayor entre sus puntos es el %3 % de su tamaño. Por encima de unos pocos por ciento el barrido es escaso: más puntos por parámetro, no un épsilon mayor.</translation>
     </message>
     <message>
@@ -2544,20 +2544,16 @@ contorno</translation>
         <translation>magnitud (dB)</translation>
     </message>
     <message>
-        <source>The epsilon of this frequency, by hand. Recompute walks the contours again with it.</source>
-        <translation>El épsilon de esta frecuencia, a mano. Recalcular recorre otra vez los contornos con él.</translation>
-    </message>
-    <message>
-        <source>The same epsilon, exactly: the diameter of the hull the contour of this template is walked with.</source>
-        <translation>El mismo épsilon, exacto: el diámetro de la envoltura con la que se recorre el contorno de esta plantilla.</translation>
-    </message>
-    <message>
         <source>open contour</source>
         <translation>contorno abierto</translation>
     </message>
     <message>
         <source>The epsilon-hull walk did not close at this epsilon and the relaxed walk stood in for it: what is drawn covers the cloud but is not the closed hull, so it ends where the walk ended. Propose gives the epsilon that closes it.</source>
         <translation>El recorrido de la envoltura-épsilon no cerró con este épsilon y ha entrado en su lugar el recorrido relajado: lo que se dibuja cubre la nube pero no es la envoltura cerrada, así que termina donde terminó el recorrido. Proponer da el épsilon que la cierra.</translation>
+    </message>
+    <message>
+        <source>The epsilon of this frequency: the diameter of the hull the contour of this template is walked with. Recompute walks the contours again with it.</source>
+        <translation>El épsilon de esta frecuencia: el diámetro de la envoltura con la que se recorre el contorno de esta plantilla. Recalcular recorre otra vez los contornos con él.</translation>
     </message>
 </context>
 <context>
@@ -2599,12 +2595,12 @@ contorno</translation>
         <translation>Seleccione logspace o linspace en la sección general.</translation>
     </message>
     <message>
-        <source>The values entered for parameter "%1" are invalid.</source>
-        <translation>Los valores introducidos para el parámetro "%1" no son válidos.</translation>
+        <source>The values entered for parameter &quot;%1&quot; are invalid.</source>
+        <translation>Los valores introducidos para el parámetro &quot;%1&quot; no son válidos.</translation>
     </message>
     <message>
-        <source>The values entered for parameter "%1" are invalid: %2.</source>
-        <translation>Los valores introducidos para el parámetro "%1" no son válidos: %2.</translation>
+        <source>The values entered for parameter &quot;%1&quot; are invalid: %2.</source>
+        <translation>Los valores introducidos para el parámetro &quot;%1&quot; no son válidos: %2.</translation>
     </message>
     <message>
         <source>The general point count must be a whole number between 1 and %1.</source>
@@ -2683,24 +2679,24 @@ contorno</translation>
         <translation>Máximo</translation>
     </message>
     <message>
-        <source>The range of "%1" is not a pair of numbers with the nominal value between them.</source>
-        <translation>El intervalo de "%1" no es un par de números con el valor nominal entre ellos.</translation>
+        <source>The range of &quot;%1&quot; is not a pair of numbers with the nominal value between them.</source>
+        <translation>El intervalo de &quot;%1&quot; no es un par de números con el valor nominal entre ellos.</translation>
     </message>
     <message>
         <source>A coefficient that is not uncertain is not a number either.</source>
         <translation>Un coeficiente que no es incierto tampoco es un número.</translation>
     </message>
     <message>
-        <source>The smallest value "%1" takes. The templates are swept over the whole interval.</source>
-        <translation>El menor valor que toma "%1". Las plantillas se barren sobre todo el intervalo.</translation>
+        <source>The smallest value &quot;%1&quot; takes. The templates are swept over the whole interval.</source>
+        <translation>El menor valor que toma &quot;%1&quot;. Las plantillas se barren sobre todo el intervalo.</translation>
     </message>
     <message>
-        <source>The largest value "%1" takes.</source>
-        <translation>El mayor valor que toma "%1".</translation>
+        <source>The largest value &quot;%1&quot; takes.</source>
+        <translation>El mayor valor que toma &quot;%1&quot;.</translation>
     </message>
     <message>
-        <source>The value "%1" has in the NOMINAL plant, the one the loop is shaped on. It has to lie inside the interval.</source>
-        <translation>El valor que "%1" tiene en la planta NOMINAL, sobre la que se ajusta el lazo. Tiene que estar dentro del intervalo.</translation>
+        <source>The value &quot;%1&quot; has in the NOMINAL plant, the one the loop is shaped on. It has to lie inside the interval.</source>
+        <translation>El valor que &quot;%1&quot; tiene en la planta NOMINAL, sobre la que se ajusta el lazo. Tiene que estar dentro del intervalo.</translation>
     </message>
 </context>
 </TS>

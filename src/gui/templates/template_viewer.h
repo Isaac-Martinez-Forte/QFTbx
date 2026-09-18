@@ -143,8 +143,6 @@ private slots:
 
     void applyCheckboxes ();
 
-    void syncSliders();
-
     void on_recomputeButton_clicked();
     void on_proposeButton_clicked();
 
@@ -196,7 +194,6 @@ private:
     ContourRecomputer recompute;
 
     QVector <QLineEdit *> epsilonEdits;
-    QVector <QSlider *> epsilonSliders;
 
     //What the buttons say when the card opens: the contour is drawn and the
     //cloud behind it is not. The second flag said the opposite while the
