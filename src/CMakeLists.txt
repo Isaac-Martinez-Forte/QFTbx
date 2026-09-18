@@ -10,6 +10,7 @@
 add_subdirectory(core)
 add_subdirectory(persistence)
 add_subdirectory(app)
+add_subdirectory(solve)
 add_subdirectory(gui)
 
 # The benchmark tool, over the facade; only when asked for.
