@@ -86,6 +86,12 @@ private:
     //clearPlottables(): only the container is the viewer's.
     QVector <QCPCurve *> curves;
 
+    //The pieces of each frequency's boundary, by frequency: what the legend
+    //shows or hides. The boundary of a frequency is not always one curve,
+    //so the row of the legend and the curve are no longer one to one.
+    //Observers: the curves above own nothing either, QCustomPlot does.
+    QVector <QVector <QCPCurve *>> boundaryCurves;
+
     void addFrequencyRow(QColor color, qint32 pos);
     FrequencyLegend * legend = nullptr;
     void clearDiagram();

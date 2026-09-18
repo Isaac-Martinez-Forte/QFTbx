@@ -70,7 +70,7 @@ void TemplateViewer::clearDiagram(){
     gapLabels.clear();
     stateLabels.clear();
 
-    contourGraphs.clear();
+    contourCurves.clear();
     templateGraphs.clear();
 
 
@@ -199,7 +199,7 @@ void TemplateViewer::plotDiagram(bool plot){
     templateGraphs.reserve(static_cast<qint32>(m_templates.size()));
 
     if (!m_contour.empty()){
-        contourGraphs.reserve(static_cast<qint32>(m_contour.size()));
+        contourCurves.reserve(static_cast<qint32>(m_contour.size()));
         for (const qftbx::ComplexCloud & vector : m_contour) {
 
             std::vector<double> phases;
@@ -224,7 +224,7 @@ void TemplateViewer::plotDiagram(bool plot){
                 }
             }
 
-            plotLine(i,contourGraphs,phases, magnitudes, true, true,counter);
+            plotContour(phases, magnitudes, counter);
 
             i++;
             counter++;
@@ -258,7 +258,7 @@ void TemplateViewer::plotDiagram(bool plot){
 
         }
 
-        plotLine(i,templateGraphs, phases, magnitudes, false, false, counter);
+        plotCloud(phases, magnitudes, counter);
         i++;
         counter++;
     }
@@ -273,35 +273,48 @@ void TemplateViewer::plotDiagram(bool plot){
 
 }
 
-void TemplateViewer::plotLine(qint32 pos, QVector <QCPGraph *> & graphs,
-                              const std::vector<double> & phases, const std::vector<double> & magnitudes,
-                              bool isContour, bool visible, qint32 counter){
-    graphs.push_back(ui->plot->addGraph());
-    ui->plot->graph(pos)->setData(qftbx::toQVector(phases), qftbx::toQVector(magnitudes));
+//The cloud: crosses, and no line. A value set is a SET - the order its
+//points come in is the order of the parameter sweep, which has nothing to
+//do with where they sit on the plane - so any line through it is a lie.
+//What the border of a cloud looks like is what its contour is for.
+void TemplateViewer::plotCloud(const std::vector<double> & phases,
+                               const std::vector<double> & magnitudes, qint32 frequency)
+{
+    QCPGraph * cloud = ui->plot->addGraph();
+    cloud->setData(qftbx::toQVector(phases), qftbx::toQVector(magnitudes));
+    cloud->setScatterStyle(QCPScatterStyle::ssCross);
+    cloud->setLineStyle(QCPGraph::lsNone);
 
-    if (isContour){
-        ui->plot->graph(pos)->setScatterStyle(QCPScatterStyle::ssNone);
-        ui->plot->graph(pos)->setLineStyle(QCPGraph::lsLine);
-    }else{
-        ui->plot->graph(pos)->setScatterStyle(QCPScatterStyle::ssCross);
-        ui->plot->graph(pos)->setLineStyle(QCPGraph::lsNone);
+    const QColor color = colorByFrequency.value(m_omega.at(frequency));
+    cloud->setPen(QPen(color, kCurveWidth));
+    cloud->setVisible(templatesVisible);
+
+    templateGraphs.push_back(cloud);
+}
+
+//The contour: a CURVE, which is the whole point. A QCPGraph is a function
+//of its key and sorts its points by phase, so a closed contour came out as
+//a comb of vertical strokes across the cloud - the border walked in phase
+//order instead of in walk order. A QCPCurve is parametric: it keeps the
+//order it is given, which is the order the walk found the border in.
+void TemplateViewer::plotContour(const std::vector<double> & phases,
+                                 const std::vector<double> & magnitudes, qint32 frequency)
+{
+    QCPCurve * contour = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
+    contour->setData(qftbx::toQVector(phases), qftbx::toQVector(magnitudes));
+
+    const QColor color = colorByFrequency.value(m_omega.at(frequency));
+    contour->setPen(QPen(color, kCurveWidth));
+    contour->setVisible(contourVisible);
+
+    contourCurves.push_back(contour);
+    addFrequencyRow(color, frequency);
+
+    if (frequency == 0) {
+        ui->plot->rescaleAxes();
+    } else {
+        ui->plot->rescaleAxes(true);
     }
-    QColor color;
-
-    color = colorByFrequency.value(m_omega.at(counter));
-    if (visible){
-        addFrequencyRow(color, pos);
-    }
-
-    ui->plot->graph(pos)->setPen(QPen(color, kCurveWidth));
-    ui->plot->graph(pos)->setVisible(visible);
-
-    if (pos == 0){
-        ui->plot->graph(pos)->rescaleAxes();
-        return;
-    }
-    ui->plot->graph(pos)->rescaleAxes(true);
-
 }
 
 void TemplateViewer::addFrequencyRow(QColor color, qint32 pos){
@@ -382,8 +395,8 @@ void TemplateViewer::on_contourButton_clicked()
     else
         ui->contourButton->setText(tr("Show\ncontour"));
 
-    for (QCPGraph * parameter : contourGraphs) {
-        parameter->setVisible(contourVisible);
+    for (QCPCurve * contour : contourCurves) {
+        contour->setVisible(contourVisible);
     }
     ui->plot->replot();
 }
@@ -396,10 +409,14 @@ void TemplateViewer::syncSliders(){
 
 void TemplateViewer::applyCheckboxes(){
     for (qint32 i = 0; i < legend->rowCount(); i++){
-        if (!legend->isRowChecked(i)){
-            contourGraphs.at(i)->setVisible(false);
-        }else {
-            contourGraphs.at(i)->setVisible(true);
+        //A frequency unticked takes its contour and its cloud with it.
+        const bool shown = legend->isRowChecked(i);
+
+        if (i < contourCurves.size()) {
+            contourCurves.at(i)->setVisible(shown && contourVisible);
+        }
+        if (i < templateGraphs.size()) {
+            templateGraphs.at(i)->setVisible(shown && templatesVisible);
         }
     }
     ui->plot->replot();

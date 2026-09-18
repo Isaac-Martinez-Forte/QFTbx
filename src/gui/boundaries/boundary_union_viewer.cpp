@@ -6,6 +6,7 @@
 #include "src/gui/common/number_text.h"
 #include "src/gui/common/plot_export.h"
 #include "src/gui/common/plot_setup.h"
+#include "src/gui/common/trace_segments.h"
 
 
 namespace qftbx {
@@ -81,20 +82,37 @@ void BoundaryUnionViewer::showDiagram(){
     for (const qftbx::Trace & bound : unionTraces) {
         const QColor color = frequencyColour(frequencyIndex, static_cast<int>(unionTraces.size()));
 
-        std::vector<double> phases;
-        std::vector<double> magnitudes;
-        phases.reserve(bound.size());
-        magnitudes.reserve(bound.size());
+        //The boundary of a frequency is not always one curve, and the list
+        //it arrives in does not say where one ends: drawn as a single
+        //polyline it closed itself with a long straight line across the
+        //chart. One curve per piece, all of them the frequency's colour.
+        QVector<QCPCurve *> pieces;
 
-        for (const qftbx::NicholsPoint & p : bound) {
-            phases.push_back(p.phase);
-            magnitudes.push_back(p.magnitude);
+        for (const qftbx::Trace & piece : qftbx::continuousSegments(bound)) {
+            std::vector<double> phases;
+            std::vector<double> magnitudes;
+            phases.reserve(piece.size());
+            magnitudes.reserve(piece.size());
+
+            for (const qftbx::NicholsPoint & p : piece) {
+                phases.push_back(p.phase);
+                magnitudes.push_back(p.magnitude);
+            }
+
+            QCPCurve * curve = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
+            curve->setData(qftbx::toQVector(phases), qftbx::toQVector(magnitudes));
+            curve->setPen(QPen(color, kCurveWidth));
+
+            //A point the ordering left on its own: drawn as the point it
+            //is, because a curve of one draws nothing at all.
+            if (piece.size() == 1) {
+                curve->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc, 4));
+            }
+
+            pieces.push_back(curve);
         }
 
-        QCPCurve *curve = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-        curve->setData(qftbx::toQVector(phases), qftbx::toQVector(magnitudes));
-        curve->setPen(QPen(color, kCurveWidth));
-        curves.push_back(curve);
+        curves.push_back(pieces);
         addFrequencyRow(color, frequencyIndex);
 
         frequencyIndex++;
@@ -108,8 +126,10 @@ void BoundaryUnionViewer::showDiagram(){
 }
 
 void BoundaryUnionViewer::applyCheckboxes(){
-    for (qint32 i = 0; i < legend->rowCount(); i++){
-        curves.at(i)->setVisible(legend->isRowChecked(i));
+    for (qint32 i = 0; i < legend->rowCount() && i < curves.size(); i++){
+        for (QCPCurve * piece : curves.at(i)) {
+            piece->setVisible(legend->isRowChecked(i));
+        }
     }
     ui->plot->replot();
 }

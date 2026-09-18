@@ -54,6 +54,12 @@ private slots:
     void on_saveImage_clicked();
 
 private:
+    /// The pieces of one boundary as one curve each, all of them under one
+    /// row of the legend. The cuts are where the Nichols trace jumps, so
+    /// the two diagrams are cut in the same places.
+    QVector<QCPCurve *> piecesOf(const std::vector<double> & x, const std::vector<double> & y,
+                                 const std::vector<std::size_t> & cuts, const QColor & color);
+
 
     const BoundaryData * nicholsData = nullptr;
     //By value: the curves are computed for this view and belong to it.
@@ -66,9 +72,12 @@ private:
 
     bool plotted = false;
 
+    //One entry per ROW of the legend - a frequency in one of the two
+    //diagrams - and inside it one curve per piece of that boundary, which
+    //is not always one.
     //The curves BELONG TO QCustomPlot, which frees them on
     //clearPlottables(): only the container is the viewer's.
-    QVector <QCPCurve *> curves;
+    QVector <QVector <QCPCurve *>> curves;
 
     /// One row per curve, labelled with its frequency AND its diagram: in
     /// the both-diagrams mode a frequency gets two rows.

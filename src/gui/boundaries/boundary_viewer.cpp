@@ -6,6 +6,7 @@
 
 #include "src/gui/application/error_message.h"
 #include "src/gui/common/plot_setup.h"
+#include "src/gui/common/trace_segments.h"
 
 
 namespace qftbx {
@@ -99,21 +100,30 @@ void BoundaryViewer::showDiagram(){
             const qftbx::TraceSet & b = entry.second;
             for (const qftbx::Trace & bound : b) {
 
-                std::vector<double> phases;
-                std::vector<double> magnitudes;
-                phases.reserve(static_cast<qsizetype>(bound.size()));
-                magnitudes.reserve(static_cast<qsizetype>(bound.size()));
+                //A trace extended to the frame of the window carries a
+                //point away from its neighbours: drawn as one polyline it
+                //reached for it across the chart.
+                for (const qftbx::Trace & piece : qftbx::continuousSegments(bound)) {
+                    std::vector<double> phases;
+                    std::vector<double> magnitudes;
+                    phases.reserve(static_cast<qsizetype>(piece.size()));
+                    magnitudes.reserve(static_cast<qsizetype>(piece.size()));
 
-                for (const qftbx::NicholsPoint & p : bound) {
-                   phases.push_back(p.phase);
-                   magnitudes.push_back(p.magnitude);
+                    for (const qftbx::NicholsPoint & p : piece) {
+                       phases.push_back(p.phase);
+                       magnitudes.push_back(p.magnitude);
+                    }
+
+                    QCPCurve *curve = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
+                    curve->setData(qftbx::toQVector(phases), qftbx::toQVector(magnitudes));
+                    curve->setPen(QPen(color, kCurveWidth));
+
+                    if (piece.size() == 1) {
+                        curve->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc, 4));
+                    }
+
+                    frequencyCurves.push_back(curve);
                 }
-
-
-                QCPCurve *curve = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-                curve->setData(qftbx::toQVector(phases), qftbx::toQVector(magnitudes));
-                curve->setPen(QPen(color, kCurveWidth));
-                frequencyCurves.push_back(curve);
 
                 k++;
             }

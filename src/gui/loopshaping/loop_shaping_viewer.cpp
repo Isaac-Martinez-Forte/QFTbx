@@ -10,6 +10,7 @@
 
 #include "src/gui/common/field_mark.h"
 #include "src/gui/common/plot_setup.h"
+#include "src/gui/common/trace_segments.h"
 #include "src/core/system/system_formula.h"
 
 #include <cmath>
@@ -92,6 +93,7 @@ void LoopShapingViewer::clearDiagram(){
     legend->clear();
 
     curves.clear();
+    boundaryCurves.clear();
 
 
     plotted = false;
@@ -251,18 +253,32 @@ void LoopShapingViewer::showDiagram(){
         frequencyIndex++;
         rowColors.push_back(color);
 
-        std::vector<double> phases;
-        std::vector<double> magnitudes;
+        //One curve per piece of the boundary: a frequency whose boundary is
+        //two curves drew a long straight line between them.
+        QVector<QCPCurve *> pieces;
 
-        for (const qftbx::NicholsPoint & p : bound) {
-            phases.push_back(p.phase);
-            magnitudes.push_back(p.magnitude);
+        for (const qftbx::Trace & piece : qftbx::continuousSegments(bound)) {
+            std::vector<double> phases;
+            std::vector<double> magnitudes;
+
+            for (const qftbx::NicholsPoint & p : piece) {
+                phases.push_back(p.phase);
+                magnitudes.push_back(p.magnitude);
+            }
+
+            QCPCurve * curve = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
+            curve->setData(qftbx::toQVector(phases), qftbx::toQVector(magnitudes));
+            curve->setPen(QPen(color, kCurveWidth));
+
+            if (piece.size() == 1) {
+                curve->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc, 4));
+            }
+
+            curves.push_back(curve);
+            pieces.push_back(curve);
         }
 
-        QCPCurve *curve = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-        curve->setData(qftbx::toQVector(phases), qftbx::toQVector(magnitudes));
-        curve->setPen(QPen(color, kCurveWidth));
-        curves.push_back(curve);
+        boundaryCurves.push_back(pieces);
 
         addFrequencyRow(color, curveIndex);
 
@@ -393,11 +409,9 @@ void LoopShapingViewer::showDiagram(){
 }
 
 void LoopShapingViewer::applyCheckboxes(){
-    for (qint32 i = 0; i < legend->rowCount(); i++){
-        if (!legend->isRowChecked(i)){
-            curves.at(i)->setVisible(false);
-        }else {
-            curves.at(i)->setVisible(true);
+    for (qint32 i = 0; i < legend->rowCount() && i < boundaryCurves.size(); i++){
+        for (QCPCurve * piece : boundaryCurves.at(i)) {
+            piece->setVisible(legend->isRowChecked(i));
         }
     }
     ui->plot->replot();

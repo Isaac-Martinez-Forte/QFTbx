@@ -58,9 +58,12 @@ private:
 
     bool plotted = false;
 
+    //One entry per frequency, and inside it one curve per piece of its
+    //boundary: what the legend shows or hides is the frequency, which is
+    //all of them.
     //The curves BELONG TO QCustomPlot, which frees them on
     //clearPlottables(): only the container is the viewer's.
-    QVector <QCPCurve *> curves;
+    QVector <QVector <QCPCurve *>> curves;
 
     void addFrequencyRow(QColor color, qint32 pos);
     FrequencyLegend * legend = nullptr;

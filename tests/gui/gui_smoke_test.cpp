@@ -62,6 +62,7 @@
 #include "src/app/project_controller.h"
 #include "src/gui/common/formula_delegate.h"
 #include "src/gui/common/field_mark.h"
+#include "src/gui/common/trace_segments.h"
 #include "src/gui/common/formula_view.h"
 #include "src/core/system/system_formula.h"
 #include "src/gui/application/about.h"
@@ -1783,6 +1784,46 @@ TEST_F(GuiSmoke, TheThemeDressesTheWindowAndItsDiagrams)
     EXPECT_NEAR(QApplication::palette().color(QPalette::Highlight).hue(), 204, 12);
 
     qftbx::applyTheme(qftbx::kSystemTheme);
+}
+
+TEST_F(GuiSmoke, ATraceIsCutWhereItJumpsAndNotWhereItStandsUp)
+{
+    //A boundary drawn as one polyline reached across the chart for a point
+    //that has nothing to do with its neighbours: the union of a frequency
+    //can hold more than one curve, and the walk that orders its points is a
+    //nearest-neighbour one, which comes back at the end for whatever it
+    //left behind. The cut is made where the PHASE jumps, measured in
+    //columns of the grid the trace was traced on.
+    const auto at = [](double phase, double magnitude) {
+        return qftbx::NicholsPoint(phase, magnitude);
+    };
+
+    //One curve: a column at a time, and a vertical run in the middle, which
+    //is a boundary standing up and not a jump.
+    qftbx::Trace one{at(-10, 0), at(-9, 1), at(-8, 2), at(-8, 30), at(-8, 60), at(-7, 61)};
+    EXPECT_EQ(qftbx::continuousSegments(one).size(), 1u)
+        << "a steep boundary was cut in two";
+
+    //Two curves, and the jump between them.
+    qftbx::Trace two{at(-10, 0), at(-9, 0), at(-8, 0), at(-100, 5), at(-99, 5)};
+    const std::vector<qftbx::Trace> cut = qftbx::continuousSegments(two);
+    ASSERT_EQ(cut.size(), 2u);
+    EXPECT_EQ(cut.front().size(), 3u);
+    EXPECT_EQ(cut.back().size(), 2u);
+
+    //And the point the ordering left for the end: its own piece of one,
+    //which the viewers draw as the point it is.
+    qftbx::Trace orphan{at(-10, 0), at(-9, 0), at(-8, 0), at(-125, -16.5)};
+    const std::vector<qftbx::Trace> alone = qftbx::continuousSegments(orphan);
+    ASSERT_EQ(alone.size(), 2u);
+    EXPECT_EQ(alone.back().size(), 1u);
+
+    //The same cuts by index, which is what a caller holding two readings of
+    //the same points needs.
+    const std::vector<std::size_t> ends = qftbx::segmentEnds(orphan);
+    ASSERT_EQ(ends.size(), 2u);
+    EXPECT_EQ(ends.front(), 3u);
+    EXPECT_EQ(ends.back(), 4u);
 }
 
 TEST_F(GuiSmoke, EveryFieldSaysWhatItIsFor)
