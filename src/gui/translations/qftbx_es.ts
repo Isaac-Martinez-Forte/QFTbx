@@ -2239,6 +2239,10 @@ del controlador</translation>
         <source>Give up on the computation of this phase</source>
         <translation>Abandonar el cálculo de esta fase</translation>
     </message>
+    <message>
+        <source>Close this phase. Its button at the top of the window opens it again, with everything it holds.</source>
+        <translation>Cerrar esta fase. Su botón de arriba vuelve a abrirla, con todo lo que tenga.</translation>
+    </message>
 </context>
 <context>
     <name>qftbx::PlantForm</name>

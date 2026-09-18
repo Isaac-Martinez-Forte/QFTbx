@@ -139,13 +139,22 @@ PhaseCard::PhaseCard(const QString & title, const QString & name, QWidget * form
     m_wider->setToolTip(tr("Wider"));
     barLayout->addWidget(m_wider);
 
+    m_close = new QToolButton(bar);
+    m_close->setObjectName(name + "Close");
+    m_close->setText(QString::fromUtf8("\u2715"));
+    m_close->setToolTip(tr("Close this phase. Its button at the top of the window opens it "
+                           "again, with everything it holds."));
+    connect(m_close, &QToolButton::clicked, this, &PhaseCard::closeAsked);
+    barLayout->addWidget(m_close);
+
     //The bar is the handle and shows the hand for it; its buttons are not,
     //and a hand over something you only press says the wrong thing. A
     //cursor is inherited by every child unless the child says otherwise.
     for (QWidget * pressed : {static_cast<QWidget *>(m_fold),
                               static_cast<QWidget *>(m_cancel),
                               static_cast<QWidget *>(m_narrower),
-                              static_cast<QWidget *>(m_wider)}) {
+                              static_cast<QWidget *>(m_wider),
+                              static_cast<QWidget *>(m_close)}) {
         pressed->setCursor(Qt::ArrowCursor);
     }
 
@@ -266,6 +275,7 @@ void PhaseCard::setBusy(bool busy, const QString & what)
     m_progress->setVisible(busy);
     m_cancel->setVisible(busy);
     m_fold->setEnabled(!busy);
+    m_close->setEnabled(!busy);
 
     //The form is the input of the computation that is running: touching it
     //while it runs would describe something else.

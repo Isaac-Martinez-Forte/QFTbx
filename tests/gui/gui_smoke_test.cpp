@@ -1605,6 +1605,47 @@ TEST_F(GuiSmoke, APanelRefusesToPublishWhatTheProjectHasTakenAwayFromIt)
         << "grids with no plant behind them must not be published";
 }
 
+TEST_F(GuiSmoke, APhaseIsClosedFromItsBarAndOpenedFromItsStepButton)
+{
+    MainWindow window;
+    window.setFileChooser([](bool) {
+        return QString(QFTBX_TEST_DATA_DIR "/planta1.qft");
+    });
+    window.findChild<QAction *>("actionOpen")->trigger();
+    window.resize(1280, 900);
+    QCoreApplication::processEvents();
+
+    QWidget * canvas = window.findChild<QWidget *>("canvasContent");
+    ASSERT_NE(canvas, nullptr);
+
+    for (const char * name : {"plantCard", "specificationsCard", "templatesCard",
+                              "boundariesCard", "loopShapingCard"}) {
+        PhaseCard * card = window.findChild<PhaseCard *>(name);
+        ASSERT_NE(card, nullptr) << name;
+        QToolButton * close = window.findChild<QToolButton *>(QString(name) + "Close");
+        ASSERT_NE(close, nullptr) << name << " cannot be closed";
+    }
+
+    const int wholeCanvas = canvas->layout()->heightForWidth(canvas->width());
+
+    for (const char * name : {"plantCard", "specificationsCard", "boundariesCard",
+                              "loopShapingCard"}) {
+        window.findChild<QToolButton *>(QString(name) + "Close")->click();
+        EXPECT_TRUE(window.findChild<PhaseCard *>(name)->isHidden()) << name << " did not close";
+    }
+    QCoreApplication::processEvents();
+
+    EXPECT_LT(canvas->layout()->heightForWidth(canvas->width()), wholeCanvas)
+        << "the cards that were closed still take their room on the canvas";
+
+    child<QPushButton>(&window, "plantButton")->click();
+    PhaseCard * plant = window.findChild<PhaseCard *>("plantCard");
+    EXPECT_FALSE(plant->isHidden()) << "its step button did not bring it back";
+    EXPECT_TRUE(plant->isFormShown()) << "it came back folded";
+    EXPECT_TRUE(window.findChild<PhaseCard *>("boundariesCard")->isHidden())
+        << "opening one phase brought back the rest";
+}
+
 TEST_F(GuiSmoke, OpeningAProjectPutsItsCardsOnTheCanvasFolded)
 {
     //What the toolbox is for: the results of a project, all of them, on the

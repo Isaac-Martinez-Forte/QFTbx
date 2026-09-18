@@ -95,6 +95,10 @@ signals:
     /// The user pressed Cancel on the bar of a card that is working.
     void cancelAsked();
 
+    /// The user closed this phase. The card is hidden by whoever owns the
+    /// canvas, and the step button of the phase brings it back.
+    void closeAsked();
+
     /// The card wants a different size - its form was folded or unfolded,
     /// or it was made wider or narrower. The canvas lays itself out again.
     void sizeChanged();
@@ -123,6 +127,7 @@ private:
     bool m_busy = false;
     QToolButton * m_narrower = nullptr;
     QToolButton * m_wider = nullptr;
+    QToolButton * m_close = nullptr;
     QLabel * m_caption = nullptr;
     QString m_title;
     int m_span = 1;

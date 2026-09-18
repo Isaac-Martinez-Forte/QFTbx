@@ -495,6 +495,12 @@ PhaseCard * MainWindow::addPhaseCard(const QString & title, const QString & name
         controller->cancelComputation();
     });
 
+    connect(card, &PhaseCard::closeAsked, this, [this, card]() {
+        card->hide();
+        m_canvasLayout->invalidate();
+        m_canvasContent->updateGeometry();
+    });
+
     //Dragged by its bar, a card changes places with the one the cursor is
     //over, while the drag is still going on.
     connect(card, &PhaseCard::draggedTo, this, [this, card](QPoint where) {
@@ -582,7 +588,10 @@ void MainWindow::showPhase(PhaseCard * card)
         return;
     }
 
+    card->show();
     card->showForm(true);
+    m_canvasLayout->invalidate();
+    m_canvasContent->updateGeometry();
     m_canvas->ensureWidgetVisible(card);
 }
 

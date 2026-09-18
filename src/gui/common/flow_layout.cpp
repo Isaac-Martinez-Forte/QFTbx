@@ -133,6 +133,10 @@ int FlowLayout::place(const QRect & rect, bool apply) const
     //them may change places - a boundary set that jumped ahead of the
     //specifications it is computed from would be a lie about the design.
     for (QLayoutItem * item : m_items) {
+        if (item->isEmpty()) {
+            continue;
+        }
+
         //Every item at the size it asks for, never at the size that is
         //left: that is the whole point of wrapping.
         QSize size = item->sizeHint();

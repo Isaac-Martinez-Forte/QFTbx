@@ -20,7 +20,8 @@ namespace qftbx {
  * downwards is scrolled to.
  *
  * It answers heightForWidth(), which is how the scroll area learns how tall
- * the whole thing is once the width is known.
+ * the whole thing is once the width is known. An item whose widget is
+ * hidden takes no room: the row closes over it.
  */
 class FlowLayout : public QLayout
 {
