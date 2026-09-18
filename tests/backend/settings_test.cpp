@@ -397,11 +397,15 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
               defaults.algorithms.certifiedGainTolerance);
     EXPECT_EQ(fromExample.defaults.boundariesFromCloud, defaults.defaults.boundariesFromCloud);
     EXPECT_EQ(fromExample.interface.digits, defaults.interface.digits);
+    EXPECT_EQ(fromExample.log.enabled, defaults.log.enabled);
+    EXPECT_EQ(fromExample.log.sizeLimitKilobytes, defaults.log.sizeLimitKilobytes);
 
     //Every setting the build knows has to be IN the example, or the example
-    //is not documentation. Forty-three today; the count is asserted so
-    //adding one without documenting it fails here.
-    EXPECT_EQ(settingsFound, 43)
+    //is not documentation. Forty-five today; the count is asserted so
+    //adding one without documenting it fails here. The three whose default
+    //is an empty string - the canvas, the window and the path of the record
+    //- are written "# key =" and do not count towards it.
+    EXPECT_EQ(settingsFound, 45)
         << "a setting was added to the code and not to qftbx.conf.example";
 
     EXPECT_TRUE(fromExample.unknownKeys.empty())

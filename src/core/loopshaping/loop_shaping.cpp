@@ -2,6 +2,8 @@
 #include <vector>
 #include <cstdint>
 #include "src/core/common/text_tokens.h"
+#include "src/core/common/record.h"
+#include "src/core/loopshaping/algorithm_name.h"
 #include "src/core/loopshaping/loop_shaping.h"
 
 #include <cmath>
@@ -128,6 +130,18 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
         if (solved) {
             report(mc3->controllerStructure(), mc3->statistics());
         }
+    }
+
+    if (qftbx::record::isOpen()){
+        std::string numbers = qftbx::record::milliseconds(m_statistics.milliseconds)
+                              + " " + qftbx::record::number("epsilon", epsilon)
+                              + " " + qftbx::record::number("frequencies", omega->size());
+        if (solved && m_controller != nullptr){
+            numbers += " " + qftbx::record::number("gain", m_controller->gain().range().min);
+        } else {
+            numbers += " solved=no";
+        }
+        qftbx::record::write("loop shaping", qftbx::algorithmName(algorithm), numbers);
     }
 
     return solved;

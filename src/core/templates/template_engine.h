@@ -7,6 +7,7 @@
 #include <limits>
 
 #include <string>
+#include <chrono>
 #include <optional>
 #include <vector>
 
@@ -87,6 +88,9 @@ public:
      * non-local action from within a parallel region that once let an
      * expression error terminate the process.
      */
+    /// One line of the record for whatever contours have just been walked.
+    void logContours(std::chrono::steady_clock::time_point since) const;
+
     ComplexCloud epsilonHull(const ComplexCloud & cloud, double epsilon,
                              bool * fellBack = nullptr, bool * truncated = nullptr,
                              std::vector<std::size_t> * componentStarts = nullptr);

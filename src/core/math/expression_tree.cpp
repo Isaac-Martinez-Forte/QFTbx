@@ -200,7 +200,6 @@ const exp_node * ExpressionTree::tree() const
 
 
 void ExpressionTree::print (){
-    alg_exp_node_print(root.get());
 }
 
 
@@ -214,31 +213,6 @@ void ExpressionTree::print (){
  *
  */
 
-void ExpressionTree::alg_exp_node_print(exp_node * node){
-
-
-    if (node->type == CONSTANT){
-        cout << node->c_const << endl;
-    } else if (node->type == PI){
-        cout << " pi " << endl;
-    } else if (node->type == E){
-        cout << " e " << endl;
-    } else if (node->type == VAR){
-        cout << node->var << endl;
-    }else if (node->type == POWER){
-        alg_exp_node_print(node->left.get());
-        cout << symbolOf(node->type);
-        cout << "2" << endl;
-    }else if (node->type > POWER){
-        cout << symbolOf(node->type);
-        alg_exp_node_print(node->left.get());
-    } else {
-        alg_exp_node_print(node->left.get());
-        cout << symbolOf(node->type);
-        alg_exp_node_print(node->right.get());
-    }
-
-}
 
 string ExpressionTree::symbolOf(type_node type)  {
 

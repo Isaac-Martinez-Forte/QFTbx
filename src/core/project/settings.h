@@ -319,6 +319,30 @@ struct Settings {
         std::int32_t digits = 4;
     } interface;
 
+    /**
+     * @brief The record of what the engines did and how long it took.
+     *
+     * One line per stage, written as the work goes, capped in size: past
+     * the limit the file becomes the previous generation and a new one
+     * starts, so the oldest lines fall off and it never grows without
+     * bound. What it is for is the question the engines used to answer by
+     * printing on standard output - how long did THIS take, with THIS
+     * algorithm, on THIS plant - now kept where it can be read after the
+     * fact, from the interface as much as from a script.
+     */
+    struct Log {
+        /// Off by default: a program that writes files nobody asked for is
+        /// a program that surprises somebody.
+        bool enabled = false;
+
+        /// Empty means the usual place, $HOME/.local/state/qftbx/qftbx.log.
+        std::string path;
+
+        /// Where it rotates. Two generations are kept, so the space taken
+        /// is twice this.
+        std::int32_t sizeLimitKilobytes = 1024;
+    } log;
+
     /// The path this was read from, empty when nothing was read and the
     /// compiled defaults stand. Reported rather than guessed at: on a shared
     /// machine the interesting question is usually WHICH file is in effect.
@@ -378,6 +402,16 @@ void writeSetting(const std::string & path, const std::string & key, const std::
  * naming it says it is meant to be used.
  */
 Settings loadSettings();
+
+/**
+ * @brief Opens the record of stages where these settings say, or leaves it
+ * closed when they say not to.
+ *
+ * Called by an application once, on the way up. The engines write to it if
+ * it is open and are silent if it is not, which is what keeps the tests and
+ * anything embedding the core from leaving files behind.
+ */
+void openRecord(const Settings & settings);
 
 } // namespace qftbx
 

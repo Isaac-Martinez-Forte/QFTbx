@@ -1,4 +1,5 @@
 #include "src/core/common/exception.h"
+#include "src/core/common/record.h"
 #include "src/core/project/settings.h"
 #include "src/gui/application/application.h"
 #include "src/gui/application/language.h"
@@ -50,6 +51,14 @@ int main(int argc, char *argv[])
 
     if (!settings.source.empty()) {
         std::cout << "settings: " << settings.source << std::endl;
+    }
+
+    //The record of what the engines do and how long they take, if the
+    //settings ask for one. Opened before anything computes, so that a run
+    //that dies still leaves what it got through.
+    qftbx::openRecord(settings);
+    if (qftbx::record::isOpen()) {
+        std::cout << "record: " << qftbx::record::path() << std::endl;
     }
 
     //The look, from the settings, BEFORE any window is built: flat, square

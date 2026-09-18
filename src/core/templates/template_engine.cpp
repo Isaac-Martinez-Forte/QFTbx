@@ -5,6 +5,7 @@
 #include <optional>
 #include <map>
 #include <cstdint>
+#include "src/core/common/record.h"
 #include "src/core/templates/template_engine.h"
 
 #include "src/core/math/polynomial.h"
@@ -60,8 +61,15 @@ bool TemplateEngine::compute(LtiSystem *plant, std::vector<double> *omega, bool 
         throw qftbx::Cancelled();
     }
 
-    std::cout << "Templates: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timer).count() << " milliseconds\n";
-
+    {
+        std::size_t points = 0;
+        for (const ComplexCloud & cloud : m_clouds) points += cloud.size();
+        qftbx::record::write("templates", "sweep",
+                          qftbx::record::milliseconds(std::chrono::duration<double, std::milli>(
+                                                       std::chrono::steady_clock::now() - timer).count())
+                              + " " + qftbx::record::number("frequencies", m_clouds.size())
+                              + " " + qftbx::record::number("points", points));
+    }
 
     if (m_clouds.empty()){
         throw qftbx::ComputationError(QFTBX_TR("Core", "Could not compute the templates."));
@@ -81,10 +89,26 @@ bool TemplateEngine::compute(LtiSystem *plant, std::vector<double> *omega, bool 
         throw qftbx::Cancelled();
     }
 
-    std::cout << "Contours: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timer2).count() << " milliseconds\n";
+    logContours(timer2);
 
     return result;
 
+}
+
+void TemplateEngine::logContours(std::chrono::steady_clock::time_point since) const
+{
+    if (!qftbx::record::isOpen()){
+        return;
+    }
+
+    std::size_t points = 0;
+    for (const ComplexCloud & contour : m_contours) points += contour.size();
+
+    qftbx::record::write("contours", m_alphaShape ? "alpha-shape" : "walk",
+                      qftbx::record::milliseconds(std::chrono::duration<double, std::milli>(
+                                                   std::chrono::steady_clock::now() - since).count())
+                          + " " + qftbx::record::number("frequencies", m_contours.size())
+                          + " " + qftbx::record::number("points", points));
 }
 
 bool TemplateEngine::computeContours(std::vector<double> epsilon){
@@ -101,7 +125,7 @@ bool TemplateEngine::computeContours(std::vector<double> epsilon){
 
     bool result = computeContourSet(m_useCuda);
 
-    std::cout << "Contours: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timer).count() << " milliseconds\n";
+    logContours(timer);
 
     return result;
 }
@@ -624,10 +648,7 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
     }
 
     if (!relaxed.empty()){
-        std::cerr << "epsilonHull: the faithful walk did not close at w = "
-                  << qftbx::text::join(relaxed, ", ")
-                  << " rad/s (epsilon-hull limitation on clustered templates); "
-                     "the relaxed historical walk was used there." << std::endl;
+        qftbx::record::write("contours", "relaxed", qftbx::text::join(relaxed, ", ") + " rad/s");
     }
     std::vector<std::string> split;
     for (std::size_t i = 0; i < digitCount; i++){
@@ -637,16 +658,11 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
         }
     }
     if (!split.empty()){
-        std::cerr << "epsilonHull: the cloud is not epsilon-connected at w = "
-                  << qftbx::text::join(split, ", ")
-                  << " rad/s (components in brackets); every component was walked. "
-                     "A larger epsilon, or a denser template, joins them." << std::endl;
+        qftbx::record::write("contours", "split", qftbx::text::join(split, ", ") + " rad/s");
     }
 
     if (!truncatedAt.empty()){
-        std::cerr << "epsilonHull: no walk closed at " << qftbx::text::join(truncatedAt, ", ")
-                  << ": the whole cloud stands in for the contour there. A larger epsilon, or a "
-                     "denser template, would close it." << std::endl;
+        qftbx::record::write("contours", "whole cloud", qftbx::text::join(truncatedAt, ", "));
     }
 
     if (!succeeded){

@@ -47,6 +47,18 @@ so no value here can change what a test means.
 | `window` | empty | `width height`, `maximized` | How big the window was when it last closed. Written by the window itself; deleting the line loses nothing |
 | `digits` | `4` | 1 to 17 | How many significant digits the forms SHOW. The project file always keeps every digit of every number; this is about reading them. Significant digits and not decimals, so that the small ones survive: four decimals of `6.988e-05` would be a zero |
 
+**`[log]`**: the record of what the engines did and how long it took. One
+line per stage, written as the work goes: which algorithm ran on which
+problem and what it cost. It answers the question the engines used to answer
+by printing on standard output, where the interface never showed it and
+nothing could turn it off.
+
+| Key | Default | Range | Meaning |
+|---|---|---|---|
+| `enabled` | `0` | 0 or 1 | Whether the record is written at all. Off by default: a program that writes files nobody asked for surprises somebody |
+| `path` | empty | a path | Where it goes. Empty means `$XDG_STATE_HOME/qftbx/qftbx.log`, or `$HOME/.local/state/qftbx/qftbx.log` when that is not set. The directories are made if they are not there, and a path that cannot be written leaves the record closed rather than stopping a computation |
+| `size-limit-kilobytes` | `1024` | 16 to 1048576 | Where it rotates: past this the file becomes the previous generation (`.1`) and a new one starts, so the oldest lines fall off the end. Two generations are kept, so the space taken is twice this and never more |
+
 **`[limits]`**: ceilings that exist to stop a typo, not to express a limit of
 the method. They only ever refuse input, so moving them changes no computed
 result.

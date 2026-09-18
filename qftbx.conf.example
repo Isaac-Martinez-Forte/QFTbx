@@ -370,3 +370,30 @@
 # pass improves nothing. MC2 does not have them; what they were contributing
 # is their bisection rule, which MC2 applies everywhere.
 # stages = 1
+
+# ---------------------------------------------------------------------------
+[log]
+# The record of what the engines did and how long it took: one line per
+# stage, written as the work goes. It says which algorithm ran on which
+# problem and what it cost, which is the question the engines used to answer
+# by printing on standard output - where the interface never showed it and
+# nothing could turn it off.
+#
+# Off by default: a program that writes files nobody asked for is a program
+# that surprises somebody.
+#
+# enabled = 0
+#
+# Where it goes. Empty means $XDG_STATE_HOME/qftbx/qftbx.log, or
+# $HOME/.local/state/qftbx/qftbx.log when that is not set. The directories
+# are made if they are not there, and a path that cannot be written leaves
+# the record closed rather than stopping a computation.
+#
+# path =
+#
+# Where it rotates: past this the file becomes the previous generation and a
+# new one starts, so the oldest lines fall off the end. Two generations are
+# kept, so the space taken is twice this and never more. Between 16 and
+# 1048576 kilobytes.
+#
+# size-limit-kilobytes = 1024

@@ -1,3 +1,4 @@
+#include "src/core/common/record.h"
 #include "src/core/project/settings.h"
 
 #include <algorithm>
@@ -207,6 +208,23 @@ const std::vector<Binding> & bindings()
         {"interface.window",
          [](const std::string & text, std::int64_t, Settings & into) {
              into.interface.window = text;
+         }},
+
+        //[log] - the record of what ran and how long it took. Off unless
+        //asked for, and capped so that leaving it on costs a known amount
+        //of disc and no more.
+        {"log.enabled",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.log.enabled = wholeIn(text, "log.enabled", line, 0.0, 1.0) != 0.0;
+         }},
+        {"log.path",
+         [](const std::string & text, std::int64_t, Settings & into) {
+             into.log.path = text;
+         }},
+        {"log.size-limit-kilobytes",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.log.sizeLimitKilobytes = static_cast<std::int32_t>(
+                 wholeIn(text, "log.size-limit-kilobytes", line, 16.0, 1048576.0));
          }},
 
         //[algorithms] - figures from the papers. These change WHAT is
@@ -589,6 +607,29 @@ std::vector<std::string> settingKeys()
         keys.emplace_back(binding.key);
     }
     return keys;
+}
+
+void openRecord(const Settings & settings)
+{
+    if (!settings.log.enabled) {
+        qftbx::record::close();
+        return;
+    }
+
+    std::string path = settings.log.path;
+    if (path.empty()) {
+        const char * state = std::getenv("XDG_STATE_HOME");
+        const char * home = std::getenv("HOME");
+        if (state != nullptr && *state != '\0') {
+            path = std::string(state) + "/qftbx/qftbx.log";
+        } else if (home != nullptr) {
+            path = std::string(home) + "/.local/state/qftbx/qftbx.log";
+        } else {
+            return;
+        }
+    }
+
+    qftbx::record::open(path, std::size_t(settings.log.sizeLimitKilobytes) * 1024u);
 }
 
 Settings loadSettings()

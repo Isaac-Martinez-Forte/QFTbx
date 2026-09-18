@@ -259,7 +259,6 @@ public :
     static bool isFunctionName(const std::string & name);
 
 private :
-    void alg_exp_node_print (qftbx::exp_node * node);
     std::string symbolOf(qftbx::type_node type);
     std::unique_ptr<exp_node> make_cpy(exp_node *node);
     double eval_tree(exp_node *node);

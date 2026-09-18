@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <vector>
 #include <cstdint>
+#include "src/core/common/record.h"
 #include "src/core/boundaries/boundary_engine.h"
 #include "src/core/boundaries/closed_form_columns.h"
 #include "src/core/boundaries/closed_loop_worst_case.h"
@@ -15,8 +16,6 @@
 #include "src/core/math/sequence_vectors.h" //linspace for the sheet axes
 
 using std::complex;
-using std::cout;
-using std::endl;
 using std::numeric_limits;
 
 namespace qftbx {
@@ -107,7 +106,9 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
         computeFrequencies(omega, plant, templates, phaseRange,
                            phaseCount, magnitudeRange, magnitudeCount);
 
-        cout << "boundaries OpenMP: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timer).count() << " milliseconds" << endl;
+        qftbx::record::write("boundaries", "sheets (OpenMP)",
+                      qftbx::record::milliseconds(std::chrono::duration<double, std::milli>(
+                                                   std::chrono::steady_clock::now() - timer).count()));
 
     } else {
 
@@ -140,7 +141,9 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
             m_boundaries.push_back(std::move(bound));
         }
 
-        cout << "boundaries CUDA: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timer).count() << " milliseconds" << endl;
+        qftbx::record::write("boundaries", "sheets (CUDA)",
+                      qftbx::record::milliseconds(std::chrono::duration<double, std::milli>(
+                                                   std::chrono::steady_clock::now() - timer).count()));
 
 
     }
@@ -149,7 +152,10 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
 
     computeFrequencies(omega, plant, templates, phaseRange, phaseCount, magnitudeRange, magnitudeCount);
 
-    cout << "boundaries OpenMP: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timer).count() << " milliseconds" << endl;
+    qftbx::record::write("boundaries", "sheets (OpenMP)",
+                      qftbx::record::milliseconds(std::chrono::duration<double, std::milli>(
+                                                   std::chrono::steady_clock::now() - timer).count())
+                          + " " + qftbx::record::number("frequencies", m_boundaries.size()));
 #endif
 
     BoundaryUnion1D boundaryUnion;
@@ -161,7 +167,9 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
         boundaryUnion.run(view, m_traceMetadata);
     }
 
-    cout << "1D union: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - timer).count() << " milliseconds" << endl;
+    qftbx::record::write("boundaries", "union",
+                      qftbx::record::milliseconds(std::chrono::duration<double, std::milli>(
+                                                   std::chrono::steady_clock::now() - timer).count()));
 
     m_unionVectors = boundaryUnion.takeUnionVectors();
     m_unionBuckets = boundaryUnion.takeUnionBuckets();
