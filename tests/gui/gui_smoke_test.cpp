@@ -1261,6 +1261,45 @@ TEST_F(GuiSmoke, TheFrequencyPanelGrowsWithTheTemplateViewer)
     EXPECT_FALSE(splitter->childrenCollapsible()) << "either side can be dragged out of sight";
 }
 
+TEST_F(GuiSmoke, ProposingAnEpsilonFillsTheFieldsAndComputesNothing)
+{
+    TemplateViewer viewer;
+
+    const qftbx::CloudSet contour{{{1.0, 0.0}, {0.0, 1.0}}, {{1.0, 0.0}, {0.0, 1.0}}};
+    const qftbx::CloudSet templates{{{2.0, 0.0}, {0.0, 2.0}}, {{2.0, 0.0}, {0.0, 2.0}}};
+    std::vector<double> omega{1.0, 10.0};
+    std::vector<double> epsilon{0.05, 0.05};
+
+    int walked = 0;
+    std::vector<double> walkedWith;
+    viewer.setContourRecomputer([&](std::vector<double> eps){ ++walked; walkedWith = eps; });
+    viewer.setEpsilonProposer([]{
+        std::vector<qftbx::TemplateEngine::EpsilonProposal> proposals(2);
+        proposals[0].epsilon = 0.25;
+        proposals[0].closes = true;
+        proposals[1].epsilon = 0.75;
+        proposals[1].closes = true;
+        return proposals;
+    });
+
+    viewer.setData(templates, contour, &omega, &epsilon);
+    viewer.plotDiagram(true);
+
+    press(&viewer, "proposeButton");
+
+    const QList<QLineEdit *> fields = viewer.findChildren<QLineEdit *>("field");
+    ASSERT_EQ(fields.size(), 2);
+    EXPECT_EQ(fields.at(0)->text().toDouble(), 0.25) << "the proposal did not reach the field";
+    EXPECT_EQ(fields.at(1)->text().toDouble(), 0.75);
+    EXPECT_EQ(walked, 0) << "proposing walked the contours again by itself";
+
+    press(&viewer, "recomputeButton");
+    EXPECT_EQ(walked, 1);
+    ASSERT_EQ(walkedWith.size(), 2u);
+    EXPECT_EQ(walkedWith.at(0), 0.25);
+    EXPECT_EQ(walkedWith.at(1), 0.75);
+}
+
 TEST_F(GuiSmoke, TheEpsilonOfAFrequencyIsAFieldAndNothingElse)
 {
     //Each row carried a slider beside the field for the same number. Two

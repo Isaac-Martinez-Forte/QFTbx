@@ -503,7 +503,6 @@ void TemplateViewer::on_proposeButton_clicked()
         const double value = m_proposals[static_cast<std::size_t>(i)].epsilon;
         epsilonEdits.at(i)->setText(numberText(value));
     }
-    on_recomputeButton_clicked();
 }
 
 void TemplateViewer::on_recomputeButton_clicked()
