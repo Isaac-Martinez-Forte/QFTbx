@@ -2112,6 +2112,46 @@ TEST_F(GuiSmoke, ZZControllerFreedom)
     std::fflush(stdout);
 }
 
+TEST_F(GuiSmoke, ZZContours)
+{
+    if (qEnvironmentVariable("QFTBX_RENDER_DIR").isEmpty()) {
+        GTEST_SKIP();
+    }
+
+    //What each contour of a real project is: closed by the faithful walk,
+    //open because the relaxed one had to stand in, or several components
+    //concatenated into one vector.
+    ProjectController project;
+    project.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
+
+    //The contours the file was computed with, walked again over the clouds
+    //it carries.
+    project.recomputeContour(*project.epsilon());
+
+    const std::vector<qftbx::TemplateEngine::ContourReport> & reports = project.contourReports();
+    const qftbx::CloudSet & contour = project.contour();
+
+    for (std::size_t i = 0; i < reports.size(); ++i) {
+        const std::complex<double> first = contour.at(i).front();
+        const std::complex<double> last = contour.at(i).back();
+
+        std::printf("w[%zu]: %zu points, relaxed %d, truncated %d, wholeCloud %d, "
+                    "components %zu, closed %d\n",
+                    i, reports[i].contourPoints, (int) reports[i].relaxed,
+                    (int) reports[i].truncated, (int) reports[i].wholeCloud,
+                    reports[i].components, (int) (std::abs(first - last) < 1e-12));
+    }
+
+    //And what each one would need to close.
+    const std::vector<qftbx::TemplateEngine::EpsilonProposal> asked = project.proposeEpsilon();
+    for (std::size_t i = 0; i < asked.size(); ++i) {
+        std::printf("   w[%zu] needs epsilon %g (connected from %g, diameter %g), closes %d\n",
+                    i, asked[i].epsilon, asked[i].connected, asked[i].diameter,
+                    (int) asked[i].closes);
+    }
+    std::fflush(stdout);
+}
+
 TEST_F(GuiSmoke, ZZFormulas)
 {
     const QString out = qEnvironmentVariable("QFTBX_RENDER_DIR");

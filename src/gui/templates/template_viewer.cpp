@@ -121,9 +121,14 @@ void TemplateViewer::setContourReporter(ContourReporter report){
     this->report = std::move(report);
 }
 
-//The frequencies where no contour closed and the whole template stands in
-//for it: marked next to the epsilon, never as a dialog, since trying an
-//epsilon and looking is how the contour is tuned.
+//What the contour of each frequency went through, marked next to its
+//epsilon and never as a dialog, since trying an epsilon and looking is how
+//a contour is tuned. Two things can be worth saying, and the worse one
+//wins: that no walk closed and the whole template stands in, and that the
+//faithful walk did not close so the relaxed one stood in - which is why
+//that contour is drawn as an OPEN curve, with the piece the walk never
+//went round missing. Neither is an error; both are answered by the epsilon
+//the Propose button computes.
 void TemplateViewer::showContourState(){
     if (!report || stateLabels.empty()){
         return;
@@ -131,10 +136,28 @@ void TemplateViewer::showContourState(){
     const std::vector<qftbx::TemplateEngine::ContourReport> reports = report();
     for (std::size_t i = 0; i < stateLabels.size(); ++i){
         const bool whole = i < reports.size() && reports[i].wholeCloud;
-        stateLabels[i]->setText(whole ? tr("no contour: whole template shown") : QString());
-        stateLabels[i]->setVisible(whole);
-        stateLabels[i]->setToolTip(whole ? tr("No contour closed at this epsilon, so the whole template stands in for it here. A larger epsilon, or a denser sweep, closes it.") : QString());
-        markAs(stateLabels[i], "notice", whole ? QStringLiteral("closed") : QString());
+        const bool open = !whole && i < reports.size() && reports[i].relaxed;
+
+        QString notice;
+        QString explanation;
+
+        if (whole) {
+            notice = tr("no contour: whole template shown");
+            explanation = tr("No contour closed at this epsilon, so the whole template stands "
+                             "in for it here. A larger epsilon, or a denser sweep, closes it.");
+        } else if (open) {
+            notice = tr("open contour");
+            explanation = tr("The epsilon-hull walk did not close at this epsilon and the "
+                             "relaxed walk stood in for it: what is drawn covers the cloud but "
+                             "is not the closed hull, so it ends where the walk ended. Propose "
+                             "gives the epsilon that closes it.");
+        }
+
+        stateLabels[i]->setText(notice);
+        stateLabels[i]->setVisible(!notice.isEmpty());
+        stateLabels[i]->setToolTip(explanation);
+        markAs(stateLabels[i], "notice", whole ? QStringLiteral("closed")
+                                              : open ? QStringLiteral("coarse") : QString());
     }
 }
 
@@ -300,14 +323,45 @@ void TemplateViewer::plotCloud(const std::vector<double> & phases,
 void TemplateViewer::plotContour(const std::vector<double> & phases,
                                  const std::vector<double> & magnitudes, qint32 frequency)
 {
-    QCPCurve * contour = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
-    contour->setData(qftbx::toQVector(phases), qftbx::toQVector(magnitudes));
-
     const QColor color = colorByFrequency.value(m_omega.at(frequency));
-    contour->setPen(QPen(color, kCurveWidth));
-    contour->setVisible(contourVisible);
 
-    contourCurves.push_back(contour);
+    //A cloud that epsilon does not hold together is walked once per
+    //component, and the walks arrive concatenated in one vector: drawn as
+    //one curve, a line crossed from the end of one component to the start
+    //of the next. Where each begins is in the report.
+    std::vector<std::size_t> starts{0};
+    if (report) {
+        const std::vector<qftbx::TemplateEngine::ContourReport> reports = report();
+        if (static_cast<std::size_t>(frequency) < reports.size()
+                && reports[frequency].componentStarts.size() > 1) {
+            starts = reports[frequency].componentStarts;
+        }
+    }
+
+    QVector<QCPCurve *> pieces;
+
+    for (std::size_t piece = 0; piece < starts.size(); ++piece) {
+        const std::size_t from = starts[piece];
+        const std::size_t to = piece + 1 < starts.size() ? starts[piece + 1] : phases.size();
+
+        if (from >= to || to > phases.size()) {
+            continue;
+        }
+
+        QCPCurve * contour = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
+        contour->setData(qftbx::toQVector(std::vector<double>(phases.begin() + std::ptrdiff_t(from),
+                                                              phases.begin() + std::ptrdiff_t(to))),
+                         qftbx::toQVector(std::vector<double>(magnitudes.begin() + std::ptrdiff_t(from),
+                                                              magnitudes.begin() + std::ptrdiff_t(to))));
+        contour->setPen(QPen(color, kCurveWidth));
+        contour->setVisible(contourVisible);
+
+        pieces.push_back(contour);
+    }
+
+    contourCurves.push_back(pieces);
+
+    //One row of the legend per frequency, whatever it took to draw it.
     addFrequencyRow(color, frequency);
 
     if (frequency == 0) {
@@ -395,8 +449,10 @@ void TemplateViewer::on_contourButton_clicked()
     else
         ui->contourButton->setText(tr("Show\ncontour"));
 
-    for (QCPCurve * contour : contourCurves) {
-        contour->setVisible(contourVisible);
+    for (const QVector<QCPCurve *> & pieces : contourCurves) {
+        for (QCPCurve * contour : pieces) {
+            contour->setVisible(contourVisible);
+        }
     }
     ui->plot->replot();
 }
@@ -413,7 +469,9 @@ void TemplateViewer::applyCheckboxes(){
         const bool shown = legend->isRowChecked(i);
 
         if (i < contourCurves.size()) {
-            contourCurves.at(i)->setVisible(shown && contourVisible);
+            for (QCPCurve * contour : contourCurves.at(i)) {
+                contour->setVisible(shown && contourVisible);
+            }
         }
         if (i < templateGraphs.size()) {
             templateGraphs.at(i)->setVisible(shown && templatesVisible);

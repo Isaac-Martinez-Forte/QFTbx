@@ -187,7 +187,10 @@ private:
     //The clouds are scatters, where the order of the points does not
     //matter; the contours are curves, where it is everything.
     QVector <QCPGraph *> templateGraphs;
-    QVector <QCPCurve *> contourCurves;
+    //One entry per frequency, and inside it one curve per piece of its
+    //contour: a cloud with more than one component is walked once per
+    //component, so the row of the legend and the curve are not one to one.
+    QVector <QVector <QCPCurve *>> contourCurves;
     QMap <qreal, QColor> colorByFrequency;
 
     ContourRecomputer recompute;
