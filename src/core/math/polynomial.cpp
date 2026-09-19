@@ -188,7 +188,9 @@ std::optional<std::vector<double>> polynomialCoefficients(
 
         coefficients.assign(static_cast<std::size_t>(degree) + 1, 0.0);
         for (int k = 0; k <= degree; ++k) {
-            coefficients[static_cast<std::size_t>(degree - k)] = scaled[k].real() / std::pow(radius, k);
+            const double real = scaled[k].real();
+            coefficients[static_cast<std::size_t>(degree - k)] =
+                std::abs(real) > 1e-9 * largest ? real / std::pow(radius, k) : 0.0;
         }
         return true;
     };

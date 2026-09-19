@@ -54,7 +54,12 @@ std::vector<std::complex<double>> polynomialRoots(const std::vector<double> & co
  * an entire function - a delay, a sine, which the first circle alone would
  * pass as its truncated Taylor series - does not. The wider circle's
  * coefficients are the ones returned, since that is where a polynomial with
- * roots far from one keeps its precision.
+ * roots far from one keeps its precision. A coefficient below the rounding
+ * of the transform - the same threshold the degree is read at - is zero and
+ * not the noise it came back as: the noise of a coefficient recovered on a
+ * circle of radius r is that of the largest term divided by r^k, and left in
+ * place it is a root at the origin that solves a few parts in ten million
+ * off it, in the right half-plane as often as not.
  */
 std::optional<std::vector<double>> polynomialCoefficients(
         const std::function<std::complex<double>(std::complex<double>)> & value,
