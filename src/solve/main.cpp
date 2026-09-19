@@ -45,6 +45,7 @@ struct Options {
     std::string phase;       //"min,max,points"; empty: whatever the settings say
     std::string magnitude;
     bool quiet = false;
+    bool loop = true;        //false: stop once the boundaries are there
 };
 
 void usage()
@@ -66,7 +67,12 @@ void usage()
         "  -P, --phase A,B,N     the phase axis of the Nichols grid, in degrees\n"
         "  -M, --magnitude A,B,N the magnitude axis, in decibels\n"
         "  -c, --config FILE     the settings file to read instead of the usual ones\n"
-        "  -q, --quiet           say nothing but the errors\n";
+        "  -q, --quiet           say nothing but the errors\n"
+        "      --no-loop         stop once the boundaries are computed\n"
+        "\n"
+        "  The project is written as each phase is reached, so a search that finds\n"
+        "  no controller still leaves the templates and the boundaries behind.\n"
+        "  Exit: 0 every specification met, 1 one exceeded, 3 no controller, 2 error.\n";
 }
 
 //Every uncertain parameter of the plant swept at the same number of points
@@ -196,6 +202,8 @@ bool readOptions(int argc, char ** argv, Options & into)
             into.configuration = value("--config");
         } else if (argument == "-q" || argument == "--quiet") {
             into.quiet = true;
+        } else if (argument == "--no-loop") {
+            into.loop = false;
         } else if (!argument.empty() && argument[0] == '-') {
             throw qftbx::InvalidInput(argument + ": no such option");
         } else if (into.input.empty()) {
@@ -287,14 +295,37 @@ int main(int argc, char ** argv)
                       << magnitudeFrom << ", " << magnitudeTo << "] dB\n";
         }
 
-        if (!project.computeLoopShaping(options.tolerance, options.algorithm,
-                                        qftbx::Range(1e-9, 10.0), 100)) {
-            throw qftbx::InvalidInput("the loop shaping found no controller");
+        //Written here and not only at the end: what the search costs is not
+        //what the templates and the boundaries cost, and a problem whose
+        //controller nobody finds is still a problem worth having on disc
+        //with everything that was computed for it.
+        project.save(options.output);
+
+        if (!options.loop) {
+            if (!options.quiet) {
+                std::cout << "written to " << options.output << ", without a controller\n";
+            }
+            return 3;
         }
 
-        qftbx::LtiSystem * controller = project.loopShapingResult()->controller();
+        std::string failed;
+        bool solved = false;
+        try {
+            solved = project.computeLoopShaping(options.tolerance, options.algorithm,
+                                                qftbx::Range(1e-9, 10.0), 100);
+        } catch (const qftbx::Exception & refused) {
+            failed = refused.what();
+        }
+
+        qftbx::LtiSystem * controller = solved ? project.loopShapingResult()->controller() : nullptr;
+
         if (controller == nullptr) {
-            throw qftbx::InvalidInput("the loop shaping returned no controller");
+            if (!options.quiet) {
+                std::cout << "no controller: " << (failed.empty() ? "the search found none" : failed)
+                          << "\n"
+                          << "written to " << options.output << ", up to the boundaries\n";
+            }
+            return 3;
         }
 
         const qftbx::SpecificationCheck check = qftbx::checkAgainstSpecifications(
