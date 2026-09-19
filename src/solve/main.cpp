@@ -16,6 +16,7 @@
 // at, and the Nichols grid the boundaries are computed over. The epsilon of
 // each contour it works out itself.
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <iostream>
@@ -39,7 +40,10 @@ struct Options {
     std::string configuration;
     qftbx::LoopShapingAlgorithm algorithm = qftbx::nt;
     double tolerance = 0.5;
-    int points = 0;          //0: whatever the settings say
+    int points = 0;          //0: derived from the cloud asked for
+    int cloud = 625;         //points per template, over however many parameters
+    std::string phase;       //"min,max,points"; empty: whatever the settings say
+    std::string magnitude;
     bool quiet = false;
 };
 
@@ -56,7 +60,11 @@ void usage()
     std::cout <<
         "(default: nt)\n"
         "  -e, --epsilon X       the tolerance that search stops at (default: 0.5)\n"
-        "  -p, --points N        points per uncertain parameter (default: the settings')\n"
+        "  -n, --cloud N         points per template, over however many uncertain\n"
+        "                        parameters there are (default: 625)\n"
+        "  -p, --points N        points per uncertain parameter, instead of --cloud\n"
+        "  -P, --phase A,B,N     the phase axis of the Nichols grid, in degrees\n"
+        "  -M, --magnitude A,B,N the magnitude axis, in decibels\n"
         "  -c, --config FILE     the settings file to read instead of the usual ones\n"
         "  -q, --quiet           say nothing but the errors\n";
 }
@@ -65,6 +73,39 @@ void usage()
 //over its own range, which is what the templates dialog offers before
 //anybody touches it. A name that appears twice - the same 'a' in the
 //numerator and the denominator - is one grid, as the engine reads it.
+//How many points each parameter is swept at for the cloud to come out at
+//about the size asked for. What a sweep costs is the PRODUCT over the
+//uncertain parameters, so the same count per parameter is 625 points on a
+//plant with two and nine million on a plant with five - which is not a
+//slower answer, it is no answer at all.
+int pointsForCloud(int cloud, std::size_t parameters)
+{
+    if (parameters == 0) {
+        return 1;
+    }
+
+    const double each = std::pow(double(cloud), 1.0 / double(parameters));
+    return std::max(2, int(std::lround(each)));
+}
+
+std::size_t uncertainCount(qftbx::LtiSystem & plant)
+{
+    std::vector<std::string> names;
+    const auto count = [&names](const qftbx::Parameter & parameter) {
+        if (parameter.isUncertain()
+                && std::find(names.begin(), names.end(), parameter.name()) == names.end()) {
+            names.push_back(parameter.name());
+        }
+    };
+
+    for (const qftbx::Parameter & parameter : plant.numerator()) count(parameter);
+    for (const qftbx::Parameter & parameter : plant.denominator()) count(parameter);
+    count(plant.gain());
+    count(plant.delay());
+
+    return names.size();
+}
+
 qftbx::ParameterGrids gridsOf(qftbx::LtiSystem & plant, int points)
 {
     qftbx::ParameterGrids grids;
@@ -90,6 +131,32 @@ qftbx::ParameterGrids gridsOf(qftbx::LtiSystem & plant, int points)
     }
 
     return grids;
+}
+
+//"min,max,points", or what the settings say when nothing was given. An axis
+//is a choice per problem: a plant that needs a hundred decibels of gain is
+//not designed on a grid that stops at sixty, and the search has nothing to
+//read where the grid does not reach.
+void axisFrom(const std::string & text, const char * what,
+              double & from, double & to, std::int32_t & points)
+{
+    if (text.empty()) {
+        return;
+    }
+
+    const std::string::size_type first = text.find(',');
+    const std::string::size_type second = text.find(',', first + 1);
+    if (first == std::string::npos || second == std::string::npos) {
+        throw qftbx::InvalidInput(std::string(what) + " takes min,max,points: '" + text + "'");
+    }
+
+    from = std::stod(text.substr(0, first));
+    to = std::stod(text.substr(first + 1, second - first - 1));
+    points = std::stoi(text.substr(second + 1));
+
+    if (points < 2 || !(to > from)) {
+        throw qftbx::InvalidInput(std::string(what) + " needs max above min and two points or more");
+    }
 }
 
 bool readOptions(int argc, char ** argv, Options & into)
@@ -119,6 +186,12 @@ bool readOptions(int argc, char ** argv, Options & into)
             into.tolerance = std::stod(value("--epsilon"));
         } else if (argument == "-p" || argument == "--points") {
             into.points = std::stoi(value("--points"));
+        } else if (argument == "-n" || argument == "--cloud") {
+            into.cloud = std::stoi(value("--cloud"));
+        } else if (argument == "-P" || argument == "--phase") {
+            into.phase = value("--phase");
+        } else if (argument == "-M" || argument == "--magnitude") {
+            into.magnitude = value("--magnitude");
         } else if (argument == "-c" || argument == "--config") {
             into.configuration = value("--config");
         } else if (argument == "-q" || argument == "--quiet") {
@@ -156,9 +229,6 @@ int main(int argc, char ** argv)
         const qftbx::Settings settings = options.configuration.empty()
                                              ? qftbx::loadSettings()
                                              : qftbx::readSettings(options.configuration);
-        const int points = options.points > 0 ? options.points
-                                              : int(settings.defaults.templatePointCount);
-
         qftbx::openRecord(settings);
 
         qftbx::ProjectController project;
@@ -168,6 +238,11 @@ int main(int argc, char ** argv)
         if (project.plant() == nullptr || project.omega() == nullptr) {
             throw qftbx::InvalidInput(options.input + ": the project has no plant or no frequencies");
         }
+
+        const std::size_t parameters = uncertainCount(*project.plant());
+        const int points = options.points > 0
+                               ? options.points
+                               : pointsForCloud(options.cloud, parameters);
 
         const qftbx::ParameterGrids grids = gridsOf(*project.plant(), points);
 
@@ -186,21 +261,30 @@ int main(int argc, char ** argv)
             for (const qftbx::ComplexCloud & one : project.templates()) cloud += one.size();
             for (const qftbx::ComplexCloud & one : project.contour()) contour += one.size();
             std::cout << "templates: " << project.templates().size() << " frequencies, "
-                      << cloud << " points, contours " << contour << "\n";
+                      << parameters << " uncertain parameters at " << points
+                      << " points each, " << cloud << " points, contours " << contour << "\n";
         }
 
-        const qftbx::Range phase(settings.defaults.phaseStart, settings.defaults.phaseEnd);
-        const qftbx::Range magnitude(settings.defaults.magnitudeStart, settings.defaults.magnitudeEnd);
+        double phaseFrom = settings.defaults.phaseStart;
+        double phaseTo = settings.defaults.phaseEnd;
+        std::int32_t phasePoints = settings.defaults.phasePoints;
+        axisFrom(options.phase, "--phase", phaseFrom, phaseTo, phasePoints);
 
-        if (!project.computeBoundaries(phase, settings.defaults.phasePoints,
-                                       magnitude, settings.defaults.magnitudePoints,
+        double magnitudeFrom = settings.defaults.magnitudeStart;
+        double magnitudeTo = settings.defaults.magnitudeEnd;
+        std::int32_t magnitudePoints = settings.defaults.magnitudePoints;
+        axisFrom(options.magnitude, "--magnitude", magnitudeFrom, magnitudeTo, magnitudePoints);
+
+        if (!project.computeBoundaries(qftbx::Range(phaseFrom, phaseTo), phasePoints,
+                                       qftbx::Range(magnitudeFrom, magnitudeTo), magnitudePoints,
                                        -1.0, true, false)) {
             throw qftbx::InvalidInput("the boundaries came out empty");
         }
 
         if (!options.quiet) {
-            std::cout << "boundaries: over " << settings.defaults.phasePoints << " x "
-                      << settings.defaults.magnitudePoints << " points of the Nichols plane\n";
+            std::cout << "boundaries: " << phasePoints << " x " << magnitudePoints
+                      << " over phase [" << phaseFrom << ", " << phaseTo << "] and magnitude ["
+                      << magnitudeFrom << ", " << magnitudeTo << "] dB\n";
         }
 
         if (!project.computeLoopShaping(options.tolerance, options.algorithm,
