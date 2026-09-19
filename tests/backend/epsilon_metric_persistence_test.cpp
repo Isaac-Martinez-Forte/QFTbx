@@ -96,6 +96,20 @@ TEST(EpsilonMetric, AnUnknownMetricOrVersionIsRefused)
         "<results><templates><full size=\"1\"><re>1 </re><im>0 </im></full>"
         "</templates></results></QFT>";
     EXPECT_THROW(reader.load(write("weight.qft", badWeight)), qftbx::ParseError);
+
+    //A file of an older format is refused, and the refusal says WHICH
+    //version it is and which one this build reads. The two numbers used to
+    //come out as the placeholders they were written with, because the
+    //version was handed to the argument that takes the line.
+    try {
+        reader.load(write("old.qft", "<?xml version=\"1.0\"?><QFT version=\"2\"></QFT>"));
+        ADD_FAILURE() << "a version-2 file was read";
+    } catch (const qftbx::ParseError & refused) {
+        const std::string said = refused.what();
+        EXPECT_NE(said.find("found 2"), std::string::npos) << said;
+        EXPECT_NE(said.find("version 4"), std::string::npos) << said;
+        EXPECT_EQ(said.find('%'), std::string::npos) << "the message keeps a placeholder: " << said;
+    }
 }
 
 TEST(EpsilonMetric, AFileThatKeptItsEpsilonAmongTheResultsIsStillRead)

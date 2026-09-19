@@ -582,8 +582,10 @@ ProjectReader::Loaded ProjectReader::load(const std::string & filePath)
     if (version != kVersion) {
         throw ParseError(version == 0
                          ? QFTBX_TR("Core", "unsupported .qft version (no version attribute; this build reads version %1)")
-                         : QFTBX_TR("Core", "unsupported .qft version (found %1, this build reads version %2)"),
-                         version, filePath);
+                               .arg(kVersion)
+                         : QFTBX_TR("Core", "unsupported .qft version (found %1, this build reads version %2)")
+                               .arg(version).arg(kVersion),
+                         1, filePath);
     }
 
     ProjectFileParser parser(filePath, raw, kV4);
