@@ -34,6 +34,8 @@ namespace qftbx {
  * templates by value is a copy of every cloud, to write it once.
  */
 struct ProjectContent {
+    std::string name;
+    std::string description;
     LtiSystem * plant = nullptr;
     const qftbx::SpecificationRecords * specifications = nullptr;
     const Omega * omega = nullptr;

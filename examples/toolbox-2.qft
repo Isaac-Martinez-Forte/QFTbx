@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<QFT version="4">
+<QFT version="4" name="QFT Toolbox, example 2" description="Example 2 of the MATLAB QFT Toolbox manual: the DC motor k a/(s(s+a)) with k and a in [1,10], a stability margin of 1.2 and a tracking corridor. The problem most of the others descend from.">
     <inputs>
         <plant name="QFT Toolbox example 2: k a/(s(s+a))">
             <type id="0">

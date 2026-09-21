@@ -6,6 +6,19 @@ target_include_directories(qftbx_gui PUBLIC "${CMAKE_SOURCE_DIR}")
 target_link_libraries(qftbx_gui PUBLIC qftbx_app Qt6::Widgets Qt6::PrintSupport Qt6::Svg qcustomplot::qcustomplot)
 qftbx_warnings(qftbx_gui)
 
+# Where the shipped examples are, as the interface resolves them at run time:
+# the path from the executable for an installed program, and the tree itself
+# for a build, which is what a developer and the smoke suite run against. The
+# environment variable QFTBX_EXAMPLES_DIR overrides both.
+target_compile_definitions(qftbx_gui PRIVATE
+  QFTBX_EXAMPLES_RELATIVE_DIR="${QFTBX_EXAMPLES_RELATIVE_DIR}"
+  QFTBX_EXAMPLES_SOURCE_DIR="${CMAKE_SOURCE_DIR}/examples"
+)
+
+# The generated version header, which the About box reads.
+add_dependencies(qftbx_gui qftbx_version_header)
+target_include_directories(qftbx_gui PRIVATE "${CMAKE_BINARY_DIR}/generated")
+
 # The figures of the families a plant or a controller can be written in, and
 # the icon of the application, as resources OF THIS TARGET. The file-based
 # qt6_add_resources() compiles a .qrc into an object file and nothing else:
@@ -72,6 +85,12 @@ get_target_property(qftbx_core_sources qftbx_core SOURCES)
 get_target_property(qftbx_persistence_sources qftbx_persistence SOURCES)
 get_target_property(qftbx_app_sources qftbx_app SOURCES)
 get_target_property(qftbx_gui_sources qftbx_gui SOURCES)
+# The benchmark planner is a tool for measuring the algorithms, not part of
+# the program a user is given, and it is only in this target when the build
+# asks for it. Leaving it out keeps the translation the same whatever the
+# build was configured with, instead of filling it with strings that a normal
+# build never shows.
+list(FILTER qftbx_gui_sources EXCLUDE REGEX "/bench/")
 qt_add_lupdate(qftbx_gui
   TS_FILES ${qftbx_translation_sources}
   SOURCES ${qftbx_gui_sources} ${qftbx_core_sources} ${qftbx_persistence_sources} ${qftbx_app_sources}

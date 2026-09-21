@@ -73,6 +73,10 @@ public:
 
     /// Inspection: the reader KEEPS ownership, so a caller that only looks
     /// at the parsed contents needs no cleanup of its own.
+    /// The name and the free description the project carries, empty when
+    /// the file gives none.
+    const std::string & name() const { return m_name; }
+    const std::string & description() const { return m_description; }
     LtiSystem * plant() const { return m_plant.get(); }
     const qftbx::SpecificationRecords * specifications() const
     {
@@ -139,6 +143,8 @@ private:
     CloudSet m_templates;
     CloudSet m_contour;
     std::optional<std::vector <double>> m_epsilon;
+    std::string m_name;
+    std::string m_description;
     EpsilonMetric m_epsilonMetric;
     std::optional<BoundaryData> m_boundaries;
     std::unique_ptr<LtiSystem> m_controller;

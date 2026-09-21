@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<QFT version="4">
+<QFT version="4" name="DC motor, Tharewal 3.1" description="Example 3.1 of Tharewal 2005, also example 5.1 of Nataraj and Tharewal (ASME 2007): the DC motor k/(s(s+a)) with a stability margin and a tracking corridor, solved with one zero and two poles as the paper poses it." doi="10.1115/1.2397147">
     <inputs>
         <plant name="DC motor k/(s(s+a)) (Tharewal 3.1)">
             <type id="0">

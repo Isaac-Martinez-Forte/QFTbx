@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=QFTbx
+GenericName=QFT toolbox
+Comment=Quantitative Feedback Theory toolbox (robust control)
+Exec=QFTbx
+Icon=qftbx
+Terminal=false
+Categories=Science;Engineering;
+StartupNotify=true

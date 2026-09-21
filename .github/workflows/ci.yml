@@ -23,10 +23,10 @@ jobs:
           cache: true
 
       - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DUSE_NATIVE_ARCH=OFF
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DUSE_NATIVE_ARCH=OFF -DQFTBX_BUILD_TESTS=ON
 
       - name: Build
         run: cmake --build build -j"$(nproc)"
 
       - name: Test
-        run: ctest --test-dir build --output-on-failure -j"$(nproc)"
+        run: ctest --test-dir build --output-on-failure --no-tests=error -j"$(nproc)"

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<QFT version="4">
+<QFT version="4" name="DC motor, Horowitz and Sidi 1972" description="Bryant and Halikias 1995 over Horowitz and Sidi 1972: the DC motor k a/(s(s+a)) over 23 logarithmic frequencies, with the stability margin of Tharewal 3.3 added, since the paper states none." doi="10.1080/00207177208932261">
     <inputs>
         <plant name="DC motor k a/(s(s+a)), Horowitz-Sidi 1972 corridor (Bryant-Halikias 1995)">
             <type id="0">

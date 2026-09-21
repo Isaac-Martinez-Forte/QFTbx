@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<QFT version="4">
+<QFT version="4" name="Desalination plant, Tharewal 4.4" description="Example 4.4 of Tharewal 2005: a multi-stage flash desalination plant with four uncertain parameters. The published controller has an integrator, which this search cannot take, so the file carries one zero and two poles.">
     <inputs>
         <plant name="MSF desalination K(1+T1 s)/((1+T2 s)(1+T3 s)) (Tharewal 4.4)">
             <type id="0">

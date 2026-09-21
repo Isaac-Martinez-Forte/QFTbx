@@ -76,7 +76,7 @@ the build tree.
 | `USE_NATIVE_ARCH` | `ON` | `-march=native`: the numeric code tuned for the machine that builds it. Turn off for a binary that must run on other machines, and for tools that cannot run the wide vector instructions (Valgrind). With AVX-512 the compiler is also asked to keep its vectors at 256 bits, which measured faster here |
 | `USE_CLANG` | `OFF` | Compile with Clang when it is installed. The compiler is chosen before the project is configured and cannot change afterwards, so this takes effect in a fresh build directory; an explicit `-DCMAKE_CXX_COMPILER` always wins |
 | `USE_CUDA` | `OFF` | The CUDA kernels of the templates and boundaries, when a CUDA compiler is found. `CMAKE_CUDA_ARCHITECTURES` names the cards (default 61, 75 and 86) |
-| `QFTBX_BUILD_TESTS` | `ON` | Build the two test binaries and register them with CTest |
+| `QFTBX_BUILD_TESTS` | `OFF` | Build the two test binaries and register them with CTest. Off so a build for use needs no network to fetch GoogleTest; the program is the same either way |
 | `QFTBX_BUILD_BENCHMARK` | `OFF` | Build the benchmark tool `qftbx-bench`, its tests and the benchmark planner of the interface. For measuring the algorithms, not for using them; see [BENCHMARKING.md](BENCHMARKING.md) |
 | `QFTBX_INTERVAL_BACKEND` | `kv` | The interval arithmetic library: `kv` or `cxsc`. See [INTERVAL_ARITHMETIC.md](INTERVAL_ARITHMETIC.md) |
 | `QFTBX_SANITIZERS` | empty | Comma-separated sanitizers for a development build, e.g. `address,undefined`; needs the corresponding runtimes |

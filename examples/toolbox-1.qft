@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<QFT version="4">
+<QFT version="4" name="QFT Toolbox, example 1" description="Example 1 of the MATLAB QFT Toolbox manual (Borghesani, Chait and Yaniv): k/((s+a)(s+b)) with a stability margin and output and input disturbance rejection. The one problem here with disturbance specifications.">
     <inputs>
         <plant name="QFT Toolbox example 1: k/((s+a)(s+b))">
             <type id="0">

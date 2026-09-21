@@ -2,10 +2,22 @@
 
 # pugixml: the .qft reader and writer. Fetched, pinned by tag.
 include(FetchContent)
-FetchContent_Declare(pugixml
-  GIT_REPOSITORY https://github.com/zeux/pugixml.git
-  GIT_TAG        v1.14
-)
+# EXCLUDE_FROM_ALL keeps pugixml's own install rules out of ours: it ships a
+# static library, its headers, a CMake package and a pkg-config file, none of
+# which belongs in a package of the application. The keyword arrived in CMake
+# 3.28, and where it is not available the files are installed and harmless.
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.28)
+  FetchContent_Declare(pugixml
+    GIT_REPOSITORY https://github.com/zeux/pugixml.git
+    GIT_TAG        v1.16
+    EXCLUDE_FROM_ALL
+  )
+else()
+  FetchContent_Declare(pugixml
+    GIT_REPOSITORY https://github.com/zeux/pugixml.git
+    GIT_TAG        v1.16
+  )
+endif()
 FetchContent_MakeAvailable(pugixml)
 
 # QCustomPlot draws the plots of the GUI. Vendored, built on demand.

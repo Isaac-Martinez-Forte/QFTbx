@@ -134,6 +134,8 @@ design</string>
     <addaction name="separator"/>
     <addaction name="actionSave"/>
     <addaction name="actionSaveAs"/>
+    <addaction name="separator"/>
+    <addaction name="actionQuit"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -141,18 +143,8 @@ design</string>
     </property>
     <addaction name="separator"/>
    </widget>
-   <widget class="QMenu" name="menuDiagrams">
-    <property name="title">
-     <string>Dia&amp;grams</string>
-    </property>
-    <addaction name="bodeAction"/>
-    <addaction name="actionTemplates"/>
-    <addaction name="actionBoundaries"/>
-    <addaction name="actionLoop"/>
-   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuView"/>
-   <addaction name="menuDiagrams"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionNew">
@@ -175,42 +167,9 @@ design</string>
     <string>Save &amp;as...</string>
    </property>
   </action>
-  <action name="bodeAction">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
+  <action name="actionQuit">
    <property name="text">
-    <string>&amp;Bode diagram</string>
-   </property>
-  </action>
-  <action name="actionNicholsLoop">
-   <property name="text">
-    <string>Nichols loop &amp;diagram</string>
-   </property>
-  </action>
-  <action name="actionNyquistLoop">
-   <property name="text">
-    <string>Nyquist &amp;loop diagram</string>
-   </property>
-  </action>
-  <action name="actionAllLoopDiagrams">
-   <property name="text">
-    <string>All &amp;diagrams</string>
-   </property>
-  </action>
-  <action name="actionTemplates">
-   <property name="text">
-    <string>&amp;Templates</string>
-   </property>
-  </action>
-  <action name="actionBoundaries">
-   <property name="text">
-    <string>&amp;Boundaries</string>
-   </property>
-  </action>
-  <action name="actionLoop">
-   <property name="text">
-    <string>Loop</string>
+    <string>&amp;Quit</string>
    </property>
   </action>
  </widget>

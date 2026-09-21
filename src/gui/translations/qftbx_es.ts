@@ -35,6 +35,14 @@
         <source>Free software under the GNU General Public License, version 3. Built with Qt, QCustomPlot, kv and pugixml.</source>
         <translation>Software libre bajo la GNU General Public License, versión 3. Construido con Qt, QCustomPlot, kv y pugixml.</translation>
     </message>
+    <message>
+        <source>Version %1</source>
+        <translation>Versión %1</translation>
+    </message>
+    <message>
+        <source>Version %1, build %2</source>
+        <translation>Versión %1, revisión %2</translation>
+    </message>
 </context>
 <context>
     <name>BodeViewer</name>
@@ -777,25 +785,6 @@
     </message>
 </context>
 <context>
-    <name>LoopBoundariesViewer</name>
-    <message>
-        <source>Dialog</source>
-        <translation>Diálogo</translation>
-    </message>
-    <message>
-        <source>Options</source>
-        <translation>Opciones</translation>
-    </message>
-    <message>
-        <source>Save</source>
-        <translation>Guardar</translation>
-    </message>
-    <message>
-        <source>Writes the diagram to an image file.</source>
-        <translation>Guarda el diagrama en un fichero de imagen.</translation>
-    </message>
-</context>
-<context>
     <name>LoopShapingForm</name>
     <message>
         <source>Choose the algorithm:</source>
@@ -1034,10 +1023,6 @@ del controlador</translation>
         <translation>&amp;Ver</translation>
     </message>
     <message>
-        <source>Dia&amp;grams</source>
-        <translation>Dia&amp;gramas</translation>
-    </message>
-    <message>
         <source>&amp;New</source>
         <translation>&amp;Nuevo</translation>
     </message>
@@ -1052,34 +1037,6 @@ del controlador</translation>
     <message>
         <source>Save &amp;as...</source>
         <translation>Guardar &amp;como...</translation>
-    </message>
-    <message>
-        <source>&amp;Bode diagram</source>
-        <translation>Diagrama de &amp;Bode</translation>
-    </message>
-    <message>
-        <source>Nichols loop &amp;diagram</source>
-        <translation>&amp;Diagrama del lazo en Nichols</translation>
-    </message>
-    <message>
-        <source>Nyquist &amp;loop diagram</source>
-        <translation>Diagrama del &amp;lazo en Nyquist</translation>
-    </message>
-    <message>
-        <source>All &amp;diagrams</source>
-        <translation>&amp;Todos los diagramas</translation>
-    </message>
-    <message>
-        <source>&amp;Templates</source>
-        <translation>&amp;Templates</translation>
-    </message>
-    <message>
-        <source>&amp;Boundaries</source>
-        <translation>&amp;Boundaries</translation>
-    </message>
-    <message>
-        <source>Loop</source>
-        <translation>Lazo</translation>
     </message>
     <message>
         <source>The plant and its uncertainty. Everything else follows from it.</source>
@@ -1112,6 +1069,10 @@ del controlador</translation>
     <message>
         <source>How far down the seven phases the project has got.</source>
         <translation>Por dónde va el proyecto en las siete fases.</translation>
+    </message>
+    <message>
+        <source>&amp;Quit</source>
+        <translation>&amp;Salir</translation>
     </message>
 </context>
 <context>
@@ -1863,6 +1824,25 @@ del controlador</translation>
     </message>
 </context>
 <context>
+    <name>qftbx::ExamplesDialog</name>
+    <message>
+        <source>Examples</source>
+        <translation>Ejemplos</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>Abrir</translation>
+    </message>
+    <message>
+        <source>No examples were found. The installation carries them in a folder of its own, which this build resolves to:</source>
+        <translation>No se han encontrado ejemplos. La instalación los trae en una carpeta propia, que esta compilación resuelve a:</translation>
+    </message>
+    <message>
+        <source>Source: &lt;a href=&quot;%1&quot;&gt;%2&lt;/a&gt;</source>
+        <translation>Fuente: &lt;a href=&quot;%1&quot;&gt;%2&lt;/a&gt;</translation>
+    </message>
+</context>
+<context>
     <name>qftbx::FormulaView</name>
     <message>
         <source>Copy as LaTeX</source>
@@ -1925,33 +1905,6 @@ del controlador</translation>
     <message>
         <source>Shows or hides what belongs to this frequency, in rad/s.</source>
         <translation>Enseña u oculta lo que pertenece a esta frecuencia, en rad/s.</translation>
-    </message>
-</context>
-<context>
-    <name>qftbx::LoopBoundariesViewer</name>
-    <message>
-        <source>Boundary union</source>
-        <translation>Unión de boundaries</translation>
-    </message>
-    <message>
-        <source>Nichols</source>
-        <translation>Nichols</translation>
-    </message>
-    <message>
-        <source>Nyquist</source>
-        <translation>Nyquist</translation>
-    </message>
-    <message>
-        <source>Boundary plot</source>
-        <translation>Gráfica de boundaries</translation>
-    </message>
-    <message>
-        <source>phase (degrees)</source>
-        <translation>fase (grados)</translation>
-    </message>
-    <message>
-        <source>magnitude (dB)</source>
-        <translation>magnitud (dB)</translation>
     </message>
 </context>
 <context>
@@ -2109,18 +2062,6 @@ del controlador</translation>
         <translation>Abrir proyecto</translation>
     </message>
     <message>
-        <source>To show the Bode diagram, first enter a valid plant and a set of design frequencies</source>
-        <translation>Para mostrar el diagrama de Bode, introduzca antes una planta válida y un conjunto de frecuencias de diseño</translation>
-    </message>
-    <message>
-        <source>QFT</source>
-        <translation>QFT</translation>
-    </message>
-    <message>
-        <source>To show the loop diagram, first compute the boundaries and enter the controller structure.</source>
-        <translation>Para mostrar el diagrama del lazo, calcule antes los boundaries e introduzca la estructura del controlador.</translation>
-    </message>
-    <message>
         <source>Language</source>
         <translation>Idioma</translation>
     </message>
@@ -2211,6 +2152,18 @@ del controlador</translation>
     <message>
         <source>A computation is already running.</source>
         <translation>Ya hay un cálculo en marcha.</translation>
+    </message>
+    <message>
+        <source>&amp;Examples</source>
+        <translation>&amp;Ejemplos</translation>
+    </message>
+    <message>
+        <source>&amp;All the examples...</source>
+        <translation>&amp;Ver todos los ejemplos...</translation>
+    </message>
+    <message>
+        <source>That folder holds the examples the program comes with, which it does not write to. Save the project somewhere else.</source>
+        <translation>Esa carpeta contiene los ejemplos que vienen con el programa, y en ella no se escribe. Guarda el proyecto en otro sitio.</translation>
     </message>
 </context>
 <context>

@@ -87,7 +87,6 @@
 #include "src/gui/boundaries/boundary_viewer.h"
 #include "src/gui/boundaries/boundary_union_viewer.h"
 #include "src/gui/loopshaping/loop_shaping_viewer.h"
-#include "src/gui/loopshaping/loop_boundaries_viewer.h"
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/loopshaping/loop_shaping_result.h"
 #include "src/gui/boundaries/boundary_grid_form.h"
@@ -1079,7 +1078,6 @@ TEST_F(GuiSmoke, EveryViewerGrowsWithItsWindow)
     expectThePlotGrowsWithTheWindow<TemplateViewer>("template viewer");
     expectThePlotGrowsWithTheWindow<BoundaryViewer>("boundary viewer");
     expectThePlotGrowsWithTheWindow<BoundaryUnionViewer>("boundary union viewer");
-    expectThePlotGrowsWithTheWindow<LoopBoundariesViewer>("loop boundaries viewer");
     expectThePlotGrowsWithTheWindow<LoopShapingViewer>("loop shaping viewer");
 
     BodeViewer bode;
@@ -1225,38 +1223,6 @@ TEST_F(GuiSmoke, LoopShapingViewerDrawsTheShapedLoop)
     std::vector<double> omega{1.0, 10.0};
 
     viewer.setData(traces, &omega, &result, &plant, false);
-    viewer.showDiagram();
-
-    QCustomPlot * plot = child<QCustomPlot>(&viewer, "plot");
-    ASSERT_NE(plot, nullptr);
-    EXPECT_GT(plot->plottableCount(), 0) << "nothing was drawn";
-}
-
-TEST_F(GuiSmoke, LoopBoundariesViewerDrawsBothDiagrams)
-{
-    LoopBoundariesViewer viewer;
-
-    std::vector<Parameter> numerator{Parameter(1.0)};
-    std::vector<Parameter> denominator{Parameter(1.0), Parameter(1.0)};
-    PolynomialForm plant("loop", numerator, denominator,
-                         Parameter(1.0), Parameter(0.0));
-    std::vector<Parameter> one{Parameter(1.0)};
-    PolynomialForm controller("k", one, one,
-                              Parameter(1.0), Parameter(0.0));
-
-    const BoundaryData nichols = oneBoundary();
-    std::vector<double> omega{1.0};
-
-    qftbx::NyquistTraces nyquist;
-    for (const qftbx::Trace & trace : nichols.unionBoundaries()) {
-        qftbx::NyquistTrace converted;
-        for (const qftbx::NicholsPoint & point : trace) {
-            converted.push_back(qftbx::toNyquist(point));
-        }
-        nyquist.push_back(std::move(converted));
-    }
-
-    viewer.setData(&nichols, nyquist, &omega, &plant, &controller, true, false);
     viewer.showDiagram();
 
     QCustomPlot * plot = child<QCustomPlot>(&viewer, "plot");
@@ -2664,9 +2630,6 @@ TEST_F(GuiSmoke, EveryCanvasIsSetUpBeforeItHasData)
 
     BoundaryUnionViewer unionViewer;
     expectReady(unionViewer.findChild<QCustomPlot *>("plot"), "boundary union viewer");
-
-    LoopBoundariesViewer loopBoundaries;
-    expectReady(loopBoundaries.findChild<QCustomPlot *>("plot"), "loop boundaries viewer");
 
     LoopShapingViewer loop;
     expectReady(loop.findChild<QCustomPlot *>("plot"), "loop shaping viewer");
