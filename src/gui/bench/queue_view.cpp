@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief Fills the queue table from the runner's events.
+ *
+ * Rows are addressed by the case's own index. A solved case shows its wall
+ * time, its gain and its peak memory; any other outcome puts the record's
+ * message in the time column. The log keeps the last few thousand lines.
+ */
+
 #include "src/gui/bench/queue_view.h"
 
 #include <QHeaderView>
@@ -22,7 +31,7 @@ QTableWidgetItem * readOnly(const QString & text)
     return item;
 }
 
-} // namespace
+}
 
 QueueView::QueueView(QWidget * parent) : QWidget(parent)
 {
@@ -131,4 +140,4 @@ void QueueView::log(const QString & line)
     m_log->appendPlainText(QTime::currentTime().toString("HH:mm:ss") + "  " + line);
 }
 
-} // namespace qftbx
+}

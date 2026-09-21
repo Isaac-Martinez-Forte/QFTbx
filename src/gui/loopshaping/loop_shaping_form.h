@@ -1,3 +1,15 @@
+/**
+ * @file
+ * @brief The step that picks the loop-shaping algorithm and its accuracy.
+ *
+ * Declares the panel for the algorithm, its epsilon, the conservative
+ * reading of the boundary columns, the starting point of the local search
+ * where the algorithm has one, and the range and point count of the plot.
+ * The range fields are prefilled from the settings and ceilings, also from
+ * the settings, only ever refuse input. Reopening a design shows the
+ * algorithm, epsilon and range that produced it.
+ */
+
 #ifndef QFTBX_LOOP_SHAPING_FORM_H
 #define QFTBX_LOOP_SHAPING_FORM_H
 
@@ -18,7 +30,6 @@ class LoopShapingForm;
 }
 
 namespace qftbx {
-
 
 /**
  * @brief Step 7 of the design: picks one of the loop-shaping
@@ -90,7 +101,6 @@ private slots:
     /// same quantity for every algorithm.
     void updateEpsilonLabel();
 
-
     void on_okButton_clicked();
 
     void on_linspaceRadio_clicked();
@@ -107,7 +117,6 @@ private slots:
 
 private:
     std::unique_ptr<Ui::LoopShapingForm> ui;
-
 
     qreal epsilonEdit = 0.0;
 
@@ -128,6 +137,6 @@ private:
 
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_LOOP_SHAPING_FORM_H
+#endif

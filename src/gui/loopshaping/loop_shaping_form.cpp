@@ -1,3 +1,19 @@
+/**
+ * @file
+ * @brief Reads and validates the loop-shaping inputs.
+ *
+ * One helper evaluates a field as an expression and accepts it only when
+ * finite and within the caller's bounds, since an expression that parses
+ * can still be useless and a NaN fails the range test. The complaint is
+ * the caller's words, on the field and in a message box, because it stops
+ * a computation just asked for. The epsilon label says which quantity is
+ * meant: for MR the width of the controller's parameter box (Rambabu and
+ * Nataraj), for the others the diameter of the Nichols box. The sweep is
+ * logarithmic unless chosen otherwise, both range modes prefill the same
+ * configured range in rad/s, and algorithms run only from the benchmark
+ * have no radio.
+ */
+
 #include "src/gui/loopshaping/loop_shaping_form.h"
 #include "src/gui/common/expression_field.h"
 #include "src/gui/common/field_mark.h"
@@ -12,34 +28,16 @@
 #include <cmath>
 #include <limits>
 
-
 namespace qftbx {
 
 namespace {
 
-//Evaluating one field, checking the result and painting it green or red was
-//written out once per field, which is also why the check was missing from
-//every one of them: an expression that PARSES can still be useless. The
-//point count went straight into the std::int32_t that linspace takes, so a
-//"10^30" was undefined behaviour, and an infinity or a NaN travelled into
-//the plot to surface later as an empty diagram.
-//The bounds are the caller's: the start and end frequencies are in rad/s
-//in both modes (the logarithmic one takes their logarithms itself), so
-//they only have to be finite here and positive when the sweep is
-//logarithmic, which the caller checks.
 bool readField(QLineEdit * field, const QString & complaint,
                double lowest, double highest, double & value)
 {
-    //An expression that does not parse and one that evaluates to nonsense
-    //are the same answer to the caller: a NaN fails the range test below.
     const double parsed = evaluateNumber(field->text()).value_or(std::numeric_limits<double>::quiet_NaN());
 
     if (!std::isfinite(parsed) || parsed < lowest || parsed > highest) {
-        //The complaint is the caller's words, not a range printed from the
-        //bounds: a lower bound of "the smallest positive double" reads as
-        //4.94066e-324, which tells a user nothing. It goes on the field
-        //that is wrong, and in a message box because this one stops a
-        //computation the user has just asked for.
         qftbx::markWrong(field, true, complaint);
         qftbx::errorMessage(complaint, QObject::tr("Loop-shaping input"));
         return false;
@@ -58,25 +56,12 @@ LoopShapingForm::LoopShapingForm(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    //The sweep the loop is drawn over: logarithmic, which is what the
-    //program has always done and what nothing on screen used to say - the
-    //two buttons came up unchecked, and the answer was read off the one
-    //that was not checked.
     ui->logspaceRadio->setChecked(true);
 
     setWindowTitle(tr("Loop-shaping input"));
 
-    //Prefilled from the settings; the window applies them right after
-    //construction, and these are what stands until it does.
     applyDefaults(qftbx::Settings().defaults);
 
-    //The epsilon is one field with one label that read only "Epsilon:", and
-    //it is not one quantity: every algorithm follows the stopping criterion
-    //of ITS paper, which is correct, but for NT/NK/MC1/MC2 that criterion is
-    //the diameter of the NICHOLS box and for MR it is the width of the
-    //CONTROLLER's parameter box. With the same figure entered, the Nichols
-    //reading is four decades tighter on a plant with |P| = 1e4, and nothing
-    //on screen said which one was being asked for.
     for (QRadioButton * radio : {ui->ntRadio, ui->nkRadio, ui->mc1Radio,
                                  ui->mc2Radio, ui->mrRadio}) {
         connect(radio, &QRadioButton::toggled,
@@ -92,8 +77,6 @@ LoopShapingForm::~LoopShapingForm()
 
 void LoopShapingForm::updateEpsilonLabel()
 {
-    //MR bisects the controller's parameter box (Rambabu & Nataraj, FDA-10);
-    //the other four bisect the Nichols box.
     ui->epsilonLabel->setText(ui->mrRadio->isChecked()
                                   ? tr("Epsilon (controller parameter box width):")
                                   : tr("Epsilon (Nichols box diameter):"));
@@ -142,13 +125,10 @@ void LoopShapingForm::on_okButton_clicked()
         alg = qftbx::nt;
     }
 
-    //Read directly, not latched, so the choice can be changed once
-    //checked.
     linLogSpace = ui->linspaceRadio->isChecked();
 
     markAccepted();
 }
-
 
 qreal LoopShapingForm::epsilonValue(){
     return epsilonEdit;
@@ -182,10 +162,6 @@ qint32 LoopShapingForm::initialisationValue(){
     return initialisation;
 }
 
-//Both modes prefill the SAME range, which is the configured one. They used
-//to write two different hardcoded sets, differing from each other and from
-//the one on opening with no reason recorded - and either of them threw away
-//whatever the user had typed.
 void LoopShapingForm::on_linspaceRadio_clicked()
 {
     applyDefaults(m_defaults);
@@ -206,10 +182,6 @@ void LoopShapingForm::setFromProject(const qftbx::LoopShapingResult * result)
     ui->endEdit->setText(qftbx::numberText(result->range().max));
     ui->pointCountEdit->setText(qftbx::numberText(result->pointCount()));
 
-    //What produced the design, so that the form shown over a loaded project
-    //is the one that was run and not the defaults. A file written before the
-    //settings were stored says NT with a zero tolerance; the fields keep
-    //what they had rather than showing a zero nobody asked for.
     const qftbx::LoopShapingResult::Run & run = result->run();
     if (run.epsilon > 0.0) {
         ui->epsilonEdit->setText(qftbx::numberText(run.epsilon));
@@ -221,8 +193,6 @@ void LoopShapingForm::setFromProject(const qftbx::LoopShapingResult * result)
     case qftbx::mr:  ui->mrRadio->setChecked(true);  break;
     case qftbx::mc1: ui->mc1Radio->setChecked(true); break;
     case qftbx::mc2: ui->mc2Radio->setChecked(true); break;
-    //MC thesis and MC3 have no button of their own: they are run from the
-    //benchmark, not from here, and a project that carries one keeps it.
     default:         ui->ntRadio->setChecked(true);  break;
     }
 }
@@ -243,11 +213,6 @@ void LoopShapingForm::on_ntRadio_clicked()
 
 void LoopShapingForm::on_nkRadio_clicked()
 {
-    //Page 1 is page_nand, which holds NK's starting-point choice. This
-    //asked for page 2 and there are only two pages: Qt ignores an
-    //out-of-range index in silence, so the panel was never shown and the
-    //choice could not be made - the local search always started at the
-    //centre.
     ui->algorithmStack->setCurrentIndex(1);
 }
 
@@ -256,9 +221,6 @@ void LoopShapingForm::on_mrRadio_clicked()
     ui->algorithmStack->setCurrentIndex(0);
 }
 
-//MC1 and MC2 have no options of their own yet: page 0 is the empty one.
-//Without these two the panel kept whatever the previous algorithm had put
-//there.
 void LoopShapingForm::on_mc1Radio_clicked()
 {
     ui->algorithmStack->setCurrentIndex(0);
@@ -269,4 +231,4 @@ void LoopShapingForm::on_mc2Radio_clicked()
     ui->algorithmStack->setCurrentIndex(0);
 }
 
-} // namespace qftbx
+}

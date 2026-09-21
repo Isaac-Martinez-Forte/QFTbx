@@ -1,3 +1,16 @@
+/**
+ * @file
+ * @brief Reads the text a user types for a system into coefficient tables and builds the system.
+ *
+ * Shared by the plant, controller and specification forms: tokenising a
+ * coefficient line, spotting the names that make a coefficient uncertain,
+ * refusing the names the expression grammar owns, evaluating the rest, and
+ * choosing among the four system families. A read that refuses answers
+ * false or nothing and leaves its complaint for the form to put beside the
+ * field that is wrong. An empty polynomial reads as the constant 1, except
+ * for a family written as factors, where it is no factors at all.
+ */
+
 #ifndef QFTBX_GUI_SYSTEM_DESCRIPTION_READER_H
 #define QFTBX_GUI_SYSTEM_DESCRIPTION_READER_H
 
@@ -8,7 +21,6 @@
 
 #include <QString>
 #include <QStringList>
-
 
 #include "src/core/system/lti_system.h"
 #include "src/core/system/parameter.h"
@@ -22,15 +34,14 @@ namespace qftbx {
  * edits, and builds the system from them.
  *
  * The plant dialog, the controller dialog and the specifications dialog
- * each carried their own copy of this: tokenising a coefficient line,
- * spotting the names that make a coefficient uncertain, refusing the names
- * the expression parser already owns, evaluating the rest, and a four-way
- * choice of system family. One copy remains, and the dialogs keep their
- * widgets.
+ * share it: tokenising a coefficient line, spotting the names that make a
+ * coefficient uncertain, refusing the names the expression parser already
+ * owns, evaluating the rest, and a four-way choice of system family. The
+ * dialogs keep their widgets.
  *
  * A read that refuses answers false or nothing and leaves its complaint in
- * complaint(): the form decides where to put it - beside the field that is
- * wrong, these days, rather than in a message box on top of everything.
+ * complaint(): the form decides where to put it, beside the field that is
+ * wrong rather than in a message box on top of everything.
  */
 class SystemDescriptionReader
 {
@@ -102,6 +113,6 @@ private:
     QString m_complaint;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_GUI_SYSTEM_DESCRIPTION_READER_H
+#endif

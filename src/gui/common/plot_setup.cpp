@@ -1,3 +1,15 @@
+/**
+ * @file
+ * @brief Plot setup, palette application and the viridis interpolation.
+ *
+ * The map is held as eleven control points every tenth of the range and
+ * interpolated linearly, which stays within a couple of levels of the exact
+ * map without a table of 256 entries; the walk stops at 92 % of it because
+ * the top is a light yellow that disappears on white. The chart is closed
+ * by a frame of four axes with the mirrored two unlabelled, and the axis
+ * under the cursor is chosen on every mouse move for both drag and zoom.
+ */
+
 #include "src/gui/common/plot_setup.h"
 
 #include <algorithm>
@@ -9,9 +21,6 @@ namespace qftbx {
 
 namespace {
 
-//The viridis control points, every 10 % of the range. Interpolated linearly
-//between them, which is within a couple of levels of the exact map and needs
-//no table of 256 entries.
 constexpr int kStops = 11;
 constexpr int kViridis[kStops][3] = {
     { 68,   1,  84}, { 72,  40, 120}, { 62,  73, 137}, { 49, 104, 142},
@@ -19,7 +28,7 @@ constexpr int kViridis[kStops][3] = {
     {180, 222,  44}, {253, 231,  37}, {253, 231,  37}
 };
 
-} // namespace
+}
 
 QColor frequencyColour(int index, int count)
 {
@@ -27,8 +36,6 @@ QColor frequencyColour(int index, int count)
         return QColor(kViridis[4][0], kViridis[4][1], kViridis[4][2]);
     }
 
-    //The top of the map is a light yellow that disappears on white, so the
-    //walk stops at 92 % of it.
     const double t = 0.92 * std::clamp(static_cast<double>(index) / (count - 1), 0.0, 1.0);
     const double scaled = t * (kStops - 2);
     const int stop = static_cast<int>(scaled);
@@ -70,8 +77,6 @@ void setUpPlot(QCustomPlot & plot, const QString & xLabel, const QString & yLabe
     plot.xAxis->setLabel(xLabel);
     plot.yAxis->setLabel(yLabel);
 
-    //The frame of four axes, with the two mirrored ones unlabelled: it is
-    //what closes the chart, and the viewers connect their ranges.
     plot.axisRect()->setupFullAxesBox();
     plot.xAxis2->setTickLabels(false);
     plot.yAxis2->setTickLabels(false);
@@ -82,7 +87,6 @@ void setUpPlot(QCustomPlot & plot, const QString & xLabel, const QString & yLabe
     plot.setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
     plot.setSelectionRectMode(QCP::srmNone);
 
-    //The wheel over an axis zooms that axis alone; over the canvas, both.
     plot.axisRect()->setRangeZoomAxes(plot.xAxis, plot.yAxis);
     QObject::connect(&plot, &QCustomPlot::mouseMove, &plot, [&plot](QMouseEvent * event) {
         const bool overX = plot.xAxis->selectTest(event->pos(), false) >= 0;
@@ -99,11 +103,8 @@ void setUpPlot(QCustomPlot & plot, const QString & xLabel, const QString & yLabe
         }
     });
 
-    //The colours of the interface, so the diagram belongs to the window
-    //around it.
     applyPlotPalette(plot, plot.palette());
 
-    //A double click frames the data again.
     QObject::connect(&plot, &QCustomPlot::mouseDoubleClick, &plot, [&plot](QMouseEvent *) {
         plot.rescaleAxes();
         plot.replot();
@@ -127,4 +128,4 @@ void narrowSideColumn(QLayout * side)
     }
 }
 
-} // namespace qftbx
+}

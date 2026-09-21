@@ -10,6 +10,7 @@
 #include "src/core/math/expression_tree.h"
 
 /**
+ * @file
  * @brief The number a field of a dialog holds, evaluated as an expression.
  *
  * The dialogs accept an expression wherever they ask for a number, so
@@ -32,6 +33,6 @@ inline std::optional<double> evaluateNumber(const QString & text)
     }
 }
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_GUI_EXPRESSION_FIELD_H
+#endif

@@ -1,3 +1,13 @@
+/**
+ * @file
+ * @brief Plots the Bode diagram of a plant over the design frequencies.
+ *
+ * Declares the viewer with a magnitude canvas and a phase canvas, drawn
+ * from a system and a frequency set and exported as two files. It lives
+ * in the plant's dock for as long as the window does and is emptied, not
+ * destroyed, when the project loses its plant.
+ */
+
 #ifndef QFTBX_BODE_VIEWER_H
 #define QFTBX_BODE_VIEWER_H
 
@@ -22,7 +32,6 @@ class BodeViewer;
 
 namespace qftbx {
 
-
 /**
  * @brief Plots the Bode diagram of a plant over a set of design
  * frequencies.
@@ -36,7 +45,6 @@ class BodeViewer : public QWidget
 public:
     explicit BodeViewer(QWidget *parent = 0);
     ~BodeViewer();
-
 
     /**
      * @brief Draws the Bode diagram.
@@ -64,6 +72,6 @@ private:
                   const std::vector<double> & frequencies, QCustomPlot * magnitudePlot);
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_BODE_VIEWER_H
+#endif

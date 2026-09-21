@@ -40,6 +40,6 @@ using UncertainRow = std::vector<bool>;
 /// The uncertainty flags of one system, aligned with a CoefficientTable.
 using UncertainTable = std::vector<UncertainRow>;
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_GUI_COEFFICIENT_TABLES_H
+#endif

@@ -7,13 +7,14 @@
 #include <QStringList>
 
 /**
+ * @file
  * @brief The language of the interface: a setting, chosen in the View menu,
  * applied with QTranslator.
  *
- * A language is its code: "system" for the machine's, "en" for the
+ * A language is its code CODE: "system" for the machine's, "en" for the
  * language the interface is written in, and the code of every translation
- * compiled into the application (src/gui/translations/qftbx_<code>.ts, in
- * the resources as :/i18n/qftbx_<code>.qm). Nothing here names a language:
+ * compiled into the application (src/gui/translations/qftbx_CODE.ts, in
+ * the resources as :/i18n/qftbx_CODE.qm). Nothing here names a language:
  * adding one is adding its file, see src/gui/translations/README.md.
  *
  * Two translators are installed for a language: the application's own and
@@ -55,6 +56,6 @@ QString currentLanguage();
 /// none (qftbx::userSettingsPath()).
 void storeLanguage(const QString & code, const std::string & settingsPath);
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_GUI_LANGUAGE_H
+#endif

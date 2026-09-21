@@ -1,3 +1,15 @@
+/**
+ * @file
+ * @brief One phase of the design as one framed card: its form and its diagrams together.
+ *
+ * The form lives inside the card, folded away, with the diagrams below it,
+ * in tabs when there are several. Unfolding makes the card taller and the
+ * canvas moves the rest out of the way. The card says when its computation
+ * is running, disables the form meanwhile and offers Cancel on its bar; it
+ * can be made wider or narrower in squares of the canvas, closed, and
+ * dragged by its bar to another place.
+ */
+
 #ifndef QFTBX_PHASE_CARD_H
 #define QFTBX_PHASE_CARD_H
 
@@ -137,6 +149,6 @@ private:
     QSize m_unit;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_PHASE_CARD_H
+#endif

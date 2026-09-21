@@ -1,3 +1,18 @@
+/**
+ * @file
+ * @brief Draws the clouds as points and the contours as curves.
+ *
+ * A value set is a set, its order that of the parameter sweep, so the
+ * cloud is crosses with no line through them. A contour is a parametric
+ * curve that keeps the order the walk found the border in; a graph would
+ * sort by phase and comb the cloud. A cloud that epsilon does not hold
+ * together is drawn as one curve per component, from the starts the
+ * contour report gives; on the Nichols plane phases are folded into
+ * (-360, 0). The side panel and the plot share a splitter so a long legend
+ * row can be read by dragging. Contour state and proposals are marked
+ * beside each epsilon field, never as a dialog, since trying an epsilon
+ * and looking is how a contour is tuned.
+ */
 
 #include "src/core/common/exception.h"
 #include "src/core/math/constants.h"
@@ -22,11 +37,9 @@ namespace qftbx {
 
 namespace {
 
-//The diagram does not give away all its width: below this it stops being
-//readable, and it is the panel beside it that has to give way.
 constexpr int kMinimumPlot = 320;
 
-} // namespace
+}
 
 TemplateViewer::TemplateViewer(QWidget *parent) :
     QWidget(parent),
@@ -39,46 +52,32 @@ TemplateViewer::TemplateViewer(QWidget *parent) :
     contourVisible = true;
     setWindowTitle(tr("Templates"));
 
-
     legend = new FrequencyLegend(ui->legendHolder);
     ui->legendHolder->layout()->addWidget(legend);
 
-    //The column of controls does not take half the card: the chart needs
-    //the width more than the buttons do.
     narrowSideColumn(ui->sideLayout);
 
-    //The frequencies are the exception: they are what the panel is opened
-    //for, and a row that does not fit is a row that cannot be read.
     ui->legendHolder->setMaximumWidth(QWIDGETSIZE_MAX);
 
-    //The two of them share the width and the separation belongs to the
-    //user: the card growing widens the frequencies as well as the diagram,
-    //and whoever needs to read a long row drags the handle across.
     QSplitter * splitter = new QSplitter(Qt::Horizontal, this);
     ui->sidePanel->setMinimumWidth(kSideColumn);
     ui->plot->setMinimumWidth(kMinimumPlot);
     splitter->addWidget(ui->sidePanel);
     splitter->addWidget(ui->plot);
-    //Neither of the two is dragged out of sight.
     splitter->setChildrenCollapsible(false);
     splitter->setStretchFactor(0, 1);
     splitter->setStretchFactor(1, 3);
-    //The card opens as it did before: the diagram takes the width, and the
-    //panel is widened by whoever wants it wider.
     splitter->setSizes({kSideColumn, 3 * kSideColumn});
     ui->outerLayout->addWidget(splitter);
 
     connect(legend, &FrequencyLegend::rowToggled, this, &TemplateViewer::applyCheckboxes);
 
-    //Connected ONCE: a connection per replot duplicates the handler.
     connect(ui->plot->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->xAxis2, SLOT(setRange(QCPRange)));
     connect(ui->plot->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->yAxis2, SLOT(setRange(QCPRange)));
 }
 
 TemplateViewer::~TemplateViewer()
 {
-    //The frequency box is parented to this widget, so Qt frees it, and the
-    //colour map is a member: there is nothing left to free by hand.
     clearDiagram();
 }
 
@@ -91,7 +90,6 @@ void TemplateViewer::clearDiagram(){
     ui->plot->clearFocus();
     ui->plot->clearGraphs();
     ui->plot->clearItems();
-    //QCustomPlot owns the graphs: clearGraphs frees them.
     ui->plot->clearPlottables();
     templatesVisible = false;
 
@@ -102,7 +100,6 @@ void TemplateViewer::clearDiagram(){
 
     contourCurves.clear();
     templateGraphs.clear();
-
 
     plotted = false;
 }
@@ -127,10 +124,6 @@ void TemplateViewer::setData(const qftbx::CloudSet & templates,
     setTemplates(templates);
     setContour(contour);
 
-    //COPIES: the viewer outlives the project's vectors across a load. A
-    //project may hold templates and no epsilon - a file that carries the
-    //clouds and not the tolerance they were walked with - and asking for
-    //the diagram must not be a way of reading a null.
     m_omega = omega != nullptr ? *omega : std::vector<double>();
     m_epsilon = epsilon != nullptr ? *epsilon : std::vector<double>();
 
@@ -151,14 +144,6 @@ void TemplateViewer::setContourReporter(ContourReporter report){
     this->report = std::move(report);
 }
 
-//What the contour of each frequency went through, marked next to its
-//epsilon and never as a dialog, since trying an epsilon and looking is how
-//a contour is tuned. Two things can be worth saying, and the worse one
-//wins: that no walk closed and the whole template stands in, and that the
-//faithful walk did not close so the relaxed one stood in - which is why
-//that contour is drawn as an OPEN curve, with the piece the walk never
-//went round missing. Neither is an error; both are answered by the epsilon
-//the Propose button computes.
 void TemplateViewer::showContourState(){
     if (!report || stateLabels.empty()){
         return;
@@ -191,12 +176,6 @@ void TemplateViewer::showContourState(){
     }
 }
 
-//The epsilon each template asks for, next to the epsilon it has: the least
-//that keeps the cloud connected, and how big that gap is against the
-//template, so that the user sees at once where the epsilon is too small to
-//close or too large to follow the shape, and where the sweep itself is too
-//coarse to say (a gap of a fifth of the template is a sweep to densify,
-//not an epsilon to tune).
 void TemplateViewer::showProposals(){
     if (!propose || gapLabels.empty()){
         return;
@@ -235,11 +214,9 @@ void TemplateViewer::setContour(const qftbx::CloudSet & contour){
 
 void TemplateViewer::plotDiagram(bool plot){
 
-
     this->plot = plot;
 
     clearDiagram();
-
 
     plotted = true;
     showProposals();
@@ -316,20 +293,10 @@ void TemplateViewer::plotDiagram(bool plot){
         counter++;
     }
 
-    //No setLayout here: the layout above was built with the frequency box
-    //as its parent, which already installs it.
-
-
-
     ui->plot->replot();
-
 
 }
 
-//The cloud: crosses, and no line. A value set is a SET - the order its
-//points come in is the order of the parameter sweep, which has nothing to
-//do with where they sit on the plane - so any line through it is a lie.
-//What the border of a cloud looks like is what its contour is for.
 void TemplateViewer::plotCloud(const std::vector<double> & phases,
                                const std::vector<double> & magnitudes, qint32 frequency)
 {
@@ -345,20 +312,11 @@ void TemplateViewer::plotCloud(const std::vector<double> & phases,
     templateGraphs.push_back(cloud);
 }
 
-//The contour: a CURVE, which is the whole point. A QCPGraph is a function
-//of its key and sorts its points by phase, so a closed contour came out as
-//a comb of vertical strokes across the cloud - the border walked in phase
-//order instead of in walk order. A QCPCurve is parametric: it keeps the
-//order it is given, which is the order the walk found the border in.
 void TemplateViewer::plotContour(const std::vector<double> & phases,
                                  const std::vector<double> & magnitudes, qint32 frequency)
 {
     const QColor color = colorByFrequency.value(m_omega.at(frequency));
 
-    //A cloud that epsilon does not hold together is walked once per
-    //component, and the walks arrive concatenated in one vector: drawn as
-    //one curve, a line crossed from the end of one component to the start
-    //of the next. Where each begins is in the report.
     std::vector<std::size_t> starts{0};
     if (report) {
         const std::vector<qftbx::TemplateEngine::ContourReport> reports = report();
@@ -391,7 +349,6 @@ void TemplateViewer::plotContour(const std::vector<double> & phases,
 
     contourCurves.push_back(pieces);
 
-    //One row of the legend per frequency, whatever it took to draw it.
     addFrequencyRow(color, frequency);
 
     if (frequency == 0) {
@@ -404,16 +361,9 @@ void TemplateViewer::plotContour(const std::vector<double> & phases,
 void TemplateViewer::addFrequencyRow(QColor color, qint32 pos){
     const FrequencyLegend::Row row = legend->addRow(numberText(m_omega.at(pos)), color);
 
-    //The epsilon of this frequency, when the project has one: a project can
-    //hold the clouds and not the tolerance they were walked with, and a
-    //row that asks a vector for an element it does not have takes the
-    //toolbox down with a message about vector ranges.
     const bool known = pos < static_cast<qint32>(m_epsilon.size());
     const double epsilon = known ? m_epsilon.at(pos) : 0.0;
 
-    //The field for the value, BESIDE the frequency and not under it: a
-    //legend is a column of its own and every line it takes is a line the
-    //diagram does not have.
     QLineEdit * field = new QLineEdit(row.widget);
     field->setObjectName(QString::fromUtf8("field"));
     field->setToolTip(tr("The epsilon of this frequency: the diameter of the hull the contour "
@@ -423,15 +373,12 @@ void TemplateViewer::addFrequencyRow(QColor color, qint32 pos){
     epsilonEdits.push_back(field);
     row.layout->addWidget(field);
 
-    //What this template asks for, filled in by showProposals(): under the
-    //line, and hidden until it has something to say.
     QLabel * gap = new QLabel(row.widget);
     gap->setObjectName(QString::fromUtf8("gap"));
     gap->setVisible(false);
     gapLabels.push_back(gap);
     row.column->addWidget(gap);
 
-    //Whether the whole template stands in for this contour, by showContourState().
     QLabel * state = new QLabel(row.widget);
     state->setObjectName(QString::fromUtf8("contourState"));
     state->setVisible(false);
@@ -478,7 +425,6 @@ void TemplateViewer::on_contourButton_clicked()
 
 void TemplateViewer::applyCheckboxes(){
     for (qint32 i = 0; i < legend->rowCount(); i++){
-        //A frequency unticked takes its contour and its cloud with it.
         const bool shown = legend->isRowChecked(i);
 
         if (i < contourCurves.size()) {
@@ -507,9 +453,6 @@ void TemplateViewer::on_proposeButton_clicked()
 
 void TemplateViewer::on_recomputeButton_clicked()
 {
-    //Nothing plotted yet: the epsilon controls do not exist, and their
-    //vectors are only created by plotDiagram (reading them here would be
-    //reading uninitialised pointers).
     if (!plotted){
         return;
     }
@@ -522,8 +465,6 @@ void TemplateViewer::on_recomputeButton_clicked()
         epsilon.push_back(pos);
     }
 
-    //The viewer draws; the computation belongs to whoever installed the
-    //handler, which answers with refreshContour().
     if (!recompute){
         return;
     }
@@ -531,4 +472,4 @@ void TemplateViewer::on_recomputeButton_clicked()
     recompute(std::move(epsilon));
 }
 
-} // namespace qftbx
+}

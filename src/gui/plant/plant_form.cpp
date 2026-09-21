@@ -1,3 +1,19 @@
+/**
+ * @file
+ * @brief Reads the plant from its fields and builds it once verified.
+ *
+ * Fields report every change and not only keystrokes, so a paste or an
+ * undo counts as an edit; what the form writes into its own fields is
+ * fenced off by a flag. Every field is read even after one fails so that
+ * every problem is marked at once; the name is asked for only at
+ * verification. The gain and the delay hold a value and never a name, are
+ * named `k` and `delay`, and are uncertain only when a range was given
+ * under Uncertainty. A named coefficient needs a range, which counts only
+ * when the panel was applied over the coefficients on screen or the fields
+ * still describe the project's own plant. The verified plant is drawn as
+ * described and, when uncertain, again with each parameter as its interval.
+ */
+
 #include "src/gui/plant/plant_form.h"
 #include "ui_plant_form.h"
 
@@ -16,8 +32,6 @@ namespace qftbx {
 
 namespace {
 
-//The figure of each family, which is what the right-hand side shows until
-//there is a formula to show instead.
 const char * figureOf(LtiSystem::SystemType type)
 {
     switch (type) {
@@ -34,7 +48,7 @@ const char * figureOf(LtiSystem::SystemType type)
     return nullptr;
 }
 
-} // namespace
+}
 
 PlantForm::PlantForm(QWidget * parent) :
     StepPanel(parent),
@@ -47,7 +61,6 @@ PlantForm::PlantForm(QWidget * parent) :
     ui->gainEdit->setText("1");
     ui->delayEdit->setText("0");
 
-    //The uncertainty is a page of this form and not a window on top of it.
     m_uncertainty = new UncertaintyPanel(this);
     m_uncertainty->setTitle(tr("Uncertainty of the plant"));
     ui->uncertaintyLayout->addWidget(m_uncertainty);
@@ -55,8 +68,6 @@ PlantForm::PlantForm(QWidget * parent) :
     connect(m_uncertainty, &UncertaintyPanel::applied, this, [this] {
         m_uncertaintyCoefficients = currentCoefficients();
         ui->pageStack->setCurrentWidget(ui->dataPage);
-        //The ranges are part of the plant: what was verified before them is
-        //not what the form now describes.
         setVerified(nullptr);
     });
     connect(m_uncertainty, &UncertaintyPanel::cancelled, this, [this] {
@@ -69,10 +80,6 @@ PlantForm::PlantForm(QWidget * parent) :
 
     for (QLineEdit * field : {ui->nameEdit, ui->descriptionEdit, ui->numeratorEdit,
                               ui->denominatorEdit, ui->gainEdit, ui->delayEdit}) {
-        //textChanged and not textEdited: a field written by anything other
-        //than the keyboard - a paste, an undo, a clear - changes the plant
-        //just the same. What the form writes into its own fields is fenced
-        //off by m_filling instead.
         connect(field, &QLineEdit::textChanged, this, &PlantForm::fieldEdited);
     }
 
@@ -81,7 +88,6 @@ PlantForm::PlantForm(QWidget * parent) :
 
 PlantForm::~PlantForm()
 {
-    //The uncertainty panel is a Qt child of this form, so Qt frees it.
 }
 
 std::optional<LtiSystem::SystemType> PlantForm::selectedType() const
@@ -99,15 +105,11 @@ std::optional<LtiSystem::SystemType> PlantForm::selectedType() const
         return LtiSystem::SystemType::TimeConstantGain;
     }
 
-    //The path is unfinished: a transfer function, and nothing said yet
-    //about how it is written.
     return std::nullopt;
 }
 
 void PlantForm::showFamily()
 {
-    //One level at a time, and every level of the path stays marked: the
-    //three are separate button groups for exactly that reason.
     const bool transfer = ui->transferFunctionRadio->isChecked();
     const bool factored = transfer && ui->zerosPolesRadio->isChecked();
 
@@ -176,9 +178,6 @@ void PlantForm::familyChosen()
         return;
     }
 
-
-    //A family changed is a plant changed: back to the figure, and back to
-    //having to verify.
     setVerified(nullptr);
 }
 
@@ -188,11 +187,8 @@ void PlantForm::fieldEdited()
         return;
     }
 
-    //What was verified described the fields as they were.
     setVerified(nullptr);
 
-    //And the mistakes are marked as they are made, not saved up for the
-    //button.
     CoefficientTable expressions;
     UncertainTable uncertain;
     readTables(expressions, uncertain);
@@ -214,14 +210,8 @@ void PlantForm::setVerified(std::unique_ptr<LtiSystem> plant)
         return;
     }
 
-    //The plant as it was understood, where the figure of the family was:
-    //the one thing a line of coefficients cannot be checked against.
     ui->formulaView->setFormula(formulaOf(*m_verified, shownDigits()));
 
-    //And under it the same plant with every uncertain coefficient replaced
-    //by the interval it stands for: the plant as described, and the family
-    //of plants the design will actually work over. A plant with nothing
-    //uncertain would say the same thing twice, so it says it once.
     const bool uncertain = hasUncertainty(*m_verified);
     ui->rangeFormula->setVisible(uncertain);
     ui->formulaRule->setVisible(uncertain);
@@ -253,11 +243,6 @@ std::optional<CoefficientTable> PlantForm::readTables(CoefficientTable & express
     CoefficientTable tables;
     bool valid = true;
 
-    //Rows in the order the uncertainty panel expects: numerator,
-    //denominator, gain, delay. Every field is read even after one fails, so
-    //that every problem is marked at once.
-    //A family written as factors has no factors when its field is empty;
-    //only a polynomial reads an empty field as the constant 1.
     const bool factored = *type == LtiSystem::SystemType::ZeroPoleGain
             || *type == LtiSystem::SystemType::TimeConstantGain;
 
@@ -284,10 +269,6 @@ std::optional<CoefficientTable> PlantForm::readTables(CoefficientTable & express
             valid = false;
             return;
         }
-        //The gain and the delay are the two fields that hold a VALUE and
-        //never a name: what makes them uncertain is the range given under
-        //Uncertainty, and a name typed here would be a parameter nothing
-        //asks the range of.
         const QString text = field->text().trimmed();
         if (uncertainTable.back().at(0)) {
             const QString complaint = tr("%1 is a value; its range is given under "
@@ -308,8 +289,6 @@ std::optional<CoefficientTable> PlantForm::readTables(CoefficientTable & express
     readScalar(ui->gainEdit, tr("The gain"));
     readScalar(ui->delayEdit, tr("The delay"));
 
-    //A free-form expression that the grammar cannot read is not an
-    //expression, and the field that holds it is the one that is wrong.
     if (*type == LtiSystem::SystemType::FreeForm) {
         const auto readable = [&](QLineEdit * field) {
             if (field->text().trimmed().isEmpty()) {
@@ -341,9 +320,6 @@ std::optional<CoefficientTable> PlantForm::readTables(CoefficientTable & express
 
 bool PlantForm::uncertaintyIsCurrent() const
 {
-    //Either the panel was applied over these very coefficients, or they are
-    //still the ones the project's plant was written back as, and then the
-    //plant's own parameters answer for them.
     if (!m_uncertaintyCoefficients.isEmpty()
             && m_uncertaintyCoefficients == currentCoefficients()) {
         return true;
@@ -363,17 +339,12 @@ std::unique_ptr<LtiSystem> PlantForm::build()
         return nullptr;
     }
 
-    //Asked for HERE and not while the fields are being read, which happens
-    //at every keystroke: a plant is named when it is finished, and being
-    //told it has no name while typing its numerator helps nobody.
     if (ui->nameEdit->text().trimmed().isEmpty()) {
         markWrong(ui->nameEdit, true, tr("The plant needs a name."));
         say(tr("The plant needs a name."));
         return nullptr;
     }
 
-    //A coefficient that was given a name needs a range, and there is one
-    //place to give it.
     const bool hasUncertainty = std::any_of(uncertainTable.begin(), uncertainTable.begin() + 2,
                                             [](const UncertainRow & row) {
                                                 return std::find(row.begin(), row.end(), true)
@@ -388,8 +359,6 @@ std::unique_ptr<LtiSystem> PlantForm::build()
     }
     markWrong(ui->uncertaintyButton, false);
 
-    //Gain and delay: a constant when the field holds a plain value, a
-    //parameter over the range the uncertainty panel gave when it does not.
     const auto scalar = [&](std::size_t row, double fallback, const Range & range,
                             const char * name) -> std::optional<Parameter> {
         if (valueTable->at(row).empty()) {
@@ -399,19 +368,12 @@ std::unique_ptr<LtiSystem> PlantForm::build()
         if (!value.has_value()) {
             return std::nullopt;
         }
-        //Uncertain only when a RANGE was given for it. The rule used to be
-        //that the value had to match both ends, so a gain of 3 typed into a
-        //plant whose uncertainty was never opened became a parameter over
-        //[1, 1] with a nominal of 3 - swept at 1, drawn at 3.
         if (range.min == range.max) {
             return Parameter(*value);
         }
         return Parameter(name, range, *value, name);
     };
 
-    //A form filled from the project answers from the plant's own parameters
-    //while its fields still describe them - the first edit and they do not.
-    //Field by field: editing a coefficient says nothing about the gain.
     const bool coefficientsFromProject = !m_describedCoefficients.isEmpty()
             && currentCoefficients() == m_describedCoefficients;
     const bool scalarsFromProject = !m_describedScalars.isEmpty()
@@ -420,9 +382,6 @@ std::unique_ptr<LtiSystem> PlantForm::build()
     std::optional<Parameter> gain;
     std::optional<Parameter> delay;
     try {
-        //The gain is "k" and the delay "delay": the plant has no field for
-        //their names. "kv" and "ret" were the names of the days when the
-        //expression parser owned the letter k as a unit multiplier.
         if (scalarsFromProject) {
             gain = m_projectGain;
             delay = m_projectDelay;
@@ -431,9 +390,6 @@ std::unique_ptr<LtiSystem> PlantForm::build()
             delay = scalar(3, 0.0, m_uncertainty->delay(), "delay");
         }
     } catch (const qftbx::Exception & e) {
-        //A value that parses but is not a number a model can use ("0/0" and
-        //"1/0" evaluate to a NaN and an infinity, and Parameter refuses
-        //those), or a range field that is not an expression.
         say(translated(e));
         return nullptr;
     }
@@ -452,8 +408,6 @@ std::unique_ptr<LtiSystem> PlantForm::build()
     std::vector<Parameter> numerator;
     std::vector<Parameter> denominator;
 
-    //The uncertainty only counts if its panel was APPLIED; the plant
-    //receives COPIES, the panel keeps its own for further editing.
     if ((uncertaintyIsCurrent() || coefficientsFromProject) && m_uncertainty->wasAccepted()) {
         numerator = m_uncertainty->numerator();
         denominator = m_uncertainty->denominator();
@@ -492,8 +446,6 @@ std::unique_ptr<LtiSystem> PlantForm::build()
 
 void PlantForm::on_okButton_clicked()
 {
-    //One button and two steps: nothing is applied that the user has not
-    //been shown first.
     if (m_verified == nullptr) {
         setVerified(build());
         return;
@@ -543,8 +495,6 @@ void PlantForm::setFromProject(LtiSystem * plant)
     ui->nameEdit->setText(described.name);
     ui->descriptionEdit->setText(QString::fromStdString(plant->description()));
 
-    //The whole path, not only its last step: a plant written as zeros and
-    //poles is a transfer function first.
     switch (described.type) {
     case LtiSystem::SystemType::PolynomialForm:
         ui->transferFunctionRadio->setChecked(true);
@@ -573,8 +523,6 @@ void PlantForm::setFromProject(LtiSystem * plant)
     m_filling = false;
     showFamily();
 
-    //The intervals travel with the plant, so the uncertainty does not have
-    //to be typed again over a project that was just opened.
     m_uncertainty->setParameters(plant->numerator(), plant->denominator(),
                                  plant->gain().rawRange(), plant->delay().rawRange());
 
@@ -584,8 +532,6 @@ void PlantForm::setFromProject(LtiSystem * plant)
     m_describedScalars = currentScalars();
     m_uncertaintyCoefficients = m_describedCoefficients;
 
-    //A plant that came from a file is a plant already verified: it is shown
-    //as what it is, and the button offers to apply it.
     setVerified(plant->clone());
     say(QString());
 }
@@ -595,4 +541,4 @@ std::unique_ptr<LtiSystem> PlantForm::takePlant()
     return std::move(m_applied);
 }
 
-} // namespace qftbx
+}

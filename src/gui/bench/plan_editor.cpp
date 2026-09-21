@@ -1,3 +1,17 @@
+/**
+ * @file
+ * @brief Builds the plan form and translates it to and from a plan.
+ *
+ * The sections follow the order a measurement is thought through: project,
+ * structures, runs, measures, execution, settings. Reading the form throws
+ * naming the field that cannot be read; an inverted step range is swapped
+ * rather than refused. Moving a step reorders the plan itself and writes
+ * it back, so the rows stay consistent with the widgets in them. Fields
+ * written while a plan is loaded do not count as edits. The project line
+ * is summarised by loading the project and saying which steps it holds,
+ * and setting keys are completed from the names the settings know.
+ */
+
 #include "src/gui/application/error_message.h"
 #include "src/gui/bench/plan_editor.h"
 
@@ -50,7 +64,7 @@ QString text(double value)
     return QString::number(value, 'g', 15);
 }
 
-} // namespace
+}
 
 PlanEditor::PlanEditor(QWidget * parent) : QWidget(parent)
 {
@@ -69,7 +83,6 @@ void PlanEditor::build()
     scroll->setWidget(page);
     auto * layout = new QVBoxLayout(page);
 
-    //--- the project and the output
     auto * projectBox = new QGroupBox(tr("Project"), page);
     auto * projectForm = new QFormLayout(projectBox);
     auto * projectRow = new QHBoxLayout();
@@ -96,7 +109,6 @@ void PlanEditor::build()
     projectForm->addRow(tr("Output directory"), outputRow);
     layout->addWidget(projectBox);
 
-    //--- the structures
     auto * structuresBox = new QGroupBox(tr("Controller structures"), page);
     auto * structuresLayout = new QVBoxLayout(structuresBox);
     auto * hint = new QLabel(tr("The project's controller structure is the base. Each step adds a zero or a "
@@ -149,7 +161,6 @@ void PlanEditor::build()
     structuresLayout->addWidget(m_structures);
     layout->addWidget(structuresBox);
 
-    //--- what runs
     auto * runsBox = new QGroupBox(tr("Runs"), page);
     auto * runsForm = new QFormLayout(runsBox);
     auto * algorithmsRow = new QHBoxLayout();
@@ -177,7 +188,6 @@ void PlanEditor::build()
     runsForm->addRow(tr("Repetitions"), repetitionsRow);
     layout->addWidget(runsBox);
 
-    //--- what is measured
     auto * measureBox = new QGroupBox(tr("Measure"), page);
     auto * measureLayout = new QVBoxLayout(measureBox);
     m_measureTime = new QCheckBox(tr("Wall-clock time"), measureBox);
@@ -195,7 +205,6 @@ void PlanEditor::build()
     }
     layout->addWidget(measureBox);
 
-    //--- how it executes
     auto * executionBox = new QGroupBox(tr("Execution"), page);
     auto * executionForm = new QFormLayout(executionBox);
     auto * jobsRow = new QHBoxLayout();
@@ -221,7 +230,6 @@ void PlanEditor::build()
     executionForm->addRow(tr("Memory limit per case"), m_memoryLimit);
     layout->addWidget(executionBox);
 
-    //--- settings overrides
     auto * settingsBox = new QGroupBox(tr("Settings for the runs"), page);
     auto * settingsLayout = new QVBoxLayout(settingsBox);
     auto * settingsHint = new QLabel(tr("Values of qftbx.conf that the runs use instead of the defaults, by key."), settingsBox);
@@ -245,7 +253,6 @@ void PlanEditor::build()
     layout->addWidget(settingsBox);
     layout->addStretch();
 
-    //--- wiring
     connect(browseProject, &QPushButton::clicked, this, [this]() {
         const QString path = chooseFile(false, false, tr("QFT projects (*.qft)"));
         if (!path.isEmpty()) {
@@ -398,7 +405,6 @@ void PlanEditor::moveStep(int by)
     if (row < 0 || target < 0 || target >= m_steps->rowCount()) {
         return;
     }
-    //The rows as plan steps, swapped, and written back.
     bench::Plan current = plan();
     std::swap(current.steps[static_cast<std::size_t>(row)], current.steps[static_cast<std::size_t>(target)]);
     setPlan(current);
@@ -582,4 +588,4 @@ void PlanEditor::setPlan(const bench::Plan & plan)
     changed();
 }
 
-} // namespace qftbx
+}

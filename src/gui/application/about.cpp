@@ -1,3 +1,13 @@
+/**
+ * @file
+ * @brief Composes the rich text of the About box.
+ *
+ * The text is a run of HTML paragraphs, each translated where it stands
+ * under the context `About`, which is where the translation files key it.
+ * The repository and documentation addresses are constants substituted
+ * into the paragraph that points at them.
+ */
+
 #include "src/gui/application/about.h"
 
 #include <QCoreApplication>
@@ -11,12 +21,10 @@ namespace {
 const char * const kRepository = "https://github.com/Isaac-Martinez-Forte/QFTbx";
 const char * const kDocumentation = "https://github.com/Isaac-Martinez-Forte/QFTbx/tree/Development/docs";
 
-} // namespace
+}
 
 QString aboutText()
 {
-    //Each text translated where it stands, so lupdate files it under the
-    //context "About" the translation is looked up in.
     QStringList paragraphs;
     paragraphs << QStringLiteral("<h2>QFTbx</h2>");
     paragraphs << QStringLiteral("<p>%1</p>").arg(QCoreApplication::translate("About",
@@ -59,4 +67,4 @@ void showAbout(QWidget * parent)
     QMessageBox::about(parent, QCoreApplication::translate("About", "About QFTbx"), aboutText());
 }
 
-} // namespace qftbx
+}

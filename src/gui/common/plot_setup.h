@@ -1,3 +1,19 @@
+/**
+ * @file
+ * @brief What every plot of the toolbox shares: interaction, palette, curve colours and widths.
+ *
+ * The setup is applied once when a viewer is built: the wheel zooms one
+ * axis over that axis and both over the canvas, and a double click frames
+ * the data again. The palette colours ground, axes and grid from the
+ * interface's theme and is reapplied when the theme changes; the curves are
+ * not touched, because a curve's colour is its frequency. Frequency colours
+ * follow the viridis map of Smith and van der Walt, perceptually uniform
+ * and readable in greyscale, which shows which way the frequency grows and
+ * never runs out. The loop transmission is red and heavier than the
+ * boundaries, being the answer the design was for, and the column of
+ * controls beside a diagram is capped in width.
+ */
+
 #ifndef QFTBX_GUI_PLOT_SETUP_H
 #define QFTBX_GUI_PLOT_SETUP_H
 
@@ -87,6 +103,6 @@ void narrowSideColumn(QLayout * side);
 /// How wide that column is worth being.
 inline constexpr int kSideColumn = 210;
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_GUI_PLOT_SETUP_H
+#endif

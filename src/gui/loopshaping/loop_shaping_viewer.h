@@ -1,3 +1,16 @@
+/**
+ * @file
+ * @brief Shows the designed controller and its loop against the boundaries.
+ *
+ * Declares the viewer of the loop-shaping result: the boundary union with
+ * one legend row per frequency, the open-loop curve, a marker per design
+ * frequency, the controller's coefficients and formula at the digits the
+ * user chooses, and the verdict of the check against the specifications.
+ * The plant and the result are observers on the project; the plot owns
+ * the curves and the viewer keeps the containers that tie a frequency's
+ * pieces to its legend row.
+ */
+
 #ifndef QFTBX_LOOP_SHAPING_VIEWER_H
 #define QFTBX_LOOP_SHAPING_VIEWER_H
 
@@ -14,13 +27,11 @@
 #include "src/core/loopshaping/loop_shaping_result.h"
 #include "src/core/specifications/specification.h"
 
-
 namespace Ui {
 class LoopShapingViewer;
 }
 
 namespace qftbx {
-
 
 /**
  * @brief Shows the designed controller and its nominal loop transmission
@@ -37,7 +48,6 @@ class LoopShapingViewer : public QWidget
 public:
     explicit LoopShapingViewer(QWidget *parent = 0);
     ~LoopShapingViewer();
-
 
     void setData (const qftbx::UnionTraces & unionTraces, std::vector<double> *omega, LoopShapingResult * loopShapingData, LtiSystem *plant, bool linSpace);
 
@@ -65,7 +75,6 @@ private slots:
     /// The controller, its formula and the verdict, at the digits chosen.
     void showController();
 
-
     void on_saveImage_clicked();
 
 private:
@@ -75,21 +84,21 @@ private:
 
     qftbx::UnionTraces unionTraces;
     std::vector<double> * omega = nullptr;
-    //Observers on the project's objects, handed in by setData(): the
-    //viewer never owns what it draws.
+    /// Observers on the project's objects, handed in by setData(): the
+    /// viewer never owns what it draws.
     LtiSystem * plant = nullptr;
     LoopShapingResult * loopShapingData = nullptr;
 
     bool plotted = false;
 
-    //The curves BELONG TO QCustomPlot, which frees them on
-    //clearPlottables(): only the container is the viewer's.
+    /// The curves BELONG TO QCustomPlot, which frees them on
+    /// clearPlottables(): only the container is the viewer's.
     QVector <QCPCurve *> curves;
 
-    //The pieces of each frequency's boundary, by frequency: what the legend
-    //shows or hides. The boundary of a frequency is not always one curve,
-    //so the row of the legend and the curve are no longer one to one.
-    //Observers: the curves above own nothing either, QCustomPlot does.
+    /// The pieces of each frequency's boundary, by frequency: what the legend
+    /// shows or hides. The boundary of a frequency is not always one curve,
+    /// so the row of the legend and the curve are no longer one to one.
+    /// Observers: the curves above own nothing either, QCustomPlot does.
     QVector <QVector <QCPCurve *>> boundaryCurves;
 
     void addFrequencyRow(QColor color, qint32 pos);
@@ -101,6 +110,6 @@ private:
     std::unique_ptr<Ui::LoopShapingViewer> ui;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_LOOP_SHAPING_VIEWER_H
+#endif

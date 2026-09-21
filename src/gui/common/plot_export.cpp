@@ -1,3 +1,17 @@
+/**
+ * @file
+ * @brief The export formats and the temporary publishing look.
+ *
+ * The publishing look is applied to the plot for the duration of the write
+ * and undone afterwards, so the viewer keeps whatever the theme gave it.
+ * SVG goes through Qt's generator, which is a painter the plot can draw
+ * on, so the curves travel as paths. The format is chosen by the file
+ * suffix; when the dialog returns a name without one, the suffix comes from
+ * the filter the user picked. The dialog exports at twice the plot's size,
+ * so a small window does not fix the figure small; a vector format ignores
+ * that beyond the layout.
+ */
+
 #include "src/gui/common/plot_export.h"
 
 #include <QFileDialog>
@@ -12,8 +26,6 @@ namespace qftbx {
 
 namespace {
 
-//The figure a paper wants, applied to the plot and undone afterwards: the
-//viewer keeps whatever the interface's theme gave it.
 class PublishingLook
 {
 public:
@@ -96,8 +108,6 @@ private:
 
 bool saveSvg(QCustomPlot & plot, const ExportRequest & request)
 {
-    //QCustomPlot has no SVG of its own, but it paints onto any QPainter and
-    //QSvgGenerator is one: the curves travel as paths, not as pixels.
     const QSize size = request.size.isEmpty() ? plot.size() : request.size;
 
     QSvgGenerator generator;
@@ -118,7 +128,7 @@ bool saveSvg(QCustomPlot & plot, const ExportRequest & request)
     return QFileInfo::exists(request.fileName);
 }
 
-} // namespace
+}
 
 QString exportFilter()
 {
@@ -157,8 +167,6 @@ void exportPlot(QWidget * parent, QCustomPlot & plot, const QString & title)
         return;
     }
 
-    //The dialog does not always add the suffix, and the suffix is what picks
-    //the format: take it from the filter the user chose.
     if (QFileInfo(fileName).suffix().isEmpty()) {
         for (const QString & known : {"pdf", "svg", "png"}) {
             if (selected.contains("." + known, Qt::CaseInsensitive)) {
@@ -170,8 +178,6 @@ void exportPlot(QWidget * parent, QCustomPlot & plot, const QString & title)
 
     ExportRequest request;
     request.fileName = fileName;
-    //Twice the plot's own size, so that a small window does not fix the
-    //figure at a small size; a vector format ignores it beyond the layout.
     request.size = plot.size() * 2;
     request.profile = ExportProfile::ForPublishing;
 
@@ -180,4 +186,4 @@ void exportPlot(QWidget * parent, QCustomPlot & plot, const QString & title)
     }
 }
 
-} // namespace qftbx
+}

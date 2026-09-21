@@ -1,3 +1,17 @@
+/**
+ * @file
+ * @brief Wires the plan editor, the queue and the results to one run.
+ *
+ * The worker processes read the plan from its file, so a run saves the plan
+ * first, asking for a file when there is none. Paths are written relative
+ * to the plan file, so the plan moves with its project and its results, and
+ * are made absolute again when a plan is opened; the editor only ever holds
+ * absolute paths. When a run ends the records on disk are summarised into
+ * the results tab, which is also how a run made elsewhere with the
+ * command-line tool is read. The status bar keeps the case count of the
+ * plan as it is edited.
+ */
+
 #include "src/gui/bench/benchmark_window.h"
 
 #include <exception>
@@ -28,8 +42,6 @@ namespace {
 
 const QString kPlanFilter = QStringLiteral("Benchmark plans (*.qftbench *.xml)");
 
-//A plan's paths as written to its file: relative to the file, so the plan
-//moves with its project and its results.
 bench::Plan relativeTo(bench::Plan plan, const QString & planPath)
 {
     const QDir base = QFileInfo(planPath).absoluteDir();
@@ -46,7 +58,7 @@ bench::Plan absoluteFrom(bench::Plan plan, const QString & planPath)
     return plan;
 }
 
-} // namespace
+}
 
 BenchmarkWindow::BenchmarkWindow(QWidget * parent) : QMainWindow(parent)
 {
@@ -251,7 +263,6 @@ void BenchmarkWindow::run()
         return;
     }
 
-    //The worker processes read the plan from its file.
     if (m_planPath.isEmpty() && !confirm(tr("The plan has to be saved before it runs. Save it now?"))) {
         return;
     }
@@ -299,4 +310,4 @@ void BenchmarkWindow::loadResults()
     }
 }
 
-} // namespace qftbx
+}

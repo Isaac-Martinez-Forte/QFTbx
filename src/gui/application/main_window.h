@@ -1,3 +1,15 @@
+/**
+ * @file
+ * @brief The main window: the seven design steps, their cards, and the only GUI access to the project.
+ *
+ * Every form and viewer of the toolbox is created from here, with the
+ * window as its Qt parent, in the order the QFT pipeline imposes; a step
+ * whose inputs are missing is refused rather than half-run. The window
+ * alone talks to the project facade: the forms describe what the user
+ * typed and the viewers draw what they are handed. The file chooser is
+ * replaceable, so the open and save paths can be driven by a test.
+ */
+
 #ifndef QFTBX_MAIN_WINDOW_H
 #define QFTBX_MAIN_WINDOW_H
 
@@ -26,10 +38,9 @@
 #include "src/gui/loopshaping/loop_shaping_viewer.h"
 #include "src/gui/plant/plant_form.h"
 
-//The window is the only GUI class that talks to the project: the dialogs
-//and viewers are handed what they need and give back what they built.
+/// The window is the only GUI class that talks to the project: the dialogs
+/// and viewers are handed what they need and give back what they built.
 #include "src/app/project_controller.h"
-
 
 #include "src/gui/application/language.h"
 
@@ -41,7 +52,6 @@ class MainWindow;
 }
 
 namespace qftbx {
-
 
 /**
  * @brief The main window: the seven design steps as menu entries, and the
@@ -56,9 +66,9 @@ namespace qftbx {
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
-    
+
 public:
-  
+
     /**
      * @brief Builds the window with the settings the application read.
      * @param settings copied and kept: they are immutable, and every dialog
@@ -89,8 +99,8 @@ public:
     bool isComputing() const { return m_computing != nullptr; }
 
 private slots:
-    //One per phase: what used to follow the modal dialog, now run when the
-    //panel of that phase says the user accepted what it holds.
+    /// One per phase, run when the panel of that phase says the user
+    /// accepted what it holds.
     void applyPlant();
     void applySpecifications();
     void applyFrequencies();
@@ -112,7 +122,6 @@ private slots:
     void on_actionSaveAs_triggered();
 
     void on_actionOpen_triggered();
-
 
     void on_specificationsButton_clicked();
 
@@ -169,15 +178,14 @@ private:
     QAction * m_plannerAction = nullptr;
 #endif
 
-
-    //The facade is the window's own, and the only thing here that is not a
-    //Qt child.
+    /// The facade is the window's own, and the only thing here that is not a
+    /// Qt child.
     std::unique_ptr<ProjectController> controller;
-    //Every dialog and viewer below is created with THIS as its Qt parent,
-    //so Qt owns it and frees it with the window. They are raw pointers on
-    //purpose: holding one in a unique_ptr would make two owners and free it
-    //twice. destroyPhases() deletes them to REBUILD them for a new
-    //session, which is Qt's own mechanism, not memory management of ours.
+    /// Every dialog and viewer below is created with THIS as its Qt parent,
+    /// so Qt owns it and frees it with the window. They are raw pointers on
+    /// purpose: holding one in a unique_ptr would make two owners and free it
+    /// twice. destroyPhases() deletes them to REBUILD them for a new
+    /// session, which is Qt's own mechanism, not memory management of ours.
     /**
      * @brief Builds the card of one phase - its form and its diagrams
      * together - and puts it on the canvas.
@@ -213,7 +221,6 @@ private:
     /// Writes the canvas - which phase where, and how big - into the
     /// settings, so the next start comes up as this one was left.
     void rememberCanvas();
-
 
     /**
      * @brief Starts a computation on the worker and dresses its card for
@@ -289,12 +296,12 @@ private:
     /// it was in, with the size it had.
     std::vector<std::pair<QString, int>> m_rememberedCanvas;
 
-    //Whether that order came from the settings (the user's) or from the
-    //default this build starts a canvas with.
+    /// Whether that order came from the settings (the user's) or from the
+    /// default this build starts a canvas with.
     bool m_canvasRemembered = false;
 
-    //And whether the user has moved a card himself, after which nothing
-    //reorders the canvas behind his back.
+    /// And whether the user has moved a card himself, after which nothing
+    /// reorders the canvas behind his back.
     bool m_canvasOrdered = false;
 
     /// Whether the plant or the design frequencies have been applied since
@@ -316,8 +323,8 @@ private:
     LoopShapingForm * loopShapingForm = nullptr;
     LoopShapingViewer * loopShapingViewer = nullptr;
 
-    //The card of each phase, created with the widgets it holds. Destroying
-    //one destroys them: they are its children once it has them.
+    /// The card of each phase, created with the widgets it holds. Destroying
+    /// one destroys them: they are its children once it has them.
     PhaseCard * plantCard = nullptr;
     PhaseCard * frequenciesCard = nullptr;
     PhaseCard * specificationsCard = nullptr;
@@ -338,7 +345,6 @@ private:
 
     void saveProject ();
 
-
     /// Buttons and progress bar from ProjectController::completed(). See the
     /// definition for what it replaces.
     void refreshAvailability();
@@ -355,9 +361,9 @@ private:
 
     void destroyPhases();
 
-    //One per step: the dialog (and viewers) of a step, created on first use
-    //with the settings applied, and reused afterwards. Each of these blocks
-    //was written twice, in the step's handler and in the open handler.
+    /// One per step: the dialog (and viewers) of a step, created on first use
+    /// with the settings applied, and reused afterwards. Each of these blocks
+    /// was written twice, in the step's handler and in the open handler.
     void ensurePlantPhase();
     void ensureSpecificationsPhase();
     void ensureFrequenciesPhase();
@@ -378,6 +384,6 @@ private:
 
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_MAIN_WINDOW_H
+#endif

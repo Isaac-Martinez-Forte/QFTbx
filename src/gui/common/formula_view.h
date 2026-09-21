@@ -1,3 +1,18 @@
+/**
+ * @file
+ * @brief A widget that draws a formula as it is written, and the drawing routines behind it.
+ *
+ * The forms take a transfer function as a line of text, which is what the
+ * user cannot check; once read, the function that was understood is shown
+ * back with the fraction under its rule, the exponents raised and the
+ * parentheses as tall as what they hold, so the user can answer whether
+ * that is the plant they meant. Measuring and drawing are exposed apart
+ * from the widget so that anything with a painter can hold a formula, a
+ * table cell above all, and the metrics give ascent and descent separately
+ * because a fraction hangs below the baseline. The widget draws at the size
+ * that fits and offers the LaTeX of the drawing on a right-click.
+ */
+
 #ifndef QFTBX_GUI_FORMULA_VIEW_H
 #define QFTBX_GUI_FORMULA_VIEW_H
 
@@ -43,8 +58,8 @@ void drawFormula(QPainter & painter, const Formula & formula, const QFont & font
  * user answers the only question that matters - is that the plant I meant.
  *
  * It draws at the size that fits, between half and twice the font it is
- * given, so the same widget serves a card in the canvas and the space a
- * family figure used to take. The LaTeX of what is drawn is one right-click
+ * given, so the same widget serves a card in the canvas and a figure of
+ * its own. The LaTeX of what is drawn is one right-click
  * away, for a paper.
  */
 class FormulaView : public QWidget
@@ -77,10 +92,10 @@ private:
     QString m_placeholder;
 };
 
-} // namespace qftbx
+}
 
-//So that a formula travels in a QVariant, which is how a model hands one to
-//the delegate that draws it.
+/// So that a formula travels in a QVariant, which is how a model hands one to
+/// the delegate that draws it.
 Q_DECLARE_METATYPE(qftbx::Formula)
 
-#endif // QFTBX_GUI_FORMULA_VIEW_H
+#endif

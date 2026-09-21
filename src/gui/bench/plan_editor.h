@@ -1,3 +1,16 @@
+/**
+ * @file
+ * @brief The form of a benchmark plan.
+ *
+ * Declares the widget that shows every field of a plan and reads one back:
+ * the project and the output, the controller structures to grow, the
+ * algorithms, epsilons and repetitions to run, what to measure, how to
+ * execute, and the settings the runs override. It runs nothing and holds
+ * absolute paths; the window makes them relative when it saves. A change
+ * handler and a file chooser seam let the window count cases and let tests
+ * avoid modal dialogs.
+ */
+
 #ifndef QFTBX_GUI_BENCH_PLAN_EDITOR_H
 #define QFTBX_GUI_BENCH_PLAN_EDITOR_H
 
@@ -98,6 +111,6 @@ private:
     bool m_loading = false;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_GUI_BENCH_PLAN_EDITOR_H
+#endif

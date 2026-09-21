@@ -1,4 +1,15 @@
-
+/**
+ * @file
+ * @brief Plots the templates of a plant and the epsilon-hull contour of each.
+ *
+ * Declares the viewer of the value set at every design frequency and its
+ * contour, with a legend row per frequency that carries the epsilon it was
+ * walked with, the epsilon it asks for and whether the whole template
+ * stands in for a contour that did not close. Recomputing and proposing
+ * are plain callbacks installed by whoever owns the computation; the
+ * viewer draws and holds its own copies of what it draws, since a project
+ * may carry templates and no epsilon. The plot owns the graphs and curves.
+ */
 
 #ifndef QFTBX_TEMPLATE_VIEWER_H
 #define QFTBX_TEMPLATE_VIEWER_H
@@ -22,13 +33,11 @@
 #include "src/gui/common/frequency_legend.h"
 #include "src/core/templates/cloud_set.h"
 
-
 namespace Ui {
 class TemplateViewer;
 }
 
 namespace qftbx {
-
 
 /**
  * @brief Plots the templates of a plant - its value set at every design
@@ -44,7 +53,6 @@ public:
 
     explicit TemplateViewer(QWidget *parent = 0);
     ~TemplateViewer();
-
 
    /**
     * @brief Builds the plot.
@@ -63,7 +71,6 @@ public:
      * called then, instead of destroying the viewer.
      */
     void clear();
-
 
    /**
     * @brief Publishes everything the plot needs at once, instead of
@@ -124,14 +131,11 @@ public:
                         std::vector<double> * omega,
                         std::vector<double> * epsilon);
 
-
    /// @param templates the plant value set at every design frequency.
     void setTemplates (const qftbx::CloudSet & templates);
 
-
    /// @param contour the epsilon-hull of each template.
     void setContour (const qftbx::CloudSet & contour);
-
 
 private slots:
     void on_saveImage_clicked();
@@ -140,12 +144,10 @@ private slots:
 
     void on_contourButton_clicked();
 
-
     void applyCheckboxes ();
 
     void on_recomputeButton_clicked();
     void on_proposeButton_clicked();
-
 
 private:
     std::unique_ptr<Ui::TemplateViewer> ui;
@@ -173,21 +175,21 @@ private:
     FrequencyLegend * legend = nullptr;
     void clearDiagram();
 
-    //Its OWN copies, not aliases of the project's vectors,
-    //which is why a recompute had to be careful about what it freed.
+    /// Its OWN copies, not aliases of the project's vectors,
+    /// which is why a recompute had to be careful about what it freed.
     qftbx::CloudSet m_templates;
     qftbx::CloudSet m_contour;
     std::vector<double> m_omega;
     std::vector<double> m_epsilon;
 
-    //The graphs BELONG TO QCustomPlot, which frees them on clearGraphs():
-    //only these containers are the viewer's.
-    //The clouds are scatters, where the order of the points does not
-    //matter; the contours are curves, where it is everything.
+    /// The graphs BELONG TO QCustomPlot, which frees them on clearGraphs():
+    /// only these containers are the viewer's.
+    /// The clouds are scatters, where the order of the points does not
+    /// matter; the contours are curves, where it is everything.
     QVector <QCPGraph *> templateGraphs;
-    //One entry per frequency, and inside it one curve per piece of its
-    //contour: a cloud with more than one component is walked once per
-    //component, so the row of the legend and the curve are not one to one.
+    /// One entry per frequency, and inside it one curve per piece of its
+    /// contour: a cloud with more than one component is walked once per
+    /// component, so the row of the legend and the curve are not one to one.
     QVector <QVector <QCPCurve *>> contourCurves;
     QMap <qreal, QColor> colorByFrequency;
 
@@ -195,18 +197,16 @@ private:
 
     QVector <QLineEdit *> epsilonEdits;
 
-    //What the buttons say when the card opens: the contour is drawn and the
-    //cloud behind it is not. The second flag said the opposite while the
-    //drawing hardcoded the truth, so the first press of "Hide contour" only
-    //set the text it already had.
+    /// What the buttons say when the card opens: the contour is drawn and the
+    /// cloud behind it is not. The second flag said the opposite while the
+    /// drawing hardcoded the truth, so the first press of "Hide contour" only
+    /// set the text it already had.
     bool templatesVisible = false;
     bool contourVisible = true;
-
 
     bool plot = false;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_TEMPLATE_VIEWER_H
-
+#endif

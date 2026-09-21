@@ -1,3 +1,14 @@
+/**
+ * @file
+ * @brief The form that asks for the Nichols grid the boundaries are computed on.
+ *
+ * Declares the step panel for the phase and magnitude axes, their point
+ * counts, the finite stand-in for infinity used on export, whether the
+ * engine is fed the template contours or the full value sets, and the
+ * CPU/GPU choice. Defaults come from the settings and a ceiling on grid
+ * cells, also from the settings, only ever refuses input.
+ */
+
 #ifndef QFTBX_BOUNDARY_GRID_FORM_H
 #define QFTBX_BOUNDARY_GRID_FORM_H
 
@@ -20,7 +31,6 @@ class BoundaryGridForm;
 
 namespace qftbx {
 
-
 /**
  * @brief Asks the user for the Nichols grid the boundaries are computed
  * over: the phase and magnitude axes, their point counts, the stand-in for
@@ -31,7 +41,7 @@ namespace qftbx {
 class BoundaryGridForm : public StepPanel
 {
     Q_OBJECT
-    
+
 public:
     /**
      * @brief The ceiling on grid cells, from the settings.
@@ -61,41 +71,32 @@ public:
      */
     void setFromProject(const qftbx::BoundaryData * boundaries);
 
-  
     explicit BoundaryGridForm(QWidget *parent = 0);
 
     ~BoundaryGridForm();
-    
-    
+
     /// Start and end of the phase axis, in degrees.
     qftbx::Range phaseRangeValue();
-    
-    
+
     /// How many points the phase axis is sampled at.
     qint32 phaseCountValue();
-    
-    
+
     /// Start and end of the magnitude axis, in dB.
     qftbx::Range magnitudeRangeValue();
-    
-    
+
     /// How many points the magnitude axis is sampled at.
     qint32 magnitudeCountValue();
-    
-    
+
     /// Finite stand-in for infinity when the boundaries are exported; a
     /// negative value means none, and it takes no part in the computation.
     qreal infinityValue();
-    
-    
+
     /// Whether to feed the engine the template contours instead of the
     /// full value sets: far fewer points, at the epsilon-hull's accuracy.
     bool contourSelected();
 
     bool cudaSelected();
 
-
-    
 private slots:
     void on_okButton_clicked();
 
@@ -114,6 +115,6 @@ private:
 
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_BOUNDARY_GRID_FORM_H
+#endif

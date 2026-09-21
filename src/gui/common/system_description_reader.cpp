@@ -1,3 +1,17 @@
+/**
+ * @file
+ * @brief Name recognition and evaluation behind the system reader.
+ *
+ * A parameter is a whole identifier of the grammar, a letter followed by
+ * letters, digits or underscores, found in one pass over the text and
+ * recorded once in order of appearance. A function of the grammar and the
+ * Laplace variable are not parameters; the constants `pi` and `e` cannot be
+ * one and are refused with a complaint; the `e` of a number in scientific
+ * notation is an exponent and is skipped. A coefficient that does not parse
+ * or is not finite is refused rather than read as zero, because the system
+ * designed would not be the one the user typed.
+ */
+
 #include "src/gui/common/system_description_reader.h"
 
 #include <QObject>
@@ -29,11 +43,6 @@ QStringList SystemDescriptionReader::parameterNames(const QString & text, bool &
     refused = false;
     m_complaint.clear();
 
-    //A whole identifier, the way the grammar defines one: a letter and then
-    //letters, digits or underscores. Letters alone was the rule here, and
-    //it cut every name that carries a number - "z1" was read as a parameter
-    //called "z", so the ranges of a controller written with z1 and p1
-    //belonged to names nothing else in the program had ever heard of.
     static const QRegularExpression identifier("[A-Za-z][A-Za-z0-9_]*");
 
     QStringList names;
@@ -43,9 +52,6 @@ QStringList SystemDescriptionReader::parameterNames(const QString & text, bool &
         const QRegularExpressionMatch match = found.next();
         const QString capture = match.captured(0);
 
-        //The e of 1e3 is not a name: it is the exponent of a number, and
-        //reading it as one refused every coefficient written in scientific
-        //notation with a complaint about the constant e.
         const int before = match.capturedStart(0) - 1;
         if (before >= 0) {
             const QChar previous = text.at(before);
@@ -54,10 +60,6 @@ QStringList SystemDescriptionReader::parameterNames(const QString & text, bool &
             }
         }
 
-        //A function of the grammar is not a parameter, and neither is the
-        //Laplace variable s. The constants pi and e cannot be parameter
-        //names: the expression would read the constant, never the
-        //parameter.
         const std::string name = capture.toStdString();
 
         if (name == "pi" || name == "PI" || name == "e" || name == "E") {
@@ -100,7 +102,6 @@ bool SystemDescriptionReader::readCoefficients(const QString & text, Coefficient
     UncertainRow uncertainFlags;
 
     if (text.trimmed().isEmpty() && emptyIsOne) {
-        //An empty polynomial is the constant 1.
         expressions.push_back("1");
         values.push_back("1");
         uncertainFlags.push_back(false);
@@ -164,10 +165,6 @@ bool SystemDescriptionReader::readFreeForm(const QString & text, CoefficientTabl
                                            CoefficientTable & expressionTable,
                                            UncertainTable & uncertainTable)
 {
-    //Every name in the expression that is neither a parser function nor the
-    //Laplace variable is a parameter, recorded once. In ONE pass: the walk
-    //this replaces took the first name, cut it out of the text and looked
-    //again, which cut it out of the middle of longer names too.
     bool refused = false;
     const QStringList found = parameterNames(text, refused);
 
@@ -203,14 +200,11 @@ std::optional<std::vector<Parameter>> SystemDescriptionReader::buildParameters(c
     for (const QString & number : numbers) {
         const std::optional<double> value = evaluate(number);
         if (!value.has_value()) {
-            //An invalid coefficient is refused, not read as 0: the system
-            //designed would not be the one the user typed.
             return std::nullopt;
         }
         try {
             parameters.push_back(Parameter(*value));
         } catch (const qftbx::Exception &) {
-            //A coefficient that is not a finite number: same answer.
             return std::nullopt;
         }
     }
@@ -244,4 +238,4 @@ std::unique_ptr<LtiSystem> SystemDescriptionReader::makeSystem(LtiSystem::System
                                       numeratorExpression, denominatorExpression);
 }
 
-} // namespace qftbx
+}

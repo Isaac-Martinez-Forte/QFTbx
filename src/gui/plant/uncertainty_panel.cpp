@@ -1,3 +1,19 @@
+/**
+ * @file
+ * @brief Builds the rows of the uncertainty panel and reads them back.
+ *
+ * Rows are built for the distinct uncertain names in order of appearance,
+ * numerator first, under one heading so the fields say which is which
+ * once; a name the loaded system already knows opens on its interval.
+ * Rows leave the layout by destroying their widgets. Every row is read so
+ * that every mistake is marked at once, and the parameter carries the
+ * reparametrising expression of the first appearance of its name. A
+ * coefficient that is not uncertain is the number its field evaluates to,
+ * an expression included. An empty gain range is the unit gain and an
+ * empty delay range is zero. Number fields are kept narrow, since a
+ * field as wide as the card reads worse.
+ */
+
 #include "src/gui/plant/uncertainty_panel.h"
 #include "ui_uncertainty_panel.h"
 
@@ -17,14 +33,12 @@ namespace qftbx {
 
 namespace {
 
-//The two polynomial slots of the tables, in the order the forms fill them.
 const std::size_t kNumerator = 0;
 const std::size_t kDenominator = 1;
 
-//How wide a field holding one number is worth being.
 const int kFieldWidth = 110;
 
-} // namespace
+}
 
 UncertaintyPanel::UncertaintyPanel(QWidget * parent)
     : QWidget(parent),
@@ -38,8 +52,6 @@ UncertaintyPanel::UncertaintyPanel(QWidget * parent)
     heading.setBold(true);
     ui->uncertaintyTitle->setFont(heading);
 
-    //A number is three or four digits: a field as wide as the card says
-    //nothing and reads worse.
     for (QLineEdit * field : {ui->rangeGainStart, ui->rangeGainEnd,
                               ui->rangeDelayStart, ui->rangeDelayEnd}) {
         field->setMaximumWidth(kFieldWidth);
@@ -49,7 +61,6 @@ UncertaintyPanel::UncertaintyPanel(QWidget * parent)
 
 UncertaintyPanel::~UncertaintyPanel()
 {
-    //The rows are Qt children of the content widget of the scroll area.
 }
 
 void UncertaintyPanel::setTitle(const QString & title)
@@ -65,8 +76,6 @@ bool UncertaintyPanel::launch(CoefficientTable valueTable, CoefficientTable expr
     m_uncertain = std::move(uncertainTable);
     m_rangeOnly = rangeOnly;
 
-    //A controller structure is searched for over a range: it has no nominal
-    //value of its own, and the midpoint stands in for it.
     ui->scalarsWidget->setVisible(!rangeOnly);
 
     say(QString());
@@ -121,8 +130,6 @@ std::vector<QString> UncertaintyPanel::uncertainNames() const
 
 void UncertaintyPanel::buildRows()
 {
-    //Qt's own mechanism, and the reason there are deletes here: destroying
-    //the row widget is how it leaves the layout.
     for (QWidget * row : m_rowWidgets) {
         delete row;
     }
@@ -139,8 +146,6 @@ void UncertaintyPanel::buildRows()
         return;
     }
 
-    //The heading, so the three fields say which is which once instead of
-    //every row spelling out "[ , ] Nominal:".
     int row = 0;
     const auto heading = [&](int column, const QString & text) {
         QLabel * label = new QLabel(text, ui->parametersContent);
@@ -167,10 +172,6 @@ void UncertaintyPanel::buildRows()
         entry.nominal = new QLineEdit(ui->parametersContent);
         entry.maximum = new QLineEdit(ui->parametersContent);
 
-        //Named for what they are, and named so that nothing else in the
-        //form that owns this panel answers to the same name: a field
-        //called "gainEnd" in two places is a field the wrong one of which
-        //gets written.
         entry.minimum->setObjectName("rangeMinimum");
         entry.nominal->setObjectName("rangeNominal");
         entry.maximum->setObjectName("rangeMaximum");
@@ -194,7 +195,6 @@ void UncertaintyPanel::buildRows()
 
         entry.nominal->setVisible(!m_rangeOnly);
 
-        //A name the project already knows opens on the interval it has.
         for (const Parameter & parameter : m_known) {
             if (parameter.name() == name.toStdString()) {
                 entry.minimum->setText(numberText(parameter.rawRange().min));
@@ -232,8 +232,6 @@ bool UncertaintyPanel::readRanges()
 {
     bool valid = true;
 
-    //Every row is read, so that every mistake is marked at once and the
-    //user is not sent round the form one field at a time.
     std::vector<Parameter> named;
 
     for (Row & row : m_rows) {
@@ -262,8 +260,6 @@ bool UncertaintyPanel::readRanges()
             continue;
         }
 
-        //The reparametrisation the coefficient was written with, which is
-        //the expression of the FIRST appearance of the name.
         std::string expression = row.name.toStdString();
         for (std::size_t slot : {kNumerator, kDenominator}) {
             if (slot >= m_values.size()) {
@@ -282,7 +278,6 @@ bool UncertaintyPanel::readRanges()
             named.push_back(Parameter(row.name.toStdString(), Range(*minimum, *maximum),
                                       *nominal, expression));
         } catch (const qftbx::Exception &) {
-            //A bound that parses but is not a number a model can use.
             markWrong(row.minimum, true, complaint);
             markWrong(row.maximum, true, complaint);
             markWrong(row.nominal, true, complaint);
@@ -326,7 +321,6 @@ std::vector<Parameter> UncertaintyPanel::parametersOf(std::size_t slot,
 
         if (slot < m_uncertain.size() && i < m_uncertain.at(slot).size()
                 && m_uncertain.at(slot).at(i)) {
-            //The one parameter that name stands for, wherever it appears.
             const auto found = std::find_if(named.begin(), named.end(),
                                             [&token](const Parameter & parameter) {
                                                 return parameter.name() == token.toStdString();
@@ -337,8 +331,6 @@ std::vector<Parameter> UncertaintyPanel::parametersOf(std::size_t slot,
             }
         }
 
-        //A coefficient that is not uncertain is the number it reads as. An
-        //expression ("2*pi") is one: it is what the field accepted.
         const std::optional<double> value = evaluateNumber(token);
         if (!value.has_value()) {
             valid = false;
@@ -368,8 +360,6 @@ std::vector<Parameter> & UncertaintyPanel::denominator()
 
 Range UncertaintyPanel::gain()
 {
-    //An empty range is the unit gain, which is what the field of a system
-    //without an uncertain gain holds.
     if (ui->rangeGainStart->text().isEmpty() || ui->rangeGainEnd->text().isEmpty()) {
         ui->rangeGainStart->setText("1");
         ui->rangeGainEnd->setText("1");
@@ -422,4 +412,4 @@ void UncertaintyPanel::on_backButton_clicked()
     emit cancelled();
 }
 
-} // namespace qftbx
+}

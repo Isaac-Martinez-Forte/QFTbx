@@ -1,3 +1,15 @@
+/**
+ * @file
+ * @brief The parametric uncertainty of a plant or controller, one row per name.
+ *
+ * Declares a panel, not a dialog: a page of the form that owns it, since
+ * the uncertainty is part of describing the system. It works on the tables
+ * the form read out of its fields and hands them back as parameters, one
+ * row per name rather than per coefficient, so a name that appears twice
+ * is one parameter with one range. In range-only mode, for a controller
+ * structure, the nominal is hidden and the midpoint stands in for it.
+ */
+
 #ifndef QFTBX_UNCERTAINTY_PANEL_H
 #define QFTBX_UNCERTAINTY_PANEL_H
 
@@ -136,12 +148,12 @@ private:
 
     std::vector<Row> m_rows;
 
-    //The row widgets belong to the layout of the scroll area's content, and
-    //are destroyed with it when the rows are rebuilt.
+    /// The row widgets belong to the layout of the scroll area's content, and
+    /// are destroyed with it when the rows are rebuilt.
     std::vector<QWidget *> m_rowWidgets;
 
-    //The intervals a loaded system brought, by name: what a row opens on
-    //when the text names a parameter the project already knows.
+    /// The intervals a loaded system brought, by name: what a row opens on
+    /// when the text names a parameter the project already knows.
     std::vector<Parameter> m_known;
 
     std::vector<Parameter> m_numerator;
@@ -155,6 +167,6 @@ private:
     bool m_accepted = false;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_UNCERTAINTY_PANEL_H
+#endif

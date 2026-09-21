@@ -1,3 +1,13 @@
+/**
+ * @file
+ * @brief The summary of a benchmark run: a table and a figure.
+ *
+ * Declares the tab that shows the statistics per case as a table and one
+ * measure against the controller structure as a figure, one curve per
+ * algorithm, the way the thesis draws its comparisons. The table and the
+ * figure can be exported as CSV or Markdown through a file chooser seam.
+ */
+
 #ifndef QFTBX_GUI_BENCH_RESULTS_VIEW_H
 #define QFTBX_GUI_BENCH_RESULTS_VIEW_H
 
@@ -53,6 +63,6 @@ private:
     FileChooser m_chooseFile;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_GUI_BENCH_RESULTS_VIEW_H
+#endif

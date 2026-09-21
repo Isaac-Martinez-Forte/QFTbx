@@ -1,9 +1,19 @@
+/**
+ * @file
+ * @brief One row of the uncertainty table: the line edits of a parameter's minimum, maximum and nominal.
+ *
+ * A plain aggregate of observers. The widgets belong to the form that
+ * created them; the row only remembers where they are so the form can read
+ * a parameter back without walking the layout. Nothing here frees a widget:
+ * a setter that deleted the one it replaces would leave the layout with a
+ * dangling child.
+ */
+
 #ifndef PARLABEL_H
 #define PARLABEL_H
 
 #include <QVector>
 #include <QLineEdit>
-
 
 /**
  * @brief One row of the uncertainty table: the three line edits that hold a
@@ -62,6 +72,6 @@ private:
     QLineEdit * m_nominal = nullptr;
 };
 
-} // namespace qftbx
+}
 
-#endif // PARLABEL_H
+#endif

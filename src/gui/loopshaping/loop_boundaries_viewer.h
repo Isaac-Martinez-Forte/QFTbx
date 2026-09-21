@@ -1,3 +1,15 @@
+/**
+ * @file
+ * @brief A dialog drawing the boundary union on the Nichols and Nyquist planes.
+ *
+ * Declares the viewer that shows the same union of boundaries as Nichols
+ * curves, as Nyquist curves, or both, one legend row per frequency and
+ * diagram. The Nyquist curves are taken by value since they are computed
+ * for this view; the boundary data, the frequencies, the plant and the
+ * controller are observers on the project's objects. The plot owns the
+ * curves.
+ */
+
 #ifndef QFTBX_LOOP_BOUNDARIES_VIEWER_H
 #define QFTBX_LOOP_BOUNDARIES_VIEWER_H
 
@@ -14,13 +26,11 @@
 
 #include "src/core/system/lti_system.h"
 
-
 namespace Ui {
 class LoopBoundariesViewer;
 }
 
 namespace qftbx {
-
 
 class LoopBoundariesViewer : public QDialog
 {
@@ -29,7 +39,6 @@ class LoopBoundariesViewer : public QDialog
 public:
     explicit LoopBoundariesViewer(QWidget *parent = 0);
     ~LoopBoundariesViewer();
-
 
     /**
      * @brief Publishes what the two diagrams draw.
@@ -60,23 +69,22 @@ private:
     QVector<QCPCurve *> piecesOf(const std::vector<double> & x, const std::vector<double> & y,
                                  const std::vector<std::size_t> & cuts, const QColor & color);
 
-
     const BoundaryData * nicholsData = nullptr;
-    //By value: the curves are computed for this view and belong to it.
+    /// By value: the curves are computed for this view and belong to it.
     qftbx::NyquistTraces nyquistTraces;
-    //Observers on the project's objects, handed in by setData(): the
-    //viewer never owns what it draws.
+    /// Observers on the project's objects, handed in by setData(): the
+    /// viewer never owns what it draws.
     LtiSystem * plant = nullptr;
     LtiSystem * controller = nullptr;
     std::vector<double> * omega = nullptr;
 
     bool plotted = false;
 
-    //One entry per ROW of the legend - a frequency in one of the two
-    //diagrams - and inside it one curve per piece of that boundary, which
-    //is not always one.
-    //The curves BELONG TO QCustomPlot, which frees them on
-    //clearPlottables(): only the container is the viewer's.
+    /// One entry per ROW of the legend - a frequency in one of the two
+    /// diagrams - and inside it one curve per piece of that boundary, which
+    /// is not always one.
+    /// The curves BELONG TO QCustomPlot, which frees them on
+    /// clearPlottables(): only the container is the viewer's.
     QVector <QVector <QCPCurve *>> curves;
 
     /// One row per curve, labelled with its frequency AND its diagram: in
@@ -92,6 +100,6 @@ private:
 
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_LOOP_BOUNDARIES_VIEWER_H
+#endif

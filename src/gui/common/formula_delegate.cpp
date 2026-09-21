@@ -1,3 +1,14 @@
+/**
+ * @file
+ * @brief Painting and sizing of a formula inside a table cell.
+ *
+ * The cell's ground and selection are drawn by the style with the text
+ * cleared, since the formula is the text and drawing both would print it
+ * twice. A formula wider or taller than its cell is drawn smaller, down to
+ * six tenths of the font and no further: past that the answer is to widen
+ * the column. The size hint is the natural size plus a margin of air.
+ */
+
 #include "src/gui/common/formula_delegate.h"
 
 #include <algorithm>
@@ -10,14 +21,11 @@ namespace qftbx {
 
 namespace {
 
-//Air around the formula inside its cell.
 const int kMargin = 6;
 
-//A formula wider than its column is drawn smaller rather than cut off, but
-//only down to here: past it the answer is to widen the column.
 const double kSmallest = 0.6;
 
-} // namespace
+}
 
 FormulaDelegate::FormulaDelegate(QObject * parent)
     : QStyledItemDelegate(parent)
@@ -38,7 +46,6 @@ void FormulaDelegate::paint(QPainter * painter, const QStyleOptionViewItem & opt
 
     QStyleOptionViewItem style = option;
     initStyleOption(&style, index);
-    //The text is the formula; drawing both would print it twice.
     style.text.clear();
     style.widget->style()->drawControl(QStyle::CE_ItemViewItem, &style, painter, style.widget);
 
@@ -82,4 +89,4 @@ QSize FormulaDelegate::sizeHint(const QStyleOptionViewItem & option,
     return QSize(int(metrics.width) + 2 * kMargin, int(metrics.height()) + 4);
 }
 
-} // namespace qftbx
+}

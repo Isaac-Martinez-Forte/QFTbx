@@ -1,3 +1,19 @@
+/**
+ * @file
+ * @brief Draws the loop, the boundaries and the verdict of the design.
+ *
+ * The digits combo offers two to eight significant figures and the whole
+ * double; it sets the global that everything drawn afterwards reads and
+ * redraws the controller at those digits while the file keeps the rest.
+ * The verdict is the controller checked against the specifications over
+ * the templates, naming the worst frequency and specification, with the
+ * whole table as tooltip; a design read from a file brings the verdict
+ * without the table. Each boundary piece is a curve of its own. The
+ * open-loop curve is drawn over a fixed dense logarithmic sweep, not the
+ * range the form asks for, with phases folded into (-360, 0] and the curve
+ * cut wherever the phase jumps by more than 100 degrees.
+ */
+
 #include "src/gui/common/qt_containers.h"
 #include "src/core/math/constants.h"
 #include "src/gui/common/plot_export.h"
@@ -14,7 +30,6 @@
 #include "src/core/system/system_formula.h"
 
 #include <cmath>
-
 
 namespace qftbx {
 
@@ -34,14 +49,10 @@ LoopShapingViewer::LoopShapingViewer(QWidget *parent) :
     ui->legendHolder->layout()->addWidget(legend);
     connect(legend, &FrequencyLegend::rowToggled, this, &LoopShapingViewer::applyCheckboxes);
 
-    //The column of controls does not take half the card: the chart needs
-    //the width more than the buttons do.
     narrowSideColumn(ui->sideLayout);
 
-    //How many digits the numbers are read at, where they are read.
     fillDigitsCombo();
 
-    //Connected ONCE: a connection per replot duplicates the handler.
     connect(ui->plot->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->xAxis2, SLOT(setRange(QCPRange)));
     connect(ui->plot->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->yAxis2, SLOT(setRange(QCPRange)));
 }
@@ -52,9 +63,6 @@ LoopShapingViewer::~LoopShapingViewer()
 
 }
 
-//Two to eight significant digits, and the whole number a double holds.
-//Four is what a gain or a margin is read at; the rest is for when a
-//coefficient has to be copied out by hand.
 void LoopShapingViewer::fillDigitsCombo()
 {
     for (int digits : {2, 3, 4, 5, 6, 8}) {
@@ -69,8 +77,6 @@ void LoopShapingViewer::fillDigitsCombo()
             [this](int index) {
                 const int digits = ui->digitsCombo->itemData(index).toInt();
                 setShownDigits(digits);
-                //What is on screen, again, at the new count. The legend
-                //carries frequencies too, so the chart is redrawn with it.
                 if (loopShapingData != nullptr) {
                     showDiagram();
                 }
@@ -87,7 +93,6 @@ void LoopShapingViewer::clearDiagram(){
     ui->plot->clearFocus();
     ui->plot->clearGraphs();
     ui->plot->clearItems();
-    //QCustomPlot owns the curves: clearPlottables frees them.
     ui->plot->clearPlottables();
 
     legend->clear();
@@ -95,10 +100,8 @@ void LoopShapingViewer::clearDiagram(){
     curves.clear();
     boundaryCurves.clear();
 
-
     plotted = false;
 }
-
 
 void LoopShapingViewer::clear(){
 
@@ -119,12 +122,6 @@ void LoopShapingViewer::setData(const qftbx::UnionTraces & unionTraces, std::vec
     this->linSpace = linSpace;
 }
 
-//The controller checked against the specifications themselves, as the run
-//left it: one line saying whether it satisfies them and by how much it
-//misses when it does not, with the frequency and the specification of the
-//worst case, and the whole table as the tooltip. The boundaries the search
-//worked against are a discretisation; this is the answer to the question
-//the user actually asked.
 void LoopShapingViewer::showCheck(){
 
     const std::optional<qftbx::SpecificationCheck> & check = loopShapingData->check();
@@ -136,9 +133,6 @@ void LoopShapingViewer::showCheck(){
         return;
     }
 
-    //A design read from a project file brings the verdict but not the table
-    //behind it: the file stores the worst excess, which is what the verdict
-    //is, and not the itemised list, which the project can recompute.
     if (check->entries.empty()) {
         ui->checkLabel->setToolTip(QString());
         if (!std::isfinite(check->worstExcessDb)) {
@@ -198,10 +192,6 @@ QString LoopShapingViewer::specificationTitle(qftbx::SpecificationType type){
     return QString();
 }
 
-//The controller the search found, at the digits that are worth reading: a
-//coefficient of 1.8194305709013996 is a coefficient of 1.819, and the file
-//keeps the rest. Apart from the drawing, so that choosing how many digits
-//to read does not redraw the chart.
 void LoopShapingViewer::showController(){
 
     if (loopShapingData == nullptr || loopShapingData->controller() == nullptr) {
@@ -222,9 +212,6 @@ void LoopShapingViewer::showController(){
     ui->denominatorEdit->setText(denominator.trimmed());
     ui->gainEdit->setText(qftbx::shownText(loopShapingData->controller()->gain().nominal()));
 
-    //And the same controller as the formula it is, which is what the figure
-    //of its family could never say: that one drew "k(s+z1)/(s+p1)(s+p2)"
-    //whatever the numbers were.
     ui->controllerFormula->setFormula(formulaOf(*loopShapingData->controller(), shownDigits()));
 
     showCheck();
@@ -234,16 +221,11 @@ void LoopShapingViewer::showDiagram(){
 
     showController();
 
-
     clearDiagram();
-
-
 
     plotted = true;
 
     qint32 curveIndex = 0;
-
-    //Sweep the boundaries.
 
     QVector <QColor> rowColors;
 
@@ -253,8 +235,6 @@ void LoopShapingViewer::showDiagram(){
         frequencyIndex++;
         rowColors.push_back(color);
 
-        //One curve per piece of the boundary: a frequency whose boundary is
-        //two curves drew a long straight line between them.
         QVector<QCPCurve *> pieces;
 
         for (const qftbx::Trace & piece : qftbx::continuousSegments(bound)) {
@@ -287,57 +267,16 @@ void LoopShapingViewer::showDiagram(){
 
     ui->plot->rescaleAxes();
 
-    //Draw the open-loop curve.
-
     std::vector<double> frequencies;
 
-    /*if(linSpace){
-        frequencies = qftbx::linspace(loopShapingData->range().min, loopShapingData->range().max, loopShapingData->pointCount());
-
-    } else {
-        frequencies = qftbx::logspace(loopShapingData->range().min, loopShapingData->range().max, loopShapingData->pointCount());
-    }*/
-
-    //FIXED ON PURPOSE, for now (decision taken 2026-09-03: leave it, write
-    //down why). The form asks for a range and a point count, and nothing
-    //reads them but the persistence. Of the three reasons that stood in the
-    //way of honouring them, one is now gone and two remain.
-    //
-    //SETTLED: the units. Both forms ask for rad/s now and say so on the
-    //label, and each converts with log10 where qftbx::logspace wants an
-    //exponent. Before, this form's defaults were written as values while
-    //the frequencies form read its field as an exponent, so the same "0.01"
-    //meant two different frequencies and no label admitted it. Reviving the
-    //code above therefore needs a std::log10 on both ends, exactly like
-    //bode_viewer does.
-    //
-    //STILL IN THE WAY: the disabled code predates Range becoming a struct, so
-    //it asks a QPointF for .min. And the segmentation below detects the phase
-    //wrap by |delta| > 100 degrees, which PRESUMES a dense sweep: a small
-    //user count would break the curve into spurious pieces.
-    //
-    //And that last one is why the point count should probably never be
-    //honoured as typed. The answer is not a number of points but a
-    //tolerance, and it is already solved next door for the computation:
-    //NominalStabilityChecker derives its range from the design frequencies
-    //(kDecadesBeyond) and refines until the phase step falls under
-    //kMaxPhaseStepDegrees. Doing the same here would also make the drawing
-    //and the check look at the same place, which they need not do today.
     frequencies = qftbx::logspace(-5, 5, 10000);
 
-    //The open-loop curve, cut into segments wherever the phase wraps: by
-    //value, so a replot does not abandon them.
     QVector<std::vector<double> > phaseSegments;
     QVector<std::vector<double> > magnitudeSegments;
 
     std::vector<double> currentPhases;
     std::vector<double> currentMagnitudes;
 
-
-    //The first sample only seeds the phase comparison, so it is taken
-    //inside the loop: computing it before as well puts the first frequency
-    //in the curve twice, and reads frequencies.at(0) without knowing there
-    //is one.
     qreal previousPhase = 0.0;
     bool firstSample = true;
 
@@ -371,18 +310,13 @@ void LoopShapingViewer::showDiagram(){
     phaseSegments.push_back(std::move(currentPhases));
     magnitudeSegments.push_back(std::move(currentMagnitudes));
 
-
     for (qint32 i = 0; i < phaseSegments.size(); i++){
         QCPCurve *curve = new QCPCurve(ui->plot->xAxis, ui->plot->yAxis);
         curve->setData(qftbx::toQVector(phaseSegments.at(i)), qftbx::toQVector(magnitudeSegments.at(i)));
-        //The one curve on this chart that is not a limit to respect but the
-        //answer to the whole design.
         curve->setPen(QPen(kLoopColour, kLoopWidth));
         curves.push_back(curve);
     }
 
-
-    //Draw the marker for each design frequency.
     for (qint32 i = 0; i < static_cast<std::int32_t>(omega->size()); i++){
 
         std::vector<double> phases;
@@ -402,8 +336,6 @@ void LoopShapingViewer::showDiagram(){
         marker->setScatterStyle(QCPScatterStyle::ssCircle);
         marker->setLineStyle(QCPGraph::lsNone);
     }
-
-
 
     ui->plot->replot();
 }
@@ -426,4 +358,4 @@ void LoopShapingViewer::on_saveImage_clicked()
     qftbx::exportPlot(this, *ui->plot, tr("Loop-shaping plot"));
 }
 
-} // namespace qftbx
+}

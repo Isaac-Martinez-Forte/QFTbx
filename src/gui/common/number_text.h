@@ -1,3 +1,15 @@
+/**
+ * @file
+ * @brief Reals as text for fields and labels, at full precision or at the shown digits.
+ *
+ * Both go through the project's one formatter. A number the user types or
+ * that goes to a file keeps every digit, the shortest text that reads back
+ * to the same double, so reopening a form does not round what the file
+ * holds. A number the user only reads, a gain off an optimisation or a
+ * coefficient inside a drawn formula, is shown at a global count of
+ * significant digits that the settings may change.
+ */
+
 #ifndef QFTBX_GUI_NUMBER_TEXT_H
 #define QFTBX_GUI_NUMBER_TEXT_H
 
@@ -41,6 +53,6 @@ inline QString shownText(double value)
     return QString::fromStdString(qftbx::text::number(value, shownDigits()));
 }
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_GUI_NUMBER_TEXT_H
+#endif

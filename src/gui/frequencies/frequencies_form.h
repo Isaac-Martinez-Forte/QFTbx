@@ -1,3 +1,14 @@
+/**
+ * @file
+ * @brief The step that asks for the design frequencies of the whole design.
+ *
+ * Declares the panel where the set is entered linearly, logarithmically,
+ * by hand or from a file. The panel knows nothing of the project: it
+ * builds the set and hands it over. A ceiling on the number of
+ * frequencies comes from the settings. Reopening a design shows the rule
+ * it was generated with, and the values themselves on the manual page.
+ */
+
 #ifndef QFTBX_FREQUENCIES_FORM_H
 #define QFTBX_FREQUENCIES_FORM_H
 
@@ -22,7 +33,6 @@ class FrequenciesForm;
 
 namespace qftbx {
 
-
 /**
  * @brief Step 2 of the design: the set of design frequencies (Omega) the
  * whole pipeline is computed at, entered linearly, logarithmically, by
@@ -33,12 +43,11 @@ namespace qftbx {
 class FrequenciesForm : public StepPanel
 {
     Q_OBJECT
-    
+
 public:
     /// Ceiling on the number of design frequencies, from the settings.
     void applyFrequencyCountLimit(std::int32_t count);
 
-  
   /// The dialog knows nothing of the project: it builds a frequency set
   /// and takeOmega() hands it over.
     explicit FrequenciesForm(QWidget *parent = 0);
@@ -59,8 +68,6 @@ public:
     void setFromProject(const Omega * omega);
     ~FrequenciesForm();
 
-
-    
 private slots:
 
     void on_fileButton_clicked();
@@ -77,6 +84,6 @@ private:
 
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_FREQUENCIES_FORM_H
+#endif
