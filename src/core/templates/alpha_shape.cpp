@@ -133,7 +133,7 @@ AlphaShape alphaShape(const ComplexCloud & points, double epsilon)
     std::set<std::pair<std::int32_t, std::int32_t>> used;
     std::map<std::int32_t, std::pair<double, std::vector<std::int32_t>>> outer;
     for (const auto & e : edges) {
-        for (const auto start : {std::make_pair(e.first, e.second), std::make_pair(e.second, e.first)}) {
+        for (const auto & start : {std::make_pair(e.first, e.second), std::make_pair(e.second, e.first)}) {
             if (used.count(start)) continue;
             std::vector<std::int32_t> loop;
             std::pair<std::int32_t, std::int32_t> cur = start;

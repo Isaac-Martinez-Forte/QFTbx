@@ -156,7 +156,7 @@ WorstCase SingularLocus::guard(const WorstCase & sampled, std::complex<double> L
     constexpr double kInfinity = std::numeric_limits<double>::infinity();
     WorstCase guarded = sampled;
 
-    const auto singular = [&guarded, &kInfinity]() {
+    const auto singular = [&guarded]() {
         guarded.stabilityNoise = kInfinity;
         guarded.trackingMin = 0.0;
         guarded.outputDisturbance = kInfinity;

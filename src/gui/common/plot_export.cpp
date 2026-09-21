@@ -168,7 +168,7 @@ void exportPlot(QWidget * parent, QCustomPlot & plot, const QString & title)
     }
 
     if (QFileInfo(fileName).suffix().isEmpty()) {
-        for (const QString & known : {"pdf", "svg", "png"}) {
+        for (const QString known : {"pdf", "svg", "png"}) {
             if (selected.contains("." + known, Qt::CaseInsensitive)) {
                 fileName += "." + known;
                 break;

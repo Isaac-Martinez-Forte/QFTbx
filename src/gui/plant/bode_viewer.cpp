@@ -117,7 +117,7 @@ void BodeViewer::on_saveImage_clicked()
     }
 
     if (QFileInfo(fileName).suffix().isEmpty()) {
-        for (const QString & known : {"pdf", "svg", "png"}) {
+        for (const QString known : {"pdf", "svg", "png"}) {
             if (selected.contains("." + known, Qt::CaseInsensitive)) {
                 fileName += "." + known;
                 break;
