@@ -5,7 +5,9 @@
  * The text is a run of HTML paragraphs, each translated where it stands
  * under the context `About`, which is where the translation files key it.
  * The repository and documentation addresses are constants substituted
- * into the paragraph that points at them.
+ * into the paragraph that points at them. The version comes from the header
+ * the build writes, and names the commit as well when the build is not one
+ * of a tagged release.
  */
 
 #include "src/gui/application/about.h"
@@ -13,6 +15,8 @@
 #include <QCoreApplication>
 #include <QMessageBox>
 #include <QStringList>
+
+#include "qftbx_version.h"
 
 namespace qftbx {
 
@@ -23,10 +27,28 @@ const char * const kDocumentation = "https://github.com/Isaac-Martinez-Forte/QFT
 
 }
 
+namespace {
+
+QString versionLine()
+{
+    const QString version = QStringLiteral(QFTBX_VERSION);
+    const QString commit = QStringLiteral(QFTBX_COMMIT);
+
+    if (commit.isEmpty()) {
+        return QCoreApplication::translate("About", "Version %1").arg(version);
+    }
+
+    return QCoreApplication::translate("About", "Version %1, build %2")
+            .arg(version, commit);
+}
+
+}
+
 QString aboutText()
 {
     QStringList paragraphs;
     paragraphs << QStringLiteral("<h2>QFTbx</h2>");
+    paragraphs << QStringLiteral("<p>%1</p>").arg(versionLine());
     paragraphs << QStringLiteral("<p>%1</p>").arg(QCoreApplication::translate("About",
         "A toolbox for the design and analysis of robust controllers with "
         "Quantitative Feedback Theory (QFT)."));

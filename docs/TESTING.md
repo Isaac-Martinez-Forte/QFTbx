@@ -1,7 +1,7 @@
 # Testing
 
-The tests are built with the project (`QFTBX_BUILD_TESTS`, on by default)
-into two binaries, both GoogleTest: `qftbx_tests`, the backend suite, and
+The tests are built when the configure asks for them (`-DQFTBX_BUILD_TESTS=ON`,
+off by default) into two binaries, both GoogleTest: `qftbx_tests`, the backend suite, and
 `qftbx_gui_tests`, the headless smoke suite of the dialogs. CTest knows
 every test of both.
 

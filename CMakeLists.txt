@@ -16,10 +16,68 @@ if(USE_CLANG AND NOT DEFINED CMAKE_CXX_COMPILER)
   endif()
 endif()
 
-project(QFTbx LANGUAGES CXX)
+# The version of the program, and the only place it is written. A zero major
+# says the program does not commit to stability yet: the major changes when a
+# published result moves or a project file of an older version stops opening,
+# the minor when something new arrives that moves no result, and the patch
+# with fixes that move nothing. The version of the .qft format is its own
+# number and lives in src/persistence/qft_dialect.h.
+project(QFTbx VERSION 0.1.0 LANGUAGES CXX)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 include(QftbxFunctions)
+include(GNUInstallDirs)
+
+# Where the shipped examples sit once installed, and how to reach them from
+# the executable, which is what the interface resolves at run time. Each
+# system has its own habit: a bundle on macOS, everything beside the program
+# on Windows, and the data directory of the prefix on the rest.
+if(APPLE)
+  set(QFTBX_EXAMPLES_INSTALL_DIR "QFTbx.app/Contents/Resources/examples")
+  set(QFTBX_EXAMPLES_RELATIVE_DIR "../Resources/examples")
+elseif(WIN32)
+  set(QFTBX_EXAMPLES_INSTALL_DIR "examples")
+  set(QFTBX_EXAMPLES_RELATIVE_DIR "examples")
+else()
+  set(QFTBX_EXAMPLES_INSTALL_DIR "${CMAKE_INSTALL_DATADIR}/qftbx/examples")
+  set(QFTBX_EXAMPLES_RELATIVE_DIR "../${CMAKE_INSTALL_DATADIR}/qftbx/examples")
+endif()
+
+# Where the executable itself lands, which is where the relative path above
+# starts from. The installation test walks the same two values.
+# The header that carries the version into the About box, written at build
+# time so the commit it names is the one being built.
+set(QFTBX_VERSION_HEADER "${CMAKE_BINARY_DIR}/generated/qftbx_version.h")
+add_custom_target(qftbx_version_header
+  COMMAND "${CMAKE_COMMAND}"
+    -D "SOURCE_DIR=${CMAKE_SOURCE_DIR}"
+    -D "OUTPUT=${QFTBX_VERSION_HEADER}"
+    -D "VERSION=${PROJECT_VERSION}"
+    -P "${CMAKE_SOURCE_DIR}/cmake/WriteVersionHeader.cmake"
+  BYPRODUCTS "${QFTBX_VERSION_HEADER}"
+  COMMENT "Writing the version header"
+  VERBATIM
+)
+file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/generated")
+
+if(APPLE)
+  set(QFTBX_INSTALLED_EXE_DIR "QFTbx.app/Contents/MacOS")
+elseif(WIN32)
+  set(QFTBX_INSTALLED_EXE_DIR ".")
+else()
+  set(QFTBX_INSTALLED_EXE_DIR "${CMAKE_INSTALL_BINDIR}")
+endif()
+
+# Release unless the build asks for something else. A configure with no build
+# type named gives no optimisation flags at all, which for a program whose
+# work is a branch and bound is the difference between minutes and hours.
+# Multi-configuration generators choose at build time and are left alone.
+if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
+               Debug Release RelWithDebInfo MinSizeRel)
+  message(STATUS "No build type given: building Release")
+endif()
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -32,7 +90,11 @@ set(CMAKE_AUTORCC ON)
 option(USE_OpenMP        "Use OpenMP"           ON)
 option(USE_CUDA          "Use CUDA"             OFF)
 option(USE_NATIVE_ARCH   "Enable -march=native" ON)
-option(QFTBX_BUILD_TESTS "Build unit tests"     ON)
+# The tests, off unless asked for. They are the author's, not something a
+# build for use needs: they fetch GoogleTest, which a build without network
+# access cannot do, and they take longer to compile than the program. They do
+# not change the program, which is built from the same sources either way.
+option(QFTBX_BUILD_TESTS "Build unit tests"     OFF)
 
 # The benchmark tool and its planner in the interface: for measuring the
 # algorithms, not for using them, so off unless asked for. See
@@ -130,10 +192,45 @@ qftbx_native_arch(QFTbx)
 
 if(WIN32)
   target_sources(QFTbx PRIVATE Resources/Icon/qftbx.rc)
+  set_target_properties(QFTbx PROPERTIES WIN32_EXECUTABLE TRUE)
+endif()
+
+if(APPLE)
+  set_target_properties(QFTbx PROPERTIES MACOSX_BUNDLE TRUE)
 endif()
 
 if(UNIX AND NOT APPLE)
   qftbx_add_desktop_entry(QFTbx "${CMAKE_SOURCE_DIR}/Resources/Icon/qftbx_256.png")
+endif()
+
+# Installation. The examples travel with the program and are never written
+# to: the interface lists them, loads them and saves a copy wherever the
+# user asks instead.
+if(WIN32)
+  install(TARGETS QFTbx RUNTIME DESTINATION .)
+elseif(APPLE)
+  install(TARGETS QFTbx BUNDLE DESTINATION .)
+else()
+  install(TARGETS QFTbx RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+endif()
+
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/examples/"
+  DESTINATION "${QFTBX_EXAMPLES_INSTALL_DIR}"
+  FILES_MATCHING
+    PATTERN "*.qft"
+    PATTERN "README.md"
+)
+
+if(UNIX AND NOT APPLE)
+  install(FILES "${CMAKE_SOURCE_DIR}/Resources/qftbx.desktop"
+    DESTINATION "${CMAKE_INSTALL_DATADIR}/applications"
+  )
+  foreach(size 16 32 64 128 256 512)
+    install(FILES "${CMAKE_SOURCE_DIR}/Resources/Icon/qftbx_${size}.png"
+      DESTINATION "${CMAKE_INSTALL_DATADIR}/icons/hicolor/${size}x${size}/apps"
+      RENAME qftbx.png
+    )
+  endforeach()
 endif()
 
 if(QFTBX_BUILD_TESTS)
