@@ -1,6 +1,17 @@
-// Smoke tests of the benchmark planner, headless: the window builds, the
-// plan editor gives back what it was given, the queue and the results
-// views take their data.
+/**
+ * @file
+ * @brief Headless smoke tests of the benchmark planner window.
+ *
+ * The plan editor gives back the plan it was given and refuses an incomplete
+ * one with its reason; saving stores the paths relative to the plan file and
+ * opening makes them absolute again; the queue and the results views take
+ * their rows; the main window offers the planner under its tools menu. One
+ * case runs the whole path, the plan saved, the worker processes launched by
+ * the runner on its thread, the events delivered on the GUI thread and the
+ * records read back into the results: two structures by two algorithms by two
+ * repetitions, every one solved.
+ */
+
 #include <gtest/gtest.h>
 
 #include <string>
@@ -46,7 +57,7 @@ bench::Plan aPlan()
     return plan;
 }
 
-} // namespace
+}
 
 TEST(BenchmarkPlanner, TheEditorGivesBackThePlanItWasGiven)
 {
@@ -160,9 +171,6 @@ TEST(BenchmarkPlanner, TheMainWindowOffersItUnderTools)
 
 TEST(BenchmarkPlanner, ARunFromTheWindowFillsTheQueueAndTheResults)
 {
-    //The whole path: the plan saved, the worker processes launched by the
-    //runner on its thread, the events delivered on the GUI thread, the
-    //records read back into the results.
     BenchmarkRun::setWorkerProgram(QStringLiteral(QFTBX_BENCH_TOOL));
     QTemporaryDir directory;
     const QString path = directory.filePath("run.qftbench");
@@ -190,8 +198,6 @@ TEST(BenchmarkPlanner, ARunFromTheWindowFillsTheQueueAndTheResults)
     }
     ASSERT_FALSE(window.isRunning()) << "the run did not finish in two minutes";
 
-    //2 structures (base and base+p+z; the first step does not run) x 2
-    //algorithms x 2 repetitions.
     EXPECT_EQ(window.queue()->doneCount(), 8u);
     EXPECT_EQ(window.results()->rowCount(), 4);
     auto * queue = window.queue()->findChild<QTableWidget *>("queue");

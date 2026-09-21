@@ -1,5 +1,17 @@
-// Tests for the QFT specification record (qftbx::SpecificationRecord), its
-// conversion to qftbx::Specification and its persistence.
+/**
+ * @file
+ * @brief Tests of the specification record, its validated form and its file.
+ *
+ * A constant bound is a linear magnitude converted to dB and independent of
+ * frequency; a bound given as a system evaluates to its magnitude in dB,
+ * checked against the analytic value of 120/(s^3 + 17 s^2 + 82 s + 120), the
+ * tracking model of `planta2.qft`. A zero or negative height and an inverted
+ * band are refused where the record is validated, since a silent -inf or NaN
+ * bound would let the boundary degenerate to the window frame. The store holds
+ * the seven records by value. The fixtures must yield their tracking and
+ * stability records by slot, a shorter list fills only the slots it has, and
+ * the tracking spread is the upper bound over the lower one in dB.
+ */
 
 #include <gtest/gtest.h>
 
@@ -9,7 +21,6 @@
 
 #include <cmath>
 #include <complex>
-
 
 #include "src/core/specifications/specification_record.h"
 #include "src/core/common/exception.h"
@@ -32,14 +43,12 @@ qftbx::SpecificationRecord makeConstantStability(double linearHeight)
     spec.used = true;
     spec.constant = true;
     spec.system = nullptr;
-    spec.height = linearHeight; // linear magnitude, not dB
+    spec.height = linearHeight;
     spec.omegaStart = 0.1;
     spec.omegaEnd = 100.0;
     return spec;
 }
 
-// 120 / (s^3 + 17 s^2 + 82 s + 120): the tracking specification plant of
-// tests/data/planta2.qft.
 std::unique_ptr<LtiSystem> makeTrackingPlant()
 {
     std::vector<Parameter> numerator{Parameter(120.0)};
@@ -62,10 +71,10 @@ TEST(Specification, ConstantHeightIsDbAndIgnoresOmega)
 {
     qftbx::SpecificationRecord spec = makeConstantStability(1.2);
 
-    const double expected = 20.0 * std::log10(1.2); // 1.5836249...
+    const double expected = 20.0 * std::log10(1.2);
     const qftbx::Specification bound = qftbx::toSpecification(spec, qftbx::SpecificationType::Stability);
     EXPECT_NEAR(bound.boundDb(0.5), expected, 1e-12);
-    EXPECT_NEAR(bound.boundDb(50.0), expected, 1e-12); // omega is ignored
+    EXPECT_NEAR(bound.boundDb(50.0), expected, 1e-12);
 }
 
 TEST(Specification, SystemHeightMatchesTheAnalyticValue)
@@ -80,15 +89,11 @@ TEST(Specification, SystemHeightMatchesTheAnalyticValue)
 
     const qftbx::Specification bound = qftbx::toSpecification(spec, qftbx::SpecificationType::TrackingLower);
     EXPECT_NEAR(bound.boundDb(1.0), analyticTrackingDb(1.0), 1e-9);
-    EXPECT_NEAR(bound.boundDb(1.0), -0.76398, 1e-4); // hand-checked anchor
+    EXPECT_NEAR(bound.boundDb(1.0), -0.76398, 1e-4);
 }
 
 TEST(Specification, ZeroHeightIsRefused)
 {
-    // A zero height (the record's default) used to give a -inf bound, so
-    // every grid point passed the contour threshold and the boundary
-    // silently degenerated to the window frame. It is refused where it is
-    // validated.
     qftbx::SpecificationRecord spec = makeConstantStability(0.0);
     EXPECT_THROW(qftbx::toSpecification(spec, qftbx::SpecificationType::Stability),
                  qftbx::InvalidInput);
@@ -96,10 +101,6 @@ TEST(Specification, ZeroHeightIsRefused)
 
 TEST(Specification, NegativeHeightIsRefused)
 {
-    // A negative height used to give a NaN bound and a boundary that silently
-    // came out empty - this test pinned that as a known bug. The raw record's
-    // own dB conversion is gone; the bound is asked of the validated
-    // Specification, and the validation refuses the height.
     qftbx::SpecificationRecord spec = makeConstantStability(-1.0);
     EXPECT_THROW(qftbx::toSpecification(spec, qftbx::SpecificationType::Stability),
                  qftbx::InvalidInput);
@@ -107,12 +108,6 @@ TEST(Specification, NegativeHeightIsRefused)
 
 TEST(SpecificationDao, OwnsReplacesAndToleratesIdentity)
 {
-    // The store owns the seven records and their embedded plants. This used
-    // to be a pointer to a QVector of pointers, and the test had to check
-    // that replacing it deep-deleted the previous set and that handing back
-    // the very vector it held was a no-op. Held by value, neither situation
-    // can arise: the set replaced is destroyed with its plants, and there is
-    // no pointer identity left to confuse.
     qftbx::SpecificationRecords first;
     first.at(0).used = true;
     first.at(0).constant = false;
@@ -127,7 +122,7 @@ TEST(SpecificationDao, OwnsReplacesAndToleratesIdentity)
 
     qftbx::SpecificationRecords second;
     second.at(1).used = true;
-    data.setSpecifications(std::move(second));   // frees 'first' and its plant
+    data.setSpecifications(std::move(second));
 
     ASSERT_NE(data.specifications(), nullptr);
     EXPECT_FALSE(data.specifications()->at(0).used);
@@ -144,7 +139,7 @@ TEST(SpecificationPersistence, MultivaluadosSpecificationsRoundTrip)
     ASSERT_NE(specs, nullptr);
 
     const qftbx::SpecificationRecord & lower = specs->at(0);
-    EXPECT_EQ(lower.name, std::string("TrackingLower")); // "seguimiento" in the file, mapped on load
+    EXPECT_EQ(lower.name, std::string("TrackingLower"));
     EXPECT_TRUE(lower.used);
     EXPECT_FALSE(lower.constant);
     EXPECT_DOUBLE_EQ(lower.omegaStart, 1.0);
@@ -154,7 +149,7 @@ TEST(SpecificationPersistence, MultivaluadosSpecificationsRoundTrip)
     EXPECT_EQ(lower.system->numerator().size(), 2);
 
     const qftbx::SpecificationRecord & upper = specs->at(1);
-    EXPECT_EQ(upper.name, std::string("TrackingUpper")); // "seguimiento_1" in the file, mapped on load
+    EXPECT_EQ(upper.name, std::string("TrackingUpper"));
     EXPECT_TRUE(upper.used);
     ASSERT_NE(upper.system, nullptr);
     EXPECT_EQ(upper.system->numerator().size(), 3);
@@ -178,7 +173,6 @@ TEST(SpecificationPersistence, Planta2RecoversBothTrackingPlants)
     EXPECT_EQ(lower.system->type(), LtiSystem::SystemType::PolynomialForm);
     EXPECT_DOUBLE_EQ(lower.omegaStart, 0.1);
     EXPECT_DOUBLE_EQ(lower.omegaEnd, 10.0);
-    // The recovered plant must evaluate like the analytic reference.
     EXPECT_NEAR(qftbx::toSpecification(lower, qftbx::SpecificationType::TrackingLower).boundDb(1.0),
                 analyticTrackingDb(1.0), 1e-9);
 
@@ -203,18 +197,12 @@ TEST(SpecificationPersistence, Planta1RecoversTheConstantStability)
     EXPECT_NEAR(qftbx::toSpecification(stability, qftbx::SpecificationType::Stability).boundDb(3.0),
                 20.0 * std::log10(1.2), 1e-12);
 
-    EXPECT_TRUE(specs->at(4).used);   // RPS
+    EXPECT_TRUE(specs->at(4).used);
     EXPECT_FALSE(specs->at(4).constant);
 }
 
 TEST(SpecificationPersistence, AShorterSpecificationListFillsTheSlotsItHas)
 {
-    // The set is positional with exactly 7 slots and consumers index
-    // blindly, so a shorter file used to crash out of range downstream. It
-    // does not refuse the file: a project is saved at whatever point of the
-    // design it has reached, and a specification nobody entered is exactly
-    // an unused slot. The three that are there are read, the other four
-    // stay unused.
     ProjectReader parser;
     ASSERT_NO_THROW(parser.load(std::string(QFTBX_TEST_DATA_DIR "/short_specs.qft")));
 
@@ -238,21 +226,17 @@ TEST(QftbxUnits, DbLinearConversionsRoundTrip)
     EXPECT_DOUBLE_EQ(qftbx::linearToDb(1.0), 0.0);
 }
 
-// ---------------------------------------------------------------------------
-// qftbx::Specification - the validated replacement being introduced
-// ---------------------------------------------------------------------------
-
 TEST(QftbxSpecification, FactoriesValidateTheirInvariants)
 {
     using qftbx::Specification;
     using qftbx::SpecificationType;
 
     EXPECT_THROW(Specification::constant(SpecificationType::Stability, 0.0, 0.1, 10.0),
-                 qftbx::InvalidInput); // the old silent -inf
+                 qftbx::InvalidInput);
     EXPECT_THROW(Specification::constant(SpecificationType::Stability, -1.0, 0.1, 10.0),
-                 qftbx::InvalidInput); // the old silent NaN
+                 qftbx::InvalidInput);
     EXPECT_THROW(Specification::constant(SpecificationType::Stability, 1.2, 10.0, 0.1),
-                 qftbx::InvalidInput); // inverted band, previously mute
+                 qftbx::InvalidInput);
     EXPECT_THROW(Specification::fromSystem(SpecificationType::TrackingLower, nullptr, 0.1, 10.0),
                  qftbx::InvalidInput);
 }
@@ -279,8 +263,8 @@ TEST(QftbxSpecification, AppliesAtIsAClosedIntervalAndUnusedNeverApplies)
 
     Specification spec =
         Specification::constant(SpecificationType::Stability, 1.2, 0.1, 10.0);
-    EXPECT_TRUE(spec.appliesAt(0.1));   // inclusive lower edge
-    EXPECT_TRUE(spec.appliesAt(10.0));  // inclusive upper edge
+    EXPECT_TRUE(spec.appliesAt(0.1));
+    EXPECT_TRUE(spec.appliesAt(10.0));
     EXPECT_TRUE(spec.appliesAt(2.0));
     EXPECT_FALSE(spec.appliesAt(0.0999));
     EXPECT_FALSE(spec.appliesAt(10.001));
@@ -303,7 +287,6 @@ TEST(QftbxSpecification, MoveTransfersOwnership)
     EXPECT_EQ(moved.system(), plant);
     EXPECT_EQ(original.system(), nullptr);
     EXPECT_FALSE(original.used());
-    // both destructors run at scope end: leak/double-free checked by ASan
 }
 
 TEST(QftbxSpecificationSet, DefaultsUnusedAndCentralisesTheTrackingSpread)
@@ -320,9 +303,7 @@ TEST(QftbxSpecificationSet, DefaultsUnusedAndCentralisesTheTrackingSpread)
     set.set(Specification::constant(SpecificationType::TrackingLower, 1.0, 0.1, 10.0));
     set.set(Specification::constant(SpecificationType::TrackingUpper, 2.0, 0.1, 10.0));
 
-    // T_U - T_L in dB: 20log10(2) - 20log10(1) = 6.0206. This is the sign
-    // three consumers compute as b-a and contour2 (wrongly) as a-b.
     EXPECT_NEAR(set.trackingSpreadDb(1.0), 20.0 * std::log10(2.0), 1e-12);
 }
 
-} // namespace
+}

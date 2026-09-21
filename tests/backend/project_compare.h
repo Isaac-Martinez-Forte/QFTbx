@@ -1,5 +1,13 @@
-// Shared deep-equality assertions between two loaded projects, used by the
-// reader-parity and the save/load round-trip tests.
+/**
+ * @file
+ * @brief Deep-equality assertions between two loaded projects.
+ *
+ * Two systems compare by type, name, coefficient counts and their values at a
+ * set of probe frequencies; specifications, templates, boundaries and a
+ * loop-shaping result compare member by member. The boundaries are walked per
+ * frequency only so that a failure names the frequency instead of dumping
+ * every trace of the project.
+ */
 
 #ifndef QFTBX_TESTS_PROJECT_COMPARE_H
 #define QFTBX_TESTS_PROJECT_COMPARE_H
@@ -12,7 +20,6 @@
 #include <vector>
 
 #include <complex>
-
 
 #include "src/core/loopshaping/loop_shaping_result.h"
 #include "src/core/specifications/specification_record.h"
@@ -66,8 +73,6 @@ inline void expectSameComplexVectors(const qftbx::CloudSet & a,
                                      const qftbx::CloudSet & b,
                                      const char* what)
 {
-    //By value: the whole set compares in one line, and there is no null to
-    //rule out first.
     ASSERT_EQ(a.size(), b.size()) << what;
     EXPECT_EQ(a, b) << what;
 }
@@ -84,10 +89,6 @@ inline void expectSameBoundaries(const BoundaryData* a, const BoundaryData* b)
     EXPECT_EQ(a->openFlags(), b->openFlags());
     EXPECT_EQ(a->upperFlags(), b->upperFlags());
 
-    //Compared per frequency rather than whole, only so that a failure names
-    //the frequency instead of dumping every trace of the project. The
-    //element comparisons themselves are one == each now: this function used
-    //to walk five levels of pointers by hand.
     ASSERT_EQ(a->boundaries().size(), b->boundaries().size());
     for (std::size_t f = 0; f < a->boundaries().size(); ++f) {
         EXPECT_EQ(a->boundaries()[f], b->boundaries()[f]) << "frequency " << f;
@@ -118,6 +119,6 @@ inline void expectSameLoopShaping(LoopShapingResult* a, LoopShapingResult* b)
     expectSameSystem(a->controller(), b->controller(), {0.5, 2.0}, "loop shaping");
 }
 
-} // namespace qftbx_tests
+}
 
-#endif // QFTBX_TESTS_PROJECT_COMPARE_H
+#endif

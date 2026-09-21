@@ -1,10 +1,14 @@
-// The record of stages: what it writes, that it is silent until somebody
-// opens it, and that it never grows past the size it was given.
-//
-// The engines used to print their timings on standard output. Nothing in the
-// interface showed them, nothing could silence them, and anything driving the
-// core from another language got them in the middle of its own session. They
-// go here now, and this is the contract.
+/**
+ * @file
+ * @brief Tests of the record of stages the engines write their timings to.
+ *
+ * Nothing is written before the record is opened; once open, each stage leaves
+ * one line naming the stage, the algorithm and its numbers, and a timed scope
+ * adds its duration. The file rotates into one previous generation when it
+ * reaches the size it was given, so what is on disc is bounded however long
+ * the program runs, and the newest lines are the ones that survive. The
+ * settings say where it goes and whether it goes at all, off by default.
+ */
 
 #include <gtest/gtest.h>
 
@@ -48,7 +52,7 @@ protected:
     std::string path;
 };
 
-} // namespace
+}
 
 TEST_F(Record, WritesNothingUntilItIsOpened)
 {
@@ -95,8 +99,6 @@ TEST_F(Record, TimesAStageByItself)
 
 TEST_F(Record, NeverGrowsPastTheSizeItWasGiven)
 {
-    //Two generations of a small limit: the file rotates and the older one is
-    //dropped, so what is on disc is bounded whatever how long it runs.
     const std::size_t limit = 2048;
     qftbx::record::open(path, limit);
 
@@ -116,7 +118,6 @@ TEST_F(Record, NeverGrowsPastTheSizeItWasGiven)
     std::ifstream third(path + ".2");
     EXPECT_FALSE(third.good()) << "a third generation was kept";
 
-    //And the newest lines are the ones that survived.
     EXPECT_NE(current.find("ms=399.0"), std::string::npos) << "the last line written is not there";
 }
 

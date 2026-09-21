@@ -1,7 +1,17 @@
-// Round-trip tests for the version-2 English dialect: every legacy fixture
-// is loaded, written back as v2 and reloaded, and the reloaded project must
-// be numerically identical (the writer keeps 17 significant digits, so the
-// trip is bit-exact; the historical writer kept 6 and degraded every save).
+/**
+ * @file
+ * @brief Every fixture survives a save and a reload with every number bit-exact.
+ *
+ * Each sample project is loaded, written back and reloaded. The written file
+ * must be the versioned English dialect, inputs under `inputs` and results
+ * under `results`, and the reloaded project must equal the original in every
+ * section, which holds because the writer keeps seventeen significant digits.
+ * Further cases cover what no fixture carries: a reparametrised parameter
+ * comes back raw with its expression applied once; a skipped frequency, the
+ * plant's description, the settings of the run and the verifier's verdict
+ * survive, the verdict with nothing active without its infinite number. A NaN
+ * and an unwritable path are refused.
+ */
 
 #include "src/core/system/polynomial_form.h"
 #include <gtest/gtest.h>
@@ -75,13 +85,9 @@ TEST_P(RoundTrip, WritesTheVersionedEnglishDialect)
     EXPECT_STREQ(root.name(), "QFT");
     EXPECT_EQ(root.attribute("version").as_int(), 4);
 
-    // No legacy Spanish tags anywhere in a written file.
     EXPECT_FALSE(root.child("Planta"));
     EXPECT_FALSE(root.child("especificaciones"));
 
-    //What the user described is under <inputs> and what came out under
-    //<results>, so that the file reads down the page. The controller
-    //STRUCTURE is an input: it is the box the search is asked to look in.
     const pugi::xml_node inputs = root.child("inputs");
     ASSERT_TRUE(inputs) << "a written file has no <inputs>";
     if (originalSections.steps.has(qftbx::Step::Plant)) {
@@ -104,8 +110,6 @@ TEST_P(RoundTrip, WritesTheVersionedEnglishDialect)
 
 TEST_P(RoundTrip, SectionFlagsSurvive)
 {
-    //The set compares as a whole, which is what a typed set buys over eight
-    //positions looped over by index.
     EXPECT_EQ(reloadedSections.steps, originalSections.steps);
     EXPECT_EQ(reloadedSections.hasContour, originalSections.hasContour);
 }
@@ -151,14 +155,12 @@ INSTANTIATE_TEST_SUITE_P(Fixtures, RoundTrip,
                                            "multivaluados.qft", "planta1.qft"),
                          [](const ::testing::TestParamInfo<const char*>& info) {
                              std::string name = info.param;
-                             name.resize(name.size() - 4);   //drop the ".qft"
+                             name.resize(name.size() - 4);
                              return name;
                          });
 
 TEST(ProjectWriterErrors, ANonFiniteValueIsRefusedInsteadOfWritten)
 {
-    //A NaN used to go to the file as "nan" and come back through strtod as a
-    //NaN: a project that had gone wrong in memory reloaded as if it had not.
     qftbx::SpecificationRecords records;
     qftbx::SpecificationRecord & stability = records.at(2);
     stability.name = "Stability";
@@ -187,16 +189,10 @@ TEST(ProjectWriterErrors, UnwritablePathThrowsFileError)
                  qftbx::FileError);
 }
 
-} // namespace
+}
 
 TEST(RoundTripReparametrised, AReparametrisedParameterSurvivesSaveAndLoad)
 {
-    // A parameter with a reparametrisation expression: its RAW range is
-    // [1, 2] and its expression maps that to [10, 20]. The writer used to
-    // store the TRANSFORMED values while the reader took what it found as the
-    // raw ones, so one save-and-load applied the expression twice and the
-    // parameter came back as [100, 200]. No fixture carries a
-    // reparametrisation, which is how it stayed unnoticed.
     std::vector<Parameter> numerator{Parameter(1.0)};
     std::vector<Parameter> denominator{
         Parameter(std::string("a"), qftbx::Range(1.0, 2.0), 1.5, std::string("a*10")),
@@ -230,12 +226,6 @@ TEST(RoundTripReparametrised, AReparametrisedParameterSurvivesSaveAndLoad)
     EXPECT_EQ(reloaded.nominal(), 15.0);
 }
 
-// What the search was run with, and what the verifier said about what came
-// out of it. Two designs for the same problem differ by hundreds of units of
-// gain depending on how the phase grid was read, so a file that keeps the
-// controller and forgets the reading keeps a number nobody can reproduce.
-// A specification that skips a frequency of its band can only say so
-// through the exception list, so the file has to carry it.
 TEST(RoundTripSettings, TheFrequenciesASpecificationSkipsSurviveSaveAndLoad)
 {
     QTemporaryDir temporary;
@@ -246,9 +236,6 @@ TEST(RoundTripSettings, TheFrequenciesASpecificationSkipsSurviveSaveAndLoad)
     original.load(std::string(QFTBX_TEST_DATA_DIR "/planta1.qft"));
     ASSERT_NE(original.specifications(), nullptr);
 
-    //The first slot the file uses, taken out of one frequency. The records
-    //are read-only through the reader, so they are copied, edited and
-    //written from the copy - which is what the window does too.
     qftbx::SpecificationRecords edited;
     std::size_t slot = qftbx::kSpecificationCount;
     for (std::size_t i = 0; i < qftbx::kSpecificationCount; ++i) {
@@ -276,16 +263,12 @@ TEST(RoundTripSettings, TheFrequenciesASpecificationSkipsSurviveSaveAndLoad)
     ASSERT_EQ(back.skipped.size(), 1u);
     EXPECT_DOUBLE_EQ(back.skipped.front(), hole);
 
-    //And the specification the engines see skips it.
     const qftbx::Specification specification =
             qftbx::toSpecification(back, qftbx::SpecificationType::TrackingLower);
     EXPECT_FALSE(specification.appliesAt(hole));
     EXPECT_TRUE(specification.appliesAt(back.omegaStart));
 }
 
-// The description of a plant is text the user wrote and nothing derives it:
-// if the file does not carry it, it is gone. A file written before it
-// existed simply has none, which is what an empty description is.
 TEST(RoundTripSettings, TheDescriptionOfThePlantSurvivesSaveAndLoad)
 {
     QTemporaryDir temporary;
@@ -313,8 +296,6 @@ TEST(RoundTripSettings, TheDescriptionOfThePlantSurvivesSaveAndLoad)
     EXPECT_EQ(reloaded.plant()->description(),
               "The one of the 2007 paper, inertia uncertain");
 
-    //And it is not part of what tells one plant from another: a project
-    //whose description changed keeps its templates.
     EXPECT_TRUE(reloaded.plant()->sameAs(*original.plant()));
     reloaded.plant()->setDescription("something else entirely");
     EXPECT_TRUE(reloaded.plant()->sameAs(*original.plant()))
@@ -360,8 +341,6 @@ TEST(RoundTripSettings, TheRunAndTheVerdictSurviveSaveAndLoad)
     EXPECT_DOUBLE_EQ(reloaded.loopShaping()->check()->worstExcessDb, -1.25);
 }
 
-// A verdict with nothing active to exceed is minus infinity, and the file
-// carries no infinities: the verdict survives without the number.
 TEST(RoundTripSettings, AVerdictWithNoActiveSpecificationIsStillWritten)
 {
     QTemporaryDir temporary;

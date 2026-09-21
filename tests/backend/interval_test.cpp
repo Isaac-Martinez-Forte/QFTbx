@@ -1,7 +1,18 @@
-// The interval arithmetic the loop shaping rests on: every operation must
-// enclose the true result, whatever the rounding, and the polar form must
-// enclose the product set of the rectangles it is built from. These are the
-// acceptance tests of the arithmetic layer, whatever library sits under it.
+/**
+ * @file
+ * @brief Acceptance tests of the interval arithmetic layer.
+ *
+ * Every operation must enclose the true result whatever the rounding, and
+ * the polar form must enclose the product set of the rectangles it is built
+ * from. The tests hold for any library underneath. Exact values are checked
+ * in extended precision, since a rigorous enclosure of a non-double cannot
+ * be a point; the library functions are the C library's doubles widened by
+ * four representable steps either way, at every scale; the floating-point
+ * environment is the same before and after, which is what lets the
+ * arithmetic run inside OpenMP regions and next to Qt; and a rectangle
+ * across the negative real axis keeps a continuous phase.
+ */
+
 #include <gtest/gtest.h>
 
 #include <cfenv>
@@ -23,13 +34,10 @@ bool encloses(const Interval & x, double value)
     return x.lower() <= value && value <= x.upper();
 }
 
-} // namespace
+}
 
 TEST(IntervalArithmetic, TheOperationsRoundOutwards)
 {
-    //The exact results are not doubles, so a rigorous enclosure has the
-    //nearest double inside it and cannot be a point. The exact values are
-    //checked in extended precision.
     const Interval tenth(0.1);
     const Interval sum = tenth + tenth + tenth;
     EXPECT_TRUE(encloses(sum, 0.1 + 0.1 + 0.1));
@@ -44,8 +52,6 @@ TEST(IntervalArithmetic, TheOperationsRoundOutwards)
     EXPECT_LE(static_cast<long double>(third.lower()), 1.0L / 3.0L);
     EXPECT_GE(static_cast<long double>(third.upper()), 1.0L / 3.0L);
 
-    //The square of the double nearest 1.1, not of 1.1 itself: the point
-    //interval holds the double.
     const Interval product = Interval(1.1) * Interval(1.1);
     const long double exactProduct = static_cast<long double>(1.1) * static_cast<long double>(1.1);
     EXPECT_TRUE(encloses(product, 1.1 * 1.1));
@@ -56,9 +62,6 @@ TEST(IntervalArithmetic, TheOperationsRoundOutwards)
 
 TEST(IntervalArithmetic, TheRoundingModeIsNeverTouched)
 {
-    //The arithmetic emulates the directed roundings: the floating-point
-    //environment is the same before and after, which is what lets it run
-    //inside OpenMP regions and next to Qt without a compiler flag.
     std::fesetround(FE_TONEAREST);
     Interval x(1.0, 2.0);
     for (int i = 0; i < 100; ++i) {
@@ -92,10 +95,6 @@ TEST(IntervalArithmetic, TheFunctionsEncloseTheirValues)
 
 TEST(IntervalArithmetic, TheLibraryFunctionsAreWidenedEnough)
 {
-    //The logarithms and arc tangents are the C library's doubles widened by
-    //a few ulps; the extended-precision values must fall inside, at many
-    //arguments and across every scale the projection meets (magnitudes
-    //from 1e-6 to 1e6, phases from any quadrant).
     std::mt19937 generator(3);
     std::uniform_real_distribution<double> exponent(-6.0, 6.0);
     std::uniform_real_distribution<double> coordinate(-10.0, 10.0);
@@ -122,7 +121,6 @@ TEST(IntervalArithmetic, TheLibraryFunctionsAreWidenedEnough)
         EXPECT_GE(static_cast<long double>(atan(Interval(re)).upper()), std::atan(static_cast<long double>(re)));
     }
 
-    //Exact arguments give exact-looking answers, still widened.
     EXPECT_LT(log(Interval(1.0)).lower(), 0.0);
     EXPECT_GT(log(Interval(1.0)).upper(), 0.0);
     EXPECT_LT(log(Interval(1.0)).width(), 1e-300);
@@ -130,9 +128,6 @@ TEST(IntervalArithmetic, TheLibraryFunctionsAreWidenedEnough)
 
 TEST(IntervalArithmetic, TheWideningStepsFourUlpsEitherWay)
 {
-    //The widening moves a value four representable doubles: the same as
-    //four nextafter steps, on either side of zero, at every scale, and at
-    //the edges where the integer step is not taken.
     std::mt19937 generator(9);
     std::uniform_real_distribution<double> exponent(-300.0, 300.0);
     std::uniform_int_distribution<int> sign(0, 1);
@@ -158,9 +153,6 @@ TEST(IntervalArithmetic, TheWideningStepsFourUlpsEitherWay)
 
 TEST(IntervalArithmetic, TheTrigonometricFunctionsEncloseTheirRangesOverIntervals)
 {
-    //Random intervals up to a few turns wide: every sampled value of sin,
-    //cos and tan lies inside, and the extremes are found wherever a
-    //maximum or minimum falls inside.
     std::mt19937 generator(5);
     std::uniform_real_distribution<double> start(-20.0, 20.0);
     std::uniform_real_distribution<double> width(0.0, 8.0);
@@ -190,14 +182,11 @@ TEST(IntervalArithmetic, TheTrigonometricFunctionsEncloseTheirRangesOverInterval
         }
     }
 
-    //A pole inside tan gives the whole line; a maximum at pi/2 inside sin
-    //gives exactly 1 above.
     EXPECT_TRUE(std::isinf(tan(Interval(1.0, 2.0)).upper()));
     EXPECT_DOUBLE_EQ(sin(Interval(1.0, 2.0)).upper(), 1.0);
     EXPECT_LT(sin(Interval(1.0, 2.0)).lower(), std::sin(1.0));
     EXPECT_GT(tan(Interval(0.5, 1.0)).lower(), 0.5);
 
-    //The inverses are monotone on [-1, 1] and refuse anything outside.
     EXPECT_TRUE(encloses(asin(Interval(0.5)), std::asin(0.5)));
     EXPECT_TRUE(encloses(acos(Interval(-0.5, 0.5)), std::acos(0.25)));
     EXPECT_TRUE(encloses(asin(Interval(1.0)), qftbx::math::kPi / 2.0));
@@ -245,15 +234,12 @@ TEST(ComplexIntervalArithmetic, MagnitudeAndPhaseOfARectangleEncloseItsPoints)
         EXPECT_TRUE(encloses(phase, std::arg(point)));
     }
 
-    //The corners and the nearest point are the extremes.
     EXPECT_DOUBLE_EQ(magnitude.lower(), 1.0) << "the nearest point is (1, 0)";
     EXPECT_NEAR(magnitude.upper(), std::hypot(2.0, 3.0), 1e-15);
 }
 
 TEST(ComplexIntervalArithmetic, ARectangleAcrossTheNegativeAxisHasAContinuousPhase)
 {
-    //Straddling the negative real axis, the phase runs through pi without
-    //splitting into two pieces at +pi/-pi.
     const ComplexInterval z(Interval(-2.0, -1.0), Interval(-0.5, 0.5));
     const Interval phase = z.phase();
     EXPECT_LT(phase.width(), 1.0);
@@ -267,9 +253,6 @@ TEST(ComplexIntervalArithmetic, ARectangleAcrossTheNegativeAxisHasAContinuousPha
 
 TEST(PolarIntervalArithmetic, TheProductEnclosesTheProductSet)
 {
-    //Two factors of a loop transmission, (jw + z) with z in a box and a
-    //fixed complex plant value: every product of a sampled zero and the
-    //plant lies inside the polar product.
     const double w = 2.0;
     const Interval zero(0.5, 4.0);
     const Interval pole(1.0, 10.0);
@@ -287,7 +270,6 @@ TEST(PolarIntervalArithmetic, TheProductEnclosesTheProductSet)
                                            / std::complex<double>(poles(generator), w);
         EXPECT_TRUE(encloses(loop.magnitude(), std::abs(value)));
 
-        //The phase of the product set, compared modulo a turn.
         const double phase = std::arg(value);
         bool inside = false;
         for (int turn = -2; turn <= 2 && !inside; ++turn) {

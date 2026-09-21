@@ -1,28 +1,18 @@
-// The controller a loop-shaping algorithm returns, checked against the
-// SPECIFICATIONS - not against the boundaries it searched.
-//
-// returned_point_test.cpp pins that the returned point classifies as feasible
-// against the boundaries. That is necessary and it is not enough: the
-// boundaries are the specifications mapped onto a phase grid and read off a
-// sampled template, and neither step errs on the safe side. Reading a point's
-// phase at its nearest column node admits, at 1 degree, magnitudes the true
-// boundary at that phase forbids; and a sampled family underestimates its
-// own worst case. So a point the boundaries accept can violate the
-// specification, and on the QFT toolbox example 2 it does.
-//
-// These tests evaluate the closed-loop magnitudes at the returned
-// controller's own loop value over the FULL template, and compare them with
-// the bounds. Under the published reading of the columns the excess is
-// pinned as the state of the chain - a positive value is a violation the
-// search did not see - so that a change to the chain shows what it moves;
-// under the conservative reading it is asserted to be at or below zero.
-//
-// MR is not run on example 2: with the epsilon the other goldens use it does
-// not finish in a useful time there, which is also why it has no golden on
-// that fixture.
-//
-// A NaN pin means "not pinned yet": the value is printed and only its
-// finiteness is checked, which is how a new row is first observed.
+/**
+ * @file
+ * @brief The returned controller checked against the specifications themselves.
+ *
+ * The boundaries are the specifications mapped onto a phase grid and read off
+ * a sampled template, and neither step errs on the safe side, so a point the
+ * boundaries accept can violate the specification. Each algorithm is run on
+ * QFT toolbox example 2 and on the ACC'90 benchmark, the closed loop is
+ * evaluated over the full template at the returned controller, and the worst
+ * excess over the bounds is pinned to 2 mdB. Under the published reading of
+ * the columns the excess is recorded as the state of the chain, a positive
+ * value being a violation the search did not see; under the conservative
+ * reading it must be at or below zero. A NaN pin only prints the value. The
+ * run attaches the same check to its result; a result read from a file has none.
+ */
 
 #include <gtest/gtest.h>
 
@@ -43,7 +33,7 @@ struct CheckCase {
     const char * name;
     const char * file;
     LoopShapingAlgorithm algorithm;
-    double knownWorstExcessDb;   //NaN: observe and print, do not pin
+    double knownWorstExcessDb;
     bool conservativeColumns = false;
 };
 
@@ -83,7 +73,7 @@ TEST_P(ReturnedControllerAgainstSpecifications, WorstExcessIsPinned)
     std::printf("SPEC-CHECK %-14s k=%.6f worst excess %+.4f dB\n",
                 c.name, result->gain().nominal(), check.worstExcessDb);
     for (const SpecificationExcess & e : check.entries) {
-        if (e.excessDb > -0.5) {   //the near and the violated ones only
+        if (e.excessDb > -0.5) {
             std::printf("           w=%-6g %-18s value %9.4f dB  bound %9.4f dB  excess %+.4f dB\n",
                         e.omega, specificationName(e.type).c_str(), e.valueDb, e.boundDb, e.excessDb);
         }
@@ -93,35 +83,18 @@ TEST_P(ReturnedControllerAgainstSpecifications, WorstExcessIsPinned)
     EXPECT_TRUE(std::isfinite(check.worstExcessDb)) << c.name;
 
     if (std::isnan(c.knownWorstExcessDb)) {
-        return;   //observed, not pinned yet
+        return;
     }
 
-    //Under the conservative reading what the search returns satisfies the
-    //specifications it was given; under the published reading the excess is
-    //recorded, not asserted away.
     if (c.conservativeColumns) {
         EXPECT_TRUE(check.satisfied()) << c.name << " exceeds a bound by " << check.worstExcessDb << " dB";
     }
 
-    //Absolute tolerance in dB: the excess is a small difference of two
-    //magnitudes and a relative tolerance on it would be meaningless.
     EXPECT_NEAR(check.worstExcessDb, c.knownWorstExcessDb, 2e-3) << c.name;
 }
 
 constexpr double kUnpinned = std::numeric_limits<double>::quiet_NaN();
 
-//The state of the chain under the published reading of the columns (the
-//nearest node), recorded as observed on 2026-09-09: on example 2 every
-//algorithm exceeds the stability bound at w = 100 - NT by +0.0510 dB, NK and
-//MC1 by +0.0508, MC (thesis) and MC2 by +0.0351 - and the three
-//boundary-driven searches the tracking spread at w = 15 by +0.0031 dB, since
-//the nearest 1-degree node admits what the boundary at the point's own phase
-//forbids. Under the conservative reading (both nodes bracketing a phase)
-//the same searches return controllers that satisfy every specification;
-//the two fast ones are pinned that way (NT, NK and MC1 take minutes on this
-//fixture under that reading and gave -0.0000, -0.0002 and -0.0002 dB when
-//measured once). ACC'90 is satisfied with margin either way: its optimum
-//sits at the top of the gain range.
 INSTANTIATE_TEST_SUITE_P(
     Algorithms, ReturnedControllerAgainstSpecifications,
     ::testing::Values(
@@ -138,11 +111,8 @@ INSTANTIATE_TEST_SUITE_P(
         return std::string(info.param.name);
     });
 
-} // namespace
+}
 
-//The run attaches the check to its result, and it is the same check the
-//function computes on the returned controller; a result read from a file
-//carries none.
 TEST(SpecificationCheckOnTheResult, TheRunAttachesItAndAFileDoesNot)
 {
     ProjectController controller;
@@ -159,7 +129,6 @@ TEST(SpecificationCheckOnTheResult, TheRunAttachesItAndAFileDoesNot)
     EXPECT_DOUBLE_EQ(result->check()->worstExcessDb, direct.worstExcessDb);
     EXPECT_EQ(result->check()->entries.size(), direct.entries.size());
 
-    //A project that ships a loop-shaping result has no check for it.
     ProjectController loaded;
     loaded.load(std::string(QFTBX_TEST_DATA_DIR "/planta2.qft"));
     if (loaded.loopShapingResult() != nullptr) {

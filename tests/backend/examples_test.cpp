@@ -1,8 +1,14 @@
-// The battery of published problems (examples/) is only worth having if every
-// file in it still opens with all seven phases in it and a controller that
-// meets every specification. This walks them all: whatever the format or the
-// algorithms do from now on, a problem that stops loading or stops meeting its
-// specifications says so here, and not to whoever downloads the repository.
+/**
+ * @file
+ * @brief Tests of the battery of published problems.
+ *
+ * Every project file under the examples directory must load with all seven
+ * phases present and a controller in it, and that controller, checked
+ * directly against the plant, the templates and the specifications, must
+ * meet every one of them with the same worst excess the file records. A
+ * problem that stops loading or stops meeting its specifications fails here
+ * rather than in the hands of whoever downloads the repository.
+ */
 
 #include <gtest/gtest.h>
 
@@ -34,7 +40,7 @@ std::vector<std::string> publishedProblems()
     return files;
 }
 
-} // namespace
+}
 
 TEST(PublishedProblems, EveryOneOpensWholeAndMeetsItsSpecifications)
 {

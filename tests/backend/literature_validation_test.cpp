@@ -1,29 +1,22 @@
-// Validation of the loop-shaping feasibility machinery against published
-// solutions of the Matlab QFT Toolbox design example 2 (phase 8b.2b, at
-// Isaac's request): the projection, the boundary union and the detection
-// must agree with the literature about which controllers satisfy the
-// specifications, or every algorithm built on them optimises the wrong
-// problem.
-//
-// References:
-// - Tharewal 2005 (IIT Bombay doctoral thesis), Example 3.1: the interval
-//   optimum G_A(s) = 3462219 (s+3.85) / ((s+931.27)(s+946.83)) found in
-//   the box ((0,1e8], (0,4000]^3), and Chen & Ballance's genetic-algorithm
-//   design G_B(s) = 6753000 (s+2) / ((s+2930)(s+553)).
-// - qftdemos/qftex2.m: the classical loop-shaped
-//   design and the specification definitions (also confirming T_U is the
-//   0.6584 second-order model - the QFTbx thesis text swaps the names).
-//
-// A ground-truth check (dense plant sampling straight from the
-// specifications, independent of this code base) confirms G_A and G_B
-// satisfy margins and tracking, that G_A is bound-hugging (0.8 G_A already
-// violates tracking), and that the k = 1 controller the historical
-// inverted parity accepted violates tracking by +27 dB.
+/**
+ * @file
+ * @brief Validates the feasibility test against published designs of example 2.
+ *
+ * The projection, the boundary union and the detector must agree with the
+ * literature about which controllers satisfy the MATLAB QFT Toolbox design
+ * example 2, or every algorithm built on them optimises the wrong problem.
+ * The references are Tharewal 2005 (doctoral thesis, IIT Bombay), example
+ * 3.1, with the interval optimum 3462219 (s+3.85) / ((s+931.27)(s+946.83)),
+ * Chen and Ballance's genetic design 6753000 (s+2) / ((s+2930)(s+553)), and
+ * qftex2.m for the specifications, whose upper tracking model is the 0.6584
+ * second-order one. Both designs must be feasible, 0.8 times Tharewal's gain
+ * infeasible since the optimum hugs the tracking bound, and bisection on his
+ * zero and poles must reproduce his gain within the fixture's discretisation.
+ */
 
 #include <gtest/gtest.h>
 
 #include <string>
-
 
 #include <cmath>
 #include <complex>
@@ -66,8 +59,6 @@ protected:
             std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
     }
 
-    //Overall feasibility of a point controller against the fixture's
-    //boundaries, with the same projection + detection the algorithms use.
     qftbx::BoxFlag classify(LtiSystem* point)
     {
         std::vector<double>* omega = controller.omega()->values();
@@ -110,14 +101,10 @@ TEST_F(LiteratureValidation, PublishedControllersAreFeasible)
 
 TEST_F(LiteratureValidation, LowerGainsAreInfeasible)
 {
-    //The published optimum hugs the bounds: reducing its gain violates
-    //the tracking specification (ground truth: +1.87 dB at 0.8 k*).
     LtiSystem* scaled = zpk(0.8 * 3462219.0, {3.85}, {931.27, 946.83});
     LtiSystem* historical = zpk(1.0, {0.01}, {687.5});
 
     EXPECT_EQ(classify(scaled), qftbx::infeasible);
-    //The controller the inverted open-boundary parity used to accept
-    //violates tracking by +27 dB.
     EXPECT_EQ(classify(historical), qftbx::infeasible);
 
     delete scaled;
@@ -126,9 +113,6 @@ TEST_F(LiteratureValidation, LowerGainsAreInfeasible)
 
 TEST_F(LiteratureValidation, MinimalFeasibleGainMatchesTharewal)
 {
-    //Bisection of the minimal feasible gain for Tharewal's exact
-    //zero/poles: the detection reproduces his published optimum within
-    //the template/boundary discretisation of the fixture (measured 1.3%).
     double low = 1e4;
     double high = 1e8;
 
@@ -142,4 +126,4 @@ TEST_F(LiteratureValidation, MinimalFeasibleGainMatchesTharewal)
     EXPECT_NEAR(high, 3462219.0, 0.05 * 3462219.0);
 }
 
-} // namespace
+}

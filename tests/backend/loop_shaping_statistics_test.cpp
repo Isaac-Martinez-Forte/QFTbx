@@ -1,5 +1,16 @@
-// The statistics a loop-shaping run reports about itself: what the
-// benchmarks and the interface read instead of a printout.
+/**
+ * @file
+ * @brief Tests of the statistics a loop-shaping run reports about itself.
+ *
+ * The counters are what the benchmarks and the interface read instead of a
+ * printout: elapsed time, peak live nodes, nodes processed, boxes classified
+ * with exactly one verdict each, and stability verdicts and profiles. A
+ * search that bisects meets ambiguous boxes, one that finds a solution meets
+ * feasible ones, and on QFT toolbox example 2 it prunes infeasible ones; MR
+ * works on constraints, not boundaries, so it classifies no box. The cases
+ * run under the published reading of the boundary columns.
+ */
+
 #include <gtest/gtest.h>
 
 #include <string>
@@ -13,9 +24,6 @@ using namespace qftbx;
 TEST(LoopShapingStatistics, ARunReportsWhatItCost)
 {
     ProjectController controller;
-    //Boundary-chain test: it compares boundaries, not readings, and the
-    //published reading keeps its goldens where the history left them and
-    //NT in the seconds; the conservative one takes NT to a minute here.
     {
         qftbx::Settings published;
         published.algorithms.conservativeBoundaryColumns = false;
@@ -38,9 +46,6 @@ TEST(LoopShapingStatistics, ARunReportsWhatItCost)
 TEST(LoopShapingStatistics, ABoundaryDrivenSearchSplitsItsVerdicts)
 {
     ProjectController controller;
-    //Boundary-chain test: it compares boundaries, not readings, and the
-    //published reading keeps its goldens where the history left them and
-    //NT in the seconds; the conservative one takes NT to a minute here.
     {
         qftbx::Settings published;
         published.algorithms.conservativeBoundaryColumns = false;
@@ -52,8 +57,6 @@ TEST(LoopShapingStatistics, ABoundaryDrivenSearchSplitsItsVerdicts)
     const LoopShapingStatistics & statistics = controller.loopShapingResult()->statistics();
     EXPECT_EQ(statistics.boxesFeasible + statistics.boxesInfeasible + statistics.boxesAmbiguous,
               statistics.boxesClassified);
-    //A search that had to bisect met ambiguous boxes, and one that found a
-    //solution met a feasible one; on example 2 it also pruned infeasible ones.
     EXPECT_GT(statistics.boxesAmbiguous, 0u);
     EXPECT_GT(statistics.boxesFeasible, 0u);
     EXPECT_GT(statistics.boxesInfeasible, 0u);
@@ -62,9 +65,6 @@ TEST(LoopShapingStatistics, ABoundaryDrivenSearchSplitsItsVerdicts)
 TEST(LoopShapingStatistics, MrCountsNoBoxClassification)
 {
     ProjectController controller;
-    //Boundary-chain test: it compares boundaries, not readings, and the
-    //published reading keeps its goldens where the history left them and
-    //NT in the seconds; the conservative one takes NT to a minute here.
     {
         qftbx::Settings published;
         published.algorithms.conservativeBoundaryColumns = false;

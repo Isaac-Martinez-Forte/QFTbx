@@ -1,6 +1,14 @@
-// End-to-end characterisation: the plants recovered from the real .qft
-// fixtures must match the documented examples (cervera: ACC Cervera & Baños
-// 2013; planta1: PFC example plant 1).
+/**
+ * @file
+ * @brief The plants in the sample .qft files match their published examples.
+ *
+ * `cervera.qft` is the ACC example of Cervera and Baños (2013) and
+ * `planta1.qft` the first example plant of the final-year project. Each is loaded and checked
+ * field by field, then evaluated at s = 0.1j against the value computed by
+ * hand from the nominal parameters. The numerator and the denominator of the
+ * free-form plant hold two distinct parameters of the same name, which is what
+ * lets one sweep drive both.
+ */
 
 #include <gtest/gtest.h>
 
@@ -43,10 +51,6 @@ TEST(PlantFixture, CerveraRoundTrip)
     EXPECT_DOUBLE_EQ(a.rawNominal(), 2.0);
     EXPECT_EQ(a.rawRange(), Range(0.5, 2.0));
 
-    // Numerator and denominator carry two distinct Parameter objects that share
-    // the same name (the template map is keyed by NAME, which is why the
-    // numerator and denominator can hold two separate parameters with the
-    // same name and the sweep still drives both).
     ASSERT_EQ(plant->denominator().size(), 1);
     EXPECT_NE(&plant->denominator()[0], &a);
     EXPECT_EQ(plant->denominator()[0].name(), std::string("a"));
@@ -56,7 +60,6 @@ TEST(PlantFixture, CerveraRoundTrip)
     EXPECT_FALSE(plant->delay().isUncertain());
     EXPECT_DOUBLE_EQ(plant->delay().nominal(), 0.0);
 
-    // P(j0.1) with the nominal a = 2.
     const Complex s(0.0, 0.1);
     const Complex expected = 2.0 / ((s * s) * (s * s + 2.0));
     const Complex value = plant->evaluate(0.1);
@@ -86,7 +89,6 @@ TEST(PlantFixture, Planta1RoundTrip)
     EXPECT_EQ(plant->gain().name(), std::string("kv"));
     EXPECT_EQ(plant->gain().rawRange(), Range(1.0, 10.0));
 
-    // Nominals kv=1, a=5, b=30 at s = 0.1j.
     const Complex s(0.0, 0.1);
     const Complex expected = 1.0 / ((s + 5.0) * (s + 30.0));
     const Complex value = plant->evaluate(0.1);
@@ -94,4 +96,4 @@ TEST(PlantFixture, Planta1RoundTrip)
     EXPECT_NEAR(value.imag(), expected.imag(), kTolerance);
 }
 
-} // namespace
+}

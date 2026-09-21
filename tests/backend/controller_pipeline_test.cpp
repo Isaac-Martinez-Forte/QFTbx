@@ -1,9 +1,18 @@
-// End-to-end validation of the PFC workflow through ProjectController, the
-// mediator the GUI drives: load a full project, recompute the boundaries
-// with the same grid the file was made with, compare them against the
-// stored ones, then save and reload the whole project. This covers the DAO
-// wiring and orchestration that the per-module golden tests bypass; the
-// interactive walk through the dialogs stays a manual check.
+/**
+ * @file
+ * @brief End-to-end tests of the project workflow through its controller.
+ *
+ * The mediator the interface drives loads a whole project, recomputes the
+ * boundaries with the grid the file was made with, compares them against
+ * the stored ones, then saves and reloads everything. The stored traces of
+ * `multivaluados.qft` come from a build whose grid mapping scales by point
+ * count and stores its two synthetic endpoints first, so the comparison runs
+ * on core points in grid-index space. The guard near the singular locus moves
+ * the trace at 5 rad/s by one point, and every point that moves must sit
+ * next to -180 degrees around 0 dB; everything else matches point for point.
+ * The round trip through a saved file must carry the same project as
+ * `planta1.qft`, section by section.
+ */
 
 #include <gtest/gtest.h>
 #include <cstdio>
@@ -37,9 +46,6 @@ std::string fixture(const char* name)
     return std::string(QFTBX_TEST_DATA_DIR "/") + name;
 }
 
-// Grid-index comparison against the legacy fixture mapping, as in the
-// boundary golden tests (the file stores x = n*361/360 - 361 and inverted
-// synthetic endpoints; the current engine stores x = n - 360).
 struct GridPoint
 {
     int n;
@@ -70,11 +76,8 @@ TEST(ControllerPipeline, RecomputedBoundariesMatchTheLoadedProject)
     EXPECT_TRUE(sections.has(qftbx::Step::Templates));
     EXPECT_TRUE(sections.has(qftbx::Step::Boundaries));
 
-    //And what a load says it read is what the project says it holds.
     EXPECT_EQ(controller.completed(), sections);
 
-    // Keep the traces of the boundaries as loaded from the file: boundaries()
-    // hands a view whose containers are replaced when recomputing.
     BoundaryData* loaded = controller.boundaries();
     std::vector<std::vector<std::vector<qftbx::NicholsPoint>>> storedTraces;
     for (const auto & map : loaded->boundaries()) {
@@ -88,14 +91,6 @@ TEST(ControllerPipeline, RecomputedBoundariesMatchTheLoadedProject)
     }
     ASSERT_EQ(storedTraces.size(), 5);
 
-    // Recompute through the same call the GUI makes, with the grid the
-    // fixture was generated on (contour input, no CUDA). The engine now
-    // guards its sample near the singular locus (SingularLocus), which the
-    // fixture's raw sweep did not: at 5 rad/s a cell next to the locus turns
-    // forbidden and the boundary there is re-routed around it - a few trace
-    // points leave, a few appear, one fewer in all. Everything else must
-    // match the file point for point, and every point that moved must be
-    // where the locus is: next to -180 degrees, around 0 dB.
     ASSERT_TRUE(controller.computeBoundaries(qftbx::Range(-360.0, 0.0), 361,
                                               qftbx::Range(-60.0, 60.0), 121,
                                               -1.0, true, false));
@@ -116,9 +111,6 @@ TEST(ControllerPipeline, RecomputedBoundariesMatchTheLoadedProject)
             const std::vector<qftbx::NicholsPoint>& gold = storedTraces.at(f).at(t);
             const qftbx::Trace & got = traces.at(static_cast<std::size_t>(t));
 
-            // Current layout: [synthetic, core..., synthetic]; the legacy
-            // file: [synthetic(last+1), synthetic(first-1), core...]. The
-            // core points, as sets in grid indices.
             std::set<std::pair<int, int>> stored, recomputed;
             for (std::size_t k = 2; k < gold.size(); ++k) {
                 const GridPoint g = goldenToGrid(gold.at(k));
@@ -138,8 +130,6 @@ TEST(ControllerPipeline, RecomputedBoundariesMatchTheLoadedProject)
             if (f == 2 && t == 0) {
                 EXPECT_EQ(got.size() + 1, gold.size()) << "one point fewer in all";
                 EXPECT_FALSE(missing.empty());
-                //Grid index n is the phase from -360, m the magnitude from -60:
-                //the locus of this frequency sits next to n = 180, m = 60.
                 for (const auto & moved : {missing, extra}) {
                     for (const std::pair<int, int> & p : moved) {
                         std::printf("GUARD-MOVED f=2 n=%d m=%d (phase %d deg, %d dB)\n",
@@ -169,7 +159,6 @@ TEST(ControllerPipeline, SaveAndReloadRoundTripsTheProject)
         controller.save(saved);
     }
 
-    // The saved v2 file must carry the same project as the legacy original.
     ProjectReader original;
     const ProjectReader::Loaded originalSections = original.load(fixture("planta1.qft"));
     ProjectReader rewritten;
@@ -189,4 +178,4 @@ TEST(ControllerPipeline, SaveAndReloadRoundTripsTheProject)
     expectSameLoopShaping(original.loopShaping(), rewritten.loopShaping());
 }
 
-} // namespace
+}

@@ -1,16 +1,18 @@
-// Golden tests for the boundary computation against tests/data/
-// multivaluados.qft, which ships the boundaries computed by the original
-// (sequential, dB) build for 5 frequencies of a tracking specification.
-//
-// Key note: the fixture stores the legacy Spanish map keys ("Seguimiento");
-// the loader maps them to the canonical English ones ("Tracking").
-//
-// Coordinate note: the fixture was produced by a legacy mapping that scaled
-// by the POINT COUNT instead of the range (x = n*361/360 - 361,
-// y = m*121/120 - 60) and prepended its two synthetic endpoints in inverted
-// order; the current code maps correctly (x = n - 360, y = m - 60) and
-// appends first-1 / last+1 around the core. Comparisons therefore run in
-// GRID-INDEX space, where the equality is exact and integer.
+/**
+ * @file
+ * @brief Golden tests of the boundary computation on `multivaluados.qft`.
+ *
+ * The fixture ships the boundaries of a tracking specification at five
+ * frequencies computed by the original sequential build, whose grid mapping
+ * scales by point count rather than range and stores its two synthetic
+ * endpoints first; comparisons therefore run in grid-index space, where the
+ * equality is exact. Further cases check that the union is the concatenation
+ * of the traces with sorted, deduplicated phase buckets, that contours and
+ * full clouds give the same raw sweep, that the guard near the singular locus
+ * moves exactly one trace point at 5 rad/s, that the critical Nichols point
+ * violates every finite specification, and that an undamped resonance swept
+ * exactly at its frequency is reported with the frequency and the cause.
+ */
 
 #include <gtest/gtest.h>
 
@@ -66,9 +68,6 @@ protected:
         parser.load(
             std::string(QFTBX_TEST_DATA_DIR "/multivaluados.qft"));
 
-        //The fixture's boundaries are the raw sweep over the sample, without
-        //the guard near the singular locus the engine applies today (see
-        //GuardedSweepDeviatesOnlyNextToTheSingularLocus for what that adds).
         engine.setSingularLocusGuard(false);
         engine.compute(parser.omega()->values(), parser.plant(),
                              parser.contour(), true, parser.specifications(),
@@ -82,19 +81,16 @@ protected:
 
     ProjectReader parser;
     BoundaryEngine engine;
-    //boundaryData() returns a snapshot BY VALUE now: no allocation, no
-    //TearDown, and no chance of dropping it on the floor. It used to be a
-    //freshly allocated non-owning view that every one of these tests leaked.
     std::optional<BoundaryData> got;
-    const BoundaryData* gold = nullptr;   //owned by the reader
+    const BoundaryData* gold = nullptr;
 };
 
 TEST_F(BoundariesGolden, GridMetadataMatches)
 {
-    EXPECT_EQ(got->phaseCount(), gold->phaseCount());   // 361
-    EXPECT_EQ(got->magnitudeCount(), gold->magnitudeCount());   // 121
-    EXPECT_EQ(got->phaseRange(), gold->phaseRange()); // (-360, 0)
-    EXPECT_EQ(got->magnitudeRange(), gold->magnitudeRange()); // (-60, 60)
+    EXPECT_EQ(got->phaseCount(), gold->phaseCount());
+    EXPECT_EQ(got->magnitudeCount(), gold->magnitudeCount());
+    EXPECT_EQ(got->phaseRange(), gold->phaseRange());
+    EXPECT_EQ(got->magnitudeRange(), gold->magnitudeRange());
 
     ASSERT_EQ(got->openFlags().size(), 5u);
     for (std::size_t f = 0; f < 5; ++f) {
@@ -130,8 +126,6 @@ TEST_F(BoundariesGolden, TracesMatchTheGoldenInGridIndices)
             ASSERT_EQ(gotTrace.size(), goldTrace.size())
                 << "frequency " << f << " trace " << t;
 
-            // Core: current = [synthetic, core..., synthetic]; the legacy
-            // golden = [synthetic(last+1), synthetic(first-1), core...].
             const int n = static_cast<int>(gotTrace.size());
             for (int k = 0; k < n - 2; ++k) {
                 const GridPoint a = currentToGrid(gotTrace.at(1 + k));
@@ -173,12 +167,6 @@ TEST_F(BoundariesGolden, ReunionIsTheConcatenationOfTheTraces)
 
 TEST_F(BoundariesGolden, ContourInputIsEquivalentToFullTemplates)
 {
-    // The RAW sheet is a max/min over the sample, so feeding the full clouds
-    // instead of the contours must give the same boundaries - with the guard
-    // off. With it on the two differ next to the singular locus: the contour
-    // is a border and its extremes over the family are exact on the polygon,
-    // the cloud has no border and is widened by a first-order bound, so the
-    // cloud path is the more conservative of the two (see BoundarySource).
     ProjectReader parser2;
     parser2.load(
         std::string(QFTBX_TEST_DATA_DIR "/multivaluados.qft"));
@@ -202,11 +190,6 @@ TEST_F(BoundariesGolden, ContourInputIsEquivalentToFullTemplates)
 
 TEST_F(BoundariesGolden, ReunionHashIsSortedDeduplicatedAndInRange)
 {
-    // Fixed (C7): the per-phase buckets are built from ALL reunion points
-    // (the first one used to be skipped), the border bucket no longer
-    // indexes out of range, and each bucket is sorted ascending by
-    // magnitude with duplicate magnitudes dropped - the semantics of the
-    // layer buckets and of the historical files.
     const qftbx::UnionBuckets & hash = got->unionBuckets();
     ASSERT_EQ(hash.size(), 5u);
 
@@ -232,15 +215,6 @@ TEST_F(BoundariesGolden, ReunionHashIsSortedDeduplicatedAndInRange)
     }
 }
 
-//What the guard near the singular locus changes on this fixture: with the
-//contour as the sample, the exact extremes over the polygonal border differ
-//from the sampled ones only where a chord passes closer to the pole than its
-//endpoints, and a loop value inside the template becomes infinite. Here that
-//is a handful of cells next to the locus, phases -199 to -172 degrees around
-//0 dB (measured cell by cell), and at 5 rad/s it turns one cell next to the
-//locus forbidden, which shortens the boundary there by ONE trace point;
-//nothing moves at the other four frequencies. (The legacy golden is the raw
-//sweep and stays what it was.)
 TEST(BoundariesGuard, GuardedSweepDeviatesOnlyNextToTheSingularLocus)
 {
     ProjectReader parser;
@@ -272,19 +246,8 @@ TEST(BoundariesGuard, GuardedSweepDeviatesOnlyNextToTheSingularLocus)
     EXPECT_EQ(differing, 1u);
 }
 
-// ---------------------------------------------------------------------------
-// The critical Nichols point and non-finite plant magnitudes (decision D8)
-// ---------------------------------------------------------------------------
-
 TEST(BoundaryCriticalPoint, CriticalCellViolatesEverySpecification)
 {
-    // At the grid point L = -1 (phase -180 deg, magnitude 0 dB) the nominal
-    // plant makes the closed-loop denominator vanish: the loop has a pole on
-    // the imaginary axis, so |T| is unbounded and the cell must violate any
-    // finite specification. The exact zero never materialises because
-    // sin(-pi) is -1.2e-16 instead of 0, which is why the cell reads as a
-    // huge but finite value; the engine no longer depends on that accident,
-    // as the tracking case below shows.
     ProjectController controller;
     controller.load(
         std::string(QFTBX_TEST_DATA_DIR "/acc90.qft"));
@@ -304,7 +267,6 @@ TEST(BoundaryCriticalPoint, CriticalCellViolatesEverySpecification)
             worst = std::max(worst, std::abs(L / ((p0 / p) + L)));
         }
 
-        // Way above any sane robust-stability threshold (gamma = 1.75 here).
         EXPECT_GT(20.0 * std::log10(worst), 200.0)
             << "frequency " << omega->at(i);
     }
@@ -312,9 +274,6 @@ TEST(BoundaryCriticalPoint, CriticalCellViolatesEverySpecification)
 
 TEST(BoundaryCriticalPoint, NanSheetValueWouldReadAsAllowed)
 {
-    // Why the engine states non-finite cells as violating: a NaN compares
-    // FALSE against the threshold, so a NaN cell would silently read as
-    // ALLOWED, while an infinity reads as forbidden, which is correct.
     const double threshold = 1.75;
     EXPECT_FALSE(std::nan("") > threshold);
     EXPECT_TRUE(std::numeric_limits<double>::infinity() > threshold);
@@ -322,23 +281,10 @@ TEST(BoundaryCriticalPoint, NanSheetValueWouldReadAsAllowed)
 
 TEST(BoundaryCriticalPoint, UndampedResonanceIsRejectedWithAdvice)
 {
-    // The ACC'90 plant without the light damping the literature prescribes:
-    // P(s) = ev/(s^2 (s^2 + 2ev)) has poles at +-j*sqrt(2ev), so with
-    // ev in [0.5, 2] the resonance sweeps [1, 2] rad/s and SOME plant of the
-    // value set blows up at every frequency of that band - no frequency grid
-    // can dodge it, which is why the literature damps the poles instead.
-    //
-    // The resonant denominator vanishes exactly at the swept frequency ((j w)^2
-    // is exactly -w^2), so the plant is infinite there and the templates
-    // report the frequency and the likely cause instead of the bare "could
-    // not compute" they used to give.
     ProjectController controller;
     controller.load(
         std::string(QFTBX_TEST_DATA_DIR "/acc90.qft"));
 
-    // Undamped version of the fixture's plant, swept exactly at a resonance.
-    // The parameter is named 'ev' as in the fixture: 'e' is Euler's number
-    // in the expression grammar.
     std::vector<Parameter> numerator;
     numerator.push_back(Parameter(std::string("ev"), Range(0.5, 2.0), 1.0,
                                     std::string("ev")));
@@ -353,12 +299,11 @@ TEST(BoundaryCriticalPoint, UndampedResonanceIsRejectedWithAdvice)
 
     controller.setPlant(std::move(undamped));
 
-    const std::vector<double> frequencies{1.0};   // exact resonance of ev = 0.5
+    const std::vector<double> frequencies{1.0};
     controller.setOmega(std::make_unique<Omega>(frequencies.at(0), frequencies.at(0), 1,
                                                frequencies, Omega::Manual));
 
     const std::vector<double> epsilon{10.0};
-    // sqrt(2*0.5) = 1 exactly: |P| = inf at that frequency
     qftbx::ParameterGrids grids{{std::string("ev"), {0.5}}};
 
     try {
@@ -372,4 +317,4 @@ TEST(BoundaryCriticalPoint, UndampedResonanceIsRejectedWithAdvice)
 
 }
 
-} // namespace
+}

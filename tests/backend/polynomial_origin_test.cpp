@@ -1,10 +1,14 @@
-// A polynomial recovered from its values has roots at the origin where its
-// trailing coefficients are zero, and those have to come back as zero and not
-// as the rounding they were computed with: a double root at the origin left
-// as a pair of roots 1e-7 away lands in the right half-plane as often as not,
-// and a plant family with a double integrator - the ACC'90 benchmark - is then
-// refused as changing its number of unstable poles from one member to the
-// next.
+/**
+ * @file
+ * @brief Roots at the origin recovered from values come back exact, not as noise.
+ *
+ * The denominator of the ACC'90 benchmark family, s^2 (s^2 + 0.02 s + 2 ev),
+ * is recovered from its values at every one of 625 members. Its two trailing
+ * coefficients must be exactly zero and its double root at the origin must not
+ * count as a right half-plane pole: a pair a little off the origin lands in
+ * the right half-plane as often as not, and the family would be refused as
+ * changing its number of unstable poles from one member to the next.
+ */
 
 #include <gtest/gtest.h>
 

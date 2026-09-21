@@ -1,6 +1,18 @@
-// Tests of the Nichols-chart Nyquist criterion (Cohen-Chait-Yaniv) that
-// completes the loop-shaping feasibility test (phase 8b.2b): classical
-// textbook loops with known closed-loop stability verdicts.
+/**
+ * @file
+ * @brief Tests of the Nichols-chart Nyquist criterion for nominal stability.
+ *
+ * The checker completes the feasibility test with the criterion of Cohen,
+ * Chait and Yaniv: crossings of the -180 degree rays above 0 dB, counted on
+ * the unwrapped phase. Classical loops with known verdicts are checked, among
+ * them the conditionally stable loop whose two crossings cancel, where a
+ * never-cross rule gets both verdicts wrong; random controllers over three
+ * plants must agree with a transcription of the criterion through arc
+ * tangents; one phase profile serves every gain of a shape; a box is rejected
+ * whole only when its corner is unstable and its enclosure excludes the
+ * critical point at every frequency; plants with right-half-plane poles have
+ * verdicts fixed by Routh; and a delay in the denominator gets no verdict.
+ */
 
 #include <gtest/gtest.h>
 
@@ -55,8 +67,6 @@ TEST(NominalStability, LowGainOverAStablePlantIsStable)
 
 TEST(NominalStability, TriplePoleBeyondCriticalGainIsUnstable)
 {
-    // L0 = k/(s+1)^3 crosses -180 deg at w = sqrt(3) with |L0| = k/8:
-    // the classical threshold is k = 8.
     LtiSystem* plant = makeZpk(1.0, {}, {1.0, 1.0, 1.0});
     LtiSystem* unstable = makeZpk(30.0, {}, {});
     LtiSystem* stable = makeZpk(4.0, {}, {});
@@ -72,7 +82,6 @@ TEST(NominalStability, TriplePoleBeyondCriticalGainIsUnstable)
 
 TEST(NominalStability, IntegratorLoopWithPhaseMarginIsStable)
 {
-    // L0 = 0.5/(s(s+1)): one integrator, positive phase margin.
     LtiSystem* plant = makeZpk(1.0, {}, {0.0, 1.0});
     LtiSystem* controller = makeZpk(0.5, {}, {});
 
@@ -85,12 +94,6 @@ TEST(NominalStability, IntegratorLoopWithPhaseMarginIsStable)
 
 TEST(NominalStability, ConditionallyStableLoopNeedsTheNetCount)
 {
-    // L0 = k (s+1)^2 / (s+0.01)^3: at low frequency the phase dives past
-    // -180 (three slow poles) and the zeros bring it back: with high gain
-    // the two crossings cancel (net zero, stable); with the gain lowered
-    // so that only the first crossing stays above 0 dB the loop is
-    // unstable. The classical conditionally-stable example: a plain
-    // "never cross -180 above 0 dB" rule gets BOTH verdicts wrong.
     LtiSystem* plant = makeZpk(1.0, {1.0, 1.0}, {0.01, 0.01, 0.01});
     LtiSystem* highGain = makeZpk(10.0, {}, {});
     LtiSystem* lowGain = makeZpk(0.005, {}, {});
@@ -104,11 +107,6 @@ TEST(NominalStability, ConditionallyStableLoopNeedsTheNetCount)
     delete lowGain;
 }
 
-//The criterion as a plain transcription: the loop sampled with complex
-//arithmetic, the phase of every sample from atan2, unwrapped, refined
-//where it steps too far, and the ray crossings counted on the unwrapped
-//phase. The checker computes the same thing without the arc tangents and
-//with the gain factored out; this is what it must agree with.
 bool referenceVerdict(LtiSystem * plant, const PointController & controller,
                       const std::vector<double> & grid, const Settings::Stability & tolerances)
 {
@@ -187,9 +185,6 @@ std::vector<double> gridOf(const std::vector<double> & omega, const Settings::St
 
 TEST(NominalStability, TheArrayVerdictAgreesWithTheTranscribedCriterion)
 {
-    //Random zero-pole-gain controllers over three plants of different
-    //character, including gains that swing the verdict either way and a
-    //loop with integrators that starts on a ray.
     const Settings::Stability tolerances;
     const std::vector<double> grid = gridOf(designFrequencies, tolerances);
     std::vector<LtiSystem *> plants{
@@ -227,9 +222,6 @@ TEST(NominalStability, TheArrayVerdictAgreesWithTheTranscribedCriterion)
 
 TEST(NominalStability, AProfileServesEveryGainOfAShape)
 {
-    //The zeros and poles fix the phase; the gain only scales the
-    //magnitudes. One profile per shape, and the verdict for any gain is
-    //read off it.
     LtiSystem * plant = makeZpk(1.0, {}, {1.0, 1.0, 1.0});
     NominalStabilityChecker checker(plant, &designFrequencies);
 
@@ -253,14 +245,8 @@ TEST(NominalStability, AProfileServesEveryGainOfAShape)
     delete plant;
 }
 
-} // namespace
+}
 
-//The verdict over a whole box (isBoxUnstable): a box is unstable when its
-//lower corner is and its Nichols enclosure excludes the critical point at
-//every sampled frequency, so no member can change its crossing count. The
-//loop is the QFT toolbox example 2 nominal plant 1/(s(s+1)) with the
-//controller k (s+z)/(s+p), whose characteristic polynomial
-//s^3 + (1+p) s^2 + (p+k) s + k z is stable exactly when (1+p)(p+k) > k z.
 namespace {
 
 LtiSystem* makeBox(Range k, Range z, Range p)
@@ -270,7 +256,7 @@ LtiSystem* makeBox(Range k, Range z, Range p)
     return new ZeroPoleGain(std::string("box"), nume, deno, Parameter("kc", k, k.min), Parameter(double(0)));
 }
 
-} // namespace
+}
 
 TEST(NominalStability, ALagBoxUnstableThroughoutIsRejectedWhole)
 {
@@ -279,20 +265,12 @@ TEST(NominalStability, ALagBoxUnstableThroughoutIsRejectedWhole)
     NominalStabilityChecker checker(plant, &omega);
     NaturalIntervalExtension extension;
 
-    //(1+p)(p+k) <= 1.1 * 20.1 = 22 < k z >= 5000 everywhere: every member
-    //is unstable, and the loop crosses -180 degrees far above 0 dB.
     LtiSystem* lag = makeBox(Range(10.0, 20.0), Range(500.0, 1000.0), Range(0.01, 0.1));
     EXPECT_TRUE(checker.isBoxUnstable(lag, extension));
 
-    //Around the optimum of the example every member is stable: the corner
-    //verdict alone says no.
     LtiSystem* good = makeBox(Range(400.0, 700.0), Range(1.5, 2.5), Range(100.0, 200.0));
     EXPECT_FALSE(checker.isBoxUnstable(good, extension));
 
-    //The corner k = 1, z = 1.5, p = 0.01 is unstable (1.01 * 1.01 < 1.5)
-    //but p = 3 is not (4 * 4 > 1.5): the box straddles the stability
-    //surface, so some member passes through the critical point and the
-    //enclosure cannot exclude it.
     LtiSystem* straddling = makeBox(Range(1.0, 100.0), Range(1.5, 3.0), Range(0.01, 3.0));
     EXPECT_FALSE(checker.isBoxUnstable(straddling, extension));
 
@@ -302,15 +280,8 @@ TEST(NominalStability, ALagBoxUnstableThroughoutIsRejectedWhole)
     delete straddling;
 }
 
-//------------------------------------------------------------ unstable plants
-//Nyquist for a plant with P poles in the right half-plane: the loop has to
-//encircle the critical point P times the other way, N = -P, and on positive
-//frequencies alone the ray crossings add up to P/2. The verdicts below are
-//fixed by Routh on the characteristic polynomial, not by the criterion.
-
 TEST(NominalStability, OneUnstablePoleNeedsTheGainAboveOne)
 {
-    //P(s) = 1 / (s - 1), C = k: closed loop s - 1 + k, stable iff k > 1.
     LtiSystem* plant = makeZpk(1.0, {}, {-1.0});
     NominalStabilityChecker checker(plant, &designFrequencies);
     EXPECT_EQ(checker.rightHalfPlanePoles(), 1);
@@ -327,9 +298,6 @@ TEST(NominalStability, OneUnstablePoleNeedsTheGainAboveOne)
 
 TEST(NominalStability, AnUnstablePoleOfAFreeFormPlant)
 {
-    //P(s) = 1 / (s^2 - 2.5) (Tharewal's unstable plant: one pole on each
-    //side), C = k (s + 1) / (s + 10): s^3 + 10 s^2 + (k - 2.5) s + (k - 25),
-    //stable iff k > 25 by Routh.
     std::vector<Parameter> none;
     std::vector<Parameter> denominator{Parameter(std::string("a"), 2.5)};
     FreeForm plant(std::string("P"), none, denominator, Parameter(1.0), Parameter(0.0),
@@ -349,10 +317,6 @@ TEST(NominalStability, AnUnstablePoleOfAFreeFormPlant)
 
 TEST(NominalStability, PolesOnTheAxisAreIndentedFromTheExactRoots)
 {
-    //The maglev benchmark, P(s) = 877.5 / (s^2 + 430.25): poles at +-j 20.74.
-    //Two controllers the sampled criterion once approved have two closed-loop
-    //poles each in the right half-plane; the third stabilises. All three
-    //checked on the roots of the characteristic polynomial.
     std::vector<Parameter> none;
     std::vector<Parameter> denominator{Parameter(std::string("a"), 430.25)};
     FreeForm plant(std::string("P"), none, denominator, Parameter(877.5), Parameter(0.0),
@@ -375,8 +339,6 @@ TEST(NominalStability, PolesOnTheAxisAreIndentedFromTheExactRoots)
 
 TEST(NominalStability, ADenominatorThatIsNotAPolynomialGetsNoVerdict)
 {
-    //A delay written into the denominator: the poles cannot be placed, and
-    //the criterion says so instead of assuming there are none unstable.
     std::vector<Parameter> none;
     FreeForm plant(std::string("P"), none, none, Parameter(1.0), Parameter(0.0),
                    std::string("1"), std::string("s+exp(-s)"));

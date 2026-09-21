@@ -1,30 +1,18 @@
-// End-to-end characterisation goldens for the five loop-shaping algorithms
-// (phase 8b.0 safety net), run through ProjectController on planta1.qft with a
-// fixed parameter set. planta1's stored controller has fixed zero/pole and
-// an uncertain gain, so the search is one-dimensional and near-instant:
-// these goldens pin behaviour, they do not exercise the full search (the
-// thesis chapter 6 cases will).
-//
-// Pinned observations (updated after the 8b.2b open-boundary parity fix):
-// - planta1 carries disturbance-rejection specifications whose open
-//   boundaries demand |L0| ABOVE them (8..15 dB at 0.1 rad/s). The
-//   historical detection had the open-boundary verdicts swapped, so it
-//   accepted exactly the violating loops: the k = 125.75 stored in the
-//   fixture sits ~25 dB BELOW its own bounds. With the producer and
-//   consumer agreeing, no gain inside the stored controller range
-//   satisfies the bounds: the problem is genuinely infeasible and the
-//   algorithms now say so.
-// - MR, rebuilt as the paper's pure ICSP in 8b.4, now
-//   validates the specifications: planta1's stored input-disturbance
-//   slot holds an invalid constant (magnitude <= 0, the source of NaN
-//   heights), so the validating conversion rejects the problem.
-// - MR's gain moved from 378.58729554473427 to the value pinned below when
-//   its termination criterion was put back on the paper's footing: the
-//   width of the CONTROLLER PARAMETER box (FDA-10 sec. 5) instead of the
-//   diameter of the Nichols box that the other four measure. The 0.5 below
-//   therefore means different things per algorithm. The search goes one
-//   notch deeper and the optimum improves by 0.43, a tenth of a percent,
-//   downwards - which is the direction a finer stop should move a minimum.
+/**
+ * @file
+ * @brief Golden tests of the five loop-shaping algorithms on `planta1.qft`.
+ *
+ * The stored controller has a fixed zero and pole and an uncertain gain, so
+ * the search is one-dimensional and near-instant: the goldens pin behaviour
+ * rather than exercise a full search. The fixture's disturbance-rejection
+ * specifications demand a loop above their open boundaries and no gain in
+ * the stored range satisfies them, so NT, NK, MC1 and MC of the thesis must
+ * report that no solution exists. MR works from the specifications rather
+ * than the boundaries and is pinned at a gain of 378.157; its stop is the
+ * width of the controller parameter box (Kalla and Nataraj 2010, section 5)
+ * where the other four measure the Nichols box, so the accuracy of 0.5
+ * means different things per algorithm.
+ */
 
 #include <gtest/gtest.h>
 
@@ -49,7 +37,6 @@ struct GoldenResult {
     double tolerance;
 };
 
-//Readable test names in ctest (instead of a raw byte dump).
 void PrintTo(const GoldenResult& golden, std::ostream* os)
 {
     *os << golden.name;
@@ -104,4 +91,4 @@ INSTANTIATE_TEST_SUITE_P(
         return std::string(info.param.name);
     });
 
-} // namespace
+}

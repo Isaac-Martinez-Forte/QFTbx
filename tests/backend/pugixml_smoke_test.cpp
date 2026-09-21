@@ -1,6 +1,13 @@
-// Smoke tests for the pugixml integration (phase 6): every shipped .qft
-// fixture must parse as well-formed XML with the expected root, and the
-// corrupt fixtures must fail with a located error instead of crashing.
+/**
+ * @file
+ * @brief Smoke tests of the XML library the .qft reader is built on.
+ *
+ * Every shipped fixture must parse as well-formed XML with the `QFT` root and
+ * its sections must be reachable by name in any order; a well-formed file with
+ * a foreign root is accepted here, since refusing it is the project reader's
+ * job; malformed input must fail with an offset and a description rather than
+ * crash.
+ */
 
 #include <gtest/gtest.h>
 
@@ -8,7 +15,6 @@
 #include <string>
 
 #include <pugixml.hpp>
-
 
 namespace {
 
@@ -33,8 +39,6 @@ TEST(PugixmlSmoke, EveryFixtureParsesWithTheQftRoot)
 
 TEST(PugixmlSmoke, SectionsAreReachableByName)
 {
-    // DOM access by name, in any order: the property the streaming parser
-    // never had (it forces one fixed section order).
     pugi::xml_document doc;
     ASSERT_TRUE(load(doc, "multivaluados.qft"));
 
@@ -51,7 +55,6 @@ TEST(PugixmlSmoke, SectionsAreReachableByName)
     EXPECT_TRUE(results.child("templates"));
     EXPECT_TRUE(results.child("boundaries"));
 
-    // Numeric conversion straight from the tree.
     const pugi::xml_node spec = inputs.child("specifications").child("specification");
     ASSERT_TRUE(spec);
     EXPECT_GT(spec.child("max-frequency").text().as_double(), 0.0);
@@ -59,8 +62,6 @@ TEST(PugixmlSmoke, SectionsAreReachableByName)
 
 TEST(PugixmlSmoke, WrongRootStaysAReaderLevelError)
 {
-    // invalid.qft is well-formed XML with the wrong root: pugixml accepts
-    // it, and rejecting it is the project reader's job.
     pugi::xml_document doc;
     ASSERT_TRUE(load(doc, "invalid.qft"));
     EXPECT_STRNE(doc.document_element().name(), "QFT");
@@ -73,8 +74,8 @@ TEST(PugixmlSmoke, MalformedInputFailsWithALocatedError)
     pugi::xml_document doc;
     const pugi::xml_parse_result result = doc.load_string(broken);
     EXPECT_FALSE(result);
-    EXPECT_GT(result.offset, 0);              // byte offset for ParseError lines
-    EXPECT_NE(result.description(), nullptr); // human-readable reason
+    EXPECT_GT(result.offset, 0);
+    EXPECT_NE(result.description(), nullptr);
 }
 
-} // namespace
+}

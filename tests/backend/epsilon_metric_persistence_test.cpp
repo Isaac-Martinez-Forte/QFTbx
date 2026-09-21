@@ -1,9 +1,18 @@
-// The plane the templates' epsilon is measured in, as a property of the
-// project: kept with the epsilon, saved with it among the settings, read back
-// from it, and the plane every contour computation measures in.
-//
-// A file ported from version 2 carries no plane and is read as what it is: an
-// epsilon in the complex plane. A file the build does not know is refused.
+/**
+ * @file
+ * @brief Tests of the plane the templates' epsilon is measured in.
+ *
+ * The metric is a property of the project: kept with the epsilon, saved with
+ * it among the settings of a version 4 file, read back, and used by every
+ * contour computation. A file ported from version 2 carries no plane and is
+ * read as an epsilon in the complex plane; a file of a version the build does
+ * not read is refused naming both versions, and an epsilon stored among the
+ * results rather than the settings is still read. On QFT toolbox example 2
+ * one Nichols-plane epsilon serves all six frequencies, just above what each
+ * asks for (2.77 to 8.97), so every contour closes and none is the whole
+ * cloud; and the proposal made from the sweep grids before any template
+ * exists must equal the one made afterwards, leaving the templates untouched.
+ */
 
 #include <gtest/gtest.h>
 
@@ -56,7 +65,6 @@ TEST(EpsilonMetric, TheMetricRoundTripsThroughTheFile)
     EXPECT_EQ(reloaded.epsilonMetric().metric, HullMetric::Nichols);
     EXPECT_DOUBLE_EQ(reloaded.epsilonMetric().dbPerDegree, 0.5);
 
-    //The written file says version 4 and names the plane on the epsilon.
     std::ifstream in(path);
     std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
     EXPECT_NE(text.find("version=\"4\""), std::string::npos);
@@ -77,8 +85,6 @@ TEST(EpsilonMetric, AnUnknownMetricOrVersionIsRefused)
     };
 
     ProjectReader reader;
-    //A version-4 file with nothing in it is a project with nothing in it,
-    //not a broken file: it loads, and carries no step.
     const ProjectReader::Loaded empty =
             reader.load(write("empty.qft", "<?xml version=\"1.0\"?><QFT version=\"4\"></QFT>"));
     EXPECT_EQ(empty.steps.count(), 0u);
@@ -97,10 +103,6 @@ TEST(EpsilonMetric, AnUnknownMetricOrVersionIsRefused)
         "</templates></results></QFT>";
     EXPECT_THROW(reader.load(write("weight.qft", badWeight)), qftbx::ParseError);
 
-    //A file of an older format is refused, and the refusal says WHICH
-    //version it is and which one this build reads. The two numbers used to
-    //come out as the placeholders they were written with, because the
-    //version was handed to the argument that takes the line.
     try {
         reader.load(write("old.qft", "<?xml version=\"1.0\"?><QFT version=\"2\"></QFT>"));
         ADD_FAILURE() << "a version-2 file was read";
@@ -114,11 +116,6 @@ TEST(EpsilonMetric, AnUnknownMetricOrVersionIsRefused)
 
 TEST(EpsilonMetric, AFileThatKeptItsEpsilonAmongTheResultsIsStillRead)
 {
-    //The first version-4 files wrote the epsilon under the templates, among
-    //the results, before it moved to the settings where it belongs. A
-    //project that carries its clouds and loses the tolerance they were
-    //walked with is a project that cannot tighten its contour again, so it
-    //is read from the old place rather than dropped.
     QTemporaryDir temporary;
     ASSERT_TRUE(temporary.isValid());
     const std::string path = temporary.filePath("among_results.qft").toStdString();
@@ -139,11 +136,6 @@ TEST(EpsilonMetric, AFileThatKeptItsEpsilonAmongTheResultsIsStillRead)
     EXPECT_DOUBLE_EQ(reader.epsilonMetric().dbPerDegree, 2.0);
 }
 
-//The contour is walked in the project's plane. On example 2 an epsilon in the
-//complex plane is either far too small for the template at 0.1 rad/s or ten
-//thousand times too large for the one at 100 rad/s; in the Nichols plane one
-//epsilon serves all six, just above what each asks for (2.77 to 8.97
-//measured), so every contour closes and none is the whole cloud.
 TEST(EpsilonMetric, TheContourIsWalkedInTheProjectsPlane)
 {
     ProjectController controller;
@@ -159,7 +151,6 @@ TEST(EpsilonMetric, TheContourIsWalkedInTheProjectsPlane)
         EXPECT_GE(p.epsilon, p.connected);
     }
 
-    //Just above the largest proposal: every template connected, none coarse.
     double largest = 0.0;
     for (const auto & p : proposals) largest = std::max(largest, p.epsilon);
     const CloudSet & contours = controller.recomputeContour(std::vector<double>(frequencies, largest * 1.05));
@@ -170,10 +161,6 @@ TEST(EpsilonMetric, TheContourIsWalkedInTheProjectsPlane)
     }
 }
 
-//The proposal the templates dialog opens with is made BEFORE any template
-//exists: from a sweep over the grids as the dialog holds them. It has to
-//agree with what the same sweep, once computed, asks for, and it must not
-//publish anything or disturb the templates the project already has.
 TEST(EpsilonMetric, TheProposalBeforeComputingMatchesTheOneAfter)
 {
     ProjectController controller;
@@ -202,8 +189,6 @@ TEST(EpsilonMetric, TheProposalBeforeComputingMatchesTheOneAfter)
     EXPECT_EQ(controller.templates().at(0).size(), storedPoints)
         << "proposing an epsilon replaced the project's templates";
 
-    //Each template walked at exactly the epsilon it asked for: the walk has
-    //to close, strictly, everywhere.
     std::vector<double> epsilon;
     for (const TemplateEngine::EpsilonProposal & p : before) epsilon.push_back(p.epsilon);
     controller.setEpsilonMetric(nichols);
@@ -216,8 +201,6 @@ TEST(EpsilonMetric, TheProposalBeforeComputingMatchesTheOneAfter)
         EXPECT_DOUBLE_EQ(before[i].epsilon, after[i].epsilon) << "frequency " << i;
         EXPECT_DOUBLE_EQ(before[i].connected, after[i].connected) << "frequency " << i;
         EXPECT_DOUBLE_EQ(before[i].diameter, after[i].diameter) << "frequency " << i;
-        //The contour walked at the proposed epsilon is a proper contour:
-        //neither the whole cloud nor a handful of points.
         EXPECT_LT(controller.contour()[i].size(), 49u) << "frequency " << i;
         EXPECT_GT(controller.contour()[i].size(), 4u) << "frequency " << i;
     }

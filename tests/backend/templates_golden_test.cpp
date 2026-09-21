@@ -1,15 +1,18 @@
-// Golden tests for the template computation against tests/data/planta2.qft,
-// which ships the full clouds and epsilon-hull contours (6 frequencies,
-// 10x10 parameter grid, epsilon = 10). The clouds are the ones the original
-// program computed, to the six significant digits it wrote them with; the
-// contours were regenerated with the toolbox's own expression evaluator, since
-// the walk of the hull is sensitive to the last bits of the cloud and the
-// evaluator this replaced left a different residue in them (see the
-// expression tree tests).
-//
-// The comparisons use a relative tolerance. The tests run multithreaded:
-// every computation writes at the index of its own frequency (the old
-// thread-order permutation and its omega/epsilon aliasing repair are gone).
+/**
+ * @file
+ * @brief Golden tests of the template computation against `planta2.qft`.
+ *
+ * The fixture ships the full clouds and the epsilon-hull contours of six
+ * frequencies over a 10x10 grid of the two uncertain parameters with epsilon
+ * 10. The clouds must match the stored ones to a relative 1e-5, with two hard
+ * anchors fixing the sweep order; the contours are compared as cycles, same
+ * sequence and direction from any starting point, since the faithful
+ * `EPSHULL.M` walk closes on its first point, and every contour point must
+ * belong to its cloud and start at the extreme the hybrid rule names. The
+ * frequencies stay aligned with their templates whatever the thread count,
+ * the input vectors survive the computation, a loaded project can recompute
+ * its contour, and a missing grid or missing templates are refused.
+ */
 
 #include <gtest/gtest.h>
 
@@ -20,7 +23,6 @@
 #include <algorithm>
 
 #include <complex>
-
 
 #include "src/app/project_controller.h"
 #include "src/core/common/exception.h"
@@ -56,7 +58,6 @@ protected:
         plant = parser.plant();
         ASSERT_NE(plant, nullptr);
 
-        // The fixture was computed on a 10x10 grid: a and kv in [1,10].
         mapa.clear();
         mapa[plant->numerator()[0].name()] = qftbx::math::linspace(1.0, 10.0, 10);
         mapa[plant->gain().name()] = qftbx::math::linspace(1.0, 10.0, 10);
@@ -92,18 +93,12 @@ TEST_F(TemplatesGolden, BruteForceMatchesFixture)
         }
     }
 
-    // Hard anchors fixing the sweep order (a is the fast digit).
     expectNear(computed.at(0).at(0), Complex(-0.990099, -9.90099), "t[0][0]");
     expectNear(computed.at(0).at(1), Complex(-0.498753, -9.97506), "t[0][1]");
 }
 
 TEST_F(TemplatesGolden, ContourMatchesFixtureAsACycle)
 {
-    // The faithful EPSHULL.M walk returns a closed contour (last point
-    // repeats the first), so the comparison is cyclic: same sequence, same
-    // direction, any starting point. The fallback frequencies (0.1 and 2
-    // rad/s, where the reference walk cycles) return the open historical
-    // sequence instead.
     const qftbx::CloudSet & computed = templates.contours();
     const qftbx::CloudSet & expected = parser.contour();
     ASSERT_EQ(static_cast<int>(computed.size()), static_cast<int>(expected.size()));
@@ -111,7 +106,7 @@ TEST_F(TemplatesGolden, ContourMatchesFixtureAsACycle)
     const auto asCycle = [](const qftbx::ComplexCloud & contour) {
         std::vector<Complex> cycle(contour.begin(), contour.end());
         if (cycle.size() > 1 && cycle.front() == cycle.back()) {
-            cycle.pop_back(); // closing duplicate
+            cycle.pop_back();
         }
         return cycle;
     };
@@ -124,8 +119,6 @@ TEST_F(TemplatesGolden, ContourMatchesFixtureAsACycle)
         std::vector<Complex> cycle = asCycle(computed.at(f));
         ASSERT_EQ(cycle.size(), golden.size()) << "frequency " << f;
 
-        // Locate the rotation offset: the computed point closest to the
-        // first golden point.
         std::size_t offset = 0;
         double best = std::abs(cycle.at(0) - golden.at(0));
         for (std::size_t i = 1; i < cycle.size(); ++i) {
@@ -186,9 +179,6 @@ TEST_F(TemplatesGolden, ContourIsSubsetOfTemplate)
 
 TEST_F(TemplatesGolden, FrequencyAlignmentPreserved)
 {
-    // The i-th contour must correspond to the i-th frequency, with any
-    // number of OpenMP threads (the old thread-counter renumbering broke
-    // this intermittently).
     const std::vector<double> original{0.1, 0.5, 1.0, 2.0, 15.0, 100.0};
     const std::vector<double> & omegaOut = templates.omega();
     ASSERT_EQ(omegaOut.size(), original.size());
@@ -199,8 +189,6 @@ TEST_F(TemplatesGolden, FrequencyAlignmentPreserved)
 
 TEST_F(TemplatesGolden, InputVectorsSurviveTheComputation)
 {
-    // Fixed (aliasing): the computation no longer clears or replaces the
-    // omega and epsilon vectors it was handed; the caller's data survives.
     ASSERT_EQ(omegaCopy.size(), 6);
     EXPECT_DOUBLE_EQ(omegaCopy.at(0), 0.1);
     EXPECT_DOUBLE_EQ(omegaCopy.at(5), 100.0);
@@ -210,8 +198,6 @@ TEST_F(TemplatesGolden, InputVectorsSurviveTheComputation)
 
 TEST(TemplatesReload, RecalculateContourAfterLoadingAProject)
 {
-    // Fixed crash: loading a project fed only the DAO, so recalculating
-    // the contour dereferenced a null templates vector inside the engine.
     ProjectController controller;
     controller.load(
         std::string(QFTBX_TEST_DATA_DIR "/planta2.qft"));
@@ -222,18 +208,12 @@ TEST(TemplatesReload, RecalculateContourAfterLoadingAProject)
         EXPECT_FALSE(c.empty());
     }
 
-    // Second recalculation. This used to be about the DAO deep-deleting the
-    // previous contour without a double free; with the set held by value
-    // there is no deletion to get wrong, and the assertion is just that the
-    // recomputation still produces one contour per frequency.
     const qftbx::CloudSet & contornos2 = controller.recomputeContour(std::vector<double>(6, 8.0));
     ASSERT_EQ(contornos2.size(), 6u);
 }
 
 TEST(TemplatesValidation, MissingSweepGridThrowsInvalidInput)
 {
-    // Hardened: a map without an entry for some uncertain parameter used to
-    // dereference null; now it reports which grid is missing.
     ProjectReader parser;
     parser.load(
         std::string(QFTBX_TEST_DATA_DIR "/planta2.qft"));
@@ -241,7 +221,6 @@ TEST(TemplatesValidation, MissingSweepGridThrowsInvalidInput)
 
     qftbx::ParameterGrids mapa;
     mapa[plant->numerator()[0].name()] = qftbx::math::linspace(1.0, 10.0, 10);
-    // no grid for the uncertain gain "kv"
 
     std::vector<double> omega{0.1, 0.5, 1.0, 2.0, 15.0, 100.0};
 
@@ -257,4 +236,4 @@ TEST(TemplatesValidation, RecontourWithoutTemplatesThrowsInvalidInput)
     EXPECT_THROW(t.computeContours(std::vector<double>{10.0}), qftbx::InvalidInput);
 }
 
-} // namespace
+}

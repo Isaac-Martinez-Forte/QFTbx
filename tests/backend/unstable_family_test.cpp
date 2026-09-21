@@ -1,3 +1,14 @@
+/**
+ * @file
+ * @brief A plant family that crosses the imaginary axis is refused at the sweep.
+ *
+ * QFT carries the stability of the nominal loop to the family only when every
+ * member has the same number of right half-plane poles. On P(s) = 1/(s^2 - a),
+ * unstable for a > 0 and with poles on the axis for a < 0, a range of a that
+ * straddles zero is refused as invalid input at the sweep, where every member
+ * is in hand, and a range on either side sweeps.
+ */
+
 #include <gtest/gtest.h>
 
 #include <memory>
@@ -17,8 +28,6 @@ using namespace qftbx;
 
 namespace {
 
-//P(s) = 1 / (s^2 - a) over a range of a: unstable for a > 0 (poles at
-//+-sqrt(a)), on the axis for a < 0.
 std::unique_ptr<LtiSystem> plantWith(qftbx::Range a, double nominal)
 {
     std::vector<Parameter> none;
@@ -33,11 +42,8 @@ void setUp(ProjectController & controller, qftbx::Range a, double nominal)
     controller.setPlant(plantWith(a, nominal));
 }
 
-} // namespace
+}
 
-//QFT carries the nominal loop's stability to the family only when every
-//member has the same number of right half-plane poles; a family that crosses
-//the imaginary axis is refused at the sweep, where every member is in hand.
 TEST(UnstableFamily, AFamilyThatCrossesTheAxisIsRefusedAtTheSweep)
 {
     ProjectController controller;
@@ -56,7 +62,6 @@ TEST(UnstableFamily, AFamilyOnOneSideSweeps)
     grids[std::string("a")] = qftbx::math::linspace(1.0, 2.0, 3);
     EXPECT_TRUE(unstable.computeTemplates(std::vector<double>(3, 10.0), grids, false));
 
-    //Poles on the axis between the design frequencies, none AT one.
     ProjectController stable;
     setUp(stable, qftbx::Range(-3.0, -2.0), -2.5);
     grids[std::string("a")] = qftbx::math::linspace(-3.0, -2.0, 3);
