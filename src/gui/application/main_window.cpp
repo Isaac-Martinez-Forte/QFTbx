@@ -14,10 +14,11 @@
  * widgets are deleted deferred because the project changes from their slots.
  */
 
-#include "src/gui/loopshaping/loop_boundaries_viewer.h"
 #include "src/gui/application/main_window.h"
 #include "src/gui/common/flow_layout.h"
 #include "src/gui/application/about.h"
+#include "src/gui/application/examples_dialog.h"
+#include "src/gui/common/examples_library.h"
 #include "src/gui/application/theme.h"
 #include "src/gui/common/number_text.h"
 #include "src/gui/common/plot_setup.h"
@@ -37,6 +38,8 @@
 #include <QVBoxLayout>
 #include <QEvent>
 #include <QFileDialog>
+#include <QFileInfo>
+#include <QStandardPaths>
 #include <QMessageBox>
 
 #include "src/core/math/point.h"
@@ -133,6 +136,8 @@ MainWindow::MainWindow(qftbx::Settings settings, QWidget *parent) :
         });
     }
     retranslate();
+
+    buildExamplesMenu();
 
 #ifdef QFTBX_BENCHMARK
     m_toolsMenu = menuBar()->addMenu(tr("&Tools"));
@@ -331,6 +336,12 @@ void MainWindow::retranslate()
 {
     setWindowTitle(tr("QFT: Quantitative feedback theory"));
     m_languageMenu->setTitle(tr("&Language"));
+    if (m_examplesMenu != nullptr) {
+        m_examplesMenu->setTitle(tr("&Examples"));
+    }
+    if (m_browseExamplesAction != nullptr) {
+        m_browseExamplesAction->setText(tr("&All the examples..."));
+    }
     if (m_themeMenu != nullptr) {
         m_themeMenu->setTitle(tr("&Appearance"));
         for (auto & [code, action] : m_themeActions) {
@@ -647,11 +658,25 @@ QString MainWindow::chooseFile(bool forSaving, const QString & title)
         return m_chooseFile(forSaving);
     }
 
-    return forSaving
-            ? QFileDialog::getSaveFileName(this, title, "plant",
+    QString where = lastDirectory;
+    if (where.isEmpty()) {
+        where = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+    }
+    if (where.isEmpty()) {
+        where = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
+    }
+
+    const QString chosen = forSaving
+            ? QFileDialog::getSaveFileName(this, title, where,
                                            tr("QFT Files (*.qft)"))
-            : QFileDialog::getOpenFileName(this, title, "plant",
+            : QFileDialog::getOpenFileName(this, title, where,
                                            tr("QFT Files (*.qft)"));
+
+    if (!chosen.isEmpty()) {
+        lastDirectory = QFileInfo(chosen).absolutePath();
+    }
+
+    return chosen;
 }
 
 void MainWindow::refreshAvailability()
@@ -698,7 +723,6 @@ void MainWindow::refreshAvailability()
     ui->templatesButton->setEnabled(plant && frequencies);
     ui->boundariesButton->setEnabled(templates && specifications);
     ui->loopButton->setEnabled(boundaries && structure);
-    ui->bodeAction->setEnabled(plant && frequencies);
 
     ui->progressBar->setValue(static_cast<int>(done.count()));
 }
@@ -943,6 +967,13 @@ void MainWindow::on_actionSaveAs_triggered()
 
     if (!fileName.isEmpty()){
 
+        if (qftbx::isShippedExample(fileName)) {
+            errorMessage(tr("That folder holds the examples the program comes with, "
+                            "which it does not write to. Save the project somewhere else."),
+                         tr("Save file"));
+            return;
+        }
+
         if (fileName.right(4) != ".qft"){
             saveFilePath = fileName+".qft";
         } else {
@@ -964,52 +995,56 @@ void MainWindow::on_actionOpen_triggered()
 {
     const QString fileName = chooseFile(false, tr("Open project"));
 
-    if (!fileName.isEmpty()){
+    if (!fileName.isEmpty()) {
+        openProject(fileName);
+    }
+}
 
-        qftbx::StepSet loaded;
+void MainWindow::openProject(const QString & fileName)
+{
 
-        try {
-            loaded = controller->load(fileName.toStdString());
-        } catch (const qftbx::Exception & e) {
-            QMessageBox::critical(this, tr("Open project"), translated(e));
-            return;
-        }
+    qftbx::StepSet loaded;
 
-        destroyPhases();
-
-        saveFilePath = fileName;
-
-        if (loaded.has(qftbx::Step::Plant)) {
-            ensurePlantPhase();
-        }
-        if (loaded.has(qftbx::Step::Frequencies)) {
-            ensureFrequenciesPhase();
-        }
-        if (loaded.has(qftbx::Step::Specifications)) {
-            ensureSpecificationsPhase();
-        }
-        if (loaded.has(qftbx::Step::Templates)) {
-            ensureTemplatesPhase();
-        }
-        if (loaded.has(qftbx::Step::Boundaries)) {
-            ensureBoundariesPhase();
-        }
-        if (loaded.has(qftbx::Step::Controller)) {
-            ensureControllerPhase();
-        }
-        if (loaded.has(qftbx::Step::LoopShaping)) {
-            ensureLoopShapingPhase();
-        }
-
-        showResults();
-
-        for (PhaseCard * card : {plantCard, templatesCard, boundariesCard, loopShapingCard}) {
-            if (card != nullptr) {
-                card->showForm(false);
-            }
-        }
+    try {
+        loaded = controller->load(fileName.toStdString());
+    } catch (const qftbx::Exception & e) {
+        QMessageBox::critical(this, tr("Open project"), translated(e));
+        return;
     }
 
+    destroyPhases();
+
+    saveFilePath = qftbx::isShippedExample(fileName) ? QString() : fileName;
+
+    if (loaded.has(qftbx::Step::Plant)) {
+        ensurePlantPhase();
+    }
+    if (loaded.has(qftbx::Step::Frequencies)) {
+        ensureFrequenciesPhase();
+    }
+    if (loaded.has(qftbx::Step::Specifications)) {
+        ensureSpecificationsPhase();
+    }
+    if (loaded.has(qftbx::Step::Templates)) {
+        ensureTemplatesPhase();
+    }
+    if (loaded.has(qftbx::Step::Boundaries)) {
+        ensureBoundariesPhase();
+    }
+    if (loaded.has(qftbx::Step::Controller)) {
+        ensureControllerPhase();
+    }
+    if (loaded.has(qftbx::Step::LoopShaping)) {
+        ensureLoopShapingPhase();
+    }
+
+    showResults();
+
+    for (PhaseCard * card : {plantCard, templatesCard, boundariesCard, loopShapingCard}) {
+        if (card != nullptr) {
+            card->showForm(false);
+        }
+    }
 }
 
 void MainWindow::runInBackground(PhaseCard * card, const QString & what, const QString & title,
@@ -1094,20 +1129,55 @@ void MainWindow::drawResults()
     }
 }
 
+void MainWindow::showExamples(const QString & selected)
+{
+    ExamplesDialog dialog(this, selected);
+
+    if (dialog.exec() == QDialog::Accepted && !dialog.chosenPath().isEmpty()) {
+        openProject(dialog.chosenPath());
+    }
+}
+
+void MainWindow::buildExamplesMenu()
+{
+    m_examplesMenu = new QMenu(this);
+    m_examplesMenu->setObjectName("menuExamples");
+    menuBar()->insertMenu(ui->menuView->menuAction(), m_examplesMenu);
+
+    m_browseExamplesAction = m_examplesMenu->addAction(QString());
+    m_browseExamplesAction->setObjectName("actionBrowseExamples");
+    connect(m_browseExamplesAction, &QAction::triggered, this,
+            [this]() { showExamples(QString()); });
+
+    const std::vector<qftbx::Example> examples = qftbx::shippedExamples();
+
+    if (examples.empty()) {
+        m_examplesMenu->setEnabled(false);
+        return;
+    }
+
+    m_examplesMenu->addSeparator();
+
+    for (const qftbx::Example & example : examples) {
+        QAction * action = m_examplesMenu->addAction(example.name);
+        action->setToolTip(example.description);
+        action->setStatusTip(example.description);
+        const QString path = example.path;
+        connect(action, &QAction::triggered, this, [this, path]() { showExamples(path); });
+    }
+
+    m_examplesMenu->setToolTipsVisible(true);
+}
+
+void MainWindow::on_actionQuit_triggered()
+{
+    close();
+}
+
 void MainWindow::on_actionNew_triggered()
 {
     destroySession();
     createSession();
-}
-
-void MainWindow::on_bodeAction_triggered()
-{
-    if (!drawBodeIfPossible()){
-        errorMessage(tr("To show the Bode diagram, first enter a valid plant and a set of design frequencies"), tr("QFT"));
-        return;
-    }
-
-    showPhase(plantCard);
 }
 
 bool MainWindow::drawBodeIfPossible()
@@ -1128,103 +1198,6 @@ bool MainWindow::drawBodeIfPossible()
     }
 
     return true;
-}
-
-void MainWindow::on_actionNicholsLoop_triggered()
-{
-    showLoopDiagrams(true, false);
-}
-
-void MainWindow::on_actionNyquistLoop_triggered()
-{
-    showLoopDiagrams(false, true);
-}
-
-void MainWindow::on_actionAllLoopDiagrams_triggered()
-{
-    showLoopDiagrams(true, true);
-}
-
-void MainWindow::showLoopDiagrams(bool nichols, bool nyquist){
-
-    const qftbx::StepSet done = controller->completed();
-
-    if (!done.has(qftbx::Step::Boundaries) || !done.has(qftbx::Step::Controller)){
-        errorMessage(tr("To show the loop diagram, first compute the boundaries and enter the controller structure."), tr("QFT"));
-        return;
-    }
-
-    BoundaryData * boundaries = controller->boundaries();
-
-    qftbx::NyquistTraces nyquistTraces;
-    nyquistTraces.reserve(boundaries->unionBoundaries().size());
-
-    for (const qftbx::Trace & trace : boundaries->unionBoundaries()) {
-
-        qftbx::NyquistTrace converted;
-        converted.reserve(trace.size());
-
-        for (const qftbx::NicholsPoint & point : trace) {
-            converted.push_back(qftbx::toNyquist(point));
-        }
-
-        nyquistTraces.push_back(std::move(converted));
-    }
-
-    LoopBoundariesViewer ver;
-
-    ver.setData(boundaries, nyquistTraces, controller->omega()->values(), controller->plant(),
-                 controller->controllerStructure(), nichols, nyquist);
-
-    ver.showDiagram();
-
-    ver.exec();
-}
-
-void MainWindow::on_actionTemplates_triggered()
-{
-    if (!controller->completed().has(qftbx::Step::Templates)){
-        return;
-    }
-
-    if (!controller->templates().empty() && !controller->contour().empty()){
-        ensureTemplatesPhase();
-        templateViewer->setData(controller->templates(),
-                                 controller->contour(),
-                                 controller->omega()->values(),
-                                 controller->epsilon());
-        templateViewer->plotDiagram(true);
-
-        showPhase(templatesCard);
-    }
-}
-
-void MainWindow::on_actionBoundaries_triggered()
-{
-    if (!controller->completed().has(qftbx::Step::Boundaries)){
-        return;
-    }
-
-    ensureBoundariesPhase();
-    boundaryUnionViewer->setData(controller->unionBoundaries(), controller->omega()->values());
-    boundaryUnionViewer->showDiagram();
-
-    showPhase(boundariesCard);
-}
-
-void MainWindow::on_actionLoop_triggered()
-{
-    if (!controller->completed().has(qftbx::Step::LoopShaping)){
-        return;
-    }
-
-    ensureLoopShapingPhase();
-    loopShapingViewer->setData(controller->unionBoundaries(),controller->omega()->values(),
-                              controller->loopShapingResult(), controller->plant(), loopShapingForm->isLinSpace());
-
-    loopShapingViewer->showDiagram();
-
-    showPhase(loopShapingCard);
 }
 
 }

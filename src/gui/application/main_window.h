@@ -131,23 +131,24 @@ private slots:
 
     void on_actionNew_triggered();
 
-    void on_bodeAction_triggered();
+    void on_actionQuit_triggered();
 
-    void on_actionNicholsLoop_triggered();
-
-    void on_actionNyquistLoop_triggered();
-
-    void on_actionAllLoopDiagrams_triggered();
-
-    void on_actionTemplates_triggered();
-
-    void on_actionBoundaries_triggered();
-
-    void on_actionLoop_triggered();
 
 private:
     /// Retranslates the window when the interface language changes.
     void changeEvent(QEvent * event) override;
+
+    /// Opens a project file into the window, whether it came from the file
+    /// dialog or from the examples the program ships.
+    void openProject(const QString & fileName);
+
+    /// Fills the Examples menu from what the installation carries.
+    void buildExamplesMenu();
+
+    /// Opens the examples window, showing the one given, and opens the
+    /// project it answers with. Picking an example in the menu comes here
+    /// too, so nothing is read until the window is accepted.
+    void showExamples(const QString & selected);
 
     /// Writes the canvas into the settings on the way out.
     void closeEvent(QCloseEvent * event) override;
@@ -167,6 +168,8 @@ private:
     QMenu * m_languageMenu = nullptr;
     QMenu * m_themeMenu = nullptr;
     std::vector<std::pair<QString, QAction *>> m_themeActions;
+    QMenu * m_examplesMenu = nullptr;
+    QAction * m_browseExamplesAction = nullptr;
     QMenu * m_helpMenu = nullptr;
     QAction * m_aboutAction = nullptr;
     QAction * m_aboutQtAction = nullptr;
@@ -340,8 +343,10 @@ private:
     class FlowLayout * m_canvasLayout = nullptr;
 
     QString saveFilePath;
+    /// The folder the last file dialog ended in, so the next one opens
+    /// there instead of wherever the program happens to have been started.
+    QString lastDirectory;
 
-    void showLoopDiagrams (bool nichols, bool nyquist);
 
     void saveProject ();
 
