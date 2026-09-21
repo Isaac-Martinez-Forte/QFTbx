@@ -20,6 +20,7 @@
 #endif
 
 /**
+ * @file
  * @brief The interval arithmetic of the toolbox.
  *
  * Three types, and the only ones the rest of the code sees:
@@ -81,8 +82,8 @@ using Backend = kv::interval<double>;
 inline Backend backend(double lower, double upper) { return kv::interval<double>(lower, upper); }
 inline double lowerOf(const Backend & x) { return x.lower(); }
 inline double upperOf(const Backend & x) { return x.upper(); }
-//kv's functions are friends of kv::interval, found by argument-dependent
-//lookup only, hence the wrappers.
+/// kv's functions are friends of kv::interval, found by argument-dependent
+/// lookup only, hence the wrappers.
 inline double widthOf(const Backend & x) { return width(x); }
 inline Backend sqrtOf(const Backend & x) { return sqrt(x); }
 inline Backend powerOf(const Backend & x, int n) { return pow(x, n); }
@@ -90,28 +91,28 @@ inline Backend piOf() { return kv::constants<kv::interval<double>>::pi(); }
 
 #endif
 
-//The exponential, the logarithms, the trigonometric functions and their
-//inverses come from the C library, widened by this many ulps on each side. The projection of a
-//controller box and the constraint trees of algorithm MR call them for
-//every factor of every box, and kv's own series enclosures cost some
-//microseconds each where the library takes nanoseconds. glibc's table of
-//known maximum errors (manual, "Known Maximum Errors in Math Functions")
-//lists at most two ulps for these functions on x86_64, with the stated goal
-//of results "within a few ulp"; four ulps double the largest listed bound,
-//and four ulps of a phase in radians or of a magnitude in dB are far below
-//anything the algorithms resolve.
+/// The exponential, the logarithms, the trigonometric functions and their
+/// inverses come from the C library, widened by this many ulps on each side. The projection of a
+/// controller box and the constraint trees of algorithm MR call them for
+/// every factor of every box, and kv's own series enclosures cost some
+/// microseconds each where the library takes nanoseconds. glibc's table of
+/// known maximum errors (manual, "Known Maximum Errors in Math Functions")
+/// lists at most two ulps for these functions on x86_64, with the stated goal
+/// of results "within a few ulp"; four ulps double the largest listed bound,
+/// and four ulps of a phase in radians or of a magnitude in dB are far below
+/// anything the algorithms resolve.
 constexpr int kLibraryUlps = 4;
 
-//Beyond this magnitude the position of a multiple of pi is not resolved
-//well enough to locate the extremes of sin and cos; the whole range is
-//returned instead.
+/// Beyond this magnitude the position of a multiple of pi is not resolved
+/// well enough to locate the extremes of sin and cos; the whole range is
+/// returned instead.
 constexpr double kLargestReducedArgument = 1e15;
 
-//A finite double moved kLibraryUlps representable values away from zero
-//or towards it: the ordering of the doubles is the ordering of their bit
-//patterns as sign-and-magnitude integers, so the move is an integer step on
-//the magnitude. Values too close to zero to take the step, and non-finite
-//ones, go through nextafter.
+/// A finite double moved kLibraryUlps representable values away from zero
+/// or towards it: the ordering of the doubles is the ordering of their bit
+/// patterns as sign-and-magnitude integers, so the move is an integer step on
+/// the magnitude. Values too close to zero to take the step, and non-finite
+/// ones, go through nextafter.
 inline double awayFromZero(double value)
 {
     std::uint64_t bits;
@@ -160,7 +161,7 @@ inline double upwards(double value)
     return value;
 }
 
-} // namespace detail
+}
 
 class Interval
 {
@@ -393,11 +394,11 @@ private:
         }
     }
 
-    //The smallest k such that (k + offset) pi may lie inside x, judged with
-    //the enclosure of pi, or nothing when no such point can be inside. The
-    //candidates are the indices from floor(lower / pi - offset) to
-    //ceil(upper / pi - offset), which the rounding of the quotient cannot
-    //move by more than one for arguments below kLargestReducedArgument.
+    /// The smallest k such that (k + offset) pi may lie inside x, judged with
+    /// the enclosure of pi, or nothing when no such point can be inside. The
+    /// candidates are the indices from floor(lower / pi - offset) to
+    /// ceil(upper / pi - offset), which the rounding of the quotient cannot
+    /// move by more than one for arguments below kLargestReducedArgument.
     static std::optional<double> containsAMultipleOfPi(const Interval & x, double offset)
     {
         const Interval piValue = pi();
@@ -424,8 +425,6 @@ private:
         double low = std::fmin(function(x.lower()), function(x.upper()));
         double high = std::fmax(function(x.lower()), function(x.upper()));
 
-        //Consecutive extremes alternate in sign: +1 at even k for both
-        //cos (k pi) and sin ((k + 1/2) pi).
         const Interval piValue = pi();
         const double first = std::floor(x.lower() / piValue.lower() - offset) - 1.0;
         const double last = std::ceil(x.upper() / piValue.lower() - offset) + 1.0;
@@ -528,8 +527,6 @@ public:
 
     friend PolarInterval operator*(const Interval & scale, const PolarInterval & z)
     {
-        //A real scale keeps the phase when it is non-negative and turns it
-        //by pi when negative; one straddling zero contributes both.
         if (scale.lower() >= 0.0) {
             return PolarInterval(scale * z.m_magnitude, z.m_phase);
         }
@@ -544,6 +541,6 @@ private:
     Interval m_phase;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_MATH_INTERVAL_H
+#endif

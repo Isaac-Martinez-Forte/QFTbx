@@ -1,3 +1,18 @@
+/**
+ * @file
+ * @brief Reading and writing of the settings file.
+ *
+ * The file is INI-like: sections in brackets, "key = value" lines, and
+ * comments from '#' or ';' to the end of the line. A table binds each known
+ * key to the field it sets and the range it accepts, and is also what tells
+ * an unknown key, which is kept as a warning so a file from a later version
+ * still starts. A value is parsed as a whole string and never becomes zero
+ * when it is not a number; fractions are refused where a whole number is
+ * wanted, duplicates are refused, and a ratio tolerance must be strictly
+ * above one so a bisection can end. Writing one key edits the file in place,
+ * keeping every other line as the person left it.
+ */
+
 #include "src/core/common/record.h"
 #include "src/core/project/settings.h"
 
@@ -27,9 +42,6 @@ std::string trimmed(const std::string & text)
     return text.substr(first, last - first + 1);
 }
 
-//A number, or nothing. strtod and strtoll both report where they stopped, and
-//anything left over means the line was not a number - which is the whole
-//point: a value that does not parse must NOT become zero.
 bool wholeStringIsReal(const std::string & text, double & value)
 {
     if (text.empty()) {
@@ -48,9 +60,6 @@ bool wholeStringIsReal(const std::string & text, double & value)
     return true;
 }
 
-//One entry per setting: the key it answers to, and what to do with the text.
-//A table and not a chain of ifs, because the table is also what tells the
-//reader whether a key is unknown.
 struct Binding {
     const char * key;
     std::function<void (const std::string & text, std::int64_t line,
@@ -63,7 +72,6 @@ struct Binding {
     throw InvalidInput(QFTBX_TR("Core", "settings, line %1: \"%2\" needs %3").arg(line).arg(key).arg(wanted));
 }
 
-//Reads a real in [lowest, highest], both included.
 double realIn(const std::string & text, const std::string & key,
               std::int64_t line, double lowest, double highest)
 {
@@ -81,8 +89,6 @@ double realIn(const std::string & text, const std::string & key,
     return value;
 }
 
-//Reads a whole number in [lowest, highest]. Fractions are refused rather than
-//truncated: "10.5 points" is a mistake worth pointing at, not rounding.
 double wholeIn(const std::string & text, const std::string & key,
                std::int64_t line, double lowest, double highest)
 {
@@ -95,7 +101,6 @@ double wholeIn(const std::string & text, const std::string & key,
     return value;
 }
 
-//A language: "system" or a code like "es", "en", "pt_BR".
 std::string languageIn(const std::string & text, const std::string & key, std::int64_t line)
 {
     if (text == "system") {
@@ -120,8 +125,6 @@ std::string languageIn(const std::string & text, const std::string & key, std::i
 const std::vector<Binding> & bindings()
 {
     static const std::vector<Binding> table = {
-        //A grid needs at least two points per axis, so four cells; the ceiling
-        //is what an std::int64_t can multiply without overflowing.
         {"limits.max-grid-cells",
          [](const std::string & text, std::int64_t line, Settings & into) {
              into.limits.maxGridCells = static_cast<std::int64_t>(
@@ -143,8 +146,6 @@ const std::vector<Binding> & bindings()
              into.limits.maxMagnitude =
                  realIn(text, "limits.max-magnitude", line, 1.0, 1.0e300);
          }},
-        //[stability] - the resolution of the nominal stability check. Time
-        //against how reliably it decides; the criterion itself is not here.
         {"stability.base-grid-points",
          [](const std::string & text, std::int64_t line, Settings & into) {
              into.stability.baseGridPoints = static_cast<std::int32_t>(
@@ -166,25 +167,16 @@ const std::vector<Binding> & bindings()
                  wholeIn(text, "stability.refinement-budget", line, 1.0, 1.0e9));
          }},
 
-        //[interface] - the language, the one text among the numbers: "system"
-        //or a language code, which is checked for its shape here and for the
-        //translation it names by the interface.
         {"interface.language",
          [](const std::string & text, std::int64_t line, Settings & into) {
              into.interface.language = languageIn(text, "interface.language", line);
          }},
 
-        //The canvas of the interface, written by the window itself when it
-        //closes: a list of phases with their sizes, which nobody types by
-        //hand. Anything it does not recognise is ignored when it is
-        //applied, so an old line cannot stop the program starting.
         {"interface.canvas",
          [](const std::string & text, std::int64_t, Settings & into) {
              into.interface.canvas = text;
          }},
 
-        //The look of the interface, chosen from the View menu like the
-        //language: the system's, light or dark.
         {"interface.theme",
          [](const std::string & text, std::int64_t line, Settings & into) {
              if (text != "system" && text != "light" && text != "dark") {
@@ -194,25 +186,17 @@ const std::vector<Binding> & bindings()
              into.interface.theme = text;
          }},
 
-        //How many digits of a result the forms show. Between one and the
-        //seventeen that a double round-trips in: past that the setting
-        //would be asking for digits that do not exist.
         {"interface.digits",
          [](const std::string & text, std::int64_t line, Settings & into) {
              into.interface.digits = static_cast<std::int32_t>(
                  wholeIn(text, "interface.digits", line, 1.0, 17.0));
          }},
 
-        //And the size of the window, from the same place and for the same
-        //reason: it comes up as it was left.
         {"interface.window",
          [](const std::string & text, std::int64_t, Settings & into) {
              into.interface.window = text;
          }},
 
-        //[log] - the record of what ran and how long it took. Off unless
-        //asked for, and capped so that leaving it on costs a known amount
-        //of disc and no more.
         {"log.enabled",
          [](const std::string & text, std::int64_t line, Settings & into) {
              into.log.enabled = wholeIn(text, "log.enabled", line, 0.0, 1.0) != 0.0;
@@ -227,8 +211,6 @@ const std::vector<Binding> & bindings()
                  wholeIn(text, "log.size-limit-kilobytes", line, 16.0, 1048576.0));
          }},
 
-        //[algorithms] - figures from the papers. These change WHAT is
-        //computed, which is why the header says so next to each one.
         {"algorithms.template-representatives",
          [](const std::string & text, std::int64_t line, Settings & into) {
              into.algorithms.templateRepresentatives = static_cast<std::int32_t>(
@@ -302,8 +284,6 @@ const std::vector<Binding> & bindings()
              into.algorithms.localSearchBudget = static_cast<std::int32_t>(
                  wholeIn(text, "algorithms.local-search-budget", line, 1.0, 1.0e7));
          }},
-        //Strictly above 1: a ratio of exactly 1 is a bisection that never
-        //ends, which is a hang and not a tighter answer.
         {"algorithms.gain-tolerance",
          [](const std::string & text, std::int64_t line, Settings & into) {
              into.algorithms.gainTolerance =
@@ -315,10 +295,6 @@ const std::vector<Binding> & bindings()
                  realIn(text, "algorithms.certified-gain-tolerance", line, 1.0000001, 10.0);
          }},
 
-        //[defaults.boundary-grid] - the Nichols grid a boundary computation
-        //starts with. Phase in degrees, magnitude in decibels. The ranges are
-        //wide because a phase axis has to span at least 360 degrees for the
-        //union to close, which the computation checks for itself.
         {"defaults.boundary-grid.phase-start",
          [](const std::string & text, std::int64_t line, Settings & into) {
              into.defaults.phaseStart =
@@ -372,7 +348,6 @@ const std::vector<Binding> & bindings()
              into.defaults.dbPerDegree =
                  realIn(text, "defaults.templates.db-per-degree", line, 1.0e-6, 1.0e6);
          }},
-        //[defaults.loop-shaping] - in rad/s, like every other frequency.
         {"defaults.loop-shaping.start",
          [](const std::string & text, std::int64_t line, Settings & into) {
              into.defaults.loopStart =
@@ -425,7 +400,7 @@ bool readable(const std::string & path)
     return file.good();
 }
 
-} // namespace
+}
 
 Settings readSettings(const std::string & path)
 {
@@ -445,8 +420,6 @@ Settings readSettings(const std::string & path)
     while (std::getline(file, line)) {
         number++;
 
-        //Comments run to the end of the line and can start one. Both markers
-        //are accepted because both are what people type.
         const std::size_t comment = line.find_first_of("#;");
         if (comment != std::string::npos) {
             line = line.substr(0, comment);
@@ -481,11 +454,8 @@ Settings readSettings(const std::string & path)
             throw InvalidInput(QFTBX_TR("Core", "settings, line %1: the key is missing").arg(number));
         }
 
-        //A key outside any section would be ambiguous with a nested one.
         const std::string key = section.empty() ? name : section + "." + name;
 
-        //Twice in one file is a mistake, and a silent last-one-wins is how
-        //someone spends an afternoon wondering why their edit does nothing.
         if (std::find(seen.begin(), seen.end(), key) != seen.end()) {
             throw InvalidInput(QFTBX_TR("Core", "settings, line %1: \"%2\" is set more than once").arg(number).arg(key));
         }
@@ -498,20 +468,15 @@ Settings readSettings(const std::string & path)
                                         });
 
         if (found == table.end()) {
-            //Not an error: a file written by a later version has to be able
-            //to start this one.
             settings.unknownKeys.push_back(key);
             continue;
         }
 
-        //The line goes in, so a refused value points at where it is written
-        //and not just at the key.
         found->apply(value, number, settings);
     }
 
     return settings;
 }
-
 
 std::string userSettingsPath()
 {
@@ -536,8 +501,6 @@ void writeSetting(const std::string & path, const std::string & key, const std::
         }
     }
 
-    //Walk the file as the reader does, remembering where the section starts
-    //and ends and whether the key is already there.
     std::string current;
     std::ptrdiff_t sectionStart = -1;
     std::ptrdiff_t sectionEnd = -1;
@@ -575,8 +538,6 @@ void writeSetting(const std::string & path, const std::string & key, const std::
     if (keyLine >= 0) {
         lines[static_cast<std::size_t>(keyLine)] = entry;
     } else if (sectionStart >= 0) {
-        //After the last non-blank line of the section, so trailing blank
-        //lines stay where they separate it from the next.
         std::ptrdiff_t at = sectionEnd;
         while (at > sectionStart + 1 && trimmed(lines[static_cast<std::size_t>(at - 1)]).empty()) {
             --at;
@@ -634,8 +595,6 @@ void openRecord(const Settings & settings)
 
 Settings loadSettings()
 {
-    //Named explicitly: naming a file says it is meant to be used, so failing
-    //to read THAT one is an error rather than a reason to fall through.
     const std::string named = environmentPath();
     if (!named.empty()) {
         return readSettings(named);
@@ -647,8 +606,7 @@ Settings loadSettings()
         }
     }
 
-    //No file: the compiled defaults, and an empty source saying so.
     return Settings();
 }
 
-} // namespace qftbx
+}

@@ -1,10 +1,19 @@
+/**
+ * @file
+ * @brief Transfer function as a quotient of polynomials.
+ *
+ * Declares the form whose numerator and denominator are coefficient
+ * vectors from highest to lowest degree, times a gain and a pure delay. An
+ * empty vector stands for the constant 1, and the poles are the roots of
+ * the denominator.
+ */
+
 #ifndef QFTBX_POLYNOMIAL_FORM_H
 #define QFTBX_POLYNOMIAL_FORM_H
 
 #include "src/core/system/transfer_function.h"
 
 #include <string>
-
 
 namespace qftbx {
 
@@ -37,7 +46,6 @@ public:
 
 };
 
-} // namespace qftbx
+}
 
-
-#endif // QFTBX_POLYNOMIAL_FORM_H
+#endif

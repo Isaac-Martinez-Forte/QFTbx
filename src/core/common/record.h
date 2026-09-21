@@ -1,23 +1,37 @@
+/**
+ * @file
+ * @brief The record of what the engines did and how long it took.
+ *
+ * A file of one line per stage - when it ran, what ran, how long it took
+ * and the numbers worth keeping - written by the engines instead of on
+ * standard output, so nothing prints on somebody else's terminal and the
+ * lines of parallel regions cannot interleave. The file is capped: past its
+ * size limit it becomes the previous generation and a new one starts, two
+ * generations in all. Nothing is written until an application opens it, so
+ * the tests and anything linking the core without asking are silent. A
+ * scoped timer writes a stage's line when the stage ends.
+ */
+
 #ifndef QFTBX_RECORD_H
 #define QFTBX_RECORD_H
 
-// The record of what the engines did and how long it took.
-//
-// The engines used to print their timings on standard output, which is a
-// library deciding to write on somebody else's terminal: nothing shows it in
-// the interface, nothing can silence it, the lines of parallel regions
-// interleave, and anything that drives the core from another language gets
-// them in the middle of its own session. They come here instead.
-//
-// The record is a file of one line per stage - when it ran, what ran, how
-// long it took and the numbers worth keeping - and it is capped: past its
-// size limit the file becomes the previous generation and a new one starts,
-// so the oldest lines fall off the end and the record never grows without
-// bound. Two generations, so the space it takes is twice the limit and no
-// more.
-//
-// Nothing is written until an application opens it: the tests, and anything
-// that links the core without asking for a record, are silent.
+/// The record of what the engines did and how long it took.
+/// 
+/// Timings are not printed on standard output, which would be a library
+/// writing on somebody else's terminal: nothing would show it in the
+/// interface, nothing could silence it, the lines of parallel regions would
+/// interleave, and anything that drives the core from another language would
+/// get them in the middle of its own session. They come here instead.
+/// 
+/// The record is a file of one line per stage - when it ran, what ran, how
+/// long it took and the numbers worth keeping - and it is capped: past its
+/// size limit the file becomes the previous generation and a new one starts,
+/// so the oldest lines fall off the end and the record never grows without
+/// bound. Two generations, so the space it takes is twice the limit and no
+/// more.
+/// 
+/// Nothing is written until an application opens it: the tests, and anything
+/// that links the core without asking for a record, are silent.
 
 #include <chrono>
 #include <cstddef>
@@ -83,6 +97,6 @@ std::string number(const std::string & key, long long value);
 std::string number(const std::string & key, int value);
 std::string number(const std::string & key, std::size_t value);
 
-} // namespace qftbx::record
+}
 
-#endif // QFTBX_RECORD_H
+#endif

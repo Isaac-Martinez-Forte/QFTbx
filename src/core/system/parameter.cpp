@@ -1,3 +1,17 @@
+/**
+ * @file
+ * @brief Construction, validation and reparametrisation of a parameter.
+ *
+ * Every constructor refuses a non-finite value or range end, and there are
+ * no setters, because a parameter is the choke point every uncertainty
+ * bound and nominal value goes through and a NaN let in here reaches the
+ * templates, the boundaries and the search without a message anywhere. The
+ * identity reparametrisation, a parameter mapped by its own name, needs no
+ * parser and is answered from the raw values; anything else is parsed once
+ * and evaluated with the raw value bound to the parameter's name, both ends
+ * of the range going through the same parsed expression.
+ */
+
 #include "src/core/system/parameter.h"
 
 #include <cmath>
@@ -14,13 +28,6 @@ namespace qftbx {
 
 namespace {
 
-//An expression does not complain about being degenerate: "0/0", "1/0",
-//"log(-1)" and "sqrt(-1)" all evaluate quietly to a NaN or an infinity, and
-//nothing downstream looks - the templates come out non-finite, so do the
-//boundaries, the plot is empty and the search never converges, without one
-//message anywhere saying why. A parameter is the choke point every
-//uncertainty bound and nominal value goes through, so the check belongs
-//here.
 void requireFinite(double value, const char * what)
 {
     if (!std::isfinite(value)) {
@@ -35,9 +42,6 @@ void requireFiniteRange(const Range & range)
 }
 
 }
-
-//No setters: every constructor validates, and a setter would be the one
-//door a NaN or an inverted range could come in through afterwards.
 
 bool Parameter::operator==(const Parameter & other) const
 {
@@ -62,8 +66,6 @@ Parameter::Parameter(std::string name, Range range, double nominal, std::string 
     m_uncertain = true;
 
     if (exp.empty()) {
-        //Without a reparametrisation the expression is the parameter
-        //itself, as in the three-argument constructor.
         m_expression = name;
         m_hasExpression = false;
     } else {
@@ -74,9 +76,6 @@ Parameter::Parameter(std::string name, Range range, double nominal, std::string 
     compileExpression();
 }
 
-//The identity ("kv" mapped by "kv") needs no parser, and it is what every
-//search box carries; anything else is parsed here, once, and evaluated
-//from then on with the raw value bound to the parameter's name.
 void Parameter::compileExpression()
 {
     if (!m_hasExpression || identityExpression()) {
@@ -105,7 +104,6 @@ Parameter::Parameter(std::string name, Range range, double nominal){
     m_expression = name;
 
     m_uncertain = true;
-
 
     m_hasExpression = false;
 }
@@ -136,7 +134,6 @@ Parameter::Parameter (std::string name, double value){
     m_expression = name;
 }
 
-
 bool Parameter::isUncertain() const {
     return m_uncertain;
 }
@@ -145,11 +142,6 @@ const std::string & Parameter::name() const {
     return m_name;
 }
 
-//A parameter mapped by its own name (the dialogs write the expression
-//as the name when the user gives none): every read of its range went
-//through the expression parser to get the value it started with. The
-//identity is answered from the raw values, which is the same answer
-//without the parser.
 bool Parameter::identityExpression() const
 {
     return m_expression == m_name;
@@ -165,9 +157,6 @@ Range Parameter::range() const {
         return m_range;
     }
 
-    //The two ends go through the SAME parsed expression: it is parsed once
-    //per thread and only the bound value changes. Changing the variable set
-    //instead would throw the parse away and cost one per end.
     Range point;
 
     point.min = realValueOf(m_range.min);
@@ -176,8 +165,6 @@ Range Parameter::range() const {
     return point;
 }
 
-//The reparametrisation applied to one value, over the reals: a domain error
-//("sqrt(-1)") comes out as a NaN, which the constructors refuse.
 double Parameter::realValueOf(double value) const
 {
     return m_compiled->evaluate(std::vector<double>{value});
@@ -212,5 +199,4 @@ double Parameter::rawNominal() const {
     return m_nominal;
 }
 
-
-} // namespace qftbx
+}

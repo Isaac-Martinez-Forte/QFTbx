@@ -1,3 +1,16 @@
+/**
+ * @file
+ * @brief Number formatting by round trip, and whole-token parsing.
+ *
+ * The shortest round-tripping text is found by printing with %g at six
+ * significant digits and asking for one more until strtod reads the value
+ * back exactly, up to the seventeen that always suffice. Rounding to a
+ * digit count prints at that precision and reprints the result at its own
+ * length, which drops the trailing zeros %g keeps and leaves the exponent
+ * alone. A token is a real only when strtod consumes all of it, so a
+ * partial parse rejects the whole line.
+ */
+
 #include "src/core/common/text_tokens.h"
 
 #include <string>
@@ -8,17 +21,11 @@
 
 namespace {
 
-//17 significant digits always round-trip a double.
 const int kMaxSignificantDigits = 17;
 
-//Never fewer than this, which is what qftbx::text::number(double) used, so
-//every value that already printed exactly keeps printing byte for byte the
-//same text - and 1000 stays "1000" instead of becoming the shorter but
-//worse "1e+03".
 const int kMinSignificantDigits = 6;
 
-} // namespace
-
+}
 
 std::string qftbx::text::join(const std::vector<std::string> & pieces,
                               const std::string & separator)
@@ -35,7 +42,6 @@ std::string qftbx::text::join(const std::vector<std::string> & pieces,
     return text;
 }
 
-
 std::string qftbx::text::number(double value)
 {
     char buffer[64];
@@ -51,7 +57,6 @@ std::string qftbx::text::number(double value)
     return buffer;
 }
 
-
 std::string qftbx::text::number(double value, int digits)
 {
     if (digits < 1 || digits >= kMaxSignificantDigits) {
@@ -61,22 +66,14 @@ std::string qftbx::text::number(double value, int digits)
     char buffer[64];
     std::snprintf(buffer, sizeof buffer, "%.*g", digits, value);
 
-    //%g leaves the zeros it was asked for when the value needs fewer:
-    //asking four digits of 1.5 gives "1.5000". Reading the rounded text
-    //back and printing it at its own length drops them, and leaves the
-    //exponent alone.
     return number(std::strtod(buffer, nullptr));
 }
-
 
 std::vector<std::string> qftbx::text::tokens(const std::string & line){
 
     std::vector<std::string> result;
     std::istringstream stream (line);
 
-    //Whitespace-separated, which is what the frequency files and the
-    //coefficient lists are. split(" ") plus an empty-piece filter was the
-    //same thing said in two steps, and it treated a tab as content.
     for (std::string part; stream >> part; ){
         result.push_back(part);
     }
@@ -84,19 +81,13 @@ std::vector<std::string> qftbx::text::tokens(const std::string & line){
     return result;
 }
 
-
 std::optional<std::vector<double>> qftbx::text::reals(const std::string & line){
 
-    //Whitespace-separated, which is what tokens() already does: frequency
-    //files usually carry one value per line.
     const std::vector<std::string> parts = tokens(line);
     std::vector<double> values;
     values.reserve(parts.size());
 
     for (const std::string & part : parts){
-        //strtod plus the end pointer is how "the WHOLE token is a real" is
-        //asked in the standard library: a partial parse is a rejection, as
-        //QString::toDouble's ok flag was.
         char * end = nullptr;
         const double value = std::strtod(part.c_str(), &end);
         const bool ok = end != nullptr && *end == '\0' && end != part.c_str();
@@ -110,5 +101,3 @@ std::optional<std::vector<double>> qftbx::text::reals(const std::string & line){
 
     return values;
 }
-
-

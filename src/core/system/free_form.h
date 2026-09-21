@@ -10,6 +10,7 @@
 #include "src/core/math/expression_tree.h"
 
 /**
+ * @file
  * @brief A plant written as two expressions in the Laplace variable s.
  *
  * The numerator and the denominator are texts the user typed, with the
@@ -58,21 +59,21 @@ private:
     std::string m_numeratorExpr;
     std::string m_denominatorExpr;
 
-    //(numerator)/(denominator), parsed once and bound to the Laplace
-    //variable and the distinct parameter names. Shared with the clones,
-    //which evaluate the same expression; evaluation reads it only.
+    /// (numerator)/(denominator), parsed once and bound to the Laplace
+    /// variable and the distinct parameter names. Shared with the clones,
+    /// which evaluate the same expression; evaluation reads it only.
     std::shared_ptr<const ExpressionTree> m_ratio;
-    //The denominator on its own, bound to the same slots: what polesAt()
-    //evaluates to recover the polynomial it is.
+    /// The denominator on its own, bound to the same slots: what polesAt()
+    /// evaluates to recover the polynomial it is.
     std::shared_ptr<const ExpressionTree> m_denominatorTree;
 
-    //Slot of every numerator and denominator parameter in the value vector
-    //valueAt() evaluates with: slot 0 is s, a repeated name shares its slot.
+    /// Slot of every numerator and denominator parameter in the value vector
+    /// valueAt() evaluates with: slot 0 is s, a repeated name shares its slot.
     std::vector<std::size_t> m_numeratorSlots;
     std::vector<std::size_t> m_denominatorSlots;
     std::size_t m_valueCount = 0;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_FREE_FORM_H
+#endif

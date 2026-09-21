@@ -1,3 +1,15 @@
+/**
+ * @file
+ * @brief Evaluation and poles of the time-constant form.
+ *
+ * The corners are checked against zero on the raw range, so an uncertain
+ * corner whose range straddles zero is refused before the template sweep
+ * meets the division at some grid point. Evaluation multiplies the factors
+ * at s = j omega, the empty product being 1. Each factor s/c + 1 is a pole
+ * at -c; a zero constant handed to the pole query gives no answer, since it
+ * is not a factor the form can evaluate.
+ */
+
 #include <string>
 #include <vector>
 #include <cstdint>
@@ -13,10 +25,6 @@ namespace qftbx {
 
 namespace {
 
-//Every factor of this form is s/z + 1, so a corner frequency of zero divides
-//by zero at every frequency - and 0 is finite, so nothing upstream refuses
-//it. For an uncertain corner the whole range has to stay clear of zero, or
-//the template sweep meets the division at some grid point.
 void requireNonZeroCorners(const std::vector<Parameter> & corners, const char * side)
 {
     for (const Parameter & corner : corners) {
@@ -30,7 +38,7 @@ void requireNonZeroCorners(const std::vector<Parameter> & corners, const char * 
     }
 }
 
-} // namespace
+}
 
 TimeConstantGain::TimeConstantGain(std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator, Parameter k, Parameter delay):
     TransferFunction(name, numerator, denominator,k,delay)
@@ -56,7 +64,6 @@ std::string TimeConstantGain::expression(){
     }else {
         expr += qftbx::text::number(m_gain.nominal()) + "*(";
     }
-
 
     for (std::size_t i = 0; i + 1 < sizeNum; i++){
 
@@ -111,11 +118,6 @@ LtiSystem::SystemType TimeConstantGain::type(){
     return SystemType::TimeConstantGain;
 }
 
-
-//P(s) = k * prod(s/tau_n[i] + 1) / prod(s/tau_d[i] + 1) at s = j*w, times
-//the pure delay. An empty list is the constant 1, as the expression
-//generator writes it. A zero time constant divides by zero here exactly as
-//it did in the text.
 std::complex <double> TimeConstantGain::valueAt(double w, const std::vector<double> & numerator,
                                                const std::vector<double> & denominator,
                                                double gain, double delay)
@@ -135,8 +137,6 @@ std::complex <double> TimeConstantGain::valueAt(double w, const std::vector<doub
     return gain * num / den * std::exp(-s * delay);
 }
 
-//Every factor (s / c + 1) is a pole at -c; a zero constant is not a factor
-//the form can evaluate, so it is not one it can place either.
 std::optional<std::vector<std::complex<double>>> TimeConstantGain::polesAt(const std::vector<double> &,
                                                                            const std::vector<double> & denominator)
 {
@@ -151,4 +151,4 @@ std::optional<std::vector<std::complex<double>>> TimeConstantGain::polesAt(const
     return poles;
 }
 
-} // namespace qftbx
+}

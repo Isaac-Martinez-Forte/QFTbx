@@ -1,3 +1,16 @@
+/**
+ * @file
+ * @brief A system written as the transfer function it is, for a reader.
+ *
+ * Declares the functions that turn a system, or one parameter, into a
+ * formula that can be drawn or turned into LaTeX. Each family is written
+ * as its own literature writes it: zeros and poles as factors, time
+ * constants as 1 + s/a, polynomials by descending powers, the free form as
+ * the two expressions the user typed. An uncertain coefficient is shown by
+ * its name or by the interval it stands for, two readings worth having side
+ * by side; a fixed one at the requested significant digits.
+ */
+
 #ifndef QFTBX_SYSTEM_FORMULA_H
 #define QFTBX_SYSTEM_FORMULA_H
 
@@ -19,7 +32,7 @@ class Parameter;
  * significant digits.
  *
  * What LtiSystem::expression() gives as a line of text, given as a shape
- * that can be drawn or turned into LaTeX. The old text is kept for the
+ * that can be drawn or turned into LaTeX; the one-line text remains for the
  * places that want one line and nothing else.
  */
 /**
@@ -43,6 +56,6 @@ Formula formulaOf(Parameter & parameter, int digits,
 /// two readings above say anything different.
 bool hasUncertainty(LtiSystem & system);
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_SYSTEM_FORMULA_H
+#endif

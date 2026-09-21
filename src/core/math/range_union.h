@@ -1,3 +1,15 @@
+/**
+ * @file
+ * @brief A finite union of closed intervals, kept in canonical form.
+ *
+ * The magnitudes a design frequency admits at one phase are a union of
+ * intervals, not one interval: a closed boundary leaves two, a multivalued
+ * one more, and the intersection over specifications any number. The set
+ * keeps its members ascending and disjoint, so the count is the number of
+ * components, and intersects, shifts and reads its smallest member without
+ * collapsing the branches into their hull.
+ */
+
 #ifndef QFTBX_RANGE_UNION_H
 #define QFTBX_RANGE_UNION_H
 
@@ -120,7 +132,7 @@ public:
     {
         for (const Range & part : m_parts) {
             if (value < part.min) {
-                return false;   //ascending: no later member can hold it
+                return false;   ///< ascending: no later member can hold it
             }
 
             if (value <= part.max) {
@@ -153,8 +165,6 @@ public:
                 parts.push_back(Range(lower, upper));
             }
 
-            //Advance the one that ends first; the other may still meet the
-            //next member of this one.
             if (a.max < b.max) {
                 ++i;
             } else {
@@ -215,6 +225,6 @@ private:
     std::vector<Range> m_parts;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_RANGE_UNION_H
+#endif

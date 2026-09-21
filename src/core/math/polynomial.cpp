@@ -1,3 +1,17 @@
+/**
+ * @file
+ * @brief Root finding and coefficient recovery for real polynomials.
+ *
+ * Roots come from Aberth-Ehrlich iteration on the monic polynomial, started
+ * on a circle inside Cauchy's bound, after trailing zero coefficients are
+ * taken as exact roots at the origin. Coefficients that are rounding noise
+ * beside the largest one are zeroed first: a polynomial recovered from
+ * values otherwise reads a double root at the origin as a pair a little off
+ * it. Coefficient recovery samples the function on two circles and accepts
+ * only when both agree, which is what separates a polynomial from an entire
+ * function such as a delay.
+ */
+
 #include "src/core/math/polynomial.h"
 
 #include <algorithm>
@@ -10,7 +24,6 @@ namespace math {
 
 namespace {
 
-//p(z) and p'(z) by Horner, monic coefficients highest degree first.
 void evaluateWithDerivative(const std::vector<double> & monic, std::complex<double> z,
                             std::complex<double> & p, std::complex<double> & dp)
 {
@@ -22,18 +35,12 @@ void evaluateWithDerivative(const std::vector<double> & monic, std::complex<doub
     }
 }
 
-} // namespace
+}
 
 std::vector<std::complex<double>> polynomialRoots(const std::vector<double> & coefficients)
 {
     std::vector<double> a = coefficients;
 
-    //Coefficients that are rounding noise beside the largest are zero. A
-    //polynomial recovered from values has them: the s^4 + 0.02 s^3 + s^2 of
-    //the ACC'90 plant comes back with its two last coefficients at 1e-16
-    //instead of 0, and the double root at the origin then solves as a pair
-    //1e-8 off it - the square root of that noise - which reads as a pole ON
-    //the imaginary axis and puts an indentation where the plant has none.
     double largest = 0.0;
     for (const double c : a) {
         largest = std::max(largest, std::abs(c));
@@ -53,7 +60,6 @@ std::vector<std::complex<double>> polynomialRoots(const std::vector<double> & co
         return roots;
     }
 
-    //Roots at the origin, exactly: every trailing zero coefficient is one.
     while (a.size() > 1 && a.back() == 0.0) {
         a.pop_back();
         roots.emplace_back(0.0, 0.0);
@@ -74,7 +80,6 @@ std::vector<std::complex<double>> polynomialRoots(const std::vector<double> & co
         return roots;
     }
 
-    //Cauchy's bound: every root lies inside |z| < 1 + max|a_k|.
     double bound = 0.0;
     for (std::size_t k = 1; k < a.size(); ++k) {
         bound = std::max(bound, std::abs(a[k]));
@@ -137,8 +142,6 @@ std::optional<std::vector<double>> polynomialCoefficients(
         return std::nullopt;
     }
 
-    //One pass at the radius given: the scaled coefficients c_k r^k, which is
-    //what the transform returns directly, and the degree read off them.
     const auto pass = [&](double radius, std::vector<double> & coefficients) -> bool {
         std::vector<std::complex<double>> samples(kSamples);
         for (int j = 0; j < kSamples; ++j) {
@@ -161,12 +164,10 @@ std::optional<std::vector<double>> polynomialCoefficients(
         }
 
         if (largest == 0.0) {
-            coefficients.assign(1, 0.0);     //the zero polynomial
+            coefficients.assign(1, 0.0);
             return true;
         }
 
-        //Power beyond the degree allowed, or coefficients that are not real:
-        //not a real polynomial of that degree.
         for (int k = maxDegree + 1; k < kSamples; ++k) {
             if (std::abs(scaled[k]) > 1e-7 * largest) {
                 return false;
@@ -200,14 +201,6 @@ std::optional<std::vector<double>> polynomialCoefficients(
         return std::nullopt;
     }
 
-    //Second pass on a circle four times the largest root away, and at least
-    //four times the first: a polynomial gives the same coefficients on any
-    //circle, and nothing else does. An entire function (a delay, a sine)
-    //passes the first circle as its own Taylor polynomial, truncated where
-    //the terms fall below rounding; on the wider circle the truncation
-    //moves, and the two disagree. The wider circle is also where the
-    //coefficients of a polynomial whose roots sit far from one come out
-    //with their full precision, so its answer is the one returned.
     double largestRoot = 0.0;
     for (const std::complex<double> & root : polynomialRoots(coefficients)) {
         largestRoot = std::max(largestRoot, std::abs(root));
@@ -251,7 +244,7 @@ double largestMagnitude(const std::vector<std::complex<double>> & roots)
     return largest;
 }
 
-} // namespace
+}
 
 int rightHalfPlaneCount(const std::vector<std::complex<double>> & roots)
 {
@@ -270,9 +263,6 @@ std::vector<double> imaginaryAxisFrequencies(const std::vector<std::complex<doub
     const double largest = largestMagnitude(roots);
     std::vector<double> frequencies;
     for (const std::complex<double> & root : roots) {
-        //A root negligible beside the largest is the origin, whose poles are
-        //not an indentation of the contour: the loop leaves along a ray
-        //there, which startsOnRay already reads.
         if (onTheAxis(root, largest) && root.imag() > 1e-9 * largest) {
             frequencies.push_back(root.imag());
         }
@@ -281,5 +271,5 @@ std::vector<double> imaginaryAxisFrequencies(const std::vector<std::complex<doub
     return frequencies;
 }
 
-} // namespace math
-} // namespace qftbx
+}
+}

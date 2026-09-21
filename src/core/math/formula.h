@@ -1,3 +1,14 @@
+/**
+ * @file
+ * @brief A formula as a tree of typeset parts, and its LaTeX.
+ *
+ * The model behind the drawn formulas of the interface: numbers set upright,
+ * symbols in italic with trailing digits as subscripts, fractions, powers,
+ * fences that grow with their content, functions and roots. Builders compose
+ * them, and an expression tree converts into one with the parentheses the
+ * precedence requires and no more.
+ */
+
 #ifndef QFTBX_MATH_FORMULA_H
 #define QFTBX_MATH_FORMULA_H
 
@@ -90,7 +101,7 @@ Formula sumOf(std::vector<Formula> terms);
 /// Whether the formula has nothing in it (a Row with no parts).
 bool isEmpty(const Formula & formula);
 
-} // namespace formula
+}
 
 /**
  * @brief The formula of a parsed expression, with the parentheses the
@@ -112,6 +123,6 @@ Formula formulaOfText(const std::string & expression, int digits);
 /// The formula written in LaTeX, as the body of a math environment (no $).
 std::string latexOf(const Formula & formula);
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_MATH_FORMULA_H
+#endif

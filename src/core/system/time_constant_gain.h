@@ -1,3 +1,15 @@
+/**
+ * @file
+ * @brief Transfer function in time-constant form.
+ *
+ * Declares the form whose numerator and denominator parameters are corner
+ * frequencies, each a factor s/z + 1, times a gain that is the value at
+ * s = 0 and a pure delay. An empty vector stands for the constant 1. A
+ * corner that is zero, or whose uncertainty range contains zero, is refused
+ * at construction: every factor divides by it, and zero is a finite number
+ * no other check refuses.
+ */
+
 #ifndef QFTBX_TIME_CONSTANT_GAIN_H
 #define QFTBX_TIME_CONSTANT_GAIN_H
 
@@ -40,7 +52,6 @@ public:
 
 };
 
-} // namespace qftbx
+}
 
-
-#endif // QFTBX_TIME_CONSTANT_GAIN_H
+#endif

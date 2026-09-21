@@ -1,3 +1,16 @@
+/**
+ * @file
+ * @brief Implementation of the template stage.
+ *
+ * The cancellation token and every engine setting are applied on each run,
+ * so nothing lingers from a previous one on the engine that is kept between
+ * runs. A run publishes straight from the engine's own copies rather than
+ * through adoption, which is for clouds computed elsewhere. Only the epsilon
+ * used is kept for the persistence, since the sweep neither reorders nor
+ * replaces the frequencies. A run counts as produced when it yields both
+ * clouds and contours.
+ */
+
 #include "src/core/pipeline/template_stage.h"
 
 #include "src/core/common/exception.h"
@@ -31,8 +44,6 @@ bool TemplateStage::run(ProjectData & data, std::vector<double> epsilon,
 
     TemplateEngine & sweep = engine();
 
-    //Set on every run, so a token from a previous one cannot linger: the
-    //engine is kept between runs.
     sweep.setCancellation(cancellation);
 
     sweep.setHullMetric(data.epsilonMetric().metric, data.epsilonMetric().dbPerDegree);
@@ -46,16 +57,11 @@ bool TemplateStage::run(ProjectData & data, std::vector<double> epsilon,
 
     const bool produced = !sweep.clouds().empty() && !sweep.contours().empty();
 
-    //Published straight from the engine's own copies: adopt() is for
-    //clouds computed elsewhere, and would feed the engine what it already
-    //holds, two copies of the template set later.
     data.setTemplates(sweep.clouds());
     if (!sweep.contours().empty()) {
         data.setContour(sweep.contours());
     }
 
-    //The computation does not reorder or replace the frequencies, so only
-    //the epsilon used has to be kept, for the persistence.
     data.setEpsilon(std::move(epsilon));
 
     return produced;
@@ -123,4 +129,4 @@ void TemplateStage::adopt(ProjectData & data, CloudSet clouds,
     }
 }
 
-} // namespace qftbx
+}

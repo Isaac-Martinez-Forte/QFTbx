@@ -1,3 +1,14 @@
+/**
+ * @file
+ * @brief Argument substitution for user-facing messages.
+ *
+ * Rendering follows QString::arg() one call at a time: each argument
+ * replaces every occurrence of the lowest-numbered placeholder still in the
+ * text. A placeholder is matched whole, so "%1" is never taken for the
+ * start of "%10". Reals are written through the toolbox's one number
+ * formatter, so a message and a file spell a value the same way.
+ */
+
 #include "src/core/common/message.h"
 
 #include <utility>
@@ -60,8 +71,6 @@ Message & Message::arg(unsigned long long value)
 
 namespace {
 
-//The next occurrence of "%n" that is a whole placeholder: "%1" is not
-//the "%1" of "%10".
 std::size_t findPlaceholder(const std::string & text, const std::string & placeholder, std::size_t from)
 {
     std::size_t at = from;
@@ -76,12 +85,10 @@ std::size_t findPlaceholder(const std::string & text, const std::string & placeh
     return std::string::npos;
 }
 
-} // namespace
+}
 
 std::string Message::rendered() const
 {
-    //Each argument replaces every occurrence of the lowest-numbered
-    //placeholder left, which is what QString::arg() does one call at a time.
     std::string out = m_text;
     for (const std::string & value : m_arguments) {
         std::string placeholder;
@@ -103,4 +110,4 @@ std::string Message::rendered() const
     return out;
 }
 
-} // namespace qftbx
+}

@@ -1,24 +1,30 @@
+/**
+ * @file
+ * @brief Builds the requirement formulas from the symbols of the literature.
+ *
+ * The loop, the plant, the controller and the prefilter are the single
+ * letters of the literature. The term 1 + L is built without parentheses
+ * because it is always the denominator of a fraction, which encloses its
+ * halves. Only the lower tracking bound bounds from below; every other
+ * slot is an upper bound.
+ */
+
 #include "src/core/specifications/specification_formula.h"
 
 namespace qftbx {
 
 namespace {
 
-//The symbols of the literature: the loop L = PC, the plant P, the
-//controller C and the prefilter F.
 const char kLoop[] = "L";
 const char kPlant[] = "P";
 const char kController[] = "C";
 const char kPrefilter[] = "F";
 
-//1 + L, which every one of them divides by. Without parentheses: it is
-//always the denominator of a fraction, and a fraction encloses its halves.
 Formula onePlusLoop()
 {
     return formula::sum(formula::number("1"), formula::symbol(kLoop));
 }
 
-//The closed loop, L/(1+L), which four of the six bound.
 Formula closedLoop()
 {
     return formula::fraction(formula::symbol(kLoop), onePlusLoop());
@@ -27,9 +33,6 @@ Formula closedLoop()
 Formula magnitudeOf(SpecificationType type)
 {
     switch (type) {
-    //Tracking carries the prefilter, as (1.6) of the thesis writes it. The
-    //loop shaping never sees it - see requirementOf() - but the
-    //specification the user is stating is the one the literature states.
     case SpecificationType::TrackingLower:
     case SpecificationType::TrackingUpper:
         return formula::product(formula::symbol(kPrefilter), closedLoop());
@@ -51,13 +54,12 @@ Formula magnitudeOf(SpecificationType type)
     return Formula();
 }
 
-//The lower bound of the tracking band is the one that bounds from below.
 const char * signOf(SpecificationType type)
 {
     return type == SpecificationType::TrackingLower ? "≥" : "≤";
 }
 
-} // namespace
+}
 
 Formula requirementOf(SpecificationType type)
 {
@@ -69,4 +71,4 @@ Formula requirementOf(SpecificationType type, Formula bound)
     return formula::row({requirementOf(type), formula::op(signOf(type)), std::move(bound)});
 }
 
-} // namespace qftbx
+}

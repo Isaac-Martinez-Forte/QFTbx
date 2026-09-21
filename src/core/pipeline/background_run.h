@@ -1,3 +1,18 @@
+/**
+ * @file
+ * @brief One piece of work on a worker thread, with what it threw kept.
+ *
+ * An exception escaping the function of a std::thread terminates the
+ * process, so everything the work throws is caught at this boundary and
+ * the caller asks afterwards how it went: whether a result was produced,
+ * whether it was cancelled, and the message of what it threw. A message
+ * rather than the exception, since the caller wants text and an object
+ * built on a thread that is gone should not be rethrown. One run at a time:
+ * the pipeline is sequential, so nothing is gained from two. The completion
+ * callback runs on the worker thread, and getting back to another thread is
+ * the caller's business.
+ */
+
 #ifndef QFTBX_BACKGROUND_RUN_H
 #define QFTBX_BACKGROUND_RUN_H
 
@@ -62,7 +77,7 @@ public:
     /// Waits for the run in flight, if there is one, and joins the worker.
     void wait();
 
-    // --- how the last finished run ended ------------------------------------
+    /// --- how the last finished run ended ------------------------------------
 
     /// Whether the work returned true.
     bool produced() const { return m_produced; }
@@ -88,16 +103,16 @@ private:
     std::thread m_worker;
     std::atomic<bool> m_running{false};
 
-    //Written by the worker before m_running is released, read by anyone after
-    //acquiring it: the release/acquire pair on m_running is what publishes
-    //them, so no mutex is needed for three fields nobody may read while a run
-    //is in flight.
+    /// Written by the worker before m_running is released, read by anyone after
+    /// acquiring it: the release/acquire pair on m_running is what publishes
+    /// them, so no mutex is needed for three fields nobody may read while a run
+    /// is in flight.
     bool m_produced = false;
     bool m_cancelled = false;
     std::string m_error;
     Message m_errorMessage;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_BACKGROUND_RUN_H
+#endif

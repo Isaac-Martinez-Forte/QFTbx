@@ -1,3 +1,11 @@
+/**
+ * @file
+ * @brief Linearly and logarithmically spaced sequences.
+ *
+ * Each point is computed from its index, so the last point is exactly the
+ * end requested and nothing drifts with the count.
+ */
+
 #ifndef QFTBX_MATH_SEQUENCES_H
 #define QFTBX_MATH_SEQUENCES_H
 
@@ -51,7 +59,7 @@ inline std::vector<double> logspace(double firstExp, double lastExp, std::size_t
     return values;
 }
 
-} // namespace math
-} // namespace qftbx
+}
+}
 
-#endif // QFTBX_MATH_SEQUENCES_H
+#endif

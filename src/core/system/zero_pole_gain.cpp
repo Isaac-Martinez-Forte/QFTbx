@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief Evaluation and poles of the zero-pole-gain form.
+ *
+ * Evaluation multiplies the factors s + z at s = j omega, the empty product
+ * being 1, times the gain and the delay. The stored coefficients are the
+ * negated roots, so each denominator entry p is the pole at -p.
+ */
+
 #include <string>
 #include <vector>
 #include <cstdint>
@@ -6,7 +15,6 @@
 
 #include "src/core/common/text_tokens.h"
 #include "src/core/system/zero_pole_gain.h"
-
 
 namespace qftbx {
 
@@ -21,11 +29,9 @@ std::unique_ptr<LtiSystem> ZeroPoleGain::create (std::string name, std::vector <
                                           std::move(k), std::move(delay));
 }
 
-
 LtiSystem::SystemType ZeroPoleGain::type(){
     return SystemType::ZeroPoleGain;
 }
-
 
 std::string ZeroPoleGain::expression(){
     std::size_t sizeDen = m_denominator.size();
@@ -58,7 +64,6 @@ std::string ZeroPoleGain::expression(){
         }
     }
 
-
     if (m_denominator.empty()){
         expr += "1)";
     }else {
@@ -87,11 +92,6 @@ std::string ZeroPoleGain::expression(){
     return expr;
 }
 
-
-//P(s) = k * prod(s + z[i]) / prod(s + p[i]) at s = j*w, times the pure
-//delay. An empty list is the constant 1, as the expression generator writes
-//it. Note the sign: the stored coefficients are the NEGATED roots, which is
-//what the textual form (jw) + z always computed.
 std::complex <double> ZeroPoleGain::valueAt(double w, const std::vector<double> & numerator,
                                            const std::vector<double> & denominator,
                                            double gain, double delay)
@@ -111,7 +111,6 @@ std::complex <double> ZeroPoleGain::valueAt(double w, const std::vector<double> 
     return gain * num / den * std::exp(-s * delay);
 }
 
-//The stored denominator coefficients are the negated poles.
 std::optional<std::vector<std::complex<double>>> ZeroPoleGain::polesAt(const std::vector<double> &,
                                                                        const std::vector<double> & denominator)
 {
@@ -123,4 +122,4 @@ std::optional<std::vector<std::complex<double>>> ZeroPoleGain::polesAt(const std
     return poles;
 }
 
-} // namespace qftbx
+}

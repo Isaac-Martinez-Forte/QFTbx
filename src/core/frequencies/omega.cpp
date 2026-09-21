@@ -1,3 +1,15 @@
+/**
+ * @file
+ * @brief Construction and file reading of the design frequency set.
+ *
+ * Every value must be a finite, strictly positive real: the values arrive
+ * from a file as often as from a dialog, and strtod reads "nan", "inf" and
+ * "-1" as numbers. The point count is always the size of the values; the
+ * count passed to the constructor is ignored because files can carry one
+ * that disagrees. The frequency file is read whole with the standard
+ * library and rejected entirely when any token is not a real.
+ */
+
 #include <fstream>
 #include <iterator>
 #include <string>
@@ -8,16 +20,12 @@
 #include "src/core/frequencies/omega.h"
 #include "src/core/common/text_tokens.h"
 
-
 #include "src/core/common/exception.h"
 
 namespace qftbx {
 
 namespace {
 
-//What every design frequency has to be. Parameter got this check for its own
-//values; a frequency set did not, and its values come from a file as often as
-//from a dialog - and strtod happily reads "nan", "inf" and "-1".
 void requireUsable(const std::vector<double> & values)
 {
     if (values.empty()){
@@ -31,18 +39,16 @@ void requireUsable(const std::vector<double> & values)
     }
 }
 
-} // namespace
+}
 
 Omega::Omega(double start, double end, std::int32_t pointCount, std::vector<double> values, GenerationType type)
 {
-    (void) pointCount;   //old files carry a desynchronised point count
+    (void) pointCount;
 
     requireUsable(values);
 
     m_start = start;
     m_end = end;
-    //Invariant: m_pointCount == m_values.size() always. The parameter is
-    //deliberately ignored: old files carry a desynchronised <nPuntos>.
     m_pointCount = static_cast<std::int32_t>(values.size());
     m_values = std::move(values);
     m_type = type;
@@ -81,8 +87,6 @@ void Omega::setOmega(std::vector<double> values){
 
 std::vector<double> Omega::valuesFromFile(std::string path){
 
-    //std::ifstream and not QFile: this is the core, and reading a text file
-    //of numbers needs nothing from Qt.
     std::ifstream file (path);
 
     if (!file.is_open()){
@@ -114,4 +118,4 @@ bool Omega::sameAs(const Omega & other) const
             m_values == other.m_values;
 }
 
-} // namespace qftbx
+}

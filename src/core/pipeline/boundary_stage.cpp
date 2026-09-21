@@ -1,3 +1,13 @@
+/**
+ * @file
+ * @brief Implementation of the boundary stage.
+ *
+ * The prerequisite check names what is missing, and asks for the contour or
+ * the whole cloud according to what the run will read. The closed-form
+ * column setting and the cancellation token are applied to the engine on
+ * every run, so nothing carries over from a previous one.
+ */
+
 #include "src/core/pipeline/boundary_stage.h"
 
 #include "src/core/common/exception.h"
@@ -40,7 +50,6 @@ bool BoundaryStage::run(ProjectData & data, Range phaseRange,
 
     BoundaryEngine & bounds = engine();
     bounds.setClosedFormColumns(m_closedForm);
-    //Set on every run, like the settings above.
     bounds.setCancellation(cancellation);
 
     bounds.compute(data.frequencies(), data.plant(),
@@ -53,4 +62,4 @@ bool BoundaryStage::run(ProjectData & data, Range phaseRange,
     return true;
 }
 
-} // namespace qftbx
+}

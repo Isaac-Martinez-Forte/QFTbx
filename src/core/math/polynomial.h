@@ -77,7 +77,7 @@ int rightHalfPlaneCount(const std::vector<std::complex<double>> & roots);
 /// 180 degree fall, which poles at the origin do not.
 std::vector<double> imaginaryAxisFrequencies(const std::vector<std::complex<double>> & roots);
 
-} // namespace math
-} // namespace qftbx
+}
+}
 
-#endif // QFTBX_POLYNOMIAL_H
+#endif

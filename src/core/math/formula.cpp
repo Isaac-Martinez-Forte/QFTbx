@@ -1,3 +1,17 @@
+/**
+ * @file
+ * @brief Building formulas from expression trees, and writing them as LaTeX.
+ *
+ * Parentheses follow binding levels: a fraction and a function enclose
+ * themselves, the right operand of a subtraction is fenced at its own level,
+ * and a negative literal keeps its minus bare only as the first operand,
+ * because the parser reads a unary minus as a product by -1. Products
+ * between a number and a symbol are written by juxtaposition, as by hand;
+ * two numbers side by side keep their sign. Scientific notation becomes a
+ * power of ten, and a space separates a LaTeX command from a letter that
+ * would otherwise merge with it.
+ */
+
 #include "src/core/math/formula.h"
 
 #include <algorithm>
@@ -11,8 +25,6 @@ namespace qftbx {
 
 namespace {
 
-//The constants are Numbers and not Symbols because they are set upright:
-//pi and e stand for themselves, they are not somebody's variable.
 const char kPi[] = "π";
 
 Formula node(Formula::Kind kind, std::string text, std::vector<Formula> parts)
@@ -45,16 +57,9 @@ Formula withoutMinus(Formula formula)
     return formula;
 }
 
-//Where the parentheses go when an expression tree becomes a formula: the
-//higher the level, the tighter the operator binds. A division is a
-//fraction and a function is its own enclosure, so both are as atomic as a
-//number - nothing written inside them can need a parenthesis around them.
 const int kSum = 1;
 const int kProduct = 2;
 const int kPower = 3;
-//A fraction needs no parentheses among sums and products - it is its own
-//enclosure - but it does under an exponent, where the exponent would sit
-//against the denominator and read as part of it.
 const int kFraction = 4;
 const int kAtom = 9;
 
@@ -77,12 +82,6 @@ int levelOf(const exp_node & node)
 
 Formula convert(const exp_node & node, int digits);
 
-//An operand of an operator that binds at 'minimum': parenthesised when it
-//binds more loosely, and when it is a negative literal that would otherwise
-//end up written against the sign of the operator before it. The FIRST
-//operand has no sign before it, so it keeps its minus bare: the parser
-//reads a unary minus as a product by -1, and -s must not come out as
-//(-1)s.
 Formula operand(const exp_node & node, int digits, int minimum, bool leading = false)
 {
     Formula inside = convert(node, digits);
@@ -132,20 +131,15 @@ Formula convert(const exp_node & node, int digits)
         return formula::sum(operand(*node.left, digits, kSum),
                             operand(*node.right, digits, kSum));
     case SUBTRACT:
-        //The right operand of a subtraction needs its parentheses even at
-        //its own level: a - (b - c) is not a - b - c.
         return formula::difference(operand(*node.left, digits, kSum),
                                    operand(*node.right, digits, kSum + 1));
     case MULTIPLY:
         return formula::product(operand(*node.left, digits, kProduct, true),
                                 operand(*node.right, digits, kProduct));
     case DIVIDE:
-        //A fraction encloses its own two halves.
         return formula::fraction(convert(*node.left, digits),
                                  convert(*node.right, digits));
     case POWER:
-        //The exponent is drawn small and raised, which fences it; the base
-        //is fenced unless it is an atom.
         return formula::power(operand(*node.left, digits, kAtom),
                               convert(*node.right, digits));
 
@@ -157,9 +151,6 @@ Formula convert(const exp_node & node, int digits)
         return formula::bars(convert(*node.left, digits));
 
     case PARENTHESIS:
-        //Never reaches a tree: the parser uses it as a mark on its operator
-        //stack. Answered anyway, so that a hand-built tree cannot fall
-        //through to the empty formula.
         return node.left ? convert(*node.left, digits) : Formula();
 
     default:
@@ -174,8 +165,6 @@ Formula convert(const exp_node & node, int digits)
     return formula::function(name, convert(*node.left, digits));
 }
 
-//The exponent of a number written in scientific notation, as LaTeX writes
-//it: "1.5e-06" is 1.5 times ten to the minus sixth, not the letter e.
 bool splitExponent(const std::string & text, std::string & mantissa, std::string & exponent)
 {
     const std::size_t mark = text.find_first_of("eE");
@@ -186,8 +175,6 @@ bool splitExponent(const std::string & text, std::string & mantissa, std::string
     mantissa = text.substr(0, mark);
     exponent = text.substr(mark + 1);
 
-    //A leading plus and the zeros that pad the exponent are printer's
-    //habits, not part of the number.
     if (!exponent.empty() && (exponent.front() == '+' || exponent.front() == '-')) {
         const char sign = exponent.front();
         exponent.erase(exponent.begin());
@@ -226,8 +213,6 @@ std::string latexSymbol(const std::string & name)
     std::string subscript;
     formula::splitName(name, stem, subscript);
 
-    //A single letter is already the italic of a formula; a name is not, and
-    //LaTeX would set it as a product of its letters.
     std::string latex = stem.size() > 1 ? "\\mathit{" + stem + "}" : stem;
 
     if (!subscript.empty()) {
@@ -237,9 +222,6 @@ std::string latexSymbol(const std::string & name)
     return latex;
 }
 
-//"\pi" and "s" written one after the other are the command \pis, which
-//does not exist. A space between them is the whole fix, and it is needed
-//only when a command with a letter name meets a letter.
 bool endsWithCommand(const std::string & latex)
 {
     if (latex.empty() || std::isalpha(static_cast<unsigned char>(latex.back())) == 0) {
@@ -297,7 +279,7 @@ std::string latexFunction(const std::string & name)
     return latex;
 }
 
-} // namespace
+}
 
 namespace formula {
 
@@ -354,8 +336,6 @@ Formula bracketed(Formula inside)
 
 Formula interval(double minimum, double maximum, int digits)
 {
-    //The comma belongs to the number before it, which is why it is not an
-    //operator: an operator is written with air on both sides.
     return bracketed(row({number(minimum, digits), number(", "), number(maximum, digits)}));
 }
 
@@ -371,8 +351,6 @@ Formula root(Formula inside)
 
 Formula sum(Formula a, Formula b)
 {
-    //A term that carries its own minus is added by subtracting it, which is
-    //how it would be written by hand.
     if (startsWithMinus(b)) {
         return difference(std::move(a), withoutMinus(std::move(b)));
     }
@@ -387,15 +365,10 @@ Formula difference(Formula a, Formula b)
 
 Formula product(Formula a, Formula b)
 {
-    //The parser has no unary minus: it reads -s as (-1)*s, and that is what
-    //would be drawn if the sign were not read back here.
     if (a.kind == Formula::Kind::Number && a.text == "-1") {
         return row({number("-"), std::move(b)});
     }
 
-    //Two numbers side by side would read as one, and so would a number
-    //after a symbol: those are the products that need their sign. The rest
-    //are written the way they are read, k(s+1) and not k*(s+1).
     const bool needsSign = b.kind == Formula::Kind::Number
             || (a.kind == Formula::Kind::Number && b.kind == Formula::Kind::Fraction);
 
@@ -448,7 +421,7 @@ void splitName(const std::string & name, std::string & stem, std::string & subsc
     subscript = name.substr(cut);
 }
 
-} // namespace formula
+}
 
 Formula formulaOf(const exp_node & expression, int digits)
 {
@@ -521,4 +494,4 @@ std::string latexOf(const Formula & formula)
     return std::string();
 }
 
-} // namespace qftbx
+}

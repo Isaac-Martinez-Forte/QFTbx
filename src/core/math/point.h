@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief Points of the Nichols chart and of the Nyquist plane.
+ *
+ * Every curve the toolbox computes lives on the Nichols chart, so a point is
+ * a phase in degrees and a magnitude in decibels, named as such. The Nyquist
+ * point exists for the conversions the plots need.
+ */
+
 #ifndef QFTBX_POINT_H
 #define QFTBX_POINT_H
 
@@ -23,25 +32,17 @@ namespace qftbx {
  */
 struct NicholsPoint
 {
-    double phase = 0.0;      //degrees
-    double magnitude = 0.0;  //decibels
+    double phase = 0.0;   ///< degrees
+    double magnitude = 0.0;   ///< decibels
 
     NicholsPoint() = default;
 
     NicholsPoint(double phaseDegrees, double magnitudeDb)
         : phase(phaseDegrees), magnitude(magnitudeDb) {}
 
-    /**
-     * @brief Exact equality, coordinate by coordinate.
-     *
-     * QPointF's was FUZZY (qFuzzyCompare), so this is not the same
-     * operator. It is the honest one for a value type, and it is what the
-     * one caller wants: BoundaryUnion1D erases the point it just picked out
-     * of its own container, so it is looking for that element and not for
-     * something near it - which fuzzy equality could have found first among
-     * clustered trace points, erasing a different one. The boundary goldens
-     * are what confirm the difference does not show up on real data.
-     */
+    /// Exact equality: the one caller erases the element it just picked out of
+    /// its own container, and a fuzzy comparison could match a neighbour among
+    /// clustered trace points instead.
     bool operator==(const NicholsPoint & other) const
     {
         return phase == other.phase && magnitude == other.magnitude;
@@ -52,7 +53,6 @@ struct NicholsPoint
         return !(*this == other);
     }
 };
-
 
 /**
  * @brief A point of the complex plane, for the Nyquist view of a loop.
@@ -71,7 +71,6 @@ struct NyquistPoint
     NyquistPoint(double real, double imaginary) : re(real), im(imaginary) {}
 };
 
-
 /**
  * @brief The same loop point read on the complex plane: dB back to a linear
  * magnitude, degrees to radians, then polar to cartesian.
@@ -86,6 +85,6 @@ inline NyquistPoint toNyquist(const NicholsPoint & point)
     return NyquistPoint(magnitude * std::cos(radians), magnitude * std::sin(radians));
 }
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_POINT_H
+#endif

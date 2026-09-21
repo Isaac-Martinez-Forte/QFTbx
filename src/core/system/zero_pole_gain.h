@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief Transfer function in zero-pole-gain form.
+ *
+ * Declares the form whose numerator and denominator parameters are the
+ * negated roots, each a factor s + z, times a gain and a pure delay. An
+ * empty vector stands for the constant 1.
+ */
+
 #ifndef QFTBX_ZERO_POLE_GAIN_H
 #define QFTBX_ZERO_POLE_GAIN_H
 
@@ -35,7 +44,6 @@ public:
 
 };
 
-} // namespace qftbx
+}
 
-
-#endif // QFTBX_ZERO_POLE_GAIN_H
+#endif

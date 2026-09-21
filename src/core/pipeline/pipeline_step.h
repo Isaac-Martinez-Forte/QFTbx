@@ -1,3 +1,15 @@
+/**
+ * @file
+ * @brief The steps of a QFT design and sets of them.
+ *
+ * The seven steps are listed in dependency order, and the order is not
+ * arbitrary: what a step computes is a function of the steps above it,
+ * which is why publishing one drops what was computed from the ones below.
+ * A step set is a small fixed-size collection of flags over them, with
+ * membership, count and equality, for saying which steps a file carries or
+ * a change touches.
+ */
+
 #ifndef QFTBX_PIPELINE_STEP_H
 #define QFTBX_PIPELINE_STEP_H
 
@@ -76,6 +88,6 @@ private:
     std::array<bool, kStepCount> m_present{};
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_PIPELINE_STEP_H
+#endif

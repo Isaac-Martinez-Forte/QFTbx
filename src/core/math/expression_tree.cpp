@@ -1,9 +1,17 @@
-/*
-Roberto C. Cruz Rodríguez
-    rcruz@instec.cu
-*/
-// This function interpreter builds a binary expression tree in which every
-// inner node is an operation and every leaf a value.
+/**
+ * @file
+ * @brief Parser, evaluators and interval contractor of the expression tree.
+ *
+ * The lexer reads the text without blanks and refuses two operands with
+ * nothing but blanks between them before stripping, so that "2 3" is an
+ * error and not 23. Pi and e are enclosures, not nearest doubles, so an
+ * interval evaluation contains the true constant. The backward pass of the
+ * contractor intersects each child projection with the child's forward value
+ * and reports the box inconsistent as soon as one is empty; projections that
+ * could abort inside the interval library (a negative range into a power, an
+ * inverse trigonometric function outside its branch, a divisor straddling
+ * zero) are skipped rather than risked.
+ */
 
 #include "src/core/math/expression_tree.h"
 #include "src/core/math/constants.h"
@@ -18,18 +26,12 @@ Roberto C. Cruz Rodríguez
 #include <stdexcept>
 #include <string>
 
-
 using namespace std;
-
 
 namespace qftbx {
 
 namespace {
 
-//The lexer reads the expression without blanks: spaces, tabs and line
-//breaks alike. Two operands with nothing but blanks between them ("2 3",
-//"a b") are refused FIRST: stripped, they would read as one token and the
-//user would get 23 for "2 3".
 std::string withoutSpaces(const std::string & text)
 {
     const auto tokenChar = [](char c) {
@@ -55,7 +57,6 @@ std::string withoutSpaces(const std::string & text)
     return stripped;
 }
 
-//The functions of the grammar, by the name a user writes.
 const std::pair<const char *, type_node> kFunctions[] = {
     {"sin", SIN}, {"cos", COS}, {"tan", TAN}, {"atan", ATAN}, {"exp", EXP},
     {"sinh", SINH}, {"cosh", COSH}, {"tanh", TANH}, {"abs", ABS},
@@ -63,10 +64,6 @@ const std::pair<const char *, type_node> kFunctions[] = {
     {"asin", ASIN}, {"acos", ACOS}, {"sqrt", SQRT},
 };
 
-
-//Enclosures of the two constants, not the nearest doubles: an Interval
-//evaluation that returned a degenerate [3.14159...] did not contain pi,
-//and the e it returned had twelve correct digits.
 Interval piEnclosure()
 {
     return Interval::pi();
@@ -77,11 +74,8 @@ Interval eEnclosure()
     return Interval::e();
 }
 
-} // namespace
+}
 
-//////////////////////////////////////////
-// ExpressionTree implementation        //
-//////////////////////////////////////////
 ExpressionTree::ExpressionTree()
 {
     root = nullptr;
@@ -139,15 +133,7 @@ ExpressionTree::ExpressionTree(const ExpressionTree &other )
 {
 }
 
-//The root owns the tree and every node owns its branches.
 ExpressionTree::~ExpressionTree() = default;
-
-/********************************************************
-* void ExpressionTree::setFunc(const std::string &text)        *
-*********************************************************
-* Discards the current tree and builds a new one from the given
-* expression.
-*/
 
 void ExpressionTree::setFunc(const std::string &text)
 {
@@ -169,11 +155,6 @@ void ExpressionTree::setFunc(const std::string &text, double result, com compari
     build_tree(in_exp);
 }
 
-/********************************************************
-* void ExpressionTree::setFunc(const char *text)               *
-*********************************************************
-* As above, taking a C string.
-*/
 void ExpressionTree::setFunc(const char *text)
 {
     std::string in_exp = withoutSpaces(text);
@@ -181,11 +162,6 @@ void ExpressionTree::setFunc(const char *text)
     build_tree(in_exp);
 }
 
-/********************************************************
-* ExpressionTree &ExpressionTree::operator=(const ExpressionTree &other)  *
-*********************************************************
-* Evaluates the expression.
-*/
 double ExpressionTree::eval(std::map<std::string, double> *variables )
 {
     this->variables = variables;
@@ -198,21 +174,8 @@ const exp_node * ExpressionTree::tree() const
     return root.get();
 }
 
-
 void ExpressionTree::print (){
 }
-
-
-/*
- * enum type_node { CONST, PI, E, VAR,
-                 PARENTHESIS,
-                 ADD, SUBTRACT, MULTIPLY, DIVIDE, POWER,
-                 SIN, COS, TAN, SINH, COSH, ATAN, TANH, ASIN,
-                 ACOS, EXP, ABS, LN, LG, SQRT
-               };
- *
- */
-
 
 string ExpressionTree::symbolOf(type_node type)  {
 
@@ -324,10 +287,8 @@ Interval ExpressionTree::eval(std::vector<Interval> & values)
     return result;
 }
 
-//Assignment: a deep copy, so the two trees own separate nodes.
 ExpressionTree &ExpressionTree::operator=(const ExpressionTree &other)
 {
-    //Not falling off the end of a value-returning function.
     if (this != &other) {
         root = make_cpy(other.root.get());
         m_boundNames = other.m_boundNames;
@@ -338,13 +299,6 @@ ExpressionTree &ExpressionTree::operator=(const ExpressionTree &other)
     return *this;
 }
 
-/*****************************************************************************
-* double ExpressionTree::operator()(double xx , double yy , double zz , double tt) *
-******************************************************************************
-* la homonimia del operador '()' nos permite
-* evaluar la expresion usando parentesis
-* de esta forma result = function(78,0,0,1)
-*/
 double ExpressionTree::operator()(std::map<std::string, double> * variables)
 {
     return eval (variables);
@@ -354,9 +308,6 @@ Interval ExpressionTree::operator ()(std::map<std::string, Interval> * variables
     return eval (variables);
 }
 
-//The core of the class: a recursive walk over the binary expression tree,
-//applying each node's operation and returning the value of the whole
-//expression.
 double ExpressionTree::eval_tree(exp_node *node)
 {
 
@@ -434,13 +385,10 @@ double ExpressionTree::eval_tree(exp_node *node)
     case LOG2 :
         return log2 ( eval_tree(node->left.get()) );
 
-        /* if another function was added, add its 'case' here with its operation */
-
     default:
         throw std::invalid_argument("ExpressionTree: a node the evaluator does not know.");
     }
 }
-
 
 bool ExpressionTree::propagate(std::map<std::string, Interval> *variables){
 
@@ -464,10 +412,6 @@ bool ExpressionTree::propagateLoaded()
 {
     const Interval result = eval_tree_in(root.get());
 
-    //The part of the forward value that satisfies the constraint. Empty
-    //means the box is infeasible; the whole value means there is nothing
-    //to narrow. The comparison is read here: treating every constraint as
-    //">=", the one MR builds, is the easy mistake.
     Interval narrowed;
 
     switch (comparison) {
@@ -499,8 +443,6 @@ bool ExpressionTree::propagateLoaded()
         break;
     }
 
-    //A domain emptied during the backward projection proves the box
-    //inconsistent with the constraint.
     return eval_tree_out(root.get(), narrowed);
 }
 
@@ -517,13 +459,6 @@ bool ExpressionTree::safeIntersection(const Interval & a, const Interval & b, In
     return true;
 }
 
-//Backward (projection) phase of the HC4 filter. Every child projection is
-//intersected with the child's forward value; an empty intersection proves
-//the whole box inconsistent (return false). Unsafe projections are
-//skipped rather than risked: a negative range into pow aborts inside the
-//noexcept library, and so do acos/asin outside [-1, 1], division by an
-//interval straddling zero and
-//treated multi-branch trigonometric inverses as single-branch.
 bool ExpressionTree::eval_tree_out(exp_node *node, Interval enclosure){
 
     Interval candidate;
@@ -536,7 +471,6 @@ bool ExpressionTree::eval_tree_out(exp_node *node, Interval enclosure){
 
     case VAR  :
     {
-        //The forward pass of this same propagate() found the variable.
         *node->slot = enclosure;
         return true;
     }
@@ -577,8 +511,6 @@ bool ExpressionTree::eval_tree_out(exp_node *node, Interval enclosure){
 
     case MULTIPLY :
     {
-        //Each factor projects as a quotient: only when the divisor does
-        //not straddle zero (Interval division would abort otherwise).
         Interval a = node->left->enclosure;
 
         if (node->right->enclosure.lower() > 0.0 || node->right->enclosure.upper() < 0.0) {
@@ -624,8 +556,6 @@ bool ExpressionTree::eval_tree_out(exp_node *node, Interval enclosure){
 
     case POWER :
     {
-        //Only the square is projected (the constraint grammar uses no
-        //other exponent): x^2 = I implies x in +-sqrt(I intersect [0,inf)).
         if (node->right->enclosure.lower() != 2.0) {
             return true;
         }
@@ -645,7 +575,6 @@ bool ExpressionTree::eval_tree_out(exp_node *node, Interval enclosure){
 
     case SQRT :
     {
-        //sqrt(x) = I: the result is never negative.
         Interval nonNegative;
         if (!safeIntersection(enclosure, Interval(0.0, std::numeric_limits<double>::max()), nonNegative)) {
             return false;
@@ -664,7 +593,6 @@ bool ExpressionTree::eval_tree_out(exp_node *node, Interval enclosure){
             return false;
         }
 
-        //Only within the principal monotone branch of the argument.
         if (node->left->enclosure.lower() < -qftbx::math::kPi / 2 || node->left->enclosure.upper() > qftbx::math::kPi / 2) {
             return true;
         }
@@ -682,8 +610,6 @@ bool ExpressionTree::eval_tree_out(exp_node *node, Interval enclosure){
             return false;
         }
 
-        //cos is monotone on [-pi, 0] and on [0, pi]; anything wider is
-        //left unprojected.
         if (node->left->enclosure.lower() >= -qftbx::math::kPi && node->left->enclosure.upper() <= 0.0) {
             if (!safeIntersection(node->left->enclosure, -acos(bounded), candidate)) {
                 return false;
@@ -754,7 +680,6 @@ bool ExpressionTree::eval_tree_out(exp_node *node, Interval enclosure){
 
     case ABS :
     {
-        //|x| = I: x in [-sup(I+), sup(I+)].
         Interval nonNegative;
         if (!safeIntersection(enclosure, Interval(0.0, std::numeric_limits<double>::max()), nonNegative)) {
             return false;
@@ -769,7 +694,6 @@ bool ExpressionTree::eval_tree_out(exp_node *node, Interval enclosure){
 
     case LN :
     {
-        //exp overflows past ~709: skip rather than trap.
         if (enclosure.upper() > 700.0) {
             return true;
         }
@@ -795,8 +719,6 @@ Interval ExpressionTree::eval_tree_in(exp_node *node)
 
     case VAR  :
     {
-        //Bound domains: the position was fixed by bind(), nothing is
-        //looked up.
         if (values_in != nullptr) {
             if (node->index < 0 || static_cast<std::size_t>(node->index) >= values_in->size()) {
                 throw std::invalid_argument(
@@ -806,9 +728,6 @@ Interval ExpressionTree::eval_tree_in(exp_node *node)
             return node->enclosure = *node->slot;
         }
 
-        //A missing variable is an error, not a default-constructed
-        //Interval with uninitialised bounds. One lookup: the name is
-        //compared against the map's keys here and nowhere else.
         const auto found = variables_in->find(node->var);
 
         if (found == variables_in->end()) {
@@ -840,8 +759,6 @@ Interval ExpressionTree::eval_tree_in(exp_node *node)
 
     case POWER :
     {
-        //An integral square must not go through pow (exp of ln: a base
-        //touching zero or negative aborts inside the noexcept library).
         const Interval base = eval_tree_in(node->left.get());
         const Interval exponent = eval_tree_in(node->right.get());
 
@@ -888,9 +805,6 @@ Interval ExpressionTree::eval_tree_in(exp_node *node)
     case ABS :
         return node->enclosure = abs ( eval_tree_in(node->left.get()) );
 
-    //Both logarithms were missing here and fell through to a default that
-    //returned the node's cached Interval: for a fresh tree, uninitialised
-    //memory.
     case LN :
         return node->enclosure = log ( eval_tree_in(node->left.get()) );
 
@@ -903,14 +817,9 @@ Interval ExpressionTree::eval_tree_in(exp_node *node)
     default:
         throw std::invalid_argument("ExpressionTree: a node the Interval evaluator does not know.");
 
-        /* if another function was added, add its 'case' here with its operation */
-
     }
 }
 
-//Recursive pre-order walk that copies every node into a new one with the
-//same content, returning a tree identical to the original. Used by the
-//copy constructor and by the assignment operator.
 std::unique_ptr<exp_node> ExpressionTree::make_cpy(exp_node *node)
 {
     if (!node) return nullptr;
@@ -918,8 +827,6 @@ std::unique_ptr<exp_node> ExpressionTree::make_cpy(exp_node *node)
     auto ptr = std::make_unique<exp_node>();
     ptr->type  = node->type;
     ptr->c_const = node->c_const;
-    //The variable name was not copied: a copied tree evaluated its
-    //variables under an empty name.
     ptr->var = node->var;
     ptr->index = node->index;
 
@@ -929,15 +836,9 @@ std::unique_ptr<exp_node> ExpressionTree::make_cpy(exp_node *node)
     return ptr;
 }
 
-/********************************************************
-* void ExpressionTree::build_tree(std::string &in_exp)        *
-**********************************************************/
-// Builds the binary expression tree from the infix expression held in
-// 'in_exp'.
-
 void ExpressionTree::build_tree(std::string &in_exp)
 {
-    std::stack<type_node> operatorStack;               // operator stack
+    std::stack<type_node> operatorStack;
     std::stack<std::unique_ptr<exp_node>> nodeStack;
 
     const auto malformed = [&in_exp](const char * why) {
@@ -951,14 +852,12 @@ void ExpressionTree::build_tree(std::string &in_exp)
         return top;
     };
 
-    //Turns the operator on top of the stack into a node over its operands;
-    //which operators to reduce is the callers' business, below.
     const auto reduceTop = [&]() {
         auto reduced = std::make_unique<exp_node>();
         reduced->type = operatorStack.top();
         operatorStack.pop();
 
-        const std::size_t needed = reduced->type < SIN ? 2 : 1;   // binary operators come before SIN
+        const std::size_t needed = reduced->type < SIN ? 2 : 1;
         if (nodeStack.size() < needed) {
             throw malformed("an operator is missing an operand");
         }
@@ -981,9 +880,6 @@ void ExpressionTree::build_tree(std::string &in_exp)
 
     const std::string::size_type len = in_exp.length();
 
-    //A constant, optionally signed, with an optional exponent: the 'e'
-    //belongs to the constant and is not the start of an identifier. It may
-    //start at its decimal point (".5"). Advances pos past it.
     const auto readConstant = [&](std::string::size_type & pos) {
         const std::string::size_type from = pos;
         if (in_exp[pos] == '-') {
@@ -1008,8 +904,6 @@ void ExpressionTree::build_tree(std::string &in_exp)
         return isLetter(c) || isdigit(static_cast<unsigned char>(c)) || c == '_';
     };
 
-    //A unary minus is read as "-1 *": the -1 goes on the node stack and the
-    //product takes the precedence of any other product.
     const auto unaryMinus = [&](std::string::size_type & pos) {
         auto leaf = std::make_unique<exp_node>();
         leaf->type = CONSTANT;
@@ -1025,9 +919,6 @@ void ExpressionTree::build_tree(std::string &in_exp)
 
     std::string::size_type pos = 0;
 
-    //Whether a '-' at pos is a unary minus: at the start, after an opening
-    //parenthesis or after an operator. Without this, "2*-3" and "s^-1" are
-    //a binary minus missing its left operand.
     const auto isUnaryMinusAt = [&](std::string::size_type at) {
         if (at == 0) {
             return true;
@@ -1037,9 +928,6 @@ void ExpressionTree::build_tree(std::string &in_exp)
                before == '/' || before == '^';
     };
 
-    //Whether the number starting at 'from' is followed by '^': then a minus
-    //before it is the unary minus of the power, -2^2 = -(2^2), not the sign
-    //of the constant.
     const auto numberIsRaised = [&](std::string::size_type from) {
         std::string::size_type i = from;
         while ( i < len && (isdigit(static_cast<unsigned char>(in_exp[i])) || in_exp[i] == '.') ) ++i;
@@ -1059,12 +947,6 @@ void ExpressionTree::build_tree(std::string &in_exp)
 
         if ( isLetter(c) )
         {
-            //An identifier is a letter followed by letters, digits or
-            //underscores, all of it: stopping at the first non-letter reads
-            //"z1" as the variable "z" and a stray constant 1. Followed by an
-            //opening parenthesis and naming a function, it is that function;
-            //otherwise a WHOLE-token constant (pi, e, in either case, so
-            //that "P1" and "E2" stay variables) or a variable.
             std::string::size_type i = pos;
             while ( i < len && isIdentifierChar(in_exp[i]) ) ++i;
             const std::string token = in_exp.substr(pos, i - pos);
@@ -1096,36 +978,36 @@ void ExpressionTree::build_tree(std::string &in_exp)
             }
             pos = i;
         }
-        else if ( c == '(' )  // Ej. "(......" o "....(........"
+        else if ( c == '(' )
         {
-            operatorStack.push(PARENTHESIS); ++pos;    // always pushed
+            operatorStack.push(PARENTHESIS); ++pos;
         }
         else if ( c == ')' )
         {
-            while ( !operatorStack.empty() && operatorStack.top() != PARENTHESIS )  // pop operators until the opening '(' (PARENTHESIS) shows up
+            while ( !operatorStack.empty() && operatorStack.top() != PARENTHESIS )
             {
                 reduceTop();
             }
             if (operatorStack.empty()) {
                 throw malformed("a closing parenthesis has no opening one");
             }
-            operatorStack.pop(); // pop the PARENTHESIS itself
+            operatorStack.pop();
             ++pos;
         }
         else if ( c == '-' && isUnaryMinusAt(pos) && (digitNext || (pos + 1 < len && in_exp[pos+1] == '.'))
-                  && !numberIsRaised(pos + 1) ) // "-34.89...", "(-34.89...", "*-.5": a negative constant
+                  && !numberIsRaised(pos + 1) )
         {
             readConstant(pos);
         }
-        else if ( isdigit(static_cast<unsigned char>(c)) || (c == '.' && digitNext) )// "67.009", ".5": a positive constant
+        else if ( isdigit(static_cast<unsigned char>(c)) || (c == '.' && digitNext) )
         {
             readConstant(pos);
         }
-        else if ( c == '-' && isUnaryMinusAt(pos) ) // a unary minus: "-sin(...", "(-x...", "2*-x"
+        else if ( c == '-' && isUnaryMinusAt(pos) )
         {
             unaryMinus(pos);
         }
-        else if ( c == '-' || c == '+' ) // binary '-' and '+': everything pending inside the parentheses binds tighter
+        else if ( c == '-' || c == '+' )
         {
             while ( !operatorStack.empty() && operatorStack.top() != PARENTHESIS )
             {
@@ -1134,7 +1016,7 @@ void ExpressionTree::build_tree(std::string &in_exp)
             operatorStack.push(c == '-' ? SUBTRACT : ADD);
             ++pos;
         }
-        else if ( c == '/' || c == '*' ) // products and powers pending bind tighter
+        else if ( c == '/' || c == '*' )
         {
             while ( !operatorStack.empty() && operatorStack.top() > SUBTRACT )
             {
@@ -1143,7 +1025,7 @@ void ExpressionTree::build_tree(std::string &in_exp)
             operatorStack.push(c == '/' ? DIVIDE : MULTIPLY);
             ++pos;
         }
-        else if ( c == '^' ) // only functions pending bind tighter: the power binds to the right (2^3^2 = 2^9)
+        else if ( c == '^' )
         {
             while ( !operatorStack.empty() && operatorStack.top() > POWER )
             {
@@ -1174,15 +1056,8 @@ void ExpressionTree::build_tree(std::string &in_exp)
 }
 
 bool ExpressionTree::isLetter(char text){
-    //This built a regular expression, then a one-character string, to ask
-    //whether a character is a letter. The ranges are what the pattern
-    //"[a-zA-Z]" said, spelled out - and unlike std::isalpha they do not
-    //depend on the locale, which could otherwise start accepting accented
-    //letters the lexer has no rule for.
     return (text >= 'a' && text <= 'z') || (text >= 'A' && text <= 'Z');
 }
-
-//---------------------------------------------------------- bound evaluation
 
 void ExpressionTree::bind(const std::vector<std::string> & names)
 {
@@ -1240,15 +1115,12 @@ void requireBound(const exp_node * node, std::size_t valueCount)
     }
 }
 
-//An exponent that is a small whole constant is applied as repeated
-//products, which is exact where the general complex power goes through
-//the logarithm: (j w)^2 comes out as exactly -w^2.
 bool isSmallWholeNumber(double value)
 {
     return value == std::floor(value) && std::abs(value) <= 64.0;
 }
 
-} // namespace
+}
 
 double ExpressionTree::evaluate(const std::vector<double> & values) const
 {
@@ -1345,8 +1217,6 @@ std::complex<double> ExpressionTree::evaluateComplex(const exp_node * node,
     }
 }
 
-//------------------------------------------------------------------- names
-
 bool ExpressionTree::isIdentifier(const std::string & name)
 {
     if (name.empty()) {
@@ -1392,8 +1262,6 @@ bool ExpressionTree::isUsableVariableName(const std::string & name)
 {
     return isIdentifier(name) && !isReservedName(name);
 }
-
-//-------------------------------------------------------------- Expression
 
 Expression::Expression() = default;
 
@@ -1467,7 +1335,7 @@ std::unique_ptr<exp_node> copyNode(const exp_node * node)
     return copy;
 }
 
-} // namespace
+}
 
 std::unique_ptr<exp_node> Expression::release() const
 {
@@ -1515,4 +1383,4 @@ Expression exp(const Expression & a) { return Expression::unary(EXP, a); }
 Expression abs(const Expression & a) { return Expression::unary(ABS, a); }
 Expression ln(const Expression & a) { return Expression::unary(LN, a); }
 
-} // namespace qftbx
+}

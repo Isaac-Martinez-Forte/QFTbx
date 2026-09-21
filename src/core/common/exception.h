@@ -7,6 +7,7 @@
 #include "src/core/common/message.h"
 
 /**
+ * @file
  * @brief The exceptions of the core, and the one way it talks to the user.
  *
  * The core never shows anything: it throws, and the interface catches at
@@ -108,7 +109,6 @@ public:
     using ParseError::ParseError;
 };
 
+}
 
-} // namespace qftbx
-
-#endif // QFTBX_EXCEPTION_H
+#endif

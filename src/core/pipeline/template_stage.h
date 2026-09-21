@@ -1,3 +1,18 @@
+/**
+ * @file
+ * @brief The template stage of the pipeline.
+ *
+ * Declares the stage that sweeps the plant family over the design
+ * frequencies and extracts the epsilon-hull contour of each cloud. Like
+ * every stage it owns its preconditions, its engine, its parameters, its
+ * outputs and the publishing of them into the project; it does not own the
+ * dependency graph, which the facade applies. The engine is created on
+ * first use and kept, because it holds the clouds that a later recontour
+ * with a new epsilon walks, and templates loaded from a file are fed to it
+ * for the same reason. An epsilon can also be proposed before any sweep is
+ * published, on an engine of its own.
+ */
+
 #ifndef QFTBX_TEMPLATE_STAGE_H
 #define QFTBX_TEMPLATE_STAGE_H
 
@@ -113,6 +128,6 @@ private:
     bool m_borderSweep = false;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_TEMPLATE_STAGE_H
+#endif
