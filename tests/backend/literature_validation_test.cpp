@@ -10,7 +10,7 @@
 //   optimum G_A(s) = 3462219 (s+3.85) / ((s+931.27)(s+946.83)) found in
 //   the box ((0,1e8], (0,4000]^3), and Chen & Ballance's genetic-algorithm
 //   design G_B(s) = 6753000 (s+2) / ((s+2930)(s+553)).
-// - qftdemos/qftex2.m (documentos/qft_matlab): the classical loop-shaped
+// - qftdemos/qftex2.m: the classical loop-shaped
 //   design and the specification definitions (also confirming T_U is the
 //   0.6584 second-order model - the QFTbx thesis text swaps the names).
 //

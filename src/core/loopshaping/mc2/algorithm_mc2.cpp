@@ -1038,7 +1038,7 @@ qftbx::McBisectionResult AlgorithmMc2::bisect(McSearchNode * node, const NodeAna
     //under the conservative column reading the search then does not close
     //at all: measured on four problems, the area rule does not terminate in
     //ten minutes on any of them while this one answers in milliseconds and
-    //returns an equal or better gain (documentos/Tesis, para-leer 5).
+    //returns an equal or better gain.
     const Range magnitude = analysis.boxMag.at(analysis.mainFrequency);
     const Range phase = analysis.boxPhase.at(analysis.mainFrequency);
     const int measure = phase.width() > magnitude.width() ? 2 : 1;

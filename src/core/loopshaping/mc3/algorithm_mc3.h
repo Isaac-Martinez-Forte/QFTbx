@@ -58,7 +58,8 @@ namespace qftbx {
  * certified gain, and a box is not bisected further when its unit-gain
  * projection is narrower than epsilon in dB and degrees at every frequency.
  *
- * Measurements that motivated it: documentos/Tesis (para-retomar/15).
+ * Measured before it was written; the measurements are kept with the
+ * project's internal material.
  *
  * @author Isaac Martínez Forte
  */

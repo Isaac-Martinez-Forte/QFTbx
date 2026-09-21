@@ -44,7 +44,7 @@
  * patched.
  *
  * The corrections MC2 carries, each proved in the formalisation of
- * documentos/Tesis (03-validez-de-las-mejoras, sec. 1bis):
+ * the project's internal notes on the validity of the improvements:
  *
  * - T1, the correct-vertex theorem: the four cuts are valid if and only if
  *   the other parameters sit at one particular vertex, and the four use only

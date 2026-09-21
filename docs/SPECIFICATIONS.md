@@ -25,7 +25,7 @@ a transfer function evaluated at each frequency:
 The numbers are the equations of I. Martínez Forte, *Diseño automático de
 controladores en QFT*, PhD thesis, 2022, section 1.1.4, which states the
 list as the QFT literature does (Horowitz; Houpis, Rasmussen and
-García-Sanz; the survey in `documentos/Tesis/3-estado-del-arte/`). Every one
+García-Sanz; the project's internal survey of the state of the art). Every one
 of them is a bound on the magnitude of a closed-loop transfer function, and
 every one has to hold for the whole plant family.
 

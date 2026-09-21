@@ -48,7 +48,7 @@ namespace qftbx {
  * allowed magnitude intervals the search classifies against
  * (BoundaryColumns).
  *
- * Reference: I. Martinez Forte, PFC (documentos/pfc), boundary computation
+ * Reference: I. Martinez Forte, PFC, boundary computation
  * chapter (sheet construction, contour cut and 1D union).
  */
 class BoundaryEngine
