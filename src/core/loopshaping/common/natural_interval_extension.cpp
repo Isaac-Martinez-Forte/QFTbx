@@ -1,3 +1,17 @@
+/**
+ * @file
+ * @brief The natural interval extension of the loop over a controller box.
+ *
+ * Each factor (jw + x) is a horizontal segment of the complex plane read in
+ * polar form; magnitudes multiply and phases add, as in section 1.2.5 of the
+ * thesis, and an empty factor list stands for the constant one of a pure
+ * gain. Only the zero-pole-gain structure is projected: the other structures
+ * evaluate differently and are refused with a message. Magnitudes are
+ * clamped to the positive finite doubles before the logarithm, and phases
+ * are shifted by whole turns onto (-2 pi, 0], the whole branch being the
+ * answer whenever the set crosses the cut or rounding puts an end past it.
+ */
+
 #include "src/core/loopshaping/common/natural_interval_extension.h"
 #include "src/core/math/constants.h"
 
@@ -20,21 +34,11 @@ Interval parameterInterval(Parameter & parameter)
     return Interval(parameter.nominal());
 }
 
-//The factor (jw + x) as a set: a horizontal segment of the complex plane,
-//read in polar coordinates.
 PolarInterval factor(const Interval & x, double w)
 {
     return PolarInterval(ComplexInterval(x, Interval(w)));
 }
 
-//The projection below multiplies (jw + parameter) factors: the thesis'
-//zero-pole-gain controller structure, and only that one. A time-constant
-//controller evaluates as k (s/z + 1)/(s/p + 1) everywhere else (evaluation,
-//interface, file), so projecting it as zero-pole-gain would make the
-//optimiser and the viewer disagree by the factor prod(p)/prod(z);
-//polynomial and free-form parameters are not zeros or poles at all. Until
-//the projection of those structures exists, they are refused with a message
-//for the user.
 void ensureSupportedStructure(LtiSystem::SystemType type)
 {
     if (type != LtiSystem::SystemType::ZeroPoleGain) {
@@ -45,12 +49,10 @@ void ensureSupportedStructure(LtiSystem::SystemType type)
     }
 }
 
-} // namespace
+}
 
 PolarInterval NaturalIntervalExtension::factorProduct(std::vector<Parameter> & parameters, double w)
 {
-    //Neutral element: an empty vector stands for the constant 1, which is
-    //what a pure-gain controller has.
     PolarInterval product(Interval(1.0), Interval(0.0));
 
     for (Parameter & parameter : parameters) {
@@ -73,8 +75,6 @@ PolarInterval NaturalIntervalExtension::factorProduct(const std::vector<double> 
 
 NicholsBox NaturalIntervalExtension::toNichols(const PolarInterval & loop)
 {
-    //log10 must never see 0 or infinity. Clamping to the positive finite
-    //doubles keeps every representable true value enclosed.
     double low = loop.magnitude().lower();
     double high = loop.magnitude().upper();
 
@@ -90,11 +90,6 @@ NicholsBox NaturalIntervalExtension::toNichols(const PolarInterval & loop)
 
     const Interval magnitudeDb = Interval(20.0) * log10(Interval(low, high));
 
-    //The phase onto the (-2 pi, 0] branch: the set is shifted by whole
-    //turns until its upper end lands in the branch; if its lower end then
-    //falls below the branch, the set crosses the cut and only the whole
-    //branch encloses it (the branch mapping this replaces returned the
-    //COMPLEMENTARY arc there, i.e. boxes that EXCLUDED true phases).
     const Interval twoPi = Interval(2.0) * Interval::pi();
     Interval theta = loop.phase();
 
@@ -104,9 +99,6 @@ NicholsBox NaturalIntervalExtension::toNichols(const PolarInterval & loop)
         const double turns = std::ceil(theta.upper() / twoPi.lower());
         theta = theta - Interval(turns) * twoPi;
 
-        //Rounding may leave the upper end a hair above zero or the lower
-        //end a hair below the cut when the true set touches them; the
-        //whole branch is the safe answer in either case.
         if (theta.upper() > 0.0 || theta.lower() < -twoPi.upper()) {
             theta = Interval(-twoPi.upper(), 0.0);
         }
@@ -156,9 +148,6 @@ NaturalIntervalExtension::Factors NaturalIntervalExtension::factorsOf(const std:
 NicholsBox NaturalIntervalExtension::nicholsOf(const Interval & gain, const Factors & factors,
                                                std::complex<double> p0)
 {
-    //Magnitudes multiply and phases add (thesis section 1.2.5); the
-    //denominator's magnitude reaches zero only when a pole interval crosses
-    //-jw, which a design frequency w > 0 with real poles never does.
     const PolarInterval loop = gain * (factors.numerator * PolarInterval(p0)) / factors.denominator;
 
     return toNichols(loop);
@@ -179,4 +168,4 @@ NicholsBox NaturalIntervalExtension::gainTermBox(Parameter & gain, std::complex<
     return toNichols(parameterInterval(gain) * PolarInterval(p0));
 }
 
-} // namespace qftbx
+}

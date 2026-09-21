@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief The priority list of live nodes, with its ceiling.
+ *
+ * Insertion keeps the list ordered by the node index, lowest or highest
+ * first; a list that reaches its ceiling of live nodes throws rather than
+ * grow past the memory of the machine.
+ */
+
 #include "src/core/loopshaping/common/ordered_list.h"
 
 #include <string>
@@ -18,7 +27,7 @@ bool highestFirstOrder(double a, double b)
     return a > b;
 }
 
-} // namespace
+}
 
 OrderedList::OrderedList(bool highestFirst, std::size_t maxNodes)
     : m_nodes(highestFirst ? highestFirstOrder : lowestFirstOrder),
@@ -67,7 +76,6 @@ std::unique_ptr<ListNode> OrderedList::takeFirst()
     return taken;
 }
 
-
 ListNode * OrderedList::last()
 {
     requireNodes();
@@ -90,4 +98,4 @@ std::size_t OrderedList::peakSize() const
     return m_peakSize;
 }
 
-} // namespace qftbx
+}

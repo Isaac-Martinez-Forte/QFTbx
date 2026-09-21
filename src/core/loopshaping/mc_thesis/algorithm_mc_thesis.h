@@ -24,6 +24,7 @@
 #include "src/core/loopshaping/common/common_functions.h"
 
 /**
+ * @file
  * @brief Algorithm MC of the QFTbx thesis: the NT/NK branch & bound with
  * every strategy of chapter 4.
  *
@@ -58,10 +59,10 @@
  *   until a full pass of MG/QSFact/QSInv produces nothing; FINAL (cuts
  *   disabled, bisection by the wider of magnitude/phase).
  *
- * QFTbx deviations and fixes, documented:
+ * Deviations from the thesis:
  * - MG's certified gain and the feasible nodes must pass the nominal
- *   closed-loop stability criterion (NominalStabilityChecker), as in the
- *   reviewed NT/NK/MR/MC1; MG's candidate is verified against the
+ *   closed-loop stability criterion (NominalStabilityChecker), as in
+ *   NT, NK, MR and MC1; MG's candidate is verified against the
  *   feasibility test before it may prune (the closed form alone relies
  *   on strip geometry). An ambiguous box whose members are all unstable
  *   is discarded when popped (isBoxUnstable, as in NT).
@@ -73,7 +74,7 @@
  *   subs(z,...) box where only the corner point is certified, and the
  *   QSInv comment says the fixed corner "maximises" the phase
  *   contribution where the assignments minimise it: the implementations
- *   here follow the sound readings (errata candidates).
+ *   here follow the sound readings.
  */
 namespace qftbx {
 
@@ -94,15 +95,14 @@ public:
      * to disable a proof.
      */
     struct Strategies {
-        bool infeasibleMagnitude = true;  //QSInv, magnitude cuts (NK's QS)
-        bool infeasiblePhase = true;      //QSInv, phase cuts (thesis 4.1.2)
-        bool feasibleMagnitude = true;    //QSFact, magnitude (thesis 4.1.1)
-        bool feasiblePhase = true;        //QSFact, phase
-        bool bestGain = true;             //MG (thesis 4.3)
-        bool treeBisection = true;        //thesis 4.2.4
-        bool stages = true;               //thesis 4.4 (off: always INTERMEDIA)
+        bool infeasibleMagnitude = true;   ///< QSInv, magnitude cuts (NK's QS)
+        bool infeasiblePhase = true;   ///< QSInv, phase cuts (thesis 4.1.2)
+        bool feasibleMagnitude = true;   ///< QSFact, magnitude (thesis 4.1.1)
+        bool feasiblePhase = true;   ///< QSFact, phase
+        bool bestGain = true;   ///< MG (thesis 4.3)
+        bool treeBisection = true;   ///< thesis 4.2.4
+        bool stages = true;   ///< thesis 4.4 (off: always INTERMEDIA)
     };
-
 
     void setStrategies(const Strategies & s);
 
@@ -144,26 +144,26 @@ public:
 
 private:
 
-    //One certainly feasible per-frequency threshold of one parameter
-    //(thesis MM/MF): cutting the range at 'threshold' leaves the side
-    //named by 'upperSide' feasible for frequency 'freqIndex'.
+    /// One certainly feasible per-frequency threshold of one parameter
+    /// (thesis MM/MF): cutting the range at 'threshold' leaves the side
+    /// named by 'upperSide' feasible for frequency 'freqIndex'.
     struct FeasibleThreshold {
-        std::int32_t parameter;   //0 = gain, 1..nz = zero, nz+1.. = pole
+        std::int32_t parameter;   ///< 0 = gain, 1..nz = zero, nz+1.. = pole
         std::size_t freqIndex;
         double threshold;
-        bool upperSide;     //true: [threshold, sup] is the feasible part
-        double fraction;     //|feasible part| / |range|
+        bool upperSide;   ///< true: [threshold, sup] is the feasible part
+        double fraction;   ///< |feasible part| / |range|
     };
 
-    //Detection results of one node, one entry per design frequency
-    //(empty for frequencies the node is marked feasible at).
+    /// Detection results of one node, one entry per design frequency
+    /// (empty for frequencies the node is marked feasible at).
     struct NodeAnalysis {
         std::vector<std::optional<BoxClassification>> classification;
-        std::vector<std::optional<NicholsBox>> projection;   //the Nichols box itself
-        std::vector<Range> boxMag;     //dB edges of the projected box
-        std::vector<Range> boxPhase;   //degree edges
+        std::vector<std::optional<NicholsBox>> projection;   ///< the Nichols box itself
+        std::vector<Range> boxMag;   ///< dB edges of the projected box
+        std::vector<Range> boxPhase;   ///< degree edges
         qftbx::BoxFlag flag = qftbx::feasible;
-        std::size_t mainFrequency = 0;    //largest ambiguous projected area
+        std::size_t mainFrequency = 0;   ///< largest ambiguous projected area
         bool anyFullPhaseWidth = false;
     };
 
@@ -204,8 +204,8 @@ private:
     std::unique_ptr<OrderedList> liveList;
     std::vector<std::complex<double>> nominalPlantValues;
 
-    //Prune variable C (thesis 5.4.3): gain and controller of the best
-    //certified solution found by MG.
+    /// Prune variable C (thesis 5.4.3): gain and controller of the best
+    /// certified solution found by MG.
     double bestCertifiedGain = 0;
     std::unique_ptr<LtiSystem> bestCertifiedController;
 
@@ -228,6 +228,6 @@ private:
 
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_LOOPSHAPING_ALGORITHM_MC_THESIS_H
+#endif

@@ -1,3 +1,13 @@
+/**
+ * @file
+ * @brief Nominal closed-loop stability of loop-shaping candidates on the Nichols chart.
+ *
+ * Declares the checker that completes the feasibility test of the interval
+ * algorithms: the boundaries alone do not exclude loops that encircle the
+ * critical point. The criterion, its sampling of the nominal loop and the
+ * test of a whole box are documented with the class.
+ */
+
 #ifndef QFTBX_NOMINAL_STABILITY_CHECKER_H
 #define QFTBX_NOMINAL_STABILITY_CHECKER_H
 
@@ -207,8 +217,8 @@ private:
      * Nyquist contour - and a sampled curve unwrapped between neighbours
      * takes the short way round instead, +180. Half the time that changes
      * the crossing count and the verdict comes out STABLE for a loop that
-     * is not (measured on the maglev benchmark, k/(s^2+a): three controllers
-     * approved with two closed-loop poles each in the right half-plane).
+     * is not (a maglev plant k/(s^2+a) gets controllers approved with two
+     * closed-loop poles in the right half-plane).
      * The callers test m_axisPoles.empty() first, once per profile, so a
      * plant without such poles pays nothing.
      */
@@ -237,14 +247,14 @@ private:
     /// finite for a plant with integrators, which is the usual case.
     std::complex<double> m_plantAtZero;
 
-    //Cached nominal plant samples over the base grid.
+    /// Cached nominal plant samples over the base grid.
     std::vector<double> m_frequencies;
     std::vector<double> m_plantRe;
     std::vector<double> m_plantIm;
 
-    //The working curve of one profile, as arrays: frequency, real and
-    //imaginary part of the loop at unit gain. Kept between calls so a
-    //profile does not allocate.
+    /// The working curve of one profile, as arrays: frequency, real and
+    /// imaginary part of the loop at unit gain. Kept between calls so a
+    /// profile does not allocate.
     std::vector<double> m_w;
     std::vector<double> m_re;
     std::vector<double> m_im;
@@ -254,6 +264,6 @@ private:
     Statistics m_statistics;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_NOMINAL_STABILITY_CHECKER_H
+#endif

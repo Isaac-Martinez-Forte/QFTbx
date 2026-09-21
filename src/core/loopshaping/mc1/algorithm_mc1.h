@@ -20,6 +20,7 @@
 #include "src/core/loopshaping/common/common_functions.h"
 
 /**
+ * @file
  * @brief Algorithm MC of the 2021 paper: the NT/NK branch & bound
  * accelerated with the QS2 parameter box reduction.
  *
@@ -40,7 +41,7 @@
  *   whose gain infimum cannot improve C are discarded, and every new
  *   box's gain range is capped at C (step 3bis.(b)).
  *
- * QFTbx deviations, documented:
+ * Deviations from the paper:
  * - The paper inserts the feasible box z' into the live list as a triple
  *   and splits the remainder u = z - z'; here z' is realised as the
  *   certified controller behind C: the capped boxes ARE u, and the
@@ -52,7 +53,7 @@
  *   boundaries feasibility is not monotonic in k_f, so the bisection may
  *   miss a certificate (never accepts a false one).
  * - The returned point must pass the nominal closed-loop stability
- *   criterion (NominalStabilityChecker), as reviewed for NT/NK, and an
+ *   criterion (NominalStabilityChecker), as in NT and NK, and an
  *   ambiguous box whose members are all unstable is discarded at
  *   classification (isBoxUnstable, as in NT).
  */
@@ -119,8 +120,8 @@ private:
     std::unique_ptr<OrderedList> liveList;
     std::vector<std::complex<double>> nominalPlantValues;
 
-    //Prune variable C of the paper's step 3bis: gain and controller of
-    //the best certified feasible solution found by QS2 stage 3.
+    /// Prune variable C of the paper's step 3bis: gain and controller of
+    /// the best certified feasible solution found by QS2 stage 3.
     double bestCertifiedGain = 0;
     std::unique_ptr<LtiSystem> bestCertifiedController;
 
@@ -134,6 +135,6 @@ private:
 
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_LOOPSHAPING_ALGORITHM_MC1_H
+#endif

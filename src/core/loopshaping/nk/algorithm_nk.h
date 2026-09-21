@@ -21,6 +21,7 @@
 #include "src/core/loopshaping/common/common_functions.h"
 
 /**
+ * @file
  * @brief Algorithm NK: the NT branch & bound with Quick Solution cuts,
  * local optimisation and constraint propagation.
  *
@@ -89,8 +90,8 @@ public:
 
 private:
 
-    //Starting point of the local search. No random option: the result has
-    //to be reproducible. The numeric values are the GUI contract.
+    /// Starting point of the local search. No random option: the result has
+    /// to be reproducible. The numeric values are the GUI contract.
     enum StartingPoint {Centre = 0, Extremes = 1};
 
     void check_box_feasibility(std::unique_ptr<LtiSystem> box);
@@ -122,14 +123,14 @@ private:
     std::unique_ptr<LtiSystem> designedController;
     std::unique_ptr<LtiSystem> prototype;
 
-    //Local optimization state: the best certified feasible gain (prunes
-    //the tree), its controller point, and the previous launch points of
-    //the 10% decision rule.
+    /// Local optimization state: the best certified feasible gain (prunes
+    /// the tree), its controller point, and the previous launch points of
+    /// the 10% decision rule.
     double bestLocalGain = 0;
     std::unique_ptr<LtiSystem> bestLocalController;
     std::vector<double> launchGains;
 
-    //Starting-point strategy of the local search, from the GUI.
+    /// Starting-point strategy of the local search, from the GUI.
     StartingPoint m_start = Centre;
 
     /// Not owned. Null means this run cannot be cancelled.
@@ -140,6 +141,6 @@ private:
 
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_LOOPSHAPING_ALGORITHM_NK_H
+#endif

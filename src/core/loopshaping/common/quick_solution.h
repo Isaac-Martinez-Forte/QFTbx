@@ -8,6 +8,7 @@
 #include <vector>
 
 /**
+ * @file
  * @brief Quick Solution cutting equations of algorithm NK (Paluri/Nataraj
  * and Kubal, "Automatic loop shaping in QFT using hybrid optimisation and
  * constraint propagation techniques", Int. J. Robust Nonlinear Control
@@ -252,7 +253,7 @@ inline double polePhaseCutLow(double thetaMin, double phi0,
     return w / std::tan(margin);
 }
 
-} // namespace quick_solution
-} // namespace qftbx
+}
+}
 
-#endif // QFTBX_QUICK_SOLUTION_H
+#endif

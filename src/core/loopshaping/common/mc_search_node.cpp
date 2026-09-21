@@ -1,7 +1,11 @@
+/**
+ * @file
+ * @brief The state a node of the MC family carries beyond the shared node.
+ */
+
 #include <map>
 
 #include "src/core/loopshaping/common/mc_search_node.h"
-
 
 namespace qftbx {
 
@@ -50,4 +54,4 @@ const std::map<double, double> & McSearchNode::feasibleFrequencies() const
     return m_feasibleFrequencies;
 }
 
-} // namespace qftbx
+}

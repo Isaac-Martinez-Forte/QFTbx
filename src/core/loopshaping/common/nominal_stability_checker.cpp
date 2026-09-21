@@ -1,3 +1,18 @@
+/**
+ * @file
+ * @brief The ray-crossing count of the Nyquist criterion on the Nichols chart.
+ *
+ * The plant's poles are placed once: the number in the right half-plane is
+ * the P of the criterion, the ones on the imaginary axis are where the loop
+ * passes through infinity, and a plant that cannot place them gets no
+ * verdict rather than one that assumes none. The loop at unit gain is
+ * sampled over the base grid one factor at a time, and wherever the phase
+ * turns faster than the unwrapping tolerance a sample is inserted at the
+ * geometric mean of the frequencies, within a budget. A curve that starts on
+ * a ray counts half a crossing towards where it departs. Profiles are cached
+ * up to a size of the order of tens of megabytes.
+ */
+
 #include "src/core/loopshaping/common/nominal_stability_checker.h"
 
 #include "src/core/math/polynomial.h"
@@ -17,11 +32,8 @@ namespace qftbx {
 
 namespace {
 
-//The rays are at |L| > 0 dB.
 const double kRayMagnitude = 1.0;
 
-//Profiles kept before the cache is emptied. A profile is a handful of
-//doubles; this is of the order of tens of megabytes.
 const std::size_t kMaxCachedProfiles = 200000;
 
 double phaseDegrees(double re, double im)
@@ -29,8 +41,6 @@ double phaseDegrees(double re, double im)
     return std::atan2(im, re) * 180.0 / qftbx::math::kPi;
 }
 
-//The change of phase from a to b, in (-180, 180]: how the criterion
-//unwraps consecutive samples.
 double wrappedDelta(double fromDegrees, double toDegrees)
 {
     double delta = toDegrees - fromDegrees;
@@ -42,13 +52,11 @@ double wrappedDelta(double fromDegrees, double toDegrees)
     return delta;
 }
 
-//The ray at or below a phase: -180 + 360 k.
 double rayBelow(double phaseDegrees)
 {
     return std::floor((phaseDegrees + 180.0) / 360.0) * 360.0 - 180.0;
 }
 
-//Which side of the real axis a sample is on: 0 exactly on it.
 int side(double im)
 {
     return im > 0.0 ? 1 : (im < 0.0 ? -1 : 0);
@@ -56,7 +64,6 @@ int side(double im)
 
 std::uint64_t bitsOf(double value)
 {
-    //Both zeros hash alike, as they compare equal.
     if (value == 0.0) {
         value = 0.0;
     }
@@ -65,7 +72,7 @@ std::uint64_t bitsOf(double value)
     return bits;
 }
 
-} // namespace
+}
 
 std::size_t NominalStabilityChecker::KeyHash::operator()(const std::vector<double> & key) const
 {
@@ -109,11 +116,6 @@ NominalStabilityChecker::NominalStabilityChecker(LtiSystem * nominalPlant,
 
     m_cosMaxPhaseStep = std::cos(m_tolerances.maxPhaseStepDegrees * qftbx::math::kPi / 180.0);
 
-    //The plant's poles, once: how many lie in the right half-plane (the P
-    //of the criterion) and where the ones on the imaginary axis are (where
-    //the loop passes through infinity). A plant that cannot say - a
-    //free-form denominator that is not a polynomial in s - gets no verdict
-    //at all rather than one that assumes P = 0.
     const std::optional<std::vector<std::complex<double>>> poles = m_plant->nominalPoles();
     if (!poles.has_value()) {
         throw InvalidInput(QFTBX_TR("Core", "The stability criterion cannot place the poles of the nominal plant: its denominator is not a polynomial in s."));
@@ -168,8 +170,6 @@ bool NominalStabilityChecker::phaseStepExceeded(std::size_t i) const
     const double squaredNorms = (ar * ar + ai * ai) * (br * br + bi * bi);
 
     if (squaredNorms == 0.0) {
-        //A sample exactly at the origin has no direction; the criterion
-        //reads its phase as zero, as atan2 does.
         double step = std::abs(phaseDegrees(br, bi) - phaseDegrees(ar, ai));
         if (step > 180.0) {
             step = 360.0 - step;
@@ -177,9 +177,6 @@ bool NominalStabilityChecker::phaseStepExceeded(std::size_t i) const
         return step > m_tolerances.maxPhaseStepDegrees;
     }
 
-    //The angle between the two samples exceeds the tolerance when the
-    //cosine of the angle, dot / (|a| |b|), is below the cosine of the
-    //tolerance; squared to avoid the roots, with the signs handled apart.
     const double dot = ar * br + ai * bi;
     const double c = m_cosMaxPhaseStep;
     if (c >= 0.0) {
@@ -196,8 +193,6 @@ NominalStabilityChecker::Profile NominalStabilityChecker::computeProfile(const P
     const double sign = shape.gain < 0.0 ? -1.0 : 1.0;
     const std::size_t n = m_frequencies.size();
 
-    //The loop at unit gain over the base grid, one factor at a time over
-    //the whole grid: plain loops over arrays the compiler vectorises.
     m_w.assign(m_frequencies.begin(), m_frequencies.end());
     m_re.assign(n, sign);
     m_im.assign(n, 0.0);
@@ -228,9 +223,6 @@ NominalStabilityChecker::Profile NominalStabilityChecker::computeProfile(const P
         m_im[i] = m;
     }
 
-    //Refinement: wherever the phase turns faster than the unwrapping
-    //tolerance between two samples, a sample at the geometric mean of the
-    //frequencies is inserted between them, within a budget.
     int budget = m_tolerances.refinementBudget;
     for (std::size_t i = 0; i + 1 < m_w.size() && budget > 0;) {
         if (phaseStepExceeded(i) && m_w[i + 1] - m_w[i] > 1e-12 * m_w[i]
@@ -255,16 +247,6 @@ NominalStabilityChecker::Profile NominalStabilityChecker::computeProfile(const P
     const std::size_t count = m_w.size();
     profile.lastMagnitudeAtUnitGain = std::hypot(m_re[count - 1], m_im[count - 1]);
 
-    //A curve that starts on a ray: half a crossing towards where it
-    //departs, when its magnitude is above the ray's. The start is the loop
-    //at w = 0 itself when that is finite - a plant with an odd number of
-    //real right half-plane poles, or a negative static gain, sits exactly
-    //on the ray there, where the first sample of the grid is already a few
-    //thousandths of a degree off it - and the first sample otherwise, which
-    //is the loop of a plant with integrators, on the ray asymptotically.
-    //The loop at w = 0 without evaluating anything: a real factor, the
-    //controller's static gain, times the plant's own value there, which was
-    //sampled once when the checker was built.
     double atZeroFactor = sign;
     for (const double zero : shape.zeros) {
         atZeroFactor *= zero;
@@ -295,15 +277,6 @@ NominalStabilityChecker::Profile NominalStabilityChecker::computeProfile(const P
         profile.startDirection = accumulated > 0.0 ? 0.5 : -0.5;
     }
 
-    //The crossings of the rays. Between two consecutive samples the
-    //unwrapped phase moves by less than 180 degrees, so the arc can only
-    //reach a ray when the samples lie on opposite sides of the real axis;
-    //there the phase is interpolated linearly and the magnitude
-    //geometrically, and the crossing counts with the direction of the
-    //turn. Samples exactly on the axis are not a crossing, as the
-    //criterion reads a ray strictly between two phases.
-    //Read once per profile, not once per interval: a plant with poles on
-    //the axis is the exception, and the usual one must not pay for it.
     const bool anyAxisPole = !m_axisPoles.empty();
 
     for (std::size_t i = 0; i + 1 < count; ++i) {
@@ -315,15 +288,6 @@ NominalStabilityChecker::Profile NominalStabilityChecker::computeProfile(const P
         const double a = phaseDegrees(m_re[i], m_im[i]);
         double delta = wrappedDelta(a, phaseDegrees(m_re[i + 1], m_im[i + 1]));
 
-        //Over a pole of the nominal plant on the imaginary axis the loop
-        //leaves through infinity and comes back with its phase 180 degrees
-        //LOWER per pole: that is the indentation of the Nyquist contour,
-        //traversed clockwise. Two samples only give the turn modulo 360, and
-        //the unwrapping picks the representative nearest zero, which half
-        //the time is the rise of 180 instead of the fall. Here the
-        //representative nearest the fall is taken instead. Without it the
-        //criterion misses the crossing the indentation makes and calls
-        //unstable loops stable.
         if (poles > 0) {
             const double expected = -180.0 * static_cast<double>(poles);
             delta -= 360.0 * std::round((delta - expected) / 360.0);
@@ -374,8 +338,6 @@ bool NominalStabilityChecker::isStable(const Profile & profile, double gainMagni
         return false;
     }
 
-    //Not proper: the loop does not fall below the rays at the top of the
-    //grid.
     if (gainMagnitude * profile.lastMagnitudeAtUnitGain >= kRayMagnitude) {
         return false;
     }
@@ -390,8 +352,6 @@ bool NominalStabilityChecker::isStable(const Profile & profile, double gainMagni
         }
     }
 
-    //N = -P on the whole Nyquist contour; on positive frequencies alone
-    //the count is half of it.
     return std::abs(crossings - 0.5 * m_rhpPoles) < 0.25;
 }
 
@@ -427,9 +387,6 @@ bool NominalStabilityChecker::isBoxUnstable(LtiSystem * box, NaturalIntervalExte
         return false;
     }
 
-    //Two passes over the same grid, coarse then fine: a box whose enclosure
-    //reaches the critical point somewhere is usually caught by the coarse
-    //pass, and the fine pass then only runs for the boxes it proves.
     const std::size_t n = m_frequencies.size();
     const auto reachesCriticalPoint = [&](std::size_t i) {
         const NicholsBox enclosure = extension.nicholsBox(box, m_frequencies[i],
@@ -450,4 +407,4 @@ bool NominalStabilityChecker::isBoxUnstable(LtiSystem * box, NaturalIntervalExte
     return true;
 }
 
-} // namespace qftbx
+}

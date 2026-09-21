@@ -1,3 +1,13 @@
+/**
+ * @file
+ * @brief Algorithm MC3, under development.
+ *
+ * A trial of a branch and bound over the zeros and poles alone, with the
+ * admissible gains of a box carried as a union of intervals instead of
+ * being bisected. It runs only from the benchmark and is not part of the
+ * published algorithms.
+ */
+
 #ifndef QFTBX_LOOPSHAPING_ALGORITHM_MC3_H
 #define QFTBX_LOOPSHAPING_ALGORITHM_MC3_H
 
@@ -24,44 +34,8 @@
 namespace qftbx {
 
 /**
- * @brief Algorithm MC3: branch and bound over the zeros and poles with the
- * gain treated exactly, never bisected.
- *
- * The loop's phase does not depend on the gain and its magnitude in dB is
- * the gain in dB plus a term that does not depend on it. So for a box B of
- * zeros and poles, projected at unit gain to the rectangle
- * [m_lo, m_hi] x [phi_lo, phi_hi] at each design frequency, the boundary
- * columns give EXACTLY, as unions of intervals of g = 20 log10 k:
- *
- * - the gains for which the whole box is certainly feasible at every
- *   frequency (the shifted rectangle fits inside an allowed interval of
- *   every column its phase span covers): G_in(B);
- * - the gains for which the whole box is certainly infeasible at some
- *   frequency (the shifted rectangle lies inside a forbidden gap of every
- *   column of the span): G_inf(B).
- *
- * A node carries its box and its set K of admissible gains, a union of
- * intervals. Each visit contracts K by G_inf(B); the node's lower bound is
- * min K; G_in(B) intersected with K yields a controller certified for the
- * WHOLE box (upper bound) as soon as the box is narrower than the allowed
- * corridor. Nodes whose lower bound cannot beat the best certified gain by
- * the tolerance are discarded. Only the zeros and poles are bisected, on a
- * logarithmic scale, the widest first.
- *
- * This generalises the gain contractors of NT (C_g-, C_g+), the Quick
- * Solution of NK and its mirror in the thesis, and the exact best gain of
- * MC2 (a point), to the whole box, both sides, every gap of every column,
- * and it removes the gain from the search tree altogether.
- *
- * The tolerance 'epsilon' plays two roles, both in the Nichols plane: a
- * node is discarded when its lower bound is within epsilon dB of the best
- * certified gain, and a box is not bisected further when its unit-gain
- * projection is narrower than epsilon in dB and degrees at every frequency.
- *
- * Measured before it was written; the measurements are kept with the
- * project's internal material.
- *
- * @author Isaac Martínez Forte
+ * @brief Algorithm MC3, under development: a trial that keeps the gain out
+ * of the search tree.
  */
 class AlgorithmMc3
 {
@@ -87,9 +61,9 @@ private:
     /// (dB) still admissible for it. The list index is the lower bound.
     /// What the boundary columns say about a box at unit gain.
     struct GainSets {
-        RangeUnion certified;   //G_in(B), dB
-        RangeUnion forbidden;   //G_inf(B), dB
-        bool small = true;      //every projection narrower than epsilon
+        RangeUnion certified;   ///< G_in(B), dB
+        RangeUnion forbidden;   ///< G_inf(B), dB
+        bool small = true;   ///< every projection narrower than epsilon
         std::size_t ambiguousFrequencies = 0;
     };
 
@@ -99,8 +73,8 @@ private:
         Node(double lowerBoundDb, std::unique_ptr<LtiSystem> box, RangeUnion gains)
             : SearchNode(lowerBoundDb, std::move(box)), gains(std::move(gains)) {}
         RangeUnion gains;
-        //Filled on the first visit; a node re-queued with its own, higher,
-        //lower bound is not projected again.
+        /// Filled on the first visit; a node re-queued with its own, higher,
+        /// lower bound is not projected again.
         std::optional<GainSets> sets;
         bool unstableChecked = false;
     };
@@ -156,6 +130,6 @@ private:
     std::size_t m_smallDropped = 0;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_LOOPSHAPING_ALGORITHM_MC3_H
+#endif

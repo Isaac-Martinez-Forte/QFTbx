@@ -3,8 +3,8 @@
 
 #include <cstdint>
 
-
 /**
+ * @file
  * @brief Base of the live-list nodes: everything OrderedList holds is one
  * of these, ordered by the index each node carries.
  *
@@ -23,8 +23,8 @@ public:
         this->index = index;
     }
 
-    //Nodes are deleted through this base by their owners (the live list
-    //drains its leftovers on destruction).
+    /// Nodes are deleted through this base by their owners (the live list
+    /// drains its leftovers on destruction).
     virtual ~ListNode() = default;
 
     double getIndex() const
@@ -38,12 +38,12 @@ public:
     }
 
 protected:
-    //Initialised: OrderedList orders by this, and the default constructor
-    //left it indeterminate.
+    /// Initialised: OrderedList orders by this, and the default constructor
+    /// left it indeterminate.
     double index = 0.0;
 
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_LOOPSHAPING_LIST_NODE_H
+#endif

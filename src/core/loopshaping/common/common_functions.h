@@ -1,6 +1,17 @@
+/**
+ * @file
+ * @brief Operations on controller boxes shared by the interval algorithms.
+ *
+ * Extracting a point controller from a box (poles always at their lower
+ * corner, the delay kept as the box has it), checking one controller against
+ * the boundaries at every design frequency, the verified corner an
+ * epsilon-small ambiguous box yields, the bisection of a box along its
+ * widest uncertain parameter into two deep copies that keep the parameter
+ * names, and the termination test on the size of the Nichols projection.
+ */
+
 #ifndef QFTBX_LOOPSHAPING_COMMON_FUNCTIONS_H
 #define QFTBX_LOOPSHAPING_COMMON_FUNCTIONS_H
-
 
 #include <cstdint>
 #include "src/core/math/constants.h"
@@ -21,7 +32,6 @@
 #include <optional>
 
 #include "src/core/common/exception.h"
-
 
 namespace qftbx {
 
@@ -69,17 +79,12 @@ inline std::unique_ptr<LtiSystem> pointFromBox(LtiSystem * controller, bool x) {
     denominator.reserve(controller->denominator().size());
 
     for (Parameter & v : controller->denominator()) {
-        //Poles always take the lower corner: a larger pole moves the
-        //projection towards the forbidden side.
         denominator.emplace_back(v.isUncertain() ? v.range().min : v.nominal());
     }
 
     const double k = x ? controller->gain().range().min
                       : controller->gain().range().max;
 
-    //The delay is not searched over: the point keeps the box's own, as the
-    //bisection does. Writing zero here would change the controller for any
-    //structure that carries one.
     return controller->create(controller->name(), std::move(numerator),
                                std::move(denominator), Parameter(k),
                                controller->delay());
@@ -140,7 +145,6 @@ inline std::optional<PointController> verifiedCorner(LtiSystem * box, std::vecto
         return satisfiesBoundaries(point, omega, conversion, detector, boundaries, nominalPlantValues);
     };
 
-    //The two corners of the rule, then the centre.
     for (const bool lower : {false, true}) {
         PointController corner = cornerOf(box, lower);
         if (passes(corner)) {
@@ -148,8 +152,6 @@ inline std::optional<PointController> verifiedCorner(LtiSystem * box, std::vecto
         }
     }
 
-    //Every uncertain parameter of the box, in the order of cornerOf: zeros,
-    //poles, gain; fixed ones keep their nominal.
     const std::vector<Parameter> & numerator = box->numerator();
     const std::vector<Parameter> & denominator = box->denominator();
     const Parameter & gain = box->gain();
@@ -159,8 +161,6 @@ inline std::optional<PointController> verifiedCorner(LtiSystem * box, std::vecto
     for (const Parameter & v : denominator) uncertain += v.isUncertain() ? 1 : 0;
     uncertain += gain.isUncertain() ? 1 : 0;
 
-    //A point of the box from a choice per uncertain parameter: 0 lower end,
-    //1 upper end, 2 middle.
     const auto pointAt = [&](auto choose) {
         PointController point;
         std::size_t index = 0;
@@ -252,8 +252,6 @@ inline bool isEpsilonSmall(LtiSystem * controller, double epsilon, std::vector <
  */
 inline BisectionResult bisectWidestParameter(LtiSystem * box) {
 
-    //Widest uncertain parameter: -1 is the gain, then the numerator and
-    //denominator positions.
     std::int32_t widest = -2;
     double width = -1;
     Range range;
@@ -282,17 +280,12 @@ inline BisectionResult bisectWidestParameter(LtiSystem * box) {
         consider(var);
     }
 
-    //A box with nothing uncertain cannot be halved: the two "halves" would
-    //be the box itself, and a search that bisects it never gets smaller.
     if (widest == -2) {
         throw qftbx::ComputationError(QFTBX_TR("Core", "The search asked to bisect a controller box with no uncertain parameter."));
     }
 
     const double middle = range.middle();
 
-    //Both children are DEEP copies and the parent stays untouched, so its
-    //node keeps sole ownership of it. The halves keep the parameter's NAME:
-    //the ICSP constraint trees address the variables by name.
     const auto half = [&](bool lower) -> std::unique_ptr<LtiSystem> {
         const Range halfRange = lower ? Range(range.min, middle)
                                       : Range(middle, range.max);
@@ -551,6 +544,6 @@ inline double nominalPhase(std::complex<double> p0) {
     return phi0;
 }
 
-} // namespace qftbx
+}
 
 #endif

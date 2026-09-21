@@ -14,6 +14,7 @@
 #include "src/core/loopshaping/common/natural_interval_extension.h"
 
 /**
+ * @file
  * @class BoundaryViolationDetector
  * @brief Feasibility classification of projected Nichols boxes and points
  * against the boundaries of each design frequency (Tharewal 2005,
@@ -64,6 +65,6 @@ private:
     std::size_t m_ambiguous = 0;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_LOOPSHAPING_BOUNDARY_VIOLATION_DETECTOR_H
+#endif

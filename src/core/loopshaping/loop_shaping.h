@@ -19,8 +19,8 @@
 #include "src/core/system/lti_system.h"
 #include "src/core/boundaries/boundary_data.h"
 
-
 /**
+ * @file
  * @brief Facade over the loop-shaping algorithms: picks one, runs it over
  * the current problem, and hands back the controller it designed.
  *
@@ -63,7 +63,7 @@ public:
      * @brief The designed controller, handed over to the caller.
      *
      * This is the single point where the ownership of a system leaves the
-     * loop shaping: the facade beyond still holds it as a raw pointer.
+     * loop shaping: the facade beyond holds it as a raw pointer.
      */
     std::unique_ptr<LtiSystem> controllerStructure();
 
@@ -106,6 +106,6 @@ private:
     LoopShapingStatistics m_statistics;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_LOOPSHAPING_LOOP_SHAPING_H
+#endif

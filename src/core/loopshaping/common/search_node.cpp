@@ -1,5 +1,9 @@
-#include "src/core/loopshaping/common/search_node.h"
+/**
+ * @file
+ * @brief The live-list node of the interval branch and bound.
+ */
 
+#include "src/core/loopshaping/common/search_node.h"
 
 namespace qftbx {
 
@@ -35,4 +39,4 @@ std::unique_ptr<LtiSystem> SearchNode::releaseSystem()
     return std::move(m_system);
 }
 
-} // namespace qftbx
+}

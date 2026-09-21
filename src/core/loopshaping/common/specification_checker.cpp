@@ -1,3 +1,15 @@
+/**
+ * @file
+ * @brief Checking a designed controller against every specification.
+ *
+ * At each design frequency the nominal loop is evaluated and the five
+ * closed-loop magnitudes are bounded in the worst case over the family at
+ * that loop value. The excess over a bound is in decibels, and a value that
+ * is not finite violates by an infinite amount, so it can never read as
+ * satisfied. The tracking band is governed by its lower bound, the upper one
+ * only sets the cut height.
+ */
+
 #include "src/core/loopshaping/common/specification_checker.h"
 
 #include <algorithm>
@@ -12,10 +24,6 @@ namespace qftbx {
 
 namespace {
 
-//The excess of a value over a bound, both in dB. A value that is not finite
-//(the loop at the critical point, or a plant value of zero) is stated to
-//violate by an infinite amount: a NaN would compare false against every
-//bound and read as satisfied.
 double excessOf(double valueDb, double boundDb)
 {
     if (std::isnan(valueDb)) {
@@ -34,7 +42,7 @@ void record(SpecificationCheck & check, std::size_t index, double omega, Specifi
     check.worstExcessDb = std::max(check.worstExcessDb, excess);
 }
 
-} // namespace
+}
 
 SpecificationCheck checkAgainstSpecifications(LtiSystem & controller, LtiSystem & plant,
                                               const std::vector<double> & omega,
@@ -46,9 +54,6 @@ SpecificationCheck checkAgainstSpecifications(LtiSystem & controller, LtiSystem 
                            .arg(templates.size()).arg(omega.size()));
     }
 
-    //As in the boundary computation, the tracking band is governed by T_L
-    //and T_U only provides the cut height; asking for a band without T_U is
-    //the one inconsistency the records allow.
     const Specification & trackingLower = specifications.at(SpecificationType::TrackingLower);
     const Specification & trackingUpper = specifications.at(SpecificationType::TrackingUpper);
     const Specification & stability = specifications.at(SpecificationType::Stability);
@@ -67,8 +72,6 @@ SpecificationCheck checkAgainstSpecifications(LtiSystem & controller, LtiSystem 
             continue;
         }
 
-        //The nominal loop at this frequency, and the five magnitudes in the
-        //worst case over the family at exactly that loop value.
         const std::complex<double> p0 = plant.evaluate(w);
         const std::complex<double> L0 = controller.evaluate(w) * p0;
         const WorstCase worst = worstCaseAt(p0, L0, valueSet, nominalOverValueSet(p0, valueSet));
@@ -106,4 +109,4 @@ SpecificationCheck checkAgainstSpecifications(LtiSystem & controller, LtiSystem 
     return check;
 }
 
-} // namespace qftbx
+}
