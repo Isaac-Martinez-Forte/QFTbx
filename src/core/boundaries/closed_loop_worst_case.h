@@ -101,25 +101,18 @@ inline WorstCase worstCaseAt(std::complex<double> p0, std::complex<double> L,
             worst.nearestIndex = i;
         }
 
-        //A NaN candidate compares false and leaves the running value alone,
-        //as the explicit comparisons this replaces did.
         if (mask.stabilityNoiseTracking) {
-            //Stability and sensor noise share the same transfer magnitude,
-            //and tracking bounds its spread.
             const double stabilityNoise = std::abs(L / denominator);
             worst.stabilityNoise = std::max(worst.stabilityNoise, stabilityNoise);
             worst.trackingMin = std::min(worst.trackingMin, stabilityNoise);
         }
         if (mask.outputDisturbance) {
-            //Disturbance rejection at the plant output.
             worst.outputDisturbance = std::max(worst.outputDisturbance, std::abs(p0OverP / denominator));
         }
         if (mask.inputDisturbance) {
-            //Disturbance rejection at the plant input.
             worst.inputDisturbance = std::max(worst.inputDisturbance, std::abs(p0 / denominator));
         }
         if (mask.controlEffort) {
-            //Control effort.
             worst.controlEffort = std::max(worst.controlEffort, std::abs((L / p) / denominator));
         }
     }
@@ -135,6 +128,6 @@ inline WorstCase worstCaseAt(std::complex<double> p0, std::complex<double> L,
     return worstCaseAt(p0, L, valueSet, nominalOverP, WorstCaseMask::all());
 }
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_CLOSED_LOOP_WORST_CASE_H
+#endif

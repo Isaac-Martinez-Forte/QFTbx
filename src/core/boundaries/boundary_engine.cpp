@@ -1,3 +1,18 @@
+/**
+ * @file
+ * @brief The boundary computation, frequency by frequency.
+ *
+ * Inputs are validated at the entry point: a specification with a null or
+ * negative height, an inverted tracking band, a null plant or a single-point
+ * axis throws here instead of degenerating the cut. The tracking band is
+ * governed by its lower bound; the upper one only sets the cut height. The
+ * sheets are column major, phase index times magnitude count plus magnitude
+ * index, and the allowed side of each trace is probed one decibel below its
+ * maximum against the same cut. Frequencies run in parallel and each writes
+ * at its own index. The keys of the sheets are the ones the project file
+ * stores. A CUDA twin of the tracing exists and is compiled only with CUDA.
+ */
+
 #include <chrono>
 #include "src/core/math/constants.h"
 #include <string>
@@ -10,18 +25,14 @@
 #include "src/core/boundaries/closed_loop_worst_case.h"
 #include "src/core/boundaries/singular_locus.h"
 
-
 #include <iostream>
 
-#include "src/core/math/sequence_vectors.h" //linspace for the sheet axes
+#include "src/core/math/sequence_vectors.h"
 
 using std::complex;
 using std::numeric_limits;
 
 namespace qftbx {
-
-//The CUDA interface lives in src/core/gpu/boundary_sheets_cuda.h (plain
-//C++ header; only the .cu needs nvcc).
 
 void BoundaryEngine::releaseResults()
 {
@@ -41,23 +52,11 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
 
     m_templatesAreContours = templatesAreContours;
 
-    //The export stand-in for infinity is not part of the computation
-    //(thesis ch. 7: it exists so exported data can carry a finite value in
-    //formats that cannot represent an infinity). It is kept in the
-    //interface for the numeric export, still to be implemented.
     (void) exportInfinity;
 
-
-    //Validated on conversion, at the entry point: a used specification with
-    //height <= 0, an inverted band or a null plant throws here instead of
-    //silently degenerating the cut.
     m_specifications = qftbx::toSpecificationSet(*specifications);
     m_cuda = cuda;
 
-    //The dialog checks this too, but the engine is what a script or a test
-    //reaches: a single-point axis is a sheet with no cells for the tracer,
-    //a division by zero in the union's bucketing and a loop that never
-    //ends in the box classification.
     if (phaseCount < 2 || magnitudeCount < 2) {
         throw InvalidInput(QFTBX_TR("Core", "The Nichols grid needs at least two points on each axis."));
     }
@@ -79,8 +78,6 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
     m_inputDisturbanceMask.clear();
     m_controlEffortMask.clear();
 
-    //As always, the tracking band is governed by T_L (the lower bound);
-    //T_U only provides the cut height.
     for (double o : *omega){
         m_trackingMask.push_back(m_specifications.at(SpecificationType::TrackingLower).appliesAt(o));
         m_stabilityMask.push_back(m_specifications.at(SpecificationType::Stability).appliesAt(o));
@@ -96,7 +93,6 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
                            "specifications (T_L and T_U)."));
     }
 
-
 #ifdef CUDA_AVAILABLE
 
     auto timer = std::chrono::steady_clock::now();
@@ -111,7 +107,6 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
                                                    std::chrono::steady_clock::now() - timer).count()));
 
     } else {
-
 
         m_boundaries.clear();
         m_traceMetadata.clear();
@@ -145,7 +140,6 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
                       qftbx::record::milliseconds(std::chrono::duration<double, std::milli>(
                                                    std::chrono::steady_clock::now() - timer).count()));
 
-
     }
 #else
     auto timer = std::chrono::steady_clock::now();
@@ -177,7 +171,6 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
     m_openFlags = boundaryUnion.takeOpenFlags();
     m_upperFlags = boundaryUnion.takeUpperFlags();
 
-    //The trace metadata has been consumed by the 1D union.
     m_traceMetadata.clear();
 }
 
@@ -194,9 +187,6 @@ void BoundaryEngine::traceFrequency(double omega, std::map<std::string, TraceSet
                                     complex <double> p0, const ComplexCloud & valueSet, std::size_t index,
                                     double phaseSpan, double magnitudeSpan, double phaseBottom, double magnitudeBottom){
 
-
-    //These keys are persisted in the .qft files; the loader maps the
-    //Spanish names of legacy files to them.
     if (m_trackingMask.at(index)){
 
         TraceLabels & metadata = traceMetadata["Tracking"];
@@ -331,7 +321,6 @@ void BoundaryEngine::traceFrequency(double omega, std::map<std::string, TraceSet
 
 BoundaryColumns BoundaryEngine::sheetColumns(const BoundarySheet & sheet, double thresholdDb) const
 {
-    //One row per magnitude, one column per phase.
     const auto cell = [&sheet](std::int32_t phase, std::int32_t magnitude) {
         return sheet[static_cast<std::size_t>(magnitude)][static_cast<std::size_t>(phase)];
     };
@@ -341,8 +330,6 @@ BoundaryColumns BoundaryEngine::sheetColumns(const BoundarySheet & sheet, double
 #ifdef CUDA_AVAILABLE
 BoundaryColumns BoundaryEngine::sheetColumns(const float * sheet, double thresholdDb) const
 {
-    //Column-major: the phase index times the magnitude count, plus the
-    //magnitude index (see ContourTracer).
     const std::size_t height = static_cast<std::size_t>(m_magnitudeCount);
     const auto cell = [sheet, height](std::int32_t phase, std::int32_t magnitude) {
         return sheet[static_cast<std::size_t>(phase) * height + static_cast<std::size_t>(magnitude)];
@@ -362,20 +349,12 @@ TraceSet BoundaryEngine::traceBoundary(double thresholdDb, const BoundarySheet &
 
     TraceSet traces = tracer.trace(phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
 
-
-    //Pre-sized and written at index j: the critical section this replaces
-    //permuted the metadata against its traces with the thread order.
-    //A byte per flag, not the std::vector<bool> of TraceLabels: that one
-    //packs its elements into bits, and the parallel iterations writing
-    //neighbouring flags would race on the same byte.
     std::vector<char> allowed(traces.size(), 0);
 
 #ifdef OpenMP_AVAILABLE
 #pragma omp parallel for
 #endif
     for (std::size_t j = 0; j < traces.size(); ++j) {
-        //The allowed-side label of the trace: the threshold is the same dB
-        //cut the contour was traced at.
         allowed[j] = allowedZone(traces.at(j), p0, valueSet, kind, thresholdDb) != 0;
     }
     traceMetadata.assign(allowed.begin(), allowed.end());
@@ -387,11 +366,7 @@ TraceSet BoundaryEngine::traceBoundary(double thresholdDb, const BoundarySheet &
     return traces;
 }
 
-
 #ifdef CUDA_AVAILABLE
-//The CUDA-sheet twin of the function above. NOT COMPILED on this machine:
-//USE_CUDA is off, so nothing here checks it and a change to the tracer's
-//API will not be reported until someone builds with CUDA.
 TraceSet BoundaryEngine::traceBoundary(double thresholdDb, const float *sheet,
                                        TraceLabels & traceMetadata, std::complex<double> p0,
                                        const ComplexCloud & valueSet, std::int32_t kind,
@@ -403,9 +378,6 @@ TraceSet BoundaryEngine::traceBoundary(double thresholdDb, const float *sheet,
     TraceSet traces = tracer.trace(phaseSpan, m_phaseCount, magnitudeSpan,
                                    m_magnitudeCount, phaseBottom, magnitudeBottom);
 
-    //A byte per flag, not the std::vector<bool> of TraceLabels: that one
-    //packs its elements into bits, and the parallel iterations writing
-    //neighbouring flags would race on the same byte.
     std::vector<char> allowed(traces.size(), 0);
 
 #ifdef OpenMP_AVAILABLE
@@ -422,19 +394,17 @@ TraceSet BoundaryEngine::traceBoundary(double thresholdDb, const float *sheet,
 
 namespace {
 
-//Nichols (dB, degrees) to the complex grid point L.
 std::complex<double> nicholsToComplex(double magnitudeDb, double phaseDegrees)
 {
     const double linearMagnitude = std::pow(10.0, magnitudeDb / 20.0);
     return std::polar(linearMagnitude, phaseDegrees * qftbx::math::kPi / 180.0);
 }
 
-} // namespace
+}
 
 std::int32_t BoundaryEngine::allowedZone(const Trace & trace, complex <double> p0, const ComplexCloud & valueSet,
                                    std::int32_t kind, double thresholdDb){
 
-    //Probe point: 1 dB below the trace's maximum magnitude.
     double probeMagnitude = -numeric_limits<double>::infinity();
     double probePhase = -numeric_limits<double>::infinity();
 
@@ -450,7 +420,6 @@ std::int32_t BoundaryEngine::allowedZone(const Trace & trace, complex <double> p
     const complex<double> L = nicholsToComplex(probeMagnitude, probePhase);
     const WorstCase worst = worstCaseAt(p0, L, valueSet, nominalOverValueSet(p0, valueSet));
 
-    //The sheet is in dB, so the zone probe compares in dB too.
     switch (kind){
     case 0:
         if (20 * log10(worst.stabilityNoise) > thresholdDb){
@@ -488,13 +457,10 @@ void BoundaryEngine::computeFrequencies(std::vector<double> *omega, LtiSystem *p
                                         const CloudSet & templates, qftbx::Range phaseRange, std::int32_t phaseCount,
                                         qftbx::Range magnitudeRange, std::int32_t magnitudeCount)
 {
-    //Base grid of the algorithm.
     const std::vector <double> phases = qftbx::linspace(phaseRange.min, phaseRange.max, phaseCount);
     const std::vector <double> magnitudes = qftbx::linspace(magnitudeRange.min, magnitudeRange.max,
                                                       magnitudeCount);
 
-    //Pre-sized: every frequency writes at ITS index, so the parallel loop
-    //below needs no critical section.
     m_boundaries.assign(static_cast<std::size_t>(omega->size()), {});
     m_traceMetadata.assign(static_cast<std::size_t>(omega->size()), {});
     m_columns.assign(static_cast<std::size_t>(omega->size()), {});
@@ -504,8 +470,6 @@ void BoundaryEngine::computeFrequencies(std::vector<double> *omega, LtiSystem *p
 #endif
     for (std::size_t i = 0; i < omega->size(); ++i){
 
-        //Once per frequency: an OpenMP loop cannot be broken out of, and
-        //what is left after a cancellation costs a load each.
         if (cancellationAsked(m_cancellation)) {
             continue;
         }
@@ -513,8 +477,6 @@ void BoundaryEngine::computeFrequencies(std::vector<double> *omega, LtiSystem *p
         computeFrequency(omega->at(i), plant, templates.at(i), phases, magnitudes, i);
     }
 
-    //Given up on: half the frequencies are not a set of boundaries, so
-    //nothing is left behind looking like one.
     if (cancellationAsked(m_cancellation)) {
         m_boundaries.clear();
         m_traceMetadata.clear();
@@ -522,24 +484,10 @@ void BoundaryEngine::computeFrequencies(std::vector<double> *omega, LtiSystem *p
         throw qftbx::Cancelled();
     }
 
-
 }
-
 
 namespace {
 
-//At the critical grid point L = -1 (phase -180 deg, magnitude 0 dB) the
-//nominal plant makes the closed-loop denominator 1 + L vanish: the loop
-//has a pole on the imaginary axis and its transfer magnitude is infinite,
-//so the cell violates EVERY finite specification. In practice the exact
-//zero never occurs because sin(-pi) is -1.2e-16 rather than 0, which
-//turns the cell into a finite ~318 dB, and the tracking spread would only
-//go NaN (inf - inf) for a single-point value set exactly there. Relying on
-//that floating-point accident is not a contract: a non-finite cell is
-//stated to violate, since a NaN compares FALSE against the threshold and
-//would silently read as ALLOWED. The contour tracer only compares cells
-//against the threshold (it never interpolates between them), so an
-//infinite cell is safe for it.
 double violatingDb(double valueDb)
 {
     if (std::isnan(valueDb)) {
@@ -549,20 +497,17 @@ double violatingDb(double valueDb)
     return valueDb;
 }
 
-} // namespace
+}
 
 void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
                                        const ComplexCloud & valueSet,
                                        const std::vector <double> & phases,
                                        const std::vector <double> & magnitudes, std::size_t index){
 
-    //Nominal plant at this design frequency.
     complex <double> p0 = plant->evaluate(omega);
 
     const ComplexCloud & p = valueSet;
 
-    //The five sheets of this frequency, in the order the tracing indexes
-    //them, with names for the ones this loop fills.
     BoundarySheets sheets;
 
     BoundarySheet & stabilityNoiseSheet = sheets.at(0);
@@ -571,19 +516,14 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
     BoundarySheet & inputDisturbanceSheet = sheets.at(3);
     BoundarySheet & controlEffortSheet = sheets.at(4);
 
-    //One row per MAGNITUDE; the phase count is the row width.
     const std::size_t rowCount = static_cast<std::size_t>(magnitudes.size());
     for (BoundarySheet * sheet : {&stabilityNoiseSheet, &trackingSheet, &outputDisturbanceSheet,
                                  &inputDisturbanceSheet, &controlEffortSheet}) {
         sheet->reserve(rowCount);
     }
 
-
     const std::vector<complex<double>> nominalOverP = nominalOverValueSet(p0, p);
 
-    //Only the sheets the specifications in use at this frequency will read:
-    //on example 2, two of five. Stability and sensor noise share sheet 0,
-    //and tracking shares its magnitude.
     WorstCaseMask mask;
     mask.stabilityNoiseTracking = m_stabilityMask.at(index) || m_noiseMask.at(index) || m_trackingMask.at(index);
     mask.outputDisturbance = m_outputDisturbanceMask.at(index);
@@ -593,17 +533,8 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
     const bool needStabilityNoise = m_stabilityMask.at(index) || m_noiseMask.at(index);
     const bool needTracking = m_trackingMask.at(index);
 
-    //The singular locus of this frequency, {-P0/P}: where the closed loop of
-    //some plant is singular. The sweep takes the worst case over a finite
-    //sample, and near the locus the sample understates the family - to
-    //infinity when -L0 falls inside the template, and by a bounded excess
-    //when it falls close outside. Both are covered here: the inside test is
-    //step 2 of Moreno, Banos and Berenguel's algorithm 2.1, the excess is a
-    //Lipschitz bound with no free parameter (see SingularLocus).
     const SingularLocus locus(nominalOverP, m_templatesAreContours);
 
-    //Grid sweep (no nested parallelism: the outer per-frequency loop is
-    //already parallel, and these loops share function-scope variables).
     for (std::size_t k = 0; k < magnitudes.size(); ++k){
 
         std::vector<double> stabilityNoiseRow;
@@ -622,15 +553,9 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
         for (std::size_t j = 0; j < phases.size(); ++j){
             const complex<double> L = nicholsToComplex(magnitudes[k], phases[j]);
 
-            //Template sweep: worst case over the SAMPLE at this L, of the
-            //magnitudes the sheets in use need; then over the FAMILY, by the
-            //border between the samples (see SingularLocus). Infinite when
-            //-L0 is inside the template.
             const WorstCase sampled = worstCaseAt(p0, L, p, nominalOverP, mask);
             const WorstCase worst = m_guardSingularLocus ? locus.guard(sampled, L, p0) : sampled;
 
-            //Always stored in dB, with the critical point made explicit
-            //(see violatingDb). A sheet no specification reads stays empty.
             if (needStabilityNoise) {
                 stabilityNoiseRow.push_back(violatingDb(20 * log10(worst.stabilityNoise)));
             }
@@ -663,10 +588,6 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
                    m_phaseRange.width(), m_magnitudeRange.width(),
                    m_phaseRange.min, m_magnitudeRange.min);
 
-    //The five magnitude specifications in closed form, replacing what the
-    //sheet said about them; the curves keep being traced from the sheet.
-    //Only with a contour: a cloud's guard has no closed form
-    //(ClosedFormColumns), and its columns stay the sheet's.
     if (m_closedFormColumns && m_templatesAreContours) {
         const SingularLocus * guard = m_guardSingularLocus ? &locus : nullptr;
         const auto replace = [&](const char * name, SpecificationType type, bool used) {
@@ -682,13 +603,9 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
         replace("ControlEffort", SpecificationType::ControlEffort, m_controlEffortMask.at(index));
     }
 
-    //The sheets (~1.7 MB per frequency) die here, where they stop being
-    //needed: the contours and the zones are extracted.
-
-    //Every frequency writes at its own index: no criticals, no permutations.
     m_traceMetadata[index] = std::move(traceMetadata);
     m_columns[index] = std::move(columns);
     m_boundaries[index] = std::move(bound);
 }
 
-} // namespace qftbx
+}

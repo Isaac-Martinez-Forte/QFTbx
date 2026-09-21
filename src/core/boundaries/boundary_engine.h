@@ -1,3 +1,13 @@
+/**
+ * @file
+ * @brief Computation of the QFT boundaries of a plant on the Nichols plane.
+ *
+ * Declares the engine that evaluates the closed-loop specification sheets on
+ * the Nichols grid from the template contours, traces their level curves at
+ * the specification height, labels the allowed side, merges the curves of
+ * each frequency and reads the columns the loop shaping searches over.
+ */
+
 #ifndef QFTBX_BOUNDARY_ENGINE_H
 #define QFTBX_BOUNDARY_ENGINE_H
 
@@ -48,7 +58,7 @@ namespace qftbx {
  * allowed magnitude intervals the search classifies against
  * (BoundaryColumns).
  *
- * Reference: I. Martinez Forte, PFC, boundary computation
+ * Reference: I. Martínez Forte, final-year project, boundary computation
  * chapter (sheet construction, contour cut and 1D union).
  */
 class BoundaryEngine
@@ -68,7 +78,7 @@ public:
     *        contours (ordered closed walks, one per frequency) or the full
     *        clouds. Near the singular locus the sweep guards its sample
     *        differently for each; see SingularLocus. The CUDA path does not
-    *        apply that guard yet.
+    *        apply that guard.
     * @param specifications the seven specification records; validated
     *        on entry (throws qftbx::InvalidInput on invalid used records).
     * @param phaseRange, phaseCount Nichols window phase axis (degrees).
@@ -77,7 +87,6 @@ public:
     * EXPORTED (thesis ch. 7: a compatibility value for formats that cannot
     * carry an infinity); < 0 means "none given". It never takes part in the
     * sweep, which is IEEE throughout.
-    *        (currently unused - see the (-180, 0 dB) decision, deferred).
     * @param cuda compute the sheets on the GPU (CUDA builds only).
     */
     void compute(std::vector <double> * omega, LtiSystem * plant, const CloudSet & templates,
@@ -88,7 +97,6 @@ public:
     /// Whether the sweep guards its sample near the singular locus (see
     /// SingularLocus): on by default, which is step 2 of Moreno, Banos and
     /// Berenguel's algorithm 2.1 with the border between samples covered as
-    /// well. Off reproduces the raw sweep over the sample, which is what the
     /**
      * @brief Installs the flag that asks the computation to stop.
      *
@@ -99,7 +107,6 @@ public:
      */
     void setCancellation(const qftbx::CancellationToken * token) { m_cancellation = token; }
 
-    /// legacy boundaries were computed with.
     void setSingularLocusGuard(bool on) { m_guardSingularLocus = on; }
     bool singularLocusGuard() const { return m_guardSingularLocus; }
 
@@ -114,20 +121,19 @@ public:
     /// A snapshot of the results, by value.
     BoundaryData boundaryData();
 
-
 private:
     /// The flag the computation reads once per frequency.
     const qftbx::CancellationToken * m_cancellation = nullptr;
 
     SpecificationSet m_specifications;
-    //Whether the value sets swept are the epsilon-hull contours (ordered
-    //walks) or the full clouds: the guard near the singular locus reads
-    //them differently (see SingularLocus).
+    /// Whether the value sets swept are the epsilon-hull contours (ordered
+    /// walks) or the full clouds: the guard near the singular locus reads
+    /// them differently (see SingularLocus).
     bool m_templatesAreContours = false;
     bool m_guardSingularLocus = true;
     bool m_closedFormColumns = false;
 
-    //Clears the previous run's results.
+    /// Clears the previous run's results.
     void releaseResults();
 
     void computeFrequencies(std::vector <double> * omega, LtiSystem * plant, const CloudSet & templates,
@@ -144,8 +150,8 @@ private:
                         std::complex<double> p0, const ComplexCloud & valueSet,
                         std::size_t index, double phaseSpan, double magnitudeSpan, double phaseBottom, double magnitudeBottom);
 
-    //The allowed magnitude intervals per phase column of one specification,
-    //read off its sheet at the cut height (BoundaryColumns::fromSheet).
+    /// The allowed magnitude intervals per phase column of one specification,
+    /// read off its sheet at the cut height (BoundaryColumns::fromSheet).
     BoundaryColumns sheetColumns(const BoundarySheet & sheet, double thresholdDb) const;
 
     TraceSet traceBoundary(double thresholdDb, const BoundarySheet & sheet,
@@ -172,12 +178,10 @@ private:
                            double phaseBottom, double magnitudeBottom);
 #endif
 
-
     qftbx::Range m_phaseRange;
     qftbx::Range m_magnitudeRange;
     std::int32_t m_phaseCount = 0;
     std::int32_t m_magnitudeCount = 0;
-
 
     BoundarySet m_boundaries;
     TraceMetadata m_traceMetadata;
@@ -199,7 +203,6 @@ private:
 
 };
 
-} // namespace qftbx
+}
 
-
-#endif // QFTBX_BOUNDARY_ENGINE_H
+#endif

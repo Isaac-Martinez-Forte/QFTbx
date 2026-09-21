@@ -1,3 +1,17 @@
+/**
+ * @file
+ * @brief Geometry of the template contour around the critical point.
+ *
+ * The contour is split into loops at the exact repeats of a starting point
+ * and closed on its last point when the walk did not. Whether a point lies
+ * inside is decided by the parity of the crossings of a ray with the loops,
+ * and by the turning number of a loop around it. The distance from the pole
+ * to the polygonal border is taken exactly, to the nearest chord and the
+ * farthest vertex, and a plant of the family may lie up to half the sample
+ * spacing nearer the pole than any sample, which is what the margin on the
+ * magnitudes accounts for.
+ */
+
 #include "src/core/boundaries/singular_locus.h"
 
 #include <algorithm>
@@ -18,9 +32,6 @@ SingularLocus::SingularLocus(const std::vector<std::complex<double>> & nominalOv
     }
 
     if (!isContour) {
-        //The local spacing of an unordered sample: each point's distance to
-        //its nearest neighbour. Quadratic once per frequency; the sweep
-        //that follows costs far more.
         m_spacing.assign(n, 0.0);
         for (std::size_t i = 0; i < n; ++i) {
             double nearest = std::numeric_limits<double>::infinity();
@@ -34,17 +45,12 @@ SingularLocus::SingularLocus(const std::vector<std::complex<double>> & nominalOv
         return;
     }
 
-    //The walk of one component closes when it returns to its first point,
-    //and the contours of several components are concatenated: a loop runs
-    //from a point to the next exact repeat of it. A run that never repeats
-    //its start (the relaxed walk deduplicates its output) is closed on its
-    //last point.
     std::size_t start = 0;
     while (start < n) {
-        std::size_t end = n;   //one past the loop's last point
+        std::size_t end = n;
         for (std::size_t j = start + 1; j < n; ++j) {
             if (nominalOverP[j] == nominalOverP[start]) {
-                end = j;   //the repeat closes it; the next loop starts after
+                end = j;
                 break;
             }
         }
@@ -56,7 +62,6 @@ SingularLocus::SingularLocus(const std::vector<std::complex<double>> & nominalOv
                 loop.push_back({a, b, std::abs(b - a), std::max(std::abs(a), std::abs(b))});
             }
         }
-        //Close it: back to the first point, unless the walk already did.
         if (end - start >= 2) {
             const std::complex<double> a = nominalOverP[end - 1], b = nominalOverP[start];
             if (a != b) {
@@ -77,16 +82,12 @@ std::vector<Range> SingularLocus::rayInside(std::complex<double> direction) cons
     if (!m_isContour) {
         return inside;
     }
-    //Crossings of the ray {g * direction, g > 0} with each loop: a segment
-    //a + t (b - a), t in [0, 1), meets the ray at g = cross(a, d) / cross(d, b - a)
-    //... solved as a 2x2 system; the parity of the sorted crossings says
-    //where the ray is inside.
     const double dx = direction.real(), dy = direction.imag();
     for (const std::vector<Segment> & loop : m_loops) {
         std::vector<double> crossings;
         for (const Segment & s : loop) {
             const double ex = s.b.real() - s.a.real(), ey = s.b.imag() - s.a.imag();
-            const double det = dx * (-ey) - dy * (-ex);   // [d, -(b-a)] [g, t]^T = a
+            const double det = dx * (-ey) - dy * (-ex);
             if (det == 0.0) {
                 continue;
             }
@@ -107,8 +108,6 @@ std::vector<Range> SingularLocus::rayInside(std::complex<double> direction) cons
 
 int SingularLocus::windingNumber(const std::vector<Segment> & loop, std::complex<double> z)
 {
-    //The turning of the loop around z, in whole turns: the sum of the
-    //signed angles subtended by its segments.
     double turning = 0.0;
     for (const Segment & s : loop) {
         const std::complex<double> u = s.a - z, v = s.b - z;
@@ -168,17 +167,13 @@ WorstCase SingularLocus::guard(const WorstCase & sampled, std::complex<double> L
 
     if (!m_isContour) {
         if (sampled.nearestIndex >= m_spacing.size()) {
-            return guarded;   //no sample: nothing to say
+            return guarded;
         }
         const double d = sampled.nearestSample;
         const double halfSpacing = 0.5 * m_spacing[sampled.nearestIndex];
         if (!(d > halfSpacing)) {
             return singular();
         }
-        //A point of the family may be up to half a spacing nearer the pole
-        //than the nearest sample: every magnitude with the pole in its
-        //denominator may be larger by d / (d - h/2), the tracking minimum
-        //smaller by the same ratio.
         const double widen = d / (d - halfSpacing);
         guarded.stabilityNoise = sampled.stabilityNoise * widen;
         guarded.trackingMin = sampled.trackingMin / widen;
@@ -192,10 +187,6 @@ WorstCase SingularLocus::guard(const WorstCase & sampled, std::complex<double> L
         return guarded;
     }
 
-    //The extremes over the polygonal border, exactly: the pole's distance to
-    //the nearest chord and to the farthest vertex, and for the magnitudes
-    //whose numerator is |R| the largest |R| of a chord over that chord's
-    //distance.
     const std::complex<double> z = -L0;
     double nearest = kInfinity;
     double farthest = 0.0;
@@ -219,7 +210,6 @@ WorstCase SingularLocus::guard(const WorstCase & sampled, std::complex<double> L
     const double lMagnitude = std::abs(L0);
     const double p0Magnitude = std::abs(p0);
 
-    //Never less conservative than the sample, which lies on the border.
     guarded.stabilityNoise = std::max(sampled.stabilityNoise, lMagnitude / nearest);
     guarded.trackingMin = std::min(sampled.trackingMin, lMagnitude / farthest);
     guarded.outputDisturbance = std::max(sampled.outputDisturbance, largestROverDistance);
@@ -228,4 +218,4 @@ WorstCase SingularLocus::guard(const WorstCase & sampled, std::complex<double> L
     return guarded;
 }
 
-} // namespace qftbx
+}

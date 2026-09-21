@@ -1,3 +1,13 @@
+/**
+ * @file
+ * @brief Computation of QFT templates and of their epsilon-hull contours.
+ *
+ * Declares the engine that sweeps the plant over the grids of its uncertain
+ * parameters at every design frequency, the walk that extracts the contour of
+ * each cloud, the proposal of an epsilon that closes it, and the report of
+ * what each contour went through.
+ */
+
 #ifndef QFTBX_TEMPLATE_ENGINE_H
 #define QFTBX_TEMPLATE_ENGINE_H
 
@@ -32,7 +42,7 @@ namespace qftbx {
  * \f$\psi\f$ angle), closing when it returns to the initial pair.
  *
  * A walk that does not close within its step limit falls back to the
- * relaxed historical walk, a valid \f$\varepsilon\f$-cover and not the
+ * relaxed walk, a valid \f$\varepsilon\f$-cover and not the
  * canonical hull, which epsilonHull() records. It is the net under the
  * clouds no walk can close: one in two pieces, or an \f$\varepsilon\f$
  * below what the cloud needs.
@@ -68,6 +78,9 @@ public:
 
     bool computeContourSet(bool cuda);
 
+    /// One line of the record for whatever contours have just been walked.
+    void logContours(std::chrono::steady_clock::time_point since) const;
+
     /**
      * @brief Epsilon-hull contour of a point cloud, faithful to EPSHULL.M:
      * unique()d input in MATLAB complex order, max-real starting point, the
@@ -75,22 +88,17 @@ public:
      * the returned contour is closed (last point repeats the first).
      *
      * Returns empty when no candidate lies within epsilon of the start;
-     * when the reference walk cycles, falls back to the relaxed historical
-     * walk (open, deduplicated, max-imaginary start).
+     * when the reference walk cycles, falls back to the relaxed walk (open,
+     * deduplicated, max-imaginary start).
      *
      * @param cloud the plant value set at one design frequency.
      * @param epsilon how far the hull may cut across the cloud: the walk
      * guarantees every point is covered within this distance.
      * @param fellBack when not null, set to true if the faithful walk did
-     * not close and the relaxed historical walk was used instead. Reported
-     * by the CALLER, after the parallel loop: warning from inside an OpenMP
-     * region raced on the message handler (helgrind), and it is the same
-     * non-local action from within a parallel region that once let an
-     * expression error terminate the process.
+     * not close and the relaxed walk was used instead. Reported by the
+     * caller after the parallel loop, since nothing may warn or throw from
+     * inside an OpenMP region.
      */
-    /// One line of the record for whatever contours have just been walked.
-    void logContours(std::chrono::steady_clock::time_point since) const;
-
     ComplexCloud epsilonHull(const ComplexCloud & cloud, double epsilon,
                              bool * fellBack = nullptr, bool * truncated = nullptr,
                              std::vector<std::size_t> * componentStarts = nullptr);
@@ -135,7 +143,7 @@ public:
      * The walk of the hull only ever asks how far apart two points are, so
      * the plane those distances are taken in is a choice - and it decides
      * whether one epsilon can serve a whole template. In the COMPLEX plane
-     * (the historical reading, and what EPSHULL.M did) an epsilon is a
+     * (what EPSHULL.M does) an epsilon is a
      * distance in the units of the plant's response, so it means one thing
      * where the template sits at 40 dB and another where it sits at -40 dB;
      * measured on example 2 the epsilon a template needs varies by a factor
@@ -152,13 +160,13 @@ public:
     using HullMetric = qftbx::HullMetric;
 
     /// The metric and, for the Nichols plane, how many decibels weigh as
-    /// much as one degree. Complex plane by default: the historical
-    /// reading, and what every stored project predating the choice used.
+    /// much as one degree. Complex plane by default, and for a stored
+    /// project that names no plane.
     void setHullMetric(HullMetric metric, double dbPerDegree = 1.0);
     HullMetric hullMetric() const { return m_metric; }
 
-    /// How the contour of a cloud is extracted: the walk of Nordin (the
-    /// historical epsilon-hull, which can fail to close) or the alpha-shape,
+    /// How the contour of a cloud is extracted: the walk of Nordin (which
+    /// can fail to close) or the alpha-shape,
     /// the same boundary by its definition, edge by edge, which always
     /// closes and returns every component and hole (see alphaShape()).
     void setAlphaShapeContour(bool alphaShape) { m_alphaShape = alphaShape; }
@@ -185,9 +193,9 @@ public:
      * the alpha-shape at the epsilon of its own sampling step only resolves
      * where it folds or crosses itself, taking the outer loop. At a larger
      * epsilon the exposed chords of a curve multiply and the outer loop
-     * degenerates into thousands of spikes (measured: 14 000 points from a
-     * border of 624 at the epsilon of the fixture), which the boundaries
-     * then pay for. The historical walk is not used on a curve at all.
+     * degenerates into thousands of spikes (a border of some six hundred
+     * points can give a loop of fourteen thousand), which the boundaries
+     * then pay for. The walk is not used on a curve at all.
      *
      * With one or with three or more uncertain parameters the request is
      * ignored and the interior grid is swept (borderSweepApplied() says).
@@ -275,7 +283,7 @@ public:
      * @brief What the contour of one frequency went through, as data.
      *
      * The walk has two ways of not being the canonical epsilon-hull:
-     * falling back to the relaxed historical walk when the faithful one does
+     * falling back to the relaxed walk when the faithful one does
      * not close, and that walk then stopping at its step limit. A benchmark,
      * a test or a script has no error stream to read, so the facts are kept
      * here, one report per design frequency, in the order of the clouds.
@@ -343,10 +351,10 @@ private:
     const std::vector<double> & gridFor(const Parameter & a);
 
     ParameterGrids m_grids;
-    //The cartesian product of the grid sizes, so size_t and not int32:
-    //eight uncertain parameters on a 25-point grid is 25^8, about 1.5e11,
-    //which overflows a 32-bit int - and an overflowed count does not make
-    //the sweep slow, it makes it silently wrong.
+    /// The cartesian product of the grid sizes, so size_t and not int32:
+    /// eight uncertain parameters on a 25-point grid is 25^8, about 1.5e11,
+    /// which overflows a 32-bit int - and an overflowed count does not make
+    /// the sweep slow, it makes it silently wrong.
     std::size_t m_combinationCount = 0;
     std::vector <double> m_epsilon;
     HullMetric m_metric = HullMetric::ComplexPlane;
@@ -363,9 +371,9 @@ private:
     CloudSet m_clouds;
     CloudSet m_contours;
     std::vector<ContourReport> m_reports;
-    //A COPY of the frequencies compute() was given, named in the contour
-    //messages: the engine outlives them, since it is kept across a project
-    //load and that replaces the project's own.
+    /// A COPY of the frequencies compute() was given, named in the contour
+    /// messages: the engine outlives them, since it is kept across a project
+    /// load and that replaces the project's own.
     std::vector <double> m_frequencies;
 
     class NeighbourGrid;
@@ -397,12 +405,12 @@ private:
     std::int32_t findSecond(std::int32_t b1, const ComplexCloud & cv, double epsilon,
                             const NeighbourGrid & neighbours);
 
-    /// excludePrevious = true reproduces the relaxed historical variant;
+    /// excludePrevious = true reproduces the relaxed variant;
     /// false is the behaviour faithful to EPSHULL.M.
     std::int32_t findNext(std::int32_t previousPoint, std::int32_t currentPoint, const ComplexCloud & cv, double epsilon,
                           const NeighbourGrid & neighbours, bool excludePrevious = false);
 
-    /// Historical PFC walk (divergent from EPSHULL.M): max-imaginary start,
+    /// The relaxed walk (divergent from EPSHULL.M): max-imaginary start,
     /// previous point excluded, deduplicated output. Used as the fallback
     /// when the reference walk cycles. Empty when it hits its own step
     /// limit, since a partial contour must never pass for a whole one.
@@ -411,7 +419,6 @@ private:
 
 };
 
-} // namespace qftbx
+}
 
-
-#endif // QFTBX_TEMPLATE_ENGINE_H
+#endif

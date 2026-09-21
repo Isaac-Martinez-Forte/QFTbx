@@ -1,3 +1,16 @@
+/**
+ * @file
+ * @brief Reading allowed intervals off sheets and traces, and intersecting them.
+ *
+ * From traces, each column is walked top down: the state above the topmost
+ * curve is the opposite of its label, a crossing flips it at the end of its
+ * run on the allowed side, and a closed curve entering and leaving in one
+ * run is a band that leaves the state as it was. Where a sheet crosses its
+ * bound between an allowed and a violating node, the crossing is placed by
+ * linear interpolation, with an infinite value putting it on the other node.
+ * Two column sets intersect column for column and must share the phase grid.
+ */
+
 #include "src/core/boundaries/boundary_columns.h"
 
 #include <algorithm>
@@ -13,13 +26,11 @@ constexpr double kInfinity = std::numeric_limits<double>::infinity();
 
 using Span = BoundaryColumns::Span;
 
-//A border cell of one traced curve in one column.
 struct Cell {
     double magnitude;
     std::size_t trace;
 };
 
-//The intersection of two ascending lists of disjoint intervals.
 std::vector<Span> intersect(const std::vector<Span> & a, const std::vector<Span> & b)
 {
     std::vector<Span> out;
@@ -41,8 +52,6 @@ std::vector<Span> intersect(const std::vector<Span> & a, const std::vector<Span>
     return out;
 }
 
-//The allowed intervals of one specification in one column, from the border
-//cells of its curves (see BoundaryColumns::fromTraces).
 std::vector<Span> spansFromCells(std::vector<Cell> & cells, double magnitudeStep,
                                  const TraceLabels & labels, const std::vector<bool> & closed)
 {
@@ -53,8 +62,6 @@ std::vector<Span> spansFromCells(std::vector<Cell> & cells, double magnitudeStep
     std::sort(cells.begin(), cells.end(),
               [](const Cell & a, const Cell & b) { return a.magnitude < b.magnitude; });
 
-    //Runs, bottom to top: [first, last], the curve of the run's top cell,
-    //and whether the run is a fragment of a closed curve a cell thick.
     struct Run {
         double bottom;
         double top;
@@ -73,8 +80,6 @@ std::vector<Span> spansFromCells(std::vector<Cell> & cells, double magnitudeStep
         i = j + 1;
     }
 
-    //A closed curve with a single run in the column enters and leaves the
-    //column in that run: a band, not a crossing.
     std::vector<int> runsOfTrace(labels.size(), 0);
     for (const Run & run : runs) {
         ++runsOfTrace[run.trace];
@@ -83,10 +88,6 @@ std::vector<Span> spansFromCells(std::vector<Cell> & cells, double magnitudeStep
         run.band = closed[run.trace] && runsOfTrace[run.trace] == 1;
     }
 
-    //Walk down from the top. The state above the topmost curve is the
-    //opposite of its label; a crossing sits at the end of its run on the
-    //allowed side, so the run's own cells are forbidden; a band leaves the
-    //state as it was.
     std::vector<Span> spans;
     bool allowedAbove = !labels[runs.back().trace];
     double ceiling = kInfinity;
@@ -126,7 +127,7 @@ bool allowsBelowWhenOpen(const std::string & specification)
            specification == "ControlEffort";
 }
 
-} // namespace
+}
 
 BoundaryColumns::BoundaryColumns(std::int32_t phaseCount, Range phaseRange)
 {
@@ -196,8 +197,6 @@ bool BoundaryColumns::operator==(const BoundaryColumns & other) const
 
 void BoundaryColumns::intersectWith(const BoundaryColumns & other)
 {
-    //Column c of one set and column c of the other must be the same phase,
-    //or the intersection is column-for-column over different grids.
     if (m_columns != other.m_columns || m_phaseMin != other.m_phaseMin || m_step != other.m_step) {
         throw InvalidInput(QFTBX_TR("Core", "Boundary columns over different phase grids cannot be intersected: %1 columns from %2 step %3 against %4 columns from %5 step %6.")
                            .arg(m_columns).arg(m_phaseMin).arg(m_step)
@@ -260,4 +259,4 @@ BoundaryColumns BoundaryColumns::fromTraces(const std::string & specification, c
     return result;
 }
 
-} // namespace qftbx
+}

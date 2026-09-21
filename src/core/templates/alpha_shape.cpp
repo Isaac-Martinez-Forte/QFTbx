@@ -1,3 +1,16 @@
+/**
+ * @file
+ * @brief Boundary edges, faces and outer loops of the alpha shape.
+ *
+ * Neighbours within epsilon come from a grid of cells of side epsilon, so a
+ * blocker of an edge is always in the neighbour list of one end. The
+ * boundary edges form a planar graph whose faces are walked clockwise; the
+ * outer border of each component is its face of largest area, holes are
+ * components lying inside another loop and are dropped, and isolated points
+ * are components of their own. Loops start at their rightmost point and are
+ * returned rightmost first.
+ */
+
 #include "src/core/templates/alpha_shape.h"
 
 #include <algorithm>
@@ -13,7 +26,6 @@ namespace {
 
 using Complex = std::complex<double>;
 
-//Points within epsilon of each point, by a grid of cells of side epsilon.
 std::vector<std::vector<std::int32_t>> neighbourLists(const ComplexCloud & p, double epsilon)
 {
     const std::int32_t n = static_cast<std::int32_t>(p.size());
@@ -46,7 +58,7 @@ std::vector<std::vector<std::int32_t>> neighbourLists(const ComplexCloud & p, do
     return near;
 }
 
-} // namespace
+}
 
 AlphaShape alphaShape(const ComplexCloud & points, double epsilon)
 {
@@ -58,9 +70,6 @@ AlphaShape alphaShape(const ComplexCloud & points, double epsilon)
 
     const std::vector<std::vector<std::int32_t>> near = neighbourLists(points, epsilon);
 
-    //The boundary edges: one of the two discs of radius epsilon/2 through
-    //the pair is empty of every other point. A point exactly on the disc
-    //does not block it.
     const double radius = epsilon / 2.0;
     const double blocking = radius * radius * (1.0 - 1e-9);
     std::set<std::pair<std::int32_t, std::int32_t>> edges;
@@ -71,7 +80,7 @@ AlphaShape alphaShape(const ComplexCloud & points, double epsilon)
             const Complex & b = points[static_cast<std::size_t>(j)];
             const Complex chord = b - a;
             const double half = std::abs(chord) / 2.0;
-            if (!(half > 0.0)) continue;   //a repeated point: not an edge
+            if (!(half > 0.0)) continue;
             const Complex mid = (a + b) / 2.0;
             const double sagitta = std::sqrt(std::max(0.0, radius * radius - half * half));
             const Complex unit = chord / std::abs(chord);
@@ -79,8 +88,6 @@ AlphaShape alphaShape(const ComplexCloud & points, double epsilon)
             for (const double side : {1.0, -1.0}) {
                 const Complex centre = mid + side * sagitta * normal;
                 bool empty = true;
-                //Any blocker is within radius of the centre, hence within
-                //epsilon of a: it is in a's neighbour list.
                 for (const std::int32_t k : near[static_cast<std::size_t>(i)]) {
                     if (k == j) continue;
                     if (std::norm(points[static_cast<std::size_t>(k)] - centre) < blocking) {
@@ -96,8 +103,6 @@ AlphaShape alphaShape(const ComplexCloud & points, double epsilon)
         }
     }
 
-    //The faces of the planar graph of boundary edges: from a directed edge
-    //u->v, the next edge leaves v as the first one clockwise after v->u.
     std::vector<std::vector<std::int32_t>> out(static_cast<std::size_t>(n));
     for (const auto & e : edges) {
         out[static_cast<std::size_t>(e.first)].push_back(e.second);
@@ -111,8 +116,6 @@ AlphaShape alphaShape(const ComplexCloud & points, double epsilon)
         std::sort(o.begin(), o.end(), [&](std::int32_t x, std::int32_t y) { return angle(v, x) < angle(v, y); });
     }
 
-    //The connected components of the edge graph, so that each gets its own
-    //outer loop.
     std::vector<std::int32_t> parent(static_cast<std::size_t>(n));
     for (std::int32_t v = 0; v < n; ++v) parent[static_cast<std::size_t>(v)] = v;
     const auto find = [&parent](std::int32_t v) {
@@ -127,14 +130,8 @@ AlphaShape alphaShape(const ComplexCloud & points, double epsilon)
         if (a != b) parent[static_cast<std::size_t>(a)] = b;
     }
 
-    //Every face, each directed edge used once. The outer boundary of a
-    //component is its face of largest area: the holes are inside it, and a
-    //component with no area (a chain of spikes) has one face, walked out
-    //and back. Holes are not returned: the contour of a template is its
-    //outer border, as the walk gives it, and a hole treated as filled only
-    //adds to the value set what the plants around it enclose.
-    std::set<std::pair<std::int32_t, std::int32_t>> used;   //directed
-    std::map<std::int32_t, std::pair<double, std::vector<std::int32_t>>> outer;   //component -> (area, loop)
+    std::set<std::pair<std::int32_t, std::int32_t>> used;
+    std::map<std::int32_t, std::pair<double, std::vector<std::int32_t>>> outer;
     for (const auto & e : edges) {
         for (const auto start : {std::make_pair(e.first, e.second), std::make_pair(e.second, e.first)}) {
             if (used.count(start)) continue;
@@ -145,8 +142,6 @@ AlphaShape alphaShape(const ComplexCloud & points, double epsilon)
                 loop.push_back(cur.first);
                 const std::int32_t u = cur.first, v = cur.second;
                 const std::vector<std::int32_t> & o = out[static_cast<std::size_t>(v)];
-                //The reverse edge v->u in the angular order at v, then the
-                //previous one (clockwise), wrapping round.
                 const auto it = std::find(o.begin(), o.end(), u);
                 std::size_t pos = static_cast<std::size_t>(it - o.begin());
                 pos = (pos + o.size() - 1) % o.size();
@@ -170,9 +165,6 @@ AlphaShape alphaShape(const ComplexCloud & points, double epsilon)
         candidates.push_back(std::move(entry.second.second));
     }
 
-    //A hole's edges form a component of their own, disconnected from the
-    //border round it; its loop lies inside another's. Keep the loops that
-    //lie inside no other: the outer borders.
     const auto inside = [&points](const Complex & z, const std::vector<std::int32_t> & poly) {
         bool in = false;
         for (std::size_t k = 0, m = poly.size(); k < m; ++k) {
@@ -195,15 +187,12 @@ AlphaShape alphaShape(const ComplexCloud & points, double epsilon)
         if (!hole) loops.push_back(std::move(candidates[i]));
     }
 
-    //Points with no neighbour within epsilon: components of their own. (A
-    //point with neighbours but no boundary edge is interior.)
     for (std::int32_t v = 0; v < n; ++v) {
         if (near[static_cast<std::size_t>(v)].empty()) {
             loops.push_back(std::vector<std::int32_t>(1, v));
         }
     }
 
-    //Each loop from its rightmost point; loops rightmost first.
     const auto rightmost = [&points](const std::vector<std::int32_t> & loop) {
         std::size_t best = 0;
         for (std::size_t k = 1; k < loop.size(); ++k) {
@@ -226,4 +215,4 @@ AlphaShape alphaShape(const ComplexCloud & points, double epsilon)
     return shape;
 }
 
-} // namespace qftbx
+}

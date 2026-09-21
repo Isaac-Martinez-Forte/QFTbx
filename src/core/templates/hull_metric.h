@@ -17,8 +17,8 @@
 namespace qftbx {
 
 enum class HullMetric {
-    /// Distances in the plane of the plant's response: the historical
-    /// reading, and what every project file predating the choice used.
+    /// Distances in the plane of the plant's response: the default, and
+    /// what a project file that names no plane uses.
     ComplexPlane,
     /// Distances in degrees and decibels on the Nichols chart, one decibel
     /// weighing as much as so many degrees.
@@ -44,6 +44,6 @@ inline const char * hullMetricName(HullMetric metric)
     return metric == HullMetric::Nichols ? "nichols" : "complex";
 }
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_HULL_METRIC_H
+#endif

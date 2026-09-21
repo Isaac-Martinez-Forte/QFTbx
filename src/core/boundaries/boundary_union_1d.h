@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief The union of the per-specification boundaries of one frequency.
+ *
+ * Merges the curves of each design frequency into the single boundary the
+ * chart shows and the search reads, working phase bucket by phase bucket
+ * on the Nichols grid.
+ */
+
 #ifndef QFTBX_BOUNDARY_UNION_1D_H
 #define QFTBX_BOUNDARY_UNION_1D_H
 
@@ -68,10 +77,8 @@ private:
 
     Trace sortByProximity(const Trace & points);
 
-
 };
 
-} // namespace qftbx
+}
 
-
-#endif // QFTBX_BOUNDARY_UNION_1D_H
+#endif

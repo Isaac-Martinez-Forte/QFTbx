@@ -1,3 +1,13 @@
+/**
+ * @file
+ * @brief The data types of the boundary computation.
+ *
+ * The curves of every specification at every design frequency, their
+ * allowed-side labels, the union per frequency and its bucketing by phase,
+ * the sheets of one frequency in tracing order, and one sheet as a grid of
+ * closed-loop magnitudes.
+ */
+
 #ifndef QFTBX_BOUNDARY_TYPES_H
 #define QFTBX_BOUNDARY_TYPES_H
 
@@ -76,6 +86,6 @@ using TraceLabels = std::vector<bool>;
 /// Per design frequency, the labels of each specification's curves.
 using TraceMetadata = std::vector<std::map<std::string, TraceLabels>>;
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_BOUNDARY_TYPES_H
+#endif

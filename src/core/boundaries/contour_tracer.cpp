@@ -1,3 +1,15 @@
+/**
+ * @file
+ * @brief Moore-neighbourhood boundary tracing over a sampled sheet.
+ *
+ * Every unvisited cell at or above the threshold starts a trace that follows
+ * the region border clockwise through the eight neighbours and stops when no
+ * unvisited border neighbour is left. One-point traces are dropped, and every
+ * other trace is extended by a synthetic point on each side so the union can
+ * close it against the window frame. Indices are widened to size_t before
+ * multiplying, and axes map an index from their bottom end.
+ */
+
 #include <limits>
 #include <algorithm>
 #include <vector>
@@ -20,43 +32,21 @@ ContourTracer::ContourTracer(double thresholdDb, const float *sheet)
 
 namespace {
 
-//Moore neighbourhood, clockwise from north:
-// Direction-number        Y
-//   NE-7    N-0    NW-1   |
-//   E-6      *     W-2    v
-//   SE-5    S-4    SW-3
-// X -->
-//                            N   NW   W   SW   S   SE   E   NE
 constexpr std::int8_t kNeighbourX[8] = {  0,   1,  1,   1,  0,  -1, -1,  -1 };
 constexpr std::int8_t kNeighbourY[8] = { -1,  -1,  0,   1,  1,   1,  0,  -1 };
 
-//The flat index of a grid cell, multiplied in std::size_t: multiplying in
-//std::int32_t and widening the result would overflow before the widening
-//could help, and the same shape sizes the visited vector, which is then
-//read with operator[] and no bounds check.
 inline std::size_t flatIndex(std::int32_t row, std::int32_t column, std::int32_t width)
 {
     return static_cast<std::size_t>(row) * static_cast<std::size_t>(width) +
             static_cast<std::size_t>(column);
 }
 
-//Cells of a (width + 1) x (height + 1) grid, likewise widened first.
 inline std::size_t cellCount(std::int32_t width, std::int32_t height)
 {
     return (static_cast<std::size_t>(width) + 1) *
             (static_cast<std::size_t>(height) + 1);
 }
 
-//Grid-index to Nichols-coordinate conversion: each axis maps index ->
-//bottom + index * span / cells, from the BOTTOM of the axis, which is not
-//the same as the top except on a grid symmetric around zero.
-//
-//The walk itself, over any sheet that answers cellAt(x, y): every pixel of a
-//connected region at or above the threshold that has not been visited starts
-//a Moore boundary trace; it stops where no unvisited border neighbour is
-//left. Degenerate traces (one point) are dropped; the others are extended
-//by one synthetic point on each side so the 1D union closes them against
-//the window frame.
 template <class CellAt>
 TraceSet traceCells(std::int32_t width, std::int32_t height, double threshold, CellAt cellAt,
                     double phaseSpan, double magnitudeSpan, double phaseBottom, double magnitudeBottom)
@@ -115,7 +105,6 @@ TraceSet traceCells(std::int32_t width, std::int32_t height, double threshold, C
                 }
             }
 
-            //Degenerate traces (<= 1 point) are discarded.
             if (trace.size() > 1){
                 trace.insert(trace.begin(), NicholsPoint(trace.front().phase - (phaseSpan / phaseCells), trace.front().magnitude));
                 trace.push_back(NicholsPoint(trace.back().phase + (phaseSpan / phaseCells), trace.back().magnitude));
@@ -128,7 +117,7 @@ TraceSet traceCells(std::int32_t width, std::int32_t height, double threshold, C
     return traces;
 }
 
-} // namespace
+}
 
 TraceSet ContourTracer::trace(double phaseSpan, double magnitudeSpan,
                               double phaseBottom, double magnitudeBottom)
@@ -136,7 +125,6 @@ TraceSet ContourTracer::trace(double phaseSpan, double magnitudeSpan,
     const std::int32_t width = static_cast<std::int32_t>(m_sheet->at(0).size());
     const std::int32_t height = static_cast<std::int32_t>(m_sheet->size());
 
-    //One row per magnitude, one column per phase.
     const auto cellAt = [this](std::int32_t x, std::int32_t y) {
         return m_sheet->at(static_cast<std::size_t>(y)).at(static_cast<std::size_t>(x));
     };
@@ -149,17 +137,11 @@ TraceSet ContourTracer::trace(double phaseSpan, double magnitudeSpan,
 TraceSet ContourTracer::trace(double phaseSpan, double phaseCount, double magnitudeSpan,
                               double magnitudeCount, double phaseBottom, double magnitudeBottom){
 
-    //Both arrive as doubles (the CUDA overload's signature) and went into an
-    //std::int32_t with nothing checked, which is undefined behaviour for a
-    //value out of range. No compiler on the development machine sees this
-    //branch, so it is written to be right by inspection.
     const std::int32_t width = static_cast<std::int32_t>(
                 std::min(phaseCount, static_cast<double>(std::numeric_limits<std::int32_t>::max())));
     const std::int32_t height = static_cast<std::int32_t>(
                 std::min(magnitudeCount, static_cast<double>(std::numeric_limits<std::int32_t>::max())));
 
-    //Column-major: the phase index times the magnitude count, plus the
-    //magnitude index.
     const auto cellAt = [this, height](std::int32_t x, std::int32_t y) {
         return static_cast<double>(m_cudaSheet[static_cast<std::size_t>(x) * static_cast<std::size_t>(height)
                                                + static_cast<std::size_t>(y)]);
@@ -170,4 +152,4 @@ TraceSet ContourTracer::trace(double phaseSpan, double phaseCount, double magnit
 }
 #endif
 
-} // namespace qftbx
+}

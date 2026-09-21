@@ -1,3 +1,14 @@
+/**
+ * @file
+ * @brief The boundaries of one design frequency as the search reads them.
+ *
+ * Per phase of the Nichols grid, the magnitude intervals every specification
+ * allows, and their intersection over the specifications. Read off the
+ * boundary sheets column by column, or rebuilt from traced curves when a
+ * file holds only those; the search intersects them over frequencies and
+ * takes the smallest gain left.
+ */
+
 #ifndef QFTBX_BOUNDARY_COLUMNS_H
 #define QFTBX_BOUNDARY_COLUMNS_H
 
@@ -223,7 +234,7 @@ private:
     void setGrid(std::int32_t phaseCount, Range phaseRange);
     void flatten(const std::vector<std::vector<Span>> & columns);
 
-    std::vector<std::int32_t> m_begin;   //column starts into m_lo/m_hi, columnCount + 1 entries
+    std::vector<std::int32_t> m_begin;   ///< column starts into m_lo/m_hi, columnCount + 1 entries
     std::vector<double> m_lo;
     std::vector<double> m_hi;
     double m_phaseMin = 0.0;
@@ -246,10 +257,6 @@ BoundaryColumns BoundaryColumns::fromSheet(Cell cell, double thresholdDb,
     const double magnitudeStep = rows > 1 ? magnitudeRange.width() / (rows - 1) : 0.0;
     const auto magnitudeAt = [&](std::int32_t row) { return magnitudeRange.min + row * magnitudeStep; };
 
-    //Where D crosses the bound between an allowed node and a violating one,
-    //by linear interpolation. An infinite violating value (the critical
-    //point) puts the crossing on the allowed node; an allowed value that is
-    //not finite puts it on the violating one.
     const auto crossing = [&](std::int32_t allowedRow, double allowedD, std::int32_t violatingRow, double violatingD) {
         const double ma = magnitudeAt(allowedRow), mv = magnitudeAt(violatingRow);
         if (!(allowedD > -kInfinity)) {
@@ -271,7 +278,7 @@ BoundaryColumns BoundaryColumns::fromSheet(Cell cell, double thresholdDb,
 
         for (std::int32_t r = 0; r < rows; ++r) {
             const double d = static_cast<double>(cell(c, r));
-            const bool allowed = d < thresholdDb;   //false for a NaN
+            const bool allowed = d < thresholdDb;   ///< false for a NaN
             if (allowed && !inside) {
                 lo = r == 0 ? -kInfinity : crossing(r, d, r - 1, previous);
                 inside = true;
@@ -292,6 +299,6 @@ BoundaryColumns BoundaryColumns::fromSheet(Cell cell, double thresholdDb,
     return result;
 }
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_BOUNDARY_COLUMNS_H
+#endif
