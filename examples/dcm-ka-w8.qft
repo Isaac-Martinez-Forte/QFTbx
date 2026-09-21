@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<QFT version="4">
+<QFT version="4" name="DC motor, Purohit 2016" description="Experiment 4.1 of Purohit, Nataraj, Chabert and Goldsztejn (IJRNC 2016): the DC motor over eight design frequencies. The published PID admits it violates the upper tracking bound between 11 and 29 rad/s." doi="10.1002/rnc.3695">
     <inputs>
         <plant name="DC motor k a/(s(s+a)), 8 frequencies (Purohit 4.1)">
             <type id="0">

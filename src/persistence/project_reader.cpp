@@ -488,6 +488,8 @@ ProjectReader::~ProjectReader() = default;
 
 ProjectReader::Loaded ProjectReader::load(const std::string & filePath)
 {
+    m_name.clear();
+    m_description.clear();
     m_plant.reset();
     m_specifications.reset();
     m_omega.reset();
@@ -538,6 +540,9 @@ ProjectReader::Loaded ProjectReader::load(const std::string & filePath)
 
     ProjectFileParser parser(filePath, raw, kV4);
     const Tags & t = kV4;
+
+    m_name = std::string(root.attribute(t.nameAttribute).value());
+    m_description = std::string(root.attribute(t.descriptionAttribute).value());
 
     const pugi::xml_node inputs = root.child(t.inputs);
     const pugi::xml_node settings = root.child(t.settings);

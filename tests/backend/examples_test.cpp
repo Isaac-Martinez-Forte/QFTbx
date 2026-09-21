@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "src/app/project_controller.h"
+#include "src/persistence/project_reader.h"
 #include "src/core/loopshaping/common/specification_checker.h"
 #include "src/core/pipeline/pipeline_step.h"
 #include "src/core/specifications/specification_record.h"
@@ -40,6 +41,25 @@ std::vector<std::string> publishedProblems()
     return files;
 }
 
+}
+
+TEST(PublishedProblems, EveryOneSaysWhatItIs)
+{
+    const std::vector<std::string> files = publishedProblems();
+    if (files.empty()) {
+        GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
+    }
+
+    for (const std::string & file : files) {
+        const std::string name = std::filesystem::path(file).stem().string();
+
+        qftbx::ProjectReader reader;
+        reader.load(file);
+
+        EXPECT_FALSE(reader.name().empty()) << name << " carries no name";
+        EXPECT_FALSE(reader.description().empty()) << name << " carries no description";
+        EXPECT_GT(reader.description().size(), 40u) << name << " is described in a few words";
+    }
 }
 
 TEST(PublishedProblems, EveryOneOpensWholeAndMeetsItsSpecifications)

@@ -114,6 +114,12 @@ TEST_P(RoundTrip, SectionFlagsSurvive)
     EXPECT_EQ(reloadedSections.hasContour, originalSections.hasContour);
 }
 
+TEST_P(RoundTrip, TheNameAndTheDescriptionSurvive)
+{
+    EXPECT_EQ(original.name(), reloaded.name());
+    EXPECT_EQ(original.description(), reloaded.description());
+}
+
 TEST_P(RoundTrip, EverySectionSurvivesBitExact)
 {
     std::vector<double> probes{0.5, 1.0, 7.3};

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<QFT version="4">
+<QFT version="4" name="DC motor, Tharewal 3.3" description="Example 3.3 of Tharewal 2005: the DC motor k/(s(s+a)) with a first-order tracking corridor. The published controller has a complex pole pair, which this search cannot take, so the file carries one zero and one pole." doi="10.1115/1.2397147">
     <inputs>
         <plant name="DC motor k/(s(s+a)), bounds 1.5/(s+1.5) and 1/(s+1)^2 (Tharewal 3.3)">
             <type id="0">

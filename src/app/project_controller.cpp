@@ -447,6 +447,8 @@ void ProjectController::save(std::string path){
 
     ProjectContent content;
 
+    content.name = m_data.name();
+    content.description = m_data.description();
     content.plant = m_data.plant();
     content.specifications = m_data.specifications();
     content.omega = m_data.omega();
@@ -476,6 +478,8 @@ qftbx::StepSet ProjectController::load(std::string path){
     const ProjectReader::Loaded loaded = reader.load(path);
 
     m_data = qftbx::ProjectData();
+    m_data.setName(reader.name());
+    m_data.setDescription(reader.description());
 
     if (loaded.steps.has(qftbx::Step::Plant)) {
         setPlant(reader.takePlant());

@@ -16,6 +16,7 @@
 #define QFTBX_PROJECT_DATA_H
 
 #include <memory>
+#include <string>
 #include <optional>
 
 #include "src/core/templates/cloud_set.h"
@@ -91,6 +92,13 @@ public:
     EpsilonMetric epsilonMetric() const { return m_epsilonMetric; }
     void setEpsilonMetric(EpsilonMetric metric) { m_epsilonMetric = metric; }
 
+    /// The name of the project and the free description that travels with
+    /// it, both empty unless the file carried them.
+    const std::string & name() const { return m_name; }
+    void setName(std::string name) { m_name = std::move(name); }
+    const std::string & description() const { return m_description; }
+    void setDescription(std::string description) { m_description = std::move(description); }
+
     /// The boundaries, or nullptr when none have been computed. The store
     /// holds them BY VALUE in an optional; the pointer is only how callers
     /// ask "are there any", which is what they already did.
@@ -112,6 +120,8 @@ private:
     CloudSet m_contour;
     bool m_hasContour = false;
     std::optional<std::vector<double>> m_epsilon;
+    std::string m_name;
+    std::string m_description;
     EpsilonMetric m_epsilonMetric;
     std::optional<BoundaryData> m_boundaries;
     std::unique_ptr<LtiSystem> m_controller;

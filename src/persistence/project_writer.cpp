@@ -346,6 +346,13 @@ void ProjectWriter::save(const std::string & filePath, const ProjectContent & co
     pugi::xml_node root = document.append_child("QFT");
     root.append_attribute("version") = kVersion;
 
+    if (!content.name.empty()) {
+        root.append_attribute(t.nameAttribute) = content.name.c_str();
+    }
+    if (!content.description.empty()) {
+        root.append_attribute(t.descriptionAttribute) = content.description.c_str();
+    }
+
     pugi::xml_node inputs = root.append_child(t.inputs);
 
     if (content.plant != nullptr) {

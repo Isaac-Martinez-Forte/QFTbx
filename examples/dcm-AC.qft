@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<QFT version="4">
+<QFT version="4" name="DC motor, DYCOPS 2013" description="IFAC DYCOPS 2013, also example 3.2 of Tharewal 2005: the DC motor with a fourth-order lower tracking bound over six design frequencies.">
     <inputs>
         <plant name="DC motor k a/(s(s+a)), bounds A/C (Tharewal 3.2)">
             <type id="0">

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<QFT version="4">
+<QFT version="4" name="Unstable plant, Tharewal 3.6" description="Example 3.6 of Tharewal 2005: k(s+a)/(s^2-2.5) with a stability margin of 2.1 as its only specification. The published static gain of 5.18 leaves every member with a below 0.48 unstable, so the file carries a controller with one zero and one pole, checked against the closed-loop poles of all 81 plants.">
     <inputs>
         <plant name="Unstable k(s+a)/(s^2-2.5) (Tharewal 3.6)">
             <type id="0">

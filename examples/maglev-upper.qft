@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<QFT version="4">
+<QFT version="4" name="Magnetic levitation, unstable half" description="Experiment 4.2 of Purohit et al. (IJRNC 2016), the unstable half: k/(s^2-a) with k in [1021,1106] and a in [382,478.5]. The published controller is a PID with a filter, so the file carries one zero and one pole." doi="10.1002/rnc.3695">
     <inputs>
         <plant name="Maglev upper k/(s^2-a) (Purohit 4.2)">
             <type id="0">
