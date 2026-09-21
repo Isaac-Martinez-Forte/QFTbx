@@ -1,3 +1,15 @@
+/**
+ * @file
+ * @brief JSON encoding of benchmark records and the environment they ran in.
+ *
+ * The environment names the host, the operating system, the compiler, the
+ * git commit compiled in, the interval backend and the load average at the
+ * time. Fields absent from a record read as zero, and a worst excess that is
+ * missing reads as not-a-number. The digest of a design is an FNV-1a hash
+ * over the exact bits of the gain, the zeros and the poles, so two runs agree
+ * only when their results are identical to the last bit.
+ */
+
 #include "src/bench/record.h"
 
 #include <cmath>
@@ -78,7 +90,7 @@ std::vector<double> fromArray(const QJsonArray & array)
     return values;
 }
 
-} // namespace
+}
 
 QJsonObject toJson(const Record & r)
 {
@@ -190,7 +202,6 @@ Record recordFromJson(const QJsonObject & o)
     r.statistics.peakLiveNodes = static_cast<std::size_t>(s["peak_live_nodes"].toInteger());
     r.statistics.nodesProcessed = static_cast<std::size_t>(s["nodes_processed"].toInteger());
     r.statistics.boxesClassified = static_cast<std::size_t>(s["boxes_classified"].toInteger());
-    //Absent in records written before the split: they read as zero.
     r.statistics.boxesFeasible = static_cast<std::size_t>(s["boxes_feasible"].toInteger());
     r.statistics.boxesInfeasible = static_cast<std::size_t>(s["boxes_infeasible"].toInteger());
     r.statistics.boxesAmbiguous = static_cast<std::size_t>(s["boxes_ambiguous"].toInteger());
@@ -296,4 +307,4 @@ std::string digestOf(double gain, const std::vector<double> & zeros, const std::
     return out.str();
 }
 
-} // namespace qftbx::bench
+}

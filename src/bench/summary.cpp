@@ -1,3 +1,16 @@
+/**
+ * @file
+ * @brief Aggregation of benchmark records into summary tables.
+ *
+ * The spread of a sample gives its median, mean, sample standard deviation
+ * and coefficient of variation; the memory attributed to the algorithm is
+ * the peak minus the baseline measured before the search. Rows are keyed
+ * by structure, algorithm and epsilon, and the digest and the counters of
+ * the first solved run are compared with every other one to flag a
+ * disagreement. The CSV keeps seventeen significant digits; the Markdown
+ * table rounds for reading.
+ */
+
 #include "src/bench/summary.h"
 
 #include <algorithm>
@@ -117,7 +130,7 @@ std::string number(double value, int precision = 3)
     return out.str();
 }
 
-} // namespace
+}
 
 void writeCsv(const std::vector<Aggregate> & aggregates, const std::string & path)
 {
@@ -180,4 +193,4 @@ void writeMarkdown(const std::vector<Aggregate> & aggregates, const std::string 
     out << markdownTable(aggregates);
 }
 
-} // namespace qftbx::bench
+}

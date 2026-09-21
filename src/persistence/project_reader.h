@@ -1,3 +1,16 @@
+/**
+ * @file
+ * @brief Loads a .qft project file into the core's objects.
+ *
+ * Sections may appear in any subset; the result says which design steps the
+ * file carried and whether the templates came with a contour. Malformed
+ * content throws a parse error with the offending line, a missing or
+ * unreadable file a file error, and any version other than the one this
+ * build writes is refused rather than guessed at. The reader owns what it
+ * loaded until the caller claims a section through the take functions;
+ * whatever is left unclaimed dies with the reader.
+ */
+
 #ifndef QFTBX_PROJECT_READER_H
 #define QFTBX_PROJECT_READER_H
 
@@ -20,7 +33,7 @@
 namespace qftbx {
 
 /**
- * @brief Loads a version-2 .qft project file (pugixml DOM).
+ * @brief Loads a .qft project file of the version this build writes.
  *
  * Sections may appear in any order and any subset; load() reports which
  * ones were found. Malformed content throws qftbx::ParseError with the
@@ -58,8 +71,8 @@ public:
     ProjectReader(const ProjectReader &) = delete;
     ProjectReader & operator=(const ProjectReader &) = delete;
 
-    //Inspection: the reader KEEPS ownership, so a caller that only looks
-    //at the parsed contents needs no cleanup of its own.
+    /// Inspection: the reader KEEPS ownership, so a caller that only looks
+    /// at the parsed contents needs no cleanup of its own.
     LtiSystem * plant() const { return m_plant.get(); }
     const qftbx::SpecificationRecords * specifications() const
     {
@@ -74,8 +87,8 @@ public:
     {
         return m_epsilon.has_value() ? &m_epsilon.value() : nullptr;
     }
-    /// The plane that epsilon is measured in: from the file's attributes in
-    /// version 3, the complex plane for a version-2 file.
+    /// The plane that epsilon is measured in, from the file's attributes;
+    /// the complex plane when the file names none.
     EpsilonMetric epsilonMetric() const { return m_epsilonMetric; }
     const BoundaryData * boundaries() const
     {
@@ -84,9 +97,9 @@ public:
     LtiSystem * controller() const { return m_controller.get(); }
     LoopShapingResult * loopShaping() const { return m_loopShaping.get(); }
 
-    //Claim: the caller becomes the owner and the reader forgets it. Used
-    //by the facade, which hands everything to the project store; anything
-    //left unclaimed dies with the reader.
+    /// Claim: the caller becomes the owner and the reader forgets it. Used
+    /// by the facade, which hands everything to the project store; anything
+    /// left unclaimed dies with the reader.
     std::unique_ptr<LtiSystem> takePlant() { return std::move(m_plant); }
     std::optional<qftbx::SpecificationRecords> takeSpecifications()
     {
@@ -132,7 +145,6 @@ private:
     std::unique_ptr<LoopShapingResult> m_loopShaping;
 };
 
-} // namespace qftbx
+}
 
-
-#endif // QFTBX_PROJECT_READER_H
+#endif

@@ -1,3 +1,15 @@
+/**
+ * @file
+ * @brief The scheduler of benchmark cases across worker processes.
+ *
+ * Free slots are filled up to the job count, which defaults to one less than
+ * the machine's threads; the loop then polls every fifty milliseconds. A case
+ * killed on timeout or on cancellation, one that crashed, or one whose worker
+ * could not start gets a failure record written in its place, so the records
+ * directory is complete whatever happened. Gathering rereads every record on
+ * disc, so it also works on the records of an earlier, interrupted run.
+ */
+
 #include "src/bench/runner.h"
 
 #include <chrono>
@@ -35,7 +47,7 @@ int jobsOf(const Plan & plan, int override)
     return jobs < 1 ? 1 : jobs;
 }
 
-} // namespace
+}
 
 std::size_t Runner::run(const Plan & plan, const std::string & planPath, const std::string & workerProgram,
                         int jobs, const Listener & listener)
@@ -92,7 +104,6 @@ std::size_t Runner::run(const Plan & plan, const std::string & planPath, const s
     };
 
     while (next < cases.size() || !running.empty()) {
-        //Fill the free slots.
         while (!m_cancel.load() && next < cases.size() && static_cast<int>(running.size()) < atOnce) {
             const Case & c = cases[next++];
             Running job;
@@ -163,4 +174,4 @@ void gather(const Plan & plan)
     writeMarkdown(aggregates, out.filePath(stem + "-summary.md").toStdString());
 }
 
-} // namespace qftbx::bench
+}

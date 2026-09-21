@@ -1,8 +1,21 @@
+/**
+ * @file
+ * @brief The tag names and the version of the .qft project format.
+ *
+ * One table names every element and attribute, so neither side can rename
+ * a tag without the other following. A file has three parts in the order a
+ * reader meets them: the inputs the user described, the settings each
+ * computation was run with, and the results. The version this build writes
+ * is the only one it reads. Algorithms are stored by name rather than by
+ * position, so a file still says which algorithm produced a design after
+ * another one is added to the list.
+ */
+
 #ifndef QFTBX_QFT_DIALECT_H
 #define QFTBX_QFT_DIALECT_H
 
-//Internal to src/persistence: the tag names of the .qft dialects, shared by
-//the reader and the writer.
+/// Internal to src/persistence: the tag names of the .qft dialects, shared by
+/// the reader and the writer.
 
 #include "src/core/loopshaping/loop_shaping_types.h"
 
@@ -22,9 +35,7 @@ namespace qftbx {
 struct Tags {
     /// The three parts of a project file, in the order a reader meets them:
     /// what the user described, what each computation was run with, and what
-    /// came out of it. Before version 4 they were mixed - the controller
-    /// STRUCTURE, which is an input, sat after the templates and the
-    /// boundaries - and a file could not be read down the page.
+    /// came out of it, so a file reads down the page.
     const char * inputs;
     const char * settings;
     const char * results;
@@ -135,6 +146,6 @@ inline std::optional<LoopShapingAlgorithm> algorithmFromName(const std::string &
     return std::nullopt;
 }
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_QFT_DIALECT_H
+#endif

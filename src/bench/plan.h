@@ -14,6 +14,7 @@
 #include "src/core/system/lti_system.h"
 
 /**
+ * @file
  * @brief A benchmark plan: what to measure, on which project, how often.
  *
  * A plan names a project file whose templates and boundaries are already
@@ -127,6 +128,6 @@ std::string structureLabel(const Plan & plan, std::size_t stepsApplied);
 /// Zero-pole-gain structures only.
 std::unique_ptr<LtiSystem> structureAfter(const Plan & plan, LtiSystem & base, std::size_t stepsApplied);
 
-} // namespace qftbx::bench
+}
 
-#endif // QFTBX_BENCH_PLAN_H
+#endif

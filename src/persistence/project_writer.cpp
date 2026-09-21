@@ -1,3 +1,19 @@
+/**
+ * @file
+ * @brief The XML emission behind the project writer.
+ *
+ * The three parts of the file come out in the order a reader meets them:
+ * the inputs, so the problem is legible in the first page, then the settings
+ * of each computation, then the bulk of the results. The controller structure
+ * is an input, the box the search is asked to look in, and goes with the
+ * plant. Parameters are written with their raw range and nominal, before the
+ * reparametrising expression is applied, since the reader takes what it finds
+ * as the state and applying the expression on every save would compound it.
+ * A description, a skipped-frequency list or a worst excess is written only
+ * when there is one. The verifier's verdict is stored because it cannot be
+ * recovered without recomputing it; the itemised list behind it is derived.
+ */
+
 #include <vector>
 #include <cstdint>
 #include "src/persistence/project_writer.h"
@@ -19,16 +35,10 @@ namespace qftbx {
 
 namespace {
 
-//The one place a real becomes text: see qftbx::text::number. Not "%.17g",
-//which writes noise digits (0.00010155800000000001 for a value whose exact
-//short form is 0.000101558).
 using qftbx::text::number;
 
 const Tags & t = kV4;
 
-//A NaN or an infinity never leaves for the file: written as text they read
-//back through strtod, and a project that had gone wrong in memory would
-//come back looking like one that had not.
 void requireFinite(double value, const char * what)
 {
     if (!std::isfinite(value)) {
@@ -66,8 +76,6 @@ std::string boolVectorText(const std::vector<bool> & values)
     return text;
 }
 
-//An interval end: a real, or an infinity, which is legitimate here (the
-//side of an open boundary) and which strtod reads back.
 std::string endText(double value)
 {
     if (std::isinf(value)) {
@@ -105,11 +113,6 @@ void addBool(pugi::xml_node parent, const char * name, bool value)
     parent.append_child(name).text().set(value ? "true" : "false");
 }
 
-//The RAW values, because they are the state and the reader takes what it
-//finds as the state. range() and nominal() are those values with the
-//reparametrisation already applied, so writing them applies the expression
-//once more on every save and load: "a*10" over [1, 2] comes back raw as
-//[10, 20] and reports [100, 200].
 void writeParameter(pugi::xml_node parent, const Parameter & parameter)
 {
     pugi::xml_node node = parent.append_child("parameter");
@@ -130,8 +133,6 @@ void writeSystem(pugi::xml_node parent, const char * sectionName, LtiSystem * sy
     pugi::xml_node node = parent.append_child(sectionName);
     node.append_attribute(t.nameAttribute) = system->name().c_str();
 
-    //Written only when there is one: a file full of empty attributes says
-    //nothing, and an absent description reads back as an empty one.
     if (!system->description().empty()) {
         node.append_attribute(t.descriptionAttribute) = system->description().c_str();
     }
@@ -181,9 +182,6 @@ void writeSpecifications(pugi::xml_node root, const qftbx::SpecificationRecords 
         addReal(node, t.minFrequency, record.omegaStart);
         addReal(node, t.maxFrequency, record.omegaEnd);
 
-        //The frequencies of that band this one was taken out of, if any:
-        //written only when there are, so a file says nothing about an
-        //exception list nobody made.
         if (!record.skipped.empty()) {
             addText(node, t.skipped, realVectorText(record.skipped, t.skipped));
         }
@@ -224,8 +222,6 @@ void writeComplexVectors(pugi::xml_node section, const qftbx::CloudSet & vectors
     }
 }
 
-/// What the templates were computed with: the tolerance of the hull walk,
-/// per frequency, and the plane it is measured in.
 void writeTemplateSettings(pugi::xml_node settings, const ProjectContent & content)
 {
     pugi::xml_node section = settings.append_child(t.templates);
@@ -235,9 +231,6 @@ void writeTemplateSettings(pugi::xml_node settings, const ProjectContent & conte
     epsilonNode.append_attribute("db-per-degree") = number(content.epsilonMetric.dbPerDegree).c_str();
 }
 
-/// What the search was asked for. The same problem answers a different gain
-/// under a different reading of the phase grid, so a design without these
-/// three numbers cannot be compared with another.
 void writeLoopShapingSettings(pugi::xml_node settings, const LoopShapingResult::Run & run)
 {
     pugi::xml_node section = settings.append_child(t.loopShaping);
@@ -287,10 +280,6 @@ void writeBoundaries(pugi::xml_node root, const BoundaryData * boundaries)
     addText(metadata, t.openFlags, boolVectorText(boundaries->openFlags()));
     addText(metadata, t.upperFlags, boolVectorText(boundaries->upperFlags()));
 
-    //The allowed magnitude intervals per phase column of every
-    //specification, per frequency: for each column its interval count and
-    //then the ends of each interval, which may be infinite. A reader
-    //without them rebuilds them from the traces, a cell coarser.
     pugi::xml_node columns = metadata.append_child(t.boundaryColumns);
     for (const auto & map : boundaries->specificationColumns()) {
         pugi::xml_node frequency = columns.append_child("frequency");
@@ -305,7 +294,6 @@ void writeBoundaries(pugi::xml_node root, const BoundaryData * boundaries)
         pugi::xml_node frequency = perFrequency.append_child("frequency");
         frequency.append_attribute("size") = static_cast<std::int64_t>(map.size());
 
-        //std::map iterates in key order, as QMap::keys() did.
         for (const auto & entry : map) {
             pugi::xml_node keyNode = frequency.append_child(entry.first.c_str());
             keyNode.append_attribute("size") = static_cast<std::int64_t>(entry.second.size());
@@ -337,24 +325,16 @@ void writeLoopShaping(pugi::xml_node root, LoopShapingResult * loopShaping)
 
     writeSystem(section, t.controller, loopShaping->controller());
 
-    //The verifier's verdict: the worst excess over any active specification,
-    //in decibels, over the full templates. Negative means satisfied, and by
-    //how much. The itemised list behind it is not written - it is derived
-    //from data the file already has - but the verdict is not derivable
-    //without recomputing it, and it is what the design is worth.
     if (loopShaping->check().has_value()) {
         pugi::xml_node check = section.append_child(t.check);
         check.append_attribute("satisfied") = loopShaping->check()->satisfied();
-        //Minus infinity when no specification was active at any frequency:
-        //there is nothing to have exceeded, and the file carries no
-        //infinities. The verdict stands on its own.
         if (std::isfinite(loopShaping->check()->worstExcessDb)) {
             check.append_attribute("worst-excess-db") = number(loopShaping->check()->worstExcessDb).c_str();
         }
     }
 }
 
-} // namespace
+}
 
 void ProjectWriter::save(const std::string & filePath, const ProjectContent & content)
 {
@@ -366,10 +346,6 @@ void ProjectWriter::save(const std::string & filePath, const ProjectContent & co
     pugi::xml_node root = document.append_child("QFT");
     root.append_attribute("version") = kVersion;
 
-    //Three parts, in the order a reader meets them: what the user described,
-    //then what each computation was run with, then what came out. The
-    //problem is legible in the first page of the file and the bulk is at the
-    //bottom, which is the point of the arrangement.
     pugi::xml_node inputs = root.append_child(t.inputs);
 
     if (content.plant != nullptr) {
@@ -381,8 +357,6 @@ void ProjectWriter::save(const std::string & filePath, const ProjectContent & co
     if (content.omega != nullptr) {
         writeOmega(inputs, content.omega);
     }
-    //The controller STRUCTURE is an input: it is the box the search is asked
-    //to look in, not what the search found.
     if (content.controller != nullptr) {
         writeSystem(inputs, t.controller, content.controller);
     }
@@ -417,4 +391,4 @@ void ProjectWriter::save(const std::string & filePath, const ProjectContent & co
     }
 }
 
-} // namespace qftbx
+}

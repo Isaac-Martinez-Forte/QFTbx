@@ -8,6 +8,7 @@
 #include "src/bench/record.h"
 
 /**
+ * @file
  * @brief The statistics of a plan's records, one row per (structure,
  * algorithm, epsilon), over its repetitions.
  *
@@ -69,6 +70,6 @@ void writeCsv(const std::vector<Aggregate> & aggregates, const std::string & pat
 void writeMarkdown(const std::vector<Aggregate> & aggregates, const std::string & path);
 std::string markdownTable(const std::vector<Aggregate> & aggregates);
 
-} // namespace qftbx::bench
+}
 
-#endif // QFTBX_BENCH_SUMMARY_H
+#endif

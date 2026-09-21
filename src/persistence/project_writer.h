@@ -1,3 +1,15 @@
+/**
+ * @file
+ * @brief Writes a project to a .qft file.
+ *
+ * The content to write is a set of unowned pointers, one per section, and a
+ * null pointer skips its section. Numbers are written in the shortest form
+ * that reads back to the same double, so a save and load round trip is exact
+ * to the bit. A value that is not a finite number refuses the write: the file
+ * never carries a NaN or an infinity, except as the legitimate end of an
+ * open boundary column.
+ */
+
 #ifndef QFTBX_PROJECT_WRITER_H
 #define QFTBX_PROJECT_WRITER_H
 
@@ -35,8 +47,7 @@ struct ProjectContent {
 };
 
 /**
- * @brief Writes a .qft project file in the version-3 English dialect (version 2
- * plus the plane the templates' epsilon is measured in).
+ * @brief Writes a .qft project file in the dialect this build reads.
  *
  * Numbers are written in the shortest form that reads back to the same
  * double (qftbx::text::number), so a save/load round trip is bit-exact and
@@ -51,7 +62,6 @@ public:
     void save(const std::string & filePath, const ProjectContent & content);
 };
 
-} // namespace qftbx
+}
 
-
-#endif // QFTBX_PROJECT_WRITER_H
+#endif

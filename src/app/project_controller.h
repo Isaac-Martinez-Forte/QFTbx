@@ -1,6 +1,21 @@
+/**
+ * @file
+ * @brief The facade of a QFT project over its data, engines and persistence.
+ *
+ * The interface never touches the core directly; every one of the seven
+ * design steps is a method here, from entering the plant to running the loop
+ * shaping, and a getter answers null while its step is not done. Publishing
+ * an input drops whatever was computed from the old one, and which steps are
+ * complete is derived from the data rather than stored. A computation may run
+ * on a worker thread: while it does, every mutating entry point throws, the
+ * worker writes only its own result, and the caller collects the run on its
+ * own thread. One change announcement per operation reaches the interface,
+ * fired by the outermost scope even when nested publishers or exceptions are
+ * involved. The class carries no Qt.
+ */
+
 #ifndef QFTBX_PROJECT_CONTROLLER_H
 #define QFTBX_PROJECT_CONTROLLER_H
-
 
 #include <functional>
 #include <string>
@@ -23,7 +38,6 @@
 #include <optional>
 
 #include "src/core/project/project_data.h"
-
 
 /**
  * @class ProjectController
@@ -61,7 +75,7 @@ public:
 
     ~ProjectController();
 
-    // --- step 1: the plant -------------------------------------------------
+    /// --- step 1: the plant -------------------------------------------------
 
     LtiSystem * plant();
 
@@ -79,12 +93,12 @@ public:
      */
     bool setPlant(std::unique_ptr<LtiSystem> plant);
 
-    // --- step 2: the specifications ---------------------------------------
+    /// --- step 2: the specifications ---------------------------------------
 
     qftbx::SpecificationRecords * specifications();
     void setSpecifications(std::optional<qftbx::SpecificationRecords> specifications);
 
-    // --- step 3: the design frequencies -----------------------------------
+    /// --- step 3: the design frequencies -----------------------------------
 
     Omega * omega();
 
@@ -102,12 +116,12 @@ public:
      */
     bool setOmega(std::unique_ptr<Omega> omega);
 
-    //frequencies() lived here too, returning omega()->values() under another
-    //name. Two ways to ask the same question is one too many, and this was
-    //the one nobody used: ProjectData::frequencies() is what the stages read,
-    //and the interface goes through omega()->values().
+    /// frequencies() lived here too, returning omega()->values() under another
+    /// name. Two ways to ask the same question is one too many, and this was
+    /// the one nobody used: ProjectData::frequencies() is what the stages read,
+    /// and the interface goes through omega()->values().
 
-    // --- step 4: the templates --------------------------------------------
+    /// --- step 4: the templates --------------------------------------------
 
     /**
      * @brief Computes the plant value set at every design frequency and its
@@ -166,8 +180,7 @@ public:
     std::vector<TemplateEngine::EpsilonProposal> proposeEpsilon(qftbx::ParameterGrids grids,
                                                                 qftbx::EpsilonMetric metric);
 
-
-    // --- step 5: the boundaries -------------------------------------------
+    /// --- step 5: the boundaries -------------------------------------------
 
     /**
      * @brief Computes the QFT boundaries over the Nichols grid.
@@ -188,7 +201,7 @@ public:
     const qftbx::UnionTraces & unionBoundaries();
     const qftbx::UnionBuckets & unionBuckets();
 
-    // --- step 6: the controller structure ---------------------------------
+    /// --- step 6: the controller structure ---------------------------------
 
     /// The controller BEING DESIGNED: its structure and the search box of
     /// its parameters.
@@ -208,7 +221,7 @@ public:
      */
     bool setControllerStructure(std::unique_ptr<LtiSystem> controller);
 
-    // --- step 7: the loop shaping -----------------------------------------
+    /// --- step 7: the loop shaping -----------------------------------------
 
     /**
      * @brief Runs the selected loop-shaping algorithm over the current
@@ -236,7 +249,7 @@ public:
     /**
      * @brief Applies the settings the application read.
      *
-     * Only what the CORE needs: today that is the search's memory budget.
+     * Only what the CORE needs: the search's memory budget.
      * The interface keeps its own copy for its dialogs' ceilings. Called once
      * after construction; the compiled defaults stand until it is.
      */
@@ -259,7 +272,7 @@ public:
     using ChangeHandler = std::function<void ()>;
     void setChangeHandler(ChangeHandler handler) { m_onChanged = std::move(handler); }
 
-    // --- the pipeline as data ----------------------------------------------
+    /// --- the pipeline as data ----------------------------------------------
 
     /**
      * @brief Which steps are done, DERIVED from what the project holds.
@@ -274,35 +287,35 @@ public:
      * @brief Drops everything computed from the given step downwards.
      *
      * The cascade in one place. The dependency order lives in this class and
-     * nowhere else - or rather, that is what this is for: the window mirrors
-     * the same order by hand today, and this is what it can ask instead.
+     * nowhere else, and this is what the window asks instead of mirroring
+     * the order by hand.
      */
     void invalidateFrom(qftbx::Step step);
 
-    // --- the search, off the calling thread --------------------------------
-    //
-    //The same computation as above, started on a worker and left to run. It
-    //lives HERE and not in the interface because this class owns the project
-    //data: while a search is in flight nothing may touch them, and the only
-    //place that can actually enforce that is the one holding them. Every
-    //mutating entry point refuses while a run is in flight, which is the
-    //whole reason the threading is in the core rather than in the window.
-    //
-    //WHAT THE WORKER TOUCHES, exactly, because "do not touch the project" is
-    //too vague to build an interface on:
-    //  - it READS the plant, the controller structure, the frequencies, the
-    //    boundaries, the contour and the specifications. Reading those from
-    //    another thread at the same time is a read against a read, so a
-    //    viewer may refresh from them while the search runs.
-    //  - it WRITES exactly one thing, once, at the very end: the
-    //    loop-shaping result. So loopShapingResult() is the one getter that
-    //    must not be read until the run is over - isComputing() says when,
-    //    and waitForComputation() waits.
-    //  - and it MUTATES nothing else, which is what the guard enforces
-    //    rather than asks for.
-    //
-    //start() is not safe against itself: one caller starts runs. It is safe
-    //against everything else, which is what matters here.
+    /// --- the search, off the calling thread --------------------------------
+    /// 
+    /// The same computation as above, started on a worker and left to run. It
+    /// lives HERE and not in the interface because this class owns the project
+    /// data: while a search is in flight nothing may touch them, and the only
+    /// place that can actually enforce that is the one holding them. Every
+    /// mutating entry point refuses while a run is in flight, which is the
+    /// whole reason the threading is in the core rather than in the window.
+    /// 
+    /// WHAT THE WORKER TOUCHES, exactly, because "do not touch the project" is
+    /// too vague to build an interface on:
+    ///  - it READS the plant, the controller structure, the frequencies, the
+    ///    boundaries, the contour and the specifications. Reading those from
+    ///    another thread at the same time is a read against a read, so a
+    ///    viewer may refresh from them while the search runs.
+    ///  - it WRITES exactly one thing, once, at the very end: the
+    ///    loop-shaping result. So loopShapingResult() is the one getter that
+    ///    must not be read until the run is over - isComputing() says when,
+    ///    and waitForComputation() waits.
+    ///  - and it MUTATES nothing else, which is what the guard enforces
+    ///    rather than asks for.
+    /// 
+    /// start() is not safe against itself: one caller starts runs. It is safe
+    /// against everything else, which is what matters here.
 
     /**
      * @brief Starts the search on a worker thread.
@@ -363,11 +376,11 @@ public:
     /// Blocks until the run in flight finishes. For tests and for shutdown.
     void waitForComputation();
 
-    //The three below describe the last FINISHED run, and they are only
-    //meaningful once it has finished: ask isComputing() first, or call
-    //waitForComputation(). What publishes them is the release of the running
-    //flag and the join, so reading them mid-run is reading a value that is
-    //being written.
+    /// The three below describe the last FINISHED run, and they are only
+    /// meaningful once it has finished: ask isComputing() first, or call
+    /// waitForComputation(). What publishes them is the release of the running
+    /// flag and the join, so reading them mid-run is reading a value that is
+    /// being written.
 
     /// Whether the last finished run published a design.
     bool lastComputationProduced() const;
@@ -380,7 +393,7 @@ public:
 
     LoopShapingResult * loopShapingResult();
 
-    // --- persistence ------------------------------------------------------
+    /// --- persistence ------------------------------------------------------
 
     /// Writes the whole project to a .qft file.
     void save(std::string path);
@@ -402,7 +415,6 @@ private:
     void dropBoundariesAndBelow();
     void dropLoopShaping();
 
-
     /**
      * @brief Announces a change on the way out of the scope it is built in.
      *
@@ -422,11 +434,6 @@ private:
 
         ~Announce()
         {
-            //The OUTERMOST one announces. load() publishes seven sections
-            //through the same guarded methods, and the interface would then
-            //be told seven times about one operation - and told first about
-            //a project half read, which it would have to be written to
-            //tolerate.
             if (--m_owner.m_announcing == 0 && m_owner.m_onChanged) {
                 m_owner.m_onChanged();
             }
@@ -442,31 +449,31 @@ private:
     ChangeHandler m_onChanged;
     int m_announcing = 0;
 
-    //The project contents, owned.
+    /// The project contents, owned.
     qftbx::ProjectData m_data;
 
-    //The publishers load() uses to put a file's artefacts in place. Private:
-    //publishing a computed artefact from outside would bypass the dependency
-    //graph, and nothing outside ever did.
+    /// The publishers load() uses to put a file's artefacts in place. Private:
+    /// publishing a computed artefact from outside would bypass the dependency
+    /// graph, and nothing outside ever did.
     void setTemplates(qftbx::CloudSet templates, qftbx::CloudSet contour, bool hasContour);
     void setBoundaries(std::optional<qftbx::BoundaryData> boundaries);
     void setLoopShapingResult(std::unique_ptr<LoopShapingResult> result);
 
-    //The three computation engines, created on first use.
-    //Built on first use and kept: the template engine holds the clouds a
-    //recontour works from.
+    /// The three computation engines, created on first use.
+    /// Built on first use and kept: the template engine holds the clouds a
+    /// recontour works from.
     qftbx::BoundaryStage m_boundaries;
-    //One stage per phase of the pipeline: each owns its preconditions, its
-    //engine, its parameters and the publishing of its outputs. This class
-    //keeps the data and the dependency graph, and delegates the rest.
+    /// One stage per phase of the pipeline: each owns its preconditions, its
+    /// engine, its parameters and the publishing of its outputs. This class
+    /// keeps the data and the dependency graph, and delegates the rest.
     qftbx::TemplateStage m_templates;
     /// Throws InvalidInput when a computation is in flight.
     void requireNotComputing() const;
 
     qftbx::LoopShapingStage m_loopShaping;
 
-    //The worker and the flag it reads. Both live as long as this class, so a
-    //token cannot outlive the search that reads it.
+    /// The worker and the flag it reads. Both live as long as this class, so a
+    /// token cannot outlive the search that reads it.
     qftbx::BackgroundRun m_background;
     qftbx::CancellationToken m_cancellation;
 
@@ -475,6 +482,6 @@ private:
     Computation m_lastComputation = Computation::None;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_PROJECT_CONTROLLER_H
+#endif

@@ -1,16 +1,19 @@
-// qftbx-bench: the benchmark tool of QFTbx.
-//
-//   qftbx-bench run <plan.xml> [--jobs K]   runs every case of the plan, K
-//                                           processes at a time, and writes
-//                                           the records and the summaries
-//   qftbx-bench case <plan.xml> <index>     runs one case in this process
-//                                           (what "run" launches)
-//   qftbx-bench summarize <plan.xml>        gathers the records already
-//                                           written into the summaries
-//   qftbx-bench cases <plan.xml>            lists the cases of the plan
-//   qftbx-bench example                     prints an example plan
-//
-// The plan format and the records are described in docs/BENCHMARKING.md.
+/**
+ * @file
+ * @brief `qftbx-bench`, the command-line benchmark tool of QFTbx.
+ *
+ * "run" executes every case of a plan, several processes at a time, and
+ * writes the records and the summaries; "case" runs one case in this process
+ * and is what "run" launches; "summarize" gathers records already written;
+ * "cases" lists the cases of a plan; "example" prints a plan to start from.
+ * Paths in a plan are relative to the plan file, not to the current
+ * directory, so a plan travels with its project and its results. The numeric
+ * locale is reset to "C" after the application object is created, because
+ * under a decimal-comma locale the number readers reject "0.1" and neither a
+ * plan nor a project would load. The plan format and the records are
+ * described in docs/BENCHMARKING.md.
+ */
+
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
@@ -45,8 +48,6 @@ int usage()
     return 2;
 }
 
-//Paths in the plan are relative to the plan file, not to the current
-//directory, so a plan can be moved with its project and its results.
 Plan loadPlan(const std::string & path)
 {
     Plan plan = readPlan(path);
@@ -129,17 +130,12 @@ int printExample()
     return 0;
 }
 
-} // namespace
+}
 
 int main(int argc, char ** argv)
 {
     QCoreApplication application(argc, argv);
 
-    //Same as the application's main() and the other test mains:
-    //QCoreApplication adopts the system locale, and under a decimal-comma
-    //locale (es_ES...) the number readers reject literals like "0.1", so
-    //neither a plan nor a project would load. The numeric side of the
-    //program always works with the decimal point.
     std::setlocale(LC_NUMERIC, "C");
 
     const std::vector<std::string> args(argv + 1, argv + argc);
